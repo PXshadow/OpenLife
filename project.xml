@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+	
+	<meta title="OneHourOpenLife" package="com.project.OneHourOpenLife" version="1.0.0" company="" />
+	<app main="Main" path="bin" file="OneHourOpenLife" />
+	<window background="0" width="1280" height="720" fps="60" vsync="true" hardware="true" depth-buffer="false" stencil-buffer="false" />
+	<source path="src" />
+	<haxelib name="format"/>
+	<haxelib name="openfl" />
+	<haxelib name="actuate"/>
+	<haxelib name="hxcpp-debug-server"/>
+	<haxelib name="hscript"/>
+	
+</project>
