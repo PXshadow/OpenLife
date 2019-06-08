@@ -22,6 +22,7 @@ class Client
     var login:Bool = true;
     var router:Bool = true;
     var output:String = "";
+    var data:String = "";
     @:isVar var compress(get,set):Bool = false;
     function get_compress():Bool
     {
@@ -42,14 +43,9 @@ class Client
     {
         if(socket == null) return;
         output = "";
+        data = "";
 		try {
-            if(compress == true)
-            {
-                unCompress();
-            }else{
-		        process(socket.input.readLine());
-            }
-            
+            if(!compress) data = socket.input.readLine();
 		}catch(e:Dynamic)
 		{
 			if(e != "Blocking" && e != Error.Blocked && e != "Blocked")
@@ -57,6 +53,13 @@ class Client
                 trace("e " + e);
 			}
 		}
+        if(compress)
+        {
+            unCompress();
+        }else{
+            if (data.length > 0) process();
+        }
+
         if(router)
         {
             if(server == null) return;
@@ -86,7 +89,7 @@ class Client
             }
         }
     }
-    private function process(data:String)
+    private function process()
     {
         //router
         output = data;
@@ -110,57 +113,7 @@ class Client
         {
             case PLAYER_UPDATE:
             var array = data.split(" ");
-            for(value in array)
-            {
-                //index
-                    switch(index++)
-                    {
-                        case 0:
-                        playerInstance = new PlayerInstance();
-                        playerInstance.p_id = Std.parseInt(value);
-                        case 1:
-                        playerInstance.po_id = Std.parseInt(value);
-                        case 2:
-                        playerInstance.facing_action = Std.parseInt(value);
-                        case 3:
-                        playerInstance.action_target_x = Std.parseInt(value);
-                        case 4:
-                        playerInstance.action_target_y = Std.parseInt(value);
-                        case 5:
-                        playerInstance.o_id = Std.parseInt(value);
-                        case 6:
-                        playerInstance.o_origin_valid = Std.parseInt(value);
-                        case 7:
-                        playerInstance.o_origin_x = Std.parseInt(value);
-                        case 8:
-                        playerInstance.o_origin_y = Std.parseInt(value);
-                        case 9:
-                        playerInstance.o_transition_source_id = Std.parseInt(value);
-                        case 10:
-                        playerInstance.heat = Std.parseInt(value);
-                        case 11:
-                        playerInstance.done_moving_seqNum = Std.parseInt(value);
-                        case 12:
-                        var dot = array.indexOf(".");
-                        playerInstance.forceX = Std.parseInt(value.substring(0,dot));
-                        playerInstance.forceY = Std.parseInt(value.substring(dot + 1,value.length));
-                        case 13:
-                        playerInstance.age = Std.parseInt(value);
-                        case 14:
-                        playerInstance.age_r = Std.parseInt(value);
-                        case 15:
-                        playerInstance.move_speed = Std.parseInt(value);
-                        case 16:
-                        playerInstance.clothing_set = value;
-                        case 17:
-                        playerInstance.just_ate = Std.parseInt(value);
-                        case 18:
-                        playerInstance.responsible_id = Std.parseInt(value);
-                        case 19:
-                        playerInstance.held_yum = Std.parseInt(value);
-                        index = 0;
-                    }
-            }
+            playerInstance = new PlayerInstance(data.split(" "));
             player.set();
             case MAP_CHUNK:
             var array = data.split(" ");

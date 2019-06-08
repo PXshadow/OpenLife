@@ -51,9 +51,59 @@ class PlayerType
 }
 class PlayerInstance extends PlayerType
 {
-    public function new()
+    public function new(a:Array<String>)
     {
         array.push(this);
+        var index:Int = 0;
+        for(value in a)
+        {
+            //index
+            switch(index++)
+            {
+                case 0:
+                p_id = Std.parseInt(value);
+                case 1:
+                po_id = Std.parseInt(value);
+                case 2:
+                facing_action = Std.parseInt(value);
+                case 3:
+                action_target_x = Std.parseInt(value);
+                case 4:
+                action_target_y = Std.parseInt(value);
+                case 5:
+                o_id = Std.parseInt(value);
+                case 6:
+                o_origin_valid = Std.parseInt(value);
+                case 7:
+                o_origin_x = Std.parseInt(value);
+                case 8:
+                o_origin_y = Std.parseInt(value);
+                case 9:
+                o_transition_source_id = Std.parseInt(value);
+                case 10:
+                heat = Std.parseInt(value);
+                case 11:
+                done_moving_seqNum = Std.parseInt(value);
+                case 12:
+                var dot = value.indexOf(".");
+                forceX = Std.parseInt(value.substring(0,dot));
+                forceY = Std.parseInt(value.substring(dot + 1,value.length));
+                case 13:
+                age = Std.parseInt(value);
+                case 14:
+                age_r = Std.parseInt(value);
+                case 15:
+                move_speed = Std.parseInt(value);
+                case 16:
+                clothing_set = value;
+                case 17:
+                just_ate = Std.parseInt(value);
+                case 18:
+                responsible_id = Std.parseInt(value);
+                case 19:
+                held_yum = Std.parseInt(value);
+            }
+        }
     }
     public static var array:Array<PlayerInstance> = [];
 }   

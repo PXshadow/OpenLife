@@ -100,6 +100,7 @@ class Main extends Sprite
         while(iterator.hasNext())
         {
             player = iterator.next();
+            display.addPlayer(player);
         }
     }
     public function updateMap()
@@ -121,11 +122,15 @@ class Main extends Sprite
             for(x in cX...cX + cWidth)
             {
                 string = x + "." + y;
+                //trace("chunk");
                 display.addChunk(client.map.biome.get(string),x,y);
+                //trace("object");
                 display.addObject(client.map.object.get(string),x,y);
+                //trace("floor");
                 display.addFloor(client.map.floor.get(string),x,y);
             }
         }
+        trace("add");
         //set pos of inital ground
         if(display.inital)
         {
@@ -197,7 +202,6 @@ class Main extends Sprite
     }
     private function mouseWheel(e:MouseEvent)
     {
-        trace("delta " + e.delta);
         display.scaleX += e.delta * 0.1;
         display.scaleY += e.delta * 0.1;
     }

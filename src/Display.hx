@@ -1,3 +1,4 @@
+import PlayerData.PlayerType;
 import openfl.display.BitmapDataChannel;
 import sys.io.File;
 import format.tga.Data.Header;
@@ -31,9 +32,13 @@ class Display extends Tilemap
         //return;
         for(i in 0...6 + 1) cacheBiome(i);
     }
-    public function addPlayer(tyep:Int,x:Int,y:Int)
+    public function addPlayer(data:PlayerType)
     {
-
+        var p = Display.Player.active.get(data.p_id);
+        if(p == null)
+        {
+            p = new Display.Player(data.p_id);
+        }
     }
     public function addChunk(type:Int,x:Int,y:Int)
     {
@@ -63,61 +68,24 @@ class Display extends Tilemap
                 createTile(exist,x,y);
                 return;
             }
+            var data = new ObjectData(id);
             var array:Array<RenderType> = [];
-            var input = File.read(Settings.assetPath + "objects/" + id + ".txt");
-            var index:Int = -1;
-            var line:String = "";
-            var spriteId:String = "spriteID";
-            var pos:String = "pos";
-            var containable:String = "containable";
-            var numSprites:String = "numSprites";
-            try 
+            for(obj in data.spriteArray)
             {
-                while(true)
-                {
-                    line = input.readLine();
-                    //render images
-                    if(line.substring(0,spriteId.length) == spriteId)
-                    {
-                        index++;
-                        array[index] = {offset: {x:0,y:0},graphic: 0,inCenterXOffset: 0,inCenterYOffset: 0};
-                        array[index].graphic = Std.parseInt(line.substring(spriteId.length + 1,line.length));
-                        getSpriteData(index,array);
-                        continue;
-                    }
-                    if(line.substring(0,pos.length) == pos)
-                    {
-                        var comma:Int = line.indexOf(",",pos.length + 1);
-                        array[index].offset.x = Std.parseInt(line.substring(pos.length + 1,comma));
-                        array[index].offset.y = Std.parseInt(line.substring(comma + 1,line.length));
-                        //trace("offset " + array[index].offset);
-                        continue;
-                    }
-                    if(line.substring(0,containable.length) == containable)
-                    {
-                        var num = Std.parseInt(line.substring(containable.length + 1,line.length));
-                        if(num > 0) trace("containable " + num);
-                        continue;
-                    }
-                    if(line.substring(0,numSprites.length) == numSprites)
-                    {
-                        var num = Std.parseInt(line.substring(numSprites.length + 1,line.length));
-                        //if (num > 0) trace("num " + num);
-                        continue;
-                    }
-                }
-            }catch(e:Dynamic) {
-                //trace("e " + e);
+                array.push({offset:{x:Std.int(obj.pos.x),y:Std.int(obj.pos.y)},graphic: obj.spriteID,inCenterXOffset: 0,inCenterYOffset: 0});
             }
+            getSpriteData(array);
             renderMap.set(id,array);
             createTile(array,x,y);
         }else{
-            //trace("group " + data);
+            trace("group " + data);
         }
     }
-    public function getSpriteData(index:Int,array:Array<RenderType>)
+    public function getSpriteData(array:Array<RenderType>)
     {
         //get sprite data
+        for(index in 0...array.length)
+        {
         var input = File.read(Settings.assetPath + "sprites/" + array[index].graphic + ".txt",false);
         var i:Int = 0;
         var a = input.readLine().split(" ");
@@ -140,6 +108,7 @@ class Display extends Tilemap
                     
             }
             i++;
+        }
         }
     }
     public function createTile(array:Array<RenderType>,x:Int,y:Int)
@@ -244,9 +213,17 @@ class Player extends Group
 {
     public var head:Int = 0;
     public var body:Int = 0;
-    public function new()
+    public var id:Int = 0;
+    public static var active:Map<Int,Player> = new Map<Int,Player>();
+    public function new(id:Int)
     {
         super();
+        active.set(id,this);
+        this.id = id;
+    }
+    public function unactive()
+    {
+        active.remove(id);
     }
 }
 class Group
