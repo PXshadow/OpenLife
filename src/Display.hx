@@ -1,3 +1,6 @@
+import openfl.geom.ColorTransform;
+import ObjectData.SpriteData;
+import haxe.ds.Vector;
 import PlayerData.PlayerType;
 import openfl.display.BitmapDataChannel;
 import sys.io.File;
@@ -11,14 +14,17 @@ import openfl.display.BitmapData;
 import openfl.display.Tileset;
 import openfl.display.Tilemap;
 import openfl.geom.Rectangle;
-typedef RenderType = {offset:{x:Int,y:Int},graphic:Int,inCenterXOffset:Int,inCenterYOffset:Int}
 class Display extends Tilemap
 {
+    //static vars
+    inline private static var BASE_SPEED:Float = 3.75;
+    //tile vars
     var tileX:Int = 0;
     var tileY:Int = 0;
     var tileHeight:Int = 0;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
-    var renderMap:Map<Int,Array<RenderType>> = new Map<Int,Array<RenderType>>();
+    var biomeMap:Map<Int,Vector<Int>> = new Map<Int,Vector<Int>>();
+    var renderMap:Map<Int,Vector<SpriteData>> = new Map<Int,Vector<SpriteData>>();
     public var inital:Bool = true;
     //entire display
     public var setX:Int = 0;
@@ -35,14 +41,72 @@ class Display extends Tilemap
     public function addPlayer(data:PlayerType)
     {
         var p = Display.Player.active.get(data.p_id);
-        if(p == null)
+        if(p == null) p = new Display.Player(data.p_id);
+        var obj = new ObjectData(data.po_id);
+        var length:Int = numTiles;
+        //ids
+        p.pid = data.po_id;
+        p.oid = data.o_id;
+        //set age
+        trace("data age " + data.age);
+        p.age = data.age;
+        p.speed = data.move_speed;
+        //draw
+        renderMap.set(obj.id,obj.spriteArray);
+        createTile(obj.spriteArray,data.o_origin_x + 2,data.o_origin_y + 2);
+        //clothing
+        var i = data.clothing_set.split(",");
+        p.hat = Std.parseInt(i[0]);
+        p.tunic = Std.parseInt(i[1]);
+        p.front_shoe = Std.parseInt(i[2]);
+        p.back_shoe = Std.parseInt(i[3]);
+        p.bottom = Std.parseInt(i[4]);
+        p.backpack = Std.parseInt(i[5]);
+        //set body parts
+        p.head = obj.headIndex + length;
+        p.body = obj.bodyIndex + length;
+        p.frontFoot = obj.frontFootIndex;
+        p.backFoot = obj.backFootIndex;
+        for(value in p.frontFoot) value += length;
+        for(value in p.backFoot) value += length;
+        //set section of player tiles
+        p.setSection(length, numTiles - length);
+        setPlayerAge(p);
+        /*for(i in p.index...p.index+p.length)
         {
-            p = new Display.Player(data.p_id);
+            getTileAt(i).visible = false;
+        }
+        //show basic player
+        getTileAt(p.head).visible = true;
+        getTileAt(p.body).visible = true;
+        for(i in p.frontFoot) getTileAt(i).visible = true;
+        for (i in p.backFoot) getTileAt(i).visible = true;*/
+    }
+    public function setPlayerAge(p:Player)
+    {
+        p.age = 20;
+        if(renderMap.exists(p.pid))
+        {
+            var index:Int = 0;
+            var array = renderMap.get(p.pid);
+            var sprite:SpriteData;
+            for(i in p.index...p.index + p.length)
+            {
+                sprite = array[index++];
+                if((sprite.ageRange[0] > p.age || sprite.ageRange[1] < p.age) && sprite.ageRange[0] > 0)
+                {
+                    //outside of range of age
+                    getTileAt(i).visible = false;
+                }
+            }
+        }else{
+            throw("player rendermap object not found");
         }
     }
     public function addChunk(type:Int,x:Int,y:Int)
     {
-        var tile = new Tile(type,TileType.Ground);
+        var index:Int = x % 3 + (y % 3) * 3;
+        var tile = new Tile(biomeMap.get(type)[index],TileType.Ground);
         tile.x = x * Static.GRID;
         tile.y = y * Static.GRID;
         addTile(tile);
@@ -69,49 +133,17 @@ class Display extends Tilemap
                 return;
             }
             var data = new ObjectData(id);
-            var array:Array<RenderType> = [];
-            for(obj in data.spriteArray)
-            {
-                array.push({offset:{x:Std.int(obj.pos.x),y:Std.int(obj.pos.y)},graphic: obj.spriteID,inCenterXOffset: 0,inCenterYOffset: 0});
-            }
-            getSpriteData(array);
-            renderMap.set(id,array);
-            createTile(array,x,y);
+            //todo: save entire object data without spriteData
+
+            //saves spriteData section
+            renderMap.set(id,data.spriteArray);
+            //draw
+            createTile(data.spriteArray,x,y);
         }else{
-            trace("group " + data);
+            //trace("group " + data);
         }
     }
-    public function getSpriteData(array:Array<RenderType>)
-    {
-        //get sprite data
-        for(index in 0...array.length)
-        {
-        var input = File.read(Settings.assetPath + "sprites/" + array[index].graphic + ".txt",false);
-        var i:Int = 0;
-        var a = input.readLine().split(" ");
-        for(string in a)
-        {
-            switch(i)
-            {
-                case 0:
-                //name
-
-                case 1:
-                //multitag
-
-                case 2:
-                //centerX
-                array[index].inCenterXOffset = Std.parseInt(string);
-                case 3:
-                //centerY
-                array[index].inCenterYOffset = Std.parseInt(string);
-                    
-            }
-            i++;
-        }
-        }
-    }
-    public function createTile(array:Array<RenderType>,x:Int,y:Int)
+    public function createTile(array:Vector<SpriteData>,x:Int,y:Int)
     {
         //set to grid
         x *= Static.GRID;
@@ -119,30 +151,47 @@ class Display extends Tilemap
         //add array tiles
         for(obj in array)
         {
-            var cache = cacheObject(obj.graphic);
+            var cache = cacheObject(obj.spriteID);
             var rect = tileset.getRect(cache);
             var tile = new Tile(cache,Object);
-            var w:Int = 1;
+            /*var w:Int = 1;
             var h:Int = 1;
             while (w < rect.width)w *= 2;
-            while (h < rect.height) h *= 2;
-            //rect.width = w;
-            //rect.height = h;
-            //trace("width " + w + " height " + h + " center x " + obj.inCenterXOffset + " y " + obj.inCenterYOffset);
-            tile.x = x + obj.offset.x - obj.inCenterXOffset - rect.width/2;
-            tile.y = y + -obj.offset.y - obj.inCenterYOffset - rect.height/2;
+            while (h < rect.height) h *= 2;*/
+            if(obj.rot > 0)
+            {
+                tile.rotation = obj.rot * 180 * 2;
+            }
+            //color
+            tile.colorTransform = new ColorTransform();
+            tile.colorTransform.redMultiplier = obj.color[0];
+            tile.colorTransform.greenMultiplier = obj.color[1];
+            tile.colorTransform.blueMultiplier = obj.color[2];
+            //pos
+            tile.x = x + obj.pos.x - obj.inCenterXOffset - rect.width/2;
+            tile.y = y + -obj.pos.y - obj.inCenterYOffset - rect.height/2;
             addTile(tile);
         }
     }
     public function cacheBiome(id:Int)
     {
-        var data:{bytes:ByteArray,header:Header} = Static.tgaBytes(Settings.assetPath + 
-        "groundTileCache/biome_" + id + "_x" + 1 + "_y" + 1 + "_square.tga");
-        var rect:Rectangle = new Rectangle(tileX,0,Static.GRID,Static.GRID);
-        tileset.bitmapData.setPixels(rect,data.bytes);
-        tileset.addRect(rect);
-        tileX += Static.GRID;
-        tileHeight = Static.GRID;
+        var data:{bytes:ByteArray,header:Header};
+        var vector = new Vector<Int>(3 * 3);
+        for(y in 0...3 + 1)
+        {
+            for(x in 0...3 + 1)
+            {
+                //trace("x " + x + " y " + y);
+                data = Static.tgaBytes(Settings.assetPath + 
+                "groundTileCache/biome_" + id + "_x" + x + "_y" + y + "_square.tga");
+                var rect:Rectangle = new Rectangle(tileX + x * Static.GRID,y * Static.GRID,Static.GRID,Static.GRID);
+                tileset.bitmapData.setPixels(rect,data.bytes);
+                vector[x + y * 3] = tileset.addRect(rect);
+            }
+        }
+        biomeMap.set(id,vector);
+        tileHeight = Static.GRID * 3;
+        tileX += Static.GRID * 3;
     }
     public function cacheObject(id:Int):Int
     {
@@ -213,13 +262,35 @@ class Player extends Group
 {
     public var head:Int = 0;
     public var body:Int = 0;
+    public var backFoot:Array<Int> = [];
+    public var frontFoot:Array<Int> = [];
+    public var index:Int = 0;
+    public var length:Int = 0;
     public var id:Int = 0;
+    //object id, what is being held
+    public var oid:Int = 0;
+    //id refrence to renderMap
+    public var pid:Int = 0;
+    public var age:Int = 0;
+    public var speed:Float = 0;
+    //clothing
+    public var hat:Int = 0;
+    public var tunic:Int = 0;
+    public var front_shoe:Int = 0;
+    public var back_shoe:Int = 0;
+    public var bottom:Int = 0;
+    public var backpack:Int = 0;
     public static var active:Map<Int,Player> = new Map<Int,Player>();
     public function new(id:Int)
     {
         super();
-        active.set(id,this);
         this.id = id;
+        active.set(id,this);
+    }
+    public function setSection(index:Int,length:Int)
+    {
+        this.index = index;
+        this.length = length;
     }
     public function unactive()
     {

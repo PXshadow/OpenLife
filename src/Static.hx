@@ -1,3 +1,5 @@
+import haxe.ds.Vector;
+import sys.io.FileInput;
 import openfl.Lib;
 import openfl.display.Bitmap;
 import haxe.io.Input;
@@ -8,7 +10,13 @@ import sys.io.File;
 class Static 
 {
     public static inline var GRID:Int = 128;
-    
+    //array
+    public static function readLines(input:FileInput):Vector<String>
+    {
+        return Vector.fromArrayCopy(input.readAll().toString().split("\n"));
+    }
+
+    //tga
     public static function tga(bitmap:Bitmap,path:String,x:Int=0,y:Int=0)
     {
         bitmap.bitmapData = tgaBitmapData(path,x,y);

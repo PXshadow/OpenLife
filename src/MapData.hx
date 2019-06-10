@@ -24,8 +24,8 @@ class MapData
         var a:Array<String> = string.split(" ");
         //trace("a " + a);
         var data:Array<String> = [];
-        var index:Int = 0;
         var string:String = "0.0";
+        var index:Int = 0;
         for(j in y...y + height)
         {
             for(i in x...x + width)

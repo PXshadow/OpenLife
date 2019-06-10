@@ -48,6 +48,16 @@ class PlayerType
     public var last_ate_id:Int = 0;
     public var responsible_id:Int = 0;
     public var held_yum:Int = 0;
+
+    public function toString():String
+    {
+        var string:String = "";
+        for(field in Reflect.fields(this))
+        {
+            string += field + ": " + Reflect.getProperty(this,field) + "\n";
+        }
+        return string;
+    }
 }
 class PlayerInstance extends PlayerType
 {
@@ -85,22 +95,24 @@ class PlayerInstance extends PlayerType
                 case 11:
                 done_moving_seqNum = Std.parseInt(value);
                 case 12:
-                var dot = value.indexOf(".");
-                forceX = Std.parseInt(value.substring(0,dot));
-                forceY = Std.parseInt(value.substring(dot + 1,value.length));
+                forceX = Std.parseInt(value);
                 case 13:
-                age = Std.parseInt(value);
+                forceY = Std.parseInt(value);
                 case 14:
-                age_r = Std.parseInt(value);
+                trace("age value " + value);
+                age = Std.parseInt(value);
                 case 15:
-                move_speed = Std.parseInt(value);
+                trace("age r " + value);
+                age_r = Std.parseInt(value);
                 case 16:
-                clothing_set = value;
+                move_speed = Std.parseInt(value);
                 case 17:
-                just_ate = Std.parseInt(value);
+                clothing_set = value;
                 case 18:
-                responsible_id = Std.parseInt(value);
+                just_ate = Std.parseInt(value);
                 case 19:
+                responsible_id = Std.parseInt(value);
+                case 20:
                 held_yum = Std.parseInt(value);
             }
         }

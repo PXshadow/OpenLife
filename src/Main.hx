@@ -23,6 +23,7 @@ class Main extends Sprite
     public var settings:Settings;
     //game
     public var display:Display;
+    public var ui:Ui;
     //debug
     var objectList:Array<String> = [];
     var objectIndex:Int = 0;
@@ -32,6 +33,8 @@ class Main extends Sprite
     public function new()
     {
         super();
+        //Lib.application.window.x = 1280 + 500;
+
         client = new Client();
         client.map.update = updateMap;
         client.player.update = updatePlayer;
@@ -62,6 +65,10 @@ class Main extends Sprite
         addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
         addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
         addEventListener(MouseEvent.MOUSE_UP,mouseUp);
+
+        //debug
+        client.connect();
+        renderGame();
     }
     private function renderMenu()
     {
@@ -90,8 +97,12 @@ class Main extends Sprite
         removeChildren();
         display = new Display();
         addChild(display);
+        ui = new Ui();
+        addChild(ui);
         var fps = new FPS(10,10,0xFFFFFF);
         addChild(fps);
+        //var bitmap = new Bitmap(display.tileset.bitmapData);
+        //addChild(bitmap);
     }
     public function updatePlayer()
     {
@@ -130,7 +141,6 @@ class Main extends Sprite
                 display.addFloor(client.map.floor.get(string),x,y);
             }
         }
-        trace("add");
         //set pos of inital ground
         if(display.inital)
         {
@@ -174,6 +184,10 @@ class Main extends Sprite
         {
             if (objectIndex < objectList.length) objectIndex ++;
             objectViewer();
+        }
+        if(e.keyCode == Keyboard.BACKSPACE)
+        {
+            client.close();
         }
     }
     private function objectViewer()

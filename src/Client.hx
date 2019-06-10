@@ -50,7 +50,7 @@ class Client
 		{
 			if(e != "Blocking" && e != Error.Blocked && e != "Blocked")
 			{
-                trace("e " + e);
+                //trace("e " + e);
 			}
 		}
         if(compress)
@@ -113,6 +113,7 @@ class Client
         {
             case PLAYER_UPDATE:
             var array = data.split(" ");
+            trace("data " + data);
             playerInstance = new PlayerInstance(data.split(" "));
             player.set();
             case MAP_CHUNK:
@@ -168,6 +169,7 @@ class Client
             case REJECTED:
             trace("reject");
             default:
+            trace("type " + tag + " data " + data);
         }
     }
     private function loginRequest(email:String,key:String)
@@ -224,6 +226,11 @@ class Client
             }
         }
 	}
+    public function close()
+    {
+        socket.close();
+        trace("socket closed");
+    }
     private function unCompress()
     {
         //remove #
