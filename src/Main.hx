@@ -11,6 +11,7 @@ import openfl.events.KeyboardEvent;
 import openfl.events.Event;
 import openfl.Lib;
 import openfl.display.Sprite;
+import openfl.display.BitmapData;
 
 class Main extends Sprite
 {
@@ -103,6 +104,11 @@ class Main extends Sprite
         addChild(fps);
         //var bitmap = new Bitmap(display.tileset.bitmapData);
         //addChild(bitmap);
+        //test tree
+        /*var bitmap = new Bitmap(BitmapData.fromFile(Settings.assetPath + "kapuk_tree_work_in_progress.png"));
+        bitmap.x = Static.GRID * 1;
+        bitmap.y = Static.GRID * 1;
+        addChild(bitmap);*/
     }
     public function updatePlayer()
     {

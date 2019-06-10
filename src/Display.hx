@@ -53,7 +53,7 @@ class Display extends Tilemap
         p.speed = data.move_speed;
         //draw
         renderMap.set(obj.id,obj.spriteArray);
-        createTile(obj.spriteArray,data.o_origin_x + 2,data.o_origin_y + 2);
+        createTile(obj.spriteArray,data.o_origin_x + 4,data.o_origin_y + 4);
         //clothing
         var i = data.clothing_set.split(",");
         p.hat = Std.parseInt(i[0]);
@@ -81,10 +81,20 @@ class Display extends Tilemap
         getTileAt(p.body).visible = true;
         for(i in p.frontFoot) getTileAt(i).visible = true;
         for (i in p.backFoot) getTileAt(i).visible = true;*/
+        //create box for testing
+        var obj = new ObjectData(434);
+        length = numTiles;
+        createTile(obj.spriteArray,4,4);
+        var box = new Group();
+        for(i in length...numTiles)
+        {
+            box.add(cast(getTileAt(i),Tile));
+        }
+        box.y += -90;
     }
     public function setPlayerAge(p:Player)
     {
-        p.age = 20;
+        p.age = 2;
         if(renderMap.exists(p.pid))
         {
             var index:Int = 0;

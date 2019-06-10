@@ -1,0 +1,17 @@
+-Object Finder on screen mac(command+f) windows(control+f)
+USER INTERFACE
+- standard arrow to point to home location, and set multiple markers
+- Squad system if teammates leave area have arrow fade out after few seconds
+- MARK players and put notes on them
+DISPLAY 
+- show certain objects with an increased size
+- change colors of certain objects
+AUTO AI
+- auto eat food (use for emergency client will calculate closest food to eat)
+- auto fire starter
+- auto berry farmer
+
+INVENTORY
+- inventory managment backpack (show names of object in backpack and hotkeys for them)
+MISC
+- SAVE COMMANDS into startup script
