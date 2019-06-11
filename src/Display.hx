@@ -24,7 +24,7 @@ class Display extends Tilemap
     var tileHeight:Int = 0;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     var biomeMap:Map<Int,Vector<Int>> = new Map<Int,Vector<Int>>();
-    var renderMap:Map<Int,Vector<SpriteData>> = new Map<Int,Vector<SpriteData>>();
+    public static var renderMap:Map<Int,Vector<SpriteData>> = new Map<Int,Vector<SpriteData>>();
     public var inital:Bool = true;
     //entire display
     public var setX:Int = 0;
@@ -40,20 +40,21 @@ class Display extends Tilemap
     }
     public function addPlayer(data:PlayerType)
     {
-        var p = Display.Player.active.get(data.p_id);
-        if(p == null) p = new Display.Player(data.p_id);
+        var p = Player.active.get(data.p_id);
+        if(p == null) p = new Player(data.p_id,data.o_origin_x,data.o_origin_y);
         var obj = new ObjectData(data.po_id);
         var length:Int = numTiles;
         //ids
         p.pid = data.po_id;
         p.oid = data.o_id;
         //set age
-        trace("data age " + data.age);
         p.age = data.age;
+        p.ageSystem(data.age_r);
         p.speed = data.move_speed;
         //draw
+        trace("sprite length " + obj.spriteArray.length);
         renderMap.set(obj.id,obj.spriteArray);
-        createTile(obj.spriteArray,data.o_origin_x + 4,data.o_origin_y + 4);
+        createTile(obj.spriteArray,data.o_origin_x,data.o_origin_y);
         //clothing
         var i = data.clothing_set.split(",");
         p.hat = Std.parseInt(i[0]);
@@ -71,54 +72,23 @@ class Display extends Tilemap
         for(value in p.backFoot) value += length;
         //set section of player tiles
         p.setSection(length, numTiles - length);
-        setPlayerAge(p);
-        /*for(i in p.index...p.index+p.length)
+        var tile:Tile;
+
+        for(i in length...length + obj.spriteArray.length)
         {
-            getTileAt(i).visible = false;
+            tile = cast getTileAt(i);
+            if(tile == null) throw("tile null " + i);
+            p.add(tile);
         }
-        //show basic player
-        getTileAt(p.head).visible = true;
-        getTileAt(p.body).visible = true;
-        for(i in p.frontFoot) getTileAt(i).visible = true;
-        for (i in p.backFoot) getTileAt(i).visible = true;*/
-        //create box for testing
-        var obj = new ObjectData(434);
-        length = numTiles;
-        createTile(obj.spriteArray,4,4);
-        var box = new Group();
-        for(i in length...numTiles)
-        {
-            box.add(cast(getTileAt(i),Tile));
-        }
-        box.y += -90;
-    }
-    public function setPlayerAge(p:Player)
-    {
-        p.age = 2;
-        if(renderMap.exists(p.pid))
-        {
-            var index:Int = 0;
-            var array = renderMap.get(p.pid);
-            var sprite:SpriteData;
-            for(i in p.index...p.index + p.length)
-            {
-                sprite = array[index++];
-                if((sprite.ageRange[0] > p.age || sprite.ageRange[1] < p.age) && sprite.ageRange[0] > 0)
-                {
-                    //outside of range of age
-                    getTileAt(i).visible = false;
-                }
-            }
-        }else{
-            throw("player rendermap object not found");
-        }
+        trace("amount " + Std.string(numTiles - length));
+        p.agePlayer();
     }
     public function addChunk(type:Int,x:Int,y:Int)
     {
-        var index:Int = x % 3 + (y % 3) * 3;
+        var index:Int = (x > 0 ? x : -x) % 3 + ((y > 0 ? y : -y) % 3) * 3;
         var tile = new Tile(biomeMap.get(type)[index],TileType.Ground);
-        tile.x = x * Static.GRID;
-        tile.y = y * Static.GRID;
+        tile.x = (x - setX) * Static.GRID;
+        tile.y = (y - setY) * Static.GRID;
         addTile(tile);
     }
     public function addFloor(type:Int,x:Int,y:Int)
@@ -155,6 +125,9 @@ class Display extends Tilemap
     }
     public function createTile(array:Vector<SpriteData>,x:Int,y:Int)
     {
+        //shift to pos
+        x += -setX;
+        y += -setY;
         //set to grid
         x *= Static.GRID;
         y *= Static.GRID;
@@ -171,6 +144,10 @@ class Display extends Tilemap
             if(obj.rot > 0)
             {
                 tile.rotation = obj.rot * 180 * 2;
+            }
+            if(obj.hFlip != 0)
+            {
+                tile.scaleX = obj.hFlip;
             }
             //color
             tile.colorTransform = new ColorTransform();
@@ -266,65 +243,25 @@ enum TileType
     Ground;
     Object;
     Floor;
-    Player;
-}
-class Player extends Group
-{
-    public var head:Int = 0;
-    public var body:Int = 0;
-    public var backFoot:Array<Int> = [];
-    public var frontFoot:Array<Int> = [];
-    public var index:Int = 0;
-    public var length:Int = 0;
-    public var id:Int = 0;
-    //object id, what is being held
-    public var oid:Int = 0;
-    //id refrence to renderMap
-    public var pid:Int = 0;
-    public var age:Int = 0;
-    public var speed:Float = 0;
-    //clothing
-    public var hat:Int = 0;
-    public var tunic:Int = 0;
-    public var front_shoe:Int = 0;
-    public var back_shoe:Int = 0;
-    public var bottom:Int = 0;
-    public var backpack:Int = 0;
-    public static var active:Map<Int,Player> = new Map<Int,Player>();
-    public function new(id:Int)
-    {
-        super();
-        this.id = id;
-        active.set(id,this);
-    }
-    public function setSection(index:Int,length:Int)
-    {
-        this.index = index;
-        this.length = length;
-    }
-    public function unactive()
-    {
-        active.remove(id);
-    }
 }
 class Group
 {
-    var childern:Array<Tile> = [];
-    @:isVar public var x(default,set):Int = 0;
-    function set_x(value:Int):Int
+    var children:Array<Tile> = [];
+    @:isVar public var x(default,set):Float = 0;
+    function set_x(value:Float):Float
     {
         var change = value - x;
-        for(child in childern)
+        for(child in children)
         {
             child.x += change;
         }
         return x = value;
     }
-    @:isVar public var y(default,set):Int = 0;
-    function set_y(value:Int):Int
+    @:isVar public var y(default,set):Float = 0;
+    function set_y(value:Float):Float
     {
         var change = value - y;
-        for (child in childern)
+        for (child in children)
         {
             child.y += change;
         }
@@ -336,10 +273,10 @@ class Group
     }
     public function add(child:Tile):Int
     {
-        return childern.push(child);
+        return children.push(child);
     }
     public function remove(child:Tile)
     {
-        childern.remove(child);
+        children.remove(child);
     }
 }

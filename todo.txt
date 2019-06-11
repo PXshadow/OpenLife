@@ -1,0 +1,6 @@
+-get floor speed multipler
+- system player path system for movement
+- figure out category system
+- force system for player
+- player holding system
+

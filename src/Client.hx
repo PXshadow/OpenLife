@@ -145,6 +145,10 @@ class Client
             }
             case HEAT_CHANGE:
             //trace("heat " + data);
+
+            case FOOD_CHANGE:
+            //trace("food change " + data);
+            //also need to set new movement move_speed: is floating point speed in grid square widths per second.
             case FRAME:
             //trace("frame " + data);
             case SERVER_INFO:
@@ -163,6 +167,12 @@ class Client
                 tag = "";
 			}
 			index++;
+            case PLAYER_SAYS:
+            trace("player say " + data);
+            case PLAYER_MOVES_START:
+
+            case PLAYER_OUT_OF_RANGE:
+
             case ACCEPTED:
             trace("accept");
             tag = "";
@@ -183,6 +193,10 @@ class Client
 		,Bytes.ofString(challenge)).toHex() + "#");
 		tag = "";
 		trace("send");
+    }
+    public function send(data:String)
+    {
+        socket.output.writeString(data + "#");
     }
     public function connect(ip:String="",port:Int=0)
 	{

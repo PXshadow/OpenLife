@@ -1,3 +1,4 @@
+import openfl.display.Shape;
 import PlayerData.PlayerType;
 import openfl.display.FPS;
 import openfl.geom.Point;
@@ -19,17 +20,21 @@ class Main extends Sprite
     public static inline var setHeight:Int = 720;
     var scale:Float = 0;
     var menu:Bool = true;
-    var client:Client;
+    public static var client:Client;
     //local
     public var settings:Settings;
     //game
     public var display:Display;
-    public var ui:Ui;
+    public var grid:Shape;
     //debug
     var objectList:Array<String> = [];
     var objectIndex:Int = 0;
     var focus:Tile = null;
     var focusOffset:Point;
+    //movement
+    var moveX:Int = -1;
+    var moveY:Int = -1;
+    var moveActive:Bool = false;
 
     public function new()
     {
@@ -98,8 +103,10 @@ class Main extends Sprite
         removeChildren();
         display = new Display();
         addChild(display);
-        ui = new Ui();
-        addChild(ui);
+        grid = new Shape();
+        createGrid();
+        grid.cacheAsBitmap = true;
+        addChild(grid);
         var fps = new FPS(10,10,0xFFFFFF);
         addChild(fps);
         //var bitmap = new Bitmap(display.tileset.bitmapData);
@@ -132,6 +139,12 @@ class Main extends Sprite
         var cY:Int = client.map.setY;
         var cWidth:Int = 32;
         var cHeight:Int = 30;
+        //set sizes and pos
+        if (display.setX > cX) display.setX = cX;
+        if (display.setY > cY) display.setY = cY;
+        if (display.sizeX < cX + cWidth) display.sizeX = cX + cWidth;
+        if (display.sizeY < cY + cHeight) display.sizeY = cY + cHeight;
+        //add to display
         trace("map chunk add pos(" + cX + "," + cY +") size(" + cWidth + "," + cHeight + ")");
         var string = "0.0";
         for(y in cY...cY + cHeight)
@@ -147,23 +160,33 @@ class Main extends Sprite
                 display.addFloor(client.map.floor.get(string),x,y);
             }
         }
-        //set pos of inital ground
         if(display.inital)
         {
-            //display.x = (Main.setWidth - cWidth * Static.GRID)/2;
-            //display.y = (Main.setHeight - cHeight * Static.GRID)/2;
-            //trace("display x " + display.x + " y " + display.y);
+            display.x = display.setX * Static.GRID + setWidth/2;
+            display.y = display.setY * Static.GRID + setHeight/2;
             display.inital = false;
         }
-        //set sizes and pos
-        if (display.setX > cX) display.setX = cX;
-        if (display.setY > cY) display.setY = cY;
-        if (display.sizeX < cX + cWidth) display.sizeX = cX + cWidth;
-        if (display.sizeY < cY + cHeight) display.sizeY = cY + cHeight;
+    }
+    private function createGrid()
+    {
+        //return;
+        grid.graphics.lineStyle(2,0xFFFFFF,0.2);
+        for(j in 0...Std.int(setHeight/Static.GRID) + 2)
+        {
+            for(i in 0...Std.int(setWidth/Static.GRID) + 2)
+            {
+                grid.graphics.drawRect(i * Static.GRID,j * Static.GRID,Static.GRID,Static.GRID);
+            }
+        }
     }
     private function update(_)
     {
         client.update(); 
+        var i = Player.active.iterator();
+        while(i.hasNext())
+        {
+            i.next().update();
+        }
         move();
         /*text.text = "";
         for(i in 0...ground.numTiles)
@@ -204,17 +227,9 @@ class Main extends Sprite
     }
     private function mouseDown(_)
     {
-        return;
-        for(i in 0...display.numTiles)
-        {
-            focus = null;
-            var tile = display.getTileAt(i);
-            if(pointRect(mouseX,mouseY,new openfl.geom.Rectangle(display.x + tile.x,display.y + tile.y,tile.width,tile.height)))
-            {
-                focus = cast(tile,Tile);
-                focusOffset = new Point(display.x + tile.x - mouseX,display.y + tile.y - mouseY);
-            }
-        }
+        var pX:Int = Std.int(display.mouseX/Static.GRID) + display.setX;
+        var pY:Int = Std.int(display.mouseY/Static.GRID) + display.setY;
+        if(Player.main != null) Player.main.move(pX,pY);
     }
     private function mouseUp(_)
     {
@@ -261,11 +276,12 @@ class Main extends Sprite
     private function move()
     {
         var speed:Int = 20;
+        var moveArray = [display];
         //ground
-        if(up) display.y += -speed;
-        if (down) display.y += speed;
-        if (left) display.x += -speed;
-        if (right) display.x += speed;
+        if(up) for(obj in moveArray) obj.y += speed;
+        if (down) for(obj in moveArray) obj.y += -speed;
+        if (left) for(obj in moveArray) obj.x += speed;
+        if (right) for(obj in moveArray) obj.x += -speed;
     }
     private function _resize(_)
     {
