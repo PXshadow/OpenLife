@@ -1,5 +1,8 @@
-import openfl.geom.Point;
+#if sys
+import sys.FileSystem;
 import sys.io.File;
+#end
+import openfl.geom.Point;
 import haxe.ds.Vector;
 class ObjectData
 {
@@ -61,9 +64,25 @@ class ObjectData
     //vars for reading
     var line:Vector<String>;
     var next:Int = 0;
+    public var fail:Bool = false;
     public function new(i:Int)
     {
-        line = Static.readLines(File.read(Settings.assetPath + "objects/" + i + ".txt"));
+        #if sys
+        var path = Settings.assetPath + "objects/" + i + ".txt";
+        if (!FileSystem.exists(path)) 
+        {
+            //trace("OBJECT FAIL " + i);
+            fail = true;
+            return;
+        }
+        line = Static.readLines(File.read(path));
+        #end
+        #if (html5 || js)
+            
+        #end
+    }
+    public function process()
+    {
         id = getInt();
         description = getString();
         containable = getInt();
@@ -234,27 +253,38 @@ class ObjectData
         //get sprite data
         for(i in 0...spriteArray.length)
         {
-            var input = File.read(Settings.assetPath + "sprites/" + spriteArray[i].spriteID + ".txt",false);
+            var path = Settings.assetPath + "sprites/" + spriteArray[i].spriteID + ".txt";
+            if(!FileSystem.exists(path)) 
+            {
+                //trace("SPRITE FAIL " + spriteArray[i].spriteID);
+                continue;
+            }else{
+            var input = File.read(path,false);
             var j:Int = 0;
             var a = input.readLine().split(" ");
-            for(string in a)
-            {
-                switch(j++)
-                {
-                    case 0:
-                    //name
-
-                    case 1:
-                    //multitag
-
-                    case 2:
-                    //centerX
-                    spriteArray[i].inCenterXOffset = Std.parseInt(string);
-                    case 3:
-                    //centerY
-                    spriteArray[i].inCenterYOffset = Std.parseInt(string);
-                }              
+            process(i,a);
             }
+        }
+    }
+    public function process(i:Int,a:Array<String>)
+    {
+        for(string in a)
+        {
+            switch(j++)
+            {
+                case 0:
+                //name
+
+                case 1:
+                //multitag
+
+                case 2:
+                //centerX
+                spriteArray[i].inCenterXOffset = Std.parseInt(string);
+                case 3:
+                //centerY
+                spriteArray[i].inCenterYOffset = Std.parseInt(string);
+            }              
         }
     }
     public function getFloatArray():Array<Float>

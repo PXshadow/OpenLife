@@ -1,3 +1,6 @@
+#if sys
+import sys.io.File;
+#end
 import haxe.io.Bytes;
 class MapData
 {
@@ -21,6 +24,9 @@ class MapData
     }
     public function setRect(x:Int,y:Int,width:Int,height:Int,string:String)
     {
+        #if sys
+        //File.write("assets/map.txt",false).writeString(string);
+        #end
         var a:Array<String> = string.split(" ");
         //trace("a " + a);
         var data:Array<String> = [];

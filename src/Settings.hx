@@ -1,10 +1,12 @@
 import openfl.Lib;
 import openfl.net.SharedObject;
-import sys.io.File;
 import lime.system.System;
 import lime.ui.FileDialogType;
 import lime.ui.FileDialog;
+#if sys
+import sys.io.File;
 import sys.FileSystem;
+#end
 class Settings
 {
     public static var assetPath:String = "assets/";

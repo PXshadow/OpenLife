@@ -33,7 +33,7 @@ class Player extends Group
     var moveX:Int = 0;
     var moveY:Int = 0;
     var moveActive:Bool = false;
-    var movePath:
+    //var movePath:
     public function new(id:Int,tileX:Int,tileY:Int)
     {
         super();
@@ -48,12 +48,12 @@ class Player extends Group
     }
     public function ageSystem(rate:Float)
     {
-        var timer = new Timer(1000 * rate);
+        /*var timer = new Timer(1000 * rate);
         timer.run = function()
         {
             age += 1;
             agePlayer();
-        }
+        }*/
     }
     public function move(moveX:Int,moveY:Int)
     {
@@ -62,12 +62,12 @@ class Player extends Group
         this.moveY = moveY;
         moveActive = true;
     }
-    public function movePath(movePath:Array<MovePath>)
+    /*public function movePath(movePath:Array<MovePath>)
     {
         //send to server
         if (main != this) return;
-        Main.client.send("MOVE " + tileX + " " + tileY + );
-    }
+       // Main.client.send("MOVE " + tileX + " " + tileY + );
+    }*/
     public function update()
     {
         if(moveActive)

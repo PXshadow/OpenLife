@@ -2,16 +2,20 @@ import MapData.MapInstance;
 import haxe.io.Encoding;
 import haxe.io.Bytes;
 import Message.MessageTag;
+#if sys
 import sys.net.Socket;
-import haxe.io.Error;
 import sys.net.Host;
+#end
+import haxe.io.Error;
 import haxe.crypto.Hmac;
 import PlayerData.PlayerInstance;
 
 class Client
 {
+    #if sys
     var socket:Socket;
     var server:Socket;
+    #end
     var tag:MessageTag;
     var index:Int = 0;
     var mapInstance:MapInstance;
@@ -41,6 +45,7 @@ class Client
     }
     public function update()
     {
+        #if sys
         if(socket == null) return;
         output = "";
         data = "";
@@ -88,6 +93,7 @@ class Client
 			    }
             }
         }
+        #end
     }
     private function process()
     {
@@ -184,6 +190,7 @@ class Client
     }
     private function loginRequest(email:String,key:String)
     {
+        #if sys
         login = false;
 		key = StringTools.replace(key,"-","");
         socket.output.writeString("LOGIN\n" + email + "\n" +
@@ -193,15 +200,21 @@ class Client
 		,Bytes.ofString(challenge)).toHex() + "#");
 		tag = "";
 		trace("send");
+        #end
     }
     public function send(data:String)
     {
+        #if sys
         socket.output.writeString(data + "#");
+        #end
     }
     public function connect(ip:String="",port:Int=0)
 	{
-		ip = "game.krypticmedia.co.uk";
-		port = 8007;
+        #if sys
+		//ip = "game.krypticmedia.co.uk";
+		//port = 8007;
+        ip = "bigserver2.onehouronelife.com";
+        port = 8005;
 		var host:Host;
 		try {
 			host = new Host(ip);
@@ -239,14 +252,18 @@ class Client
                 trace("connect " + e);
             }
         }
+        #end
 	}
     public function close()
     {
+        #if sys
         socket.close();
         trace("socket closed");
+        #end
     }
     private function unCompress()
     {
+        #if sys
         //remove #
         if(tagRemove)
         {
@@ -281,5 +298,6 @@ class Client
             }
             default:
         }
+        #end
     }
 }

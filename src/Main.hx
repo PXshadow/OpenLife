@@ -5,7 +5,10 @@ import openfl.geom.Point;
 import Display.Tile;
 import openfl.events.MouseEvent;
 import haxe.io.Path;
+#if sys
+import sys.io.File;
 import sys.FileSystem;
+#end
 import openfl.display.Bitmap;
 import openfl.ui.Keyboard;
 import openfl.events.KeyboardEvent;
@@ -73,8 +76,11 @@ class Main extends Sprite
         addEventListener(MouseEvent.MOUSE_UP,mouseUp);
 
         //debug
-        client.connect();
+        //client.connect();
         renderGame();
+        client.map.setX = -18;
+        client.map.setY = -13;
+        client.map.setRect(client.map.setX,client.map.setY,32,30,File.read("assets/map.txt").readAll().toString());
     }
     private function renderMenu()
     {
@@ -108,7 +114,7 @@ class Main extends Sprite
         grid.cacheAsBitmap = true;
         addChild(grid);
         var fps = new FPS(10,10,0xFFFFFF);
-        addChild(fps);
+        //addChild(fps);
         //var bitmap = new Bitmap(display.tileset.bitmapData);
         //addChild(bitmap);
         //test tree
@@ -169,7 +175,7 @@ class Main extends Sprite
     }
     private function createGrid()
     {
-        //return;
+        return;
         grid.graphics.lineStyle(2,0xFFFFFF,0.2);
         for(j in 0...Std.int(setHeight/Static.GRID) + 2)
         {

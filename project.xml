@@ -8,7 +8,8 @@
 	<haxelib name="format"/>
 	<haxelib name="openfl" />
 	<haxelib name="actuate"/>
-	<haxelib name="hxcpp-debug-server"/>
-	<haxelib name="hscript"/>
-	
+	<haxelib name="hxcpp-debug-server" unless="html5"/>
+	<haxelib name="hscript" unless="html5"/>
+	<!--Load Map-->
+	<assets path="assets" if="html5"/>
 </project>

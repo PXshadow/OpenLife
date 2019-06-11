@@ -3,13 +3,15 @@ import ObjectData.SpriteData;
 import haxe.ds.Vector;
 import PlayerData.PlayerType;
 import openfl.display.BitmapDataChannel;
-import sys.io.File;
 import format.tga.Data.Header;
 import openfl.utils.ByteArray;
 import haxe.Timer;
 import lime.app.Future;
 import openfl.display.Bitmap;
+#if sys
 import sys.FileSystem;
+import sys.io.File;
+#end
 import openfl.display.BitmapData;
 import openfl.display.Tileset;
 import openfl.display.Tilemap;
@@ -43,6 +45,7 @@ class Display extends Tilemap
         var p = Player.active.get(data.p_id);
         if(p == null) p = new Player(data.p_id,data.o_origin_x,data.o_origin_y);
         var obj = new ObjectData(data.po_id);
+        if(obj.fail) return;
         var length:Int = numTiles;
         //ids
         p.pid = data.po_id;
@@ -52,7 +55,6 @@ class Display extends Tilemap
         p.ageSystem(data.age_r);
         p.speed = data.move_speed;
         //draw
-        trace("sprite length " + obj.spriteArray.length);
         renderMap.set(obj.id,obj.spriteArray);
         createTile(obj.spriteArray,data.o_origin_x,data.o_origin_y);
         //clothing
@@ -80,7 +82,6 @@ class Display extends Tilemap
             if(tile == null) throw("tile null " + i);
             p.add(tile);
         }
-        trace("amount " + Std.string(numTiles - length));
         p.agePlayer();
     }
     public function addChunk(type:Int,x:Int,y:Int)
@@ -91,11 +92,25 @@ class Display extends Tilemap
         tile.y = (y - setY) * Static.GRID;
         addTile(tile);
     }
-    public function addFloor(type:Int,x:Int,y:Int)
+    public function addFloor(id:Int,x:Int,y:Int)
     {
-        if(type > 0)
+        if(id > 0)
         {
-            trace("type " + type);
+            //trace("type " + type);
+            //check if exists
+            var exist = renderMap.get(id);
+            if(exist != null)
+            {
+                //trace("exist");
+                createTile(exist,x,y);
+                return;
+            }
+            var data = new ObjectData(id);
+            if(data.fail) return;
+            //saves spriteData section
+            renderMap.set(id,data.spriteArray);
+            //draw
+            createTile(data.spriteArray,x,y);
         }
     }
     public function addObject(data:String,x:Int,y:Int)
@@ -113,6 +128,7 @@ class Display extends Tilemap
                 return;
             }
             var data = new ObjectData(id);
+            if(data.fail) return;
             //todo: save entire object data without spriteData
 
             //saves spriteData section

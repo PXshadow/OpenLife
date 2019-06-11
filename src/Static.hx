@@ -1,20 +1,24 @@
 import haxe.ds.Vector;
-import sys.io.FileInput;
 import openfl.Lib;
 import openfl.display.Bitmap;
 import haxe.io.Input;
 import openfl.display.BitmapData;
 import openfl.geom.Rectangle;
 import openfl.utils.ByteArray;
+#if sys
+import sys.io.FileInput;
 import sys.io.File;
+#end
 class Static 
 {
     public static inline var GRID:Int = 128;
     //array
+    #if sys
     public static function readLines(input:FileInput):Vector<String>
     {
         return Vector.fromArrayCopy(input.readAll().toString().split("\n"));
     }
+    #end
 
     //tga
     public static function tga(bitmap:Bitmap,path:String,x:Int=0,y:Int=0)
