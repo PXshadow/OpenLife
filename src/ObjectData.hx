@@ -1,8 +1,6 @@
-#if sys
 import sys.FileSystem;
-import sys.io.File;
-#end
 import openfl.geom.Point;
+import sys.io.File;
 import haxe.ds.Vector;
 class ObjectData
 {
@@ -78,11 +76,8 @@ class ObjectData
         line = Static.readLines(File.read(path));
         #end
         #if (html5 || js)
-            
+            //todo set this up
         #end
-    }
-    public function process()
-    {
         id = getInt();
         description = getString();
         containable = getInt();
@@ -262,29 +257,25 @@ class ObjectData
             var input = File.read(path,false);
             var j:Int = 0;
             var a = input.readLine().split(" ");
-            process(i,a);
-            }
-        }
-    }
-    public function process(i:Int,a:Array<String>)
-    {
-        for(string in a)
-        {
-            switch(j++)
+            for(string in a)
             {
-                case 0:
-                //name
+                switch(j++)
+                {
+                    case 0:
+                    //name
 
-                case 1:
-                //multitag
+                    case 1:
+                    //multitag
 
-                case 2:
-                //centerX
-                spriteArray[i].inCenterXOffset = Std.parseInt(string);
-                case 3:
-                //centerY
-                spriteArray[i].inCenterYOffset = Std.parseInt(string);
-            }              
+                    case 2:
+                    //centerX
+                    spriteArray[i].inCenterXOffset = Std.parseInt(string);
+                    case 3:
+                    //centerY
+                    spriteArray[i].inCenterYOffset = Std.parseInt(string);
+                }              
+            }
+            }
         }
     }
     public function getFloatArray():Array<Float>

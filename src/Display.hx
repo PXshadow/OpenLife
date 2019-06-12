@@ -153,15 +153,18 @@ class Display extends Tilemap
             var cache = cacheObject(obj.spriteID);
             var rect = tileset.getRect(cache);
             var tile = new Tile(cache,Object);
-            /*var w:Int = 1;
-            var h:Int = 1;
-            while (w < rect.width)w *= 2;
-            while (h < rect.height) h *= 2;*/
-            if(obj.rot > 0)
+
+            //.originX = obj.inCenterXOffset;
+            //tile.originY = obj.inCenterYOffset;
+            if(obj.inCenterXOffset != 0 && obj.inCenterYOffset != 0)
             {
-                tile.rotation = obj.rot * 180 * 2;
+                trace("center x " + obj.inCenterXOffset + " y " + obj.inCenterYOffset);
             }
-            if(obj.hFlip != 0)
+            if (obj.rot > 0)
+            {
+                tile.rotation = obj.rot * 360;
+            }
+            if (obj.hFlip != 0)
             {
                 tile.scaleX = obj.hFlip;
             }
@@ -171,8 +174,8 @@ class Display extends Tilemap
             tile.colorTransform.greenMultiplier = obj.color[1];
             tile.colorTransform.blueMultiplier = obj.color[2];
             //pos
-            tile.x = x + obj.pos.x - obj.inCenterXOffset - rect.width/2;
-            tile.y = y + -obj.pos.y - obj.inCenterYOffset - rect.height/2;
+            tile.x = x + obj.pos.x - obj.inCenterXOffset * 1 - rect.width/2;
+            tile.y = y + -obj.pos.y - obj.inCenterYOffset * 1 - rect.height/2;
             addTile(tile);
         }
     }
