@@ -1,5 +1,5 @@
 <p align="center"><img src="logo.jpg"/></p>
-======
+
 
 **DISCLAIMER: Project is still in progress, and is not usable from a player perspective yet, stayed tuned.**
 
