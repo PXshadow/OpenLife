@@ -15,9 +15,9 @@ Open Life is a fast light weight [One Life](http://onehouronelife.com/) client/a
 
 *  Quality of life improvements across the board.
 
-* Dedicated devolpment for a from scatch custom built client, independently supported from main with no dependencies.
+* Dedicated development for a from scatch custom built client, independently supported from main with no dependencies.
 
-Devolpers
+Developers
 =========
 Open Life is an [OpenFL](https://openfl.org) and [Haxe](https://haxe.org) based One Life client
 
