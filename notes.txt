@@ -3,5 +3,7 @@ xOscPerSec= move left and right over the x-axis (speed)
 xAmp = distance moved
 xPhase = where to start animation
 children inherent parents animations
+rock is a rocking animation rotation back and fourth
+offsets go back and fourth
 
 -thanks Mr_XIX

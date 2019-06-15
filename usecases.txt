@@ -6,6 +6,7 @@ USER INTERFACE
 DISPLAY 
 - show certain objects with an increased size
 - change colors of certain objects
+- Crafting guide for an item with completion steps (goal system)
 AUTO AI
 - auto eat food (use for emergency client will calculate closest food to eat)
 - auto fire starter
@@ -15,3 +16,8 @@ INVENTORY
 - inventory managment backpack (show names of object in backpack and hotkeys for them)
 MISC
 - SAVE COMMANDS into startup script
+- Run commands during game
+- Sprite editor to change how sprites look during game
+- Discord Integration for twinning and showing to fellow friends game activity
+- multiple ohol versions and mods 
+- friend system across servers (major future)

@@ -27,6 +27,9 @@ class Display extends Tilemap
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     var biomeMap:Map<Int,Vector<Int>> = new Map<Int,Vector<Int>>();
     public static var renderMap:Map<Int,Vector<SpriteData>> = new Map<Int,Vector<SpriteData>>();
+    //animation bank
+    public var animationArray:Array<Animation> = [];
+
     public var inital:Bool = true;
     //entire display
     public var setX:Int = 0;
@@ -129,6 +132,10 @@ class Display extends Tilemap
             }
             var data = new ObjectData(id);
             if(data.fail) return;
+            //add to animation bank 
+            var anim = new Animation(id);
+            if(!anim.fail) animationArray.push(anim);
+
             //todo: save entire object data without spriteData
 
             //saves spriteData section
@@ -148,6 +155,7 @@ class Display extends Tilemap
         x *= Static.GRID;
         y *= Static.GRID;
         //add array tiles
+        var length:Int = numTiles;
         for(obj in array)
         {
             var cache = cacheObject(obj.spriteID);
@@ -168,6 +176,10 @@ class Display extends Tilemap
             {
                 tile.scaleX = obj.hFlip;
             }
+            if (obj.parent >= 0)
+            {
+                tile.parentID = obj.parent;
+            }
             //color
             tile.colorTransform = new ColorTransform();
             tile.colorTransform.redMultiplier = obj.color[0];
@@ -178,6 +190,18 @@ class Display extends Tilemap
             tile.y = y + -obj.pos.y - obj.inCenterYOffset * 1 - rect.height/2;
             addTile(tile);
         }
+        /*for(i in length...numTiles)
+        {
+            var tile = cast(getTileAt(i),Tile);
+            if(tile.parentID >= 0)
+            {
+                trace("parent id " + Std.string(length - tile.parentID));
+                var parent = getTileAt(length - tile.parentID);
+                tile.x += parent.x;
+                tile.y = parent.y;
+            }
+            addTile(tile);
+        }*/
     }
     public function cacheBiome(id:Int)
     {
@@ -250,7 +274,8 @@ class Display extends Tilemap
 }
 class Tile extends openfl.display.Tile
 {
-    var type:TileType;
+    public var type:TileType;
+    public var parentID:Int = 0;
     public function new(id:Int,type:TileType)
     {
         super(id);

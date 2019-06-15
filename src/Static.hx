@@ -12,13 +12,6 @@ import sys.io.File;
 class Static 
 {
     public static inline var GRID:Int = 128;
-    //array
-    #if sys
-    public static function readLines(input:FileInput):Vector<String>
-    {
-        return Vector.fromArrayCopy(input.readAll().toString().split("\n"));
-    }
-    #end
 
     //tga
     public static function tga(bitmap:Bitmap,path:String,x:Int=0,y:Int=0)

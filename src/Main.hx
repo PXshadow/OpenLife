@@ -22,10 +22,12 @@ class Main extends Sprite
     public static inline var setWidth:Int = 1280;
     public static inline var setHeight:Int = 720;
     var scale:Float = 0;
-    var menu:Bool = true;
+    var menu:Bool = false;
     public static var client:Client;
     //local
     public var settings:Settings;
+    //launcher
+    public var launcher:Launcher;
     //game
     public var display:Display;
     public var grid:Shape;
@@ -51,7 +53,7 @@ class Main extends Sprite
         settings = Settings.getLocal();
 
         //debug
-        objectList = FileSystem.readDirectory(Settings.assetPath + "objects");
+        /*objectList = FileSystem.readDirectory(Settings.assetPath + "objects");
         for(i in 0...objectList.length) objectList[i] = Path.withoutExtension(objectList[i]);
         objectList.sort(function(a:String,b:String)
         {
@@ -61,7 +63,9 @@ class Main extends Sprite
             }else{
                 return -1;
             }
-        });
+        });*/
+
+
 
         if(menu) renderMenu();
         if (!menu) renderGame();
@@ -86,7 +90,11 @@ class Main extends Sprite
     {
         menu = true;
         removeChildren();
-        var connect = new Button();
+
+        launcher = new Launcher();
+        addChild(launcher);
+
+        /*var connect = new Button();
 		//var serverList = new ServerList();
 		//addChild(serverList);
 		//connect
@@ -101,7 +109,7 @@ class Main extends Sprite
             client.connect();
             renderGame();
 		}
-		addChild(connect);
+		addChild(connect);*/
     }
     private function renderGame()
     {
@@ -176,7 +184,7 @@ class Main extends Sprite
     private function createGrid()
     {
         return;
-        grid.graphics.lineStyle(2,0xFFFFFF,0.2);
+        grid.graphics.lineStyle(2,0xFFFFFF,0.5);
         for(j in 0...Std.int(setHeight/Static.GRID) + 2)
         {
             for(i in 0...Std.int(setWidth/Static.GRID) + 2)

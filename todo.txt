@@ -1,6 +1,9 @@
+- create class to extend that has the getString getInt, for Animation and ObjectData
+
+
 -get floor speed multipler
 - system player path system for movement
 - figure out category system
 - force system for player
 - player holding system
-
+- player show names somehow
