@@ -15,7 +15,7 @@ Open Life is a fast light weight [One Life](http://onehouronelife.com/) client/a
 
 *  Quality of life improvements across the board.
 
-* Dedicated development for a from scatch custom built client, independently supported from main with no dependencies.
+* Dedicated development for a from scatch custom built client, independently supported.
 
 Developers
 =========
