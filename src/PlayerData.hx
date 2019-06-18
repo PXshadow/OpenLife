@@ -48,7 +48,10 @@ class PlayerType
     public var last_ate_id:Int = 0;
     public var responsible_id:Int = 0;
     public var held_yum:Int = 0;
+    public function new()
+    {
 
+    }
     public function toString():String
     {
         var string:String = "";
@@ -63,6 +66,7 @@ class PlayerInstance extends PlayerType
 {
     public function new(a:Array<String>)
     {
+        super();
         array.push(this);
         var index:Int = 0;
         for(value in a)

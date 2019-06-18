@@ -114,12 +114,13 @@ class Client
                 return;
             }
         }
+        trace("output " + output);
         //data 
         switch(tag)
         {
             case PLAYER_UPDATE:
             var array = data.split(" ");
-            trace("data " + data);
+            //trace("data " + data);
             playerInstance = new PlayerInstance(data.split(" "));
             player.set();
             case MAP_CHUNK:
@@ -149,6 +150,24 @@ class Client
                     compress = true;
                 }
             }
+            case MAP_CHANGE:
+            //x y new_floor_id new_id p_id optional oldX oldY speed
+            var array = data.split(" ");
+            var string = array[0] + " " + array[1];
+            //floor
+            if(Std.parseInt(array[2]) > 0) 
+            {
+
+            }
+            //object
+            if(Std.parseInt(array[3]) > 0)
+            {
+
+            }
+            //p_id
+
+            //optional speed
+            
             case HEAT_CHANGE:
             //trace("heat " + data);
 
@@ -176,7 +195,7 @@ class Client
             case PLAYER_SAYS:
             trace("player say " + data);
             case PLAYER_MOVES_START:
-
+            trace("player move start data " + data);
             case PLAYER_OUT_OF_RANGE:
 
             case ACCEPTED:
@@ -185,7 +204,7 @@ class Client
             case REJECTED:
             trace("reject");
             default:
-            trace("type " + tag + " data " + data);
+            //trace("type " + tag + " data " + data);
         }
     }
     private function loginRequest(email:String,key:String)
@@ -211,10 +230,10 @@ class Client
     public function connect(ip:String="",port:Int=0)
 	{
         #if sys
-		//ip = "game.krypticmedia.co.uk";
-		//port = 8007;
-        ip = "bigserver2.onehouronelife.com";
-        port = 8005;
+		ip = "game.krypticmedia.co.uk";
+		port = 8007;
+        //ip = "bigserver2.onehouronelife.com";
+        //port = 8005;
 		var host:Host;
 		try {
 			host = new Host(ip);

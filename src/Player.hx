@@ -1,3 +1,4 @@
+import motion.Actuate;
 import haxe.Timer;
 import Display.Group;
 import ObjectData.SpriteData;
@@ -30,8 +31,6 @@ class Player extends Group
     //movement
     var tileX:Int = 0;
     var tileY:Int = 0;
-    var moveX:Int = 0;
-    var moveY:Int = 0;
     var moveActive:Bool = false;
     //var movePath:
     public function new(id:Int,tileX:Int,tileY:Int)
@@ -55,36 +54,25 @@ class Player extends Group
             agePlayer();
         }*/
     }
-    public function move(moveX:Int,moveY:Int)
-    {
-        if(tileX == moveX && tileY == moveY) return;
-        this.moveX = moveX;
-        this.moveY = moveY;
-        moveActive = true;
-    }
-    /*public function movePath(movePath:Array<MovePath>)
-    {
-        //send to server
-        if (main != this) return;
-       // Main.client.send("MOVE " + tileX + " " + tileY + );
-    }*/
     public function update()
     {
-        if(moveActive)
-        {
-            var sx = Math.floor(x/Static.GRID);
-            var sy = Math.floor(y/Static.GRID);
-            var speed = (speed * Static.GRID)/60;
-            if(sx == moveX && sy == moveY)
-            {
-                //do things
-                moveActive = false;
-            }
-            if (sx < moveX) x += speed;
-            if (sx > moveX) x += -speed;
-            if (sy < moveY) y += speed;
-            if (sy > moveY) y += -speed;
-        }
+
+    }
+    public function move(moveX:Int=0,moveY:Int=0)
+    {
+        trace("move!!!!!!");
+        moveActive = true;
+        Main.client.send("MOVE " + tileX + " " + tileY + " @" +
+        ++lastMoveSequenceNumber + " " +
+        moveX + " " + moveY
+        );
+        //MOVE xs ys @seq_num xdelt0 ydelt0 xdelt1 ydelt1
+        x += moveX * Static.GRID;
+        y += moveY * Static.GRID;
+        tileX += moveX;
+        tileY += moveY;
+        Sys.sleep(0.5);
+
     }
     public function agePlayer()
     {

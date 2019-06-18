@@ -1,5 +1,4 @@
-- create class to extend that has the getString getInt, for Animation and ObjectData
-
+- setup docs folder to setup github pages and show off demo.
 
 -get floor speed multipler
 - system player path system for movement

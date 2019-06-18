@@ -48,7 +48,9 @@ class Display extends Tilemap
         var p = Player.active.get(data.p_id);
         if(p == null) p = new Player(data.p_id,data.o_origin_x,data.o_origin_y);
         var obj = new ObjectData(data.po_id);
+        trace("obj fail " + obj.fail);
         if(obj.fail) return;
+        trace("create1");
         var length:Int = numTiles;
         //ids
         p.pid = data.po_id;
@@ -59,6 +61,7 @@ class Display extends Tilemap
         p.speed = data.move_speed;
         //draw
         renderMap.set(obj.id,obj.spriteArray);
+        trace("tiles num " + obj.spriteArray.length);
         createTile(obj.spriteArray,data.o_origin_x,data.o_origin_y);
         //clothing
         var i = data.clothing_set.split(",");
@@ -85,7 +88,7 @@ class Display extends Tilemap
             if(tile == null) throw("tile null " + i);
             p.add(tile);
         }
-        p.agePlayer();
+        //p.agePlayer();
     }
     public function addChunk(type:Int,x:Int,y:Int)
     {
@@ -164,10 +167,10 @@ class Display extends Tilemap
 
             //.originX = obj.inCenterXOffset;
             //tile.originY = obj.inCenterYOffset;
-            if(obj.inCenterXOffset != 0 && obj.inCenterYOffset != 0)
+            /*if(obj.inCenterXOffset != 0 && obj.inCenterYOffset != 0)
             {
                 trace("center x " + obj.inCenterXOffset + " y " + obj.inCenterYOffset);
-            }
+            }*/
             if (obj.rot > 0)
             {
                 tile.rotation = obj.rot * 360;

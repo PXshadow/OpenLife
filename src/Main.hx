@@ -1,3 +1,5 @@
+import motion.Actuate;
+import PlayerData.PlayerInstance;
 import openfl.display.Shape;
 import PlayerData.PlayerType;
 import openfl.display.FPS;
@@ -29,13 +31,10 @@ class Main extends Sprite
     //launcher
     public var launcher:Launcher;
     //game
-    public var display:Display;
+    public static var display:Display;
     public var grid:Shape;
     //debug
-    var objectList:Array<String> = [];
-    var objectIndex:Int = 0;
-    var focus:Tile = null;
-    var focusOffset:Point;
+    var debugText:Text;
     //movement
     var moveX:Int = -1;
     var moveY:Int = -1;
@@ -52,21 +51,6 @@ class Main extends Sprite
 
         settings = Settings.getLocal();
 
-        //debug
-        /*objectList = FileSystem.readDirectory(Settings.assetPath + "objects");
-        for(i in 0...objectList.length) objectList[i] = Path.withoutExtension(objectList[i]);
-        objectList.sort(function(a:String,b:String)
-        {
-            if(Std.parseInt(a) > Std.parseInt(b))
-            {
-                return 1;
-            }else{
-                return -1;
-            }
-        });*/
-
-
-
         if(menu) renderMenu();
         if (!menu) renderGame();
 
@@ -80,11 +64,20 @@ class Main extends Sprite
         addEventListener(MouseEvent.MOUSE_UP,mouseUp);
 
         //debug
-        //client.connect();
-        renderGame();
-        client.map.setX = -18;
+        client.connect();
+        //renderGame();
+        /*client.map.setX = -18;
         client.map.setY = -13;
-        client.map.setRect(client.map.setX,client.map.setY,32,30,File.read("assets/map.txt").readAll().toString());
+        client.map.setRect(client.map.setX,client.map.setY,32,30,File.read("assets/map.txt").readAll().toString());*/
+
+        /*var p = new PlayerType();
+        //fill test player
+        p.p_id = 15;
+        p.po_id = 19;
+        p.age = 15;
+        p.age_r = 60;
+        p.move_speed = 30;
+        display.addPlayer(p);*/
     }
     private function renderMenu()
     {
@@ -122,17 +115,15 @@ class Main extends Sprite
         grid.cacheAsBitmap = true;
         addChild(grid);
         var fps = new FPS(10,10,0xFFFFFF);
-        //addChild(fps);
-        //var bitmap = new Bitmap(display.tileset.bitmapData);
-        //addChild(bitmap);
-        //test tree
-        /*var bitmap = new Bitmap(BitmapData.fromFile(Settings.assetPath + "kapuk_tree_work_in_progress.png"));
-        bitmap.x = Static.GRID * 1;
-        bitmap.y = Static.GRID * 1;
-        addChild(bitmap);*/
+        addChild(fps);
+
+        debugText = new Text("Debug",LEFT,12,0xFFFFFF,200);
+        debugText.y = 100;
+        addChild(debugText);
     }
     public function updatePlayer()
     {
+        trace("update player");
         var iterator = client.player.key.iterator();
         var player:PlayerType;
         while(iterator.hasNext())
@@ -195,6 +186,8 @@ class Main extends Sprite
     }
     private function update(_)
     {
+        debugText.text = Std.string(Math.ceil(display.mouseX/Static.GRID) + display.setX) + " " +
+        Std.string(Math.ceil(display.mouseY/Static.GRID) + display.setY);
         client.update(); 
         var i = Player.active.iterator();
         while(i.hasNext())
@@ -218,36 +211,18 @@ class Main extends Sprite
     {
         if (menu) return;
         keys(e.keyCode,true);
-        if(e.keyCode == Keyboard.Z)
-        {
-            if (objectIndex > 0) objectIndex --;
-            objectViewer();
-        }
-        if(e.keyCode == Keyboard.X)
-        {
-            if (objectIndex < objectList.length) objectIndex ++;
-            objectViewer();
-        }
         if(e.keyCode == Keyboard.BACKSPACE)
         {
             client.close();
         }
     }
-    private function objectViewer()
-    {
-        display.removeTiles();
-        display.addObject(objectList[objectIndex],3,3);
-
-    }
     private function mouseDown(_)
     {
-        var pX:Int = Std.int(display.mouseX/Static.GRID) + display.setX;
-        var pY:Int = Std.int(display.mouseY/Static.GRID) + display.setY;
-        if(Player.main != null) Player.main.move(pX,pY);
+
     }
     private function mouseUp(_)
     {
-        focus = null;
+
     }
     private function mouseWheel(e:MouseEvent)
     {
@@ -296,6 +271,14 @@ class Main extends Sprite
         if (down) for(obj in moveArray) obj.y += -speed;
         if (left) for(obj in moveArray) obj.x += speed;
         if (right) for(obj in moveArray) obj.x += -speed;
+        if (Player.main == null) return;
+        var mX:Int = 0;
+        var mY:Int = 0;
+        if (up) mY += -1;
+        if (down) mY += 1;
+        if (left) mX += -1;
+        if (right) mX += 1;
+        if (mX != 0 || mY != 0) Player.main.move(mX,mY);
     }
     private function _resize(_)
     {

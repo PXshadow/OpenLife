@@ -70,6 +70,7 @@ class LineReader
     public function getString():String
     {
         var string = line[next++];
+        if(string == null || string == "") return "";
         var equals = string.indexOf("=");
         return string.substring(equals + 1,line.length);
     }

@@ -18,12 +18,12 @@ class Animation extends LineReader
             var path = Settings.assetPath + "animations/" + id + "_" + i + ".txt";
             if (!FileSystem.exists(path)) 
             {
-                trace("ANIMATION FAIL " + id + "_" + i);
+                //trace("ANIMATION FAIL " + id + "_" + i);
                 fail = true;
                 return;
             }
             line = readLines(File.read(path,false));
-            process();
+            //process();
         }
         line = null;
     }
@@ -50,7 +50,7 @@ class Animation extends LineReader
         //numSlots
         var numSlts:Int = getInt();
         //Params
-        for(i in 0...numSprites) processParam();
+        //for(i in 0...numSprites) processParam();
     }
     public function processParam()
     {
