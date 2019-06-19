@@ -6,22 +6,12 @@ import openfl.display.Shape;
 class PlayerData
 {
     public var key:Map<Int,PlayerType> = new Map<Int,PlayerType>();
+    public var array:Array<PlayerType> = [];
     public var primary:Int = -1;
     public var update:Void->Void;
     public function new()
     {
 
-    }
-    public function set() 
-    {
-        for(player in PlayerInstance.array)
-        {
-            if(primary == -1) primary = player.p_id;
-            key.set(player.p_id,cast(player,PlayerType));
-        }
-        //clear
-        PlayerInstance.array = [];
-        if(update != null) update();
     }
 }
 class PlayerType 
@@ -67,7 +57,6 @@ class PlayerInstance extends PlayerType
     public function new(a:Array<String>)
     {
         super();
-        array.push(this);
         var index:Int = 0;
         for(value in a)
         {
@@ -119,7 +108,15 @@ class PlayerInstance extends PlayerType
                 case 20:
                 held_yum = Std.parseInt(value);
             }
+            //add primary player
+            if(Main.client.player.primary == -1) Main.client.player.primary = p_id;
+            //push into array to update
+            Main.client.player.array.push(this);
+            //set new or existing key
+            Main.client.player.key.set(p_id,this);
+            //update 
+            if (Main.client.player != null) Main.client.player.update();
         }
+
     }
-    public static var array:Array<PlayerInstance> = [];
 }   

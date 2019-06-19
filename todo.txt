@@ -1,8 +1,17 @@
 - setup docs folder to setup github pages and show off demo.
 
+- player update deal with force (Simply a way to pull players to new player_update postions)
 -get floor speed multipler
 - system player path system for movement
 - figure out category system
 - force system for player
 - player holding system
 - player show names somehow
+
+
+
+- Non technical
+- add client to https://www.moddb.com/games/one-hour-one-life/mods
+- add to https://www.indiedb.com/
+- create itch distrubution
+- Partner more with 2HOL reborn

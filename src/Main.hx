@@ -123,13 +123,22 @@ class Main extends Sprite
     }
     public function updatePlayer()
     {
-        trace("update player");
+        /*trace("update player");
         var iterator = client.player.key.iterator();
         var player:PlayerType;
         while(iterator.hasNext())
         {
             player = iterator.next();
             display.addPlayer(player);
+        }*/
+        for(player in client.player.array)
+        {
+            if(Player.active.exists(player.p_id))
+            {
+                display.updatePlayer(player,Player.active.get(player.p_id));
+            }else{
+                display.addPlayer(player);
+            }
         }
     }
     public function updateMap()
@@ -256,9 +265,9 @@ class Main extends Sprite
             up = bool;
             case Keyboard.DOWN | Keyboard.S:
             down = bool;
-            case Keyboard.LEFT | Keyboard.D:
+            case Keyboard.LEFT | Keyboard.A:
             left = bool;
-            case Keyboard.RIGHT | Keyboard.A:
+            case Keyboard.RIGHT | Keyboard.D:
             right = bool;
         }
     }

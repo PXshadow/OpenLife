@@ -5,5 +5,8 @@ xPhase = where to start animation
 children inherent parents animations
 rock is a rocking animation rotation back and fourth
 offsets go back and fourth
-
 -thanks Mr_XIX
+
+Player Update
+force 1 means to move the player back to position updated to
+need to fix age system and face 

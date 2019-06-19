@@ -60,7 +60,6 @@ class Player extends Group
     }
     public function move(moveX:Int=0,moveY:Int=0)
     {
-        trace("move!!!!!!");
         moveActive = true;
         Main.client.send("MOVE " + tileX + " " + tileY + " @" +
         ++lastMoveSequenceNumber + " " +

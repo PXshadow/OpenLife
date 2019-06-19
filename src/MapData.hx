@@ -20,7 +20,7 @@ class MapData
     public var setHeight:Int = 0;
     public function new()
     {
-
+        
     }
     public function setRect(x:Int,y:Int,width:Int,height:Int,string:String)
     {

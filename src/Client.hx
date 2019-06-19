@@ -114,15 +114,14 @@ class Client
                 return;
             }
         }
-        trace("output " + output);
+        //trace("output " + output);
         //data 
         switch(tag)
         {
             case PLAYER_UPDATE:
             var array = data.split(" ");
-            //trace("data " + data);
             playerInstance = new PlayerInstance(data.split(" "));
-            player.set();
+            trace("PU " + playerInstance.toString());
             case MAP_CHUNK:
             var array = data.split(" ");
             for(value in array)
@@ -167,7 +166,7 @@ class Client
             //p_id
 
             //optional speed
-            
+
             case HEAT_CHANGE:
             //trace("heat " + data);
 
