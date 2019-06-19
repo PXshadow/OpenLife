@@ -1,3 +1,5 @@
+import lime.media.AudioBuffer;
+import openfl.media.Sound;
 import motion.Actuate;
 import PlayerData.PlayerInstance;
 import openfl.display.Shape;
@@ -43,6 +45,11 @@ class Main extends Sprite
     public function new()
     {
         super();
+        //sounds do not
+        //var sound = Sound.fromAudioBuffer(AudioBuffer.fromBytes(File.getBytes("assets/hunger.aiff")));
+        //music works
+        //var sound = Sound.fromAudioBuffer(AudioBuffer.fromBytes(File.getBytes("assets/music_01.ogg")));
+        //sound.play();
         //Lib.application.window.x = 1280 + 500;
 
         client = new Client();

@@ -10,6 +10,7 @@
 
 - setup docs folder to setup github pages and show off demo.
 
+- sounds https://www.instructables.com/id/How-to-Read-aiff-Files-using-C/
 
 Non technical
 - add client to https://www.moddb.com/games/one-hour-one-life/mods

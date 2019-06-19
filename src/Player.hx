@@ -57,7 +57,7 @@ class Player extends Group
     }
     public function update()
     {
-
+        
     }
     public function move(moveX:Int=0,moveY:Int=0)
     {
