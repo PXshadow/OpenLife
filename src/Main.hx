@@ -131,6 +131,7 @@ class Main extends Sprite
             player = iterator.next();
             display.addPlayer(player);
         }*/
+        trace("update player function " + client.player.array.length);
         for(player in client.player.array)
         {
             if(Player.active.exists(player.p_id))
@@ -140,6 +141,7 @@ class Main extends Sprite
                 display.addPlayer(player);
             }
         }
+        client.player.array = [];
     }
     public function updateMap()
     {

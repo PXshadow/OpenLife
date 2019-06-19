@@ -7,11 +7,15 @@
 - force system for player
 - player holding system
 - player show names somehow
+- look into poll system
 
 
-
-- Non technical
+Non technical
 - add client to https://www.moddb.com/games/one-hour-one-life/mods
 - add to https://www.indiedb.com/
 - create itch distrubution
 - Partner more with 2HOL reborn
+
+Community Marketplace
+- Built in translation system
+- Clear mod submission

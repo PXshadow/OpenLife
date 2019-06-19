@@ -7,6 +7,11 @@ rock is a rocking animation rotation back and fourth
 offsets go back and fourth
 -thanks Mr_XIX
 
+If you walk far enough off screen from an item it can't fully decay if it has multiple transitions. 
+The classic being something like fires. Slow large fire > small fire > hot coals > ashes.
+-thanks Tarr
+
+
 Player Update
 force 1 means to move the player back to position updated to
 need to fix age system and face 

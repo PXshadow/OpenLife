@@ -7,6 +7,7 @@ DISPLAY
 - show certain objects with an increased size
 - change colors of certain objects
 - Crafting guide for an item with completion steps (goal system)
+- local cordinate system
 AUTO AI
 - auto eat food (use for emergency client will calculate closest food to eat)
 - auto fire starter
@@ -21,3 +22,4 @@ MISC
 - Discord Integration for twinning and showing to fellow friends game activity
 - multiple ohol versions and mods 
 - friend system across servers (major future)
+- replay/recording system for lives, for better video content (major feature)

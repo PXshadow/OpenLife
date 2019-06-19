@@ -47,13 +47,12 @@ class Display extends Tilemap
     {
         //update player
         trace("force " + data.forceX + " " + data.forceY);
-        
     }
     public function addPlayer(data:PlayerType)
     {
         //return;
-        var p = Player.active.get(data.p_id);
-        if(p == null) p = new Player(data.p_id,data.o_origin_x,data.o_origin_y);
+        trace("add player x " + data.o_origin_x + " y " + data.o_origin_y);
+        var p = new Player(data.p_id,data.o_origin_x,data.o_origin_y);
         var obj = new ObjectData(data.po_id);
         trace("obj fail " + obj.fail);
         if(obj.fail) return;
