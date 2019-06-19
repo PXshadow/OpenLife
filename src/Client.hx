@@ -99,7 +99,7 @@ class Client
     {
         //router
         output = data;
-        //trace("data " + data);
+        trace("data " + data);
         if(login && tag == "")
         {
             tag = data;
@@ -121,7 +121,6 @@ class Client
             case PLAYER_UPDATE:
             var array = data.split(" ");
             playerInstance = new PlayerInstance(data.split(" "));
-            trace("PU " + playerInstance.toString());
             case MAP_CHUNK:
             var array = data.split(" ");
             for(value in array)
@@ -196,7 +195,7 @@ class Client
             case PLAYER_MOVES_START:
             trace("player move start data " + data);
             case PLAYER_OUT_OF_RANGE:
-
+            
             case ACCEPTED:
             trace("accept");
             tag = "";

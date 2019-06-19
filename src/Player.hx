@@ -5,7 +5,7 @@ import ObjectData.SpriteData;
 class Player extends Group
 {
     //done moving sequence number
-    public static var lastMoveSequenceNumber:Int = 1;
+    public var lastMoveSequenceNumber:Int = 1;
     public var head:Int = 0;
     public var body:Int = 0;
     public var backFoot:Array<Int> = [];
@@ -29,8 +29,8 @@ class Player extends Group
     public static var active:Map<Int,Player> = new Map<Int,Player>();
     public static var main:Player;
     //movement
-    var tileX:Int = 0;
-    var tileY:Int = 0;
+    public var tileX:Int = 0;
+    public var tileY:Int = 0;
     var moveActive:Bool = false;
     //var movePath:
     public function new(id:Int,tileX:Int,tileY:Int)
@@ -39,6 +39,7 @@ class Player extends Group
         this.id = id;
         this.tileX = tileX;
         this.tileY = tileY;
+        trace("starting pos " + tileX + " " + tileY);
         //set start pos
         x = tileX * Static.GRID;
         y = tileY * Static.GRID;
@@ -60,18 +61,19 @@ class Player extends Group
     }
     public function move(moveX:Int=0,moveY:Int=0)
     {
+        if(moveActive) return;
         moveActive = true;
-        Main.client.send("MOVE " + tileX + " " + tileY + " @" +
+        /*Main.client.send("MOVE " + tileX + " " + tileY + " @" +
         ++lastMoveSequenceNumber + " " +
-        moveX + " " + moveY
-        );
+        moveX + " " + moveY + 
+        "#"
+        );*/
+        //Main.client.send("MOVE 0 0 @2 0 1 0 2 0 3#");
         //MOVE xs ys @seq_num xdelt0 ydelt0 xdelt1 ydelt1
         x += moveX * Static.GRID;
         y += moveY * Static.GRID;
         tileX += moveX;
         tileY += moveY;
-        Sys.sleep(0.5);
-
     }
     public function agePlayer()
     {

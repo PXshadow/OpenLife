@@ -134,10 +134,8 @@ class Main extends Sprite
         trace("update player function " + client.player.array.length);
         for(player in client.player.array)
         {
-            if(Player.active.exists(player.p_id))
+            if(!display.updatePlayer(player))
             {
-                display.updatePlayer(player,Player.active.get(player.p_id));
-            }else{
                 display.addPlayer(player);
             }
         }

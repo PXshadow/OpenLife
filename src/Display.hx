@@ -43,15 +43,40 @@ class Display extends Tilemap
         //return;
         for(i in 0...6 + 1) cacheBiome(i);
     }
-    public function updatePlayer(data:PlayerType,player:Player)
+    public function updatePlayer(data:PlayerType):Bool
     {
         //update player
-        trace("force " + data.forceX + " " + data.forceY);
+        var player:Player = null;
+        player = Player.active.get(data.p_id);
+        if(player == null) return false;
+        //trace data
+        //trace(data.toString());
+        //set tile int pos
+        player.tileX = data.o_origin_x;
+        player.tileY = data.o_origin_y;
+        //set actual postion with entire group
+        var tim = new Timer(5000);
+        tim.run = function()
+        {
+        player.x = player.tileX * Static.GRID;
+        player.y = player.tileY * Static.GRID;
+        trace("move back");
+        tim.stop();
+        }
+        player.speed = data.move_speed;
+
+        //set age
+        player.age = data.age;
+        //p.ageSystem(data.age_r);
+        player.speed = data.move_speed;
+        //age
+        player.agePlayer();
+        return true;
     }
     public function addPlayer(data:PlayerType)
     {
         //return;
-        trace("add player x " + data.o_origin_x + " y " + data.o_origin_y);
+        //trace("add player x " + data.o_origin_x + " y " + data.o_origin_y);
         var p = new Player(data.p_id,data.o_origin_x,data.o_origin_y);
         var obj = new ObjectData(data.po_id);
         trace("obj fail " + obj.fail);
@@ -60,14 +85,9 @@ class Display extends Tilemap
         var length:Int = numTiles;
         //ids
         p.pid = data.po_id;
-        p.oid = data.o_id;
-        //set age
-        p.age = data.age;
-        p.ageSystem(data.age_r);
-        p.speed = data.move_speed;
         //draw
         renderMap.set(obj.id,obj.spriteArray);
-        trace("tiles num " + obj.spriteArray.length);
+        //trace("tiles num " + obj.spriteArray.length);
         createTile(obj.spriteArray,data.o_origin_x,data.o_origin_y);
         //clothing
         var i = data.clothing_set.split(",");
@@ -94,7 +114,10 @@ class Display extends Tilemap
             if(tile == null) throw("tile null " + i);
             p.add(tile);
         }
-        //p.agePlayer();
+
+        //update player
+        updatePlayer(data);
+        p.oid = data.o_id;
     }
     public function addChunk(type:Int,x:Int,y:Int)
     {

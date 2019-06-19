@@ -1,5 +1,4 @@
-- setup docs folder to setup github pages and show off demo.
-
+- player update data is being retrived wrong move is around 3.75  GRIDS per second as well whitch now makes sense vs 60
 - player update deal with force (Simply a way to pull players to new player_update postions)
 -get floor speed multipler
 - system player path system for movement
@@ -8,6 +7,8 @@
 - player holding system
 - player show names somehow
 - look into poll system
+
+- setup docs folder to setup github pages and show off demo.
 
 
 Non technical
