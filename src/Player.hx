@@ -31,7 +31,7 @@ class Player extends Group
     //movement
     public var tileX:Int = 0;
     public var tileY:Int = 0;
-    var moveActive:Bool = false;
+    public var moveActive:Bool = false;
     //var movePath:
     public function new(id:Int,tileX:Int,tileY:Int)
     {
@@ -63,11 +63,11 @@ class Player extends Group
     {
         if(moveActive) return;
         moveActive = true;
-        /*Main.client.send("MOVE " + tileX + " " + tileY + " @" +
+        Main.client.send("MOVE " + tileX + " " + tileY + " @" +
         ++lastMoveSequenceNumber + " " +
         moveX + " " + moveY + 
         "#"
-        );*/
+        );
         //Main.client.send("MOVE 0 0 @2 0 1 0 2 0 3#");
         //MOVE xs ys @seq_num xdelt0 ydelt0 xdelt1 ydelt1
         x += moveX * Static.GRID;

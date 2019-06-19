@@ -52,23 +52,18 @@ class Display extends Tilemap
         //trace data
         //trace(data.toString());
         //set tile int pos
-        player.tileX = data.o_origin_x;
-        player.tileY = data.o_origin_y;
-        //set actual postion with entire group
-        var tim = new Timer(5000);
-        tim.run = function()
-        {
+        player.tileX = data.x;
+        player.tileY = data.y;
+
         player.x = player.tileX * Static.GRID;
         player.y = player.tileY * Static.GRID;
-        trace("move back");
-        tim.stop();
-        }
         player.speed = data.move_speed;
 
         //set age
         player.age = data.age;
         //p.ageSystem(data.age_r);
         player.speed = data.move_speed;
+        player.moveActive = false;
         //age
         player.agePlayer();
         return true;

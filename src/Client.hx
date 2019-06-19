@@ -121,6 +121,9 @@ class Client
             case PLAYER_UPDATE:
             var array = data.split(" ");
             playerInstance = new PlayerInstance(data.split(" "));
+            case PLAYER_MOVES_START:
+            //p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0
+            //264 0 -1 0.503 0.503 0 1 1
             case MAP_CHUNK:
             var array = data.split(" ");
             for(value in array)

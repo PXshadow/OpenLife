@@ -29,8 +29,9 @@ class PlayerType
     public var o_transition_source_id:Int = 0;
     public var heat:Int = 0;
     public var done_moving_seqNum:Int = 0;
-    public var forceX:Int = 0;
-    public var forceY:Int = 0;
+    public var forced:Int = -1;
+    public var x:Int = 0;
+    public var y:Int = 0;
     public var age:Int = 0;
     public var age_r:Int = 0;
     public var move_speed:Float = 0;
@@ -70,9 +71,10 @@ class PlayerInstance extends PlayerType
                 case 1:
                 po_id = Std.parseInt(value);
                 case 2:
+                //facing override
                 facing = Std.parseInt(value);
                 case 3:
-                //action
+                //action attempt
                 action = Std.parseInt(value);
                 case 4:
                 action_target_x = Std.parseInt(value);
@@ -97,10 +99,13 @@ class PlayerInstance extends PlayerType
                 case 12:
                 done_moving_seqNum = Std.parseInt(value);
                 case 13:
-                forceX = Std.parseInt(value);
+                ///forced
+                forced = Std.parseInt(value);
                 case 14:
-                forceY = Std.parseInt(value);
+                x = Std.parseInt(value);
                 case 15:
+                y = Std.parseInt(value);
+                case 16:
                 trace("age value " + value);
                 age = Std.parseInt(value);
                 case 16:

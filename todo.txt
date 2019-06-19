@@ -1,4 +1,4 @@
-- player update data is being retrived wrong move is around 3.75  GRIDS per second as well whitch now makes sense vs 60
+- player move system animate with new class to deal with movement data and apply to clients
 - player update deal with force (Simply a way to pull players to new player_update postions)
 -get floor speed multipler
 - system player path system for movement
