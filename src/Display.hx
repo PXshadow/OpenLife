@@ -52,6 +52,7 @@ class Display extends Tilemap
         //trace data
         //trace(data.toString());
         //set tile int pos
+        motion.Actuate.pause(this);
         player.tileX = data.x;
         player.tileY = data.y;
 
@@ -74,9 +75,9 @@ class Display extends Tilemap
         //trace("add player x " + data.o_origin_x + " y " + data.o_origin_y);
         var p = new Player(data.p_id,data.o_origin_x,data.o_origin_y);
         var obj = new ObjectData(data.po_id);
-        trace("obj fail " + obj.fail);
+        //trace("obj fail " + obj.fail);
         if(obj.fail) return;
-        trace("create1");
+        //trace("create1");
         var length:Int = numTiles;
         //ids
         p.pid = data.po_id;

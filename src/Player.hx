@@ -65,13 +65,19 @@ class Player extends Group
         moveActive = true;
         Main.client.send("MOVE " + tileX + " " + tileY + " @" +
         ++lastMoveSequenceNumber + " " +
-        moveX + " " + moveY + 
-        "#"
+        moveX + " " + moveY
         );
         //Main.client.send("MOVE 0 0 @2 0 1 0 2 0 3#");
         //MOVE xs ys @seq_num xdelt0 ydelt0 xdelt1 ydelt1
-        x += moveX * Static.GRID;
-        y += moveY * Static.GRID;
+        //x += moveX * Static.GRID;
+        //y += moveY * Static.GRID;
+        
+        Actuate.tween(this,1,{x:(tileX + moveX) * Static.GRID,y:(tileX + moveY)}).onComplete(function(_)
+        {
+            tileX += moveX;
+            tileY += moveY;
+            moveActive = false;
+        });
         tileX += moveX;
         tileY += moveY;
     }

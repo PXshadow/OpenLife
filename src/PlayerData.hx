@@ -60,7 +60,6 @@ class PlayerInstance extends PlayerType
     {
         super();
         var index:Int = 0;
-        trace("array " + a + " split " + a.slice(6,9));
         for(value in a)
         {
             //index
@@ -85,13 +84,9 @@ class PlayerInstance extends PlayerType
                 case 7:
                 o_origin_valid = Std.parseInt(value);
                 case 8:
-                trace("originX " + value);
                 o_origin_x = Std.parseInt(value);
-                trace("-return " + o_origin_x);
                 case 9:
-                trace("orignY " + value);
                 o_origin_y = Std.parseInt(value);
-                trace("-return " + o_origin_y);
                 case 10:
                 o_transition_source_id = Std.parseInt(value);
                 case 11:
@@ -106,10 +101,8 @@ class PlayerInstance extends PlayerType
                 case 15:
                 y = Std.parseInt(value);
                 case 16:
-                trace("age value " + value);
                 age = Std.parseInt(value);
                 case 16:
-                trace("age r " + value);
                 age_r = Std.parseInt(value);
                 case 17:
                 move_speed = Std.parseInt(value);
@@ -131,8 +124,22 @@ class PlayerInstance extends PlayerType
         //set new or existing key
         Main.client.player.key.set(p_id,this);
         //update 
-        trace("new update");
         if (Main.client.player != null) Main.client.player.update();
-
     }
-}   
+}
+
+class PlayerMove 
+{
+    public function  new(a:Array<String>)
+    {
+        var index:Int = 0;
+        for(value in a)
+        {
+            switch(index++)
+            {
+                case 0:
+
+            }
+        }
+    }
+}

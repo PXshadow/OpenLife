@@ -35,12 +35,9 @@ class Main extends Sprite
     //game
     public static var display:Display;
     public var grid:Shape;
+    public var chat:Text;
     //debug
     var debugText:Text;
-    //movement
-    var moveX:Int = -1;
-    var moveY:Int = -1;
-    var moveActive:Bool = false;
 
     public function new()
     {
@@ -127,6 +124,18 @@ class Main extends Sprite
         debugText = new Text("Debug",LEFT,12,0xFFFFFF,200);
         debugText.y = 100;
         addChild(debugText);
+
+        chat = new Text("",LEFT,16,0,200);
+        chat.cacheAsBitmap = false;
+        chat.border = true;
+        chat.borderColor = 0;
+        chat.selectable = true;
+        chat.mouseEnabled = true;
+        chat.type = INPUT;
+        chat.height = 40;
+        chat.backgroundColor = 0xFFFFFF;
+        chat.restrict = "a-z A-Z";
+        addChild(chat);
     }
     public function updatePlayer()
     {
@@ -138,7 +147,6 @@ class Main extends Sprite
             player = iterator.next();
             display.addPlayer(player);
         }*/
-        trace("update player function " + client.player.array.length);
         for(player in client.player.array)
         {
             if(!display.updatePlayer(player))
@@ -231,6 +239,11 @@ class Main extends Sprite
         {
             client.close();
         }
+
+        if(e.keyCode == Keyboard.ENTER)
+        {
+            client.send("SAY 0 0 " + chat.text.toUpperCase()); //+ "#");
+        }
     }
     private function mouseDown(_)
     {
@@ -311,7 +324,7 @@ class Main extends Sprite
     }
     private function resize()
     {
-
+        chat.y = setHeight - chat.height;
     }
 
 }

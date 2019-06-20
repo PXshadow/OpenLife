@@ -1,3 +1,4 @@
+import PlayerData.PlayerMove;
 import MapData.MapInstance;
 import haxe.io.Encoding;
 import haxe.io.Bytes;
@@ -99,7 +100,7 @@ class Client
     {
         //router
         output = data;
-        trace("data " + data);
+        //trace("data " + data);
         if(login && tag == "")
         {
             tag = data;
@@ -114,7 +115,7 @@ class Client
                 return;
             }
         }
-        //trace("output " + output);
+        trace("output " + output + " tag " + tag);
         //data 
         switch(tag)
         {
@@ -122,6 +123,8 @@ class Client
             var array = data.split(" ");
             playerInstance = new PlayerInstance(data.split(" "));
             case PLAYER_MOVES_START:
+            trace("player move " + data);
+            var playerMove = new PlayerMove(data.split(" "));
             //p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0
             //264 0 -1 0.503 0.503 0 1 1
             case MAP_CHUNK:
@@ -176,7 +179,7 @@ class Client
             //trace("food change " + data);
             //also need to set new movement move_speed: is floating point speed in grid square widths per second.
             case FRAME:
-            //trace("frame " + data);
+            tag = "";
             case SERVER_INFO:
 			switch(index)
 			{
@@ -206,6 +209,14 @@ class Client
             trace("reject");
             default:
             //trace("type " + tag + " data " + data);
+        }
+        //end mark
+        if (data.substring(data.length - 2,data.length) == "FM")
+        {
+            //frame
+            //trace("frame and remove tag");
+            //remove tag
+            tag = "";
         }
     }
     private function loginRequest(email:String,key:String)
