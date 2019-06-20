@@ -71,7 +71,7 @@ class Player extends Group
         //MOVE xs ys @seq_num xdelt0 ydelt0 xdelt1 ydelt1
         //x += moveX * Static.GRID;
         //y += moveY * Static.GRID;
-        
+        Actuate.pause(this);
         Actuate.tween(this,1,{x:(tileX + moveX) * Static.GRID,y:(tileX + moveY)}).onComplete(function(_)
         {
             tileX += moveX;

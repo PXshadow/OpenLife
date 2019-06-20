@@ -115,7 +115,7 @@ class Client
                 return;
             }
         }
-        trace("output " + output + " tag " + tag);
+        //trace("output " + output + " tag " + tag);
         //data 
         switch(tag)
         {

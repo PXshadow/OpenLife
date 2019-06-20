@@ -166,8 +166,9 @@ class Main extends Sprite
         }
         var cX:Int = client.map.setX;
         var cY:Int = client.map.setY;
-        var cWidth:Int = 32;
-        var cHeight:Int = 30;
+        var cWidth:Int = client.map.setWidth;
+        var cHeight:Int = client.map.setHeight;
+        trace("cWidth " + cWidth + " cHeight " + cHeight);
         //set sizes and pos
         if (display.setX > cX) display.setX = cX;
         if (display.setY > cY) display.setY = cY;
@@ -240,7 +241,7 @@ class Main extends Sprite
             client.close();
         }
 
-        if(e.keyCode == Keyboard.ENTER)
+        if(e.keyCode == Keyboard.ENTER && chat.text.length > 0)
         {
             client.send("SAY 0 0 " + chat.text.toUpperCase()); //+ "#");
         }

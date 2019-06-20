@@ -73,7 +73,7 @@ class Display extends Tilemap
     {
         //return;
         //trace("add player x " + data.o_origin_x + " y " + data.o_origin_y);
-        var p = new Player(data.p_id,data.o_origin_x,data.o_origin_y);
+        var p = new Player(data.p_id,data.x,data.y);
         var obj = new ObjectData(data.po_id);
         //trace("obj fail " + obj.fail);
         if(obj.fail) return;
@@ -84,7 +84,7 @@ class Display extends Tilemap
         //draw
         renderMap.set(obj.id,obj.spriteArray);
         //trace("tiles num " + obj.spriteArray.length);
-        createTile(obj.spriteArray,data.o_origin_x,data.o_origin_y);
+        createTile(obj.spriteArray,data.x,data.y);
         //clothing
         var i = data.clothing_set.split(",");
         p.hat = Std.parseInt(i[0]);
