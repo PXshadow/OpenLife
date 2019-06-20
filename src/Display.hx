@@ -110,7 +110,6 @@ class Display extends Tilemap
             if(tile == null) throw("tile null " + i);
             p.add(tile);
         }
-
         //update player
         updatePlayer(data);
         p.oid = data.o_id;

@@ -39,7 +39,7 @@ class Player extends Group
         this.id = id;
         this.tileX = tileX;
         this.tileY = tileY;
-        trace("starting pos " + tileX + " " + tileY);
+        //trace("starting pos " + tileX + " " + tileY);
         //set start pos
         x = tileX * Static.GRID;
         y = tileY * Static.GRID;

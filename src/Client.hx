@@ -101,11 +101,13 @@ class Client
         //router
         output = data;
         //trace("data " + data);
-        if(login && tag == "")
+        if(login)
         {
-            tag = data;
-            trace("set tag " + tag);
-            return;
+            if (tag == "")
+            {
+                tag = data;
+                return;
+            }
         }else{
             if(data.substring(0,1) == "#")
             {
@@ -114,8 +116,13 @@ class Client
                 tag = data.substring(1,data.length);
                 return;
             }
+            if(tag == "")
+            {
+                tag = data;
+                return;
+            }
         }
-        //trace("output " + output + " tag " + tag);
+        trace("output " + output + " tag " + tag);
         //data 
         switch(tag)
         {
@@ -123,7 +130,6 @@ class Client
             var array = data.split(" ");
             playerInstance = new PlayerInstance(data.split(" "));
             case PLAYER_MOVES_START:
-            trace("player move " + data);
             var playerMove = new PlayerMove(data.split(" "));
             //p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0
             //264 0 -1 0.503 0.503 0 1 1
@@ -149,6 +155,8 @@ class Client
                     mapInstance.bytes = Bytes.alloc(mapInstance.compressedSize);
                     map.setX = mapInstance.x;
                     map.setY = mapInstance.y;
+                    map.setWidth = mapInstance.sizeX;
+                    map.setHeight = mapInstance.sizeY;
                     trace("map chunk " + mapInstance.toString());
                     index = 0;
                     compress = true;
@@ -198,6 +206,7 @@ class Client
 			index++;
             case PLAYER_SAYS:
             trace("player say " + data);
+            Main.dialog.say(data);
             case PLAYER_MOVES_START:
             trace("player move start data " + data);
             case PLAYER_OUT_OF_RANGE:
@@ -210,13 +219,19 @@ class Client
             default:
             //trace("type " + tag + " data " + data);
         }
-        //end mark
+        //FM
         if (data.substring(data.length - 2,data.length) == "FM")
         {
             //frame
             //trace("frame and remove tag");
             //remove tag
             tag = "";
+            return;
+        }
+        if (data.substring(data.length - 1,data.length) == "#")
+        {
+            tag = "";
+            return;
         }
     }
     private function loginRequest(email:String,key:String)

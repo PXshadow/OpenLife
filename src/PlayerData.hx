@@ -60,7 +60,7 @@ class PlayerInstance extends PlayerType
     {
         super();
         var index:Int = 0;
-        var name = Reflect.fields(this);
+        //var name = Reflect.fields(this);
         for(value in a)
         {
             //index
@@ -116,11 +116,8 @@ class PlayerInstance extends PlayerType
                 case 21:
                 held_yum = Std.parseInt(value);
             }
-            trace(name[index - 1] + ": " + value);
+            //trace(name[index - 1] + ": " + value);
         }
-
-        //add primary player
-        if(Main.client.player.primary == -1) Main.client.player.primary = p_id;
         //push into array to update
         Main.client.player.array.push(this);
         //set new or existing key

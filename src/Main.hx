@@ -26,13 +26,14 @@ class Main extends Sprite
     public static inline var setWidth:Int = 1280;
     public static inline var setHeight:Int = 720;
     var scale:Float = 0;
-    var menu:Bool = false;
+    var menu:Bool = true;
     public static var client:Client;
     //local
     public var settings:Settings;
     //launcher
     public var launcher:Launcher;
     //game
+    public static var dialog:Dialog;
     public static var display:Display;
     public var grid:Shape;
     public var chat:Text;
@@ -65,10 +66,10 @@ class Main extends Sprite
         stage.addEventListener(KeyboardEvent.KEY_UP,keyUp);
         addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
         addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
-        addEventListener(MouseEvent.MOUSE_UP,mouseUp);
+        addEventListener(MouseEvent.MOUSE_UP,mouseUp);  
 
         //debug
-        client.connect();
+        //client.connect();
         //renderGame();
         /*client.map.setX = -18;
         client.map.setY = -13;
@@ -114,6 +115,8 @@ class Main extends Sprite
         removeChildren();
         display = new Display();
         addChild(display);
+        dialog = new Dialog();
+        addChild(dialog);
         grid = new Shape();
         createGrid();
         grid.cacheAsBitmap = true;
@@ -134,7 +137,7 @@ class Main extends Sprite
         chat.type = INPUT;
         chat.height = 40;
         chat.backgroundColor = 0xFFFFFF;
-        chat.restrict = "a-z A-Z";
+        chat.restrict = "a-z A-Z , . ' - ? !";
         addChild(chat);
     }
     public function updatePlayer()
@@ -154,6 +157,11 @@ class Main extends Sprite
                 display.addPlayer(player);
             }
         }
+        //add primary player
+        if(Main.client.player.primary == -1) 
+        {
+            Main.client.player.primary = client.player.array[client.player.array.length - 1].p_id;
+        }
         client.player.array = [];
     }
     public function updateMap()
@@ -168,7 +176,6 @@ class Main extends Sprite
         var cY:Int = client.map.setY;
         var cWidth:Int = client.map.setWidth;
         var cHeight:Int = client.map.setHeight;
-        trace("cWidth " + cWidth + " cHeight " + cHeight);
         //set sizes and pos
         if (display.setX > cX) display.setX = cX;
         if (display.setY > cY) display.setY = cY;
@@ -211,15 +218,18 @@ class Main extends Sprite
     }
     private function update(_)
     {
-        debugText.text = Std.string(Math.ceil(display.mouseX/Static.GRID) + display.setX) + " " +
-        Std.string(Math.ceil(display.mouseY/Static.GRID) + display.setY);
-        client.update(); 
-        var i = Player.active.iterator();
-        while(i.hasNext())
+        if(!menu)
         {
-            i.next().update();
+            debugText.text = Std.string(Math.ceil(display.mouseX/Static.GRID) + display.setX) + " " +
+            Std.string(Math.ceil(display.mouseY/Static.GRID) + display.setY);
+            client.update(); 
+            var i = Player.active.iterator();
+            while(i.hasNext())
+            {
+                i.next().update();
+            }
+            move();
         }
-        move();
         /*text.text = "";
         for(i in 0...ground.numTiles)
         {
@@ -325,7 +335,7 @@ class Main extends Sprite
     }
     private function resize()
     {
-        chat.y = setHeight - chat.height;
+        if (chat != null) chat.y = setHeight - chat.height;
     }
 
 }
