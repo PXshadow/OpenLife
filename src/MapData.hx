@@ -39,7 +39,7 @@ class MapData
             {
                 //index = (y + height) - (j * (y + height)) + i;
                 data = a[index++].split(":");
-                string = i + "." + Std.string(height + j + y * 2);
+                string = i + "." + Std.string(height - j + y * 2);
                 trace("string " + string);
                 //trace("data " + data);
                 //trace("set key: " + string);
