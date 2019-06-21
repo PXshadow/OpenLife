@@ -131,6 +131,7 @@ class PlayerMove
 {
     public function  new(a:Array<String>)
     {
+        trace("a " + a);
         var index:Int = 0;
         for(value in a)
         {
