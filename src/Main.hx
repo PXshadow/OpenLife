@@ -26,7 +26,7 @@ class Main extends Sprite
     public static inline var setWidth:Int = 1280;
     public static inline var setHeight:Int = 720;
     var scale:Float = 0;
-    var menu:Bool = true;
+    var menu:Bool = !true;
     public static var client:Client;
     //local
     public var settings:Settings;
@@ -49,6 +49,7 @@ class Main extends Sprite
         //var sound = Sound.fromAudioBuffer(AudioBuffer.fromBytes(File.getBytes("assets/music_01.ogg")));
         //sound.play();
         //Lib.application.window.x = 1280 + 500;
+        //Lib.application.window.borderless = true;
 
         client = new Client();
         client.map.update = updateMap;
@@ -69,7 +70,7 @@ class Main extends Sprite
         addEventListener(MouseEvent.MOUSE_UP,mouseUp);  
 
         //debug
-        //client.connect();
+        if (!menu) client.connect();
         //renderGame();
         /*client.map.setX = -18;
         client.map.setY = -13;
@@ -246,11 +247,14 @@ class Main extends Sprite
     {
         if (menu) return;
         keys(e.keyCode,true);
-        if(e.keyCode == Keyboard.BACKSPACE)
+        if(e.keyCode == Keyboard.BACKSPACE && e.shiftKey)
         {
             client.close();
         }
-
+        if (e.keyCode == Keyboard.ESCAPE)
+        {
+            Sys.exit(0);
+        }
         if(e.keyCode == Keyboard.ENTER && chat.text.length > 0)
         {
             client.send("SAY 0 0 " + chat.text.toUpperCase()); //+ "#");
@@ -284,40 +288,56 @@ class Main extends Sprite
         if (menu) return;
         keys(e.keyCode,false);
     }
-    var up:Bool = false;
-    var down:Bool = false;
-    var left:Bool = false;
-    var right:Bool = false;
+    var cameraUp:Bool = false;
+    var cameraDown:Bool = false;
+    var cameraLeft:Bool = false;
+    var cameraRight:Bool = false;
+    var playerUp:Bool = false;
+    var playerDown:Bool = false;
+    var playerLeft:Bool = false;
+    var playerRight:Bool = false;
     private function keys(code:Int,bool:Bool)
     {
         switch(code)
         {
-            case Keyboard.UP | Keyboard.W:
-            up = bool;
-            case Keyboard.DOWN | Keyboard.S:
-            down = bool;
-            case Keyboard.LEFT | Keyboard.A:
-            left = bool;
-            case Keyboard.RIGHT | Keyboard.D:
-            right = bool;
+            //player
+            case Keyboard.W:
+            playerUp = bool;
+            case Keyboard.S:
+            playerDown = bool;
+            case Keyboard.A:
+            playerLeft = bool;
+            case Keyboard.D:
+            playerRight = bool;
+            //camera
+            case Keyboard.UP:
+            cameraUp = bool;
+            case Keyboard.DOWN:
+            cameraDown = bool;
+            case Keyboard.LEFT:
+            cameraLeft = bool;
+            case Keyboard.RIGHT:
+            cameraRight = bool;
         }
     }
     private function move()
     {
-        var speed:Int = 20;
         var moveArray = [display];
-        //ground
-        if(up) for(obj in moveArray) obj.y += speed;
-        if (down) for(obj in moveArray) obj.y += -speed;
-        if (left) for(obj in moveArray) obj.x += speed;
-        if (right) for(obj in moveArray) obj.x += -speed;
+        var speed:Int = 30;
+        //camera movement
+        if (cameraUp) for(obj in moveArray) obj.y += speed;
+        if (cameraDown) for (obj in moveArray) obj.y += -speed;
+        if (cameraLeft) for (obj in moveArray) obj.x += speed;
+        if (cameraRight) for (obj in moveArray) obj.x += -speed;
+
+        //player movement
         if (Player.main == null) return;
         var mX:Int = 0;
         var mY:Int = 0;
-        if (up) mY += -1;
-        if (down) mY += 1;
-        if (left) mX += -1;
-        if (right) mX += 1;
+        if (playerUp) mY += 1;
+        if (playerDown) mY += -1;
+        if (playerLeft) mX += -1;
+        if (playerRight) mX += 1;
         if (mX != 0 || mY != 0) Player.main.move(mX,mY);
     }
     private function _resize(_)

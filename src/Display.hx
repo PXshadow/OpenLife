@@ -27,6 +27,8 @@ class Display extends Tilemap
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     var biomeMap:Map<Int,Vector<Int>> = new Map<Int,Vector<Int>>();
     public static var renderMap:Map<Int,Vector<SpriteData>> = new Map<Int,Vector<SpriteData>>();
+    //map
+    //var objectMap:Map<String,Group> = new Map<String,Group>();
     //animation bank
     public var animationArray:Array<Animation> = [];
 
@@ -64,7 +66,6 @@ class Display extends Tilemap
         player.age = data.age;
         //p.ageSystem(data.age_r);
         player.speed = data.move_speed;
-        player.moveActive = false;
         //age
         player.agePlayer();
         return true;
@@ -72,6 +73,7 @@ class Display extends Tilemap
     public function addPlayer(data:PlayerType)
     {
         //return;
+        trace("age " + data.age);
         //trace("add player x " + data.o_origin_x + " y " + data.o_origin_y);
         var p = new Player(data.p_id,data.x,data.y);
         var obj = new ObjectData(data.po_id);
@@ -175,6 +177,8 @@ class Display extends Tilemap
     }
     public function createTile(array:Vector<SpriteData>,x:Int,y:Int)
     {
+        //var group = new Group();
+        //objectMap.set(x + "-" + y, group);
         //shift to pos
         x += -setX;
         y += -setY;
@@ -189,12 +193,6 @@ class Display extends Tilemap
             var rect = tileset.getRect(cache);
             var tile = new Tile(cache,Object);
 
-            //.originX = obj.inCenterXOffset;
-            //tile.originY = obj.inCenterYOffset;
-            /*if(obj.inCenterXOffset != 0 && obj.inCenterYOffset != 0)
-            {
-                trace("center x " + obj.inCenterXOffset + " y " + obj.inCenterYOffset);
-            }*/
             if (obj.rot > 0)
             {
                 tile.rotation = obj.rot * 360;
@@ -216,19 +214,8 @@ class Display extends Tilemap
             tile.x = x + obj.pos.x - obj.inCenterXOffset * 1 - rect.width/2;
             tile.y = y + -obj.pos.y - obj.inCenterYOffset * 1 - rect.height/2;
             addTile(tile);
+            //group.add(tile);
         }
-        /*for(i in length...numTiles)
-        {
-            var tile = cast(getTileAt(i),Tile);
-            if(tile.parentID >= 0)
-            {
-                trace("parent id " + Std.string(length - tile.parentID));
-                var parent = getTileAt(length - tile.parentID);
-                tile.x += parent.x;
-                tile.y = parent.y;
-            }
-            addTile(tile);
-        }*/
     }
     public function cacheBiome(id:Int)
     {

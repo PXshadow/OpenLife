@@ -25,7 +25,7 @@ class Client
     public var player:PlayerData;
     var challenge:String = "";
     var login:Bool = true;
-    var router:Bool = true;
+    var router:Bool = !true;
     var output:String = "";
     var data:String = "";
     @:isVar var compress(get,set):Bool = false;
@@ -122,7 +122,7 @@ class Client
                 return;
             }
         }
-        trace("output " + output + " tag " + tag);
+        //trace("output " + output + " tag " + tag);
         //data 
         switch(tag)
         {

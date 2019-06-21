@@ -31,7 +31,6 @@ class Player extends Group
     //movement
     public var tileX:Int = 0;
     public var tileY:Int = 0;
-    public var moveActive:Bool = false;
     //var movePath:
     public function new(id:Int,tileX:Int,tileY:Int)
     {
@@ -51,7 +50,7 @@ class Player extends Group
         /*var timer = new Timer(1000 * rate);
         timer.run = function()
         {
-            age += 1;
+            //age += 1;
             agePlayer();
         }*/
     }
@@ -61,30 +60,17 @@ class Player extends Group
     }
     public function move(moveX:Int=0,moveY:Int=0)
     {
-        if(moveActive) return;
-        moveActive = true;
         Main.client.send("MOVE " + tileX + " " + tileY + " @" +
         ++lastMoveSequenceNumber + " " +
         moveX + " " + moveY
         );
-        //Main.client.send("MOVE 0 0 @2 0 1 0 2 0 3#");
-        //MOVE xs ys @seq_num xdelt0 ydelt0 xdelt1 ydelt1
-        //x += moveX * Static.GRID;
-        //y += moveY * Static.GRID;
-        Actuate.pause(this);
-        Actuate.tween(this,1,{x:(tileX + moveX) * Static.GRID,y:(tileX + moveY)}).onComplete(function(_)
-        {
-            tileX += moveX;
-            tileY += moveY;
-            moveActive = false;
-        });
-        tileX += moveX;
-        tileY += moveY;
+        trace("MOVE SEND");
+        Sys.sleep(0.5);
     }
     public function agePlayer()
     {
         //return trace("hi");
-        age = 40;
+        //ppage = 40;
         if(Display.renderMap.exists(pid))
         {
             var j:Int = 0;
@@ -93,11 +79,12 @@ class Player extends Group
             for(i in 0...length)
             {
                 sprite = array[j++];
+                //reset visibility
+                children[i].visible = true;
                 if((sprite.ageRange[0] > age || sprite.ageRange[1] < age) && sprite.ageRange[0] > 0)
                 {
-                    //outside of range of age
+                    //outside of range of age set invisible
                     children[i].visible = false;
-                    //getTileAt(i).visible = false;
                 }
             }
         }else{

@@ -1,3 +1,5 @@
+import motion.actuators.GenericActuator;
+import motion.Actuate;
 import openfl.display.Sprite;
 import openfl.display.Bitmap;
 import openfl.display.Tile;
@@ -129,17 +131,65 @@ class PlayerInstance extends PlayerType
 
 class PlayerMove 
 {
+    var id:Int = 0;
+    var xs:Int = 0;
+    var xy:Int = 0;
+    var total:Float = 0;
+    var current:Float = 0;
+    var trunc:Bool = false;
+    var moves:Array<{x:Int,y:Int}> = [];
     public function  new(a:Array<String>)
     {
-        trace("a " + a);
         var index:Int = 0;
+        trace("a " + a);
         for(value in a)
         {
             switch(index++)
             {
                 case 0:
-
+                id = Std.parseInt(value);
+                case 1:
+                xs = Std.parseInt(value);
+                case 2:
+                xy = Std.parseInt(value);
+                case 3:
+                total = Std.parseFloat(value);
+                case 4:
+                current = Std.parseFloat(value);
+                case 5:
+                trunc = value == "1" ? true : false;
+                default:
+                if(index > 6)
+                {
+                    if(index%2 == 0)
+                    {
+                        moves[moves.length - 1].y = Std.parseInt(value);
+                    }else{
+                        moves.push({x:Std.parseInt(value),y:0});
+                    }
+                }else{
+                    throw("Player move parsing moves failed");
+                }
             }
+        }
+
+        var player:Player = Player.active.get(id);
+        trace("xs "  + xs + " xy " + xy);
+        player.x = xs * Static.GRID;
+        player.y = xy * Static.GRID;
+        if (player == null) 
+        {
+           throw("Can not find player to move");
+            return;
+        }
+        Actuate.pause(player);
+        var delay:Float = 0;
+        var moveTime:Float = current/moves.length;
+        trace("current " + current + " moves " + moves.length);
+        for(move in moves)
+        {
+            Actuate.tween(player,current,{x: player.x + move.x * Static.GRID,y: player.y * move.y * Static.GRID},false).delay(delay);
+            delay += moveTime;
         }
     }
 }

@@ -16,6 +16,7 @@ AUTO AI
 INVENTORY
 - inventory managment backpack (show names of object in backpack and hotkeys for them)
 MISC
+- Single player with cheats + editor to add objects
 - SAVE COMMANDS into startup script
 - Run commands during game
 - Sprite editor to change how sprites look during game
