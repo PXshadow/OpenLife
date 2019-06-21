@@ -133,7 +133,7 @@ class PlayerMove
 {
     var id:Int = 0;
     var xs:Int = 0;
-    var xy:Int = 0;
+    var ys:Int = 0;
     var total:Float = 0;
     var current:Float = 0;
     var trunc:Bool = false;
@@ -151,7 +151,7 @@ class PlayerMove
                 case 1:
                 xs = Std.parseInt(value);
                 case 2:
-                xy = Std.parseInt(value);
+                ys = Std.parseInt(value);
                 case 3:
                 total = Std.parseFloat(value);
                 case 4:
@@ -174,9 +174,11 @@ class PlayerMove
         }
 
         var player:Player = Player.active.get(id);
-        trace("xs "  + xs + " xy " + xy);
-        player.x = xs * Static.GRID;
-        player.y = xy * Static.GRID;
+        trace("current (" + player.tileX + "," + player.tileY + ") set(" + xs + "," + ys + ") move:" + moves[0]);
+        player.tileX = xs;
+        player.tileY = ys;
+        player.x = player.tileX * Static.GRID;
+        player.y = player.tileY * Static.GRID;
         if (player == null) 
         {
            throw("Can not find player to move");

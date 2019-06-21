@@ -64,6 +64,8 @@ class Player extends Group
         ++lastMoveSequenceNumber + " " +
         moveX + " " + moveY
         );
+        //tileX += moveX;
+        //tileY += moveY;
         trace("MOVE SEND");
         Sys.sleep(0.5);
     }

@@ -198,6 +198,7 @@ class Main extends Sprite
                 display.addFloor(client.map.floor.get(string),x,y);
             }
         }
+        display.addChunk(4,0,0);
         if(display.inital)
         {
             display.x = display.setX * Static.GRID + setWidth/2;
@@ -254,6 +255,10 @@ class Main extends Sprite
         if (e.keyCode == Keyboard.ESCAPE)
         {
             Sys.exit(0);
+        }
+        if(e.keyCode == Keyboard.T)
+        {
+            chat.setSelection(0,0);
         }
         if(e.keyCode == Keyboard.ENTER && chat.text.length > 0)
         {

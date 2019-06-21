@@ -32,12 +32,15 @@ class MapData
         var data:Array<String> = [];
         var string:String = "0.0";
         var index:Int = 0;
+        trace("y " + y);
         for(j in y...y + height)
         {
             for(i in x...x + width)
             {
+                //index = (y + height) - (j * (y + height)) + i;
                 data = a[index++].split(":");
-                string = i + "." + j;
+                string = i + "." + Std.string(height + j + y * 2);
+                trace("string " + string);
                 //trace("data " + data);
                 //trace("set key: " + string);
                 biome.set(string,Std.parseInt(data[0]));
