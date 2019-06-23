@@ -1,0 +1,7 @@
+txt
+svg
+MD
+png
+xml
+.DS_Store
+.gitignore
