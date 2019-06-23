@@ -1,15 +1,14 @@
 <p align="center"><img src="logo.png"/></p>
 
- [![forthebadge](https://forthebadge.com/images/badges/made-with-crayons.svg)](https://forthebadge.com) 
- [![forthebadge](https://forthebadge.com/images/badges/cc-0.svg)](https://forthebadge.com)
 [![badge](badge.svg)](https://haxe.org)
+[![forthebadge](https://forthebadge.com/images/badges/for-sharks.svg)](https://forthebadge.com)
 
 **DISCLAIMER: Project is still in progress, and is not usable from a player perspective yet, stayed tuned.**
 
-To Players
+To Players:
 =======
 
-Open Life is a fast light weight [One Life](http://onehouronelife.com/) client/application.
+*Open Life is a fast light weight [One Life](http://onehouronelife.com/) client/application.*
 
 * Designed to allow a launcher system to pick between One Life mods, versions and servers with ease.
 
@@ -20,9 +19,9 @@ Open Life is a fast light weight [One Life](http://onehouronelife.com/) client/a
 
 * Dedicated development for a from scratch custom built client, independently supported.
 
-To Developers
+To Developers:
 =========
-Open Life is an [OpenFL](https://openfl.org) and [Haxe](https://haxe.org) based One Life client
+*Open Life is an [OpenFL](https://openfl.org) and [Haxe](https://haxe.org) based One Life client.*
 
 * **MOD SUPPORT:** Open Life will be able to excute code in real time using [hscript](https://github.com/HaxeFoundation/hscript) and [cppia](https://haxe.org/manual/target-cppia-getting-started.html). A built in mod launcher. Tier one support for community based mods and full client architecture support.
 
