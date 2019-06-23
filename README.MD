@@ -2,6 +2,7 @@
 
  [![forthebadge](https://forthebadge.com/images/badges/made-with-crayons.svg)](https://forthebadge.com) 
  [![forthebadge](https://forthebadge.com/images/badges/cc-0.svg)](https://forthebadge.com)
+[![badge](badge.svg)](https://haxe.org)
 
 **DISCLAIMER: Project is still in progress, and is not usable from a player perspective yet, stayed tuned.**
 
