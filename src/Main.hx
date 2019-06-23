@@ -162,6 +162,7 @@ class Main extends Sprite
         if(Main.client.player.primary == -1) 
         {
             Main.client.player.primary = client.player.array[client.player.array.length - 1].p_id;
+            Player.main = Player.active.get(Main.client.player.primary);
         }
         client.player.array = [];
     }
@@ -198,7 +199,7 @@ class Main extends Sprite
                 display.addFloor(client.map.floor.get(string),x,y);
             }
         }
-        display.addChunk(4,0,0);
+        //0 chunk display.addChunk(4,0,0);
         if(display.inital)
         {
             display.x = display.setX * Static.GRID + setWidth/2;

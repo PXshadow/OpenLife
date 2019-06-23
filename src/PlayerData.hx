@@ -124,8 +124,6 @@ class PlayerInstance extends PlayerType
         Main.client.player.array.push(this);
         //set new or existing key
         Main.client.player.key.set(p_id,this);
-        //update 
-        if (Main.client.player != null) Main.client.player.update();
     }
 }
 

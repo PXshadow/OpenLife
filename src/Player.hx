@@ -1,3 +1,4 @@
+import openfl.geom.Point;
 import motion.Actuate;
 import haxe.Timer;
 import Display.Group;
@@ -31,7 +32,9 @@ class Player extends Group
     //movement
     public var tileX:Int = 0;
     public var tileY:Int = 0;
-    //var movePath:
+    //mouth and face
+    var mainEyesOffset:Point = new Point(0,0);
+
     public function new(id:Int,tileX:Int,tileY:Int)
     {
         super();
@@ -42,8 +45,11 @@ class Player extends Group
         //set start pos
         x = tileX * Static.GRID;
         y = tileY * Static.GRID;
-        if(main == null) main = this;
         active.set(id,this);
+    }
+    public function setupeyesAndMouth()
+    {
+        
     }
     public function ageSystem(rate:Float)
     {
@@ -64,8 +70,12 @@ class Player extends Group
         ++lastMoveSequenceNumber + " " +
         moveX + " " + moveY
         );
-        //tileX += moveX;
-        //tileY += moveY;
+        //update tile pos
+        tileX += moveX;
+        tileY += moveY;
+        //move
+        x = tileX * Static.GRID;
+        y = tileY * Static.GRID;
         trace("MOVE SEND");
         Sys.sleep(0.5);
     }

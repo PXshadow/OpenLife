@@ -96,6 +96,17 @@ class Client
         }
         #end
     }
+    private function end()
+    {
+        trace("end");
+        //end message
+        switch(tag)
+        {
+            case PLAYER_UPDATE:
+            if (Main.client.player != null) Main.client.player.update();
+            default:
+        }
+    }
     private function process()
     {
         //router
@@ -111,6 +122,8 @@ class Client
         }else{
             if(data.substring(0,1) == "#")
             {
+                //behavior
+                end();
                 //new tag
                 index = 0;
                 tag = data.substring(1,data.length);
@@ -225,11 +238,6 @@ class Client
             //frame
             //trace("frame and remove tag");
             //remove tag
-            tag = "";
-            return;
-        }
-        if (data.substring(data.length - 1,data.length) == "#")
-        {
             tag = "";
             return;
         }

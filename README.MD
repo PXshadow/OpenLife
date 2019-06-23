@@ -1,9 +1,11 @@
-<p align="center"><img src="logo.jpg"/></p>
+<p align="center"><img src="logo.png"/></p>
 
+ [![forthebadge](https://forthebadge.com/images/badges/made-with-crayons.svg)](https://forthebadge.com) 
+ [![forthebadge](https://forthebadge.com/images/badges/cc-0.svg)](https://forthebadge.com)
 
 **DISCLAIMER: Project is still in progress, and is not usable from a player perspective yet, stayed tuned.**
 
-Players
+To Players
 =======
 
 Open Life is a fast light weight [One Life](http://onehouronelife.com/) client/application.
@@ -15,9 +17,9 @@ Open Life is a fast light weight [One Life](http://onehouronelife.com/) client/a
 
 *  Quality of life improvements across the board.
 
-* Dedicated development for a from scatch custom built client, independently supported.
+* Dedicated development for a from scratch custom built client, independently supported.
 
-Developers
+To Developers
 =========
 Open Life is an [OpenFL](https://openfl.org) and [Haxe](https://haxe.org) based One Life client
 

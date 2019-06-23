@@ -12,6 +12,11 @@ import sys.io.File;
 class Static 
 {
     public static inline var GRID:Int = 128;
+    //player constants
+    public static inline var babyHeadDownFactor:Float = 0.6;
+    public static inline var babyBodyDownFactor:Float = 0.75;
+    public static inline var oldHeadDownFactor:Float = 0.35;
+    public static inline var oldHeadForwardFactor:Float = 2;
 
     //tga
     public static function tga(bitmap:Bitmap,path:String,x:Int=0,y:Int=0)
