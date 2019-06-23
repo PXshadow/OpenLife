@@ -3,7 +3,7 @@
 [![badge](badge.svg)](https://haxe.org)
 [![forthebadge](https://forthebadge.com/images/badges/for-sharks.svg)](https://forthebadge.com)
 
-**DISCLAIMER: Project is still in progress, and is not usable from a player perspective yet, stayed tuned.**
+**DISCLAIMER: Project is still in progress, and is not usable from a player perspective yet, stay tuned.**
 
 To Players:
 =======
