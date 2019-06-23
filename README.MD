@@ -1,4 +1,4 @@
-<p align="center"><img src="logo.png"/></p>
+<p align="left"><img src="logo.png"/></p>
 
 [![badge](badge.svg)](https://haxe.org)
 [![forthebadge](https://forthebadge.com/images/badges/for-sharks.svg)](https://forthebadge.com)
