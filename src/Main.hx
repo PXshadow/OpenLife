@@ -1,3 +1,4 @@
+import openfl.display.DisplayObjectContainer;
 import lime.media.AudioBuffer;
 import openfl.media.Sound;
 import motion.Actuate;
@@ -29,16 +30,19 @@ class Main extends Sprite
     var menu:Bool = !true;
     public static var client:Client;
     //local
-    public var settings:Settings;
+    var settings:Settings;
     //launcher
-    public var launcher:Launcher;
+    var launcher:Launcher;
     //game
     public static var dialog:Dialog;
     public static var display:Display;
-    public var grid:Shape;
-    public var chat:Text;
+    var grid:Shape;
+    var chat:Text;
+    var console:Console;
     //debug
     var debugText:Text;
+    var tileX:Int = 0;
+    var tileY:Int = 0;
 
     public function new()
     {
@@ -130,27 +134,24 @@ class Main extends Sprite
         addChild(debugText);
 
         chat = new Text("",LEFT,16,0,200);
+        chat.text = "hello";
         chat.cacheAsBitmap = false;
         chat.border = true;
         chat.borderColor = 0;
         chat.selectable = true;
         chat.mouseEnabled = true;
         chat.type = INPUT;
-        chat.height = 40;
+        chat.height = 20;
         chat.backgroundColor = 0xFFFFFF;
         chat.restrict = "a-z A-Z , . ' - ? !";
         addChild(chat);
+
+        console = new Console();
+        addChild(console);
     }
     public function updatePlayer()
     {
-        /*trace("update player");
-        var iterator = client.player.key.iterator();
-        var player:PlayerType;
-        while(iterator.hasNext())
-        {
-            player = iterator.next();
-            display.addPlayer(player);
-        }*/
+        //return;
         for(player in client.player.array)
         {
             if(!display.updatePlayer(player))
@@ -163,6 +164,7 @@ class Main extends Sprite
         {
             Main.client.player.primary = client.player.array[client.player.array.length - 1].p_id;
             Player.main = Player.active.get(Main.client.player.primary);
+            Player.main.alpha = 0.2;
         }
         client.player.array = [];
     }
@@ -191,7 +193,8 @@ class Main extends Sprite
             for(x in cX...cX + cWidth)
             {
                 string = x + "." + y;
-                //trace("chunk");
+                //trace("string " + string);
+                //trace("chunk " + client.map.biome.get(string));
                 display.addChunk(client.map.biome.get(string),x,y);
                 //trace("object");
                 display.addObject(client.map.object.get(string),x,y);
@@ -223,7 +226,7 @@ class Main extends Sprite
     {
         if(!menu)
         {
-            debugText.text = Std.string(Math.ceil(display.mouseX/Static.GRID) + display.setX) + " " +
+            debugText.text = Std.string(Math.ceil(display.mouseX/Static.GRID)) + " " +
             Std.string(Math.ceil(display.mouseY/Static.GRID) + display.setY);
             client.update(); 
             var i = Player.active.iterator();
@@ -233,17 +236,6 @@ class Main extends Sprite
             }
             move();
         }
-        /*text.text = "";
-        for(i in 0...ground.numTiles)
-        {
-            var tile = ground.getTileAt(i);
-            text.appendText(i + " x: " + Std.string(tile.x - Static.GRID * 3) + " y: " + Std.string(tile.y - Static.GRID * 3) + "\n");
-        }
-        if(focus != null)
-        {
-            focus.x = mouseX - ground.x + focusOffset.x;
-            focus.y = mouseY - ground.y + focusOffset.y;
-        }*/
     }
     private function keyDown(e:KeyboardEvent)
     {
@@ -260,6 +252,10 @@ class Main extends Sprite
         if(e.keyCode == Keyboard.T)
         {
             chat.setSelection(0,0);
+        }
+        if(e.keyCode == Keyboard.TAB)
+        {
+
         }
         if(e.keyCode == Keyboard.ENTER && chat.text.length > 0)
         {

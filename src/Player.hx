@@ -70,13 +70,13 @@ class Player extends Group
         ++lastMoveSequenceNumber + " " +
         moveX + " " + moveY
         );
+        trace("MOVE SEND pos " + tileX + " y " + tileY + " seq " + lastMoveSequenceNumber + "move " + moveX + " y " + moveY);
         //update tile pos
         tileX += moveX;
         tileY += moveY;
         //move
         x = tileX * Static.GRID;
-        y = tileY * Static.GRID;
-        trace("MOVE SEND");
+        y = -tileY * Static.GRID;
         Sys.sleep(0.5);
     }
     public function agePlayer()
@@ -99,6 +99,7 @@ class Player extends Group
                     children[i].visible = false;
                 }
             }
+            //shrink body
         }else{
             throw("player rendermap object not found");
         }

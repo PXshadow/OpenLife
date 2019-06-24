@@ -98,7 +98,7 @@ class Client
     }
     private function end()
     {
-        trace("end");
+        //trace("end");
         //end message
         switch(tag)
         {

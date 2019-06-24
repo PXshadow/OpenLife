@@ -59,7 +59,7 @@ class Display extends Tilemap
         player.tileY = data.y;
 
         player.x = player.tileX * Static.GRID;
-        player.y = player.tileY * Static.GRID;
+        player.y = -player.tileY * Static.GRID;
         player.speed = data.move_speed;
 
         //set age
@@ -119,6 +119,7 @@ class Display extends Tilemap
     public function addChunk(type:Int,x:Int,y:Int)
     {
         var index:Int = (x > 0 ? x : -x) % 3 + ((y > 0 ? y : -y) % 3) * 3;
+        //trace("index " + index + " type " + type);
         var tile = new Tile(biomeMap.get(type)[index],TileType.Ground);
         tile.x = (x - setX) * Static.GRID;
         tile.y = (y - setY) * Static.GRID;
@@ -305,6 +306,20 @@ enum TileType
 class Group
 {
     var children:Array<Tile> = [];
+    @:isVar public var alpha(default,set):Float = 0;
+    function set_alpha(value:Float):Float
+    {
+        alpha = value;
+        for(child in children)
+        {
+            child.alpha = alpha;
+        }
+        return alpha;
+    }
+    function get_alpha():Float
+    {
+        return alpha;
+    }
     @:isVar public var x(default,set):Float = 0;
     function set_x(value:Float):Float
     {

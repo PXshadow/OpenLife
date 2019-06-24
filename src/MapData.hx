@@ -39,7 +39,8 @@ class MapData
             {
                 //index = (y + height) - (j * (y + height)) + i;
                 data = a[index++].split(":");
-                string = i + "." + Std.string(height - j + y * 2);
+                string = i + "." + j;//Std.string(height - j + y * 2);
+                string = i + "." + Std.string(j * -1);
                 //trace("data " + data);
                 //trace("set key: " + string);
                 biome.set(string,Std.parseInt(data[0]));

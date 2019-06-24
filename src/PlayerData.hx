@@ -105,17 +105,17 @@ class PlayerInstance extends PlayerType
                 y = Std.parseInt(value);
                 case 16:
                 age = Std.parseInt(value);
-                case 16:
-                age_r = Std.parseInt(value);
                 case 17:
-                move_speed = Std.parseInt(value);
+                age_r = Std.parseInt(value);
                 case 18:
-                clothing_set = value;
+                move_speed = Std.parseInt(value);
                 case 19:
-                just_ate = Std.parseInt(value);
+                clothing_set = value;
                 case 20:
-                responsible_id = Std.parseInt(value);
+                just_ate = Std.parseInt(value);
                 case 21:
+                responsible_id = Std.parseInt(value);
+                case 22:
                 held_yum = Std.parseInt(value);
             }
             //trace(name[index - 1] + ": " + value);
