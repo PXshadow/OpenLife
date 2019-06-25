@@ -139,7 +139,7 @@ class PlayerMove
     public function  new(a:Array<String>)
     {
         var index:Int = 0;
-        trace("a " + a);
+        //trace("a " + a);
         for(value in a)
         {
             switch(index++)
@@ -172,23 +172,24 @@ class PlayerMove
         }
 
         var player:Player = Player.active.get(id);
-        trace("current (" + player.tileX + "," + player.tileY + ") set(" + xs + "," + ys + ") move:" + moves[0]);
+        trace("current (" + player.tileX + "," + player.tileY + ") set(" + xs + "," + ys + ") move:" + moves);
+        if(player.tileX == xs && player.tileY == ys)
+        {
+            return;
+        }
+        player.lastMoveSequenceNumber += 1;
         player.tileX = xs;
         player.tileY = ys;
         player.x = player.tileX * Static.GRID;
-        player.y = player.tileY * Static.GRID;
-        if (player == null) 
-        {
-           throw("Can not find player to move");
-            return;
-        }
+        player.y = -player.tileY * Static.GRID;
         Actuate.pause(player);
         var delay:Float = 0;
         var moveTime:Float = current/moves.length;
-        trace("current " + current + " moves " + moves.length);
+        //trace("current " + current + " moves " + moves.length);
+        trace("delay " + delay + " moveTime " + moveTime);
         for(move in moves)
         {
-            Actuate.tween(player,current,{x: player.x + move.x * Static.GRID,y: player.y * move.y * Static.GRID},false).delay(delay);
+            Actuate.tween(player,moveTime,{x: (player.tileX + (move.x > 0 ? 1 : -1)) * Static.GRID,y: (player.tileY * (move.y > 0 ? 1 : -1)) * Static.GRID},true).delay(delay);
             delay += moveTime;
         }
     }

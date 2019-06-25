@@ -1,5 +1,6 @@
 - player block walking setup
 - player move system animate
+- refrence haxeflixel console for auto complete hscript
 
 
 

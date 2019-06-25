@@ -1,3 +1,4 @@
+import motion.Actuate;
 import openfl.geom.ColorTransform;
 import ObjectData.SpriteData;
 import haxe.ds.Vector;
@@ -57,9 +58,10 @@ class Display extends Tilemap
         motion.Actuate.pause(this);
         player.tileX = data.x;
         player.tileY = data.y;
-
-        player.x = player.tileX * Static.GRID;
-        player.y = -player.tileY * Static.GRID;
+        trace("player update x " + player.tileX + " y " + player.tileY);
+        Actuate.tween(player,0.2,{x:player.tileX * Static.GRID,y:-player.tileY * Static.GRID});
+        //player.x = player.tileX * Static.GRID;
+        //player.y = -player.tileY * Static.GRID;
         player.speed = data.move_speed;
 
         //set age

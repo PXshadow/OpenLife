@@ -6,7 +6,7 @@ import ObjectData.SpriteData;
 class Player extends Group
 {
     //done moving sequence number
-    public var lastMoveSequenceNumber:Int = 1;
+    public var lastMoveSequenceNumber:Int = 1 + 1;
     public var head:Int = 0;
     public var body:Int = 0;
     public var backFoot:Array<Int> = [];
@@ -67,7 +67,7 @@ class Player extends Group
     public function move(moveX:Int=0,moveY:Int=0)
     {
         Main.client.send("MOVE " + tileX + " " + tileY + " @" +
-        ++lastMoveSequenceNumber + " " +
+        lastMoveSequenceNumber + " " +
         moveX + " " + moveY
         );
         trace("MOVE SEND pos " + tileX + " y " + tileY + " seq " + lastMoveSequenceNumber + "move " + moveX + " y " + moveY);
@@ -75,9 +75,10 @@ class Player extends Group
         tileX += moveX;
         tileY += moveY;
         //move
-        x = tileX * Static.GRID;
-        y = -tileY * Static.GRID;
-        Sys.sleep(0.5);
+        Actuate.tween(this,0.3,{x:tileX * Static.GRID,y:-tileY * Static.GRID});
+        //x = tileX * Static.GRID;
+        //y = -tileY * Static.GRID;
+        Sys.sleep(0.2);
     }
     public function agePlayer()
     {
@@ -101,7 +102,7 @@ class Player extends Group
             }
             //shrink body
         }else{
-            throw("player rendermap object not found");
+            trace("player rendermap object not found");
         }
     }
     public function setSection(index:Int,length:Int)
