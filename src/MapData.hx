@@ -32,7 +32,7 @@ class MapData
         var data:Array<String> = [];
         var string:String = "0.0";
         var index:Int = 0;
-        trace("y " + y);
+        //trace("y " + y);
         for(j in y...y + height)
         {
             for(i in x...x + width)
@@ -48,7 +48,7 @@ class MapData
                 object.set(string,data[2]);
             }
         }
-        trace("update");
+        //trace("update");
         if(update != null) update();
     }
 }

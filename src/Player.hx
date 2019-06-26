@@ -1,3 +1,4 @@
+import motion.MotionPath;
 import openfl.geom.Point;
 import motion.Actuate;
 import haxe.Timer;
@@ -32,9 +33,9 @@ class Player extends Group
     //movement
     public var tileX:Int = 0;
     public var tileY:Int = 0;
+    public var moveBool:Bool = false;
     //mouth and face
     var mainEyesOffset:Point = new Point(0,0);
-
     public function new(id:Int,tileX:Int,tileY:Int)
     {
         super();
@@ -70,20 +71,12 @@ class Player extends Group
         lastMoveSequenceNumber + " " +
         moveX + " " + moveY
         );
-        trace("MOVE SEND pos " + tileX + " y " + tileY + " seq " + lastMoveSequenceNumber + "move " + moveX + " y " + moveY);
-        //update tile pos
-        tileX += moveX;
-        tileY += moveY;
-        //move
-        Actuate.tween(this,0.3,{x:tileX * Static.GRID,y:-tileY * Static.GRID});
-        //x = tileX * Static.GRID;
-        //y = -tileY * Static.GRID;
-        Sys.sleep(0.2);
+        var floor = Main.client.map.floor.get(tileX + "." + tileY);
+        //trace("floor " + floor);
     }
     public function agePlayer()
     {
-        //return trace("hi");
-        //ppage = 40;
+        //p.age = 40;
         if(Display.renderMap.exists(pid))
         {
             var j:Int = 0;

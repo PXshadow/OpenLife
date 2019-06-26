@@ -144,6 +144,7 @@ class Main extends Sprite
         chat.height = 20;
         chat.backgroundColor = 0xFFFFFF;
         chat.restrict = "a-z A-Z , . ' - ? !";
+        chat.tabEnabled = false;
         addChild(chat);
 
         console = new Console();
@@ -164,7 +165,7 @@ class Main extends Sprite
         {
             Main.client.player.primary = client.player.array[client.player.array.length - 1].p_id;
             Player.main = Player.active.get(Main.client.player.primary);
-            Player.main.alpha = 0.2;
+            //Player.main.alpha = 0.2;
         }
         client.player.array = [];
     }
@@ -224,6 +225,7 @@ class Main extends Sprite
     }
     private function update(_)
     {
+        if (console != null) console.update();
         if(!menu)
         {
             debugText.text = Std.string(Math.ceil(display.mouseX/Static.GRID)) + " " +
@@ -241,25 +243,29 @@ class Main extends Sprite
     {
         if (menu) return;
         keys(e.keyCode,true);
-        if(e.keyCode == Keyboard.BACKSPACE && e.shiftKey)
+        /*if(e.keyCode == Keyboard.BACKSPACE && e.shiftKey)
         {
             client.close();
-        }
+        }*/
         if (e.keyCode == Keyboard.ESCAPE)
         {
             Sys.exit(0);
         }
-        if(e.keyCode == Keyboard.T)
+        if (e.keyCode == Keyboard.T)
         {
-            chat.setSelection(0,0);
+            //chat.setSelection(0,0);
         }
-        if(e.keyCode == Keyboard.TAB)
+        @:privateAccess if (e.keyCode == Keyboard.UP && console.input.selectable)
         {
-
+            console.previous();
         }
         if(e.keyCode == Keyboard.ENTER && chat.text.length > 0)
         {
-            client.send("SAY 0 0 " + chat.text.toUpperCase()); //+ "#");
+            //client.send("SAY 0 0 " + chat.text.toUpperCase()); //+ "#");
+            @:privateAccess if(console.input.selectable)
+            {
+                console.enter();
+            }
         }
     }
     private function mouseDown(_)
@@ -358,6 +364,12 @@ class Main extends Sprite
     private function resize()
     {
         if (chat != null) chat.y = setHeight - chat.height;
+        if (console != null)
+        {
+            trace("console resize");
+            console.x = -x * 1/scale;
+            console.resize(stage.stageWidth/scale);
+        }
     }
 
 }

@@ -1,3 +1,5 @@
+import motion.easing.Quad;
+import motion.MotionPath;
 import motion.actuators.GenericActuator;
 import motion.Actuate;
 import openfl.display.Sprite;
@@ -102,7 +104,7 @@ class PlayerInstance extends PlayerType
                 case 14:
                 x = Std.parseInt(value);
                 case 15:
-                y = Std.parseInt(value);
+                y = -Std.parseInt(value);
                 case 16:
                 age = Std.parseInt(value);
                 case 17:
@@ -149,7 +151,8 @@ class PlayerMove
                 case 1:
                 xs = Std.parseInt(value);
                 case 2:
-                ys = Std.parseInt(value);
+                //flip
+                ys = -Std.parseInt(value);
                 case 3:
                 total = Std.parseFloat(value);
                 case 4:
@@ -161,7 +164,7 @@ class PlayerMove
                 {
                     if(index%2 == 0)
                     {
-                        moves[moves.length - 1].y = Std.parseInt(value);
+                        moves[moves.length - 1].y = -Std.parseInt(value);
                     }else{
                         moves.push({x:Std.parseInt(value),y:0});
                     }
@@ -170,27 +173,32 @@ class PlayerMove
                 }
             }
         }
-
         var player:Player = Player.active.get(id);
-        trace("current (" + player.tileX + "," + player.tileY + ") set(" + xs + "," + ys + ") move:" + moves);
-        if(player.tileX == xs && player.tileY == ys)
-        {
-            return;
-        }
         player.lastMoveSequenceNumber += 1;
         player.tileX = xs;
         player.tileY = ys;
         player.x = player.tileX * Static.GRID;
-        player.y = -player.tileY * Static.GRID;
+        player.y = player.tileY * Static.GRID;
         Actuate.pause(player);
         var delay:Float = 0;
         var moveTime:Float = current/moves.length;
-        //trace("current " + current + " moves " + moves.length);
-        trace("delay " + delay + " moveTime " + moveTime);
+        //trace("delay " + delay + " moveTime " + moveTime);
+        var path = new MotionPath();
+        trace("moves " + moves);
         for(move in moves)
         {
-            Actuate.tween(player,moveTime,{x: (player.tileX + (move.x > 0 ? 1 : -1)) * Static.GRID,y: (player.tileY * (move.y > 0 ? 1 : -1)) * Static.GRID},true).delay(delay);
-            delay += moveTime;
+            path.line(
+            (move.x + player.tileX) * Static.GRID,
+            //flip
+            (move.y + player.tileY) * Static.GRID,
+            1);
         }
+        Actuate.pause(player);
+        Actuate.motionPath(player,current,{x:path.x,y:path.y}).onComplete(function(_)
+        {
+            //set new player tile x and y
+            player.tileX = Std.int(player.x/Static.GRID);
+            player.tileY = Std.int(player.y/Static.GRID);
+        }).ease(Quad.easeInOut);
     }
 }

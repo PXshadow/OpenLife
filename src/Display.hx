@@ -48,6 +48,7 @@ class Display extends Tilemap
     }
     public function updatePlayer(data:PlayerType):Bool
     {
+        trace("update player");
         //update player
         var player:Player = null;
         player = Player.active.get(data.p_id);
@@ -58,12 +59,9 @@ class Display extends Tilemap
         motion.Actuate.pause(this);
         player.tileX = data.x;
         player.tileY = data.y;
-        trace("player update x " + player.tileX + " y " + player.tileY);
-        Actuate.tween(player,0.2,{x:player.tileX * Static.GRID,y:-player.tileY * Static.GRID});
-        //player.x = player.tileX * Static.GRID;
-        //player.y = -player.tileY * Static.GRID;
+        player.x = player.tileX * Static.GRID;
+        player.y = player.tileY * Static.GRID;
         player.speed = data.move_speed;
-
         //set age
         player.age = data.age;
         //p.ageSystem(data.age_r);
@@ -120,6 +118,7 @@ class Display extends Tilemap
     }
     public function addChunk(type:Int,x:Int,y:Int)
     {
+        //I will one day figure out how I wrote this, haha.
         var index:Int = (x > 0 ? x : -x) % 3 + ((y > 0 ? y : -y) % 3) * 3;
         //trace("index " + index + " type " + type);
         var tile = new Tile(biomeMap.get(type)[index],TileType.Ground);

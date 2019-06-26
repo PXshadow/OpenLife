@@ -148,6 +148,7 @@ class Client
             //264 0 -1 0.503 0.503 0 1 1
             case MAP_CHUNK:
             var array = data.split(" ");
+            trace("map chunk array " + array);
             for(value in array)
             {
                 switch(index++)
