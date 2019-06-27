@@ -323,6 +323,7 @@ class Client
         socket.output.writeString(data + "#");
         @:privateAccess Main.console.output.appendText(data + "\n");
         #end
+        if (aliveTimer != null) aliveTimer.stop();
         aliveTimer = new Timer(15 * 1000);
         aliveTimer.run = alive;
     }
