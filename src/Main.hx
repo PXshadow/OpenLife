@@ -38,7 +38,7 @@ class Main extends Sprite
     public static var display:Display;
     var grid:Shape;
     var chat:Text;
-    var console:Console;
+    public static var console:Console;
     //debug
     var debugText:Text;
     var tileX:Int = 0;
@@ -140,10 +140,10 @@ class Main extends Sprite
         chat.borderColor = 0;
         chat.selectable = true;
         chat.mouseEnabled = true;
+        chat.tabEnabled = false;
         chat.type = INPUT;
         chat.height = 20;
-        chat.backgroundColor = 0xFFFFFF;
-        chat.restrict = "a-z A-Z , . ' - ? !";
+        chat.restrict = "a-z A-Z , . ' - ? !  ";
         chat.tabEnabled = false;
         addChild(chat);
 
@@ -165,6 +165,8 @@ class Main extends Sprite
         {
             Main.client.player.primary = client.player.array[client.player.array.length - 1].p_id;
             Player.main = Player.active.get(Main.client.player.primary);
+            //set console
+            Console.interp.variables.set("player",Player.main);
             //Player.main.alpha = 0.2;
         }
         client.player.array = [];
@@ -208,6 +210,8 @@ class Main extends Sprite
         {
             display.x = display.setX * Static.GRID + setWidth/2;
             display.y = display.setY * Static.GRID + setHeight/2;
+            dialog.x = display.x;
+            dialog.y = display.y;
             display.inital = false;
         }
     }
@@ -251,20 +255,38 @@ class Main extends Sprite
         {
             Sys.exit(0);
         }
-        if (e.keyCode == Keyboard.T)
+        if (e.keyCode == Keyboard.T && stage.focus != chat)
         {
-            //chat.setSelection(0,0);
+            trace("chat select");
+            chat.setSelection(chat.length,chat.length);
         }
-        @:privateAccess if (e.keyCode == Keyboard.UP && console.input.selectable)
+        @:privateAccess if (e.keyCode == Keyboard.UP && console.stage.focus == console)
         {
             console.previous();
         }
-        if(e.keyCode == Keyboard.ENTER && chat.text.length > 0)
+        if(e.keyCode == Keyboard.TAB)
         {
-            //client.send("SAY 0 0 " + chat.text.toUpperCase()); //+ "#");
+            console.visible = !console.visible;
+            @:privateAccess console.input.selectable = false;
+            if(console.visible)
+            {
+                @:privateAccess console.input.selectable = true;
+                @:privateAccess console.input.setSelection(console.input.length,console.input.length);
+            }
+        }
+        if(e.keyCode == Keyboard.ENTER)
+        {
+            //console
             @:privateAccess if(console.input.selectable)
             {
                 console.enter();
+            }
+            //chat
+            if(chat.selectable && chat.text.length > 0)
+            {
+                client.send("SAY 0 0 " + chat.text.toUpperCase());
+                chat.selectable = false;
+                chat.text = "";
             }
         }
     }
@@ -330,7 +352,9 @@ class Main extends Sprite
     }
     private function move()
     {
-        var moveArray = [display];
+        if (stage.focus == chat || console.visible) return;
+
+        var moveArray = [display,dialog];
         var speed:Int = 30;
         //camera movement
         if (cameraUp) for(obj in moveArray) obj.y += speed;

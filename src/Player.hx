@@ -7,7 +7,7 @@ import ObjectData.SpriteData;
 class Player extends Group
 {
     //done moving sequence number
-    public var lastMoveSequenceNumber:Int = 1 + 1;
+    public var lastMove:Int = 1;
     public var head:Int = 0;
     public var body:Int = 0;
     public var backFoot:Array<Int> = [];
@@ -33,7 +33,7 @@ class Player extends Group
     //movement
     public var tileX:Int = 0;
     public var tileY:Int = 0;
-    public var moveBool:Bool = false;
+    public var moveTimer:Timer;
     //mouth and face
     var mainEyesOffset:Point = new Point(0,0);
     public function new(id:Int,tileX:Int,tileY:Int)
@@ -67,12 +67,21 @@ class Player extends Group
     }
     public function move(moveX:Int=0,moveY:Int=0)
     {
+        if (moveTimer != null || moveX == 0 && moveY == 0) return;
+        moveTimer = new Timer(300 * 3);
+        moveTimer.run = function()
+        {
+            moveTimer.stop();
+            moveTimer = null;
+        }
+        lastMove++;
         Main.client.send("MOVE " + tileX + " " + tileY + " @" +
-        lastMoveSequenceNumber + " " +
+        lastMove + " " +
         moveX + " " + moveY
         );
+        trace("move x " + moveX + " y " + moveY);
+        //floor
         var floor = Main.client.map.floor.get(tileX + "." + tileY);
-        //trace("floor " + floor);
     }
     public function agePlayer()
     {

@@ -8,7 +8,7 @@
 To Players:
 =======
 
-*Open Life is a fast light weight [One Life](http://onehouronelife.com/) client/application.*
+*Open Life is a fast, light weight [One Life](http://onehouronelife.com/) client/application.*
 
 * Designed to allow a launcher system to pick between One Life mods, versions and servers with ease.
 
@@ -29,4 +29,4 @@ To Developers:
 
 * **Multi target and language export:** Deploy to a [plethora of targets](https://github.com/openfl/lime#targets) with the stability of OpenFL, and multiple languages with haxe ranging from Javascript to C/C++, more info of [languages supported](https://haxe.org/documentation/introduction/compiler-targets.html).
 
-* **Thoughtful, concise and efficent code:** Codebase continues to become as minimalistic as possible while also keeping the level of abstriction low.
+* **Thoughtful, concise and efficent code:** Codebase continues to become as minimalistic as possible while also keeping the level of abstraction low.

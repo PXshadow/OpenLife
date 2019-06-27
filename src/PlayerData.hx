@@ -173,8 +173,8 @@ class PlayerMove
                 }
             }
         }
+        trace("player move");
         var player:Player = Player.active.get(id);
-        player.lastMoveSequenceNumber += 1;
         player.tileX = xs;
         player.tileY = ys;
         player.x = player.tileX * Static.GRID;
@@ -197,8 +197,10 @@ class PlayerMove
         Actuate.motionPath(player,current,{x:path.x,y:path.y}).onComplete(function(_)
         {
             //set new player tile x and y
-            player.tileX = Std.int(player.x/Static.GRID);
-            player.tileY = Std.int(player.y/Static.GRID);
+            //player.tileX = Std.int(player.x/Static.GRID);
+            //player.tileY = Std.int(player.y/Static.GRID);
         }).ease(Quad.easeInOut);
+        player.tileX = moves[moves.length - 1].x;
+        player.tileY = moves[moves.length - 1].y;
     }
 }

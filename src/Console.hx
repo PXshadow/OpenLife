@@ -10,11 +10,12 @@ class Console extends DisplayObjectContainer
     var shape:Shape;
     var length:Int = 0;
     var parser:Parser;
-    var interp:Interp;
+    public static var interp:Interp;
     var history:Array<String> = [];
     public function new()
     {
         super();
+        visible = false;
         shape = new Shape();
         shape.cacheAsBitmap = true;
         addChild(shape);
@@ -30,11 +31,12 @@ class Console extends DisplayObjectContainer
         input.y = 260 + 2;
         addChild(input);
         //output
-        output = new Text("...",LEFT,18,0xFFFFFF);
+        output = new Text("",LEFT,18,0xFFFFFF);
         //output.selectable = true;
         //output.mouseEnabled = true;
+        output.mouseWheelEnabled = true;
         output.tabEnabled = false;
-        output.height = 260;
+        output.height = 260 - 15;
         addChild(output);
         //hscript
         parser = new Parser();
@@ -44,7 +46,11 @@ class Console extends DisplayObjectContainer
         //variables
         interp.variables.set("Math",Math);
         interp.variables.set("Std",Std);
-        interp.variables.set("player",Player.main);
+        interp.variables.set("client",Main.client);
+        interp.variables.set("width",Main.setWidth);
+        interp.variables.set("height",Main.setHeight);
+        interp.variables.set("display",Main.display);
+        interp.variables.set("grid",Static.GRID);
     }
     public function resize(width:Float)
     {
@@ -84,12 +90,21 @@ class Console extends DisplayObjectContainer
     }
     public function previous()
     {
-        input.text = ">" + history.pop();
+        if (history.length > 0) 
+        {
+            input.text = ">" + history.pop();
+            input.setSelection(input.length,input.length);
+        }
+        
     }
     public function enter()
     {
         var text = input.text.substring(1,input.length);
         input.text = "";
+        if(output.numLines > 9)
+        {
+            output.text = "";
+        }
         output.appendText(">" + text + "\n");
         history.push(text);
         try {

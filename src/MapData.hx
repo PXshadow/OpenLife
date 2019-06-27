@@ -72,3 +72,18 @@ class MapInstance
         return "pos(" + x + "," + y +") size(" + sizeX + "," + sizeY + ") raw: " + rawSize + " compress: " + compressedSize;
     }
 }
+class MapChange
+{
+    public var x:Int = 0;
+    public var y:Int = 0;
+    public var floor:Int = 0;
+    public var id:Int = 0;
+    public var pid:Int = 0;
+    public var oldX:Int = 0;
+    public var oldY:Int = 0;
+    public var speed:Int = 0;
+    public function new()
+    {
+
+    }
+}

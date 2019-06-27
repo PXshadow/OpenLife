@@ -1,3 +1,5 @@
+import openfl.events.Event;
+import MapData.MapChange;
 import PlayerData.PlayerMove;
 import MapData.MapInstance;
 import haxe.io.Encoding;
@@ -10,6 +12,7 @@ import sys.net.Host;
 import haxe.io.Error;
 import haxe.crypto.Hmac;
 import PlayerData.PlayerInstance;
+import haxe.Timer;
 
 class Client
 {
@@ -28,6 +31,7 @@ class Client
     var router:Bool = !true;
     var output:String = "";
     var data:String = "";
+    var aliveTimer:Timer;
     @:isVar var compress(get,set):Bool = false;
     function get_compress():Bool
     {
@@ -179,21 +183,39 @@ class Client
             case MAP_CHANGE:
             //x y new_floor_id new_id p_id optional oldX oldY speed
             var array = data.split(" ");
-            var string = array[0] + " " + array[1];
+            var mapChange = new MapChange();
+            mapChange.x = Std.parseInt(array[0]);
+            mapChange.y = Std.parseInt(array[1]);
+            var string = mapChange.x + "." + mapChange.y;
             //floor
-            if(Std.parseInt(array[2]) > 0) 
-            {
-
-            }
+            mapChange.floor = Std.parseInt(array[2]);
+            map.floor.set(string,mapChange.floor);
+            
             //object
-            if(Std.parseInt(array[3]) > 0)
+            mapChange.id = Std.parseInt(array[3]);
+            map.object.set(string,Std.string(mapChange.id));
+            
+            //p_id 4
+            mapChange.pid = Std.parseInt(array[4]);
+            if(mapChange.pid == -1)
             {
+                //change no triggered by player
+            }else{
+                //triggered by player
+                if(mapChange.pid < -1)
+                {
+                    //object was not dropped
+                }else{
+                    //object was dropped
 
+                }
             }
-            //p_id
-
             //optional speed
-
+            if(array.length > 4)
+            {
+                var old = array[5] + "." + array[6];
+                var speed = array[7];
+            }
             case HEAT_CHANGE:
             //trace("heat " + data);
 
@@ -221,10 +243,44 @@ class Client
             case PLAYER_SAYS:
             trace("player say " + data);
             Main.dialog.say(data);
-            case PLAYER_MOVES_START:
-            trace("player move start data " + data);
             case PLAYER_OUT_OF_RANGE:
-            
+            //player is out of range
+
+            case LINEAGE:
+            //p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
+
+            case NAME:
+            //p_id first_name last_name last_name may be ommitted.
+
+            case DYING:
+            //p_id isSick isSick is optional 1 flag to indicate that player is sick (client shouldn't show blood UI overlay for sick players)
+
+            case HEALED:
+            //p_id player healed no longer dying.
+
+            case MONUMENT_CALL:
+            //MN x y o_id monument call has happened at location x,y with the creation object id
+
+            case GRAVE:
+            //x y p_id
+
+            case GRAVE_MOVE:
+            //xs ys xd yd swap_dest optional swap_dest parameter is 1, it means that some other grave at  destination is in mid-air.  If 0, not
+
+            case GRAVE_OLD:
+            //x y p_id po_id death_age underscored_name mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
+            //Provides info about an old grave that wasn't created during your lifetime.
+            //underscored_name is name with spaces replaced by _ If player has no name, this will be ~ character instead.
+
+            case OWNER_LIST:
+            //x y p_id p_id p_id ... p_id
+
+            case VALLEY_SPACING:
+            //y_spacing y_offset Offset is from client's birth position (0,0) of first valley.
+
+            case FLIGHT_DEST:
+            //p_id dest_x dest_y
+            trace("FLIGHT FLIGHT FLIGHT " + data.split(" "));
             case ACCEPTED:
             trace("accept");
             tag = "";
@@ -257,11 +313,18 @@ class Client
 		trace("send");
         #end
     }
+    public function alive()
+    {
+        send("KA 0 0");
+    }
     public function send(data:String)
     {
         #if sys
         socket.output.writeString(data + "#");
+        @:privateAccess Main.console.output.appendText(data + "\n");
         #end
+        aliveTimer = new Timer(15 * 1000);
+        aliveTimer.run = alive;
     }
     public function connect(ip:String="",port:Int=0)
 	{

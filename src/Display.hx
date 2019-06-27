@@ -29,7 +29,7 @@ class Display extends Tilemap
     var biomeMap:Map<Int,Vector<Int>> = new Map<Int,Vector<Int>>();
     public static var renderMap:Map<Int,Vector<SpriteData>> = new Map<Int,Vector<SpriteData>>();
     //map
-    //var objectMap:Map<String,Group> = new Map<String,Group>();
+    var objectMap:Map<String,Group> = new Map<String,Group>();
     //animation bank
     public var animationArray:Array<Animation> = [];
 
@@ -48,7 +48,7 @@ class Display extends Tilemap
     }
     public function updatePlayer(data:PlayerType):Bool
     {
-        trace("update player");
+        trace("update player " + data.forced);
         //update player
         var player:Player = null;
         player = Player.active.get(data.p_id);
@@ -61,6 +61,7 @@ class Display extends Tilemap
         player.tileY = data.y;
         player.x = player.tileX * Static.GRID;
         player.y = player.tileY * Static.GRID;
+        trace("player tileX " + player.tileX + " Y " + player.tileY);
         player.speed = data.move_speed;
         //set age
         player.age = data.age;
@@ -68,6 +69,15 @@ class Display extends Tilemap
         player.speed = data.move_speed;
         //age
         player.agePlayer();
+        //force
+        if (data.forced == 1)
+        {
+            if(Player.main == player)
+            {
+                trace("FORCE");
+                Main.client.send("FORCE " + player.tileX + " " + player.tileY);
+            }
+        }
         return true;
     }
     public function addPlayer(data:PlayerType)
@@ -179,8 +189,8 @@ class Display extends Tilemap
     }
     public function createTile(array:Vector<SpriteData>,x:Int,y:Int)
     {
-        //var group = new Group();
-        //objectMap.set(x + "-" + y, group);
+        var group = new Group();
+        objectMap.set(x + "-" + y, group);
         //shift to pos
         x += -setX;
         y += -setY;
@@ -216,7 +226,7 @@ class Display extends Tilemap
             tile.x = x + obj.pos.x - obj.inCenterXOffset * 1 - rect.width/2;
             tile.y = y + -obj.pos.y - obj.inCenterYOffset * 1 - rect.height/2;
             addTile(tile);
-            //group.add(tile);
+            group.add(tile);
         }
     }
     public function cacheBiome(id:Int)
@@ -286,6 +296,10 @@ class Display extends Tilemap
         var i = tileset.addRect(rect);
         cacheMap.set(id,i);
         return i;
+    }
+    public function reload()
+    {
+        
     }
 }
 class Tile extends openfl.display.Tile
