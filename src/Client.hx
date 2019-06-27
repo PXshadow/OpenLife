@@ -115,7 +115,7 @@ class Client
     {
         //router
         output = data;
-        //trace("data " + data);
+        trace("data " + data);
         if(login)
         {
             if (tag == "")

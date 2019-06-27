@@ -68,7 +68,7 @@ class Player extends Group
     public function move(moveX:Int=0,moveY:Int=0)
     {
         if (moveTimer != null || moveX == 0 && moveY == 0) return;
-        moveTimer = new Timer(300 * 3);
+        moveTimer = new Timer(300 * 1);
         moveTimer.run = function()
         {
             moveTimer.stop();
@@ -79,6 +79,13 @@ class Player extends Group
         lastMove + " " +
         moveX + " " + moveY
         );
+        //x = tileX * Static.GRID;
+        //y = -tileY * Static.GRID;
+        trace("tileX " + tileX + " Y " + tileY);
+        tileX += moveX;
+        tileY += moveY;
+        trace("after X " + tileX + " Y " + tileY);
+        Actuate.tween(this,0.4,{x: x + moveX * Static.GRID,y: y - moveY * Static.GRID});
         trace("move x " + moveX + " y " + moveY);
         //floor
         var floor = Main.client.map.floor.get(tileX + "." + tileY);

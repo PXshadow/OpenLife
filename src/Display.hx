@@ -53,14 +53,12 @@ class Display extends Tilemap
         var player:Player = null;
         player = Player.active.get(data.p_id);
         if(player == null) return false;
-        //trace data
-        //trace(data.toString());
         //set tile int pos
         motion.Actuate.pause(this);
         player.tileX = data.x;
         player.tileY = data.y;
         player.x = player.tileX * Static.GRID;
-        player.y = player.tileY * Static.GRID;
+        player.y = -player.tileY * Static.GRID;
         trace("player tileX " + player.tileX + " Y " + player.tileY);
         player.speed = data.move_speed;
         //set age

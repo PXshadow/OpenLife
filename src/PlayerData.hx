@@ -104,7 +104,7 @@ class PlayerInstance extends PlayerType
                 case 14:
                 x = Std.parseInt(value);
                 case 15:
-                y = -Std.parseInt(value);
+                y = Std.parseInt(value);
                 case 16:
                 age = Std.parseInt(value);
                 case 17:
@@ -152,7 +152,7 @@ class PlayerMove
                 xs = Std.parseInt(value);
                 case 2:
                 //flip
-                ys = -Std.parseInt(value);
+                ys = Std.parseInt(value);
                 case 3:
                 total = Std.parseFloat(value);
                 case 4:
@@ -178,7 +178,7 @@ class PlayerMove
         player.tileX = xs;
         player.tileY = ys;
         player.x = player.tileX * Static.GRID;
-        player.y = player.tileY * Static.GRID;
+        player.y = -player.tileY * Static.GRID;
         Actuate.pause(player);
         var delay:Float = 0;
         var moveTime:Float = current/moves.length;
@@ -190,7 +190,7 @@ class PlayerMove
             path.line(
             (move.x + player.tileX) * Static.GRID,
             //flip
-            (move.y + player.tileY) * Static.GRID,
+            (move.y - player.tileY) * Static.GRID,
             1);
         }
         Actuate.pause(player);
