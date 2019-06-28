@@ -1,3 +1,4 @@
+import openfl.net.URLRequest;
 import hscript.Parser;
 import openfl.events.TextEvent;
 import openfl.display.Shape;
@@ -5,7 +6,7 @@ import openfl.display.DisplayObjectContainer;
 
 class Console extends DisplayObjectContainer
 {
-    var input:Text;
+    public var input:Text;
     var output:Text;
     var shape:Shape;
     var length:Int = 0;
@@ -36,7 +37,7 @@ class Console extends DisplayObjectContainer
         //output.mouseEnabled = true;
         output.mouseWheelEnabled = true;
         output.tabEnabled = false;
-        output.height = 260 - 15;
+        output.height = 260 - 6;
         addChild(output);
         //hscript
         parser = new Parser();
@@ -51,6 +52,19 @@ class Console extends DisplayObjectContainer
         interp.variables.set("height",Main.setHeight);
         interp.variables.set("display",Main.display);
         interp.variables.set("grid",Static.GRID);
+        interp.variables.set("main",Main.m);
+        interp.variables.set("m",Main.m);
+        //utils
+        interp.variables.set("util",Util);
+        interp.variables.set("Util",Util);
+    }
+    public function print(inp:String,out:String)
+    {
+        if(output.numLines > 9)
+        {
+            output.text = "";
+        }
+        output.appendText(">" + inp + "\n" + out + "\n");
     }
     public function resize(width:Float)
     {
@@ -99,20 +113,73 @@ class Console extends DisplayObjectContainer
     }
     public function enter()
     {
+        if(input.length == 1) return;
         var text = input.text.substring(1,input.length);
+        //coammnd outside of hscript
+        if(command(text)) return;
         input.text = "";
+        //multiline reset
         if(output.numLines > 9)
         {
             output.text = "";
         }
-        output.appendText(">" + text + "\n");
+        //set history
         history.push(text);
+        //attempt hscript
         try {
-            output.appendText(interp.expr(parser.parseString(text)) + "\n");
+            print(text,interp.expr(parser.parseString(text)));
         }catch(e:Dynamic)
         {
-            output.appendText(e + "\n");
+            print(text,e);
         }
+    }
+    public function command(string:String):Bool
+    {
+        string = string.toLowerCase();
+        switch(string)
+        {
+            case "exit":
+            #if sys
+            Sys.exit(0);
+            #end
+            case "reload":
+            //hotreload
+
+            //states
+            case "menu":
+            //go to menu
+
+            case "game":
+            //go to game
+
+
+            //window
+            case "fullscreen":
+            stage.window.fullscreen = !stage.window.fullscreen;
+            case "controls":
+            //toggle controls
+            case "borderless":
+            stage.window.borderless = !stage.window.borderless;
+            case "date":
+            print("date",Date.now().toString());
+
+
+            //urls
+            case "github" | "code" | "source":
+            url("https://github.com/pxshadow/openlife");
+            case "techtree" | "tech" | "tree":
+            url("https://onetech.info/");
+            case "forums" | "forms" | "fourms" | "forum" | "form" | "fourm":
+            url("https://onehouronelife.com/forums/");
+            default:
+            return false;
+        }
+        input.text = ">";
+        return true;
+    }
+    public function url(string:String)
+    {
+        openfl.Lib.navigateToURL(new openfl.net.URLRequest(string));
     }
 }
 private class Interp extends hscript.Interp

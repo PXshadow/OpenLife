@@ -35,12 +35,15 @@ class Dialog extends DisplayObjectContainer
                     text = null;
                 });
             }else{
-                text.x = (-Main.display.setX + player.tileX - 0.5) * Static.GRID;
-                text.y = (-Main.display.setX - player.tileY - 0.5) * Static.GRID;
+                set(player,text);
             }
         }
-        text.x = (-Main.display.setX + player.tileX - 0.5) * Static.GRID;
-        text.y = (-Main.display.setX - player.tileY - 0.5) * Static.GRID;
+        set(player,text);
         addChild(text);
+    }
+    public function set(player:Player,text:Text)
+    {
+        text.x = (-Main.display.setX + player.tileX - 0.5) * Static.GRID;
+        text.y = (-Main.display.setY - player.tileY - 1.5) * Static.GRID;
     }
 }

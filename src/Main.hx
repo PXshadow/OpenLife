@@ -37,16 +37,18 @@ class Main extends Sprite
     public static var dialog:Dialog;
     public static var display:Display;
     var grid:Shape;
-    var chat:Text;
     public static var console:Console;
     //debug
     var debugText:Text;
     var tileX:Int = 0;
     var tileY:Int = 0;
 
+    public static var m:Sprite;
+
     public function new()
     {
         super();
+        m = this;
         //sounds do not
         //var sound = Sound.fromAudioBuffer(AudioBuffer.fromBytes(File.getBytes("assets/hunger.aiff")));
         //music works
@@ -133,20 +135,6 @@ class Main extends Sprite
         debugText.y = 100;
         addChild(debugText);
 
-        chat = new Text("",LEFT,16,0,200);
-        chat.text = "hello";
-        chat.cacheAsBitmap = false;
-        chat.border = true;
-        chat.borderColor = 0;
-        chat.selectable = true;
-        chat.mouseEnabled = true;
-        chat.tabEnabled = false;
-        chat.type = INPUT;
-        chat.height = 20;
-        chat.restrict = "a-z A-Z , . ' - ? !  ";
-        chat.tabEnabled = false;
-        addChild(chat);
-
         console = new Console();
         addChild(console);
     }
@@ -232,8 +220,7 @@ class Main extends Sprite
         if (console != null) console.update();
         if(!menu)
         {
-            debugText.text = Std.string(Math.ceil(display.mouseX/Static.GRID)) + " " +
-            Std.string(Math.ceil(display.mouseY/Static.GRID) + display.setY);
+            debugText.text = stage.mouseX + "\n" + stage.mouseY;
             client.update(); 
             var i = Player.active.iterator();
             while(i.hasNext())
@@ -246,48 +233,50 @@ class Main extends Sprite
     private function keyDown(e:KeyboardEvent)
     {
         if (menu) return;
-        keys(e.keyCode,true);
-        /*if(e.keyCode == Keyboard.BACKSPACE && e.shiftKey)
+        if(stage.focus == console.input)
         {
-            client.close();
-        }*/
-        if (e.keyCode == Keyboard.ESCAPE)
-        {
-            Sys.exit(0);
+            consoleKeys(e.keyCode);
+        }else{
+            playerKeys(e.keyCode);
+            moveKeys(e.keyCode,true);
         }
-        if (e.keyCode == Keyboard.T && stage.focus != chat)
-        {
-            trace("chat select");
-            chat.setSelection(chat.length,chat.length);
-        }
-        @:privateAccess if (e.keyCode == Keyboard.UP && console.stage.focus == console)
-        {
-            console.previous();
-        }
+        //toggle no matter what
         if(e.keyCode == Keyboard.TAB)
         {
             console.visible = !console.visible;
-            @:privateAccess console.input.selectable = false;
             if(console.visible)
             {
-                @:privateAccess console.input.selectable = true;
-                @:privateAccess console.input.setSelection(console.input.length,console.input.length);
+                console.input.type = INPUT;
+                stage.focus = console.input;
+            }else{
+                console.input.type = DYNAMIC;
+                stage.focus = null;
             }
         }
-        if(e.keyCode == Keyboard.ENTER)
+    }
+    public function playerKeys(code:Int)
+    {
+        switch(code)
         {
-            //console
-            @:privateAccess if(console.input.selectable)
+            case Keyboard.SPACE:
+            if (Player.main.oid == 0)
             {
-                console.enter();
+                Player.main.use();
+            }else{
+                Player.main.drop();
             }
-            //chat
-            if(chat.selectable && chat.text.length > 0)
-            {
-                client.send("SAY 0 0 " + chat.text.toUpperCase());
-                chat.selectable = false;
-                chat.text = "";
-            }
+        }
+    }
+    public function consoleKeys(code:Int)
+    {
+        switch(code)
+        {
+            case Keyboard.UP:
+            console.previous();
+            case Keyboard.DOWN:
+            console.input.text = ">";
+            case Keyboard.ENTER:
+            console.enter();
         }
     }
     private function mouseDown(_)
@@ -316,7 +305,7 @@ class Main extends Sprite
     private function keyUp(e:KeyboardEvent)
     {
         if (menu) return;
-        keys(e.keyCode,false);
+        moveKeys(e.keyCode,false);
     }
     var cameraUp:Bool = false;
     var cameraDown:Bool = false;
@@ -326,7 +315,7 @@ class Main extends Sprite
     var playerDown:Bool = false;
     var playerLeft:Bool = false;
     var playerRight:Bool = false;
-    private function keys(code:Int,bool:Bool)
+    private function moveKeys(code:Int,bool:Bool)
     {
         switch(code)
         {
@@ -352,7 +341,7 @@ class Main extends Sprite
     }
     private function move()
     {
-        if (stage.focus == chat || console.visible) return;
+        if (stage.focus == console.input) return;
 
         var moveArray = [display,dialog];
         var speed:Int = 30;
@@ -387,11 +376,11 @@ class Main extends Sprite
     }
     private function resize()
     {
-        if (chat != null) chat.y = setHeight - chat.height;
         if (console != null)
         {
             trace("console resize");
             console.x = -x * 1/scale;
+            console.y = -y * 1/scale;
             console.resize(stage.stageWidth/scale);
         }
     }

@@ -115,7 +115,7 @@ class Client
     {
         //router
         output = data;
-        trace("data " + data);
+        //trace("data " + data);
         if(login)
         {
             if (tag == "")
@@ -199,15 +199,30 @@ class Client
             mapChange.pid = Std.parseInt(array[4]);
             if(mapChange.pid == -1)
             {
+
                 //change no triggered by player
+                var object = Main.display.objectMap.get(string);
+                if(object != null)
+                {
+                    trace("object " + object);
+                    for (child in object.children)
+                    {
+                        Main.display.removeTile(child);
+                    }
+                    Main.display.objectMap.remove(string);
+                    object = null;
+                }
             }else{
+                trace("trigger");
                 //triggered by player
                 if(mapChange.pid < -1)
                 {
                     //object was not dropped
                 }else{
                     //object was dropped
-
+                    trace("drop by " + mapChange.pid);
+                    var player = Player.active.get(mapChange.pid);
+                    //player.pid
                 }
             }
             //optional speed
@@ -321,7 +336,7 @@ class Client
     {
         #if sys
         socket.output.writeString(data + "#");
-        @:privateAccess Main.console.output.appendText(data + "\n");
+        Main.console.print("CLIENT",data);
         #end
         if (aliveTimer != null) aliveTimer.stop();
         aliveTimer = new Timer(15 * 1000);

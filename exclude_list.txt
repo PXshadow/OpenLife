@@ -5,3 +5,4 @@ png
 xml
 .DS_Store
 .gitignore
+.bat

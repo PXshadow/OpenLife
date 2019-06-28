@@ -84,6 +84,6 @@ class MapChange
     public var speed:Int = 0;
     public function new()
     {
-
+        
     }
 }

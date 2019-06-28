@@ -17,8 +17,9 @@ class Player extends Group
     public var id:Int = 0;
     //object id, what is being held
     public var oid:Int = 0;
-    //id refrence to renderMap
-    public var pid:Int = 0;
+    public var objectGroup:Group;
+    //id refrence to renderMap | player object id
+    public var poid:Int = 0;
     public var age:Int = 0;
     public var speed:Float = 0;
     //clothing
@@ -79,24 +80,31 @@ class Player extends Group
         lastMove + " " +
         moveX + " " + moveY
         );
-        //x = tileX * Static.GRID;
-        //y = -tileY * Static.GRID;
-        trace("tileX " + tileX + " Y " + tileY);
         tileX += moveX;
         tileY += moveY;
-        trace("after X " + tileX + " Y " + tileY);
-        Actuate.tween(this,0.4,{x: x + moveX * Static.GRID,y: y - moveY * Static.GRID});
-        trace("move x " + moveX + " y " + moveY);
+        Actuate.tween(this,0.4,{x: tileX * Static.GRID,y: -tileY * Static.GRID});
         //floor
         var floor = Main.client.map.floor.get(tileX + "." + tileY);
     }
+    public function use(offsetX:Int=0,offsetY:Int=0)
+    {
+        offsetX += tileX;
+        offsetY += tileY;
+        var obj = Main.client.map.object.get(offsetX + "." + offsetY);
+        oid = Std.parseInt(obj);
+        Main.client.send("USE " + offsetX + " " + offsetY);
+    }
+    public function drop(offsetX:Int=0,offsetY:Int=0,c:Int=-1)
+    {
+        Main.client.send("DROP " + Std.string(tileX + offsetX) + " " + Std.string(tileY + offsetY) + " " + c);
+        oid = 0;
+    }
     public function agePlayer()
     {
-        //p.age = 40;
-        if(Display.renderMap.exists(pid))
+        if(Display.renderMap.exists(poid))
         {
             var j:Int = 0;
-            var array = Display.renderMap.get(pid);
+            var array = Display.renderMap.get(poid);
             var sprite:SpriteData;
             for(i in 0...length)
             {

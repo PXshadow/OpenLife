@@ -1,3 +1,4 @@
+import openfl.display.Shader;
 import motion.Actuate;
 import openfl.geom.ColorTransform;
 import ObjectData.SpriteData;
@@ -22,6 +23,7 @@ class Display extends Tilemap
     //static vars
     inline private static var BASE_SPEED:Float = 3.75;
     //tile vars
+    var groundShader:Shader;
     var tileX:Int = 0;
     var tileY:Int = 0;
     var tileHeight:Int = 0;
@@ -29,7 +31,7 @@ class Display extends Tilemap
     var biomeMap:Map<Int,Vector<Int>> = new Map<Int,Vector<Int>>();
     public static var renderMap:Map<Int,Vector<SpriteData>> = new Map<Int,Vector<SpriteData>>();
     //map
-    var objectMap:Map<String,Group> = new Map<String,Group>();
+    public var objectMap:Map<String,Group> = new Map<String,Group>();
     //animation bank
     public var animationArray:Array<Animation> = [];
 
@@ -42,6 +44,8 @@ class Display extends Tilemap
     public function new()
     {
         super(Static.GRID * 32,Static.GRID * 32);
+        //shader = 
+        groundShader = null;
         tileset = new Tileset(new BitmapData(1600 * 4,1600 * 4));
         //return;
         for(i in 0...6 + 1) cacheBiome(i);
@@ -65,6 +69,8 @@ class Display extends Tilemap
         player.age = data.age;
         //p.ageSystem(data.age_r);
         player.speed = data.move_speed;
+        //object
+        player.oid = data.po_id;
         //age
         player.agePlayer();
         //force
@@ -89,12 +95,12 @@ class Display extends Tilemap
         if(obj.fail) return;
         //trace("create1");
         var length:Int = numTiles;
-        //ids
-        p.pid = data.po_id;
         //draw
         renderMap.set(obj.id,obj.spriteArray);
         //trace("tiles num " + obj.spriteArray.length);
         createTile(obj.spriteArray,data.x,data.y);
+        //player as object
+        p.poid = obj.id;
         //clothing
         var i = data.clothing_set.split(",");
         p.hat = Std.parseInt(i[0]);
@@ -122,17 +128,33 @@ class Display extends Tilemap
         }
         //update player
         updatePlayer(data);
-        p.oid = data.o_id;
     }
     public function addChunk(type:Int,x:Int,y:Int)
     {
         //I will one day figure out how I wrote this, haha.
-        var index:Int = (x > 0 ? x : -x) % 3 + ((y > 0 ? y : -y) % 3) * 3;
-        //trace("index " + index + " type " + type);
+        var ix:Int = x;
+        var iy:Int = y;
+        if (ix > 0) 
+        {
+            while(ix > 2) ix += -3;
+        }else{
+            while(ix < 0) ix += 3;
+        }
+        if (iy > 0) 
+        {
+            while(iy > 2) iy += -3;
+        }else{
+            while(iy < 0) iy += 3;
+        }
+        trace("ix " + ix + " iy " + iy);
+        var index:Int = ix + iy * 3;
+        trace("index " + index + " type " + type);
         var tile = new Tile(biomeMap.get(type)[index],TileType.Ground);
         tile.x = (x - setX) * Static.GRID;
         tile.y = (y - setY) * Static.GRID;
-        addTile(tile);
+        //shader
+        tile.shader = groundShader;
+        addTileAt(tile,numTiles);
     }
     public function addFloor(id:Int,x:Int,y:Int)
     {
@@ -185,7 +207,7 @@ class Display extends Tilemap
             //trace("group " + data);
         }
     }
-    public function createTile(array:Vector<SpriteData>,x:Int,y:Int)
+    public function createTile(array:Vector<SpriteData>,x:Int,y:Int):Group
     {
         var group = new Group();
         objectMap.set(x + "-" + y, group);
@@ -226,6 +248,7 @@ class Display extends Tilemap
             addTile(tile);
             group.add(tile);
         }
+        return group;
     }
     public function cacheBiome(id:Int)
     {
@@ -318,7 +341,7 @@ enum TileType
 }
 class Group
 {
-    var children:Array<Tile> = [];
+    public var children:Array<Tile> = [];
     @:isVar public var alpha(default,set):Float = 0;
     function set_alpha(value:Float):Float
     {
