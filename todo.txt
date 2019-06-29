@@ -1,4 +1,7 @@
-- player block walking setup
+- write up more clear api
+- seperate display and ground
+
+
 - player move system animate
 - refrence haxeflixel console for auto complete hscript
 

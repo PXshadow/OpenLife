@@ -151,8 +151,9 @@ class Console extends DisplayObjectContainer
 
             case "game":
             //go to game
-
-
+            case "clear":
+            //clear display 
+            Static.clear();
             //window
             case "fullscreen":
             stage.window.fullscreen = !stage.window.fullscreen;

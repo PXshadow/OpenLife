@@ -20,12 +20,15 @@ class PlayerData
 }
 class PlayerType 
 {
+    //id
     public var p_id:Int = 0;
+    //object of player
     public var po_id:Int = 0;
     public var facing:Int = 0;
     public var action:Int = 0;
     public var action_target_x:Int = 0;
     public var action_target_y:Int = 0;
+    //object id
     public var o_id:Int = 0;
     public var o_origin_valid:Int = 0;
     public var o_origin_x:Int = 0;

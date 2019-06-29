@@ -42,4 +42,28 @@ class Static
         }
         return {bytes:ByteArray.fromBytes(format.tga.Tools.extract32(data,true)),header:data.header};
     }
+    //clear
+    public static function clear()
+    {
+        //client
+
+        //data
+        Main.client.map.biome = null;
+        Main.client.map.floor = null;
+        Main.client.map.object = null;
+        Main.client.map.biome = new Map<String,Int>();
+        Main.client.map.floor = new Map<String,Int>();
+        Main.client.map.object = new Map<String,String>();
+        //display
+        Main.display.removeTiles();
+
+        Main.display.renderMap = null;
+        Main.display.objectMap = null;
+        Main.display.blockMap = null;
+        Main.display.cacheMap = null;
+        Main.display.initMaps();
+        //player
+        Player.active = new Map<Int,Player>();
+        Player.main = null;
+    }
 }

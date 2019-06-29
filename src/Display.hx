@@ -27,11 +27,13 @@ class Display extends Tilemap
     var tileX:Int = 0;
     var tileY:Int = 0;
     var tileHeight:Int = 0;
-    var cacheMap:Map<Int,Int> = new Map<Int,Int>();
-    var biomeMap:Map<Int,Vector<Int>> = new Map<Int,Vector<Int>>();
-    public static var renderMap:Map<Int,Vector<SpriteData>> = new Map<Int,Vector<SpriteData>>();
+    public var cacheMap:Map<Int,Int>;
+    public var biomeMap:Map<Int,Vector<Int>>;
+    public var renderMap:Map<Int,Vector<SpriteData>>;
+    //exists blocking area
+    public var blockMap:Map<String,Bool>;
     //map
-    public var objectMap:Map<String,Group> = new Map<String,Group>();
+    public var objectMap:Map<String,Group>;
     //animation bank
     public var animationArray:Array<Animation> = [];
 
@@ -44,11 +46,20 @@ class Display extends Tilemap
     public function new()
     {
         super(Static.GRID * 32,Static.GRID * 32);
+        initMaps();
         //shader = 
         groundShader = null;
         tileset = new Tileset(new BitmapData(1600 * 4,1600 * 4));
         //return;
         for(i in 0...6 + 1) cacheBiome(i);
+    }
+    public function initMaps()
+    {
+        cacheMap = new Map<Int,Int>();
+        biomeMap = new Map<Int,Vector<Int>>();
+        renderMap = new Map<Int,Vector<SpriteData>>();
+        blockMap = new Map<String,Bool>();
+        objectMap = new Map<String,Group>();
     }
     public function updatePlayer(data:PlayerType):Bool
     {
@@ -61,16 +72,20 @@ class Display extends Tilemap
         motion.Actuate.pause(this);
         player.tileX = data.x;
         player.tileY = data.y;
+        //tween
+        trace("player tileX " + player.tileX + " Y " + player.tileY);
         player.x = player.tileX * Static.GRID;
         player.y = -player.tileY * Static.GRID;
-        trace("player tileX " + player.tileX + " Y " + player.tileY);
         player.speed = data.move_speed;
         //set age
         player.age = data.age;
         //p.ageSystem(data.age_r);
         player.speed = data.move_speed;
         //object
-        player.oid = data.po_id;
+        if(player.oid != data.o_id)
+        {
+            player.oid = data.o_id;
+        }
         //age
         player.agePlayer();
         //force
@@ -86,7 +101,6 @@ class Display extends Tilemap
     }
     public function addPlayer(data:PlayerType)
     {
-        //return;
         trace("age " + data.age);
         //trace("add player x " + data.o_origin_x + " y " + data.o_origin_y);
         var p = new Player(data.p_id,data.x,data.y);
@@ -147,6 +161,7 @@ class Display extends Tilemap
             while(iy < 0) iy += 3;
         }
         var index:Int = ix + iy * 3;
+        if (!biomeMap.exists(type)) return;
         var tile = new Tile(biomeMap.get(type)[index],TileType.Ground);
         tile.x = (x - setX) * Static.GRID;
         tile.y = (y - setY) * Static.GRID;
@@ -194,9 +209,13 @@ class Display extends Tilemap
             //add to animation bank 
             var anim = new Animation(id);
             if(!anim.fail) animationArray.push(anim);
-
-            //todo: save entire object data without spriteData
-
+            //block
+            if(data.blocksWalking == 1)
+            {
+                blockMap.set(x + "." + y,true);
+            }else{
+                blockMap.remove(x + "." + y);
+            }
             //saves spriteData section
             renderMap.set(id,data.spriteArray);
             //draw

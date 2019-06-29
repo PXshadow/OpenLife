@@ -75,6 +75,13 @@ class Player extends Group
             moveTimer.stop();
             moveTimer = null;
         }
+        //check for block
+        var string = Std.string(tileX + moveX) + "." + Std.string(tileY + moveY);
+        if(Main.display.objectMap.exists(string)) 
+        {
+            trace("blocking");
+            return;
+        }
         lastMove++;
         Main.client.send("MOVE " + tileX + " " + tileY + " @" +
         lastMove + " " +
@@ -84,7 +91,7 @@ class Player extends Group
         tileY += moveY;
         Actuate.tween(this,0.4,{x: tileX * Static.GRID,y: -tileY * Static.GRID});
         //floor
-        var floor = Main.client.map.floor.get(tileX + "." + tileY);
+        var floor = Main.client.map.floor.get(string);
     }
     public function use(offsetX:Int=0,offsetY:Int=0)
     {
@@ -101,10 +108,10 @@ class Player extends Group
     }
     public function agePlayer()
     {
-        if(Display.renderMap.exists(poid))
+        if(Main.display.renderMap.exists(poid))
         {
             var j:Int = 0;
-            var array = Display.renderMap.get(poid);
+            var array = Main.display.renderMap.get(poid);
             var sprite:SpriteData;
             for(i in 0...length)
             {

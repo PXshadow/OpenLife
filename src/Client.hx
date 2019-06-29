@@ -32,6 +32,7 @@ class Client
     var output:String = "";
     var data:String = "";
     var aliveTimer:Timer;
+    var closed:Bool = true;
     @:isVar var compress(get,set):Bool = false;
     function get_compress():Bool
     {
@@ -50,6 +51,7 @@ class Client
     }
     public function update()
     {
+        if (closed) return;
         #if sys
         if(socket == null) return;
         output = "";
@@ -152,7 +154,7 @@ class Client
             //264 0 -1 0.503 0.503 0 1 1
             case MAP_CHUNK:
             var array = data.split(" ");
-            trace("map chunk array " + array);
+            //trace("map chunk array " + array);
             for(value in array)
             {
                 switch(index++)
@@ -339,6 +341,7 @@ class Client
     }
     public function send(data:String)
     {
+        if (closed) return;
         #if sys
         socket.output.writeString(data + "#");
         Main.console.print("CLIENT",data);
@@ -349,6 +352,7 @@ class Client
     }
     public function connect(ip:String="",port:Int=0)
 	{
+        closed = false;
         #if sys
 		ip = "game.krypticmedia.co.uk";
 		port = 8007;
@@ -399,6 +403,7 @@ class Client
         socket.close();
         trace("socket closed");
         #end
+        closed = true;
     }
     private function unCompress()
     {

@@ -251,7 +251,7 @@ class Main extends Sprite
         if (console != null) console.update();
         if(!menu)
         {
-            debugText.text = stage.mouseX + "\n" + stage.mouseY;
+            debugText.text = stage.mouseX + "\n" + stage.mouseY + "\nnum " + Main.display.numTiles;
             client.update(); 
             var i = Player.active.iterator();
             while(i.hasNext())
