@@ -1,0 +1,9 @@
+haxelib install hxcpp
+haxelib install openfl
+haxelib install lime
+haxelib install format
+haxelib install actuate
+haxelib install svg
+haxelib install hxcpp-debug-server
+haxelib install hscript
+haxelib install discord_rpc

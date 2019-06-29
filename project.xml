@@ -11,6 +11,7 @@
 	<haxelib name="svg"/>
 	<haxelib name="hxcpp-debug-server" unless="html5"/>
 	<haxelib name="hscript" unless="html5"/>
+	<haxelib name="discord_rpc" if="cpp"/>
 	<!--Load Map-->
 	<assets path="assets" embed="false"/>
 </project>

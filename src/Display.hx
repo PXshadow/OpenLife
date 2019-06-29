@@ -146,9 +146,7 @@ class Display extends Tilemap
         }else{
             while(iy < 0) iy += 3;
         }
-        trace("ix " + ix + " iy " + iy);
         var index:Int = ix + iy * 3;
-        trace("index " + index + " type " + type);
         var tile = new Tile(biomeMap.get(type)[index],TileType.Ground);
         tile.x = (x - setX) * Static.GRID;
         tile.y = (y - setY) * Static.GRID;
