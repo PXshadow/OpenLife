@@ -319,11 +319,16 @@ class Client
         #if sys
         login = false;
 		key = StringTools.replace(key,"-","");
-        socket.output.writeString("LOGIN\n" + email + "\n" +
+        send("LOGIN " + email + " " +
 		new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f")
-		,Bytes.ofString(challenge,RawNative)).toHex() + "\n" +
+		,Bytes.ofString(challenge,RawNative)).toHex() + " " +
 		new Hmac(SHA1).make(Bytes.ofString(key)
-		,Bytes.ofString(challenge)).toHex() + "#");
+		,Bytes.ofString(challenge)).toHex() +  " " +
+        //tutorial 1 = true 0 = false
+        1 + " " +
+        //twin extra code
+        ""
+        );
 		tag = "";
 		trace("send");
         #end

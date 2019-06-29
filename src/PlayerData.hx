@@ -175,6 +175,13 @@ class PlayerMove
         }
         trace("player move");
         var player:Player = Player.active.get(id);
+        if(player.tileX == xs + moves[moves.length - 1].x && player.tileY == ys + moves[moves.length - 1].y)
+        {
+            //same move
+            trace("same move");
+            return;
+        }
+        //set pos
         player.tileX = xs;
         player.tileY = ys;
         player.x = player.tileX * Static.GRID;
