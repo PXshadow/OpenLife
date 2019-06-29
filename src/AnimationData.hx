@@ -2,7 +2,7 @@ import sys.io.File;
 import openfl.geom.Point;
 import haxe.ds.Vector;
 import sys.FileSystem;
-class Animation extends LineReader
+class AnimationData extends LineReader
 {
     public var id:Int = -1;
     public var type:AnimationType;
