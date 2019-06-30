@@ -4,8 +4,7 @@ import haxe.io.Bytes;
 class Login
 {
     //login info
-    public var username:String = "";
-    public var password:String = "";
+    public var email:String = "";
     public var challenge:String = "";
     public var key:String = "";
     var index:Int = 0;
@@ -18,7 +17,6 @@ class Login
 
     }
     public function message(data:String) {
-        trace("data login: " + data);
         switch(Main.client.tag)
         {
             case SERVER_INFO:
@@ -32,24 +30,17 @@ class Login
 				case 2: 
 				//version
 				version = Std.parseInt(data);
-                Main.client.tag = "";
                 request();
+                Main.client.tag = "";
 			}
 			index++;
-            case ACCEPTED:
-            trace("accept");
-            if (accept != null) accept();
-            Main.client.tag = "";
-            case REJECTED:
-            trace("reject");
-            if (reject != null) reject();
             default:
         }
     }
     private function request()
     {
 		key = StringTools.replace(key,"-","");
-        Main.client.send("LOGIN " + username + " " +
+        Main.client.send("LOGIN " + email + " " +
 
 		new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f")
 		,Bytes.ofString(challenge,RawNative)).toHex() + " " +

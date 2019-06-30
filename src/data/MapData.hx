@@ -1,4 +1,5 @@
 package data;
+import lime.app.Future;
 #if sys
 import sys.io.File;
 #end
@@ -14,7 +15,6 @@ class MapData
     public var floor = new Map<String,Int>();
     public var object = new Map<String,String>();
 
-    public var update:Void->Void;
     public var setX:Int = 0;
     public var setY:Int = 0;
     public var setWidth:Int = 0;
@@ -23,34 +23,37 @@ class MapData
     {
         
     }
-    public function setRect(x:Int,y:Int,width:Int,height:Int,string:String)
+    public function setRect(x:Int,y:Int,width:Int,height:Int,string:String,update:(x:Int,y:Int,width:Int,height:Int)->Void)
     {
-        #if sys
-        //File.write("assets/map.txt",false).writeString(string);
-        #end
-        var a:Array<String> = string.split(" ");
-        //trace("a " + a);
-        var data:Array<String> = [];
-        var string:String = "0.0";
-        var index:Int = 0;
-        //trace("y " + y);
-        for(j in y...y + height)
+        new Future(function()
         {
-            for(i in x...x + width)
+            #if sys
+            //File.write("assets/map.txt",false).writeString(string);
+            #end
+            var a:Array<String> = string.split(" ");
+            //trace("a " + a);
+            var data:Array<String> = [];
+            var string:String = "0.0";
+            var index:Int = 0;
+            //trace("y " + y);
+            for(j in y...y + height)
             {
-                //index = (y + height) - (j * (y + height)) + i;
-                data = a[index++].split(":");
-                string = i + "." + j;//Std.string(height - j + y * 2);
-                string = i + "." + Std.string(j * -1);
-                //trace("data " + data);
-                //trace("set key: " + string);
-                biome.set(string,Std.parseInt(data[0]));
-                floor.set(string,Std.parseInt(data[1]));
-                object.set(string,data[2]);
+                for(i in x...x + width)
+                {
+                    //index = (y + height) - (j * (y + height)) + i;
+                    data = a[index++].split(":");
+                    string = i + "." + Std.string(j * -1);
+                    //trace("data " + data);
+                    //trace("set key: " + string);
+                    biome.set(string,Std.parseInt(data[0]));
+                    floor.set(string,Std.parseInt(data[1]));
+                    object.set(string,data[2]);
+                }
             }
-        }
-        //trace("update");
-        if(update != null) update();
+        },true).onComplete(function(_)
+        {
+            update(x,y,width,height);
+        });
     }
 }
 class MapInstance
@@ -61,8 +64,6 @@ class MapInstance
     public var sizeY:Int = 0;
     public var rawSize:Int = 0;
     public var compressedSize:Int = 0;
-    public var bytes:Bytes;
-    public var index:Int = 0;
     
     public function new()
     {

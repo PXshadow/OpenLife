@@ -8,6 +8,6 @@ class GameData
     public var map:MapData;
     public function new()
     {
-
+        map = new MapData();
     }
 }

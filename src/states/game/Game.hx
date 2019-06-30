@@ -18,6 +18,7 @@ class Game extends states.State
     var mapInstance:MapInstance;
     var index:Int = 0;
     public var data:GameData;
+    var compress:Bool = false;
     public function new()
     {
         super();
@@ -30,17 +31,19 @@ class Game extends states.State
         addChild(dialog);
         //connect
         //login
-        Main.client.login.username = "test@test.co.uk";
-        Main.client.login.password = "WC2TM-KZ2FP-LW5A5-LKGLP";
+        Main.client.login.email = "test@test.co.uk";
+        Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
         Main.client.login.accept = function()
         {
             trace("accept");
             //set message reader function to game
             Main.client.message = message;
+            Main.client.login = null;
         }
         Main.client.login.reject = function()
         {
             trace("reject");
+            Main.client.login = null;
         }
         //set message reader function to login
         Main.client.message = Main.client.login.message;
@@ -49,6 +52,18 @@ class Game extends states.State
     override function update()
     {
         super.update();
+    }
+    public function mapUpdate(x:Int,y:Int,sizeX:Int,sizeY:Int) 
+    {
+        var string:String = "";
+        for(ys in y...y + sizeY)
+        {
+            for(xs in x...x + sizeX)
+            {
+                string = xs + "." + ys;
+                trace("chunk " + data.map.biome.get(string));
+            }
+        }
     }
     public function message(input:String) 
     {
@@ -66,33 +81,45 @@ class Game extends states.State
             //p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0
             //264 0 -1 0.503 0.503 0 1 1
             case MAP_CHUNK:
-            var array = input.split(" ");
-            //trace("map chunk array " + array);
-            for(value in array)
+            if(compress)
             {
-                switch(index++)
+                Main.client.tag = null;
+                data.map.setRect(mapInstance.x,mapInstance.y,mapInstance.sizeX,mapInstance.sizeY,input,mapUpdate);
+                mapInstance = null;
+                //toggle to go back to istance for next chunk
+                compress = false;
+            }else{
+                var array = input.split(" ");
+                //trace("map chunk array " + array);
+                for(value in array)
                 {
-                    case 0:
-                    mapInstance = new MapInstance();
-                    mapInstance.sizeX = Std.parseInt(value);
-                    case 1:
-                    mapInstance.sizeY = Std.parseInt(value);
-                    case 2:
-                    mapInstance.x = Std.parseInt(value);
-                    case 3:
-                    mapInstance.y = Std.parseInt(value);
-                    case 4:
-                    mapInstance.rawSize = Std.parseInt(value);
-                    case 5:
-                    mapInstance.compressedSize = Std.parseInt(value);
-                    mapInstance.bytes = Bytes.alloc(mapInstance.compressedSize);
-                    data.map.setX = mapInstance.x;
-                    data.map.setY = mapInstance.y;
-                    data.map.setWidth = mapInstance.sizeX;
-                    data.map.setHeight = mapInstance.sizeY;
-                    trace("map chunk " + mapInstance.toString());
-                    index = 0;
-                    Main.client.compress = mapInstance.compressedSize;
+                    switch(index++)
+                    {
+                        case 0:
+                        mapInstance = new MapInstance();
+                        mapInstance.sizeX = Std.parseInt(value);
+                        case 1:
+                        mapInstance.sizeY = Std.parseInt(value);
+                        case 2:
+                        mapInstance.x = Std.parseInt(value);
+                        case 3:
+                        mapInstance.y = Std.parseInt(value);
+                        case 4:
+                        mapInstance.rawSize = Std.parseInt(value);
+                        case 5:
+                        mapInstance.compressedSize = Std.parseInt(value);
+                        //set min
+                        data.map.setX = mapInstance.x < data.map.setX ? mapInstance.x : data.map.setX;
+                        data.map.setY = mapInstance.y < data.map.setY ? mapInstance.y : data.map.setY;
+                        //set max
+                        data.map.setWidth = mapInstance.sizeX + mapInstance.x > data.map.setWidth ? mapInstance.sizeX + mapInstance.x : data.map.setWidth;
+                        data.map.setHeight = mapInstance.sizeY + mapInstance.y > data.map.setHeight ? mapInstance.sizeY + mapInstance.y : data.map.setHeight;
+                        trace("map chunk " + mapInstance.toString());
+                        index = 0;
+                        //set compressed size wanted
+                        Main.client.compress = mapInstance.compressedSize;
+                        compress = true;
+                    }
                 }
             }
             case MAP_CHANGE:

@@ -20,6 +20,7 @@ class Client
     //interact to be able to login to game
     public var login:Login;
     var data:String = "";
+    var dataCompress:Bytes;
     var aliveTimer:Timer;
     var connected:Bool = false;
     public var compress:Int = 0;
@@ -42,12 +43,18 @@ class Client
 		{
 			if(e != "Blocking" && e != Error.Blocked && e != "Blocked")
 			{
-                //trace("e " + e);
+                trace("e " + e);
 			}
 		}
         #end
         if(compress > 0)
         {
+            if(dataCompress == null) 
+            {
+                dataCompress = Bytes.alloc(compress);
+                tagRemove = true;
+                index = 0;
+            }
             processCompress();
         }else{
             if (data.length > 0) process();
@@ -62,17 +69,6 @@ class Client
             default:
         }
     }*/
-    private function processCompress()
-    {
-        #if sys
-        if(tagRemove)
-        {
-            //remove #
-            socket.input.readString(1);
-            tagRemove = false;
-        }
-        #end
-    }
     private function process()
     {
         //trace("data " + data);
@@ -86,8 +82,16 @@ class Client
         if(tag == "")
         {
             tag = data;
+            //login
+            if(login != null)
+            {
+                if (tag == ACCEPTED && login.accept != null) login.accept();
+                if (tag == REJECTED && login.reject != null) login.reject();
+            }
+            data = "";
             return;
         }
+        //message out to state or login
         if(message != null) message(data);
     }
     public function alive()
@@ -100,7 +104,6 @@ class Client
         #if sys
         socket.output.writeString(data + "#");
         #end
-
         //alive timer
         if (aliveTimer != null) aliveTimer.stop();
         aliveTimer = new Timer(15 * 1000);
@@ -138,6 +141,42 @@ class Client
         trace("socket connected");
         #end
         connected = false;
+    }
+    private function processCompress()
+    {
+        trace("compress");
+        var temp:Bytes;
+        #if sys
+        if(tagRemove)
+        {
+            //remove #
+            trace("remove tag - " + tag);
+            socket.input.readString(1);
+            tagRemove = false;
+        }
+        if(index >= compress)
+        {
+            trace("map issue");
+            tag = null;
+            compress = 0;
+            return;
+        }
+        //length - index
+        temp = socket.input.read(compress - index);
+        #end
+        //blit into main compress
+        dataCompress.blit(index,temp,0,temp.length);
+        index += temp.length;
+        if(index >= compress)
+        {
+            trace("index " + index + " compress " + compress + " dataCompress " + dataCompress.length);
+            //finish data
+            compress = 0;
+            //unzip and send as normal message
+            message(haxe.zip.Uncompress.run(dataCompress,dataCompress.length).toString());
+            dataCompress = null;
+            tag = null;
+        }
     }
     /*private function unCompress()
     {
