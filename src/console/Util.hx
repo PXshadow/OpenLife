@@ -1,3 +1,4 @@
+package console;
 import openfl.display.Shader;
 
 class Util

@@ -1,3 +1,5 @@
+package data;
+import states.game.Player;
 import motion.easing.Quad;
 import motion.MotionPath;
 import motion.actuators.GenericActuator;
@@ -125,16 +127,12 @@ class PlayerInstance extends PlayerType
             }
             //trace(name[index - 1] + ": " + value);
         }
-        //push into array to update
-        Main.client.player.array.push(this);
-        //set new or existing key
-        Main.client.player.key.set(p_id,this);
     }
 }
 
 class PlayerMove 
 {
-    var id:Int = 0;
+    public var id:Int = 0;
     var xs:Int = 0;
     var ys:Int = 0;
     var total:Float = 0;
@@ -176,8 +174,9 @@ class PlayerMove
                 }
             }
         }
-        trace("player move");
-        var player:Player = Player.active.get(id);
+    }
+    public function movePlayer(player:Player)
+    {
         if(player.tileX == xs + moves[moves.length - 1].x && player.tileY == ys + moves[moves.length - 1].y)
         {
             //same move

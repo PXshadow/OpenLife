@@ -1,4 +1,4 @@
-package;
+package states.serverlist;
 
 import openfl.text.TextFormat;
 import haxe.Timer;

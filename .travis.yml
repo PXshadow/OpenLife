@@ -1,0 +1,16 @@
+language: haxe
+
+haxe:
+ - 4.0.0
+
+install:
+ - yes | haxelib install hxcpp
+ - yes | haxelib install lime
+ - yes | haxelib install openfl
+ - yes | haxelib install actuate
+ - yes | haxelib install svg
+ - yes | haxelib install hscript
+ - yes | haxelib install discord_rpc
+
+script:
+ - haxelib run lime build cpp

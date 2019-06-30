@@ -1,4 +1,6 @@
-import sys.io.FileInput;
+package data;
+//multi platform to read input
+import haxe.io.Input;
 import haxe.ds.Vector;
 import openfl.geom.Point;
 
@@ -6,11 +8,12 @@ class LineReader
 {
     var line:Vector<String>;
     var next:Int = 0;
+    var input:Input;
     public function new()
     {
 
     }
-    public function readLines(input:FileInput):Vector<String>
+    public function readLines(input:Input):Vector<String>
     {
         return Vector.fromArrayCopy(input.readAll().toString().split("\n"));
     }

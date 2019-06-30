@@ -1,3 +1,4 @@
+package data;
 import sys.io.File;
 import openfl.geom.Point;
 import haxe.ds.Vector;
@@ -15,7 +16,7 @@ class AnimationData extends LineReader
         super();
         for( i in 0...5 + 1) 
         {
-            var path = Settings.assetPath + "animations/" + id + "_" + i + ".txt";
+            var path = Static.dir + "animations/" + id + "_" + i + ".txt";
             if (!FileSystem.exists(path)) 
             {
                 //trace("ANIMATION FAIL " + id + "_" + i);

@@ -1,3 +1,4 @@
+package states.game;
 import openfl.display.Shader;
 import motion.Actuate;
 import openfl.geom.ColorTransform;
@@ -145,7 +146,6 @@ class Display extends Tilemap
     }
     public function addChunk(type:Int,x:Int,y:Int)
     {
-        //I will one day figure out how I wrote this, haha.
         var ix:Int = x;
         var iy:Int = y;
         if (ix > 0) 
@@ -276,7 +276,7 @@ class Display extends Tilemap
             for(x in 0...3 + 1)
             {
                 //trace("x " + x + " y " + y);
-                data = Static.tgaBytes(Settings.assetPath + 
+                data = Static.tgaBytes(Static.dir + 
                 "groundTileCache/biome_" + id + "_x" + x + "_y" + y + "_square.tga");
                 var rect:Rectangle = new Rectangle(tileX + x * Static.GRID,y * Static.GRID,Static.GRID,Static.GRID);
                 tileset.bitmapData.setPixels(rect,data.bytes);
@@ -293,7 +293,7 @@ class Display extends Tilemap
         {
             return cacheMap.get(id);
         }
-        var data = Static.tgaBytes(Settings.assetPath + "sprites/" + id + ".tga");
+        var data = Static.tgaBytes(Static.dir + "sprites/" + id + ".tga");
         var rect = new Rectangle(tileX,tileY,data.header.width,data.header.height);
         var bytes:ByteArray = ByteArray.fromBytes(haxe.io.Bytes.alloc(data.bytes.length));
         data.bytes.readBytes(bytes,0,data.bytes.length);
@@ -334,75 +334,5 @@ class Display extends Tilemap
         var i = tileset.addRect(rect);
         cacheMap.set(id,i);
         return i;
-    }
-    public function reload()
-    {
-        
-    }
-}
-class Tile extends openfl.display.Tile
-{
-    public var type:TileType;
-    public var parentID:Int = 0;
-    public function new(id:Int,type:TileType)
-    {
-        super(id);
-        this.type = type;
-    }
-}
-enum TileType 
-{
-    Ground;
-    Object;
-    Floor;
-}
-class Group
-{
-    public var children:Array<Tile> = [];
-    @:isVar public var alpha(default,set):Float = 0;
-    function set_alpha(value:Float):Float
-    {
-        alpha = value;
-        for(child in children)
-        {
-            child.alpha = alpha;
-        }
-        return alpha;
-    }
-    function get_alpha():Float
-    {
-        return alpha;
-    }
-    @:isVar public var x(default,set):Float = 0;
-    function set_x(value:Float):Float
-    {
-        var change = value - x;
-        for(child in children)
-        {
-            child.x += change;
-        }
-        return x = value;
-    }
-    @:isVar public var y(default,set):Float = 0;
-    function set_y(value:Float):Float
-    {
-        var change = value - y;
-        for (child in children)
-        {
-            child.y += change;
-        }
-        return y = value;
-    }
-    public function new()
-    {
-        
-    }
-    public function add(child:Tile):Int
-    {
-        return children.push(child);
-    }
-    public function remove(child:Tile)
-    {
-        children.remove(child);
     }
 }

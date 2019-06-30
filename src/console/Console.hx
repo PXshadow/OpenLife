@@ -1,8 +1,11 @@
+package console;
+import openfl.ui.Keyboard;
 import openfl.net.URLRequest;
 import hscript.Parser;
 import openfl.events.TextEvent;
 import openfl.display.Shape;
 import openfl.display.DisplayObjectContainer;
+import ui.Text;
 
 class Console extends DisplayObjectContainer
 {
@@ -13,6 +16,7 @@ class Console extends DisplayObjectContainer
     var parser:Parser;
     public static var interp:Interp;
     var history:Array<String> = [];
+    var command:Command;
     public function new()
     {
         super();
@@ -33,6 +37,7 @@ class Console extends DisplayObjectContainer
         addChild(input);
         //output
         output = new Text("",LEFT,18,0xFFFFFF);
+        output.cacheAsBitmap = false;
         //output.selectable = true;
         //output.mouseEnabled = true;
         output.mouseWheelEnabled = true;
@@ -50,13 +55,12 @@ class Console extends DisplayObjectContainer
         interp.variables.set("client",Main.client);
         interp.variables.set("width",Main.setWidth);
         interp.variables.set("height",Main.setHeight);
-        interp.variables.set("display",Main.display);
         interp.variables.set("grid",Static.GRID);
-        interp.variables.set("main",Main.m);
-        interp.variables.set("m",Main.m);
         //utils
-        interp.variables.set("util",Util);
-        interp.variables.set("Util",Util);
+        interp.variables.set("util",console.Util);
+        interp.variables.set("Util",console.Util);
+
+        command = new Command(this);
     }
     public function print(inp:String,out:String)
     {
@@ -79,6 +83,34 @@ class Console extends DisplayObjectContainer
         //text widths
         input.width = width;
         output.width = width;
+    }
+    public function keyDown(code:Int)
+    {
+        switch(code)
+        {
+            case Keyboard.TAB:
+            //toggle vis
+            visible = !visible;
+            if(visible)
+            {
+                input.setSelection(input.length,input.length);
+            }else{
+                stage.focus = null;
+            }
+        }
+        if (stage.focus != input) return;
+        //input needs to be focused on for keys below
+        switch(code)
+        {
+            case Keyboard.DOWN:
+            //fast delete line
+            input.text = ">";
+            case Keyboard.UP:
+            //pull up history
+            previous();
+            case Keyboard.ENTER:
+            enter();
+        }
     }
     public function update()
     {
@@ -116,7 +148,7 @@ class Console extends DisplayObjectContainer
         if(input.length == 1) return;
         var text = input.text.substring(1,input.length);
         //coammnd outside of hscript
-        if(command(text)) return;
+        if(command.run(text)) return;
         input.text = "";
         //multiline reset
         if(output.numLines > 9)
@@ -132,55 +164,6 @@ class Console extends DisplayObjectContainer
         {
             print(text,e);
         }
-    }
-    public function command(string:String):Bool
-    {
-        string = string.toLowerCase();
-        switch(string)
-        {
-            case "exit":
-            #if sys
-            Sys.exit(0);
-            #end
-            case "reload":
-            //hotreload
-
-            //states
-            case "menu":
-            //go to menu
-
-            case "game":
-            //go to game
-            case "clear":
-            //clear display 
-            Static.clear();
-            //window
-            case "fullscreen":
-            stage.window.fullscreen = !stage.window.fullscreen;
-            case "controls":
-            //toggle controls
-            case "borderless":
-            stage.window.borderless = !stage.window.borderless;
-            case "date":
-            print("date",Date.now().toString());
-
-
-            //urls
-            case "github" | "code" | "source":
-            url("https://github.com/pxshadow/openlife");
-            case "techtree" | "tech" | "tree":
-            url("https://onetech.info/");
-            case "forums" | "forms" | "fourms" | "forum" | "form" | "fourm":
-            url("https://onehouronelife.com/forums/");
-            default:
-            return false;
-        }
-        input.text = ">";
-        return true;
-    }
-    public function url(string:String)
-    {
-        openfl.Lib.navigateToURL(new openfl.net.URLRequest(string));
     }
 }
 private class Interp extends hscript.Interp

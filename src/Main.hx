@@ -1,102 +1,24 @@
-import openfl.display.DisplayObjectContainer;
-import lime.media.AudioBuffer;
-import openfl.media.Sound;
-import motion.Actuate;
-import PlayerData.PlayerInstance;
-import openfl.display.Shape;
-import PlayerData.PlayerType;
-import openfl.display.FPS;
-import openfl.geom.Point;
-import Display.Tile;
-import openfl.events.MouseEvent;
-import haxe.io.Path;
-#if sys
-import sys.io.File;
-import sys.FileSystem;
-#end
-import openfl.display.Bitmap;
-import openfl.ui.Keyboard;
-import openfl.events.KeyboardEvent;
-import openfl.events.Event;
-import openfl.Lib;
 import openfl.display.Sprite;
-import openfl.display.BitmapData;
-#if cpp
-import discord_rpc.DiscordRpc;
-#end
-
+import openfl.events.KeyboardEvent;
+import openfl.events.MouseEvent;
+import openfl.events.Event;
 class Main extends Sprite
 {
+    //window
     public static inline var setWidth:Int = 1280;
     public static inline var setHeight:Int = 720;
-    var scale:Float = 0;
-    var menu:Bool = !true;
-    public static var client:Client;
-    //local
-    var settings:Settings;
-    //launcher
-    var launcher:Launcher;
-    //game
-    public static var dialog:Dialog;
-    public static var display:Display;
-    var grid:Shape;
-    public static var console:Console;
-    //debug
-    var debugText:Text;
-    var tileX:Int = 0;
-    var tileY:Int = 0;
-
-    public static var m:Sprite;
-
+    private static var scale:Float = 0;
+    //client
+    public static var client:client.Client;
+    //over top console
+    public static var console:console.Console;
+    //state
+    public static var state:states.State;
     public function new()
     {
         super();
-        m = this;
-        //discord
-        #if cpp 
-        trace("discord presence init");
-        function onReady()
-        {
-            trace("discord ready");
-            DiscordRpc.presence({
-            details : 'Survival',
-            state   : 'Playing Solo',
-            largeImageKey  : 'icon',
-            largeImageText : 'Open Life '
-            });
-        }
-        function onError(_code:Int,message:String)
-        {
-            trace('Error! ' + _code + " " + message);
-        }
-        function onDisconnected(_code : Int, _message : String)
-        {
-            trace('Disconnected! $_code : $_message');
-        }
-        DiscordRpc.start({
-            clientID : "589413060582572052",
-            onReady  : onReady,
-            onError  : onError,
-            onDisconnected : onDisconnected
-        });
-        #end
-        //sounds do not
-        //var sound = Sound.fromAudioBuffer(AudioBuffer.fromBytes(File.getBytes("assets/hunger.aiff")));
-        //music works
-        //var sound = Sound.fromAudioBuffer(AudioBuffer.fromBytes(File.getBytes("assets/music_01.ogg")));
-        //sound.play();
-        //Lib.application.window.x = 1280 + 500;
-        //Lib.application.window.borderless = true;
-
-        client = new Client();
-        client.map.update = updateMap;
-        client.player.update = updatePlayer;
-
-        settings = Settings.getLocal();
-
-        if(menu) renderMenu();
-        if (!menu) renderGame();
-
+        //dir
+        Static.getDir();
         //events
         addEventListener(Event.ENTER_FRAME,update);
         stage.addEventListener(Event.RESIZE,_resize);
@@ -105,73 +27,17 @@ class Main extends Sprite
         addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
         addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
         addEventListener(MouseEvent.MOUSE_UP,mouseUp);  
+        //set state
+        //state = new states.launcher.Launcher();
+        state = new states.game.Game();
+        addChild(state);
 
-        //debug
-        if (!menu) client.connect();
-        //renderGame();
-        /*client.map.setX = -18;
-        client.map.setY = -13;
-        client.map.setRect(client.map.setX,client.map.setY,32,30,File.read("assets/map.txt").readAll().toString());*/
-
-        /*var p = new PlayerType();
-        //fill test player
-        p.p_id = 15;
-        p.po_id = 19;
-        p.age = 15;
-        p.age_r = 60;
-        p.move_speed = 30;
-        display.addPlayer(p);*/
-    }
-    private function renderMenu()
-    {
-        menu = true;
-        removeChildren();
-
-        launcher = new Launcher();
-        addChild(launcher);
-
-        /*var connect = new Button();
-		//var serverList = new ServerList();
-		//addChild(serverList);
-		//connect
-		connect.addChild(new Text("Connect",CENTER,12,0,80));
-		connect.graphics.beginFill(0xFFFFFF);
-		connect.graphics.drawRoundRect(0,0,80,20,12,12);
-		connect.y = 300 + 20;
-		connect.Click = function(_)
-		{
-			//client.connect(serverList.ip,serverList.port);
-            trace("connect");
-            client.connect();
-            renderGame();
-		}
-		addChild(connect);*/
-    }
-    private function renderGame()
-    {
-        menu = false;
-        removeChildren();
-        display = new Display();
-        addChild(display);
-        dialog = new Dialog();
-        addChild(dialog);
-        grid = new Shape();
-        createGrid();
-        grid.cacheAsBitmap = true;
-        addChild(grid);
-        var fps = new FPS(10,10,0xFFFFFF);
-        addChild(fps);
-
-        debugText = new Text("Debug",LEFT,12,0xFFFFFF,200);
-        debugText.y = 100;
-        addChild(debugText);
-
-        console = new Console();
+        console = new console.Console();
         addChild(console);
     }
     public function updatePlayer()
     {
-        //return;
+        /*//return;
         for(player in client.player.array)
         {
             if(!display.updatePlayer(player))
@@ -189,10 +55,11 @@ class Main extends Sprite
             //Player.main.alpha = 0.2;
         }
         client.player.array = [];
+        */
     }
     public function updateMap()
     {
-        //return;
+        /*return;
         if(display == null)
         {
             trace("no display");
@@ -232,23 +99,12 @@ class Main extends Sprite
             dialog.x = display.x;
             dialog.y = display.y;
             display.inital = false;
-        }
-    }
-    private function createGrid()
-    {
-        return;
-        grid.graphics.lineStyle(2,0xFFFFFF,0.5);
-        for(j in 0...Std.int(setHeight/Static.GRID) + 2)
-        {
-            for(i in 0...Std.int(setWidth/Static.GRID) + 2)
-            {
-                grid.graphics.drawRect(i * Static.GRID,j * Static.GRID,Static.GRID,Static.GRID);
-            }
-        }
+        }*/
     }
     private function update(_)
     {
-        if (console != null) console.update();
+        if (state != null) state.update();
+        /*if (console != null) console.update();
         if(!menu)
         {
             debugText.text = stage.mouseX + "\n" + stage.mouseY + "\nnum " + Main.display.numTiles;
@@ -259,11 +115,11 @@ class Main extends Sprite
                 i.next().update();
             }
             move();
-        }
+        }*/
     }
     private function keyDown(e:KeyboardEvent)
     {
-        if (menu) return;
+        /*if (menu) return;
         if(stage.focus == console.input)
         {
             consoleKeys(e.keyCode);
@@ -283,11 +139,11 @@ class Main extends Sprite
                 console.input.type = DYNAMIC;
                 stage.focus = null;
             }
-        }
+        }*/
     }
     public function playerKeys(code:Int)
     {
-        switch(code)
+        /*switch(code)
         {
             case Keyboard.SPACE:
             if (Player.main.oid == 0)
@@ -296,19 +152,7 @@ class Main extends Sprite
             }else{
                 Player.main.drop();
             }
-        }
-    }
-    public function consoleKeys(code:Int)
-    {
-        switch(code)
-        {
-            case Keyboard.UP:
-            console.previous();
-            case Keyboard.DOWN:
-            console.input.text = ">";
-            case Keyboard.ENTER:
-            console.enter();
-        }
+        }*/
     }
     private function mouseDown(_)
     {
@@ -320,100 +164,30 @@ class Main extends Sprite
     }
     private function mouseWheel(e:MouseEvent)
     {
-        display.scaleX += e.delta * 0.1;
-        display.scaleY += e.delta * 0.1;
+        //e.delta * 0.1;
     }
-    public static function pointRect(pX:Float, pY:Float, rect:openfl.geom.Rectangle):Bool
-	{
-		//y
-		if (pY < rect.y) return false;
-		if (pY > rect.y + rect.height) return false;
-		//x
-		if (pX < rect.x) return false;
-		if (pX > rect.x + rect.width) return false;
-		return true;
-	}
     private function keyUp(e:KeyboardEvent)
     {
-        if (menu) return;
-        moveKeys(e.keyCode,false);
+        
     }
-    var cameraUp:Bool = false;
-    var cameraDown:Bool = false;
-    var cameraLeft:Bool = false;
-    var cameraRight:Bool = false;
-    var playerUp:Bool = false;
-    var playerDown:Bool = false;
-    var playerLeft:Bool = false;
-    var playerRight:Bool = false;
-    private function moveKeys(code:Int,bool:Bool)
+    private static function _resize(_)
     {
-        switch(code)
-        {
-            //player
-            case Keyboard.W:
-            playerUp = bool;
-            case Keyboard.S:
-            playerDown = bool;
-            case Keyboard.A:
-            playerLeft = bool;
-            case Keyboard.D:
-            playerRight = bool;
-            //camera
-            case Keyboard.UP:
-            cameraUp = bool;
-            case Keyboard.DOWN:
-            cameraDown = bool;
-            case Keyboard.LEFT:
-            cameraLeft = bool;
-            case Keyboard.RIGHT:
-            cameraRight = bool;
-        }
-    }
-    private function move()
-    {
-        if (stage.focus == console.input) return;
-
-        var moveArray = [display,dialog];
-        var speed:Int = 30;
-        //camera movement
-        if (cameraUp) for(obj in moveArray) obj.y += speed;
-        if (cameraDown) for (obj in moveArray) obj.y += -speed;
-        if (cameraLeft) for (obj in moveArray) obj.x += speed;
-        if (cameraRight) for (obj in moveArray) obj.x += -speed;
-
-        //player movement
-        if (Player.main == null) return;
-        var mX:Int = 0;
-        var mY:Int = 0;
-        if (playerUp) mY += 1;
-        if (playerDown) mY += -1;
-        if (playerLeft) mX += -1;
-        if (playerRight) mX += 1;
-        if (mX != 0 || mY != 0) Player.main.move(mX,mY);
-    }
-    private function _resize(_)
-    {
-        trace("width " + stage.stageWidth + " height " + stage.stageHeight);
-        var tempX:Float = stage.stageWidth/setWidth;
-		var tempY:Float = stage.stageHeight/setHeight;
+        if (state == null) return;
+        var tempX:Float = state.stage.stageWidth/setWidth;
+		var tempY:Float = state.stage.stageHeight/setHeight;
 		scale = Math.min(tempX, tempY);
 		//set resize
-		x = Std.int((stage.stageWidth - setWidth * scale) / 2); 
-		y = Std.int((stage.stageHeight - setHeight * scale) / 2); 
-		scaleX = scale; 
-		scaleY = scale;
+		state.x = Std.int((state.stage.stageWidth - setWidth * scale) / 2); 
+		state.y = Std.int((state.stage.stageHeight - setHeight * scale) / 2); 
+		state.scaleX = scale; 
+		state.scaleY = scale;
         resize();
     }
-    private function resize()
+    private static function resize()
     {
         if (console != null)
         {
-            trace("console resize");
-            console.x = -x * 1/scale;
-            console.y = -y * 1/scale;
-            console.resize(stage.stageWidth/scale);
+            console.resize(state.stage.stageWidth);
         }
     }
-
 }

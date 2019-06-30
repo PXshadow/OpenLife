@@ -1,3 +1,4 @@
+package client;
 @:enum abstract MessageTag(Null<String>)
 {
 public var COMPRESSED_MESSAGE = "CM";

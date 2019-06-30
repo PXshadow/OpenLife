@@ -1,4 +1,4 @@
-package;
+package ui;
 import openfl.text.Font;
 import openfl.Assets;
 import haxe.io.Path;
@@ -79,6 +79,7 @@ class Text extends TextField
         mouseEnabled = false;
         multiline = true;
         updateFormat();
+
     }
     private function updateFormat()
     {

@@ -1,3 +1,4 @@
+package states.settings;
 import openfl.Lib;
 import openfl.net.SharedObject;
 import lime.system.System;

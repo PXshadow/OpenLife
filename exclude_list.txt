@@ -6,3 +6,4 @@ xml
 .DS_Store
 .gitignore
 .bat
+.yml

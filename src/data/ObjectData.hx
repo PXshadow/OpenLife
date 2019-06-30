@@ -1,3 +1,4 @@
+package data;
 import sys.FileSystem;
 import openfl.geom.Point;
 import sys.io.File;
@@ -64,7 +65,7 @@ class ObjectData extends LineReader
     {
         super();
         #if sys
-        var path = Settings.assetPath + "objects/" + i + ".txt";
+        var path = Static.dir + "objects/" + i + ".txt";
         if (!FileSystem.exists(path)) 
         {
             //trace("OBJECT FAIL " + i);
@@ -246,7 +247,7 @@ class ObjectData extends LineReader
         //get sprite data
         for(i in 0...spriteArray.length)
         {
-            var path = Settings.assetPath + "sprites/" + spriteArray[i].spriteID + ".txt";
+            var path = Static.dir + "sprites/" + spriteArray[i].spriteID + ".txt";
             if(!FileSystem.exists(path)) 
             {
                 //trace("SPRITE FAIL " + spriteArray[i].spriteID);
@@ -275,22 +276,5 @@ class ObjectData extends LineReader
             }
             }
         }
-    }
-}
-class SpriteData
-{
-    public var spriteID:Int=54;
-    public var pos:Point = new Point();//=166.000000,107.000000
-    public var rot:Float=0.000000;
-    public var hFlip:Int=0;
-    public var color:Array<Float> = [];//=0.952941,0.796078,0.756863
-    public var ageRange:Array<Float> = [];//=-1.000000,-1.000000
-    public var parent:Int = 0;//=-1
-    //added
-    public var inCenterXOffset:Int = 0;
-    public var inCenterYOffset:Int = 0;
-    public function new()
-    {
-
     }
 }

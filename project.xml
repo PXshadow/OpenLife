@@ -9,9 +9,12 @@
 	<haxelib name="openfl" />
 	<haxelib name="actuate"/>
 	<haxelib name="svg"/>
-	<haxelib name="hxcpp-debug-server" unless="html5"/>
 	<haxelib name="hscript" unless="html5"/>
 	<haxelib name="discord_rpc" if="cpp"/>
+
+	<!--<icon path="icon.svg" />-->
+	<icon path="icon.png" width="1024" height="1024" />
 	<!--Load Map-->
 	<assets path="assets" embed="false"/>
+	<haxedef name="dom" if="html5"/>
 </project>

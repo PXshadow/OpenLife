@@ -1,10 +1,12 @@
+package states.game;
+import data.PlayerData.PlayerInstance;
 import motion.MotionPath;
 import openfl.geom.Point;
 import motion.Actuate;
 import haxe.Timer;
-import Display.Group;
-import ObjectData.SpriteData;
-class Player extends Group
+import data.SpriteData;
+import data.ObjectData;
+class Player extends Object
 {
     //done moving sequence number
     public var lastMove:Int = 1;
@@ -17,7 +19,7 @@ class Player extends Group
     public var id:Int = 0;
     //object id, what is being held
     public var oid:Int = 0;
-    public var objectGroup:Group;
+    public var objectGroup:Object;
     //id refrence to renderMap | player object id
     public var poid:Int = 0;
     public var age:Int = 0;
@@ -62,11 +64,11 @@ class Player extends Group
             agePlayer();
         }*/
     }
-    public function update()
+    public function update(instance:PlayerInstance)
     {
         
     }
-    public function move(moveX:Int=0,moveY:Int=0)
+    /*public function move(moveX:Int=0,moveY:Int=0)
     {
         if (moveTimer != null || moveX == 0 && moveY == 0) return;
         moveTimer = new Timer(300 * 1);
@@ -128,7 +130,7 @@ class Player extends Group
         }else{
             trace("player rendermap object not found");
         }
-    }
+    }*/
     public function setSection(index:Int,length:Int)
     {
         this.index = index;
