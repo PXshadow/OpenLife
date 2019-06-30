@@ -27,6 +27,8 @@ class Main extends Sprite
         addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
         addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
         addEventListener(MouseEvent.MOUSE_UP,mouseUp);  
+        //client
+        client = new client.Client();
         //set state
         //state = new states.launcher.Launcher();
         state = new states.game.Game();
@@ -103,6 +105,7 @@ class Main extends Sprite
     }
     private function update(_)
     {
+        if (client != null) client.update();
         if (state != null) state.update();
         /*if (console != null) console.update();
         if(!menu)
@@ -119,6 +122,7 @@ class Main extends Sprite
     }
     private function keyDown(e:KeyboardEvent)
     {
+        console.keyDown(e.keyCode);
         /*if (menu) return;
         if(stage.focus == console.input)
         {

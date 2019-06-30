@@ -21,17 +21,18 @@ class Client
     public var login:Login;
     var data:String = "";
     var aliveTimer:Timer;
-    var closed:Bool = true;
+    var connected:Bool = false;
     public var compress:Int = 0;
     var tagRemove:Bool = false;
     var index:Int = 0;
+    public var message:String->Void;
     public function new()
     {
-        login = new Login(this);
+        login = new Login();
     }
     public function update()
     {
-        if (closed) return;
+        if (!connected) return;
         data = "";
         #if sys
         if(socket == null) return;
@@ -41,7 +42,7 @@ class Client
 		{
 			if(e != "Blocking" && e != Error.Blocked && e != "Blocked")
 			{
-                trace("e " + e);
+                //trace("e " + e);
 			}
 		}
         #end
@@ -87,7 +88,7 @@ class Client
             tag = data;
             return;
         }
-        if(Main.state != null) Main.state.message(data,tag);
+        if(message != null) message(data);
     }
     public function alive()
     {
@@ -95,7 +96,7 @@ class Client
     }
     public function send(data:String)
     {
-        if (closed) return;
+        if (!connected) return;
         #if sys
         socket.output.writeString(data + "#");
         #end
@@ -107,17 +108,15 @@ class Client
     }
     public function connect(ip:String="",port:Int=0)
 	{
-        closed = false;
+        connected = true;
+        trace("attempt connect");
         #if sys
-		ip = "game.krypticmedia.co.uk";
-		port = 8007;
-        //ip = "bigserver2.onehouronelife.com";
-        //port = 8005;
 		var host:Host;
 		try {
 			host = new Host(ip);
 		}catch(e:Dynamic)
 		{
+            trace("host e " + e);
 			return;
 		}
 		socket = new Socket();
@@ -129,15 +128,16 @@ class Client
 		{
             trace("e " + e);
 		}
+        trace("connect sys");
         #end
 	}
     public function close()
     {
         #if sys
         socket.close();
-        trace("socket closed");
+        trace("socket connected");
         #end
-        closed = true;
+        connected = false;
     }
     /*private function unCompress()
     {

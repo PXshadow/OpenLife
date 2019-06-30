@@ -6,10 +6,12 @@ import openfl.display.DisplayObjectContainer;
 
 class State extends DisplayObjectContainer
 {
-    public function new()
+    var sub:Bool = false;
+    public function new(sub:Bool=false)
     {
+        this.sub = sub;
         super();
-        addEventListener(Event.ENTER_FRAME,init);
+        if (!sub) addEventListener(Event.ENTER_FRAME,init);
     }
     private function init(_)
     {
@@ -20,12 +22,8 @@ class State extends DisplayObjectContainer
     {
         
     }
-    public function message(data:String,tag:client.MessageTag)
-    {
-        
-    }
     public function remove()
     {
-
+        if (!sub) Main.client.message = null;
     }
 }

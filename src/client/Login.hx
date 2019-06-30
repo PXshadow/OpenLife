@@ -3,22 +3,23 @@ import haxe.crypto.Hmac;
 import haxe.io.Bytes;
 class Login
 {
-    var client:Client;
     //login info
-    var username:String = "";
-    var password:String = "";
-    var challenge:String = "";
-    var key:String = "";
+    public var username:String = "";
+    public var password:String = "";
+    public var challenge:String = "";
+    public var key:String = "";
     var index:Int = 0;
-    public function new(client:Client)
+    public var version:Int = 0;
+    //functions
+    public var accept:Void->Void;
+    public var reject:Void->Void;
+    public function new()
     {
-        this.client = client;
-        //set test user
-        username = "test@test.co.uk";
-        password = "WC2TM-KZ2FP-LW5A5-LKGLP";
+
     }
     public function message(data:String) {
-        switch(client.tag)
+        trace("data login: " + data);
+        switch(Main.client.tag)
         {
             case SERVER_INFO:
 			switch(index)
@@ -30,32 +31,38 @@ class Login
 				challenge = data;
 				case 2: 
 				//version
-				//version = data;
-                trace("get version");
-                client.tag = "";
+				version = Std.parseInt(data);
+                Main.client.tag = "";
+                request();
 			}
 			index++;
             case ACCEPTED:
             trace("accept");
-            client.tag = "";
+            if (accept != null) accept();
+            Main.client.tag = "";
             case REJECTED:
             trace("reject");
+            if (reject != null) reject();
             default:
         }
     }
-    public function request()
+    private function request()
     {
 		key = StringTools.replace(key,"-","");
-        client.send("LOGIN " + username + " " +
+        Main.client.send("LOGIN " + username + " " +
+
 		new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f")
 		,Bytes.ofString(challenge,RawNative)).toHex() + " " +
+
 		new Hmac(SHA1).make(Bytes.ofString(key)
 		,Bytes.ofString(challenge)).toHex() +  " " +
+
         //tutorial 1 = true 0 = false
         1 + " " +
         //twin extra code
         ""
         );
-		client.tag = "";
+		Main.client.tag = "";
+        trace("send login request");
     }
 }

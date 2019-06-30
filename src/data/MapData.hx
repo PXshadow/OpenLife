@@ -83,8 +83,18 @@ class MapChange
     public var oldX:Int = 0;
     public var oldY:Int = 0;
     public var speed:Int = 0;
-    public function new()
+    public function new(array:Array<String>)
     {
-        
+        x = Std.parseInt(array[0]);
+        y = Std.parseInt(array[1]);
+        floor = Std.parseInt(array[2]);
+        id = Std.parseInt(array[3]);
+        pid = Std.parseInt(array[4]);
+        //optional speed
+        if(array.length > 4)
+        {
+            var old = array[5] + "." + array[6];
+            var speed = array[7];
+        }
     }
 }

@@ -28,13 +28,31 @@ class Game extends states.State
         addChild(ground);
         addChild(objects);
         addChild(dialog);
+        //connect
+        //login
+        Main.client.login.username = "test@test.co.uk";
+        Main.client.login.password = "WC2TM-KZ2FP-LW5A5-LKGLP";
+        Main.client.login.accept = function()
+        {
+            trace("accept");
+            //set message reader function to game
+            Main.client.message = message;
+        }
+        Main.client.login.reject = function()
+        {
+            trace("reject");
+        }
+        //set message reader function to login
+        Main.client.message = Main.client.login.message;
+        Main.client.connect("game.krypticmedia.co.uk",8007);
     }
-    override function update() {
+    override function update()
+    {
         super.update();
     }
-    override function message(input:String, tag:MessageTag) {
-        super.message(input, tag);
-        switch(tag)
+    public function message(input:String) 
+    {
+        switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
             var array = input.split(" ");
@@ -79,55 +97,7 @@ class Game extends states.State
             }
             case MAP_CHANGE:
             //x y new_floor_id new_id p_id optional oldX oldY speed
-            var array = input.split(" ");
-            var mapChange = new MapChange();
-            mapChange.x = Std.parseInt(array[0]);
-            mapChange.y = Std.parseInt(array[1]);
-            var string = mapChange.x + "." + mapChange.y;
-            //floor
-            mapChange.floor = Std.parseInt(array[2]);
-            data.map.floor.set(string,mapChange.floor);
-            
-            //object
-            mapChange.id = Std.parseInt(array[3]);
-            data.map.object.set(string,Std.string(mapChange.id));
-            
-            //p_id 4
-            /*mapChange.pid = Std.parseInt(array[4]);
-            if(mapChange.pid == -1)
-            {
-
-                //change no triggered by player
-                var object = Main.display.objectMap.get(string);
-                if(object != null)
-                {
-                    trace("object " + object);
-                    for (child in object.children)
-                    {
-                        Main.display.removeTile(child);
-                    }
-                    Main.display.objectMap.remove(string);
-                    object = null;
-                }
-            }else{
-                trace("trigger");
-                //triggered by player
-                if(mapChange.pid < -1)
-                {
-                    //object was not dropped
-                }else{
-                    //object was dropped
-                    trace("drop by " + mapChange.pid);
-                    var player = Player.active.get(mapChange.pid);
-                    //player.pid
-                }
-            }*/
-            //optional speed
-            if(array.length > 4)
-            {
-                var old = array[5] + "." + array[6];
-                var speed = array[7];
-            }
+            var mapChange = new MapChange(input.split(" "));
             case HEAT_CHANGE:
             //trace("heat " + input);
 
@@ -135,7 +105,7 @@ class Game extends states.State
             //trace("food change " + input);
             //also need to set new movement move_speed: is floating point speed in grid square widths per second.
             case FRAME:
-            tag = "";
+            Main.client.tag = "";
             case PLAYER_SAYS:
             trace("player say " + input);
             dialog.say(input);
