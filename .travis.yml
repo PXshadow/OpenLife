@@ -11,7 +11,7 @@ install:
  - yes | haxelib install actuate
  - yes | haxelib install svg
  - yes | haxelib install hscript
- - yes | haxelib install discord_rpc
+ - yes | haxelib git discord_rpc https://github.com/Aidan63/linc_discord-rpc
 
 script:
  - haxelib run lime build cpp
