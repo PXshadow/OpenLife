@@ -20,7 +20,7 @@ class Static
     public static inline var oldHeadDownFactor:Float = 0.35;
     public static inline var oldHeadForwardFactor:Float = 2;
     //file system
-    public static var dir:String = "assets/data";
+    public static var dir:String = "assets/data/";
     public static var assetSystem:Bool = false;
     public static var uiSystem:Bool = false;
 
@@ -34,9 +34,10 @@ class Static
             trace("ui true");
         }
         //packaged inside objects/ground/sprites
-        if(Assets.exists("assets/data/groundTileCache/biome_0_x0_y0_square.tga"))
+        if(Assets.exists(dir + "groundTileCache/biome_0_x0_y0_square.tga"))
         {
             assetSystem = true;
+
             trace("true asset data");
             return;
         }
@@ -49,34 +50,6 @@ class Static
         #end
 
         trace("dir " + dir);
-        #end
-    }
-    //tga
-    public static function tga(bitmap:Bitmap,path:String,x:Int=0,y:Int=0)
-    {
-        bitmap.bitmapData = tgaBitmapData(path,x,y);
-    }
-    public static function tgaBitmapData(path:String,x:Int=0,y:Int=0):BitmapData
-    {
-        var data = tgaBytes(path);
-        var bitmapData = new BitmapData(data.header.width,data.header.height);
-        bitmapData.setPixels(new Rectangle(x,y,data.header.width,data.header.height),ByteArray.fromBytes(data.bytes));
-        return bitmapData;
-    }
-    public static function tgaBytes(path:String):{bytes:ByteArray,header:format.tga.Data.Header}
-    {
-        var data:format.tga.Data = null;
-        #if sys
-        try {
-            var r = new format.tga.Reader(File.read(path));
-            data = r.read();
-        }catch(e:Dynamic)
-        {
-            return null;
-        }
-        return {bytes:ByteArray.fromBytes(format.tga.Tools.extract32(data,true)),header:data.header};
-        #else
-        return {bytes:null,header:null};
         #end
     }
 }

@@ -17,6 +17,7 @@ class Main extends Sprite
     public function new()
     {
         super();
+        new data.MapGen();
         //dir
         Static.getDir();
         //events

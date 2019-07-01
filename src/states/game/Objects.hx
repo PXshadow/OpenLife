@@ -1,8 +1,6 @@
 package states.game;
 
-import openfl.display.Tilemap;
-
-class Objects extends Tilemap
+class Objects extends TileDisplay
 {
     var game:Game;
     public function new(game:Game)

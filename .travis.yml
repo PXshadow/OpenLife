@@ -1,7 +1,8 @@
 language: haxe
 
 haxe:
- - 4.0.0
+ - 3.4.7
+ - "devolpment"
 
 install:
  - yes | haxelib install hxcpp

@@ -1,0 +1,996 @@
+Messages in ascii.
+
+Terminated by # character
+
+
+NOTE:
+
+Wherever an object_id is menioned (o_id, new_id, etc), it can be either
+a single ASCII-base-10 integer, OR a comma-delimited list of integers.
+
+The first one is the base object ID (can be 0 if no object there),
+and subsequent IDs are the objects contained in that object
+
+
+HMAC_SHA1 below is the SHA-1 based HMAC as defined in RFC 2104, with the
+resulting hash in hex-encoded ASCII.
+The parameters are as follows:
+
+char *HMAC_SHA1( char *inKey, char *inData )
+
+
+
+
+Shutdown mode:
+
+If the server is in shutdown mode (no new connections allowed), upon 
+receiving a client connection, the server will immediately send the following
+message:
+
+SHUTDOWN
+current_players/max_players
+#
+
+All further messages from the client will be ignored.
+
+
+
+Server full
+
+If the server is full, (no new connections allowed), upon 
+receiving a client connection, the server will immediately send the following
+message:
+
+SERVER_FULL
+current_players/max_players
+#
+
+All further messages from the client will be ignored.
+
+
+
+Client login proceedure.
+
+1.  Upon receiving a client connection, the server will immediately send
+    a sequence number to the client in the following format:
+    
+SN
+current_players/max_players
+challenge_string
+required_version_number
+#
+
+Where challenge_string is an ascii string, less than 150 characters long.
+
+
+
+
+
+2.  The client MUST respond with the following login message:
+
+LOGIN email password_hash account_key_hash tutorial_number twin_code_hash twin_count#
+
+
+password_hash is based on the server access password, and is computed by:
+
+HMAC_SHA1( password, challenge_string )
+
+
+account_key_hash is based on the client's account key, all uppercase with
+hyphens removed, and is computed by:
+
+HMAC_SHA1( account_key, challenge_string )
+
+
+tutorial_number specifies the tutorail map number to load, or 0 for normal game.
+
+
+twin_code_hash is optional.  The sha1 hash of the twin code.
+
+twin_count is mandatory if twin_code_hash is present.  How many twins are in
+the party, total.
+
+
+
+3.  The server responds with one of:
+
+ACCEPTED
+#
+
+-or-
+
+REJECTED
+#
+
+-or-
+
+NO_LIFE_TOKENS
+REJECTED
+#
+
+
+After ACCEPTED, normal client-server messaging commences.
+
+After REJECTED, the server will close the connection to the client.
+
+
+
+
+
+Each message from server is prefaced by a type tag.
+
+Possible types include:
+
+COMPRESSED_MESSAGE (CM)
+
+MAP_CHUNK  (MC)
+
+PLAYER_UPDATE  (PU)
+
+PLAYER_MOVES_START (PM)
+
+PLAYER_OUT_OF_RANGE (PO)
+
+PLAYER_SAYS (PS)
+
+LOCATION_SAYS (LS)
+
+PLAYER_EMOT (PE)
+
+MAP_CHANGE (MX)
+
+FOOD_CHANGE (FX)
+
+HEAT_CHANGE (HX)
+
+LINEAGE (LN)
+
+NAME (NM)
+
+APOCALYPSE (AP)
+
+APOCALYPSE_DONE (AD)
+
+DYING (DY)
+
+HEALED (HE)
+
+MONUMENT_CALL (MN)
+
+GRAVE (GV)
+
+GRAVE_MOVE (GM)
+
+GRAVE_OLD (GO)
+
+OWNER_LIST (OW)
+
+VALLEY_SPACING (VS)
+
+CURSED (CU)
+
+CURSE_TOKEN_CHANGE (CX)
+
+CURSE_SCORE_CHANGE (CS)
+
+FLIGHT_DEST (FD)
+
+VOG_UPDATE (VU)
+
+PHOTO_SIGNATURE (PH)
+
+FORCED_SHUTDOWN (SD)
+
+FRAME (FM)
+
+PONG
+
+
+Client can expect to receive these at any time, and in any order.
+
+
+Each batch of messages from a single server time step will be terminated with
+a FRAME message.  This ensures that related messages can play at the same time
+on the client, regardless of network latency (for example, a player picking
+up an object results in a PLAYER_UPDATE and an MAP_CHANGE message, which only
+make sense if played together client-side).
+
+
+
+
+
+----
+CONTAINER OBJECT FORMAT:
+----
+
+Several message contain object IDs that may optionally be containers containing
+other objects.
+
+The presence of these can be detected if the object ID field contains commas.
+
+The format is as follows:
+
+containerObjectID,containedID1,containedID2,containedID3,...
+
+If the contained objects are ALSO themselves containers, their ID fields will
+contain a colon-delimited list of sub-contained objects, like so:
+
+containerObjectID,subContainerID1:subContainedID1:subContainedID2,containedID2,containedID3,...
+
+Containment can only go two layers deep.  A wagon full of baskets full of 
+carrots, for example.
+
+
+
+CM
+binary_raw_size binary_compressed_size 
+#
+COMPRESSED_DATA
+
+
+Any message type, except MC (MAP_CHUNK), can be packaged into a CM message.
+
+Usually, this behavior is reserved for very long messages (like the first PU
+sent to a client upon connection).
+
+After decompression, the text message is in the usual format, complete with
+terminatin # character.
+
+
+
+
+
+
+
+
+
+MC
+sizeX sizeY x y
+binary_raw_size binary_compressed_size 
+#
+COMPRESSED_BINARY_DATA
+
+
+Where:
+Chunk includes a sizeX x sizeY number of ids (a square of the map).
+Square is positioned on map grid with upper left corner at x y
+binary_size is the number of binary bytes of map data that will follow the #
+
+BINARY_DATA is the raw binary data.  This involves zip compression.  
+Check the code in map.cpp for details.
+
+
+
+
+PU
+p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum
+p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum
+p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum
+p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum
+...
+p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum
+#
+
+List of player ids with their display object ids, facing direction, action
+attempt flag, action attempt target position,
+held object ids (in CONTAINER OBJECT FORMAT, see above), 
+whether held origin is valid (1 or 0), origin position on map of that held 
+object (where it was picked up from), 
+transition source object id (or -1) if held object is result of a transition,
+player's current heat value, 
+done_moving_seqNum (to signal destination reached), force flag (to signal
+a move truncated unexpectedly), x,y grid positions of player,
+floating point age in "years", floating point aging rate in sec/year (how many
+seconds it takes the player to age 1 year), and
+floating point move speeds (in grid square widths per second) and clothing
+set, just_ate = 1 or 0 to indicate whether the player just ate what they were 
+holding, the ID of the object they just ate, and the player responsible for this update.
+
+
+If facing is 0, then the player's facing direction doesn't change.
+If facing is 1, then they should face right, and -1 to face left.
+
+action flag is 1 if player is attempting an action, 0 otherwise;
+
+Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest,
+and 0.5 is ideal.
+
+If done_moving_seqNum is > 0, this means the player is stationary at this position (and this is the sequence number of their last move).
+Otherwise, player may still be in the middle of a move (for example, if what
+they are holding decays while they are moving, a PU will be sent with
+done_moving_seqNum set to 0).
+
+force is usually 0 except in special cases of move truncation where it is 1.
+A player receiving force for itself must snap back to that location
+before continuing to move.
+
+Deleted players reported in update with
+X X 
+for x y
+and a reason string at the tail end of the line.  Reason can be
+
+reason_disconnected
+reason_killed_id   (where id is the object that killed the player)
+reason_hunger
+reason_nursing_hunger  (starved while nursing a hungry baby)
+reason_age
+
+
+Clothing sets are in the format of 
+hat;tunic;front_shoe;back_shoe;bottom;backpack
+
+Each clothing piece in the list is in the following format:
+
+clothing_obj_id
+
+or
+
+clothing_obj_id,contained_id,contained_id,...
+
+If clothing ID is 0, player is not wearing anything in that spot.
+
+
+If the held object contains things, they are in the format described above
+in CONTAINER OBJECT FORMAT.
+
+If o_id (held object ID) is negative, it represents the p_id of the other
+player (baby) that this player is holding.
+
+
+responsible_id is used to indicate updates that were caused by another
+player (so that client can defer these until responsible player finishes
+local walk).  Current examples involve feeding and clothing a baby.
+-1 if irrelevant.
+
+held_yum is 1 if held item is yummy food, 0 otherwise
+
+
+NOTE:
+If a baby wriggles out of an adult's arms, there is no PU sent about
+the adult, only about the baby.  The fact that there was a PU about
+the baby indicates that they are no longer held by the adult.
+This is so PU's can be interpreted as "the player is HERE right now"
+and a baby can wriggle out of an adult's arms while the adult is in transit.
+
+
+
+
+
+PM
+p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
+p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
+...
+p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
+#
+
+List of player ids that just started moving, their start x y grid position,
+their delta grid offsets along their path (xs + xdelt0 = first destination x), 
+how long the total move should take (in case we 
+come into the game in the middle of a move), and their time to arrival in 
+floating point seconds
+
+trunc is 0 for untruncated path, or 1 for truncated path.
+Truncated paths are shorter than what the player originally requested.
+This can happen in immediate response to the move request or later, mid-move,
+if the path gets cut off (a new PM will be sent to truncate the path at that
+point)
+
+A PLAYER_UPDATE will be sent with done_moving set to 1 when these players 
+reach their destination.
+Until that has happened, client must assume player is still in transit.
+
+
+
+
+
+PO
+p_id
+p_id
+p_id
+...
+p_id
+#
+
+A list of player IDs that are out of range for this player.  We avoid sending
+a full PU message about these players, but we need to let the client know that
+they have moved out of range.
+
+
+
+
+
+
+
+PS
+p_id/isCurse text
+p_id/isCurse text
+p_id/isCurse text
+...
+p_id/isCurse text
+#
+
+isCurse is 0 if not a successful curse, or 1 if successful.
+
+Text that each player says must not contain # or newline.
+
+Example:
+
+PS
+1432/0 HELLO THERE
+1501/1 CURSE JOHN SMITH
+1448/0 HELP ME
+#
+
+
+
+
+
+LS
+x y text
+x y text
+x y text
+...
+x y text
+#
+
+Text at each location says must not contain # or newline.
+
+Example:
+
+LS
+0 25 HELLO THERE
+14034 3424 CURSE JOHN SMITH
+-342 3847 HELP ME
+#
+
+
+
+VU
+x y
+#
+
+Example:
+
+
+VU
+301 14
+#
+
+
+
+
+PE
+p_id emot_index ttl_sec
+p_id emot_index
+p_id emot_index ttl_sec
+...
+p_id emot_index ttl_sec
+#
+
+
+Example:
+
+PE
+1432 4
+1501 6 30
+1448 1
+#
+
+
+ttl_sec is optional, and specifies how long the emote should be shown, in
+seconds, client-side.  If it is omitted, the client should display the emotion
+for the standard amount of time.
+
+
+
+
+
+
+MX
+x y new_floor_id new_id p_id
+x y new_floor_id new_id p_id
+x y new_floor_id new_id p_id
+...
+x y new_floor_id new_id p_id
+#
+
+
+Or optionally, some lines can have 3 extra parameters, like this:
+
+MX
+x y new_floor_id new_id p_id old_x old_y speed
+x y new_floor_id new_id p_id 
+x y new_floor_id new_id p_id old_x old_y speed
+...
+x y new_floor_id new_id p_id
+#
+
+Grid position of changes, and new floor id and object id that position must 
+change to.
+p_id is the player that was responsible for the change (in the case of an 
+object drop only), or -1 if change was not player triggered.  p_id < -1 means
+that the change was triggered by player -(p_id), but that the object
+wasn't dropped (transform triggered by a player action).
+
+Note that if cell contains other stuff (for a container object), new_id
+is in the CONTAINER OBJECT FORMAT described above.
+
+
+Optionally, a line can contain old_x, old_y, and speed.
+This indicates that the object came from the old coordinates and is moving
+with a given speed.
+
+
+
+
+
+FX
+food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
+ yum_bonus yum_multiplier#
+
+food_store is integer amount of food left in body, capacity is the integer 
+maximum amount of food.
+
+last_ate_id is the object id of the last piece of food eaten, or 0 if nothing
+was eaten recently
+
+last_ate_fill_max is an integer number indicating how many slots were full
+before what was just eaten.  Amount that what was eaten filled us up is
+(food_store - last_ate_fill_max).
+
+move_speed is floating point speed in grid square widths per second.
+
+responsible_id is id of player that fed you if you're a baby, or -1
+
+yum_bonus is an integer indicating the current stored bonus food.
+
+yum_multiplier is an integer indicating how many yum bonus points are earned
+when the next yummy food is eaten.
+
+
+
+
+HX
+heat#
+
+Tells player about their current heat value.
+
+
+
+
+LN
+p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
+p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
+p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
+...
+p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
+#
+
+
+Describes lineage of player p_id.
+
+Each line has a variable number of fields, depending on how long the lineage
+back to Eve is.
+
+Also, if lineages get very long (like hundreds of links), the server may
+cut them off beyond some point.
+
+For long lineages, they may not go all the way back to eve_id.  To cover
+these cases, the actual eve_id, even if the provided lineage doesn't reach it,
+is included at the end with the eve= tag in front of it.
+
+This message describes known lineages.
+
+
+
+
+
+NM
+p_id first_name last_name
+p_id first_name last_name
+p_id first_name last_name
+...
+p_id first_name last_name
+#
+
+
+Gives name of player p_id.
+
+last_name may be ommitted.
+
+
+
+
+
+
+AP
+#
+
+Indicates that an apocalypse is pending.  Gives client
+time to show a visual effect.
+
+
+
+AD
+#
+
+Indicates that an apocalypse is now over.  Client should go back to displaying
+world.
+
+
+
+DY
+p_id isSick
+p_id
+p_id isSick
+
+...
+p_id
+#
+
+Indicates that the listed players have been mortally wounded and will die soon.
+
+isSick is optional 1 flag to indicate that player is sick
+(client shouldn't show blood UI overlay for sick players)
+
+
+
+HE
+p_id
+p_id
+p_id
+...
+p_id
+#
+
+Indicates that the listed players have been healed and are no longer dying.
+
+
+
+
+
+
+
+MN
+x y o_id
+#
+
+Indicates that a monument call has happened at location x,y with the creation
+of object o_id.
+
+
+
+
+
+GV
+x y p_id
+#
+
+
+Grave at x y belongs to player p_id.
+
+
+
+
+GM
+xs ys xd yd swap_dest
+#
+
+
+Grave at xs,ys moved to xd,yd.
+
+If optional swap_dest parameter is 1, it means that some other grave at 
+destination is in mid-air.  If 0, not
+
+
+
+GO
+x y p_id po_id death_age underscored_name mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
+#
+
+
+Provides info about an old grave that wasn't created during your lifetime.
+In response to a GRAVE message from client.
+
+underscored_name is name with spaces replaced by _
+If player has no name, this will be ~ character instead.
+
+death_age is how long the player has been dead (in in-game years)
+
+Same semantics for eve= tag at end as for LN message.
+
+
+
+OW
+x y p_id p_id p_id ... p_id
+#
+
+
+Provides owner list for position x y
+
+
+
+VS
+y_spacing y_offset
+#
+
+Provides information about horizontal valley spacing to client.
+Offset is from client's birth position (0,0) of first valley.
+
+
+
+
+
+CU
+p_id level
+p_id level
+...
+p_id level
+#
+
+
+List of player ids that are cursed, and their curse level
+
+
+
+CX
+curse_token_count#
+
+Tells player about how many curse tokens they have
+
+
+
+CS
+excess_curse_points#
+
+Tells player about their curse score, if it is above the threshold.
+
+
+
+FD
+p_id dest_x dest_y
+#
+
+Sent to all players to let them know about new flights.
+
+Flying player should wait for a MAP_CHUNK message around the destination.
+
+
+
+PH
+x y signature
+#
+
+Gives the player a requested photo signature for their last PHOTO request.
+Will return a dummy signature if the photo is denied.
+
+
+
+SD
+#
+
+Indicates that the server is undergoing a forced shutdown.  Gives client a
+chance to hear about this and close connection before connection is
+force-closed by server.
+
+
+
+
+FM
+#
+
+Indicates the end of a server frame.  All messages since the last FM message
+are part of the same batch and can be played back together on the client.
+
+
+
+PONG
+unique_id#
+
+Sent by server to client in response to PING request.  Server returns
+the unique ID sent by the client.
+
+
+
+
+First message sent upon client new connection to server:
+
+A map chunk message for where the player is standing, followed by 
+a full player update message for ALL players on entire server.
+
+
+
+
+Clients send moves in the following format:
+
+NOTE that this format is exact, with exactly one space character between
+parameters, and no leading spaces.
+
+
+KA x y#
+USE x y#
+BABY x y#
+BABY x y id#
+SELF x y i#
+UBABY x y i#
+UBABY x y i id#
+REMV x y i#
+SREMV x y c i#
+DROP x y c#
+KILL x y#
+KILL x y id#
+JUMP x y#
+EMOT x y e#
+DIE x y#
+GRAVE x y#
+OWNER x y#
+FORCE x y#
+PING x y unique_id#
+VOGS x y#
+VOGN x y#
+VOGP x y#
+VOGM x y#
+VOGI x y id#
+VOGT x y text# 
+VOGX x y#
+PHOTO x y seq#
+
+KA   is a keep-alive message used to keep the connection alive when the client
+     is idle and not sending any other messages (NATs and other routers can
+     close a connection if too long passes without outbound packets).
+     The x y parameters to KA are currently ignored and can be 0, but must
+     be present.
+
+DROP is for setting held object down on empty grid square OR
+	 for adding something to a container
+     c is -1 except when adding something to own clothing, then c
+     indicates clothing with:
+     0=hat, 1=tunic, 2=frontShoe, 3=backShoe, 4=bottom, 5=backpack
+
+USE  is for bare-hand or held-object action on target object in non-empty 
+     grid square, including picking something up (if there's no bare-handed 
+     action), and picking up a container.
+
+SELF is special case of USE action taken on self (to eat what we're holding
+     or add/remove clothing).
+     This differentiates between use actions on the object at our feet
+     (same grid cell as us) and actions on ourself.
+     If holding food i is ignored.
+	 If not holding food, then SELF removes clothing, and i specifies
+	 clothing slot:
+     0=hat, 1=tunic, 2=frontShoe, 3=backShoe, 4=bottom, 5=backpack
+	 
+BABY is special case of USE action taken on a baby to pick them up.
+     They are dropped with the normal DROP action.
+     NOTE the alternate call for BABY with extra id parameter.
+     this specifies a specific person to pick up, if more than one is
+	 close to the target tile.
+
+UBABY is a special case of SELF applied to a baby (to feed baby food
+	  or add/remove clothing from baby).  Also works on elderly.
+      Note that server currently allows UBABY to feed anyone food, but
+      only putting clothing on babies and elderly.
+      ALSO:  UBABY is used for healing wounded players.
+      Essentially, any action where held item is used on another player.
+      Should be called UOTHER, but UBABY is used for historical reasons.
+      NOTE the alternate call for UBABY with extra id parameter.
+      this specifies a specific person to do the action on, if more than one is
+	  close to the target tile.
+
+REMV is special case of removing an object from a container.
+     i specifies the index of the container item to remove, or -1 to
+	 remove top of stack.
+
+SREMV is special case of removing an object contained in a piece of worn 
+      clothing.
+      c specifies the clothing slot to remove from:  0=hat, 1=tunic, 
+         2=frontShoe, 3=backShoe, 4=bottom, 5=backpack
+      i specifies the index of the container item to remove, or -1 to
+	  remove top of stack.
+
+KILL is for using a deadly object on the target square.  Square can
+     be non-adjacent depending on deadly distance of held object.
+     If another player is located there (even if moving and crossing)
+	 they will be killed.
+     NOTE the alternate call for KILL with extra id parameter.
+     this specifies a specific person to kill, if more than one is
+	 close to the target tile.
+
+JUMP is used by a baby to jump out of its mother's arms.  The x and y 
+     coordinates are ignored.
+     MOVE can NO LONGER be used to jump out of arms (it was the old way).
+     It was less safe, because bad message interleavings server-side make
+     MOVE ambiguous in the case of jump-out (for example, if the baby
+     has already been dropped by the time the MOVE arrives, the server will
+     interpret it as a legitimate move attempt).
+
+EMOT is used to specify an emotion to display.  The x and y coordinates are
+     ignored.  e is the emotion index.
+
+DIE  is used to trigger sudden infant death for a held baby.  The server
+     enforces various conditions that limit when this command can be effective.
+     (For example, age < 1 and held by mother).  The x and y coordinates are
+     ignored.
+
+FORCE  is used to acknowledge a forced-pos PU sent previously by the server.
+       The x and y coordinates must match the forced position in the PU.
+       Forced-pos PU's act like sync points.  After sending one to the client,
+       the server will ignore all position-sensitive moves and actions until
+       a FORCE arrives, demonstrating that the client is in sync with the forced
+       position, and that subsequent moves carry forward from that forced
+       position (otherwise, additional moves/actions sent by the client after
+       its move that was cut off by the forced-pos PU, but before the client
+       actually receive that PU, can be misinterpreted by the server).
+
+PING is used to request a PONG response fromt the server.  The x and y 
+     coordinates are ignored.  The unique_id parameter will be returned
+     in the PONG response.
+
+PHOTO is used to request a photo approval and signature for position
+      x y and sequence number seq
+
+
+This one is more complicated:
+
+MOVE xs ys @seq_num xdelt0 ydelt0 xdelt1 ydelt1 ... xdeltN ydeltN#
+
+
+seq_num is the sequence number of moves in this player's lifetime, starting
+        with 2 for their first move.
+
+xs,ys is the absolute world position the player thinks they're currently at
+
+the pairs of deltas represent steps along an obstacle-free path that the player
+wants to take to their destination xdeltN,ydeltN
+
+These deltas are relative to xs,ys and will be rejected if they are larger
+than +/- 16 (the maximum allowed path search radius.
+
+
+Note that USE, DROP, and REMV actions are ignored while a MOVE is in progress 
+(until the server sends a PU to indicate that the move is finished and the
+ destination has been reached).  SAY can happen during a move, however.
+
+
+
+
+SAY 0 0 text#
+
+
+SAY text cannot contain the # character and will be truncated at the
+    player's age-speech limit (age in years + 1 character).
+
+    The x y parameters to SAY are currently ignored and can be 0, but must
+    be present.
+
+
+
+
+Finally, special commands client can send, but only if the server
+is configured to allow it (if disabled on server, they have no effect)
+
+MAP x y#
+
+Requests a map chunk centered on (x,y)
+
+
+
+
+TRIGGER trigger_number#
+
+Sends trigger trigger_number to server.
+
+Example:
+
+TRIGGER 5#
+
+
+
+
+BUG v arbitrary_text#
+
+Reports that a bug with number v occurred, and provides text about that bug.
+
+Example:
+
+BUG 4 MOVE -144 960 -1 -1 -2 -1#

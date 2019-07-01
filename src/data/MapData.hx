@@ -25,6 +25,7 @@ class MapData
     }
     public function setRect(x:Int,y:Int,width:Int,height:Int,string:String,update:(x:Int,y:Int,width:Int,height:Int)->Void)
     {
+        //async
         new Future(function()
         {
             #if sys

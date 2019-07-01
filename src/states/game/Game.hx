@@ -47,7 +47,7 @@ class Game extends states.State
         }
         //set message reader function to login
         Main.client.message = Main.client.login.message;
-        Main.client.connect("game.krypticmedia.co.uk",8007);
+        //Main.client.connect("game.krypticmedia.co.uk",8007);
     }
     override function update()
     {
@@ -61,7 +61,9 @@ class Game extends states.State
             for(xs in x...x + sizeX)
             {
                 string = xs + "." + ys;
-                trace("chunk " + data.map.biome.get(string));
+                data.map.floor.get(string);
+                data.map.object.get(string);
+                
             }
         }
     }
