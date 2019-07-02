@@ -1,9 +1,12 @@
 language: haxe
 
+os:
+  - linux
+  - windows
+  
 haxe:
- - 4.0.0
- - "devolpment"
-
+ - development
+ 
 install:
  - yes | haxelib install hxcpp
  - yes | haxelib install lime
