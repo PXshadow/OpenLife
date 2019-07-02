@@ -2,8 +2,7 @@ language: haxe
 
 os:
   - linux
-  - windows
-  
+
 haxe:
  - development
  
