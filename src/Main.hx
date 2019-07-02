@@ -17,7 +17,6 @@ class Main extends Sprite
     public function new()
     {
         super();
-        new data.MapGen();
         //dir
         Static.getDir();
         //events
@@ -32,8 +31,14 @@ class Main extends Sprite
         client = new client.Client();
         //set state
         //state = new states.launcher.Launcher();
-        state = new states.game.Game();
-        addChild(state);
+        //state = new states.game.Game();
+        //state = new states.update.Update();
+        //addChild(state);
+
+        new data.GroundData().cache(function(cache:Bool)
+        {
+            trace("cache " + cache);
+        });
 
         console = new console.Console();
         addChild(console);

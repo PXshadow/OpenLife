@@ -23,6 +23,7 @@ class TileDisplay extends Tilemap
     }
     public function cache(path:String)
     {
+        //asset system
         if (Static.assetSystem)
         {
             Assets.loadBytes(path).onComplete(function(bytes:ByteArray)
@@ -37,14 +38,15 @@ class TileDisplay extends Tilemap
                 trace("error " + error);
             });
         }else{
+            //file system
             #if sys
-
+            
             #end
         }
     }
-    public function cacheRect(length:Int)
+    public function cacheRect(len:Int)
     {
-
+        
     }
     public function clearCacheRect()
     {

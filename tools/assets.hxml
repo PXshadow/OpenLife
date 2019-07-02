@@ -1,0 +1,5 @@
+#refrence https://matttuttle.com/2015/06/hxml-overview/
+-neko assets.n
+-main Assets
+-cp src
+-cmd neko assets.n

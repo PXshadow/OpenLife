@@ -47,7 +47,7 @@ class Game extends states.State
         }
         //set message reader function to login
         Main.client.message = Main.client.login.message;
-        //Main.client.connect("game.krypticmedia.co.uk",8007);
+        Main.client.connect("game.krypticmedia.co.uk",8007);
     }
     override function update()
     {
@@ -61,9 +61,9 @@ class Game extends states.State
             for(xs in x...x + sizeX)
             {
                 string = xs + "." + ys;
+                ground.add(data.map.biome.get(string),xs,ys);
                 data.map.floor.get(string);
                 data.map.object.get(string);
-                
             }
         }
     }
@@ -78,10 +78,8 @@ class Game extends states.State
             var playerMove = new PlayerMove(input.split(" "));
             if (data.playerMap.exists(playerMove.id))
             {
-                
+                playerMove.movePlayer(data.playerMap.get(playerMove.id));
             }
-            //p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0
-            //264 0 -1 0.503 0.503 0 1 1
             case MAP_CHUNK:
             if(compress)
             {

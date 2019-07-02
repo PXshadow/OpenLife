@@ -14,7 +14,5 @@
 
 	<!--<icon path="icon.svg" />-->
 	<icon path="icon.png" width="1024" height="1024" />
-	<!--Load Map-->
-	<assets path="assets" embed="false"/>
 	<haxedef name="dom" if="html5"/>
 </project>

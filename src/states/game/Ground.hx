@@ -18,8 +18,7 @@ import openfl.display.Tile;
 class Ground extends TileDisplay
 {
     var game:Game;
-    static inline var biomeNum:Int = 6;
-    var cacheMap:Map<Int,Vector<Int>> = new Map<Int,Vector<Int>>();
+    public static inline var biomeNum:Int = 6;
     public function new(game:Game)
     {
         super(4096,4096);
@@ -39,10 +38,33 @@ class Ground extends TileDisplay
             }
         }
     }
-    override function cacheRect(length:Int) 
+    public function add(id:Int,x:Int,y:Int)
     {
-        if (length >= biomeNum * 2 * 16)
+        //0-16 corners,17-32 square
+        trace("id " + id);
+        var pos:Int = Math.floor(id/32) * 32;
+        var index:Int = ci(x) + ci(y) * 3;
+        var tile = new Tile(pos + index);
+        addTile(tile);
+        var tile = new Tile(0);
+        addTile(tile);
+        trace("add ground " + Std.string(pos + index) + " x " + x + " y " + y);
+    }
+    private inline function ci(i:Int):Int
+    {
+        if(i > 0)
         {
+            while (i > 2) i += -3;
+        }else{
+            while (i < 0) i += 3;
+        }
+        return i;
+    }
+    override function cacheRect(len:Int) 
+    {
+        if (len >= biomeNum * 2 * 16)
+        {
+            trace("finish rects");
             tileset.bitmapData.lock();
             //cache is loaded up now let's display
             new Future(function()
@@ -51,9 +73,11 @@ class Ground extends TileDisplay
                 {
                     tileset.bitmapData.setPixels(tileset.getRect(i),bytesArray[i]);
                 }
-            }).onComplete(function(_)
+                return true;
+            },true).onComplete(function(value)
             {
                 tileset.bitmapData.unlock();
+                trace("finish tileset");
             }).onError(function(error:Dynamic)
             {
                 trace("error drawing " + error);

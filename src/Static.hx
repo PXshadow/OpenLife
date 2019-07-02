@@ -21,11 +21,14 @@ class Static
     public static inline var oldHeadForwardFactor:Float = 2;
     //file system
     public static var dir:String = "assets/data/";
+    public static var fullPath:String = "";
     public static var assetSystem:Bool = false;
     public static var uiSystem:Bool = false;
 
     public static function getDir()
     {
+        //get full path
+        fullPath = lime.system.System.applicationDirectory;
         //inside contents/assets
         if(Assets.exists("assets/ui/code.svg"))
         {
@@ -34,7 +37,7 @@ class Static
             trace("ui true");
         }
         //packaged inside objects/ground/sprites
-        if(Assets.exists(dir + "groundTileCache/biome_0_x0_y0_square.tga"))
+        if(Assets.exists(dir + "ground/ground_0.tga"))
         {
             assetSystem = true;
 
@@ -43,7 +46,7 @@ class Static
         }
         //outside of app/exec
         #if sys
-        dir = lime.system.System.applicationDirectory;
+        dir = fullPath;
         #if mac
         dir = dir.substring(0,dir.indexOf("/Contents/Resources/"));
         dir = dir.substring(0,dir.lastIndexOf("/") + 1);

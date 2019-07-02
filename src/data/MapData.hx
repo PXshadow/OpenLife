@@ -25,36 +25,25 @@ class MapData
     }
     public function setRect(x:Int,y:Int,width:Int,height:Int,string:String,update:(x:Int,y:Int,width:Int,height:Int)->Void)
     {
-        //async
-        new Future(function()
+        var a:Array<String> = string.split(" ");
+        //trace("a " + a);
+        var data:Array<String> = [];
+        var string:String = "";
+        var index:Int = 0;
+        if (width * height != a.length) throw("invalid a length");
+        for(j in y...y + height)
         {
-            #if sys
-            //File.write("assets/map.txt",false).writeString(string);
-            #end
-            var a:Array<String> = string.split(" ");
-            //trace("a " + a);
-            var data:Array<String> = [];
-            var string:String = "0.0";
-            var index:Int = 0;
-            //trace("y " + y);
-            for(j in y...y + height)
+            for(i in x...x + width)
             {
-                for(i in x...x + width)
-                {
-                    //index = (y + height) - (j * (y + height)) + i;
-                    data = a[index++].split(":");
-                    string = i + "." + Std.string(j * -1);
-                    //trace("data " + data);
-                    //trace("set key: " + string);
-                    biome.set(string,Std.parseInt(data[0]));
-                    floor.set(string,Std.parseInt(data[1]));
-                    object.set(string,data[2]);
-                }
+                string = i+ "." + Std.string(j * -1);
+                data = a[index++].split(":");
+                biome.set(string,Std.parseInt(data[0]));
+                floor.set(string,Std.parseInt(data[1]));
+                object.set(string,data[2]);
             }
-        },true).onComplete(function(_)
-        {
-            update(x,y,width,height);
-        });
+        }
+        if(index < width * height) throw("Missed data, index " + index);
+        update(x,y + 1,width,height);
     }
 }
 class MapInstance

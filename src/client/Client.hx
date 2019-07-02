@@ -149,7 +149,6 @@ class Client
         if(tagRemove)
         {
             //remove #
-            trace("remove tag - " + tag);
             socket.input.readString(1);
             tagRemove = false;
         }

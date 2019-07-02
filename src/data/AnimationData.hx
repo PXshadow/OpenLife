@@ -17,11 +17,16 @@ class AnimationData extends LineReader
         for( i in 0...5 + 1) 
         {
             var path = Static.dir + "animations/" + id + "_" + i + ".txt";
-            if (!FileSystem.exists(path)) 
+            if(Static.assetSystem)
             {
-                //trace("ANIMATION FAIL " + id + "_" + i);
-                fail = true;
-                return;
+                
+            }else{
+                if (!FileSystem.exists(path)) 
+                {
+                    //trace("ANIMATION FAIL " + id + "_" + i);
+                    fail = true;
+                    return;
+                }
             }
             line = readLines(File.read(path,false));
             //process();

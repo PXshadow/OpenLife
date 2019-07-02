@@ -15,3 +15,7 @@ The classic being something like fires. Slow large fire > small fire > hot coals
 Player Update
 force 1 means to move the player back to position updated to
 need to fix age system and face 
+
+
+butler for auto updating
+https://itch.io/docs/butler/pushing.html

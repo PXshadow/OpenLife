@@ -1,0 +1,5 @@
+#refrence https://matttuttle.com/2015/06/hxml-overview/
+-neko publish.n
+-main Publish
+-cp src
+-cmd neko publish.n

@@ -32,3 +32,14 @@ To Developers:
 * **Multi target and language export:** Deploy to a [plethora of targets](https://github.com/openfl/lime#targets) with the stability of OpenFL, and multiple languages with haxe ranging from Javascript to C/C++, more info of [languages supported](https://haxe.org/documentation/introduction/compiler-targets.html).
 
 * **Thoughtful, concise and efficent code:** Codebase continues to become as minimalistic as possible while also keeping the level of abstraction low.
+
+<!--Play
+====-->
+
+
+Getting Started
+=========
+* [Download Haxe](https://haxe.org/download/version/4.0.0-rc.3/)
+* Run the run.sh commands in this directory
+* Test project initially: ```lime test neko```
+* For C++ version: ```lime test cpp```

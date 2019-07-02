@@ -28,7 +28,8 @@ class TgaData
             d = r.read();
             rect = new Rectangle(0,0,d.header.width,d.header.height);
             bytes = Tools.extract32(d,true);
-        },true).onComplete(function(_)
+            return true;
+        },true).onComplete(function(value)
         {
             complete();
             bytes = null;
