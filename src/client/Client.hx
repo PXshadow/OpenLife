@@ -1,6 +1,5 @@
 package client;
 import openfl.events.Event;
-import haxe.io.Encoding;
 import haxe.io.Bytes;
 #if sys
 import sys.net.Socket;
