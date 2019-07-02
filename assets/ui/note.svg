@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="18px" height="12px" viewBox="0 0 18 12" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 52.4 (67378) - http://www.bohemiancoding.com/sketch -->
+    <title>sharp-notes-24px</title>
+    <desc>Created with Sketch.</desc>
+    <g id="Symbols" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Tile" transform="translate(-166.000000, -275.000000)" fill="#FFFFFF" fill-rule="nonzero">
+            <g id="sharp-notes-24px" transform="translate(166.000000, 275.000000)">
+                <path fill="#FFFFFF" d="M18,5.01 L0,5 L0,7 L18,7 L18,5.01 Z M0,10 L12,10 L12,12 L0,12 L0,10 Z M18,0 L0,0 L0,2.01 L18,2 L18,0 Z" id="Shape"></path>
+            </g>
+        </g>
+    </g>
+</svg>
