@@ -15,6 +15,7 @@ class Button extends Sprite
     {
         super();
         buttonMode = true;
+		cacheAsBitmap = true;
         addEventListener(Event.REMOVED_FROM_STAGE, removeFromStage);
 	    addEventListener(Event.ADDED_TO_STAGE, addToStage);
     }

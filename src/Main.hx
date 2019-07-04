@@ -1,3 +1,8 @@
+import openfl.geom.Matrix;
+import openfl.display.Shape;
+import openfl.Assets;
+import openfl.display.DisplayObjectContainer;
+import openfl.net.SharedObject;
 import openfl.display.Sprite;
 import openfl.events.KeyboardEvent;
 import openfl.events.MouseEvent;
@@ -14,9 +19,15 @@ class Main extends Sprite
     public static var console:console.Console;
     //state
     public static var state:states.State;
+    public static var screen:DisplayObjectContainer;
+    //so
+    public static var so:SharedObject;
+    //cursor
+    private var cursor:Shape;
     public function new()
     {
         super();
+        so = SharedObject.getLocal("client",null,true);
         //dir
         Static.getDir();
         //events
@@ -30,18 +41,22 @@ class Main extends Sprite
         //client
         client = new client.Client();
         //set state
-        //state = new states.launcher.Launcher();
+        screen = new DisplayObjectContainer();
+        screen.mouseEnabled = false;
+        screen.mouseEnabled = false;
+        addChild(screen);
+        state = new states.launcher.Launcher();
         //state = new states.game.Game();
-        //state = new states.update.Update();
-        //addChild(state);
-
-        new data.GroundData().cache(function(cache:Bool)
-        {
-            trace("cache " + cache);
-        });
-
         console = new console.Console();
         addChild(console);
+
+        cursor = new Shape();
+        cursor.cacheAsBitmap = true;
+        var mat = new Matrix();
+        mat.createGradientBox(16,16);
+        cursor.graphics.beginGradientFill(openfl.display.GradientType.RADIAL,[0xFFFFFF,0xFFFFFF],[1,0],[0,255],mat);
+        cursor.graphics.drawCircle(8,8,8);
+        addChild(cursor);
     }
     public function updatePlayer()
     {
@@ -111,6 +126,12 @@ class Main extends Sprite
     }
     private function update(_)
     {
+        //cursor
+        if (cursor != null)
+        {
+            cursor.x = mouseX - 8;
+            cursor.y = mouseY - 8;
+        }
         if (client != null) client.update();
         if (state != null) state.update();
         /*if (console != null) console.update();
@@ -129,6 +150,7 @@ class Main extends Sprite
     private function keyDown(e:KeyboardEvent)
     {
         console.keyDown(e.keyCode);
+        state.keyDown(e.keyCode);
         /*if (menu) return;
         if(stage.focus == console.input)
         {
@@ -178,26 +200,23 @@ class Main extends Sprite
     }
     private function keyUp(e:KeyboardEvent)
     {
-        
+        state.keyUp(e.keyCode);
     }
-    private static function _resize(_)
+    private function _resize(_)
     {
-        if (state == null) return;
-        var tempX:Float = state.stage.stageWidth/setWidth;
-		var tempY:Float = state.stage.stageHeight/setHeight;
+        var tempX:Float = stage.stageWidth/setWidth;
+		var tempY:Float = stage.stageHeight/setHeight;
 		scale = Math.min(tempX, tempY);
 		//set resize
-		state.x = Std.int((state.stage.stageWidth - setWidth * scale) / 2); 
-		state.y = Std.int((state.stage.stageHeight - setHeight * scale) / 2); 
-		state.scaleX = scale; 
-		state.scaleY = scale;
+		screen.x = Std.int((screen.stage.stageWidth - setWidth * scale) / 2); 
+		screen.y = Std.int((screen.stage.stageHeight - setHeight * scale) / 2); 
+	    screen.scaleX = scale; 
+		screen.scaleY = scale;
         resize();
     }
-    private static function resize()
+    private function resize()
     {
-        if (console != null)
-        {
-            console.resize(state.stage.stageWidth);
-        }
+        if (console != null)  console.resize(stage.stageWidth);
+        if (state != null) state.resize();
     }
 }

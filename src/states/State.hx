@@ -11,19 +11,28 @@ class State extends DisplayObjectContainer
     {
         this.sub = sub;
         super();
-        if (!sub) addEventListener(Event.ENTER_FRAME,init);
-    }
-    private function init(_)
-    {
-        removeEventListener(Event.ENTER_FRAME,init);
-        @:privateAccess Main.resize();
+        Main.screen.addChild(this);
     }
     public function update()
+    {
+        
+    }
+    public function keyDown(code:Int)
+    {
+
+    }
+    public function keyUp(code:Int)
+    {
+
+    }
+    public function resize()
     {
         
     }
     public function remove()
     {
         if (!sub) Main.client.message = null;
+        Main.screen.removeChild(Main.state);
+        Main.state = null;
     }
 }

@@ -2,7 +2,6 @@ package states.game;
 
 import haxe.io.Bytes;
 import haxe.io.BytesInput;
-import openfl.Assets;
 import openfl.geom.Rectangle;
 import haxe.io.Input;
 import sys.io.File;

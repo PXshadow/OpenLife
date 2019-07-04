@@ -1,9 +1,9 @@
 package states.game;
 
+import sys.io.File;
 import openfl.geom.Rectangle;
 import data.TgaData;
 import openfl.utils.ByteArray;
-import openfl.Assets;
 import haxe.io.Input;
 import openfl.display.BitmapData;
 import openfl.display.Tileset;
@@ -23,26 +23,11 @@ class TileDisplay extends Tilemap
     }
     public function cache(path:String)
     {
-        //asset system
-        if (Static.assetSystem)
+        reader.read(File.read(path,true).readAll(),function()
         {
-            Assets.loadBytes(path).onComplete(function(bytes:ByteArray)
-            {
-                reader.read(bytes,function()
-                {
-                    setRect();
-                    cacheRect(bytesArray.push(reader.bytes));
-                });
-            }).onError(function(error:Dynamic)
-            {
-                trace("error " + error);
-            });
-        }else{
-            //file system
-            #if sys
-            
-            #end
-        }
+            setRect();
+            cacheRect(bytesArray.push(reader.bytes));
+        });
     }
     public function cacheRect(len:Int)
     {

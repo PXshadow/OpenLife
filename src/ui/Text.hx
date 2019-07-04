@@ -1,6 +1,5 @@
 package ui;
 import openfl.text.Font;
-import openfl.Assets;
 import haxe.io.Path;
 import openfl.text.TextFormatAlign;
 import openfl.text.TextFormat;
@@ -40,7 +39,7 @@ class Text extends TextField
             font = value;
             updateFormat();
         }else{
-            Assets.loadFont(value).onComplete(function(f:Font)
+            openfl.Assets.loadFont(value).onComplete(function(f:Font)
             {
                 font = f.fontName;
                 updateFormat();
@@ -77,6 +76,7 @@ class Text extends TextField
         cacheAsBitmap = true;
         selectable = false;
         mouseEnabled = false;
+        wordWrap = true;
         multiline = true;
         updateFormat();
 

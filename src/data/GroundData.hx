@@ -7,8 +7,7 @@ import format.tga.Writer;
 import openfl.display.Bitmap;
 import sys.io.File;
 import sys.FileSystem;
-import openfl.Assets;
-
+import openfl.Assets
 class GroundData
 {
     var finishIndex:Int = 0;
