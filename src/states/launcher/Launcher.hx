@@ -1,4 +1,6 @@
 package states.launcher;
+import haxe.io.Path;
+import sys.io.File;
 import sys.FileSystem;
 import ui.Button;
 import haxe.Json;
@@ -18,10 +20,12 @@ class Launcher extends states.State
     var updateBanner:Button;
     var updateBannerRect:Shape;
     var updateBannerText:Text;
+    var assets:AssetLoader;
     public static var dir:String;
     public function new()
     {
         super();
+        assets = new AssetLoader();
         //patch banner
         patch(function(bool:Bool)
         {
@@ -51,12 +55,64 @@ class Launcher extends states.State
         dir = dir.substring(0,dir.indexOf("/Contents/Resources/"));
         dir = dir.substring(0,dir.lastIndexOf("/") + 1);
         #end
-        
+        //mods
         if (FileSystem.isDirectory(dir + "/groundTileCache"))
         {
             //portable
         }else{
             //check for mod json
+            if (FileSystem.isDirectory(dir + "mods"))
+            {
+                for (path in FileSystem.readDirectory(dir + "mods"))
+                {
+                    //mac remove .DS_STORE
+                    if (path.substring(0,1) == ".") continue;
+                    path = "mods/" + path;
+                    var data:Dynamic;
+                    if (Path.extension(path) == "json")
+                    {
+                        //this is a project file
+                        data = Json.parse(File.read(dir + path,false).readAll().toString());
+                        //remove old json
+                        FileSystem.deleteFile(dir + path);
+                        path = dir + "mods/" + data.title + "/";
+                        //new folder
+                        FileSystem.createDirectory(path);
+                        //new project.json
+                        File.write(path + "project.json",false).writeString(Json.stringify(data));
+                    }else{
+                        //get project file in folder
+                        path = dir + path + "/";
+                        data = Json.parse(File.read(path + "project.json").readAll().toString());
+                    }
+
+                    if(!FileSystem.isDirectory(path + "assets") && data.assets != "")
+                    {
+                        trace("new assets");
+                        assets.complete = function(sucess:Bool)
+                        {
+                            if(sucess)
+                            {
+                                trace("finish load files should be there");
+                            }else{
+                                trace("fail");
+                            }
+                        }
+                        assets.loader(data.assets,path + "assets");
+                    }
+                    if(!FileSystem.isDirectory(path + "scripts") && data.scripts != "")
+                    {
+                        //todo make it so scripts can be embeded in the project.json
+                    }
+                    if(!FileSystem.isDirectory(path + "/settings"))
+                    {
+                        //populate settings locally in the future
+                    }
+                }
+            }else{
+                //no mod folder
+                trace("no mod folder");
+            }
         }
     }
     private function patch(finish:Bool->Void)

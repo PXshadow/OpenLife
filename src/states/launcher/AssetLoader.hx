@@ -1,3 +1,5 @@
+package states.launcher;
+import haxe.io.Path;
 import sys.FileSystem;
 import haxe.Http;
 import openfl.events.ProgressEvent;
@@ -12,10 +14,14 @@ import haxe.io.Bytes;
 class AssetLoader
 {
     var github:String = "https://github.com/";
-    var progress:(loaded:Float,total:Float)->Void;
-    public function new(username:String,project:String,dir:String="")
+    public var progress:(loaded:Float,total:Float)->Void;
+    public var complete:Bool->Void;
+    public function new()
     {
-        Static.request(github + username + "/" + project + "/releases/latest",function(data:String)
+    }
+    public function loader(url:String,path:String)
+    {
+        Static.request(url,function(data:String)
         {
             var href = 'href="';
             var int = data.indexOf(href);
@@ -30,14 +36,16 @@ class AssetLoader
                     int = data.indexOf(href,block) + href.length;
                     link = data.substring(int,data.indexOf('"',int));
                     trace("link " + link);
-                    unCompress(link);
+                    unCompress(link,path);
                 });
             }else{
+                //not an href
                 trace("failed");
+                unCompress(url,path);
             }
         });
     }
-    public function unCompress(url:String)
+    private function unCompress(url:String,path:String)
     {
         var request = new URLRequest("https://github.com/PXshadow/OneLifeData7/archive/master.zip");
         request.contentType = "application/octet-stream";
@@ -51,17 +59,20 @@ class AssetLoader
             for (items in list)
             {
                 trace("name " + items.fileName);
+                trace("ext " + Path.extension(items.fileName));
             }
+            if (complete != null) complete(true);
         });
         loader.addEventListener(IOErrorEvent.IO_ERROR,function(_)
         {
             trace("failed");
+            if (complete != null) complete(false);
         });
         loader.addEventListener(ProgressEvent.PROGRESS,function(e:ProgressEvent)
         {
             if (progress != null) progress(e.bytesLoaded,e.bytesTotal);
         });
         trace("start zip loader");
-        //loader.load(request);
+        loader.load(request);
     }
 }

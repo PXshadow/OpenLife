@@ -28,8 +28,6 @@ class Main extends Sprite
     {
         super();
         so = SharedObject.getLocal("client",null,true);
-        //dir
-        Static.getDir();
         //events
         addEventListener(Event.ENTER_FRAME,update);
         stage.addEventListener(Event.RESIZE,_resize);

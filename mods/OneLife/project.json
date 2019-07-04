@@ -1,7 +1,7 @@
 {
     "title":"OneLife",
-    "assets":"https://github.com/PXshadow/OneLifeData7",
+    "assets":"https://github.com/PXshadow/OneLifeData7/releases/latest",
     "scripts":"",
     "signup":"https://sites.fastspring.com/jasonrohrer/instant/onehouronelife?referrer=OpenLife",
-    "serverlist":"http://onehouronelife.com/reflector/server.php?action=report",
+    "serverlist":"http://onehouronelife.com/reflector/server.php?action=report"
 }
