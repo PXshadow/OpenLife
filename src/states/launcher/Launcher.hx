@@ -58,18 +58,22 @@ class Launcher extends states.State
         //mods
         if (FileSystem.isDirectory(dir + "/groundTileCache"))
         {
-            //portable
+            //portable launch straight away
+            Main.state.remove();
+            Main.state = new states.game.Game();
         }else{
             //check for mod json
             if (FileSystem.isDirectory(dir + "mods"))
             {
+                var ext:String = "";
+                var data:Dynamic;
                 for (path in FileSystem.readDirectory(dir + "mods"))
                 {
                     //mac remove .DS_STORE
                     if (path.substring(0,1) == ".") continue;
                     path = "mods/" + path;
-                    var data:Dynamic;
-                    if (Path.extension(path) == "json")
+                    ext = Path.extension(path);
+                    if (ext == "json")
                     {
                         //this is a project file
                         data = Json.parse(File.read(dir + path,false).readAll().toString());
@@ -81,33 +85,59 @@ class Launcher extends states.State
                         //new project.json
                         File.write(path + "project.json",false).writeString(Json.stringify(data));
                     }else{
+                        if (ext == "") return;
                         //get project file in folder
                         path = dir + path + "/";
                         data = Json.parse(File.read(path + "project.json").readAll().toString());
                     }
-
-                    if(!FileSystem.isDirectory(path + "assets") && data.assets != "")
+                    var item = new Item(data);
+                    item.Click = function(_)
                     {
-                        trace("new assets");
-                        assets.complete = function(sucess:Bool)
+                        if(mouseY > 250)
                         {
-                            if(sucess)
+                            //bottom section
+                            if (item.path != "")
                             {
-                                trace("finish load files should be there");
+                                //play
+                                dir = item.data.dir;
+                                Main.state.remove();
+                                Main.state = new states.game.Game();
                             }else{
-                                trace("fail");
+                                //download
+                                if(!FileSystem.isDirectory(path + "assets") && data.assets != "")
+                                {
+                                    trace("new assets");
+                                    assets.complete = function(sucess:Bool)
+                                    {
+                                        if(sucess)
+                                        {
+                                            item.path = path + "assets";
+                                            Launcher.dir = item.path;
+                                            item.bottom.text = item.path;
+                                            Main.state.remove();
+                                            Main.state = new states.game.Game();
+                                        }else{
+                                            trace("fail");
+                                        }
+                                    }
+                                    assets.progress = function(loaded:Float,complete:Float)
+                                    {
+                                        trace(loaded + "/" + complete);
+                                    }  
+                                    assets.loader(data.assets,path + "assets");
+                                }
+                                if(!FileSystem.isDirectory(path + "scripts") && data.scripts != "")
+                                {
+                                    //todo make it so scripts can be embeded in the project.json
+                                }   
+                                if(!FileSystem.isDirectory(path + "/settings"))
+                                {
+                                    //populate settings locally in the future
+                                }
                             }
                         }
-                        assets.loader(data.assets,path + "assets");
                     }
-                    if(!FileSystem.isDirectory(path + "scripts") && data.scripts != "")
-                    {
-                        //todo make it so scripts can be embeded in the project.json
-                    }
-                    if(!FileSystem.isDirectory(path + "/settings"))
-                    {
-                        //populate settings locally in the future
-                    }
+                    addChild(item);
                 }
             }else{
                 //no mod folder
@@ -157,11 +187,11 @@ class Launcher extends states.State
         super.keyDown(code);
         switch(code)
         {
-            case Keyboard.UP | Keyboard.W | Keyboard.PAGE_UP:
+            //case Keyboard.UP | Keyboard.W | Keyboard.PAGE_UP:
 
-            case Keyboard.DOWN | Keyboard.DOWN | Keyboard.PAGE_DOWN:
+            //case Keyboard.DOWN | Keyboard.DOWN | Keyboard.PAGE_DOWN:
 
-            case Keyboard.SPACE | Keyboard.ENTER:
+            //case Keyboard.SPACE | Keyboard.ENTER:
 
         }
     }

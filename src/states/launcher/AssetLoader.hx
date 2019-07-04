@@ -1,4 +1,5 @@
 package states.launcher;
+import sys.io.File;
 import haxe.io.Path;
 import sys.FileSystem;
 import haxe.Http;
@@ -27,7 +28,7 @@ class AssetLoader
             var int = data.indexOf(href);
             if(int >= 0)
             {
-                //has link
+                //redirect
                 int += href.length;
                 var link = data.substring(int,data.indexOf('"',int));
                 Static.request(link,function(data:String)
@@ -39,7 +40,7 @@ class AssetLoader
                     unCompress(link,path);
                 });
             }else{
-                //not an href
+                //non redirect
                 trace("failed");
                 unCompress(url,path);
             }
@@ -55,13 +56,8 @@ class AssetLoader
         loader.addEventListener(Event.COMPLETE,function(_)
         {
             var zip = new haxe.zip.Reader(new BytesInput(loader.data));
-            var list = zip.read();
-            for (items in list)
-            {
-                trace("name " + items.fileName);
-                trace("ext " + Path.extension(items.fileName));
-            }
-            if (complete != null) complete(true);
+            //unziper like a pro
+            unzip(zip.read(),path);
         });
         loader.addEventListener(IOErrorEvent.IO_ERROR,function(_)
         {
@@ -74,5 +70,29 @@ class AssetLoader
         });
         trace("start zip loader");
         loader.load(request);
+    }
+    private function unzip(list:List<haxe.zip.Entry>,path:String)
+    {
+        var ext:String = "";
+        path += "/";
+        for (items in list)
+        {
+            items.fileName = items.fileName.substring(items.fileName.indexOf("/") + 1,items.fileName.length);
+            ext = Path.extension(items.fileName);
+            if(ext == "")
+            {
+                //folder
+                FileSystem.createDirectory(path + items.fileName);
+            }else{
+                if (FileSystem.isDirectory(path + Path.directory(items.fileName)))
+                {
+                    File.write(path + items.fileName).writeBytes(items.data,0,items.data.length);
+                }else{
+                    trace("Can not find directory " + Path.directory(items.fileName));
+                }
+            }
+
+        }
+        if (complete != null) complete(true);
     }
 }

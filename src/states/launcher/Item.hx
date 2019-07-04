@@ -7,9 +7,12 @@ class Item extends ui.Button
 {
     public var info:Text;
     public var text:Text;
+    public var bottom:Text;
+    public var data:Dynamic;
+    public var path:String = "";
     private static var ix:Int = 0;
     private static var iy:Int = 0;
-    public function new(titleString:String,descString:String)
+    public function new(data:Dynamic)
     {
         super();
         //pos
@@ -32,12 +35,12 @@ class Item extends ui.Button
         graphics.moveTo(15,145);
         graphics.lineTo(235,145);
         //text
-        var title = new Text(titleString,CENTER,20,0xE0E0E0,220);
+        var title = new Text(data.title,CENTER,20,0xE0E0E0,220);
         title.x = 15;
         title.y = 2;
         title.cacheAsBitmap = false;
         addChild(title);
-        var desc = new Text(descString,CENTER,12,0xE0E0E0,220);
+        var desc = new Text("",CENTER,12,0xE0E0E0,220);
         desc.x = 15;
         desc.y = 35;
         desc.cacheAsBitmap = false;
@@ -49,9 +52,9 @@ class Item extends ui.Button
         info.cacheAsBitmap = false;
         addChild(info);
 
-        text = new Text("Play",CENTER,20,0xE0E0E0,250);
-        text.y = 227;
-        text.cacheAsBitmap = false;
-        addChild(text);
+        bottom = new Text("Download",CENTER,20,0xE0E0E0,250);
+        bottom.y = 227;
+        bottom.cacheAsBitmap = false;
+        addChild(bottom);
     }
 }

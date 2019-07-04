@@ -16,7 +16,7 @@ class Player extends Object
     public var frontFoot:Array<Int> = [];
     public var index:Int = 0;
     public var length:Int = 0;
-    public var id:Int = 0;
+    public var pid:Int = 0;
     //object id, what is being held
     public var oid:Int = 0;
     public var objectGroup:Object;

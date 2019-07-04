@@ -12,6 +12,7 @@ import haxe.ds.Vector;
 import openfl.display.Tileset;
 import openfl.display.Tilemap;
 import openfl.display.BitmapData;
+import states.launcher.Launcher;
 import openfl.display.Tile;
 
 class Ground extends TileDisplay
@@ -32,7 +33,7 @@ class Ground extends TileDisplay
             {
                 for(x in 0...4)
                 {
-                    cache(Static.dir + "groundTileCache/biome_" + id + "_x" + x + "_y" + y + a + ".tga");
+                    cache(Launcher.dir + "groundTileCache/biome_" + id + "_x" + x + "_y" + y + a + ".tga");
                 }
             }
         }
