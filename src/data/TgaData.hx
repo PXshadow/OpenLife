@@ -20,24 +20,11 @@ class TgaData
     {
 
     }
-    public function read(data:Bytes,complete:Void->Void)
+    public function read(data:Bytes)
     {
-        new Future(function()
-        {
-            r = new Reader(new BytesInput(data,0,data.length));
-            d = r.read();
-            rect = new Rectangle(0,0,d.header.width,d.header.height);
-            bytes = Tools.extract32(d,true);
-            return true;
-        },true).onComplete(function(value)
-        {
-            complete();
-            bytes = null;
-            r = null;
-            d = null;
-        }).onError(function(error:Dynamic)
-        {
-            trace("error tgaData " + error);
-        });
+        r = new Reader(new BytesInput(data,0,data.length));
+        d = r.read();
+        rect = new Rectangle(0,0,d.header.width,d.header.height);
+        bytes = Tools.extract32(d,true);
     }
 }

@@ -1,4 +1,5 @@
 package console;
+import states.game.Game;
 import openfl.ui.Keyboard;
 import openfl.net.URLRequest;
 import hscript.Parser;
@@ -25,7 +26,7 @@ class Console extends DisplayObjectContainer
         shape.cacheAsBitmap = true;
         addChild(shape);
 
-        input = new Text(">",LEFT,20,0xFFFFFF);
+        input = new Text("",LEFT,20,0xFFFFFF);
         //input.restrict = "^_";
         length = input.length;
         input.selectable = true;
@@ -56,6 +57,7 @@ class Console extends DisplayObjectContainer
         interp.variables.set("width",Main.setWidth);
         interp.variables.set("height",Main.setHeight);
         interp.variables.set("grid",Static.GRID);
+        interp.variables.set("console",Main.console);
         //utils
         interp.variables.set("util",console.Util);
         interp.variables.set("Util",console.Util);
@@ -84,7 +86,7 @@ class Console extends DisplayObjectContainer
         input.width = width;
         output.width = width;
     }
-    public function keyDown(code:Int)
+    public function keyDown(code:Int):Bool
     {
         switch(code)
         {
@@ -98,39 +100,34 @@ class Console extends DisplayObjectContainer
                 stage.focus = null;
             }
         }
-        if (stage.focus != input) return;
+        if (stage.focus != input) return false;
         //input needs to be focused on for keys below
         switch(code)
         {
             case Keyboard.DOWN:
             //fast delete line
-            input.text = ">";
+            input.text = "";
             case Keyboard.UP:
             //pull up history
             previous();
             case Keyboard.ENTER:
             enter();
         }
+        return true;
     }
     public function update()
     {
-        if(input.selectable)
+        if(stage.focus == input)
         {
             if(input.length != length)
             {
-                length = input.length;
                 if(input.length > length)
                 {
-                    //add
-
+                    
                 }else{
                     //subtract
-                    if (length == 0) 
-                    {
-                        input.appendText(">");
-                        input.setSelection(1,1);
-                    }
                 }
+                length = input.length;
             }
         }
     }
@@ -138,15 +135,15 @@ class Console extends DisplayObjectContainer
     {
         if (history.length > 0) 
         {
-            input.text = ">" + history.pop();
+            input.text = history.pop();
             input.setSelection(input.length,input.length);
         }
         
     }
     public function enter()
     {
-        if(input.length == 1) return;
-        var text = input.text.substring(1,input.length);
+        if(input.length == 0) return;
+        var text = input.text;
         //coammnd outside of hscript
         if(command.run(text)) return;
         input.text = "";
@@ -165,6 +162,57 @@ class Console extends DisplayObjectContainer
             print(text,e);
         }
     }
+    private function getFields(Object:Dynamic):Array<String>
+	{
+		var fields = [];
+		if (Std.is(Object, Class)) // passed a class -> get static fields
+			fields = Type.getClassFields(Object);
+		else if (Std.is(Object, Enum))
+			fields = Type.getEnumConstructs(Object);
+		else if (Reflect.isObject(Object)) // get instance fields
+			fields = Type.getInstanceFields(Type.getClass(Object));
+
+		// on Flash, enums are classes, so Std.is(_, Enum) fails
+		fields.remove("__constructs__");
+
+		var filteredFields = [];
+		for (field in fields)
+		{
+			// don't add property getters / setters
+			if (StringTools.startsWith(field,"get_") || StringTools.startsWith(field,"set_"))
+			{
+				var name = field.substr(4);
+				// property without a backing field, needs to be added
+				//if (!fields.contains(name) && !filteredFields.contains(name))
+                if (fields.indexOf(name) == -1 && filteredFields.indexOf(name) == -1)
+					filteredFields.push(name);
+			}
+			else
+				filteredFields.push(field);
+		}
+
+		return filteredFields;
+	}
+	/*private function sortFields(fields:Array<String>):Array<String>
+	{
+		var underscoreList = [];
+
+		fields = fields.filter(function(field)
+		{
+			if (StringTools.startsWith(field,"_"))
+			{
+				underscoreList.push(field);
+				return false;
+			}
+			return true;
+		});
+
+		fields.sortAlphabetically();
+        StringTools
+		underscoreList.sortAlphabetically();
+
+		return fields.concat(underscoreList);
+	}*/
 }
 private class Interp extends hscript.Interp
 {

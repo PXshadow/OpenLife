@@ -8,53 +8,53 @@ import haxe.io.Input;
 import openfl.display.BitmapData;
 import openfl.display.Tileset;
 import openfl.display.Tilemap;
+import states.launcher.Launcher;
 
 class TileDisplay extends Tilemap
 {
     var reader:TgaData;
     var rect:Rectangle = new Rectangle();
-    var rowHeight:Float = 0;
-    public var bytesArray:Array<ByteArray> = [];
-    public var index:Int = 0;
+    var backlog:Array<String> = [];
+    //pos
+    var tileWidth:Int = 0;
+    var tileHeight:Int = 0;
     public function new(tilesetWidth:Int,tilesetHeight:Int)
     {
         super(0,0,new Tileset(new BitmapData(tilesetWidth,tilesetHeight)));
         reader = new TgaData();
+        //pos code
+        x = 0;
+        y = 0;
     }
-    public function cache(path:String)
+    public function size(width:Int,height:Int) 
     {
-        reader.read(File.read(path,true).readAll(),function()
-        {
-            setRect();
-            cacheRect(bytesArray.push(reader.bytes));
-        });
+        tileWidth = width;
+        tileHeight = height;
+        this.width = tileWidth * Static.GRID;
+        this.height = tileHeight * Static.GRID;
     }
-    public function cacheRect(len:Int)
+    public function cache(path:String):Int
     {
-        
+        //add task
+        //setup worker
+        reader.read(File.read(Launcher.dir + path,true).readAll());
+        return setRect();
     }
-    public function clearCacheRect()
-    {
-        bytesArray = [];
-        index = tileset.numRects;
-    }
-    private function setRect()
+    private function setRect():Int
     {
         if(rect.x + rect.width >= tileset.bitmapData.width)
         {
             //new row
-            rect.y += rowHeight;
+            rect.y += rect.height;
             rect.width = 0;
+            rect.height = 0;
             rect.x = 0;
-            rowHeight = 0;
         }
         //shift across the rows
         rect.x += rect.width;
         rect.width = reader.rect.width;
-        rect.height = reader.rect.height;
-        //max row height
-        if (rowHeight < rect.height) rowHeight = rect.height;
+        rect.height = reader.rect.height > rect.height ? reader.rect.height : rect.height;
         //add to tileset
-        tileset.addRect(rect);
+        return tileset.addRect(rect);
     }
 }

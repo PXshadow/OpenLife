@@ -23,7 +23,7 @@ class MapData
     {
         
     }
-    public function setRect(x:Int,y:Int,width:Int,height:Int,string:String,update:(x:Int,y:Int,width:Int,height:Int)->Void)
+    public function setRect(x:Int,y:Int,width:Int,height:Int,string:String)
     {
         var a:Array<String> = string.split(" ");
         //trace("a " + a);
@@ -35,7 +35,7 @@ class MapData
         {
             for(i in x...x + width)
             {
-                string = i+ "." + Std.string(j * -1);
+                string = i + "." + Std.string(j * -1);
                 data = a[index++].split(":");
                 biome.set(string,Std.parseInt(data[0]));
                 floor.set(string,Std.parseInt(data[1]));
@@ -43,7 +43,6 @@ class MapData
             }
         }
         if(index < width * height) throw("Missed data, index " + index);
-        update(x,y + 1,width,height);
     }
 }
 class MapInstance

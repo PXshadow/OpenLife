@@ -10,10 +10,13 @@ class Item extends ui.Button
     public var bottom:Text;
     public var data:Dynamic;
     public var path:String = "";
+    public var playable:Bool = false;
+    public var version:String = "";
     private static var ix:Int = 0;
     private static var iy:Int = 0;
     public function new(data:Dynamic)
     {
+        this.data = data;
         super();
         //pos
         x = 225 + (250 + 40) * ix;
@@ -37,7 +40,7 @@ class Item extends ui.Button
         //text
         var title = new Text(data.title,CENTER,20,0xE0E0E0,220);
         title.x = 15;
-        title.y = 2;
+        title.y = 6;
         title.cacheAsBitmap = false;
         addChild(title);
         var desc = new Text("",CENTER,12,0xE0E0E0,220);

@@ -28,6 +28,10 @@ class Command
             case "clear":
             //clear display 
 
+            case "disconnect" | "dc":
+            Main.client.close();
+            case "connect" | "c":
+            Main.client.connect();
             //window
             case "fullscreen":
             Main.state.stage.window.fullscreen = !Main.state.stage.window.fullscreen;

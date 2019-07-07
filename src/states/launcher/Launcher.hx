@@ -22,9 +22,11 @@ class Launcher extends states.State
     var updateBannerText:Text;
     var assets:AssetLoader;
     public static var dir:String;
+    var items:Array<Item> = [];
     public function new()
     {
         super();
+        stage.frameRate = 120;
         assets = new AssetLoader();
         //patch banner
         patch(function(bool:Bool)
@@ -58,7 +60,7 @@ class Launcher extends states.State
         //mods
         if (FileSystem.isDirectory(dir + "/groundTileCache"))
         {
-            //portable launch straight away
+            //portable, launch straight away
             Main.state.remove();
             Main.state = new states.game.Game();
         }else{
@@ -83,66 +85,103 @@ class Launcher extends states.State
                         //new folder
                         FileSystem.createDirectory(path);
                         //new project.json
-                        File.write(path + "project.json",false).writeString(Json.stringify(data));
+                        writeJson(path,data);
                     }else{
-                        if (ext == "") return;
+                        if (ext != "") return;
                         //get project file in folder
                         path = dir + path + "/";
                         data = Json.parse(File.read(path + "project.json").readAll().toString());
                     }
+                    trace("add item");
                     var item = new Item(data);
+                    if (FileSystem.isDirectory(path + "assets/groundTileCache"))
+                    {
+                        //mod already exists check update
+                        item.bottom.text = "Play";
+                        item.info.text = "Folder";
+                        item.path = path;
+                        item.playable = true;
+                    }
+                    item.path = path;
+                    item.version = data.version;
+                    item.info.text = item.version;
                     item.Click = function(_)
                     {
                         if(mouseY > 250)
                         {
                             //bottom section
-                            if (item.path != "")
+                            if (item.playable)
                             {
                                 //play
-                                dir = item.data.dir;
+                                dir = item.path;
                                 Main.state.remove();
                                 Main.state = new states.game.Game();
                             }else{
                                 //download
-                                if(!FileSystem.isDirectory(path + "assets") && data.assets != "")
-                                {
-                                    trace("new assets");
-                                    assets.complete = function(sucess:Bool)
-                                    {
-                                        if(sucess)
-                                        {
-                                            item.path = path + "assets";
-                                            Launcher.dir = item.path;
-                                            item.bottom.text = item.path;
-                                            Main.state.remove();
-                                            Main.state = new states.game.Game();
-                                        }else{
-                                            trace("fail");
-                                        }
-                                    }
-                                    assets.progress = function(loaded:Float,complete:Float)
-                                    {
-                                        trace(loaded + "/" + complete);
-                                    }  
-                                    assets.loader(data.assets,path + "assets");
-                                }
-                                if(!FileSystem.isDirectory(path + "scripts") && data.scripts != "")
-                                {
-                                    //todo make it so scripts can be embeded in the project.json
-                                }   
-                                if(!FileSystem.isDirectory(path + "/settings"))
-                                {
-                                    //populate settings locally in the future
-                                }
+                                download(item.path,item);
+                            }
+                        }else{
+                            if(path != "")
+                            {
+                                lime.system.System.openFile(path);
                             }
                         }
                     }
                     addChild(item);
+                    items.push(item);
                 }
             }else{
                 //no mod folder
-                trace("no mod folder");
+                trace("no mod folder " + dir);
             }
+        }
+    }
+    private function writeJson(path:String,data:Dynamic)
+    {
+        File.write(path + "project.json",false).writeString(Json.stringify(data));
+    }
+    private function download(path:String,item:Item)
+    {
+        if(!FileSystem.isDirectory(path + "assets/groundTileCache"))
+        {
+            trace("new assets");
+            assets.complete = function(sucess:Bool)
+            {
+                if(sucess)
+                {
+                    item.path = path;
+                    Launcher.dir = item.path;
+                    item.info.text = item.version;
+                    item.bottom.text = "Play";
+                    item.mouseEnabled = true;
+                    item.playable = true;
+                    //write project json version
+                    item.data.version = item.version;
+                    writeJson(path,item.data);
+                }else{
+                    trace("fail");
+                    item.mouseEnabled = true;
+                }
+            }
+            assets.progress = function(loaded:Float,complete:Float)
+            {
+                item.info.text = Math.round(loaded/(complete == 0 ? 48000000 : complete) * 100) + "%\nDownloading";
+            }
+            assets.update = function(version:String)
+            {
+                trace("version mismatch " + item.version + " " + version + " updating... " + path);
+                item.version = version;
+            }
+            item.mouseEnabled = false;
+            assets.loader(item.data.assets,path + "assets",item.version);
+        }
+        if(!FileSystem.isDirectory(path + "scripts") && item.data.scripts != "")
+        {
+            //todo make it so scripts can be embeded in the project.json
+        }   
+        if(!FileSystem.isDirectory(path + "/settings"))
+        {
+            //populate settings locally in the future
         }
     }
     private function patch(finish:Bool->Void)
@@ -191,8 +230,13 @@ class Launcher extends states.State
 
             //case Keyboard.DOWN | Keyboard.DOWN | Keyboard.PAGE_DOWN:
 
-            //case Keyboard.SPACE | Keyboard.ENTER:
-
+            case Keyboard.SPACE | Keyboard.ENTER:
+            if (items[0] != null && items[0].playable) 
+            {
+                Launcher.dir = items[0].path;
+                Main.state.remove();
+                Main.state = new states.game.Game();
+            }
         }
     }
     override public function resize()

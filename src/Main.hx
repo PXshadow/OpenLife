@@ -147,7 +147,7 @@ class Main extends Sprite
     }
     private function keyDown(e:KeyboardEvent)
     {
-        console.keyDown(e.keyCode);
+        if (console.keyDown(e.keyCode)) return;
         state.keyDown(e.keyCode);
         /*if (menu) return;
         if(stage.focus == console.input)

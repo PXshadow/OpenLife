@@ -23,5 +23,11 @@ Maybe you should run your own reflector server
 Then you can check if they are online or not
 -thanks Kripts
 
+places where a file is read
+ObjectData
+TgaData
+TileDisplay
+
+
 butler for auto updating
 https://itch.io/docs/butler/pushing.html

@@ -1,5 +1,10 @@
 package states.game;
 
+import openfl.display.FPS;
+import console.Console;
+import openfl.display.DisplayObject;
+import openfl.ui.Keyboard;
+import ui.Text;
 import data.MapData;
 import data.MapData.MapInstance;
 import data.PlayerData.PlayerInstance;
@@ -7,6 +12,7 @@ import data.PlayerData.PlayerMove;
 import data.GameData;
 import client.MessageTag;
 import haxe.io.Bytes;
+import settings.Bind;
 
 class Game extends states.State
 {
@@ -15,13 +21,36 @@ class Game extends states.State
     var objects:Objects;
     var player:Player;
     var playerInstance:PlayerInstance;
-    var mapInstance:MapInstance;
+    public var mapInstance:MapInstance;
     var index:Int = 0;
     public var data:GameData;
     var compress:Bool = false;
+    public var tileX:Int = 0;
+    public var tileY:Int = 0;
+    public var info:Text;
+    var inital:Bool = true;
+    public var cameraSpeed:Float = 10;
+    //scale used for zoom in and out
+    public var scale(get, set):Float;
+    function get_scale():Float 
+    {
+        return scaleX;
+    }
+    
+    function set_scale(scale:Float):Float 
+    {
+        scaleX = scale;
+        scaleY = scale;
+        center();
+        return scale;
+    }
     public function new()
     {
         super();
+        stage.frameRate = 60;
+        //set interp
+        Console.interp.variables.set("game",this);
+
         data = new GameData();
         ground = new Ground(this);
         objects = new Objects(this);
@@ -29,6 +58,12 @@ class Game extends states.State
         addChild(ground);
         addChild(objects);
         addChild(dialog);
+
+        info = new Text("GAME",LEFT,16,0xFFFFFF);
+        Main.screen.addChild(info);
+
+        Main.screen.addChild(new FPS());
+
         //connect
         //login
         Main.client.login.email = "test@test.co.uk";
@@ -51,21 +86,54 @@ class Game extends states.State
     }
     override function update()
     {
+        info.text = tileX + " " + tileY;
         super.update();
+        //controls
+        var cameraArray:Array<DisplayObject> = [ground];
+        if (Bind.cameraUp) for (obj in cameraArray) obj.y += cameraSpeed;
+        if (Bind.cameraDown) for (obj in cameraArray) obj.y += -cameraSpeed;
+        if (Bind.cameraLeft) for (obj in cameraArray) obj.x += cameraSpeed;
+        if (Bind.cameraRight) for (obj in cameraArray) obj.x += -cameraSpeed;
+        //updates
+        ground.update();
+        objects.update();
     }
-    public function mapUpdate(x:Int,y:Int,sizeX:Int,sizeY:Int) 
+    override function keyDown(code:Int) 
     {
-        var string:String = "";
-        for(ys in y...y + sizeY)
+        Bind.keys(code,true);
+    }
+    override function keyUp(code:Int) 
+    {
+        Bind.keys(code,false);
+    }
+    public function mapUpdate() 
+    {
+        if(inital)
         {
-            for(xs in x...x + sizeX)
+            ground.size(mapInstance.sizeX,mapInstance.sizeY);
+            objects.size(mapInstance.sizeX,mapInstance.sizeY);
+            tileX = mapInstance.x;
+            tileY = mapInstance.y;
+            scale = 1;
+            var string:String = "";
+            for (y in 0...mapInstance.sizeY)
             {
-                string = xs + "." + ys;
-                ground.add(data.map.biome.get(string),xs,ys);
-                data.map.floor.get(string);
-                data.map.object.get(string);
+                for(x in 0...mapInstance.sizeX)
+                {
+                    ground.tileArray[y][x].id = ground.get(y,x);
+                    string = Std.string(x + tileX) + "." + Std.string(y + tileY);
+                    objects.addFloor(data.map.floor.get(string));
+                    objects.addObject(data.map.object.get(string));
+                }
             }
+            trace("game offset x " + x + " y " + y + " ground width " + ground.width + " height " + ground.height);
+            inital = false;
         }
+    }
+    public function center()
+    {
+        x = (Main.setWidth - ground.width)/2 * scale;
+        y = (Main.setHeight - ground.height)/2 * scale;
     }
     public function message(input:String) 
     {
@@ -84,7 +152,8 @@ class Game extends states.State
             if(compress)
             {
                 Main.client.tag = null;
-                data.map.setRect(mapInstance.x,mapInstance.y,mapInstance.sizeX,mapInstance.sizeY,input,mapUpdate);
+                data.map.setRect(mapInstance.x,mapInstance.y,mapInstance.sizeX,mapInstance.sizeY,input);
+                mapUpdate();
                 mapInstance = null;
                 //toggle to go back to istance for next chunk
                 compress = false;
@@ -123,14 +192,14 @@ class Game extends states.State
                 }
             }
             case MAP_CHANGE:
-            //x y new_floor_id new_id p_id optional oldX oldY speed
+            //x y new_floor_id new_id p_id optional oldX oldY cameraSpeed
             var mapChange = new MapChange(input.split(" "));
             case HEAT_CHANGE:
             //trace("heat " + input);
 
             case FOOD_CHANGE:
             //trace("food change " + input);
-            //also need to set new movement move_speed: is floating point speed in grid square widths per second.
+            //also need to set new movement move_speed: is floating point cameraSpeed in grid square widths per second.
             case FRAME:
             Main.client.tag = "";
             case PLAYER_SAYS:
