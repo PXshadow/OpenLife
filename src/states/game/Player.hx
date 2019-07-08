@@ -1,4 +1,5 @@
 package states.game;
+import data.PlayerData.PlayerType;
 import data.PlayerData.PlayerInstance;
 import motion.MotionPath;
 import openfl.geom.Point;
@@ -10,8 +11,9 @@ class Player extends Object
 {
     public var tileX:Int = 0;
     public var tileY:Int = 0;
-    public function new(id:Int)
+    public function new()
     {
         super();
+        
     }
 }

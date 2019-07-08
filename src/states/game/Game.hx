@@ -139,8 +139,8 @@ class Game extends states.State
         switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
-            var array = input.split(" ");
             playerInstance = new PlayerInstance(input.split(" "));
+            objects.addPlayer(playerInstance);
             case PLAYER_MOVES_START:
             var playerMove = new PlayerMove(input.split(" "));
             if (data.playerMap.exists(playerMove.id))

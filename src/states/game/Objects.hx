@@ -1,4 +1,5 @@
 package states.game;
+import data.PlayerData.PlayerInstance;
 import sys.io.File;
 import data.AnimationData;
 import openfl.geom.ColorTransform;
@@ -73,9 +74,16 @@ class Objects extends TileDisplay
             //group
         }
     }
-    private function add(id:Int,x:Int,y:Int)
+    public function addPlayer(data:PlayerInstance)
     {
-        if(id == 0) return;
+        var player:Player = cast add(data.po_id,data.x,data.y,true);
+        
+        game.data.playerMap.set(data.p_id,player);
+        addTile(player);
+    }
+    private function add(id:Int,x:Int,y:Int,player:Bool=false):Object
+    {
+        if(id == 0) return null;
         var data = new ObjectData(id);
         //data
         if (data.blocksWalking == 1)
@@ -85,7 +93,13 @@ class Objects extends TileDisplay
             game.data.blocking.remove(x + "." + y);
         }
         //obj
-        var obj = new Object();
+        var obj:Object;
+        if(player)
+        {
+            obj = new Player();
+        }else{
+            obj = new Object();
+        }
         obj.x = x * Static.GRID * 1;
         obj.y = y * Static.GRID * 1;
         addTile(obj);
@@ -128,6 +142,7 @@ class Objects extends TileDisplay
             tile.colorTransform.blueMultiplier = data.spriteArray[i].color[2];
             obj.addTile(tile);
         }
+        return obj;
     }
     private function cacheSprite(id:Int):Int
     {
