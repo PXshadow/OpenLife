@@ -15,7 +15,9 @@ import openfl.display.Tilemap;
 import openfl.display.BitmapData;
 import openfl.display.Tile;
 import openfl.display.Bitmap;
+import states.launcher.Launcher;
 
+//possibly implement drawQuads instead for increased performance
 class Ground extends TileDisplay
 {
     var game:Game;
@@ -23,10 +25,10 @@ class Ground extends TileDisplay
     public var tileArray:Array<Array<Tile>> = [];
     var current:Tile;
     var row:Array<Tile>;
+    var rect:Rectangle = new Rectangle();
     public function new(game:Game)
     {
         super(4096,4096);
-        cacheAsBitmap = true;
         this.game = game;
         for(i in 0...biomeNum) cacheBiome(i);
         cacheBiome(99999);
@@ -55,7 +57,7 @@ class Ground extends TileDisplay
     }
     public function update()
     {
-        //if (tileArray.length == 0) return;
+        if (tileArray.length == 0) return;
         moveX();
         moveY();
     }
@@ -126,13 +128,28 @@ class Ground extends TileDisplay
         x = game.tileX + x;
         y = game.tileY + y;
         var id:Null<Int> = game.data.map.biome.get(x + "." + y);
-        return id != null ? id : 7;
+        if (id == null)
+        {
+            id = 16 * 2 * biomeNum + 1;
+        }else{
+            id = ci(x) + ci(y) * 4 + id * 16 * 2;
+        }
+        return id;
     }
     private function cacheBiome(id:Int)
     {
-        var i = cache("assets/groundTileCache/biome_" + id + "_x0_y0_square.tga");
-        //draw
-        tileset.bitmapData.setPixels(tileset.getRect(i),reader.bytes);
+        for(a in ["_square"])
+        {
+            for(j in 0...4)
+            {
+                for(i in 0...4)
+                {
+                    var i = cache("assets/groundTileCache/biome_" + id + "_x" + i + "_y" + j + a + ".tga");
+                    //draw
+                    tileset.bitmapData.setPixels(tileset.getRect(i),reader.bytes);
+                }
+            }
+        }
     }
     private inline function ci(i:Int):Int
     {
@@ -143,5 +160,29 @@ class Ground extends TileDisplay
             while (i < 0) i += 3;
         }
         return i;
+    }
+    public function cache(path:String):Int
+    {
+        //add task
+        //setup worker
+        reader.read(File.read(Launcher.dir + path,true).readAll());
+        return setRect();
+    }
+    private function setRect():Int
+    {
+        if(rect.x + rect.width >= tileset.bitmapData.width)
+        {
+            //new row
+            rect.y += rect.height;
+            rect.width = 0;
+            rect.height = 0;
+            rect.x = 0;
+        }
+        //shift across the rows
+        rect.x += rect.width;
+        rect.width = reader.rect.width;
+        rect.height = reader.rect.height > rect.height ? reader.rect.height : rect.height;
+        //add to tileset
+        return tileset.addRect(rect);
     }
 }

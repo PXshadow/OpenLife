@@ -10,8 +10,8 @@ class Player extends Object
 {
     public var tileX:Int = 0;
     public var tileY:Int = 0;
-    public function new(id:Int,index:Int)
+    public function new(id:Int)
     {
-        super(index);
+        super();
     }
 }

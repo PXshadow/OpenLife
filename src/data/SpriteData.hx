@@ -1,8 +1,9 @@
 package data;
 import openfl.geom.Point;
-
+//gets set by objectData
 class SpriteData
 {
+    public var name:String;
     public var spriteID:Int=54;
     public var pos:Point = new Point();//=166.000000,107.000000
     public var rot:Float=0.000000;

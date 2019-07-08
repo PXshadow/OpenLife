@@ -47,7 +47,6 @@ class Game extends states.State
     public function new()
     {
         super();
-        stage.frameRate = 60;
         //set interp
         Console.interp.variables.set("game",this);
 
@@ -62,7 +61,7 @@ class Game extends states.State
         info = new Text("GAME",LEFT,16,0xFFFFFF);
         Main.screen.addChild(info);
 
-        Main.screen.addChild(new FPS());
+        Main.screen.addChild(new FPS(10,100,0xFFFFFF));
 
         //connect
         //login
@@ -86,10 +85,10 @@ class Game extends states.State
     }
     override function update()
     {
-        info.text = tileX + " " + tileY;
+        info.text = tileX + " " + tileY + "\n" + Std.string(objects.numTiles + ground.numTiles);
         super.update();
         //controls
-        var cameraArray:Array<DisplayObject> = [ground];
+        var cameraArray:Array<DisplayObject> = [ground,objects];
         if (Bind.cameraUp) for (obj in cameraArray) obj.y += cameraSpeed;
         if (Bind.cameraDown) for (obj in cameraArray) obj.y += -cameraSpeed;
         if (Bind.cameraLeft) for (obj in cameraArray) obj.x += cameraSpeed;
@@ -122,8 +121,8 @@ class Game extends states.State
                 {
                     ground.tileArray[y][x].id = ground.get(y,x);
                     string = Std.string(x + tileX) + "." + Std.string(y + tileY);
-                    objects.addFloor(data.map.floor.get(string));
-                    objects.addObject(data.map.object.get(string));
+                    objects.addFloor(data.map.floor.get(string),x,y);
+                    objects.addObject(data.map.object.get(string),x,y);
                 }
             }
             trace("game offset x " + x + " y " + y + " ground width " + ground.width + " height " + ground.height);

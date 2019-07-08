@@ -26,7 +26,6 @@ class Launcher extends states.State
     public function new()
     {
         super();
-        stage.frameRate = 120;
         assets = new AssetLoader();
         //patch banner
         patch(function(bool:Bool)

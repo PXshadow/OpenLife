@@ -1,62 +1,57 @@
 package data;
+import states.launcher.Launcher;
 import sys.io.File;
 import openfl.geom.Point;
 import haxe.ds.Vector;
 import sys.FileSystem;
 class AnimationData extends LineReader
 {
-    public var id:Int = -1;
-    public var type:AnimationType;
-    public var params:Vector<AnimationParameter>;
-    //map object to animation
-    //public var map:Map<Float,Animation>;
     public var fail:Bool = false;
+    public var record:Vector<AnimationRecord>;
     public function new(id:Float)
     {
         super();
-        for( i in 0...5 + 1) 
+        if (!FileSystem.exists(Launcher.dir + "assets/animations/" + id + "_0.txt"))
         {
-            var path = Static.dir + "animations/" + id + "_" + i + ".txt";
-            if(Static.assetSystem)
-            {
-                
-            }else{
-                if (!FileSystem.exists(path)) 
-                {
-                    //trace("ANIMATION FAIL " + id + "_" + i);
-                    fail = true;
-                    return;
-                }
-            }
-            line = readLines(File.read(path,false));
-            //process();
+            fail = true;
+            return;
         }
+        record = new Vector<AnimationRecord>(5 + 1);
+        /*for( i in 0...5 + 1) 
+        {
+            //skip 3
+            if (i == 3) continue;
+            //read lines
+            line = readLines(File.read(Launcher.dir + "assets/animations/" + id + "_" + i + ".txt",false));
+            record[i] = process();
+        }*/
         line = null;
     }
-    public function process()
+    public function process():AnimationRecord
     {
         //id
-        id = getInt();
+        var animation = new AnimationRecord();
+        animation.id = getInt();
         //type
         switch(getInt())
         {
-            case 0: type = ground;
-            case 1: type = held;
-            case 2: type = moving;
-            case 3: type = eating;
-            case 4: type = doing;
-            case 5: type = endAnimType;
+            case 0: animation.type = ground;
+            case 1: animation.type = held;
+            case 2: animation.type = moving;
+            case 3: animation.type = eating;
+            case 4: animation.type = doing;
+            case 5: animation.type = endAnimType;
         }
         //rand start phase
-        next++;
-        //num sounds
-        var numSounds:Int = getInt();
-        //numSprites
-        var numSprites:Int = getInt();
-        //numSlots
-        var numSlts:Int = getInt();
+        trace("i " + getFloat());
+        //next++;
+        //num
+        animation.numSounds = getInt();
+        animation.numSprites = getInt();
+        animation.numSlots = getInt();
         //Params
         //for(i in 0...numSprites) processParam();
+        return animation;
     }
     public function processParam()
     {
@@ -74,6 +69,20 @@ class AnimationData extends LineReader
         }else{
             throw("animParam not found");
         }
+    }
+}
+class AnimationRecord
+{
+    public var id:Int = -1;
+    public var type:AnimationType;
+    public var params:Vector<AnimationParameter>;
+    public var numSounds:Int = 0;
+    public var numSprites:Int = 0;
+    public var numSlots:Int = 0;
+    public var randStartPhase:Float = 0;
+    public function new()
+    {
+
     }
 }
 class AnimationParameter

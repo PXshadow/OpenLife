@@ -14,6 +14,8 @@ class MapData
     public var biome = new Map<String,Int>();
     public var floor = new Map<String,Int>();
     public var object = new Map<String,String>();
+    //blocks walking
+    public var blocks = new Map<String,Bool>();
 
     public var setX:Int = 0;
     public var setY:Int = 0;

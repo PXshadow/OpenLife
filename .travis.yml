@@ -15,7 +15,6 @@ install:
  - yes | haxelib install hscript
  - yes | haxelib install format
  - yes | haxelib git discord_rpc https://github.com/Aidan63/linc_discord-rpc
- - yes | haxelib install hxp https://github.com/openfl/hxp
 
 script:
  - haxelib run lime build cpp

@@ -48,7 +48,7 @@ class ObjectData extends LineReader
     public var slotPos:Vector<Point>;
     public var slotVert:Vector<Bool>;
     public var slotParent:Vector<Int>;
-    public var numSprites:Int=6;
+    public var numSprites:Int=0;
     public var spriteArray:Vector<SpriteData>;
 
     public var headIndex:Int = -1;
@@ -263,7 +263,7 @@ class ObjectData extends LineReader
                 {
                     case 0:
                     //name
-
+                    spriteArray[i].name = string;
                     case 1:
                     //multitag
 

@@ -58,6 +58,7 @@ class Console extends DisplayObjectContainer
         interp.variables.set("height",Main.setHeight);
         interp.variables.set("grid",Static.GRID);
         interp.variables.set("console",Main.console);
+        interp.variables.set("motion",motion.Actuate);
         //utils
         interp.variables.set("util",console.Util);
         interp.variables.set("Util",console.Util);
