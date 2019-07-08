@@ -17,9 +17,11 @@ class TileDisplay extends Tilemap
     //pos
     var tileWidth:Int = 0;
     var tileHeight:Int = 0;
-    public function new(tilesetWidth:Int,tilesetHeight:Int)
+    public function new(tilesetWidth:Int,tilesetHeight:Int,transparent:Bool=true)
     {
-        super(0,0,new Tileset(new BitmapData(tilesetWidth,tilesetHeight,true,0)));
+        super(0,0,new Tileset(new BitmapData(tilesetWidth,tilesetHeight,transparent)),false);
+        tileBlendModeEnabled = false;
+        tileColorTransformEnabled = true;
         reader = new TgaData();
         //pos code
         x = 0;

@@ -78,7 +78,12 @@ class Objects extends TileDisplay
         if(id == 0) return;
         var data = new ObjectData(id);
         //data
-        
+        if (data.blocksWalking == 1)
+        {
+            game.data.blocking.set(x + "." + y,true);
+        }else{
+            game.data.blocking.remove(x + "." + y);
+        }
         //obj
         var obj = new Object();
         obj.x = x * Static.GRID * 1;
@@ -96,10 +101,12 @@ class Objects extends TileDisplay
             var tile = new Tile();
             tile.id = cacheSprite(data.spriteArray[i].spriteID);
             r = tileset.getRect(tile.id);
+            //todo setup inCenterOffset
             //rot
             if (data.spriteArray[i].rot > 0)
             {
-                tile.rotation = data.spriteArray[i].rot;
+                trace("rotation " + data.description + " value " + data.spriteArray[i].rot);
+                tile.rotation = data.spriteArray[i].rot * 365;
             }
             //flip
             if (data.spriteArray[i].hFlip != 0)
@@ -109,7 +116,7 @@ class Objects extends TileDisplay
             //parent
             if (data.spriteArray[i].parent >= 0)
             {
-
+                
             }
             //pos
             tile.x = data.spriteArray[i].pos.x - data.spriteArray[i].inCenterXOffset * 1 - r.width/2;

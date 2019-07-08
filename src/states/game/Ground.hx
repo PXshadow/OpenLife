@@ -28,7 +28,10 @@ class Ground extends TileDisplay
     var rect:Rectangle = new Rectangle();
     public function new(game:Game)
     {
-        super(4096,4096);
+        tileAlphaEnabled = false;
+        tileBlendModeEnabled = false;
+        tileColorTransformEnabled = false;
+        super(4096,4096,false);
         this.game = game;
         for(i in 0...biomeNum) cacheBiome(i);
         cacheBiome(99999);
@@ -57,7 +60,7 @@ class Ground extends TileDisplay
     }
     public function update()
     {
-        if (tileArray.length == 0) return;
+        //if (tileArray.length == 0) return;
         moveX();
         moveY();
     }
@@ -128,18 +131,23 @@ class Ground extends TileDisplay
         x = game.tileX + x;
         y = game.tileY + y;
         var id:Null<Int> = game.data.map.biome.get(x + "." + y);
+        var index:Int = 0;
         if (id == null)
         {
-            id = 16 * 2 * biomeNum + 1;
+            id = 16 * biomeNum + 1;
+            //id = 0;
         }else{
-            id = ci(x) + ci(y) * 4 + id * 16 * 2;
+            //pos in square
+            index = ci(x) + ci(y) * 4;
+            //id absolute
+            id = id * 16 + index;
         }
         return id;
     }
     private function cacheBiome(id:Int)
     {
-        for(a in ["_square"])
-        {
+            var a = "_square";
+            //16
             for(j in 0...4)
             {
                 for(i in 0...4)
@@ -149,7 +157,8 @@ class Ground extends TileDisplay
                     tileset.bitmapData.setPixels(tileset.getRect(i),reader.bytes);
                 }
             }
-        }
+        //var i = cache("assets/groundTileCache/biome_" + id + "_x0_y0_square.tga");
+        //tileset.bitmapData.setPixels(tileset.getRect(i),reader.bytes);
     }
     private inline function ci(i:Int):Int
     {
