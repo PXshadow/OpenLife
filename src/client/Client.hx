@@ -1,5 +1,4 @@
 package client;
-import openfl.events.Event;
 import haxe.io.Bytes;
 #if sys
 import sys.net.Socket;
@@ -26,6 +25,8 @@ class Client
     var tagRemove:Bool = false;
     var index:Int = 0;
     public var message:String->Void;
+    public var ip:String;
+    public var port:Int;
     public function new()
     {
         login = new Login();
@@ -108,7 +109,7 @@ class Client
         aliveTimer = new Timer(15 * 1000);
         aliveTimer.run = alive;
     }
-    public function connect(ip:String="",port:Int=0)
+    public function connect()
 	{
         connected = true;
         trace("attempt connect");
@@ -176,40 +177,4 @@ class Client
             tag = null;
         }
     }
-    /*private function unCompress()
-    {
-        #if sys
-        if(tagRemove)
-        {
-            //remove #
-            socket.input.readString(1);
-            tagRemove = false;
-        }
-        var data:Bytes;
-        switch(tag)
-        {
-            case MAP_CHUNK:
-            if(index >= mapInstance.compressedSize) 
-            {
-                trace("map issue");
-                mapInstance = null;
-                tag = null;
-                compress = false;
-                return;
-            }
-            data = socket.input.read(mapInstance.compressedSize - index);
-            mapInstance.bytes.blit(index,data,0,data.length);
-            index += data.length;
-            if(index >= mapInstance.compressedSize)
-            {
-                tag = null;
-                compress = false;
-                map.setRect(mapInstance.x,mapInstance.y,mapInstance.sizeX,mapInstance.sizeY,haxe.zip.Uncompress.run(mapInstance.bytes,mapInstance.bytes.length).toString());
-                trace("after rect");
-                mapInstance = null;
-            }
-            default:
-        }
-        #end
-    }*/
 }

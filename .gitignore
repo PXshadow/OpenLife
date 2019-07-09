@@ -1,4 +1,5 @@
-bin 
+bin
+export
 login.txt
 assets/data
 .vscode

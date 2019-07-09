@@ -1,9 +1,13 @@
 package console;
+#if openfl
 import openfl.display.Shader;
+#end
 
 class Util
 {
     //util for hscript
+
+    #if openfl
     public static function shader(string:String):Shader
     {
         string = string.toLowerCase();
@@ -21,4 +25,5 @@ class Util
             default: null;
         }
     }
+    #end
 }

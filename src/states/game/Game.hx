@@ -1,10 +1,6 @@
 package states.game;
 
-import openfl.display.FPS;
 import console.Console;
-import openfl.display.DisplayObject;
-import openfl.ui.Keyboard;
-import ui.Text;
 import data.MapData;
 import data.MapData.MapInstance;
 import data.PlayerData.PlayerInstance;
@@ -12,24 +8,25 @@ import data.PlayerData.PlayerMove;
 import data.GameData;
 import client.MessageTag;
 import haxe.io.Bytes;
-import settings.Bind;
 
-class Game extends states.State
+#if openfl
+import openfl.display.FPS;
+import openfl.display.DisplayObject;
+import openfl.ui.Keyboard;
+import ui.Text;
+import settings.Bind;
+#end
+
+class Game #if openfl extends states.State #end
 {
+    #if openfl
     var dialog:Dialog;
     var ground:Ground;
     var objects:Objects;
-    var player:Player;
-    var playerInstance:PlayerInstance;
-    public var mapInstance:MapInstance;
-    var index:Int = 0;
-    public var data:GameData;
-    var compress:Bool = false;
+    public var cameraSpeed:Float = 10;
+    public var info:Text;
     public var tileX:Int = 0;
     public var tileY:Int = 0;
-    public var info:Text;
-    var inital:Bool = true;
-    public var cameraSpeed:Float = 10;
     //scale used for zoom in and out
     public var scale(get, set):Float;
     function get_scale():Float 
@@ -44,29 +41,34 @@ class Game extends states.State
         center();
         return scale;
     }
+    #end
+    var player:Player;
+    var playerInstance:PlayerInstance;
+    public var mapInstance:MapInstance;
+    var index:Int = 0;
+    public var data:GameData;
+    var compress:Bool = false;
+    var inital:Bool = true;
     public function new()
     {
-        super();
         //set interp
         Console.interp.variables.set("game",this);
-
         data = new GameData();
+
+        #if openfl
+        super();
         ground = new Ground(this);
         objects = new Objects(this);
         dialog = new Dialog(this);
         addChild(ground);
         addChild(objects);
         addChild(dialog);
-
         info = new Text("GAME",LEFT,16,0xFFFFFF);
         Main.screen.addChild(info);
-
         Main.screen.addChild(new FPS(10,100,0xFFFFFF));
+        #end
 
         //connect
-        //login
-        Main.client.login.email = "test@test.co.uk";
-        Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
         Main.client.login.accept = function()
         {
             trace("accept");
@@ -79,10 +81,17 @@ class Game extends states.State
             trace("reject");
             Main.client.login = null;
         }
-        //set message reader function to login
+        //#if openfl
+        Main.client.login.email = "test@test.co.uk";
+        Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
+        Main.client.ip = "game.krypticmedia.co.uk";
+        Main.client.port = 8007;
+        //#end
         Main.client.message = Main.client.login.message;
-        Main.client.connect("game.krypticmedia.co.uk",8007);
+        Main.client.connect();
     }
+    //client events
+    #if openfl
     override function update()
     {
         info.text = tileX + " " + tileY + "\n" + Std.string(objects.numTiles + ground.numTiles);
@@ -134,13 +143,16 @@ class Game extends states.State
         x = (Main.setWidth - ground.width)/2 * scale;
         y = (Main.setHeight - ground.height)/2 * scale;
     }
+    #end
     public function message(input:String) 
     {
         switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
             playerInstance = new PlayerInstance(input.split(" "));
+            #if openfl
             objects.addPlayer(playerInstance);
+            #end
             case PLAYER_MOVES_START:
             var playerMove = new PlayerMove(input.split(" "));
             if (data.playerMap.exists(playerMove.id))
@@ -152,7 +164,9 @@ class Game extends states.State
             {
                 Main.client.tag = null;
                 data.map.setRect(mapInstance.x,mapInstance.y,mapInstance.sizeX,mapInstance.sizeY,input);
+                #if openfl
                 mapUpdate();
+                #end
                 mapInstance = null;
                 //toggle to go back to istance for next chunk
                 compress = false;
@@ -203,7 +217,9 @@ class Game extends states.State
             Main.client.tag = "";
             case PLAYER_SAYS:
             trace("player say " + input);
+            #if openfl
             dialog.say(input);
+            #end
             case PLAYER_OUT_OF_RANGE:
             //player is out of range
 

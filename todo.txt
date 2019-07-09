@@ -1,6 +1,4 @@
-- write up more clear api
-- seperate display and ground
-
+-completly console based client
 
 - player move system animate
 - refrence haxeflixel console for auto complete hscript

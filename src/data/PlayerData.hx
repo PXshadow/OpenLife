@@ -1,5 +1,6 @@
 package data;
 import states.game.Player;
+#if openfl
 import motion.easing.Quad;
 import motion.MotionPath;
 import motion.actuators.GenericActuator;
@@ -9,6 +10,7 @@ import openfl.display.Bitmap;
 import openfl.display.Tile;
 import openfl.display.DisplayObjectContainer;
 import openfl.display.Shape;
+#end
 class PlayerData
 {
     public var key:Map<Int,PlayerType> = new Map<Int,PlayerType>();
@@ -177,17 +179,20 @@ class PlayerMove
     }
     public function movePlayer(player:Player)
     {
-        if(player.tileX == xs + moves[moves.length - 1].x && player.tileY == ys + moves[moves.length - 1].y)
+        if(player.instance.x == xs + moves[moves.length - 1].x && player.instance.y == ys + moves[moves.length - 1].y)
         {
             //same move
             trace("same move");
             return;
         }
         //set pos
-        player.tileX = xs;
-        player.tileY = ys;
-        player.x = player.tileX * Static.GRID;
-        player.y = -player.tileY * Static.GRID;
+        player.instance.x = xs;
+        player.instance.y = ys;
+
+        //visuals
+        #if openfl
+        player.x = player.instance.x * Static.GRID;
+        player.y = -player.instance.y * Static.GRID;
         Actuate.pause(player);
         var delay:Float = 0;
         var moveTime:Float = current/moves.length;
@@ -197,9 +202,9 @@ class PlayerMove
         for(move in moves)
         {
             path.line(
-            (move.x + player.tileX) * Static.GRID,
+            (move.x + player.instance.x) * Static.GRID,
             //flip
-            (move.y - player.tileY) * Static.GRID,
+            (move.y - player.instance.y) * Static.GRID,
             1);
         }
         Actuate.pause(player);
@@ -209,7 +214,8 @@ class PlayerMove
             //player.tileX = Std.int(player.x/Static.GRID);
             //player.tileY = Std.int(player.y/Static.GRID);
         }).ease(Quad.easeInOut);
-        player.tileX = moves[moves.length - 1].x;
-        player.tileY = moves[moves.length - 1].y;
+        player.instance.x = moves[moves.length - 1].x;
+        player.instance.y = moves[moves.length - 1].y;
+        #end
     }
 }

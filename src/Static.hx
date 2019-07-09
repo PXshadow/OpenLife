@@ -1,10 +1,4 @@
 import haxe.ds.Vector;
-import openfl.Lib;
-import openfl.display.Bitmap;
-import haxe.io.Input;
-import openfl.display.BitmapData;
-import openfl.geom.Rectangle;
-import openfl.utils.ByteArray;
 #if sys
 import sys.io.FileInput;
 import sys.FileSystem;
@@ -13,6 +7,9 @@ import sys.io.File;
 import haxe.Http;
 class Static 
 {
+    //dir
+    public static var dir:String;
+
     public static inline var GRID:Int = 128;
     //player constants
     public static inline var babyHeadDownFactor:Float = 0.6;

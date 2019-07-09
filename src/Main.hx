@@ -1,3 +1,8 @@
+import client.Client;
+import console.Console;
+import states.game.Game;
+//visual client
+#if openfl
 import openfl.geom.Matrix;
 import openfl.display.Shape;
 import openfl.Assets;
@@ -7,17 +12,18 @@ import openfl.display.Sprite;
 import openfl.events.KeyboardEvent;
 import openfl.events.MouseEvent;
 import openfl.events.Event;
-class Main extends Sprite
+
+class Main
 {
     //window
     public static inline var setWidth:Int = 1280;
     public static inline var setHeight:Int = 720;
     private static var scale:Float = 0;
     //client
-    public static var client:client.Client;
+    public static var client:Client;
     //over top console
-    public static var console:console.Console;
-    //state
+    public static var console:Console;
+
     public static var state:states.State;
     public static var screen:DisplayObjectContainer;
     //so
@@ -56,72 +62,6 @@ class Main extends Sprite
         cursor.graphics.drawCircle(8,8,8);
         addChild(cursor);
     }
-    public function updatePlayer()
-    {
-        /*//return;
-        for(player in client.player.array)
-        {
-            if(!display.updatePlayer(player))
-            {
-                display.addPlayer(player);
-            }
-        }
-        //add primary player
-        if(Main.client.player.primary == -1) 
-        {
-            Main.client.player.primary = client.player.array[client.player.array.length - 1].p_id;
-            Player.main = Player.active.get(Main.client.player.primary);
-            //set console
-            Console.interp.variables.set("player",Player.main);
-            //Player.main.alpha = 0.2;
-        }
-        client.player.array = [];
-        */
-    }
-    public function updateMap()
-    {
-        /*return;
-        if(display == null)
-        {
-            trace("no display");
-            return;
-        }
-        var cX:Int = client.map.setX;
-        var cY:Int = client.map.setY;
-        var cWidth:Int = client.map.setWidth;
-        var cHeight:Int = client.map.setHeight;
-        //set sizes and pos
-        if (display.setX > cX) display.setX = cX;
-        if (display.setY > cY) display.setY = cY;
-        if (display.sizeX < cX + cWidth) display.sizeX = cX + cWidth;
-        if (display.sizeY < cY + cHeight) display.sizeY = cY + cHeight;
-        //add to display
-        trace("map chunk add pos(" + cX + "," + cY +") size(" + cWidth + "," + cHeight + ")");
-        var string = "0.0";
-        for(y in cY...cY + cHeight)
-        {
-            for(x in cX...cX + cWidth)
-            {
-                string = x + "." + y;
-                //trace("string " + string);
-                //trace("chunk " + client.map.biome.get(string));
-                display.addChunk(client.map.biome.get(string),x,y);
-                //trace("object");
-                display.addObject(client.map.object.get(string),x,y);
-                //trace("floor");
-                display.addFloor(client.map.floor.get(string),x,y);
-            }
-        }
-        //0 chunk display.addChunk(4,0,0);
-        if(display.inital)
-        {
-            display.x = display.setX * Static.GRID + setWidth/2;
-            display.y = display.setY * Static.GRID + setHeight/2;
-            dialog.x = display.x;
-            dialog.y = display.y;
-            display.inital = false;
-        }*/
-    }
     private function update(_)
     {
         //cursor
@@ -132,57 +72,11 @@ class Main extends Sprite
         }
         if (client != null) client.update();
         if (state != null) state.update();
-        /*if (console != null) console.update();
-        if(!menu)
-        {
-            debugText.text = stage.mouseX + "\n" + stage.mouseY + "\nnum " + Main.display.numTiles;
-            client.update(); 
-            var i = Player.active.iterator();
-            while(i.hasNext())
-            {
-                i.next().update();
-            }
-            move();
-        }*/
     }
     private function keyDown(e:KeyboardEvent)
     {
         if (console.keyDown(e.keyCode)) return;
         state.keyDown(e.keyCode);
-        /*if (menu) return;
-        if(stage.focus == console.input)
-        {
-            consoleKeys(e.keyCode);
-        }else{
-            playerKeys(e.keyCode);
-            moveKeys(e.keyCode,true);
-        }
-        //toggle no matter what
-        if(e.keyCode == Keyboard.TAB)
-        {
-            console.visible = !console.visible;
-            if(console.visible)
-            {
-                console.input.type = INPUT;
-                stage.focus = console.input;
-            }else{
-                console.input.type = DYNAMIC;
-                stage.focus = null;
-            }
-        }*/
-    }
-    public function playerKeys(code:Int)
-    {
-        /*switch(code)
-        {
-            case Keyboard.SPACE:
-            if (Player.main.oid == 0)
-            {
-                Player.main.use();
-            }else{
-                Player.main.drop();
-            }
-        }*/
     }
     private function mouseDown(_)
     {
@@ -194,7 +88,7 @@ class Main extends Sprite
     }
     private function mouseWheel(e:MouseEvent)
     {
-        //e.delta * 0.1;
+
     }
     private function keyUp(e:KeyboardEvent)
     {
@@ -217,4 +111,31 @@ class Main extends Sprite
         if (console != null)  console.resize(stage.stageWidth);
         if (state != null) state.resize();
     }
+}
+#end
+//terminal application
+class Main {
+    public static var client:Client;
+    public static var console:Console;
+	static function main() 
+	{
+        trace("start terminal application");
+	    client = new Client();
+        console = new Console();
+        new Game();
+        #if (target.threaded)
+        sys.thread.Thread.create(() -> {
+        while (true) {
+          trace("read " + Sys.stdin().readLine());
+          Sys.sleep(0);
+        }
+        });
+        #end
+        var i:Int = 0;
+        while (true)
+        {
+            trace("hi " + i++);
+            Sys.sleep(1);
+        }
+	}
 }

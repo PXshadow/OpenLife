@@ -1,0 +1,5 @@
+-cp src
+-neko export/output.n
+-main Main
+-lib hscript
+#-cmd neko export/output.n

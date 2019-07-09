@@ -14,7 +14,7 @@ class Login
     public var reject:Void->Void;
     public function new()
     {
-
+        
     }
     public function message(data:String) {
         switch(Main.client.tag)

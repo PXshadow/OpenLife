@@ -1,5 +1,4 @@
 package data;
-import lime.app.Future;
 #if sys
 import sys.io.File;
 #end

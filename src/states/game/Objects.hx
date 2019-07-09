@@ -76,8 +76,8 @@ class Objects extends TileDisplay
     }
     public function addPlayer(data:PlayerInstance)
     {
-        var player:Player = cast add(data.po_id,data.x,data.y,true);
-        
+        var player:Player = cast add(data.po_id,data.x - game.tileX,data.y - game.tileY,true);
+        player.set(data);
         game.data.playerMap.set(data.p_id,player);
         addTile(player);
     }
@@ -103,12 +103,6 @@ class Objects extends TileDisplay
         obj.x = x * Static.GRID * 1;
         obj.y = y * Static.GRID * 1;
         addTile(obj);
-        var animation = new AnimationData(id);
-        if (!animation.fail)
-        {
-            //sucess
-            trace("animation " + id);
-        }
         var r:Rectangle;
         for(i in 0...data.numSprites)
         {
@@ -141,6 +135,13 @@ class Objects extends TileDisplay
             tile.colorTransform.greenMultiplier = data.spriteArray[i].color[1];
             tile.colorTransform.blueMultiplier = data.spriteArray[i].color[2];
             obj.addTile(tile);
+
+            if(player)
+            {
+                //player data set
+                cast(obj,Player).ageRange[i] = {min:data.spriteArray[i].ageRange[0],max:data.spriteArray[i].ageRange[1]};
+                
+            }
         }
         return obj;
     }

@@ -1,25 +1,30 @@
 package console;
-import states.game.Game;
+
+import hscript.Parser;
+#if openfl
 import openfl.ui.Keyboard;
 import openfl.net.URLRequest;
-import hscript.Parser;
 import openfl.events.TextEvent;
 import openfl.display.Shape;
 import openfl.display.DisplayObjectContainer;
 import ui.Text;
+#end
 
-class Console extends DisplayObjectContainer
+class Console #if openfl extends DisplayObjectContainer #end
 {
-    public var input:Text;
-    var output:Text;
-    var shape:Shape;
     var length:Int = 0;
     var parser:Parser;
     public static var interp:Interp;
     var history:Array<String> = [];
     var command:Command;
+    #if openfl
+    public var input:Text;
+    var output:Text;
+    var shape:Shape;
+    #end
     public function new()
     {
+        #if openfl
         super();
         visible = false;
         shape = new Shape();
@@ -45,20 +50,25 @@ class Console extends DisplayObjectContainer
         output.tabEnabled = false;
         output.height = 260 - 6;
         addChild(output);
+
+        //client variables
+        interp.variables.set("width",Main.setWidth);
+        interp.variables.set("height",Main.setHeight);
+        interp.variables.set("motion",motion.Actuate);
+        #end
+
         //hscript
         parser = new Parser();
         parser.allowJSON = true;
         parser.allowJSON = true;
         interp = new Interp();
+
         //variables
         interp.variables.set("Math",Math);
         interp.variables.set("Std",Std);
         interp.variables.set("client",Main.client);
-        interp.variables.set("width",Main.setWidth);
-        interp.variables.set("height",Main.setHeight);
         interp.variables.set("grid",Static.GRID);
         interp.variables.set("console",Main.console);
-        interp.variables.set("motion",motion.Actuate);
         //utils
         interp.variables.set("util",console.Util);
         interp.variables.set("Util",console.Util);
@@ -67,12 +77,16 @@ class Console extends DisplayObjectContainer
     }
     public function print(inp:String,out:String)
     {
+        #if openfl
         if(output.numLines > 9)
         {
             output.text = "";
         }
         output.appendText(">" + inp + "\n" + out + "\n");
+        #end
     }
+    #if openfl
+    //client events
     public function resize(width:Float)
     {
         //graphics
@@ -132,19 +146,23 @@ class Console extends DisplayObjectContainer
             }
         }
     }
+    #end
     public function previous()
     {
+        #if openfl
         if (history.length > 0) 
         {
             input.text = history.pop();
             input.setSelection(input.length,input.length);
         }
-        
+        #end
     }
     public function enter()
     {
+        var text:String = "";
+        #if openfl
         if(input.length == 0) return;
-        var text = input.text;
+        text = input.text;
         //coammnd outside of hscript
         if(command.run(text)) return;
         input.text = "";
@@ -153,6 +171,7 @@ class Console extends DisplayObjectContainer
         {
             output.text = "";
         }
+        #end
         //set history
         history.push(text);
         //attempt hscript

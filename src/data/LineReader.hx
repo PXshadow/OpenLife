@@ -2,7 +2,6 @@ package data;
 //multi platform to read input
 import haxe.io.Input;
 import haxe.ds.Vector;
-import openfl.geom.Point;
 
 class LineReader
 {

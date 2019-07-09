@@ -2,7 +2,6 @@ package states.launcher;
 import haxe.io.Path;
 import sys.io.File;
 import sys.FileSystem;
-import ui.Button;
 import haxe.Json;
 import openfl.ui.Keyboard;
 import openfl.display.Bitmap;
@@ -13,6 +12,7 @@ import openfl.display.Sprite;
 import format.SVG;
 import openfl.Assets;
 import openfl.events.MouseEvent;
+import ui.Button;
 import haxe.Http;
 import ui.Text;
 class Launcher extends states.State
@@ -21,7 +21,6 @@ class Launcher extends states.State
     var updateBannerRect:Shape;
     var updateBannerText:Text;
     var assets:AssetLoader;
-    public static var dir:String;
     var items:Array<Item> = [];
     public function new()
     {
@@ -51,10 +50,10 @@ class Launcher extends states.State
             addChild(updateBanner);
         });
         //figure out directory
-        dir = lime.system.System.applicationDirectory;
+        Static.dir = lime.system.System.applicationDirectory;
         #if mac
-        dir = dir.substring(0,dir.indexOf("/Contents/Resources/"));
-        dir = dir.substring(0,dir.lastIndexOf("/") + 1);
+        Static.dir = dir.substring(0,dir.indexOf("/Contents/Resources/"));
+        Static.dir = dir.substring(0,dir.lastIndexOf("/") + 1);
         #end
         //mods
         if (FileSystem.isDirectory(dir + "/groundTileCache"))

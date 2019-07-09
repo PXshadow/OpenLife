@@ -32,6 +32,7 @@ class Command
             Main.client.close();
             case "connect" | "c":
             Main.client.connect();
+            #if openfl
             //window
             case "fullscreen":
             Main.state.stage.window.fullscreen = !Main.state.stage.window.fullscreen;
@@ -39,6 +40,7 @@ class Command
             //toggle controls
             case "borderless":
             Main.state.stage.window.borderless = !Main.state.stage.window.borderless;
+            #end
             case "date":
             console.print("date",Date.now().toString());
             //urls
@@ -57,6 +59,22 @@ class Command
     }
     public function url(string:String)
     {
+        #if openfl
         openfl.Lib.navigateToURL(new openfl.net.URLRequest(string));
+        #else
+        execUrl(string);
+        #end
     }
+    #if !openfl
+    public function execUrl (url:String) : Void 
+    {
+        switch (Sys.systemName()) 
+        {
+            case "Linux", "BSD": Sys.command("xdg-open", [url]);
+            case "Mac": Sys.command("open", [url]);
+            case "Windows": Sys.command("start", [url]);
+            default:
+        }
+    }
+    #end
 }

@@ -6,6 +6,7 @@ class GameData
     //block walking
     public var blocking:Map<String,Bool> = new Map<String,Bool>();
     public var playerMap:Map<Int,Player> = new Map<Int,Player>();
+    public var spriteMap:Map<Int,SpriteData> = new Map<Int,SpriteData>();
     public var map:MapData;
     public function new()
     {

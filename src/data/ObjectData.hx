@@ -1,9 +1,7 @@
 package data;
 import sys.FileSystem;
-import openfl.geom.Point;
 import sys.io.File;
 import haxe.ds.Vector;
-import states.launcher.Launcher;
 class ObjectData extends LineReader
 {
     public var id:Int=0;
@@ -66,7 +64,7 @@ class ObjectData extends LineReader
     {
         super();
         #if sys
-        var path = Launcher.dir + "assets/objects/" + i + ".txt";
+        var path = Static.dir + "assets/objects/" + i + ".txt";
         if (!FileSystem.exists(path)) 
         {
             //trace("OBJECT FAIL " + i);
@@ -248,7 +246,7 @@ class ObjectData extends LineReader
         //get sprite data
         for(i in 0...spriteArray.length)
         {
-            var path = Launcher.dir + "assets/sprites/" + spriteArray[i].spriteID + ".txt";
+            var path = Static.dir + "assets/sprites/" + spriteArray[i].spriteID + ".txt";
             if(!FileSystem.exists(path)) 
             {
                 //trace("SPRITE FAIL " + spriteArray[i].spriteID);

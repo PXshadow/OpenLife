@@ -13,6 +13,22 @@ AUTO AI
 - auto fire starter
 - auto berry farmer
 
+declaritive syntax for console 
+
+//drop object
+.drop()
+//locate closest berry location and draw path
+.find("berry")
+//go to find location and grab 
+.pickup()
+//remove hat=0, or if -1 eat food in hand.
+.self(0)
+//emote player and how many seconds
+.emote(0,2)
+//craft berry aka follow the tech tree of commands
+.craft("berry")
+
+
 INVENTORY
 - inventory managment backpack (show names of object in backpack and hotkeys for them)
 MISC
