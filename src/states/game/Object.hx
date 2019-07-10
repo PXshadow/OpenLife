@@ -1,4 +1,4 @@
-/*package states.game;
+package states.game;
 import data.ObjectData;
 import openfl.display.TileContainer;
 class Object extends TileContainer
@@ -7,4 +7,4 @@ class Object extends TileContainer
     {
         super();
     }
-}*/
+}

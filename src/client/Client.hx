@@ -6,7 +6,7 @@ import sys.net.Host;
 #end
 import haxe.io.Error;
 import haxe.crypto.Hmac;
-import client.MessageTag;
+import client.ClientTag;
 import haxe.Timer;
 
 class Client
@@ -27,8 +27,15 @@ class Client
     public var message:String->Void;
     public var ip:String;
     public var port:Int;
+    #if !openfl
+    public var relay:Router;
+    #end
     public function new()
     {
+        #if !openfl
+        relay = new Router();
+        relay.bind();
+        #end
         login = new Login();
     }
     public function update()
@@ -60,18 +67,12 @@ class Client
             if (data.length > 0) process();
         }
     }
-    /*private function end()
-    {
-        switch(tag)
-        {
-            case PLAYER_UPDATE:
-            if (Main.client.player != null) Main.client.player.update();
-            default:
-        }
-    }*/
     private function process()
     {
-        //trace("data " + data);
+        trace("data " + data);
+        #if !openfl
+        relay.send(data);
+        #end
         if(data.substring(0,1) == "#")
         {
             //behavior end #
@@ -155,7 +156,7 @@ class Client
         }
         if(index >= compress)
         {
-            trace("map issue");
+            throw("map issue");
             tag = null;
             compress = 0;
             return;
@@ -168,6 +169,10 @@ class Client
         index += temp.length;
         if(index >= compress)
         {
+            #if !openfl
+            relay.send("#");
+            relay.sendCompress(dataCompress);
+            #end
             trace("index " + index + " compress " + compress + " dataCompress " + dataCompress.length);
             //finish data
             compress = 0;

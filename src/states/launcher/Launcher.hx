@@ -52,22 +52,22 @@ class Launcher extends states.State
         //figure out directory
         Static.dir = lime.system.System.applicationDirectory;
         #if mac
-        Static.dir = dir.substring(0,dir.indexOf("/Contents/Resources/"));
-        Static.dir = dir.substring(0,dir.lastIndexOf("/") + 1);
+        Static.dir = Static.dir.substring(0,Static.dir.indexOf("/Contents/Resources/"));
+        Static.dir = Static.dir.substring(0,Static.dir.lastIndexOf("/") + 1);
         #end
         //mods
-        if (FileSystem.isDirectory(dir + "/groundTileCache"))
+        if (FileSystem.isDirectory(Static.dir + "/groundTileCache"))
         {
             //portable, launch straight away
             Main.state.remove();
             Main.state = new states.game.Game();
         }else{
             //check for mod json
-            if (FileSystem.isDirectory(dir + "mods"))
+            if (FileSystem.isDirectory(Static.dir + "mods"))
             {
                 var ext:String = "";
                 var data:Dynamic;
-                for (path in FileSystem.readDirectory(dir + "mods"))
+                for (path in FileSystem.readDirectory(Static.dir + "mods"))
                 {
                     //mac remove .DS_STORE
                     if (path.substring(0,1) == ".") continue;
@@ -76,10 +76,10 @@ class Launcher extends states.State
                     if (ext == "json")
                     {
                         //this is a project file
-                        data = Json.parse(File.read(dir + path,false).readAll().toString());
+                        data = Json.parse(File.read(Static.dir + path,false).readAll().toString());
                         //remove old json
-                        FileSystem.deleteFile(dir + path);
-                        path = dir + "mods/" + data.title + "/";
+                        FileSystem.deleteFile(Static.dir + path);
+                        path = Static.dir + "mods/" + data.title + "/";
                         //new folder
                         FileSystem.createDirectory(path);
                         //new project.json
@@ -87,7 +87,7 @@ class Launcher extends states.State
                     }else{
                         if (ext != "") return;
                         //get project file in folder
-                        path = dir + path + "/";
+                        path = Static.dir + path + "/";
                         data = Json.parse(File.read(path + "project.json").readAll().toString());
                     }
                     trace("add item");
@@ -111,7 +111,7 @@ class Launcher extends states.State
                             if (item.playable)
                             {
                                 //play
-                                dir = item.path;
+                                Static.dir = item.path;
                                 Main.state.remove();
                                 Main.state = new states.game.Game();
                             }else{
@@ -130,7 +130,7 @@ class Launcher extends states.State
                 }
             }else{
                 //no mod folder
-                trace("no mod folder " + dir);
+                trace("no mod folder " + Static.dir);
             }
         }
     }
@@ -148,7 +148,7 @@ class Launcher extends states.State
                 if(sucess)
                 {
                     item.path = path;
-                    Launcher.dir = item.path;
+                    Static.dir = item.path;
                     item.info.text = item.version;
                     item.bottom.text = "Play";
                     item.mouseEnabled = true;
@@ -231,7 +231,7 @@ class Launcher extends states.State
             case Keyboard.SPACE | Keyboard.ENTER:
             if (items[0] != null && items[0].playable) 
             {
-                Launcher.dir = items[0].path;
+                Static.dir = items[0].path;
                 Main.state.remove();
                 Main.state = new states.game.Game();
             }

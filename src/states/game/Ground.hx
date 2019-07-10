@@ -174,7 +174,7 @@ class Ground extends TileDisplay
     {
         //add task
         //setup worker
-        reader.read(File.read(Launcher.dir + path,true).readAll());
+        reader.read(File.read(Static.dir + path,true).readAll());
         return setRect();
     }
     private function setRect():Int

@@ -1,4 +1,4 @@
-/*package states.game;
+package states.game;
 import openfl.display.Shape;
 import motion.Actuate;
 import haxe.Timer;
@@ -52,4 +52,4 @@ class Bubble extends DisplayObjectContainer
 
         }
     }
-}*/
+}

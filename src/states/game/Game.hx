@@ -1,12 +1,13 @@
 package states.game;
 
+import console.Program;
 import console.Console;
 import data.MapData;
 import data.MapData.MapInstance;
 import data.PlayerData.PlayerInstance;
 import data.PlayerData.PlayerMove;
 import data.GameData;
-import client.MessageTag;
+import client.ClientTag;
 import haxe.io.Bytes;
 
 #if openfl
@@ -49,10 +50,14 @@ class Game #if openfl extends states.State #end
     public var data:GameData;
     var compress:Bool = false;
     var inital:Bool = true;
+
+    var program:Program;
     public function new()
     {
+        program = new Program(this);
         //set interp
         Console.interp.variables.set("game",this);
+        Console.interp.variables.set("program",program);
         data = new GameData();
 
         #if openfl
@@ -67,8 +72,8 @@ class Game #if openfl extends states.State #end
         Main.screen.addChild(info);
         Main.screen.addChild(new FPS(10,100,0xFFFFFF));
         #end
-
         //connect
+        #if openfl
         Main.client.login.accept = function()
         {
             trace("accept");
@@ -81,12 +86,15 @@ class Game #if openfl extends states.State #end
             trace("reject");
             Main.client.login = null;
         }
-        //#if openfl
         Main.client.login.email = "test@test.co.uk";
         Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
         Main.client.ip = "game.krypticmedia.co.uk";
         Main.client.port = 8007;
-        //#end
+        #else
+        Main.client.message = message;
+        Main.client.relay.message = relay;
+        #end
+
         Main.client.message = Main.client.login.message;
         Main.client.connect();
     }
@@ -144,15 +152,39 @@ class Game #if openfl extends states.State #end
         y = (Main.setHeight - ground.height)/2 * scale;
     }
     #end
+
+    #if !openfl 
+    public function relay(input:String)
+    {
+        trace("relay " + input);
+        Main.client.send(input);
+    }
+    #end
     public function message(input:String) 
     {
+        //add main player
+        if (Player.inital)
+        {
+            Player.inital = false;
+            Player.main = player;
+            player = null;
+        }
+
         switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
             playerInstance = new PlayerInstance(input.split(" "));
-            #if openfl
-            objects.addPlayer(playerInstance);
-            #end
+            player = data.playerMap.get(playerInstance.p_id);
+            if(player == null)
+            {
+                player = new Player();
+                player.set(playerInstance);
+                data.playerMap.set(playerInstance.p_id,player);
+            }else{
+                #if openfl
+                objects.addPlayer(playerInstance);
+                #end
+            }
             case PLAYER_MOVES_START:
             var playerMove = new PlayerMove(input.split(" "));
             if (data.playerMap.exists(playerMove.id))

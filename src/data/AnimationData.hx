@@ -9,10 +9,10 @@ class AnimationData extends LineReader
     public function new(id:Float)
     {
         super();
-        #if !openfl
+        //#if !openfl
         fail = true;
         return;
-        #end
+        //#end
         if (!FileSystem.exists(Static.dir + "assets/animations/" + id + "_0.txt"))
         {
             fail = true;

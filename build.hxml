@@ -1,5 +1,17 @@
 -cp src
--neko export/output.n
+-neko export/neko/terminal.n
 -main Main
 -lib hscript
-#-cmd neko export/output.n
+
+#--next
+#-cpp export/cpp
+#-main Main
+#-cp src
+#-dce full
+#-lib hscript
+
+--next
+
+-cp src
+-neko export/neko/output.n
+-main Output

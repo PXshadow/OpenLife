@@ -76,7 +76,9 @@ class Objects extends TileDisplay
     }
     public function addPlayer(data:PlayerInstance)
     {
-        var player:Player = cast add(data.po_id,data.x - game.tileX,data.y - game.tileY,true);
+        var player:Player;
+        player = 
+        player = cast add(data.po_id,data.x - game.tileX,data.y - game.tileY,true);
         player.set(data);
         game.data.playerMap.set(data.p_id,player);
         addTile(player);
@@ -151,7 +153,7 @@ class Objects extends TileDisplay
         {
             return cacheMap.get(id);
         }
-        reader.read(File.read(Launcher.dir + "assets/sprites/" + id + ".tga").readAll());
+        reader.read(File.read(Static.dir + "assets/sprites/" + id + ".tga").readAll());
         var rect = new Rectangle(tileX,tileY,reader.rect.width,reader.rect.height);
         
         var color:UInt;

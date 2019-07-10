@@ -52,9 +52,9 @@ class Console #if openfl extends DisplayObjectContainer #end
         addChild(output);
 
         //client variables
-        interp.variables.set("width",Main.setWidth);
-        interp.variables.set("height",Main.setHeight);
-        interp.variables.set("motion",motion.Actuate);
+        //interp.variables.set("width",Main.setWidth);
+        //interp.variables.set("height",Main.setHeight);
+        //interp.variables.set("motion",motion.Actuate);
         #end
 
         //hscript
@@ -83,6 +83,8 @@ class Console #if openfl extends DisplayObjectContainer #end
             output.text = "";
         }
         output.appendText(">" + inp + "\n" + out + "\n");
+        #else
+        trace(out);
         #end
     }
     #if openfl
@@ -157,12 +159,11 @@ class Console #if openfl extends DisplayObjectContainer #end
         }
         #end
     }
+    #if openfl
     public function enter()
     {
-        var text:String = "";
-        #if openfl
         if(input.length == 0) return;
-        text = input.text;
+        var text = input.text;
         //coammnd outside of hscript
         if(command.run(text)) return;
         input.text = "";
@@ -171,7 +172,11 @@ class Console #if openfl extends DisplayObjectContainer #end
         {
             output.text = "";
         }
-        #end
+        run(text);
+    }
+    #end
+    public function run(text:String)
+    {
         //set history
         history.push(text);
         //attempt hscript
@@ -213,26 +218,6 @@ class Console #if openfl extends DisplayObjectContainer #end
 
 		return filteredFields;
 	}
-	/*private function sortFields(fields:Array<String>):Array<String>
-	{
-		var underscoreList = [];
-
-		fields = fields.filter(function(field)
-		{
-			if (StringTools.startsWith(field,"_"))
-			{
-				underscoreList.push(field);
-				return false;
-			}
-			return true;
-		});
-
-		fields.sortAlphabetically();
-        StringTools
-		underscoreList.sortAlphabetically();
-
-		return fields.concat(underscoreList);
-	}*/
 }
 private class Interp extends hscript.Interp
 {

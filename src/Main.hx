@@ -1,3 +1,6 @@
+import client.Router;
+import sys.thread.Thread;
+import sys.net.Socket;
 import client.Client;
 import console.Console;
 import states.game.Game;
@@ -13,7 +16,7 @@ import openfl.events.KeyboardEvent;
 import openfl.events.MouseEvent;
 import openfl.events.Event;
 
-class Main
+class Main #if openfl extends Sprite #end
 {
     //window
     public static inline var setWidth:Int = 1280;
@@ -112,30 +115,47 @@ class Main
         if (state != null) state.resize();
     }
 }
-#end
+#else
 //terminal application
 class Main {
     public static var client:Client;
     public static var console:Console;
 	static function main() 
 	{
-        trace("start terminal application");
-	    client = new Client();
-        console = new Console();
-        new Game();
-        #if (target.threaded)
-        sys.thread.Thread.create(() -> {
-        while (true) {
-          trace("read " + Sys.stdin().readLine());
-          Sys.sleep(0);
-        }
-        });
-        #end
-        var i:Int = 0;
-        while (true)
+        //input into output terminal
+        var output = new Router(2000);
+        output.bind();
+        //trace
+        haxe.Log.trace = function(v:Dynamic,?inf:haxe.PosInfos)
         {
-            trace("hi " + i++);
-            Sys.sleep(1);
+            if(output.input != null) 
+            {
+                output.input.output.writeString(Std.string(v) + "\n");
+                output.input.output.flush();
+            }
+        }
+        //block untill accept
+        output.input = output.socket.accept();
+        output.socket.setBlocking(false);
+        trace("output connected");
+
+        client = new Client();
+        client.relay.input = client.relay.socket.accept();
+        client.relay.socket.setBlocking(false);
+        //terminal application
+        trace("start terminal application");
+        console = new Console();
+        var game = new Game();
+        //async for input
+        sys.thread.Thread.create(() -> {
+            var input = Sys.stdin().readLine();
+            console.run(input);
+        });
+        //game
+        while(true)
+        {
+            client.update();
         }
 	}
 }
+#end

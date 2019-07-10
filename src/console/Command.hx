@@ -42,7 +42,7 @@ class Command
             Main.state.stage.window.borderless = !Main.state.stage.window.borderless;
             #end
             case "date":
-            console.print("date",Date.now().toString());
+            //console.print("date",Date.now().toString());
             //urls
             case "github" | "code" | "source":
             url("https://github.com/pxshadow/openlife");

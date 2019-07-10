@@ -13,6 +13,9 @@ import data.ObjectData;
 import data.AnimationData;
 class Player #if openfl extends Object #end
 {
+    public var lastMove:Int = 1;
+    public static var inital:Bool = true;
+    public static var main:Player;
     public var instance:PlayerInstance;
     public var ageRange:Array<{min:Float,max:Float}> = [];
     public var animation:AnimationData;
@@ -21,6 +24,12 @@ class Player #if openfl extends Object #end
         #if openfl
         super();
         #end
+    }
+    public function move(mx:Int,my:Int)
+    {
+        lastMove++;
+        Main.client.send("MOVE " + instance.x + " " + instance.y + " @" + lastMove + " " + mx + " " + my);
+        trace("time " + instance.move_speed/Static.GRID);
     }
     public function animate()
     {
