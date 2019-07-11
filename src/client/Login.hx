@@ -16,7 +16,9 @@ class Login
     {
         
     }
-    public function message(data:String) {
+    public function message(data:String) 
+    {
+        //login process
         switch(Main.client.tag)
         {
             case SERVER_INFO:
@@ -24,13 +26,16 @@ class Login
 			{
 				case 0:
 				//current
+                trace("amount " + data);
 				case 1:
 				//challenge
 				challenge = data;
 				case 2: 
 				//version
 				version = Std.parseInt(data);
+                #if openfl
                 request();
+                #end
                 Main.client.tag = "";
 			}
 			index++;
@@ -49,7 +54,7 @@ class Login
 		,Bytes.ofString(challenge)).toHex() +  " " +
 
         //tutorial 1 = true 0 = false
-        1 + " " +
+        0 + " " +
         //twin extra code
         ""
         );

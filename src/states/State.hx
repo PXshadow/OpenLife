@@ -12,6 +12,11 @@ class State extends DisplayObjectContainer
         this.sub = sub;
         super();
         Main.screen.addChild(this);
+        addEventListener(Event.ENTER_FRAME,init);
+    }
+    public function init(_)
+    {
+        removeEventListener(Event.ENTER_FRAME,init);
     }
     public function update()
     {

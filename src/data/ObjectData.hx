@@ -64,7 +64,7 @@ class ObjectData extends LineReader
     {
         super();
         #if sys
-        var path = Static.dir + "assets/objects/" + i + ".txt";
+        var path = Static.dir + "objects/" + i + ".txt";
         if (!FileSystem.exists(path)) 
         {
             //trace("OBJECT FAIL " + i);
@@ -246,7 +246,7 @@ class ObjectData extends LineReader
         //get sprite data
         for(i in 0...spriteArray.length)
         {
-            var path = Static.dir + "assets/sprites/" + spriteArray[i].spriteID + ".txt";
+            var path = Static.dir + "sprites/" + spriteArray[i].spriteID + ".txt";
             if(!FileSystem.exists(path)) 
             {
                 //trace("SPRITE FAIL " + spriteArray[i].spriteID);

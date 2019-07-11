@@ -25,11 +25,9 @@ class Client
     var tagRemove:Bool = false;
     var index:Int = 0;
     public var message:String->Void;
+    public var end:Void->Void;
     public var ip:String;
     public var port:Int;
-    #if !openfl
-    public var relay:Router;
-    #end
     public function new()
     {
         #if !openfl
@@ -45,12 +43,18 @@ class Client
         #if sys
         if(socket == null) return;
 		try {
-            if(compress == 0) data = socket.input.readLine();
+            if(compress == 0) 
+            {
+                data = socket.input.readLine();
+                #if !openfl
+                relay.send(data);
+                #end
+            }
 		}catch(e:Dynamic)
 		{
 			if(e != "Blocking" && e != Error.Blocked && e != "Blocked")
 			{
-                trace("e " + e);
+                //trace("e " + e);
 			}
 		}
         #end
@@ -69,15 +73,18 @@ class Client
     }
     private function process()
     {
-        trace("data " + data);
-        #if !openfl
-        relay.send(data);
-        #end
+        //trace("data " + data + " comp " + compress);
         if(data.substring(0,1) == "#")
         {
             //behavior end #
             index = 0;
-            tag = data.substring(1,data.length);
+            if (data == "#")
+            {
+                if(end != null) end();
+                tag = null;
+            }else{
+                tag = data.substring(1,data.length);
+            }
             return;
         }
         if(tag == "")

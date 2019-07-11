@@ -1,4 +1,5 @@
 package states.launcher;
+import openfl.events.Event;
 import haxe.io.Path;
 import sys.io.File;
 import sys.FileSystem;
@@ -22,6 +23,7 @@ class Launcher extends states.State
     var updateBannerText:Text;
     var assets:AssetLoader;
     var items:Array<Item> = [];
+    var launch:Bool = false;
     public function new()
     {
         super();
@@ -59,8 +61,7 @@ class Launcher extends states.State
         if (FileSystem.isDirectory(Static.dir + "/groundTileCache"))
         {
             //portable, launch straight away
-            Main.state.remove();
-            Main.state = new states.game.Game();
+            launch = true;
         }else{
             //check for mod json
             if (FileSystem.isDirectory(Static.dir + "mods"))
@@ -92,7 +93,7 @@ class Launcher extends states.State
                     }
                     trace("add item");
                     var item = new Item(data);
-                    if (FileSystem.isDirectory(path + "assets/groundTileCache"))
+                    if (FileSystem.isDirectory(path + "groundTileCache"))
                     {
                         //mod already exists check update
                         item.bottom.text = "Play";
@@ -134,15 +135,22 @@ class Launcher extends states.State
             }
         }
     }
+    override function init(_:Event) {
+        super.init(_);
+        if(launch)
+        {
+            Main.state.remove();
+            Main.state = new states.game.Game();
+        }
+    }
     private function writeJson(path:String,data:Dynamic)
     {
         File.write(path + "project.json",false).writeString(Json.stringify(data));
     }
     private function download(path:String,item:Item)
     {
-        if(!FileSystem.isDirectory(path + "assets/groundTileCache"))
+        if(!FileSystem.isDirectory(path + "groundTileCache"))
         {
-            trace("new assets");
             assets.complete = function(sucess:Bool)
             {
                 if(sucess)
@@ -171,7 +179,7 @@ class Launcher extends states.State
                 item.version = version;
             }
             item.mouseEnabled = false;
-            assets.loader(item.data.assets,path + "assets",item.version);
+            assets.loader(item.data.assets,path,item.version);
         }
         if(!FileSystem.isDirectory(path + "scripts") && item.data.scripts != "")
         {

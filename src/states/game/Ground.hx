@@ -152,13 +152,11 @@ class Ground extends TileDisplay
             {
                 for(i in 0...4)
                 {
-                    var i = cache("assets/groundTileCache/biome_" + id + "_x" + i + "_y" + j + a + ".tga");
+                    var i = cache("groundTileCache/biome_" + id + "_x" + i + "_y" + j + a + ".tga");
                     //draw
                     tileset.bitmapData.setPixels(tileset.getRect(i),reader.bytes);
                 }
             }
-        //var i = cache("assets/groundTileCache/biome_" + id + "_x0_y0_square.tga");
-        //tileset.bitmapData.setPixels(tileset.getRect(i),reader.bytes);
     }
     private inline function ci(i:Int):Int
     {

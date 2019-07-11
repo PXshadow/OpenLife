@@ -5,7 +5,7 @@ class Music
     var sound:Sound;
     public function new()
     {
-        Sound.loadFromFile("assets/music_01.ogg").onComplete(function(s:Sound)
+        Sound.loadFromFile("musics/music_01.ogg").onComplete(function(s:Sound)
         {
             sound = s;
         });

@@ -24,18 +24,23 @@ class Router
     public function update()
     {
         try {
-            message(socket.input.readLine());
+            message(input.input.readLine());
+            trace("relay in");
         }catch(e:Dynamic)
         {
-            
+            //trace("e " + e);
         }
     }
     public function send(string:String)
     {
+        if (input == null) return;
+        trace("relay out " + string);
         input.output.writeString(string + "\n");
     }
     public function sendCompress(bytes:Bytes)
     {
+        if (input == null) return;
+        trace("relay out compressed bytes");
         input.output.writeBytes(bytes,0,bytes.length);
     }
 }

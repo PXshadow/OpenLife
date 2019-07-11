@@ -73,13 +73,14 @@ class Game #if openfl extends states.State #end
         Main.screen.addChild(new FPS(10,100,0xFFFFFF));
         #end
         //connect
-        #if openfl
         Main.client.login.accept = function()
         {
             trace("accept");
             //set message reader function to game
             Main.client.message = message;
+            Main.client.end = end;
             Main.client.login = null;
+            Main.client.tag = null;
         }
         Main.client.login.reject = function()
         {
@@ -88,14 +89,12 @@ class Game #if openfl extends states.State #end
         }
         Main.client.login.email = "test@test.co.uk";
         Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
-        Main.client.ip = "game.krypticmedia.co.uk";
-        Main.client.port = 8007;
-        #else
-        Main.client.message = message;
+        Main.client.message = Main.client.login.message;
+        #if !openfl
         Main.client.relay.message = relay;
         #end
-
-        Main.client.message = Main.client.login.message;
+        Main.client.ip = "game.krypticmedia.co.uk";
+        Main.client.port = 8007;
         Main.client.connect();
     }
     //client events
@@ -110,6 +109,14 @@ class Game #if openfl extends states.State #end
         if (Bind.cameraDown) for (obj in cameraArray) obj.y += -cameraSpeed;
         if (Bind.cameraLeft) for (obj in cameraArray) obj.x += cameraSpeed;
         if (Bind.cameraRight) for (obj in cameraArray) obj.x += -cameraSpeed;
+
+        if(Player.main != null)
+        {
+            if (Bind.playerUp) Player.main.move(0,-1);
+            if (Bind.playerDown) Player.main.move(0,1);
+            if (Bind.playerLeft) Player.main.move(-1,0);
+            if (Bind.playerRight) Player.main.move(1,0);
+        }
         //updates
         ground.update();
         objects.update();
@@ -157,19 +164,21 @@ class Game #if openfl extends states.State #end
     public function relay(input:String)
     {
         trace("relay " + input);
-        Main.client.send(input);
+        @:privateAccess Main.client.socket.output.writeString(input + "\n");
     }
     #end
+    public function end()
+    {
+        /*switch(Main.client.tag)
+        {
+            case PLAYER_UPDATE:
+            if (Player.main == null) Player.main = player;
+            default:
+        }*/
+    }
     public function message(input:String) 
     {
-        //add main player
-        if (Player.inital)
-        {
-            Player.inital = false;
-            Player.main = player;
-            player = null;
-        }
-
+        trace(Main.client.tag + " " + input);
         switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
@@ -178,13 +187,14 @@ class Game #if openfl extends states.State #end
             if(player == null)
             {
                 player = new Player();
-                player.set(playerInstance);
                 data.playerMap.set(playerInstance.p_id,player);
-            }else{
                 #if openfl
                 objects.addPlayer(playerInstance);
                 #end
             }
+            //set instance
+            player.set(playerInstance);
+
             case PLAYER_MOVES_START:
             var playerMove = new PlayerMove(input.split(" "));
             if (data.playerMap.exists(playerMove.id))
@@ -232,6 +242,7 @@ class Game #if openfl extends states.State #end
                         index = 0;
                         //set compressed size wanted
                         Main.client.compress = mapInstance.compressedSize;
+                        trace("set compress " + Main.client.compress);
                         compress = true;
                     }
                 }

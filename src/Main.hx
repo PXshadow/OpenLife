@@ -138,12 +138,9 @@ class Main {
         output.input = output.socket.accept();
         output.socket.setBlocking(false);
         trace("output connected");
-
         client = new Client();
-        client.relay.input = client.relay.socket.accept();
-        client.relay.socket.setBlocking(false);
         //terminal application
-        trace("start terminal application");
+        trace("start client terminal");
         console = new Console();
         var game = new Game();
         //async for input
@@ -155,6 +152,7 @@ class Main {
         while(true)
         {
             client.update();
+            Sys.sleep(1/30);
         }
 	}
 }
