@@ -23,11 +23,16 @@ class Object extends TileContainer
     }
     public function animate(index:Int)
     {
+        trace("animate " + index);
         var record = animation.record[index];
         var param:AnimationParameter;
+        var tile:Tile;
         for(i in 0...record.numSprites)
         {
             param = record.params[i];
+            tile = getTileAt(i);
+            tile.originX = param.rotationCenterOffset.x;
+            tile.originY = param.rotationCenterOffset.y;
             
         }
     }

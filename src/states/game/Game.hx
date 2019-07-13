@@ -1,5 +1,6 @@
 package states.game;
 
+import data.PlayerData.PlayerType;
 import console.Program;
 import console.Console;
 import data.MapData;
@@ -76,7 +77,7 @@ class Game #if openfl extends states.State #end
         Main.screen.addChild(new FPS(10,100,0xFFFFFF));
         #end
         //connect
-        if(true)
+        if(!true)
         {
             Main.client.login.accept = function()
             {
@@ -98,6 +99,15 @@ class Game #if openfl extends states.State #end
             Main.client.ip = "game.krypticmedia.co.uk";
             Main.client.port = 8007;
             Main.client.connect();
+        }else{
+            //playground
+            objects.size(Main.setWidth,Main.setHeight);
+            Player.main = cast objects.add(19,0,0,true);
+            Player.main.instance = new PlayerInstance([]);
+            Player.main.instance.move_speed = 3;
+            data.playerMap.set(0,Player.main);
+            objects.addObject("30",1,1);
+
         }
     }
     //client events
@@ -117,8 +127,8 @@ class Game #if openfl extends states.State #end
         {
             var xs:Int = 0;
             var ys:Int = 0;
-            if (Bind.playerUp.bool) ys += 1;
-            if (Bind.playerDown.bool) ys += -1;
+            if (Bind.playerUp.bool) ys += -1;
+            if (Bind.playerDown.bool) ys += 1;
             if (Bind.playerLeft.bool) xs += -1;
             if (Bind.playerRight.bool) xs += 1;
             if (xs != 0 || ys != 0) Player.main.step(xs,ys);
@@ -130,6 +140,12 @@ class Game #if openfl extends states.State #end
         //updates
         ground.update();
         objects.update();
+        //players
+        var it = data.playerMap.iterator();
+        while(it.hasNext())
+        {
+            it.next().update();
+        }
     }
     public function mapUpdate() 
     {
@@ -143,6 +159,7 @@ class Game #if openfl extends states.State #end
             offsetY = tileY;
             scale = 1;
             var string:String = "";
+            trace("map update begin");
             for (y in 0...mapInstance.sizeY)
             {
                 for(x in 0...mapInstance.sizeX)
@@ -169,6 +186,7 @@ class Game #if openfl extends states.State #end
         switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
+            trace("set main");
             if (Player.main == null) 
             {
                 Player.main = objects.player;

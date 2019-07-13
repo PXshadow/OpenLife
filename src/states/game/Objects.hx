@@ -68,10 +68,11 @@ class Objects extends TileDisplay
         player.set(data);
         addTile(player);
     }
-    private function add(id:Int,x:Int,y:Int,player:Bool=false):Object
+    public function add(id:Int,x:Int,y:Int,player:Bool=false):Object
     {
         if(id == 0) return null;
         var data = new ObjectData(id);
+        var obj:Object = null;
         //data
         if (data.blocksWalking == 1)
         {
@@ -80,7 +81,6 @@ class Objects extends TileDisplay
             game.data.blocking.remove(x + "." + y);
         }
         //obj
-        var obj:Object;
         if(player)
         {
             obj = new Player(game);
