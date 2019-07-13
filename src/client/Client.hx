@@ -50,7 +50,7 @@ class Client
 		{
 			if(e != "Blocking" && e != Error.Blocked && e != "Blocked")
 			{
-                //trace("e " + e);
+                
 			}
 		}
         #end

@@ -22,14 +22,6 @@ class State extends DisplayObjectContainer
     {
         
     }
-    public function keyDown(code:Int)
-    {
-
-    }
-    public function keyUp(code:Int)
-    {
-
-    }
     public function resize()
     {
         

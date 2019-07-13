@@ -88,6 +88,7 @@ class Objects extends TileDisplay
             obj = new Object();
         }
         obj.oid = data.id;
+        obj.loadAnimation();
         obj.x = x * Static.GRID * 1;
         obj.y = y * Static.GRID * 1;
         addTile(obj);
@@ -133,7 +134,6 @@ class Objects extends TileDisplay
                 
             }
         }
-        obj.animate();
         return obj;
     }
     private function cacheSprite(id:Int):Int

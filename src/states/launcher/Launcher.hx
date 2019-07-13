@@ -227,24 +227,6 @@ class Launcher extends states.State
     {
         super.update();
     }
-    override function keyDown(code:Int) 
-    {
-        super.keyDown(code);
-        switch(code)
-        {
-            //case Keyboard.UP | Keyboard.W | Keyboard.PAGE_UP:
-
-            //case Keyboard.DOWN | Keyboard.DOWN | Keyboard.PAGE_DOWN:
-
-            case Keyboard.SPACE | Keyboard.ENTER:
-            if (items[0] != null && items[0].playable) 
-            {
-                Static.dir = items[0].path;
-                Main.state.remove();
-                Main.state = new states.game.Game();
-            }
-        }
-    }
     override public function resize()
     {
         if (updateBanner != null) 

@@ -198,7 +198,6 @@ class PlayerMove
         var moveTime:Float = current/moves.length;
         //trace("delay " + delay + " moveTime " + moveTime);
         var path = new MotionPath();
-        trace("moves " + moves);
         for(move in moves)
         {
             path.line(

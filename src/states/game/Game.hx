@@ -108,32 +108,28 @@ class Game #if openfl extends states.State #end
         super.update();
         //controls
         var cameraArray:Array<DisplayObject> = [ground,objects];
-        if (Bind.cameraUp) for (obj in cameraArray) obj.y += cameraSpeed;
-        if (Bind.cameraDown) for (obj in cameraArray) obj.y += -cameraSpeed;
-        if (Bind.cameraLeft) for (obj in cameraArray) obj.x += cameraSpeed;
-        if (Bind.cameraRight) for (obj in cameraArray) obj.x += -cameraSpeed;
+        if (Bind.cameraUp.bool) for (obj in cameraArray) obj.y += cameraSpeed;
+        if (Bind.cameraDown.bool) for (obj in cameraArray) obj.y += -cameraSpeed;
+        if (Bind.cameraLeft.bool) for (obj in cameraArray) obj.x += cameraSpeed;
+        if (Bind.cameraRight.bool) for (obj in cameraArray) obj.x += -cameraSpeed;
 
         if(Player.main != null)
         {
             var xs:Int = 0;
             var ys:Int = 0;
-            if (Bind.playerUp) ys += 1;
-            if (Bind.playerDown) ys += -1;
-            if (Bind.playerLeft) xs += -1;
-            if (Bind.playerRight) xs += 1;
+            if (Bind.playerUp.bool) ys += 1;
+            if (Bind.playerDown.bool) ys += -1;
+            if (Bind.playerLeft.bool) xs += -1;
+            if (Bind.playerRight.bool) xs += 1;
             if (xs != 0 || ys != 0) Player.main.step(xs,ys);
+            //animations
+            if (Bind.playerDrop.bool) Player.main.animate(0);
+            //grabs object where standing
+            //if (Bind.playerPick.bool) 
         }
         //updates
         ground.update();
         objects.update();
-    }
-    override function keyDown(code:Int) 
-    {
-        Bind.keys(code,true);
-    }
-    override function keyUp(code:Int) 
-    {
-        Bind.keys(code,false);
     }
     public function mapUpdate() 
     {

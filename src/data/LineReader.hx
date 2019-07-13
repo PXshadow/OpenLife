@@ -14,6 +14,7 @@ class LineReader
     }
     public function readLines(input:Input):Vector<String>
     {
+        next = 0;
         return Vector.fromArrayCopy(input.readAll().toString().split("\n"));
     }
     public function getFloatArray():Array<Float>

@@ -45,18 +45,17 @@ class AnimationData extends LineReader
             case 5: animation.type = endAnimType;
         }
         //rand start phase
-        getFloat();
+        animation.randStartPhase = getFloat();
         //next++;
         //num
         animation.numSounds = getInt();
         //skip over sounds
-        for(i in 0...animation.numSounds) next++;
+        if (animation.numSounds > 0) for(i in 0...animation.numSounds) next++;
         animation.numSprites = getInt();
         animation.numSlots = getInt();
         //Params
         if(animation.numSprites == 0) return animation;
         animation.params = new Vector<AnimationParameter>(animation.numSprites);
-        trace("numSprites " + animation.numSprites);
         for(i in 0...animation.params.length) animation.params[i] = processParam();
         return animation;
     }
@@ -65,7 +64,9 @@ class AnimationData extends LineReader
         var param:AnimationParameter = new AnimationParameter();
         if(readName("offset"))
         {
-            trace('offset ' + getString());
+            var s:String = getString();
+            var cut = s.indexOf(",");
+            param.offset = new Point(Std.parseFloat(s.substring(1,cut)),Std.parseFloat(s.substring(cut + 1,s.length - 1)));
         }
         if(readName("startPause"))
         {
@@ -85,6 +86,7 @@ class AnimationRecord
     public var numSprites:Int = 0;
     public var numSlots:Int = 0;
     public var randStartPhase:Float = 0;
+    public var forceZeroStart:Float = 0;
     public function new()
     {
 
@@ -142,7 +144,6 @@ class AnimationParameter
     }
     public function process(array:Array<String>)
     {
-        trace("array " + array);
         var i:Int = 0;
         xOscPerSec = Std.parseFloat(array[i++]);
         xAmp = Std.parseFloat(array[i++]);
@@ -152,7 +153,9 @@ class AnimationParameter
         yAmp = Std.parseFloat(array[i++]);
         yPhase = Std.parseFloat(array[i++]);
 
-        trace("rotation offset " + array[i++]);
+        var s:String = array[i++];
+        var cut = s.indexOf(",");
+        rotationCenterOffset = new Point(Std.parseFloat(s.substring(1,cut)),Std.parseFloat(s.substring(cut + 1,s.length - 1)));
 
         rotPerSec = Std.parseFloat(array[i++]);
         rotPhase = Std.parseFloat(array[i++]);

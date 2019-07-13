@@ -1,3 +1,4 @@
+import settings.Bind;
 import client.Router;
 import sys.thread.Thread;
 import sys.net.Socket;
@@ -79,7 +80,11 @@ class Main #if openfl extends Sprite #end
     private function keyDown(e:KeyboardEvent)
     {
         if (console.keyDown(e.keyCode)) return;
-        state.keyDown(e.keyCode);
+        Bind.keys(e,true);
+    }
+    private function keyUp(e:KeyboardEvent)
+    {
+        Bind.keys(e,false);
     }
     private function mouseDown(_)
     {
@@ -92,10 +97,6 @@ class Main #if openfl extends Sprite #end
     private function mouseWheel(e:MouseEvent)
     {
 
-    }
-    private function keyUp(e:KeyboardEvent)
-    {
-        state.keyUp(e.keyCode);
     }
     private function _resize(_)
     {
