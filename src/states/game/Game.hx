@@ -26,8 +26,12 @@ class Game #if openfl extends states.State #end
     var objects:Objects;
     public var cameraSpeed:Float = 10;
     public var info:Text;
+    //camera
     public var tileX:Int = 0;
     public var tileY:Int = 0;
+    //offset to 0 position
+    public var offsetX:Int = 0;
+    public var offsetY:Int = 0;
     //scale used for zoom in and out
     public var scale(get, set):Float;
     function get_scale():Float 
@@ -43,7 +47,6 @@ class Game #if openfl extends states.State #end
         return scale;
     }
     #end
-    var player:Player;
     var playerInstance:PlayerInstance;
     public var mapInstance:MapInstance;
     var index:Int = 0;
@@ -73,29 +76,29 @@ class Game #if openfl extends states.State #end
         Main.screen.addChild(new FPS(10,100,0xFFFFFF));
         #end
         //connect
-        Main.client.login.accept = function()
+        if(true)
         {
-            trace("accept");
-            //set message reader function to game
-            Main.client.message = message;
-            Main.client.end = end;
-            Main.client.login = null;
-            Main.client.tag = null;
+            Main.client.login.accept = function()
+            {
+                trace("accept");
+                //set message reader function to game
+                Main.client.message = message;
+                Main.client.end = end;
+                Main.client.login = null;
+                Main.client.tag = null;
+            }
+            Main.client.login.reject = function()
+            {
+                trace("reject");
+                Main.client.login = null;
+            }
+            Main.client.login.email = "test@test.co.uk";
+            Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
+            Main.client.message = Main.client.login.message;
+            Main.client.ip = "game.krypticmedia.co.uk";
+            Main.client.port = 8007;
+            Main.client.connect();
         }
-        Main.client.login.reject = function()
-        {
-            trace("reject");
-            Main.client.login = null;
-        }
-        Main.client.login.email = "test@test.co.uk";
-        Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
-        Main.client.message = Main.client.login.message;
-        #if !openfl
-        Main.client.relay.message = relay;
-        #end
-        Main.client.ip = "game.krypticmedia.co.uk";
-        Main.client.port = 8007;
-        Main.client.connect();
     }
     //client events
     #if openfl
@@ -112,10 +115,13 @@ class Game #if openfl extends states.State #end
 
         if(Player.main != null)
         {
-            if (Bind.playerUp) Player.main.move(0,-1);
-            if (Bind.playerDown) Player.main.move(0,1);
-            if (Bind.playerLeft) Player.main.move(-1,0);
-            if (Bind.playerRight) Player.main.move(1,0);
+            var xs:Int = 0;
+            var ys:Int = 0;
+            if (Bind.playerUp) ys += 1;
+            if (Bind.playerDown) ys += -1;
+            if (Bind.playerLeft) xs += -1;
+            if (Bind.playerRight) xs += 1;
+            if (xs != 0 || ys != 0) Player.main.step(xs,ys);
         }
         //updates
         ground.update();
@@ -137,6 +143,8 @@ class Game #if openfl extends states.State #end
             objects.size(mapInstance.sizeX,mapInstance.sizeY);
             tileX = mapInstance.x;
             tileY = mapInstance.y;
+            offsetX = tileX;
+            offsetY = tileY;
             scale = 1;
             var string:String = "";
             for (y in 0...mapInstance.sizeY)
@@ -159,42 +167,28 @@ class Game #if openfl extends states.State #end
         y = (Main.setHeight - ground.height)/2 * scale;
     }
     #end
-
-    #if !openfl 
-    public function relay(input:String)
-    {
-        trace("relay " + input);
-        @:privateAccess Main.client.socket.output.writeString(input + "\n");
-    }
-    #end
+    
     public function end()
     {
-        /*switch(Main.client.tag)
+        switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
-            if (Player.main == null) Player.main = player;
+            if (Player.main == null) 
+            {
+                Player.main = objects.player;
+                Console.interp.variables.set("player",Player.main);
+            }
+            objects.player = null;
             default:
-        }*/
+        }
     }
     public function message(input:String) 
     {
-        trace(Main.client.tag + " " + input);
         switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
             playerInstance = new PlayerInstance(input.split(" "));
-            player = data.playerMap.get(playerInstance.p_id);
-            if(player == null)
-            {
-                player = new Player();
-                data.playerMap.set(playerInstance.p_id,player);
-                #if openfl
-                objects.addPlayer(playerInstance);
-                #end
-            }
-            //set instance
-            player.set(playerInstance);
-
+            objects.addPlayer(playerInstance);
             case PLAYER_MOVES_START:
             var playerMove = new PlayerMove(input.split(" "));
             if (data.playerMap.exists(playerMove.id))

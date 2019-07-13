@@ -30,10 +30,6 @@ class Client
     public var port:Int;
     public function new()
     {
-        #if !openfl
-        relay = new Router();
-        relay.bind();
-        #end
         login = new Login();
     }
     public function update()
@@ -73,18 +69,12 @@ class Client
     }
     private function process()
     {
-        //trace("data " + data + " comp " + compress);
         if(data.substring(0,1) == "#")
         {
             //behavior end #
+            if(end != null) end();
             index = 0;
-            if (data == "#")
-            {
-                if(end != null) end();
-                tag = null;
-            }else{
-                tag = data.substring(1,data.length);
-            }
+            tag = data.substring(1,data.length);
             return;
         }
         if(tag == "")
@@ -131,6 +121,7 @@ class Client
 			return;
 		}
 		socket = new Socket();
+        socket.setTimeout(99999999);
 		socket.setBlocking(false);
 		socket.setFastSend(true);
 		try {

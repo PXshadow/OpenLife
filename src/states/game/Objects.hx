@@ -1,4 +1,5 @@
 package states.game;
+import sys.FileSystem;
 import data.PlayerData.PlayerInstance;
 import sys.io.File;
 import data.AnimationData;
@@ -17,10 +18,9 @@ class Objects extends TileDisplay
     var oy:Int = 0;
     var tile:Tile;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
-    var clean:Bool = false;
-    var cleanArray:Array<Tile> = [];
     var tileX:Int = 0;
     var tileY:Int = 0;
+    public var player:Player;
     public function new(game:Game)
     {
         this.game = game;
@@ -29,35 +29,16 @@ class Objects extends TileDisplay
     //when map has changed
     public function update()
     {
-        clean = false;
-        if (ox != game.tileX || oy != game.tileY)
-        {
-            ox = game.tileX;
-            oy = game.tileY;
-            clean = true;
-        }
         for(i in 0...numTiles)
         {
             tile = getTileAt(i);
             tile.x += x;
             tile.y += y;
-            if (clean) if (tile.x > width || tile.x < -Static.GRID || tile.y > height || tile.y < -Static.GRID)
-            {
-                cleanArray.push(tile);
-            }
+            //if (tile.x > width || tile.x < -Static.GRID || tile.y > height || tile.y < -Static.GRID)
         }
-        clean = false;
-        for (tile in cleanArray) removeTile(tile);
         //reset pos
         x = 0;
         y = 0;
-    }
-    private function cleanAction()
-    {
-        for(tile in cleanArray)
-        {
-            removeTile(tile);
-        }
     }
     public function addFloor(id:Int,x:Int,y:Int)
     {
@@ -76,10 +57,15 @@ class Objects extends TileDisplay
     }
     public function addPlayer(data:PlayerInstance)
     {
-        var player:Player;
-        player = cast add(data.po_id,0,0,true);
+        player = game.data.playerMap.get(data.p_id);
+        if (player == null)
+        {
+            //new
+            player = cast add(data.po_id,0,0,true);
+            game.data.playerMap.set(data.p_id,player);
+        }
+        //set to player object
         player.set(data);
-        game.data.playerMap.set(data.p_id,player);
         addTile(player);
     }
     private function add(id:Int,x:Int,y:Int,player:Bool=false):Object
@@ -97,24 +83,27 @@ class Objects extends TileDisplay
         var obj:Object;
         if(player)
         {
-            obj = new Player();
+            obj = new Player(game);
         }else{
             obj = new Object();
         }
+        obj.oid = data.id;
         obj.x = x * Static.GRID * 1;
         obj.y = y * Static.GRID * 1;
         addTile(obj);
         var r:Rectangle;
+        //trace("numSprites " + data.numSprites);
         for(i in 0...data.numSprites)
         {
             var tile = new Tile();
             tile.id = cacheSprite(data.spriteArray[i].spriteID);
+            //check if cache sprite fail
+            if (tile.id == -1) continue;
             r = tileset.getRect(tile.id);
             //todo setup inCenterOffset
             //rot
             if (data.spriteArray[i].rot > 0)
             {
-                trace("rotation " + data.description + " value " + data.spriteArray[i].rot);
                 tile.rotation = data.spriteArray[i].rot * 365;
             }
             //flip
@@ -144,6 +133,7 @@ class Objects extends TileDisplay
                 
             }
         }
+        obj.animate();
         return obj;
     }
     private function cacheSprite(id:Int):Int
@@ -152,7 +142,13 @@ class Objects extends TileDisplay
         {
             return cacheMap.get(id);
         }
-        reader.read(File.read(Static.dir + "sprites/" + id + ".tga").readAll());
+        var path = Static.dir + "sprites/" + id + ".tga";
+        if (!FileSystem.exists(path))
+        {
+            trace("cacheSprite fail " + path);
+            return -1;
+        }
+        reader.read(File.read(path).readAll());
         var rect = new Rectangle(tileX,tileY,reader.rect.width,reader.rect.height);
         
         var color:UInt;

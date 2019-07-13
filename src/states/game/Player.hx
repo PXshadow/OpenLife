@@ -18,58 +18,56 @@ class Player #if openfl extends Object #end
     public static var main:Player;
     public var instance:PlayerInstance;
     public var ageRange:Array<{min:Float,max:Float}> = [];
-    public var animation:AnimationData;
-    
-    public function new()
+    public var game:Game;
+    public function new(game:Game)
     {
+        this.game = game;
         #if openfl
         super();
         #end
-        main = this;
+        trace("new player");
     }
-    public function move(mx:Int,my:Int)
+    public function step(mx:Int,my:Int)
     {
         //movement timer
         if (moveTimer != null) return;
         //instance.move_speed/Static.GRID
-        var time = instance.move_speed * Static.GRID * 1000;
+        var time = instance.move_speed * Static.GRID;
         moveTimer = new Timer(time);
         moveTimer.run = function()
         {
             //change data pos
             instance.x += mx;
             instance.y += my;
+            pos();
             moveTimer.stop();
             moveTimer = null;
         }
         //send data
         lastMove++;
         Main.client.send("MOVE " + instance.x + " " + instance.y + " @" + lastMove + " " + mx + " " + my);
-        trace("time " + time);
         //tween
         #if openfl
-        Actuate.tween(this,0.4,{x:(instance.x + mx) * Static.GRID,y:-(instance.y + my) * Static.GRID});
+        Actuate.tween(this,time/1000,{x: x + mx * Static.GRID,y: y + my * Static.GRID});
         #end
-    }
-    public function animate()
-    {
-        if (animation != null) return;
-        animation = new AnimationData(instance.po_id);
-        if(animation.fail)
-        {
-            trace("player animation fail " + instance.po_id);
-            return;
-        }
-        trace("param " + animation.record[0].params);
     }
     public function set(data:PlayerInstance)
     {
         instance = data;
-        //pos
-        x = instance.x;
-        y = -instance.y;
+        trace("force " + instance.forced);
+        if (instance.forced == 1) 
+        {
+            trace("forced");
+            Actuate.pause(this);
+            Main.client.send("FORCE " + instance.x + " " + instance.y);
+        }
+        pos();
         age();
-        animate();
+    }
+    public function pos()
+    {
+        x = (-game.offsetX + instance.x) * Static.GRID;
+        y = (-game.offsetY - instance.y) * Static.GRID;
     }
     public function age()
     {

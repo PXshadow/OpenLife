@@ -167,7 +167,7 @@ class PlayerMove
                 {
                     if(index%2 == 0)
                     {
-                        moves[moves.length - 1].y = -Std.parseInt(value);
+                        moves[moves.length - 1].y = Std.parseInt(value);
                     }else{
                         moves.push({x:Std.parseInt(value),y:0});
                     }
@@ -179,6 +179,7 @@ class PlayerMove
     }
     public function movePlayer(player:Player)
     {
+        if (player == Player.main) return;
         if(player.instance.x == xs + moves[moves.length - 1].x && player.instance.y == ys + moves[moves.length - 1].y)
         {
             //same move
@@ -191,8 +192,7 @@ class PlayerMove
 
         //visuals
         #if openfl
-        player.x = player.instance.x * Static.GRID;
-        player.y = -player.instance.y * Static.GRID;
+        player.pos();
         Actuate.pause(player);
         var delay:Float = 0;
         var moveTime:Float = current/moves.length;
@@ -202,9 +202,9 @@ class PlayerMove
         for(move in moves)
         {
             path.line(
-            (move.x + player.instance.x) * Static.GRID,
+            (-player.game.offsetX + move.x + player.instance.x) * Static.GRID,
             //flip
-            (move.y - player.instance.y) * Static.GRID,
+            (-player.game.offsetY - move.y - player.instance.y) * Static.GRID,
             1);
         }
         Actuate.pause(player);
@@ -214,8 +214,6 @@ class PlayerMove
             //player.tileX = Std.int(player.x/Static.GRID);
             //player.tileY = Std.int(player.y/Static.GRID);
         }).ease(Quad.easeInOut);
-        player.instance.x = moves[moves.length - 1].x;
-        player.instance.y = moves[moves.length - 1].y;
         #end
     }
 }

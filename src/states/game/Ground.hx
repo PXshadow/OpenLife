@@ -60,7 +60,7 @@ class Ground extends TileDisplay
     }
     public function update()
     {
-        //if (tileArray.length == 0) return;
+        if (tileArray.length == 0) return;
         moveX();
         moveY();
     }
@@ -128,6 +128,7 @@ class Ground extends TileDisplay
     }
     public function get(x:Int,y:Int):Int
     {
+        //grabbing camera position *important
         x = game.tileX + x;
         y = game.tileY + y;
         var id:Null<Int> = game.data.map.biome.get(x + "." + y);

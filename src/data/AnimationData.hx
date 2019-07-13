@@ -6,13 +6,13 @@ class AnimationData extends LineReader
 {
     public var fail:Bool = false;
     public var record:Vector<AnimationRecord>;
-    public function new(id:Float)
+    public function new(id:Int)
     {
         super();
-        //#if !openfl
+        #if !openfl
         fail = true;
         return;
-        //#end
+        #end
         if (!FileSystem.exists(Static.dir + "animations/" + id + "_0.txt"))
         {
             fail = true;
@@ -35,7 +35,7 @@ class AnimationData extends LineReader
         var animation = new AnimationRecord();
         animation.id = getInt();
         //type
-        /*switch(getInt())
+        switch(getInt())
         {
             case 0: animation.type = ground;
             case 1: animation.type = held;
@@ -43,9 +43,9 @@ class AnimationData extends LineReader
             case 3: animation.type = eating;
             case 4: animation.type = doing;
             case 5: animation.type = endAnimType;
-        }*/
+        }
         //rand start phase
-        trace("i " + getFloat());
+        getFloat();
         //next++;
         //num
         animation.numSounds = getInt();
@@ -102,22 +102,22 @@ class AnimationParameter
     // in pixels
     public var xAmp:Float = 0;
     // between 0 and 1
-    public var xPhase:Bool = false;
+    public var xPhase:Float = 0;
 
     public var yOscPerSec:Float = 0;
     public var yAmp:Float = 0;
-    public var yPhase:Bool = false;
+    public var yPhase:Float = 0;
 
     public var rotationCenterOffset:Point;
 
     // can be positive (CW) or negative (CCW)
     public var rotPerSec:Float = 0;
-    public var rotPhase:Bool = false;
+    public var rotPhase:Float = 0;
 
     public var rockOscPerSec:Float = 0;
     // between 0 and 1, where 1 is full rotation before coming back
     public var rockAmp:Float = 0;
-    public var rockPhase:Bool = false;
+    public var rockPhase:Float = 0;
         
     // for animations that run for a while and pause between runs
     // ticking cogs, twitching animal noses, etc.
@@ -143,6 +143,33 @@ class AnimationParameter
     public function process(array:Array<String>)
     {
         trace("array " + array);
+        var i:Int = 0;
+        xOscPerSec = Std.parseFloat(array[i++]);
+        xAmp = Std.parseFloat(array[i++]);
+        xPhase = Std.parseFloat(array[i++]);
+
+        yOscPerSec = Std.parseFloat(array[i++]);
+        yAmp = Std.parseFloat(array[i++]);
+        yPhase = Std.parseFloat(array[i++]);
+
+        trace("rotation offset " + array[i++]);
+
+        rotPerSec = Std.parseFloat(array[i++]);
+        rotPhase = Std.parseFloat(array[i++]);
+
+        rockOscPerSec = Std.parseFloat(array[i++]);
+        rockAmp = Std.parseFloat(array[i++]);
+        rockPhase = Std.parseFloat(array[i++]);
+
+        durationSec = Std.parseFloat(array[i++]);
+        pauseSec = Std.parseFloat(array[i++]);
+
+        fadeOscPerSec = Std.parseFloat(array[i++]);
+        fadeHardness = Std.parseFloat(array[i++]);
+        fadeMin = Std.parseFloat(array[i++]);
+        fadeMax = Std.parseFloat(array[i++]);
+        fadePhase = Std.parseFloat(array[i++]);
+        
     }
 }
 enum AnimationType

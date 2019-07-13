@@ -37,9 +37,9 @@ class Program
         return this;
     }
     //move player
-    public function move(x:Int,y:Int):Program
+    public function step(x:Int,y:Int):Program
     {
-        Player.main.move(x,y);
+        Player.main.step(x,y);
         return this;
     }
     private function id(name:String):Array<Int>
