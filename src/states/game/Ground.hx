@@ -131,9 +131,7 @@ class Ground extends TileDisplay
     public function get(x:Int,y:Int):Int
     {
         //grabbing camera position *important
-        trace(y + " " + x);
         var id:Null<Int> = game.data.map.biome[y - game.data.map.setY][x - game.data.map.setX];
-        trace("id " + id);
         var index:Int = 0;
         if (id == null)
         {

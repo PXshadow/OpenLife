@@ -174,7 +174,6 @@ class Game #if openfl extends states.State #end
             {
                 for(x in mapInstance.x...mapInstance.x + mapInstance.sizeX)
                 {
-                    trace("x " + Std.string(mapInstance.x - data.map.setX) + " y " + Std.string(mapInstance.y - data.map.setY));
                     ground.tileArray[y - data.map.setY][x - data.map.setX].id = ground.get(x,y);
                     objects.addFloor(data.map.floor[y - data.map.setY][x - data.map.setX],x,y);
                     objects.addObject(data.map.object[y - data.map.setY][x - data.map.setX],x,y);

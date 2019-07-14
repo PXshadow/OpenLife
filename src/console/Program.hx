@@ -1,5 +1,6 @@
 package console;
 
+import states.game.Object;
 import states.game.Player;
 import states.game.Game;
 class Program
@@ -15,6 +16,53 @@ class Program
     {
         return this;
     }
+    public function apply(target:String,properties:Dynamic):Program
+    {
+        var array = get(target);
+        if (array.length > 0)
+        {
+            var fields = Reflect.fields(properties);
+            for (obj in array)
+            {
+                for (field in fields)
+                {
+                    if (Reflect.hasField(obj,field))
+                    {
+                        //apply field
+                        Reflect.setField(obj,field,Reflect.getProperty(properties,field));
+                    }else{
+                        break;
+                    }
+                }
+            }
+        }
+        return this;
+    }
+    public function get(target:String):Array<Object>
+    {
+        var targets:Array<Object> = [];
+        var list = id(target);
+        if (list.length == 0) 
+        {
+            trace("unable to find target " + target);
+            return targets;
+        }
+        var obj:Object;
+        for (i in 0...game.objects.numTiles)
+        {
+            obj = cast game.objects.getTileAt(i);
+            if (list.indexOf(obj.oid) >= 0)
+            {
+                targets.push(obj);
+            }
+        }
+        return targets;
+    }
+    /**
+     * Find Object within range and set goal
+     * @param name 
+     * @return Program
+     */
     public function find(name:String):Program
     {
         id(name);
@@ -52,7 +100,7 @@ class Program
             [31];
             default: 
             [-1];
-            case "trees":
+            case "trees" | "tree":
             [
                 760, //Dead Tree
                 527, //Willow Tree
@@ -89,6 +137,25 @@ class Program
                 1876, //Languishing Domestic Mango Tree
                 1922, //Dry Fertile Domestic Mango Tree
                 1923, //Wet Fertile Domestic Mango Tree
+            ];
+            case "water source":
+            [
+                511, //Pound
+                662, //Shallow Well
+                660, //Full Bucket of Water
+                1099, //Partial Buket Of Water
+            ];
+            case "water source bucket":
+            [
+                663, //Deep Well
+                1097, //Full Deep Well
+                706, //Ice Hole
+            ];
+            case "Bucket":
+            [
+                659, //Empty Bucket
+                660, //Full Bucket of Water
+                1099, //Partial Buket Of Water
             ];
             case "danger":
             //thanks Hetuw (Whatever)
