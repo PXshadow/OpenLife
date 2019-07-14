@@ -35,7 +35,6 @@ class Player #if openfl extends Object #end
     }
     public function update()
     {
-        trace("update");
         if (timeInt <= 0) move();
         if (timeInt > 0)
         {
@@ -49,34 +48,22 @@ class Player #if openfl extends Object #end
         if(moves.length > 0)
         {
             var point = moves.pop();
+            instance.x += Std.int(point.x);
+            instance.y += Std.int(point.y);
+            sort();
             velocityX = (point.x * Static.GRID) / time;
-            velocityY = (point.y * Static.GRID) / time;  
+            velocityY = (-point.y * Static.GRID) / time;  
             timeInt = time;
         }
     }
     public function step(mx:Int,my:Int)
     {
-        //movement timer
-        if (moveTimer != null) return;
+        if (timeInt > 0) return;
         var time = Static.GRID/(Static.GRID * instance.move_speed);
-        trace("time " + time);
-        moveTimer = new Timer(time * 1000);
-        moveTimer.run = function()
-        {
-            //change data pos
-            instance.x += mx;
-            instance.y += my;
-            #if !openfl
-            pos();
-            #end
-            moveTimer.stop();
-            moveTimer = null;
-        }
         //send data
         lastMove++;
         Main.client.send("MOVE " + instance.x + " " + instance.y + " @" + lastMove + " " + mx + " " + my);
         this.time = Std.int(time * 60);
-        trace("frames " + this.time);
         moves = [new Point(mx,my)];
     }
     public function set(data:PlayerInstance)
@@ -96,6 +83,12 @@ class Player #if openfl extends Object #end
     {
         x = (-game.offsetX + instance.x) * Static.GRID;
         y = (-game.offsetY - instance.y) * Static.GRID;
+        sort();
+    }
+    public function sort()
+    {
+        //keep player on z order
+        
     }
     public function age()
     {

@@ -1,4 +1,5 @@
 package states.game;
+import haxe.ds.Vector;
 import sys.FileSystem;
 import data.PlayerData.PlayerInstance;
 import sys.io.File;
@@ -29,31 +30,32 @@ class Objects extends TileDisplay
     //when map has changed
     public function update()
     {
-        for(i in 0...numTiles)
-        {
-            tile = getTileAt(i);
-            tile.x += x;
-            tile.y += y;
-            //if (tile.x > width || tile.x < -Static.GRID || tile.y > height || tile.y < -Static.GRID)
-        }
-        //reset pos
-        x = 0;
-        y = 0;
+
     }
     public function addFloor(id:Int,x:Int,y:Int)
     {
         add(id,x,y);
     }
-    public function addObject(string:String,x:Int,y:Int)
+    public function addObject(vector:Vector<Int>=null,x:Int,y:Int)
     {
-        var id:Null<Int> = Std.parseInt(string);
-        if (id != null)
+        if (vector == null) return;
+        for (id in vector)
         {
             //single object
             add(id,x,y);
-        }else{
-            //group
         }
+    }
+    public function sort()
+    {
+        @:privateAccess __group.__tiles.sort(function(a:Tile,b:Tile)
+        {
+            if(a.y > b.y)
+            {
+                return 1;
+            }else{
+                return -1;
+            }
+        });
     }
     public function addPlayer(data:PlayerInstance)
     {
@@ -66,7 +68,6 @@ class Objects extends TileDisplay
         }
         //set to player object
         player.set(data);
-        addTile(player);
     }
     public function add(id:Int,x:Int,y:Int,player:Bool=false):Object
     {
@@ -89,11 +90,12 @@ class Objects extends TileDisplay
         }
         obj.oid = data.id;
         obj.loadAnimation();
-        obj.x = x * Static.GRID * 1;
-        obj.y = y * Static.GRID * 1;
-        addTile(obj);
+        obj.x = (x - game.data.map.setX) * Static.GRID * 1;
+        obj.y = (-y - game.data.map.setY) * Static.GRID * 1;
+        addTileAt(obj,0);
         var r:Rectangle;
         //trace("numSprites " + data.numSprites);
+        var parents:Array<Int> = [];
         for(i in 0...data.numSprites)
         {
             var tile = new Tile();
@@ -112,11 +114,6 @@ class Objects extends TileDisplay
             {
                 tile.scaleX = data.spriteArray[i].hFlip;
             }
-            //parent
-            if (data.spriteArray[i].parent >= 0)
-            {
-                
-            }
             //pos
             tile.x = data.spriteArray[i].pos.x - data.spriteArray[i].inCenterXOffset * 1 - r.width/2;
             tile.y = -data.spriteArray[i].pos.y - data.spriteArray[i].inCenterYOffset * 1 - r.height/2;
@@ -125,8 +122,7 @@ class Objects extends TileDisplay
             tile.colorTransform.redMultiplier = data.spriteArray[i].color[0];
             tile.colorTransform.greenMultiplier = data.spriteArray[i].color[1];
             tile.colorTransform.blueMultiplier = data.spriteArray[i].color[2];
-            obj.addTile(tile);
-
+            obj.add(tile,i,data.spriteArray[i].parent);
             if(player)
             {
                 //player data set

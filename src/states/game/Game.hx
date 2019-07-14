@@ -1,5 +1,6 @@
 package states.game;
 
+import haxe.ds.Vector;
 import data.PlayerData.PlayerType;
 import console.Program;
 import console.Console;
@@ -30,6 +31,8 @@ class Game #if openfl extends states.State #end
     //camera
     public var tileX:Int = 0;
     public var tileY:Int = 0;
+    public var sizeX:Int = 0;
+    public var sizeY:Int = 0;
     //offset to 0 position
     public var offsetX:Int = 0;
     public var offsetY:Int = 0;
@@ -77,7 +80,7 @@ class Game #if openfl extends states.State #end
         Main.screen.addChild(new FPS(10,100,0xFFFFFF));
         #end
         //connect
-        if(!true)
+        if(true)
         {
             Main.client.login.accept = function()
             {
@@ -102,12 +105,14 @@ class Game #if openfl extends states.State #end
         }else{
             //playground
             objects.size(Main.setWidth,Main.setHeight);
-            Player.main = cast objects.add(19,0,0,true);
+
+            setPlayer(cast(objects.add(19,0,0,true),Player));
             Player.main.instance = new PlayerInstance([]);
             Player.main.instance.move_speed = 3;
             data.playerMap.set(0,Player.main);
-            objects.addObject("30",1,1);
 
+            objects.add(30,1,1);
+            objects.add(575,2,2).animate(2);
         }
     }
     //client events
@@ -127,13 +132,13 @@ class Game #if openfl extends states.State #end
         {
             var xs:Int = 0;
             var ys:Int = 0;
-            if (Bind.playerUp.bool) ys += -1;
-            if (Bind.playerDown.bool) ys += 1;
+            if (Bind.playerUp.bool) ys += 1;
+            if (Bind.playerDown.bool) ys += -1;
             if (Bind.playerLeft.bool) xs += -1;
             if (Bind.playerRight.bool) xs += 1;
             if (xs != 0 || ys != 0) Player.main.step(xs,ys);
             //animations
-            if (Bind.playerDrop.bool) Player.main.animate(0);
+            if (Bind.playerDrop.bool) Player.main.animate(2);
             //grabs object where standing
             //if (Bind.playerPick.bool) 
         }
@@ -149,25 +154,30 @@ class Game #if openfl extends states.State #end
     }
     public function mapUpdate() 
     {
+        trace("MAP UPDATE");
         if(inital)
         {
-            ground.size(mapInstance.sizeX,mapInstance.sizeY);
-            objects.size(mapInstance.sizeX,mapInstance.sizeY);
+            sizeX = mapInstance.sizeX;
+            sizeY = mapInstance.sizeY;
+            ground.size(sizeX,sizeY);
+            objects.size(sizeX,sizeY);
             tileX = mapInstance.x;
             tileY = mapInstance.y;
             offsetX = tileX;
             offsetY = tileY;
+            //centers
             scale = 1;
-            var string:String = "";
-            trace("map update begin");
-            for (y in 0...mapInstance.sizeY)
+            //mapInstance.x = mapInstance.x - data.map.setX;
+            //mapInstance.y = mapInstance.y - data.map.setY;
+            trace("map update begin " + mapInstance.x + " " + mapInstance.y);
+            for (y in mapInstance.y...mapInstance.y + mapInstance.sizeY)
             {
-                for(x in 0...mapInstance.sizeX)
+                for(x in mapInstance.x...mapInstance.x + mapInstance.sizeX)
                 {
-                    ground.tileArray[y][x].id = ground.get(y,x);
-                    string = Std.string(x + tileX) + "." + Std.string(y + tileY);
-                    objects.addFloor(data.map.floor.get(string),x,y);
-                    objects.addObject(data.map.object.get(string),x,y);
+                    trace("x " + Std.string(mapInstance.x - data.map.setX) + " y " + Std.string(mapInstance.y - data.map.setY));
+                    ground.tileArray[y - data.map.setY][x - data.map.setX].id = ground.get(x,y);
+                    objects.addFloor(data.map.floor[y - data.map.setY][x - data.map.setX],x,y);
+                    objects.addObject(data.map.object[y - data.map.setY][x - data.map.setX],x,y);
                 }
             }
             trace("game offset x " + x + " y " + y + " ground width " + ground.width + " height " + ground.height);
@@ -189,12 +199,16 @@ class Game #if openfl extends states.State #end
             trace("set main");
             if (Player.main == null) 
             {
-                Player.main = objects.player;
-                Console.interp.variables.set("player",Player.main);
+                setPlayer(objects.player);
             }
             objects.player = null;
             default:
         }
+    }
+    public function setPlayer(player:Player)
+    {
+        Player.main = player;
+        Console.interp.variables.set("player",Player.main);
     }
     public function message(input:String) 
     {
@@ -243,9 +257,6 @@ class Game #if openfl extends states.State #end
                         //set min
                         data.map.setX = mapInstance.x < data.map.setX ? mapInstance.x : data.map.setX;
                         data.map.setY = mapInstance.y < data.map.setY ? mapInstance.y : data.map.setY;
-                        //set max
-                        data.map.setWidth = mapInstance.sizeX + mapInstance.x > data.map.setWidth ? mapInstance.sizeX + mapInstance.x : data.map.setWidth;
-                        data.map.setHeight = mapInstance.sizeY + mapInstance.y > data.map.setHeight ? mapInstance.sizeY + mapInstance.y : data.map.setHeight;
                         trace("map chunk " + mapInstance.toString());
                         index = 0;
                         //set compressed size wanted

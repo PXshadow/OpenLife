@@ -31,6 +31,9 @@ class Bind
         playerDown.set(e,bool);
         playerLeft.set(e,bool);
         playerRight.set(e,bool);
+
+        playerPick.set(e,bool);
+        playerDrop.set(e,bool);
     }
 }
 class Action

@@ -12,6 +12,9 @@
 	<haxelib name="hscript" unless="html5"/>
 	<haxelib name="discord_rpc" if="cpp"/>
 
+	<haxedef name="HXCPP_STACK_LINE" if="debug"/>
+	<haxedef name="HXCPP_STACK_TRACE" if="debug"/>
+
 	<haxedef name="dom" if="html5"/>
 	<icon path="icon.svg"/>
 	<assets name="assets" embed="false"/>

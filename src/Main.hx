@@ -37,6 +37,7 @@ class Main #if openfl extends Sprite #end
     public function new()
     {
         super();
+        //stored appdata
         so = SharedObject.getLocal("client",null,true);
         //events
         addEventListener(Event.ENTER_FRAME,update);
@@ -50,7 +51,7 @@ class Main #if openfl extends Sprite #end
         client = new client.Client();
         //set state
         screen = new DisplayObjectContainer();
-        screen.mouseEnabled = false;
+        screen.mouseChildren = false;
         screen.mouseEnabled = false;
         addChild(screen);
         state = new states.launcher.Launcher();

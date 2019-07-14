@@ -39,15 +39,17 @@ class Ground extends TileDisplay
     private function pool()
     {
         //array that holds tiles y than x
+        var ys:Int = 0;
         for(j in 0...tileHeight)
         {
-            tileArray[j] = [];
+            ys = j;
+            tileArray[ys] = [];
             for(i in 0...tileWidth)
             {
                 var tile = new Tile();
                 tile.x = i * Static.GRID;
                 tile.y = j * Static.GRID;
-                tileArray[j][i] = tile;
+                tileArray[ys][i] = tile;
                 addTile(tile);
             }
         }
@@ -76,7 +78,7 @@ class Ground extends TileDisplay
                 //shift
                 current = tileArray[i].pop();
                 current.x = 0;
-                current.id = get(0,i);
+                //current.id = get(0,i);
                 tileArray[i].unshift(current);
             }
             x += -Static.GRID;
@@ -91,7 +93,7 @@ class Ground extends TileDisplay
                 //shift
                 current = tileArray[i].shift();
                 current.x = (tileWidth - 1) * Static.GRID;
-                current.id = get(tileWidth - 1,i);
+                //current.id = get(tileWidth - 1,i);
                 tileArray[i].push(current);
             }
             x += Static.GRID;
@@ -107,7 +109,7 @@ class Ground extends TileDisplay
             for (i in 0...row.length)
             {
                 row[i].y = 0;
-                row[i].id = get(i,0);
+                //row[i].id = get(i,0);
             }
             tileArray.unshift(row);
             y += -Static.GRID;
@@ -120,7 +122,7 @@ class Ground extends TileDisplay
             for (i in 0...row.length)
             {
                 row[i].y = (tileHeight - 1) * Static.GRID;
-                row[i].id = get(i,tileHeight - 1);
+                //row[i].id = get(i,tileHeight - 1);
             }
             tileArray.push(row);
             y += Static.GRID;
@@ -129,9 +131,9 @@ class Ground extends TileDisplay
     public function get(x:Int,y:Int):Int
     {
         //grabbing camera position *important
-        x = game.tileX + x;
-        y = game.tileY + y;
-        var id:Null<Int> = game.data.map.biome.get(x + "." + y);
+        trace(y + " " + x);
+        var id:Null<Int> = game.data.map.biome[y - game.data.map.setY][x - game.data.map.setX];
+        trace("id " + id);
         var index:Int = 0;
         if (id == null)
         {

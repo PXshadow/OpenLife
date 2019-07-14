@@ -15,8 +15,11 @@ class AnimationData extends LineReader
         #end
         if (!FileSystem.exists(Static.dir + "animations/" + id + "_0.txt"))
         {
+            trace("animation data fail " + id);
             fail = true;
             return;
+        }else{
+            trace("animation " + id);
         }
         record = new Vector<AnimationRecord>(5 + 1);
         for( i in 0...5 + 1) 
@@ -35,7 +38,17 @@ class AnimationData extends LineReader
         var animation = new AnimationRecord();
         animation.id = getInt();
         //type
-        switch(getInt())
+        var string = getString();
+        var cut:Int = string.indexOf(",");
+        var sep = string.indexOf(":");
+        if (animation.type == moving) trace("moving process");
+        if (sep == -1)
+        {
+            sep = cut;
+        }else{
+            //extra index read
+        }
+        switch(Std.parseInt(string.substring(0,sep)))
         {
             case 0: animation.type = ground;
             case 1: animation.type = held;
@@ -45,12 +58,20 @@ class AnimationData extends LineReader
             case 5: animation.type = endAnimType;
         }
         //rand start phase
-        animation.randStartPhase = getFloat();
+        animation.randStartPhase = Std.parseFloat(string.substring(cut + 1,string.length));
+
+        if (readName("forceZeroStart"))
+        {
+            next++;
+        }
         //next++;
         //num
-        animation.numSounds = getInt();
-        //skip over sounds
-        if (animation.numSounds > 0) for(i in 0...animation.numSounds) next++;
+        if (readName("numSounds"))
+        {
+            animation.numSounds = getInt();
+            //skip over sounds
+            if (animation.numSounds > 0) for(i in 0...animation.numSounds) getString();
+        }
         animation.numSprites = getInt();
         animation.numSlots = getInt();
         //Params
@@ -73,7 +94,8 @@ class AnimationData extends LineReader
             param.startPauseSec = getFloat();
         }
         //animation param
-        param.process(getString().split(" "));
+        var animParam = getString();
+        param.process(animParam.split(" "));
         return param;
     }
 }
@@ -90,6 +112,15 @@ class AnimationRecord
     public function new()
     {
 
+    }
+    public function toString():String
+    {
+        var string:String = "";
+        for(field in Reflect.fields(this))
+        {
+            string += field + ": " + Reflect.getProperty(this,field) + "\n";
+        }
+        return string;
     }
 }
 class AnimationParameter
@@ -148,7 +179,7 @@ class AnimationParameter
         xOscPerSec = Std.parseFloat(array[i++]);
         xAmp = Std.parseFloat(array[i++]);
         xPhase = Std.parseFloat(array[i++]);
-
+        //trace("yosc " + array[i]);
         yOscPerSec = Std.parseFloat(array[i++]);
         yAmp = Std.parseFloat(array[i++]);
         yPhase = Std.parseFloat(array[i++]);

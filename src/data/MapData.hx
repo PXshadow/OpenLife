@@ -1,4 +1,5 @@
 package data;
+import haxe.ds.Vector;
 #if sys
 import sys.io.File;
 #end
@@ -6,19 +7,13 @@ import haxe.io.Bytes;
 import states.game.Player;
 class MapData
 {
-    //column, row
-    /*public var biome:Array<Array<Int>> = [];
+    public var biome:Array<Array<Int>> = [];
     public var floor:Array<Array<Int>> = [];
-    public var object:Array<Array<String>> = [];*/
-
-    public var biome = new Map<String,Int>();
-    public var floor = new Map<String,Int>();
-    public var object = new Map<String,String>();
+    //container -> container -> obj
+    public var object:Array<Array<Vector<Int>>> = [];
 
     public var setX:Int = 0;
     public var setY:Int = 0;
-    public var setWidth:Int = 0;
-    public var setHeight:Int = 0;
     public function new()
     {
         
@@ -26,23 +21,39 @@ class MapData
     public function setRect(x:Int,y:Int,width:Int,height:Int,string:String)
     {
         var a:Array<String> = string.split(" ");
-        //trace("a " + a);
-        var data:Array<String> = [];
-        var string:String = "";
+        var data:Array<String>;
+        var k:Int = 0;
         var index:Int = 0;
-        if (width * height != a.length) throw("invalid a length");
-        for(j in y...y + height)
+        trace("a " + a.length);
+        //bottom left
+        for(j in y - setY...y - setY + height)
         {
-            for(i in x...x + width)
+            biome[j] = [];
+            floor[j] = [];
+            object[j] = [];
+            for (i in x - setX...x - setX + width)
             {
-                string = i + "." + Std.string(j * -1);
-                data = a[index++].split(":");
-                biome.set(string,Std.parseInt(data[0]));
-                floor.set(string,Std.parseInt(data[1]));
-                object.set(string,data[2]);
+                string = a.pop();
+                k = string.lastIndexOf(":");
+                data = string.substring(0,k).split(":");
+                biome[j][i] = Std.parseInt(data[0]);
+                floor[j][i] = Std.parseInt(data[1]);
+                //final
+                string = string.substring(k + 1,string.length);
+                if (string.indexOf(",") >= 0)
+                {
+                    if (string.indexOf(":") >= 0)
+                    {
+                        //double container
+                    }else{
+                        //single container
+                    }
+                }else{
+                    object[j][i] = Vector.fromArrayCopy([Std.parseInt(string)]);
+                }
             }
         }
-        if(index < width * height) throw("Missed data, index " + index);
+        //trace(biome);   
     }
 }
 class MapInstance

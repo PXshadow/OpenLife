@@ -7,3 +7,7 @@ xml
 .gitignore
 .bat
 .yml
+.md
+.json
+.cmd
+.sh

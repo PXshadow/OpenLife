@@ -72,6 +72,10 @@ class LineReader
     }
     public function getString():String
     {
+        if (next + 1 > line.length)
+        {
+            throw("max " + line);
+        }
         var string = line[next++];
         if(string == null || string == "") return "";
         var equals = string.indexOf("=");

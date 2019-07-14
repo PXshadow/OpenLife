@@ -179,7 +179,7 @@ class PlayerMove
     }
     public function movePlayer(player:Player)
     {
-        if (player == Player.main) return;
+        //if (player == Player.main) return;
         if(player.instance.x == xs + moves[moves.length - 1].x && player.instance.y == ys + moves[moves.length - 1].y)
         {
             //same move
@@ -195,24 +195,15 @@ class PlayerMove
         player.pos();
         Actuate.pause(player);
         var delay:Float = 0;
-        var moveTime:Float = current/moves.length;
-        //trace("delay " + delay + " moveTime " + moveTime);
-        var path = new MotionPath();
+        var currentX:Int = 0;
+        var currentY:Int = 0;
+        player.time = Std.int(current/moves.length) * 60;
         for(move in moves)
         {
-            path.line(
-            (-player.game.offsetX + move.x + player.instance.x) * Static.GRID,
-            //flip
-            (-player.game.offsetY - move.y - player.instance.y) * Static.GRID,
-            1);
+            player.moves.push(new data.Point(move.x - currentX,move.y - currentY));
+            currentX = move.x;
+            currentY = move.y;
         }
-        Actuate.pause(player);
-        Actuate.motionPath(player,current,{x:path.x,y:path.y}).onComplete(function(_)
-        {
-            //set new player tile x and y
-            //player.tileX = Std.int(player.x/Static.GRID);
-            //player.tileY = Std.int(player.y/Static.GRID);
-        }).ease(Quad.easeInOut);
         #end
     }
 }
