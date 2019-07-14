@@ -2,6 +2,11 @@ package data;
 import sys.FileSystem;
 import sys.io.File;
 import haxe.ds.Vector;
+enum ObjectType {
+    OBJECT;
+    FLOOR;
+    PLAYER;
+}
 class ObjectData extends LineReader
 {
     public var id:Int=0;

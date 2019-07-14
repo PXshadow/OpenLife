@@ -1,7 +1,8 @@
-- optimize ground system possibly only use a bitmap system rather than tile, or a draw quad system to allow drawing
-- player move system animate
-- refrence haxeflixel console for auto complete hscript
+- map is flipped x, fix, biomes are wrong need to fix
+- player hold object in hand
+- work on making client playable
 
+- player move system animate
 
 
 

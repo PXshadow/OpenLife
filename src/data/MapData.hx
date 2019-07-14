@@ -33,7 +33,7 @@ class MapData
             object[j] = [];
             for (i in x - setX...x - setX + width)
             {
-                string = a.pop();
+                string = a.shift();
                 k = string.lastIndexOf(":");
                 data = string.substring(0,k).split(":");
                 biome[j][i] = Std.parseInt(data[0]);

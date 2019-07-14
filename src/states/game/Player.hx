@@ -32,15 +32,19 @@ class Player #if openfl extends Object #end
         #if openfl
         super();
         #end
+        type = PLAYER;
     }
     public function update()
     {
         if (timeInt <= 0) move();
         if (timeInt > 0)
         {
+            //add to pos
             x += velocityX;
             y += velocityY;
+            //remove time per frame
             timeInt--;
+            if (timeInt <= 0) game.objects.sort();
         }
     }
     public function move()
@@ -48,9 +52,19 @@ class Player #if openfl extends Object #end
         if(moves.length > 0)
         {
             var point = moves.pop();
+            pos();
             instance.x += Std.int(point.x);
             instance.y += Std.int(point.y);
-            sort();
+            //flip
+            if (point.x != 0)
+            {
+                if (point.x > 0)
+                {
+                    scaleX = 1;
+                }else{
+                    scaleX = -1;
+                }
+            }
             velocityX = (point.x * Static.GRID) / time;
             velocityY = (-point.y * Static.GRID) / time;  
             timeInt = time;
@@ -73,9 +87,10 @@ class Player #if openfl extends Object #end
         if (instance.forced == 1) 
         {
             trace("forced");
-            Actuate.pause(this);
             Main.client.send("FORCE " + instance.x + " " + instance.y);
         }
+        timeInt = 0;
+        moves = [];
         pos();
         age();
     }
@@ -83,12 +98,6 @@ class Player #if openfl extends Object #end
     {
         x = (-game.offsetX + instance.x) * Static.GRID;
         y = (-game.offsetY - instance.y) * Static.GRID;
-        sort();
-    }
-    public function sort()
-    {
-        //keep player on z order
-        
     }
     public function age()
     {

@@ -11,6 +11,9 @@ class Object extends TileContainer
     public var animation:AnimationData;
     public var map:Map<Int,Vector<Int>> = new Map<Int,Vector<Int>>();
     public var parents:Map<Int,TileContainer> = new Map<Int,TileContainer>();
+    public var tileX:Int = 0;
+    public var tileY:Int = 0;
+    public var type:ObjectType = OBJECT;
     public function new()
     {
         super();

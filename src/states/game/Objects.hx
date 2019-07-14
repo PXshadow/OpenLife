@@ -34,7 +34,11 @@ class Objects extends TileDisplay
     }
     public function addFloor(id:Int,x:Int,y:Int)
     {
-        add(id,x,y);
+        var floor = add(id,x,y);
+        if (floor != null)
+        {
+            floor.type = FLOOR;
+        }
     }
     public function addObject(vector:Vector<Int>=null,x:Int,y:Int)
     {
@@ -56,6 +60,10 @@ class Objects extends TileDisplay
                 return -1;
             }
         });
+    }
+    public function sortPlayer()
+    {
+
     }
     public function addPlayer(data:PlayerInstance)
     {
@@ -90,11 +98,13 @@ class Objects extends TileDisplay
         }
         obj.oid = data.id;
         obj.loadAnimation();
-        obj.x = (x - game.data.map.setX) * Static.GRID * 1;
-        obj.y = (-y - game.data.map.setY) * Static.GRID * 1;
-        addTileAt(obj,0);
+        obj.tileX = x;
+        obj.tileY = y;
+        //addTileAt(obj,0);
+        addTile(obj);
+        obj.x = (obj.tileX - game.data.map.setX) * Static.GRID * 1;
+        obj.y = (-obj.tileY - game.data.map.setY) * Static.GRID * 1;
         var r:Rectangle;
-        //trace("numSprites " + data.numSprites);
         var parents:Array<Int> = [];
         for(i in 0...data.numSprites)
         {
@@ -122,6 +132,7 @@ class Objects extends TileDisplay
             tile.colorTransform.redMultiplier = data.spriteArray[i].color[0];
             tile.colorTransform.greenMultiplier = data.spriteArray[i].color[1];
             tile.colorTransform.blueMultiplier = data.spriteArray[i].color[2];
+            //parent
             obj.add(tile,i,data.spriteArray[i].parent);
             if(player)
             {

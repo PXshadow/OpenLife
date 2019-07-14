@@ -25,7 +25,7 @@ class Game #if openfl extends states.State #end
     #if openfl
     var dialog:Dialog;
     var ground:Ground;
-    var objects:Objects;
+    public var objects:Objects;
     public var cameraSpeed:Float = 10;
     public var info:Text;
     //camera
@@ -202,6 +202,7 @@ class Game #if openfl extends states.State #end
                 setPlayer(objects.player);
             }
             objects.player = null;
+            objects.sort();
             default:
         }
     }
