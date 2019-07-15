@@ -1,5 +1,6 @@
 package console;
 #if openfl
+import openfl.geom.ColorTransform;
 import openfl.display.Shader;
 #end
 
@@ -8,10 +9,9 @@ class Util
     //util for hscript
 
     #if openfl
-    public static function shader(string:String):Shader
+    public static function shader(name:String):Shader
     {
-        string = string.toLowerCase();
-        return switch(string)
+        return switch(name.toLowerCase())
         {
             //case "pixel": new shaders.Pixelated();
             case "dot": new shaders.DotScreen();
@@ -24,6 +24,16 @@ class Util
             //case "tech": new shaders.Technicolor();
             default: null;
         }
+    }
+    public static function color(name:String):ColorTransform
+    {
+        var transform = new ColorTransform();
+        switch(name.toLowerCase())
+        {
+            case "red":
+            transform.redOffset = 255;
+        }
+        return transform;
     }
     #end
 }

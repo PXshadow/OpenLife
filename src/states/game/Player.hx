@@ -44,7 +44,6 @@ class Player #if openfl extends Object #end
             y += velocityY;
             //remove time per frame
             timeInt--;
-            if (timeInt <= 0) game.objects.sort();
         }
     }
     public function move()
@@ -72,6 +71,7 @@ class Player #if openfl extends Object #end
     }
     public function step(mx:Int,my:Int)
     {
+        trace("move");
         if (timeInt > 0) return;
         var time = Static.GRID/(Static.GRID * instance.move_speed);
         //send data

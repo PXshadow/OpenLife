@@ -29,8 +29,8 @@ class Game #if openfl extends states.State #end
     public var cameraSpeed:Float = 10;
     public var info:Text;
     //camera
-    public var tileX:Int = 0;
-    public var tileY:Int = 0;
+    public var cameraX:Int = 0;
+    public var cameraY:Int = 0;
     public var sizeX:Int = 0;
     public var sizeY:Int = 0;
     //offset to 0 position
@@ -119,7 +119,7 @@ class Game #if openfl extends states.State #end
     #if openfl
     override function update()
     {
-        info.text = tileX + " " + tileY + "\n" + Std.string(objects.numTiles + ground.numTiles);
+        info.text = cameraX + " " + cameraY + "\n" + objects.numTiles;
         super.update();
         //controls
         var cameraArray:Array<DisplayObject> = [ground,objects];
@@ -143,7 +143,6 @@ class Game #if openfl extends states.State #end
             //if (Bind.playerPick.bool) 
         }
         //updates
-        ground.update();
         objects.update();
         //players
         var it = data.playerMap.iterator();
@@ -155,32 +154,22 @@ class Game #if openfl extends states.State #end
     public function mapUpdate() 
     {
         trace("MAP UPDATE");
-        if(inital)
+        sizeX = mapInstance.sizeX;
+        sizeY = mapInstance.sizeY;
+
+        objects.size(sizeX,sizeY);
+
+        offsetX = data.map.setX;
+        offsetY = data.map.setY;
+        cameraX = offsetX;
+        cameraY = offsetY;
+
+        for(j in mapInstance.y - data.map.setY...mapInstance.y - data.map.setY + sizeY)
         {
-            sizeX = mapInstance.sizeX;
-            sizeY = mapInstance.sizeY;
-            ground.size(sizeX,sizeY);
-            objects.size(sizeX,sizeY);
-            tileX = mapInstance.x;
-            tileY = mapInstance.y;
-            offsetX = tileX;
-            offsetY = tileY;
-            //centers
-            scale = 1;
-            //mapInstance.x = mapInstance.x - data.map.setX;
-            //mapInstance.y = mapInstance.y - data.map.setY;
-            trace("map update begin " + mapInstance.x + " " + mapInstance.y);
-            for (y in mapInstance.y...mapInstance.y + mapInstance.sizeY)
+            for (i in mapInstance.x - data.map.setX...mapInstance.x - data.map.setX + sizeX)
             {
-                for(x in mapInstance.x...mapInstance.x + mapInstance.sizeX)
-                {
-                    ground.tileArray[y - data.map.setY][x - data.map.setX].id = ground.get(x,y);
-                    objects.addFloor(data.map.floor[y - data.map.setY][x - data.map.setX],x,y);
-                    objects.addObject(data.map.object[y - data.map.setY][x - data.map.setX],x,y);
-                }
+                objects.addObject(data.map.object[j][i],j,i);
             }
-            trace("game offset x " + x + " y " + y + " ground width " + ground.width + " height " + ground.height);
-            inital = false;
         }
     }
     public function center()
@@ -257,6 +246,8 @@ class Game #if openfl extends states.State #end
                         //set min
                         data.map.setX = mapInstance.x < data.map.setX ? mapInstance.x : data.map.setX;
                         data.map.setY = mapInstance.y < data.map.setY ? mapInstance.y : data.map.setY;
+                        if (data.map.sizeX < mapInstance.x + mapInstance.sizeX) data.map.sizeX = mapInstance.x + mapInstance.sizeX;
+                        if (data.map.sizeY < mapInstance.y + mapInstance.sizeY) data.map.sizeY = mapInstance.y + mapInstance.sizeY;
                         trace("map chunk " + mapInstance.toString());
                         index = 0;
                         //set compressed size wanted

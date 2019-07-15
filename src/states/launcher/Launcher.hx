@@ -10,7 +10,6 @@ import openfl.display.Shape;
 import lime.ui.FileDialog;
 import openfl.net.URLRequest;
 import openfl.display.Sprite;
-import format.SVG;
 import openfl.Assets;
 import openfl.events.MouseEvent;
 import ui.Button;

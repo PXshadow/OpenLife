@@ -13,13 +13,11 @@ class AnimationData extends LineReader
         fail = true;
         return;
         #end
+        return;
         if (!FileSystem.exists(Static.dir + "animations/" + id + "_0.txt"))
         {
-            trace("animation data fail " + id);
             fail = true;
             return;
-        }else{
-            trace("animation " + id);
         }
         record = new Vector<AnimationRecord>(5 + 1);
         for( i in 0...5 + 1) 

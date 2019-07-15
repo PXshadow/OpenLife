@@ -30,6 +30,11 @@ class Object extends TileContainer
     public function animate(index:Int)
     {
         trace("animate " + index);
+        if (animation.record.length == 0) 
+        {
+            trace("no records for animation");
+            return;
+        }
         var record = animation.record[index];
         var param:AnimationParameter;
         var tile:Tile;
@@ -55,6 +60,7 @@ class Object extends TileContainer
     public function add(tile:Tile,i:Int,p:Int)
     {
         var vector:Vector<Int>;
+        //p = -1;
         if (p == -1)
         {
             vector = new Vector<Int>(1);
@@ -66,13 +72,16 @@ class Object extends TileContainer
             if (parent == null)
             {
                 parent = new TileContainer();
+                parents.set(p,parent);
                 addTile(parent);
+            }else{
+                //trace("parent already exists " + p);
             }
             vector[0] = getTileIndex(parent);
             if (i == p)
             {
                 //tile is parent
-                parent.x = tile.x;
+                /*parent.x = tile.x;
                 parent.y = tile.y;
                 parent.rotation = tile.rotation;
                 parent.alpha = tile.alpha;
@@ -82,7 +91,7 @@ class Object extends TileContainer
                 tile.y = 0;
                 tile.rotation = 0;
                 tile.alpha = 0;
-                tile.colorTransform = null;
+                tile.colorTransform = null;*/
             }
             parent.addTile(tile);
             vector[1] = parent.getTileIndex(tile);

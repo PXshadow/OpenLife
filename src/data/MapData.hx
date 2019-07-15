@@ -12,8 +12,11 @@ class MapData
     //container -> container -> obj
     public var object:Array<Array<Vector<Int>>> = [];
 
+    //all chunks combined
     public var setX:Int = 0;
     public var setY:Int = 0;
+    public var sizeX:Int = 0;
+    public var sizeY:Int = 0;
     public function new()
     {
         
@@ -53,7 +56,6 @@ class MapData
                 }
             }
         }
-        //trace(biome);   
     }
 }
 class MapInstance

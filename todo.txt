@@ -1,4 +1,4 @@
-- map is flipped x, fix, biomes are wrong need to fix
+- ground work on making shape so info can be drawn on it
 - player hold object in hand
 - work on making client playable
 

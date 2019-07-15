@@ -8,8 +8,7 @@
 	<haxelib name="format"/>
 	<haxelib name="openfl" />
 	<haxelib name="actuate"/>
-	<haxelib name="svg"/>
-	<haxelib name="hscript" unless="html5"/>
+	<haxelib name="hscript"/>
 	<haxelib name="discord_rpc" if="cpp"/>
 
 	<haxedef name="HXCPP_STACK_LINE" if="debug"/>

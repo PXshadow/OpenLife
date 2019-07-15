@@ -16,29 +16,26 @@ class Program
     {
         return this;
     }
+    #if openfl
+    //visual
     public function apply(target:String,properties:Dynamic):Program
     {
-        var array = get(target);
+        var array = getTiles(target);
         if (array.length > 0)
         {
             var fields = Reflect.fields(properties);
+            trace("fields " + fields);
             for (obj in array)
             {
                 for (field in fields)
                 {
-                    if (Reflect.hasField(obj,field))
-                    {
-                        //apply field
-                        Reflect.setField(obj,field,Reflect.getProperty(properties,field));
-                    }else{
-                        break;
-                    }
+                    Reflect.setProperty(obj,field,Reflect.getProperty(properties,field));
                 }
             }
         }
         return this;
     }
-    public function get(target:String):Array<Object>
+    private function getTiles(target:String):Array<Object>
     {
         var targets:Array<Object> = [];
         var list = id(target);
@@ -58,6 +55,7 @@ class Program
         }
         return targets;
     }
+    #end
     /**
      * Find Object within range and set goal
      * @param name 
@@ -125,8 +123,10 @@ class Program
                 2136, //Slashed Rubber Tree
 
                 45, //Lombardy Poplar Tree
+                65, //Lombardy Poplar Tree
 
                 99, //White Pine Tree
+                100, //White Pine Tree with Needles
                 2450, //Pine Tree with Candles
                 2461, //Pine Tree with Cardinals
                 2434, //Pine Tree with One Gardland
