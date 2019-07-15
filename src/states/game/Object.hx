@@ -1,4 +1,5 @@
 package states.game;
+import haxe.Timer;
 import haxe.ds.Vector;
 import motion.Actuate;
 import openfl.display.Tile;
@@ -29,8 +30,9 @@ class Object extends TileContainer
     }
     public function animate(index:Int)
     {
+        Sys.sleep(0.5);
         trace("animate " + index);
-        if (animation.record.length == 0) 
+        if (animation.record == null) 
         {
             trace("no records for animation");
             return;
@@ -43,18 +45,36 @@ class Object extends TileContainer
         {
             param = record.params[i];
             tile = get(i);
-            Actuate.pause(tile);
-            if (param.offset != null)
+            Actuate.stop(tile);
+            //x
+            if (param.xOscPerSec > 0)
             {
-                //trace("offset " + param.offset.x + " " + param.offset.y);
-                //tile.x += param.offset.x;
-                //tile.y += param.offset.y;
+                tile.x += param.xPhase - param.xAmp/2;
+                Actuate.tween(tile,1/param.xOscPerSec,{x:param.xPhase + param.xAmp/2},false).repeat().reflect();
             }
-            //tile.originX = param.rotationCenterOffset.x;
-            //tile.originY = param.rotationCenterOffset.y;
-
-            Actuate.tween(tile,0.2,{x:tile.x + param.xOscPerSec},false).repeat().reflect();
-            Actuate.tween(tile,0.2,{y:tile.y + param.yOscPerSec},false).repeat().reflect();
+            if (param.yOscPerSec > 0)
+            {
+                tile.x += param.yPhase - param.xAmp/2;
+                Actuate.tween(tile,1/param.yOscPerSec,{x:param.yPhase + param.yAmp/2},false).repeat().reflect();
+            }
+            if (param.rotPerSec > 0)
+            {
+                tile.rotation += param.rotPhase * 360;
+                Actuate.tween(tile,1/param.yOscPerSec,{rotation:0},false);
+            }
+            var time = new Timer(param.durationSec * 1000);
+            time.run = function()
+            {
+                Actuate.pause(tile);
+                time.stop();
+                time = new Timer(param.pauseSec * 1000);
+                time.run = function()
+                {
+                    Actuate.resume(tile);
+                    time.stop();
+                }
+            }
+            Actuate.resume(tile);
         }
     }
     public function add(tile:Tile,i:Int,p:Int)

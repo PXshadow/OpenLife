@@ -17,15 +17,20 @@ class Ground extends Shape
     var rect:Rectangle = new Rectangle(0,0,Static.GRID,Static.GRID);
     public static inline var biomeNum:Int = 6 + 1;
     var reader:TgaData;
-    private var indices:Vector<Int> = new Vector<Int>();
-	private var transforms:Vector<Float> = new Vector<Float>();
+    public var indices:Vector<Int> = new Vector<Int>();
+	public var transforms:Vector<Float> = new Vector<Float>();
     public function new(game:Game)
     {
         super();
+        cacheAsBitmapMatrix = new Matrix();
         this.game = game;
         tileset = new Tileset(new BitmapData(2000,2000,false));
         reader = new TgaData();
         for (i in 0...biomeNum) cacheBiome(i);
+    }
+    public function render()
+    {
+        graphics.clear();
         graphics.beginBitmapFill(tileset.bitmapData);
         graphics.drawQuads(tileset.rectData,indices,transforms);
     }
@@ -40,9 +45,6 @@ class Ground extends Shape
                     reader.read(File.read(Static.dir + "groundTileCache/biome_" + id + "_x" + i + "_y" + j + a + ".tga").readAll());
                     tileset.bitmapData.setPixels(rect,reader.bytes);
                     tileset.addRect(rect);
-                    indices.push(indices.length - 1);
-                    transforms.push(rect.x);
-                    transforms.push(rect.y);
                     rect.x += rect.width;
                     if (rect.x >= tileset.bitmapData.width)
                     {

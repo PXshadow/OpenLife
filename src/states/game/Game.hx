@@ -80,7 +80,7 @@ class Game #if openfl extends states.State #end
         Main.screen.addChild(new FPS(10,100,0xFFFFFF));
         #end
         //connect
-        if(true)
+        if(!true)
         {
             Main.client.login.accept = function()
             {
@@ -119,7 +119,7 @@ class Game #if openfl extends states.State #end
     #if openfl
     override function update()
     {
-        info.text = cameraX + " " + cameraY + "\n" + objects.numTiles;
+        info.text = cameraX + " " + cameraY + "\n" + objects.numTiles + "\nobjects " + objects.x + " " + objects.y;
         super.update();
         //controls
         var cameraArray:Array<DisplayObject> = [ground,objects];
@@ -164,11 +164,12 @@ class Game #if openfl extends states.State #end
         cameraX = offsetX;
         cameraY = offsetY;
 
-        for(j in mapInstance.y - data.map.setY...mapInstance.y - data.map.setY + sizeY)
+        for(j in 0...sizeY)
         {
-            for (i in mapInstance.x - data.map.setX...mapInstance.x - data.map.setX + sizeX)
+            for (i in 0...sizeX)
             {
-                objects.addObject(data.map.object[j][i],j,i);
+                trace("x " + Std.string(i + mapInstance.x) + " y " + Std.string(j + mapInstance.y));
+                objects.addObject(data.map.object[j][i],i + mapInstance.x,j + mapInstance.y);
             }
         }
     }

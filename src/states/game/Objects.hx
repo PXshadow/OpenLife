@@ -31,14 +31,14 @@ class Objects extends TileDisplay
     //when map has changed
     public function update()
     {
-        for (i in 0...numTiles) 
+        /*for (i in 0...numTiles) 
         {
             tile = getTileAt(i);
             tile.x += x;
             tile.y += y;
-        }
-        x = 0;
-        y = 0;
+        }*/
+        //x = 0;
+        //y = 0;
     }
     public function addFloor(id:Int,x:Int,y:Int)
     {
@@ -106,8 +106,8 @@ class Objects extends TileDisplay
         obj.tileY = y;
         //addTileAt(obj,0);
         addTile(obj);
-        obj.x = (obj.tileX - game.cameraX + 1) * Static.GRID * 1;
-        obj.y = (-obj.tileY - game.cameraY + 1) * Static.GRID * 1;
+        obj.x = (obj.tileX + 1 - game.cameraX) * Static.GRID * 1;
+        obj.y = (-obj.tileY + 1 - game.cameraY) * Static.GRID * 1;
         var r:Rectangle;
         var parents:Array<Int> = [];
         for(i in 0...data.numSprites)

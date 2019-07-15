@@ -23,6 +23,12 @@ Maybe you should run your own reflector server
 Then you can check if they are online or not
 -thanks Kripts
 
+Ground is default animation that runs
+X Osc = how often, in cycles
+X Amp = how far it swings, swings forward than backwards
+X Phase = from what point of the whole swing cycle it should start.
+-thanks a862
+
 places where a file is read
 ObjectData
 TgaData

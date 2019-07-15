@@ -13,7 +13,7 @@ class AnimationData extends LineReader
         fail = true;
         return;
         #end
-        return;
+        //return;
         if (!FileSystem.exists(Static.dir + "animations/" + id + "_0.txt"))
         {
             fail = true;
@@ -130,7 +130,7 @@ class AnimationParameter
 
     //param array start here
     public var xOscPerSec:Float = 0;
-    // in pixels
+    // in pixels distance
     public var xAmp:Float = 0;
     // between 0 and 1
     public var xPhase:Float = 0;

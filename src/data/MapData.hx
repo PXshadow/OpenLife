@@ -27,7 +27,6 @@ class MapData
         var data:Array<String>;
         var k:Int = 0;
         var index:Int = 0;
-        trace("a " + a.length);
         //bottom left
         for(j in y - setY...y - setY + height)
         {

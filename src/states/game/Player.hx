@@ -96,8 +96,8 @@ class Player #if openfl extends Object #end
     }
     public function pos()
     {
-        x = (-game.offsetX + instance.x) * Static.GRID;
-        y = (-game.offsetY - instance.y) * Static.GRID;
+        x = (-game.offsetX + instance.x + 1) * Static.GRID;
+        y = (-game.offsetY - instance.y + 1) * Static.GRID;
     }
     public function age()
     {
