@@ -106,8 +106,8 @@ class Objects extends TileDisplay
         obj.tileY = y;
         //addTileAt(obj,0);
         addTile(obj);
-        obj.x = (obj.tileX + 1 - game.cameraX) * Static.GRID * 1;
-        obj.y = (-obj.tileY + 1 - game.cameraY) * Static.GRID * 1;
+        obj.x = (obj.tileX + 1) * Static.GRID * 1;
+        obj.y = (-obj.tileY + 1) * Static.GRID * 1;
         var r:Rectangle;
         var parents:Array<Int> = [];
         for(i in 0...data.numSprites)
@@ -145,6 +145,7 @@ class Objects extends TileDisplay
                 
             }
         }
+        obj.animate(0);
         return obj;
     }
     private function cacheSprite(id:Int):Int

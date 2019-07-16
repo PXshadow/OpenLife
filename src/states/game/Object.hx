@@ -12,6 +12,7 @@ class Object extends TileContainer
     public var animation:AnimationData;
     public var map:Map<Int,Vector<Int>> = new Map<Int,Vector<Int>>();
     public var parents:Map<Int,TileContainer> = new Map<Int,TileContainer>();
+    public var numSprites:Int = 0;
     public var tileX:Int = 0;
     public var tileY:Int = 0;
     public var type:ObjectType = OBJECT;
@@ -32,7 +33,7 @@ class Object extends TileContainer
     {
         Sys.sleep(0.5);
         trace("animate " + index);
-        if (animation.record == null) 
+        if (animation == null || animation.record == null) 
         {
             trace("no records for animation");
             return;
@@ -50,17 +51,17 @@ class Object extends TileContainer
             if (param.xOscPerSec > 0)
             {
                 tile.x += param.xPhase - param.xAmp/2;
-                Actuate.tween(tile,1/param.xOscPerSec,{x:param.xPhase + param.xAmp/2},false).repeat().reflect();
+                Actuate.tween(tile,1/param.xOscPerSec,{x:param.xPhase + param.xAmp/2},false).repeat(5).reflect();
             }
             if (param.yOscPerSec > 0)
             {
                 tile.x += param.yPhase - param.xAmp/2;
-                Actuate.tween(tile,1/param.yOscPerSec,{x:param.yPhase + param.yAmp/2},false).repeat().reflect();
+                Actuate.tween(tile,1/param.yOscPerSec,{x:param.yPhase + param.yAmp/2},false).repeat(5).reflect();
             }
-            if (param.rotPerSec > 0)
+            if (param.rockOscPerSec > 0)
             {
-                tile.rotation += param.rotPhase * 360;
-                Actuate.tween(tile,1/param.yOscPerSec,{rotation:0},false);
+                tile.rotation = (param.rockPhase - param.rockAmp/2) * 360;
+                Actuate.tween(tile,1/param.rockOscPerSec,{rotation:(param.rockPhase + param.rockAmp/2) * 360},false).repeat(5).reflect();
             }
             var time = new Timer(param.durationSec * 1000);
             time.run = function()
@@ -79,6 +80,7 @@ class Object extends TileContainer
     }
     public function add(tile:Tile,i:Int,p:Int)
     {
+        numSprites++;
         var vector:Vector<Int>;
         //p = -1;
         if (p == -1)
@@ -101,7 +103,7 @@ class Object extends TileContainer
             if (i == p)
             {
                 //tile is parent
-                /*parent.x = tile.x;
+                parent.x = tile.x;
                 parent.y = tile.y;
                 parent.rotation = tile.rotation;
                 parent.alpha = tile.alpha;
@@ -111,7 +113,7 @@ class Object extends TileContainer
                 tile.y = 0;
                 tile.rotation = 0;
                 tile.alpha = 0;
-                tile.colorTransform = null;*/
+                tile.colorTransform = null;
             }
             parent.addTile(tile);
             vector[1] = parent.getTileIndex(tile);

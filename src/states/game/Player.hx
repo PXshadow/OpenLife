@@ -103,9 +103,9 @@ class Player #if openfl extends Object #end
     {
         #if openfl
         var tile:Tile;
-        for(i in 0...numTiles)
+        for(i in 0...numSprites)
         {
-            tile = getTileAt(i);
+            tile = get(i);
             tile.visible = true;
             if((ageRange[i].min > instance.age || ageRange[i].max < instance.age) && ageRange[i].min > 0)
             {

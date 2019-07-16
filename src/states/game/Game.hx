@@ -103,6 +103,7 @@ class Game #if openfl extends states.State #end
             Main.client.port = 8007;
             Main.client.connect();
         }else{
+            stage.color = 0x00FF00;
             //playground
             objects.size(Main.setWidth,Main.setHeight);
 
@@ -111,7 +112,7 @@ class Game #if openfl extends states.State #end
             Player.main.instance.move_speed = 3;
             data.playerMap.set(0,Player.main);
 
-            objects.add(30,1,1);
+            objects.add(30,3,1);
             objects.add(575,2,2).animate(2);
         }
     }
