@@ -29,6 +29,13 @@ X Amp = how far it swings, swings forward than backwards
 X Phase = from what point of the whole swing cycle it should start.
 -thanks a862
 
+
+Fantastic ideas for the client
+-thanks zivisziv
+
+Amazing support and great ideas.
+-thanks Mofo
+
 places where a file is read
 ObjectData
 TgaData
@@ -37,3 +44,5 @@ TileDisplay
 
 butler for auto updating
 https://itch.io/docs/butler/pushing.html
+for gifs 
+https://getsharex.com/

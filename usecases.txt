@@ -3,15 +3,24 @@ USER INTERFACE
 - standard arrow to point to home location, and set multiple markers
 - Squad system if teammates leave area have arrow fade out after few seconds
 - MARK players and put notes on them
+- set cross life home
 DISPLAY 
 - show certain objects with an increased size
 - change colors of certain objects
 - Crafting guide for an item with completion steps (goal system)
 - local cordinate system
+- baby carrier sling
+- mark yummy food
+- mark dangerous tiles
+- make hungry players growl
+
 AUTO AI
-- auto eat food (use for emergency client will calculate closest food to eat)
+- auto eat food (use for emergency client will calculate closest food to eat) also client says F
 - auto fire starter
 - auto berry farmer
+- auto crafter
+- auto run in direction or to a location.
+- auto feed babies
 
 declaritive syntax for console 
 
@@ -40,3 +49,4 @@ MISC
 - multiple ohol versions and mods 
 - friend system across servers (major future)
 - replay/recording system for lives, for better video content (major feature)
+- hour counter for the game

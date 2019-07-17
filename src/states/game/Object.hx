@@ -31,17 +31,16 @@ class Object extends TileContainer
     }
     public function animate(index:Int)
     {
-        Sys.sleep(0.5);
-        trace("animate " + index);
+        //trace("animate " + index);
         if (animation == null || animation.record == null) 
         {
-            trace("no records for animation");
+            //trace("no records for animation");
             return;
         }
         var record = animation.record[index];
         var param:AnimationParameter;
         var tile:Tile;
-        trace("type " + record.type + " record " + record.numSprites);
+        //trace("type " + record.type + " record " + record.numSprites);
         for(i in 0...record.numSprites)
         {
             param = record.params[i];

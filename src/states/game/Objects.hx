@@ -1,4 +1,5 @@
 package states.game;
+import openfl.utils.ByteArray;
 import haxe.ds.Vector;
 import sys.FileSystem;
 import data.PlayerData.PlayerInstance;
@@ -26,19 +27,12 @@ class Objects extends TileDisplay
     {
         this.game = game;
         smoothing = true;
-        super(3200,3200);
+        super(4096,4096);
     }
     //when map has changed
     public function update()
     {
-        /*for (i in 0...numTiles) 
-        {
-            tile = getTileAt(i);
-            tile.x += x;
-            tile.y += y;
-        }*/
-        //x = 0;
-        //y = 0;
+        
     }
     public function addFloor(id:Int,x:Int,y:Int)
     {
@@ -87,11 +81,13 @@ class Objects extends TileDisplay
         var data = new ObjectData(id);
         var obj:Object = null;
         //data
+        //trace("blcoking " + data.blocksWalking);
         if (data.blocksWalking == 1)
         {
-            game.data.blocking.set(x + "." + y,true);
+            //render
+            game.ground.addBlock(x,y);
         }else{
-            game.data.blocking.remove(x + "." + y);
+            game.ground.removeBlock(x,y);
         }
         //obj
         if(player)
@@ -100,14 +96,15 @@ class Objects extends TileDisplay
         }else{
             obj = new Object();
         }
+        addTile(obj);
         obj.oid = data.id;
         obj.loadAnimation();
+        //global cords used to refrence
         obj.tileX = x;
         obj.tileY = y;
-        //addTileAt(obj,0);
-        addTile(obj);
-        obj.x = (obj.tileX + 1) * Static.GRID * 1;
-        obj.y = (-obj.tileY + 1) * Static.GRID * 1;
+        //set to display postion
+        obj.x = (obj.tileX - game.data.map.x - game.cameraX) * Static.GRID * 1;
+        obj.y = (-obj.tileY - game.data.map.y - game.cameraY) * Static.GRID * 1;
         var r:Rectangle;
         var parents:Array<Int> = [];
         for(i in 0...data.numSprites)
@@ -154,34 +151,27 @@ class Objects extends TileDisplay
         {
             return cacheMap.get(id);
         }
+        //add tileset rect
+        var rect = drawSprite(id,new Rectangle(tileX,tileY,0,0));
+        if (rect == null) return -1;
+        var i = tileset.addRect(rect);
+        cacheMap.set(id,i);
+        return i;
+    }
+    private function drawSprite(id:Int,rect:Rectangle):Rectangle
+    {
         var path = Static.dir + "sprites/" + id + ".tga";
         if (!FileSystem.exists(path))
         {
-            trace("cacheSprite fail " + path);
-            return -1;
+            trace("sprite path fail " + path);
+            return null;
         }
         reader.read(File.read(path).readAll());
-        var rect = new Rectangle(tileX,tileY,reader.rect.width,reader.rect.height);
-        
-        var color:UInt;
-        var minX:Int = Std.int(rect.width) - 1;
-        var minY:Int = Std.int(rect.height) - 1;
-        var maxX:Int = 0;
-        var maxY:Int = 0;
-        for(y in 0...Std.int(rect.height))
-        {
-            for(x in 0...Std.int(rect.width))
-            {
-                color = reader.bytes.readUnsignedInt();
-                if(color >> 24 & 255 == 0) continue;
-                if(x < minX) minX = x;
-                if (y < minY) minY = y;
-                if (x > maxX) maxX = x;
-                if (y > maxY) maxY = y;
-            }
-        }
-        reader.bytes.position = 0;
+        //set dimensions
+        rect.width = reader.rect.width;
+        rect.height = reader.rect.height;
         tileset.bitmapData.setPixels(rect,reader.bytes);
+        //move for next rect
         if(rect.x + rect.width > tileset.bitmapData.width)
         {
             tileX = 0;
@@ -191,14 +181,19 @@ class Objects extends TileDisplay
             tileX += Std.int(rect.width);
             tileHeight = Std.int(Math.max(rect.height,tileHeight));
         }
-        //crop transparent unused area
-        rect.x += minX;
-        rect.y += minY;
-        rect.width = maxX - minX;
-        rect.height = maxY - minY;
-        //add tileset rect
-        var i = tileset.addRect(rect);
-        cacheMap.set(id,i);
-        return i;
+        return rect;
+    }
+    public function reload()
+    {
+        var id:Int = 0;
+        var rect:Rectangle;
+        var keys = cacheMap.keys();
+        while(keys.hasNext())
+        {
+            id = keys.next();
+            rect = tileset.getRect(cacheMap.get(id));
+            tileset.bitmapData.fillRect(rect,0x00FFFFFF);
+            drawSprite(id,rect);
+        }
     }
 }

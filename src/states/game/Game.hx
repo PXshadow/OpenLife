@@ -1,5 +1,6 @@
 package states.game;
 
+import openfl.display.Bitmap;
 import haxe.ds.Vector;
 import data.PlayerData.PlayerType;
 import console.Program;
@@ -24,18 +25,12 @@ class Game #if openfl extends states.State #end
 {
     #if openfl
     var dialog:Dialog;
-    var ground:Ground;
+    public var ground:Ground;
     public var objects:Objects;
     public var cameraSpeed:Float = 10;
-    public var info:Text;
     //camera
     public var cameraX:Int = 0;
     public var cameraY:Int = 0;
-    public var sizeX:Int = 0;
-    public var sizeY:Int = 0;
-    //offset to 0 position
-    public var offsetX:Int = 0;
-    public var offsetY:Int = 0;
     //scale used for zoom in and out
     public var scale(get, set):Float;
     function get_scale():Float 
@@ -61,6 +56,7 @@ class Game #if openfl extends states.State #end
     var program:Program;
     public function new()
     {
+        //delelerative syntax for program console
         program = new Program(this);
         //set interp
         Console.interp.variables.set("game",this);
@@ -75,10 +71,9 @@ class Game #if openfl extends states.State #end
         addChild(ground);
         addChild(objects);
         addChild(dialog);
-        info = new Text("GAME",LEFT,16,0xFFFFFF);
-        Main.screen.addChild(info);
-        Main.screen.addChild(new FPS(10,100,0xFFFFFF));
         #end
+        //background color of game
+        stage.color = 0xFFFFFF;
         //connect
         if(!true)
         {
@@ -103,24 +98,34 @@ class Game #if openfl extends states.State #end
             Main.client.port = 8007;
             Main.client.connect();
         }else{
-            stage.color = 0x00FF00;
             //playground
-            objects.size(Main.setWidth,Main.setHeight);
-
-            setPlayer(cast(objects.add(19,0,0,true),Player));
+            objects.size(32,30);
+            //player
+            /*setPlayer(cast(objects.add(19,0,0,true),Player));
             Player.main.instance = new PlayerInstance([]);
             Player.main.instance.move_speed = 3;
-            data.playerMap.set(0,Player.main);
+            data.playerMap.set(0,Player.main);*/
+            //bush
+            objects.add(30,3,-1);
+            //sheep
+            objects.add(575,2,-2).animate(2);
+            //trees
+            objects.add(65,4,-4);
+            objects.add(2454,5,-4);
+            objects.add(49,6,-5);
+            objects.add(530,3,-3);
+            //tileset
+            var bitmap = new Bitmap(objects.tileset.bitmapData);
+            bitmap.alpha = 0.5;
+            addChild(bitmap);
 
-            objects.add(30,3,1);
-            objects.add(575,2,2).animate(2);
+            objects.getFill();
         }
     }
     //client events
     #if openfl
     override function update()
     {
-        info.text = cameraX + " " + cameraY + "\n" + objects.numTiles + "\nobjects " + objects.x + " " + objects.y;
         super.update();
         //controls
         var cameraArray:Array<DisplayObject> = [ground,objects];
@@ -155,29 +160,35 @@ class Game #if openfl extends states.State #end
     public function mapUpdate() 
     {
         trace("MAP UPDATE");
-        sizeX = mapInstance.sizeX;
-        sizeY = mapInstance.sizeY;
-
-        objects.size(sizeX,sizeY);
-
-        offsetX = data.map.setX;
-        offsetY = data.map.setY;
-        cameraX = offsetX;
-        cameraY = offsetY;
-
-        for(j in 0...sizeY)
+        //width = 32, height = 30
+        objects.size(mapInstance.width,mapInstance.height);
+        var x:Int = 0;
+        var y:Int = 0;
+        //scale = 1;
+        for(j in mapInstance.y...mapInstance.y + mapInstance.height)
         {
-            for (i in 0...sizeX)
+            for (i in mapInstance.x...mapInstance.x + mapInstance.width)
             {
-                trace("x " + Std.string(i + mapInstance.x) + " y " + Std.string(j + mapInstance.y));
-                objects.addObject(data.map.object[j][i],i + mapInstance.x,j + mapInstance.y);
+                //ground
+                ground.graphics.clear();
+                //objects get local
+                y = j - data.map.y;
+                x = i - data.map.x;
+                //set global
+                objects.addObject(data.map.object[y][x],i,j);
             }
         }
+        var bitmap = new Bitmap(objects.tileset.bitmapData);
+        bitmap.alpha = 0.5;
+        bitmap.width = Main.setWidth;
+        bitmap.height = Main.setHeight;
+        addChild(bitmap);
+        objects.getFill();
     }
     public function center()
     {
-        x = (Main.setWidth - ground.width)/2 * scale;
-        y = (Main.setHeight - ground.height)/2 * scale;
+        x = (Main.setWidth - objects.width)/2 * scale;
+        y = (Main.setHeight - objects.height)/2 * scale;
     }
     #end
     
@@ -218,11 +229,11 @@ class Game #if openfl extends states.State #end
             if(compress)
             {
                 Main.client.tag = null;
-                data.map.setRect(mapInstance.x,mapInstance.y,mapInstance.sizeX,mapInstance.sizeY,input);
+                data.map.setRect(mapInstance.x,mapInstance.y,mapInstance.width,mapInstance.height,input);
                 #if openfl
                 mapUpdate();
                 #end
-                mapInstance = null;
+                //mapInstance = null;
                 //toggle to go back to istance for next chunk
                 compress = false;
             }else{
@@ -234,9 +245,9 @@ class Game #if openfl extends states.State #end
                     {
                         case 0:
                         mapInstance = new MapInstance();
-                        mapInstance.sizeX = Std.parseInt(value);
+                        mapInstance.width = Std.parseInt(value);
                         case 1:
-                        mapInstance.sizeY = Std.parseInt(value);
+                        mapInstance.height = Std.parseInt(value);
                         case 2:
                         mapInstance.x = Std.parseInt(value);
                         case 3:
@@ -246,10 +257,10 @@ class Game #if openfl extends states.State #end
                         case 5:
                         mapInstance.compressedSize = Std.parseInt(value);
                         //set min
-                        data.map.setX = mapInstance.x < data.map.setX ? mapInstance.x : data.map.setX;
-                        data.map.setY = mapInstance.y < data.map.setY ? mapInstance.y : data.map.setY;
-                        if (data.map.sizeX < mapInstance.x + mapInstance.sizeX) data.map.sizeX = mapInstance.x + mapInstance.sizeX;
-                        if (data.map.sizeY < mapInstance.y + mapInstance.sizeY) data.map.sizeY = mapInstance.y + mapInstance.sizeY;
+                        if (data.map.x > mapInstance.x) data.map.x = mapInstance.x;
+                        if (data.map.y > mapInstance.y) data.map.y = mapInstance.y;
+                        if (data.map.width < mapInstance.x + mapInstance.width) data.map.width = mapInstance.x + mapInstance.width;
+                        if (data.map.height < mapInstance.y + mapInstance.height) data.map.height= mapInstance.y + mapInstance.height;
                         trace("map chunk " + mapInstance.toString());
                         index = 0;
                         //set compressed size wanted

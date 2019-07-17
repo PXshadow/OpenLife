@@ -15,7 +15,6 @@ class FractalNoise
     public static function setXYRandomSeed(inSeed:UInt32) 
     {
         xxSeed = inSeed;
-        trace("xx " + XX_PRIME32_1 + " x " + xxTweakedHash2D(0,0));
     }
     public static function xxTweakedHash2D(inX:UInt32,inY:UInt32):UInt32
     {

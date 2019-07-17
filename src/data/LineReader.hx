@@ -58,7 +58,7 @@ class LineReader
         var bool:Bool = true;
         while(bool)
         {
-            i = string.indexOf("=",i + 1);
+            i = string.indexOf("=",i + 1) + 1;
             j = string.indexOf(",",i);
             j = j < 0 ? string.length : j;
             array.push(Std.parseInt(string.substring(i,j)));

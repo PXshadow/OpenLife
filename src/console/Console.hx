@@ -74,6 +74,11 @@ class Console #if openfl extends DisplayObjectContainer #end
         interp.variables.set("Util",console.Util);
 
         command = new Command(this);
+        //set history 
+        if (Main.so.data.consoleHistory != null)
+        {
+            history = Main.so.data.consoleHistory;
+        }
     }
     public function print(inp:String,out:String)
     {
@@ -179,6 +184,7 @@ class Console #if openfl extends DisplayObjectContainer #end
     {
         //set history
         history.push(text);
+        Main.so.data.consoleHistory = history;
         //attempt hscript
         try {
             print(text,interp.expr(parser.parseString(text)));

@@ -71,7 +71,6 @@ class Player #if openfl extends Object #end
     }
     public function step(mx:Int,my:Int)
     {
-        trace("move");
         if (timeInt > 0) return;
         var time = Static.GRID/(Static.GRID * instance.move_speed);
         //send data
@@ -96,8 +95,8 @@ class Player #if openfl extends Object #end
     }
     public function pos()
     {
-        x = (-game.offsetX + instance.x + 1) * Static.GRID;
-        y = (-game.offsetY - instance.y + 1) * Static.GRID;
+        x = (instance.x - game.data.map.x - game.cameraX) * Static.GRID;
+        y = (-instance.y - game.data.map.y - game.cameraY) * Static.GRID;
     }
     public function age()
     {

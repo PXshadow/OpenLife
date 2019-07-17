@@ -34,4 +34,11 @@ class TileDisplay extends Tilemap
         this.width = tileWidth * Static.GRID;
         this.height = tileHeight * Static.GRID;
     }
+    public function getFill():Float
+    {
+        var rect = tileset.getRect(tileset.numRects - 1);
+        var percent:Float = (rect.y + rect.height) / tileset.bitmapData.height;
+        trace("percent of fill " + percent);
+        return percent;
+    }
 }

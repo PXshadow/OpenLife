@@ -19,6 +19,8 @@ class Ground extends Shape
     var reader:TgaData;
     public var indices:Vector<Int> = new Vector<Int>();
 	public var transforms:Vector<Float> = new Vector<Float>();
+    public var drawBlocking:Bool = true;
+    public var drawGrid:Bool = true;
     public function new(game:Game)
     {
         super();
@@ -27,6 +29,40 @@ class Ground extends Shape
         tileset = new Tileset(new BitmapData(2000,2000,false));
         reader = new TgaData();
         for (i in 0...biomeNum) cacheBiome(i);
+    }
+    public function addBlock(x:Int,y:Int)
+    {
+        game.data.blocking.set(x + "." + y,true);
+        x += -game.data.map.x - game.cameraX;
+        y += -game.data.map.y - game.cameraY;
+        if (drawBlocking) graphics.drawRect(x * Static.GRID,y * Static.GRID,Static.GRID,Static.GRID); 
+    }
+    public function addGrid()
+    {
+        //black 2 solid line
+        graphics.lineStyle(2,0);
+        //perimiter
+        graphics.moveTo((x + 0) * Static.GRID,(y + 1) * Static.GRID);
+        graphics.lineTo((x + 1) * Static.GRID,(y + 1) * Static.GRID);
+        graphics.lineTo((x + 1) * Static.GRID,(y + 0) * Static.GRID);
+
+        for (x in 0...game.mapInstance.width)
+        {
+            for(y in 0...game.mapInstance.height)
+            {
+                //square
+                graphics.moveTo((x + 0) * Static.GRID,(y + 1) * Static.GRID);
+                graphics.lineTo((x + 1) * Static.GRID,(y + 1) * Static.GRID);
+                graphics.lineTo((x + 1) * Static.GRID,(y + 0) * Static.GRID);
+            }
+        }
+    }
+    public function removeBlock(x:Int,y:Int)
+    {
+        if (game.data.blocking.remove(x + "." + y))
+        {
+            //re render
+        }
     }
     public function render()
     {

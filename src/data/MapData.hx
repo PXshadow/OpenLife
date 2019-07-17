@@ -13,10 +13,10 @@ class MapData
     public var object:Array<Array<Vector<Int>>> = [];
 
     //all chunks combined
-    public var setX:Int = 0;
-    public var setY:Int = 0;
-    public var sizeX:Int = 0;
-    public var sizeY:Int = 0;
+    public var x:Int = 0;
+    public var y:Int = 0;
+    public var width:Int = 0;
+    public var height:Int = 0;
     public function new()
     {
         
@@ -26,14 +26,13 @@ class MapData
         var a:Array<String> = string.split(" ");
         var data:Array<String>;
         var k:Int = 0;
-        var index:Int = 0;
         //bottom left
-        for(j in y - setY...y - setY + height)
+        for(j in y - this.y...y - this.y + height)
         {
             biome[j] = [];
             floor[j] = [];
             object[j] = [];
-            for (i in x - setX...x - setX + width)
+            for (i in x - this.x...x - this.x + width)
             {
                 string = a.shift();
                 k = string.lastIndexOf(":");
@@ -59,10 +58,11 @@ class MapData
 }
 class MapInstance
 {
+    //current chunk
     public var x:Int = 0;
     public var y:Int = 0;
-    public var sizeX:Int = 0;
-    public var sizeY:Int = 0;
+    public var width:Int = 0;
+    public var height:Int = 0;
     public var rawSize:Int = 0;
     public var compressedSize:Int = 0;
     
@@ -72,7 +72,7 @@ class MapInstance
     }
     public function toString():String
     {
-        return "pos(" + x + "," + y +") size(" + sizeX + "," + sizeY + ") raw: " + rawSize + " compress: " + compressedSize;
+        return "pos(" + x + "," + y +") size(" + width + "," + height + ") raw: " + rawSize + " compress: " + compressedSize;
     }
 }
 class MapChange

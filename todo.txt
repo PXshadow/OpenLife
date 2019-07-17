@@ -4,6 +4,9 @@
 
 - player move system animate
 
+- multiple objets on same tile, mouse over make transparent
+- thanks schmloo
+
 
 
 
