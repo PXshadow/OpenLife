@@ -75,7 +75,7 @@ class Game #if openfl extends states.State #end
         //background color of game
         stage.color = 0xFFFFFF;
         //connect
-        if(!true)
+        if(true)
         {
             Main.client.login.accept = function()
             {
@@ -113,13 +113,7 @@ class Game #if openfl extends states.State #end
             objects.add(65,4,-4);
             objects.add(2454,5,-4);
             objects.add(49,6,-5);
-            objects.add(530,3,-3);
-            //tileset
-            var bitmap = new Bitmap(objects.tileset.bitmapData);
-            bitmap.alpha = 0.5;
-            addChild(bitmap);
-
-            objects.getFill();
+            objects.add(530,3,-4);
         }
     }
     //client events
@@ -143,10 +137,19 @@ class Game #if openfl extends states.State #end
             if (Bind.playerLeft.bool) xs += -1;
             if (Bind.playerRight.bool) xs += 1;
             if (xs != 0 || ys != 0) Player.main.step(xs,ys);
-            //animations
-            if (Bind.playerDrop.bool) Player.main.animate(2);
-            //grabs object where standing
-            //if (Bind.playerPick.bool) 
+
+            if (Bind.playerAction.bool && Player.main.delay <= 0)
+            {
+                Player.main.delay = 30;
+                if (Player.main.instance.o_id == 0)
+                {
+                    //grab
+                    Main.client.send("USE " + Player.main.instance.x + " " + Player.main.instance.y);
+                }else{
+                    //drop
+                    Main.client.send("DROP " + Player.main.instance.x + " " + Player.main.instance.y + " -1");
+                }
+            }
         }
         //updates
         objects.update();
@@ -178,12 +181,6 @@ class Game #if openfl extends states.State #end
                 objects.addObject(data.map.object[y][x],i,j);
             }
         }
-        var bitmap = new Bitmap(objects.tileset.bitmapData);
-        bitmap.alpha = 0.5;
-        bitmap.width = Main.setWidth;
-        bitmap.height = Main.setHeight;
-        addChild(bitmap);
-        objects.getFill();
     }
     public function center()
     {
@@ -197,13 +194,11 @@ class Game #if openfl extends states.State #end
         switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
-            trace("set main");
             if (Player.main == null) 
             {
                 setPlayer(objects.player);
             }
             objects.player = null;
-            objects.sort();
             default:
         }
     }
@@ -220,6 +215,7 @@ class Game #if openfl extends states.State #end
             playerInstance = new PlayerInstance(input.split(" "));
             objects.addPlayer(playerInstance);
             case PLAYER_MOVES_START:
+            trace("PLAYED MOVE START");
             var playerMove = new PlayerMove(input.split(" "));
             if (data.playerMap.exists(playerMove.id))
             {
@@ -273,14 +269,15 @@ class Game #if openfl extends states.State #end
             case MAP_CHANGE:
             //x y new_floor_id new_id p_id optional oldX oldY cameraSpeed
             var mapChange = new MapChange(input.split(" "));
+            Main.client.tag = null;
             case HEAT_CHANGE:
             //trace("heat " + input);
-
+            Main.client.tag = null;
             case FOOD_CHANGE:
             //trace("food change " + input);
             //also need to set new movement move_speed: is floating point cameraSpeed in grid square widths per second.
             case FRAME:
-            Main.client.tag = "";
+            Main.client.tag = null;
             case PLAYER_SAYS:
             trace("player say " + input);
             #if openfl

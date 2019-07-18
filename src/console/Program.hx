@@ -10,7 +10,18 @@ class Program
     public function new(game:Game)
     {
         this.game = game;
-        
+    }
+
+    public function path(x:Int,y:Int)
+    {
+        goal.x = x;
+        goal.y = y;
+        //visual
+        #if openfl 
+        //draw path
+        game.ground.dest = goal;
+        game.ground.createPath();
+        #end
     }
     public function drop():Program
     {
@@ -211,8 +222,8 @@ class Program
 }
 class Pos
 {
-    var x:Int;
-    var y:Int;
+    public var x:Int;
+    public var y:Int;
     public function new()
     {
 

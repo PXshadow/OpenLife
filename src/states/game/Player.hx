@@ -19,11 +19,12 @@ class Player #if openfl extends Object #end
     public var instance:PlayerInstance;
     public var ageRange:Array<{min:Float,max:Float}> = [];
     public var game:Game;
-
+    public var object:Object;
     public var moves:Array<Point> = [];
     public var velocityX:Float = 0;
     public var velocityY:Float= 0;
     //how many frames till depletion
+    public var delay:Int = 0;
     public var time:Int = 0;
     var timeInt:Int = 0;
     public function new(game:Game)
@@ -36,7 +37,7 @@ class Player #if openfl extends Object #end
     }
     public function update()
     {
-        if (timeInt <= 0) move();
+        if (timeInt == 0) move();
         if (timeInt > 0)
         {
             //add to pos
@@ -45,16 +46,18 @@ class Player #if openfl extends Object #end
             //remove time per frame
             timeInt--;
         }
+        if (delay > 0) delay--;
     }
     public function move()
     {
+        //grab another move
         if(moves.length > 0)
         {
             var point = moves.pop();
             pos();
             instance.x += Std.int(point.x);
             instance.y += Std.int(point.y);
-            //flip
+            //flip (change direction)
             if (point.x != 0)
             {
                 if (point.x > 0)
@@ -69,29 +72,64 @@ class Player #if openfl extends Object #end
             timeInt = time;
         }
     }
-    public function step(mx:Int,my:Int)
+    public function step(mx:Int,my:Int):Bool
     {
-        if (timeInt > 0) return;
+        //no other move is occuring, and player is not moving on blocked
+        if (timeInt > 0 || game.data.blocking.get(Std.string(instance.x + mx) + "." + Std.string(instance.y + my))) return false;
         var time = Static.GRID/(Static.GRID * instance.move_speed);
         //send data
         lastMove++;
         Main.client.send("MOVE " + instance.x + " " + instance.y + " @" + lastMove + " " + mx + " " + my);
         this.time = Std.int(time * 60);
         moves = [new Point(mx,my)];
+        return true;
     }
     public function set(data:PlayerInstance)
     {
         instance = data;
-        trace("force " + instance.forced);
+        //trace("force " + instance.forced);
         if (instance.forced == 1) 
         {
             trace("forced");
             Main.client.send("FORCE " + instance.x + " " + instance.y);
         }
+        //remove moves
         timeInt = 0;
         moves = [];
+        //pos and age
         pos();
         age();
+        hold();
+    }
+    public function hold()
+    {
+        //object holding
+        trace("object id " + instance.o_id);
+        if (instance.o_id == 0)
+        {
+            if (object != null) removeTile(object);
+        }else{
+            if (object != null)
+            {
+                if (object.id == Std.int(instance.o_id)) return;
+                removeTile(object);
+            }
+            if (instance.o_id > 0)
+            {
+                //object
+                object = game.objects.add(instance.o_id,0,0);
+            }else{
+                //player
+                object = game.objects.add(Std.int(instance.o_id),0,0,true);
+            }
+            //remove from main objects display
+            game.objects.removeTile(object);
+            //add into player
+            addTile(object);
+
+            object.x = instance.o_origin_x;
+            object.y = instance.o_origin_y;
+        }
     }
     public function pos()
     {

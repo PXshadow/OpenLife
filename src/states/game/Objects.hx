@@ -20,8 +20,8 @@ class Objects extends TileDisplay
     var oy:Int = 0;
     var tile:Tile;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
-    var tileX:Int = 0;
-    var tileY:Int = 0;
+    var tileX:Float = 0;
+    var tileY:Float = 0;
     public var player:Player;
     public function new(game:Game)
     {
@@ -65,6 +65,11 @@ class Objects extends TileDisplay
     }
     public function addPlayer(data:PlayerInstance)
     {
+        if (data == null)
+        {
+            trace('add player data null ' + data);
+            return;
+        }
         player = game.data.playerMap.get(data.p_id);
         if (player == null)
         {
@@ -84,10 +89,9 @@ class Objects extends TileDisplay
         //trace("blcoking " + data.blocksWalking);
         if (data.blocksWalking == 1)
         {
-            //render
-            game.ground.addBlock(x,y);
+            game.data.blocking.set(x + "." + y,true);
         }else{
-            game.ground.removeBlock(x,y);
+            game.data.blocking.remove(x + "." + y);
         }
         //obj
         if(player)
@@ -118,7 +122,7 @@ class Objects extends TileDisplay
             //rot
             if (data.spriteArray[i].rot > 0)
             {
-                tile.rotation = data.spriteArray[i].rot * 365;
+                //tile.rotation = data.spriteArray[i].rot * 365;
             }
             //flip
             if (data.spriteArray[i].hFlip != 0)
@@ -170,17 +174,19 @@ class Objects extends TileDisplay
         //set dimensions
         rect.width = reader.rect.width;
         rect.height = reader.rect.height;
-        tileset.bitmapData.setPixels(rect,reader.bytes);
-        //move for next rect
+        //move down column
         if(rect.x + rect.width > tileset.bitmapData.width)
         {
             tileX = 0;
             tileY += tileHeight;
+            rect.x = tileX;
+            rect.y = tileHeight;
             tileHeight = 0;
-        }else{
-            tileX += Std.int(rect.width);
-            tileHeight = Std.int(Math.max(rect.height,tileHeight));
         }
+        tileset.bitmapData.setPixels(rect,reader.bytes);
+        //move tilesystem
+        tileX += Std.int(rect.width);
+        if (rect.height > tileHeight) tileHeight = rect.height;
         return rect;
     }
     public function reload()

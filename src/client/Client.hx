@@ -42,9 +42,7 @@ class Client
             if(compress == 0) 
             {
                 data = socket.input.readLine();
-                #if !openfl
-                relay.send(data);
-                #end
+                //trace("read " + data);
             }
 		}catch(e:Dynamic)
 		{

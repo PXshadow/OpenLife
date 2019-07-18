@@ -19,8 +19,11 @@ class Ground extends Shape
     var reader:TgaData;
     public var indices:Vector<Int> = new Vector<Int>();
 	public var transforms:Vector<Float> = new Vector<Float>();
-    public var drawBlocking:Bool = true;
+    //sets what is to be drawn
+    public var drawBlocks:Bool = true;
     public var drawGrid:Bool = true;
+    public var drawPath:Bool= true;
+    public var dest:console.Program.Pos = null;
     public function new(game:Game)
     {
         super();
@@ -30,15 +33,25 @@ class Ground extends Shape
         reader = new TgaData();
         for (i in 0...biomeNum) cacheBiome(i);
     }
-    public function addBlock(x:Int,y:Int)
+    public function createGround()
     {
-        game.data.blocking.set(x + "." + y,true);
-        x += -game.data.map.x - game.cameraX;
-        y += -game.data.map.y - game.cameraY;
-        if (drawBlocking) graphics.drawRect(x * Static.GRID,y * Static.GRID,Static.GRID,Static.GRID); 
+        graphics.clear();
+        graphics.beginBitmapFill(tileset.bitmapData);
+        graphics.drawQuads(tileset.rectData,indices,transforms);
     }
-    public function addGrid()
+    public function createPath()
     {
+        graphics.lineStyle(0x00FF00,2);
+        graphics.moveTo((Player.main.instance.x - game.data.map.x - game.cameraX) * Static.GRID,(Player.main.instance.y - game.data.map.y - game.cameraY) * Static.GRID);
+        graphics.lineTo((dest.x - game.data.map.x - game.cameraX) * Static.GRID,(dest.y - game.data.map.y - game.cameraY) * Static.GRID);
+    }
+    public function createBlocks()
+    {
+        if (!drawBlocks) return;
+    }
+    public function createGrid()
+    {
+        if (!drawGrid) return;
         //black 2 solid line
         graphics.lineStyle(2,0);
         //perimiter
@@ -57,18 +70,12 @@ class Ground extends Shape
             }
         }
     }
-    public function removeBlock(x:Int,y:Int)
-    {
-        if (game.data.blocking.remove(x + "." + y))
-        {
-            //re render
-        }
-    }
     public function render()
     {
-        graphics.clear();
-        graphics.beginBitmapFill(tileset.bitmapData);
-        graphics.drawQuads(tileset.rectData,indices,transforms);
+        createGround();
+        createGrid();
+        createBlocks();
+        createPath();
     }
     private function cacheBiome(id:Int)
     {

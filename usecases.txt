@@ -5,6 +5,7 @@ USER INTERFACE
 - MARK players and put notes on them
 - set cross life home
 DISPLAY 
+- count down timer after getting stabbed/mauled by bear
 - show certain objects with an increased size
 - change colors of certain objects
 - Crafting guide for an item with completion steps (goal system)
@@ -13,8 +14,12 @@ DISPLAY
 - mark yummy food
 - mark dangerous tiles
 - make hungry players growl
+- dangerous area when player growls, knife = 1, bow = 5
+- outside alert and marker (in whitch you can clear if person is not a threat)
 
 AUTO AI
+- auto F for babies
+- auto chat alert system, to alert nerby players of danger
 - auto eat food (use for emergency client will calculate closest food to eat) also client says F
 - auto fire starter
 - auto berry farmer
@@ -41,6 +46,10 @@ declaritive syntax for console
 INVENTORY
 - inventory managment backpack (show names of object in backpack and hotkeys for them)
 MISC
+- smithing mode: toggles out automatically when hunger is low, select what item you wish to hammer out
+- fire timer untill it goes out
+- car fuel timer
+- time calculator give eta for directions
 - Single player with cheats + editor to add objects
 - SAVE COMMANDS into startup script
 - Run commands during game

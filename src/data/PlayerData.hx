@@ -179,7 +179,7 @@ class PlayerMove
     }
     public function movePlayer(player:Player)
     {
-        //if (player == Player.main) return;
+        if (player == Player.main) return;
         if(player.instance.x == xs + moves[moves.length - 1].x && player.instance.y == ys + moves[moves.length - 1].y)
         {
             //same move
@@ -189,11 +189,9 @@ class PlayerMove
         //set pos
         player.instance.x = xs;
         player.instance.y = ys;
-
         //visuals
         #if openfl
         player.pos();
-        Actuate.pause(player);
         var delay:Float = 0;
         var currentX:Int = 0;
         var currentY:Int = 0;

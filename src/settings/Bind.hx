@@ -16,8 +16,10 @@ class Bind
     public static var playerLeft:Action = new Action([Keyboard.A]);
     public static var playerRight:Action = new Action([Keyboard.D]);
 
-    public static var playerPick:Action = new Action([Keyboard.SPACE]);
-    public static var playerDrop:Action = new Action([Keyboard.SPACE]);
+    public static var playerPick:Action = new Action([]);
+    public static var playerDrop:Action = new Action([]);
+
+    public static var playerAction:Action = new Action([Keyboard.SPACE]);
     
 
     public static function keys(e:KeyboardEvent,bool:Bool)
@@ -34,6 +36,8 @@ class Bind
 
         playerPick.set(e,bool);
         playerDrop.set(e,bool);
+
+        playerAction.set(e,bool);
     }
 }
 class Action
