@@ -27,6 +27,8 @@ class Player #if openfl extends Object #end
     public var delay:Int = 0;
     public var time:Int = 0;
     var timeInt:Int = 0;
+    //pathing
+    public var goal:Bool = false;
     public function new(game:Game)
     {
         this.game = game;
@@ -37,12 +39,20 @@ class Player #if openfl extends Object #end
     }
     public function update()
     {
-        if (timeInt == 0) move();
+        if (timeInt == 0)
+        {
+            if (goal)
+            {
+                path();
+            }else{
+                move();
+            }
+        }
         if (timeInt > 0)
         {
             //add to pos
             x += velocityX;
-            y += velocityY;
+            y += -velocityY;
             //remove time per frame
             timeInt--;
         }
@@ -76,13 +86,23 @@ class Player #if openfl extends Object #end
     {
         //no other move is occuring, and player is not moving on blocked
         if (timeInt > 0 || game.data.blocking.get(Std.string(instance.x + mx) + "." + Std.string(instance.y + my))) return false;
-        var time = Static.GRID/(Static.GRID * instance.move_speed);
         //send data
         lastMove++;
         Main.client.send("MOVE " + instance.x + " " + instance.y + " @" + lastMove + " " + mx + " " + my);
-        this.time = Std.int(time * 60);
+        timeSpeed();
         moves = [new Point(mx,my)];
         return true;
+    }
+    public function timeSpeed()
+    {
+        //get floor speed
+        var time = Static.GRID/(Static.GRID * instance.move_speed);
+        this.time = Std.int(time * 60);
+        timeInt = 0;
+    }
+    public function path()
+    {
+        
     }
     public function set(data:PlayerInstance)
     {
@@ -104,7 +124,6 @@ class Player #if openfl extends Object #end
     public function hold()
     {
         //object holding
-        trace("object id " + instance.o_id);
         if (instance.o_id == 0)
         {
             if (object != null) removeTile(object);
@@ -134,7 +153,7 @@ class Player #if openfl extends Object #end
     public function pos()
     {
         x = (instance.x - game.data.map.x - game.cameraX) * Static.GRID;
-        y = (-instance.y - game.data.map.y - game.cameraY) * Static.GRID;
+        y = (instance.y - game.data.map.y - game.cameraY) * Static.GRID;
     }
     public function age()
     {

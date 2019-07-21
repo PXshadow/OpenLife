@@ -54,6 +54,7 @@ class MapData
                 }
             }
         }
+        //trace(object);
     }
 }
 class MapInstance

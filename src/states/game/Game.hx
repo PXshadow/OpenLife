@@ -1,5 +1,7 @@
 package states.game;
 
+import data.ObjectData.ObjectType;
+import openfl.display.Tile;
 import openfl.display.Bitmap;
 import haxe.ds.Vector;
 import data.PlayerData.PlayerType;
@@ -53,7 +55,7 @@ class Game #if openfl extends states.State #end
     var compress:Bool = false;
     var inital:Bool = true;
 
-    var program:Program;
+    public var program:Program;
     public function new()
     {
         //delelerative syntax for program console
@@ -75,7 +77,7 @@ class Game #if openfl extends states.State #end
         //background color of game
         stage.color = 0xFFFFFF;
         //connect
-        if(true)
+        if(!true)
         {
             Main.client.login.accept = function()
             {
@@ -101,19 +103,19 @@ class Game #if openfl extends states.State #end
             //playground
             objects.size(32,30);
             //player
-            /*setPlayer(cast(objects.add(19,0,0,true),Player));
+            setPlayer(cast(objects.add(19,0,0,true),Player));
             Player.main.instance = new PlayerInstance([]);
             Player.main.instance.move_speed = 3;
-            data.playerMap.set(0,Player.main);*/
+            data.playerMap.set(0,Player.main);
             //bush
-            objects.add(30,3,-1);
+            objects.add(30,3,1);
             //sheep
-            objects.add(575,2,-2).animate(2);
+            objects.add(575,2,2).animate(2);
             //trees
-            objects.add(65,4,-4);
-            objects.add(2454,5,-4);
-            objects.add(49,6,-5);
-            objects.add(530,3,-4);
+            objects.add(65,4,4);
+            objects.add(2454,5,4);
+            objects.add(49,6,5);
+            objects.add(530,3,4);
         }
     }
     //client events
@@ -132,8 +134,8 @@ class Game #if openfl extends states.State #end
         {
             var xs:Int = 0;
             var ys:Int = 0;
-            if (Bind.playerUp.bool) ys += 1;
-            if (Bind.playerDown.bool) ys += -1;
+            if (Bind.playerUp.bool) ys += -1;
+            if (Bind.playerDown.bool) ys += 1;
             if (Bind.playerLeft.bool) xs += -1;
             if (Bind.playerRight.bool) xs += 1;
             if (xs != 0 || ys != 0) Player.main.step(xs,ys);
@@ -145,9 +147,24 @@ class Game #if openfl extends states.State #end
                 {
                     //grab
                     Main.client.send("USE " + Player.main.instance.x + " " + Player.main.instance.y);
+                    //pick up
+                    var tile:Object;
+                    for (i in 0...objects.numTiles)
+                    {
+                        tile = cast objects.getTileAt(i);
+                        if (tile.tileX == Player.main.instance.x && tile.tileY == Player.main.instance.y && tile.type == OBJECT)
+                        {
+                            Player.main.instance.o_id = tile.oid;
+                            Player.main.hold();
+                            break;
+                        }
+                    }
                 }else{
                     //drop
                     Main.client.send("DROP " + Player.main.instance.x + " " + Player.main.instance.y + " -1");
+                    //remove hold
+                    Player.main.instance.o_id = 0;
+                    Player.main.hold();
                 }
             }
         }
@@ -267,15 +284,31 @@ class Game #if openfl extends states.State #end
                 }
             }
             case MAP_CHANGE:
-            //x y new_floor_id new_id p_id optional oldX oldY cameraSpeed
-            var mapChange = new MapChange(input.split(" "));
+            //x y new_floor_id new_id p_id optional oldX oldY playerSpeed
+            var change = new MapChange(input.split(" "));
+            var tile:Object;
+            if (change.speed > 0)
+            {
+                //move object 
+            }else{
+                for (i in 0...objects.numTiles)
+                {
+                    tile = cast objects.getTileAt(i);
+                    if (tile.tileX == change.x && tile.tileY == change.y && tile.type != PLAYER)
+                    {
+                        objects.removeTile(tile);
+                        break;
+                    }
+                }
+                objects.add(change.floor != 0 ? change.floor : change.id,change.x,change.y);
+            }
             Main.client.tag = null;
             case HEAT_CHANGE:
             //trace("heat " + input);
             Main.client.tag = null;
             case FOOD_CHANGE:
             //trace("food change " + input);
-            //also need to set new movement move_speed: is floating point cameraSpeed in grid square widths per second.
+            //also need to set new movement move_speed: is floating point playerSpeed in grid square widths per second.
             case FRAME:
             Main.client.tag = null;
             case PLAYER_SAYS:

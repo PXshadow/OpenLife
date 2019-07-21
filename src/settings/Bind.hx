@@ -16,10 +16,18 @@ class Bind
     public static var playerLeft:Action = new Action([Keyboard.A]);
     public static var playerRight:Action = new Action([Keyboard.D]);
 
-    public static var playerPick:Action = new Action([]);
-    public static var playerDrop:Action = new Action([]);
+    public static var playerPick:Action = new Action([Keyboard.G]);
+    public static var playerDrop:Action = new Action([Keyboard.Q]);
 
     public static var playerAction:Action = new Action([Keyboard.SPACE]);
+
+
+    public static var search:Action = new Action([Keyboard.F],true);
+    public static var chat:Action = new Action([Keyboard.ENTER]);
+    //show commands
+    public static var help:Action = new Action([Keyboard.H]);
+
+    public static var settings:Action = new Action([Keyboard.ESCAPE]);
     
 
     public static function keys(e:KeyboardEvent,bool:Bool)
@@ -38,6 +46,11 @@ class Bind
         playerDrop.set(e,bool);
 
         playerAction.set(e,bool);
+
+        search.set(e,bool);
+        help.set(e,bool);
+        chat.set(e,bool);
+        settings.set(e,bool);
     }
 }
 class Action
@@ -47,9 +60,10 @@ class Action
     public var control:Bool = false;
     public var shift:Bool = false;
     public var alt:Bool = false;
-    public function new(array:Array<Int>)
+    public function new(array:Array<Int>,control:Bool=false)
     {
         this.array = array;
+        this.control = control;
     } 
     public function set(e:KeyboardEvent,bool:Bool)
     {

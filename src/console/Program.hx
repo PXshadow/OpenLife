@@ -6,67 +6,48 @@ import states.game.Game;
 class Program
 {
     var game:Game;
-    var goal:Pos = new Pos();
+    public var goal:Pos = new Pos();
+    public var setupGoal:Bool = false;
+    public var range:Float = 15000;
+    public var useRange:Int = 1;
+    public var dropAction:Bool = false;
+    public var selfAction:Bool = false;
     public function new(game:Game)
     {
         this.game = game;
     }
-
-    public function path(x:Int,y:Int)
+    /**
+     * Go to goal location or new set location
+     * @param x 
+     * @param y 
+     */
+    public function path(x:Null<Int>=null,y:Null<Int>=null):Program
     {
-        goal.x = x;
-        goal.y = y;
-        //visual
+        if (x != null && y != null)
+        {
+            goal.x = x;
+            goal.ys = y;
+            setupGoal = true;
+        }
+        if (setupGoal)
+        {
+            //get speed of player and setup time system
+            Player.main.timeSpeed();
+            //set goal pathing
+            Player.main.goal = true;
+        }
+        /*//visual
         #if openfl 
         //draw path
         game.ground.dest = goal;
         game.ground.createPath();
-        #end
+        #end*/
+        return this;
     }
     public function drop():Program
     {
         return this;
     }
-    #if openfl
-    //visual
-    public function apply(target:String,properties:Dynamic):Program
-    {
-        var array = getTiles(target);
-        if (array.length > 0)
-        {
-            var fields = Reflect.fields(properties);
-            trace("fields " + fields);
-            for (obj in array)
-            {
-                for (field in fields)
-                {
-                    Reflect.setProperty(obj,field,Reflect.getProperty(properties,field));
-                }
-            }
-        }
-        return this;
-    }
-    private function getTiles(target:String):Array<Object>
-    {
-        var targets:Array<Object> = [];
-        var list = id(target);
-        if (list.length == 0) 
-        {
-            trace("unable to find target " + target);
-            return targets;
-        }
-        var obj:Object;
-        for (i in 0...game.objects.numTiles)
-        {
-            obj = cast game.objects.getTileAt(i);
-            if (list.indexOf(obj.oid) >= 0)
-            {
-                targets.push(obj);
-            }
-        }
-        return targets;
-    }
-    #end
     /**
      * Find Object within range and set goal
      * @param name 
@@ -74,13 +55,49 @@ class Program
      */
     public function find(name:String):Program
     {
-        id(name);
+        var get = id(name);
+        var dis:Float = range;
+        var cur:Float = 0;
+        for(y in 0...game.data.map.object.length)
+        {
+            for(x in 0...game.data.map.object[y].length)
+            {
+                for (i in 0...game.data.map.object[y][x].length)
+                {
+                    //array of objects in the tile
+                    if (get.indexOf(game.data.map.object[y][x][i]) >= 0)
+                    {
+                        cur = Math.sqrt(Math.pow(Player.main.instance.y - y + game.data.map.y,2) + Math.pow(Player.main.instance.x - x + game.data.map.x,2));
+                        if (cur < dis)
+                        {
+                            goal.y = y;
+                            goal.x = x;
+                            dis = cur;
+                        }
+                    }
+                }
+            }
+        }
+        if (dis < range)
+        {
+            setupGoal = true;
+            Main.console.print("Find Distant",Std.string(dis));
+        }else{
+            setupGoal = false;
+            Main.console.print("Max Range",Std.string(dis));
+        }
         return this;
     }
     public function pickup():Program
     {
+        self();
         return this;
     }
+    /**
+     * -1 to pickup
+     * @param index 
+     * @return Program
+     */
     public function self(index:Int=-1):Program
     {
         return this;
@@ -101,7 +118,7 @@ class Program
     }
     private function id(name:String):Array<Int>
     {
-        return switch(name)
+        return switch(name.toLowerCase())
         {
             case "berry bush":
             [30];
@@ -162,7 +179,7 @@ class Program
                 1097, //Full Deep Well
                 706, //Ice Hole
             ];
-            case "Bucket":
+            case "bucket":
             [
                 659, //Empty Bucket
                 660, //Full Bucket of Water
@@ -219,6 +236,46 @@ class Program
     {
 
     }
+    #if openfl
+    //visual
+    public function apply(target:String,properties:Dynamic):Program
+    {
+        var array = getTiles(target);
+        if (array.length > 0)
+        {
+            var fields = Reflect.fields(properties);
+            trace("fields " + fields);
+            for (obj in array)
+            {
+                for (field in fields)
+                {
+                    Reflect.setProperty(obj,field,Reflect.getProperty(properties,field));
+                }
+            }
+        }
+        return this;
+    }
+    private function getTiles(target:String):Array<Object>
+    {
+        var targets:Array<Object> = [];
+        var list = id(target);
+        if (list.length == 0) 
+        {
+            trace("unable to find target " + target);
+            return targets;
+        }
+        var obj:Object;
+        for (i in 0...game.objects.numTiles)
+        {
+            obj = cast game.objects.getTileAt(i);
+            if (list.indexOf(obj.oid) >= 0)
+            {
+                targets.push(obj);
+            }
+        }
+        return targets;
+    }
+    #end
 }
 class Pos
 {

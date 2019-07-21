@@ -65,17 +65,17 @@ class Objects extends TileDisplay
     }
     public function addPlayer(data:PlayerInstance)
     {
-        if (data == null)
-        {
-            trace('add player data null ' + data);
-            return;
-        }
         player = game.data.playerMap.get(data.p_id);
         if (player == null)
         {
             //new
             player = cast add(data.po_id,0,0,true);
             game.data.playerMap.set(data.p_id,player);
+        }
+        if (player == null)
+        {
+            trace("player is null " + player);
+            return;
         }
         //set to player object
         player.set(data);
@@ -108,7 +108,7 @@ class Objects extends TileDisplay
         obj.tileY = y;
         //set to display postion
         obj.x = (obj.tileX - game.data.map.x - game.cameraX) * Static.GRID * 1;
-        obj.y = (-obj.tileY - game.data.map.y - game.cameraY) * Static.GRID * 1;
+        obj.y = (obj.tileY - game.data.map.y - game.cameraY) * Static.GRID * 1;
         var r:Rectangle;
         var parents:Array<Int> = [];
         for(i in 0...data.numSprites)
