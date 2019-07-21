@@ -193,7 +193,7 @@ class Launcher extends states.State
     {
         var channel:String = "";
         #if windows
-        channel = win32-beta
+        channel = "win32-beta";
         #elseif linux
         channel = "linux-universal";
         #elseif mac

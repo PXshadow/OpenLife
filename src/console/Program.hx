@@ -26,7 +26,7 @@ class Program
         if (x != null && y != null)
         {
             goal.x = x;
-            goal.ys = y;
+            goal.y = y;
             setupGoal = true;
         }
         if (setupGoal)
