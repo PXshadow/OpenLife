@@ -41,12 +41,8 @@ class Player #if openfl extends Object #end
     {
         if (timeInt == 0)
         {
-            if (goal)
-            {
-                path();
-            }else{
-                move();
-            }
+            if (goal) path();
+            move();
         }
         if (timeInt > 0)
         {
@@ -100,9 +96,46 @@ class Player #if openfl extends Object #end
         this.time = Std.int(time * 60);
         timeInt = 0;
     }
-    public function path()
+    public function pathMove()
     {
         
+    }
+    public function path()
+    {
+        trace("path");
+        var px:Int = game.program.goal.x - instance.x;
+        var py:Int = game.program.goal.y - instance.y;
+        trace("dis x " + px + " " + py);
+        if (px != 0) px = px > 0 ? 1 : -1;
+        if (py != 0) py = py > 0 ? 1 : -1;
+        trace("path " + px + " " + py);
+        if (px == 0 && py == 0)
+        {
+            //complete 
+            game.program.stop();
+        }else{
+            if (!step(px,py))
+            {
+                //x
+                px *= -1;
+                if (!step(px,py))
+                {
+                    //y
+                    px *= -1;
+                    py *= -1;
+                    if (!step(px,py))
+                    {
+                        //x and y
+                        px *= -1;
+                        if (!step(px,py))
+                        {
+                            
+                        }
+                    }
+                }
+            }
+        }
+        timeInt = time;
     }
     public function set(data:PlayerInstance)
     {

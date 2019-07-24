@@ -1,4 +1,5 @@
 package states.game;
+import haxe.io.Path;
 import openfl.utils.ByteArray;
 import haxe.ds.Vector;
 import sys.FileSystem;
@@ -164,13 +165,15 @@ class Objects extends TileDisplay
     }
     private function drawSprite(id:Int,rect:Rectangle):Rectangle
     {
-        var path = Static.dir + "sprites/" + id + ".tga";
+        var slash = "\\".substring(0,1);
+        var path = Static.dir + "sprites" + slash + id + ".tga";
         if (!FileSystem.exists(path))
         {
             trace("sprite path fail " + path);
             return null;
         }
         reader.read(File.read(path).readAll());
+        trace("finish read");
         //set dimensions
         rect.width = reader.rect.width;
         rect.height = reader.rect.height;

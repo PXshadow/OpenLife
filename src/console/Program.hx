@@ -16,6 +16,13 @@ class Program
     {
         this.game = game;
     }
+    public function stop()
+    {
+        Player.main.goal = false;
+        setupGoal = false;
+        dropAction = false;
+        selfAction = false;
+    }
     /**
      * Go to goal location or new set location
      * @param x 
@@ -31,17 +38,9 @@ class Program
         }
         if (setupGoal)
         {
-            //get speed of player and setup time system
-            Player.main.timeSpeed();
             //set goal pathing
             Player.main.goal = true;
         }
-        /*//visual
-        #if openfl 
-        //draw path
-        game.ground.dest = goal;
-        game.ground.createPath();
-        #end*/
         return this;
     }
     public function drop():Program

@@ -51,19 +51,21 @@ class Launcher extends states.State
             addChild(updateBanner);
         });
         //figure out directory
-        Static.dir = lime.system.System.applicationDirectory;
+        Static.dir = Path.normalize(lime.system.System.applicationDirectory);
+        Static.dir = Path.removeTrailingSlashes(Static.dir) + "/";
         #if mac
         Static.dir = Static.dir.substring(0,Static.dir.indexOf("/Contents/Resources/"));
         Static.dir = Static.dir.substring(0,Static.dir.lastIndexOf("/") + 1);
         #end
         //mods
-        if (FileSystem.isDirectory(Static.dir + "/groundTileCache"))
+        trace("dir " + Static.dir + "groundTileCache");
+        if (FileSystem.exists(Static.dir + "groundTileCache"))
         {
             //portable, launch straight away
             launch = true;
         }else{
             //check for mod json
-            if (FileSystem.isDirectory(Static.dir + "mods"))
+            if (FileSystem.exists(Static.dir + "mods"))
             {
                 var ext:String = "";
                 var data:Dynamic;

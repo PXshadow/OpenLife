@@ -77,7 +77,7 @@ class Game #if openfl extends states.State #end
         //background color of game
         stage.color = 0xFFFFFF;
         //connect
-        if(!true)
+        if(true)
         {
             Main.client.login.accept = function()
             {

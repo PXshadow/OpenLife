@@ -116,6 +116,7 @@ class Client
 		}catch(e:Dynamic)
 		{
             trace("host e " + e);
+            connected = false;
 			return;
 		}
 		socket = new Socket();
@@ -126,6 +127,7 @@ class Client
 			socket.connect(host,port);
 		}catch(e:Dynamic)
 		{
+            connected = false;
             trace("e " + e);
 		}
         trace("connect sys");
