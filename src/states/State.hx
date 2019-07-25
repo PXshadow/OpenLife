@@ -1,5 +1,6 @@
 package states;
 
+import openfl.events.MouseEvent;
 import openfl.events.Event;
 import openfl.ui.Keyboard;
 import openfl.display.DisplayObjectContainer;
@@ -25,6 +26,18 @@ class State extends DisplayObjectContainer
     public function resize()
     {
         
+    }
+    public function mouseDown()
+    {
+
+    }
+    public function mouseUp()
+    {
+        
+    }
+    public function mouseScroll(e:MouseEvent)
+    {
+
     }
     public function remove()
     {

@@ -251,10 +251,10 @@ class ObjectData extends LineReader
         //get sprite data
         for(i in 0...spriteArray.length)
         {
-            var path = Static.dir + "sprites/" + spriteArray[i].spriteID;
+            var path = Static.dir + "sprites/" + spriteArray[i].spriteID + ".tga";
             if(!FileSystem.exists(path)) 
             {
-                trace("SPRITE FAIL " + spriteArray[i].spriteID);
+                trace("SPRITE FAIL " + spriteArray[i].spriteID + " path " + path);
                 return;
             }else{
             var input = File.read(path,false);

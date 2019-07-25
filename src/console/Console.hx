@@ -17,6 +17,8 @@ class Console #if openfl extends DisplayObjectContainer #end
     public static var interp:Interp;
     var history:Array<String> = [];
     var command:Command;
+    //debug elements
+    public var debug:Bool = false;
     #if openfl
     public var input:Text;
     var output:Text;
@@ -32,13 +34,13 @@ class Console #if openfl extends DisplayObjectContainer #end
         addChild(shape);
 
         input = new Text("",LEFT,20,0xFFFFFF);
-        //input.restrict = "^_";
         length = input.length;
         input.selectable = true;
         input.mouseEnabled = true;
         input.cacheAsBitmap = false;
         input.type = INPUT;
         input.multiline = false;
+        input.restrict = "^`";
         input.y = 260 + 2;
         addChild(input);
         //output
@@ -73,7 +75,7 @@ class Console #if openfl extends DisplayObjectContainer #end
         interp.variables.set("util",console.Util);
         interp.variables.set("Util",console.Util);
 
-        command = new Command(this);
+        command = new Command();
         //set history 
         if (Main.so.data.consoleHistory != null)
         {
@@ -112,7 +114,7 @@ class Console #if openfl extends DisplayObjectContainer #end
     {
         switch(code)
         {
-            case Keyboard.TAB:
+            case Keyboard.TAB | Keyboard.BACKQUOTE:
             //toggle vis
             visible = !visible;
             if(visible)

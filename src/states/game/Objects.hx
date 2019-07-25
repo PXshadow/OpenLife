@@ -173,7 +173,6 @@ class Objects extends TileDisplay
             return null;
         }
         reader.read(File.read(path).readAll());
-        trace("finish read");
         //set dimensions
         rect.width = reader.rect.width;
         rect.height = reader.rect.height;

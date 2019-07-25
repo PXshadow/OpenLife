@@ -89,15 +89,15 @@ class Main #if openfl extends Sprite #end
     }
     private function mouseDown(_)
     {
-
+        if (state != null) state.mouseDown();
     }
     private function mouseUp(_)
     {
-
+        if (state != null) state.mouseUp();
     }
     private function mouseWheel(e:MouseEvent)
     {
-
+        if (state != null) state.mouseScroll(e);
     }
     private function _resize(_)
     {

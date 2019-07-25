@@ -2,10 +2,9 @@ package console;
 
 class Command
 {
-    var console:Console;
-    public function new(console:Console)
+    public function new()
     {
-        this.console = console;
+
     }
     public function run(string:String):Bool
     {
@@ -52,6 +51,10 @@ class Command
             url("https://onehouronelife.com/forums/");
             case "wiki":
             url("https://onehouronelife.gamepedia.com/One_Hour_One_Life_Wiki");
+            case "debug":
+            Main.console.debug = !Main.console.debug;
+            case "release":
+            Main.console.debug = false;
             default:
             return false;
         }

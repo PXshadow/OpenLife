@@ -184,7 +184,6 @@ class AnimationParameter
 
         var s:String = array[i++];
         if (s == null) return;
-        trace("string " + s);
         var cut = s.indexOf(",");
         rotationCenterOffset = new Point(Std.parseFloat(s.substring(1,cut)),Std.parseFloat(s.substring(cut + 1,s.length - 1)));
 

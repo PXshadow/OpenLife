@@ -1,5 +1,6 @@
 package states.game;
 
+import openfl.events.MouseEvent;
 import data.ObjectData.ObjectType;
 import openfl.display.Tile;
 import openfl.display.Bitmap;
@@ -177,6 +178,23 @@ class Game #if openfl extends states.State #end
             it.next().update();
         }
     }
+    override function mouseDown() 
+    {
+        super.mouseDown();
+        if (Main.console.debug)
+        {
+
+        }
+    }
+    override function mouseScroll(e:MouseEvent) 
+    {
+        super.mouseScroll(e);
+        var scale = e.delta * 0.03;
+        x += -width/4 * scale * scaleX;
+        y += -height/4 * scale * scaleY;
+        scaleX += scale;
+        scaleY += scale;
+    }
     public function mapUpdate() 
     {
         trace("MAP UPDATE");
@@ -232,7 +250,6 @@ class Game #if openfl extends states.State #end
             playerInstance = new PlayerInstance(input.split(" "));
             objects.addPlayer(playerInstance);
             case PLAYER_MOVES_START:
-            trace("PLAYED MOVE START");
             var playerMove = new PlayerMove(input.split(" "));
             if (data.playerMap.exists(playerMove.id))
             {
