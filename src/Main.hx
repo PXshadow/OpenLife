@@ -32,8 +32,6 @@ class Main #if openfl extends Sprite #end
     public static var screen:DisplayObjectContainer;
     //so
     public static var so:SharedObject;
-    //cursor
-    private var cursor:Shape;
     public function new()
     {
         super();
@@ -51,30 +49,14 @@ class Main #if openfl extends Sprite #end
         client = new client.Client();
         //set state
         screen = new DisplayObjectContainer();
-        screen.mouseChildren = false;
-        screen.mouseEnabled = false;
         addChild(screen);
         state = new states.launcher.Launcher();
         //state = new states.game.Game();
         console = new console.Console();
         addChild(console);
-
-        cursor = new Shape();
-        cursor.cacheAsBitmap = true;
-        var mat = new Matrix();
-        mat.createGradientBox(16,16);
-        cursor.graphics.beginGradientFill(openfl.display.GradientType.RADIAL,[0xFFFFFF,0xFFFFFF],[1,0],[0,255],mat);
-        cursor.graphics.drawCircle(8,8,8);
-        addChild(cursor);
     }
     private function update(_)
     {
-        //cursor
-        if (cursor != null)
-        {
-            cursor.x = mouseX - 8;
-            cursor.y = mouseY - 8;
-        }
         if (client != null) client.update();
         if (state != null) state.update();
     }

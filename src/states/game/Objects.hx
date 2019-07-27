@@ -165,14 +165,13 @@ class Objects extends TileDisplay
     }
     private function drawSprite(id:Int,rect:Rectangle):Rectangle
     {
-        var slash = "\\".substring(0,1);
-        var path = Static.dir + "sprites" + slash + id + ".tga";
-        if (!FileSystem.exists(path))
+        try {
+            reader.read(File.read(Static.dir + "sprites/" + id + ".tga").readAll());
+        }catch(e:Dynamic)
         {
-            trace("sprite path fail " + path);
+            trace("e " + e);
             return null;
         }
-        reader.read(File.read(path).readAll());
         //set dimensions
         rect.width = reader.rect.width;
         rect.height = reader.rect.height;

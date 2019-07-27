@@ -68,19 +68,13 @@ class ObjectData extends LineReader
     public function new(i:Int)
     {
         super();
-        #if sys
-        var path = Static.dir + "objects/" + i + ".txt";
-        if (!FileSystem.exists(path)) 
+        try {
+            line = readLines(File.read(Static.dir + "objects/" + i + ".txt"));
+        }catch(e:Dynamic)
         {
-            //trace("OBJECT FAIL " + i);
-            fail = true;
+            trace("object txt e " + e);
             return;
         }
-        line = readLines(File.read(path));
-        #end
-        #if (html5 || js)
-            //todo set this up
-        #end
         id = getInt();
         description = getString();
         containable = getInt();
@@ -251,10 +245,10 @@ class ObjectData extends LineReader
         //get sprite data
         for(i in 0...spriteArray.length)
         {
-            var path = Static.dir + "sprites/" + spriteArray[i].spriteID + ".tga";
+            var path = Static.dir + "sprites/" + spriteArray[i].spriteID + ".txt";
             if(!FileSystem.exists(path)) 
             {
-                trace("SPRITE FAIL " + spriteArray[i].spriteID + " path " + path);
+                trace("SPRITE FAIL TEXT " + spriteArray[i].spriteID + " path " + path);
                 return;
             }else{
             var input = File.read(path,false);

@@ -14,7 +14,7 @@ class AnimationData extends LineReader
         return;
         #end
         //return;
-        if (!FileSystem.exists(Static.dir + "animations/" + id + "_0.txt"))
+        if (!FileSystem.exists(Static.dir + "animations/" + id + "_0"))
         {
             fail = true;
             return;
@@ -25,7 +25,7 @@ class AnimationData extends LineReader
             //skip 3
             if (i == 3) continue;
             //read lines
-            line = readLines(File.read(Static.dir + "animations/" + id + "_" + i + ".txt",false));
+            line = readLines(File.read(Static.dir + "animations/" + id + "_" + i + "",false));
             record[i] = process();
         }
         line = null;

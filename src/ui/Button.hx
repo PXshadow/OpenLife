@@ -11,11 +11,30 @@ class Button extends Sprite
 	public var Out:Dynamic->Void;
 	public var outUp:Bool = true;
 	public var Click:Dynamic->Void;
+	public var textfield:Text;
+	public var text(get, set):String;
+	function get_text():String 
+	{
+		return textfield.text;
+	}
+	function set_text(text:String):String 
+	{
+		if (textfield == null)
+		{
+			textfield = new Text("",LEFT,24,0xFFFFFF,200);
+			textfield.cacheAsBitmap = false;
+			textfield.bold = true;
+			textfield.invalidate();
+			addChild(textfield);
+		}
+		textfield.text = text;
+		return text;
+	}
     public function new()
     {
         super();
         buttonMode = true;
-		cacheAsBitmap = true;
+		//cacheAsBitmap = true;
         addEventListener(Event.REMOVED_FROM_STAGE, removeFromStage);
 	    addEventListener(Event.ADDED_TO_STAGE, addToStage);
     }

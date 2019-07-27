@@ -14,6 +14,8 @@ class Text extends TextField
     @:isVar public var spacing(null,set):Int = 0;
     @:isVar public var leftMargin(null,set):Int = 0;
     @:isVar public var rightMargin(null,set):Int = 0;
+    public var bold:Bool = false;
+    public var italic:Bool = false;
     function set_leftMargin(value:Int):Int
     {
         leftMargin = value;
@@ -83,13 +85,13 @@ class Text extends TextField
     }
     private function updateFormat()
     {
-        var format = new TextFormat(font,size,color,null,null,null,null,null,align,null,null,null,spacing);
+        var format = new TextFormat(font,size,color,bold,italic,null,null,null,align,null,null,null,spacing);
         defaultTextFormat = format;
     }
     override function invalidate() 
     {
-        super.invalidate();
-        var format = new TextFormat(font,size,color,null,null,null,null,null,align,null,null,null,spacing);
+        var format = new TextFormat(font,size,color,bold,italic,null,null,null,align,null,null,null,spacing);
         setTextFormat(format,0,text.length);
+        super.invalidate();
     }
 }

@@ -43,9 +43,9 @@ class Game #if openfl extends states.State #end
     
     function set_scale(scale:Float):Float 
     {
+        //scale dim
         scaleX = scale;
         scaleY = scale;
-        center();
         return scale;
     }
     #end
@@ -68,6 +68,7 @@ class Game #if openfl extends states.State #end
 
         #if openfl
         super();
+        stage.color = 0;
         ground = new Ground(this);
         objects = new Objects(this);
         dialog = new Dialog(this);
@@ -78,7 +79,7 @@ class Game #if openfl extends states.State #end
         //background color of game
         stage.color = 0xFFFFFF;
         //connect
-        if(true)
+        if (!true)
         {
             Main.client.login.accept = function()
             {
@@ -181,19 +182,27 @@ class Game #if openfl extends states.State #end
     override function mouseDown() 
     {
         super.mouseDown();
-        if (Main.console.debug)
-        {
-
-        }
+    
+        
     }
     override function mouseScroll(e:MouseEvent) 
     {
         super.mouseScroll(e);
-        var scale = e.delta * 0.03;
-        x += -width/4 * scale * scaleX;
-        y += -height/4 * scale * scaleY;
-        scaleX += scale;
-        scaleY += scale;
+        var diff = e.delta * 0.03;
+        //shift
+        var shift = -diff * width/2;
+        x += shift;
+        y += shift;
+        scale += diff;
+    }
+    public function center()
+    {
+        if (Player.main != null)
+        {
+            x = -(Player.main.x - 20) * scale + Main.setWidth/2;
+            y = -(Player.main.y - 40) * scale + Main.setHeight/2;
+            trace("x " + x + " y " + y);
+        }
     }
     public function mapUpdate() 
     {
@@ -216,11 +225,6 @@ class Game #if openfl extends states.State #end
                 objects.addObject(data.map.object[y][x],i,j);
             }
         }
-    }
-    public function center()
-    {
-        x = (Main.setWidth - objects.width)/2 * scale;
-        y = (Main.setHeight - objects.height)/2 * scale;
     }
     #end
     
