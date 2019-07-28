@@ -106,7 +106,7 @@ class Object extends TileContainer
                 parent.y = tile.y;
                 parent.rotation = tile.rotation;
                 parent.alpha = tile.alpha;
-                parent.colorTransform = tile.colorTransaform;
+                parent.colorTransform = tile.colorTransform;
 
                 tile.x = 0;
                 tile.y = 0;
