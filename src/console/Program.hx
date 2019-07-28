@@ -1,6 +1,8 @@
 package console;
 
+#if openfl
 import states.game.Object;
+#end
 import states.game.Player;
 import states.game.Game;
 class Program
@@ -12,6 +14,8 @@ class Program
     public var useRange:Int = 1;
     public var dropAction:Bool = false;
     public var selfAction:Bool = false;
+    //food 
+    public var ate:Array<Int> = [];
     public function new(game:Game)
     {
         this.game = game;
@@ -43,8 +47,13 @@ class Program
         }
         return this;
     }
-    public function drop():Program
+    public function drop(x:Int=0,y:Int=0):Program
     {
+        return this;
+    }
+    public function use(x:Int=0,y:Int=0):Program
+    {
+
         return this;
     }
     /**
@@ -80,7 +89,9 @@ class Program
         if (dis < range)
         {
             setupGoal = true;
-            Main.console.print("Find Distant",Std.string(dis));
+            //set player pathing
+            Player.main.goal = true;
+            Main.console.print("Distance to goal",Std.string(dis));
         }else{
             setupGoal = false;
             Main.console.print("Max Range",Std.string(dis));
@@ -89,11 +100,11 @@ class Program
     }
     public function pickup():Program
     {
-        self();
+        use();
         return this;
     }
     /**
-     * -1 to pickup
+     * -1 to eat what you are holdign
      * @param index 
      * @return Program
      */
@@ -105,8 +116,13 @@ class Program
     {
         return this;
     }
-    public function craft(name:String):Program
+    public function task(name:String):Program
     {
+        switch(name.toLowerCase())
+        {
+            case "eat":
+            find("food").use().self();
+        }
         return this;
     }
     //move player
@@ -123,8 +139,30 @@ class Program
             [30];
             case "berry" | "berries": 
             [31];
-            default: 
-            [-1];
+            case "food":
+            var food = [
+                31,//Gooseberry
+                40,//Wild Carrot
+                197,//Cooked Rabbit
+                253,//Bowl of Gooseberries
+                272,//Cooked Berry Pie
+                273,//Cooked Carrot Pie
+                274,//Cooked Rabbit Pie
+                275,//Cooked Berry Carrot Pie
+                276,//Cooked Berry Rabbit Pie
+                277,//Cooked Rabbit Carrot Pie
+                278,//Cooked Berry Carrot Rabbit Pie
+                402,//Carrot
+                518,//Cooked Goose
+                570,//Cooked Mutton
+            ];
+            //remove non yum food
+            for (remove in ate)
+            {
+                food.remove(remove);
+            }
+            //return food
+            food;
             case "trees" | "tree":
             [
                 760, //Dead Tree
@@ -229,11 +267,9 @@ class Program
                 1747, //Mean Pit Bull
                 1712, //Attacking Pit Bull
             ];
+            default: 
+            [-1];
         }
-    }
-    private function cat()
-    {
-
     }
     #if openfl
     //visual

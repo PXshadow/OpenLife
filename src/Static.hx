@@ -8,7 +8,7 @@ import haxe.Http;
 class Static 
 {
     //dir
-    public static var dir:String;
+    public static var dir:String = "";
 
     public static inline var GRID:Int = 128;
     //player constants
@@ -26,5 +26,10 @@ class Static
             trace("error " + error);
         }
         http.request(false);
+    }
+    //get object list number
+    public static function number():Int
+    {
+        return Std.parseInt(File.getContent(Static.dir + "objects/nextObjectNumber.txt"));
     }
 }

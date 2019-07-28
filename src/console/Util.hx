@@ -1,4 +1,8 @@
 package console;
+import haxe.io.Path;
+import sys.FileSystem;
+import data.ObjectData;
+import sys.io.File;
 #if openfl
 import openfl.geom.ColorTransform;
 import openfl.display.Shader;

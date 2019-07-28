@@ -65,9 +65,10 @@ class ObjectData extends LineReader
     public var pixHeight:Int = 0;
 
     public var fail:Bool = false;
-    public function new(i:Int)
+    public function new(i:Int=0)
     {
         super();
+        if (i == 0) return;
         try {
             line = readLines(File.read(Static.dir + "objects/" + i + ".txt"));
         }catch(e:Dynamic)
@@ -75,6 +76,10 @@ class ObjectData extends LineReader
             trace("object txt e " + e);
             return;
         }
+        read();
+    }
+    public function read()
+    {
         id = getInt();
         description = getString();
         containable = getInt();
@@ -197,6 +202,8 @@ class ObjectData extends LineReader
             set = string.indexOf("=",set) + 1;
             slotParent[j] = Std.parseInt(string.substring(set,string.length));
         }
+        #if openfl
+        //visual
         numSprites = getInt();
         spriteArray = new Vector<SpriteData>(numSprites);
         for(j in 0...numSprites)
@@ -218,11 +225,13 @@ class ObjectData extends LineReader
         //extra
         if(readName("spritesDrawnBehind"))
         {
-            throw("sprite drawn behind " + line[next]);
+            //throw("sprite drawn behind " + line[next]);
+            next++;
         }
         if(readName("spritesAdditiveBlend"))
         {
-            throw("sprite additive blend " + line[next]);
+            //throw("sprite additive blend " + line[next]);
+            next++;
         }
         
         headIndex = getInt();
@@ -239,6 +248,7 @@ class ObjectData extends LineReader
             if (next < line.length) pixHeight = getInt();
 
         }
+        #end
     }
     public function getSpriteData()
     {

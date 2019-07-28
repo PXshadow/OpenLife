@@ -1,5 +1,5 @@
 -cp src
--neko export/neko/terminal.n
+-neko terminal.n
 -main Main
 -lib hscript
 
@@ -13,5 +13,5 @@
 --next
 
 -cp src
--neko export/neko/output.n
+-neko output.n
 -main Output

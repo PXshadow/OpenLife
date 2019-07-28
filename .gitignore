@@ -1,5 +1,7 @@
 bin
 export
+terminal.n
+output.n
 login.txt
 assets/data
 .vscode

@@ -19,7 +19,9 @@ class Player #if openfl extends Object #end
     public var instance:PlayerInstance;
     public var ageRange:Array<{min:Float,max:Float}> = [];
     public var game:Game;
+    #if openfl
     public var object:Object;
+    #end
     public var moves:Array<Point> = [];
     public var velocityX:Float = 0;
     public var velocityY:Float= 0;
@@ -34,11 +36,12 @@ class Player #if openfl extends Object #end
         this.game = game;
         #if openfl
         super();
-        #end
         type = PLAYER;
+        #end
     }
     public function update()
     {
+        #if openfl
         if (timeInt == 0)
         {
             if (goal) path();
@@ -53,9 +56,11 @@ class Player #if openfl extends Object #end
             timeInt--;
         }
         if (delay > 0) delay--;
+        #end
     }
     public function move()
     {
+        #if openfl
         //grab another move
         if(moves.length > 0)
         {
@@ -74,9 +79,10 @@ class Player #if openfl extends Object #end
                 }
             }
             velocityX = (point.x * Static.GRID) / time;
-            velocityY = (-point.y * Static.GRID) / time;  
+            velocityY = (-point.y * Static.GRID) / time;
             timeInt = time;
         }
+        #end
     }
     public function step(mx:Int,my:Int):Bool
     {
@@ -85,20 +91,20 @@ class Player #if openfl extends Object #end
         //send data
         lastMove++;
         Main.client.send("MOVE " + instance.x + " " + instance.y + " @" + lastMove + " " + mx + " " + my);
+        #if openfl
         timeSpeed();
         moves = [new Point(mx,my)];
+        #end
         return true;
     }
     public function timeSpeed()
     {
+        #if openfl
         //get floor speed
         var time = Static.GRID/(Static.GRID * instance.move_speed);
         this.time = Std.int(time * 60);
         timeInt = 0;
-    }
-    public function pathMove()
-    {
-        
+        #end
     }
     public function path()
     {
@@ -156,6 +162,7 @@ class Player #if openfl extends Object #end
     }
     public function hold()
     {
+        #if openfl
         //object holding
         if (instance.o_id == 0)
         {
@@ -182,11 +189,14 @@ class Player #if openfl extends Object #end
             object.x = instance.o_origin_x;
             object.y = instance.o_origin_y;
         }
+        #end
     }
     public function pos()
     {
-        x = (instance.x - game.data.map.x - game.cameraX) * Static.GRID;
-        y = (instance.y - game.data.map.y - game.cameraY) * Static.GRID;
+        #if openfl
+        x = (instance.x + game.data.map.x + game.cameraX) * Static.GRID;
+        y = (instance.y + game.data.map.y + game.cameraY) * Static.GRID;
+        #end
     }
     public function age()
     {

@@ -12,6 +12,8 @@ class MapData
     //container -> container -> obj
     public var object:Array<Array<Vector<Int>>> = [];
 
+    public var loaded:Bool = false;
+
     //all chunks combined
     public var x:Int = 0;
     public var y:Int = 0;
@@ -23,7 +25,11 @@ class MapData
     }
     public function setRect(x:Int,y:Int,width:Int,height:Int,string:String)
     {
+        //loaded in data
+        loaded = true;
+        //create array
         var a:Array<String> = string.split(" ");
+        //data array for object
         var data:Array<String>;
         var k:Int = 0;
         //bottom left
@@ -46,8 +52,10 @@ class MapData
                     if (string.indexOf(":") >= 0)
                     {
                         //double container
+                        trace("double container");
                     }else{
                         //single container
+                        trace("single container");
                     }
                 }else{
                     object[j][i] = Vector.fromArrayCopy([Std.parseInt(string)]);

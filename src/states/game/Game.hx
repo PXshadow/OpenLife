@@ -1,9 +1,6 @@
 package states.game;
 
-import openfl.events.MouseEvent;
 import data.ObjectData.ObjectType;
-import openfl.display.Tile;
-import openfl.display.Bitmap;
 import haxe.ds.Vector;
 import data.PlayerData.PlayerType;
 import console.Program;
@@ -20,8 +17,11 @@ import haxe.io.Bytes;
 import openfl.display.FPS;
 import openfl.display.DisplayObject;
 import openfl.ui.Keyboard;
+import openfl.events.MouseEvent;
 import ui.Text;
 import settings.Bind;
+import openfl.display.Tile;
+import openfl.display.Bitmap;
 #end
 
 class Game #if openfl extends states.State #end
@@ -30,6 +30,7 @@ class Game #if openfl extends states.State #end
     var dialog:Dialog;
     public var ground:Ground;
     public var objects:Objects;
+    public var bitmap:Bitmap;
     public var cameraSpeed:Float = 10;
     //camera
     public var cameraX:Int = 0;
@@ -50,6 +51,8 @@ class Game #if openfl extends states.State #end
     }
     #end
     var playerInstance:PlayerInstance;
+    //last player to be loaded in 
+    var player:Player;
     public var mapInstance:MapInstance;
     var index:Int = 0;
     public var data:GameData;
@@ -68,16 +71,16 @@ class Game #if openfl extends states.State #end
 
         #if openfl
         super();
-        stage.color = 0;
+        stage.color = 0xFFFFFF;
         ground = new Ground(this);
         objects = new Objects(this);
         dialog = new Dialog(this);
         addChild(ground);
         addChild(objects);
         addChild(dialog);
+        bitmap = new Bitmap();
+        addChild(bitmap);
         #end
-        //background color of game
-        stage.color = 0xFFFFFF;
         //connect
         if (!true)
         {
@@ -102,13 +105,14 @@ class Game #if openfl extends states.State #end
             Main.client.port = 8007;
             Main.client.connect();
         }else{
+            #if openfl
             //playground
             objects.size(32,30);
             //player
-            setPlayer(cast(objects.add(19,0,0,true),Player));
+            /*setPlayer(cast(objects.add(19,0,0,true),Player));
             Player.main.instance = new PlayerInstance([]);
             Player.main.instance.move_speed = 3;
-            data.playerMap.set(0,Player.main);
+            data.playerMap.set(0,Player.main);*/
             //bush
             objects.add(30,3,1);
             //sheep
@@ -118,6 +122,9 @@ class Game #if openfl extends states.State #end
             objects.add(2454,5,4);
             objects.add(49,6,5);
             objects.add(530,3,4);
+            //spring
+            objects.add(3030,9,5);
+            #end
         }
     }
     //client events
@@ -182,8 +189,13 @@ class Game #if openfl extends states.State #end
     override function mouseDown() 
     {
         super.mouseDown();
-    
-        
+        var ix = Std.int(objects.mouseX/Static.GRID) + data.map.x + cameraX;
+        var iy = Std.int(objects.mouseY/Static.GRID) + data.map.y + cameraY;
+        trace("x " + ix + " y " + iy);
+        if (data.map.object[iy] != null)
+        {
+            trace("id " + data.map.object[iy][ix] + " block " + data.blocking.get(ix + "." + iy));
+        }
     }
     override function mouseScroll(e:MouseEvent) 
     {
@@ -211,7 +223,13 @@ class Game #if openfl extends states.State #end
         objects.size(mapInstance.width,mapInstance.height);
         var x:Int = 0;
         var y:Int = 0;
-        //scale = 1;
+        //inital set camera
+        if (inital)
+        {
+            cameraX = -data.map.x;
+            cameraY = -data.map.y;
+            inital = false;
+        }
         for(j in mapInstance.y...mapInstance.y + mapInstance.height)
         {
             for (i in mapInstance.x...mapInstance.x + mapInstance.width)
@@ -225,6 +243,7 @@ class Game #if openfl extends states.State #end
                 objects.addObject(data.map.object[y][x],i,j);
             }
         }
+        center();
     }
     #end
     
@@ -235,9 +254,9 @@ class Game #if openfl extends states.State #end
             case PLAYER_UPDATE:
             if (Player.main == null) 
             {
-                setPlayer(objects.player);
+                setPlayer(player);
             }
-            objects.player = null;
+            player = null;
             default:
         }
     }
@@ -246,13 +265,34 @@ class Game #if openfl extends states.State #end
         Player.main = player;
         Console.interp.variables.set("player",Player.main);
     }
+    public function addPlayer(data:PlayerInstance)
+    {
+        var player = this.data.playerMap.get(data.p_id);
+        if (player == null)
+        {
+            //new
+            #if openfl
+            player = cast add(data.po_id,0,0,true);
+            #else
+            player = new Player(this);
+            #end
+            this.data.playerMap.set(data.p_id,player);
+        }
+        if (player == null)
+        {
+            trace("player is null " + player);
+            return;
+        }
+        //set to player object
+        player.set(data);
+    }
     public function message(input:String) 
     {
         switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
             playerInstance = new PlayerInstance(input.split(" "));
-            objects.addPlayer(playerInstance);
+            addPlayer(playerInstance);
             case PLAYER_MOVES_START:
             var playerMove = new PlayerMove(input.split(" "));
             if (data.playerMap.exists(playerMove.id))
@@ -307,6 +347,7 @@ class Game #if openfl extends states.State #end
             case MAP_CHANGE:
             //x y new_floor_id new_id p_id optional oldX oldY playerSpeed
             var change = new MapChange(input.split(" "));
+            #if openfl
             var tile:Object;
             if (change.speed > 0)
             {
@@ -323,6 +364,14 @@ class Game #if openfl extends states.State #end
                 }
                 objects.add(change.floor != 0 ? change.floor : change.id,change.x,change.y);
             }
+            #end
+            //change data todo:
+            if (data.map.object[change.y] != null)
+            {
+                data.map.object[change.y][change.x] = Vector.fromArrayCopy([change.id]);
+            }
+
+
             Main.client.tag = null;
             case HEAT_CHANGE:
             //trace("heat " + input);

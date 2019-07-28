@@ -167,10 +167,6 @@ class Client
         index += temp.length;
         if(index >= compress)
         {
-            #if !openfl
-            relay.send("#");
-            relay.sendCompress(dataCompress);
-            #end
             trace("index " + index + " compress " + compress + " dataCompress " + dataCompress.length);
             //finish data
             compress = 0;

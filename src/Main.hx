@@ -5,6 +5,7 @@ import sys.net.Socket;
 import client.Client;
 import console.Console;
 import states.game.Game;
+import haxe.io.Path;
 //visual client
 #if openfl
 import openfl.geom.Matrix;
@@ -106,6 +107,20 @@ class Main {
     public static var console:Console;
 	static function main() 
 	{
+        //create lists
+        trace("start list");
+        Static.dir = "OneLifeData7/";
+        var food:String = "[\n";
+        for (i in 0...Static.number())
+        {
+            var data = new data.ObjectData(i);
+            trace("food value " + data.id + " " + data.foodValue);
+            if (data.foodValue > 0)
+            {
+                food += "  " + data.id + ",//" + data.description + "\n";
+            }
+        }
+        trace(food + "]");
         //input into output terminal
         var output = new Router(2000);
         output.bind();

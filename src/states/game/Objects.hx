@@ -23,7 +23,6 @@ class Objects extends TileDisplay
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     var tileX:Float = 0;
     var tileY:Float = 0;
-    public var player:Player;
     public function new(game:Game)
     {
         this.game = game;
@@ -64,23 +63,6 @@ class Objects extends TileDisplay
             }
         });
     }
-    public function addPlayer(data:PlayerInstance)
-    {
-        player = game.data.playerMap.get(data.p_id);
-        if (player == null)
-        {
-            //new
-            player = cast add(data.po_id,0,0,true);
-            game.data.playerMap.set(data.p_id,player);
-        }
-        if (player == null)
-        {
-            trace("player is null " + player);
-            return;
-        }
-        //set to player object
-        player.set(data);
-    }
     public function add(id:Int,x:Int,y:Int,player:Bool=false):Object
     {
         if(id == 0) return null;
@@ -107,9 +89,20 @@ class Objects extends TileDisplay
         //global cords used to refrence
         obj.tileX = x;
         obj.tileY = y;
+        //add data into map data if not loaded in
+        if (!game.data.map.loaded && !player)
+        {
+            trace("add data x " + Std.string(obj.tileX) + " y " + Std.string(obj.tileY));
+            if (game.data.map.object[obj.tileY] == null) 
+            {
+                game.data.map.object[obj.tileY] = [];
+            }
+            game.data.map.object[obj.tileY][obj.tileX] = Vector.fromArrayCopy([obj.oid]);
+        }
         //set to display postion
-        obj.x = (obj.tileX - game.data.map.x - game.cameraX) * Static.GRID * 1;
-        obj.y = (obj.tileY - game.data.map.y - game.cameraY) * Static.GRID * 1;
+        obj.x = (obj.tileX + game.data.map.x + game.cameraX) * Static.GRID * 1;
+        obj.y = (obj.tileY + game.data.map.y + game.cameraY) * Static.GRID * 1;
+        trace("obj x " + obj.x + " y " + obj.y);
         var r:Rectangle;
         var parents:Array<Int> = [];
         for(i in 0...data.numSprites)

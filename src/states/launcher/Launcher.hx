@@ -11,7 +11,7 @@ class Launcher extends states.State
         //directory
         #if windows
         Static.dir = "";
-        #else 
+        #else
         Static.dir = Path.normalize(lime.system.System.applicationDirectory);
         Static.dir = Path.removeTrailingSlashes(Static.dir) + "/";
         #end
@@ -34,10 +34,7 @@ class Launcher extends states.State
         login.x = (Main.setWidth - login.width)/2;
         login.y = (Main.setHeight - login.height)/2;
 
-        var test = new Button();
-        test.graphics.beginFill(0xFFFFFF);
-        test.graphics.drawRect(0,0,100,100);
-        addChild(test);
+        
     }
     private function style(button:Button)
     {

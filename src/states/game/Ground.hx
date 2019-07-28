@@ -41,9 +41,9 @@ class Ground extends Shape
     }
     public function createPath()
     {
-        graphics.lineStyle(0x00FF00,2);
+        /*graphics.lineStyle(0x00FF00,2);
         graphics.moveTo((Player.main.instance.x - game.data.map.x - game.cameraX) * Static.GRID,(Player.main.instance.y - game.data.map.y - game.cameraY) * Static.GRID);
-        graphics.lineTo((dest.x - game.data.map.x - game.cameraX) * Static.GRID,(dest.y - game.data.map.y - game.cameraY) * Static.GRID);
+        graphics.lineTo((dest.x - game.data.map.x - game.cameraX) * Static.GRID,(dest.y - game.data.map.y - game.cameraY) * Static.GRID);*/
     }
     public function createBlocks()
     {

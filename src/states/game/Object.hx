@@ -1,4 +1,4 @@
-package states.game;
+/*package states.game;
 import haxe.Timer;
 import haxe.ds.Vector;
 import motion.Actuate;
@@ -131,4 +131,4 @@ class Object extends TileContainer
         }
     }
 
-}
+}*/
