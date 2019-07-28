@@ -1,6 +1,6 @@
 package settings;
 
-/*import openfl.events.KeyboardEvent;
+import openfl.events.KeyboardEvent;
 import openfl.ui.Keyboard;
 
 //deals with mouse and keyboard control setup
@@ -81,4 +81,4 @@ class Action
         }
         return false;
     }
-}*/
+}

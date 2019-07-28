@@ -92,7 +92,6 @@ class Objects extends TileDisplay
         //add data into map data if not loaded in
         if (!game.data.map.loaded && !player)
         {
-            trace("add data x " + Std.string(obj.tileX) + " y " + Std.string(obj.tileY));
             if (game.data.map.object[obj.tileY] == null) 
             {
                 game.data.map.object[obj.tileY] = [];
@@ -100,9 +99,8 @@ class Objects extends TileDisplay
             game.data.map.object[obj.tileY][obj.tileX] = Vector.fromArrayCopy([obj.oid]);
         }
         //set to display postion
-        obj.x = (obj.tileX + game.data.map.x + game.cameraX) * Static.GRID * 1;
-        obj.y = (obj.tileY + game.data.map.y + game.cameraY) * Static.GRID * 1;
-        trace("obj x " + obj.x + " y " + obj.y);
+        obj.x = (obj.tileX + game.cameraX) * Static.GRID * 1;
+        obj.y = (obj.tileY + game.cameraY) * Static.GRID * 1;
         var r:Rectangle;
         var parents:Array<Int> = [];
         for(i in 0...data.numSprites)

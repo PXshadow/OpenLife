@@ -17,6 +17,7 @@ import openfl.display.Sprite;
 import openfl.events.KeyboardEvent;
 import openfl.events.MouseEvent;
 import openfl.events.Event;
+import settings.Bind;
 
 class Main #if openfl extends Sprite #end
 {

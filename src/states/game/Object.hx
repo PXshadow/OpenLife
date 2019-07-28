@@ -1,4 +1,4 @@
-/*package states.game;
+package states.game;
 import haxe.Timer;
 import haxe.ds.Vector;
 import motion.Actuate;
@@ -106,7 +106,7 @@ class Object extends TileContainer
                 parent.y = tile.y;
                 parent.rotation = tile.rotation;
                 parent.alpha = tile.alpha;
-                parent.colorTransform = tile.colorTransform;
+                parent.colorTransform = tile.colorTransaform;
 
                 tile.x = 0;
                 tile.y = 0;
@@ -131,4 +131,4 @@ class Object extends TileContainer
         }
     }
 
-}*/
+}

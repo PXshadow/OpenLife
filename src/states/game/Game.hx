@@ -82,7 +82,7 @@ class Game #if openfl extends states.State #end
         addChild(bitmap);
         #end
         //connect
-        if (!true)
+        if (true)
         {
             Main.client.login.accept = function()
             {
@@ -189,8 +189,8 @@ class Game #if openfl extends states.State #end
     override function mouseDown() 
     {
         super.mouseDown();
-        var ix = Std.int(objects.mouseX/Static.GRID) + data.map.x + cameraX;
-        var iy = Std.int(objects.mouseY/Static.GRID) + data.map.y + cameraY;
+        var ix = Std.int(objects.mouseX/Static.GRID) + cameraX;
+        var iy = Std.int(objects.mouseY/Static.GRID) + cameraY;
         trace("x " + ix + " y " + iy);
         if (data.map.object[iy] != null)
         {
@@ -267,15 +267,21 @@ class Game #if openfl extends states.State #end
     }
     public function addPlayer(data:PlayerInstance)
     {
-        var player = this.data.playerMap.get(data.p_id);
+        if (data == null) 
+        {
+            throw("data null " + data);
+            return;
+        }
+        player = this.data.playerMap.get(data.p_id);
         if (player == null)
         {
             //new
             #if openfl
-            player = cast add(data.po_id,0,0,true);
+            player = cast objects.add(data.po_id,0,0,true);
             #else
             player = new Player(this);
             #end
+            trace("player " + player);
             this.data.playerMap.set(data.p_id,player);
         }
         if (player == null)
@@ -284,6 +290,7 @@ class Game #if openfl extends states.State #end
             return;
         }
         //set to player object
+        trace("set player " + player);
         player.set(data);
     }
     public function message(input:String) 

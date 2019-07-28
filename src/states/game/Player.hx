@@ -194,8 +194,8 @@ class Player #if openfl extends Object #end
     public function pos()
     {
         #if openfl
-        x = (instance.x + game.data.map.x + game.cameraX) * Static.GRID;
-        y = (instance.y + game.data.map.y + game.cameraY) * Static.GRID;
+        x = (instance.x + game.cameraX) * Static.GRID;
+        y = (instance.y + game.cameraY) * Static.GRID;
         #end
     }
     public function age()
