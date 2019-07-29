@@ -87,7 +87,7 @@ class Game #if openfl extends states.State #end
         
         #end
         //connect
-        if (true)
+        if (!true)
         {
             Main.client.login.accept = function()
             {
@@ -114,10 +114,10 @@ class Game #if openfl extends states.State #end
             //playground
             objects.size(32,30);
             //player
-            /*setPlayer(cast(objects.add(19,0,0,true),Player));
+            setPlayer(cast(objects.add(19,0,0,true),Player));
             Player.main.instance = new PlayerInstance([]);
             Player.main.instance.move_speed = 3;
-            data.playerMap.set(0,Player.main);*/
+            data.playerMap.set(0,Player.main);
             //bush
             objects.add(30,3,1);
             //sheep

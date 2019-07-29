@@ -51,7 +51,7 @@ class Player #if openfl extends Object #end
         {
             //add to pos
             x += velocityX;
-            y += -velocityY;
+            y += velocityY;
             //remove time per frame
             timeInt--;
         }
@@ -79,7 +79,7 @@ class Player #if openfl extends Object #end
                 }
             }
             velocityX = (point.x * Static.GRID) / time;
-            velocityY = (-point.y * Static.GRID) / time;
+            velocityY = (point.y * Static.GRID) / time;
             timeInt = time;
         }
         #end
@@ -195,7 +195,7 @@ class Player #if openfl extends Object #end
     {
         #if openfl
         x = (instance.x + game.cameraX) * Static.GRID;
-        y = (-instance.y + game.cameraY) * Static.GRID;
+        y = (instance.y + game.cameraY) * Static.GRID;
         #end
     }
     public function age()

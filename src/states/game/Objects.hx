@@ -186,17 +186,18 @@ class Objects extends TileDisplay
         rect.width = reader.rect.width;
         rect.height = reader.rect.height;
         //move down column
-        if(rect.x + rect.width > tileset.bitmapData.width)
+        if(rect.x + rect.width >= tileset.bitmapData.width)
         {
             tileX = 0;
             tileY += tileHeight;
             rect.x = tileX;
-            rect.y = tileHeight;
+            rect.y = tileY;
             tileHeight = 0;
         }
-        tileset.bitmapData.setPixels(rect,reader.bytes);
         //move tilesystem
         tileX += Std.int(rect.width);
+        //set to bitmapData
+        tileset.bitmapData.setPixels(rect,reader.bytes);
         if (rect.height > tileHeight) tileHeight = rect.height;
         return rect;
     }
