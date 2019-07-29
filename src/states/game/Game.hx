@@ -51,8 +51,6 @@ class Game #if openfl extends states.State #end
     }
     #end
     var playerInstance:PlayerInstance;
-    //last player to be loaded in 
-    var player:Player;
     public var mapInstance:MapInstance;
     var index:Int = 0;
     public var data:GameData;
@@ -60,6 +58,7 @@ class Game #if openfl extends states.State #end
     var inital:Bool = true;
 
     public var program:Program;
+    var cameraArray:Array<DisplayObject>;
     public function new()
     {
         //delelerative syntax for program console
@@ -80,6 +79,12 @@ class Game #if openfl extends states.State #end
         addChild(dialog);
         bitmap = new Bitmap();
         addChild(bitmap);
+
+        var fps = new FPS();
+        addChild(fps);
+
+        cameraArray = [ground,objects];
+        
         #end
         //connect
         if (true)
@@ -129,11 +134,12 @@ class Game #if openfl extends states.State #end
     }
     //client events
     #if openfl
+    var xs:Int = 0;
+    var ys:Int = 0;
     override function update()
     {
         super.update();
         //controls
-        var cameraArray:Array<DisplayObject> = [ground,objects];
         if (Bind.cameraUp.bool) for (obj in cameraArray) obj.y += cameraSpeed;
         if (Bind.cameraDown.bool) for (obj in cameraArray) obj.y += -cameraSpeed;
         if (Bind.cameraLeft.bool) for (obj in cameraArray) obj.x += cameraSpeed;
@@ -141,8 +147,8 @@ class Game #if openfl extends states.State #end
 
         if(Player.main != null)
         {
-            var xs:Int = 0;
-            var ys:Int = 0;
+            xs = 0;
+            ys = 0;
             if (Bind.playerUp.bool) ys += -1;
             if (Bind.playerDown.bool) ys += 1;
             if (Bind.playerLeft.bool) xs += -1;
@@ -180,12 +186,15 @@ class Game #if openfl extends states.State #end
         //updates
         objects.update();
         //players
-        var it = data.playerMap.iterator();
+        it = data.playerMap.iterator();
         while(it.hasNext())
         {
             it.next().update();
         }
     }
+    #if openfl
+    var it:Iterator<Player>;
+    #end
     override function mouseDown() 
     {
         super.mouseDown();
@@ -254,9 +263,9 @@ class Game #if openfl extends states.State #end
             case PLAYER_UPDATE:
             if (Player.main == null) 
             {
-                setPlayer(player);
+                setPlayer(objects.player);
             }
-            player = null;
+            objects.player = null;
             default:
         }
     }
@@ -265,41 +274,15 @@ class Game #if openfl extends states.State #end
         Player.main = player;
         Console.interp.variables.set("player",Player.main);
     }
-    public function addPlayer(data:PlayerInstance)
-    {
-        if (data == null) 
-        {
-            throw("data null " + data);
-            return;
-        }
-        player = this.data.playerMap.get(data.p_id);
-        if (player == null)
-        {
-            //new
-            #if openfl
-            player = cast objects.add(data.po_id,0,0,true);
-            #else
-            player = new Player(this);
-            #end
-            trace("player " + player);
-            this.data.playerMap.set(data.p_id,player);
-        }
-        if (player == null)
-        {
-            trace("player is null " + player);
-            return;
-        }
-        //set to player object
-        trace("set player " + player);
-        player.set(data);
-    }
     public function message(input:String) 
     {
         switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
             playerInstance = new PlayerInstance(input.split(" "));
-            addPlayer(playerInstance);
+            #if openfl
+            objects.addPlayer(playerInstance);
+            #end
             case PLAYER_MOVES_START:
             var playerMove = new PlayerMove(input.split(" "));
             if (data.playerMap.exists(playerMove.id))

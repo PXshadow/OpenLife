@@ -10,7 +10,7 @@ class Object extends TileContainer
 {
     public var oid:Int;
     public var animation:AnimationData;
-    public var map:Map<Int,Vector<Int>> = new Map<Int,Vector<Int>>();
+    public var map:Map<Int,Int> = new Map<Int,Int>();
     public var parents:Map<Int,TileContainer> = new Map<Int,TileContainer>();
     public var numSprites:Int = 0;
     public var tileX:Int = 0;
@@ -45,6 +45,7 @@ class Object extends TileContainer
         {
             param = record.params[i];
             tile = get(i);
+            if (tile == null) continue;
             Actuate.stop(tile);
             //x
             if (param.xOscPerSec > 0)
@@ -79,56 +80,15 @@ class Object extends TileContainer
     }
     public function add(tile:Tile,i:Int,p:Int)
     {
-        numSprites++;
-        var vector:Vector<Int>;
-        //p = -1;
-        if (p == -1)
+        //i is the index p is the parent object
+        if (p >= -1)
         {
-            vector = new Vector<Int>(1);
-            addTile(tile);
-            vector[0] = getTileIndex(tile);
-        }else{
-            vector = new Vector<Int>(2);
-            var parent = parents.get(p);
-            if (parent == null)
-            {
-                parent = new TileContainer();
-                parents.set(p,parent);
-                addTile(parent);
-            }else{
-                //trace("parent already exists " + p);
-            }
-            vector[0] = getTileIndex(parent);
-            if (i == p)
-            {
-                //tile is parent
-                parent.x = tile.x;
-                parent.y = tile.y;
-                parent.rotation = tile.rotation;
-                parent.alpha = tile.alpha;
-                parent.colorTransform = tile.colorTransform;
-
-                tile.x = 0;
-                tile.y = 0;
-                tile.rotation = 0;
-                tile.alpha = 0;
-                tile.colorTransform = null;
-            }
-            parent.addTile(tile);
-            vector[1] = parent.getTileIndex(tile);
+            map.set(i,getTileIndex(addTile(tile)));
         }
-        map.set(i,vector);
     }
     public function get(index:Int):Tile
     {
-        var vector = map.get(index);
-        if (vector.length == 1)
-        {
-            return getTileAt(vector[0]);
-        }else{
-            //parent
-            return cast(getTileAt(vector[0]),TileContainer).getTileAt(vector[1]);
-        }
+        return getTileAt(map.get(index));
     }
 
 }

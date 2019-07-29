@@ -16,13 +16,12 @@ import states.launcher.Launcher;
 class Objects extends TileDisplay
 {
     var game:Game;
-    //old pos
-    var ox:Int = 0;
-    var oy:Int = 0;
     var tile:Tile;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     var tileX:Float = 0;
     var tileY:Float = 0;
+    //last player to be loaded in 
+    public var player:Player = null;
     public function new(game:Game)
     {
         this.game = game;
@@ -32,7 +31,7 @@ class Objects extends TileDisplay
     //when map has changed
     public function update()
     {
-        
+
     }
     public function addFloor(id:Int,x:Int,y:Int)
     {
@@ -62,6 +61,23 @@ class Objects extends TileDisplay
                 return -1;
             }
         });
+    }
+    public function addPlayer(data:PlayerInstance)
+    {
+        player = game.data.playerMap.get(data.p_id);
+        if (player == null)
+        {
+            //new
+            player = cast add(data.po_id,0,0,true);
+            game.data.playerMap.set(data.p_id,player);
+        }
+        if (player == null)
+        {
+            trace("player is null " + player);
+            return;
+        }
+        //set to player object
+        player.set(data);
     }
     public function add(id:Int,x:Int,y:Int,player:Bool=false):Object
     {
@@ -108,7 +124,11 @@ class Objects extends TileDisplay
             var tile = new Tile();
             tile.id = cacheSprite(data.spriteArray[i].spriteID);
             //check if cache sprite fail
-            if (tile.id == -1) continue;
+            if (tile.id == -1) 
+            {
+                trace("cache sprite fail");
+                continue;
+            }
             r = tileset.getRect(tile.id);
             //todo setup inCenterOffset
             //rot
@@ -135,7 +155,6 @@ class Objects extends TileDisplay
             {
                 //player data set
                 cast(obj,Player).ageRange[i] = {min:data.spriteArray[i].ageRange[0],max:data.spriteArray[i].ageRange[1]};
-                
             }
         }
         obj.animate(0);

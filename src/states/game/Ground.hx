@@ -38,6 +38,7 @@ class Ground extends Shape
         graphics.clear();
         graphics.beginBitmapFill(tileset.bitmapData);
         graphics.drawQuads(tileset.rectData,indices,transforms);
+
     }
     public function createPath()
     {

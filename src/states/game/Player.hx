@@ -195,7 +195,7 @@ class Player #if openfl extends Object #end
     {
         #if openfl
         x = (instance.x + game.cameraX) * Static.GRID;
-        y = (instance.y + game.cameraY) * Static.GRID;
+        y = (-instance.y + game.cameraY) * Static.GRID;
         #end
     }
     public function age()
@@ -205,6 +205,7 @@ class Player #if openfl extends Object #end
         for(i in 0...numSprites)
         {
             tile = get(i);
+            if (tile == null) continue;
             tile.visible = true;
             if((ageRange[i].min > instance.age || ageRange[i].max < instance.age) && ageRange[i].min > 0)
             {

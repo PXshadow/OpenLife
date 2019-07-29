@@ -1,4 +1,5 @@
 package data;
+import haxe.io.Input;
 import sys.FileSystem;
 import sys.io.File;
 import haxe.ds.Vector;
@@ -255,13 +256,14 @@ class ObjectData extends LineReader
         //get sprite data
         for(i in 0...spriteArray.length)
         {
-            var path = Static.dir + "sprites/" + spriteArray[i].spriteID + ".txt";
-            if(!FileSystem.exists(path)) 
+            var input:Input = null;
+            try { 
+                input = File.read(Static.dir + "sprites/" + spriteArray[i].spriteID + ".txt",false);
+            }catch(e:Dynamic)
             {
-                trace("SPRITE FAIL TEXT " + spriteArray[i].spriteID + " path " + path);
-                return;
-            }else{
-            var input = File.read(path,false);
+                trace("sprite text e " + e);
+                continue;
+            }
             var j:Int = 0;
             var a = input.readLine().split(" ");
             for(string in a)
@@ -281,7 +283,6 @@ class ObjectData extends LineReader
                     //centerY
                     spriteArray[i].inCenterYOffset = Std.parseInt(string);
                 }              
-            }
             }
         }
     }

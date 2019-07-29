@@ -26,8 +26,7 @@ class Launcher extends states.State
         style(login);
         login.Click = function(_)
         {
-            Main.state.remove();
-            Main.state = new states.game.Game();
+            start();
         }
         addChild(login);
         //center
@@ -54,5 +53,17 @@ class Launcher extends states.State
         button.graphics.endFill();
         button.graphics.beginFill(0,0);
         button.graphics.drawRect(-6,-4,button.width,34);
+    }
+    private function start()
+    {
+        Main.state.remove();
+        Main.state = new states.game.Game();
+    }
+    override function update() 
+    {
+        if (settings.Bind.start.bool)
+        {
+            start();
+        }
     }
 }

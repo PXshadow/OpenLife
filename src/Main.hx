@@ -51,6 +51,8 @@ class Main #if openfl extends Sprite #end
         client = new client.Client();
         //set state
         screen = new DisplayObjectContainer();
+        screen.mouseEnabled = false;
+        screen.mouseChildren = false;
         addChild(screen);
         state = new states.launcher.Launcher();
         //state = new states.game.Game();

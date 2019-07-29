@@ -28,6 +28,8 @@ class Bind
     public static var help:Action = new Action([Keyboard.H]);
 
     public static var settings:Action = new Action([Keyboard.ESCAPE]);
+
+    public static var start:Action = new Action([Keyboard.ENTER]);
     
 
     public static function keys(e:KeyboardEvent,bool:Bool)
@@ -51,6 +53,8 @@ class Bind
         help.set(e,bool);
         chat.set(e,bool);
         settings.set(e,bool);
+
+        start.set(e,bool);
     }
 }
 class Action
