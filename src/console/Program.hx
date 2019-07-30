@@ -66,14 +66,14 @@ class Program
         var get = id(name);
         var dis:Float = range;
         var cur:Float = 0;
-        for(y in 0...game.data.map.object.length)
+        var id:Int = 0;
+        for(y in game.data.map.object.dy...game.data.map.object.dy + game.data.map.object.ly)
         {
-            for(x in 0...game.data.map.object[y].length)
+            for(x in game.data.map.object.dx...game.data.map.object.dx + game.data.map.object.lx)
             {
-                for (i in 0...game.data.map.object[y][x].length)
-                {
                     //array of objects in the tile
-                    if (get.indexOf(game.data.map.object[y][x][i]) >= 0)
+                    id = game.data.map.object.get(x,y);
+                    if (get.indexOf(id) >= 0)
                     {
                         cur = Math.sqrt(Math.pow(Player.main.instance.y - y + game.data.map.y,2) + Math.pow(Player.main.instance.x - x + game.data.map.x,2));
                         if (cur < dis)
@@ -83,7 +83,6 @@ class Program
                             dis = cur;
                         }
                     }
-                }
             }
         }
         if (dis < range)

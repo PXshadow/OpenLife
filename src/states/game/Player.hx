@@ -79,7 +79,7 @@ class Player #if openfl extends Object #end
                 }
             }
             velocityX = (point.x * Static.GRID) / time;
-            velocityY = (point.y * Static.GRID) / time;
+            velocityY = -(point.y * Static.GRID) / time;
             timeInt = time;
         }
         #end
@@ -102,7 +102,7 @@ class Player #if openfl extends Object #end
         #if openfl
         //get floor speed
         var time = Static.GRID/(Static.GRID * instance.move_speed);
-        this.time = Std.int(time * 60);
+        this.time = Std.int(time * 60 * 1);
         timeInt = 0;
         #end
     }
@@ -176,10 +176,10 @@ class Player #if openfl extends Object #end
             if (instance.o_id > 0)
             {
                 //object
-                object = game.objects.add(instance.o_id,0,0);
+                object = game.objects.add(instance.o_id);
             }else{
                 //player
-                object = game.objects.add(Std.int(instance.o_id),0,0,true);
+                object = game.objects.add(Std.int(instance.o_id),true);
             }
             //remove from main objects display
             game.objects.removeTile(object);
@@ -191,12 +191,12 @@ class Player #if openfl extends Object #end
         }
         #end
     }
-    public function pos()
+    override function pos() 
     {
-        #if openfl
-        x = (instance.x + game.cameraX) * Static.GRID;
-        y = (instance.y + game.cameraY) * Static.GRID;
-        #end
+        //converts from global to local
+        tileX = instance.x + game.cameraX;
+        tileY = instance.y + game.cameraY;
+        super.pos();
     }
     public function age()
     {

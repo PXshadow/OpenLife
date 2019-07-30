@@ -70,6 +70,8 @@ class Game #if openfl extends states.State #end
 
         #if openfl
         super();
+        x = -Static.GRID * 8;
+        y = -Static.GRID * 8;
         stage.color = 0xFFFFFF;
         ground = new Ground(this);
         objects = new Objects(this);
@@ -80,14 +82,11 @@ class Game #if openfl extends states.State #end
         bitmap = new Bitmap();
         addChild(bitmap);
 
-        var fps = new FPS();
-        addChild(fps);
-
         cameraArray = [ground,objects];
         
         #end
         //connect
-        if (!true)
+        if (true)
         {
             Main.client.login.accept = function()
             {
@@ -114,21 +113,21 @@ class Game #if openfl extends states.State #end
             //playground
             objects.size(32,30);
             //player
-            setPlayer(cast(objects.add(19,0,0,true),Player));
+            setPlayer(cast(objects.add(19,true),Player));
             Player.main.instance = new PlayerInstance([]);
             Player.main.instance.move_speed = 3;
             data.playerMap.set(0,Player.main);
             //bush
-            objects.add(30,3,1);
+            objects.add(30);
             //sheep
-            objects.add(575,2,2).animate(2);
+            objects.add(575).animate(2);
             //trees
-            objects.add(65,4,4);
-            objects.add(2454,5,4);
-            objects.add(49,6,5);
-            objects.add(530,3,4);
+            objects.add(65);
+            objects.add(2454);
+            objects.add(49);
+            objects.add(530);
             //spring
-            objects.add(3030,9,5);
+            objects.add(3030);
             #end
         }
     }
@@ -149,8 +148,8 @@ class Game #if openfl extends states.State #end
         {
             xs = 0;
             ys = 0;
-            if (Bind.playerUp.bool) ys += -1;
-            if (Bind.playerDown.bool) ys += 1;
+            if (Bind.playerUp.bool) ys += 1;
+            if (Bind.playerDown.bool) ys += -1;
             if (Bind.playerLeft.bool) xs += -1;
             if (Bind.playerRight.bool) xs += 1;
             if (xs != 0 || ys != 0) Player.main.step(xs,ys);
@@ -167,7 +166,7 @@ class Game #if openfl extends states.State #end
                     for (i in 0...objects.numTiles)
                     {
                         tile = cast objects.getTileAt(i);
-                        if (tile.tileX == Player.main.instance.x && tile.tileY == Player.main.instance.y && tile.type == OBJECT)
+                        if (tile.tileX == Player.main.tileX && tile.tileY == Player.main.tileY && tile.type == OBJECT)
                         {
                             Player.main.instance.o_id = tile.oid;
                             Player.main.hold();
@@ -198,13 +197,7 @@ class Game #if openfl extends states.State #end
     override function mouseDown() 
     {
         super.mouseDown();
-        var ix = Std.int(objects.mouseX/Static.GRID) + cameraX;
-        var iy = Std.int(objects.mouseY/Static.GRID) + cameraY;
-        trace("x " + ix + " y " + iy);
-        if (data.map.object[iy] != null)
-        {
-            trace("id " + data.map.object[iy][ix] + " block " + data.blocking.get(ix + "." + iy));
-        }
+
     }
     override function mouseScroll(e:MouseEvent) 
     {
@@ -216,22 +209,11 @@ class Game #if openfl extends states.State #end
         y += shift;
         scale += diff;
     }
-    public function center()
-    {
-        if (Player.main != null)
-        {
-            x = -(Player.main.x - 20) * scale + Main.setWidth/2;
-            y = -(Player.main.y - 40) * scale + Main.setHeight/2;
-            trace("x " + x + " y " + y);
-        }
-    }
     public function mapUpdate() 
     {
         trace("MAP UPDATE");
         //width = 32, height = 30
         objects.size(mapInstance.width,mapInstance.height);
-        var x:Int = 0;
-        var y:Int = 0;
         //inital set camera
         if (inital)
         {
@@ -239,20 +221,23 @@ class Game #if openfl extends states.State #end
             cameraY = -data.map.y;
             inital = false;
         }
+        var obj:Object;
         for(j in mapInstance.y...mapInstance.y + mapInstance.height)
         {
             for (i in mapInstance.x...mapInstance.x + mapInstance.width)
             {
                 //ground
                 ground.graphics.clear();
-                //objects get local
-                y = j - data.map.y;
-                x = i - data.map.x;
-                //set global
-                objects.addObject(data.map.object[y][x],i,j);
+                //objects
+                obj = objects.addObject(data.map.object.get(i,j));
+                if (obj != null)
+                {
+                    obj.tileX = i + cameraX;
+                    obj.tileY = j + cameraY;
+                    obj.pos();
+                }
             }
         }
-        center();
     }
     #end
     
@@ -352,15 +337,11 @@ class Game #if openfl extends states.State #end
                         break;
                     }
                 }
-                objects.add(change.floor != 0 ? change.floor : change.id,change.x,change.y);
+                var obj = objects.add(change.floor != 0 ? change.floor : change.id);
+                //set position todo
             }
             #end
             //change data todo:
-            if (data.map.object[change.y] != null)
-            {
-                data.map.object[change.y][change.x] = Vector.fromArrayCopy([change.id]);
-            }
-
 
             Main.client.tag = null;
             case HEAT_CHANGE:

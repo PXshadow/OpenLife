@@ -7,10 +7,14 @@ import haxe.io.Bytes;
 import states.game.Player;
 class MapData
 {
-    public var biome:Array<Array<Int>> = [];
-    public var floor:Array<Array<Int>> = [];
-    //container -> container -> obj
-    public var object:Array<Array<Vector<Int>>> = [];
+    //container links index to objects array data when negative number
+    public var containers:Array<Vector<Int>> = [];
+    //biome 0-7
+    public var biome:ArrayData = new ArrayData();
+    //floor objects
+    public var floor:ArrayData = new ArrayData();
+    //object is a postive number, container is a negative that maps 
+    public var object:ArrayData = new ArrayData();
 
     public var loaded:Bool = false;
 
@@ -33,18 +37,15 @@ class MapData
         var data:Array<String>;
         var k:Int = 0;
         //bottom left
-        for(j in y - this.y...y - this.y + height)
+        for(j in y...y + height)
         {
-            biome[j] = [];
-            floor[j] = [];
-            object[j] = [];
-            for (i in x - this.x...x - this.x + width)
+            for (i in x...x + width)
             {
                 string = a.shift();
                 k = string.lastIndexOf(":");
                 data = string.substring(0,k).split(":");
-                biome[j][i] = Std.parseInt(data[0]);
-                floor[j][i] = Std.parseInt(data[1]);
+                biome.set(i,j,Std.parseInt(data[0]));
+                floor.set(i,j,Std.parseInt(data[1]));
                 //final
                 string = string.substring(k + 1,string.length);
                 if (string.indexOf(",") >= 0)
@@ -58,11 +59,66 @@ class MapData
                         trace("single container");
                     }
                 }else{
-                    object[j][i] = Vector.fromArrayCopy([Std.parseInt(string)]);
+                    object.set(j,i,Std.parseInt(string));
                 }
             }
         }
-        //trace(object);
+        trace("dx " + object.dx + " lx " + object.lengthX());
+    }
+}
+class ArrayData
+{
+    var array:Array<Array<Int>> = [];
+    //diffrence
+    public var dx:Int = 0;
+    public var dy:Int = 0;
+    public function new()
+    {
+        array[0] = [];
+    }
+    public function lengthY():Int
+    {
+        return array.length;
+    }
+    public function lengthX():Int
+    {
+        return array[0].length;
+    }
+    public function get(x:Int,y:Int):Int
+    {
+        if (array[y - dy] != null)
+        {
+            return array[y - dy][x - dx];
+        }
+        return 0;
+    }
+    public function set(x:Int,y:Int,value:Int)
+    {
+        //shift
+        if (y < dy) 
+        {
+            for(i in 0...dy - y) array.unshift([]);
+            dy = y;
+        }
+        if (x < dx)
+        {
+            trace("x shift " + Std.string(dx - x));
+            for (j in 0...array.length)
+            {
+                for (i in 0...dx - x) 
+            	{
+                	array[j].unshift(0);
+                }
+            }
+            dx = x;
+        }
+        //null array fill
+        if (array[y - dy] == null)
+        {
+            array[y - dy] = [];
+        }
+        //set value
+        array[y - dy][x - dx] = value;
     }
 }
 class MapInstance
@@ -74,7 +130,6 @@ class MapInstance
     public var height:Int = 0;
     public var rawSize:Int = 0;
     public var compressedSize:Int = 0;
-    
     public function new()
     {
 

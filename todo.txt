@@ -1,5 +1,7 @@
-- ground work on making shape so info can be drawn on it
-- player hold object in hand
+
+-Work on ArrayData so that it holds data properly
+
+
 - work on making client playable
 
 - player move system animate

@@ -58,6 +58,11 @@ class Main #if openfl extends Sprite #end
         //state = new states.game.Game();
         console = new console.Console();
         addChild(console);
+        //debug
+        #if debug
+        var fps = new openfl.display.FPS();
+        addChild(fps);
+        #end
     }
     private function update(_)
     {

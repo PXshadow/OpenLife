@@ -18,6 +18,7 @@ class Objects extends TileDisplay
     var game:Game;
     var tile:Tile;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
+    //for tileset
     var tileX:Float = 0;
     var tileY:Float = 0;
     //last player to be loaded in 
@@ -31,24 +32,52 @@ class Objects extends TileDisplay
     //when map has changed
     public function update()
     {
-
-    }
-    public function addFloor(id:Int,x:Int,y:Int)
-    {
-        var floor = add(id,x,y);
-        if (floor != null)
+        //overflow
+        while (x >= Static.GRID)
         {
-            floor.type = FLOOR;
+            x += -Static.GRID;
+            game.cameraX++;
+            shift(1,0);
+        }
+        while (x <= -Static.GRID)
+        {
+            x += Static.GRID;
+            game.cameraX--;
+            shift(-1,0);
+        }
+        while (y >= Static.GRID)
+        {
+            y += -Static.GRID;
+            game.cameraY++;
+            shift(0,1);
+        }
+        while (y <= -Static.GRID)
+        {
+            y += Static.GRID;
+            game.cameraY--;
+            shift(0,-1);
         }
     }
-    public function addObject(vector:Vector<Int>=null,x:Int,y:Int)
+    public function shift(x:Int=0,y:Int=0)
     {
-        if (vector == null) return;
-        for (id in vector)
+        var obj:Object;
+        for (i in 0...numTiles)
         {
-            //single object
-            add(id,x,y);
+            obj = cast getTileAt(i);
+            obj.tileX += x;
+            obj.tileY += y;
+            obj.pos();
         }
+        trace("x " + x + " y " + y);
+    }
+    public function addFloor(id:Int,x:Int,y:Int):Object
+    {
+        return add(id,false,true);
+    }
+    public function addObject(id:Int):Object
+    {
+        //single object
+        return add(id);
     }
     public function sort()
     {
@@ -68,7 +97,7 @@ class Objects extends TileDisplay
         if (player == null)
         {
             //new
-            player = cast add(data.po_id,0,0,true);
+            player = cast add(data.po_id,true);
             game.data.playerMap.set(data.p_id,player);
         }
         if (player == null)
@@ -79,7 +108,7 @@ class Objects extends TileDisplay
         //set to player object
         player.set(data);
     }
-    public function add(id:Int,x:Int,y:Int,player:Bool=false):Object
+    public function add(id:Int,player:Bool=false,floor:Bool=false):Object
     {
         if(id == 0) return null;
         var data = new ObjectData(id);
@@ -99,24 +128,18 @@ class Objects extends TileDisplay
         }else{
             obj = new Object();
         }
+        if (floor)
+        {
+            obj.type = FLOOR;
+        }
         addTile(obj);
         obj.oid = data.id;
         obj.loadAnimation();
-        //global cords used to refrence
-        obj.tileX = x;
-        obj.tileY = y;
         //add data into map data if not loaded in
         if (!game.data.map.loaded && !player)
         {
-            if (game.data.map.object[obj.tileY] == null) 
-            {
-                game.data.map.object[obj.tileY] = [];
-            }
-            game.data.map.object[obj.tileY][obj.tileX] = Vector.fromArrayCopy([obj.oid]);
+            game.data.map.object.set(obj.tileX,obj.tileY,obj.oid);
         }
-        //set to display postion
-        obj.x = (obj.tileX + game.cameraX) * Static.GRID * 1;
-        obj.y = (obj.tileY + game.cameraY) * Static.GRID * 1;
         var r:Rectangle;
         var parents:Array<Int> = [];
         for(i in 0...data.numSprites)
