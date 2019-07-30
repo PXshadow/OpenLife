@@ -67,9 +67,9 @@ class Program
         var dis:Float = range;
         var cur:Float = 0;
         var id:Int = 0;
-        for(y in game.data.map.object.dy...game.data.map.object.dy + game.data.map.object.ly)
+        for(y in game.data.map.object.dy...game.data.map.object.dy + game.data.map.object.lengthY())
         {
-            for(x in game.data.map.object.dx...game.data.map.object.dx + game.data.map.object.lx)
+            for(x in game.data.map.object.dx...game.data.map.object.dx + game.data.map.object.lengthX())
             {
                     //array of objects in the tile
                     id = game.data.map.object.get(x,y);

@@ -49,6 +49,7 @@ class Game #if openfl extends states.State #end
         scaleY = scale;
         return scale;
     }
+    var cameraArray:Array<DisplayObject>;
     #end
     var playerInstance:PlayerInstance;
     public var mapInstance:MapInstance;
@@ -58,7 +59,6 @@ class Game #if openfl extends states.State #end
     var inital:Bool = true;
 
     public var program:Program;
-    var cameraArray:Array<DisplayObject>;
     public function new()
     {
         //delelerative syntax for program console
@@ -246,11 +246,13 @@ class Game #if openfl extends states.State #end
         switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
+            #if openfl
             if (Player.main == null) 
             {
                 setPlayer(objects.player);
             }
             objects.player = null;
+            #end
             default:
         }
     }

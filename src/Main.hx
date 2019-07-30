@@ -1,3 +1,4 @@
+import data.MapData.ArrayData;
 import settings.Bind;
 import client.Router;
 import sys.thread.Thread;
@@ -115,9 +116,11 @@ class Main {
     public static var console:Console;
 	static function main() 
 	{
+        var array = new ArrayData();
+        array.set(-10,10,-2);
+        trace("value " + array.get(-10,10));
         //create lists
-        trace("start list");
-        Static.dir = "OneLifeData7/";
+        /*Static.dir = "OneLifeData7/";
         var food:String = "[\n";
         for (i in 0...Static.number())
         {
@@ -128,7 +131,7 @@ class Main {
                 food += "  " + data.id + ",//" + data.description + "\n";
             }
         }
-        trace(food + "]");
+        trace(food + "]");*/
         //input into output terminal
         var output = new Router(2000);
         output.bind();

@@ -1,5 +1,5 @@
 package settings;
-
+#if openfl 
 import openfl.events.KeyboardEvent;
 import openfl.ui.Keyboard;
 
@@ -86,3 +86,4 @@ class Action
         return false;
     }
 }
+#end

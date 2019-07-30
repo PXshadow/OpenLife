@@ -191,12 +191,14 @@ class Player #if openfl extends Object #end
         }
         #end
     }
-    override function pos() 
+    #if openfl override #else public #end function pos() 
     {
+        #if openfl
         //converts from global to local
         tileX = instance.x + game.cameraX;
         tileY = instance.y + game.cameraY;
         super.pos();
+        #end
     }
     public function age()
     {
