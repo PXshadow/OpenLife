@@ -59,7 +59,7 @@ class MapData
                         trace("single container");
                     }
                 }else{
-                    object.set(j,i,Std.parseInt(string));
+                    object.set(i,j,Std.parseInt(string));
                 }
             }
         }

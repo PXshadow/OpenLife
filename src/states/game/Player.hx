@@ -65,6 +65,8 @@ class Player #if openfl extends Object #end
         if(moves.length > 0)
         {
             var point = moves.pop();
+            //flip
+            point.y *= -1;
             pos();
             instance.x += Std.int(point.x);
             instance.y += Std.int(point.y);
@@ -79,7 +81,7 @@ class Player #if openfl extends Object #end
                 }
             }
             velocityX = (point.x * Static.GRID) / time;
-            velocityY = -(point.y * Static.GRID) / time;
+            velocityY = (point.y * Static.GRID) / time;
             timeInt = time;
         }
         #end
@@ -197,6 +199,7 @@ class Player #if openfl extends Object #end
         //converts from global to local
         tileX = instance.x + game.cameraX;
         tileY = instance.y + game.cameraY;
+        trace("tileX " + tileX + " tileY " + tileY);
         super.pos();
         #end
     }

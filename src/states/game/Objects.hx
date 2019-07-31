@@ -32,7 +32,7 @@ class Objects extends TileDisplay
     //when map has changed
     public function update()
     {
-        //overflow
+        /*//overflow
         while (x >= Static.GRID)
         {
             x += -Static.GRID;
@@ -56,7 +56,7 @@ class Objects extends TileDisplay
             y += Static.GRID;
             game.cameraY--;
             shift(0,-1);
-        }
+        }*/
     }
     public function shift(x:Int=0,y:Int=0)
     {

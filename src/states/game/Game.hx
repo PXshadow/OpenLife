@@ -70,8 +70,8 @@ class Game #if openfl extends states.State #end
 
         #if openfl
         super();
-        x = -Static.GRID * 8;
-        y = -Static.GRID * 8;
+        //x = -Static.GRID * 8;
+        //y = -Static.GRID * 8;
         stage.color = 0xFFFFFF;
         ground = new Ground(this);
         objects = new Objects(this);
