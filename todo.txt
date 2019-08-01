@@ -1,6 +1,4 @@
-
--Work on ArrayData so that it holds data properly
-
+- Fix pathing to deal with diffrent directional paths
 
 - work on making client playable
 

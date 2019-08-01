@@ -70,8 +70,8 @@ class Game #if openfl extends states.State #end
 
         #if openfl
         super();
-        //x = -Static.GRID * 8;
-        //y = -Static.GRID * 8;
+        x = -Static.GRID * 17;
+        y = -Static.GRID * 16;
         stage.color = 0xFFFFFF;
         ground = new Ground(this);
         objects = new Objects(this);
@@ -229,13 +229,7 @@ class Game #if openfl extends states.State #end
                 //ground
                 ground.graphics.clear();
                 //objects
-                obj = objects.addObject(data.map.object.get(i,j));
-                if (obj != null)
-                {
-                    obj.tileX = i + cameraX;
-                    obj.tileY = j + cameraY;
-                    obj.pos();
-                }
+                obj = objects.addObject(data.map.object.get(i,j),i,j);
             }
         }
     }

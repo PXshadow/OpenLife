@@ -31,6 +31,7 @@ class Player #if openfl extends Object #end
     var timeInt:Int = 0;
     //pathing
     public var goal:Bool = false;
+    public var goalFinish:Void->Void;
     public function new(game:Game)
     {
         this.game = game;
@@ -65,8 +66,6 @@ class Player #if openfl extends Object #end
         if(moves.length > 0)
         {
             var point = moves.pop();
-            //flip
-            point.y *= -1;
             pos();
             instance.x += Std.int(point.x);
             instance.y += Std.int(point.y);
@@ -81,7 +80,7 @@ class Player #if openfl extends Object #end
                 }
             }
             velocityX = (point.x * Static.GRID) / time;
-            velocityY = (point.y * Static.GRID) / time;
+            velocityY = -(point.y * Static.GRID) / time;
             timeInt = time;
         }
         #end

@@ -12,8 +12,9 @@ class Program
     public var setupGoal:Bool = false;
     public var range:Float = 15000;
     public var useRange:Int = 1;
-    public var dropAction:Bool = false;
-    public var selfAction:Bool = false;
+    //first index for action second is the list
+    var actions:Array<Array<Int>> = [];
+    var goals:Array<Pos> = [];
     //food 
     public var ate:Array<Int> = [];
     public function new(game:Game)
@@ -22,16 +23,41 @@ class Program
     }
     public function stop()
     {
+        //finished, now perform actions
+        action();
+        //clean up
         Player.main.goal = false;
         setupGoal = false;
-        dropAction = false;
-        selfAction = false;
     }
     /**
      * Go to goal location or new set location
      * @param x 
      * @param y 
      */
+    pulblic function action()
+    {
+        if (setupGoal) return;
+        //complete actions
+        for (action in actions.shift())
+        {
+            switch (action)
+            {
+                case 0:
+                //use
+                
+                case 1:
+                //self
+
+                case 2:
+
+            }
+        }
+        //continue movement
+        for (dir in goals)
+        {
+            path(dir.x,dir.y);
+        }
+    }
     public function path(x:Null<Int>=null,y:Null<Int>=null):Program
     {
         if (x != null && y != null)
@@ -43,6 +69,7 @@ class Program
         if (setupGoal)
         {
             //set goal pathing
+            goals.push(goal);
             Player.main.goal = true;
         }
         return this;
@@ -89,7 +116,7 @@ class Program
         {
             setupGoal = true;
             //set player pathing
-            Player.main.goal = true;
+            path();
             Main.console.print("Distance to goal",Std.string(dis));
         }else{
             setupGoal = false;

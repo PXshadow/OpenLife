@@ -32,7 +32,7 @@ class Objects extends TileDisplay
     //when map has changed
     public function update()
     {
-        /*//overflow
+        //overflow
         while (x >= Static.GRID)
         {
             x += -Static.GRID;
@@ -49,14 +49,14 @@ class Objects extends TileDisplay
         {
             y += -Static.GRID;
             game.cameraY++;
-            shift(0,1);
+            shift(0,-1);
         }
         while (y <= -Static.GRID)
         {
             y += Static.GRID;
             game.cameraY--;
-            shift(0,-1);
-        }*/
+            shift(0,1);
+        }
     }
     public function shift(x:Int=0,y:Int=0)
     {
@@ -70,14 +70,14 @@ class Objects extends TileDisplay
         }
         trace("x " + x + " y " + y);
     }
-    public function addFloor(id:Int,x:Int,y:Int):Object
+    public function addFloor(id:Int,x:Int=0,y:Int=0):Object
     {
-        return add(id,false,true);
+        return add(id,x,y,false,true);
     }
-    public function addObject(id:Int):Object
+    public function addObject(id:Int,x:Int=0,y:Int=0):Object
     {
         //single object
-        return add(id);
+        return add(id,x,y);
     }
     public function sort()
     {
@@ -97,7 +97,7 @@ class Objects extends TileDisplay
         if (player == null)
         {
             //new
-            player = cast add(data.po_id,true);
+            player = cast add(data.po_id,data.x,data.y,true);
             game.data.playerMap.set(data.p_id,player);
         }
         if (player == null)
@@ -108,13 +108,12 @@ class Objects extends TileDisplay
         //set to player object
         player.set(data);
     }
-    public function add(id:Int,player:Bool=false,floor:Bool=false):Object
+    public function add(id:Int,x:Int=0,y:Int=0,player:Bool=false,floor:Bool=false):Object
     {
         if(id == 0) return null;
         var data = new ObjectData(id);
         var obj:Object = null;
         //data
-        //trace("blcoking " + data.blocksWalking);
         if (data.blocksWalking == 1)
         {
             game.data.blocking.set(x + "." + y,true);
@@ -127,13 +126,19 @@ class Objects extends TileDisplay
             obj = new Player(game);
         }else{
             obj = new Object();
+            //pos
+            obj.tileX = x + game.cameraX;
+            obj.tileY = y + game.cameraY;
+            obj.pos();
         }
+
         if (floor)
         {
             obj.type = FLOOR;
         }
         addTile(obj);
         obj.oid = data.id;
+        //animation setup
         obj.loadAnimation();
         //add data into map data if not loaded in
         if (!game.data.map.loaded && !player)
