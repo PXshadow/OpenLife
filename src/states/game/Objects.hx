@@ -64,12 +64,10 @@ class Objects extends TileDisplay
         for (i in 0...numTiles)
         {
             obj = cast getTileAt(i);
-            if (obj.type == OBJECT)
-            {
-                obj.tileX += x;
-                obj.tileY += y;
-            }
-            obj.pos();
+            obj.tileX += x;
+            obj.tileY += y;
+            obj.x += x * Static.GRID;
+            obj.y += -y * Static.GRID;
         }
         trace("x " + x + " y " + y);
     }

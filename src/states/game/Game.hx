@@ -1,5 +1,7 @@
 package states.game;
 
+import motion.easing.Quad;
+import motion.Actuate;
 import data.ObjectData.ObjectType;
 import haxe.ds.Vector;
 import data.PlayerData.PlayerType;
@@ -52,7 +54,6 @@ class Game #if openfl extends states.State #end
         scaleY = scale;
         return scale;
     }
-    var cameraArray:Array<DisplayObject>;
     #end
     var playerInstance:PlayerInstance;
     public var mapInstance:MapInstance;
@@ -73,8 +74,7 @@ class Game #if openfl extends states.State #end
 
         #if openfl
         super();
-        x = (Main.setWidth - Static.GRID * 32)/2;
-        y = (Main.setHeight - Static.GRID * 32)/2;
+        center();
         stage.color = 0xFFFFFF;
         ground = new Ground(this);
         objects = new Objects(this);
@@ -84,8 +84,6 @@ class Game #if openfl extends states.State #end
         addChild(dialog);
         bitmap = new Bitmap();
         addChild(bitmap);
-
-        cameraArray = [ground,objects];
         
         #end
         //connect
@@ -135,17 +133,18 @@ class Game #if openfl extends states.State #end
         }
     }
     //client events
+
     #if openfl
+    public function center()
+    {
+        x = (Main.setWidth - Static.GRID * 32)/2;
+        y = (Main.setHeight - Static.GRID * 32)/2;
+    }
     var xs:Int = 0;
     var ys:Int = 0;
     override function update()
     {
         super.update();
-        //controls
-        if (Bind.cameraUp.bool) for (obj in cameraArray) obj.y += cameraSpeed;
-        if (Bind.cameraDown.bool) for (obj in cameraArray) obj.y += -cameraSpeed;
-        if (Bind.cameraLeft.bool) for (obj in cameraArray) obj.x += cameraSpeed;
-        if (Bind.cameraRight.bool) for (obj in cameraArray) obj.x += -cameraSpeed;
 
         if(Player.main != null)
         {
@@ -201,6 +200,13 @@ class Game #if openfl extends states.State #end
     {
         super.mouseDown();
 
+    }
+    public function move(x:Float=0,y:Float=0)
+    {
+        objects.x += -x;
+        objects.y += -y;
+        ground.x += -x;
+        ground.y += -y;
     }
     override function mouseScroll(e:MouseEvent) 
     {

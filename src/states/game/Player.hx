@@ -54,6 +54,7 @@ class Player #if openfl extends Object #end
             //add to pos
             x += velocityX;
             y += velocityY;
+            game.move(velocityX,velocityY);
             //remove time per frame
             timeInt--;
         }

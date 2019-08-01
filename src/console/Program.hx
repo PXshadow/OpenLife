@@ -162,6 +162,12 @@ class Program
     {
         return switch(name.toLowerCase())
         {
+            case "big hard rock":
+            [32];
+            case "stone":
+            [33];
+            case "sharp stone":
+            [34];
             case "berry bush":
             [30];
             case "berry" | "berries": 
