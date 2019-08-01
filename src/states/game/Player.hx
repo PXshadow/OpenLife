@@ -32,6 +32,7 @@ class Player #if openfl extends Object #end
     //pathing
     public var goal:Bool = false;
     public var goalFinish:Void->Void;
+    public var restricted:Array<console.Program.Pos> = [];
     public function new(game:Game)
     {
         this.game = game;
@@ -69,6 +70,8 @@ class Player #if openfl extends Object #end
             pos();
             instance.x += Std.int(point.x);
             instance.y += Std.int(point.y);
+            //restricted.push(new );
+            
             //flip (change direction)
             if (point.x != 0)
             {

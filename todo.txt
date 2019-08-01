@@ -8,8 +8,6 @@
 - thanks schmloo
 
 
-
-
 -get floor speed multipler
 - system player path system for movement
 - figure out category system

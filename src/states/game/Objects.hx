@@ -136,7 +136,7 @@ class Objects extends TileDisplay
         {
             obj.type = FLOOR;
         }
-        addTile(obj);
+        addTileAt(obj,0);
         obj.oid = data.id;
         //animation setup
         obj.loadAnimation();

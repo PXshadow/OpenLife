@@ -34,7 +34,7 @@ class Program
      * @param x 
      * @param y 
      */
-    pulblic function action()
+    public function action()
     {
         if (setupGoal) return;
         //complete actions

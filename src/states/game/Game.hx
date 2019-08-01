@@ -45,6 +45,9 @@ class Game #if openfl extends states.State #end
     function set_scale(scale:Float):Float 
     {
         //scale dim
+        var diff = scale - scaleX;
+        x += -width/scaleX * diff/2;
+        y += -width/scaleX * diff/2;
         scaleX = scale;
         scaleY = scale;
         return scale;
@@ -70,8 +73,8 @@ class Game #if openfl extends states.State #end
 
         #if openfl
         super();
-        x = -Static.GRID * 17;
-        y = -Static.GRID * 16;
+        x = (Main.setWidth - Static.GRID * 32)/2;
+        y = (Main.setHeight - Static.GRID * 32)/2;
         stage.color = 0xFFFFFF;
         ground = new Ground(this);
         objects = new Objects(this);
@@ -202,12 +205,7 @@ class Game #if openfl extends states.State #end
     override function mouseScroll(e:MouseEvent) 
     {
         super.mouseScroll(e);
-        var diff = e.delta * 0.03;
-        //shift
-        var shift = -diff * width/2;
-        x += shift;
-        y += shift;
-        scale += diff;
+        scale += e.delta * 0.08;
     }
     public function mapUpdate() 
     {
@@ -344,7 +342,7 @@ class Game #if openfl extends states.State #end
             //trace("heat " + input);
             Main.client.tag = null;
             case FOOD_CHANGE:
-            //trace("food change " + input);
+            trace("food change " + input);
             //also need to set new movement move_speed: is floating point playerSpeed in grid square widths per second.
             case FRAME:
             Main.client.tag = null;

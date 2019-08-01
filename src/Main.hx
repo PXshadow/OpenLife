@@ -1,3 +1,4 @@
+import openfl.display.FPS;
 import data.MapData.ArrayData;
 import settings.Bind;
 import client.Router;
@@ -61,7 +62,7 @@ class Main #if openfl extends Sprite #end
         addChild(console);
         //debug
         #if debug
-        var fps = new openfl.display.FPS();
+        var fps = new FPS();
         addChild(fps);
         #end
     }
