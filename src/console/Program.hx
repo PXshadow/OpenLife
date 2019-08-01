@@ -33,7 +33,7 @@ class Program
      * Go to goal location or new set location
      * @param x 
      * @param y 
-     */
+     **/
     public function action()
     {
         if (setupGoal) return;
@@ -53,7 +53,8 @@ class Program
             }
         }
         //continue movement
-        for (dir in goals)
+        var dir = goals.pop();
+        if (dir != null)
         {
             path(dir.x,dir.y);
         }

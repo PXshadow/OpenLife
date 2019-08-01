@@ -48,13 +48,13 @@ class Objects extends TileDisplay
         while (y >= Static.GRID)
         {
             y += -Static.GRID;
-            game.cameraY++;
+            game.cameraY--;
             shift(0,-1);
         }
         while (y <= -Static.GRID)
         {
             y += Static.GRID;
-            game.cameraY--;
+            game.cameraY++;
             shift(0,1);
         }
     }
@@ -64,8 +64,11 @@ class Objects extends TileDisplay
         for (i in 0...numTiles)
         {
             obj = cast getTileAt(i);
-            obj.tileX += x;
-            obj.tileY += y;
+            if (obj.type == OBJECT)
+            {
+                obj.tileX += x;
+                obj.tileY += y;
+            }
             obj.pos();
         }
         trace("x " + x + " y " + y);

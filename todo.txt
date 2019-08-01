@@ -1,6 +1,7 @@
-- Fix pathing to deal with diffrent directional paths
-
 - work on making client playable
+- show player up
+
+- Fix pathing to deal with diffrent directional paths
 
 - player move system animate
 
