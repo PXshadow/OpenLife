@@ -116,8 +116,6 @@ class Program
         if (dis < range)
         {
             setupGoal = true;
-            //set player pathing
-            path();
             Main.console.print("Distance to goal",Std.string(dis));
         }else{
             setupGoal = false;

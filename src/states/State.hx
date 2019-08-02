@@ -39,6 +39,10 @@ class State extends DisplayObjectContainer
     {
 
     }
+    public function keyDown()
+    {
+        
+    }
     public function remove()
     {
         if (!sub) Main.client.message = null;

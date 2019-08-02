@@ -39,6 +39,8 @@ class Main #if openfl extends Sprite #end
     public function new()
     {
         super();
+        var j = 10/0;
+        trace("j " + j);
         //stored appdata
         so = SharedObject.getLocal("client",null,true);
         //events
@@ -75,6 +77,7 @@ class Main #if openfl extends Sprite #end
     {
         if (console.keyDown(e.keyCode)) return;
         Bind.keys(e,true);
+        if (state != null) state.keyDown();
     }
     private function keyUp(e:KeyboardEvent)
     {

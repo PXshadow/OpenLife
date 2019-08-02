@@ -6,21 +6,19 @@ import openfl.ui.Keyboard;
 //deals with mouse and keyboard control setup
 class Bind
 {
-    public static var cameraUp:Action = new Action([Keyboard.UP]);
-    public static var cameraDown:Action = new Action([Keyboard.DOWN]);
-    public static var cameraLeft:Action = new Action([Keyboard.LEFT]);
-    public static var cameraRight:Action = new Action([Keyboard.RIGHT]);
 
-    public static var playerUp:Action = new Action([Keyboard.W]);
-    public static var playerDown:Action = new Action([Keyboard.S]);
-    public static var playerLeft:Action = new Action([Keyboard.A]);
-    public static var playerRight:Action = new Action([Keyboard.D]);
+    public static var playerUp:Action = new Action([Keyboard.W,Keyboard.UP]);
+    public static var playerDown:Action = new Action([Keyboard.S,Keyboard.DOWN]);
+    public static var playerLeft:Action = new Action([Keyboard.A,Keyboard.LEFT]);
+    public static var playerRight:Action = new Action([Keyboard.D,Keyboard.RIGHT]);
 
     public static var playerPick:Action = new Action([Keyboard.G]);
     public static var playerDrop:Action = new Action([Keyboard.Q]);
 
     public static var playerAction:Action = new Action([Keyboard.SPACE]);
 
+    public static var zoomIn:Action = new Action([Keyboard.I]);
+    public static var zoomOut:Action = new Action([Keyboard.O]);
 
     public static var search:Action = new Action([Keyboard.F],true);
     public static var chat:Action = new Action([Keyboard.ENTER]);
@@ -34,11 +32,9 @@ class Bind
 
     public static function keys(e:KeyboardEvent,bool:Bool)
     {
-        cameraUp.set(e,bool);
-        cameraDown.set(e,bool);
-        cameraLeft.set(e,bool);
-        cameraRight.set(e,bool);
-        
+        zoomIn.set(e,bool);
+        zoomOut.set(e,bool);
+
         playerUp.set(e,bool);
         playerDown.set(e,bool);
         playerLeft.set(e,bool);

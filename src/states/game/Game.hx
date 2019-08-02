@@ -157,7 +157,11 @@ class Game #if openfl extends states.State #end
             if (Bind.playerDown.bool) ys += -1;
             if (Bind.playerLeft.bool) xs += -1;
             if (Bind.playerRight.bool) xs += 1;
-            if (xs != 0 || ys != 0) Player.main.step(xs,ys);
+            if (xs != 0 || ys != 0) 
+            {
+                Player.main.goal = false;
+                Player.main.step(xs,ys);
+            }
 
             if (Bind.playerAction.bool && Player.main.delay <= 0)
             {
@@ -196,19 +200,25 @@ class Game #if openfl extends states.State #end
             it.next().update();
         }
     }
+    override function keyDown() 
+    {
+        super.keyDown();
+        if (Bind.zoomIn.bool) zoom(1);
+        if (Bind.zoomOut.bool) zoom(-1);
+    }
     #if openfl
     var it:Iterator<Player>;
     #end
     override function mouseDown() 
     {
         super.mouseDown();
-        var x:Int = Math.floor((objects.mouseX + Static.GRID/2)/Static.GRID) + cameraX - diffX;
-        var y:Int = Math.floor((objects.mouseY - Static.GRID/2)/Static.GRID) + cameraY - diffY - 1;
-        trace("mouse x " + x + " y " + y);
+        var x:Int = Math.floor(objects.mouseX/Static.GRID) + diffX * 2 + cameraX;
+        var y:Int = Math.floor(objects.mouseY/Static.GRID) + diffY * 2 + cameraY;
         if (Player.main != null)
         {
-            trace("player x " + Player.main.tileX + " y " + Player.main.tileY);
-            Player.main.movePath(x - Player.main.tileX,y - Player.main.tileY);
+            Player.main.goal = false;
+            trace("player x " + x + " y " + y);
+            program.path(x,y);
         }
     }
     public function move(x:Float=0,y:Float=0)
@@ -221,7 +231,12 @@ class Game #if openfl extends states.State #end
     override function mouseScroll(e:MouseEvent) 
     {
         super.mouseScroll(e);
-        scale += e.delta * 0.08;
+        zoom(e.delta);
+    }
+    public function zoom(i:Int)
+    {
+        if (scale > 2 && i > 0 || scale < 0.2 && i < 0) return;
+        scale += i * 0.08;
     }
     public function mapUpdate() 
     {
@@ -231,8 +246,8 @@ class Game #if openfl extends states.State #end
         {
             cameraX = -data.map.x;
             cameraY = -data.map.y;
-            diffX = cameraX;
-            diffY = cameraY;
+            diffX = -cameraX;
+            diffY = -cameraY;
             inital = false;
             //width = 32, height = 30
             objects.size(mapInstance.width,mapInstance.height);
