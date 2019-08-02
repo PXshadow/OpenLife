@@ -212,14 +212,14 @@ class Game #if openfl extends states.State #end
     override function mouseDown() 
     {
         super.mouseDown();
-        var x:Int = Math.floor(objects.mouseX/Static.GRID) + diffX * 2 + cameraX;
+        /*var x:Int = Math.floor(objects.mouseX/Static.GRID) + diffX * 2 + cameraX;
         var y:Int = Math.floor(objects.mouseY/Static.GRID) + diffY * 2 + cameraY;
         if (Player.main != null)
         {
             Player.main.goal = false;
             trace("player x " + x + " y " + y);
             program.path(x,y);
-        }
+        }*/
     }
     public function move(x:Float=0,y:Float=0)
     {

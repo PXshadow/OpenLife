@@ -1,5 +1,6 @@
 package console;
 
+import motion.Actuate;
 #if openfl
 import states.game.Object;
 #end
@@ -342,6 +343,23 @@ class Program
                 }
             }
         }
+        return this;
+    }
+    public function tween(target:String,duration:Int=1,properties:Dynamic,repeat:Int=0,reflect:Bool=false,delay:Int=0):Program
+    {
+        var array = getTiles(target);
+        if (array.length > 0)
+        {
+            for (obj in array)
+            {
+                Actuate.tween(obj,duration,properties).repeat(repeat).reflect(reflect).delay(delay);
+            }
+        }
+        return this;
+    }
+    public function resetTween():Program
+    {
+        Actuate.reset();
         return this;
     }
     private function getTiles(target:String):Array<Object>
