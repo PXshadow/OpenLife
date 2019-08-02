@@ -37,6 +37,8 @@ class Game #if openfl extends states.State #end
     //camera
     public var cameraX:Int = 0;
     public var cameraY:Int = 0;
+    public var diffX:Int = 0;
+    public var diffY:Int = 0;
     //scale used for zoom in and out
     public var scale(get, set):Float;
     function get_scale():Float 
@@ -97,6 +99,7 @@ class Game #if openfl extends states.State #end
                 Main.client.end = end;
                 Main.client.login = null;
                 Main.client.tag = null;
+                index = 0;
             }
             Main.client.login.reject = function()
             {
@@ -199,7 +202,14 @@ class Game #if openfl extends states.State #end
     override function mouseDown() 
     {
         super.mouseDown();
-
+        var x:Int = Math.floor((objects.mouseX + Static.GRID/2)/Static.GRID) + cameraX - diffX;
+        var y:Int = Math.floor((objects.mouseY - Static.GRID/2)/Static.GRID) + cameraY - diffY - 1;
+        trace("mouse x " + x + " y " + y);
+        if (Player.main != null)
+        {
+            trace("player x " + Player.main.tileX + " y " + Player.main.tileY);
+            Player.main.movePath(x - Player.main.tileX,y - Player.main.tileY);
+        }
     }
     public function move(x:Float=0,y:Float=0)
     {
@@ -216,14 +226,16 @@ class Game #if openfl extends states.State #end
     public function mapUpdate() 
     {
         trace("MAP UPDATE");
-        //width = 32, height = 30
-        objects.size(mapInstance.width,mapInstance.height);
         //inital set camera
         if (inital)
         {
             cameraX = -data.map.x;
             cameraY = -data.map.y;
+            diffX = cameraX;
+            diffY = cameraY;
             inital = false;
+            //width = 32, height = 30
+            objects.size(mapInstance.width,mapInstance.height);
         }
         var obj:Object;
         for(j in mapInstance.y...mapInstance.y + mapInstance.height)
@@ -250,6 +262,7 @@ class Game #if openfl extends states.State #end
                 setPlayer(objects.player);
             }
             objects.player = null;
+            trace("fill " + objects.getFill());
             #end
             default:
         }
@@ -295,6 +308,7 @@ class Game #if openfl extends states.State #end
                         case 0:
                         mapInstance = new MapInstance();
                         mapInstance.width = Std.parseInt(value);
+                        trace("width " + mapInstance.width);
                         case 1:
                         mapInstance.height = Std.parseInt(value);
                         case 2:
@@ -309,12 +323,11 @@ class Game #if openfl extends states.State #end
                         if (data.map.x > mapInstance.x) data.map.x = mapInstance.x;
                         if (data.map.y > mapInstance.y) data.map.y = mapInstance.y;
                         if (data.map.width < mapInstance.x + mapInstance.width) data.map.width = mapInstance.x + mapInstance.width;
-                        if (data.map.height < mapInstance.y + mapInstance.height) data.map.height= mapInstance.y + mapInstance.height;
+                        if (data.map.height < mapInstance.y + mapInstance.height) data.map.height = mapInstance.y + mapInstance.height;
                         trace("map chunk " + mapInstance.toString());
                         index = 0;
                         //set compressed size wanted
                         Main.client.compress = mapInstance.compressedSize;
-                        trace("set compress " + Main.client.compress);
                         compress = true;
                     }
                 }
@@ -344,14 +357,17 @@ class Game #if openfl extends states.State #end
             //change data todo:
 
             Main.client.tag = null;
+            index = 0;
             case HEAT_CHANGE:
             //trace("heat " + input);
             Main.client.tag = null;
+            index = 0;
             case FOOD_CHANGE:
             trace("food change " + input);
             //also need to set new movement move_speed: is floating point playerSpeed in grid square widths per second.
             case FRAME:
             Main.client.tag = null;
+            index = 0;
             case PLAYER_SAYS:
             trace("player say " + input);
             #if openfl

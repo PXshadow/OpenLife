@@ -111,6 +111,70 @@ class Player #if openfl extends Object #end
         timeInt = 0;
         #end
     }
+    public function movePath(x:Int=0,y:Int=0)
+    {
+        trace("move path x " + x + " y " + y);
+        if (x > 15 || y > 15 || x < -15 || y < -15)
+        {
+            //out of range
+            trace("out of motion path range");
+            return;
+        }
+        //direction pos, to direct to the goal
+        var dx:Int = 0;
+        var dy:Int = 0;
+        //current that is pushed into moves
+        var cx:Int = 0;
+        var cy:Int = 0;
+        while (true)
+        {
+            cx = 0;
+            cy = 0;
+            //check if path complete
+            if (dx == x && dy == y)
+            {
+                break;
+            }
+            //go through path
+            if (dx != x)
+            {
+                if (dx < x)
+                {
+                    cx = 1;
+                }else{
+                    cy = -1;
+                }
+            }
+            if (dy != y)
+            {
+                if (dy < y)
+                {
+                    cy = 1;
+                }else{
+                    cy = -1;
+                }
+            }
+            dx += cx;
+            dy += cy;
+            //reject rest of the bath that have obsacules in the way for now, todo: smart path finding
+            if (game.data.blocking.get(Std.string(instance.x + dx) + "." + Std.string(instance.y + dy)))
+            {
+                break;
+            }else{
+                moves.push(new Point(cx,dy));
+            }
+        }
+        //build up message
+        if (moves.length == 0) return;
+        lastMove++;
+        var message = "MOVE " + instance.x + " " + instance.y + " @" + lastMove;
+        for (move in moves)
+        {
+            message += " " + move.x + " " + move.y;
+        }
+        timeSpeed();
+        Main.client.send(message);
+    }
     public function path()
     {
         trace("path");
@@ -202,7 +266,6 @@ class Player #if openfl extends Object #end
         //converts from global to local
         tileX = instance.x + game.cameraX;
         tileY = instance.y + game.cameraY;
-        trace("tileX " + tileX + " tileY " + tileY);
         super.pos();
         #end
     }

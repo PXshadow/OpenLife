@@ -125,6 +125,27 @@ class Program
         }
         return this;
     }
+    /**
+     * Remove an object from a container
+     * @return Program
+     */
+    public function remove():Program
+    {
+        return this;
+    }
+    /**
+     * special case of removing an object contained in a piece of worn clothing.
+     * @param i 0=hat, 1=tunic, 2=frontShoe, 3=backShoe, 4=bottom, 5=backpack
+     * @return public function pickup():Program
+     **/
+    public function pull(i:Int):Program
+    {
+        return this;
+    }
+    /**
+     * Same as Use
+     * @return Program
+     */
     public function pickup():Program
     {
         use();
@@ -162,6 +183,8 @@ class Program
     {
         return switch(name.toLowerCase())
         {
+            case "milkweed":
+            [50,51,52];
             case "big hard rock":
             [32];
             case "stone":

@@ -34,7 +34,7 @@ class Object extends TileContainer
     {
         //local position
         x = tileX * Static.GRID;
-        y = (32 - tileY) * Static.GRID;
+        y = (Static.tileHeight - tileY) * Static.GRID;
     }
     public function animate(index:Int)
     {

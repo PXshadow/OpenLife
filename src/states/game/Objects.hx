@@ -69,7 +69,6 @@ class Objects extends TileDisplay
             obj.x += x * Static.GRID;
             obj.y += -y * Static.GRID;
         }
-        trace("x " + x + " y " + y);
     }
     public function addFloor(id:Int,x:Int=0,y:Int=0):Object
     {

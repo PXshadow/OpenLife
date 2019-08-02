@@ -11,6 +11,7 @@ class Static
     public static var dir:String = "";
 
     public static inline var GRID:Int = 128;
+    public static inline var tileHeight:Int = 32;
     //player constants
     public static inline var babyHeadDownFactor:Float = 0.6;
     public static inline var babyBodyDownFactor:Float = 0.75;
