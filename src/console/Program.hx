@@ -24,6 +24,7 @@ class Program
     }
     public function stop()
     {
+        trace("stop goal");
         //finished, now perform actions
         action();
         //clean up

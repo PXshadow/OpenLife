@@ -71,7 +71,7 @@ class ObjectData extends LineReader
         super();
         if (i == 0) return;
         try {
-            line = readLines(File.read(Static.dir + "objects/" + i + ".txt"));
+            line = readLines(File.getContent(Static.dir + "objects/" + i + ".txt"));
         }catch(e:Dynamic)
         {
             trace("object txt e " + e);
@@ -256,16 +256,17 @@ class ObjectData extends LineReader
         //get sprite data
         for(i in 0...spriteArray.length)
         {
-            var input:Input = null;
+            var s:String;
             try { 
-                input = File.read(Static.dir + "sprites/" + spriteArray[i].spriteID + ".txt",false);
+                s = File.getContent(Static.dir + "sprites/" + spriteArray[i].spriteID + ".txt");
             }catch(e:Dynamic)
             {
                 trace("sprite text e " + e);
-                continue;
+                //continue;
+                return;
             }
             var j:Int = 0;
-            var a = input.readLine().split(" ");
+            var a = s.split(" ");
             for(string in a)
             {
                 switch(j++)

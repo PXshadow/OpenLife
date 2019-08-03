@@ -1,5 +1,6 @@
 package states.game;
 
+import openfl.display.Shape;
 import motion.easing.Quad;
 import motion.Actuate;
 import data.ObjectData.ObjectType;
@@ -31,6 +32,7 @@ class Game #if openfl extends states.State #end
     #if openfl
     var dialog:Dialog;
     public var ground:Ground;
+    public var draw:Draw;
     public var objects:Objects;
     public var bitmap:Bitmap;
     public var cameraSpeed:Float = 10;
@@ -45,13 +47,8 @@ class Game #if openfl extends states.State #end
     {
         return scaleX;
     }
-    
     function set_scale(scale:Float):Float 
     {
-        //scale dim
-        var diff = scale - scaleX;
-        x += -width/scaleX * diff/2;
-        y += -width/scaleX * diff/2;
         scaleX = scale;
         scaleY = scale;
         return scale;
@@ -76,17 +73,18 @@ class Game #if openfl extends states.State #end
 
         #if openfl
         super();
-        center();
         stage.color = 0xFFFFFF;
         ground = new Ground(this);
         objects = new Objects(this);
+        draw = new Draw(this);
         dialog = new Dialog(this);
         addChild(ground);
         addChild(objects);
+        addChild(draw);
         addChild(dialog);
         bitmap = new Bitmap();
         addChild(bitmap);
-        
+        center();
         #end
         //connect
         if (true)
@@ -140,15 +138,16 @@ class Game #if openfl extends states.State #end
     #if openfl
     public function center()
     {
-        x = (Main.setWidth - Static.GRID * 32)/2;
-        y = (Main.setHeight - Static.GRID * 32)/2;
+        objects.x = -(objects.width + Main.setWidth)/2;
+        objects.y = -(objects.height + Main.setHeight)/2;
+        objects.set();
     }
     var xs:Int = 0;
     var ys:Int = 0;
     override function update()
     {
         super.update();
-
+        draw.update();
         if(Player.main != null)
         {
             xs = 0;
@@ -223,10 +222,14 @@ class Game #if openfl extends states.State #end
     }
     public function move(x:Float=0,y:Float=0)
     {
-        objects.x += -x;
-        objects.y += -y;
-        ground.x += -x;
-        ground.y += -y;
+        //flip
+        x *= -1;
+        y *= -1;
+        //move
+        objects.x += x;
+        objects.y += y;
+        ground.x += x;
+        ground.y += y;
     }
     override function mouseScroll(e:MouseEvent) 
     {
@@ -251,6 +254,8 @@ class Game #if openfl extends states.State #end
             inital = false;
             //width = 32, height = 30
             objects.size(mapInstance.width,mapInstance.height);
+            //ground.x = cameraX * Static.GRID;
+            //ground.y = cameraY * Static.GRID;
         }
         var obj:Object;
         for(j in mapInstance.y...mapInstance.y + mapInstance.height)
@@ -258,11 +263,12 @@ class Game #if openfl extends states.State #end
             for (i in mapInstance.x...mapInstance.x + mapInstance.width)
             {
                 //ground
-                ground.graphics.clear();
+                ground.add(data.map.biome.get(i,j),i,j);
                 //objects
                 obj = objects.addObject(data.map.object.get(i,j),i,j);
             }
         }
+        ground.render();
     }
     #end
     
@@ -275,9 +281,10 @@ class Game #if openfl extends states.State #end
             if (Player.main == null) 
             {
                 setPlayer(objects.player);
+                //remaining of the tileset
+                trace("fill " + objects.getFill());
             }
             objects.player = null;
-            trace("fill " + objects.getFill());
             #end
             default:
         }
@@ -303,6 +310,7 @@ class Game #if openfl extends states.State #end
                 playerMove.movePlayer(data.playerMap.get(playerMove.id));
             }
             case MAP_CHUNK:
+            trace("MAP CHUNK");
             if(compress)
             {
                 Main.client.tag = null;

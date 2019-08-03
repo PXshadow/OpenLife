@@ -21,6 +21,9 @@ class Objects extends TileDisplay
     //for tileset
     var tileX:Float = 0;
     var tileY:Float = 0;
+    //set pos
+    var setX:Float = 0;
+    var setY:Float = 0;
     //last player to be loaded in 
     public var player:Player = null;
     public function new(game:Game)
@@ -33,30 +36,35 @@ class Objects extends TileDisplay
     public function update()
     {
         //overflow
-        while (x >= Static.GRID)
+        while (x >= Static.GRID + setX)
         {
             x += -Static.GRID;
             game.cameraX++;
             shift(1,0);
         }
-        while (x <= -Static.GRID)
+        while (x <= -Static.GRID + setX)
         {
             x += Static.GRID;
             game.cameraX--;
             shift(-1,0);
         }
-        while (y >= Static.GRID)
+        while (y >= Static.GRID + setY)
         {
             y += -Static.GRID;
             game.cameraY--;
             shift(0,-1);
         }
-        while (y <= -Static.GRID)
+        while (y <= -Static.GRID + setY)
         {
             y += Static.GRID;
             game.cameraY++;
             shift(0,1);
         }
+    }
+    public function set()
+    {
+        setX = x;
+        setY = y;
     }
     public function shift(x:Int=0,y:Int=0)
     {
@@ -154,7 +162,7 @@ class Objects extends TileDisplay
             //check if cache sprite fail
             if (tile.id == -1) 
             {
-                trace("cache sprite fail");
+                //trace("cache sprite fail");
                 continue;
             }
             r = tileset.getRect(tile.id);
@@ -207,7 +215,7 @@ class Objects extends TileDisplay
             reader.read(File.read(Static.dir + "sprites/" + id + ".tga").readAll());
         }catch(e:Dynamic)
         {
-            trace("e " + e);
+            //trace("e " + e);
             return null;
         }
         //set dimensions
@@ -223,7 +231,7 @@ class Objects extends TileDisplay
             tileHeight = 0;
         }
         //move tilesystem
-        tileX += Std.int(rect.width);
+        tileX += Std.int(rect.width) + 1;
         //set to bitmapData
         tileset.bitmapData.setPixels(rect,reader.bytes);
         if (rect.height > tileHeight) tileHeight = rect.height;

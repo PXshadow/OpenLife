@@ -41,6 +41,8 @@ class Main #if openfl extends Sprite #end
         super();
         var j = 10/0;
         trace("j " + j);
+        //setup discord
+        var discord = new client.Discord();
         //stored appdata
         so = SharedObject.getLocal("client",null,true);
         //events
