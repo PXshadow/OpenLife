@@ -63,7 +63,7 @@ class Ground extends Shape
     }
     public function add(id:Int,x:Int=0,y:Int=0)
     {
-        indices.push(id + ci(x) + ci(y) * 3);
+        indices.push(id);// + ci(x) + ci(y) * 3);
         transforms.push(x * Static.GRID);
         transforms.push(y * Static.GRID);
     }

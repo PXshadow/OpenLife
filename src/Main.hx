@@ -24,8 +24,8 @@ import settings.Bind;
 class Main #if openfl extends Sprite #end
 {
     //window
-    public static inline var setWidth:Int = 1280;
-    public static inline var setHeight:Int = 720;
+    public static inline var setWidth:Int = 1600;
+    public static inline var setHeight:Int = 900;
     public static var scale:Float = 0;
     //client
     public static var client:Client;

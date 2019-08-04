@@ -34,6 +34,9 @@ class Game #if openfl extends states.State #end
     public var ground:Ground;
     public var draw:Draw;
     public var objects:Objects;
+    public var select:Shape;
+    public var selectX:Int = 0;
+    public var selectY:Int = 0;
     public var bitmap:Bitmap;
     public var cameraSpeed:Float = 10;
     //camera
@@ -77,9 +80,16 @@ class Game #if openfl extends states.State #end
         stage.color = 0xFFFFFF;
         ground = new Ground(this);
         objects = new Objects(this);
+        //tile selector
+        select = new Shape();
+        select.cacheAsBitmap = true;
+        select.graphics.lineStyle(2,0xB7B7B7);
+        select.graphics.drawRect(0,0,Static.GRID,Static.GRID);
+
         draw = new Draw(this);
         dialog = new Dialog(this);
         addChild(ground);
+        addChild(select);
         addChild(objects);
         addChild(draw);
         addChild(dialog);
@@ -140,9 +150,8 @@ class Game #if openfl extends states.State #end
     {
         if (Player.main != null)
         {
-            objects.x = (-Player.main.x + (Main.setWidth/Main.scale)/2);
-            objects.y = (-Player.main.y + (Main.setHeight/Main.scale)/2);
-            objects.set();
+            x = -(Player.main.x - 20) * scale + Main.setWidth/2;
+            y = -(Player.main.y - 40) * scale + Main.setHeight/2;
         }
     }
     var xs:Int = 0;
@@ -195,6 +204,11 @@ class Game #if openfl extends states.State #end
         }
         //updates
         objects.update();
+        //selector
+        selectX = Math.floor((objects.mouseX - Static.GRID/2)/Static.GRID);
+        selectY = Math.floor((objects.mouseY - Static.GRID/2)/Static.GRID);
+        select.x = objects.x + selectX * Static.GRID + Static.GRID/2;
+        select.y = objects.y + selectY * Static.GRID + Static.GRID/2;
         //players
         it = data.playerMap.iterator();
         while(it.hasNext())
@@ -257,8 +271,6 @@ class Game #if openfl extends states.State #end
             inital = false;
             //width = 32, height = 30
             objects.size(mapInstance.width,mapInstance.height);
-            //ground.x = cameraX * Static.GRID;
-            //ground.y = cameraY * Static.GRID;
         }
         var obj:Object;
         for(j in mapInstance.y...mapInstance.y + mapInstance.height)
