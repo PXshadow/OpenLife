@@ -51,6 +51,7 @@ class Game #if openfl extends states.State #end
     {
         scaleX = scale;
         scaleY = scale;
+        center();
         return scale;
     }
     #end
@@ -84,7 +85,6 @@ class Game #if openfl extends states.State #end
         addChild(dialog);
         bitmap = new Bitmap();
         addChild(bitmap);
-        center();
         #end
         //connect
         if (true)
@@ -138,9 +138,12 @@ class Game #if openfl extends states.State #end
     #if openfl
     public function center()
     {
-        objects.x = -(objects.width + Main.setWidth)/2;
-        objects.y = -(objects.height + Main.setHeight)/2;
-        objects.set();
+        if (Player.main != null)
+        {
+            objects.x = (-Player.main.x + (Main.setWidth/Main.scale)/2);
+            objects.y = (-Player.main.y + (Main.setHeight/Main.scale)/2);
+            objects.set();
+        }
     }
     var xs:Int = 0;
     var ys:Int = 0;
@@ -283,6 +286,7 @@ class Game #if openfl extends states.State #end
                 setPlayer(objects.player);
                 //remaining of the tileset
                 trace("fill " + objects.getFill());
+                center();
             }
             objects.player = null;
             #end

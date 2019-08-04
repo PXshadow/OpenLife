@@ -26,7 +26,7 @@ class Main #if openfl extends Sprite #end
     //window
     public static inline var setWidth:Int = 1280;
     public static inline var setHeight:Int = 720;
-    private static var scale:Float = 0;
+    public static var scale:Float = 0;
     //client
     public static var client:Client;
     //over top console
