@@ -41,6 +41,7 @@ class Player #if openfl extends Object #end
         type = PLAYER;
         #end
     }
+    
     public function update()
     {
         #if openfl
@@ -60,6 +61,11 @@ class Player #if openfl extends Object #end
         if (delay > 0) delay--;
         #end
     }
+    private function restrict(pos:console.Program.Pos):Bool
+    {
+        if (restricted.indexOf(pos) == -1)  return false;
+        return true;
+    }
     public function move()
     {
         #if openfl
@@ -70,8 +76,13 @@ class Player #if openfl extends Object #end
             pos();
             instance.x += Std.int(point.x);
             instance.y += Std.int(point.y);
-            //restricted.push(new );
-            
+            if (goal)
+            {
+                var pos = new console.Program.Pos();
+                pos.x = instance.x;
+                pos.y = instance.y;
+                restricted.push(pos);
+            }
             //flip (change direction)
             if (point.x != 0)
             {
@@ -92,6 +103,14 @@ class Player #if openfl extends Object #end
     {
         //no other move is occuring, and player is not moving on blocked
         if (timeInt > 0 || game.data.blocking.get(Std.string(instance.x + mx) + "." + Std.string(instance.y + my))) return false;
+        //restriction of previous path
+        if (restricted.length > 0)
+        {
+            var pos = new console.Program.Pos();
+            pos.x = instance.x + mx;
+            pos.y = instance.y + my;
+            if (restrict(pos)) return false;
+        }
         //send data
         lastMove++;
         Main.client.send("MOVE " + instance.x + " " + instance.y + " @" + lastMove + " " + mx + " " + my);
@@ -122,10 +141,12 @@ class Player #if openfl extends Object #end
         if (px == 0 && py == 0)
         {
             //complete 
+            restricted = [];
             game.program.stop();
         }else{
             if (!step(px,py))
             {
+                //path blocked
                 //x
                 px *= -1;
                 if (!step(px,py))
@@ -139,7 +160,8 @@ class Player #if openfl extends Object #end
                         px *= -1;
                         if (!step(px,py))
                         {
-                            
+                            //reset restricted area as all pathing is blocked
+                            restricted = [];
                         }
                     }
                 }
