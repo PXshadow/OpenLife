@@ -8,6 +8,10 @@ import data.ObjectData;
 import openfl.display.TileContainer;
 class Object extends TileContainer
 {
+    // base speed for animations that aren't speeded up or slowed down
+    // when player moving at a different speed, anim speed is modified
+    private static inline var BASE_SPEED:Float = 3.75;
+    //object id
     public var oid:Int;
     public var animation:AnimationData;
     public var map:Map<Int,Int> = new Map<Int,Int>();

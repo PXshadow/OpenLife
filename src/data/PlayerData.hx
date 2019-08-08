@@ -144,7 +144,6 @@ class PlayerMove
     public function  new(a:Array<String>)
     {
         var index:Int = 0;
-        trace("a " + a);
         for(value in a)
         {
             switch(index++)

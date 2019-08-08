@@ -126,8 +126,9 @@ class Player #if openfl extends Object #end
     {
         #if openfl
         //get floor speed
-        var time = Static.GRID/(Static.GRID * instance.move_speed);
-        this.time = Std.int(time * 60 * 1) + 1;
+        //var time = Static.GRID/(Static.GRID * instance.move_speed);
+        //trace("instance move speed " + instance.move_speed);
+        this.time = Std.int(Static.GRID/(Static.GRID * instance.move_speed) * 60 * 1.08);
         timeInt = 0;
         #end
     }
@@ -172,16 +173,18 @@ class Player #if openfl extends Object #end
     {
         instance = data;
         //trace("force " + instance.forced);
+        //pos and age
+        pos();
         if (instance.forced == 1) 
         {
             trace("forced");
             Main.client.send("FORCE " + instance.x + " " + instance.y);
+            //reset camera
+            game.center();
         }
         //remove moves
         timeInt = 0;
         moves = [];
-        //pos and age
-        pos();
         age();
         hold();
     }

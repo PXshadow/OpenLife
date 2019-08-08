@@ -1,5 +1,6 @@
 package console;
 
+import haxe.crypto.Base64;
 import motion.Actuate;
 #if openfl
 import states.game.Object;
@@ -161,7 +162,13 @@ class Program
     }
     public function emote(e:Int):Program
     {
+        //0-13
         Main.client.send("EMOT 0 0 " + e);
+        return this;
+    }
+    public function say(string:String):Program
+    {
+        Main.client.send("SAY 0 0 " + string.toUpperCase());
         return this;
     }
     public function remove(x:Int,y:Int,index:Int=-1):Program

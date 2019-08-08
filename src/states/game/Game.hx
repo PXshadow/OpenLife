@@ -205,12 +205,16 @@ class Game #if openfl extends states.State #end
             it.next().update();
         }
     }
+    public function sort()
+    {
+
+    }
     override function keyDown() 
     {
         super.keyDown();
         if (Bind.zoomIn.bool) zoom(1);
         if (Bind.zoomOut.bool) zoom(-1);
-        if (Bind.playerUse.bool)
+        if (Bind.playerSelf.bool)
         {
             program.self();
         }
