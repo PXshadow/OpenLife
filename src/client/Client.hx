@@ -42,7 +42,7 @@ class Client
             if(compress == 0) 
             {
                 data = socket.input.readLine();
-                //trace("read " + data);
+                trace("read " + data);
             }
 		}catch(e:Dynamic)
 		{
@@ -73,7 +73,7 @@ class Client
             if(end != null) end();
             index = 0;
             tag = data.substring(1,data.length);
-            return;
+            if (tag != FRAME && tag != HEAT_CHANGE) return;
         }
         if(tag == "")
         {

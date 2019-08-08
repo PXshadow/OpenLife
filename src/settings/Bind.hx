@@ -12,10 +12,10 @@ class Bind
     public static var playerLeft:Action = new Action([Keyboard.A,Keyboard.LEFT]);
     public static var playerRight:Action = new Action([Keyboard.D,Keyboard.RIGHT]);
 
-    public static var playerPick:Action = new Action([Keyboard.G]);
+    public static var playerUse:Action = new Action([Keyboard.G]);
     public static var playerDrop:Action = new Action([Keyboard.Q]);
 
-    public static var playerAction:Action = new Action([Keyboard.SPACE]);
+    public static var playerSelf:Action = new Action([Keyboard.SPACE]);
 
     public static var zoomIn:Action = new Action([Keyboard.I]);
     public static var zoomOut:Action = new Action([Keyboard.O]);
@@ -40,10 +40,10 @@ class Bind
         playerLeft.set(e,bool);
         playerRight.set(e,bool);
 
-        playerPick.set(e,bool);
+        playerUse.set(e,bool);
         playerDrop.set(e,bool);
 
-        playerAction.set(e,bool);
+        playerSelf.set(e,bool);
 
         search.set(e,bool);
         help.set(e,bool);

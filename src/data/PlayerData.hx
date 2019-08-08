@@ -144,7 +144,7 @@ class PlayerMove
     public function  new(a:Array<String>)
     {
         var index:Int = 0;
-        //trace("a " + a);
+        trace("a " + a);
         for(value in a)
         {
             switch(index++)
@@ -195,13 +195,16 @@ class PlayerMove
         var delay:Float = 0;
         var currentX:Int = 0;
         var currentY:Int = 0;
-        player.time = Std.int(current/moves.length) * 60;
+
+        player.time = Std.int((current/moves.length) * 60 * 1) + 1;
         for(move in moves)
         {
             player.moves.push(new data.Point(move.x - currentX,move.y - currentY));
+            trace("move " + Std.string(move.x - currentX) + " " + Std.string(move.y - currentY));
             currentX = move.x;
             currentY = move.y;
         }
         #end
+        trace("player time " + player.time);
     }
 }

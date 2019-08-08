@@ -54,7 +54,8 @@ class Player #if openfl extends Object #end
             //add to pos
             x += velocityX;
             y += velocityY;
-            game.move(velocityX,velocityY);
+            //move camera if main player
+            if (this == Player.main) game.move(velocityX,velocityY);
             //remove time per frame
             timeInt--;
         }
@@ -76,6 +77,7 @@ class Player #if openfl extends Object #end
             pos();
             instance.x += Std.int(point.x);
             instance.y += Std.int(point.y);
+            sort();
             if (goal)
             {
                 var pos = new console.Program.Pos();
@@ -222,6 +224,28 @@ class Player #if openfl extends Object #end
         tileY = instance.y + game.cameraY;
         super.pos();
         #end
+    }
+    public function sort()
+    {
+        //did not move vertically
+        if (tileY == instance.y + game.cameraY) return;
+
+        var obj:Object = null;
+        for (i in 0...game.objects.numTiles)
+        {
+            obj = cast game.objects.getTileAt(i);
+            if (obj.tileY == instance.y + game.cameraY - 1)
+            {
+                break;
+            }else{
+                obj = null;
+            }
+        }
+        if (obj != null) 
+        {
+            game.objects.removeTile(this);
+            game.objects.addTileAt(this,game.objects.getTileIndex(obj));
+        }
     }
     public function age()
     {

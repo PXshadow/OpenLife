@@ -40,6 +40,7 @@ public var SERVER_INFO = "SN";
 
 @:from private static function fromString(value:String):MessageTag
 {
+    trace("set tag " + value);
 	return switch (value)
 	{
 		case "CM": COMPRESSED_MESSAGE;

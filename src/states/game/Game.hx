@@ -91,8 +91,8 @@ class Game #if openfl extends states.State #end
         addChild(ground);
         addChild(select);
         addChild(objects);
-        addChild(draw);
-        addChild(dialog);
+        Main.screen.addChild(draw);
+        Main.screen.addChild(dialog);
         bitmap = new Bitmap();
         addChild(bitmap);
         #end
@@ -160,6 +160,7 @@ class Game #if openfl extends states.State #end
     {
         super.update();
         draw.update();
+        //player movement
         if(Player.main != null)
         {
             xs = 0;
@@ -171,35 +172,8 @@ class Game #if openfl extends states.State #end
             if (xs != 0 || ys != 0) 
             {
                 Player.main.goal = false;
+                program.setupGoal = false;
                 Player.main.step(xs,ys);
-            }
-
-            if (Bind.playerAction.bool && Player.main.delay <= 0)
-            {
-                Player.main.delay = 30;
-                if (Player.main.instance.o_id == 0)
-                {
-                    //grab
-                    Main.client.send("USE " + Player.main.instance.x + " " + Player.main.instance.y);
-                    //pick up
-                    var tile:Object;
-                    for (i in 0...objects.numTiles)
-                    {
-                        tile = cast objects.getTileAt(i);
-                        if (tile.tileX == Player.main.tileX && tile.tileY == Player.main.tileY && tile.type == OBJECT)
-                        {
-                            Player.main.instance.o_id = tile.oid;
-                            Player.main.hold();
-                            break;
-                        }
-                    }
-                }else{
-                    //drop
-                    Main.client.send("DROP " + Player.main.instance.x + " " + Player.main.instance.y + " -1");
-                    //remove hold
-                    Player.main.instance.o_id = 0;
-                    Player.main.hold();
-                }
             }
         }
         //updates
@@ -207,8 +181,15 @@ class Game #if openfl extends states.State #end
         //selector
         selectX = Math.floor((objects.mouseX - Static.GRID/2)/Static.GRID);
         selectY = Math.floor((objects.mouseY - Static.GRID/2)/Static.GRID);
+        //set local for render
         select.x = objects.x + selectX * Static.GRID + Static.GRID/2;
         select.y = objects.y + selectY * Static.GRID + Static.GRID/2;
+        //set x global
+        selectX += -cameraX + 1;
+        //flip
+        selectY = (Static.tileHeight - selectY);
+        //set y global
+        selectY += -cameraY - 1;
         //players
         it = data.playerMap.iterator();
         while(it.hasNext())
@@ -221,6 +202,19 @@ class Game #if openfl extends states.State #end
         super.keyDown();
         if (Bind.zoomIn.bool) zoom(1);
         if (Bind.zoomOut.bool) zoom(-1);
+        if (Bind.playerUse.bool)
+        {
+            program.self();
+        }
+        if (Bind.playerDrop.bool)
+        {
+            program.drop(selectX,selectY);
+        }
+        if (Bind.playerUse.bool)
+        {
+            program.use(selectX,selectY);
+            Player.main.hold();
+        }
     }
     #if openfl
     var it:Iterator<Player>;
@@ -228,14 +222,12 @@ class Game #if openfl extends states.State #end
     override function mouseDown() 
     {
         super.mouseDown();
-        /*var x:Int = Math.floor(objects.mouseX/Static.GRID) + diffX * 2 + cameraX;
-        var y:Int = Math.floor(objects.mouseY/Static.GRID) + diffY * 2 + cameraY;
-        if (Player.main != null)
-        {
-            Player.main.goal = false;
-            trace("player x " + x + " y " + y);
-            program.path(x,y);
-        }*/
+        program.use(selectX,selectY);
+    }
+    override function mouseRightDown()
+    {
+        super.mouseRightDown();
+        program.drop(selectX,selectY);
     }
     public function move(x:Float=0,y:Float=0)
     {
@@ -272,6 +264,9 @@ class Game #if openfl extends states.State #end
             //width = 32, height = 30
             objects.size(mapInstance.width,mapInstance.height);
         }
+        //clean before adding new
+        clean();
+
         var obj:Object;
         for(j in mapInstance.y...mapInstance.y + mapInstance.height)
         {
@@ -279,11 +274,31 @@ class Game #if openfl extends states.State #end
             {
                 //ground
                 ground.add(data.map.biome.get(i,j),i,j);
+                //floor
+                objects.addFloor(data.map.floor.get(i,j),i,j);
                 //objects
-                obj = objects.addObject(data.map.object.get(i,j),i,j);
+                objects.addObject(data.map.object.get(i,j),i,j);
+
             }
         }
         ground.render();
+    }
+    public function clean()
+    {
+        //clean objects off stage limits
+        var obj:Object;
+        var num:Int = objects.numTiles;
+        var i:Int = 0;
+        while (i > num)
+        {
+            obj = cast objects.getTileAt(i++);
+            if (obj.tileX < 0 || obj.tileX > objects.tileWidth || obj.tileY < 0 || obj.tileY > objects.tileHeight)
+            {
+                objects.removeTile(obj);
+                num--;
+            }
+        }
+
     }
     #end
     
@@ -298,10 +313,12 @@ class Game #if openfl extends states.State #end
                 setPlayer(objects.player);
                 //remaining of the tileset
                 trace("fill " + objects.getFill());
+                Player.main.sort();
                 center();
             }
             objects.player = null;
             #end
+            Main.client.tag = null;
             default:
         }
     }
@@ -325,6 +342,7 @@ class Game #if openfl extends states.State #end
             {
                 playerMove.movePlayer(data.playerMap.get(playerMove.id));
             }
+            Main.client.tag = null;
             case MAP_CHUNK:
             trace("MAP CHUNK");
             if(compress)

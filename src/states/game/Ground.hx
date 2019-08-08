@@ -39,7 +39,7 @@ class Ground extends Shape
     }
     public function render()
     {
-        createGround();
+        //createGround();
     }
     private function cacheBiome(id:Int)
     {

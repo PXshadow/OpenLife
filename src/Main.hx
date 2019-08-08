@@ -53,6 +53,8 @@ class Main #if openfl extends Sprite #end
         addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
         addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
         addEventListener(MouseEvent.MOUSE_UP,mouseUp);  
+        addEventListener(MouseEvent.RIGHT_MOUSE_DOWN,mouseRightDown);
+        addEventListener(MouseEvent.RIGHT_MOUSE_UP,mouseRightUp);
         //client
         client = new client.Client();
         //set state
@@ -92,6 +94,14 @@ class Main #if openfl extends Sprite #end
     private function mouseUp(_)
     {
         if (state != null) state.mouseUp();
+    }
+    private function mouseRightDown(_)
+    {
+        if (state != null) state.mouseRightDown();
+    }
+    private function mouseRightUp(_)
+    {
+        if (state != null) state.mouseRightUp();
     }
     private function mouseWheel(e:MouseEvent)
     {

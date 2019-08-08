@@ -27,6 +27,14 @@ class State extends DisplayObjectContainer
     {
         
     }
+    public function mouseRightDown()
+    {
+
+    }
+    public function mouseRightUp()
+    {
+        
+    }
     public function mouseDown()
     {
 

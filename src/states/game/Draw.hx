@@ -25,13 +25,13 @@ class Draw extends Shape
     }
     private function path()
     {
-        if (Player.main != null)
+        /*if (Player.main != null)
         {
             //red 2 pixel line
             graphics.lineStyle(2,0x00FF00);
             //start at player
-            px = Player.main.x - game.objects.x + game.x;
-            py = Player.main.y - game.objects.y + game.y;
+            px = Player.main.x - game.objects.x + game.x - 10;
+            py = Player.main.y - game.objects.y + game.y - 10;
             px = Main.setWidth/2;
             py = Main.setHeight/2;
             graphics.moveTo(px,py);
@@ -39,6 +39,6 @@ class Draw extends Shape
             px += (game.program.goal.x - Player.main.instance.x) * Static.GRID;
             py += (Player.main.instance.y - game.program.goal.y) * Static.GRID;
             graphics.lineTo(px,py);
-        }
+        }*/
     }
 }

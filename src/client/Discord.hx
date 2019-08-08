@@ -1,12 +1,9 @@
 package client;
-#if cpp 
-import discord_rpc.DiscordRpc;
-#end
 class Discord
 {
     public function new()
     {
-        //discord
+        /*//discord
         #if cpp 
         trace("discord presence init");
         function onReady()
@@ -27,12 +24,12 @@ class Discord
         {
             trace('Disconnected! $_code : $_message');
         }
-        DiscordRpc.start({
+        discord_rpc.DiscordRpc.start({
             clientID : "589413060582572052",
             onReady  : onReady,
             onError  : onError,
             onDisconnected : onDisconnected
         });
-        #end
+        #end*/
     }
 }
