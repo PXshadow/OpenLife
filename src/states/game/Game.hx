@@ -44,6 +44,9 @@ class Game #if openfl extends states.State #end
     public var cameraY:Int = 0;
     public var diffX:Int = 0;
     public var diffY:Int = 0;
+    //text
+    public var text:Text;
+
     //scale used for zoom in and out
     public var scale(get, set):Float;
     function get_scale():Float 
@@ -93,6 +96,10 @@ class Game #if openfl extends states.State #end
         addChild(objects);
         Main.screen.addChild(draw);
         Main.screen.addChild(dialog);
+        text = new Text();
+        text.align = LEFT;
+        text.cacheAsBitmap = false;
+        Main.screen.addChild(text);
         bitmap = new Bitmap();
         addChild(bitmap);
         #end
@@ -160,6 +167,7 @@ class Game #if openfl extends states.State #end
     {
         super.update();
         draw.update();
+        text.text = "num " + objects.numTiles;
         //player movement
         if(Player.main != null)
         {

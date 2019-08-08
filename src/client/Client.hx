@@ -42,7 +42,6 @@ class Client
             if(compress == 0) 
             {
                 data = socket.input.readLine();
-                trace("read " + data);
             }
 		}catch(e:Dynamic)
 		{
