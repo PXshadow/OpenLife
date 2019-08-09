@@ -124,8 +124,10 @@ class Game #if openfl extends states.State #end
                 trace("reject");
                 Main.client.login = null;
             }
-            Main.client.login.email = "test@test.co.uk";
-            Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
+            //Main.client.login.email = "test@test.co.uk";
+            //Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
+            Main.client.login.email = "test@test.com";
+            Main.client.login.key = "9UYQ3-PQKCT-NGQXH-YB93E";
             Main.client.message = Main.client.login.message;
             Main.client.ip = "game.krypticmedia.co.uk";
             Main.client.port = 8007;
