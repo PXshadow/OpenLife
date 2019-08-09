@@ -9,10 +9,10 @@ class AnimationData extends LineReader
     public function new(id:Int)
     {
         super();
-        #if !openfl
+        //#if !openfl
         fail = true;
         return;
-        #end
+        //#end
         //return;
         if (!FileSystem.exists(Static.dir + "animations/" + id + "_0.txt"))
         {
@@ -26,7 +26,7 @@ class AnimationData extends LineReader
             if (i == 3) continue;
             //read lines
             line = readLines(File.getContent(Static.dir + "animations/" + id + "_" + i + ".txt"));
-            record[i] = process();
+            if (line.length > 0) record[i] = process();
         }
         line = null;
     }
@@ -73,7 +73,7 @@ class AnimationData extends LineReader
         animation.numSprites = getInt();
         animation.numSlots = getInt();
         //Params
-        if(animation.numSprites == 0) return animation;
+        if(animation.numSprites <= 0) return animation;
         animation.params = new Vector<AnimationParameter>(animation.numSprites);
         for(i in 0...animation.params.length) animation.params[i] = processParam();
         return animation;

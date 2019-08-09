@@ -16,7 +16,7 @@ class TileDisplay extends Tilemap
     var reader:TgaData;
     //pos
     public var tileWidth:Int = 0;
-    public var tileHeight:Float = 0;
+    public var tileHeight:Int = 0;
     public function new(tilesetWidth:Int,tilesetHeight:Int,transparent:Bool=true)
     {
         super(0,0,new Tileset(new BitmapData(tilesetWidth,tilesetHeight,transparent)),false);

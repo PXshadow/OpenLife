@@ -210,7 +210,11 @@ class Game #if openfl extends states.State #end
     }
     public function sort()
     {
-
+        objects.sortTiles(function (a:Tile,b:Tile):Int
+        {
+            if (a.y > b.y) return 1;
+            return -1;
+        });
     }
     override function keyDown() 
     {
@@ -281,7 +285,6 @@ class Game #if openfl extends states.State #end
         }
         //clean before adding new
         clean();
-
         var obj:Object;
         for(j in mapInstance.y...mapInstance.y + mapInstance.height)
         {
@@ -296,33 +299,47 @@ class Game #if openfl extends states.State #end
 
             }
         }
+        sort();
+        //check for duplicates
+        duplicate();
         ground.render();
     }
+    public var list:Array<Tile> = [];
     public function clean()
     {
-        if (Math.abs(cleanX - cameraX) > 5 || Math.abs(cleanY - cameraY) > 5)
+        var obj:Object = null;
+        @:privateAccess list = objects.__group.__tiles.copy();
+        for (i in 0...list.length)
         {
-            //new clean
-            cleanX = cameraX;
-            cleanY = cameraY;
-        }else{
-            //to close in range from last clean
-            return;
-        }
-        //clean objects off stage limits
-        var obj:Object;
-        var num:Int = objects.numTiles;
-        var i:Int = 0;
-        while (i < num)
-        {
-            obj = cast objects.getTileAt(i++);
-            if (obj.tileX < 0 || obj.tileX > objects.tileWidth || obj.tileY < 0 || obj.tileY > objects.tileHeight)
+            obj = cast list.pop();
+            if (obj.x < 0 || obj.x > objects.width || obj.y < 0 || obj.y > objects.height)
             {
                 objects.removeTile(obj);
-                num--;
+                obj = null;
             }
         }
-
+        list = [];
+    }
+    public function duplicate()
+    {
+        var obj:Object = null;
+        var obj2:Object = null;
+        @:privateAccess list = objects.__group.__tiles.copy();
+        for (i in 0...list.length)
+        {
+            obj = cast list.pop();
+            for (i in 0...list.length)
+            {
+                obj2 = cast list[i];
+                if (obj.tileX == obj2.tileX && obj.tileY == obj2.tileY)
+                {
+                    objects.removeTile(obj);
+                    obj = null;
+                    break;
+                }
+            }
+        }
+        list = [];
     }
     #end
     

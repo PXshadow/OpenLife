@@ -1,4 +1,5 @@
 package states.game;
+import console.Program.Pos;
 #if openfl
 import motion.MotionPath;
 import motion.Actuate;
@@ -10,7 +11,6 @@ import haxe.Timer;
 import data.SpriteData;
 import data.ObjectData;
 import data.AnimationData;
-import data.Point;
 class Player #if openfl extends Object #end
 {
     public var lastMove:Int = 1;
@@ -22,7 +22,7 @@ class Player #if openfl extends Object #end
     #if openfl
     public var object:Object;
     #end
-    public var moves:Array<Point> = [];
+    public var moves:Array<Pos> = [];
     public var velocityX:Float = 0;
     public var velocityY:Float= 0;
     //how many frames till depletion
@@ -75,8 +75,8 @@ class Player #if openfl extends Object #end
         {
             var point = moves.pop();
             pos();
-            instance.x += Std.int(point.x);
-            instance.y += Std.int(point.y);
+            instance.x += point.x;
+            instance.y += point.y;
             sort();
             if (goal)
             {
@@ -118,7 +118,10 @@ class Player #if openfl extends Object #end
         Main.client.send("MOVE " + instance.x + " " + instance.y + " @" + lastMove + " " + mx + " " + my);
         #if openfl
         timeSpeed();
-        moves = [new Point(mx,my)];
+        var pos = new Pos();
+        pos.x = mx;
+        pos.y = my;
+        moves = [pos];
         #end
         return true;
     }

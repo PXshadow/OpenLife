@@ -21,6 +21,8 @@ class Object extends TileContainer
     public var tileX:Int = 0;
     public var tileY:Int = 0;
     public var type:ObjectType = OBJECT;
+    //mark for cleanup
+    public var clean:Bool = false;
     public function new()
     {
         super();
@@ -42,6 +44,7 @@ class Object extends TileContainer
     }
     public function animate(index:Int)
     {
+        return;
         //trace("animate " + index);
         if (animation == null || animation.record == null) 
         {
@@ -74,7 +77,7 @@ class Object extends TileContainer
                 tile.rotation = (param.rockPhase - param.rockAmp/2) * 360;
                 Actuate.tween(tile,1/param.rockOscPerSec,{rotation:(param.rockPhase + param.rockAmp/2) * 360},false).repeat(5).reflect();
             }
-            var time = new Timer(param.durationSec * 1000);
+            /*var time = new Timer(param.durationSec * 1000);
             time.run = function()
             {
                 Actuate.pause(tile);
@@ -86,7 +89,7 @@ class Object extends TileContainer
                     time.stop();
                 }
             }
-            Actuate.resume(tile);
+            Actuate.resume(tile);*/
         }
     }
     public function add(tile:Tile,i:Int,p:Int)

@@ -1,4 +1,5 @@
 package data;
+import console.Program.Pos;
 import states.game.Player;
 #if openfl
 import motion.easing.Quad;
@@ -196,10 +197,13 @@ class PlayerMove
         var currentY:Int = 0;
 
         player.time = Std.int((current/moves.length) * 60 * 1) + 1;
+        var pos:Pos;
         for(move in moves)
         {
-            player.moves.push(new data.Point(move.x - currentX,move.y - currentY));
-            trace("move " + Std.string(move.x - currentX) + " " + Std.string(move.y - currentY));
+            pos = new Pos();
+            pos.x = move.x - currentX;
+            pos.y = move.y - currentY;
+            player.moves.push(pos);
             currentX = move.x;
             currentY = move.y;
         }

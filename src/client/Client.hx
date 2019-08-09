@@ -106,8 +106,8 @@ class Client
     }
     public function connect()
 	{
-        connected = true;
         trace("attempt connect");
+        connected = false;
         #if sys
 		var host:Host;
 		try {
@@ -115,7 +115,6 @@ class Client
 		}catch(e:Dynamic)
 		{
             trace("host e " + e);
-            connected = false;
 			return;
 		}
 		socket = new Socket();
@@ -126,9 +125,10 @@ class Client
 			socket.connect(host,port);
 		}catch(e:Dynamic)
 		{
-            connected = false;
             trace("e " + e);
+            return;
 		}
+        connected = true;
         trace("connect sys");
         #end
 	}

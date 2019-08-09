@@ -144,7 +144,7 @@ class Objects extends TileDisplay
         {
             obj.type = FLOOR;
         }
-        addTileAt(obj,0);
+        addTile(obj);
         obj.oid = data.id;
         //animation setup
         obj.loadAnimation();
@@ -234,7 +234,7 @@ class Objects extends TileDisplay
         tileX += Std.int(rect.width) + 1;
         //set to bitmapData
         tileset.bitmapData.setPixels(rect,reader.bytes);
-        if (rect.height > tileHeight) tileHeight = rect.height;
+        if (rect.height > tileHeight) tileHeight = Std.int(rect.height);
         return rect;
     }
     public function reload()
