@@ -189,8 +189,6 @@ class Game #if openfl extends states.State #end
                 Player.main.step(xs,ys);
             }
         }
-        //updates
-        objects.update();
         //selector
         selectX = Math.floor((objects.mouseX - Static.GRID/2)/Static.GRID);
         selectY = Math.floor((objects.mouseY - Static.GRID/2)/Static.GRID);

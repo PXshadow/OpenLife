@@ -16,14 +16,17 @@ import states.launcher.Launcher;
 class Objects extends TileDisplay
 {
     var game:Game;
+    var obj:Object;
     var tile:Tile;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     //for tileset
     var tileX:Float = 0;
     var tileY:Float = 0;
     //set pos
-    var setX:Float = 0;
-    var setY:Float = 0;
+    public var px:Float = 0;
+    public var py:Float = 0;
+    var sx:Float = 0;
+    var sy:Float = 0;
     //last player to be loaded in 
     public var player:Player = null;
     public function new(game:Game)
@@ -35,40 +38,48 @@ class Objects extends TileDisplay
     //when map has changed
     public function update()
     {
+        for (i in 0...numTiles)
+        {
+            tile = getTileAt(i);
+            tile.x += -px;
+            tile.y += -py;
+        }
+        sx += px;
+        sy += py;
+        px = 0;
+        py = 0;
         //overflow
-        while (x >= Static.GRID + setX)
+        while (sx >= Static.GRID)
         {
             x += -Static.GRID;
             game.cameraX++;
             shift(1,0);
+            sx = 0;
         }
-        while (x <= -Static.GRID + setX)
+        while (sx <= -Static.GRID)
         {
             x += Static.GRID;
             game.cameraX--;
             shift(-1,0);
+            sx = 0;
         }
-        while (y >= Static.GRID + setY)
+        while (sy >= Static.GRID)
         {
             y += -Static.GRID;
             game.cameraY--;
             shift(0,-1);
+            sy = 0;
         }
-        while (y <= -Static.GRID + setY)
+        while (sy <= -Static.GRID)
         {
             y += Static.GRID;
             game.cameraY++;
             shift(0,1);
+            sy = 0;
         }
-    }
-    public function set()
-    {
-        setX = x;
-        setY = y;
     }
     public function shift(x:Int=0,y:Int=0)
     {
-        var obj:Object;
         for (i in 0...numTiles)
         {
             obj = cast getTileAt(i);

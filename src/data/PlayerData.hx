@@ -196,7 +196,7 @@ class PlayerMove
         var currentX:Int = 0;
         var currentY:Int = 0;
 
-        player.time = Std.int((current/moves.length) * 60 * 1) + 1;
+        player.time = Std.int((current/moves.length) * 60 * 1) - 1;
         var pos:Pos;
         for(move in moves)
         {

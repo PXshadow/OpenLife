@@ -55,7 +55,9 @@ class Player #if openfl extends Object #end
             x += velocityX;
             y += velocityY;
             //move camera if main player
-            if (this == Player.main) game.move(velocityX,velocityY);
+            game.objects.px = velocityX;
+            game.objects.py = velocityY;
+            if (this == Player.main) game.objects.update(); //game.move(velocityX,velocityY);
             //remove time per frame
             timeInt--;
         }
@@ -67,7 +69,7 @@ class Player #if openfl extends Object #end
         if (restricted.indexOf(pos) == -1)  return false;
         return true;
     }
-    public function move()
+    public function move():Bool
     {
         #if openfl
         //grab another move
@@ -98,7 +100,9 @@ class Player #if openfl extends Object #end
             velocityX = (point.x * Static.GRID) / time;
             velocityY = -(point.y * Static.GRID) / time;
             timeInt = time;
+            return true;
         }
+        return false;
         #end
     }
     public function step(mx:Int,my:Int):Bool
@@ -131,7 +135,7 @@ class Player #if openfl extends Object #end
         //get floor speed
         //var time = Static.GRID/(Static.GRID * instance.move_speed);
         //trace("instance move speed " + instance.move_speed);
-        this.time = Std.int(Static.GRID/(Static.GRID * instance.move_speed) * 60 * 1.08);
+        this.time = Std.int(Static.GRID/(Static.GRID * instance.move_speed) * 60);
         timeInt = 0;
         #end
     }
