@@ -46,6 +46,9 @@ class Game #if openfl extends states.State #end
     public var diffY:Int = 0;
     //text
     public var text:Text;
+    //clean area
+    var cleanX:Int = 0;
+    var cleanY:Int = 0;
 
     //scale used for zoom in and out
     public var scale(get, set):Float;
@@ -297,11 +300,20 @@ class Game #if openfl extends states.State #end
     }
     public function clean()
     {
+        if (Math.abs(cleanX - cameraX) > 5 || Math.abs(cleanY - cameraY) > 5)
+        {
+            //new clean
+            cleanX = cameraX;
+            cleanY = cameraY;
+        }else{
+            //to close in range from last clean
+            return;
+        }
         //clean objects off stage limits
         var obj:Object;
         var num:Int = objects.numTiles;
         var i:Int = 0;
-        while (i > num)
+        while (i < num)
         {
             obj = cast objects.getTileAt(i++);
             if (obj.tileX < 0 || obj.tileX > objects.tileWidth || obj.tileY < 0 || obj.tileY > objects.tileHeight)
