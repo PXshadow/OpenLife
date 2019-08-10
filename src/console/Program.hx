@@ -17,6 +17,7 @@ class Program
     public var useRange:Int = 1;
     //first index for action second is the list
     var actions:Array<Array<Int>> = [];
+    var actionIndex:Int = -1;
     var goals:Array<Pos> = [];
     //food 
     public var ate:Array<Int> = [];
@@ -92,7 +93,7 @@ class Program
     {
         if (setupGoal)
         {
-            actions[actions.length - 1].push(i);
+            actions[actionIndex].push(i);
             return true;
         }
         return false;
@@ -109,6 +110,10 @@ class Program
         {
             //set goal pathing
             goals.push(goal);
+            //create action
+            actionIndex++;
+            actions[actionIndex] = [];
+            //main
             Player.main.goal = true;
         }
         return this;

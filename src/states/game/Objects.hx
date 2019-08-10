@@ -1,4 +1,5 @@
 package states.game;
+import openfl.display.Tileset;
 import haxe.io.Path;
 import openfl.utils.ByteArray;
 import haxe.ds.Vector;
@@ -15,79 +16,100 @@ import states.launcher.Launcher;
 
 class Objects extends TileDisplay
 {
+    //game ref
     var game:Game;
-    var obj:Object;
     var tile:Tile;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     //for tileset
     var tileX:Float = 0;
     var tileY:Float = 0;
-    //set pos
-    public var px:Float = 0;
-    public var py:Float = 0;
-    var sx:Float = 0;
-    var sy:Float = 0;
+    //move pos
+    public var mx:Float = 0;
+    public var my:Float = 0;
     //last player to be loaded in 
     public var player:Player = null;
     public function new(game:Game)
     {
         this.game = game;
-        smoothing = true;
+        //smoothing = true;
         super(4096,4096);
+        for (i in 0...6 + 1) cacheGround(i);
     }
-    //when map has changed
+    public function cacheGround(id:Int)
+    {
+        var a = "_square";
+        var rect:Rectangle = new Rectangle(tileX,tileY);
+            //16
+            for(j in 0...4)
+            {
+                for(i in 0...4)
+                {
+                    reader.read(File.read(Static.dir + "groundTileCache/biome_" + id + "_x" + i + "_y" + j + a + ".tga").readAll());
+                    //set dimensions
+                    rect.x = tileX;
+                    rect.y = tileY;
+                    rect.width = reader.rect.width;
+                    rect.height = reader.rect.height;
+                    //move down column
+                    if(rect.x + rect.width >= tileset.bitmapData.width)
+                    {
+                        tileX = 0;
+                        tileY += tileHeight;
+                        rect.x = tileX;
+                        rect.y = tileY;
+                        tileHeight = 0;
+                    }
+                    //move tilesystem
+                    tileX += Std.int(rect.width);
+                    //set to bitmapData
+                    tileset.bitmapData.setPixels(rect,reader.bytes);
+                    if (rect.height > tileHeight) tileHeight = Std.int(rect.height);
+                }
+            }
+    }
+    private inline function ci(i:Int):Int
+    {
+        if(i > 0)
+        {
+            while (i > 2) i += -3;
+        }else{
+            while (i < 0) i += 3;
+        }
+        return i;
+    }
     public function update()
     {
-        for (i in 0...numTiles)
-        {
-            tile = getTileAt(i);
-            tile.x += -px;
-            tile.y += -py;
-        }
-        sx += px;
-        sy += py;
-        px = 0;
-        py = 0;
         //overflow
-        while (sx >= Static.GRID)
-        {
-            x += -Static.GRID;
-            game.cameraX++;
-            shift(1,0);
-            sx = 0;
-        }
-        while (sx <= -Static.GRID)
-        {
-            x += Static.GRID;
-            game.cameraX--;
-            shift(-1,0);
-            sx = 0;
-        }
-        while (sy >= Static.GRID)
-        {
-            y += -Static.GRID;
-            game.cameraY--;
-            shift(0,-1);
-            sy = 0;
-        }
-        while (sy <= -Static.GRID)
-        {
-            y += Static.GRID;
-            game.cameraY++;
-            shift(0,1);
-            sy = 0;
-        }
+        while (x >= Static.GRID) shift(1,0);
+        while (x <= -Static.GRID) shift(-1,0);
+        while (y >= Static.GRID) shift(0,-1);
+        while (y <= -Static.GRID) shift(0,1);
     }
     public function shift(x:Int=0,y:Int=0)
     {
         for (i in 0...numTiles)
         {
-            obj = cast getTileAt(i);
-            obj.tileX += x;
-            obj.tileY += y;
-            obj.x += x * Static.GRID;
-            obj.y += -y * Static.GRID;
+            tile = getTileAt(i);
+            tile.data.tileX += x;
+            tile.data.tileY += y;
+            tile.x += x * Static.GRID;
+            tile.y += -y * Static.GRID;
         }
+        this.x = x == 0 ? this.x : 0;
+        this.y = y == 0 ? this.y : 0;
+        game.cameraX += x;
+        game.cameraY += y;
+    }
+    public function addGround(id:Int,x:Int,y:Int):Tile
+    {
+        trace("ground id " + id + " x " + x + " y " + y);
+        var tile = new Tile();
+        tile.id = 0;//id * 16 + ci(x) + ci(y) * 3;
+        tile.data = {type:GROUND,tileX:x + game.cameraX,tileY:y + game.cameraY};
+        tile.x = tile.data.tileX * Static.GRID;
+        tile.y = (Static.tileHeight - tile.data.tileY) * Static.GRID;
+        addTile(tile);
+        return tile;
     }
     public function addFloor(id:Int,x:Int=0,y:Int=0):Object
     {
@@ -118,14 +140,13 @@ class Objects extends TileDisplay
             //new
             player = cast add(data.po_id,data.x,data.y,true);
             game.data.playerMap.set(data.p_id,player);
-        }
-        if (player == null)
-        {
-            trace("player is null " + player);
+            player.set(data);
+            player.pos();
             return;
+        }else{
+            //exists
+            player.set(data);
         }
-        //set to player object
-        player.set(data);
     }
     public function add(id:Int,x:Int=0,y:Int=0,player:Bool=false,floor:Bool=false):Object
     {
@@ -146,14 +167,9 @@ class Objects extends TileDisplay
         }else{
             obj = new Object();
             //pos
-            obj.tileX = x + game.cameraX;
-            obj.tileY = y + game.cameraY;
+            obj.data.tileX = x + game.cameraX;
+            obj.data.tileY = y + game.cameraY;
             obj.pos();
-        }
-
-        if (floor)
-        {
-            obj.type = FLOOR;
         }
         addTile(obj);
         obj.oid = data.id;
@@ -162,7 +178,7 @@ class Objects extends TileDisplay
         //add data into map data if not loaded in
         if (!game.data.map.loaded && !player)
         {
-            game.data.map.object.set(obj.tileX,obj.tileY,obj.oid);
+            game.data.map.object.set(obj.data.tileX,obj.data.tileY,obj.oid);
         }
         var r:Rectangle;
         var parents:Array<Int> = [];

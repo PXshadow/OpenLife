@@ -1,4 +1,5 @@
 package states.game;
+import motion.easing.Quad;
 import console.Program.Pos;
 #if openfl
 import motion.MotionPath;
@@ -28,7 +29,7 @@ class Player #if openfl extends Object #end
     //how many frames till depletion
     public var delay:Int = 0;
     public var time:Int = 0;
-    var timeInt:Int = 0;
+    public var timeInt:Int = 0;
     //pathing
     public var goal:Bool = false;
     public var restricted:Array<console.Program.Pos> = [];
@@ -37,7 +38,7 @@ class Player #if openfl extends Object #end
         this.game = game;
         #if openfl
         super();
-        type = PLAYER;
+        data = {type:PLAYER};
         #end
     }
     
@@ -55,9 +56,12 @@ class Player #if openfl extends Object #end
             x += velocityX;
             y += velocityY;
             //move camera if main player
-            game.objects.px = velocityX;
-            game.objects.py = velocityY;
-            if (this == Player.main) game.objects.update(); //game.move(velocityX,velocityY);
+            if (Player.main == this) 
+            {
+                game.objects.x += -velocityX;
+                game.objects.y += -velocityY;
+                game.objects.update();
+            }
             //remove time per frame
             timeInt--;
         }
@@ -82,7 +86,7 @@ class Player #if openfl extends Object #end
             sort();
             if (goal)
             {
-                var pos = new console.Program.Pos();
+                var pos = new Pos();
                 pos.x = instance.x;
                 pos.y = instance.y;
                 restricted.push(pos);
@@ -100,6 +104,7 @@ class Player #if openfl extends Object #end
             velocityX = (point.x * Static.GRID) / time;
             velocityY = -(point.y * Static.GRID) / time;
             timeInt = time;
+            game.follow();
             return true;
         }
         return false;
@@ -109,6 +114,7 @@ class Player #if openfl extends Object #end
     {
         //no other move is occuring, and player is not moving on blocked
         if (timeInt > 0 || game.data.blocking.get(Std.string(instance.x + mx) + "." + Std.string(instance.y + my))) return false;
+        timeInt = 0;
         //restriction of previous path
         if (restricted.length > 0)
         {
@@ -121,7 +127,7 @@ class Player #if openfl extends Object #end
         lastMove++;
         Main.client.send("MOVE " + instance.x + " " + instance.y + " @" + lastMove + " " + mx + " " + my);
         #if openfl
-        timeSpeed();
+        updateMoveSpeed();
         var pos = new Pos();
         pos.x = mx;
         pos.y = my;
@@ -129,15 +135,62 @@ class Player #if openfl extends Object #end
         #end
         return true;
     }
-    public function timeSpeed()
+    public function updateMoveSpeed()
     {
-        #if openfl
-        //get floor speed
-        //var time = Static.GRID/(Static.GRID * instance.move_speed);
-        //trace("instance move speed " + instance.move_speed);
-        this.time = Std.int(Static.GRID/(Static.GRID * instance.move_speed) * 60);
-        timeInt = 0;
-        #end
+        time = Std.int(Static.GRID /(Static.GRID * instance.move_speed) * 60 * 0.75) + 1;
+        /*var moveLeft = measurePathLength();
+        var numTurns:Int = 0;
+        if (moves.length > 1)
+        {
+            var lastDir = sub(moves[0],moves[1]);
+            var dir = new Pos();
+            for (i in 0...moves.length - 1)
+            {
+                dir = sub(moves[i + 1],moves[i]);
+                if (dir != lastDir)
+                {
+                    numTurns++;
+                    lastDir = dir;
+                }
+            }
+        }
+        time = Std.int(Static.GRID /(Static.GRID * instance.move_speed) * 60);
+        //boost when turninig
+        time += Std.int((0.08 * numTurns) * 60);
+        if (time < 0.1 * 60)
+        {
+            time = Std.int(0.1 * 60);
+        }*/
+    }
+    public function measurePathLength():Float
+    {
+        var diagLength:Float = 1.4142356237;
+        var totalLength:Float = 0;
+        if (moves.length < 2)
+        {
+            return totalLength;
+        }
+        var lastPos = new Pos();
+        lastPos = moves[0];
+        for (i in 0...moves.length)
+        {
+            if (moves[i].x != lastPos.x && moves[i].y != lastPos.y)
+            {
+                totalLength += diagLength;
+            }else{
+                //not diag
+                totalLength += 1;
+            }
+            lastPos = moves[i];
+        }
+        return totalLength;
+    }
+    public function sub(a:Pos,b:Pos):Pos
+    {
+        var pos = new Pos();
+        pos.x = a.x - b.y;
+        pos.y = a.x - b.y;
+        return pos;
     }
     public function path()
     {
@@ -179,15 +232,14 @@ class Player #if openfl extends Object #end
     public function set(data:PlayerInstance)
     {
         instance = data;
-        //trace("force " + instance.forced);
         //pos and age
-        pos();
         if (instance.forced == 1) 
         {
             trace("forced");
             Main.client.send("FORCE " + instance.x + " " + instance.y);
             //reset camera
             game.center();
+            pos();
         }
         //remove moves
         timeInt = 0;
@@ -229,32 +281,31 @@ class Player #if openfl extends Object #end
     #if openfl override #else public #end function pos() 
     {
         #if openfl
-        //converts from global to local
-        tileX = instance.x + game.cameraX;
-        tileY = instance.y + game.cameraY;
+        data.tileX = instance.x + game.cameraX;
+        data.tileY = instance.y + game.cameraY;
         super.pos();
         #end
     }
     public function sort()
     {
         //did not move vertically
-        if (tileY == instance.y + game.cameraY) return;
+        if (data.tileY == instance.y + game.cameraY) return;
 
-        var obj:Object = null;
+        var tile:Tile = null;
         for (i in 0...game.objects.numTiles)
         {
-            obj = cast game.objects.getTileAt(i);
-            if (obj.tileY == instance.y + game.cameraY - 1)
+            tile = game.objects.getTileAt(i);
+            if (tile.data.tileY == instance.y + game.cameraY - 1)
             {
                 break;
             }else{
-                obj = null;
+                tile = null;
             }
         }
-        if (obj != null) 
+        if (tile != null) 
         {
             game.objects.removeTile(this);
-            game.objects.addTileAt(this,game.objects.getTileIndex(obj));
+            game.objects.addTileAt(this,game.objects.getTileIndex(tile));
         }
     }
     public function age()

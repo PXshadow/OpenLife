@@ -17,15 +17,12 @@ class Object extends TileContainer
     public var map:Map<Int,Int> = new Map<Int,Int>();
     public var parents:Map<Int,TileContainer> = new Map<Int,TileContainer>();
     public var numSprites:Int = 0;
-    //local map postion
-    public var tileX:Int = 0;
-    public var tileY:Int = 0;
-    public var type:ObjectType = OBJECT;
     //mark for cleanup
     public var clean:Bool = false;
     public function new()
     {
         super();
+        data = {type:OBJECT,tileX:0,tileY:0};
     }
     public function loadAnimation()
     {
@@ -39,8 +36,8 @@ class Object extends TileContainer
     public function pos()
     {
         //local position
-        x = tileX * Static.GRID;
-        y = (Static.tileHeight - tileY) * Static.GRID;
+        x = data.tileX * Static.GRID;
+        y = (Static.tileHeight - data.tileY) * Static.GRID;
     }
     public function animate(index:Int)
     {

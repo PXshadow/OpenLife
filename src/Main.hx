@@ -50,11 +50,11 @@ class Main #if openfl extends Sprite #end
         stage.addEventListener(Event.RESIZE,_resize);
         stage.addEventListener(KeyboardEvent.KEY_DOWN,keyDown);
         stage.addEventListener(KeyboardEvent.KEY_UP,keyUp);
-        addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
-        addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
-        addEventListener(MouseEvent.MOUSE_UP,mouseUp);  
-        addEventListener(MouseEvent.RIGHT_MOUSE_DOWN,mouseRightDown);
-        addEventListener(MouseEvent.RIGHT_MOUSE_UP,mouseRightUp);
+        stage.addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
+        stage.addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
+        stage.addEventListener(MouseEvent.MOUSE_UP,mouseUp);  
+        stage.addEventListener(MouseEvent.RIGHT_MOUSE_DOWN,mouseRightDown);
+        stage.addEventListener(MouseEvent.RIGHT_MOUSE_UP,mouseRightUp);
         //client
         client = new client.Client();
         //set state

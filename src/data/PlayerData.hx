@@ -186,6 +186,7 @@ class PlayerMove
             trace("same move");
             return;
         }
+        trace("move player");
         //set pos
         player.instance.x = xs;
         player.instance.y = ys;
@@ -195,8 +196,8 @@ class PlayerMove
         var delay:Float = 0;
         var currentX:Int = 0;
         var currentY:Int = 0;
-
-        player.time = Std.int((current/moves.length) * 60 * 1) - 1;
+        player.timeInt = 0;
+        player.time = Std.int((current/moves.length) * 60 * 1);
         var pos:Pos;
         for(move in moves)
         {
