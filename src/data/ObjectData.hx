@@ -5,6 +5,7 @@ import sys.io.File;
 import haxe.ds.Vector;
 enum ObjectType {
     OBJECT;
+    FLOOR;
     PLAYER;
     GROUND;
 }

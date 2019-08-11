@@ -295,17 +295,13 @@ class Player #if openfl extends Object #end
         for (i in 0...game.objects.numTiles)
         {
             tile = game.objects.getTileAt(i);
-            if (tile.data.tileY == instance.y + game.cameraY - 1)
+            if (tile.data.type != GROUND && tile.data.type != PLAYER && tile.data.tileY == instance.y + game.cameraY - 1)
             {
-                break;
-            }else{
-                tile = null;
+                game.objects.removeTile(this);
+                game.objects.addTileAt(this,game.objects.getTileIndex(tile));
+                //if floor try and find object, if object than floor has already been shifted if present.
+                if (tile.data.type == OBJECT) break;
             }
-        }
-        if (tile != null) 
-        {
-            game.objects.removeTile(this);
-            game.objects.addTileAt(this,game.objects.getTileIndex(tile));
         }
     }
     public function age()

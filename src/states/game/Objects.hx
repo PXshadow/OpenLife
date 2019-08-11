@@ -26,6 +26,8 @@ class Objects extends TileDisplay
     //move pos
     public var mx:Float = 0;
     public var my:Float = 0;
+    //ground
+    public var numGround:Int = 0;
     //last player to be loaded in 
     public var player:Player = null;
     public function new(game:Game)
@@ -33,6 +35,7 @@ class Objects extends TileDisplay
         this.game = game;
         //smoothing = true;
         super(4096,4096);
+        //add cached ground
         for (i in 0...6 + 1) cacheGround(i);
     }
     public function cacheGround(id:Int)
@@ -60,9 +63,10 @@ class Objects extends TileDisplay
                         tileHeight = 0;
                     }
                     //move tilesystem
-                    tileX += Std.int(rect.width);
+                    tileX += Std.int(rect.width) + 1;
                     //set to bitmapData
                     tileset.bitmapData.setPixels(rect,reader.bytes);
+                    tileset.addRect(rect);
                     if (rect.height > tileHeight) tileHeight = Std.int(rect.height);
                 }
             }
@@ -102,35 +106,40 @@ class Objects extends TileDisplay
     }
     public function addGround(id:Int,x:Int,y:Int):Tile
     {
-        trace("ground id " + id + " x " + x + " y " + y);
         var tile = new Tile();
-        tile.id = 0;//id * 16 + ci(x) + ci(y) * 3;
+        tile.id = id * 16 + ci(x) + ci(y) * 3;
         tile.data = {type:GROUND,tileX:x + game.cameraX,tileY:y + game.cameraY};
         tile.x = tile.data.tileX * Static.GRID;
         tile.y = (Static.tileHeight - tile.data.tileY) * Static.GRID;
-        addTile(tile);
+        addTileAt(tile,0);
         return tile;
     }
-    public function addFloor(id:Int,x:Int=0,y:Int=0):Object
+    public function addFloor(id:Int,x:Int=0,y:Int=0,addBool:Bool=true):Object
     {
-        return add(id,x,y,false,true);
+        return add(id,x,y,false,true,addBool);
     }
-    public function addObject(id:Int,x:Int=0,y:Int=0):Object
+    public function addObject(id:Int,x:Int=0,y:Int=0,addBool:Bool=true):Object
     {
         //single object
-        return add(id,x,y);
+        return add(id,x,y,false,false,addBool);
     }
     public function sort()
     {
         @:privateAccess __group.__tiles.sort(function(a:Tile,b:Tile)
         {
-            if(a.y > b.y)
-            {
-                return 1;
-            }else{
-                return -1;
-            }
+            if(a.y > b.y) return 1;
+            return -1;
         });
+        //move tiles back
+        for (i in 0...numTiles)
+        {
+            tile = getTileAt(i);
+            if (tile.data.type == GROUND)
+            {
+                removeTile(tile);
+                addTileAt(tile,0);
+            }
+        }
     }
     public function addPlayer(data:PlayerInstance)
     {
@@ -148,7 +157,7 @@ class Objects extends TileDisplay
             player.set(data);
         }
     }
-    public function add(id:Int,x:Int=0,y:Int=0,player:Bool=false,floor:Bool=false):Object
+    public function add(id:Int,x:Int=0,y:Int=0,player:Bool=false,floor:Bool=false,addBool:Bool=true):Object
     {
         if(id == 0) return null;
         var data = new ObjectData(id);
@@ -171,7 +180,9 @@ class Objects extends TileDisplay
             obj.data.tileY = y + game.cameraY;
             obj.pos();
         }
-        addTile(obj);
+        if (floor) obj.data.type = FLOOR;
+        //add to tilemap
+        if (addBool) addTile(obj);
         obj.oid = data.id;
         //animation setup
         obj.loadAnimation();

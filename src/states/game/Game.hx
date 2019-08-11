@@ -240,16 +240,6 @@ class Game #if openfl extends states.State #end
     {
         return v0 + t * (v1 - v0);
     }
-    public function sort()
-    {
-        //sort from there
-        objects.sortTiles(function (a:Tile,b:Tile):Int
-        {
-            if (b.data.type == GROUND) return -1;
-            if (a.y > b.y) return 1;
-            return -1;
-        });
-    }
     override function keyDown() 
     {
         super.keyDown();
@@ -307,26 +297,7 @@ class Game #if openfl extends states.State #end
     public function regen()
     {
         clear();
-        trace("clear");
-        for (j in cameraY...cameraY + Static.tileHeight)
-        {
-            for (i in cameraX...cameraX + 32)
-            {
-                //ground
-                objects.addGround(data.map.biome.get(i,j),i,j);
-                //floor
-                objects.addFloor(data.map.floor.get(i,j),i,j);
-                //objects
-                objects.addObject(data.map.object.get(i,j),i,j);
-            }
-        }
-        trace("objects");
-        //add back players
-        /*var it = data.playerMap.iterator();
-        while (it.hasNext())
-        {
-            objects.addTile(it.next());
-        }*/
+        
     }
     public function clear()
     {
@@ -334,12 +305,17 @@ class Game #if openfl extends states.State #end
         @:privateAccess for(i in 0...objects.__group.__tiles.length)
         {
             @:privateAccess tile = objects.__group.__tiles.pop();
-            if (tile.data.type != PLAYER) tile = null;
+            if (tile.data.type != PLAYER) 
+            {
+                tile = null;
+            }else{
+                @:privateAccess objects.__group.__tiles.push(tile);
+            }
         }
     }
     public function mapUpdate() 
     {
-        var async:Bool = true;
+        var async:Bool = !true;
         trace("MAP UPDATE");
         //inital set camera
         if (inital)
@@ -353,47 +329,61 @@ class Game #if openfl extends states.State #end
             objects.size(mapInstance.width,mapInstance.height);
             async = false;
         }
-
-        new Future(function()
-        {
         //clean before adding new
         clean();
-        var obj:Object;
+        var list:Array<Tile> = [];
+        for(j in mapInstance.y...mapInstance.y + mapInstance.height)
+        {
+            for (i in mapInstance.x...mapInstance.x + mapInstance.width)
+            {
+                //floor
+                list.push(objects.addFloor(data.map.floor.get(i,j),i,j,false));
+                //object
+                list.push(objects.addObject(data.map.object.get(i,j),i,j,false));
+            }
+        }
+        //sort vertically
+        list.sort(function(a:Tile,b:Tile):Int
+        {
+            if (a != null && b != null)
+            {
+                if (a.y > b.y) return 1;
+            }else{
+                return 0;
+            }
+            return -1;
+        });
+        objects.addTiles(list);
+        list = [];
         for(j in mapInstance.y...mapInstance.y + mapInstance.height)
         {
             for (i in mapInstance.x...mapInstance.x + mapInstance.width)
             {
                 //ground
                 objects.addGround(data.map.biome.get(i,j),i,j);
-                //floor
-                objects.addFloor(data.map.floor.get(i,j),i,j);
-                //objects
-                objects.addObject(data.map.object.get(i,j),i,j);
-
             }
         }
-        sort();
-        //check for duplicates
-        duplicate();
-        return;
-        },async);
         trace("fill " + objects.getFill());
     }
     public var list:Array<Tile> = [];
     public function clean()
     {
-        var obj:Object = null;
+        var tile:Tile = null;
         @:privateAccess list = objects.__group.__tiles.copy();
         for (i in 0...list.length)
         {
-            obj = cast list.pop();
-            if (obj.x < 0 || obj.x > objects.width || obj.y < 0 || obj.y > objects.height)
+            tile = cast list.pop();
+            if (tile.x < 0 || tile.x > objects.width || tile.y < 0 || tile.y > objects.height)
             {
-                objects.removeTile(obj);
-                obj = null;
+                objects.removeTile(tile);
+                tile = null;
             }
         }
         list = [];
+    }
+    public function sort()
+    {
+
     }
     public function duplicate()
     {
@@ -408,6 +398,7 @@ class Game #if openfl extends states.State #end
                 for (i in 0...list.length)
                 {
                     tile2 = cast list[i];
+                    //same location and needs to be same type
                     if (tile.data.tileX == tile2.data.tileX && tile.data.tileY == tile2.data.tileY && tile.data.type == tile.data.type)
                     {
                         objects.removeTile(tile);
