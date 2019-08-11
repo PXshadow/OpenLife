@@ -116,6 +116,7 @@ class Player #if openfl extends Object #end
         if (timeInt > 0 || game.data.blocking.get(Std.string(instance.x + mx) + "." + Std.string(instance.y + my))) return false;
         timeInt = 0;
         //restriction of previous path
+        trace("instance x " + instance.x + " y " + instance.y + " resticted " + restricted);
         if (restricted.length > 0)
         {
             var pos = new console.Program.Pos();

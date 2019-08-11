@@ -273,7 +273,15 @@ class Game #if openfl extends states.State #end
     override function mouseRightDown()
     {
         super.mouseRightDown();
-        program.drop(selectX,selectY);
+        if (Player.main != null)
+        {
+            if (Player.main.instance.o_id > 0)
+            {
+                program.specialRemove();
+            }else{
+                program.drop(selectX,selectY);
+            }
+        }
     }
     public function move(x:Float=0,y:Float=0)
     {
@@ -330,6 +338,8 @@ class Game #if openfl extends states.State #end
             async = false;
         }
         //clean before adding new
+        new Future(function()
+        {
         clean();
         var list:Array<Tile> = [];
         for(j in mapInstance.y...mapInstance.y + mapInstance.height)
@@ -364,6 +374,7 @@ class Game #if openfl extends states.State #end
             }
         }
         trace("fill " + objects.getFill());
+        },async);
     }
     public var list:Array<Tile> = [];
     public function clean()

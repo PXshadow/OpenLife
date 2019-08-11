@@ -33,7 +33,7 @@ class Objects extends TileDisplay
     public function new(game:Game)
     {
         this.game = game;
-        //smoothing = true;
+        smoothing = true;
         super(4096,4096);
         //add cached ground
         for (i in 0...6 + 1) cacheGround(i);

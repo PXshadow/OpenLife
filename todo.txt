@@ -1,6 +1,5 @@
-- work on making client playable
-- show player up
-
+- map changes input into
+- rebuild map chunks if already loaded in
 - Fix pathing to deal with diffrent directional paths
 
 - player move system animate
