@@ -26,8 +26,8 @@ class Client
     var index:Int = 0;
     public var message:String->Void;
     public var end:Void->Void;
-    public var ip:String;
-    public var port:Int;
+    public var ip:String = "";
+    public var port:Int = 0;
     public function new()
     {
         login = new Login();

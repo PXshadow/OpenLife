@@ -119,16 +119,27 @@ class Program
         return this;
     }
 
-    public function drop(x:Int=0,y:Int=0,c:Int=-1):Program
+    public function drop(x:Null<Int>=null,y:Null<Int>=0,c:Int=-1):Program
     {
+        //setting held object down on empty grid square OR for adding something to a container
         if (addAction(2)) return this;
-        Main.client.send("DROP " + x + " " + y + " " + c);
+        if (x == null || y == null)
+        {
+            Main.client.send("DROP " + x + " " + y + " " + c);
+        }else{
+            if (Player.main != null) Main.client.send("DROP " + Player.main.instance.x + " " + Player.main.instance.y);
+        }
         return this;
     }
-    public function use(x:Int=0,y:Int=0):Program
+    public function use(x:Null<Int>=null,y:Null<Int>=null):Program
     {
         if (addAction(0)) return this;
-        Main.client.send("USE " + x + " " + y);
+        if (x == null || y == null)
+        {
+            Main.client.send("USE " + x + " " + y);
+        }else{
+            if (Player.main != null) Main.client.send("USE " + Player.main.instance.x + " " + Player.main.instance.y);
+        }
         return this;
     }
     public function find(name:String):Program
@@ -178,7 +189,7 @@ class Program
     }
     public function remove(x:Int,y:Int,index:Int=-1):Program
     {
-        //remove an object from tilecontainer
+        //remove an object from a container
         if (addAction(4)) return this;
         Main.client.send("REMV " + x + " " + y + " " + index);
         return this;
@@ -187,8 +198,14 @@ class Program
     {
         return pull(i);
     }
+    public function inventory(i:Int,index:Int=-1):Program
+    {
+        pull(i,index);
+        return this;
+    }
     public function pull(i:Int,index:Int=-1):Program
     {
+        //remove object from clothing
         if (addAction(5)) 
         {
             addAction(i);

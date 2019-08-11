@@ -33,6 +33,8 @@ declaritive syntax for console
 .drop()
 //locate closest berry location and draw path
 .find("berry")
+//go to location
+.path(?x,?y)
 //go to find location and grab 
 .pickup()
 //remove hat=0, or if -1 eat food in hand.
@@ -54,8 +56,9 @@ MISC
 - SAVE COMMANDS into startup script
 - Run commands during game
 - Sprite editor to change how sprites look during game
-- Discord Integration for twinning and showing to fellow friends game activity
+//- Discord Integration for twinning and showing to fellow friends game activity
 - multiple ohol versions and mods 
 - friend system across servers (major future)
 - replay/recording system for lives, for better video content (major feature)
 - hour counter for the game
+- server browser, be able to pick not this client.

@@ -20,6 +20,7 @@ import openfl.events.KeyboardEvent;
 import openfl.events.MouseEvent;
 import openfl.events.Event;
 import settings.Bind;
+import settings.Settings;
 
 class Main #if openfl extends Sprite #end
 {
@@ -34,8 +35,10 @@ class Main #if openfl extends Sprite #end
 
     public static var state:states.State;
     public static var screen:DisplayObjectContainer;
-    //so
+    //local data
     public static var so:SharedObject;
+    //settings 
+    public static var settings:Settings;
     public function new()
     {
         super();

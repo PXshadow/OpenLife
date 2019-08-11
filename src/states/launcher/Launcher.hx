@@ -3,7 +3,7 @@ import ui.Button;
 import haxe.io.Path;
 class Launcher extends states.State
 {
-
+    var string:String;
     public function new()
     {
         super();
@@ -20,6 +20,7 @@ class Launcher extends states.State
         Static.dir = Static.dir.substring(0,Static.dir.lastIndexOf("/") + 1);
         #end
         trace("dir " + Static.dir);
+        set();
         //ui
         var login = new Button();
         login.text = "LOGIN";
@@ -34,6 +35,44 @@ class Launcher extends states.State
         login.y = (Main.setHeight - login.height)/2;
 
         
+    }
+    public function set()
+    {
+        //account default
+        //Main.client.login.email = "test@test.co.uk";
+        //Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
+        Main.client.login.email = "test@test.com";
+        Main.client.login.key = "9UYQ3-PQKCT-NGQXH-YB93E";
+        //server default (thanks so much Kryptic <3)
+        Main.client.ip = "game.krypticmedia.co.uk";
+        Main.client.port = 8007;
+
+        //settings to grab infomation
+        Main.settings = new settings.Settings();
+        if (!Main.settings.fail)
+        {
+            //account
+            if (valid(Main.settings.data.email)) Main.client.login.email = string;
+            if (valid(Main.settings.data.accountKey)) Main.client.login.key = string;
+            if (valid(Main.settings.data.useCustomServer) && string == "1")
+            {
+                if (valid(Main.settings.data.customServerAddress)) Main.client.ip = string;
+                if (valid(Main.settings.data.customServerPort)) Main.client.port = Std.parseInt(string);
+            }
+            //window
+            if (valid(Main.settings.data.borderless)) stage.window.borderless = Std.parseInt(string) == 1 ? true : false;
+            if (valid(Main.settings.data.fullscreen)) stage.window.fullscreen = Std.parseInt(string) == 1 ? true : false;
+            if (valid(Main.settings.data.screenWidth)) stage.window.width = Std.parseInt(string);
+            if (valid(Main.settings.data.screenHeight)) stage.window.height = Std.parseInt(string);
+            if (valid(Main.settings.data.targetFrameRate)) stage.frameRate = Std.parseInt(string);
+            
+        }
+    }
+    public function valid(obj:Dynamic):Bool
+    {
+        if (obj == null || obj == "") return false;
+        string = cast obj;
+        return true;
     }
     private function style(button:Button)
     {

@@ -100,7 +100,6 @@ class Game #if openfl extends states.State #end
         Main.screen.addChild(draw);
         Main.screen.addChild(dialog);
         text = new Text();
-        text.align = LEFT;
         text.cacheAsBitmap = false;
         Main.screen.addChild(text);
         bitmap = new Bitmap();
@@ -124,14 +123,8 @@ class Game #if openfl extends states.State #end
                 trace("reject");
                 Main.client.login = null;
             }
-            //Main.client.login.email = "test@test.co.uk";
-            //Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
-            Main.client.login.email = "test@test.com";
-            Main.client.login.key = "9UYQ3-PQKCT-NGQXH-YB93E";
             Main.client.message = Main.client.login.message;
-            //thanks so much Kryptic <3
-            Main.client.ip = "game.krypticmedia.co.uk";
-            Main.client.port = 8007;
+            trace("connect " + Main.client.ip + " email " + Main.client.login.email);
             Main.client.connect();
         }else{
             #if openfl
@@ -277,7 +270,7 @@ class Game #if openfl extends states.State #end
         {
             if (Player.main.instance.o_id > 0)
             {
-                program.specialRemove();
+                program.remove(selectX,selectY);
             }else{
                 program.drop(selectX,selectY);
             }
