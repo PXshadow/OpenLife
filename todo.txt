@@ -1,4 +1,6 @@
-- map changes input into
+- fix offset of holding objects
+- add clothing
+- work on animations
 - rebuild map chunks if already loaded in
 - Fix pathing to deal with diffrent directional paths
 

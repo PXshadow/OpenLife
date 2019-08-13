@@ -68,6 +68,7 @@ class Launcher extends states.State
         }
         //by pass settings and force email and key if secret account
         #if secret
+        trace("set secret");
         Main.client.login.email = Secret.email;
         Main.client.login.key = Secret.key;
         Main.client.ip = Secret.ip;

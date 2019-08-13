@@ -511,17 +511,23 @@ class Game #if openfl extends states.State #end
             {
                 //move object 
             }else{
+                var type:ObjectType = change.floor > 0 ? FLOOR : OBJECT;
+                var id = type == FLOOR ? change.floor : change.id;
+                //remove object regardless
                 for (i in 0...objects.numTiles)
                 {
                     tile = objects.getTileAt(i);
-                    if (tile.data.tileX == change.x && tile.data.tileY == change.y && tile.data.type != PLAYER)
+                    if (change.x + cameraX == tile.data.tileX && change.y + cameraY == tile.data.tileY && type == tile.data.type)
                     {
                         objects.removeTile(tile);
                         break;
                     }
                 }
-                var obj = objects.add(change.floor != 0 ? change.floor : change.id);
-                //set position todo
+                if (id > 0)
+                {
+                    //add new object to map
+                    objects.add(id,change.x,change.y,false,type == FLOOR ? true : false);
+                }
             }
             #end
             //change data todo:
