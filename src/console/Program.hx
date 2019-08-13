@@ -12,7 +12,8 @@ class Program
     var game:Game;
     public var goal:Pos = new Pos();
     public var home:Pos = new Pos();
-    public var setupGoal:Bool = false;
+    //setup automation bool
+    public var setup:Bool = false;
     public var range:Float = 1000;
     public var useRange:Int = 1;
     //first index for action second is the list
@@ -28,50 +29,11 @@ class Program
     public function stop()
     {
         trace("stop goal");
-        //finished, now perform actions
-        action();
+        //finished, now perform another action
+        
         //clean up
         Player.main.goal = false;
-        setupGoal = false;
-    }
-    /**
-     * Go to goal location or new set location
-     * @param x 
-     * @param y 
-     **/
-    public function action()
-    {
-        if (setupGoal) return;
-        //complete actions
-        for (action in actions.shift())
-        {
-            switch (action)
-            {
-                case 0:
-                //use
-                
-                case 1:
-                //self, next int sets index
-
-                case 2:
-                //drop
-
-                case 3:
-                //jump
-
-                case 4:
-                //remove
-
-                case 5:
-                //pull, next int sets index
-            }
-        }
-        //continue movement
-        var dir = goals.pop();
-        if (dir != null)
-        {
-            path(dir.x,dir.y);
-        }
+        setup = false;
     }
     public function setHome(x:Null<Int>=0,y:Null<Int>=0):Program
     {
@@ -89,24 +51,15 @@ class Program
         }
         return this;
     }
-    private function addAction(i:Int):Bool
-    {
-        if (setupGoal)
-        {
-            actions[actionIndex].push(i);
-            return true;
-        }
-        return false;
-    }
     public function path(x:Null<Int>=null,y:Null<Int>=null):Program
     {
         if (x != null && y != null)
         {
             goal.x = x;
             goal.y = y;
-            setupGoal = true;
+            setup = true;
         }
-        if (setupGoal)
+        if (setup)
         {
             //set goal pathing
             goals.push(goal);
@@ -118,23 +71,29 @@ class Program
         }
         return this;
     }
-
+    public function kill(x:Null<Int>=null,y:Null<Int>=0,id:Null<Int>=0)
+    {
+        
+    }
     public function drop(x:Null<Int>=null,y:Null<Int>=0,c:Int=-1):Program
     {
         //setting held object down on empty grid square OR for adding something to a container
-        if (addAction(2)) return this;
-        if (x == null || y == null)
+        if (x != null && y != null)
         {
             Main.client.send("DROP " + x + " " + y + " " + c);
         }else{
-            if (Player.main != null) Main.client.send("DROP " + Player.main.instance.x + " " + Player.main.instance.y);
+            if (Player.main != null) Main.client.send("DROP " + Player.main.instance.x + " " + Player.main.instance.y + " " + c);
         }
         return this;
     }
+    public function grab()
+    {
+        //todo: grab entails logic to drop objects if present in hand to grab object located
+        return use();
+    }
     public function use(x:Null<Int>=null,y:Null<Int>=null):Program
     {
-        if (addAction(0)) return this;
-        if (x == null || y == null)
+        if (x != null && y != null)
         {
             Main.client.send("USE " + x + " " + y);
         }else{
@@ -144,7 +103,11 @@ class Program
     }
     public function find(name:String):Program
     {
-        var get = id(name);
+        findList(id(name));
+        return this;
+    }
+    private function findList(get:Array<Int>)
+    {
         var dis:Float = range;
         var cur:Float = 0;
         var id:Int = 0;
@@ -168,13 +131,12 @@ class Program
         }
         if (dis < range)
         {
-            setupGoal = true;
+            setup = true;
             Main.console.print("Distance to goal",Std.string(dis));
         }else{
-            setupGoal = false;
+            setup = false;
             Main.console.print("Max Range",Std.string(dis));
         }
-        return this;
     }
     public function emote(e:Int):Program
     {
@@ -190,7 +152,6 @@ class Program
     public function remove(x:Int,y:Int,index:Int=-1):Program
     {
         //remove an object from a container
-        if (addAction(4)) return this;
         Main.client.send("REMV " + x + " " + y + " " + index);
         return this;
     }
@@ -200,43 +161,110 @@ class Program
     }
     public function inventory(i:Int,index:Int=-1):Program
     {
-        pull(i,index);
-        return this;
+        return pull(i,index);
     }
     public function pull(i:Int,index:Int=-1):Program
     {
         //remove object from clothing
-        if (addAction(5)) 
-        {
-            addAction(i);
-            return this;
-        }
         Main.client.send("SREMV " + i + " " + index);
         return this;
     }
     public function pickup():Program
     {
-        use();
-        return this;
+        return use();
     }
     public function self(index:Int=-1):Program
     {
-        if (addAction(1))
-        {
-            addAction(index);
-            return this;
-        }
+        //use action on self (eat)
         Main.client.send("SELF 0 0 " + index);
+        return this;
+    }
+    public function eat():Program
+    {
+        return self();
+    }
+    public function get(name:String):Program
+    {
+        var list = id(name);
+        if (list.indexOf(Player.main.instance.o_id) == -1)
+        {
+            //go and find
+            findList(list);
+            path();
+        }
         return this;
     }
     public function task(name:String):Program
     {
-        switch(name.toLowerCase())
+        //names need to be lower case and have no spaces, however when using task or find functions you can use spaces and upper case freely.
+        switch(StringTools.replace(name.toLowerCase()," ",""))
         {
             case "eat" | "food" | "hunger":
-            find("food").path().use().self();
+            //find than path to, grab and then eat.
+            find("food").path().grab().eat();
+            case "sharpstone":
+            //find stone than go to a hard rock and use against it to turn into a sharp stone
+            find("stone").path().grab().find("big hard rock").use();
+            case "waterbowl":
+            //if water bowl in area grab
+            find("water bowl").path().grab();
+            if (!setup)
+            {
+                //find empty bowl instead and fill
+                find("claybowl").path().grab().find("water source").path().use();
+            }
+            case "soilbowl":
+            //if soil bowl in area grab
+            find("soilbowl").path().grab();
+            if (!setup)
+            {
+                //find empty bowl instead and fill
+                find("clay bowl").path().grab().find("soil source").path().use();
+            }
+            case "berryfarm":
+            var g:Pos = null;
+            find("languishing berry bush");
+            if (setup) g = goal;
+            find("dry berry bush");
+            if (setup)
+            {
+                //at least one went through
+                if (g == null || distance(goal,g))
+                {
+                    //dry - needs water
+                    g = goal;
+                    task("water bowl");
+                }else{
+                    //languishing - needs soil
+                    task("soil bowl");
+                }
+                //go to bush
+                path(g.x,g.y).use();
+            }
         }
         return this;
+    }
+    public function distance(a:Pos,b:Pos):Bool
+    {
+        if (Player.main == null) 
+        {
+            trace("distance calculation occuring before player has been initalized");
+            return false;
+        }
+        //if a is shorter true, else false. distance from player
+        a.x += -Player.main.instance.x;
+        a.y += -Player.main.instance.y;
+        b.x += -Player.main.instance.x;
+        b.y += -Player.main.instance.y;
+        if (a.x + a.y > b.x + b.y) return false;
+        return true;
+    }
+    public function sub(a:Pos,b:Pos):Pos
+    {
+        var pos = new Pos();
+        pos.x = a.x - b.y;
+        pos.y = a.x - b.y;
+        return pos;
     }
     public function step(x:Int,y:Int):Program
     {

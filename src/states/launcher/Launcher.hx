@@ -65,8 +65,14 @@ class Launcher extends states.State
             if (valid(Main.settings.data.screenWidth)) stage.window.width = Std.parseInt(string);
             if (valid(Main.settings.data.screenHeight)) stage.window.height = Std.parseInt(string);
             if (valid(Main.settings.data.targetFrameRate)) stage.frameRate = Std.parseInt(string);
-            
         }
+        //by pass settings and force email and key if secret account
+        #if secret
+        Main.client.login.email = Secret.email;
+        Main.client.login.key = Secret.key;
+        Main.client.ip = Secret.ip;
+        Main.client.port = Secret.port;
+        #end
     }
     public function valid(obj:Dynamic):Bool
     {

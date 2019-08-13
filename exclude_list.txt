@@ -11,3 +11,4 @@ xml
 .json
 .cmd
 .sh
+src/SecretAccount.hx

@@ -17,7 +17,7 @@ class Draw extends Shape
     {
         if (dist = !dist) return;
         graphics.clear();
-        if (game.program.setupGoal) path();
+        if (game.program.setup) path();
     }
     public function render()
     {

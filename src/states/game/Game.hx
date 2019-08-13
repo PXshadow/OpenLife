@@ -192,7 +192,7 @@ class Game #if openfl extends states.State #end
             if (xs != 0 || ys != 0) 
             {
                 Player.main.goal = false;
-                program.setupGoal = false;
+                program.setup = false;
                 Player.main.step(xs,ys);
             }
         }
@@ -268,11 +268,12 @@ class Game #if openfl extends states.State #end
         super.mouseRightDown();
         if (Player.main != null)
         {
+            trace("oid " + Player.main.instance.o_id);
             if (Player.main.instance.o_id > 0)
             {
-                program.remove(selectX,selectY);
-            }else{
                 program.drop(selectX,selectY);
+            }else{
+                program.remove(selectX,selectY);
             }
         }
     }

@@ -186,13 +186,6 @@ class Player #if openfl extends Object #end
         }
         return totalLength;
     }
-    public function sub(a:Pos,b:Pos):Pos
-    {
-        var pos = new Pos();
-        pos.x = a.x - b.y;
-        pos.y = a.x - b.y;
-        return pos;
-    }
     public function path()
     {
         var px:Int = game.program.goal.x - instance.x;
