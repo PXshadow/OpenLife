@@ -1,5 +1,5 @@
 package server;
-/*@:enum abstract ServerTag(Null<String>)
+@:enum abstract ServerTag(Null<String>)
 {
     public var KA = "KA";
     public var USE = "USE";
@@ -59,4 +59,4 @@ package server;
             null;
         }
     }
-}*/
+}

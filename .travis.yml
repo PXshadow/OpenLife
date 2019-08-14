@@ -15,7 +15,6 @@ install:
  - yes | haxelib install hscript
  - yes | haxelib install format
  - yes | haxelib run lime setup
- - yes | haxelib run lime setup linux
 
 script:
  - haxelib run lime build cpp

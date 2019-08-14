@@ -16,7 +16,7 @@ class Settings
     public function new()
     {
         var path:String = Static.dir + "/settings/";
-        if (FileSystem.isDirectory(path))
+        if (FileSystem.exists(path) && FileSystem.isDirectory(path))
         {
             fail = false;
             for (name in FileSystem.readDirectory(path))

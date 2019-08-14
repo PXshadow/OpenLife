@@ -338,8 +338,8 @@ class Game #if openfl extends states.State #end
             async = false;
         }
         //clean before adding new
-        new Future(function()
-        {
+        //new Future(function()
+        //{
         clean();
         var list:Array<Tile> = [];
         for(j in mapInstance.y...mapInstance.y + mapInstance.height)
@@ -374,7 +374,7 @@ class Game #if openfl extends states.State #end
             }
         }
         trace("fill " + objects.getFill());
-        },async);
+        //},async);
     }
     public var list:Array<Tile> = [];
     public function clean()
