@@ -16,6 +16,7 @@ class Bind
     public static var playerDrop:Action = new Action([Keyboard.Q]);
 
     public static var playerSelf:Action = new Action([Keyboard.SPACE]);
+    public static var playerKill:Action = new Action([Keyboard.SHIFT]);
 
     public static var zoomIn:Action = new Action([Keyboard.I]);
     public static var zoomOut:Action = new Action([Keyboard.O]);
@@ -44,6 +45,7 @@ class Bind
         playerDrop.set(e,bool);
 
         playerSelf.set(e,bool);
+        playerKill.set(e,bool);
 
         search.set(e,bool);
         help.set(e,bool);
@@ -51,6 +53,7 @@ class Bind
         settings.set(e,bool);
 
         start.set(e,bool);
+
     }
 }
 class Action
@@ -60,10 +63,12 @@ class Action
     public var control:Bool = false;
     public var shift:Bool = false;
     public var alt:Bool = false;
-    public function new(array:Array<Int>,control:Bool=false)
+    public function new(array:Array<Int>,control:Bool=false,shift:Bool=false,alt:Bool=false)
     {
         this.array = array;
         this.control = control;
+        this.shift = shift;
+        this.alt = alt;
     } 
     public function set(e:KeyboardEvent,bool:Bool)
     {

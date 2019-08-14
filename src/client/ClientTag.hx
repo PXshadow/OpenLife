@@ -1,5 +1,5 @@
 package client;
-@:enum abstract MessageTag(Null<String>)
+@:enum abstract ClientTag(Null<String>)
 {
 public var COMPRESSED_MESSAGE = "CM";
 public var MAP_CHUNK  = "MC"; 
@@ -38,7 +38,7 @@ public var ACCEPTED = "ACCEPTED";
 public var REJECTED = "REJECTED";
 public var SERVER_INFO = "SN";
 
-@:from private static function fromString(value:String):MessageTag
+@:from private static function fromString(value:String):ClientTag
 {
     //trace("set tag " + value);
 	return switch (value)

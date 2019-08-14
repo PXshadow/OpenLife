@@ -14,7 +14,7 @@ class Client
     #if sys
     var socket:Socket;
     #end
-    public var tag:MessageTag;
+    public var tag:ClientTag;
     //interact to be able to login to game
     public var login:Login;
     var data:String = "";

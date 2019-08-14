@@ -8,13 +8,14 @@ haxe:
  
 install:
  - yes | haxelib install hxcpp
- - yes | haxelib install lime
- - yes | haxelib install openfl
+ - yes | haxelib git lime https://github.com/openfl/lime
+ - yes | haxelib git openfl https://github.com/openfl/openfl
  - yes | haxelib install actuate
  - yes | haxelib install svg
  - yes | haxelib install hscript
  - yes | haxelib install format
- - yes | haxelib git discord_rpc https://github.com/Aidan63/linc_discord-rpc
+ - yes | haxelib run lime setup
+ - yes | haxelib run lime setup linux
 
 script:
  - haxelib run lime build cpp

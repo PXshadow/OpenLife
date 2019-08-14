@@ -180,6 +180,18 @@ class Game #if openfl extends states.State #end
         super.update();
         draw.update();
         text.text = "num " + objects.numTiles + "\nox " + objects.x + " y " + objects.y;
+        //selector
+        selectX = Math.floor((objects.mouseX - Static.GRID/2)/Static.GRID);
+        selectY = Math.floor((objects.mouseY - Static.GRID/2)/Static.GRID);
+        //set local for render
+        select.x = objects.x + selectX * Static.GRID + Static.GRID/2;
+        select.y = objects.y + selectY * Static.GRID + Static.GRID/2;
+        //set x global
+        selectX += -cameraX + 1;
+        //flip
+        selectY = (Static.tileHeight - selectY);
+        //set y global
+        selectY += -cameraY - 1;
         //player movement
         if(Player.main != null)
         {
@@ -196,18 +208,6 @@ class Game #if openfl extends states.State #end
                 Player.main.step(xs,ys);
             }
         }
-        //selector
-        selectX = Math.floor((objects.mouseX - Static.GRID/2)/Static.GRID);
-        selectY = Math.floor((objects.mouseY - Static.GRID/2)/Static.GRID);
-        //set local for render
-        select.x = objects.x + selectX * Static.GRID + Static.GRID/2;
-        select.y = objects.y + selectY * Static.GRID + Static.GRID/2;
-        //set x global
-        selectX += -cameraX + 1;
-        //flip
-        selectY = (Static.tileHeight - selectY);
-        //set y global
-        selectY += -cameraY - 1;
         //players
         it = data.playerMap.iterator();
         while(it.hasNext())
@@ -260,8 +260,14 @@ class Game #if openfl extends states.State #end
         super.mouseDown();
         //fix crash
         if (Player.main == null) return;
-        //use action if within range
-        program.use(selectX,selectY);
+        if (Bind.playerKill.bool) 
+        {
+            trace("kill");
+            program.kill(selectX,selectY);
+        }else{
+            //use action if within range
+            program.use(selectX,selectY);
+        }
     }
     override function mouseRightDown()
     {

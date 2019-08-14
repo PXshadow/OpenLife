@@ -260,15 +260,17 @@ class Player #if openfl extends Object #end
                 object = game.objects.add(instance.o_id);
             }else{
                 //player
-                object = game.objects.add(Std.int(instance.o_id),true);
+                trace("player");
+                object = game.objects.add(instance.o_id * -1,true);
             }
             //remove from main objects display
             game.objects.removeTile(object);
             //add into player
             addTile(object);
-
-            object.x = instance.o_origin_x;
-            object.y = instance.o_origin_y;
+            //trace("offset " + instance.o_origin_x + " " + instance.o_origin_y);
+            //set hand position
+            object.x = -instance.o_origin_x + Static.GRID/4;
+            object.y = -instance.o_origin_y - Static.GRID/1.5;
         }
         #end
     }
