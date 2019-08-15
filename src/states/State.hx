@@ -18,6 +18,7 @@ class State extends DisplayObjectContainer
     public function init(_)
     {
         removeEventListener(Event.ENTER_FRAME,init);
+        resize();
     }
     public function update()
     {

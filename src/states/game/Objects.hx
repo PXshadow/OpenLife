@@ -26,13 +26,12 @@ class Objects extends TileDisplay
     //for tileset
     var tileX:Float = 0;
     var tileY:Float = 0;
-    //move pos
-    public var mx:Float = 0;
-    public var my:Float = 0;
     //ground
     public var numGround:Int = 0;
     //last player to be loaded in 
     public var player:Player = null;
+    //used for reading
+    var tileHeight:Int = 0;
     public function new(game:Game)
     {
         this.game = game;
@@ -62,6 +61,11 @@ class Objects extends TileDisplay
             tile.visible = false;
             removeTile(tile);
         });
+    }
+    public function move(x:Float,y:Float)
+    {
+        @:privateAccess __group.x += x;
+        @:privateAccess __group.y += y;
     }
     public function cacheGround(id:Int)
     {
@@ -100,19 +104,11 @@ class Objects extends TileDisplay
     {
         if(i > 0)
         {
-            while (i > 2) i += -3;
+            while (i > 2 + 1) i += -3 - 1;
         }else{
-            while (i < 0) i += 3;
+            while (i < 0) i += 3 + 1;
         }
         return i;
-    }
-    public function update()
-    {
-        //overflow
-        while (x >= Static.GRID) shift(1,0);
-        while (x <= -Static.GRID) shift(-1,0);
-        while (y >= Static.GRID) shift(0,-1);
-        while (y <= -Static.GRID) shift(0,1);
     }
     public function shift(x:Int=0,y:Int=0)
     {
@@ -120,12 +116,10 @@ class Objects extends TileDisplay
         {
             tile = getTileAt(i);
             tile.data.tileX += x;
-            tile.data.tileY += -y;
+            tile.data.tileY += y;
             tile.x += x * Static.GRID;
-            tile.y += -y * Static.GRID;
+            tile.y += y * Static.GRID;
         }
-        this.x = x == 0 ? this.x : 0;
-        this.y = y == 0 ? this.y : 0;
         game.cameraX += x;
         game.cameraY += y;
     }

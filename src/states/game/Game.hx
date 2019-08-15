@@ -50,8 +50,6 @@ class Game #if openfl extends states.State #end
     //clean area
     var cleanX:Int = 0;
     var cleanY:Int = 0;
-    //camera
-    public var followPos:Point = null;
     //scale used for zoom in and out
     public var scale(get, set):Float;
     function get_scale():Float 
@@ -62,7 +60,6 @@ class Game #if openfl extends states.State #end
     {
         scaleX = scale;
         scaleY = scale;
-        center();
         return scale;
     }
     #end
@@ -111,8 +108,6 @@ class Game #if openfl extends states.State #end
             connect();
         }else{
             #if openfl
-            //playground
-            objects.size(32,30);
             //player
             setPlayer(cast(objects.add(19,true),Player));
             Player.main.instance = new PlayerInstance([]);
@@ -135,27 +130,6 @@ class Game #if openfl extends states.State #end
     //client events
 
     #if openfl
-    //center point
-    public function c():Point
-    {
-        var pos = new Point();
-        if (Player.main != null)
-        {
-            pos.x = -(Player.main.x - 20) * scale + Main.setWidth/2 - objects.x;
-            pos.y = -(Player.main.y - 40) * scale + Main.setHeight/2 - objects.y;
-        }
-        return pos;
-    }
-    public function follow()
-    {
-        followPos = c();
-    }
-    public function center()
-    {
-        var pos = c();
-        x = pos.x;
-        y = pos.y;
-    }
     var xs:Int = 0;
     var ys:Int = 0;
     override function update()
@@ -191,26 +165,6 @@ class Game #if openfl extends states.State #end
                 Player.main.step(xs,ys);
             }
         }
-        //players
-        it = data.playerMap.iterator();
-        while(it.hasNext())
-        {
-            it.next().update();
-        }
-        if (followPos != null)
-        {
-            x = lerp(x,followPos.x,0.12 * 0.5);
-            y = lerp(y,followPos.y,0.12 * 0.5);
-            if (snap())
-            {
-                followPos = null;
-            }
-        }
-    }
-    public function snap():Bool
-    {
-        if (Math.abs(followPos.x - x) < 5 && Math.abs(followPos.y - y) < 5) return true;
-        return false;
     }
     public inline function lerp(v0:Float,v1:Float,t:Float)
     {
@@ -290,28 +244,9 @@ class Game #if openfl extends states.State #end
         if (scale > 2 && i > 0 || scale < 0.2 && i < 0) return;
         scale += i * 0.08;
     }
-    public function regen()
-    {
-        clear();
-        
-    }
-    public function clear()
-    {
-        var tile:Tile = null;
-        @:privateAccess for(i in 0...objects.__group.__tiles.length)
-        {
-            @:privateAccess tile = objects.__group.__tiles.pop();
-            if (tile.data.type != PLAYER) 
-            {
-                tile = null;
-            }else{
-                @:privateAccess objects.__group.__tiles.push(tile);
-            }
-        }
-    }
     public function mapUpdate() 
     {
-        var async:Bool = !true;
+        var async:Bool = true;
         trace("MAP UPDATE");
         //inital set camera
         if (inital)
@@ -321,12 +256,11 @@ class Game #if openfl extends states.State #end
             diffX = -cameraX;
             diffY = -cameraY;
             inital = false;
-            //width = 32, height = 30
-            objects.size(mapInstance.width,mapInstance.height);
             async = false;
         }
-        //out of range
-        clean();
+        new Future(function()
+        {
+        var num = objects.numTiles;
         for(j in mapInstance.y...mapInstance.y + mapInstance.height)
         {
             for (i in mapInstance.x...mapInstance.x + mapInstance.width)
@@ -340,34 +274,21 @@ class Game #if openfl extends states.State #end
             }
         }
         trace("fill " + objects.getFill());
+        clean(num);
+        },async);
     }
-    public var list:Array<Tile> = [];
-    public function clean()
+    public function cleanTile(tile:Tile)
     {
-        return;
-        var tile:Tile = null;
-        for (i in 0...objects.numTiles)
+        if (tile.data.type != GROUND)
         {
-            tile = objects.getTileAt(i);
-            if (tile.x < -Static.GRID * 4 || tile.y < -Static.GRID * 4 || tile.x > 36 * Static.GRID || tile.y > 36 * Static.GRID)
-            {
-                trace("clean");
-                if (tile.data.type != GROUND)
-                {
-                    objects.objectPool.clean(cast tile);
-                }else{
-                    objects.groundPool.clean(tile);
-                }
-            }
+            objects.objectPool.clean(cast tile);
+        }else{
+            objects.groundPool.clean(tile);
         }
     }
-    public function sort()
+    public function clean(num:Int)
     {
 
-    }
-    public function duplicate()
-    {
-        return;
     }
     #end
     
@@ -381,7 +302,6 @@ class Game #if openfl extends states.State #end
             {
                 setPlayer(objects.player);
                 Player.main.sort();
-                center();
             }
             objects.player = null;
             #end
@@ -406,6 +326,10 @@ class Game #if openfl extends states.State #end
         objects.objectPool.clear();
         objects.groundPool.clear();
         inital = true;
+    }
+    override function resize() 
+    {
+        super.resize();
     }
     public function connect()
     {

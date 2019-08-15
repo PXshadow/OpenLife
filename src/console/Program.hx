@@ -1,5 +1,6 @@
 package console;
 
+import server.ServerTag;
 import haxe.crypto.Base64;
 import motion.Actuate;
 #if openfl
@@ -23,19 +24,19 @@ class Program
     //food 
     public var ate:Array<Int> = [];
     //queue messages to be sent later
-    public var queue:Array<String> = [];
+    public var queue:Array<ServerTag> = [];
     public function new(game:Game)
     {
         this.game = game;
     }
-    public function send(string:String)
+    public function send(tag:ServerTag,data:String)
     {
         if (setup)
         {
             //queue because path is currently being travled
-            queue.push(string);
+            queue.push(tag);
         }else{
-            Main.client.send(string);
+            Main.client.send(tag + " " + data);
         }
     }
     public function stop()
@@ -91,29 +92,29 @@ class Program
             if (id != null)
             {
                 //focus on id to kill on tile
-                send("KILL " + x + " " + y + " " + id);
+                send(KILL, x + " " + y + " " + id);
             }else{
-                send("KILL " + x + " " + y);
+                send(KILL, x + " " + y);
             }
         }
     }
     //async return functions of data
     public function grave(x:Int,y:Int)
     {
-        send("GRAVE " + x + " " + y);
+        send(GRAVE, x + " " + y);
     }
     public function owner(x:Int,y:Int)
     {
-        send("OWNER " + x + " y " + y);
+        send(OWNER, x + " y " + y);
     }
     public function drop(x:Null<Int>=null,y:Null<Int>=0,c:Int=-1):Program
     {
         //setting held object down on empty grid square OR for adding something to a container
         if (x != null && y != null)
         {
-            send("DROP " + x + " " + y + " " + c);
+            send(DROP, x + " " + y + " " + c);
         }else{
-            if (Player.main != null) send("DROP " + Player.main.instance.x + " " + Player.main.instance.y + " " + c);
+            if (Player.main != null) send(DROP, Player.main.instance.x + " " + Player.main.instance.y + " " + c);
         }
         return this;
     }
@@ -126,9 +127,9 @@ class Program
     {
         if (x != null && y != null)
         {
-            Main.client.send("USE " + x + " " + y);
+            send(USE, x + " " + y);
         }else{
-            if (Player.main != null) Main.client.send("USE " + Player.main.instance.x + " " + Player.main.instance.y);
+            if (Player.main != null) send(USE, Player.main.instance.x + " " + Player.main.instance.y);
         }
         return this;
     }

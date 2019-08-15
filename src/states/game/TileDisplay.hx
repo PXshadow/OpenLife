@@ -14,9 +14,6 @@ import openfl.display.Tile;
 class TileDisplay extends Tilemap
 {
     var reader:TgaData;
-    //pos
-    public var tileWidth:Int = 0;
-    public var tileHeight:Int = 0;
     public function new(tilesetWidth:Int,tilesetHeight:Int,transparent:Bool=true)
     {
         super(0,0,new Tileset(new BitmapData(tilesetWidth,tilesetHeight,transparent)),false);
@@ -26,13 +23,6 @@ class TileDisplay extends Tilemap
         //pos code
         x = 0;
         y = 0;
-    }
-    public function size(width:Int,height:Int) 
-    {
-        tileWidth = width;
-        tileHeight = height;
-        this.width = tileWidth * Static.GRID;
-        this.height = tileHeight * Static.GRID;
     }
     public function getFill():Float
     {

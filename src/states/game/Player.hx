@@ -29,7 +29,7 @@ class Player #if openfl extends Object #end
     //how many frames till depletion
     public var delay:Int = 0;
     public var time:Int = 0;
-    public var timeInt:Int = 0;
+    public var timeInt:Int = -1;
     //pathing
     public var goal:Bool = false;
     public var refine:Bool = false;
@@ -58,9 +58,7 @@ class Player #if openfl extends Object #end
             //move camera if main player
             if (Player.main == this) 
             {
-                game.objects.x += -velocityX;
-                game.objects.y += -velocityY;
-                game.objects.update();
+                game.objects.move(-velocityX,-velocityY);
             }
             //remove time per frame
             timeInt--;
@@ -92,7 +90,6 @@ class Player #if openfl extends Object #end
             velocityX = (point.x * Static.GRID) / time;
             velocityY = -(point.y * Static.GRID) / time;
             timeInt = time;
-            game.follow();
             return true;
         }
         timeInt = -1;
@@ -229,7 +226,7 @@ class Player #if openfl extends Object #end
             trace("forced");
             Main.client.send("FORCE " + instance.x + " " + instance.y);
             //reset camera
-            game.center();
+
             pos();
         }
         //remove moves

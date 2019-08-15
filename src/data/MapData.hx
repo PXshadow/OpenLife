@@ -102,11 +102,12 @@ class ArrayData
         }
         if (x < dx)
         {
-            trace("x shift " + Std.string(dx - x));
+            trace("x shift " + Std.string(dx - x) + " array " + array.length);
             for (j in 0...array.length)
             {
                 for (i in 0...dx - x) 
             	{
+                    //causes crash sometimes (figure out why)
                 	array[j].unshift(0);
                 }
             }
