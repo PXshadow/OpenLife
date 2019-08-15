@@ -17,6 +17,7 @@ class Bind
 
     public static var playerSelf:Action = new Action([Keyboard.SPACE]);
     public static var playerKill:Action = new Action([Keyboard.SHIFT]);
+    public static var playerMove:Action = new Action([Keyboard.CONTROL]);
 
     public static var zoomIn:Action = new Action([Keyboard.I]);
     public static var zoomOut:Action = new Action([Keyboard.O]);
@@ -47,13 +48,14 @@ class Bind
         playerSelf.set(e,bool);
         playerKill.set(e,bool);
 
+        playerMove.set(e,bool);
+
         search.set(e,bool);
         help.set(e,bool);
         chat.set(e,bool);
         settings.set(e,bool);
 
         start.set(e,bool);
-
     }
 }
 class Action

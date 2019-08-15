@@ -80,6 +80,7 @@ class Program
             actions[actionIndex] = [];
             //main
             Player.main.goal = true;
+            Player.main.timeInt = 0;
         }
         return this;
     }
@@ -162,10 +163,10 @@ class Program
         if (dis < range)
         {
             setup = true;
-            Main.console.print("Distance to goal",Std.string(dis));
+            Main.console.print("Distance",Std.string(dis));
         }else{
             setup = false;
-            Main.console.print("Max Range",Std.string(dis));
+            Main.console.print("Out of range",Std.string(dis));
         }
     }
     public function emote(e:Int):Program
@@ -448,6 +449,7 @@ class Program
                 1712, //Attacking Pit Bull
             ];
             default: 
+            Main.console.print(name,"Not found");
             [-1];
         }
     }

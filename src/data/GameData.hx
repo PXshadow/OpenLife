@@ -1,4 +1,6 @@
 package data;
+import openfl.display.Tile;
+import openfl.geom.Rectangle;
 import states.game.Player;
 //data stored for the game to function (map data -> game data)
 class GameData

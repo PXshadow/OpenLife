@@ -139,6 +139,7 @@ class Client
         trace("socket connected");
         #end
         connected = false;
+        aliveTimer.stop();
     }
     private function processCompress()
     {

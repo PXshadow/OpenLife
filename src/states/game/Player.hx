@@ -32,7 +32,7 @@ class Player #if openfl extends Object #end
     public var timeInt:Int = 0;
     //pathing
     public var goal:Bool = false;
-    public var restricted:Array<console.Program.Pos> = [];
+    public var refine:Bool = false;
     public function new(game:Game)
     {
         this.game = game;
@@ -68,11 +68,6 @@ class Player #if openfl extends Object #end
         if (delay > 0) delay--;
         #end
     }
-    private function restrict(pos:console.Program.Pos):Bool
-    {
-        if (restricted.indexOf(pos) == -1)  return false;
-        return true;
-    }
     public function move():Bool
     {
         #if openfl
@@ -84,13 +79,6 @@ class Player #if openfl extends Object #end
             instance.x += point.x;
             instance.y += point.y;
             sort();
-            if (goal)
-            {
-                var pos = new Pos();
-                pos.x = instance.x;
-                pos.y = instance.y;
-                restricted.push(pos);
-            }
             //flip (change direction)
             if (point.x != 0)
             {
@@ -107,6 +95,7 @@ class Player #if openfl extends Object #end
             game.follow();
             return true;
         }
+        timeInt = -1;
         return false;
         #end
     }
@@ -115,15 +104,6 @@ class Player #if openfl extends Object #end
         //no other move is occuring, and player is not moving on blocked
         if (timeInt > 0 || game.data.blocking.get(Std.string(instance.x + mx) + "." + Std.string(instance.y + my))) return false;
         timeInt = 0;
-        //restriction of previous path
-        trace("instance x " + instance.x + " y " + instance.y + " resticted " + restricted);
-        if (restricted.length > 0)
-        {
-            var pos = new console.Program.Pos();
-            pos.x = instance.x + mx;
-            pos.y = instance.y + my;
-            if (restrict(pos)) return false;
-        }
         //send data
         lastMove++;
         Main.client.send("MOVE " + instance.x + " " + instance.y + " @" + lastMove + " " + mx + " " + my);
@@ -138,7 +118,7 @@ class Player #if openfl extends Object #end
     }
     public function updateMoveSpeed()
     {
-        time = Std.int(Static.GRID /(Static.GRID * instance.move_speed) * 60 * 0.75) + 1;
+        time = Std.int(Static.GRID /(Static.GRID * instance.move_speed) * 50 * 1);
         /*var moveLeft = measurePathLength();
         var numTurns:Int = 0;
         if (moves.length > 1)
@@ -195,10 +175,28 @@ class Player #if openfl extends Object #end
         if (px == 0 && py == 0)
         {
             //complete 
-            restricted = [];
             game.program.stop();
         }else{
             if (!step(px,py))
+            {
+                //non direct path
+                if (px == py || px == py * -1)
+                {
+                    //diagnol
+                    if (!step(px,0)) step(0,py);
+                }else{
+                    //non diagnol
+                    if (px == 0)
+                    {
+                        //vetical
+                        if (!step(1,py)) step(-1,py);
+                    }else{
+                        //horizontal
+                        if (!step(px,1)) step(px,-1);
+                    }
+                }
+            }
+            /*if (!step(px,py))
             {
                 //path blocked
                 //x
@@ -214,12 +212,11 @@ class Player #if openfl extends Object #end
                         px *= -1;
                         if (!step(px,py))
                         {
-                            //reset restricted area as all pathing is blocked
-                            restricted = [];
+                            //all paths are blocked
                         }
                     }
                 }
-            }
+            }*/
         }
         timeInt = time;
     }

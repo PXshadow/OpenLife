@@ -7,6 +7,8 @@ class Login
     public var email:String = "";
     public var challenge:String = "";
     public var key:String = "";
+    public var twin:String = "";
+    public var tutorial:Bool = false;
     var index:Int = 0;
     public var version:Int = 0;
     //functions
@@ -33,9 +35,7 @@ class Login
 				case 2: 
 				//version
 				version = Std.parseInt(data);
-                #if openfl
                 request();
-                #end
                 Main.client.tag = "";
 			}
 			index++;
@@ -54,9 +54,9 @@ class Login
 		,Bytes.ofString(challenge)).toHex() +  " " +
 
         //tutorial 1 = true 0 = false
-        0 + " " +
+        (tutorial ? 1 : 0) + " " +
         //twin extra code
-        ""
+        twin
         );
 		Main.client.tag = "";
         trace("send login request");

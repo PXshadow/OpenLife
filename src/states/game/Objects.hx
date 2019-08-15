@@ -1,4 +1,5 @@
 package states.game;
+import lime.utils.ObjectPool;
 import openfl.display.Tileset;
 import haxe.io.Path;
 import openfl.utils.ByteArray;
@@ -16,6 +17,8 @@ import states.launcher.Launcher;
 
 class Objects extends TileDisplay
 {
+    public var objectPool:ObjectPool<Object>;
+    public var groundPool:ObjectPool<Tile>;
     //game ref
     var game:Game;
     var tile:Tile;
@@ -37,6 +40,28 @@ class Objects extends TileDisplay
         super(4096,4096);
         //add cached ground
         for (i in 0...6 + 1) cacheGround(i);
+        //pools
+        objectPool = new ObjectPool(function():Object
+        {
+            var tile = new Object();
+            addTile(tile);
+            return tile;
+        },function(tile:Object)
+        {
+            tile.removeTiles();
+            tile.visible = false;
+            removeTile(tile);
+        });
+        groundPool = new ObjectPool(function():Tile
+        {
+            var tile = new Tile();
+            addTileAt(tile,0);
+            return tile;
+        },function(tile:Tile)
+        {
+            tile.visible = false;
+            removeTile(tile);
+        });
     }
     public function cacheGround(id:Int)
     {
@@ -95,7 +120,7 @@ class Objects extends TileDisplay
         {
             tile = getTileAt(i);
             tile.data.tileX += x;
-            tile.data.tileY += y;
+            tile.data.tileY += -y;
             tile.x += x * Static.GRID;
             tile.y += -y * Static.GRID;
         }
@@ -106,22 +131,21 @@ class Objects extends TileDisplay
     }
     public function addGround(id:Int,x:Int,y:Int):Tile
     {
-        var tile = new Tile();
+        var tile = groundPool.get();
         tile.id = id * 16 + ci(x) + ci(y) * 3;
         tile.data = {type:GROUND,tileX:x + game.cameraX,tileY:y + game.cameraY};
         tile.x = tile.data.tileX * Static.GRID;
         tile.y = (Static.tileHeight - tile.data.tileY) * Static.GRID;
-        addTileAt(tile,0);
         return tile;
     }
-    public function addFloor(id:Int,x:Int=0,y:Int=0,addBool:Bool=true):Object
+    public function addFloor(id:Int,x:Int=0,y:Int=0):Tile
     {
-        return add(id,x,y,false,true,addBool);
+        return add(id,x,y,false,true);
     }
-    public function addObject(id:Int,x:Int=0,y:Int=0,addBool:Bool=true):Object
+    public function addObject(id:Int,x:Int=0,y:Int=0):Tile
     {
         //single object
-        return add(id,x,y,false,false,addBool);
+        return add(id,x,y,false,false);
     }
     public function sort()
     {
@@ -157,7 +181,7 @@ class Objects extends TileDisplay
             player.set(data);
         }
     }
-    public function add(id:Int,x:Int=0,y:Int=0,player:Bool=false,floor:Bool=false,addBool:Bool=true):Object
+    public function add(id:Int,x:Int=0,y:Int=0,player:Bool=false,floor:Bool=false):Object
     {
         if(id == 0) return null;
         var data = new ObjectData(id);
@@ -173,16 +197,15 @@ class Objects extends TileDisplay
         if(player)
         {
             obj = new Player(game);
+            addTile(obj);
         }else{
-            obj = new Object();
+            obj = objectPool.get();
             //pos
             obj.data.tileX = x + game.cameraX;
             obj.data.tileY = y + game.cameraY;
             obj.pos();
         }
         if (floor) obj.data.type = FLOOR;
-        //add to tilemap
-        if (addBool) addTile(obj);
         obj.oid = data.id;
         //animation setup
         obj.loadAnimation();

@@ -108,24 +108,7 @@ class Game #if openfl extends states.State #end
         //connect
         if (true)
         {
-            Main.client.login.accept = function()
-            {
-                trace("accept");
-                //set message reader function to game
-                Main.client.message = message;
-                Main.client.end = end;
-                Main.client.login = null;
-                Main.client.tag = null;
-                index = 0;
-            }
-            Main.client.login.reject = function()
-            {
-                trace("reject");
-                Main.client.login = null;
-            }
-            Main.client.message = Main.client.login.message;
-            trace("connect " + Main.client.ip + " email " + Main.client.login.email);
-            Main.client.connect();
+            connect();
         }else{
             #if openfl
             //playground
@@ -260,13 +243,18 @@ class Game #if openfl extends states.State #end
         super.mouseDown();
         //fix crash
         if (Player.main == null) return;
-        if (Bind.playerKill.bool) 
+        if (Bind.playerMove.bool)
         {
-            trace("kill");
-            program.kill(selectX,selectY);
+            program.path(selectX,selectY);
         }else{
-            //use action if within range
-            program.use(selectX,selectY);
+            if (Bind.playerKill.bool) 
+            {
+                trace("kill");
+                program.kill(selectX,selectY);
+            }else{
+                //use action if within range
+                program.use(selectX,selectY);
+            }
         }
     }
     override function mouseRightDown()
@@ -337,60 +325,41 @@ class Game #if openfl extends states.State #end
             objects.size(mapInstance.width,mapInstance.height);
             async = false;
         }
-        //clean before adding new
-        //new Future(function()
-        //{
+        //out of range
         clean();
-        var list:Array<Tile> = [];
         for(j in mapInstance.y...mapInstance.y + mapInstance.height)
         {
             for (i in mapInstance.x...mapInstance.x + mapInstance.width)
             {
-                //floor
-                list.push(objects.addFloor(data.map.floor.get(i,j),i,j,false));
                 //object
-                list.push(objects.addObject(data.map.object.get(i,j),i,j,false));
-            }
-        }
-        //sort vertically
-        list.sort(function(a:Tile,b:Tile):Int
-        {
-            if (a != null && b != null)
-            {
-                if (a.y > b.y) return 1;
-            }else{
-                return 0;
-            }
-            return -1;
-        });
-        objects.addTiles(list);
-        list = [];
-        for(j in mapInstance.y...mapInstance.y + mapInstance.height)
-        {
-            for (i in mapInstance.x...mapInstance.x + mapInstance.width)
-            {
+                objects.addObject(data.map.object.get(i,j),i,j);
+                //floor
+                objects.addFloor(data.map.floor.get(i,j),i,j);
                 //ground
                 objects.addGround(data.map.biome.get(i,j),i,j);
             }
         }
         trace("fill " + objects.getFill());
-        //},async);
     }
     public var list:Array<Tile> = [];
     public function clean()
     {
+        return;
         var tile:Tile = null;
-        @:privateAccess list = objects.__group.__tiles.copy();
-        for (i in 0...list.length)
+        for (i in 0...objects.numTiles)
         {
-            tile = cast list.pop();
-            if (tile.x < 0 || tile.x > objects.width || tile.y < 0 || tile.y > objects.height)
+            tile = objects.getTileAt(i);
+            if (tile.x < -Static.GRID * 4 || tile.y < -Static.GRID * 4 || tile.x > 36 * Static.GRID || tile.y > 36 * Static.GRID)
             {
-                objects.removeTile(tile);
-                tile = null;
+                trace("clean");
+                if (tile.data.type != GROUND)
+                {
+                    objects.objectPool.clean(cast tile);
+                }else{
+                    objects.groundPool.clean(tile);
+                }
             }
         }
-        list = [];
     }
     public function sort()
     {
@@ -398,28 +367,7 @@ class Game #if openfl extends states.State #end
     }
     public function duplicate()
     {
-        var tile:Tile = null;
-        var tile2:Tile = null;
-        @:privateAccess list = objects.__group.__tiles.copy();
-        for (i in 0...list.length)
-        {
-            tile = cast list.pop();
-            if (tile.data.type != PLAYER)
-            {
-                for (i in 0...list.length)
-                {
-                    tile2 = cast list[i];
-                    //same location and needs to be same type
-                    if (tile.data.tileX == tile2.data.tileX && tile.data.tileY == tile2.data.tileY && tile.data.type == tile.data.type)
-                    {
-                        objects.removeTile(tile);
-                        tile = null;
-                        break;
-                    }
-                }
-            }
-        }
-        list = [];
+        return;
     }
     #end
     
@@ -445,6 +393,40 @@ class Game #if openfl extends states.State #end
     {
         Player.main = player;
         Console.interp.variables.set("player",Player.main);
+    }
+    public function disconnect()
+    {
+        Main.client.close();
+        reset();
+    }
+    public function reset()
+    {
+        Player.main = null;
+        objects.removeTiles();
+        objects.objectPool.clear();
+        objects.groundPool.clear();
+        inital = true;
+    }
+    public function connect()
+    {
+        Main.client.login.accept = function()
+        {
+            trace("accept");
+            //set message reader function to game
+            Main.client.message = message;
+            Main.client.end = end;
+            //Main.client.login = null;
+            Main.client.tag = null;
+            index = 0;
+        }
+        Main.client.login.reject = function()
+        {
+            trace("reject");
+            //Main.client.login = null;
+        }
+        Main.client.message = Main.client.login.message;
+        trace("connect " + Main.client.ip + " email " + Main.client.login.email);
+        Main.client.connect();
     }
     public function message(input:String) 
     {
