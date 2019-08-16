@@ -152,8 +152,8 @@ class Game #if openfl extends states.State #end
         //set camera to middle
         if (Player.main != null)
         {
-            objects.group.x = lerp(objects.group.x,-Player.main.x * objects.scale + Main.setWidth/2 ,0.06);
-            objects.group.y = lerp(objects.group.y,-Player.main.y * objects.scale + Main.setHeight/2,0.06);
+            objects.group.x = lerp(objects.group.x,-Player.main.x * objects.scale + Main.setWidth/2 ,0.03);
+            objects.group.y = lerp(objects.group.y,-Player.main.y * objects.scale + Main.setHeight/2,0.03);
         }
     }
     public inline function lerp(v0:Float,v1:Float,t:Float)
