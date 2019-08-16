@@ -1,4 +1,5 @@
 package states.game;
+import openfl.display.TileContainer;
 import lime.utils.ObjectPool;
 import openfl.display.Tileset;
 import haxe.io.Path;
@@ -32,18 +33,40 @@ class Objects extends TileDisplay
     public var player:Player = null;
     //used for reading
     var tileHeight:Int = 0;
+    //scale used for zoom in and out
+    public var scale(get, set):Float;
+    public var velocityX:Float = 0;
+    public var velocityY:Float = 0;
+    public var setX:Float = 0;
+    public var setY:Float = 0;
+    public var group:TileContainer;
+    function get_scale():Float 
+    {
+        return group.scaleX;
+    }
+    function set_scale(scale:Float):Float 
+    {
+        group.scaleX = scale;
+        group.scaleY = scale;
+        return scale;
+    }
     public function new(game:Game)
     {
         this.game = game;
         smoothing = true;
         super(4096,4096);
+        //add base
+        group = new TileContainer();
+        addTile(group);
+
         //add cached ground
         for (i in 0...6 + 1) cacheGround(i);
         //pools
         objectPool = new ObjectPool(function():Object
         {
+            //object or floor
             var tile = new Object();
-            addTile(tile);
+            group.addTile(tile);
             return tile;
         },function(tile:Object)
         {
@@ -53,20 +76,26 @@ class Objects extends TileDisplay
         });
         groundPool = new ObjectPool(function():Tile
         {
-            var tile = new Tile();
-            addTileAt(tile,0);
-            return tile;
+            //ground
+            return new Tile();
         },function(tile:Tile)
         {
             tile.visible = false;
             removeTile(tile);
         });
     }
+    //camera controls
     public function move(x:Float,y:Float)
     {
-        @:privateAccess __group.x += x;
-        @:privateAccess __group.y += y;
+        group.x += x;
+        group.y += y;
     }
+    public function set(x:Float,y:Float)
+    {
+        group.x = x;
+        group.y = y;
+    }
+    //cache ground tiles
     public function cacheGround(id:Int)
     {
         var a = "_square";
@@ -110,54 +139,24 @@ class Objects extends TileDisplay
         }
         return i;
     }
-    public function shift(x:Int=0,y:Int=0)
-    {
-        for (i in 0...numTiles)
-        {
-            tile = getTileAt(i);
-            tile.data.tileX += x;
-            tile.data.tileY += y;
-            tile.x += x * Static.GRID;
-            tile.y += y * Static.GRID;
-        }
-        game.cameraX += x;
-        game.cameraY += y;
-    }
-    public function addGround(id:Int,x:Int,y:Int):Tile
+    public function addGround(id:Int,x:Int,y:Int,add:Int):Tile
     {
         var tile = groundPool.get();
         tile.id = id * 16 + ci(x) + ci(y) * 3;
-        tile.data = {type:GROUND,tileX:x + game.cameraX,tileY:y + game.cameraY};
-        tile.x = tile.data.tileX * Static.GRID;
-        tile.y = (Static.tileHeight - tile.data.tileY) * Static.GRID;
+        tile.data = {type:GROUND,x:x,y:y};
+        tile.x = tile.data.x * Static.GRID;
+        tile.y = (Static.tileHeight - tile.data.y) * Static.GRID;
+        group.addTileAt(tile,add);
         return tile;
     }
-    public function addFloor(id:Int,x:Int=0,y:Int=0):Tile
+    public function addFloor(id:Int,x:Int=0,y:Int=0):Bool
     {
-        return add(id,x,y,false,true);
+        return add(id,x,y,false,true) != null ? true : false;
     }
     public function addObject(id:Int,x:Int=0,y:Int=0):Tile
     {
         //single object
         return add(id,x,y,false,false);
-    }
-    public function sort()
-    {
-        @:privateAccess __group.__tiles.sort(function(a:Tile,b:Tile)
-        {
-            if(a.y > b.y) return 1;
-            return -1;
-        });
-        //move tiles back
-        for (i in 0...numTiles)
-        {
-            tile = getTileAt(i);
-            if (tile.data.type == GROUND)
-            {
-                removeTile(tile);
-                addTileAt(tile,0);
-            }
-        }
     }
     public function addPlayer(data:PlayerInstance)
     {
@@ -191,13 +190,15 @@ class Objects extends TileDisplay
         if(player)
         {
             obj = new Player(game);
-            addTile(obj);
+            group.addTile(obj);
         }else{
             obj = objectPool.get();
-            //pos
-            obj.data.tileX = x + game.cameraX;
-            obj.data.tileY = y + game.cameraY;
-            obj.pos();
+            //global pos
+            obj.data.x = x;
+            obj.data.y = y;
+            //local position
+            obj.x = (obj.data.x) * Static.GRID;
+            obj.y = (Static.tileHeight - (obj.data.y)) * Static.GRID;
         }
         if (floor) obj.data.type = FLOOR;
         obj.oid = data.id;

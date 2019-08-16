@@ -1,5 +1,6 @@
 package states.game;
 
+import data.ChunkData.Chunk;
 import lime.app.Future;
 import data.Point;
 import openfl.display.Shape;
@@ -40,28 +41,8 @@ class Game #if openfl extends states.State #end
     public var selectY:Int = 0;
     public var bitmap:Bitmap;
     public var cameraSpeed:Float = 10;
-    //camera
-    public var cameraX:Int = 0;
-    public var cameraY:Int = 0;
-    public var diffX:Int = 0;
-    public var diffY:Int = 0;
     //text
     public var text:Text;
-    //clean area
-    var cleanX:Int = 0;
-    var cleanY:Int = 0;
-    //scale used for zoom in and out
-    public var scale(get, set):Float;
-    function get_scale():Float 
-    {
-        return scaleX;
-    }
-    function set_scale(scale:Float):Float 
-    {
-        scaleX = scale;
-        scaleY = scale;
-        return scale;
-    }
     #end
     var playerInstance:PlayerInstance;
     public var mapInstance:MapInstance;
@@ -69,7 +50,6 @@ class Game #if openfl extends states.State #end
     public var data:GameData;
     var compress:Bool = false;
     var inital:Bool = true;
-
     public var program:Program;
     public function new()
     {
@@ -136,19 +116,15 @@ class Game #if openfl extends states.State #end
     {
         super.update();
         draw.update();
-        text.text = "num " + objects.numTiles + "\nox " + objects.x + " y " + objects.y;
         //selector
-        selectX = Math.floor((objects.mouseX - Static.GRID/2)/Static.GRID);
-        selectY = Math.floor((objects.mouseY - Static.GRID/2)/Static.GRID);
+        selectX = Std.int(stage.mouseX - objects.group.x);
+        selectY = Std.int(stage.mouseY - objects.group.y);
         //set local for render
-        select.x = objects.x + selectX * Static.GRID + Static.GRID/2;
-        select.y = objects.y + selectY * Static.GRID + Static.GRID/2;
-        //set x global
-        selectX += -cameraX + 1;
-        //flip
-        selectY = (Static.tileHeight - selectY);
-        //set y global
-        selectY += -cameraY - 1;
+        
+        //set global
+
+        text.text = "num " + objects.numTiles + "\nox " + selectX + " y " + selectY;
+
         //player movement
         if(Player.main != null)
         {
@@ -160,10 +136,24 @@ class Game #if openfl extends states.State #end
             if (Bind.playerRight.bool) xs += 1;
             if (xs != 0 || ys != 0) 
             {
+                trace("move " + xs + " " + ys);
                 Player.main.goal = false;
                 program.setup = false;
                 Player.main.step(xs,ys);
             }
+        }
+        //update players
+        //players
+        it = data.playerMap.iterator();
+        while(it.hasNext())
+        {
+            it.next().update();
+        }
+        //set camera to middle
+        if (Player.main != null)
+        {
+            objects.group.x = lerp(objects.group.x,-Player.main.x * objects.scale + Main.setWidth/2 ,0.06);
+            objects.group.y = lerp(objects.group.y,-Player.main.y * objects.scale + Main.setHeight/2,0.06);
         }
     }
     public inline function lerp(v0:Float,v1:Float,t:Float)
@@ -241,41 +231,51 @@ class Game #if openfl extends states.State #end
     }
     public function zoom(i:Int)
     {
-        if (scale > 2 && i > 0 || scale < 0.2 && i < 0) return;
-        scale += i * 0.08;
+        if (objects.scale > 2 && i > 0 || objects.scale < 0.2 && i < 0) return;
+        objects.scale += i * 0.08;
     }
     public function mapUpdate() 
     {
-        var async:Bool = true;
         trace("MAP UPDATE");
         //inital set camera
         if (inital)
         {
-            cameraX = -data.map.x;
-            cameraY = -data.map.y;
-            diffX = -cameraX;
-            diffY = -cameraY;
+            objects.group.x = -data.map.x * Static.GRID;
+            objects.group.y = -data.map.y * Static.GRID;
             inital = false;
-            async = false;
         }
-        new Future(function()
+        var chunk = data.chunk.add(mapInstance.x,mapInstance.y,mapInstance.width,mapInstance.height,objects.numTiles);
+        for(j in chunk.y...chunk.y + chunk.height)
         {
-        var num = objects.numTiles;
-        for(j in mapInstance.y...mapInstance.y + mapInstance.height)
-        {
-            for (i in mapInstance.x...mapInstance.x + mapInstance.width)
+            for (i in chunk.x...chunk.x + chunk.width)
             {
+                //floor
+                if (!objects.addFloor(data.map.floor.get(i,j),i,j))
+                {
+                    //add ground as there is no floor
+                    objects.addGround(data.map.biome.get(i,j),i,j,chunk.start);
+                }
                 //object
                 objects.addObject(data.map.object.get(i,j),i,j);
-                //floor
-                objects.addFloor(data.map.floor.get(i,j),i,j);
-                //ground
-                objects.addGround(data.map.biome.get(i,j),i,j);
             }
         }
-        trace("fill " + objects.getFill());
-        clean(num);
-        },async);
+        chunk.end = objects.numTiles;
+    }
+    public function cleanChunk(chunk:Chunk)
+    {
+        var i:Int = chunk.start;
+        var length:Int = chunk.end;
+        var tile:Tile = null;
+        while (i < length)
+        {
+            tile = objects.getTileAt(i++);
+            if (tile.data.type != PLAYER)
+            {
+                cleanTile(tile);
+            }else{
+                length++;
+            }
+        }
     }
     public function cleanTile(tile:Tile)
     {
@@ -285,10 +285,6 @@ class Game #if openfl extends states.State #end
         }else{
             objects.groundPool.clean(tile);
         }
-    }
-    public function clean(num:Int)
-    {
-
     }
     #end
     
@@ -330,6 +326,10 @@ class Game #if openfl extends states.State #end
     override function resize() 
     {
         super.resize();
+        objects.x = -Main.screen.x * 1/Main.scale;
+        objects.y = -Main.screen.y * 1/Main.scale;
+        objects.width = stage.stageWidth * 1/Main.scale;
+        objects.height = stage.stageHeight * 1/Main.scale;
     }
     public function connect()
     {
@@ -428,10 +428,10 @@ class Game #if openfl extends states.State #end
                 //remove object regardless
                 for (i in 0...objects.numTiles)
                 {
-                    tile = objects.getTileAt(i);
-                    if (change.x + cameraX == tile.data.tileX && change.y + cameraY == tile.data.tileY && type == tile.data.type)
+                    tile = objects.group.getTileAt(i);
+                    if (change.x == tile.data.x && change.y == tile.data.y && type == tile.data.type)
                     {
-                        objects.removeTile(tile);
+                        objects.group.removeTile(tile);
                         break;
                     }
                 }

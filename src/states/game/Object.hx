@@ -22,7 +22,7 @@ class Object extends TileContainer
     public function new()
     {
         super();
-        data = {type:OBJECT,tileX:0,tileY:0};
+        data = {type:OBJECT,x:0,y:0};
     }
     public function loadAnimation()
     {
@@ -32,12 +32,6 @@ class Object extends TileContainer
             animation = null;
             return;
         }
-    }
-    public function pos()
-    {
-        //local position
-        x = data.tileX * Static.GRID;
-        y = (Static.tileHeight - data.tileY) * Static.GRID;
     }
     public function animate(index:Int)
     {

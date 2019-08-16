@@ -10,8 +10,10 @@ class GameData
     public var playerMap:Map<Int,Player> = new Map<Int,Player>();
     public var spriteMap:Map<Int,SpriteData> = new Map<Int,SpriteData>();
     public var map:MapData;
+    public var chunk:ChunkData;
     public function new()
     {
         map = new MapData();
+        chunk = new ChunkData();
     }
 }

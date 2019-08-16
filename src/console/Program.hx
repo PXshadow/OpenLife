@@ -12,6 +12,8 @@ class Program
 {
     var game:Game;
     public var goal:Pos = new Pos();
+    //bool to refine path
+    public var refine:Bool = false;
     public var home:Pos = new Pos();
     //setup automation bool
     public var setup:Bool = false;
@@ -82,6 +84,7 @@ class Program
             //main
             Player.main.goal = true;
             Player.main.timeInt = 0;
+            refine = true;
         }
         return this;
     }
@@ -500,9 +503,9 @@ class Program
             return targets;
         }
         var obj:Object;
-        for (i in 0...game.objects.numTiles)
+        for (i in 0...game.objects.group.numTiles)
         {
-            obj = cast game.objects.getTileAt(i);
+            obj = cast game.objects.group.getTileAt(i);
             if (list.indexOf(obj.oid) >= 0)
             {
                 targets.push(obj);

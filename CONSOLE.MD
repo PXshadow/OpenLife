@@ -98,8 +98,8 @@ game.scale = 0.5; //half the scale of default game
 ```
 objects is a [DisplayObject](https://api.openfl.org/openfl/display/DisplayObject.html) and [Tilemap](https://api.openfl.org/openfl/display/Tilemap.html)
 ``` haxe
-game.objects.numTiles; //number of object tiles
-game.objects.x += 10; //move objects to the right 10 pixels
+game.objects.group.numTiles; //number of object tiles
+game.objects.group.x += 10; //move objects to the right 10 pixels
 ```
 ground is a [DisplayObject](https://api.openfl.org/openfl/display/DisplayObject.html) and [Shape](https://api.openfl.org/openfl/display/Shape.html)
 ``` haxe

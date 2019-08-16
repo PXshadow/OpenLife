@@ -55,11 +55,9 @@ class Player #if openfl extends Object #end
             //add to pos
             x += velocityX;
             y += velocityY;
-            //move camera if main player
-            if (Player.main == this) 
-            {
-                game.objects.move(-velocityX,-velocityY);
-            }
+            game.objects.group.x += -velocityX;
+            game.objects.group.y += -velocityY;
+            //game.objects.update();
             //remove time per frame
             timeInt--;
         }
@@ -258,7 +256,7 @@ class Player #if openfl extends Object #end
                 object = game.objects.add(instance.o_id * -1,true);
             }
             //remove from main objects display
-            game.objects.removeTile(object);
+            game.objects.group.removeTile(object);
             //add into player
             addTile(object);
             //trace("offset " + instance.o_origin_x + " " + instance.o_origin_y);
@@ -268,27 +266,29 @@ class Player #if openfl extends Object #end
         }
         #end
     }
-    #if openfl override #else public #end function pos() 
+    public function pos() 
     {
         #if openfl
-        data.tileX = instance.x + game.cameraX;
-        data.tileY = instance.y + game.cameraY;
-        super.pos();
+        data.x = instance.x;
+        data.y = instance.y;
+        //local position
+        x = data.x * Static.GRID;
+        y = (Static.tileHeight - data.y) * Static.GRID;
         #end
     }
     public function sort()
     {
         //did not move vertically
-        if (data.tileY == instance.y + game.cameraY) return;
+        if (data.tileY == instance.y) return;
 
         var tile:Tile = null;
         for (i in 0...game.objects.numTiles)
         {
-            tile = game.objects.getTileAt(i);
-            if (tile.data.type != GROUND && tile.data.type != PLAYER && tile.data.tileY == instance.y + game.cameraY - 1)
+            tile = game.objects.group.getTileAt(i);
+            if (tile.data.type != GROUND && tile.data.type != PLAYER && tile.data.y == instance.y - 1)
             {
-                game.objects.removeTile(this);
-                game.objects.addTileAt(this,game.objects.getTileIndex(tile));
+                game.objects.group.removeTile(this);
+                game.objects.group.addTileAt(this,game.objects.group.getTileIndex(tile));
                 //if floor try and find object, if object than floor has already been shifted if present.
                 if (tile.data.type == OBJECT) break;
             }
