@@ -1,5 +1,6 @@
 package states.game;
 
+import openfl.geom.Rectangle;
 import data.ChunkData.Chunk;
 import lime.app.Future;
 import data.Point;
@@ -241,21 +242,50 @@ class Game #if openfl extends states.State #end
             inital = false;
         }
         var chunk = data.chunk.add(mapInstance.x,mapInstance.y,mapInstance.width,mapInstance.height);
-        //draw chunks
-        draw.graphics.lineStyle(2,0);
-        draw.graphics.beginFill(0,0.2);
-        draw.graphics.drawRect(Main.setWidth/2 + chunk.x * 4,chunk.y * 4,chunk.width * 4,chunk.height * 4);
-        draw.graphics.endFill();
-        //remove to many chunks
+        //out of range chunks and add overlap
         trace("chunk length " + data.chunk.array.length);
-        /*if (data.chunk.array.length > 4)
+        var out:Float = 40;
+        var dis:Float = 0;
+        var overlaps:Array<Rectangle> = [];
+        var rect:Rectangle;
+        var c:Chunk;
+        for (i in 0...data.chunk.array.length - 3)
         {
-            data.chunk.remove(data.chunk.array.shift());
-        }*/
+            c = data.chunk.array[i];
+            if (c == null) continue;
+            //out of range
+            dis = Math.sqrt(Math.pow(Player.main.x - (c.x + c.width/2),2) + Math.pow(Player.main.y - (c.y + c.width/2),2));
+            if (dis > out)
+            {
+                data.chunk.remove(c);
+            }
+            //overlap
+            rect = new Rectangle(chunk.x,chunk.y,chunk.width,chunk.height).intersection(new Rectangle(c.x,c.y,c.width,c.height));
+            if (rect.width > 0)
+            {
+                overlaps.push(rect);
+            }
+        }
+        //draw chunks
+        draw.graphics.clear();
+        for (c in data.chunk.array)
+        {
+            draw.graphics.endFill();
+            draw.graphics.lineStyle(2,0);
+            draw.graphics.beginFill(0,0.2);
+            draw.graphics.drawRect(Main.setWidth/2 + c.x * 4,Main.setHeight/2 + c.y * 4,c.width * 4,c.height * 4);
+        }
+        var skip:Bool = false;
         for(j in chunk.y...chunk.y + chunk.height)
         {
             for (i in chunk.x...chunk.x + chunk.width)
             {
+                skip = false;
+                for (overlap in overlaps)
+                {
+                    
+                    break;
+                }
                 chunk.floor.set(i,j,[]);
                 chunk.object.set(i,j,[]);
                 //floor
