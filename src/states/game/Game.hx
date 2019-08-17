@@ -244,7 +244,7 @@ class Game #if openfl extends states.State #end
         var chunk = data.chunk.add(mapInstance.x,mapInstance.y,mapInstance.width,mapInstance.height);
         //out of range chunks and add overlap
         trace("chunk length " + data.chunk.array.length);
-        var out:Float = 40;
+        var out:Float = 32;
         var dis:Float = 0;
         var overlaps:Array<Rectangle> = [];
         var rect:Rectangle;
@@ -254,15 +254,17 @@ class Game #if openfl extends states.State #end
             c = data.chunk.array[i];
             if (c == null) continue;
             //out of range
-            dis = Math.sqrt(Math.pow(Player.main.x - (c.x + c.width/2),2) + Math.pow(Player.main.y - (c.y + c.width/2),2));
+            dis = Math.sqrt(Math.pow(chunk.centerY - c.centerY,2) + Math.pow(chunk.centerX - c.centerX,2));
             if (dis > out)
             {
+                trace("remove chunk " + i + " dis " + dis);
                 data.chunk.remove(c);
             }
             //overlap
             rect = new Rectangle(chunk.x,chunk.y,chunk.width,chunk.height).intersection(new Rectangle(c.x,c.y,c.width,c.height));
             if (rect.width > 0)
             {
+                trace("overlap " + rect);
                 overlaps.push(rect);
             }
         }
@@ -278,14 +280,20 @@ class Game #if openfl extends states.State #end
         var skip:Bool = false;
         for(j in chunk.y...chunk.y + chunk.height)
         {
+            //overlap checker
             for (i in chunk.x...chunk.x + chunk.width)
             {
                 skip = false;
                 for (overlap in overlaps)
                 {
-                    
-                    break;
+                    if (overlap.contains(i,j))
+                    {
+                        skip = true;
+                        break;
+                    }
                 }
+                if (skip) continue;
+                //add tiles
                 chunk.floor.set(i,j,[]);
                 chunk.object.set(i,j,[]);
                 //floor

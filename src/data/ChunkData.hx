@@ -49,6 +49,9 @@ class Chunk
     public var ground:ChunkVector<Tile>;
     public var floor:ChunkVector<Array<Tile>>;
     public var object:ChunkVector<Array<Tile>>;
+    //center
+    public var centerX:Int = 0;
+    public var centerY:Int = 0;
     public function new()
     {
 
@@ -58,6 +61,8 @@ class Chunk
         ground = new ChunkVector<Tile>(width,height);
         floor = new ChunkVector<Array<Tile>>(width,height);
         object = new ChunkVector<Array<Tile>>(width,height);
+        centerX = x + Std.int(width/2);
+        centerY = y + Std.int(height/2);
     }
 }
 class ChunkVector<T>
