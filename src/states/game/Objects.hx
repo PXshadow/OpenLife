@@ -18,13 +18,12 @@ import states.launcher.Launcher;
 
 class Objects extends TileDisplay
 {
-    public var objectPool:ObjectPool<Object>;
-    public var groundPool:ObjectPool<Tile>;
     //game ref
     var game:Game;
-    var tile:Tile;
+    var object:TileContainer;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
+    var animationMap:Map<Int,AnimationData> = new Map<Int,AnimationData>();
     //for tileset
     var tileX:Float = 0;
     var tileY:Float = 0;
@@ -62,37 +61,6 @@ class Objects extends TileDisplay
 
         //add cached ground
         for (i in 0...6 + 1) cacheGround(i);
-        //pools
-        objectPool = new ObjectPool(function():Object
-        {
-            //object or floor
-            return new Object();
-        },function(tile:Object)
-        {
-            tile.removeTiles();
-            tile.visible = false;
-            removeTile(tile);
-        });
-        groundPool = new ObjectPool(function():Tile
-        {
-            //ground
-            return new Tile();
-        },function(tile:Tile)
-        {
-            tile.visible = false;
-            removeTile(tile);
-        });
-    }
-    //camera controls
-    public function move(x:Float,y:Float)
-    {
-        group.x += x;
-        group.y += y;
-    }
-    public function set(x:Float,y:Float)
-    {
-        group.x = x;
-        group.y = y;
     }
     //cache ground tiles
     public function cacheGround(id:Int)
@@ -138,24 +106,17 @@ class Objects extends TileDisplay
         }
         return i;
     }
-    public function addGround(id:Int,x:Int,y:Int,add:Int):Tile
+    public function addGround(id:Int,x:Int,y:Int):Tile
     {
-        var tile = groundPool.get();
-        tile.id = id * 16 + ci(x) + ci(y) * 3;
-        tile.data = {type:GROUND,x:x,y:y};
-        tile.x = tile.data.x * Static.GRID;
-        tile.y = (Static.tileHeight - tile.data.y) * Static.GRID;
-        group.addTileAt(tile,add);
-        return tile;
-    }
-    public function addFloor(id:Int,x:Int=0,y:Int=0):Bool
-    {
-        return add(id,x,y,false,true);
-    }
-    public function addObject(id:Int,x:Int=0,y:Int=0):Tile
-    {
-        //single object
-        return add(id,x,y,false,false);
+        var object = new Tile();
+        object.id = id * 16 + ci(x) + ci(y) * 3;
+        object.data = {type:GROUND,x:x,y:y};
+        object.x = object.data.x * Static.GRID;
+        object.y = (Static.tileHeight - object.data.y) * Static.GRID;
+        group.addTileAt(object,0);
+        //add to chunk
+        game.data.chunk.latest.ground.set(x,y,object);
+        return object;
     }
     public function addPlayer(data:PlayerInstance)
     {
@@ -163,7 +124,9 @@ class Objects extends TileDisplay
         if (player == null)
         {
             //new
-            player = cast add(data.po_id,data.x,data.y,true);
+            add(data.po_id,data.x,data.y,true);
+            player = cast object;
+            trace("new player " + player);
             game.data.playerMap.set(data.p_id,player);
             player.set(data);
             player.pos();
@@ -173,11 +136,22 @@ class Objects extends TileDisplay
             player.set(data);
         }
     }
-    public function add(id:Int,x:Int=0,y:Int=0,player:Bool=false,floor:Bool=false):Bool
+    public function getObjectData(id:Int):ObjectData
     {
-        if(id == 0) return false;
-        var data = new ObjectData(id);
-        var obj:Object = null;
+        var data = objectMap.get(id);
+        if (data == null)
+        {
+            //create
+            data = new ObjectData(id);
+            objectMap.set(id,data);
+        }
+        return data;
+    }
+    public function add(id:Int,x:Int=0,y:Int=0,container:Bool=false):Bool
+    {
+        if(id <= 0) return false;
+        var data = getObjectData(id);
+        object = null;
         //data
         if (data.blocksWalking == 1)
         {
@@ -185,74 +159,89 @@ class Objects extends TileDisplay
         }else{
             game.data.blocking.remove(x + "." + y);
         }
-        //obj
-        if(player)
+        //create new objects
+        if (container) object = new TileContainer();
+        if(data.person > 0)
         {
-            obj = new Player(game);
-            group.addTile(obj);
-        }else{
-            obj = objectPool.get();
-            //global pos
-            obj.data.x = x;
-            obj.data.y = y;
-            //local position
-            obj.x = (obj.data.x) * Static.GRID;
-            obj.y = (Static.tileHeight - (obj.data.y)) * Static.GRID;
+            object = new Player(game);
+            group.addTile(object);
+            container = true;
         }
-        if (floor) obj.data.type = FLOOR;
-        obj.oid = data.id;
-        //animation setup
-        obj.loadAnimation();
-        //add data into map data if not loaded in
-        if (!game.data.map.loaded && !player)
+        if (container)
         {
-            game.data.map.object.set(obj.data.tileX,obj.data.tileY,obj.oid);
+            //set local position
+            object.x = (x) * Static.GRID;
+            object.y = (Static.tileHeight - (y)) * Static.GRID;
+        }
+        if (!game.data.map.loaded)
+        {
+            //add data into map data if not loaded in (for testing)
+            game.data.map.object.set(x,y,id);
         }
         var r:Rectangle;
-        var parents:Array<Int> = [];
+        var sprite:Tile = null;
+        var sprites:Array<Tile> = [];
         for(i in 0...data.numSprites)
         {
-            var tile = new Tile();
-            tile.id = cacheSprite(data.spriteArray[i].spriteID);
+            sprite = new Tile();
+            sprite.id = cacheSprite(data.spriteArray[i].spriteID);
             //check if cache sprite fail
-            if (tile.id == -1) 
+            if (sprite.id == -1) 
             {
                 //trace("cache sprite fail");
                 continue;
             }
-            r = tileset.getRect(tile.id);
+            r = tileset.getRect(sprite.id);
             //todo setup inCenterOffset
             //rot
             if (data.spriteArray[i].rot > 0)
             {
-                //tile.rotation = data.spriteArray[i].rot * 365;
+                //object.rotation = data.spriteArray[i].rot * 365;
             }
             //flip
             if (data.spriteArray[i].hFlip != 0)
             {
-                tile.scaleX = data.spriteArray[i].hFlip;
+                sprite.scaleX = data.spriteArray[i].hFlip;
             }
             //pos
-            tile.x = data.spriteArray[i].pos.x - data.spriteArray[i].inCenterXOffset * 1 - r.width/2;
-            tile.y = -data.spriteArray[i].pos.y - data.spriteArray[i].inCenterYOffset * 1 - r.height/2;
+            sprite.x = data.spriteArray[i].pos.x - data.spriteArray[i].inCenterXOffset * 1 - r.width/2;
+            sprite.y = -data.spriteArray[i].pos.y - data.spriteArray[i].inCenterYOffset * 1 - r.height/2;
             //color
-            tile.colorTransform = new ColorTransform();
-            tile.colorTransform.redMultiplier = data.spriteArray[i].color[0];
-            tile.colorTransform.greenMultiplier = data.spriteArray[i].color[1];
-            tile.colorTransform.blueMultiplier = data.spriteArray[i].color[2];
-            //parent
-            obj.add(tile,i,data.spriteArray[i].parent);
-            if(player)
+            sprite.colorTransform = new ColorTransform();
+            sprite.colorTransform.redMultiplier = data.spriteArray[i].color[0];
+            sprite.colorTransform.greenMultiplier = data.spriteArray[i].color[1];
+            sprite.colorTransform.blueMultiplier = data.spriteArray[i].color[2];
+            if(data.person > 0)
             {
                 //player data set
-                cast(obj,Player).ageRange[i] = {min:data.spriteArray[i].ageRange[0],max:data.spriteArray[i].ageRange[1]};
+                cast(object,Player).ageRange[i] = {min:data.spriteArray[i].ageRange[0],max:data.spriteArray[i].ageRange[1]};
+            }
+            if (container)
+            {
+                //parent
+                object.addTile(sprite);
             }else{
-                group.addTile(tile);
-                tile.x += x * Static.GRID;
-                tile.y += y * Static.GRID;
+                //group
+                group.addTile(sprite);
+                sprites.push(sprite);
+                sprite.x += x * Static.GRID;
+                sprite.y += y * Static.GRID;
             }
         }
-        obj.animate(0);
+        //add to chunk
+        if (data.person == 0)
+        {
+            if (container)
+            {
+                sprites = [object];
+            }
+            if (data.floor == 1)
+            {
+                game.data.chunk.latest.floor.set(x,y,sprites);
+            }else{
+                game.data.chunk.latest.object.set(x,y,sprites);
+            }
+        }
         return true;
     }
     private function cacheSprite(id:Int):Int

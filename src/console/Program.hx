@@ -4,7 +4,7 @@ import server.ServerTag;
 import haxe.crypto.Base64;
 import motion.Actuate;
 #if openfl
-import states.game.Object;
+import openfl.display.Tile;
 #end
 import states.game.Player;
 import states.game.Game;
@@ -493,24 +493,24 @@ class Program
         Actuate.reset();
         return this;
     }
-    private function getTiles(target:String):Array<Object>
+    private function getTiles(target:String):Array<Tile>
     {
-        var targets:Array<Object> = [];
+        var targets:Array<Tile> = [];
         var list = id(target);
         if (list.length == 0) 
         {
             trace("unable to find target " + target);
             return targets;
         }
-        var obj:Object;
-        for (i in 0...game.objects.group.numTiles)
+        var tile:Tile = null;
+        /*for (i in 0...game.objects.group.numTiles)
         {
-            obj = cast game.objects.group.getTileAt(i);
+            tile = game.objects.group.getTileAt(i);
             if (list.indexOf(obj.oid) >= 0)
             {
                 targets.push(obj);
             }
-        }
+        }*/
         return targets;
     }
     #end

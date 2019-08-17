@@ -1,4 +1,5 @@
 package states.game;
+import openfl.display.TileContainer;
 import motion.easing.Quad;
 import console.Program.Pos;
 #if openfl
@@ -12,7 +13,7 @@ import haxe.Timer;
 import data.SpriteData;
 import data.ObjectData;
 import data.AnimationData;
-class Player #if openfl extends Object #end
+class Player #if openfl extends TileContainer #end
 {
     public var lastMove:Int = 1;
     public var moveTimer:Timer;
@@ -21,7 +22,7 @@ class Player #if openfl extends Object #end
     public var ageRange:Array<{min:Float,max:Float}> = [];
     public var game:Game;
     #if openfl
-    public var object:Object;
+    public var object:TileContainer;
     #end
     public var moves:Array<Pos> = [];
     public var velocityX:Float = 0;
@@ -38,7 +39,6 @@ class Player #if openfl extends Object #end
         this.game = game;
         #if openfl
         super();
-        data = {type:PLAYER};
         #end
     }
     
@@ -249,11 +249,11 @@ class Player #if openfl extends Object #end
             if (instance.o_id > 0)
             {
                 //object
-                object = game.objects.add(instance.o_id);
+                object = cast game.objects.add(instance.o_id);
             }else{
                 //player
                 trace("player");
-                object = game.objects.add(instance.o_id * -1,true);
+                object = cast game.objects.add(instance.o_id * -1,true);
             }
             //remove from main objects display
             game.objects.group.removeTile(object);
@@ -298,9 +298,9 @@ class Player #if openfl extends Object #end
     {
         #if openfl
         var tile:Tile;
-        for(i in 0...numSprites)
+        for(i in 0...numTiles)
         {
-            tile = get(i);
+            tile = getTileAt(i);
             if (tile == null) continue;
             tile.visible = true;
             if((ageRange[i].min > instance.age || ageRange[i].max < instance.age) && ageRange[i].min > 0)

@@ -33,7 +33,6 @@ import openfl.display.Bitmap;
 class Game #if openfl extends states.State #end
 {
     #if openfl
-    var dialog:Dialog;
     public var draw:Draw;
     public var objects:Objects;
     public var select:Shape;
@@ -71,11 +70,9 @@ class Game #if openfl extends states.State #end
         select.graphics.drawRect(0,0,Static.GRID,Static.GRID);
 
         draw = new Draw(this);
-        dialog = new Dialog(this);
         addChild(select);
         addChild(objects);
         Main.screen.addChild(draw);
-        Main.screen.addChild(dialog);
         text = new Text();
         text.cacheAsBitmap = false;
         Main.screen.addChild(text);
@@ -96,7 +93,7 @@ class Game #if openfl extends states.State #end
             //bush
             objects.add(30);
             //sheep
-            objects.add(575).animate(2);
+            objects.add(575);
             //trees
             objects.add(65);
             objects.add(2454);
@@ -243,46 +240,22 @@ class Game #if openfl extends states.State #end
             objects.group.y = -data.map.y * Static.GRID;
             inital = false;
         }
-        var chunk = data.chunk.add(mapInstance.x,mapInstance.y,mapInstance.width,mapInstance.height,objects.numTiles);
+        var chunk = data.chunk.add(mapInstance.x,mapInstance.y,mapInstance.width,mapInstance.height);
         for(j in chunk.y...chunk.y + chunk.height)
         {
             for (i in chunk.x...chunk.x + chunk.width)
             {
+                chunk.floor.set(i,j,[]);
+                chunk.object.set(i,j,[]);
                 //floor
-                if (!objects.addFloor(data.map.floor.get(i,j),i,j))
+                if (!objects.add(data.map.floor.get(i,j),i,j))
                 {
                     //add ground as there is no floor
-                    objects.addGround(data.map.biome.get(i,j),i,j,chunk.start);
+                    objects.addGround(data.map.biome.get(i,j),i,j);
                 }
                 //object
-                objects.addObject(data.map.object.get(i,j),i,j);
+                objects.add(data.map.object.get(i,j),i,j);
             }
-        }
-        chunk.end = objects.numTiles;
-    }
-    public function cleanChunk(chunk:Chunk)
-    {
-        var i:Int = chunk.start;
-        var length:Int = chunk.end;
-        var tile:Tile = null;
-        while (i < length)
-        {
-            tile = objects.getTileAt(i++);
-            if (tile.data.type != PLAYER)
-            {
-                cleanTile(tile);
-            }else{
-                length++;
-            }
-        }
-    }
-    public function cleanTile(tile:Tile)
-    {
-        if (tile.data.type != GROUND)
-        {
-            objects.objectPool.clean(cast tile);
-        }else{
-            objects.groundPool.clean(tile);
         }
     }
     #end
@@ -318,8 +291,6 @@ class Game #if openfl extends states.State #end
     {
         Player.main = null;
         objects.removeTiles();
-        objects.objectPool.clear();
-        objects.groundPool.clear();
         inital = true;
     }
     override function resize() 
@@ -425,7 +396,7 @@ class Game #if openfl extends states.State #end
                 var type:ObjectType = change.floor > 0 ? FLOOR : OBJECT;
                 var id = type == FLOOR ? change.floor : change.id;
                 //remove object regardless
-                for (i in 0...objects.numTiles)
+                /*for (i in 0...objects.numTiles)
                 {
                     tile = objects.group.getTileAt(i);
                     if (change.x == tile.data.x && change.y == tile.data.y && type == tile.data.type)
@@ -437,8 +408,8 @@ class Game #if openfl extends states.State #end
                 if (id > 0)
                 {
                     //add new object to map
-                    objects.add(id,change.x,change.y,false,type == FLOOR ? true : false);
-                }
+                    objects.add(id,change.x,change.y,false);
+                }*/
             }
             #end
             //change data todo:
@@ -458,7 +429,7 @@ class Game #if openfl extends states.State #end
             case PLAYER_SAYS:
             trace("player say " + input);
             #if openfl
-            dialog.say(input);
+            draw.say(input);
             #end
             case PLAYER_OUT_OF_RANGE:
             //player is out of range

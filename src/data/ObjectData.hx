@@ -67,10 +67,12 @@ class ObjectData extends LineReader
     public var pixHeight:Int = 0;
 
     public var fail:Bool = false;
+    //animation
+    public var animation:AnimationData;
     public function new(i:Int=0)
     {
         super();
-        if (i == 0) return;
+        if (i <= 0) throw("objectData id less than 1: " + i);
         try {
             line = readLines(File.getContent(Static.dir + "objects/" + i + ".txt"));
         }catch(e:Dynamic)
@@ -78,6 +80,9 @@ class ObjectData extends LineReader
             trace("object txt e " + e);
             return;
         }
+        //setup animation
+        animation = new AnimationData(i);
+        if (animation.fail) animation = null;
         read();
     }
     public function read()
