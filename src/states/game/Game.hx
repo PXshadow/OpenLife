@@ -36,6 +36,7 @@ class Game #if openfl extends states.State #end
     #if openfl
     public var draw:Draw;
     public var objects:Objects;
+    public var ground:Ground;
     public var select:Shape;
     public var selectX:Int = 0;
     public var selectY:Int = 0;
@@ -62,6 +63,7 @@ class Game #if openfl extends states.State #end
         #if openfl
         super();
         stage.color = 0xFFFFFF;
+        ground = new Ground(this);
         objects = new Objects(this);
         //tile selector
         select = new Shape();
@@ -70,6 +72,7 @@ class Game #if openfl extends states.State #end
         select.graphics.drawRect(0,0,Static.GRID,Static.GRID);
 
         draw = new Draw(this);
+        addChild(ground);
         addChild(select);
         addChild(objects);
         Main.screen.addChild(draw);
@@ -80,7 +83,7 @@ class Game #if openfl extends states.State #end
         addChild(bitmap);
         #end
         //setup data
-        data = new GameData(#if openfl objects.group#end);
+        data = new GameData(#if openfl ground.group,objects.group#end);
         //connect
         if (true)
         {
@@ -151,6 +154,8 @@ class Game #if openfl extends states.State #end
         {
             objects.group.x = lerp(objects.group.x,-Player.main.x * objects.scale + Main.setWidth/2 ,0.03);
             objects.group.y = lerp(objects.group.y,-Player.main.y * objects.scale + Main.setHeight/2,0.03);
+            ground.group.x = objects.group.x;
+            ground.group.y = objects.group.y;
         }
     }
     public inline function lerp(v0:Float,v1:Float,t:Float)
@@ -239,12 +244,14 @@ class Game #if openfl extends states.State #end
         {
             objects.group.x = -data.map.x * Static.GRID;
             objects.group.y = -data.map.y * Static.GRID;
+            ground.group.x = objects.group.x;
+            ground.group.y = objects.group.y;
             inital = false;
         }
         var chunk = data.chunk.add(mapInstance.x,mapInstance.y,mapInstance.width,mapInstance.height);
         //out of range chunks and add overlap
         trace("chunk length " + data.chunk.array.length);
-        var out:Float = 36;
+        var out:Float = 40;
         var dis:Float = 0;
         var overlaps:Array<Rectangle> = [];
         var rect:Rectangle;
@@ -300,7 +307,8 @@ class Game #if openfl extends states.State #end
                 if (!objects.add(data.map.floor.get(i,j),i,j))
                 {
                     //add ground as there is no floor
-                    objects.addGround(data.map.biome.get(i,j),i,j);
+                    //objects.addGround(data.map.biome.get(i,j),i,j);
+                    ground.add(data.map.biome.get(i,j),i,j);
                 }
                 //object
                 objects.add(data.map.object.get(i,j),i,j);
@@ -349,6 +357,11 @@ class Game #if openfl extends states.State #end
         objects.y = -Main.screen.y * 1/Main.scale;
         objects.width = stage.stageWidth * 1/Main.scale;
         objects.height = stage.stageHeight * 1/Main.scale;
+
+        ground.x = objects.x;
+        ground.y = objects.y;
+        ground.width = objects.width;
+        ground.height = objects.height;
     }
     public function connect()
     {

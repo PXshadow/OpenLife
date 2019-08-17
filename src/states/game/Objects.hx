@@ -48,13 +48,15 @@ class Objects extends TileDisplay
     {
         group.scaleX = scale;
         group.scaleY = scale;
+        game.ground.group.scaleX = scale;
+        game.ground.group.scaleY = scale;
         return scale;
     }
     public function new(game:Game)
     {
         this.game = game;
         smoothing = true;
-        super(4096,4096);
+        super(3000,3000);
         //add base
         group = new TileContainer();
         addTile(group);

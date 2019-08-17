@@ -12,9 +12,9 @@ class GameData
     public var spriteMap:Map<Int,SpriteData> = new Map<Int,SpriteData>();
     public var map:MapData;
     public var chunk:ChunkData;
-    public function new(#if openfl parent:TileContainer#end)
+    public function new(#if openfl ground:TileContainer,parent:TileContainer#end)
     {
         map = new MapData();
-        chunk = new ChunkData(parent);
+        chunk = new ChunkData(ground,parent);
     }
 }

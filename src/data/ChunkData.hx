@@ -7,10 +7,12 @@ class ChunkData
 {
     public var array:Array<Chunk> = [];
     public var latest:Chunk = null;
-    public var parent:TileContainer;
-    public function new(parent:TileContainer) 
+    var parent:TileContainer;
+    var ground:TileContainer;
+    public function new(ground:TileContainer,parent:TileContainer) 
     {
         this.parent = parent;
+        this.ground = ground;
     }
     public function add(x:Int,y:Int,width:Int,height:Int):Chunk
     {
@@ -29,7 +31,7 @@ class ChunkData
         var array:Array<Tile> = [];
         for (i in 0...chunk.width * chunk.height)
         {
-            parent.removeTile(chunk.ground.i(i));
+            ground.removeTile(chunk.ground.i(i));
             array = chunk.floor.i(i);
             if (array != null) for (floor in array) parent.removeTile(floor);
             array = chunk.object.i(i);
