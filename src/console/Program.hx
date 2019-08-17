@@ -154,7 +154,7 @@ class Program
                     id = game.data.map.object.get(x,y);
                     if (get.indexOf(id) >= 0)
                     {
-                        cur = Math.sqrt(Math.pow(Player.main.instance.y - y + game.data.map.y,2) + Math.pow(Player.main.instance.x - x + game.data.map.x,2));
+                        cur = Math.sqrt(Math.pow(Player.main.instance.y - y,2) + Math.pow(Player.main.instance.x - x,2));
                         if (cur < dis)
                         {
                             goal.y = y;
@@ -167,27 +167,27 @@ class Program
         if (dis < range)
         {
             setup = true;
-            Main.console.print("Distance",Std.string(dis));
+            Main.console.print("distance",Std.string(dis));
         }else{
             setup = false;
-            Main.console.print("Out of range",Std.string(dis));
+            Main.console.print("out of range",Std.string(dis));
         }
     }
     public function emote(e:Int):Program
     {
         //0-13
-        Main.client.send("EMOT 0 0 " + e);
+        send(EMOT,"0 0 " + e);
         return this;
     }
     public function say(string:String):Program
     {
-        Main.client.send("SAY 0 0 " + string.toUpperCase());
+        send(SAY,"0 0 " + string.toUpperCase());
         return this;
     }
     public function remove(x:Int,y:Int,index:Int=-1):Program
     {
         //remove an object from a container
-        Main.client.send("REMV " + x + " " + y + " " + index);
+        send(REMV, x + " " + y + " " + index);
         return this;
     }
     public function specialRemove(i:Int=-1):Program
@@ -201,7 +201,7 @@ class Program
     public function pull(i:Int,index:Int=-1):Program
     {
         //remove object from clothing
-        Main.client.send("SREMV " + i + " " + index);
+        send(SREMV, i + " " + index);
         return this;
     }
     public function pickup():Program
@@ -211,7 +211,7 @@ class Program
     public function self(index:Int=-1):Program
     {
         //use action on self (eat)
-        Main.client.send("SELF 0 0 " + index);
+        send(SELF, "0 0 " + index);
         return this;
     }
     public function eat():Program

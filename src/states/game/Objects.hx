@@ -24,6 +24,7 @@ class Objects extends TileDisplay
     var game:Game;
     var tile:Tile;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
+    var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
     //for tileset
     var tileX:Float = 0;
     var tileY:Float = 0;
@@ -65,9 +66,7 @@ class Objects extends TileDisplay
         objectPool = new ObjectPool(function():Object
         {
             //object or floor
-            var tile = new Object();
-            group.addTile(tile);
-            return tile;
+            return new Object();
         },function(tile:Object)
         {
             tile.removeTiles();
@@ -151,7 +150,7 @@ class Objects extends TileDisplay
     }
     public function addFloor(id:Int,x:Int=0,y:Int=0):Bool
     {
-        return add(id,x,y,false,true) != null ? true : false;
+        return add(id,x,y,false,true);
     }
     public function addObject(id:Int,x:Int=0,y:Int=0):Tile
     {
@@ -174,9 +173,9 @@ class Objects extends TileDisplay
             player.set(data);
         }
     }
-    public function add(id:Int,x:Int=0,y:Int=0,player:Bool=false,floor:Bool=false):Object
+    public function add(id:Int,x:Int=0,y:Int=0,player:Bool=false,floor:Bool=false):Bool
     {
-        if(id == 0) return null;
+        if(id == 0) return false;
         var data = new ObjectData(id);
         var obj:Object = null;
         //data
@@ -247,10 +246,14 @@ class Objects extends TileDisplay
             {
                 //player data set
                 cast(obj,Player).ageRange[i] = {min:data.spriteArray[i].ageRange[0],max:data.spriteArray[i].ageRange[1]};
+            }else{
+                group.addTile(tile);
+                tile.x += x * Static.GRID;
+                tile.y += y * Static.GRID;
             }
         }
         obj.animate(0);
-        return obj;
+        return true;
     }
     private function cacheSprite(id:Int):Int
     {

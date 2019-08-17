@@ -123,7 +123,7 @@ class Game #if openfl extends states.State #end
         
         //set global
 
-        text.text = "num " + objects.numTiles + "\nox " + selectX + " y " + selectY;
+        text.text = "num " + objects.group.numTiles;
 
         //player movement
         if(Player.main != null)
@@ -136,7 +136,6 @@ class Game #if openfl extends states.State #end
             if (Bind.playerRight.bool) xs += 1;
             if (xs != 0 || ys != 0) 
             {
-                trace("move " + xs + " " + ys);
                 Player.main.goal = false;
                 program.setup = false;
                 Player.main.step(xs,ys);
