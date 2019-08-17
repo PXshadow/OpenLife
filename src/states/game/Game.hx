@@ -244,7 +244,7 @@ class Game #if openfl extends states.State #end
         var chunk = data.chunk.add(mapInstance.x,mapInstance.y,mapInstance.width,mapInstance.height);
         //out of range chunks and add overlap
         trace("chunk length " + data.chunk.array.length);
-        var out:Float = 32;
+        var out:Float = 36;
         var dis:Float = 0;
         var overlaps:Array<Rectangle> = [];
         var rect:Rectangle;
