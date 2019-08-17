@@ -502,7 +502,6 @@ class Program
             trace("unable to find target " + target);
             return targets;
         }
-        var tile:Tile = null;
         /*for (i in 0...game.objects.group.numTiles)
         {
             tile = game.objects.group.getTileAt(i);

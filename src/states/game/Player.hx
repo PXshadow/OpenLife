@@ -55,9 +55,12 @@ class Player #if openfl extends TileContainer #end
             //add to pos
             x += velocityX;
             y += velocityY;
-            game.objects.group.x += -velocityX;
-            game.objects.group.y += -velocityY;
-            //game.objects.update();
+            if (Player.main == this)
+            {
+                //move camera only if main player
+                game.objects.group.x += -velocityX;
+                game.objects.group.y += -velocityY;
+            }
             //remove time per frame
             timeInt--;
         }
@@ -223,8 +226,7 @@ class Player #if openfl extends TileContainer #end
         {
             trace("forced");
             Main.client.send("FORCE " + instance.x + " " + instance.y);
-            //reset camera
-
+            //force movement
             pos();
         }
         //remove moves
@@ -236,63 +238,38 @@ class Player #if openfl extends TileContainer #end
     public function hold()
     {
         #if openfl
-        //object holding
-        if (instance.o_id == 0)
+        //remove previous if any
+        if (object != null)
         {
-            if (object != null) removeTile(object);
-        }else{
-            if (object != null)
-            {
-                if (object.id == Std.int(instance.o_id)) return;
-                removeTile(object);
-            }
-            if (instance.o_id > 0)
-            {
-                //object
-                object = cast game.objects.add(instance.o_id);
-            }else{
-                //player
-                trace("player");
-                object = cast game.objects.add(instance.o_id * -1,true);
-            }
-            //remove from main objects display
-            game.objects.group.removeTile(object);
-            //add into player
-            addTile(object);
-            //trace("offset " + instance.o_origin_x + " " + instance.o_origin_y);
-            //set hand position
-            object.x = -instance.o_origin_x + Static.GRID/4;
-            object.y = -instance.o_origin_y - Static.GRID/1.5;
+            removeTile(object);
+            object = null;
         }
+        if (instance.o_id == 0) return;
+        if (instance.o_id > 0)
+        {
+            //object
+            game.objects.add(instance.o_id,0,0,true,false);
+        }else{
+            //player
+            trace("player");
+            game.objects.add(instance.o_id * -1,0,0,true,false);
+        }
+        object = game.objects.object;
+        object.x = -instance.o_origin_x + Static.GRID/4;
+        object.y = -instance.o_origin_y - Static.GRID/1.5;
         #end
     }
     public function pos() 
     {
         #if openfl
-        data.x = instance.x;
-        data.y = instance.y;
         //local position
-        x = data.x * Static.GRID;
-        y = (Static.tileHeight - data.y) * Static.GRID;
+        x = instance.x * Static.GRID;
+        y = (Static.tileHeight - instance.y) * Static.GRID;
         #end
     }
     public function sort()
     {
-        //did not move vertically
-        if (data.tileY == instance.y) return;
-
-        var tile:Tile = null;
-        for (i in 0...game.objects.numTiles)
-        {
-            tile = game.objects.group.getTileAt(i);
-            if (tile.data.type != GROUND && tile.data.type != PLAYER && tile.data.y == instance.y - 1)
-            {
-                game.objects.group.removeTile(this);
-                game.objects.group.addTileAt(this,game.objects.group.getTileIndex(tile));
-                //if floor try and find object, if object than floor has already been shifted if present.
-                if (tile.data.type == OBJECT) break;
-            }
-        }
+        
     }
     public function age()
     {

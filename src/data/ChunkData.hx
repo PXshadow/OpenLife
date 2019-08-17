@@ -7,9 +7,10 @@ class ChunkData
 {
     public var array:Array<Chunk> = [];
     public var latest:Chunk = null;
-    public function new() 
+    public var parent:TileContainer;
+    public function new(parent:TileContainer) 
     {
-
+        this.parent = parent;
     }
     public function add(x:Int,y:Int,width:Int,height:Int):Chunk
     {
@@ -20,24 +21,21 @@ class ChunkData
         latest.height = height;
         latest.gen();
         array.push(latest);
-        trace("add chunk " + latest);
         return latest;
     }
     public function remove(chunk:Chunk)
     {
         //clean chunk
-        var parent:TileContainer = null;
+        var array:Array<Tile> = [];
         for (i in 0...chunk.width * chunk.height)
         {
-            if (parent == null)
-            {
-                parent = chunk.ground.i(i).parent;
-            }
             parent.removeTile(chunk.ground.i(i));
-            for(floor in chunk.floor.i(i)) parent.removeTile(floor);
-            for (object in chunk.object.i(i)) parent.removeTile(object);
+            array = chunk.floor.i(i);
+            if (array != null) for (floor in array) parent.removeTile(floor);
+            array = chunk.object.i(i);
+            if (array != null) for (object in array) parent.removeTile(object);
         }
-        array.remove(chunk);
+        this.array.remove(chunk);
         chunk = null;
     }
 }

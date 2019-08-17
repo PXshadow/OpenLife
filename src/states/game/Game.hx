@@ -57,7 +57,6 @@ class Game #if openfl extends states.State #end
         //set interp
         Console.interp.variables.set("game",this);
         Console.interp.variables.set("program",program);
-        data = new GameData();
 
         #if openfl
         super();
@@ -79,6 +78,8 @@ class Game #if openfl extends states.State #end
         bitmap = new Bitmap();
         addChild(bitmap);
         #end
+        //setup data
+        data = new GameData(#if openfl objects.group#end);
         //connect
         if (true)
         {
@@ -105,7 +106,6 @@ class Game #if openfl extends states.State #end
         }
     }
     //client events
-
     #if openfl
     var xs:Int = 0;
     var ys:Int = 0;
@@ -241,6 +241,17 @@ class Game #if openfl extends states.State #end
             inital = false;
         }
         var chunk = data.chunk.add(mapInstance.x,mapInstance.y,mapInstance.width,mapInstance.height);
+        //draw chunks
+        draw.graphics.lineStyle(2,0);
+        draw.graphics.beginFill(0,0.2);
+        draw.graphics.drawRect(Main.setWidth/2 + chunk.x * 4,chunk.y * 4,chunk.width * 4,chunk.height * 4);
+        draw.graphics.endFill();
+        //remove to many chunks
+        trace("chunk length " + data.chunk.array.length);
+        /*if (data.chunk.array.length > 4)
+        {
+            data.chunk.remove(data.chunk.array.shift());
+        }*/
         for(j in chunk.y...chunk.y + chunk.height)
         {
             for (i in chunk.x...chunk.x + chunk.width)

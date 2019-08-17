@@ -20,7 +20,7 @@ class Objects extends TileDisplay
 {
     //game ref
     var game:Game;
-    var object:TileContainer;
+    public var object:TileContainer;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
     var animationMap:Map<Int,AnimationData> = new Map<Int,AnimationData>();
@@ -111,8 +111,8 @@ class Objects extends TileDisplay
         var object = new Tile();
         object.id = id * 16 + ci(x) + ci(y) * 3;
         object.data = {type:GROUND,x:x,y:y};
-        object.x = object.data.x * Static.GRID;
-        object.y = (Static.tileHeight - object.data.y) * Static.GRID;
+        object.x = object.data.x * Static.GRID - Static.GRID/2;
+        object.y = (Static.tileHeight - object.data.y) * Static.GRID - Static.GRID/2;
         group.addTileAt(object,0);
         //add to chunk
         game.data.chunk.latest.ground.set(x,y,object);
@@ -126,7 +126,6 @@ class Objects extends TileDisplay
             //new
             add(data.po_id,data.x,data.y,true);
             player = cast object;
-            trace("new player " + player);
             game.data.playerMap.set(data.p_id,player);
             player.set(data);
             player.pos();
@@ -147,7 +146,7 @@ class Objects extends TileDisplay
         }
         return data;
     }
-    public function add(id:Int,x:Int=0,y:Int=0,container:Bool=false):Bool
+    public function add(id:Int,x:Int=0,y:Int=0,container:Bool=false,chunk:Bool=true):Bool
     {
         if(id <= 0) return false;
         var data = getObjectData(id);
@@ -164,14 +163,14 @@ class Objects extends TileDisplay
         if(data.person > 0)
         {
             object = new Player(game);
-            group.addTile(object);
             container = true;
         }
         if (container)
         {
+            group.addTile(object);
             //set local position
             object.x = (x) * Static.GRID;
-            object.y = (Static.tileHeight - (y)) * Static.GRID;
+            object.y = (Static.tileHeight - y) * Static.GRID;
         }
         if (!game.data.map.loaded)
         {
@@ -219,27 +218,34 @@ class Objects extends TileDisplay
             if (container)
             {
                 //parent
-                object.addTile(sprite);
+                if (chunk) object.addTile(sprite);
             }else{
                 //group
-                group.addTile(sprite);
-                sprites.push(sprite);
+                if (chunk) 
+                {
+                    group.addTile(sprite);
+                    sprites.push(sprite);
+                }
                 sprite.x += x * Static.GRID;
-                sprite.y += y * Static.GRID;
+                sprite.y += (Static.tileHeight - y) * Static.GRID;
             }
         }
-        //add to chunk
-        if (data.person == 0)
+        //chunk bool loads in the elements into a chunk
+        if (chunk)
         {
-            if (container)
+            //add to chunk
+            if (data.person == 0)
             {
-                sprites = [object];
-            }
-            if (data.floor == 1)
-            {
-                game.data.chunk.latest.floor.set(x,y,sprites);
-            }else{
-                game.data.chunk.latest.object.set(x,y,sprites);
+                if (container)
+                {
+                    sprites = [object];
+                }
+                if (data.floor == 1)
+                {
+                    game.data.chunk.latest.floor.set(x,y,sprites);
+                }else{
+                    game.data.chunk.latest.object.set(x,y,sprites);
+                }
             }
         }
         return true;

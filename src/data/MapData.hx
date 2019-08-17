@@ -92,7 +92,7 @@ class ArrayData
         }
         return 0;
     }
-    public function set(x:Int,y:Int,value:Int)
+    public function shiftY(y:Int)
     {
         //shift
         if (y < dy) 
@@ -100,11 +100,15 @@ class ArrayData
             for(i in 0...dy - y) array.unshift([]);
             dy = y;
         }
+    }
+    public function shiftX(x:Int)
+    {
         if (x < dx)
         {
             trace("x shift " + Std.string(dx - x) + " array " + array.length);
             for (j in 0...array.length)
             {
+                if (array[j] == null) array[j] = [];
                 for (i in 0...dx - x) 
             	{
                     //causes crash sometimes (figure out why)
@@ -113,6 +117,11 @@ class ArrayData
             }
             dx = x;
         }
+    }
+    public function set(x:Int,y:Int,value:Int)
+    {
+        shiftY(y);
+        shiftX(x);
         //null array fill
         if (array[y - dy] == null)
         {
