@@ -1,4 +1,5 @@
 package data;
+import states.game.Ground;
 import openfl.display.TileContainer;
 import openfl.display.Tile;
 import openfl.geom.Rectangle;
@@ -12,7 +13,7 @@ class GameData
     public var spriteMap:Map<Int,SpriteData> = new Map<Int,SpriteData>();
     public var map:MapData;
     public var chunk:ChunkData;
-    public function new(#if openfl ground:TileContainer,parent:TileContainer#end)
+    public function new(#if openfl ground:Ground,parent:TileContainer#end)
     {
         map = new MapData();
         chunk = new ChunkData(ground,parent);

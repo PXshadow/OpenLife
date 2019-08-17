@@ -48,8 +48,8 @@ class Objects extends TileDisplay
     {
         group.scaleX = scale;
         group.scaleY = scale;
-        game.ground.group.scaleX = scale;
-        game.ground.group.scaleY = scale;
+        game.ground.scaleX = scale;
+        game.ground.scaleY = scale;
         return scale;
     }
     public function new(game:Game)
@@ -117,7 +117,7 @@ class Objects extends TileDisplay
         object.y = (Static.tileHeight - object.data.y) * Static.GRID - Static.GRID/2;
         group.addTileAt(object,0);
         //add to chunk
-        game.data.chunk.latest.ground.set(x,y,object);
+        //game.data.chunk.latest.ground.set(x,y,object);
         return object;
     }
     public function addPlayer(data:PlayerInstance)

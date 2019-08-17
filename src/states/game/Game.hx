@@ -83,7 +83,7 @@ class Game #if openfl extends states.State #end
         addChild(bitmap);
         #end
         //setup data
-        data = new GameData(#if openfl ground.group,objects.group#end);
+        data = new GameData(#if openfl ground,objects.group#end);
         //connect
         if (true)
         {
@@ -154,8 +154,8 @@ class Game #if openfl extends states.State #end
         {
             objects.group.x = lerp(objects.group.x,-Player.main.x * objects.scale + Main.setWidth/2 ,0.03);
             objects.group.y = lerp(objects.group.y,-Player.main.y * objects.scale + Main.setHeight/2,0.03);
-            ground.group.x = objects.group.x;
-            ground.group.y = objects.group.y;
+            ground.x = objects.group.x;
+            ground.y = objects.group.y;
         }
     }
     public inline function lerp(v0:Float,v1:Float,t:Float)
@@ -217,15 +217,6 @@ class Game #if openfl extends states.State #end
             }
         }
     }
-    public function move(x:Float=0,y:Float=0)
-    {
-        //flip
-        x *= -1;
-        y *= -1;
-        //move
-        objects.x += x;
-        objects.y += y;
-    }
     override function mouseScroll(e:MouseEvent) 
     {
         super.mouseScroll(e);
@@ -244,8 +235,8 @@ class Game #if openfl extends states.State #end
         {
             objects.group.x = -data.map.x * Static.GRID;
             objects.group.y = -data.map.y * Static.GRID;
-            ground.group.x = objects.group.x;
-            ground.group.y = objects.group.y;
+            ground.x = objects.group.x;
+            ground.y = objects.group.y;
             inital = false;
         }
         var chunk = data.chunk.add(mapInstance.x,mapInstance.y,mapInstance.width,mapInstance.height);
@@ -314,6 +305,7 @@ class Game #if openfl extends states.State #end
                 objects.add(data.map.object.get(i,j),i,j);
             }
         }
+        ground.render();
     }
     #end
     

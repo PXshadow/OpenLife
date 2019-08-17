@@ -1,33 +1,33 @@
 package states.game;
 
+import openfl.Vector;
 import data.TgaData;
-import openfl.display.TileContainer;
 import openfl.display.BitmapData;
 import openfl.display.Tileset;
-import openfl.display.Tilemap;
 import openfl.geom.Rectangle;
 import sys.io.File;
-import openfl.display.Tile;
+import openfl.display.Shape;
 
-class Ground extends Tilemap
+class Ground extends Shape
 {
-    public var group:TileContainer;
     var reader:TgaData = new TgaData();
     var tileHeight:Int = 0;
     //for tileset
     var tileX:Float = 0;
     var tileY:Float = 0;
     var game:Game;
+    var tileset:Tileset;
+    public var indices:Vector<Int> = new Vector<Int>();
+    public var transforms:Vector<Float> = new Vector<Float>();
     public function new(game:Game)
     {
-        super(0,0,new Tileset(new BitmapData(2000,2000,false,0)),false);
+        super();
+        tileset = new Tileset(new BitmapData(2000,2000,false,0));
         this.game = game;
         /*tileAlphaEnabled = false;
         tileColorTransformEnabled = false;
         tileBlendModeEnabled = false;*/
         //opaqueBackground = 0;
-        group = new TileContainer();
-        addTile(group);
         //add cached ground
         for (i in 0...6 + 1) cache(i);
     }
@@ -41,17 +41,17 @@ class Ground extends Tilemap
         }
         return i;
     }
-    public function add(id:Int,x:Int,y:Int):Tile
+    public function render()
     {
-        var object = new Tile();
-        object.id = id * 16 + ci(x) + ci(y) * 3;
-        object.x = x * Static.GRID - Static.GRID/2;
-        object.y = (Static.tileHeight - y) * Static.GRID - Static.GRID/2;
-        group.addTile(object);
-        //if (group.numTiles > 900)group.removeTileAt(0);
-        //add to chunk
-        game.data.chunk.latest.ground.set(x,y,object);
-        return object;
+        graphics.clear();
+        graphics.beginBitmapFill(tileset.bitmapData);
+        graphics.drawQuads(tileset.rectData,indices,transforms);
+    }
+    public function add(id:Int,x:Int,y:Int)
+    {
+        transforms.push(x * Static.GRID - Static.GRID/2);
+        transforms.push((Static.tileHeight - y) * Static.GRID - Static.GRID/2);
+        game.data.chunk.latest.ground.set(x,y,indices.push(id * 16 + ci(x) + ci(y) * 3) - 1);
     }
     //cache ground tiles
     public function cache(id:Int)

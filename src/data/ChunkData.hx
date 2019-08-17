@@ -1,4 +1,5 @@
 package data;
+import states.game.Ground;
 import openfl.display.TileContainer;
 import openfl.display.Tile;
 import haxe.ds.Vector;
@@ -8,8 +9,8 @@ class ChunkData
     public var array:Array<Chunk> = [];
     public var latest:Chunk = null;
     var parent:TileContainer;
-    var ground:TileContainer;
-    public function new(ground:TileContainer,parent:TileContainer) 
+    var ground:Ground;
+    public function new(ground:Ground,parent:TileContainer) 
     {
         this.parent = parent;
         this.ground = ground;
@@ -31,7 +32,7 @@ class ChunkData
         var array:Array<Tile> = [];
         for (i in 0...chunk.width * chunk.height)
         {
-            ground.removeTile(chunk.ground.i(i));
+            //ground.removeTile(chunk.ground.i(i));
             array = chunk.floor.i(i);
             if (array != null) for (floor in array) parent.removeTile(floor);
             array = chunk.object.i(i);
@@ -48,7 +49,7 @@ class Chunk
     public var width:Int = 0;
     public var height:Int = 0;
     //x - y - group
-    public var ground:ChunkVector<Tile>;
+    public var ground:ChunkVector<Int>;
     public var floor:ChunkVector<Array<Tile>>;
     public var object:ChunkVector<Array<Tile>>;
     //center
@@ -60,7 +61,7 @@ class Chunk
     }
     public function gen()
     {
-        ground = new ChunkVector<Tile>(width,height);
+        ground = new ChunkVector<Int>(width,height);
         floor = new ChunkVector<Array<Tile>>(width,height);
         object = new ChunkVector<Array<Tile>>(width,height);
         centerX = x + Std.int(width/2);

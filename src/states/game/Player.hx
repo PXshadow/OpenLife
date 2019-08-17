@@ -60,8 +60,8 @@ class Player #if openfl extends TileContainer #end
                 //move camera only if main player
                 game.objects.group.x += -velocityX;
                 game.objects.group.y += -velocityY;
-                game.ground.group.x += -velocityX;
-                game.ground.group.y += -velocityY;
+                game.ground.x += -velocityX;
+                game.ground.y += -velocityY;
             }
             //remove time per frame
             timeInt--;
