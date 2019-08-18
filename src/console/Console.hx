@@ -87,7 +87,7 @@ class Console #if openfl extends DisplayObjectContainer #end
     {
         //graphics
         shape.graphics.clear();
-        shape.graphics.beginFill(0,0.8);
+        shape.graphics.beginFill(0,0.85);
         shape.graphics.drawRect(0,0,width,296);
         shape.graphics.endFill();
         shape.graphics.lineStyle(1,0xFFFFFF);

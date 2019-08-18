@@ -72,9 +72,14 @@ class ArrayData<T>
     //diffrence
     public var dx:Int = 0;
     public var dy:Int = 0;
+    var lx:Int = 0;
     public function new()
     {
         array[0] = [];
+    }
+    public function row(y:Int):Array<T>
+    {
+        return array[y-dy];
     }
     public function lengthY():Int
     {
@@ -82,7 +87,7 @@ class ArrayData<T>
     }
     public function lengthX():Int
     {
-        return array[0].length;
+        return lx;
     }
     public function get(x:Int,y:Int):T
     {
@@ -127,7 +132,10 @@ class ArrayData<T>
             array[y - dy] = [];
         }
         //set value
-        array[y - dy][x - dx] = value;
+        x += -dx;
+        //set lengthX
+        if (lx < x) lx = x;
+        array[y - dy][x] = value;
     }
 }
 class MapInstance
@@ -157,7 +165,7 @@ class MapChange
     public var pid:Int = 0;
     public var oldX:Int = 0;
     public var oldY:Int = 0;
-    public var speed:Int = 0;
+    public var speed:Float = 0;
     public function new(array:Array<String>)
     {
         x = Std.parseInt(array[0]);
@@ -166,10 +174,11 @@ class MapChange
         id = Std.parseInt(array[3]);
         pid = Std.parseInt(array[4]);
         //optional speed
-        if(array.length > 4)
+        if(array.length > 5)
         {
-            var old = array[5] + "." + array[6];
-            var speed = array[7];
+            oldX = Std.parseInt(array[5]);
+            oldY = Std.parseInt(array[6]);
+            speed = Std.parseFloat(array[7]);
         }
     }
 }

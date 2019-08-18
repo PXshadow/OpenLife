@@ -34,9 +34,9 @@ class Player #if openfl extends TileContainer #end
     public var timeInt:Int = -1;
     //pathing
     public var goal:Bool = false;
-    public var refine:Bool = false;
     var program:Program = null;
     var gdata:GameData;
+    public var follow:Bool = true;
     public function new(data:GameData,program:Program=null)
     {
         this.gdata = data;
@@ -59,12 +59,12 @@ class Player #if openfl extends TileContainer #end
             //add to pos
             x += velocityX;
             y += velocityY;
-            if (Main.objects.player == this)
+            /*if (Main.objects.player == this && follow)
             {
                 //move camera only if main player
                 Main.objects.group.x += -velocityX;
                 Main.objects.group.y += -velocityY;
-            }
+            }*/
             //remove time per frame
             timeInt--;
         }
@@ -81,7 +81,8 @@ class Player #if openfl extends TileContainer #end
             pos();
             instance.x += point.x;
             instance.y += point.y;
-            sort();
+            //sort before move
+            if (point.y != 0) sort(point.y);
             //flip (change direction)
             if (point.x != 0)
             {
@@ -271,9 +272,26 @@ class Player #if openfl extends TileContainer #end
         y = (Static.tileHeight - instance.y) * Static.GRID;
         #end
     }
-    public function sort()
+    public function sort(diff:Int=0)
     {
-        
+        var array = gdata.tileData.object.row(instance.y);
+        //check tile going to
+        var index:Int = instance.x - gdata.tileData.object.dx;
+        trace("sort index " + index);
+        var object:Array<Tile> = array[index];
+        if (object == null)
+        {
+            for (item in array)
+            {
+                if (item != null && item.length > 0) 
+                {
+                    object = item;
+                    break;
+                }
+            }
+        }
+        if (object == null) return;
+        parent.setTileIndex(this,parent.getTileIndex(object[0]) + diff);
     }
     public function age()
     {

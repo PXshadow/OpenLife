@@ -106,7 +106,7 @@ class Objects extends TileDisplay
         }
         if (container)
         {
-            group.addTile(object);
+            group.addTileAt(object,0);
             //set local position
             object.x = (x) * Static.GRID;
             object.y = (Static.tileHeight - y) * Static.GRID;
@@ -162,7 +162,7 @@ class Objects extends TileDisplay
                 //group
                 if (push) 
                 {
-                    group.addTile(sprite);
+                    group.addTileAt(sprite,0);
                     sprites.push(sprite);
                 }
                 sprite.x += x * Static.GRID;
@@ -171,7 +171,12 @@ class Objects extends TileDisplay
         }
         if (push)
         {
-
+            if (data.floor == 0)
+            {
+                this.data.tileData.object.set(x,y,sprites);
+            }else{
+                this.data.tileData.floor.set(x,y,sprites);
+            }
         }
         return true;
     }

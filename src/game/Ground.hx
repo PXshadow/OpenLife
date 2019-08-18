@@ -28,7 +28,7 @@ class Ground extends Shape
         //cacheAsBitmapMatrix = new Matrix();
         tileset = new Tileset(new BitmapData(2000,2000,false,0));
         //0 is blank for tileData reading
-        //tileset.addRect(new Rectangle());
+        tileset.addRect(new Rectangle());
         //add cached ground
         for (i in 0...6 + 1) cache(i);
     }

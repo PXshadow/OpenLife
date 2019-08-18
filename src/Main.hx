@@ -1,3 +1,5 @@
+import motion.easing.Quad;
+import motion.Actuate;
 import openfl.display.TileContainer;
 import openfl.display.DisplayObject;
 import console.Program;
@@ -97,6 +99,7 @@ class Main #if openfl extends Sprite #end
         objects = new Objects();
         //tile selector
         select = new Shape();
+        //change to matrix if it's to much of a hinderace for intensive scaling systems
         select.cacheAsBitmap = true;
         select.graphics.lineStyle(2,0xB7B7B7);
         select.graphics.drawRect(0,0,Static.GRID,Static.GRID);
@@ -202,23 +205,27 @@ class Main #if openfl extends Sprite #end
                     it.next().update();
                 }
             }
-            //set camera to middle
-            objects.group.x = lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.02);
-            objects.group.y = lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.02);
+            if (player.follow)
+            {
+                //set camera to middle
+                objects.group.x = lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.02);
+                objects.group.y = lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.02);
+            }
             //set ground
             ground.x = objects.group.x;
             ground.y = objects.group.y;
             ground.scaleX = objects.group.scaleX;
             ground.scaleY = objects.group.scaleY;
-            //selector
-            selectX = Math.floor((stage.mouseX - ground.x)/Static.GRID);
-            selectY = Math.floor(stage.mouseY - ground.y/Static.GRID);
+            select.scaleX = ground.scaleX;
+            select.scaleY = ground.scaleY;
+            //mostly global
+            selectX = Math.floor((mouseX - Static.GRID/2 - ground.x)/(Static.GRID * objects.scale)) + 1;
+            selectY = Math.floor((mouseY - Static.GRID/2 - ground.y)/(Static.GRID * objects.scale)) + 1;
             //set local for render
-            select.x = selectX * Static.GRID;
-            select.y = selectY * Static.GRID;
-            //set global
-            selectX *= Static.GRID;
-            selectY *= Static.GRID;
+            select.x = (selectX - 1) * (Static.GRID * objects.scale) + (Static.GRID/2 * objects.scale) + ground.x;
+            select.y = (selectY - 1) * (Static.GRID * objects.scale) + (Static.GRID/2 * objects.scale) + ground.y;
+            //set y real global
+            selectY = Static.tileHeight - selectY;
         }
     }
     public inline function lerp(v0:Float,v1:Float,t:Float)
@@ -315,6 +322,37 @@ class Main #if openfl extends Sprite #end
                     objects.group.removeTile(object);
                 }
             }
+            //out of range
+            var dis:Float = 0;
+            var out:Int = 10;
+            var index:Int = 0;
+        if (player != null)
+        {
+            trace("start out of range " + data.tileData.biome.lengthY() + " x " + data.tileData.biome.lengthX());
+            for (j in 0...data.tileData.biome.lengthY())
+            {
+                for (i in 0...data.tileData.biome.lengthX())
+                {
+                    dis = Math.sqrt(Math.pow((j + data.tileData.biome.dy) - player.instance.y,2) + Math.pow((i + data.tileData.biome.dx) - player.instance.x,2));
+                    trace("dis " + dis);
+                    if (Math.abs(dis) > out)
+                    {
+                        //ground
+                        index = data.tileData.biome.get(i + data.tileData.biome.dx,j + data.tileData.biome.dy);
+                        ground.indices[index] = 0;
+                        ground.transforms[index * 2] = 0;
+                        ground.transforms[index * 2 + 1] = 0;
+                        //floor
+                        array = data.tileData.floor.get(i + data.tileData.floor.dx,j + data.tileData.floor.dy);
+                        remove();
+                        //object
+                        array = data.tileData.object.get(i + data.tileData.object.dx,j + data.tileData.object.dy);
+                        remove();
+                    }
+                }
+            }
+        }
+            //add
             for(j in mapInstance.y...mapInstance.y + mapInstance.height)
             {
                 //overlap checker
@@ -325,14 +363,14 @@ class Main #if openfl extends Sprite #end
                     remove();
                     array = data.tileData.object.get(i,j);
                     remove();
+                    //object
+                    objects.add(data.map.object.get(i,j),i,j);
                     //add floor
                     if (!objects.add(data.map.floor.get(i,j),i,j))
                     {
                         //add ground as there is no floor
                         ground.add(data.map.biome.get(i,j),i,j);
                     }
-                    //object
-                    objects.add(data.map.object.get(i,j),i,j);
                 }
             }
             trace("tilemap percent " + objects.getFill());
@@ -342,7 +380,11 @@ class Main #if openfl extends Sprite #end
     public function setPlayer(player:Player)
     {
         this.player = player;
+        this.player.sort();
         console.set("player",player);
+        //center instantly
+        objects.group.x = -player.x * objects.scale + objects.width/2;
+        objects.group.y = -player.y * objects.scale + objects.height/2;
     }
     public function end()
     {
@@ -411,7 +453,6 @@ class Main #if openfl extends Sprite #end
             }
             Main.client.tag = null;
             case MAP_CHUNK:
-            trace("MAP CHUNK");
             if(compress)
             {
                 Main.client.tag = null;
@@ -432,7 +473,6 @@ class Main #if openfl extends Sprite #end
                         case 0:
                         mapInstance = new MapInstance();
                         mapInstance.width = Std.parseInt(value);
-                        trace("width " + mapInstance.width);
                         case 1:
                         mapInstance.height = Std.parseInt(value);
                         case 2:
@@ -458,30 +498,33 @@ class Main #if openfl extends Sprite #end
             }
             case MAP_CHANGE:
             //x y new_floor_id new_id p_id optional oldX oldY playerSpeed
+            //trace("change " + input.split(" "));
             var change = new MapChange(input.split(" "));
             #if openfl
             var tile:Tile;
-            if (change.speed > 0)
+            var id = change.floor > 0 ? change.floor : change.id;
+            var move:Bool = change.speed > 0 ? true : false;
+            //removal location
+            var rx:Int = change.speed > 0 ? change.oldX : change.x;
+            var ry:Int = change.speed > 0 ? change.oldY : change.y;
+            //removal
+            var array:Array<Tile> = data.tileData.object.get(rx,ry);
+            if (array != null) for (tile in array) objects.removeTile(tile);
+            //remove data
+            if (change.floor == 1)
             {
-                //move object 
+                data.tileData.floor.set(rx,ry,null);
             }else{
-                var type = change.floor > 0 ? 0 : 1;
-                var id = type == 0 ? change.floor : change.id;
-                //remove object regardless
-                /*for (i in 0...objects.numTiles)
-                {
-                    tile = objects.group.getTileAt(i);
-                    if (change.x == tile.data.x && change.y == tile.data.y && type == tile.data.type)
-                    {
-                        objects.group.removeTile(tile);
-                        break;
-                    }
-                }
-                if (id > 0)
-                {
-                    //add new object to map
-                    objects.add(id,change.x,change.y,false);
-                }*/
+                data.tileData.object.set(rx,ry,null);
+            }
+            //add new
+            objects.add(id,rx,ry,move,!move);
+            if (move)
+            {
+                //add to new location
+                data.tileData.object.set(change.x,change.y,[objects.object]);
+                //tween to location
+                //Actuate.tween(objects.object,1,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
             }
             #end
             //change data todo:
