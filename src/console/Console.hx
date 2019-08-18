@@ -60,12 +60,14 @@ class Console #if openfl extends DisplayObjectContainer #end
         interp = new Interp();
         command = new Command();
         //interp variables default
-        var vars:Array<Dynamic> = [Math,Std,Main.client,Static.GRID,this,console.Util];
-        for (value in vars) set(value);
+        set("math",Math);
+        set("client",Main.client);
+        set("grid",Static.GRID);
+        set("util",console.Util);
     }
-    public function set(value:Dynamic)
+    public function set(name:String,value:Dynamic)
     {
-        interp.variables.set(Type.getClassName(value).toLowerCase(),value);
+        interp.variables.set(name,value);
     }
     public function print(inp:String,out:String)
     {
@@ -85,7 +87,7 @@ class Console #if openfl extends DisplayObjectContainer #end
     {
         //graphics
         shape.graphics.clear();
-        shape.graphics.beginFill(0);
+        shape.graphics.beginFill(0,0.8);
         shape.graphics.drawRect(0,0,width,296);
         shape.graphics.endFill();
         shape.graphics.lineStyle(1,0xFFFFFF);

@@ -236,7 +236,7 @@ class Player #if openfl extends TileContainer #end
         //remove moves
         timeInt = 0;
         moves = [];
-        age();
+        //age();
         hold();
     }
     public function hold()

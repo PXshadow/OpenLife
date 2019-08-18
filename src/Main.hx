@@ -56,6 +56,7 @@ class Main #if openfl extends Sprite #end
     var program:Program;
     var string:String = "";
     var gameBool:Bool = false;
+    var state:DisplayObjectContainer;
     public var player:Player;
 
     public function new()
@@ -73,6 +74,11 @@ class Main #if openfl extends Sprite #end
         stage.addEventListener(MouseEvent.MOUSE_UP,mouseUp);  
         stage.addEventListener(MouseEvent.RIGHT_MOUSE_DOWN,mouseRightDown);
         stage.addEventListener(MouseEvent.RIGHT_MOUSE_UP,mouseRightUp);
+        //state
+        state = new DisplayObjectContainer();
+        state.mouseChildren = false;
+        state.mouseEnabled = false;
+        addChild(state);
         //client
         client = new client.Client();
         console = new console.Console();
@@ -82,6 +88,8 @@ class Main #if openfl extends Sprite #end
         cred();
         game();
         connect();
+        var fps = new FPS();
+        addChild(fps);
     }
     public function game()
     {
@@ -93,14 +101,17 @@ class Main #if openfl extends Sprite #end
         select.graphics.lineStyle(2,0xB7B7B7);
         select.graphics.drawRect(0,0,Static.GRID,Static.GRID);
         draw = new Draw(program);
-        addChild(ground);
-        addChild(select);
-        addChild(objects);
-        addChild(draw);
+        state.addChild(ground);
+        state.addChild(select);
+        state.addChild(objects);
+        state.addChild(draw);
         data = new GameData();
         ground.data = data;
         objects.data = data;
         program = new Program(data,console);
+
+        console.set("ground",ground);
+        console.set("objects",objects);
     }
     public function dir()
     {
@@ -192,8 +203,8 @@ class Main #if openfl extends Sprite #end
                 }
             }
             //set camera to middle
-            objects.group.x = lerp(objects.group.x,-player.x * objects.scale + stage.stageWidth/2 ,0.06);
-            objects.group.y = lerp(objects.group.y,-player.y * objects.scale + stage.stageHeight/2,0.06);
+            objects.group.x = lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.02);
+            objects.group.y = lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.02);
             //set ground
             ground.x = objects.group.x;
             ground.y = objects.group.y;
@@ -293,43 +304,45 @@ class Main #if openfl extends Sprite #end
             ground.y = objects.group.y;
             inital = false;
         }
-        var id:Int = 0;
-        var array:Array<Tile> = [];
-        function remove()
-        {
-            if (array != null) for (object in array)
+        //possibly multi thread hence indented
+            objects.tileset.bitmapData.lock();
+            var id:Int = 0;
+            var array:Array<Tile> = [];
+            function remove()
             {
-                objects.group.removeTile(object);
-            }
-        }
-        for(j in mapInstance.y...mapInstance.y + mapInstance.height)
-        {
-            //overlap checker
-            for (i in mapInstance.x...mapInstance.x + mapInstance.width)
-            {
-                //remove overlapping
-                //ground.indices[data.tileData.biome.get(i,j)] = 0;
-                array = data.tileData.floor.get(i,j);
-                remove();
-                array = data.tileData.object.get(i,j);
-                remove();
-                //add floor
-                if (!objects.add(data.map.floor.get(i,j),i,j))
+                if (array != null) for (object in array)
                 {
-                    //add ground as there is no floor
-                    ground.add(data.map.biome.get(i,j),i,j);
+                    objects.group.removeTile(object);
                 }
-                //object
-                objects.add(data.map.object.get(i,j),i,j);
             }
-        }
-        trace("tilemap percent " + objects.getFill());
-        ground.render();
+            for(j in mapInstance.y...mapInstance.y + mapInstance.height)
+            {
+                //overlap checker
+                for (i in mapInstance.x...mapInstance.x + mapInstance.width)
+                {
+                    //remove overlapping
+                    array = data.tileData.floor.get(i,j);
+                    remove();
+                    array = data.tileData.object.get(i,j);
+                    remove();
+                    //add floor
+                    if (!objects.add(data.map.floor.get(i,j),i,j))
+                    {
+                        //add ground as there is no floor
+                        ground.add(data.map.biome.get(i,j),i,j);
+                    }
+                    //object
+                    objects.add(data.map.object.get(i,j),i,j);
+                }
+            }
+            trace("tilemap percent " + objects.getFill());
+            ground.render();
+            objects.tileset.bitmapData.unlock();
     }
     public function setPlayer(player:Player)
     {
         this.player = player;
-        console.set(player);
+        console.set("player",player);
     }
     public function end()
     {
@@ -357,11 +370,6 @@ class Main #if openfl extends Sprite #end
         {
             objects.width = stage.stageWidth;
             objects.height = stage.stageHeight;
-
-            ground.x = objects.x;
-            ground.y = objects.y;
-            ground.width = objects.width;
-            ground.height = objects.height;
         }
     }
     public function connect()
