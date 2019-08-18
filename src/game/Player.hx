@@ -275,9 +275,10 @@ class Player #if openfl extends TileContainer #end
     public function sort(diff:Int=0)
     {
         var array = gdata.tileData.object.row(instance.y);
+        if (array == null) return;
         //check tile going to
         var index:Int = instance.x - gdata.tileData.object.dx;
-        trace("sort index " + index);
+        //trace("sort index " + index);
         var object:Array<Tile> = array[index];
         if (object == null)
         {

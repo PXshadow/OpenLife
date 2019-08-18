@@ -132,10 +132,10 @@ class Main #if openfl extends Sprite #end
     public function cred()
     {
         //account default
-        //Main.client.login.email = "test@test.co.uk";
-        //Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
-        Main.client.login.email = "test@test.com";
-        Main.client.login.key = "9UYQ3-PQKCT-NGQXH-YB93E";
+        Main.client.login.email = "test@test.co.uk";
+        Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
+        //Main.client.login.email = "test@test.com";
+        //Main.client.login.key = "9UYQ3-PQKCT-NGQXH-YB93E";
         //server default (thanks so much Kryptic <3)
         Main.client.ip = "game.krypticmedia.co.uk";
         Main.client.port = 8007;
@@ -317,37 +317,43 @@ class Main #if openfl extends Sprite #end
             var array:Array<Tile> = [];
             function remove()
             {
-                if (array != null) for (object in array)
+                for (object in array)
                 {
                     objects.group.removeTile(object);
                 }
             }
             //out of range
             var dis:Float = 0;
-            var out:Int = 10;
+            var out:Int = 20;
             var index:Int = 0;
         if (player != null)
         {
-            trace("start out of range " + data.tileData.biome.lengthY() + " x " + data.tileData.biome.lengthX());
-            for (j in 0...data.tileData.biome.lengthY())
+            for (j in data.map.y...data.map.y + data.map.height)
             {
-                for (i in 0...data.tileData.biome.lengthX())
+                for (i in data.map.x...data.map.x + data.map.width)
                 {
-                    dis = Math.sqrt(Math.pow((j + data.tileData.biome.dy) - player.instance.y,2) + Math.pow((i + data.tileData.biome.dx) - player.instance.x,2));
-                    trace("dis " + dis);
+                    dis = Math.sqrt(Math.pow(j - player.instance.y,2) + Math.pow(i - player.instance.x,2));
                     if (Math.abs(dis) > out)
                     {
                         //ground
-                        index = data.tileData.biome.get(i + data.tileData.biome.dx,j + data.tileData.biome.dy);
-                        ground.indices[index] = 0;
-                        ground.transforms[index * 2] = 0;
-                        ground.transforms[index * 2 + 1] = 0;
+                        index = data.tileData.biome.get(i,j);
+                        ground.indices.removeAt(index);
+                        ground.transforms.removeAt(index * 2);
+                        ground.transforms.removeAt(index * 2 + 1);
                         //floor
-                        array = data.tileData.floor.get(i + data.tileData.floor.dx,j + data.tileData.floor.dy);
-                        remove();
+                        array = data.tileData.floor.get(i,j);
+                        if (array != null)
+                        {
+                            remove();
+                            data.tileData.floor.set(i,j,[]);
+                        }
                         //object
-                        array = data.tileData.object.get(i + data.tileData.object.dx,j + data.tileData.object.dy);
-                        remove();
+                        array = data.tileData.object.get(i,j);
+                        if (array != null)
+                        {
+                            remove();
+                            data.tileData.object.set(i,j,[]);
+                        }
                     }
                 }
             }
@@ -360,9 +366,9 @@ class Main #if openfl extends Sprite #end
                 {
                     //remove overlapping
                     array = data.tileData.floor.get(i,j);
-                    remove();
+                    if (array != null) remove();
                     array = data.tileData.object.get(i,j);
-                    remove();
+                    if (array != null) remove();
                     //object
                     objects.add(data.map.object.get(i,j),i,j);
                     //add floor

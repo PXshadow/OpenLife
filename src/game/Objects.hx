@@ -154,10 +154,10 @@ class Objects extends TileDisplay
                 //player data set
                 cast(object,Player).ageRange[i] = {min:data.spriteArray[i].ageRange[0],max:data.spriteArray[i].ageRange[1]};
             }
-            if (container)
-            {
-                //parent
-                if (push) object.addTile(sprite);
+                if (container)
+                {
+                    //parent
+                    if (push) object.addTile(sprite);
             }else{
                 //group
                 if (push) 
@@ -171,6 +171,7 @@ class Objects extends TileDisplay
         }
         if (push)
         {
+            if (container) sprites = [object];
             if (data.floor == 0)
             {
                 this.data.tileData.object.set(x,y,sprites);
