@@ -64,7 +64,6 @@ class MapData
                 }
             }
         }
-        trace("dx " + object.dx + " lx " + object.lengthX());
     }
 }
 class ArrayData<T>
@@ -106,7 +105,7 @@ class ArrayData<T>
     {
         if (x < dx)
         {
-            trace("x shift " + Std.string(dx - x) + " array " + array.length);
+            //trace("x shift " + Std.string(dx - x) + " array " + array.length);
             for (j in 0...array.length)
             {
                 if (array[j] == null) array[j] = [];

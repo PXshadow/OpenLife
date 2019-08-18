@@ -24,9 +24,12 @@ class Ground extends Shape
     public function new()
     {
         super();
+        indices [0];
         //opaqueBackground = 0;
         //cacheAsBitmapMatrix = new Matrix();
         tileset = new Tileset(new BitmapData(2000,2000,false,0));
+        //0 is blank for tileData reading
+        tileset.addRect(new Rectangle());
         //add cached ground
         for (i in 0...6 + 1) cache(i);
     }
@@ -48,9 +51,18 @@ class Ground extends Shape
     }
     public function add(id:Int,x:Int,y:Int)
     {
-        transforms.push(x * Static.GRID - Static.GRID/2);
-        transforms.push((Static.tileHeight - y) * Static.GRID - Static.GRID/2);
-        data.tileData.biome.set(x,y,indices.push(id * 16 + ci(x) + ci(y) * 3) - 1);
+        var index = get();
+        indices[index] = id * 16 + ci(x) + ci(y) * 3;
+        transforms[index * 2] = x * Static.GRID - Static.GRID/2;
+        transforms[index * 2 + 1] = (Static.tileHeight - y) * Static.GRID - Static.GRID/2;
+        data.tileData.biome.set(x,y,index);
+    }
+    public function get():Int
+    {
+        var index = indices.indexOf(0);
+        //not found add new
+        if (index == -1) return indices.length;
+        return index;
     }
     //cache ground tiles
     public function cache(id:Int)

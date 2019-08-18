@@ -293,16 +293,30 @@ class Main #if openfl extends Sprite #end
             ground.y = objects.group.y;
             inital = false;
         }
+        var id:Int = 0;
+        var array:Array<Tile> = [];
+        function remove()
+        {
+            if (array != null) for (object in array)
+            {
+                objects.group.removeTile(object);
+            }
+        }
         for(j in mapInstance.y...mapInstance.y + mapInstance.height)
         {
             //overlap checker
             for (i in mapInstance.x...mapInstance.x + mapInstance.width)
             {
-                //floor
+                //remove overlapping
+                //ground.indices[data.tileData.biome.get(i,j)] = 0;
+                array = data.tileData.floor.get(i,j);
+                remove();
+                array = data.tileData.object.get(i,j);
+                remove();
+                //add floor
                 if (!objects.add(data.map.floor.get(i,j),i,j))
                 {
                     //add ground as there is no floor
-                    //objects.addGround(data.map.biome.get(i,j),i,j);
                     ground.add(data.map.biome.get(i,j),i,j);
                 }
                 //object

@@ -56,65 +56,6 @@ class Objects extends TileDisplay
         //add base
         group = new TileContainer();
         addTile(group);
-
-        //add cached ground
-        for (i in 0...6 + 1) cacheGround(i);
-    }
-    //cache ground tiles
-    public function cacheGround(id:Int)
-    {
-        var a = "_square";
-        var rect:Rectangle = new Rectangle(tileX,tileY);
-            //16
-            for(j in 0...4)
-            {
-                for(i in 0...4)
-                {
-                    reader.read(File.read(Static.dir + "groundTileCache/biome_" + id + "_x" + i + "_y" + j + a + ".tga").readAll());
-                    //set dimensions
-                    rect.x = tileX;
-                    rect.y = tileY;
-                    rect.width = reader.rect.width;
-                    rect.height = reader.rect.height;
-                    //move down column
-                    if(rect.x + rect.width >= tileset.bitmapData.width)
-                    {
-                        tileX = 0;
-                        tileY += tileHeight;
-                        rect.x = tileX;
-                        rect.y = tileY;
-                        tileHeight = 0;
-                    }
-                    //move tilesystem
-                    tileX += Std.int(rect.width) + 1;
-                    //set to bitmapData
-                    tileset.bitmapData.setPixels(rect,reader.bytes);
-                    tileset.addRect(rect);
-                    if (rect.height > tileHeight) tileHeight = Std.int(rect.height);
-                }
-            }
-    }
-    private inline function ci(i:Int):Int
-    {
-        if(i > 0)
-        {
-            while (i > 2 + 1) i += -3 - 1;
-        }else{
-            while (i < 0) i += 3 + 1;
-        }
-        return i;
-    }
-    public function addGround(id:Int,x:Int,y:Int):Tile
-    {
-        var object = new Tile();
-        object.id = id * 16 + ci(x) + ci(y) * 3;
-        object.data = {type:GROUND,x:x,y:y};
-        object.x = object.data.x * Static.GRID - Static.GRID/2;
-        object.y = (Static.tileHeight - object.data.y) * Static.GRID - Static.GRID/2;
-        group.addTileAt(object,0);
-        //add to chunk
-        //game.data.chunk.latest.ground.set(x,y,object);
-        return object;
     }
     public function addPlayer(data:PlayerInstance)
     {

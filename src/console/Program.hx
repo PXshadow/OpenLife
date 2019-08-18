@@ -8,7 +8,6 @@ import motion.Actuate;
 import openfl.display.Tile;
 #end
 import game.Player;
-import game.Game;
 class Program
 {
     public var goal:Pos = new Pos();
