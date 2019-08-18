@@ -72,22 +72,19 @@ class ArrayData<T>
     //diffrence
     public var dx:Int = 0;
     public var dy:Int = 0;
-    var lx:Int = 0;
     public function new()
     {
         array[0] = [];
     }
+    public function clear()
+    {
+        array = [];
+        dx = 0;
+        dy = 0;
+    }
     public function row(y:Int):Array<T>
     {
         return array[y-dy];
-    }
-    public function lengthY():Int
-    {
-        return array.length;
-    }
-    public function lengthX():Int
-    {
-        return lx;
     }
     public function get(x:Int,y:Int):T
     {
@@ -133,8 +130,6 @@ class ArrayData<T>
         }
         //set value
         x += -dx;
-        //set lengthX
-        if (lx < x) lx = x;
         array[y - dy][x] = value;
     }
 }

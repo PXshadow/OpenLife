@@ -1,3 +1,4 @@
+import haxe.Timer;
 import motion.easing.Quad;
 import motion.Actuate;
 import openfl.display.TileContainer;
@@ -112,9 +113,10 @@ class Main #if openfl extends Sprite #end
         ground.data = data;
         objects.data = data;
         program = new Program(data,console);
-
+        console.set("program",program);
         console.set("ground",ground);
         console.set("objects",objects);
+        console.set("render",render);
     }
     public function dir()
     {
@@ -299,10 +301,11 @@ class Main #if openfl extends Sprite #end
     {
         zoom(e.delta);
     }
-    public function mapUpdate() 
+    public function render() 
     {
         trace("MAP UPDATE");
         //inital set camera
+        var delay:Int = 1000;
         if (inital)
         {
             objects.group.x = -data.map.x * Static.GRID;
@@ -310,78 +313,49 @@ class Main #if openfl extends Sprite #end
             ground.x = objects.group.x;
             ground.y = objects.group.y;
             inital = false;
+            delay = 0;
         }
-        //possibly multi thread hence indented
-            objects.tileset.bitmapData.lock();
-            var id:Int = 0;
-            var array:Array<Tile> = [];
-            function remove()
-            {
-                for (object in array)
-                {
-                    objects.group.removeTile(object);
-                }
-            }
-            //out of range
-            var dis:Float = 0;
-            var out:Int = 20;
-            var index:Int = 0;
-        if (player != null)
+        var timer = new Timer(delay);
+        timer.run = function()
         {
-            for (j in data.map.y...data.map.y + data.map.height)
+            objects.tileset.bitmapData.lock();
+            ground.clear();
+            objects.clear();
+            //center point to determine range
+            var cx:Int = mapInstance.x + Std.int(mapInstance.width/2);
+            var cy:Int = mapInstance.y + Std.int(mapInstance.height/2);
+            var int:Null<Int>;
+            if (player != null)
             {
-                for (i in data.map.x...data.map.x + data.map.width)
-                {
-                    dis = Math.sqrt(Math.pow(j - player.instance.y,2) + Math.pow(i - player.instance.x,2));
-                    if (Math.abs(dis) > out)
-                    {
-                        //ground
-                        index = data.tileData.biome.get(i,j);
-                        ground.indices.removeAt(index);
-                        ground.transforms.removeAt(index * 2);
-                        ground.transforms.removeAt(index * 2 + 1);
-                        //floor
-                        array = data.tileData.floor.get(i,j);
-                        if (array != null)
-                        {
-                            remove();
-                            data.tileData.floor.set(i,j,[]);
-                        }
-                        //object
-                        array = data.tileData.object.get(i,j);
-                        if (array != null)
-                        {
-                            remove();
-                            data.tileData.object.set(i,j,[]);
-                        }
-                    }
-                }
+                cx = player.instance.x;
+                cy = player.instance.y;
             }
-        }
-            //add
-            for(j in mapInstance.y...mapInstance.y + mapInstance.height)
+            for (j in cy - objects.range ...cy + objects.range)
             {
-                //overlap checker
-                for (i in mapInstance.x...mapInstance.x + mapInstance.width)
+                for (i in cx - objects.range...cx + objects.range)
                 {
-                    //remove overlapping
-                    array = data.tileData.floor.get(i,j);
-                    if (array != null) remove();
-                    array = data.tileData.object.get(i,j);
-                    if (array != null) remove();
-                    //object
                     objects.add(data.map.object.get(i,j),i,j);
                     //add floor
                     if (!objects.add(data.map.floor.get(i,j),i,j))
                     {
                         //add ground as there is no floor
-                        ground.add(data.map.biome.get(i,j),i,j);
+                        int = data.map.biome.get(i,j);
+                        if (int != null) ground.add(int,i,j);
                     }
                 }
             }
             trace("tilemap percent " + objects.getFill());
+            if (player != null) 
+            {
+                objects.group.addTile(player);
+                player.sort();
+            }
             ground.render();
             objects.tileset.bitmapData.unlock();
+
+            timer.stop();
+            timer = null;
+        }
     }
     public function setPlayer(player:Player)
     {
@@ -464,7 +438,7 @@ class Main #if openfl extends Sprite #end
                 Main.client.tag = null;
                 data.map.setRect(mapInstance.x,mapInstance.y,mapInstance.width,mapInstance.height,input);
                 #if openfl
-                mapUpdate();
+                render();
                 #end
                 //mapInstance = null;
                 //toggle to go back to istance for next chunk

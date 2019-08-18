@@ -39,6 +39,7 @@ class Objects extends TileDisplay
     public var data:GameData = null;
     //scale used for zoom in and out
     public var scale(get, set):Float;
+    public var range:Int = 18;
     function get_scale():Float 
     {
         return group.scaleX;
@@ -103,6 +104,7 @@ class Objects extends TileDisplay
         {
             object = new Player(this.data);
             container = true;
+            push = false;
         }
         if (container)
         {
@@ -154,17 +156,15 @@ class Objects extends TileDisplay
                 //player data set
                 cast(object,Player).ageRange[i] = {min:data.spriteArray[i].ageRange[0],max:data.spriteArray[i].ageRange[1]};
             }
-                if (container)
-                {
-                    //parent
-                    if (push) object.addTile(sprite);
+            if (container)
+            {
+                //parent
+                object.addTile(sprite);
             }else{
                 //group
-                if (push) 
-                {
-                    group.addTileAt(sprite,0);
-                    sprites.push(sprite);
-                }
+                group.addTileAt(sprite,0);
+                sprites.unshift(sprite);
+                
                 sprite.x += x * Static.GRID;
                 sprite.y += (Static.tileHeight - y) * Static.GRID;
             }
@@ -180,6 +180,12 @@ class Objects extends TileDisplay
             }
         }
         return true;
+    }
+    public function clear()
+    {
+        data.tileData.object.clear();
+        data.tileData.floor.clear();
+        group.removeTiles();
     }
     private function cacheSprite(id:Int):Int
     {

@@ -18,17 +18,17 @@ class Ground extends Shape
     var tileX:Float = 0;
     var tileY:Float = 0;
     var tileset:Tileset;
-    public var indices:Vector<Int> = new Vector<Int>();
-    public var transforms:Vector<Float> = new Vector<Float>();
+    public var indices:Vector<Int>;
+    public var transforms:Vector<Float>;
     public var data:GameData = null;
     public function new()
     {
         super();
-        opaqueBackground = 0;
+        clear();
+        //opaqueBackground = 0;
         //cacheAsBitmapMatrix = new Matrix();
         tileset = new Tileset(new BitmapData(2000,2000,false,0));
         //0 is blank for tileData reading
-        tileset.addRect(new Rectangle());
         //add cached ground
         for (i in 0...6 + 1) cache(i);
     }
@@ -48,23 +48,20 @@ class Ground extends Shape
         graphics.beginBitmapFill(tileset.bitmapData);
         graphics.drawQuads(tileset.rectData,indices,transforms);
     }
+    public function clear()
+    {
+        indices = new Vector<Int>();
+        transforms = new Vector<Float>();
+    }
     public function add(id:Int,x:Int,y:Int)
     {
-        /*indices.push(id * 16 + ci(x) + ci(y) * 3 + 1);
+        if (id < 0)
+        {
+            return;
+        }
+        indices.push(id * 16 + ci(x) + ci(y) * 3 + 1);
         transforms.push(x * Static.GRID - Static.GRID/2);
-        transforms.push((Static.tileHeight - y) * Static.GRID - Static.GRID/2);*/
-        var index = get();
-        indices[index] = id * 16 + ci(x) + ci(y) * 3 + 1;
-        transforms[index * 2] = x * Static.GRID - Static.GRID/2;
-        transforms[index * 2 + 1] = (Static.tileHeight - y) * Static.GRID - Static.GRID/2;
-        data.tileData.biome.set(x,y,index);
-    }
-    public function get():Int
-    {
-        var index = indices.indexOf(0);
-        //not found add new
-        if (index == -1) return indices.length;
-        return index;
+        transforms.push((Static.tileHeight - y) * Static.GRID - Static.GRID/2);
     }
     //cache ground tiles
     public function cache(id:Int)

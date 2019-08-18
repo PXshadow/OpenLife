@@ -148,9 +148,9 @@ class Program
         var dis:Float = range;
         var cur:Float = 0;
         var id:Int = 0;
-        for(y in data.map.object.dy...data.map.object.dy + data.map.object.lengthY())
+        for(y in data.map.y...data.map.y + data.map.height)
         {
-            for(x in data.map.object.dx...data.map.object.dx + data.map.object.lengthX())
+            for(x in data.map.x...data.map.x + data.map.width)
             {
                     //array of objects in the tile
                     id = data.map.object.get(x,y);
