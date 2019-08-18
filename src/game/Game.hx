@@ -1,4 +1,5 @@
-package states.game;
+package game;
+/*
 
 import openfl.geom.Rectangle;
 import data.ChunkData.Chunk;
@@ -31,7 +32,7 @@ import openfl.display.Tile;
 import openfl.display.Bitmap;
 #end
 
-class Game #if openfl extends states.State #end
+class Game
 {
     #if openfl
     public var draw:Draw;
@@ -55,7 +56,7 @@ class Game #if openfl extends states.State #end
     public function new()
     {
         //delelerative syntax for program console
-        program = new Program(this);
+        program = new Program();
         //set interp
         Console.interp.variables.set("game",this);
         Console.interp.variables.set("program",program);
@@ -63,24 +64,6 @@ class Game #if openfl extends states.State #end
         #if openfl
         super();
         stage.color = 0xFFFFFF;
-        ground = new Ground(this);
-        objects = new Objects(this);
-        //tile selector
-        select = new Shape();
-        select.cacheAsBitmap = true;
-        select.graphics.lineStyle(2,0xB7B7B7);
-        select.graphics.drawRect(0,0,Static.GRID,Static.GRID);
-
-        draw = new Draw(this);
-        addChild(ground);
-        addChild(select);
-        addChild(objects);
-        Main.screen.addChild(draw);
-        text = new Text();
-        text.cacheAsBitmap = false;
-        Main.screen.addChild(text);
-        bitmap = new Bitmap();
-        addChild(bitmap);
         #end
         //setup data
         data = new GameData(#if openfl ground,objects.group#end);
@@ -117,46 +100,7 @@ class Game #if openfl extends states.State #end
     {
         super.update();
         draw.update();
-        //selector
-        selectX = Std.int(stage.mouseX - objects.group.x);
-        selectY = Std.int(stage.mouseY - objects.group.y);
-        //set local for render
         
-        //set global
-
-        text.text = "num " + objects.group.numTiles;
-
-        //player movement
-        if(Player.main != null)
-        {
-            xs = 0;
-            ys = 0;
-            if (Bind.playerUp.bool) ys += 1;
-            if (Bind.playerDown.bool) ys += -1;
-            if (Bind.playerLeft.bool) xs += -1;
-            if (Bind.playerRight.bool) xs += 1;
-            if (xs != 0 || ys != 0) 
-            {
-                Player.main.goal = false;
-                program.setup = false;
-                Player.main.step(xs,ys);
-            }
-        }
-        //update players
-        //players
-        it = data.playerMap.iterator();
-        while(it.hasNext())
-        {
-            it.next().update();
-        }
-        //set camera to middle
-        if (Player.main != null)
-        {
-            objects.group.x = lerp(objects.group.x,-Player.main.x * objects.scale + Main.setWidth/2 ,0.03);
-            objects.group.y = lerp(objects.group.y,-Player.main.y * objects.scale + Main.setHeight/2,0.03);
-            ground.x = objects.group.x;
-            ground.y = objects.group.y;
-        }
     }
     public inline function lerp(v0:Float,v1:Float,t:Float)
     {
@@ -165,21 +109,7 @@ class Game #if openfl extends states.State #end
     override function keyDown() 
     {
         super.keyDown();
-        if (Bind.zoomIn.bool) zoom(1);
-        if (Bind.zoomOut.bool) zoom(-1);
-        if (Bind.playerSelf.bool)
-        {
-            program.self();
-        }
-        if (Bind.playerDrop.bool)
-        {
-            program.drop(selectX,selectY);
-        }
-        if (Bind.playerUse.bool)
-        {
-            program.use(selectX,selectY);
-            Player.main.hold();
-        }
+        
     }
     #if openfl
     var it:Iterator<Player>;
@@ -187,35 +117,11 @@ class Game #if openfl extends states.State #end
     override function mouseDown() 
     {
         super.mouseDown();
-        //fix crash
-        if (Player.main == null) return;
-        if (Bind.playerMove.bool)
-        {
-            program.path(selectX,selectY);
-        }else{
-            if (Bind.playerKill.bool) 
-            {
-                trace("kill");
-                program.kill(selectX,selectY);
-            }else{
-                //use action if within range
-                program.use(selectX,selectY);
-            }
-        }
     }
     override function mouseRightDown()
     {
         super.mouseRightDown();
-        if (Player.main != null)
-        {
-            trace("oid " + Player.main.instance.o_id);
-            if (Player.main.instance.o_id > 0)
-            {
-                program.drop(selectX,selectY);
-            }else{
-                program.remove(selectX,selectY);
-            }
-        }
+        
     }
     override function mouseScroll(e:MouseEvent) 
     {
@@ -450,7 +356,7 @@ class Game #if openfl extends states.State #end
                 var type:ObjectType = change.floor > 0 ? FLOOR : OBJECT;
                 var id = type == FLOOR ? change.floor : change.id;
                 //remove object regardless
-                /*for (i in 0...objects.numTiles)
+                for (i in 0...objects.numTiles)
                 {
                     tile = objects.group.getTileAt(i);
                     if (change.x == tile.data.x && change.y == tile.data.y && type == tile.data.type)
@@ -463,7 +369,7 @@ class Game #if openfl extends states.State #end
                 {
                     //add new object to map
                     objects.add(id,change.x,change.y,false);
-                }*/
+                }
             }
             #end
             //change data todo:
@@ -526,4 +432,4 @@ class Game #if openfl extends states.State #end
             default:
         }
     }
-}
+}*/

@@ -1,4 +1,5 @@
-package states.game;
+package game;
+import console.Program;
 import haxe.Timer;
 import openfl.display.Sprite;
 import openfl.display.DisplayObjectContainer;
@@ -7,22 +8,22 @@ import openfl.display.Shape;
 
 class Draw extends Sprite
 {
-    var game:Game;
     var px:Float = 0;
     var py:Float = 0;
     var messages:Array<Message> = [];
-    public function new(game:Game)
+    var program:Program;
+    public function new(program:Program)
     {
-        this.game = game;
+        this.program = program;
         super();
     }
     public function update()
     {
-        for (message in messages)
+        /*for (message in messages)
         {
-            message.x = game.objects.group.x + game.data.playerMap.get(message.id).x;
-            message.y = game.objects.group.y + game.data.playerMap.get(message.id).y;  
-        }
+            message.x = Main.objects.group.x + game.data.playerMap.get(message.id).x;
+            message.y = Main.objects.group.y + game.data.playerMap.get(message.id).y;  
+        }*/
         /*graphics.clear();
         if (game.program.setup) path();
         }*/

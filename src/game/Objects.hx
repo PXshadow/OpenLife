@@ -1,4 +1,5 @@
-package states.game;
+package game;
+import data.GameData;
 import openfl.display.TileContainer;
 import lime.utils.ObjectPool;
 import openfl.display.Tileset;
@@ -14,12 +15,9 @@ import openfl.geom.Rectangle;
 import data.TgaData;
 import openfl.display.Tile;
 import data.ObjectData;
-import states.launcher.Launcher;
 
 class Objects extends TileDisplay
 {
-    //game ref
-    var game:Game;
     public var object:TileContainer;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
@@ -33,13 +31,14 @@ class Objects extends TileDisplay
     public var player:Player = null;
     //used for reading
     var tileHeight:Int = 0;
-    //scale used for zoom in and out
-    public var scale(get, set):Float;
     public var velocityX:Float = 0;
     public var velocityY:Float = 0;
     public var setX:Float = 0;
     public var setY:Float = 0;
     public var group:TileContainer;
+    public var data:GameData = null;
+    //scale used for zoom in and out
+    public var scale(get, set):Float;
     function get_scale():Float 
     {
         return group.scaleX;
@@ -48,15 +47,12 @@ class Objects extends TileDisplay
     {
         group.scaleX = scale;
         group.scaleY = scale;
-        game.ground.scaleX = scale;
-        game.ground.scaleY = scale;
         return scale;
     }
-    public function new(game:Game)
+    public function new()
     {
-        this.game = game;
         smoothing = true;
-        super(3000,3000);
+        super(4000,4000);
         //add base
         group = new TileContainer();
         addTile(group);
@@ -122,13 +118,13 @@ class Objects extends TileDisplay
     }
     public function addPlayer(data:PlayerInstance)
     {
-        player = game.data.playerMap.get(data.p_id);
+        player = this.data.playerMap.get(data.p_id);
         if (player == null)
         {
             //new
             add(data.po_id,data.x,data.y,true);
             player = cast object;
-            game.data.playerMap.set(data.p_id,player);
+            this.data.playerMap.set(data.p_id,player);
             player.set(data);
             player.pos();
             return;
@@ -148,7 +144,7 @@ class Objects extends TileDisplay
         }
         return data;
     }
-    public function add(id:Int,x:Int=0,y:Int=0,container:Bool=false,chunk:Bool=true):Bool
+    public function add(id:Int,x:Int=0,y:Int=0,container:Bool=false,push:Bool=true):Bool
     {
         if(id <= 0) return false;
         var data = getObjectData(id);
@@ -156,15 +152,15 @@ class Objects extends TileDisplay
         //data
         if (data.blocksWalking == 1)
         {
-            game.data.blocking.set(x + "." + y,true);
+            this.data.blocking.set(x + "." + y,true);
         }else{
-            game.data.blocking.remove(x + "." + y);
+            this.data.blocking.remove(x + "." + y);
         }
         //create new objects
         if (container) object = new TileContainer();
         if(data.person > 0)
         {
-            object = new Player(game);
+            object = new Player(this.data);
             container = true;
         }
         if (container)
@@ -174,10 +170,10 @@ class Objects extends TileDisplay
             object.x = (x) * Static.GRID;
             object.y = (Static.tileHeight - y) * Static.GRID;
         }
-        if (!game.data.map.loaded)
+        if (!this.data.map.loaded)
         {
             //add data into map data if not loaded in (for testing)
-            game.data.map.object.set(x,y,id);
+            this.data.map.object.set(x,y,id);
         }
         var r:Rectangle;
         var sprite:Tile = null;
@@ -220,10 +216,10 @@ class Objects extends TileDisplay
             if (container)
             {
                 //parent
-                if (chunk) object.addTile(sprite);
+                if (push) object.addTile(sprite);
             }else{
                 //group
-                if (chunk) 
+                if (push) 
                 {
                     group.addTile(sprite);
                     sprites.push(sprite);
@@ -232,23 +228,9 @@ class Objects extends TileDisplay
                 sprite.y += (Static.tileHeight - y) * Static.GRID;
             }
         }
-        //chunk bool loads in the elements into a chunk
-        if (chunk)
+        if (push)
         {
-            //add to chunk
-            if (data.person == 0)
-            {
-                if (container)
-                {
-                    sprites = [object];
-                }
-                if (data.floor == 1)
-                {
-                    game.data.chunk.latest.floor.set(x,y,sprites);
-                }else{
-                    game.data.chunk.latest.object.set(x,y,sprites);
-                }
-            }
+
         }
         return true;
     }

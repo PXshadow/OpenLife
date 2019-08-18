@@ -1,9 +1,9 @@
 package data;
-import states.game.Ground;
+import game.Ground;
+import game.Player;
 import openfl.display.TileContainer;
 import openfl.display.Tile;
 import openfl.geom.Rectangle;
-import states.game.Player;
 //data stored for the game to function (map data -> game data)
 class GameData
 {
@@ -12,10 +12,10 @@ class GameData
     public var playerMap:Map<Int,Player> = new Map<Int,Player>();
     public var spriteMap:Map<Int,SpriteData> = new Map<Int,SpriteData>();
     public var map:MapData;
-    public var chunk:ChunkData;
-    public function new(#if openfl ground:Ground,parent:TileContainer#end)
+    public var tileData:TileData;
+    public function new()
     {
         map = new MapData();
-        chunk = new ChunkData(ground,parent);
+        tileData = new TileData();
     }
 }

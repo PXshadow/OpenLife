@@ -14,7 +14,7 @@ class Console #if openfl extends DisplayObjectContainer #end
 {
     var length:Int = 0;
     var parser:Parser;
-    public static var interp:Interp;
+    var interp:Interp;
     var history:Array<String> = [];
     var command:Command;
     //debug elements
@@ -52,30 +52,20 @@ class Console #if openfl extends DisplayObjectContainer #end
         output.tabEnabled = false;
         output.height = 260 - 6;
         addChild(output);
-
-        //client variables
-        //interp.variables.set("width",Main.setWidth);
-        //interp.variables.set("height",Main.setHeight);
-        //interp.variables.set("motion",motion.Actuate);
         #end
-
         //hscript
         parser = new Parser();
         parser.allowJSON = true;
         parser.allowJSON = true;
         interp = new Interp();
-
-        //variables
-        interp.variables.set("Math",Math);
-        interp.variables.set("Std",Std);
-        interp.variables.set("client",Main.client);
-        interp.variables.set("grid",Static.GRID);
-        interp.variables.set("console",Main.console);
-        //utils
-        interp.variables.set("util",console.Util);
-        interp.variables.set("Util",console.Util);
-
         command = new Command();
+        //interp variables default
+        var vars:Array<Dynamic> = [Math,Std,Main.client,Static.GRID,this,console.Util];
+        for (value in vars) set(value);
+    }
+    public function set(value:Dynamic)
+    {
+        interp.variables.set(Type.getClassName(value).toLowerCase(),value);
     }
     public function print(inp:String,out:String)
     {

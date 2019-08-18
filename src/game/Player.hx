@@ -1,4 +1,6 @@
-package states.game;
+package game;
+import console.Program;
+import data.GameData;
 import openfl.display.TileContainer;
 import motion.easing.Quad;
 import console.Program.Pos;
@@ -20,7 +22,6 @@ class Player #if openfl extends TileContainer #end
     public static var main:Player;
     public var instance:PlayerInstance;
     public var ageRange:Array<{min:Float,max:Float}> = [];
-    public var game:Game;
     #if openfl
     public var object:TileContainer;
     #end
@@ -34,9 +35,12 @@ class Player #if openfl extends TileContainer #end
     //pathing
     public var goal:Bool = false;
     public var refine:Bool = false;
-    public function new(game:Game)
+    var program:Program = null;
+    var gdata:GameData;
+    public function new(data:GameData,program:Program=null)
     {
-        this.game = game;
+        this.gdata = data;
+        this.program = program;
         #if openfl
         super();
         #end
@@ -55,13 +59,11 @@ class Player #if openfl extends TileContainer #end
             //add to pos
             x += velocityX;
             y += velocityY;
-            if (Player.main == this)
+            if (Main.objects.player == this)
             {
                 //move camera only if main player
-                game.objects.group.x += -velocityX;
-                game.objects.group.y += -velocityY;
-                game.ground.x += -velocityX;
-                game.ground.y += -velocityY;
+                Main.objects.group.x += -velocityX;
+                Main.objects.group.y += -velocityY;
             }
             //remove time per frame
             timeInt--;
@@ -102,7 +104,7 @@ class Player #if openfl extends TileContainer #end
     public function step(mx:Int,my:Int):Bool
     {
         //no other move is occuring, and player is not moving on blocked
-        if (timeInt > 0 || game.data.blocking.get(Std.string(instance.x + mx) + "." + Std.string(instance.y + my))) return false;
+        if (timeInt > 0 || gdata.blocking.get(Std.string(instance.x + mx) + "." + Std.string(instance.y + my))) return false;
         timeInt = 0;
         //send data
         lastMove++;
@@ -168,14 +170,14 @@ class Player #if openfl extends TileContainer #end
     }
     public function path()
     {
-        var px:Int = game.program.goal.x - instance.x;
-        var py:Int = game.program.goal.y - instance.y;
+        var px:Int = program.goal.x - instance.x;
+        var py:Int = program.goal.y - instance.y;
         if (px != 0) px = px > 0 ? 1 : -1;
         if (py != 0) py = py > 0 ? 1 : -1;
         if (px == 0 && py == 0)
         {
             //complete 
-            game.program.stop();
+            program.stop();
         }else{
             if (!step(px,py))
             {
@@ -239,7 +241,7 @@ class Player #if openfl extends TileContainer #end
     }
     public function hold()
     {
-        #if openfl
+        /*#if openfl
         //remove previous if any
         if (object != null)
         {
@@ -259,7 +261,7 @@ class Player #if openfl extends TileContainer #end
         object = game.objects.object;
         object.x = -instance.o_origin_x + Static.GRID/4;
         object.y = -instance.o_origin_y - Static.GRID/1.5;
-        #end
+        #end*/
     }
     public function pos() 
     {

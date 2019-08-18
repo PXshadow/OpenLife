@@ -1,4 +1,4 @@
-package states.game;
+package game;
 
 import sys.io.File;
 import openfl.geom.Rectangle;
@@ -8,7 +8,6 @@ import haxe.io.Input;
 import openfl.display.BitmapData;
 import openfl.display.Tileset;
 import openfl.display.Tilemap;
-import states.launcher.Launcher;
 import openfl.display.Tile;
 
 class TileDisplay extends Tilemap

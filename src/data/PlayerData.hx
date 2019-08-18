@@ -1,6 +1,6 @@
 package data;
 import console.Program.Pos;
-import states.game.Player;
+import game.Player;
 #if openfl
 import motion.easing.Quad;
 import motion.MotionPath;

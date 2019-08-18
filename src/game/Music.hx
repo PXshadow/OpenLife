@@ -1,4 +1,4 @@
-package states.game;
+package game;
 import openfl.media.Sound;
 class Music
 {

@@ -1,20 +1,21 @@
 package data;
+import haxe.ds.Either;
 import haxe.ds.Vector;
 #if sys
 import sys.io.File;
 #end
 import haxe.io.Bytes;
-import states.game.Player;
+import game.Player;
 class MapData
 {
     //container links index to objects array data when negative number
     public var containers:Array<Vector<Int>> = [];
     //biome 0-7
-    public var biome:ArrayData = new ArrayData();
+    public var biome:ArrayData<Int> = new ArrayData<Int>();
     //floor objects
-    public var floor:ArrayData = new ArrayData();
+    public var floor:ArrayData<Int> = new ArrayData<Int>();
     //object is a postive number, container is a negative that maps 
-    public var object:ArrayData = new ArrayData();
+    public var object:ArrayData<Int> = new ArrayData<Int>();
 
     public var loaded:Bool = false;
 
@@ -66,9 +67,9 @@ class MapData
         trace("dx " + object.dx + " lx " + object.lengthX());
     }
 }
-class ArrayData
+class ArrayData<T>
 {
-    var array:Array<Array<Int>> = [];
+    var array:Array<Array<T>> = [];
     //diffrence
     public var dx:Int = 0;
     public var dy:Int = 0;
@@ -84,13 +85,13 @@ class ArrayData
     {
         return array[0].length;
     }
-    public function get(x:Int,y:Int):Int
+    public function get(x:Int,y:Int):T
     {
         if (array[y - dy] != null)
         {
             return array[y - dy][x - dx];
         }
-        return 0;
+        return null;
     }
     public function shiftY(y:Int)
     {
@@ -101,7 +102,7 @@ class ArrayData
             dy = y;
         }
     }
-    public function shiftX(x:Int)
+    public function shiftX(x:Int,value:T)
     {
         if (x < dx)
         {
@@ -111,17 +112,16 @@ class ArrayData
                 if (array[j] == null) array[j] = [];
                 for (i in 0...dx - x) 
             	{
-                    //causes crash sometimes (figure out why)
-                	array[j].unshift(0);
+                    array[j].unshift(null);
                 }
             }
             dx = x;
         }
     }
-    public function set(x:Int,y:Int,value:Int)
+    public function set(x:Int,y:Int,value:T)
     {
         shiftY(y);
-        shiftX(x);
+        shiftX(x,value);
         //null array fill
         if (array[y - dy] == null)
         {

@@ -1,16 +1,16 @@
 package console;
 
+import data.GameData;
 import server.ServerTag;
 import haxe.crypto.Base64;
 import motion.Actuate;
 #if openfl
 import openfl.display.Tile;
 #end
-import states.game.Player;
-import states.game.Game;
+import game.Player;
+import game.Game;
 class Program
 {
-    var game:Game;
     public var goal:Pos = new Pos();
     //bool to refine path
     public var refine:Bool = false;
@@ -27,9 +27,12 @@ class Program
     public var ate:Array<Int> = [];
     //queue messages to be sent later
     public var queue:Array<ServerTag> = [];
-    public function new(game:Game)
+    var console:Console;
+    var data:GameData;
+    public function new(data:GameData,console:Console)
     {
-        this.game = game;
+        this.data = data;
+        this.console = console;
     }
     public function send(tag:ServerTag,data:String)
     {
@@ -146,12 +149,12 @@ class Program
         var dis:Float = range;
         var cur:Float = 0;
         var id:Int = 0;
-        for(y in game.data.map.object.dy...game.data.map.object.dy + game.data.map.object.lengthY())
+        for(y in data.map.object.dy...data.map.object.dy + data.map.object.lengthY())
         {
-            for(x in game.data.map.object.dx...game.data.map.object.dx + game.data.map.object.lengthX())
+            for(x in data.map.object.dx...data.map.object.dx + data.map.object.lengthX())
             {
                     //array of objects in the tile
-                    id = game.data.map.object.get(x,y);
+                    id = data.map.object.get(x,y);
                     if (get.indexOf(id) >= 0)
                     {
                         cur = Math.sqrt(Math.pow(Player.main.instance.y - y,2) + Math.pow(Player.main.instance.x - x,2));
@@ -167,10 +170,10 @@ class Program
         if (dis < range)
         {
             setup = true;
-            Main.console.print("distance",Std.string(dis));
+            console.print("distance",Std.string(dis));
         }else{
             setup = false;
-            Main.console.print("out of range",Std.string(dis));
+            console.print("out of range",Std.string(dis));
         }
     }
     public function emote(e:Int):Program
@@ -453,7 +456,7 @@ class Program
                 1712, //Attacking Pit Bull
             ];
             default: 
-            Main.console.print(name,"Not found");
+            console.print(name,"Not found");
             [-1];
         }
     }

@@ -1,5 +1,7 @@
-package states.game;
+package game;
 
+import openfl.geom.Matrix;
+import data.GameData;
 import openfl.Vector;
 import data.TgaData;
 import openfl.display.BitmapData;
@@ -15,19 +17,16 @@ class Ground extends Shape
     //for tileset
     var tileX:Float = 0;
     var tileY:Float = 0;
-    var game:Game;
     var tileset:Tileset;
     public var indices:Vector<Int> = new Vector<Int>();
     public var transforms:Vector<Float> = new Vector<Float>();
-    public function new(game:Game)
+    public var data:GameData = null;
+    public function new()
     {
         super();
-        tileset = new Tileset(new BitmapData(2000,2000,false,0));
-        this.game = game;
-        /*tileAlphaEnabled = false;
-        tileColorTransformEnabled = false;
-        tileBlendModeEnabled = false;*/
         //opaqueBackground = 0;
+        //cacheAsBitmapMatrix = new Matrix();
+        tileset = new Tileset(new BitmapData(2000,2000,false,0));
         //add cached ground
         for (i in 0...6 + 1) cache(i);
     }
@@ -51,7 +50,7 @@ class Ground extends Shape
     {
         transforms.push(x * Static.GRID - Static.GRID/2);
         transforms.push((Static.tileHeight - y) * Static.GRID - Static.GRID/2);
-        game.data.chunk.latest.ground.set(x,y,indices.push(id * 16 + ci(x) + ci(y) * 3) - 1);
+        data.tileData.biome.set(x,y,indices.push(id * 16 + ci(x) + ci(y) * 3) - 1);
     }
     //cache ground tiles
     public function cache(id:Int)
