@@ -55,10 +55,6 @@ class Ground extends Shape
     }
     public function add(id:Int,x:Int,y:Int)
     {
-        if (id < 0)
-        {
-            return;
-        }
         indices.push(id * 16 + ci(x) + ci(y) * 3 + 1);
         transforms.push(x * Static.GRID - Static.GRID/2);
         transforms.push((Static.tileHeight - y) * Static.GRID - Static.GRID/2);

@@ -60,7 +60,7 @@ class Main #if openfl extends Sprite #end
     var string:String = "";
     var gameBool:Bool = false;
     var state:DisplayObjectContainer;
-    public var player:Player;
+    public static var player:Player;
 
     public function new()
     {
@@ -102,8 +102,8 @@ class Main #if openfl extends Sprite #end
         select = new Shape();
         //change to matrix if it's to much of a hinderace for intensive scaling systems
         select.cacheAsBitmap = true;
-        select.graphics.lineStyle(2,0xB7B7B7);
-        select.graphics.drawRect(0,0,Static.GRID,Static.GRID);
+        select.graphics.lineStyle(4,0xB7B7B7);
+        select.graphics.drawRect(Static.GRID/2,Static.GRID/2,Static.GRID,Static.GRID);
         draw = new Draw(program);
         state.addChild(ground);
         state.addChild(select);
@@ -116,7 +116,6 @@ class Main #if openfl extends Sprite #end
         console.set("program",program);
         console.set("ground",ground);
         console.set("objects",objects);
-        console.set("render",render);
     }
     public function dir()
     {
@@ -134,10 +133,10 @@ class Main #if openfl extends Sprite #end
     public function cred()
     {
         //account default
-        Main.client.login.email = "test@test.co.uk";
-        Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
-        //Main.client.login.email = "test@test.com";
-        //Main.client.login.key = "9UYQ3-PQKCT-NGQXH-YB93E";
+        //Main.client.login.email = "test@test.co.uk";
+        //Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
+        Main.client.login.email = "test@test.com";
+        Main.client.login.key = "9UYQ3-PQKCT-NGQXH-YB93E";
         //server default (thanks so much Kryptic <3)
         Main.client.ip = "game.krypticmedia.co.uk";
         Main.client.port = 8007;
@@ -210,8 +209,8 @@ class Main #if openfl extends Sprite #end
             if (player.follow)
             {
                 //set camera to middle
-                objects.group.x = lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.02);
-                objects.group.y = lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.02);
+                objects.group.x = lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.05);
+                objects.group.y = lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.05);
             }
             //set ground
             ground.x = objects.group.x;
@@ -221,11 +220,11 @@ class Main #if openfl extends Sprite #end
             select.scaleX = ground.scaleX;
             select.scaleY = ground.scaleY;
             //mostly global
-            selectX = Math.floor((mouseX - Static.GRID/2 - ground.x)/(Static.GRID * objects.scale)) + 1;
-            selectY = Math.floor((mouseY - Static.GRID/2 - ground.y)/(Static.GRID * objects.scale)) + 1;
+            selectX = Math.floor((mouseX - ground.x - (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale)) + 1;
+            selectY = Math.floor((mouseY - ground.y - (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale)) + 1;
             //set local for render
-            select.x = (selectX - 1) * (Static.GRID * objects.scale) + (Static.GRID/2 * objects.scale) + ground.x;
-            select.y = (selectY - 1) * (Static.GRID * objects.scale) + (Static.GRID/2 * objects.scale) + ground.y;
+            select.x = (selectX - 1) * (Static.GRID * objects.scale) + ground.x;
+            select.y = (selectY - 1) * (Static.GRID * objects.scale) + ground.y;
             //set y real global
             selectY = Static.tileHeight - selectY;
         }
@@ -305,7 +304,7 @@ class Main #if openfl extends Sprite #end
     {
         trace("MAP UPDATE");
         //inital set camera
-        var delay:Int = 1000;
+        var delay:Int = 400;
         if (inital)
         {
             objects.group.x = -data.map.x * Static.GRID;
@@ -345,22 +344,23 @@ class Main #if openfl extends Sprite #end
                 }
             }
             trace("tilemap percent " + objects.getFill());
-            if (player != null) 
+            it = data.playerMap.iterator();
+            while (it.hasNext())
             {
-                objects.group.addTile(player);
-                player.sort();
+                objects.player = it.next();
+                objects.player.sort();
+                objects.group.addTile(objects.player);
             }
             ground.render();
             objects.tileset.bitmapData.unlock();
-
             timer.stop();
             timer = null;
         }
     }
     public function setPlayer(player:Player)
     {
-        this.player = player;
-        this.player.sort();
+        Main.player = player;
+        player.sort();
         console.set("player",player);
         //center instantly
         objects.group.x = -player.x * objects.scale + objects.width/2;
@@ -488,15 +488,18 @@ class Main #if openfl extends Sprite #end
             var rx:Int = change.speed > 0 ? change.oldX : change.x;
             var ry:Int = change.speed > 0 ? change.oldY : change.y;
             //removal
-            var array:Array<Tile> = data.tileData.object.get(rx,ry);
-            if (array != null) for (tile in array) objects.removeTile(tile);
+            var array:Array<Tile> = [];
             //remove data
-            if (change.floor == 1)
+            if (change.floor == 1 && !move)
             {
+                array = data.tileData.floor.get(rx,ry);
                 data.tileData.floor.set(rx,ry,null);
             }else{
+                array = data.tileData.object.get(rx,ry);
                 data.tileData.object.set(rx,ry,null);
             }
+            trace("remove " + array + " rx " + rx + " y " + ry);
+            if (array != null) for (tile in array) objects.removeTile(tile);
             //add new
             objects.add(id,rx,ry,move,!move);
             if (move)

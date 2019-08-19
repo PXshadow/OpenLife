@@ -199,27 +199,6 @@ class Player #if openfl extends TileContainer #end
                     }
                 }
             }
-            /*if (!step(px,py))
-            {
-                //path blocked
-                //x
-                px *= -1;
-                if (!step(px,py))
-                {
-                    //y
-                    px *= -1;
-                    py *= -1;
-                    if (!step(px,py))
-                    {
-                        //x and y
-                        px *= -1;
-                        if (!step(px,py))
-                        {
-                            //all paths are blocked
-                        }
-                    }
-                }
-            }*/
         }
         timeInt = time;
     }
@@ -242,6 +221,7 @@ class Player #if openfl extends TileContainer #end
     }
     public function hold()
     {
+
         /*#if openfl
         //remove previous if any
         if (object != null)

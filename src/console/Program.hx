@@ -148,15 +148,19 @@ class Program
         var dis:Float = range;
         var cur:Float = 0;
         var id:Int = 0;
+        trace("y " + data.map.y + " h " + Std.string(data.map.y + data.map.height));
+        trace("x " + data.map.y + " w " + Std.string(data.map.x + data.map.width));
         for(y in data.map.y...data.map.y + data.map.height)
         {
             for(x in data.map.x...data.map.x + data.map.width)
             {
                     //array of objects in the tile
                     id = data.map.object.get(x,y);
+                    trace("get " + get);
                     if (get.indexOf(id) >= 0)
                     {
-                        cur = Math.sqrt(Math.pow(Player.main.instance.y - y,2) + Math.pow(Player.main.instance.x - x,2));
+                        cur = Math.sqrt(Math.pow(Main.player.instance.y - y,2) + Math.pow(Main.player.instance.x - x,2));
+                        trace("cur " + cur);
                         if (cur < dis)
                         {
                             goal.y = y;
