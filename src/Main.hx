@@ -359,6 +359,7 @@ class Main #if openfl extends Sprite #end
     }
     public function setPlayer(player:Player)
     {
+        player.program = program;
         Main.player = player;
         player.sort();
         console.set("player",player);
@@ -499,7 +500,7 @@ class Main #if openfl extends Sprite #end
                 data.tileData.object.set(rx,ry,null);
             }
             trace("remove " + array + " rx " + rx + " y " + ry);
-            if (array != null) for (tile in array) objects.removeTile(tile);
+            if (array != null) for (tile in array) objects.group.removeTile(tile);
             //add new
             objects.add(id,rx,ry,move,!move);
             if (move)
@@ -507,7 +508,7 @@ class Main #if openfl extends Sprite #end
                 //add to new location
                 data.tileData.object.set(change.x,change.y,[objects.object]);
                 //tween to location
-                //Actuate.tween(objects.object,1,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
+                Actuate.tween(objects.object,1,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
             }
             #end
             //change data todo:

@@ -179,7 +179,6 @@ class PlayerMove
     }
     public function movePlayer(player:Player)
     {
-        if (player == Player.main) return;
         if(player.instance.x == xs + moves[moves.length - 1].x && player.instance.y == ys + moves[moves.length - 1].y)
         {
             //same move

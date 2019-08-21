@@ -19,7 +19,6 @@ class Player #if openfl extends TileContainer #end
 {
     public var lastMove:Int = 1;
     public var moveTimer:Timer;
-    public static var main:Player;
     public var instance:PlayerInstance;
     public var ageRange:Array<{min:Float,max:Float}> = [];
     #if openfl
@@ -34,13 +33,14 @@ class Player #if openfl extends TileContainer #end
     public var timeInt:Int = -1;
     //pathing
     public var goal:Bool = false;
-    var program:Program = null;
+    public var program:Program = null;
     var gdata:GameData;
     public var follow:Bool = true;
-    public function new(data:GameData,program:Program=null)
+    var objects:Objects;
+    public function new(data:GameData,objects:Objects)
     {
+        this.objects = objects;
         this.gdata = data;
-        this.program = program;
         #if openfl
         super();
         #end
@@ -121,30 +121,17 @@ class Player #if openfl extends TileContainer #end
     }
     public function updateMoveSpeed()
     {
-        time = Std.int(Static.GRID /(Static.GRID * instance.move_speed) * 50 * 1);
-        /*var moveLeft = measurePathLength();
-        var numTurns:Int = 0;
-        if (moves.length > 1)
-        {
-            var lastDir = sub(moves[0],moves[1]);
-            var dir = new Pos();
-            for (i in 0...moves.length - 1)
-            {
-                dir = sub(moves[i + 1],moves[i]);
-                if (dir != lastDir)
-                {
-                    numTurns++;
-                    lastDir = dir;
-                }
-            }
-        }
-        time = Std.int(Static.GRID /(Static.GRID * instance.move_speed) * 60);
-        //boost when turninig
-        time += Std.int((0.08 * numTurns) * 60);
-        if (time < 0.1 * 60)
-        {
-            time = Std.int(0.1 * 60);
-        }*/
+        var floorSpeedMod = computePathSpeedMod();
+        trace("floor " + floorSpeedMod + " pathLength " + measurePathLength() + " move speed " + instance.move_speed);
+        time = Std.int(measurePathLength()/(instance.move_speed * floorSpeedMod) * 60);
+        trace("time " + time);
+        //time = Std.int(Static.GRID /(Static.GRID * instance.move_speed) * 60 * 1.1);// * 0.78);
+    }
+    public function computePathSpeedMod():Float
+    {
+        var floorData = objects.objectMap.get(gdata.map.floor.get(instance.x,instance.y));
+        if (floorData != null)  return floorData.speedMult;
+        return 1;
     }
     public function measurePathLength():Float
     {
@@ -221,8 +208,7 @@ class Player #if openfl extends TileContainer #end
     }
     public function hold()
     {
-
-        /*#if openfl
+        #if openfl
         //remove previous if any
         if (object != null)
         {
@@ -233,16 +219,17 @@ class Player #if openfl extends TileContainer #end
         if (instance.o_id > 0)
         {
             //object
-            game.objects.add(instance.o_id,0,0,true,false);
+            objects.add(instance.o_id,0,0,true,false);
         }else{
             //player
-            trace("player");
-            game.objects.add(instance.o_id * -1,0,0,true,false);
+            trace("player holding object");
+            objects.add(instance.o_id * -1,0,0,true,false);
         }
-        object = game.objects.object;
+        object = objects.object;
         object.x = -instance.o_origin_x + Static.GRID/4;
         object.y = -instance.o_origin_y - Static.GRID/1.5;
-        #end*/
+        addTile(object);
+        #end
     }
     public function pos() 
     {
@@ -272,7 +259,7 @@ class Player #if openfl extends TileContainer #end
             }
         }
         if (object == null) return;
-        parent.setTileIndex(this,parent.getTileIndex(object[0]) + diff);
+        objects.group.setTileIndex(this,objects.group.getTileIndex(object[0]) + diff);
     }
     public function age()
     {

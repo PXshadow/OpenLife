@@ -20,7 +20,7 @@ class Objects extends TileDisplay
 {
     public var object:TileContainer;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
-    var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
+    public var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
     var animationMap:Map<Int,AnimationData> = new Map<Int,AnimationData>();
     //for tileset
     var tileX:Float = 0;
@@ -102,7 +102,7 @@ class Objects extends TileDisplay
         if (container) object = new TileContainer();
         if(data.person > 0)
         {
-            object = new Player(this.data);
+            object = new Player(this.data,this);
             container = true;
             push = false;
         }

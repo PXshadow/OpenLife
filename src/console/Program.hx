@@ -49,7 +49,7 @@ class Program
         //finished, now perform another action
         
         //clean up
-        Player.main.goal = false;
+        Main.player.goal = false;
         setup = false;
     }
     public function setHome(x:Null<Int>=0,y:Null<Int>=0):Program
@@ -60,10 +60,10 @@ class Program
             home.y = y;
         }else{
             //set home where player location is at
-            if (Player.main != null)
+            if (Main.player != null)
             {
-                home.x = Player.main.instance.x;
-                home.y = Player.main.instance.y;
+                home.x = Main.player.instance.x;
+                home.y = Main.player.instance.y;
             }
         }
         return this;
@@ -84,8 +84,8 @@ class Program
             actionIndex++;
             actions[actionIndex] = [];
             //main
-            Player.main.goal = true;
-            Player.main.timeInt = 0;
+            Main.player.goal = true;
+            Main.player.timeInt = 0;
             refine = true;
         }
         return this;
@@ -119,7 +119,7 @@ class Program
         {
             send(DROP, x + " " + y + " " + c);
         }else{
-            if (Player.main != null) send(DROP, Player.main.instance.x + " " + Player.main.instance.y + " " + c);
+            if (Main.player != null) send(DROP, Main.player.instance.x + " " + Main.player.instance.y + " " + c);
         }
         return this;
     }
@@ -134,7 +134,7 @@ class Program
         {
             send(USE, x + " " + y);
         }else{
-            if (Player.main != null) send(USE, Player.main.instance.x + " " + Player.main.instance.y);
+            if (Main.player != null) send(USE, Main.player.instance.x + " " + Main.player.instance.y);
         }
         return this;
     }
@@ -227,7 +227,7 @@ class Program
     public function get(name:String):Program
     {
         var list = id(name);
-        if (list.indexOf(Player.main.instance.o_id) == -1)
+        if (list.indexOf(Main.player.instance.o_id) == -1)
         {
             //go and find
             findList(list);
@@ -287,16 +287,16 @@ class Program
     }
     public function distance(a:Pos,b:Pos):Bool
     {
-        if (Player.main == null) 
+        if (Main.player == null) 
         {
             trace("distance calculation occuring before player has been initalized");
             return false;
         }
         //if a is shorter true, else false. distance from player
-        a.x += -Player.main.instance.x;
-        a.y += -Player.main.instance.y;
-        b.x += -Player.main.instance.x;
-        b.y += -Player.main.instance.y;
+        a.x += -Main.player.instance.x;
+        a.y += -Main.player.instance.y;
+        b.x += -Main.player.instance.x;
+        b.y += -Main.player.instance.y;
         if (a.x + a.y > b.x + b.y) return false;
         return true;
     }
@@ -310,7 +310,7 @@ class Program
     public function step(x:Int,y:Int):Program
     {
         //move player
-        Player.main.step(x,y);
+        Main.player.step(x,y);
         return this;
     }
     private function id(name:String):Array<Int>
