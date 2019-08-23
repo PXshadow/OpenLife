@@ -78,9 +78,6 @@ class Player #if openfl extends TileContainer #end
         if(moves.length > 0)
         {
             var point = moves.pop();
-            pos();
-            instance.x += point.x;
-            instance.y += point.y;
             //sort before move
             if (point.y != 0) sort(point.y);
             //flip (change direction)
@@ -93,9 +90,12 @@ class Player #if openfl extends TileContainer #end
                     scaleX = -1;
                 }
             }
-            velocityX = (point.x * Static.GRID) / time;
-            velocityY = -(point.y * Static.GRID) / time;
+            velocityX = (point.x * Static.GRID) / time + (x - instance.x * Static.GRID);
+            velocityY = -(point.y * Static.GRID) / time + (y - instance.y * Static.GRID);
             timeInt = time;
+            //pos();
+            instance.x += point.x;
+            instance.y += point.y;
             return true;
         }
         timeInt = -1;
@@ -111,21 +111,46 @@ class Player #if openfl extends TileContainer #end
         lastMove++;
         Main.client.send("MOVE " + instance.x + " " + instance.y + " @" + lastMove + " " + mx + " " + my);
         #if openfl
-        updateMoveSpeed();
         var pos = new Pos();
         pos.x = mx;
         pos.y = my;
         moves = [pos];
         #end
+        updateMoveSpeed();
         return true;
     }
     public function updateMoveSpeed()
     {
         var floorSpeedMod = computePathSpeedMod();
         trace("floor " + floorSpeedMod + " pathLength " + measurePathLength() + " move speed " + instance.move_speed);
-        time = Std.int(measurePathLength()/(instance.move_speed * floorSpeedMod) * 60);
-        trace("time " + time);
-        //time = Std.int(Static.GRID /(Static.GRID * instance.move_speed) * 60 * 1.1);// * 0.78);
+        //update move speed section
+        var etaSec = measurePathLength()/(instance.move_speed * floorSpeedMod);
+        trace("eta sec " + etaSec);
+        var moveLeft:Float = measurePathLength() - measurePathLength() + 1;
+        var numTurns:Int = 0;
+        if (moves.length > 1)
+        {
+            var lastDir =  sub(moves[0],moves[1]);
+            var dir:Pos = null;
+            for (i in 1...moves.length - 1)
+            {
+                dir = sub(moves[i + 1],moves[i]);
+                if (!equal(dir,lastDir))
+                {
+                    numTurns++;
+                    lastDir = dir;
+                }
+            }
+        }
+        var turnTimeBoost = 0.08 * numTurns;
+        etaSec += turnTimeBoost;
+        if (etaSec < 0.1)
+        {
+            etaSec = 0.1;
+        }
+        var speedPerSec = moveLeft/etaSec;
+        time = Std.int(Static.GRID * (speedPerSec/60));
+        trace("time int end " + time + " sps " + speedPerSec);
     }
     public function computePathSpeedMod():Float
     {
@@ -141,9 +166,8 @@ class Player #if openfl extends TileContainer #end
         {
             return totalLength;
         }
-        var lastPos = new Pos();
-        lastPos = moves[0];
-        for (i in 0...moves.length)
+        var lastPos = moves[0];
+        for (i in 1...moves.length)
         {
             if (moves[i].x != lastPos.x && moves[i].y != lastPos.y)
             {
@@ -155,6 +179,18 @@ class Player #if openfl extends TileContainer #end
             lastPos = moves[i];
         }
         return totalLength;
+    }
+    public function equal(pos:Pos,pos2:Pos):Bool
+    {
+        if (pos.x == pos2.x && pos.y == pos2.y) return true;
+        return false;
+    }
+    public function sub(pos:Pos,pos2:Pos):Pos
+    {
+        var pos = new Pos();
+        pos.x = pos.x - pos2.x;
+        pos.y = pos.y - pos2.y;
+        return pos;
     }
     public function path()
     {
