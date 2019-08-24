@@ -149,7 +149,7 @@ class Player #if openfl extends TileContainer #end
             etaSec = 0.1;
         }
         var speedPerSec = moveLeft/etaSec;
-        time = Std.int(Static.GRID * (speedPerSec/60));
+        time = Std.int(speedPerSec * 60 * Static.GRID);
         trace("time int end " + time + " sps " + speedPerSec);
     }
     public function computePathSpeedMod():Float

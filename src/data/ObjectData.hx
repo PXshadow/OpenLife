@@ -62,8 +62,8 @@ class ObjectData extends LineReader
     public var frontFootIndex:Array<Int> = [];
 
     public var numUses:Int = 0;
-    public var useVanishIndex:Int = 0;
-    public var useAppearIndex:Int = 0;
+    public var useVanishIndex:Array<Int> = [];
+    public var useAppearIndex:Array<Int> = [];
     public var pixHeight:Int = 0;
 
     public var fail:Bool = false;
@@ -247,11 +247,12 @@ class ObjectData extends LineReader
         backFootIndex = getIntArray();
         frontFootIndex = getIntArray();
         
+        
         if(next < line.length)
         {
             numUses = getInt();
-            if (next < line.length) useVanishIndex = getInt();
-            if (next < line.length) useAppearIndex = getInt();
+            if (next < line.length) useVanishIndex = getIntArray();
+            if (next < line.length) useAppearIndex = getIntArray();
             if (next < line.length) pixHeight = getInt();
 
         }

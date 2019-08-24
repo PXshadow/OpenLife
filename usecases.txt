@@ -62,3 +62,4 @@ MISC
 - replay/recording system for lives, for better video content (major feature)
 - hour counter for the game
 - server browser, be able to pick not this client.
+- perm emotes
