@@ -1,3 +1,6 @@
+import lime.system.System;
+import sys.FileSystem;
+import sys.io.Process;
 import ui.Text;
 import haxe.Timer;
 import motion.easing.Quad;
@@ -46,6 +49,7 @@ class Main #if openfl extends Sprite #end
     public static var settings:Settings;
     //game
     var draw:Draw;
+    var food:Shape;
     public static var objects:Objects;
     var chat:Text;
     var ground:Ground;
@@ -109,16 +113,6 @@ class Main #if openfl extends Sprite #end
         state.addChild(ground);
         state.addChild(select);
         state.addChild(objects);
-        chat = new Text("",LEFT,30,0,200);
-        chat.wordWrap = false;
-        chat.multiline = false;
-        chat.background = true;
-        chat.height = 34;
-        chat.cacheAsBitmap = false;
-        chat.selectable = true;
-        chat.mouseEnabled = true;
-        chat.type = INPUT;
-        addChild(chat);
         data = new GameData();
         ground.data = data;
         objects.data = data;
@@ -129,6 +123,19 @@ class Main #if openfl extends Sprite #end
         //draw display
         draw = new Draw(data,program);
         state.addChild(draw);
+        food = new Shape();
+        food.cacheAsBitmap = true;
+        addChild(food);
+        chat = new Text("",LEFT,30,0,200);
+        chat.wordWrap = false;
+        chat.multiline = false;
+        chat.background = true;
+        chat.height = 34;
+        chat.cacheAsBitmap = false;
+        chat.selectable = true;
+        chat.mouseEnabled = true;
+        chat.type = INPUT;
+        addChild(chat);
     }
     public function dir()
     {
@@ -142,6 +149,22 @@ class Main #if openfl extends Sprite #end
         Static.dir = Static.dir.substring(0,Static.dir.indexOf("/Contents/Resources/"));
         Static.dir = Static.dir.substring(0,Static.dir.lastIndexOf("/") + 1);
         #end
+        //check to see if location is valid
+        if (exist(["groundTileCache","objects","sprites","animations"]))//,"settings"]))
+        {
+            trace("valid location");
+        }else{
+            stage.window.alert("Place OpenLife in the OneLife folder","OneLife directory not found");
+            Sys.exit(0);
+        }
+    }
+    public function exist(folders:Array<String>):Bool
+    {
+        for (folder in folders)
+        {
+            if (!FileSystem.exists(Static.dir + folder)) return false;
+        }
+        return true;
     }
     public function cred()
     {
@@ -439,6 +462,7 @@ class Main #if openfl extends Sprite #end
             objects.width = stage.stageWidth;
             objects.height = stage.stageHeight;
             chat.y = stage.stageHeight - 30;
+            food.y = stage.stageHeight - 30;
         }
     }
     public function connect()
@@ -545,9 +569,11 @@ class Main #if openfl extends Sprite #end
             {
                 array = data.tileData.floor.get(rx,ry);
                 data.tileData.floor.set(rx,ry,null);
+                data.map.floor.set(rx,ry,0);
             }else{
                 array = data.tileData.object.get(rx,ry);
                 data.tileData.object.set(rx,ry,null);
+                data.map.object.set(rx,ry,0);
             }
             if (array != null) for (tile in array) objects.group.removeTile(tile);
             //add new
@@ -556,12 +582,12 @@ class Main #if openfl extends Sprite #end
             {
                 //add to new location
                 data.tileData.object.set(change.x,change.y,[objects.object]);
+                data.map.object.set(change.x,change.y,id);
                 //tween to location
                 Actuate.tween(objects.object,1,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
             }
             #end
             //change data todo:
-
             Main.client.tag = null;
             index = 0;
             case HEAT_CHANGE:
@@ -570,8 +596,14 @@ class Main #if openfl extends Sprite #end
             index = 0;
             case FOOD_CHANGE:
             trace("food change " + input);
+            var array = input.split(" ");
+            food.graphics.clear();
+            food.graphics.beginFill(0);
+            food.graphics.drawRect(200,0,100,20);
+            food.graphics.beginFill(0xFF0000);
+            food.graphics.drawRect(200,0,Std.parseInt(array[0])/Std.parseInt(array[1]) * 100,20);
             //also need to set new movement move_speed: is floating point playerSpeed in grid square widths per second.
-            //draw.food
+            if (player != null) player.instance.move_speed = Std.parseFloat(array[4]);
             case FRAME:
             Main.client.tag = null;
             index = 0;

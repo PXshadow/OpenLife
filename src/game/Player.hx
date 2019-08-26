@@ -220,7 +220,7 @@ class Player #if openfl extends TileContainer #end
         object = objects.object;
         object.x = -instance.o_origin_x + Static.GRID/4;
         object.y = -instance.o_origin_y - Static.GRID/1.5;
-        addTile(object);
+        if (!contains(object)) addTile(object);
         #end
     }
     public function force() 
