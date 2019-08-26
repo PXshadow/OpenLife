@@ -16,12 +16,8 @@ class Program
     public var home:Pos = new Pos();
     //setup automation bool
     public var setup:Bool = false;
-    public var range:Float = 1000;
+    public var range:Int = 30;
     public var useRange:Int = 1;
-    //first index for action second is the list
-    var actions:Array<Array<Int>> = [];
-    var actionIndex:Int = -1;
-    var goals:Array<Pos> = [];
     //food 
     public var ate:Array<Int> = [];
     //queue messages to be sent later
@@ -50,7 +46,7 @@ class Program
         
         //clean up
         Main.player.goal = false;
-        setup = false;
+        //setup = false;
     }
     public function setHome(x:Null<Int>=0,y:Null<Int>=0):Program
     {
@@ -78,11 +74,6 @@ class Program
         }
         if (setup)
         {
-            //set goal pathing
-            goals.push(goal);
-            //create action
-            actionIndex++;
-            actions[actionIndex] = [];
             //main
             Main.player.goal = true;
             Main.player.timeInt = 0;
@@ -148,18 +139,16 @@ class Program
         var dis:Float = range;
         var cur:Float = 0;
         var id:Int = 0;
-        trace("y " + data.map.y + " h " + Std.string(data.map.y + data.map.height));
-        trace("x " + data.map.y + " w " + Std.string(data.map.x + data.map.width));
-        for(y in data.map.y...data.map.y + data.map.height)
+        trace("find " + get);
+        for(y in max(data.map.y,Main.player.instance.y - range)...min(data.map.y + data.map.height,Main.player.instance.y + range))
         {
-            for(x in data.map.x...data.map.x + data.map.width)
+            for(x in max(data.map.x,Main.player.instance.x - range)...min(data.map.x + data.map.width,Main.player.instance.x + range))
             {
                     //array of objects in the tile
                     id = data.map.object.get(x,y);
-                    trace("get " + get);
                     if (get.indexOf(id) >= 0)
                     {
-                        cur = Math.sqrt(Math.pow(Main.player.instance.y - y,2) + Math.pow(Main.player.instance.x - x,2));
+                        cur = Math.abs(Math.sqrt(Math.pow(Main.player.instance.y - y,2) + Math.pow(Main.player.instance.x - x,2)));
                         trace("cur " + cur);
                         if (cur < dis)
                         {
@@ -178,6 +167,16 @@ class Program
             setup = false;
             console.print("out of range",Std.string(dis));
         }
+    }
+    public function max(a:Int,b:Int):Int
+    {
+        if (a > b) return a;
+        return b;
+    }
+    public function min(a:Int,b:Int):Int
+    {
+        if (a < b) return a;
+        return b;
     }
     public function emote(e:Int):Program
     {
@@ -237,6 +236,7 @@ class Program
     }
     public function task(name:String):Program
     {
+        setup = false;
         //names need to be lower case and have no spaces, however when using task or find functions you can use spaces and upper case freely.
         switch(StringTools.replace(name.toLowerCase()," ",""))
         {

@@ -21,6 +21,8 @@ class Ground extends Shape
     public var indices:Vector<Int>;
     public var transforms:Vector<Float>;
     public var data:GameData = null;
+    public var simple:Bool = true;
+    public var simpleIndex:Int = 0;
     public function new()
     {
         super();
@@ -31,6 +33,11 @@ class Ground extends Shape
         //0 is blank for tileData reading
         //add cached ground
         for (i in 0...6 + 1) cache(i);
+        simpleIndex = tileset.numRects;
+        for (color in [0x80ad57,0xe0a437,0x5c584e,0xffffff,0x467c06])
+        {
+            simpleCache(color);
+        }
     }
     private inline function ci(i:Int):Int
     {
@@ -55,9 +62,32 @@ class Ground extends Shape
     }
     public function add(id:Int,x:Int,y:Int)
     {
-        indices.push(id * 16 + ci(x) + ci(y) * 3 + 1);
+        if (simple)
+        {
+            indices.push(simpleIndex + id);
+        }else{
+            indices.push(id * 16 + ci(x) + ci(y) * 3 + 1);
+        }
         transforms.push(x * Static.GRID - Static.GRID/2);
         transforms.push((Static.tileHeight - y) * Static.GRID - Static.GRID/2);
+    }
+    public function simpleCache(color:UInt)
+    {
+        var rect = new Rectangle(tileX,tileY,Static.GRID,Static.GRID);
+        //move down column
+        if(rect.x + rect.width >= tileset.bitmapData.width)
+        {
+            tileX = 0;
+            tileY += tileHeight;
+            rect.x = tileX;
+            rect.y = tileY;
+            tileHeight = 0;
+        }
+        //move tilesystem
+        tileX += Math.ceil(rect.width) + 1;
+        tileset.bitmapData.fillRect(rect,color);
+        tileset.addRect(rect);
+        if (rect.height > tileHeight) tileHeight = Math.ceil(rect.height) + 1;
     }
     //cache ground tiles
     public function cache(id:Int)
@@ -89,7 +119,7 @@ class Ground extends Shape
                     //set to bitmapData
                     tileset.bitmapData.setPixels(rect,reader.bytes);
                     tileset.addRect(rect);
-                    if (rect.height > tileHeight) tileHeight = Std.int(rect.height);
+                    if (rect.height > tileHeight) tileHeight = Std.int(rect.height) + 1;
                 }
             }
     }

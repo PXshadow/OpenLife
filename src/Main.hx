@@ -1,3 +1,4 @@
+import ui.Text;
 import haxe.Timer;
 import motion.easing.Quad;
 import motion.Actuate;
@@ -46,6 +47,7 @@ class Main #if openfl extends Sprite #end
     //game
     var draw:Draw;
     public static var objects:Objects;
+    var chat:Text;
     var ground:Ground;
     var select:Shape;
     var selectX:Int = 0;
@@ -104,11 +106,19 @@ class Main #if openfl extends Sprite #end
         select.cacheAsBitmap = true;
         select.graphics.lineStyle(4,0xB7B7B7);
         select.graphics.drawRect(Static.GRID/2,Static.GRID/2,Static.GRID,Static.GRID);
-        draw = new Draw(program);
         state.addChild(ground);
         state.addChild(select);
         state.addChild(objects);
-        state.addChild(draw);
+        chat = new Text("",LEFT,30,0,200);
+        chat.wordWrap = false;
+        chat.multiline = false;
+        chat.background = true;
+        chat.height = 34;
+        chat.cacheAsBitmap = false;
+        chat.selectable = true;
+        chat.mouseEnabled = true;
+        chat.type = INPUT;
+        addChild(chat);
         data = new GameData();
         ground.data = data;
         objects.data = data;
@@ -116,6 +126,9 @@ class Main #if openfl extends Sprite #end
         console.set("program",program);
         console.set("ground",ground);
         console.set("objects",objects);
+        //draw display
+        draw = new Draw(data,program);
+        state.addChild(draw);
     }
     public function dir()
     {
@@ -140,6 +153,8 @@ class Main #if openfl extends Sprite #end
         //server default (thanks so much Kryptic <3)
         Main.client.ip = "game.krypticmedia.co.uk";
         Main.client.port = 8007;
+        //Main.client.ip = "bigserver2.onehouronelife.com";
+        //Main.client.port = 8005;
 
         //settings to grab infomation
         Main.settings = new settings.Settings();
@@ -185,17 +200,20 @@ class Main #if openfl extends Sprite #end
         //player movement
         if(gameBool)
         {
-            xs = 0;
-            ys = 0;
-            if (Bind.playerUp.bool) ys += 1;
-            if (Bind.playerDown.bool) ys += -1;
-            if (Bind.playerLeft.bool) xs += -1;
-            if (Bind.playerRight.bool) xs += 1;
-            if (xs != 0 || ys != 0) 
+            if (stage.focus != console.input && stage.focus != chat)
             {
-                player.goal = false;
-                program.setup = false;
-                player.step(xs,ys);
+                xs = 0;
+                ys = 0;
+                if (Bind.playerUp.bool) ys += 1;
+                if (Bind.playerDown.bool) ys += -1;
+                if (Bind.playerLeft.bool) xs += -1;
+                if (Bind.playerRight.bool) xs += 1;
+                if (xs != 0 || ys != 0) 
+                {
+                    player.goal = false;
+                    program.setup = false;
+                    player.step(xs,ys);
+                }
             }
             //update players
             if (data != null)
@@ -206,11 +224,13 @@ class Main #if openfl extends Sprite #end
                     it.next().update();
                 }
             }
+            //update draw
+            draw.update();
             if (player.follow)
             {
                 //set camera to middle
-                objects.group.x = lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.05);
-                objects.group.y = lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.05);
+                objects.group.x = Math.round(lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.05));
+                objects.group.y = Math.round(lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.05));
             }
             //set ground
             ground.x = objects.group.x;
@@ -229,7 +249,7 @@ class Main #if openfl extends Sprite #end
             selectY = Static.tileHeight - selectY;
         }
     }
-    public inline function lerp(v0:Float,v1:Float,t:Float)
+    private inline function lerp(v0:Float,v1:Float,t:Float)
     {
         return v0 + t * (v1 - v0);
     }
@@ -237,8 +257,36 @@ class Main #if openfl extends Sprite #end
     {
         if (console.keyDown(e.keyCode)) return;
         Bind.keys(e,true);
+        //chat
+        if (stage.focus == chat)
+        {
+            //focused chat
+            if (Bind.chat.bool) 
+            {
+                if (chat.text == "")
+                {
+                    stage.focus = null;
+                    return;
+                }
+                program.say(chat.text);
+                chat.text = "";
+                stage.focus = null;
+            }
+            return;
+        }else{
+            //non focused chat
+            if (Bind.chat.bool)
+            {
+                stage.focus = chat;
+                chat.setSelection(chat.length,chat.length);
+                trace("chat length");
+                return;
+            }
+        }
+        //zoom
         if (Bind.zoomIn.bool) zoom(1);
         if (Bind.zoomOut.bool) zoom(-1);
+        //player
         if (Bind.playerSelf.bool)
         {
             program.self();
@@ -283,7 +331,6 @@ class Main #if openfl extends Sprite #end
     {
         if (player != null)
         {
-            trace("oid " + player.instance.o_id);
             if (player.instance.o_id > 0)
             {
                 program.drop(selectX,selectY);
@@ -372,7 +419,6 @@ class Main #if openfl extends Sprite #end
         switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
-            #if openfl
             if (player == null) 
             {
                 setPlayer(objects.player);
@@ -381,7 +427,6 @@ class Main #if openfl extends Sprite #end
                 resize(null);
             }
             objects.player = null;
-            #end
             Main.client.tag = null;
             default:
         }
@@ -393,6 +438,7 @@ class Main #if openfl extends Sprite #end
         {
             objects.width = stage.stageWidth;
             objects.height = stage.stageHeight;
+            chat.y = stage.stageHeight - 30;
         }
     }
     public function connect()
@@ -420,6 +466,10 @@ class Main #if openfl extends Sprite #end
     {
         switch(Main.client.tag)
         {
+            case COMPRESSED_MESSAGE:
+            var array = input.split(" ");
+            Main.client.compress = Std.parseInt(array[1]);
+            Main.client.tag = null;
             case PLAYER_UPDATE:
             playerInstance = new PlayerInstance(input.split(" "));
             #if openfl
@@ -427,7 +477,7 @@ class Main #if openfl extends Sprite #end
             #end
             case PLAYER_MOVES_START:
             var playerMove = new PlayerMove(input.split(" "));
-            if (playerMove.id == player.instance.p_id) return;
+            if (player == null || playerMove.id == player.instance.p_id) return;
             if (data.playerMap.exists(playerMove.id))
             {
                 playerMove.movePlayer(data.playerMap.get(playerMove.id));
@@ -499,7 +549,6 @@ class Main #if openfl extends Sprite #end
                 array = data.tileData.object.get(rx,ry);
                 data.tileData.object.set(rx,ry,null);
             }
-            trace("remove " + array + " rx " + rx + " y " + ry);
             if (array != null) for (tile in array) objects.group.removeTile(tile);
             //add new
             objects.add(id,rx,ry,move,!move);
@@ -522,17 +571,24 @@ class Main #if openfl extends Sprite #end
             case FOOD_CHANGE:
             trace("food change " + input);
             //also need to set new movement move_speed: is floating point playerSpeed in grid square widths per second.
+            //draw.food
             case FRAME:
             Main.client.tag = null;
             index = 0;
             case PLAYER_SAYS:
             trace("player say " + input);
             #if openfl
-            draw.say(input);
+            var array = input.split("/");
+            //trace("id " + array[0]);
+            var text = array[1].substring(2,array[1].length);
+            if (text.length > 0)
+            {
+                draw.say(Std.parseInt(array[0]),text);
+            }
             #end
             case PLAYER_OUT_OF_RANGE:
             //player is out of range
-
+            trace("player out of range " + input);
             case LINEAGE:
             //p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
 

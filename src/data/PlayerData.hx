@@ -179,24 +179,21 @@ class PlayerMove
     }
     public function movePlayer(player:Player)
     {
-        if(player.instance.x == xs + moves[moves.length - 1].x && player.instance.y == ys + moves[moves.length - 1].y)
+        /*if(player.instance.x == xs + moves[moves.length - 1].x && player.instance.y == ys + moves[moves.length - 1].y)
         {
             //same move
             trace("same move");
             return;
-        }
-        trace("move player");
+        }*/
         //set pos
         player.instance.x = xs;
         player.instance.y = ys;
         //visuals
         #if openfl
-        player.pos();
         var delay:Float = 0;
         var currentX:Int = 0;
         var currentY:Int = 0;
-        player.timeInt = 0;
-        player.time = Std.int((current/moves.length) * 60 * 1);
+        player.moves = [];
         var pos:Pos;
         for(move in moves)
         {
@@ -207,7 +204,7 @@ class PlayerMove
             currentX = move.x;
             currentY = move.y;
         }
+        player.move();
         #end
-        trace("player time " + player.time);
     }
 }

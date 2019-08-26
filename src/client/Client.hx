@@ -171,7 +171,19 @@ class Client
             //finish data
             compress = 0;
             //unzip and send as normal message
-            message(haxe.zip.Uncompress.run(dataCompress,dataCompress.length).toString());
+            data = haxe.zip.Uncompress.run(dataCompress,dataCompress.length).toString();
+            if (tag == null) 
+            {
+                var array = data.split("\n");
+                tag = array[0];
+                for (i in 1...array.length - 1)
+                {
+                    message(array[i]);
+                }
+                end();
+            }else{
+                message(data);
+            }
             dataCompress = null;
             tag = null;
         }

@@ -52,7 +52,7 @@ class Objects extends TileDisplay
     }
     public function new()
     {
-        smoothing = true;
+        //smoothing = true;
         super(4000,4000);
         //add base
         group = new TileContainer();
@@ -68,7 +68,7 @@ class Objects extends TileDisplay
             player = cast object;
             this.data.playerMap.set(data.p_id,player);
             player.set(data);
-            player.pos();
+            player.force();
             return;
         }else{
             //exists
@@ -222,10 +222,10 @@ class Objects extends TileDisplay
             tileHeight = 0;
         }
         //move tilesystem
-        tileX += Std.int(rect.width) + 1;
+        tileX += Math.ceil(rect.width) + 2;
         //set to bitmapData
         tileset.bitmapData.setPixels(rect,reader.bytes);
-        if (rect.height > tileHeight) tileHeight = Std.int(rect.height);
+        if (rect.height > tileHeight) tileHeight = Math.ceil(rect.height) + 2;
         return rect;
     }
     public function reload()

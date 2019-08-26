@@ -28,8 +28,6 @@ class Player #if openfl extends TileContainer #end
     public var velocityX:Float = 0;
     public var velocityY:Float= 0;
     //how many frames till depletion
-    public var delay:Int = 0;
-    public var time:Int = 0;
     public var timeInt:Int = -1;
     //pathing
     public var goal:Bool = false;
@@ -37,6 +35,7 @@ class Player #if openfl extends TileContainer #end
     var gdata:GameData;
     public var follow:Bool = true;
     var objects:Objects;
+    var multi:Float = 1;
     public function new(data:GameData,objects:Objects)
     {
         this.objects = objects;
@@ -49,26 +48,17 @@ class Player #if openfl extends TileContainer #end
     public function update()
     {
         #if openfl
-        if (timeInt == 0)
+        timeInt--;
+        if (timeInt == -1)
         {
             if (goal) path();
             move();
         }
         if (timeInt > 0)
         {
-            //add to pos
             x += velocityX;
             y += velocityY;
-            /*if (Main.objects.player == this && follow)
-            {
-                //move camera only if main player
-                Main.objects.group.x += -velocityX;
-                Main.objects.group.y += -velocityY;
-            }*/
-            //remove time per frame
-            timeInt--;
         }
-        if (delay > 0) delay--;
         #end
     }
     public function move():Bool
@@ -79,7 +69,7 @@ class Player #if openfl extends TileContainer #end
         {
             var point = moves.pop();
             //sort before move
-            if (point.y != 0) sort(point.y);
+            sort(point.y);
             //flip (change direction)
             if (point.x != 0)
             {
@@ -90,10 +80,11 @@ class Player #if openfl extends TileContainer #end
                     scaleX = -1;
                 }
             }
-            velocityX = (point.x * Static.GRID) / time + (x - instance.x * Static.GRID);
-            velocityY = -(point.y * Static.GRID) / time + (y - instance.y * Static.GRID);
-            timeInt = time;
-            //pos();
+            //0.08
+            force();
+            timeInt = Std.int(Static.GRID/(Static.GRID * (instance.move_speed + 0.75) * computePathSpeedMod()) * 60 * multi);
+            velocityX = (point.x * (Static.GRID))/timeInt;
+            velocityY = -(point.y * (Static.GRID))/timeInt;
             instance.x += point.x;
             instance.y += point.y;
             return true;
@@ -116,41 +107,7 @@ class Player #if openfl extends TileContainer #end
         pos.y = my;
         moves = [pos];
         #end
-        updateMoveSpeed();
         return true;
-    }
-    public function updateMoveSpeed()
-    {
-        var floorSpeedMod = computePathSpeedMod();
-        trace("floor " + floorSpeedMod + " pathLength " + measurePathLength() + " move speed " + instance.move_speed);
-        //update move speed section
-        var etaSec = measurePathLength()/(instance.move_speed * floorSpeedMod);
-        trace("eta sec " + etaSec);
-        var moveLeft:Float = measurePathLength() - measurePathLength() + 1;
-        var numTurns:Int = 0;
-        if (moves.length > 1)
-        {
-            var lastDir =  sub(moves[0],moves[1]);
-            var dir:Pos = null;
-            for (i in 1...moves.length - 1)
-            {
-                dir = sub(moves[i + 1],moves[i]);
-                if (!equal(dir,lastDir))
-                {
-                    numTurns++;
-                    lastDir = dir;
-                }
-            }
-        }
-        var turnTimeBoost = 0.08 * numTurns;
-        etaSec += turnTimeBoost;
-        if (etaSec < 0.1)
-        {
-            etaSec = 0.1;
-        }
-        var speedPerSec = moveLeft/etaSec;
-        time = Std.int(speedPerSec * 60 * Static.GRID);
-        trace("time int end " + time + " sps " + speedPerSec);
     }
     public function computePathSpeedMod():Float
     {
@@ -223,7 +180,6 @@ class Player #if openfl extends TileContainer #end
                 }
             }
         }
-        timeInt = time;
     }
     public function set(data:PlayerInstance)
     {
@@ -234,7 +190,7 @@ class Player #if openfl extends TileContainer #end
             trace("forced");
             Main.client.send("FORCE " + instance.x + " " + instance.y);
             //force movement
-            pos();
+            force();
         }
         //remove moves
         timeInt = 0;
@@ -267,7 +223,7 @@ class Player #if openfl extends TileContainer #end
         addTile(object);
         #end
     }
-    public function pos() 
+    public function force() 
     {
         #if openfl
         //local position

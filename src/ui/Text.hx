@@ -78,7 +78,7 @@ class Text extends TextField
         cacheAsBitmap = true;
         selectable = false;
         mouseEnabled = false;
-        wordWrap = true;
+        wordWrap = false;
         multiline = true;
         updateFormat();
 
