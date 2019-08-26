@@ -82,7 +82,7 @@ class Player #if openfl extends TileContainer #end
             }
             //0.08
             force();
-            timeInt = Std.int(Static.GRID/(Static.GRID * (instance.move_speed + 0.75) * computePathSpeedMod()) * 60 * multi);
+            timeInt = Std.int(Static.GRID/(Static.GRID * (instance.move_speed) * computePathSpeedMod()) * 60 * multi);
             velocityX = (point.x * (Static.GRID))/timeInt;
             velocityY = -(point.y * (Static.GRID))/timeInt;
             instance.x += point.x;
@@ -233,25 +233,14 @@ class Player #if openfl extends TileContainer #end
     }
     public function sort(diff:Int=0)
     {
-        var array = gdata.tileData.object.row(instance.y);
-        if (array == null) return;
-        //check tile going to
-        var index:Int = instance.x - gdata.tileData.object.dx;
-        //trace("sort index " + index);
-        var object:Array<Tile> = array[index];
+        var object:Array<Tile> = gdata.tileData.object.get(instance.x,instance.y + diff);
         if (object == null)
         {
-            for (item in array)
-            {
-                if (item != null && item.length > 0) 
-                {
-                    object = item;
-                    break;
-                }
-            }
+            //floor
+            object = gdata.tileData.floor.get(instance.x,instance.y + diff);
         }
         if (object == null) return;
-        objects.group.setTileIndex(this,objects.group.getTileIndex(object[0]) + diff);
+        objects.group.setTileIndex(this,objects.group.getTileIndex(object[0]) + diff + 1);
     }
     public function age()
     {

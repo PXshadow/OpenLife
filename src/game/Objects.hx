@@ -53,13 +53,14 @@ class Objects extends TileDisplay
     public function new()
     {
         //smoothing = true;
-        super(4000,4000);
+        super(4096,4096);
         //add base
         group = new TileContainer();
         addTile(group);
     }
     public function addPlayer(data:PlayerInstance)
     {
+        if (data == null) return;
         player = this.data.playerMap.get(data.p_id);
         if (player == null)
         {
@@ -108,10 +109,10 @@ class Objects extends TileDisplay
         }
         if (container)
         {
-            group.addTileAt(object,0);
             //set local position
             object.x = (x) * Static.GRID;
             object.y = (Static.tileHeight - y) * Static.GRID;
+            group.addTileAt(object,0);
         }
         if (!this.data.map.loaded)
         {
@@ -121,6 +122,7 @@ class Objects extends TileDisplay
         var r:Rectangle;
         var sprite:Tile = null;
         var sprites:Array<Tile> = [];
+        var parents:Map<Int,TileContainer> = new Map<Int,TileContainer>();
         for(i in 0...data.numSprites)
         {
             sprite = new Tile();
@@ -136,7 +138,7 @@ class Objects extends TileDisplay
             //rot
             if (data.spriteArray[i].rot > 0)
             {
-                //object.rotation = data.spriteArray[i].rot * 365;
+                sprite.rotation = data.spriteArray[i].rot * 365;
             }
             //flip
             if (data.spriteArray[i].hFlip != 0)
@@ -144,31 +146,52 @@ class Objects extends TileDisplay
                 sprite.scaleX = data.spriteArray[i].hFlip;
             }
             //pos
-            sprite.x = data.spriteArray[i].pos.x - data.spriteArray[i].inCenterXOffset * 1 - r.width/2;
-            sprite.y = -data.spriteArray[i].pos.y - data.spriteArray[i].inCenterYOffset * 1 - r.height/2;
+            sprite.originX = r.width/2 + data.spriteArray[i].inCenterXOffset;
+            sprite.originY = r.height/2 + data.spriteArray[i].inCenterYOffset;
+            sprite.x = data.spriteArray[i].pos.x;
+            sprite.y = -data.spriteArray[i].pos.y;
             //color
             sprite.colorTransform = new ColorTransform();
             sprite.colorTransform.redMultiplier = data.spriteArray[i].color[0];
             sprite.colorTransform.greenMultiplier = data.spriteArray[i].color[1];
             sprite.colorTransform.blueMultiplier = data.spriteArray[i].color[2];
+            //rotation
+            sprite.rotation = data.spriteArray[i].rot * 365;
             if(data.person > 0)
             {
                 //player data set
                 cast(object,Player).ageRange[i] = {min:data.spriteArray[i].ageRange[0],max:data.spriteArray[i].ageRange[1]};
             }
-            if (container)
+            if (data.spriteArray[i].parent > -1)
             {
-                //parent
-                object.addTile(sprite);
+                var p = parents.get(data.spriteArray[i].parent);
+                if (p == null)
+                {
+                    p = new TileContainer();
+                    parents.set(data.spriteArray[i].parent,p);
+                    if (container)
+                    {
+                        object.addTile(p);
+                    }else{
+                        p.x += x * Static.GRID;
+                        p.y += (Static.tileHeight - y) * Static.GRID;
+                        group.addTileAt(p,0);
+                    }
+                }
+                p.addTile(sprite);
+                //group.addTile(sprite);
             }else{
-                //group
-                group.addTileAt(sprite,0);
-                sprites.unshift(sprite);
-                
-                sprite.x += x * Static.GRID;
-                sprite.y += (Static.tileHeight - y) * Static.GRID;
+                if (container)
+                {
+                    object.addTile(sprite);
+                }else{
+                    sprite.x += x * Static.GRID;
+                    sprite.y += (Static.tileHeight - y) * Static.GRID;
+                    group.addTileAt(sprite,0);
+                }
             }
         }
+        //finish for loop, push data into tileData
         if (push)
         {
             if (container) sprites = [object];
