@@ -1,4 +1,5 @@
 package game;
+import openfl.display.BitmapData;
 import data.GameData;
 import openfl.display.TileContainer;
 import lime.utils.ObjectPool;
@@ -21,16 +22,13 @@ class Objects extends TileDisplay
     public var object:TileContainer;
     var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     public var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
-    var animationMap:Map<Int,AnimationData> = new Map<Int,AnimationData>();
     //for tileset
-    var tileX:Float = 0;
-    var tileY:Float = 0;
-    //ground
-    public var numGround:Int = 0;
+    public var tileX:Float = 0;
+    public var tileY:Float = 0;
     //last player to be loaded in 
     public var player:Player = null;
     //used for reading
-    var tileHeight:Int = 0;
+    public var tileHeight:Int = 0;
     public var velocityX:Float = 0;
     public var velocityY:Float = 0;
     public var setX:Float = 0;
@@ -39,7 +37,7 @@ class Objects extends TileDisplay
     public var data:GameData = null;
     //scale used for zoom in and out
     public var scale(get, set):Float;
-    public var range:Int = 18;
+    public var range:Int = 14;
     function get_scale():Float 
     {
         return group.scaleX;
@@ -52,8 +50,8 @@ class Objects extends TileDisplay
     }
     public function new()
     {
-        //smoothing = true;
-        super(4096,4096);
+        super();
+        smoothing = true;
         //add base
         group = new TileContainer();
         addTile(group);
@@ -173,8 +171,8 @@ class Objects extends TileDisplay
                     {
                         object.addTile(p);
                     }else{
-                        p.x += x * Static.GRID;
-                        p.y += (Static.tileHeight - y) * Static.GRID;
+                        p.x = x * Static.GRID;
+                        p.y = (Static.tileHeight - y) * Static.GRID;
                         group.addTileAt(p,0);
                     }
                 }

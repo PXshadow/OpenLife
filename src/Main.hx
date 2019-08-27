@@ -321,7 +321,17 @@ class Main #if openfl extends Sprite #end
         if (Bind.playerUse.bool)
         {
             program.use(selectX,selectY);
-            player.hold();
+            //player.hold();
+            //animation section
+            var tile:Tile = null;
+            for(record in objects.objectMap.get(player.instance.po_id).animation.record)
+            {
+                for (i in 0...record.numSprites)
+                {
+                    tile = player.getTileAt(i);
+                    
+                }
+            }
         }
     }
     private function keyUp(e:KeyboardEvent)
@@ -387,6 +397,13 @@ class Main #if openfl extends Sprite #end
         var timer = new Timer(delay);
         timer.run = function()
         {
+            /*if (objects.getFill() > 0.90)
+            {
+                objects.tileX = 0;
+                objects.tileY = 0;
+                objects.tileHeight = 0;
+                objects.tileset.bitmapData.fillRect(objects.tileset.bitmapData.rect,0x00FFFFFF);
+            }*/
             objects.tileset.bitmapData.lock();
             ground.clear();
             objects.clear();
@@ -413,7 +430,6 @@ class Main #if openfl extends Sprite #end
                     }
                 }
             }
-            trace("tilemap percent " + objects.getFill());
             it = data.playerMap.iterator();
             while (it.hasNext())
             {

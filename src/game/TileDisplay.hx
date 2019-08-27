@@ -13,9 +13,9 @@ import openfl.display.Tile;
 class TileDisplay extends Tilemap
 {
     var reader:TgaData = new TgaData();
-    public function new(tilesetWidth:Int,tilesetHeight:Int,transparent:Bool=true)
+    public function new()
     {
-        super(0,0,new Tileset(new BitmapData(tilesetWidth,tilesetHeight,transparent)),false);
+        super(0,0,new Tileset(new BitmapData(4096,4096)));
         tileBlendModeEnabled = false;
         tileColorTransformEnabled = true;
     }
@@ -24,7 +24,7 @@ class TileDisplay extends Tilemap
         if (tileset.numRects > 0)
         {
             var rect = tileset.getRect(tileset.numRects - 1);
-            var percent:Float = (rect.y + rect.height) / tileset.bitmapData.height;
+            var percent:Float = (rect.y + rect.height) / tileset.bitmapData.height + tileset.bitmapData.height/((rect.x + rect.width) / tileset.bitmapData.width);
             return percent;
         }else{
             return 0;
