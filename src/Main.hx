@@ -324,14 +324,29 @@ class Main #if openfl extends Sprite #end
             //player.hold();
             //animation section
             var tile:Tile = null;
-            for(record in objects.objectMap.get(player.instance.po_id).animation.record)
+            var animation = objects.objectMap.get(player.instance.po_id).animation;
+            trace(" map " + animation);
+            if (animation != null)
             {
-                for (i in 0...record.numSprites)
+                var i:Int = 0;
+                //trace("params " + animation.record[2].params + " length " + animation.record[2].params.length);
+                //trace("sprites " + player.sprites + " length " + player.sprites.length);
+                var i:Int = 0;
+                for (param in animation.record[2].params)
                 {
-                    tile = player.getTileAt(i);
-                    
+                    if (player.sprites[i] != null)
+                    {
+                        player.sprites[i].alpha = 0.2;
+                        i++;
+                    }
                 }
             }
+            //var record = map.animation.record;
+            /*for (i in 0...record.params.length)
+            {
+                var sprite = player.sprites[i];
+                trace("sprite " + sprite);
+            }*/
         }
     }
     private function keyUp(e:KeyboardEvent)
@@ -397,13 +412,13 @@ class Main #if openfl extends Sprite #end
         var timer = new Timer(delay);
         timer.run = function()
         {
-            /*if (objects.getFill() > 0.90)
+            if (objects.getFill() > 0.90)
             {
                 objects.tileX = 0;
                 objects.tileY = 0;
                 objects.tileHeight = 0;
-                objects.tileset.bitmapData.fillRect(objects.tileset.bitmapData.rect,0x00FFFFFF);
-            }*/
+                objects.tileset.bitmapData.fillRect(objects.tileset.bitmapData.rect,0xFFFFFFFF);
+            }
             objects.tileset.bitmapData.lock();
             ground.clear();
             objects.clear();
@@ -439,6 +454,7 @@ class Main #if openfl extends Sprite #end
             }
             ground.render();
             objects.tileset.bitmapData.unlock();
+            trace("get fill " + objects.getFill());
             timer.stop();
             timer = null;
         }

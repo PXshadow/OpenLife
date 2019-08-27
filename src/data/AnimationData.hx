@@ -9,10 +9,7 @@ class AnimationData extends LineReader
     public function new(id:Int)
     {
         super();
-        //#if !openfl
-        fail = true;
-        return;
-        //#end
+        //fail = true;
         //return;
         if (!FileSystem.exists(Static.dir + "animations/" + id + "_0.txt"))
         {

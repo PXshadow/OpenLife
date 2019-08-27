@@ -37,7 +37,7 @@ class Objects extends TileDisplay
     public var data:GameData = null;
     //scale used for zoom in and out
     public var scale(get, set):Float;
-    public var range:Int = 14;
+    public var range:Int = 18;
     function get_scale():Float 
     {
         return group.scaleX;
@@ -51,7 +51,6 @@ class Objects extends TileDisplay
     public function new()
     {
         super();
-        smoothing = true;
         //add base
         group = new TileContainer();
         addTile(group);
@@ -177,7 +176,12 @@ class Objects extends TileDisplay
                     }
                 }
                 p.addTile(sprite);
-                //group.addTile(sprite);
+                if (i == data.spriteArray[i].parent)
+                {
+                    sprites.push(p);
+                }else{
+                    sprites.push(sprite);
+                }
             }else{
                 if (container)
                 {
@@ -186,8 +190,14 @@ class Objects extends TileDisplay
                     sprite.x += x * Static.GRID;
                     sprite.y += (Static.tileHeight - y) * Static.GRID;
                     group.addTileAt(sprite,0);
+                    sprites.push(sprite);
                 }
             }
+        }
+        //person
+        if (data.person > 0)
+        {
+            cast(object,Player).sprites = sprites;
         }
         //finish for loop, push data into tileData
         if (push)
