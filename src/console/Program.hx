@@ -31,13 +31,13 @@ class Program
     }
     public function send(tag:ServerTag,data:String)
     {
-        if (setup)
+        /*if (setup)
         {
             //queue because path is currently being travled
             queue.push(tag);
-        }else{
+        }else{*/
             Main.client.send(tag + " " + data);
-        }
+        //}
     }
     public function stop()
     {
@@ -145,7 +145,7 @@ class Program
             for(x in max(data.map.x,Main.player.instance.x - range)...min(data.map.x + data.map.width,Main.player.instance.x + range))
             {
                     //array of objects in the tile
-                    id = data.map.object.get(x,y);
+                    id = data.map.object.get(x,y)[0];
                     if (get.indexOf(id) >= 0)
                     {
                         cur = Math.abs(Math.sqrt(Math.pow(Main.player.instance.y - y,2) + Math.pow(Main.player.instance.x - x,2)));
@@ -216,7 +216,7 @@ class Program
     public function self(index:Int=-1):Program
     {
         //use action on self (eat)
-        send(SELF, "0 0 " + index);
+        if (Main.player != null) send(SELF, Main.player.instance.x + " " + Main.player.instance.y + index);
         return this;
     }
     public function eat():Program
@@ -503,19 +503,16 @@ class Program
     {
         var targets:Array<Tile> = [];
         var list = id(target);
-        if (list.length == 0) 
+        if (list.length == 0) return targets;
+        var cx:Int = Main.player.instance.x;
+        var cy:Int = Main.player.instance.y;
+        for (j in cy - Main.objects.range...cy + Main.objects.range)
         {
-            trace("unable to find target " + target);
-            return targets;
-        }
-        /*for (i in 0...game.objects.group.numTiles)
-        {
-            tile = game.objects.group.getTileAt(i);
-            if (list.indexOf(obj.oid) >= 0)
+            for (i in cx - Main.objects.range...cx + Main.objects.range)
             {
-                targets.push(obj);
+                if (list.indexOf(data.map.object.get(i,j)[0]) >= 0) for(tile in data.tileData.object.get(i,j)) targets.push(tile);
             }
-        }*/
+        }
         return targets;
     }
     #end

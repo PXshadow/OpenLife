@@ -10,7 +10,7 @@ import openfl.display.DisplayObject;
 import console.Program;
 import data.GameData;
 import openfl.display.FPS;
-import data.MapData.ArrayData;
+import data.MapData.ArrayDataArray;
 import settings.Bind;
 import sys.thread.Thread;
 import sys.net.Socket;
@@ -58,7 +58,7 @@ class Main #if openfl extends Sprite #end
     var selectY:Int = 0;
     var data:GameData;
     var playerInstance:PlayerInstance;
-    public var mapInstance:MapInstance;
+    var mapInstance:MapInstance;
     var index:Int = 0;
     var compress:Bool = false;
     var inital:Bool = true;
@@ -312,6 +312,7 @@ class Main #if openfl extends Sprite #end
         //player
         if (Bind.playerSelf.bool)
         {
+            trace("self");
             program.self();
         }
         if (Bind.playerDrop.bool)
@@ -320,7 +321,7 @@ class Main #if openfl extends Sprite #end
         }
         if (Bind.playerUse.bool)
         {
-            program.use(selectX,selectY);
+            //program.use(selectX,selectY);
             //player.hold();
             //animation section
             var tile:Tile = null;
@@ -329,14 +330,12 @@ class Main #if openfl extends Sprite #end
             if (animation != null)
             {
                 var i:Int = 0;
-                //trace("params " + animation.record[2].params + " length " + animation.record[2].params.length);
-                //trace("sprites " + player.sprites + " length " + player.sprites.length);
-                var i:Int = 0;
                 for (param in animation.record[2].params)
                 {
                     if (player.sprites[i] != null)
                     {
-                        player.sprites[i].alpha = 0.2;
+                        player.sprites[i].x = param.offset.x;
+                        player.sprites[i].y = param.offset.y;
                         i++;
                     }
                 }
@@ -395,6 +394,7 @@ class Main #if openfl extends Sprite #end
     {
         zoom(e.delta);
     }
+    var timer:Timer = null;
     public function render() 
     {
         trace("MAP UPDATE");
@@ -408,20 +408,36 @@ class Main #if openfl extends Sprite #end
             ground.y = objects.group.y;
             inital = false;
             delay = 0;
+            //clear player
+            //objects.addPlayer(playerInstance);
         }
-        var timer = new Timer(delay);
+        if (timer != null) return;
+        timer = new Timer(delay);
         timer.run = function()
         {
-            if (objects.getFill() > 0.90)
+            objects.tileset.bitmapData.lock();
+            var time = Timer.stamp();
+            ground.clear();
+            objects.clear();
+            trace("clear " + Std.string(Timer.stamp() - time));
+            time = Timer.stamp();
+            if (objects.getFill() > 0.90 || objects.clearBool)
             {
+                objects.cacheMap = new Map<Int,Int>();
                 objects.tileX = 0;
                 objects.tileY = 0;
                 objects.tileHeight = 0;
+                //player
+                it = data.playerMap.iterator();
+                while (it.hasNext())
+                {
+                    objects.player = it.next();
+                    objects.player.removeTiles();
+                    objects.add(objects.player.instance.po_id,0,0,true,false);
+                    objects.player.addTiles(cast(objects.object,Player).sprites);
+                }
                 objects.tileset.bitmapData.fillRect(objects.tileset.bitmapData.rect,0xFFFFFFFF);
             }
-            objects.tileset.bitmapData.lock();
-            ground.clear();
-            objects.clear();
             //center point to determine range
             var cx:Int = mapInstance.x + Std.int(mapInstance.width/2);
             var cy:Int = mapInstance.y + Std.int(mapInstance.height/2);
@@ -431,11 +447,27 @@ class Main #if openfl extends Sprite #end
                 cx = player.instance.x;
                 cy = player.instance.y;
             }
-            for (j in cy - objects.range ...cy + objects.range)
+            //trace("start object layer");
+            //object layer
+            var array:Array<Int> = [];
+            for (j in cy - objects.range...cy + objects.range)
             {
                 for (i in cx - objects.range...cx + objects.range)
                 {
-                    objects.add(data.map.object.get(i,j),i,j);
+                    array = data.map.object.get(i,j);
+                    if (array != null) for (index in array)
+                    {
+                        objects.add(index,i,j);
+                    }
+                }
+            }
+            //trace("object " + Std.string(Timer.stamp() - time));
+            time = Timer.stamp();
+            //floor layer
+            for (j in cy - objects.range...cy + objects.range)
+            {
+                for (i in cx - objects.range...cx + objects.range)
+                {
                     //add floor
                     if (!objects.add(data.map.floor.get(i,j),i,j))
                     {
@@ -445,6 +477,8 @@ class Main #if openfl extends Sprite #end
                     }
                 }
             }
+            //trace("floor " + Std.string(Timer.stamp() - time));
+            time = Timer.stamp();
             it = data.playerMap.iterator();
             while (it.hasNext())
             {
@@ -452,9 +486,12 @@ class Main #if openfl extends Sprite #end
                 objects.player.sort();
                 objects.group.addTile(objects.player);
             }
+            //trace("player " + Std.string(Timer.stamp() - time));
+            time = Timer.stamp();
             ground.render();
+            //trace("ground " + Std.string(Timer.stamp() - time));
             objects.tileset.bitmapData.unlock();
-            trace("get fill " + objects.getFill());
+            //trace("get fill " + objects.getFill());
             timer.stop();
             timer = null;
         }
@@ -474,7 +511,7 @@ class Main #if openfl extends Sprite #end
         switch(Main.client.tag)
         {
             case PLAYER_UPDATE:
-            if (player == null) 
+            if (player == null && objects.player != null) 
             {
                 setPlayer(objects.player);
                 player.sort();
@@ -605,7 +642,7 @@ class Main #if openfl extends Sprite #end
             }else{
                 array = data.tileData.object.get(rx,ry);
                 data.tileData.object.set(rx,ry,null);
-                data.map.object.set(rx,ry,0);
+                data.map.object.set(rx,ry,[0]);
             }
             if (array != null) for (tile in array) objects.group.removeTile(tile);
             //add new
@@ -614,7 +651,7 @@ class Main #if openfl extends Sprite #end
             {
                 //add to new location
                 data.tileData.object.set(change.x,change.y,[objects.object]);
-                data.map.object.set(change.x,change.y,id);
+                data.map.object.set(change.x,change.y,[id]);
                 //tween to location
                 Actuate.tween(objects.object,1,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
             }
@@ -658,7 +695,9 @@ class Main #if openfl extends Sprite #end
 
             case NAME:
             //p_id first_name last_name last_name may be ommitted.
-
+            var array = input.split(" ");
+            var name:String = array[1] + (array.length > 1 ? " " + array[2] : "");
+            draw.username(Std.parseInt(array[0]),name);
             case DYING:
             //p_id isSick isSick is optional 1 flag to indicate that player is sick (client shouldn't show blood UI overlay for sick players)
 

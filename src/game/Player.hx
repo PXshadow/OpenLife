@@ -25,7 +25,9 @@ class Player #if openfl extends TileContainer #end
     public var object:TileContainer;
     public var moves:Array<Pos> = [];
     public var velocityX:Float = 0;
-    public var velocityY:Float= 0;
+    public var velocityY:Float = 0;
+    //clothing
+    //public var 
     //how many frames till depletion
     public var timeInt:Int = -1;
     //pathing
@@ -193,8 +195,17 @@ class Player #if openfl extends TileContainer #end
         //remove moves
         timeInt = 0;
         moves = [];
-        //age();
+        age();
         hold();
+        cloths();
+    }
+    public function cloths()
+    {
+        var array:Array<Array<String>> = [];
+        for (string in instance.clothing_set.split(";"))
+        {
+            array.push(string.split(","));
+        }
     }
     public function hold()
     {
@@ -233,7 +244,6 @@ class Player #if openfl extends TileContainer #end
     {
         var diff:Int = 0;
         var object:Array<Tile> = gdata.tileData.object.get(instance.x,instance.y);
-        if (object == null) object = gdata.tileData.floor.get(instance.x,instance.y);
         if (object == null) 
         {
             object = gdata.tileData.object.get(instance.x,instance.y + 1);
@@ -251,14 +261,12 @@ class Player #if openfl extends TileContainer #end
     {
         #if openfl
         var tile:Tile;
-        for(i in 0...numTiles)
+        for(i in 0...sprites.length)
         {
-            tile = getTileAt(i);
-            if (tile == null) continue;
-            tile.visible = true;
+            sprites[i].visible = true;
             if((ageRange[i].min > instance.age || ageRange[i].max < instance.age) && ageRange[i].min > 0)
             {
-                tile.visible = false;
+                sprites[i].visible = false;
             }
         }
         #end

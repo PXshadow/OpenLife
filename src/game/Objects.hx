@@ -20,7 +20,7 @@ import data.ObjectData;
 class Objects extends TileDisplay
 {
     public var object:TileContainer;
-    var cacheMap:Map<Int,Int> = new Map<Int,Int>();
+    public var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     public var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
     //for tileset
     public var tileX:Float = 0;
@@ -38,6 +38,8 @@ class Objects extends TileDisplay
     //scale used for zoom in and out
     public var scale(get, set):Float;
     public var range:Int = 18;
+    //clear
+    public var clearBool:Bool = false;
     function get_scale():Float 
     {
         return group.scaleX;
@@ -62,8 +64,10 @@ class Objects extends TileDisplay
         if (player == null)
         {
             //new
-            add(data.po_id,data.x,data.y,true);
+            add(data.po_id,data.x,data.y,true,false);
             player = cast object;
+            if (player == null) return;
+            trace("player " + player);
             this.data.playerMap.set(data.p_id,player);
             player.set(data);
             player.force();
@@ -86,7 +90,11 @@ class Objects extends TileDisplay
     }
     public function add(id:Int,x:Int=0,y:Int=0,container:Bool=false,push:Bool=true):Bool
     {
+        //return false;
         if(id <= 0) return false;
+        //trace("unit test");
+        UnitTest.inital();
+        //trace("inital");
         var data = getObjectData(id);
         object = null;
         //data
@@ -114,12 +122,13 @@ class Objects extends TileDisplay
         if (!this.data.map.loaded)
         {
             //add data into map data if not loaded in (for testing)
-            this.data.map.object.set(x,y,id);
+            this.data.map.object.set(x,y,[id]);
         }
         var r:Rectangle;
         var sprite:Tile = null;
         var sprites:Array<Tile> = [];
         var parents:Map<Int,TileContainer> = new Map<Int,TileContainer>();
+        //trace("inital " + UnitTest.stamp());
         for(i in 0...data.numSprites)
         {
             sprite = new Tile();
@@ -186,6 +195,7 @@ class Objects extends TileDisplay
                 if (container)
                 {
                     object.addTile(sprite);
+                    sprites.push(sprite);
                 }else{
                     sprite.x += x * Static.GRID;
                     sprite.y += (Static.tileHeight - y) * Static.GRID;
@@ -194,6 +204,7 @@ class Objects extends TileDisplay
                 }
             }
         }
+        //trace("for " + UnitTest.stamp() + " person " + data.person + " container " + container);
         //person
         if (data.person > 0)
         {
@@ -210,6 +221,7 @@ class Objects extends TileDisplay
                 this.data.tileData.floor.set(x,y,sprites);
             }
         }
+        //trace("add " + UnitTest.stamp());
         return true;
     }
     public function clear()
