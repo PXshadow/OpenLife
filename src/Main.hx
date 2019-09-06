@@ -238,15 +238,6 @@ class Main #if openfl extends Sprite #end
                     player.step(xs,ys);
                 }
             }
-            //update players
-            if (data != null)
-            {
-                it = data.playerMap.iterator();
-                while(it.hasNext())
-                {
-                    it.next().update();
-                }
-            }
             //update draw
             draw.update();
             if (player.follow)
@@ -690,6 +681,11 @@ class Main #if openfl extends Sprite #end
             case PLAYER_OUT_OF_RANGE:
             //player is out of range
             trace("player out of range " + input);
+            var id:Int = Std.parseInt(input);
+            var player = data.playerMap.get(id);
+            data.playerMap.remove(id);
+            objects.group.removeTile(player);
+            player = null;
             case LINEAGE:
             //p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
 

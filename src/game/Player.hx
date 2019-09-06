@@ -1,4 +1,5 @@
 package game;
+import motion.easing.Linear;
 import console.Program;
 import data.GameData;
 import openfl.display.TileContainer;
@@ -28,9 +29,8 @@ class Player #if openfl extends TileContainer #end
     public var velocityY:Float = 0;
     //clothing
     //public var 
-    //how many frames till depletion
-    public var timeInt:Int = -1;
     //pathing
+    public var moving:Bool = false;
     public var goal:Bool = false;
     public var program:Program = null;
     var gdata:GameData;
@@ -45,59 +45,31 @@ class Player #if openfl extends TileContainer #end
         super();
         #end
     }
-    
-    public function update()
+    public function move()
     {
-        #if openfl
-        timeInt--;
-        if (timeInt == -1)
-        {
-            if (goal) path();
-            move();
-        }
-        if (timeInt > 0)
-        {
-            x += velocityX;
-            y += velocityY;
-        }
-        #end
-    }
-    public function move():Bool
-    {
-        #if openfl
+        if (goal) path();
         //grab another move
-        if(moves.length > 0)
+        if(moves.length > 0 && !moving)
         {
             var point = moves.pop();
-            //flip (change direction)
-            if (point.x != 0)
+            //speed
+            var time = Std.int(Static.GRID/(Static.GRID * (instance.move_speed) * computePathSpeedMod()) * 60 * multi);
+            moving = true;
+            Actuate.tween(this,time/60,{x:(instance.x + point.x) * Static.GRID,y:(Static.tileHeight - (instance.y + point.y)) * Static.GRID}).onComplete(function(_)
             {
-                if (point.x > 0)
-                {
-                    scaleX = 1;
-                }else{
-                    scaleX = -1;
-                }
-            }
-            //0.08
-            force();
-            timeInt = Std.int(Static.GRID/(Static.GRID * (instance.move_speed) * computePathSpeedMod()) * 60 * multi);
-            velocityX = (point.x * (Static.GRID))/timeInt;
-            velocityY = -(point.y * (Static.GRID))/timeInt;
-            instance.x += point.x;
-            instance.y += point.y;
+                instance.x += point.x;
+                instance.y += point.y;
+                moving = false;
+                move();
+            }).ease(Linear.easeNone);
             sort();
-            return true;
+            return;
         }
-        timeInt = -1;
-        return false;
-        #end
     }
     public function step(mx:Int,my:Int):Bool
     {
         //no other move is occuring, and player is not moving on blocked
-        if (timeInt > 0 || gdata.blocking.get(Std.string(instance.x + mx) + "." + Std.string(instance.y + my))) return false;
-        timeInt = 0;
+        if (moving || gdata.blocking.get(Std.string(instance.x + mx) + "." + Std.string(instance.y + my))) return false;
         //send data
         lastMove++;
         Main.client.send("MOVE " + instance.x + " " + instance.y + " @" + lastMove + " " + mx + " " + my);
@@ -107,6 +79,7 @@ class Player #if openfl extends TileContainer #end
         pos.y = my;
         moves = [pos];
         #end
+        move();
         return true;
     }
     public function computePathSpeedMod():Float
@@ -193,7 +166,6 @@ class Player #if openfl extends TileContainer #end
             force();
         }
         //remove moves
-        timeInt = 0;
         moves = [];
         age();
         hold();
@@ -235,6 +207,7 @@ class Player #if openfl extends TileContainer #end
     public function force() 
     {
         #if openfl
+        Actuate.pause(this);
         //local position
         x = instance.x * Static.GRID;
         y = (Static.tileHeight - instance.y) * Static.GRID;

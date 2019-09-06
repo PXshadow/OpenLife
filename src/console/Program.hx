@@ -76,7 +76,7 @@ class Program
         {
             //main
             Main.player.goal = true;
-            Main.player.timeInt = 0;
+            Main.player.move();
             refine = true;
         }
         return this;
