@@ -204,7 +204,7 @@ class PlayerMove
             currentX = move.x;
             currentY = move.y;
         }
-        player.move();
+        player.motion();
         #end
     }
 }

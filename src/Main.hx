@@ -235,7 +235,7 @@ class Main #if openfl extends Sprite #end
                 {
                     player.goal = false;
                     program.setup = false;
-                    player.step(xs,ys);
+                    player.move(xs,ys);
                 }
             }
             //update draw

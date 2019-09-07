@@ -76,7 +76,7 @@ class Program
         {
             //main
             Main.player.goal = true;
-            Main.player.move();
+            Main.player.motion();
             refine = true;
         }
         return this;

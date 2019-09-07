@@ -45,7 +45,7 @@ class Player #if openfl extends TileContainer #end
         super();
         #end
     }
-    public function move()
+    public function motion()
     {
         if (goal) path();
         //grab another move
@@ -60,11 +60,15 @@ class Player #if openfl extends TileContainer #end
                 instance.x += point.x;
                 instance.y += point.y;
                 moving = false;
-                move();
+                motion();
             }).ease(Linear.easeNone);
             sort();
             return;
         }
+    }
+    public function move(mx:Int,my:Int)
+    {
+        pathfind(mx,my);
     }
     public function step(mx:Int,my:Int):Bool
     {
@@ -79,7 +83,7 @@ class Player #if openfl extends TileContainer #end
         pos.y = my;
         moves = [pos];
         #end
-        move();
+        motion();
         return true;
     }
     public function computePathSpeedMod():Float
@@ -133,7 +137,12 @@ class Player #if openfl extends TileContainer #end
             //complete 
             program.stop();
         }else{
-            if (!step(px,py))
+            pathfind(px,py);
+        }
+    }
+    public function pathfind(px:Int,py:Int)
+    {
+        if (!step(px,py))
             {
                 //non direct path
                 if (px == py || px == py * -1)
@@ -152,7 +161,6 @@ class Player #if openfl extends TileContainer #end
                     }
                 }
             }
-        }
     }
     public function set(data:PlayerInstance)
     {
