@@ -1,4 +1,5 @@
 package game;
+import openfl.geom.Point;
 import motion.easing.Linear;
 import console.Program;
 import data.GameData;
@@ -18,6 +19,12 @@ import data.ObjectData;
 import data.AnimationData;
 class Player #if openfl extends TileContainer #end
 {
+    //statics
+    private static inline var babyHeadDownFactor:Float = 0.6;
+    private static inline var babyBodyDownFactor:Float = 0.75;
+    private static inline var oldHeadDownFactor:Float = 0.35;
+    private static inline var oldHeadForwardFactor:Float = 2;
+
     public var lastMove:Int = 1;
     public var moveTimer:Timer;
     public var instance:PlayerInstance;
@@ -28,6 +35,12 @@ class Player #if openfl extends TileContainer #end
     public var velocityX:Float = 0;
     public var velocityY:Float = 0;
     //clothing
+    public var backShoe:TileContainer = null;
+    public var tunic:TileContainer = null;
+    public var bottom:TileContainer = null;
+    public var backpack:TileContainer = null;
+    public var frontShoe:TileContainer = null;
+    public var hat:TileContainer = null;
     //public var 
     //pathing
     public var moving:Bool = false;
@@ -65,6 +78,39 @@ class Player #if openfl extends TileContainer #end
             sort();
             return;
         }
+    }
+    public function getAgeHeadOffset(inAge:Float,head:Point,body:Point,frontFoot:Point)
+    {
+        if (inAge == -1) return new Point();
+        var maxHead = head.y - body.y;
+        if (inAge < 20)
+        {
+            var yOffset = ( ( 20 - inAge ) / 20 ) * babyHeadDownFactor * maxHead;
+            return new Point(0,Math.round(-yOffset));
+        }
+        if (inAge >= 40)
+        {
+            if (inAge > 60)
+            {
+                inAge = 60;
+            }
+            var vertOffset = ( ( inAge - 40) / 20 ) * oldHeadDownFactor * maxHead;
+            var footOffset = frontFoot.x - head.x;
+            var forwardOffset = ( ( inAge - 40 ) / 20 ) * oldHeadDownFactor * footOffset;
+            return new Point(Math.round(forwardOffset),Math.round(-vertOffset));
+        }
+        return new Point();
+    }
+    public function getAgeBodyOffset(inAge:Float,pos:Point)
+    {
+        if (inAge == -1) return new Point();
+        if (inAge < 20)
+        {
+            var maxBody = pos.y;
+            var yOffset = ( ( 20 - inAge) / 20) * babyBodyDownFactor * maxBody;
+            return new Point(0,Math.round(-yOffset));
+        }
+        return new Point();
     }
     public function move(mx:Int,my:Int)
     {
