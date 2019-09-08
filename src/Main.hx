@@ -445,11 +445,7 @@ class Main #if openfl extends Sprite #end
             {
                 for (i in cx - objects.range...cx + objects.range)
                 {
-                    array = data.map.object.get(i,j);
-                    if (array != null) for (index in array)
-                    {
-                        objects.add(index,i,j);
-                    }
+                    add(data.map.object.get(i,j),i,j);
                 }
             }
             //trace("object " + Std.string(Timer.stamp() - time));
@@ -485,6 +481,27 @@ class Main #if openfl extends Sprite #end
             //trace("get fill " + objects.getFill());
             timer.stop();
             timer = null;
+        }
+    }
+    //add object arraqy
+    public function add(array:Array<Int>,x:Int,y:Int,container:Bool=false,push:Bool=true)
+    {
+        var sub:TileContainer = null;
+        if (array != null) 
+        {
+            objects.add(array[0],x,y,array.length > 1 ? true : container,push);
+            objects.containing = array.length > 1 ? array[0] : 0;
+            for (i in 1...array.length)
+            {
+                if (array[i] < 0)
+                {
+                    //sub container
+                    objects.add(array[i] * -1,x,y,true,push);
+                }else{
+                    //container
+                    objects.add(array[i],x,y,container,push);
+                }
+            }
         }
     }
     public function setPlayer(player:Player)
@@ -617,7 +634,8 @@ class Main #if openfl extends Sprite #end
             var change = new MapChange(input.split(" "));
             #if openfl
             var tile:Tile;
-            var id = change.floor > 0 ? change.floor : change.id;
+            var id:Array<Int> = change.floor > 0 ? [change.floor] : change.id;
+            trace("change id: " + id);
             var move:Bool = change.speed > 0 ? true : false;
             //removal location
             var rx:Int = change.speed > 0 ? change.oldX : change.x;
@@ -637,12 +655,12 @@ class Main #if openfl extends Sprite #end
             }
             if (array != null) for (tile in array) objects.group.removeTile(tile);
             //add new
-            objects.add(id,rx,ry,move,!move);
+            add(id,rx,ry,move,!move);
             if (move)
             {
                 //add to new location
                 data.tileData.object.set(change.x,change.y,[objects.object]);
-                data.map.object.set(change.x,change.y,[id]);
+                data.map.object.set(change.x,change.y,id);
                 //tween to location
                 Actuate.tween(objects.object,1,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
             }

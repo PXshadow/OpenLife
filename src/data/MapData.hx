@@ -36,6 +36,7 @@ class MapData
         var a:Array<String> = string.split(" ");
         //data array for object
         var data:Array<String>;
+        var array:Array<Array<Int>> = [];
         //bottom left
         for(j in y...y + height)
         {
@@ -46,9 +47,26 @@ class MapData
                 biome.set(i,j,Std.parseInt(data[0]));
                 floor.set(i,j,Std.parseInt(data[1]));
                 //setup containers
-                object.set(i,j,[Std.parseInt(data[2])]);
+                object.set(i,j,id(data[2]));
             }
         }
+    }
+    public static function id(string:String):Array<Int>
+    {
+            var a = string.split(",");
+            var array:Array<Int> = [];
+            for (i in 0...a.length)
+            {
+                //container
+                var s = a[i].split(":");
+                array.push(Std.parseInt(s[0]));
+                for (k in 1...s.length - 1)
+                {
+                    //subcontainer
+                    array.push(Std.parseInt(s[k]) * -1);
+                }
+            }
+            return array;
     }
 }
 class ArrayDataInt
@@ -192,7 +210,7 @@ class MapChange
     public var x:Int = 0;
     public var y:Int = 0;
     public var floor:Int = 0;
-    public var id:Int = 0;
+    public var id:Array<Int> = [];
     public var pid:Int = 0;
     public var oldX:Int = 0;
     public var oldY:Int = 0;
@@ -204,7 +222,7 @@ class MapChange
         floor = Std.parseInt(array[2]);
         //trace("change " + array[3]);
         //array[3].split(",")
-        id = Std.parseInt(array[3]);
+        id = MapData.id(array[3]);
         pid = Std.parseInt(array[4]);
         //optional speed
         if(array.length > 5)

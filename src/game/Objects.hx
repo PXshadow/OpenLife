@@ -19,6 +19,8 @@ import data.ObjectData;
 
 class Objects extends TileDisplay
 {
+    public var containing:Int = 0;
+    public var sprites:Array<Tile> = [];
     public var object:TileContainer;
     public var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     public var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
@@ -96,7 +98,6 @@ class Objects extends TileDisplay
         UnitTest.inital();
         //trace("inital");
         var data = getObjectData(id);
-        object = null;
         //data
         if (data.blocksWalking == 1)
         {
@@ -105,14 +106,15 @@ class Objects extends TileDisplay
             this.data.blocking.remove(x + "." + y);
         }
         //create new objects
-        if (container) object = new TileContainer();
+        if (containing == 0) object = null;
+        if (container && containing == 0) object = new TileContainer();
         if(data.person > 0)
         {
             object = new Player(this.data,this);
             container = true;
             push = false;
         }
-        if (container)
+        if (container && containing == 0)
         {
             //set local position
             object.x = (x) * Static.GRID;
@@ -126,7 +128,7 @@ class Objects extends TileDisplay
         }
         var r:Rectangle;
         var sprite:Tile = null;
-        var sprites:Array<Tile> = [];
+        sprites = [];
         var parents:Map<Int,TileContainer> = new Map<Int,TileContainer>();
         //trace("inital " + UnitTest.stamp());
         for(i in 0...data.numSprites)
@@ -168,6 +170,7 @@ class Objects extends TileDisplay
                 //player data set
                 cast(object,Player).ageRange[i] = {min:data.spriteArray[i].ageRange[0],max:data.spriteArray[i].ageRange[1]};
             }
+            //parent system
             if (data.spriteArray[i].parent > -1)
             {
                 var p = parents.get(data.spriteArray[i].parent);
@@ -194,6 +197,11 @@ class Objects extends TileDisplay
             }else{
                 if (container)
                 {
+                    if (containing > 0)
+                    {
+                        //pos
+                        getObjectData(containing).
+                    }
                     object.addTile(sprite);
                     sprites.push(sprite);
                 }else{
