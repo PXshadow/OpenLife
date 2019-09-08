@@ -30,10 +30,15 @@ class Bind
     public static var settings:Action = new Action([Keyboard.ESCAPE]);
 
     public static var start:Action = new Action([Keyboard.ENTER]);
+
+    //command for right click without a mouse on mac
+    public static var command:Bool = false;
     
 
     public static function keys(e:KeyboardEvent,bool:Bool)
     {
+        if (e.keyCode == Keyboard.COMMAND) command = bool;
+        
         zoomIn.set(e,bool);
         zoomOut.set(e,bool);
 

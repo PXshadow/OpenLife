@@ -90,7 +90,7 @@ class Objects extends TileDisplay
         }
         return data;
     }
-    public function add(id:Int,x:Int=0,y:Int=0,container:Bool=false,push:Bool=true):Bool
+    public function add(id:Int,x:Int=0,y:Int=0,container:Bool=false,push:Bool=true,index:Int=0):Bool
     {
         //return false;
         if(id <= 0) return false;
@@ -184,7 +184,8 @@ class Objects extends TileDisplay
                     }else{
                         p.x = x * Static.GRID;
                         p.y = (Static.tileHeight - y) * Static.GRID;
-                        group.addTileAt(p,0);
+                        //group.addTileAt(p,0);
+                        group.addTile(p);
                     }
                 }
                 p.addTile(sprite);
@@ -200,14 +201,17 @@ class Objects extends TileDisplay
                     if (containing > 0)
                     {
                         //pos
-                        getObjectData(containing).
+                        var pos = getObjectData(containing).slotPos[index];
+                        sprite.x += pos.x;
+                        sprite.y += pos.y;
                     }
                     object.addTile(sprite);
                     sprites.push(sprite);
                 }else{
                     sprite.x += x * Static.GRID;
                     sprite.y += (Static.tileHeight - y) * Static.GRID;
-                    group.addTileAt(sprite,0);
+                    group.addTile(sprite);
+                    //group.addTileAt(sprite,0);
                     sprites.push(sprite);
                 }
             }

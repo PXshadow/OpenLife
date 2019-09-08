@@ -1,3 +1,5 @@
+SlotVert handles rotation of slotted objects
+
 Animations
 xOscPerSec= move left and right over the x-axis (speed)
 xAmp = distance moved

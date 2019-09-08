@@ -312,10 +312,10 @@ class Main #if openfl extends Sprite #end
         }
         if (Bind.playerUse.bool)
         {
-            //program.use(selectX,selectY);
-            //player.hold();
+            program.use(selectX,selectY);
+            player.hold();
             //animation section
-            var tile:Tile = null;
+            /*var tile:Tile = null;
             var animation = objects.objectMap.get(player.instance.po_id).animation;
             trace(" map " + animation);
             if (animation != null)
@@ -330,7 +330,7 @@ class Main #if openfl extends Sprite #end
                         i++;
                     }
                 }
-            }
+            }*/
             //var record = map.animation.record;
             /*for (i in 0...record.params.length)
             {
@@ -347,6 +347,11 @@ class Main #if openfl extends Sprite #end
     {
         //fix crash
         if (player == null) return;
+        if (Bind.command)
+        {
+            mouseRightDown(null);
+            return;
+        }
         if (Bind.playerMove.bool)
         {
             program.path(selectX,selectY);
@@ -486,20 +491,22 @@ class Main #if openfl extends Sprite #end
     //add object arraqy
     public function add(array:Array<Int>,x:Int,y:Int,container:Bool=false,push:Bool=true)
     {
-        var sub:TileContainer = null;
         if (array != null) 
         {
             objects.add(array[0],x,y,array.length > 1 ? true : container,push);
             objects.containing = array.length > 1 ? array[0] : 0;
+            var index:Int = 0;
             for (i in 1...array.length)
             {
                 if (array[i] < 0)
                 {
                     //sub container
-                    objects.add(array[i] * -1,x,y,true,push);
+                    objects.add(array[i] * -1,x,y,true,push,index);
+                    index++;
                 }else{
                     //container
                     objects.add(array[i],x,y,container,push);
+                    index = 0;
                 }
             }
         }
