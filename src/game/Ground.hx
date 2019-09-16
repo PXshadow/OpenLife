@@ -21,7 +21,7 @@ class Ground extends Shape
     public var indices:Vector<Int>;
     public var transforms:Vector<Float>;
     public var data:GameData = null;
-    public var simple:Bool = true;
+    public var simple:Bool = false;
     public var simpleIndex:Int = 0;
     public function new()
     {
@@ -34,10 +34,10 @@ class Ground extends Shape
         //add cached ground
         for (i in 0...6 + 1) cache(i);
         simpleIndex = tileset.numRects;
-        for (color in [0x80ad57,0xe0a437,0x5c584e,0xffffff,0x467c06])
+        /*for (color in [0x80ad57,0xe0a437,0x5c584e,0xffffff,0x467c06])
         {
             simpleCache(color);
-        }
+        }*/
     }
     private inline function ci(i:Int):Int
     {

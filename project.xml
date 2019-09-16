@@ -9,7 +9,6 @@
 	<haxelib name="openfl" />
 	<haxelib name="actuate"/>
 	<haxelib name="hscript"/>
-	<!--<haxelib name="discord_rpc" if="cpp"/>-->
 
 	<!--<haxedef name="HXCPP_STACK_LINE" if="debug"/>-->
 	<!--<haxedef name="HXCPP_STACK_TRACE" if="debug"/>-->
