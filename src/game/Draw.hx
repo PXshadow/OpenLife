@@ -24,16 +24,17 @@ class Draw extends Sprite
     {
         for (object in objects)
         {
-            //bottom right corner
-            object.x = Main.objects.group.x + ((data.playerMap.get(object.id).x + object.dx) * Main.objects.scale);
-            object.y = Main.objects.group.y + ((data.playerMap.get(object.id).y + object.dy) * Main.objects.scale) - object.height;  
-            if (object.alive == 0)
+            if (object.alive == 0 || !data.playerMap.exists(object.id))
             {
                 removeChild(object);
                 objects.remove(object);
                 object = null;
+                continue;
             }else{
                 object.alive--;
+                //bottom right corner
+                object.x = Main.objects.group.x + ((data.playerMap.get(object.id).x + object.dx) * Main.objects.scale);
+                object.y = Main.objects.group.y + ((data.playerMap.get(object.id).y + object.dy) * Main.objects.scale) - object.height;
             }
         }
     }

@@ -1,4 +1,5 @@
 package console;
+import lime.system.System;
 import haxe.io.Path;
 import sys.FileSystem;
 import data.ObjectData;
@@ -11,7 +12,10 @@ import openfl.display.Shader;
 class Util
 {
     //util for hscript
-
+    public static function object(i:Int)
+    {
+        Static.execute(Static.dir + "objects/" + i + ".txt");
+    }
     #if openfl
     public static function shader(name:String):Shader
     {

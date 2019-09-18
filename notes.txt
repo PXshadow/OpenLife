@@ -1,3 +1,16 @@
+- Notes on 2hol testing
+
+//floors can never display in front of the player
+need a way to quickly disconnect and reconnect
+need a way to debug objects in game quickly
+//Dying crashes the game
+baby holding nees to be a thing
+//ast name if not present should be absent rather than null
+cache reset via console -> cache reset player still turns into a white box
+
+
+
+
 SlotVert handles rotation of slotted objects
 
 Animations
@@ -8,6 +21,7 @@ children inherent parents animations
 rock is a rocking animation rotation back and fourth
 offsets go back and fourth
 -thanks Mr_XIX
+
 
 If you walk far enough off screen from an item it can't fully decay if it has multiple transitions. 
 The classic being something like fires. Slow large fire > small fire > hot coals > ashes.

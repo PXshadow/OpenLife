@@ -28,6 +28,16 @@ class Static
         }
         http.request(false);
     }
+    public static function execute(url:String)
+    {
+        switch (Sys.systemName()) 
+        {
+            case "Linux", "BSD": Sys.command("xdg-open", [url]);
+            case "Mac": Sys.command("open", [url]);
+            case "Windows": Sys.command("start", [url]);
+            default:
+        }
+    }
     //get object list number
     public static function number():Int
     {

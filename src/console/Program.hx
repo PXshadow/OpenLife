@@ -213,6 +213,30 @@ class Program
     {
         return use();
     }
+    public function baby(x:Null<Int>,y:Null<Int>):Program
+    {
+        //USE action taken on a baby to pick them up.
+        if (x != null && y != null)
+        {
+            send(BABY, x + " " + y);
+        }else{
+            if (Main.player != null) send(BABY,Main.player.instance.x + " " + Main.player.instance.y);
+        }
+        return this;
+    }
+    public function jump():Program
+    {
+        send(JUMP,"0 0");
+        return this;
+    }
+    public function ubaby(x:Int,y:Int,index:Int=-1):Program
+    {
+        //special case of SELF applied to a baby (to feed baby food or add/remove clothing from baby)
+        //UBABY is used for healing wounded players.
+        //UBABY x y i id#
+        send(UBABY,x + " " + y + " " + index);
+        return this;
+    }
     public function self(index:Int=-1):Program
     {
         //use action on self (eat)

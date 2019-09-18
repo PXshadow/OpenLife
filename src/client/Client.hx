@@ -72,6 +72,12 @@ class Client
             if(end != null) end();
             index = 0;
             tag = data.substring(1,data.length);
+            //login
+            if(login != null)
+            {
+                if (tag == ACCEPTED && login.accept != null) login.accept();
+                if (tag == REJECTED && login.reject != null) login.reject();
+            }
             if (tag != FRAME && tag != HEAT_CHANGE) return;
         }
         if(tag == "")

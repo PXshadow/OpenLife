@@ -114,7 +114,8 @@ class Player #if openfl extends TileContainer #end
     }
     public function move(mx:Int,my:Int)
     {
-        pathfind(mx,my);
+        //pathfind(mx,my);
+        step(mx,my);
     }
     public function step(mx:Int,my:Int):Bool
     {
@@ -240,6 +241,10 @@ class Player #if openfl extends TileContainer #end
         if (object != null)
         {
             removeTile(object);
+            if (Std.is(object,Player))
+            {
+                objects.group.addTile(object);
+            }
             object = null;
         }
         if (instance.o_id == 0) return;
@@ -247,40 +252,51 @@ class Player #if openfl extends TileContainer #end
         {
             //object
             objects.add(instance.o_id,0,0,true,false);
+            object = objects.object;
         }else{
             //player
-            trace("player holding object");
-            objects.add(instance.o_id * -1,0,0,true,false);
+            var player = gdata.playerMap.get(instance.o_id);
+            trace("player holding id " + instance.o_id + " player " + player);
+            if (player != null)
+            {
+                objects.group.removeTile(player);
+                object = player;
+                //trace("player holding object " + instance.o_id);
+                //objects.add(instance.o_id * -1,0,0,true,false);
+            }
         }
-        object = objects.object;
-        object.x = -instance.o_origin_x + Static.GRID/4;
-        object.y = -instance.o_origin_y - Static.GRID/1.5;
-        if (!contains(object)) addTile(object);
+        if (object != null)
+        {
+            object.x = -instance.o_origin_x + Static.GRID/4;
+            object.y = -instance.o_origin_y - Static.GRID/1.5;
+            if (!contains(object)) addTile(object);
+        }
         #end
     }
     public function force() 
     {
-        #if openfl
         Actuate.pause(this);
+        moving = false;
         //local position
         x = instance.x * Static.GRID;
         y = (Static.tileHeight - instance.y) * Static.GRID;
-        #end
+        moves = [];
     }
     public function sort()
     {
         var diff:Int = 0;
         var object:Array<Tile> = gdata.tileData.object.get(instance.x,instance.y);
+        //floor
         if (object == null) 
+        {
+            object = gdata.tileData.floor.get(instance.x,instance.y);
+            diff = -1;
+        }
+        /*if (object == null) 
         {
             object = gdata.tileData.object.get(instance.x,instance.y + 1);
             diff = 1;
-        }
-        if (object == null) 
-        {
-            object = gdata.tileData.object.get(instance.x,instance.y - 1);
-            diff = -1;
-        }
+        }*/
         if (object == null || object[0] == null) return;
         objects.group.setTileIndex(this,objects.group.getTileIndex(object[0]) + diff);
     }
@@ -291,6 +307,7 @@ class Player #if openfl extends TileContainer #end
         for(i in 0...sprites.length)
         {
             sprites[i].visible = true;
+            if (ageRange[i] == null) continue;
             if((ageRange[i].min > instance.age || ageRange[i].max < instance.age) && ageRange[i].min > 0)
             {
                 sprites[i].visible = false;

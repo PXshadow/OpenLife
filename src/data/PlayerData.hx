@@ -44,8 +44,8 @@ class PlayerType
     public var forced:Int = -1;
     public var x:Int = 0;
     public var y:Int = 0;
-    public var age:Int = 0;
-    public var age_r:Int = 0;
+    public var age:Float = 0;
+    public var age_r:Float = 0;
     public var move_speed:Float = 0;
     public var clothing_set:String = "";
     public var just_ate:Int = 0;
@@ -114,9 +114,9 @@ class PlayerInstance extends PlayerType
                 case 15:
                 y = Std.parseInt(value);
                 case 16:
-                age = Std.parseInt(value);
+                age = Std.parseFloat(value);
                 case 17:
-                age_r = Std.parseInt(value);
+                age_r = Std.parseFloat(value);
                 case 18:
                 move_speed = Std.parseInt(value);
                 case 19:

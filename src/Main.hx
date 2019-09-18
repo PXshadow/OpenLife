@@ -243,8 +243,8 @@ class Main #if openfl extends Sprite #end
             if (player.follow)
             {
                 //set camera to middle
-                objects.group.x = Math.round(lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.05));
-                objects.group.y = Math.round(lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.05));
+                objects.group.x = Math.round(lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.08));
+                objects.group.y = Math.round(lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.08));
             }
             //set ground
             ground.x = objects.group.x;
@@ -361,8 +361,14 @@ class Main #if openfl extends Sprite #end
                 trace("kill");
                 program.kill(selectX,selectY);
             }else{
+                if (player.instance.age < 3)
+                {
+                    program.jump();
+                }
                 //use action if within range
                 program.use(selectX,selectY);
+                //check if player pickup
+                program.pickup();
             }
         }
     }
@@ -374,7 +380,7 @@ class Main #if openfl extends Sprite #end
     {
         if (player != null)
         {
-            if (player.instance.o_id > 0)
+            if (player.instance.o_id != 0)
             {
                 program.drop(selectX,selectY);
             }else{
@@ -417,8 +423,10 @@ class Main #if openfl extends Sprite #end
             objects.clear();
             trace("clear " + Std.string(Timer.stamp() - time));
             time = Timer.stamp();
+            //clear cache
             if (objects.getFill() > 0.90 || objects.clearBool)
             {
+                trace("clear cache!");
                 objects.cacheMap = new Map<Int,Int>();
                 objects.tileX = 0;
                 objects.tileY = 0;
@@ -557,6 +565,7 @@ class Main #if openfl extends Sprite #end
             //set message reader function to game
             Main.client.message = message;
             Main.client.end = end;
+            client.login.accept = null;
             //Main.client.login = null;
             Main.client.tag = null;
             index = 0;
@@ -564,10 +573,11 @@ class Main #if openfl extends Sprite #end
         client.login.reject = function()
         {
             trace("reject");
+            client.login.reject = null;
             //Main.client.login = null;
         }
         client.message = Main.client.login.message;
-        trace("connect " + Main.client.ip + " email " + Main.client.login.email);
+        //trace("connect " + Main.client.ip + " email " + Main.client.login.email);
         client.connect();
     }
     public function message(input:String) 
@@ -642,7 +652,7 @@ class Main #if openfl extends Sprite #end
             #if openfl
             var tile:Tile;
             var id:Array<Int> = change.floor > 0 ? [change.floor] : change.id;
-            trace("change id: " + id);
+            //trace("change id: " + id);
             var move:Bool = change.speed > 0 ? true : false;
             //removal location
             var rx:Int = change.speed > 0 ? change.oldX : change.x;
@@ -663,7 +673,7 @@ class Main #if openfl extends Sprite #end
             if (array != null) for (tile in array) objects.group.removeTile(tile);
             //add new
             add(id,rx,ry,move,!move);
-            if (move)
+            if (move && objects.object != null)
             {
                 //add to new location
                 data.tileData.object.set(change.x,change.y,[objects.object]);
@@ -680,7 +690,7 @@ class Main #if openfl extends Sprite #end
             Main.client.tag = null;
             index = 0;
             case FOOD_CHANGE:
-            trace("food change " + input);
+            //trace("food change " + input);
             var array = input.split(" ");
             food.graphics.clear();
             food.graphics.beginFill(0);
@@ -718,10 +728,7 @@ class Main #if openfl extends Sprite #end
             //p_id first_name last_name last_name may be ommitted.
             var array = input.split(" ");
             var name:String = array[1] + (array.length > 1 ? " " + array[2] : "");
-            draw.username(Std.parseInt(array[0]),name);
-            case DYING:
-            //p_id isSick isSick is optional 1 flag to indicate that player is sick (client shouldn't show blood UI overlay for sick players)
-
+            draw.username(Std.parseInt(array[0]),name);   
             case HEALED:
             //p_id player healed no longer dying.
 
@@ -730,7 +737,27 @@ class Main #if openfl extends Sprite #end
 
             case GRAVE:
             //x y p_id
+            var array = input.split(" ");
+            var x:Int = Std.parseInt(array[0]);
+            var y:Int = Std.parseInt(array[1]);
+            var id:Int = Std.parseInt(array[2]);
+            if (player.instance.p_id != id)
+            {
 
+            }else{
+                //main player died disconnect
+                client.close();
+                var timer = new Timer(2 * 1000);
+                timer.run = function()
+                {
+                    trace("attempt to reconnect");
+                    connect();
+                    timer.stop();
+                }
+            }
+            case DYING:
+            //p_id isSick isSick is optional 1 flag to indicate that player is sick (client shouldn't show blood UI overlay for sick players)
+            trace("dying " + input);
             case GRAVE_MOVE:
             //xs ys xd yd swap_dest optional swap_dest parameter is 1, it means that some other grave at  destination is in mid-air.  If 0, not
 
