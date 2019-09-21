@@ -96,6 +96,16 @@ class Main #if openfl extends Sprite #end
         dir();
         cred();
         game();
+        /*for (i in 0...20)
+        {
+            for (j in 0...20)
+            {
+                data.map.biome.set(i,j,0);
+
+            }
+        }
+        objects.addPlayer(new PlayerInstance([]));
+        setPlayer(cast(objects.object,Player));*/
         connect();
         var fps = new FPS();
         addChild(fps);
@@ -314,29 +324,6 @@ class Main #if openfl extends Sprite #end
         {
             program.use(selectX,selectY);
             player.hold();
-            //animation section
-            /*var tile:Tile = null;
-            var animation = objects.objectMap.get(player.instance.po_id).animation;
-            trace(" map " + animation);
-            if (animation != null)
-            {
-                var i:Int = 0;
-                for (param in animation.record[2].params)
-                {
-                    if (player.sprites[i] != null)
-                    {
-                        player.sprites[i].x = param.offset.x;
-                        player.sprites[i].y = param.offset.y;
-                        i++;
-                    }
-                }
-            }*/
-            //var record = map.animation.record;
-            /*for (i in 0...record.params.length)
-            {
-                var sprite = player.sprites[i];
-                trace("sprite " + sprite);
-            }*/
         }
     }
     private function keyUp(e:KeyboardEvent)
