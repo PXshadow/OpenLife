@@ -1,9 +1,28 @@
 <p align="left"><img src="logo.png"/></p>
 
+![Build Status](https://img.shields.io/circleci/project/github/openfl/openfl-samples/master.svg)
+![Downloads](https://img.shields.io/github/downloads/pxshadow/openlife/total)
+![Stars](https://img.shields.io/github/stars/pxshadow/openlife?style=social)
+
+# Launcher
+Simply click, download, and play on the servers you want with your favorite modded clients
+
+## **[Download](https://github.com/PXshadow/OpenLife/releases/latest)**
+
+### **[Repository](https://github.com/PXshadow/OpenLifeLauncher)**
+
+### Supports:
+
+* Server browser
+* Account management
+* Global settings 
+
+
+
+# Client 
+
 [![badge](badge.svg)](https://haxe.org)
 [![forthebadge](https://forthebadge.com/images/badges/for-sharks.svg)](https://forthebadge.com)
-
-[![Build Status](https://img.shields.io/circleci/project/github/openfl/openfl-samples/master.svg)](https://circleci.com/gh/pxshadow/openlife)
 
 **DISCLAIMER: Project is still in progress, and is not usable from a player perspective yet, stay tuned.**
 

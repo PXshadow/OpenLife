@@ -62,3 +62,8 @@ butler for auto updating
 https://itch.io/docs/butler/pushing.html
 for gifs 
 https://getsharex.com/
+
+ground transitions - thanks Pein
+http://archive.gamedev.net/archive/reference/articles/article934.html
+
+https://shields.io/
