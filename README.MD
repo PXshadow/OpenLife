@@ -7,7 +7,7 @@
 # Launcher
 Simply click, download, and play on the servers you want with your favorite modded clients
 
-## **[Download](https://github.com/PXshadow/OpenLife/releases/latest)**
+### **[Download](https://github.com/PXshadow/OpenLife/releases/latest)**
 
 ### **[Repository](https://github.com/PXshadow/OpenLifeLauncher)**
 
