@@ -20,7 +20,7 @@ class PlayerData
     public var update:Void->Void;
     public function new()
     {
-
+        
     }
 }
 class PlayerType 

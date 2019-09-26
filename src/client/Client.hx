@@ -112,7 +112,7 @@ class Client
     }
     public function connect()
 	{
-        trace("attempt connect");
+        trace("attempt connect " + ip);
         connected = false;
         #if sys
 		var host:Host;
@@ -124,8 +124,7 @@ class Client
 			return;
 		}
 		socket = new Socket();
-        socket.setTimeout(99999999);
-		socket.setBlocking(false);
+        //socket.setTimeout(99999999);
 		socket.setFastSend(true);
 		try {
 			socket.connect(host,port);
@@ -134,6 +133,7 @@ class Client
             trace("e " + e);
             return;
 		}
+        socket.setBlocking(false);
         connected = true;
         trace("connect sys");
         #end

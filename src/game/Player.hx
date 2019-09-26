@@ -255,7 +255,8 @@ class Player #if openfl extends TileContainer #end
             object = objects.object;
         }else{
             //player
-            var player = gdata.playerMap.get(instance.o_id);
+            trace("instance.o_id");
+            var player = gdata.playerMap.get(instance.o_id * -1);
             trace("player holding id " + instance.o_id + " player " + player);
             if (player != null)
             {
@@ -267,6 +268,7 @@ class Player #if openfl extends TileContainer #end
         }
         if (object != null)
         {
+            trace("instance o " + instance.o_origin_x + " " + instance.o_origin_y);
             object.x = -instance.o_origin_x + Static.GRID/4;
             object.y = -instance.o_origin_y - Static.GRID/1.5;
             if (!contains(object)) addTile(object);

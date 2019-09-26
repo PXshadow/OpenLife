@@ -66,7 +66,7 @@ class Ground extends Shape
         {
             indices.push(simpleIndex + id);
         }else{
-            indices.push(id * 16 + ci(x) + ci(y) * 4 + 1);
+            indices.push(id * 16 + ci(x) + ci(y) * 4 + 0);
         }
         transforms.push(x * Static.GRID - Static.GRID/2);
         transforms.push((Static.tileHeight - y) * Static.GRID - Static.GRID/2);
