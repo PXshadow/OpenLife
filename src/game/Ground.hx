@@ -9,6 +9,7 @@ import openfl.display.Tileset;
 import openfl.geom.Rectangle;
 import sys.io.File;
 import openfl.display.Shape;
+import shaders.AlphaGraphicShader;
 
 class Ground extends Shape
 {
@@ -21,8 +22,10 @@ class Ground extends Shape
     public var indices:Vector<Int>;
     public var transforms:Vector<Float>;
     public var data:GameData = null;
+
     public var simple:Bool = false;
     public var simpleIndex:Int = 0;
+    public var alphaShader:AlphaGraphicsShader;
     public function new()
     {
         super();
@@ -38,6 +41,9 @@ class Ground extends Shape
         {
             simpleCache(color);
         }*/
+        alphaShader = new AlphaGraphicsShader();
+        alphaShader.bitmap.input = tileset.bitmapData;
+        alphaShader.alpha.value = [];
     }
     private inline function ci(i:Int):Int
     {
@@ -52,6 +58,7 @@ class Ground extends Shape
     public function render()
     {
         graphics.clear();
+        graphics.beginShaderFill(alphaShader);
         graphics.beginBitmapFill(tileset.bitmapData);
         graphics.drawQuads(tileset.rectData,indices,transforms);
     }
@@ -60,8 +67,9 @@ class Ground extends Shape
         indices = new Vector<Int>();
         transforms = new Vector<Float>();
     }
-    public function add(id:Int,x:Int,y:Int)
+    public function add(id:Int,x:Int,y:Int,cornerCheck:Bool=true)
     {
+        if (id == 0) return;
         if (simple)
         {
             indices.push(simpleIndex + id);
@@ -70,6 +78,29 @@ class Ground extends Shape
         }
         transforms.push(x * Static.GRID - Static.GRID/2);
         transforms.push((Static.tileHeight - y) * Static.GRID - Static.GRID/2);
+        //corner
+        if (cornerCheck)
+        {
+            for (i in 0...4) alphaShader.alpha.value.push(1);
+            var cid = data.map.biome.get(x - 1,y);
+            if (cid != id)
+            {
+                indices.pop();
+                for (i in 0...2) transforms.pop();
+                //add(cid,x,y,false);
+                return;
+            }
+            cid = data.map.biome.get(x,y - 1);
+            if (cid != id) 
+            {
+                indices.pop();
+                for (i in 0...2) transforms.pop();
+                //add(cid,x,y,false);
+            }
+        }else{
+            //transparent
+            for (i in 0...4) alphaShader.alpha.value.push(0.5);
+        }
     }
     public function simpleCache(color:UInt)
     {

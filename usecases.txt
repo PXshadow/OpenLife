@@ -16,6 +16,7 @@ DISPLAY
 - make hungry players growl
 - dangerous area when player growls, knife = 1, bow = 5
 - outside alert and marker (in whitch you can clear if person is not a threat)
+- theif detection, set objects to alert system, if another player touches it you will be alerted and show a path of where it's at now and who did it.
 
 AUTO AI
 - auto F for babies
