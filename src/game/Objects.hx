@@ -108,6 +108,8 @@ class Objects extends TileDisplay
         //create new objects
         if (containing == 0) object = null;
         if (container && containing == 0) object = new TileContainer();
+        //moving object
+        //if (data.)
         if(data.person > 0)
         {
             object = new Player(this.data,this);
@@ -201,17 +203,9 @@ class Objects extends TileDisplay
                     if (containing > 0)
                     {
                         //pos
-                        //pos
                         var pos = getObjectData(containing).slotPos[index];
                         sprite.x += pos.x;
                         sprite.y += pos.y;
-                        /*var d = getObjectData(containing);
-                        if (d != null)
-                        {
-                            var pos = d.slotPos[index];
-                            sprite.x += pos.x;
-                            sprite.y += pos.y;
-                        }*/
                     }
                     object.addTile(sprite);
                     sprites.push(sprite);

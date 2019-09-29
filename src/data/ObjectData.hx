@@ -72,7 +72,6 @@ class ObjectData extends LineReader
     public function new(i:Int=0)
     {
         super();
-        if (i <= 0) throw("objectData id less than 1: " + i);
         try {
             line = readLines(File.getContent(Static.dir + "objects/" + i + ".txt"));
         }catch(e:Dynamic)

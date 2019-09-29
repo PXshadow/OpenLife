@@ -232,4 +232,13 @@ class MapChange
             speed = Std.parseFloat(array[7]);
         }
     }
+    public function toString():String
+    {
+        var string:String = "";
+        for(field in Reflect.fields(this))
+        {
+            string += field + ": " + Reflect.getProperty(this,field) + "\n";
+        }
+        return string;
+    }
 }

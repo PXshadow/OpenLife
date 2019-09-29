@@ -641,41 +641,36 @@ class Main #if openfl extends Sprite #end
                 }
             }
             case MAP_CHANGE:
-            /*//x y new_floor_id new_id p_id optional oldX oldY playerSpeed
-            //trace("change " + input.split(" "));
             var change = new MapChange(input.split(" "));
-            var tile:Tile;
-            var id:Array<Int> = change.floor > 0 ? [change.floor] : change.id;
-            //trace("change id: " + id);
-            var move:Bool = change.speed > 0 ? true : false;
-            //removal location
-            var rx:Int = change.speed > 0 ? change.oldX : change.x;
-            var ry:Int = change.speed > 0 ? change.oldY : change.y;
-            //removal
-            var array:Array<Tile>;
-            //remove data
-            if (change.floor == 1 && !move)
+            trace("change " + change.toString());
+            //floor
+            if (change.floor == 0)
             {
-                array = data.tileData.floor.get(rx,ry);
-                data.tileData.floor.set(rx,ry,null);
-                data.map.floor.set(rx,ry,0);
-            }else{
-                array = data.tileData.object.get(rx,ry);
-                data.tileData.object.set(rx,ry,null);
-                data.map.object.set(rx,ry,[0]);
+                //no floor changes yet
+                return;
             }
-            if (array != null) for (tile in array) objects.group.removeTile(tile);
-            //add new
-            add(id,rx,ry,move,!move);
-            if (move && objects.object != null)
+            //object
+            data.map.object.set(0,0,change.id);
+            //clear
+            var tiles = data.tileData.object.get(change.x,change.y);
+            if (tiles != null) 
             {
-                //add to new location
-                data.tileData.object.set(change.x,change.y,[objects.object]);
-                data.map.object.set(change.x,change.y,id);
-                //tween to location
-                Actuate.tween(objects.object,1,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
-            }*/
-            //change data todo:
+                //remove animation
+                if (tiles.length == 1) Actuate.pause(tiles[0]);
+                //clear from world
+                for (tile in tiles) objects.group.removeTile(tile);
+            }
+            //add
+            var move:Bool = change.speed > 0 ? true : false;
+            add(change.id,change.x,change.y,move);
+            if (move)
+            {
+                objects.object.x = change.oldX * Static.GRID;
+                objects.object.y = (Static.tileHeight - change.y) * Static.GRID;
+                //tween
+                var time = Std.int(Static.GRID/(Static.GRID * change.speed)  * 60);
+                Actuate.tween(objects.object,time,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
+            }
             Main.client.tag = null;
             index = 0;
             case HEAT_CHANGE:
