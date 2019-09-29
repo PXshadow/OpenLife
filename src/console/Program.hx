@@ -16,7 +16,6 @@ class Program
     public var home:Pos = new Pos();
     //setup automation bool
     public var setup:Bool = false;
-    public var range:Int = 30;
     public var useRange:Int = 1;
     //food 
     public var ate:Array<Int> = [];
@@ -58,8 +57,8 @@ class Program
             //set home where player location is at
             if (Main.player != null)
             {
-                home.x = Main.player.instance.x;
-                home.y = Main.player.instance.y;
+                home.x = Main.player.ix;
+                home.y = Main.player.iy;
             }
         }
         return this;
@@ -110,7 +109,7 @@ class Program
         {
             send(DROP, x + " " + y + " " + c);
         }else{
-            if (Main.player != null) send(DROP, Main.player.instance.x + " " + Main.player.instance.y + " " + c);
+            if (Main.player != null) send(DROP, Main.player.ix + " " + Main.player.iy + " " + c);
         }
         return this;
     }
@@ -125,7 +124,7 @@ class Program
         {
             send(USE, x + " " + y);
         }else{
-            if (Main.player != null) send(USE, Main.player.instance.x + " " + Main.player.instance.y);
+            if (Main.player != null) send(USE, Main.player.ix + " " + Main.player.iy);
         }
         return this;
     }
@@ -136,19 +135,21 @@ class Program
     }
     private function findList(get:Array<Int>)
     {
-        var dis:Float = range;
+        var dis:Float = Main.objects.range;
         var cur:Float = 0;
         var id:Int = 0;
         trace("find " + get);
-        for(y in max(data.map.y,Main.player.instance.y - range)...min(data.map.y + data.map.height,Main.player.instance.y + range))
+        trace("x " + max(data.map.y,Main.player.iy - Main.objects.range) + " maxx " + min(data.map.y + data.map.height,Main.player.iy + Main.objects.range));
+
+        for(y in max(data.map.y,Main.player.iy - Main.objects.range)...min(data.map.y + data.map.height,Main.player.iy + Main.objects.range))
         {
-            for(x in max(data.map.x,Main.player.instance.x - range)...min(data.map.x + data.map.width,Main.player.instance.x + range))
+            for(x in max(data.map.x,Main.player.ix - Main.objects.range)...min(data.map.x + data.map.width,Main.player.ix + Main.objects.range))
             {
                     //array of objects in the tile
                     id = data.map.object.get(x,y)[0];
                     if (get.indexOf(id) >= 0)
                     {
-                        cur = Math.abs(Math.sqrt(Math.pow(Main.player.instance.y - y,2) + Math.pow(Main.player.instance.x - x,2)));
+                        cur = Math.abs(Math.sqrt(Math.pow(Main.player.ix - y,2) + Math.pow(Main.player.iy - x,2)));
                         trace("cur " + cur);
                         if (cur < dis)
                         {
@@ -159,7 +160,7 @@ class Program
                     }
             }
         }
-        if (dis < range)
+        if (dis < Main.objects.range)
         {
             setup = true;
             console.print("distance",Std.string(dis));
@@ -220,7 +221,7 @@ class Program
         {
             send(BABY, x + " " + y);
         }else{
-            if (Main.player != null) send(BABY,Main.player.instance.x + " " + Main.player.instance.y);
+            if (Main.player != null) send(BABY,Main.player.ix + " " + Main.player.iy);
         }
         return this;
     }
@@ -240,7 +241,7 @@ class Program
     public function self(index:Int=-1):Program
     {
         //use action on self (eat)
-        if (Main.player != null) send(SELF, Main.player.instance.x + " " + Main.player.instance.y + index);
+        if (Main.player != null) send(SELF, Main.player.ix + " " + Main.player.iy + index);
         return this;
     }
     public function eat():Program
@@ -322,10 +323,10 @@ class Program
             return false;
         }
         //if a is shorter true, else false. distance from player
-        a.x += -Main.player.instance.x;
-        a.y += -Main.player.instance.y;
-        b.x += -Main.player.instance.x;
-        b.y += -Main.player.instance.y;
+        a.x += -Main.player.ix;
+        a.y += -Main.player.iy;
+        b.x += -Main.player.ix;
+        b.y += -Main.player.iy;
         if (a.x + a.y > b.x + b.y) return false;
         return true;
     }
@@ -533,8 +534,8 @@ class Program
         var targets:Array<Tile> = [];
         var list = id(target);
         if (list.length == 0) return targets;
-        var cx:Int = Main.player.instance.x;
-        var cy:Int = Main.player.instance.y;
+        var cx:Int = Main.player.ix;
+        var cy:Int = Main.player.iy;
         for (j in cy - Main.objects.range...cy + Main.objects.range)
         {
             for (i in cx - Main.objects.range...cx + Main.objects.range)

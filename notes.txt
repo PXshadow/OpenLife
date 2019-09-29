@@ -1,12 +1,18 @@
-- Notes on 2hol testing
-
 //floors can never display in front of the player
 need a way to quickly disconnect and reconnect
 need a way to debug objects in game quickly
-//Dying crashes the game
-baby holding nees to be a thing
 //ast name if not present should be absent rather than null
 cache reset via console -> cache reset player still turns into a white box
+
+-things to add right now
+
+select into containers
+players hold cloths
+fix players face
+work on ground display thanks Pein for the tips
+remove dead players
+work on map_change
+
 
 
 

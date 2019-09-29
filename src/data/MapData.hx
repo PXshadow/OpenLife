@@ -53,6 +53,7 @@ class MapData
     }
     public static function id(string:String):Array<Int>
     {
+        //postive is container, negative is subcontainer
             var a = string.split(",");
             var array:Array<Int> = [];
             for (i in 0...a.length)

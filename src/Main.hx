@@ -370,7 +370,7 @@ class Main #if openfl extends Sprite #end
                 trace("kill");
                 program.kill(selectX,selectY);
             }else{
-                if (player.instance.age < 3)
+                if (player.instance.age < 3 && player.held)
                 {
                     program.jump();
                 }
@@ -488,6 +488,20 @@ class Main #if openfl extends Sprite #end
             objects.tileset.bitmapData.unlock();
     }
     //add object arraqy
+    public function remove(x:Int,y:Int,floor:Bool=false)
+    {
+        if (floor)
+        {
+
+            return;
+        }
+        //object
+        var tiles = data.tileData.object.get(x,y);
+        if (tiles != null)
+        {
+            for (tile in tiles) objects.group.removeTile(tile);
+        }
+    }
     public function add(array:Array<Int>,x:Int,y:Int,container:Bool=false,push:Bool=true)
     {
         if (array != null) 
@@ -642,34 +656,31 @@ class Main #if openfl extends Sprite #end
             }
             case MAP_CHANGE:
             var change = new MapChange(input.split(" "));
-            trace("change " + change.toString());
             //floor
-            if (change.floor == 0)
+            if (change.floor > 0)
             {
                 //no floor changes yet
                 return;
             }
-            //object
-            data.map.object.set(0,0,change.id);
+            //set in case of no object
+            data.map.object.set(change.x,change.y,change.id);
+            trace("x " + change.x + " y " + change.y);
             //clear
-            var tiles = data.tileData.object.get(change.x,change.y);
-            if (tiles != null) 
-            {
-                //remove animation
-                if (tiles.length == 1) Actuate.pause(tiles[0]);
-                //clear from world
-                for (tile in tiles) objects.group.removeTile(tile);
-            }
+            remove(change.x,change.y);
             //add
-            var move:Bool = change.speed > 0 ? true : false;
-            add(change.id,change.x,change.y,move);
-            if (move)
+            if (change.id.length > 0 && change.id[0] > 0)
             {
-                objects.object.x = change.oldX * Static.GRID;
-                objects.object.y = (Static.tileHeight - change.y) * Static.GRID;
-                //tween
-                var time = Std.int(Static.GRID/(Static.GRID * change.speed)  * 60);
-                Actuate.tween(objects.object,time,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
+                var move:Bool = change.speed > 0 ? true : false;
+                add(change.id,change.x,change.y,move);
+                if (move)
+                {
+                    //move back to previous postition
+                    objects.object.x = change.oldX * Static.GRID;
+                    objects.object.y = (Static.tileHeight - change.y) * Static.GRID;
+                    //tween
+                    var time = Std.int(Static.GRID/(Static.GRID * change.speed)  * 60);
+                    Actuate.tween(objects.object,time,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
+                }
             }
             Main.client.tag = null;
             index = 0;

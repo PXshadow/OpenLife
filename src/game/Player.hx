@@ -264,12 +264,12 @@ class Player #if openfl extends TileContainer #end
         {
             array.push(string.split(","));
         }
+        trace("cloths " + array);
     }
     public function hold()
     {
         if (instance.o_id != oid)
         {
-            trace("oid past " + oid + " now " + instance.o_id);
             //remove previous
             if (object != null)
             {
@@ -293,12 +293,17 @@ class Player #if openfl extends TileContainer #end
                 if (instance.o_origin_valid == 1)
                 {
                     var array = gdata.tileData.object.get(instance.o_origin_x,instance.o_origin_y);
-                    trace("array " + array);
-                    var index = gdata.map.object.get(instance.o_origin_x,instance.o_origin_y).indexOf(oid);
-                    if (index > -1 && index < array.length)
+                    if (array != null)
                     {
-                        object = array[index];
-                        addTile(object);
+                        trace("array " + array);
+                        var mo = gdata.map.object.get(instance.o_origin_x,instance.o_origin_y);
+                        var index = -1;
+                        if (mo != null) index = mo.indexOf(oid);
+                        if (index > -1 && index < array.length)
+                        {
+                            object = array[index];
+                            addTile(object);
+                        }
                     }
                 }else{
                     //new object not being pulled from
@@ -315,11 +320,14 @@ class Player #if openfl extends TileContainer #end
                     objectData = objects.objectMap.get(player.instance.po_id);
                     objects.group.removeTile(player);
                     player.held = true;
+                    //same facing as mother
+                    player.scaleX = scaleX;
+                    //add to mother's display list
                     addTile(player);
                     object = player;
                 }
             }
-            if (objectData != null && object != null)
+            if (objectData != null && object != null && objectData.heldOffset != null)
             {
                 object.x = 20 + objectData.heldOffset.x;
                 object.y = 50 + objectData.heldOffset.y;
