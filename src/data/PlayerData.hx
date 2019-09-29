@@ -186,8 +186,8 @@ class PlayerMove
             return;
         }*/
         //set pos
-        player.instance.x = xs;
-        player.instance.y = ys;
+        player.ix = xs;
+        player.iy = ys;
         //visuals
         #if openfl
         var delay:Float = 0;

@@ -141,8 +141,12 @@ class Client
     public function close()
     {
         #if sys
-        socket.close();
-        trace("socket connected");
+        try {
+            socket.close();
+        }catch(e:Dynamic) {trace("failure to close socket " + e);}
+        socket = null;
+        socket = new Socket();
+        trace("socket disconnected");
         #end
         connected = false;
         aliveTimer.stop();

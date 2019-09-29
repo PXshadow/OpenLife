@@ -309,6 +309,11 @@ class Program
         }
         return this;
     }
+    public function die():Program
+    {
+        send(DIE,"0 0");
+        return this;
+    }
     public function distance(a:Pos,b:Pos):Bool
     {
         if (Main.player == null) 

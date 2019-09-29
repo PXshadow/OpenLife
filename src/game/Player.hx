@@ -30,7 +30,7 @@ class Player #if openfl extends TileContainer #end
     public var instance:PlayerInstance;
     public var ageRange:Array<{min:Float,max:Float}> = [];
     public var sprites:Array<Tile> = [];
-    public var object:TileContainer;
+    public var object:Tile;
     public var moves:Array<Pos> = [];
     public var velocityX:Float = 0;
     public var velocityY:Float = 0;
@@ -50,6 +50,12 @@ class Player #if openfl extends TileContainer #end
     public var follow:Bool = true;
     var objects:Objects;
     var multi:Float = 1;
+    //locally used instance pos
+    public var ix:Int = 0;
+    public var iy:Int = 0;
+    //locally used object
+    public var oid:Int = 0;
+    public var held:Bool = false;
     public function new(data:GameData,objects:Objects)
     {
         this.objects = objects;
@@ -65,13 +71,14 @@ class Player #if openfl extends TileContainer #end
         if(moves.length > 0 && !moving)
         {
             var point = moves.pop();
+            //trace("point move " + point.x + " " + point.y);
             //speed
             var time = Std.int(Static.GRID/(Static.GRID * (instance.move_speed) * computePathSpeedMod()) * 60 * multi);
             moving = true;
-            Actuate.tween(this,time/60,{x:(instance.x + point.x) * Static.GRID,y:(Static.tileHeight - (instance.y + point.y)) * Static.GRID}).onComplete(function(_)
+            Actuate.tween(this,time/60,{x:(ix + point.x) * Static.GRID,y:(Static.tileHeight - (iy + point.y)) * Static.GRID}).onComplete(function(_)
             {
-                instance.x += point.x;
-                instance.y += point.y;
+                ix += point.x;
+                iy += point.y;
                 moving = false;
                 motion();
             }).ease(Linear.easeNone);
@@ -120,10 +127,10 @@ class Player #if openfl extends TileContainer #end
     public function step(mx:Int,my:Int):Bool
     {
         //no other move is occuring, and player is not moving on blocked
-        if (moving || gdata.blocking.get(Std.string(instance.x + mx) + "." + Std.string(instance.y + my))) return false;
+        if (moving || gdata.blocking.get(Std.string(ix + mx) + "." + Std.string(iy + my))) return false;
         //send data
         lastMove++;
-        Main.client.send("MOVE " + instance.x + " " + instance.y + " @" + lastMove + " " + mx + " " + my);
+        Main.client.send("MOVE " + ix + " " + iy + " @" + lastMove + " " + mx + " " + my);
         #if openfl
         var pos = new Pos();
         pos.x = mx;
@@ -135,7 +142,7 @@ class Player #if openfl extends TileContainer #end
     }
     public function computePathSpeedMod():Float
     {
-        var floorData = objects.objectMap.get(gdata.map.floor.get(instance.x,instance.y));
+        var floorData = objects.objectMap.get(gdata.map.floor.get(ix,iy));
         if (floorData != null)  return floorData.speedMult;
         return 1;
     }
@@ -175,8 +182,8 @@ class Player #if openfl extends TileContainer #end
     }
     public function path()
     {
-        var px:Int = program.goal.x - instance.x;
-        var py:Int = program.goal.y - instance.y;
+        var px:Int = program.goal.x - ix;
+        var py:Int = program.goal.y - iy;
         if (px != 0) px = px > 0 ? 1 : -1;
         if (py != 0) py = py > 0 ? 1 : -1;
         if (px == 0 && py == 0)
@@ -211,15 +218,30 @@ class Player #if openfl extends TileContainer #end
     }
     public function set(data:PlayerInstance)
     {
+        if (instance == null)
+        {
+            ix = data.x;
+            iy = data.y;
+        }
         instance = data;
         //pos and age
         if (instance.forced == 1) 
         {
+            if (held)
+            {
+                objects.group.addTile(this);
+                held = false;
+            }
             trace("forced");
-            Main.client.send("FORCE " + instance.x + " " + instance.y);
+            ix = instance.x;
+            iy = instance.y;
+            Main.client.send("FORCE " + ix + " " + iy);
             //force movement
             force();
         }
+        //facing
+        trace("facing " + instance.facing);
+        scaleX = instance.facing == 0 ? 1 : -1;
         //remove moves
         moves = [];
         age();
@@ -236,44 +258,66 @@ class Player #if openfl extends TileContainer #end
     }
     public function hold()
     {
-        #if openfl
-        //remove previous if any
-        if (object != null)
+        if (instance.o_id != oid)
         {
-            removeTile(object);
-            if (Std.is(object,Player))
+            trace("oid past " + oid + " now " + instance.o_id);
+            //remove previous
+            if (object != null)
             {
-                objects.group.addTile(object);
+                removeTile(object);
+                if (oid >= 0) 
+                {
+                    //object
+                    object = null;
+                }else{
+                    //player add back to stage
+                    objects.group.addTile(object);
+                    cast(object,Player).held = false;
+                }
             }
-            object = null;
-        }
-        if (instance.o_id == 0) return;
-        if (instance.o_id > 0)
-        {
+            oid = instance.o_id;
+
+            var objectData:ObjectData = null;
             //object
-            objects.add(instance.o_id,0,0,true,false);
-            object = objects.object;
-        }else{
-            //player
-            trace("instance.o_id");
-            var player = gdata.playerMap.get(instance.o_id * -1);
-            trace("player holding id " + instance.o_id + " player " + player);
-            if (player != null)
+            if (oid > 0)
             {
-                objects.group.removeTile(player);
-                object = player;
-                //trace("player holding object " + instance.o_id);
-                //objects.add(instance.o_id * -1,0,0,true,false);
+                //object coming from the world
+                objectData = objects.getObjectData(oid);
+                if (instance.o_origin_valid == 1)
+                {
+                    var array = gdata.tileData.object.get(instance.o_origin_x,instance.o_origin_y);
+                    trace("array " + array);
+                    var index = gdata.map.object.get(instance.o_origin_x,instance.o_origin_y).indexOf(oid);
+                    if (index > -1 && index < array.length)
+                    {
+                        object = array[index];
+                        addTile(object);
+                    }
+                }else{
+                    //new object not being pulled from
+                    objects.add(instance.o_id,0,0,true,false);
+                    object = objects.object;
+                }
+            }
+            //player
+            if (oid < 0)
+            {
+                var player = gdata.playerMap.get(oid * -1);
+                if (player != null)
+                {
+                    objectData = objects.getObjectData(player.instance.po_id);
+                    objects.group.removeTile(player);
+                    player.held = true;
+                    addTile(player);
+                    object = player;
+                }
+            }
+            if (objectData != null)
+            {
+                object.x = 20 + objectData.heldOffset.x;
+                object.y = 50 + objectData.heldOffset.y;
             }
         }
-        if (object != null)
-        {
-            trace("instance o " + instance.o_origin_x + " " + instance.o_origin_y);
-            object.x = -instance.o_origin_x + Static.GRID/4;
-            object.y = -instance.o_origin_y - Static.GRID/1.5;
-            if (!contains(object)) addTile(object);
-        }
-        #end
     }
     public function force() 
     {
