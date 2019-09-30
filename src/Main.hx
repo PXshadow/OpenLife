@@ -110,8 +110,10 @@ class Main #if openfl extends Sprite #end
         setPlayer(cast(objects.object,Player));*/
         connect();
         var fps = new FPS();
+        fps.textColor = 0xFFFFFF;
         addChild(fps);
         log = new Text();
+        log.color = 0xFFFFFF;
         log.y = 100;
         log.cacheAsBitmap = false;
         addChild(log);
@@ -253,7 +255,7 @@ class Main #if openfl extends Sprite #end
                 {
                     player.goal = false;
                     program.setup = false;
-                    player.move(xs,ys);
+                    player.step(xs,ys);
                 }
             }
             //update draw
@@ -335,7 +337,6 @@ class Main #if openfl extends Sprite #end
         //player
         if (Bind.playerSelf.bool)
         {
-            trace("self");
             program.self();
         }
         if (Bind.playerDrop.bool)
@@ -488,13 +489,12 @@ class Main #if openfl extends Sprite #end
             objects.tileset.bitmapData.unlock();
     }
     //add object arraqy
-    public function remove(x:Int,y:Int,floor:Bool=false)
+    public function remove(x:Int,y:Int)//,floor:Bool=false)
     {
-        if (floor)
+        /*if (floor)
         {
-
             return;
-        }
+        }*/
         //object
         var tiles = data.tileData.object.get(x,y);
         if (tiles != null)
@@ -678,8 +678,8 @@ class Main #if openfl extends Sprite #end
                     objects.object.x = change.oldX * Static.GRID;
                     objects.object.y = (Static.tileHeight - change.y) * Static.GRID;
                     //tween
-                    var time = Std.int(Static.GRID/(Static.GRID * change.speed)  * 60);
-                    Actuate.tween(objects.object,time,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
+                    var time = Std.int(Static.GRID/(Static.GRID * change.speed * 1) * 60 * 1);
+                    Actuate.tween(objects.object,time/60,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
                 }
             }
             Main.client.tag = null;

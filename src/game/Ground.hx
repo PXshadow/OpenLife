@@ -25,7 +25,6 @@ class Ground extends Shape
 
     public var simple:Bool = false;
     public var simpleIndex:Int = 0;
-    public var alphaShader:AlphaGraphicsShader;
     public function new()
     {
         super();
@@ -41,9 +40,6 @@ class Ground extends Shape
         {
             simpleCache(color);
         }*/
-        alphaShader = new AlphaGraphicsShader();
-        alphaShader.bitmap.input = tileset.bitmapData;
-        alphaShader.alpha.value = [];
     }
     private inline function ci(i:Int):Int
     {
@@ -58,7 +54,6 @@ class Ground extends Shape
     public function render()
     {
         graphics.clear();
-        graphics.beginShaderFill(alphaShader);
         graphics.beginBitmapFill(tileset.bitmapData);
         graphics.drawQuads(tileset.rectData,indices,transforms);
     }
@@ -67,9 +62,9 @@ class Ground extends Shape
         indices = new Vector<Int>();
         transforms = new Vector<Float>();
     }
-    public function add(id:Int,x:Int,y:Int,cornerCheck:Bool=true)
+    public function add(id:Int,x:Int,y:Int,cornerCheck:Bool=false)
     {
-        if (id == 0) return;
+        if (id > 5 || id < 0) return;
         if (simple)
         {
             indices.push(simpleIndex + id);
@@ -79,9 +74,8 @@ class Ground extends Shape
         transforms.push(x * Static.GRID - Static.GRID/2);
         transforms.push((Static.tileHeight - y) * Static.GRID - Static.GRID/2);
         //corner
-        if (cornerCheck)
+        /*if (cornerCheck)
         {
-            for (i in 0...4) alphaShader.alpha.value.push(1);
             var cid = data.map.biome.get(x - 1,y);
             if (cid != id)
             {
@@ -97,10 +91,7 @@ class Ground extends Shape
                 for (i in 0...2) transforms.pop();
                 //add(cid,x,y,false);
             }
-        }else{
-            //transparent
-            for (i in 0...4) alphaShader.alpha.value.push(0.5);
-        }
+        }*/
     }
     public function simpleCache(color:UInt)
     {
@@ -123,9 +114,9 @@ class Ground extends Shape
     //cache ground tiles
     public function cache(id:Int)
     {
+        var a = "_square";
         var rect:Rectangle = new Rectangle(tileX,tileY);
-        for (a in ["_square"])
-        {
+        
             //16
             for(j in 0...4)
             {
@@ -154,6 +145,5 @@ class Ground extends Shape
                     if (rect.height > tileHeight) tileHeight = Std.int(rect.height) + 1;
                 }
             }
-        }
     }
 }

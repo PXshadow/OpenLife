@@ -39,7 +39,7 @@ class Objects extends TileDisplay
     public var data:GameData = null;
     //scale used for zoom in and out
     public var scale(get, set):Float;
-    public var range:Int = 30;
+    public var range:Int = 18;
     //clear
     public var clearBool:Bool = false;
     function get_scale():Float 
@@ -55,6 +55,7 @@ class Objects extends TileDisplay
     public function new()
     {
         super();
+        //trace(list);
         //add base
         group = new TileContainer();
         addTile(group);
@@ -79,17 +80,6 @@ class Objects extends TileDisplay
             player.set(data);
         }
     }
-    public function getObjectData(id:Int):ObjectData
-    {
-        var data = objectMap.get(id);
-        if (data == null)
-        {
-            //create
-            data = new ObjectData(id);
-            objectMap.set(id,data);
-        }
-        return data;
-    }
     public function add(id:Int,x:Int=0,y:Int=0,container:Bool=false,push:Bool=true,index:Int=0):Bool
     {
         //return false;
@@ -97,7 +87,7 @@ class Objects extends TileDisplay
         //trace("unit test");
         UnitTest.inital();
         //trace("inital");
-        var data = getObjectData(id);
+        var data = objectMap.get(id);
         //data
         if (data.blocksWalking == 1)
         {
@@ -204,7 +194,7 @@ class Objects extends TileDisplay
                     if (containing > 0)
                     {
                         //pos
-                        var pos = getObjectData(containing).slotPos[index];
+                        var pos = objectMap.get(containing).slotPos[index];
                         sprite.x += pos.x;
                         sprite.y += pos.y;
                     }

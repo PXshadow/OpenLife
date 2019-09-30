@@ -61,7 +61,6 @@ class Player #if openfl extends TileContainer #end
     }
     public function motion()
     {
-        if (goal) path();
         //grab another move
         if(moves.length > 0 && !moving)
         {
@@ -84,7 +83,12 @@ class Player #if openfl extends TileContainer #end
                 ix += point.x;
                 iy += point.y;
                 moving = false;
-                motion();
+                if (goal)
+                {
+                    path();
+                }else{
+                    motion();
+                }
             }).ease(Linear.easeNone);
             sort();
             return;
@@ -122,11 +126,6 @@ class Player #if openfl extends TileContainer #end
             return new Point(0,Math.round(-yOffset));
         }
         return new Point();
-    }
-    public function move(mx:Int,my:Int)
-    {
-        //pathfind(mx,my);
-        step(mx,my);
     }
     public function step(mx:Int,my:Int):Bool
     {
@@ -204,24 +203,24 @@ class Player #if openfl extends TileContainer #end
     public function pathfind(px:Int,py:Int)
     {
         if (!step(px,py))
+        {
+            //non direct path
+            if (px == py || px == py * -1)
             {
-                //non direct path
-                if (px == py || px == py * -1)
+                //diagnol
+                if (!step(px,0)) step(0,py);
+            }else{
+                //non diagnol
+                if (px == 0)
                 {
-                    //diagnol
-                    if (!step(px,0)) step(0,py);
+                    //vetical
+                    if (!step(1,py)) step(-1,py);
                 }else{
-                    //non diagnol
-                    if (px == 0)
-                    {
-                        //vetical
-                        if (!step(1,py)) step(-1,py);
-                    }else{
-                        //horizontal
-                        if (!step(px,1)) step(px,-1);
-                    }
+                    //horizontal
+                    if (!step(px,1)) step(px,-1);
                 }
             }
+        }
     }
     public function set(data:PlayerInstance)
     {
@@ -309,8 +308,9 @@ class Player #if openfl extends TileContainer #end
                 }
                 object = null;
             }
+            //set oid
             oid = instance.o_id;
-
+            if (oid == 0) return;
             var objectData:ObjectData = null;
             //object
             if (oid > 0)
@@ -322,7 +322,7 @@ class Player #if openfl extends TileContainer #end
                     var array = gdata.tileData.object.get(instance.o_origin_x,instance.o_origin_y);
                     if (array != null)
                     {
-                        trace("array " + array);
+                        //trace("array " + array);
                         var mo = gdata.map.object.get(instance.o_origin_x,instance.o_origin_y);
                         var index = -1;
                         if (mo != null) index = mo.indexOf(oid);
@@ -330,6 +330,9 @@ class Player #if openfl extends TileContainer #end
                         {
                             object = array[index];
                             addTile(object);
+                            //remove tiles and data
+                            gdata.map.object.set(instance.o_origin_x,instance.o_origin_y,[]);
+                            gdata.tileData.object.set(instance.o_origin_x,instance.o_origin_y,[]);
                         }
                     }
                 }else{
@@ -357,7 +360,7 @@ class Player #if openfl extends TileContainer #end
             if (objectData != null && object != null && objectData.heldOffset != null)
             {
                 object.x = 20 + objectData.heldOffset.x;
-                object.y = 50 + objectData.heldOffset.y;
+                object.y = -Static.GRID/2 + objectData.heldOffset.y - 18;
             }
         }
     }

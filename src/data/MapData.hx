@@ -6,6 +6,9 @@ import sys.io.File;
 #end
 import haxe.io.Bytes;
 import game.Player;
+import sys.FileSystem;
+import sys.io.File;
+import haxe.io.Path;
 class MapData
 {
     //container links index to objects array data when negative number
@@ -16,6 +19,9 @@ class MapData
     public var floor:ArrayDataInt = new ArrayDataInt();
     //object is a postive number, container is a negative that maps 
     public var object:ArrayDataArray<Int> = new ArrayDataArray<Int>();
+    //object alternative ids to refrence same object
+    var objectAlt:Map<Int,Int> = new Map<Int,Int>();
+    var nextObjectNumber:Int = 0;
 
     public var loaded:Bool = false;
 
@@ -26,7 +32,32 @@ class MapData
     public var height:Int = 0;
     public function new()
     {
-        
+        biome.clearInt = -1;
+        //nextobject
+        nextObjectNumber = Std.parseInt(File.getContent(Static.dir + "objects/nextObjectNumber.txt"));
+        //go through objects
+        var list:Array<Int> = [];
+        for (path in FileSystem.readDirectory(Static.dir + "objects"))
+        {
+            list.push(Std.parseInt(Path.withoutExtension(path)));
+        }
+        list.sort(function(a:Int,b:Int)
+        {
+            if (a > b) return 1;
+            return -1;
+        });
+        var data:ObjectData = null;
+        for (i in list)
+        {
+            data = new ObjectData(i);
+            //alternative set
+            if (data.numUses > 1) for (j in 0...data.numUses) 
+            {
+                objectAlt.set(nextObjectNumber++,i);
+            }
+            //map set
+            Main.objects.objectMap.set(i,data);
+        }
     }
     public function setRect(x:Int,y:Int,width:Int,height:Int,string:String)
     {
@@ -73,6 +104,7 @@ class MapData
 class ArrayDataInt
 {
     var array:Array<Array<Int>> = [];
+    public var clearInt:Int = 0;
     //diffrence
     public var dx:Int = 0;
     public var dy:Int = 0;
@@ -96,7 +128,7 @@ class ArrayDataInt
         {
             return array[y - dy][x - dx];
         }
-        return 0;
+        return clearInt;
     }
     public function shiftY(y:Int)
     {
@@ -116,7 +148,7 @@ class ArrayDataInt
                 if (array[j] == null) array[j] = [];
                 for (i in 0...dx - x) 
             	{
-                    array[j].unshift(0);
+                    array[j].unshift(clearInt);
                 }
             }
             dx = x;

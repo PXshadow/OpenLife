@@ -23,6 +23,7 @@ class Program
     public var queue:Array<ServerTag> = [];
     var console:Console;
     var data:GameData;
+    public var range:Int = 30;
     public function new(data:GameData,console:Console)
     {
         this.data = data;
@@ -75,7 +76,7 @@ class Program
         {
             //main
             Main.player.goal = true;
-            Main.player.motion();
+            Main.player.path();
             refine = true;
         }
         return this;
@@ -135,15 +136,14 @@ class Program
     }
     private function findList(get:Array<Int>)
     {
-        var dis:Float = Main.objects.range;
+        var dis:Float = range;
         var cur:Float = 0;
         var id:Int = 0;
         trace("find " + get);
-        trace("x " + max(data.map.y,Main.player.iy - Main.objects.range) + " maxx " + min(data.map.y + data.map.height,Main.player.iy + Main.objects.range));
-
-        for(y in max(data.map.y,Main.player.iy - Main.objects.range)...min(data.map.y + data.map.height,Main.player.iy + Main.objects.range))
+        //trace("x " + max(data.map.y,Main.player.iy - range) + " maxx " + min(data.map.y + data.map.height,Main.player.iy + range));
+        for(y in max(data.map.y,Main.player.iy - range)...min(data.map.y + data.map.height,Main.player.iy + range))
         {
-            for(x in max(data.map.x,Main.player.ix - Main.objects.range)...min(data.map.x + data.map.width,Main.player.ix + Main.objects.range))
+            for(x in max(data.map.x,Main.player.ix - range)...min(data.map.x + data.map.width,Main.player.ix + range))
             {
                     //array of objects in the tile
                     id = data.map.object.get(x,y)[0];
@@ -153,14 +153,14 @@ class Program
                         trace("cur " + cur);
                         if (cur < dis)
                         {
-                            goal.y = y;
                             goal.x = x;
+                            goal.y = y;
                             dis = cur;
                         }
                     }
             }
         }
-        if (dis < Main.objects.range)
+        if (dis < range)
         {
             setup = true;
             console.print("distance",Std.string(dis));
@@ -536,9 +536,9 @@ class Program
         if (list.length == 0) return targets;
         var cx:Int = Main.player.ix;
         var cy:Int = Main.player.iy;
-        for (j in cy - Main.objects.range...cy + Main.objects.range)
+        for (j in cy - range...cy + range)
         {
-            for (i in cx - Main.objects.range...cx + Main.objects.range)
+            for (i in cx - range...cx + range)
             {
                 if (list.indexOf(data.map.object.get(i,j)[0]) >= 0) for(tile in data.tileData.object.get(i,j)) targets.push(tile);
             }

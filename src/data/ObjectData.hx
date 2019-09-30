@@ -262,6 +262,7 @@ class ObjectData extends LineReader
         //get sprite data
         for(i in 0...spriteArray.length)
         {
+            if (spriteArray[i].spriteID <= 0) continue;
             var s:String;
             try { 
                 s = File.getContent(Static.dir + "sprites/" + spriteArray[i].spriteID + ".txt");
