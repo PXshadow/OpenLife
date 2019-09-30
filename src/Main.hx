@@ -664,7 +664,7 @@ class Main #if openfl extends Sprite #end
             }
             //set in case of no object
             data.map.object.set(change.x,change.y,change.id);
-            trace("x " + change.x + " y " + change.y);
+            //trace("x " + change.x + " y " + change.y);
             //clear
             remove(change.x,change.y);
             //add

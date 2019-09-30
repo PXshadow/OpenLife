@@ -34,14 +34,9 @@ class Player #if openfl extends TileContainer #end
     public var moves:Array<Pos> = [];
     public var velocityX:Float = 0;
     public var velocityY:Float = 0;
-    //clothing
-    public var backShoe:TileContainer = null;
-    public var tunic:TileContainer = null;
-    public var bottom:TileContainer = null;
-    public var backpack:TileContainer = null;
-    public var frontShoe:TileContainer = null;
-    public var hat:TileContainer = null;
-    //public var 
+    //clothing hat;tunic;front_shoe;back_shoe;bottom;backpack
+    var clothing:Array<TileContainer> = [];
+    var clothingInt:Array<Int> = [];
     //pathing
     public var moving:Bool = false;
     public var goal:Bool = false;
@@ -56,7 +51,6 @@ class Player #if openfl extends TileContainer #end
     //locally used object
     public var oid:Int = 0;
     public var held:Bool = false;
-    public var clothing:Array<Int> = [];
     public function new(data:GameData,objects:Objects)
     {
         this.objects = objects;
@@ -272,98 +266,30 @@ class Player #if openfl extends TileContainer #end
                 temp.push(Std.parseInt(sub[i]) * -1);
             }
         }
-        if (temp != clothing)
+        if (temp != clothingInt)
         {
             var index:Int = 0;
-            clothing = temp;
-            var object:TileContainer = null;
-            for(i in clothing)
+            clothingInt = temp;
+            clothing = [];
+            for(i in clothingInt)
             {
                 if (i == 0) 
                 {
-                    index++;
-                    return;
+                    clothing.push(null);
+                    continue;
                 }
-                //new clothing
-                object = null;
                 if (i > 0)
                 {
+                    //new clothing
                     objects.add(i,0,0,true,false);
                     object = objects.object;
+                    addTile(object);
+                }else{
+                    //add to preexisting clothing
+                    var data = objects.objectMap.get(clothingInt[clothing.length - 1]);
+                    objects.add(i,0,0,true,false);
+                    clothing[clothing.length - 1].addTiles(objects.sprites);
                 }
-                switch(index)
-                {
-                    case 0:
-                    //backshoe
-                    if (object == null) 
-                    {
-                        //refrence
-                        object = backShoe;
-                    }else{
-                        //set new
-                        backShoe = object;  
-                        continue;
-                    }      
-                    case 1:
-                    //tunic
-                    if (object == null) 
-                    {
-                        //refrence
-                        object = tunic;
-                    }else{
-                        //set new
-                        tunic = object;  
-                        continue;
-                    } 
-                    case 2:
-                    //bottom
-                    if (object == null) 
-                    {
-                        //refrence
-                        object = bottom;
-                    }else{
-                        //set new
-                        bottom = object;  
-                        continue;
-                    } 
-                    case 3:
-                    //backpack
-                    if (object == null) 
-                    {
-                        //refrence
-                        object = backpack;
-                    }else{
-                        //set new
-                        backpack = object;  
-                        continue;
-                    } 
-                    case 4:
-                    //frontshoe
-                    if (object == null) 
-                    {
-                        //refrence
-                        object = frontShoe;
-                    }else{
-                        //set new
-                        frontShoe = object;  
-                        continue;
-                    } 
-                    case 5:
-                    //hat
-                    if (object == null) 
-                    {
-                        //refrence
-                        object = hat;
-                    }else{
-                        //set new
-                        hat = object;  
-                        continue;
-                    } 
-                }
-                //add to preexisting clothing
-                var data = objects.objectMap.get(clothing[index]);
-                objects.add(i,0,0,true,false);
-                object.addTile(objects.object);
             }
         }
     }

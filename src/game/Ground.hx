@@ -123,8 +123,9 @@ class Ground extends Shape
     //cache ground tiles
     public function cache(id:Int)
     {
-        var a = "_square";
         var rect:Rectangle = new Rectangle(tileX,tileY);
+        for (a in ["_square"])
+        {
             //16
             for(j in 0...4)
             {
@@ -153,5 +154,6 @@ class Ground extends Shape
                     if (rect.height > tileHeight) tileHeight = Std.int(rect.height) + 1;
                 }
             }
+        }
     }
 }
