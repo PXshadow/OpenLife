@@ -106,6 +106,7 @@ class Objects extends TileDisplay
             this.data.blocking.remove(x + "." + y);
         }
         //create new objects
+        if (data.containable == 1) container = true;
         if (containing == 0) object = null;
         if (container && containing == 0) object = new TileContainer();
         //moving object
