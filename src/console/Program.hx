@@ -1,5 +1,6 @@
 package console;
 
+import haxe.Timer;
 import data.GameData;
 import server.ServerTag;
 import haxe.crypto.Base64;
@@ -25,6 +26,7 @@ class Program
     var action:Action = null;
 
     var console:Console;
+    var repeater:Timer = null;
     var data:GameData;
     public var range:Int = 30;
     public function new(data:GameData,console:Console)
@@ -38,8 +40,8 @@ class Program
         {
             if (action != null)
             {
-                action.tag.push(tag);
-                action.data.push(data);
+                action.tag.push(Reflect.copy(tag));
+                action.data.push(Reflect.copy(data));
             }
         }else{
             Main.client.send(tag + " " + data);
@@ -54,24 +56,38 @@ class Program
         action = null;
         actions = [];
     }
+    public function update()
+    {
+        
+    }
+    private function preform(i:Int)
+    {
+        if (action == null || goal == null) return;
+        Main.client.send(action.tag[i] + " " + goal.x + " " + goal.y);
+    }
     public function end()
     {
         trace("end path");
-        //preform command if any
+        //Sys.sleep(0.5);
+        //preform command(s) if any
         if (action != null)
         {
             trace("action " + action);
-            if (action.tag != null) for (i in 0...action.tag.length)
+            if (action.tag != null) 
             {
-                trace("commands " + action.tag[i]);
-                Main.client.send(action.tag[i] + " " + goal.x + " " + goal.y);
-            }
-            action = actions.shift();
-            trace("new action " + action);
-            if (action != null) 
-            {
-                run();
-                return;
+                //finish other commands
+                for (i in 0...action.tag.length)
+                {
+                    preform(i);
+                }
+                //grab potential new action
+                action = actions.shift();
+                trace("new action " + action);
+                if (action != null) 
+                {
+                    run();
+                    return;
+                }
             }
         }
         //clean if pass through
@@ -143,10 +159,11 @@ class Program
                 goal = pos;
                 Main.player.goal = true;
                 Main.player.path();
-                refine = true;
+                //refine = true;
                 setup = true;
             }
         }
+        trace("path setup " + setup);
         return this;
     }
     public function kill(x:Null<Int>=null,y:Null<Int>=0,id:Null<Int>=null)
@@ -199,16 +216,21 @@ class Program
     }
     public function find(name:String):Program
     {
-        type(1,name);
+        if (type(1,name)) return this;
         trace("find " + name);
         findList(id(name));
         return this;
     }
-    private function type(id:Int,property:String)
+    private function type(id:Int,property:String):Bool
     {
         //queue
-        action = {type: setup ? id : 0,property: property,pos: null, tag: [],data: []};
-        if (setup) actions.push(action);
+        action = {type: id,property: property,pos: null, tag: action != null ? action.tag : [],data: action != null ? action.data : []};
+        if (setup) 
+        {
+            actions.push(action);
+            return true;
+        }
+        return false;
     }
     private function findList(get:Array<Int>)
     {

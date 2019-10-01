@@ -1,3 +1,10 @@
+- automation
+deal with movement delay on server, before performing actions.
+i.e do action with delay untill player_update is shown
+
+
+
+
 //floors can never display in front of the player
 need a way to quickly disconnect and reconnect
 need a way to debug objects in game quickly
