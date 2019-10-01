@@ -195,7 +195,7 @@ class Player #if openfl extends TileContainer #end
         if (px == 0 && py == 0)
         {
             //complete 
-            program.stop();
+            program.end();
         }else{
             pathfind(px,py);
         }

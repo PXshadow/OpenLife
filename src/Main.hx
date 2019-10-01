@@ -253,8 +253,7 @@ class Main #if openfl extends Sprite #end
                 if (Bind.playerRight.bool) xs += 1;
                 if (xs != 0 || ys != 0) 
                 {
-                    player.goal = false;
-                    program.setup = false;
+                    program.clean();
                     player.step(xs,ys);
                 }
             }
@@ -337,7 +336,8 @@ class Main #if openfl extends Sprite #end
         //player
         if (Bind.playerSelf.bool)
         {
-            program.self();
+            program.task("sharpstone");
+            //program.self();
         }
         if (Bind.playerDrop.bool)
         {
@@ -672,7 +672,7 @@ class Main #if openfl extends Sprite #end
             {
                 var move:Bool = change.speed > 0 ? true : false;
                 add(change.id,change.x,change.y,move);
-                if (move)
+                if (move && objects.object != null)
                 {
                     //move back to previous postition
                     objects.object.x = change.oldX * Static.GRID;

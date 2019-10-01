@@ -39,7 +39,7 @@ class Objects extends TileDisplay
     public var data:GameData = null;
     //scale used for zoom in and out
     public var scale(get, set):Float;
-    public var range:Int = 18;
+    public var range:Int = 24;
     //clear
     public var clearBool:Bool = false;
     function get_scale():Float 
@@ -88,6 +88,7 @@ class Objects extends TileDisplay
         UnitTest.inital();
         //trace("inital");
         var data = objectMap.get(id);
+        if (data == null) return false;
         //data
         if (data.blocksWalking == 1)
         {

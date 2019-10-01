@@ -19,8 +19,11 @@ class Program
     public var useRange:Int = 1;
     //food 
     public var ate:Array<Int> = [];
-    //queue messages to be sent later
-    public var queue:Array<ServerTag> = [];
+
+    //automation buffer system
+    var actions:Array<Action> = [];
+    var action:Action = null;
+
     var console:Console;
     var data:GameData;
     public var range:Int = 30;
@@ -31,22 +34,80 @@ class Program
     }
     public function send(tag:ServerTag,data:String)
     {
-        /*if (setup)
+        if (setup)
         {
-            //queue because path is currently being travled
-            queue.push(tag);
-        }else{*/
+            if (action != null)
+            {
+                action.tag.push(tag);
+                action.data.push(data);
+            }
+        }else{
             Main.client.send(tag + " " + data);
-        //}
+        }
     }
-    public function stop()
+    public function clean()
     {
-        trace("stop goal");
-        //finished, now perform another action
-        
         //clean up
         Main.player.goal = false;
-        //setup = false;
+        setup = false;
+        goal = new Pos();
+        action = null;
+        actions = [];
+    }
+    public function end()
+    {
+        trace("end path");
+        //preform command if any
+        if (action != null)
+        {
+            trace("action " + action);
+            if (action.tag != null) for (i in 0...action.tag.length)
+            {
+                trace("commands " + action.tag[i]);
+                Main.client.send(action.tag[i] + " " + goal.x + " " + goal.y);
+            }
+            action = actions.shift();
+            trace("new action " + action);
+            if (action != null) 
+            {
+                run();
+                return;
+            }
+        }
+        //clean if pass through
+        clean();
+    }
+    public function run()
+    {
+        goal = null;
+        setup = false;
+        switch(action.type)
+        {
+            case 0:
+            //nothing
+            case 1:
+            //find
+            find(action.property);
+            case 2:
+            //watch
+
+            case 3:
+            //hunt
+
+            case 4:
+            //fence
+
+            default:
+            //type not found
+            return;
+        }
+        //path
+        if (action.pos != null)
+        {
+            goal = action.pos.clone();
+        }
+        if (goal != null) path();
+        setup = true;
     }
     public function setHome(x:Null<Int>=0,y:Null<Int>=0):Program
     {
@@ -66,18 +127,25 @@ class Program
     }
     public function path(x:Null<Int>=null,y:Null<Int>=null):Program
     {
+        var pos:Pos = goal.clone();
         if (x != null && y != null)
         {
-            goal.x = x;
-            goal.y = y;
-            setup = true;
+            pos = new Pos();
+            pos.x = x;
+            pos.y = y;
         }
-        if (setup)
+        if (pos != null)
         {
-            //main
-            Main.player.goal = true;
-            Main.player.path();
-            refine = true;
+            if (setup)
+            {
+                action.pos = null;
+            }else{
+                goal = pos;
+                Main.player.goal = true;
+                Main.player.path();
+                refine = true;
+                setup = true;
+            }
         }
         return this;
     }
@@ -131,30 +199,42 @@ class Program
     }
     public function find(name:String):Program
     {
+        type(1,name);
+        trace("find " + name);
         findList(id(name));
         return this;
+    }
+    private function type(id:Int,property:String)
+    {
+        //queue
+        action = {type: setup ? id : 0,property: property,pos: null, tag: [],data: []};
+        if (setup) actions.push(action);
     }
     private function findList(get:Array<Int>)
     {
         var dis:Float = range;
         var cur:Float = 0;
         var id:Int = 0;
+        var obj:Array<Int>;
+        var pos = new Pos();
         trace("find " + get);
         //trace("x " + max(data.map.y,Main.player.iy - range) + " maxx " + min(data.map.y + data.map.height,Main.player.iy + range));
-        for(y in max(data.map.y,Main.player.iy - range)...min(data.map.y + data.map.height,Main.player.iy + range))
+        for(y in Main.player.iy - range... Main.player.iy + range)
         {
-            for(x in max(data.map.x,Main.player.ix - range)...min(data.map.x + data.map.width,Main.player.ix + range))
+            for(x in Main.player.ix - range...Main.player.ix + range)
             {
                     //array of objects in the tile
-                    id = data.map.object.get(x,y)[0];
+                    obj = data.map.object.get(x,y);
+                    if (obj == null) continue;
+                    id = obj[0];
                     if (get.indexOf(id) >= 0)
                     {
-                        cur = Math.abs(Math.sqrt(Math.pow(Main.player.ix - y,2) + Math.pow(Main.player.iy - x,2)));
-                        trace("cur " + cur);
+                        cur = Math.abs(x - Main.player.ix) + Math.abs(y - Main.player.iy);
+                        //trace("cur " + cur);
                         if (cur < dis)
                         {
-                            goal.x = x;
-                            goal.y = y;
+                            pos.x = x;
+                            pos.y = y;
                             dis = cur;
                         }
                     }
@@ -162,11 +242,13 @@ class Program
         }
         if (dis < range)
         {
-            setup = true;
-            console.print("distance",Std.string(dis));
+            trace("distance " + dis);
+            //console.print("distance",Std.string(dis));
+            goal = pos;
         }else{
-            setup = false;
-            console.print("out of range",Std.string(dis));
+            //console.print("out of range",Std.string(dis));
+            trace("out of range");
+            goal = null;
         }
     }
     public function max(a:Int,b:Int):Int
@@ -266,11 +348,11 @@ class Program
         switch(StringTools.replace(name.toLowerCase()," ",""))
         {
             case "eat" | "food" | "hunger":
-            //find than path to, grab and then eat.
+            //find, path to, grab and then eat.
             find("food").path().grab().eat();
             case "sharpstone":
-            //find stone than go to a hard rock and use against it to turn into a sharp stone
-            find("stone").path().grab().find("big hard rock").use();
+            //find stone, go to a hard rock and use against it to turn into a sharp stone
+            find("stone").path().grab().find("big hard rock").path().use();
             case "waterbowl":
             //if water bowl in area grab
             find("water bowl").path().grab();
@@ -356,10 +438,19 @@ class Program
             [33];
             case "sharpstone":
             [34];
+            //berry bush
             case "berrybush":
             [30];
+            case "languishingberrybush":
+            [392];
+            case "dryberrybush":
+            [393];
             case "berry" | "berries": 
             [31];
+            case "emptyberrybush":
+            [1135];
+
+
             case "food":
             var food = [
                 31,//Gooseberry
@@ -471,7 +562,7 @@ class Program
                 1635, //Semi-tame Wolf with Puppy#2
                 1631, //Semi-tame Wolf with Puppy#3
                 1748, //Old Semi-tame Wolf
-                1641, //@ Deadly Wolf
+                //1641, //@ Deadly Wolf
 
                 628, //Grizzly Bear
                 655, //Shot Grizzly Bear#2 attacking
@@ -555,4 +646,17 @@ class Pos
     {
 
     }
+    public function clone():Pos
+    {
+        var pos = new Pos();
+        pos.x = x;
+        pos.y = y;
+        return pos;
+    }
 }
+//type, 0 = nothing, 1 = find, 2 = watch, 3 = hunt (wait untill object found), 4 = fence
+//property a string that is added to a type function
+//pos where the player should go
+//tags holds a buffer of the messages sent
+//data holds a buffer of optional data alongside messages
+typedef Action = {type:Int,property:String,pos:Pos,tag:Array<ServerTag>,data:Array<String>}
