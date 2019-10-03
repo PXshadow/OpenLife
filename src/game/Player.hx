@@ -61,7 +61,7 @@ class Player #if openfl extends TileContainer #end
     }
     public function motion()
     {
-        //grab another move
+        //use another move
         if(moves.length > 0 && !moving)
         {
             var point = moves.pop();
@@ -190,15 +190,29 @@ class Player #if openfl extends TileContainer #end
     {
         var px:Int = program.goal.x - ix;
         var py:Int = program.goal.y - iy;
-        if (px != 0) px = px > 0 ? 1 : -1;
-        if (py != 0) py = py > 0 ? 1 : -1;
+        if (program.refine)
+        {
+            if (Math.abs(px) == program.useRange)
+            {
+                if (py == 0)
+                {
+                    program.end();
+                    return;
+                }
+            }else{
+                if (Math.abs(py) == program.useRange)
+                {
+                    
+                }
+            }
+        }
         if (px == 0 && py == 0)
         {
-            //complete 
+            //complete
             program.end();
-        }else{
-            pathfind(px,py);
+            return;
         }
+        pathfind(px,py);
     }
     public function pathfind(px:Int,py:Int)
     {
@@ -235,10 +249,10 @@ class Player #if openfl extends TileContainer #end
         {
             if (held)
             {
+                //added back to stage
                 objects.group.addTile(this);
                 held = false;
             }
-            trace("forced");
             ix = instance.x;
             iy = instance.y;
             Main.client.send("FORCE " + ix + " " + iy);

@@ -39,7 +39,7 @@ class Objects extends TileDisplay
     public var data:GameData = null;
     //scale used for zoom in and out
     public var scale(get, set):Float;
-    public var range:Int = 24;
+    public var range:Int = 16;
     //clear
     public var clearBool:Bool = false;
     function get_scale():Float 

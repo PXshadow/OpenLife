@@ -25,6 +25,9 @@ class MapData
 
     public var loaded:Bool = false;
 
+    public var valleyOffset:Int = 0;
+    public var valleySpacing:Int = 0;
+
     //all chunks combined
     public var x:Int = 0;
     public var y:Int = 0;
@@ -32,7 +35,6 @@ class MapData
     public var height:Int = 0;
     public function new()
     {
-        biome.clearInt = -1;
         //nextobject
         nextObjectNumber = Std.parseInt(File.getContent(Static.dir + "objects/nextObjectNumber.txt"));
         //go through objects
@@ -104,7 +106,6 @@ class MapData
 class ArrayDataInt
 {
     var array:Array<Array<Int>> = [];
-    public var clearInt:Int = 0;
     //diffrence
     public var dx:Int = 0;
     public var dy:Int = 0;
@@ -128,7 +129,7 @@ class ArrayDataInt
         {
             return array[y - dy][x - dx];
         }
-        return clearInt;
+        return 0;
     }
     public function shiftY(y:Int)
     {
@@ -148,7 +149,7 @@ class ArrayDataInt
                 if (array[j] == null) array[j] = [];
                 for (i in 0...dx - x) 
             	{
-                    array[j].unshift(clearInt);
+                    array[j].unshift(0);
                 }
             }
             dx = x;

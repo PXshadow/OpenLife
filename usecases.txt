@@ -36,7 +36,7 @@ declaritive syntax for console
 .find("berry")
 //go to location
 .path(?x,?y)
-//go to find location and grab 
+//go to find location and use 
 .pickup()
 //remove hat=0, or if -1 eat food in hand.
 .self(0)

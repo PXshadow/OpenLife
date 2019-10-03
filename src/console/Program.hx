@@ -24,7 +24,6 @@ class Program
     //automation buffer system
     var actions:Array<Action> = [];
     var action:Action = null;
-
     var console:Console;
     var repeater:Timer = null;
     var data:GameData;
@@ -46,6 +45,7 @@ class Program
         }else{
             Main.client.send(tag + " " + data);
         }
+        refine = true;
     }
     public function clean()
     {
@@ -80,7 +80,8 @@ class Program
                 {
                     preform(i);
                 }
-                //grab potential new action
+                if (action.finish != null) action.finish();
+                //use potential new action
                 action = actions.shift();
                 trace("new action " + action);
                 if (action != null) 
@@ -143,6 +144,9 @@ class Program
     }
     public function path(x:Null<Int>=null,y:Null<Int>=null):Program
     {
+        refine = false;
+        trace("path setup " + setup);
+        if (action != null && action.tag.length > 0) refine = true;
         var pos:Pos = goal.clone();
         if (x != null && y != null)
         {
@@ -159,11 +163,9 @@ class Program
                 goal = pos;
                 Main.player.goal = true;
                 Main.player.path();
-                //refine = true;
                 setup = true;
             }
         }
-        trace("path setup " + setup);
         return this;
     }
     public function kill(x:Null<Int>=null,y:Null<Int>=0,id:Null<Int>=null)
@@ -199,11 +201,6 @@ class Program
         }
         return this;
     }
-    public function grab()
-    {
-        //todo: grab entails logic to drop objects if present in hand to grab object located
-        return use();
-    }
     public function use(x:Null<Int>=null,y:Null<Int>=null):Program
     {
         if (x != null && y != null)
@@ -214,17 +211,26 @@ class Program
         }
         return this;
     }
-    public function find(name:String):Program
+    public function find(name:String,optimize:Bool=true):Program
     {
         if (type(1,name)) return this;
         trace("find " + name);
-        findList(id(name));
+        goal = findList(id(name),optimize);
+        if (goal == null && action.fail != null) action.fail();
         return this;
+    }
+    public function events(finish:Void->Void,fail:Void->Void)
+    {
+        if (action != null) 
+        {
+            action.finish = finish;
+            action.fail = fail;
+        }
     }
     private function type(id:Int,property:String):Bool
     {
         //queue
-        action = {type: id,property: property,pos: null, tag: action != null ? action.tag : [],data: action != null ? action.data : []};
+        action = {type: id,property: property,pos: null, tag: action != null ? action.tag : [],data: action != null ? action.data : [],finish: null,fail: null};
         if (setup) 
         {
             actions.push(action);
@@ -232,7 +238,7 @@ class Program
         }
         return false;
     }
-    private function findList(get:Array<Int>)
+    private function findList(get:Array<Int>,optimize:Bool=true):Pos
     {
         var dis:Float = range;
         var cur:Float = 0;
@@ -257,6 +263,7 @@ class Program
                         {
                             pos.x = x;
                             pos.y = y;
+                            if (!optimize) return pos;
                             dis = cur;
                         }
                     }
@@ -266,11 +273,11 @@ class Program
         {
             trace("distance " + dis);
             //console.print("distance",Std.string(dis));
-            goal = pos;
+            return pos;
         }else{
             //console.print("out of range",Std.string(dis));
             trace("out of range");
-            goal = null;
+            return null;
         }
     }
     public function max(a:Int,b:Int):Int
@@ -313,10 +320,6 @@ class Program
         //remove object from clothing
         send(SREMV, i + " " + index);
         return this;
-    }
-    public function pickup():Program
-    {
-        return use();
     }
     public function baby(x:Null<Int>,y:Null<Int>):Program
     {
@@ -363,54 +366,26 @@ class Program
         }
         return this;
     }
-    public function task(name:String):Program
+    public function task(name:String)
     {
         setup = false;
         //names need to be lower case and have no spaces, however when using task or find functions you can use spaces and upper case freely.
         switch(StringTools.replace(name.toLowerCase()," ",""))
         {
             case "eat" | "food" | "hunger":
-            //find, path to, grab and then eat.
-            find("food").path().grab().eat();
+            //find, path to, use and then eat.
+            find("food").path().use().eat();
             case "sharpstone":
             //find stone, go to a hard rock and use against it to turn into a sharp stone
-            find("stone").path().grab().find("big hard rock").path().use();
+            find("stone").path().use().find("big hard rock").path().use();
             case "waterbowl":
-            //if water bowl in area grab
-            find("water bowl").path().grab();
-            if (!setup)
-            {
-                //find empty bowl instead and fill
-                find("claybowl").path().grab().find("water source").path().use();
-            }
+
             case "soilbowl":
-            //if soil bowl in area grab
-            find("soilbowl").path().grab();
-            if (!setup)
-            {
-                //find empty bowl instead and fill
-                find("clay bowl").path().grab().find("soil source").path().use();
-            }
+            
+            case "basket":
+
             case "berryfarm":
-            var g:Pos = null;
-            find("languishing berry bush");
-            if (setup) g = goal;
-            find("dry berry bush");
-            if (setup)
-            {
-                //at least one went through
-                if (g == null || distance(goal,g))
-                {
-                    //dry - needs water
-                    g = goal;
-                    task("water bowl");
-                }else{
-                    //languishing - needs soil
-                    task("soil bowl");
-                }
-                //go to bush
-                path(g.x,g.y).use();
-            }
+            
         }
         return this;
     }
@@ -471,8 +446,12 @@ class Program
             [31];
             case "emptyberrybush":
             [1135];
-
-
+            case "tulereeds" | "rulereed" | "reed" | "reeds":
+            [121];
+            case "tule" | "tules":
+            [123,124];
+            case "basket":
+            [292];
             case "food":
             var food = [
                 31,//Gooseberry
@@ -681,4 +660,4 @@ class Pos
 //pos where the player should go
 //tags holds a buffer of the messages sent
 //data holds a buffer of optional data alongside messages
-typedef Action = {type:Int,property:String,pos:Pos,tag:Array<ServerTag>,data:Array<String>}
+typedef Action = {type:Int,property:String,pos:Pos,tag:Array<ServerTag>,data:Array<String>,finish:Void->Void,fail:Void->Void}

@@ -78,7 +78,7 @@ Program
 Declaritive syntax for client macros.
 ``` haxe
 program.apply("trees",{alpha:0.5}); //get all trees and turn transparent
-program.find("berry bush")path().use(); //find optimal berry bush and grab from it
+program.find("berry bush")path().use(); //find optimal berry bush and use from it
 ```
 
 Game

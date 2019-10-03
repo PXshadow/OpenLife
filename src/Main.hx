@@ -147,6 +147,7 @@ class Main #if openfl extends Sprite #end
         food.cacheAsBitmap = true;
         addChild(food);
         chat = new Text("",LEFT,30,0,200);
+        chat.tabEnabled = false;
         chat.wordWrap = false;
         chat.multiline = false;
         chat.background = true;
@@ -199,7 +200,7 @@ class Main #if openfl extends Sprite #end
         //Main.client.ip = "bigserver2.onehouronelife.com";
         //Main.client.port = 8005;
 
-        //settings to grab infomation
+        //settings to use infomation
         Main.settings = new settings.Settings();
         if (!Main.settings.fail)
         {
@@ -336,8 +337,13 @@ class Main #if openfl extends Sprite #end
         //player
         if (Bind.playerSelf.bool)
         {
+            program.self();
+        }
+        if (Bind.search.bool)
+        {
+            //program.task("berryfarm");
+            trace("sharpstone");
             program.task("sharpstone");
-            //program.self();
         }
         if (Bind.playerDrop.bool)
         {
@@ -377,8 +383,6 @@ class Main #if openfl extends Sprite #end
                 }
                 //use action if within range
                 program.use(selectX,selectY);
-                //check if player pickup
-                program.pickup();
             }
         }
     }
@@ -447,34 +451,40 @@ class Main #if openfl extends Sprite #end
             //center point to determine range
             var cx:Int = mapInstance.x + Std.int(mapInstance.width/2);
             var cy:Int = mapInstance.y + Std.int(mapInstance.height/2);
-            var int:Null<Int>;
+            var int:Int = 0;
             if (player != null)
             {
                 cx = player.instance.x;
                 cy = player.instance.y;
             }
-            //trace("start object layer");
+            //rect for rendering
+            var rx:Int = data.map.x > cx - objects.range ? cx - objects.range : data.map.x;
+            var ry:Int = data.map.y > cy - objects.range ? cy - objects.range : data.map.y;
+            var rx2:Int = data.map.x + data.map.width < cx + objects.range ? cx + objects.range : data.map.x + data.map.width;
+            var ry2:Int = data.map.y + data.map.height < cy + objects.range ? cy + objects.range : data.map.y + data.map.height;
+
             //object layer
             var array:Array<Int> = [];
-            for (j in cy - objects.range...cy + objects.range)
+            for (j in ry...ry2)
             {
-                for (i in cx - objects.range...cx + objects.range)
+                for (i in rx...rx2)
                 {
                     add(data.map.object.get(i,j),i,j);
                 }
             }
             //trace("object " + Std.string(Timer.stamp() - time));
             //floor layer
-            for (j in cy - objects.range...cy + objects.range)
+            for (j in ry...ry2)
             {
-                for (i in cx - objects.range...cx + objects.range)
+                for (i in rx...rx2)
                 {
                     //add floor
                     if (!objects.add(data.map.floor.get(i,j),i,j))
                     {
                         //add ground as there is no floor
                         int = data.map.biome.get(i,j);
-                        if (int != null) ground.add(int,i,j);
+                        //trace("int " + int);
+                        if (int > -1) ground.add(int,i,j);
                     }
                 }
             }
@@ -770,7 +780,9 @@ class Main #if openfl extends Sprite #end
 
             case VALLEY_SPACING:
             //y_spacing y_offset Offset is from client's birth position (0,0) of first valley.
-
+            var array = input.split(" ");
+            data.map.valleySpacing = Std.parseInt(array[0]);
+            data.map.valleyOffset = Std.parseInt(array[1]);
             case FLIGHT_DEST:
             //p_id dest_x dest_y
             trace("FLIGHT FLIGHT FLIGHT " + input.split(" "));
