@@ -4,8 +4,8 @@ import haxe.Timer;
 import data.GameData;
 import server.ServerTag;
 import haxe.crypto.Base64;
-import motion.Actuate;
 #if openfl
+import motion.Actuate;
 import openfl.display.Tile;
 #end
 import game.Player;

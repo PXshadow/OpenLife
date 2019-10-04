@@ -1,5 +1,5 @@
 -cp src
--neko terminal.n
+-neko bin/windows/bin/terminal.n
 -main Main
 -lib hscript
 
@@ -13,5 +13,5 @@
 --next
 
 -cp src
--neko output.n
+-neko bin/windows/bin/output.n
 -main Output

@@ -1,5 +1,4 @@
 package console;
-import lime.system.System;
 import haxe.io.Path;
 import sys.FileSystem;
 import data.ObjectData;

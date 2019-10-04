@@ -1,4 +1,5 @@
 package data;
+#if openfl
 import openfl.display.Tile;
 import data.MapData.ArrayDataArray;
 class TileData
@@ -13,3 +14,4 @@ class TileData
 
     }
 }
+#end

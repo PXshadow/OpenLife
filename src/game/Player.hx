@@ -1,12 +1,12 @@
 package game;
-import openfl.geom.Point;
-import motion.easing.Linear;
+import console.Program.Pos as Point;
+import console.Program.Pos;
 import console.Program;
 import data.GameData;
+#if openfl
 import openfl.display.TileContainer;
 import motion.easing.Quad;
-import console.Program.Pos;
-#if openfl
+import motion.easing.Linear;
 import motion.MotionPath;
 import motion.Actuate;
 import openfl.display.Tile;
@@ -19,31 +19,31 @@ import data.ObjectData;
 import data.AnimationData;
 class Player #if openfl extends TileContainer #end
 {
+    #if openfl
     //statics
     private static inline var babyHeadDownFactor:Float = 0.6;
     private static inline var babyBodyDownFactor:Float = 0.75;
     private static inline var oldHeadDownFactor:Float = 0.35;
     private static inline var oldHeadForwardFactor:Float = 2;
 
-    public var lastMove:Int = 1;
-    public var moveTimer:Timer;
-    public var instance:PlayerInstance;
     public var ageRange:Array<{min:Float,max:Float}> = [];
     public var sprites:Array<Tile> = [];
     public var object:Tile;
-    public var moves:Array<Pos> = [];
-    public var velocityX:Float = 0;
-    public var velocityY:Float = 0;
+    var objects:Objects;
     //clothing hat;tunic;front_shoe;back_shoe;bottom;backpack
     var clothing:Array<TileContainer> = [];
+    #end
+    public var moves:Array<Pos> = [];
+    public var instance:PlayerInstance;
     var clothingInt:Array<Int> = [];
     //pathing
+    public var lastMove:Int = 1;
+    public var moveTimer:Timer;
     public var moving:Bool = false;
     public var goal:Bool = false;
     public var program:Program = null;
     var gdata:GameData;
     public var follow:Bool = true;
-    var objects:Objects;
     var multi:Float = 1;
     //locally used instance pos
     public var ix:Int = 0;
@@ -51,9 +51,11 @@ class Player #if openfl extends TileContainer #end
     //locally used object
     public var oid:Int = 0;
     public var held:Bool = false;
-    public function new(data:GameData,objects:Objects)
+    public function new(data:GameData #if openfl ,objects:Objects #end)
     {
+        #if openfl
         this.objects = objects;
+        #end
         this.gdata = data;
         #if openfl
         super();
@@ -61,6 +63,7 @@ class Player #if openfl extends TileContainer #end
     }
     public function motion()
     {
+        #if openfl
         //use another move
         if(moves.length > 0 && !moving)
         {
@@ -93,7 +96,9 @@ class Player #if openfl extends TileContainer #end
             sort();
             return;
         }
+        #end
     }
+    #if openfl
     public function getAgeHeadOffset(inAge:Float,head:Point,body:Point,frontFoot:Point)
     {
         if (inAge == -1) return new Point();
@@ -127,6 +132,7 @@ class Player #if openfl extends TileContainer #end
         }
         return new Point();
     }
+    #end
     public function step(mx:Int,my:Int):Bool
     {
         //no other move is occuring, and player is not moving on blocked
@@ -145,8 +151,8 @@ class Player #if openfl extends TileContainer #end
     }
     public function computePathSpeedMod():Float
     {
-        var floorData = objects.objectMap.get(gdata.map.floor.get(ix,iy));
-        var objectData = objects.objectMap.get(oid);
+        var floorData = Main.objectMap.get(gdata.map.floor.get(ix,iy));
+        var objectData = Main.objectMap.get(oid);
         var multiple:Float = 1;
         if (floorData != null) multiple *= floorData.speedMult;
         if (objectData != null) multiple *= objectData.speedMult;
@@ -250,7 +256,9 @@ class Player #if openfl extends TileContainer #end
             if (held)
             {
                 //added back to stage
+                #if openfl
                 objects.group.addTile(this);
+                #end
                 held = false;
             }
             ix = instance.x;
@@ -261,7 +269,9 @@ class Player #if openfl extends TileContainer #end
         }
         //remove moves
         moves = [];
+        #if openfl
         age();
+        #end
         hold();
         cloths();
     }
@@ -281,8 +291,9 @@ class Player #if openfl extends TileContainer #end
         }
         if (temp != clothingInt)
         {
-            var index:Int = 0;
             clothingInt = temp;
+            #if openfl
+            var index:Int = 0;
             clothing = [];
             for(i in clothingInt)
             {
@@ -304,10 +315,18 @@ class Player #if openfl extends TileContainer #end
                     clothing[clothing.length - 1].addTiles(objects.sprites);
                 }
             }
+            #end
         }
     }
     public function hold()
     {
+        #if !openfl
+        if (instance.o_id != oid)
+        {
+            //change
+            oid = instance.o_id;
+        }
+        #else
         if (instance.o_id != oid)
         {
             //remove previous
@@ -377,16 +396,20 @@ class Player #if openfl extends TileContainer #end
                 object.y = -Static.GRID/2 + objectData.heldOffset.y - 18;
             }
         }
+        #end
     }
     public function force() 
     {
-        Actuate.pause(this);
+        moves = [];
         moving = false;
+        #if openfl
+        Actuate.pause(this);
         //local position
         x = instance.x * Static.GRID;
         y = (Static.tileHeight - instance.y) * Static.GRID;
-        moves = [];
+        #end
     }
+    #if openfl
     public function sort()
     {
         var diff:Int = 0;
@@ -407,8 +430,7 @@ class Player #if openfl extends TileContainer #end
     }
     public function age()
     {
-        #if openfl
         objects.visibleSprites(instance.po_id,sprites,Std.int(instance.age));
-        #end
     }
+    #end
 }

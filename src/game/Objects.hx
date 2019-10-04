@@ -1,4 +1,5 @@
 package game;
+#if openfl
 import openfl.display.BitmapData;
 import data.GameData;
 import openfl.display.TileContainer;
@@ -39,7 +40,6 @@ class Objects extends TileDisplay
     public var data:GameData = null;
     //scale used for zoom in and out
     public var scale(get, set):Float;
-    public var range:Int = 16;
     //clear
     public var clearBool:Bool = false;
     function get_scale():Float 
@@ -304,3 +304,4 @@ class Objects extends TileDisplay
         }
     }
 }
+#end

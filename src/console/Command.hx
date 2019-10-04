@@ -1,9 +1,13 @@
 package console;
-
+#if openfl
 import openfl.Lib;
+#end
 
 class Command
 {
+    #if !openfl
+    var Lib:Dynamic = {};
+    #end
     public function new()
     {
 

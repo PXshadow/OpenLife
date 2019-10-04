@@ -1,5 +1,5 @@
 package data;
-
+#if openfl
 import openfl.geom.Rectangle;
 import haxe.io.BytesInput;
 import lime.app.Future;
@@ -28,3 +28,4 @@ class TgaData
         bytes = Tools.extract32(d,true);
     }
 }
+#end

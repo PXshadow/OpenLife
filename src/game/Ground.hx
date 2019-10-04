@@ -1,15 +1,15 @@
 package game;
-
-import openfl.geom.Matrix;
+#if openfl
 import data.GameData;
-import openfl.Vector;
 import data.TgaData;
+import openfl.Vector;
+import openfl.geom.Matrix;
 import openfl.display.BitmapData;
 import openfl.display.Tileset;
 import openfl.geom.Rectangle;
-import sys.io.File;
 import openfl.display.Shape;
 import shaders.AlphaGraphicShader;
+import sys.io.File;
 
 class Ground extends Shape
 {
@@ -146,3 +146,4 @@ class Ground extends Shape
             }
     }
 }
+#end
