@@ -408,16 +408,7 @@ class Player #if openfl extends TileContainer #end
     public function age()
     {
         #if openfl
-        var tile:Tile;
-        for(i in 0...sprites.length)
-        {
-            sprites[i].visible = true;
-            if (ageRange[i] == null) continue;
-            if((ageRange[i].min > instance.age || ageRange[i].max < instance.age) && ageRange[i].min > 0)
-            {
-                sprites[i].visible = false;
-            }
-        }
+        objects.visibleSprites(instance.po_id,sprites,Std.int(instance.age));
         #end
     }
 }

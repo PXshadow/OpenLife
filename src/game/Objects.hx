@@ -80,6 +80,19 @@ class Objects extends TileDisplay
             player.set(data);
         }
     }
+    public function visibleSprites(id:Int,sprites:Array<Tile>,age:Int=20)
+    {
+        var data = objectMap.get(id);
+        if (data != null)
+        {
+            for (i in 0...sprites.length)
+            {
+                sprites[i].visible = true;
+                if (data.useVanishIndex[i] == -1 && data.numUses > 1) sprites[i].visible = false;
+                if ((data.spriteArray[i].ageRange[0] > -1 || data.spriteArray[i].ageRange[1] > -1) && (data.spriteArray[i].ageRange[0] > age || data.spriteArray[i].ageRange[1] < age)) sprites[i].visible = false;
+            }
+        }
+    }
     public function add(id:Int,x:Int=0,y:Int=0,container:Bool=false,push:Bool=true,index:Int=0):Bool
     {
         //return false;
