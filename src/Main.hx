@@ -1,15 +1,8 @@
-import lime.system.System;
 import sys.FileSystem;
 import sys.io.Process;
-import ui.Text;
 import haxe.Timer;
-import motion.easing.Quad;
-import motion.Actuate;
-import openfl.display.TileContainer;
-import openfl.display.DisplayObject;
 import console.Program;
 import data.GameData;
-import openfl.display.FPS;
 import data.MapData.ArrayDataArray;
 import settings.Bind;
 import sys.thread.Thread;
@@ -17,7 +10,22 @@ import sys.net.Socket;
 import client.Client;
 import console.Console;
 import haxe.io.Path;
+import settings.Settings;
+import data.ObjectData;
+import data.PlayerData.PlayerInstance;
+import data.MapData.MapInstance;
+import game.Player;
+import data.PlayerData.PlayerMove;
+import data.MapData.MapChange;
 //visual client
+#if openfl
+import openfl.display.TileContainer;
+import openfl.display.DisplayObject;
+import ui.Text;
+import motion.easing.Quad;
+import motion.Actuate;
+import openfl.display.FPS;
+import lime.system.System;
 import openfl.geom.Matrix;
 import openfl.display.Shape;
 import openfl.Assets;
@@ -28,14 +36,10 @@ import openfl.events.KeyboardEvent;
 import openfl.events.MouseEvent;
 import openfl.events.Event;
 import settings.Bind;
-import settings.Settings;
 import game.*;
-import data.PlayerData.PlayerInstance;
-import data.MapData.MapInstance;
 import openfl.display.Tile;
-import data.PlayerData.PlayerMove;
-import data.MapData.MapChange;
 import openfl.geom.Rectangle;
+#end
 
 class Main #if openfl extends Sprite #end
 {
@@ -43,17 +47,23 @@ class Main #if openfl extends Sprite #end
     public static var client:Client;
     //over top console
     var console:Console;
-    //local data
-    public static var so:SharedObject;
-    //settings 
+    //settings
     public static var settings:Settings;
     //game
+    #if openfl
     var draw:Draw;
     var food:Shape;
-    public static var objects:Objects;
+    var select:Shape;
     var chat:Text;
     var ground:Ground;
-    var select:Shape;
+    //use to grab group stage
+    public static var objects:Objects;
+    var state:DisplayObjectContainer;
+    public var log:Text;
+    #end
+    public static var player:Player;
+    public static var range:Int = 16;
+    public static var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
     var selectX:Int = 0;
     var selectY:Int = 0;
     var data:GameData;
@@ -65,16 +75,16 @@ class Main #if openfl extends Sprite #end
     var program:Program;
     var string:String = "";
     var gameBool:Bool = false;
-    var state:DisplayObjectContainer;
-    public static var player:Player;
-
-    public var log:Text;
-
+    #if !openfl
+    public static function main()
+    {
+        new Main();
+    }
+    #end
     public function new()
     {
+        #if openfl
         super();
-        //stored appdata
-        so = SharedObject.getLocal("client",null,true);
         //events
         addEventListener(Event.ENTER_FRAME,update);
         stage.addEventListener(Event.RESIZE,resize);
@@ -90,25 +100,6 @@ class Main #if openfl extends Sprite #end
         state.mouseChildren = false;
         state.mouseEnabled = false;
         addChild(state);
-        //client
-        client = new client.Client();
-        console = new console.Console();
-        addChild(console);
-        //launch
-        dir();
-        cred();
-        game();
-        /*for (i in 0...20)
-        {
-            for (j in 0...20)
-            {
-                data.map.biome.set(i,j,0);
-
-            }
-        }
-        objects.addPlayer(new PlayerInstance([]));
-        setPlayer(cast(objects.object,Player));*/
-        connect();
         var fps = new FPS();
         fps.textColor = 0xFFFFFF;
         addChild(fps);
@@ -117,7 +108,103 @@ class Main #if openfl extends Sprite #end
         log.y = 100;
         log.cacheAsBitmap = false;
         addChild(log);
+        //launch
+        game();
+        #end
+        
+        //client
+        client = new client.Client();
+        console = new console.Console();
+        #if openfl
+        addChild(console);
+        #end
+        
+        connect();
     }
+    public function dir()
+    {
+        #if (windows || !openfl)
+        Static.dir = "";
+        #else
+        Static.dir = Path.normalize(lime.system.System.applicationDirectory);
+        Static.dir = Path.removeTrailingSlashes(Static.dir) + "/";
+        #end
+        #if mac
+        Static.dir = Static.dir.substring(0,Static.dir.indexOf("/Contents/Resources/"));
+        Static.dir = Static.dir.substring(0,Static.dir.lastIndexOf("/") + 1);
+        #end
+        //check to see if location is valid
+        if (exist(["groundTileCache","objects","sprites","animations"]))
+        {
+            trace("valid location");
+        }else{
+            #if openfl
+            stage.window.alert("Place in OpenLife folder","directory not found");
+            #else
+            throw "directory not found";
+            #end
+            Sys.exit(0);
+        }
+    }
+    public function exist(folders:Array<String>):Bool
+    {
+        for (folder in folders)
+        {
+            if (!FileSystem.exists(Static.dir + folder)) return false;
+        }
+        return true;
+    }
+    public function cred()
+    {
+        //account default
+        //Main.client.login.email = "test@test.co.uk";
+        //Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
+        Main.client.login.email = "test@test.com";
+        Main.client.login.key = "9UYQ3-PQKCT-NGQXH-YB93E";
+        //server default (thanks so much Kryptic <3)
+        Main.client.ip = "game.krypticmedia.co.uk";
+        Main.client.port = 8007;
+        //Main.client.ip = "bigserver2.onehouronelife.com";
+        //Main.client.port = 8005;
+
+        //settings to use infomation
+        Main.settings = new settings.Settings();
+        if (!Main.settings.fail)
+        {
+            //account
+            if (valid(Main.settings.data.email)) Main.client.login.email = string;
+            if (valid(Main.settings.data.accountKey)) Main.client.login.key = string;
+            if (valid(Main.settings.data.useCustomServer) && string == "1")
+            {
+                if (valid(Main.settings.data.customServerAddress)) Main.client.ip = string;
+                if (valid(Main.settings.data.customServerPort)) Main.client.port = Std.parseInt(string);
+            }
+            //window
+            #if openfl
+            if (valid(Main.settings.data.borderless)) stage.window.borderless = Std.parseInt(string) == 1 ? true : false;
+            if (valid(Main.settings.data.fullscreen)) stage.window.fullscreen = Std.parseInt(string) == 1 ? true : false;
+            if (valid(Main.settings.data.screenWidth)) stage.window.width = Std.parseInt(string);
+            if (valid(Main.settings.data.screenHeight)) stage.window.height = Std.parseInt(string);
+            if (valid(Main.settings.data.targetFrameRate)) stage.frameRate = Std.parseInt(string);
+            #end
+        }
+        //by pass settings and force email and key if secret account
+        #if secret
+        trace("set secret");
+        Main.client.login.email = Secret.email;
+        Main.client.login.key = Secret.key;
+        Main.client.ip = Secret.ip;
+        Main.client.port = Secret.port;
+        #end
+    }
+    public function valid(obj:Dynamic):Bool
+    {
+        if (obj == null || obj == "") return false;
+        string = cast obj;
+        return true;
+    }
+    //events
+    #if openfl
     public function game()
     {
         ground = new Ground();
@@ -158,83 +245,6 @@ class Main #if openfl extends Sprite #end
         chat.type = INPUT;
         addChild(chat);
     }
-    public function dir()
-    {
-        #if windows
-        Static.dir = "";
-        #else
-        Static.dir = Path.normalize(lime.system.System.applicationDirectory);
-        Static.dir = Path.removeTrailingSlashes(Static.dir) + "/";
-        #end
-        #if mac
-        Static.dir = Static.dir.substring(0,Static.dir.indexOf("/Contents/Resources/"));
-        Static.dir = Static.dir.substring(0,Static.dir.lastIndexOf("/") + 1);
-        #end
-        //check to see if location is valid
-        if (exist(["groundTileCache","objects","sprites","animations"]))
-        {
-            trace("valid location");
-        }else{
-            stage.window.alert("Place OpenLife in the OneLife folder","OneLife directory not found");
-            Sys.exit(0);
-        }
-    }
-    public function exist(folders:Array<String>):Bool
-    {
-        for (folder in folders)
-        {
-            if (!FileSystem.exists(Static.dir + folder)) return false;
-        }
-        return true;
-    }
-    public function cred()
-    {
-        //account default
-        //Main.client.login.email = "test@test.co.uk";
-        //Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
-        Main.client.login.email = "test@test.com";
-        Main.client.login.key = "9UYQ3-PQKCT-NGQXH-YB93E";
-        //server default (thanks so much Kryptic <3)
-        Main.client.ip = "game.krypticmedia.co.uk";
-        Main.client.port = 8007;
-        //Main.client.ip = "bigserver2.onehouronelife.com";
-        //Main.client.port = 8005;
-
-        //settings to use infomation
-        Main.settings = new settings.Settings();
-        if (!Main.settings.fail)
-        {
-            //account
-            if (valid(Main.settings.data.email)) Main.client.login.email = string;
-            if (valid(Main.settings.data.accountKey)) Main.client.login.key = string;
-            if (valid(Main.settings.data.useCustomServer) && string == "1")
-            {
-                if (valid(Main.settings.data.customServerAddress)) Main.client.ip = string;
-                if (valid(Main.settings.data.customServerPort)) Main.client.port = Std.parseInt(string);
-            }
-            //window
-            if (valid(Main.settings.data.borderless)) stage.window.borderless = Std.parseInt(string) == 1 ? true : false;
-            if (valid(Main.settings.data.fullscreen)) stage.window.fullscreen = Std.parseInt(string) == 1 ? true : false;
-            if (valid(Main.settings.data.screenWidth)) stage.window.width = Std.parseInt(string);
-            if (valid(Main.settings.data.screenHeight)) stage.window.height = Std.parseInt(string);
-            if (valid(Main.settings.data.targetFrameRate)) stage.frameRate = Std.parseInt(string);
-        }
-        //by pass settings and force email and key if secret account
-        #if secret
-        trace("set secret");
-        Main.client.login.email = Secret.email;
-        Main.client.login.key = Secret.key;
-        Main.client.ip = Secret.ip;
-        Main.client.port = Secret.port;
-        #end
-    }
-    public function valid(obj:Dynamic):Bool
-    {
-        if (obj == null || obj == "") return false;
-        string = cast obj;
-        return true;
-    }
-    //events
     var xs:Int = 0;
     var ys:Int = 0;
     var it:Iterator<Player>;
@@ -410,6 +420,41 @@ class Main #if openfl extends Sprite #end
     {
         zoom(e.delta);
     }
+    public function remove(x:Int,y:Int)//,floor:Bool=false)
+    {
+        /*if (floor)
+        {
+            return;
+        }*/
+        //object
+        var tiles = data.tileData.object.get(x,y);
+        if (tiles != null)
+        {
+            for (tile in tiles) objects.group.removeTile(tile);
+        }
+    }
+    public function add(array:Array<Int>,x:Int,y:Int,container:Bool=false,push:Bool=true)
+    {
+        if (array != null) 
+        {
+            objects.add(array[0],x,y,array.length > 1 ? true : container,push);
+            objects.containing = array.length > 1 ? array[0] : 0;
+            var index:Int = 0;
+            for (i in 1...array.length)
+            {
+                if (array[i] < 0)
+                {
+                    //sub container
+                    objects.add(array[i] * -1,x,y,true,push,index);
+                    index++;
+                }else{
+                    //container
+                    objects.add(array[i],x,y,container,push);
+                    index = 0;
+                }
+            }
+        }
+    }
     public function render() 
     {
         trace("MAP UPDATE");
@@ -498,42 +543,6 @@ class Main #if openfl extends Sprite #end
             ground.render();
             objects.tileset.bitmapData.unlock();
     }
-    //add object arraqy
-    public function remove(x:Int,y:Int)//,floor:Bool=false)
-    {
-        /*if (floor)
-        {
-            return;
-        }*/
-        //object
-        var tiles = data.tileData.object.get(x,y);
-        if (tiles != null)
-        {
-            for (tile in tiles) objects.group.removeTile(tile);
-        }
-    }
-    public function add(array:Array<Int>,x:Int,y:Int,container:Bool=false,push:Bool=true)
-    {
-        if (array != null) 
-        {
-            objects.add(array[0],x,y,array.length > 1 ? true : container,push);
-            objects.containing = array.length > 1 ? array[0] : 0;
-            var index:Int = 0;
-            for (i in 1...array.length)
-            {
-                if (array[i] < 0)
-                {
-                    //sub container
-                    objects.add(array[i] * -1,x,y,true,push,index);
-                    index++;
-                }else{
-                    //container
-                    objects.add(array[i],x,y,container,push);
-                    index = 0;
-                }
-            }
-        }
-    }
     public function setPlayer(player:Player)
     {
         player.program = program;
@@ -544,23 +553,6 @@ class Main #if openfl extends Sprite #end
         objects.group.x = -player.x * objects.scale + objects.width/2;
         objects.group.y = -player.y * objects.scale + objects.height/2;
     }
-    public function end()
-    {
-        switch(Main.client.tag)
-        {
-            case PLAYER_UPDATE:
-            if (player == null && objects.player != null) 
-            {
-                setPlayer(objects.player);
-                player.sort();
-                gameBool = true;
-                resize(null);
-            }
-            objects.player = null;
-            Main.client.tag = null;
-            default:
-        }
-    }
     private function resize(_)
     {
         if (console != null)  console.resize(stage.stageWidth);
@@ -570,6 +562,33 @@ class Main #if openfl extends Sprite #end
             objects.height = stage.stageHeight;
             chat.y = stage.stageHeight - 30;
             food.y = stage.stageHeight - 30;
+        }
+    }
+    public function zoom(i:Int)
+    {
+        if (objects.scale > 2 && i > 0 || objects.scale < 0.2 && i < 0) return;
+        objects.scale += i * 0.08;
+    }
+    #end
+    public function end()
+    {
+        switch(Main.client.tag)
+        {
+            case PLAYER_UPDATE:
+            #if !openfl
+
+            #else
+            if (player == null && objects.player != null) 
+            {
+                setPlayer(objects.player);
+                player.sort();
+                gameBool = true;
+                resize(null);
+            }
+            objects.player = null;
+            Main.client.tag = null;
+            #end
+            default:
         }
     }
     public function disconnect()
@@ -676,11 +695,14 @@ class Main #if openfl extends Sprite #end
             data.map.object.set(change.x,change.y,change.id);
             //trace("x " + change.x + " y " + change.y);
             //clear
+            #if openfl
             remove(change.x,change.y);
+            #end
             //add
             if (change.id.length > 0 && change.id[0] > 0)
             {
                 var move:Bool = change.speed > 0 ? true : false;
+                #if openfl
                 add(change.id,change.x,change.y,move);
                 if (move && objects.object != null)
                 {
@@ -691,6 +713,7 @@ class Main #if openfl extends Sprite #end
                     var time = Std.int(Static.GRID/(Static.GRID * change.speed * 1) * 60 * 1);
                     Actuate.tween(objects.object,time/60,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
                 }
+                #end
             }
             Main.client.tag = null;
             index = 0;
@@ -701,11 +724,13 @@ class Main #if openfl extends Sprite #end
             case FOOD_CHANGE:
             //trace("food change " + input);
             var array = input.split(" ");
+            #if openfl
             food.graphics.clear();
             food.graphics.beginFill(0);
             food.graphics.drawRect(200,0,100,20);
             food.graphics.beginFill(0xFF0000);
             food.graphics.drawRect(200,0,Std.parseInt(array[0])/Std.parseInt(array[1]) * 100,20);
+            #end
             //also need to set new movement move_speed: is floating point playerSpeed in grid square widths per second.
             if (player != null) player.instance.move_speed = Std.parseFloat(array[4]);
             case FRAME:
@@ -728,7 +753,9 @@ class Main #if openfl extends Sprite #end
             var id:Int = Std.parseInt(input);
             var player = data.playerMap.get(id);
             data.playerMap.remove(id);
+            #if openfl
             objects.group.removeTile(player);
+            #end
             player = null;
             case LINEAGE:
             //p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
@@ -737,7 +764,9 @@ class Main #if openfl extends Sprite #end
             //p_id first_name last_name last_name may be ommitted.
             var array = input.split(" ");
             var name:String = array[1] + (array.length > 1 ? " " + array[2] : "");
-            draw.username(Std.parseInt(array[0]),name);   
+            #if openfl
+            draw.username(Std.parseInt(array[0]),name);
+            #end
             case HEALED:
             //p_id player healed no longer dying.
 
@@ -783,15 +812,11 @@ class Main #if openfl extends Sprite #end
             var array = input.split(" ");
             data.map.valleySpacing = Std.parseInt(array[0]);
             data.map.valleyOffset = Std.parseInt(array[1]);
+            trace("valley spacing " + data.map.valleySpacing + " offset " + data.map.valleyOffset);
             case FLIGHT_DEST:
             //p_id dest_x dest_y
             trace("FLIGHT FLIGHT FLIGHT " + input.split(" "));
             default:
         }
-    }
-    public function zoom(i:Int)
-    {
-        if (objects.scale > 2 && i > 0 || objects.scale < 0.2 && i < 0) return;
-        objects.scale += i * 0.08;
     }
 }
