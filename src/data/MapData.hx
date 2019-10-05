@@ -19,15 +19,19 @@ class MapData
     public var floor:ArrayDataInt = new ArrayDataInt();
     //object is a postive number, container is a negative that maps 
     public var object:ArrayDataArray<Int> = new ArrayDataArray<Int>();
-    //object alternative ids to refrence same object
-    var objectAlt:Map<Int,Int> = new Map<Int,Int>();
-    var nextObjectNumber:Int = 0;
 
     public var loaded:Bool = false;
 
-    public var valleyOffset:Int = 0;
+    public var valleyOffsetY:Int = 0;
+    public var valleyOffsetX:Int = 0;
     public var valleySpacing:Int = 0;
+    public var valleyBool:Bool = true;
 
+    public var offsetX:Int = 0;
+    public var offsetY:Int = 0;
+    public var offsetBoolX:Bool = true;
+    public var offsetBoolY:Bool = true;
+    
     //all chunks combined
     public var x:Int = 0;
     public var y:Int = 0;
@@ -35,29 +39,7 @@ class MapData
     public var height:Int = 0;
     public function new()
     {
-        //nextobject
-        nextObjectNumber = Std.parseInt(File.getContent(Static.dir + "objects/nextObjectNumber.txt"));
-        //go through objects
-        var list:Array<Int> = [];
-        for (path in FileSystem.readDirectory(Static.dir + "objects"))
-        {
-            list.push(Std.parseInt(Path.withoutExtension(path)));
-        }
-        list.sort(function(a:Int,b:Int)
-        {
-            if (a > b) return 1;
-            return -1;
-        });
-        var data:ObjectData = null;
-        for (i in list)
-        {
-            data = new ObjectData(i);
-            //alternative set
-            if (data.numUses > 1) for (j in 0...data.numUses) 
-            {
-                objectAlt.set(nextObjectNumber++,i);
-            }
-        }
+
     }
     public function setRect(x:Int,y:Int,width:Int,height:Int,string:String)
     {
@@ -67,6 +49,7 @@ class MapData
         var a:Array<String> = string.split(" ");
         //data array for object
         var data:Array<String>;
+        var objectArray:Array<Int> = [];
         var array:Array<Array<Int>> = [];
         //bottom left
         for(j in y...y + height)
@@ -97,6 +80,11 @@ class MapData
                     //subcontainer
                     array.push(Std.parseInt(s[k]) * -1);
                 }
+            }
+            if (array.length == 1 && array[0] > Main.data.nextObjectNumber)
+            {
+                var alt = Main.data.objectAlt.get(array[0]);
+                if (array != null) return [alt];
             }
             return array;
     }

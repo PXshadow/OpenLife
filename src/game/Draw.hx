@@ -13,10 +13,8 @@ class Draw extends Sprite
     var py:Float = 0;
     var objects:Array<DrawObject> = [];
     var program:Program;
-    var data:GameData;
-    public function new(data:GameData,program:Program)
+    public function new(program:Program)
     {
-        this.data = data;
         this.program = program;
         super();
     }
@@ -24,7 +22,7 @@ class Draw extends Sprite
     {
         for (object in objects)
         {
-            if (object.alive == 0 || !data.playerMap.exists(object.id))
+            if (object.alive == 0 || !Main.data.playerMap.exists(object.id))
             {
                 removeChild(object);
                 objects.remove(object);
@@ -33,8 +31,8 @@ class Draw extends Sprite
             }else{
                 object.alive--;
                 //bottom right corner
-                object.x = Main.objects.group.x + ((data.playerMap.get(object.id).x + object.dx) * Main.objects.scale);
-                object.y = Main.objects.group.y + ((data.playerMap.get(object.id).y + object.dy) * Main.objects.scale) - object.height;
+                object.x = Main.objects.group.x + ((Main.data.playerMap.get(object.id).x + object.dx) * Main.objects.scale);
+                object.y = Main.objects.group.y + ((Main.data.playerMap.get(object.id).y + object.dy) * Main.objects.scale) - object.height;
             }
         }
     }

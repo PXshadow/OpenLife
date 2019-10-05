@@ -1,0 +1,6 @@
+package console;
+
+class Network
+{
+    
+}

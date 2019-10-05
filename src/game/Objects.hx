@@ -36,7 +36,6 @@ class Objects extends TileDisplay
     public var setX:Float = 0;
     public var setY:Float = 0;
     public var group:TileContainer;
-    public var data:GameData = null;
     //scale used for zoom in and out
     public var scale(get, set):Float;
     //clear
@@ -62,7 +61,7 @@ class Objects extends TileDisplay
     public function addPlayer(data:PlayerInstance)
     {
         if (data == null) return;
-        player = this.data.playerMap.get(data.p_id);
+        player = Main.data.playerMap.get(data.p_id);
         if (player == null)
         {
             //new
@@ -70,7 +69,7 @@ class Objects extends TileDisplay
             player = cast object;
             if (player == null) return;
             trace("player " + player);
-            this.data.playerMap.set(data.p_id,player);
+            Main.data.playerMap.set(data.p_id,player);
             player.set(data);
             player.force();
             return;
@@ -81,7 +80,7 @@ class Objects extends TileDisplay
     }
     public function visibleSprites(id:Int,sprites:Array<Tile>,age:Int=20)
     {
-        var data = Main.objectMap.get(id);
+        var data = Main.data.objectMap.get(id);
         if (data != null)
         {
             for (i in 0...sprites.length)
@@ -99,14 +98,14 @@ class Objects extends TileDisplay
         //trace("unit test");
         UnitTest.inital();
         //trace("inital");
-        var data = Main.objectMap.get(id);
+        var data = Main.data.objectMap.get(id);
         if (data == null) return false;
         //data
         if (data.blocksWalking == 1)
         {
-            this.data.blocking.set(x + "." + y,true);
+            Main.data.blocking.set(x + "." + y,true);
         }else{
-            this.data.blocking.remove(x + "." + y);
+            Main.data.blocking.remove(x + "." + y);
         }
         //create new objects
         if (data.containable == 1) container = true;
@@ -116,7 +115,7 @@ class Objects extends TileDisplay
         //if (data.)
         if(data.person > 0)
         {
-            object = new Player(this.data,this);
+            object = new Player(this);
             container = true;
             push = false;
         }
@@ -127,10 +126,10 @@ class Objects extends TileDisplay
             object.y = (Static.tileHeight - y) * Static.GRID;
             group.addTileAt(object,0);
         }
-        if (!this.data.map.loaded)
+        if (!Main.data.map.loaded)
         {
             //add data into map data if not loaded in (for testing)
-            this.data.map.object.set(x,y,[id]);
+            Main.data.map.object.set(x,y,[id]);
         }
         var r:Rectangle;
         var sprite:Tile = null;
@@ -207,7 +206,7 @@ class Objects extends TileDisplay
                     if (containing > 0)
                     {
                         //pos
-                        var pos = Main.objectMap.get(containing).slotPos[index];
+                        var pos = Main.data.objectMap.get(containing).slotPos[index];
                         sprite.x += pos.x;
                         sprite.y += pos.y;
                     }
@@ -234,9 +233,9 @@ class Objects extends TileDisplay
             if (container) sprites = [object];
             if (data.floor == 0)
             {
-                this.data.tileData.object.set(x,y,sprites);
+                Main.data.tileData.object.set(x,y,sprites);
             }else{
-                this.data.tileData.floor.set(x,y,sprites);
+                Main.data.tileData.floor.set(x,y,sprites);
             }
         }
         //trace("add " + UnitTest.stamp());
@@ -244,8 +243,8 @@ class Objects extends TileDisplay
     }
     public function clear()
     {
-        data.tileData.object.clear();
-        data.tileData.floor.clear();
+        Main.data.tileData.object.clear();
+        Main.data.tileData.floor.clear();
         group.removeTiles();
     }
     private function cacheSprite(id:Int):Int

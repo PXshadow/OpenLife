@@ -42,7 +42,6 @@ class Player #if openfl extends TileContainer #end
     public var moving:Bool = false;
     public var goal:Bool = false;
     public var program:Program = null;
-    var gdata:GameData;
     public var follow:Bool = true;
     var multi:Float = 1;
     //locally used instance pos
@@ -51,12 +50,15 @@ class Player #if openfl extends TileContainer #end
     //locally used object
     public var oid:Int = 0;
     public var held:Bool = false;
-    public function new(data:GameData #if openfl ,objects:Objects #end)
+    //name
+    public var firstName:String = "";
+    public var lastName:String = "";
+    public var text:String = "";
+    public function new(#if openfl objects:Objects #end)
     {
         #if openfl
         this.objects = objects;
         #end
-        this.gdata = data;
         #if openfl
         super();
         #end
@@ -64,14 +66,12 @@ class Player #if openfl extends TileContainer #end
     public function motion()
     {
         //use another move
-        trace("motion function ml " + moves.length + " moving " + moving);
         if(moves.length > 0 && !moving)
         {
             var point = moves.pop();
             moving = true;
             var time = Std.int(Static.GRID/(Static.GRID * (instance.move_speed) * computePathSpeedMod()) * 60 * multi);
             #if !openfl
-            trace("time " + time);
             sys.thread.Thread.create(() -> {
                 Sys.sleep(time/60);
                 trace("finish move");
@@ -150,7 +150,7 @@ class Player #if openfl extends TileContainer #end
     public function step(mx:Int,my:Int):Bool
     {
         //no other move is occuring, and player is not moving on blocked
-        if (moving || gdata.blocking.get(Std.string(ix + mx) + "." + Std.string(iy + my))) return false;
+        if (moving || Main.data.blocking.get(Std.string(ix + mx) + "." + Std.string(iy + my))) return false;
         //send data
         lastMove++;
         Main.client.send("MOVE " + ix + " " + iy + " @" + lastMove + " " + mx + " " + my);
@@ -163,8 +163,8 @@ class Player #if openfl extends TileContainer #end
     }
     public function computePathSpeedMod():Float
     {
-        var floorData = gdata.objectMap.get(gdata.map.floor.get(ix,iy));
-        var objectData = gdata.objectMap.get(oid);
+        var floorData = Main.data.objectMap.get(Main.data.map.floor.get(ix,iy));
+        var objectData = Main.data.objectMap.get(oid);
         var multiple:Float = 1;
         if (floorData != null) multiple *= floorData.speedMult;
         if (objectData != null) multiple *= objectData.speedMult;
@@ -323,7 +323,7 @@ class Player #if openfl extends TileContainer #end
                     addTile(object);
                 }else{
                     //add to preexisting clothing
-                    var data = Main.objectMap.get(clothingInt[clothing.length - 1]);
+                    var data = data.objectMap.get(clothingInt[clothing.length - 1]);
                     objects.add(i,0,0,true,false);
                     clothing[clothing.length - 1].addTiles(objects.sprites);
                 }
@@ -362,14 +362,14 @@ class Player #if openfl extends TileContainer #end
             if (oid > 0)
             {
                 //object coming from the world
-                objectData = Main.objectMap.get(oid);
+                objectData = Main.data.objectMap.get(oid);
                 if (instance.o_origin_valid == 1)
                 {
-                    var array = gdata.tileData.object.get(instance.o_origin_x,instance.o_origin_y);
+                    var array = Main.data.tileData.object.get(instance.o_origin_x,instance.o_origin_y);
                     if (array != null)
                     {
                         //trace("array " + array);
-                        var mo = gdata.map.object.get(instance.o_origin_x,instance.o_origin_y);
+                        var mo = Main.data.map.object.get(instance.o_origin_x,instance.o_origin_y);
                         var index = -1;
                         if (mo != null) index = mo.indexOf(oid);
                         if (index > -1 && index < array.length)
@@ -377,8 +377,8 @@ class Player #if openfl extends TileContainer #end
                             object = array[index];
                             addTile(object);
                             //remove tiles and data
-                            gdata.map.object.set(instance.o_origin_x,instance.o_origin_y,[]);
-                            gdata.tileData.object.set(instance.o_origin_x,instance.o_origin_y,[]);
+                            Main.data.map.object.set(instance.o_origin_x,instance.o_origin_y,[]);
+                            Main.data.tileData.object.set(instance.o_origin_x,instance.o_origin_y,[]);
                         }
                     }
                 }else{
@@ -390,10 +390,10 @@ class Player #if openfl extends TileContainer #end
             //player
             if (oid < 0)
             {
-                var player = gdata.playerMap.get(oid * -1);
+                var player = Main.data.playerMap.get(oid * -1);
                 if (player != null)
                 {
-                    objectData = Main.objectMap.get(player.instance.po_id);
+                    objectData = data.objectMap.get(player.instance.po_id);
                     objects.group.removeTile(player);
                     player.held = true;
                     //same facing as mother
@@ -426,16 +426,16 @@ class Player #if openfl extends TileContainer #end
     public function sort()
     {
         var diff:Int = 0;
-        var object:Array<Tile> = gdata.tileData.object.get(instance.x,instance.y);
+        var object:Array<Tile> = Main.data.tileData.object.get(instance.x,instance.y);
         //floor
         if (object == null) 
         {
-            object = gdata.tileData.floor.get(instance.x,instance.y);
+            object = Main.data.tileData.floor.get(instance.x,instance.y);
             diff = -1;
         }
         /*if (object == null) 
         {
-            object = gdata.tileData.object.get(instance.x,instance.y + 1);
+            object = Main.data.tileData.object.get(instance.x,instance.y + 1);
             diff = 1;
         }*/
         if (object == null || object[0] == null) return;

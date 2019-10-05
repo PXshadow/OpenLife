@@ -188,9 +188,6 @@ class PlayerMove
         //set pos
         player.ix = xs;
         player.iy = ys;
-        //visuals
-        #if openfl
-        var delay:Float = 0;
         var currentX:Int = 0;
         var currentY:Int = 0;
         player.moves = [];
@@ -205,6 +202,5 @@ class PlayerMove
             currentY = move.y;
         }
         player.motion();
-        #end
     }
 }

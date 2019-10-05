@@ -2,6 +2,9 @@ package data;
 import haxe.ds.ObjectMap;
 import game.Ground;
 import game.Player;
+import sys.FileSystem;
+import sys.io.File;
+import haxe.io.Path;
 #if openfl
 import openfl.display.TileContainer;
 import openfl.display.Tile;
@@ -16,6 +19,9 @@ class GameData
     public var playerMap:Map<Int,Player> = new Map<Int,Player>();
     public var spriteMap:Map<Int,SpriteData> = new Map<Int,SpriteData>();
     public var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
+    //object alternative ids to refrence same object
+    public var objectAlt:Map<Int,Int> = new Map<Int,Int>();
+    public var nextObjectNumber:Int = 0;
     public var transitionData:TransitionData;
     public var map:MapData;
     #if openfl
@@ -28,5 +34,34 @@ class GameData
         tileData = new TileData();
         #end
         transitionData = new TransitionData();
+
+        objectData();
+    }
+    private function objectData()
+    {
+        //nextobject
+        nextObjectNumber = Std.parseInt(File.getContent(Static.dir + "objects/nextObjectNumber.txt"));
+        //go through objects
+        var list:Array<Int> = [];
+        for (path in FileSystem.readDirectory(Static.dir + "objects"))
+        {
+            list.push(Std.parseInt(Path.withoutExtension(path)));
+        }
+        list.sort(function(a:Int,b:Int)
+        {
+            if (a > b) return 1;
+            return -1;
+        });
+        var data:ObjectData = null;
+        for (i in list)
+        {
+            data = new ObjectData(i);
+            //alternative set
+            if (data.numUses > 1) for (j in 0...data.numUses) 
+            {
+                objectAlt.set(nextObjectNumber++,i);
+            }
+            objectMap.set(data.id,data);
+        }
     }
 }

@@ -21,7 +21,6 @@ class Ground extends Shape
     var tileset:Tileset;
     public var indices:Vector<Int>;
     public var transforms:Vector<Float>;
-    public var data:GameData = null;
 
     public var simple:Bool = false;
     public var simpleIndex:Int = 0;
@@ -41,16 +40,6 @@ class Ground extends Shape
             simpleCache(color);
         }*/
     }
-    private inline function ci(i:Int):Int
-    {
-        if(i > 0)
-        {
-            while (i > 2 + 1) i += -3 - 1;
-        }else{
-            while (i < 0) i += 3 + 1;
-        }
-        return i;
-    }
     public function render()
     {
         graphics.clear();
@@ -68,7 +57,7 @@ class Ground extends Shape
         {
             indices.push(simpleIndex + id);
         }else{
-            indices.push(id * 16 + ci(x) + ci(y) * 4 + 0);
+            indices.push(id * 16 + abs(x % 4) + abs(y % 4) * 4 + 0);
         }
         transforms.push(x * Static.GRID - Static.GRID/2);
         transforms.push((Static.tileHeight - y) * Static.GRID - Static.GRID/2);
@@ -91,6 +80,11 @@ class Ground extends Shape
                 //add(cid,x,y,false);
             }
         }*/
+    }
+    private function abs(i:Int):Int
+    {
+        if (i < 0) return i * -1;
+        return i;
     }
     public function simpleCache(color:UInt)
     {

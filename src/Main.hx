@@ -66,7 +66,7 @@ class Main #if openfl extends Sprite #end
     public static var range:Int = 16;
     var selectX:Int = 0;
     var selectY:Int = 0;
-    var data:GameData;
+    public static var data:GameData;
     var playerInstance:PlayerInstance;
     var mapInstance:MapInstance;
     var index:Int = 0;
@@ -75,6 +75,7 @@ class Main #if openfl extends Sprite #end
     var program:Program;
     var string:String = "";
     var gameBool:Bool = false;
+    var lerpInt:Int = 2;
     #if !openfl
     public static function main()
     {
@@ -90,7 +91,7 @@ class Main #if openfl extends Sprite #end
         //client
         client = new client.Client();
         console = new console.Console();
-        program = new Program(data,console);
+        program = new Program(console);
         console.set("program",program);
         #if openfl
         //events
@@ -254,14 +255,12 @@ class Main #if openfl extends Sprite #end
         state.addChild(ground);
         state.addChild(select);
         state.addChild(objects);
-        ground.data = data;
-        objects.data = data;
         console.set("ground",ground);
         console.set("objects",objects);
         console.set("connect",connect);
         console.set("disconnect",disconnect);
         //draw display
-        draw = new Draw(data,program);
+        draw = new Draw(program);
         state.addChild(draw);
         food = new Shape();
         food.cacheAsBitmap = true;
@@ -308,13 +307,13 @@ class Main #if openfl extends Sprite #end
                 //set camera to middle
                 if (player.parent == objects.group)
                 {
-                    objects.group.x = Math.round(lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.16));
-                    objects.group.y = Math.round(lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.16));
+                    objects.group.x = Math.round(lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.20));
+                    objects.group.y = Math.round(lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.20));
                 }else{
                     if (player.parent != null) try "player.parent null";
                     //trace("player parent " + player.parent);
-                    objects.group.x = Math.round(lerp(objects.group.x,-player.parent.x * objects.scale + objects.width/2 ,0.16));
-                    objects.group.y = Math.round(lerp(objects.group.y,-player.parent.y * objects.scale + objects.height/2 ,0.16));
+                    objects.group.x = Math.round(lerp(objects.group.x,-player.parent.x * objects.scale + objects.width/2 ,0.20));
+                    objects.group.y = Math.round(lerp(objects.group.y,-player.parent.y * objects.scale + objects.height/2 ,0.20));
                     
                 }
             }
@@ -342,7 +341,12 @@ class Main #if openfl extends Sprite #end
     }
     private inline function lerp(v0:Float,v1:Float,t:Float)
     {
-        return v0 + t * (v1 - v0);
+        if (lerpInt > 0)
+        {
+            lerpInt--;
+            return v1;
+        }
+        return v1 + t * (v1 - v0);
     }
     private function keyDown(e:KeyboardEvent)
     {
@@ -488,7 +492,7 @@ class Main #if openfl extends Sprite #end
             }
         }
     }
-    public function render() 
+    public function render(cx:Int,cy:Int) 
     {
         trace("MAP UPDATE");
         //inital set camera
@@ -526,15 +530,6 @@ class Main #if openfl extends Sprite #end
                 }
                 objects.tileset.bitmapData.fillRect(objects.tileset.bitmapData.rect,0xFFFFFFFF);
             }
-            //center point to determine range
-            var cx:Int = mapInstance.x + Std.int(mapInstance.width/2);
-            var cy:Int = mapInstance.y + Std.int(mapInstance.height/2);
-            var int:Int = 0;
-            if (player != null)
-            {
-                cx = player.instance.x;
-                cy = player.instance.y;
-            }
             //rect for rendering
             var rx:Int = data.map.x > cx - range ? cx - range : data.map.x;
             var ry:Int = data.map.y > cy - range ? cy - range : data.map.y;
@@ -551,6 +546,7 @@ class Main #if openfl extends Sprite #end
                 }
             }
             //trace("object " + Std.string(Timer.stamp() - time));
+            var int:Int = 0;
             //floor layer
             for (j in ry...ry2)
             {
@@ -584,8 +580,7 @@ class Main #if openfl extends Sprite #end
         player.sort();
         console.set("player",player);
         //center instantly
-        objects.group.x = -player.x * objects.scale + objects.width/2;
-        objects.group.y = -player.y * objects.scale + objects.height/2;
+        lerpInt = 2;
     }
     private function resize(_)
     {
@@ -602,6 +597,7 @@ class Main #if openfl extends Sprite #end
     {
         if (objects.scale > 2 && i > 0 || objects.scale < 0.2 && i < 0) return;
         objects.scale += i * 0.08;
+        lerpInt = 2;
     }
     #end
     public function end()
@@ -658,6 +654,32 @@ class Main #if openfl extends Sprite #end
         //trace("connect " + Main.client.ip + " email " + Main.client.login.email);
         client.connect();
     }
+    private function analyze()
+    {
+        //check if valley data has not been loaded in yet
+        if (data.map.valleySpacing == 0) return;
+        var iy:Int = 0;
+        var ix:Int = 0;
+        var dy:Int = 0;
+        var dx:Int = 0;
+        if (data.map.valleyBool)
+        {
+            iy = mapInstance.y - data.map.valleyOffsetY;
+            trace("valley spacing " + data.map.valleySpacing);
+            dy = iy % data.map.valleySpacing;
+            iy += dy;
+            trace("valley y check " + iy);
+            trace("valleyOffset " + data.map.valleyOffsetY);
+        }
+        if (data.map.offsetBoolX)
+        {
+
+        }
+        if (data.map.offsetBoolY)
+        {
+
+        }
+    }
     public function message(input:String) 
     {
         switch(Main.client.tag)
@@ -667,16 +689,12 @@ class Main #if openfl extends Sprite #end
             Main.client.compress = Std.parseInt(array[1]);
             Main.client.tag = null;
             case PLAYER_UPDATE:
-            trace("player_update");
             playerInstance = new PlayerInstance(input.split(" "));
             #if openfl
             objects.addPlayer(playerInstance);
             #else
             var player = data.playerMap.get(playerInstance.p_id);
-            if (player == null)
-            {
-                player = new Player(data);
-            }
+            if (player == null) player = new Player();
             player.set(playerInstance);
             data.playerMap.set(playerInstance.p_id,player);
             #end
@@ -693,9 +711,18 @@ class Main #if openfl extends Sprite #end
             {
                 Main.client.tag = null;
                 data.map.setRect(mapInstance.x,mapInstance.y,mapInstance.width,mapInstance.height,input);
+                //center point to determine range
+                var cx:Int = mapInstance.x + Std.int(mapInstance.width/2);
+                var cy:Int = mapInstance.y + Std.int(mapInstance.height/2);
+                if (player != null)
+                {
+                    cx = player.instance.x;
+                    cy = player.instance.y;
+                }
                 #if openfl
-                render();
+                render(cx,cy);
                 #end
+                analyze();
                 //mapInstance = null;
                 //toggle to go back to istance for next chunk
                 compress = false;
@@ -860,8 +887,9 @@ class Main #if openfl extends Sprite #end
             //y_spacing y_offset Offset is from client's birth position (0,0) of first valley.
             var array = input.split(" ");
             data.map.valleySpacing = Std.parseInt(array[0]);
-            data.map.valleyOffset = Std.parseInt(array[1]);
-            trace("valley spacing " + data.map.valleySpacing + " offset " + data.map.valleyOffset);
+            data.map.valleyOffsetY = Std.parseInt(array[1]);
+            trace("valley spacing " + data.map.valleySpacing + " offset " + data.map.valleyOffsetY);
+            analyze();
             case FLIGHT_DEST:
             //p_id dest_x dest_y
             trace("FLIGHT FLIGHT FLIGHT " + input.split(" "));
