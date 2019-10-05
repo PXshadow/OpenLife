@@ -1,9 +1,9 @@
 package game;
-import console.Program.Pos as Point;
 import console.Program.Pos;
 import console.Program;
 import data.GameData;
 #if openfl
+import openfl.geom.Point;
 import openfl.display.TileContainer;
 import motion.easing.Quad;
 import motion.easing.Linear;
@@ -63,11 +63,30 @@ class Player #if openfl extends TileContainer #end
     }
     public function motion()
     {
-        #if openfl
         //use another move
+        trace("motion function ml " + moves.length + " moving " + moving);
         if(moves.length > 0 && !moving)
         {
             var point = moves.pop();
+            moving = true;
+            var time = Std.int(Static.GRID/(Static.GRID * (instance.move_speed) * computePathSpeedMod()) * 60 * multi);
+            #if !openfl
+            trace("time " + time);
+            sys.thread.Thread.create(() -> {
+                Sys.sleep(time/60);
+                trace("finish move");
+                ix += point.x;
+                iy += point.y;
+                moving = false;
+                if (goal)
+                {
+                    path();
+                }else{
+                    motion();
+                }
+            });
+            #else
+            //facing direction
             if (point.x != 0)
             {
                 if (point.x > 0)
@@ -77,10 +96,6 @@ class Player #if openfl extends TileContainer #end
                     scaleX = -1;
                 }
             }
-            //trace("point move " + point.x + " " + point.y);
-            //speed
-            var time = Std.int(Static.GRID/(Static.GRID * (instance.move_speed) * computePathSpeedMod()) * 60 * multi);
-            moving = true;
             Actuate.tween(this,time/60,{x:(ix + point.x) * Static.GRID,y:(Static.tileHeight - (iy + point.y)) * Static.GRID}).onComplete(function(_)
             {
                 ix += point.x;
@@ -94,9 +109,8 @@ class Player #if openfl extends TileContainer #end
                 }
             }).ease(Linear.easeNone);
             sort();
-            return;
+            #end
         }
-        #end
     }
     #if openfl
     public function getAgeHeadOffset(inAge:Float,head:Point,body:Point,frontFoot:Point)
@@ -140,19 +154,17 @@ class Player #if openfl extends TileContainer #end
         //send data
         lastMove++;
         Main.client.send("MOVE " + ix + " " + iy + " @" + lastMove + " " + mx + " " + my);
-        #if openfl
         var pos = new Pos();
         pos.x = mx;
         pos.y = my;
         moves = [pos];
-        #end
         motion();
         return true;
     }
     public function computePathSpeedMod():Float
     {
-        var floorData = Main.objectMap.get(gdata.map.floor.get(ix,iy));
-        var objectData = Main.objectMap.get(oid);
+        var floorData = gdata.objectMap.get(gdata.map.floor.get(ix,iy));
+        var objectData = gdata.objectMap.get(oid);
         var multiple:Float = 1;
         if (floorData != null) multiple *= floorData.speedMult;
         if (objectData != null) multiple *= objectData.speedMult;
@@ -253,6 +265,7 @@ class Player #if openfl extends TileContainer #end
         //pos and age
         if (instance.forced == 1) 
         {
+            trace("force!");
             if (held)
             {
                 //added back to stage
@@ -310,7 +323,7 @@ class Player #if openfl extends TileContainer #end
                     addTile(object);
                 }else{
                     //add to preexisting clothing
-                    var data = objects.objectMap.get(clothingInt[clothing.length - 1]);
+                    var data = Main.objectMap.get(clothingInt[clothing.length - 1]);
                     objects.add(i,0,0,true,false);
                     clothing[clothing.length - 1].addTiles(objects.sprites);
                 }
@@ -349,7 +362,7 @@ class Player #if openfl extends TileContainer #end
             if (oid > 0)
             {
                 //object coming from the world
-                objectData = objects.objectMap.get(oid);
+                objectData = Main.objectMap.get(oid);
                 if (instance.o_origin_valid == 1)
                 {
                     var array = gdata.tileData.object.get(instance.o_origin_x,instance.o_origin_y);
@@ -380,7 +393,7 @@ class Player #if openfl extends TileContainer #end
                 var player = gdata.playerMap.get(oid * -1);
                 if (player != null)
                 {
-                    objectData = objects.objectMap.get(player.instance.po_id);
+                    objectData = Main.objectMap.get(player.instance.po_id);
                     objects.group.removeTile(player);
                     player.held = true;
                     //same facing as mother

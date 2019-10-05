@@ -1,3 +1,4 @@
+import client.Router;
 import sys.FileSystem;
 import sys.io.Process;
 import haxe.Timer;
@@ -63,7 +64,6 @@ class Main #if openfl extends Sprite #end
     #end
     public static var player:Player;
     public static var range:Int = 16;
-    public static var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
     var selectX:Int = 0;
     var selectY:Int = 0;
     var data:GameData;
@@ -83,8 +83,16 @@ class Main #if openfl extends Sprite #end
     #end
     public function new()
     {
+        data = new GameData();
         #if openfl
         super();
+        #end
+        //client
+        client = new client.Client();
+        console = new console.Console();
+        program = new Program(data,console);
+        console.set("program",program);
+        #if openfl
         //events
         addEventListener(Event.ENTER_FRAME,update);
         stage.addEventListener(Event.RESIZE,resize);
@@ -100,6 +108,44 @@ class Main #if openfl extends Sprite #end
         state.mouseChildren = false;
         state.mouseEnabled = false;
         addChild(state);
+        #end
+        dir();
+        cred();
+        #if openfl game(); #end
+        connect();
+        #if !openfl
+        var output = new Router(2000);
+        output.bind();
+        //trace
+        haxe.Log.trace = function(v:Dynamic,?inf:haxe.PosInfos)
+        {
+            if (output.input != null)
+            {
+                output.input.output.writeString(Std.string(v) + "\n");
+                output.input.output.flush();
+            }
+        }
+        trace("attempt to connect to output");
+        output.input = output.socket.accept();
+        output.socket.setBlocking(false);
+        trace("start client terminal");
+        //background thread async for input
+        sys.thread.Thread.create(() -> {
+            while (true)
+            {
+                var stdin = Sys.stdin();
+                console.run(stdin.readLine());
+                Sys.sleep(1/2);
+            }
+        });
+        //update loop main
+        while (true)
+        {
+            client.update();
+            Sys.sleep(1/20);
+        }
+        #else
+        //top layer
         var fps = new FPS();
         fps.textColor = 0xFFFFFF;
         addChild(fps);
@@ -108,18 +154,8 @@ class Main #if openfl extends Sprite #end
         log.y = 100;
         log.cacheAsBitmap = false;
         addChild(log);
-        //launch
-        game();
-        #end
-        
-        //client
-        client = new client.Client();
-        console = new console.Console();
-        #if openfl
         addChild(console);
         #end
-        
-        connect();
     }
     public function dir()
     {
@@ -218,11 +254,8 @@ class Main #if openfl extends Sprite #end
         state.addChild(ground);
         state.addChild(select);
         state.addChild(objects);
-        data = new GameData();
         ground.data = data;
         objects.data = data;
-        program = new Program(data,console);
-        console.set("program",program);
         console.set("ground",ground);
         console.set("objects",objects);
         console.set("connect",connect);
@@ -503,10 +536,10 @@ class Main #if openfl extends Sprite #end
                 cy = player.instance.y;
             }
             //rect for rendering
-            var rx:Int = data.map.x > cx - objects.range ? cx - objects.range : data.map.x;
-            var ry:Int = data.map.y > cy - objects.range ? cy - objects.range : data.map.y;
-            var rx2:Int = data.map.x + data.map.width < cx + objects.range ? cx + objects.range : data.map.x + data.map.width;
-            var ry2:Int = data.map.y + data.map.height < cy + objects.range ? cy + objects.range : data.map.y + data.map.height;
+            var rx:Int = data.map.x > cx - range ? cx - range : data.map.x;
+            var ry:Int = data.map.y > cy - range ? cy - range : data.map.y;
+            var rx2:Int = data.map.x + data.map.width < cx + range ? cx + range : data.map.x + data.map.width;
+            var ry2:Int = data.map.y + data.map.height < cy + range ? cy + range : data.map.y + data.map.height;
 
             //object layer
             var array:Array<Int> = [];
@@ -545,6 +578,7 @@ class Main #if openfl extends Sprite #end
     }
     public function setPlayer(player:Player)
     {
+        trace("set main player");
         player.program = program;
         Main.player = player;
         player.sort();
@@ -576,8 +610,14 @@ class Main #if openfl extends Sprite #end
         {
             case PLAYER_UPDATE:
             #if !openfl
-
+            //terminal
+            if (player == null && playerInstance != null)
+            {
+                player = data.playerMap.get(playerInstance.p_id);
+                console.set("player",player);
+            }
             #else
+            //visual client
             if (player == null && objects.player != null) 
             {
                 setPlayer(objects.player);
@@ -627,9 +667,18 @@ class Main #if openfl extends Sprite #end
             Main.client.compress = Std.parseInt(array[1]);
             Main.client.tag = null;
             case PLAYER_UPDATE:
+            trace("player_update");
             playerInstance = new PlayerInstance(input.split(" "));
             #if openfl
             objects.addPlayer(playerInstance);
+            #else
+            var player = data.playerMap.get(playerInstance.p_id);
+            if (player == null)
+            {
+                player = new Player(data);
+            }
+            player.set(playerInstance);
+            data.playerMap.set(playerInstance.p_id,player);
             #end
             case PLAYER_MOVES_START:
             var playerMove = new PlayerMove(input.split(" "));
@@ -779,7 +828,7 @@ class Main #if openfl extends Sprite #end
             var x:Int = Std.parseInt(array[0]);
             var y:Int = Std.parseInt(array[1]);
             var id:Int = Std.parseInt(array[2]);
-            if (player.instance.p_id != id)
+            if (player == null || player.instance.p_id != id)
             {
 
             }else{

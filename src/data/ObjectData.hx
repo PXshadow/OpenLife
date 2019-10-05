@@ -68,7 +68,9 @@ class ObjectData extends LineReader
 
     public var fail:Bool = false;
     //animation
+    #if openfl
     public var animation:AnimationData;
+    #end
     public function new(i:Int=0)
     {
         super();
@@ -80,8 +82,10 @@ class ObjectData extends LineReader
             return;
         }
         //setup animation
+        #if openfl
         animation = new AnimationData(i);
         if (animation.fail) animation = null;
+        #end
         read();
     }
     public function read()

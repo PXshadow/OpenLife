@@ -1,4 +1,5 @@
 package data;
+#if openfl
 import sys.io.File;
 import haxe.ds.Vector;
 import sys.FileSystem;
@@ -214,3 +215,4 @@ enum AnimationType
     doing;
     endAnimType;
 }
+#end

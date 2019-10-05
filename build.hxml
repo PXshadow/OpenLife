@@ -1,5 +1,6 @@
 -cp src
 -neko bin/windows/bin/terminal.n
+-D secret
 -main Main
 -lib hscript
 

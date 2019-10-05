@@ -57,8 +57,6 @@ class MapData
             {
                 objectAlt.set(nextObjectNumber++,i);
             }
-            //map set
-            Main.objectMap.set(i,data);
         }
     }
     public function setRect(x:Int,y:Int,width:Int,height:Int,string:String)

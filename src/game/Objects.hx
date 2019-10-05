@@ -24,7 +24,6 @@ class Objects extends TileDisplay
     public var sprites:Array<Tile> = [];
     public var object:TileContainer;
     public var cacheMap:Map<Int,Int> = new Map<Int,Int>();
-    public var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
     //for tileset
     public var tileX:Float = 0;
     public var tileY:Float = 0;
@@ -82,7 +81,7 @@ class Objects extends TileDisplay
     }
     public function visibleSprites(id:Int,sprites:Array<Tile>,age:Int=20)
     {
-        var data = objectMap.get(id);
+        var data = Main.objectMap.get(id);
         if (data != null)
         {
             for (i in 0...sprites.length)
@@ -100,7 +99,7 @@ class Objects extends TileDisplay
         //trace("unit test");
         UnitTest.inital();
         //trace("inital");
-        var data = objectMap.get(id);
+        var data = Main.objectMap.get(id);
         if (data == null) return false;
         //data
         if (data.blocksWalking == 1)
@@ -208,7 +207,7 @@ class Objects extends TileDisplay
                     if (containing > 0)
                     {
                         //pos
-                        var pos = objectMap.get(containing).slotPos[index];
+                        var pos = Main.objectMap.get(containing).slotPos[index];
                         sprite.x += pos.x;
                         sprite.y += pos.y;
                     }
