@@ -84,6 +84,7 @@ class Main #if openfl extends Sprite #end
     #end
     public function new()
     {
+        dir();
         data = new GameData();
         #if openfl
         super();
@@ -110,7 +111,6 @@ class Main #if openfl extends Sprite #end
         state.mouseEnabled = false;
         addChild(state);
         #end
-        dir();
         cred();
         #if openfl game(); #end
         connect();
@@ -171,7 +171,7 @@ class Main #if openfl extends Sprite #end
         Static.dir = Static.dir.substring(0,Static.dir.lastIndexOf("/") + 1);
         #end
         //check to see if location is valid
-        if (exist(["groundTileCache","objects","sprites","animations"]))
+        if (exist(["groundTileCache","objects","sprites","animations","transitions"]))
         {
             trace("valid location");
         }else{
@@ -417,7 +417,10 @@ class Main #if openfl extends Sprite #end
         }
         if (Bind.playerMove.bool)
         {
-            program.path(selectX,selectY);
+            program.goal = new Pos();
+            program.goal.x = selectX;
+            program.goal.y = selectY;
+            program.path(false);
         }else{
             if (Bind.playerKill.bool) 
             {

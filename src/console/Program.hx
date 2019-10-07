@@ -13,12 +13,12 @@ import game.Player;
 class Program
 {
     public var goal:Pos = new Pos();
-    //bool to refine path
-    public var refine:Bool = false;
     public var home:Pos = new Pos();
     //setup automation bool
     public var setup:Bool = false;
     public var useRange:Int = 1;
+    var useRangeX:Int = 0;
+    var useRangeY:Int = 0;
     //food 
     public var ate:Array<Int> = [];
 
@@ -26,13 +26,12 @@ class Program
     var actions:Array<Action> = [];
     var action:Action = null;
     var console:Console;
-    var repeater:Timer = null;
     public var range:Int = 30;
     public function new(console:Console)
     {
         this.console = console;
     }
-    public function send(tag:ServerTag,data:String)
+    public function send(tag:ServerTag,data:String,moveSensitive:Bool=true)
     {
         if (setup)
         {
@@ -44,7 +43,6 @@ class Program
         }else{
             Main.client.send(tag + " " + data);
         }
-        refine = true;
     }
     public function clean()
     {
@@ -62,7 +60,7 @@ class Program
     private function preform(i:Int)
     {
         if (action == null || goal == null) return;
-        Main.client.send(action.tag[i] + " " + goal.x + " " + goal.y);
+        Main.client.send(action.tag[i] + " " + Std.string(goal.x - useRangeX)  + " " + Std.string(goal.y - useRangeY));
     }
     public function end()
     {
@@ -103,7 +101,7 @@ class Program
             //nothing
             case 1:
             //find
-            find(action.property);
+            goto(action.property);
             case 2:
             //watch
 
@@ -117,12 +115,6 @@ class Program
             //type not found
             return;
         }
-        //path
-        if (action.pos != null)
-        {
-            goal = action.pos.clone();
-        }
-        if (goal != null) path();
         setup = true;
     }
     public function setHome(x:Null<Int>=0,y:Null<Int>=0):Program
@@ -141,31 +133,78 @@ class Program
         }
         return this;
     }
-    public function path(x:Null<Int>=null,y:Null<Int>=null):Program
+    public function path(refine:Bool):Program
     {
-        refine = false;
-        trace("path setup " + setup);
-        if (action != null && action.tag.length > 0) refine = true;
-        var pos:Pos = goal.clone();
-        if (x != null && y != null)
+        if (refine)
         {
-            pos = new Pos();
-            pos.x = x;
-            pos.y = y;
-        }
-        if (pos != null)
-        {
-            if (setup)
+            var ix:Int = Main.player.ix - goal.x;
+            var iy:Int = Main.player.iy - goal.y;
+            if (Math.abs(ix) >= useRange)
             {
-                action.pos = null;
-            }else{
-                goal = pos;
-                Main.player.goal = true;
-                Main.player.path();
-                setup = true;
+                if (ix > 0)
+                {
+                    useRangeX += useRange;
+                }else{
+                    useRangeX += -useRange;
+                }
             }
+            if (Math.abs(iy) >= useRange)
+            {
+                if (iy > 0)
+                {
+                    useRangeY += useRange;
+                }else{
+                    useRangeY += -useRange;
+                }
+            }
+            //same or slightly faster if it's a direct vertical or horizontal (also deals with blocking objects)
+            if (!block(goal.x + useRangeX,goal.y))
+            {
+                useRangeY = 0;
+            }else{
+                if (!block(goal.x,goal.y + useRangeY))
+                {
+                    useRangeX = 0;
+                }else{
+                    //potentially the same
+                    if (!block(goal.x,goal.y))
+                    {
+                        useRangeX = 0;
+                        useRangeY = 0;
+                    }else{
+                        //less efficent
+                        if (!block(goal.x - useRangeX,goal.y))
+                        {
+                            useRangeX *= -1;
+                            useRangeY = 0;
+                        }else{
+                            if (!block(goal.x,goal.y - useRangeY))
+                            {
+                                useRangeX = 0;
+                                useRangeY *= -1;
+                            }else{
+                                //no area to stand
+                            }
+                        }
+                    }
+                }
+            }
+            goal.x += useRangeX;
+            goal.y += useRangeY;
+        }
+        if (setup)
+        {
+
+        }else{
+            Main.player.goal = true;
+            Main.player.path();
+            setup = true;
         }
         return this;
+    }
+    private function block(x:Int,y:Int):Bool
+    {
+        return Main.data.blocking.get(x + "." + y) == true ? true : false;
     }
     public function kill(x:Null<Int>=null,y:Null<Int>=0,id:Null<Int>=null)
     {
@@ -210,12 +249,16 @@ class Program
         }
         return this;
     }
-    public function find(name:String,optimize:Bool=true):Program
+    public function goto(name:String,refine:Bool=true,optimize:Bool=true):Program
     {
         if (type(1,name)) return this;
-        trace("find " + name);
+        trace("goto " + name);
         goal = findList(ObjectCode.id(name),optimize);
-        if (goal == null && action.fail != null) action.fail();
+        if (goal == null && action.fail != null)
+        {
+            action.fail();
+        }
+        path(refine);
         return this;
     }
     public function events(finish:Void->Void,fail:Void->Void)
@@ -229,7 +272,9 @@ class Program
     private function type(id:Int,property:String):Bool
     {
         //queue
-        action = {type: id,property: property,pos: null, tag: action != null ? action.tag : [],data: action != null ? action.data : [],finish: null,fail: null};
+        useRangeX = 0;
+        useRangeY = 0;
+        action = {type: id,property: property, tag: action != null ? action.tag : [],data: action != null ? action.data : [],finish: null,fail: null};
         if (setup) 
         {
             actions.push(action);
@@ -354,17 +399,6 @@ class Program
     {
         return self();
     }
-    public function get(name:String):Program
-    {
-        var list = ObjectCode.id(name);
-        if (list.indexOf(Main.player.instance.o_id) == -1)
-        {
-            //go and find
-            findList(list);
-            path();
-        }
-        return this;
-    }
     public function task(name:String)
     {
         setup = false;
@@ -373,10 +407,10 @@ class Program
         {
             case "eat" | "food" | "hunger":
             //find, path to, use and then eat.
-            find("food").path().use().eat();
+            goto("food").use().eat();
             case "sharpstone":
-            //find stone, go to a hard rock and use against it to turn into a sharp stone
-            find("stone").path().use().find("big hard rock").path().use();
+            //goto stone, go to a hard rock and use against it to turn into a sharp stone
+            goto("stone").use().goto("big hard rock").use();
             case "waterbowl":
 
             case "soilbowl":
@@ -496,4 +530,4 @@ class Pos
 //pos where the player should go
 //tags holds a buffer of the messages sent
 //data holds a buffer of optional data alongside messages
-typedef Action = {type:Int,property:String,pos:Pos,tag:Array<ServerTag>,data:Array<String>,finish:Void->Void,fail:Void->Void}
+typedef Action = {type:Int,property:String,tag:Array<ServerTag>,data:Array<String>,finish:Void->Void,fail:Void->Void}

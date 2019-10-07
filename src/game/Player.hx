@@ -153,6 +153,7 @@ class Player #if openfl extends TileContainer #end
         if (moving || Main.data.blocking.get(Std.string(ix + mx) + "." + Std.string(iy + my))) return false;
         //send data
         lastMove++;
+        trace("step move " + mx + " " + my);
         Main.client.send("MOVE " + ix + " " + iy + " @" + lastMove + " " + mx + " " + my);
         var pos = new Pos();
         pos.x = mx;
@@ -208,22 +209,8 @@ class Player #if openfl extends TileContainer #end
     {
         var px:Int = program.goal.x - ix;
         var py:Int = program.goal.y - iy;
-        if (program.refine)
-        {
-            if (Math.abs(px) == program.useRange)
-            {
-                if (py == 0)
-                {
-                    program.end();
-                    return;
-                }
-            }else{
-                if (Math.abs(py) == program.useRange)
-                {
-                    
-                }
-            }
-        }
+        if (px != 0) px = px > 0 ? 1 : -1;
+        if (py != 0) py = py > 0 ? 1 : -1;
         if (px == 0 && py == 0)
         {
             //complete
@@ -277,6 +264,7 @@ class Player #if openfl extends TileContainer #end
             ix = instance.x;
             iy = instance.y;
             Main.client.send("FORCE " + ix + " " + iy);
+            program.clean();
             //force movement
             force();
         }
