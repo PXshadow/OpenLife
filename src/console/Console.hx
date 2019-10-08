@@ -61,7 +61,6 @@ class Console #if openfl extends DisplayObjectContainer #end
         command = new Command();
         //interp variables default
         set("math",Math);
-        set("client",Main.client);
         set("grid",Static.GRID);
         set("util",console.Util);
     }

@@ -21,7 +21,8 @@ class Program
     var useRangeY:Int = 0;
     //food 
     public var ate:Array<Int> = [];
-
+    //used to wait for server response on events
+    var repeatTimer:Timer;
     //automation buffer system
     var actions:Array<Action> = [];
     var action:Action = null;

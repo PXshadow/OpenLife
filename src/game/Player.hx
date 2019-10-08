@@ -264,7 +264,7 @@ class Player #if openfl extends TileContainer #end
             ix = instance.x;
             iy = instance.y;
             Main.client.send("FORCE " + ix + " " + iy);
-            program.clean();
+            if (program != null) program.clean();
             //force movement
             force();
         }
@@ -310,10 +310,10 @@ class Player #if openfl extends TileContainer #end
                     object = objects.object;
                     addTile(object);
                 }else{
-                    //add to preexisting clothing
+                    /*//add to preexisting clothing
                     var data = data.objectMap.get(clothingInt[clothing.length - 1]);
                     objects.add(i,0,0,true,false);
-                    clothing[clothing.length - 1].addTiles(objects.sprites);
+                    clothing[clothing.length - 1].addTiles(objects.sprites);*/
                 }
             }
             #end
@@ -338,7 +338,7 @@ class Player #if openfl extends TileContainer #end
                 {
                     //player add back to stage
                     objects.group.addTile(object);
-                    cast(object,Player).held = false;
+                    if (Std.is(object,Player)) cast(object,Player).held = false;
                 }
                 object = null;
             }
@@ -381,7 +381,7 @@ class Player #if openfl extends TileContainer #end
                 var player = Main.data.playerMap.get(oid * -1);
                 if (player != null)
                 {
-                    objectData = data.objectMap.get(player.instance.po_id);
+                    objectData = Main.data.objectMap.get(player.instance.po_id);
                     objects.group.removeTile(player);
                     player.held = true;
                     //same facing as mother

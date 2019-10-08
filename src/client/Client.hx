@@ -28,9 +28,11 @@ class Client
     public var end:Void->Void;
     public var ip:String = "";
     public var port:Int = 0;
+    //reconnect timer
+    public var reconnect:Int = -1;
     public function new()
     {
-        login = new Login();
+
     }
     public function update()
     {
@@ -103,7 +105,14 @@ class Client
     {
         if (!connected) return;
         #if sys
-        socket.output.writeString(data + "#");
+        try {
+            socket.output.writeString(data + "#");
+        }catch(e:Dynamic)
+        {
+            trace("e " + e);
+            close();
+            return;
+        }
         #end
         //alive timer
         if (aliveTimer != null) aliveTimer.stop();
@@ -144,8 +153,8 @@ class Client
         try {
             socket.close();
         }catch(e:Dynamic) {trace("failure to close socket " + e);}
-        socket = null;
-        socket = new Socket();
+        //socket = null;
+        //socket = new Socket();
         trace("socket disconnected");
         #end
         connected = false;

@@ -76,6 +76,8 @@ class Main #if openfl extends Sprite #end
     var string:String = "";
     var gameBool:Bool = false;
     var lerpInt:Int = 2;
+    var ping:Float = 0;
+    var renderTime:Timer = null;
     #if !openfl
     public static function main()
     {
@@ -90,7 +92,6 @@ class Main #if openfl extends Sprite #end
         super();
         #end
         //client
-        client = new client.Client();
         console = new console.Console();
         program = new Program(console);
         console.set("program",program);
@@ -111,7 +112,6 @@ class Main #if openfl extends Sprite #end
         state.mouseEnabled = false;
         addChild(state);
         #end
-        cred();
         #if openfl game(); #end
         connect();
         #if !openfl
@@ -258,7 +258,6 @@ class Main #if openfl extends Sprite #end
         console.set("ground",ground);
         console.set("objects",objects);
         console.set("connect",connect);
-        console.set("disconnect",disconnect);
         //draw display
         draw = new Draw(program);
         state.addChild(draw);
@@ -497,25 +496,17 @@ class Main #if openfl extends Sprite #end
     }
     public function render(cx:Int,cy:Int) 
     {
+        if (renderTime != null) return;
         trace("MAP UPDATE");
-        //inital set camera
-        var delay:Int = 400;
-        if (inital)
+        renderTime = Timer.delay(function()
         {
-            objects.group.x = -data.map.x * Static.GRID;
-            objects.group.y = -data.map.y * Static.GRID;
-            ground.x = objects.group.x;
-            ground.y = objects.group.y;
-            inital = false;
-            delay = 0;
-            //clear player
-            //objects.addPlayer(playerInstance);
-        }
+            UnitTest.inital();
             objects.tileset.bitmapData.lock();
             ground.clear();
             objects.clear();
+            trace("clear " + UnitTest.stamp());
             //clear cache
-            if (objects.getFill() > 0.90 || objects.clearBool)
+            /*if (objects.getFill() > 0.90 || objects.clearBool)
             {
                 trace("clear cache!");
                 objects.cacheMap = new Map<Int,Int>();
@@ -532,39 +523,20 @@ class Main #if openfl extends Sprite #end
                     objects.player.addTiles(cast(objects.object,Player).sprites);
                 }
                 objects.tileset.bitmapData.fillRect(objects.tileset.bitmapData.rect,0xFFFFFFFF);
-            }
-            //rect for rendering
-            var rx:Int = data.map.x > cx - range ? cx - range : data.map.x;
-            var ry:Int = data.map.y > cy - range ? cy - range : data.map.y;
-            var rx2:Int = data.map.x + data.map.width < cx + range ? cx + range : data.map.x + data.map.width;
-            var ry2:Int = data.map.y + data.map.height < cy + range ? cy + range : data.map.y + data.map.height;
-
+            }*/
+            trace("rect " + UnitTest.stamp());
             //object layer
             var array:Array<Int> = [];
-            for (j in ry...ry2)
+            for (j in cy - range...cy + range)
             {
-                for (i in rx...rx2)
+                for (i in cx - range...cx + range)
                 {
+                    ground.add(data.map.biome.get(i,j),i,j);
+                    add([data.map.floor.get(i,j)],i,j);
                     add(data.map.object.get(i,j),i,j);
                 }
             }
-            //trace("object " + Std.string(Timer.stamp() - time));
-            var int:Int = 0;
-            //floor layer
-            for (j in ry...ry2)
-            {
-                for (i in rx...rx2)
-                {
-                    //add floor
-                    if (!objects.add(data.map.floor.get(i,j),i,j))
-                    {
-                        //add ground as there is no floor
-                        int = data.map.biome.get(i,j);
-                        //trace("int " + int);
-                        if (int > -1) ground.add(int,i,j);
-                    }
-                }
-            }
+            trace("object " + UnitTest.stamp());
             it = data.playerMap.iterator();
             while (it.hasNext())
             {
@@ -572,10 +544,30 @@ class Main #if openfl extends Sprite #end
                 objects.player.sort();
                 if (!objects.player.held) objects.group.addTile(objects.player);
             }
+            trace("player " + UnitTest.stamp());
             ground.render();
+            trace("ground render " + UnitTest.stamp());
             objects.tileset.bitmapData.unlock();
+            //timer
+            renderTime = null;
+        },800);
     }
-    public function setPlayer(player:Player)
+    private function clear()
+    {
+        //clear data
+        data = new GameData();
+        objects.player = null;
+        objects.object = null;
+        objects.group.removeTiles();
+        player = null;
+        gameBool = false;
+    }
+    private function disconnect()
+    {
+        client.close();
+        clear();
+    }
+    private function setPlayer(player:Player)
     {
         trace("set main player");
         player.program = program;
@@ -596,14 +588,14 @@ class Main #if openfl extends Sprite #end
             food.y = stage.stageHeight - 30;
         }
     }
-    public function zoom(i:Int)
+    private function zoom(i:Int)
     {
         if (objects.scale > 2 && i > 0 || objects.scale < 0.2 && i < 0) return;
         objects.scale += i * 0.08;
         lerpInt = 2;
     }
     #end
-    public function end()
+    private function end()
     {
         switch(Main.client.tag)
         {
@@ -630,21 +622,21 @@ class Main #if openfl extends Sprite #end
             default:
         }
     }
-    public function disconnect()
+    private function connect()
     {
-        client.close();
-    }
-    public function connect()
-    {
+        client = new Client();
+        console.set("client",client);
+        client.login = new client.Login();
+        cred();
         client.login.accept = function()
         {
             trace("accept");
             //set message reader function to game
-            Main.client.message = message;
-            Main.client.end = end;
+            client.message = message;
+            client.end = end;
             client.login.accept = null;
-            //Main.client.login = null;
-            Main.client.tag = null;
+            client.login = null;
+            client.tag = null;
             index = 0;
         }
         client.login.reject = function()
@@ -653,7 +645,7 @@ class Main #if openfl extends Sprite #end
             client.login.reject = null;
             //Main.client.login = null;
         }
-        client.message = Main.client.login.message;
+        client.message = client.login.message;
         //trace("connect " + Main.client.ip + " email " + Main.client.login.email);
         client.connect();
     }
@@ -683,7 +675,7 @@ class Main #if openfl extends Sprite #end
 
         }
     }
-    public function message(input:String) 
+    private function message(input:String) 
     {
         switch(Main.client.tag)
         {
@@ -864,13 +856,8 @@ class Main #if openfl extends Sprite #end
             }else{
                 //main player died disconnect
                 disconnect();
-                /*var timer = new Timer(2 * 1000);
-                timer.run = function()
-                {
-                    trace("attempt to reconnect");
-                    connect();
-                    timer.stop();
-                }*/
+                Sys.sleep(1.6);
+                connect();
             }
             case DYING:
             //p_id isSick isSick is optional 1 flag to indicate that player is sick (client shouldn't show blood UI overlay for sick players)
