@@ -108,7 +108,6 @@ class Player #if openfl extends TileContainer #end
                     motion();
                 }
             }).ease(Linear.easeNone);
-            sort();
             #end
         }
     }
@@ -153,7 +152,7 @@ class Player #if openfl extends TileContainer #end
         if (moving || Main.data.blocking.get(Std.string(ix + mx) + "." + Std.string(iy + my))) return false;
         //send data
         lastMove++;
-        trace("step move " + mx + " " + my);
+        //trace("step move " + mx + " " + my);
         Main.client.send("MOVE " + ix + " " + iy + " @" + lastMove + " " + mx + " " + my);
         var pos = new Pos();
         pos.x = mx;

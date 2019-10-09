@@ -30,6 +30,9 @@ class Client
     public var port:Int = 0;
     //reconnect timer
     public var reconnect:Int = -1;
+    //ping
+    public var ping:Float = 0;
+    var pingInt:Int = 0;
     public function new()
     {
 
@@ -100,6 +103,8 @@ class Client
     public function alive()
     {
         send("KA 0 0");
+        UnitTest.inital();
+        send("PING 0 0 " + pingInt++);
     }
     public function send(data:String)
     {

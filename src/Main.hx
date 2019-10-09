@@ -76,7 +76,6 @@ class Main #if openfl extends Sprite #end
     var string:String = "";
     var gameBool:Bool = false;
     var lerpInt:Int = 2;
-    var ping:Float = 0;
     var renderTime:Timer = null;
     #if !openfl
     public static function main()
@@ -95,6 +94,7 @@ class Main #if openfl extends Sprite #end
         console = new console.Console();
         program = new Program(console);
         console.set("program",program);
+        console.set("data",data);
         #if openfl
         //events
         addEventListener(Event.ENTER_FRAME,update);
@@ -541,7 +541,6 @@ class Main #if openfl extends Sprite #end
             while (it.hasNext())
             {
                 objects.player = it.next();
-                objects.player.sort();
                 if (!objects.player.held) objects.group.addTile(objects.player);
             }
             trace("player " + UnitTest.stamp());
@@ -556,6 +555,7 @@ class Main #if openfl extends Sprite #end
     {
         //clear data
         data = new GameData();
+        console.set("data",data);
         objects.player = null;
         objects.object = null;
         objects.group.removeTiles();
@@ -576,6 +576,7 @@ class Main #if openfl extends Sprite #end
         console.set("player",player);
         //center instantly
         lerpInt = 2;
+        @:privateAccess client.send("PING 0 0 " + client.pingInt);
     }
     private function resize(_)
     {
@@ -599,6 +600,9 @@ class Main #if openfl extends Sprite #end
     {
         switch(Main.client.tag)
         {
+            case PONG:
+            client.ping = UnitTest.stamp();
+
             case PLAYER_UPDATE:
             #if !openfl
             //terminal

@@ -61,12 +61,13 @@ class Program
     private function preform(i:Int)
     {
         if (action == null || goal == null) return;
+        //Main.client.send(action.tag[i] + " " + Std.string(Main.player.ix - useRangeX)  + " " + Std.string(Main.player.iy - useRangeY));
         Main.client.send(action.tag[i] + " " + Std.string(goal.x - useRangeX)  + " " + Std.string(goal.y - useRangeY));
     }
     public function end()
     {
         trace("end path");
-        //Sys.sleep(0.5);
+        //Timer.delay(function() {
         //preform command(s) if any
         if (action != null)
         {
@@ -91,6 +92,7 @@ class Program
         }
         //clean if pass through
         clean();
+        //},1000);
     }
     public function run()
     {
@@ -136,26 +138,27 @@ class Program
     }
     public function path(refine:Bool):Program
     {
+        //refine = false;
         if (refine)
         {
-            var ix:Int = Main.player.ix - goal.x;
-            var iy:Int = Main.player.iy - goal.y;
+            var ix:Int = goal.x - Main.player.ix;
+            var iy:Int = goal.y - Main.player.iy;
             if (Math.abs(ix) >= useRange)
             {
                 if (ix > 0)
                 {
-                    useRangeX += useRange;
+                    useRangeX = useRange;
                 }else{
-                    useRangeX += -useRange;
+                    useRangeX = -useRange;
                 }
             }
             if (Math.abs(iy) >= useRange)
             {
                 if (iy > 0)
                 {
-                    useRangeY += useRange;
+                    useRangeY = useRange;
                 }else{
-                    useRangeY += -useRange;
+                    useRangeY = -useRange;
                 }
             }
             //same or slightly faster if it's a direct vertical or horizontal (also deals with blocking objects)
@@ -190,13 +193,12 @@ class Program
                     }
                 }
             }
-            goal.x += useRangeX;
-            goal.y += useRangeY;
+            trace("rx " + useRangeX + " ry " + useRangeY);
+            goal.x += -useRangeX;
+            goal.y += -useRangeY;
         }
-        if (setup)
+        if (!setup)
         {
-
-        }else{
             Main.player.goal = true;
             Main.player.path();
             setup = true;

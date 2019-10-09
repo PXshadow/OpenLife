@@ -33,8 +33,7 @@ class GameData
         #if openfl
         tileData = new TileData();
         #end
-        transitionData = new TransitionData();
-
+        //transitionData = new TransitionData();
         objectData();
     }
     private function objectData()
@@ -59,7 +58,7 @@ class GameData
             //alternative set
             if (data.numUses > 1) for (j in 0...data.numUses) 
             {
-                objectAlt.set(nextObjectNumber++,i);
+                objectAlt.set(++nextObjectNumber,i);
             }
             objectMap.set(data.id,data);
         }

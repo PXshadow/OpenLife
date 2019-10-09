@@ -40,6 +40,7 @@ class ObjectCode
             [292];
             case "food":
             [
+                30,//Wild Gooseberry Bush
                 31,//Gooseberry
                 40,//Wild Carrot
                 197,//Cooked Rabbit
@@ -54,6 +55,8 @@ class ObjectCode
                 402,//Carrot
                 518,//Cooked Goose
                 570,//Cooked Mutton
+                763,//Fruiting Barrel Cactus
+                768,//Cactus Fruit
             ];
             case "trees" | "tree":
             [
