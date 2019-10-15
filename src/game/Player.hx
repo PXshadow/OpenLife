@@ -204,19 +204,34 @@ class Player #if openfl extends TileContainer #end
         pos.y = pos.y - pos2.y;
         return pos;
     }
+    public var px:Int = 0;
+    public var py:Int = 0;
     public function path()
     {
-        var px:Int = program.goal.x - ix;
-        var py:Int = program.goal.y - iy;
-        if (px != 0) px = px > 0 ? 1 : -1;
-        if (py != 0) py = py > 0 ? 1 : -1;
-        if (px == 0 && py == 0)
+        if (!setPath())
         {
             //complete
             program.end();
             return;
         }
         pathfind(px,py);
+    }
+    public function setPath():Bool
+    {
+        px = program.goal.x - ix;
+        py = program.goal.y - iy;
+        var bool:Bool = false;
+        if (px != 0) 
+        {
+            px = px > 0 ? 1 : -1;
+            bool = true;
+        }
+        if (py != 0)
+        {
+            py = py > 0 ? 1 : -1;
+            bool = true;
+        }
+        return bool;
     }
     public function pathfind(px:Int,py:Int)
     {

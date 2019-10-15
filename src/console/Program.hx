@@ -17,8 +17,10 @@ class Program
     //setup automation bool
     public var setup:Bool = false;
     public var useRange:Int = 1;
-    var useRangeX:Int = 0;
-    var useRangeY:Int = 0;
+    public var diagnol:Bool = false;
+    //add to goal diffrence
+    public var useX:Int = 0;
+    public var useY:Int = 0;
     //food 
     public var ate:Array<Int> = [];
     //used to wait for server response on events
@@ -62,11 +64,14 @@ class Program
     {
         if (action == null || goal == null) return;
         //Main.client.send(action.tag[i] + " " + Std.string(Main.player.ix - useRangeX)  + " " + Std.string(Main.player.iy - useRangeY));
-        Main.client.send(action.tag[i] + " " + Std.string(goal.x - useRangeX)  + " " + Std.string(goal.y - useRangeY));
+        var string:String = action.tag[i] + " " + Std.string(goal.x + useX)  + " " + Std.string(goal.y + useY);
+        trace("preform: " + string);
+        Main.client.send(string);
     }
     public function end()
     {
         trace("end path");
+        Sys.sleep(0.1);
         //Timer.delay(function() {
         //preform command(s) if any
         if (action != null)
@@ -136,78 +141,82 @@ class Program
         }
         return this;
     }
-    public function path(refine:Bool):Program
+    private function path(refine:Bool)
     {
-        //refine = false;
-        if (refine)
-        {
-            var ix:Int = goal.x - Main.player.ix;
-            var iy:Int = goal.y - Main.player.iy;
-            if (Math.abs(ix) >= useRange)
-            {
-                if (ix > 0)
-                {
-                    useRangeX = useRange;
-                }else{
-                    useRangeX = -useRange;
-                }
-            }
-            if (Math.abs(iy) >= useRange)
-            {
-                if (iy > 0)
-                {
-                    useRangeY = useRange;
-                }else{
-                    useRangeY = -useRange;
-                }
-            }
-            //same or slightly faster if it's a direct vertical or horizontal (also deals with blocking objects)
-            if (!block(goal.x + useRangeX,goal.y))
-            {
-                useRangeY = 0;
-            }else{
-                if (!block(goal.x,goal.y + useRangeY))
-                {
-                    useRangeX = 0;
-                }else{
-                    //potentially the same
-                    if (!block(goal.x,goal.y))
-                    {
-                        useRangeX = 0;
-                        useRangeY = 0;
-                    }else{
-                        //less efficent
-                        if (!block(goal.x - useRangeX,goal.y))
-                        {
-                            useRangeX *= -1;
-                            useRangeY = 0;
-                        }else{
-                            if (!block(goal.x,goal.y - useRangeY))
-                            {
-                                useRangeX = 0;
-                                useRangeY *= -1;
-                            }else{
-                                //no area to stand
-                            }
-                        }
-                    }
-                }
-            }
-            trace("rx " + useRangeX + " ry " + useRangeY);
-            goal.x += -useRangeX;
-            goal.y += -useRangeY;
-        }
         if (!setup)
         {
+            useX = 0;
+            useY = 0;
+            if (refine && Main.player.setPath())
+            {
+                refineUse();
+                trace("use X " + useX + " Y " + useY);
+                goal.x += -useX;
+                goal.y += -useY;
+            }
             Main.player.goal = true;
             Main.player.path();
             setup = true;
         }
-        return this;
     }
-    private function block(x:Int,y:Int):Bool
+    private function refineUse()
     {
-        return Main.data.blocking.get(x + "." + y) == true ? true : false;
+        useX = Main.player.px;
+        useY = Main.player.py;
+
+        if (useX == useY || useX == useY * -1)
+        {
+            //diagnol
+            if (!refineBlock(0,0))
+            {
+                useX = 0;
+                useY = 0;
+                return;
+            }
+            //set off vertical
+            useX = 0;
+        }
+        if (useX == 0)
+        {
+            //vertical
+            if (refineBlock(0,useY))
+            {
+                useY = 0;
+                if (!refineBlock(0,0)) return;
+                useX = 1;
+            }else{
+                return;
+            }
+        }
+        if (useY == 0)
+        {
+            //horizontal
+            if (refineBlock(useX,0))
+            {
+                useX = 0;
+                if (!refineBlock(0,0)) return;
+            }else{
+                return;
+            }
+        }
+        //inefficent opposite
+        useY *= -1;
+        if (!refineBlock(0,useY))
+        {
+            useX = 0;
+        }else{
+            useX *= -1;
+            if (!refineBlock(useX,0))
+            {
+                useY = 0;
+            }else{
+                trace("NO PATH!");
+            }
+        }
+    }
+    private function refineBlock(x:Int,y:Int):Bool
+    {
+        return Main.data.blocking.get(Std.string(goal.x - x) + "." + Std.string(goal.y - y)) == true ? true : false;
     }
     public function kill(x:Null<Int>=null,y:Null<Int>=0,id:Null<Int>=null)
     {
@@ -275,8 +284,6 @@ class Program
     private function type(id:Int,property:String):Bool
     {
         //queue
-        useRangeX = 0;
-        useRangeY = 0;
         action = {type: id,property: property, tag: action != null ? action.tag : [],data: action != null ? action.data : [],finish: null,fail: null};
         if (setup) 
         {

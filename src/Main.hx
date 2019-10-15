@@ -419,7 +419,7 @@ class Main #if openfl extends Sprite #end
             program.goal = new Pos();
             program.goal.x = selectX;
             program.goal.y = selectY;
-            program.path(false);
+            @:privateAccess program.path(false);
         }else{
             if (Bind.playerKill.bool) 
             {
@@ -554,7 +554,10 @@ class Main #if openfl extends Sprite #end
     private function clear()
     {
         //clear data
-        data = new GameData();
+        data.map = new data.MapData();
+        data.blocking = new Map<String,Bool>();
+        data.playerMap = new Map<Int,Player>();
+        //data = new GameData();
         console.set("data",data);
         objects.player = null;
         objects.object = null;

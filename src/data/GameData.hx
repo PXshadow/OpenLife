@@ -52,13 +52,14 @@ class GameData
             return -1;
         });
         var data:ObjectData = null;
+        var nextObjectNumberInt:Int = nextObjectNumber;
         for (i in list)
         {
             data = new ObjectData(i);
             //alternative set
             if (data.numUses > 1) for (j in 0...data.numUses) 
             {
-                objectAlt.set(++nextObjectNumber,i);
+                objectAlt.set(++nextObjectNumberInt,i);
             }
             objectMap.set(data.id,data);
         }
