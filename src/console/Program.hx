@@ -34,7 +34,7 @@ class Program
     {
         this.console = console;
     }
-    public function send(tag:ServerTag,data:String,moveSensitive:Bool=true)
+    public function send(tag:ServerTag,x:Int,y:Int,data:String="",moveSensitive:Bool=true)
     {
         if (setup)
         {
@@ -44,13 +44,13 @@ class Program
                 action.data.push(Reflect.copy(data));
             }
         }else{
-            Main.client.send(tag + " " + data);
+            Main.client.send(tag + " " + x + " " + y + data);
         }
     }
     public function clean()
     {
         //clean up
-        Main.player.goal = false;
+        if (Main.player != null) Main.player.goal = false;
         setup = false;
         goal = new Pos();
         action = null;
@@ -71,7 +71,7 @@ class Program
     public function end()
     {
         trace("end path");
-        Sys.sleep(0.1);
+        //Sys.sleep(0.1);
         //Timer.delay(function() {
         //preform command(s) if any
         if (action != null)
@@ -163,53 +163,39 @@ class Program
     {
         useX = Main.player.px;
         useY = Main.player.py;
-
-        if (useX == useY || useX == useY * -1)
-        {
-            //diagnol
-            if (!refineBlock(0,0))
-            {
-                useX = 0;
-                useY = 0;
-                return;
-            }
-            //set off vertical
-            useX = 0;
-        }
-        if (useX == 0)
+        if (goal.x - Main.player.ix < goal.y - Main.player.iy)
         {
             //vertical
-            if (refineBlock(0,useY))
-            {
-                useY = 0;
-                if (!refineBlock(0,0)) return;
-                useX = 1;
-            }else{
-                return;
-            }
-        }
-        if (useY == 0)
-        {
-            //horizontal
-            if (refineBlock(useX,0))
+            if (!refineBlock(0,useY)) 
             {
                 useX = 0;
-                if (!refineBlock(0,0)) return;
-            }else{
+                return;
+            }
+        }else{
+            //horizontal
+            if (!refineBlock(useX,0)) 
+            {
+                useY = 0;
                 return;
             }
         }
-        //inefficent opposite
-        useY *= -1;
-        if (!refineBlock(0,useY))
+        if (!refineBlock(0,0))
         {
+            //potentially inefficient
             useX = 0;
+            useY = 0;
         }else{
-            useX *= -1;
-            if (!refineBlock(useX,0))
+            //inefficient
+            useY *= -1;
+            if (!refineBlock(0,useY))
             {
-                useY = 0;
-            }else{
+                useX = 0;
+                return;
+            }
+            useX *= -1;
+            useY = 0;
+            if (refineBlock(useX,useY))
+            {
                 trace("NO PATH!");
             }
         }
@@ -225,29 +211,29 @@ class Program
             if (id != null)
             {
                 //focus on id to kill on tile
-                send(KILL, x + " " + y + " " + id);
+                send(KILL,x,y," " + id);
             }else{
-                send(KILL, x + " " + y);
+                send(KILL,x,y);
             }
         }
     }
     //async return functions of data
     public function grave(x:Int,y:Int)
     {
-        send(GRAVE, x + " " + y);
+        send(GRAVE,x,y);
     }
     public function owner(x:Int,y:Int)
     {
-        send(OWNER, x + " y " + y);
+        send(OWNER,x,y);
     }
     public function drop(x:Null<Int>=null,y:Null<Int>=0,c:Int=-1):Program
     {
         //setting held object down on empty grid square OR for adding something to a container
         if (x != null && y != null)
         {
-            send(DROP, x + " " + y + " " + c);
+            send(DROP,x,y," " + c);
         }else{
-            if (Main.player != null) send(DROP, Main.player.ix + " " + Main.player.iy + " " + c);
+            if (Main.player != null) send(DROP, Main.player.ix,Main.player.iy," " + c);
         }
         return this;
     }
@@ -255,9 +241,9 @@ class Program
     {
         if (x != null && y != null)
         {
-            send(USE, x + " " + y);
+            send(USE,x,y);
         }else{
-            if (Main.player != null) send(USE, Main.player.ix + " " + Main.player.iy);
+            if (Main.player != null) send(USE,Main.player.ix,Main.player.iy);
         }
         return this;
     }
@@ -347,18 +333,18 @@ class Program
     public function emote(e:Int):Program
     {
         //0-13
-        send(EMOT,"0 0 " + e);
+        send(EMOT,0,0," " + e);
         return this;
     }
     public function say(string:String):Program
     {
-        send(SAY,"0 0 " + string.toUpperCase());
+        send(SAY,0,0,string.toUpperCase());
         return this;
     }
     public function remove(x:Int,y:Int,index:Int=-1):Program
     {
         //remove an object from a container
-        send(REMV, x + " " + y + " " + index);
+        send(REMV,x,y," " + index);
         return this;
     }
     public function specialRemove(i:Int=-1):Program
@@ -372,7 +358,7 @@ class Program
     public function pull(i:Int,index:Int=-1):Program
     {
         //remove object from clothing
-        send(SREMV, i + " " + index);
+        send(SREMV,0,0," " + i + " " + index);
         return this;
     }
     public function baby(x:Null<Int>,y:Null<Int>):Program
@@ -380,15 +366,15 @@ class Program
         //USE action taken on a baby to pick them up.
         if (x != null && y != null)
         {
-            send(BABY, x + " " + y);
+            send(BABY,x,y);
         }else{
-            if (Main.player != null) send(BABY,Main.player.ix + " " + Main.player.iy);
+            if (Main.player != null) send(BABY,x,y);
         }
         return this;
     }
     public function jump():Program
     {
-        send(JUMP,"0 0");
+        send(JUMP,0,0);
         return this;
     }
     public function ubaby(x:Int,y:Int,index:Int=-1):Program
@@ -396,18 +382,14 @@ class Program
         //special case of SELF applied to a baby (to feed baby food or add/remove clothing from baby)
         //UBABY is used for healing wounded players.
         //UBABY x y i id#
-        send(UBABY,x + " " + y + " " + index);
+        send(UBABY,x,y," " + index);
         return this;
     }
     public function self(index:Int=-1):Program
     {
         //use action on self (eat)
-        if (Main.player != null) send(SELF, Main.player.ix + " " + Main.player.iy + index);
+        if (Main.player != null) send(SELF,0,0," " + index);
         return this;
-    }
-    public function eat():Program
-    {
-        return self();
     }
     public function task(name:String)
     {
@@ -417,7 +399,7 @@ class Program
         {
             case "eat" | "food" | "hunger":
             //find, path to, use and then eat.
-            goto("food").use().eat();
+            goto("food").use().self();
             case "sharpstone":
             //goto stone, go to a hard rock and use against it to turn into a sharp stone
             goto("stone").use().goto("big hard rock").use();
@@ -434,7 +416,7 @@ class Program
     }
     public function die():Program
     {
-        send(DIE,"0 0");
+        send(DIE,0,0);
         return this;
     }
     public function distance(a:Pos,b:Pos):Bool
