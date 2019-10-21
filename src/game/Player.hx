@@ -25,11 +25,7 @@ class Player #if openfl extends TileContainer #end
     private static inline var babyBodyDownFactor:Float = 0.75;
     private static inline var oldHeadDownFactor:Float = 0.35;
     private static inline var oldHeadForwardFactor:Float = 2;
-
-    public var ageRange:Array<{min:Float,max:Float}> = [];
-    public var sprites:Array<Tile> = [];
     public var object:Tile;
-    var objects:Objects;
     //clothing hat;tunic;front_shoe;back_shoe;bottom;backpack
     var clothing:Array<TileContainer> = [];
     #end
@@ -54,11 +50,9 @@ class Player #if openfl extends TileContainer #end
     public var firstName:String = "";
     public var lastName:String = "";
     public var text:String = "";
-    public function new(#if openfl objects:Objects #end)
+    public var inRange:Bool = true;
+    public function new()
     {
-        #if openfl
-        this.objects = objects;
-        #end
         #if openfl
         super();
         #end
@@ -218,6 +212,7 @@ class Player #if openfl extends TileContainer #end
     }
     public function setPath():Bool
     {
+        if (program.goal == null) return false;
         px = program.goal.x - ix;
         py = program.goal.y - iy;
         var bool:Bool = false;
@@ -271,7 +266,7 @@ class Player #if openfl extends TileContainer #end
             {
                 //added back to stage
                 #if openfl
-                objects.group.addTile(this);
+                Main.objects.group.addTile(this);
                 #end
                 held = false;
             }
@@ -310,26 +305,6 @@ class Player #if openfl extends TileContainer #end
             #if openfl
             var index:Int = 0;
             clothing = [];
-            for(i in clothingInt)
-            {
-                if (i == 0) 
-                {
-                    clothing.push(null);
-                    continue;
-                }
-                if (i > 0)
-                {
-                    //new clothing
-                    objects.add(i,0,0,true,false);
-                    object = objects.object;
-                    addTile(object);
-                }else{
-                    /*//add to preexisting clothing
-                    var data = data.objectMap.get(clothingInt[clothing.length - 1]);
-                    objects.add(i,0,0,true,false);
-                    clothing[clothing.length - 1].addTiles(objects.sprites);*/
-                }
-            }
             #end
         }
     }
@@ -342,7 +317,7 @@ class Player #if openfl extends TileContainer #end
             oid = instance.o_id;
         }
         #else
-        if (instance.o_id != oid)
+        /*if (instance.o_id != oid)
         {
             //remove previous
             if (object != null)
@@ -410,7 +385,7 @@ class Player #if openfl extends TileContainer #end
                 object.x = 20 + objectData.heldOffset.x;
                 object.y = -Static.GRID/2 + objectData.heldOffset.y - 18;
             }
-        }
+        }*/
         #end
     }
     public function force() 
@@ -427,25 +402,11 @@ class Player #if openfl extends TileContainer #end
     #if openfl
     public function sort()
     {
-        var diff:Int = 0;
-        var object:Array<Tile> = Main.data.tileData.object.get(instance.x,instance.y);
-        //floor
-        if (object == null) 
-        {
-            object = Main.data.tileData.floor.get(instance.x,instance.y);
-            diff = -1;
-        }
-        /*if (object == null) 
-        {
-            object = Main.data.tileData.object.get(instance.x,instance.y + 1);
-            diff = 1;
-        }*/
-        if (object == null || object[0] == null) return;
-        objects.group.setTileIndex(this,objects.group.getTileIndex(object[0]) + diff);
+        
     }
     public function age()
     {
-        objects.visibleSprites(instance.po_id,sprites,Std.int(instance.age));
+        //Main.objects.visibleSprites(instance.po_id,sprites,Std.int(instance.age));
     }
     #end
 }

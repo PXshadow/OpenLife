@@ -10,6 +10,10 @@ class SpriteData
     public var color:Array<Float> = [];//=0.952941,0.796078,0.756863
     public var ageRange:Array<Float> = [];//=-1.000000,-1.000000
     public var parent:Int = 0;//=-1
+    public var invisHolding:Bool = false;
+    public var invisWordn:Bool = false;
+    public var behindSlots:Bool = false;
+    public var invisCont:Bool = false;
     //added
     public var inCenterXOffset:Int = 0;
     public var inCenterYOffset:Int = 0;

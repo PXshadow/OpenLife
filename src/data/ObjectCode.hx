@@ -24,9 +24,9 @@ class ObjectCode
             //berry bush
             case "berrybush":
             [30];
-            case "languishingberrybush":
+            case "languishingberrybush": //soil
             [392];
-            case "dryberrybush":
+            case "dryberrybush": //water
             [393];
             case "berry" | "berries": 
             [31];
@@ -57,6 +57,7 @@ class ObjectCode
                 570,//Cooked Mutton
                 763,//Fruiting Barrel Cactus
                 768,//Cactus Fruit
+                805,//Wild Onion
             ];
             case "trees" | "tree":
             [
@@ -111,12 +112,18 @@ class ObjectCode
                 1097, //Full Deep Well
                 706, //Ice Hole
             ];
-            case "bucket":
+            case "soilsource":
             [
-                659, //Empty Bucket
-                660, //Full Bucket of Water
-                1099, //Partial Buket Of Water
+                1138, //fertile soil
+                1101, //fertile soil pile
             ];
+            case "soilsourcebasket":
+            [
+                211, //Fertile Soil deposit
+                624, //Composted Soil
+            ];
+            case "bucket":
+            [659]; //Empty Bucket
             case "danger":
             //thanks Hetuw (Whatever)
             [

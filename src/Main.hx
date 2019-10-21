@@ -77,6 +77,7 @@ class Main #if openfl extends Sprite #end
     var gameBool:Bool = false;
     var lerpInt:Int = 2;
     var renderTime:Timer = null;
+    var foodPercent:Float = 0;
     #if !openfl
     public static function main()
     {
@@ -310,7 +311,7 @@ class Main #if openfl extends Sprite #end
                     objects.group.y = Math.round(lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.20));
                 }else{
                     if (player.parent != null) try "player.parent null";
-                    //trace("player parent " + player.parent);
+                    trace("player parent " + player.parent + " Player " + player);
                     objects.group.x = Math.round(lerp(objects.group.x,-player.parent.x * objects.scale + objects.width/2 ,0.20));
                     objects.group.y = Math.round(lerp(objects.group.y,-player.parent.y * objects.scale + objects.height/2 ,0.20));
                     
@@ -459,39 +460,17 @@ class Main #if openfl extends Sprite #end
     {
         zoom(e.delta);
     }
-    public function remove(x:Int,y:Int)//,floor:Bool=false)
+    public function remove(x:Int,y:Int,floor:Bool=false)
     {
-        /*if (floor)
+        if (floor)
         {
             return;
-        }*/
+        }
         //object
         var tiles = data.tileData.object.get(x,y);
         if (tiles != null)
         {
             for (tile in tiles) objects.group.removeTile(tile);
-        }
-    }
-    public function add(array:Array<Int>,x:Int,y:Int,container:Bool=false,push:Bool=true)
-    {
-        if (array != null) 
-        {
-            objects.add(array[0],x,y,array.length > 1 ? true : container,push);
-            objects.containing = array.length > 1 ? array[0] : 0;
-            var index:Int = 0;
-            for (i in 1...array.length)
-            {
-                if (array[i] < 0)
-                {
-                    //sub container
-                    objects.add(array[i] * -1,x,y,true,push,index);
-                    index++;
-                }else{
-                    //container
-                    objects.add(array[i],x,y,container,push);
-                    index = 0;
-                }
-            }
         }
     }
     public function render(cx:Int,cy:Int) 
@@ -532,8 +511,8 @@ class Main #if openfl extends Sprite #end
                 for (i in cx - range...cx + range)
                 {
                     ground.add(data.map.biome.get(i,j),i,j);
-                    add([data.map.floor.get(i,j)],i,j);
-                    add(data.map.object.get(i,j),i,j);
+                    objects.add([data.map.floor.get(i,j)],i,j);
+                    objects.add(data.map.object.get(i,j),i,j);
                 }
             }
             trace("object " + UnitTest.stamp());
@@ -555,12 +534,12 @@ class Main #if openfl extends Sprite #end
     {
         //clear data
         data.map = new data.MapData();
+        data.tileData = new data.TileData();
         data.blocking = new Map<String,Bool>();
         data.playerMap = new Map<Int,Player>();
         //data = new GameData();
-        console.set("data",data);
+        //console.set("data",data);
         objects.player = null;
-        objects.object = null;
         objects.group.removeTiles();
         player = null;
         gameBool = false;
@@ -615,6 +594,7 @@ class Main #if openfl extends Sprite #end
                 console.set("player",player);
             }
             #else
+            sys.io.File.saveContent(Static.dir + "playerUpdate.txt",playerUpdateString);
             //visual client
             if (player == null && objects.player != null) 
             {
@@ -682,6 +662,7 @@ class Main #if openfl extends Sprite #end
 
         }
     }
+    var playerUpdateString:String = "";
     private function message(input:String) 
     {
         switch(Main.client.tag)
@@ -691,6 +672,7 @@ class Main #if openfl extends Sprite #end
             Main.client.compress = Std.parseInt(array[1]);
             Main.client.tag = null;
             case PLAYER_UPDATE:
+            playerUpdateString += input + "\n";
             playerInstance = new PlayerInstance(input.split(" "));
             #if openfl
             objects.addPlayer(playerInstance);
@@ -769,20 +751,20 @@ class Main #if openfl extends Sprite #end
                 //no floor changes yet
                 return;
             }
-            //set in case of no object
-            data.map.object.set(change.x,change.y,change.id);
-            //trace("x " + change.x + " y " + change.y);
             //clear
             #if openfl
             remove(change.x,change.y);
             #end
+            //set in case of no object
+            data.map.object.set(change.x,change.y,change.id);
+            //trace("x " + change.x + " y " + change.y);
             //add
             if (change.id.length > 0 && change.id[0] > 0)
             {
                 var move:Bool = change.speed > 0 ? true : false;
                 #if openfl
-                add(change.id,change.x,change.y,move);
-                if (move && objects.object != null)
+                //add(change.id,change.x,change.y,move);
+                /*if (move && objects.object != null)
                 {
                     //move back to previous postition
                     objects.object.x = change.oldX * Static.GRID;
@@ -790,7 +772,7 @@ class Main #if openfl extends Sprite #end
                     //tween
                     var time = Std.int(Static.GRID/(Static.GRID * change.speed * 1) * 60 * 1);
                     Actuate.tween(objects.object,time/60,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
-                }
+                }*/
                 #end
             }
             Main.client.tag = null;
@@ -802,15 +784,30 @@ class Main #if openfl extends Sprite #end
             case FOOD_CHANGE:
             //trace("food change " + input);
             var array = input.split(" ");
+            foodPercent = Std.parseInt(array[0])/Std.parseInt(array[1]);
+            //trace("food% " + foodPercent);
             #if openfl
             food.graphics.clear();
             food.graphics.beginFill(0);
             food.graphics.drawRect(200,0,100,20);
             food.graphics.beginFill(0xFF0000);
-            food.graphics.drawRect(200,0,Std.parseInt(array[0])/Std.parseInt(array[1]) * 100,20);
+            food.graphics.drawRect(200,0,foodPercent * 100,20);
             #end
             //also need to set new movement move_speed: is floating point playerSpeed in grid square widths per second.
-            if (player != null) player.instance.move_speed = Std.parseFloat(array[4]);
+            if (player != null) 
+            {
+                if (foodPercent <= 0.3 && program.taskName != "food")
+                {
+                    if (player.instance.age >= 3)
+                    {
+                        program.task("food");
+                    }else{
+                        client.send("SAY 0 0 F");
+                    }
+                }
+                trace("player " + player);
+                player.instance.move_speed = Std.parseFloat(array[4]);
+            }
             case FRAME:
             Main.client.tag = null;
             index = 0;
@@ -830,11 +827,9 @@ class Main #if openfl extends Sprite #end
             trace("player out of range " + input);
             var id:Int = Std.parseInt(input);
             var player = data.playerMap.get(id);
-            data.playerMap.remove(id);
             #if openfl
-            objects.group.removeTile(player);
+            if (player != null) objects.group.removeTile(player);
             #end
-            player = null;
             case LINEAGE:
             //p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
 

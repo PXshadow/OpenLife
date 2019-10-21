@@ -29,6 +29,7 @@ class Program
     var actions:Array<Action> = [];
     var action:Action = null;
     var console:Console;
+    public var taskName:String = "";
     public var range:Int = 30;
     public function new(console:Console)
     {
@@ -51,6 +52,7 @@ class Program
     {
         //clean up
         if (Main.player != null) Main.player.goal = false;
+        taskName = "";
         setup = false;
         goal = new Pos();
         action = null;
@@ -64,7 +66,7 @@ class Program
     {
         if (action == null || goal == null) return;
         //Main.client.send(action.tag[i] + " " + Std.string(Main.player.ix - useRangeX)  + " " + Std.string(Main.player.iy - useRangeY));
-        var string:String = action.tag[i] + " " + Std.string(goal.x + useX)  + " " + Std.string(goal.y + useY);
+        var string:String = action.tag[i] + " " + Std.string(goal.x + useX)  + " " + Std.string(goal.y + useY) + action.data[i];
         trace("preform: " + string);
         Main.client.send(string);
     }
@@ -80,9 +82,15 @@ class Program
             if (action.tag != null) 
             {
                 //finish other commands
-                for (i in 0...action.tag.length)
+                if (action.tag.length > 0)
                 {
-                    preform(i);
+                    preform(0);
+                    useX = 0;
+                    useY = 0;
+                    for (i in 0...action.tag.length)
+                    {
+                        preform(i);
+                    }
                 }
                 if (action.finish != null) action.finish();
                 //use potential new action
@@ -388,11 +396,12 @@ class Program
     public function self(index:Int=-1):Program
     {
         //use action on self (eat)
-        if (Main.player != null) send(SELF,0,0," " + index);
+        if (Main.player != null) send(SELF,Main.player.ix,Main.player.iy," " + index);
         return this;
     }
     public function task(name:String)
     {
+        taskName = name;
         setup = false;
         //names need to be lower case and have no spaces, however when using task or find functions you can use spaces and upper case freely.
         switch(StringTools.replace(name.toLowerCase()," ",""))
@@ -403,14 +412,8 @@ class Program
             case "sharpstone":
             //goto stone, go to a hard rock and use against it to turn into a sharp stone
             goto("stone").use().goto("big hard rock").use();
-            case "waterbowl":
-
-            case "soilbowl":
-            
-            case "basket":
-
             case "berryfarm":
-            
+            goto("bowl").use().goto("soilsource").use().goto("languishingberrybush").use();
         }
         return this;
     }

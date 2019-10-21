@@ -13,7 +13,7 @@ class ObjectData extends LineReader
 {
     public var id:Int=0;
     public var description:String = "";
-    public var containable:Int=0;
+    public var containable:Bool=false;
     public var containSize:Int = 0;
     public var noFlip:Bool = false;
     public var sideAcess:Bool = false;
@@ -22,20 +22,20 @@ class ObjectData extends LineReader
     public var minPickupAge:Int = 0;
     public var heldInHand:Bool = false;
     public var rideable:Bool = false;
-    public var blocksWalking:Int = 0;
+    public var blocksWalking:Bool = false;
     public var leftBlockingRadius:Int = 0;
     public var rightBlockingRadius:Int = 0;
     public var drawBehindPlayer:Int = 0;
     public var mapChance:Float = 0.000000;//#biomes_0
     public var heatValue:Int =0;
     public var rValue:Float =0.000000;
-    public var person:Int =0;
-    public var noSpawn:Int =0;
+    public var person:Bool = false;
+    public var noSpawn:Bool = false;
     //int -> bool
     public var male:Bool=false;//=0
     public var deathMarker:Int =0;
     public var homeMarker:Int = 0;
-    public var floor:Int = 0;
+    public var floor:Bool = false;
     public var floorHugging:Bool = false;
     public var foodValue:Int =0;
     public var speedMult:Float =1.000000;
@@ -92,7 +92,7 @@ class ObjectData extends LineReader
     {
         id = getInt();
         description = getString();
-        containable = getInt();
+        containable = getBool();
 
         var i = getArrayInt();
         containSize = i[0];
@@ -104,11 +104,11 @@ class ObjectData extends LineReader
 
         if(readName("noFlip"))
         {
-            noFlip = getString() == "1" ? true : false;
+            noFlip = getBool();
         }
         if(readName("sideAccess"))
         {
-            sideAcess = getString() == "1" ? true : false;
+            sideAcess = getBool();
         }
 
         var string = getString();
@@ -116,7 +116,7 @@ class ObjectData extends LineReader
         if (string == "2") rideable = true;
 
         i = getArrayInt();
-        blocksWalking = i[0];
+        blocksWalking = i[0] == 1 ? true : false;
         leftBlockingRadius = i[1];
         rightBlockingRadius = i[2];
         drawBehindPlayer = i[3];
@@ -129,10 +129,10 @@ class ObjectData extends LineReader
 
         i = getArrayInt();
         //person is the race of the person
-        person = i[0];
-        noSpawn = i[1];
+        person = i[0] == 1 ? true : false;
+        noSpawn = i[1] == 1 ? true : false;
 
-        male = getString() == "1" ? true : false;
+        male = getBool();
 
         deathMarker = getInt();
 
@@ -147,11 +147,11 @@ class ObjectData extends LineReader
         }
         if(readName("floor"))
         {
-            floor = getInt();
+            floor = getBool();
         }
         if(readName("floorHugging"))
         {
-            floorHugging = getString() == "1" ? true : false;
+            floorHugging = getBool();
         }
 
         foodValue = getInt();
@@ -228,6 +228,7 @@ class ObjectData extends LineReader
             spriteArray[j].parent = getInt();
             //invis holding, invisWorn, behind slots
             getString();
+            if (readName("invisCont"))  spriteArray[j].invisCont = getBool();
         }
         //get offset center
         getSpriteData();
@@ -249,7 +250,6 @@ class ObjectData extends LineReader
         //arrays
         backFootIndex = getIntArray();
         frontFootIndex = getIntArray();
-        
         
         if(next < line.length)
         {

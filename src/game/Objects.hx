@@ -22,7 +22,6 @@ class Objects extends TileDisplay
 {
     public var containing:Int = 0;
     public var sprites:Array<Tile> = [];
-    public var object:TileContainer;
     public var cacheMap:Map<Int,Int> = new Map<Int,Int>();
     //for tileset
     public var tileX:Float = 0;
@@ -65,14 +64,13 @@ class Objects extends TileDisplay
         if (player == null)
         {
             //new
-            add(data.po_id,data.x,data.y,true,false);
-            player = cast object;
-            if (player == null) return;
-            trace("player " + player);
-            Main.data.playerMap.set(data.p_id,player);
+            player = new Player();
+            add([data.po_id],data.x,data.y,player);
+            group.addTile(player);
             player.set(data);
             player.force();
-            return;
+            Main.data.playerMap.set(data.p_id,player);
+            
         }else{
             //exists
             player.set(data);
@@ -91,74 +89,76 @@ class Objects extends TileDisplay
             }
         }
     }
-    public function add(id:Int,x:Int=0,y:Int=0,container:Bool=false,push:Bool=true,index:Int=0):Bool
+    public function add(array:Array<Int>,x:Int=0,y:Int=0,container:TileContainer=null):Bool
     {
-        //return false;
-        if(id <= 0) return false;
-        //trace("unit test");
-        UnitTest.inital();
-        //trace("inital");
-        var data = Main.data.objectMap.get(id);
-        if (data == null) return false;
-        //data
-        if (data.blocksWalking == 1)
+        if (array == null || array.length == 0 || array[0] <= 0) return false;
+        var data:ObjectData = Main.data.objectMap.get(array[0]);
+        if (data == null)
+        {
+            trace("add fail id: " + array[0]);
+            return false;
+        }
+        //blocking
+        if (data.blocksWalking)
         {
             Main.data.blocking.set(x + "." + y,true);
         }else{
             Main.data.blocking.remove(x + "." + y);
         }
-        //create new objects
-        if (data.containable == 1) container = true;
-        if (containing == 0) object = null;
-        if (container && containing == 0) object = new TileContainer();
-        //moving object
-        //if (data.)
-        if(data.person > 0)
+        //tile position
+        var tx:Float = x * Static.GRID;
+        var ty:Float = (Static.tileHeight - y) * Static.GRID;
+        //create
+        var sprites:Array<Tile> = [];
+        if (container == null)
         {
-            object = new Player(this);
-            container = true;
-            push = false;
+            sprites = create(data,tx,ty);
+        }else{
+            sprites = create(data,0,0);
         }
-        if (container && containing == 0)
+        //conainted
+        for (i in 1...array.length) 
         {
-            //set local position
-            object.x = (x) * Static.GRID;
-            object.y = (Static.tileHeight - y) * Static.GRID;
-            group.addTileAt(object,0);
+
         }
-        if (!Main.data.map.loaded)
+        //fill container if present
+        if (container != null)
         {
-            //add data into map data if not loaded in (for testing)
-            Main.data.map.object.set(x,y,[id]);
+            container.addTiles(sprites);
+        }else{
+            group.addTiles(sprites);
         }
-        var r:Rectangle;
+        //push data
+        if (container == null)
+        {
+            if (data.floor)
+            {
+                Main.data.tileData.floor.set(x,y,sprites);
+            }else{
+                Main.data.tileData.object.set(x,y,sprites);
+            }
+        }else{
+            //age system
+            visibleSprites(array[0],sprites,20);
+        }
+        return true;
+    }
+    private function create(data:ObjectData,x:Float=0,y:Float=0):Array<Tile>
+    {
         var sprite:Tile = null;
-        sprites = [];
-        var parents:Map<Int,TileContainer> = new Map<Int,TileContainer>();
-        //trace("inital " + UnitTest.stamp());
-        for(i in 0...data.numSprites)
+        var r:Rectangle;
+        var sprites:Array<Tile> = [];
+        for (i in 0...data.numSprites)
         {
             sprite = new Tile();
             sprite.id = cacheSprite(data.spriteArray[i].spriteID);
-            //check if cache sprite fail
-            if (sprite.id == -1) 
-            {
-                //trace("cache sprite fail");
-                continue;
-            }
             r = tileset.getRect(sprite.id);
-            //todo setup inCenterOffset
-            //rot
-            if (data.spriteArray[i].rot > 0)
-            {
-                sprite.rotation = data.spriteArray[i].rot * 365;
-            }
+            //rotation
+            sprite.rotation = data.spriteArray[i].rot * 365;
             //flip
-            if (data.spriteArray[i].hFlip != 0)
-            {
-                sprite.scaleX = data.spriteArray[i].hFlip;
-            }
+            if (data.spriteArray[i].hFlip != 0) sprite.scaleX = data.spriteArray[i].hFlip;
             //pos
+            //trace("width " + r.width + " height " + r.height);
             sprite.originX = r.width/2 + data.spriteArray[i].inCenterXOffset;
             sprite.originY = r.height/2 + data.spriteArray[i].inCenterYOffset;
             sprite.x = data.spriteArray[i].pos.x;
@@ -168,78 +168,13 @@ class Objects extends TileDisplay
             sprite.colorTransform.redMultiplier = data.spriteArray[i].color[0];
             sprite.colorTransform.greenMultiplier = data.spriteArray[i].color[1];
             sprite.colorTransform.blueMultiplier = data.spriteArray[i].color[2];
-            //rotation
-            sprite.rotation = data.spriteArray[i].rot * 365;
-            if(data.person > 0)
-            {
-                //player data set
-                cast(object,Player).ageRange[i] = {min:data.spriteArray[i].ageRange[0],max:data.spriteArray[i].ageRange[1]};
-            }
-            //parent system
-            if (data.spriteArray[i].parent > -1)
-            {
-                var p = parents.get(data.spriteArray[i].parent);
-                if (p == null)
-                {
-                    p = new TileContainer();
-                    parents.set(data.spriteArray[i].parent,p);
-                    if (container)
-                    {
-                        object.addTile(p);
-                    }else{
-                        p.x = x * Static.GRID;
-                        p.y = (Static.tileHeight - y) * Static.GRID;
-                        //group.addTileAt(p,0);
-                        group.addTile(p);
-                    }
-                }
-                p.addTile(sprite);
-                if (i == data.spriteArray[i].parent)
-                {
-                    sprites.push(p);
-                }else{
-                    sprites.push(sprite);
-                }
-            }else{
-                if (container)
-                {
-                    if (containing > 0)
-                    {
-                        //pos
-                        var pos = Main.data.objectMap.get(containing).slotPos[index];
-                        sprite.x += pos.x;
-                        sprite.y += pos.y;
-                    }
-                    object.addTile(sprite);
-                    sprites.push(sprite);
-                }else{
-                    sprite.x += x * Static.GRID;
-                    sprite.y += (Static.tileHeight - y) * Static.GRID;
-                    group.addTile(sprite);
-                    //group.addTileAt(sprite,0);
-                    sprites.push(sprite);
-                }
-            }
+            //offset
+            sprite.x += x;
+            sprite.y += y;
+            //array
+            sprites.push(sprite);
         }
-        //trace("for " + UnitTest.stamp() + " person " + data.person + " container " + container);
-        //person
-        if (data.person > 0)
-        {
-            cast(object,Player).sprites = sprites;
-        }
-        //finish for loop, push data into tileData
-        if (push)
-        {
-            if (container) sprites = [object];
-            if (data.floor == 0)
-            {
-                Main.data.tileData.object.set(x,y,sprites);
-            }else{
-                Main.data.tileData.floor.set(x,y,sprites);
-            }
-        }
-        //trace("add " + UnitTest.stamp());
-        return true;
+        return sprites;
     }
     public function clear()
     {

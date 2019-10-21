@@ -45,6 +45,10 @@ class LineReader
         var comma:Int = string.indexOf(",");
         return new Point(Std.parseInt(string.substring(0,comma)),Std.parseInt(string.substring(comma + 1,string.length)));
     }
+    public function getBool():Bool
+    {
+        return getString() == "1" ? true : false;
+    }
     public function getInt():Int
     {
         return Std.parseInt(getString());
