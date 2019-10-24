@@ -46,6 +46,7 @@ class Player #if openfl extends TileContainer #end
     //locally used object
     public var oid:Int = 0;
     public var held:Bool = false;
+    public var ageInt:Int = 0;
     //name
     public var firstName:String = "";
     public var lastName:String = "";
@@ -317,75 +318,7 @@ class Player #if openfl extends TileContainer #end
             oid = instance.o_id;
         }
         #else
-        /*if (instance.o_id != oid)
-        {
-            //remove previous
-            if (object != null)
-            {
-                removeTile(object);
-                if (oid < 0) 
-                {
-                    //player add back to stage
-                    objects.group.addTile(object);
-                    if (Std.is(object,Player)) cast(object,Player).held = false;
-                }
-                object = null;
-            }
-            //set oid
-            oid = instance.o_id;
-            if (oid == 0) return;
-            var objectData:ObjectData = null;
-            //object
-            if (oid > 0)
-            {
-                //object coming from the world
-                objectData = Main.data.objectMap.get(oid);
-                if (instance.o_origin_valid == 1)
-                {
-                    var array = Main.data.tileData.object.get(instance.o_origin_x,instance.o_origin_y);
-                    if (array != null)
-                    {
-                        //trace("array " + array);
-                        var mo = Main.data.map.object.get(instance.o_origin_x,instance.o_origin_y);
-                        var index = -1;
-                        if (mo != null) index = mo.indexOf(oid);
-                        if (index > -1 && index < array.length)
-                        {
-                            object = array[index];
-                            addTile(object);
-                            //remove tiles and data
-                            Main.data.map.object.set(instance.o_origin_x,instance.o_origin_y,[]);
-                            Main.data.tileData.object.set(instance.o_origin_x,instance.o_origin_y,[]);
-                        }
-                    }
-                }else{
-                    //new object not being pulled from
-                    objects.add(instance.o_id,0,0,true,false);
-                    object = objects.object;
-                }
-            }
-            //player
-            if (oid < 0)
-            {
-                var player = Main.data.playerMap.get(oid * -1);
-                if (player != null)
-                {
-                    objectData = Main.data.objectMap.get(player.instance.po_id);
-                    objects.group.removeTile(player);
-                    player.held = true;
-                    //same facing as mother
-                    player.scaleX = scaleX;
-                    //add to mother's display list
-                    addTile(player);
-                    object = player;
-                }
-            }
-            if (objectData != null && object != null && objectData.heldOffset != null)
-            {
-                object.x = 20 + objectData.heldOffset.x;
-                object.y = -Static.GRID/2 + objectData.heldOffset.y - 18;
-            }
-        }*/
+        
         #end
     }
     public function force() 
@@ -404,9 +337,19 @@ class Player #if openfl extends TileContainer #end
     {
         
     }
+    public function sprites():Array<Tile>
+    {
+        var array:Array<Tile> = [];
+        for (i in 0...numTiles) array.push(getTileAt(i));
+        return array;
+    }
     public function age()
     {
-        //Main.objects.visibleSprites(instance.po_id,sprites,Std.int(instance.age));
+        if (ageInt != Std.int(instance.age))
+        {
+            ageInt = Std.int(instance.age);
+            Main.objects.visibleSprites(instance.po_id,sprites(),ageInt);
+        }
     }
     #end
 }

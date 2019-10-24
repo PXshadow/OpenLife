@@ -118,7 +118,7 @@ class PlayerInstance extends PlayerType
                 case 17:
                 age_r = Std.parseFloat(value);
                 case 18:
-                move_speed = Std.parseInt(value);
+                move_speed = Std.parseFloat(value);
                 case 19:
                 clothing_set = value;
                 case 20:

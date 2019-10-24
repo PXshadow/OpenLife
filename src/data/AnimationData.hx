@@ -125,7 +125,6 @@ class AnimationParameter
     // the first pause, before the first animation duration,
     // for controling the phase of the duration-pause cycle
     public var startPauseSec:Float = 0;
-
     //param array start here
     public var xOscPerSec:Float = 0;
     // in pixels distance
@@ -138,7 +137,6 @@ class AnimationParameter
     public var yPhase:Float = 0;
 
     public var rotationCenterOffset:Point;
-
     // can be positive (CW) or negative (CCW)
     public var rotPerSec:Float = 0;
     public var rotPhase:Float = 0;
@@ -147,18 +145,14 @@ class AnimationParameter
     // between 0 and 1, where 1 is full rotation before coming back
     public var rockAmp:Float = 0;
     public var rockPhase:Float = 0;
-        
     // for animations that run for a while and pause between runs
     // ticking cogs, twitching animal noses, etc.
     public var durationSec:Float = 0;
     public var pauseSec:Float = 0;
-        
 
-    public var fadeOscPerSec:Float = 0;
-        
+    public var fadeOscPerSec:Float = 0; 
     // 0 is sine wave, 1 is square wave, in between is a mix
     public var fadeHardness:Float = 0;
-
     // what fade oscillates between
     public var fadeMin:Float = 0;
     public var fadeMax:Float = 0;
@@ -175,7 +169,7 @@ class AnimationParameter
         xOscPerSec = Std.parseFloat(array[i++]);
         xAmp = Std.parseFloat(array[i++]);
         xPhase = Std.parseFloat(array[i++]);
-        //trace("yosc " + array[i]);
+        
         yOscPerSec = Std.parseFloat(array[i++]);
         yAmp = Std.parseFloat(array[i++]);
         yPhase = Std.parseFloat(array[i++]);

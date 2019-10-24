@@ -401,6 +401,10 @@ class Main #if openfl extends Sprite #end
             program.use(selectX,selectY);
             player.hold();
         }
+        if (Bind.playerKill.bool)
+        {
+            new data.AnimationPlayer(player.instance.po_id,1,player.sprites());
+        }
     }
     private function keyUp(e:KeyboardEvent)
     {
@@ -438,7 +442,7 @@ class Main #if openfl extends Sprite #end
     }
     private function mouseUp(_)
     {
-
+        
     }
     private function mouseRightDown(_)
     {

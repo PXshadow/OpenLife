@@ -1,4 +1,5 @@
 package game;
+import data.SpriteData;
 #if openfl
 import openfl.display.BitmapData;
 import data.GameData;
@@ -105,14 +106,11 @@ class Objects extends TileDisplay
         }else{
             Main.data.blocking.remove(x + "." + y);
         }
-        //tile position
-        var tx:Float = x * Static.GRID;
-        var ty:Float = (Static.tileHeight - y) * Static.GRID;
         //create
         var sprites:Array<Tile> = [];
         if (container == null)
         {
-            sprites = create(data,tx,ty);
+            sprites = create(data,x,y);
         }else{
             sprites = create(data,0,0);
         }
@@ -143,7 +141,7 @@ class Objects extends TileDisplay
         }
         return true;
     }
-    private function create(data:ObjectData,x:Float=0,y:Float=0):Array<Tile>
+    private function create(data:ObjectData,x:Int=0,y:Int=0):Array<Tile>
     {
         var sprite:Tile = null;
         var r:Rectangle;
@@ -161,20 +159,22 @@ class Objects extends TileDisplay
             //trace("width " + r.width + " height " + r.height);
             sprite.originX = r.width/2 + data.spriteArray[i].inCenterXOffset;
             sprite.originY = r.height/2 + data.spriteArray[i].inCenterYOffset;
-            sprite.x = data.spriteArray[i].pos.x;
-            sprite.y = -data.spriteArray[i].pos.y;
             //color
             sprite.colorTransform = new ColorTransform();
             sprite.colorTransform.redMultiplier = data.spriteArray[i].color[0];
             sprite.colorTransform.greenMultiplier = data.spriteArray[i].color[1];
             sprite.colorTransform.blueMultiplier = data.spriteArray[i].color[2];
             //offset
-            sprite.x += x;
-            sprite.y += y;
+            posSprite(sprite,data.spriteArray[i],x,y);
             //array
             sprites.push(sprite);
         }
         return sprites;
+    }
+    public function posSprite(sprite:Tile,data:SpriteData,x:Int,y:Int)
+    {
+        sprite.x = data.pos.x + x * Static.GRID;
+        sprite.y = -data.pos.y + (Static.tileHeight - y) * Static.GRID;
     }
     public function clear()
     {
