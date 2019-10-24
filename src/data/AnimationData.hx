@@ -121,15 +121,16 @@ class AnimationRecord
 }
 class AnimationParameter
 {
+    //https://github.com/twohoursonelife/OneLifeDocs/blob/master/OHOL%20editor%20guide.txt
     public var offset:Point;
     // the first pause, before the first animation duration,
     // for controling the phase of the duration-pause cycle
     public var startPauseSec:Float = 0;
-    //param array start here
+    //param array start here, amount of seconds to complete cycle
     public var xOscPerSec:Float = 0;
-    // in pixels distance
+    //in pixels distance from middle
     public var xAmp:Float = 0;
-    // between 0 and 1
+    // between 0 and 1 of where to start the animation 0 = middle-right, 0.25 = right-left, 0.50, 0.50 middle-left, 0.75 left-right
     public var xPhase:Float = 0;
 
     public var yOscPerSec:Float = 0;

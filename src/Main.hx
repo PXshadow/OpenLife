@@ -382,6 +382,7 @@ class Main #if openfl extends Sprite #end
         if (Bind.zoomIn.bool) zoom(1);
         if (Bind.zoomOut.bool) zoom(-1);
         //player
+        if (player == null) return;
         if (Bind.playerSelf.bool)
         {
             program.self();
@@ -488,26 +489,6 @@ class Main #if openfl extends Sprite #end
             ground.clear();
             objects.clear();
             trace("clear " + UnitTest.stamp());
-            //clear cache
-            /*if (objects.getFill() > 0.90 || objects.clearBool)
-            {
-                trace("clear cache!");
-                objects.cacheMap = new Map<Int,Int>();
-                objects.tileX = 0;
-                objects.tileY = 0;
-                objects.tileHeight = 0;
-                //player
-                it = data.playerMap.iterator();
-                while (it.hasNext())
-                {
-                    objects.player = it.next();
-                    objects.player.removeTiles();
-                    objects.add(objects.player.instance.po_id,0,0,true,false);
-                    objects.player.addTiles(cast(objects.object,Player).sprites);
-                }
-                objects.tileset.bitmapData.fillRect(objects.tileset.bitmapData.rect,0xFFFFFFFF);
-            }*/
-            trace("rect " + UnitTest.stamp());
             //object layer
             var array:Array<Int> = [];
             for (j in cy - range...cy + range)
@@ -804,12 +785,11 @@ class Main #if openfl extends Sprite #end
                 {
                     if (player.instance.age >= 3)
                     {
-                        program.task("food");
+                        //program.task("food");
                     }else{
                         client.send("SAY 0 0 F");
                     }
                 }
-                trace("player " + player);
                 player.instance.move_speed = Std.parseFloat(array[4]);
             }
             case FRAME:

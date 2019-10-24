@@ -66,12 +66,12 @@ class Objects extends TileDisplay
         {
             //new
             player = new Player();
-            add([data.po_id],data.x,data.y,player);
+            //tileHeight - tileHeight = 0 for Y
+            add([data.po_id],0,data.y,player);
             group.addTile(player);
             player.set(data);
             player.force();
-            Main.data.playerMap.set(data.p_id,player);
-            
+            Main.data.playerMap.set(data.p_id,player); 
         }else{
             //exists
             player.set(data);
@@ -106,19 +106,22 @@ class Objects extends TileDisplay
         }else{
             Main.data.blocking.remove(x + "." + y);
         }
+        //tile position
+        var tx:Float = x * Static.GRID;
+        var ty:Float = (Static.tileHeight - y) * Static.GRID;
         //create
         var sprites:Array<Tile> = [];
         if (container == null)
         {
-            sprites = create(data,x,y);
+            sprites = create(data,tx,ty);
         }else{
             sprites = create(data,0,0);
         }
         //conainted
-        for (i in 1...array.length) 
+        /*for (i in 1...array.length) 
         {
 
-        }
+        }*/
         //fill container if present
         if (container != null)
         {
@@ -141,40 +144,40 @@ class Objects extends TileDisplay
         }
         return true;
     }
-    private function create(data:ObjectData,x:Int=0,y:Int=0):Array<Tile>
+    private function create(data:ObjectData,x:Float=0,y:Float=0):Array<Tile>
     {
         var sprite:Tile = null;
-        var r:Rectangle;
         var sprites:Array<Tile> = [];
         for (i in 0...data.numSprites)
         {
             sprite = new Tile();
             sprite.id = cacheSprite(data.spriteArray[i].spriteID);
-            r = tileset.getRect(sprite.id);
-            //rotation
-            sprite.rotation = data.spriteArray[i].rot * 365;
-            //flip
-            if (data.spriteArray[i].hFlip != 0) sprite.scaleX = data.spriteArray[i].hFlip;
-            //pos
-            //trace("width " + r.width + " height " + r.height);
-            sprite.originX = r.width/2 + data.spriteArray[i].inCenterXOffset;
-            sprite.originY = r.height/2 + data.spriteArray[i].inCenterYOffset;
-            //color
-            sprite.colorTransform = new ColorTransform();
-            sprite.colorTransform.redMultiplier = data.spriteArray[i].color[0];
-            sprite.colorTransform.greenMultiplier = data.spriteArray[i].color[1];
-            sprite.colorTransform.blueMultiplier = data.spriteArray[i].color[2];
-            //offset
-            posSprite(sprite,data.spriteArray[i],x,y);
-            //array
+            setSprite(sprite,data.spriteArray[i],x,y);
             sprites.push(sprite);
         }
         return sprites;
     }
-    public function posSprite(sprite:Tile,data:SpriteData,x:Int,y:Int)
+    public function setSprite(sprite:Tile,data:SpriteData,x:Float,y:Float)
     {
-        sprite.x = data.pos.x + x * Static.GRID;
-        sprite.y = -data.pos.y + (Static.tileHeight - y) * Static.GRID;
+        var r = tileset.getRect(sprite.id);
+        //center
+        sprite.originX = r.width/2 + data.inCenterXOffset;
+        sprite.originY = r.height/2 + data.inCenterYOffset;
+        //pos offset
+        sprite.x = data.pos.x;
+        sprite.y = -data.pos.y;
+        //grid offset
+        sprite.x += x;
+        sprite.y += y;
+        //color
+        sprite.colorTransform = new ColorTransform();
+        sprite.colorTransform.redMultiplier = data.color[0];
+        sprite.colorTransform.greenMultiplier = data.color[1];
+        sprite.colorTransform.blueMultiplier = data.color[2];
+        //rotation
+        sprite.rotation = data.rot * 365;
+        //flip
+        if (data.hFlip != 0) sprite.scaleX = data.hFlip;
     }
     public function clear()
     {
