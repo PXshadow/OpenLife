@@ -3,7 +3,7 @@
 	
 	<meta title="OpenLife" package="com.project.OpenLife" version="1.0.0" company="" />
 	<app main="Main" path="bin" file="OpenLife" />
-	<window width="1600" height="900" fps="60" vsync="true" antialiasing="0"/>
+	<window width="1600" height="900" fps="60" vsync="false" antialiasing="0"/>
 	<source path="src" />
 	<haxelib name="format"/>
 	<haxelib name="openfl" />
@@ -13,6 +13,7 @@
 	<!--<haxedef name="HXCPP_STACK_LINE" if="debug"/>-->
 	<!--<haxedef name="HXCPP_STACK_TRACE" if="debug"/>-->
 	<haxedef name="no-deprecation-warnings"/>
+	<haxedef name="openfl_power_of_two"/>
 	<haxedef name="canvas" if="html5"/>
 	<icon path="icon.svg"/>
 	<assets name="assets" embed="false"/>

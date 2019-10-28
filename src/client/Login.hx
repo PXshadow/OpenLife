@@ -47,7 +47,7 @@ class Login
     {
 		key = StringTools.replace(key,"-","");
         //login
-        var login = email + " " +
+        var login = /*"client_shadow" +*/ email + " " +
 		new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f")
 		,Bytes.ofString(challenge,RawNative)).toHex() + " " +
 		new Hmac(SHA1).make(Bytes.ofString(key)

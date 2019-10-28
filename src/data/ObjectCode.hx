@@ -6,7 +6,7 @@ class ObjectCode
     private static var rift:Array<Int> = [];
     public static function look(id:Int)
     {
-
+        
     }
     public static function id(name:String):Array<Int>
     {

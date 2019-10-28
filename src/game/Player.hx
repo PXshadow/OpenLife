@@ -341,6 +341,7 @@ class Player #if openfl extends TileContainer #end
     {
         var array:Array<Tile> = [];
         for (i in 0...numTiles) array.push(getTileAt(i));
+        array.remove(object);
         return array;
     }
     public function age()

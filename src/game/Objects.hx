@@ -53,6 +53,7 @@ class Objects extends TileDisplay
     public function new()
     {
         super();
+        //smoothing = true;
         //trace(list);
         //add base
         group = new TileContainer();

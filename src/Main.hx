@@ -404,6 +404,7 @@ class Main #if openfl extends Sprite #end
         }
         if (Bind.playerKill.bool)
         {
+            trace("play animation");
             new data.AnimationPlayer(player.instance.po_id,1,player.sprites());
         }
     }

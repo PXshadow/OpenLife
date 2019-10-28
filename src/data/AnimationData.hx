@@ -132,7 +132,7 @@ class AnimationParameter
     public var xAmp:Float = 0;
     // between 0 and 1 of where to start the animation 0 = middle-right, 0.25 = right-left, 0.50, 0.50 middle-left, 0.75 left-right
     public var xPhase:Float = 0;
-
+    
     public var yOscPerSec:Float = 0;
     public var yAmp:Float = 0;
     public var yPhase:Float = 0;
