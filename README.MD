@@ -3,22 +3,6 @@
 ![Build Status](https://img.shields.io/circleci/project/github/openfl/openfl-samples/master.svg)
 ![Downloads](https://img.shields.io/github/downloads/pxshadow/openlife/total)
 ![Stars](https://img.shields.io/github/stars/pxshadow/openlife?style=social)
-
-# Launcher
-Simply click, download, and play on the servers you want with your favorite modded clients
-
-### **[Download](https://github.com/PXshadow/OpenLife/releases/latest)**
-
-### **[Repository](https://github.com/PXshadow/OpenLifeLauncher)**
-
-### Supports:
-
-* Server browser
-* Account management
-* Global settings 
-
-
-
 # Client 
 
 [![badge](badge.svg)](https://haxe.org)
@@ -31,24 +15,29 @@ To Players:
 
 *Open Life is a fast, light weight [One Life](http://onehouronelife.com/) client/application.*
 
-* Designed to allow a launcher system to pick between One Life mods, versions and servers with ease.
+* Easy setup, and feature rich.
 
-*  Improvements such as in game settings and key bindings. 
-* Plug and play client mod support.
+* Improvements such as in game settings and key bindings.
+
+* Plug and play script support.
 
 *  Quality of life improvements across the board.
 
-* Dedicated development for a from scratch custom built client, independently supported.
+* Dedicated development for a new, custom built client, independently supported.
 
 To Developers:
 =========
 *Open Life is an [OpenFL](https://openfl.org) and [Haxe](https://haxe.org) based One Life client.*
 
-* **MOD SUPPORT:** Open Life will be able to excute code in real time using [hscript](https://github.com/HaxeFoundation/hscript) and [cppia](https://haxe.org/manual/target-cppia-getting-started.html). A built in mod launcher. Tier one support for community based mods and full client architecture support.
+* **Real Time Console:** Open Life will be able to excute code in real time using [hscript](https://github.com/HaxeFoundation/hscript) and eventually [cppia](https://haxe.org/manual/target-cppia-getting-started.html).
 
-* **High performance:** Uses an incredbily powerful display list system called Tilemap ([Demo](https://www.openfl.org/samples/bunny/)) to display all chunks, floors and sprites.
+* **Client Scripting:** Allows programmers to easily build programs on type of the client architecture.
 
-* **Multi target and language export:** Deploy to a [plethora of targets](https://github.com/openfl/lime#targets) with the stability of OpenFL, and multiple languages with haxe ranging from Javascript to C/C++, more info of [languages supported](https://haxe.org/documentation/introduction/compiler-targets.html).
+* **High performance Rendering:** Uses a powerful display list system called Tilemap ([Demo](https://www.openfl.org/samples/bunny/)) to display all chunks, floors and sprites.
+
+* **Cross platform:** Deploy to a [plethora of targets](https://github.com/openfl/lime#targets) with the stability of OpenFL.
+
+* **Cross compilied languages:** Compiles to [Java](https://haxe.org/documentation/platforms/java.html), [C#](https://haxe.org/documentation/platforms/csharp.html), [Python](https://haxe.org/documentation/platforms/python.html), [Lua](https://haxe.org/manual/target-lua-getting-started.html), [Php](https://haxe.org/documentation/platforms/php.html)
 
 * **Thoughtful, concise and efficent code:** Codebase continues to become as minimalistic as possible while also keeping the level of abstraction low.
 
@@ -62,3 +51,4 @@ Getting Started
 * Run the run.sh commands in this directory
 * Test project initially: ```lime test neko```
 * For C++ version: ```lime test cpp```
+* add [data files](https://github.com/jasonrohrer/OneLifeData7) into application directory 
