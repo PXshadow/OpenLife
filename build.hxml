@@ -28,6 +28,37 @@
 -java bin/windows/bin/java
 
 --next
+
+#Python
+-cp src
+-main Main
+-dce full
+-D secret
+-lib hscript
+-python bin/windows/bin/terminal.py
+
+--next
+
+#CS
+-cp src
+-main Main
+-dce full
+-D secret
+-lib hscript
+-cs bin/windows/bin/cs
+
+--next
+
+#Php
+-cp src
+-main Main
+-dce full
+-D secret
+-lib hscript
+-php bin/windows/bin/php
+
+--next
+
 #output reader
 -cp src
 -neko bin/windows/bin/output.n
