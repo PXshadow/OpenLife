@@ -1,18 +1,34 @@
+#Neko
 -cp src
--neko bin/windows/bin/terminal.n
 -D secret
+-dce full
 -main Main
 -lib hscript
 
-#--next
-#-cpp export/cpp
-#-main Main
-#-cp src
-#-dce full
-#-lib hscript
+--next
+
+#Lua
+-lua bin/windows/bin/terminal.lua
+-cp src
+-dce full
+-D secret
+-lib hscript
+-D luajit
+-D lua-vanilla
+-main Main
 
 --next
 
+#Java
+-cp src
+-main Main
+-dce full
+-D secret
+-lib hscript
+-java bin/windows/bin/java
+
+--next
+#output reader
 -cp src
 -neko bin/windows/bin/output.n
 -main Output

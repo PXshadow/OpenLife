@@ -6,7 +6,6 @@ import console.Program;
 import data.GameData;
 import data.MapData.ArrayDataArray;
 import settings.Bind;
-import sys.thread.Thread;
 import sys.net.Socket;
 import client.Client;
 import console.Console;
@@ -132,6 +131,7 @@ class Main #if openfl extends Sprite #end
         output.socket.setBlocking(false);
         trace("start client terminal");
         //background thread async for input
+        #if (target.threaded)
         sys.thread.Thread.create(() -> {
             while (true)
             {
@@ -140,6 +140,7 @@ class Main #if openfl extends Sprite #end
                 Sys.sleep(1/2);
             }
         });
+        #end
         //update loop main
         while (true)
         {
@@ -405,7 +406,7 @@ class Main #if openfl extends Sprite #end
         if (Bind.playerKill.bool)
         {
             trace("play animation");
-            new data.AnimationPlayer(player.instance.po_id,1,player.sprites());
+            new data.AnimationPlayer(player.instance.po_id,2,player.sprites(),0,Static.tileHeight);
         }
     }
     private function keyUp(e:KeyboardEvent)
@@ -842,8 +843,10 @@ class Main #if openfl extends Sprite #end
 
             }else{
                 //main player died disconnect
+                #if openfl
                 disconnect();
-                Sys.sleep(1.6);
+                #end
+                Sys.sleep(0.6);
                 connect();
             }
             case DYING:

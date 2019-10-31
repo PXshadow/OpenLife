@@ -67,6 +67,7 @@ class Player #if openfl extends TileContainer #end
             moving = true;
             var time = Std.int(Static.GRID/(Static.GRID * (instance.move_speed) * computePathSpeedMod()) * 60 * multi);
             #if !openfl
+            #if (target.threaded)
             sys.thread.Thread.create(() -> {
                 Sys.sleep(time/60);
                 trace("finish move");
@@ -80,6 +81,7 @@ class Player #if openfl extends TileContainer #end
                     motion();
                 }
             });
+            #end
             #else
             //facing direction
             if (point.x != 0)

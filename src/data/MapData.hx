@@ -150,6 +150,7 @@ class ArrayDataInt
         array[y - dy][x - dx] = value;
     }
 }
+@:generic
 class ArrayDataArray<T>
 {
     var array:Array<Array<Array<T>>> = [];
