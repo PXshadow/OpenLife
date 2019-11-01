@@ -1,3 +1,7 @@
+import sys.io.File;
+import openfl.display.PNGEncoderOptions;
+import openfl.display.BitmapData;
+import openfl.ui.Keyboard;
 import client.Router;
 import sys.FileSystem;
 import sys.io.Process;
@@ -352,6 +356,28 @@ class Main #if openfl extends Sprite #end
     private function keyDown(e:KeyboardEvent)
     {
         if (console.keyDown(e.keyCode)) return;
+        if (e.keyCode == Keyboard.F12)
+        {
+            var latest:Int = -1;
+            var int:Int = 0;
+            if (!FileSystem.exists(Static.dir + "screenShots")) FileSystem.createDirectory(Static.dir + "screenShots");
+            for (file in FileSystem.readDirectory(Static.dir + "screenShots"))
+            {
+                //screen 6
+                int = Std.parseInt(Path.withoutExtension(file).substring(0,file.length));
+                if (int > latest) latest = int;
+            }
+            latest++;
+            //generate screen shot
+            var bmd = new BitmapData(Std.int(objects.width),Std.int(objects.height));
+            bmd.draw(objects);
+            var name:String = Std.string(latest);
+            for (i in 0...5 - name.length) name = "0" + name;
+            var file = File.write(Static.dir + "screenShots/" + name,false);
+            file.writeString(bmd.encode(bmd.rect,PNGEncoderOptions).toString());
+            file.close();
+            return;
+        }
         Bind.keys(e,true);
         //chat
         if (stage.focus == chat)
