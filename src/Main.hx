@@ -1,5 +1,3 @@
-import sys.io.File;
-import openfl.display.PNGEncoderOptions;
 import openfl.display.BitmapData;
 import openfl.ui.Keyboard;
 import client.Router;
@@ -269,7 +267,7 @@ class Main #if openfl extends Sprite #end
         state.addChild(draw);
         food = new Shape();
         food.cacheAsBitmap = true;
-        addChild(food);
+        state.addChild(food);
         chat = new Text("",LEFT,30,0,200);
         chat.tabEnabled = false;
         chat.wordWrap = false;
@@ -280,7 +278,7 @@ class Main #if openfl extends Sprite #end
         chat.selectable = true;
         chat.mouseEnabled = true;
         chat.type = INPUT;
-        addChild(chat);
+        state.addChild(chat);
     }
     var xs:Int = 0;
     var ys:Int = 0;
@@ -369,13 +367,15 @@ class Main #if openfl extends Sprite #end
             }
             latest++;
             //generate screen shot
-            var bmd = new BitmapData(Std.int(objects.width),Std.int(objects.height));
-            bmd.draw(objects);
-            var name:String = Std.string(latest);
+            /*
+            var bmd = new BitmapData(Std.int(stage.stageHeight),Std.int(stage.stageWidth));
+            bmd.draw(stage);
             for (i in 0...5 - name.length) name = "0" + name;
-            var file = File.write(Static.dir + "screenShots/" + name,false);
-            file.writeString(bmd.encode(bmd.rect,PNGEncoderOptions).toString());
+            var file = sys.io.File.write(Static.dir + "screenShots/screen" + name,true);
+
+            file.write(bmd.encode(bmd.rect,new openfl.display.JPEGEncoderOptions(80)));
             file.close();
+            */
             return;
         }
         Bind.keys(e,true);
