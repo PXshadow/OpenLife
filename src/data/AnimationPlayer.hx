@@ -22,7 +22,7 @@ class AnimationPlayer
     //tile position
     var tx:Float = 0;
     var ty:Float = 0;
-    public function new(id:Int,int:Int,sprites:Array<Tile>,x:Int=0,y:Int=0)
+    public function new(id:Int,int:Int,parent:TileContainer,sprites:Array<Tile>,x:Int=0,y:Int=0)
     {
         //if (current.indexOf(id) > -1) return;
         //current.push(id);
@@ -30,10 +30,10 @@ class AnimationPlayer
         if (objectData == null || objectData.animation == null) return;
         param = objectData.animation.record[int].params;
         this.sprites = sprites;
+        this.parent = parent;
         type = objectData.animation.record[int].type;
         tx = x * Static.GRID;
         ty = (Static.tileHeight - y) * Static.GRID;
-        parent = sprites[0].parent;
         trace("tx " + tx + " ty " + ty);
         setup();
     }
@@ -41,37 +41,31 @@ class AnimationPlayer
     {
         var sprite:Tile = null;
         var p:Int = 0;
-        var setParent = parent.clone();
+        var index:Int = 0;
         for (i in 0...sprites.length)
         {
             //set pos
             Main.objects.setSprite(sprites[i],objectData.spriteArray[i],tx,ty);
-            //parent
-            p = objectData.spriteArray[i].parent;
-            parent = setParent;
+        }
+        for (i in 0...sprites.length)
+        {
+            p = objectData.spriteArray.get(i).parent;
             sprite = sprites[i];
-            while (p != -1)
+            while(p != -1)
             {
-                var container = parents.get(p);
-                if (container == null)
-                {
-                    container = new TileContainer();
-                    setParent.removeTile(sprites[p]);
-                    container.addTile(sprites[p]);
-                    parent.addTile(container);
-                    parent = container;
-                }
-                setParent.removeTile(sprite);
-                container.addTile(sprite);
+                sprites[p] = container(sprites[p]);
+                parent.addTileAt(sprites[p],p);
+                index = sprite.parent.getTileIndex(sprite);
+                sprite.parent.removeTileAt(index);
+                cast(sprites[p],TileContainer).addTileAt(sprite,index);
+                //reset
                 sprite = sprites[p];
-                p = objectData.spriteArray[p].parent;
+                p = objectData.spriteArray.get(p).parent;
             }
         }
         for (i in 0...param.length)
         {
-            sprite = parents.get(i);
-            if (sprite != null) trace("sprite not null");
-            if (sprite == null) sprite = sprites[i];
+            sprite = sprites[i];
             //rot phase
             sprite.rotation += param[i].rotPhase * 365;
             //offset
@@ -93,6 +87,13 @@ class AnimationPlayer
             }*/
         }
     }
+    private function container(tile:Tile):TileContainer
+    {
+        var c = new TileContainer();
+        tile.parent.removeTile(tile);
+        c.addTile(tile);
+        return c;
+    }
     private function tween(sprite:Tile,a:Dynamic,b:Dynamic,time:Float)
 	{
 		Actuate.tween(sprite,time/2,a,false).ease(Sine.easeInOut).onComplete(function()
@@ -103,4 +104,19 @@ class AnimationPlayer
             });
 		});
 	}
+    private function clean()
+    {
+        for (i in 0...sprites.length)
+        {
+            Actuate.stop(sprites[i]);
+            if (!Std.is(sprites[i],TileContainer))
+            {
+                if (!parent.contains(sprites[i]))
+                {
+                    sprites[i].parent.removeTile(sprites[i]);
+                    parent.addTile(sprites[i]);
+                }
+            }
+        }
+    }
 }

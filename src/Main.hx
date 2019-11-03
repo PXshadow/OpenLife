@@ -432,7 +432,7 @@ class Main #if openfl extends Sprite #end
         if (Bind.playerKill.bool)
         {
             trace("play animation");
-            new data.AnimationPlayer(player.instance.po_id,2,player.sprites(),0,Static.tileHeight);
+            new data.AnimationPlayer(player.instance.po_id,2,player,player.sprites(),0,Static.tileHeight);
         }
     }
     private function keyUp(e:KeyboardEvent)
