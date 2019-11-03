@@ -51,7 +51,8 @@ class PlayerType
     public var just_ate:Int = 0;
     public var last_ate_id:Int = 0;
     public var responsible_id:Int = 0;
-    public var held_yum:Int = 0;
+    public var held_yum:Bool = false;
+    public var held_learned:Bool = false;
     public function new()
     {
 
@@ -126,7 +127,9 @@ class PlayerInstance extends PlayerType
                 case 21:
                 responsible_id = Std.parseInt(value);
                 case 22:
-                held_yum = Std.parseInt(value);
+                held_yum = value == "1" ? true : false;
+                case 24:
+                held_learned = value == "1" ? true : false;
             }
             //trace(name[index - 1] + ": " + value);
         }

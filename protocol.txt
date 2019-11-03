@@ -68,7 +68,25 @@ Where challenge_string is an ascii string, less than 150 characters long.
 
 2.  The client MUST respond with the following login message:
 
-LOGIN email password_hash account_key_hash tutorial_number twin_code_hash twin_count#
+LOGIN client_tag email password_hash account_key_hash tutorial_number twin_code_hash twin_count#
+
+
+client_tag must contain only A-Za-z0-9 plus _ and - 
+(alphanumeric, underscore, and hyphen).
+To be processed correctly, it must start with the string client_
+Mods MUST describe themselves honestly and uniquely.  Examples:
+
+client_official  (reserved for the official client)
+
+client_custom_john
+
+client_hetuw
+
+cleint_awbz
+
+client_wondible
+
+client_milkweed
 
 
 password_hash is based on the server access password, and is computed by:
@@ -131,6 +149,8 @@ PLAYER_MOVES_START (PM)
 
 PLAYER_OUT_OF_RANGE (PO)
 
+BABY_WIGGLE (BW)
+
 PLAYER_SAYS (PS)
 
 LOCATION_SAYS (LS)
@@ -154,6 +174,8 @@ APOCALYPSE_DONE (AD)
 DYING (DY)
 
 HEALED (HE)
+
+POSSE_JOIN (PJ)
 
 MONUMENT_CALL (MN)
 
@@ -180,6 +202,12 @@ VOG_UPDATE (VU)
 PHOTO_SIGNATURE (PH)
 
 FORCED_SHUTDOWN (SD)
+
+GLOBAL_MESSAGE (MS)
+
+WAR_REPORT (WR)
+
+LEARNED_TOOL_REPORT (LR)
 
 FRAME (FM)
 
@@ -263,12 +291,12 @@ Check the code in map.cpp for details.
 
 
 PU
-p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum
-p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum
-p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum
-p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum
+p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum held_learned
+p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum held_learned
+p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum held_learned
+p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum held_learned
 ...
-p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum
+p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum held_learned
 #
 
 List of player ids with their display object ids, facing direction, action
@@ -344,6 +372,8 @@ local walk).  Current examples involve feeding and clothing a baby.
 
 held_yum is 1 if held item is yummy food, 0 otherwise
 
+held_learned is 1 if the held item is a learned tool (or non-tool), 0 otherwise
+ 
 
 NOTE:
 If a baby wriggles out of an adult's arms, there is no PU sent about
@@ -397,6 +427,15 @@ they have moved out of range.
 
 
 
+
+BW
+p_id
+p_id
+...
+p_id
+#
+
+A list of player IDs that are babies who just started wiggling.
 
 
 
@@ -647,6 +686,13 @@ Indicates that the listed players have been healed and are no longer dying.
 
 
 
+PJ
+p_id_killer p_id_target
+#
+
+Indicates that killer joined posse of target.
+If target = 0, killer has left the posse.
+
 
 
 
@@ -774,6 +820,41 @@ chance to hear about this and close connection before connection is
 force-closed by server.
 
 
+MS
+some_message_text_with_space_replaced_by_underscore
+#
+
+Server sending a global message to be displayed by all non-tutorial clients.
+
+
+
+
+
+WR
+eve_id_a eve_id_b status
+eve_id_c eve_id_d status
+...
+eve_id_e eve_id_f status
+#
+
+Full report of families that are at war or peace.  Unlisted families are
+neutral.
+
+status is either:
+war
+peace
+
+
+
+
+LR
+tool_id tool_id ... tool_id 
+#
+
+Report about new tool objects that have just been learned
+
+Each tool_id is an object id.
+
 
 
 FM
@@ -808,7 +889,7 @@ parameters, and no leading spaces.
 
 
 KA x y#
-USE x y#
+USE x y id#
 BABY x y#
 BABY x y id#
 SELF x y i#
@@ -850,6 +931,9 @@ DROP is for setting held object down on empty grid square OR
 USE  is for bare-hand or held-object action on target object in non-empty 
      grid square, including picking something up (if there's no bare-handed 
      action), and picking up a container.
+     id parameter is optional, and is used by server to differentiate 
+     intentional use-on-bare-ground actions from use actions (in case
+     where target animal moved out of the way).
 
 SELF is special case of USE action taken on self (to eat what we're holding
      or add/remove clothing).
@@ -887,7 +971,7 @@ SREMV is special case of removing an object contained in a piece of worn
          2=frontShoe, 3=backShoe, 4=bottom, 5=backpack
       i specifies the index of the container item to remove, or -1 to
 	  remove top of stack.
-      
+
 KILL is for using a deadly object on the target square.  Square can
      be non-adjacent depending on deadly distance of held object.
      If another player is located there (even if moving and crossing)
@@ -903,6 +987,7 @@ JUMP is used by a baby to jump out of its mother's arms.  The x and y
      MOVE ambiguous in the case of jump-out (for example, if the baby
      has already been dropped by the time the MOVE arrives, the server will
      interpret it as a legitimate move attempt).
+     JUMP is also used to make an immobile baby wiggle on the ground.
 
 EMOT is used to specify an emotion to display.  The x and y coordinates are
      ignored.  e is the emotion index.

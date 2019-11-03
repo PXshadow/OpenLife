@@ -1,4 +1,5 @@
 package server;
+//tags used by the server
 @:enum abstract ServerTag(Null<String>)
 {
     public var KA = "KA";
@@ -58,8 +59,7 @@ package server;
             case "VOGX": VOGX;
             case "PHOTO": PHOTO;
             case "SAY": SAY;
-            default:
-            null;
+            default: null;
         }
     }
 }
