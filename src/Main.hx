@@ -1,5 +1,3 @@
-import openfl.display.BitmapData;
-import openfl.ui.Keyboard;
 import client.Router;
 import sys.FileSystem;
 import sys.io.Process;
@@ -21,6 +19,9 @@ import data.PlayerData.PlayerMove;
 import data.MapData.MapChange;
 //visual client
 #if openfl
+import openfl.display.Bitmap;
+import openfl.display.BitmapData;
+import openfl.ui.Keyboard;
 import openfl.display.TileContainer;
 import openfl.display.DisplayObject;
 import ui.Text;
@@ -512,8 +513,9 @@ class Main #if openfl extends Sprite #end
         trace("MAP UPDATE");
         renderTime = Timer.delay(function()
         {
+            //5.72 frames over
             UnitTest.inital();
-            objects.tileset.bitmapData.lock();
+            //objects.tileset.bitmapData.lock();
             ground.clear();
             objects.clear();
             trace("clear " + UnitTest.stamp());
@@ -538,9 +540,11 @@ class Main #if openfl extends Sprite #end
             trace("player " + UnitTest.stamp());
             ground.render();
             trace("ground render " + UnitTest.stamp());
-            objects.tileset.bitmapData.unlock();
+            //objects.tileset.bitmapData.unlock();
             //timer
             renderTime = null;
+            //var bitmap = new Bitmap(objects.tileset.bitmapData);
+            //addChild(bitmap);
         },800);
     }
     private function clear()

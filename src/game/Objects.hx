@@ -199,6 +199,8 @@ class Objects extends TileDisplay
         cacheMap.set(id,i);
         return i;
     }
+    var spacing:Int = 0;
+    //fit rectangle within spacing
     private function drawSprite(id:Int,rect:Rectangle):Rectangle
     {
         try {

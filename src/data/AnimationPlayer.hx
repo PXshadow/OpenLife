@@ -44,21 +44,35 @@ class AnimationPlayer
         var index:Int = 0;
         for (i in 0...sprites.length)
         {
+            sprite = sprites[i];
             //set pos
-            Main.objects.setSprite(sprites[i],objectData.spriteArray[i],tx,ty);
+            Main.objects.setSprite(sprite,objectData.spriteArray[i],tx,ty);
+            sprite.x += param[i].offset.x;
+            sprite.y += -param[i].offset.y;
+            sprite.originX += param[i].rotationCenterOffset.x;
+            sprite.originY += -param[i].rotationCenterOffset.y;
         }
         for (i in 0...sprites.length)
         {
             p = objectData.spriteArray.get(i).parent;
             sprite = sprites[i];
+            //offset
+            //sprite.rotation += param[i].rotPhase * 365;
             while(p != -1)
             {
+                //creates container
                 sprites[p] = container(sprites[p]);
                 parent.addTileAt(sprites[p],p);
+                //get index of child
                 index = sprite.parent.getTileIndex(sprite);
+                //remove child from old parent
                 sprite.parent.removeTileAt(index);
+                //add child with index placement
                 cast(sprites[p],TileContainer).addTileAt(sprite,index);
-                //reset
+                //position according to container
+                sprite.x += -sprites[p].x;
+                sprite.y += -sprites[p].y;
+                //reset for while loop in case p != -1
                 sprite = sprites[p];
                 p = objectData.spriteArray.get(p).parent;
             }
@@ -66,13 +80,6 @@ class AnimationPlayer
         for (i in 0...param.length)
         {
             sprite = sprites[i];
-            //rot phase
-            sprite.rotation += param[i].rotPhase * 365;
-            //offset
-            sprite.x += param[i].offset.x;
-            sprite.y += param[i].offset.y;
-            sprite.originX += param[i].rotationCenterOffset.x;
-            sprite.originY += param[i].rotationCenterOffset.y;
             //animation
             Actuate.stop(sprite);
             if (param[i].xAmp > 0) tween(sprite,{x:sprite.x + param[i].xAmp/2},{x:sprite.x - param[i].xAmp/2},1/param[i].xOscPerSec);
@@ -90,6 +97,12 @@ class AnimationPlayer
     private function container(tile:Tile):TileContainer
     {
         var c = new TileContainer();
+        c.x = tile.x;
+		c.y = tile.y;
+        //c.originX = tile.originX;
+        //c.originY = tile.originY;
+        //tile.originX = tile.originY = 0;
+        tile.x = tile.y = 0;
         tile.parent.removeTile(tile);
         c.addTile(tile);
         return c;

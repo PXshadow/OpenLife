@@ -1,0 +1,11 @@
+-cp src
+-D doc-gen
+-lib hscript
+-main Main
+#--macro include('pack')
+--no-output
+--each
+
+--next
+-xml dox/neko.xml
+-neko dummy.n

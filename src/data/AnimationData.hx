@@ -162,7 +162,7 @@ class AnimationParameter
     public var fadePhase:Float = 0;
     public function new()
     {
-
+        
     }
     public function process(array:Array<String>)
     {

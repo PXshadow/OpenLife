@@ -15,7 +15,7 @@ class TileDisplay extends Tilemap
     var reader:TgaData = new TgaData();
     public function new()
     {
-        super(0,0,new Tileset(new BitmapData(4096,4096,true)),false);
+        super(0,0,new Tileset(new BitmapData(4096,4096,true,0)),false);
         tileBlendModeEnabled = false;
         tileColorTransformEnabled = true;
     }
