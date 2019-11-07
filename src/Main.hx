@@ -17,6 +17,11 @@ import data.MapData.MapInstance;
 import game.Player;
 import data.PlayerData.PlayerMove;
 import data.MapData.MapChange;
+#if (cpp && debug)
+import cpp.vm.Profiler;
+#else
+import debug.Profiler;
+#end
 //visual client
 #if openfl
 import openfl.display.Bitmap;
@@ -514,7 +519,7 @@ class Main #if openfl extends Sprite #end
         renderTime = Timer.delay(function()
         {
             //5.72 frames over
-            UnitTest.inital();
+            Profiler.start("log.txt");
             //objects.tileset.bitmapData.lock();
             ground.clear();
             objects.clear();
@@ -530,21 +535,19 @@ class Main #if openfl extends Sprite #end
                     objects.add(data.map.object.get(i,j),i,j);
                 }
             }
-            trace("object " + UnitTest.stamp());
             it = data.playerMap.iterator();
             while (it.hasNext())
             {
                 objects.player = it.next();
                 if (!objects.player.held) objects.group.addTile(objects.player);
             }
-            trace("player " + UnitTest.stamp());
             ground.render();
-            trace("ground render " + UnitTest.stamp());
             //objects.tileset.bitmapData.unlock();
             //timer
             renderTime = null;
             //var bitmap = new Bitmap(objects.tileset.bitmapData);
             //addChild(bitmap);
+            Profiler.stop();
         },800);
     }
     private function clear()

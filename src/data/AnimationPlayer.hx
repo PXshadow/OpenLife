@@ -1,5 +1,5 @@
 package data;
-
+#if openfl
 import motion.easing.Linear;
 import motion.easing.Sine;
 import data.AnimationData.AnimationType;
@@ -37,7 +37,7 @@ class AnimationPlayer
         trace("tx " + tx + " ty " + ty);
         setup();
     }
-    public function setup()
+    @:interpret public function setup()
     {
         var sprite:Tile = null;
         var p:Int = 0;
@@ -94,7 +94,7 @@ class AnimationPlayer
             }*/
         }
     }
-    private function container(tile:Tile):TileContainer
+    @:interpret private function container(tile:Tile):TileContainer
     {
         var c = new TileContainer();
         c.x = tile.x;
@@ -133,3 +133,4 @@ class AnimationPlayer
         }
     }
 }
+#end

@@ -3,18 +3,21 @@
 	
 	<meta title="OpenLife" package="com.project.OpenLife" version="1.0.0" company="" />
 	<app main="Main" path="bin" file="OpenLife" />
-	<window width="1280" height="720" fps="60" vsync="false" antialiasing="0"/>
+	<window width="1280" height="720" fps="1" vsync="false" antialiasing="0"/>
 	<source path="src" />
 	<haxelib name="format"/>
 	<haxelib name="openfl" />
 	<haxelib name="actuate"/>
 	<haxelib name="hscript"/>
 
-	<!--<haxedef name="HXCPP_STACK_LINE" if="debug"/>-->
-	<!--<haxedef name="HXCPP_STACK_TRACE" if="debug"/>-->
+	<section if="debug">
+	<haxedef name="HXCPP_CHECK_POINTER"/>
+	<haxedef name="HXCPP_STACK_LINE"/>
+	<haxedef name="HXCPP_STACK_TRACE"/>
+	<!--<haxedef name="HXCPP_PROFILER"/>-->
+	</section>
 	<haxedef name="no-deprecation-warnings"/>
 	<haxedef name="openfl_power_of_two"/>
 	<haxedef name="canvas" if="html5"/>
 	<icon path="icon.svg"/>
-	<assets name="assets" embed="false"/>
 </project>

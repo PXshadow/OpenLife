@@ -35,6 +35,9 @@ class GameData
         #end
         //transitionData = new TransitionData();
         objectData();
+        #if openfl
+        openfl.Lib.current.stage.frameRate = 60;
+        #end
     }
     private function objectData()
     {
