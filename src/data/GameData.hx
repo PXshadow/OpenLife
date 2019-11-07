@@ -1,7 +1,10 @@
 package data;
 import haxe.ds.ObjectMap;
+#if full
 import game.Ground;
 import game.Player;
+import data.TransitionData;
+#end
 import sys.FileSystem;
 import sys.io.File;
 import haxe.io.Path;
@@ -10,31 +13,34 @@ import openfl.display.TileContainer;
 import openfl.display.Tile;
 import openfl.geom.Rectangle;
 #end
-import data.TransitionData;
 //data stored for the game to function (map data -> game data)
 class GameData
 {
     //block walking
     public var blocking:Map<String,Bool> = new Map<String,Bool>();
+    #if full
     public var playerMap:Map<Int,Player> = new Map<Int,Player>();
+    public var transitionData:TransitionData;
+    public var map:MapData;
+    #end
     public var spriteMap:Map<Int,SpriteData> = new Map<Int,SpriteData>();
     public var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
     //object alternative ids to refrence same object
     public var objectAlt:Map<Int,Int> = new Map<Int,Int>();
     public var nextObjectNumber:Int = 0;
-    public var transitionData:TransitionData;
-    public var map:MapData;
     #if openfl
     public var tileData:TileData;
     #end
     public function new()
     {
-        map = new MapData();
         #if openfl
         tileData = new TileData();
         #end
         //transitionData = new TransitionData();
+        #if full
+        map = new MapData();
         objectData();
+        #end
         #if openfl
         openfl.Lib.current.stage.frameRate = 60;
         #end

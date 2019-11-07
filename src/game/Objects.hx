@@ -2,7 +2,6 @@ package game;
 import data.SpriteData;
 #if openfl
 import openfl.display.BitmapData;
-import data.GameData;
 import openfl.display.TileContainer;
 import lime.utils.ObjectPool;
 import openfl.display.Tileset;
@@ -10,7 +9,6 @@ import haxe.io.Path;
 import openfl.utils.ByteArray;
 import haxe.ds.Vector;
 import sys.FileSystem;
-import data.PlayerData.PlayerInstance;
 import sys.io.File;
 import data.AnimationData;
 import openfl.geom.ColorTransform;
@@ -27,8 +25,10 @@ class Objects extends TileDisplay
     //for tileset
     public var tileX:Float = 0;
     public var tileY:Float = 0;
-    //last player to be loaded in 
-    public var player:Player = null;
+    //last player to be loaded in
+    #if full
+    public var player:game.Player = null;
+    #end
     //used for reading
     public var tileHeight:Int = 0;
     public var velocityX:Float = 0;
@@ -59,14 +59,15 @@ class Objects extends TileDisplay
         group = new TileContainer();
         addTile(group);
     }
-    public function addPlayer(data:PlayerInstance)
+    #if full
+    public function addPlayer(data:data.PlayerData.PlayerInstance)
     {
         if (data == null) return;
         player = Main.data.playerMap.get(data.p_id);
         if (player == null)
         {
             //new
-            player = new Player();
+            player = new game.Player();
             //tileHeight - tileHeight = 0 for Y
             add([data.po_id],0,data.y,player);
             group.addTile(player);
@@ -78,6 +79,7 @@ class Objects extends TileDisplay
             player.set(data);
         }
     }
+    #end
     public function visibleSprites(id:Int,sprites:Array<Tile>,age:Int=20)
     {
         var data = Main.data.objectMap.get(id);
