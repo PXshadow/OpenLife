@@ -1,7 +1,7 @@
 package data;
 #if openfl
 import openfl.display.Tile;
-import data.MapData.ArrayDataArray;
+import data.ArrayDataArray;
 class TileData
 {
     //floor objects

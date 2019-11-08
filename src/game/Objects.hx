@@ -26,9 +26,7 @@ class Objects extends TileDisplay
     public var tileX:Float = 0;
     public var tileY:Float = 0;
     //last player to be loaded in
-    #if full
     public var player:game.Player = null;
-    #end
     //used for reading
     public var tileHeight:Int = 0;
     public var velocityX:Float = 0;
@@ -59,7 +57,6 @@ class Objects extends TileDisplay
         group = new TileContainer();
         addTile(group);
     }
-    #if full
     public function addPlayer(data:data.PlayerData.PlayerInstance)
     {
         if (data == null) return;
@@ -79,7 +76,6 @@ class Objects extends TileDisplay
             player.set(data);
         }
     }
-    #end
     public function visibleSprites(id:Int,sprites:Array<Tile>,age:Int=20)
     {
         var data = Main.data.objectMap.get(id);

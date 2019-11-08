@@ -1,8 +1,8 @@
 package data;
 import haxe.ds.ObjectMap;
+import game.Player;
 #if full
 import game.Ground;
-import game.Player;
 import data.TransitionData;
 #end
 import sys.FileSystem;
@@ -18,8 +18,8 @@ class GameData
 {
     //block walking
     public var blocking:Map<String,Bool> = new Map<String,Bool>();
-    #if full
     public var playerMap:Map<Int,Player> = new Map<Int,Player>();
+    #if full
     public var transitionData:TransitionData;
     public var map:MapData;
     #end

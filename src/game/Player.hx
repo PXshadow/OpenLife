@@ -1,6 +1,8 @@
 package game;
+#if full
 import console.Program.Pos;
 import console.Program;
+#end
 import data.GameData;
 #if openfl
 import openfl.geom.Point;
@@ -29,7 +31,6 @@ class Player #if openfl extends TileContainer #end
     //clothing hat;tunic;front_shoe;back_shoe;bottom;backpack
     var clothing:Array<TileContainer> = [];
     #end
-    public var moves:Array<Pos> = [];
     public var instance:PlayerInstance;
     var clothingInt:Array<Int> = [];
     //pathing
@@ -37,7 +38,10 @@ class Player #if openfl extends TileContainer #end
     public var moveTimer:Timer;
     public var moving:Bool = false;
     public var goal:Bool = false;
+    #if full
+    public var moves:Array<Pos> = [];
     public var program:Program = null;
+    #end
     public var follow:Bool = true;
     var multi:Float = 1;
     //locally used instance pos
@@ -58,6 +62,43 @@ class Player #if openfl extends TileContainer #end
         super();
         #end
     }
+    #if openfl
+    public function getAgeHeadOffset(inAge:Float,head:Point,body:Point,frontFoot:Point)
+    {
+        if (inAge == -1) return new Point();
+        var maxHead = head.y - body.y;
+        if (inAge < 20)
+        {
+            var yOffset = ( ( 20 - inAge ) / 20 ) * babyHeadDownFactor * maxHead;
+            return new Point(0,Math.round(-yOffset));
+        }
+        if (inAge >= 40)
+        {
+            if (inAge > 60)
+            {
+                inAge = 60;
+            }
+            var vertOffset = ( ( inAge - 40) / 20 ) * oldHeadDownFactor * maxHead;
+            var footOffset = frontFoot.x - head.x;
+            var forwardOffset = ( ( inAge - 40 ) / 20 ) * oldHeadDownFactor * footOffset;
+            return new Point(Math.round(forwardOffset),Math.round(-vertOffset));
+        }
+        return new Point();
+    }
+    public function getAgeBodyOffset(inAge:Float,pos:Point)
+    {
+        if (inAge == -1) return new Point();
+        if (inAge < 20)
+        {
+            var maxBody = pos.y;
+            var yOffset = ( ( 20 - inAge) / 20) * babyBodyDownFactor * maxBody;
+            return new Point(0,Math.round(-yOffset));
+        }
+        return new Point();
+    }
+    #end
+
+    #if full
     public function motion()
     {
         //use another move
@@ -108,41 +149,6 @@ class Player #if openfl extends TileContainer #end
             #end
         }
     }
-    #if openfl
-    public function getAgeHeadOffset(inAge:Float,head:Point,body:Point,frontFoot:Point)
-    {
-        if (inAge == -1) return new Point();
-        var maxHead = head.y - body.y;
-        if (inAge < 20)
-        {
-            var yOffset = ( ( 20 - inAge ) / 20 ) * babyHeadDownFactor * maxHead;
-            return new Point(0,Math.round(-yOffset));
-        }
-        if (inAge >= 40)
-        {
-            if (inAge > 60)
-            {
-                inAge = 60;
-            }
-            var vertOffset = ( ( inAge - 40) / 20 ) * oldHeadDownFactor * maxHead;
-            var footOffset = frontFoot.x - head.x;
-            var forwardOffset = ( ( inAge - 40 ) / 20 ) * oldHeadDownFactor * footOffset;
-            return new Point(Math.round(forwardOffset),Math.round(-vertOffset));
-        }
-        return new Point();
-    }
-    public function getAgeBodyOffset(inAge:Float,pos:Point)
-    {
-        if (inAge == -1) return new Point();
-        if (inAge < 20)
-        {
-            var maxBody = pos.y;
-            var yOffset = ( ( 20 - inAge) / 20) * babyBodyDownFactor * maxBody;
-            return new Point(0,Math.round(-yOffset));
-        }
-        return new Point();
-    }
-    #end
     public function step(mx:Int,my:Int):Bool
     {
         //no other move is occuring, and player is not moving on blocked
@@ -253,6 +259,20 @@ class Player #if openfl extends TileContainer #end
             }
         }
     }
+    #end
+    public function force() 
+    {
+        #if full
+        moves = [];
+        #end
+        moving = false;
+        #if openfl
+        Actuate.pause(this);
+        //local position
+        x = instance.x * Static.GRID;
+        y = (Static.tileHeight - instance.y) * Static.GRID;
+        #end
+    }
     public function set(data:PlayerInstance)
     {
         if (instance == null)
@@ -275,13 +295,17 @@ class Player #if openfl extends TileContainer #end
             }
             ix = instance.x;
             iy = instance.y;
+            #if full
             Main.client.send("FORCE " + ix + " " + iy);
             if (program != null) program.clean();
+            #end
             //force movement
             force();
         }
         //remove moves
+        #if full
         moves = [];
+        #end
         #if openfl
         age();
         #end
@@ -321,17 +345,6 @@ class Player #if openfl extends TileContainer #end
         }
         #else
         
-        #end
-    }
-    public function force() 
-    {
-        moves = [];
-        moving = false;
-        #if openfl
-        Actuate.pause(this);
-        //local position
-        x = instance.x * Static.GRID;
-        y = (Static.tileHeight - instance.y) * Static.GRID;
         #end
     }
     #if openfl

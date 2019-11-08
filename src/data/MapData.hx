@@ -9,6 +9,7 @@ import game.Player;
 import sys.FileSystem;
 import sys.io.File;
 import haxe.io.Path;
+import data.ArrayDataArray.ArrayDataInt;
 class MapData
 {
     //container links index to objects array data when negative number

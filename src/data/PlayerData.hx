@@ -1,5 +1,4 @@
 package data;
-import console.Program.Pos;
 import game.Player;
 #if openfl
 import motion.easing.Quad;
@@ -135,7 +134,8 @@ class PlayerInstance extends PlayerType
         }
     }
 }
-
+#if full
+import console.Program.Pos;
 class PlayerMove 
 {
     public var id:Int = 0;
@@ -207,3 +207,4 @@ class PlayerMove
         player.motion();
     }
 }
+#end

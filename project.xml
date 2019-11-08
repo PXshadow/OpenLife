@@ -9,13 +9,15 @@
 	<haxelib name="openfl" />
 	<haxelib name="actuate"/>
 	<haxelib name="hscript"/>
-
+	<haxedef name="full"/>
+	
 	<section if="debug">
 	<haxedef name="HXCPP_CHECK_POINTER"/>
 	<haxedef name="HXCPP_STACK_LINE"/>
 	<haxedef name="HXCPP_STACK_TRACE"/>
 	<!--<haxedef name="HXCPP_PROFILER"/>-->
 	</section>
+
 	<haxedef name="no-deprecation-warnings"/>
 	<haxedef name="openfl_power_of_two"/>
 	<haxedef name="canvas" if="html5"/>

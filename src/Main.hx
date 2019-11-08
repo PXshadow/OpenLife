@@ -4,7 +4,7 @@ import sys.io.Process;
 import haxe.Timer;
 import console.Program;
 import data.GameData;
-import data.MapData.ArrayDataArray;
+import data.ArrayDataArray.ArrayDataInt;
 import settings.Bind;
 import sys.net.Socket;
 import client.Client;
