@@ -70,7 +70,7 @@ class Main #if openfl extends Sprite #end
     public var log:Text;
     #end
     public static var player:Player;
-    public static var range:Int = 300;
+    public static var range:Int = 16;
     var selectX:Int = 0;
     var selectY:Int = 0;
     public static var data:GameData;
@@ -320,10 +320,10 @@ class Main #if openfl extends Sprite #end
                     objects.group.x = Math.round(lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.20));
                     objects.group.y = Math.round(lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.20));
                 }else{
-                    if (player.parent != null) try "player.parent null";
-                    trace("player parent " + player.parent + " Player " + player);
-                    objects.group.x = Math.round(lerp(objects.group.x,-player.parent.x * objects.scale + objects.width/2 ,0.20));
-                    objects.group.y = Math.round(lerp(objects.group.y,-player.parent.y * objects.scale + objects.height/2 ,0.20));
+                    //if (player.parent != null) try "player.parent null";
+                    //trace("player parent " + player.parent + " Player " + player);
+                    //objects.group.x = Math.round(lerp(objects.group.x,-player.parent.x * objects.scale + objects.width/2 ,0.20));
+                    //objects.group.y = Math.round(lerp(objects.group.y,-player.parent.y * objects.scale + objects.height/2 ,0.20));
                     
                 }
             }
@@ -615,7 +615,7 @@ class Main #if openfl extends Sprite #end
                 console.set("player",player);
             }
             #else
-            sys.io.File.saveContent(Static.dir + "playerUpdate.txt",playerUpdateString);
+            //sys.io.File.saveContent(Static.dir + "playerUpdate.txt",playerUpdateString);
             //visual client
             if (player == null && objects.player != null) 
             {
@@ -683,7 +683,6 @@ class Main #if openfl extends Sprite #end
 
         }
     }
-    var playerUpdateString:String = "";
     private function message(input:String) 
     {
         switch(Main.client.tag)
@@ -693,8 +692,9 @@ class Main #if openfl extends Sprite #end
             Main.client.compress = Std.parseInt(array[1]);
             Main.client.tag = null;
             case PLAYER_UPDATE:
-            playerUpdateString += input + "\n";
             playerInstance = new PlayerInstance(input.split(" "));
+            //always force non main player
+            if (player != null && playerInstance.p_id != player.instance.p_id) playerInstance.forced = true;
             #if openfl
             objects.addPlayer(playerInstance);
             #else
@@ -786,12 +786,14 @@ class Main #if openfl extends Sprite #end
                 #if openfl
                 if (move)
                 {
+                    remove(change.oldX,change.oldY);
                     var container = new TileContainer();
                     objects.add(change.id,change.x,change.y);
                     objects.group.addTile(container);
+                    Main.data.tileData.object.set(change.x,change.y,[container]);
                     //move back to previous postition
                     container.x = change.oldX * Static.GRID;
-                    container.y = (Static.tileHeight - change.y) * Static.GRID;
+                    container.y = (Static.tileHeight - change.oldY) * Static.GRID;
                     //tween
                     var time = Std.int(Static.GRID/(Static.GRID * change.speed * 1) * 60 * 1);
                     Actuate.tween(container,time/60,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);

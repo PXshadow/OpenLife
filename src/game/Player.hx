@@ -1,4 +1,5 @@
 package game;
+import motion.easing.Sine;
 #if full
 import console.Program.Pos;
 import console.Program;
@@ -283,7 +284,7 @@ class Player #if openfl extends TileContainer #end
         }
         instance = data;
         //pos and age
-        if (instance.forced == 1) 
+        if (instance.forced) 
         {
             trace("force!");
             if (held)
@@ -339,24 +340,48 @@ class Player #if openfl extends TileContainer #end
     public function hold()
     {
         #if !openfl
-        if (instance.o_id != oid)
+        if (arrayEqual(instance.o_id,oid))
         {
             //change
             oid = instance.o_id;
         }
         #else
-        if (instance.o_id != oid)
+        if (!arrayEqual(oid,instance.o_id))
         {
+            trace("attempt");
+            //check if was player to re add to stage
+            if (instance.o_id.length == 1 && instance.o_id[0] < 0) Main.objects.group.addTile(heldObject);
             //change
             oid = instance.o_id;
             removeTile(heldObject);
-            heldObject = new TileContainer();
-            Main.objects.add(oid,0,0,heldObject);
-            heldObject.x = instance.o_origin_x;
-            heldObject.y = instance.o_origin_y;
+            if (oid.length == 0 || oid[0] == 0) return;
+            //add
+            if (oid[0] > 0)
+            {
+                heldObject = new TileContainer();
+                Main.objects.add(oid,0,0,heldObject);
+            }else{
+                heldObject = Main.data.playerMap.get(oid[0] * -1);
+                if (heldObject == null) 
+                {
+                    trace("held baby not found " + oid[0]);
+                    return;
+                }
+                Main.objects.removeTile(heldObject);
+            }
             addTile(heldObject);
+            Actuate.stop(heldObject);
+            Actuate.tween(heldObject,0.5,{x:instance.o_origin_x,y:-height/2 - instance.o_origin_y}).ease(Sine.easeInOut);
         }
         #end
+    }
+    private function arrayEqual(a:Array<Int>,b:Array<Int>):Bool
+    {
+        if (a[0] != b[0]) return false;
+        if (a.length == 1 && b.length == 1) return true;
+        if (a.length != b.length) return false;
+        for (i in 1...a.length) if (a[i] != b[i]) return false;
+        return true;
     }
     #if openfl
     public function sort()

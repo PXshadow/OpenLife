@@ -36,14 +36,14 @@ class PlayerType
     public var action_target_x:Int = 0;
     public var action_target_y:Int = 0;
     //object id
-    public var o_id:Array<Int> = [];
+    public var o_id:Array<Int>;
     public var o_origin_valid:Int = 0;
     public var o_origin_x:Int = 0;
     public var o_origin_y:Int = 0;
     public var o_transition_source_id:Int = 0;
     public var heat:Int = 0;
     public var done_moving_seqNum:Int = 0;
-    public var forced:Int = -1;
+    public var forced:Bool = false;
     public var x:Int = 0;
     public var y:Int = 0;
     public var age:Float = 0;
@@ -111,7 +111,7 @@ class PlayerInstance extends PlayerType
                 done_moving_seqNum = Std.parseInt(value);
                 case 13:
                 ///forced
-                forced = Std.parseInt(value);
+                forced = value == "1" ? true : false;
                 case 14:
                 x = Std.parseInt(value);
                 case 15:
@@ -184,15 +184,10 @@ class PlayerMove
     }
     public function movePlayer(player:Player)
     {
-        /*if(player.instance.x == xs + moves[moves.length - 1].x && player.instance.y == ys + moves[moves.length - 1].y)
-        {
-            //same move
-            trace("same move");
-            return;
-        }*/
         //set pos
         player.ix = xs;
         player.iy = ys;
+        if (trunc) player.force();
         var currentX:Int = 0;
         var currentY:Int = 0;
         player.moves = [];
