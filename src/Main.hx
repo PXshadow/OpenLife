@@ -132,6 +132,7 @@ class Main #if openfl extends Sprite #end
             {
                 output.input.output.writeString(Std.string(v) + "\n");
                 output.input.output.flush();
+                
             }
         }
         trace("attempt to connect to output");

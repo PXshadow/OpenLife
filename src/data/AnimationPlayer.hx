@@ -1,4 +1,6 @@
 package data;
+import lime.media.AudioBuffer;
+import openfl.geom.Rectangle;
 #if openfl
 import motion.easing.Linear;
 import motion.easing.Sine;
@@ -35,87 +37,120 @@ class AnimationPlayer
         tx = x * Static.GRID;
         ty = (Static.tileHeight - y) * Static.GRID;
         trace("tx " + tx + " ty " + ty);
+        trace("numTiles " + parent.numTiles);
         setup();
+        trace("numTilesAfter " + parent.numTiles);
     }
-    @:interpret public function setup()
+    public function setup()
     {
         var sprite:Tile = null;
         var p:Int = 0;
+        //temporary
+        var tc:TileContainer;
+        var bounds:Rectangle;
         var index:Int = 0;
+        //offset
         for (i in 0...sprites.length)
         {
             sprite = sprites[i];
             //set pos
             Main.objects.setSprite(sprite,objectData.spriteArray[i],tx,ty);
+            //continue;
             sprite.x += param[i].offset.x;
             sprite.y += -param[i].offset.y;
             sprite.originX += param[i].rotationCenterOffset.x;
             sprite.originY += -param[i].rotationCenterOffset.y;
         }
+        //parent nesting
         for (i in 0...sprites.length)
         {
             p = objectData.spriteArray.get(i).parent;
             sprite = sprites[i];
-            //offset
-            //sprite.rotation += param[i].rotPhase * 365;
             while(p != -1)
             {
-                //creates container
-                sprites[p] = container(sprites[p]);
-                parent.addTileAt(sprites[p],p);
-                //get index of child
-                index = sprite.parent.getTileIndex(sprite);
-                //remove child from old parent
-                sprite.parent.removeTileAt(index);
-                //add child with index placement
-                cast(sprites[p],TileContainer).addTileAt(sprite,index);
-                //position according to container
-                sprite.x += -sprites[p].x;
-                sprite.y += -sprites[p].y;
-                //reset for while loop in case p != -1
+                if (!Std.is(sprites[p],TileContainer))
+                {
+                    tc = new TileContainer();
+                    bounds = sprites[p].getBounds(parent);
+                    tc.x = bounds.x;
+                    tc.y = bounds.y;
+                    tc.originX = sprites[p].originX;
+                    tc.originY = sprites[p].originY;
+                    sprites[p].x = 0;
+                    sprites[p].y = 0;
+                    sprites[p].originX = 0;
+                    sprites[p].originY = 0;
+                    sprites[p].parent.removeTile(sprites[p]);
+                    tc.addTile(sprites[p]);
+                    parent.addTileAt(tc,p);
+                    sprites[p] = tc;
+                }else{
+                    tc = cast sprites[p];
+                }
+                bounds = sprite.getBounds(parent);
+                trace("bound " + bounds.x + " " + bounds.y);
+                sprite.x = bounds.x;
+                sprite.y = bounds.y;
+                sprite.parent.removeTile(sprite);
+                tc.addTile(sprite);
+                //next
                 sprite = sprites[p];
                 p = objectData.spriteArray.get(p).parent;
+                p = -1;
             }
         }
+        //debug
+        /*for (i in 0...sprites.length)
+        {
+            if (Std.is(sprites[i],TileContainer))
+            {
+                trace(i + " t: c num: " + cast(sprites[i],TileContainer).numTiles);
+            }else{
+                trace(i + " t: t ");
+            }
+        }*/
+        //for (p in [71,40]) Actuate.tween(sprites[p],1,{rotation:180}).repeat().reflect();
+        return;
+        //animation
         for (i in 0...param.length)
         {
             sprite = sprites[i];
-            //animation
+            //stop
             Actuate.stop(sprite);
-            if (param[i].xAmp > 0) tween(sprite,{x:sprite.x + param[i].xAmp/2},{x:sprite.x - param[i].xAmp/2},1/param[i].xOscPerSec);
-            if (param[i].yAmp > 0) tween(sprite,{y:sprite.y + param[i].yAmp/2},{y:sprite.y - param[i].yAmp/2},1/param[i].yOscPerSec);
-            //sprite.rotation = -30;
-            //Actuate.tween(sprite,1,{rotation:30}).repeat().reflect();
-            if (param[i].rockAmp > 0) tween(sprite,{rotation:sprite.rotation + (param[i].rockAmp * 365)/2},{rotation:sprite.rotation - (param[i].rockAmp * 365)/2},1/param[i].rockOscPerSec);
-            /*if (param[i].rotPerSec > 0)
-            {
-                Actuate.tween(sprites[i],1/param[i].rotPerSec,{rotation:365}).ease(Linear.easeNone);
-                trace("rps " + param[i].rotPerSec);
-            }*/
+            //phase
+            sprite.x += phase(param[i].xPhase) * param[i].xAmp;
+            sprite.y += phase(param[i].yPhase) * param[i].yAmp;
+            //sprite.rotation += -phase(param[i].rotPhase) * 365;
+            //sprite.rotation += phase(param[i].rockPhase) * param[i].rockAmp;
+            //animate
+            if (param[i].xAmp > 0) tween(sprite,{x:sprite.x + param[i].xAmp/2},{x:sprite.x - param[i].xAmp/2},1/param[i].xOscPerSec,param[i].xPhase);
+            if (param[i].yAmp > 0) tween(sprite,{y:sprite.y + param[i].yAmp/2},{y:sprite.y - param[i].yAmp/2},1/param[i].yOscPerSec,param[i].yPhase);
+            if (param[i].rockAmp > 0) tween(sprite,{rotation:sprite.rotation + (param[i].rockAmp * 365)/2},{rotation:sprite.rotation - (param[i].rockAmp * 365)/2},1/param[i].rockOscPerSec,param[i].rockPhase);
         }
     }
-    @:interpret private function container(tile:Tile):TileContainer
+    private inline function phase(x:Float):Float
     {
-        var c = new TileContainer();
-        c.x = tile.x;
-		c.y = tile.y;
-        //c.originX = tile.originX;
-        //c.originY = tile.originY;
-        //tile.originX = tile.originY = 0;
-        tile.x = tile.y = 0;
-        tile.parent.removeTile(tile);
-        c.addTile(tile);
-        return c;
+        if (x > 0.75) return x - 1;
+        return (x * 2 - 1) * -2;
     }
-    private function tween(sprite:Tile,a:Dynamic,b:Dynamic,time:Float)
+    private function tween(sprite:Tile,a:Dynamic,b:Dynamic,time:Float,phase:Float=0)
 	{
-		Actuate.tween(sprite,time/2,a,false).ease(Sine.easeInOut).onComplete(function()
-		{
-			Actuate.tween(sprite,time/2,b,false).ease(Sine.easeInOut).onComplete(function()
+        //shorten
+        if (phase >= 0.25 && phase <= 0.5)
+        {
+            Actuate.tween(sprite,time/2,b,false).ease(Sine.easeInOut).onComplete(function()
             {
                 tween(sprite,a,b,time);
             });
-		});
+        }else{
+		    Actuate.tween(sprite,time/2,a,false).ease(Sine.easeInOut).onComplete(function()
+		    {
+			    Actuate.tween(sprite,time/2,b,false).ease(Sine.easeInOut).onComplete(function()
+                {
+                    tween(sprite,a,b,time);
+                });
+		    });
+        }
 	}
     private function clean()
     {

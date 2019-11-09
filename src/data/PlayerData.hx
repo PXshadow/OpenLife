@@ -11,6 +11,9 @@ import openfl.display.Tile;
 import openfl.display.DisplayObjectContainer;
 import openfl.display.Shape;
 #end
+#if full
+import console.Program.Pos;
+#end
 class PlayerData
 {
     public var key:Map<Int,PlayerType> = new Map<Int,PlayerType>();
@@ -135,7 +138,6 @@ class PlayerInstance extends PlayerType
     }
 }
 #if full
-import console.Program.Pos;
 class PlayerMove 
 {
     public var id:Int = 0;

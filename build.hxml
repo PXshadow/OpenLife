@@ -1,64 +1,31 @@
 #Neko
 -cp src
--D secret
 -dce full
 -main Main
 -lib hscript
+-D luajit
+-D lua-vanilla
+#-D secret
+--each
 
 --next
 
 #Lua
 -lua bin/windows/bin/terminal.lua
--cp src
--dce full
--D secret
--lib hscript
--D luajit
--D lua-vanilla
--main Main
-
 --next
-
 #Java
--cp src
--main Main
--dce full
--D secret
--lib hscript
 -java bin/windows/bin/java
-
 --next
-
 #Python
 -cp src
--main Main
--dce full
--D secret
--lib hscript
 -python bin/windows/bin/terminal.py
-
 --next
-
 #CS
--cp src
--main Main
--dce full
--D secret
--lib hscript
 -cs bin/windows/bin/cs
-
 --next
-
 #Php
--cp src
--main Main
--dce full
--D secret
--lib hscript
 -php bin/windows/bin/php
-
 --next
-
 #output reader
 -cp src
 -neko bin/windows/bin/output.n
