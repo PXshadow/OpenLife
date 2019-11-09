@@ -64,6 +64,7 @@ class ArrayDataInt
     //diffrence
     public var dx:Int = 0;
     public var dy:Int = 0;
+    public static inline var NAN:Int = -1;
     public function new()
     {
         array[0] = [];
@@ -84,7 +85,7 @@ class ArrayDataInt
         {
             return array[y - dy][x - dx];
         }
-        return 0;
+        return NAN;
     }
     public function shiftY(y:Int)
     {
@@ -104,7 +105,7 @@ class ArrayDataInt
                 if (array[j] == null) array[j] = [];
                 for (i in 0...dx - x) 
             	{
-                    array[j].unshift(0);
+                    array[j].unshift(NAN);
                 }
             }
             dx = x;

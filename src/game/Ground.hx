@@ -53,6 +53,7 @@ class Ground extends Shape
     }
     public function add(id:Int,x:Int,y:Int,cornerCheck:Bool=false)
     {
+        if (id == -1) return;
         if (simple)
         {
             indices.push(simpleIndex + id);

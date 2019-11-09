@@ -27,7 +27,7 @@ class Player #if openfl extends TileContainer #end
     private static inline var babyBodyDownFactor:Float = 0.75;
     private static inline var oldHeadDownFactor:Float = 0.35;
     private static inline var oldHeadForwardFactor:Float = 2;
-    public var object:Tile;
+    public var heldObject:TileContainer;
     //clothing hat;tunic;front_shoe;back_shoe;bottom;backpack
     var clothing:Array<TileContainer> = [];
     #end
@@ -48,7 +48,7 @@ class Player #if openfl extends TileContainer #end
     public var ix:Int = 0;
     public var iy:Int = 0;
     //locally used object
-    public var oid:Int = 0;
+    public var oid:Array<Int> = [];
     public var held:Bool = false;
     public var ageInt:Int = 0;
     //name
@@ -167,9 +167,10 @@ class Player #if openfl extends TileContainer #end
     public function computePathSpeedMod():Float
     {
         var floorData = Main.data.objectMap.get(Main.data.map.floor.get(ix,iy));
-        var objectData = Main.data.objectMap.get(oid);
         var multiple:Float = 1;
         if (floorData != null) multiple *= floorData.speedMult;
+        if (oid.length == 0) return multiple;
+        var objectData = Main.data.objectMap.get(oid[0]);
         if (objectData != null) multiple *= objectData.speedMult;
         return multiple;
     }
@@ -344,7 +345,17 @@ class Player #if openfl extends TileContainer #end
             oid = instance.o_id;
         }
         #else
-        
+        if (instance.o_id != oid)
+        {
+            //change
+            oid = instance.o_id;
+            removeTile(heldObject);
+            heldObject = new TileContainer();
+            Main.objects.add(oid,0,0,heldObject);
+            heldObject.x = instance.o_origin_x;
+            heldObject.y = instance.o_origin_y;
+            addTile(heldObject);
+        }
         #end
     }
     #if openfl
@@ -356,7 +367,7 @@ class Player #if openfl extends TileContainer #end
     {
         var array:Array<Tile> = [];
         for (i in 0...numTiles) array.push(getTileAt(i));
-        array.remove(object);
+        array.remove(heldObject);
         return array;
     }
     public function age()

@@ -40,7 +40,7 @@ class MapData
     public var height:Int = 0;
     public function new()
     {
-
+        
     }
     public function setRect(x:Int,y:Int,width:Int,height:Int,string:String)
     {
@@ -68,7 +68,8 @@ class MapData
     }
     public static function id(string:String):Array<Int>
     {
-        //postive is container, negative is subcontainer
+        //postive is container, negative is subcontainer that goes into postive container
+        //0 is first container, untill another postive number comes around
             var a = string.split(",");
             var array:Array<Int> = [];
             for (i in 0...a.length)

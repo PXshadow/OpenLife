@@ -70,7 +70,7 @@ class Main #if openfl extends Sprite #end
     public var log:Text;
     #end
     public static var player:Player;
-    public static var range:Int = 16;
+    public static var range:Int = 300;
     var selectX:Int = 0;
     var selectY:Int = 0;
     public static var data:GameData;
@@ -484,7 +484,7 @@ class Main #if openfl extends Sprite #end
     {
         if (player != null)
         {
-            if (player.instance.o_id != 0)
+            if (player.instance.o_id.length > 0)
             {
                 program.drop(selectX,selectY);
             }else{
@@ -784,16 +784,20 @@ class Main #if openfl extends Sprite #end
             {
                 var move:Bool = change.speed > 0 ? true : false;
                 #if openfl
-                //add(change.id,change.x,change.y,move);
-                /*if (move && objects.object != null)
+                if (move)
                 {
+                    var container = new TileContainer();
+                    objects.add(change.id,change.x,change.y);
+                    objects.group.addTile(container);
                     //move back to previous postition
-                    objects.object.x = change.oldX * Static.GRID;
-                    objects.object.y = (Static.tileHeight - change.y) * Static.GRID;
+                    container.x = change.oldX * Static.GRID;
+                    container.y = (Static.tileHeight - change.y) * Static.GRID;
                     //tween
                     var time = Std.int(Static.GRID/(Static.GRID * change.speed * 1) * 60 * 1);
-                    Actuate.tween(objects.object,time/60,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
-                }*/
+                    Actuate.tween(container,time/60,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
+                }else{
+                    objects.add(change.id,change.x,change.y);
+                }
                 #end
             }
             Main.client.tag = null;

@@ -36,7 +36,7 @@ class PlayerType
     public var action_target_x:Int = 0;
     public var action_target_y:Int = 0;
     //object id
-    public var o_id:Int = 0;
+    public var o_id:Array<Int> = [];
     public var o_origin_valid:Int = 0;
     public var o_origin_x:Int = 0;
     public var o_origin_y:Int = 0;
@@ -96,7 +96,7 @@ class PlayerInstance extends PlayerType
                 case 5:
                 action_target_y = Std.parseInt(value);
                 case 6:
-                o_id = Std.parseInt(value);
+                o_id = MapData.id(value);
                 case 7:
                 o_origin_valid = Std.parseInt(value);
                 case 8:
