@@ -6,11 +6,11 @@ import sys.FileSystem;
 #end
 class Settings
 {
-    public var data:Dynamic;
+    public var data:Dynamic = {};
     public var fail:Bool = true;
     public function new()
     {
-        var path:String = Static.dir + "/settings/";
+        var path:String = Static.dir + "settings/";
         if (FileSystem.exists(path) && FileSystem.isDirectory(path))
         {
             fail = false;
@@ -18,6 +18,9 @@ class Settings
             {
                 Reflect.setField(data,Path.withoutExtension(name),File.getContent(path + name));
             }
+        }else{
+            fail = true;
+            trace("fail");
         }
     }
 }

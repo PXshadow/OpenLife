@@ -1,4 +1,5 @@
 package data;
+import haxe.ds.Vector;
 import haxe.ds.ObjectMap;
 import game.Player;
 #if full
@@ -30,6 +31,7 @@ class GameData
     public var nextObjectNumber:Int = 0;
     #if openfl
     public var tileData:TileData;
+    public var emotes:Vector<EmoteData>;
     #end
     public function new()
     {
@@ -37,13 +39,21 @@ class GameData
         tileData = new TileData();
         #end
         //transitionData = new TransitionData();
+        #if openfl
+        openfl.Lib.current.stage.frameRate = 60;
+        emoteData();
+        #end
         #if full
         map = new MapData();
         objectData();
         #end
-        #if openfl
-        openfl.Lib.current.stage.frameRate = 60;
-        #end
+    }
+    private function emoteData()
+    {
+        var arrayObj:Array<String> = Main.settings.data.emotionObjects.split("\n");
+        var arrayWord:Array<String> = Main.settings.data.emotionWords.split("\n");
+        emotes = new Vector<EmoteData>(arrayObj.length);
+        for (i in 0...arrayObj.length) emotes[i] = new EmoteData(arrayWord[i],arrayObj[i]);
     }
     private function objectData()
     {
