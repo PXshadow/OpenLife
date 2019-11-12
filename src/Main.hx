@@ -225,20 +225,20 @@ class Main #if openfl extends Sprite #end
         if (!Main.settings.fail)
         {
             //account
-            if (valid(Main.settings.data.email)) Main.client.login.email = string;
-            if (valid(Main.settings.data.accountKey)) Main.client.login.key = string;
-            if (valid(Main.settings.data.useCustomServer) && string == "1")
+            if (valid(Main.settings.data.get("email"))) Main.client.login.email = string;
+            if (valid(Main.settings.data.get("accountKey"))) Main.client.login.key = string;
+            if (valid(Main.settings.data.get("useCustomServer")) && string == "1")
             {
-                if (valid(Main.settings.data.customServerAddress)) Main.client.ip = string;
-                if (valid(Main.settings.data.customServerPort)) Main.client.port = Std.parseInt(string);
+                if (valid(Main.settings.data.get("customServerAddress"))) Main.client.ip = string;
+                if (valid(Main.settings.data.get("customServerPort"))) Main.client.port = Std.parseInt(string);
             }
             //window
             #if openfl
-            if (valid(Main.settings.data.borderless)) stage.window.borderless = Std.parseInt(string) == 1 ? true : false;
-            if (valid(Main.settings.data.fullscreen)) stage.window.fullscreen = Std.parseInt(string) == 1 ? true : false;
-            if (valid(Main.settings.data.screenWidth)) stage.window.width = Std.parseInt(string);
-            if (valid(Main.settings.data.screenHeight)) stage.window.height = Std.parseInt(string);
-            if (valid(Main.settings.data.targetFrameRate)) stage.frameRate = Std.parseInt(string);
+            if (valid(Main.settings.data.get("borderless"))) stage.window.borderless = string == "1" ? true : false;
+            if (valid(Main.settings.data.get("fullscreen"))) stage.window.fullscreen = string == "1" ? true : false;
+            if (valid(Main.settings.data.get("screenWidth"))) stage.window.width = Std.parseInt(string);
+            if (valid(Main.settings.data.get("screenHeight"))) stage.window.height = Std.parseInt(string);
+            if (valid(Main.settings.data.get("targetFrameRate"))) stage.frameRate = Std.parseInt(string);
             #end
         }
         //by pass settings and force email and key if secret account
@@ -444,8 +444,8 @@ class Main #if openfl extends Sprite #end
         if (Bind.playerKill.bool)
         {
             trace("play animation");
+            animations.play(player.instance.po_id,2,player.sprites(),0,Static.tileHeight);
             //new data.AnimationPlayer(player.instance.po_id,2,player,player.sprites(),0,Static.tileHeight);
-            
         }
     }
     private function keyUp(e:KeyboardEvent)

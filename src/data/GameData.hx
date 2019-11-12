@@ -50,8 +50,8 @@ class GameData
     }
     private function emoteData()
     {
-        var arrayObj:Array<String> = Main.settings.data.emotionObjects.split("\n");
-        var arrayWord:Array<String> = Main.settings.data.emotionWords.split("\n");
+        var arrayObj:Array<String> = Main.settings.data.get("emotionObjects").split("\n");
+        var arrayWord:Array<String> = Main.settings.data.get("emotionWords").split("\n");
         emotes = new Vector<EmoteData>(arrayObj.length);
         for (i in 0...arrayObj.length) emotes[i] = new EmoteData(arrayWord[i],arrayObj[i]);
     }

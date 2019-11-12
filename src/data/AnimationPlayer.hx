@@ -38,9 +38,10 @@ class AnimationPlayer extends Player<AnimationChannel>
         ty = (Static.tileHeight - y) * Static.GRID;*/
         //setup();
     }
-    public function play(id:Int,index:Int,parent:TileContainer,x:Float,y:Float) 
+    public function play(id:Int,index:Int,sprites:Array<Tile>,x:Float,y:Float) 
     {
         var data = new AnimationChannel();
+        data.sprites = sprites;
         active.push(data);
         var objectData = Main.data.objectMap.get(id);
         if (objectData == null || objectData.animation == null) return;
@@ -162,8 +163,8 @@ class AnimationPlayer extends Player<AnimationChannel>
 }
 class AnimationChannel
 {
-    public var timers:Array<Timer>;
-    public var sprites:Array<Tile>;
+    public var timers:Array<Timer> = [];
+    public var sprites:Array<Tile> = [];
     public function new()
     {
 

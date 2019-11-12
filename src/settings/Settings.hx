@@ -1,4 +1,5 @@
 package settings;
+import haxe.DynamicAccess;
 import haxe.io.Path;
 #if sys
 import sys.io.File;
@@ -6,7 +7,24 @@ import sys.FileSystem;
 #end
 class Settings
 {
-    public var data:Dynamic = {};
+    @:isVar public var data(default,set):Data = {};
+    function set_data(value:Data):Data
+    {
+        var a = value.keys();
+        var b = data.keys();
+        if (a.length != b.length)
+        {
+            var name = a[a.length - 1] + ".ini";
+            var obj = value.get(name);
+            //set settings
+            if (FileSystem.exists(Static.dir + "settings/" + name) && !FileSystem.isDirectory(Static.dir + "settings/" + name))
+            {
+                File.saveContent(Static.dir + "settings/" + name,obj);
+            }
+        }
+        data = value;
+        return data;
+    }
     public var fail:Bool = true;
     public function new()
     {
@@ -24,3 +42,4 @@ class Settings
         }
     }
 }
+typedef Data = DynamicAccess<Dynamic> 
