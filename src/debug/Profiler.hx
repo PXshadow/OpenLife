@@ -15,7 +15,7 @@ class Profiler #if openfl extends DisplayObjectContainer #end
         super();
         UnitTest.inital();
     }
-    #if openfl
+    #if (openfl && cpp)
     public function update()
     {
         //frameRate
@@ -33,8 +33,7 @@ class Profiler #if openfl extends DisplayObjectContainer #end
     {
         return System.totalMemory;
     }
-    #else
-    public static function start(string:String)
-    public static function stop()
     #end
+    public static function start(string:String) {}
+    public static function stop() {}
 }

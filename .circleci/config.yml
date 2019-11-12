@@ -6,17 +6,30 @@ jobs:
      - image: openfl/openfl-tests-unit-3.4:0.0.3
     steps:
      - checkout
+     - run:
+         name: Clone OpenFL
+         command: git clone --recursive https://github.com/openfl/openfl ~/openfl --depth 1
+     - run:
+         name: Setup OpenFL Development Directory
+         command: haxelib dev openfl ~/openfl
+     - run:
+         name: Clone Lime
+         command: git clone --recursive https://github.com/openfl/lime ~/lime --depth 1
+     - run:
+         name: Setup Lime Development Directory
+         command: haxelib dev lime ~/lime
      #libs
-     - run: haxelib install hxcpp
      - run: haxelib install actuate
      - run: haxelib install hscript
      - run: haxelib install format
-     - run: haxelib install openfl
-     - run: haxelib install lime
-     - run: haxelib dev format
-     #run
-     - run: haxelib run lime build all neko
-     - run: haxelib run lime build all cpp
+     #run OpenFL
+     - run: 
+      name: OpenFL Neko
+      command: haxelib run munit build all neko
+     - run: 
+      name: OpenFL C++
+      command: haxelib run lime build all cpp
+    #run terminal (coming soon) 
   
 workflows:
   version: 2
