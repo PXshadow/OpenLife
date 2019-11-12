@@ -15,7 +15,8 @@ import openfl.geom.Point;
 class AnimationPlayer
 {
     var parent:TileContainer;
-    var time:Float = 0;
+    var timers:Array<Timer> = [];
+    var timerInt:Int = 0;
     private static var current:Array<Int> = [];
     var param:Vector<AnimationParameter>;
     var sprites:Array<Tile> = [];
@@ -37,6 +38,14 @@ class AnimationPlayer
         tx = x * Static.GRID;
         ty = (Static.tileHeight - y) * Static.GRID;
         setup();
+    }
+    public function start(index:Int)
+    {
+
+    }
+    public function stop()
+    {
+
     }
     public function setup()
     {
@@ -66,8 +75,8 @@ class AnimationPlayer
                 var px:Float = sprites[p].x;
                 var py:Float = sprites[p].y;
                 var pr:Float = sprites[p].rotation;
-                var timer = new Timer(1/60 * 1000);
-                timer.run = function()
+                timers[timerInt++] = new Timer(1/60 * 1000);
+                timers[timerInt - 1].run = function()
                 {
                     if (px != sprites[p].x)
                     {

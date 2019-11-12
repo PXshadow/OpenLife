@@ -94,6 +94,7 @@ class Main #if openfl extends Sprite #end
     public function new()
     {
         dir();
+        settings = new settings.Settings();
         data = new GameData();
         #if openfl
         super();
@@ -216,7 +217,6 @@ class Main #if openfl extends Sprite #end
         //Main.client.port = 8005;
 
         //settings to use infomation
-        Main.settings = new settings.Settings();
         if (!Main.settings.fail)
         {
             //account

@@ -337,6 +337,14 @@ class Player #if openfl extends TileContainer #end
             #end
         }
     }
+    public function emote(index:Int=-1)
+    {
+        if (index == -1) return;
+        var emot = Main.data.emotes[index];
+        var data = Main.data.objectMap.get(instance.po_id);
+        if (data == null || emot == null) return;
+        //data.
+    }
     public function hold()
     {
         #if !openfl
