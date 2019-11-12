@@ -5,6 +5,7 @@
 end action if stuck in loop
 
 
+convert object arrays both id and sprites to vectors
 
 
 //floors can never display in front of the player

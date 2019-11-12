@@ -57,6 +57,8 @@ class Player #if openfl extends TileContainer #end
     public var lastName:String = "";
     public var text:String = "";
     public var inRange:Bool = true;
+
+    public var _sprites:Array<Tile> = [];
     public function new()
     {
         #if openfl
@@ -135,6 +137,9 @@ class Player #if openfl extends TileContainer #end
                     scaleX = -1;
                 }
             }
+            //animation
+            Main.animations.play(instance.po_id,2,sprites(),0,Static.tileHeight);
+            //move
             Actuate.tween(this,time/60,{x:(ix + point.x) * Static.GRID,y:(Static.tileHeight - (iy + point.y)) * Static.GRID}).onComplete(function(_)
             {
                 ix += point.x;
@@ -146,8 +151,19 @@ class Player #if openfl extends TileContainer #end
                 }else{
                     motion();
                 }
+                trace("moving " + moving);
             }).ease(Linear.easeNone);
             #end
+        }else{
+            //buffer
+            if (Main.xs != 0 || Main.ys != 0) 
+            {
+                program.clean();
+                step(Main.xs,Main.ys);
+            }else{
+                //no buffer
+                Main.animations.clear(sprites());
+            }
         }
     }
     public function step(mx:Int,my:Int):Bool
@@ -390,10 +406,12 @@ class Player #if openfl extends TileContainer #end
     }
     public function sprites():Array<Tile>
     {
-        var array:Array<Tile> = [];
-        for (i in 0...numTiles) array.push(getTileAt(i));
-        array.remove(heldObject);
-        return array;
+        if (_sprites.length == 0)
+        {
+            for (i in 0...numTiles) _sprites.push(getTileAt(i));
+            _sprites.remove(heldObject);
+        }
+        return _sprites;
     }
     public function age()
     {

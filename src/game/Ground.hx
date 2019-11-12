@@ -60,8 +60,10 @@ class Ground extends Shape
         }else{
             indices.push(id * 16 + abs(x % 4) + abs(y % 4) * 4 + 0);
         }
-        transforms.push(x * Static.GRID - Static.GRID/2);
-        transforms.push((Static.tileHeight - y) * Static.GRID - Static.GRID/2);
+        // slight offset to compensate for tile overlaps and
+        // make biome tiles more centered on world tiles
+        transforms.push(x * Static.GRID + 32);
+        transforms.push((Static.tileHeight - y) * Static.GRID + 32);
         //corner
         /*if (cornerCheck)
         {

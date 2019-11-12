@@ -67,8 +67,8 @@ class Main #if openfl extends Sprite #end
     var chat:Text;
     var ground:Ground;
     //players
-    var sounds:SoundPlayer = new SoundPlayer();
-    var animations:AnimationPlayer = new AnimationPlayer();
+    public static var sounds:SoundPlayer = new SoundPlayer();
+    public static var animations:AnimationPlayer = new AnimationPlayer();
     //use to grab group stage
     public static var objects:Objects;
     var state:DisplayObjectContainer;
@@ -99,6 +99,7 @@ class Main #if openfl extends Sprite #end
     public function new()
     {
         dir();
+        new debug.ImageGenerate("groundTileCache");
         settings = new Settings();
         data = new GameData();
         #if openfl
@@ -292,8 +293,8 @@ class Main #if openfl extends Sprite #end
         chat.type = INPUT;
         state.addChild(chat);
     }
-    var xs:Int = 0;
-    var ys:Int = 0;
+    public static var xs:Int = 0;
+    public static var ys:Int = 0;
     var it:Iterator<Player>;
     private function update(_)
     {

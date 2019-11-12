@@ -28,7 +28,7 @@ class Program
     //automation buffer system
     var actions:Array<Action> = [];
     var action:Action = null;
-    var console:Console;
+    public var console:Console;
     public var taskName:String = "";
     public var range:Int = 30;
     public function new(console:Console)
