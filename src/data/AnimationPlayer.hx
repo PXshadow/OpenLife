@@ -14,7 +14,7 @@ import haxe.ds.Vector;
 import openfl.geom.Point;
 class AnimationPlayer extends Player<AnimationChannel>
 {
-    var parent:TileContainer;
+    /*var parent:TileContainer;
     var timers:Array<Timer> = [];
     var timerInt:Int = 0;
     private static var current:Array<Int> = [];
@@ -24,30 +24,33 @@ class AnimationPlayer extends Player<AnimationChannel>
     var objectData:ObjectData;
     //tile position
     var tx:Float = 0;
-    var ty:Float = 0;
-    public function new(id:Int,int:Int,parent:TileContainer,sprites:Array<Tile>,x:Int=0,y:Int=0)
+    var ty:Float = 0;*/
+    public function new()
     {
         super();
-        //if (current.indexOf(id) > -1) return;
-        //current.push(id);
-        objectData = Main.data.objectMap.get(id);
+        /*objectData = Main.data.objectMap.get(id);
         if (objectData == null || objectData.animation == null) return;
         param = objectData.animation.record[int].params;
         this.sprites = sprites;
         this.parent = parent;
         type = objectData.animation.record[int].type;
         tx = x * Static.GRID;
-        ty = (Static.tileHeight - y) * Static.GRID;
-        setup();
+        ty = (Static.tileHeight - y) * Static.GRID;*/
+        //setup();
     }
-    public function start(index:Int)
+    public function play(id:Int,index:Int,parent:TileContainer,x:Float,y:Float) 
     {
-
-    }
-    public function setup()
-    {
+        var data = new AnimationChannel();
+        active.push(data);
+        var objectData = Main.data.objectMap.get(id);
+        if (objectData == null || objectData.animation == null) return;
+        var param = objectData.animation.record[index].params;
+        var type = objectData.animation.record[index].type;
+        var tx = x * Static.GRID;
+        var ty = (Static.tileHeight - y) * Static.GRID;
         var sprite:Tile = null;
         var p:Int = 0;
+        var timerInt:Int = 0;
         //temporary
         var tc:TileContainer;
         //sprite parent
@@ -55,9 +58,9 @@ class AnimationPlayer extends Player<AnimationChannel>
         var point:Point = null;
         var index:Int = 0;
         //offset
-        for (i in 0...sprites.length)
+        for (i in 0...data.sprites.length)
         {
-            sprite = sprites[i];
+            sprite = data.sprites[i];
             //set pos
             Main.objects.setSprite(sprite,objectData.spriteArray[i],tx,ty);
             sprite.x += param[i].offset.x;
@@ -69,33 +72,33 @@ class AnimationPlayer extends Player<AnimationChannel>
             p = objectData.spriteArray[i].parent;
             if (p != -1)
             {
-                var px:Float = sprites[p].x;
-                var py:Float = sprites[p].y;
-                var pr:Float = sprites[p].rotation;
-                timers[timerInt++] = new Timer(1/60 * 1000);
-                timers[timerInt - 1].run = function()
+                var px:Float = data.sprites[p].x;
+                var py:Float = data.sprites[p].y;
+                var pr:Float = data.sprites[p].rotation;
+                data.timers[timerInt++] = new Timer(1/60 * 1000);
+                data.timers[timerInt - 1].run = function()
                 {
-                    if (px != sprites[p].x)
+                    if (px != data.sprites[p].x)
                     {
-                        sprites[i].x += sprites[p].x - px;
-                        px = sprites[p].x;
+                        data.sprites[i].x += data.sprites[p].x - px;
+                        px = data.sprites[p].x;
                     }
-                    if (py != sprites[p].y)
+                    if (py != data.sprites[p].y)
                     {
-                        sprites[i].y += sprites[p].y - py;
-                        py = sprites[p].y;
+                        data.sprites[i].y += data.sprites[p].y - py;
+                        py = data.sprites[p].y;
                     }
-                    if (pr != sprites[p].rotation)
+                    if (pr != data.sprites[p].rotation)
                     {
                         /*var rad = Math.atan2(sprite.y - sprites[p].y,sprite.x - sprites[p].x);
                         var dis = Math.sqrt(Math.pow(sprites[i].y - sprite.y,2) + Math.pow(sprite.x - sprites[p].x,2));
                         sprite.x = sprites[p].x + dis * Math.cos(rad);
                         sprite.y = sprites[p].y + dis * Math.sin(rad);*/
-                        sprites[i].matrix.translate(-sprites[p].x,-sprites[p].y);
-                        sprites[i].matrix.rotate((sprites[p].rotation - pr) * (Math.PI/180));
-                        sprites[i].matrix.translate(sprites[p].x,sprites[p].y);
-                        sprites[i].rotation += (sprites[p].rotation - pr);
-                        pr = sprites[p].rotation;
+                        data.sprites[i].matrix.translate(-data.sprites[p].x,-data.sprites[p].y);
+                        data.sprites[i].matrix.rotate((data.sprites[p].rotation - pr) * (Math.PI/180));
+                        data.sprites[i].matrix.translate(data.sprites[p].x,data.sprites[p].y);
+                        data.sprites[i].rotation += (data.sprites[p].rotation - pr);
+                        pr = data.sprites[p].rotation;
                         //overwriting acutated tween
                     }
                 }
@@ -107,7 +110,7 @@ class AnimationPlayer extends Player<AnimationChannel>
         var pr:Float = 0;
         for (i in 0...param.length)
         {
-            sprite = sprites[i];
+            sprite = data.sprites[i];
             //stop
             Actuate.stop(sprite);
             //phase
@@ -159,8 +162,8 @@ class AnimationPlayer extends Player<AnimationChannel>
 }
 class AnimationChannel
 {
-    var timers:Array<Timer>;
-    var sprites:Array<Tile>;
+    public var timers:Array<Timer>;
+    public var sprites:Array<Tile>;
     public function new()
     {
 

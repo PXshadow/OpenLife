@@ -17,16 +17,16 @@ class Player<T>
     /**
      * Play channel
      */
-    public function play()
+    /*public function play(data:T)
     {
-
-    }
+        active.push(data);
+    }*/
     /**
      * Stop channel
      */
-    public function stop()
+    public function stop(data:T)
     {
-
+        active.remove(data);
     }
     /**
      * Go through active array and remove channels

@@ -47,6 +47,8 @@ import settings.Bind;
 import game.*;
 import openfl.display.Tile;
 import openfl.geom.Rectangle;
+import data.AnimationPlayer;
+import data.SoundPlayer;
 #end
 
 class Main #if openfl extends Sprite #end
@@ -64,6 +66,9 @@ class Main #if openfl extends Sprite #end
     var select:Shape;
     var chat:Text;
     var ground:Ground;
+    //players
+    var sounds:SoundPlayer = new SoundPlayer();
+    var animations:AnimationPlayer = new AnimationPlayer();
     //use to grab group stage
     public static var objects:Objects;
     var state:DisplayObjectContainer;
@@ -94,7 +99,7 @@ class Main #if openfl extends Sprite #end
     public function new()
     {
         dir();
-        settings = new settings.Settings();
+        settings = new Settings();
         data = new GameData();
         #if openfl
         super();
@@ -439,7 +444,8 @@ class Main #if openfl extends Sprite #end
         if (Bind.playerKill.bool)
         {
             trace("play animation");
-            new data.AnimationPlayer(player.instance.po_id,2,player,player.sprites(),0,Static.tileHeight);
+            //new data.AnimationPlayer(player.instance.po_id,2,player,player.sprites(),0,Static.tileHeight);
+            
         }
     }
     private function keyUp(e:KeyboardEvent)

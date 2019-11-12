@@ -1,47 +1,47 @@
 package data;
+import openfl.events.Event;
 #if openfl
 import openfl.media.Sound;
 import openfl.media.SoundChannel;
 import openfl.media.SoundTransform;
-class SoundPlayer extends Player
+class SoundPlayer extends Player<SoundChannel>
 {
     public static var soundVolume:Float = 1;
     public static var musicVolume:Float = 1;
     //aiff -> ogg
-    var channel:SoundChannel;
-    var sound:Sound;
-    var tryPlay:Bool = false;
-    var type:Int = 0;
-    var multi:Float = 0;
-    public function new(string:String)
+    public function new()
     {
-        var array = string.split(":");
-        var i:Int = Std.parseInt(array[0]);
-        if (i == -1) return;
-        multi = Std.parseFloat(array[1]);
-        this.type = type;
-        var path:String = type == 0 ? "sounds" : "music";
-        Sound.loadFromFile(Static.dir + "sounds/" + i + ".ogg").onComplete(function(sound:Sound)
-        {
-            this.sound = sound;
-            //if tried to play during load, now play
-            if (tryPlay) play();
-        });
+        super();
     }
-    public function play()
+    public function play(data:SoundData)
     {
-        if (sound == null) 
+        if(data.music)
         {
-            tryPlay = true;
-            return;
+            Sound.loadFromFile(Static.dir + "music/" + data.id + ".ogg").onComplete(function(sound:Sound)
+            {
+                var channel = sound.play(0,0,new SoundTransform(musicVolume * data.multi));
+                channel.addEventListener(Event.SOUND_COMPLETE,complete);
+                active.push(channel);
+            });
+        }else{
+            Sound.loadFromFile(Static.dir + "sounds/" + data.id + ".ogg").onComplete(function(sound:Sound)
+            {
+                var channel = sound.play(0,0,new SoundTransform(soundVolume * data.multi));
+                channel.addEventListener(Event.SOUND_COMPLETE,complete);
+                active.push(channel);
+            });
         }
-        channel = sound.play();
-        channel.soundTransform.volume = (type == 0 ? soundVolume : musicVolume) * multi;
     }
-    public function stop()
+    private function complete(e:Event)
     {
-        if (channel == null) return;
-        channel.stop();
-        channel = null;
+        var channel:SoundChannel = cast e.currentTarget;
+        channel.removeEventListener(Event.SOUND_COMPLETE,complete);
+        active.remove(channel);
     }
-    #end
+    override public function stop(data:SoundChannel)
+    {
+        super.stop(data);
+        data.stop();
+    }
+}
+#end
