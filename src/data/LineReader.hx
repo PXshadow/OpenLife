@@ -12,10 +12,10 @@ class LineReader
     {
 
     }
-    public function readLines(string:String)
+    public function readLines(string:String):Vector<String>
     {
         next = 0;
-        line = Vector.fromArrayCopy(string.split("\n"));
+        return Vector.fromArrayCopy(string.split("\n"));
     }
     public function getFloatArray():Array<Float>
     {

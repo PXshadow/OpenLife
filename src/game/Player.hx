@@ -1,5 +1,4 @@
 package game;
-import data.EmoteData;
 import motion.easing.Sine;
 #if full
 import console.Program.Pos;
@@ -338,14 +337,6 @@ class Player #if openfl extends TileContainer #end
             #end
         }
     }
-    private function emote(index:Int=-1)
-    {
-        if (index == -1) return;
-        var emot = Main.data.emotes[index];
-        var data = Main.data.objectMap.get(instance.po_id);
-        if (data == null || emot == null) return;
-        //data.
-    }
     public function hold()
     {
         #if !openfl
@@ -357,6 +348,7 @@ class Player #if openfl extends TileContainer #end
         #else
         if (!arrayEqual(oid,instance.o_id))
         {
+            trace("attempt");
             //check if was player to re add to stage
             if (instance.o_id.length == 1 && instance.o_id[0] < 0) Main.objects.group.addTile(heldObject);
             //change
@@ -366,11 +358,9 @@ class Player #if openfl extends TileContainer #end
             //add
             if (oid[0] > 0)
             {
-                //object heldOffset
                 heldObject = new TileContainer();
                 Main.objects.add(oid,0,0,heldObject);
             }else{
-                //player
                 heldObject = Main.data.playerMap.get(oid[0] * -1);
                 if (heldObject == null) 
                 {

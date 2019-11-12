@@ -1,5 +1,4 @@
 package game;
-import motion.Actuate;
 import data.SpriteData;
 #if openfl
 import openfl.display.BitmapData;
@@ -165,7 +164,7 @@ class Objects extends TileDisplay
         }
         return sprites;
     }
-    public function setSprite(sprite:Tile,data:SpriteData,x:Float,y:Float,tween:Float=0)
+    public function setSprite(sprite:Tile,data:SpriteData,x:Float,y:Float,tween:Bool=false)
     {
         var r = tileset.getRect(sprite.id);
         //center
@@ -177,15 +176,15 @@ class Objects extends TileDisplay
         //grid offset
         sprite.x += x;
         sprite.y += y;
-        //rotation
-        sprite.rotation = data.rot * 365;
         //alpha
-        //sprite.alpha = 1;
+        sprite.alpha = 1;
         //color
         sprite.colorTransform = new ColorTransform();
         sprite.colorTransform.redMultiplier = data.color[0];
         sprite.colorTransform.greenMultiplier = data.color[1];
         sprite.colorTransform.blueMultiplier = data.color[2];
+        //rotation
+        sprite.rotation = data.rot * 365;
         //flip
         if (data.hFlip != 0) sprite.scaleX = data.hFlip;
     }
