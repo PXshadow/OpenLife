@@ -48,7 +48,8 @@ class ObjectData extends LineReader
     public var deadlyDistance:Int=0;
     public var useDistance:Int=1;
     public var sounds:Vector<SoundData>;//=-1:0.250000,-1:0.250000,-1:0.250000,-1:1.000000
-    public var creationSoundInitialOnly:Int=0;
+    public var creationSoundInitialOnly:Bool = false;
+    public var creationSoundForce:Bool = false;
     public var numSlots:Int=0;
     public var timeStretch:Float=1.000000;
     public var slotSize:Int=1;
@@ -87,6 +88,9 @@ class ObjectData extends LineReader
     public var monumentDone:Bool = false;
     public var monumentCall:Bool = false;
 
+    public var toolSetIndex:Int = 0;
+    public var toolLearned:Bool = false;
+
     public var fail:Bool = false;
     //animation
     #if openfl
@@ -113,6 +117,29 @@ class ObjectData extends LineReader
     {
         id = getInt();
         description = getString();
+        //tool setup
+        var toolPos = description.indexOf("+tool");
+        if (toolPos > -1)
+        {
+            var setTag = description.substring(toolPos + 5,description.length);
+            var set:Bool = false;
+            for (record in toolsetRecord)
+            {
+                if (record.setTag == setTag)
+                {
+                    //already exists
+                    if (record.setMembership.indexOf(id) == -1)
+                    {
+                        record.setMembership.push(id);
+                        set = true;
+                        break;
+                    }
+                }
+            }
+            //new
+            if (!set) toolsetRecord.push({setTag: setTag, setMembership: [id]});
+            
+        }
         containable = getBool();
 
         var i = getArrayInt();
@@ -196,16 +223,9 @@ class ObjectData extends LineReader
             sounds = new Vector<SoundData>(array.length);
             for (i in 0...array.length) sounds[i] = new SoundData(array[i]);
         }
-        if(readName("creationSoundInitialOnly"))
-        {
-            //not setup
-            getString();
-        }
-        if(readName("creationSoundForce"))
-        {
-            //not setup
-            getString();
-        }
+
+        if(readName("creationSoundInitialOnly")) creationSoundInitialOnly = getBool();
+        if(readName("creationSoundForce")) creationSoundForce = getBool();
 
         //num slots and time stretch
         string = getString();
@@ -321,4 +341,10 @@ class ObjectData extends LineReader
             }
         }
     }
+    public static var toolsetRecord:Array<ToolSetRecord> = [];
+}
+//toolset
+typedef ToolSetRecord = {
+    setTag:String,
+    setMembership:Array<Int>
 }
