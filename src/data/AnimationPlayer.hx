@@ -64,7 +64,7 @@ class AnimationPlayer
         {
             sprite = sprites[i];
             //set pos
-            Main.objects.setSprite(sprite,objectData.spriteArray[i],tx,ty);
+            Main.objects.setSprite(sprite,objectData.spriteArray[i],tx,ty,10);
             sprite.x += param[i].offset.x;
             sprite.y += -param[i].offset.y;
             sprite.originX += param[i].rotationCenterOffset.x;
@@ -113,6 +113,7 @@ class AnimationPlayer
         for (i in 0...param.length)
         {
             sprite = sprites[i];
+            if (!sprite.visible) continue;
             //stop
             Actuate.stop(sprite);
             //phase

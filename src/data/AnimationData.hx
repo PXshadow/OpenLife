@@ -23,7 +23,7 @@ class AnimationData extends LineReader
             //skip 3
             if (i == 3) continue;
             //read lines
-            line = readLines(File.getContent(Static.dir + "animations/" + id + "_" + i + ".txt"));
+            readLines(File.getContent(Static.dir + "animations/" + id + "_" + i + ".txt"));
             if (line.length > 0)
             {
                 record[i] = process();

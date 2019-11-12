@@ -11,6 +11,9 @@ enum ObjectType {
 }
 class ObjectData extends LineReader
 {
+    //static 
+    public static inline var CLOTHING_PIECES:Int = 6;
+    //set
     public var id:Int=0;
     public var description:String = "";
     public var containable:Bool=false;
@@ -55,16 +58,34 @@ class ObjectData extends LineReader
     public var slotParent:Vector<Int>;
     public var numSprites:Int=0;
     public var spriteArray:Vector<SpriteData>;
-
+    //indexes
     public var headIndex:Int = -1;
     public var bodyIndex:Int = -1;
-    public var backFootIndex:Array<Int> = [];
-    public var frontFootIndex:Array<Int> = [];
+    public var backFootIndex:Int = -1;
+    public var frontFootIndex:Int = -1;
+    // derrived automatically for person objects from sprite name
+    // tags (if they contain Eyes or Mouth)
+    // only filled in if sprite bank has been loaded before object bank
+    public var eyesIndex:Int = -1;
+    public var mouthIndex:Int = -1;
+    //eyes offset
+    //derrived automatically from whatever eyes are visible at age 30
+    //(old eyes may have wrinkles around them, so they end up
+    //getting centered differently)
+    public var eyesOffset:Point = null;
 
     public var numUses:Int = 0;
+    public var useChance:Int = 0;
     public var useVanishIndex:Array<Int> = [];
     public var useAppearIndex:Array<Int> = [];
-    public var pixHeight:Int = 0;
+    // -1 if not set
+    // used to avoid recomputing height repeatedly at client/server runtime
+    public var cacheHeight:Int = -1;
+
+    public var apocalypseTrigger:Bool = false;
+    public var monumentStep:Bool = false;
+    public var monumentDone:Bool = false;
+    public var monumentCall:Bool = false;
 
     public var fail:Bool = false;
     //animation
@@ -75,7 +96,7 @@ class ObjectData extends LineReader
     {
         super();
         try {
-            line = readLines(File.getContent(Static.dir + "objects/" + i + ".txt"));
+            readLines(File.getContent(Static.dir + "objects/" + i + ".txt"));
         }catch(e:Dynamic)
         {
             trace("object txt e " + e);
@@ -87,6 +108,11 @@ class ObjectData extends LineReader
         if (animation.fail) animation = null;
         #end
         read();
+        line = null;
+    }
+    private function setupEyesAndMouth()
+    {
+        //for ()
     }
     public function read()
     {
@@ -256,7 +282,7 @@ class ObjectData extends LineReader
             numUses = getInt();
             if (next < line.length) useVanishIndex = getIntArray();
             if (next < line.length) useAppearIndex = getIntArray();
-            if (next < line.length) pixHeight = getInt();
+            if (next < line.length) cacheHeight = getInt();
 
         }
         #end
