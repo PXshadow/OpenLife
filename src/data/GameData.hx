@@ -48,6 +48,7 @@ class GameData
         objectData();
         #end
     }
+    #if openfl
     private function emoteData()
     {
         var arrayObj:Array<String> = Main.settings.data.get("emotionObjects").split("\n");
@@ -55,6 +56,7 @@ class GameData
         emotes = new Vector<EmoteData>(arrayObj.length);
         for (i in 0...arrayObj.length) emotes[i] = new EmoteData(arrayWord[i],arrayObj[i]);
     }
+    #end
     private function objectData()
     {
         //nextobject

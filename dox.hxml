@@ -1,11 +1,12 @@
 -cp src
 -D doc-gen
 -lib hscript
+-D full
 -main Main
 #--macro include('pack')
 --no-output
 --each
 
 --next
--xml dox/neko.xml
+-xml xml/bin/neko/types.xml
 -neko dummy.n

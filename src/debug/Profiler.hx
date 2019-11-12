@@ -12,7 +12,7 @@ class Profiler #if openfl extends DisplayObjectContainer #end
     public var fps:Float = 0;
     public function new()
     {
-        super();
+        #if openfl super(); #end
         UnitTest.inital();
     }
     #if (openfl && cpp)

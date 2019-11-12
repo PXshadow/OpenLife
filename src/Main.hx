@@ -99,7 +99,6 @@ class Main #if openfl extends Sprite #end
     public function new()
     {
         dir();
-        new debug.ImageGenerate("groundTileCache");
         settings = new Settings();
         data = new GameData();
         #if openfl

@@ -1,11 +1,11 @@
 package game;
-import motion.easing.Sine;
 #if full
 import console.Program.Pos;
 import console.Program;
 #end
 import data.GameData;
 #if openfl
+import motion.easing.Sine;
 import openfl.geom.Point;
 import openfl.display.TileContainer;
 import motion.easing.Quad;
@@ -31,6 +31,7 @@ class Player #if openfl extends TileContainer #end
     public var heldObject:TileContainer;
     //clothing hat;tunic;front_shoe;back_shoe;bottom;backpack
     var clothing:Array<TileContainer> = [];
+    public var _sprites:Array<Tile> = [];
     #end
     public var instance:PlayerInstance;
     var clothingInt:Array<Int> = [];
@@ -57,8 +58,6 @@ class Player #if openfl extends TileContainer #end
     public var lastName:String = "";
     public var text:String = "";
     public var inRange:Bool = true;
-
-    public var _sprites:Array<Tile> = [];
     public function new()
     {
         #if openfl
@@ -155,6 +154,7 @@ class Player #if openfl extends TileContainer #end
             }).ease(Linear.easeNone);
             #end
         }else{
+            #if openfl
             //buffer
             if (Main.xs != 0 || Main.ys != 0) 
             {
@@ -164,6 +164,7 @@ class Player #if openfl extends TileContainer #end
                 //no buffer
                 Main.animations.clear(sprites());
             }
+            #end
         }
     }
     public function step(mx:Int,my:Int):Bool
@@ -353,6 +354,7 @@ class Player #if openfl extends TileContainer #end
             #end
         }
     }
+    #if openfl
     public function emote(index:Int=-1)
     {
         if (index == -1) return;
@@ -361,6 +363,7 @@ class Player #if openfl extends TileContainer #end
         if (data == null || emot == null) return;
         //data.
     }
+    #end
     public function hold()
     {
         #if !openfl

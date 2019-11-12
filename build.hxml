@@ -5,28 +5,36 @@
 -lib hscript
 -D luajit
 -D lua-vanilla
+-D haxeJson
+-D full
+-D no-deprecation-warnings
 #-D secret
 --each
-
+#neko
+-neko bin/neko/lib.n
 --next
-
 #Lua
--lua bin/windows/bin/terminal.lua
+-lua bin/lua/lib.lua
 --next
 #Java
--java bin/windows/bin/java
+-java bin/java
 --next
 #Python
 -cp src
--python bin/windows/bin/terminal.py
+-python bin/python/ib.py
 --next
-#CS
--cs bin/windows/bin/cs
+#C#
+#-cs bin/cs
+#--next
+#C++
+-cpp bin/cpp
 --next
 #Php
--php bin/windows/bin/php
+-php bin/php
 --next
-#output reader
--cp src
--neko bin/windows/bin/output.n
--main Output
+#nodejs
+-lib hxnodejs
+-D js-es5
+-js bin/js/lib.js
+#Doxs
+-cmd haxelib run dox -i xml/bin/neko/types.xml -o .. -theme ./theme --title "OpenLife API" -D version 0.0.1 --exclude "(__ASSET__|ApplicationMain|DocumentClass|DefaultAssetLibrary|Main|NMEPreloader)"
