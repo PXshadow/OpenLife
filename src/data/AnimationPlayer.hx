@@ -12,7 +12,7 @@ import openfl.display.TileContainer;
 import data.AnimationData.AnimationParameter;
 import haxe.ds.Vector;
 import openfl.geom.Point;
-class AnimationPlayer
+class AnimationPlayer extends Player<AnimationChannel>
 {
     var parent:TileContainer;
     var timers:Array<Timer> = [];
@@ -27,6 +27,7 @@ class AnimationPlayer
     var ty:Float = 0;
     public function new(id:Int,int:Int,parent:TileContainer,sprites:Array<Tile>,x:Int=0,y:Int=0)
     {
+        super();
         //if (current.indexOf(id) > -1) return;
         //current.push(id);
         objectData = Main.data.objectMap.get(id);
@@ -40,10 +41,6 @@ class AnimationPlayer
         setup();
     }
     public function start(index:Int)
-    {
-
-    }
-    public function stop()
     {
 
     }
@@ -158,6 +155,15 @@ class AnimationPlayer
         var value:Float = Reflect.field(o,name);
         Reflect.setField(o,name,value - sub * 2);
         return o;
+    }
+}
+class AnimationChannel
+{
+    var timers:Array<Timer>;
+    var sprites:Array<Tile>;
+    public function new()
+    {
+
     }
 }
 #end

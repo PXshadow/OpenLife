@@ -47,7 +47,7 @@ class ObjectData extends LineReader
     public var clothingOffset:Point;//=0.000000,0.000000
     public var deadlyDistance:Int=0;
     public var useDistance:Int=1;
-    public var sounds:Array<String> = [];//=-1:0.250000,-1:0.250000,-1:0.250000,-1:1.000000
+    public var sounds:Vector<SoundData>;//=-1:0.250000,-1:0.250000,-1:0.250000,-1:1.000000
     public var creationSoundInitialOnly:Int=0;
     public var numSlots:Int=0;
     public var timeStretch:Float=1.000000;
@@ -192,7 +192,9 @@ class ObjectData extends LineReader
         if(readName("sounds"))
         {
             //not setup
-            getString();
+            var array = getStringArray();
+            sounds = new Vector<SoundData>(array.length);
+            for (i in 0...array.length) sounds[i] = new SoundData(array[i]);
         }
         if(readName("creationSoundInitialOnly"))
         {

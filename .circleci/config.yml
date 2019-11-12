@@ -14,6 +14,7 @@ jobs:
      - run: haxelib install actuate > log.txt || cat log.txt
      - run: haxelib install hscript > log.txt || cat log.txt
      - run: haxelib install format > log.txt || cat log.txt
+     - run: haxelib dev hxp
      - run: haxelib dev format
      - run: haxelib dev openfl-samples ~/project
      - run: haxelib run openfl rebuild linux -release -64 -nocffi > log.txt || cat log.txt
