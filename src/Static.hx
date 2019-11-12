@@ -38,6 +38,14 @@ class Static
             default:
         }
     }
+    public static function arrayEqual(a:Array<Dynamic>,b:Array<Dynamic>):Bool
+    {
+        if (a[0] != b[0]) return false;
+        if (a.length == 1 && b.length == 1) return true;
+        if (a.length != b.length) return false;
+        for (i in 1...a.length) if (a[i] != b[i]) return false;
+        return true;
+    }
     //get object list number
     public static function number():Int
     {

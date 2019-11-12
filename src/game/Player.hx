@@ -348,13 +348,13 @@ class Player #if openfl extends TileContainer #end
     public function hold()
     {
         #if !openfl
-        if (arrayEqual(instance.o_id,oid))
+        if (Static.arrayEqual(instance.o_id,oid))
         {
             //change
             oid = instance.o_id;
         }
         #else
-        if (!arrayEqual(oid,instance.o_id))
+        if (!Static.arrayEqual(oid,instance.o_id))
         {
             trace("attempt");
             //check if was player to re add to stage
@@ -382,14 +382,6 @@ class Player #if openfl extends TileContainer #end
             Actuate.tween(heldObject,0.5,{x:instance.o_origin_x,y:-height/2 - instance.o_origin_y}).ease(Sine.easeInOut);
         }
         #end
-    }
-    private function arrayEqual(a:Array<Int>,b:Array<Int>):Bool
-    {
-        if (a[0] != b[0]) return false;
-        if (a.length == 1 && b.length == 1) return true;
-        if (a.length != b.length) return false;
-        for (i in 1...a.length) if (a[i] != b[i]) return false;
-        return true;
     }
     #if openfl
     public function sort()

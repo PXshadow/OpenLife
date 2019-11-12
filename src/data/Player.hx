@@ -6,7 +6,6 @@ package data;
  */
 class Player<T>
 {
-    private var active:Array<T> = [];
     /**
      * New Media Player
      */
@@ -31,8 +30,8 @@ class Player<T>
     /**
      * Go through active array and remove channels
      */
-    public function clear()
+    /*public function clear()
     {
 
-    }
+    }*/
 }

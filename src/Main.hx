@@ -430,7 +430,8 @@ class Main #if openfl extends Sprite #end
         {
             //program.task("berryfarm");
             trace("sharpstone");
-            program.task("sharpstone");
+            //program.task("sharpstone");
+            animations.clear(player.sprites());
         }
         if (Bind.playerDrop.bool)
         {

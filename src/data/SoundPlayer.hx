@@ -4,14 +4,15 @@ import openfl.events.Event;
 import openfl.media.Sound;
 import openfl.media.SoundChannel;
 import openfl.media.SoundTransform;
-class SoundPlayer extends Player<SoundChannel>
+class SoundPlayer
 {
+    private var active:Array<SoundChannel> = [];
     public static var soundVolume:Float = 1;
     public static var musicVolume:Float = 1;
     //aiff -> ogg
     public function new()
     {
-        super();
+
     }
     public function play(data:SoundData)
     {
@@ -38,9 +39,9 @@ class SoundPlayer extends Player<SoundChannel>
         channel.removeEventListener(Event.SOUND_COMPLETE,complete);
         active.remove(channel);
     }
-    override public function stop(data:SoundChannel)
+    public function stop(data:SoundChannel)
     {
-        super.stop(data);
+        active.remove(data);
         data.stop();
     }
 }
