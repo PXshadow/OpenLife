@@ -94,7 +94,6 @@ class Main #if openfl extends Sprite #end
     public function new()
     {
         dir();
-        settings = new settings.Settings();
         data = new GameData();
         #if openfl
         super();
@@ -217,23 +216,24 @@ class Main #if openfl extends Sprite #end
         //Main.client.port = 8005;
 
         //settings to use infomation
-        if (!settings.fail)
+        Main.settings = new settings.Settings();
+        if (!Main.settings.fail)
         {
             //account
-            if (valid(settings.data.email)) Main.client.login.email = string;
-            if (valid(settings.data.accountKey)) Main.client.login.key = string;
-            if (valid(settings.data.useCustomServer) && string == "1")
+            if (valid(Main.settings.data.email)) Main.client.login.email = string;
+            if (valid(Main.settings.data.accountKey)) Main.client.login.key = string;
+            if (valid(Main.settings.data.useCustomServer) && string == "1")
             {
-                if (valid(settings.data.customServerAddress)) Main.client.ip = string;
-                if (valid(settings.data.customServerPort)) Main.client.port = Std.parseInt(string);
+                if (valid(Main.settings.data.customServerAddress)) Main.client.ip = string;
+                if (valid(Main.settings.data.customServerPort)) Main.client.port = Std.parseInt(string);
             }
             //window
             #if openfl
-            if (valid(settings.data.borderless)) stage.window.borderless = Std.parseInt(string) == 1 ? true : false;
-            if (valid(settings.data.fullscreen)) stage.window.fullscreen = Std.parseInt(string) == 1 ? true : false;
-            if (valid(settings.data.screenWidth)) stage.window.width = Std.parseInt(string);
-            if (valid(settings.data.screenHeight)) stage.window.height = Std.parseInt(string);
-            if (valid(settings.data.targetFrameRate)) stage.frameRate = Std.parseInt(string);
+            if (valid(Main.settings.data.borderless)) stage.window.borderless = Std.parseInt(string) == 1 ? true : false;
+            if (valid(Main.settings.data.fullscreen)) stage.window.fullscreen = Std.parseInt(string) == 1 ? true : false;
+            if (valid(Main.settings.data.screenWidth)) stage.window.width = Std.parseInt(string);
+            if (valid(Main.settings.data.screenHeight)) stage.window.height = Std.parseInt(string);
+            if (valid(Main.settings.data.targetFrameRate)) stage.frameRate = Std.parseInt(string);
             #end
         }
         //by pass settings and force email and key if secret account
@@ -439,7 +439,7 @@ class Main #if openfl extends Sprite #end
         if (Bind.playerKill.bool)
         {
             trace("play animation");
-            new data.AnimationPlayer(player.instance.po_id,4,player,player.sprites(),0,Static.tileHeight);
+            new data.AnimationPlayer(player.instance.po_id,2,player,player.sprites(),0,Static.tileHeight);
         }
     }
     private function keyUp(e:KeyboardEvent)

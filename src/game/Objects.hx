@@ -117,18 +117,10 @@ class Objects extends TileDisplay
             sprites = create(data,0,0);
         }
         //conainted
-        for (i in 1...array.length) 
+        /*for (i in 1...array.length) 
         {
-            if (array[i] > 0)
-            {
-                //new container
-                var tempData = new ObjectData(array[i]);
-                sprites = create(data,0,0);
-            }else{
-                //sub
-                sprites = create(new ObjectData(array[i * -1]));
-            }
-        }
+
+        }*/
         //fill container if present
         if (container != null)
         {
@@ -164,7 +156,7 @@ class Objects extends TileDisplay
         }
         return sprites;
     }
-    public function setSprite(sprite:Tile,data:SpriteData,x:Float,y:Float,tween:Bool=false)
+    public function setSprite(sprite:Tile,data:SpriteData,x:Float,y:Float)
     {
         var r = tileset.getRect(sprite.id);
         //center
@@ -176,8 +168,6 @@ class Objects extends TileDisplay
         //grid offset
         sprite.x += x;
         sprite.y += y;
-        //alpha
-        sprite.alpha = 1;
         //color
         sprite.colorTransform = new ColorTransform();
         sprite.colorTransform.redMultiplier = data.color[0];
