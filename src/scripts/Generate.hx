@@ -8,7 +8,7 @@ class Generate
     {
         trace("start generation");
         //docs
-        var exclude = ["debugger","shaders","ui"];
+        var exclude = ["debugger","shaders","ui","scripts"];
         var string:String = '"(';
         for (dir in FileSystem.readDirectory("src"))
         {
