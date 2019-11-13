@@ -15,7 +15,7 @@ OpenLifeModTextures
 src/Secret.hx
 temp
 pages
-dox
 docs
+dox
 *.n
 xml

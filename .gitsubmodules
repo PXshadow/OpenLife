@@ -1,0 +1,8 @@
+[submodule "OneLifeData7"]
+path = OneLifeData7
+url = https://github.com/PXshadow/OneLifeData7.git
+branch = master
+[submodule "OpenLife-Docs"]
+path = docs
+url = https://github.com/PXshadow/OpenLife-Docs.git
+branch = master

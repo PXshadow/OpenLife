@@ -6,11 +6,31 @@
 -dce std
 -main Main
 -neko dummy.n
--xml xml/types.xml
+-xml xml/Terminal.xml
 
 --next
 
+-xml xml/OpenFL.xml
+-cpp obj/docs
+-D openfl
+-D full
+-D display
+-D native
+-D linux
+-D openfl_doc_gen
+-D doc_gen
+-cp src
+-main Static
+-lib lime
+-lib openfl
+-lib actuate
+-lib format
+-lib hscript
+--no-output
+
+
+--next
+#generation docs code
 -cp src
 -main scripts.Generate
 -neko generate.n
-#-cmd neko generate.n

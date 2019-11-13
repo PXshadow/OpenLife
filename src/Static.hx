@@ -17,7 +17,7 @@ class Static
     public static inline var babyBodyDownFactor:Float = 0.75;
     public static inline var oldHeadDownFactor:Float = 0.35;
     public static inline var oldHeadForwardFactor:Float = 2;
-    
+    public static function main() {new Main();}
     public static function request(url:String,complete:String->Void)
     {
         var http = new Http(url);

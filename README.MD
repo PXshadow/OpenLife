@@ -29,7 +29,9 @@ To Developers:
 =========
 *Open Life is an [OpenFL](https://openfl.org) and [Haxe](https://haxe.org) based One Life client.*
 
-* **Real Time Console:** Open Life will be able to excute code in real time using [hscript](https://github.com/HaxeFoundation/hscript) and eventually [cppia](https://haxe.org/manual/target-cppia-getting-started.html).
+* **Open Api:**  Quickly search through the [api](https://pxshadow.github.io/OpenLife-Docs/api/index.html) and find variables and methods.
+
+* **Real Time Console:** Exe code in real time using [hscript](https://github.com/HaxeFoundation/hscript) and eventually [cppia](https://haxe.org/manual/target-cppia-getting-started.html).
 
 * **Client Scripting:** Allows programmers to easily build programs on type of the client architecture.
 
