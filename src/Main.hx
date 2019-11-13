@@ -4,19 +4,20 @@ import sys.io.Process;
 import haxe.Timer;
 import console.Program;
 import data.GameData;
-import data.ArrayDataArray.ArrayDataInt;
+import data.ArrayDataInt;
 import settings.Bind;
 import sys.net.Socket;
 import client.Client;
 import console.Console;
 import haxe.io.Path;
 import settings.Settings;
-import data.ObjectData;
-import data.PlayerData.PlayerInstance;
-import data.MapData.MapInstance;
+import data.object.ObjectData;
+import data.object.player.PlayerInstance;
+import data.map.MapInstance;
 import game.Player;
-import data.PlayerData.PlayerMove;
-import data.MapData.MapChange;
+import data.object.player.PlayerInstance;
+import data.object.player.PlayerMove;
+import data.map.MapChange;
 #if (cpp && debug)
 import cpp.vm.Profiler;
 #else
@@ -47,8 +48,8 @@ import settings.Bind;
 import game.*;
 import openfl.display.Tile;
 import openfl.geom.Rectangle;
-import data.AnimationPlayer;
-import data.SoundPlayer;
+import data.animation.AnimationPlayer;
+import data.sound.SoundPlayer;
 #end
 
 class Main #if openfl extends Sprite #end
@@ -561,8 +562,8 @@ class Main #if openfl extends Sprite #end
     private function clear()
     {
         //clear data
-        data.map = new data.MapData();
-        data.tileData = new data.TileData();
+        data.map = new data.map.MapData();
+        data.tileData = new data.display.TileData();
         data.blocking = new Map<String,Bool>();
         data.playerMap = new Map<Int,Player>();
         //data = new GameData();

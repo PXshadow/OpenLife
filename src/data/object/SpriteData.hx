@@ -1,4 +1,4 @@
-package data;
+package data.object;
 //gets set by objectData
 class SpriteData
 {

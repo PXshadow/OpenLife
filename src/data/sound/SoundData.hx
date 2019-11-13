@@ -1,4 +1,5 @@
-package data;
+package data.sound;
+
 #if openfl
 class SoundData
 {
@@ -11,13 +12,5 @@ class SoundData
         id = Std.parseInt(array[0]);
         multi = Std.parseFloat(array[1]);
     }
-}
-enum SoundType
-{
-    creation;
-    //using conflicts with haxe
-    use;
-    eating;
-    decay;
 }
 #end

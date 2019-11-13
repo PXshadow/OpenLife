@@ -1,20 +1,6 @@
-package data;
-
-import sys.io.File;
-import sys.FileSystem;
+package data.transition;
 
 class TransitionData
-{
-    var transitions:Array<Transition> = [];
-    public function new()
-    {
-        for (name in FileSystem.readDirectory(Static.dir + "transitions"))
-        {
-            transitions.push(new Transition(name,File.getContent(Static.dir + "transitions/" + name)));
-        }
-    }
-}
-class Transition
 {
     public var lastUseActor:Bool = false;
     public var lastUseTarget:Bool = false;

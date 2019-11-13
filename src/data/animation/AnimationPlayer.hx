@@ -1,15 +1,16 @@
-package data;
+package data.animation;
+
+#if openfl
 import lime.media.AudioBuffer;
 import openfl.geom.Rectangle;
-#if openfl
 import motion.easing.Linear;
 import motion.easing.Sine;
-import data.AnimationData.AnimationType;
+import data.animation.AnimationType;
 import motion.Actuate;
 import haxe.Timer;
 import openfl.display.Tile;
 import openfl.display.TileContainer;
-import data.AnimationData.AnimationParameter;
+import data.animation.AnimationParameter;
 import haxe.ds.Vector;
 import openfl.geom.Point;
 class AnimationPlayer

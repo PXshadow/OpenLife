@@ -1,4 +1,4 @@
-package data;
+package data.sound;
 import openfl.events.Event;
 #if openfl
 import openfl.media.Sound;

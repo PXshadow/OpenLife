@@ -1,14 +1,5 @@
-package data;
+package data.map;
 
-import haxe.ds.Vector;
-
-class SceneData
-{
-    public function new()
-    {
-
-    }
-}
 class SceneCell
 {
     public var biome:Int = 0;

@@ -1,14 +1,10 @@
-package data;
+package data.object;
 import haxe.io.Input;
 import sys.FileSystem;
 import sys.io.File;
 import haxe.ds.Vector;
-enum ObjectType {
-    OBJECT;
-    FLOOR;
-    PLAYER;
-    GROUND;
-}
+import data.animation.AnimationData;
+import data.sound.SoundData;
 class ObjectData extends LineReader
 {
     //static 
@@ -345,9 +341,4 @@ class ObjectData extends LineReader
         }
     }
     public static var toolsetRecord:Array<ToolSetRecord> = [];
-}
-//toolset
-typedef ToolSetRecord = {
-    setTag:String,
-    setMembership:Array<Int>
 }

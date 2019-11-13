@@ -1,4 +1,4 @@
-package data;
+package data.object;
 
 class ObjectCode
 {

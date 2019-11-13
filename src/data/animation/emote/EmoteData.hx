@@ -1,4 +1,4 @@
-package data;
+package data.animation.emote;
 
 class EmoteData
 {

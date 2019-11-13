@@ -1,12 +1,12 @@
 package data;
 
-@:generic
-class ArrayDataArray<T>
+class ArrayDataInt
 {
-    var array:Array<Array<Array<T>>> = [];
+    var array:Array<Array<Int>> = [];
     //diffrence
     public var dx:Int = 0;
     public var dy:Int = 0;
+    public static inline var NAN:Int = -1;
     public function new()
     {
         array[0] = [];
@@ -17,13 +17,17 @@ class ArrayDataArray<T>
         dx = 0;
         dy = 0;
     }
-    public function get(x:Int,y:Int):Array<T>
+    public function row(y:Int):Array<Int>
+    {
+        return array[y-dy];
+    }
+    public function get(x:Int,y:Int):Int
     {
         if (array[y - dy] != null)
         {
             return array[y - dy][x - dx];
         }
-        return [];
+        return NAN;
     }
     public function shiftY(y:Int)
     {
@@ -34,7 +38,7 @@ class ArrayDataArray<T>
             dy = y;
         }
     }
-    public function shiftX(x:Int)
+    public function shiftX(x:Int,value:Int)
     {
         if (x < dx)
         {
@@ -43,16 +47,16 @@ class ArrayDataArray<T>
                 if (array[j] == null) array[j] = [];
                 for (i in 0...dx - x) 
             	{
-                    array[j].unshift([]);
+                    array[j].unshift(NAN);
                 }
             }
             dx = x;
         }
     }
-    public function set(x:Int,y:Int,value:Array<T>)
+    public function set(x:Int,y:Int,value:Int)
     {
         shiftY(y);
-        shiftX(x);
+        shiftX(x,value);
         //set value
         if (array[y - dy] == null) array[y - dy] = [];
         array[y - dy][x - dx] = value;

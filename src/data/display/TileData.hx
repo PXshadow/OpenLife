@@ -1,4 +1,4 @@
-package data;
+package data.display;
 #if openfl
 import openfl.display.Tile;
 import data.ArrayDataArray;

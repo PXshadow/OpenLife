@@ -1,18 +1,23 @@
 package data;
 import haxe.ds.ObjectMap;
+import data.object.ObjectData;
 import game.Player;
 #if full
 import game.Ground;
-import data.TransitionData;
+import data.transition.TransitionData;
+import data.map.MapData;
 #end
 import sys.FileSystem;
 import sys.io.File;
 import haxe.io.Path;
 #if openfl
+import data.animation.emote.EmoteData;
+import data.display.TileData;
 import openfl.display.TileContainer;
 import openfl.display.Tile;
 import openfl.geom.Rectangle;
 import haxe.ds.Vector;
+import data.object.SpriteData;
 #end
 //data stored for the game to function (map data -> game data)
 class GameData
@@ -24,7 +29,9 @@ class GameData
     public var transitionData:TransitionData;
     public var map:MapData;
     #end
+    #if openfl
     public var spriteMap:Map<Int,SpriteData> = new Map<Int,SpriteData>();
+    #end
     public var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
     //object alternative ids to refrence same object
     public var objectAlt:Map<Int,Int> = new Map<Int,Int>();

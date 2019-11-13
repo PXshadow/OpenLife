@@ -2,7 +2,7 @@ package game;
 
 import sys.io.File;
 import openfl.geom.Rectangle;
-import data.TgaData;
+import data.display.TgaData;
 import openfl.utils.ByteArray;
 import haxe.io.Input;
 import openfl.display.BitmapData;

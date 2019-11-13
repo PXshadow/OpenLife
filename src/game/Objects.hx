@@ -1,5 +1,5 @@
 package game;
-import data.SpriteData;
+import data.object.SpriteData;
 #if openfl
 import openfl.display.BitmapData;
 import openfl.display.TileContainer;
@@ -10,12 +10,12 @@ import openfl.utils.ByteArray;
 import haxe.ds.Vector;
 import sys.FileSystem;
 import sys.io.File;
-import data.AnimationData;
+import data.animation.AnimationData;
 import openfl.geom.ColorTransform;
 import openfl.geom.Rectangle;
-import data.TgaData;
+import data.display.TgaData;
 import openfl.display.Tile;
-import data.ObjectData;
+import data.object.ObjectData;
 
 class Objects extends TileDisplay
 {
@@ -57,7 +57,7 @@ class Objects extends TileDisplay
         group = new TileContainer();
         addTile(group);
     }
-    public function addPlayer(data:data.PlayerData.PlayerInstance)
+    public function addPlayer(data:data.object.player.PlayerInstance)
     {
         if (data == null) return;
         player = Main.data.playerMap.get(data.p_id);
