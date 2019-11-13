@@ -1,5 +1,7 @@
 package data.animation;
 #if openfl
+import haxe.Timer;
+import openfl.display.Tile;
 class AnimationChannel
 {
     /**

@@ -11,6 +11,7 @@ import haxe.Timer;
 import openfl.display.Tile;
 import openfl.display.TileContainer;
 import data.animation.AnimationParameter;
+import data.animation.AnimationChannel;
 import haxe.ds.Vector;
 import openfl.geom.Point;
 class AnimationPlayer
