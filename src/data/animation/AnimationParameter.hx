@@ -4,17 +4,29 @@ package data.animation;
 class AnimationParameter
 {
     //https://github.com/twohoursonelife/OneLifeDocs/blob/master/OHOL%20editor%20guide.txt
+    /**
+     * Offset of sprite
+     */
     public var offset:Point;
-    // the first pause, before the first animation duration,
-    // for controling the phase of the duration-pause cycle
+    /**
+     * the first pause, before the first animation duration,
+     * for controling the phase of the duration-pause cycle
+     */
     public var startPauseSec:Float = 0;
-    //param array start here, amount of seconds to complete cycle
+    /**
+     * param array start here, amount of seconds to complete cycle
+     */
     public var xOscPerSec:Float = 0;
-    //in pixels distance from middle
+    /**
+     * in pixels distance from middle
+     */
     public var xAmp:Float = 0;
-    // between 0 and 1 of where to start the animation 0 = middle-right, 0.25 = right-left, 0.50, 0.50 middle-left, 0.75 left-right
+    /**
+     * between 0 and 1 of where to start the animation 0 = middle-right, 0.25 = right-left, 0.50, 0.50 middle-left, 0.75 left-right
+     */
     public var xPhase:Float = 0;
-    
+
+
     public var yOscPerSec:Float = 0;
     public var yAmp:Float = 0;
     public var yPhase:Float = 0;
@@ -25,27 +37,44 @@ class AnimationParameter
     public var rotPhase:Float = 0;
 
     public var rockOscPerSec:Float = 0;
-    // between 0 and 1, where 1 is full rotation before coming back
+    /**
+     * between 0 and 1, where 1 is full rotation before coming back
+     */
     public var rockAmp:Float = 0;
     public var rockPhase:Float = 0;
-    // for animations that run for a while and pause between runs
-    // ticking cogs, twitching animal noses, etc.
+    /**
+     * for animations that run for a while and pause between runs
+     * between 0 and 1, where 1 is full rotation before coming back
+     */
     public var durationSec:Float = 0;
     public var pauseSec:Float = 0;
 
     public var fadeOscPerSec:Float = 0; 
-    // 0 is sine wave, 1 is square wave, in between is a mix
+    /**
+     * 0 is sine wave, 1 is square wave, in between is a mix
+     */
     public var fadeHardness:Float = 0;
-    // what fade oscillates between
+    /**
+     * what fade oscillates between max
+     */
     public var fadeMin:Float = 0;
+    /**
+     * what fade oscillates between min
+     */
     public var fadeMax:Float = 0;
 
-    // between 0 and 1
+    /**
+     * between 0 and 1
+     */
     public var fadePhase:Float = 0;
     public function new()
     {
         
     }
+    /**
+     * Process parameter
+     * @param array properties
+     */
     public function process(array:Array<String>)
     {
         var i:Int = 0;

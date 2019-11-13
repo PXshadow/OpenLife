@@ -12,10 +12,20 @@ class FractalNoise
     private static inline var XX_PRIME32_4:UInt64 = cast 668265263;
     private static inline var XX_PRIME32_5:UInt64 = cast 374761393;
     private static var xxSeed:UInt32 = 0;
+    /**
+     * Random seed generated
+     * @param inSeed seed to fractal
+     */
     public static function setXYRandomSeed(inSeed:UInt32) 
     {
         xxSeed = inSeed;
     }
+    /**
+     * N/A
+     * @param inX 
+     * @param inY 
+     * @return UInt32
+     */
     public static function xxTweakedHash2D(inX:UInt32,inY:UInt32):UInt32
     {
         var h32:UInt32 = cast(xxSeed + inX + XX_PRIME32_5);
@@ -28,10 +38,22 @@ class FractalNoise
         return h32;    
     }
     private static var oneOverIntMax = 1.0 / 4294967295;
+    /**
+     * Get Tile random
+     * @param inX 
+     * @param inY 
+     * @return Float
+     */
     public static function getXYRandom(inX:Int,inY:Int):Float 
     {
         return xxTweakedHash2D(inX,inY) * oneOverIntMax;
     }
+    /**
+     * N/A
+     * @param inX 
+     * @param inY 
+     * @return Float
+     */
     public static function getXYRandomBN(inX:Float,inY:Float):Float
     {
         var floorX:Int = Math.floor(inX);
@@ -53,6 +75,14 @@ class FractalNoise
 
         return bottomBlend * yOffset + (1-yOffset) * topBlend;
     }
+    /**
+     * N/A
+     * @param inX 
+     * @param inY 
+     * @param inRoughness 
+     * @param inScale 
+     * @return Float
+     */
     public static function getXYFractal(inX:Int,inY:Int,inRoughness:Float,inScale:Float):Float
     {
         var b:Float = inRoughness;

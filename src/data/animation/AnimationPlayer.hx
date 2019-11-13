@@ -15,11 +15,25 @@ import haxe.ds.Vector;
 import openfl.geom.Point;
 class AnimationPlayer
 {
+    /**
+     * Active animations playing
+     */
     private var active:Array<AnimationChannel> = [];
+    /**
+     * Create new player
+     */
     public function new()
     {
 
     }
+    /**
+     * Play animation
+     * @param id object id
+     * @param index index of animation
+     * @param sprites sprites of object
+     * @param x tile x
+     * @param y tile y
+     */
     public function play(id:Int,index:Int,sprites:Array<Tile>,x:Float,y:Float) 
     {
         //check if already up
@@ -117,6 +131,10 @@ class AnimationPlayer
             if (param[i].rockAmp > 0) tween(sprite,{rotation:sprite.rotation + (param[i].rockAmp * 365)},{rotation:sprite.rotation - (param[i].rockAmp * 365)},1/param[i].rockOscPerSec,param[i].rockPhase);
         }
     }
+    /**
+     * Clear animation with object's sprites
+     * @param sprites 
+     */
     public function clear(sprites:Array<Tile>)
     {
         for (obj in active)
@@ -128,6 +146,10 @@ class AnimationPlayer
             }
         }
     }
+    /**
+     * Stop animation with data refrence
+     * @param data 
+     */
     public function stop(data:AnimationChannel) 
     {
         active.remove(data);
@@ -141,11 +163,26 @@ class AnimationPlayer
         for (timer in data.timers) timer.stop();
         data = null;
     }
+    /**
+     * Phase algorithm
+     * @param x value
+     * @return Float phased value
+     */
     private inline function phase(x:Float):Float
     {
         if (x > 0.75) return x - 1;
         return (x * 2 - 1) * -2;
     }
+    @:doxHide(false)
+    /**
+     * Tweened sprite
+     * @param sprite focus
+     * @param a inital
+     * @param b end
+     * @param time duration
+     * @param phase pre-processed
+     * @param phaseValue processed
+     */
     private function tween(sprite:Tile,a:Dynamic,b:Dynamic,time:Float,phase:Float=0,phaseValue:Float=0)
 	{
         //shorten
@@ -171,18 +208,6 @@ class AnimationPlayer
         var value:Float = Reflect.field(o,name);
         Reflect.setField(o,name,value - sub * 2);
         return o;
-    }
-}
-class AnimationChannel
-{
-    public var timers:Array<Timer> = [];
-    public var sprites:Array<Tile> = [];
-    public var x:Float = 0;
-    public var y:Float = 0;
-    public var id:Int = 0;
-    public function new()
-    {
-
     }
 }
 #end

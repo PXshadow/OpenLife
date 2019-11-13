@@ -6,14 +6,27 @@ import openfl.media.SoundChannel;
 import openfl.media.SoundTransform;
 class SoundPlayer
 {
+    /**
+     * active list of sounds running
+     */
     private var active:Array<SoundChannel> = [];
+    /**
+     * static sound volume
+     */
     public static var soundVolume:Float = 1;
+    /**
+     * static music volume
+     */
     public static var musicVolume:Float = 1;
     //aiff -> ogg
     public function new()
     {
 
     }
+    /**
+     * play sound by SoundData
+     * @param data 
+     */
     public function play(data:SoundData)
     {
         if(data.music)
@@ -39,6 +52,10 @@ class SoundPlayer
         channel.removeEventListener(Event.SOUND_COMPLETE,complete);
         active.remove(channel);
     }
+    /**
+     * Stop the sound by refrencing SoundChannel
+     * @param data 
+     */
     public function stop(data:SoundChannel)
     {
         active.remove(data);

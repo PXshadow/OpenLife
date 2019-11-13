@@ -5,13 +5,21 @@ class MapData
 {
     //container links index to objects array data when negative number
     public var containers:Array<Vector<Int>> = [];
-    //biome 0-7
+    /**
+     * Biome 2D array, id of ground
+     */
     public var biome:ArrayDataInt = new ArrayDataInt();
-    //floor objects
+    /**
+     * Floor 2D array, id of floor
+     */
     public var floor:ArrayDataInt = new ArrayDataInt();
-    //object is a postive number, container is a negative that maps 
+    /**
+     * Object 2D array, container format for object
+     */
     public var object:ArrayDataArray<Int> = new ArrayDataArray<Int>();
-
+    /**
+     * Loaded boolean
+     */
     public var loaded:Bool = false;
 
     public var valleyOffsetY:Int = 0;
@@ -33,6 +41,14 @@ class MapData
     {
         
     }
+    /**
+     * Set map chunk
+     * @param x Tile X
+     * @param y Tile Y 
+     * @param width Tile Width
+     * @param height Tile Height
+     * @param string Data string buffer
+     */
     public function setRect(x:Int,y:Int,width:Int,height:Int,string:String)
     {
         //loaded in data
@@ -57,6 +73,11 @@ class MapData
             }
         }
     }
+    /**
+     * Generate Array container format from string buffer
+     * @param string buffer data
+     * @return Array<Int> Container format array
+     */
     public static function id(string:String):Array<Int>
     {
         //postive is container, negative is subcontainer that goes into postive container

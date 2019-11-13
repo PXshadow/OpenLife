@@ -1,5 +1,7 @@
 package data;
-
+/**
+ * Int version of ArrayDataArray
+ */
 class ArrayDataInt
 {
     var array:Array<Array<Int>> = [];

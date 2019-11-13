@@ -5,7 +5,13 @@ import haxe.ds.Vector;
 import sys.FileSystem;
 class AnimationData extends LineReader
 {
+    /**
+     * If animation failed to load
+     */
     public var fail:Bool = false;
+    /**
+     * Records of animation
+     */
     public var record:Vector<AnimationRecord>;
     public function new(id:Int)
     {
@@ -28,6 +34,10 @@ class AnimationData extends LineReader
         }
         line = null;
     }
+    /**
+     * Process animation
+     * @return AnimationRecord
+     */
     public function process():AnimationRecord
     {
         //id
@@ -76,6 +86,10 @@ class AnimationData extends LineReader
         for(i in 0...animation.params.length) animation.params[i] = processParam();
         return animation;
     }
+    /**
+     * Process the paramaters of record
+     * @return AnimationParameter
+     */
     public function processParam():AnimationParameter
     {
         var param:AnimationParameter = new AnimationParameter();

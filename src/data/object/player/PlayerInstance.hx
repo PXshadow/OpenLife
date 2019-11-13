@@ -2,6 +2,10 @@ package data.object.player;
 import data.map.MapData;
 class PlayerInstance extends PlayerType
 {
+    /**
+     * array of properties to generate PlayerType
+     * @param a 
+     */
     public function new(a:Array<String>)
     {
         super();

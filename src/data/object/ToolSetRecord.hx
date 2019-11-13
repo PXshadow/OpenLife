@@ -1,6 +1,8 @@
 package data.object;
 
-//toolset
+/**
+ * Toolset record
+ */
 typedef ToolSetRecord = {
     setTag:String,
     setMembership:Array<Int>

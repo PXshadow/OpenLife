@@ -22,22 +22,48 @@ import data.object.SpriteData;
 //data stored for the game to function (map data -> game data)
 class GameData
 {
-    //block walking
+    /**
+     * Blocking tiles mapped, "x.y"
+     */
     public var blocking:Map<String,Bool> = new Map<String,Bool>();
     public var playerMap:Map<Int,Player> = new Map<Int,Player>();
     #if full
+    /**
+     * Transition data
+     */
     public var transitionData:TransitionData;
+    /**
+     * Map data (ground,floor,objects)
+     */
     public var map:MapData;
     #end
     #if openfl
+    /**
+     * Map of sprites, id to data
+     */
     public var spriteMap:Map<Int,SpriteData> = new Map<Int,SpriteData>();
     #end
+    /**
+     * Map of objects, id to data
+     */
     public var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
     //object alternative ids to refrence same object
+    /**
+     * Objects past nextObjectNumber, numUses type objects
+     */
     public var objectAlt:Map<Int,Int> = new Map<Int,Int>();
+    /**
+     * total non generated objects
+     */
     public var nextObjectNumber:Int = 0;
     #if openfl
+    /**
+     * Tile data
+     */
     public var tileData:TileData;
+    /**
+     * Emote static array
+     */
     public var emotes:Vector<EmoteData>;
     #end
     public function new()
@@ -56,6 +82,9 @@ class GameData
         #end
     }
     #if openfl
+    /**
+     * OpenFL generate emote data
+     */
     private function emoteData()
     {
         var arrayObj:Array<String> = Main.settings.data.get("emotionObjects").split("\n");
@@ -64,6 +93,9 @@ class GameData
         for (i in 0...arrayObj.length) emotes[i] = new EmoteData(arrayWord[i],arrayObj[i]);
     }
     #end
+    /**
+     * Generate object data
+     */
     private function objectData()
     {
         //nextobject

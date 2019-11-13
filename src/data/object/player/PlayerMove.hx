@@ -3,12 +3,33 @@ import game.Player;
 import console.Program.Pos;
 class PlayerMove 
 {
+    /**
+     * Id of player
+     */
     public var id:Int = 0;
+    /**
+     * x set
+     */
     var xs:Int = 0;
+    /**
+     * y set
+     */
     var ys:Int = 0;
+    /**
+     * N/A
+     */
     var total:Float = 0;
+    /**
+     * N/A
+     */
     var current:Float = 0;
+    /**
+     * N/A
+     */
     var trunc:Bool = false;
+    /**
+     * Array of move points
+     */
     var moves:Array<{x:Int,y:Int}> = [];
     public function  new(a:Array<String>)
     {
