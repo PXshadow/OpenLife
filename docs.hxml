@@ -1,0 +1,16 @@
+--no-output 
+-cp src
+-D doc-gen
+-lib hscript
+-D full
+-dce std
+-main Main
+-neko dummy.n
+-xml xml/types.xml
+
+--next
+
+-cp src
+-main scripts.Generate
+-neko generate.n
+#-cmd neko generate.n

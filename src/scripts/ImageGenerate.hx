@@ -1,5 +1,5 @@
-package debug;
-
+package scripts;
+#if openfl
 import sys.io.File;
 import openfl.display.PNGEncoderOptions;
 import data.TgaData;
@@ -28,3 +28,4 @@ class ImageGenerate
         }
     }
 }
+#end

@@ -1,0 +1,2 @@
+//generate docs
+class Docs

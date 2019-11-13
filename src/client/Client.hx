@@ -8,7 +8,9 @@ import haxe.io.Error;
 import haxe.crypto.Hmac;
 import client.ClientTag;
 import haxe.Timer;
-
+/**
+ * Socket Client
+ */
 class Client
 {
     #if sys
