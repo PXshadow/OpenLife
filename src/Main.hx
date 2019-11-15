@@ -100,70 +100,27 @@ class Main #if openfl extends Sprite #end
     public function new()
     {
         dir();
-        settings = new Settings();
-        data = new GameData();
         #if openfl
         super();
-        #end
-        //client
-        console = new console.Console();
-        program = new Program(console);
-        console.set("program",program);
-        console.set("data",data);
-        #if openfl
-        //events
-        addEventListener(Event.ENTER_FRAME,update);
-        stage.addEventListener(Event.RESIZE,resize);
-        stage.addEventListener(KeyboardEvent.KEY_DOWN,keyDown);
-        stage.addEventListener(KeyboardEvent.KEY_UP,keyUp);
-        stage.addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
-        stage.addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
-        stage.addEventListener(MouseEvent.MOUSE_UP,mouseUp);  
-        stage.addEventListener(MouseEvent.RIGHT_MOUSE_DOWN,mouseRightDown);
-        stage.addEventListener(MouseEvent.RIGHT_MOUSE_UP,mouseRightUp);
+        events();
         //state
         state = new DisplayObjectContainer();
         state.mouseChildren = false;
         state.mouseEnabled = false;
         addChild(state);
         #end
-        #if openfl game(); #end
-        connect();
-        #if !openfl
-        var output = new Router(2000);
-        output.bind();
-        //trace
-        haxe.Log.trace = function(v:Dynamic,?inf:haxe.PosInfos)
-        {
-            if (output.input != null)
-            {
-                output.input.output.writeString(Std.string(v) + "\n");
-                output.input.output.flush();
-                
-            }
-        }
-        trace("attempt to connect to output");
-        output.input = output.socket.accept();
-        output.socket.setBlocking(false);
-        trace("start client terminal");
-        //background thread async for input
-        #if (target.threaded)
-        sys.thread.Thread.create(() -> {
-            while (true)
-            {
-                var stdin = Sys.stdin();
-                console.run(stdin.readLine());
-                Sys.sleep(1/2);
-            }
-        });
-        #end
-        //update loop main
-        while (true)
-        {
-            client.update();
-            Sys.sleep(1/20);
-        }
-        #else
+        //client
+        console = new console.Console();
+        program = new Program(console);
+        console.set("program",program);
+        console.set("data",data);
+        //settings
+        settings = new Settings();
+        //data
+        data = new GameData();
+        //complete
+        #if openfl
+        game();
         //top layer
         var fps = new FPS();
         fps.textColor = 0xFFFFFF;
@@ -174,7 +131,19 @@ class Main #if openfl extends Sprite #end
         log.cacheAsBitmap = false;
         addChild(log);
         addChild(console);
+        //intro
+        new ui.Intro(stage);
+        #else
+        //terminal application
+
+        //update loop main
+        while (true)
+        {
+            client.update();
+            Sys.sleep(1/20);
+        }
         #end
+        connect();
     }
     public function dir()
     {
@@ -259,6 +228,19 @@ class Main #if openfl extends Sprite #end
     }
     //events
     #if openfl
+    private function events()
+    {
+        //events
+        addEventListener(Event.ENTER_FRAME,update);
+        stage.addEventListener(Event.RESIZE,resize);
+        stage.addEventListener(KeyboardEvent.KEY_DOWN,keyDown);
+        stage.addEventListener(KeyboardEvent.KEY_UP,keyUp);
+        stage.addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
+        stage.addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
+        stage.addEventListener(MouseEvent.MOUSE_UP,mouseUp);  
+        stage.addEventListener(MouseEvent.RIGHT_MOUSE_DOWN,mouseRightDown);
+        stage.addEventListener(MouseEvent.RIGHT_MOUSE_UP,mouseRightUp);
+    }
     public function game()
     {
         ground = new Ground();
@@ -351,7 +333,7 @@ class Main #if openfl extends Sprite #end
             //log
             if (player != null)
             {
-                log.text = "num " + objects.group.numTiles;
+                //log.text = "num " + objects.group.numTiles;
             }
         }
     }
@@ -528,11 +510,10 @@ class Main #if openfl extends Sprite #end
         renderTime = Timer.delay(function()
         {
             //5.72 frames over
-            Profiler.start("log.txt");
+            //Profiler.start("log.txt");
             //objects.tileset.bitmapData.lock();
             ground.clear();
             objects.clear();
-            trace("clear " + UnitTest.stamp());
             //object layer
             var array:Array<Int> = [];
             for (j in cy - range...cy + range)
@@ -551,12 +532,8 @@ class Main #if openfl extends Sprite #end
                 if (!objects.player.held) objects.group.addTile(objects.player);
             }
             ground.render();
-            //objects.tileset.bitmapData.unlock();
-            //timer
             renderTime = null;
-            //var bitmap = new Bitmap(objects.tileset.bitmapData);
-            //addChild(bitmap);
-            Profiler.stop();
+            //Profiler.stop();
         },800);
     }
     private function clear()
@@ -583,7 +560,7 @@ class Main #if openfl extends Sprite #end
         trace("set main player");
         player.program = program;
         Main.player = player;
-        player.sort();
+        //player.sort();
         console.set("player",player);
         //center instantly
         lerpInt = 2;
@@ -628,7 +605,7 @@ class Main #if openfl extends Sprite #end
             if (player == null && objects.player != null) 
             {
                 setPlayer(objects.player);
-                player.sort();
+                //player.sort();
                 gameBool = true;
                 resize(null);
             }

@@ -150,11 +150,19 @@ class Objects extends TileDisplay
         for (i in 0...data.numSprites)
         {
             sprite = new Tile();
+            sprite.data = {floor:data.floor};
             sprite.id = cacheSprite(data.spriteArray[i].spriteID);
             setSprite(sprite,data.spriteArray[i],x,y);
             sprites.push(sprite);
         }
         return sprites;
+    }
+    /**
+     * sort tiles when they move
+     */
+    public function sort(object:Tile,oldX:Int,oldY:Int)
+    {
+
     }
     public function setSprite(sprite:Tile,data:SpriteData,x:Float,y:Float)
     {

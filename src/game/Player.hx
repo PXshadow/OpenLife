@@ -151,7 +151,6 @@ class Player #if openfl extends TileContainer #end
                 }else{
                     motion();
                 }
-                trace("moving " + moving);
             }).ease(Linear.easeNone);
             #end
         }else{
@@ -404,10 +403,6 @@ class Player #if openfl extends TileContainer #end
         #end
     }
     #if openfl
-    public function sort()
-    {
-        
-    }
     public function sprites():Array<Tile>
     {
         if (_sprites.length == 0)
