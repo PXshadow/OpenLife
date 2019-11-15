@@ -14,7 +14,6 @@ import motion.MotionPath;
 import motion.Actuate;
 import openfl.display.Tile;
 #end
-import data.object.player.PlayerType;
 import data.object.player.PlayerInstance;
 import data.object.player.PlayerData;
 import haxe.Timer;
