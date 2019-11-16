@@ -5,11 +5,11 @@ class PlayerData
     /**
      * id -> PlayerType
      */
-    public var key:Map<Int,PlayerType> = new Map<Int,PlayerType>();
+    public var key:Map<Int,PlayerInstance> = new Map<Int,PlayerInstance>();
     /**
      * array of player types
      */
-    public var array:Array<PlayerType> = [];
+    public var array:Array<PlayerInstance> = [];
     /**
      * main player id
      */
