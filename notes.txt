@@ -23,6 +23,9 @@ remove dead players
 work on map_change
 
 
+load all objects in while booting up
+if object is in the data when it's not mapped generate it.
+
 
 
 

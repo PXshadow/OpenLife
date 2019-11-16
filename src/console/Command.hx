@@ -18,7 +18,7 @@ class Command
         switch(string)
         {
             case "exit":
-            #if sys
+            #if (sys || nodejs)
             Sys.exit(0);
             #end
             case "reload":

@@ -1,12 +1,11 @@
 package data;
-
-@:generic
 /**
  * 2D generic Array
  */
-class ArrayDataArray<T>
+@:generic
+class ArrayDataArrayInt
 {
-    var array:Array<Array<Array<T>>> = [];
+    var array:Array<Array<Array<Int>>>;
     /**
      * diffrence x
      */
@@ -34,7 +33,7 @@ class ArrayDataArray<T>
      * @param y 
      * @return Array<T>
      */
-    public function get(x:Int,y:Int):Array<T>
+    public function get(x:Int,y:Int):Array<Int>
     {
         if (array[y - dy] != null)
         {
@@ -80,7 +79,7 @@ class ArrayDataArray<T>
      * @param y 
      * @param value set into 2D Array
      */
-    public function set(x:Int,y:Int,value:Array<T>)
+    public function set(x:Int,y:Int,value:Array<Int>)
     {
         shiftY(y);
         shiftX(x);

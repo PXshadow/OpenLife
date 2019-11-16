@@ -1,0 +1,7 @@
+-cp src
+-dce std
+-main Main
+-lib hscript
+-D full
+-D no-deprecation-warnings
+-cpp bin/cpp

@@ -1,6 +1,6 @@
 package client;
 import haxe.io.Bytes;
-#if sys
+#if (sys || nodejs)
 import sys.net.Socket;
 import sys.net.Host;
 #end
@@ -13,7 +13,7 @@ import haxe.Timer;
  */
 class Client
 {
-    #if sys
+    #if (sys || nodejs)
     var socket:Socket;
     #end
     public var tag:ClientTag;
@@ -43,7 +43,7 @@ class Client
     {
         if (!connected) return;
         data = "";
-        #if sys
+        #if (sys || nodejs)
         if(socket == null) return;
 		try {
             if(compress == 0) 
@@ -111,9 +111,13 @@ class Client
     public function send(data:String)
     {
         if (!connected) return;
-        #if sys
+        #if (sys || nodejs)
         try {
+            #if nodejs
+            @:privateAccess socket.s.write(data + "#");
+            #else
             socket.output.writeString(data + "#");
+            #end
         }catch(e:Dynamic)
         {
             trace("e " + e);
@@ -130,7 +134,7 @@ class Client
 	{
         trace("attempt connect " + ip);
         connected = false;
-        #if sys
+        #if (sys || nodejs)
 		var host:Host;
 		try {
 			host = new Host(ip);
@@ -141,7 +145,9 @@ class Client
 		}
 		socket = new Socket();
         //socket.setTimeout(99999999);
+        #if !nodejs
 		socket.setFastSend(true);
+        #end
 		try {
 			socket.connect(host,port);
 		}catch(e:Dynamic)
@@ -149,14 +155,16 @@ class Client
             trace("e " + e);
             return;
 		}
+        #if !nodejs
         socket.setBlocking(false);
+        #end
         connected = true;
         trace("connect sys");
         #end
 	}
     public function close()
     {
-        #if sys
+        #if (sys || nodejs)
         try {
             socket.close();
         }catch(e:Dynamic) {trace("failure to close socket " + e);}
@@ -171,7 +179,7 @@ class Client
     {
         trace("compress");
         var temp:Bytes;
-        #if sys
+        #if (sys || nodejs)
         if(tagRemove)
         {
             //remove #

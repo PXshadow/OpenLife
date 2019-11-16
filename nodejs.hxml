@@ -1,0 +1,4 @@
+set.hxml
+-lib hxnodejs
+-D js-es6
+-js bin/js/lib.js

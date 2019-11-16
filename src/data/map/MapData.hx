@@ -1,6 +1,5 @@
 package data.map;
 import haxe.ds.Vector;
-import data.ArrayDataArray;
 class MapData
 {
     //container links index to objects array data when negative number
@@ -16,7 +15,7 @@ class MapData
     /**
      * Object 2D array, container format for object
      */
-    public var object:ArrayDataArray<Int> = new ArrayDataArray<Int>();
+    public var object:ArrayDataArrayInt = new ArrayDataArrayInt();
     /**
      * Loaded boolean
      */

@@ -1,5 +1,5 @@
 package client;
-
+#if sys
 import haxe.io.Bytes;
 import sys.net.Socket;
 import sys.net.Host;
@@ -44,3 +44,4 @@ class Router
         input.output.writeBytes(bytes,0,bytes.length);
     }
 }
+#end

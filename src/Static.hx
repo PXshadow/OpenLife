@@ -1,5 +1,5 @@
 import haxe.ds.Vector;
-#if sys
+#if (sys || nodejs)
 import sys.io.FileInput;
 import sys.FileSystem;
 import sys.io.File;

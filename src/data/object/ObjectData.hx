@@ -311,7 +311,7 @@ class ObjectData extends LineReader
     /**
      * Read data to set
      */
-    public function read()
+    public inline function read()
     {
         id = getInt();
         description = getString();
@@ -336,7 +336,6 @@ class ObjectData extends LineReader
             }
             //new
             if (!set) toolsetRecord.push({setTag: setTag, setMembership: [id]});
-            
         }
         containable = getBool();
 

@@ -1,7 +1,7 @@
 package settings;
 import haxe.DynamicAccess;
 import haxe.io.Path;
-#if sys
+#if (sys || nodejs)
 import sys.io.File;
 import sys.FileSystem;
 #end

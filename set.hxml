@@ -1,0 +1,8 @@
+-cp src
+-dce std
+-main Main
+-lib hscript
+-D luajit
+-D lua-vanilla
+-D haxeJson
+-D full

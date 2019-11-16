@@ -102,26 +102,37 @@ class GameData
         nextObjectNumber = Std.parseInt(File.getContent(Static.dir + "objects/nextObjectNumber.txt"));
         //go through objects
         var list:Array<Int> = [];
+        UnitTest.inital();
         for (path in FileSystem.readDirectory(Static.dir + "objects"))
         {
             list.push(Std.parseInt(Path.withoutExtension(path)));
         }
+        trace("read dir " + UnitTest.stamp());
         list.sort(function(a:Int,b:Int)
         {
             if (a > b) return 1;
             return -1;
         });
+        trace("sort " + UnitTest.stamp());
         var data:ObjectData = null;
         var nextObjectNumberInt:Int = nextObjectNumber;
+        var gen:Float = 0;
+        var alt:Float = 0;
+        var set:Float = 0;
         for (i in list)
         {
+            UnitTest.inital();
             data = new ObjectData(i);
+            gen += UnitTest.stamp();
             //alternative set
             if (data.numUses > 1) for (j in 0...data.numUses) 
             {
                 objectAlt.set(++nextObjectNumberInt,i);
             }
+            alt += UnitTest.stamp();
             objectMap.set(data.id,data);
+            set += UnitTest.stamp();
         }
+        trace("gen " + gen + " alt " + alt + " set " + set);
     }
 }

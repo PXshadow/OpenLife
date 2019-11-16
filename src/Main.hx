@@ -131,8 +131,6 @@ class Main #if openfl extends Sprite #end
         log.cacheAsBitmap = false;
         addChild(log);
         addChild(console);
-        //intro
-        new ui.Intro(stage);
         #else
         //terminal application
 
