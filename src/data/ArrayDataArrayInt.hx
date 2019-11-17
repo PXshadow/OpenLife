@@ -5,7 +5,7 @@ package data;
 @:generic
 class ArrayDataArrayInt
 {
-    var array:Array<Array<Array<Int>>>;
+    var array:Array<Array<Array<Int>>> = [];
     /**
      * diffrence x
      */

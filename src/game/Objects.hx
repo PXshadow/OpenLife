@@ -67,6 +67,7 @@ class Objects extends TileDisplay
             player = new game.Player();
             //tileHeight - tileHeight = 0 for Y
             add([data.po_id],0,data.y,player);
+            //set to very front
             group.addTile(player);
             player.set(data);
             player.force();
@@ -88,6 +89,17 @@ class Objects extends TileDisplay
                 if ((data.spriteArray[i].ageRange[0] > -1 || data.spriteArray[i].ageRange[1] > -1) && (data.spriteArray[i].ageRange[0] > age || data.spriteArray[i].ageRange[1] < age)) sprites[i].visible = false;
             }
         }
+    }
+    public function remove(x:Int,y:Int,floor:Bool=false)
+    {
+        if (floor)
+        {
+            return;
+        }
+        //object
+        var tiles = Main.data.tileData.object.get(x,y);
+        if (tiles != null) for (tile in tiles) group.removeTile(tile);
+        Main.data.map.object.set(x,y,[]);
     }
     public function add(array:Array<Int>,x:Int=0,y:Int=0,container:TileContainer=null):Bool
     {
@@ -126,7 +138,8 @@ class Objects extends TileDisplay
         {
             container.addTiles(sprites);
         }else{
-            group.addTiles(sprites);
+            //group.addTiles(sprites);
+            for (sprite in sprites) group.addTileAt(sprite,0);
         }
         //push data
         if (container == null)

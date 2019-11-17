@@ -51,6 +51,13 @@ class Ground extends Shape
         indices = new Vector<Int>();
         transforms = new Vector<Float>();
     }
+    public function remove(x:Int,y:Int)
+    {
+        var index = transforms.indexOf(x * Static.GRID + 32);
+        transforms.removeAt(index);
+        transforms.removeAt(index - 1);
+        indices.removeAt(Std.int(index/2));
+    }
     public function add(id:Int,x:Int,y:Int,cornerCheck:Bool=false)
     {
         if (id == -1) return;

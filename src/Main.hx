@@ -76,7 +76,6 @@ class Main #if openfl extends Sprite #end
     public var log:Text;
     #end
     public static var player:Player;
-    public static var range:Int = 16;
     var selectX:Int = 0;
     var selectY:Int = 0;
     public static var data:GameData;
@@ -488,51 +487,29 @@ class Main #if openfl extends Sprite #end
     {
         zoom(e.delta);
     }
-    public function remove(x:Int,y:Int,floor:Bool=false)
-    {
-        if (floor)
-        {
-            return;
-        }
-        //object
-        var tiles = data.tileData.object.get(x,y);
-        if (tiles != null)
-        {
-            for (tile in tiles) objects.group.removeTile(tile);
-        }
-    }
+    var offsetX:Int = 0;
+    var offsetY:Int = 0;
     public function render(cx:Int,cy:Int) 
     {
-        if (renderTime != null) return;
         trace("MAP UPDATE");
-        renderTime = Timer.delay(function()
+        
+        //new
+        for (j in mapInstance.y...mapInstance.y + mapInstance.height)
         {
-            //5.72 frames over
-            //Profiler.start("log.txt");
-            //objects.tileset.bitmapData.lock();
-            ground.clear();
-            objects.clear();
-            //object layer
-            var array:Array<Int> = [];
-            for (j in cy - range...cy + range)
+            for (i in mapInstance.x...mapInstance.x + mapInstance.width)
             {
-                for (i in cx - range...cx + range)
-                {
-                    ground.add(data.map.biome.get(i,j),i,j);
-                    objects.add([data.map.floor.get(i,j)],i,j);
-                    objects.add(data.map.object.get(i,j),i,j);
-                }
+                ground.add(data.map.biome.get(i,j),i,j);
+                objects.add([data.map.floor.get(i,j)],i,j);
+                objects.add(data.map.object.get(i,j),i,j);
             }
-            it = data.playerMap.iterator();
-            while (it.hasNext())
-            {
-                objects.player = it.next();
-                if (!objects.player.held) objects.group.addTile(objects.player);
-            }
-            ground.render();
-            renderTime = null;
-            //Profiler.stop();
-        },800);
+        }
+        ground.render();
+    }
+    private inline function remove(x:Int,y:Int)
+    {
+        var array = Main.data.tileData.object.get(x,y);
+        if (array != null) for (tile in array) objects.group.removeTile(tile);
+        ground.remove(x,y);
     }
     private function clear()
     {
@@ -588,7 +565,6 @@ class Main #if openfl extends Sprite #end
         {
             case PONG:
             client.ping = UnitTest.stamp();
-
             case PLAYER_UPDATE:
             #if !openfl
             //terminal
@@ -663,7 +639,7 @@ class Main #if openfl extends Sprite #end
         }
         if (data.map.offsetBoolY)
         {
-
+            
         }
     }
     private function message(input:String) 
@@ -674,6 +650,11 @@ class Main #if openfl extends Sprite #end
             var array = input.split(" ");
             Main.client.compress = Std.parseInt(array[1]);
             Main.client.tag = null;
+            case PLAYER_EMOT:
+            var array = input.split(" ");
+            //p_id emot_index ttl_sec
+            //ttl_sec is optional, and specifies how long the emote should be shown
+            //-1 is permanent, -2 is permanent but not new so should be skipped
             case PLAYER_UPDATE:
             playerInstance = new PlayerInstance(input.split(" "));
             //always force non main player
@@ -704,8 +685,10 @@ class Main #if openfl extends Sprite #end
                 var cy:Int = mapInstance.y + Std.int(mapInstance.height/2);
                 if (player != null)
                 {
-                    cx = player.instance.x;
-                    cy = player.instance.y;
+                    //cx = player.instance.x;
+                    //cy = player.instance.y;
+                    cx += player.instance.x;
+                    cy += player.instance.y;
                 }
                 #if openfl
                 render(cx,cy);
@@ -757,7 +740,7 @@ class Main #if openfl extends Sprite #end
             }
             //clear
             #if openfl
-            remove(change.x,change.y);
+            objects.remove(change.x,change.y);
             #end
             //set in case of no object
             data.map.object.set(change.x,change.y,change.id);
@@ -769,7 +752,7 @@ class Main #if openfl extends Sprite #end
                 #if openfl
                 if (move)
                 {
-                    remove(change.oldX,change.oldY);
+                    objects.remove(change.oldX,change.oldY);
                     var container = new TileContainer();
                     objects.add(change.id,change.x,change.y);
                     objects.group.addTile(container);
@@ -788,6 +771,7 @@ class Main #if openfl extends Sprite #end
             Main.client.tag = null;
             index = 0;
             case HEAT_CHANGE:
+            //heat food_time indoor_bonus
             //trace("heat " + input);
             Main.client.tag = null;
             index = 0;

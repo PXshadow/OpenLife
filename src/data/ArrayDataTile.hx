@@ -3,7 +3,7 @@ package data;
 import openfl.display.Tile;
 class ArrayDataTile
 {
-    var array:Array<Array<Array<Tile>>>;
+    var array:Array<Array<Array<Tile>>> = [];
     /**
      * diffrence x
      */

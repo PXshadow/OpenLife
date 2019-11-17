@@ -374,7 +374,6 @@ class Player #if openfl extends TileContainer #end
         #else
         if (!Static.arrayEqual(oid,instance.o_id))
         {
-            trace("attempt");
             //check if was player to re add to stage
             if (instance.o_id.length == 1 && instance.o_id[0] < 0) Main.objects.group.addTile(heldObject);
             //change
