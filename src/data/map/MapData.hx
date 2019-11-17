@@ -2,8 +2,6 @@ package data.map;
 import haxe.ds.Vector;
 class MapData
 {
-    //container links index to objects array data when negative number
-    public var containers:Array<Vector<Int>> = [];
     /**
      * Biome 2D array, id of ground
      */
@@ -19,6 +17,7 @@ class MapData
     /**
      * Loaded boolean
      */
+    public var chunks:Array<MapInstance> = [];
     public var loaded:Bool = false;
 
     public var valleyOffsetY:Int = 0;
@@ -48,8 +47,13 @@ class MapData
      * @param height Tile Height
      * @param string Data string buffer
      */
-    public function setRect(x:Int,y:Int,width:Int,height:Int,string:String)
+    public function setRect(chunk:MapInstance,string:String)
     {
+        //combine
+        if (this.x > chunk.x) this.x = chunk.x;
+        if (this.y > chunk.y) this.y = chunk.y;
+        if (this.width < chunk.x + chunk.width) this.width = chunk.x + chunk.width;
+        if (this.height < chunk.y + chunk.height) this.height = chunk.y + chunk.height;
         //loaded in data
         loaded = true;
         //create array
@@ -59,9 +63,9 @@ class MapData
         var objectArray:Array<Int> = [];
         var array:Array<Array<Int>> = [];
         //bottom left
-        for(j in y...y + height)
+        for(j in chunk.y...chunk.y + chunk.height)
         {
-            for (i in x...x + width)
+            for (i in chunk.x...chunk.x + chunk.width)
             {
                 string = a.shift();
                 data = string.split(":");

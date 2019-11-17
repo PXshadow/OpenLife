@@ -119,6 +119,7 @@ class Main #if openfl extends Sprite #end
         data = new GameData();
         //complete
         #if openfl
+        console.set("data",data);
         game();
         //top layer
         var fps = new FPS();
@@ -491,25 +492,35 @@ class Main #if openfl extends Sprite #end
     var offsetY:Int = 0;
     public function render(cx:Int,cy:Int) 
     {
-        trace("MAP UPDATE");
-        
+        //remove out of area
+        for (chunk in data.map.chunks)
+        {
+            if (Math.abs(chunk.x + chunk.width/2 - cx) > 22 || Math.abs(chunk.y + chunk.height/2 - cy) > 22)
+            {
+                for (j in chunk.y...chunk.y + chunk.height)
+                {
+                    for (i in chunk.x...chunk.x + chunk.width)
+                    {
+                        objects.remove(i,j);
+                        objects.remove(i,j,true);
+                        ground.remove(i,j);
+                    }
+                }
+                data.map.chunks.remove(chunk);
+            }
+        }
         //new
         for (j in mapInstance.y...mapInstance.y + mapInstance.height)
         {
             for (i in mapInstance.x...mapInstance.x + mapInstance.width)
             {
                 ground.add(data.map.biome.get(i,j),i,j);
-                objects.add([data.map.floor.get(i,j)],i,j);
                 objects.add(data.map.object.get(i,j),i,j);
+                objects.add([data.map.floor.get(i,j)],i,j);
             }
         }
+        data.map.chunks.push(mapInstance);
         ground.render();
-    }
-    private inline function remove(x:Int,y:Int)
-    {
-        var array = Main.data.tileData.object.get(x,y);
-        if (array != null) for (tile in array) objects.group.removeTile(tile);
-        ground.remove(x,y);
     }
     private function clear()
     {
@@ -520,8 +531,7 @@ class Main #if openfl extends Sprite #end
         data.playerMap = new Map<Int,Player>();
         //data = new GameData();
         //console.set("data",data);
-        objects.player = null;
-        objects.group.removeTiles();
+        objects.clear();
         player = null;
         gameBool = false;
     }
@@ -679,16 +689,18 @@ class Main #if openfl extends Sprite #end
             if(compress)
             {
                 Main.client.tag = null;
-                data.map.setRect(mapInstance.x,mapInstance.y,mapInstance.width,mapInstance.height,input);
+                data.map.setRect(mapInstance,input);
                 //center point to determine range
                 var cx:Int = mapInstance.x + Std.int(mapInstance.width/2);
                 var cy:Int = mapInstance.y + Std.int(mapInstance.height/2);
                 if (player != null)
                 {
-                    //cx = player.instance.x;
-                    //cy = player.instance.y;
-                    cx += player.instance.x;
-                    cy += player.instance.y;
+                    cx = player.ix;
+                    cy = player.iy;
+                    //cx += player.instance.x;
+                    //cy += player.instance.y;
+                    //cx += -player.ix;
+                    //cy += -player.iy;
                 }
                 #if openfl
                 render(cx,cy);
@@ -718,10 +730,7 @@ class Main #if openfl extends Sprite #end
                         case 5:
                         mapInstance.compressedSize = Std.parseInt(value);
                         //set min
-                        if (data.map.x > mapInstance.x) data.map.x = mapInstance.x;
-                        if (data.map.y > mapInstance.y) data.map.y = mapInstance.y;
-                        if (data.map.width < mapInstance.x + mapInstance.width) data.map.width = mapInstance.x + mapInstance.width;
-                        if (data.map.height < mapInstance.y + mapInstance.height) data.map.height = mapInstance.y + mapInstance.height;
+                        
                         trace("map chunk " + mapInstance.toString());
                         index = 0;
                         //set compressed size wanted
@@ -754,7 +763,7 @@ class Main #if openfl extends Sprite #end
                 {
                     objects.remove(change.oldX,change.oldY);
                     var container = new TileContainer();
-                    objects.add(change.id,change.x,change.y);
+                    objects.add(change.id,change.x,change.y,container);
                     objects.group.addTile(container);
                     Main.data.tileData.object.set(change.x,change.y,[container]);
                     //move back to previous postition

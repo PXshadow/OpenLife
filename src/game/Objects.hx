@@ -92,22 +92,26 @@ class Objects extends TileDisplay
     }
     public function remove(x:Int,y:Int,floor:Bool=false)
     {
+        var tiles:Array<Tile> = null;
         if (floor)
         {
-            return;
+            tiles = Main.data.tileData.floor.get(x,y);
+            Main.data.map.floor.set(x,y,0);
+            Main.data.tileData.floor.set(x,y,[]);
+        }else{
+            tiles = Main.data.tileData.object.get(x,y);
+            Main.data.map.object.set(x,y,[]);
+            Main.data.tileData.object.set(x,y,[]);
         }
-        //object
-        var tiles = Main.data.tileData.object.get(x,y);
         if (tiles != null) for (tile in tiles) group.removeTile(tile);
-        Main.data.map.object.set(x,y,[]);
     }
     public function add(array:Array<Int>,x:Int=0,y:Int=0,container:TileContainer=null):Bool
     {
-        if (array == null || array.length == 0 || array[0] <= 0) return false;
+        if (array == null || array.length == 0 || array[0] == 0) return false;
         var data:ObjectData = Main.data.objectMap.get(array[0]);
         if (data == null)
         {
-            trace("add fail id: " + array[0]);
+            trace("failed object id: " + array[0]);
             return false;
         }
         //blocking
@@ -128,6 +132,7 @@ class Objects extends TileDisplay
         }else{
             sprites = create(data,0,0);
         }
+        if (sprites.length == 0) trace(data.id);
         //conainted
         /*for (i in 1...array.length) 
         {
@@ -137,22 +142,18 @@ class Objects extends TileDisplay
         if (container != null)
         {
             container.addTiles(sprites);
+            //age system
+            visibleSprites(array[0],sprites,20);
         }else{
             //group.addTiles(sprites);
             for (sprite in sprites) group.addTileAt(sprite,0);
-        }
-        //push data
-        if (container == null)
-        {
+            //data set
             if (data.floor)
             {
                 Main.data.tileData.floor.set(x,y,sprites);
             }else{
                 Main.data.tileData.object.set(x,y,sprites);
             }
-        }else{
-            //age system
-            visibleSprites(array[0],sprites,20);
         }
         return true;
     }
@@ -203,6 +204,7 @@ class Objects extends TileDisplay
     {
         Main.data.tileData.object.clear();
         Main.data.tileData.floor.clear();
+        player = null;
         group.removeTiles();
     }
     private function cacheSprite(id:Int):Int

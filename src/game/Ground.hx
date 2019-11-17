@@ -53,14 +53,19 @@ class Ground extends Shape
     }
     public function remove(x:Int,y:Int)
     {
-        var index = transforms.indexOf(x * Static.GRID + 32);
-        transforms.removeAt(index);
-        transforms.removeAt(index - 1);
-        indices.removeAt(Std.int(index/2));
+        for (i in 0...Std.int(transforms.length))
+        {
+            if (transforms[i * 2] == x * Static.GRID + 32 && transforms[i * 2 + 1] == (Static.tileHeight - y) * Static.GRID + 32)
+            {
+                indices.removeAt(i);
+                transforms.removeAt(i * 2);
+                transforms.removeAt(i * 2);
+                return;
+            }
+        }
     }
     public function add(id:Int,x:Int,y:Int,cornerCheck:Bool=false)
     {
-        if (id == -1) return;
         if (simple)
         {
             indices.push(simpleIndex + id);
