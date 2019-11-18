@@ -1,5 +1,6 @@
 package data.animation;
 
+import data.sound.SoundData;
 #if openfl
 import lime.media.AudioBuffer;
 import openfl.geom.Rectangle;
@@ -48,6 +49,7 @@ class AnimationPlayer
         data.y = (Static.tileHeight - y) * Static.GRID;
         data.sprites = sprites;
         active.push(data);
+        //data set
         var objectData = Main.data.objectMap.get(id);
         if (objectData == null || objectData.animation == null) return;
         var param = objectData.animation.record[index].params;
@@ -55,6 +57,13 @@ class AnimationPlayer
         var sprite:Tile = null;
         var p:Int = 0;
         var timerInt:Int = 0;
+        //sounds
+        /*var soundData:SoundData;
+        for (soundParam in objectData.animation.record[index].soundAnim)
+        {
+            //Main.sounds.play()
+            //for ()
+        }*/
         //temporary
         var tc:TileContainer;
         //sprite parent

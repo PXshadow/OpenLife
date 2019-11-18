@@ -142,7 +142,7 @@ class Main #if openfl extends Sprite #end
         }
         #end
         //trace("connect " + Main.client.ip + " email " + Main.client.login.email);
-        var instance = new PlayerInstance([]);
+        /*var instance = new PlayerInstance([]);
         instance.po_id = 19;
         objects.addPlayer(instance);
         player = objects.player;
@@ -154,8 +154,8 @@ class Main #if openfl extends Sprite #end
         player.x = 300;
         player.y = 300;
         gameBool = true;
-        resize(null);
-        //connect();
+        resize(null);*/
+        connect();
     }
     public function dir()
     {

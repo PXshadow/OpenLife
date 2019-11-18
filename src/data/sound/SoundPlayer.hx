@@ -27,23 +27,18 @@ class SoundPlayer
      * play sound by SoundData
      * @param data 
      */
-    public function play(data:SoundData)
+    public function play(data:SoundData,start:Float=0,repeat:Int=0)
     {
+        
         if(data.music)
         {
-            Sound.loadFromFile(Static.dir + "music/" + data.id + ".ogg").onComplete(function(sound:Sound)
-            {
-                var channel = sound.play(0,0,new SoundTransform(musicVolume * data.multi));
-                channel.addEventListener(Event.SOUND_COMPLETE,complete);
-                active.push(channel);
-            });
+            var channel = Sound.fromFile(Static.dir + "music/" + data.id + ".ogg").play(start,repeat,new SoundTransform(musicVolume * data.multi));
+            channel.addEventListener(Event.SOUND_COMPLETE,complete);
+            active.push(channel);
         }else{
-            Sound.loadFromFile(Static.dir + "sounds/" + data.id + ".ogg").onComplete(function(sound:Sound)
-            {
-                var channel = sound.play(0,0,new SoundTransform(soundVolume * data.multi));
-                channel.addEventListener(Event.SOUND_COMPLETE,complete);
-                active.push(channel);
-            });
+            var channel = Sound.fromFile(Static.dir + "sounds/" + data.id + ".ogg").play(0,0,new SoundTransform(soundVolume * data.multi));
+            channel.addEventListener(Event.SOUND_COMPLETE,complete);
+            active.push(channel);
         }
     }
     private function complete(e:Event)

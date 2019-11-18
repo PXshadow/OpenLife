@@ -1,4 +1,5 @@
 package data.animation;
+import data.sound.SoundData;
 #if openfl
 import sys.io.File;
 import haxe.ds.Vector;
@@ -76,22 +77,39 @@ class AnimationData extends LineReader
         {
             animation.numSounds = getInt();
             //skip over sounds
-            if (animation.numSounds > 0) for(i in 0...animation.numSounds) 
+            if (animation.numSounds > 0) 
             {
-                getString();
-                var array = getString().split("#");
-                var index = array[array.length - 1].indexOf(" ");
-
-                var sound = new SoundParameter();
-                //sound.
+                animation.soundAnim = new Vector<SoundParameter>(animation.numSounds);
+                for(i in 0...animation.numSounds) 
+                {
+                    animation.soundAnim[i] = new SoundParameter();
+                    var array = getString().split("#");
+                    var index = array[array.length - 1].indexOf(" ");
+                    array[array.length - 1] = array[array.length - 1].substring(0,index);
+                    var propString = array[array.length - 1].substring(index + 1,array[array.length - 1].length);
+                    animation.soundAnim[i].sounds = new Vector<SoundData>(array.length);
+                    for (j in 0...array.length)
+                    {
+                        animation.soundAnim[i].sounds[j] = new SoundData(array[j]);
+                    }
+                    array = propString.split(" ");
+                    animation.soundAnim[i].repeatPerSec = Std.parseFloat(array[0]);
+                    animation.soundAnim[i].repeatPhase = Std.parseFloat(array[1]);
+                    animation.soundAnim[i].ageStart = Std.parseFloat(array[2]);
+                    animation.soundAnim[i].ageEnd = Std.parseFloat(array[3]);
+                }
             }
         }
         animation.numSprites = getInt();
         animation.numSlots = getInt();
-        //Params
+        //sprites
         if(animation.numSprites <= 0) return animation;
         animation.params = new Vector<AnimationParameter>(animation.numSprites);
         for(i in 0...animation.params.length) animation.params[i] = processParam();
+        //slots
+        animation.slotAnim = new Vector<AnimationParameter>(animation.numSlots);
+        for (i in 0...animation.slotAnim.length) animation.slotAnim[i] = processParam();
+        //done
         return animation;
     }
     /**

@@ -87,6 +87,11 @@ class GameData
      */
     private function emoteData()
     {
+        if (!Main.settings.data.exists("emotionObjects") || Main.settings.data.exists("emotionWords"))
+        {
+            trace("no emote data in settings");
+            return;
+        }
         var arrayObj:Array<String> = Main.settings.data.get("emotionObjects").split("\n");
         var arrayWord:Array<String> = Main.settings.data.get("emotionWords").split("\n");
         emotes = new Vector<EmoteData>(arrayObj.length);

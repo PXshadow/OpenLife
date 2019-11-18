@@ -1,10 +1,11 @@
 package data.animation;
 
 import data.sound.SoundData;
+import haxe.ds.Vector;
 
 class SoundParameter
 {
-    public var sound:SoundData;
+    public var sounds:Vector<SoundData>;
 
     public var repeatPerSec:Float = 0;
     public var repeatPhase:Float = 0;
