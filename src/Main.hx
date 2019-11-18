@@ -122,9 +122,9 @@ class Main #if openfl extends Sprite #end
         console.set("data",data);
         game();
         //top layer
-        var fps = new FPS();
-        fps.textColor = 0xFFFFFF;
-        addChild(fps);
+        /*var fps = new FPS();
+        fps.textColor = 0;//0xFFFFFF;
+        addChild(fps);*/
         log = new Text();
         log.color = 0xFFFFFF;
         log.y = 100;
@@ -624,7 +624,20 @@ class Main #if openfl extends Sprite #end
         }
         client.message = client.login.message;
         //trace("connect " + Main.client.ip + " email " + Main.client.login.email);
-        client.connect();
+        var instance = new PlayerInstance([]);
+        instance.po_id = 19;
+        objects.addPlayer(instance);
+        player = objects.player;
+        Timer.delay(function()
+        {
+            player.instance.clothing_set = "2940;1376;2886;2886;2937;198";
+            player.cloths();
+        },1000);
+        player.x = 300;
+        player.y = 300;
+        gameBool = true;
+        resize(null);
+        //client.connect();
     }
     private function analyze()
     {

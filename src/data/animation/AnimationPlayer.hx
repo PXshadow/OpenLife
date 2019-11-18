@@ -62,48 +62,49 @@ class AnimationPlayer
         var point:Point = null;
         var index:Int = 0;
         //offset
-        for (i in 0...data.sprites.length)
+        for (i in 0...param.length)
         {
             sprite = sprites[i];
                 //set pos
             Main.objects.setSprite(sprite,objectData.spriteArray[i],data.x,data.y);
             sprite.x += param[i].offset.x;
             sprite.y += -param[i].offset.y;
-            //sprite.originX += param[i].rotationCenterOffset.x;
-            //sprite.originY += -param[i].rotationCenterOffset.y;
-            sprite.data = {rotation:0.0};
-            //parent
             p = objectData.spriteArray[i].parent;
             if (p != -1)
             {
-                var px:Float = sprites[p].x;
-                var py:Float = sprites[p].y;
-                var pr:Float = sprites[p].rotation;
-                data.timers[timerInt++] = new Timer(1/60 * 1000);
-                data.timers[timerInt - 1].run = function()
+                sprite.data = {px:sprites[p].x,py:sprites[p].y,pr:sprites[p].rotation};
+            }
+        }
+        data.timer = new Timer(1/60 * 1000);
+        data.timer.run = function()
+        {
+            for (i in 0...data.sprites.length)
+            {
+                //parent
+                p = objectData.spriteArray[i].parent;
+                if (p != -1)
                 {
-                    if (px != sprites[p].x)
+                    if (sprites[i].data.px != sprites[p].x)
                     {
-                        sprites[i].x += sprites[p].x - px;
-                        px = sprites[p].x;
+                        sprites[i].x += sprites[p].x - sprites[i].data.px;
+                        sprites[i].data.px = sprites[p].x;
                     }
-                    if (py != sprites[p].y)
+                    if (sprites[i].data.py != sprites[p].y)
                     {
-                        sprites[i].y += sprites[p].y - py;
-                        py = sprites[p].y;
+                        sprites[i].y += sprites[p].y - sprites[i].data.py;
+                        sprites[i].data.py = sprites[p].y;
                     }
-                    if (pr != sprites[p].rotation)
+                    if (sprites[i].data.pr != sprites[p].rotation)
                     {
                         /*var rad = Math.atan2(sprite.y - sprites[p].y,sprite.x - sprites[p].x);
                         var dis = Math.sqrt(Math.pow(sprites[i].y - sprite.y,2) + Math.pow(sprite.x - sprites[p].x,2));
-                        sprite.x = sprites[p].x + dis * Math.cos(rad);
-                        sprite.y = sprites[p].y + dis * Math.sin(rad);*/
+                        sprite.x = spritees[p].x + dis * Math.cos(rad);
+                        sprite.y = sprits[p].y + dis * Math.sin(rad);*/
                         sprites[i].matrix.translate(-sprites[p].x,-sprites[p].y);
-                        sprites[i].matrix.rotate((sprites[p].rotation - pr) * (Math.PI/180));
+                        sprites[i].matrix.rotate((sprites[p].rotation - sprites[i].data.pr) * (Math.PI/180));
                         sprites[i].matrix.translate(sprites[p].x,sprites[p].y);
-                        sprites[i].rotation += (sprites[p].rotation - pr);
-                        pr = sprites[p].rotation;
-                        //overwriting acutated tween
+                        sprites[i].rotation += (sprites[p].rotation - sprites[i].data.pr);
+                        sprites[i].data.pr = sprites[p].rotation;
                     }
                 }
             }
@@ -161,7 +162,7 @@ class AnimationPlayer
             Actuate.stop(data.sprites[i],null,false,false);
             Main.objects.setSprite(data.sprites[i],objectData.spriteArray[i],data.x,data.y);
         }
-        for (timer in data.timers) timer.stop();
+        data.timer.stop();
         data = null;
     }
     /**

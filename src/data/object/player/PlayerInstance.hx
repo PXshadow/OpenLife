@@ -29,7 +29,7 @@ class PlayerInstance
     /**
      * object id array from container format
      */
-    public var o_id:Array<Int>;
+    public var o_id:Array<Int> = [];
     /**
      * N/A
      */

@@ -1,11 +1,12 @@
-- automation
-//deal with movement delay on server, before performing actions.
-//i.e do action with delay untill player_update is shown
+-things needed before alpha
+clothing
+containers
+backpack selection
+proper object held position
+sounds
 
-end action if stuck in loop
 
-
-convert object arrays both id and sprites to vectors
+convert object arrays both id and sprites to vectors (future)
 
 
 //floors can never display in front of the player

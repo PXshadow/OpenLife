@@ -81,16 +81,16 @@ class MapData
      * @param string buffer data
      * @return Array<Int> Container format array
      */
-    public static function id(string:String):Array<Int>
+    public static function id(string:String,first:String=",",second:String=":"):Array<Int>
     {
         //postive is container, negative is subcontainer that goes into postive container
         //0 is first container, untill another postive number comes around
-            var a = string.split(",");
+            var a = string.split(first);
             var array:Array<Int> = [];
             for (i in 0...a.length)
             {
                 //container
-                var s = a[i].split(":");
+                var s = a[i].split(second);
                 array.push(Std.parseInt(s[0]));
                 for (k in 1...s.length - 1)
                 {

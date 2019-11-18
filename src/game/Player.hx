@@ -1,4 +1,5 @@
 package game;
+import data.map.MapData;
 #if full
 import console.Program.Pos;
 import console.Program;
@@ -30,7 +31,7 @@ class Player #if openfl extends TileContainer #end
     private static inline var oldHeadForwardFactor:Float = 2;
     public var heldObject:TileContainer;
     //clothing hat;tunic;front_shoe;back_shoe;bottom;backpack
-    var clothing:Array<TileContainer> = [];
+    var clothing:Array<Array<Tile>> = [];
     public var _sprites:Array<Tile> = [];
     #end
     public var instance:PlayerInstance;
@@ -332,26 +333,62 @@ class Player #if openfl extends TileContainer #end
     }
     public function cloths()
     {
-        var temp:Array<Int> = [];
-        var array:Array<Array<String>> = [];
-        var sub:Array<String> = [];
-        for (string in instance.clothing_set.split(";"))
-        {
-            sub = string.split(",");
-            temp.push(Std.parseInt(sub[0]));
-            for (i in 1...sub.length)
-            {
-                temp.push(Std.parseInt(sub[i]) * -1);
-            }
-        }
-        if (temp != clothingInt)
+        #if !openfl
+        clothingInt = MapData.id(instance.clothing_set,";",",");
+        #else
+        var temp:Array<Int> = MapData.id(instance.clothing_set,";",",");
+        if (!Static.arrayEqual(temp,clothingInt))
         {
             clothingInt = temp;
-            #if openfl
+            trace("clothingInt " + clothingInt);
+            var data = Main.data.objectMap.get(instance.po_id);
+            var sprites:Array<Tile> = [];
+            var clothsData:ObjectData;
+            var offsetX:Float = 0;
+            var offsetY:Float = 0;
             var index:Int = 0;
-            clothing = [];
-            #end
+            for (id in clothingInt)
+            {
+                if (id > 0)
+                {
+                    switch(index++)
+                    {
+                        case 0:
+                        //hat (head)
+                        //trace("head " + data.headIndex + " num ");
+                        offsetX = getTileAt(data.headIndex).x;
+                        offsetY = getTileAt(data.headIndex).y;
+                        case 2:
+                        //frontShoe (frontFoot)
+                        offsetX = getTileAt(data.frontFootIndex).x;
+                        offsetY = getTileAt(data.frontFootIndex).y;
+                        case 3:
+                        //backShoe (backFoot)
+                        offsetX = getTileAt(data.backFootIndex).x;
+                        offsetY = getTileAt(data.backFootIndex).y;
+                        case 1 | 4 | 5:
+                        //tunic bottom and backpack (body)
+                        offsetX = getTileAt(data.bodyIndex).x;
+                        offsetY = getTileAt(data.bodyIndex).y;
+                    }
+                }
+                if (id > 0)
+                {
+                    //clothing
+                    clothsData = Main.data.objectMap.get(id);
+                    offsetX += clothsData.clothingOffset.x;
+                    offsetY += -clothsData.clothingOffset.y;
+
+                    trace("offset " + offsetX + " " + offsetY);
+                    sprites = Main.objects.create(clothsData,offsetX,offsetY);
+                    clothing.push(sprites);
+                    addTiles(sprites);
+                }else{
+                    //sub
+                }
+            }
         }
+        #end
     }
     #if openfl
     public function emote(index:Int=-1)
@@ -407,6 +444,7 @@ class Player #if openfl extends TileContainer #end
         {
             for (i in 0...numTiles) _sprites.push(getTileAt(i));
             _sprites.remove(heldObject);
+            for (array in clothing) for (cloths in array) _sprites.remove(cloths);
         }
         return _sprites;
     }

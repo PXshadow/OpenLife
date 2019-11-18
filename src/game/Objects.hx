@@ -157,7 +157,7 @@ class Objects extends TileDisplay
         }
         return true;
     }
-    private function create(data:ObjectData,x:Float=0,y:Float=0):Array<Tile>
+    public function create(data:ObjectData,x:Float=0,y:Float=0):Array<Tile>
     {
         var sprite:Tile = null;
         var sprites:Array<Tile> = [];

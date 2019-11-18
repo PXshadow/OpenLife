@@ -7,7 +7,7 @@ class AnimationChannel
     /**
      * Timers used to update children to parent's transformations
      */
-    public var timers:Array<Timer> = [];
+    public var timer:Timer;
     /**
      * Sprites of animated object
      */
