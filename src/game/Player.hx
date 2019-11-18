@@ -386,12 +386,10 @@ class Player #if openfl extends TileContainer #end
                     offsetY = -clothsData.clothingOffset.y + getTileAt(index).y;
                     sprites = Main.objects.create(clothsData,offsetX,offsetY,true);
                     clothing.push(sprites);
-                    for (sprite in sprites)
+                    for (j in 0...sprites.length)
                     {
-                        //addTile(sprite);
-                        trace("index " + index + " plac " + place);
-                        addTileAt(sprite,index + place + i);
-                        //addTileAt(sprite,sprites.length - place);
+                        //addTile(sprites[j]);
+                        addTileAt(sprites[j],index + place + i);
                     }
                 }else{
                     //sub

@@ -78,6 +78,10 @@ class AnimationData extends LineReader
             //skip over sounds
             if (animation.numSounds > 0) for(i in 0...animation.numSounds) 
             {
+                getString();
+                var array = getString().split("#");
+                var index = array[array.length - 1].indexOf(" ");
+
                 var sound = new SoundParameter();
                 //sound.
             }
