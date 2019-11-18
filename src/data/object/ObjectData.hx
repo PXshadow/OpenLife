@@ -470,8 +470,11 @@ class ObjectData extends LineReader
             spriteArray[j].ageRange = getFloatArray();
             spriteArray[j].parent = getInt();
             //invis holding, invisWorn, behind slots
-            getString();
-            if (readName("invisCont"))  spriteArray[j].invisCont = getBool();
+            var array = getArrayInt();
+            spriteArray[j].invisHolding = array[0];
+            spriteArray[j].invisWorn = array[1];
+            spriteArray[j].behindSlots = array[2] == 1 ? true : false;
+            if (readName("invisCont"))  spriteArray[j].invisCont = getInt();
         }
         //get offset center
         getSpriteData();

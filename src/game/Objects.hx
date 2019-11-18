@@ -157,7 +157,7 @@ class Objects extends TileDisplay
         }
         return true;
     }
-    public function create(data:ObjectData,x:Float=0,y:Float=0):Array<Tile>
+    public function create(data:ObjectData,x:Float=0,y:Float=0,worn:Bool=false,held:Bool=false,inDrawBehindSlots:Int=0):Array<Tile>
     {
         var sprite:Tile = null;
         var sprites:Array<Tile> = [];
@@ -167,6 +167,28 @@ class Objects extends TileDisplay
             sprite.data = {floor:data.floor};
             sprite.id = cacheSprite(data.spriteArray[i].spriteID);
             setSprite(sprite,data.spriteArray[i],x,y);
+            //worn
+            if (data.clothing != "n" && data.spriteArray[i].invisWorn != 0)
+            {
+                if (worn && data.spriteArray[i].invisWorn == 1)
+                {
+                    sprite.visible = false;
+                }else if (!worn && data.spriteArray[i].invisWorn == 2)
+                {
+                    sprite.visible = false;
+                }
+            }
+            //draw behind slots
+            /*if (inDrawBehindSlots != 2)
+            {
+                if (inDrawBehindSlots == 0 && !data.spriteArray[i].behindSlots)
+                {
+                    sprite.visible = false;
+                }else if (inDrawBehindSlots == 1 && data.spriteArray[i].behindSlots)
+                {
+                    sprite.visible = false;
+                }
+            }*/
             sprites.push(sprite);
         }
         return sprites;

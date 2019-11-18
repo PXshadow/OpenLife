@@ -38,6 +38,14 @@ class AnimationRecord
      * N/A
      */
     public var forceZeroStart:Float = 0;
+    /**
+     * Sound record
+     */
+    public var soundAnim:Vector<SoundParameter>;
+    /**
+     * Slot animation
+     */
+     public var slotAnim:Vector<AnimationParameter>;
     public function new()
     {
 

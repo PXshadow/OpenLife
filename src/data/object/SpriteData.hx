@@ -33,23 +33,23 @@ class SpriteData
     /**
      * Parent id for child
      */
-    public var parent:Int = 0;//=-1
+    public var parent:Int = -1;
     /**
      * Invisible when holding
      */
-    public var invisHolding:Bool = false;
+    public var invisHolding:Int = -1;
     /**
      * Invisible when worn
      */
-    public var invisWorn:Bool = false;
+    public var invisWorn:Int = -1;
     /**
      * Behind slots
      */
     public var behindSlots:Bool = false;
     /**
-     * N/A
+     * Invisible count
      */
-    public var invisCont:Bool = false;
+    public var invisCont:Int = 0;
     /**
      * Offset of center x
      */

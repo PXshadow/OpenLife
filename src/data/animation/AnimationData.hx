@@ -76,7 +76,11 @@ class AnimationData extends LineReader
         {
             animation.numSounds = getInt();
             //skip over sounds
-            if (animation.numSounds > 0) for(i in 0...animation.numSounds) getString();
+            if (animation.numSounds > 0) for(i in 0...animation.numSounds) 
+            {
+                var sound = new SoundParameter();
+                //sound.
+            }
         }
         animation.numSprites = getInt();
         animation.numSlots = getInt();

@@ -347,42 +347,52 @@ class Player #if openfl extends TileContainer #end
             var offsetX:Float = 0;
             var offsetY:Float = 0;
             var index:Int = 0;
+            var i:Int = 0;
+            var place:Int = 0;
             for (id in clothingInt)
             {
                 if (id > 0)
                 {
-                    switch(index++)
+                    switch (i++)
                     {
-                        case 0:
-                        //hat (head)
-                        //trace("head " + data.headIndex + " num ");
-                        offsetX = getTileAt(data.headIndex).x;
-                        offsetY = getTileAt(data.headIndex).y;
+                        case 0: 
+                        //hat (slight hack set hat to the front of hair)
+                        index = data.headIndex;
+                        place = 0 + 20;
+                        case 1:
+                        //tunic
+                        index = data.bodyIndex;
+                        place = 1;
                         case 2:
-                        //frontShoe (frontFoot)
-                        offsetX = getTileAt(data.frontFootIndex).x;
-                        offsetY = getTileAt(data.frontFootIndex).y;
-                        case 3:
-                        //backShoe (backFoot)
-                        offsetX = getTileAt(data.backFootIndex).x;
-                        offsetY = getTileAt(data.backFootIndex).y;
-                        case 1 | 4 | 5:
-                        //tunic bottom and backpack (body)
-                        offsetX = getTileAt(data.bodyIndex).x;
-                        offsetY = getTileAt(data.bodyIndex).y;
+                        //front shoe
+                        index = data.frontFootIndex;
+                        place = 2;
+                        case 3: 
+                        //back shoe
+                        index = data.backFootIndex;
+                        place = 3;
+                        case 4:
+                        //bottom 
+                        index = data.bodyIndex;
+                        place = 4;
+                        case 5:
+                        //backpack
+                        index = data.bodyIndex;
+                        place = 5;
                     }
-                }
-                if (id > 0)
-                {
                     //clothing
                     clothsData = Main.data.objectMap.get(id);
-                    offsetX += clothsData.clothingOffset.x;
-                    offsetY += -clothsData.clothingOffset.y;
-
-                    trace("offset " + offsetX + " " + offsetY);
-                    sprites = Main.objects.create(clothsData,offsetX,offsetY);
+                    offsetX = clothsData.clothingOffset.x + getTileAt(index).x;
+                    offsetY = -clothsData.clothingOffset.y + getTileAt(index).y;
+                    sprites = Main.objects.create(clothsData,offsetX,offsetY,true);
                     clothing.push(sprites);
-                    addTiles(sprites);
+                    for (sprite in sprites)
+                    {
+                        //addTile(sprite);
+                        trace("index " + index + " plac " + place);
+                        addTileAt(sprite,index + place + i);
+                        //addTileAt(sprite,sprites.length - place);
+                    }
                 }else{
                     //sub
                 }
