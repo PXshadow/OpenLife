@@ -1,0 +1,31 @@
++tool
++toolPlane
++toolSew
++toolBowDrill
++toolHoe
+- Jungle Only# +biomeReq6
+
++neverDrop
+
++wall
++horizontalD
++horizontalE
++cornerD
++verticalD
++verticalE
++owned
+
++hungryWork10
++noWait
++tapoutTrigger,1,1,2,1
++land
++fly
+
+&writable
++map
+
+# otherFamilyOnly
+maxPickupAge_55
+
++noHighlight
++default

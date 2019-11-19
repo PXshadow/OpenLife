@@ -36,7 +36,7 @@ class AnimationPlayer
      * @param x tile x
      * @param y tile y
      */
-    public function play(id:Int,index:Int,sprites:Array<Tile>,x:Float,y:Float) 
+    public function play(id:Int,index:Int,sprites:Array<Tile>,x:Float,y:Float,cloths:Vector<Array<Tile>>=null) 
     {
         //check if already up
         for (obj in active)
@@ -84,6 +84,26 @@ class AnimationPlayer
                 sprite.data = {px:sprites[p].x,py:sprites[p].y,pr:sprites[p].rotation};
             }
         }
+        //set clothing parent
+        if (cloths != null)
+        {
+            for (i in 0...cloths.length)
+            {
+                if (cloths[i] == null) continue;
+                switch(i)
+                {
+                    case 0: p = objectData.headIndex;
+                    case 1 | 4 | 5: p = objectData.bodyIndex;
+                    case 2: p = objectData.frontFootIndex;
+                    case 3: p = objectData.backFootIndex;
+                }
+                for (sprite in cloths[i])
+                {
+                    sprite.data = {px:sprites[p].x,py:sprites[p].y,pr:sprites[p].rotation};
+                }
+            }
+        }
+        //update
         data.timer = new Timer(1/60 * 1000);
         data.timer.run = function()
         {
@@ -93,27 +113,25 @@ class AnimationPlayer
                 p = objectData.spriteArray[i].parent;
                 if (p != -1)
                 {
-                    if (sprites[i].data.px != sprites[p].x)
+                    update(sprites[i],sprites[p]);
+                }
+            }
+            //cloths
+            if (cloths != null)
+            {
+                for (i in 0...cloths.length)
+                {
+                    if (cloths[i] == null) continue;
+                    switch(i)
                     {
-                        sprites[i].x += sprites[p].x - sprites[i].data.px;
-                        sprites[i].data.px = sprites[p].x;
+                        case 0: p = objectData.headIndex;
+                        case 1 | 4 | 5: p = objectData.bodyIndex;
+                        case 2: p = objectData.frontFootIndex;
+                        case 3: p = objectData.backFootIndex;
                     }
-                    if (sprites[i].data.py != sprites[p].y)
+                    for (sprite in cloths[i])
                     {
-                        sprites[i].y += sprites[p].y - sprites[i].data.py;
-                        sprites[i].data.py = sprites[p].y;
-                    }
-                    if (sprites[i].data.pr != sprites[p].rotation)
-                    {
-                        /*var rad = Math.atan2(sprite.y - sprites[p].y,sprite.x - sprites[p].x);
-                        var dis = Math.sqrt(Math.pow(sprites[i].y - sprite.y,2) + Math.pow(sprite.x - sprites[p].x,2));
-                        sprite.x = spritees[p].x + dis * Math.cos(rad);
-                        sprite.y = sprits[p].y + dis * Math.sin(rad);*/
-                        sprites[i].matrix.translate(-sprites[p].x,-sprites[p].y);
-                        sprites[i].matrix.rotate((sprites[p].rotation - sprites[i].data.pr) * (Math.PI/180));
-                        sprites[i].matrix.translate(sprites[p].x,sprites[p].y);
-                        sprites[i].rotation += (sprites[p].rotation - sprites[i].data.pr);
-                        sprites[i].data.pr = sprites[p].rotation;
+                        update(sprite,sprites[p]);
                     }
                 }
             }
@@ -140,6 +158,32 @@ class AnimationPlayer
             if (param[i].xAmp > 0) tween(sprite,{x:sprite.x + param[i].xAmp/2},{x:sprite.x - param[i].xAmp/2},1/param[i].xOscPerSec,param[i].xPhase,px);
             if (param[i].yAmp > 0) tween(sprite,{y:sprite.y + param[i].yAmp/2},{y:sprite.y - param[i].yAmp/2},1/param[i].yOscPerSec,param[i].yPhase,py);
             if (param[i].rockAmp > 0) tween(sprite,{rotation:sprite.rotation + (param[i].rockAmp * 365)},{rotation:sprite.rotation - (param[i].rockAmp * 365)},1/param[i].rockOscPerSec,param[i].rockPhase);
+        }
+    }
+    /**
+     * update
+     * @param sprite 
+     * @param parent 
+     */
+    private inline function update(sprite:Tile,parent:Tile)
+    {
+        if (sprite.data.px != parent.x)
+        {
+            sprite.x += parent.x - sprite.data.px;
+            sprite.data.px = parent.x;
+        }
+        if (sprite.data.py != parent.y)
+        {
+            sprite.y += parent.y - sprite.data.py;
+            sprite.data.py = parent.y;
+        }
+        if (sprite.data.pr != parent.rotation)
+        {
+            sprite.matrix.translate(-parent.x,-parent.y);
+            sprite.matrix.rotate((parent.rotation - sprite.data.pr) * (Math.PI/180));
+            sprite.matrix.translate(parent.x,parent.y);
+            sprite.rotation += (parent.rotation - sprite.data.pr);
+            sprite.data.pr = parent.rotation;
         }
     }
     /**

@@ -21,6 +21,7 @@ import haxe.Timer;
 import data.object.SpriteData;
 import data.object.ObjectData;
 import data.animation.AnimationData;
+import haxe.ds.Vector;
 class Player #if openfl extends TileContainer #end
 {
     #if openfl
@@ -31,7 +32,7 @@ class Player #if openfl extends TileContainer #end
     private static inline var oldHeadForwardFactor:Float = 2;
     public var heldObject:TileContainer;
     //clothing hat;tunic;front_shoe;back_shoe;bottom;backpack
-    var clothing:Array<Array<Tile>> = [];
+    public var clothing:Vector<Array<Tile>>;
     public var _sprites:Array<Tile> = [];
     #end
     public var instance:PlayerInstance;
@@ -349,6 +350,7 @@ class Player #if openfl extends TileContainer #end
             var index:Int = 0;
             var i:Int = 0;
             var place:Int = 0;
+            clothing = new Vector<Array<Tile>>(5 + 1);
             for (id in clothingInt)
             {
                 if (id > 0)
@@ -362,7 +364,7 @@ class Player #if openfl extends TileContainer #end
                         case 1:
                         //tunic
                         index = data.bodyIndex;
-                        place = 1;
+                        place = 1 + 5;
                         case 2:
                         //front shoe
                         index = data.frontFootIndex;
@@ -385,11 +387,11 @@ class Player #if openfl extends TileContainer #end
                     offsetX = clothsData.clothingOffset.x + getTileAt(index).x;
                     offsetY = -clothsData.clothingOffset.y + getTileAt(index).y;
                     sprites = Main.objects.create(clothsData,offsetX,offsetY,true);
-                    clothing.push(sprites);
+                    clothing[i - 1] = sprites;
                     for (j in 0...sprites.length)
                     {
                         //addTile(sprites[j]);
-                        addTileAt(sprites[j],index + place + i);
+                        addTileAt(sprites[j],index + place + i + j);
                     }
                 }else{
                     //sub

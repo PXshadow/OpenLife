@@ -1,5 +1,5 @@
 -things needed before alpha
-clothing
+move cloths during animation
 containers
 backpack selection
 proper object held position

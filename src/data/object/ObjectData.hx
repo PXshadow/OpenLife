@@ -128,6 +128,10 @@ class ObjectData extends LineReader
      */
     public var clothing:String="n";
     /**
+     * weapon can not be dropped
+     */
+     public var neverDrop:Bool = false;
+    /**
      * Offset of object when worn
      */
     public var clothingOffset:Point;//=0.000000,0.000000
