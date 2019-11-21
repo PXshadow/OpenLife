@@ -108,7 +108,10 @@ class Objects extends TileDisplay
     public function add(array:Array<Int>,x:Int=0,y:Int=0,container:TileContainer=null):Bool
     {
         if (array == null || array.length == 0 || array[0] == 0) return false;
+        //data is main container
         var data:ObjectData = Main.data.objectMap.get(array[0]);
+        //sub is used for temp container and all sub data props
+        var sub:ObjectData = null;
         if (data == null)
         {
             trace("failed object id: " + array[0]);
@@ -125,19 +128,36 @@ class Objects extends TileDisplay
         var tx:Float = x * Static.GRID;
         var ty:Float = (Static.tileHeight - y) * Static.GRID;
         //create
-        var sprites:Array<Tile> = [];
-        if (container == null)
-        {
-            sprites = create(data,tx,ty);
-        }else{
-            sprites = create(data,0,0);
-        }
+        var sprites = container == null ? create(data,tx + 0,ty - 0) : create(data,0,0);
         if (sprites.length == 0) trace(data.id);
         //conainted
-        /*for (i in 1...array.length) 
+        var pos:data.Point;
+        for (i in 1...array.length) 
         {
-
-        }*/
+            if (array[i] > 0)
+            {
+                //container
+            }else{
+                //sub
+                sub = Main.data.objectMap.get(array[i] * -1);
+                trace("sub " + sub.description);
+                trace("vert " + data.slotVert);
+                trace("ver rot " + sub.vertSlotRot);
+                trace("parent " + data.slotParent[i - 1]);
+                trace("pos " + data.slotVert[i - 1]);
+                if (sub == null)
+                {
+                    trace ("sub failed object id: " + array[i]);
+                    continue;
+                }
+                for (sprite in (container == null ? 
+                create(sub,tx + data.slotPos[i - 1].x,ty - data.slotPos[i - 1].y,sub.vertSlotRot * 365) : 
+                create(sub,data.slotPos[i - 1].x,data.slotPos[i - 1].y,sub.vertSlotRot * 365)))
+                {
+                    sprites.insert(data.slotParent[i - 1],sprite);
+                }
+            }
+        }
         //fill container if present
         if (container != null)
         {
@@ -157,7 +177,7 @@ class Objects extends TileDisplay
         }
         return true;
     }
-    public function create(data:ObjectData,x:Float=0,y:Float=0,worn:Bool=false,held:Bool=false,inDrawBehindSlots:Int=2):Array<Tile>
+    public function create(data:ObjectData,x:Float=0,y:Float=0,rotation:Float=0,worn:Bool=false,held:Bool=false,inDrawBehindSlots:Int=2):Array<Tile>
     {
         var sprite:Tile = null;
         var sprites:Array<Tile> = [];

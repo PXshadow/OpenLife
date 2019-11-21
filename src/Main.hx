@@ -142,20 +142,23 @@ class Main #if openfl extends Sprite #end
         }
         #end
         //trace("connect " + Main.client.ip + " email " + Main.client.login.email);
-        var instance = new PlayerInstance([]);
+        /*var instance = new PlayerInstance([]);
         instance.po_id = 19;
         objects.addPlayer(instance);
         player = objects.player;
         Timer.delay(function()
         {
-            player.instance.clothing_set = "2940;1376;2886;2886;2937;198";
+            //1376,2922
+            player.instance.clothing_set = "2940;2922;2886;2886;2937;198";
             player.cloths();
         },1000);
-        player.x = 300;
-        player.y = 300;
+        player.x = 0;
+        player.y = 0;*/
+        objects.add([292,-560,-560,-560],2,Static.tileHeight - 2);
         gameBool = true;
         resize(null);
         //connect();
+        trace("group " + objects.group.x + " " + objects.group.y + " main " + objects.x + " " + objects.y);
     }
     public function dir()
     {
@@ -312,7 +315,7 @@ class Main #if openfl extends Sprite #end
             }
             //update draw
             draw.update();
-            if (player.follow)
+            if (player != null && player.follow)
             {
                 //set camera to middle
                 if (player.parent == objects.group)
@@ -509,7 +512,7 @@ class Main #if openfl extends Sprite #end
         //remove out of area
         for (chunk in data.map.chunks)
         {
-            if (Math.abs(chunk.x + chunk.width/2 - cx) > 22 || Math.abs(chunk.y + chunk.height/2 - cy) > 22)
+            if (Math.abs(chunk.x + chunk.width/2 - cx) > 21 || Math.abs(chunk.y + chunk.height/2 - cy) > 21)
             {
                 for (j in chunk.y...chunk.y + chunk.height)
                 {

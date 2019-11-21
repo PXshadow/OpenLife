@@ -1,4 +1,6 @@
 package data.map;
+import haxe.Timer;
+import sys.io.FileInput;
 import haxe.ds.Vector;
 class MapData
 {
@@ -76,6 +78,32 @@ class MapData
             }
         }
     }
+
+    public function mapFile(file:FileInput,inOffsetX:Int=0,inOffsetY:Int=0,inTimeLimitSec:Float=0)
+    {
+        var startTime = Timer.stamp();
+        var line:Array<String> = [];
+        var x:Int = 0;
+        var y:Int = 0;
+        // break out when read fails
+        // or if time limit passed
+        while (inTimeLimitSec == 0 || Timer.stamp() < startTime + inTimeLimitSec)
+        {
+            try {
+                line = file.readLine().split(" ");
+            }catch(e:Dynamic)
+            {
+                trace("No more lines");
+                return;
+            }
+            x = Std.parseInt(line[0]);
+            y = Std.parseInt(line[1]);
+            biome.set(x,y,Std.parseInt(line[2]));
+            floor.set(x,y,Std.parseInt(line[3]));
+            object.set(x,y,id(line[4]));
+        }
+    }
+
     /**
      * Generate Array container format from string buffer
      * @param string buffer data
