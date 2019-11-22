@@ -73,7 +73,6 @@ class GameData
         #end
         //transitionData = new TransitionData();
         #if openfl
-        openfl.Lib.current.stage.frameRate = 60;
         emoteData();
         #end
         #if full

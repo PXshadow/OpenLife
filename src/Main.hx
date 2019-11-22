@@ -1,3 +1,4 @@
+import lime.app.Future;
 import client.Router;
 import sys.FileSystem;
 import sys.io.Process;
@@ -50,6 +51,8 @@ import openfl.display.Tile;
 import openfl.geom.Rectangle;
 import data.animation.AnimationPlayer;
 import data.sound.SoundPlayer;
+
+import ui.*;
 #end
 
 class Main #if openfl extends Sprite #end
@@ -67,6 +70,16 @@ class Main #if openfl extends Sprite #end
     var select:Shape;
     var chat:Text;
     var ground:Ground;
+    //login
+    var emailText:Text;
+    var emailInput:InputText;
+    var keyText:Text;
+    var keyInput:InputText;
+    var serverText:Text;
+    var serverInput:InputText;
+    var portText:Text;
+    var portInput:InputText;
+    var join:Button;
     //players
     public static var sounds:SoundPlayer = new SoundPlayer();
     public static var animations:AnimationPlayer = new AnimationPlayer();
@@ -117,14 +130,17 @@ class Main #if openfl extends Sprite #end
         settings = new Settings();
         //data
         data = new GameData();
+        client = new Client();
+        client.login = new client.Login();
+        cred();
         //complete
         #if openfl
         console.set("data",data);
-        game();
+        login();
         //top layer
-        /*var fps = new FPS();
-        fps.textColor = 0;//0xFFFFFF;
-        addChild(fps);*/
+        var fps = new FPS();
+        fps.textColor = 0xFF0000;//0xFFFFFF;
+        addChild(fps);
         log = new Text();
         log.color = 0xFFFFFF;
         log.y = 100;
@@ -159,7 +175,7 @@ class Main #if openfl extends Sprite #end
         objects.add([483,292,-560,-560,-560],0,Static.tileHeight - 0);
         gameBool = true;
         resize(null);*/
-        connect();
+        //connect();
         //trace("group " + objects.group.x + " " + objects.group.y + " main " + objects.x + " " + objects.y);
     }
     public function dir()
@@ -212,13 +228,13 @@ class Main #if openfl extends Sprite #end
         if (!Main.settings.fail)
         {
             //account
-            if (valid(Main.settings.data.get("email"))) Main.client.login.email = string;
+            /*if (valid(Main.settings.data.get("email"))) Main.client.login.email = string;
             if (valid(Main.settings.data.get("accountKey"))) Main.client.login.key = string;
             if (valid(Main.settings.data.get("useCustomServer")) && string == "1")
             {
                 if (valid(Main.settings.data.get("customServerAddress"))) Main.client.ip = string;
                 if (valid(Main.settings.data.get("customServerPort"))) Main.client.port = Std.parseInt(string);
-            }
+            }*/
             //window
             #if openfl
             if (valid(Main.settings.data.get("borderless"))) stage.window.borderless = string == "1" ? true : false;
@@ -258,7 +274,101 @@ class Main #if openfl extends Sprite #end
         stage.addEventListener(MouseEvent.RIGHT_MOUSE_DOWN,mouseRightDown);
         stage.addEventListener(MouseEvent.RIGHT_MOUSE_UP,mouseRightUp);
     }
-    public function game()
+    private function login()
+    {
+        keyText = new Text("Key",LEFT,24,0xFFFFFF);
+        keyText.y = 50;
+        emailText = new Text("Email",LEFT,24,0xFFFFFF);
+        emailText.y = 100;
+        addChild(keyText);
+        addChild(emailText);
+        
+        serverText = new Text("Address",LEFT,24,0xFFFFFF);
+        portText = new Text("Port",LEFT,24,0xFFFFFF);
+        serverText.y = 150;
+        portText.y = 200;
+        addChild(serverText);
+        addChild(portText);
+
+        keyInput = new InputText();
+        keyInput.x = 100;
+        keyInput.y = 50;
+        addChild(keyInput);
+        emailInput = new InputText();
+        emailInput.x = 100;
+        emailInput.y = 100;
+        addChild(emailInput);
+
+        serverInput = new InputText();
+        serverInput.x = 100;
+        serverInput.y = 150;
+        addChild(serverInput);
+
+        portInput = new InputText();
+        portInput.x = 100;
+        portInput.y = 200;
+        addChild(portInput);
+
+        //fill
+        if (!Main.settings.fail)
+        {
+            emailInput.text = Main.settings.data.get("email");
+            keyInput.text = Main.settings.data.get("accountKey");
+            //if (valid(Main.settings.data.get("useCustomServer")) && string == "1")
+            //{
+                if (valid(Main.settings.data.get("customServerAddress"))) serverInput.text = string;
+                if (valid(Main.settings.data.get("customServerPort"))) portInput.text = string;
+            //}else{
+                //serverInput.text = "bigserver2.onehouronelife.com";
+                //portInput.text = "8005";
+            //}
+        }
+        
+        join = new Button();
+        join.text = "Join";
+        join.y = 250;
+        join.graphics.beginFill(0x808080);
+        join.graphics.drawRect(0,0,60,30);
+        join.Click = function(_)
+        {
+            if (emailInput.text.indexOf("@") == -1 || 
+            emailInput.text.length < 5 || 
+            keyInput.text.length < 4 || 
+            serverInput.text.indexOf(".") == -1 ||
+            serverInput.text.length < 4 ||
+            Std.parseInt(portInput.text) == null
+            ) return;
+            //settings set
+            Main.settings.data.set("email",emailInput.text);
+            Main.settings.data.set("accountKey",keyInput.text);
+            Main.settings.data.set("customServerAddress",serverInput.text);
+            Main.settings.data.set("customServerPort",portInput.text);
+            //client set
+            Main.client.ip = Main.settings.data.get("customServerAddress");
+            Main.client.port = Std.parseInt(Main.settings.data.get("customServerPort"));
+            Main.client.login.email = Main.settings.data.get("email");
+            Main.client.login.key = Main.settings.data.get("accountKey");
+            trace("client " + Main.client.ip + " port " + Main.client.port);
+            //remove login
+            removeChild(keyText);
+            removeChild(emailText);
+            removeChild(serverText);
+            removeChild(portText);
+            removeChild(keyInput);
+            removeChild(emailInput);
+            removeChild(serverInput);
+            removeChild(portInput);
+            removeChild(join);
+            keyText = emailText = serverText = portText = null;
+            keyInput = emailInput = serverInput = portInput = null;
+            join = null;
+            //start game
+            game();
+            connect();
+        }
+        addChild(join);
+    }
+    private function game()
     {
         ground = new Ground();
         objects = new Objects();
@@ -513,18 +623,12 @@ class Main #if openfl extends Sprite #end
     }
     var offsetX:Int = 0;
     var offsetY:Int = 0;
-    var clearRender:Bool = false;
     public function render(cx:Int,cy:Int) 
     {
-        //remove out of area
-        /*if (!clearRender)
-        {
-            clearRender = true;
-            Timer.delay(function()
-            {
+        //clear
                 for (chunk in data.map.chunks)
                 {
-                    if (Math.abs(chunk.x + chunk.width/2 - cx) > 21 || Math.abs(chunk.y + chunk.height/2 - cy) > 21)
+                    if (Math.abs(chunk.x + chunk.width/2 - cx) >= 24 || Math.abs(chunk.y + chunk.height/2 - cy) >= 24)
                     {
                         for (j in chunk.y...chunk.y + chunk.height)
                         {
@@ -538,10 +642,10 @@ class Main #if openfl extends Sprite #end
                         data.map.chunks.remove(chunk);
                     }
                 }
-                clearRender = false;
-            },800);
-        }*/
         //new
+        //new Future(function()
+        //{
+        //objects.tileset.bitmapData.lock();
         for (j in mapInstance.y...mapInstance.y + mapInstance.height)
         {
             for (i in mapInstance.x...mapInstance.x + mapInstance.width)
@@ -551,8 +655,9 @@ class Main #if openfl extends Sprite #end
                 objects.add([data.map.floor.get(i,j)],i,j);
             }
         }
-        data.map.chunks.push(mapInstance);
+        objects.tileset.bitmapData.unlock();
         ground.render();
+        data.map.chunks.push(mapInstance);
     }
     private function clear()
     {
@@ -596,6 +701,7 @@ class Main #if openfl extends Sprite #end
     }
     private function zoom(i:Int)
     {
+        if (!gameBool) return;
         if (objects.scale > 2 && i > 0 || objects.scale < 0.2 && i < 0) return;
         objects.scale += i * 0.08;
         lerpInt = 2;
@@ -633,10 +739,7 @@ class Main #if openfl extends Sprite #end
     }
     private function connect()
     {
-        client = new Client();
         console.set("client",client);
-        client.login = new client.Login();
-        cred();
         client.login.accept = function()
         {
             trace("accept");

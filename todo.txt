@@ -1,26 +1,13 @@
-- fix recaching system for player
+- aging position factors setup
+- fix slot positioning
 - work on path trimming
-- program path system
-- work on animations
-
-
-- player move system animate
+- setup message function to be more modifable 3rd party wise.
 
 - multiple objets on same tile, mouse over make transparent
 - thanks schmloo
 
 
--get floor speed multipler
-- system player path system for movement
-- figure out category system
-- force system for player
-- player holding system
-- player show names somehow
-- look into poll system
 
-- setup docs folder to setup github pages and show off demo.
-
-- sounds https://www.instructables.com/id/How-to-Read-aiff-Files-using-C/
 
 Non technical
 - add client to https://www.moddb.com/games/one-hour-one-life/mods

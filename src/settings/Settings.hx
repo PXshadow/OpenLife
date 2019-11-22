@@ -1,4 +1,5 @@
 package settings;
+import sys.io.FileOutput;
 import haxe.DynamicAccess;
 import haxe.io.Path;
 #if (sys || nodejs)
@@ -16,11 +17,11 @@ class Settings
         {
             var name = a[a.length - 1] + ".ini";
             var obj = value.get(name);
+            var file:FileOutput;
             //set settings
-            if (FileSystem.exists(Static.dir + "settings/" + name) && !FileSystem.isDirectory(Static.dir + "settings/" + name))
-            {
-                File.saveContent(Static.dir + "settings/" + name,obj);
-            }
+            file = File.write(Static.dir + "settings/" + name,false);
+            file.writeString(obj);
+            file.close();
         }
         data = value;
         return data;
