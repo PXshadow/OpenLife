@@ -11,8 +11,8 @@ class DataSetup
     {
         //move onelifedata7 files to windows or mac folder depending on whitch is up
         var path:String = "";
-        if (FileSystem.exists("bin/windows")) path = "bin/windows/bin";
-        if (FileSystem.exists("bin/macOS")) path = "bin/macOS/bin";
+        if (FileSystem.exists("bin/windows")) path = "bin/windows/bin/";
+        if (FileSystem.exists("bin/macOS")) path = "bin/macOS/bin/";
         //setup linux later
 
         //check if path is set
@@ -33,7 +33,7 @@ class DataSetup
                 return;
             }
         }
-        copyDir("OneLifeData7",path);
+        copyDir("OneLifeData7/",path);
     }
     /**
      * Code from the launcher I made a while ago :)
