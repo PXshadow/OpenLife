@@ -96,6 +96,7 @@ class MapData
                 trace("No more lines");
                 return;
             }
+            //loading into
             x = Std.parseInt(line[0]);
             y = Std.parseInt(line[1]);
             biome.set(x,y,Std.parseInt(line[2]));
@@ -114,15 +115,17 @@ class MapData
         //postive is container, negative is subcontainer that goes into postive container
         //0 is first container, untill another postive number comes around
             var a = string.split(first);
+            var s:Array<String> = [];
             var array:Array<Int> = [];
             for (i in 0...a.length)
             {
-                //container
-                var s = a[i].split(second);
+                //container split data
+                s = a[i].split(second);
+                //sub
                 array.push(Std.parseInt(s[0]));
                 for (k in 1...s.length - 1)
                 {
-                    //subcontainer
+                    //subobjects
                     array.push(Std.parseInt(s[k]) * -1);
                 }
             }

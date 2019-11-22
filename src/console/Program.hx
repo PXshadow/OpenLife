@@ -349,12 +349,27 @@ class Program
         send(SAY,0,0,string.toUpperCase());
         return this;
     }
+    /**
+     * is special case of removing an object from a container.
+     i specifies the index of the container item to remove, or -1 to
+	 remove top of stack.
+     * @param x 
+     * @param y 
+     * @param index 
+     * @return Program
+     */
     public function remove(x:Int,y:Int,index:Int=-1):Program
     {
         //remove an object from a container
         send(REMV,x,y," " + index);
         return this;
     }
+    /**
+     * is special case of removing an object contained in a piece of worn 
+      clothing.
+     * @param i 
+     * @return Program
+     */
     public function specialRemove(i:Int=-1):Program
     {
         return pull(i);

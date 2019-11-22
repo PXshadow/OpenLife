@@ -154,11 +154,13 @@ class Main #if openfl extends Sprite #end
         },1000);
         player.x = 0;
         player.y = 0;*/
-        objects.add([292,-560,-560,-560],2,Static.tileHeight - 2);
-        gameBool = true;
-        resize(null);
-        //connect();
-        trace("group " + objects.group.x + " " + objects.group.y + " main " + objects.x + " " + objects.y);
+        //-31,-560,-233
+        //[292,-233,-233,-233]
+        //objects.add([483,292,-233,-233],2,Static.tileHeight - 2);
+        //gameBool = true;
+        //resize(null);
+        connect();
+        //trace("group " + objects.group.x + " " + objects.group.y + " main " + objects.x + " " + objects.y);
     }
     public function dir()
     {
@@ -459,6 +461,10 @@ class Main #if openfl extends Sprite #end
         {
             mouseRightDown(null);
             return;
+        }
+        if (Bind.playerKill.bool)
+        {
+            program.remove(selectX,selectY,-1);
         }
         if (Bind.playerMove.bool)
         {

@@ -110,8 +110,13 @@ class Objects extends TileDisplay
         if (array == null || array.length == 0 || array[0] == 0) return false;
         //data is main container
         var data:ObjectData = Main.data.objectMap.get(array[0]);
-        //sub is used for temp container and all sub data props
-        var sub:ObjectData = null;
+        var main = data;
+        var sub:ObjectData;
+        //container int
+        var conInt:Int = 0;
+        var mainInt:Int = 0;
+        //sub is used for all sub data props
+        var sub:ObjectData = data;
         if (data == null)
         {
             trace("failed object id: " + array[0]);
@@ -128,35 +133,43 @@ class Objects extends TileDisplay
         var tx:Float = x * Static.GRID;
         var ty:Float = (Static.tileHeight - y) * Static.GRID;
         //create
-        var sprites = container == null ? create(data,tx + 0,ty - 0) : create(data,0,0);
+        var sprites:Array<Tile> = [];
+        if (container != null)
+        {
+            tx = 0;
+            ty = 0;
+        }
+        sprites = create(data,tx + 0,ty - 0);
         if (sprites.length == 0) trace(data.id);
         //conainted
-        var pos:data.Point;
+        var id:Int = 0;
+        //id of container
+        var set:Bool = false;
         for (i in 1...array.length) 
         {
+            set = false;
             if (array[i] > 0)
             {
                 //container
+                sub = Main.data.objectMap.get(array[i] * 1);
+                id = mainInt++;
+                conInt = 0;
+                set = true;
+                data = main;
             }else{
-                //sub
+                //add into container
                 sub = Main.data.objectMap.get(array[i] * -1);
-                trace("sub " + sub.description);
-                trace("vert " + data.slotVert);
-                trace("ver rot " + sub.vertSlotRot);
-                trace("parent " + data.slotParent[i - 1]);
-                trace("pos " + data.slotVert[i - 1]);
-                if (sub == null)
-                {
-                    trace ("sub failed object id: " + array[i]);
-                    continue;
-                }
-                for (sprite in (container == null ? 
-                create(sub,tx + data.slotPos[i - 1].x,ty - data.slotPos[i - 1].y,sub.vertSlotRot * 365) : 
-                create(sub,data.slotPos[i - 1].x,data.slotPos[i - 1].y,sub.vertSlotRot * 365)))
-                {
-                    sprites.insert(data.slotParent[i - 1],sprite);
-                }
+                id = conInt++;
             }
+            if (data.slotPos[id] == null) continue;
+            for (sprite in create(sub,
+            tx + data.slotPos[id].x + 0,
+            ty - data.slotPos[id].y + 0,
+            sub.vertSlotRot * 365 + (data.slotVert[id] ? 1 : 0) * 90))
+            {
+                sprites.insert(data.slotParent[id],sprite);
+            }
+            if (set) data = sub;
         }
         //fill container if present
         if (container != null)
@@ -209,7 +222,20 @@ class Objects extends TileDisplay
                     sprite.visible = false;
                 }
             }
-            sprites.push(sprite);
+            //sprites.push(sprite);
+            sprites.unshift(sprite);
+        }
+        //rotation change
+        if (rotation > 0)
+        {
+            for (i in 0...sprites.length)
+            {
+                sprite = sprites[i];
+                sprite.matrix.translate(-x,-y);
+                sprite.matrix.rotate((rotation) * (Math.PI/180));
+                sprite.matrix.translate(x,y);
+                sprite.rotation += rotation;
+            }
         }
         return sprites;
     }
