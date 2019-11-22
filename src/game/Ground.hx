@@ -55,7 +55,7 @@ class Ground extends Shape
     {
         for (i in 0...Std.int(transforms.length))
         {
-            if (transforms[i * 2] == x * Static.GRID + 32 && transforms[i * 2 + 1] == (Static.tileHeight - y) * Static.GRID + 32)
+            if (transforms[i * 2] == x * Static.GRID + 32 * mu && transforms[i * 2 + 1] == (Static.tileHeight - y) * Static.GRID + 32 * mu)
             {
                 indices.removeAt(i);
                 transforms.removeAt(i * 2);
@@ -64,6 +64,7 @@ class Ground extends Shape
             }
         }
     }
+    var mu:Float = 2;
     public function add(id:Int,x:Int,y:Int,cornerCheck:Bool=false)
     {
         if (simple)
@@ -74,8 +75,8 @@ class Ground extends Shape
         }
         // slight offset to compensate for tile overlaps and
         // make biome tiles more centered on world tiles
-        transforms.push(x * Static.GRID + 32);
-        transforms.push((Static.tileHeight - y) * Static.GRID + 32);
+        transforms.push(x * Static.GRID + 32 * mu);
+        transforms.push((Static.tileHeight - y) * Static.GRID + 32 * mu);
         //corner
         /*if (cornerCheck)
         {

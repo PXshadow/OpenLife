@@ -6,6 +6,7 @@ import console.Program;
 #end
 import data.GameData;
 #if openfl
+import openfl.events.Event;
 import motion.easing.Sine;
 import openfl.geom.Point;
 import openfl.display.TileContainer;
@@ -36,7 +37,7 @@ class Player #if openfl extends TileContainer #end
     public var _sprites:Array<Tile> = [];
     #end
     public var instance:PlayerInstance;
-    var clothingInt:Array<Int> = [];
+    var clothingInt:Array<Int> = [0,0,0,0,0];
     //pathing
     public var lastMove:Int = 1;
     public var moveTimer:Timer;
@@ -108,9 +109,9 @@ class Player #if openfl extends TileContainer #end
         //use another move
         if(moves.length > 0 && !moving)
         {
-            var point = moves.pop();
+            point = moves.pop();
             moving = true;
-            var time = Std.int(Static.GRID/(Static.GRID * (instance.move_speed) * computePathSpeedMod()) * 60 * multi);
+            time = Std.int(Static.GRID/(Static.GRID * (instance.move_speed) * computePathSpeedMod()) * 60 * multi);
             #if !openfl
             #if (target.threaded)
             sys.thread.Thread.create(() -> {
@@ -140,8 +141,10 @@ class Player #if openfl extends TileContainer #end
             }
             //animation
             Main.animations.play(instance.po_id,2,sprites(),0,Static.tileHeight);
+            Main.objects.addEventListener(Event.ENTER_FRAME,update);
+            frames = time;
             //move
-            Actuate.tween(this,time/60,{x:(ix + point.x) * Static.GRID,y:(Static.tileHeight - (iy + point.y)) * Static.GRID}).onComplete(function(_)
+            /*Actuate.tween(this,time/60,{x:(ix + point.x) * Static.GRID,y:(Static.tileHeight - (iy + point.y)) * Static.GRID}).onComplete(function(_)
             {
                 ix += point.x;
                 iy += point.y;
@@ -152,7 +155,7 @@ class Player #if openfl extends TileContainer #end
                 }else{
                     motion();
                 }
-            }).ease(Linear.easeNone);
+            }).ease(Linear.easeNone);*/
             #end
         }else{
             #if openfl
@@ -166,6 +169,30 @@ class Player #if openfl extends TileContainer #end
                 Main.animations.clear(sprites());
             }
             #end
+        }
+    }
+    var frames:Int = 0;
+    var time:Int = 0;
+    var point:Pos;
+    private function update(_)
+    {
+        if (frames > 0)
+        {
+            x += (point.x * Static.GRID)/time;
+            y += -(point.y * Static.GRID)/time;
+            frames--;
+        }else{
+            //finish movement
+            Main.objects.removeEventListener(Event.ENTER_FRAME,update);
+            ix += point.x;
+            iy += point.y;
+            moving = false;
+            if (goal)
+            {
+                path();
+            }else{
+                motion();
+            }
         }
     }
     public function step(mx:Int,my:Int):Bool
@@ -287,6 +314,7 @@ class Player #if openfl extends TileContainer #end
         #end
         moving = false;
         #if openfl
+        Main.animations.clear(sprites());
         Actuate.pause(this);
         //local position
         x = instance.x * Static.GRID;
@@ -455,7 +483,8 @@ class Player #if openfl extends TileContainer #end
         {
             for (i in 0...numTiles) _sprites.push(getTileAt(i));
             _sprites.remove(heldObject);
-            if (clothing != null) for (array in clothing) for (cloths in array) _sprites.remove(cloths);
+            trace("clothing " + clothing);
+            if (clothing != null) for (array in clothing) if (array != null) for (cloths in array) _sprites.remove(cloths);
         }
         return _sprites;
     }

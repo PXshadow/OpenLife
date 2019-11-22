@@ -3,7 +3,7 @@
 	
 	<meta title="OpenLife" package="com.project.OpenLife" version="1.0.0" company="" />
 	<app main="Main" path="bin" file="OpenLife" />
-	<window width="1280" height="720" fps="1" vsync="false" antialiasing="0"/>
+	<window width="1280" height="720" fps="1" vsync="true" antialiasing="0"/>
 	<source path="src" />
 	<haxelib name="format"/>
 	<haxelib name="openfl" />
@@ -17,6 +17,12 @@
 	<haxedef name="HXCPP_STACK_TRACE"/>
 	<!--<haxedef name="HXCPP_PROFILER"/>-->
 	</section>
+
+	<haxedef name="no_traces" unless="debug"/>
+
+	<haxedef name="HXCPP_GC_GENERATIONAL"/>
+	<!--<haxedef name="HXCPP_GC_MOVING"/>-->
+	<!--<haxedef name="utf16"/>-->
 
 	<haxedef name="no-deprecation-warnings"/>
 	<haxedef name="openfl_power_of_two"/>

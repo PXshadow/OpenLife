@@ -473,18 +473,18 @@ class Main #if openfl extends Sprite #end
             program.goal.y = selectY;
             @:privateAccess program.path(false);
         }else{
-            if (Bind.playerKill.bool) 
+            /*if (Bind.playerKill.bool) 
             {
                 trace("kill");
                 program.kill(selectX,selectY);
-            }else{
+            }else{*/
                 if (player.instance.age < 3 && player.held)
                 {
                     program.jump();
                 }
                 //use action if within range
                 program.use(selectX,selectY);
-            }
+            //}
         }
     }
     private function mouseUp(_)
@@ -513,25 +513,34 @@ class Main #if openfl extends Sprite #end
     }
     var offsetX:Int = 0;
     var offsetY:Int = 0;
+    var clearRender:Bool = false;
     public function render(cx:Int,cy:Int) 
     {
         //remove out of area
-        for (chunk in data.map.chunks)
+        /*if (!clearRender)
         {
-            if (Math.abs(chunk.x + chunk.width/2 - cx) > 21 || Math.abs(chunk.y + chunk.height/2 - cy) > 21)
+            clearRender = true;
+            Timer.delay(function()
             {
-                for (j in chunk.y...chunk.y + chunk.height)
+                for (chunk in data.map.chunks)
                 {
-                    for (i in chunk.x...chunk.x + chunk.width)
+                    if (Math.abs(chunk.x + chunk.width/2 - cx) > 21 || Math.abs(chunk.y + chunk.height/2 - cy) > 21)
                     {
-                        objects.remove(i,j);
-                        objects.remove(i,j,true);
-                        ground.remove(i,j);
+                        for (j in chunk.y...chunk.y + chunk.height)
+                        {
+                            for (i in chunk.x...chunk.x + chunk.width)
+                            {
+                                objects.remove(i,j);
+                                objects.remove(i,j,true);
+                                ground.remove(i,j);
+                            }
+                        }
+                        data.map.chunks.remove(chunk);
                     }
                 }
-                data.map.chunks.remove(chunk);
-            }
-        }
+                clearRender = false;
+            },800);
+        }*/
         //new
         for (j in mapInstance.y...mapInstance.y + mapInstance.height)
         {

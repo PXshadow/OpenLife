@@ -1,2 +1,3 @@
 set.hxml
+-D jvm
 -java bin/java
