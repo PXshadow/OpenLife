@@ -425,6 +425,7 @@ class Player #if openfl extends TileContainer #end
             if (instance.o_id.length == 1 && instance.o_id[0] < 0) Main.objects.group.addTile(heldObject);
             //change
             oid = instance.o_id;
+            trace("oid " + oid);
             removeTile(heldObject);
             if (oid.length == 0 || oid[0] == 0) return;
             //add
@@ -454,7 +455,7 @@ class Player #if openfl extends TileContainer #end
         {
             for (i in 0...numTiles) _sprites.push(getTileAt(i));
             _sprites.remove(heldObject);
-            for (array in clothing) for (cloths in array) _sprites.remove(cloths);
+            if (clothing != null) for (array in clothing) for (cloths in array) _sprites.remove(cloths);
         }
         return _sprites;
     }

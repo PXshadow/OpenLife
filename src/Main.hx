@@ -153,12 +153,12 @@ class Main #if openfl extends Sprite #end
             player.cloths();
         },1000);
         player.x = 0;
-        player.y = 0;*/
+        player.y = 0;
         //-31,-560,-233
         //[292,-233,-233,-233]
-        //objects.add([483,292,-233,-233],2,Static.tileHeight - 2);
-        //gameBool = true;
-        //resize(null);
+        objects.add([483,292,-560,-560,-560],0,Static.tileHeight - 0);
+        gameBool = true;
+        resize(null);*/
         connect();
         //trace("group " + objects.group.x + " " + objects.group.y + " main " + objects.x + " " + objects.y);
     }
@@ -442,12 +442,12 @@ class Main #if openfl extends Sprite #end
             program.use(selectX,selectY);
             player.hold();
         }
-        if (Bind.playerKill.bool)
+        /*if (Bind.playerKill.bool)
         {
             trace("play animation");
             animations.play(player.instance.po_id,2,player.sprites(),0,Static.tileHeight,player.clothing);
             //new data.AnimationPlayer(player.instance.po_id,2,player,player.sprites(),0,Static.tileHeight);
-        }
+        }*/
     }
     private function keyUp(e:KeyboardEvent)
     {

@@ -140,6 +140,8 @@ class Objects extends TileDisplay
             ty = 0;
         }
         sprites = create(data,tx + 0,ty - 0);
+        //age system
+        if (container != null) visibleSprites(array[0],sprites,20);
         if (sprites.length == 0) trace(data.id);
         //conainted
         var id:Int = 0;
@@ -175,11 +177,9 @@ class Objects extends TileDisplay
         if (container != null)
         {
             container.addTiles(sprites);
-            //age system
-            visibleSprites(array[0],sprites,20);
         }else{
-            //group.addTiles(sprites);
-            for (sprite in sprites) group.addTileAt(sprite,0);
+            group.addTiles(sprites);
+            //for (sprite in sprites) group.addTileAt(sprite,0);
             //data set
             if (data.floor)
             {
@@ -222,8 +222,8 @@ class Objects extends TileDisplay
                     sprite.visible = false;
                 }
             }
-            //sprites.push(sprite);
-            sprites.unshift(sprite);
+            sprites.push(sprite);
+            //sprites.unshift(sprite);
         }
         //rotation change
         if (rotation > 0)
