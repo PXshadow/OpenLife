@@ -1,9 +1,25 @@
 -things needed before alpha
-move cloths during animation
 containers
 backpack selection
+vertical valley lines for well
+get Tea to be able to feed me
+map change issue for example: cut burduck
+player baby holding
+baby pick up
+add crash dumper
+moflin render properly
+turkey feathers wrong
+domestic pigs and running disks
+agressive potato tiles
+adze being switched into other objects
+mosiquito render properly
+
+proper container slot position
 proper object held position
+
 sounds
+
+-thanks Tea for the help
 
 
 convert object arrays both id and sprites to vectors (future)

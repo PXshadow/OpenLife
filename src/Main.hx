@@ -276,6 +276,11 @@ class Main #if openfl extends Sprite #end
     }
     private function login()
     {
+        #if hashlink
+        game();
+        connect();
+        return;
+        #end
         keyText = new Text("Key",LEFT,24,0xFFFFFF);
         keyText.y = 50;
         emailText = new Text("Email",LEFT,24,0xFFFFFF);
@@ -435,10 +440,12 @@ class Main #if openfl extends Sprite #end
                     objects.group.x = Math.round(lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.20));
                     objects.group.y = Math.round(lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.20));
                 }else{
-                    //if (player.parent != null) try "player.parent null";
-                    //trace("player parent " + player.parent + " Player " + player);
-                    //objects.group.x = Math.round(lerp(objects.group.x,-player.parent.x * objects.scale + objects.width/2 ,0.20));
-                    //objects.group.y = Math.round(lerp(objects.group.y,-player.parent.y * objects.scale + objects.height/2 ,0.20));
+                    if (player.parent != null)
+                    {
+                        //trace("player parent " + player.parent + " Player " + player);
+                        objects.group.x = Math.round(lerp(objects.group.x,-player.parent.x * objects.scale + objects.width/2 ,0.20));
+                        objects.group.y = Math.round(lerp(objects.group.y,-player.parent.y * objects.scale + objects.height/2 ,0.20));
+                    }
                     
                 }
             }
@@ -543,10 +550,10 @@ class Main #if openfl extends Sprite #end
             //program.task("sharpstone");
             animations.clear(player.sprites());
         }
-        if (Bind.playerDrop.bool)
+        /*if (Bind.playerDrop.bool)
         {
             program.drop(selectX,selectY);
-        }
+        }*/
         if (Bind.playerUse.bool)
         {
             program.use(selectX,selectY);
@@ -572,10 +579,6 @@ class Main #if openfl extends Sprite #end
             mouseRightDown(null);
             return;
         }
-        if (Bind.playerKill.bool)
-        {
-            program.remove(selectX,selectY,-1);
-        }
         if (Bind.playerMove.bool)
         {
             program.goal = new Pos();
@@ -583,18 +586,19 @@ class Main #if openfl extends Sprite #end
             program.goal.y = selectY;
             @:privateAccess program.path(false);
         }else{
-            /*if (Bind.playerKill.bool) 
+            if (Bind.playerKill.bool) 
             {
                 trace("kill");
-                program.kill(selectX,selectY);
-            }else{*/
+                program.remove(selectX,selectY,-1);
+                //program.kill(selectX,selectY);
+            }else{
                 if (player.instance.age < 3 && player.held)
                 {
                     program.jump();
                 }
                 //use action if within range
                 program.use(selectX,selectY);
-            //}
+            }
         }
     }
     private function mouseUp(_)
@@ -996,8 +1000,8 @@ class Main #if openfl extends Sprite #end
                 #if openfl
                 disconnect();
                 #end
-                Sys.sleep(0.6);
-                connect();
+                //Sys.sleep(0.6);
+                //connect();
             }
             case DYING:
             //p_id isSick isSick is optional 1 flag to indicate that player is sick (client shouldn't show blood UI overlay for sick players)

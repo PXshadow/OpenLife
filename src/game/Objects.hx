@@ -163,7 +163,7 @@ class Objects extends TileDisplay
                 sub = Main.data.objectMap.get(array[i] * -1);
                 id = conInt++;
             }
-            if (data.slotPos[id] == null) continue;
+            if (data.slotPos[id] == null || data.slotVert == null || sub == null || data.slotPos == null) continue;
             for (sprite in create(sub,
             tx + data.slotPos[id].x + 0,
             ty - data.slotPos[id].y + 0,
@@ -248,7 +248,9 @@ class Objects extends TileDisplay
     }
     public function setSprite(sprite:Tile,data:SpriteData,x:Float,y:Float)
     {
+        if (data == null) return;
         var r = tileset.getRect(sprite.id);
+        if (r == null) return;
         //center
         sprite.originX = r.width/2 + data.inCenterXOffset;
         sprite.originY = r.height/2 + data.inCenterYOffset;

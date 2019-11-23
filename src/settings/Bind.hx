@@ -7,13 +7,13 @@ import openfl.ui.Keyboard;
 class Bind
 {
 
-    public static var playerUp:Action = new Action([Keyboard.W,Keyboard.UP]);
+    public static var playerUp:Action = new Action([Keyboard.W,Keyboard.UP,Keyboard.Z]);
     public static var playerDown:Action = new Action([Keyboard.S,Keyboard.DOWN]);
-    public static var playerLeft:Action = new Action([Keyboard.A,Keyboard.LEFT]);
+    public static var playerLeft:Action = new Action([Keyboard.A,Keyboard.LEFT,Keyboard.Q]);
     public static var playerRight:Action = new Action([Keyboard.D,Keyboard.RIGHT]);
 
     public static var playerUse:Action = new Action([Keyboard.G]);
-    public static var playerDrop:Action = new Action([Keyboard.Q]);
+    //public static var playerDrop:Action = new Action([Keyboard.Q]);
 
     public static var playerSelf:Action = new Action([Keyboard.SPACE]);
     public static var playerKill:Action = new Action([Keyboard.SHIFT]);
@@ -48,7 +48,7 @@ class Bind
         playerRight.set(e,bool);
 
         playerUse.set(e,bool);
-        playerDrop.set(e,bool);
+        //playerDrop.set(e,bool);
 
         playerSelf.set(e,bool);
         playerKill.set(e,bool);

@@ -162,7 +162,7 @@ class Player #if openfl extends TileContainer #end
             //buffer
             if (Main.xs != 0 || Main.ys != 0) 
             {
-                program.clean();
+                if (program != null) program.clean();
                 step(Main.xs,Main.ys);
             }else{
                 //no buffer
