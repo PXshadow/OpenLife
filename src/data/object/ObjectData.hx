@@ -8,6 +8,10 @@ import data.sound.SoundData;
 class ObjectData extends LineReader
 {
     /**
+     * nextObjectNumber int to add generated objects in
+     */
+    public static var nextObjectNumberInt:Int = 0;
+    /**
      * Max clothing pieces
      */
     public static inline var CLOTHING_PIECES:Int = 6;
@@ -236,11 +240,11 @@ class ObjectData extends LineReader
     /**
      * Vanish index array
      */
-    public var useVanishIndex:Array<Int> = [];
+    public var useVanishIndex:Array<Int>;
     /**
      * Appear index array
      */
-    public var useAppearIndex:Array<Int> = [];
+    public var useAppearIndex:Array<Int>;
     // -1 if not set
     // used to avoid recomputing height repeatedly at client/server runtime
 
@@ -292,12 +296,25 @@ class ObjectData extends LineReader
     public var sounds:Vector<SoundData>;//=-1:0.250000,-1:0.250000,-1:0.250000,-1:1.000000
     #end
     /**
+     * dummy bool for generated object
+     */
+    public var dummy:Bool = false;
+    /**
+     * dummy parent id
+     */
+    public var dummyParent:Int = 0;
+    /**
+     * dummyIndex, the amount of uses
+     */
+    public var dummyIndex:Int = 0;
+    /**
      * New Object Data
      * @param i id
      */
     public function new(i:Int=0)
     {
         super();
+        if (i <= 0) return;
         try {
             readLines(File.getContent(Static.dir + "objects/" + i + ".txt"));
         }catch(e:Dynamic)
@@ -500,16 +517,29 @@ class ObjectData extends LineReader
         //arrays
         backFootIndex = getInt();
         frontFootIndex = getInt();
-        
+        #end
         if(next < line.length)
         {
             numUses = getInt();
             if (next < line.length) useVanishIndex = getIntArray();
             if (next < line.length) useAppearIndex = getIntArray();
             if (next < line.length) cacheHeight = getInt();
-
+            //set num uses everything else should be set for cloning
+            if (numUses > 1)
+            {
+                var dummyObject:ObjectData;
+                for (j in 0...numUses - 1) 
+                {
+                    dummyObject = clone();
+                    dummyObject.numUses = 0;
+                    dummyObject.dummy = true;
+                    dummyObject.dummyParent = id;
+                    dummyObject.dummyIndex = j + 1;
+                    Main.data.objectMap.set(++nextObjectNumberInt,dummyObject);
+                }
+            }
         }
-        #end
+        Main.data.objectMap.set(id,this);
     }
     public function getSpriteData()
     {
@@ -547,6 +577,13 @@ class ObjectData extends LineReader
                 }              
             }
         }
+    }
+    /**
+     * clone data
+     */
+    public function clone():ObjectData
+    {
+        return Reflect.copy(this);
     }
     /**
      * Toolset record set

@@ -11,8 +11,8 @@ class Bind
     public static var playerDown:Action = new Action([Keyboard.S,Keyboard.DOWN]);
     public static var playerLeft:Action = new Action([Keyboard.A,Keyboard.LEFT,Keyboard.Q]);
     public static var playerRight:Action = new Action([Keyboard.D,Keyboard.RIGHT]);
-
-    public static var playerUse:Action = new Action([Keyboard.G]);
+    public static var playerBackpack:Action = new Action([Keyboard.I]);
+    
     //public static var playerDrop:Action = new Action([Keyboard.Q]);
 
     public static var playerSelf:Action = new Action([Keyboard.SPACE]);

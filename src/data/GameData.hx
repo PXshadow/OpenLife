@@ -119,24 +119,7 @@ class GameData
         });
         trace("sort " + UnitTest.stamp());
         var data:ObjectData = null;
-        var nextObjectNumberInt:Int = nextObjectNumber;
-        var gen:Float = 0;
-        var alt:Float = 0;
-        var set:Float = 0;
-        for (i in list)
-        {
-            UnitTest.inital();
-            data = new ObjectData(i);
-            gen += UnitTest.stamp();
-            //alternative set
-            if (data.numUses > 1) for (j in 0...data.numUses) 
-            {
-                objectAlt.set(++nextObjectNumberInt,i);
-            }
-            alt += UnitTest.stamp();
-            objectMap.set(data.id,data);
-            set += UnitTest.stamp();
-        }
-        trace("gen " + gen + " alt " + alt + " set " + set);
+        ObjectData.nextObjectNumberInt = nextObjectNumber;
+        for (i in list) data = new ObjectData(i);
     }
 }

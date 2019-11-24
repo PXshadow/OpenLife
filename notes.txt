@@ -1,5 +1,4 @@
 -things needed before alpha
-containers
 backpack selection
 vertical valley lines for well
 get Tea to be able to feed me
@@ -12,14 +11,31 @@ turkey feathers wrong
 domestic pigs and running disks
 agressive potato tiles
 adze being switched into other objects
+object sorting
 mosiquito render properly
+
+fix object generation system
 
 proper container slot position
 proper object held position
 
+hatchet does not render properly when held
+gap rendering issue
+
+tree grab log does not remove log from tree
+be able to click on objects and grab object
+
+improve pick up animation 
+
+
+-add hunger chimes
 sounds
 
 -thanks Tea for the help
+
+
+
+weather effects for diffrent biome
 
 
 convert object arrays both id and sprites to vectors (future)
