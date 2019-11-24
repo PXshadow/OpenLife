@@ -136,7 +136,7 @@ class Main #if openfl extends Sprite #end
         //complete
         #if openfl
         console.set("data",data);
-        login();
+        //login();
         //top layer
         var fps = new FPS();
         fps.textColor = 0xFF0000;//0xFFFFFF;
@@ -157,9 +157,11 @@ class Main #if openfl extends Sprite #end
             Sys.sleep(1/20);
         }
         #end
+        game();
         //trace("connect " + Main.client.ip + " email " + Main.client.login.email);
-        /*var instance = new PlayerInstance([]);
+        var instance = new PlayerInstance([]);
         instance.po_id = 19;
+        instance.o_id = [292,-31,-31,-31];
         objects.addPlayer(instance);
         player = objects.player;
         Timer.delay(function()
@@ -168,13 +170,14 @@ class Main #if openfl extends Sprite #end
             player.instance.clothing_set = "2940;2922;2886;2886;2937;198";
             player.cloths();
         },1000);
-        player.x = 0;
+        player.x = -160;
         player.y = 0;
         //-31,-560,-233
-        //[292,-233,-233,-233]
-        objects.add([483,292,-560,-560,-560],0,Static.tileHeight - 0);
+        //[292,-233,-233,-233];
+        objects.add([/*531*/2174],0,Static.tileHeight);
+        //objects.add([483,292,-560,-560,-560],0,Static.tileHeight - 0);
         gameBool = true;
-        resize(null);*/
+        resize(null);
         //connect();
         //trace("group " + objects.group.x + " " + objects.group.y + " main " + objects.x + " " + objects.y);
     }
@@ -545,26 +548,8 @@ class Main #if openfl extends Sprite #end
         }
         if (Bind.search.bool)
         {
-            //program.task("berryfarm");
-            trace("sharpstone");
-            //program.task("sharpstone");
             animations.clear(player.sprites());
         }
-        /*if (Bind.playerDrop.bool)
-        {
-            program.drop(selectX,selectY);
-        }*/
-        if (Bind.playerUse.bool)
-        {
-            program.use(selectX,selectY);
-            player.hold();
-        }
-        /*if (Bind.playerKill.bool)
-        {
-            trace("play animation");
-            animations.play(player.instance.po_id,2,player.sprites(),0,Static.tileHeight,player.clothing);
-            //new data.AnimationPlayer(player.instance.po_id,2,player,player.sprites(),0,Static.tileHeight);
-        }*/
     }
     private function keyUp(e:KeyboardEvent)
     {

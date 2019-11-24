@@ -129,11 +129,6 @@ class MapData
                     array.push(Std.parseInt(s[k]) * -1);
                 }
             }
-            if (array.length == 1 && array[0] > Main.data.nextObjectNumber)
-            {
-                var alt = Main.data.objectAlt.get(array[0]);
-                if (array != null) return [alt];
-            }
             return array;
     }
 }

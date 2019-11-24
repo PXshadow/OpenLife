@@ -268,7 +268,7 @@ class Objects extends TileDisplay
         //rotation
         sprite.rotation = data.rot * 365;
         //flip
-        if (data.hFlip != 0) sprite.scaleX = data.hFlip;
+        if (data.hFlip != 0) sprite.scaleX = data.hFlip * -1;
     }
     public function clear()
     {

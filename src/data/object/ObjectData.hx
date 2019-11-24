@@ -8,10 +8,6 @@ import data.sound.SoundData;
 class ObjectData extends LineReader
 {
     /**
-     * nextObjectNumber int to add generated objects in
-     */
-    public static var nextObjectNumberInt:Int = 0;
-    /**
      * Max clothing pieces
      */
     public static inline var CLOTHING_PIECES:Int = 6;
@@ -332,7 +328,7 @@ class ObjectData extends LineReader
     /**
      * Read data to set
      */
-    public inline function read()
+    public /*inline*/ function read()
     {
         id = getInt();
         description = getString();
@@ -524,22 +520,7 @@ class ObjectData extends LineReader
             if (next < line.length) useVanishIndex = getIntArray();
             if (next < line.length) useAppearIndex = getIntArray();
             if (next < line.length) cacheHeight = getInt();
-            //set num uses everything else should be set for cloning
-            if (numUses > 1)
-            {
-                var dummyObject:ObjectData;
-                for (j in 0...numUses - 1) 
-                {
-                    dummyObject = clone();
-                    dummyObject.numUses = 0;
-                    dummyObject.dummy = true;
-                    dummyObject.dummyParent = id;
-                    dummyObject.dummyIndex = j + 1;
-                    Main.data.objectMap.set(++nextObjectNumberInt,dummyObject);
-                }
-            }
         }
-        Main.data.objectMap.set(id,this);
     }
     public function getSpriteData()
     {
@@ -583,7 +564,73 @@ class ObjectData extends LineReader
      */
     public function clone():ObjectData
     {
-        return Reflect.copy(this);
+        var object = new ObjectData();
+        object.id = id;
+        object.animation = animation;
+        object.apocalypseTrigger = apocalypseTrigger;
+        object.backFootIndex = backFootIndex;
+        object.blocksWalking = blocksWalking;
+        object.bodyIndex = bodyIndex;
+        object.cacheHeight = cacheHeight;
+        object.clothing = clothing;
+        object.clothingOffset = clothingOffset;
+        object.containSize = containSize;
+        object.containable = containable;
+        object.creationSoundForce = creationSoundForce;
+        object.creationSoundInitialOnly = creationSoundInitialOnly;
+        object.deadlyDistance = deadlyDistance;
+        object.deathMarker = deathMarker;
+        object.description = description;
+        object.drawBehindPlayer = drawBehindPlayer;
+        object.eyesIndex = eyesIndex;
+        object.eyesOffset = eyesOffset;
+        object.floor = floor;
+        object.floorHugging = floorHugging;
+        object.foodValue = foodValue;
+        object.frontFootIndex = frontFootIndex;
+        object.headIndex = headIndex;
+        object.heatValue = heatValue;
+        object.heldInHand = heldInHand;
+        object.heldOffset = heldOffset;
+        object.homeMarker = homeMarker;
+        object.id = id;
+        object.leftBlockingRadius = leftBlockingRadius;
+        object.male = male;
+        object.mapChance = mapChance;
+        object.minPickupAge = minPickupAge;
+        object.monumentCall = monumentCall;
+        object.monumentDone = monumentCall;
+        object.monumentStep = monumentStep;
+        object.mouthIndex = mouthIndex;
+        object.neverDrop = neverDrop;
+        object.noFlip = noFlip;
+        object.noSpawn = noSpawn;
+        object.numSlots = numSlots;
+        object.numSprites = numSprites;
+        object.numUses = numUses;
+        object.permanent = permanent;
+        object.person = person;
+        object.rValue = rValue;
+        object.rideable = rideable;
+        object.rightBlockingRadius = rightBlockingRadius;
+        object.sideAcess = sideAcess;
+        object.slotParent = slotParent;
+        object.slotPos = slotPos;
+        object.slotSize = slotSize;
+        object.slotVert = slotVert;
+        object.slotsLocked = slotsLocked;
+        object.sounds = sounds;
+        object.speedMult = speedMult;
+        object.spriteArray = spriteArray;
+        object.timeStretch = timeStretch;
+        object.toolLearned = toolLearned;
+        object.toolSetIndex = toolSetIndex;
+        object.useAppearIndex = useAppearIndex;
+        object.useChance = useChance;
+        object.useDistance = useDistance;
+        object.useVanishIndex = useVanishIndex;
+        object.vertSlotRot = vertSlotRot;
+        return object;
     }
     /**
      * Toolset record set

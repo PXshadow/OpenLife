@@ -47,7 +47,7 @@ class Bind
         playerLeft.set(e,bool);
         playerRight.set(e,bool);
 
-        playerUse.set(e,bool);
+        //playerUse.set(e,bool);
         //playerDrop.set(e,bool);
 
         playerSelf.set(e,bool);

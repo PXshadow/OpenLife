@@ -47,11 +47,6 @@ class GameData
      * Map of objects, id to data
      */
     public var objectMap:Map<Int,ObjectData> = new Map<Int,ObjectData>();
-    //object alternative ids to refrence same object
-    /**
-     * Objects past nextObjectNumber, numUses type objects
-     */
-    public var objectAlt:Map<Int,Int> = new Map<Int,Int>();
     /**
      * total non generated objects
      */
@@ -118,8 +113,27 @@ class GameData
             return -1;
         });
         trace("sort " + UnitTest.stamp());
-        var data:ObjectData = null;
-        ObjectData.nextObjectNumberInt = nextObjectNumber;
-        for (i in list) data = new ObjectData(i);
+        var nextObjectNumberInt = nextObjectNumber;
+        var data:ObjectData;
+        var dummyObject:ObjectData;
+        for (i in list) 
+        {
+            data = new ObjectData(i);
+            //set num uses everything else should be set for cloning
+            if (data.numUses > 1)
+            {
+                for (j in 0...data.numUses - 1) 
+                {
+                    dummyObject = data.clone();
+                    dummyObject.id = ++nextObjectNumberInt;
+                    dummyObject.numUses = 0;
+                    dummyObject.dummy = true;
+                    dummyObject.dummyParent = data.id;
+                    dummyObject.dummyIndex = j + 1;
+                    objectMap.set(dummyObject.id,dummyObject);
+                }
+            }
+            objectMap.set(data.id,data);
+        }
     }
 }
