@@ -1,16 +1,14 @@
 -things needed before alpha
+map change issue for example: cut burduck
+baby pick up
+feed players
+
+
 backpack selection
 vertical valley lines for well
-get Tea to be able to feed me
-map change issue for example: cut burduck
 player baby holding
-baby pick up
-add crash dumper
-moflin render properly
-turkey feathers wrong
-domestic pigs and running disks
-agressive potato tiles
-adze being switched into other objects
+
+
 object sorting
 mosiquito render properly
 
@@ -107,6 +105,18 @@ places where a file is read
 ObjectData
 TgaData
 TileDisplay
+
+
+by default searched items
+
+natural spring
+tarry spot
+iron vein
+
+car
+engine
+plane
+
 
 
 butler for auto updating

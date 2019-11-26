@@ -48,7 +48,7 @@ class ObjectData extends LineReader
      */
     public var minPickupAge:Int = 0;
     /**
-     * Is held in hand boolean
+     * Is held in hand boolean, hide closest arm
      */
     public var heldInHand:Bool = false;
     /**

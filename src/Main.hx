@@ -164,17 +164,21 @@ class Main #if openfl extends Sprite #end
         instance.o_id = [292,-31,-31,-31];
         objects.addPlayer(instance);
         player = objects.player;
-        Timer.delay(function()
+        /*Timer.delay(function()
         {
             //1376,2922
             player.instance.clothing_set = "2940;2922;2886;2886;2937;198";
-            player.cloths();
-        },1000);
+            player.set(player.instance);
+        },1000);*/
         player.x = -160;
         player.y = 0;
+        console.set("player",player);
         //-31,-560,-233
         //[292,-233,-233,-233];
-        objects.add([/*531*/2174],0,Static.tileHeight);
+        //objects.add([/*531*/2174],0,Static.tileHeight);
+        objects.add([2157],0,Static.tileHeight);
+        //trace("sprites " + objects.sprites);
+        animations.play(2157,0,objects.sprites,0,Static.tileHeight);
         //objects.add([483,292,-560,-560,-560],0,Static.tileHeight - 0);
         gameBool = true;
         resize(null);
@@ -508,6 +512,18 @@ class Main #if openfl extends Sprite #end
             file.write(bmd.encode(bmd.rect,new openfl.display.JPEGEncoderOptions(80)));
             file.close();
             */
+            return;
+        }
+        if (e.keyCode == Keyboard.NUMBER_9)
+        {
+            player.instance.age--;
+            player.set(player.instance);
+            return;
+        }
+        if (e.keyCode == Keyboard.NUMBER_0)
+        {
+            player.instance.age++;
+            player.set(player.instance);
             return;
         }
         Bind.keys(e,true);

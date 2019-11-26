@@ -44,6 +44,7 @@ class AnimationPlayer
             if (obj.id == id && Static.arrayEqual(obj.sprites,sprites)) return;
         }
         var data = new AnimationChannel();
+        data.cloths = cloths;
         data.id = id;
         data.x = x * Static.GRID;
         data.y = (Static.tileHeight - y) * Static.GRID;
@@ -75,7 +76,7 @@ class AnimationPlayer
         {
             sprite = sprites[i];
                 //set pos
-            Main.objects.setSprite(sprite,objectData.spriteArray[i],data.x,data.y);
+            //Main.objects.setSprite(sprite,objectData.spriteArray[i],data.x,data.y);
             sprite.x += param[i].offset.x;
             sprite.y += -param[i].offset.y;
             p = objectData.spriteArray[i].parent;
@@ -210,11 +211,14 @@ class AnimationPlayer
         active.remove(data);
         //Actuate.pauseAll();
         var objectData = Main.data.objectMap.get(data.id);
+        //reset player sprites
         for (i in 0...data.sprites.length) 
         {
             Actuate.stop(data.sprites[i],null,false,false);
             Main.objects.setSprite(data.sprites[i],objectData.spriteArray[i],data.x,data.y);
         }
+        //reset clothing
+        
         data.timer.stop();
         data = null;
     }

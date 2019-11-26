@@ -86,7 +86,7 @@ class Objects extends TileDisplay
             {
                 sprites[i].visible = true;
                 if (data.useVanishIndex[i] == -1 && data.numUses > 1) sprites[i].visible = false;
-                if ((data.spriteArray[i].ageRange[0] > -1 || data.spriteArray[i].ageRange[1] > -1) && (data.spriteArray[i].ageRange[0] > age || data.spriteArray[i].ageRange[1] < age)) sprites[i].visible = false;
+                if ((data.spriteArray[i].ageRange[0] > -1 || data.spriteArray[i].ageRange[1] > -1) && (data.spriteArray[i].ageRange[0] >= age || data.spriteArray[i].ageRange[1] < age)) sprites[i].visible = false;
             }
         }
     }
@@ -133,7 +133,7 @@ class Objects extends TileDisplay
         var tx:Float = x * Static.GRID;
         var ty:Float = (Static.tileHeight - y) * Static.GRID;
         //create
-        var sprites:Array<Tile> = [];
+        //var sprites:Array<Tile> = [];
         if (container != null)
         {
             tx = 0;
@@ -269,6 +269,16 @@ class Objects extends TileDisplay
         sprite.rotation = data.rot * 365;
         //flip
         if (data.hFlip != 0) sprite.scaleX = data.hFlip * -1;
+    }
+    /**
+     * Set this up to postion clothing
+     * @param sprite 
+     * @param data 
+     * @param parent 
+     */
+    public function setClothing(sprite:Tile,data:SpriteData,parent:Tile)
+    {
+
     }
     public function clear()
     {

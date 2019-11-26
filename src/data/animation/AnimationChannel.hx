@@ -1,4 +1,5 @@
 package data.animation;
+import haxe.ds.Vector;
 #if openfl
 import haxe.Timer;
 import openfl.display.Tile;
@@ -12,6 +13,10 @@ class AnimationChannel
      * Sprites of animated object
      */
     public var sprites:Array<Tile> = [];
+    /**
+     * clothing of animated object
+     */
+     public var cloths:Vector<Array<Tile>> = null;
     /**
      * Tile X
      */
