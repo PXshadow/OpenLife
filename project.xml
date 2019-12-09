@@ -3,7 +3,7 @@
 	
 	<meta title="OpenLife" package="com.project.OpenLife" version="1.0.0" company="" />
 	<app main="Main" path="bin" file="OpenLife" />
-	<window width="1280" height="720" fps="60" vsync="true" antialiasing="0" background="#FFFFFF"/>
+	<window width="1280" height="720" fps="60" vsync="true" antialiasing="0" background="#000000"/>
 	<source path="src" />
 	<haxelib name="format"/>
 	<haxelib name="openfl" />

@@ -157,33 +157,23 @@ class Main #if openfl extends Sprite #end
             Sys.sleep(1/20);
         }
         #end
-        game();
+        login();
+        /*game();
         //trace("connect " + Main.client.ip + " email " + Main.client.login.email);
         var instance = new PlayerInstance([]);
         instance.po_id = 19;
         instance.o_id = [292,-31,-31,-31];
         objects.addPlayer(instance);
         player = objects.player;
-        /*Timer.delay(function()
-        {
-            //1376,2922
-            player.instance.clothing_set = "2940;2922;2886;2886;2937;198";
-            player.set(player.instance);
-        },1000);*/
         player.x = -160;
         player.y = 0;
         console.set("player",player);
-        //-31,-560,-233
-        //[292,-233,-233,-233];
-        //objects.add([/*531*/2174],0,Static.tileHeight);
         objects.add([2157],0,Static.tileHeight);
-        //trace("sprites " + objects.sprites);
         animations.play(2157,0,objects.sprites,0,Static.tileHeight);
-        //objects.add([483,292,-560,-560,-560],0,Static.tileHeight - 0);
         gameBool = true;
-        resize(null);
+        */
         //connect();
-        //trace("group " + objects.group.x + " " + objects.group.y + " main " + objects.x + " " + objects.y);
+        resize(null);
     }
     public function dir()
     {
