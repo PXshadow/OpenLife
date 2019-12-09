@@ -10,7 +10,7 @@ class Text extends TextField
     @:isVar public var align(null,set):TextFormatAlign;
     @:isVar public var color(null,set):UInt;
     @:isVar public var size(null,set):Int;
-    @:isVar public var font(null,set):String = "_sans";
+    @:isVar public var font(null,set):String = openfl.Assets.getFont("assets/OpenSans-Regular.ttf").fontName;
     @:isVar public var spacing(null,set):Int = 0;
     @:isVar public var leftMargin(null,set):Int = 0;
     @:isVar public var rightMargin(null,set):Int = 0;

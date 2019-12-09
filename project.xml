@@ -28,4 +28,5 @@
 	<haxedef name="openfl_power_of_two"/>
 	<haxedef name="canvas" if="html5"/>
 	<icon path="icon.svg"/>
+	<assets path="assets" embed="true"/>
 </project>
