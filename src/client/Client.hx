@@ -18,7 +18,6 @@ class Client
     #end
     public var tag:ClientTag;
     //interact to be able to login to game
-    public var login:Login;
     var data:String = "";
     var dataCompress:Bytes;
     var aliveTimer:Timer;
@@ -35,6 +34,17 @@ class Client
     //ping
     public var ping:Float = 0;
     var pingInt:Int = 0;
+    //login info
+    public var email:String = "";
+    public var challenge:String = "";
+    public var key:String = "";
+    public var twin:String = "coding";
+    public var tutorial:Bool = false;
+    public var version:Int = 0;
+    //functions
+    public var accept:Void->Void;
+    public var reject:Void->Void;
+
     public function new()
     {
 
@@ -82,8 +92,8 @@ class Client
             //login
             if(login != null)
             {
-                if (tag == ACCEPTED && login.accept != null) login.accept();
-                if (tag == REJECTED && login.reject != null) login.reject();
+                if (tag == ACCEPTED && accept != null) accept();
+                if (tag == REJECTED && reject != null) reject();
             }
             if (tag != FRAME && tag != HEAT_CHANGE) return;
         }
@@ -93,8 +103,8 @@ class Client
             //login
             if(login != null)
             {
-                if (tag == ACCEPTED && login.accept != null) login.accept();
-                if (tag == REJECTED && login.reject != null) login.reject();
+                if (tag == ACCEPTED && accept != null) accept();
+                if (tag == REJECTED && reject != null) reject();
             }
             data = "";
             return;
@@ -107,6 +117,47 @@ class Client
         send("KA 0 0");
         UnitTest.inital();
         send("PING 0 0 " + pingInt++);
+    }
+    public function login(data:String) 
+    {
+        //login process
+        switch(tag)
+        {
+            case SERVER_INFO:
+			switch(index)
+			{
+				case 0:
+				//current
+                trace("amount " + data);
+				case 1:
+				//challenge
+				challenge = data;
+				case 2: 
+				//version
+				version = Std.parseInt(data);
+                request();
+                tag = "";
+			}
+			index++;
+            default:
+        }
+    }
+    private function request()
+    {
+		key = StringTools.replace(key,"-","");
+        //login
+        var string = /*"client_openlife" +*/ email + " " +
+		new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f")
+		,Bytes.ofString(challenge,RawNative)).toHex() + " " +
+		new Hmac(SHA1).make(Bytes.ofString(key)
+		,Bytes.ofString(challenge)).toHex() +  " " +
+        //tutorial 1 = true 0 = false
+        (tutorial ? 1 : 0);
+        //twin
+        //login += " " + Sha1.make(Bytes.ofString(twin)).toHex() + " 1";
+
+        send("LOGIN " + string);
+		tag = "";
     }
     public function send(data:String)
     {

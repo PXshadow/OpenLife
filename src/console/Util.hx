@@ -3,6 +3,7 @@ import haxe.io.Path;
 import sys.FileSystem;
 import data.object.ObjectData;
 import sys.io.File;
+import game.Game;
 #if openfl
 import openfl.geom.ColorTransform;
 import openfl.display.Shader;
@@ -13,7 +14,7 @@ class Util
     //util for hscript
     public static function object(i:Int)
     {
-        Static.execute(Static.dir + "objects/" + i + ".txt");
+        Static.execute(Game.dir + "objects/" + i + ".txt");
     }
     #if openfl
     public static function shader(name:String):Shader

@@ -5,18 +5,13 @@ import sys.FileSystem;
 import sys.io.File;
 #end
 import haxe.Http;
+/**
+ * Static functions used across classes
+ */
 class Static 
 {
-    //dir
-    public static var dir:String = "";
-
     public static inline var GRID:Int = 128;
     public static inline var tileHeight:Int = 30;
-    //player constants
-    public static inline var babyHeadDownFactor:Float = 0.6;
-    public static inline var babyBodyDownFactor:Float = 0.75;
-    public static inline var oldHeadDownFactor:Float = 0.35;
-    public static inline var oldHeadForwardFactor:Float = 2;
     public static function main() {new Main();}
     public static function request(url:String,complete:String->Void)
     {
@@ -45,10 +40,5 @@ class Static
         if (a.length != b.length) return false;
         for (i in 1...a.length) if (a[i] != b[i]) return false;
         return true;
-    }
-    //get object list number
-    public static function number():Int
-    {
-        return Std.parseInt(File.getContent(Static.dir + "objects/nextObjectNumber.txt"));
     }
 }

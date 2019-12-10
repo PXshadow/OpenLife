@@ -1,4 +1,26 @@
+/*Game is a bindings class to hold the main functionality for the game.
+Game if on OpenFL will take (ground,objects,data,client,settings)
+Game if non OpenFL will only take (data,client,settings)
+
+Game will internally include if OpenFL
+-AnimationPlayer
+-MusicPlayer
+
+Game will have bindable functions for.
+-setPlayer
+-message
+Game will have these public functions.
+-clear
+-disconnect
+-connect*/
+
 Console, program, draw, Login are extensions
 
 
 Game will be an extended class and the rendering logic will all be extended, game will only hold data
+
+
+
+Main extends Game
+
+Animation and Sound player are extensions.

@@ -60,7 +60,7 @@ class Objects extends TileDisplay
     public function addPlayer(data:data.object.player.PlayerInstance)
     {
         if (data == null) return;
-        player = Main.data.playerMap.get(data.p_id);
+        player = Game.data.playerMap.get(data.p_id);
         if (player == null)
         {
             //new
@@ -71,7 +71,7 @@ class Objects extends TileDisplay
             group.addTile(player);
             player.set(data);
             player.force();
-            Main.data.playerMap.set(data.p_id,player); 
+            Game.data.playerMap.set(data.p_id,player); 
         }else{
             //exists
             player.set(data);
@@ -79,7 +79,7 @@ class Objects extends TileDisplay
     }
     public function visibleSprites(id:Int,sprites:Array<Tile>,age:Int=20)
     {
-        var data = Main.data.objectMap.get(id);
+        var data = Game.data.objectMap.get(id);
         if (data != null)
         {
             for (i in 0...sprites.length)
@@ -95,13 +95,13 @@ class Objects extends TileDisplay
         var tiles:Array<Tile> = null;
         if (floor)
         {
-            tiles = Main.data.tileData.floor.get(x,y);
-            Main.data.map.floor.set(x,y,0);
-            Main.data.tileData.floor.set(x,y,[]);
+            tiles = Game.data.tileData.floor.get(x,y);
+            Game.data.map.floor.set(x,y,0);
+            Game.data.tileData.floor.set(x,y,[]);
         }else{
-            tiles = Main.data.tileData.object.get(x,y);
-            Main.data.map.object.set(x,y,[]);
-            Main.data.tileData.object.set(x,y,[]);
+            tiles = Game.data.tileData.object.get(x,y);
+            Game.data.map.object.set(x,y,[]);
+            Game.data.tileData.object.set(x,y,[]);
         }
         if (tiles != null) for (tile in tiles) group.removeTile(tile);
     }
@@ -109,7 +109,7 @@ class Objects extends TileDisplay
     {
         if (array == null || array.length == 0 || array[0] == 0) return false;
         //data is main container
-        var data:ObjectData = Main.data.objectMap.get(array[0]);
+        var data:ObjectData = Game.data.objectMap.get(array[0]);
         var main = data;
         var sub:ObjectData;
         //container int
@@ -125,9 +125,9 @@ class Objects extends TileDisplay
         //blocking
         if (data.blocksWalking)
         {
-            Main.data.blocking.set(x + "." + y,true);
+            Game.data.blocking.set(x + "." + y,true);
         }else{
-            Main.data.blocking.remove(x + "." + y);
+            Game.data.blocking.remove(x + "." + y);
         }
         //tile position
         var tx:Float = x * Static.GRID;
@@ -153,14 +153,14 @@ class Objects extends TileDisplay
             if (array[i] > 0)
             {
                 //container
-                sub = Main.data.objectMap.get(array[i] * 1);
+                sub = Game.data.objectMap.get(array[i] * 1);
                 id = mainInt++;
                 conInt = 0;
                 set = true;
                 data = main;
             }else{
                 //add into container
-                sub = Main.data.objectMap.get(array[i] * -1);
+                sub = Game.data.objectMap.get(array[i] * -1);
                 id = conInt++;
             }
             if (data.slotPos[id] == null || data.slotVert == null || sub == null || data.slotPos == null) continue;
@@ -183,9 +183,9 @@ class Objects extends TileDisplay
             //data set
             if (data.floor)
             {
-                Main.data.tileData.floor.set(x,y,sprites);
+                Game.data.tileData.floor.set(x,y,sprites);
             }else{
-                Main.data.tileData.object.set(x,y,sprites);
+                Game.data.tileData.object.set(x,y,sprites);
             }
         }
         return true;
@@ -282,8 +282,8 @@ class Objects extends TileDisplay
     }
     public function clear()
     {
-        Main.data.tileData.object.clear();
-        Main.data.tileData.floor.clear();
+        Game.data.tileData.object.clear();
+        Game.data.tileData.floor.clear();
         player = null;
         group.removeTiles();
     }
@@ -305,7 +305,7 @@ class Objects extends TileDisplay
     private function drawSprite(id:Int,rect:Rectangle):Rectangle
     {
         try {
-            reader.read(File.read(Static.dir + "sprites/" + id + ".tga").readAll());
+            reader.read(File.read(Game.dir + "sprites/" + id + ".tga").readAll());
         }catch(e:Dynamic)
         {
             //trace("e " + e);

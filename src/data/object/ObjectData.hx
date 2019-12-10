@@ -5,6 +5,8 @@ import sys.io.File;
 import haxe.ds.Vector;
 import data.animation.AnimationData;
 import data.sound.SoundData;
+import data.GameData;
+import game.Game;
 class ObjectData extends LineReader
 {
     /**
@@ -312,7 +314,7 @@ class ObjectData extends LineReader
         super();
         if (i <= 0) return;
         try {
-            readLines(File.getContent(Static.dir + "objects/" + i + ".txt"));
+            readLines(File.getContent(Game.dir + "objects/" + i + ".txt"));
         }catch(e:Dynamic)
         {
             trace("object txt e " + e);
@@ -530,7 +532,7 @@ class ObjectData extends LineReader
             if (spriteArray[i].spriteID <= 0) continue;
             var s:String;
             try { 
-                s = File.getContent(Static.dir + "sprites/" + spriteArray[i].spriteID + ".txt");
+                s = File.getContent(Game.dir + "sprites/" + spriteArray[i].spriteID + ".txt");
             }catch(e:Dynamic)
             {
                 trace("sprite text e " + e);

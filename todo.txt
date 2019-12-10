@@ -1,4 +1,3 @@
-- aging position factors setup
 - fix slot positioning
 - work on path trimming
 - setup message function to be more modifable 3rd party wise.
@@ -6,14 +5,12 @@
 - multiple objets on same tile, mouse over make transparent
 - thanks schmloo
 
-
-
+-abstraction layer for File.getContent
 
 Non technical
 - add client to https://www.moddb.com/games/one-hour-one-life/mods
 - add to https://www.indiedb.com/
 - create itch distrubution
-- Partner more with 2HOL new project launches soon with oceans.
 
 Community Marketplace
 - Built in translation system

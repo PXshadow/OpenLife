@@ -21,22 +21,6 @@ class Command
             #if (sys || nodejs)
             Sys.exit(0);
             #end
-            case "reload":
-            //hotreload
-
-            //states
-            case "menu":
-            //go to menu
-
-            case "game":
-            //go to game
-            case "clear":
-            //clear display 
-
-            case "disconnect" | "dc":
-            Main.client.close();
-            case "connect" | "c":
-            Main.client.connect();
             #if openfl
             //window
             case "fullscreen":

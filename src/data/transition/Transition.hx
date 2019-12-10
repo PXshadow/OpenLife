@@ -15,9 +15,9 @@ class Transition
      */
     public function new()
     {
-        for (name in FileSystem.readDirectory(Static.dir + "transitions"))
+        for (name in FileSystem.readDirectory(Game.dir + "transitions"))
         {
-            transitions.push(new TransitionData(name,File.getContent(Static.dir + "transitions/" + name)));
+            transitions.push(new TransitionData(name,File.getContent(Game.dir + "transitions/" + name)));
         }
     }
 }

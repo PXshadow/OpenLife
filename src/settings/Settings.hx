@@ -1,6 +1,7 @@
 package settings;
 import sys.io.FileOutput;
 import haxe.DynamicAccess;
+import game.Game;
 import haxe.io.Path;
 #if (sys || nodejs)
 import sys.io.File;
@@ -19,7 +20,7 @@ class Settings
             var obj = value.get(name);
             var file:FileOutput;
             //set settings
-            file = File.write(Static.dir + "settings/" + name,false);
+            file = File.write(Game.dir + "settings/" + name,false);
             file.writeString(obj);
             file.close();
         }
@@ -29,7 +30,7 @@ class Settings
     public var fail:Bool = true;
     public function new()
     {
-        var path:String = Static.dir + "settings/";
+        var path:String = Game.dir + "settings/";
         if (FileSystem.exists(path) && FileSystem.isDirectory(path))
         {
             fail = false;

@@ -131,7 +131,7 @@ class Ground extends Shape
             {
                 for(i in 0...4)
                 {
-                    reader.read(File.read(Static.dir + "groundTileCache/biome_" + id + "_x" + i + "_y" + j + a + ".tga").readAll());
+                    reader.read(File.read(Game.dir + "groundTileCache/biome_" + id + "_x" + i + "_y" + j + a + ".tga").readAll());
                     //set dimensions
                     rect.x = tileX;
                     rect.y = tileY;

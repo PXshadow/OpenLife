@@ -2,6 +2,7 @@ package data;
 import haxe.ds.ObjectMap;
 import data.object.ObjectData;
 import game.Player;
+import game.Game;
 #if full
 import game.Ground;
 import data.transition.TransitionData;
@@ -66,28 +67,33 @@ class GameData
         #if openfl
         tileData = new TileData();
         #end
-        //transitionData = new TransitionData();
-        #if openfl
-        emoteData();
-        #end
-        #if full
-        map = new MapData();
+        create();
         objectData();
-        #end
+    }
+    public function clear()
+    {
+        
+    }
+    private function create()
+    {
+        map = new data.map.MapData();
+        tileData = new data.display.TileData();
+        blocking = new Map<String,Bool>();
+        playerMap = new Map<Int,Player>();
     }
     #if openfl
     /**
      * OpenFL generate emote data
      */
-    private function emoteData()
+    public function emoteData(settings:settings.Settings)
     {
-        if (!Main.settings.data.exists("emotionObjects") || Main.settings.data.exists("emotionWords"))
+        if (!settings.data.exists("emotionObjects") || settings.data.exists("emotionWords"))
         {
             trace("no emote data in settings");
             return;
         }
-        var arrayObj:Array<String> = Main.settings.data.get("emotionObjects").split("\n");
-        var arrayWord:Array<String> = Main.settings.data.get("emotionWords").split("\n");
+        var arrayObj:Array<String> = settings.data.get("emotionObjects").split("\n");
+        var arrayWord:Array<String> = settings.data.get("emotionWords").split("\n");
         emotes = new Vector<EmoteData>(arrayObj.length);
         for (i in 0...arrayObj.length) emotes[i] = new EmoteData(arrayWord[i],arrayObj[i]);
     }
@@ -98,11 +104,11 @@ class GameData
     private function objectData()
     {
         //nextobject
-        nextObjectNumber = Std.parseInt(File.getContent(Static.dir + "objects/nextObjectNumber.txt"));
+        nextObjectNumber = Std.parseInt(File.getContent(Game.dir + "objects/nextObjectNumber.txt"));
         //go through objects
         var list:Array<Int> = [];
         UnitTest.inital();
-        for (path in FileSystem.readDirectory(Static.dir + "objects"))
+        for (path in FileSystem.readDirectory(Game.dir + "objects"))
         {
             list.push(Std.parseInt(Path.withoutExtension(path)));
         }
@@ -112,8 +118,9 @@ class GameData
             if (a > b) return 1;
             return -1;
         });
-        trace("sort " + UnitTest.stamp());
+        trace("sort " + list[list.length - 1]);
         var nextObjectNumberInt = nextObjectNumber;
+        trace("nextObjectNumber " + nextObjectNumber);
         var data:ObjectData;
         var dummyObject:ObjectData;
         for (i in list) 

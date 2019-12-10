@@ -13,18 +13,18 @@ class ImageGenerate
     public function new(folder:String)
     {
         folder += "/";
-        if (!FileSystem.exists(Static.dir + folder) || !FileSystem.isDirectory(Static.dir + folder)) return;
+        if (!FileSystem.exists(Game.dir + folder) || !FileSystem.isDirectory(Game.dir + folder)) return;
         var bmd:BitmapData;
-        for (dir in FileSystem.readDirectory(Static.dir + folder))
+        for (dir in FileSystem.readDirectory(Game.dir + folder))
         {
             if (Path.extension(dir) != "tga") continue;
-            reader.read(File.getBytes(Static.dir + folder + dir));
+            reader.read(File.getBytes(Game.dir + folder + dir));
             //generate new bitmapdata
             bmd = new BitmapData(Std.int(reader.rect.width),Std.int(reader.rect.height));
             //fill
             bmd.setPixels(reader.rect,reader.bytes);
             //save to png
-            File.saveBytes(Static.dir + folder + Path.withoutExtension(dir) + ".png",bmd.encode(reader.rect,new PNGEncoderOptions(false)));
+            File.saveBytes(Game.dir + folder + Path.withoutExtension(dir) + ".png",bmd.encode(reader.rect,new PNGEncoderOptions(false)));
         }
     }
 }

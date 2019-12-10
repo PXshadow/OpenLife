@@ -19,13 +19,7 @@ import game.Player;
 import data.object.player.PlayerInstance;
 import data.object.player.PlayerMove;
 import data.map.MapChange;
-#if (cpp && debug)
-import cpp.vm.Profiler;
-#else
-import debug.Profiler;
-#end
 //visual client
-#if openfl
 import openfl.display.Bitmap;
 import openfl.display.BitmapData;
 import openfl.ui.Keyboard;
@@ -51,21 +45,10 @@ import openfl.display.Tile;
 import openfl.geom.Rectangle;
 import data.animation.AnimationPlayer;
 import data.sound.SoundPlayer;
-
 import ui.*;
-#end
 
-class Main #if openfl extends Sprite #end
+class Main extends Game
 {
-    //client
-    public static var client:Client;
-    //over top console
-    var console:Console;
-    //settings
-    public static var settings:Settings;
-    //game
-    #if openfl
-    var draw:Draw;
     var food:Shape;
     var select:Shape;
     var chat:Text;
@@ -80,6 +63,9 @@ class Main #if openfl extends Sprite #end
     var portText:Text;
     var portInput:InputText;
     var join:Button;
+    var console:Console;
+    var player:Player;
+    var program:Program;
     //players
     public static var sounds:SoundPlayer = new SoundPlayer();
     public static var animations:AnimationPlayer = new AnimationPlayer();
@@ -87,32 +73,15 @@ class Main #if openfl extends Sprite #end
     public static var objects:Objects;
     var state:DisplayObjectContainer;
     public var log:Text;
-    #end
-    public static var player:Player;
     var selectX:Int = 0;
     var selectY:Int = 0;
-    public static var data:GameData;
-    var playerInstance:PlayerInstance;
-    var mapInstance:MapInstance;
-    var index:Int = 0;
-    var compress:Bool = false;
-    var inital:Bool = true;
-    var program:Program;
-    var string:String = "";
     var gameBool:Bool = false;
     var lerpInt:Int = 2;
     var renderTime:Timer = null;
     var foodPercent:Float = 0;
-    #if !openfl
-    public static function main()
-    {
-        new Main();
-    }
-    #end
     public function new()
     {
-        dir();
-        #if openfl
+        if (!directory()) stage.window.alert("Place in OpenLife folder","directory not found");
         super();
         events();
         //state
@@ -120,23 +89,12 @@ class Main #if openfl extends Sprite #end
         state.mouseChildren = false;
         state.mouseEnabled = false;
         addChild(state);
-        #end
         //client
         console = new console.Console();
-        program = new Program(console);
+        program = new Program(console,client);
         console.set("program",program);
-        console.set("data",data);
-        //settings
-        settings = new Settings();
-        //data
-        data = new GameData();
-        client = new Client();
-        client.login = new client.Login();
-        cred();
-        //complete
-        #if openfl
-        console.set("data",data);
-        //login();
+        console.set("data",Game.data);
+        login();
         //top layer
         var fps = new FPS();
         fps.textColor = 0xFF0000;//0xFFFFFF;
@@ -147,117 +105,9 @@ class Main #if openfl extends Sprite #end
         log.cacheAsBitmap = false;
         addChild(log);
         addChild(console);
-        #else
-        //terminal application
-
-        //update loop main
-        while (true)
-        {
-            client.update();
-            Sys.sleep(1/20);
-        }
-        #end
-        login();
-        /*game();
-        //trace("connect " + Main.client.ip + " email " + Main.client.login.email);
-        var instance = new PlayerInstance([]);
-        instance.po_id = 19;
-        instance.o_id = [292,-31,-31,-31];
-        objects.addPlayer(instance);
-        player = objects.player;
-        player.x = -160;
-        player.y = 0;
-        console.set("player",player);
-        objects.add([2157],0,Static.tileHeight);
-        animations.play(2157,0,objects.sprites,0,Static.tileHeight);
-        gameBool = true;
-        */
-        //connect();
         resize(null);
     }
-    public function dir()
-    {
-        #if (windows || !openfl)
-        Static.dir = "";
-        #else
-        Static.dir = Path.normalize(lime.system.System.applicationDirectory);
-        Static.dir = Path.removeTrailingSlashes(Static.dir) + "/";
-        #end
-        #if mac
-        Static.dir = Static.dir.substring(0,Static.dir.indexOf("/Contents/Resources/"));
-        Static.dir = Static.dir.substring(0,Static.dir.lastIndexOf("/") + 1);
-        #end
-        //check to see if location is valid
-        if (exist(["groundTileCache","objects","sprites","animations","transitions"]))
-        {
-            trace("valid location");
-        }else{
-            #if openfl
-            stage.window.alert("Place in OpenLife folder","directory not found");
-            #else
-            throw "directory not found";
-            #end
-            Sys.exit(0);
-        }
-    }
-    public function exist(folders:Array<String>):Bool
-    {
-        for (folder in folders)
-        {
-            if (!FileSystem.exists(Static.dir + folder)) return false;
-        }
-        return true;
-    }
-    public function cred()
-    {
-        //account default
-        //Main.client.login.email = "test@test.co.uk";
-        //Main.client.login.key = "WC2TM-KZ2FP-LW5A5-LKGLP";
-        Main.client.login.email = "test@test.com";
-        Main.client.login.key = "9UYQ3-PQKCT-NGQXH-YB93E";
-        //server default (thanks so much Kryptic <3)
-        Main.client.ip = "game.krypticmedia.co.uk";
-        Main.client.port = 8007;
-        //Main.client.ip = "bigserver2.onehouronelife.com";
-        //Main.client.port = 8005;
-
-        //settings to use infomation
-        if (!Main.settings.fail)
-        {
-            //account
-            /*if (valid(Main.settings.data.get("email"))) Main.client.login.email = string;
-            if (valid(Main.settings.data.get("accountKey"))) Main.client.login.key = string;
-            if (valid(Main.settings.data.get("useCustomServer")) && string == "1")
-            {
-                if (valid(Main.settings.data.get("customServerAddress"))) Main.client.ip = string;
-                if (valid(Main.settings.data.get("customServerPort"))) Main.client.port = Std.parseInt(string);
-            }*/
-            //window
-            #if openfl
-            if (valid(Main.settings.data.get("borderless"))) stage.window.borderless = string == "1" ? true : false;
-            if (valid(Main.settings.data.get("fullscreen"))) stage.window.fullscreen = string == "1" ? true : false;
-            if (valid(Main.settings.data.get("screenWidth"))) stage.window.width = Std.parseInt(string);
-            if (valid(Main.settings.data.get("screenHeight"))) stage.window.height = Std.parseInt(string);
-            if (valid(Main.settings.data.get("targetFrameRate"))) stage.frameRate = Std.parseInt(string);
-            #end
-        }
-        //by pass settings and force email and key if secret account
-        #if secret
-        trace("set secret");
-        Main.client.login.email = Secret.email;
-        Main.client.login.key = Secret.key;
-        Main.client.ip = Secret.ip;
-        Main.client.port = Secret.port;
-        #end
-    }
-    public function valid(obj:Dynamic):Bool
-    {
-        if (obj == null || obj == "") return false;
-        string = cast obj;
-        return true;
-    }
     //events
-    #if openfl
     private function events()
     {
         //events
@@ -273,11 +123,6 @@ class Main #if openfl extends Sprite #end
     }
     private function login()
     {
-        #if hashlink
-        game();
-        connect();
-        return;
-        #end
         keyText = new Text("Key",LEFT,24,0xFFFFFF);
         keyText.y = 50;
         emailText = new Text("Email",LEFT,24,0xFFFFFF);
@@ -310,22 +155,14 @@ class Main #if openfl extends Sprite #end
         portInput.x = 100;
         portInput.y = 200;
         addChild(portInput);
-
         //fill
-        if (!Main.settings.fail)
+        if (!settings.fail)
         {
-            emailInput.text = Main.settings.data.get("email");
-            keyInput.text = Main.settings.data.get("accountKey");
-            //if (valid(Main.settings.data.get("useCustomServer")) && string == "1")
-            //{
-                if (valid(Main.settings.data.get("customServerAddress"))) serverInput.text = string;
-                if (valid(Main.settings.data.get("customServerPort"))) portInput.text = string;
-            //}else{
-                //serverInput.text = "bigserver2.onehouronelife.com";
-                //portInput.text = "8005";
-            //}
+            emailInput.text = settings.data.get("email");
+            keyInput.text = settings.data.get("accountKey");
+            if (valid(settings.data.get("customServerAddress"))) serverInput.text = string;
+            if (valid(settings.data.get("customServerPort"))) portInput.text = string;
         }
-        
         join = new Button();
         join.text = "Join";
         join.y = 250;
@@ -341,16 +178,15 @@ class Main #if openfl extends Sprite #end
             Std.parseInt(portInput.text) == null
             ) return;
             //settings set
-            Main.settings.data.set("email",emailInput.text);
-            Main.settings.data.set("accountKey",keyInput.text);
-            Main.settings.data.set("customServerAddress",serverInput.text);
-            Main.settings.data.set("customServerPort",portInput.text);
+            settings.data.set("email",emailInput.text);
+            settings.data.set("accountKey",keyInput.text);
+            settings.data.set("customServerAddress",serverInput.text);
+            settings.data.set("customServerPort",portInput.text);
             //client set
-            Main.client.ip = Main.settings.data.get("customServerAddress");
-            Main.client.port = Std.parseInt(Main.settings.data.get("customServerPort"));
-            Main.client.login.email = Main.settings.data.get("email");
-            Main.client.login.key = Main.settings.data.get("accountKey");
-            trace("client " + Main.client.ip + " port " + Main.client.port);
+            client.ip = settings.data.get("customServerAddress");
+            client.port = Std.parseInt(settings.data.get("customServerPort"));
+            client.email = settings.data.get("email");
+            client.key = settings.data.get("accountKey");
             //remove login
             removeChild(keyText);
             removeChild(emailText);
@@ -387,8 +223,6 @@ class Main #if openfl extends Sprite #end
         console.set("objects",objects);
         console.set("connect",connect);
         //draw display
-        draw = new Draw(program);
-        state.addChild(draw);
         food = new Shape();
         food.cacheAsBitmap = true;
         state.addChild(food);
@@ -407,9 +241,9 @@ class Main #if openfl extends Sprite #end
     public static var xs:Int = 0;
     public static var ys:Int = 0;
     var it:Iterator<Player>;
-    private function update(_)
+    override public function update(_)
     {
-        if (client != null) client.update();
+        super.update(null);
         //player movement
         if(gameBool)
         {
@@ -423,12 +257,12 @@ class Main #if openfl extends Sprite #end
                 if (Bind.playerRight.bool) xs += 1;
                 if (xs != 0 || ys != 0) 
                 {
-                    program.clean();
-                    player.step(xs,ys);
+                    if (player.step(xs,ys)) 
+                    {
+                        client.send("MOVE " + player.ix + " " + player.iy + " @" + player.lastMove + " " + player.moves[0].x + " " + player.moves[0].y);
+                    }
                 }
             }
-            //update draw
-            draw.update();
             if (player != null && player.follow)
             {
                 //set camera to middle
@@ -484,8 +318,8 @@ class Main #if openfl extends Sprite #end
         {
             var latest:Int = -1;
             var int:Int = 0;
-            if (!FileSystem.exists(Static.dir + "screenShots")) FileSystem.createDirectory(Static.dir + "screenShots");
-            for (file in FileSystem.readDirectory(Static.dir + "screenShots"))
+            if (!FileSystem.exists(Game.dir + "screenShots")) FileSystem.createDirectory(Game.dir + "screenShots");
+            for (file in FileSystem.readDirectory(Game.dir + "screenShots"))
             {
                 //screen 6
                 int = Std.parseInt(Path.withoutExtension(file).substring(0,file.length));
@@ -497,23 +331,11 @@ class Main #if openfl extends Sprite #end
             var bmd = new BitmapData(Std.int(stage.stageHeight),Std.int(stage.stageWidth));
             bmd.draw(stage);
             for (i in 0...5 - name.length) name = "0" + name;
-            var file = sys.io.File.write(Static.dir + "screenShots/screen" + name,true);
+            var file = sys.io.File.write(Game.dir + "screenShots/screen" + name,true);
 
             file.write(bmd.encode(bmd.rect,new openfl.display.JPEGEncoderOptions(80)));
             file.close();
             */
-            return;
-        }
-        if (e.keyCode == Keyboard.NUMBER_9)
-        {
-            player.instance.age--;
-            player.set(player.instance);
-            return;
-        }
-        if (e.keyCode == Keyboard.NUMBER_0)
-        {
-            player.instance.age++;
-            player.set(player.instance);
             return;
         }
         Bind.keys(e,true);
@@ -572,15 +394,12 @@ class Main #if openfl extends Sprite #end
         }
         if (Bind.playerMove.bool)
         {
-            program.goal = new Pos();
-            program.goal.x = selectX;
-            program.goal.y = selectY;
-            @:privateAccess program.path(false);
+            //not yet
         }else{
             if (Bind.playerKill.bool) 
             {
                 trace("kill");
-                program.remove(selectX,selectY,-1);
+                //program.remove(selectX,selectY,-1);
                 //program.kill(selectX,selectY);
             }else{
                 if (player.instance.age < 3 && player.held)
@@ -621,22 +440,22 @@ class Main #if openfl extends Sprite #end
     public function render(cx:Int,cy:Int) 
     {
         //clear
-                for (chunk in data.map.chunks)
-                {
-                    if (Math.abs(chunk.x + chunk.width/2 - cx) >= 24 || Math.abs(chunk.y + chunk.height/2 - cy) >= 24)
+        for (chunk in Game.data.map.chunks)
+        {
+            if (Math.abs(chunk.x + chunk.width/2 - cx) >= 24 || Math.abs(chunk.y + chunk.height/2 - cy) >= 24)
+            {
+                    for (j in chunk.y...chunk.y + chunk.height)
                     {
-                        for (j in chunk.y...chunk.y + chunk.height)
+                        for (i in chunk.x...chunk.x + chunk.width)
                         {
-                            for (i in chunk.x...chunk.x + chunk.width)
-                            {
-                                objects.remove(i,j);
-                                objects.remove(i,j,true);
-                                ground.remove(i,j);
-                            }
+                            objects.remove(i,j);
+                            objects.remove(i,j,true);
+                            ground.remove(i,j);
                         }
-                        data.map.chunks.remove(chunk);
                     }
-                }
+                    Game.data.map.chunks.remove(chunk);
+            }
+        }
         //new
         //new Future(function()
         //{
@@ -645,22 +464,19 @@ class Main #if openfl extends Sprite #end
         {
             for (i in mapInstance.x...mapInstance.x + mapInstance.width)
             {
-                ground.add(data.map.biome.get(i,j),i,j);
-                objects.add(data.map.object.get(i,j),i,j);
-                objects.add([data.map.floor.get(i,j)],i,j);
+                ground.add(Game.data.map.biome.get(i,j),i,j);
+                objects.add(Game.data.map.object.get(i,j),i,j);
+                objects.add([Game.data.map.floor.get(i,j)],i,j);
             }
         }
         objects.tileset.bitmapData.unlock();
         ground.render();
-        data.map.chunks.push(mapInstance);
+        Game.data.map.chunks.push(mapInstance);
     }
     private function clear()
     {
         //clear data
-        data.map = new data.map.MapData();
-        data.tileData = new data.display.TileData();
-        data.blocking = new Map<String,Bool>();
-        data.playerMap = new Map<Int,Player>();
+        Game.data.clear();
         //data = new GameData();
         //console.set("data",data);
         objects.clear();
@@ -675,8 +491,8 @@ class Main #if openfl extends Sprite #end
     private function setPlayer(player:Player)
     {
         trace("set main player");
-        player.program = program;
-        Main.player = player;
+        this.player.program = program;
+        this.player = player;
         //player.sort();
         console.set("player",player);
         //center instantly
@@ -701,24 +517,12 @@ class Main #if openfl extends Sprite #end
         objects.scale += i * 0.08;
         lerpInt = 2;
     }
-    #end
-    private function end()
+    override private function end()
     {
-        switch(Main.client.tag)
+        super.end();
+        switch(client.tag)
         {
-            case PONG:
-            client.ping = UnitTest.stamp();
             case PLAYER_UPDATE:
-            #if !openfl
-            //terminal
-            if (player == null && playerInstance != null)
-            {
-                player = data.playerMap.get(playerInstance.p_id);
-                console.set("player",player);
-            }
-            #else
-            //sys.io.File.saveContent(Static.dir + "playerUpdate.txt",playerUpdateString);
-            //visual client
             if (player == null && objects.player != null) 
             {
                 setPlayer(objects.player);
@@ -727,298 +531,9 @@ class Main #if openfl extends Sprite #end
                 resize(null);
             }
             objects.player = null;
-            Main.client.tag = null;
-            #end
-            default:
-        }
-    }
-    private function connect()
-    {
-        console.set("client",client);
-        client.login.accept = function()
-        {
-            trace("accept");
-            //set message reader function to game
-            client.message = message;
-            client.end = end;
-            client.login.accept = null;
-            client.login = null;
             client.tag = null;
-            index = 0;
-        }
-        client.login.reject = function()
-        {
-            trace("reject");
-            client.login.reject = null;
-            //Main.client.login = null;
-        }
-        client.message = client.login.message;
-        client.connect();
-    }
-    private function analyze()
-    {
-        //check if valley data has not been loaded in yet
-        if (data.map.valleySpacing == 0) return;
-        var iy:Int = 0;
-        var ix:Int = 0;
-        var dy:Int = 0;
-        var dx:Int = 0;
-        if (data.map.valleyBool)
-        {
-            iy = mapInstance.y - data.map.valleyOffsetY;
-            trace("valley spacing " + data.map.valleySpacing);
-            dy = iy % data.map.valleySpacing;
-            iy += dy;
-            trace("valley y check " + iy);
-            trace("valleyOffset " + data.map.valleyOffsetY);
-        }
-        if (data.map.offsetBoolX)
-        {
-
-        }
-        if (data.map.offsetBoolY)
-        {
-            
-        }
-    }
-    private function message(input:String) 
-    {
-        switch(Main.client.tag)
-        {
-            case COMPRESSED_MESSAGE:
-            var array = input.split(" ");
-            Main.client.compress = Std.parseInt(array[1]);
-            Main.client.tag = null;
-            case PLAYER_EMOT:
-            var array = input.split(" ");
-            //p_id emot_index ttl_sec
-            //ttl_sec is optional, and specifies how long the emote should be shown
-            //-1 is permanent, -2 is permanent but not new so should be skipped
-            case PLAYER_UPDATE:
-            playerInstance = new PlayerInstance(input.split(" "));
-            //always force non main player
-            if (player != null && playerInstance.p_id != player.instance.p_id) playerInstance.forced = true;
-            #if openfl
-            objects.addPlayer(playerInstance);
-            #else
-            var player = data.playerMap.get(playerInstance.p_id);
-            if (player == null) player = new Player();
-            player.set(playerInstance);
-            data.playerMap.set(playerInstance.p_id,player);
-            #end
-            case PLAYER_MOVES_START:
-            var playerMove = new PlayerMove(input.split(" "));
-            if (player == null || playerMove.id == player.instance.p_id) return;
-            if (data.playerMap.exists(playerMove.id))
-            {
-                playerMove.movePlayer(data.playerMap.get(playerMove.id));
-            }
-            Main.client.tag = null;
-            case MAP_CHUNK:
-            if(compress)
-            {
-                Main.client.tag = null;
-                data.map.setRect(mapInstance,input);
-                //center point to determine range
-                var cx:Int = mapInstance.x + Std.int(mapInstance.width/2);
-                var cy:Int = mapInstance.y + Std.int(mapInstance.height/2);
-                if (player != null)
-                {
-                    cx = player.ix;
-                    cy = player.iy;
-                    //cx += player.instance.x;
-                    //cy += player.instance.y;
-                    //cx += -player.ix;
-                    //cy += -player.iy;
-                }
-                #if openfl
-                render(cx,cy);
-                #end
-                analyze();
-                //mapInstance = null;
-                //toggle to go back to istance for next chunk
-                compress = false;
-            }else{
-                var array = input.split(" ");
-                //trace("map chunk array " + array);
-                for(value in array)
-                {
-                    switch(index++)
-                    {
-                        case 0:
-                        mapInstance = new MapInstance();
-                        mapInstance.width = Std.parseInt(value);
-                        case 1:
-                        mapInstance.height = Std.parseInt(value);
-                        case 2:
-                        mapInstance.x = Std.parseInt(value);
-                        case 3:
-                        mapInstance.y = Std.parseInt(value);
-                        case 4:
-                        mapInstance.rawSize = Std.parseInt(value);
-                        case 5:
-                        mapInstance.compressedSize = Std.parseInt(value);
-                        //set min
-                        
-                        trace("map chunk " + mapInstance.toString());
-                        index = 0;
-                        //set compressed size wanted
-                        Main.client.compress = mapInstance.compressedSize;
-                        compress = true;
-                    }
-                }
-            }
-            case MAP_CHANGE:
-            var change = new MapChange(input.split(" "));
-            //floor
-            if (change.floor > 0)
-            {
-                //no floor changes yet
-                return;
-            }
-            //clear
-            #if openfl
-            objects.remove(change.x,change.y);
-            #end
-            //set in case of no object
-            data.map.object.set(change.x,change.y,change.id);
-            //trace("x " + change.x + " y " + change.y);
-            //add
-            if (change.id.length > 0 && change.id[0] > 0)
-            {
-                var move:Bool = change.speed > 0 ? true : false;
-                #if openfl
-                if (move)
-                {
-                    objects.remove(change.oldX,change.oldY);
-                    var container = new TileContainer();
-                    objects.add(change.id,change.x,change.y,container);
-                    objects.group.addTile(container);
-                    Main.data.tileData.object.set(change.x,change.y,[container]);
-                    //move back to previous postition
-                    container.x = change.oldX * Static.GRID;
-                    container.y = (Static.tileHeight - change.oldY) * Static.GRID;
-                    //tween
-                    var time = Std.int(Static.GRID/(Static.GRID * change.speed * 1) * 60 * 1);
-                    Actuate.tween(container,time/60,{x:change.x * Static.GRID,y:(Static.tileHeight - change.y) * Static.GRID}).ease(Quad.easeInOut);
-                }else{
-                    objects.add(change.id,change.x,change.y);
-                }
-                #end
-            }
-            Main.client.tag = null;
-            index = 0;
-            case HEAT_CHANGE:
-            //heat food_time indoor_bonus
-            //trace("heat " + input);
-            Main.client.tag = null;
-            index = 0;
-            case FOOD_CHANGE:
-            //trace("food change " + input);
-            var array = input.split(" ");
-            foodPercent = Std.parseInt(array[0])/Std.parseInt(array[1]);
-            //trace("food% " + foodPercent);
-            #if openfl
-            food.graphics.clear();
-            food.graphics.beginFill(0);
-            food.graphics.drawRect(200,0,100,20);
-            food.graphics.beginFill(0xFF0000);
-            food.graphics.drawRect(200,0,foodPercent * 100,20);
-            #end
-            //also need to set new movement move_speed: is floating point playerSpeed in grid square widths per second.
-            if (player != null) 
-            {
-                if (foodPercent <= 0.3 && program.taskName != "food")
-                {
-                    if (player.instance.age >= 3)
-                    {
-                        //program.task("food");
-                    }else{
-                        client.send("SAY 0 0 F");
-                    }
-                }
-                player.instance.move_speed = Std.parseFloat(array[4]);
-            }
-            case FRAME:
-            Main.client.tag = null;
-            index = 0;
-            case PLAYER_SAYS:
-            trace("player say " + input);
-            #if openfl
-            var array = input.split("/");
-            //trace("id " + array[0]);
-            var text = array[1].substring(2,array[1].length);
-            if (text.length > 0)
-            {
-                draw.say(Std.parseInt(array[0]),text);
-            }
-            #end
-            case PLAYER_OUT_OF_RANGE:
-            //player is out of range
-            trace("player out of range " + input);
-            var id:Int = Std.parseInt(input);
-            var player = data.playerMap.get(id);
-            #if openfl
-            if (player != null) objects.group.removeTile(player);
-            #end
-            case LINEAGE:
-            //p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
-
-            case NAME:
-            //p_id first_name last_name last_name may be ommitted.
-            var array = input.split(" ");
-            var name:String = array[1] + (array.length > 1 ? " " + array[2] : "");
-            #if openfl
-            draw.username(Std.parseInt(array[0]),name);
-            #end
-            case HEALED:
-            //p_id player healed no longer dying.
-
-            case MONUMENT_CALL:
-            //MN x y o_id monument call has happened at location x,y with the creation object id
-
-            case GRAVE:
-            //x y p_id
-            var array = input.split(" ");
-            var x:Int = Std.parseInt(array[0]);
-            var y:Int = Std.parseInt(array[1]);
-            var id:Int = Std.parseInt(array[2]);
-            if (player == null || player.instance.p_id != id)
-            {
-
-            }else{
-                //main player died disconnect
-                #if openfl
-                disconnect();
-                #end
-                //Sys.sleep(0.6);
-                //connect();
-            }
-            case DYING:
-            //p_id isSick isSick is optional 1 flag to indicate that player is sick (client shouldn't show blood UI overlay for sick players)
-            trace("dying " + input);
-            case GRAVE_MOVE:
-            //xs ys xd yd swap_dest optional swap_dest parameter is 1, it means that some other grave at  destination is in mid-air.  If 0, not
-
-            case GRAVE_OLD:
-            //x y p_id po_id death_age underscored_name mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
-            //Provides info about an old grave that wasn't created during your lifetime.
-            //underscored_name is name with spaces replaced by _ If player has no name, this will be ~ character instead.
-
-            case OWNER_LIST:
-            //x y p_id p_id p_id ... p_id
-
-            case VALLEY_SPACING:
-            //y_spacing y_offset Offset is from client's birth position (0,0) of first valley.
-            var array = input.split(" ");
-            data.map.valleySpacing = Std.parseInt(array[0]);
-            data.map.valleyOffsetY = Std.parseInt(array[1]);
-            trace("valley spacing " + data.map.valleySpacing + " offset " + data.map.valleyOffsetY);
-            analyze();
-            case FLIGHT_DEST:
-            //p_id dest_x dest_y
-            trace("FLIGHT FLIGHT FLIGHT " + input.split(" "));
             default:
         }
     }
+    
 }

@@ -14,6 +14,7 @@ import openfl.display.TileContainer;
 import data.animation.AnimationParameter;
 import data.animation.AnimationChannel;
 import haxe.ds.Vector;
+import game.Game;
 import openfl.geom.Point;
 class AnimationPlayer
 {
@@ -26,7 +27,7 @@ class AnimationPlayer
      */
     public function new()
     {
-
+        
     }
     /**
      * Play animation
@@ -51,7 +52,7 @@ class AnimationPlayer
         data.sprites = sprites;
         active.push(data);
         //data set
-        var objectData = Main.data.objectMap.get(id);
+        var objectData = Game.data.objectMap.get(id);
         if (objectData == null || objectData.animation == null) return;
         var param = objectData.animation.record[index].params;
         var type = objectData.animation.record[index].type;
@@ -149,7 +150,7 @@ class AnimationPlayer
             //phase
             px = phase(param[i].xPhase) * param[i].xAmp;
             py = phase(param[i].yPhase) * param[i].yAmp;
-            pr = param[i].rotPhase * 365;
+            pr = param[i].rotPhase * 360;
             sprite.x += px;
             sprite.y += py;
             sprite.rotation += pr;
@@ -158,7 +159,7 @@ class AnimationPlayer
             if (param[i].rockOscPerSec > 0) tween(sprite,{alpha:param[i].fadeMin},{alpha:param[i].fadeMax},1/param[i].fadeOscPerSec,param[i].fadePhase);
             if (param[i].xAmp > 0) tween(sprite,{x:sprite.x + param[i].xAmp/2},{x:sprite.x - param[i].xAmp/2},1/param[i].xOscPerSec,param[i].xPhase,px);
             if (param[i].yAmp > 0) tween(sprite,{y:sprite.y + param[i].yAmp/2},{y:sprite.y - param[i].yAmp/2},1/param[i].yOscPerSec,param[i].yPhase,py);
-            if (param[i].rockAmp > 0) tween(sprite,{rotation:sprite.rotation + (param[i].rockAmp * 365)},{rotation:sprite.rotation - (param[i].rockAmp * 365)},1/param[i].rockOscPerSec,param[i].rockPhase);
+            if (param[i].rockAmp > 0) tween(sprite,{rotation:sprite.rotation + (param[i].rockAmp * 360)},{rotation:sprite.rotation - (param[i].rockAmp * 360)},1/param[i].rockOscPerSec,param[i].rockPhase);
         }
     }
     /**
@@ -210,7 +211,7 @@ class AnimationPlayer
     {
         active.remove(data);
         //Actuate.pauseAll();
-        var objectData = Main.data.objectMap.get(data.id);
+        var objectData = Game.data.objectMap.get(data.id);
         //reset player sprites
         for (i in 0...data.sprites.length) 
         {

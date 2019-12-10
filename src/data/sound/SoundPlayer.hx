@@ -4,6 +4,7 @@ import openfl.events.Event;
 import openfl.media.Sound;
 import openfl.media.SoundChannel;
 import openfl.media.SoundTransform;
+import game.Game;
 class SoundPlayer
 {
     /**
@@ -32,11 +33,11 @@ class SoundPlayer
         var channel:SoundChannel = null;
         if(data.music)
         {
-            channel = Sound.fromFile(Static.dir + "music/" + data.id + ".ogg").play(start,repeat,new SoundTransform(musicVolume * data.multi));
+            channel = Sound.fromFile(Game.dir + "music/" + data.id + ".ogg").play(start,repeat,new SoundTransform(musicVolume * data.multi));
             channel.addEventListener(Event.SOUND_COMPLETE,complete);
             active.push(channel);
         }else{
-            channel = Sound.fromFile(Static.dir + "sounds/" + data.id + ".ogg").play(0,0,new SoundTransform(soundVolume * data.multi));
+            channel = Sound.fromFile(Game.dir + "sounds/" + data.id + ".ogg").play(0,0,new SoundTransform(soundVolume * data.multi));
             channel.addEventListener(Event.SOUND_COMPLETE,complete);
             active.push(channel);
         }

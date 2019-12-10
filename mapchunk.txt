@@ -1,2 +1,0 @@
-Move the tiles within the objects tilemap, keep record of position of 0,0 tile position in local cordinates
-//When map chunk happens add to map chunk data and add to objects tilemap if within range

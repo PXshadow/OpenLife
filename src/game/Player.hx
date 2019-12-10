@@ -61,6 +61,9 @@ class Player #if openfl extends TileContainer #end
     public var lastName:String = "";
     public var text:String = "";
     public var inRange:Bool = true;
+    //functions
+    public var move:Void->Void;
+    public var stop:Void->Void;
     public function new()
     {
         #if openfl
@@ -115,17 +118,7 @@ class Player #if openfl extends TileContainer #end
             #if !openfl
             #if (target.threaded)
             sys.thread.Thread.create(() -> {
-                Sys.sleep(time/60);
-                trace("finish move");
-                ix += point.x;
-                iy += point.y;
-                moving = false;
-                if (goal)
-                {
-                    path();
-                }else{
-                    motion();
-                }
+                
             });
             #end
             #else
@@ -140,20 +133,21 @@ class Player #if openfl extends TileContainer #end
                 }
             }
             //animation
-            Main.animations.play(instance.po_id,2,sprites(),0,Static.tileHeight,clothing);
-            Main.objects.addEventListener(Event.ENTER_FRAME,update);
+            //Main.animations.play(instance.po_id,2,sprites(),0,Static.tileHeight,clothing);
+            openfl.Lib.current.stage.addEventListener(Event.ENTER_FRAME,update);
             frames = time;
             #end
+            if (move != null) move();
         }else{
             #if openfl
             //buffer
             if (Main.xs != 0 || Main.ys != 0) 
             {
-                if (program != null) program.clean();
                 step(Main.xs,Main.ys);
             }else{
                 //no buffer
-                Main.animations.clear(sprites());
+                //animations.clear(sprites());
+                if (stop != null) stop();
             }
             #end
         }
@@ -170,26 +164,19 @@ class Player #if openfl extends TileContainer #end
             frames--;
         }else{
             //finish movement
-            Main.objects.removeEventListener(Event.ENTER_FRAME,update);
+            openfl.Lib.current.stage.removeEventListener(Event.ENTER_FRAME,update);
             ix += point.x;
             iy += point.y;
             moving = false;
-            if (goal)
-            {
-                path();
-            }else{
-                motion();
-            }
+            motion();
         }
     }
     public function step(mx:Int,my:Int):Bool
     {
         //no other move is occuring, and player is not moving on blocked
-        if (moving || Main.data.blocking.get(Std.string(ix + mx) + "." + Std.string(iy + my))) return false;
+        if (moving || data.blocking.get(Std.string(ix + mx) + "." + Std.string(iy + my))) return false;
         //send data
         lastMove++;
-        //trace("step move " + mx + " " + my);
-        Main.client.send("MOVE " + ix + " " + iy + " @" + lastMove + " " + mx + " " + my);
         var pos = new Pos();
         pos.x = mx;
         pos.y = my;
@@ -199,11 +186,11 @@ class Player #if openfl extends TileContainer #end
     }
     public function computePathSpeedMod():Float
     {
-        var floorData = Main.data.objectMap.get(Main.data.map.floor.get(ix,iy));
+        var floorData = Game.data.objectMap.get(Game.data.map.floor.get(ix,iy));
         var multiple:Float = 1;
         if (floorData != null) multiple *= floorData.speedMult;
         if (oid.length == 0) return multiple;
-        var objectData = Main.data.objectMap.get(oid[0]);
+        var objectData = Game.data.objectMap.get(oid[0]);
         if (objectData != null) multiple *= objectData.speedMult;
         return multiple;
     }
@@ -240,58 +227,6 @@ class Player #if openfl extends TileContainer #end
         pos.x = pos.x - pos2.x;
         pos.y = pos.y - pos2.y;
         return pos;
-    }
-    public var px:Int = 0;
-    public var py:Int = 0;
-    public function path()
-    {
-        if (!setPath())
-        {
-            //complete
-            program.end();
-            return;
-        }
-        pathfind(px,py);
-    }
-    public function setPath():Bool
-    {
-        if (program.goal == null) return false;
-        px = program.goal.x - ix;
-        py = program.goal.y - iy;
-        var bool:Bool = false;
-        if (px != 0) 
-        {
-            px = px > 0 ? 1 : -1;
-            bool = true;
-        }
-        if (py != 0)
-        {
-            py = py > 0 ? 1 : -1;
-            bool = true;
-        }
-        return bool;
-    }
-    public function pathfind(px:Int,py:Int)
-    {
-        if (!step(px,py))
-        {
-            //non direct path
-            if (px == py || px == py * -1)
-            {
-                //diagnol
-                if (!step(px,0)) step(0,py);
-            }else{
-                //non diagnol
-                if (px == 0)
-                {
-                    //vetical
-                    if (!step(1,py)) step(-1,py);
-                }else{
-                    //horizontal
-                    if (!step(px,1)) step(px,-1);
-                }
-            }
-        }
     }
     #end
     public function force() 
@@ -330,10 +265,6 @@ class Player #if openfl extends TileContainer #end
             }
             ix = instance.x;
             iy = instance.y;
-            #if full
-            Main.client.send("FORCE " + ix + " " + iy);
-            if (program != null) program.clean();
-            #end
             //force movement
             force();
         }
@@ -341,7 +272,7 @@ class Player #if openfl extends TileContainer #end
         #if full
         moves = [];
         #end
-        var data = Main.data.objectMap.get(instance.po_id);
+        var data = Game.data.objectMap.get(instance.po_id);
         #if openfl
         age(data);
         #end
@@ -407,7 +338,7 @@ class Player #if openfl extends TileContainer #end
                         place = 5;
                     }
                     //clothing
-                    clothsData = Main.data.objectMap.get(id);
+                    clothsData = Game.data.objectMap.get(id);
                     offsetX = clothsData.clothingOffset.x + getTileAt(index).x;
                     offsetY = -clothsData.clothingOffset.y + getTileAt(index).y;
                     sprites = Main.objects.create(clothsData,offsetX,offsetY,true);
@@ -428,8 +359,8 @@ class Player #if openfl extends TileContainer #end
     public function emote(index:Int=-1)
     {
         if (index == -1) return;
-        var emot = Main.data.emotes[index];
-        var data = Main.data.objectMap.get(instance.po_id);
+        var emot = Game.data.emotes[index];
+        var data = Game.data.objectMap.get(instance.po_id);
         if (data == null || emot == null) return;
         //data.
     }
@@ -458,7 +389,7 @@ class Player #if openfl extends TileContainer #end
                 heldObject = new TileContainer();
                 Main.objects.add(oid,0,0,heldObject);
             }else{
-                heldObject = Main.data.playerMap.get(oid[0] * -1);
+                heldObject = Game.data.playerMap.get(oid[0] * -1);
                 if (heldObject == null) 
                 {
                     trace("held baby not found " + oid[0]);
@@ -467,7 +398,7 @@ class Player #if openfl extends TileContainer #end
                 Main.objects.removeTile(heldObject);
             }
             //pos
-            var data = Main.data.objectMap.get(oid[0]);
+            var data = Game.data.objectMap.get(oid[0]);
             heldObject.x = data.heldOffset.x;
             heldObject.y = data.heldOffset.y;
             //data.held
