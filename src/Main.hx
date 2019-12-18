@@ -10,8 +10,12 @@ class Main extends game.Game
         directory();
         super();
         cred();
-        //login();
+        login();
         //connect();
+    }
+    private function game()
+    {
+        
     }
     private function login()
     {
@@ -94,7 +98,7 @@ class Main extends game.Game
             join = null;
             //start game
             //game();
-            //connect();
+            connect();
         }
         addChild(join);
     }

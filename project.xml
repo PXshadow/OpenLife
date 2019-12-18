@@ -9,7 +9,7 @@
 	<haxelib name="openfl" />
 	<haxelib name="actuate"/>
 	<!--<haxelib name="hscript"/>-->
-	<haxedef name="display"/>
+	<haxedef name="visual"/>
 	
 	<section if="debug">
 	<!--<haxedef name="HXCPP_CHECK_POINTER"/>-->
@@ -25,8 +25,8 @@
 	<!--<haxedef name="utf16"/>-->
 
 	<!--<haxedef name="no-deprecation-warnings"/>-->
-	<haxedef name="openfl_power_of_two"/>
+	<!--<haxedef name="openfl_power_of_two"/>-->
 	<haxedef name="canvas" if="html5"/>
 	<icon path="icon.svg"/>
-	<!--<assets path="assets" embed="true"/>-->
+	<assets path="assets" embed="true"/>
 </project>

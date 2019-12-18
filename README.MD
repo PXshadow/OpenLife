@@ -1,10 +1,11 @@
 <p align="left"><img src="logo.png"/></p>
+<!--![Build Status](https://img.shields.io/circleci/project/github/openfl/openfl-samples/master.svg)-->
 
-![Build Status](https://img.shields.io/circleci/project/github/openfl/openfl-samples/master.svg)
+[![badge](https://img.shields.io/discord/595575978290446361?style=plastic)](https://discordapp.com/invite/gwghtky)
 ![Downloads](https://img.shields.io/github/downloads/pxshadow/openlife/total)
 ![Stars](https://img.shields.io/github/stars/pxshadow/openlife?style=social)
-# Client 
 
+# Client 
 [![badge](badge.svg)](https://haxe.org)
 [![forthebadge](https://forthebadge.com/images/badges/for-sharks.svg)](https://forthebadge.com)
 

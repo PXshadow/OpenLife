@@ -23,7 +23,7 @@ import haxe.ds.Vector;
 class Player #if openfl extends TileContainer #end
 {
     //statics
-    #if display
+    #if visual
     private static inline var babyHeadDownFactor:Float = 0.6;
     private static inline var babyBodyDownFactor:Float = 0.75;
     private static inline var oldHeadDownFactor:Float = 0.35;

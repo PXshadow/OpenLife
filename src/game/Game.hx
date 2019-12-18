@@ -88,7 +88,7 @@ class Game extends GameHeader
             //window
             #if openfl
             if (valid(settings.data.get("borderless"))) stage.window.borderless = string == "1" ? true : false;
-            if (valid(settings.data.get("fullscreen"))) stage.window.fullscreen = string == "1" ? true : false;
+            //if (valid(settings.data.get("fullscreen"))) stage.window.fullscreen = string == "1" ? true : false;
             if (valid(settings.data.get("screenWidth"))) stage.window.width = Std.parseInt(string);
             if (valid(settings.data.get("screenHeight"))) stage.window.height = Std.parseInt(string);
             if (valid(settings.data.get("targetFrameRate"))) stage.frameRate = Std.parseInt(string);

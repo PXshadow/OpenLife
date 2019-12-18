@@ -9,7 +9,7 @@ import data.map.MapData;
 import sys.FileSystem;
 import sys.io.File;
 import haxe.io.Path;
-#if display
+#if visual
 import data.animation.emote.EmoteData;
 import data.display.TileData;
 import data.object.SpriteData;
@@ -58,7 +58,7 @@ class GameData
     /**
      * Emote static array
      */
-    #if display
+    #if visual
     public var emotes:Vector<EmoteData>;
     #end
     public function new()
@@ -80,7 +80,7 @@ class GameData
         blocking = new Map<String,Bool>();
         playerMap = new Map<Int,Player>();
     }
-    #if display
+    #if visual
     /**
      * Visual generate emote data
      */
@@ -102,7 +102,11 @@ class GameData
      */
     private function objectData()
     {
-        if (!FileSystem.exists(Game.dir + "objects/nextObjectNumber.txt")) return;
+        if (!FileSystem.exists(Game.dir + "objects/nextObjectNumber.txt")) 
+        {
+            trace("object data failed");
+            return;
+        }
         //nextobject
         nextObjectNumber = Std.parseInt(File.getContent(Game.dir + "objects/nextObjectNumber.txt"));
         //go through objects
