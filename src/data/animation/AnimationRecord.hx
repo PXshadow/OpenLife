@@ -1,5 +1,4 @@
 package data.animation;
-#if openfl
 import haxe.ds.Vector;
 import data.animation.AnimationParameter;
 import data.animation.AnimationType;
@@ -64,4 +63,3 @@ class AnimationRecord
         return string;
     }
 }
-#end

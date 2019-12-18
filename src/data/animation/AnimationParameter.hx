@@ -1,6 +1,5 @@
 package data.animation;
 
-#if openfl
 class AnimationParameter
 {
     //https://github.com/twohoursonelife/OneLifeDocs/blob/master/OHOL%20editor%20guide.txt
@@ -109,4 +108,3 @@ class AnimationParameter
         
     }
 }
-#end

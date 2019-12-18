@@ -1,8 +1,8 @@
+#if openfl
 import data.map.MapInstance;
 import ui.Text;
 import ui.InputText;
 import ui.Button;
-
 class Main extends game.Game
 {
     public function new()
@@ -107,3 +107,4 @@ class Main extends game.Game
         super.mapChunk(instance);
     }
 }
+#end

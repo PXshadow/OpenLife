@@ -1,4 +1,5 @@
 package ui;
+#if openfl
 import openfl.text.Font;
 import haxe.io.Path;
 import openfl.text.TextFormatAlign;
@@ -95,3 +96,4 @@ class Text extends TextField
         super.invalidate();
     }
 }
+#end

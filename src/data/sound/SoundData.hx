@@ -1,6 +1,4 @@
 package data.sound;
-
-#if openfl
 class SoundData
 {
     /**
@@ -26,4 +24,3 @@ class SoundData
         multi = Std.parseFloat(array[1]);
     }
 }
-#end

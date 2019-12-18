@@ -1,0 +1,4 @@
+set.hxml
+
+#This produces files in the out directory, which can be compiled to a native executable with a C compiler such as gcc.
+#example gcc -O3 -o hello -std=c++ -I out out/main.c -lhl [-L/path/to/required/hdll]

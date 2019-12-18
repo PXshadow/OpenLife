@@ -1,5 +1,4 @@
 package data.animation;
-#if openfl
 enum AnimationType
 {
     ground;
@@ -12,4 +11,3 @@ enum AnimationType
     doing;
     endAnimType;
 }
-#end

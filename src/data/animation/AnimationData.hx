@@ -1,6 +1,5 @@
 package data.animation;
 import data.sound.SoundData;
-#if openfl
 import sys.io.File;
 import haxe.ds.Vector;
 import sys.FileSystem;
@@ -136,4 +135,3 @@ class AnimationData extends LineReader
         return param;
     }
 }
-#end

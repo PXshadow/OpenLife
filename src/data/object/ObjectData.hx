@@ -283,7 +283,6 @@ class ObjectData extends LineReader
      */
     public var fail:Bool = false;
     //animation
-    #if openfl
     /**
      * Animation arrays of sprites
      */
@@ -292,7 +291,6 @@ class ObjectData extends LineReader
      * Sound array for objects
      */
     public var sounds:Vector<SoundData>;//=-1:0.250000,-1:0.250000,-1:0.250000,-1:1.000000
-    #end
     /**
      * dummy bool for generated object
      */

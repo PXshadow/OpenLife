@@ -1,4 +1,5 @@
 package ui;
+#if openfl
 class InputText extends Text
 {
     public function new()
@@ -17,3 +18,4 @@ class InputText extends Text
         mouseEnabled = true;
     }
 }
+#end

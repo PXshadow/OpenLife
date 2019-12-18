@@ -76,7 +76,9 @@ class GameData
     private function create()
     {
         map = new data.map.MapData();
+        #if openfl
         tileData = new data.display.TileData();
+        #end
         blocking = new Map<String,Bool>();
         playerMap = new Map<Int,Player>();
     }

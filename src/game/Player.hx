@@ -140,6 +140,7 @@ class Player #if openfl extends TileContainer #end
     var point:Pos;
     private function update(_)
     {
+        #if openfl
         if (frames > 0)
         {
             x += (point.x * Static.GRID)/time;
@@ -153,11 +154,12 @@ class Player #if openfl extends TileContainer #end
             moving = false;
             motion();
         }
+        #end
     }
     public function step(mx:Int,my:Int):Bool
     {
         //no other move is occuring, and player is not moving on blocked
-        if (moving || data.blocking.get(Std.string(ix + mx) + "." + Std.string(iy + my))) return false;
+        if (moving || Game.data.blocking.get(Std.string(ix + mx) + "." + Std.string(iy + my))) return false;
         //send data
         lastMove++;
         var pos = new Pos();
@@ -260,6 +262,7 @@ class Player #if openfl extends TileContainer #end
         hold();
         cloths(data);
     }
+    #if openfl
     public function age(data:ObjectData)
     {
         var ageInital:Bool = true;
@@ -315,6 +318,7 @@ class Player #if openfl extends TileContainer #end
         head.x = headPos.x;
         head.y = headPos.y;
     }
+    #end
     public function cloths(data:ObjectData)
     {
         #if !openfl
