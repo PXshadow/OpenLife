@@ -1,6 +1,4 @@
 package console;
-
-import hscript.Parser;
 #if openfl
 import openfl.ui.Keyboard;
 import openfl.net.URLRequest;
@@ -13,8 +11,10 @@ import ui.Text;
 class Console #if openfl extends DisplayObjectContainer #end
 {
     var length:Int = 0;
-    var parser:Parser;
+    #if hscript
+    var parser:hscript.Parser;
     var interp:Interp;
+    #end
     var history:Array<String> = [];
     var command:Command;
     //debug elements
@@ -54,6 +54,7 @@ class Console #if openfl extends DisplayObjectContainer #end
         addChild(output);
         #end
         //hscript
+        #if hscript
         parser = new Parser();
         parser.allowJSON = true;
         parser.allowJSON = true;
@@ -63,10 +64,13 @@ class Console #if openfl extends DisplayObjectContainer #end
         set("math",Math);
         set("grid",Static.GRID);
         set("util",console.Util);
+        #end
     }
     public function set(name:String,value:Dynamic)
     {
+        #if hscript
         interp.variables.set(name,value);
+        #end
     }
     public function print(inp:String,out:String)
     {
@@ -174,7 +178,9 @@ class Console #if openfl extends DisplayObjectContainer #end
         history.push(text);
         //attempt hscript
         try {
+            #if hscript
             print(text,interp.expr(parser.parseString(text)));
+            #end
         }catch(e:Dynamic)
         {
             print(text,e);
@@ -212,6 +218,7 @@ class Console #if openfl extends DisplayObjectContainer #end
 		return filteredFields;
 	}
 }
+#if hscript
 private class Interp extends hscript.Interp
 {
 	public function getGlobals():Array<String>
@@ -242,3 +249,4 @@ private class Interp extends hscript.Interp
 		return v;
 	}
 }
+#end

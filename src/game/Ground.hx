@@ -8,7 +8,6 @@ import openfl.display.BitmapData;
 import openfl.display.Tileset;
 import openfl.geom.Rectangle;
 import openfl.display.Shape;
-import shaders.AlphaGraphicShader;
 import sys.io.File;
 
 class Ground extends Shape
@@ -77,25 +76,6 @@ class Ground extends Shape
         // make biome tiles more centered on world tiles
         transforms.push(x * Static.GRID + 32 * mu);
         transforms.push((Static.tileHeight - y) * Static.GRID + 32 * mu);
-        //corner
-        /*if (cornerCheck)
-        {
-            var cid = data.map.biome.get(x - 1,y);
-            if (cid != id)
-            {
-                indices.pop();
-                for (i in 0...2) transforms.pop();
-                //add(cid,x,y,false);
-                return;
-            }
-            cid = data.map.biome.get(x,y - 1);
-            if (cid != id) 
-            {
-                indices.pop();
-                for (i in 0...2) transforms.pop();
-                //add(cid,x,y,false);
-            }
-        }*/
     }
     private function abs(i:Int):Int
     {

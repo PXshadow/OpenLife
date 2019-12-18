@@ -3,22 +3,21 @@ import haxe.ds.ObjectMap;
 import data.object.ObjectData;
 import game.Player;
 import game.Game;
-#if full
 import game.Ground;
 import data.transition.TransitionData;
 import data.map.MapData;
-#end
 import sys.FileSystem;
 import sys.io.File;
 import haxe.io.Path;
-#if openfl
+#if display
 import data.animation.emote.EmoteData;
 import data.display.TileData;
-import openfl.display.TileContainer;
+import data.object.SpriteData;
+#end
+#if openfl
 import openfl.display.Tile;
 import openfl.geom.Rectangle;
 import haxe.ds.Vector;
-import data.object.SpriteData;
 #end
 //data stored for the game to function (map data -> game data)
 class GameData
@@ -28,7 +27,6 @@ class GameData
      */
     public var blocking:Map<String,Bool> = new Map<String,Bool>();
     public var playerMap:Map<Int,Player> = new Map<Int,Player>();
-    #if full
     /**
      * Transition data
      */
@@ -37,8 +35,7 @@ class GameData
      * Map data (ground,floor,objects)
      */
     public var map:MapData;
-    #end
-    #if openfl
+    #if visual
     /**
      * Map of sprites, id to data
      */
@@ -52,14 +49,16 @@ class GameData
      * total non generated objects
      */
     public var nextObjectNumber:Int = 0;
-    #if openfl
     /**
      * Tile data
      */
+    #if openfl
     public var tileData:TileData;
+    #end
     /**
      * Emote static array
      */
+    #if display
     public var emotes:Vector<EmoteData>;
     #end
     public function new()
@@ -81,9 +80,9 @@ class GameData
         blocking = new Map<String,Bool>();
         playerMap = new Map<Int,Player>();
     }
-    #if openfl
+    #if display
     /**
-     * OpenFL generate emote data
+     * Visual generate emote data
      */
     public function emoteData(settings:settings.Settings)
     {
@@ -103,6 +102,7 @@ class GameData
      */
     private function objectData()
     {
+        if (!FileSystem.exists(Game.dir + "objects/nextObjectNumber.txt")) return;
         //nextobject
         nextObjectNumber = Std.parseInt(File.getContent(Game.dir + "objects/nextObjectNumber.txt"));
         //go through objects

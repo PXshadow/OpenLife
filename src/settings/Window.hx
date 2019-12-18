@@ -1,3 +1,0 @@
-package settings;
-//window setup
-

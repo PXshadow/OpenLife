@@ -43,14 +43,11 @@ To Developers:
 
 * **Thoughtful, concise and efficent code:** Codebase continues to become as minimalistic as possible while also keeping the level of abstraction low.
 
-<!--Play
-====-->
-
 
 Getting Started
 =========
-* [Download Haxe](https://haxe.org/download/version/4.0.0-rc.3/)
-* Run the run.sh commands in this directory
-* Test project initially: ```lime test neko```
+* [Download Haxe](https://haxe.org/download/version/4.0.0/)
+* run the command ```haxelib setup```
+* Run the install.sh script, windows ```start install.sh```, linux/mac ```sh install.sh```
 * For C++ version: ```lime test cpp```
 * add [data files](https://github.com/jasonrohrer/OneLifeData7) into application directory 

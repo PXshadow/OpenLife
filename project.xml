@@ -8,13 +8,13 @@
 	<haxelib name="format"/>
 	<haxelib name="openfl" />
 	<haxelib name="actuate"/>
-	<haxelib name="hscript"/>
-	<haxedef name="full"/>
+	<!--<haxelib name="hscript"/>-->
+	<haxedef name="display"/>
 	
 	<section if="debug">
-	<haxedef name="HXCPP_CHECK_POINTER"/>
-	<haxedef name="HXCPP_STACK_LINE"/>
-	<haxedef name="HXCPP_STACK_TRACE"/>
+	<!--<haxedef name="HXCPP_CHECK_POINTER"/>-->
+	<!--<haxedef name="HXCPP_STACK_LINE"/>-->
+	<!--<haxedef name="HXCPP_STACK_TRACE"/>-->
 	<!--<haxedef name="HXCPP_PROFILER"/>-->
 	</section>
 
@@ -24,9 +24,9 @@
 	<!--<haxedef name="HXCPP_GC_MOVING"/>-->
 	<!--<haxedef name="utf16"/>-->
 
-	<haxedef name="no-deprecation-warnings"/>
+	<!--<haxedef name="no-deprecation-warnings"/>-->
 	<haxedef name="openfl_power_of_two"/>
 	<haxedef name="canvas" if="html5"/>
 	<icon path="icon.svg"/>
-	<assets path="assets" embed="true"/>
+	<!--<assets path="assets" embed="true"/>-->
 </project>

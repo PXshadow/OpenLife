@@ -1,9 +1,5 @@
 package game;
 import data.map.MapData;
-#if full
-import console.Program.Pos;
-import console.Program;
-#end
 import data.GameData;
 #if openfl
 import openfl.events.Event;
@@ -16,6 +12,7 @@ import motion.MotionPath;
 import motion.Actuate;
 import openfl.display.Tile;
 #end
+import console.Program.Pos;
 import data.object.player.PlayerInstance;
 import data.object.player.PlayerData;
 import haxe.Timer;
@@ -25,12 +22,15 @@ import data.animation.AnimationData;
 import haxe.ds.Vector;
 class Player #if openfl extends TileContainer #end
 {
-    #if openfl
     //statics
+    #if display
     private static inline var babyHeadDownFactor:Float = 0.6;
     private static inline var babyBodyDownFactor:Float = 0.75;
     private static inline var oldHeadDownFactor:Float = 0.35;
     private static inline var oldHeadForwardFactor:Float = 2;
+    #end
+    #if openfl
+    public var objects:game.Objects;
     public var heldObject:TileContainer;
     //clothing hat;tunic;front_shoe;back_shoe;bottom;backpack
     public var clothing:Vector<Array<Tile>>;
@@ -43,10 +43,7 @@ class Player #if openfl extends TileContainer #end
     public var moveTimer:Timer;
     public var moving:Bool = false;
     public var goal:Bool = false;
-    #if full
     public var moves:Array<Pos> = [];
-    public var program:Program = null;
-    #end
     public var follow:Bool = true;
     var multi:Float = 1;
     //locally used instance pos
@@ -105,8 +102,6 @@ class Player #if openfl extends TileContainer #end
         return new Point();
     }
     #end
-
-    #if full
     public function motion()
     {
         //use another move
@@ -138,18 +133,6 @@ class Player #if openfl extends TileContainer #end
             frames = time;
             #end
             if (move != null) move();
-        }else{
-            #if openfl
-            //buffer
-            if (Main.xs != 0 || Main.ys != 0) 
-            {
-                step(Main.xs,Main.ys);
-            }else{
-                //no buffer
-                //animations.clear(sprites());
-                if (stop != null) stop();
-            }
-            #end
         }
     }
     var frames:Int = 0;
@@ -228,15 +211,11 @@ class Player #if openfl extends TileContainer #end
         pos.y = pos.y - pos2.y;
         return pos;
     }
-    #end
     public function force() 
     {
-        #if full
         moves = [];
-        #end
         moving = false;
         #if openfl
-        Main.animations.clear(sprites());
         Actuate.pause(this);
         //local position
         x = instance.x * Static.GRID;
@@ -259,7 +238,8 @@ class Player #if openfl extends TileContainer #end
             {
                 //added back to stage
                 #if openfl
-                Main.objects.group.addTile(this);
+                parent.addTile(this);
+                //Main.objects.group.addTile(this);
                 #end
                 held = false;
             }
@@ -269,15 +249,71 @@ class Player #if openfl extends TileContainer #end
             force();
         }
         //remove moves
-        #if full
-        moves = [];
-        #end
         var data = Game.data.objectMap.get(instance.po_id);
         #if openfl
-        age(data);
+        if (ageInt != Std.int(instance.age)) 
+        {
+            ageInt = Std.int(instance.age);
+            age(data);
+        }
         #end
         hold();
         cloths(data);
+    }
+    public function age(data:ObjectData)
+    {
+        var ageInital:Bool = true;
+        var headMoveX:Float = 0;
+        var headMoveY:Float = 0;
+        var bodyMoveX:Float = 0;
+        var bodyMoveY:Float = 0;
+        //redering
+        ageInt = Std.int(instance.age);
+        objects.visibleSprites(instance.po_id,sprites(),ageInt);
+        //get and set sprites for head
+        var head = _sprites[data.headIndex];
+        objects.setSprite(head,data.spriteArray[data.headIndex],0,0);
+        var body = _sprites[data.bodyIndex];
+        objects.setSprite(body,data.spriteArray[data.bodyIndex],0,0);
+        var frontFoot = _sprites[data.frontFootIndex];
+        objects.setSprite(frontFoot,data.spriteArray[data.frontFootIndex],0,0);
+        //points
+        var headPos = new Point(head.x,head.y);
+        var bodyPos = new Point(body.x,body.y);
+        var frontFootPos = new Point(frontFoot.x,frontFoot.y);
+
+        headPos = headPos.add(getAgeHeadOffset(instance.age,headPos,bodyPos,frontFootPos));
+        headPos = headPos.add(getAgeBodyOffset(instance.age,bodyPos));
+
+        bodyPos = bodyPos.add(getAgeBodyOffset(instance.age,bodyPos));
+
+        //diffrence move children now
+        var dx:Float = 0;
+        var dy:Float = 0;
+        for (i in 0...data.numSprites)
+        {
+            if (data.spriteArray[i].parent == data.headIndex)
+            {
+                _sprites[i].x += headPos.x - head.x - headMoveX;
+                _sprites[i].y += headPos.y - head.y - headMoveY;
+                continue;
+            }
+            if (data.spriteArray[i].parent == data.bodyIndex)
+            {
+                _sprites[i].x += bodyPos.x - body.x - bodyMoveX;
+                _sprites[i].y += bodyPos.y - body.y - bodyMoveY;
+            }
+        }
+        headMoveX = headPos.x - head.x;
+        headMoveY = headPos.y - head.y;
+        bodyMoveX = bodyPos.x - body.x;
+        bodyMoveY = bodyPos.y - body.y;
+        //set body and head
+        body.x = bodyPos.x;
+        body.y = bodyPos.y;
+
+        head.x = headPos.x;
+        head.y = headPos.y;
     }
     public function cloths(data:ObjectData)
     {
@@ -341,7 +377,7 @@ class Player #if openfl extends TileContainer #end
                     clothsData = Game.data.objectMap.get(id);
                     offsetX = clothsData.clothingOffset.x + getTileAt(index).x;
                     offsetY = -clothsData.clothingOffset.y + getTileAt(index).y;
-                    sprites = Main.objects.create(clothsData,offsetX,offsetY,true);
+                    sprites = objects.create(clothsData,offsetX,offsetY,true);
                     clothing[i - 1] = sprites;
                     for (j in 0...sprites.length)
                     {
@@ -377,7 +413,7 @@ class Player #if openfl extends TileContainer #end
         if (!Static.arrayEqual(oid,instance.o_id))
         {
             //check if was player to re add to stage
-            if (instance.o_id.length == 1 && instance.o_id[0] < 0) Main.objects.group.addTile(heldObject);
+            if (instance.o_id.length == 1 && instance.o_id[0] < 0) objects.group.addTile(heldObject);
             //change
             oid = instance.o_id;
             trace("oid " + oid);
@@ -387,7 +423,7 @@ class Player #if openfl extends TileContainer #end
             if (oid[0] > 0)
             {
                 heldObject = new TileContainer();
-                Main.objects.add(oid,0,0,heldObject);
+                objects.add(oid,0,0,heldObject);
             }else{
                 heldObject = Game.data.playerMap.get(oid[0] * -1);
                 if (heldObject == null) 
@@ -395,7 +431,7 @@ class Player #if openfl extends TileContainer #end
                     trace("held baby not found " + oid[0]);
                     return;
                 }
-                Main.objects.removeTile(heldObject);
+                objects.removeTile(heldObject);
             }
             //pos
             var data = Game.data.objectMap.get(oid[0]);
@@ -426,56 +462,10 @@ class Player #if openfl extends TileContainer #end
     var headMoveY:Float = 0;
     var bodyMoveX:Float = 0;
     var bodyMoveY:Float = 0;
-    public function age(data:ObjectData)
+    /*public function age(data:ObjectData)
     {
-        if (ageInt == Std.int(instance.age)) return;
-        //redering
-        ageInt = Std.int(instance.age);
-        Main.objects.visibleSprites(instance.po_id,sprites(),ageInt);
-        //get and set sprites for head
-        var head = _sprites[data.headIndex];
-        Main.objects.setSprite(head,data.spriteArray[data.headIndex],0,0);
-        var body = _sprites[data.bodyIndex];
-        Main.objects.setSprite(body,data.spriteArray[data.bodyIndex],0,0);
-        var frontFoot = _sprites[data.frontFootIndex];
-        Main.objects.setSprite(frontFoot,data.spriteArray[data.frontFootIndex],0,0);
-        //points
-        var headPos = new Point(head.x,head.y);
-        var bodyPos = new Point(body.x,body.y);
-        var frontFootPos = new Point(frontFoot.x,frontFoot.y);
-
-        headPos = headPos.add(getAgeHeadOffset(instance.age,headPos,bodyPos,frontFootPos));
-        headPos = headPos.add(getAgeBodyOffset(instance.age,bodyPos));
-
-        bodyPos = bodyPos.add(getAgeBodyOffset(instance.age,bodyPos));
-
-        //diffrence move children now
-        var dx:Float = 0;
-        var dy:Float = 0;
-        for (i in 0...data.numSprites)
-        {
-            if (data.spriteArray[i].parent == data.headIndex)
-            {
-                _sprites[i].x += headPos.x - head.x - headMoveX;
-                _sprites[i].y += headPos.y - head.y - headMoveY;
-                continue;
-            }
-            if (data.spriteArray[i].parent == data.bodyIndex)
-            {
-                _sprites[i].x += bodyPos.x - body.x - bodyMoveX;
-                _sprites[i].y += bodyPos.y - body.y - bodyMoveY;
-            }
-        }
-        headMoveX = headPos.x - head.x;
-        headMoveY = headPos.y - head.y;
-        bodyMoveX = bodyPos.x - body.x;
-        bodyMoveY = bodyPos.y - body.y;
-        //set body and head
-        body.x = bodyPos.x;
-        body.y = bodyPos.y;
-
-        head.x = headPos.x;
-        head.y = headPos.y;
-    }
+        
+        
+    }*/
     #end
 }
