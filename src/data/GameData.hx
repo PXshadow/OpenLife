@@ -63,15 +63,11 @@ class GameData
     #end
     public function new()
     {
-        #if openfl
-        tileData = new TileData();
-        #end
         create();
-        objectData();
     }
     public function clear()
     {
-        
+        create();
     }
     private function create()
     {
@@ -102,12 +98,13 @@ class GameData
     /**
      * Generate object data
      */
-    private function objectData()
+    public function objectData():Vector<Int>
     {
         if (!FileSystem.exists(Game.dir + "objects/nextObjectNumber.txt")) 
         {
             trace("object data failed");
-            return;
+            nextObjectNumber = 0;
+            return null;
         }
         //nextobject
         nextObjectNumber = Std.parseInt(File.getContent(Game.dir + "objects/nextObjectNumber.txt"));
@@ -118,35 +115,11 @@ class GameData
         {
             list.push(Std.parseInt(Path.withoutExtension(path)));
         }
-        trace("read dir " + UnitTest.stamp());
         list.sort(function(a:Int,b:Int)
         {
             if (a > b) return 1;
             return -1;
         });
-        trace("sort " + list[list.length - 1]);
-        var nextObjectNumberInt = nextObjectNumber;
-        trace("nextObjectNumber " + nextObjectNumber);
-        var data:ObjectData;
-        var dummyObject:ObjectData;
-        for (i in list) 
-        {
-            data = new ObjectData(i);
-            //set num uses everything else should be set for cloning
-            if (data.numUses > 1)
-            {
-                for (j in 0...data.numUses - 1) 
-                {
-                    dummyObject = data.clone();
-                    dummyObject.id = ++nextObjectNumberInt;
-                    dummyObject.numUses = 0;
-                    dummyObject.dummy = true;
-                    dummyObject.dummyParent = data.id;
-                    dummyObject.dummyIndex = j + 1;
-                    objectMap.set(dummyObject.id,dummyObject);
-                }
-            }
-            objectMap.set(data.id,data);
-        }
+        return Vector.fromArrayCopy(list);
     }
 }

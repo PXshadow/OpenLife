@@ -50,5 +50,6 @@ Getting Started
 * [Download Haxe](https://haxe.org/download/version/4.0.0/)
 * run the command ```haxelib setup```
 * Run the install.sh script, windows ```start install.sh```, linux/mac ```sh install.sh```
+* For Neko version (faster build time, worse performance) ```lime test neko```
 * For C++ version: ```lime test cpp```
-* add [data files](https://github.com/jasonrohrer/OneLifeData7) into application directory 
+* add [data files](https://github.com/jasonrohrer/OneLifeData7) into the application directory 

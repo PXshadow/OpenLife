@@ -302,7 +302,7 @@ class ObjectData extends LineReader
     /**
      * dummyIndex, the amount of uses
      */
-    public var dummyIndex:Int = 0;
+    //public var dummyIndex:Int = 0;
     /**
      * New Object Data
      * @param i id

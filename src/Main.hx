@@ -1,21 +1,74 @@
+import haxe.ds.Vector;
+import lime.app.Future;
+import data.object.ObjectData;
+import game.Game;
 #if openfl
+
+import game.Ground;
+import game.Objects;
 import data.map.MapInstance;
 import ui.Text;
 import ui.InputText;
 import ui.Button;
 class Main extends game.Game
 {
+    var objects:Objects;
+    var ground:Ground;
     public function new()
     {
         directory();
         super();
+        var vector = Game.data.objectData();
+        if (Game.data.nextObjectNumber > 0)
+        {
+            function complete()
+            {
+                trace("finish");
+            }
+            #if (target.threaded)
+            sys.thread.Thread.create(() -> {
+                objectData(vector);
+                complete();
+            });
+            #else
+            objectData(vector);
+            complete();
+            #end
+        }
         cred();
         login();
         //connect();
     }
+    private function objectData(vector:Vector<Int>)
+    {
+        var int = Game.data.nextObjectNumber;
+        var data:ObjectData;
+        var dummyObject:ObjectData;
+        for (id in vector)
+        {
+            data = new ObjectData(id);
+            if (data.numUses > 1)
+            {
+                for (j in 1...data.numUses - 1)
+                {
+                    dummyObject = data.clone();
+                    dummyObject.id = ++int;
+                    dummyObject.numUses = 0;
+                    dummyObject.dummy = true;
+                    dummyObject.dummyParent = data.id;
+                    Game.data.objectMap.set(dummyObject.id,dummyObject);
+                }
+            }
+            Game.data.objectMap.set(data.id,data);
+            trace("id " + id);
+        }
+    }
     private function game()
     {
-        
+        objects = new Objects();
+        ground = new Ground();
+        addChild(objects);
+        addChild(ground);
     }
     private function login()
     {
