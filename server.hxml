@@ -1,0 +1,7 @@
+-cp src
+-lib record-macros
+-main server.Server
+-lib record-macros
+#-hl bin/server/server.hl
+-cpp bin/server
+-dce full

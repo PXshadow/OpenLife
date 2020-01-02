@@ -1,4 +1,4 @@
-package data.display;
+package data;
 #if cpp
 import cpp.UInt64;
 import cpp.UInt32;

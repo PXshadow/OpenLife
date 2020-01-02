@@ -8,6 +8,7 @@ import client.Client;
 import settings.Settings;
 import data.GameData;
 import haxe.io.Path;
+import client.ClientTag;
 
 class Game extends GameHeader
 {
@@ -21,10 +22,6 @@ class Game extends GameHeader
      * Used for string tool functions
      */
     var string:String;
-    /**
-     * index multi message such as MapChunk
-     */
-    var index:Int = 0;
     public static var dir:String;
     var compress:Bool = false;
     var mapInstance:MapInstance;
@@ -103,25 +100,13 @@ class Game extends GameHeader
         client.port = Secret.port;
         #end
     }
-    private function end()
-    {
-        switch(client.tag)
-        {
-            case PONG:
-            client.ping = UnitTest.stamp();
-            default:
-        }
-    }
     private function connect()
     {
         client.accept = function()
         {
             trace("accept");
             client.message = message;
-            client.end = end;
             client.accept = null;
-            client.tag = null;
-            index = 0;
         }
         client.reject = function()
         {
@@ -133,14 +118,13 @@ class Game extends GameHeader
     }
     var array:Array<String>;
 
-    private function message(input:String) 
+    private function message(tag:ClientTag,input:String) 
     {
-        switch(client.tag)
+        switch(tag)
         {
             case COMPRESSED_MESSAGE:
             array = input.split(" ");
             client.compress = Std.parseInt(array[1]);
-            client.tag = null;
             case PLAYER_EMOT:
             array = input.split(" ");
             //p_id emot_index ttl_sec
@@ -150,11 +134,9 @@ class Game extends GameHeader
             //playerUpdate(new PlayerInstance(input.split(" ")));
             case PLAYER_MOVES_START:
             //playerMoveStart(new PlayerMove(input.split(" ")));
-            client.tag = null;
             case MAP_CHUNK:
             if(compress)
             {
-                client.tag = null;
                 data.map.setRect(mapInstance,input);
                 //mapChunk(mapInstance);
                 //mapInstance = null;
@@ -163,6 +145,7 @@ class Game extends GameHeader
             }else{
                 array = input.split(" ");
                 //trace("map chunk array " + array);
+                var index:Int = 0;
                 for(value in array)
                 {
                     switch(index++)
@@ -192,21 +175,13 @@ class Game extends GameHeader
             }
             case MAP_CHANGE:
             var change = new MapChange(input.split(" "));
-            
-            client.tag = null;
-            index = 0;
             case HEAT_CHANGE:
             //heat food_time indoor_bonus
-            //trace("heat " + input);
-            client.tag = null;
-            index = 0;
             case FOOD_CHANGE:
             //trace("food change " + input);
             array = input.split(" ");
             //foodPercent = Std.parseInt(array[0])/Std.parseInt(array[1]);
             case FRAME:
-            client.tag = null;
-            index = 0;
             case PLAYER_SAYS:
             array = input.split("/");
             //trace("id " + array[0]);

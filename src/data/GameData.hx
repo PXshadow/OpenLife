@@ -9,6 +9,7 @@ import data.map.MapData;
 import sys.FileSystem;
 import sys.io.File;
 import haxe.io.Path;
+import haxe.ds.Vector;
 #if visual
 import data.animation.emote.EmoteData;
 import data.display.TileData;
@@ -17,7 +18,6 @@ import data.object.SpriteData;
 #if openfl
 import openfl.display.Tile;
 import openfl.geom.Rectangle;
-import haxe.ds.Vector;
 #end
 //data stored for the game to function (map data -> game data)
 class GameData

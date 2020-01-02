@@ -1,4 +1,4 @@
-/*Game is a bindings class to hold the main functionality for the game.
+Game is a bindings class to hold the main functionality for the game.
 Game if on OpenFL will take (ground,objects,data,client,settings)
 Game if non OpenFL will only take (data,client,settings)
 

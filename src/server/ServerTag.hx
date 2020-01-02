@@ -26,10 +26,19 @@ package server;
     public var VOGI = "VOGI";
     public var VOGT = "VOGT";
     public var VOGX = "VOGX";
-    //photo to scary to use
+    /**
+     * photo to scary to use
+     */
     public var PHOTO = "PHOTO";
-    //say for messaging
+    /**
+     * say for messaging
+     */
     public var SAY = "SAY";
+    /**
+     * login
+     */
+    public var LOGIN = "LOGIN";
+
     @:from private static function fromString(value:String):ServerTag
     {
         return switch (value)
@@ -59,6 +68,7 @@ package server;
             case "VOGX": VOGX;
             case "PHOTO": PHOTO;
             case "SAY": SAY;
+            case "LOGIN": LOGIN;
             default: null;
         }
     }

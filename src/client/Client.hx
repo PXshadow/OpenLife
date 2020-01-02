@@ -16,7 +16,6 @@ class Client
     #if (sys || nodejs)
     var socket:Socket;
     #end
-    public var tag:ClientTag;
     //interact to be able to login to game
     var data:String = "";
     var dataCompress:Bytes;
@@ -25,10 +24,9 @@ class Client
     public var compress:Int = 0;
     var tagRemove:Bool = false;
     var index:Int = 0;
-    public var message:String->Void;
-    public var end:Void->Void;
-    public var ip:String = "";
-    public var port:Int = 0;
+    public var message:(tag:ClientTag,data:String)->Void;
+    public var ip:String = "localhost";
+    public var port:Int = 8005;
     //reconnect timer
     public var reconnect:Int = -1;
     //ping
@@ -44,6 +42,7 @@ class Client
     //functions
     public var accept:Void->Void;
     public var reject:Void->Void;
+    var acceptBool:Bool = false;
 
     public function new()
     {
@@ -58,13 +57,14 @@ class Client
 		try {
             if(compress == 0) 
             {
-                data = socket.input.readLine();
+                data += socket.input.readAll().toString();
+                trace("data get " + data);
             }
 		}catch(e:Dynamic)
 		{
 			if(e != "Blocking" && e != Error.Blocked && e != "Blocked")
 			{
-                
+                trace('e: $e');
 			}
 		}
         #end
@@ -83,34 +83,27 @@ class Client
     }
     private function process()
     {
-        if(data.substring(0,1) == "#")
+        trace("data " + data);
+        var index = data.indexOf("#");
+        if (index == -1) 
         {
-            //behavior end #
-            if(end != null) end();
-            index = 0;
-            tag = data.substring(1,data.length);
-            //login
-            if(login != null)
-            {
-                if (tag == ACCEPTED && accept != null) accept();
-                if (tag == REJECTED && reject != null) reject();
-            }
-            if (tag != FRAME && tag != HEAT_CHANGE) return;
-        }
-        if(tag == "")
-        {
-            tag = data;
-            //login
-            if(login != null)
-            {
-                if (tag == ACCEPTED && accept != null) accept();
-                if (tag == REJECTED && reject != null) reject();
-            }
-            data = "";
+            if (data.length > 200) data = "";
             return;
         }
-        //message out to state or login
-        if(message != null) message(data);
+        var tag:ClientTag = null;
+        if (acceptBool)
+        {
+            tag = data.substring(0,2);
+        }else{
+            tag = data.substring(0,data.length - 1);
+            if (tag == ACCEPTED) acceptBool = true;
+        }
+        if (tag != null)
+        {
+            message(tag,data.substring(cast(tag,String).length,data.length - 1));
+        }else{
+            data = "";
+        }
     }
     public function alive()
     {
@@ -118,7 +111,7 @@ class Client
         UnitTest.inital();
         send("PING 0 0 " + pingInt++);
     }
-    public function login(data:String) 
+    public function login(tag:ClientTag,data:String) 
     {
         //login process
         switch(tag)
@@ -157,7 +150,6 @@ class Client
         //login += " " + Sha1.make(Bytes.ofString(twin)).toHex() + " 1";
 
         send("LOGIN " + string);
-		tag = "";
     }
     public function send(data:String)
     {
@@ -210,7 +202,7 @@ class Client
         socket.setBlocking(false);
         #end
         connected = true;
-        trace("connect sys");
+        trace("connected");
         #end
 	}
     public function close()
@@ -231,16 +223,9 @@ class Client
         trace("compress");
         var temp:Bytes;
         #if (sys || nodejs)
-        if(tagRemove)
-        {
-            //remove #
-            socket.input.readString(1);
-            tagRemove = false;
-        }
         if(index >= compress)
         {
-            throw("map issue");
-            tag = null;
+            throw("index issue");
             compress = 0;
             return;
         }
@@ -257,20 +242,11 @@ class Client
             compress = 0;
             //unzip and send as normal message
             data = haxe.zip.Uncompress.run(dataCompress,dataCompress.length).toString();
-            if (tag == null) 
-            {
-                var array = data.split("\n");
-                tag = array[0];
-                for (i in 1...array.length - 1)
-                {
-                    message(array[i]);
-                }
-                end();
-            }else{
-                message(data);
-            }
+            //send message function with tag
+
+            //clean up
             dataCompress = null;
-            tag = null;
+            data = "";
         }
     }
 }

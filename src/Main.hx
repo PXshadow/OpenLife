@@ -1,9 +1,8 @@
+#if openfl
 import haxe.ds.Vector;
 import lime.app.Future;
 import data.object.ObjectData;
 import game.Game;
-#if openfl
-
 import game.Ground;
 import game.Objects;
 import data.map.MapInstance;

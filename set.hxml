@@ -1,6 +1,7 @@
 -cp src
 -dce std
 #-main Main
+-main ImportAll
 -lib hscript
 -D luajit
 -D lua-vanilla
