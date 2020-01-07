@@ -160,3 +160,36 @@ class Main extends game.Game
     }
 }
 #end
+
+#if (!openfl)
+import ImportAll;
+class Main
+{
+    public static function main()
+    {
+        var client = new client.Client();
+        client.accept = function()
+        {
+            trace("accept");
+            client.message = message;
+            client.accept = null;
+        }
+        client.reject = function()
+        {
+            trace("reject");
+            client.reject = null;
+        }
+        client.message = client.login;
+        client.connect();
+        while (true)
+        {
+            client.update();
+            Sys.sleep(0.2);
+        }
+    }
+    public static function message(tag:client.ClientTag,input:String)
+    {
+        trace('$tag $input');
+    }
+}
+#end

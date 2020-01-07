@@ -1,9 +1,9 @@
 -cp src
 -dce std
 #-main Main
--main ImportAll
+-main Main
 -lib hscript
 -D luajit
 -D lua-vanilla
 -D haxeJson
--D full
+#-D full

@@ -55,7 +55,7 @@ class Console #if openfl extends DisplayObjectContainer #end
         #end
         //hscript
         #if hscript
-        parser = new Parser();
+        parser = new hscript.Parser();
         parser.allowJSON = true;
         parser.allowJSON = true;
         interp = new Interp();

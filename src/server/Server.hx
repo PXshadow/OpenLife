@@ -39,35 +39,7 @@ class Server extends cpp.net.ThreadServer<Client,Message>
         trace("Server starting up");
         trace("Server using version " + 0);
         var server = new Server();
-        Thread.create(function()
-        {
-            server.run("localhost",8005);
-        });
-        trace("Client starting up");
-        Sys.sleep(1);
-        var client = new client.Client();
-        client.accept = function()
-        {
-            trace("accept");
-            client.message = message;
-            client.accept = null;
-        }
-        client.reject = function()
-        {
-            trace("reject");
-            client.reject = null;
-        }
-        client.message = client.login;
-        client.connect();
-        while (true)
-        {
-            client.update();
-            Sys.sleep(0.05);
-        }
-    }
-    public static function message(tag:ClientTag,input:String)
-    {
-        trace('$tag $input');
+        server.run("localhost",8005);
     }
     public function new()
     {
@@ -89,7 +61,14 @@ class Server extends cpp.net.ThreadServer<Client,Message>
     {
         trace("new client connected");
         var c:Client = {id: -1,socket: s};
-        send(c,'$SERVER_INFO\n$current/$max\n$challenge\n$version\n');
+        Thread.create(function()
+        {
+            while(true)
+            {
+                send(c,'$SERVER_INFO\n$current/$max\n$challenge\n$version\n');
+                Sys.sleep(2);
+            }
+        });
         return c;
     }
     override function clientDisconnected(c:Client) 
@@ -98,8 +77,8 @@ class Server extends cpp.net.ThreadServer<Client,Message>
     }
     private function send(c:Client,data:String)
     {
-        trace(c.socket.peer().host + " send " + data + "#");
-        c.socket.output.writeString(data + "#");
+        trace(c.socket.peer().host + 'send $data#');
+        c.socket.output.writeString('$data#');
         c.socket.output.flush();
     }
     override function readClientMessage(c:Client, buf:Bytes, pos:Int, len:Int):{msg:Message, bytes:Int} {
