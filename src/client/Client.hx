@@ -55,11 +55,9 @@ class Client
         #if (sys || nodejs)
         if(socket == null) return;
 		try {
-            trace("try");
             if(compress == 0) 
             {
-                trace("try2");
-                data += socket.input.readAll().toString();
+                data = socket.input.readAll().toString();
                 trace("data get " + data);
             }
 		}catch(e:Dynamic)

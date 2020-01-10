@@ -20,12 +20,7 @@ typedef Client = {
    socket:Socket,
 }
 
-typedef Message = {
-    tag:ServerTag,
-    input:String,
-}
-
-class Server extends cpp.net.ThreadServer<Client,Message>
+class Server
 {
     var dir:String;
     var num:Int = 0;
@@ -34,19 +29,14 @@ class Server extends cpp.net.ThreadServer<Client,Message>
     var version:Int = 0;
     var challenge = "sdfmlk3490sadfm3ug9324";
     var settings:Settings;
+    var socket:Socket;
+    var clients:Array<Client> = [];
     public static function main()
     {
-        trace("Server starting up");
-        trace("Server using version " + 0);
-        var server = new Server();
-        server.run("localhost",8005);
+        new Server();
     }
     public function new()
     {
-        super();
-        maxBufferSize = 200 * 8 * 2;
-        maxSockPerThread = 200;
-
         dir = Path.addTrailingSlash(Path.directory(Path.normalize(Sys.programPath())));
         trace("dir " + dir);
 
@@ -54,44 +44,57 @@ class Server extends cpp.net.ThreadServer<Client,Message>
         Manager.cnx = Sqlite.open(dir + "database.db");
         //create tables
         if (!TableCreate.exists(server.logs.Life.manager)) TableCreate.create(server.logs.Life.manager);
-
-        trace("cnx " + Manager.cnx);
-    }
-    override function clientConnected(s:Socket):Client 
-    {
-        trace("new client connected");
-        var c:Client = {id: -1,socket: s};
-        Thread.create(function()
+        //run
+        socket = new Socket();
+        socket.bind(new Host("localhost"),8005);
+        socket.listen(10);
+        //accept and add sockets
+        while (true)
         {
-            while(true)
+            try {
+                addSocket(socket.accept());
+            } catch (e:Dynamic)
             {
-                send(c,'$SERVER_INFO\n$current/$max\n$challenge\n$version\n');
-                Sys.sleep(2);
+                trace('e accept: $e');
             }
-        });
-        return c;
-    }
-    override function clientDisconnected(c:Client) 
-    {
-        trace("client " + c.id + " disconnected");
+            Sys.sleep(1/8);
+        }
     }
     private function send(c:Client,data:String)
     {
-        trace(c.socket.peer().host + 'send $data#');
         c.socket.output.writeString('$data#');
         c.socket.output.flush();
     }
-    override function readClientMessage(c:Client, buf:Bytes, pos:Int, len:Int):{msg:Message, bytes:Int} {
-        var complete = false;
-        var cpos = pos;
-        while (cpos <  (pos + len) && !complete)
+    private function addSocket(socket:Socket)
+    {
+        socket.setBlocking(false);
+        trace("client connected " + socket.host().host.host);
+        var c = {id:-1,socket: socket};
+        send(c,'$SERVER_INFO\n$current/$max\n$challenge\n$version\n');
+        clients.push(c);
+        Thread.create(function()
         {
-            complete = (buf.get(cpos++) == "#".code);
-        }
-        if (!complete) return null;
-        var data = buf.getString(pos,cpos-pos);
-        trace("data " + data);
-        return null;
+            while (true)
+            {
+                try {
+                    trace("input: " + socket.input.readAll().toString());
+                }catch(e:Dynamic)
+                {
+                    if (Std.is(e, haxe.io.Eof) || Std.is(e, haxe.io.Error))
+                    {
+                        trace('e client: $e');
+                        socket.close();
+                        clients.remove(c);
+                        return;
+                    }
+                }
+                Sys.sleep(1/4);
+            }
+        });
+    }
+    private function loop(c:Client)
+    {
+
     }
     
 }
