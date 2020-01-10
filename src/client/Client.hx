@@ -22,8 +22,6 @@ class Client
     var aliveTimer:Timer;
     var connected:Bool = false;
     public var compress:Int = 0;
-    var tagRemove:Bool = false;
-    var index:Int = 0;
     public var message:(tag:ClientTag,data:String)->Void;
     public var ip:String = "localhost";
     public var port:Int = 8005;
@@ -42,7 +40,9 @@ class Client
     //functions
     public var accept:Void->Void;
     public var reject:Void->Void;
-    var acceptBool:Bool = false;
+
+
+    var index:Int = 0;
 
     public function new()
     {
@@ -50,21 +50,22 @@ class Client
     }
     public function update()
     {
-        if (!connected) return;
+        if (!connected) 
+        {
+            trace("unconnected for update");
+            return;
+        }
         data = "";
         #if (sys || nodejs)
         if(socket == null) return;
 		try {
-            if(compress == 0) 
-            {
-                data = socket.input.readAll().toString();
-                trace("data get " + data);
-            }
+            data = socket.input.readAll().toString();
 		}catch(e:Dynamic)
 		{
-			if(e != "Blocking" && e != Error.Blocked && e != "Blocked")
+			if(e != Error.Blocked)
 			{
                 trace('e: $e');
+                close();
 			}
 		}
         #end
@@ -73,7 +74,6 @@ class Client
             if(dataCompress == null) 
             {
                 dataCompress = Bytes.alloc(compress);
-                tagRemove = true;
                 index = 0;
             }
             processCompress();
@@ -84,26 +84,15 @@ class Client
     private function process()
     {
         trace("data " + data);
-        var index = data.indexOf("#");
+        index = data.indexOf("#");
+        trace("index " + index);
         if (index == -1) 
         {
             if (data.length > 200) data = "";
             return;
         }
-        var tag:ClientTag = null;
-        if (acceptBool)
-        {
-            tag = data.substring(0,2);
-        }else{
-            tag = data.substring(0,data.length - 1);
-            if (tag == ACCEPTED) acceptBool = true;
-        }
-        if (tag != null)
-        {
-            message(tag,data.substring(cast(tag,String).length,data.length - 1));
-        }else{
-            data = "";
-        }
+        var tag:ClientTag = data.substring(0,2);
+        message(tag,data.substring(cast(tag,String).length,data.length - 1));
     }
     public function alive()
     {
@@ -117,22 +106,32 @@ class Client
         switch(tag)
         {
             case SERVER_INFO:
-			switch(index)
-			{
-				case 0:
-				//current
-                trace("amount " + data);
-				case 1:
-				//challenge
-				challenge = data;
-				case 2: 
-				//version
-				version = Std.parseInt(data);
-                request();
-                tag = "";
-			}
-			index++;
+            var array = data.substring(1,data.length).split("\n");
+            index = 0;
+            for (data in array)
+            {
+                trace("data " + data);
+                switch(index)
+			    {
+				    case 0:
+				    //current
+                    trace("amount " + data);
+				    case 1:
+				    //challenge
+				    challenge = data;
+				    case 2: 
+				    //version
+                    version = Std.parseInt(data);
+                    trace("version " + version);
+                    request();
+                    return;
+                }
+                index++;
+            }
             default:
+
+            case null:
+            trace("data null: " + data);
         }
     }
     private function request()
