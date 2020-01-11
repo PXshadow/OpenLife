@@ -26,14 +26,14 @@ class Server
     var num:Int = 0;
     var current:Int = 0;
     var max:Int = 200;
-    var version:Int = 0;
+    var version:Int = 303;
     var challenge = "sdfmlk3490sadfm3ug9324";
     var settings:Settings;
     var socket:Socket;
     var clients:Array<Client> = [];
     public static function main()
     {
-        Thread.create(function()
+        /*Thread.create(function()
         {
             Sys.sleep(1);
             try {
@@ -42,7 +42,7 @@ class Server
             {
                 trace("fail " + e);
             }
-        });
+        });*/
         new Server();
     }
     public function new()
@@ -84,7 +84,7 @@ class Server
         socket.setBlocking(false);
         trace("client connected " + socket.host().host.host);
         var c = {id:-1,socket: socket};
-        send(c,'$SERVER_INFO\n$current/$max\n$challenge\n$version\n');
+        send(c,'$SERVER_INFO\n$current/$max\n$challenge\n$version');
         clients.push(c);
         Thread.create(function()
         {
@@ -108,7 +108,9 @@ class Server
     }
     private function process(c:Client,data:String)
     {
+        //double face fixes the email padding issue
         var array = data.split(" ");
+        trace(data);
         trace("array " + array);
         if (array.length == 0) return;
         var tag:ServerTag = array[0];
@@ -118,14 +120,28 @@ class Server
     {
         function send(tag:ClientTag,data:String="")
         {
-            this.send(c,'$tag\n$data#');
+            this.send(c,'$tag\n$data');
         }
         switch (tag)
         {
             case LOGIN:
             send(ACCEPTED);
+            //send(MAP_CHUNK,new haxe.zip.Compress(0))
+            var data:String = "";
+            for (i in 0...32 * 30)
+            {
+                data += "0:0:0";
+            }
+            var uncompressed:Bytes = Bytes.ofString(data);
+            var ucl:Int = uncompressed.length;
+            var bytes:Bytes = haxe.zip.Compress.run(uncompressed,0);
+            var length:Int = bytes.length;
+            send(MAP_CHUNK,'32 30 0 0\n$ucl $length');
+            c.socket.output.writeString(bytes.toString());
             case null:
-
+            trace('tag not found in data: $input');
+            case KA:
+            //keep alive
             default:
             trace('$tag not registered');
         }

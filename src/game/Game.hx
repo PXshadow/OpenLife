@@ -23,7 +23,6 @@ class Game extends GameHeader
      */
     var string:String;
     public static var dir:String;
-    var compress:Bool = false;
     var mapInstance:MapInstance;
     public function new()
     {
@@ -123,7 +122,7 @@ class Game extends GameHeader
         switch(tag)
         {
             case COMPRESSED_MESSAGE:
-            client.compress = Std.parseInt(input[0]);
+            trace("input " + input);
             case PLAYER_EMOT:
             //p_id emot_index ttl_sec
             //ttl_sec is optional, and specifies how long the emote should be shown
@@ -133,43 +132,9 @@ class Game extends GameHeader
             case PLAYER_MOVES_START:
             //playerMoveStart(new PlayerMove(input.split(" ")));
             case MAP_CHUNK:
-            if(compress)
-            {
-                data.map.setRect(mapInstance,input[0]);
-                //mapChunk(mapInstance);
-                //mapInstance = null;
-                //toggle to go back to istance for next chunk
-                compress = false;
-            }else{
-                //trace("map chunk array " + array);
-                var index:Int = 0;
-                for(value in input)
-                {
-                    switch(index++)
-                    {
-                        case 0:
-                        mapInstance = new MapInstance();
-                        mapInstance.width = Std.parseInt(value);
-                        case 1:
-                        mapInstance.height = Std.parseInt(value);
-                        case 2:
-                        mapInstance.x = Std.parseInt(value);
-                        case 3:
-                        mapInstance.y = Std.parseInt(value);
-                        case 4:
-                        mapInstance.rawSize = Std.parseInt(value);
-                        case 5:
-                        mapInstance.compressedSize = Std.parseInt(value);
-                        //set min
-                        
-                        trace("map chunk " + mapInstance.toString());
-                        index = 0;
-                        //set compressed size wanted
-                        client.compress = mapInstance.compressedSize;
-                        compress = true;
-                    }
-                }
-            }
+            //mapChunk(mapInstance);
+            //mapInstance = null;
+            //toggle to go back to istance for next chunk
             case MAP_CHANGE:
             var change = new MapChange(input);
             case HEAT_CHANGE:

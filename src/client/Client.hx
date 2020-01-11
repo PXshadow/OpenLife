@@ -18,10 +18,8 @@ class Client
     #end
     //interact to be able to login to game
     var data:String = "";
-    var dataCompress:Bytes;
     var aliveTimer:Timer;
     var connected:Bool = false;
-    public var compress:Int = 0;
     public var message:(tag:ClientTag,input:Array<String>)->Void;
     public var ip:String = "localhost";
     public var port:Int = 8005;
@@ -114,7 +112,11 @@ class Client
                 index++;
             }
             case ACCEPTED:
-            
+            trace("ACCEPTED LOGIN");
+            if (accept != null) accept();
+            case REJECTED:
+            trace("REJECTED LOGIN");
+            if (reject != null) reject();
             default:
             trace('$tag not registered');
             case null:
@@ -203,36 +205,5 @@ class Client
         #end
         connected = false;
         if (aliveTimer != null) aliveTimer.stop();
-    }
-    private function processCompress()
-    {
-        trace("compress");
-        var temp:Bytes;
-        #if (sys || nodejs)
-        if(index >= compress)
-        {
-            throw("index issue");
-            compress = 0;
-            return;
-        }
-        //length - index
-        temp = socket.input.read(compress - index);
-        #end
-        //blit into main compress
-        dataCompress.blit(index,temp,0,temp.length);
-        index += temp.length;
-        if(index >= compress)
-        {
-            trace("index " + index + " compress " + compress + " dataCompress " + dataCompress.length);
-            //finish data
-            compress = 0;
-            //unzip and send as normal message
-            data = haxe.zip.Uncompress.run(dataCompress,dataCompress.length).toString();
-            //send message function with tag
-
-            //clean up
-            dataCompress = null;
-            data = "";
-        }
     }
 }

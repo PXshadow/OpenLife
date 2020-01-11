@@ -1,5 +1,7 @@
 package server.logs;
 
+import sys.db.Types.SNull;
+import sys.db.Types.STinyInt;
 import sys.db.Types.SBool;
 import sys.db.Types.SInt;
 import sys.db.Types.SId;
@@ -8,14 +10,10 @@ import sys.db.Types.STinyUInt;
 import sys.db.Types.SMediumUInt;
 
 
-class Life extends Object
+class Map extends Object
 {
     public var id:SId;
-    public var pid:SMediumUInt;
-    public var x:SInt;
-    public var y:SInt;
-    public var male:SBool;
-    //birth or death
-    public var birth:SBool;
-    public var disconnect:SBool;
+    public var floor:SInt;
+    public var object:SInt;
+    public var grave:SNull<SInt>;
 }

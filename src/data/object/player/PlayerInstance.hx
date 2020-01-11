@@ -183,4 +183,8 @@ class PlayerInstance
         }
         return string;
     }
+    public function toData():String
+    {
+        return '$p_id $po_id $facing $action_target_x $action_target_y $o_id $o_origin_valid $o_origin_x $o_origin_y $o_transition_source_id $heat $done_moving_seqNum ' + (forced ? "1" : "0") + ' $x $y $age $age_r $move_speed $just_ate $last_ate_id $responsible_id ' + (held_yum ? "1" : "0") + " " +  (held_learned ? "1" : "0");
+    }
 }
