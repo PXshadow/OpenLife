@@ -22,7 +22,7 @@ class Client
     var aliveTimer:Timer;
     var connected:Bool = false;
     public var compress:Int = 0;
-    public var message:(tag:ClientTag,data:String)->Void;
+    public var message:(tag:ClientTag,input:Array<String>)->Void;
     public var ip:String = "localhost";
     public var port:Int = 8005;
     //reconnect timer
@@ -59,7 +59,8 @@ class Client
         #if (sys || nodejs)
         if(socket == null) return;
 		try {
-            data = socket.input.readAll().toString();
+            data = socket.input.readUntil("#".code);
+            process();
 		}catch(e:Dynamic)
 		{
 			if(e != Error.Blocked)
@@ -67,32 +68,17 @@ class Client
                 trace('e: $e');
                 close();
 			}
-		}
-        #end
-        if(compress > 0)
-        {
-            if(dataCompress == null) 
-            {
-                dataCompress = Bytes.alloc(compress);
-                index = 0;
-            }
-            processCompress();
-        }else{
-            if (data.length > 0) process();
         }
+        #end
     }
     private function process()
     {
-        trace("data " + data);
-        index = data.indexOf("#");
-        trace("index " + index);
-        if (index == -1) 
-        {
-            if (data.length > 200) data = "";
-            return;
-        }
-        var tag:ClientTag = data.substring(0,2);
-        message(tag,data.substring(cast(tag,String).length,data.length - 1));
+        var array = data.split("\n");
+        trace("array " + array);
+        if (array.length == 0) return;
+        trace("tag: " + array[0]);
+        var tag:ClientTag = array[0];
+        message(tag,array.slice(1,array.length));
     }
     public function alive()
     {
@@ -100,15 +86,14 @@ class Client
         UnitTest.inital();
         send("PING 0 0 " + pingInt++);
     }
-    public function login(tag:ClientTag,data:String) 
+    public function login(tag:ClientTag,input:Array<String>) 
     {
         //login process
         switch(tag)
         {
             case SERVER_INFO:
-            var array = data.substring(1,data.length).split("\n");
             index = 0;
-            for (data in array)
+            for (data in input)
             {
                 trace("data " + data);
                 switch(index)
@@ -128,10 +113,12 @@ class Client
                 }
                 index++;
             }
+            case ACCEPTED:
+            
             default:
-
+            trace('$tag not registered');
             case null:
-            trace("data null: " + data);
+            trace('tag not found in data:\n$data');
         }
     }
     private function request()
@@ -215,7 +202,7 @@ class Client
         trace("socket disconnected");
         #end
         connected = false;
-        aliveTimer.stop();
+        if (aliveTimer != null) aliveTimer.stop();
     }
     private function processCompress()
     {

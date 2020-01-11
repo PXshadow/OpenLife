@@ -26,13 +26,23 @@ class Server
     var num:Int = 0;
     var current:Int = 0;
     var max:Int = 200;
-    var version:Int = 301;
+    var version:Int = 0;
     var challenge = "sdfmlk3490sadfm3ug9324";
     var settings:Settings;
     var socket:Socket;
     var clients:Array<Client> = [];
     public static function main()
     {
+        Thread.create(function()
+        {
+            Sys.sleep(1);
+            try {
+            Main.main();
+            }catch(e:Dynamic)
+            {
+                trace("fail " + e);
+            }
+        });
         new Server();
     }
     public function new()
@@ -53,68 +63,71 @@ class Server
         while (true)
         {
             try {
-                add(socket.accept());
-            }catch(e:Dynamic)
+                addSocket(socket.accept());
+            } catch (e:Dynamic)
             {
-                if (e != "Blocking")
+                if (e == haxe.io.Eof)
                 {
                     trace('e accept: $e');
                 }
             }
+            Sys.sleep(1/8);
         }
-    }
-    private function add(s:Socket)
-    {
-        var c = {id:-1,socket: s};
-        clients.push(c);
-        //setup reader
-        Thread.create(loop).sendMessage(c);
     }
     private function send(c:Client,data:String)
     {
-        try {
-            c.socket.output.writeString('$data#');
-            c.socket.output.flush();
-            trace("c " + data);
-            //c.socket.output.close();
-        }catch(e:Dynamic)
-        {
-            trace('e: $e');
-            close(c);
-            return;
-        }
-        //close(c);
+        c.socket.output.writeString('$data#');
+        c.socket.output.flush();
     }
-    private function close(c:Client)
+    private function addSocket(socket:Socket)
     {
-        c.socket.close();
-        clients.remove(c);
-    }
-    private function loop()
-    {
-        var c:Client = cast Thread.readMessage(true);
-        c.socket.setBlocking(false);
-        var timer = new Timer(1000);
-        timer.run = function()
-            {
+        socket.setBlocking(false);
+        trace("client connected " + socket.host().host.host);
+        var c = {id:-1,socket: socket};
         send(c,'$SERVER_INFO\n$current/$max\n$challenge\n$version\n');
-            }
-        trace("create client loop");
-        while (true)
+        clients.push(c);
+        Thread.create(function()
         {
-            try {
-                trace("data " + c.socket.input.readAll().toString());
-            }catch(e:Dynamic)
+            while (true)
             {
-                if (Std.is(e, haxe.io.Eof))
+                try {
+                    process(c,socket.input.readUntil("#".code));
+                }catch(e:Dynamic)
                 {
-                    trace('e client: $e');
-                    close(c);
-                    return;
+                    if (e == haxe.io.Eof)
+                    {
+                        trace('e client: $e');
+                        socket.close();
+                        clients.remove(c);
+                        return;
+                    }
                 }
+                Sys.sleep(1/4);
             }
-            Sys.sleep(1/4);
+        });
+    }
+    private function process(c:Client,data:String)
+    {
+        var array = data.split(" ");
+        trace("array " + array);
+        if (array.length == 0) return;
+        var tag:ServerTag = array[0];
+        message(c,tag,array.slice(1,array.length));
+    }
+    private function message(c:Client,tag:ServerTag,input:Array<String>)
+    {
+        function send(tag:ClientTag,data:String="")
+        {
+            this.send(c,'$tag\n$data#');
+        }
+        switch (tag)
+        {
+            case LOGIN:
+            send(ACCEPTED);
+            case null:
+
+            default:
+            trace('$tag not registered');
         }
     }
-    
 }

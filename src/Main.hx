@@ -187,7 +187,7 @@ class Main
             Sys.sleep(0.2);
         }
     }
-    public static function message(tag:client.ClientTag,input:String)
+    public static function message(tag:client.ClientTag,input:Array<String>)
     {
         trace('$tag $input');
     }

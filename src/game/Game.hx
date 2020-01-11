@@ -118,15 +118,13 @@ class Game extends GameHeader
     }
     var array:Array<String>;
 
-    private function message(tag:ClientTag,input:String) 
+    private function message(tag:ClientTag,input:Array<String>) 
     {
         switch(tag)
         {
             case COMPRESSED_MESSAGE:
-            array = input.split(" ");
-            client.compress = Std.parseInt(array[1]);
+            client.compress = Std.parseInt(input[0]);
             case PLAYER_EMOT:
-            array = input.split(" ");
             //p_id emot_index ttl_sec
             //ttl_sec is optional, and specifies how long the emote should be shown
             //-1 is permanent, -2 is permanent but not new so should be skipped
@@ -137,16 +135,15 @@ class Game extends GameHeader
             case MAP_CHUNK:
             if(compress)
             {
-                data.map.setRect(mapInstance,input);
+                data.map.setRect(mapInstance,input[0]);
                 //mapChunk(mapInstance);
                 //mapInstance = null;
                 //toggle to go back to istance for next chunk
                 compress = false;
             }else{
-                array = input.split(" ");
                 //trace("map chunk array " + array);
                 var index:Int = 0;
-                for(value in array)
+                for(value in input)
                 {
                     switch(index++)
                     {
@@ -174,31 +171,30 @@ class Game extends GameHeader
                 }
             }
             case MAP_CHANGE:
-            var change = new MapChange(input.split(" "));
+            var change = new MapChange(input);
             case HEAT_CHANGE:
             //heat food_time indoor_bonus
             case FOOD_CHANGE:
             //trace("food change " + input);
-            array = input.split(" ");
-            //foodPercent = Std.parseInt(array[0])/Std.parseInt(array[1]);
+            //foodPercent = Std.parseInt(input[0])/Std.parseInt(input[1]);
             case FRAME:
             case PLAYER_SAYS:
-            array = input.split("/");
+            /*array = input.split("/");
             //trace("id " + array[0]);
-            var text = array[1].substring(2,array[1].length);
+            var text = array[1].substring(2,array[1].length);*/
             //id = Std.parseInt(array[0]);
             case PLAYER_OUT_OF_RANGE:
             //player is out of range
             trace("player out of range " + input);
-            var id:Int = Std.parseInt(input);
+            var id:Int = Std.parseInt(input[0]);
             var player = data.playerMap.get(id);
             case LINEAGE:
             //p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
 
             case NAME:
             //p_id first_name last_name last_name may be ommitted.
-            array = input.split(" ");
-            var name:String = array[1] + (array.length > 1 ? " " + array[2] : "");
+            var id:Int = Std.parseInt(input[0]);
+            var name:String = input[1] + (input.length > 1 ? " " + input[2] : "");
             case HEALED:
             //p_id player healed no longer dying.
 
@@ -207,10 +203,9 @@ class Game extends GameHeader
 
             case GRAVE:
             //x y p_id
-            array = input.split(" ");
-            var x:Int = Std.parseInt(array[0]);
-            var y:Int = Std.parseInt(array[1]);
-            var id:Int = Std.parseInt(array[2]);
+            var x:Int = Std.parseInt(input[0]);
+            var y:Int = Std.parseInt(input[1]);
+            var id:Int = Std.parseInt(input[2]);
             case DYING:
             //p_id isSick isSick is optional 1 flag to indicate that player is sick (client shouldn't show blood UI overlay for sick players)
             trace("dying " + input);
@@ -227,13 +222,12 @@ class Game extends GameHeader
 
             case VALLEY_SPACING:
             //y_spacing y_offset Offset is from client's birth position (0,0) of first valley.
-            array = input.split(" ");
-            data.map.valleySpacing = Std.parseInt(array[0]);
-            data.map.valleyOffsetY = Std.parseInt(array[1]);
+            data.map.valleySpacing = Std.parseInt(input[0]);
+            data.map.valleyOffsetY = Std.parseInt(input[1]);
             
             case FLIGHT_DEST:
             //p_id dest_x dest_y
-            trace("FLIGHT FLIGHT FLIGHT " + input.split(" "));
+            trace("FLIGHT FLIGHT FLIGHT " + input);
             default:
         }
     }
