@@ -131,4 +131,19 @@ class MapData
             }
             return array;
     }
+    public static function stringID(a:Array<Int>):String
+    {
+        var string:String = "";
+        for (i in 0...a.length)
+        {
+            string += i;
+            if (i >= 0)
+            {
+                string += ",";
+            }else{
+                string += ":";
+            }
+        }
+        return string.substring(0,string.length - 1);
+    }
 }

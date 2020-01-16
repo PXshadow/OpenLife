@@ -9,7 +9,7 @@ class PlayerInstance
     /**
      * Player's object ID, from objects
      */
-    public var po_id:Int = 0;
+    public var po_id:Int = 19;
     /**
      * facing direction 1 (right) or -1 (left)
      */
@@ -81,7 +81,7 @@ class PlayerInstance
     /**
      * clothing set string
      */
-    public var clothing_set:String = "";
+    public var clothing_set:String = "0;0;0;0;0;0";
     /**
      * just ate id
      */
@@ -185,6 +185,6 @@ class PlayerInstance
     }
     public function toData():String
     {
-        return '$p_id $po_id $facing $action_target_x $action_target_y $o_id $o_origin_valid $o_origin_x $o_origin_y $o_transition_source_id $heat $done_moving_seqNum ' + (forced ? "1" : "0") + ' $x $y $age $age_r $move_speed $just_ate $last_ate_id $responsible_id ' + (held_yum ? "1" : "0") + " " +  (held_learned ? "1" : "0");
+        return '$p_id $po_id $facing $action_target_x $action_target_y ' + MapData.stringID(o_id) + '$o_origin_valid $o_origin_x $o_origin_y $o_transition_source_id $heat $done_moving_seqNum ' + (forced ? "1" : "0") + ' $x $y $age $age_r $move_speed $just_ate $last_ate_id $responsible_id ' + (held_yum ? "1" : "0") + " " +  (held_learned ? "1" : "0");
     }
 }

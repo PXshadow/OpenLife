@@ -136,8 +136,11 @@ class Server
             var ucl:Int = uncompressed.length;
             var bytes:Bytes = haxe.zip.Compress.run(uncompressed,0);
             var length:Int = bytes.length;
-            send(MAP_CHUNK,'32 30 0 0\n$ucl $length');
-            c.socket.output.writeString(bytes.toString());
+            send(MAP_CHUNK,'32 30 0 0\n$ucl $length\n' + bytes.toString());
+            //c.socket.output.writeString(bytes.toString());
+            var pu = new data.object.player.PlayerInstance([]).toData();
+            trace("pu " + pu);
+            send(PLAYER_UPDATE,pu);
             case null:
             trace('tag not found in data: $input');
             case KA:
