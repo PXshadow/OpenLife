@@ -1,13 +1,15 @@
-name: Run
+name: test
 on: [push]
-
+#on:
+# schedule:
+#  - cron: "0 0 * * *"
 jobs:
   build:
     linux.yml
 
-    -script: "sh install.sh"
+    -run: "sh install.sh"
     -displayName: Install libraries
 
-    -script: "haxe build.hxml"
+    -run: "haxe build.hxml"
     -displayName: "Run project"
     
