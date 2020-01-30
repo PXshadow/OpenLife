@@ -10,14 +10,16 @@ jobs:
       - uses: actions/checkout@v2
 
       - name:  haxe download
-      - script: "sudo add-apt-repository ppa:haxe/releases -y\nsudo apt-get update\nsudo apt-get install haxe -y\nmkdir ~/haxelib && haxelib setup ~/haxelib"
-        displayName: Setup Haxe
-      - script: haxe -version
-        displayName: Print haxe version
-      - script: "mkdir ~/haxelib\nhaxelib setup ~/haxelib"
-        displayName: Setup haxelib
-      - run: "sh install.sh"
-        displayName: Install libraries
-      - run: "haxe build.hxml"
-        displayName: "Run project"
+        run: |
+          sudo add-apt-repository ppa:haxe/releases -y
+          sudo apt-get update\nsudo apt-get install haxe -y
+          mkdir ~/haxelib && haxelib setup ~/haxelib
+      - name: Setup Haxe
+        run: haxe -version
+      - name: Print haxe version
+        run: "mkdir ~/haxelib\nhaxelib setup ~/haxelib"
+      - name: download libraries
+        run: "sh install.sh"
+      - name: test project
+        run: "haxe build.hxml"
     
