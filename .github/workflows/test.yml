@@ -5,10 +5,27 @@ on: [push]
 #  - cron: "0 0 * * *"
 jobs:
   build:
+    runs-on: ubuntu-latest
     steps:
-      -run: "sh install.sh"
-      -displayName: Install libraries
+      - uses: actions/checkout@v2
 
-      -run: "haxe build.hxml"
-      -displayName: "Run project"
+    - name:  haxe download
+    - script: |
+      sudo add-apt-repository ppa:haxe/releases -y
+      sudo apt-get update
+      sudo apt-get install haxe -y
+      mkdir ~/haxelib && haxelib setup ~/haxelib
+    displayName: Setup Haxe
+    -script: haxe -version
+    displayName: Print haxe version
+    - script: |
+      mkdir ~/haxelib
+      haxelib setup ~/haxelib
+    displayName: Setup haxelib
+
+    -run: "sh install.sh"
+    -displayName: Install libraries
+
+    -run: "haxe build.hxml"
+    -displayName: "Run project"
     
