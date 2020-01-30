@@ -8,23 +8,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
       - name:  haxe download
-      - script: |
-        sudo add-apt-repository ppa:haxe/releases -y
-        sudo apt-get update
-        sudo apt-get install haxe -y
-        mkdir ~/haxelib && haxelib setup ~/haxelib
-      displayName: Setup Haxe
-      -script: haxe -version
-      displayName: Print haxe version
-      - script: |
-        mkdir ~/haxelib
-        haxelib setup ~/haxelib
-      displayName: Setup haxelib
-
-      -run: "sh install.sh"
-      -displayName: Install libraries
-
-      -run: "haxe build.hxml"
-      -displayName: "Run project"
+      - script: "sudo add-apt-repository ppa:haxe/releases -y\nsudo apt-get update\nsudo apt-get install haxe -y\nmkdir ~/haxelib && haxelib setup ~/haxelib"
+        displayName: Setup Haxe
+      - script: haxe -version
+        displayName: Print haxe version
+      - script: "mkdir ~/haxelib\nhaxelib setup ~/haxelib"
+        displayName: Setup haxelib
+      - run: "sh install.sh"
+        displayName: Install libraries
+      - run: "haxe build.hxml"
+        displayName: "Run project"
     
