@@ -215,6 +215,8 @@ WAR_REPORT (WR)
 
 LEARNED_TOOL_REPORT (LR)
 
+TOOL_EXPERTS (TE)
+
 FRAME (FM)
 
 PONG
@@ -784,14 +786,15 @@ Provides owner list for position x y
 
 
 FW
-follower_id leader_id
-follower_id leader_id
+follower_id leader_id leader_color_index
+follower_id leader_id leader_color_index
 ...
-follower_id leader_id
+follower_id leader_id leader_color_index
 #
 
 Provides list of people following other people.
 If leader is -1, that person follows no one
+Leader color index specifies leader's badge color from a fixed color list
 
 
 
@@ -805,6 +808,23 @@ exile_target_id exiler_id
 #
 
 Provides list of people exiled by another person.
+
+If someone's exile list has changed (who's exiling them), then their whole
+exile list is sent.
+
+Each target's list is prefaced by this line:
+
+exile_target_id -1
+
+This indicates that the target's complete list is coming, and the client-side
+list should be cleared in preparation for this.
+
+
+If a target is newly exiled by no one, they show up as:
+
+exile_target_id -1
+
+
 
 
 
@@ -908,6 +928,18 @@ tool_id tool_id ... tool_id
 Report about new tool objects that have just been learned
 
 Each tool_id is an object id.
+
+
+
+TE
+p_id p_id ... p_id
+#
+
+List of nearby players that already have learned the unlearned tool player is
+holding.
+
+Sent whenever player's held object changes to an unlearned tool.
+
 
 
 

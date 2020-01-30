@@ -95,17 +95,7 @@ X Phase = from what point of the whole swing cycle it should start.
 -thanks a862
 
 
-Fantastic ideas for the client
--thanks zivisziv
-
-Amazing support and great ideas.
--thanks Mofo
-
-places where a file is read
-ObjectData
-TgaData
-TileDisplay
-
+haxe to c++ linkage to the server in the future, learn how to write c++ for now
 
 by default searched items
 

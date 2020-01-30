@@ -38,8 +38,11 @@ public var FORCED_SHUTDOWN = "SD";
 public var GLOBAL_MESSAGE = "MS";
 public var WAR_REPORT = "WR";
 public var LEARNED_TOOL_REPORT = "LR";
+public var TOOL_EXPERTS = "TE";
 public var FRAME = "FM";
 public var PONG = "PONG";
+public var FOLLOWING = "FW";
+public var EXILED = "EX";
 //new
 public var ACCEPTED = "ACCEPTED";
 public var REJECTED = "REJECTED";
@@ -86,6 +89,9 @@ public var SERVER_INFO = "SN";
         case "MS": GLOBAL_MESSAGE;
         case "WR": WAR_REPORT;
         case "LR": LEARNED_TOOL_REPORT;
+        case "TE": TOOL_EXPERTS;
+        case "FW": FOLLOWING;
+        case "EX": EXILED;
         case "FM": FRAME;
         case "PONG": PONG;
         //new
