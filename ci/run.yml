@@ -1,4 +1,4 @@
-name: Code Climate
+name: Run
 on: [push]
 
 jobs:
