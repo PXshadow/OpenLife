@@ -1,0 +1,13 @@
+name: Run
+on: [push]
+
+jobs:
+  build:
+    linux.yml
+
+    -script: "sh install.sh"
+    -displayName: Install libraries
+
+    -script: "haxe build.hxml"
+    -displayName: "Run project"
+    
