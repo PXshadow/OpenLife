@@ -5,9 +5,10 @@ on: [push]
 #  - cron: "0 0 * * *"
 jobs:
   build:
-    -run: "sh install.sh"
-    -displayName: Install libraries
+    steps:
+      -run: "sh install.sh"
+      -displayName: Install libraries
 
-    -run: "haxe build.hxml"
-    -displayName: "Run project"
+      -run: "haxe build.hxml"
+      -displayName: "Run project"
     
