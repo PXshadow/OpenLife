@@ -37,7 +37,6 @@ class ProtocolTagCheck
     }
     private function run()
     {
-        trace("start protocol tag check");
         var index = string.indexOf(startString) + startString.length;
         if (index <= startString.length)
         {
@@ -64,13 +63,14 @@ class ProtocolTagCheck
         generate(string.split("\n"),switchTags,true);
 
         var error:Array<String> = [];
+        var errorBool:Bool = false;
         for (i in 0...tags.length)
         {
-            error = [];
             if (enumTags.indexOf(tags[i]) == -1) error.push("enum");
             if (switchTags.indexOf(tags[i]) == -1) error.push("switch");
             if (error.length > 0)
             {
+                errorBool = true;
                 if (error.length > 1)
                 {
                     trace(names[i] + tags[i] + " | " + error[0] + " and " + error[1] + " not found");
@@ -79,6 +79,7 @@ class ProtocolTagCheck
                 }
             }
         }
+        if (!errorBool) trace("No errors found for tag protocol");
     }
     private function generate(input:Array<String>,output:Array<String>,name:Bool=false)
     {
