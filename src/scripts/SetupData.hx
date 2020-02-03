@@ -1,11 +1,11 @@
 package scripts;
 import sys.FileSystem;
 import sys.io.File;
-class DataSetup
+class SetupData
 {
     public static function main()
     {
-        new DataSetup();
+        new SetupData();
     }
     public function new()
     {
@@ -27,7 +27,7 @@ class DataSetup
         if (!FileSystem.exists("OneLifeData7"))
         {
             trace("OneLifeData7 does not exist, clone");
-            Sys.command("git clone https://github.com/jasonrohrer/OneLifeData7");
+            Sys.command("git clone https://github.com/kuwas-io/OneLifeData7");
             Sys.sleep(1);
             if (!FileSystem.exists("onelifedata7"))
             {
@@ -36,11 +36,6 @@ class DataSetup
                 return;
             }
         }
-        //checkout
-        Sys.setCwd("./onelifedata7");
-        Sys.command("git fetch --tags");
-        Sys.command("git describe --tags");
-        Sys.command("git checkout -q " + Sys.stdin().readAll().toString());
         //copy
         trace("begin copy");
         copyDir("onelifedata7/",path,true);

@@ -59,7 +59,7 @@ class Main extends game.Game
                 }
             }
             Game.data.objectMap.set(data.id,data);
-            trace("id " + id);
+            //trace("id " + id);
         }
     }
     private function game()
@@ -72,9 +72,9 @@ class Main extends game.Game
     private function login()
     {
         var keyText = new Text("Key",LEFT,24,0xFFFFFF);
-        keyText.y = 50;
+        keyText.y = 100;
         var emailText = new Text("Email",LEFT,24,0xFFFFFF);
-        emailText.y = 100;
+        emailText.y = 50;
         addChild(keyText);
         addChild(emailText);
         
@@ -87,11 +87,11 @@ class Main extends game.Game
 
         var keyInput = new InputText();
         keyInput.x = 100;
-        keyInput.y = 50;
+        keyInput.y = 100;
         addChild(keyInput);
         var emailInput = new InputText();
         emailInput.x = 100;
-        emailInput.y = 100;
+        emailInput.y = 50;
         addChild(emailInput);
 
         var serverInput = new InputText();
