@@ -10,22 +10,9 @@ class ProtocolTagCheck
     {
         new ProtocolTagCheck();
     }
-    var startString = "Possible types include:";
-    var endString = "Client can expect to receive these at any time, and in any order.";
-    var clientTagPath = "./src/client/ClientTag.hx";
-    //more tags
-    var enumTags:Array<String> = [];
-    var names:Array<String> = [];
-    var switchTags:Array<String> = [];
     var string:String;
     public function new()
     {
-        /*if (!FileSystem.exists("./protocol.txt"))
-        {
-            trace("protocol.txt does not exist");
-            return;
-        }
-        string = File.getContent("protocol.txt");*/
         string = haxe.Http.requestUrl("https://raw.githubusercontent.com/jasonrohrer/OneLife/master/server/protocol.txt");
         if (string != File.getContent("./protocol.txt"))
         {
@@ -33,10 +20,16 @@ class ProtocolTagCheck
             File.saveContent("./protocol.txt",string);
         }
         //trace("string " + string);
-        run();
+        run("./src/client/ClientTag.hx","Possible types include:","Client can expect to receive these at any time, and in any order.");
+        run("./src/server/ServerTag.hx","parameters, and no leading spaces.","KA   ");
     }
-    private function run()
+    private function run(outputPath:String,startString:String,endString:String)
     {
+        //more tags
+        var enumTags:Array<String> = [];
+        var names:Array<String> = [];
+        var switchTags:Array<String> = [];
+
         var index = string.indexOf(startString) + startString.length;
         if (index <= startString.length)
         {
@@ -59,8 +52,8 @@ class ProtocolTagCheck
         var sub = string.substring(index,index = string.indexOf("@:from",index));
         string = string.substring(index = string.indexOf("case",index),string.indexOf("}",index));
 
-        generate(sub.split("\n"),enumTags);
-        generate(string.split("\n"),switchTags,true);
+        generate(enumString.split("\n"),enumTags);
+        generate(switchString.split("\n"),switchTags,true);
 
         var error:Array<String> = [];
         var errorBool:Bool = false;

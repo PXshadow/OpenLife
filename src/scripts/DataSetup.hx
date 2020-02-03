@@ -14,6 +14,7 @@ class DataSetup
         var path:String = "";
         if (FileSystem.exists("bin/windows")) path = "bin/windows/bin/";
         if (FileSystem.exists("bin/macOS")) path = "bin/macOS/bin/";
+        if (FileSystem.exists("bin/hl")) path = "bin/hl/bin/";
         //setup linux later
         trace("path: " + path);
         //check if path is set
@@ -26,17 +27,23 @@ class DataSetup
         if (!FileSystem.exists("OneLifeData7"))
         {
             trace("OneLifeData7 does not exist, clone");
-            Sys.command("git clone https://github.com/pxshadow/onelifedata7");
+            Sys.command("git clone https://github.com/jasonrohrer/OneLifeData7");
             Sys.sleep(1);
-            if (!FileSystem.exists("OneLifeData7"))
+            if (!FileSystem.exists("onelifedata7"))
             {
                 trace("Not able to generate OneLifeData7");
                 Sys.sleep(1);
                 return;
             }
         }
+        //checkout
+        Sys.setCwd("./onelifedata7");
+        Sys.command("git fetch --tags");
+        Sys.command("git describe --tags");
+        Sys.command("git checkout -q " + Sys.stdin().readAll().toString());
+        //copy
         trace("begin copy");
-        copyDir("OneLifeData7/",path,true);
+        copyDir("onelifedata7/",path,true);
         trace("Finished data setup");
         Sys.sleep(2);
     }

@@ -1,4 +1,3 @@
 -cp src
 -main scripts.DataSetup
 -neko setupData.n
-#-cmd neko setupData.n
