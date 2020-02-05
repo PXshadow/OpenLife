@@ -1,3 +1,7 @@
+import sys.io.File;
+import lime.media.AudioSource;
+import openfl.media.SoundChannel;
+import openfl.media.Sound;
 #if openfl
 import haxe.ds.Vector;
 import lime.app.Future;
@@ -17,7 +21,7 @@ class Main extends game.Game
     {
         directory();
         super();
-        var vector = Game.data.objectData();
+        /*var vector = Game.data.objectData();
         if (Game.data.nextObjectNumber > 0)
         {
             function complete()
@@ -35,8 +39,13 @@ class Main extends game.Game
             #end
         }
         cred();
-        login();
+        login();*/
         //connect();
+
+        trace("hello");
+
+        new data.sound.AiffData(File.getBytes("sounds/24.aiff"));
+        
     }
     private function objectData(vector:Vector<Int>)
     {
