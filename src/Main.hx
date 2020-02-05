@@ -1,8 +1,10 @@
+import sys.FileSystem;
+import haxe.io.Path;
 import sys.io.File;
+#if openfl
 import lime.media.AudioSource;
 import openfl.media.SoundChannel;
 import openfl.media.Sound;
-#if openfl
 import haxe.ds.Vector;
 import lime.app.Future;
 import data.object.ObjectData;
@@ -41,10 +43,7 @@ class Main extends game.Game
         cred();
         login();*/
         //connect();
-
-        trace("hello");
-
-        new data.sound.AiffData(File.getBytes("sounds/24.aiff"));
+        new data.sound.AiffData(File.getBytes(Game.dir + "sounds/1645.aiff"));
         
     }
     private function objectData(vector:Vector<Int>)

@@ -1,5 +1,6 @@
 package data.sound;
 
+import lime.utils.Int16Array;
 import openfl.utils.ByteArray;
 import haxe.io.BytesData;
 import lime.media.AudioSource;
@@ -46,21 +47,26 @@ class AiffData
             trace("AIFF not long enought for Data");
             return;
         }
-        var samples = new UInt8Array(numSamples);
+        var samples = new Int16Array(numSamples);
+        //samples.type = lime.utils.ArrayBufferView.TypedArrayType.Float64;
+        //samples.type = lime.utils.ArrayBufferView.TypedArrayType.Int16;
+        //var samples = Bytes.alloc(sampleRate * 4);
         var b = sampleStartByte;
         for (i in 0... numSamples)
         {
             //samples[i] = data.bytes.getUI8(i + sampleStartByte);
             samples[i] = (data[b] << 8) | data[b + 1];
+            //samples[i] = (data[b] << 8) | data[b + 1];
+            //samples.setUInt16(i,(data[b] << 8) | data[b + 1]);
             //samples[b] = data[b];
             //samples[b + 1] = data[b + 1];
             b += 2;
         }
         var buffer = new AudioBuffer();
-        buffer.bitsPerSample = 8;
+        buffer.bitsPerSample = 16;
         buffer.channels = 1;
         buffer.sampleRate = sampleRate;
-        buffer.data = samples;
-        Sound.fromAudioBuffer(buffer).play(0,2);
+        buffer.data = UInt8Array.fromBytes(samples.toBytes());
+        Sound.fromAudioBuffer(buffer).play(0,999);
     }
 }

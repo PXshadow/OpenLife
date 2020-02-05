@@ -108,13 +108,12 @@ engine
 plane
 
 
-
-butler for auto updating
-https://itch.io/docs/butler/pushing.html
-for gifs 
+references
+- for creating gifs 
 https://getsharex.com/
-
-ground transitions - thanks Pein
+- ground transitions - thanks Pein
 http://archive.gamedev.net/archive/reference/articles/article934.html
-
+- badges
 https://shields.io/
+- update inspiration
+https://minecraft.fandom.com/wiki/Updates

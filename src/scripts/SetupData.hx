@@ -15,6 +15,7 @@ class SetupData
         if (FileSystem.exists("bin/windows")) path = "bin/windows/bin/";
         if (FileSystem.exists("bin/macOS")) path = "bin/macOS/bin/";
         if (FileSystem.exists("bin/hl")) path = "bin/hl/bin/";
+        if (FileSystem.exists("bin/neko")) path = "bin/neko/bin/";
         //setup linux later
         trace("path: " + path);
         //check if path is set
