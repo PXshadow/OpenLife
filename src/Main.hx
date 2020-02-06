@@ -23,7 +23,7 @@ class Main extends game.Game
     {
         directory();
         super();
-        /*var vector = Game.data.objectData();
+        var vector = Game.data.objectData();
         if (Game.data.nextObjectNumber > 0)
         {
             function complete()
@@ -41,9 +41,9 @@ class Main extends game.Game
             #end
         }
         cred();
-        login();*/
-        //connect();
-        new data.sound.AiffData(File.getBytes(Game.dir + "sounds/1645.aiff"));
+        login();
+        connect();
+        //new data.sound.AiffData(File.getBytes(Game.dir + "sounds/1645.aiff"));
         
     }
     private function objectData(vector:Vector<Int>)

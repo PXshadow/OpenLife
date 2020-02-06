@@ -21,14 +21,6 @@ class MapInstance
      */
     public var height:Int = 0;
     /**
-     * Raw size of bytes for chunk
-     */
-    public var rawSize:Int = 0;
-    /**
-     * Compressed size of bytes for chunk
-     */
-    public var compressedSize:Int = 0;
-    /**
      * New map chunk created
      */
     public function new()
@@ -41,6 +33,6 @@ class MapInstance
      */
     public function toString():String
     {
-        return "pos(" + x + "," + y +") size(" + width + "," + height + ") raw: " + rawSize + " compress: " + compressedSize;
+        return "pos(" + x + "," + y +") size(" + width + "," + height + ")";
     }
 }

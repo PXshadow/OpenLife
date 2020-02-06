@@ -1,4 +1,5 @@
 package client;
+import sys.io.File;
 import haxe.io.Bytes;
 #if (sys || nodejs)
 import sys.net.Socket;
@@ -39,9 +40,6 @@ class Client
     public var accept:Void->Void;
     public var reject:Void->Void;
 
-
-    var index:Int = 0;
-
     public function new()
     {
 
@@ -50,15 +48,33 @@ class Client
     {
         if (!connected) 
         {
-            trace("unconnected for update");
+            //trace("unconnected for update");
             return;
         }
         data = "";
         #if (sys || nodejs)
         if(socket == null) return;
 		try {
-            data = socket.input.readUntil("#".code);
-            process();
+            if (compressSize > 0)
+            {
+                var temp = socket.input.read(compressSize - compressIndex);
+                dataCompressed.blit(compressIndex,temp,0,temp.length);
+                compressIndex += temp.length;
+                if (compressIndex >= compressSize)
+                {
+                    compressIndex = 0;
+                    compressSize = 0;
+                    data = haxe.zip.Uncompress.run(dataCompressed).toString();
+                    if (tag == MAP_CHUNK)
+                    {
+                        data = '$MAP_CHUNK\n$data';
+                    }
+                    process();
+                }
+            }else{
+                data = socket.input.readUntil("#".code);
+                process();
+            }
 		}catch(e:Dynamic)
 		{
 			if(e != Error.Blocked)
@@ -69,13 +85,12 @@ class Client
         }
         #end
     }
+    var tag:ClientTag;
     private function process()
     {
         var array = data.split("\n");
-        trace("array " + array);
         if (array.length == 0) return;
-        trace("tag: " + array[0]);
-        var tag:ClientTag = array[0];
+        tag = array[0];
         message(tag,array.slice(1,array.length));
     }
     public function alive()
@@ -86,31 +101,20 @@ class Client
     }
     public function login(tag:ClientTag,input:Array<String>) 
     {
+        trace('login tag: $tag $input');
         //login process
         switch(tag)
         {
             case SERVER_INFO:
-            index = 0;
-            for (data in input)
-            {
-                trace("data " + data);
-                switch(index)
-			    {
-				    case 0:
-				    //current
-                    trace("amount " + data);
-				    case 1:
-				    //challenge
-				    challenge = data;
-				    case 2: 
-				    //version
-                    version = Std.parseInt(data);
-                    trace("version " + version);
-                    request();
-                    return;
-                }
-                index++;
-            }
+			
+			//current
+            trace("amount " + input[0]);
+			//challenge
+			challenge = input[1];
+			//version
+            version = Std.parseInt(input[2]);
+            trace("version " + version);
+            request();
             case ACCEPTED:
             trace("ACCEPTED LOGIN");
             if (accept != null) accept();
@@ -127,7 +131,7 @@ class Client
     {
 		key = StringTools.replace(key,"-","");
         //login
-        var string = /*"client_openlife" +*/ email + " " +
+        var string = "client_openlife " + email + " " +
 		new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f")
 		,Bytes.ofString(challenge,RawNative)).toHex() + " " +
 		new Hmac(SHA1).make(Bytes.ofString(key)
@@ -160,6 +164,18 @@ class Client
         if (aliveTimer != null) aliveTimer.stop();
         aliveTimer = new Timer(15 * 1000);
         aliveTimer.run = alive;
+    }
+    var compressIndex:Int = 0;
+    var dataCompressed:Bytes;
+    var compressSize:Int = 0;
+    var rawSize:Int = 0;
+    public function compress(rawSize:Int,compressSize:Int)
+    {
+        trace("compress! " + rawSize + " " + compressSize);
+        this.rawSize = rawSize;
+        this.compressSize = compressSize;
+        dataCompressed = Bytes.alloc(compressSize);
+        compressIndex = 0;
     }
     public function connect()
 	{

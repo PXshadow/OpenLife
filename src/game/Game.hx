@@ -28,6 +28,7 @@ class Game extends GameHeader
     {
         #if openfl
         super();
+        addEventListener(openfl.events.Event.ENTER_FRAME,update);
         #end
         data = new GameData();
         settings = new Settings();
@@ -123,18 +124,42 @@ class Game extends GameHeader
         {
             case COMPRESSED_MESSAGE:
             trace("input " + input);
+            var array = input[0].split(" ");
+            client.compress(Std.parseInt(array[0]),Std.parseInt(array[1]));
             case PLAYER_EMOT:
             //p_id emot_index ttl_sec
             //ttl_sec is optional, and specifies how long the emote should be shown
             //-1 is permanent, -2 is permanent but not new so should be skipped
             case PLAYER_UPDATE:
-            //playerUpdate(new PlayerInstance(input.split(" ")));
+            var instance:PlayerInstance;
+            for (data in input)
+            {
+                instance = new PlayerInstance(data.split(" "));
+                playerUpdate(instance);
+            }
             case PLAYER_MOVES_START:
-            //playerMoveStart(new PlayerMove(input.split(" ")));
+            var instance:PlayerMove;
+            for (data in input)
+            {
+                instance = new PlayerMove(data.split(" "));
+                playerMoveStart(instance);
+            }
             case MAP_CHUNK:
-            //mapChunk(mapInstance);
-            //mapInstance = null;
-            //toggle to go back to istance for next chunk
+            if (mapInstance == null)
+            {
+                var instance = input[0].split(" ");
+                var compress = input[1].split(" ");
+                mapInstance = new MapInstance();
+                mapInstance.x = Std.parseInt(instance[0]);
+                mapInstance.y = Std.parseInt(instance[1]);
+                mapInstance.width = Std.parseInt(instance[2]);
+                mapInstance.height = Std.parseInt(instance[3]);
+                client.compress(Std.parseInt(compress[0]),Std.parseInt(compress[1]));
+            }else{
+                data.map.setRect(mapInstance,input[0]);
+                mapChunk(mapInstance);
+                mapInstance = null;
+            }
             case MAP_CHANGE:
             var change = new MapChange(input);
             case HEAT_CHANGE:
