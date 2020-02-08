@@ -43,8 +43,6 @@ class MapChange
         x = Std.parseInt(array[0]);
         y = Std.parseInt(array[1]);
         floor = Std.parseInt(array[2]);
-        //trace("change " + array[3]);
-        //array[3].split(",")
         id = MapData.id(array[3]);
         pid = Std.parseInt(array[4]);
         //optional speed

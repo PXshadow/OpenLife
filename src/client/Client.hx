@@ -171,7 +171,6 @@ class Client
     var rawSize:Int = 0;
     public function compress(rawSize:Int,compressSize:Int)
     {
-        trace("compress! " + rawSize + " " + compressSize);
         this.rawSize = rawSize;
         this.compressSize = compressSize;
         dataCompressed = Bytes.alloc(compressSize);

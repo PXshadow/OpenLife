@@ -116,14 +116,11 @@ class Game extends GameHeader
         client.message = client.login;
         client.connect();
     }
-    var array:Array<String>;
-
     private function message(tag:ClientTag,input:Array<String>) 
     {
         switch(tag)
         {
             case COMPRESSED_MESSAGE:
-            trace("input " + input);
             var array = input[0].split(" ");
             client.compress(Std.parseInt(array[0]),Std.parseInt(array[1]));
             case PLAYER_EMOT:
@@ -161,12 +158,20 @@ class Game extends GameHeader
                 mapInstance = null;
             }
             case MAP_CHANGE:
-            var change = new MapChange(input);
+            //var change = new MapChange(input);
+            var change:MapChange;
+            for (data in input)
+            {
+                change = new MapChange(data.split(" "));
+                mapChange(change);
+            }
             case HEAT_CHANGE:
             //heat food_time indoor_bonus
+            
             case FOOD_CHANGE:
             //trace("food change " + input);
             //foodPercent = Std.parseInt(input[0])/Std.parseInt(input[1]);
+            
             case FRAME:
             case PLAYER_SAYS:
             /*array = input.split("/");
@@ -206,7 +211,7 @@ class Game extends GameHeader
             //x y p_id po_id death_age underscored_name mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
             //Provides info about an old grave that wasn't created during your lifetime.
             //underscored_name is name with spaces replaced by _ If player has no name, this will be ~ character instead.
-
+            
             case OWNER_LIST:
             //x y p_id p_id p_id ... p_id
 

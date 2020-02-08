@@ -42,7 +42,7 @@ class Main extends game.Game
         }
         cred();
         login();
-        connect();
+        //connect();
         //new data.sound.AiffData(File.getBytes(Game.dir + "sounds/1645.aiff"));
         
     }
@@ -165,6 +165,13 @@ class Main extends game.Game
     override function mapChunk(instance:MapInstance) 
     {
         super.mapChunk(instance);
+        for (i in instance.x...instance.x + instance.width)
+        {
+            for (j in instance.y...instance.y + instance.height)
+            {
+                
+            }
+        }
     }
 }
 #end
