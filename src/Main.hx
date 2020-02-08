@@ -41,8 +41,9 @@ class Main extends game.Game
             #end
         }
         cred();
-        login();
-        //connect();
+        //login();
+        game();
+        connect();
         //new data.sound.AiffData(File.getBytes(Game.dir + "sounds/1645.aiff"));
         
     }
@@ -157,7 +158,7 @@ class Main extends game.Game
             keyInput = emailInput = serverInput = portInput = null;
             join = null;
             //start game
-            //game();
+            game();
             connect();
         }
         addChild(join);
@@ -165,11 +166,13 @@ class Main extends game.Game
     override function mapChunk(instance:MapInstance) 
     {
         super.mapChunk(instance);
-        for (i in instance.x...instance.x + instance.width)
+        for (j in instance.y...instance.y + instance.height)
         {
-            for (j in instance.y...instance.y + instance.height)
+            for (i in instance.x...instance.x + instance.width)
             {
-                
+                ground.add(Game.data.map.biome.get(i,j),i,j);
+                objects.add([Game.data.map.floor.get(i,j)],i,j);
+                objects.add(Game.data.map.object.get(i,j),i,j);
             }
         }
     }

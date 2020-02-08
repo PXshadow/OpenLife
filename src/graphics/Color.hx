@@ -1,0 +1,6 @@
+package graphics;
+
+class Color
+{
+    
+}

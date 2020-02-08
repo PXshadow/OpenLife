@@ -1,4 +1,4 @@
-package scripts;
+package graphics.converters;
 #if openfl
 import sys.io.File;
 import openfl.display.PNGEncoderOptions;
@@ -7,7 +7,7 @@ import sys.FileSystem;
 import openfl.display.BitmapData;
 import haxe.io.Path;
 
-class ImageGenerate
+class PNGGenerator
 {
     var reader:TgaData = new TgaData();
     public function new(folder:String)
