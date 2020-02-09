@@ -12,7 +12,7 @@ import haxe.io.Path;
 import haxe.ds.Vector;
 #if visual
 import data.animation.emote.EmoteData;
-import data.display.TileData;
+import graphics.TileData;
 import data.object.SpriteData;
 #end
 #if openfl
@@ -73,7 +73,8 @@ class GameData
     {
         map = new data.map.MapData();
         #if openfl
-        tileData = new data.display.TileData();
+        tileData = new graphics.TileData();
+        new graphics.converters.GroundSprites();
         #end
         blocking = new Map<String,Bool>();
         playerMap = new Map<Int,Player>();

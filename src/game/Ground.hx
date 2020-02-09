@@ -1,7 +1,7 @@
 package game;
 #if openfl
 import data.GameData;
-import data.display.TgaData;
+import graphics.TgaData;
 import openfl.Vector;
 import openfl.geom.Matrix;
 import openfl.display.BitmapData;

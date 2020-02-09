@@ -13,7 +13,7 @@ import sys.io.File;
 import data.animation.AnimationData;
 import openfl.geom.ColorTransform;
 import openfl.geom.Rectangle;
-import data.display.TgaData;
+import graphics.TgaData;
 import openfl.display.Tile;
 import data.object.ObjectData;
 

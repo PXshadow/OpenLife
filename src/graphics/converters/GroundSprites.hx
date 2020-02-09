@@ -1,35 +1,53 @@
-package data.map;
+package graphics.converters;
 
+import haxe.io.Path;
+import openfl.geom.Rectangle;
+import openfl.display.BitmapData;
 import sys.io.File;
-import data.display.TgaData;
+import graphics.TgaData;
 import sys.FileSystem;
 import game.Game;
 
-class GroundSprite
+class GroundSprites
 {
-    var reader:TgaData = new TgaData();
+    var tga:TgaData = new TgaData();
     var inital:Bool = false;
     var tileWidth:Int = 0;
     var tileHeight:Int = 0;
     var tileD:Int = Static.GRID * 2;
+    var bmd:BitmapData;
+    var rect:Rectangle;
+    var id:String;
     public function new()
     {
         if (FileSystem.exists(Game.dir + "groundTileCache") && FileSystem.isDirectory(Game.dir + "groundTileCache")) return;
+        FileSystem.createDirectory(Game.dir + "groundTileCache");
+        trace("hello");
         for (path in FileSystem.readDirectory(Game.dir + "ground"))
         {
             path = Game.dir + "ground/" + path;
-            reader.read(File.getContent(path));
+            trace("path " + path);
+            tga.read(File.getBytes(path));
+            id = path.substring(path.indexOf("_"),path.indexOf("."));
+            bmd = new BitmapData(Std.int(tga.rect.width),Std.int(tga.rect.height));
+            bmd.setPixels(tga.rect,tga.bytes);
             if (!inital)
             {
                 inital = true;
-                tileWidth = Std.int(reader.rect.width/Static.GRID);
-                tileHeight = Std.int(reader.rect.height/Static.GRID);
+                tileWidth = Std.int(tga.rect.width/Static.GRID);
+                tileHeight = Std.int(tga.rect.height/Static.GRID);
             }
+            tga.data.header.width = Static.GRID;
+            tga.data.header.height = Static.GRID;
+            rect = new Rectangle(0,0,Static.GRID,Static.GRID);
             for (ty in 0...tileHeight)
             {
                 for (tx in 0...tileWidth)
                 {
-                    
+                    rect.x = tx * Static.GRID;
+                    rect.y = ty * Static.GRID;
+                    tga.data.imageData = tga.bytesToVector(bmd.getPixels(rect));
+                    tga.write(tga.data,File.write(Game.dir + "groundTileCache/biome_" + id + "_x" + tx + "_y" + ty + ".tga"));
                 }
             }
         }
@@ -41,7 +59,7 @@ class GroundSprite
     // around in source image as needed
 }
 // now set alpha based on radius
-
+/*
 int cellR = CELL_D / 2;
                         
 // radius to cornerof map tile
@@ -88,7 +106,7 @@ for( int y=0; y<tileD; y++ ) {
             }
         }
     }
-
+*/
 // make sure square of cell plus blur
 // radius is solid, so that corners
 // are not undercut by blur
