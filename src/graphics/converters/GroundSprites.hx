@@ -21,15 +21,16 @@ class GroundSprites
     public function new()
     {
         if (FileSystem.exists(Game.dir + "groundTileCache") && FileSystem.isDirectory(Game.dir + "groundTileCache")) return;
-        FileSystem.createDirectory(Game.dir + "groundTileCache");
+        //FileSystem.createDirectory(Game.dir + "groundTileCache");
         trace("hello");
         for (path in FileSystem.readDirectory(Game.dir + "ground"))
         {
             path = Game.dir + "ground/" + path;
-            trace("path " + path);
+            trace("path " + path + " d " + File.getBytes(path).length);
             tga.read(File.getBytes(path));
             id = path.substring(path.indexOf("_"),path.indexOf("."));
-            bmd = new BitmapData(Std.int(tga.rect.width),Std.int(tga.rect.height));
+            trace("bmd " + tga.data.header.width + " " + tga.data.header.width);
+            bmd = new BitmapData(tga.data.header.width,tga.data.header.height);
             bmd.setPixels(tga.rect,tga.bytes);
             if (!inital)
             {
