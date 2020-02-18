@@ -74,7 +74,7 @@ class GameData
         map = new data.map.MapData();
         #if openfl
         tileData = new graphics.TileData();
-        new graphics.converters.GroundSprites();
+        //new graphics.converters.GroundSprites();
         #end
         blocking = new Map<String,Bool>();
         playerMap = new Map<Int,Player>();

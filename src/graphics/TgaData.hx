@@ -26,8 +26,9 @@ class TgaData
     {
         r = new Reader(new BytesInput(bytes,0,bytes.length));
         this.data = r.read();
+        
         rect = new Rectangle(0,0,data.header.width,data.header.height);
-        bytes = Tools.extract32(data,true);
+        this.bytes = ByteArray.fromBytes(Tools.extract32(data,true));
     }
     public function write(data:Data,output:Output)
     {

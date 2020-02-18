@@ -55,6 +55,8 @@ class Objects extends TileDisplay
         //trace(list);
         //add base
         group = new TileContainer();
+        //group.x = Static.GRID * 32/2;
+        //group.y = Static.GRID * 30/2;
         addTile(group);
     }
     public function addPlayer(data:data.object.player.PlayerInstance)
@@ -305,7 +307,9 @@ class Objects extends TileDisplay
     private function drawSprite(id:Int,rect:Rectangle):Rectangle
     {
         try {
-            reader.read(File.read(Game.dir + "sprites/" + id + ".tga").readAll());
+            var input = File.read(Game.dir + "sprites/" + id + ".tga");
+            reader.read(input.readAll());
+            input.close();
         }catch(e:Dynamic)
         {
             //trace("e " + e);

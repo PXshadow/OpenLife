@@ -147,10 +147,10 @@ class Game extends GameHeader
                 var instance = input[0].split(" ");
                 var compress = input[1].split(" ");
                 mapInstance = new MapInstance();
-                mapInstance.x = Std.parseInt(instance[0]);
-                mapInstance.y = Std.parseInt(instance[1]);
-                mapInstance.width = Std.parseInt(instance[2]);
-                mapInstance.height = Std.parseInt(instance[3]);
+                mapInstance.width = Std.parseInt(instance[0]);
+                mapInstance.height = Std.parseInt(instance[1]);
+                mapInstance.x = Std.parseInt(instance[2]);
+                mapInstance.y = Std.parseInt(instance[3]);
                 client.compress(Std.parseInt(compress[0]),Std.parseInt(compress[1]));
             }else{
                 data.map.setRect(mapInstance,input[0]);

@@ -21,16 +21,17 @@ class GroundSprites
     public function new()
     {
         if (FileSystem.exists(Game.dir + "groundTileCache") && FileSystem.isDirectory(Game.dir + "groundTileCache")) return;
-        //FileSystem.createDirectory(Game.dir + "groundTileCache");
-        trace("hello");
         for (path in FileSystem.readDirectory(Game.dir + "ground"))
         {
             path = Game.dir + "ground/" + path;
-            trace("path " + path + " d " + File.getBytes(path).length);
-            tga.read(File.getBytes(path));
+            trace("path " + path);
+            var input = File.read(path);
+            tga.read(input.readAll());
+            input.close();
             id = path.substring(path.indexOf("_"),path.indexOf("."));
-            trace("bmd " + tga.data.header.width + " " + tga.data.header.width);
+            //trace("bmd " + tga.data.header.width + " " + tga.data.header.width);
             bmd = new BitmapData(tga.data.header.width,tga.data.header.height);
+            trace("bytes " + tga.bytes + " rect " + tga.rect);
             bmd.setPixels(tga.rect,tga.bytes);
             if (!inital)
             {
@@ -41,6 +42,7 @@ class GroundSprites
             tga.data.header.width = Static.GRID;
             tga.data.header.height = Static.GRID;
             rect = new Rectangle(0,0,Static.GRID,Static.GRID);
+            FileSystem.createDirectory(Game.dir + "groundTileCache");
             for (ty in 0...tileHeight)
             {
                 for (tx in 0...tileWidth)

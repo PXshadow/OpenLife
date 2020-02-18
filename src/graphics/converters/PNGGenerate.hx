@@ -18,7 +18,9 @@ class PNGGenerator
         for (dir in FileSystem.readDirectory(Game.dir + folder))
         {
             if (Path.extension(dir) != "tga") continue;
-            reader.read(File.getBytes(Game.dir + folder + dir));
+            var input = File.read(Game.dir + folder + dir);
+            reader.read(input.readAll());
+            input.close();
             //generate new bitmapdata
             bmd = new BitmapData(Std.int(reader.rect.width),Std.int(reader.rect.height));
             //fill

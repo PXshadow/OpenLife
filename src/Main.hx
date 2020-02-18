@@ -1,3 +1,8 @@
+import openfl.events.MouseEvent;
+import openfl.events.KeyboardEvent;
+import openfl.ui.Keyboard;
+import openfl.display.Shape;
+import openfl.events.Event;
 import sys.FileSystem;
 import haxe.io.Path;
 import sys.io.File;
@@ -26,32 +31,55 @@ class Main extends game.Game
         var vector = Game.data.objectData();
         if (Game.data.nextObjectNumber > 0)
         {
-            function complete()
-            {
-                trace("finish");
-            }
-            #if (target.threaded)
-            sys.thread.Thread.create(() -> {
-                objectData(vector);
-                complete();
-            });
-            #else
             objectData(vector);
-            complete();
-            #end
         }
         cred();
         //login();
         game();
+        stage.addEventListener(Event.RESIZE,resize);
+        stage.addEventListener(KeyboardEvent.KEY_DOWN,keyDown);
+        stage.addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
+        stage.addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
         connect();
+        /*var shape = new Shape();
+        shape.graphics.beginFill(0xFFFFFF);
+        shape.graphics.drawCircle(100,100,10);
+        addChild(shape);*/
         //new data.sound.AiffData(File.getBytes(Game.dir + "sounds/1645.aiff"));
-        
+        resize(null);
+    }
+    private function mouseWheel(e:MouseEvent)
+    {
+        zoom(e.delta);
+    }
+    private function mouseDown(_)
+    {
+
+    }
+    private function keyDown(e:KeyboardEvent)
+    {
+        switch (e.keyCode)
+        {
+            case Keyboard.I: zoom(1);
+            case Keyboard.O: zoom(-1);
+        }
+    }
+    private function zoom(i:Int)
+    {
+        if (objects.scale > 2 && i > 0 || objects.scale < 0.2 && i < 0) return;
+        objects.scale += i * 0.08;
+    }
+    private function resize(_)
+    {
+        objects.width = stage.stageWidth;
+        objects.height = stage.stageHeight;
     }
     private function objectData(vector:Vector<Int>)
     {
         var int = Game.data.nextObjectNumber;
         var data:ObjectData;
         var dummyObject:ObjectData;
+        var i:Int = 0;
         for (id in vector)
         {
             data = new ObjectData(id);
@@ -68,15 +96,16 @@ class Main extends game.Game
                 }
             }
             Game.data.objectMap.set(data.id,data);
-            //trace("id " + id);
+            if (i++ % 200 == 0) trace("i " + i);
         }
     }
     private function game()
     {
+        trace("create game");
         objects = new Objects();
         ground = new Ground();
-        addChild(objects);
         addChild(ground);
+        addChild(objects);
     }
     private function login()
     {
@@ -163,9 +192,18 @@ class Main extends game.Game
         }
         addChild(join);
     }
+    override function update(_) 
+    {
+        super.update(_);
+        ground.x = objects.group.x;
+        ground.y = objects.group.y;
+        ground.scaleX = objects.group.scaleX;
+        ground.scaleY = objects.group.scaleY;
+    }
     override function mapChunk(instance:MapInstance) 
     {
         super.mapChunk(instance);
+        trace("map " + instance.toString());
         for (j in instance.y...instance.y + instance.height)
         {
             for (i in instance.x...instance.x + instance.width)
@@ -175,6 +213,8 @@ class Main extends game.Game
                 objects.add(Game.data.map.object.get(i,j),i,j);
             }
         }
+        Game.data.map.chunks.push(instance);
+        ground.render();
     }
 }
 #end
