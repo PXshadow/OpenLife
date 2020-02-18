@@ -1,3 +1,6 @@
+import openfl.display.Tile;
+import game.Player;
+import data.object.player.PlayerInstance;
 import openfl.events.MouseEvent;
 import openfl.events.KeyboardEvent;
 import openfl.ui.Keyboard;
@@ -24,6 +27,7 @@ class Main extends game.Game
 {
     var objects:Objects;
     var ground:Ground;
+    var player:Player;
     public function new()
     {
         directory();
@@ -41,10 +45,6 @@ class Main extends game.Game
         stage.addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
         stage.addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
         connect();
-        /*var shape = new Shape();
-        shape.graphics.beginFill(0xFFFFFF);
-        shape.graphics.drawCircle(100,100,10);
-        addChild(shape);*/
         //new data.sound.AiffData(File.getBytes(Game.dir + "sounds/1645.aiff"));
         resize(null);
     }
@@ -200,16 +200,34 @@ class Main extends game.Game
         ground.scaleX = objects.group.scaleX;
         ground.scaleY = objects.group.scaleY;
     }
+    override function playerUpdate(instances:Array<PlayerInstance>) 
+    {
+        super.playerUpdate(instances);
+        for (i in 0...instances.length)
+        {
+            objects.addPlayer(instances[i]);
+            objects.player.x = 0;
+            objects.player.y = 0;
+        }
+        objects.addPlayer(instances.pop());
+        player = objects.player;
+    }
     override function mapChunk(instance:MapInstance) 
     {
         super.mapChunk(instance);
         trace("map " + instance.toString());
-        for (j in instance.y...instance.y + instance.height)
+        for (i in instance.x...instance.x + instance.width)
         {
-            for (i in instance.x...instance.x + instance.width)
+            for (j in instance.y...instance.y + instance.height)
             {
                 ground.add(Game.data.map.biome.get(i,j),i,j);
                 objects.add([Game.data.map.floor.get(i,j)],i,j);
+            }
+        }
+        for (i in instance.x...instance.x + instance.width)
+        {
+            for (j in instance.y...instance.y + instance.height)
+            {
                 objects.add(Game.data.map.object.get(i,j),i,j);
             }
         }

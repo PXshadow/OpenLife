@@ -5,7 +5,7 @@ import data.object.player.PlayerMove;
 import data.map.MapChange;
 class GameHeader #if openfl extends openfl.display.Sprite #elseif heaps hxd.App #end
 {
-    public function playerUpdate(instance:PlayerInstance) {};
+    public function playerUpdate(instances:Array<PlayerInstance>) {};
     public function playerMoveStart(move:PlayerMove) {};
     public function playerName() {};
 

@@ -128,12 +128,12 @@ class Game extends GameHeader
             //ttl_sec is optional, and specifies how long the emote should be shown
             //-1 is permanent, -2 is permanent but not new so should be skipped
             case PLAYER_UPDATE:
-            var instance:PlayerInstance;
-            for (data in input)
+            var list:Array<PlayerInstance> = [];
+            for (data in input) 
             {
-                instance = new PlayerInstance(data.split(" "));
-                playerUpdate(instance);
+                list.push(new PlayerInstance(data.split(" ")));
             }
+            playerUpdate(list);
             case PLAYER_MOVES_START:
             var instance:PlayerMove;
             for (data in input)

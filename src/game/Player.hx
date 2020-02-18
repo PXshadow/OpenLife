@@ -265,6 +265,8 @@ class Player #if openfl extends TileContainer #end
     #if openfl
     public function age(data:ObjectData)
     {
+        trace("TODO setup age");
+        return;
         var ageInital:Bool = true;
         var headMoveX:Float = 0;
         var headMoveY:Float = 0;

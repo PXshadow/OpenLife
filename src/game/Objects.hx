@@ -186,6 +186,7 @@ class Objects extends TileDisplay
             if (data.floor)
             {
                 Game.data.tileData.floor.set(x,y,sprites);
+                //sprites[0].data = {};
             }else{
                 Game.data.tileData.object.set(x,y,sprites);
             }
