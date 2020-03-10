@@ -28,15 +28,10 @@ class Game extends GameHeader
     {
         #if openfl
         super();
-        addEventListener(openfl.events.Event.ENTER_FRAME,update);
         #end
         data = new GameData();
         settings = new Settings();
         client = new Client();
-    }
-    public function update(_)
-    {
-        client.update();
     }
     public function directory():Bool
     {
@@ -100,7 +95,7 @@ class Game extends GameHeader
         client.port = Secret.port;
         #end
     }
-    private function connect()
+    private function connect(reconnect:Bool=false)
     {
         client.accept = function()
         {
@@ -114,7 +109,7 @@ class Game extends GameHeader
             client.reject = null;
         }
         client.message = client.login;
-        client.connect();
+        client.connect(reconnect);
     }
     private function message(tag:ClientTag,input:Array<String>) 
     {

@@ -24,8 +24,6 @@ class Client
     public var message:(tag:ClientTag,input:Array<String>)->Void;
     public var ip:String = "localhost";
     public var port:Int = 8005;
-    //reconnect timer
-    public var reconnect:Int = -1;
     //ping
     public var ping:Float = 0;
     var pingInt:Int = 0;
@@ -36,6 +34,7 @@ class Client
     public var twin:String = "coding";
     public var tutorial:Bool = false;
     public var version:Int = 0;
+    public var reconnect:Bool = false;
     //functions
     public var accept:Void->Void;
     public var reject:Void->Void;
@@ -72,6 +71,7 @@ class Client
                     process();
                 }
             }else{
+                trace("get data");
                 data = socket.input.readUntil("#".code);
                 process();
             }
@@ -88,6 +88,7 @@ class Client
     var tag:ClientTag;
     private function process()
     {
+        trace("init process");
         var array = data.split("\n");
         if (array.length == 0) return;
         tag = array[0];
@@ -129,19 +130,12 @@ class Client
     }
     private function request()
     {
-		key = StringTools.replace(key,"-","");
-        //login
-        var string = "client_openlife " + email + " " +
-		new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f")
-		,Bytes.ofString(challenge,RawNative)).toHex() + " " +
-		new Hmac(SHA1).make(Bytes.ofString(key)
-		,Bytes.ofString(challenge)).toHex() +  " " +
-        //tutorial 1 = true 0 = false
-        (tutorial ? 1 : 0);
-        //twin
-        //login += " " + Sha1.make(Bytes.ofString(twin)).toHex() + " 1";
-
-        send("LOGIN " + string);
+        key = StringTools.replace(key,"-","");
+        var password = new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f"),Bytes.ofString(challenge,RawNative)).toHex();
+        var accountKey = new Hmac(SHA1).make(Bytes.ofString(key),Bytes.ofString(challenge)).toHex();
+        var clientTag = "client_openlife";
+        trace("request!");
+        send((reconnect ? "" : "R") + 'LOGIN $clientTag $email $password $accountKey ${(tutorial ? 1 : 0)}');
     }
     public function send(data:String)
     {
@@ -176,8 +170,9 @@ class Client
         dataCompressed = Bytes.alloc(compressSize);
         compressIndex = 0;
     }
-    public function connect()
+    public function connect(reconnect:Bool)
 	{
+        this.reconnect = reconnect;
         trace("attempt connect " + ip);
         connected = false;
         #if (sys || nodejs)
@@ -190,7 +185,7 @@ class Client
 			return;
 		}
 		socket = new Socket();
-        //socket.setTimeout(99999999);
+        //socket.setTimeout(10);
         #if !nodejs
 		socket.setFastSend(true);
         #end

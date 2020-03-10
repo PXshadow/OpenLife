@@ -18,6 +18,8 @@ class ProtocolTagCheck
     var names:Array<String> = [];
     var switchTags:Array<String> = [];
     var string:String;
+    var headerContent:String;
+    var gameContent:String;
     public function new()
     {
         /*if (!FileSystem.exists("./protocol.txt"))
@@ -32,7 +34,8 @@ class ProtocolTagCheck
             trace("protocol is not the same, update");
             File.saveContent("./protocol.txt",string);
         }
-        //trace("string " + string);
+        headerContent = File.getContent("./src/game/GameHeader.hx");
+        gameContent = File.getContent("./src/game/Game.hx");
         run();
     }
     private function run()
@@ -51,7 +54,7 @@ class ProtocolTagCheck
         {
             index = obj.indexOf("(");
             if (index == -1) continue;
-            names.push(obj.substring(0,index));
+            names.push(StringTools.rtrim(obj.substring(0,index)));
             tags.push(obj.substring(index + 1,obj.indexOf(")",index)));
         }
         //check clientTag
@@ -78,6 +81,9 @@ class ProtocolTagCheck
                     trace(names[i] + tags[i] + " | " + error[0] + " not found");
                 }
             }
+            //header content
+            if (headerContent.indexOf("//" + names[i]) == -1) trace("GameHeader.hx could not find: " + names[i]);
+            if (gameContent.indexOf("case " + names[i]) == -1) trace("Game.hx could not find: " + names[i]);
         }
     }
     private function generate(input:Array<String>,output:Array<String>,name:Bool=false)

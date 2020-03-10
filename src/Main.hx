@@ -1,15 +1,15 @@
-import openfl.display.Tile;
 import game.Player;
 import data.object.player.PlayerInstance;
+import sys.FileSystem;
+import haxe.io.Path;
+import sys.io.File;
+#if openfl
 import openfl.events.MouseEvent;
 import openfl.events.KeyboardEvent;
 import openfl.ui.Keyboard;
 import openfl.display.Shape;
 import openfl.events.Event;
-import sys.FileSystem;
-import haxe.io.Path;
-import sys.io.File;
-#if openfl
+import openfl.display.Tile;
 import lime.media.AudioSource;
 import openfl.media.SoundChannel;
 import openfl.media.Sound;
@@ -40,13 +40,14 @@ class Main extends game.Game
         cred();
         //login();
         game();
+        connect();
         stage.addEventListener(Event.RESIZE,resize);
         stage.addEventListener(KeyboardEvent.KEY_DOWN,keyDown);
         stage.addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
         stage.addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
-        connect();
+        stage.addEventListener(Event.ENTER_FRAME,update);
         //new data.sound.AiffData(File.getBytes(Game.dir + "sounds/1645.aiff"));
-        resize(null);
+        //resize(null);
     }
     private function mouseWheel(e:MouseEvent)
     {
@@ -71,8 +72,11 @@ class Main extends game.Game
     }
     private function resize(_)
     {
-        objects.width = stage.stageWidth;
-        objects.height = stage.stageHeight;
+        if (objects != null)
+        {
+            objects.width = stage.stageWidth;
+            objects.height = stage.stageHeight;
+        }
     }
     private function objectData(vector:Vector<Int>)
     {
@@ -192,13 +196,16 @@ class Main extends game.Game
         }
         addChild(join);
     }
-    override function update(_) 
+    private function update(_) 
     {
-        super.update(_);
-        ground.x = objects.group.x;
-        ground.y = objects.group.y;
-        ground.scaleX = objects.group.scaleX;
-        ground.scaleY = objects.group.scaleY;
+        client.update();
+        if (ground != null)
+        {
+            ground.x = objects.group.x;
+            ground.y = objects.group.y;
+            ground.scaleX = objects.group.scaleX;
+            ground.scaleY = objects.group.scaleY;
+        }
     }
     override function playerUpdate(instances:Array<PlayerInstance>) 
     {
