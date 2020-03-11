@@ -1,6 +1,4 @@
-import game.Game;
-import game.GameHeader;
-
+import game.*;
 import data.*;
 import settings.*;
 import client.*;

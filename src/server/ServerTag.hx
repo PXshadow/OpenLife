@@ -38,6 +38,7 @@ package server;
      * login
      */
     public var LOGIN = "LOGIN";
+    public var RELOGIN = "RLOGIN";
 
     @:from private static function fromString(value:String):ServerTag
     {

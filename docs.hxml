@@ -17,6 +17,7 @@
 -D display
 -D native
 -D linux
+-D visual
 -D openfl_doc_gen
 -D doc_gen
 -cp src

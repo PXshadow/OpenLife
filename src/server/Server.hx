@@ -11,8 +11,6 @@ import settings.Settings;
 import sys.net.Host;
 import sys.FileSystem;
 import sys.io.File;
-import sys.db.Manager;
-import sys.db.TableCreate;
 import haxe.io.Path;
 
 typedef Client = {
@@ -33,27 +31,14 @@ class Server
     var clients:Array<Client> = [];
     public static function main()
     {
-        /*Thread.create(function()
-        {
-            Sys.sleep(1);
-            try {
-            Main.main();
-            }catch(e:Dynamic)
-            {
-                trace("fail " + e);
-            }
-        });*/
-        new Server();
+        Thread.create(function(){new Server();});
+        Sys.sleep(0.5);
+        Main.main();
     }
     public function new()
     {
         dir = Path.addTrailingSlash(Path.directory(Path.normalize(Sys.programPath())));
         trace("dir " + dir);
-
-        Manager.initialize();
-        Manager.cnx = Sqlite.open(dir + "database.db");
-        //create tables
-        if (!TableCreate.exists(server.logs.Life.manager)) TableCreate.create(server.logs.Life.manager);
         //run
         socket = new Socket();
         socket.setBlocking(false);
@@ -130,13 +115,15 @@ class Server
             var data:String = "";
             for (i in 0...32 * 30)
             {
-                data += "0:0:0";
+                data += " 0:0:0";
             }
+            data = data.substr(1);
             var uncompressed:Bytes = Bytes.ofString(data);
             var ucl:Int = uncompressed.length;
             var bytes:Bytes = haxe.zip.Compress.run(uncompressed,0);
             var length:Int = bytes.length;
-            send(MAP_CHUNK,'32 30 0 0\n$ucl $length\n' + bytes.toString());
+            send(MAP_CHUNK,'32 30 0 0\n$ucl $length\n');
+            c.socket.output.writeBytes(bytes,0,bytes.length);
             //c.socket.output.writeString(bytes.toString());
             var pu = new data.object.player.PlayerInstance([]).toData();
             trace("pu " + pu);

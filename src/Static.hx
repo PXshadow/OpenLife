@@ -12,6 +12,10 @@ class Static
 {
     public static inline var GRID:Int = 128;
     public static inline var tileHeight:Int = 0;//30;
+    public static function main()
+    {
+        new Main();
+    }
     public static function request(url:String,complete:String->Void)
     {
         var http = new Http(url);

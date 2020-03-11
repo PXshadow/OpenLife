@@ -6,6 +6,7 @@ class Generate
 {
     public static function main()
     {
+        trace("start generation");
         //docs
         var exclude:Array<String> = [
             //haxe

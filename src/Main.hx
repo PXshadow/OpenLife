@@ -246,33 +246,34 @@ class Main extends game.Game
 
 #if (!openfl)
 import ImportAll;
-class Main
+class Main extends game.Game
 {
     public static function main()
     {
-        var client = new client.Client();
-        client.accept = function()
-        {
-            trace("accept");
-            client.message = message;
-            client.accept = null;
-        }
-        client.reject = function()
-        {
-            trace("reject");
-            client.reject = null;
-        }
-        client.message = client.login;
-        client.connect();
+        new Main();
+    }
+    public function new()
+    {
+        directory();
+        super();
+        cred();
+        client.ip = "localhost";
+        client.port = 8005;
+        connect();
         while (true)
         {
             client.update();
             Sys.sleep(0.2);
         }
     }
-    public static function message(tag:client.ClientTag,input:Array<String>)
-    {
-        trace('$tag $input');
+    override function playerUpdate(instances:Array<PlayerInstance>) {
+        super.playerUpdate(instances);
+        var str = "";
+        for (instance in instances)
+        {
+            str += instance.toString() + "\n";
+        }
+        trace("player update: " + str);
     }
 }
 #end

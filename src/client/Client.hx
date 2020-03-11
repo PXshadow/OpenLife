@@ -25,7 +25,7 @@ class Client
     public var ip:String = "localhost";
     public var port:Int = 8005;
     //ping
-    public var ping:Float = 0;
+    public var ping:Int = 0;
     var pingInt:Int = 0;
     //login info
     public var email:String = "";
@@ -68,27 +68,27 @@ class Client
                     {
                         data = '$MAP_CHUNK\n$data';
                     }
-                    process();
+                }else{
+                    return;
                 }
             }else{
-                trace("get data");
                 data = socket.input.readUntil("#".code);
-                process();
             }
 		}catch(e:Dynamic)
 		{
 			if(e != Error.Blocked)
 			{
-                trace('e: $e');
-                close();
-			}
+                //trace('e: $e');
+                //close();
+            }
+            return;
         }
+        process();
         #end
     }
     var tag:ClientTag;
     private function process()
     {
-        trace("init process");
         var array = data.split("\n");
         if (array.length == 0) return;
         tag = array[0];
@@ -135,7 +135,7 @@ class Client
         var accountKey = new Hmac(SHA1).make(Bytes.ofString(key),Bytes.ofString(challenge)).toHex();
         var clientTag = "client_openlife";
         trace("request!");
-        send((reconnect ? "" : "R") + 'LOGIN $clientTag $email $password $accountKey ${(tutorial ? 1 : 0)}');
+        send((reconnect ? "R" : "") + 'LOGIN $clientTag $email $password $accountKey ${(tutorial ? 1 : 0)}');
     }
     public function send(data:String)
     {
@@ -143,9 +143,9 @@ class Client
         #if (sys || nodejs)
         try {
             #if nodejs
-            @:privateAccess socket.s.write(data + "#");
+            @:privateAccess socket.s.write('$data#');
             #else
-            socket.output.writeString(data + "#");
+            socket.output.writeString('$data#');
             #end
         }catch(e:Dynamic)
         {
@@ -170,7 +170,7 @@ class Client
         dataCompressed = Bytes.alloc(compressSize);
         compressIndex = 0;
     }
-    public function connect(reconnect:Bool)
+    public function connect(reconnect:Bool=false)
 	{
         this.reconnect = reconnect;
         trace("attempt connect " + ip);
@@ -186,9 +186,6 @@ class Client
 		}
 		socket = new Socket();
         //socket.setTimeout(10);
-        #if !nodejs
-		socket.setFastSend(true);
-        #end
 		try {
 			socket.connect(host,port);
 		}catch(e:Dynamic)

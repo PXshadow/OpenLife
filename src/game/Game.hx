@@ -218,6 +218,9 @@ class Game extends GameHeader
             case FLIGHT_DEST:
             //p_id dest_x dest_y
             trace("FLIGHT FLIGHT FLIGHT " + input);
+            case PONG:
+            client.ping = Std.int(UnitTest.stamp() * 100);
+            trace("ping: " + client.ping);
             default:
         }
     }
