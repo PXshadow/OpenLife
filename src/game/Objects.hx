@@ -81,7 +81,7 @@ class Objects extends TileDisplay
     }
     public function visibleSprites(id:Int,sprites:Array<Tile>,age:Int=20)
     {
-        var data = Game.data.objectMap.get(id);
+        var data = get(id);
         if (data != null)
         {
             for (i in 0...sprites.length)
@@ -107,11 +107,22 @@ class Objects extends TileDisplay
         }
         if (tiles != null) for (tile in tiles) group.removeTile(tile);
     }
+    public function get(id:Int):ObjectData
+    {
+        var data = Game.data.objectMap.get(id);
+        if (data == null)
+        {
+            //retrieve from file
+            data = new ObjectData(id);
+            Game.data.objectMap.set(id,data);
+        }
+        return data;
+    }
     public function add(array:Array<Int>,x:Int=0,y:Int=0,container:TileContainer=null):Bool
     {
         if (array == null || array.length == 0 || array[0] == 0) return false;
         //data is main container
-        var data:ObjectData = Game.data.objectMap.get(array[0]);
+        var data:ObjectData = get(array[0]);
         var main = data;
         var sub:ObjectData;
         //container int
@@ -155,14 +166,14 @@ class Objects extends TileDisplay
             if (array[i] > 0)
             {
                 //container
-                sub = Game.data.objectMap.get(array[i] * 1);
+                sub = get(array[i] * 1);
                 id = mainInt++;
                 conInt = 0;
                 set = true;
                 data = main;
             }else{
                 //add into container
-                sub = Game.data.objectMap.get(array[i] * -1);
+                sub = get(array[i] * -1);
                 id = conInt++;
             }
             if (data.slotPos[id] == null || data.slotVert == null || sub == null || data.slotPos == null) continue;

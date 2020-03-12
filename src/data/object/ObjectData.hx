@@ -28,7 +28,7 @@ class ObjectData extends LineReader
     /**
      * N/A
      */
-    public var containSize:Int = 0;
+    public var containSize:Float = 0.000000;
     /**
      * N/A
      */
@@ -164,7 +164,7 @@ class ObjectData extends LineReader
     /**
      * N/A
      */
-    public var slotSize:Int=1;
+    public var slotSize:Float=1;
     /**
      * N/A
      */
@@ -558,6 +558,46 @@ class ObjectData extends LineReader
                 }              
             }
         }
+    }
+    public function toFileString():String
+    {
+        var objectString = 'id=$id\n' +
+        '$description\n' +
+        'contaible=${containable ? "1" : "0"}\n' +
+        'containSize=$containSize,vertSlotRot=$vertSlotRot\n' +
+        'permanent=$permanent,minPickupAge=$minPickupAge\n' +
+        'noFlip=${noFlip ? "1" : "0"}\n' +
+        'sideAccess=${sideAcess ? "1" : "0"}\n' +
+        'heldInHand=${heldInHand ? "1" : "0"}\n' +
+        'blocksWalking=${blocksWalking ? "1" : "0"},leftBlockingRadius=$leftBlockingRadius,rightBlockingRadius=$rightBlockingRadius,drawBehindPlayer=${drawBehindPlayer ? "1" : "0"}\n' +
+        'mapChance=$mapChance\n' + //TODO: include #biomes_0
+        'heatValue=$heatValue\n' +
+        'rValue=$rValue\n' +
+        'person=${person ? "1" : "0"},noSpawn=${noSpawn ? "1" : "0"}\n' +
+        'male=${male ? "1" : "0"}\n' +
+        'deathMarker=$deathMarker\n' +
+        'homeMarker=$homeMarker\n' +
+        'floor=${floor ? "1" : "0"}\n' +
+        'floorHugging=${floorHugging ? "1" : "0"}\n' +
+        'foodValue=$foodValue\n' +
+        'speedMult=$speedMult\n' +
+        'heldOffset=${heldOffset.x},${heldOffset.y}\n' +
+        'clothing=$clothing\n' +
+        'clothingOffset=${clothingOffset.x},${clothingOffset.y}\n' +
+        'deadlyDistance=$deadlyDistance\n' +
+        'useDistance=$useDistance\n' +
+        'sounds=0:0,0:0.0,0:0.0,0:0.0\n' + //TODO: implement sound
+        'creationSoundInitalOnly=$creationSoundInitialOnly\n' +
+        'creationSoundForce=$creationSoundForce\n' +
+        'numSlots=$numSlots#timeStrech=$timeStretch\n' +
+        'slotsSize=$slotSize\n' +
+        'slotsLocked=$slotsLocked\n' +
+        'numSprites=$numSprites\n';
+        for (sprite in spriteArray)
+        {
+            objectString += sprite.toString();
+        }
+        return objectString;
     }
     /**
      * clone data

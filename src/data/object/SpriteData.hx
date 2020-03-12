@@ -62,4 +62,16 @@ class SpriteData
     {
 
     }
+    public function toString():String
+    {
+        return 'spriteID=$spriteID\n' +
+        'pos=${pos.x},${pos.y}\n' + 
+        'rot=$rot\n' + 
+        'hFlip=$hFlip\n' +
+        'color=${color[0]},${color[1]},${color[2]}\n' +
+        'ageRange=${ageRange[0]},${ageRange[1]}\n' +
+        'parent=$parent\n' +
+        'invisHolding=$invisHolding,invisWorn=$invisWorn,behindSlots=$behindSlots\n' +
+        'invisCount=$invisCont\n';
+    }
 }

@@ -32,11 +32,12 @@ class Main extends game.Game
     {
         directory();
         super();
-        var vector = Game.data.objectData();
+        /*var vector = Game.data.objectData();
         if (Game.data.nextObjectNumber > 0)
         {
             objectData(vector);
-        }
+        }*/
+        new resource.ObjectBake();
         cred();
         //login();
         game();
@@ -257,8 +258,8 @@ class Main extends game.Game
         directory();
         super();
         cred();
-        client.ip = "localhost";
-        client.port = 8005;
+        client.ip = "thinqbator.app";
+        //client.port = 8005;
         connect();
         while (true)
         {
@@ -268,12 +269,7 @@ class Main extends game.Game
     }
     override function playerUpdate(instances:Array<PlayerInstance>) {
         super.playerUpdate(instances);
-        var str = "";
-        for (instance in instances)
-        {
-            str += instance.toString() + "\n";
-        }
-        trace("player update: " + str);
+        trace("player update!");
     }
 }
 #end

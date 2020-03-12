@@ -29,7 +29,7 @@ class Ground extends Shape
         clear();
         //opaqueBackground = 0;
         //cacheAsBitmapMatrix = new Matrix();
-        tileset = new Tileset(new BitmapData(2000,2000,false,0));
+        tileset = new Tileset(new BitmapData(2000,2000,true));
         //0 is blank for tileData reading
         //add cached ground
         for (i in 0...6 + 1) cache(i);
@@ -103,7 +103,7 @@ class Ground extends Shape
     //cache ground tiles
     public function cache(id:Int)
     {
-        var a = "_square";
+        var a = "";//"_square";
         var rect:Rectangle = new Rectangle(tileX,tileY);
         
             //16

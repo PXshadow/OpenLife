@@ -103,6 +103,7 @@ class AnimationData extends LineReader
         animation.numSprites = getInt();
         animation.numSlots = getInt();
         //sprites
+        #if neko if (animation.numSprites == null) return animation; #end
         if(animation.numSprites <= 0) return animation;
         animation.params = new Vector<AnimationParameter>(animation.numSprites);
         for(i in 0...animation.params.length) animation.params[i] = processParam();

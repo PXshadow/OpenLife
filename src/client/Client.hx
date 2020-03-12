@@ -78,8 +78,8 @@ class Client
 		{
 			if(e != Error.Blocked)
 			{
-                //trace('e: $e');
-                //close();
+                trace('e: $e');
+                close();
             }
             return;
         }
