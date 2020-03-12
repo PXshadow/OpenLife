@@ -1,3 +1,5 @@
+import console.Console;
+import data.animation.AnimationPlayer;
 import game.Player;
 import data.object.player.PlayerInstance;
 import sys.FileSystem;
@@ -28,15 +30,11 @@ class Main extends game.Game
     var objects:Objects;
     var ground:Ground;
     var player:Player;
+    var console:Console;
     public function new()
     {
         directory();
         super();
-        /*var vector = Game.data.objectData();
-        if (Game.data.nextObjectNumber > 0)
-        {
-            objectData(vector);
-        }*/
         new resource.ObjectBake();
         cred();
         //login();
@@ -47,8 +45,26 @@ class Main extends game.Game
         stage.addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
         stage.addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
         stage.addEventListener(Event.ENTER_FRAME,update);
+        stage.addEventListener(MouseEvent.MIDDLE_MOUSE_DOWN,mouseWheelDown);
+        stage.addEventListener(MouseEvent.MIDDLE_MOUSE_UP,mouseWheelUp);
         //new data.sound.AiffData(File.getBytes(Game.dir + "sounds/1645.aiff"));
-        //resize(null);
+        //create console
+        console = new Console();
+        addChild(console);
+        resize(null);
+    }
+    var omx:Float;
+    var omy:Float;
+    var drag:Bool = false;
+    private function mouseWheelDown(_)
+    {
+        omx = stage.mouseX;
+        omy = stage.mouseY;
+        drag = true;
+    }
+    private function mouseWheelUp(_)
+    {
+        drag = false;
     }
     private function mouseWheel(e:MouseEvent)
     {
@@ -60,6 +76,7 @@ class Main extends game.Game
     }
     private function keyDown(e:KeyboardEvent)
     {
+        console.keyDown(e.keyCode);
         switch (e.keyCode)
         {
             case Keyboard.I: zoom(1);
@@ -69,7 +86,7 @@ class Main extends game.Game
     private function zoom(i:Int)
     {
         if (objects.scale > 2 && i > 0 || objects.scale < 0.2 && i < 0) return;
-        objects.scale += i * 0.08;
+        objects.scale += i * 0.1;
     }
     private function resize(_)
     {
@@ -78,31 +95,7 @@ class Main extends game.Game
             objects.width = stage.stageWidth;
             objects.height = stage.stageHeight;
         }
-    }
-    private function objectData(vector:Vector<Int>)
-    {
-        var int = Game.data.nextObjectNumber;
-        var data:ObjectData;
-        var dummyObject:ObjectData;
-        var i:Int = 0;
-        for (id in vector)
-        {
-            data = new ObjectData(id);
-            if (data.numUses > 1)
-            {
-                for (j in 1...data.numUses - 1)
-                {
-                    dummyObject = data.clone();
-                    dummyObject.id = ++int;
-                    dummyObject.numUses = 0;
-                    dummyObject.dummy = true;
-                    dummyObject.dummyParent = data.id;
-                    Game.data.objectMap.set(dummyObject.id,dummyObject);
-                }
-            }
-            Game.data.objectMap.set(data.id,data);
-            if (i++ % 200 == 0) trace("i " + i);
-        }
+        if (console != null) console.resize(stage.stageWidth);
     }
     private function game()
     {
@@ -146,14 +139,6 @@ class Main extends game.Game
         portInput.x = 100;
         portInput.y = 200;
         addChild(portInput);
-        //fill
-        /*if (!settings.fail)
-        {
-            emailInput.text = settings.data.get("email");
-            keyInput.text = settings.data.get("accountKey");
-            if (valid(settings.data.get("customServerAddress"))) serverInput.text = string;
-            if (valid(settings.data.get("customServerPort"))) portInput.text = string;
-        }*/
         var join = new Button();
         join.text = "Join";
         join.y = 250;
@@ -200,6 +185,13 @@ class Main extends game.Game
     private function update(_) 
     {
         client.update();
+        if (drag && objects != null)
+        {
+            objects.group.x += stage.mouseX - omx;
+            objects.group.y += stage.mouseY - omy;
+            omx = stage.mouseX;
+            omy = stage.mouseY;
+        }
         if (ground != null)
         {
             ground.x = objects.group.x;
@@ -217,8 +209,19 @@ class Main extends game.Game
             objects.player.x = 0;
             objects.player.y = 0;
         }
-        objects.addPlayer(instances.pop());
-        player = objects.player;
+        if (player == null)
+        {
+            //main player
+            objects.addPlayer(instances.pop());
+            player = objects.player;
+            new AnimationPlayer(objects).play(player.instance.po_id,2,player.sprites(),0,0,player.clothing);
+            player.x += -100;
+            console.set("player",player);
+            console.set("objects",objects);
+            console.set("ground",ground);
+            console.set("math",Math);
+            console.set("data",Game.data);
+        }
     }
     override function mapChunk(instance:MapInstance) 
     {
@@ -232,15 +235,19 @@ class Main extends game.Game
                 objects.add([Game.data.map.floor.get(i,j)],i,j);
             }
         }
-        for (i in instance.x...instance.x + instance.width)
+        for (j in instance.y...instance.y + instance.height)
         {
-            for (j in instance.y...instance.y + instance.height)
+            for (i in instance.x...instance.x + instance.width)
             {
-                objects.add(Game.data.map.object.get(i,j),i,j);
+                objects.add(Game.data.map.object.get(i,j * -1),i,j * -1);
             }
         }
         Game.data.map.chunks.push(instance);
         ground.render();
+        objects.x = 0;
+        objects.y = 0;
+        objects.width = stage.stageWidth;
+        objects.height = stage.stageHeight;
     }
 }
 #end

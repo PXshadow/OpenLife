@@ -51,6 +51,7 @@ class MapData
      */
     public function setRect(chunk:MapInstance,string:String)
     {
+        trace("str " + string);
         //combine
         if (this.x > chunk.x) this.x = chunk.x;
         if (this.y > chunk.y) this.y = chunk.y;
@@ -114,22 +115,22 @@ class MapData
     {
         //postive is container, negative is subcontainer that goes into postive container
         //0 is first container, untill another postive number comes around
-            var a = string.split(first);
-            var s:Array<String> = [];
-            var array:Array<Int> = [];
-            for (i in 0...a.length)
+        var a = string.split(first);
+        var s:Array<String> = [];
+        var array:Array<Int> = [];
+        for (i in 0...a.length)
+        {
+            //container split data
+            s = a[i].split(second);
+            //sub
+            array.push(Std.parseInt(s[0]));
+            for (k in 1...s.length - 1)
             {
-                //container split data
-                s = a[i].split(second);
-                //sub
-                array.push(Std.parseInt(s[0]));
-                for (k in 1...s.length - 1)
-                {
-                    //subobjects
-                    array.push(Std.parseInt(s[k]) * -1);
-                }
+                //subobjects
+                array.push(Std.parseInt(s[k]) * -1);
             }
-            return array;
+        }
+        return array;
     }
     public static function stringID(a:Array<Int>):String
     {

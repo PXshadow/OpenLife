@@ -1,5 +1,6 @@
 package data.animation;
 
+import game.Objects;
 import data.sound.SoundData;
 #if openfl
 import lime.media.AudioBuffer;
@@ -18,6 +19,7 @@ import game.Game;
 import openfl.geom.Point;
 class AnimationPlayer
 {
+    var objects:Objects;
     /**
      * Active animations playing
      */
@@ -25,9 +27,9 @@ class AnimationPlayer
     /**
      * Create new player
      */
-    public function new()
+    public function new(objects:Objects)
     {
-        
+        this.objects = objects;
     }
     /**
      * Play animation
@@ -76,8 +78,8 @@ class AnimationPlayer
         for (i in 0...param.length)
         {
             sprite = sprites[i];
-                //set pos
-            //Main.objects.setSprite(sprite,objectData.spriteArray[i],data.x,data.y);
+            //set pos
+            objects.setSprite(sprite,objectData.spriteArray[i],data.x,data.y);
             sprite.x += param[i].offset.x;
             sprite.y += -param[i].offset.y;
             p = objectData.spriteArray[i].parent;
@@ -216,7 +218,7 @@ class AnimationPlayer
         for (i in 0...data.sprites.length) 
         {
             Actuate.stop(data.sprites[i],null,false,false);
-            Main.objects.setSprite(data.sprites[i],objectData.spriteArray[i],data.x,data.y);
+            objects.setSprite(data.sprites[i],objectData.spriteArray[i],data.x,data.y);
         }
         //reset clothing
         

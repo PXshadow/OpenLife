@@ -159,17 +159,17 @@ class Console #if openfl extends DisplayObjectContainer #end
     #if openfl
     public function enter()
     {
-        if(input.length == 0) return;
+        /*if(input.length == 0) return;
         var text = input.text;
         //coammnd outside of hscript
-        if(command.run(text)) return;
-        input.text = "";
+        if(command.run(text)) return;*/
         //multiline reset
         if(output.numLines > 9)
         {
             output.text = "";
         }
-        run(text);
+        run(input.text);
+        input.text = "";
     }
     #end
     public function run(text:String)

@@ -42,7 +42,7 @@ class Ground extends Shape
     public function render()
     {
         graphics.clear();
-        graphics.beginBitmapFill(tileset.bitmapData);
+        graphics.beginBitmapFill(tileset.bitmapData,null,false,true);
         graphics.drawQuads(tileset.rectData,indices,transforms);
     }
     public function clear()
@@ -129,11 +129,11 @@ class Ground extends Shape
                         tileHeight = 0;
                     }
                     //move tilesystem
-                    tileX += Std.int(rect.width) + 1;
+                    tileX += Std.int(rect.width);
                     //set to bitmapData
                     tileset.bitmapData.setPixels(rect,reader.bytes);
                     tileset.addRect(rect);
-                    if (rect.height > tileHeight) tileHeight = Std.int(rect.height) + 1;
+                    if (rect.height > tileHeight) tileHeight = Std.int(rect.height);
                 }
             }
     }
