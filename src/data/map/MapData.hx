@@ -51,7 +51,6 @@ class MapData
      */
     public function setRect(chunk:MapInstance,string:String)
     {
-        trace("str " + string);
         //combine
         if (this.x > chunk.x) this.x = chunk.x;
         if (this.y > chunk.y) this.y = chunk.y;

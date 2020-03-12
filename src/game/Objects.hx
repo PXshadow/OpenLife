@@ -178,7 +178,7 @@ class Objects extends TileDisplay
             }
             if (data.slotPos[id] == null || data.slotVert == null || sub == null || data.slotPos == null) continue;
             for (sprite in create(sub,
-            tx + data.slotPos[id].x + 0,
+            tx + data.slotPos[id].x + Static.GRID/2,
             ty - data.slotPos[id].y + 0,
             sub.vertSlotRot * 365 + (data.slotVert[id] ? 1 : 0) * 90))
             {

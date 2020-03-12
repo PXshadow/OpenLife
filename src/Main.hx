@@ -31,6 +31,8 @@ class Main extends game.Game
     var ground:Ground;
     var player:Player;
     var console:Console;
+    var selectX:Int = 0;
+    var selectY:Int = 0;
     public function new()
     {
         directory();
@@ -72,7 +74,15 @@ class Main extends game.Game
     }
     private function mouseDown(_)
     {
-
+        if (player != null)
+        {
+            if (player.ix == selectX && player.y == selectY)
+            {
+                trace("select player");
+            }else{
+                trace("non select player " + player.ix + " " + selectX);
+            }
+        }
     }
     private function keyDown(e:KeyboardEvent)
     {
@@ -185,6 +195,8 @@ class Main extends game.Game
     private function update(_) 
     {
         client.update();
+        selectX = Math.ceil((mouseX - ground.x - (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale)) + 1;
+        selectY = Math.ceil((mouseY - ground.y - (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale)) + 1;
         if (drag && objects != null)
         {
             objects.group.x += stage.mouseX - omx;
@@ -215,7 +227,6 @@ class Main extends game.Game
             objects.addPlayer(instances.pop());
             player = objects.player;
             new AnimationPlayer(objects).play(player.instance.po_id,2,player.sprites(),0,0,player.clothing);
-            player.x += -100;
             console.set("player",player);
             console.set("objects",objects);
             console.set("ground",ground);

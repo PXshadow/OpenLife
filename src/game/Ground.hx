@@ -29,7 +29,7 @@ class Ground extends Shape
         clear();
         //opaqueBackground = 0;
         //cacheAsBitmapMatrix = new Matrix();
-        tileset = new Tileset(new BitmapData(2000,2000,true));
+        tileset = new Tileset(new BitmapData(3000,3000,true));
         //0 is blank for tileData reading
         //add cached ground
         for (i in 0...6 + 1) cache(i);

@@ -1,4 +1,4 @@
 set.hxml
 -D luajit
--D lua-vanilla
+#-D lua-vanilla
 -lua bin/lua/lib.lua

@@ -119,6 +119,24 @@ class Game extends GameHeader
             var array = input[0].split(" ");
             client.compress(Std.parseInt(array[0]),Std.parseInt(array[1]));
             case PLAYER_EMOT:
+            var index:Int = 0;
+            var index2:Int = 0;
+            var secs:Int = 0;
+            for (line in input)
+            {
+                index = line.indexOf(" ");
+                index2 = line.indexOf(" ",index + 1);
+                if (index2 == -1)
+                {
+                    //no ttl_sec
+                    secs = 10;
+                    index2 = line.length;
+                }else{
+                    //ttl_sec exists
+                    secs = Std.parseInt(line.substr(index2 + 1));
+                }
+                emot(Std.parseInt(line.substring(0,index)),Std.parseInt(line.substring(index + 1,index2)),secs);
+            }
             //p_id emot_index ttl_sec
             //ttl_sec is optional, and specifies how long the emote should be shown
             //-1 is permanent, -2 is permanent but not new so should be skipped
@@ -162,31 +180,103 @@ class Game extends GameHeader
             }
             case HEAT_CHANGE:
             //heat food_time indoor_bonus
-            
+            heatChange(Std.parseFloat(input[0]),Std.parseFloat(input[1]),Std.parseFloat(input[2]));
             case FOOD_CHANGE:
-            //trace("food change " + input);
+            trace("food change " + input[0]);
             //foodPercent = Std.parseInt(input[0])/Std.parseInt(input[1]);
+            //food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
             
             case FRAME:
+            frame();
             case PLAYER_SAYS:
+            var index:Int = 0;
+            for (line in input)
+            {
+                index = line.indexOf("/");
+                says(Std.parseInt(line.substring(0,index)),line.substr(index + 2),line.substr(index + 1,1) == "1");
+            }
             /*array = input.split("/");
             //trace("id " + array[0]);
             var text = array[1].substring(2,array[1].length);*/
             //id = Std.parseInt(array[0]);
+            case LOCATION_SAYS:
+            var array:Array<String> = [];
+            for (line in input)
+            {
+                array = line.split(" ");
+                saysLocation(Std.parseInt(array[0]),Std.parseInt(array[1]),array[2]);
+            }
+            case BAD_BIOMES:
+            var index:Int = 0;
+            for (line in input)
+            {
+                index = line.indexOf(" ");
+                badBiomes(Std.parseInt(line.substring(0,index)),line.substr(index + 1));
+            }
             case PLAYER_OUT_OF_RANGE:
             //player is out of range
-            trace("player out of range " + input);
-            var id:Int = Std.parseInt(input[0]);
-            var player = data.playerMap.get(id);
+            var list:Array<Int> = [];
+            for (string in input) list.push(Std.parseInt(string));
+            playerOutOfRange(list);
+            case BABY_WIGGLE:
+            var list:Array<Int> = [];
+            for (string in input) list.push(Std.parseInt(string));
+            babyWiggle(list);
             case LINEAGE:
             //p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
-
+            //included at the end with the eve= tag in front of it.
+            var array:Array<String> = [];
+            for (line in input)
+            {
+                lineage(line.split(" "));
+            }
             case NAME:
             //p_id first_name last_name last_name may be ommitted.
-            var id:Int = Std.parseInt(input[0]);
-            var name:String = input[1] + (input.length > 1 ? " " + input[2] : "");
+            var array:Array<String> = [];
+            var lastName:String = "";
+            for (line in input)
+            {
+                array = line.split(" ");
+                if (array.length > 2)
+                {
+                    //last name
+                    lastName = array[2];
+                }else{
+                    //no last name
+                    lastName = "";
+                }
+                playerName(Std.parseInt(array[0]),array[1],lastName);
+            }
+            case APOCALYPSE:
+            //Indicates that an apocalypse is pending.  Gives client time to show a visual effect.
+            apocalypse();
+            case APOCALYPSE_DONE:
+            //Indicates that an apocalypse is now over.  Client should go back to displaying world.
+            case DYING:
+            var index:Int = 0;
+            var sick:Bool;
+            for (line in input)
+            {
+               index = line.indexOf(" ");
+               if (index == -1)
+               {
+                   index = line.length;
+                   sick = false;
+               }else{
+                   sick = true;
+               }
+               dying(Std.parseInt(line.substring(0,index)),sick);
+            }
+            apocalypseDone();
             case HEALED:
             //p_id player healed no longer dying.
+            for (line in input)
+            {
+                healed(Std.parseInt(line));
+            }
+            case POSSE_JOIN: //FINISH tommrow
+            //Indicates that killer joined posse of target.
+            //If target = 0, killer has left the posse.
 
             case MONUMENT_CALL:
             //MN x y o_id monument call has happened at location x,y with the creation object id
@@ -196,9 +286,6 @@ class Game extends GameHeader
             var x:Int = Std.parseInt(input[0]);
             var y:Int = Std.parseInt(input[1]);
             var id:Int = Std.parseInt(input[2]);
-            case DYING:
-            //p_id isSick isSick is optional 1 flag to indicate that player is sick (client shouldn't show blood UI overlay for sick players)
-            trace("dying " + input);
             case GRAVE_MOVE:
             //xs ys xd yd swap_dest optional swap_dest parameter is 1, it means that some other grave at  destination is in mid-air.  If 0, not
 
