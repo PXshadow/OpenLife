@@ -31,6 +31,7 @@ import data.map.MapInstance;
 import ui.Text;
 import ui.InputText;
 import ui.Button;
+import game.Weather;
 class Main extends game.Game
 {
     var objects:Objects;
@@ -41,6 +42,7 @@ class Main extends game.Game
     var selectX:Int = 0;
     var selectY:Int = 0;
     var cursor:Bitmap;
+    var weather:Weather;
     public function new()
     {
         //openfl.ui.Mouse.cursor = openfl.ui.MouseCursor.AUTO;
@@ -65,8 +67,8 @@ class Main extends game.Game
         console = new Console();
         addChild(console);
         resize(null);
-        var fps = new openfl.display.FPS(10,10,0xFFFFFF);
-        addChild(fps);
+        //var fps = new openfl.display.FPS(10,10,0xFFFFFF);
+        //addChild(fps);
 
         if (FileSystem.exists(Game.dir + "graphics"))
         {
@@ -136,11 +138,13 @@ class Main extends game.Game
     {
         trace("create game");
         objects = new Objects();
+        //weather = new Weather(objects);
         ground = new Ground();
         overlay = new Overlay(ground);
         addChild(ground);
         addChild(overlay);
         addChild(objects);
+        //weather.wind();
     }
     private function login()
     {

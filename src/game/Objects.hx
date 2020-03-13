@@ -74,6 +74,7 @@ class Objects extends TileDisplay
             add([data.po_id],0,data.y,player);
             //set to very front
             group.addTile(player);
+            player.objects = this;
             player.set(data);
             player.force();
             Game.data.playerMap.set(data.p_id,player); 

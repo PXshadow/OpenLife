@@ -57,7 +57,6 @@ class AnimationPlayer
         var objectData = Game.data.objectMap.get(id);
         if (objectData == null || objectData.animation == null) return;
         var param = objectData.animation.record[index].params;
-        trace("param length " + param.length);
         if (param == null) return;
         var type = objectData.animation.record[index].type;
         var sprite:Tile = null;
@@ -87,7 +86,7 @@ class AnimationPlayer
             p = objectData.spriteArray[i].parent;
             if (p != -1)
             {
-                sprite.data = {px:sprites[p].x,py:sprites[p].y,pr:sprites[p].rotation};
+                sprite.data = {px:sprites[p].x,py:sprites[p].y,pr:sprites[p].rotation,rps:param[i].rotPerSec};
             }
         }
         //set clothing parent
@@ -164,7 +163,20 @@ class AnimationPlayer
             if (param[i].xAmp > 0) tween(sprite,{x:sprite.x + param[i].xAmp/2},{x:sprite.x - param[i].xAmp/2},1/param[i].xOscPerSec,param[i].xPhase,px);
             if (param[i].yAmp > 0) tween(sprite,{y:sprite.y + param[i].yAmp/2},{y:sprite.y - param[i].yAmp/2},1/param[i].yOscPerSec,param[i].yPhase,py);
             if (param[i].rockAmp > 0) tween(sprite,{rotation:sprite.rotation + (param[i].rockAmp * 360)},{rotation:sprite.rotation - (param[i].rockAmp * 360)},1/param[i].rockOscPerSec,param[i].rockPhase);
+            if (param[i].rotPerSec != 0)
+            {
+                var dir = param[i].rotPerSec > 0 ? 1 : -1;
+                trace("rot " + param[i].rotPerSec);
+                rotate(sprite,1/param[i].rotPerSec * dir * 1,dir,365 * dir);
+            }
         }
+    }
+    private function rotate(sprite:Tile,sec:Float,dir:Int,rot:Int)
+    {
+        Actuate.tween(sprite,sec,{rotation:rot}).onComplete(function(_)
+        {
+            rotate(sprite,sec,dir,rot + 365 * dir);
+        }).ease(Linear.easeNone);
     }
     /**
      * update

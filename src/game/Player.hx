@@ -429,8 +429,8 @@ class Player #if openfl extends TileContainer #end
             if (oid[0] > 0)
             {
                 heldObject = new TileContainer();
-                trace("oid " + oid);
-                //objects.add([32],0,0,null);
+                trace("oid " + oid + " objects " + objects);
+                objects.add(oid,0,0,heldObject);
             }else{
                 heldObject = Game.data.playerMap.get(oid[0] * -1);
                 if (heldObject == null) 
@@ -441,7 +441,7 @@ class Player #if openfl extends TileContainer #end
                 objects.removeTile(heldObject);
             }
             //pos
-            var data = Game.data.objectMap.get(oid[0]);
+            var data = objects.get(oid[0]);
             heldObject.x = data.heldOffset.x;
             heldObject.y = data.heldOffset.y;
             //data.held

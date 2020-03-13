@@ -7,6 +7,14 @@
 
 -abstraction layer for File.getContent
 
+Weather
+- snow, snowing
+- dessert, sand storm
+- green, windy with leaves
+- jungle, rain
+- swamp, fog
+- savanah, tumble weeds
+- rock, thunder
 Non technical
 - add client to https://www.moddb.com/games/one-hour-one-life/mods
 - add to https://www.indiedb.com/
