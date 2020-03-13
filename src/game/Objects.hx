@@ -1,4 +1,5 @@
 package game;
+import data.animation.AnimationPlayer;
 import data.object.SpriteData;
 #if openfl
 import openfl.display.BitmapData;
@@ -19,6 +20,7 @@ import data.object.ObjectData;
 
 class Objects extends TileDisplay
 {
+    public var animate:AnimationPlayer;
     public var containing:Int = 0;
     public var sprites:Array<Tile> = [];
     public var cacheMap:Map<Int,Int> = new Map<Int,Int>();
@@ -51,6 +53,7 @@ class Objects extends TileDisplay
     public function new()
     {
         super();
+        animate = new AnimationPlayer(this);
         smoothing = true;
         //trace(list);
         //add base
@@ -186,6 +189,12 @@ class Objects extends TileDisplay
                 sprites.insert(data.slotParent[id],sprite);
             }
             if (set) data = sub;
+        }
+        //animation
+        if (data.animation != null)
+        {
+            trace("animate id " + data.id);
+            animate.play(data.id,0,sprites,x,y);
         }
         //fill container if present
         if (container != null)

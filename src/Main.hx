@@ -37,7 +37,6 @@ class Main extends game.Game
     var ground:Ground;
     var overlay:Overlay;
     var player:Player;
-    var animation:AnimationPlayer;
     var console:Console;
     var selectX:Int = 0;
     var selectY:Int = 0;
@@ -139,7 +138,6 @@ class Main extends game.Game
         objects = new Objects();
         ground = new Ground();
         overlay = new Overlay(ground);
-        animation = new AnimationPlayer(objects);
         addChild(ground);
         addChild(overlay);
         addChild(objects);
@@ -269,7 +267,7 @@ class Main extends game.Game
         {
             var obj = Game.data.playerMap.get(move.id);
             move.movePlayer(obj);
-            animation.play(obj.instance.po_id,5,obj.sprites(),0,0,obj.clothing);
+            //animation.play(obj.instance.po_id,2,obj.sprites(),0,0,obj.clothing);
         }
     }
     override function playerUpdate(instances:Array<PlayerInstance>) 
@@ -279,7 +277,7 @@ class Main extends game.Game
         for (i in 0...instances.length)
         {
             objects.addPlayer(instances[i]);
-            animation.clear(objects.player.sprites());
+            //animation.clear(objects.player.sprites());
         }
         if (player == null)
         {

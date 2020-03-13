@@ -6,7 +6,7 @@ class AnimationParameter
     /**
      * Offset of sprite
      */
-    public var offset:Point;
+    public var offset:Point = new Point();
     /**
      * the first pause, before the first animation duration,
      * for controling the phase of the duration-pause cycle
@@ -86,7 +86,6 @@ class AnimationParameter
         yPhase = Std.parseFloat(array[i++]);
 
         var s:String = array[i++];
-        if (s == null) return;
         var cut = s.indexOf(",");
         rotationCenterOffset = new Point(Std.parseFloat(s.substring(1,cut)),Std.parseFloat(s.substring(cut + 1,s.length - 1)));
 
@@ -105,6 +104,5 @@ class AnimationParameter
         fadeMin = Std.parseFloat(array[i++]);
         fadeMax = Std.parseFloat(array[i++]);
         fadePhase = Std.parseFloat(array[i++]);
-        
     }
 }

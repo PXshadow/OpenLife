@@ -132,7 +132,7 @@ class LineReader
         var string = line[next++];
         if(string == null || string == "") return "";
         var equals = string.indexOf("=");
-        return string.substring(equals + 1,line.length);
+        return string.substr(equals + 1);
     }
     /**
      * Name from line
@@ -144,5 +144,10 @@ class LineReader
         var string = line[next];
         if(name == string.substring(0,name.length)) return true;
         return false;
+    }
+    public function getName():String
+    {
+        var string = line[next];
+        return string.substring(0,string.indexOf("="));
     }
 }

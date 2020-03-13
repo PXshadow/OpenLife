@@ -57,6 +57,8 @@ class AnimationPlayer
         var objectData = Game.data.objectMap.get(id);
         if (objectData == null || objectData.animation == null) return;
         var param = objectData.animation.record[index].params;
+        trace("param length " + param.length);
+        if (param == null) return;
         var type = objectData.animation.record[index].type;
         var sprite:Tile = null;
         var p:Int = 0;
