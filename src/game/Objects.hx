@@ -51,7 +51,7 @@ class Objects extends TileDisplay
     public function new()
     {
         super();
-        //smoothing = true;
+        smoothing = true;
         //trace(list);
         //add base
         group = new TileContainer();
@@ -178,9 +178,10 @@ class Objects extends TileDisplay
             }
             if (data.slotPos[id] == null || data.slotVert == null || sub == null || data.slotPos == null) continue;
             for (sprite in create(sub,
-            tx + data.slotPos[id].x + Static.GRID/2,
-            ty - data.slotPos[id].y + 0,
-            sub.vertSlotRot * 365 + (data.slotVert[id] ? 1 : 0) * 90))
+            tx + data.slotPos[id].x + Static.GRID/4,
+            ty - data.slotPos[id].y - Static.GRID/4 * 0,
+            sub.vertSlotRot * 365 + (data.slotVert[id] ? 1 : 0) * 90)
+            )
             {
                 sprites.insert(data.slotParent[id],sprite);
             }

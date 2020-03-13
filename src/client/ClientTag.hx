@@ -44,6 +44,7 @@ public var PONG = "PONG";
 public var FOLLOWING = "FW";
 public var EXILED = "EX";
 public var TOOL_SLOTS = "TS";
+public var HOMELAND = "HL";
 //new
 public var ACCEPTED = "ACCEPTED";
 public var REJECTED = "REJECTED";
@@ -96,6 +97,7 @@ public var SERVER_INFO = "SN";
         case "FM": FRAME;
         case "PONG": PONG;
         case "TS": TOOL_SLOTS;
+        case "HL": HOMELAND;
         //new
         case "SN": SERVER_INFO;
         case "ACCEPTED": ACCEPTED;

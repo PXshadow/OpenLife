@@ -53,8 +53,7 @@ class GameHeader #if openfl extends openfl.display.Sprite #elseif heaps hxd.App 
     
     public function mapChunk(instance:MapInstance) {}; //MAP_CHUNK
     public function mapChange(change:MapChange) {}; //MAP_CHANGE
-
-    public function foodChange() {}; //FOOD_CHANGE
+    public function foodChange(store:Int,capacity:Int,ateId:Int,fillMax:Int,speed:Float,responsible:Int) {}; //FOOD_CHANGE
     public function heatChange(heat:Float,foodTime:Float,indoorBonus:Float) {}; //HEAT_CHANGE
     public function frame() {}; //FRAME
     public function lineage(list:Array<String>) {}; //LINEAGE
@@ -66,4 +65,5 @@ class GameHeader #if openfl extends openfl.display.Sprite #elseif heaps hxd.App 
     public function ownerList(x:Int,y:Int,list:Array<Int>) {}; //OWNER_LIST
     public function valley(spacing:Int,offset:Int) {}; //VALLEY_SPACING
     public function flight(id:Int,x:Int,y:Int) {}; //FLIGHT_DEST
+    public function homeland(x:Int,y:Int,name:String) {};
 }

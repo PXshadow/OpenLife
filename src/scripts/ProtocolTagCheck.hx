@@ -76,9 +76,9 @@ class ProtocolTagCheck
             {
                 if (error.length > 1)
                 {
-                    trace(names[i] + tags[i] + " | " + error[0] + " and " + error[1] + " not found");
+                    trace(names[i] + " " + tags[i] + " | " + error[0] + " and " + error[1] + " not found");
                 }else{
-                    trace(names[i] + tags[i] + " | " + error[0] + " not found");
+                    trace(names[i] + " " + tags[i] + " | " + error[0] + " not found");
                 }
             }
             //header content

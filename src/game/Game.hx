@@ -172,17 +172,19 @@ class Game extends GameHeader
             }
             case MAP_CHANGE:
             //var change = new MapChange(input);
-            var change:MapChange;
+            /*var change:MapChange;
             for (data in input)
             {
                 change = new MapChange(data.split(" "));
                 mapChange(change);
-            }
+            }*/
             case HEAT_CHANGE:
             //heat food_time indoor_bonus
-            heatChange(Std.parseFloat(input[0]),Std.parseFloat(input[1]),Std.parseFloat(input[2]));
+            var array = input[0].split(" ");
+            heatChange(Std.parseFloat(array[0]),Std.parseFloat(array[1]),Std.parseFloat(array[2]));
             case FOOD_CHANGE:
-            trace("food change " + input[0]);
+            var array = input[0].split(" ");
+            
             //foodPercent = Std.parseInt(input[0])/Std.parseInt(input[1]);
             //food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
             
@@ -277,10 +279,12 @@ class Game extends GameHeader
             case POSSE_JOIN: //FINISH tommrow
             //Indicates that killer joined posse of target.
             //If target = 0, killer has left the posse.
-
+            var array = input[0].split(" ");
+            posse(Std.parseInt(array[0]),Std.parseInt(array[1]));
             case MONUMENT_CALL:
             //MN x y o_id monument call has happened at location x,y with the creation object id
-
+            var array = input[0].split(" ");
+            monument(Std.parseInt(array[0]),Std.parseInt(array[1]),Std.parseInt(array[2]));
             case GRAVE:
             //x y p_id
             var x:Int = Std.parseInt(input[0]);
@@ -308,6 +312,9 @@ class Game extends GameHeader
             case PONG:
             client.ping = Std.int(UnitTest.stamp() * 100);
             trace("ping: " + client.ping);
+            case HOMELAND:
+            var array = input[0].split(" ");
+            homeland(Std.parseInt(array[0]),Std.parseInt(array[1]),array[2]);
             default:
         }
     }

@@ -1,4 +1,5 @@
 package game;
+import sys.FileSystem;
 #if openfl
 import data.GameData;
 import graphics.TgaData;
@@ -8,6 +9,7 @@ import openfl.display.BitmapData;
 import openfl.display.Tileset;
 import openfl.geom.Rectangle;
 import openfl.display.Shape;
+import openfl.geom.ColorTransform;
 import sys.io.File;
 
 class Ground extends Shape
@@ -18,9 +20,8 @@ class Ground extends Shape
     var tileX:Float = 0;
     var tileY:Float = 0;
     var tileset:Tileset;
-    public var indices:Vector<Int>;
-    public var transforms:Vector<Float>;
-
+    var indices:Vector<Int>;
+    var transforms:Vector<Float>;
     public var simple:Bool = false;
     public var simpleIndex:Int = 0;
     public function new()
@@ -30,6 +31,7 @@ class Ground extends Shape
         //opaqueBackground = 0;
         //cacheAsBitmapMatrix = new Matrix();
         tileset = new Tileset(new BitmapData(3000,3000,true));
+        //tileset.bitmapData.colorTransform(tileset.bitmapData.rect,new ColorTransform(0,0,0,0,255,255,255,255));
         //0 is blank for tileData reading
         //add cached ground
         for (i in 0...6 + 1) cache(i);
@@ -54,7 +56,7 @@ class Ground extends Shape
     {
         for (i in 0...Std.int(transforms.length))
         {
-            if (transforms[i * 2] == x * Static.GRID + 32 * mu && transforms[i * 2 + 1] == (Static.tileHeight - y) * Static.GRID + 32 * mu)
+            if (transforms[i * 2] == x * Static.GRID - Static.GRID && transforms[i * 2 + 1] == (Static.tileHeight - y) * Static.GRID - Static.GRID)
             {
                 indices.removeAt(i);
                 transforms.removeAt(i * 2);
@@ -63,7 +65,6 @@ class Ground extends Shape
             }
         }
     }
-    var mu:Float = 2;
     public function add(id:Int,x:Int,y:Int,cornerCheck:Bool=false)
     {
         if (simple)
@@ -74,8 +75,12 @@ class Ground extends Shape
         }
         // slight offset to compensate for tile overlaps and
         // make biome tiles more centered on world tiles
-        transforms.push(x * Static.GRID + 32 * mu);
-        transforms.push((Static.tileHeight - y) * Static.GRID + 32 * mu);
+        transforms.push(x * Static.GRID - Static.GRID);
+        transforms.push((Static.tileHeight - y) * Static.GRID - Static.GRID);
+    }
+    public function overlay()
+    {
+
     }
     private function abs(i:Int):Int
     {
@@ -101,7 +106,7 @@ class Ground extends Shape
         if (rect.height > tileHeight) tileHeight = Math.ceil(rect.height) + 1;
     }
     //cache ground tiles
-    public function cache(id:Int)
+    private function cache(id:Int)
     {
         var a = "";//"_square";
         var rect:Rectangle = new Rectangle(tileX,tileY);
@@ -111,7 +116,7 @@ class Ground extends Shape
             {
                 for(i in 0...4)
                 {
-                    var input = File.read(Game.dir + "groundTileCache/biome_" + id + "_x" + i + "_y" + j + a + ".tga");
+                    var input = File.read(Game.dir + 'groundTileCache/biome_${id}_x${i}_y$j$a.tga');
                     reader.read(input.readAll());
                     input.close();
                     //set dimensions
@@ -136,6 +141,8 @@ class Ground extends Shape
                     if (rect.height > tileHeight) tileHeight = Std.int(rect.height);
                 }
             }
+
+
     }
 }
 #end

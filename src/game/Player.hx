@@ -233,7 +233,8 @@ class Player #if openfl extends TileContainer #end
         }
         instance = data;
         //pos and age
-        if (instance.forced) 
+        //trace("num " + instance.done_moving_seqNum);
+        if (instance.forced || instance.done_moving_seqNum > 0) 
         {
             trace("force!");
             if (held)
@@ -339,7 +340,6 @@ class Player #if openfl extends TileContainer #end
             }
             //set new
             clothingInt = temp;
-            trace("clothingInt " + clothingInt);
             var sprites:Array<Tile> = [];
             var clothsData:ObjectData;
             var offsetX:Float = 0;
@@ -429,7 +429,8 @@ class Player #if openfl extends TileContainer #end
             if (oid[0] > 0)
             {
                 heldObject = new TileContainer();
-                objects.add(oid,0,0,heldObject);
+                trace("oid " + oid);
+                //objects.add([32],0,0,null);
             }else{
                 heldObject = Game.data.playerMap.get(oid[0] * -1);
                 if (heldObject == null) 

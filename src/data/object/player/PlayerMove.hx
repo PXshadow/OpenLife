@@ -50,6 +50,7 @@ class PlayerMove
                 case 4:
                 current = Std.parseFloat(value);
                 case 5:
+                trace("trunc value " + value);
                 trunc = value == "1" ? true : false;
                 default:
                 if(index > 6)
@@ -69,8 +70,9 @@ class PlayerMove
     public function movePlayer(player:Player)
     {
         //set pos
-        player.ix = xs;
-        player.iy = ys;
+        player.moves = [];
+        //player.ix = xs;
+        //player.iy = ys;
         if (trunc) player.force();
         var currentX:Int = 0;
         var currentY:Int = 0;

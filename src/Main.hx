@@ -1,6 +1,12 @@
+import openfl.display.PixelSnapping;
+import openfl.display.BitmapData;
+import graphics.TgaData;
+import openfl.display.Bitmap;
+import data.object.player.PlayerMove;
 import console.Console;
 import data.animation.AnimationPlayer;
 import game.Player;
+import game.Overlay;
 import data.object.player.PlayerInstance;
 import sys.FileSystem;
 import haxe.io.Path;
@@ -29,12 +35,16 @@ class Main extends game.Game
 {
     var objects:Objects;
     var ground:Ground;
+    var overlay:Overlay;
     var player:Player;
+    var animation:AnimationPlayer;
     var console:Console;
     var selectX:Int = 0;
     var selectY:Int = 0;
+    var cursor:Bitmap;
     public function new()
     {
+        //openfl.ui.Mouse.cursor = openfl.ui.MouseCursor.AUTO;
         directory();
         super();
         new resource.ObjectBake();
@@ -49,11 +59,26 @@ class Main extends game.Game
         stage.addEventListener(Event.ENTER_FRAME,update);
         stage.addEventListener(MouseEvent.MIDDLE_MOUSE_DOWN,mouseWheelDown);
         stage.addEventListener(MouseEvent.MIDDLE_MOUSE_UP,mouseWheelUp);
+        stage.addEventListener(MouseEvent.MOUSE_OUT,mouseOut);
+        //stage.addEventListener(MouseEvent.mouseou);
         //new data.sound.AiffData(File.getBytes(Game.dir + "sounds/1645.aiff"));
         //create console
         console = new Console();
         addChild(console);
         resize(null);
+        var fps = new openfl.display.FPS(10,10,0xFFFFFF);
+        addChild(fps);
+
+        if (FileSystem.exists(Game.dir + "graphics"))
+        {
+            openfl.ui.Mouse.hide();
+            var reader = new TgaData();
+            reader.read(File.getBytes(Game.dir + "graphics/bigPointer.tga"));
+            cursor = new Bitmap(new BitmapData(Std.int(reader.rect.width),Std.int(reader.rect.height)),PixelSnapping.ALWAYS,true);
+            cursor.scaleX = cursor.scaleY = 0.6;
+            cursor.bitmapData.setPixels(reader.rect,reader.bytes);
+            addChild(cursor);
+        }
     }
     var omx:Float;
     var omy:Float;
@@ -76,17 +101,18 @@ class Main extends game.Game
     {
         if (player != null)
         {
-            if (player.ix == selectX && player.y == selectY)
+            /*if (player.ix == selectX && player.y == selectY)
             {
                 trace("select player");
             }else{
                 trace("non select player " + player.ix + " " + selectX);
-            }
+            }*/
+
         }
     }
     private function keyDown(e:KeyboardEvent)
     {
-        console.keyDown(e.keyCode);
+        if (console.keyDown(e.keyCode)) return;
         switch (e.keyCode)
         {
             case Keyboard.I: zoom(1);
@@ -112,7 +138,10 @@ class Main extends game.Game
         trace("create game");
         objects = new Objects();
         ground = new Ground();
+        overlay = new Overlay(ground);
+        animation = new AnimationPlayer(objects);
         addChild(ground);
+        addChild(overlay);
         addChild(objects);
     }
     private function login()
@@ -210,23 +239,54 @@ class Main extends game.Game
             ground.y = objects.group.y;
             ground.scaleX = objects.group.scaleX;
             ground.scaleY = objects.group.scaleY;
+            if (overlay != null)
+            {
+                overlay.x = ground.x;
+                overlay.y = ground.y;
+                overlay.scaleX = ground.scaleX;
+                overlay.scaleY = ground.scaleY;
+            }
+        }
+        if (cursor != null)
+        {
+            cursor.x = mouseX;
+            cursor.y = mouseY;
+        }
+    }
+    private function mouseOut(_)
+    {
+        //in and out cursor
+        cursor.visible = !cursor.visible;
+    }
+    override function grave(x:Int, y:Int, id:Int) 
+    {
+        super.grave(x, y, id);
+        trace('grave $x $y $id');
+    }
+    override function playerMoveStart(move:PlayerMove) {
+        super.playerMoveStart(move);
+        if (Game.data.playerMap.exists(move.id))
+        {
+            var obj = Game.data.playerMap.get(move.id);
+            move.movePlayer(obj);
+            animation.play(obj.instance.po_id,5,obj.sprites(),0,0,obj.clothing);
         }
     }
     override function playerUpdate(instances:Array<PlayerInstance>) 
     {
         super.playerUpdate(instances);
+        trace("player update!");
         for (i in 0...instances.length)
         {
             objects.addPlayer(instances[i]);
-            objects.player.x = 0;
-            objects.player.y = 0;
+            animation.clear(objects.player.sprites());
         }
         if (player == null)
         {
             //main player
             objects.addPlayer(instances.pop());
             player = objects.player;
-            new AnimationPlayer(objects).play(player.instance.po_id,2,player.sprites(),0,0,player.clothing);
+            //new AnimationPlayer(objects).play(player.instance.po_id,2,player.sprites(),0,0,player.clothing);
             console.set("player",player);
             console.set("objects",objects);
             console.set("ground",ground);
@@ -255,6 +315,7 @@ class Main extends game.Game
         }
         Game.data.map.chunks.push(instance);
         ground.render();
+        overlay.render();
         objects.x = 0;
         objects.y = 0;
         objects.width = stage.stageWidth;
