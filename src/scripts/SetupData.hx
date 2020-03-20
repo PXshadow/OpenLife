@@ -1,45 +1,67 @@
 package scripts;
+import haxe.io.Path;
+import sys.io.Process;
 import sys.FileSystem;
 import sys.io.File;
 class SetupData
 {
+    var outputPaths:Array<String> = [];
+    var dir:String;
+    var dataDir:String;
     public static function main()
     {
         new SetupData();
     }
     public function new()
     {
-        trace("Start");
+        dir = Sys.getCwd();
+        trace("Start " + dir);
         //move onelifedata7 files to windows or mac folder depending on whitch is up
-        var path:String = "";
-        if (FileSystem.exists("bin/windows")) path = "bin/windows/bin/";
-        if (FileSystem.exists("bin/macOS")) path = "bin/macOS/bin/";
-        if (FileSystem.exists("bin/hl")) path = "bin/hl/bin/";
-        if (FileSystem.exists("bin/neko")) path = "bin/neko/bin/";
+        if (FileSystem.exists("bin/windows")) outputPaths.push("bin/windows/bin/");
+        if (FileSystem.exists("bin/macOS")) outputPaths.push("bin/macOS/bin/");
+        if (FileSystem.exists("bin/hl")) outputPaths.push("bin/hl/bin/");
+        if (FileSystem.exists("bin/neko")) outputPaths.push("bin/neko/bin/");
         //setup linux later
-        trace("path: " + path);
+        trace("paths: " + outputPaths);
         //check if path is set
-        if (path == "")
+        if (outputPaths.length == 0)
         {
             trace("No built directory");
             Sys.sleep(1);
             return;
         }
-        if (!FileSystem.exists("OneLifeData7"))
+        if (true)
         {
-            trace("OneLifeData7 does not exist, clone");
-            Sys.command("git clone https://github.com/kuwas-io/OneLifeData7");
-            Sys.sleep(1);
+            dataDir = Path.join([dir,"/onelifedata7"]);
+            //trace("dir " + FileSystem.readDirectory("."));
             if (!FileSystem.exists("onelifedata7"))
             {
-                trace("Not able to generate OneLifeData7");
-                Sys.sleep(1);
-                return;
+                trace("clone-");
+                Sys.command("git clone https://github.com/jasonrohrer/OneLifeData7.git");
+                Sys.setCwd(dataDir);
+            }else{
+                trace("pull-");
+                Sys.setCwd(dataDir);
+                Sys.command("git pull https://github.com/jasonrohrer/OneLifeData7.git --force");
+            }
+            Sys.command("git fetch --tags");
+            var proc = new Process("git for-each-ref --sort=-creatordate --format '%(refname:short) --count=1");
+            trace("command!");
+            var tag = proc.stdout.readAll().toString();
+            tag = tag.substring(1,tag.length - 1);
+            trace("tag|" + tag + "|");
+            if (tag.indexOf("OneLife_v") == 0)
+            {
+                Sys.command('git checkout -q $tag');
+                trace("checkout!");
+            }else{
+                trace("tag format wrong: " + tag);
             }
         }
+        Sys.setCwd(dir);
         //copy
-        trace("begin copy");
-        copyDir("onelifedata7/",path,true);
+        trace("begin copy " + outputPaths + " dir " + FileSystem.readDirectory("."));
+        for (path in outputPaths) copyDir(Path.addTrailingSlash(dataDir),path,true);
         trace("Finished data setup");
         Sys.sleep(2);
     }
