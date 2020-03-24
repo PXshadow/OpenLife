@@ -1,6 +1,7 @@
 package data.object.player;
 import game.Player;
 import console.Program.Pos;
+#if nativeGen @:nativeGen #end
 class PlayerMove 
 {
     /**

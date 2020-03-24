@@ -4,6 +4,7 @@ import openfl.system.System;
 import openfl.display.DisplayObjectContainer;
 import openfl._internal.renderer.context3D.stats.Context3DStats;
 #end
+#if nativeGen @:nativeGen #end
 class Profiler #if openfl extends DisplayObjectContainer #end
 {
     private var currentTime:Float;

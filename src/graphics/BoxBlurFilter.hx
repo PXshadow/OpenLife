@@ -5,6 +5,7 @@ import haxe.io.Bytes;
 /**
  * https://github.com/jasonrohrer/minorGems/blob/master/graphics/filters/BoxBlurFilter.h
  */
+ #if nativeGen @:nativeGen #end
 class BoxBlurFilter
 {
     public function new(radius:Int=12,channel:Bytes,width:Int,height:Int)

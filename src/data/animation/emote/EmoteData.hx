@@ -1,5 +1,5 @@
 package data.animation.emote;
-
+#if nativeGen @:nativeGen #end
 class EmoteData
 {
     /**

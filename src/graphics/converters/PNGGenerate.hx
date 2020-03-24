@@ -6,7 +6,7 @@ import data.TgaData;
 import sys.FileSystem;
 import openfl.display.BitmapData;
 import haxe.io.Path;
-
+#if nativeGen @:nativeGen #end
 class PNGGenerator
 {
     var reader:TgaData = new TgaData();

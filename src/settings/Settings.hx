@@ -7,6 +7,7 @@ import haxe.io.Path;
 import sys.io.File;
 import sys.FileSystem;
 #end
+#if nativeGen @:nativeGen #end
 class Settings
 {
     @:isVar public var data(default,set):Data = {};

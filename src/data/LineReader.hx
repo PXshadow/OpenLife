@@ -2,7 +2,7 @@ package data;
 //multi platform to read input
 import haxe.io.Input;
 import haxe.ds.Vector;
-
+#if nativeGen @:nativeGen #end
 class LineReader
 {
     @:doxHide(false)

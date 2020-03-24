@@ -2,6 +2,7 @@ package data.map;
 import haxe.Timer;
 import sys.io.FileInput;
 import haxe.ds.Vector;
+#if nativeGen @:nativeGen #end
 class MapData
 {
     /**

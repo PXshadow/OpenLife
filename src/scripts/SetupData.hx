@@ -3,6 +3,7 @@ import haxe.io.Path;
 import sys.io.Process;
 import sys.FileSystem;
 import sys.io.File;
+#if nativeGen @:nativeGen #end
 class SetupData
 {
     var outputPaths:Array<String> = [];

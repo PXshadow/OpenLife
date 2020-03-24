@@ -3,6 +3,7 @@ package data;
  * 2D generic Array
  */
 @:generic
+#if nativeGen @:nativeGen #end
 class ArrayDataArrayInt
 {
     var array:Array<Array<Array<Int>>> = [];

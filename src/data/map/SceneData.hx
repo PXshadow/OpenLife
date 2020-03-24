@@ -1,7 +1,7 @@
 package data.map;
 
 import haxe.ds.Vector;
-
+#if nativeGen @:nativeGen #end
 class SceneData
 {
     public var width:Int = 0;

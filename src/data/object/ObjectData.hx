@@ -7,6 +7,7 @@ import data.animation.AnimationData;
 import data.sound.SoundData;
 import data.GameData;
 import game.Game;
+#if nativeGen @:nativeGen #end
 class ObjectData extends LineReader
 {
     /**

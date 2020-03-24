@@ -1,5 +1,5 @@
 package data.animation;
-
+#if nativeGen @:nativeGen #end
 class AnimationParameter
 {
     //https://github.com/twohoursonelife/OneLifeDocs/blob/master/OHOL%20editor%20guide.txt

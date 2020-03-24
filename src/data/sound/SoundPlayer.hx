@@ -5,6 +5,7 @@ import openfl.media.Sound;
 import openfl.media.SoundChannel;
 import openfl.media.SoundTransform;
 import game.Game;
+#if nativeGen @:nativeGen #end
 class SoundPlayer
 {
     /**

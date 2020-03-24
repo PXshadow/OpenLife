@@ -1,6 +1,6 @@
 package game;
-import sys.FileSystem;
 #if openfl
+import sys.FileSystem;
 import data.GameData;
 import graphics.TgaData;
 import openfl.Vector;
@@ -11,7 +11,7 @@ import openfl.geom.Rectangle;
 import openfl.display.Shape;
 import openfl.geom.ColorTransform;
 import sys.io.File;
-
+#if nativeGen @:nativeGen #end
 class Ground extends Shape
 {
     var reader:TgaData = new TgaData();

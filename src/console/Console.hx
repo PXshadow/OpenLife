@@ -7,7 +7,7 @@ import openfl.display.Shape;
 import openfl.display.DisplayObjectContainer;
 import ui.Text;
 #end
-
+#if nativeGen @:nativeGen #end
 class Console #if openfl extends DisplayObjectContainer #end
 {
     var length:Int = 0;

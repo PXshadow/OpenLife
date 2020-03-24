@@ -3,6 +3,7 @@ package data;
 import cpp.UInt64;
 import cpp.UInt32;
 #end
+#if nativeGen @:nativeGen #end
 class FractalNoise
 {
     #if cpp

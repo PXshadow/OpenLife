@@ -12,6 +12,7 @@ import haxe.Timer;
 /**
  * Socket Client
  */
+#if nativeGen @:nativeGen #end
 class Client
 {
     #if (sys || nodejs)

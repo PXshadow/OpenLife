@@ -2,7 +2,7 @@ package console;
 #if openfl
 import openfl.Lib;
 #end
-
+#if nativeGen @:nativeGen #end
 class Command
 {
     #if !openfl

@@ -8,7 +8,7 @@ import game.Game;
 import openfl.geom.ColorTransform;
 import openfl.display.Shader;
 #end
-
+#if nativeGen @:nativeGen #end
 class Util
 {
     //util for hscript

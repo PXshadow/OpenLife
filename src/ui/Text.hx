@@ -5,7 +5,7 @@ import haxe.io.Path;
 import openfl.text.TextFormatAlign;
 import openfl.text.TextFormat;
 import openfl.text.TextField;
-
+#if nativeGen @:nativeGen #end
 class Text extends TextField
 {
     @:isVar public var align(null,set):TextFormatAlign;

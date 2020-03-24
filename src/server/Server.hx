@@ -12,12 +12,12 @@ import sys.net.Host;
 import sys.FileSystem;
 import sys.io.File;
 import haxe.io.Path;
-
+#if nativeGen @:nativeGen #end
 typedef Client = {
    id:Int,
    socket:Socket,
 }
-
+#if nativeGen @:nativeGen #end
 class Server
 {
     var dir:String;

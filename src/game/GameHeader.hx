@@ -3,6 +3,7 @@ import data.map.MapInstance;
 import data.object.player.PlayerInstance;
 import data.object.player.PlayerMove;
 import data.map.MapChange;
+//#if nativeGen @:nativeGen #end
 class GameHeader #if openfl extends openfl.display.Sprite #elseif heaps hxd.App #end
 {
     //Headers not included:

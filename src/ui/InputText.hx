@@ -1,5 +1,6 @@
 package ui;
 #if openfl
+#if nativeGen @:nativeGen #end
 class InputText extends Text
 {
     public function new()

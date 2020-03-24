@@ -1,6 +1,7 @@
 package data;
 #if openfl
 import openfl.display.Tile;
+#if nativeGen @:nativeGen #end
 class ArrayDataTile
 {
     var array:Array<Array<Array<Tile>>> = [];

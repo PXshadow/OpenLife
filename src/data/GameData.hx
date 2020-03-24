@@ -20,6 +20,7 @@ import openfl.display.Tile;
 import openfl.geom.Rectangle;
 #end
 //data stored for the game to function (map data -> game data)
+#if nativeGen @:nativeGen #end
 class GameData
 {
     /**

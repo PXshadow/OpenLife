@@ -3,5 +3,7 @@
 #-main Main
 -main Main
 -lib hscript
+-D nativeGen
 -D haxeJson
+-D no-compilation
 #-D full

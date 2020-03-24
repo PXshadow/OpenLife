@@ -8,6 +8,7 @@ import haxe.Http;
 /**
  * Static functions used across classes
  */
+ #if nativeGen @:nativeGen #end
 class Static 
 {
     public static inline var GRID:Int = 128;

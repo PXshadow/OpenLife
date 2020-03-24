@@ -2,6 +2,7 @@ package scripts;
 
 import sys.FileSystem;
 import haxe.io.Path;
+#if nativeGen @:nativeGen #end
 class Generate
 {
     public static function main()

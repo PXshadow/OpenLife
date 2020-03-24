@@ -9,6 +9,7 @@ import data.object.ObjectCode;
 import motion.Actuate;
 import openfl.display.Tile;
 #end
+#if nativeGen @:nativeGen #end
 class Program
 {
     public var home:Pos = new Pos();
@@ -235,6 +236,7 @@ class Program
     }
     #end
 }
+#if nativeGen @:nativeGen #end
 class Pos
 {
     public var x:Int;

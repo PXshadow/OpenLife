@@ -7,7 +7,7 @@ import sys.io.File;
 import graphics.TgaData;
 import sys.FileSystem;
 import game.Game;
-
+#if nativeGen @:nativeGen #end
 class GroundSprites
 {
     var tga:TgaData = new TgaData();

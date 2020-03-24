@@ -1,5 +1,4 @@
 package data.animation;
-
 import game.Objects;
 import data.sound.SoundData;
 #if openfl
@@ -17,6 +16,7 @@ import data.animation.AnimationChannel;
 import haxe.ds.Vector;
 import game.Game;
 import openfl.geom.Point;
+#if nativeGen @:nativeGen #end
 class AnimationPlayer
 {
     var objects:Objects;

@@ -1,5 +1,5 @@
 package game;
-
+#if openfl
 import openfl.display.Sprite;
 import openfl.display.Shape;
 import openfl.geom.Rectangle;
@@ -9,8 +9,8 @@ import openfl.display.Tileset;
 import sys.io.File;
 import sys.FileSystem;
 import openfl.display.BitmapData;
-
-class Overlay extends Shape
+#if nativeGen @:nativeGen #end
+class GroundOverlay extends Shape
 {
     var reader:TgaData = new TgaData();
     var tileHeight:Int = 0;
@@ -90,3 +90,4 @@ class Overlay extends Shape
         overlayBool = true;
     }
 }
+#end

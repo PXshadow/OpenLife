@@ -17,7 +17,7 @@ import openfl.geom.Rectangle;
 import graphics.TgaData;
 import openfl.display.Tile;
 import data.object.ObjectData;
-
+#if nativeGen @:nativeGen #end
 class Objects extends TileDisplay
 {
     public var animate:AnimationPlayer;

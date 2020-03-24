@@ -11,7 +11,7 @@ import lime.media.openal.AL;
 import haxe.ds.Vector;
 import haxe.io.Bytes;
 import openfl.media.Sound;
-
+#if nativeGen @:nativeGen #end
 class AiffData
 {
     public function new(data:Bytes)

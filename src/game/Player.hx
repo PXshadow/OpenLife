@@ -20,6 +20,7 @@ import data.object.SpriteData;
 import data.object.ObjectData;
 import data.animation.AnimationData;
 import haxe.ds.Vector;
+#if nativeGen @:nativeGen #end
 class Player #if openfl extends TileContainer #end
 {
     //statics

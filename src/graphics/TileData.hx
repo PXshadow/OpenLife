@@ -2,6 +2,7 @@ package graphics;
 #if openfl
 import openfl.display.Tile;
 import data.ArrayDataTile;
+#if nativeGen @:nativeGen #end
 class TileData
 {
     //floor objects

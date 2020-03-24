@@ -2,7 +2,7 @@ package data.animation;
 
 import data.sound.SoundData;
 import haxe.ds.Vector;
-
+#if nativeGen @:nativeGen #end
 class SoundParameter
 {
     public var sounds:Vector<SoundData>;

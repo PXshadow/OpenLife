@@ -1,5 +1,5 @@
 import haxe.Timer;
-
+#if nativeGen @:nativeGen #end
 class UnitTest
 {
     private static var time:Float = 0;

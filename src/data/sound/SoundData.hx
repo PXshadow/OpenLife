@@ -1,4 +1,5 @@
 package data.sound;
+#if nativeGen @:nativeGen #end
 class SoundData
 {
     /**

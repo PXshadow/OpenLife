@@ -1,5 +1,5 @@
 package data.object.player;
-
+#if nativeGen @:nativeGen #end
 class PlayerData
 {
     /**

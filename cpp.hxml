@@ -1,8 +1,2 @@
--cp src
--dce std
--main Main
--lib hscript
--lib hxcpp-debug-server
--D full
--D no-deprecation-warnings
+set.hxml
 -cpp bin/cpp

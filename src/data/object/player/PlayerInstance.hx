@@ -1,5 +1,6 @@
 package data.object.player;
 import data.map.MapData;
+#if nativeGen @:nativeGen #end
 class PlayerInstance
 {
     /**

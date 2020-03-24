@@ -1,17 +1,18 @@
-import openfl.display.PixelSnapping;
-import openfl.display.BitmapData;
-import graphics.TgaData;
-import openfl.display.Bitmap;
 import data.object.player.PlayerMove;
 import console.Console;
 import data.animation.AnimationPlayer;
 import game.Player;
-import game.Overlay;
 import data.object.player.PlayerInstance;
 import sys.FileSystem;
 import haxe.io.Path;
 import sys.io.File;
 #if openfl
+import graphics.TgaData;
+import openfl.display.Bitmap;
+import openfl.display.BitmapData;
+import openfl.display.PixelSnapping;
+import game.GroundOverlay;
+import game.Ui;
 import openfl.events.MouseEvent;
 import openfl.events.KeyboardEvent;
 import openfl.ui.Keyboard;
@@ -32,11 +33,13 @@ import ui.Text;
 import ui.InputText;
 import ui.Button;
 import game.Weather;
+
 class Main extends game.Game
 {
     var objects:Objects;
+    var ui:Ui;
     var ground:Ground;
-    var overlay:Overlay;
+    var groundOverlay:GroundOverlay;
     var player:Player;
     var console:Console;
     var selectX:Int = 0;
@@ -48,7 +51,7 @@ class Main extends game.Game
         //openfl.ui.Mouse.cursor = openfl.ui.MouseCursor.AUTO;
         directory();
         super();
-        new resource.ObjectBake();
+        new resources.ObjectBake();
         cred();
         //login();
         game();
@@ -140,9 +143,9 @@ class Main extends game.Game
         objects = new Objects();
         //weather = new Weather(objects);
         ground = new Ground();
-        overlay = new Overlay(ground);
+        groundOverlay = new GroundOverlay(ground);
         addChild(ground);
-        addChild(overlay);
+        addChild(groundOverlay);
         addChild(objects);
         //weather.wind();
     }
@@ -241,12 +244,12 @@ class Main extends game.Game
             ground.y = objects.group.y;
             ground.scaleX = objects.group.scaleX;
             ground.scaleY = objects.group.scaleY;
-            if (overlay != null)
+            if (groundOverlay != null)
             {
-                overlay.x = ground.x;
-                overlay.y = ground.y;
-                overlay.scaleX = ground.scaleX;
-                overlay.scaleY = ground.scaleY;
+                groundOverlay.x = ground.x;
+                groundOverlay.y = ground.y;
+                groundOverlay.scaleX = ground.scaleX;
+                groundOverlay.scaleY = ground.scaleY;
             }
         }
         if (cursor != null)
@@ -258,7 +261,7 @@ class Main extends game.Game
     private function mouseOut(_)
     {
         //in and out cursor
-        cursor.visible = !cursor.visible;
+        if (cursor != null) cursor.visible = !cursor.visible;
     }
     override function grave(x:Int, y:Int, id:Int) 
     {
@@ -317,7 +320,7 @@ class Main extends game.Game
         }
         Game.data.map.chunks.push(instance);
         ground.render();
-        overlay.render();
+        groundOverlay.render();
         objects.x = 0;
         objects.y = 0;
         objects.width = stage.stageWidth;
@@ -328,6 +331,7 @@ class Main extends game.Game
 
 #if (!openfl)
 import ImportAll;
+//#if nativeGen @:nativeGen #end
 class Main extends game.Game
 {
     public static function main()

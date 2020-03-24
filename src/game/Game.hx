@@ -9,7 +9,7 @@ import settings.Settings;
 import data.GameData;
 import haxe.io.Path;
 import client.ClientTag;
-
+//#if nativeGen @:nativeGen #end
 class Game extends GameHeader
 {
     /**

@@ -3,6 +3,7 @@ package ui;
 import openfl.display.Sprite;
 import openfl.events.Event;
 import openfl.events.MouseEvent;
+#if nativeGen @:nativeGen #end
 class Button extends Sprite
 {
     //functions 

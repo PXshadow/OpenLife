@@ -1,5 +1,6 @@
 package data.object;
 //gets set by objectData
+#if nativeGen @:nativeGen #end
 class SpriteData
 {
     /**

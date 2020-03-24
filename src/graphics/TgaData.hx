@@ -9,7 +9,7 @@ import haxe.io.Bytes;
 import openfl.utils.ByteArray;
 import haxe.io.Input;
 import format.tga.*;
-
+#if nativeGen @:nativeGen #end
 class TgaData
 {
     //output

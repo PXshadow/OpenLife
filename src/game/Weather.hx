@@ -1,7 +1,7 @@
 package game;
 
 import openfl.display.Tile;
-
+#if nativeGen @:nativeGen #end
 class Weather
 {
     var objects:Objects;
@@ -47,6 +47,7 @@ class Weather
         }
     }
 }
+#if nativeGen @:nativeGen #end
 class ObjectWeather
 {
     //velocity

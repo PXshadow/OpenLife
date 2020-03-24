@@ -5,6 +5,7 @@ import sys.net.Socket;
 import sys.net.Host;
 
 //relay data
+#if nativeGen @:nativeGen #end
 class Router
 {
     public var socket:Socket;
