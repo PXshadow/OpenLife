@@ -34,7 +34,7 @@ class ArrayDataTile
      */
     public function get(x:Int,y:Int):Array<Tile>
     {
-        if (array[y - dy] != null)
+        if (array[y - dy] != null && array[y - dy][x - dx] != null)
         {
             return array[y - dy][x - dx];
         }

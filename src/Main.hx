@@ -1,3 +1,4 @@
+import openfl.display.BlendMode;
 import data.object.player.PlayerMove;
 import console.Console;
 import data.animation.AnimationPlayer;
@@ -37,6 +38,7 @@ import game.Weather;
 class Main extends game.Game
 {
     var objects:Objects;
+    var grid:debug.Grid;
     var ui:Ui;
     var ground:Ground;
     var groundOverlay:GroundOverlay;
@@ -44,6 +46,7 @@ class Main extends game.Game
     var console:Console;
     var selectX:Int = 0;
     var selectY:Int = 0;
+    var selects:Array<Tile> = [];
     var cursor:Bitmap;
     var weather:Weather;
     public function new()
@@ -69,6 +72,8 @@ class Main extends game.Game
         //create console
         console = new Console();
         addChild(console);
+        grid = new debug.Grid();
+        addChild(grid);
         resize(null);
         //var fps = new openfl.display.FPS(10,10,0xFFFFFF);
         //addChild(fps);
@@ -111,7 +116,33 @@ class Main extends game.Game
             }else{
                 trace("non select player " + player.ix + " " + selectX);
             }*/
-
+            for (obj in selects)
+            {
+                obj.alpha += -1;
+            }
+            selects = [];
+            var list = Game.data.tileData.object.get(selectX,-selectY);
+            if (list.length > 0 && Math.abs(player.ix - selectX) < 8 && Math.abs(player.iy - selectY) <8)
+            {
+                var mx = (mouseX - objects.group.x)/objects.scale;
+                var my = (mouseY - objects.group.y)/objects.scale;
+                var bool = false;
+                for (obj in list)
+                {
+                    if (obj.x - obj.originX > mx) continue;
+                    if (obj.y - obj.originY > my) continue;
+                    if (obj.x + obj.width/2 < mx) continue;
+                    if (obj.y + obj.height/2 < my) continue;
+                    bool = true;
+                    break;
+                }
+                if (!bool) return;
+                selects = list;
+                for (obj in list)
+                {
+                    obj.alpha += 1;
+                }
+            }
         }
     }
     private function keyDown(e:KeyboardEvent)
@@ -229,8 +260,9 @@ class Main extends game.Game
     private function update(_) 
     {
         client.update();
-        selectX = Math.ceil((mouseX - ground.x - (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale)) + 1;
-        selectY = Math.ceil((mouseY - ground.y - (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale)) + 1;
+        selectX = Math.floor((mouseX - ground.x + (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale));
+        selectY = Math.floor((mouseY - ground.y + (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale));
+        stage.window.title = 'x: $selectX y: $selectY';
         if (drag && objects != null)
         {
             objects.group.x += stage.mouseX - omx;
@@ -250,6 +282,13 @@ class Main extends game.Game
                 groundOverlay.y = ground.y;
                 groundOverlay.scaleX = ground.scaleX;
                 groundOverlay.scaleY = ground.scaleY;
+            }
+            if (grid != null)
+            {
+                grid.x = ground.x;
+                grid.y = ground.y;
+                grid.scaleX = ground.scaleX;
+                grid.scaleY = ground.scaleY;
             }
         }
         if (cursor != null)

@@ -107,6 +107,10 @@ car
 engine
 plane
 
+MAP_CHANGE is 16 radius around player
+
+MAP_CHUNK x radius is 9 till new, and 8 for y
+
 
 references
 - for creating gifs 
