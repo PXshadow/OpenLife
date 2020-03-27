@@ -330,9 +330,7 @@ class Objects extends TileDisplay
     private function drawSprite(id:Int,rect:Rectangle):Rectangle
     {
         try {
-            var input = File.read(Game.dir + "sprites/" + id + ".tga");
-            reader.read(input.readAll());
-            input.close();
+            reader.read(File.getBytes(Game.dir + "sprites/" + id + ".tga"));
         }catch(e:Dynamic)
         {
             //trace("e " + e);

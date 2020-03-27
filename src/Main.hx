@@ -58,7 +58,8 @@ class Main extends game.Game
         cred();
         //login();
         game();
-        connect();
+        new debug.ObjectSpriteViewer(1349,objects);
+        //connect();
         stage.addEventListener(Event.RESIZE,resize);
         stage.addEventListener(KeyboardEvent.KEY_DOWN,keyDown);
         stage.addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
