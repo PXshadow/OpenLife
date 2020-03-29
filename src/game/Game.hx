@@ -148,11 +148,12 @@ class Game extends GameHeader
             }
             playerUpdate(list);
             case PLAYER_MOVES_START:
-            var instance:PlayerMove;
+            var move:PlayerMove;
             for (data in input)
             {
-                instance = new PlayerMove(data.split(" "));
-                playerMoveStart(instance);
+                move = new PlayerMove();
+                move.parse(data.split(" "));
+                playerMoveStart(move);
             }
             case MAP_CHUNK:
             if (mapInstance == null)

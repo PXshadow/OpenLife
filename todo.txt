@@ -23,3 +23,6 @@ Non technical
 Community Marketplace
 - Built in translation system
 - Clear mod submission
+
+
+Editor tools to cutting sprites rebuilding them and getting them properly configured

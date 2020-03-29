@@ -1,4 +1,5 @@
 package game;
+import data.object.player.PlayerInstance;
 import data.animation.AnimationPlayer;
 import data.object.SpriteData;
 #if openfl
@@ -312,7 +313,7 @@ class Objects extends TileDisplay
         player = null;
         group.removeTiles();
     }
-    private function cacheSprite(id:Int):Int
+    public function cacheSprite(id:Int):Int
     {
         if(cacheMap.exists(id))
         {

@@ -44,7 +44,6 @@ class Player #if openfl extends TileContainer #end
     public var moveTimer:Timer;
     public var moving:Bool = false;
     public var goal:Bool = false;
-    public var moves:Array<Pos> = [];
     public var follow:Bool = true;
     var multi:Float = 1;
     //locally used instance pos
@@ -59,9 +58,6 @@ class Player #if openfl extends TileContainer #end
     public var lastName:String = "";
     public var text:String = "";
     public var inRange:Bool = true;
-    //functions
-    public var move:Void->Void;
-    public var stop:Void->Void;
     public function new()
     {
         #if openfl
@@ -103,121 +99,13 @@ class Player #if openfl extends TileContainer #end
         return new Point();
     }
     #end
-    public function motion()
+    public function update()
     {
-        //use another move
-        if(moves.length > 0 && !moving)
-        {
-            point = moves.pop();
-            moving = true;
-            time = Std.int(Static.GRID/(Static.GRID * (instance.move_speed) * computePathSpeedMod()) * 60 * multi);
-            #if !openfl
-            #if (target.threaded)
-            sys.thread.Thread.create(() -> {
-                
-            });
-            #end
-            #else
-            //facing direction
-            if (point.x != 0)
-            {
-                if (point.x > 0)
-                {
-                    scaleX = 1;
-                }else{
-                    scaleX = -1;
-                }
-            }
-            //animation
-            //Main.animations.play(instance.po_id,2,sprites(),0,Static.tileHeight,clothing);
-            openfl.Lib.current.stage.addEventListener(Event.ENTER_FRAME,update);
-            frames = time;
-            #end
-            if (move != null) move();
-        }
-    }
-    var frames:Int = 0;
-    var time:Int = 0;
-    var point:Pos;
-    private function update(_)
-    {
-        #if openfl
-        if (frames > 0)
-        {
-            x += (point.x * Static.GRID)/time;
-            y += -(point.y * Static.GRID)/time;
-            frames--;
-        }else{
-            //finish movement
-            openfl.Lib.current.stage.removeEventListener(Event.ENTER_FRAME,update);
-            ix += point.x;
-            iy += point.y;
-            moving = false;
-            motion();
-        }
-        #end
-    }
-    public function step(mx:Int,my:Int):Bool
-    {
-        //no other move is occuring, and player is not moving on blocked
-        if (moving || Game.data.blocking.get(Std.string(ix + mx) + "." + Std.string(iy + my))) return false;
-        //send data
-        lastMove++;
-        var pos = new Pos();
-        pos.x = mx;
-        pos.y = my;
-        moves = [pos];
-        motion();
-        return true;
-    }
-    public function computePathSpeedMod():Float
-    {
-        var floorData = Game.data.objectMap.get(Game.data.map.floor.get(ix,iy));
-        var multiple:Float = 1;
-        if (floorData != null) multiple *= floorData.speedMult;
-        if (oid.length == 0) return multiple;
-        var objectData = Game.data.objectMap.get(oid[0]);
-        if (objectData != null) multiple *= objectData.speedMult;
-        return multiple;
-    }
-    public function measurePathLength():Float
-    {
-        var diagLength:Float = 1.4142356237;
-        var totalLength:Float = 0;
-        if (moves.length < 2)
-        {
-            return totalLength;
-        }
-        var lastPos = moves[0];
-        for (i in 1...moves.length)
-        {
-            if (moves[i].x != lastPos.x && moves[i].y != lastPos.y)
-            {
-                totalLength += diagLength;
-            }else{
-                //not diag
-                totalLength += 1;
-            }
-            lastPos = moves[i];
-        }
-        return totalLength;
-    }
-    public function equal(pos:Pos,pos2:Pos):Bool
-    {
-        if (pos.x == pos2.x && pos.y == pos2.y) return true;
-        return false;
-    }
-    public function sub(pos:Pos,pos2:Pos):Pos
-    {
-        var pos = new Pos();
-        pos.x = pos.x - pos2.x;
-        pos.y = pos.y - pos2.y;
-        return pos;
+        
     }
     public function force() 
     {
-        moves = [];
-        moving = false;
+        //moves = [];
         #if openfl
         Actuate.pause(this);
         //local position

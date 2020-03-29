@@ -58,8 +58,9 @@ class Main extends game.Game
         cred();
         //login();
         game();
-        new debug.ObjectSpriteViewer(1349,objects);
-        //connect();
+        //new editor.Inspector(objects,this);
+        //new debug.ObjectSpriteViewer(1349,objects);
+        connect();
         stage.addEventListener(Event.RESIZE,resize);
         stage.addEventListener(KeyboardEvent.KEY_DOWN,keyDown);
         stage.addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
@@ -72,9 +73,10 @@ class Main extends game.Game
         //new data.sound.AiffData(File.getBytes(Game.dir + "sounds/1645.aiff"));
         //create console
         console = new Console();
+        console.visible = false;
         addChild(console);
-        grid = new debug.Grid();
-        addChild(grid);
+        /*grid = new debug.Grid();
+        addChild(grid);*/
         resize(null);
         //var fps = new openfl.display.FPS(10,10,0xFFFFFF);
         //addChild(fps);
@@ -148,17 +150,18 @@ class Main extends game.Game
     }
     private function keyDown(e:KeyboardEvent)
     {
-        if (console.keyDown(e.keyCode)) return;
+        if (console != null) if (console.keyDown(e.keyCode)) return;
         switch (e.keyCode)
         {
             case Keyboard.I: zoom(1);
             case Keyboard.O: zoom(-1);
+            case Keyboard.W: 
         }
     }
     private function zoom(i:Int)
     {
-        if (objects.scale > 2 && i > 0 || objects.scale < 0.2 && i < 0) return;
-        objects.scale += i * 0.1;
+        if (objects.scale > 2 && i > 0 || objects.scale < 0.3 && i < 0) return;
+        objects.scale += i * 0.2;
     }
     private function resize(_)
     {
@@ -263,7 +266,7 @@ class Main extends game.Game
         client.update();
         selectX = Math.floor((mouseX - ground.x + (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale));
         selectY = Math.floor((mouseY - ground.y + (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale));
-        stage.window.title = 'x: $selectX y: $selectY';
+        //stage.window.title = 'x: $selectX y: $selectY';
         if (drag && objects != null)
         {
             objects.group.x += stage.mouseX - omx;
@@ -310,12 +313,7 @@ class Main extends game.Game
     }
     override function playerMoveStart(move:PlayerMove) {
         super.playerMoveStart(move);
-        if (Game.data.playerMap.exists(move.id))
-        {
-            var obj = Game.data.playerMap.get(move.id);
-            move.movePlayer(obj);
-            //animation.play(obj.instance.po_id,2,obj.sprites(),0,0,obj.clothing);
-        }
+        move.movePlayer();
     }
     override function playerUpdate(instances:Array<PlayerInstance>) 
     {
