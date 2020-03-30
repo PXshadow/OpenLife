@@ -335,8 +335,17 @@ class Main extends game.Game
             var x = 0;
             if (right) x = 1;
             if (left) x--;
-            if (x != 0 || y != 0) Game.program.move(player.ix,player.iy,++player.lastMove,x,y);
+            if (x != 0 || y != 0) player.step(x,y);
         }
+    }
+    override function playerMoveStart(id:Int, x:Int, y:Int, total:Float, eta:Float, trunc:Bool, list:Array<Pos>) {
+        super.playerMoveStart(id, x, y, total, eta, trunc, list);
+        var player = Game.data.playerMap.get(id);
+        if (player == null || (player == this.player && !trunc)) return;
+        player.ix = x;
+        player.iy = y; 
+        player.force(false);
+        player.move(list);
     }
     private function mouseOut(_)
     {
@@ -353,7 +362,7 @@ class Main extends game.Game
     {
         super.playerUpdate(instances);
         trace("player update!");
-        for (i in 0...instances.length)
+        for (i in 0...instances.length - 1)
         {
             objects.addPlayer(instances[i]);
             //animation.clear(objects.player.sprites());
@@ -368,8 +377,6 @@ class Main extends game.Game
             console.set("player",player);
             console.set("objects",objects);
             console.set("ground",ground);
-            console.set("math",Math);
-            console.set("data",Game.data);
         }
     }
     override function mapChunk(instance:MapInstance) 

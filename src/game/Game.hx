@@ -144,7 +144,7 @@ class Game extends GameHeader
             //-1 is permanent, -2 is permanent but not new so should be skipped
             case PLAYER_UPDATE:
             var list:Array<PlayerInstance> = [];
-            for (data in input) 
+            for (data in input.slice(0,input.length - 1)) 
             {
                 list.push(new PlayerInstance(data.split(" ")));
             }

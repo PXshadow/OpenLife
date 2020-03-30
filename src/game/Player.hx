@@ -59,8 +59,9 @@ class Player #if openfl extends TileContainer #end
     public var text:String = "";
     public var inRange:Bool = true;
     public var moves:Array<Pos> = [];
-    var dx:Int = 0;
-    var dy:Int = 0;
+    var pos:Pos = new Pos();
+    var time:Int = 0;
+    var frames:Int = 0;
     //main player
     public var main:Bool = false;
     public function new()
@@ -103,10 +104,44 @@ class Player #if openfl extends TileContainer #end
         }
         return new Point();
     }
+    public function step(x:Int,y:Int)
+    {
+        if (moves.length > 0) return;
+        moves = [new Pos(x,y)];
+        Game.program.move(ix,iy,++lastMove,x,y);
+        motion();
+    }
     public function move(list:Array<Pos>)
     {
-        if (list[0].x == dx) list[0].x = 0;
+        moves = list;
+        motion();
     }
+    private function motion():Bool
+    {
+        if (moves.length == 0) return false;
+        time = Std.int(Static.GRID/(Static.GRID * (instance.move_speed) * computePathSpeedMod()) * 60 * 1);
+        pos = moves.shift();
+        #if openfl
+        openfl.Lib.current.stage.removeEventListener(openfl.events.Event.ENTER_FRAME,update);
+        openfl.Lib.current.stage.addEventListener(openfl.events.Event.ENTER_FRAME,update);
+        #end
+        frames = time;
+        return true;
+    }
+    #if openfl
+    private function update(_)
+    {
+        if (frames == 0 && !motion())
+        {
+            openfl.Lib.current.stage.removeEventListener(openfl.events.Event.ENTER_FRAME,update);
+            trace("finish!");
+            return;
+        }
+        x += (pos.x * Static.GRID)/time;
+        y += (pos.y * Static.GRID)/time;
+        frames--;
+    }
+    #end
     public function computePathSpeedMod():Float
     {
         var floorData = Game.data.objectMap.get(Game.data.map.floor.get(ix,iy));
@@ -140,11 +175,7 @@ class Player #if openfl extends TileContainer #end
         return totalLength;
     }
     #end
-    public function update()
-    {
-        
-    }
-    public function force() 
+    public function force(send:Bool=true) 
     {
         //moves = [];
         #if openfl
@@ -153,7 +184,7 @@ class Player #if openfl extends TileContainer #end
         x = instance.x * Static.GRID;
         y = (Static.tileHeight - instance.y) * Static.GRID;
         #end
-        if (main) Game.program.force();
+        if (main && !send) Game.program.force();
     }
     public function set(data:PlayerInstance)
     {
@@ -197,8 +228,6 @@ class Player #if openfl extends TileContainer #end
     #if openfl
     public function age(data:ObjectData)
     {
-        trace("TODO setup age");
-        return;
         var ageInital:Bool = true;
         var headMoveX:Float = 0;
         var headMoveY:Float = 0;

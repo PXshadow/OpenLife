@@ -109,67 +109,35 @@ class PlayerInstance
      */
     public function new(a:Array<String>)
     {
-        var index:Int = 0;
         //var name = Reflect.fields(this);
-        for(value in a)
-        {
-            //index
-            switch(index++)
-            {
-                case 0:
-                p_id = Std.parseInt(value);
-                case 1:
-                po_id = Std.parseInt(value);
-                case 2:
-                //facing override
-                facing = Std.parseInt(value);
-                case 3:
-                //action attempt
-                action = Std.parseInt(value);
-                case 4:
-                action_target_x = Std.parseInt(value);
-                case 5:
-                action_target_y = Std.parseInt(value);
-                case 6:
-                o_id = MapData.id(value);
-                case 7:
-                o_origin_valid = Std.parseInt(value);
-                case 8:
-                o_origin_x = Std.parseInt(value);
-                case 9:
-                o_origin_y = Std.parseInt(value);
-                case 10:
-                o_transition_source_id = Std.parseInt(value);
-                case 11:
-                heat = Std.parseInt(value);
-                case 12:
-                done_moving_seqNum = Std.parseInt(value);
-                case 13:
-                ///forced
-                forced = value == "1" ? true : false;
-                case 14:
-                x = Std.parseInt(value);
-                case 15:
-                y = Std.parseInt(value);
-                case 16:
-                age = Std.parseFloat(value);
-                case 17:
-                age_r = Std.parseFloat(value);
-                case 18:
-                move_speed = Std.parseFloat(value);
-                case 19:
-                clothing_set = value;
-                case 20:
-                just_ate = Std.parseInt(value);
-                case 21:
-                responsible_id = Std.parseInt(value);
-                case 22:
-                held_yum = value == "1" ? true : false;
-                case 24:
-                held_learned = value == "1" ? true : false;
-            }
-            //trace(name[index - 1] + ": " + value);
-        }
+        if (a.length < 23) return;
+        var i:Int = 0;
+        p_id = Std.parseInt(a[i++]);
+        po_id = Std.parseInt(a[i++]);
+        facing = Std.parseInt(a[i++]);
+        action = Std.parseInt(a[i++]);
+        action_target_x = Std.parseInt(a[i++]);
+        action_target_y = Std.parseInt(a[i++]);
+        o_id = MapData.id(a[i++]);
+        o_origin_valid = Std.parseInt(a[i++]);
+        o_origin_x = Std.parseInt(a[i++]);
+        o_origin_y = Std.parseInt(a[i++]);
+        o_transition_source_id = Std.parseInt(a[i++]);
+        heat = Std.parseInt(a[i++]);
+        done_moving_seqNum = Std.parseInt(a[i++]);
+        forced = a[i++] == "1" ? true : false;
+        x = Std.parseInt(a[i++]);
+        y = Std.parseInt(a[i++]);
+        age = Std.parseFloat(a[i++]);
+        age_r = Std.parseFloat(a[i++]);
+        move_speed = Std.parseFloat(a[i++]);
+        clothing_set = a[i++];
+        just_ate = Std.parseInt(a[i++]);
+        responsible_id = Std.parseInt(a[i++]);
+        if (a.length <= 23) return;
+        held_yum = a[i++] == "1" ? true : false;
+        if (a.length <= 24) return;
+        held_learned = a[i++] == "1" ? true : false;
     }
     /**
      * toString for debug
@@ -186,6 +154,6 @@ class PlayerInstance
     }
     public function toData():String
     {
-        return '$p_id $po_id $facing $action_target_x $action_target_y ' + MapData.stringID(o_id) + '$o_origin_valid $o_origin_x $o_origin_y $o_transition_source_id $heat $done_moving_seqNum ' + (forced ? "1" : "0") + ' $x $y $age $age_r $move_speed $just_ate $last_ate_id $responsible_id ' + (held_yum ? "1" : "0") + " " +  (held_learned ? "1" : "0");
+        return '$p_id $po_id $facing $action_target_x $action_target_y ${MapData.stringID(o_id)}$o_origin_valid $o_origin_x $o_origin_y $o_transition_source_id $heat $done_moving_seqNum ${(forced ? "1" : "0")} $x $y $age $age_r $move_speed $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")}';
     }
 }
