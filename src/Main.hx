@@ -1,5 +1,4 @@
 import openfl.display.BlendMode;
-import data.object.player.PlayerMove;
 import console.Console;
 import data.animation.AnimationPlayer;
 import game.Player;
@@ -63,6 +62,7 @@ class Main extends game.Game
         connect();
         stage.addEventListener(Event.RESIZE,resize);
         stage.addEventListener(KeyboardEvent.KEY_DOWN,keyDown);
+        stage.addEventListener(KeyboardEvent.KEY_UP,keyUp);
         stage.addEventListener(MouseEvent.MOUSE_DOWN,mouseDown);
         stage.addEventListener(MouseEvent.MOUSE_WHEEL,mouseWheel);
         stage.addEventListener(Event.ENTER_FRAME,update);
@@ -124,30 +124,44 @@ class Main extends game.Game
                 obj.alpha += -1;
             }
             selects = [];
-            var list = Game.data.tileData.object.get(selectX,-selectY);
-            if (list.length > 0 && Math.abs(player.ix - selectX) < 8 && Math.abs(player.iy - selectY) <8)
+            if (Math.abs(player.ix - selectX) < 8 && Math.abs(player.iy - selectY) <8)
             {
-                var mx = (mouseX - objects.group.x)/objects.scale;
-                var my = (mouseY - objects.group.y)/objects.scale;
+                var list = Game.data.tileData.object.get(selectX,-selectY);
                 var bool = false;
-                for (obj in list)
+                if (list.length > 0)
                 {
-                    if (obj.x - obj.originX > mx) continue;
-                    if (obj.y - obj.originY > my) continue;
-                    if (obj.x + obj.width/2 < mx) continue;
-                    if (obj.y + obj.height/2 < my) continue;
-                    bool = true;
-                    break;
+                    var mx = (mouseX - objects.group.x)/objects.scale;
+                    var my = (mouseY - objects.group.y)/objects.scale;
+                    for (obj in list)
+                    {
+                        if (obj.x - obj.originX > mx) continue;
+                        if (obj.y - obj.originY > my) continue;
+                        if (obj.x + obj.width/2 < mx) continue;
+                        if (obj.y + obj.height/2 < my) continue;
+                        bool = true;
+                        break;
+                    }
                 }
-                if (!bool) return;
-                selects = list;
-                for (obj in list)
+                if (!bool)
                 {
-                    obj.alpha += 1;
+                    //non object select
+                    trace("click");
+                    var move = new PlayerMove(player);
+                    move.movePos(selectX,selectY);
+                }else{
+                    selects = list;
+                    for (obj in list)
+                    {
+                        obj.alpha += 1;
+                    }
                 }
             }
         }
     }
+    var left:Bool = false;
+    var right:Bool = false;
+    var up:Bool = false;
+    var down:Bool = false;
     private function keyDown(e:KeyboardEvent)
     {
         if (console != null) if (console.keyDown(e.keyCode)) return;
@@ -155,7 +169,20 @@ class Main extends game.Game
         {
             case Keyboard.I: zoom(1);
             case Keyboard.O: zoom(-1);
-            case Keyboard.W: 
+            case Keyboard.W: up = true;
+            case Keyboard.S: down = true;
+            case Keyboard.A: left = true;
+            case Keyboard.D: right = true;
+        }
+    }
+    private function keyUp(e:KeyboardEvent)
+    {
+        switch(e.keyCode)
+        {
+            case Keyboard.W: up = true;
+            case Keyboard.S: down = true;
+            case Keyboard.A: left = true;
+            case Keyboard.D: right = true;
         }
     }
     private function zoom(i:Int)
@@ -238,10 +265,10 @@ class Main extends game.Game
             settings.data.set("customServerAddress",serverInput.text);
             settings.data.set("customServerPort",portInput.text);
             //client set
-            client.ip = settings.data.get("customServerAddress");
-            client.port = Std.parseInt(settings.data.get("customServerPort"));
-            client.email = settings.data.get("email");
-            client.key = settings.data.get("accountKey");
+            Game.client.ip = settings.data.get("customServerAddress");
+            Game.client.port = Std.parseInt(settings.data.get("customServerPort"));
+            Game.client.email = settings.data.get("email");
+            Game.client.key = settings.data.get("accountKey");
             //remove login
             removeChild(keyText);
             removeChild(emailText);
@@ -263,7 +290,7 @@ class Main extends game.Game
     }
     private function update(_) 
     {
-        client.update();
+        Game.client.update();
         selectX = Math.floor((mouseX - ground.x + (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale));
         selectY = Math.floor((mouseY - ground.y + (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale));
         //stage.window.title = 'x: $selectX y: $selectY';
@@ -311,10 +338,7 @@ class Main extends game.Game
         super.grave(x, y, id);
         trace('grave $x $y $id');
     }
-    override function playerMoveStart(move:PlayerMove) {
-        super.playerMoveStart(move);
-        move.movePlayer();
-    }
+    
     override function playerUpdate(instances:Array<PlayerInstance>) 
     {
         super.playerUpdate(instances);
@@ -329,6 +353,7 @@ class Main extends game.Game
             //main player
             objects.addPlayer(instances.pop());
             player = objects.player;
+            player.main = true;
             //new AnimationPlayer(objects).play(player.instance.po_id,2,player.sprites(),0,0,player.clothing);
             console.set("player",player);
             console.set("objects",objects);

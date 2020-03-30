@@ -13,9 +13,7 @@ import openfl.display.Tile;
 class Program
 {
     public var home:Pos = new Pos();
-    public var console:Console;
-    var client:Client;
-    public function new(console:Console,client:Client)
+    public function new()
     {
         this.console = console;
         this.client = client;
@@ -235,21 +233,4 @@ class Program
         return [];
     }
     #end
-}
-#if nativeGen @:nativeGen #end
-class Pos
-{
-    public var x:Int;
-    public var y:Int;
-    public function new()
-    {
-
-    }
-    public function clone():Pos
-    {
-        var pos = new Pos();
-        pos.x = x;
-        pos.y = y;
-        return pos;
-    }
 }

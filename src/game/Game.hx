@@ -1,6 +1,6 @@
 package game;
+import data.Pos;
 import data.object.player.PlayerInstance;
-import data.object.player.PlayerMove;
 import data.map.MapChange;
 import data.map.MapInstance;
 import console.Console;
@@ -17,7 +17,7 @@ class Game extends GameHeader
      */
     public static var data:GameData;
     public var settings:Settings;
-    public var client:Client;
+    public static var client:Client;
     /**
      * Used for string tool functions
      */
@@ -148,12 +148,12 @@ class Game extends GameHeader
             }
             playerUpdate(list);
             case PLAYER_MOVES_START:
-            var move:PlayerMove;
-            for (data in input)
+            var array = input[0].split(" ");
+            var list:Array<Int> = [];
+            //id x y total eta trunc
+            for (i in 6...Std.int(array.length/2))
             {
-                move = new PlayerMove();
-                move.parse(data.split(" "));
-                playerMoveStart(move);
+                list.push(new Pos())
             }
             case MAP_CHUNK:
             if (mapInstance == null)

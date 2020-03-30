@@ -1,7 +1,6 @@
 package game;
 import data.map.MapInstance;
 import data.object.player.PlayerInstance;
-import data.object.player.PlayerMove;
 import data.map.MapChange;
 //#if nativeGen @:nativeGen #end
 class GameHeader #if openfl extends openfl.display.Sprite #elseif heaps hxd.App #end
@@ -10,7 +9,7 @@ class GameHeader #if openfl extends openfl.display.Sprite #elseif heaps hxd.App 
     //COMPRESSED_MESSAGE
 
     public function playerUpdate(instances:Array<PlayerInstance>) {}; //PLAYER_UPDATE
-    public function playerMoveStart(move:PlayerMove) {}; //PLAYER_MOVES_START
+    public function playerMoveStart(id:Int,x:Int,y:Int,total:Float,eta:Float,trunc:Bool,list:Array<data.Pos>) {}; //PLAYER_MOVES_START
     /**
      * [Description]
      * @param list player ids

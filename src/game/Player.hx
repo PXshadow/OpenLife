@@ -1,4 +1,5 @@
 package game;
+import client.Client;
 import data.map.MapData;
 import data.GameData;
 #if openfl
@@ -12,9 +13,7 @@ import motion.MotionPath;
 import motion.Actuate;
 import openfl.display.Tile;
 #end
-import console.Program.Pos;
 import data.object.player.PlayerInstance;
-import data.object.player.PlayerData;
 import haxe.Timer;
 import data.object.SpriteData;
 import data.object.ObjectData;
@@ -58,6 +57,8 @@ class Player #if openfl extends TileContainer #end
     public var lastName:String = "";
     public var text:String = "";
     public var inRange:Bool = true;
+    //main player
+    public var main:Bool = false;
     public function new()
     {
         #if openfl
@@ -98,6 +99,38 @@ class Player #if openfl extends TileContainer #end
         }
         return new Point();
     }
+    public function computePathSpeedMod():Float
+    {
+        var floorData = Game.data.objectMap.get(Game.data.map.floor.get(ix,iy));
+        var multiple:Float = 1;
+        if (floorData != null) multiple *= floorData.speedMult;
+        if (oid.length == 0) return multiple;
+        var objectData = Game.data.objectMap.get(oid[0]);
+        if (objectData != null) multiple *= objectData.speedMult;
+        return multiple;
+    }
+    public function measurePathLength():Float
+    {
+        var diagLength:Float = 1.4142356237;
+        var totalLength:Float = 0;
+        if (moves.length < 2)
+        {
+            return totalLength;
+        }
+        var lastPos = moves[0];
+        for (i in 1...moves.length)
+        {
+            if (moves[i].x != lastPos.x && moves[i].y != lastPos.y)
+            {
+                totalLength += diagLength;
+            }else{
+                //not diag
+                totalLength += 1;
+            }
+            lastPos = moves[i];
+        }
+        return totalLength;
+    }
     #end
     public function update()
     {
@@ -112,6 +145,10 @@ class Player #if openfl extends TileContainer #end
         x = instance.x * Static.GRID;
         y = (Static.tileHeight - instance.y) * Static.GRID;
         #end
+        if (main)
+        {
+            Game.client.send("FORCE");
+        }
     }
     public function set(data:PlayerInstance)
     {
