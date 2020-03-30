@@ -19,6 +19,7 @@ import data.object.SpriteData;
 import data.object.ObjectData;
 import data.animation.AnimationData;
 import haxe.ds.Vector;
+import data.Pos;
 #if nativeGen @:nativeGen #end
 class Player #if openfl extends TileContainer #end
 {
@@ -57,6 +58,9 @@ class Player #if openfl extends TileContainer #end
     public var lastName:String = "";
     public var text:String = "";
     public var inRange:Bool = true;
+    public var moves:Array<Pos> = [];
+    var dx:Int = 0;
+    var dy:Int = 0;
     //main player
     public var main:Bool = false;
     public function new()
@@ -98,6 +102,10 @@ class Player #if openfl extends TileContainer #end
             return new Point(0,Math.round(-yOffset));
         }
         return new Point();
+    }
+    public function move(list:Array<Pos>)
+    {
+        if (list[0].x == dx) list[0].x = 0;
     }
     public function computePathSpeedMod():Float
     {
@@ -145,10 +153,7 @@ class Player #if openfl extends TileContainer #end
         x = instance.x * Static.GRID;
         y = (Static.tileHeight - instance.y) * Static.GRID;
         #end
-        if (main)
-        {
-            Game.client.send("FORCE");
-        }
+        if (main) Game.program.force();
     }
     public function set(data:PlayerInstance)
     {

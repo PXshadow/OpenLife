@@ -1,4 +1,5 @@
-package console;
+package game;
+import data.Pos;
 import client.Client;
 import haxe.Timer;
 import data.GameData;
@@ -13,14 +14,14 @@ import openfl.display.Tile;
 class Program
 {
     public var home:Pos = new Pos();
-    public function new()
+    var client:Client;
+    public function new(client:Client)
     {
-        this.console = console;
         this.client = client;
     }
     public function send(tag:ServerTag,x:Int,y:Int,data:String="")
     {
-        client.send(tag + " " + x + " " + y + data);
+        client.send('$tag $x $y $data');
     }
     public function update()
     {
@@ -44,6 +45,10 @@ class Program
                 send(KILL,x,y);
             }
         }
+    }
+    public function force()
+    {
+        client.send("FORCE");
     }
     //async return functions of data
     public function grave(x:Int,y:Int)
@@ -143,6 +148,11 @@ class Program
     public function jump():Program
     {
         send(JUMP,0,0);
+        return this;
+    }
+    public function move(x:Int,y:Int,seq:Int,mx:Int,my:Int):Program
+    {
+        send(MOVE,x,y,'@$seq $mx $my');
         return this;
     }
     /**

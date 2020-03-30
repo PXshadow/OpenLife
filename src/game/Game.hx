@@ -17,7 +17,8 @@ class Game extends GameHeader
      */
     public static var data:GameData;
     public var settings:Settings;
-    public static var client:Client;
+    public static var program:Program;
+    var client:Client;
     /**
      * Used for string tool functions
      */
@@ -32,6 +33,7 @@ class Game extends GameHeader
         data = new GameData();
         settings = new Settings();
         client = new Client();
+        program = new Program(client);
     }
     public function directory():Bool
     {
@@ -149,11 +151,14 @@ class Game extends GameHeader
             playerUpdate(list);
             case PLAYER_MOVES_START:
             var array = input[0].split(" ");
-            var list:Array<Int> = [];
+            // require an even number at least 8
+            if (array.length < 8 || array.length % 2 != 0) return;
+            
+            var list:Array<Pos> = [];
             //id x y total eta trunc
             for (i in 6...Std.int(array.length/2))
             {
-                list.push(new Pos())
+                list.push(new Pos(Std.parseInt(array[i * 2]),Std.parseInt(array[i * 2 + 1])));
             }
             case MAP_CHUNK:
             if (mapInstance == null)

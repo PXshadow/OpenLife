@@ -1,3 +1,4 @@
+import data.Pos;
 import openfl.display.BlendMode;
 import console.Console;
 import data.animation.AnimationPlayer;
@@ -146,8 +147,7 @@ class Main extends game.Game
                 {
                     //non object select
                     trace("click");
-                    var move = new PlayerMove(player);
-                    move.movePos(selectX,selectY);
+
                 }else{
                     selects = list;
                     for (obj in list)
@@ -265,10 +265,10 @@ class Main extends game.Game
             settings.data.set("customServerAddress",serverInput.text);
             settings.data.set("customServerPort",portInput.text);
             //client set
-            Game.client.ip = settings.data.get("customServerAddress");
-            Game.client.port = Std.parseInt(settings.data.get("customServerPort"));
-            Game.client.email = settings.data.get("email");
-            Game.client.key = settings.data.get("accountKey");
+            client.ip = settings.data.get("customServerAddress");
+            client.port = Std.parseInt(settings.data.get("customServerPort"));
+            client.email = settings.data.get("email");
+            client.key = settings.data.get("accountKey");
             //remove login
             removeChild(keyText);
             removeChild(emailText);
@@ -290,7 +290,7 @@ class Main extends game.Game
     }
     private function update(_) 
     {
-        Game.client.update();
+        client.update();
         selectX = Math.floor((mouseX - ground.x + (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale));
         selectY = Math.floor((mouseY - ground.y + (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale));
         //stage.window.title = 'x: $selectX y: $selectY';
@@ -326,6 +326,16 @@ class Main extends game.Game
         {
             cursor.x = mouseX;
             cursor.y = mouseY;
+        }
+        if (player != null)
+        {
+            var y = 0;
+            if (up) y = 1;
+            if (down) y--;
+            var x = 0;
+            if (right) x = 1;
+            if (left) x--;
+            if (x != 0 || y != 0) Game.program.move(player.ix,player.iy,++player.lastMove,x,y);
         }
     }
     private function mouseOut(_)

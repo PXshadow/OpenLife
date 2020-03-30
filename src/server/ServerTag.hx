@@ -39,6 +39,10 @@ package server;
      */
     public var LOGIN = "LOGIN";
     public var RELOGIN = "RLOGIN";
+    /**
+     * move
+     */
+    public var MOVE = "MOVE";
 
     @:from private static function fromString(value:String):ServerTag
     {
@@ -70,6 +74,7 @@ package server;
             case "PHOTO": PHOTO;
             case "SAY": SAY;
             case "LOGIN": LOGIN;
+            case "MOVE": MOVE;
             default: null;
         }
     }

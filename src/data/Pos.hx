@@ -11,6 +11,6 @@ class Pos
     }
     public function clone():Pos
     {
-        return pos = new Pos(x,y);
+        return new Pos(x,y);
     }
 }

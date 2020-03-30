@@ -1,4 +1,5 @@
 package console;
+import game.Game;
 #if openfl
 import openfl.ui.Keyboard;
 import openfl.net.URLRequest;
@@ -63,7 +64,8 @@ class Console #if openfl extends DisplayObjectContainer #end
         //interp variables default
         set("math",Math);
         set("grid",Static.GRID);
-        set("util",console.Util);
+        set("program",Game.program);
+        set("data",Game.data);
         #end
     }
     public function set(name:String,value:Dynamic)
