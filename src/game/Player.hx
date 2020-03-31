@@ -42,7 +42,6 @@ class Player #if openfl extends TileContainer #end
     //pathing
     public var lastMove:Int = 1;
     public var moveTimer:Timer;
-    public var moving:Bool = false;
     public var goal:Bool = false;
     public var follow:Bool = true;
     var multi:Float = 1;
@@ -104,76 +103,6 @@ class Player #if openfl extends TileContainer #end
         }
         return new Point();
     }
-    public function step(x:Int,y:Int)
-    {
-        if (moves.length > 0) return;
-        moves = [new Pos(x,y)];
-        Game.program.move(ix,iy,++lastMove,x,y);
-        motion();
-    }
-    public function move(list:Array<Pos>)
-    {
-        moves = list;
-        motion();
-    }
-    private function motion():Bool
-    {
-        if (moves.length == 0) return false;
-        time = Std.int(Static.GRID/(Static.GRID * (instance.move_speed) * computePathSpeedMod()) * 60 * 1);
-        pos = moves.shift();
-        #if openfl
-        openfl.Lib.current.stage.removeEventListener(openfl.events.Event.ENTER_FRAME,update);
-        openfl.Lib.current.stage.addEventListener(openfl.events.Event.ENTER_FRAME,update);
-        #end
-        frames = time;
-        return true;
-    }
-    #if openfl
-    private function update(_)
-    {
-        if (frames == 0 && !motion())
-        {
-            openfl.Lib.current.stage.removeEventListener(openfl.events.Event.ENTER_FRAME,update);
-            trace("finish!");
-            return;
-        }
-        x += (pos.x * Static.GRID)/time;
-        y += (pos.y * Static.GRID)/time;
-        frames--;
-    }
-    #end
-    public function computePathSpeedMod():Float
-    {
-        var floorData = Game.data.objectMap.get(Game.data.map.floor.get(ix,iy));
-        var multiple:Float = 1;
-        if (floorData != null) multiple *= floorData.speedMult;
-        if (oid.length == 0) return multiple;
-        var objectData = Game.data.objectMap.get(oid[0]);
-        if (objectData != null) multiple *= objectData.speedMult;
-        return multiple;
-    }
-    public function measurePathLength():Float
-    {
-        var diagLength:Float = 1.4142356237;
-        var totalLength:Float = 0;
-        if (moves.length < 2)
-        {
-            return totalLength;
-        }
-        var lastPos = moves[0];
-        for (i in 1...moves.length)
-        {
-            if (moves[i].x != lastPos.x && moves[i].y != lastPos.y)
-            {
-                totalLength += diagLength;
-            }else{
-                //not diag
-                totalLength += 1;
-            }
-            lastPos = moves[i];
-        }
-        return totalLength;
-    }
     #end
     public function force(send:Bool=true) 
     {
@@ -198,7 +127,6 @@ class Player #if openfl extends TileContainer #end
         //trace("num " + instance.done_moving_seqNum);
         if (instance.forced || instance.done_moving_seqNum > 0) 
         {
-            trace("force!");
             if (held)
             {
                 //added back to stage

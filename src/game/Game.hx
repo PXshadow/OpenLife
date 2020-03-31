@@ -1,4 +1,5 @@
 package game;
+import data.object.player.PlayerMove;
 import data.Pos;
 import data.object.player.PlayerInstance;
 import data.map.MapChange;
@@ -150,15 +151,12 @@ class Game extends GameHeader
             }
             playerUpdate(list);
             case PLAYER_MOVES_START:
-            var array = input[0].split(" ");
-            // require an even number at least 8
-            if (array.length < 8 || array.length % 2 != 0) return;
-            
-            var list:Array<Pos> = [];
-            //id x y total eta trunc
-            for (i in 6...Std.int(array.length/2))
+            var a:Array<String> = [];
+            for (string in input)
             {
-                list.push(new Pos(Std.parseInt(array[i * 2]),Std.parseInt(array[i * 2 + 1])));
+                a = string.split(" ");
+                if (a.length < 8 || a.length % 2 != 0) continue;
+                playerMoveStart(new PlayerMove(a));
             }
             case MAP_CHUNK:
             if (mapInstance == null)
@@ -190,10 +188,8 @@ class Game extends GameHeader
             heatChange(Std.parseFloat(array[0]),Std.parseFloat(array[1]),Std.parseFloat(array[2]));
             case FOOD_CHANGE:
             var array = input[0].split(" ");
-            
             //foodPercent = Std.parseInt(input[0])/Std.parseInt(input[1]);
             //food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
-            
             case FRAME:
             frame();
             case PLAYER_SAYS:
@@ -317,7 +313,7 @@ class Game extends GameHeader
             trace("FLIGHT FLIGHT FLIGHT " + input);
             case PONG:
             client.ping = Std.int(UnitTest.stamp() * 100);
-            trace("ping: " + client.ping);
+            //trace("ping: " + client.ping);
             case HOMELAND:
             var array = input[0].split(" ");
             homeland(Std.parseInt(array[0]),Std.parseInt(array[1]),array[2]);

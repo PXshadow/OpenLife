@@ -13,10 +13,10 @@ class Static
 {
     public static inline var GRID:Int = 128;
     public static inline var tileHeight:Int = 0;//30;
-    public static function main()
+    /*public static function main()
     {
         new Main();
-    }
+    }*/
     public static function request(url:String,complete:String->Void)
     {
         var http = new Http(url);
@@ -44,5 +44,9 @@ class Static
         if (a.length != b.length) return false;
         for (i in 1...a.length) if (a[i] != b[i]) return false;
         return true;
+    }
+    public static function getCurrentTime():Float
+    {
+        return Sys.time() * 1000.0;
     }
 }

@@ -7,6 +7,7 @@ import data.object.player.PlayerInstance;
 import sys.FileSystem;
 import haxe.io.Path;
 import sys.io.File;
+import data.object.player.PlayerMove;
 #if openfl
 import graphics.TgaData;
 import openfl.display.Bitmap;
@@ -179,10 +180,10 @@ class Main extends game.Game
     {
         switch(e.keyCode)
         {
-            case Keyboard.W: up = true;
-            case Keyboard.S: down = true;
-            case Keyboard.A: left = true;
-            case Keyboard.D: right = true;
+            case Keyboard.W: up = false;
+            case Keyboard.S: down = false;
+            case Keyboard.A: left = false;
+            case Keyboard.D: right = false;
         }
     }
     private function zoom(i:Int)
@@ -327,25 +328,30 @@ class Main extends game.Game
             cursor.x = mouseX;
             cursor.y = mouseY;
         }
-        if (player != null)
-        {
-            var y = 0;
-            if (up) y = 1;
-            if (down) y--;
-            var x = 0;
-            if (right) x = 1;
-            if (left) x--;
-            if (x != 0 || y != 0) player.step(x,y);
-        }
     }
-    override function playerMoveStart(id:Int, x:Int, y:Int, total:Float, eta:Float, trunc:Bool, list:Array<Pos>) {
-        super.playerMoveStart(id, x, y, total, eta, trunc, list);
-        var player = Game.data.playerMap.get(id);
-        if (player == null || (player == this.player && !trunc)) return;
-        player.ix = x;
-        player.iy = y; 
-        player.force(false);
-        player.move(list);
+    override function playerMoveStart(move:PlayerMove) {
+        super.playerMoveStart(move);
+        /**
+         * int numRead = sscanf( lines[i], "%d %d %d %lf %lf %d",
+            {&( o.id ),
+            &( startX ),
+            &( startY ),
+            &( o.moveTotalTime ),
+            &etaSec,
+            &truncated );}
+         */
+        var etaSec = move.eta;
+        var moveTotalTime = move.total;
+        var moveEta = etaSec + Static.getCurrentTime();
+        var timePassed = moveTotalTime - etaSec;
+        var fractionPassed = timePassed / moveTotalTime;
+
+        var player = Game.data.playerMap.get(move.id);
+        if (player == null || (player == this.player && !move.trunc)) return;
+
+
+        var numTurns = 0;
+
     }
     private function mouseOut(_)
     {
@@ -361,7 +367,6 @@ class Main extends game.Game
     override function playerUpdate(instances:Array<PlayerInstance>) 
     {
         super.playerUpdate(instances);
-        trace("player update!");
         for (i in 0...instances.length)
         {
             objects.addPlayer(instances[i]);

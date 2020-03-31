@@ -82,7 +82,6 @@ class Objects extends TileDisplay
         }else{
             //exists
             player.set(data);
-            trace("exists!");
         }
     }
     public function visibleSprites(id:Int,sprites:Array<Tile>,age:Int=20)
@@ -194,9 +193,8 @@ class Objects extends TileDisplay
             if (set) data = sub;
         }
         //animation
-        if (data.animation != null && data.person != 0)
+        if (data.animation != null && data.person == 0)
         {
-            trace("animate id " + data.id + " person " + data.person);
             animate.play(data.id,0,sprites,x,y);
         }
         //fill container if present
