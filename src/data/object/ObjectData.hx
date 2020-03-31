@@ -89,7 +89,7 @@ class ObjectData extends LineReader
     /**
      * If person
      */
-    public var person:Bool = false;
+    public var person:Int = 0;
     /**
      * N/A
      */
@@ -392,7 +392,7 @@ class ObjectData extends LineReader
 
         i = getArrayInt();
         //person is the race of the person
-        person = i[0] == 1 ? true : false;
+        person = getInt();
         noSpawn = i[1] == 1 ? true : false;
 
         male = getBool();
@@ -574,7 +574,7 @@ class ObjectData extends LineReader
         'mapChance=$mapChance\n' + //TODO: include #biomes_0
         'heatValue=$heatValue\n' +
         'rValue=$rValue\n' +
-        'person=${person ? "1" : "0"},noSpawn=${noSpawn ? "1" : "0"}\n' +
+        'person=$person,noSpawn=${noSpawn ? "1" : "0"}\n' +
         'male=${male ? "1" : "0"}\n' +
         'deathMarker=$deathMarker\n' +
         'homeMarker=$homeMarker\n' +

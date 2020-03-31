@@ -362,7 +362,7 @@ class Main extends game.Game
     {
         super.playerUpdate(instances);
         trace("player update!");
-        for (i in 0...instances.length - 1)
+        for (i in 0...instances.length)
         {
             objects.addPlayer(instances[i]);
             //animation.clear(objects.player.sprites());
@@ -370,7 +370,6 @@ class Main extends game.Game
         if (player == null)
         {
             //main player
-            objects.addPlayer(instances.pop());
             player = objects.player;
             player.main = true;
             //new AnimationPlayer(objects).play(player.instance.po_id,2,player.sprites(),0,0,player.clothing);
