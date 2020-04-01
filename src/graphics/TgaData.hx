@@ -2,9 +2,11 @@ package graphics;
 import haxe.ds.Vector;
 import haxe.io.Output;
 #if openfl
+import openfl.display.BitmapData;
 import openfl.geom.Rectangle;
 import haxe.io.BytesInput;
 import lime.app.Future;
+import data.Point;
 import haxe.io.Bytes;
 import openfl.utils.ByteArray;
 import haxe.io.Input;
@@ -22,13 +24,16 @@ class TgaData
     {
 
     }
-    public function read(bytes:Bytes)
+    public function read(bytes:Bytes,extractBool:Bool=true)
     {
         r = new Reader(new BytesInput(bytes,0,bytes.length));
         this.data = r.read();
-        
+        if (extractBool) extract();
+    }
+    public function extract()
+    {
         rect = new Rectangle(0,0,data.header.width,data.header.height);
-        this.bytes = ByteArray.fromBytes(Tools.extract32(data,true));
+        this.bytes = ByteArray.fromBytes(Tools.extract32(data,alpha));
     }
     public function write(data:Data,output:Output)
     {
@@ -44,6 +49,102 @@ class TgaData
             imageData[i] = bytes.getInt32(i);
         }
         return imageData;
+    }
+    /**
+     * crop alpha parts from the sides
+     */
+    static inline var alpha:Bool = true;
+    public function crop()
+    {
+        //shifting vars
+        var minX:Int = getLeft(0,Std.int(data.header.width/2),0,data.header.height);
+        var maxX:Int = getRight(0,data.header.width,0,data.header.height);
+
+        var minY:Int = getTop(0,data.header.width,0,Std.int(data.header.height/2));
+        var maxY:Int = getBottom(0,data.header.width,0,data.header.height);
+
+        var vector = new Vector<Int>((maxX - minX) * (maxY - minY));
+        var index:Int = 0;
+        var i:Int = 0;
+        for (y in minY...maxY)
+        {
+            for (x in minX...maxX)
+            {
+                vector[index++] = data.imageData[x + y * data.header.width];
+            }
+        }
+        data.imageData = vector;
+        data.header.width = maxX - minX;
+        data.header.height = maxY -minY;
+        extract();
+    }
+    private function getLeft(x0:Int,x1:Int,y0:Int,y1:Int):Int
+    {
+        //x
+        for (i in x0...x1)
+        {
+            //y
+            for (j in y0...y1)
+            {
+                if ((data.imageData[i + j * data.header.width] >> 24) & 0xff != 0)
+                {
+                    return i - 1;
+                }
+            }
+        }
+        return 0;
+    }
+    private function getRight(x0:Int,x1:Int,y0:Int,y1:Int):Int
+    {
+        //x
+        var x:Int = x1;
+        while (x > x0)
+        {
+            //y
+            for (j in y0...y1)
+            {
+                if ((data.imageData[x + j * data.header.width] >> 24) & 0xff != 0)
+                {
+                    return x + 1;
+                }
+            }
+            x--;
+        }
+        return 0;
+    }
+    private function getBottom(x0:Int,x1:Int,y0:Int,y1:Int,rev:Bool=false):Int
+    {
+        //y
+        var y:Int = y1;
+        while (y > y0)
+        {
+            //x
+            for (i in x0...x1)
+            {
+                if ((data.imageData[i + y * data.header.width] >> 24) & 0xff != 0)
+                {
+                    return y + 1;
+                }
+            }
+            y --;
+        }
+        return 0;
+    }
+    private function getTop(x0:Int,x1:Int,y0:Int,y1:Int,rev:Bool=false):Int
+    {
+        //y
+        for (j in y0...y1)
+        {
+            //x
+            for (i in x0...x1)
+            {
+                if ((data.imageData[i + j * data.header.width] >> 24) & 0xff != 0)
+                {
+                    return j - 1;
+                }
+            }
+        }
+        return 0;
     }
 }
 #end

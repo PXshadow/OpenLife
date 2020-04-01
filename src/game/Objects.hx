@@ -215,6 +215,21 @@ class Objects extends TileDisplay
         }
         return true;
     }
+    public function getObjectHeight(id:Int):Int
+    {
+        var obj:ObjectData = get(id);
+        if (obj == null) return 0;
+        if (obj.cacheHeight > 0) return obj.cacheHeight;
+        var sprite:SpriteData;
+        var rect:Rectangle;
+        for (i in 0...obj.numSprites)
+        {
+            sprite = obj.spriteArray[i];
+            rect = tileset.getRect(cacheSprite(sprite.spriteID));
+            //rect.width/2 + sprite.inCenterXOffset;
+        }
+        return 0;
+    }
     public function create(data:ObjectData,x:Float=0,y:Float=0,rotation:Float=0,worn:Bool=false,held:Bool=false,inDrawBehindSlots:Int=2):Array<Tile>
     {
         var sprite:Tile = null;
@@ -330,12 +345,13 @@ class Objects extends TileDisplay
     private function drawSprite(id:Int,rect:Rectangle):Rectangle
     {
         try {
-            reader.read(File.getBytes(Game.dir + "sprites/" + id + ".tga"));
+            reader.read(File.getBytes(Game.dir + "sprites/" + id + ".tga"),false);
         }catch(e:Dynamic)
         {
             //trace("e " + e);
             return null;
         }
+        reader.crop();
         //set dimensions
         rect.width = reader.rect.width;
         rect.height = reader.rect.height;
