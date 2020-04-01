@@ -379,10 +379,10 @@ class ObjectData extends LineReader
         if (string == "2") rideable = true;
 
         i = getArrayInt();
-        blocksWalking = i[0] == 1 ? true : false;
+        blocksWalking = (i[0] == 1);
         leftBlockingRadius = i[1];
         rightBlockingRadius = i[2];
-        drawBehindPlayer = i[3] == 1 ? true : false;
+        drawBehindPlayer = (i[3] == 1);
 
         //skipping map chance
         getString();
@@ -393,7 +393,7 @@ class ObjectData extends LineReader
         i = getArrayInt();
         //person is the race of the person
         person = i[0];
-        noSpawn = i[1] == 1 ? true : false;
+        noSpawn = (i[1] == 1);
 
         male = getBool();
 
@@ -469,7 +469,7 @@ class ObjectData extends LineReader
                 Std.parseInt(string.substring(set + 1,set = string.indexOf(",",set)))
             );
             set = string.indexOf("=",set) + 1;
-            slotVert[j] = string.substring(set,set = string.indexOf(",",set)) == "1" ? true : false;
+            slotVert[j] = string.substring(set,set = string.indexOf(",",set)) == "1";
             set = string.indexOf("=",set) + 1;
             slotParent[j] = Std.parseInt(string.substring(set,string.length));
         }
@@ -491,7 +491,7 @@ class ObjectData extends LineReader
             var array = getArrayInt();
             spriteArray[j].invisHolding = array[0];
             spriteArray[j].invisWorn = array[1];
-            spriteArray[j].behindSlots = array[2] == 1 ? true : false;
+            spriteArray[j].behindSlots = array[2] == 1;
             if (readName("invisCont"))  spriteArray[j].invisCont = getInt();
         }
         //get offset center

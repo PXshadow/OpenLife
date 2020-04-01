@@ -41,12 +41,12 @@ class TransitionData
 
         actorMinUseFraction = Std.parseFloat(data[3]);
         targetMinUseFraction = Std.parseFloat(data[4]);
-        reverseUseActor = (data[5] == "1");
-        reverseUseTarget = (data[6] == "1");
+        reverseUseActor = data[5] == "1";
+        reverseUseTarget = data[6] == "1";
         move = Std.parseInt(data[7]);
-        desireMoveDist = (data[8] == "1");
-        noUseActor = (data[9] == "1");
-        noUseTarget = (data[10] == "1");
+        desireMoveDist = data[8] == "1";
+        noUseActor = data[9] == "1";
+        noUseTarget = data[10] == "1";
 
         playerActor = (actorID == 0);
         tool = (actorID >= 0 && actorID == newActorID);

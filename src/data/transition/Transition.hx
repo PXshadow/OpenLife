@@ -1,5 +1,6 @@
 package data.transition;
 
+import game.Game;
 import sys.io.File;
 import sys.FileSystem;
 import data.transition.TransitionData;
@@ -20,4 +21,9 @@ class Transition
             transitions.push(new TransitionData(name,File.getContent(Game.dir + "transitions/" + name)));
         }
     }
+    public function make(id:Int):Array<Int>
+    {
+
+    }
+    public function
 }

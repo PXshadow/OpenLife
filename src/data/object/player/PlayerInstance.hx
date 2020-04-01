@@ -125,7 +125,7 @@ class PlayerInstance
         o_transition_source_id = Std.parseInt(a[i++]);
         heat = Std.parseInt(a[i++]);
         done_moving_seqNum = Std.parseInt(a[i++]);
-        forced = a[i++] == "1" ? true : false;
+        forced = a[i++] == "1";
         x = Std.parseInt(a[i++]);
         y = Std.parseInt(a[i++]);
         age = Std.parseFloat(a[i++]);
@@ -135,9 +135,9 @@ class PlayerInstance
         just_ate = Std.parseInt(a[i++]);
         responsible_id = Std.parseInt(a[i++]);
         if (a.length <= 23) return;
-        held_yum = a[i++] == "1" ? true : false;
+        held_yum = a[i++] == "1";
         if (a.length <= 24) return;
-        held_learned = a[i++] == "1" ? true : false;
+        held_learned = a[i++] == "1";
     }
     /**
      * toString for debug

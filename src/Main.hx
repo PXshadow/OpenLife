@@ -340,17 +340,10 @@ class Main extends game.Game
             &etaSec,
             &truncated );}
          */
-        var etaSec = move.eta;
-        var moveTotalTime = move.total;
-        var moveEta = etaSec + Static.getCurrentTime();
-        var timePassed = moveTotalTime - etaSec;
-        var fractionPassed = timePassed / moveTotalTime;
 
         var player = Game.data.playerMap.get(move.id);
         if (player == null || (player == this.player && !move.trunc)) return;
-
-
-        var numTurns = 0;
+        player.move(move);
 
     }
     private function mouseOut(_)

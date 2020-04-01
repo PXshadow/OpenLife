@@ -12,6 +12,7 @@ import motion.easing.Linear;
 import motion.MotionPath;
 import motion.Actuate;
 import openfl.display.Tile;
+import data.object.player.PlayerMove;
 #end
 import data.object.player.PlayerInstance;
 import haxe.Timer;
@@ -59,8 +60,7 @@ class Player #if openfl extends TileContainer #end
     public var inRange:Bool = true;
     public var moves:Array<Pos> = [];
     var pos:Pos = new Pos();
-    var time:Int = 0;
-    var frames:Int = 0;
+    var currentSpeed:Float = 0;
     //main player
     public var main:Bool = false;
     public function new()
@@ -152,6 +152,108 @@ class Player #if openfl extends TileContainer #end
         #end
         hold();
         cloths(data);
+    }
+    var step:Int = -1;
+    public function move(data:PlayerMove)
+    {
+        if (step == -1) return;
+        moves = data.moves;
+        openfl.Lib.current.stage.addEventListener(Event.ENTER_FRAME,update);
+
+        var moveTotalTime = data.total;
+        var moveEta = data.eta + Static.getCurrentTime();
+        var timePassed = moveTotalTime - data.eta;
+        //var fractionPassed = timePassed / moveTotalTime;
+        etaSec = moveEta - Static.getCurrentTime();
+        trace("etaSec");
+    }
+    private function update(_)
+    {
+        if (frames == 0)
+        {
+            if (++step > moves.length)
+            {
+                openfl.Lib.current.stage.removeEventListener(Event.ENTER_FRAME,update);
+                step = -1;
+                return;
+            }
+            updateMoveSpeed();
+            trace("update move speed " + currentSpeed);
+        }
+        x += currentSpeed;
+        y += currentSpeed;
+        frames--;
+    }
+    //var moveTotalTime:Float = 0;
+    //var moveEta:Float = 0;
+    //var timePassed:Float = 0;
+    var etaSec:Float = 0;
+    var frames:Float = 0;
+    //var fractionPassed:Float = 0;
+    private function updateMoveSpeed()
+    {
+        var moveLeft = measurePathLength(moves.length) - measurePathLength(step + 1);
+        var numTurns = 0;
+
+        if (step < moves.length - 1)
+        {
+            var lastDir = sub(moves[step + 1],moves[step]);
+            for (p in step + 1...moves.length - 1)
+            {
+                var dir = sub(moves[p +1],moves[p]);
+                if (!equal(dir,lastDir))
+                {
+                    numTurns++;
+                    lastDir = dir;
+                }
+            }
+        }
+        var turnTimeBoost = 0.08 * numTurns;
+        etaSec += turnTimeBoost;
+
+        if (etaSec < 0.1)
+        {
+            // less than 1/10 of a second
+            // this includes 0 values and negative values
+            // we DO NOT want infinite or negative move speeds
+            etaSec = 0.1;
+        }
+        var speedPerSec = moveLeft / etaSec;
+        //set current speed
+        currentSpeed = speedPerSec / 60;
+        frames = Std.int(etaSec/60);
+    }
+    private function equal(pos:Pos,pos2:Pos):Bool
+    {
+        if (pos.x == pos2.x && pos.y == pos2.y) return true;
+        return false;
+    }
+    private function sub(pos:Pos,pos2:Pos):Pos
+    {
+        var pos = new Pos();
+        pos.x = pos.x - pos2.x;
+        pos.y = pos.y - pos2.y;
+        return pos;
+    }
+    public function measurePathLength(inPathLength:Int):Float
+    {
+        var diagLength:Float = 1.4142356237;
+        var totalLength:Float = 0;
+        if (inPathLength < 2) return totalLength;
+        
+        var lastPos = moves[0];
+        for (i in 1...inPathLength)
+        {
+            if (moves[i].x != lastPos.x && moves[i].y != lastPos.y)
+            {
+                totalLength += diagLength;
+            }else{
+                //not diag
+                totalLength += 1;
+            }
+            lastPos = moves[i];
+        }
+        return totalLength;
     }
     #if openfl
     public function age(data:ObjectData)

@@ -80,7 +80,7 @@ class LineReader
      */
     public function getBool():Bool
     {
-        return getString() == "1" ? true : false;
+        return getString() == "1";
     }
     /**
      * Int from string
