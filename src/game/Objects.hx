@@ -222,11 +222,13 @@ class Objects extends TileDisplay
         if (obj.cacheHeight > 0) return obj.cacheHeight;
         var sprite:SpriteData;
         var rect:Rectangle;
+        var height:Int;
         for (i in 0...obj.numSprites)
         {
             sprite = obj.spriteArray[i];
             rect = tileset.getRect(cacheSprite(sprite.spriteID));
-            //rect.width/2 + sprite.inCenterXOffset;
+            height = Std.int(sprite.pos.y - rect.height/2 - sprite.inCenterYOffset);
+            if (height > obj.cacheHeight) obj.cacheHeight = height;
         }
         return 0;
     }

@@ -58,9 +58,7 @@ class Player #if openfl extends TileContainer #end
     public var lastName:String = "";
     public var text:String = "";
     public var inRange:Bool = true;
-    public var moves:Array<Pos> = [];
     var pos:Pos = new Pos();
-    var currentSpeed:Float = 0;
     //main player
     public var main:Bool = false;
     public function new()
@@ -106,12 +104,12 @@ class Player #if openfl extends TileContainer #end
     #end
     public function force(send:Bool=true) 
     {
-        //moves = [];
         #if openfl
         Actuate.pause(this);
         //local position
-        x = instance.x * Static.GRID;
-        y = (Static.tileHeight - instance.y) * Static.GRID;
+        var sx = instance.x * Static.GRID;
+        var sy = (Static.tileHeight - instance.y) * Static.GRID;
+        Actuate.tween(this,0.2,{x:sx,y:sy}).ease(Quad.easeIn);
         #end
         if (main && !send) Game.program.force();
     }
@@ -153,75 +151,30 @@ class Player #if openfl extends TileContainer #end
         hold();
         cloths(data);
     }
-    var step:Int = -1;
+    var moving:Bool = false;
     public function move(data:PlayerMove)
     {
-        if (step == -1) return;
-        moves = data.moves;
-        openfl.Lib.current.stage.addEventListener(Event.ENTER_FRAME,update);
-
-        var moveTotalTime = data.total;
-        var moveEta = data.eta + Static.getCurrentTime();
-        var timePassed = moveTotalTime - data.eta;
-        //var fractionPassed = timePassed / moveTotalTime;
-        etaSec = moveEta - Static.getCurrentTime();
-        trace("etaSec");
-    }
-    private function update(_)
-    {
-        if (frames == 0)
+        if (data.trunc)
         {
-            if (++step > moves.length)
-            {
-                openfl.Lib.current.stage.removeEventListener(Event.ENTER_FRAME,update);
-                step = -1;
-                return;
-            }
-            updateMoveSpeed();
-            trace("update move speed " + currentSpeed);
+            ix = data.x;
+            iy = data.y;
+            force(false);
         }
-        x += currentSpeed;
-        y += currentSpeed;
-        frames--;
-    }
-    //var moveTotalTime:Float = 0;
-    //var moveEta:Float = 0;
-    //var timePassed:Float = 0;
-    var etaSec:Float = 0;
-    var frames:Float = 0;
-    //var fractionPassed:Float = 0;
-    private function updateMoveSpeed()
-    {
-        var moveLeft = measurePathLength(moves.length) - measurePathLength(step + 1);
-        var numTurns = 0;
-
-        if (step < moves.length - 1)
+        #if openfl
+        var path = new MotionPath();
+        var currentX = x;
+        var currentY = y;
+        for (i in 0...data.moves.length)
         {
-            var lastDir = sub(moves[step + 1],moves[step]);
-            for (p in step + 1...moves.length - 1)
-            {
-                var dir = sub(moves[p +1],moves[p]);
-                if (!equal(dir,lastDir))
-                {
-                    numTurns++;
-                    lastDir = dir;
-                }
-            }
+            path.line(x + data.moves[i].x * Static.GRID,y - data.moves[i].y * Static.GRID);
         }
-        var turnTimeBoost = 0.08 * numTurns;
-        etaSec += turnTimeBoost;
-
-        if (etaSec < 0.1)
+        var ox:Float = x;
+        Actuate.motionPath(this,data.total,{x: path.x,y: path.y}).ease(Linear.easeNone).onUpdate(function(_)
         {
-            // less than 1/10 of a second
-            // this includes 0 values and negative values
-            // we DO NOT want infinite or negative move speeds
-            etaSec = 0.1;
-        }
-        var speedPerSec = moveLeft / etaSec;
-        //set current speed
-        currentSpeed = speedPerSec / 60;
-        frames = Std.int(etaSec/60);
+            scaleX = ox - x <= 0 ? 1 : -1;
+            ox = x;
+        });
+        #end
     }
     private function equal(pos:Pos,pos2:Pos):Bool
     {
@@ -235,29 +188,10 @@ class Player #if openfl extends TileContainer #end
         pos.y = pos.y - pos2.y;
         return pos;
     }
-    public function measurePathLength(inPathLength:Int):Float
-    {
-        var diagLength:Float = 1.4142356237;
-        var totalLength:Float = 0;
-        if (inPathLength < 2) return totalLength;
-        
-        var lastPos = moves[0];
-        for (i in 1...inPathLength)
-        {
-            if (moves[i].x != lastPos.x && moves[i].y != lastPos.y)
-            {
-                totalLength += diagLength;
-            }else{
-                //not diag
-                totalLength += 1;
-            }
-            lastPos = moves[i];
-        }
-        return totalLength;
-    }
     #if openfl
     public function age(data:ObjectData)
     {
+        return;
         var ageInital:Bool = true;
         var headMoveX:Float = 0;
         var headMoveY:Float = 0;

@@ -166,7 +166,7 @@ class AnimationPlayer
             if (param[i].rotPerSec != 0)
             {
                 var dir = param[i].rotPerSec > 0 ? 1 : -1;
-                trace("rot " + param[i].rotPerSec);
+                //trace("rot " + param[i].rotPerSec);
                 rotate(sprite,1/param[i].rotPerSec * dir * 1,dir,365 * dir);
             }
         }
