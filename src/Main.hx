@@ -328,6 +328,16 @@ class Main extends game.Game
             cursor.x = mouseX;
             cursor.y = mouseY;
         }
+        if (player != null)
+        {
+            var mx:Int = 0;
+            var my:Int = 0;
+            if (up) my++;
+            if (down) my--;
+            if (left) mx--;
+            if (right) mx++;
+            if (mx != 0 || my != 0) player.step(mx,my);
+        }
     }
     override function playerMoveStart(move:PlayerMove) {
         super.playerMoveStart(move);

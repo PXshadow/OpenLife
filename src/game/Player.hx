@@ -104,6 +104,7 @@ class Player #if openfl extends TileContainer #end
     #end
     public function force(send:Bool=true) 
     {
+        trace("force " + main);
         #if openfl
         Actuate.pause(this);
         //local position
@@ -111,7 +112,8 @@ class Player #if openfl extends TileContainer #end
         var sy = (Static.tileHeight - instance.y) * Static.GRID;
         Actuate.tween(this,0.2,{x:sx,y:sy}).ease(Quad.easeIn);
         #end
-        if (main && !send) Game.program.force();
+        moving = false;
+        if (main && send) Game.program.force();
     }
     public function set(data:PlayerInstance)
     {
@@ -175,6 +177,31 @@ class Player #if openfl extends TileContainer #end
             ox = x;
         });
         #end
+    }
+    public function step(x:Int,y:Int)
+    {
+        if (moving || Game.data.blocking.get('${ix + x}.${iy + y}')) return;
+        Game.program.move(ix,iy,++lastMove,x,y);
+        ix += x;
+        iy += y;
+        if (x == 1) scaleX = 1;
+        if (x == -1) scaleX = -1;
+        moving = true;
+        var time = Static.GRID/(Static.GRID * instance.move_speed * computePathSpeedMod());
+        Actuate.tween(this,time,{x: this.x + x * Static.GRID,y: this.y - y * Static.GRID}).onComplete(function(_)
+        {
+            moving = false;
+        }).ease(Linear.easeNone);
+    }
+    public function computePathSpeedMod():Float
+    {
+        var floorData = Game.data.objectMap.get(Game.data.map.floor.get(ix,iy));
+        var multiple:Float = 1;
+        if (floorData != null) multiple *= floorData.speedMult;
+        if (oid.length == 0) return multiple;
+        var objectData = Game.data.objectMap.get(oid[0]);
+        if (objectData != null) multiple *= objectData.speedMult;
+        return multiple;
     }
     private function equal(pos:Pos,pos2:Pos):Bool
     {

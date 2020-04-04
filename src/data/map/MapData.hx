@@ -17,21 +17,6 @@ class MapData
      * Object 2D array, container format for object
      */
     public var object:ArrayDataArrayInt = new ArrayDataArrayInt();
-    /**
-     * Loaded boolean
-     */
-    public var chunks:Array<MapInstance> = [];
-    public var loaded:Bool = false;
-
-    public var valleyOffsetY:Int = 0;
-    public var valleyOffsetX:Int = 0;
-    public var valleySpacing:Int = 0;
-    public var valleyBool:Bool = true;
-
-    public var offsetX:Int = 0;
-    public var offsetY:Int = 0;
-    public var offsetBoolX:Bool = true;
-    public var offsetBoolY:Bool = true;
     
     //all chunks combined
     public var x:Int = 0;
@@ -57,8 +42,6 @@ class MapData
         if (this.y > chunk.y) this.y = chunk.y;
         if (this.width < chunk.x + chunk.width) this.width = chunk.x + chunk.width;
         if (this.height < chunk.y + chunk.height) this.height = chunk.y + chunk.height;
-        //loaded in data
-        loaded = true;
         //create array
         var a:Array<String> = string.split(" ");
         //data array for object
