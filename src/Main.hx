@@ -1,5 +1,4 @@
 import data.Pos;
-import openfl.display.BlendMode;
 import console.Console;
 import data.animation.AnimationPlayer;
 import game.Player;
@@ -9,6 +8,7 @@ import haxe.io.Path;
 import sys.io.File;
 import data.object.player.PlayerMove;
 #if openfl
+import openfl.display.BlendMode;
 import graphics.TgaData;
 import openfl.display.Bitmap;
 import openfl.display.BitmapData;
@@ -405,7 +405,7 @@ class Main extends game.Game
                 objects.add(Game.data.map.object.get(i,j * -1),i,j * -1);
             }
         }
-        Game.data.map.chunks.push(instance);
+        //Game.data.map.chunks.push(instance);
         ground.render();
         groundOverlay.render();
         objects.x = 0;

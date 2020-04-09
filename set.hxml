@@ -6,4 +6,5 @@
 -D nativeGen
 -D haxeJson
 -D no-compilation
+-D source-header=OpenLife Generated Haxe code
 #-D full

@@ -305,8 +305,8 @@ class Game extends GameHeader
 
             case VALLEY_SPACING:
             //y_spacing y_offset Offset is from client's birth position (0,0) of first valley.
-            data.map.valleySpacing = Std.parseInt(input[0]);
-            data.map.valleyOffsetY = Std.parseInt(input[1]);
+            //data.map.valleySpacing = Std.parseInt(input[0]);
+            //data.map.valleyOffsetY = Std.parseInt(input[1]);
             
             case FLIGHT_DEST:
             //p_id dest_x dest_y

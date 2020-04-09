@@ -1,6 +1,5 @@
 package data.map;
 import haxe.Timer;
-import sys.io.FileInput;
 import haxe.ds.Vector;
 #if nativeGen @:nativeGen #end
 class MapData
@@ -62,8 +61,8 @@ class MapData
             }
         }
     }
-
-    public function mapFile(file:FileInput,inOffsetX:Int=0,inOffsetY:Int=0,inTimeLimitSec:Float=0)
+    #if sys
+    public function mapFile(file:sys.io.FileInput,inOffsetX:Int=0,inOffsetY:Int=0,inTimeLimitSec:Float=0)
     {
         var startTime = Timer.stamp();
         var line:Array<String> = [];
@@ -88,6 +87,7 @@ class MapData
             object.set(x,y,id(line[4]));
         }
     }
+    #end
 
     /**
      * Generate Array container format from string buffer

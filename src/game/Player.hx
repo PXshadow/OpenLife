@@ -1,7 +1,4 @@
 package game;
-import client.Client;
-import data.map.MapData;
-import data.GameData;
 #if openfl
 import openfl.events.Event;
 import motion.easing.Sine;
@@ -12,8 +9,11 @@ import motion.easing.Linear;
 import motion.MotionPath;
 import motion.Actuate;
 import openfl.display.Tile;
-import data.object.player.PlayerMove;
 #end
+import client.Client;
+import data.map.MapData;
+import data.GameData;
+import data.object.player.PlayerMove;
 import data.object.player.PlayerInstance;
 import haxe.Timer;
 import data.object.SpriteData;
@@ -115,6 +115,10 @@ class Player #if openfl extends TileContainer #end
         moving = false;
         if (main && send) Game.program.force();
     }
+    private function moveTo(x:Int,y:Int)
+    {
+        
+    }
     public function set(data:PlayerInstance)
     {
         if (instance == null)
@@ -181,17 +185,19 @@ class Player #if openfl extends TileContainer #end
     public function step(x:Int,y:Int)
     {
         if (moving || Game.data.blocking.get('${ix + x}.${iy + y}')) return;
-        Game.program.move(ix,iy,++lastMove,x,y);
+        Game.program.step(ix,iy,++lastMove,x,y);
         ix += x;
         iy += y;
+        var time = Static.GRID/(Static.GRID * instance.move_speed * computePathSpeedMod());
+        #if openfl
         if (x == 1) scaleX = 1;
         if (x == -1) scaleX = -1;
         moving = true;
-        var time = Static.GRID/(Static.GRID * instance.move_speed * computePathSpeedMod());
         Actuate.tween(this,time,{x: this.x + x * Static.GRID,y: this.y - y * Static.GRID}).onComplete(function(_)
         {
             moving = false;
         }).ease(Linear.easeNone);
+        #end
     }
     public function computePathSpeedMod():Float
     {

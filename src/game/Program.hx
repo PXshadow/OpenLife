@@ -150,9 +150,16 @@ class Program
         send(JUMP,0,0);
         return this;
     }
-    public function move(x:Int,y:Int,seq:Int,mx:Int,my:Int):Program
+    public function step(x:Int,y:Int,seq:Int,mx:Int,my:Int):Program
     {
         send(MOVE,x,y,'@$seq $mx $my');
+        return this;
+    }
+    public function move(x:Int,y:Int,seq:Int,list:Array<Pos>):Program
+    {
+        var moveString = "";
+        for (pos in list) moveString += ' ${pos.x} ${pos.y}';
+        send(MOVE,x,y,'@$seq$moveString');
         return this;
     }
     /**
