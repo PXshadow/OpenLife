@@ -344,22 +344,12 @@ class Main extends game.Game
             player.step();
         }
     }
-    override function playerMoveStart(move:PlayerMove) {
+    override function playerMoveStart(move:PlayerMove) 
+    {
         super.playerMoveStart(move);
-        /**
-         * int numRead = sscanf( lines[i], "%d %d %d %lf %lf %d",
-            {&( o.id ),
-            &( startX ),
-            &( startY ),
-            &( o.moveTotalTime ),
-            &etaSec,
-            &truncated );}
-         */
-
         var player = Game.data.playerMap.get(move.id);
         if (player == null || (player == this.player && !move.trunc)) return;
         player.move(move);
-
     }
     private function mouseOut(_)
     {

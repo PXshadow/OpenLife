@@ -155,11 +155,13 @@ class Program
         send(MOVE,x,y,'@$seq $mx $my');
         return this;
     }
-    public function move(x:Int,y:Int,seq:Int,list:Array<Pos>):Program
+    public function move(player:Player,x:Int,y:Int):Program
     {
-        var moveString = "";
-        for (pos in list) moveString += ' ${pos.x} ${pos.y}';
-        send(MOVE,x,y,'@$seq$moveString');
+        player.doneMoving = function()
+        {
+        
+        }
+        player.doneMoving();
         return this;
     }
     /**

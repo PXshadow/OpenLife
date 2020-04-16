@@ -53,7 +53,11 @@ class Client
         }
         data = "";
         #if (sys || nodejs)
-        if(socket == null) return;
+        if(socket == null) 
+        {
+            trace('socket is null');
+            return;
+        }
 		try {
             if (compressSize > 0)
             {
@@ -150,7 +154,7 @@ class Client
             #end
         }catch(e:Dynamic)
         {
-            trace("e " + e);
+            trace("client send error: " + e);
             close();
             return;
         }
@@ -182,7 +186,7 @@ class Client
 			host = new Host(ip);
 		}catch(e:Dynamic)
 		{
-            trace("host e " + e);
+            trace("host error: " + e);
 			return;
 		}
 		socket = new Socket();
@@ -191,7 +195,7 @@ class Client
 			socket.connect(host,port);
 		}catch(e:Dynamic)
 		{
-            trace("e " + e);
+            trace("socket connect error: " + e);
             return;
 		}
         #if !nodejs

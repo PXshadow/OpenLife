@@ -59,7 +59,11 @@ class GroundOverlay extends Shape
     }
     private function cacheOverlay()
     {
-        if (!FileSystem.exists(Game.dir + "graphics")) return;
+        if (!FileSystem.exists(Game.dir + "graphics"))
+        {
+            trace("graphics folder not found");
+            return;
+        }
         var rect:Rectangle = new Rectangle(tileX,tileY);
         for (i in 0...4)
         {

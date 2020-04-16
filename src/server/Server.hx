@@ -81,7 +81,7 @@ class Server
                 {
                     if (e == haxe.io.Eof)
                     {
-                        trace('e client: $e');
+                        trace('error client: $e');
                         socket.close();
                         clients.remove(c);
                         return;

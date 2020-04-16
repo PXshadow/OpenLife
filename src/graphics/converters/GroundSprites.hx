@@ -20,7 +20,11 @@ class GroundSprites
     var id:String;
     public function new()
     {
-        if (FileSystem.exists(Game.dir + "groundTileCache") && FileSystem.isDirectory(Game.dir + "groundTileCache")) return;
+        if (FileSystem.exists(Game.dir + "groundTileCache") && FileSystem.isDirectory(Game.dir + "groundTileCache"))
+        {
+            trace("groundTileCache not found");
+            return;
+        }
         for (path in FileSystem.readDirectory(Game.dir + "ground"))
         {
             path = Game.dir + "ground/" + path;

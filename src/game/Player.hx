@@ -43,7 +43,6 @@ class Player #if openfl extends TileContainer #end
     //pathing
     public var lastMove:Int = 1;
     public var moveTimer:Timer;
-    public var goal:Bool = false;
     public var follow:Bool = true;
     var multi:Float = 1;
     //locally used instance pos
@@ -181,6 +180,7 @@ class Player #if openfl extends TileContainer #end
     }
     public var mx:Int = 0;
     public var my:Int = 0;
+    public var doneMoving:Void->Void;
     public function step()
     {
         if ((mx == 0 && my == 0) || moving || Game.data.blocking.get('${ix + mx}.${iy + my}')) return;
@@ -189,12 +189,14 @@ class Player #if openfl extends TileContainer #end
         iy += my;
         var time = 1/instance.move_speed * computePathSpeedMod();
         #if openfl
-        if (x == 1) scaleX = 1;
-        if (x == -1) scaleX = -1;
+        if (mx == 1) scaleX = 1;
+        if (mx == -1) scaleX = -1;
         moving = true;
         Actuate.tween(this,time,{x: this.x + mx * Static.GRID,y: this.y - my * Static.GRID}).onComplete(function(_)
         {
             moving = false;
+            //callback
+            if (doneMoving != null) doneMoving();
             //buffer
             step();
         }).ease(Linear.easeNone);
@@ -358,11 +360,17 @@ class Player #if openfl extends TileContainer #end
     #if openfl
     public function emote(index:Int=-1)
     {
-        if (index == -1) return;
+        if (index == -1) 
+        {
+            trace("emote index not found");
+            return;
+        }
         var emot = Game.data.emotes[index];
         var data = Game.data.objectMap.get(instance.po_id);
-        if (data == null || emot == null) return;
-        //data.
+        if (data == null || emot == null)
+        {
+            trace('data is null $data , emot: $emot');
+        }
     }
     #end
     public function hold()

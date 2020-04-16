@@ -55,9 +55,22 @@ class AnimationPlayer
         active.push(data);
         //data set
         var objectData = Game.data.objectMap.get(id);
-        if (objectData == null || objectData.animation == null) return;
+        if (objectData == null || objectData.animation == null) 
+        {
+            trace('objectData ${objectData} or ObjectsData' + "'" + 's animation ${objectData.animation} is null');
+            return;
+        }
         var param = objectData.animation.record[index].params;
-        if (param == null) return;
+        if (param == null) 
+        {
+            trace('param is null');
+            return;
+        }
+        if (param.length != objectData.spriteArray.length)
+        {
+            trace('param length ${param.length} is not equal to object data sprite array length ${objectData.spriteArray.length}');
+            return;
+        }
         var type = objectData.animation.record[index].type;
         var sprite:Tile = null;
         var p:Int = 0;

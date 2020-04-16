@@ -27,7 +27,7 @@ class Inspector
         idInput.addEventListener(TextEvent.TEXT_INPUT,function(e:TextEvent)
         {
             var id = Std.parseInt(idInput.text + e.text);
-            if (id > Game.data.nextObjectNumber || id <= 0)
+            if (id <= 0)
             {
                 trace("id out of range");
                 return;

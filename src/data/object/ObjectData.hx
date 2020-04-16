@@ -311,12 +311,16 @@ class ObjectData extends LineReader
     public function new(i:Int=0)
     {
         super();
-        if (i <= 0) return;
+        if (i <= 0) 
+        {
+            trace('object data id is $i and is less than 1');
+            return;
+        }
         try {
             readLines(File.getContent(Game.dir + "objects/" + i + ".txt"));
         }catch(e:Dynamic)
         {
-            trace("object txt e " + e);
+            trace("object txt error: " + e);
             return;
         }
         //setup animation
@@ -534,7 +538,7 @@ class ObjectData extends LineReader
                 s = File.getContent(Game.dir + "sprites/" + spriteArray[i].spriteID + ".txt");
             }catch(e:Dynamic)
             {
-                trace("sprite text e " + e);
+                trace("sprite text error: " + e);
                 //continue;
                 return;
             }
