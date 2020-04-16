@@ -126,7 +126,7 @@ class Main extends game.Game
                 obj.alpha += -1;
             }
             selects = [];
-            if (Math.abs(player.ix - selectX) < 8 && Math.abs(player.iy - selectY) <8)
+            if (Math.abs(player.ix - selectX) <= 8 && Math.abs(player.iy - selectY) <= 8)
             {
                 var list = Game.data.tileData.object.get(selectX,-selectY);
                 var bool = false;
@@ -147,8 +147,8 @@ class Main extends game.Game
                 if (!bool)
                 {
                     //non object select
-                    trace("click");
-
+                    trace("MOVE TO");
+                    
                 }else{
                     selects = list;
                     for (obj in list)
@@ -308,6 +308,11 @@ class Main extends game.Game
             ground.y = objects.group.y;
             ground.scaleX = objects.group.scaleX;
             ground.scaleY = objects.group.scaleY;
+            if (cursor != null)
+            {
+                cursor.x = ground.scaleX;
+                cursor.y = ground.scaleY;
+            }
             if (groundOverlay != null)
             {
                 groundOverlay.x = ground.x;

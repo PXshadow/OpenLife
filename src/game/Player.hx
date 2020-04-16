@@ -104,6 +104,7 @@ class Player #if openfl extends TileContainer #end
     #end
     public function force(send:Bool=true) 
     {
+        if (instance.move_speed <= 0) return;
         trace("force " + main);
         #if openfl
         Actuate.pause(this);
@@ -114,10 +115,6 @@ class Player #if openfl extends TileContainer #end
         #end
         moving = false;
         if (main && send) Game.program.force();
-    }
-    private function moveTo(x:Int,y:Int)
-    {
-        
     }
     public function set(data:PlayerInstance)
     {
@@ -160,12 +157,12 @@ class Player #if openfl extends TileContainer #end
     var moving:Bool = false;
     public function move(data:PlayerMove)
     {
-        if (data.trunc)
+        /*if (data.trunc)
         {
             ix = data.x;
             iy = data.y;
             force(false);
-        }
+        }*/
         #if openfl
         var path = new MotionPath();
         var currentX = x;
@@ -188,7 +185,7 @@ class Player #if openfl extends TileContainer #end
         Game.program.step(ix,iy,++lastMove,x,y);
         ix += x;
         iy += y;
-        var time = Static.GRID/(Static.GRID * instance.move_speed * computePathSpeedMod());
+        var time = 1/instance.move_speed * computePathSpeedMod();
         #if openfl
         if (x == 1) scaleX = 1;
         if (x == -1) scaleX = -1;

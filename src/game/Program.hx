@@ -48,7 +48,7 @@ class Program
     }
     public function force()
     {
-        client.send("FORCE");
+        //client.send("FORCE");
     }
     //async return functions of data
     public function grave(x:Int,y:Int)

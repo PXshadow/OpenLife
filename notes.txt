@@ -111,6 +111,8 @@ MAP_CHANGE is 16 radius around player
 
 MAP_CHUNK x radius is 9 till new, and 8 for y
 
+"A better check system that makes sure an Object has no Categories or Transitions or placed in any Scenes before allowing deletion."
+- editor deletion of objects
 
 references
 - for creating gifs 
