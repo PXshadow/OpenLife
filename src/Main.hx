@@ -148,7 +148,7 @@ class Main extends game.Game
                 {
                     //non object select
                     trace("MOVE TO");
-                    
+
                 }else{
                     selects = list;
                     for (obj in list)
@@ -335,13 +335,13 @@ class Main extends game.Game
         }
         if (player != null)
         {
-            var mx:Int = 0;
-            var my:Int = 0;
-            if (up) my++;
-            if (down) my--;
-            if (left) mx--;
-            if (right) mx++;
-            if (mx != 0 || my != 0) player.step(mx,my);
+            player.mx = 0;
+            player.my = 0;
+            if (up) player.my++;
+            if (down) player.my--;
+            if (left) player.mx--;
+            if (right) player.mx++;
+            player.step();
         }
     }
     override function playerMoveStart(move:PlayerMove) {

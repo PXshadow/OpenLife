@@ -179,20 +179,24 @@ class Player #if openfl extends TileContainer #end
         });
         #end
     }
-    public function step(x:Int,y:Int)
+    public var mx:Int = 0;
+    public var my:Int = 0;
+    public function step()
     {
-        if (moving || Game.data.blocking.get('${ix + x}.${iy + y}')) return;
-        Game.program.step(ix,iy,++lastMove,x,y);
-        ix += x;
-        iy += y;
+        if ((mx == 0 && my == 0) || moving || Game.data.blocking.get('${ix + mx}.${iy + my}')) return;
+        Game.program.step(ix,iy,++lastMove,mx,my);
+        ix += mx;
+        iy += my;
         var time = 1/instance.move_speed * computePathSpeedMod();
         #if openfl
         if (x == 1) scaleX = 1;
         if (x == -1) scaleX = -1;
         moving = true;
-        Actuate.tween(this,time,{x: this.x + x * Static.GRID,y: this.y - y * Static.GRID}).onComplete(function(_)
+        Actuate.tween(this,time,{x: this.x + mx * Static.GRID,y: this.y - my * Static.GRID}).onComplete(function(_)
         {
             moving = false;
+            //buffer
+            step();
         }).ease(Linear.easeNone);
         #end
     }
