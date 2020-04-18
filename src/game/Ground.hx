@@ -31,9 +31,6 @@ class Ground extends Shape
         //opaqueBackground = 0;
         //cacheAsBitmapMatrix = new Matrix();
         tileset = new Tileset(new BitmapData(3000,3000,true));
-        //tileset.bitmapData.colorTransform(tileset.bitmapData.rect,new ColorTransform(0,0,0,0,255,255,255,255));
-        //0 is blank for tileData reading
-        //add cached ground
         for (i in 0...6 + 1) cache(i);
         simpleIndex = tileset.numRects;
         /*for (color in [0x80ad57,0xe0a437,0x5c584e,0xffffff,0x467c06])

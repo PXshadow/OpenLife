@@ -56,6 +56,7 @@ class Objects extends TileDisplay
         super();
         animate = new AnimationPlayer(this);
         smoothing = true;
+        //alpha = 0.5;
         //trace(list);
         //add base
         group = new TileContainer();
@@ -159,7 +160,7 @@ class Objects extends TileDisplay
         }
         sprites = create(data,tx + 0,ty - 0);
         //age system
-        if (container != null) visibleSprites(array[0],sprites,20);
+        if (container != null && data.person == 0) visibleSprites(array[0],sprites,20);
         if (sprites.length == 0) trace(data.id);
         //conainted
         var id:Int = 0;

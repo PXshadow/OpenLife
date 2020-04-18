@@ -125,7 +125,7 @@ class AnimationPlayer
         data.timer = new Timer(1/60 * 1000);
         data.timer.run = function()
         {
-            for (i in 0...data.sprites.length)
+            for (i in 0...objectData.spriteArray.length) //data.sprites.length)
             {
                 //parent
                 p = objectData.spriteArray[i].parent;

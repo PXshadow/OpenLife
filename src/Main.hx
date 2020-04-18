@@ -49,6 +49,7 @@ class Main extends game.Game
     var selectY:Int = 0;
     var selects:Array<Tile> = [];
     var cursor:Bitmap;
+    var gameBool:Bool = false;
     var weather:Weather;
     public function new()
     {
@@ -75,6 +76,7 @@ class Main extends game.Game
         //new data.sound.AiffData(File.getBytes(Game.dir + "sounds/1645.aiff"));
         //create console
         console = new Console();
+        console.set("game",this);
         console.visible = false;
         addChild(console);
         /*grid = new debug.Grid();
@@ -111,8 +113,13 @@ class Main extends game.Game
     {
         zoom(e.delta);
     }
+    private inline function lerp(v0:Float,v1:Float,t:Float)
+    {
+        return v1 + t * (v1 - v0);
+    }
     private function mouseDown(_)
     {
+        if (cursor != null) cursor.visible = true;
         if (player != null)
         {
             /*if (player.ix == selectX && player.y == selectY)
@@ -148,7 +155,7 @@ class Main extends game.Game
                 {
                     //non object select
                     trace("MOVE TO");
-
+                    Game.program.move(player,selectX,selectY);
                 }else{
                     selects = list;
                     for (obj in list)
@@ -184,12 +191,28 @@ class Main extends game.Game
             case Keyboard.S: down = false;
             case Keyboard.A: left = false;
             case Keyboard.D: right = false;
+            case Keyboard.NUMBER_9:
+            player.instance.age--;
+            player.set(player.instance);
+            case Keyboard.NUMBER_0:
+            player.instance.age++;
+            player.set(player.instance);
+            case Keyboard.TAB:
+            var bitmap = new Bitmap(objects.tileset.bitmapData);
+            bitmap.width = stage.stageWidth;
+            bitmap.height = stage.stageHeight;
+            bitmap.alpha = 0.5;
+            addChild(bitmap);
+            //trace("percent " + ((objects.tileY + objects.tileHeight)/ objects.tileset.bitmapData.height));
         }
     }
     private function zoom(i:Int)
     {
         if (objects.scale > 2 && i > 0 || objects.scale < 0.3 && i < 0) return;
-        objects.scale += i * 0.2;
+        var scale = i * 0.2;
+        objects.scale += scale;
+        objects.group.x += scale * objects.group.width;
+        objects.group.y += scale * objects.group.height;
     }
     private function resize(_)
     {
@@ -197,6 +220,11 @@ class Main extends game.Game
         {
             objects.width = stage.stageWidth;
             objects.height = stage.stageHeight;
+            if (groundOverlay != null)
+            {
+                groundOverlay.width = objects.width;
+                groundOverlay.height = objects.height;
+            }
         }
         if (console != null) console.resize(stage.stageWidth);
     }
@@ -294,54 +322,38 @@ class Main extends game.Game
         client.update();
         selectX = Math.floor((mouseX - ground.x + (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale));
         selectY = Math.floor((mouseY - ground.y + (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale));
+        if (!gameBool) return;
         //stage.window.title = 'x: $selectX y: $selectY';
-        if (drag && objects != null)
+        if (drag)
         {
             objects.group.x += stage.mouseX - omx;
             objects.group.y += stage.mouseY - omy;
             omx = stage.mouseX;
             omy = stage.mouseY;
+            player.follow = false;
         }
-        if (ground != null)
-        {
-            ground.x = objects.group.x;
-            ground.y = objects.group.y;
-            ground.scaleX = objects.group.scaleX;
-            ground.scaleY = objects.group.scaleY;
-            if (cursor != null)
-            {
-                cursor.x = ground.scaleX;
-                cursor.y = ground.scaleY;
-            }
-            if (groundOverlay != null)
-            {
-                groundOverlay.x = ground.x;
-                groundOverlay.y = ground.y;
-                groundOverlay.scaleX = ground.scaleX;
-                groundOverlay.scaleY = ground.scaleY;
-            }
-            if (grid != null)
-            {
-                grid.x = ground.x;
-                grid.y = ground.y;
-                grid.scaleX = ground.scaleX;
-                grid.scaleY = ground.scaleY;
-            }
-        }
+        ground.x = objects.group.x;
+        ground.y = objects.group.y;
+        ground.scaleX = objects.group.scaleX;
+        ground.scaleY = objects.group.scaleY;
         if (cursor != null)
         {
+            cursor.x = ground.scaleX;
+            cursor.y = ground.scaleY;
             cursor.x = mouseX;
             cursor.y = mouseY;
         }
-        if (player != null)
+        player.mx = 0;
+        player.my = 0;
+        if (up) player.my++;
+        if (down) player.my--;
+        if (left) player.mx--;
+        if (right) player.mx++;
+        player.step();
+        if (player.follow)
         {
-            player.mx = 0;
-            player.my = 0;
-            if (up) player.my++;
-            if (down) player.my--;
-            if (left) player.mx--;
-            if (right) player.mx++;
-            player.step();
+            objects.group.x = lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.18);
+            objects.group.y = lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.18);
         }
     }
     override function playerMoveStart(move:PlayerMove) 
@@ -375,20 +387,42 @@ class Main extends game.Game
             //main player
             player = objects.player;
             player.main = true;
-            //new AnimationPlayer(objects).play(player.instance.po_id,2,player.sprites(),0,0,player.clothing);
-            console.set("player",player);
-            console.set("objects",objects);
-            console.set("ground",ground);
+            gameBool = true;
         }
     }
     override function mapChunk(instance:MapInstance) 
     {
-        super.mapChunk(instance);
-        trace("map " + instance.toString());
+        trace("map " + instance.toString() + "map total " + Game.data.map.toString());
+        //remove everything not 32 tiles 
+        if (Game.data.map != null && player != null)
+        {
+            var int:Int = 0;
+            for (i in Game.data.map.x...Game.data.map.mx)
+            {
+                for (j in Game.data.map.y...Game.data.map.my)
+                {
+                    if (Math.abs(player.ix - i) > 36 || Math.abs(player.iy - j) > 36)
+                    {
+                        ground.remove(i,j);
+                        objects.remove(i,j,true);
+                        objects.remove(i,j);
+                        int++;
+                    }
+                }
+            }
+            trace('cleaned $int tiles');
+        }else{
+            trace('can not clean because map data is null or player');
+        }
         for (i in instance.x...instance.x + instance.width)
         {
             for (j in instance.y...instance.y + instance.height)
             {
+                //remove overlap first
+                /*ground.remove(i,j);
+                objects.remove(i,j,true);
+                objects.remove(i,j,true);*/
+                //add new
                 ground.add(Game.data.map.biome.get(i,j),i,j);
                 objects.add([Game.data.map.floor.get(i,j)],i,j);
             }
@@ -400,13 +434,16 @@ class Main extends game.Game
                 objects.add(Game.data.map.object.get(i,j * -1),i,j * -1);
             }
         }
+        var it = Game.data.playerMap.iterator();
+        while (it.hasNext())
+        {
+            objects.player = it.next();
+            objects.group.removeTile(objects.player);
+            if (!objects.player.held) objects.group.addTile(objects.player);
+        }
         //Game.data.map.chunks.push(instance);
         ground.render();
         groundOverlay.render();
-        objects.x = 0;
-        objects.y = 0;
-        objects.width = stage.stageWidth;
-        objects.height = stage.stageHeight;
     }
 }
 #end

@@ -51,7 +51,7 @@ class Player #if openfl extends TileContainer #end
     //locally used object
     public var oid:Array<Int> = [];
     public var held:Bool = false;
-    public var ageInt:Int = 0;
+    public var ageInt:Int = -1;
     //name
     public var firstName:String = "";
     public var lastName:String = "";
@@ -110,10 +110,12 @@ class Player #if openfl extends TileContainer #end
         //local position
         var sx = instance.x * Static.GRID;
         var sy = (Static.tileHeight - instance.y) * Static.GRID;
-        Actuate.tween(this,0.2,{x:sx,y:sy}).ease(Quad.easeIn);
+        //Actuate.tween(this,0.2,{x:sx,y:sy}).ease(Quad.easeIn);
+        x = sx;
+        y = sy;
         #end
         moving = false;
-        if (main && send) Game.program.force();
+        if (main && send) Game.program.force(ix,iy);
     }
     public function set(data:PlayerInstance)
     {
@@ -144,9 +146,9 @@ class Player #if openfl extends TileContainer #end
         //remove moves
         var data = Game.data.objectMap.get(instance.po_id);
         #if openfl
-        if (ageInt != Std.int(instance.age)) 
+        if (ageInt != Math.ceil(instance.age)) 
         {
-            ageInt = Std.int(instance.age);
+            ageInt = Math.ceil(instance.age);
             age(data);
         }
         #end
@@ -192,6 +194,7 @@ class Player #if openfl extends TileContainer #end
         if (mx == 1) scaleX = 1;
         if (mx == -1) scaleX = -1;
         moving = true;
+        follow = true;
         Actuate.tween(this,time,{x: this.x + mx * Static.GRID,y: this.y - my * Static.GRID}).onComplete(function(_)
         {
             moving = false;
@@ -227,14 +230,6 @@ class Player #if openfl extends TileContainer #end
     #if openfl
     public function age(data:ObjectData)
     {
-        return;
-        var ageInital:Bool = true;
-        var headMoveX:Float = 0;
-        var headMoveY:Float = 0;
-        var bodyMoveX:Float = 0;
-        var bodyMoveY:Float = 0;
-        //redering
-        ageInt = Std.int(instance.age);
         objects.visibleSprites(instance.po_id,sprites(),ageInt);
         //get and set sprites for head
         var head = _sprites[data.headIndex];

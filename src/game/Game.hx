@@ -164,6 +164,7 @@ class Game extends GameHeader
                 var instance = input[0].split(" ");
                 var compress = input[1].split(" ");
                 mapInstance = new MapInstance();
+                trace("instance " + instance);
                 mapInstance.width = Std.parseInt(instance[0]);
                 mapInstance.height = Std.parseInt(instance[1]);
                 mapInstance.x = Std.parseInt(instance[2]);

@@ -66,5 +66,5 @@ class GameHeader #if openfl extends openfl.display.Sprite #elseif heaps hxd.App 
     public function ownerList(x:Int,y:Int,list:Array<Int>) {}; //OWNER_LIST
     public function valley(spacing:Int,offset:Int) {}; //VALLEY_SPACING
     public function flight(id:Int,x:Int,y:Int) {}; //FLIGHT_DEST
-    public function homeland(x:Int,y:Int,name:String) {};
+    public function homeland(x:Int,y:Int,name:String) {}; //HOMELAND
 }

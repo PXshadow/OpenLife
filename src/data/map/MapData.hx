@@ -18,10 +18,11 @@ class MapData
     public var object:ArrayDataArrayInt = new ArrayDataArrayInt();
     
     //all chunks combined
-    public var x:Int = 0;
-    public var y:Int = 0;
-    public var width:Int = 0;
-    public var height:Int = 0;
+    public var x:Int = 999999999;
+    public var y:Int = 999999999;
+    //max pos
+    public var mx:Int = -999999999;
+    public var my:Int = -999999999;
     public function new()
     {
         
@@ -39,8 +40,8 @@ class MapData
         //combine
         if (this.x > chunk.x) this.x = chunk.x;
         if (this.y > chunk.y) this.y = chunk.y;
-        if (this.width < chunk.x + chunk.width) this.width = chunk.x + chunk.width;
-        if (this.height < chunk.y + chunk.height) this.height = chunk.y + chunk.height;
+        if (this.mx < chunk.x + chunk.width) this.mx = chunk.x + chunk.width;
+        if (this.my < chunk.y + chunk.height) this.my = chunk.y + chunk.height;
         //create array
         var a:Array<String> = string.split(" ");
         //data array for object
@@ -88,7 +89,10 @@ class MapData
         }
     }
     #end
-
+    public function toString()
+    {
+        return 'x: $x y: $y maxX: $mx maxY: $my';
+    }
     /**
      * Generate Array container format from string buffer
      * @param string buffer data
