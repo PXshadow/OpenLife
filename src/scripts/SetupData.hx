@@ -47,7 +47,6 @@ class SetupData
             }
             Sys.command("git fetch --tags");
             var proc = new Process("git for-each-ref --sort=-creatordate --format '%(refname:short) --count=1");
-            trace("command!");
             var tag = proc.stdout.readAll().toString();
             tag = tag.substring(1,tag.length - 1);
             trace("tag|" + tag + "|");
