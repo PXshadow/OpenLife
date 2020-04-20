@@ -313,7 +313,7 @@ class ObjectData extends LineReader
         super();
         if (i <= 0) 
         {
-            trace('object data id is $i and is less than 1');
+            //trace('object data id is $i and is less than 1');
             return;
         }
         try {
