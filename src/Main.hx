@@ -1,3 +1,4 @@
+import openfl.display.FPS;
 import data.Pos;
 import console.Console;
 import data.animation.AnimationPlayer;
@@ -51,6 +52,7 @@ class Main extends game.Game
     var cursor:Bitmap;
     var gameBool:Bool = false;
     var weather:Weather;
+    var fps:FPS;
     public function new()
     {
         //openfl.ui.Mouse.cursor = openfl.ui.MouseCursor.AUTO;
@@ -82,8 +84,8 @@ class Main extends game.Game
         /*grid = new debug.Grid();
         addChild(grid);*/
         resize(null);
-        //var fps = new openfl.display.FPS(10,10,0xFFFFFF);
-        //addChild(fps);
+        fps = new openfl.display.FPS(10,10,0xFFFFFF);
+        addChild(fps);
 
         if (FileSystem.exists(Game.dir + "graphics"))
         {
@@ -220,11 +222,11 @@ class Main extends game.Game
         {
             objects.width = stage.stageWidth;
             objects.height = stage.stageHeight;
-            if (groundOverlay != null)
+            /*if (groundOverlay != null)
             {
                 groundOverlay.width = objects.width;
                 groundOverlay.height = objects.height;
-            }
+            }*/
         }
         if (console != null) console.resize(stage.stageWidth);
     }
@@ -323,6 +325,12 @@ class Main extends game.Game
         selectX = Math.floor((mouseX - ground.x + (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale));
         selectY = Math.floor((mouseY - ground.y + (Static.GRID/2) * objects.scale)/(Static.GRID * objects.scale));
         if (!gameBool) return;
+        stage.window.title = fps.text;
+        if (player.follow)
+        {
+            objects.group.x = lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.18);
+            objects.group.y = lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.18);
+        }
         //stage.window.title = 'x: $selectX y: $selectY';
         if (drag)
         {
@@ -350,11 +358,6 @@ class Main extends game.Game
         if (left) player.mx--;
         if (right) player.mx++;
         player.step();
-        if (player.follow)
-        {
-            objects.group.x = lerp(objects.group.x,-player.x * objects.scale + objects.width/2 ,0.18);
-            objects.group.y = lerp(objects.group.y,-player.y * objects.scale + objects.height/2,0.18);
-        }
     }
     override function playerMoveStart(move:PlayerMove) 
     {
@@ -443,7 +446,7 @@ class Main extends game.Game
         }
         //Game.data.map.chunks.push(instance);
         ground.render();
-        groundOverlay.render();
+        //groundOverlay.render();
     }
 }
 #end

@@ -403,8 +403,8 @@ class Player #if openfl extends TileContainer #end
             }
             //pos
             var data = objects.get(oid[0]);
-            heldObject.x = data.heldOffset.x;
-            heldObject.y = data.heldOffset.y;
+            heldObject.x += -data.heldOffset.x;
+            heldObject.y += -data.heldOffset.y;
             //data.held
             //add
             addTile(heldObject);

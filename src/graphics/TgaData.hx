@@ -57,12 +57,17 @@ class TgaData
     public function crop()
     {
         //shifting vars
-        var minX:Int = getLeft(0,Std.int(data.header.width/2),0,data.header.height);
-        var maxX:Int = getRight(0,data.header.width,0,data.header.height);
+        var minX:Int = getLeft(0,Std.int(data.header.width/2),0,data.header.height) - padding;
+        var maxX:Int = getRight(0,data.header.width,0,data.header.height) + padding;
 
-        var minY:Int = getTop(0,data.header.width,0,Std.int(data.header.height/2));
-        var maxY:Int = getBottom(0,data.header.width,0,data.header.height);
-
+        var minY:Int = getTop(0,data.header.width,0,Std.int(data.header.height/2)) - padding;
+        var maxY:Int = getBottom(0,data.header.width,0,data.header.height) + padding;
+        //if padding is to much
+        if (minX < 0) minX = 0;
+        if (minY < 0) minY = 0;
+        if (maxX > data.header.width) maxX = data.header.width;
+        if (maxY > data.header.height) maxY = data.header.height;
+        //create vector of image pixels
         var vector = new Vector<Int>((maxX - minX) * (maxY - minY));
         var index:Int = 0;
         var i:Int = 0;
@@ -75,9 +80,11 @@ class TgaData
         }
         data.imageData = vector;
         data.header.width = maxX - minX;
-        data.header.height = maxY -minY;
+        data.header.height = maxY - minY;
         extract();
     }
+    private static inline var threshold:Int = 3 * 255;
+    private static inline var padding:Int = 15;
     private function getLeft(x0:Int,x1:Int,y0:Int,y1:Int):Int
     {
         //x
@@ -86,7 +93,7 @@ class TgaData
             //y
             for (j in y0...y1)
             {
-                if ((data.imageData[i + j * data.header.width] >> 24) & 0xff != 0)
+                if ((data.imageData[i + j * data.header.width] >> 24) & 0xff < threshold)
                 {
                     return i - 1;
                 }
@@ -103,7 +110,7 @@ class TgaData
             //y
             for (j in y0...y1)
             {
-                if ((data.imageData[x + j * data.header.width] >> 24) & 0xff != 0)
+                if ((data.imageData[x + j * data.header.width] >> 24) & 0xff < threshold)
                 {
                     return x + 1;
                 }
@@ -121,7 +128,7 @@ class TgaData
             //x
             for (i in x0...x1)
             {
-                if ((data.imageData[i + y * data.header.width] >> 24) & 0xff != 0)
+                if ((data.imageData[i + y * data.header.width] >> 24) & 0xff < threshold)
                 {
                     return y + 1;
                 }
@@ -138,7 +145,7 @@ class TgaData
             //x
             for (i in x0...x1)
             {
-                if ((data.imageData[i + j * data.header.width] >> 24) & 0xff != 0)
+                if ((data.imageData[i + j * data.header.width] >> 24) & 0xff < threshold)
                 {
                     return j - 1;
                 }
