@@ -62,7 +62,13 @@ class SetupData
         Sys.setCwd(dir);
         //copy
         trace("begin copy " + outputPaths + " dir " + FileSystem.readDirectory("."));
-        for (path in outputPaths) copyDir(Path.addTrailingSlash(dataDir),path,true);
+        for (path in outputPaths) 
+        {
+            //remove bake.res file
+            if (FileSystem.exists("bake.res")) FileSystem.deleteFile("bake.res");
+            //copy directory over
+            copyDir(Path.addTrailingSlash(dataDir),path,true);
+        }
         trace("Finished data setup");
         Sys.sleep(2);
     }
