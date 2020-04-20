@@ -235,7 +235,7 @@ class ObjectData extends LineReader
     /**
      * Number of chances for object
      */
-    public var useChance:Int = 0;
+    public var useChance:Float = 0;
     /**
      * Vanish index array
      */
@@ -477,7 +477,7 @@ class ObjectData extends LineReader
             set = string.indexOf("=",set) + 1;
             slotParent[j] = Std.parseInt(string.substring(set,string.length));
         }
-        #if openfl
+
         //visual
         numSprites = getInt();
         spriteArray = new Vector<SpriteData>(numSprites);
@@ -518,10 +518,14 @@ class ObjectData extends LineReader
         //arrays
         backFootIndex = getInt();
         frontFootIndex = getInt();
-        #end
+
         if(next < line.length)
         {
-            numUses = getInt();
+            var array = getFloatArray();
+            numUses = Std.int(array[0]);
+            if(array.length > 1) {
+                useChance = array[1];
+            }
             if (next < line.length) useVanishIndex = getIntArray();
             if (next < line.length) useAppearIndex = getIntArray();
             if (next < line.length) cacheHeight = getInt();
@@ -602,6 +606,7 @@ class ObjectData extends LineReader
         {
             objectString += sprite.toString();
         }
+
         return objectString;
     }
     /**

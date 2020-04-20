@@ -1,5 +1,6 @@
 package resources;
 
+import sys.io.FileOutput;
 import game.Game;
 import sys.FileSystem;
 import sys.io.File;
@@ -43,6 +44,7 @@ class ObjectBake
         var data:ObjectData;
         var dummyObject:ObjectData;
         var i:Int = 0;
+        var file:FileOutput = null;
         for (id in vector)
         {
             data = new ObjectData(id);
@@ -55,12 +57,20 @@ class ObjectBake
                     dummyObject.numUses = 0;
                     dummyObject.dummy = true;
                     dummyObject.dummyParent = data.id;
-                    File.saveContent(Game.dir + 'objects/$int.txt',dummyObject.toFileString());
+                    file = File.write(Game.dir + 'objects/$int.txt');
+                    file.writeString(dummyObject.toFileString());
+                    file.flush();
+                    file.close();
                     Game.data.objectMap.set(dummyObject.id,dummyObject);
                 }
             }
             Game.data.objectMap.set(data.id,data);
-            if (i++ % 200 == 0) trace("i " + i);
+            i++;
+            if(i > 4000) {
+                trace('index: $i');
+            } else if(i % 50 == 0) {
+                hl.Gc.major();
+            }
         }
     }
     private static function gen()

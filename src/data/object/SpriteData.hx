@@ -59,6 +59,8 @@ class SpriteData
      * Offset of center y
      */
     public var inCenterYOffset:Int = 0;
+
+
     public function new()
     {
 

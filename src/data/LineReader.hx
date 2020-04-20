@@ -90,6 +90,10 @@ class LineReader
     {
         return Std.parseInt(getString());
     }
+
+    var i:Int = 0;
+    var j:Int = 0;
+    var string:String;
     /**
      * Multi property array int value from line
      * @return Array<Int>
@@ -97,10 +101,8 @@ class LineReader
     public function getArrayInt():Array<Int>
     {
         var array:Array<Int> = [];
-        var string = line[next++];
-        var i:Int = 0;
-        var j:Int = 0;
         var bool:Bool = true;
+        string = line[next++];
         while(bool)
         {
             i = string.indexOf("=",i + 1) + 1;
@@ -129,7 +131,7 @@ class LineReader
         {
             throw("max " + line);
         }
-        var string = line[next++];
+        string = line[next++];
         if(string == null || string == "") return "";
         var equals = string.indexOf("=");
         return string.substr(equals + 1);
@@ -141,13 +143,13 @@ class LineReader
      */
     public function readName(name:String):Bool
     {
-        var string = line[next];
+        string = line[next];
         if(name == string.substring(0,name.length)) return true;
         return false;
     }
     public function getName():String
     {
-        var string = line[next];
+        string = line[next];
         return string.substring(0,string.indexOf("="));
     }
 }
