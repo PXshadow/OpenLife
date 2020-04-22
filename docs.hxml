@@ -1,10 +1,13 @@
+import.hxml
+--next
+
 --no-output 
 -cp src
 -D doc-gen
+-D display
 -lib hscript
 -D full
--dce std
--main Main
+-main ImportAll
 -neko dummy.n
 -xml xml/Terminal.xml
 
@@ -21,7 +24,7 @@
 -D openfl_doc_gen
 -D doc_gen
 -cp src
--main Static
+-main ImportAll
 -lib lime
 -lib openfl
 -lib actuate
@@ -30,8 +33,8 @@
 --no-output
 
 
---next
+#--next
 #generation docs code
--cp src
--main scripts.Generate
--neko generate.n
+#-cp src
+#-main scripts.Generate
+#-neko generate.n

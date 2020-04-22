@@ -9,18 +9,19 @@ package data.object;
     public var HEAT_SOURCE = "heat";
     public var WATER_SOURCE = "water";
     public var NATURAL = "natural";
-@:from private static function fromString(value:String):ObjectKey
-{
-    //trace("set tag " + value);
-	return switch (value)
-	{
-        case "clothing": CLOTHING;
-        case "food": FOOD;
-        case "tools": TOOL;
-        case "container": CONTAINER;
-        case "heat": HEAT_SOURCE;
-        case "water": WATER_SOURCE;
-        case "natural": NATURAL;
-		default: null;
+    @:from private static function fromString(value:String):ObjectKey
+    {
+        //trace("set tag " + value);
+        return switch (value)
+        {
+            case "clothing": CLOTHING;
+            case "food": FOOD;
+            case "tools": TOOL;
+            case "container": CONTAINER;
+            case "heat": HEAT_SOURCE;
+            case "water": WATER_SOURCE;
+            case "natural": NATURAL;
+            default: null;
+        }
     }
 }

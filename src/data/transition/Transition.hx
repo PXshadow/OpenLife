@@ -23,7 +23,7 @@ class Transition
     }
     public function make(id:Int):Array<Int>
     {
-
+        //TODO: 
+        return [0];
     }
-    public function
 }

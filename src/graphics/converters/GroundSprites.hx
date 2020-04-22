@@ -1,5 +1,5 @@
 package graphics.converters;
-
+#if openfl
 import haxe.io.Path;
 import openfl.geom.Rectangle;
 import openfl.display.BitmapData;
@@ -161,3 +161,4 @@ if( blurRadius > 0 ) {
     tileImage.filter( &blur, 3 );
     }
 */
+#end

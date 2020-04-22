@@ -1,5 +1,5 @@
 package debug;
-
+#if openfl
 import openfl.display.Shape;
 class Grid extends Shape
 {
@@ -24,3 +24,4 @@ class Grid extends Shape
         }
     }
 }
+#end

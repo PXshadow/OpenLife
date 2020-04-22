@@ -1,5 +1,4 @@
 package editor;
-
 import data.object.player.PlayerInstance;
 import data.object.ObjectData;
 import ui.Text;

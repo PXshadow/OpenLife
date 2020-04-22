@@ -1,5 +1,5 @@
 package game;
-
+#if openfl
 import openfl.display.Tile;
 #if nativeGen @:nativeGen #end
 class Weather
@@ -72,3 +72,4 @@ class ObjectWeather
 
     }
 }
+#end

@@ -1,5 +1,5 @@
 package game;
-
+#if openfl
 import sys.io.File;
 import openfl.geom.Rectangle;
 import graphics.TgaData;
@@ -31,3 +31,4 @@ class TileDisplay extends Tilemap
         }
     }
 }
+#end

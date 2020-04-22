@@ -1,10 +1,13 @@
+import.hxml
+--next
+
 -cp src
--dce std
-#-main Main
--main Main
--lib hscript
+-main ImportAll
+#-lib hscript
+#native Gen of classes, effects java, cs
 -D nativeGen
--D haxeJson
--D no-compilation
+-D doc_gen
+#effects cs, java, cpp, hashlink
+-D no-compilation 
+#set header
 -D source-header=OpenLife Generated Haxe code
-#-D full

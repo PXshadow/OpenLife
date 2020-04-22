@@ -33,7 +33,6 @@ class Server
     {
         Thread.create(function(){new Server();});
         Sys.sleep(0.5);
-        Main.main();
     }
     public function new()
     {

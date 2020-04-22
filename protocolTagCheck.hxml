@@ -5,6 +5,4 @@
 #set main
 -main scripts.ProtocolTagCheck
 #target
-#--interp
--neko TagCheck.n
--cmd neko TagCheck.n
+--interp

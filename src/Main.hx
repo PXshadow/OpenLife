@@ -1,4 +1,3 @@
-import openfl.display.FPS;
 import data.Pos;
 import console.Console;
 import data.animation.AnimationPlayer;
@@ -9,6 +8,7 @@ import haxe.io.Path;
 import sys.io.File;
 import data.object.player.PlayerMove;
 #if openfl
+import openfl.display.FPS;
 import openfl.display.BlendMode;
 import graphics.TgaData;
 import openfl.display.Bitmap;
@@ -449,9 +449,7 @@ class Main extends game.Game
         //groundOverlay.render();
     }
 }
-#end
-
-#if (!openfl)
+#else
 import ImportAll;
 //#if nativeGen @:nativeGen #end
 class Main extends game.Game
@@ -465,18 +463,13 @@ class Main extends game.Game
         directory();
         super();
         cred();
-        client.ip = "thinqbator.app";
-        //client.port = 8005;
+        client.ip = "";
         connect();
         while (true)
         {
             client.update();
             Sys.sleep(0.2);
         }
-    }
-    override function playerUpdate(instances:Array<PlayerInstance>) {
-        super.playerUpdate(instances);
-        trace("player update!");
     }
 }
 #end

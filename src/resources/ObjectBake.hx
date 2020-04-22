@@ -66,10 +66,12 @@ class ObjectBake
             }
             Game.data.objectMap.set(data.id,data);
             i++;
-            if(i > 4000) {
+            if(i > 4000) 
+            {
                 trace('index: $i');
-            } else if(i % 50 == 0) {
-                hl.Gc.major();
+            } else if(i % 50 == 0) 
+            {
+                trace('index: $i');
             }
         }
     }

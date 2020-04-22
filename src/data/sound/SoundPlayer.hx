@@ -1,6 +1,6 @@
 package data.sound;
-import openfl.events.Event;
 #if openfl
+import openfl.events.Event;
 import openfl.media.Sound;
 import openfl.media.SoundChannel;
 import openfl.media.SoundTransform;

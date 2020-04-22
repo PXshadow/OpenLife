@@ -1,6 +1,6 @@
 package auto;
 
-#if @:nativeGen #end
+#if nativeGen @:nativeGen #end
 /**
  * nick name auto, will be a powerful class that uses program, and transition data to do automatic tasks.
  */

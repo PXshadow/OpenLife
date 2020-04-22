@@ -1,5 +1,5 @@
 package data.sound;
-
+#if openfl
 import lime.utils.Int16Array;
 import openfl.utils.ByteArray;
 import haxe.io.BytesData;
@@ -70,3 +70,4 @@ class AiffData
         Sound.fromAudioBuffer(buffer).play(0,999);
     }
 }
+#end
