@@ -1,9 +1,8 @@
 package data.animation;
 import data.sound.SoundData;
-import sys.io.File;
 import haxe.ds.Vector;
-import sys.FileSystem;
 import game.Game;
+import resources.Resource;
 class AnimationData extends LineReader
 {
     /**
@@ -18,20 +17,14 @@ class AnimationData extends LineReader
     {
         super();
         //fail = true;
-        //return;
-        if (!FileSystem.exists(Game.dir + "animations/" + id + "_0.txt"))
-        {
-            fail = true;
-            return;
-        }
         record = new Vector<AnimationRecord>(5 + 1);
         for( i in 0...5 + 1) 
         {
             //skip 3
             if (i == 3) continue;
             //read lines
-            readLines(File.getContent(Game.dir + "animations/" + id + "_" + i + ".txt"));
-            if (line.length > 0) record[i] = process();
+            if (!readLines(Resource.animation(id,i))) return;
+            record[i] = process();
         }
         line = null;
     }

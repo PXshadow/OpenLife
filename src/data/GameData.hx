@@ -6,8 +6,6 @@ import game.Game;
 import game.Ground;
 import data.transition.TransitionData;
 import data.map.MapData;
-import sys.FileSystem;
-import sys.io.File;
 import haxe.io.Path;
 import haxe.ds.Vector;
 #if visual
@@ -103,6 +101,7 @@ class GameData
      */
     public function objectData():Vector<Int>
     {
+        #if sys
         if (!FileSystem.exists(Game.dir + "objects/nextObjectNumber.txt")) 
         {
             trace("object data failed");
@@ -124,5 +123,8 @@ class GameData
             return -1;
         });
         return Vector.fromArrayCopy(list);
+        #else
+        return Vector.fromArrayCopy([]);
+        #end
     }
 }

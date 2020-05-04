@@ -1,4 +1,5 @@
 package game;
+import resources.Resource;
 import data.object.player.PlayerInstance;
 import data.animation.AnimationPlayer;
 import data.object.SpriteData;
@@ -10,8 +11,6 @@ import openfl.display.Tileset;
 import haxe.io.Path;
 import openfl.utils.ByteArray;
 import haxe.ds.Vector;
-import sys.FileSystem;
-import sys.io.File;
 import data.animation.AnimationData;
 import openfl.geom.ColorTransform;
 import openfl.geom.Rectangle;
@@ -347,13 +346,14 @@ class Objects extends TileDisplay
     //fit rectangle within spacing
     private function drawSprite(id:Int,rect:Rectangle):Rectangle
     {
-        try {
+        /*try {
             reader.read(File.getBytes(Game.dir + "sprites/" + id + ".tga"),false);
         }catch(e:Dynamic)
         {
             //trace("e " + e);
             return null;
-        }
+        }*/
+        reader.read(Resource.spriteImage(id));
         reader.crop();
         //set dimensions
         rect.width = reader.rect.width;

@@ -3,9 +3,7 @@ import console.Console;
 import data.animation.AnimationPlayer;
 import game.Player;
 import data.object.player.PlayerInstance;
-import sys.FileSystem;
 import haxe.io.Path;
-import sys.io.File;
 import data.object.player.PlayerMove;
 #if openfl
 import openfl.display.FPS;
@@ -86,17 +84,6 @@ class Main extends game.Game
         resize(null);
         fps = new openfl.display.FPS(10,10,0xFFFFFF);
         addChild(fps);
-
-        if (FileSystem.exists(Game.dir + "graphics"))
-        {
-            openfl.ui.Mouse.hide();
-            var reader = new TgaData();
-            reader.read(File.getBytes(Game.dir + "graphics/bigPointer.tga"));
-            cursor = new Bitmap(new BitmapData(Std.int(reader.rect.width),Std.int(reader.rect.height)),PixelSnapping.ALWAYS,true);
-            cursor.scaleX = cursor.scaleY = 0.6;
-            cursor.bitmapData.setPixels(reader.rect,reader.bytes);
-            addChild(cursor);
-        }
     }
     var omx:Float;
     var omy:Float;
@@ -200,11 +187,11 @@ class Main extends game.Game
             player.instance.age++;
             player.set(player.instance);
             case Keyboard.TAB:
-            var bitmap = new Bitmap(objects.tileset.bitmapData);
+            /*var bitmap = new Bitmap(objects.tileset.bitmapData);
             bitmap.width = stage.stageWidth;
             bitmap.height = stage.stageHeight;
             bitmap.alpha = 0.5;
-            addChild(bitmap);
+            addChild(bitmap);*/
             //trace("percent " + ((objects.tileY + objects.tileHeight)/ objects.tileset.bitmapData.height));
         }
     }
@@ -451,25 +438,40 @@ class Main extends game.Game
 }
 #else
 import ImportAll;
+import game.Player;
 //#if nativeGen @:nativeGen #end
 class Main extends game.Game
 {
-    public static function main()
-    {
-        new Main();
-    }
+    var player:Player;
     public function new()
     {
         directory();
         super();
+        new resources.ObjectBake();
         cred();
-        client.ip = "";
+        client.ip = "thinqbator.app";
+        client.email = "set your email";
+        client.key = "set your key";
         connect();
         while (true)
         {
             client.update();
             Sys.sleep(0.2);
+            Sys.getChar(false);
         }
+    }
+    override function playerUpdate(instances:Array<PlayerInstance>) 
+    {
+        super.playerUpdate(instances);
+        if (player == null)
+        {
+            player = new Player();
+            player.set(instances[instances.length - 1]);
+        }
+    }
+    public static function main()
+    {
+        new Main();
     }
 }
 #end

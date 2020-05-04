@@ -122,7 +122,7 @@ class AnimationPlayer
             }
         }
         //update
-        data.timer = new Timer(1/60 * 1000);
+        data.timer = new Timer(Std.int(1/60 * 1000));
         data.timer.run = function()
         {
             for (i in 0...objectData.spriteArray.length) //data.sprites.length)

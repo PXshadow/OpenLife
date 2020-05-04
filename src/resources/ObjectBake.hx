@@ -1,9 +1,6 @@
 package resources;
 
-import sys.io.FileOutput;
 import game.Game;
-import sys.FileSystem;
-import sys.io.File;
 import haxe.ds.Vector;
 import data.object.ObjectData;
 
@@ -19,13 +16,14 @@ class ObjectBake
     }
     private function run()
     {
+        #if sys
         if (!FileSystem.exists(Game.dir + "objects/"))
         {
             trace("could not find objects to bake");
             return;
         }
         var bakeNum = 0;
-        if (FileSystem.exists(Game.dir + "bake.res"))
+        if (sys.io.FileSystem.exists(Game.dir + "bake.res"))
         {
             bakeNum = Std.parseInt(File.getContent(Game.dir + "bake.res"));
         }
@@ -36,7 +34,8 @@ class ObjectBake
             return;
         }
         objectData(vector);
-        File.saveContent(Game.dir + "bake.res",Std.string(Game.data.nextObjectNumber));
+        sys.io.File.saveContent(Game.dir + "bake.res",Std.string(Game.data.nextObjectNumber));
+        #end
     }
     private function objectData(vector:Vector<Int>)
     {
@@ -44,7 +43,9 @@ class ObjectBake
         var data:ObjectData;
         var dummyObject:ObjectData;
         var i:Int = 0;
+        #if sys
         var file:FileOutput = null;
+        #end
         for (id in vector)
         {
             data = new ObjectData(id);
@@ -57,10 +58,12 @@ class ObjectBake
                     dummyObject.numUses = 0;
                     dummyObject.dummy = true;
                     dummyObject.dummyParent = data.id;
+                    #if sys
                     file = File.write(Game.dir + 'objects/$int.txt');
                     file.writeString(dummyObject.toFileString());
                     file.flush();
                     file.close();
+                    #end
                     Game.data.objectMap.set(dummyObject.id,dummyObject);
                 }
             }

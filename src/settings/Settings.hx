@@ -1,9 +1,9 @@
 package settings;
-import sys.io.FileOutput;
 import haxe.DynamicAccess;
 import game.Game;
 import haxe.io.Path;
 #if (sys || nodejs)
+import sys.io.FileOutput;
 import sys.io.File;
 import sys.FileSystem;
 #end
@@ -19,11 +19,17 @@ class Settings
         {
             var name = a[a.length - 1] + ".ini";
             var obj = value.get(name);
+            #if sys
             var file:FileOutput;
             //set settings
             file = File.write(Game.dir + "settings/" + name,false);
             file.writeString(obj);
             file.close();
+            #end
+
+            #if (js || html)
+            
+            #end
         }
         data = value;
         return data;
@@ -32,6 +38,7 @@ class Settings
     public function new()
     {
         var path:String = Game.dir + "settings/";
+        #if sys
         if (FileSystem.exists(path) && FileSystem.isDirectory(path))
         {
             fail = false;
@@ -43,6 +50,7 @@ class Settings
             fail = true;
             trace("settings failed");
         }
+        #end
     }
 }
 typedef Data = DynamicAccess<Dynamic> 

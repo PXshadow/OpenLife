@@ -1,6 +1,6 @@
 package game;
+import resources.Resource;
 #if openfl
-import sys.FileSystem;
 import data.GameData;
 import graphics.TgaData;
 import openfl.Vector;
@@ -10,7 +10,6 @@ import openfl.display.Tileset;
 import openfl.geom.Rectangle;
 import openfl.display.Shape;
 import openfl.geom.ColorTransform;
-import sys.io.File;
 #if nativeGen @:nativeGen #end
 class Ground extends Shape
 {
@@ -113,9 +112,7 @@ class Ground extends Shape
             {
                 for(i in 0...4)
                 {
-                    var input = File.read(Game.dir + 'groundTileCache/biome_${id}_x${i}_y$j$a.tga');
-                    reader.read(input.readAll());
-                    input.close();
+                    reader.read(Resource.ground(id,i,j,a));
                     //set dimensions
                     rect.x = tileX;
                     rect.y = tileY;

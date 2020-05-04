@@ -1,0 +1,5 @@
+-cp src
+-main extensions.CanvasRender
+-lib format
+-dce full
+-js extensions/CanvasRender.js

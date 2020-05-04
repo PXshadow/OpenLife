@@ -1,4 +1,5 @@
 package game;
+import resources.Resource;
 #if openfl
 import openfl.display.Sprite;
 import openfl.display.Shape;
@@ -6,8 +7,6 @@ import openfl.geom.Rectangle;
 import graphics.TgaData;
 import openfl.Vector;
 import openfl.display.Tileset;
-import sys.io.File;
-import sys.FileSystem;
 import openfl.display.BitmapData;
 #if nativeGen @:nativeGen #end
 class GroundOverlay extends Shape
@@ -59,17 +58,10 @@ class GroundOverlay extends Shape
     }
     private function cacheOverlay()
     {
-        if (!FileSystem.exists(Game.dir + "graphics"))
-        {
-            trace("graphics folder not found");
-            return;
-        }
         var rect:Rectangle = new Rectangle(tileX,tileY);
         for (i in 0...4)
         {
-            var input = File.read(Game.dir + 'graphics/ground_t$i.tga');
-            reader.read(input.readAll());
-            input.close();
+            reader.read(Resource.groundOverlay(i));
             //set dimensions
             rect.x = tileX;
             rect.y = tileY;

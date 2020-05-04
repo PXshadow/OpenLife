@@ -1,8 +1,5 @@
-import.hxml
---next
-
 -cp src
--main ImportAll
+-main Main
 #-lib hscript
 #native Gen of classes, effects java, cs
 -D nativeGen
@@ -10,4 +7,4 @@ import.hxml
 #effects cs, java, cpp, hashlink
 -D no-compilation 
 #set header
--D source-header=OpenLife Generated Haxe code
+-D source-header=OpenLife

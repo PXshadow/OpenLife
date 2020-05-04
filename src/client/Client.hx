@@ -1,7 +1,7 @@
 package client;
-import sys.io.File;
 import haxe.io.Bytes;
 #if (sys || nodejs)
+import sys.io.File;
 import sys.net.Socket;
 import sys.net.Host;
 #end
@@ -32,7 +32,7 @@ class Client
     public var email:String = "";
     public var challenge:String = "";
     public var key:String = "";
-    public var twin:String = "coding";
+    public var twin:String = "";
     public var tutorial:Bool = false;
     public var version:Int = 0;
     public var reconnect:Bool = false;

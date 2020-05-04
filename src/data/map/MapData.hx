@@ -102,6 +102,7 @@ class MapData
     {
         //postive is container, negative is subcontainer that goes into postive container
         //0 is first container, untill another postive number comes around
+        if (string == null || string.length == 0) return [];
         var a = string.split(first);
         var s:Array<String> = [];
         var array:Array<Int> = [];

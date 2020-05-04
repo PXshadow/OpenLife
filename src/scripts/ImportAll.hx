@@ -1,3 +1,4 @@
+package scripts;
 import auto.Automation;
 import client.Client;
 import client.ClientTag;
@@ -55,18 +56,17 @@ import game.Weather;
 import Main;
 import resources.ObjectBake;
 import resources.ObjectSkim;
-import server.Server;
-import server.ServerTag;
+import resources.Resource;
 import settings.Settings;
 import Static;
 import ui.Button;
 import ui.InputText;
 import ui.Text;
 import UnitTest;
-#if nativeGen @:nativeGen #end
 class ImportAll
 {
-    public static function main() {
-        trace("OpenLife imported");
+    public static function main()
+    {
+
     }
 }

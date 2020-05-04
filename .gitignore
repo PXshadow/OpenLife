@@ -1,12 +1,16 @@
 bin
+modules
+extension
 export
 terminal.n
 output.n
 login.txt
 assets/data
+extensions
 .vscode
 dir
 mf
+father.txt
 .vscode
 publish.n
 OneLifeData7
@@ -19,5 +23,6 @@ pages
 docs
 dox
 *.n
+*.js
 xml
 .idea

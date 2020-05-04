@@ -29,6 +29,7 @@ class Static
     }
     public static function execute(url:String)
     {
+        #if sys
         switch (Sys.systemName()) 
         {
             case "Linux", "BSD": Sys.command("xdg-open", [url]);
@@ -36,6 +37,7 @@ class Static
             case "Windows": Sys.command("start", [url]);
             default:
         }
+        #end
     }
     public static function arrayEqual(a:Array<Dynamic>,b:Array<Dynamic>):Bool
     {
@@ -47,6 +49,10 @@ class Static
     }
     public static function getCurrentTime():Float
     {
+        #if sys
         return Sys.time() * 1000.0;
+        #else
+        return 0;
+        #end
     }
 }

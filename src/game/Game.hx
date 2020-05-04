@@ -55,10 +55,14 @@ class Game extends GameHeader
     //helper functions
     private function exist(folders:Array<String>):Bool
     {
+        #if sys
         for (folder in folders)
         {
             if (!sys.FileSystem.exists(dir + folder)) return false;
         }
+        #else
+        return false;
+        #end
         return true;
     }
     private inline function valid(obj:Dynamic):Bool
@@ -176,13 +180,14 @@ class Game extends GameHeader
                 mapInstance = null;
             }
             case MAP_CHANGE:
-            //var change = new MapChange(input);
-            /*var change:MapChange;
+            var change:MapChange;
             for (data in input)
             {
                 change = new MapChange(data.split(" "));
+                Game.data.map.object.set(change.oldX,change.oldY,[0]);
+                Game.data.map.object.set(change.x,change.y,change.id);
                 mapChange(change);
-            }*/
+            }
             case HEAT_CHANGE:
             //heat food_time indoor_bonus
             var array = input[0].split(" ");

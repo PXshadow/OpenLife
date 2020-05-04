@@ -1,6 +1,5 @@
 package game;
 #if openfl
-import sys.io.File;
 import openfl.geom.Rectangle;
 import graphics.TgaData;
 import openfl.utils.ByteArray;

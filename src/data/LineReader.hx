@@ -25,10 +25,12 @@ class LineReader
      * Read lines and put into line vector
      * @param string text split into lines
      */
-    public function readLines(string:String)
+    public function readLines(string:String):Bool
     {
+        if (string.length == 0) return false;
         next = 0;
         line = Vector.fromArrayCopy(string.split("\n"));
+        return true;
     }
     /**
      * Float Array value from line

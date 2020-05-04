@@ -1,7 +1,5 @@
 package data.object;
 import haxe.io.Input;
-import sys.FileSystem;
-import sys.io.File;
 import haxe.ds.Vector;
 import data.animation.AnimationData;
 import data.sound.SoundData;
@@ -311,18 +309,7 @@ class ObjectData extends LineReader
     public function new(i:Int=0)
     {
         super();
-        if (i <= 0) 
-        {
-            //trace('object data id is $i and is less than 1');
-            return;
-        }
-        try {
-            readLines(File.getContent(Game.dir + "objects/" + i + ".txt"));
-        }catch(e:Dynamic)
-        {
-            trace("object txt error: " + e);
-            return;
-        }
+        if (!readLines(resources.Resource.objectData(i))) return;
         //setup animation
         #if openfl
         animation = new AnimationData(i);
@@ -536,16 +523,8 @@ class ObjectData extends LineReader
         //get sprite data
         for(i in 0...spriteArray.length)
         {
-            if (spriteArray[i].spriteID <= 0) continue;
-            var s:String;
-            try { 
-                s = File.getContent(Game.dir + "sprites/" + spriteArray[i].spriteID + ".txt");
-            }catch(e:Dynamic)
-            {
-                trace("sprite text error: " + e);
-                //continue;
-                return;
-            }
+            var s:String = resources.Resource.spriteData(spriteArray[i].spriteID);
+            if (s.length == 0) continue;
             var j:Int = 0;
             var a = s.split(" ");
             for(string in a)
