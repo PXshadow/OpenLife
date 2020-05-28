@@ -2,5 +2,6 @@
 -main server.Server
 #-hl bin/server/server.hl
 #-cpp bin/server
--neko bin/server/server.n
 -dce full
+#--interp
+-neko bin/server/server.n

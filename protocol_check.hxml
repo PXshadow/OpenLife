@@ -5,4 +5,5 @@
 #set main
 -main scripts.ProtocolTagCheck
 #target
---interp
+#--interp
+-neko protocolTagCheck.n

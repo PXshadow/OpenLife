@@ -4,7 +4,8 @@ haxelib install lime 7.6.3
 haxelib git actuate https://github.com/jgranick/actuate
 haxelib git hscript https://github.com/HaxeFoundation/hscript
 haxelib git format https://github.com/haxefoundation/format
-haxelibi git hxcpp-debug-server https://github.com/vshaxe/hxcpp-debugger
+haxelib git hxcpp-debug-server https://github.com/vshaxe/hxcpp-debugger
+haxelib git chrome-extension https://github.com/tong/chrome.extension
 echo "installing libs for test-adapter"
 haxelib install utest
 haxelib install json2object

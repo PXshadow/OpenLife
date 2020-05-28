@@ -102,18 +102,18 @@ class GameData
     public function objectData():Vector<Int>
     {
         #if sys
-        if (!FileSystem.exists(Game.dir + "objects/nextObjectNumber.txt")) 
+        if (!sys.FileSystem.exists(Game.dir + "objects/nextObjectNumber.txt")) 
         {
             trace("object data failed");
             nextObjectNumber = 0;
             return null;
         }
         //nextobject
-        nextObjectNumber = Std.parseInt(File.getContent(Game.dir + "objects/nextObjectNumber.txt"));
+        nextObjectNumber = Std.parseInt(sys.io.File.getContent(Game.dir + "objects/nextObjectNumber.txt"));
         //go through objects
         var list:Array<Int> = [];
         UnitTest.inital();
-        for (path in FileSystem.readDirectory(Game.dir + "objects"))
+        for (path in sys.FileSystem.readDirectory(Game.dir + "objects"))
         {
             list.push(Std.parseInt(Path.withoutExtension(path)));
         }

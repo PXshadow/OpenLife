@@ -17,15 +17,15 @@ class ObjectBake
     private function run()
     {
         #if sys
-        if (!FileSystem.exists(Game.dir + "objects/"))
+        if (!sys.FileSystem.exists(Game.dir + "objects/"))
         {
             trace("could not find objects to bake");
             return;
         }
         var bakeNum = 0;
-        if (sys.io.FileSystem.exists(Game.dir + "bake.res"))
+        if (sys.FileSystem.exists(Game.dir + "bake.res"))
         {
-            bakeNum = Std.parseInt(File.getContent(Game.dir + "bake.res"));
+            bakeNum = Std.parseInt(sys.io.File.getContent(Game.dir + "bake.res"));
         }
         var vector = Game.data.objectData();
         if (bakeNum == Game.data.nextObjectNumber)
@@ -44,7 +44,7 @@ class ObjectBake
         var dummyObject:ObjectData;
         var i:Int = 0;
         #if sys
-        var file:FileOutput = null;
+        var file:sys.io.FileOutput = null;
         #end
         for (id in vector)
         {
@@ -59,7 +59,7 @@ class ObjectBake
                     dummyObject.dummy = true;
                     dummyObject.dummyParent = data.id;
                     #if sys
-                    file = File.write(Game.dir + 'objects/$int.txt');
+                    file = sys.io.File.write(Game.dir + 'objects/$int.txt');
                     file.writeString(dummyObject.toFileString());
                     file.flush();
                     file.close();

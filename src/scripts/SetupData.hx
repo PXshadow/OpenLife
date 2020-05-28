@@ -22,6 +22,7 @@ class SetupData
         if (FileSystem.exists("bin/macOS")) outputPaths.push("bin/macOS/bin/");
         if (FileSystem.exists("bin/hl")) outputPaths.push("bin/hl/bin/");
         if (FileSystem.exists("bin/neko")) outputPaths.push("bin/neko/bin/");
+        if (FileSystem.exists("bin/server")) outputPaths.push("bin/server/");
         //setup linux later
         trace("paths: " + outputPaths);
         //check if path is set
