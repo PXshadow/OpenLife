@@ -53,6 +53,7 @@ class Main extends game.Game
     var fps:FPS;
     public function new()
     {
+
         //openfl.ui.Mouse.cursor = openfl.ui.MouseCursor.AUTO;
         directory();
         super();
@@ -446,6 +447,7 @@ class Main extends game.Game
     public function new()
     {
         directory();
+        trace("dir " + Game.dir);
         super();
         new resources.ObjectBake();
         cred();

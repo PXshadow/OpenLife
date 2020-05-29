@@ -115,6 +115,7 @@ class Objects extends TileDisplay
     public function get(id:Int):ObjectData
     {
         var data = Game.data.objectMap.get(id);
+        //trace('data: $data');
         if (data == null)
         {
             //retrieve from file
@@ -126,6 +127,7 @@ class Objects extends TileDisplay
     public function add(array:Array<Int>,x:Int=0,y:Int=0,container:TileContainer=null):Bool
     {
         if (array == null || array.length == 0 || array[0] == 0) return false;
+        //trace("id " + array[0]);
         //data is main container
         var data:ObjectData = get(array[0]);
         var main = data;
@@ -160,7 +162,7 @@ class Objects extends TileDisplay
         sprites = create(data,tx + 0,ty - 0);
         //age system
         if (container != null && data.person == 0) visibleSprites(array[0],sprites,20);
-        if (sprites.length == 0) trace(data.id);
+        //if (sprites.length == 0) trace(data.id);
         //conainted
         var id:Int = 0;
         //id of container
@@ -181,7 +183,7 @@ class Objects extends TileDisplay
                 sub = get(array[i] * -1);
                 id = conInt++;
             }
-            if (data.slotPos[id] == null || data.slotVert == null || sub == null || data.slotPos == null) continue;
+            if (data.slotPos == null || data.slotPos[id] == null || data.slotVert == null || sub == null) continue;
             for (sprite in create(sub,
             tx + data.slotPos[id].x + Static.GRID/4,
             ty - data.slotPos[id].y - Static.GRID/4 * 0,
@@ -358,6 +360,7 @@ class Objects extends TileDisplay
         //set dimensions
         rect.width = reader.rect.width;
         rect.height = reader.rect.height;
+        //trace('width: ${rect.width} height: ${rect.height}');
         //move down column
         if(rect.x + rect.width >= tileset.bitmapData.width)
         {

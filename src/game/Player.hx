@@ -104,7 +104,7 @@ class Player #if openfl extends TileContainer #end
     public function force(send:Bool=true) 
     {
         if (instance.move_speed <= 0) return;
-        trace("force " + main);
+        //trace("force " + main);
         #if openfl
         Actuate.pause(this);
         //local position
@@ -145,6 +145,7 @@ class Player #if openfl extends TileContainer #end
         }
         //remove moves
         var data = Game.data.objectMap.get(instance.po_id);
+        if (data.id == 0) return;
         #if openfl
         if (ageInt != Math.ceil(instance.age)) 
         {
@@ -230,6 +231,7 @@ class Player #if openfl extends TileContainer #end
     #if openfl
     public function age(data:ObjectData)
     {
+        trace('data: ${data.id}');
         objects.visibleSprites(instance.po_id,sprites(),ageInt);
         //get and set sprites for head
         var head = _sprites[data.headIndex];
@@ -420,7 +422,7 @@ class Player #if openfl extends TileContainer #end
         {
             for (i in 0...numTiles) _sprites.push(getTileAt(i));
             _sprites.remove(heldObject);
-            trace("clothing " + clothing);
+            //trace("clothing " + clothing);
             if (clothing != null) for (array in clothing) if (array != null) for (cloths in array) _sprites.remove(cloths);
         }
         return _sprites;

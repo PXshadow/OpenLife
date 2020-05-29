@@ -112,10 +112,14 @@ class GameData
         nextObjectNumber = Std.parseInt(sys.io.File.getContent(Game.dir + "objects/nextObjectNumber.txt"));
         //go through objects
         var list:Array<Int> = [];
-        UnitTest.inital();
+        var num:Int = 0;
         for (path in sys.FileSystem.readDirectory(Game.dir + "objects"))
         {
-            list.push(Std.parseInt(Path.withoutExtension(path)));
+            num = Std.parseInt(Path.withoutExtension(path));
+            if (num > 0) 
+            {
+                list.push(num);
+            }
         }
         list.sort(function(a:Int,b:Int)
         {

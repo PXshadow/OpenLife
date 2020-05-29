@@ -57,18 +57,23 @@ class AnimationPlayer
         var objectData = Game.data.objectMap.get(id);
         if (objectData == null || objectData.animation == null) 
         {
-            trace('objectData ${objectData} or ObjectsData' + "'" + 's animation ${objectData.animation} is null');
+            //trace('objectData ${objectData} or ObjectsData' + "'" + 's animation ${objectData.animation} is null');
+            return;
+        }
+        if (objectData.animation.record[index] == null)
+        {
+            //trace('record is null');
             return;
         }
         var param = objectData.animation.record[index].params;
         if (param == null) 
         {
-            trace('param is null');
+           // trace('param is null');
             return;
         }
         if (param.length != objectData.spriteArray.length)
         {
-            trace('param length ${param.length} is not equal to object data sprite array length ${objectData.spriteArray.length}');
+            //trace('param length ${param.length} is not equal to object data sprite array length ${objectData.spriteArray.length}');
             return;
         }
         var type = objectData.animation.record[index].type;

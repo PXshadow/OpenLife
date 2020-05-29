@@ -39,7 +39,7 @@ class Game extends GameHeader
     public function directory():Bool
     {
         #if (windows || !openfl)
-        dir = "";
+        dir = ".";
         #else
         dir = Path.normalize(lime.system.System.applicationDirectory);
         dir = Path.removeTrailingSlashes(Game.dir) + "/";

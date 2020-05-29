@@ -58,6 +58,7 @@ class GroundOverlay extends Shape
     }
     private function cacheOverlay()
     {
+        if (!sys.FileSystem.exists('${Game.dir}/graphics')) return;
         var rect:Rectangle = new Rectangle(tileX,tileY);
         for (i in 0...4)
         {

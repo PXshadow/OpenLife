@@ -69,13 +69,8 @@ class ObjectBake
             }
             Game.data.objectMap.set(data.id,data);
             i++;
-            if(i > 4000) 
-            {
-                trace('index: $i');
-            } else if(i % 50 == 0) 
-            {
-                trace('index: $i');
-            }
+            if(i % 100 == 0)  trace('index: $i');
+            
         }
     }
     private static function gen()

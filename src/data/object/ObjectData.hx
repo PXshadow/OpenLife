@@ -309,7 +309,7 @@ class ObjectData extends LineReader
     public function new(i:Int=0)
     {
         super();
-        if (!readLines(resources.Resource.objectData(i))) return;
+        if (i <= 0 || !readLines(resources.Resource.objectData(i))) return;
         //setup animation
         #if openfl
         animation = new AnimationData(i);
@@ -464,9 +464,13 @@ class ObjectData extends LineReader
             set = string.indexOf("=",set) + 1;
             slotParent[j] = Std.parseInt(string.substring(set,string.length));
         }
-
         //visual
         numSprites = getInt();
+        //monument description set bools
+        if (description.indexOf("monument") > -1) monumentStep = true;
+        if (description.indexOf("monumentStep") > -1) monumentStep = true;
+        if (description.indexOf("monumentCall") > -1) monumentCall = true;
+
         spriteArray = new Vector<SpriteData>(numSprites);
         for(j in 0...numSprites)
         {

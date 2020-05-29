@@ -21,11 +21,16 @@ class Resource
     }
     public static function animation(id:Int,i:Int):String
     {
-        return getContent("animations",'${id}_${i}');
+        try {
+            return getContent("animations",'${id}_${i}');
+        }catch(e:Dynamic)
+        {
+            return "";
+        }
     }
     public static function ground(id:Int,i:Int,j:Int,a:String):Bytes
     {
-        return getImage("groundTileCache",'biome_${id}_x${i}_y$j$a.tga');
+        return getImage("groundTileCache",'biome_${id}_x${i}_y$j$a');
     }
     public static function groundOverlay(id:Int):Bytes
     {
@@ -34,7 +39,7 @@ class Resource
     public static function getImage(path:String,name:String):Bytes
     {
         #if sys
-        return sys.io.File.getBytes('${game.Game.dir}/$name.tga');
+        return sys.io.File.getBytes('${game.Game.dir}/$path/$name.tga');
         #else
         return Bytes.alloc(0);
         #end
@@ -42,7 +47,7 @@ class Resource
     public static function getContent(path:String,name:String):String
     {
         #if sys
-        return sys.io.File.getContent('${game.Game.dir}/$name.txt');
+        return sys.io.File.getContent('${game.Game.dir}/$path/$name.txt');
         #else
         return "";
         #end

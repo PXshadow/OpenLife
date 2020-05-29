@@ -102,7 +102,6 @@ class Client
     public function alive()
     {
         send("KA 0 0");
-        UnitTest.inital();
         send("PING 0 0 " + pingInt++);
     }
     public function login(tag:ClientTag,input:Array<String>) 
