@@ -1,6 +1,6 @@
 echo "installing libs"
-haxelib install openfl 8.9.5
-haxelib install lime 7.6.3
+haxelib install openfl https://github.com/openfl/openfl
+haxelib install lime https://github.com/haxelime/lime
 haxelib git actuate https://github.com/jgranick/actuate
 haxelib git hscript https://github.com/HaxeFoundation/hscript
 haxelib git format https://github.com/haxefoundation/format

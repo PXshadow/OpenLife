@@ -8,7 +8,8 @@ import.hxml
 -lib hscript
 -D full
 -main ImportAll
--neko dummy.n
+##-neko dummy.n
+--interp
 -xml xml/Terminal.xml
 
 --next

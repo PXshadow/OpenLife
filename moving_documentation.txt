@@ -1,8 +1,0 @@
-updateMoveSpeed 
-18611, 24208
-
-etaSec
-defined: 18090
-
-
-read starts on: 18096

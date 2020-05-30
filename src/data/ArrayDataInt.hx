@@ -29,7 +29,7 @@ class ArrayDataInt
         {
             return array[y - dy][x - dx];
         }
-        return 0;
+        return -1;
     }
     public function shiftY(y:Int)
     {
@@ -49,7 +49,7 @@ class ArrayDataInt
                 if (array[j] == null) array[j] = [];
                 for (i in 0...dx - x) 
             	{
-                    array[j].unshift(0);
+                    array[j].unshift(-1);
                 }
             }
             dx = x;

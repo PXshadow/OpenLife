@@ -438,7 +438,7 @@ class Main extends game.Game
     }
 }
 #else
-import ImportAll;
+import game.Game;
 import game.Player;
 //#if nativeGen @:nativeGen #end
 class Main extends game.Game

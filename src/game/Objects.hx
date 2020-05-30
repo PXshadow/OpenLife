@@ -89,7 +89,7 @@ class Objects extends TileDisplay
         var data = get(id);
         if (data != null)
         {
-            for (i in 0...sprites.length)
+            for (i in 0...data.numSprites)
             {
                 sprites[i].visible = true;
                 if (data.useVanishIndex[i] == -1 && data.numUses > 1) sprites[i].visible = false;
@@ -281,6 +281,17 @@ class Objects extends TileDisplay
                 sprite.rotation += rotation;
             }
         }
+        /*if (data.person == 0)
+        {
+            //put rift ontop
+            var wall = new Tile();
+            //3097 rift object -> 2880 sprite
+            wall.id = cacheSprite(2880);
+            wall.x += x - Static.GRID;
+            wall.y += y - Static.GRID;
+            wall.alpha = 0.3;
+            sprites.push(wall);
+        }*/
         return sprites;
     }
     /**

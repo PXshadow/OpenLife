@@ -231,7 +231,6 @@ class Player #if openfl extends TileContainer #end
     #if openfl
     public function age(data:ObjectData)
     {
-        trace('data: ${data.id}');
         objects.visibleSprites(instance.po_id,sprites(),ageInt);
         //get and set sprites for head
         var head = _sprites[data.headIndex];
@@ -414,6 +413,10 @@ class Player #if openfl extends TileContainer #end
             //Actuate.tween(heldObject,0.5,{x:instance.o_origin_x,y:-height/2 - instance.o_origin_y}).ease(Sine.easeInOut);
         }
         #end
+    }
+    public function toString():String
+    {
+        return '[player object]';
     }
     #if openfl
     public function sprites():Array<Tile>

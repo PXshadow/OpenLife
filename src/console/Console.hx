@@ -13,8 +13,8 @@ class Console #if openfl extends DisplayObjectContainer #end
 {
     var length:Int = 0;
     #if hscript
-    var parser:hscript.Parser;
-    var interp:Interp;
+    var parser = new hscript.Parser();
+    var interp = new hscript.Interp();
     #end
     var history:Array<String> = [];
     var command:Command;
@@ -56,10 +56,9 @@ class Console #if openfl extends DisplayObjectContainer #end
         #end
         //hscript
         #if hscript
-        parser = new hscript.Parser();
         parser.allowJSON = true;
-        parser.allowJSON = true;
-        interp = new Interp();
+        parser.allowTypes = true;
+        parser.allowMetadata = false;
         command = new Command();
         //interp variables default
         set("math",Math);
@@ -74,14 +73,14 @@ class Console #if openfl extends DisplayObjectContainer #end
         interp.variables.set(name,value);
         #end
     }
-    public function print(inp:String,out:String)
+    public function print(inp:String,out:Dynamic)
     {
         #if openfl
         if(output.numLines > 9)
         {
             output.text = "";
         }
-        output.appendText(">" + inp + "\n" + out + "\n");
+        output.appendText(">" + inp + "\n" + Std.string(out) + "\n");
         #else
         trace(out);
         #end
@@ -220,35 +219,3 @@ class Console #if openfl extends DisplayObjectContainer #end
 		return filteredFields;
 	}
 }
-#if hscript
-private class Interp extends hscript.Interp
-{
-	public function getGlobals():Array<String>
-	{
-		return toArray(locals.keys()).concat(toArray(variables.keys()));
-	}
-
-	function toArray<T>(iterator:Iterator<T>):Array<T>
-	{
-		var array = [];
-		for (element in iterator)
-			array.push(element);
-		return array;
-	}
-
-	override function get(o:Dynamic, f:String):Dynamic
-	{
-		if (o == null)
-			error(EInvalidAccess(f));
-		return Reflect.getProperty(o, f);
-	}
-
-	override function set(o:Dynamic, f:String, v:Dynamic):Dynamic
-	{
-		if (o == null)
-			error(EInvalidAccess(f));
-		Reflect.setProperty(o, f, v);
-		return v;
-	}
-}
-#end

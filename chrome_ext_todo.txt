@@ -1,4 +1,0 @@
-follow: https://developer.chrome.com/extensions/getstarted
--tcp socket
--storage retrieve files
--load game screen

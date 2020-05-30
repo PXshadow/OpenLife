@@ -12,7 +12,7 @@ import haxe.Http;
 class Static 
 {
     public static inline var GRID:Int = 128;
-    public static inline var tileHeight:Int = 0;//30;
+    public static inline var tileHeight:Int = 0;
     /*public static function main()
     {
         new Main();
