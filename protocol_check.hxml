@@ -1,9 +1,3 @@
-#source directory
--cp src
-#anaylzer
--D analyzer-optimize
-#set main
--main scripts.ProtocolTagCheck
-#target
+-cp scripts
+-main ProtocolTagCheck
 --interp
-#-neko protocolTagCheck.n

@@ -10,12 +10,3 @@ import.hxml
 ##-neko dummy.n
 --interp
 -xml xml/Terminal.xml
-
---next
-
-
-#--next
-#generation docs code
-#-cp src
-#-main scripts.Generate
-#-neko generate.n

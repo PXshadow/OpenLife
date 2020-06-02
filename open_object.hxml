@@ -1,2 +1,3 @@
--main openlife.scripts.OpenObject
+-cp scripts
+-main OpenObject
 --interp
