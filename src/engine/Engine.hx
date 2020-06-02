@@ -4,14 +4,13 @@ import data.Pos;
 import data.object.player.PlayerInstance;
 import data.map.MapChange;
 import data.map.MapInstance;
-import console.Console;
 import client.Client;
 import settings.Settings;
 import data.GameData;
 import haxe.io.Path;
 import client.ClientTag;
-//#if nativeGen @:nativeGen #end
-class Game extends GameHeader
+//
+class Engine extends EngineHeader
 {
     /**
      * static game data
@@ -26,32 +25,15 @@ class Game extends GameHeader
     var string:String;
     public static var dir:String;
     var mapInstance:MapInstance;
-    public function new()
+    public function new(dir:String)
     {
-        #if openfl
-        super();
-        #end
+        this.dir = dir;
         data = new GameData();
         settings = new Settings();
         client = new Client();
         program = new Program(client);
     }
-    public function directory():Bool
-    {
-        #if (windows || !openfl)
-        dir = ".";
-        #else
-        dir = Path.normalize(lime.system.System.applicationDirectory);
-        dir = Path.removeTrailingSlashes(Game.dir) + "/";
-        #end
-        #if mac
-        dir = dir.substring(0,dir.indexOf("/Contents/Resources/"));
-        dir = dir.substring(0,dir.lastIndexOf("/") + 1);
-        #end
-        //check to see if location is valid
-        if (exist(["groundTileCache","objects","sprites","animations","transitions"])) return true;
-        return false;
-    }
+
     //helper functions
     private function exist(folders:Array<String>):Bool
     {
@@ -85,12 +67,12 @@ class Game extends GameHeader
                 if (valid(settings.data.get("customServerPort"))) client.port = Std.parseInt(string);
             }
             //window
-            #if openfl
-            if (valid(settings.data.get("borderless"))) stage.window.borderless = string == "1";
+            #if visual
+            if (valid(settings.data.get("borderless"))) window.borderless = string == "1";
             //if (valid(settings.data.get("fullscreen"))) stage.window.fullscreen = string == "1";
-            if (valid(settings.data.get("screenWidth"))) stage.window.width = Std.parseInt(string);
-            if (valid(settings.data.get("screenHeight"))) stage.window.height = Std.parseInt(string);
-            if (valid(settings.data.get("targetFrameRate"))) stage.frameRate = Std.parseInt(string);
+            if (valid(settings.data.get("screenWidth"))) window.width = Std.parseInt(string);
+            if (valid(settings.data.get("screenHeight"))) window.height = Std.parseInt(string);
+            if (valid(settings.data.get("targetFrameRate"))) window.frameRate = Std.parseInt(string);
             #end
         }
         //by pass settings and force email and key if secret account

@@ -1,17 +1,7 @@
 package graphics;
 import haxe.ds.Vector;
 import haxe.io.Output;
-#if openfl
-import openfl.display.BitmapData;
-import openfl.geom.Rectangle;
-import haxe.io.BytesInput;
-import lime.app.Future;
-import data.Point;
-import haxe.io.Bytes;
-import openfl.utils.ByteArray;
-import haxe.io.Input;
-import format.tga.*;
-#if nativeGen @:nativeGen #end
+
 class TgaData
 {
     //output
@@ -154,4 +144,3 @@ class TgaData
         return 0;
     }
 }
-#end

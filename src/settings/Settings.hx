@@ -1,13 +1,12 @@
 package settings;
 import haxe.DynamicAccess;
-import game.Game;
 import haxe.io.Path;
 #if (sys || nodejs)
 import sys.io.FileOutput;
 import sys.io.File;
 import sys.FileSystem;
 #end
-#if nativeGen @:nativeGen #end
+
 class Settings
 {
     @:isVar public var data(default,set):Data = {};

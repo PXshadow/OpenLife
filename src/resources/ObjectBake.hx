@@ -7,7 +7,7 @@ import data.object.ObjectData;
 /**
  * Bakes the numUses objects into files, rather than having to run through all the objects in the start of the session
  */
- #if nativeGen @:nativeGen #end
+ 
 class ObjectBake
 {
     public function new()

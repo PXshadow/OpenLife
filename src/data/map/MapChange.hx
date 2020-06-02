@@ -1,5 +1,5 @@
 package data.map;
-#if nativeGen @:nativeGen #end
+
 class MapChange
 {
     /**

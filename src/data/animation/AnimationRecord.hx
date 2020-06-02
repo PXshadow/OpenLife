@@ -3,7 +3,7 @@ import haxe.ds.Vector;
 import data.animation.AnimationParameter;
 import data.animation.AnimationType;
 import data.animation.AnimationData;
-#if nativeGen @:nativeGen #end
+
 class AnimationRecord
 {
     /**

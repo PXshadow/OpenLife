@@ -1,7 +1,7 @@
 package data.map;
 import haxe.Timer;
 import haxe.ds.Vector;
-#if nativeGen @:nativeGen #end
+
 class MapData
 {
     /**

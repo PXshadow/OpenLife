@@ -5,7 +5,7 @@ import data.animation.AnimationData;
 import data.sound.SoundData;
 import data.GameData;
 import game.Game;
-#if nativeGen @:nativeGen #end
+
 class ObjectData extends LineReader
 {
     /**
@@ -311,7 +311,7 @@ class ObjectData extends LineReader
         super();
         if (i <= 0 || !readLines(resources.Resource.objectData(i))) return;
         //setup animation
-        #if openfl
+        #if (visual && animation)
         animation = new AnimationData(i);
         if (animation.fail) animation = null;
         #end
@@ -424,7 +424,7 @@ class ObjectData extends LineReader
         }
         if(readName("sounds"))
         {
-            #if openfl
+            #if sound
             var array = getStringArray();
             sounds = new Vector<SoundData>(array.length);
             for (i in 0...array.length) sounds[i] = new SoundData(array[i]);

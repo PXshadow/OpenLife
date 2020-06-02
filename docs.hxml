@@ -5,7 +5,6 @@ import.hxml
 -cp src
 -D doc-gen
 -D display
--lib hscript
 -D full
 -main ImportAll
 ##-neko dummy.n
@@ -13,25 +12,6 @@ import.hxml
 -xml xml/Terminal.xml
 
 --next
-
--xml xml/OpenFL.xml
--cpp obj/docs
--D openfl
--D full
--D display
--D native
--D linux
--D visual
--D openfl_doc_gen
--D doc_gen
--cp src
--main ImportAll
--lib lime
--lib openfl
--lib actuate
--lib format
--lib hscript
---no-output
 
 
 #--next

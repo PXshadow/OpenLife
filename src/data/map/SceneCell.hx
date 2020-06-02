@@ -2,7 +2,7 @@ package data.map;
 import haxe.ds.Vector;
 import data.animation.emote.Emotion;
 import data.animation.AnimationData;
-#if nativeGen @:nativeGen #end
+
 class SceneCell
 {
     /**

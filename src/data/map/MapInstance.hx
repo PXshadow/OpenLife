@@ -2,7 +2,7 @@ package data.map;
 /**
  * Map chunk
  */
-#if nativeGen @:nativeGen #end
+
 class MapInstance
 {
     /**

@@ -4,7 +4,7 @@ import game.Game;
 import sys.io.File;
 import sys.FileSystem;
 import data.transition.TransitionData;
-#if nativeGen @:nativeGen #end
+
 class Transition
 {
     /**

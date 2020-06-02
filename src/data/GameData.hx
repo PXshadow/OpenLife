@@ -1,31 +1,20 @@
 package data;
+import data.object.player.PlayerInstance;
 import haxe.ds.ObjectMap;
 import data.object.ObjectData;
-import game.Player;
-import game.Game;
-import game.Ground;
 import data.transition.TransitionData;
 import data.map.MapData;
 import haxe.io.Path;
 import haxe.ds.Vector;
-#if visual
-import data.animation.emote.EmoteData;
-import graphics.TileData;
-import data.object.SpriteData;
-#end
-#if openfl
-import openfl.display.Tile;
-import openfl.geom.Rectangle;
-#end
 //data stored for the game to function (map data -> game data)
-#if nativeGen @:nativeGen #end
+
 class GameData
 {
     /**
      * Blocking tiles mapped, "x.y"
      */
     public var blocking:Map<String,Bool> = new Map<String,Bool>();
-    public var playerMap:Map<Int,Player> = new Map<Int,Player>();
+    public var playerMap:Map<Int,PlayerInstance> = new Map<Int,PlayerInstance>();
     /**
      * Transition data
      */
@@ -49,12 +38,6 @@ class GameData
      */
     public var nextObjectNumber:Int = 0;
     /**
-     * Tile data
-     */
-    #if openfl
-    public var tileData:TileData;
-    #end
-    /**
      * Emote static array
      */
     #if visual
@@ -71,13 +54,8 @@ class GameData
     private function create()
     {
         map = new data.map.MapData();
-        #if openfl
-        tileData = new graphics.TileData();
-        //new graphics.converters.GroundSprites();
-        //throw("finish ground sprite");
-        #end
         blocking = new Map<String,Bool>();
-        playerMap = new Map<Int,Player>();
+        playerMap = new Map<Int,PlayerInstance>();
     }
     #if visual
     /**

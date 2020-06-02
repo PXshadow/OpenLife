@@ -2,7 +2,7 @@ package scripts;
 
 import sys.FileSystem;
 import haxe.io.Path;
-#if nativeGen @:nativeGen #end
+
 class Generate
 {
     public static function main()
@@ -45,16 +45,9 @@ class Generate
             "List",
             "Xml",
             //main
-            "UnitTest",
             "Main",
             //"Static",
-            //libs
-            "hscript",
-            "openfl",
-            "lime",
             "std",
-            "format",
-            "motion",
             "shaders",
             //"ApplicationMain",
             //"DocumentClass",

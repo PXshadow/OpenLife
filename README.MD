@@ -1,5 +1,4 @@
 <p align="left"><img src="logo.png"/></p>
-<!--![Build Status](https://img.shields.io/circleci/project/github/openfl/openfl-samples/master.svg)-->
 
 [![badge](https://img.shields.io/discord/595575978290446361?style=plastic)](https://discordapp.com/invite/gwghtky)
 ![Downloads](https://img.shields.io/github/downloads/pxshadow/openlife/total)
@@ -11,24 +10,9 @@
 
 **DISCLAIMER: Project is still in progress, and is not usable from a player perspective yet, stay tuned.**
 
-To Players:
-=======
-
-*Open Life is a fast, light weight [One Life](http://onehouronelife.com/) client/application.*
-
-* Easy setup, and feature rich.
-
-* Improvements such as in game settings and key bindings.
-
-* Plug and play script support.
-
-*  Quality of life improvements across the board.
-
-* Dedicated development for a new, custom built client, independently supported.
-
 To Developers:
 =========
-*Open Life is an [OpenFL](https://openfl.org) and [Haxe](https://haxe.org) based One Life client.*
+*Open Life is a [Haxe](https://haxe.org) based One Life engine.*
 
 * **Open Api:**  Quickly search through the [api](https://pxshadow.github.io/OpenLife-Docs/api/index.html) and find variables and methods.
 
@@ -36,9 +20,8 @@ To Developers:
 
 * **Client Scripting:** Allows programmers to easily build programs on type of the client architecture.
 
-* **High performance Rendering:** Uses a powerful display list system called Tilemap ([Demo](https://www.openfl.org/samples/bunny/)) to display all chunks, floors and sprites.
+* **High performance resource acess:** Uses multi threadeding and object baking / skimming in order to make the boot up and dealing the files very simple.
 
-* **Cross platform:** Deploy to a [plethora of targets](https://github.com/openfl/lime#targets) with the stability of OpenFL.
 
 * **Cross compilied languages:** Compiles to [Java](https://haxe.org/documentation/platforms/java.html), [C#](https://haxe.org/documentation/platforms/csharp.html), [Python](https://haxe.org/documentation/platforms/python.html), [Lua](https://haxe.org/manual/target-lua-getting-started.html), [Php](https://haxe.org/documentation/platforms/php.html)
 

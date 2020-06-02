@@ -1,14 +1,5 @@
-echo "installing libs"
-haxelib install openfl https://github.com/openfl/openfl
-haxelib install lime https://github.com/haxelime/lime
-haxelib git actuate https://github.com/jgranick/actuate
-haxelib git hscript https://github.com/HaxeFoundation/hscript
+echo "installing lib"
 haxelib git format https://github.com/haxefoundation/format
-haxelib git hxcpp-debug-server https://github.com/vshaxe/hxcpp-debugger
-haxelib git chrome-extension https://github.com/tong/chrome.extension
-echo "installing libs for test-adapter"
-haxelib install utest
-haxelib install json2object
 echo "install libs for targets"
 haxelib install hxjava
 haxelib install hxnodejs

@@ -6,11 +6,7 @@ import data.GameData;
 import server.ServerTag;
 import haxe.crypto.Base64;
 import data.object.ObjectCode;
-#if openfl
-import motion.Actuate;
-import openfl.display.Tile;
-#end
-#if nativeGen @:nativeGen #end
+
 class Program
 {
     public var home:Pos = new Pos();
@@ -199,57 +195,4 @@ class Program
         pos.y = a.x - b.y;
         return pos;
     }
-    #if openfl
-    //visual
-    public function apply(target:String,properties:Dynamic):Program
-    {
-        var array = getTiles(target);
-        if (array.length > 0)
-        {
-            var fields = Reflect.fields(properties);
-            for (obj in array)
-            {
-                for (field in fields)
-                {
-                    Reflect.setProperty(obj,field,Reflect.getProperty(properties,field));
-                }
-            }
-        }
-        return this;
-    }
-    public function tween(target:String,duration:Int=1,properties:Dynamic,repeat:Int=0,reflect:Bool=false,delay:Int=0):Program
-    {
-        var array = getTiles(target);
-        if (array.length > 0)
-        {
-            for (obj in array)
-            {
-                Actuate.tween(obj,duration,properties).repeat(repeat).reflect(reflect).delay(delay);
-            }
-        }
-        return this;
-    }
-    public function resetTween():Program
-    {
-        Actuate.reset();
-        return this;
-    }
-    private function getTiles(target:String):Array<Tile>
-    {
-        /*var targets:Array<Tile> = [];
-        var list = ObjectCode.id(target);
-        if (list.length == 0) return targets;
-        var cx:Int = Main.player.ix;
-        var cy:Int = Main.player.iy;
-        for (j in cy - range...cy + range)
-        {
-            for (i in cx - range...cx + range)
-            {
-                if (list.indexOf(Game.data.map.object.get(i,j)[0]) >= 0) for(tile in Game.data.tileData.object.get(i,j)) targets.push(tile);
-            }
-        }
-        return targets;*/
-        return [];
-    }
-    #end
 }

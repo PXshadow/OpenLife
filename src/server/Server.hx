@@ -13,7 +13,7 @@ import sys.FileSystem;
 import sys.io.File;
 import server.ThreadServer;
 import haxe.io.Path;
-#if nativeGen @:nativeGen #end
+
 class Server extends ThreadServer
 {
     public static function main()

@@ -1,6 +1,4 @@
 package data.sound;
-
-#if openfl
 enum SoundType
 {
     creation;
@@ -9,4 +7,3 @@ enum SoundType
     eating;
     decay;
 }
-#end

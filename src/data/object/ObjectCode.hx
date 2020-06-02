@@ -1,5 +1,5 @@
 package data.object;
-#if nativeGen @:nativeGen #end
+
 class ObjectCode
 {
     private static var spring:Array<Int> = [3030,3031,3032,3033,3036,3037,3038,3039,3040,3041,3042,3044,1096,662,663,664,665,1861,2388,2389,2390];

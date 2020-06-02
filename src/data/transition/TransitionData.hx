@@ -1,5 +1,5 @@
 package data.transition;
-#if nativeGen @:nativeGen #end
+
 class TransitionData
 {
     public var lastUseActor:Bool = false;

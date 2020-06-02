@@ -2,7 +2,7 @@ package data;
 /**
  * Int version of ArrayDataArray
  */
- #if nativeGen @:nativeGen #end
+ 
 class ArrayDataInt
 {
     var array:Array<Array<Int>> = [];

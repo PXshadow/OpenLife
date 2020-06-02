@@ -1,5 +1,5 @@
 package data;
-#if nativeGen @:nativeGen #end
+
 class Pos
 {
     public var x:Int;

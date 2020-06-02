@@ -3,7 +3,7 @@ package scripts;
 import sys.io.File;
 import sys.FileSystem;
 using StringTools;
-#if nativeGen @:nativeGen #end
+
 class ProtocolTagCheck
 {
     public static function main()
