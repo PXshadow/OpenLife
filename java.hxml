@@ -1,3 +1,4 @@
 set.hxml
+--macro exclude('server')
 -D jvm
--java bin/java
+-java export/java

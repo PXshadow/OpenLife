@@ -2,4 +2,4 @@ set.hxml
 -D net-ver=40
 -D no-compilation
 -D real-position
--cs bin/cs
+-cs export/cs

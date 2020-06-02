@@ -1,2 +1,2 @@
 set.hxml
--neko bin/neko/openlife.n
+-neko export/neko/openlife.n

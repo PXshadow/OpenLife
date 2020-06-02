@@ -1,9 +1,6 @@
--cp src
--main Main
-#-lib hscript
-#native Gen of classes, effects java, cs
--D nativeGen
--D doc_gen
+
+--macro include("openlife")
+-lib format
 #effects cs, java, cpp, hashlink
 -D no-compilation 
 #set header

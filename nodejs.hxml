@@ -1,4 +1,4 @@
 set.hxml
 -lib hxnodejs
 -D js-es6
--js bin/js/openlife.js
+-js export/js/openlife.js

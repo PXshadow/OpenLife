@@ -4,7 +4,7 @@
 ![Downloads](https://img.shields.io/github/downloads/pxshadow/openlife/total)
 ![Stars](https://img.shields.io/github/stars/pxshadow/openlife?style=social)
 
-# Client 
+# Engine 
 [![badge](badge.svg)](https://haxe.org)
 [![forthebadge](https://forthebadge.com/images/badges/for-sharks.svg)](https://forthebadge.com)
 
@@ -18,7 +18,7 @@ To Developers:
 
 * **Real Time Console:** Exe code in real time using [hscript](https://github.com/HaxeFoundation/hscript) and eventually [cppia](https://haxe.org/manual/target-cppia-getting-started.html).
 
-* **Client Scripting:** Allows programmers to easily build programs on type of the client architecture.
+* **Scripting:** Allows programmers to easily build programs on top of the engine architecture.
 
 * **High performance resource acess:** Uses multi threadeding and object baking / skimming in order to make the boot up and dealing the files very simple.
 
@@ -33,6 +33,5 @@ Getting Started
 * [Download Haxe](https://haxe.org/download/version/4.0.0/)
 * run the command ```haxelib setup```
 * Run the install.sh script, windows ```start install.sh```, linux/mac ```sh install.sh```
-* For Neko version (faster build time, worse performance) ```lime test neko```
-* For C++ version: ```lime test cpp```
-* add [data files](https://github.com/jasonrohrer/OneLifeData7) into the application directory 
+* add the data files  (you need [git](https://git-scm.com/downloads) run ```haxe setup_data.hxml```
+* Run the eval target ```haxe eval.hxml```

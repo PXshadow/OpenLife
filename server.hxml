@@ -1,7 +1,7 @@
 -cp src
 -main server.Server
-#-hl bin/server/server.hl
-#-cpp bin/server
+#-hl export/server/server.hl
+#-cpp export/server
 -dce full
 --interp
-#-neko bin/server/server.n
+#-neko export/server/server.n

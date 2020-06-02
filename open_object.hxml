@@ -1,8 +1,2 @@
-#source directory
--cp src
-#anaylzer
--D analyzer-optimize
-#set main
--main scripts.OpenObject
-#target
+-main openlife.scripts.OpenObject
 --interp

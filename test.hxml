@@ -1,0 +1,4 @@
+-cp tests
+-lib format
+-main Test
+--interp
