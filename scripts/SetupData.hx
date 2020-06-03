@@ -1,4 +1,4 @@
-package;
+package scripts; //used globally
 import haxe.io.Path;
 import sys.io.Process;
 import sys.FileSystem;
@@ -25,7 +25,7 @@ class SetupData
 
         var tag = proc.stdout.readLine();
         //var tag = proc.stdout.readAll().toString();
-        tag = tag.substring(1,tag.length - 1);
+        tag = StringTools.trim(tag);
         trace("tag = |" + tag + "|");
         if (tag.indexOf("OneLife_v") == 0)
         {

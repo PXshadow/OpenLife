@@ -1,0 +1,7 @@
+{
+	"name" : "OpenLife",
+	"url" : "https://github.com/pxshadow/openlife",
+	"contributors" : ["PXshadow"],
+	"description" : "A OneLife engine in haxe",
+	"version" : "0.0.1",
+}
