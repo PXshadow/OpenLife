@@ -26,6 +26,7 @@ class SetupData
         var tag = proc.stdout.readLine();
         //var tag = proc.stdout.readAll().toString();
         tag = StringTools.trim(tag);
+        tag = StringTools.replace(tag,"'","");
         trace("tag = |" + tag + "|");
         if (tag.indexOf("OneLife_v") == 0)
         {
