@@ -4,7 +4,7 @@ import openlife.data.object.player.PlayerInstance;
 import openlife.data.object.player.PlayerMove;
 import openlife.data.map.MapChange;
 //#if nativeGen @:nativeGen #end
-class EngineHeader #if openfl extends openfl.display.Sprite #elseif heaps hxd.App #end
+class EngineHeader
 {
     //Headers not included:
     //COMPRESSED_MESSAGE
