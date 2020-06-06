@@ -18,16 +18,15 @@ class Engine extends EngineHeader
     public static var data:GameData;
     public var settings:Settings;
     public static var program:Program;
-    var client:Client;
+    public var client:Client;
     /**
      * Used for string tool functions
      */
     var string:String;
     public static var dir:String;
     var mapInstance:MapInstance;
-    public function new(dir:String)
+    public function new()
     {
-        Engine.dir = dir;
         data = new GameData();
         settings = new Settings();
         client = new Client();
@@ -84,7 +83,7 @@ class Engine extends EngineHeader
         client.port = Secret.port;
         #end
     }
-    private function connect(reconnect:Bool=false)
+    public function connect(reconnect:Bool=false)
     {
         client.accept = function()
         {
