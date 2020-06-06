@@ -1,3 +1,2 @@
--cp scripts
--main SetupData
+-main scripts.SetupData
 --interp
