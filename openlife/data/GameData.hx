@@ -78,7 +78,7 @@ class GameData
     /**
      * Generate object data
      */
-    public function objectData():Vector<Int>
+    public function objectList():Vector<Int>
     {
         #if sys
         if (!sys.FileSystem.exists(Engine.dir + "objects/nextObjectNumber.txt")) 

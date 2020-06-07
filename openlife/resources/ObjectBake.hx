@@ -27,7 +27,7 @@ class ObjectBake
         {
             bakeNum = Std.parseInt(sys.io.File.getContent(Engine.dir + "bake.res"));
         }
-        var vector = Engine.data.objectData();
+        var vector = Engine.data.objectList();
         if (bakeNum == Engine.data.nextObjectNumber)
         {
             trace("bake complete and set");

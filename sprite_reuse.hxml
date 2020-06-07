@@ -1,3 +1,2 @@
--cp scripts
--main SpriteReuse
--lib openlife
+-main scripts.SpriteReuse
+--interp
