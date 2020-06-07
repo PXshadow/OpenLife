@@ -12,7 +12,7 @@ class ProtocolTagCheck
     }
     var startString = "Possible types include:";
     var endString = "Client can expect to receive these at any time, and in any order.";
-    var clientTagPath = "./src/client/ClientTag.hx";
+    var clientTagPath = "./openlife/client/ClientTag.hx";
     //more tags
     var enumTags:Array<String> = [];
     var names:Array<String> = [];
@@ -34,8 +34,8 @@ class ProtocolTagCheck
             trace("protocol is not the same, update");
             File.saveContent("./protocol.txt",string);
         }
-        headerContent = File.getContent("./src/game/GameHeader.hx");
-        gameContent = File.getContent("./src/game/Game.hx");
+        headerContent = File.getContent("./openlife/engine/engineHeader.hx");
+        gameContent = File.getContent("./openlife/engine/Engine.hx");
         run();
     }
     private function run()

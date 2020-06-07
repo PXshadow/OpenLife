@@ -9,9 +9,8 @@ class App extends Engine
     {
         super();
         cred();
-        client.ip = "thinqbator.app";
         connect(false);
-
+        var string = "";
         while (true)
         {
             client.update();
