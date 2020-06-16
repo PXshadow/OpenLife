@@ -42,7 +42,7 @@ class Client
     public var legacy:Bool = false;
     public function new()
     {
-
+        aliveStamp = Timer.stamp();
     }
     public function update()
     {
@@ -161,7 +161,6 @@ class Client
             return;
         }
         #end
-        aliveStamp = Timer.stamp();
     }
     var compressIndex:Int = 0;
     var dataCompressed:Bytes;
