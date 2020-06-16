@@ -12,8 +12,8 @@ class SetupData
     }
     public function new()
     {
-        //linux 1 is fals but 2 is true, whitch means case sensitive
-        if (FileSystem.exists("onelifedata7") || FileSystem.exists("OneLifeData7"))
+        //linux is folder name case senetive
+        if (!FileSystem.exists("OneLifeData7"))
         {
             trace("clone-");
             Sys.command("git clone https://github.com/jasonrohrer/OneLifeData7.git");
