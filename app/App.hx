@@ -9,7 +9,7 @@ class App extends Engine
     {
         super();
         Sys.println("Legacy authentication (y)es (n)o");
-        client.legacy = Sys.stdin().readLine() == "n" ? true : false;
+        client.legacy = Sys.stdin().readLine() == "n" ? false : true;
         //set credentioals
         if (!cred())
         {
