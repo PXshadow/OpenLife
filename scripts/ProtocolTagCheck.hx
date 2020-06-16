@@ -20,14 +20,9 @@ class ProtocolTagCheck
     var string:String;
     var headerContent:String;
     var gameContent:String;
+    var errors:Int = 0;
     public function new()
     {
-        /*if (!FileSystem.exists("./protocol.txt"))
-        {
-            trace("protocol.txt does not exist");
-            return;
-        }
-        string = File.getContent("protocol.txt");*/
         string = haxe.Http.requestUrl("https://raw.githubusercontent.com/jasonrohrer/OneLife/master/server/protocol.txt");
         if (string != File.getContent("./protocol.txt"))
         {
@@ -77,14 +72,25 @@ class ProtocolTagCheck
                 if (error.length > 1)
                 {
                     trace(names[i] + " " + tags[i] + " | " + error[0] + " and " + error[1] + " not found");
+                    errors++;
                 }else{
                     trace(names[i] + " " + tags[i] + " | " + error[0] + " not found");
+                    errors++;
                 }
             }
             //header content
-            if (headerContent.indexOf("//" + names[i]) == -1) trace("GameHeader.hx could not find: " + names[i]);
-            if (gameContent.indexOf("case " + names[i]) == -1) trace("Game.hx could not find: " + names[i]);
+            if (headerContent.indexOf("//" + names[i]) == -1)
+            {
+                trace("EngineHeader.hx could not find: " + names[i]);
+                errors++;
+            }
+            if (gameContent.indexOf("case " + names[i]) == -1) 
+            {
+                trace("Engine.hx could not find: " + names[i]);
+                errors++;
+            }
         }
+        trace('finished with $erros erros');
     }
     private function generate(input:Array<String>,output:Array<String>,name:Bool=false)
     {

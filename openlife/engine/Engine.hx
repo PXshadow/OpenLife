@@ -92,13 +92,11 @@ class Engine extends EngineHeader
     {
         client.accept = function()
         {
-            trace("accept");
             client.message = message;
             client.accept = null;
         }
         client.reject = function()
         {
-            trace("reject");
             client.reject = null;
         }
         client.message = client.login;

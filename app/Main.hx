@@ -8,9 +8,9 @@ class Main
     public static function main()
     {
         var dir:String = "";
-        if (FileSystem.exists("./onelifedata7/objects/nextObjectNumber.txt"))
+        if (FileSystem.exists("./OneLifeData7/objects/nextObjectNumber.txt"))
         {
-            Engine.dir = "onelifedata7/";
+            Engine.dir = "OneLifeData7/";
         }else if (FileSystem.exists("objects/nextObjectNumber.txt"))
         {
             Engine.dir = "";

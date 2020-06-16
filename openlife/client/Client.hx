@@ -39,7 +39,7 @@ class Client
     //functions
     public var accept:Void->Void;
     public var reject:Void->Void;
-
+    public var legacy:Bool = false;
     public function new()
     {
 
@@ -137,9 +137,10 @@ class Client
         key = StringTools.replace(key,"-","");
         var password = new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f"),Bytes.ofString(challenge,RawNative)).toHex();
         var accountKey = new Hmac(SHA1).make(Bytes.ofString(key),Bytes.ofString(challenge)).toHex();
-        var clientTag = "client_openlife";
+        var clientTag = " client_openlife";
+        if (legacy) clientTag = "";
         trace("request!");
-        send((reconnect ? "R" : "") + 'LOGIN $clientTag $email $password $accountKey ${(tutorial ? 1 : 0)}');
+        send((reconnect ? "R" : "") + 'LOGIN$clientTag $email $password $accountKey ${(tutorial ? 1 : 0)}');
     }
     public function send(data:String)
     {

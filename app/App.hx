@@ -8,6 +8,8 @@ class App extends Engine
     public function new()
     {
         super();
+        Sys.println("Legacy authentication (y)es (n)o");
+        client.legacy = Sys.stdin().readLine() == "n" ? true : false;
         //set credentioals
         if (!cred())
         {
@@ -42,4 +44,3 @@ class App extends Engine
         trace("instance " + instance.toString());
     }
 }
-typedef Cred = {ip:String,port:String,email:String,key:String}

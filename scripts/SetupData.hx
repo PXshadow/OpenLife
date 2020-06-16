@@ -18,14 +18,13 @@ class SetupData
             trace("clone-");
             Sys.command("git clone https://github.com/jasonrohrer/OneLifeData7.git");
         }
-        Sys.setCwd("onelifedata7");
+        Sys.setCwd("OneLifeData7");
         trace("pull-");
         Sys.command("git pull https://github.com/jasonrohrer/OneLifeData7.git --force");
         Sys.command("git fetch --tags");
         var proc = new Process("git for-each-ref --sort=-creatordate --format '%(refname:short)' --count=1 refs/tags/OneLife_v*");
 
         var tag = proc.stdout.readLine();
-        //var tag = proc.stdout.readAll().toString();
         tag = StringTools.trim(tag);
         tag = StringTools.replace(tag,"'","");
         trace("tag = |" + tag + "|");
