@@ -8,9 +8,29 @@ class App extends Engine
     public function new()
     {
         super();
-        cred();
+        //set credentioals
+        if (!cred())
+        {
+            Sys.println("ip:");
+            string = Sys.stdin().readLine();
+            client.ip = string;
+            Sys.println("port:");
+            string = Sys.stdin().readLine();
+            client.port = Std.parseInt(string);
+            Sys.println("email:");
+            string = Sys.stdin().readLine();
+            client.email = string;
+            Sys.println("key");
+            string = Sys.stdin().readLine();
+            client.key = string;
+
+            settings.data.set("email",client.email);
+            settings.data.set("accountKey",client.key);
+            settings.data.set("useCustomServer","1");
+            settings.data.set("customServerAddress",client.ip);
+            settings.data.set("customServerPort",client.port);
+        }
         connect(false);
-        var string = "";
         while (true)
         {
             client.update();
@@ -22,3 +42,4 @@ class App extends Engine
         trace("instance " + instance.toString());
     }
 }
+typedef Cred = {ip:String,port:String,email:String,key:String}

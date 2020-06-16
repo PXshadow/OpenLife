@@ -1,4 +1,5 @@
 package openlife.settings;
+import openlife.resources.Resource;
 import haxe.DynamicAccess;
 import haxe.io.Path;
 import openlife.engine.Engine;

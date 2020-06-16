@@ -52,7 +52,7 @@ class Engine extends EngineHeader
         string = cast obj;
         return true;
     }
-    public function cred()
+    public function cred():Bool
     {
         //settings to use infomation
         if (!settings.fail)
@@ -73,6 +73,10 @@ class Engine extends EngineHeader
             if (valid(settings.data.get("screenHeight"))) window.height = Std.parseInt(string);
             if (valid(settings.data.get("targetFrameRate"))) window.frameRate = Std.parseInt(string);
             #end
+        }else{
+            #if !secret
+            return false;
+            #end
         }
         //by pass settings and force email and key if secret account
         #if secret
@@ -82,6 +86,7 @@ class Engine extends EngineHeader
         client.ip = Secret.ip;
         client.port = Secret.port;
         #end
+        return true;
     }
     public function connect(reconnect:Bool=false)
     {

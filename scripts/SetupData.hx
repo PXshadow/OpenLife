@@ -12,6 +12,7 @@ class SetupData
     }
     public function new()
     {
+        trace("exists 1 " + FileSystem.exists("onelifedata7") + " 2 " + FileSystem.exists("OneLifeData7"));
         if (!FileSystem.exists("onelifedata7") && !FileSystem.exists("OneLifeData7"))
         {
             trace("clone-");
