@@ -12,7 +12,6 @@ class SetupData
     }
     public function new()
     {
-        trace("exists 1 " + FileSystem.exists("onelifedata7") + " 2 " + FileSystem.exists("OneLifeData7"));
         //linux 1 is fals but 2 is true, whitch means case sensitive
         if (FileSystem.exists("onelifedata7") || FileSystem.exists("OneLifeData7"))
         {
