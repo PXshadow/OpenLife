@@ -10,6 +10,7 @@ class App extends Engine
 {
     var player:PlayerInstance;
     var players = new IntMap<PlayerInstance>();
+    var names = new IntMap<String>();
     var program:Program;
     var count:Int = 0;
     public function new()
@@ -24,6 +25,17 @@ class App extends Engine
             client.update();
             Sys.sleep(1/30);
         }
+    }
+    override function says(id:Int, text:String, curse:Bool) {
+        super.says(id, text, curse);
+        if (text == "hello")
+        {
+            program.say("Hello " + names.get(id));
+        }
+    }
+    override function playerName(id:Int, firstName:String, lastName:String) {
+        super.playerName(id, firstName, lastName);
+        names.set(id,firstName + " " + lastName);
     }
     override function mapChunk(instance:MapInstance) {
         super.mapChunk(instance);
