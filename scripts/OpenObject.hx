@@ -10,9 +10,9 @@ class OpenObject
     var path:String = "./OneLifeData7/";
     public function new()
     {
-        if (!FileSystem.exists(path))
+        if (!FileSystem.exists("./OneLifeData7/objects/nextObjectNumber.txt"))
         {
-            trace("OneLifeData7 folder not found");
+            trace("directory not found");
             return;
         }
         Execute.run(path + "objects/" + getId() + ".txt");
