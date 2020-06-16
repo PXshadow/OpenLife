@@ -28,6 +28,7 @@ class App extends Engine
     }
     override function says(id:Int, text:String, curse:Bool) {
         super.says(id, text, curse);
+        trace('id $id say $text');
         if (text == "hello")
         {
             program.say("Hello " + names.get(id));
