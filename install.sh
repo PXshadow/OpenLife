@@ -4,9 +4,9 @@ echo "install libs for targets"
 haxelib install hxjava
 haxelib install hxnodejs
 haxelib install hxcs
-echo "setting up lime"
-haxelib run lime setup
-echo "test neko"
-lime test neko
+echo "downloading data"
+haxe setup_data.hxml
+echo "test app"
+haxe app.hxml
 echo "finished"
 sleep 2
