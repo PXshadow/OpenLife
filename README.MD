@@ -20,12 +20,12 @@ To Developers:
 
 * **Scripting:** Allows programmers to easily build programs on top of the engine architecture.
 
-* **High performance resource acess:** Uses multi threadeding and object baking / skimming in order to make the boot up and dealing the files very simple.
+* **High performance resource access:** Uses multi threading and object baking / skimming in order to make the boot up and dealing with the files very simple.
 
 
-* **Cross compilied languages:** Compiles to [Java](https://haxe.org/documentation/platforms/java.html), [C#](https://haxe.org/documentation/platforms/csharp.html), [Python](https://haxe.org/documentation/platforms/python.html), [Lua](https://haxe.org/manual/target-lua-getting-started.html), [Php](https://haxe.org/documentation/platforms/php.html)
+* **Cross compiled languages:** Compiles to [Java](https://haxe.org/documentation/platforms/java.html), [C#](https://haxe.org/documentation/platforms/csharp.html), [Python](https://haxe.org/documentation/platforms/python.html), [Lua](https://haxe.org/manual/target-lua-getting-started.html), [Php](https://haxe.org/documentation/platforms/php.html)
 
-* **Thoughtful, concise and efficent code:** Codebase continues to become as minimalistic as possible while also keeping the level of abstraction low.
+* **Thoughtful, concise and efficient code:** Codebase continues to become as minimalist as possible while also keeping the level of abstraction low.
 
 
 Getting Started
