@@ -7,10 +7,10 @@ class OpenObject
     {
         new OpenObject();
     }
-    var path:String = "OneLifeData7/";
+    var path:String = "./OneLifeData7/";
     public function new()
     {
-        if (FileSystem.exists("OneLifeData7"))
+        if (!FileSystem.exists(path))
         {
             trace("OneLifeData7 folder not found");
             return;
