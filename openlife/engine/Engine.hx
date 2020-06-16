@@ -135,7 +135,7 @@ class Engine extends EngineHeader
             //-1 is permanent, -2 is permanent but not new so should be skipped
             case PLAYER_UPDATE:
             var list:Array<PlayerInstance> = [];
-            for (data in input.slice(0,input.length - 1)) 
+            for (data in input) 
             {
                 list.push(new PlayerInstance(data.split(" ")));
             }

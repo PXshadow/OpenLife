@@ -98,7 +98,7 @@ class Client
         var array = data.split("\n");
         if (array.length == 0) return;
         tag = array[0];
-        message(tag,array.slice(1,array.length));
+        message(tag,array.slice(1,array.length > 2 ? array.length - 1 : array.length));
     }
     public function alive()
     {

@@ -35,6 +35,7 @@ class App extends Engine
     }
     override function playerName(id:Int, firstName:String, lastName:String) {
         super.playerName(id, firstName, lastName);
+        trace("names " + firstName + " lastname " + lastName);
         names.set(id,firstName + " " + lastName);
     }
     override function mapChunk(instance:MapInstance) {
