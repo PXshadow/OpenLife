@@ -23,13 +23,6 @@ class App extends Engine
         {
             client.update();
             Sys.sleep(1/30);
-            if (count++ > 30)
-            {
-                count = 0;
-                trace('player step!');
-                //every 2 seconds move main player left
-                program.step(player.x,player.y,++player.done_moving_seqNum,-1,0);
-            }
         }
     }
     override function mapChunk(instance:MapInstance) {
@@ -43,13 +36,13 @@ class App extends Engine
             players.set(instance.p_id,instance);
             if (player != null && instance.p_id == player.p_id)
             {
-                trace('MAIN PLAYER UPDATED\n$player');
+                //main player updated
             }
         }
         if (player == null)
         {
             player = instances.pop();
-            trace('MAIN PLAYER\n$player');
+            //new player set
         }
     }
     
