@@ -16,14 +16,14 @@ class Settings
     {
         var a = value.keys();
         var b = data.keys();
-        if (a.length != b.length)
+        trace('a ${a.length} b ${b.length}');
+        if (a.length > b.length)
         {
             var name = a[a.length - 1] + ".ini";
             var obj = value.get(name);
             #if sys
-            var file:FileOutput;
             //set settings
-            file = File.write(Engine.dir + "settings/" + name,false);
+            var file = File.write(Engine.dir + "settings/" + name,false);
             file.writeString(obj);
             file.close();
             #end
@@ -32,24 +32,19 @@ class Settings
             
             #end
         }
-        data = value;
-        return data;
+        return data = value;
     }
-    public var fail:Bool = true;
     public function new()
     {
         var path:String = Engine.dir + "settings/";
         #if sys
-        if (FileSystem.exists(path) && FileSystem.isDirectory(path))
+        if (!FileSystem.exists(path))
         {
-            fail = false;
-            for (name in FileSystem.readDirectory(path))
-            {
-                Reflect.setField(data,Path.withoutExtension(name),File.getContent(path + name));
-            }
-        }else{
-            fail = true;
-            trace("settings failed");
+            FileSystem.createDirectory(Engine.dir + "settings");
+        }
+        for (name in FileSystem.readDirectory(path))
+        {
+            Reflect.setField(data,Path.withoutExtension(name),File.getContent(path + name));
         }
         #end
     }

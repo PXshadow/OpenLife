@@ -3,6 +3,7 @@ cred.json
 modules
 extension
 export
+cred
 terminal.n
 output.n
 login.txt

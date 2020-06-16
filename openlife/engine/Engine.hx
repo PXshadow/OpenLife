@@ -54,30 +54,31 @@ class Engine extends EngineHeader
     }
     public function cred():Bool
     {
+        var bool:Bool = false;
         //settings to use infomation
-        if (!settings.fail)
+        if (valid(settings.data.get("email")))
         {
-            //account
-            if (valid(settings.data.get("email"))) client.email = string;
-            if (valid(settings.data.get("accountKey"))) client.key = string;
-            if (valid(settings.data.get("useCustomServer")) && string == "1")
-            {
-                if (valid(settings.data.get("customServerAddress"))) client.ip = string;
-                if (valid(settings.data.get("customServerPort"))) client.port = Std.parseInt(string);
-            }
-            //window
-            #if visual
-            if (valid(settings.data.get("borderless"))) window.borderless = string == "1";
-            //if (valid(settings.data.get("fullscreen"))) stage.window.fullscreen = string == "1";
-            if (valid(settings.data.get("screenWidth"))) window.width = Std.parseInt(string);
-            if (valid(settings.data.get("screenHeight"))) window.height = Std.parseInt(string);
-            if (valid(settings.data.get("targetFrameRate"))) window.frameRate = Std.parseInt(string);
-            #end
-        }else{
-            #if !secret
-            return false;
-            #end
+            client.email = string;
+            bool = true;
         }
+        if (valid(settings.data.get("accountKey"))) 
+        {
+            client.key = string;
+            bool = true;
+        }
+        if (valid(settings.data.get("useCustomServer")) && string == "1")
+        {
+            if (valid(settings.data.get("customServerAddress"))) client.ip = string;
+            if (valid(settings.data.get("customServerPort"))) client.port = Std.parseInt(string);
+        }
+        //window
+        #if visual
+        if (valid(settings.data.get("borderless"))) window.borderless = string == "1";
+        //if (valid(settings.data.get("fullscreen"))) stage.window.fullscreen = string == "1";
+        if (valid(settings.data.get("screenWidth"))) window.width = Std.parseInt(string);
+        if (valid(settings.data.get("screenHeight"))) window.height = Std.parseInt(string);
+        if (valid(settings.data.get("targetFrameRate"))) window.frameRate = Std.parseInt(string);
+        #end
         //by pass settings and force email and key if secret account
         #if secret
         trace("set secret");
@@ -85,8 +86,9 @@ class Engine extends EngineHeader
         client.key = Secret.key;
         client.ip = Secret.ip;
         client.port = Secret.port;
+        bool = true;
         #end
-        return true;
+        return bool;
     }
     public function connect(reconnect:Bool=false)
     {
@@ -165,9 +167,9 @@ class Engine extends EngineHeader
             }
             case MAP_CHANGE:
             var change:MapChange;
-            for (data in input)
+            for (i in 0...input.length - 1)
             {
-                change = new MapChange(data.split(" "));
+                change = new MapChange(input[i].split(" "));
                 Engine.data.map.object.set(change.oldX,change.oldY,[0]);
                 Engine.data.map.object.set(change.x,change.y,change.id);
                 mapChange(change);

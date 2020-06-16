@@ -7,20 +7,15 @@ class OpenObject
     {
         new OpenObject();
     }
-    var path:String;
+    var path:String = "OneLifeData7/";
     public function new()
     {
-        while (!getPath()) trace("Not a valid path, needs to be where the main game directory is ./objects");
-        while (true)
+        if (FileSystem.exists("OneLifeData7"))
         {
-            Execute.run(path + "objects/" + getId() + ".txt");
+            trace("OneLifeData7 folder not found");
+            return;
         }
-    }
-    private function getPath():Bool
-    {
-        trace("input path:");
-        path = Sys.stdin().readLine().normalize().addTrailingSlash();
-        return (FileSystem.exists(path + "objects") && FileSystem.isDirectory(path + "objects"));
+        Execute.run(path + "objects/" + getId() + ".txt");
     }
     private function getId()
     {
