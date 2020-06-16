@@ -20,7 +20,7 @@ class Client
     #end
     //interact to be able to login to game
     var data:String = "";
-    var aliveTimer:Timer;
+    var aliveStamp:Float = 0;
     var connected:Bool = false;
     public var message:(tag:ClientTag,input:Array<String>)->Void;
     public var ip:String = "localhost";
@@ -46,6 +46,7 @@ class Client
     }
     public function update()
     {
+        if (Timer.stamp() - aliveStamp >= 15) alive();
         if (!connected) 
         {
             //trace("unconnected for update");
@@ -103,6 +104,7 @@ class Client
     {
         send("KA 0 0");
         send("PING 0 0 " + pingInt++);
+        aliveStamp = Timer.stamp();
     }
     public function login(tag:ClientTag,input:Array<String>) 
     {
@@ -159,10 +161,7 @@ class Client
             return;
         }
         #end
-        //alive timer
-        if (aliveTimer != null) aliveTimer.stop();
-        aliveTimer = new Timer(15 * 1000);
-        aliveTimer.run = alive;
+        aliveStamp = Timer.stamp();
     }
     var compressIndex:Int = 0;
     var dataCompressed:Bytes;
@@ -216,6 +215,5 @@ class Client
         trace("socket disconnected");
         #end
         connected = false;
-        if (aliveTimer != null) aliveTimer.stop();
     }
 }
