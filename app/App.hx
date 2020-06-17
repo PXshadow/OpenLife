@@ -76,9 +76,21 @@ class App extends Engine
         if (player.p_id == id)
         {
             trace("you have died!");
+            reborn();
+            
         }else{
             trace("player " + names.get(id) + " has died");
         }
+    }
+    public function reborn()
+    {
+        players.clear();
+        names.clear();
+        player = null;
+        Engine.data.clear();
+        client.close();
+        connect();
+        trace("NEW CONNECT");
     }
     override function playerName(id:Int, firstName:String, lastName:String) {
         super.playerName(id, firstName, lastName);
@@ -113,11 +125,16 @@ class App extends Engine
                 }
                 instance.forced = false;
             }
+            if (instance.p_id == player.p_id)
+            {
+                trace('my player ${player.age}');
+            }
         }
         if (player == null)
         {
             player = instances.pop();
             //new player set
+            trace('new player ${player.age}');
         }
     }
     
