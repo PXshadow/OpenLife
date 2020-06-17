@@ -29,10 +29,47 @@ class App extends Engine
     override function says(id:Int, text:String, curse:Bool) {
         super.says(id, text, curse);
         trace('id $id say $text');
-        if (text == "HELLO")
+        if (text.indexOf("HI") > -1 || text.indexOf("HELLO") > -1 || text.indexOf("HEY") > -1)
         {
-            program.say("HELLO " + names.get(id));
+            program.say("HI");
+            return;
         }
+        if (text.indexOf("FOLLOW") > -1)
+        {
+            //follow script of mother
+            return;
+        }
+        if (text.indexOf("UP") > -1)
+        {
+            program.say("UP");
+            program.step(player,0,1);
+            return;
+        }
+        if (text.indexOf("DOWN") > -1)
+        {
+            program.say("DOWN");
+            program.step(player,0,-1);
+            return;
+        }
+        if (text.indexOf("LEFT") > -1)
+        {
+            program.say("LEFT");
+            program.step(player,-1,0);
+            return;
+        }
+        if (text.indexOf("RIGHT") > -1)
+        {
+            program.say("RIGHT");
+            program.step(player,1,0);
+            return;
+        }
+        if (text.indexOf("USE") > -1)
+        {
+            program.say("USE");
+            program.use(player.x,player.y);
+            return;
+        }
+        program.say("HELLO " + names.get(id));
     }
     override function playerName(id:Int, firstName:String, lastName:String) {
         super.playerName(id, firstName, lastName);
@@ -43,14 +80,29 @@ class App extends Engine
         super.mapChunk(instance);
         trace("instance " + instance.toString());
     }
+    override function foodChange(store:Int, capacity:Int, ateId:Int, fillMax:Int, speed:Float, responsible:Int) {
+        super.foodChange(store, capacity, ateId, fillMax, speed, responsible);
+        if (store/capacity <= 0.25)
+        {
+            //less than 10% food
+            program.say("F");
+        }
+    }
     override function playerUpdate(instances:Array<PlayerInstance>) {
         super.playerUpdate(instances);
+        var inst:PlayerInstance;
         for (instance in instances)
         {
+            inst = players.get(instance.p_id);
             players.set(instance.p_id,instance);
-            if (player != null && instance.p_id == player.p_id)
+            if (inst != null)
             {
-                //main player updated
+                if (!instance.forced)
+                {
+                    instance.x = inst.x;
+                    instance.y = inst.y;
+                }
+                instance.forced = false;
             }
         }
         if (player == null)

@@ -145,9 +145,11 @@ class Program
         send(JUMP,0,0);
         return this;
     }
-    public function step(x:Int,y:Int,seq:Int,mx:Int,my:Int):Program
+    public function step(player:openlife.data.object.player.PlayerInstance,mx:Int,my:Int):Program
     {
-        send(MOVE,x,y,'@$seq $mx $my');
+        player.x += mx;
+        player.y += my;
+        send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} $mx $my');
         return this;
     }
     /**
