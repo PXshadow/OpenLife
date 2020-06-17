@@ -71,6 +71,15 @@ class App extends Engine
         }
         program.say("HELLO " + names.get(id));
     }
+    override function grave(x:Int, y:Int, id:Int) {
+        super.grave(x, y, id);
+        if (player.p_id == id)
+        {
+            trace("you have died!");
+        }else{
+            trace("player " + names.get(id) + " has died");
+        }
+    }
     override function playerName(id:Int, firstName:String, lastName:String) {
         super.playerName(id, firstName, lastName);
         trace("names " + firstName + " lastname " + lastName);
