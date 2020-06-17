@@ -125,7 +125,7 @@ class App extends Engine
                 }
                 instance.forced = false;
             }
-            if (instance.p_id == player.p_id)
+            if (player != null && instance.p_id == player.p_id)
             {
                 trace('my player ${player.age}');
             }
