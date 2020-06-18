@@ -10,7 +10,7 @@ import openlife.data.GameData;
 import haxe.io.Path;
 import openlife.client.ClientTag;
 //
-class Engine extends EngineHeader
+class Engine 
 {
     /**
      * static game data
@@ -25,8 +25,10 @@ class Engine extends EngineHeader
     var string:String;
     public static var dir:String;
     var mapInstance:MapInstance;
-    public function new()
+    var header:EngineHeader;
+    public function new(header:EngineHeader)
     {
+        this.header = header;
         data = new GameData();
         settings = new Settings();
         client = new Client();
@@ -90,6 +92,7 @@ class Engine extends EngineHeader
         #end
         return bool;
     }
+
     public function connect(reconnect:Bool=false)
     {
         client.accept = function()
@@ -128,7 +131,7 @@ class Engine extends EngineHeader
                     //ttl_sec exists
                     secs = Std.parseInt(line.substr(index2 + 1));
                 }
-                emot(Std.parseInt(line.substring(0,index)),Std.parseInt(line.substring(index + 1,index2)),secs);
+                header.emot(Std.parseInt(line.substring(0,index)),Std.parseInt(line.substring(index + 1,index2)),secs);
             }
             //p_id emot_index ttl_sec
             //ttl_sec is optional, and specifies how long the emote should be shown
@@ -139,14 +142,14 @@ class Engine extends EngineHeader
             {
                 list.push(new PlayerInstance(data.split(" ")));
             }
-            playerUpdate(list);
+            header.playerUpdate(list);
             case PLAYER_MOVES_START:
             var a:Array<String> = [];
             for (string in input)
             {
                 a = string.split(" ");
                 if (a.length < 8 || a.length % 2 != 0) continue;
-                playerMoveStart(new PlayerMove(a));
+                header.playerMoveStart(new PlayerMove(a));
             }
             case MAP_CHUNK:
             if (mapInstance == null)
@@ -162,7 +165,7 @@ class Engine extends EngineHeader
                 client.compress(Std.parseInt(compress[0]),Std.parseInt(compress[1]));
             }else{
                 data.map.setRect(mapInstance,input[0]);
-                mapChunk(mapInstance);
+                header.mapChunk(mapInstance);
                 mapInstance = null;
             }
             case MAP_CHANGE:
@@ -172,24 +175,24 @@ class Engine extends EngineHeader
                 change = new MapChange(input[i].split(" "));
                 Engine.data.map.object.set(change.oldX,change.oldY,[0]);
                 Engine.data.map.object.set(change.x,change.y,change.id);
-                mapChange(change);
+                header.mapChange(change);
             }
             case HEAT_CHANGE:
             //heat food_time indoor_bonus
             var array = input[0].split(" ");
-            heatChange(Std.parseFloat(array[0]),Std.parseFloat(array[1]),Std.parseFloat(array[2]));
+            header.heatChange(Std.parseFloat(array[0]),Std.parseFloat(array[1]),Std.parseFloat(array[2]));
             case FOOD_CHANGE:
             var array = input[0].split(" ");
             //foodPercent = Std.parseInt(input[0])/Std.parseInt(input[1]);
             //food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
             case FRAME:
-            frame();
+            header.frame();
             case PLAYER_SAYS:
             var index:Int = 0;
             for (line in input)
             {
                 index = line.indexOf("/");
-                says(Std.parseInt(line.substring(0,index)),line.substr(index + 2),line.substr(index + 1,1) == "1");
+                header.says(Std.parseInt(line.substring(0,index)),line.substr(index + 2),line.substr(index + 1,1) == "1");
             }
             /*array = input.split("/");
             //trace("id " + array[0]);
@@ -200,31 +203,31 @@ class Engine extends EngineHeader
             for (line in input)
             {
                 array = line.split(" ");
-                saysLocation(Std.parseInt(array[0]),Std.parseInt(array[1]),array[2]);
+                header.saysLocation(Std.parseInt(array[0]),Std.parseInt(array[1]),array[2]);
             }
             case BAD_BIOMES:
             var index:Int = 0;
             for (line in input)
             {
                 index = line.indexOf(" ");
-                badBiomes(Std.parseInt(line.substring(0,index)),line.substr(index + 1));
+                header.badBiomes(Std.parseInt(line.substring(0,index)),line.substr(index + 1));
             }
             case PLAYER_OUT_OF_RANGE:
             //player is out of range
             var list:Array<Int> = [];
             for (string in input) list.push(Std.parseInt(string));
-            playerOutOfRange(list);
+            header.playerOutOfRange(list);
             case BABY_WIGGLE:
             var list:Array<Int> = [];
             for (string in input) list.push(Std.parseInt(string));
-            babyWiggle(list);
+            header.babyWiggle(list);
             case LINEAGE:
             //p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
             //included at the end with the eve= tag in front of it.
             var array:Array<String> = [];
             for (line in input)
             {
-                lineage(line.split(" "));
+                header.lineage(line.split(" "));
             }
             case NAME:
             //p_id first_name last_name last_name may be ommitted.
@@ -241,11 +244,11 @@ class Engine extends EngineHeader
                     //no last name
                     lastName = "";
                 }
-                playerName(Std.parseInt(array[0]),array[1],lastName);
+                header.playerName(Std.parseInt(array[0]),array[1],lastName);
             }
             case APOCALYPSE:
             //Indicates that an apocalypse is pending.  Gives client time to show a visual effect.
-            apocalypse();
+            header.apocalypse();
             case APOCALYPSE_DONE:
             //Indicates that an apocalypse is now over.  Client should go back to displaying world.
             case DYING:
@@ -261,24 +264,24 @@ class Engine extends EngineHeader
                }else{
                    sick = true;
                }
-               dying(Std.parseInt(line.substring(0,index)),sick);
+               header.dying(Std.parseInt(line.substring(0,index)),sick);
             }
-            apocalypseDone();
+            header.apocalypseDone();
             case HEALED:
             //p_id player healed no longer dying.
             for (line in input)
             {
-                healed(Std.parseInt(line));
+                header.healed(Std.parseInt(line));
             }
             case POSSE_JOIN: //FINISH tommrow
             //Indicates that killer joined posse of target.
             //If target = 0, killer has left the posse.
             var array = input[0].split(" ");
-            posse(Std.parseInt(array[0]),Std.parseInt(array[1]));
+            header.posse(Std.parseInt(array[0]),Std.parseInt(array[1]));
             case MONUMENT_CALL:
             //MN x y o_id monument call has happened at location x,y with the creation object id
             var array = input[0].split(" ");
-            monument(Std.parseInt(array[0]),Std.parseInt(array[1]),Std.parseInt(array[2]));
+            header.monument(Std.parseInt(array[0]),Std.parseInt(array[1]),Std.parseInt(array[2]));
             case GRAVE:
             //x y p_id
             var x:Int = Std.parseInt(input[0]);
@@ -308,7 +311,7 @@ class Engine extends EngineHeader
             //trace("ping: " + client.ping);
             case HOMELAND:
             var array = input[0].split(" ");
-            homeland(Std.parseInt(array[0]),Std.parseInt(array[1]),array[2]);
+            header.homeland(Std.parseInt(array[0]),Std.parseInt(array[1]),array[2]);
             default:
         }
     }
