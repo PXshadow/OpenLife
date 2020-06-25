@@ -1,85 +1,46 @@
 package scripts;
-
+import haxe.io.Path;
+import sys.FileSystem;
+import sys.io.File;
 class FileTools {
-	public static function deleteDirectoryRec(path:String) {
-		var fp = FilePath.fromDir(path);
-		fp.useSlashes();
-		path = fp.directory;
+	public static function copyDir(path:String,newpath:String)
+	{
+		path = Path.addTrailingSlash(path);
+		newpath = Path.addTrailingSlash(newpath);
+		if (FileSystem.exists(path) && FileSystem.isDirectory(path))
+		{
+			if (!FileSystem.exists(newpath)) FileSystem.createDirectory(newpath);
+			var dir = FileSystem.readDirectory(path);
+			for (name in dir)
+			{
+				if (name.substring(0,1) == ".") continue; //skip git
 
-		if( !sys.FileSystem.exists(path) )
-			return;
-
-		try {
-			var all = listAllFilesRec(path);
-
-			// Remove files
-			for(f in all.files)
-				sys.FileSystem.deleteFile(f);
-
-			// Remove folders
-			all.dirs.reverse();
-			for(path in all.dirs)
-				sys.FileSystem.deleteDirectory(path);
-		}
-		catch( err:Dynamic ) {
-			throw "Couldn't delete directory "+path+" (ERR: "+err+")";
-		}
-    }
-    
-	public static function copyDirectoryRec(from:String, to:String) {
-		var to = dn.FilePath.extractDirWithSlash(to,true);
-		var all = listAllFilesRec(from);
-
-		var dirName = FilePath.fromDir(from).getLastDirectory();
-		if( dirName=="." || dirName==".." )
-			throw "Unsupported operation with a path terminated by dots ("+from+")";
-
-		sys.FileSystem.createDirectory(to+dirName);
-		to+=dirName+"/";
-
-		// Create directory structure
-		for(d in all.dirs) {
-			if( d.indexOf(from)==0 )
-				d = d.substr(from.length);
-			while( d.charAt(0)=="/" )
-				d = d.substr(1);
-
-			if( d.length==0 )
-				continue;
-
-			sys.FileSystem.createDirectory(to+d);
-		}
-
-		// Copy files
-		for(f in all.files) {
-			var target = f;
-			if( target.indexOf(from)==0 )
-				target = target.substr(from.length);
-			while( target.charAt(0)=="/" )
-				target = target.substr(1);
-
-			sys.io.File.copy(f, to+target);
-		}
-    }
-    
-	public static function listAllFilesRec(path:String) : { dirs:Array<String>, files:Array<String> } {
-		// List elements
-		var pendingDirs = [path];
-		var dirs = [];
-		var files = [];
-		while( pendingDirs.length>0 ) {
-			var cur = pendingDirs.shift();
-			dirs.push( FilePath.fromDir(cur).full );
-			for( e in sys.FileSystem.readDirectory(cur) ) {
-				if( sys.FileSystem.isDirectory(cur+"/"+e) )
-					pendingDirs.push(cur+"/"+e);
-				else
-					files.push(  FilePath.fromDir(cur+"/"+e).full );
+				if (FileSystem.isDirectory(path + name))
+				{
+					FileSystem.createDirectory(newpath + name);
+				}else{
+					File.copy(path + name,newpath + name);
+				}
 			}
 		}
-		return {
-			dirs: dirs,
-			files: files,
+	}
+	public static function deleteDir(path:String)
+	{
+		if (FileSystem.exists(path) && FileSystem.isDirectory(path))
+		{
+			var dir = FileSystem.readDirectory(path);
+			var i:Int = 0;
+			for (name in dir)
+			{
+				if (name.substring(0,1) == ".") continue; //skip git
+
+				if (FileSystem.isDirectory(path + name))
+				{
+					deleteDir(path + name);
+				}else{
+					FileSystem.deleteFile(path + name);
+				}
+			}
 		}
 	}
 }

@@ -64,6 +64,7 @@ class App extends Engine implements EngineHeader
             player = instances.pop();
             //new player set
         }
+        
     } //PLAYER_UPDATE
     public function playerMoveStart(move:PlayerMove)
     {

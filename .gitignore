@@ -10,6 +10,7 @@ login.txt
 assets/data
 extensions
 .vscode
+.DS_Store
 dir
 mf
 serverDesign.md
