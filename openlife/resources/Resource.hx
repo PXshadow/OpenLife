@@ -16,6 +16,14 @@ class Resource
     {
         return getImage("sprites",'$id');
     }
+    public static function graphicImage(name:String):Bytes
+    {
+        return getImage("graphics",name);
+    }
+    public static function languageData(name:String):String
+    {
+        return getContent("languages",name);
+    }
     public static function animation(id:Int,i:Int):String
     {
         try {
