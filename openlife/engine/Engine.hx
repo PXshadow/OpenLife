@@ -26,8 +26,9 @@ class Engine
     public static var dir:String;
     var mapInstance:MapInstance;
     var header:EngineHeader;
-    public function new(header:EngineHeader)
+    public function new(header:EngineHeader,dir:String="")
     {
+        Engine.dir = dir;
         this.header = header;
         data = new GameData();
         settings = new Settings();
