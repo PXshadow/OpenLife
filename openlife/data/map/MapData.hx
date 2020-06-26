@@ -7,25 +7,33 @@ class MapData
     /**
      * Biome 2D array, id of ground
      */
-    public var biome:ArrayDataInt = new ArrayDataInt();
+    public var biome:ArrayDataInt;
     /**
      * Floor 2D array, id of floor
      */
-    public var floor:ArrayDataInt = new ArrayDataInt();
+    public var floor:ArrayDataInt;
     /**
      * Object 2D array, container format for object
      */
-    public var object:ArrayDataArrayInt = new ArrayDataArrayInt();
+    public var object:ArrayDataArrayInt;
     
     //all chunks combined
-    public var x:Int = 999999999;
-    public var y:Int = 999999999;
+    public var x:Int;
+    public var y:Int;
     //max pos
-    public var mx:Int = -999999999;
-    public var my:Int = -999999999;
+    public var mx:Int;
+    public var my:Int;
     public function new()
     {
-        
+        clear();   
+    }
+    public function clear()
+    {
+        mx = my = -999999999;
+        y = x = 999999999;
+        biome = new ArrayDataInt();
+        floor = new ArrayDataInt();
+        object = new ArrayDataArrayInt();
     }
     /**
      * Set map chunk

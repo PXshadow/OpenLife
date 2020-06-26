@@ -37,6 +37,41 @@ class ObjectBake
         sys.io.File.saveContent(Engine.dir + "bake.res",Std.string(Engine.data.nextObjectNumber));
         #end
     }
+    /**
+     * Generate object data
+     */
+    public function objectList():Vector<Int>
+    {
+        #if sys
+        if (!sys.FileSystem.exists(Engine.dir + "objects/nextObjectNumber.txt")) 
+        {
+            trace("object data failed");
+            nextObjectNumber = 0;
+            return null;
+        }
+        //nextobject
+        nextObjectNumber = Std.parseInt(sys.io.File.getContent(Engine.dir + "objects/nextObjectNumber.txt"));
+        //go through objects
+        var list:Array<Int> = [];
+        var num:Int = 0;
+        for (path in sys.FileSystem.readDirectory(Engine.dir + "objects"))
+        {
+            num = Std.parseInt(Path.withoutExtension(path));
+            if (num > 0) 
+            {
+                list.push(num);
+            }
+        }
+        list.sort(function(a:Int,b:Int)
+        {
+            if (a > b) return 1;
+            return -1;
+        });
+        return Vector.fromArrayCopy(list);
+        #else
+        return Vector.fromArrayCopy([]);
+        #end
+    }
     private function objectData(vector:Vector<Int>)
     {
         var int = Engine.data.nextObjectNumber;

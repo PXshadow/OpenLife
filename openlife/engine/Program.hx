@@ -2,7 +2,6 @@ package openlife.engine;
 import openlife.data.Pos;
 import openlife.client.Client;
 import haxe.Timer;
-import openlife.data.GameData;
 import openlife.server.ServerTag;
 import haxe.crypto.Base64;
 

@@ -1,4 +1,5 @@
 package openlife.engine;
+import openlife.data.map.MapData;
 import openlife.data.object.player.PlayerMove;
 import openlife.data.Pos;
 import openlife.data.object.player.PlayerInstance;
@@ -6,7 +7,6 @@ import openlife.data.map.MapChange;
 import openlife.data.map.MapInstance;
 import openlife.client.Client;
 import openlife.settings.Settings;
-import openlife.data.GameData;
 import haxe.io.Path;
 import openlife.client.ClientTag;
 //
@@ -15,9 +15,9 @@ class Engine
     /**
      * static game data
      */
-    public static var data:GameData;
+    public var map:MapData;
     public var settings:Settings;
-    public static var program:Program;
+    public var program:Program;
     public var client:Client;
     /**
      * Used for string tool functions
@@ -30,7 +30,7 @@ class Engine
     {
         Engine.dir = dir;
         this.header = header;
-        data = new GameData();
+        map = new MapData();
         settings = new Settings();
         client = new Client();
         program = new Program(client);
@@ -165,7 +165,7 @@ class Engine
                 mapInstance.y = Std.parseInt(instance[3]);
                 client.compress(Std.parseInt(compress[0]),Std.parseInt(compress[1]));
             }else{
-                data.map.setRect(mapInstance,input[0]);
+                map.setRect(mapInstance,input[0]);
                 header.mapChunk(mapInstance);
                 mapInstance = null;
             }
@@ -174,8 +174,8 @@ class Engine
             for (i in 0...input.length - 1)
             {
                 change = new MapChange(input[i].split(" "));
-                Engine.data.map.object.set(change.oldX,change.oldY,[0]);
-                Engine.data.map.object.set(change.x,change.y,change.id);
+                map.object.set(change.oldX,change.oldY,[0]);
+                map.object.set(change.x,change.y,change.id);
                 header.mapChange(change);
             }
             case HEAT_CHANGE:

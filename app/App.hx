@@ -13,7 +13,6 @@ class App extends Engine implements EngineHeader
     var player:PlayerInstance;
     var players = new IntMap<PlayerInstance>();
     var names = new IntMap<String>();
-    var program:Program;
     public function new()
     {
         super(this);
@@ -32,7 +31,7 @@ class App extends Engine implements EngineHeader
         players.clear();
         names.clear();
         player = null;
-        Engine.data.clear();
+        map.clear();
         client.close();
         connect();
         trace("NEW CONNECT");
