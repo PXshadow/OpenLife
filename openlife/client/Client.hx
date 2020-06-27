@@ -67,6 +67,7 @@ class Client
                 compressIndex += temp.length;
                 if (compressIndex >= compressSize)
                 {
+                    compressProcess();
                     compressIndex = 0;
                     compressSize = 0;
                     data = haxe.zip.Uncompress.run(dataCompressed).toString();
@@ -74,6 +75,7 @@ class Client
                     {
                         data = '$MAP_CHUNK\n$data';
                     }
+                    //data = '$tag\n$data';
                 }else{
                     return;
                 }
@@ -99,6 +101,10 @@ class Client
         if (array.length == 0) return;
         tag = array[0];
         message(tag,array.slice(1,array.length > 2 ? array.length - 1 : array.length));
+    }
+    private function compressProcess()
+    {
+
     }
     public function alive()
     {

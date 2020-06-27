@@ -94,7 +94,7 @@ class Engine
         return bool;
     }
 
-    public function connect(reconnect:Bool=false)
+    public function connect(reconnect:Bool=false,setMessageCallback:Bool=true)
     {
         client.accept = function()
         {
@@ -105,7 +105,7 @@ class Engine
         {
             client.reject = null;
         }
-        client.message = client.login;
+        client.message = setMessageCallback ? client.login : function(_,_) {};
         client.connect(reconnect);
     }
     private function message(tag:ClientTag,input:Array<String>) 

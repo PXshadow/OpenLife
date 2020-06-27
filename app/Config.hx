@@ -1,14 +1,16 @@
+package;
 import openlife.client.Client;
 import sys.FileSystem;
 import haxe.Json;
 import sys.io.File;
 class Config
 {
-    public static function run(client:Client,cred:Bool)
+    public static function run(cred:Bool):Client
     {
         var config:Cred;
         var bool = false;
         var string:String;
+        var client:Client = {ip: "",port: 0,email: "",key: "",legacy: false};
         if (FileSystem.exists("cred"))
         {
             Sys.println("Use existing cred config (y)es (n)o");
@@ -47,6 +49,8 @@ class Config
                 File.saveContent("cred",Json.stringify(config));
             }
         }
+        return client;
     }
 }
+private typedef Client = {ip:String,port:Int,email:String,key:String,legacy:Bool}
 typedef Cred = {legacy:Bool,email:String,key:String,ip:String,port:Int}

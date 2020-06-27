@@ -1,5 +1,6 @@
 package;
 
+import openlife.client.Relay;
 import haxe.ds.IntMap;
 import openlife.data.object.player.PlayerInstance;
 import openlife.engine.Program;
@@ -16,10 +17,20 @@ class App extends Engine implements EngineHeader
     public function new()
     {
         super(this);
+        Sys.println("(y)es (n)o relay system to use a client");
+        var relay:Bool = Sys.stdin().readLine() == "y";
         program = new Program(client);
         var bool:Bool = false;
-        Config.run(client,cred());
-        connect(false);
+        var data = Config.run(cred());
+        if (relay) client = Relay.run(8005);
+        client.ip = data.ip;
+        client.ip = "bigserver2.onehouronelife.com";
+        client.port = data.port;
+        client.legacy = false;
+        client.email = data.email;
+        client.key = data.key;
+        connect(false,false);
+
         while (true)
         {
             client.update();

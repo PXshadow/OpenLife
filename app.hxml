@@ -1,3 +1,4 @@
 -cp app
 -main Main
---interp
+#--interp
+-neko app.n
