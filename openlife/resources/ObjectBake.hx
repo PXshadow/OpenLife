@@ -3,6 +3,7 @@ package openlife.resources;
 import openlife.engine.Engine;
 import haxe.ds.Vector;
 import openlife.data.object.ObjectData;
+import haxe.io.Path;
 
 /**
  * Bakes the numUses objects into files, rather than having to run through all the objects in the start of the session
@@ -15,7 +16,7 @@ class ObjectBake
     {
 
     }
-    private function run(list:Vector<Int>)
+    public function run(list:Vector<Int>)
     {
         #if sys
         if (!sys.FileSystem.exists(Engine.dir + "objects/"))
