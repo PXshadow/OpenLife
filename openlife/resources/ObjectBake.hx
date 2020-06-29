@@ -10,11 +10,12 @@ import openlife.data.object.ObjectData;
  
 class ObjectBake
 {
+    var nextObjectNumber:Int = 0;
     public function new()
     {
-        run();
+
     }
-    private function run()
+    private function run(list:Vector<Int>)
     {
         #if sys
         if (!sys.FileSystem.exists(Engine.dir + "objects/"))
@@ -27,14 +28,14 @@ class ObjectBake
         {
             bakeNum = Std.parseInt(sys.io.File.getContent(Engine.dir + "bake.res"));
         }
-        var vector = Engine.data.objectList();
-        if (bakeNum == Engine.data.nextObjectNumber)
+        
+        if (bakeNum == nextObjectNumber)
         {
             trace("bake complete and set");
             return;
         }
-        objectData(vector);
-        sys.io.File.saveContent(Engine.dir + "bake.res",Std.string(Engine.data.nextObjectNumber));
+        objectData(list);
+        sys.io.File.saveContent(Engine.dir + "bake.res",Std.string(nextObjectNumber));
         #end
     }
     /**
@@ -74,10 +75,9 @@ class ObjectBake
     }
     private function objectData(vector:Vector<Int>)
     {
-        var int = Engine.data.nextObjectNumber;
+        var int = nextObjectNumber;
         var data:ObjectData;
         var dummyObject:ObjectData;
-        var i:Int = 0;
         #if sys
         var file:sys.io.FileOutput = null;
         #end
@@ -99,13 +99,10 @@ class ObjectBake
                     file.flush();
                     file.close();
                     #end
-                    Engine.data.objectMap.set(dummyObject.id,dummyObject);
+                    //Engine.data.objectMap.set(dummyObject.id,dummyObject);
                 }
             }
-            Engine.data.objectMap.set(data.id,data);
-            i++;
-            if(i % 100 == 0)  trace('index: $i');
-            
+            //Engine.data.objectMap.set(data.id,data);
         }
     }
     private static function gen()
