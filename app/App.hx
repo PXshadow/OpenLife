@@ -24,13 +24,12 @@ class App extends Engine implements EngineHeader
         var data = Config.run(cred());
         if (relay) client = Relay.run(8005);
         client.ip = data.ip;
-        client.ip = "bigserver2.onehouronelife.com";
+        //client.ip = "bigserver2.onehouronelife.com";
         client.port = data.port;
         client.legacy = false;
         client.email = data.email;
         client.key = data.key;
         connect(false,false);
-
         while (true)
         {
             client.update();
@@ -67,6 +66,8 @@ class App extends Engine implements EngineHeader
             if (player != null && instance.p_id == player.p_id)
             {
                 trace('my player ${player.age}');
+                program.use(player.x,player.y);
+                program.self();
             }
         }
         if (player == null)

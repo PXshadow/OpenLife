@@ -13,4 +13,8 @@ class Rectangle
         this.width = width;
         this.height = height;
     }
+    public function toString():String
+    {
+        return 'x $x y $y ($width $height)';
+    }
 }
