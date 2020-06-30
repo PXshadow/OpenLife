@@ -59,7 +59,7 @@ class ObjectBake
         for (path in sys.FileSystem.readDirectory(Engine.dir + "objects"))
         {
             num = Std.parseInt(Path.withoutExtension(path));
-            if (num > 0) 
+            if (num > 0 && num < nextObjectNumber) 
             {
                 list.push(num);
             }
@@ -82,6 +82,8 @@ class ObjectBake
         #if sys
         var file:sys.io.FileOutput = null;
         #end
+        var id:Int = 0;
+        var i:Int = 0;
         for (id in vector)
         {
             data = new ObjectData(id);
@@ -104,6 +106,7 @@ class ObjectBake
                 }
             }
             //Engine.data.objectMap.set(data.id,data);
+            if (i++ % 100 == 0 || i > 4071) trace('$id');
         }
     }
     private static function gen()

@@ -16,7 +16,6 @@ class Engine
      * static game data
      */
     public var map:MapData;
-    public var settings:Settings;
     public var program:Program;
     public var client:Client;
     /**
@@ -31,7 +30,6 @@ class Engine
         Engine.dir = dir;
         this.header = header;
         map = new MapData();
-        settings = new Settings();
         client = new Client();
         program = new Program(client);
     }
