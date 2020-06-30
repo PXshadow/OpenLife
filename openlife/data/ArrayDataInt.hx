@@ -2,10 +2,9 @@ package openlife.data;
 /**
  * Int version of ArrayDataArray
  */
- 
-@:generic class ArrayData<T>
+class ArrayDataInt
 {
-    var array:Array<Array<T>> = [];
+    var array:Array<Array<Int>> = [];
     //diffrence
     public var dx:Int = 0;
     public var dy:Int = 0;
@@ -19,17 +18,17 @@ package openlife.data;
         dx = 0;
         dy = 0;
     }
-    public function row(y:Int):Array<T>
+    public function row(y:Int):Array<Int>
     {
         return array[y-dy];
     }
-    public function get(x:Int,y:Int):T
+    public function get(x:Int,y:Int):Int
     {
         if (array[y - dy] != null)
         {
             return array[y - dy][x - dx];
         }
-        return null;
+        return 0;
     }
     public function shiftY(y:Int)
     {
@@ -40,7 +39,7 @@ package openlife.data;
             dy = y;
         }
     }
-    public function shiftX(x:Int,value:T)
+    public function shiftX(x:Int,value:Int)
     {
         if (x < dx)
         {
@@ -49,13 +48,13 @@ package openlife.data;
                 if (array[j] == null) array[j] = [];
                 for (i in 0...dx - x) 
             	{
-                    array[j].unshift(null);
+                    array[j].unshift(0);
                 }
             }
             dx = x;
         }
     }
-    public function set(x:Int,y:Int,value:T)
+    public function set(x:Int,y:Int,value:Int)
     {
         shiftY(y);
         shiftX(x,value);

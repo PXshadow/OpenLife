@@ -1,51 +1,36 @@
 package openlife.data;
 /**
- * 2D generic Array
+ * Int version of ArrayDataArray
  */
-@:generic
-
-class ArrayDataArrayInt
+ 
+@:generic class ArrayData<T>
 {
-    var array:Array<Array<Array<Int>>> = [];
-    /**
-     * diffrence x
-     */
+    var array:Array<Array<T>> = [];
+    //diffrence
     public var dx:Int = 0;
-    /**
-     * diffrence y
-     */
     public var dy:Int = 0;
     public function new()
     {
         array[0] = [];
     }
-    /**
-     * clear Array
-     */
     public function clear()
     {
         array = [];
         dx = 0;
         dy = 0;
     }
-    /**
-     * Get value 2D array
-     * @param x 
-     * @param y 
-     * @return Array<T>
-     */
-    public function get(x:Int,y:Int):Array<Int>
+    public function row(y:Int):Array<T>
+    {
+        return array[y-dy];
+    }
+    public function get(x:Int,y:Int):T
     {
         if (array[y - dy] != null)
         {
             return array[y - dy][x - dx];
         }
-        return [];
+        return -1;
     }
-    /**
-     * shift the array y if negative
-     * @param y 
-     */
     public function shiftY(y:Int)
     {
         //shift
@@ -55,11 +40,7 @@ class ArrayDataArrayInt
             dy = y;
         }
     }
-    /**
-     * shift the array x if negative
-     * @param x 
-     */
-    public function shiftX(x:Int)
+    public function shiftX(x:Int,value:T)
     {
         if (x < dx)
         {
@@ -68,22 +49,16 @@ class ArrayDataArrayInt
                 if (array[j] == null) array[j] = [];
                 for (i in 0...dx - x) 
             	{
-                    array[j].unshift([]);
+                    array[j].unshift(null);
                 }
             }
             dx = x;
         }
     }
-    /**
-     * set property
-     * @param x 
-     * @param y 
-     * @param value set into 2D Array
-     */
-    public function set(x:Int,y:Int,value:Array<Int>)
+    public function set(x:Int,y:Int,value:T)
     {
         shiftY(y);
-        shiftX(x);
+        shiftX(x,value);
         //set value
         if (array[y - dy] == null) array[y - dy] = [];
         array[y - dy][x - dx] = value;
