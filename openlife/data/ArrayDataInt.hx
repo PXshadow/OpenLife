@@ -3,9 +3,9 @@ package openlife.data;
  * Int version of ArrayDataArray
  */
  
-class ArrayDataInt
+@:generic class ArrayData<T>
 {
-    var array:Array<Array<Int>> = [];
+    var array:Array<Array<T>> = [];
     //diffrence
     public var dx:Int = 0;
     public var dy:Int = 0;
@@ -19,17 +19,17 @@ class ArrayDataInt
         dx = 0;
         dy = 0;
     }
-    public function row(y:Int):Array<Int>
+    public function row(y:Int):Array<T>
     {
         return array[y-dy];
     }
-    public function get(x:Int,y:Int):Int
+    public function get(x:Int,y:Int):T
     {
         if (array[y - dy] != null)
         {
             return array[y - dy][x - dx];
         }
-        return -1;
+        return null;
     }
     public function shiftY(y:Int)
     {
@@ -40,7 +40,7 @@ class ArrayDataInt
             dy = y;
         }
     }
-    public function shiftX(x:Int,value:Int)
+    public function shiftX(x:Int,value:T)
     {
         if (x < dx)
         {
@@ -49,13 +49,13 @@ class ArrayDataInt
                 if (array[j] == null) array[j] = [];
                 for (i in 0...dx - x) 
             	{
-                    array[j].unshift(-1);
+                    array[j].unshift(null);
                 }
             }
             dx = x;
         }
     }
-    public function set(x:Int,y:Int,value:Int)
+    public function set(x:Int,y:Int,value:T)
     {
         shiftY(y);
         shiftX(x,value);

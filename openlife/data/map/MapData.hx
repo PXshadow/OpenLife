@@ -1,4 +1,5 @@
 package openlife.data.map;
+import openlife.data.ArrayDataInt.ArrayData;
 import haxe.Timer;
 import haxe.ds.Vector;
 
@@ -7,15 +8,15 @@ class MapData
     /**
      * Biome 2D array, id of ground
      */
-    public var biome:ArrayDataInt;
+    public var biome:ArrayData<Int>;
     /**
      * Floor 2D array, id of floor
      */
-    public var floor:ArrayDataInt;
+    public var floor:ArrayData<Int>;
     /**
      * Object 2D array, container format for object
      */
-    public var object:ArrayDataArrayInt;
+    public var object:ArrayData<Array<Int>>;
     
     //all chunks combined
     public var x:Int;
@@ -31,9 +32,9 @@ class MapData
     {
         mx = my = -999999999;
         y = x = 999999999;
-        biome = new ArrayDataInt();
-        floor = new ArrayDataInt();
-        object = new ArrayDataArrayInt();
+        biome = new ArrayData<Int>();
+        floor = new ArrayData<Int>();
+        object = new ArrayData<Array<Int>>();
     }
     /**
      * Set map chunk

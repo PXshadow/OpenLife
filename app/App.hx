@@ -1,5 +1,6 @@
 package;
 
+import openlife.settings.Settings;
 import openlife.client.Relay;
 import haxe.ds.IntMap;
 import openlife.data.object.player.PlayerInstance;
@@ -21,7 +22,7 @@ class App extends Engine implements EngineHeader
         var relay:Bool = Sys.stdin().readLine() == "y";
         program = new Program(client);
         var bool:Bool = false;
-        var data = Config.run(cred());
+        var data = Config.run(cred(new Settings()));
         if (relay) client = Relay.run(8005);
         client.ip = data.ip;
         //client.ip = "bigserver2.onehouronelife.com";
