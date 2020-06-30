@@ -53,7 +53,7 @@ class Engine
         string = cast obj;
         return true;
     }
-    public function cred():Bool
+    public function cred(settings:Settings):Bool
     {
         var bool:Bool = false;
         //settings to use infomation
