@@ -29,7 +29,6 @@ class TgaData
     public function extract()
     {
         rect = new Rectangle(0,0,data.header.width,data.header.height);
-        //this.bytes = ByteArray.fromBytes(Tools.extract32(data,alpha));
         this.bytes = Tools.extract32(data,alpha);
     }
     public function write(data:Data,output:Output)
