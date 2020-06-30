@@ -9,7 +9,7 @@ class SpriteReuse
     {
         Sys.println("start");
         Engine.dir = "onelifedata7/";
-        var engine = new Engine();
+        var engine = new Engine(null);
         var vector = Engine.data.objectList();
         var data = new Vector<Array<Int>>(vector.length);
         var index:Int = 0;

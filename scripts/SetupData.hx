@@ -35,7 +35,6 @@ class SetupData
                 FileTools.copyDir('OneLifeGameSourceData/$path','OneLifeData7/$path');
             }
         }
-        return;
         if (!FileSystem.exists("OneLifeData7"))
         {
             Sys.println('Repository index $users:');
