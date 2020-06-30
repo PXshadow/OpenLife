@@ -17,24 +17,6 @@ class SetupData
         if (index == null || index < 0 || index > users.length - 1) index = 0;
         var cwd = Sys.getCwd();
         //linux is folder name case senetive
-        if (!FileSystem.exists("OneLifeGameSourceData"))
-        {
-            Sys.command('git clone https://github.com/PXshadow/OneLifeGameSourceData');
-        }
-        Sys.setCwd("OneLifeGameSourceData");
-        var proc = new Process("git pull --force");
-        var line = proc.stdout.readLine();
-        trace('line |$line|');
-        Sys.setCwd(cwd);
-        if (line != "Already up to date." || !FileSystem.exists("OneLifeData7/graphics"))
-        {
-            trace("copy dir!");
-            //copydir
-            for (path in ["graphics","settings","languages"])
-            {
-                FileTools.copyDir('OneLifeGameSourceData/$path','OneLifeData7/$path');
-            }
-        }
         if (!FileSystem.exists("OneLifeData7"))
         {
             Sys.println('Repository index $users:');
@@ -55,5 +37,23 @@ class SetupData
         trace("tag = |" + tag + "|");
         Sys.command('git checkout -q $tag');
         trace("checkout!");
+        if (!FileSystem.exists("OneLifeGameSourceData"))
+        {
+            Sys.command('git clone https://github.com/PXshadow/OneLifeGameSourceData');
+        }
+        Sys.setCwd("OneLifeGameSourceData");
+        var proc = new Process("git pull --force");
+        var line = proc.stdout.readLine();
+        trace('line |$line|');
+        Sys.setCwd(cwd);
+        if (line != "Already up to date." || !FileSystem.exists("OneLifeData7/graphics"))
+        {
+            trace("copy dir!");
+            //copydir
+            for (path in ["graphics","settings","languages"])
+            {
+                FileTools.copyDir('OneLifeGameSourceData/$path','OneLifeData7/$path');
+            }
+        }
     }
 }
