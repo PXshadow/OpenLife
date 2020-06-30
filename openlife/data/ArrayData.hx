@@ -29,7 +29,7 @@ package openlife.data;
         {
             return array[y - dy][x - dx];
         }
-        return -1;
+        return null;
     }
     public function shiftY(y:Int)
     {
