@@ -26,6 +26,25 @@ class TransitionData
 
     public function new(name:String,string:String)
     {
+        /*
+        const data = dataText.split(' ');
+
+        this.newActorID = data[0] || 0;
+        this.newTargetID = data[1] || 0;
+        this.autoDecaySeconds = data[2] || 0;
+        this.actorMinUseFraction = data[3] || 0;
+        this.targetMinUseFraction = data[4] || 0;
+        this.reverseUseActor = data[5] == '1';
+        this.reverseUseTarget = data[6] == '1';
+        this.move = parseInt(data[7] || 0);
+        this.desiredMoveDist = data[8] || 1;
+        this.noUseActor = data[9] == '1';
+        this.noUseTarget = data[10] == '1';
+
+        this.playerActor = this.actorID == 0;
+        this.tool = this.actorID >= 0 && this.actorID == this.newActorID;
+        this.targetRemains = this.targetID >= 0 && this.targetID == this.newTargetID;
+        */
         //name
         var parts = name.split(".")[0].split("_");
         lastUseActor = (parts[2] == "LA");

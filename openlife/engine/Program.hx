@@ -1,4 +1,5 @@
 package openlife.engine;
+import openlife.data.map.MapData;
 import openlife.data.Pos;
 import openlife.client.Client;
 import haxe.Timer;
@@ -144,10 +145,57 @@ class Program
         send(JUMP,0,0);
         return this;
     }
-    public function step(player:openlife.data.object.player.PlayerInstance,mx:Int,my:Int):Program
+    public function move(player:openlife.data.object.player.PlayerInstance,map:MapData,x:Int,y:Int):Program
     {
-        player.x += mx;
-        player.y += my;
+        /*player.x = x;
+        player.y = y;*/
+        var currentX:Int = player.x;
+        var currentY:Int = player.y;
+        var dx:Int = 0;
+        var dy:Int = 0;
+
+        //player 20 20
+        //x y 30 30
+        while (true)
+        {
+            if (currentX != x)
+            {
+                dx = currentX < x ? 1 : -1;
+            }
+            if (currentY != y)
+            {
+                dy = currentY < y ? 1 : -1;
+            }
+            var int:Int = 0;
+            for (i in 0...6)
+            {
+                var array = map.object.get(currentX + dx,currentY + dy);
+                if (array != null)
+                {
+                    var object = new openlife.data.object.ObjectData(array[0]);
+                    if (object.blocksWalking)
+                    {
+
+                    }
+                }
+                switch(int++)
+                {
+                    case 0: //x
+                    //execute
+                    dx *= -1;
+                    case 1: //y
+                    dx *= -1;
+                    dy *= -1;
+                    case 2: //x y
+                    dx *= -1;
+                }
+            }
+            if (currentX == x && currentY == y)
+            {
+                //finished
+                break;
+            }
+        }
         send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} $mx $my');
         return this;
     }
