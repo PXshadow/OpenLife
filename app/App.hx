@@ -17,7 +17,7 @@ class App extends Engine implements EngineHeader
     var names = new IntMap<String>();
     public function new()
     {
-        super(this);
+        super(this,"OneLifeData7/");
         Sys.println("(y)es (n)o relay system to use a client");
         var relay:Bool = Sys.stdin().readLine() == "y";
         program = new Program(client);
@@ -25,12 +25,10 @@ class App extends Engine implements EngineHeader
         var data = Config.run(cred(new Settings()));
         if (relay) client = Relay.run(8005);
         client.ip = data.ip;
-        //client.ip = "bigserver2.onehouronelife.com";
         client.port = data.port;
-        client.legacy = false;
         client.email = data.email;
         client.key = data.key;
-        connect(false,false);
+        connect(false,!relay);
         while (true)
         {
             client.update();
@@ -66,9 +64,7 @@ class App extends Engine implements EngineHeader
             }
             if (player != null && instance.p_id == player.p_id)
             {
-                trace('my player ${player.age}');
-                program.use(player.x,player.y);
-                program.self();
+                
             }
         }
         if (player == null)
@@ -186,7 +182,13 @@ class App extends Engine implements EngineHeader
         trace('id $id say $text');
         if (text.indexOf("HI") > -1 || text.indexOf("HELLO") > -1 || text.indexOf("HEY") > -1)
         {
-            program.say("HI");
+            var name = names.get(id);
+            if (name == null)
+            {
+                program.say("HI");
+            }else{
+                program.say("HI " + name);
+            }
             return;
         }
         if (text.indexOf("FOLLOW") > -1)
@@ -197,25 +199,25 @@ class App extends Engine implements EngineHeader
         if (text.indexOf("UP") > -1)
         {
             program.say("UP");
-            program.step(player,0,1);
+            program.move(player,map,0,1);
             return;
         }
         if (text.indexOf("DOWN") > -1)
         {
             program.say("DOWN");
-            program.step(player,0,-1);
+            program.move(player,map,0,-1);
             return;
         }
         if (text.indexOf("LEFT") > -1)
         {
             program.say("LEFT");
-            program.step(player,-1,0);
+            program.move(player,map,-1,0);
             return;
         }
         if (text.indexOf("RIGHT") > -1)
         {
             program.say("RIGHT");
-            program.step(player,1,0);
+            program.move(player,map,1,0);
             return;
         }
         if (text.indexOf("USE") > -1)

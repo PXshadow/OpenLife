@@ -147,16 +147,23 @@ class Program
     }
     public function move(player:openlife.data.object.player.PlayerInstance,map:MapData,x:Int,y:Int):Program
     {
+        if (Math.abs(player.x - x) > 8 || Math.abs(player.y - y) > 8)
+        {
+            trace("outside of 8 tile range");
+            return this;
+        }
         /*player.x = x;
         player.y = y;*/
         var currentX:Int = player.x;
         var currentY:Int = player.y;
         var dx:Int = 0;
         var dy:Int = 0;
-
+        var mx:Array<Int> = [];
+        var my:Array<Int> = [];
+        var finish:Bool = false;
         //player 20 20
         //x y 30 30
-        while (true)
+        for (i in 0...8) //max tries to get to x and y 8
         {
             if (currentX != x)
             {
@@ -166,37 +173,25 @@ class Program
             {
                 dy = currentY < y ? 1 : -1;
             }
-            var int:Int = 0;
-            for (i in 0...6)
-            {
-                var array = map.object.get(currentX + dx,currentY + dy);
-                if (array != null)
-                {
-                    var object = new openlife.data.object.ObjectData(array[0]);
-                    if (object.blocksWalking)
-                    {
-
-                    }
-                }
-                switch(int++)
-                {
-                    case 0: //x
-                    //execute
-                    dx *= -1;
-                    case 1: //y
-                    dx *= -1;
-                    dy *= -1;
-                    case 2: //x y
-                    dx *= -1;
-                }
-            }
+            currentX += dx;
+            currentY += dy;
+            mx.push(currentX);
+            my.push(currentY);
+            trace('c $currentX $currentY');
             if (currentX == x && currentY == y)
             {
-                //finished
+                finish = true;
                 break;
             }
         }
-        send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} $mx $my');
+        if (finish)
+        {
+            send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} ${mx.join(" ")} ${my.join(" ")}');
+            player.x = x;
+            player.y = y;
+        }else{
+            trace("could not make it to destination");
+        }
         return this;
     }
     /**
