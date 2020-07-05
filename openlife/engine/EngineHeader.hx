@@ -61,4 +61,6 @@ interface EngineHeader
     public function valley(spacing:Int,offset:Int):Void; //VALLEY_SPACING
     public function flight(id:Int,x:Int,y:Int):Void; //FLIGHT_DEST
     public function homeland(x:Int,y:Int,name:String):Void; //HOMELAND
+    public function craving(id:Int,bonus:Int):Void; //CRAVING
+    public function flip(x:Int,y:Int):Void; //FLIP
 }

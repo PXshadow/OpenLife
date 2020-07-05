@@ -1,5 +1,6 @@
 echo "installing lib"
 haxelib git format https://github.com/haxefoundation/format
+haxelib git hscript https://github.com/HaxeFoundation/hscript
 echo "install libs for targets"
 haxelib install hxjava
 haxelib install hxnodejs

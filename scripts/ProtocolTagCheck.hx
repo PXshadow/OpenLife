@@ -90,7 +90,7 @@ class ProtocolTagCheck
                 errors++;
             }
         }
-        trace('finished with $erros erros');
+        trace('finished with $error errors');
     }
     private function generate(input:Array<String>,output:Array<String>,name:Bool=false)
     {

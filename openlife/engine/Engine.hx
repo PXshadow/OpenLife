@@ -92,7 +92,7 @@ class Engine
         return bool;
     }
 
-    public function connect(reconnect:Bool=false,setMessageCallback:Bool=true)
+    public function connect(reconnect:Bool=false,setRelayCallback:Bool=true)
     {
         client.accept = function()
         {
@@ -103,7 +103,17 @@ class Engine
         {
             client.reject = null;
         }
-        client.message = setMessageCallback ? client.login : function(_,_) {};
+        client.message = !setRelayCallback ? client.login : function (tag:ClientTag,_)
+        {
+            switch (tag)
+            {
+                case ACCEPTED:
+                client.accept();
+                case REJECTED:
+                client.reject();
+                default:
+            }
+        };
         client.connect(reconnect);
     }
     private function message(tag:ClientTag,input:Array<String>) 
@@ -156,7 +166,6 @@ class Engine
                 var instance = input[0].split(" ");
                 var compress = input[1].split(" ");
                 mapInstance = new MapInstance();
-                trace("instance " + instance);
                 mapInstance.width = Std.parseInt(instance[0]);
                 mapInstance.height = Std.parseInt(instance[1]);
                 mapInstance.x = Std.parseInt(instance[2]);
@@ -311,6 +320,10 @@ class Engine
             case HOMELAND:
             var array = input[0].split(" ");
             header.homeland(Std.parseInt(array[0]),Std.parseInt(array[1]),array[2]);
+            case CRAVING:
+            header.craving(Std.parseInt(input[0]),Std.parseInt(input[1]));
+            case FLIP:
+            header.flip(Std.parseInt(input[0]),Std.parseInt(input[1]));
             default:
         }
     }

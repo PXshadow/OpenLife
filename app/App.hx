@@ -9,31 +9,69 @@ import openlife.data.map.MapInstance;
 import openlife.engine.*;
 import openlife.data.object.player.PlayerMove;
 import openlife.data.map.MapChange;
+using StringTools;
 
 class App extends Engine implements EngineHeader
 {
     var player:PlayerInstance;
     var players = new IntMap<PlayerInstance>();
     var names = new IntMap<String>();
+    #if hscript var interp:hscript.Interp; #end
     public function new()
     {
         super(this,"OneLifeData7/");
         Sys.println("(y)es (n)o relay system to use a client");
         var relay:Bool = Sys.stdin().readLine() == "y";
-        program = new Program(client);
         var bool:Bool = false;
         var data = Config.run(cred(new Settings()));
         if (relay) client = Relay.run(8005);
+        program = new Program(client);
         client.ip = data.ip;
+        //client.ip = "bigserver2.onehouronelife.com";
         client.port = data.port;
         client.email = data.email;
         client.key = data.key;
-        connect(false,!relay);
+        connect(false,relay);
+        #if hscript
+        interp = new hscript.Interp();
+        interp.variables.set("program",program);
+        interp.variables.set("map",map);
+        #end
         while (true)
         {
             client.update();
             Sys.sleep(1/30);
         }
+    }
+    public static function getFields(Object:Dynamic):Array<String>
+    {
+        var fields = [];
+        if ((Object is Class)) // passed a class -> get static fields
+            fields = Type.getClassFields(Object);
+        else if ((Object is Enum))
+            fields = Type.getEnumConstructs(Object);
+        else if (Reflect.isObject(Object)) // get instance fields
+            fields = Type.getInstanceFields(Type.getClass(Object));
+
+        // on Flash, enums are classes, so Std.is(_, Enum) fails
+        fields.remove("__constructs__");
+
+        var filteredFields = [];
+        for (field in fields)
+        {
+            // don't add property getters / setters
+            if (field.startsWith("get_") || field.startsWith("set_"))
+            {
+                var name = field.substr(4);
+                // property without a backing field, needs to be added
+                if (!fields.contains(name) && !filteredFields.contains(name))
+                    filteredFields.push(name);
+            }
+            else
+                filteredFields.push(field);
+        }
+
+        return filteredFields;
     }
     public function reborn()
     {
@@ -52,7 +90,6 @@ class App extends Engine implements EngineHeader
         for (instance in instances)
         {
             inst = players.get(instance.p_id);
-            players.set(instance.p_id,instance);
             if (inst != null)
             {
                 if (!instance.forced)
@@ -61,16 +98,17 @@ class App extends Engine implements EngineHeader
                     instance.y = inst.y;
                 }
                 instance.forced = false;
+                inst.update(instance);
+            }else{
+                players.set(instance.p_id,instance);
             }
-            if (player != null && instance.p_id == player.p_id)
-            {
-                
-            }
+            
         }
         if (player == null)
         {
             player = instances.pop();
             //new player set
+            #if hscript interp.variables.set("player",player); #end
         }
         
     } //PLAYER_UPDATE
@@ -185,46 +223,46 @@ class App extends Engine implements EngineHeader
             var name = names.get(id);
             if (name == null)
             {
-                program.say("HI");
+                program.say("HI UNKOWN PERSON");
             }else{
-                program.say("HI " + name);
+                program.say("HI PERSON NAMED " + name);
             }
             return;
         }
         if (text.indexOf("FOLLOW") > -1)
         {
             //follow script of mother
-            return;
+            program.say("I FOLLOW YOU");
         }
         if (text.indexOf("UP") > -1)
         {
             program.say("UP");
             program.move(player,map,0,1);
-            return;
         }
         if (text.indexOf("DOWN") > -1)
         {
             program.say("DOWN");
             program.move(player,map,0,-1);
-            return;
         }
         if (text.indexOf("LEFT") > -1)
         {
             program.say("LEFT");
             program.move(player,map,-1,0);
-            return;
         }
         if (text.indexOf("RIGHT") > -1)
         {
             program.say("RIGHT");
             program.move(player,map,1,0);
-            return;
         }
         if (text.indexOf("USE") > -1)
         {
             program.say("USE");
             program.use(player.x,player.y);
-            return;
+        }
+        if (text.indexOf("SELF") > -1)
+        {
+            program.say("SELF");
+            program.self();
         }
         program.say("HELLO " + names.get(id));
     } //PLAYER_SAYS
@@ -293,4 +331,12 @@ class App extends Engine implements EngineHeader
     {
 
     } //HOMELAND
+    public function flip(x:Int,y:Int)
+    {
+
+    } //FLIP
+    public function craving(id:Int,bonus:Int)
+    {
+        
+    } //CRAVING
 }

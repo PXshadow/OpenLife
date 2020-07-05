@@ -1,4 +1,5 @@
 -cp app
 -main Main
+-lib hscript
 #--interp
 -neko app.n

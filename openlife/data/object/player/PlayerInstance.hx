@@ -139,6 +139,32 @@ class PlayerInstance
         if (a.length <= 24) return;
         held_learned = a[i++] == "1";
     }
+    public function update(instance:PlayerInstance)
+    {
+        //p_id
+        //po_id
+        facing = instance.facing;
+        action_target_x = instance.action_target_x;
+        action_target_y = instance.action_target_y;
+        o_id = instance.o_id;
+        o_origin_valid = instance.o_origin_valid;
+        o_origin_x = instance.o_origin_x;
+        o_origin_y = instance.o_origin_y;
+        o_transition_source_id = instance.o_transition_source_id;
+        heat = instance.heat;
+        done_moving_seqNum = instance.done_moving_seqNum;
+        forced = instance.forced;
+        x = instance.x;
+        y = instance.y;
+        age = instance.age;
+        age_r = instance.age_r;
+        move_speed = instance.move_speed;
+        clothing_set = instance.clothing_set;
+        just_ate = instance.just_ate;
+        responsible_id = instance.responsible_id;
+        held_yum = instance.held_yum;
+        held_learned = instance.held_learned;
+    }
     /**
      * toString for debug
      * @return String output = "field: property"

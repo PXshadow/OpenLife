@@ -49,6 +49,8 @@ public var HOMELAND = "HL";
 public var ACCEPTED = "ACCEPTED";
 public var REJECTED = "REJECTED";
 public var SERVER_INFO = "SN";
+public var CRAVING = "CR";
+public var FLIP = "FL";
 
 @:from private static function fromString(value:String):ClientTag
 {
@@ -98,6 +100,8 @@ public var SERVER_INFO = "SN";
         case "PONG": PONG;
         case "TS": TOOL_SLOTS;
         case "HL": HOMELAND;
+        case "CR": CRAVING;
+        case "FL": FLIP;
         //new
         case "SN": SERVER_INFO;
         case "ACCEPTED": ACCEPTED;

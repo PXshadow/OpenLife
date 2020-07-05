@@ -16,6 +16,7 @@ class Program
     }
     public function send(tag:ServerTag,x:Int,y:Int,data:String="")
     {
+        trace('send: $tag $x $y $data');
         client.send('$tag $x $y $data');
     }
     public function update()

@@ -160,7 +160,6 @@ class Client
             #else
             socket.output.writeString('$data#');
             #end
-            trace('input $data');
         }catch(e:Dynamic)
         {
             trace("client send error: " + e);

@@ -23,7 +23,7 @@ class Relay
             {
                 //try {
                 input = relayIn.input.readUntil("#".code);
-                trace("input " + input);
+                //trace("input " + input);
                 client.send(input);
                 /*}catch(e:Dynamic)
                 {
@@ -53,7 +53,7 @@ private class Client extends openlife.client.Client
         super.process();
         //server -> router -> client
         //relay.close();
-        trace('output $data');
+        //trace('output $data');
         relay.output.writeString('$data#');
     }
     override function compressProcess() {
