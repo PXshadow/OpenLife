@@ -16,6 +16,10 @@ class Resource
     {
         return getImage("sprites",'$id');
     }
+    public static function sound(id:Int):Bytes
+    {
+        return bytes('sounds/$id.aiff');
+    }
     public static function graphicImage(name:String):Bytes
     {
         return getImage("graphics",name);
@@ -26,12 +30,7 @@ class Resource
     }
     public static function animation(id:Int,i:Int):String
     {
-        try {
-            return getContent("animations",'${id}_${i}');
-        }catch(e:Dynamic)
-        {
-            return "";
-        }
+        return getContent("animations",'${id}_${i}');
     }
     public static function ground(id:Int,i:Int,j:Int,a:String):Bytes
     {
@@ -43,18 +42,24 @@ class Resource
     }
     public static function getImage(path:String,name:String):Bytes
     {
-        #if sys
-        return sys.io.File.getBytes('${Engine.dir}/$path/$name.tga');
-        #else
-        return Bytes.alloc(0);
-        #end
+        return bytes('$path/$name.tga');
     }
     public static function getContent(path:String,name:String):String
     {
+        return content('path/$name.txt');
+    }
+    public static function content(path:String):String
+    {
         #if sys
-        return sys.io.File.getContent('${Engine.dir}/$path/$name.txt');
+        return sys.io.File.getContent('${Engine.dir}/$path');
+        #end
+    }
+    public static function bytes(path:String):Bytes
+    {
+        #if sys
+        return sys.io.File.getBytes('${Engine.dir}/$path');
         #else
-        return "";
+        return Bytes.alloc(0);
         #end
     }
 }
