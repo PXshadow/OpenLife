@@ -46,7 +46,7 @@ class Resource
     }
     public static function getContent(path:String,name:String):String
     {
-        return content('path/$name.txt');
+        return content('$path/$name.txt');
     }
     public static function content(path:String):String
     {
