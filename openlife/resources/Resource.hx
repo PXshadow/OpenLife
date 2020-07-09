@@ -20,6 +20,12 @@ class Resource
     {
         return bytes('sounds/$id.aiff');
     }
+    public static function music(id:Int):Bytes
+    {
+        var ids = Std.string(id);
+        if (ids.length == 1) ids = '0$ids';
+        return bytes('music/music_$ids.ogg');
+    }
     public static function graphicImage(name:String):Bytes
     {
         return getImage("graphics",name);
@@ -48,18 +54,21 @@ class Resource
     {
         return content('$path/$name.txt');
     }
+    //reciever that overrides old content and bytes system
+    public static var recContent:String->String = null;
+    public static var recBytes:String->Bytes = null;
     public static function content(path:String):String
     {
+        if (recContent != null) return recContent(path);
         #if sys
         return sys.io.File.getContent('${Engine.dir}/$path');
         #end
     }
     public static function bytes(path:String):Bytes
     {
+        if (recBytes != null) return recBytes(path);
         #if sys
         return sys.io.File.getBytes('${Engine.dir}/$path');
-        #else
-        return Bytes.alloc(0);
         #end
     }
 }
