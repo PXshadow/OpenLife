@@ -133,7 +133,7 @@ class ObjectData extends LineReader
     /**
      * Offset of object when worn
      */
-    public var clothingOffset:Point;//=0.000000,0.000000
+    public var clothingOffset:Point = new Point();//=0.000000,0.000000
     /**
      * Deadly distance in tiles
      */
