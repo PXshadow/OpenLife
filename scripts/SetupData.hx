@@ -37,6 +37,7 @@ class SetupData
         trace("tag = |" + tag + "|");
         Sys.command('git checkout -q $tag');
         trace("checkout!");
+        Sys.setCwd(cwd);
         if (!FileSystem.exists("OneLifeGameSourceData"))
         {
             Sys.command('git clone https://github.com/PXshadow/OneLifeGameSourceData');
