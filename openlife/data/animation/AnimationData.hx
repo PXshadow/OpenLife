@@ -11,7 +11,7 @@ class AnimationData extends openlife.data.LineReader
     /**
      * Records of animation
      */
-    public var record:Vector<AnimationRecord>;
+    @:keep public var record:Vector<AnimationRecord>;
     public function new(id:Int)
     {
         super();
