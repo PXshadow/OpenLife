@@ -51,7 +51,7 @@ class SetupData
         {
             trace("copy dir!");
             //copydir
-            for (path in ["graphics","settings","languages"])
+            for (path in ["graphics","settings","languages","groundTileCache"])
             {
                 FileTools.copyDir('OneLifeGameSourceData/$path','OneLifeData7/$path');
             }
