@@ -63,6 +63,7 @@ class Resource
         #if sys
         return sys.io.File.getContent('${Engine.dir}/$path');
         #end
+        return "";
     }
     public static function bytes(path:String):Bytes
     {
@@ -70,5 +71,6 @@ class Resource
         #if sys
         return sys.io.File.getBytes('${Engine.dir}/$path');
         #end
+        return Bytes.alloc(0);
     }
 }
