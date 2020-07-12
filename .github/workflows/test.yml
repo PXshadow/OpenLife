@@ -12,6 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: krdlab/setup-haxe@v1
+      - uses: ./
         with:
           haxe-version: ${{ matrix.haxe }}
       - run: haxe -version
@@ -21,5 +22,5 @@ jobs:
       - run: haxelib install hxnodejs
       - run: haxelib install hxcs
       - run: haxelib install hxcpp
-      - run: haxe test.hxml
-      - run: haxe build.hxml
+      - name: Run tests
+        run: haxe test.hxml
