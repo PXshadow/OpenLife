@@ -1,25 +1,25 @@
-name: test
+name: CI
+
 on: [push]
-#on:
-# schedule:
-#  - cron: "0 0 * * *"
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest,windows-latest]
+        haxe: [4.0.5]
+      fail-fast: true
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-
-      - name:  haxe download
-        run: |
-          sudo add-apt-repository ppa:haxe/releases -y
-          sudo apt-get update\nsudo apt-get install haxe -y
-          mkdir ~/haxelib && haxelib setup ~/haxelib
-      - name: Setup Haxe
-        run: haxe -version
-      - name: Print haxe version
-        run: "mkdir ~/haxelib\nhaxelib setup ~/haxelib"
-      - name: download libraries
-        run: "sh install.sh"
-      - name: test project
-        run: "haxe build.hxml"
-    
+      - uses: ./
+        with:
+          haxe-version: ${{ matrix.haxe }}
+      - run: haxe -version
+      - run: haxelib git format https://github.com/haxefoundation/format
+      - run: haxelib git hscript https://github.com/HaxeFoundation/hscript
+      - run: haxelib install hxjava
+      - run: haxelib install hxnodejs
+      - run: haxelib install hxcs
+      - run: haxe test.hxml
+      - run: haxe build.hxml
