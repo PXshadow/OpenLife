@@ -17,6 +17,7 @@ class LineReader
     var next:Int = 0;
     @:doxHide(false)
     var input:Input;
+    private static inline var EOL:String = "\r\n";
     public function new()
     {
 
@@ -29,7 +30,7 @@ class LineReader
     {
         if (string.length == 0) return false;
         next = 0;
-        line = Vector.fromArrayCopy(string.split("\n"));
+        line = Vector.fromArrayCopy(string.split(EOL));
         return true;
     }
     /**

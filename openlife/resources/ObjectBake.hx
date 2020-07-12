@@ -11,38 +11,19 @@ import haxe.io.Path;
  
 class ObjectBake
 {
-    var nextObjectNumber:Int = 0;
+    public static var nextObjectNumber:Int = 0;
+    public static var baked:Bool = false;
     public function new()
     {
 
     }
-    public function run(list:Vector<Int>)
+    public static function finish()
     {
-        #if sys
-        if (!sys.FileSystem.exists(Engine.dir + "objects/"))
-        {
-            trace("could not find objects to bake");
-            return;
-        }
-        var bakeNum = 0;
-        if (sys.FileSystem.exists(Engine.dir + "bake.res"))
-        {
-            bakeNum = Std.parseInt(sys.io.File.getContent(Engine.dir + "bake.res"));
-        }
-        
-        if (bakeNum == nextObjectNumber)
-        {
-            trace("bake complete and set");
-            return;
-        }
-        objectData(list);
+        #if (nodejs || sys)
         sys.io.File.saveContent(Engine.dir + "bake.res",Std.string(nextObjectNumber));
         #end
     }
-    /**
-     * Generate object data
-     */
-    public function objectList():Vector<Int>
+    public static function objectList():Vector<Int>
     {
         #if sys
         if (!sys.FileSystem.exists(Engine.dir + "objects/nextObjectNumber.txt")) 
@@ -51,9 +32,7 @@ class ObjectBake
             nextObjectNumber = 0;
             return null;
         }
-        //nextobject
         nextObjectNumber = Std.parseInt(sys.io.File.getContent(Engine.dir + "objects/nextObjectNumber.txt"));
-        //go through objects
         var list:Array<Int> = [];
         var num:Int = 0;
         for (path in sys.FileSystem.readDirectory(Engine.dir + "objects"))
@@ -69,19 +48,20 @@ class ObjectBake
             if (a > b) return 1;
             return -1;
         });
+        if (sys.FileSystem.exists(Engine.dir + "bake.res"))
+        {
+            baked = nextObjectNumber == Std.parseInt(sys.io.File.getContent(Engine.dir + "bake.res"));
+        }
         return Vector.fromArrayCopy(list);
         #else
         return Vector.fromArrayCopy([]);
         #end
     }
-    private function objectData(vector:Vector<Int>)
+    public function objectData(vector:Vector<Int>):Array<ObjectData>
     {
-        var int = nextObjectNumber;
+        var array:Array<ObjectData> = [];
         var data:ObjectData;
         var dummyObject:ObjectData;
-        #if sys
-        var file:sys.io.FileOutput = null;
-        #end
         var id:Int = 0;
         var i:Int = 0;
         for (id in vector)
@@ -92,25 +72,15 @@ class ObjectBake
                 for (j in 1...data.numUses - 1)
                 {
                     dummyObject = data.clone();
-                    dummyObject.id = ++int;
+                    dummyObject.id = 0;
                     dummyObject.numUses = 0;
                     dummyObject.dummy = true;
                     dummyObject.dummyParent = data.id;
-                    #if sys
-                    file = sys.io.File.write(Engine.dir + 'objects/$int.txt');
-                    file.writeString(dummyObject.toFileString());
-                    file.flush();
-                    file.close();
-                    #end
-                    //Engine.data.objectMap.set(dummyObject.id,dummyObject);
+                    array.push(dummyObject);
                 }
             }
-            //Engine.data.objectMap.set(data.id,data);
             if (i++ % 100 == 0 || i > 4071) trace('$id');
         }
-    }
-    private static function gen()
-    {
-
+        return array;
     }
 }

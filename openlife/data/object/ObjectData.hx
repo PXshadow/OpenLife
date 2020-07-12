@@ -265,7 +265,6 @@ class ObjectData extends LineReader
      * N/A
      */
     public var monumentCall:Bool = false;
-
     /**
      * N/A
      */
@@ -274,16 +273,6 @@ class ObjectData extends LineReader
      * N/A
      */
     public var toolLearned:Bool = false;
-
-    /**
-     * Whether the object failed to load
-     */
-    public var fail:Bool = false;
-    //animation
-    /**
-     * Animation arrays of sprites
-     */
-    public var animation:AnimationData;
     /**
      * Sound array for objects
      */
@@ -308,11 +297,6 @@ class ObjectData extends LineReader
     {
         super();
         if (i <= 0 || !readLines(openlife.resources.Resource.objectData(i))) return;
-        //setup animation
-        #if (visual && animation)
-        animation = new AnimationData(i);
-        if (animation.fail) animation = null;
-        #end
         read();
     }
     /**
@@ -399,9 +383,6 @@ class ObjectData extends LineReader
         }
         if(readName("floor"))
         {
-            trace("id " + id);
-            trace('floor line |' + getString() + "|" + Std.string(getString().charCodeAt(1)));
-            next--;
             floor = getBool();
         }
         if(readName("floorHugging"))
