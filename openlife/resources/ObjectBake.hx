@@ -76,7 +76,6 @@ class ObjectBake
                     array.push(data);
                 }
             }
-            if (i++ % 100 == 0 || i > 4071) trace('$id');
         }
         return array;
     }
