@@ -129,10 +129,7 @@ class LineReader
      */
     public function getString():String
     {
-        if (next + 1 > line.length)
-        {
-            throw("max " + line);
-        }
+        if (next + 1 > line.length) throw 'max $line';
         string = line[next++];
         if(string == null || string == "") return "";
         var equals = string.indexOf("=");

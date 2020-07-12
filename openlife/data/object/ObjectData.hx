@@ -399,6 +399,9 @@ class ObjectData extends LineReader
         }
         if(readName("floor"))
         {
+            trace("id " + id);
+            trace('floor line |' + getString() + "|" + Std.string(getString().charCodeAt(1)));
+            next--;
             floor = getBool();
         }
         if(readName("floorHugging"))
