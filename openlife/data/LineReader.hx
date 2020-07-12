@@ -17,7 +17,7 @@ class LineReader
     var next:Int = 0;
     @:doxHide(false)
     var input:Input;
-    private static inline var EOL:String = "\r\n";
+    public static inline var EOL:String = "\r\n";
     public function new()
     {
 

@@ -534,38 +534,38 @@ class ObjectData extends LineReader
     }
     public function toFileString():String
     {
-        var objectString = 'id=$id\n' +
-        '$description\n' +
-        'contaible=${containable ? "1" : "0"}\n' +
-        'containSize=$containSize,vertSlotRot=$vertSlotRot\n' +
-        'permanent=$permanent,minPickupAge=$minPickupAge\n' +
-        'noFlip=${noFlip ? "1" : "0"}\n' +
-        'sideAccess=${sideAcess ? "1" : "0"}\n' +
-        'heldInHand=${heldInHand ? "1" : "0"}\n' +
-        'blocksWalking=${blocksWalking ? "1" : "0"},leftBlockingRadius=$leftBlockingRadius,rightBlockingRadius=$rightBlockingRadius,drawBehindPlayer=${drawBehindPlayer ? "1" : "0"}\n' +
-        'mapChance=$mapChance\n' + //TODO: include #biomes_0
-        'heatValue=$heatValue\n' +
-        'rValue=$rValue\n' +
-        'person=$person,noSpawn=${noSpawn ? "1" : "0"}\n' +
-        'male=${male ? "1" : "0"}\n' +
-        'deathMarker=$deathMarker\n' +
-        'homeMarker=$homeMarker\n' +
-        'floor=${floor ? "1" : "0"}\n' +
-        'floorHugging=${floorHugging ? "1" : "0"}\n' +
-        'foodValue=$foodValue\n' +
-        'speedMult=$speedMult\n' +
-        'heldOffset=${heldOffset.x},${heldOffset.y}\n' +
-        'clothing=$clothing\n' +
-        'clothingOffset=${clothingOffset.x},${clothingOffset.y}\n' +
-        'deadlyDistance=$deadlyDistance\n' +
-        'useDistance=$useDistance\n' +
-        'sounds=0:0,0:0.0,0:0.0,0:0.0\n' + //TODO: implement sound
-        'creationSoundInitalOnly=$creationSoundInitialOnly\n' +
-        'creationSoundForce=$creationSoundForce\n' +
-        'numSlots=$numSlots#timeStrech=$timeStretch\n' +
-        'slotsSize=$slotSize\n' +
-        'slotsLocked=$slotsLocked\n' +
-        'numSprites=$numSprites\n';
+        var objectString = 'id=$id${LineReader.EOL}' +
+        '$description${LineReader.EOL}' +
+        'containable=${containable ? "1" : "0"}${LineReader.EOL}' +
+        'containSize=$containSize,vertSlotRot=$vertSlotRot${LineReader.EOL}' +
+        'permanent=$permanent,minPickupAge=$minPickupAge${LineReader.EOL}' +
+        'noFlip=${noFlip ? "1" : "0"}${LineReader.EOL}' +
+        'sideAccess=${sideAcess ? "1" : "0"}${LineReader.EOL}' +
+        'heldInHand=${heldInHand ? "1" : "0"}${LineReader.EOL}' +
+        'blocksWalking=${blocksWalking ? "1" : "0"},leftBlockingRadius=$leftBlockingRadius,rightBlockingRadius=$rightBlockingRadius,drawBehindPlayer=${drawBehindPlayer ? "1" : "0"}${LineReader.EOL}' +
+        'mapChance=$mapChance${LineReader.EOL}' + //TODO: include #biomes_0
+        'heatValue=$heatValue${LineReader.EOL}' +
+        'rValue=$rValue${LineReader.EOL}' +
+        'person=$person,noSpawn=${noSpawn ? "1" : "0"}${LineReader.EOL}' +
+        'male=${male ? "1" : "0"}${LineReader.EOL}' +
+        'deathMarker=$deathMarker${LineReader.EOL}' +
+        'homeMarker=$homeMarker${LineReader.EOL}' +
+        'floor=${floor ? "1" : "0"}${LineReader.EOL}' +
+        'floorHugging=${floorHugging ? "1" : "0"}${LineReader.EOL}' +
+        'foodValue=$foodValue${LineReader.EOL}' +
+        'speedMult=$speedMult${LineReader.EOL}' +
+        'heldOffset=${heldOffset.x},${heldOffset.y}${LineReader.EOL}' +
+        'clothing=$clothing${LineReader.EOL}' +
+        'clothingOffset=${clothingOffset.x},${clothingOffset.y}${LineReader.EOL}' +
+        'deadlyDistance=$deadlyDistance${LineReader.EOL}' +
+        'useDistance=$useDistance${LineReader.EOL}' +
+        'sounds=0:0,0:0.0,0:0.0,0:0.0${LineReader.EOL}' + //TODO: implement sound
+        'creationSoundInitalOnly=$creationSoundInitialOnly${LineReader.EOL}' +
+        'creationSoundForce=$creationSoundForce${LineReader.EOL}' +
+        'numSlots=$numSlots#timeStrech=$timeStretch${LineReader.EOL}' +
+        'slotsSize=$slotSize${LineReader.EOL}' +
+        'slotsLocked=$slotsLocked${LineReader.EOL}' +
+        'numSprites=$numSprites${LineReader.EOL}';
         for (sprite in spriteArray)
         {
             objectString += sprite.toString();

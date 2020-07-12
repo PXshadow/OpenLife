@@ -57,11 +57,10 @@ class ObjectBake
         return Vector.fromArrayCopy([]);
         #end
     }
-    public function objectData(vector:Vector<Int>):Array<ObjectData>
+    public static function objectData(vector:Vector<Int>):Array<ObjectData>
     {
         var array:Array<ObjectData> = [];
         var data:ObjectData;
-        var id:Int = 0;
         var i:Int = 0;
         for (id in vector)
         {
