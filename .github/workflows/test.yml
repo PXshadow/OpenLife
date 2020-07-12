@@ -12,7 +12,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - uses: ./
         with:
           haxe-version: ${{ matrix.haxe }}
       - run: haxe -version
