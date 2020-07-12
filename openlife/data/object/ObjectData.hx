@@ -1,7 +1,6 @@
 package openlife.data.object;
 import haxe.io.Input;
 import haxe.ds.Vector;
-import openlife.data.animation.AnimationData;
 import openlife.data.sound.SoundData;
 
 class ObjectData extends LineReader
@@ -581,7 +580,6 @@ class ObjectData extends LineReader
     {
         var object = new ObjectData();
         object.id = id;
-        object.animation = animation;
         object.apocalypseTrigger = apocalypseTrigger;
         object.backFootIndex = backFootIndex;
         object.blocksWalking = blocksWalking;

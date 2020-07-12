@@ -61,7 +61,6 @@ class ObjectBake
     {
         var array:Array<ObjectData> = [];
         var data:ObjectData;
-        var dummyObject:ObjectData;
         var id:Int = 0;
         var i:Int = 0;
         for (id in vector)
@@ -71,12 +70,11 @@ class ObjectBake
             {
                 for (j in 1...data.numUses - 1)
                 {
-                    dummyObject = data.clone();
-                    dummyObject.id = 0;
-                    dummyObject.numUses = 0;
-                    dummyObject.dummy = true;
-                    dummyObject.dummyParent = data.id;
-                    array.push(dummyObject);
+                    data.id = 0;
+                    data.numUses = 0;
+                    data.dummy = true;
+                    data.dummyParent = data.id;
+                    array.push(data);
                 }
             }
             if (i++ % 100 == 0 || i > 4071) trace('$id');
