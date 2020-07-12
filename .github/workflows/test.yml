@@ -11,9 +11,15 @@ jobs:
       fail-fast: true
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: actions/checkout@v2
+      - name: "Setup Node.js"
+      uses: actions/setup-node@v1
+      with:
+        node-version: 12.x
+      - run: npm install
+      -uses: 
       - uses: krdlab/setup-haxe@v1
       - uses: ./
-        with:
           haxe-version: ${{ matrix.haxe }}
       - run: haxe -version
       - run: haxelib git format https://github.com/haxefoundation/format
@@ -21,5 +27,6 @@ jobs:
       - run: haxelib install hxjava
       - run: haxelib install hxnodejs
       - run: haxelib install hxcs
+      - run: haxelib install hxcpp
       - run: haxe test.hxml
       - run: haxe build.hxml
