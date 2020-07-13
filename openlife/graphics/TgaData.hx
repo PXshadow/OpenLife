@@ -49,7 +49,7 @@ class TgaData
     /**
      * crop alpha parts from the sides
      */
-    static inline var alpha:Bool = true;
+    public var alpha:Bool = true;
     public function crop()
     {
         //shifting vars
