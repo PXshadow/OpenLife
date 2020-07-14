@@ -14,18 +14,19 @@ class Relay
         Sys.println('waiting for connection on port $listen');
         var client = new Client();
         var relayIn = relay.accept();
-        //relayIn.setBlocking(false);
+        relayIn.setFastSend(true);
+        relayIn.setBlocking(false);
         Sys.println("begin threading relay");
         var input:String;
         Thread.create(function()
         {
             while (true)
             {
-                //try {
+                try {
                 input = relayIn.input.readUntil("#".code);
                 //trace("input " + input);
                 client.send(input);
-                /*}catch(e:Dynamic)
+                }catch(e:Dynamic)
                 {
                     if(e != haxe.io.Error.Blocked)
                     {
@@ -33,7 +34,7 @@ class Relay
                         return;
                     }
                 }
-                Sys.sleep(1/15);*/
+                Sys.sleep(1/15);
             }
         });
         //relay out
@@ -48,9 +49,10 @@ private class Client extends openlife.client.Client
     {
         super();
     }
-    override function process() 
+    override function process(wasCompressed:Bool) 
     {
-        super.process();
+        super.process(wasCompressed);
+        if (wasCompressed) return;
         //server -> router -> client
         //relay.close();
         //trace('output $data');
@@ -59,6 +61,7 @@ private class Client extends openlife.client.Client
     override function compressProcess() {
         super.compressProcess();
         relay.output.write(dataCompressed);
+        trace("send compressed");
     }
     override function close() {
         super.close();

@@ -40,6 +40,7 @@ class Client
     public var accept:Void->Void;
     public var reject:Void->Void;
     public var legacy:Bool = false;
+    var wasCompressed:Bool = false;
     public function new()
     {
         aliveStamp = Timer.stamp();
@@ -71,6 +72,7 @@ class Client
                     compressIndex = 0;
                     compressSize = 0;
                     data = haxe.zip.Uncompress.run(dataCompressed).toString();
+                    wasCompressed = true;
                     if (tag == MAP_CHUNK)
                     {
                         data = '$MAP_CHUNK\n$data';
@@ -91,11 +93,12 @@ class Client
             }
             return;
         }
-        process();
+        process(wasCompressed);
+        wasCompressed = false;
         #end
     }
     var tag:ClientTag;
-    private function process()
+    private function process(wasCompressed:Bool)
     {
         var array = data.split("\n");
         if (array.length == 0) return;
