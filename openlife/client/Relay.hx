@@ -24,7 +24,7 @@ class Relay
             {
                 try {
                 input = relayIn.input.readUntil("#".code);
-                //trace("input " + input);
+                trace("input " + input);
                 client.send(input);
                 }catch(e:Dynamic)
                 {
@@ -61,7 +61,6 @@ private class Client extends openlife.client.Client
     override function compressProcess() {
         super.compressProcess();
         relay.output.write(dataCompressed);
-        trace("send compressed");
     }
     override function close() {
         super.close();

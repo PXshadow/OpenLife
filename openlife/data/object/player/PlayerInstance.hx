@@ -109,6 +109,7 @@ class PlayerInstance
      */
     public function new(a:Array<String>)
     {
+        trace(a);
         //var name = Reflect.fields(this);
         if (a.length < 23) return;
         var i:Int = 0;
@@ -183,3 +184,15 @@ class PlayerInstance
         return '$p_id $po_id $facing $action_target_x $action_target_y ${MapData.stringID(o_id)}$o_origin_valid $o_origin_x $o_origin_y $o_transition_source_id $heat $done_moving_seqNum ${(forced ? "1" : "0")} $x $y $age $age_r $move_speed $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")}';
     }
 }
+/*
+Deleted players reported in update with
+X X 
+for x y
+and a reason string at the tail end of the line.  Reason can be
+
+reason_disconnected
+reason_killed_id   (where id is the object that killed the player)
+reason_hunger
+reason_nursing_hunger  (starved while nursing a hungry baby)
+reason_age
+*/

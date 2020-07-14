@@ -37,10 +37,24 @@ class App extends Engine implements EngineHeader
         client.email = data.email;
         client.key = data.key;
         connect(false,relay);
-        #if hscript
+        #if (hscript && target.threaded)
         interp = new hscript.Interp();
+        var parser = new hscript.Parser();
         interp.variables.set("program",program);
         interp.variables.set("map",map);
+        interp.variables.set("app",this);
+        sys.thread.Thread.create(function()
+        {
+            while (true)
+            {
+                try {
+                    interp.execute(parser.parseString(Sys.stdin().readLine()));
+                }catch(e:Dynamic)
+                {
+                    trace('e $e');
+                }
+            }
+        });
         #end
         while (true)
         {
