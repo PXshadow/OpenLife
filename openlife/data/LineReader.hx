@@ -17,7 +17,7 @@ class LineReader
     var next:Int = 0;
     @:doxHide(false)
     var input:Input;
-    public static inline var EOL:String = "\r\n";
+    public static inline var EOL:String = "\n";
     public function new()
     {
 
@@ -83,7 +83,7 @@ class LineReader
      */
     public function getBool():Bool
     {
-        return getString() == "1";
+        return getString().substr(0,1) == "1";
     }
     /**
      * Int from string

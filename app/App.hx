@@ -1,5 +1,7 @@
 package;
 
+import sys.FileSystem;
+import openlife.resources.ObjectBake;
 import openlife.settings.Settings;
 import openlife.client.Relay;
 import haxe.ds.IntMap;
@@ -20,6 +22,9 @@ class App extends Engine implements EngineHeader
     public function new()
     {
         super(this,"OneLifeData7/");
+        Bake.run();
+        trace("baked chisel: " + ObjectBake.dummies.get(455));
+        //start program
         Sys.println("(y)es (n)o relay system to use a client");
         var relay:Bool = Sys.stdin().readLine() == "y";
         var bool:Bool = false;

@@ -4,6 +4,8 @@ modules
 extension
 export
 cred
+cred2
+dummymap
 terminal.n
 output.n
 login.txt

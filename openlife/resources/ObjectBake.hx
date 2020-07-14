@@ -71,7 +71,7 @@ class ObjectBake
                     data.id = 0;
                     data.numUses = 0;
                     data.dummy = true;
-                    data.dummyParent = data.id;
+                    data.dummyParent = id;
                     array.push(data);
                 }
             }
@@ -83,6 +83,6 @@ class ObjectBake
         var array = dummies.get(obj.dummyParent);
         if (array == null) array = [];
         array.push(obj.id);
-        dummies.set(obj.id,array);
+        dummies.set(obj.dummyParent,array);
     }
 }
