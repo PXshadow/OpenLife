@@ -194,7 +194,7 @@ class PlayerInstance
     }
     public function toData():String
     {
-        return '$p_id $po_id $facing $action_target_x $action_target_y ${MapData.stringID(o_id)}$o_origin_valid $o_origin_x $o_origin_y $o_transition_source_id $heat $done_moving_seqNum ${(forced ? "1" : "0")} $x $y $age $age_r $move_speed $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")}';
+        return '$p_id $po_id $facing $action $action_target_x $action_target_y ${MapData.stringID(o_id)} $o_origin_valid $o_origin_x $o_origin_y $o_transition_source_id $heat $done_moving_seqNum ${(forced ? "1" : "0")} $x $y $age $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")}';
     }
 }
 /*
@@ -209,3 +209,5 @@ reason_hunger
 reason_nursing_hunger  (starved while nursing a hungry baby)
 reason_age
 */
+//151 1628 0 0 0 0 0 0 0 0 -1 0.31 2 0 0 0 14.12 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 0
+//151 1628 0 0 0 0 0 0 0 -1 0 2 1 0 0 14 60 3.75 0;0;0;0;0;0 0 0 0 0 0

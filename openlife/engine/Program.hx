@@ -191,6 +191,15 @@ class Program
             send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} ${mx.join(" ")} ${my.join(" ")}');
             player.x = x;
             player.y = y;
+            player.forced = true;
+            if (client.relay != null) 
+            {
+                //149 2404 0 1 0 0 0 0 0 0 -1 0.37 1 0 0 0 14.07 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 0
+                //150 1009 0 0 0 00 0 0 -1 0 3 1 0 0 14.1 60 3.75 0 0 0 0 0
+                var string = 'PU\n${player.toData()}\n#';
+                trace("pu " + string);
+                client.relay.output.writeString(string);
+            }
         }else{
             trace("could not make it to destination");
         }

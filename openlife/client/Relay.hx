@@ -24,7 +24,7 @@ class Relay
             {
                 try {
                 input = relayIn.input.readUntil("#".code);
-                trace("input " + input);
+                //trace("input " + input);
                 client.send(input);
                 }catch(e:Dynamic)
                 {
@@ -44,7 +44,6 @@ class Relay
 }
 private class Client extends openlife.client.Client
 {
-    public var relay:Socket;
     public function new()
     {
         super();

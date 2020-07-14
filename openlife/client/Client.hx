@@ -40,6 +40,7 @@ class Client
     public var accept:Void->Void;
     public var reject:Void->Void;
     public var legacy:Bool = false;
+    public var relay:Socket;
     var wasCompressed:Bool = false;
     public function new()
     {

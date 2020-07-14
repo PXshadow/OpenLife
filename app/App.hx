@@ -1,9 +1,9 @@
 package;
 
 import sys.FileSystem;
+import openlife.client.Relay;
 import openlife.resources.ObjectBake;
 import openlife.settings.Settings;
-import openlife.client.Relay;
 import haxe.ds.IntMap;
 import openlife.data.object.player.PlayerInstance;
 import openlife.engine.Program;
