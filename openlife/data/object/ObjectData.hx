@@ -467,8 +467,8 @@ class ObjectData extends LineReader
             var array = getArrayInt();
             spriteArray[j].invisHolding = array[0];
             spriteArray[j].invisWorn = array[1];
-            spriteArray[j].behindSlots = array[2] == 1;
-            if (readName("invisCont"))  spriteArray[j].invisCont = getInt();
+            spriteArray[j].behindSlots = array[2];
+            if (readName("invisCont"))  spriteArray[j].invisCont = getBool();
         }
         //get offset center
         getSpriteData();
@@ -566,11 +566,7 @@ class ObjectData extends LineReader
         'slotsSize=$slotSize${LineReader.EOL}' +
         'slotsLocked=$slotsLocked${LineReader.EOL}' +
         'numSprites=$numSprites${LineReader.EOL}';
-        for (sprite in spriteArray)
-        {
-            objectString += sprite.toString();
-        }
-
+        for (sprite in spriteArray) objectString += sprite.toString(); //add sprite data
         return objectString;
     }
     /**

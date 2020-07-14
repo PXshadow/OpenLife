@@ -46,11 +46,11 @@ class SpriteData
     /**
      * Behind slots
      */
-    public var behindSlots:Bool = false;
+    public var behindSlots:Int = -1;
     /**
-     * Invisible count
+     * Invisible when in a container
      */
-    public var invisCont:Int = 0;
+    public var invisCont:Bool = false;
     /**
      * Offset of center x
      */
@@ -67,14 +67,14 @@ class SpriteData
     }
     public function toString():String
     {
-        return 'spriteID=$spriteID\n' +
-        'pos=${pos.x},${pos.y}\n' + 
-        'rot=$rot\n' + 
-        'hFlip=$hFlip\n' +
-        'color=${color[0]},${color[1]},${color[2]}\n' +
-        'ageRange=${ageRange[0]},${ageRange[1]}\n' +
-        'parent=$parent\n' +
-        'invisHolding=$invisHolding,invisWorn=$invisWorn,behindSlots=$behindSlots\n' +
-        'invisCount=$invisCont\n';
+        return 'spriteID=$spriteID${LineReader.EOL}' +
+        'pos=${pos.x},${pos.y}${LineReader.EOL}' + 
+        'rot=$rot${LineReader.EOL}' + 
+        'hFlip=$hFlip${LineReader.EOL}' +
+        'color=${color[0]},${color[1]},${color[2]}${LineReader.EOL}' +
+        'ageRange=${ageRange[0]},${ageRange[1]}${LineReader.EOL}' +
+        'parent=$parent${LineReader.EOL}' +
+        'invisHolding=$invisHolding,invisWorn=$invisWorn,behindSlots=$behindSlots${LineReader.EOL}' +
+        'invisCount=${invisCont ? "1" : "0"}${LineReader.EOL}';
     }
 }
