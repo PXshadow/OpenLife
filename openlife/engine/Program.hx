@@ -148,6 +148,7 @@ class Program
     }
     public function move(player:openlife.data.object.player.PlayerInstance,map:MapData,x:Int,y:Int):Program
     {
+        trace('x ${player.x} y ${player.y}');
         if (Math.abs(player.x - x) > 8 || Math.abs(player.y - y) > 8)
         {
             trace("outside of 8 tile range");
@@ -176,8 +177,8 @@ class Program
             }
             currentX += dx;
             currentY += dy;
-            mx.push(currentX);
-            my.push(currentY);
+            mx.push(currentX - player.x);
+            my.push(currentY - player.y);
             trace('c $currentX $currentY');
             if (currentX == x && currentY == y)
             {

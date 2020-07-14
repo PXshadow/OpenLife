@@ -43,6 +43,7 @@ class App extends Engine implements EngineHeader
         interp.variables.set("program",program);
         interp.variables.set("map",map);
         interp.variables.set("app",this);
+        interp.variables.set("client",client);
         sys.thread.Thread.create(function()
         {
             while (true)
@@ -111,12 +112,12 @@ class App extends Engine implements EngineHeader
             inst = players.get(instance.p_id);
             if (inst != null)
             {
-                if (!instance.forced)
+                /*if (!instance.forced)
                 {
                     instance.x = inst.x;
                     instance.y = inst.y;
                 }
-                instance.forced = false;
+                instance.forced = false;*/
                 inst.update(instance);
             }else{
                 players.set(instance.p_id,instance);

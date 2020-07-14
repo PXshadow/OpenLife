@@ -107,38 +107,51 @@ class PlayerInstance
      * array of properties to generate PlayerType
      * @param a 
      */
+     var i:Int = 0;
+     var a:Array<String>;
     public function new(a:Array<String>)
     {
-        trace(a);
+        this.a = a;
         //var name = Reflect.fields(this);
         if (a.length < 23) return;
-        var i:Int = 0;
-        p_id = Std.parseInt(a[i++]);
-        po_id = Std.parseInt(a[i++]);
-        facing = Std.parseInt(a[i++]);
-        action = Std.parseInt(a[i++]);
-        action_target_x = Std.parseInt(a[i++]);
-        action_target_y = Std.parseInt(a[i++]);
+        p_id = int();
+        po_id = int();
+        facing = int();
+        action = int();
+        action_target_x = int();
+        action_target_y = int();
         o_id = MapData.id(a[i++]);
-        o_origin_valid = Std.parseInt(a[i++]);
-        o_origin_x = Std.parseInt(a[i++]);
-        o_origin_y = Std.parseInt(a[i++]);
-        o_transition_source_id = Std.parseInt(a[i++]);
-        heat = Std.parseInt(a[i++]);
-        done_moving_seqNum = Std.parseInt(a[i++]);
-        forced = a[i++] == "1";
-        x = Std.parseInt(a[i++]);
-        y = Std.parseInt(a[i++]);
-        age = Std.parseFloat(a[i++]);
-        age_r = Std.parseFloat(a[i++]);
-        move_speed = Std.parseFloat(a[i++]);
-        clothing_set = a[i++];
-        just_ate = Std.parseInt(a[i++]);
-        responsible_id = Std.parseInt(a[i++]);
+        o_origin_valid = int();
+        o_origin_x = int();
+        o_origin_y = int();
+        o_transition_source_id = int();
+        heat = int();
+        done_moving_seqNum = int();
+        forced = int() == 1;
+        x = int();
+        y = int();
+        age = float();
+        age_r = float();
+        move_speed = float();
+        clothing_set = string();
+        just_ate = int();
+        responsible_id = int();
         if (a.length <= 23) return;
         held_yum = a[i++] == "1";
         if (a.length <= 24) return;
         held_learned = a[i++] == "1";
+    }
+    private inline function int():Int
+    {
+        return Std.parseInt(a[i++]);
+    }
+    private inline function float():Float
+    {
+        return Std.parseFloat(a[i++]);
+    }
+    private inline function string():String
+    {
+        return a[i++];
     }
     public function update(instance:PlayerInstance)
     {
