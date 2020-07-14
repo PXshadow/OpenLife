@@ -257,22 +257,22 @@ class App extends Engine implements EngineHeader
         if (text.indexOf("UP") > -1)
         {
             program.say("UP");
-            program.move(player,map,0,1);
+            program.move(player,map,player.x + 0,player.y + 1);
         }
         if (text.indexOf("DOWN") > -1)
         {
             program.say("DOWN");
-            program.move(player,map,0,-1);
+            program.move(player,map,player.x + 0,player.y + -1);
         }
         if (text.indexOf("LEFT") > -1)
         {
             program.say("LEFT");
-            program.move(player,map,-1,0);
+            program.move(player,map,player.x + -1,player.y + 0);
         }
         if (text.indexOf("RIGHT") > -1)
         {
             program.say("RIGHT");
-            program.move(player,map,1,0);
+            program.move(player,map,player.x + 1,player.y + 0);
         }
         if (text.indexOf("USE") > -1)
         {
