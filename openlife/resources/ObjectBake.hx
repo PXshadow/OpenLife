@@ -1,5 +1,6 @@
 package openlife.resources;
 
+import haxe.ds.IntMap;
 import openlife.engine.Engine;
 import haxe.ds.Vector;
 import openlife.data.object.ObjectData;
@@ -13,10 +14,7 @@ class ObjectBake
 {
     public static var nextObjectNumber:Int = 0;
     public static var baked:Bool = false;
-    public function new()
-    {
-
-    }
+    public static var dummies = new IntMap<Array<Int>>();
     public static function finish()
     {
         #if (nodejs || sys)
@@ -25,6 +23,7 @@ class ObjectBake
     }
     public static function objectList():Vector<Int>
     {
+        dummies.clear();
         #if sys
         if (!sys.FileSystem.exists(Engine.dir + "objects/nextObjectNumber.txt")) 
         {
@@ -78,5 +77,12 @@ class ObjectBake
             }
         }
         return array;
+    }
+    public static function dummy(obj:ObjectData)
+    {
+        var array = dummies.get(obj.dummyParent);
+        if (array == null) array = [];
+        array.push(obj.id);
+        dummies.set(obj.id,array);
     }
 }
