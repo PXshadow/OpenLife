@@ -282,7 +282,7 @@ class App extends Engine implements EngineHeader
         if (text.indexOf("SELF") > -1)
         {
             program.say("SELF");
-            program.self();
+            program.self(player);
         }
         program.say("HELLO " + names.get(id));
     } //PLAYER_SAYS

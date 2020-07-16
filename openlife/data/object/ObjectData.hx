@@ -292,6 +292,7 @@ class ObjectData extends LineReader
      * New Object Data
      * @param i id
      */
+    var maxWideRadius:Int = 0;
     public function new(i:Int=0)
     {
         super();
@@ -335,7 +336,7 @@ class ObjectData extends LineReader
 
         i = getArrayInt();
         permanent = i[0];
-        minPickupAge = i[0];
+        minPickupAge = i[1];
 
         if(readName("noFlip"))
         {
@@ -356,8 +357,21 @@ class ObjectData extends LineReader
         rightBlockingRadius = i[2];
         drawBehindPlayer = (i[3] == 1);
 
-        //skipping map chance
-        getString();
+        var wide = (leftBlockingRadius > 0 || rightBlockingRadius > 0);
+
+        if (wide)
+        {
+            drawBehindPlayer = true;
+            if (leftBlockingRadius > maxWideRadius)
+            {
+                maxWideRadius = leftBlockingRadius;
+            }
+            if (rightBlockingRadius > maxWideRadius)
+            {
+                maxWideRadius = rightBlockingRadius;
+            }
+        }
+        getString(); //skipping map chance
         //values
         heatValue = getInt();
         rValue = getInt();
@@ -500,7 +514,7 @@ class ObjectData extends LineReader
             }
             if (next < line.length) useVanishIndex = getIntArray();
             if (next < line.length) useAppearIndex = getIntArray();
-            if (next < line.length) cacheHeight = getInt();
+            if (next < line.length) cacheHeight = getInt(); //pixHeight
         }
     }
     public function getSpriteData()

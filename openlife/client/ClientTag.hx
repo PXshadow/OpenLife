@@ -51,6 +51,7 @@ public var REJECTED = "REJECTED";
 public var SERVER_INFO = "SN";
 public var CRAVING = "CR";
 public var FLIP = "FL";
+public var UFOL = "UFOL";
 
 @:from private static function fromString(value:String):ClientTag
 {
@@ -102,6 +103,7 @@ public var FLIP = "FL";
         case "HL": HOMELAND;
         case "CR": CRAVING;
         case "FL": FLIP;
+        case "UFOL": UFOL;
         //new
         case "SN": SERVER_INFO;
         case "ACCEPTED": ACCEPTED;

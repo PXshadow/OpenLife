@@ -1,4 +1,6 @@
 package openlife.engine;
+import openlife.data.object.player.PlayerInstance;
+import openlife.data.object.ObjectData;
 import openlife.data.map.MapData;
 import openlife.data.Pos;
 import openlife.client.Client;
@@ -194,8 +196,6 @@ class Program
             player.forced = true;
             if (client.relay != null) 
             {
-                //149 2404 0 1 0 0 0 0 0 0 -1 0.37 1 0 0 0 14.07 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 0
-                //150 1009 0 0 0 00 0 0 -1 0 3 1 0 0 14.1 60 3.75 0 0 0 0 0
                 var string = 'PU\n${player.toData()}\n#';
                 trace("pu " + string);
                 client.relay.output.writeString(string);
@@ -223,9 +223,9 @@ class Program
      * @param index 
      * @return Program
      */
-    public function self(index:Int=-1):Program
+    public function self(player:PlayerInstance,index:Int=-1):Program
     {
-        send(SELF,0,0," " + index);
+        send(SELF,player.x,player.y," " + index);
         return this;
     }
     public function die():Program
