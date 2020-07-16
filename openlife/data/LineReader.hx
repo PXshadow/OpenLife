@@ -114,6 +114,7 @@ class LineReader
             array.push(Std.parseInt(string.substring(i,j)));
             if(j == string.length) bool = false;
         }
+        array.shift(); //FIX THIS
         return array;
     }
     /**

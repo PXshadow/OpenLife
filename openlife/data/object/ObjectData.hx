@@ -378,8 +378,9 @@ class ObjectData extends LineReader
 
         i = getArrayInt();
         //person is the race of the person
+        trace('i $i');
         person = i[0];
-        noSpawn = (i[1] == 1);
+        noSpawn = (i[2] == 1);
 
         male = getBool();
 
