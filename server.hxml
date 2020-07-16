@@ -1,7 +1,6 @@
--cp src
--main server.Server
+-main openlife.server.Server
 #-hl export/server/server.hl
 #-cpp export/server
 -dce full
---interp
-#-neko export/server/server.n
+#--interp
+-neko export/server/server.n

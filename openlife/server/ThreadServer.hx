@@ -1,5 +1,6 @@
 package openlife.server;
-#if ((target.threaded) && !cs)
+import haxe.Timer;
+import haxe.Exception;
 import sys.net.Socket;
 import sys.thread.Thread;
 import sys.thread.Mutex;
@@ -10,21 +11,24 @@ class ThreadServer
     public var port:Int = 8005;
     public var maxCount:Int = -1;
     public var listenCount:Int = 10;
-    public var messageBreak:Int = 4;
+    public static inline var messageBreak:Int = 4;
     public static inline var setTimeout:Int = 30;
-    public function new()
+    public var server:Server;
+    public function new(server:Server,port:Int)
     {
         socket = new Socket();
+        this.port = port;
+        this.server = server;
+        create();
     }
     public function create()
     {
         socket.bind(new Host("0.0.0.0"),port);
+        trace('bind $port');
         socket.listen(listenCount);
         while (true) 
         {
             Thread.create(connection).sendMessage(socket.accept());
-            //new connection function to run tasks
-            Thread.create(newConnection);
         }
     }
     private function connection()
@@ -32,54 +36,48 @@ class ThreadServer
         var socket:Socket = cast Thread.readMessage(true);
         socket.setBlocking(false);
         socket.setFastSend(true);
-        socket.setTimeout(30);
-        socket.custom = {bool:true,timeout:setTimeout};
+        var connection = new Connection(socket,server);
         var message:String = "";
-        if (connect != null) connect(socket);
-        while (socket.custom.bool)
+        var ka:Float = Timer.stamp();
+        while (connection.running)
         {
             try {
                 message = socket.input.readUntil(messageBreak);
-            }catch(e:Dynamic)
+                ka = Timer.stamp();
+            }catch(e:Exception)
             {
-                if (e != haxe.io.Error.Blocked)
+                if (e.message != "Blocked")
                 {
-                    trace("server e " + e);
+                    trace("server e " + e.details() + " message " + e.message);
                     //if (e == Eof || Std.is(e,Eof))
                     //close socket
+                    connection.close();
                     break;
                 }else{
-                    Sys.sleep(1);
-                    //trace("timeout " + socket.custom.timeout);
-                    if (socket.custom.timeout-- <= 0)
+                    if (Timer.stamp() - ka > 60) 
                     {
-                        socket.custom.timeout = setTimeout;
-                        timeout(socket);
+                        trace("timeout");
+                        connection.close();
                     }
-                    continue;
                 }
             }
-            if (!this.message(socket,message)) break;
+            Sys.sleep(0.1);
+            if (message.length == 0) continue;
+            try {
+                connection.message(message);
+                message = "";
+            }catch(e:Exception)
+            {
+                trace(e.details());
+                error("---STACK---\n" + e.details());
+                connection.close();
+                break;
+            }
         }
-        //close client
-        disconnect(socket);
-        socket.close();
+        //exit out
     }
-    public function newConnection() {}
-    public function timeout(socket:Socket) {}
-    public function message(socket:Socket,input:String):Bool {return true;}
-    public function connect(socket:Socket) {}
-    public function disconnect(socket:Socket) {}
-    public function send(socket:Socket,output:String)
+    private function error(message:String) 
     {
-        try {
-            Sys.println('send    : $output');
-            socket.output.writeString(output + String.fromCharCode(messageBreak));
-        }catch(e:Dynamic)
-        {
-            trace("e " + e);
-            socket.custom.bool = false;
-        }
+        
     }
 }
-#end

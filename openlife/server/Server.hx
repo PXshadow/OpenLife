@@ -12,7 +12,7 @@ import sys.FileSystem;
 import sys.io.File;
 import haxe.io.Path;
 
-class Server extends ThreadServer
+class Server
 {
     public static function main()
     {
@@ -20,12 +20,7 @@ class Server extends ThreadServer
     }
     public function new()
     {
-        super();
-        create();
-    }
-    override function connect(socket:Socket) {
-        super.connect(socket);
-        //send(c,'$SERVER_INFO\n$current/$max\n$challenge\n$version');
+        new ThreadServer(this,8005);
     }
 }
 #end
