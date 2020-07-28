@@ -78,7 +78,6 @@ class Client
                     {
                         data = '$MAP_CHUNK\n$data';
                     }
-                    //data = '$tag\n$data';
                 }else{
                     return;
                 }
@@ -87,7 +86,7 @@ class Client
             }
 		}catch(e:Dynamic)
 		{
-			if(e == Error.Blocked)
+			if(e != Error.Blocked)
 			{
                 trace('e: $e');
                 close();

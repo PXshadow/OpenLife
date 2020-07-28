@@ -9,7 +9,7 @@ class Relay
     public static function run(listen:Int):Client
     {
         var relay:Socket = new Socket();
-        relay.bind(new Host("0.0.0.0"),listen);
+        relay.bind(new Host("localhost"),listen);
         relay.listen(1);
         Sys.println('waiting for connection on port $listen');
         var client = new Client();
