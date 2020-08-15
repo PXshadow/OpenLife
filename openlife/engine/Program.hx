@@ -148,26 +148,24 @@ class Program
         send(JUMP,0,0);
         return this;
     }
-    public function move(player:openlife.data.object.player.PlayerInstance,map:MapData,x:Int,y:Int):Program
+    public var moved:Bool = true; //bool to make sure movement went through
+    public function move(player:PlayerInstance,map:MapData,x:Int,y:Int):Program
     {
-        trace('x ${player.x} y ${player.y}');
         if (Math.abs(player.x - x) > 8 || Math.abs(player.y - y) > 8)
         {
             trace("outside of 8 tile range");
             return this;
         }
-        /*player.x = x;
-        player.y = y;*/
         var currentX:Int = player.x;
         var currentY:Int = player.y;
         var dx:Int = 0;
         var dy:Int = 0;
         var mx:Array<Int> = [];
         var my:Array<Int> = [];
-        var finish:Bool = false;
+        moved = false;
         //player 20 20
         //x y 30 30
-        for (i in 0...8) //max tries to get to x and y 8
+        for (i in 0...8 + 4) //max tries to get to x and y 8
         {
             if (currentX != x)
             {
@@ -184,11 +182,11 @@ class Program
             trace('c $currentX $currentY');
             if (currentX == x && currentY == y)
             {
-                finish = true;
+                moved = true;
                 break;
             }
         }
-        if (finish)
+        if (moved)
         {
             send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} ${mx.join(" ")} ${my.join(" ")}');
             player.x = x;
@@ -197,7 +195,6 @@ class Program
             if (client.relay != null) 
             {
                 var string = 'PU\n${player.toData()}\n#';
-                trace("pu " + string);
                 client.relay.output.writeString(string);
             }
         }else{

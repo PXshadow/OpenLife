@@ -1,5 +1,7 @@
 package openlife.auto;
 
+import openlife.data.object.player.PlayerInstance;
+import openlife.data.map.MapData;
 import openlife.engine.Program;
 
 
@@ -9,9 +11,13 @@ import openlife.engine.Program;
 class Automation
 {
     var program:Program;
-    public function new(program:Program)
+    var map:MapData;
+    var player:PlayerInstance;
+    public function new(program:Program,map:MapData,player:PlayerInstance)
     {
         this.program = program;
+        this.map = map;
+        this.player = player;
     }
 }
 typedef Auto = Automation; 

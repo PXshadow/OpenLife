@@ -1,5 +1,6 @@
 package;
 
+import openlife.auto.Automation;
 import sys.FileSystem;
 import openlife.client.Relay;
 import openlife.resources.ObjectBake;
@@ -19,6 +20,7 @@ class App extends Engine implements EngineHeader
     var players = new IntMap<PlayerInstance>();
     var names = new IntMap<String>();
     #if hscript var interp:hscript.Interp; #end
+    var auto:Automation;
     public function new()
     {
         super(this,"OneLifeData7/");
@@ -129,6 +131,7 @@ class App extends Engine implements EngineHeader
             player = instances.pop();
             //new player set
             #if hscript interp.variables.set("player",player); #end
+            auto = new Automation(program,map,player);
         }
         
     } //PLAYER_UPDATE
@@ -245,7 +248,7 @@ class App extends Engine implements EngineHeader
             {
                 program.say("HI UNKOWN PERSON");
             }else{
-                program.say("HI PERSON NAMED " + name);
+                program.say("HI PERSON " + name);
             }
             return;
         }
@@ -279,12 +282,12 @@ class App extends Engine implements EngineHeader
             program.say("USE");
             program.use(player.x,player.y);
         }
-        if (text.indexOf("SELF") > -1)
+        if (textndexOf("SELF") > -1)
         {
             program.say("SELF");
             program.self(player);
         }
-        program.say("HELLO " + names.get(id));
+        program.say("HELLO " + names.get(id));.i
     } //PLAYER_SAYS
     public function emot(id:Int,index:Int,sec:Int)
     {
