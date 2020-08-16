@@ -293,9 +293,11 @@ class ObjectData extends LineReader
      * @param i id
      */
     var maxWideRadius:Int = 0;
-    public function new(i:Int=0)
+    var onlyDescription:Bool;
+    public function new(i:Int=0,onlyDescription:Bool=false)
     {
         super();
+        this.onlyDescription = onlyDescription;
         if (i <= 0 || !readLines(openlife.resources.Resource.objectData(i))) return;
         read();
     }
@@ -306,6 +308,7 @@ class ObjectData extends LineReader
     {
         id = getInt();
         description = getString();
+        if (onlyDescription) return;
         //tool setup
         var toolPos = description.indexOf("+tool");
         if (toolPos > -1)
@@ -378,7 +381,7 @@ class ObjectData extends LineReader
 
         i = getArrayInt();
         //person is the race of the person
-        trace('i $i');
+        //trace('i $i');
         person = i[0];
         noSpawn = (i[2] == 1);
 

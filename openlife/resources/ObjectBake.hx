@@ -23,7 +23,6 @@ class ObjectBake
     }
     public static function objectList():Vector<Int>
     {
-        dummies.clear();
         #if sys
         if (!sys.FileSystem.exists(Engine.dir + "objects/nextObjectNumber.txt")) 
         {

@@ -1,23 +1,25 @@
+import openlife.data.object.ObjectData;
 import sys.io.File;
 import openlife.resources.ObjectBake;
 import sys.FileSystem;
 import haxe.Serializer;
 import haxe.Unserializer;
+import haxe.ds.Vector;
 class Bake
 {
-    public static function run()
+    public static function run():Vector<Int>
     {
         if (FileSystem.exists("dummymap"))
         {
             ObjectBake.dummies = cast Unserializer.run(File.getContent("dummymap"));
-            return;
+            return ObjectBake.objectList();
         }
-        var list = ObjectBake.objectData(ObjectBake.objectList());
-        trace("dummies " + list.length);
+        var vector = ObjectBake.objectList();
+        var list = ObjectBake.objectData(vector);
         var index = ObjectBake.nextObjectNumber;
         var i:Int = 0;
         var p:Float = 0;
-        var last:Float = -0.1;
+        var last:Float = -0.05;
         for (obj in list)
         {
             obj.id = ++index;
@@ -30,5 +32,6 @@ class Bake
             }
         }
         File.saveContent("dummymap",Serializer.run(ObjectBake.dummies));
+        return vector;
     }
 }

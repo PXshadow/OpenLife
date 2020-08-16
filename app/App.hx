@@ -1,5 +1,7 @@
 package;
 
+import openlife.data.object.ObjectData;
+import haxe.ds.Vector;
 import openlife.auto.Automation;
 import sys.FileSystem;
 import openlife.client.Relay;
@@ -21,10 +23,11 @@ class App extends Engine implements EngineHeader
     var names = new IntMap<String>();
     #if hscript var interp:hscript.Interp; #end
     var auto:Automation;
+    var vector:Vector<Int>;
     public function new()
     {
         super(this,"OneLifeData7/");
-        Bake.run();
+        vector = Bake.run();
         trace("baked chisel: " + ObjectBake.dummies.get(455));
         //start program
         Sys.println("(y)es (n)o relay system to use a client");
@@ -131,7 +134,7 @@ class App extends Engine implements EngineHeader
             player = instances.pop();
             //new player set
             #if hscript interp.variables.set("player",player); #end
-            auto = new Automation(program,map,player);
+            auto = new Automation(program,map,player,vector);
         }
         
     } //PLAYER_UPDATE
@@ -236,58 +239,33 @@ class App extends Engine implements EngineHeader
     } //LOCATION_SAYS
     public function dying(id:Int,sick:Bool)
     {
-
+        program.say("I AM DYING!");
     } //DYING
     public function says(id:Int,text:String,curse:Bool)
     {
-        trace('id $id say $text');
-        if (text.indexOf("HI") > -1 || text.indexOf("HELLO") > -1 || text.indexOf("HEY") > -1)
+        var words = text.split(" ");
+        words.shift();
+        trace('words $words');
+        var index:Int = 0;
+        var find:Int = 0;
+        if ((index = words.indexOf("KNOW") + 1) > 0)
         {
-            var name = names.get(id);
-            if (name == null)
+            for (i in index...words.length)
             {
-                program.say("HI UNKOWN PERSON");
-            }else{
-                program.say("HI PERSON " + name);
+                find = auto.interp.stringObject(words[i]);
+                if (find > 0) break;
             }
-            return;
+            if (find == 0)
+            {
+                program.say("I DID NOT FIND");
+                return;
+            }
+            program.say('I FIND! ${new ObjectData(find).description}');
         }
-        if (text.indexOf("FOLLOW") > -1)
+        if ((index = words.indexOf("FOLLOW") + 1) > 0)
         {
-            //follow script of mother
-            program.say("I FOLLOW YOU");
+            
         }
-        if (text.indexOf("UP") > -1)
-        {
-            program.say("UP");
-            program.move(player,map,player.x + 0,player.y + 1);
-        }
-        if (text.indexOf("DOWN") > -1)
-        {
-            program.say("DOWN");
-            program.move(player,map,player.x + 0,player.y + -1);
-        }
-        if (text.indexOf("LEFT") > -1)
-        {
-            program.say("LEFT");
-            program.move(player,map,player.x + -1,player.y + 0);
-        }
-        if (text.indexOf("RIGHT") > -1)
-        {
-            program.say("RIGHT");
-            program.move(player,map,player.x + 1,player.y + 0);
-        }
-        if (text.indexOf("USE") > -1)
-        {
-            program.say("USE");
-            program.use(player.x,player.y);
-        }
-        if (textndexOf("SELF") > -1)
-        {
-            program.say("SELF");
-            program.self(player);
-        }
-        program.say("HELLO " + names.get(id));.i
     } //PLAYER_SAYS
     public function emot(id:Int,index:Int,sec:Int)
     {
@@ -304,7 +282,7 @@ class App extends Engine implements EngineHeader
     } //MAP_CHANGE
     public function foodChange(store:Int,capacity:Int,ateId:Int,fillMax:Int,speed:Float,responsible:Int)
     {
-
+        if (store/capacity < 0.2) program.say("F");
     } //FOOD_CHANGE
     public function heatChange(heat:Float,foodTime:Float,indoorBonus:Float)
     {

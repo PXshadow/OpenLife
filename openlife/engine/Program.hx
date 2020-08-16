@@ -149,56 +149,16 @@ class Program
         return this;
     }
     public var moved:Bool = true; //bool to make sure movement went through
-    public function move(player:PlayerInstance,map:MapData,x:Int,y:Int):Program
+    public function move(player:PlayerInstance,mx:Array<Int>,my:Array<Int>):Program
     {
-        if (Math.abs(player.x - x) > 8 || Math.abs(player.y - y) > 8)
+        send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} ${mx.join(" ")} ${my.join(" ")}');
+        player.x = player.x + mx.pop();
+        player.y = player.y + my.pop();
+        player.forced = true;
+        if (client.relay != null) 
         {
-            trace("outside of 8 tile range");
-            return this;
-        }
-        var currentX:Int = player.x;
-        var currentY:Int = player.y;
-        var dx:Int = 0;
-        var dy:Int = 0;
-        var mx:Array<Int> = [];
-        var my:Array<Int> = [];
-        moved = false;
-        //player 20 20
-        //x y 30 30
-        for (i in 0...8 + 4) //max tries to get to x and y 8
-        {
-            if (currentX != x)
-            {
-                dx = currentX < x ? 1 : -1;
-            }
-            if (currentY != y)
-            {
-                dy = currentY < y ? 1 : -1;
-            }
-            currentX += dx;
-            currentY += dy;
-            mx.push(currentX - player.x);
-            my.push(currentY - player.y);
-            trace('c $currentX $currentY');
-            if (currentX == x && currentY == y)
-            {
-                moved = true;
-                break;
-            }
-        }
-        if (moved)
-        {
-            send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} ${mx.join(" ")} ${my.join(" ")}');
-            player.x = x;
-            player.y = y;
-            player.forced = true;
-            if (client.relay != null) 
-            {
-                var string = 'PU\n${player.toData()}\n#';
-                client.relay.output.writeString(string);
-            }
-        }else{
-            trace("could not make it to destination");
+            var string = 'PU\n${player.toData()}\n#';
+            client.relay.output.writeString(string);
         }
         return this;
     }
