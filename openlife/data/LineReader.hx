@@ -105,14 +105,16 @@ class LineReader
     {
         var array:Array<Int> = [];
         var bool:Bool = true;
-        string = line[next++];
+        string = "=" + line[next++];
+        i = 0;
+        j = 0;
         while(bool)
         {
-            i = string.indexOf("=",i + 1) + 1;
+            i = string.indexOf("=",i + 0) + 1;
             j = string.indexOf(",",i);
             j = j < 0 ? string.length : j;
             array.push(Std.parseInt(string.substring(i,j)));
-            if(j == string.length) bool = false;
+            if(j >= string.length - 1) bool = false;
         }
         array.shift(); //FIX THIS
         return array;

@@ -1,4 +1,5 @@
 package openlife.data.object;
+import openlife.resources.ObjectBake;
 import haxe.io.Input;
 import haxe.ds.Vector;
 import openlife.data.sound.SoundData;
@@ -298,7 +299,16 @@ class ObjectData extends LineReader
     {
         super();
         this.onlyDescription = onlyDescription;
-        if (i <= 0 || !readLines(openlife.resources.Resource.objectData(i))) return;
+        var string:String;
+        try {
+            string = openlife.resources.Resource.objectData(i);
+        }catch(e)
+        {
+            var int = ObjectBake.dummiesMap.get(i);
+            if (int == null) return;
+            string = openlife.resources.Resource.objectData(int);
+        }
+        if (i <= 0 || !readLines(string)) return;
         read();
     }
     /**
@@ -353,7 +363,10 @@ class ObjectData extends LineReader
         var string = getString();
         if (string == "1") heldInHand = true;
         if (string == "2") rideable = true;
-
+        if (id == 100) 
+        {
+            //trace("tree " + line[next]);
+        }
         i = getArrayInt();
         blocksWalking = (i[0] == 1);
         leftBlockingRadius = i[1];

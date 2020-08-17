@@ -15,6 +15,7 @@ class ObjectBake
     public static var nextObjectNumber:Int = 0;
     public static var baked:Bool = false;
     public static var dummies = new IntMap<Array<Int>>();
+    public static var dummiesMap = new IntMap<Int>();
     public static function finish()
     {
         #if (nodejs || sys)
@@ -83,5 +84,6 @@ class ObjectBake
         if (array == null) array = [];
         array.push(obj.id);
         dummies.set(obj.dummyParent,array);
+        dummiesMap.set(obj.id,obj.dummyParent);
     }
 }

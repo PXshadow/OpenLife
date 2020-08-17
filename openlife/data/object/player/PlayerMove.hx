@@ -5,6 +5,8 @@ class PlayerMove
     public var id:Int = 0;
     public var x:Int = 0;
     public var y:Int = 0;
+    public var endX:Int = 0;
+    public var endY:Int = 0;
     public var total:Float = 0;
     public var eta:Float = 0;
     public var trunc:Bool = false;
@@ -23,5 +25,9 @@ class PlayerMove
         {
             moves.push(new Pos(Std.parseInt(a[i * 2]),Std.parseInt(a[i * 2 + 1])));
         }
+        var pos = moves.pop();
+        endX = x + pos.x;
+        endY = y + pos.y;
+        moves.push(pos);
     }
 }

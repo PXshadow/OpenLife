@@ -36,7 +36,6 @@ class Interpreter
     }
     public function stringObject(string:String):Int
     {
-        trace("find " + string);
         for (id in list)
         {
             var desc = new ObjectData(id,true).description.toUpperCase();

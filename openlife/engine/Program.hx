@@ -18,7 +18,7 @@ class Program
     }
     public function send(tag:ServerTag,x:Int,y:Int,data:String="")
     {
-        trace('send: $tag $x $y $data');
+        //trace('send: $tag $x $y $data');
         client.send('$tag $x $y $data');
     }
     public function update()
@@ -149,11 +149,18 @@ class Program
         return this;
     }
     public var moved:Bool = true; //bool to make sure movement went through
-    public function move(player:PlayerInstance,mx:Array<Int>,my:Array<Int>):Program
+    public function move(player:PlayerInstance,paths:Array<Pos>):Program
     {
-        send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} ${mx.join(" ")} ${my.join(" ")}');
-        player.x = player.x + mx.pop();
-        player.y = player.y + my.pop();
+        var string = "";
+        for (path in paths)
+        {
+            string += path.x + " " + path.y + " ";
+        }
+        string = string.substring(0,string.length - 1);
+        send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} $string');
+        var path = paths.pop();
+        player.x = player.x + path.x;
+        player.y = player.y + path.y;
         player.forced = true;
         if (client.relay != null) 
         {

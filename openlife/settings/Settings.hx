@@ -3,6 +3,7 @@ import openlife.resources.Resource;
 import haxe.DynamicAccess;
 import haxe.io.Path;
 import openlife.engine.Engine;
+import openlife.client.Client;
 #if (sys || nodejs)
 import sys.io.FileOutput;
 import sys.io.File;
@@ -48,5 +49,34 @@ class Settings
         }
         #end
     }
+    var string:String;
+    public function cred():ConfigData
+    {
+        var config:ConfigData = {legacy:false,email:"",key:"",ip:"localhost",port:8005};
+        //settings to use infomation
+        if (valid(data.get("email"))) config.email = string;
+        if (valid(data.get("accountKey"))) config.key = string;
+        if (valid(data.get("useCustomServer")) && string == "1")
+        {
+            if (valid(data.get("customServerAddress"))) config.ip = string;
+            if (valid(data.get("customServerPort"))) config.port = Std.parseInt(string);
+        }
+        //by pass settings and force email and key if secret account
+        #if secret
+        trace("set secret");
+        config.email = Secret.email;
+        config.key = Secret.key;
+        config.ip = Secret.ip;
+        config.port = Secret.port;
+        #end
+        return config;
+    }
+    private inline function valid(obj:Dynamic):Bool
+    {
+        if (obj == null || obj == "") return false;
+        string = cast obj;
+        return true;
+    }
 }
+typedef ConfigData = {legacy:Bool,email:String,key:String,ip:String,port:Int}
 typedef Data = DynamicAccess<Dynamic> 

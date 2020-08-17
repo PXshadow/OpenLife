@@ -1,4 +1,6 @@
 package openlife.data.map;
+import openlife.data.object.ObjectData;
+import openlife.data.object.player.PlayerInstance;
 import openlife.data.*;
 import haxe.Timer;
 import haxe.ds.Vector;
@@ -70,6 +72,28 @@ class MapData
                 object.set(i,j,id(data[2]));
             }
         }
+    }
+    public function collisionChunk(player:PlayerInstance):Vector<Bool>
+    {
+        //16 + 1
+        //16 + 1
+        var vector = new Vector<Bool>((16 + 1) * (16 * 1));
+        var int:Int = 0;
+        for (y in player.y - 8...player.y + 8 + 1)
+        {
+            for (x in player.x - 8...player.x + 8 + 1)
+            {
+                vector[int++] = false;
+                var array = object.get(x,y);
+                if (array == null) continue;
+                var id = array[0];
+                if (id <= 0) continue;
+                var data = new ObjectData(id);
+                if (data == null) continue;
+                vector[int - 1] = data.blocksWalking;
+            }
+        }
+        return vector;
     }
     #if sys
     public function mapFile(file:sys.io.FileInput,inOffsetX:Int=0,inOffsetY:Int=0,inTimeLimitSec:Float=0)
