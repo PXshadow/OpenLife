@@ -36,6 +36,7 @@ class Interpreter
     }
     public function stringObject(string:String):Int
     {
+        if (string.substring(string.length - 1,string.length) == "s") string = string.substring(0,string.length - 1); //remove plural
         for (id in list)
         {
             var desc = new ObjectData(id,true).description.toUpperCase();

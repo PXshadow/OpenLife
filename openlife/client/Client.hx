@@ -84,11 +84,11 @@ class Client
             }else{
                 data = socket.input.readUntil("#".code);
             }
-		}catch(e:Dynamic)
+		}catch(e:haxe.Exception)
 		{
-			if(e != Error.Blocked)
+			if(e.message != "Blocked")
 			{
-                trace('e: $e');
+                trace('e: ${e.details()}');
                 close();
             }
             return;
@@ -117,22 +117,20 @@ class Client
     }
     public function login(tag:ClientTag,input:Array<String>) 
     {
-        trace('login tag: $tag $input');
         //login process
         switch(tag)
         {
             case SERVER_INFO:
 			
 			//current
-            trace("amount " + input[0]);
+            //trace("amount " + input[0]);
 			//challenge
 			challenge = input[1];
 			//version
             version = Std.parseInt(input[2]);
-            trace("version " + version);
+            //trace("version " + version);
             request();
             case ACCEPTED:
-            trace("ACCEPTED LOGIN");
             if (accept != null) accept();
             case REJECTED:
             trace("REJECTED LOGIN");
@@ -150,8 +148,8 @@ class Client
         var accountKey = new Hmac(SHA1).make(Bytes.ofString(key),Bytes.ofString(challenge)).toHex();
         var clientTag = " client_openlife";
         if (legacy) clientTag = "";
-        trace("request!");
-        send((reconnect ? "R" : "") + 'LOGIN$clientTag $email $password $accountKey ${(tutorial ? 1 : 0)}');
+        var requestString = (reconnect ? "R" : "") + 'LOGIN$clientTag $email $password $accountKey ${(tutorial ? 1 : 0)}';
+        send(requestString);
     }
     public function send(data:String)
     {

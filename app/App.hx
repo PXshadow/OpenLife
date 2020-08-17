@@ -32,20 +32,60 @@ class App
         Sys.println("(y)es (n)o relay system to use a client");
         var relay:Bool = Sys.stdin().readLine() == "y";
         var bool:Bool = false;
+        var data = Config.run(false);
+        if (data.email == "") data = new Settings().cred();
         if (!relay && FileSystem.exists("combo.txt"))
         {
-            var lines = File.getContent("combo.txt").split("\n");
+            var lines = File.getContent("combo.txt").split("\r\n");
             Sys.println("(y)es (n)o deploy " + lines.length + " bots");
             var deploy:Bool = Sys.stdin().readLine() == "y";
             if (deploy)
             {
-                Sys.println("spawning bots");
+                Sys.println("spawning bots " + lines.length);
+                var bots:Array<Bot> = [];
+                for (i in 1...20)
+                {
+                    #if target.threaded
+                    sys.thread.Thread.create(function()
+                    {
+                        var bot = new Bot(lines[i],data.ip + ":" + data.port,data.legacy,false);
+                        bot.connect(false,false);
+                        bots.push(bot);
+                        while (true)
+                        {
+                            bot.update();
+                            Sys.sleep(1/30);
+                        }
+                    });
+                    Sys.sleep(0.2);
+                    //break;
+                }
+                #if hscript
+                interp = new hscript.Interp();
+                var parser = new hscript.Parser();
+                interp.variables.set("bots",bots);
+                while (true)
+                {
+                    try {
+                        interp.execute(parser.parseString(Sys.stdin().readLine()));
+                    }catch(e:Dynamic)
+                    {
+                        trace('e $e');
+                    }
+                }
+                #else
+                while (true)
+                {
+                    Sys.sleep(1/10);
+                }
+                #end
+                #else
+                throw "not threaded can not run multiple bots";
+                #end
                 return;
             }
         }
-        var data = Config.run(true);
-        if (data.email == "") data = new Settings().cred();
-        var bot = new Bot(data.email + ":" + data.key,data.ip + ":" + data.port,relay);
+        var bot = new Bot(data.email + ":" + data.key,data.ip + ":" + data.port,data.legacy,relay);
         bot.connect(false,relay);
         #if (hscript && target.threaded)
         interp = new hscript.Interp();

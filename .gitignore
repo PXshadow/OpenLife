@@ -5,6 +5,8 @@ extension
 export
 cred
 cred2
+cred3
+cred4
 dummymap
 terminal.n
 output.n

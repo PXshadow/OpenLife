@@ -10,5 +10,5 @@ echo "downloading data"
 haxe setup_data.hxml
 echo "test app"
 haxe app.hxml
-echo "finished"
-sleep 2
+echo "run"
+neko app.n

@@ -16,22 +16,24 @@ class Bot extends Engine implements EngineHeader
     var names = new IntMap<String>();
     var auto:Automation;
     var followingId:Int = -1;
-    public function new(account:String,connection:String,relay:Bool)
+    public function new(account:String,connection:String,legacy:Bool=false,relay:Bool=false)
     {
         super(this,"OneLifeData7/");
         if (relay) client = Relay.run(8005);
         program = new Program(client);
         var connectionData = connection.split(":");
-        var accountData = connection.split(":");
+        var accountData = account.split(":");
+        trace("account " + accountData);
         client.ip = connectionData[0];
         client.port = Std.parseInt(connectionData[1]);
-        client.email = accountData[0];
-        client.key = accountData[1]; 
+        client.email = accountData[0] + "|PXSHADOW";
+        client.key = accountData[1];
+        client.legacy = legacy;
     }
     public function update()
     {
         client.update();
-        Sys.sleep(1/30);
+        Sys.sleep(1/15);
     }
     //events
     public function playerUpdate(instances:Array<PlayerInstance>)
@@ -72,7 +74,6 @@ class Bot extends Engine implements EngineHeader
     } //PLAYER_OUT_OF_RANGE
     public function playerName(id:Int,firstName:String,lastName:String)
     {
-        trace("names " + firstName + " lastname " + lastName);
         names.set(id,firstName + " " + lastName);
     } //NAME
 
@@ -191,12 +192,19 @@ class Bot extends Engine implements EngineHeader
             var p = players.get(followingId);
             auto.goto(p.x,p.y);
         }
+        if ((index = words.indexOf("HERE") + 1) > 0)
+        {
+            var p = players.get(id);
+            Sys.sleep(Math.random());
+            auto.goto(p.x,p.y);
+        }
         if ((index = words.indexOf("STOP") + 1) > 0)
         {
             followingId = -1;
         }
         if (words.indexOf("PING") > -1)
         {
+            trace("write pong");
             program.say("PONG");
         }
     } //PLAYER_SAYS
