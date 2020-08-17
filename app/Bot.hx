@@ -16,6 +16,8 @@ class Bot extends Engine implements EngineHeader
     var names = new IntMap<String>();
     var auto:Automation;
     var followingId:Int = -1;
+    private static var staticDelay:Float = 0;
+    var delay:Float = 0;
     public function new(account:String,connection:String,legacy:Bool=false,relay:Bool=false,seed:String="")
     {
         super(this,"OneLifeData7/");
@@ -29,6 +31,8 @@ class Bot extends Engine implements EngineHeader
         client.email = accountData[0] + seed;
         client.key = accountData[1];
         client.legacy = legacy;
+        staticDelay += 0.05;
+        delay = staticDelay;
     }
     public function update()
     {
@@ -195,7 +199,7 @@ class Bot extends Engine implements EngineHeader
         if ((index = words.indexOf("HERE") + 1) > 0)
         {
             var p = players.get(id);
-            Sys.sleep(Math.random());
+            Sys.sleep(delay);
             auto.goto(p.x,p.y);
         }
         if ((index = words.indexOf("STOP") + 1) > 0)

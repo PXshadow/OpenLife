@@ -50,7 +50,7 @@ class App
             {
                 Sys.println("spawning bots " + lines.length);
                 var bots:Array<Bot> = [];
-                for (i in 1...20)
+                for (i in 0...20)
                 {
                     #if target.threaded
                     sys.thread.Thread.create(function()
