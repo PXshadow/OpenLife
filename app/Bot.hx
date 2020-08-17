@@ -16,17 +16,17 @@ class Bot extends Engine implements EngineHeader
     var names = new IntMap<String>();
     var auto:Automation;
     var followingId:Int = -1;
-    public function new(account:String,connection:String,legacy:Bool=false,relay:Bool=false)
+    public function new(account:String,connection:String,legacy:Bool=false,relay:Bool=false,seed:String="")
     {
         super(this,"OneLifeData7/");
         if (relay) client = Relay.run(8005);
         program = new Program(client);
         var connectionData = connection.split(":");
         var accountData = account.split(":");
-        trace("account " + accountData);
+        trace("account " + accountData + " seed " + seed);
         client.ip = connectionData[0];
         client.port = Std.parseInt(connectionData[1]);
-        client.email = accountData[0] + "|PXSHADOW";
+        client.email = accountData[0] + seed;
         client.key = accountData[1];
         client.legacy = legacy;
     }

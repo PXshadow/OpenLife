@@ -12,7 +12,7 @@ class Config
         var config:ConfigData = {ip: "",port: 0,email: "",key: "",legacy: false};
         if (FileSystem.exists("cred"))
         {
-            Sys.println("Use existing cred config (y)es (n)o");
+            Sys.println("Use existing cred config (y)es (n)o:");
             bool = Sys.stdin().readLine() == "n" ? false : true;
             if (bool)
             {
@@ -26,7 +26,7 @@ class Config
         }
         if (!bool)
         {
-            Sys.println("Legacy authentication (y)es (n)o");
+            Sys.println("Legacy authentication (y)es (n)o:");
             config.legacy = Sys.stdin().readLine() == "y" ? true : false;
             //set credentioals
             if (!cred)

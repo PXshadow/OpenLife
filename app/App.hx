@@ -29,15 +29,22 @@ class App
         vector = Bake.run();
         trace("baked chisel: " + ObjectBake.dummies.get(455));
         //start program
-        Sys.println("(y)es (n)o relay system to use a client");
+        Sys.println("(y)es (n)o relay system to use a client:");
         var relay:Bool = Sys.stdin().readLine() == "y";
         var bool:Bool = false;
         var data = Config.run(false);
         if (data.email == "") data = new Settings().cred();
+        var seed:String = "";
+        if (data.legacy)
+        {
+            Sys.println("set seed for 2HOL:");
+            seed = Sys.stdin().readLine();
+            if (seed.length > 0) seed = '|$seed';
+        }
         if (!relay && FileSystem.exists("combo.txt"))
         {
             var lines = File.getContent("combo.txt").split("\r\n");
-            Sys.println("(y)es (n)o deploy " + lines.length + " bots");
+            Sys.println("(y)es (n)o deploy " + lines.length + " bots:");
             var deploy:Bool = Sys.stdin().readLine() == "y";
             if (deploy)
             {
@@ -48,7 +55,7 @@ class App
                     #if target.threaded
                     sys.thread.Thread.create(function()
                     {
-                        var bot = new Bot(lines[i],data.ip + ":" + data.port,data.legacy,false);
+                        var bot = new Bot(lines[i],data.ip + ":" + data.port,data.legacy,false,seed);
                         bot.connect(false,false);
                         bots.push(bot);
                         while (true)
@@ -85,7 +92,7 @@ class App
                 return;
             }
         }
-        var bot = new Bot(data.email + ":" + data.key,data.ip + ":" + data.port,data.legacy,relay);
+        var bot = new Bot(data.email + ":" + data.key,data.ip + ":" + data.port,data.legacy,relay,seed);
         bot.connect(false,relay);
         #if (hscript && target.threaded)
         interp = new hscript.Interp();
