@@ -38,7 +38,7 @@ package openlife.server;
      * login
      */
     public var LOGIN = "LOGIN";
-    public var RELOGIN = "RLOGIN";
+    public var RLOGIN = "RLOGIN";
     /**
      * move
      */
@@ -74,6 +74,7 @@ package openlife.server;
             case "PHOTO": PHOTO;
             case "SAY": SAY;
             case "LOGIN": LOGIN;
+            case "RLOGIN": RLOGIN;
             case "MOVE": MOVE;
             default: null;
         }

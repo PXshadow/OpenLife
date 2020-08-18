@@ -21,7 +21,6 @@ class Connection
     public function close()
     {
         running = false;
-        sock.output.writeString('$REJECTED\n#');
         sock.close();
     }
     public function message(data:String)
@@ -33,23 +32,26 @@ class Connection
         var input = array.slice(1,array.length > 2 ? array.length - 1 : array.length);
         switch (tag)
         {
-            case LOGIN:
+            case LOGIN | RLOGIN:
+            //sock.output.writeString('$REJECTED\n#');
             sock.output.writeString('$ACCEPTED\n#');
             var map = "";
-            for (i in 0...30 * 32) map += "3:0:0 ";
+            for (i in 0...30 * 32) map += '4:0:30 ';
             map = map.substring(0,map.length - 1);
             var uncompressed = Bytes.ofString(map);
-            trace("uncomp " + uncompressed);
-            var ucl:Int = uncompressed.length;
-            var bytes:Bytes = haxe.zip.Compress.run(uncompressed,0);
-            var length:Int = bytes.length;
-            send(MAP_CHUNK,["32 30 -16 -15",'$ucl $length']);
+            var bytes = haxe.zip.Compress.run(uncompressed,-1);
+            trace("un " + uncompressed.length + " compressed " + bytes.length);
+            //return;
+            send(MAP_CHUNK,["32 30 -16 -15",'${uncompressed.length} ${bytes.length}']);
             sock.output.write(bytes);
             send(VALLEY_SPACING,["40 40"]);
-            send(LINEAGE,["217004 eve=217004"]);
             var player = new openlife.data.object.player.PlayerInstance([]);
-            player.p_id = 1;
+            var id = 1;
+            player.p_id = id;
             send(PLAYER_UPDATE,[player.toData()]);
+            send(LINEAGE,['$id eve=$id']);
+            sock.output.writeString('$FRAME\n#');
+            //send(PLAYER_UPDATE,["217055 19 0 0 0 0 0 0 0 0 -1 0.50 1 0 0 0 14.00 60.00 3.75 0;0;0;0;0;0 0 0 -1 0"]);
             default:
             trace('tag not found $tag');
         }
