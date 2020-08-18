@@ -237,7 +237,7 @@ class Bot extends Engine implements EngineHeader
     {
 
     } //FRAME
-    public function lineage(list:Array<String>)
+    public function lineage(list:Array<Int>,eve:Int)
     {
 
     } //LINEAGE

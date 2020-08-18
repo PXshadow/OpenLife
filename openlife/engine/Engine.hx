@@ -33,20 +33,6 @@ class Engine
         client = new Client();
         program = new Program(client);
     }
-
-    //helper functions
-    private function exist(folders:Array<String>):Bool
-    {
-        #if sys
-        for (folder in folders)
-        {
-            if (!sys.FileSystem.exists(dir + folder)) return false;
-        }
-        #else
-        return false;
-        #end
-        return true;
-    }
     public function connect(reconnect:Bool=false,setRelayCallback:Bool=true)
     {
         client.accept = function()
@@ -146,8 +132,15 @@ class Engine
             header.heatChange(Std.parseFloat(array[0]),Std.parseFloat(array[1]),Std.parseFloat(array[2]));
             case FOOD_CHANGE:
             var array = input[0].split(" ");
-            //foodPercent = Std.parseInt(input[0])/Std.parseInt(input[1]);
             //food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
+            header.foodChange(
+                Std.parseInt(array[0]),
+                Std.parseInt(array[1]),
+                Std.parseInt(array[2]),
+                Std.parseInt(array[3]),
+                Std.parseFloat(array[4]),
+                Std.parseInt(array[5])
+            );
             case FRAME:
             header.frame();
             case PLAYER_SAYS:
@@ -157,10 +150,6 @@ class Engine
                 index = line.indexOf("/");
                 header.says(Std.parseInt(line.substring(0,index)),line.substr(index + 2),line.substr(index + 1,1) == "1");
             }
-            /*array = input.split("/");
-            //trace("id " + array[0]);
-            var text = array[1].substring(2,array[1].length);*/
-            //id = Std.parseInt(array[0]);
             case LOCATION_SAYS:
             var array:Array<String> = [];
             for (line in input)
@@ -190,7 +179,15 @@ class Engine
             var array:Array<String> = [];
             for (line in input)
             {
-                header.lineage(line.split(" "));
+                var array = line.split(" ");
+                var list:Array<Int> = [];
+                for (i in 0...array.length - 1)
+                {
+                    list.push(Std.parseInt(array[i]));
+                }
+                var eveString = array[array.length - 1];
+                var eve = Std.parseInt(eveString.substring(eveString.indexOf("=") + 1));
+                header.lineage(list,eve);
             }
             case NAME:
             //p_id first_name last_name last_name may be ommitted.

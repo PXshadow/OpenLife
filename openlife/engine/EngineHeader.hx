@@ -51,7 +51,7 @@ interface EngineHeader
     public function foodChange(store:Int,capacity:Int,ateId:Int,fillMax:Int,speed:Float,responsible:Int):Void; //FOOD_CHANGE
     public function heatChange(heat:Float,foodTime:Float,indoorBonus:Float):Void; //HEAT_CHANGE
     public function frame():Void; //FRAME
-    public function lineage(list:Array<String>):Void; //LINEAGE
+    public function lineage(list:Array<Int>,eve:Int):Void; //LINEAGE
     public function healed(id:Int):Void; //HEALED
     public function monument(x:Int,y:Int,id:Int):Void; //MONUMENT_CALL
     public function grave(x:Int,y:Int,id:Int):Void; //GRAVE
