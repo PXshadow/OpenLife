@@ -51,7 +51,8 @@ class Connection
             send(PLAYER_UPDATE,[player.toData()]);
             send(LINEAGE,['$id eve=$id']);
             sock.output.writeString('$FRAME\n#');
-            //send(PLAYER_UPDATE,["217055 19 0 0 0 0 0 0 0 0 -1 0.50 1 0 0 0 14.00 60.00 3.75 0;0;0;0;0;0 0 0 -1 0"]);
+            case MOVE:
+            trace(array);
             default:
             trace('tag not found $tag');
         }
