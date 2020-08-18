@@ -100,6 +100,7 @@ class Client
     var tag:ClientTag;
     private function process(wasCompressed:Bool)
     {
+        trace(data);
         var array = data.split("\n");
         if (array.length == 0) return;
         tag = array[0];

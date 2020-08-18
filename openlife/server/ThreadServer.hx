@@ -11,7 +11,6 @@ class ThreadServer
     public var port:Int = 8005;
     public var maxCount:Int = -1;
     public var listenCount:Int = 10;
-    public static inline var messageBreak:Int = 4;
     public static inline var setTimeout:Int = 30;
     public var server:Server;
     public function new(server:Server,port:Int)
@@ -42,21 +41,17 @@ class ThreadServer
         while (connection.running)
         {
             try {
-                message = socket.input.readUntil(messageBreak);
+                message = socket.input.readUntil("#".code);
                 ka = Timer.stamp();
-            }catch(e:Exception)
+            }catch(e:Dynamic)
             {
-                if (e.message != "Blocked")
+                if (e != haxe.io.Error.Blocked)
                 {
-                    trace("server e " + e.details() + " message " + e.message);
-                    //if (e == Eof || Std.is(e,Eof))
-                    //close socket
                     connection.close();
                     break;
                 }else{
-                    if (Timer.stamp() - ka > 60) 
+                    if (Timer.stamp() - ka > 10) 
                     {
-                        trace("timeout");
                         connection.close();
                     }
                 }
@@ -74,7 +69,6 @@ class ThreadServer
                 break;
             }
         }
-        //exit out
     }
     private function error(message:String) 
     {

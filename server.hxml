@@ -3,4 +3,4 @@
 #-cpp export/server
 -dce full
 #--interp
--neko export/server/server.n
+-neko server.n
