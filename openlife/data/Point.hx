@@ -20,4 +20,8 @@ class Point
         this.x = x;
         this.y = y;
     }
+    public function clone():Point
+    {
+        return new Point(x,y);
+    }
 }

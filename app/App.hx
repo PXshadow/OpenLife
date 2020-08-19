@@ -35,7 +35,7 @@ class App
         var data = Config.run(false);
         if (data.email == "") data = new Settings().cred();
         var seed:String = "";
-        if (data.legacy)
+        if (data.legacy && !relay)
         {
             Sys.println("set seed for 2HOL:");
             seed = Sys.stdin().readLine();
@@ -97,10 +97,7 @@ class App
         #if (hscript && target.threaded)
         interp = new hscript.Interp();
         var parser = new hscript.Parser();
-        interp.variables.set("program",bot.program);
-        interp.variables.set("map",bot.map);
-        interp.variables.set("app",this);
-        interp.variables.set("client",bot.client);
+        interp.variables.set("bot",bot);
         sys.thread.Thread.create(function()
         {
             while (true)

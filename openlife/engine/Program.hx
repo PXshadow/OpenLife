@@ -154,9 +154,9 @@ class Program
         var string = "";
         for (path in paths)
         {
-            string += path.x + " " + path.y + " ";
+            string += " " + path.x + " " + path.y;
         }
-        string = string.substring(0,string.length - 1);
+        string = string.substring(1);
         send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} $string');
         var path = paths.pop();
         player.x = player.x + path.x;

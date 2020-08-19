@@ -11,7 +11,7 @@ import openlife.data.object.ObjectData;
 import haxe.ds.IntMap;
 class Bot extends Engine implements EngineHeader
 {
-    var player:PlayerInstance;
+    public var player:PlayerInstance;
     var players = new IntMap<PlayerInstance>();
     var names = new IntMap<String>();
     var auto:Automation;
@@ -25,7 +25,6 @@ class Bot extends Engine implements EngineHeader
         program = new Program(client);
         var connectionData = connection.split(":");
         var accountData = account.split(":");
-        trace("account " + accountData + " seed " + seed);
         client.ip = connectionData[0];
         client.port = Std.parseInt(connectionData[1]);
         client.email = accountData[0] + seed;
@@ -62,6 +61,7 @@ class Bot extends Engine implements EngineHeader
         }
         if (player == null)
         {
+            trace("PLAYER SET");
             player = instances.pop();
             //new player set
             auto = new Automation(program,map,player,App.vector);

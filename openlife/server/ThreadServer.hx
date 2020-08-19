@@ -50,7 +50,7 @@ class ThreadServer
                     connection.close();
                     break;
                 }else{
-                    if (Timer.stamp() - ka > 10) 
+                    if (Timer.stamp() - ka > 20) 
                     {
                         connection.close();
                     }
@@ -59,7 +59,7 @@ class ThreadServer
             Sys.sleep(0.1);
             if (message.length == 0) continue;
             try {
-                connection.message(message);
+                server.process(connection,message);
                 message = "";
             }catch(e:Exception)
             {

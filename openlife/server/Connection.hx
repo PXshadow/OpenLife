@@ -1,15 +1,19 @@
 package openlife.server;
 
+import openlife.data.Pos;
+import openlife.data.object.player.PlayerInstance;
+import openlife.data.object.player.PlayerMove;
 import openlife.client.ClientTag;
 import sys.net.Socket;
 import haxe.io.Bytes;
 
-class Connection
+class Connection implements ServerHeader
 {
     public var running:Bool = true;
     var sock:Socket;
     var server:Server;
     var tag:ServerTag;
+    var player:PlayerInstance;
     public function new(sock:Socket,server:Server)
     {
         this.sock = sock;
@@ -23,43 +27,54 @@ class Connection
         running = false;
         sock.close();
     }
-    public function message(data:String)
+    private function moveString(moves:Array<Pos>):String
     {
-        trace('recieved: $data');
-        var array = data.split(" ");
-        if (array.length == 0) return;
-        tag = array[0];
-        var input = array.slice(1,array.length > 2 ? array.length - 1 : array.length);
-        switch (tag)
-        {
-            case LOGIN | RLOGIN:
-            //sock.output.writeString('$REJECTED\n#');
-            sock.output.writeString('$ACCEPTED\n#');
-            var map = "";
-            for (i in 0...30 * 32) map += '4:0:30 ';
-            map = map.substring(0,map.length - 1);
-            var uncompressed = Bytes.ofString(map);
-            var bytes = haxe.zip.Compress.run(uncompressed,-1);
-            trace("un " + uncompressed.length + " compressed " + bytes.length);
-            //return;
-            send(MAP_CHUNK,["32 30 -16 -15",'${uncompressed.length} ${bytes.length}']);
-            sock.output.write(bytes);
-            send(VALLEY_SPACING,["40 40"]);
-            var player = new openlife.data.object.player.PlayerInstance([]);
-            var id = 1;
-            player.p_id = id;
-            send(PLAYER_UPDATE,[player.toData()]);
-            send(LINEAGE,['$id eve=$id']);
-            sock.output.writeString('$FRAME\n#');
-            case MOVE:
-            trace(array);
-            default:
-            trace('tag not found $tag');
-        }
+        var string = "";
+        for (m in moves) string += " " + m.x + " " + m.y;
+        return string.substr(1);
     }
-    private function send(tag:ClientTag,data:Array<String>)
+    public function keepAlive()
     {
-        var string = '$tag\n${data.join("\n")}\n#';
+
+    }
+    public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>)
+    {
+        var total = 0.267;
+        var eta = total;
+        var trunc = 0;
+        //player.po_id = 31;
+        player.o_id = [31];
+        send(PLAYER_UPDATE,[player.toData()]);
+        send(PLAYER_MOVES_START,['${player.p_id} $x $y $total $eta $trunc ${moveString(moves)}']);
+        send(FRAME);
+    }
+    public function login()
+    {
+        send(ACCEPTED);
+        var map = "";
+        for (i in 0...30 * 32) map += '4:0:0 ';
+        map = map.substring(0,map.length - 1);
+        var uncompressed = Bytes.ofString(map);
+        var bytes = haxe.zip.Compress.run(uncompressed,-1);
+        trace("un " + uncompressed.length + " compressed " + bytes.length);
+        //return;
+        send(MAP_CHUNK,["32 30 -16 -15",'${uncompressed.length} ${bytes.length}']);
+        sock.output.write(bytes);
+        send(VALLEY_SPACING,["40 40"]);
+        player = new PlayerInstance([]);
+        var id = 1;
+        player.p_id = id;
+        send(PLAYER_UPDATE,[player.toData()]);
+        send(LINEAGE,['$id eve=$id']);
+        send(FRAME);
+    }
+    public function rlogin()
+    {
+        login();
+    }
+    private function send(tag:ClientTag,data:Array<String>=null)
+    {
+        var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
         sock.output.writeString(string);
         trace(string);
     }
