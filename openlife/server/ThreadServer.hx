@@ -18,7 +18,6 @@ class ThreadServer
         socket = new Socket();
         this.port = port;
         this.server = server;
-        create();
     }
     public function create()
     {

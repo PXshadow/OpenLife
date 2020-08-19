@@ -26,6 +26,7 @@ class Connection implements ServerHeader
     {
         running = false;
         sock.close();
+        server.connections.remove(this);
     }
     private function moveString(moves:Array<Pos>):String
     {
@@ -56,6 +57,7 @@ class Connection implements ServerHeader
     public function login()
     {
         send(ACCEPTED);
+        server.connections.push(this);
         var map = "";
         for (i in 0...30 * 32) map += '4:0:0 ';
         map = map.substring(0,map.length - 1);
@@ -78,10 +80,10 @@ class Connection implements ServerHeader
     {
         login();
     }
-    private function send(tag:ClientTag,data:Array<String>=null)
+    public function send(tag:ClientTag,data:Array<String>=null)
     {
         var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
         sock.output.writeString(string);
-        trace(string);
+        //trace(string);
     }
 }
