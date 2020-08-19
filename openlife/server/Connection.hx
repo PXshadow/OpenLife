@@ -22,6 +22,10 @@ class Connection implements ServerHeader
         var version = "350";
         send(SERVER_INFO,["0/0",challenge,version]);
     }
+    public function update()
+    {
+        
+    }
     public function close()
     {
         running = false;

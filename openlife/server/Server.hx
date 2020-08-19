@@ -32,46 +32,14 @@ class Server
         {
             update();
             tick++;
-            Sys.sleep(1/15);
+            Sys.sleep(1/20);
         }
     }
-    var change:Int = 0;
-    var ox:Int = 0;
-    var oy:Int = 0;
     private function update()
     {
         for (connection in connections)
         {
-            connection.send(FRAME);
-            //x y new_floor_id new_id p_id old_x old_y speed
-            if (tick % 15 == 0)
-            {
-                var rad = 3;
-                var x = 0;
-                var y = 0;
-                if (change == -1) return;
-                switch(change++)
-                {
-                    case 0:
-                    x = rad;
-                    y = rad;
-                    case 1:
-                    x = rad;
-                    y = -rad;
-                    case 2:
-                    x = -rad;
-                    y = -rad;
-                    case 3:
-                    x = -rad;
-                    y = rad;
-                    change = -1;
-                }
-                var id = 30;
-                connection.send(MAP_CHANGE,['$x $y 0 $id 0 $ox $oy 10']);
-                ox = x;
-                oy = y;
-            } 
-            connection.send(FRAME);
+            connection.update();
         }
     }
     public function process(connection:Connection,string:String)
