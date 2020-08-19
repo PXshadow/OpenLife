@@ -47,17 +47,10 @@ class Bot extends Engine implements EngineHeader
             inst = players.get(instance.p_id);
             if (inst != null)
             {
-                /*if (!instance.forced)
-                {
-                    instance.x = inst.x;
-                    instance.y = inst.y;
-                }
-                instance.forced = false;*/
                 inst.update(instance); 
             }else{
                 players.set(instance.p_id,instance);
             }
-            
         }
         if (player == null)
         {

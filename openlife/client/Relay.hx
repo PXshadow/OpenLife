@@ -24,7 +24,7 @@ class Relay
             {
                 try {
                 input = relayIn.input.readUntil("#".code);
-                trace("input " + input);
+                //trace("input " + input);
                 client.send(input);
                 }catch(e:Dynamic)
                 {
