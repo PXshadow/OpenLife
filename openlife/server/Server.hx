@@ -28,7 +28,7 @@ class Server
         var array = string.split(" ");
         if (array.length == 0) return;
         var tag = array[0];
-        var input = array.slice(1,array.length > 2 ? array.length - 1 : array.length);
+        var input = array.slice(1);
         message(connection,tag,input);
     }
     private function message(header:ServerHeader,tag:ServerTag,input:Array<String>)
@@ -40,7 +40,6 @@ class Server
             case RLOGIN:
             header.rlogin();
             case MOVE:
-            trace("Input " + input);
             var x = Std.parseInt(input[0]);
             var y = Std.parseInt(input[1]);
             var seq = Std.parseInt(input[2].substr(1));
@@ -58,30 +57,3 @@ class Server
     }
 }
 #end
-/*
-case LOGIN:
-            send(ACCEPTED);
-            //send(MAP_CHUNK,new haxe.zip.Compress(0))
-            var data:String = "";
-            for (i in 0...32 * 30)
-            {
-                data += " 0:0:0";
-            }
-            data = data.substr(1);
-            var uncompressed:Bytes = Bytes.ofString(data);
-            var ucl:Int = uncompressed.length;
-            var bytes:Bytes = haxe.zip.Compress.run(uncompressed,0);
-            var length:Int = bytes.length;
-            send(MAP_CHUNK,'32 30 0 0\n$ucl $length\n');
-            c.socket.output.writeBytes(bytes,0,bytes.length);
-            //c.socket.output.writeString(bytes.toString());
-            var pu = new data.object.player.PlayerInstance([]).toData();
-            trace("pu " + pu);
-            send(PLAYER_UPDATE,pu);
-            case null:
-            trace('tag not found in data: $input');
-            case KA:
-            //keep alive
-            default:
-            trace('$tag not registered');
-*/

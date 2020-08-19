@@ -39,13 +39,18 @@ class Connection implements ServerHeader
     }
     public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>)
     {
+        trace("moves " + moves);
         var total = 0.267;
         var eta = total;
         var trunc = 0;
-        //player.po_id = 31;
-        player.o_id = [31];
-        send(PLAYER_UPDATE,[player.toData()]);
+        var last = moves.pop();
+        player.x += last.x;
+        player.y += last.y;
+        moves.push(last);
+        send(FRAME);
         send(PLAYER_MOVES_START,['${player.p_id} $x $y $total $eta $trunc ${moveString(moves)}']);
+        send(FRAME);
+        send(PLAYER_UPDATE,[player.toData()]);
         send(FRAME);
     }
     public function login()
@@ -64,9 +69,10 @@ class Connection implements ServerHeader
         player = new PlayerInstance([]);
         var id = 1;
         player.p_id = id;
-        send(PLAYER_UPDATE,[player.toData()]);
-        send(LINEAGE,['$id eve=$id']);
         send(FRAME);
+        send(PLAYER_UPDATE,[player.toData()]);
+        send(FRAME);
+        send(LINEAGE,['$id eve=$id']);
     }
     public function rlogin()
     {
