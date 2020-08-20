@@ -44,7 +44,6 @@ class Connection implements ServerHeader
     }
     public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>)
     {
-        trace("moves " + moves);
         var total = 0.267;
         var eta = total;
         var trunc = 0;
@@ -62,9 +61,7 @@ class Connection implements ServerHeader
     {
         send(ACCEPTED);
         server.connections.push(this);
-        var map = "";
-        for (i in 0...30 * 32) map += '4:0:0 ';
-        map = map.substring(0,map.length - 1);
+        var map = server.map.toString();
         var uncompressed = Bytes.ofString(map);
         var bytes = haxe.zip.Compress.run(uncompressed,-1);
         trace("un " + uncompressed.length + " compressed " + bytes.length);

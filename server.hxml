@@ -1,6 +1,7 @@
 -main openlife.server.Server
 #-hl export/server/server.hl
 #-cpp export/server
+-D analyzer-optimize
 -dce full
 #--interp
--neko server.n
+-hl server.hl

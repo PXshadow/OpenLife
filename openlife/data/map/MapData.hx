@@ -158,7 +158,7 @@ class MapData
         var string:String = "";
         for (i in 0...a.length)
         {
-            string += i;
+            string += a[i];
             if (i >= 0)
             {
                 string += ",";

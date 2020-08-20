@@ -1,6 +1,9 @@
 package openlife.server;
-import openlife.data.Pos;
+import openlife.engine.Engine;
+import openlife.resources.ObjectBake;
+import haxe.ds.Vector;
 #if ((target.threaded) && !cs)
+import openlife.data.Pos;
 import openlife.client.ClientTag;
 import sys.thread.Thread;
 import haxe.Timer;
@@ -17,12 +20,18 @@ class Server
 {
     public var connections:Array<Connection> = [];
     var tick:Int = 0;
+    public var map:Map;
+    public var vector:Vector<Int>;
     public static function main()
     {
         new Server();
     }
     public function new()
     {
+        Engine.dir = "OneLifeData7/";
+        vector = ObjectBake.objectList();
+        map = new Map(this);
+        trace("length " + vector.length);
         var thread = new ThreadServer(this,8005);
         Thread.create(function()
         {

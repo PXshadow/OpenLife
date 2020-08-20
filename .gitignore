@@ -33,6 +33,7 @@ docs
 dox
 *.n
 *.js
+*.hl
 xml
 .idea
 *.exe

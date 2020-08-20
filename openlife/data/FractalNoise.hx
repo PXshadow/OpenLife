@@ -2,17 +2,26 @@ package openlife.data;
 #if cpp
 import cpp.UInt64;
 import cpp.UInt32;
+#elseif hl
+import UInt as UInt64;
+import UInt as UInt32;
 #end
-
 
 class FractalNoise
 {
-    #if cpp
+    /*
     private static inline var XX_PRIME32_1:UInt64 = cast 2654435761;
     private static inline var XX_PRIME32_2:UInt64 = cast 2246822519;
     private static inline var XX_PRIME32_3:UInt64 = cast 3266489917;
     private static inline var XX_PRIME32_4:UInt64 = cast 668265263;
     private static inline var XX_PRIME32_5:UInt64 = cast 374761393;
+    */
+
+    private static inline var XX_PRIME32_1:UInt64 = cast 26544357;
+    private static inline var XX_PRIME32_2:UInt64 = cast 22468225;
+    private static inline var XX_PRIME32_3:UInt64 = cast 32664899;
+    private static inline var XX_PRIME32_4:UInt64 = cast 6682652;
+    private static inline var XX_PRIME32_5:UInt64 = cast 3747613;
     private static var xxSeed:UInt32 = 0;
     /**
      * Random seed generated
@@ -37,9 +46,10 @@ class FractalNoise
         h32 ^= cast h32 >> 13;
         h32 *= cast XX_PRIME32_3;
         h32 ^= cast h32 >> 16;
-        return h32;    
+        return h32;
     }
-    private static var oneOverIntMax = 1.0 / 4294967295;
+    //private static var oneOverIntMax = 1.0 / 4294967295;
+    private static var oneOverIntMax = 1.0 / 429496;
     /**
      * Get Tile random
      * @param inX 
@@ -105,5 +115,4 @@ class FractalNoise
                                                 )))));
         return sum * oneOverIntMax;
     }
-    #end
 }
