@@ -44,14 +44,18 @@ class App
         if (!relay && FileSystem.exists("combo.txt"))
         {
             var lines = File.getContent("combo.txt").split("\r\n");
-            Sys.println("(y)es (n)o deploy " + lines.length + " bots:");
+            var botamount = lines.length;
+            Sys.println("(y)es (n)o deploy " + botamount + " bots:");
             var deploy:Bool = Sys.stdin().readLine() == "y";
             if (deploy)
             {
-                Sys.println("spawning bots " + lines.length);
+                Sys.println("spawning bots " + botamount);
                 var bots:Array<Bot> = [];
-                for (i in 0...20)
+                for (i in 0...botamount)
                 {
+                    var regex = ~/#.*/;
+                    if(regex.match(lines[i]))
+                        continue;
                     #if target.threaded
                     sys.thread.Thread.create(function()
                     {
@@ -61,7 +65,7 @@ class App
                         while (true)
                         {
                             bot.update();
-                            Sys.sleep(1/30);
+                            Sys.sleep(1/40);
                         }
                     });
                     Sys.sleep(0.2);
@@ -113,8 +117,13 @@ class App
         #end
         while (true)
         {
+            if(bot.resetFlag==true){
+                bot = new Bot(data.email + ":" + data.key,data.ip + ":" + data.port,data.legacy,relay,seed);
+                bot.connect(false,relay);
+                interp.variables.set("bot",bot);
+            }
             bot.update();
-            Sys.sleep(1/30);
+            Sys.sleep(1/40);
         }
     }
     public static function getFields(Object:Dynamic):Array<String>

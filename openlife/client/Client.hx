@@ -41,6 +41,7 @@ class Client
     public var reject:Void->Void;
     public var legacy:Bool = false;
     public var relay:Socket;
+    public var resetFlag:Bool = false;
     var wasCompressed:Bool = false;
     public function new()
     {
@@ -88,8 +89,15 @@ class Client
 		{
 			if(e.message != "Blocked")
 			{
-                trace('e: ${e.details()}');
-                close();
+                if(e.details().indexOf('Eof')>-1){
+                    connected=false;
+                    data="";
+                    //close();
+                    Sys.sleep(1);
+                }else{
+                    trace('e: ${e.details()}');
+                    close();
+                }
             }
             return;
         }
