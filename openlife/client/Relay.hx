@@ -1,5 +1,8 @@
 package openlife.client;
 
+import haxe.io.Eof;
+import haxe.io.Error;
+import haxe.Exception;
 import sys.thread.Thread;
 import sys.net.Host;
 import sys.net.Socket;
@@ -12,8 +15,9 @@ class Relay
         relay.bind(new Host("localhost"),listen);
         relay.listen(1);
         Sys.println('waiting for connection on port $listen');
-        var client = new Client();
+        var client:Client = new Client();
         var relayIn = relay.accept();
+        //here we are connected
         relayIn.setFastSend(true);
         relayIn.setBlocking(false);
         Sys.println("begin threading relay");
@@ -21,20 +25,30 @@ class Relay
         Thread.create(function()
         {
             while (true)
-            {
+            {   
                 try {
-                input = relayIn.input.readUntil("#".code);
-                //trace("input " + input);
-                client.send(input);
+                    input = relayIn.input.readUntil("#".code);
+                    //trace("input " + input);
+                    client.send(input);
                 }catch(e:Dynamic)
-                {
+                {   
                     if(e != haxe.io.Error.Blocked)
                     {
-                        trace('e: $e');
-                        return;
+                        var msg:String = '$e';
+                        if(msg.indexOf('Eof') > -1){
+                            //this is where we need to reset the connection
+                            relay.close();
+                            client.resetFlag=true;
+                            client.close();
+                            //reset();
+                            return;
+                        } else {
+                            trace('e: $e');
+                            return;
+                        }
                     }
-                }
-                Sys.sleep(1/15);
+                }   
+                Sys.sleep(1/40);
             }
         });
         //relay out
@@ -50,6 +64,8 @@ private class Client extends openlife.client.Client
     }
     override function process(wasCompressed:Bool) 
     {
+        if(!connected)
+            return;
         super.process(wasCompressed);
         if (wasCompressed) return;
         //server -> router -> client

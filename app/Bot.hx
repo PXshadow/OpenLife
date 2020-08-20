@@ -12,6 +12,7 @@ import haxe.ds.IntMap;
 class Bot extends Engine implements EngineHeader
 {
     public var player:PlayerInstance;
+    public var resetFlag:Bool = false;
     var players = new IntMap<PlayerInstance>();
     var names = new IntMap<String>();
     var auto:Automation;
@@ -35,6 +36,9 @@ class Bot extends Engine implements EngineHeader
     }
     public function update()
     {
+        if(client.resetFlag==true){
+            this.resetFlag = true;
+        }
         client.update();
         Sys.sleep(1/15);
     }
