@@ -8,4 +8,5 @@ interface ServerHeader
     public function login():Void;
     public function rlogin():Void;
     public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>):Void;
+    public function die():Void;
 }

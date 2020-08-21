@@ -20,6 +20,7 @@ class Server
 {
     public var connections:Array<Connection> = [];
     var tick:Int = 0;
+    public var index:Int = 1;
     public var map:Map;
     public var vector:Vector<Int>;
     public static function main()
@@ -78,6 +79,8 @@ class Server
                 moves.push(new Pos(Std.parseInt(input[i * 2]),Std.parseInt(input[i * 2 + 1])));
             }
             header.move(x,y,seq,moves);
+            case DIE:
+            header.die();
             case KA:
             header.keepAlive();
             default:

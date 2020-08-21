@@ -1,3 +1,4 @@
+package;
 import openlife.auto.Automation;
 import openlife.client.Relay;
 import openlife.engine.Program;

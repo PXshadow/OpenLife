@@ -42,6 +42,11 @@ class Connection implements ServerHeader
     {
 
     }
+    public function die()
+    {
+        server.connections.remove(this);
+        sock.close();
+    }
     public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>)
     {
         var total = 0.267;
@@ -51,11 +56,15 @@ class Connection implements ServerHeader
         player.x += last.x;
         player.y += last.y;
         moves.push(last);
-        send(FRAME);
-        send(PLAYER_MOVES_START,['${player.p_id} $x $y $total $eta $trunc ${moveString(moves)}']);
-        send(FRAME);
-        send(PLAYER_UPDATE,[player.toData()]);
-        send(FRAME);
+        
+        for (c in server.connections) 
+        {
+            c.send(FRAME);
+            c.send(PLAYER_MOVES_START,['${player.p_id} $x $y $total $eta $trunc ${moveString(moves)}']);
+            c.send(FRAME);
+            c.send(PLAYER_UPDATE,[player.toData()]);
+            c.send(FRAME);
+        }
     }
     public function login()
     {
@@ -70,10 +79,22 @@ class Connection implements ServerHeader
         sock.output.write(bytes);
         send(VALLEY_SPACING,["40 40"]);
         player = new PlayerInstance([]);
-        var id = 1;
+        var id = server.index++;
+        trace("pid " + id);
         player.p_id = id;
         send(FRAME);
-        send(PLAYER_UPDATE,[player.toData()]);
+        var data:Array<String> = [];//[player.toData()];
+        for (c in server.connections)
+        {
+            data.push(c.player.toData());
+            if (c != this)
+            {
+                c.send(FRAME);
+                c.send(PLAYER_UPDATE,[player.toData()]);
+                c.send(FRAME);
+            }
+        }
+        send(PLAYER_UPDATE,data);
         send(FRAME);
         send(LINEAGE,['$id eve=$id']);
     }
