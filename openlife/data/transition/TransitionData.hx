@@ -57,6 +57,14 @@ class TransitionData
         tool = (actorID >= 0 && actorID == newActorID);
         targetRemains = (targetID >= 0 && targetID == newTargetID);
     }
+    public function isGeneric()
+    {
+      return targetID == -1 && newTargetID == 0 && actorID != newActorID;
+    }
+    public function isAttack():Bool
+    {
+      return targetID == 0 && !lastUseActor && !lastUseTarget;
+    }
     public function calculateDecay(seconds:Int):String
     {
         if (seconds < 0)
@@ -66,5 +74,9 @@ class TransitionData
         if (seconds > 0)
           return '$seconds seconds';
         return "";
+    }
+    public function toString():String
+    {
+      return '$actorID + $targetID = $newActorID + $newTargetID';
     }
 }

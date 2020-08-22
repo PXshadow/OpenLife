@@ -8,12 +8,14 @@ import sys.FileSystem;
 
 class TransitionImporter
 {
-    var transitions:Array<TransitionData>;
-    var categories:Array<Category>;
+    public var transitions:Array<TransitionData>;
+    public var categories:Array<Category>;
     public function new()
     {
         transitions = [];
         categories = [];
+        importCategories();
+        importTransitions();
     }
     public function importCategories()
     {
@@ -31,11 +33,6 @@ class TransitionImporter
             //MinUse for variable-use objects that occasionally use more than one "use", this sets a minimum per interaction.
             var transition = new TransitionData(Path.withoutExtension(name),File.getContent(Engine.dir + 'transitions/$name'));
             //actor + target = new actor + new target
-            if (transition.actorID == 33)
-            {
-                Sys.println(new ObjectData(transition.actorID,true).description + " + " + new ObjectData(transition.targetID,true).description + " = " + 
-                new ObjectData(transition.newActorID,true).description + " + " + new ObjectData(transition.newTargetID,true).description);
-            }
             transitions.push(transition);
         }
     }
