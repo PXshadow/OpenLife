@@ -19,7 +19,7 @@ class SetupData
         //linux is folder name case senetive
         if (!FileSystem.exists("OneLifeData7"))
         {
-            Sys.println('Repository index $users:');
+            Sys.println('Rep input an index of (0) or (1) for $users :');
             index = Std.parseInt(Sys.stdin().readLine());
             Sys.println('Downloading ${users[index]}');
             trace("clone-");
