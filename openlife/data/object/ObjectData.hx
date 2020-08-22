@@ -74,6 +74,7 @@ class ObjectData extends LineReader
      * Chance of object to appear
      */
     public var mapChance:Float = 0.000000;//#biomes_0
+    public var biomes:Array<Int> = [0];
     /**
      * Heat value of object
      */
@@ -387,7 +388,18 @@ class ObjectData extends LineReader
                 maxWideRadius = rightBlockingRadius;
             }
         }
-        getString(); //skipping map chance
+        
+        var map = getString(); //mapchance
+        var index = map.indexOf("#");
+        mapChance = Std.parseFloat(map.substring(0,index));
+        if (mapChance > 0)
+        {
+            //extract biome from spawn data
+            index = map.indexOf("_",index);
+            var array = map.substring(index + 1,map.length).split(",");
+            biomes = [];
+            for (string in array) biomes.push(Std.parseInt(string));
+        }
         //values
         heatValue = getInt();
         rValue = getInt();
@@ -562,6 +574,10 @@ class ObjectData extends LineReader
                 }              
             }
         }
+    }
+    public inline function isNatural():Bool
+    {
+        return mapChance > 0;
     }
     public function toFileString():String
     {
