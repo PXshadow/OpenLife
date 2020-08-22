@@ -6,9 +6,8 @@ class Transition
     public function new()
     {
         var vector = ObjectBake.objectList();
-        for (id in vector)
-        {
-            
-        }
+        var importer = new TransitionImporter();
+        importer.importCategories();
+        importer.importTransitions();
     }
 }

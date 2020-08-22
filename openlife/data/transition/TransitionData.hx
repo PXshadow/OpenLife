@@ -65,5 +65,6 @@ class TransitionData
           return '${seconds/60} minutes';
         if (seconds > 0)
           return '$seconds seconds';
+        return "";
     }
 }

@@ -1,12 +1,14 @@
 package openlife.data.transition;
 
+import eval.Vector;
+
 class Category
 {
-    var ids:Array<Int>;
-    var weights:Array<Float>;
-    var parentID:Int = 0;
-    var pattern:Bool = false;
-    var probSet:Bool = false;
+    public var ids:Array<Int>;
+    public var weights:Array<Float>;
+    public var parentID:Int = 0;
+    public var pattern:Bool = false;
+    public var probSet:Bool = false;
     public function new(text:String)
     {
         ids = [];
@@ -36,5 +38,9 @@ class Category
         var parts = line.split(" ");
         ids.push(Std.parseInt(parts[0]));
         if (probSet) weights.push(Std.parseFloat(parts[1]));
+    }
+    public function toString():String
+    {
+        return 'parent id: $parentID is pattern: $pattern prob: $probSet ids: $ids';
     }
 }
