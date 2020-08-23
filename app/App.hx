@@ -25,7 +25,7 @@ class App
     var followingId:Int = -1;
     public function new()
     {
-        Engine.dir = "OneLifeData7/";
+        Engine.dir = Utility.dir();
         vector = Bake.run();
         trace("baked chisel: " + ObjectBake.dummies.get(455));
         //start program

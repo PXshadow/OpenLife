@@ -35,6 +35,7 @@ dox
 *.js
 *.hl
 xml
+dir
 .idea
 *.exe
 combo.txt
