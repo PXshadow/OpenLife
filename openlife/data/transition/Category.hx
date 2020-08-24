@@ -23,13 +23,13 @@ class Category
     private function processHeader(line:String)
     {
         var parts = line.split("=");
-        switch (parts[0])
+        switch (StringTools.replace(parts[0],"\r",""))
         {
             case "parentID": parentID = Std.parseInt(parts[1]);
             case "pattern": pattern = true;
             case "probSet": probSet = true;
             case "numObjects": return false;
-            default: throw 'Unknown category header ${parts[0]}';
+            default: throw 'Unknown category header |${parts[0]}|';
         }
         return true;
     }

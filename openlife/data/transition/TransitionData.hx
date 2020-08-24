@@ -1,5 +1,7 @@
 package openlife.data.transition;
 
+import openlife.data.object.ObjectData;
+
 class TransitionData
 {
     public var lastUseActor:Bool = false;
@@ -64,6 +66,14 @@ class TransitionData
     public function isAttack():Bool
     {
       return targetID == 0 && !lastUseActor && !lastUseTarget;
+    }
+    public function isLastUse():Bool
+    {
+      return lastUseActor || lastUseTarget;
+    }
+    public function targetsPlayer()
+    {
+      return targetID == 0 || targetID == -1 && new ObjectData(actorID).foodValue > 0;
     }
     public function calculateDecay(seconds:Int):String
     {
