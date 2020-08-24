@@ -34,7 +34,7 @@ class Recipe
         {
             if (a.newActorID == 0 || b.newTargetID == 0) return a.newActorID - b.newTargetID;
             if (a.targetID == -1 || b.targetID == -1) return b.targetID - a.targetID;
-            return 0;
+            return a.targetID - b.targetID;
         });
         if (id == 57)
         {
