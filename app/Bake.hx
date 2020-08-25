@@ -7,7 +7,7 @@ import haxe.Unserializer;
 import haxe.ds.Vector;
 class Bake
 {
-    public static function run():Vector<Int>
+    public static function dummies():Vector<Int>
     {
         if (FileSystem.exists("dummymap"))
         {
