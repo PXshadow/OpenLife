@@ -23,48 +23,69 @@ class Transition
         trace("start");
         importer = new TransitionImporter();
         trace("imported");
-        generated = [-1,0];
+        generated = [-2,-1,0];
         for (id in vector)
         {
             if (new ObjectData(id).isNatural()) generated.push(id);
         }
+        transitions = importer.transitions.copy();
         create();
         trace("generated " + generated.length);
         while (true)
         {
             var id = read("Object");
             var data = Node.map.get(id);
-            trace("index " + generated.indexOf(id));
+            Sys.println("index " + generated.indexOf(id));
+            for (trans in importer.transitions)
+            {
+                if (trans.newActorID != id && trans.newTargetID != id) continue;
+                Sys.println(trans);
+            }
             if (data == null)
             {
                 Sys.println("data: null");
                 continue;
             }
-            if (data.node == null) 
-            {
-                Sys.println("int: " + data.id);
-                continue;
-            }
-            Sys.println("node: " + data.node + " nodes: " + data.node.nodes);
+            Sys.println("node " + data[0]);
         }
     }
     var generated:Array<Int> = [];
-    private function create(depth:Int=0)
+    var prev:Int = 0;
+    var transitions:Array<TransitionData>;
+    private function create()
     {
-        var temp:Array<Int> = [];
-        for (trans in importer.transitions)
+        for (trans in transitions)
         {
-            //if (trans.actorID == trans.newActorID) continue;
-            //if (trans.targetID == trans.actorID) continue;
-            if (generated.indexOf(trans.actorID) == -1 || generated.indexOf(trans.targetID) == -1) continue;
-            new Node(trans.actorID,trans.targetID,trans.newActorID,trans.newTargetID,depth);
-            if (temp.indexOf(trans.newActorID) == -1 && generated.indexOf(trans.newActorID) == -1) temp.push(trans.newActorID);
-            if (temp.indexOf(trans.newTargetID) == -1 && generated.indexOf(trans.newTargetID) == -1) temp.push(trans.newTargetID);
+            if (trans.actorID == 0 && trans.targetID == 500)
+            {
+                trace("SHOVEL HEAD " + trans + " index 0 " + generated.indexOf(trans.actorID) + " " + generated.indexOf(trans.targetID));
+            }
+            if (trans.targetID == 500) 
+            {
+                trace("steel shovel head found " + generated.indexOf(trans.targetID));
+            }
+            if (generated.indexOf(trans.actorID) == -1 && generated.indexOf(trans.targetID) == -1) continue;
+            if (trans.targetID == 500)
+            {
+                trace("created shovel head node");
+            }
+            new Node(trans);
+            transitions.remove(trans);
+            if (generated.indexOf(trans.newTargetID) == -1) generated.push(trans.newTargetID);
+            if (generated.indexOf(trans.newActorID) == -1) generated.push(trans.newActorID);
         }
-        trace("tmp " + temp);
-        if (temp.length == 0) return;
-        generated = generated.concat(temp);
-        create(++depth);
+        trace("left " + transitions.length);
+        if (transitions.length == prev) 
+        {
+            trace("LEFT:");
+            for (trans in transitions)
+            {
+                trace(trans);
+            }
+            return;
+        }
+        prev = transitions.length;
+        create();
     }
     public function read(type:String):Int
     {
@@ -90,46 +111,43 @@ class Transition
 }
 class Node
 {
-    public static var map:Map<Int,NodeData> = new Map<Int,NodeData>();
+    public static var map:Map<Int,Array<Node>> = new Map<Int,Array<Node>>();
     public var target:NodeData;
     public var actor:NodeData;
-    var newTarget:NodeData;
-    var newActor:NodeData;
-    var depth:Int = 0;
+    public var newTarget:NodeData;
+    public var newActor:NodeData;
     public var nodes:Array<Node> = []; //other ways to make the object
-    public function new(actor:Int,target:Int,newActor:Int,newTarget:Int,depth:Int)
+    public function new(trans:TransitionData)
     {
-        //either natural object, hand or decay, or Node leading to others
-        this.depth = depth;
-        this.actor = get(actor);
-        this.target = get(target);
-        this.newActor = get(newActor);
-        this.newTarget = get(newTarget);
-        if (newActor > 0)
-        {
-            fill(newTarget);
-            map.set(newActor,{id:newActor,node: this});
-        }
-        if (newTarget > 0)
-        {
-            fill(newTarget);
-            map.set(newTarget,{id: newTarget,node: this});
-        }
+        //either natural object, 0 = empty ground, hand, -1 = decay, consuming food
+        this.actor = get(trans.actorID);
+        this.target = get(trans.targetID);
+        this.newActor = get(trans.newActorID);
+        this.newTarget = get(trans.newTargetID);
+        if (trans.newActorID > 0 && newActor != actor) fill(trans.newTargetID);
+        if (trans.newTargetID > 0 && newTarget != target) fill(trans.newTargetID);
     }
     private function fill(id:Int)
     {
-        var data = map.get(id);
-        if (data == null) return;
-        if (data.id != id) return;
-        nodes.push(data.node);
+        var array = map.get(id);
+        if (array == null) 
+        {
+            map.set(id,[this]);
+            return;
+        }
+        array.unshift(this);
     }
     private function get(id:Int):NodeData
     {
-        return map.exists(id) ? map.get(id) : {id: id,node: null};
+        return map.exists(id) ? {id: id, nodes: map.get(id)} : {id: id,nodes: []};
     }
     public function toString():String
     {
-        return actor.id + " + " + target.id + " = " + newActor.id + " + " + newTarget.id;
+        return actor.id + " + " + target.id + " = " + newActor.id + " + " + newTarget.id + " depth: " + depth();
+    }
+    public function depth():Int
+    {
+        return 0;
     }
 }
-typedef NodeData = {id:Int,node:Node}
+typedef NodeData = {id:Int,nodes:Array<Node>}
