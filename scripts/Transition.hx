@@ -23,6 +23,13 @@ class Transition
         trace("start");
         importer = new TransitionImporter();
         trace("imported");
+        for (trans in importer.transitions)
+        {
+            if (trans.newTargetID == 72)
+            {
+                trace(trans);
+            }
+        }
         generated = [-2,-1,0];
         for (id in vector)
         {
@@ -36,11 +43,11 @@ class Transition
             var id = read("Object");
             var data = Node.map.get(id);
             Sys.println("index " + generated.indexOf(id));
-            for (trans in importer.transitions)
+            /*for (trans in importer.transitions)
             {
                 if (trans.newActorID != id && trans.newTargetID != id) continue;
                 Sys.println(trans);
-            }
+            }*/
             if (data == null)
             {
                 Sys.println("data: null");
@@ -52,36 +59,40 @@ class Transition
     var generated:Array<Int> = [];
     var prev:Int = 0;
     var transitions:Array<TransitionData>;
+    private function get(id:Int):Array<Int>
+    {
+        for (cat in importer.categories)
+        {
+            if (cat.parentID == id) return cat.ids;
+        }
+        return [id];
+    }
     private function create()
     {
+        trace("gen " + generated.length);
         for (trans in transitions)
         {
-            if (trans.actorID == 0 && trans.targetID == 500)
-            {
-                trace("SHOVEL HEAD " + trans + " index 0 " + generated.indexOf(trans.actorID) + " " + generated.indexOf(trans.targetID));
-            }
-            if (trans.targetID == 500) 
-            {
-                trace("steel shovel head found " + generated.indexOf(trans.targetID));
-            }
-            if (generated.indexOf(trans.actorID) == -1 && generated.indexOf(trans.targetID) == -1) continue;
-            if (trans.targetID == 500)
-            {
-                trace("created shovel head node");
-            }
+            if (trans.actorID == 71 && trans.targetID == 64) trace(generated.indexOf(trans.actorID) + " " + generated.indexOf(trans.targetID));
+            if (generated.indexOf(trans.actorID) == -1 || generated.indexOf(trans.targetID) == -1) continue;
             new Node(trans);
             transitions.remove(trans);
-            if (generated.indexOf(trans.newTargetID) == -1) generated.push(trans.newTargetID);
-            if (generated.indexOf(trans.newActorID) == -1) generated.push(trans.newActorID);
+            if (generated.indexOf(trans.newTargetID) == -1) 
+            {
+                for (id in get(trans.newTargetID)) generated.push(id);
+            }
+            if (generated.indexOf(trans.newActorID) == -1) 
+            {
+                for (id in get(trans.newActorID)) generated.push(id);
+            }
         }
         trace("left " + transitions.length);
         if (transitions.length == prev) 
         {
-            trace("LEFT:");
+            /*trace("LEFT:");
             for (trans in transitions)
             {
                 trace(trans);
-            }
+            }*/
             return;
         }
         prev = transitions.length;
@@ -89,24 +100,9 @@ class Transition
     }
     public function read(type:String):Int
     {
-        Sys.println('$type id or desc:');
+        Sys.println('$type id:');
         var value = Sys.stdin().readLine();
-        var int = Std.parseInt(value);
-        if (int != null) return int;
-        return get(value);
-    }
-    public function get(desc:String):Int
-    {
-        for (id in vector) 
-        {
-            var objDesc = new ObjectData(id,true).description;
-            if (objDesc.indexOf(desc) > -1)
-            {
-                Sys.println('found object $objDesc');
-                return id;
-            }
-        }
-        return 0;
+        return Std.parseInt(value);
     }
 }
 class Node
