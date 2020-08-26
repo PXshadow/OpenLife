@@ -12,13 +12,11 @@ class TransitionImporter
     public var categories:Array<Category>;
     public function new()
     {
-        transitions = [];
-        categories = [];
-        importCategories();
-        importTransitions();
+        
     }
     public function importCategories()
     {
+        categories = [];
         for (name in FileSystem.readDirectory(Engine.dir + "categories"))
         {
             var category = new Category(File.getContent(Engine.dir + 'categories/$name'));
@@ -27,6 +25,7 @@ class TransitionImporter
     }
     public function importTransitions()
     {
+        transitions = [];
         for (name in FileSystem.readDirectory(Engine.dir + "transitions"))
         {
             //Last use determines whether the current transition is used when numUses is greater than 1
