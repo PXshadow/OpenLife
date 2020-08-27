@@ -11,4 +11,5 @@ interface ServerHeader
     public function die():Void;
     public function emote(id:Int):Void;
     public function use(x:Int,y:Int):Void;
+    public function drop(x:Int,y:Int):Void;
 }

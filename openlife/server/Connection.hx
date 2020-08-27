@@ -84,6 +84,7 @@ class Connection implements ServerHeader
         player = new PlayerInstance([]);
         var id = server.index++;
         player.p_id = id;
+        player.o_id = [33];
         send(FRAME);
         var data:Array<String> = [];//[player.toData()];
         for (c in server.connections)
@@ -112,8 +113,6 @@ class Connection implements ServerHeader
         player.action = 1;
         trace("USE " + x + " " + y);
         player.o_id = server.map.get(x + gx,y + gy,true);
-        trace("rock " + player.o_id);
-        //441 2404 0 1 4 -6 33 1 4 -6 -1 0.26 8 0 4 -6 16.14 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 1
         player.forced = true;
         player.o_origin_x = x;
         player.o_origin_y = y;
@@ -122,10 +121,25 @@ class Connection implements ServerHeader
         player.action_target_y = y;
         for (c in server.connections)
         {
-            c.send(FRAME);
             c.send(PLAYER_UPDATE,[player.toData()]);
+            c.send(FRAME);
         }
         player.action = 0;
+        player.forced = false;
+    }
+    public function drop(x:Int,y:Int)
+    {
+        player.o_id = [0];
+        player.action = 1;
+        player.action_target_x = x;
+        player.action_target_y = y;
+        for (c in server.connections)
+        {
+            c.send(PLAYER_UPDATE,[player.toData()]);
+            c.send(FRAME);
+        }
+        player.action = 0;
+        player.forced = false;
     }
     public function rlogin()
     {

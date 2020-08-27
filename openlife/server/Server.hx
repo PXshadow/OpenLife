@@ -89,6 +89,8 @@ class Server
             case USE:
             trace("USE!");
             header.use(Std.parseInt(input[0]),Std.parseInt(input[1]));
+            case DROP:
+            header.drop(Std.parseInt(input[0]),Std.parseInt(input[1]));
             default:
         }
     }
