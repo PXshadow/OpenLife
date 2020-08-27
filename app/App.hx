@@ -26,7 +26,7 @@ class App
     public function new()
     {
         Engine.dir = Utility.dir();
-        vector = Bake.run();
+        vector = Bake.dummies();
         trace("baked chisel: " + ObjectBake.dummies.get(455));
         //start program
         Sys.println("(y)es (n)o relay system to use a client:");

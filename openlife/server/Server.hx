@@ -83,6 +83,12 @@ class Server
             header.die();
             case KA:
             header.keepAlive();
+            case EMOT:
+            trace("data " + input);
+            header.emote(Std.parseInt(input[2]));
+            case USE:
+            trace("USE!");
+            header.use(Std.parseInt(input[0]),Std.parseInt(input[1]));
             default:
         }
     }

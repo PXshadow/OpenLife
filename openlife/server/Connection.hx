@@ -14,6 +14,8 @@ class Connection implements ServerHeader
     var server:Server;
     var tag:ServerTag;
     var player:PlayerInstance;
+    var gx:Int = 0; //global x offset
+    var gy:Int = 0; //global y offset
     public function new(sock:Socket,server:Server)
     {
         this.sock = sock;
@@ -63,7 +65,6 @@ class Connection implements ServerHeader
             c.send(PLAYER_MOVES_START,['${player.p_id} $x $y $total $eta $trunc ${moveString(moves)}']);
             c.send(FRAME);
             c.send(PLAYER_UPDATE,[player.toData()]);
-            c.send(FRAME);
         }
     }
     public function login()
@@ -75,12 +76,13 @@ class Connection implements ServerHeader
         var bytes = haxe.zip.Compress.run(uncompressed,-1);
         trace("un " + uncompressed.length + " compressed " + bytes.length);
         //return;
+        gx = 16;
+        gy = 15;
         send(MAP_CHUNK,["32 30 -16 -15",'${uncompressed.length} ${bytes.length}']);
         sock.output.write(bytes);
         send(VALLEY_SPACING,["40 40"]);
         player = new PlayerInstance([]);
         var id = server.index++;
-        trace("pid " + id);
         player.p_id = id;
         send(FRAME);
         var data:Array<String> = [];//[player.toData()];
@@ -91,12 +93,39 @@ class Connection implements ServerHeader
             {
                 c.send(FRAME);
                 c.send(PLAYER_UPDATE,[player.toData()]);
-                c.send(FRAME);
             }
         }
         send(PLAYER_UPDATE,data);
         send(FRAME);
         send(LINEAGE,['$id eve=$id']);
+    }
+    public function emote(id:Int)
+    {
+        for (c in server.connections)
+        {
+            c.send(FRAME);
+            c.send(PLAYER_EMOT,['${player.p_id} $id']);
+        }
+    }
+    public function use(x:Int,y:Int)
+    {
+        player.action = 1;
+        trace("USE " + x + " " + y);
+        player.o_id = server.map.get(x + gx,y + gy,true);
+        trace("rock " + player.o_id);
+        //441 2404 0 1 4 -6 33 1 4 -6 -1 0.26 8 0 4 -6 16.14 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 1
+        player.forced = true;
+        player.o_origin_x = x;
+        player.o_origin_y = y;
+        player.o_origin_valid = 1;
+        player.action_target_x = x;
+        player.action_target_y = y;
+        for (c in server.connections)
+        {
+            c.send(FRAME);
+            c.send(PLAYER_UPDATE,[player.toData()]);
+        }
+        player.action = 0;
     }
     public function rlogin()
     {

@@ -70,7 +70,7 @@ private class Client extends openlife.client.Client
         if (wasCompressed) return;
         //server -> router -> client
         //relay.close();
-        //trace('output $data');
+        trace('output $data');
         relay.output.writeString('$data#');
     }
     override function compressProcess() {

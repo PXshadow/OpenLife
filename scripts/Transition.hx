@@ -85,7 +85,7 @@ class Transition
             var array = transMap.get(id);
             var a = get(trans.actorID);
             var b = get(trans.targetID);
-            array.unshift({actor: a,target: b,tool: trans.tool,decay: trans.decay}); 
+            array.unshift({actor: a,target: b,tool: trans.tool,decay: trans.autoDecaySeconds}); 
         }
     }
     private inline function depth(node:NodeData):Int

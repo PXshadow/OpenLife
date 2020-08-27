@@ -26,19 +26,7 @@ class Map
         var y:Int = 0;
         for (i in 0...length)
         {
-            //trace("p " + x + " " + y + " fractuals " + FractalNoise.getXYRandom(x,y));
-            var density = FractalNoise.getXYFractal(x,y,0.1,0.25);
-            density = sigmoid(density,0.1);
-            density *= 0.4;
-
-            var rand = FractalNoise.getXYRandom(x,y);
-            if (rand/20000 < density)
-            {
-                //set biome
-                biome[i] = 3;
-            }else{
-                biome[i] = 0;
-            }
+            biome[i] = 0;
             objects[i] = [0];
             floor[i] = 0;//898;
             if (++x > width)
@@ -47,6 +35,26 @@ class Map
                 y++;
             }
         }
+        set(15,15,[32]);
+        set(16,15,[33]); //33
+        set(15,16,[121]);
+        set(16,16,[121]);
+    }
+    public function get(x:Int,y:Int,delete:Bool=false,floorBool:Bool=false):Array<Int>
+    {
+        var i = floorBool ? [floor[index(x,y)]] : objects[index(x,y)];
+        if (delete) set(x,y,[0],floorBool);
+        return i;
+    }
+    public function set(x:Int,y:Int,id:Array<Int>,floorBool:Bool=false)
+    {
+        if (!floorBool) objects[index(x,y)] = id;
+        if (floorBool) floor[index(x,y)] = id[0];
+    }
+    private inline function index(x:Int,y:Int):Int
+    {
+        var i = x + y * width;
+        return i;
     }
     private inline function sigmoid(input:Float,knee:Float):Float
     {

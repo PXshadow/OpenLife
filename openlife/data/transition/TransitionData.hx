@@ -24,7 +24,6 @@ class TransitionData
     public var playerActor:Bool = false;
     public var tool:Bool = false;
     public var targetRemains:Bool = false;
-    public var decay:Int = 0;
 
     public function new(fileName:String,string:String)
     {
