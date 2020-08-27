@@ -1,4 +1,5 @@
 package;
+import openlife.engine.Utility;
 import openlife.auto.Automation;
 import openlife.client.Relay;
 import openlife.engine.Program;
@@ -22,7 +23,7 @@ class Bot extends Engine implements EngineHeader
     var delay:Float = 0;
     public function new(account:String,connection:String,legacy:Bool=false,relay:Bool=false,seed:String="")
     {
-        super(this,"OneLifeData7/");
+        super(this);
         if (relay) client = Relay.run(8005);
         program = new Program(client);
         var connectionData = connection.split(":");

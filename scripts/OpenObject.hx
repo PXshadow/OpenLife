@@ -1,4 +1,5 @@
 package;
+import openlife.engine.Utility;
 import sys.FileSystem;
 using haxe.io.Path;
 class OpenObject
@@ -7,10 +8,10 @@ class OpenObject
     {
         new OpenObject();
     }
-    var path:String = "./OneLifeData7/";
+    var path:String = Utility.dir();
     public function new()
     {
-        if (!FileSystem.exists("./OneLifeData7/objects/nextObjectNumber.txt"))
+        if (!FileSystem.exists('${path}objects/nextObjectNumber.txt'))
         {
             trace("directory not found");
             return;
