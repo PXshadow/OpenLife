@@ -1,4 +1,6 @@
 package scripts;
+import openlife.resources.ObjectBake;
+import openlife.engine.Utility;
 import openlife.data.object.ObjectData;
 import openlife.engine.Engine;
 import haxe.ds.Vector;
@@ -8,9 +10,9 @@ class SpriteReuse
     public static function main()
     {
         Sys.println("start");
-        Engine.dir = "onelifedata7/";
+        Engine.dir = Utility.dir();
         var engine = new Engine(null);
-        var vector = Engine.data.objectList();
+        var vector = ObjectBake.objectList();
         var data = new Vector<Array<Int>>(vector.length);
         var index:Int = 0;
         var object:ObjectData;

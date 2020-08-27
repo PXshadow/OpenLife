@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.engine.Utility;
 import openlife.engine.Engine;
 import openlife.resources.ObjectBake;
 import haxe.ds.Vector;
@@ -29,7 +30,7 @@ class Server
     }
     public function new()
     {
-        Engine.dir = "OneLifeData7/";
+        Engine.dir = Utility.dir();
         vector = ObjectBake.objectList();
         map = new Map(this);
         trace("length " + vector.length);

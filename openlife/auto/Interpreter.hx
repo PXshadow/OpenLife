@@ -14,6 +14,9 @@ class Interpreter
     {
         return switch (string)
         {
+            case "couple": 2;
+            case "many": 6;
+            case "few": 3;
             case "one": 1;
             case "two": 2;
             case "three": 3;
@@ -29,8 +32,8 @@ class Interpreter
             case "thirteen": 13;
             case "fourteen": 14;
             case "fiveteen": 15;
-            case "cart": 4;
-            case "basket": 3;
+            case "cart" | "cartfull": 4;
+            case "basket" | "basketfull": 3;
             default: 1;
         }
     }
