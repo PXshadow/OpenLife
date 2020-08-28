@@ -1,7 +1,4 @@
 package openlife.data.transition;
-
-import eval.Vector;
-
 class Category
 {
     public var ids:Array<Int>;

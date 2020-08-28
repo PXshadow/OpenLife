@@ -2,4 +2,4 @@
 -main Main
 -lib hscript
 #--interp
--neko app.n
+-hl app.hl
