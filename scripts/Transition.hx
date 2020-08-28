@@ -20,6 +20,7 @@ class Transition
         var importer = new TransitionImporter();
         trace("object list");
         var vector = ObjectBake.objectList();
+        blacklisted = [50,51,52]; //add milkweed as it's causing errors
         for (id in vector)
         {
             var obj = new ObjectData(id);
@@ -34,6 +35,10 @@ class Transition
         for (cat in importer.categories)
         {
             if (cat.pattern) continue;
+            cat.ids.sort(function(a:Int,b:Int)
+            {
+                return a > b ? 1 : -1;
+            });
             catMap.set(cat.parentID,cat.ids);
         }
         importer.categories = [];
@@ -53,11 +58,18 @@ class Transition
             if (obj != null) 
             {
                 sort(obj);
-                for (o in obj)
+                trace(obj[0] + " possibilities " + obj.length);
+                var stepsArray:Array<NodeData> = [];
+                steps(obj[0],stepsArray);
+                trace("steps: " + stepsArray.length);
+                /*for (o in obj)
                 {
                     Sys.println(o);
                     //trace("depth: " + depth(o));
-                }
+                    var stepsArray:Array<NodeData> = [];
+                    steps(o,stepsArray);
+                    trace("steps " + stepsArray.length);
+                }*/
             }else{
                 trace("trans null");
             }
@@ -69,9 +81,6 @@ class Transition
     }
     private inline function add(id:Int,trans:TransitionData)
     {
-        //expirmental reduction of transitions for production (does not work for some cases)
-        //if (id < trans.actorID) return;
-        //if (id < trans.targetID) return;
         if (transMap.exists(trans.targetID) && (transMap.get(trans.targetID)[0].target[0] == id || transMap.get(trans.targetID)[0].actor[0] == id)) return;
         if (transMap.exists(trans.actorID) && (transMap.get(trans.actorID)[0].actor[0] == id || transMap.get(trans.actorID)[0].target[0] == id)) return;
         if (blacklisted.indexOf(id) != -1) return;
@@ -88,12 +97,24 @@ class Transition
             array.unshift({actor: a,target: b,tool: trans.tool,decay: trans.autoDecaySeconds}); 
         }
     }
-    private inline function depth(node:NodeData):Int
+    private inline function steps(node:NodeData,array:Array<NodeData>,count:Int=0)
     {
-        if (node.actor.length > 1) trace("actors: " + node.actor);
-        var a = transMap.get(node.actor[0]);
-        var b = transMap.get(node.target[0]);
-        return (a == null ? 1 : depth(a[0])) + (b == null ? 1 : depth(b[0]));
+        if (++count > 30) return;
+        var actorId = node.actor[0];
+        var targetId = node.target[0];
+        var actor = transMap.get(actorId);
+        var target = transMap.get(targetId);
+        Sys.sleep(0.5);
+        trace(node);
+        if (actor != null)
+        {
+            steps(actor[0],array,count);
+        }
+        if (target != null)
+        {
+            steps(target[0],array,count);
+        }
+        array.push(node);
     }
     private inline function sort(nodes:Array<NodeData>)
     {
@@ -101,7 +122,7 @@ class Transition
         {
             if (a.tool && !b.tool) return 1;
             if (!a.tool && b.tool) return -1;
-            return 0;
+            return (a.actor[0] + a.target[0]) >= (b.actor[0] + b.target[0]) ? 1 : -1;
         });
     }
 }
