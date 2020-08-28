@@ -99,7 +99,7 @@ class Transition
     }
     private inline function steps(node:NodeData,array:Array<NodeData>,count:Int=0)
     {
-        if (++count > 30) return;
+        //if (++count > 30) return;
         var actorId = node.actor[0];
         var targetId = node.target[0];
         var actor = transMap.get(actorId);
