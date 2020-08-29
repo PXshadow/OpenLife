@@ -3,7 +3,6 @@ package openlife.client;
 import haxe.io.Eof;
 import haxe.io.Error;
 import haxe.Exception;
-import sys.thread.Thread;
 import sys.net.Host;
 import sys.net.Socket;
 
@@ -11,6 +10,9 @@ class Relay
 {
     public static function run(listen:Int):Client
     {
+        #if (!target.threaded)
+        throw "Relay not available on non threaded targets";
+        #else
         var relay:Socket = new Socket();
         relay.bind(new Host("localhost"),listen);
         relay.listen(1);
@@ -22,7 +24,7 @@ class Relay
         relayIn.setBlocking(false);
         Sys.println("begin threading relay");
         var input:String;
-        Thread.create(function()
+        sys.thread.Thread.create(function()
         {
             while (true)
             {   
@@ -54,6 +56,7 @@ class Relay
         //relay out
         client.relay = relayIn;
         return client;
+        #end
     }
 }
 private class Client extends openlife.client.Client

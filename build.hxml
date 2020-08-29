@@ -1,23 +1,2 @@
--cmd echo C++
-cpp.hxml
---next
--cmd echo Java
-java.hxml
---next
--cmd echo NodeJs
-nodejs.hxml
---next
--cmd echo Lua
-lua.hxml
---next
--cmd echo Neko
-neko.hxml
---next
--cmd echo Php
-php.hxml
---next
--cmd echo Python
-python.hxml
---next
--cmd echo C#
-cs.hxml
+#bundle engine and server together with relay for an easy build TODO
+app.hxml

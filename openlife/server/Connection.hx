@@ -1,5 +1,5 @@
 package openlife.server;
-
+#if (target.threaded)
 import openlife.data.Pos;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.object.player.PlayerMove;
@@ -152,3 +152,4 @@ class Connection implements ServerHeader
         //trace(string);
     }
 }
+#end

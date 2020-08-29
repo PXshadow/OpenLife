@@ -1,5 +1,6 @@
 
 --macro include("openlife")
+--macro exclude("openlife.server")
 -lib format
 #effects cs, java, cpp, hashlink
 -D no-compilation 

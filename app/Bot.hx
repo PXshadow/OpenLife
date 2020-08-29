@@ -20,21 +20,12 @@ class Bot extends Engine implements EngineHeader
     var auto:Automation;
     var followingId:Int = -1;
     private static var staticDelay:Float = 0;
-    var delay:Float = 0;
-    public function new(account:String,connection:String,legacy:Bool=false,relay:Bool=false,seed:String="")
+    public function new(client:Client)
     {
         super(this);
-        if (relay) client = Relay.run(8005);
+        this.client = client;
         program = new Program(client);
-        var connectionData = connection.split(":");
-        var accountData = account.split(":");
-        client.ip = connectionData[0];
-        client.port = Std.parseInt(connectionData[1]);
-        client.email = accountData[0] + seed;
-        client.key = accountData[1];
-        client.legacy = legacy;
-        staticDelay += 0.05;
-        delay = staticDelay;
+
     }
     public function update()
     {
@@ -42,7 +33,7 @@ class Bot extends Engine implements EngineHeader
             this.resetFlag = true;
         }
         client.update();
-        Sys.sleep(1/15);
+        Sys.sleep(1/20);
     }
     //events
     public function playerUpdate(instances:Array<PlayerInstance>)

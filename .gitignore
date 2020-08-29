@@ -17,6 +17,7 @@ extensions
 .DS_Store
 dir
 mf
+config.json
 serverDesign.md
 father.txt
 .vscode

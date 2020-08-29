@@ -25,9 +25,9 @@ class Engine
     public static var dir:String;
     var mapInstance:MapInstance;
     var header:EngineHeader;
-    public function new(header:EngineHeader,dir:String="")
+    public function new(header:EngineHeader,dir:String=null)
     {
-        Engine.dir = dir;
+        if (dir != null) Engine.dir = dir;
         this.header = header;
         map = new MapData();
         client = new Client();

@@ -1,4 +1,5 @@
 package openlife.server;
+#if (target.threaded)
 import openlife.data.map.MapData;
 import haxe.ds.Vector;
 import openlife.data.FractalNoise;
@@ -21,7 +22,6 @@ class Map
     }
     public function generate()
     {
-        FractalNoise.setXYRandomSeed( 9877 );
         var x:Int = 0;
         var y:Int = 0;
         for (i in 0...length)
@@ -76,3 +76,4 @@ class Map
         return string.substr(1);
     }
 }
+#end

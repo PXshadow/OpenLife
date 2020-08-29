@@ -1,4 +1,5 @@
 package openlife.server;
+#if (target.threaded)
 import haxe.Timer;
 import haxe.Exception;
 import sys.net.Socket;
@@ -74,3 +75,4 @@ class ThreadServer
         
     }
 }
+#end

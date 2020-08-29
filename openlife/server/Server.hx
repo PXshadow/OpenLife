@@ -1,14 +1,13 @@
 package openlife.server;
+#if (target.threaded)
 import openlife.engine.Utility;
 import openlife.engine.Engine;
 import openlife.resources.ObjectBake;
 import haxe.ds.Vector;
-#if ((target.threaded) && !cs)
 import openlife.data.Pos;
 import openlife.client.ClientTag;
 import sys.thread.Thread;
 import haxe.Timer;
-import sys.db.Sqlite;
 import haxe.io.Bytes;
 import sys.net.Socket;
 import openlife.settings.Settings;

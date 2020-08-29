@@ -1,4 +1,4 @@
-set.hxml
+targets/set.hxml
 -D luajit
 #-D lua-vanilla
 -lua export/lua/openlife.lua
