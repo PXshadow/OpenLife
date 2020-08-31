@@ -36,8 +36,8 @@ dox
 *.n
 *.js
 *.hl
+*.hx
 xml
-Script.hx
 dir
 .idea
 *.exe
