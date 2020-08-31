@@ -11,4 +11,4 @@ haxe setup_data.hxml
 echo "test app"
 haxe app.hxml
 echo "run"
-neko app.n
+hl app.hl
