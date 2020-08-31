@@ -1,0 +1,4 @@
+-cp app
+--macro openlife.auto.Script.create()
+--macro Script.main()
+--interp

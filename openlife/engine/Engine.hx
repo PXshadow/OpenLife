@@ -1,4 +1,5 @@
 package openlife.engine;
+import openlife.engine.EngineEvent;
 import openlife.data.map.MapData;
 import openlife.data.object.player.PlayerMove;
 import openlife.data.Pos;
@@ -23,13 +24,17 @@ class Engine
      */
     var string:String;
     public static var dir:String;
-    var mapInstance:MapInstance;
-    var header:EngineHeader;
+    var _mapInstance:MapInstance;
+    var _header:EngineHeader;
+    var _event:EngineEvent;
+    var _eventBool:Bool;
     public var relayPort:Int = 8005;
-    public function new(header:EngineHeader,dir:String=null)
+    public function new(header:EngineHeader,event:EngineEvent=null,dir:String=null)
     {
         if (dir != null) Engine.dir = dir;
-        this.header = header;
+        this._header = header;
+        _event = event;
+        _eventBool = _event != null;
         map = new MapData();
         client = new Client();
         program = new Program(client);
@@ -83,7 +88,7 @@ class Engine
                     //ttl_sec exists
                     secs = Std.parseInt(line.substr(index2 + 1));
                 }
-                header.emot(Std.parseInt(line.substring(0,index)),Std.parseInt(line.substring(index + 1,index2)),secs);
+                _emot(Std.parseInt(line.substring(0,index)),Std.parseInt(line.substring(index + 1,index2)),secs);
             }
             //p_id emot_index ttl_sec
             //ttl_sec is optional, and specifies how long the emote should be shown
@@ -94,30 +99,30 @@ class Engine
             {
                 list.push(new PlayerInstance(data.split(" ")));
             }
-            header.playerUpdate(list);
+            _playerUpdate(list);
             case PLAYER_MOVES_START:
             var a:Array<String> = [];
             for (string in input)
             {
                 a = string.split(" ");
                 if (a.length < 8 || a.length % 2 != 0) continue;
-                header.playerMoveStart(new PlayerMove(a));
+                _playerMoveStart(new PlayerMove(a));
             }
             case MAP_CHUNK:
-            if (mapInstance == null)
+            if (_mapInstance == null)
             {
                 var instance = input[0].split(" ");
                 var compress = input[1].split(" ");
-                mapInstance = new MapInstance();
-                mapInstance.width = Std.parseInt(instance[0]);
-                mapInstance.height = Std.parseInt(instance[1]);
-                mapInstance.x = Std.parseInt(instance[2]);
-                mapInstance.y = Std.parseInt(instance[3]);
+                _mapInstance = new MapInstance();
+                _mapInstance.width = Std.parseInt(instance[0]);
+                _mapInstance.height = Std.parseInt(instance[1]);
+                _mapInstance.x = Std.parseInt(instance[2]);
+                _mapInstance.y = Std.parseInt(instance[3]);
                 client.compress(Std.parseInt(compress[0]),Std.parseInt(compress[1]));
             }else{
-                map.setRect(mapInstance,input[0]);
-                header.mapChunk(mapInstance);
-                mapInstance = null;
+                map.setRect(_mapInstance,input[0]);
+                _mapChunk(_mapInstance);
+                _mapInstance = null;
             }
             case MAP_CHANGE:
             var change:MapChange;
@@ -126,16 +131,16 @@ class Engine
                 change = new MapChange(input[i].split(" "));
                 map.object.set(change.oldX,change.oldY,[0]);
                 map.object.set(change.x,change.y,change.id);
-                header.mapChange(change);
+                _mapChange(change);
             }
             case HEAT_CHANGE:
             //heat food_time indoor_bonus
             var array = input[0].split(" ");
-            header.heatChange(Std.parseFloat(array[0]),Std.parseFloat(array[1]),Std.parseFloat(array[2]));
+            _heatChange(Std.parseFloat(array[0]),Std.parseFloat(array[1]),Std.parseFloat(array[2]));
             case FOOD_CHANGE:
             var array = input[0].split(" ");
             //food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
-            header.foodChange(
+            _foodChange(
                 Std.parseInt(array[0]),
                 Std.parseInt(array[1]),
                 Std.parseInt(array[2]),
@@ -144,37 +149,37 @@ class Engine
                 Std.parseInt(array[5])
             );
             case FRAME:
-            header.frame();
+            _frame();
             case PLAYER_SAYS:
             var index:Int = 0;
             for (line in input)
             {
                 index = line.indexOf("/");
-                header.says(Std.parseInt(line.substring(0,index)),line.substr(index + 2),line.substr(index + 1,1) == "1");
+                _says(Std.parseInt(line.substring(0,index)),line.substr(index + 2),line.substr(index + 1,1) == "1");
             }
             case LOCATION_SAYS:
             var array:Array<String> = [];
             for (line in input)
             {
                 array = line.split(" ");
-                header.saysLocation(Std.parseInt(array[0]),Std.parseInt(array[1]),array[2]);
+                _saysLocation(Std.parseInt(array[0]),Std.parseInt(array[1]),array[2]);
             }
             case BAD_BIOMES:
             var index:Int = 0;
             for (line in input)
             {
                 index = line.indexOf(" ");
-                header.badBiomes(Std.parseInt(line.substring(0,index)),line.substr(index + 1));
+                _badBiomes(Std.parseInt(line.substring(0,index)),line.substr(index + 1));
             }
             case PLAYER_OUT_OF_RANGE:
             //player is out of range
             var list:Array<Int> = [];
             for (string in input) list.push(Std.parseInt(string));
-            header.playerOutOfRange(list);
+            _playerOutOfRange(list);
             case BABY_WIGGLE:
             var list:Array<Int> = [];
             for (string in input) list.push(Std.parseInt(string));
-            header.babyWiggle(list);
+            _babyWiggle(list);
             case LINEAGE:
             //p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
             //included at the end with the eve= tag in front of it.
@@ -189,7 +194,7 @@ class Engine
                 }
                 var eveString = array[array.length - 1];
                 var eve = Std.parseInt(eveString.substring(eveString.indexOf("=") + 1));
-                header.lineage(list,eve);
+                _lineage(list,eve);
             }
             case NAME:
             //p_id first_name last_name last_name may be ommitted.
@@ -206,11 +211,11 @@ class Engine
                     //no last name
                     lastName = "";
                 }
-                header.playerName(Std.parseInt(array[0]),array[1],lastName);
+                _playerName(Std.parseInt(array[0]),array[1],lastName);
             }
             case APOCALYPSE:
             //Indicates that an apocalypse is pending.  Gives client time to show a visual effect.
-            header.apocalypse();
+            _apocalypse();
             case APOCALYPSE_DONE:
             //Indicates that an apocalypse is now over.  Client should go back to displaying world.
             case DYING:
@@ -226,24 +231,24 @@ class Engine
                }else{
                    sick = true;
                }
-               header.dying(Std.parseInt(line.substring(0,index)),sick);
+               _dying(Std.parseInt(line.substring(0,index)),sick);
             }
-            header.apocalypseDone();
+            _apocalypseDone();
             case HEALED:
             //p_id player healed no longer dying.
             for (line in input)
             {
-                header.healed(Std.parseInt(line));
+                _healed(Std.parseInt(line));
             }
             case POSSE_JOIN: //FINISH tommrow
             //Indicates that killer joined posse of target.
             //If target = 0, killer has left the posse.
             var array = input[0].split(" ");
-            header.posse(Std.parseInt(array[0]),Std.parseInt(array[1]));
+            _posse(Std.parseInt(array[0]),Std.parseInt(array[1]));
             case MONUMENT_CALL:
             //MN x y o_id monument call has happened at location x,y with the creation object id
             var array = input[0].split(" ");
-            header.monument(Std.parseInt(array[0]),Std.parseInt(array[1]),Std.parseInt(array[2]));
+            _monument(Std.parseInt(array[0]),Std.parseInt(array[1]),Std.parseInt(array[2]));
             case GRAVE:
             //x y p_id
             var x:Int = Std.parseInt(input[0]);
@@ -273,12 +278,239 @@ class Engine
             //trace("ping: " + client.ping);
             case HOMELAND:
             var array = input[0].split(" ");
-            header.homeland(Std.parseInt(array[0]),Std.parseInt(array[1]),array[2]);
+            _homeland(Std.parseInt(array[0]),Std.parseInt(array[1]),array[2]);
             case CRAVING:
-            header.craving(Std.parseInt(input[0]),Std.parseInt(input[1]));
+            _craving(Std.parseInt(input[0]),Std.parseInt(input[1]));
             case FLIP:
-            header.flip(Std.parseInt(input[0]),Std.parseInt(input[1]));
+            _flip(Std.parseInt(input[0]),Std.parseInt(input[1]));
             default:
         }
     }
+    //functions
+    public function _playerUpdate(instances:Array<PlayerInstance>)
+    {
+        _header.playerUpdate(instances);
+        if (_eventBool && _event.playerUpdate != null) _event.playerUpdate(instances);
+    } //PLAYER_UPDATE
+    public function _playerMoveStart(move:PlayerMove)
+    {
+        _header.playerMoveStart(move);
+        if (_eventBool && _event.playerMoveStart != null) _event.playerMoveStart(move);
+    } //PLAYER_MOVES_START
+
+    public function _playerOutOfRange(list:Array<Int>)
+    {
+        _header.playerOutOfRange(list);
+        if (_eventBool && _event.playerOutOfRange != null) _event.playerOutOfRange(list);
+    } //PLAYER_OUT_OF_RANGE
+    public function _playerName(id:Int,firstName:String,lastName:String)
+    {
+        _header.playerName(id,firstName,lastName);
+        if (_eventBool && _event.playerName != null) _event.playerName(id,firstName,lastName);
+    } //NAME
+
+    public function _apocalypse()
+    {
+        _header.apocalypse();
+        if (_eventBool && _event.apocalypse != null) _event.apocalypse();
+    } //APOCALYPSE
+    public function _apocalypseDone()
+    {
+        _header.apocalypseDone();
+        if (_eventBool && _event.apocalypseDone != null) _event.apocalypseDone();
+    } //APOCALYPSE_DONE
+
+    public function _posse(killer:Int,target:Int)
+    {
+        _header.posse(killer,target);
+        if (_eventBool && _event.posse != null) _event.posse(killer,target);
+    } //POSSE_JOIN
+
+    public function _following(follower:Int,leader:Int,color:Int)
+    {
+        _header.following(follower,leader,color);
+        if (_eventBool && _event.following != null) _event.following(follower,leader,color);
+    } //FOLLOWING
+    public function _exiled(target:Int,id:Int)
+    {
+        _header.exiled(target,id);
+        if (_eventBool && _event.exiled != null) _event.exiled(target,id);
+    } //EXILED
+    public function _cursed(id:Int,level:Int,word:String)
+    {
+        _header.cursed(id,level,word);
+        if (_eventBool && _event.cursed != null) _event.cursed(id,level,word);
+    } //CURSED
+    public function _curseToken(count:Int)
+    {
+        _header.curseToken(count);
+        if (_eventBool && _event.curseToken != null) _event.curseToken(count);
+    } //CURSE_TOKEN_CHANGE
+    public function _curseScore(excess:Int)
+    {
+        _header.curseScore(excess);
+        if (_eventBool && _event.curseScore != null) _event.curseScore(excess);
+    } //CURSE_SCORE_CHANGE
+
+    public function _badBiomes(id:Int,name:String)
+    {
+        _header.badBiomes(id,name);
+        if (_eventBool && _event.badBiomes != null) _event.badBiomes(id,name);
+    } //BAD_BIOMES
+
+    public function _vogUpdate()
+    {
+        _header.vogUpdate();
+        if (_eventBool && _event.vogUpdate != null) _event.vogUpdate();
+    } //VOG_UPDATE
+    public function _photo(x:Int,y:Int,signature:String)
+    {
+        _header.photo(x,y,signature);
+        if (_eventBool && _event.photo != null) _event.photo(x,y,signature);
+    } //PHOTO_SIGNATURE
+
+    public function _shutdown()
+    {
+        _header.shutdown();
+        if (_eventBool && _event.shutdown != null) _event.shutdown();
+    } //FORCED_SHUTDOWN
+
+    public function _global(text:String)
+    {
+        _header.global(text);
+        if (_eventBool && _event.global != null) _event.global(text);
+    } //GLOBAL_MESSAGE
+    public function _war(a:Int,b:Int,status:String)
+    {
+        _header.war(a,b,status);
+        if (_eventBool && _event.war != null) _event.war(a,b,status);
+    } //WAR_REPORT
+
+    public function _learnedTools(list:Array<Int>)
+    {
+        _header.learnedTools(list);
+        if (_eventBool && _event.learnedTools != null) _event.learnedTools(list);
+    } //LEARNED_TOOL_REPORT
+    public function _toolExperts(list:Array<Int>)
+    {
+        _header.toolExperts(list);
+        if (_eventBool && _event.toolExperts != null) _event.toolExperts(list);
+    } //TOOL_EXPERTS
+    public function _toolSlots(total:Int)
+    {
+        _header.toolSlots(total);
+        if (_eventBool && _event.toolSlots != null) _event.toolSlots(total);
+    } //TOOL_SLOTS
+    
+    public function _babyWiggle(list:Array<Int>)
+    {
+        _header.babyWiggle(list);
+        if (_eventBool && _event.babyWiggle != null) _event.babyWiggle(list);
+    } //BABY_WIGGLE
+    public function _saysLocation(x:Int,y:Int,text:String)
+    {
+        _header.saysLocation(x,y,text);
+        if (_eventBool && _event.saysLocation != null) _event.saysLocation(x,y,text);
+    } //LOCATION_SAYS
+    public function _dying(id:Int,sick:Bool)
+    {
+        _header.dying(id,sick);
+        if (_eventBool && _event.dying != null) _event.dying(id,sick);
+    } //DYING
+    public function _says(id:Int,text:String,curse:Bool)
+    {
+        _header.says(id,text,curse);
+        if (_eventBool && _event.says != null) _event.says(id,text,curse);
+    } //PLAYER_SAYS
+    public function _emot(id:Int,index:Int,sec:Int)
+    {
+        _header.emot(id,index,sec);
+        if (_eventBool && _event.emot != null) _event.emot(id,index,sec);
+    } //PLAYER_EMOT
+    
+    public function _mapChunk(instance:MapInstance)
+    {
+        _header.mapChunk(instance);
+        if (_eventBool && _event.mapChunk != null) _event.mapChunk(instance);
+    } //MAP_CHUNK
+    public function _mapChange(change:MapChange)
+    {
+        _header.mapChange(change);
+        if (_eventBool && _event.mapChange != null) _event.mapChange(change);
+    } //MAP_CHANGE
+    public function _foodChange(store:Int,capacity:Int,ateId:Int,fillMax:Int,speed:Float,responsible:Int)
+    {
+        _header.foodChange(store,capacity,ateId,fillMax,speed,responsible);
+        if (_eventBool && _event.foodChange != null) _event.foodChange(store,capacity,ateId,fillMax,speed,responsible);
+    } //FOOD_CHANGE
+    public function _heatChange(heat:Float,foodTime:Float,indoorBonus:Float)
+    {
+        _header.heatChange(heat,foodTime,indoorBonus);
+        if (_eventBool && _event.heatChange != null) _event.heatChange(heat,foodTime,indoorBonus);
+    } //HEAT_CHANGE
+    public function _frame()
+    {
+        _header.frame();
+        if (_eventBool && _event.frame != null) _event.frame();
+    } //FRAME
+    public function _lineage(list:Array<Int>,eve:Int)
+    {
+        _header.lineage(list,eve);
+        if (_eventBool && _event.lineage != null) _event.lineage(list,eve);
+    } //LINEAGE
+    public function _healed(id:Int)
+    {
+        _header.healed(id);
+        if (_eventBool && _event.healed != null) _event.healed(id);
+    } //HEALED
+    public function _monument(x:Int,y:Int,id:Int)
+    {
+        _header.monument(x,y,id);
+        if (_eventBool && _event.monument != null) _event.monument(x,y,id);
+    } //MONUMENT_CALL
+    public function _grave(x:Int,y:Int,id:Int)
+    {
+        _header.grave(x,y,id);
+        if (_eventBool && _event.grave != null) _event.grave(x,y,id);
+    } //GRAVE
+    public function _graveOld(x:Int,y:Int,pid:Int,poid:Int,age:Float,name:String,lineage:Array<String>)
+    {
+        _header.graveOld(x,y,pid,poid,age,name,lineage);
+        if (_eventBool && _event.graveOld != null) _event.graveOld(x,y,pid,poid,age,name,lineage);
+    } //GRAVE_OLD
+    public function _graveMove(xs:Int,ys:Int,xd:Int,yd:Int,swapDest:Bool)
+    {
+        _header.graveMove(xs,ys,xd,yd,swapDest);
+        if (_eventBool && _event.graveMove != null) _event.graveMove(xs,ys,xd,yd,swapDest);
+    } //GRAVE_MOVE
+    public function _ownerList(x:Int,y:Int,list:Array<Int>)
+    {
+        _header.ownerList(x,y,list);
+        if (_eventBool && _event.ownerList != null) _event.ownerList(x,y,list);
+    } //OWNER_LIST
+    public function _valley(spacing:Int,offset:Int)
+    {
+        _header.valley(spacing,offset);
+        if (_eventBool && _event.valley != null) _event.valley(spacing,offset);
+    } //VALLEY_SPACING
+    public function _flight(id:Int,x:Int,y:Int)
+    {
+        _header.flight(id,x,y);
+        if (_eventBool && _event.flight != null) _event.flight(id,x,y);
+    } //FLIGHT_DEST
+    public function _homeland(x:Int,y:Int,name:String)
+    {
+        _header.homeland(x,y,name);
+        if (_eventBool && _event.homeland != null) _event.homeland(x,y,name);
+    } //HOMELAND
+    public function _craving(id:Int,bonus:Int)
+    {
+        _header.craving(id,bonus);
+        if (_eventBool && _event.craving != null) _event.craving(id,bonus);
+    } //CRAVING
+    public function _flip(x:Int,y:Int)
+    {
+        _header.flip(x,y);
+        if (_eventBool && _event.flip != null) _event.flip(x,y);
+    } //FLIP
 }

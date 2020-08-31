@@ -1,4 +1,5 @@
 package;
+import openlife.engine.EngineEvent;
 import openlife.engine.Utility;
 import openlife.auto.Automation;
 import openlife.engine.Program;
@@ -19,10 +20,12 @@ class Bot extends Engine implements EngineHeader
     var names = new IntMap<String>();
     var auto:Automation;
     var followingId:Int = -1;
+    public var event:EngineEvent;
     private static var staticDelay:Float = 0;
     public function new(client:Client)
     {
-        super(this);
+        event = new EngineEvent();
+        super(this,event);
         this.client = client;
         client.onClose = close;
         program = new Program(client);
@@ -34,10 +37,14 @@ class Bot extends Engine implements EngineHeader
         var relay = client.relayIn != null ? true : false;
         connect(true,relay);
     }
+    public function test()
+    {
+        var auto = new Automation(program,map,player,App.vector);
+        auto.goto(10,10);
+    }
     public function update()
     {
         client.update();
-        Sys.sleep(1/20);
     }
     //events
     public function playerUpdate(instances:Array<PlayerInstance>)

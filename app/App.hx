@@ -1,5 +1,7 @@
 package;
 
+import openlife.auto.Script;
+import haxe.Exception;
 import openlife.client.Client;
 import haxe.Json;
 import sys.io.File;
@@ -20,8 +22,6 @@ using StringTools;
 
 class App
 {
-    #if hscript var interp:hscript.Interp; #end
-    var auto:Automation;
     public static var vector:Vector<Int>;
     var followingId:Int = -1;
     public function new()
@@ -30,7 +30,7 @@ class App
         vector = Bake.dummies();
         trace("baked chisel: " + ObjectBake.dummies.get(455));
         //start program
-        var config:ConfigData = {relay: true,combo: false,syncSettings: false};
+        var config:ConfigData = {relay: true,combo: false,syncSettings: false,script: "Script.hx"};
         var cred:CredData = new Settings().cred();
         if (!FileSystem.exists("cred.json") || config.syncSettings)
         {
@@ -48,14 +48,69 @@ class App
         if (!config.relay && config.combo)
         {
             //multiple bots from combo
+            if (!FileSystem.exists("combo.txt")) throw "no combo list found";
+            var list = File.getContent("combo.txt").split("\n");
+            var bots:Array<Bot> = [];
+            for (account in list)
+            {
+                var cred = credClone(cred);
+                var data = account.split(":");
+                cred.email = data[0];
+                cred.key = data[1];
+                var client = new Client();
+                client.cred = cred;
+                var bot = new Bot(client);
+                bot.connect(false,false);
+                bots.push(bot);
+                Sys.sleep(0.2);
+            }
+            while (true)
+            {
+                for (bot in bots) bot.update();
+                Sys.sleep(1/40);
+            }
         }else{
             var client = new Client();
             client.cred = cred;
             var bot = new Bot(client);
             bot.relayPort = 8000;
+            #if hscript
+            var interp = new hscript.Interp();
+            var parser = new hscript.Parser();
+            var runTime:Int = 20 * 4;
+            var runTicks:Int = runTime;
+            parser.allowTypes = true;
+            interp.variables.set("bot",bot);
+            #end
             bot.connect(false,config.relay);
-            while (true) bot.update();
+            while (true) 
+            {
+                bot.update();
+                #if hscript
+                if (runTicks > runTime)
+                {
+                    var script = Script.execute();
+                    if (script.length > 0)
+                    {
+                        Sys.println("Executing Script.hx");
+                        try {
+                            interp.execute(parser.parseString(script));
+                        }catch(e:Exception)
+                        {
+                            Sys.println(e.details());
+                        }
+                    }
+                    runTicks = 0;
+                }
+                runTicks++;
+                #end
+                Sys.sleep(1/20);
+            }
         }
     }
+    private function credClone(cred:CredData):CredData
+    {
+        return {email: cred.email, key: cred.key, ip: cred.ip, port: cred.port, tutorial: cred.tutorial, seed: cred.seed, twin: cred.twin,legacy: cred.legacy};
+    }
 }
-typedef ConfigData = {relay:Bool,combo:Bool,syncSettings:Bool}
+typedef ConfigData = {relay:Bool,combo:Bool,syncSettings:Bool,script:String}

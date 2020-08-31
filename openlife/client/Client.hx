@@ -92,7 +92,7 @@ class Client
                 }
             }else{
                 data = socket.input.readUntil("#".code);
-                trace("data: " + data);
+                //trace("data: " + data);
             }
 		}catch(e:haxe.Exception)
 		{
