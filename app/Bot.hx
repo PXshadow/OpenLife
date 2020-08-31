@@ -24,13 +24,18 @@ class Bot extends Engine implements EngineHeader
     {
         super(this);
         this.client = client;
+        client.onClose = close;
         program = new Program(client);
+    }
+    private function close()
+    {
+        //reconnect
+        Sys.sleep(1);
+        var relay = client.relayIn != null ? true : false;
+        connect(true,relay);
     }
     public function update()
     {
-        if(client.resetFlag==true){
-            this.resetFlag = true;
-        }
         client.update();
         Sys.sleep(1/20);
     }

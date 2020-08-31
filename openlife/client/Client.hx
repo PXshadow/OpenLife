@@ -25,6 +25,7 @@ class Client
     var aliveStamp:Float = 0;
     var connected:Bool = false;
     public var message:(tag:ClientTag,input:Array<String>)->Void;
+    public var onClose:Void->Void;
     //ping
     public var ping:Int = 0;
     var pingInt:Int = 0;
@@ -37,7 +38,7 @@ class Client
     public var reject:Void->Void;
     public var legacy:Bool = false;
     public var relayIn:Socket;
-    public var resetFlag:Bool = false;
+    public var relayServer:Socket;
     var wasCompressed:Bool = false;
     public function new()
     {
@@ -58,7 +59,6 @@ class Client
             //relay system embeded into client update
             try {
                 var input = relayIn.input.readUntil("#".code);
-                trace("relayIn: " + input);
                 send(input);
             }catch(e:Exception)
             {
@@ -101,8 +101,7 @@ class Client
                 if(e.details().indexOf('Eof')>-1){
                     connected=false;
                     data="";
-                    //close();
-                    Sys.sleep(1);
+                    close();
                 }else{
                     trace('e: ${e.details()}');
                     close();
@@ -118,11 +117,11 @@ class Client
     public function relay(listen:Int)
     {
         this.listen = listen;
-        var relay:Socket = new Socket();
-        relay.bind(new Host("localhost"),listen);
-        relay.listen(1);
+        relayServer = new Socket();
+        relayServer.bind(new Host("localhost"),listen);
+        relayServer.listen(1);
         Sys.println('waiting for connection on port $listen');
-        relayIn = relay.accept();
+        relayIn = relayServer.accept();
         //here we are connected
         relayIn.setFastSend(true);
         relayIn.setBlocking(false);
@@ -238,6 +237,7 @@ class Client
 		}catch(e:Dynamic)
 		{
             trace("socket connect error: " + e);
+            close();
             return;
 		}
         #if !nodejs
@@ -252,7 +252,11 @@ class Client
         #if (sys || nodejs)
         try {
             socket.close();
-            if (relayIn != null) relayIn.close();
+            if (relayIn != null)
+            {
+                relayServer.close();
+                relayIn.close();
+            }
         }catch(e:Dynamic) 
         {
             trace("failure to close socket " + e);
@@ -260,5 +264,6 @@ class Client
         trace("socket disconnected");
         #end
         connected = false;
+        if (onClose != null) onClose();
     }
 }
