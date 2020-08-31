@@ -33,6 +33,7 @@ class ThreadServer
     private function connection()
     {
         var socket:Socket = cast Thread.readMessage(true);
+        trace("start connection");
         socket.setBlocking(false);
         socket.setFastSend(true);
         var connection = new Connection(socket,server);

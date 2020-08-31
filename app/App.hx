@@ -1,12 +1,12 @@
 package;
 
+import openlife.client.Client;
 import haxe.Json;
 import sys.io.File;
 import openlife.data.object.ObjectData;
 import haxe.ds.Vector;
 import openlife.auto.Automation;
 import sys.FileSystem;
-import openlife.client.Relay;
 import openlife.resources.ObjectBake;
 import openlife.settings.Settings;
 import haxe.ds.IntMap;
@@ -30,7 +30,7 @@ class App
         vector = Bake.dummies();
         trace("baked chisel: " + ObjectBake.dummies.get(455));
         //start program
-        var config:ConfigData = {relay: false,combo: true,syncSettings: false};
+        var config:ConfigData = {relay: true,combo: false,syncSettings: false};
         var cred:CredData = new Settings().cred();
         if (!FileSystem.exists("cred.json") || config.syncSettings)
         {
@@ -44,7 +44,18 @@ class App
         }else{
             config = Json.parse(File.getContent("config.json"));
         }
-        
+        trace("config: " + config);
+        if (!config.relay && config.combo)
+        {
+            //multiple bots from combo
+        }else{
+            var client = new Client();
+            client.cred = cred;
+            var bot = new Bot(client);
+            bot.relayPort = 8000;
+            bot.connect(false,config.relay);
+            while (true) bot.update();
+        }
     }
 }
 typedef ConfigData = {relay:Bool,combo:Bool,syncSettings:Bool}

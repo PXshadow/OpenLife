@@ -74,7 +74,6 @@ class Connection implements ServerHeader
         var map = server.map.toString();
         var uncompressed = Bytes.ofString(map);
         var bytes = haxe.zip.Compress.run(uncompressed,-1);
-        trace("un " + uncompressed.length + " compressed " + bytes.length);
         //return;
         gx = 16;
         gy = 15;

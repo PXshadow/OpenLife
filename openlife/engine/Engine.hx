@@ -25,6 +25,7 @@ class Engine
     public static var dir:String;
     var mapInstance:MapInstance;
     var header:EngineHeader;
+    public var relayPort:Int = 8005;
     public function new(header:EngineHeader,dir:String=null)
     {
         if (dir != null) Engine.dir = dir;
@@ -33,7 +34,7 @@ class Engine
         client = new Client();
         program = new Program(client);
     }
-    public function connect(reconnect:Bool=false,setRelayCallback:Bool=true)
+    public function connect(reconnect:Bool=false,setRelayCallback:Bool=false)
     {
         client.accept = function()
         {
@@ -55,6 +56,7 @@ class Engine
                 default:
             }
         };
+        if (setRelayCallback) client.relay(relayPort);
         client.connect(reconnect);
     }
     private function message(tag:ClientTag,input:Array<String>) 

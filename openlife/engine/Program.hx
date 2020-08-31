@@ -165,7 +165,7 @@ class Program
         if (client.relay != null) 
         {
             var string = 'PU\n${player.toData()}\n#';
-            client.relay.output.writeString(string);
+            client.relayIn.output.writeString(string);
         }
         return this;
     }

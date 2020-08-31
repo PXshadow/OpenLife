@@ -1,4 +1,6 @@
 package openlife.client;
+import haxe.Exception;
+import openlife.settings.Settings.CredData;
 import haxe.io.Bytes;
 import openlife.client.ClientTag;
 #if (sys || nodejs)
@@ -23,24 +25,18 @@ class Client
     var aliveStamp:Float = 0;
     var connected:Bool = false;
     public var message:(tag:ClientTag,input:Array<String>)->Void;
-    public var ip:String = "localhost";
-    public var port:Int = 8005;
     //ping
     public var ping:Int = 0;
     var pingInt:Int = 0;
-    //login info
-    public var email:String = "";
-    public var challenge:String = "";
-    public var key:String = "";
-    public var twin:String = "";
-    public var tutorial:Bool = false;
-    public var version:Int = 0;
+    public var cred:CredData;
+    var challenge:String;
+    public var version:String;
     public var reconnect:Bool = false;
     //functions
     public var accept:Void->Void;
     public var reject:Void->Void;
     public var legacy:Bool = false;
-    public var relay:Socket;
+    public var relayIn:Socket;
     public var resetFlag:Bool = false;
     var wasCompressed:Bool = false;
     public function new()
@@ -57,6 +53,18 @@ class Client
         }
         data = "";
         #if (sys || nodejs)
+        if (relayIn != null)
+        {
+            //relay system embeded into client update
+            try {
+                var input = relayIn.input.readUntil("#".code);
+                trace("relayIn: " + input);
+                send(input);
+            }catch(e:Exception)
+            {
+                if (e.message != "Blocked") close();
+            }
+        }
         if(socket == null) 
         {
             trace('socket is null');
@@ -84,6 +92,7 @@ class Client
                 }
             }else{
                 data = socket.input.readUntil("#".code);
+                trace("data: " + data);
             }
 		}catch(e:haxe.Exception)
 		{
@@ -105,10 +114,28 @@ class Client
         wasCompressed = false;
         #end
     }
+    var listen:Int;
+    public function relay(listen:Int)
+    {
+        this.listen = listen;
+        var relay:Socket = new Socket();
+        relay.bind(new Host("localhost"),listen);
+        relay.listen(1);
+        Sys.println('waiting for connection on port $listen');
+        relayIn = relay.accept();
+        //here we are connected
+        relayIn.setFastSend(true);
+        relayIn.setBlocking(false);
+    }
     var tag:ClientTag;
     private function process(wasCompressed:Bool)
     {
-        //trace(data);
+        //relay
+        if (!wasCompressed && relayIn != null) 
+        {
+            relayIn.output.writeString('$data#');
+        }
+        //normal client
         var array = data.split("\n");
         if (array.length == 0) return;
         tag = array[0];
@@ -116,7 +143,7 @@ class Client
     }
     private function compressProcess()
     {
-
+        if (relayIn != null) relayIn.output.write(dataCompressed);
     }
     public function alive()
     {
@@ -136,7 +163,7 @@ class Client
 			//challenge
 			challenge = input[1];
 			//version
-            version = Std.parseInt(input[2]);
+            version = input[2];
             //trace("version " + version);
             request();
             case ACCEPTED:
@@ -152,12 +179,13 @@ class Client
     }
     private function request()
     {
-        key = StringTools.replace(key,"-","");
+        var key = StringTools.replace(cred.key,"-","");
+        var email = cred.email + cred.seed == "" ? "" : "|" + cred.seed;
         var password = new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f"),Bytes.ofString(challenge,RawNative)).toHex();
         var accountKey = new Hmac(SHA1).make(Bytes.ofString(key),Bytes.ofString(challenge)).toHex();
         var clientTag = " client_openlife";
         if (legacy) clientTag = "";
-        var requestString = (reconnect ? "R" : "") + 'LOGIN$clientTag $email $password $accountKey ${(tutorial ? 1 : 0)}';
+        var requestString = (reconnect ? "R" : "") + 'LOGIN$clientTag $email $password $accountKey ${(cred.tutorial ? 1 : 0)}';
         send(requestString);
     }
     public function send(data:String)
@@ -192,12 +220,12 @@ class Client
     public function connect(reconnect:Bool=false)
 	{
         this.reconnect = reconnect;
-        trace("attempt connect " + ip);
+        trace("attempt connect " + cred.ip + ":" + cred.port);
         connected = false;
         #if (sys || nodejs)
 		var host:Host;
 		try {
-			host = new Host(ip);
+			host = new Host(cred.ip);
 		}catch(e:Dynamic)
 		{
             trace("host error: " + e);
@@ -206,7 +234,7 @@ class Client
 		socket = new Socket();
         //socket.setTimeout(10);
 		try {
-			socket.connect(host,port);
+			socket.connect(host,cred.port);
 		}catch(e:Dynamic)
 		{
             trace("socket connect error: " + e);
@@ -224,9 +252,11 @@ class Client
         #if (sys || nodejs)
         try {
             socket.close();
-        }catch(e:Dynamic) {trace("failure to close socket " + e);}
-        //socket = null;
-        //socket = new Socket();
+            if (relayIn != null) relayIn.close();
+        }catch(e:Dynamic) 
+        {
+            trace("failure to close socket " + e);
+        }
         trace("socket disconnected");
         #end
         connected = false;

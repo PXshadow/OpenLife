@@ -1,8 +1,8 @@
 package;
 import openlife.engine.Utility;
 import openlife.auto.Automation;
-import openlife.client.Relay;
 import openlife.engine.Program;
+import openlife.client.Client;
 import openlife.engine.EngineHeader;
 import openlife.engine.Engine;
 import openlife.data.object.player.PlayerInstance;
@@ -25,7 +25,6 @@ class Bot extends Engine implements EngineHeader
         super(this);
         this.client = client;
         program = new Program(client);
-
     }
     public function update()
     {
@@ -189,7 +188,6 @@ class Bot extends Engine implements EngineHeader
         if ((index = words.indexOf("HERE") + 1) > 0)
         {
             var p = players.get(id);
-            Sys.sleep(delay);
             auto.goto(p.x,p.y);
         }
         if ((index = words.indexOf("STOP") + 1) > 0)

@@ -52,7 +52,7 @@ class Settings
     var string:String;
     public function cred():CredData
     {
-        var config:CredData = {legacy:false,email:"test",key:"0000",ip:"localhost",port:8005,seed: ""};
+        var config:CredData = {legacy:false,email:"test",key:"0000",ip:"localhost",port:8005,seed: "",twin: "",tutorial: false};
         //settings to use infomation
         if (valid(data.get("email"))) config.email = string;
         if (valid(data.get("accountKey"))) config.key = string;
@@ -78,5 +78,5 @@ class Settings
         return true;
     }
 }
-typedef CredData = {legacy:Bool,email:String,key:String,ip:String,port:Int,seed:String}
+typedef CredData = {legacy:Bool,email:String,key:String,ip:String,port:Int,seed:String,tutorial:Bool,twin:String}
 typedef Data = DynamicAccess<Dynamic> 
