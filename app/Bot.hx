@@ -14,11 +14,11 @@ import openlife.data.object.ObjectData;
 import haxe.ds.IntMap;
 class Bot extends Engine implements EngineHeader
 {
+    public var auto:Automation;
     public var player:PlayerInstance;
     public var resetFlag:Bool = false;
     var players = new IntMap<PlayerInstance>();
     var names = new IntMap<String>();
-    var auto:Automation;
     var followingId:Int = -1;
     public var event:EngineEvent;
     private static var staticDelay:Float = 0;
