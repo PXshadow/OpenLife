@@ -13,6 +13,17 @@
                 "type": "haxe",
                 "args": "active configuration"
             }
+        },
+        {
+            "name": "HashLink (attach)",
+            "request": "attach",
+            "port": 5001,
+            "type": "hl",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": {
+                "type": "haxe",
+                "args": "active configuration"
+            }
         }
     ]
 }
