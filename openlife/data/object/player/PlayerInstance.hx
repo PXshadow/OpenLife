@@ -155,8 +155,8 @@ class PlayerInstance
     }
     public function update(instance:PlayerInstance)
     {
-        //p_id
-        //po_id
+        p_id = instance.p_id;
+        po_id = instance.po_id;
         facing = instance.facing;
         action_target_x = instance.action_target_x;
         action_target_y = instance.action_target_y;

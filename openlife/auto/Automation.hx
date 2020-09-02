@@ -31,15 +31,16 @@ class Automation
     public function goto(x:Int,y:Int)
     {
         if (player.x == x && player.y == y) return;
-        var start = new Coordinate(8,8);
-        var sx = x - player.x + 8;
-        var sy = y - player.y + 8;
+        var start = new Coordinate(16,16);
+        var sx = x - player.x + 16;
+        var sy = y - player.y + 16;
         if (sx < 0) sx = 0;
         if (sy < 0) sy = 0;
         if (sx > 16 + 1) sx = 16 + 1;
         if (sy > 16 + 1) sy = 16 + 1;
         var end = new Coordinate(sx,sy);
         var path = new Pathfinder(new Map(map.collisionChunk(player)),1000);
+        trace("path: " + start + " " + end);
         var paths = path.createPath(start,end,PRODUCT,true);
         if (paths == null) return;
         var data:Array<Pos> = [];
@@ -54,6 +55,10 @@ class Automation
         }
         program.move(player,data);
     }
+    public function test()
+    {
+
+    }
 }
 class Map implements openlife.auto.Pathfinder.MapHeader
 {
@@ -65,12 +70,12 @@ class Map implements openlife.auto.Pathfinder.MapHeader
     public function new(data:Vector<Bool>)
     {
         this.data = data;
-        cols = 16 + 1 * 0;
-        rows = 16 + 1 * 0;
+        cols = 32 + 1 * 0;
+        rows = 32 + 1 * 0;
     }
     public function isWalkable( p_x:Int, p_y:Int ):Bool
     {
-        return !data[p_x + p_y * (16 + 1)];
+        return !data[p_x + p_y * (32)];
     }
 }
 typedef Auto = Automation; 

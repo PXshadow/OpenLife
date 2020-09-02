@@ -30,7 +30,7 @@ class App
         vector = Bake.dummies();
         trace("baked chisel: " + ObjectBake.dummies.get(455));
         //start program
-        var config:ConfigData = {relay: true,combo: false,syncSettings: false,script: "Script.hx"};
+        var config:ConfigData = {relay: true,combo: 0,syncSettings: false,script: "Script.hx"};
         var cred:CredData = new Settings().cred();
         if (!FileSystem.exists("cred.json") || config.syncSettings)
         {
@@ -45,7 +45,7 @@ class App
             config = Json.parse(File.getContent("config.json"));
         }
         trace("config: " + config);
-        if (!config.relay && config.combo)
+        if (!config.relay && config.combo > 0)
         {
             //multiple bots from combo
             if (!FileSystem.exists("combo.txt")) throw "no combo list found";
@@ -78,7 +78,7 @@ class App
             var interp = new hscript.Interp();
             var parser = new hscript.Parser();
             var runTime:Int = 20 * 4;
-            var runTicks:Int = runTime;
+            var runTicks:Int = 0;
             parser.allowTypes = true;
             interp.variables.set("bot",bot);
             #end
@@ -93,6 +93,7 @@ class App
                     if (script.length > 0)
                     {
                         Sys.println("Executing Script.hx");
+                        if (bot.auto == null) return;
                         try {
                             interp.execute(parser.parseString(script));
                         }catch(e:Exception)
@@ -113,4 +114,4 @@ class App
         return {email: cred.email, key: cred.key, ip: cred.ip, port: cred.port, tutorial: cred.tutorial, seed: cred.seed, twin: cred.twin,legacy: cred.legacy};
     }
 }
-typedef ConfigData = {relay:Bool,combo:Bool,syncSettings:Bool,script:String}
+typedef ConfigData = {relay:Bool,combo:Int,syncSettings:Bool,script:String}
