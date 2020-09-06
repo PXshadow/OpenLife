@@ -26,6 +26,7 @@ class MapData
     //max pos
     public var mx:Int;
     public var my:Int;
+    public static inline var RAD:Int = 16;
     public function new()
     {
         clear();   
@@ -77,11 +78,11 @@ class MapData
     {
         //16 + 1
         //16 + 1
-        var vector = new Vector<Bool>((16 + 1) * (16 * 1));
+        var vector = new Vector<Bool>((RAD * 2 + 1) * (RAD * 2 + 1));
         var int:Int = 0;
-        for (y in player.y - 8...player.y + 8 + 1)
+        for (y in player.y - RAD...player.y + RAD + 1)
         {
-            for (x in player.x - 8...player.x + 8 + 1)
+            for (x in player.x - RAD...player.x + RAD + 1)
             {
                 vector[int++] = false;
                 var array = object.get(x,y);

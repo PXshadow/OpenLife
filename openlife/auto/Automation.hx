@@ -31,16 +31,40 @@ class Automation
     public function goto(x:Int,y:Int)
     {
         if (player.x == x && player.y == y) return;
-        var start = new Coordinate(16,16);
-        var sx = x - player.x + 16;
-        var sy = y - player.y + 16;
+        var start = new Coordinate(MapData.RAD,MapData.RAD);
+        var sx = x - player.x + MapData.RAD;
+        var sy = y - player.y + MapData.RAD;
         if (sx < 0) sx = 0;
         if (sy < 0) sy = 0;
-        if (sx > 16 + 1) sx = 16 + 1;
-        if (sy > 16 + 1) sy = 16 + 1;
+        if (sx > MapData.RAD + 1) sx = MapData.RAD + 1;
+        if (sy > MapData.RAD + 1) sy = MapData.RAD + 1;
         var end = new Coordinate(sx,sy);
-        var path = new Pathfinder(new Map(map.collisionChunk(player)),1000);
-        trace("path: " + start + " " + end);
+        var map = new Map(map.collisionChunk(player));
+        var path = new Pathfinder(map);
+        trace("path:");
+        for (y in 0...MapData.RAD * 2 + 1)
+        {
+            var string:String = "";
+            for (x in 0...MapData.RAD * 2 + 1)
+            {
+                if (end.x == x && end.y == y)
+                {
+                    string += "@ ";
+                    continue;
+                }
+                if (start.x == x && start.y == y)
+                {
+                    string += "$ ";
+                    continue;
+                }
+                if (!map.isWalkable(x,y))
+                {
+                    string += "X ";
+                }
+                string += " ";
+            }
+            Sys.println(string);
+        }
         var paths = path.createPath(start,end,PRODUCT,true);
         if (paths == null) return;
         var data:Array<Pos> = [];

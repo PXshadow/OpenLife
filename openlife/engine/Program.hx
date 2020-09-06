@@ -162,7 +162,7 @@ class Program
         player.x = player.x + path.x;
         player.y = player.y + path.y;
         player.forced = true;
-        if (client.relay != null) 
+        if (client.relayIn != null) 
         {
             var string = 'PU\n${player.toData()}\n#';
             client.relayIn.output.writeString(string);
