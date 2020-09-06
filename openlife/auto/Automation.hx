@@ -31,40 +31,46 @@ class Automation
     public function goto(x:Int,y:Int)
     {
         if (player.x == x && player.y == y) return;
+        if (Math.abs(player.x - x) >= MapData.RAD || Math.abs(player.y - y) >= MapData.RAD)
+        {
+            trace("OUT OF RANGE");
+            return;
+        }
         var start = new Coordinate(MapData.RAD,MapData.RAD);
-        var sx = x - player.x + MapData.RAD;
-        var sy = y - player.y + MapData.RAD;
+        var sx = (x - player.x) + MapData.RAD;
+        var sy = (y - player.y) + MapData.RAD;
+        trace("sx " + sx + " sy " + sy);
         if (sx < 0) sx = 0;
         if (sy < 0) sy = 0;
-        if (sx > MapData.RAD + 1) sx = MapData.RAD + 1;
-        if (sy > MapData.RAD + 1) sy = MapData.RAD + 1;
         var end = new Coordinate(sx,sy);
         var map = new Map(map.collisionChunk(player));
         var path = new Pathfinder(map);
         trace("path:");
-        for (y in 0...MapData.RAD * 2 + 1)
+        for (y in 0...MapData.RAD * 2)
         {
             var string:String = "";
-            for (x in 0...MapData.RAD * 2 + 1)
+            for (x in 0...MapData.RAD * 2)
             {
                 if (end.x == x && end.y == y)
                 {
-                    string += "@ ";
+                    string += "?";
                     continue;
                 }
                 if (start.x == x && start.y == y)
                 {
-                    string += "$ ";
+                    string += "@";
                     continue;
                 }
                 if (!map.isWalkable(x,y))
                 {
-                    string += "X ";
+                    string += "X";
+                    continue;
                 }
                 string += " ";
             }
             Sys.println(string);
         }
+        trace("start " + start + " end " + end);
         var paths = path.createPath(start,end,PRODUCT,true);
         if (paths == null) return;
         var data:Array<Pos> = [];

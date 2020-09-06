@@ -78,11 +78,11 @@ class MapData
     {
         //16 + 1
         //16 + 1
-        var vector = new Vector<Bool>((RAD * 2 + 1) * (RAD * 2 + 1));
+        var vector = new Vector<Bool>((RAD * 2) * (RAD * 2));
         var int:Int = 0;
-        for (y in player.y - RAD...player.y + RAD + 1)
+        for (y in player.y - RAD...player.y + RAD)
         {
-            for (x in player.x - RAD...player.x + RAD + 1)
+            for (x in player.x - RAD...player.x + RAD)
             {
                 vector[int++] = false;
                 var array = object.get(x,y);

@@ -39,8 +39,7 @@ class Bot extends Engine implements EngineHeader
     }
     public function test()
     {
-        var auto = new Automation(program,map,player,App.vector);
-        auto.goto(10,10);
+        
     }
     public function update()
     {
