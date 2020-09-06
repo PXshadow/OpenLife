@@ -36,7 +36,6 @@ class Client
     //functions
     public var accept:Void->Void;
     public var reject:Void->Void;
-    public var legacy:Bool = false;
     public var relayIn:Socket;
     public var relayServer:Socket;
     var wasCompressed:Bool = false;
@@ -179,11 +178,11 @@ class Client
     private function request()
     {
         var key = StringTools.replace(cred.key,"-","");
-        var email = cred.email + cred.seed == "" ? "" : "|" + cred.seed;
+        var email = cred.email + (cred.seed == "" ? "" : "|" + cred.seed);
         var password = new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f"),Bytes.ofString(challenge,RawNative)).toHex();
         var accountKey = new Hmac(SHA1).make(Bytes.ofString(key),Bytes.ofString(challenge)).toHex();
         var clientTag = " client_openlife";
-        if (legacy) clientTag = "";
+        if (cred.legacy) clientTag = "";
         var requestString = (reconnect ? "R" : "") + 'LOGIN$clientTag $email $password $accountKey ${(cred.tutorial ? 1 : 0)}';
         send(requestString);
     }
