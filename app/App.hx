@@ -77,12 +77,14 @@ class App
             var bot = new Bot(client);
             bot.relayPort = 8000;
             #if hscript
+            //scripting support only available for single bot
             var interp = new hscript.Interp();
             var parser = new hscript.Parser();
             var runTime:Int = 20 * 4;
             var runTicks:Int = 0;
             parser.allowTypes = true;
             interp.variables.set("bot",bot);
+            interp.variables.set("Timer",haxe.Timer);
             #end
             bot.connect(false,config.relay);
             while (true) 
