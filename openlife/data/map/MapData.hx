@@ -170,3 +170,21 @@ class MapData
         return string.substring(0,string.length - 1);
     }
 }
+class MapCollision implements openlife.auto.Pathfinder.MapHeader
+{
+    
+    public var rows( default, null ):Int;
+    public var cols( default, null ):Int;
+    public var data:Vector<Bool>;
+
+    public function new(data:Vector<Bool>)
+    {
+        this.data = data;
+        cols = 32 + 1 * 0;
+        rows = 32 + 1 * 0;
+    }
+    public function isWalkable( p_x:Int, p_y:Int ):Bool
+    {
+        return !data[p_x + p_y * (32)];
+    }
+}

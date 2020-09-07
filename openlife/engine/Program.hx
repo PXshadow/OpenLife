@@ -1,4 +1,6 @@
 package openlife.engine;
+import openlife.auto.Pathfinder;
+import openlife.auto.Pathfinder.Coordinate;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.object.ObjectData;
 import openlife.data.map.MapData;
@@ -21,9 +23,10 @@ class Program
         trace('send: $tag $x $y $data');
         client.send('$tag $x $y $data');
     }
-    public function update()
+    public function update(player:PlayerInstance)
     {
-        
+        moved = false;
+        trace("UPDATE");
     }
     public function setHome(x:Int,y:Int):Program
     {
@@ -149,7 +152,43 @@ class Program
         return this;
     }
     public var moved:Bool = true; //bool to make sure movement went through
-    public function move(player:PlayerInstance,paths:Array<Pos>):Program
+    public function goto(x:Int,y:Int,player:PlayerInstance,map:MapData):Program
+    {
+        if (player.x == x && player.y == y) return this;
+        if (Math.abs(player.x - x) >= MapData.RAD || Math.abs(player.y - y) >= MapData.RAD)
+        {
+            trace("OUT OF RANGE");
+            return this;
+        }
+        var sx = (x - player.x) + MapData.RAD;
+        var sy = (y - player.y) + MapData.RAD;
+        //cords
+        var start = new Coordinate(MapData.RAD,MapData.RAD);
+        var end = new Coordinate(sx,sy);
+        //map
+        var map = new MapCollision(map.collisionChunk(player));
+        //pathing
+        var path = new Pathfinder(map);
+        var paths = path.createPath(start,end,MANHATTAN,true);
+        if (paths == null) 
+        {
+            trace("CAN NOT GENERATE PATH");
+            return this;
+        }
+        var data:Array<Pos> = [];
+        paths.shift();
+        var mx:Array<Int> = [];
+        var my:Array<Int> = [];
+        var tx:Int = start.x;
+        var ty:Int = start.y;
+        for (path in paths)
+        {
+            data.push(new Pos(path.x - tx,path.y - ty));
+        }
+        movePlayer(player,data);
+        return this;
+    }
+    private inline function movePlayer(player:PlayerInstance,paths:Array<Pos>)
     {
         var string = "";
         for (path in paths)
@@ -167,7 +206,7 @@ class Program
             var string = 'PU\n${player.toData()}\n#';
             client.relayIn.output.writeString(string);
         }
-        return this;
+        moved = true;
     }
     /**
      * special case of SELF applied to a baby (to feed baby food or add/remove clothing from baby)

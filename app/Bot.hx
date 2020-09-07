@@ -1,4 +1,5 @@
 package;
+import openlife.resources.ObjectBake;
 import openlife.engine.EngineEvent;
 import openlife.engine.Utility;
 import openlife.auto.Automation;
@@ -54,7 +55,8 @@ class Bot extends Engine implements EngineHeader
             inst = players.get(instance.p_id);
             if (inst != null)
             {
-                inst.update(instance); 
+                inst.update(instance);
+                if (instance.p_id == player.p_id) program.update(inst);
             }else{
                 players.set(instance.p_id,instance);
             }
@@ -64,12 +66,12 @@ class Bot extends Engine implements EngineHeader
             trace("PLAYER SET");
             player = instances.pop();
             //new player set
-            auto = new Automation(program,map,player,App.vector);
+            auto = new Automation(program,App.vector);
         }
     } //PLAYER_UPDATE
     public function playerMoveStart(move:PlayerMove)
     {
-        if (move.id == followingId) auto.goto(move.endX,move.endY);
+
     } //PLAYER_MOVES_START
 
     public function playerOutOfRange(list:Array<Int>)
@@ -169,37 +171,50 @@ class Bot extends Engine implements EngineHeader
     {
         program.say("I AM DYING!");
     } //DYING
+    var found:Int = -1;
     public function says(id:Int,text:String,curse:Bool)
     {
         if (id == player.p_id) return;
         var words = text.split(" ");
         words.shift();
         var index:Int = 0;
-        var find:Int = 0;
-        if ((index = words.indexOf("KNOW") + 1) > 0)
+        if (words.indexOf("YOU") > -1 && (index = words.indexOf("KNOW") + 1) > 0)
         {
+            found = -1;
             for (i in index...words.length)
             {
-                find = auto.interp.stringObject(words[i]);
-                if (find > 0) break;
+                found = auto.interp.stringObject(words[i]);
+                if (found > -1) break;
             }
-            if (find == 0)
+            if (found == -1)
             {
                 program.say("I DID NOT FIND");
                 return;
             }
-            program.say('I FIND! ${new ObjectData(find).description}');
+            program.say('I FIND! ${new ObjectData(found).description}');
         }
         if ((index = words.indexOf("FOLLOW") + 1) > 0)
         {
             followingId = id;
             var p = players.get(followingId);
-            auto.goto(p.x,p.y);
+            program.goto(p.x,p.y,player,map);
         }
         if ((index = words.indexOf("HERE") + 1) > 0)
         {
             var p = players.get(id);
-            auto.goto(p.x,p.y);
+            program.goto(p.x,p.y,player,map);
+        }
+        if (words.indexOf("PICK") > -1 && words.indexOf("UP") > -1)
+        {
+            program.use(player.x,player.y);
+        }
+        if (words.indexOf("USE") > -1 && words.indexOf("SELF") > -1 || words.indexOf("EAT") > -1)
+        {
+            program.self(player);
+        }
+        if (words.indexOf("DROP") > -1)
+        {
+            program.drop(player.x,player.y);
         }
         if ((index = words.indexOf("STOP") + 1) > 0)
         {
@@ -209,6 +224,10 @@ class Bot extends Engine implements EngineHeader
         {
             trace("write pong");
             program.say("PONG");
+        }
+        if (words.indexOf("MARCO") > -1)
+        {
+            program.say("POLO");
         }
     } //PLAYER_SAYS
     public function emot(id:Int,index:Int,sec:Int)
