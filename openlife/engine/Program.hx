@@ -9,11 +9,14 @@ import openlife.client.Client;
 import haxe.Timer;
 import openlife.server.ServerTag;
 import haxe.crypto.Base64;
-
+private typedef Command = {tag:ServerTag,x:Int,y:Int,data:String}
 class Program
 {
     public var home:Pos = new Pos();
+    public var goal:Pos;
     var client:Client;
+    var buffer:Array<Command> = [];
+    public var moving:Bool = false; //bool to make sure movement went through
     public function new(client:Client)
     {
         this.client = client;
@@ -21,11 +24,29 @@ class Program
     public function send(tag:ServerTag,x:Int,y:Int,data:String="")
     {
         trace('send: $tag $x $y $data');
+        if (moving && tag != SAY && tag != EMOT)
+        {
+            buffer.push({tag: tag,x: x,y: y,data: data});
+            trace("---added to buffer---");
+            return;
+        }
         client.send('$tag $x $y $data');
     }
     public function update(player:PlayerInstance)
     {
-        moved = false;
+        moving = false;
+        if (goal == null)
+        {
+            trace("ERROR: NO GOAL SET");
+            return;
+        }
+        if (player.x != goal.x || player.y != goal.y)
+        {
+            //error
+            trace("ERROR: DID NOT MAKE IT TO GOAL");
+            return;
+        }
+        goal = null;
         trace("UPDATE");
     }
     public function setHome(x:Int,y:Int):Program
@@ -151,10 +172,9 @@ class Program
         send(JUMP,0,0);
         return this;
     }
-    public var moved:Bool = true; //bool to make sure movement went through
     public function goto(x:Int,y:Int,player:PlayerInstance,map:MapData):Program
     {
-        if (player.x == x && player.y == y) return this;
+        if (player.x == x && player.y == y || moving) return this;
         if (Math.abs(player.x - x) >= MapData.RAD || Math.abs(player.y - y) >= MapData.RAD)
         {
             trace("OUT OF RANGE");
@@ -185,6 +205,7 @@ class Program
         {
             data.push(new Pos(path.x - tx,path.y - ty));
         }
+        goal = new Pos(x,y);
         movePlayer(player,data);
         return this;
     }
@@ -206,7 +227,7 @@ class Program
             var string = 'PU\n${player.toData()}\n#';
             client.relayIn.output.writeString(string);
         }
-        moved = true;
+        moving = true;
     }
     /**
      * special case of SELF applied to a baby (to feed baby food or add/remove clothing from baby)

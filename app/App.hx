@@ -49,12 +49,13 @@ class App
         {
             //multiple bots from combo
             if (!FileSystem.exists("combo.txt")) throw "no combo list found";
-            var list = File.getContent("combo.txt").split("\n");
+            var list = File.getContent("combo.txt").split("\r\n");
             var bots:Array<Bot> = [];
-            for (account in list)
+            if (config.combo > list.length) config.combo = list.length;
+            for (i in 0...config.combo)
             {
                 var cred = credClone(cred);
-                var data = account.split(":");
+                var data = list[i].split(":");
                 cred.email = data[0];
                 cred.key = data[1];
                 var client = new Client();
@@ -62,8 +63,9 @@ class App
                 var bot = new Bot(client);
                 bot.connect(false,false);
                 bots.push(bot);
-                Sys.sleep(0.2);
+                Sys.sleep(0.1);
             }
+            trace("FINISH!");
             while (true)
             {
                 for (bot in bots) bot.update();

@@ -37,14 +37,24 @@ class Interpreter
             default: 1;
         }
     }
-    public function stringObject(string:String):Int
+    public function stringObject(words:Array<String>):Int
     {
-        if (string.substring(string.length - 1,string.length) == "s") string = string.substring(0,string.length - 1); //remove plural
         for (id in list)
         {
             var desc = new ObjectData(id,true).description.toUpperCase();
-            if (desc.indexOf(string) != -1) return id;
+            var fail:Bool = false;
+            for (word in words)
+            {
+                fail = desc.indexOf(word) == -1;
+                if (fail) break;
+            }
+            if (!fail) return id;
         }
-        return 0;
+        return -1;
+    }
+    private inline function removePlural(string:String):String
+    {
+        if (string.substring(string.length - 1,string.length) == "s") string = string.substring(0,string.length - 1);
+        return string;
     }
 }

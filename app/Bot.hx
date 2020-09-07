@@ -36,6 +36,9 @@ class Bot extends Engine implements EngineHeader
         //reconnect
         Sys.sleep(1);
         var relay = client.relayIn != null ? true : false;
+        player = null;
+        names.clear();
+        players.clear();
         connect(true,relay);
     }
     public function test()
@@ -180,18 +183,26 @@ class Bot extends Engine implements EngineHeader
         var index:Int = 0;
         if (words.indexOf("YOU") > -1 && (index = words.indexOf("KNOW") + 1) > 0)
         {
-            found = -1;
-            for (i in index...words.length)
-            {
-                found = auto.interp.stringObject(words[i]);
-                if (found > -1) break;
-            }
+            found = auto.interp.stringObject(words.slice(index,words.length));
             if (found == -1)
+            {
+                program.say("I DO NOT KNOW");
+                return;
+            }
+            program.say('I KNOW! ${new ObjectData(found).description}');
+        }
+        if ((words.indexOf("FIND") > -1 || words.indexOf("GO") > -1) && found > -1)
+        {
+            var id = ObjectBake.dummies.get(found);
+            id == null ? id = [found] : id.unshift(found);
+            var pos = auto.find(id,map,player);
+            if (pos == null)
             {
                 program.say("I DID NOT FIND");
                 return;
             }
-            program.say('I FIND! ${new ObjectData(found).description}');
+            program.say("I GO THERE NOW");
+            program.goto(pos.x,pos.y,player,map);
         }
         if ((index = words.indexOf("FOLLOW") + 1) > 0)
         {
