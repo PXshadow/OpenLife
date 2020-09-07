@@ -45,6 +45,7 @@ class Client
     }
     public function update()
     {
+        @:privateAccess haxe.MainLoop.tick(); //for timers
         if (Timer.stamp() - aliveStamp >= 15) alive();
         if (!connected) 
         {
