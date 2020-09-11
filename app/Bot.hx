@@ -18,7 +18,6 @@ class Bot extends Engine implements EngineHeader
     public var auto:Automation;
     public var player:PlayerInstance;
     public var resetFlag:Bool = false;
-    var players = new IntMap<PlayerInstance>();
     var names = new IntMap<String>();
     var followingId:Int = -1;
     public var event:EngineEvent;
@@ -52,17 +51,9 @@ class Bot extends Engine implements EngineHeader
     //events
     public function playerUpdate(instances:Array<PlayerInstance>)
     {
-        var inst:PlayerInstance;
         for (instance in instances)
         {
-            inst = players.get(instance.p_id);
-            if (inst != null)
-            {
-                inst.update(instance);
-                if (instance.p_id == player.p_id) program.update(inst);
-            }else{
-                players.set(instance.p_id,instance);
-            }
+            if (player != null && player.p_id == instance.p_id) program.update(instance);
         }
         if (player == null)
         {

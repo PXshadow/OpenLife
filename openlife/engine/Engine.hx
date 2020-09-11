@@ -19,7 +19,6 @@ class Engine
      */
     public var map:MapData;
     public var program:Program;
-    public var players:IntMap<PlayerInstance>;
     public var client:Client;
     /**
      * Used for string tool functions
@@ -29,18 +28,19 @@ class Engine
     var _mapInstance:MapInstance;
     var _header:EngineHeader;
     var _event:EngineEvent;
+    var players:IntMap<PlayerInstance>;
     var _eventBool:Bool;
     public var relayPort:Int = 8005;
     public function new(header:EngineHeader,event:EngineEvent=null,dir:String=null)
     {
         if (dir != null) Engine.dir = dir;
+        players = new IntMap<PlayerInstance>();
         this._header = header;
         _event = event;
         _eventBool = _event != null;
         map = new MapData();
         client = new Client();
         program = new Program(client);
-        players = new IntMap<PlayerInstance>();
     }
     public function connect(reconnect:Bool=false,setRelayCallback:Bool=false)
     {
@@ -104,11 +104,17 @@ class Engine
             {
                 temp = new PlayerInstance(data.split(" "));
                 player = players.get(temp.p_id);
-                if (temp.action == 1)
+                if (temp.action == 1 && player != null && temp.o_id[0] != player.o_id[0])
                 {
                     map.object.set(temp.action_target_x,temp.action_target_y,player.o_id);
                 }
-                trace("action " + temp.action);
+                if (player == null) 
+                {
+                    players.set(temp.p_id,temp);
+                    player = temp;
+                }else{
+                    player.update(temp);
+                }
                 list.push(player);
             }
             _playerUpdate(list);
@@ -141,6 +147,7 @@ class Engine
             for (i in 0...input.length - 1)
             {
                 change = new MapChange(input[i].split(" "));
+                trace("change " + change);
                 if (change.floor == 0) 
                 {
                     map.object.set(change.oldX,change.oldY,[0]);
