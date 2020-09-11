@@ -15,10 +15,11 @@ class Program
     public var home:Pos = new Pos();
     public var goal:Pos;
     var client:Client;
-    var buffer:Array<Command> = [];
+    var buffer:Array<Command>;
     public var moving:Bool = false; //bool to make sure movement went through
     public function new(client:Client)
     {
+        buffer = [];
         this.client = client;
     }
     public function send(tag:ServerTag,x:Int,y:Int,data:String="")
@@ -26,8 +27,8 @@ class Program
         trace('send: $tag $x $y $data');
         if (moving && tag != SAY && tag != EMOT)
         {
-            buffer.push({tag: tag,x: x,y: y,data: data});
             trace("---added to buffer---");
+            buffer.push({tag: tag,x: x,y: y,data: data});
             return;
         }
         client.send('$tag $x $y $data');
@@ -35,6 +36,7 @@ class Program
     public function update(player:PlayerInstance)
     {
         moving = false;
+        trace("updating");
         if (goal == null)
         {
             trace("ERROR: NO GOAL SET");
@@ -46,6 +48,13 @@ class Program
             trace("ERROR: DID NOT MAKE IT TO GOAL");
             return;
         }
+        //play buffer
+        trace("play buffer, count: " + buffer.length);
+        for (command in buffer)
+        {
+            send(command.tag,command.x,command.y,command.data);
+        }
+        buffer = [];
         goal = null;
         trace("UPDATE");
     }
@@ -206,6 +215,7 @@ class Program
             data.push(new Pos(path.x - tx,path.y - ty));
         }
         goal = new Pos(x,y);
+        trace("goal " + goal);
         movePlayer(player,data);
         return this;
     }

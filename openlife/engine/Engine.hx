@@ -1,4 +1,5 @@
 package openlife.engine;
+import haxe.ds.IntMap;
 import openlife.engine.EngineEvent;
 import openlife.data.map.MapData;
 import openlife.data.object.player.PlayerMove;
@@ -18,6 +19,7 @@ class Engine
      */
     public var map:MapData;
     public var program:Program;
+    public var players:IntMap<PlayerInstance>;
     public var client:Client;
     /**
      * Used for string tool functions
@@ -38,6 +40,7 @@ class Engine
         map = new MapData();
         client = new Client();
         program = new Program(client);
+        players = new IntMap<PlayerInstance>();
     }
     public function connect(reconnect:Bool=false,setRelayCallback:Bool=false)
     {
@@ -95,9 +98,18 @@ class Engine
             //-1 is permanent, -2 is permanent but not new so should be skipped
             case PLAYER_UPDATE:
             var list:Array<PlayerInstance> = [];
+            var temp:PlayerInstance;
+            var player:PlayerInstance;
             for (data in input) 
             {
-                list.push(new PlayerInstance(data.split(" ")));
+                temp = new PlayerInstance(data.split(" "));
+                player = players.get(temp.p_id);
+                if (temp.action == 1)
+                {
+                    map.object.set(temp.action_target_x,temp.action_target_y,player.o_id);
+                }
+                trace("action " + temp.action);
+                list.push(player);
             }
             _playerUpdate(list);
             case PLAYER_MOVES_START:
@@ -129,8 +141,13 @@ class Engine
             for (i in 0...input.length - 1)
             {
                 change = new MapChange(input[i].split(" "));
-                map.object.set(change.oldX,change.oldY,[0]);
-                map.object.set(change.x,change.y,change.id);
+                if (change.floor == 0) 
+                {
+                    map.object.set(change.oldX,change.oldY,[0]);
+                    map.object.set(change.x,change.y,change.id);
+                }else{
+                    map.floor.set(change.x,change.y,change.id[0]);
+                }
                 _mapChange(change);
             }
             case HEAT_CHANGE:
