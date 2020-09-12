@@ -14,16 +14,25 @@ class Program
 {
     public var home:Pos = new Pos();
     public var goal:Pos;
-    public var init:Pos;
+    public var init:Pos; //inital pos
+    public var dest:Pos; //destination pos
     var client:Client;
     var buffer:Array<Command>;
     public var moving:Bool = false; //bool to make sure movement went through
     public var onComplete:Void->Void;
     public var onError:String->Void;
-    public function new(client:Client)
+    var player:PlayerInstance;
+    var map:MapData;
+    private function new(client:Client,map:MapData)
     {
         buffer = [];
         this.client = client;
+        this.map = map;
+        trace("map: " + map);
+    }
+    public function setPlayer(player:PlayerInstance)
+    {
+        this.player = player;
     }
     public function send(tag:ServerTag,x:Int,y:Int,data:String="")
     {
@@ -36,20 +45,23 @@ class Program
         }
         client.send('$tag $x $y $data');
     }
-    public function update(player:PlayerInstance)
+    public function update()
     {
         if (!moving) return;
         moving = false;
-        trace("updating");
-        if (goal == null)
+        trace("updating " + dest + " goal " + goal);
+        if (dest.x != goal.x || dest.y != goal.y)
         {
-            if (onError != null) onError("no goal set");
+            //extension
+            trace("path extension!");
+            goto(goal.x,goal.y);
             return;
         }
         if (player.x != goal.x || player.y != goal.y)
         {
             //error
-            if (onError != null) onError("did not make it to the goal");
+            trace("did not make it to goal " + dest.x + " " + dest.y + " player: " + player.x + " " + player.y);
+            if (onError != null) onError("did not make it to goal");
             return;
         }
         //play buffer
@@ -60,6 +72,7 @@ class Program
         }
         buffer = [];
         if (onComplete != null) onComplete();
+        dest = null;
         goal = null;
         init = null;
         trace("UPDATE");
@@ -187,20 +200,24 @@ class Program
         send(JUMP,0,0);
         return this;
     }
-    public function goto(x:Int,y:Int,player:PlayerInstance,map:MapData):Program
+    public function goto(x:Int,y:Int):Program
     {
         if (player.x == x && player.y == y || moving) return this;
-        if (Math.abs(player.x - x) >= MapData.RAD || Math.abs(player.y - y) >= MapData.RAD)
-        {
-            trace("OUT OF RANGE");
-            return this;
-        }
-        var sx = (x - player.x) + MapData.RAD;
-        var sy = (y - player.y) + MapData.RAD;
+        //set pos
+        var px = x - player.x;
+        var py = y - player.y;
+        if (px > MapData.RAD - 1) px = MapData.RAD - 1;
+        if (py > MapData.RAD - 1) py = MapData.RAD - 1;
+        if (px < -MapData.RAD) px = -MapData.RAD;
+        if (py < -MapData.RAD) py = -MapData.RAD;
+        trace("p " + px + " " + py);
+        var sx = px + MapData.RAD;
+        var sy = py + MapData.RAD;
         //cords
         var start = new Coordinate(MapData.RAD,MapData.RAD);
         var end = new Coordinate(sx,sy);
         //map
+        trace("map " + map);
         var map = new MapCollision(map.collisionChunk(player));
         //pathing
         var path = new Pathfinder(map);
@@ -221,8 +238,8 @@ class Program
             data.push(new Pos(path.x - tx,path.y - ty));
         }
         goal = new Pos(x,y);
+        dest = new Pos(px,py);
         init = new Pos(player.x,player.y);
-        trace("goal " + goal);
         movePlayer(player,data);
         return this;
     }

@@ -25,10 +25,8 @@ class Bot extends Engine implements EngineHeader
     public function new(client:Client)
     {
         event = new EngineEvent();
-        super(this,event);
-        this.client = client;
+        super(this,event,client);
         client.onClose = close;
-        program = new Program(client);
     }
     private function close()
     {
@@ -36,6 +34,7 @@ class Bot extends Engine implements EngineHeader
         Sys.sleep(1);
         var relay = client.relayIn != null ? true : false;
         player = null;
+        clear();
         names.clear();
         players.clear();
         connect(true,relay);
@@ -53,12 +52,13 @@ class Bot extends Engine implements EngineHeader
     {
         for (instance in instances)
         {
-            if (player != null && player.p_id == instance.p_id) program.update(instance);
+            if (player != null && player.p_id == instance.p_id) program.update();
         }
         if (player == null)
         {
             trace("PLAYER SET");
             player = instances.pop();
+            program.setPlayer(player);
             //new player set
             auto = new Automation(program,App.vector);
         }
@@ -193,18 +193,18 @@ class Bot extends Engine implements EngineHeader
                 return;
             }
             program.say("I GO THERE NOW");
-            program.goto(pos.x,pos.y,player,map);
+            program.goto(pos.x,pos.y);
         }
         if ((index = words.indexOf("FOLLOW") + 1) > 0)
         {
             followingId = id;
             var p = players.get(followingId);
-            program.goto(p.x,p.y,player,map);
+            program.goto(p.x,p.y);
         }
         if ((index = words.indexOf("HERE") + 1) > 0)
         {
             var p = players.get(id);
-            program.goto(p.x,p.y,player,map);
+            program.goto(p.x,p.y);
         }
         if (words.indexOf("PICK") > -1 && words.indexOf("UP") > -1)
         {

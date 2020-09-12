@@ -31,7 +31,7 @@ class Engine
     var players:IntMap<PlayerInstance>;
     var _eventBool:Bool;
     public var relayPort:Int = 8005;
-    public function new(header:EngineHeader,event:EngineEvent=null,dir:String=null)
+    public function new(header:EngineHeader,event:EngineEvent=null,client:Client=null,dir:String=null)
     {
         if (dir != null) Engine.dir = dir;
         players = new IntMap<PlayerInstance>();
@@ -39,8 +39,14 @@ class Engine
         _event = event;
         _eventBool = _event != null;
         map = new MapData();
-        client = new Client();
-        program = new Program(client);
+        if (client == null) client = new Client();
+        @:privateAccess program = new Program(client,map);
+        this.client = client;
+    }
+    public function clear()
+    {
+        players.clear();
+        map.clear();
     }
     public function connect(reconnect:Bool=false,setRelayCallback:Bool=false)
     {
@@ -147,7 +153,6 @@ class Engine
             for (i in 0...input.length - 1)
             {
                 change = new MapChange(input[i].split(" "));
-                trace("change " + change);
                 if (change.floor == 0) 
                 {
                     map.object.set(change.oldX,change.oldY,[0]);
