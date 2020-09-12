@@ -28,7 +28,7 @@ class Engine
     var _mapInstance:MapInstance;
     var _header:EngineHeader;
     var _event:EngineEvent;
-    var players:IntMap<PlayerInstance>;
+    public var players:IntMap<PlayerInstance>;
     var _eventBool:Bool;
     public var relayPort:Int = 8005;
     public function new(header:EngineHeader,event:EngineEvent=null,client:Client=null,dir:String=null)

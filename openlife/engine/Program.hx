@@ -49,7 +49,6 @@ class Program
     {
         if (!moving) return;
         moving = false;
-        trace("updating " + dest + " goal " + goal);
         if (dest.x != goal.x || dest.y != goal.y)
         {
             //extension
@@ -215,15 +214,33 @@ class Program
         var sy = py + MapData.RAD;
         //cords
         var start = new Coordinate(MapData.RAD,MapData.RAD);
-        var end = new Coordinate(sx,sy);
+        //var end = new Coordinate(sx,sy);
         //map
         trace("map " + map);
         var map = new MapCollision(map.collisionChunk(player));
         //pathing
         var path = new Pathfinder(map);
-        var paths = path.createPath(start,end,MANHATTAN,true);
+        var paths:Array<Coordinate> = null;
+        //move the end cords
+        var tweakX:Int = 0;
+        var tweakY:Int = 0;
+        for (i in 0...3)
+        {
+            switch(i)
+            {
+                case 1:
+                tweakX = x - player.x < 0 ? 1 : -1;
+                case 2:
+                tweakX = 0;
+                tweakY = y - player.y < 0 ? 1 : -1;
+            }
+            var end = new Coordinate(sx + tweakX,sy + tweakY);
+            paths = path.createPath(start,end,MANHATTAN,true);
+            if (paths != null) break;
+        }
         if (paths == null) 
         {
+            if (onError != null) onError("can not generate path");
             trace("CAN NOT GENERATE PATH");
             return this;
         }
@@ -238,6 +255,14 @@ class Program
             data.push(new Pos(path.x - tx,path.y - ty));
         }
         goal = new Pos(x,y);
+        trace("x " + Std.string(goal.x - player.x + MapData.RAD) + " sx " + sx);
+        if (sx == (goal.x - player.x) + MapData.RAD && sy == (goal.y - player.y) + MapData.RAD)
+        {
+            trace("shift goal!");
+            //shift goal as well
+            goal.x += tweakX;
+            goal.y += tweakY;
+        }
         dest = new Pos(px,py);
         init = new Pos(player.x,player.y);
         movePlayer(player,data);
