@@ -14,9 +14,12 @@ class Program
 {
     public var home:Pos = new Pos();
     public var goal:Pos;
+    public var init:Pos;
     var client:Client;
     var buffer:Array<Command>;
     public var moving:Bool = false; //bool to make sure movement went through
+    public var onComplete:Void->Void;
+    public var onError:String->Void;
     public function new(client:Client)
     {
         buffer = [];
@@ -35,17 +38,18 @@ class Program
     }
     public function update(player:PlayerInstance)
     {
+        if (!moving) return;
         moving = false;
         trace("updating");
         if (goal == null)
         {
-            trace("ERROR: NO GOAL SET");
+            if (onError != null) onError("no goal set");
             return;
         }
         if (player.x != goal.x || player.y != goal.y)
         {
             //error
-            trace("ERROR: DID NOT MAKE IT TO GOAL");
+            if (onError != null) onError("did not make it to the goal");
             return;
         }
         //play buffer
@@ -55,7 +59,9 @@ class Program
             send(command.tag,command.x,command.y,command.data);
         }
         buffer = [];
+        if (onComplete != null) onComplete();
         goal = null;
+        init = null;
         trace("UPDATE");
     }
     public function setHome(x:Int,y:Int):Program
@@ -215,6 +221,7 @@ class Program
             data.push(new Pos(path.x - tx,path.y - ty));
         }
         goal = new Pos(x,y);
+        init = new Pos(player.x,player.y);
         trace("goal " + goal);
         movePlayer(player,data);
         return this;
