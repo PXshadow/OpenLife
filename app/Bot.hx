@@ -186,7 +186,7 @@ class Bot extends Engine implements EngineHeader
         {
             var id = ObjectBake.dummies.get(found);
             id == null ? id = [found] : id.unshift(found);
-            var pos = auto.find(id,map,player);
+            var pos = auto.find(id);
             if (pos == null)
             {
                 program.say("I DID NOT FIND");
@@ -206,13 +206,13 @@ class Bot extends Engine implements EngineHeader
             var p = players.get(id);
             program.goto(p.x,p.y);
         }
-        if (words.indexOf("PICK") > -1 && words.indexOf("UP") > -1)
+        if (words.indexOf("PICK") > -1 && words.indexOf("UP") > -1 || words.indexOf("USE") > -1)
         {
             program.use(player.x,player.y);
         }
-        if (words.indexOf("USE") > -1 && words.indexOf("SELF") > -1 || words.indexOf("EAT") > -1)
+        if (words.indexOf("SELF") > -1 || words.indexOf("EAT") > -1)
         {
-            program.self(player);
+            program.self();
         }
         if (words.indexOf("DROP") > -1)
         {

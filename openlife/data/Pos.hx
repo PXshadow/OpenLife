@@ -13,4 +13,8 @@ class Pos
     {
         return new Pos(x,y);
     }
+    public function toString():String
+    {
+        return '($x,$y)';
+    }
 }

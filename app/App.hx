@@ -27,7 +27,7 @@ class App
     public function new()
     {
         Engine.dir = Utility.dir();
-        vector = Bake.dummies();
+        vector = Bake.run();
         trace("baked chisel: " + ObjectBake.dummies.get(455));
         //start program
         var config:ConfigData = {relay: true,combo: 0,syncSettings: false,script: "Script.hx"};

@@ -49,18 +49,18 @@ class Program
     {
         if (!moving) return;
         moving = false;
+        if (player.x != dest.x || player.y != dest.y)
+        {
+            //error
+            trace('did not make it to dest player: ' + player.x + " " + player.y);
+            if (onError != null) onError("did not make it to dest");
+            return;
+        }
         if (dest.x != goal.x || dest.y != goal.y)
         {
             //extension
             trace("path extension!");
             goto(goal.x,goal.y);
-            return;
-        }
-        if (player.x != goal.x || player.y != goal.y)
-        {
-            //error
-            trace("did not make it to goal " + dest.x + " " + dest.y + " player: " + player.x + " " + player.y);
-            if (onError != null) onError("did not make it to goal");
             return;
         }
         //play buffer
@@ -209,12 +209,8 @@ class Program
         if (py > MapData.RAD - 1) py = MapData.RAD - 1;
         if (px < -MapData.RAD) px = -MapData.RAD;
         if (py < -MapData.RAD) py = -MapData.RAD;
-        trace("p " + px + " " + py);
-        var sx = px + MapData.RAD;
-        var sy = py + MapData.RAD;
         //cords
         var start = new Coordinate(MapData.RAD,MapData.RAD);
-        //var end = new Coordinate(sx,sy);
         //map
         trace("map " + map);
         var map = new MapCollision(map.collisionChunk(player));
@@ -234,7 +230,7 @@ class Program
                 tweakX = 0;
                 tweakY = y - player.y < 0 ? 1 : -1;
             }
-            var end = new Coordinate(sx + tweakX,sy + tweakY);
+            var end = new Coordinate(px + MapData.RAD + tweakX,py + MapData.RAD + tweakY);
             paths = path.createPath(start,end,MANHATTAN,true);
             if (paths != null) break;
         }
@@ -255,20 +251,23 @@ class Program
             data.push(new Pos(path.x - tx,path.y - ty));
         }
         goal = new Pos(x,y);
-        trace("x " + Std.string(goal.x - player.x + MapData.RAD) + " sx " + sx);
-        if (sx == (goal.x - player.x) + MapData.RAD && sy == (goal.y - player.y) + MapData.RAD)
+        if (px == goal.x - player.x && py == goal.y - player.y)
         {
             trace("shift goal!");
             //shift goal as well
             goal.x += tweakX;
             goal.y += tweakY;
         }
-        dest = new Pos(px,py);
+        dest = new Pos(px + player.x,py + player.y);
         init = new Pos(player.x,player.y);
-        movePlayer(player,data);
+        movePlayer(data);
         return this;
     }
-    private inline function movePlayer(player:PlayerInstance,paths:Array<Pos>)
+    private function comparePos(dest:Pos,goal:Pos)
+    {
+
+    }
+    private inline function movePlayer(paths:Array<Pos>)
     {
         var string = "";
         for (path in paths)
@@ -306,10 +305,14 @@ class Program
      * @param index 
      * @return Program
      */
-    public function self(player:PlayerInstance,index:Int=-1):Program
+    public function self(index:Int=-1):Program
     {
         send(SELF,player.x,player.y," " + index);
         return this;
+    }
+    public function eat():Program
+    {
+        return self();
     }
     public function die():Program
     {

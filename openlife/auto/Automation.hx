@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.resources.ObjectBake;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.map.MapData;
 import openlife.data.Pos;
@@ -12,7 +13,7 @@ import openlife.engine.Program;
  */
 class Automation
 {
-    var program:Program;
+    public var program:Program;
     var list:Vector<Int>;
     public var interp:Interpreter;
     public function new(program:Program,list:Vector<Int>=null)
@@ -21,21 +22,24 @@ class Automation
         this.list = list;
         interp = new Interpreter(list);
     }
-    public function find(id:Array<Int>,map:MapData,player:PlayerInstance):Pos
+    public function find(id:Array<Int>):Pos
     {
+        var array = ObjectBake.dummies.get(id[0]);
+        trace("array " + array);
+        if (array != null) id = id.concat(array);
         var dis:Float = 2000;
         var pos:Pos = null;
-        for (y in player.y - MapData.RAD...player.y + MapData.RAD)
+        @:privateAccess for (y in program.player.y - MapData.RAD...program.player.y + MapData.RAD)
         {
-            for (x in player.x - MapData.RAD...player.x + MapData.RAD)
+            @:privateAccess for (x in program.player.x - MapData.RAD...program.player.x + MapData.RAD)
             {
                 //trace("x: " + x + " y: " + y + " v: " + map.object.get(x,y));
-                var array = map.object.get(x,y);
+                var array = @:privateAccess program.map.object.get(x,y);
                 if (array != null) for (o in array)
                 {
                     if (id.indexOf(o) > -1)
                     {
-                        var tdis = Math.abs(x - player.x) + Math.abs(y - player.y);
+                        @:privateAccess var tdis = Math.abs(x - program.player.x) + Math.abs(y - program.player.y);
                         if (dis > tdis) 
                         {
                             dis = tdis;
