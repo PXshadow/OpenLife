@@ -45,6 +45,7 @@ class Engine
     }
     public function clear()
     {
+        program.clear();
         players.clear();
         map.clear();
     }
@@ -110,7 +111,8 @@ class Engine
             {
                 temp = new PlayerInstance(data.split(" "));
                 player = players.get(temp.p_id);
-                if (temp.action == 1 && player != null && temp.o_id[0] != player.o_id[0])
+                var obj = map.object.get(temp.action_target_x,temp.action_target_y);
+                if (temp.action == 1 && player != null && temp.o_id[0] != player.o_id[0] && (obj == null || obj[0] == 0))
                 {
                     map.object.set(temp.action_target_x,temp.action_target_y,player.o_id);
                 }

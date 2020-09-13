@@ -76,6 +76,15 @@ class Program
         init = null;
         trace("UPDATE");
     }
+    public function clear()
+    {
+        dest = null;
+        init = null;
+        goal = null;
+        moving = false;
+        player = null;
+        buffer = [];
+    }
     public function setHome(x:Int,y:Int):Program
     {
         home.x = x;
@@ -115,6 +124,8 @@ class Program
     }
     public function use(x:Null<Int>=null,y:Null<Int>=null):Program
     {
+        if (x == null) x = goal.x;
+        if (y == null) y = goal.y;
         send(USE,x,y);
         return this;
     }
