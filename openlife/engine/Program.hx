@@ -36,10 +36,10 @@ class Program
     }
     public function send(tag:ServerTag,x:Int,y:Int,data:String="")
     {
-        trace('send: $tag $x $y $data');
+        //trace('send: $tag $x $y $data');
         if (moving && tag != SAY && tag != EMOT)
         {
-            trace("---added to buffer---");
+            //trace("---added to buffer---");
             buffer.push({tag: tag,x: x,y: y,data: data});
             return;
         }
@@ -70,9 +70,9 @@ class Program
             send(command.tag,command.x,command.y,command.data);
         }
         buffer = [];
-        if (onComplete != null) onComplete();
         dest = null;
         goal = null;
+        if (onComplete != null) onComplete();
         init = null;
         trace("UPDATE");
     }
@@ -122,10 +122,8 @@ class Program
         send(DROP,x,y," " + c);
         return this;
     }
-    public function use(x:Null<Int>=null,y:Null<Int>=null):Program
+    public function use(x:Int,y:Int):Program
     {
-        if (x == null) x = goal.x;
-        if (y == null) y = goal.y;
         send(USE,x,y);
         return this;
     }

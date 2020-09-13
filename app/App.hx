@@ -1,6 +1,5 @@
 package;
 
-import openlife.auto.Script;
 import haxe.Exception;
 import openlife.client.Client;
 import haxe.Json;
@@ -76,39 +75,10 @@ class App
             client.cred = cred;
             var bot = new Bot(client);
             bot.relayPort = 8000;
-            #if hscript
-            //scripting support only available for single bot
-            var interp = new hscript.Interp();
-            var parser = new hscript.Parser();
-            var runTime:Int = 20 * 4;
-            var runTicks:Int = 0;
-            parser.allowTypes = true;
-            interp.variables.set("bot",bot);
-            interp.variables.set("Timer",haxe.Timer);
-            #end
             bot.connect(false,config.relay);
             while (true) 
             {
                 bot.update();
-                #if hscript
-                if (runTicks > runTime)
-                {
-                    var script = Script.execute();
-                    if (script.length > 0)
-                    {
-                        Sys.println("Executing Script.hx");
-                        if (bot.auto == null) return;
-                        try {
-                            interp.execute(parser.parseString(script));
-                        }catch(e:Exception)
-                        {
-                            Sys.println(e.details());
-                        }
-                    }
-                    runTicks = 0;
-                }
-                runTicks++;
-                #end
                 Sys.sleep(1/20);
             }
         }
