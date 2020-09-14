@@ -18,7 +18,7 @@ class Bot extends Engine implements EngineHeader
     public var auto:Automation;
     public var player:PlayerInstance;
     public var resetFlag:Bool = false;
-    var names = new IntMap<String>();
+    public var names = new IntMap<String>();
     var followingId:Int = -1;
     public var event:EngineEvent;
     private static var staticDelay:Float = 0;
@@ -192,7 +192,7 @@ class Bot extends Engine implements EngineHeader
         {
             var id = ObjectBake.dummies.get(found);
             id == null ? id = [found] : id.unshift(found);
-            var pos = auto.find(id);
+            var pos = auto.select(id);
             if (pos == null)
             {
                 program.say("I DID NOT FIND");

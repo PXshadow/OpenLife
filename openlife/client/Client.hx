@@ -180,7 +180,7 @@ class Client
     {
         var key = StringTools.replace(cred.key,"-","");
         var email = cred.email + (cred.seed == "" ? "" : "|" + cred.seed);
-        var password = new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f"),Bytes.ofString(challenge,RawNative)).toHex();
+        var password = new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f"),Bytes.ofString(challenge)).toHex();
         var accountKey = new Hmac(SHA1).make(Bytes.ofString(key),Bytes.ofString(challenge)).toHex();
         var clientTag = " client_openlife";
         if (cred.legacy) clientTag = "";

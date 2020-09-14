@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.data.object.ObjectData;
 import openlife.resources.ObjectBake;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.map.MapData;
@@ -22,7 +23,7 @@ class Automation
         this.list = list;
         interp = new Interpreter(list);
     }
-    public function find(id:Array<Int>):Pos
+    public function select(id:Array<Int>):Pos
     {
         var array = ObjectBake.dummies.get(id[0]);
         trace("array " + array);
@@ -45,12 +46,51 @@ class Automation
                             dis = tdis;
                             pos = new Pos(x,y);
                         }
-                        break;
                     }
                 }
             }
         }
         return pos;
+    }
+    public function get(id:Array<Int>):Array<Pos>
+    {
+        var list:Array<Pos> = [];
+        @:privateAccess for (y in program.player.y - MapData.RAD...program.player.y + MapData.RAD)
+        {
+            @:privateAccess for (x in program.player.x - MapData.RAD...program.player.x + MapData.RAD)
+            {
+                //trace("x: " + x + " y: " + y + " v: " + map.object.get(x,y));
+                var array = @:privateAccess program.map.object.get(x,y);
+                if (array != null) for (o in array)
+                {
+                    if (id.indexOf(o) > -1)
+                    {
+                        list.push(new Pos(x,y));
+                    }
+                }
+            }
+        }
+        return list;
+    }
+    public function food():Pos
+    {
+        @:privateAccess for (y in program.player.y - MapData.RAD...program.player.y + MapData.RAD)
+        {
+            @:privateAccess for (x in program.player.x - MapData.RAD...program.player.x + MapData.RAD)
+            {
+                //trace("x: " + x + " y: " + y + " v: " + map.object.get(x,y));
+                var array = @:privateAccess program.map.object.get(x,y);
+                if (array != null) for (id in array)
+                {
+                    var obj = new ObjectData(id);
+                    if (obj.foodValue > 0)
+                    {
+                        return new Pos(x,y);
+                    }
+                }
+            }
+        }
+        return null;
     }
 }
 typedef Auto = Automation; 
