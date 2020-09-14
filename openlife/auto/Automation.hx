@@ -23,6 +23,13 @@ class Automation
         this.list = list;
         interp = new Interpreter(list);
     }
+    public function goto(id:Array<Int>):Bool
+    {
+        var pos = select(id);
+        if (pos == null) return false;
+        program.goto(pos.x,pos.y);
+        return true;
+    }
     public function select(id:Array<Int>):Pos
     {
         var array = ObjectBake.dummies.get(id[0]);
