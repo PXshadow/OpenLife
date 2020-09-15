@@ -23,86 +23,105 @@ class Automation
         this.list = list;
         interp = new Interpreter(list);
     }
-    public function goto(id:Array<Int>):Bool
+    public function goto(id:Array<Int>,buffer:Pos->Void)
     {
         var pos = select(id);
-        if (pos == null) return false;
-        program.goto(pos.x,pos.y);
-        return true;
+        if (pos == null) return;
+        if (!program.goto(pos.x,pos.y)) return;
+        buffer(pos);
+    }
+    public function foreach(func:(x:Int,y:Int,array:Array<Int>)->Bool,repeat:Bool=true)
+    {
+        @:privateAccess for (y in program.player.y - MapData.RAD...program.player.y + MapData.RAD)
+        {
+            @:privateAccess for (x in program.player.x - MapData.RAD...program.player.x + MapData.RAD)
+            {
+                var array = @:privateAccess program.map.object.get(x,y);
+                if (array != null) 
+                {
+                    var bool = func(x,y,array);
+                    if (!repeat && bool) return;
+                }
+            }
+        }
     }
     public function select(id:Array<Int>):Pos
     {
         var array = ObjectBake.dummies.get(id[0]);
-        trace("array " + array);
         if (array != null) id = id.concat(array);
         var dis:Float = 2000;
         var pos:Pos = null;
-        @:privateAccess for (y in program.player.y - MapData.RAD...program.player.y + MapData.RAD)
+        foreach(function(x:Int,y:Int,array:Array<Int>)
         {
-            @:privateAccess for (x in program.player.x - MapData.RAD...program.player.x + MapData.RAD)
+            for (i in 0...array.length)
             {
-                //trace("x: " + x + " y: " + y + " v: " + map.object.get(x,y));
-                var array = @:privateAccess program.map.object.get(x,y);
-                if (array != null) for (i in 0...array.length)
+                if (id.indexOf(array[i]) > -1)
                 {
-                    if (id.indexOf(array[i]) > -1)
+                    @:privateAccess var tdis = Math.abs(x - program.player.x) + Math.abs(y - program.player.y);
+                    if (dis > tdis) 
                     {
-                        @:privateAccess var tdis = Math.abs(x - program.player.x) + Math.abs(y - program.player.y);
-                        if (dis > tdis) 
-                        {
-                            dis = tdis;
-                            pos = new Pos(x,y);
-                            if (i > 0) pos.y += new ObjectData(array[0]).noBackAcess ? 1 : 0;
-                        }
+                        dis = tdis;
+                        pos = new Pos(x,y);
+                        if (i > 0) pos.y += new ObjectData(array[0]).noBackAcess ? -1 : 0;
                     }
                 }
             }
-        }
+            return true;
+        });
         return pos;
     }
-    public function get(id:Array<Int>):Array<Pos>
+    public function get(id:Array<Int>):Array<Array<Pos>>
     {
-        var list:Array<Pos> = [];
-        @:privateAccess for (y in program.player.y - MapData.RAD...program.player.y + MapData.RAD)
+        var obj:Array<Pos> = [];
+        var pos:Array<Pos> = [];
+        foreach(function(x:Int,y:Int,array:Array<Int>)
         {
-            @:privateAccess for (x in program.player.x - MapData.RAD...program.player.x + MapData.RAD)
+            for (i in 0...array.length)
             {
-                //trace("x: " + x + " y: " + y + " v: " + map.object.get(x,y));
-                var array = @:privateAccess program.map.object.get(x,y);
-                if (array != null) for (i in 0...array.length)
+                if (id.indexOf(array[i]) > -1)
                 {
-                    if (id.indexOf(array[i]) > -1)
+                    var p = new Pos(x,y);
+                    pos.push(p);
+                    if (i > 0) 
                     {
-                        var pos = new Pos(x,y);
-                        if (i > 0) pos.y += new ObjectData(array[0]).noBackAcess ? 1 : 0;
-                        list.push(pos);
+                        var sy = new ObjectData(array[0]).noBackAcess ? -1 : 0;
+                        var p = p.clone();
+                        p.y += sy;
+                        obj.push(p);
+                    }else{
+                        obj.push(p);
                     }
+                    
                 }
             }
-        }
-        return list;
+            return true;
+        });
+        return [pos,obj];
     }
-    public function food():Pos
+    public function food()
     {
-        @:privateAccess for (y in program.player.y - MapData.RAD...program.player.y + MapData.RAD)
+        trace("food!");
+        var pos:Pos = null;
+        foreach(function(x:Int, y:Int, array:Array<Int>)
         {
-            @:privateAccess for (x in program.player.x - MapData.RAD...program.player.x + MapData.RAD)
+            for (i in 0...array.length)
             {
-                //trace("x: " + x + " y: " + y + " v: " + map.object.get(x,y));
-                var array = @:privateAccess program.map.object.get(x,y);
-                if (array != null) for (i in 0...array.length)
+                var obj = new ObjectData(array[i]);
+                if (obj.foodValue > 0)
                 {
-                    var obj = new ObjectData(array[i]);
-                    if (obj.foodValue > 0)
-                    {
-                        var pos = new Pos(x,y);
-                        if (i > 0) pos.y += new ObjectData(array[0]).noBackAcess ? 1 : 0;
-                        return pos;
-                    }
+                    pos = new Pos(x,y);
+                    var sy:Int = 0;
+                    if (i > 0) sy = new ObjectData(array[0]).noBackAcess ? -1 : 0;
+                    trace("pos " + pos);
+                    //no repeat so this is last function call
+                    if (!program.goto(pos.x,pos.y + sy)) return true;
+                    program.use(pos.x,pos.y);
+                    program.self();
+                    return true;
                 }
             }
-        }
-        return null;
+            return false;
+        },false);
     }
 }
 typedef Auto = Automation; 

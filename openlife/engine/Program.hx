@@ -45,17 +45,17 @@ class Program
         }
         client.send('$tag $x $y $data');
     }
-    public function update()
+    public function update(player:PlayerInstance)
     {
         if (!moving) return;
-        moving = false;
+        trace("p " + player + " dest " + dest);
         if (player.x != dest.x || player.y != dest.y)
         {
-            //error
             trace('did not make it to dest player: ' + player.x + " " + player.y);
-            if (onError != null) onError("did not make it to dest");
+            //if (onError != null) onError("did not make it to dest");
             return;
         }
+        moving = false;
         if (dest.x != goal.x || dest.y != goal.y)
         {
             //extension
@@ -72,8 +72,8 @@ class Program
         buffer = [];
         dest = null;
         goal = null;
-        if (onComplete != null) onComplete();
         init = null;
+        if (onComplete != null) onComplete();
         trace("UPDATE");
     }
     public function clear()
@@ -208,9 +208,9 @@ class Program
         send(JUMP,0,0);
         return this;
     }
-    public function goto(x:Int,y:Int):Program
+    public function goto(x:Int,y:Int):Bool
     {
-        if (player.x == x && player.y == y || moving) return this;
+        if (player.x == x && player.y == y || moving) return false;
         //set pos
         var px = x - player.x;
         var py = y - player.y;
@@ -247,7 +247,7 @@ class Program
         {
             if (onError != null) onError("can not generate path");
             trace("CAN NOT GENERATE PATH");
-            return this;
+            return false;
         }
         var data:Array<Pos> = [];
         paths.shift();
@@ -270,7 +270,7 @@ class Program
         dest = new Pos(px + player.x,py + player.y);
         init = new Pos(player.x,player.y);
         movePlayer(data);
-        return this;
+        return true;
     }
     private function comparePos(dest:Pos,goal:Pos)
     {

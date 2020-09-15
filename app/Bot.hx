@@ -52,7 +52,7 @@ class Bot extends Engine implements EngineHeader
     {
         for (instance in instances)
         {
-            if (player != null && player.p_id == instance.p_id) program.update();
+            if (player != null && player.p_id == instance.p_id) program.update(instance);
         }
         if (player == null)
         {
