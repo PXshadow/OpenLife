@@ -296,6 +296,7 @@ class ObjectData extends LineReader
      */
     var maxWideRadius:Int = 0;
     var onlyDescription:Bool;
+    var noBackAcess:Bool = false;
     public function new(i:Int=0,onlyDescription:Bool=false)
     {
         super();
@@ -341,6 +342,10 @@ class ObjectData extends LineReader
             }
             //new
             if (!set) toolsetRecord.push({setTag: setTag, setMembership: [id]});
+        }
+        if (description.indexOf("+noBackAccess") > -1)
+        {
+            noBackAcess = true;
         }
         containable = getBool();
 

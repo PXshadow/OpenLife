@@ -43,15 +43,16 @@ class Automation
             {
                 //trace("x: " + x + " y: " + y + " v: " + map.object.get(x,y));
                 var array = @:privateAccess program.map.object.get(x,y);
-                if (array != null) for (o in array)
+                if (array != null) for (i in 0...array.length)
                 {
-                    if (id.indexOf(o) > -1)
+                    if (id.indexOf(array[i]) > -1)
                     {
                         @:privateAccess var tdis = Math.abs(x - program.player.x) + Math.abs(y - program.player.y);
                         if (dis > tdis) 
                         {
                             dis = tdis;
                             pos = new Pos(x,y);
+                            if (i > 0) pos.y += new ObjectData(array[0]).noBackAcess ? 1 : 0;
                         }
                     }
                 }
@@ -68,11 +69,13 @@ class Automation
             {
                 //trace("x: " + x + " y: " + y + " v: " + map.object.get(x,y));
                 var array = @:privateAccess program.map.object.get(x,y);
-                if (array != null) for (o in array)
+                if (array != null) for (i in 0...array.length)
                 {
-                    if (id.indexOf(o) > -1)
+                    if (id.indexOf(array[i]) > -1)
                     {
-                        list.push(new Pos(x,y));
+                        var pos = new Pos(x,y);
+                        if (i > 0) pos.y += new ObjectData(array[0]).noBackAcess ? 1 : 0;
+                        list.push(pos);
                     }
                 }
             }
@@ -87,12 +90,14 @@ class Automation
             {
                 //trace("x: " + x + " y: " + y + " v: " + map.object.get(x,y));
                 var array = @:privateAccess program.map.object.get(x,y);
-                if (array != null) for (id in array)
+                if (array != null) for (i in 0...array.length)
                 {
-                    var obj = new ObjectData(id);
+                    var obj = new ObjectData(array[i]);
                     if (obj.foodValue > 0)
                     {
-                        return new Pos(x,y);
+                        var pos = new Pos(x,y);
+                        if (i > 0) pos.y += new ObjectData(array[0]).noBackAcess ? 1 : 0;
+                        return pos;
                     }
                 }
             }
