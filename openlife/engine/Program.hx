@@ -1,4 +1,5 @@
 package openlife.engine;
+import openlife.client.ClientTag;
 import openlife.auto.Pathfinder;
 import openlife.auto.Pathfinder.Coordinate;
 import openlife.data.object.player.PlayerInstance;
@@ -23,6 +24,7 @@ class Program
     public var onError:String->Void;
     var player:PlayerInstance;
     var map:MapData;
+    public var RAD:Int = MapData.RAD;
     private function new(client:Client,map:MapData)
     {
         buffer = [];
@@ -52,6 +54,7 @@ class Program
         if (player.x != dest.x || player.y != dest.y)
         {
             trace('did not make it to dest player: ' + player.x + " " + player.y);
+            moving = false;
             //if (onError != null) onError("did not make it to dest");
             return;
         }
@@ -286,12 +289,23 @@ class Program
         string = string.substring(1);
         send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} $string');
         var path = paths.pop();
-        player.x = player.x + path.x;
+        /*player.x = player.x + path.x;
         player.y = player.y + path.y;
-        player.forced = true;
+        player.forced = true;*/
         if (client.relayIn != null) 
         {
-            var string = 'PU\n${player.toData()}\n#';
+            var eta = (path.x + path.y)/3;
+            var string = '$PLAYER_MOVES_START\n${player.p_id} ${player.x} ${player.y} $eta $eta 0 $string';
+            Timer.delay(function()
+            {
+                player.x += path.x;
+                player.y += path.y;
+                player.forced = true;
+                client.relayIn.output.writeString('$PLAYER_UPDATE\n${player.toData()}\n#');
+                player.x += -path.x;
+                player.y += -path.y;
+                player.forced = false;
+            },Std.int(eta * 1000));
             client.relayIn.output.writeString(string);
         }
         moving = true;

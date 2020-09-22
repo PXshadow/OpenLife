@@ -111,6 +111,7 @@ class Client
         }
         process(wasCompressed);
         wasCompressed = false;
+        update();
         #end
     }
     var listen:Int;

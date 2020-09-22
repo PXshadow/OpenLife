@@ -68,7 +68,7 @@ class App
             while (true)
             {
                 for (bot in bots) bot.update();
-                Sys.sleep(1/40);
+                Sys.sleep(1/120);
             }
         }else{
             var client = new Client();
