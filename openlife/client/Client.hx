@@ -220,6 +220,13 @@ class Client
     public function connect(reconnect:Bool=false)
 	{
         this.reconnect = reconnect;
+        if (cred.port == null) cred.port = 8005;
+        if (cred.tutorial == null) cred.tutorial = false;
+        if (cred.legacy == null) cred.legacy = false;
+        if (cred.seed == null) cred.seed = "";
+        if (cred.twin == null) cred.twin = "";
+        if (cred.email == null) cred.email = "test@email.email";
+        if (cred.key == null) cred.key = "8888-8888-8888-8888";
         trace("attempt connect " + cred.ip + ":" + cred.port);
         connected = false;
         #if (sys || nodejs)

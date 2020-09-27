@@ -50,7 +50,6 @@ class Program
     public function update(player:PlayerInstance)
     {
         if (!moving) return;
-        trace("p " + player + " dest " + dest);
         if (player.x != dest.x || player.y != dest.y)
         {
             trace('did not make it to dest player: ' + player.x + " " + player.y);
@@ -217,12 +216,12 @@ class Program
         //set pos
         var px = x - player.x;
         var py = y - player.y;
-        if (px > MapData.RAD - 1) px = MapData.RAD - 1;
-        if (py > MapData.RAD - 1) py = MapData.RAD - 1;
-        if (px < -MapData.RAD) px = -MapData.RAD;
-        if (py < -MapData.RAD) py = -MapData.RAD;
+        if (px > RAD - 1) px = RAD - 1;
+        if (py > RAD - 1) py = RAD - 1;
+        if (px < -RAD) px = -RAD;
+        if (py < -RAD) py = -RAD;
         //cords
-        var start = new Coordinate(MapData.RAD,MapData.RAD);
+        var start = new Coordinate(RAD,RAD);
         //map
         trace("map " + map);
         var map = new MapCollision(map.collisionChunk(player));
@@ -242,7 +241,7 @@ class Program
                 tweakX = 0;
                 tweakY = y - player.y < 0 ? 1 : -1;
             }
-            var end = new Coordinate(px + MapData.RAD + tweakX,py + MapData.RAD + tweakY);
+            var end = new Coordinate(px + RAD + tweakX,py + RAD + tweakY);
             paths = path.createPath(start,end,MANHATTAN,true);
             if (paths != null) break;
         }
@@ -287,14 +286,14 @@ class Program
             string += " " + path.x + " " + path.y;
         }
         string = string.substring(1);
+        trace("path string " + string);
         send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} $string');
         var path = paths.pop();
-        /*player.x = player.x + path.x;
-        player.y = player.y + path.y;
-        player.forced = true;*/
         if (client.relayIn != null) 
         {
-            var eta = (path.x + path.y)/3;
+            
+            var eta = (Math.abs(path.x) + Math.abs(path.y))/3;
+            trace("eta " + eta);
             var string = '$PLAYER_MOVES_START\n${player.p_id} ${player.x} ${player.y} $eta $eta 0 $string';
             Timer.delay(function()
             {

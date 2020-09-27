@@ -78,5 +78,5 @@ class Settings
         return true;
     }
 }
-typedef CredData = {legacy:Bool,email:String,key:String,ip:String,port:Int,seed:String,tutorial:Bool,twin:String}
+typedef CredData = {?legacy:Bool,?email:String,?key:String,ip:String,?port:Int,?seed:String,?tutorial:Bool,?twin:String}
 typedef Data = DynamicAccess<Dynamic> 
