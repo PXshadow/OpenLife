@@ -31,7 +31,9 @@ To Developers:
 Getting Started
 =========
 * [Download Haxe](https://haxe.org/download/version/4.0.0/)
+* [Download Hashlink](https://hashlink.haxe.org/#download)
+* Hashlink on mac you can do ```brew install hashlink```
 * run the command ```haxelib setup```
-* Run the install.sh script, windows ```start install.sh```, linux/mac ```sh install.sh```
+* Run the build.sh script, windows ```start build.sh```, linux/mac ```sh build.sh```
 * add the data files  (you need [git](https://git-scm.com/downloads) run ```haxe setup_data.hxml```
 * Run the eval target ```haxe eval.hxml```

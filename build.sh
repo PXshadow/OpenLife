@@ -1,3 +1,5 @@
+echo "adding OpenLife as haxelib library"
+haxelib dev openlife .
 echo "installing lib"
 haxelib git format https://github.com/haxefoundation/format
 haxelib git hscript https://github.com/HaxeFoundation/hscript
