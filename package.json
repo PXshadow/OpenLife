@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\"",
+    "prepare": "haxe targets/nodejs.hxml",
     "postinstall": "lix download"
   },
   "repository": {
@@ -26,7 +27,7 @@
     "url": "https://github.com/pxshadow/openlife/issues"
   },
   "homepage": "https://github.com/pxshadow/openlife#readme",
-  "dependencies": {
+  "devDependencies": {
     "lix": "^15.9.1"
   },
   "bin": "./export/js/openlife.js"
