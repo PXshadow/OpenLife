@@ -1,0 +1,33 @@
+{
+  "name": "openlife",
+  "version": "0.0.1",
+  "description": "A haxe based OneLife engine",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\"",
+    "postinstall": "lix download"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pxshadow/openlife.git"
+  },
+  "keywords": [
+    "onelife",
+    "haxe",
+    "engine",
+    "module"
+  ],
+  "author": "PXshadow",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/pxshadow/openlife/issues"
+  },
+  "homepage": "https://github.com/pxshadow/openlife#readme",
+  "dependencies": {
+    "lix": "^15.9.1"
+  },
+  "bin": "./export/js/openlife.js"
+}

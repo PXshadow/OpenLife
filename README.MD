@@ -12,7 +12,7 @@
 
 To Developers:
 =========
-*Open Life is a [Haxe](https://haxe.org) based One Life engine.*
+*Open Life is a [Haxe](https://haxe.org) based OneLife engine.*
 
 * **Open Api:**  Quickly search through the [api](https://pxshadow.github.io/OpenLife-Docs/api/index.html) and find variables and methods.
 
