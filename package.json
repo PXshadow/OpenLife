@@ -2,7 +2,7 @@
   "name": "openlife",
   "version": "0.0.3",
   "description": "A haxe based OneLife engine",
-  "main": "index.js",
+  "main": "./export/js/openlife.js",
   "directories": {
     "test": "tests"
   },
@@ -29,6 +29,5 @@
   "homepage": "https://github.com/pxshadow/openlife#readme",
   "devDependencies": {
     "lix": "^15.9.1"
-  },
-  "bin": "./export/js/openlife.js"
+  }
 }
