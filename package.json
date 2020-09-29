@@ -1,6 +1,6 @@
 {
   "name": "openlife",
-  "version": "0.0.2",
+  "version": "0.0.0",
   "description": "A haxe based OneLife engine",
   "main": "index.js",
   "directories": {
