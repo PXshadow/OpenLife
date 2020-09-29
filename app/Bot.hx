@@ -1,4 +1,6 @@
 package;
+import openlife.auto.Role;
+import openlife.auto.Action;
 import openlife.resources.ObjectBake;
 import openlife.engine.EngineEvent;
 import openlife.engine.Utility;
@@ -15,6 +17,11 @@ import openlife.data.object.ObjectData;
 import haxe.ds.IntMap;
 class Bot extends Engine implements EngineHeader
 {
+    public var currentAction:Action;
+    public var lastAction:Action;
+    public var role:Role;
+    public var currentTarget:String;
+    public var lastTarget:String;
     public var auto:Automation;
     public var player:PlayerInstance;
     public var resetFlag:Bool = false;
@@ -61,12 +68,13 @@ class Bot extends Engine implements EngineHeader
             program.setPlayer(player);
             //new player set
             auto = new Automation(program,App.vector);
-            #if script
-            trace("EXECUTING SCRIPT");
-            Script.main(this);
-            #else
-            trace("NO SCRIPT");
-            #end
+            role.run();
+            //#if script
+            //trace("EXECUTING SCRIPT");
+            //Script.main(this);
+            //#else
+            //trace("NO SCRIPT");
+            //#end
         }
     } //PLAYER_UPDATE
     public function playerMoveStart(move:PlayerMove)
