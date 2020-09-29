@@ -1,6 +1,6 @@
 package openlife.client;
 import haxe.Exception;
-import openlife.settings.Settings.CredData;
+import openlife.settings.Settings.ConfigData;
 import haxe.io.Bytes;
 import openlife.client.ClientTag;
 
@@ -27,7 +27,7 @@ class Client
     //ping
     public var ping:Int = 0;
     var pingInt:Int = 0;
-    public var cred:CredData;
+    public var config:ConfigData;
     var challenge:String;
     public var version:String;
     public var reconnect:Bool = false;
@@ -202,13 +202,13 @@ class Client
     }
     private function request()
     {
-        var key = StringTools.replace(cred.key,"-","");
-        var email = cred.email + (cred.seed == "" ? "" : "|" + cred.seed);
+        var key = StringTools.replace(config.key,"-","");
+        var email = config.email + (config.seed == "" ? "" : "|" + config.seed);
         var password = new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f"),Bytes.ofString(challenge)).toHex();
         var accountKey = new Hmac(SHA1).make(Bytes.ofString(key),Bytes.ofString(challenge)).toHex();
         var clientTag = " client_openlife";
-        if (cred.legacy) clientTag = "";
-        var requestString = (reconnect ? "R" : "") + 'LOGIN$clientTag $email $password $accountKey ${(cred.tutorial ? 1 : 0)}';
+        if (config.legacy) clientTag = "";
+        var requestString = (reconnect ? "R" : "") + 'LOGIN$clientTag $email $password $accountKey ${(config.tutorial ? 1 : 0)}';
         send(requestString);
     }
     public function send(data:String)
@@ -240,20 +240,25 @@ class Client
     }
     public function connect(reconnect:Bool=false)
 	{
+        if (config == null)
+        {
+            trace("config is null");
+            return;
+        }
         this.reconnect = reconnect;
-        if (cred.port == null) cred.port = 8005;
-        if (cred.tutorial == null) cred.tutorial = false;
-        if (cred.legacy == null) cred.legacy = false;
-        if (cred.seed == null) cred.seed = "";
-        if (cred.twin == null) cred.twin = "";
-        if (cred.email == null) cred.email = "test@email.email";
-        if (cred.key == null) cred.key = "8888-8888-8888-8888";
-        trace("attempt connect " + cred.ip + ":" + cred.port);
+        if (config.port == null) config.port = 8005;
+        if (config.tutorial == null) config.tutorial = false;
+        if (config.legacy == null) config.legacy = false;
+        if (config.seed == null) config.seed = "";
+        if (config.twin == null) config.twin = "";
+        if (config.email == null) config.email = "test@email.email";
+        if (config.key == null) config.key = "8888-8888-8888-8888";
+        trace("attempt connect " + config.ip + ":" + config.port);
         connected = false;
         #if (sys || nodejs)
 		var host:Host;
 		try {
-			host = new Host(cred.ip);
+			host = new Host(config.ip);
 		}catch(e:Dynamic)
 		{
             trace("host error: " + e);
@@ -262,7 +267,7 @@ class Client
 		socket = new Socket();
         //socket.setTimeout(10);
 		try {
-			socket.connect(host,cred.port);
+			socket.connect(host,config.port);
 		}catch(e:Dynamic)
 		{
             trace("socket connect error: " + e);
