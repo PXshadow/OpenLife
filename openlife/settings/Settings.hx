@@ -9,7 +9,7 @@ import sys.io.FileOutput;
 import sys.io.File;
 import sys.FileSystem;
 #end
-
+@:expose("Settings")
 class Settings
 {
     @:isVar public var data(default,set):Data = {};
@@ -74,5 +74,6 @@ class Settings
         return true;
     }
 }
+@:expose("ConfigData")
 typedef ConfigData = {?legacy:Bool,?email:String,?key:String,ip:String,?port:Int,?seed:String,?tutorial:Bool,?twin:String}
 typedef Data = DynamicAccess<Dynamic> 

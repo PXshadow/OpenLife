@@ -1,5 +1,5 @@
 package openlife.data.animation.emote;
-
+@:expose("Emotion")
 typedef Emotion = {
     triggerWord:String,
     eyeEmot:Int,

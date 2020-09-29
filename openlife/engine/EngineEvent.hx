@@ -3,6 +3,7 @@ import openlife.data.map.MapInstance;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.object.player.PlayerMove;
 import openlife.data.map.MapChange;
+@:expose("EngineEvent")
 class EngineEvent
 {
     public var playerUpdate:(instances:Array<PlayerInstance>)->Void; //PLAYER_UPDATE

@@ -2,6 +2,7 @@ package openlife.resources;
 import openlife.engine.Engine;
 
 import haxe.io.Bytes;
+@:expose("Resource")
 class Resource
 {
     public static function objectData(id:Int):String

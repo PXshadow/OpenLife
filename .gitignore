@@ -38,8 +38,11 @@ dox
 /*.hx
 xml
 dir
+*.d.ts
 .idea
+OpenLife
 *.exe
+*.ts
 combo.txt
 node_modules
 package-lock.json

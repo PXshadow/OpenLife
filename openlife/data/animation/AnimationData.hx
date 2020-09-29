@@ -2,6 +2,7 @@ package openlife.data.animation;
 import openlife.data.sound.SoundData;
 import haxe.ds.Vector;
 import openlife.resources.Resource;
+@:expose("AnimationData")
 class AnimationData extends openlife.data.LineReader
 {
     /**

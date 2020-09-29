@@ -1,6 +1,6 @@
 package openlife.data.animation;
 import haxe.ds.Vector;
-
+@:expose("AnimationRecord")
 class AnimationRecord
 {
     /**

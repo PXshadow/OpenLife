@@ -1,5 +1,5 @@
 package openlife.data;
-
+@:expose("Rectangle")
 class Rectangle
 {
     public var x:Int;

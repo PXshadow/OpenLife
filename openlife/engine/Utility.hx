@@ -1,6 +1,7 @@
 package openlife.engine;
 import sys.FileSystem;
 import sys.io.File;
+@:expose("Utility")
 class Utility
 {
     public static function dir():String

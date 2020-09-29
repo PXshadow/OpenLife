@@ -1,4 +1,5 @@
 package openlife.data.transition;
+@:expose("Category")
 class Category
 {
     public var ids:Array<Int>;

@@ -4,7 +4,7 @@ import openlife.data.object.ObjectData;
 import haxe.io.Path;
 import sys.io.File;
 import openlife.engine.Engine;
-
+@:expose("TransitionImporter")
 class TransitionImporter
 {
     public var transitions:Array<TransitionData>;

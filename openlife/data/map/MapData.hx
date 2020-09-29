@@ -4,7 +4,7 @@ import openlife.data.object.player.PlayerInstance;
 import openlife.data.*;
 import haxe.Timer;
 import haxe.ds.Vector;
-
+@:expose("MapData")
 class MapData
 {
     /**

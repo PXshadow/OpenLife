@@ -9,7 +9,7 @@ import haxe.io.Path;
 /**
  * Bakes the numUses objects into files, rather than having to run through all the objects in the start of the session
  */
- 
+ @:expose("ObjectBake")
 class ObjectBake
 {
     public static var nextObjectNumber:Int = 0;

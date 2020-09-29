@@ -14,7 +14,7 @@ import haxe.Timer;
 /**
  * Socket Client
  */
-
+ @:expose("Client")
 class Client
 {
     var socket:Socket;

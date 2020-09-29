@@ -1,7 +1,7 @@
 package openlife.data.map;
 
 import haxe.ds.Vector;
-
+@:expose("SceneData")
 class SceneData
 {
     public var width:Int = 0;

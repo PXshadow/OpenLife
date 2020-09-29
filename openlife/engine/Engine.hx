@@ -12,6 +12,7 @@ import openlife.settings.Settings;
 import haxe.io.Path;
 import openlife.client.ClientTag;
 @:expose
+@:expose("Engine")
 class Engine 
 {
     /**

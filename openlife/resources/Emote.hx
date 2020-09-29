@@ -2,7 +2,7 @@ package openlife.resources;
 
 import haxe.ds.Vector;
 import openlife.data.animation.emote.EmoteData;
-
+@:expose("Emote")
 class Emote
 {
     /**

@@ -1,5 +1,5 @@
 package openlife.data.map;
-
+@:expose("MapChange")
 class MapChange
 {
     /**
