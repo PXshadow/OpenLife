@@ -34,6 +34,7 @@ dox
 *.n
 *.js
 *.hl
+!index.js
 /*.hx
 xml
 dir
