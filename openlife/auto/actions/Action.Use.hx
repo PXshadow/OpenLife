@@ -3,7 +3,7 @@ package openlife.auto.actions;
 import openlife.auto.Action;
 
 
-class Eat extends openlife.auto.Action{
+class Use extends openlife.auto.Action{
     this.name = 'Use';
 
     public function isValidAction(){

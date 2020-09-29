@@ -68,7 +68,6 @@ class Bot extends Engine implements EngineHeader
             program.setPlayer(player);
             //new player set
             auto = new Automation(program,App.vector);
-            role.run();
             //#if script
             //trace("EXECUTING SCRIPT");
             //Script.main(this);
