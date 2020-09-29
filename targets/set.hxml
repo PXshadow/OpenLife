@@ -1,6 +1,8 @@
 
---macro include("openlife")
---macro exclude("openlife.server")
+#--macro include("openlife")
+#--macro exclude("openlife.server")
+openlife.engine.Engine
+#-main openlife.engine.Engine
 -lib format
 #effects cs, java, cpp, hashlink
 -D no-compilation 

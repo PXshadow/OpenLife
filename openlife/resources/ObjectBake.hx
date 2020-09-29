@@ -24,7 +24,6 @@ class ObjectBake
     }
     public static function objectList():Vector<Int>
     {
-        #if sys
         if (!sys.FileSystem.exists(Engine.dir + "objects/nextObjectNumber.txt")) 
         {
             trace("object data failed");
@@ -52,9 +51,6 @@ class ObjectBake
             baked = nextObjectNumber == Std.parseInt(sys.io.File.getContent(Engine.dir + "bake.res"));
         }
         return Vector.fromArrayCopy(list);
-        #else
-        return Vector.fromArrayCopy([]);
-        #end
     }
     public static function objectData(vector:Vector<Int>):Array<ObjectData>
     {

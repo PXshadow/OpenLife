@@ -295,7 +295,7 @@ class Program
             var eta = (Math.abs(path.x) + Math.abs(path.y))/3;
             trace("eta " + eta);
             var string = '$PLAYER_MOVES_START\n${player.p_id} ${player.x} ${player.y} $eta $eta 0 $string';
-            Timer.delay(function()
+            /*Timer.delay(function()
             {
                 player.x += path.x;
                 player.y += path.y;
@@ -305,7 +305,7 @@ class Program
                 player.y += -path.y;
                 player.forced = false;
             },Std.int(eta * 1000));
-            client.relayIn.output.writeString(string);
+            client.relayIn.output.writeString(string);*/
         }
         moving = true;
     }

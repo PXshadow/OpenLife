@@ -3,11 +3,11 @@ import haxe.Exception;
 import openlife.settings.Settings.CredData;
 import haxe.io.Bytes;
 import openlife.client.ClientTag;
-#if (sys || nodejs)
+
 import sys.io.File;
 import sys.net.Socket;
 import sys.net.Host;
-#end
+
 import haxe.io.Error;
 import haxe.crypto.Hmac;
 import haxe.Timer;
@@ -17,9 +17,7 @@ import haxe.Timer;
 
 class Client
 {
-    #if (sys || nodejs)
     var socket:Socket;
-    #end
     //interact to be able to login to game
     var data:String = "";
     var aliveStamp:Float = 0;
@@ -118,14 +116,28 @@ class Client
     public function relay(listen:Int)
     {
         this.listen = listen;
+        Sys.println('waiting for connection on port $listen');
+        #if nodejs
+        var server = js.node.Net.createServer(function(c)
+        {
+            c.on(js.node.net.Socket.SocketEvent.End,function()
+            {
+                close();
+            });
+            relayIn = new Socket();
+            @:privateAccess relayIn.s = c;
+        });
+        while (relayIn == null) Sys.sleep(0.2); //block untill relayIn is not null
+        #else
         relayServer = new Socket();
         relayServer.bind(new Host("localhost"),listen);
         relayServer.listen(1);
-        Sys.println('waiting for connection on port $listen');
+
         relayIn = relayServer.accept();
         //here we are connected
         relayIn.setFastSend(true);
         relayIn.setBlocking(false);
+        #end
     }
     var tag:ClientTag;
     private function process(wasCompressed:Bool)
@@ -133,7 +145,11 @@ class Client
         //relay
         if (!wasCompressed && relayIn != null) 
         {
+            #if nodejs
+            @:privateAccess relayIn.s.write('$data#');
+            #else
             relayIn.output.writeString('$data#');
+            #end
         }
         //normal client
         var array = data.split("\n");
@@ -143,7 +159,14 @@ class Client
     }
     private function compressProcess()
     {
-        if (relayIn != null) relayIn.output.write(dataCompressed);
+        if (relayIn != null)
+        {
+            #if nodejs
+            @:privateAccess relayIn.s.write('$data#');
+            #else
+            relayIn.output.write(dataCompressed);
+            #end
+        }
     }
     public function alive()
     {
@@ -191,7 +214,6 @@ class Client
     public function send(data:String)
     {
         if (!connected) return;
-        #if (sys || nodejs)
         try {
             #if nodejs
             @:privateAccess socket.s.write('$data#');
@@ -204,7 +226,6 @@ class Client
             close();
             return;
         }
-        #end
     }
     var compressIndex:Int = 0;
     var dataCompressed:Bytes;

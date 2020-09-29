@@ -11,7 +11,7 @@ import openlife.client.Client;
 import openlife.settings.Settings;
 import haxe.io.Path;
 import openlife.client.ClientTag;
-//
+@:expose
 class Engine 
 {
     /**

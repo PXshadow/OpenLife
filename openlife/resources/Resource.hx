@@ -60,17 +60,11 @@ class Resource
     public static function content(path:String):String
     {
         if (recContent != null) return recContent(path);
-        #if sys
         return sys.io.File.getContent('${Engine.dir}/$path');
-        #end
-        return "";
     }
     public static function bytes(path:String):Bytes
     {
         if (recBytes != null) return recBytes(path);
-        #if sys
         return sys.io.File.getBytes('${Engine.dir}/$path');
-        #end
-        return Bytes.alloc(0);
     }
 }

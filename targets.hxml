@@ -3,9 +3,9 @@ targets/cpp.hxml
 --next
 -cmd echo Java
 targets/java.hxml
-#--next
-#-cmd echo NodeJs
-#targets/nodejs.hxml
+--next
+-cmd echo NodeJs
+targets/nodejs.hxml
 --next
 -cmd echo Lua
 targets/lua.hxml

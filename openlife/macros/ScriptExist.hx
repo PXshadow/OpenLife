@@ -1,6 +1,7 @@
 package openlife.macros;
 
 import haxe.macro.Compiler;
+#if (!display && macro)
 import sys.FileSystem;
 
 class ScriptExist
@@ -11,3 +12,4 @@ class ScriptExist
         return null;
     }
 }
+#end

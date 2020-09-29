@@ -64,8 +64,6 @@ class Bot extends Engine implements EngineHeader
             #if script
             trace("EXECUTING SCRIPT");
             Script.main(this);
-            #else
-            trace("NO SCRIPT");
             #end
         }
     } //PLAYER_UPDATE

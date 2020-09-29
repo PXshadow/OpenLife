@@ -96,7 +96,6 @@ class MapData
         }
         return vector;
     }
-    #if sys
     public function mapFile(file:sys.io.FileInput,inOffsetX:Int=0,inOffsetY:Int=0,inTimeLimitSec:Float=0)
     {
         var startTime = Timer.stamp();
@@ -122,7 +121,6 @@ class MapData
             object.set(x,y,id(line[4]));
         }
     }
-    #end
     public function toString()
     {
         return 'x: $x y: $y maxX: $mx maxY: $my';

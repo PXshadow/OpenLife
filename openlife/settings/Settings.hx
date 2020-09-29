@@ -22,12 +22,10 @@ class Settings
         {
             var name = a[a.length - 1] + ".ini";
             var obj = value.get(name);
-            #if sys
             //set settings
             var file = File.write(Engine.dir + "settings/" + name,false);
             file.writeString(obj);
             file.close();
-            #end
 
             #if (js || html)
             
@@ -38,7 +36,6 @@ class Settings
     public function new()
     {
         var path:String = Engine.dir + "settings/";
-        #if sys
         if (!FileSystem.exists(path))
         {
             FileSystem.createDirectory(Engine.dir + "settings");
@@ -47,7 +44,6 @@ class Settings
         {
             Reflect.setField(data,Path.withoutExtension(name),File.getContent(path + name));
         }
-        #end
     }
     var string:String;
     public function cred():CredData
