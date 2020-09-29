@@ -1,4 +1,5 @@
 targets/set.hxml
 -lib hxnodejs
 -D js-es6
+-D shallow-expose
 -js openlife.js

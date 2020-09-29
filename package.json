@@ -31,5 +31,8 @@
   },
   "files": [
     "openlife.js"
-  ]
+  ],
+  "dependencies": {
+    "deasync": "^0.1.20"
+  }
 }
