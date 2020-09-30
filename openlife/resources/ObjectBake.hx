@@ -1,6 +1,6 @@
 package openlife.resources;
 
-import haxe.ds.IntMap;
+import haxe.ds.Map;
 import openlife.engine.Engine;
 import haxe.ds.Vector;
 import openlife.data.object.ObjectData;
@@ -14,8 +14,8 @@ class ObjectBake
 {
     public static var nextObjectNumber:Int = 0;
     public static var baked:Bool = false;
-    public static var dummies = new IntMap<Array<Int>>();
-    public static var dummiesMap = new IntMap<Int>();
+    public static var dummies = new Map<Int,Array<Int>>();
+    public static var dummiesMap = new Map<Int,Int>();
     public static function finish()
     {
         #if (nodejs || sys)

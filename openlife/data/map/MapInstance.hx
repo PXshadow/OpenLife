@@ -2,7 +2,7 @@ package openlife.data.map;
 /**
  * Map chunk
  */
- @:expose
+ @:expose("MapInstance")
 class MapInstance
 {
     /**

@@ -12,13 +12,13 @@ import openlife.data.object.player.PlayerMove;
 import openlife.data.map.MapInstance;
 import openlife.data.map.MapChange;
 import openlife.data.object.ObjectData;
-import haxe.ds.IntMap;
+import haxe.ds.Map;
 class Bot extends Engine implements EngineHeader
 {
     public var auto:Automation;
     public var player:PlayerInstance;
     public var resetFlag:Bool = false;
-    public var names = new IntMap<String>();
+    public var names = new Map<Int,String>();
     var followingId:Int = -1;
     public var event:EngineEvent;
     private static var staticDelay:Float = 0;

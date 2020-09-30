@@ -31,7 +31,6 @@ class Program
         buffer = [];
         this.client = client;
         this.map = map;
-        trace("map: " + map);
     }
     public function setPlayer(player:PlayerInstance)
     {

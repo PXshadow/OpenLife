@@ -1,0 +1,5 @@
+-cp tests
+-main Node
+-lib hxnodejs
+-D js-es6
+-js test_node.js

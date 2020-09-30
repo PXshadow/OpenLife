@@ -51,12 +51,12 @@ class Client
             return;
         }
         data = "";
-        #if (sys || nodejs)
         if (relayIn != null)
         {
             //relay system embeded into client update
             try {
                 var input = relayIn.input.readUntil("#".code);
+                trace("client -> server: " + input);
                 send(input);
             }catch(e:Exception)
             {
@@ -90,7 +90,7 @@ class Client
                 }
             }else{
                 data = socket.input.readUntil("#".code);
-                //trace("data: " + data);
+                trace("data: " + data);
             }
 		}catch(e:haxe.Exception)
 		{
@@ -110,7 +110,6 @@ class Client
         process(wasCompressed);
         wasCompressed = false;
         update();
-        #end
     }
     var listen:Int;
     public function relay(listen:Int)
@@ -126,8 +125,15 @@ class Client
             });
             relayIn = new Socket();
             @:privateAccess relayIn.s = c;
+            @:privateAccess relayIn.addBuffer();
+            relayIn.setBlocking(false);
         });
-        while (relayIn == null) Sys.sleep(0.2); //block untill relayIn is not null
+        server.listen(listen);
+        Sys.println("node sync wait");
+        sys.NodeSync.wait(function()
+        {
+            return relayIn != null;
+        });
         #else
         relayServer = new Socket();
         relayServer.bind(new Host("localhost"),listen);
@@ -142,14 +148,11 @@ class Client
     var tag:ClientTag;
     private function process(wasCompressed:Bool)
     {
+        trace("process");
         //relay
         if (!wasCompressed && relayIn != null) 
         {
-            #if nodejs
-            @:privateAccess relayIn.s.write('$data#');
-            #else
-            relayIn.output.writeString('$data#');
-            #end
+            relaySend(data);
         }
         //normal client
         var array = data.split("\n");
@@ -162,7 +165,7 @@ class Client
         if (relayIn != null)
         {
             #if nodejs
-            @:privateAccess relayIn.s.write('$data#');
+            @:privateAccess relayIn.s.end(dataCompressed);
             #else
             relayIn.output.write(dataCompressed);
             #end
@@ -176,28 +179,28 @@ class Client
     }
     public function login(tag:ClientTag,input:Array<String>) 
     {
+        trace("login " + tag + " input " + input);
         //login process
         switch(tag)
         {
             case SERVER_INFO:
-			
-			//current
-            //trace("amount " + input[0]);
-			//challenge
-			challenge = input[1];
-			//version
-            version = input[2];
-            //trace("version " + version);
+                //current
+                //trace("amount " + input[0]);
+                //challenge
+                challenge = input[1];
+                //version
+                version = input[2];
+                //trace("version " + version);
             request();
             case ACCEPTED:
-            if (accept != null) accept();
+                if (accept != null) accept();
             case REJECTED:
-            trace("REJECTED LOGIN");
-            if (reject != null) reject();
+                trace("REJECTED LOGIN");
+                if (reject != null) reject();
             default:
-            trace('$tag not registered');
+                trace('$tag not registered');
             case null:
-            trace('tag not found in data:\n$data');
+                trace('tag not found in data:\n$data');
         }
     }
     private function request()
@@ -216,12 +219,25 @@ class Client
         if (!connected) return;
         try {
             #if nodejs
-            @:privateAccess socket.s.write('$data#');
+            @:privateAccess socket.s.end('$data#');
             #else
             socket.output.writeString('$data#');
             #end
-        }catch(e:Dynamic)
-        {
+        }catch(e:Dynamic) {
+            trace("client send error: " + e);
+            close();
+            return;
+        }
+    }
+    private function relaySend(data:String)
+    {
+        try {
+            #if nodejs
+            @:privateAccess relayIn.s.end('$data#');
+            #else
+            relayIn.output.writeString('$data#');
+            #end
+        }catch(e:Dynamic) {
             trace("client send error: " + e);
             close();
             return;
@@ -255,7 +271,6 @@ class Client
         if (config.key == null) config.key = "8888-8888-8888-8888";
         trace("attempt connect " + config.ip + ":" + config.port);
         connected = false;
-        #if (sys || nodejs)
 		var host:Host;
 		try {
 			host = new Host(config.ip);
@@ -264,7 +279,7 @@ class Client
             trace("host error: " + e);
 			return;
 		}
-		socket = new Socket();
+        socket = new Socket();
         //socket.setTimeout(10);
 		try {
 			socket.connect(host,config.port);
@@ -273,17 +288,16 @@ class Client
             trace("socket connect error: " + e);
             close();
             return;
-		}
-        #if !nodejs
-        socket.setBlocking(false);
+        }
+        #if nodejs
+        //@:privateAccess socket.s.setEncoding('utf8');
         #end
+        socket.setBlocking(false);
         connected = true;
         trace("connected");
-        #end
 	}
     public function close()
     {
-        #if (sys || nodejs)
         try {
             socket.close();
             if (relayIn != null)
@@ -296,7 +310,6 @@ class Client
             trace("failure to close socket " + e);
         }
         trace("socket disconnected");
-        #end
         connected = false;
         if (onClose != null) onClose();
     }

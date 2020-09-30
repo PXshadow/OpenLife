@@ -4,4 +4,5 @@ targets/set.hxml
 -D js-es6
 #-D shallow-expose
 -D hxtsdgen_skip_header
+-D hxtsdgen_enums_ts
 -js index.js

@@ -10,7 +10,7 @@ import openlife.auto.Automation;
 import sys.FileSystem;
 import openlife.resources.ObjectBake;
 import openlife.settings.Settings;
-import haxe.ds.IntMap;
+import haxe.ds.Map;
 import openlife.data.object.player.PlayerInstance;
 import openlife.engine.Program;
 import openlife.data.map.MapInstance;
