@@ -1,5 +1,5 @@
 package openlife.data.object.player;
-@:expose("PlayerMove")
+@:expose
 class PlayerMove
 {
     public var id:Int = 0;

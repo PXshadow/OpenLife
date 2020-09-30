@@ -1,5 +1,5 @@
 package openlife.auto;
-@:expose("Say")
+@:expose
 class Say
 {
     public static function has(text:String,sub:String):Bool

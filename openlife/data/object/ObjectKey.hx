@@ -1,5 +1,5 @@
 package openlife.data.object;
-@:expose("ObjectKey")
+@:expose
 @:enum abstract ObjectKey(Null<String>)
 {
     public var CLOTHING = "clothing";

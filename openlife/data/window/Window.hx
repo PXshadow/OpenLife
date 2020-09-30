@@ -1,5 +1,5 @@
 package openlife.data.window;
-@:expose("Window")
+@:expose
 typedef Window = {
     frameRate:Int,
     borderless:Bool,

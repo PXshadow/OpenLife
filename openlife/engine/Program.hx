@@ -11,7 +11,7 @@ import haxe.Timer;
 import openlife.server.ServerTag;
 import haxe.crypto.Base64;
 private typedef Command = {tag:ServerTag,x:Int,y:Int,data:String}
-@:expose("Program")
+@:expose
 class Program
 {
     public var home:Pos = new Pos();

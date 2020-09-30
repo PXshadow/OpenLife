@@ -2,7 +2,7 @@ package openlife.data.object;
 /**
  * Type of object
  */
- @:expose("ObjectType")
+ @:expose
 enum ObjectType {
     OBJECT;
     FLOOR;

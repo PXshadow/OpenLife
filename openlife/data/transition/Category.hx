@@ -1,5 +1,5 @@
 package openlife.data.transition;
-@:expose("Category")
+@:expose
 class Category
 {
     public var ids:Array<Int>;

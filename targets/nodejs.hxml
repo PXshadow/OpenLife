@@ -4,4 +4,4 @@ targets/set.hxml
 -D js-es6
 #-D shallow-expose
 -D hxtsdgen_skip_header
--js openlife.js
+-js index.js

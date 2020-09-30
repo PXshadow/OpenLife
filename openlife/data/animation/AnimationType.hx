@@ -1,5 +1,5 @@
 package openlife.data.animation;
-@:expose("AnimationType")
+@:expose
 enum AnimationType
 {
     ground;

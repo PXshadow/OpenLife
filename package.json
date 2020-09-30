@@ -30,9 +30,8 @@
     "lix": "^15.9.1"
   },
   "files": [
-    "openlife.js",
     "index.js",
-    "openlife.d.ts"
+    "index.d.ts"
   ],
   "dependencies": {
     "deasync": "^0.1.20"

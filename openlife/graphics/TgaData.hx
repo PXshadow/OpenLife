@@ -8,7 +8,7 @@ import haxe.io.BytesInput;
 import format.tga.Data;
 import format.tga.Reader;
 import format.tga.Writer;
-@:expose("TgaData")
+@:expose
 class TgaData
 {
     public var bytes:Bytes;

@@ -1,6 +1,6 @@
 package openlife.client;
 //tags used by the client
-@:expose("ClientTag")
+@:expose
 @:enum abstract ClientTag(Null<String>)
 {
 public var COMPRESSED_MESSAGE = "CM";

@@ -1,5 +1,5 @@
 package openlife.data;
-@:expose("Point")
+@:expose
 class Point
 {
     /**

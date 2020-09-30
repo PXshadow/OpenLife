@@ -2,7 +2,7 @@ package openlife.data.map;
 import haxe.ds.Vector;
 import openlife.data.animation.emote.Emotion;
 import openlife.data.animation.AnimationData;
-@:expose("SceneCall")
+@:expose
 class SceneCell
 {
     /**

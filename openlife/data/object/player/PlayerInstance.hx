@@ -1,6 +1,6 @@
 package openlife.data.object.player;
 import openlife.data.map.MapData;
-@:expose("PlayerInstance")
+@:expose
 class PlayerInstance
 {
     /**

@@ -1,5 +1,5 @@
 package openlife.data.animation;
-@:expose("AnimationParameter")
+@:expose
 class AnimationParameter
 {
     //https://github.com/twohoursonelife/OneLifeDocs/blob/master/OHOL%20editor%20guide.txt
