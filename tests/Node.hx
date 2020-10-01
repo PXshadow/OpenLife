@@ -15,19 +15,23 @@ class Node implements EngineHeader
     {
         var engine = Engine.create(this);
         engine.client.config = {
-            ip: "thinqbator.app"
+            ip: "localhost"
         };
         engine.client.onClose = function() {
 
         }
+        engine.relayPort = 8000;
         engine.connect(false,true);
         var timer = new haxe.Timer(200);
         timer.run = function()
         {
+            //trace("tick");
             engine.client.update();
         }
     }
-    public function playerUpdate(instances:Array<PlayerInstance>) {} //PLAYER_UPDATE
+    public function playerUpdate(instances:Array<PlayerInstance>) {
+        trace("instances " + instances);
+    } //PLAYER_UPDATE
     public function playerMoveStart(move:PlayerMove) {} //PLAYER_MOVES_START
 
     public function playerOutOfRange(list:Array<Int>) {} //PLAYER_OUT_OF_RANGE

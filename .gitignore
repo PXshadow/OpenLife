@@ -17,6 +17,7 @@ extensions
 dir
 mf
 config.json
+data.json
 serverDesign.md
 father.txt
 publish.n

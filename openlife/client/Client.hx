@@ -35,7 +35,7 @@ class Client
     public var accept:Void->Void;
     public var reject:Void->Void;
     public var relayIn:Socket;
-    public var relayServer:Socket;
+    public var relayServer: #if sys Socket #else js.node.net.Server #end;
     var wasCompressed:Bool = false;
     public function new()
     {
@@ -117,18 +117,19 @@ class Client
         this.listen = listen;
         Sys.println('waiting for connection on port $listen');
         #if nodejs
-        var server = js.node.Net.createServer(function(c)
+        relayServer = js.node.Net.createServer(function(c)
         {
-            c.on(js.node.net.Socket.SocketEvent.End,function()
-            {
-                close();
-            });
             relayIn = new Socket();
             @:privateAccess relayIn.s = c;
             @:privateAccess relayIn.addBuffer();
+            @:privateAccess relayIn.s.setNoDelay();
             relayIn.setBlocking(false);
+            @:privateAccess relayIn.s.on(js.node.net.Socket.SocketEvent.End,function()
+            {
+                close();
+            });
         });
-        server.listen(listen);
+        relayServer.listen(listen);
         Sys.println("node sync wait");
         sys.NodeSync.wait(function()
         {
@@ -148,7 +149,6 @@ class Client
     var tag:ClientTag;
     private function process(wasCompressed:Bool)
     {
-        trace("process");
         //relay
         if (!wasCompressed && relayIn != null) 
         {
@@ -165,7 +165,7 @@ class Client
         if (relayIn != null)
         {
             #if nodejs
-            @:privateAccess relayIn.s.end(dataCompressed);
+            @:privateAccess relayIn.write(dataCompressed);
             #else
             relayIn.output.write(dataCompressed);
             #end
@@ -219,7 +219,7 @@ class Client
         if (!connected) return;
         try {
             #if nodejs
-            @:privateAccess socket.s.end('$data#');
+            @:privateAccess socket.write('$data#');
             #else
             socket.output.writeString('$data#');
             #end
@@ -233,7 +233,7 @@ class Client
     {
         try {
             #if nodejs
-            @:privateAccess relayIn.s.end('$data#');
+            @:privateAccess relayIn.write('$data#');
             #else
             relayIn.output.writeString('$data#');
             #end
@@ -290,7 +290,8 @@ class Client
             return;
         }
         #if nodejs
-        //@:privateAccess socket.s.setEncoding('utf8');
+        @:privateAccess socket.s.setNoDelay();
+        @:privateAccess socket.s.setEncoding('utf8');
         #end
         socket.setBlocking(false);
         connected = true;
