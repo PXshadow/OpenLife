@@ -75,5 +75,8 @@ class Map
         }
         return string.substr(1);
     }
+    public function findClosest(){
+        
+    }
 }
 #end

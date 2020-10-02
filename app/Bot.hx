@@ -318,4 +318,18 @@ class Bot extends Engine implements EngineHeader
     {
         
     } //CRAVING
+    
+    //Used for actions and roles
+    public function moveTo(){
+
+    }
+    public function usePrimary(){
+
+    }
+    public function useSecondary(){
+
+    }
+    public function useHandheld(){
+
+    }
     }
