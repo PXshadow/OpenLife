@@ -142,6 +142,8 @@ class Client
         wasCompressed = false;
         inputData = [];
         buffer = buffer.slice(index);
+        if (buffer.length == 0)
+            return;
         update(buffer);
     }
     #end
@@ -271,7 +273,9 @@ class Client
     public function send(data:String)
     {
         if (!connected) return;
-        #if !nodejs
+        #if nodejs
+        socket.write('$data#');
+        #else
         try {
             socket.output.writeString('$data#');
         }catch(e:Dynamic) {
