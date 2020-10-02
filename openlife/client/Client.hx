@@ -46,10 +46,10 @@ class Client
     {
         aliveStamp = Timer.stamp();
     }
+    #if sys
     public function update()
     {
         @:privateAccess haxe.MainLoop.tick(); //for timers
-        #if sys
         if (Timer.stamp() - aliveStamp >= 15) alive();
         if (!connected) return;
         data = "";
@@ -95,8 +95,56 @@ class Client
         process(wasCompressed);
         wasCompressed = false;
         update();
-        #end
     }
+    #else
+    var inputData:Array<js.node.Buffer> = [];
+    function inputDataLength():Int
+    {
+        var int = 0;
+        for (input in inputData)
+        {
+            int += input.byteLength;
+        }
+        return int;
+    }
+    function inputDataGetBytes():Bytes
+    {
+        var bytes = new BytesBuffer();
+        for (input in inputData)
+        {
+            bytes.add(input.hxToBytes());
+        }
+        return bytes.getBytes();
+    }
+    function update(buffer:js.node.Buffer)
+    {
+        relayIn.write(buffer);
+        var index = 0;
+        if (compressSize > 0)
+        {
+            var tmp = buffer.slice(0,compressSize - compressIndex);
+            inputData.push(tmp.slice(tmp.length));
+            if (compressInput(tmp.hxToBytes())) return;
+            index = tmp.length;
+        }else{
+            index = buffer.indexOf("#");
+            if (index == -1)
+            {
+                inputData.push(buffer);
+                return;
+            }
+            inputData.push(buffer.slice(0,index));
+            var bytes = inputDataGetBytes();
+            data = bytes.toString();
+            index += 1;
+        }
+        process(wasCompressed);
+        wasCompressed = false;
+        inputData = [];
+        buffer = buffer.slice(index);
+        update(buffer);
+    }
+    #end
     function compressInput(temp:Bytes):Bool
     {
         dataCompressed.blit(compressIndex,temp,0,temp.length);
@@ -294,34 +342,10 @@ class Client
         socket.setBlocking(false);
         #else
         socket = new Socket();
-        var inputData:BytesBuffer;
         socket.connect(config.port,host.host,function()
         {
             socket.setNoDelay(true);
-            inputData = new BytesBuffer();
-            socket.on('data',function(buffer:js.node.Buffer)
-            {
-                relayIn.write(buffer);
-                if (compressSize > 0)
-                {
-                    var tmp = buffer.slice(0,compressSize - compressIndex);
-                    inputData.add(tmp.slice(tmp.length).hxToBytes());
-                    if (compressInput(tmp.hxToBytes())) return;
-                }else{
-                    var index = buffer.indexOf("#");
-                    if (index == -1)
-                    {
-                        inputData.add(buffer.hxToBytes());
-                        return;
-                    }
-                    inputData.add(buffer.slice(0,index).hxToBytes());
-                    data = inputData.getBytes().toString();
-                    inputData = new BytesBuffer();
-                    inputData.add(buffer.slice(index + 1).hxToBytes());
-                }
-                process(wasCompressed);
-                wasCompressed = false;
-            });
+            socket.on('data',update);
         });
         sys.NodeSync.wait(function()
         {
@@ -330,7 +354,7 @@ class Client
         #end
         connected = true;
         trace("connected");
-	}
+    }
     public function close()
     {
         #if sys

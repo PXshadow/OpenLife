@@ -15,7 +15,7 @@ class Node implements EngineHeader
     {
         var engine = Engine.create(this);
         engine.client.config = {
-            ip: "localhost"
+            ip: "thinqbator.app"
         };
         engine.client.onClose = function() {
 
