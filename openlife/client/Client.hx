@@ -1,11 +1,16 @@
 package openlife.client;
+import haxe.io.BytesBuffer;
 import haxe.Exception;
 import openlife.settings.Settings.ConfigData;
 import haxe.io.Bytes;
 import openlife.client.ClientTag;
 
 import sys.io.File;
+#if sys
 import sys.net.Socket;
+#else
+import js.node.net.Socket;
+#end
 import sys.net.Host;
 
 import haxe.io.Error;
@@ -44,19 +49,15 @@ class Client
     public function update()
     {
         @:privateAccess haxe.MainLoop.tick(); //for timers
+        #if sys
         if (Timer.stamp() - aliveStamp >= 15) alive();
-        if (!connected) 
-        {
-            //trace("unconnected for update");
-            return;
-        }
+        if (!connected) return;
         data = "";
         if (relayIn != null)
         {
             //relay system embeded into client update
             try {
-                var input = relayIn.input.readUntil("#".code);
-                trace("client -> server: " + input);
+                @:privateAccess var input = relayIn.input.readUntil("#".code);
                 send(input);
             }catch(e:Exception)
             {
@@ -72,25 +73,9 @@ class Client
             if (compressSize > 0)
             {
                 var temp = socket.input.read(compressSize - compressIndex);
-                dataCompressed.blit(compressIndex,temp,0,temp.length);
-                compressIndex += temp.length;
-                if (compressIndex >= compressSize)
-                {
-                    compressProcess();
-                    compressIndex = 0;
-                    compressSize = 0;
-                    data = haxe.zip.Uncompress.run(dataCompressed).toString();
-                    wasCompressed = true;
-                    if (tag == MAP_CHUNK)
-                    {
-                        data = '$MAP_CHUNK\n$data';
-                    }
-                }else{
-                    return;
-                }
+                if (compressInput(temp)) return;
             }else{
                 data = socket.input.readUntil("#".code);
-                trace("data: " + data);
             }
 		}catch(e:haxe.Exception)
 		{
@@ -110,6 +95,27 @@ class Client
         process(wasCompressed);
         wasCompressed = false;
         update();
+        #end
+    }
+    function compressInput(temp:Bytes):Bool
+    {
+        dataCompressed.blit(compressIndex,temp,0,temp.length);
+        compressIndex += temp.length;
+        if (compressIndex >= compressSize)
+        {
+            compressProcess();
+            compressIndex = 0;
+            compressSize = 0;
+            data = haxe.zip.Uncompress.run(dataCompressed).toString();
+            wasCompressed = true;
+            if (tag == MAP_CHUNK)
+            {
+                data = '$MAP_CHUNK\n$data';
+            }
+        }else{
+            return true;
+        }
+        return false;
     }
     var listen:Int;
     public function relay(listen:Int)
@@ -119,13 +125,15 @@ class Client
         #if nodejs
         relayServer = js.node.Net.createServer(function(c)
         {
-            relayIn = new Socket();
-            @:privateAccess relayIn.s = c;
-            @:privateAccess relayIn.addBuffer();
-            @:privateAccess relayIn.s.setNoDelay();
-            relayIn.setBlocking(false);
-            @:privateAccess relayIn.s.on(js.node.net.Socket.SocketEvent.End,function()
+            relayIn = c;
+            relayIn.setNoDelay(true);
+            relayIn.on('data',function(buffer)
             {
+                socket.write(buffer);
+            });
+            relayIn.on(js.node.net.Socket.SocketEvent.End,function()
+            {
+                trace("relayIn failed");
                 close();
             });
         });
@@ -162,14 +170,12 @@ class Client
     }
     private function compressProcess()
     {
+        #if !nodejs
         if (relayIn != null)
         {
-            #if nodejs
-            @:privateAccess relayIn.write(dataCompressed);
-            #else
             relayIn.output.write(dataCompressed);
-            #end
         }
+        #end
     }
     public function alive()
     {
@@ -217,31 +223,27 @@ class Client
     public function send(data:String)
     {
         if (!connected) return;
+        #if !nodejs
         try {
-            #if nodejs
-            @:privateAccess socket.write('$data#');
-            #else
             socket.output.writeString('$data#');
-            #end
         }catch(e:Dynamic) {
             trace("client send error: " + e);
             close();
             return;
         }
+        #end
     }
     private function relaySend(data:String)
     {
+        #if !nodejs
         try {
-            #if nodejs
-            @:privateAccess relayIn.write('$data#');
-            #else
             relayIn.output.writeString('$data#');
-            #end
         }catch(e:Dynamic) {
             trace("client send error: " + e);
             close();
             return;
         }
+        #end
     }
     var compressIndex:Int = 0;
     var dataCompressed:Bytes;
@@ -278,9 +280,9 @@ class Client
 		{
             trace("host error: " + e);
 			return;
-		}
+        }
+        #if sys
         socket = new Socket();
-        //socket.setTimeout(10);
 		try {
 			socket.connect(host,config.port);
 		}catch(e:Dynamic)
@@ -289,16 +291,49 @@ class Client
             close();
             return;
         }
-        #if nodejs
-        @:privateAccess socket.s.setNoDelay();
-        @:privateAccess socket.s.setEncoding('utf8');
-        #end
         socket.setBlocking(false);
+        #else
+        socket = new Socket();
+        var inputData:BytesBuffer;
+        socket.connect(config.port,host.host,function()
+        {
+            socket.setNoDelay(true);
+            inputData = new BytesBuffer();
+            socket.on('data',function(buffer:js.node.Buffer)
+            {
+                relayIn.write(buffer);
+                if (compressSize > 0)
+                {
+                    var tmp = buffer.slice(0,compressSize - compressIndex);
+                    inputData.add(tmp.slice(tmp.length).hxToBytes());
+                    if (compressInput(tmp.hxToBytes())) return;
+                }else{
+                    var index = buffer.indexOf("#");
+                    if (index == -1)
+                    {
+                        inputData.add(buffer.hxToBytes());
+                        return;
+                    }
+                    inputData.add(buffer.slice(0,index).hxToBytes());
+                    data = inputData.getBytes().toString();
+                    inputData = new BytesBuffer();
+                    inputData.add(buffer.slice(index + 1).hxToBytes());
+                }
+                process(wasCompressed);
+                wasCompressed = false;
+            });
+        });
+        sys.NodeSync.wait(function()
+        {
+            return socket != null;
+        });
+        #end
         connected = true;
         trace("connected");
 	}
     public function close()
     {
+        #if sys
         try {
             socket.close();
             if (relayIn != null)
@@ -310,6 +345,14 @@ class Client
         {
             trace("failure to close socket " + e);
         }
+        #else
+        socket.destroy();
+        if (relayIn != null)
+        {
+            relayServer.close();
+            relayIn.destroy();
+        }
+        #end
         trace("socket disconnected");
         connected = false;
         if (onClose != null) onClose();

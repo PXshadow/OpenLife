@@ -22,12 +22,12 @@ class Node implements EngineHeader
         }
         engine.relayPort = 8000;
         engine.connect(false,true);
-        var timer = new haxe.Timer(200);
+        /*var timer = new haxe.Timer(200);
         timer.run = function()
         {
             //trace("tick");
             engine.client.update();
-        }
+        }*/
     }
     public function playerUpdate(instances:Array<PlayerInstance>) {
         trace("instances " + instances);
@@ -68,7 +68,9 @@ class Node implements EngineHeader
     public function says(id:Int,text:String,curse:Bool) {} //PLAYER_SAYS
     public function emot(id:Int,index:Int,sec:Int) {} //PLAYER_EMOT
     
-    public function mapChunk(instance:MapInstance) {} //MAP_CHUNK
+    public function mapChunk(instance:MapInstance) {
+        trace("map " + instance);
+    } //MAP_CHUNK
     public function mapChange(change:MapChange) {} //MAP_CHANGE
     public function foodChange(store:Int,capacity:Int,ateId:Int,fillMax:Int,speed:Float,responsible:Int) {} //FOOD_CHANGE
     public function heatChange(heat:Float,foodTime:Float,indoorBonus:Float) {} //HEAT_CHANGE
