@@ -22,22 +22,31 @@ class Bot extends Engine implements EngineHeader
     var followingId:Int = -1;
     public var event:EngineEvent;
     private static var staticDelay:Float = 0;
+    var reconnectBool:Bool = true;
     public function new(client:Client)
     {
         event = new EngineEvent();
         super(this,event,client);
         client.onClose = close;
+        client.onReject = function()
+        {
+            reconnectBool = false;
+        }
+        client.onAccept = function()
+        {
+            reconnectBool = true;
+        }
     }
     private function close()
     {
         //reconnect
-        Sys.sleep(1);
+        Sys.sleep(2);
         var relay = client.relayIn != null ? true : false;
         player = null;
         clear();
         names.clear();
         players.clear();
-        connect(true,relay);
+        connect(reconnectBool,relay);
     }
     public function test()
     {
@@ -228,7 +237,6 @@ class Bot extends Engine implements EngineHeader
         }
         if (words.indexOf("PING") > -1)
         {
-            trace("write pong");
             program.say("PONG");
         }
         if (words.indexOf("MARCO") > -1)

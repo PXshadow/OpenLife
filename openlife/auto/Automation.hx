@@ -24,12 +24,13 @@ class Automation
         this.list = list;
         interp = new Interpreter(list);
     }
-    public function goto(id:Array<Int>,buffer:Pos->Void)
+    public function goto(id:Array<Int>,buffer:Pos->Void):Bool
     {
         var pos = select(id);
-        if (pos == null) return;
-        if (!program.goto(pos.x,pos.y)) return;
+        if (pos == null) return false;
+        if (!program.goto(pos.x,pos.y)) return false;
         buffer(pos);
+        return true;
     }
     public function foreach(func:(x:Int,y:Int,array:Array<Int>)->Bool,repeat:Bool=true)
     {

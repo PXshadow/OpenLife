@@ -54,19 +54,17 @@ class Program
         {
             trace('did not make it to dest player: ' + player.x + " " + player.y);
             moving = false;
-            //if (onError != null) onError("did not make it to dest");
+            if (onError != null) onError("did not make it to dest");
             return;
         }
         moving = false;
         if (dest.x != goal.x || dest.y != goal.y)
         {
             //extension
-            trace("path extension!");
             goto(goal.x,goal.y);
             return;
         }
         //play buffer
-        trace("play buffer, count: " + buffer.length);
         for (command in buffer)
         {
             send(command.tag,command.x,command.y,command.data);
@@ -76,7 +74,6 @@ class Program
         goal = null;
         init = null;
         if (onComplete != null) onComplete();
-        trace("UPDATE");
     }
     public function clear()
     {
@@ -223,7 +220,6 @@ class Program
         //cords
         var start = new Coordinate(RAD,RAD);
         //map
-        trace("map " + map);
         var map = new MapCollision(map.collisionChunk(player));
         //pathing
         var path = new Pathfinder(map);
@@ -286,7 +282,6 @@ class Program
             string += " " + path.x + " " + path.y;
         }
         string = string.substring(1);
-        trace("path string " + string);
         send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} $string');
         var path = paths.pop();
         if (client.relayIn != null) 

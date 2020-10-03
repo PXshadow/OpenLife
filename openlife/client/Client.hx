@@ -29,6 +29,8 @@ class Client
     var connected:Bool = false;
     public var message:(tag:ClientTag,input:Array<String>)->Void;
     public var onClose:Void->Void;
+    public var onReject:Void->Void;
+    public var onAccept:Void->Void;
     //ping
     public var ping:Int = 0;
     var pingInt:Int = 0;
@@ -81,6 +83,7 @@ class Client
 		{
 			if(e.message != "Blocked")
 			{
+                trace("e " + e.message);
                 if(e.details().indexOf('Eof')>-1){
                     connected=false;
                     data="";
@@ -235,7 +238,6 @@ class Client
     }
     public function login(tag:ClientTag,input:Array<String>) 
     {
-        trace("login " + tag + " input " + input);
         //login process
         switch(tag)
         {
@@ -250,9 +252,11 @@ class Client
             request();
             case ACCEPTED:
                 if (accept != null) accept();
+                if (onAccept != null) onAccept();
             case REJECTED:
                 trace("REJECTED LOGIN");
                 if (reject != null) reject();
+                if (onReject != null) onReject();
             default:
                 trace('$tag not registered');
             case null:
