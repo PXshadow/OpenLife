@@ -2,7 +2,7 @@ package openlife.auto;
 
 import openlife.data.object.ObjectData;
 import haxe.ds.Vector;
-
+@:expose
 class Interpreter
 {
     var list:Vector<Int>;

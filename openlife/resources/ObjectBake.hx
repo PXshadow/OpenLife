@@ -1,6 +1,6 @@
 package openlife.resources;
 
-import haxe.ds.IntMap;
+import haxe.ds.Map;
 import openlife.engine.Engine;
 import haxe.ds.Vector;
 import openlife.data.object.ObjectData;
@@ -9,13 +9,13 @@ import haxe.io.Path;
 /**
  * Bakes the numUses objects into files, rather than having to run through all the objects in the start of the session
  */
- 
+ @:expose
 class ObjectBake
 {
     public static var nextObjectNumber:Int = 0;
     public static var baked:Bool = false;
-    public static var dummies = new IntMap<Array<Int>>();
-    public static var dummiesMap = new IntMap<Int>();
+    public static var dummies = new Map<Int,Array<Int>>();
+    public static var dummiesMap = new Map<Int,Int>();
     public static function finish()
     {
         #if (nodejs || sys)
@@ -24,7 +24,6 @@ class ObjectBake
     }
     public static function objectList():Vector<Int>
     {
-        #if sys
         if (!sys.FileSystem.exists(Engine.dir + "objects/nextObjectNumber.txt")) 
         {
             trace("object data failed");
@@ -52,9 +51,6 @@ class ObjectBake
             baked = nextObjectNumber == Std.parseInt(sys.io.File.getContent(Engine.dir + "bake.res"));
         }
         return Vector.fromArrayCopy(list);
-        #else
-        return Vector.fromArrayCopy([]);
-        #end
     }
     public static function objectData(vector:Vector<Int>):Array<ObjectData>
     {

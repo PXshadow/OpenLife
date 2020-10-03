@@ -1,5 +1,4 @@
 package openlife.engine;
-import haxe.ds.IntMap;
 import openlife.engine.EngineEvent;
 import openlife.data.map.MapData;
 import openlife.data.object.player.PlayerMove;
@@ -11,7 +10,7 @@ import openlife.client.Client;
 import openlife.settings.Settings;
 import haxe.io.Path;
 import openlife.client.ClientTag;
-//
+@:expose("Engine")
 class Engine 
 {
     /**
@@ -28,13 +27,17 @@ class Engine
     var _mapInstance:MapInstance;
     var _header:EngineHeader;
     var _event:EngineEvent;
-    public var players:IntMap<PlayerInstance>;
+    public var players:Map<Int,PlayerInstance>;
     var _eventBool:Bool;
     public var relayPort:Int = 8005;
+    public static function create(header:EngineHeader,event:EngineEvent=null,client:Client=null,dir:String=null)
+    {
+        return new Engine(header,event,client,dir);
+    }
     public function new(header:EngineHeader,event:EngineEvent=null,client:Client=null,dir:String=null)
     {
         if (dir != null) Engine.dir = dir;
-        players = new IntMap<PlayerInstance>();
+        players = new Map<Int,PlayerInstance>();
         this._header = header;
         _event = event;
         _eventBool = _event != null;
@@ -51,6 +54,11 @@ class Engine
     }
     public function connect(reconnect:Bool=false,setRelayCallback:Bool=false)
     {
+        if (client.config == null)
+        {
+            trace("client.config is null");
+            return;
+        }
         client.accept = function()
         {
             client.message = message;

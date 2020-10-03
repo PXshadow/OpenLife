@@ -1,4 +1,8 @@
 targets/set.hxml
 -lib hxnodejs
+-lib hxtsdgen
 -D js-es6
--js export/js/openlife.js
+#-D shallow-expose
+-D hxtsdgen_skip_header
+-D hxtsdgen_enums_ts
+-js index.js

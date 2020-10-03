@@ -2,7 +2,7 @@ package openlife.data.animation;
 
 import openlife.data.sound.SoundData;
 import haxe.ds.Vector;
-
+@:expose
 class SoundParameter
 {
     public var sounds:Vector<SoundData>;

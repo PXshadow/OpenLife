@@ -17,6 +17,7 @@ extensions
 dir
 mf
 config.json
+data.json
 serverDesign.md
 father.txt
 publish.n
@@ -37,7 +38,12 @@ dox
 /*.hx
 xml
 dir
+*.d.ts
 .idea
+OpenLife
 *.exe
+*.ts
 combo.txt
+node_modules
+package-lock.json
 hashlink-debugger

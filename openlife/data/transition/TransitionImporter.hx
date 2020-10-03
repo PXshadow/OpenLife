@@ -4,20 +4,19 @@ import openlife.data.object.ObjectData;
 import haxe.io.Path;
 import sys.io.File;
 import openlife.engine.Engine;
-import sys.FileSystem;
-
+@:expose
 class TransitionImporter
 {
     public var transitions:Array<TransitionData>;
     public var categories:Array<Category>;
     public function new()
     {
-        
+
     }
     public function importCategories()
     {
         categories = [];
-        for (name in FileSystem.readDirectory(Engine.dir + "categories"))
+        for (name in sys.FileSystem.readDirectory(Engine.dir + "categories"))
         {
             var category = new Category(File.getContent(Engine.dir + 'categories/$name'));
             categories.push(category);
@@ -26,7 +25,7 @@ class TransitionImporter
     public function importTransitions()
     {
         transitions = [];
-        for (name in FileSystem.readDirectory(Engine.dir + "transitions"))
+        for (name in sys.FileSystem.readDirectory(Engine.dir + "transitions"))
         {
             //Last use determines whether the current transition is used when numUses is greater than 1
             //MinUse for variable-use objects that occasionally use more than one "use", this sets a minimum per interaction.

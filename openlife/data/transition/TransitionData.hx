@@ -1,7 +1,7 @@
 package openlife.data.transition;
 
 import openlife.data.object.ObjectData;
-
+@:expose
 class TransitionData
 {
     public var lastUseActor:Bool = false;

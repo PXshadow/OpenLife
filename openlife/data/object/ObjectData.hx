@@ -3,7 +3,7 @@ import openlife.resources.ObjectBake;
 import haxe.io.Input;
 import haxe.ds.Vector;
 import openlife.data.sound.SoundData;
-
+@:expose
 class ObjectData extends LineReader
 {
     /**

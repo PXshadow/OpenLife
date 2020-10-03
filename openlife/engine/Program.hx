@@ -11,6 +11,7 @@ import haxe.Timer;
 import openlife.server.ServerTag;
 import haxe.crypto.Base64;
 private typedef Command = {tag:ServerTag,x:Int,y:Int,data:String}
+@:expose
 class Program
 {
     public var home:Pos = new Pos();
@@ -30,7 +31,6 @@ class Program
         buffer = [];
         this.client = client;
         this.map = map;
-        trace("map: " + map);
     }
     public function setPlayer(player:PlayerInstance)
     {
@@ -54,19 +54,17 @@ class Program
         {
             trace('did not make it to dest player: ' + player.x + " " + player.y);
             moving = false;
-            //if (onError != null) onError("did not make it to dest");
+            if (onError != null) onError("did not make it to dest");
             return;
         }
         moving = false;
         if (dest.x != goal.x || dest.y != goal.y)
         {
             //extension
-            trace("path extension!");
             goto(goal.x,goal.y);
             return;
         }
         //play buffer
-        trace("play buffer, count: " + buffer.length);
         for (command in buffer)
         {
             send(command.tag,command.x,command.y,command.data);
@@ -76,7 +74,6 @@ class Program
         goal = null;
         init = null;
         if (onComplete != null) onComplete();
-        trace("UPDATE");
     }
     public function clear()
     {
@@ -223,7 +220,6 @@ class Program
         //cords
         var start = new Coordinate(RAD,RAD);
         //map
-        trace("map " + map);
         var map = new MapCollision(map.collisionChunk(player));
         //pathing
         var path = new Pathfinder(map);
@@ -286,7 +282,6 @@ class Program
             string += " " + path.x + " " + path.y;
         }
         string = string.substring(1);
-        trace("path string " + string);
         send(MOVE,${player.x},${player.y},'@${++player.done_moving_seqNum} $string');
         var path = paths.pop();
         if (client.relayIn != null) 
@@ -295,7 +290,7 @@ class Program
             var eta = (Math.abs(path.x) + Math.abs(path.y))/3;
             trace("eta " + eta);
             var string = '$PLAYER_MOVES_START\n${player.p_id} ${player.x} ${player.y} $eta $eta 0 $string';
-            Timer.delay(function()
+            /*Timer.delay(function()
             {
                 player.x += path.x;
                 player.y += path.y;
@@ -305,7 +300,7 @@ class Program
                 player.y += -path.y;
                 player.forced = false;
             },Std.int(eta * 1000));
-            client.relayIn.output.writeString(string);
+            client.relayIn.output.writeString(string);*/
         }
         moving = true;
     }

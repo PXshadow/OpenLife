@@ -4,6 +4,7 @@ import openlife.data.object.player.PlayerInstance;
 import openlife.data.object.player.PlayerMove;
 import openlife.data.map.MapChange;
 //#if nativeGen @:nativeGen #end
+@:expose
 interface EngineHeader
 {
     //Headers not included:

@@ -1,5 +1,5 @@
 package openlife.data.animation.emote;
-
+@:expose
 class EmoteData
 {
     /**

@@ -14,7 +14,7 @@ import openlife.data.object.player.PlayerMove;
 import openlife.data.map.MapInstance;
 import openlife.data.map.MapChange;
 import openlife.data.object.ObjectData;
-import haxe.ds.IntMap;
+import haxe.ds.Map;
 class Bot extends Engine implements EngineHeader
 {
     public var currentAction:Action;
@@ -25,26 +25,35 @@ class Bot extends Engine implements EngineHeader
     public var auto:Automation;
     public var player:PlayerInstance;
     public var resetFlag:Bool = false;
-    public var names = new IntMap<String>();
+    public var names = new Map<Int,String>();
     var followingId:Int = -1;
     public var event:EngineEvent;
     private static var staticDelay:Float = 0;
+    var reconnectBool:Bool = true;
     public function new(client:Client)
     {
         event = new EngineEvent();
         super(this,event,client);
         client.onClose = close;
+        client.onReject = function()
+        {
+            reconnectBool = false;
+        }
+        client.onAccept = function()
+        {
+            reconnectBool = true;
+        }
     }
     private function close()
     {
         //reconnect
-        Sys.sleep(1);
+        Sys.sleep(2);
         var relay = client.relayIn != null ? true : false;
         player = null;
         clear();
         names.clear();
         players.clear();
-        connect(true,relay);
+        connect(reconnectBool,relay);
     }
     public function test()
     {
@@ -68,12 +77,10 @@ class Bot extends Engine implements EngineHeader
             program.setPlayer(player);
             //new player set
             auto = new Automation(program,App.vector);
-            //#if script
-            //trace("EXECUTING SCRIPT");
-            //Script.main(this);
-            //#else
-            //trace("NO SCRIPT");
-            //#end
+            #if script
+            trace("EXECUTING SCRIPT");
+            Script.main(this);
+            #end
         }
     } //PLAYER_UPDATE
     public function playerMoveStart(move:PlayerMove)
@@ -237,7 +244,6 @@ class Bot extends Engine implements EngineHeader
         }
         if (words.indexOf("PING") > -1)
         {
-            trace("write pong");
             program.say("PONG");
         }
         if (words.indexOf("MARCO") > -1)

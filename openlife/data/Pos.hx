@@ -1,5 +1,5 @@
 package openlife.data;
-
+@:expose
 class Pos
 {
     public var x:Int;

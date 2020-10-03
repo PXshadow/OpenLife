@@ -1,4 +1,5 @@
 package openlife.data.sound;
+@:expose
 enum SoundType
 {
     creation;

@@ -1,0 +1,44 @@
+{
+  "name": "openlife",
+  "version": "0.0.6",
+  "description": "A haxe based OneLife engine",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\"",
+    "prepare": "haxe targets/nodejs.hxml",
+    "postinstall": "lix download"
+  },
+  
+  "publishConfig": { 
+    "registry": "https://npm.pkg.github.com/" 
+  },
+
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pxshadow/openlife.git"
+  },
+  "keywords": [
+    "onelife",
+    "haxe",
+    "engine",
+    "module"
+  ],
+  "author": "PXshadow",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/pxshadow/openlife/issues"
+  },
+  "homepage": "https://github.com/pxshadow/openlife#readme",
+  "devDependencies": {
+    "lix": "^15.9.1"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ],
+  "dependencies": {
+    "deasync": "^0.1.20"
+  }
+}

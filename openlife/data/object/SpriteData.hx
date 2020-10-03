@@ -1,6 +1,6 @@
 package openlife.data.object;
 //gets set by objectData
-
+@:expose
 class SpriteData
 {
     /**
