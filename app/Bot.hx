@@ -1,4 +1,6 @@
 package;
+import openlife.auto.Role;
+import openlife.auto.Action;
 import openlife.resources.ObjectBake;
 import openlife.engine.EngineEvent;
 import openlife.engine.Utility;
@@ -15,6 +17,11 @@ import openlife.data.object.ObjectData;
 import haxe.ds.Map;
 class Bot extends Engine implements EngineHeader
 {
+    public var currentAction:Action;
+    public var lastAction:Action;
+    public var role:Role;
+    public var currentTarget:String;
+    public var lastTarget:String;
     public var auto:Automation;
     public var player:PlayerInstance;
     public var resetFlag:Bool = false;
@@ -317,4 +324,18 @@ class Bot extends Engine implements EngineHeader
     {
         
     } //CRAVING
+    
+    //Used for actions and roles
+    public function moveTo(){
+
+    }
+    public function usePrimary(){
+
+    }
+    public function useSecondary(){
+
+    }
+    public function useHandheld(){
+
+    }
     }
