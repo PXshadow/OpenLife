@@ -1,6 +1,0 @@
-{
-    "haxe.executable":"/usr/bin/haxe",
-    "haxe.configurations": [
-        ["app.hxml","-debug"]
-    ]
-}
