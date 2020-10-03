@@ -7,14 +7,13 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\"",
+    "build": "haxe app.hxml",
     "prepare": "haxe targets/nodejs.hxml",
     "postinstall": "lix download"
   },
-  
-  "publishConfig": { 
-    "registry": "https://npm.pkg.github.com/" 
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
   },
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pxshadow/openlife.git"

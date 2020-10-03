@@ -1,6 +1,5 @@
 --macro openlife.macros.ScriptExist.run()
 -cp app
 -main Main
--lib hscript
 #--interp
 -hl app.hl

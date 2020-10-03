@@ -7,18 +7,16 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest,windows-latest]
-        haxe: [4.0.5]
+        node-version: [12.x]
       fail-fast: true
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
-      - uses: krdlab/setup-haxe@v1
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
         with:
-          haxe-version: ${{ matrix.haxe }}
-      - run: haxe -version
-      - run: haxelib git format https://github.com/haxefoundation/format
-      - run: haxelib git hscript https://github.com/HaxeFoundation/hscript
-      - name: list dir
-        run: ls
-      - name: Run tests
-        run: haxe test.hxml
+          node-version: ${{ matrix.node-version }}
+      - run: npm install
+      - run: npm run build --if-present
+      - run: npm test
+        env:
+          CI: true
