@@ -30,7 +30,7 @@ class Node implements EngineHeader
         }*/
     }
     public function playerUpdate(instances:Array<PlayerInstance>) {
-        trace("instances " + instances);
+        //trace("instances " + instances);
     } //PLAYER_UPDATE
     public function playerMoveStart(move:PlayerMove) {} //PLAYER_MOVES_START
 

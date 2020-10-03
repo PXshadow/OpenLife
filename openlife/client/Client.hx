@@ -119,9 +119,9 @@ class Client
         }
         return bytes.getBytes();
     }
-    function update(buffer:js.node.Buffer)
+    function update(buffer:js.node.Buffer,addition:Bool=false)
     {
-        relayIn.write(buffer);
+        if (!addition) relayIn.write(buffer);
         var index = 0;
         if (compressSize > 0)
         {
@@ -147,7 +147,7 @@ class Client
         buffer = buffer.slice(index);
         if (buffer.length == 0)
             return;
-        update(buffer);
+        update(buffer,true);
     }
     #end
     function compressInput(temp:Bytes):Bool
