@@ -17,12 +17,15 @@ import openlife.data.map.MapInstance;
 import openlife.engine.*;
 import openlife.data.object.player.PlayerMove;
 import openlife.data.map.MapChange;
+import openlife.auto.Overseer;
+
 using StringTools;
 
 class App
 {
     public static var vector:Vector<Int>;
     var followingId:Int = -1;
+    static var overseer = new Overseer();
     public function new()
     {
         Engine.dir = Utility.dir();
@@ -66,7 +69,7 @@ class App
             trace("FINISH!");
             while (true)
             {
-                for (bot in bots) bot.update();
+                overseer.run(bots);
                 Sys.sleep(1/120);
             }
         }else{
