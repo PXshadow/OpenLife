@@ -41,7 +41,6 @@ xml
 dir
 *.d.ts
 .idea
-OpenLife
 *.exe
 *.ts
 combo.txt
