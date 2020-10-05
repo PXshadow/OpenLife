@@ -11,11 +11,13 @@ class Node implements EngineHeader
     {
         new Node();
     }
+    var engine:Engine;
+    var player:PlayerInstance;
     function new()
     {
-        var engine = Engine.create(this);
+        engine = Engine.create(this);
         engine.client.config = {
-            ip: "thinqbator.app"
+            ip: "localhost"
         };
         engine.client.onClose = function() {
 
@@ -30,7 +32,18 @@ class Node implements EngineHeader
         }*/
     }
     public function playerUpdate(instances:Array<PlayerInstance>) {
-        //trace("instances " + instances);
+        trace("PU");
+        if (player == null)
+        {
+            engine.program.setPlayer(player = instances.pop());
+        }else{
+            for (instance in instances)
+            {
+                if (player.p_id == instance.p_id)
+                    player.update(instance);
+            }
+        }
+        engine.program.update(player);
     } //PLAYER_UPDATE
     public function playerMoveStart(move:PlayerMove) {} //PLAYER_MOVES_START
 
@@ -65,7 +78,10 @@ class Node implements EngineHeader
     public function babyWiggle(list:Array<Int>) {} //BABY_WIGGLE
     public function saysLocation(x:Int,y:Int,text:String) {} //LOCATION_SAYS
     public function dying(id:Int,sick:Bool) {} //DYING
-    public function says(id:Int,text:String,curse:Bool) {} //PLAYER_SAYS
+    public function says(id:Int,text:String,curse:Bool) {
+        trace("SAID");
+        engine.program.goto(0,0);
+    } //PLAYER_SAYS
     public function emot(id:Int,index:Int,sec:Int) {} //PLAYER_EMOT
     
     public function mapChunk(instance:MapInstance) {

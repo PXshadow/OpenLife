@@ -49,6 +49,16 @@ class Connection implements ServerHeader
         server.connections.remove(this);
         sock.close();
     }
+    public function say(text:String)
+    {
+        var curse = 0;
+        var id = player.p_id;
+        for (c in server.connections)
+        {
+            c.send(PLAYER_SAYS,['$id/$curse $text']);
+            c.send(FRAME);
+        }
+    }
     public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>)
     {
         var total = 0.267;
@@ -61,10 +71,9 @@ class Connection implements ServerHeader
         
         for (c in server.connections) 
         {
-            c.send(FRAME);
             c.send(PLAYER_MOVES_START,['${player.p_id} $x $y $total $eta $trunc ${moveString(moves)}']);
-            c.send(FRAME);
             c.send(PLAYER_UPDATE,[player.toData()]);
+            c.send(FRAME);
         }
     }
     public function login()

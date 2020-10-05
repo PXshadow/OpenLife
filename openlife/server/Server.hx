@@ -54,13 +54,15 @@ class Server
     }
     public function process(connection:Connection,string:String)
     {
+        var index = string.indexOf(" ");
+        if (index == -1) return;
+        var tag = string.substring(0,index);
+        string = string.substring(index);
         var array = string.split(" ");
         if (array.length == 0) return;
-        var tag = array[0];
-        var input = array.slice(1);
-        message(connection,tag,input);
+        message(connection,tag,array,string);
     }
-    private function message(header:ServerHeader,tag:ServerTag,input:Array<String>)
+    private function message(header:ServerHeader,tag:ServerTag,input:Array<String>,string:String)
     {
         switch (tag)
         {
@@ -91,6 +93,9 @@ class Server
             header.use(Std.parseInt(input[0]),Std.parseInt(input[1]));
             case DROP:
             header.drop(Std.parseInt(input[0]),Std.parseInt(input[1]));
+            case SAY:
+            var text = string.substring(4);
+            header.say(text);
             default:
         }
     }

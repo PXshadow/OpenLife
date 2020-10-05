@@ -50,9 +50,16 @@ class Program
     public function update(player:PlayerInstance)
     {
         if (!moving) return;
+        trace("PLAYER UPDATE!");
+        /*if (client.relayIn != null)
+        {
+            player.forced = true;
+            client.relaySend('$PLAYER_UPDATE\n${player.toData()}\n');
+            client.relaySend('$FRAME');
+        }*/
         if (player.x != dest.x || player.y != dest.y)
         {
-            trace('did not make it to dest player: ' + player.x + " " + player.y);
+            trace('did not make it to dest player: ' + player.x + " " + player.y + " dest: " + dest.x + " " + dest.y);
             moving = false;
             if (onError != null) onError("did not make it to dest");
             return;
@@ -209,6 +216,7 @@ class Program
     }
     public function goto(x:Int,y:Int):Bool
     {
+        trace("moving " + moving);
         if (player.x == x && player.y == y || moving) return false;
         //set pos
         var px = x - player.x;
@@ -288,19 +296,24 @@ class Program
         {
             
             var eta = (Math.abs(path.x) + Math.abs(path.y))/3;
-            trace("eta " + eta);
-            var string = '$PLAYER_MOVES_START\n${player.p_id} ${player.x} ${player.y} $eta $eta 0 $string';
-            /*Timer.delay(function()
+            var string = '$PLAYER_MOVES_START\n${player.p_id} ${player.x} ${player.y} $eta $eta 0 $string\n';
+            //string = "718 0 0 0.533 0.533 0 -1 0 -2 0";
+            trace("string " + string);
+            //client.relaySend('$string');
+            //client.send('$FRAME');
+            Timer.delay(function()
             {
+                trace("run");
                 player.x += path.x;
                 player.y += path.y;
                 player.forced = true;
-                client.relayIn.output.writeString('$PLAYER_UPDATE\n${player.toData()}\n#');
+                client.relaySend('$PLAYER_UPDATE\n${player.toData()}\n');
+                client.relaySend('$FRAME\n');
                 player.x += -path.x;
                 player.y += -path.y;
                 player.forced = false;
+                moving = false;
             },Std.int(eta * 1000));
-            client.relayIn.output.writeString(string);*/
         }
         moving = true;
     }

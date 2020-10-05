@@ -121,6 +121,7 @@ class Client
     }
     function update(buffer:js.node.Buffer,addition:Bool=false)
     {
+        trace(buffer.toString());
         if (!addition) relayIn.write(buffer);
         var index = 0;
         if (compressSize > 0)
@@ -211,10 +212,12 @@ class Client
     private function process(wasCompressed:Bool)
     {
         //relay
+        #if !nodejs
         if (!wasCompressed && relayIn != null) 
         {
             relaySend(data);
         }
+        #end
         //normal client
         var array = data.split("\n");
         if (array.length == 0) return;
@@ -289,17 +292,19 @@ class Client
         }
         #end
     }
-    private function relaySend(data:String)
+    public function relaySend(data:String)
     {
-        #if !nodejs
         try {
+            #if !nodejs
             relayIn.output.writeString('$data#');
+            #else
+            relayIn.write('$data#');
+            #end
         }catch(e:Dynamic) {
             trace("client send error: " + e);
             close();
             return;
         }
-        #end
     }
     var compressIndex:Int = 0;
     var dataCompressed:Bytes;
