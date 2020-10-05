@@ -1,0 +1,3 @@
+-cp tests
+-main Auto
+-hl test_auto.hl

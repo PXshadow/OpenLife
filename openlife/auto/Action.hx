@@ -1,5 +1,5 @@
 package openlife.auto;
-
+import openlife.engine.Engine;
 class Action{
     public var name:String = "";
     public var maxPerTarget:Int = 99;
@@ -26,11 +26,11 @@ class Action{
         return true;
     }
 
-    public function step(bot:Bot){
+    public function step(bot:BotType){
         //this is where the action gets run
     }
 
-    public function work(bot:Bot){
+    public function work(bot:BotType){
         //gets called from step once we are at target
     }
 

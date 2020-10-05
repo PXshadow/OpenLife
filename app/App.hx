@@ -28,6 +28,7 @@ class App
     static var overseer = new Overseer();
     public function new()
     {
+        //openlife.auto.actions.
         Engine.dir = Utility.dir();
         vector = Bake.run();
         trace("baked chisel: " + ObjectBake.dummies.get(455));

@@ -1,6 +1,7 @@
 package openlife.auto;
 
 import openlife.auto.actions.*;
+import openlife.engine.Engine;
 
 class Role{
     public var actions:Array<Action>;
@@ -31,13 +32,13 @@ class Role{
     }
     //###END MAGIC
 
-    public function run(bot:Bot){
+    public function run(bot:BotType){
         //Check current action isValidAction
         //if action is valid then run action
         //otherwise next action
     }
 
-    public function assign(bot:Bot){
+    public function assign(bot:BotType){
         bot.role = this;
     }
 
