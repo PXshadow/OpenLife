@@ -14,11 +14,14 @@ import openlife.data.object.player.PlayerMove;
 import openlife.data.map.MapInstance;
 import openlife.data.map.MapChange;
 import openlife.data.object.ObjectData;
+import openlife.data.Target;
 import haxe.ds.Map;
 class Bot extends Engine implements EngineHeader
 {
+    public var target:openlife.data.Target;
     public var auto:Automation;
     public var player:PlayerInstance;
+    //on connect we need to update player.x and player.y
     public var resetFlag:Bool = false;
     public var names = new Map<Int,String>();
     var followingId:Int = -1;
@@ -321,16 +324,16 @@ class Bot extends Engine implements EngineHeader
     } //CRAVING
     
     //Used for actions and roles
-    public function moveTo(){
+    public function moveTo(x:Int, y:Int){
+        //if path not already calculated get one from the map
+        //store the path in the bot
+        //shift the path (remove the first element of the array) and store the node in a temp variable
+        //check if the node is walkable - if not repath
+        //if needed repath twice and give up
+        //walk the node
+        //wash and repeat every movement tick until at destination
+    }
+}
+class Target{
 
-    }
-    public function usePrimary(){
-
-    }
-    public function useSecondary(){
-
-    }
-    public function useHandheld(){
-
-    }
-    }
+}

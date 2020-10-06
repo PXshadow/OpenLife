@@ -9,18 +9,17 @@ class Take extends openlife.auto.Action{
         this.name = 'Take';
     }
 
-    override public function isValidAction():Bool{
-        //check stuff like target validity, distance or if path can be calculated.
-        return false;
-    }
-
     override public function step(bot:BotType){
         //check isValidAction and other validators if present
+        if(this.isValidAction()){
+            this.work(bot);
+        }
         //then call this.work();
     }
 
     override public function work(bot:BotType){
         //Take target object
+        bot.program.use(bot.target.x, bot.target.y);
     }
 
 }

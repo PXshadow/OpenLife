@@ -4,6 +4,7 @@ import openlife.auto.actions.*;
 import openlife.engine.Engine;
 
 class Role{
+    public var name:String;
     public var actions:Array<Action>;
     public var inflowActions:Array<Action>;
     public var outflowActions:Array<Action>;
@@ -24,10 +25,10 @@ class Role{
     }
     //Had some issues with this
     //selectAction should return an Action and so should nextAction but I couldn't get the individual actions to be reckognized by vcode, even with the import.
-    public function selectAction():String{
-        return "";
+    public function selectAction():Action{
+        return null;
     }
-    public function nextAction():String{
+    public function nextAction():Action{
         return this.selectAction();
     }
     //###END MAGIC
