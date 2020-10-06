@@ -57,7 +57,7 @@ class Server
         var index = string.indexOf(" ");
         if (index == -1) return;
         var tag = string.substring(0,index);
-        string = string.substring(index);
+        string = string.substring(index + 1);
         var array = string.split(" ");
         if (array.length == 0) return;
         message(connection,tag,array,string);

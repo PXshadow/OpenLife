@@ -61,7 +61,8 @@ class Connection implements ServerHeader
     }
     public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>)
     {
-        var total = 0.267;
+        var total = (1/player.move_speed) * moves.length;
+        trace("eta " + total);
         var eta = total;
         var trunc = 0;
         var last = moves.pop();
@@ -100,8 +101,8 @@ class Connection implements ServerHeader
             data.push(c.player.toData());
             if (c != this)
             {
-                c.send(FRAME);
                 c.send(PLAYER_UPDATE,[player.toData()]);
+                c.send(FRAME);
             }
         }
         send(PLAYER_UPDATE,data);
