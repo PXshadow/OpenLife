@@ -21,8 +21,8 @@ class Connection implements ServerHeader
         this.sock = sock;
         this.server = server;
         var challenge = "dsdjsiojdiasjiodsjiosd";
-        var version = "350";
-        send(SERVER_INFO,["0/0",challenge,version]);
+        var version = server.dataVersionNumber;
+        send(SERVER_INFO,["0/0",challenge,'$version']);
     }
     public function update()
     {

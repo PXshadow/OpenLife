@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.resources.Resource;
 #if (target.threaded)
 import openlife.engine.Utility;
 import openlife.engine.Engine;
@@ -23,6 +24,7 @@ class Server
     public var index:Int = 1;
     public var map:Map;
     public var vector:Vector<Int>;
+    public var dataVersionNumber:Int = 0;
     public static function main()
     {
         new Server();
@@ -31,6 +33,8 @@ class Server
     {
         Engine.dir = Utility.dir();
         vector = ObjectBake.objectList();
+        dataVersionNumber = Resource.dataVersionNumber();
+        trace('dataVersionNumber: $dataVersionNumber');
         map = new Map(this);
         trace("length " + vector.length);
         var thread = new ThreadServer(this,8005);
