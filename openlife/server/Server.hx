@@ -96,6 +96,8 @@ class Server
             case SAY:
             var text = string.substring(4);
             header.say(text);
+            case FLIP:
+            header.flip();
             default:
         }
     }

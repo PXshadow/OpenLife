@@ -8,7 +8,7 @@ class ScriptExist
 {
     public static macro function run()
     {
-        //if (FileSystem.exists("Script.hx")) Compiler.define("script");
+        if (FileSystem.exists("Script.hx")) Compiler.define("script");
         return null;
     }
 }

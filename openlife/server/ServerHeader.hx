@@ -13,4 +13,5 @@ interface ServerHeader
     public function use(x:Int,y:Int):Void;
     public function drop(x:Int,y:Int):Void;
     public function say(text:String):Void;
+    public function flip():Void;
 }

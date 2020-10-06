@@ -43,6 +43,7 @@ package openlife.server;
      * move
      */
     public var MOVE = "MOVE";
+    public var FLIP = "FLIP";
 
     @:from private static function fromString(value:String):ServerTag
     {
@@ -76,6 +77,7 @@ package openlife.server;
             case "LOGIN": LOGIN;
             case "RLOGIN": RLOGIN;
             case "MOVE": MOVE;
+            case "FLIP": FLIP;
             default: null;
         }
     }

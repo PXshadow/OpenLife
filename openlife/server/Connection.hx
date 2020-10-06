@@ -59,6 +59,10 @@ class Connection implements ServerHeader
             c.send(FRAME);
         }
     }
+    public function flip()
+    {
+        
+    }
     public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>)
     {
         var total = (1/player.move_speed) * moves.length;
