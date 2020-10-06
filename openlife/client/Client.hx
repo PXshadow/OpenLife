@@ -1,6 +1,5 @@
 package openlife.client;
 import haxe.io.BytesBuffer;
-import haxe.Exception;
 import openlife.settings.Settings.ConfigData;
 import haxe.io.Bytes;
 import openlife.client.ClientTag;
@@ -61,7 +60,7 @@ class Client
             try {
                 @:privateAccess var input = relayIn.input.readUntil("#".code);
                 send(input);
-            }catch(e:Exception)
+            }catch(e)
             {
                 if (e.message != "Blocked") close();
             }
