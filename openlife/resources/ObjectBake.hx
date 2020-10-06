@@ -26,7 +26,8 @@ class ObjectBake
     {
         if (!sys.FileSystem.exists(Engine.dir + "objects/nextObjectNumber.txt")) 
         {
-            trace("object data failed");
+            trace("object data failed to load");
+            trace("In order to fix run: haxe setup_data.hxml");
             nextObjectNumber = 0;
             return null;
         }
