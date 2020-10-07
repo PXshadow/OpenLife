@@ -35,10 +35,13 @@ class Map
                 y++;
             }
         }
-        set(15,15,[32]);
-        set(16,15,[33]); //33
-        set(15,16,[121]);
-        set(16,16,[121]);
+        //set(15,15,[32]);
+        //set(16,15,[33]); //33
+        //set(15,16,[121]);
+        //set(16,16,[121]);
+        set(16,20,[434,33,33,33]);
+
+        for (x in 10...16) set(x,10,[2959]);
     }
     public function get(x:Int,y:Int,delete:Bool=false,floorBool:Bool=false):Array<Int>
     {

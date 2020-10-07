@@ -53,7 +53,7 @@ class Program
         if (!moving) return;
         if (forcePlayerDropNext && client.relayIn != null)
         {
-            //delete dog!
+            //delete parent
             forcePlayerDropNext = false;
             parent.deleted = true;
             parent.reason = "reason_disconnected";
@@ -96,14 +96,15 @@ class Program
             return;
         parent = new PlayerInstance([]);
         parent.p_id = 999999;
-        parent.po_id = 1663; //dog
+        //parent.po_id = 1663; //dog
+        parent.po_id = 33; //ROCK
         parent.x = player.x;
         parent.y = player.y;
         parent.o_id = [-player.p_id];
 
-        client.relaySend('$PLAYER_UPDATE\n${parent.toData()}\n');
-        move.id = parent.p_id;
-        client.relaySend('$PLAYER_MOVES_START\n${move.toData()}\n');
+        client.relaySend('$PLAYER_UPDATE\n${parent.toData()}\n'); //creation step
+        move.id = parent.p_id; //swaps out your id with the parent
+        client.relaySend('$PLAYER_MOVES_START\n${move.toData()}\n'); //sends your move message so client can understand
         client.relaySend('$FRAME\n');
         parentMove = false;
         forcePlayerDropNext = true;

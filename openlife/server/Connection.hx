@@ -55,6 +55,10 @@ class Connection implements ServerHeader
         var id = player.p_id;
         for (c in server.connections)
         {
+            c.send(PLAYER_MOVES_START,[
+                "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
+                "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
+            ]);
             c.send(PLAYER_SAYS,['$id/$curse $text']);
             c.send(FRAME);
         }
