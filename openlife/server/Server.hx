@@ -1,4 +1,7 @@
 package openlife.server;
+import openlife.server.tables.MapTable;
+import sys.db.TableCreate;
+import sys.db.Manager;
 import openlife.resources.Resource;
 #if (target.threaded)
 import openlife.engine.Utility;
@@ -31,6 +34,33 @@ class Server
     }
     public function new()
     {
+        //initalize database
+        Manager.initialize();
+        Manager.cnx = sys.db.Sqlite.open("server.db");
+        if (!TableCreate.exists(MapTable.manager))
+        {
+            TableCreate.create(MapTable.manager);
+        }
+
+        var row = MapTable.manager.select($p_id == 30,null);
+        trace("row: " + row);
+        if (row != null)
+        {
+            row.timestamp = Date.now();
+            row.update();
+        }
+        var row = new MapTable();
+        row.o_id = [0];
+        row.p_id = 30;
+        row.timestamp = Date.now();
+        row.insert();
+        trace("insert");
+
+        
+
+        
+
+
         Engine.dir = Utility.dir();
         vector = ObjectBake.objectList();
         dataVersionNumber = Resource.dataVersionNumber();

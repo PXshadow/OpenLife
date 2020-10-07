@@ -97,10 +97,11 @@ class Connection implements ServerHeader
         send(MAP_CHUNK,["32 30 -16 -15",'${uncompressed.length} ${bytes.length}']);
         sock.output.write(bytes);
         send(VALLEY_SPACING,["40 40"]);
+
+
         player = new PlayerInstance([]);
         var id = server.index++;
         player.p_id = id;
-        //player.o_id = [0];
         send(FRAME);
         var data:Array<String> = [];//[player.toData()];
         for (c in server.connections)

@@ -3,5 +3,6 @@
 #-cpp export/server
 -D analyzer-optimize
 -dce full
+-lib record-macros
 #--interp
 -hl server.hl
