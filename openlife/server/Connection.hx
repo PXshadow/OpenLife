@@ -66,7 +66,6 @@ class Connection implements ServerHeader
     public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>)
     {
         var total = (1/player.move_speed) * moves.length;
-        trace("eta " + total);
         var eta = total;
         var trunc = 0;
         var last = moves.pop();
@@ -97,7 +96,7 @@ class Connection implements ServerHeader
         player = new PlayerInstance([]);
         var id = server.index++;
         player.p_id = id;
-        player.o_id = [33];
+        //player.o_id = [0];
         send(FRAME);
         var data:Array<String> = [];//[player.toData()];
         for (c in server.connections)
@@ -123,13 +122,12 @@ class Connection implements ServerHeader
     }
     public function use(x:Int,y:Int)
     {
-        player.action = 1;
         trace("USE " + x + " " + y);
         player.o_id = server.map.get(x + gx,y + gy,true);
-        player.forced = true;
+        player.action = 1;
         player.o_origin_x = x;
         player.o_origin_y = y;
-        player.o_origin_valid = 1;
+        player.o_origin_valid = 0;
         player.action_target_x = x;
         player.action_target_y = y;
         for (c in server.connections)
@@ -139,11 +137,15 @@ class Connection implements ServerHeader
         }
         player.action = 0;
         player.forced = false;
+        player.o_origin_valid = 0;
     }
     public function drop(x:Int,y:Int)
     {
         player.o_id = [0];
         player.action = 1;
+        player.o_origin_x = x;
+        player.o_origin_y = y;
+        player.o_origin_valid = 0;
         player.action_target_x = x;
         player.action_target_y = y;
         for (c in server.connections)

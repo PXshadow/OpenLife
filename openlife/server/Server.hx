@@ -44,6 +44,7 @@ class Server
         });
         while (true)
         {
+            @:privateAccess haxe.MainLoop.tick();
             update();
             tick++;
             Sys.sleep(1/20);
