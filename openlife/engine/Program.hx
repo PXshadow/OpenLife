@@ -40,10 +40,8 @@ class Program
     }
     public function send(tag:ServerTag,x:Int,y:Int,data:String="")
     {
-        //trace('send: $tag $x $y $data');
         if (moving && tag != SAY && tag != EMOT)
         {
-            //trace("---added to buffer---");
             buffer.push({tag: tag,x: x,y: y,data: data});
             return;
         }
@@ -66,7 +64,6 @@ class Program
             client.relaySend('$FRAME');
             player.forced = false;
         }
-        trace("PLAYER UPDATE!");
         if (player.x != dest.x || player.y != dest.y)
         {
             trace('did not make it to dest player: ' + player.x + " " + player.y + " dest: " + dest.x + " " + dest.y);
@@ -86,7 +83,6 @@ class Program
         {
             send(command.tag,command.x,command.y,command.data);
         }
-        trace("complete");
         buffer = [];
         dest = null;
         goal = null;
@@ -107,7 +103,6 @@ class Program
 
         client.relaySend('$PLAYER_UPDATE\n${parent.toData()}\n');
         move.id = parent.p_id;
-        trace("moves " + move.toData());
         client.relaySend('$PLAYER_MOVES_START\n${move.toData()}\n');
         client.relaySend('$FRAME\n');
         parentMove = false;
@@ -247,7 +242,6 @@ class Program
     }
     public function goto(x:Int,y:Int):Bool
     {
-        trace("moving " + moving);
         if (player.x == x && player.y == y || moving) return false;
         //set pos
         var px = x - player.x;

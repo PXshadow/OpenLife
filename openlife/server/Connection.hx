@@ -122,7 +122,6 @@ class Connection implements ServerHeader
     }
     public function use(x:Int,y:Int)
     {
-        trace("USE " + x + " " + y);
         player.o_id = server.map.get(x + gx,y + gy,true);
         player.action = 1;
         player.o_origin_x = x;
@@ -164,7 +163,6 @@ class Connection implements ServerHeader
     {
         var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
         sock.output.writeString(string);
-        //trace(string);
     }
 }
 #end

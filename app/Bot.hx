@@ -253,7 +253,7 @@ class Bot extends Engine implements EngineHeader
     
     public function mapChunk(instance:MapInstance)
     {
-        //trace("instance " + instance.toString());
+        
     } //MAP_CHUNK
     public function mapChange(change:MapChange)
     {

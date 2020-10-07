@@ -65,11 +65,6 @@ class Client
                 if (e.message != "Blocked") close();
             }
         }
-        if(socket == null) 
-        {
-            trace('socket is null');
-            return;
-        }
 		try {
             if (compressSize > 0)
             {
@@ -320,7 +315,7 @@ class Client
 	{
         if (config == null)
         {
-            trace("config is null");
+            throw "config is null";
             return;
         }
         this.reconnect = reconnect;

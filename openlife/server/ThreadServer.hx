@@ -23,7 +23,7 @@ class ThreadServer
     public function create()
     {
         socket.bind(new Host("0.0.0.0"),port);
-        trace('bind $port');
+        trace('listening on port: $port');
         socket.listen(listenCount);
         while (true) 
         {

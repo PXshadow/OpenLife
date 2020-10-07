@@ -31,7 +31,6 @@ class App
         //openlife.auto.actions.
         Engine.dir = Utility.dir();
         vector = Bake.run();
-        trace("baked chisel: " + ObjectBake.dummies.get(455));
         //start program
         var data:Data = {relay: true,combo: 0,syncSettings: false,script: "Script.hx"};
         var config = new Settings().config();
@@ -67,7 +66,7 @@ class App
                 bots.push(bot);
                 Sys.sleep(0.1);
             }
-            trace("FINISH!");
+            trace("finish going through combo list length: " + data.combo);
             while (true)
             {
                 overseer.run(bots);

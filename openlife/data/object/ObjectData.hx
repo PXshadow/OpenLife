@@ -369,10 +369,6 @@ class ObjectData extends LineReader
         var string = getString();
         if (string == "1") heldInHand = true;
         if (string == "2") rideable = true;
-        if (id == 100) 
-        {
-            //trace("tree " + line[next]);
-        }
         i = getArrayInt();
         blocksWalking = (i[0] == 1);
         leftBlockingRadius = i[1];
@@ -411,7 +407,6 @@ class ObjectData extends LineReader
 
         i = getArrayInt();
         //person is the race of the person
-        //trace('i $i');
         person = i[0];
         noSpawn = (i[2] == 1);
 
@@ -473,7 +468,6 @@ class ObjectData extends LineReader
         slotSize = getInt();
         if(readName("slotsLocked"))
         {
-            //trace("slot lock");
             slotsLocked = getInt();
         }
         slotPos = new Vector<Point>(numSlots);

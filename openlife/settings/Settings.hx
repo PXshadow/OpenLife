@@ -17,7 +17,6 @@ class Settings
     {
         var a = value.keys();
         var b = data.keys();
-        trace('a ${a.length} b ${b.length}');
         if (a.length > b.length)
         {
             var name = a[a.length - 1] + ".ini";
@@ -26,10 +25,6 @@ class Settings
             var file = File.write(Engine.dir + "settings/" + name,false);
             file.writeString(obj);
             file.close();
-
-            #if (js || html)
-            
-            #end
         }
         return data = value;
     }

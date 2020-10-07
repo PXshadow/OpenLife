@@ -1,4 +1,0 @@
-targets/set.hxml
--lib hxnodejs
--D js-es6
--js export/js/openlife.js
