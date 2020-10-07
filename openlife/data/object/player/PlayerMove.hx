@@ -11,6 +11,7 @@ class PlayerMove
     public var eta:Float = 0;
     public var trunc:Bool = false;
     public var moves:Array<Pos> = [];
+    var movesString:String;
     public function new(a:Array<String>)
     {
         var i:Int = 0;
@@ -25,9 +26,14 @@ class PlayerMove
         {
             moves.push(new Pos(Std.parseInt(a[i * 2]),Std.parseInt(a[i * 2 + 1])));
         }
+        movesString = a.join(" ");
         var pos = moves.pop();
         endX = x + pos.x;
         endY = y + pos.y;
         moves.push(pos);
+    }
+    public function toData():String
+    {
+        return '$id $x $y $total $eta ${trunc ? 1 : 0} $movesString';
     }
 }

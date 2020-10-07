@@ -1,4 +1,5 @@
 package openlife.engine;
+import openlife.data.object.player.PlayerMove;
 import openlife.client.ClientTag;
 import openlife.auto.Pathfinder;
 import openlife.auto.Pathfinder.Coordinate;
@@ -25,6 +26,7 @@ class Program
     public var onError:String->Void;
     var player:PlayerInstance;
     var map:MapData;
+    var parentMove:Bool = false;
     public var RAD:Int = MapData.RAD;
     private function new(client:Client,map:MapData)
     {
@@ -47,16 +49,24 @@ class Program
         }
         client.send('$tag $x $y $data');
     }
+    var parent:PlayerInstance;
     public function update(player:PlayerInstance)
     {
         if (!moving) return;
-        trace("PLAYER UPDATE!");
-        /*if (client.relayIn != null)
+        if (forcePlayerDropNext && client.relayIn != null)
         {
+            //delete dog!
+            forcePlayerDropNext = false;
+            parent.deleted = true;
+            parent.reason = "reason_disconnected";
+            var forced = player.forced;
             player.forced = true;
-            client.relaySend('$PLAYER_UPDATE\n${player.toData()}\n');
+            client.relaySend('$PLAYER_UPDATE\n${parent.toData()}\n');
+            player.forced = forced;
             client.relaySend('$FRAME');
-        }*/
+            player.forced = false;
+        }
+        trace("PLAYER UPDATE!");
         if (player.x != dest.x || player.y != dest.y)
         {
             trace('did not make it to dest player: ' + player.x + " " + player.y + " dest: " + dest.x + " " + dest.y);
@@ -76,11 +86,32 @@ class Program
         {
             send(command.tag,command.x,command.y,command.data);
         }
+        trace("complete");
         buffer = [];
         dest = null;
         goal = null;
         init = null;
         if (onComplete != null) onComplete();
+    }
+    var forcePlayerDropNext:Bool = false;
+    public function playerMainMove(player:PlayerInstance,move:PlayerMove)
+    {
+        if (client.relayIn == null || !parentMove)
+            return;
+        parent = new PlayerInstance([]);
+        parent.p_id = 999999;
+        parent.po_id = 1663; //dog
+        parent.x = player.x;
+        parent.y = player.y;
+        parent.o_id = [-player.p_id];
+
+        client.relaySend('$PLAYER_UPDATE\n${parent.toData()}\n');
+        move.id = parent.p_id;
+        trace("moves " + move.toData());
+        client.relaySend('$PLAYER_MOVES_START\n${move.toData()}\n');
+        client.relaySend('$FRAME\n');
+        parentMove = false;
+        forcePlayerDropNext = true;
     }
     public function clear()
     {
@@ -294,26 +325,7 @@ class Program
         var path = paths.pop();
         if (client.relayIn != null) 
         {
-            
-            var eta = (Math.abs(path.x) + Math.abs(path.y))/3;
-            var string = '$PLAYER_MOVES_START\n${player.p_id} ${player.x} ${player.y} $eta $eta 0 $string\n';
-            //string = "718 0 0 0.533 0.533 0 -1 0 -2 0";
-            trace("string " + string);
-            //client.relaySend('$string');
-            //client.send('$FRAME');
-            Timer.delay(function()
-            {
-                trace("run");
-                player.x += path.x;
-                player.y += path.y;
-                player.forced = true;
-                client.relaySend('$PLAYER_UPDATE\n${player.toData()}\n');
-                client.relaySend('$FRAME\n');
-                player.x += -path.x;
-                player.y += -path.y;
-                player.forced = false;
-                moving = false;
-            },Std.int(eta * 1000));
+            parentMove = true;
         }
         moving = true;
     }

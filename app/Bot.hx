@@ -80,7 +80,7 @@ class Bot extends Engine implements EngineHeader
     } //PLAYER_UPDATE
     public function playerMoveStart(move:PlayerMove)
     {
-
+        if (player.p_id == move.id) program.playerMainMove(player,move);
     } //PLAYER_MOVES_START
 
     public function playerOutOfRange(list:Array<Int>)
