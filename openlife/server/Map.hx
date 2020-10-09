@@ -41,7 +41,7 @@ class Map
     }
     public function generate()
     {
-        var pngDir = "C:\\Users\\marti\\Documents\\mapv2-2.png";
+        var pngDir = "./mapv2-2.png";
         var pngmap = readPixels(pngDir);
         trace ("hello3");
        
