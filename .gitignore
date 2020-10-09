@@ -43,6 +43,7 @@ dir
 .idea
 *.exe
 *.ts
+*.png
 combo.txt
 node_modules
 package-lock.json
