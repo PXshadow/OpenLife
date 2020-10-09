@@ -8,6 +8,20 @@ import haxe.io.Bytes;
 import format.png.Reader;
 import format.png.Tools;
 
+@:enum abstract BiomeTag(Int) from Int to Int
+{
+    public var GREEN = 0;
+    public var SWAMP = 1;
+    public var YELLOW = 2;
+    public var GREY = 3;
+    public var SNOW = 4;
+    public var DESERT= 5;
+    public var JUNGLE = 6;  
+
+    public var OCEAN = 9;  // TODO needs to be changed
+    public var RIVER = 10;  // TODO needs to be changed
+}
+
 class Map
 {
     var objects:Vector<Array<Int>>;
@@ -29,8 +43,8 @@ class Map
     {
         var pngDir = "C:\\Users\\marti\\Documents\\mapv2-2.png";
         var pngmap = readPixels(pngDir);
-        trace ("hello");
-        trace (pngmap);
+        trace ("hello3");
+       
   
 
         for (y in 0...pngmap.height) {
@@ -43,18 +57,23 @@ class Map
               var b:Int = (p)&0xff;
               // Or, AARRGGBB in hex:
               var hex:String = StringTools.hex(p,8);
-              trace('${ x },${ y }: ${ a },${ r },${ g },${ b } - ${ StringTools.hex(p,8) }');
+              //trace('${ x },${ y }: ${ a },${ r },${ g },${ b } - ${ StringTools.hex(p,8) }');
             }
         }
 
 
+        
 
 
         var x:Int = 0;
         var y:Int = 0;
         for (i in 0...length)
         {
-            biome[i] = 0;
+// swamp = 1
+
+            //biome[i] = i % 100;
+            biome[i] = SNOW;
+            
             objects[i] = [0];
             floor[i] = 0;//898;
             if (++x > width)
