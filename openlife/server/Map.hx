@@ -18,8 +18,24 @@ import format.png.Tools;
     public var DESERT= 5;
     public var JUNGLE = 6;  
 
-    public var OCEAN = 9;  // TODO needs to be changed
-    public var RIVER = 10;  // TODO needs to be changed
+    public var SNOWINGREY = 7; // TODO 
+    public var OCEAN = 9;  // TODO
+    public var RIVER = 10;  // TODO 
+}
+
+@:enum abstract BiomeMapColor(String) from String to String
+{
+    public var CGREEN = "none";  // is auto generated
+    public var CSWAMP = "none";  // is auto generated
+    public var CYELLOW = "FFDCFF2D";
+    public var CGREY = "FF404040";
+    public var CSNOW = "FFFFFFFF";
+    public var CDESERT= "FFFF0000";
+    public var CJUNGLE = "FF007F0E";  
+
+    public var CSNOWINGREY = "FF808080"; // TODO 
+    public var COCEAN = "FF21007F";  // TODO
+    public var CRIVER = "FF0026FF";  // TODO 
 }
 
 class Map
@@ -27,39 +43,74 @@ class Map
     var objects:Vector<Array<Int>>;
     var floor:Vector<Int>;
     var biome:Vector<Int>;
-    var width:Int = 32;
-    var height:Int = 30;
+    public static inline var width:Int = 32;
+    public static inline var height:Int = 30;
+    private static inline var length:Int = width * height;
+    
     var server:Server;
     public function new(server:Server)
     {
         this.server = server;
+        
         generate();
-    }
-    private function setVectors(length:Int)
-    {
-        objects = new Vector<Array<Int>>(length);
-        floor = new Vector<Int>(length);
-        biome = new Vector<Int>(length);
     }
     public function generate()
     {
-        var pngDir = "./mapv2-2.png";
+        var pngDir = "./map.png";
         var pngmap = readPixels(pngDir);
         trace ("hello3");
+       
 
-        for (y in 0...pngmap.height) {
-            for (x in 0...pngmap.width) {
-              var p = pngmap.data.getInt32(4*(x+y*pngmap.width));
-              // ARGB, each 0-255
-              var a:Int = p>>>24;
-              var r:Int = (p>>>16)&0xff;
-              var g:Int = (p>>>8)&0xff;
-              var b:Int = (p)&0xff;
-              // Or, AARRGGBB in hex:
-              var hex:String = StringTools.hex(p,8);
-              //trace('${ x },${ y }: ${ a },${ r },${ g },${ b } - ${ StringTools.hex(p,8) }');
+        //height = 100; //pngmap.height;
+        //width = 100; //pngmap.width;
+        //length = width * height;
+
+        trace (length);
+
+        objects = new Vector<Array<Int>>(length);
+        floor = new Vector<Int>(length);
+        biome = new Vector<Int>(length);
+
+        var xOffset = 420;
+        var yOffset = 300;
+
+        for (y in 0...height){
+            for (x in 0...width) {
+                var p = pngmap.data.getInt32(4*(x+xOffset+(y+yOffset)*pngmap.width));
+                // ARGB, each 0-255
+                var a:Int = p>>>24;
+                var r:Int = (p>>>16)&0xff;
+                var g:Int = (p>>>8)&0xff;
+                var b:Int = (p)&0xff;
+                // Or, AARRGGBB in hex:
+                var hex:String = StringTools.hex(p,8);
+                
+                
+
+                var biomeInt;
+                
+
+                switch hex {
+                    case CYELLOW: biomeInt = YELLOW;
+                    case CGREY: biomeInt = GREY;
+                    case CSNOW: biomeInt = SNOW;
+                    case CDESERT: biomeInt = DESERT;
+                    case CJUNGLE: biomeInt = JUNGLE;
+                    case CSNOWINGREY: biomeInt = SNOWINGREY;
+                    case COCEAN: biomeInt = OCEAN;
+                    case CRIVER: biomeInt = RIVER;
+                    default: biomeInt = GREEN;
+                }
+                if(biomeInt == GREEN){
+                    //trace('${ x },${ y }:BI ${ biomeInt },${ r },${ g },${ b } - ${ StringTools.hex(p,8) }');
+                }
+                biome[x+y*width] = biomeInt;
             }
         }
+
+
+        
+
 
         var x:Int = 0;
         var y:Int = 0;
@@ -68,7 +119,7 @@ class Map
 // swamp = 1
 
             //biome[i] = i % 100;
-            biome[i] = SNOW;
+            //biome[i] = SNOW;
             
             objects[i] = [0];
             floor[i] = 0;//898;
@@ -130,6 +181,8 @@ class Map
     public function toString():String
     {
         var string = "";
+        //trace("length: ");
+        //trace(length);
         for (i in 0...length)
         {
             var obj = MapData.stringID(objects[i]);
