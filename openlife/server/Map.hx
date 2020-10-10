@@ -27,25 +27,25 @@ class Map
     var objects:Vector<Array<Int>>;
     var floor:Vector<Int>;
     var biome:Vector<Int>;
-    public static inline var width:Int = 32;
-    public static inline var height:Int = 30;
-    private static inline var length:Int = width * height;
+    var width:Int = 32;
+    var height:Int = 30;
     var server:Server;
     public function new(server:Server)
     {
         this.server = server;
+        generate();
+    }
+    private function setVectors(length:Int)
+    {
         objects = new Vector<Array<Int>>(length);
         floor = new Vector<Int>(length);
         biome = new Vector<Int>(length);
-        generate();
     }
     public function generate()
     {
         var pngDir = "./mapv2-2.png";
         var pngmap = readPixels(pngDir);
         trace ("hello3");
-       
-  
 
         for (y in 0...pngmap.height) {
             for (x in 0...pngmap.width) {
@@ -60,10 +60,6 @@ class Map
               //trace('${ x },${ y }: ${ a },${ r },${ g },${ b } - ${ StringTools.hex(p,8) }');
             }
         }
-
-
-        
-
 
         var x:Int = 0;
         var y:Int = 0;
