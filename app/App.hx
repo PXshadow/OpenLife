@@ -1,6 +1,5 @@
 package;
 
-import openlife.server.Server;
 import haxe.Exception;
 import openlife.client.Client;
 import haxe.Json;
@@ -27,7 +26,9 @@ class App
     public static var vector:Vector<Int>;
     var followingId:Int = -1;
     static var overseer = new Overseer();
-    public static var server:Server;
+    #if (format && record-macros)
+    public static var server:openlife.server.Server;
+    #end
     public function new()
     {
         //openlife.auto.actions.
@@ -50,11 +51,17 @@ class App
         }
         if (data.server)
         {
-            #if sys.threaded
+            #if (format && record-macros)
+            #if (sys.threaded)
             sys.thread.Thread.create(function()
             {
-                server = new Server();
+                server = new openlife.server.Server();
             });
+            #else
+            throw "threading is not supported on target language/platform";
+            #end
+            #else
+            throw "run npx lix download, to download missing libraries format and record-macros";
             #end
         }
         if (!data.relay && data.combo > 0)
