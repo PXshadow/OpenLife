@@ -26,9 +26,7 @@ class App
     public static var vector:Vector<Int>;
     var followingId:Int = -1;
     static var overseer = new Overseer();
-    #if (format && record-macros)
     public static var server:openlife.server.Server;
-    #end
     public function new()
     {
         //openlife.auto.actions.
@@ -51,17 +49,13 @@ class App
         }
         if (data.server)
         {
-            #if (format && record-macros)
             #if (sys.threaded)
             sys.thread.Thread.create(function()
             {
                 server = new openlife.server.Server();
             });
             #else
-            throw "threading is not supported on target language/platform";
-            #end
-            #else
-            throw "run npx lix download, to download missing libraries format and record-macros";
+            trace("threading is not supported on target language/platform");
             #end
         }
         if (!data.relay && data.combo > 0)
