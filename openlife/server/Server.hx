@@ -56,11 +56,6 @@ class Server
         row.insert();
         trace("insert");
 
-        
-
-        
-
-
         Engine.dir = Utility.dir();
         vector = ObjectBake.objectList();
         dataVersionNumber = Resource.dataVersionNumber();

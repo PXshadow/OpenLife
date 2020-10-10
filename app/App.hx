@@ -1,5 +1,6 @@
 package;
 
+import openlife.server.Server;
 import haxe.Exception;
 import openlife.client.Client;
 import haxe.Json;
@@ -26,13 +27,14 @@ class App
     public static var vector:Vector<Int>;
     var followingId:Int = -1;
     static var overseer = new Overseer();
+    public static var server:Server;
     public function new()
     {
         //openlife.auto.actions.
         Engine.dir = Utility.dir();
         vector = Bake.run();
         //start program
-        var data:Data = {relay: true,combo: 0,syncSettings: false,script: "Script.hx"};
+        var data:Data = {relay: true,combo: 0,syncSettings: false,script: "Script.hx",server: false};
         var config = new Settings().config();
         if (!FileSystem.exists("data.json") || data.syncSettings)
         {
@@ -45,6 +47,15 @@ class App
             File.saveContent("config.json",Json.stringify(config));
         }else{
             config = Json.parse(File.getContent("config.json"));
+        }
+        if (data.server)
+        {
+            #if sys.threaded
+            sys.thread.Thread.create(function()
+            {
+                server = new Server();
+            });
+            #end
         }
         if (!data.relay && data.combo > 0)
         {
@@ -90,4 +101,4 @@ class App
         return {email: cred.email, key: cred.key, ip: cred.ip, port: cred.port, tutorial: cred.tutorial, seed: cred.seed, twin: cred.twin,legacy: cred.legacy};
     }
 }
-typedef Data = {relay:Bool,combo:Int,syncSettings:Bool,script:String}
+typedef Data = {relay:Bool,combo:Int,syncSettings:Bool,script:String,server:Bool}

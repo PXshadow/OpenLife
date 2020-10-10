@@ -26,13 +26,14 @@ class FileTools {
 	}
 	public static function deleteDir(path:String)
 	{
+		path = Path.addTrailingSlash(path);
 		if (FileSystem.exists(path) && FileSystem.isDirectory(path))
 		{
 			var dir = FileSystem.readDirectory(path);
 			var i:Int = 0;
 			for (name in dir)
 			{
-				if (name.substring(0,1) == ".") continue; //skip git
+				//if (name.substring(0,1) == ".") continue; //skip git
 
 				if (FileSystem.isDirectory(path + name))
 				{
