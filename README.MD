@@ -1,39 +1,25 @@
 <p align="left"><img src="logo.png"/></p>
 
 [![badge](https://img.shields.io/discord/595575978290446361?style=plastic)](https://discordapp.com/invite/gwghtky)
-![Downloads](https://img.shields.io/github/downloads/pxshadow/openlife/total)
 ![Stars](https://img.shields.io/github/stars/pxshadow/openlife?style=social)
 
-# Engine 
+
 [![badge](badge.svg)](https://haxe.org)
 [![forthebadge](https://forthebadge.com/images/badges/for-sharks.svg)](https://forthebadge.com)
 
-**DISCLAIMER: Project is still in progress, and is not usable from a player perspective yet, stay tuned.**
+Summary
+======
 
-To Developers:
-=========
-*Open Life is a [Haxe](https://haxe.org) based OneLife engine.*
+*Open Life is a [Haxe](https://haxe.org) based OneLife engine. (early alpha state)*
+* **Easy creation:** Build a client/bot (server in the future) easily for any OneLife server supported protocol (OneLife and TwoLife etc)
 
-* **Open Api:**  Quickly search through the [api](https://pxshadow.github.io/OpenLife-Docs/api/index.html) and find variables and methods.
+* **Open Api:**  Quickly search through the [api](https://pxshadow.github.io/OpenLife-Docs/api/index.html) and find variables and methods you need to create a new project.
 
-* **Real Time Console:** Exe code in real time using [hscript](https://github.com/HaxeFoundation/hscript) and eventually [cppia](https://haxe.org/manual/target-cppia-getting-started.html).
+* **Scripting:** Allows programmers to easily build programs on top of the engine architecture, using an event model. Can also be interpreted at runtime using the [hscript library](https://github.com/HaxeFoundation/hscript).
 
-* **Scripting:** Allows programmers to easily build programs on top of the engine architecture.
-
-* **High performance resource access:** Uses multi threading and object baking / skimming in order to make the boot up and dealing with the files very simple.
+* **Easy to use build tools:** Unlike c++ the build tools are unified. A simple npm install will download the needed haxe language version, then download vscode download the haxe extension and Hashlink debugger and you can easily compile and debug the project :) (Currently will also need to manually setup Hashlink until it's integrated into lix)
 
 
-* **Cross compiled languages:** Compiles to [Java](https://haxe.org/documentation/platforms/java.html), [C#](https://haxe.org/documentation/platforms/csharp.html), [Python](https://haxe.org/documentation/platforms/python.html), [Lua](https://haxe.org/manual/target-lua-getting-started.html), [Php](https://haxe.org/documentation/platforms/php.html)
+* **Cross compiled languages:** Compiles to [Java](https://haxe.org/documentation/platforms/java.html), [C#](https://haxe.org/documentation/platforms/csharp.html), [Python](https://haxe.org/documentation/platforms/python.html), [Lua](https://haxe.org/manual/target-lua-getting-started.html), [Php](https://haxe.org/documentation/platforms/php.html), [Javascript/NodeJS](https://haxe.org/documentation/platforms/javascript.html)
 
-* **Thoughtful, concise and efficient code:** Codebase continues to become as minimalist as possible while also keeping the level of abstraction low.
-
-
-Getting Started
-=========
-* [Download Haxe](https://haxe.org/download/version/4.0.0/)
-* [Download Hashlink](https://hashlink.haxe.org/#download)
-* Hashlink on mac you can do ```brew install hashlink```
-* run the command ```haxelib setup```
-* Run the build.sh script, windows ```start build.sh```, linux/mac ```sh build.sh```
-* add the data files  (you need [git](https://git-scm.com/downloads) run ```haxe setup_data.hxml```
-* Run the eval target ```haxe eval.hxml```
+* **Thoughtful, concise and efficient code:** Codebase is designed around ease of use and collaboration and continues to become as minimalis as possible while also keeping the level of abstraction low.
