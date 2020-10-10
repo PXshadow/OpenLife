@@ -1,4 +1,5 @@
 package openlife.server;
+import haxe.macro.ExampleJSGenerator;
 #if (target.threaded)
 import openlife.data.Pos;
 import openlife.data.object.player.PlayerInstance;
@@ -79,6 +80,14 @@ class Connection implements ServerHeader
         
         for (c in server.connections) 
         {
+            var speed = PlayerInstance.initial_move_speed * server.map.getBiomeSpeed(player.x, player.y);
+
+            trace("speed: " + speed);
+
+            player.move_speed = 10;
+
+            //player.move_speed = speed;
+
             c.send(PLAYER_MOVES_START,['${player.p_id} $x $y $total $eta $trunc ${moveString(moves)}']);
             c.send(PLAYER_UPDATE,[player.toData()]);
             c.send(FRAME);

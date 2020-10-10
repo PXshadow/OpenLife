@@ -33,16 +33,38 @@ import format.png.Tools;
     public var CDESERT= "FFFF0000";
     public var CJUNGLE = "FF007F0E";  
 
-    public var CSNOWINGREY = "FF808080"; // TODO 
-    public var COCEAN = "FF21007F";  // TODO
-    public var CRIVER = "FF0026FF";  // TODO 
+    public var CSNOWINGREY = "FF808080";
+    public var COCEAN = "FF21007F";  
+    public var CRIVER = "FF0026FF"; 
+}
+
+@:enum abstract BiomeSpeed(Float) from Float to Float
+{
+    public var SGREEN = 0.2;//1;  
+    public var SSWAMP = 0.2;  
+    public var SYELLOW = 1;
+    public var SGREY = 0.03;//0.8;
+    public var SSNOW = 0.5;
+    public var SDESERT= 0.02;//0.5;
+    public var SJUNGLE = 0.6;  
+
+    public var SSNOWINGREY = 0.1;
+    public var SOCEAN = 0.1;  
+    public var SRIVER = 0.1;   
 }
 
 class Map
 {
     var objects:Vector<Array<Int>>;
     var floor:Vector<Int>;
-    var biome:Vector<Int>;
+    public var biome(default, null):Vector<Int>;
+
+    // public var length(get, null):Int;
+    
+    // function get_length():Int {
+    //     return width * height;
+    // }
+
     public static inline var width:Int = 32;
     public static inline var height:Int = 30;
     private static inline var length:Int = width * height;
@@ -78,10 +100,10 @@ class Map
             for (x in 0...width) {
                 var p = pngmap.data.getInt32(4*(x+xOffset+(y+yOffset)*pngmap.width));
                 // ARGB, each 0-255
-                var a:Int = p>>>24;
-                var r:Int = (p>>>16)&0xff;
-                var g:Int = (p>>>8)&0xff;
-                var b:Int = (p)&0xff;
+                //var a:Int = p>>>24;
+                //var r:Int = (p>>>16)&0xff;
+                //var g:Int = (p>>>8)&0xff;
+                //var b:Int = (p)&0xff;
                 // Or, AARRGGBB in hex:
                 var hex:String = StringTools.hex(p,8);
                 
@@ -108,16 +130,10 @@ class Map
             }
         }
 
-
-        
-
-
         var x:Int = 0;
         var y:Int = 0;
         for (i in 0...length)
         {
-// swamp = 1
-
             //biome[i] = i % 100;
             //biome[i] = SNOW;
             
@@ -137,6 +153,29 @@ class Map
         for (x in 10...16) set(x,10,[2959]);
     }
 
+    public function getBiomeSpeed(x:Int, y:Int):Float 
+    {
+        var biomeType = biome[x + y * Map.width];
+
+        trace('${ x },${ y }:BI ${ biomeType }');
+
+        
+
+        return switch biomeType {
+            case GREEN: SGREEN;
+            case SWAMP: SSWAMP;
+            case YELLOW: SYELLOW;
+            case GREY: SGREY;
+            case SNOW: SSNOW;
+            case DESERT: SDESERT;
+            case JUNGLE: SJUNGLE;
+            case SNOWINGREY: SSNOWINGREY;
+            case OCEAN: SOCEAN;
+            case RIVER: SRIVER;
+            default: 1;
+        }
+    } 
+
     function readPixels(file:String):{data:Bytes, width:Int, height:Int} {
         var handle = sys.io.File.read(file, true);
         var d = new format.png.Reader(handle).read();
@@ -149,9 +188,6 @@ class Map
         handle.close();
         return ret;
     }
-
-
-
 
     public function get(x:Int,y:Int,delete:Bool=false,floorBool:Bool=false):Array<Int>
     {

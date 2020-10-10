@@ -70,15 +70,18 @@ class PlayerInstance
     /**
      * age of player
      */
-    public var age:Float = 24;
+    public var age:Float = 3; //24;
     /**
      * age rate of increase
      */
     public var age_r:Float = 60;
+
+    public static var initial_move_speed:Float = 10;//3.75;
+
     /**
      * move speed of player
      */
-    public var move_speed:Float = 3.75;
+    public var move_speed:Float = 10;//3.75;
     /**
      * clothing set string
      */
