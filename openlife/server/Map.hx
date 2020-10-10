@@ -1,12 +1,11 @@
 package openlife.server;
+import format.png.Reader;
 #if (target.threaded)
 import openlife.data.map.MapData;
 import haxe.ds.Vector;
 import openlife.data.FractalNoise;
 
 import haxe.io.Bytes;
-import format.png.Reader;
-import format.png.Tools;
 
 @:enum abstract BiomeTag(Int) from Int to Int
 {
@@ -153,32 +152,13 @@ class Map
         for (x in 10...16) set(x,10,[2959]);
     }
 
-    public function getBiomeSpeed(x:Int, y:Int):Float 
-    {
-        var biomeType = biome[x + y * Map.width];
-
-        trace('${ x },${ y }:BI ${ biomeType }');
-
-        
-
-        return switch biomeType {
-            case GREEN: SGREEN;
-            case SWAMP: SSWAMP;
-            case YELLOW: SYELLOW;
-            case GREY: SGREY;
-            case SNOW: SSNOW;
-            case DESERT: SDESERT;
-            case JUNGLE: SJUNGLE;
-            case SNOWINGREY: SSNOWINGREY;
-            case OCEAN: SOCEAN;
-            case RIVER: SRIVER;
-            default: 1;
-        }
-    } 
+    
+    
+    
 
     function readPixels(file:String):{data:Bytes, width:Int, height:Int} {
         var handle = sys.io.File.read(file, true);
-        var d = new format.png.Reader(handle).read();
+        var d = new Reader(handle).read();
         var hdr = format.png.Tools.getHeader(d);
         var ret = {
             data:format.png.Tools.extract32(d),
@@ -188,6 +168,29 @@ class Map
         handle.close();
         return ret;
     }
+
+    public function getBiomeSpeed(x:Int, y:Int):Float 
+        {
+            var biomeType = biome[x + y * Map.width];
+    
+            trace('${ x },${ y }:BI ${ biomeType }');
+    
+            
+    
+            return switch biomeType {
+                case GREEN: SGREEN;
+                case SWAMP: SSWAMP;
+                case YELLOW: SYELLOW;
+                case GREY: SGREY;
+                case SNOW: SSNOW;
+                case DESERT: SDESERT;
+                case JUNGLE: SJUNGLE;
+                case SNOWINGREY: SSNOWINGREY;
+                case OCEAN: SOCEAN;
+                case RIVER: SRIVER;
+                default: 1;
+            }
+        } 
 
     public function get(x:Int,y:Int,delete:Bool=false,floorBool:Bool=false):Array<Int>
     {

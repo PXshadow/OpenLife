@@ -22,6 +22,8 @@ import haxe.io.Path;
 
 class Server
 {
+    public static var server:Server; 
+
     public var connections:Array<Connection> = [];
     var tick:Int = 0;
     public var index:Int = 1;
@@ -30,7 +32,7 @@ class Server
     public var dataVersionNumber:Int = 0;
     public static function main()
     {
-        new Server();
+        server = new Server();
     }
     public function new()
     {
@@ -111,7 +113,7 @@ class Server
             {
                 moves.push(new Pos(Std.parseInt(input[i * 2]),Std.parseInt(input[i * 2 + 1])));
             }
-            header.move(x,y,seq,moves);
+            header.player.move(x,y,seq,moves);
             case DIE:
             header.die();
             case KA:
