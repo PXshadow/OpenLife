@@ -13,6 +13,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>)
     {
+        trace("connection " + Server.server);
         var total = (1/this.move_speed) * moves.length;
         var eta = total;
         var trunc = 0;

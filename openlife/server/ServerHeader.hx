@@ -15,7 +15,7 @@ interface ServerHeader
     public function say(text:String):Void;
     public function flip():Void;
 
-    public var player(default, null):GlobalPlayerInstance;
+    public var player:GlobalPlayerInstance;
 
     //public function get_player():GlobalPlayerInstance;
 }

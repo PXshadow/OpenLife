@@ -13,7 +13,7 @@ class Connection implements ServerHeader
     var sock:Socket;
     var server:Server;
     var tag:ServerTag;
-    public var player(default, null):GlobalPlayerInstance;
+    public var player:GlobalPlayerInstance;
 
     //public function get_player():GlobalPlayerInstance{return player;}
 

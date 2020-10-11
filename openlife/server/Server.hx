@@ -25,7 +25,7 @@ class Server
     public static var server:Server; 
 
     public var connections:Array<Connection> = [];
-    var tick:Int = 0;
+    public var tick:Int = 0;
     public var index:Int = 1;
     public var map:Map;
     public var vector:Vector<Int>;
@@ -33,6 +33,13 @@ class Server
     public static function main()
     {
         server = new Server();
+        while (true)
+        {
+            @:privateAccess haxe.MainLoop.tick();
+            @:privateAccess server.update();
+            server.tick++;
+            Sys.sleep(1/20);
+        }
     }
     public function new()
     {
@@ -69,13 +76,6 @@ class Server
         {
             thread.create();
         });
-        while (true)
-        {
-            @:privateAccess haxe.MainLoop.tick();
-            update();
-            tick++;
-            Sys.sleep(1/20);
-        }
     }
     private function update()
     {
@@ -113,6 +113,7 @@ class Server
             {
                 moves.push(new Pos(Std.parseInt(input[i * 2]),Std.parseInt(input[i * 2 + 1])));
             }
+            trace("header player: " + header.player.move);
             header.player.move(x,y,seq,moves);
             case DIE:
             header.die();
