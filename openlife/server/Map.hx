@@ -55,8 +55,8 @@ import haxe.io.Bytes;
 class Map
 {
     var objects:Vector<Array<Int>>;
-    var floor:Vector<Int>;
-    public var biome(default, null):Vector<Int>;
+    var floors:Vector<Int>;
+    public var biomes:Vector<Int>;
 
     // public var length(get, null):Int;
     
@@ -64,33 +64,28 @@ class Map
     //     return width * height;
     // }
 
-    public static inline var width:Int = 32;
-    public static inline var height:Int = 30;
-    private static inline var length:Int = width * height;
-    
-    var server:Server;
-    public function new(server:Server)
+    public var width:Int;
+    public var height:Int;
+    private var length:Int;
+    public function new()
     {
-        this.server = server;
-        
-        generate();
+
+    }
+    public function createVectors(length:Int)
+    {
+        objects = new Vector<Array<Int>>(length);
+        floors = new Vector<Int>(length);
+        biomes = new Vector<Int>(length);
+        this.length = length;
     }
     public function generate()
     {
         var pngDir = "./map.png";
         var pngmap = readPixels(pngDir);
-        trace ("hello3");
-       
+        
 
-        //height = 100; //pngmap.height;
-        //width = 100; //pngmap.width;
-        //length = width * height;
-
-        trace (length);
-
-        objects = new Vector<Array<Int>>(length);
-        floor = new Vector<Int>(length);
-        biome = new Vector<Int>(length);
+        createVectors(length);
+        
 
         var xOffset = 420;
         var yOffset = 300;
@@ -125,7 +120,7 @@ class Map
                 if(biomeInt == GREEN){
                     //trace('${ x },${ y }:BI ${ biomeInt },${ r },${ g },${ b } - ${ StringTools.hex(p,8) }');
                 }
-                biome[x+y*width] = biomeInt;
+                biomes[x+y*width] = biomeInt;
             }
         }
 
@@ -137,7 +132,7 @@ class Map
             //biome[i] = SNOW;
             
             objects[i] = [0];
-            floor[i] = 0;//898;
+            floors[i] = 0;//898;
             if (++x > width)
             {
                 x = 0;
@@ -168,10 +163,28 @@ class Map
         handle.close();
         return ret;
     }
+    function getChunk(x:Int,y:Int,width:Int,height:Int):Map
+    {
+        var map = new Map();
+        var length = width * height;
+        map.createVectors(length);
+        for (px in 0...width)
+        {
+            for (py in 0...height)
+            {
+                var localIndex = px + py * width;
+                var index = (x + px) + (y + py) * this.width;
+                map.biomes[localIndex] = biomes[index];
+                map.floors[localIndex] = floors[index];
+                map.objects[localIndex] = objects[index];
+            }
+        }
+        return map;
+    }
 
     public function getBiomeSpeed(x:Int, y:Int):Float 
         {
-            var biomeType = biome[x + y * Map.width];
+            var biomeType = biomes[index(x,y)];
     
             trace('${ x },${ y }:BI ${ biomeType }');
     
@@ -194,14 +207,14 @@ class Map
 
     public function get(x:Int,y:Int,delete:Bool=false,floorBool:Bool=false):Array<Int>
     {
-        var i = floorBool ? [floor[index(x,y)]] : objects[index(x,y)];
+        var i = floorBool ? [floors[index(x,y)]] : objects[index(x,y)];
         if (delete) set(x,y,[0],floorBool);
         return i;
     }
     public function set(x:Int,y:Int,id:Array<Int>,floorBool:Bool=false)
     {
         if (!floorBool) objects[index(x,y)] = id;
-        if (floorBool) floor[index(x,y)] = id[0];
+        if (floorBool) floors[index(x,y)] = id[0];
     }
     private inline function index(x:Int,y:Int):Int
     {
@@ -225,7 +238,7 @@ class Map
         for (i in 0...length)
         {
             var obj = MapData.stringID(objects[i]);
-            string += ' ${biome[i]}:${floor[i]}:$obj';
+            string += ' ${biomes[i]}:${floors[i]}:$obj';
         }
         return string.substr(1);
     }

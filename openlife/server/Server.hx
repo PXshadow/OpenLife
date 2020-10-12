@@ -69,7 +69,8 @@ class Server
         vector = ObjectBake.objectList();
         dataVersionNumber = Resource.dataVersionNumber();
         trace('dataVersionNumber: $dataVersionNumber');
-        map = new Map(this);
+        map = new Map();
+        map.generate();
         trace("length " + vector.length);
         var thread = new ThreadServer(this,8005);
         Thread.create(function()
@@ -113,7 +114,7 @@ class Server
             {
                 moves.push(new Pos(Std.parseInt(input[i * 2]),Std.parseInt(input[i * 2 + 1])));
             }
-            trace("header player: " + header.player.move);
+
             header.player.move(x,y,seq,moves);
             case DIE:
             header.die();
