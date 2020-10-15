@@ -1,4 +1,5 @@
 --macro openlife.macros.ScriptExist.run()
+--macro openlife.macros.Debug.run()
 -cp app
 -main Main
 -D app

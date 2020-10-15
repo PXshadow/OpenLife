@@ -32,6 +32,7 @@ class Server
     public var dataVersionNumber:Int = 0;
     public static function main()
     {
+        Sys.println("Starting OpenLife Server"#if debug + " in debug mode" #end);
         server = new Server();
         while (true)
         {

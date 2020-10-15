@@ -4,6 +4,7 @@
 -D analyzer-optimize
 -dce full
 -lib record-macros
+--macro openlife.macros.Debug.run()
 #--interp
 -lib format
 -hl server.hl 

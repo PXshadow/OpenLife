@@ -18,7 +18,8 @@ import openlife.engine.*;
 import openlife.data.object.player.PlayerMove;
 import openlife.data.map.MapChange;
 import openlife.auto.Overseer;
-
+import openlife.settings.OpenLifeData;
+import openlife.settings.OpenLifeData.OpenLifeData;
 using StringTools;
 
 class App
@@ -33,13 +34,11 @@ class App
         Engine.dir = Utility.dir();
         vector = Bake.run();
         //start program
-        var data:Data = {relay: true,combo: 0,syncSettings: false,script: "Script.hx",server: false};
+        var data = OpenLifeData.getData();
         var config = new Settings().config();
-        if (!FileSystem.exists("data.json") || data.syncSettings)
+        if (data.syncSettings)
         {
             File.saveContent("data.json",Json.stringify(data));
-        }else{
-            data = Json.parse(File.getContent("data.json"));
         }
         if (!FileSystem.exists("config.json"))
         {
@@ -102,4 +101,3 @@ class App
         return {email: cred.email, key: cred.key, ip: cred.ip, port: cred.port, tutorial: cred.tutorial, seed: cred.seed, twin: cred.twin,legacy: cred.legacy};
     }
 }
-typedef Data = {relay:Bool,combo:Int,syncSettings:Bool,script:String,server:Bool}
