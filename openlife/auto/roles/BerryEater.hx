@@ -1,5 +1,6 @@
 package openlife.auto.roles;
 
+import haxe.iterators.StringIteratorUnicode;
 import openlife.auto.Role;
 import openlife.auto.actions.*;
 
@@ -7,7 +8,7 @@ class BerryEater extends openlife.auto.Role{
     public function new() {
         this.name = 'BerryEater';
         //find closest berry with map functions or overseer functions
-        this.actions = [ new Travel(), new Take(), new Eat()];
+        this.actions = [ new Search(), new Travel(), new Take(), new Eat()];
     }
     override public function selectAction():Action {
         //still working on this

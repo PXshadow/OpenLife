@@ -4,9 +4,6 @@ import openlife.auto.Action;
 
 
 class Eat extends openlife.auto.Action{
-    var x:Int = 0;
-    var y:Int = 0;
-    var set:Bool = true;
     public function new() {
         this.name = 'Eat';
     }

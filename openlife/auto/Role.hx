@@ -16,6 +16,7 @@ class Role{
         return true;
     }
 
+    //TODO: Figure out how to string the actions; how to go from action to action.
     //####MAGIC WITH THE ACTION ARRAYS
     public function selectInflowAction(){
 
@@ -23,8 +24,6 @@ class Role{
     public function selectOutflowAction(){
 
     }
-    //Had some issues with this
-    //selectAction should return an Action and so should nextAction but I couldn't get the individual actions to be reckognized by vcode, even with the import.
     public function selectAction():Action{
         return null;
     }

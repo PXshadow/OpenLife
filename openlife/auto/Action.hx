@@ -9,6 +9,8 @@ class Action{
     public var eventOverride = function(){};
     public var eventOverrideBool:Bool = false;
 
+    //Might want to add a field inside action to indicate when the action is completed
+
     //used to check whether the action can still be performed or not
     public function isValidAction():Bool{
         return true;
@@ -26,7 +28,7 @@ class Action{
     }
 
     //used to find a new target in case of failure
-    public function newTarget():Bool{
+    public function newTarget(bot:BotType):Bool{
         return true;
     }
 
