@@ -11,7 +11,6 @@ package openlife.data.object;
     public var NATURAL = "natural";
     @:from private static function fromString(value:String):ObjectKey
     {
-        //trace("set tag " + value);
         return switch (value)
         {
             case "clothing": CLOTHING;

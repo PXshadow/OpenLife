@@ -1,4 +1,0 @@
--cp scripts
--main ProtocolTagCheck
-#--interp
--neko protocol.n

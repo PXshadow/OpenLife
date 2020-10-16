@@ -1,4 +1,8 @@
 package openlife.server;
+import openlife.server.tables.MapTable;
+import sys.db.TableCreate;
+import sys.db.Manager;
+import openlife.resources.Resource;
 #if (target.threaded)
 import openlife.engine.Utility;
 import openlife.engine.Engine;
@@ -18,32 +22,62 @@ import haxe.io.Path;
 
 class Server
 {
+    public static var server:Server; 
+
     public var connections:Array<Connection> = [];
-    var tick:Int = 0;
+    public var tick:Int = 0;
     public var index:Int = 1;
     public var map:Map;
     public var vector:Vector<Int>;
+    public var dataVersionNumber:Int = 0;
     public static function main()
     {
-        new Server();
+        Sys.println("Starting OpenLife Server"#if debug + " in debug mode" #end);
+        server = new Server();
+        while (true)
+        {
+            @:privateAccess haxe.MainLoop.tick();
+            @:privateAccess server.update();
+            server.tick++;
+            Sys.sleep(1/20);
+        }
     }
     public function new()
     {
+        //initalize database
+        Manager.initialize();
+        Manager.cnx = sys.db.Sqlite.open("server.db");
+        if (!TableCreate.exists(MapTable.manager))
+        {
+            TableCreate.create(MapTable.manager);
+        }
+
+        var row = MapTable.manager.select($p_id == 30,null);
+        trace("row: " + row);
+        if (row != null)
+        {
+            row.timestamp = Date.now();
+            row.update();
+        }
+        var row = new MapTable();
+        row.o_id = [0];
+        row.p_id = 30;
+        row.timestamp = Date.now();
+        row.insert();
+        trace("insert");
+
         Engine.dir = Utility.dir();
         vector = ObjectBake.objectList();
-        map = new Map(this);
+        dataVersionNumber = Resource.dataVersionNumber();
+        trace('dataVersionNumber: $dataVersionNumber');
+        map = new Map();
+        map.generate();
         trace("length " + vector.length);
         var thread = new ThreadServer(this,8005);
         Thread.create(function()
         {
             thread.create();
         });
-        while (true)
-        {
-            update();
-            tick++;
-            Sys.sleep(1/20);
-        }
     }
     private function update()
     {
@@ -54,10 +88,11 @@ class Server
     }
     public function process(connection:Connection,string:String)
     {
+        Sys.println(string); //log messages
         var index = string.indexOf(" ");
         if (index == -1) return;
         var tag = string.substring(0,index);
-        string = string.substring(index);
+        string = string.substring(index + 1);
         var array = string.split(" ");
         if (array.length == 0) return;
         message(connection,tag,array,string);
@@ -80,7 +115,8 @@ class Server
             {
                 moves.push(new Pos(Std.parseInt(input[i * 2]),Std.parseInt(input[i * 2 + 1])));
             }
-            header.move(x,y,seq,moves);
+
+            header.player.move(x,y,seq,moves);
             case DIE:
             header.die();
             case KA:
@@ -96,6 +132,8 @@ class Server
             case SAY:
             var text = string.substring(4);
             header.say(text);
+            case FLIP:
+            header.flip();
             default:
         }
     }

@@ -70,15 +70,18 @@ class PlayerInstance
     /**
      * age of player
      */
-    public var age:Float = 24;
+    public var age:Float = 3; //24;
     /**
      * age rate of increase
      */
     public var age_r:Float = 60;
+
+    public static var initial_move_speed:Float = 10;//3.75;
+
     /**
      * move speed of player
      */
-    public var move_speed:Float = 3.75;
+    public var move_speed:Float = 10;//3.75;
     /**
      * clothing set string
      */
@@ -107,13 +110,15 @@ class PlayerInstance
      * array of properties to generate PlayerType
      * @param a 
      */
+    public var deleted:Bool = false;
+    public var reason:String = "";
      var i:Int = 0;
      var a:Array<String>;
     public function new(a:Array<String>)
     {
         this.a = a;
         //var name = Reflect.fields(this);
-        if (a.length < 23) return;
+        if (a.length < 23 + 1) return;
         p_id = int();
         po_id = int();
         facing = int();
@@ -128,8 +133,13 @@ class PlayerInstance
         heat = int();
         done_moving_seqNum = int();
         forced = int() == 1;
-        x = int();
-        y = int();
+        if (a[i] == "X" && a[i+1] == "X")
+        {
+            deleted = true;
+        }else{
+            x = int();
+            y = int();
+        }
         age = float();
         age_r = float();
         move_speed = float();
@@ -140,6 +150,8 @@ class PlayerInstance
         held_yum = a[i++] == "1";
         if (a.length <= 24) return;
         held_learned = a[i++] == "1";
+        if (deleted)
+            reason = a[i];
     }
     private inline function int():Int
     {
@@ -179,6 +191,34 @@ class PlayerInstance
         held_yum = instance.held_yum;
         held_learned = instance.held_learned;
     }
+    public function clone():PlayerInstance
+    {
+        var instance = new PlayerInstance([]);
+        instance.p_id = p_id;
+        instance.po_id = po_id;
+        instance.facing = facing;
+        instance.action_target_x = action_target_x;
+        instance.action_target_y = action_target_y;
+        instance.o_id = o_id;
+        instance.o_origin_valid = o_origin_valid;
+        instance.o_origin_x = o_origin_x;
+        instance.o_origin_y = o_origin_y;
+        instance.o_transition_source_id = o_transition_source_id;
+        instance.heat = heat;
+        instance.done_moving_seqNum = done_moving_seqNum;
+        instance.forced = forced;
+        instance.x = x;
+        instance.y = y;
+        instance.age = age;
+        instance.age_r = age_r;
+        instance.move_speed = move_speed;
+        instance.clothing_set = clothing_set;
+        instance.just_ate = just_ate;
+        instance.responsible_id = responsible_id;
+        instance.held_yum = held_yum;
+        instance.held_learned = held_learned;
+        return instance;
+    }
     /**
      * toString for debug
      * @return String output = "field: property"
@@ -196,7 +236,7 @@ class PlayerInstance
     {
         o_origin_valid = 1;
         //441 2404 0 1 4 -6 33 1 4 -6 -1 0.26 8 0 4 -6 16.14 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 1
-        return '$p_id $po_id $facing $action $action_target_x $action_target_y ${MapData.stringID(o_id)} $o_origin_valid $o_origin_x $o_origin_y $o_transition_source_id $heat $done_moving_seqNum ${(forced ? "1" : "0")} $x $y $age $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")}';
+        return '$p_id $po_id $facing $action $action_target_x $action_target_y ${MapData.stringID(o_id)} $o_origin_valid $o_origin_x $o_origin_y $o_transition_source_id $heat $done_moving_seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$x $y'} $age $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
     }
 }
 /*

@@ -1,12 +1,15 @@
-import.hxml
---next
-
---no-output 
--cp src
 -D doc-gen
--D display
--D full
--main ImportAll
-##-neko dummy.n
+-D app
+-cp scripts
+-lib format
+-lib record-macros
+--macro scripts.FileTools.deleteDir("docs/api")
+-cp app
+-main Main
+--no-output 
 --interp
 -xml xml/Terminal.xml
+--next
+-cp scripts
+-main Docs
+--interp

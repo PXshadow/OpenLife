@@ -3,5 +3,8 @@
 #-cpp export/server
 -D analyzer-optimize
 -dce full
+-lib record-macros
+--macro openlife.macros.Debug.run()
 #--interp
--hl server.hl
+-lib format
+-hl server.hl 

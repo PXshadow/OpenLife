@@ -20,8 +20,6 @@ class Bot extends Engine implements EngineHeader
 {
     public var target:openlife.data.Target;
     public var auto:Automation;
-    public var player:PlayerInstance;
-    //on connect we need to update player.x and player.y
     public var resetFlag:Bool = false;
     public var names = new Map<Int,String>();
     var followingId:Int = -1;
@@ -40,6 +38,15 @@ class Bot extends Engine implements EngineHeader
         client.onAccept = function()
         {
             reconnectBool = true;
+        }
+        this.setPlayer = function()
+        {
+            //new player set
+            auto = new Automation(program,App.vector);
+            #if script
+            trace("EXECUTING SCRIPT");
+            Script.main(this);
+            #end
         }
     }
     private function close()
@@ -64,26 +71,11 @@ class Bot extends Engine implements EngineHeader
     //events
     public function playerUpdate(instances:Array<PlayerInstance>)
     {
-        for (instance in instances)
-        {
-            if (player != null && player.p_id == instance.p_id) program.update(instance);
-        }
-        if (player == null)
-        {
-            trace("PLAYER SET");
-            player = instances.pop();
-            program.setPlayer(player);
-            //new player set
-            auto = new Automation(program,App.vector);
-            #if script
-            trace("EXECUTING SCRIPT");
-            Script.main(this);
-            #end
-        }
+        
     } //PLAYER_UPDATE
     public function playerMoveStart(move:PlayerMove)
     {
-
+        if (player.p_id == move.id) program.playerMainMove(player,move);
     } //PLAYER_MOVES_START
 
     public function playerOutOfRange(list:Array<Int>)
@@ -256,7 +248,7 @@ class Bot extends Engine implements EngineHeader
     
     public function mapChunk(instance:MapInstance)
     {
-        //trace("instance " + instance.toString());
+        
     } //MAP_CHUNK
     public function mapChange(change:MapChange)
     {

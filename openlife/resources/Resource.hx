@@ -1,4 +1,5 @@
 package openlife.resources;
+import haxe.io.Path;
 import openlife.engine.Engine;
 
 import haxe.io.Bytes;
@@ -47,12 +48,17 @@ class Resource
     {
         return getImage("graphics",'ground_t$id');
     }
+    public static function dataVersionNumber():Int
+    {
+        return Std.parseInt(content("dataVersionNumber.txt"));
+    }
     public static function getImage(path:String,name:String):Bytes
     {
         return bytes('$path/$name.tga');
     }
     public static function getContent(path:String,name:String):String
     {
+        path = Path.addTrailingSlash(path);
         return content('$path/$name.txt');
     }
     //reciever that overrides old content and bytes system

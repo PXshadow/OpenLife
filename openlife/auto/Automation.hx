@@ -102,7 +102,6 @@ class Automation
     }
     public function food()
     {
-        trace("food!");
         var pos:Pos = null;
         foreach(function(x:Int, y:Int, array:Array<Int>)
         {
@@ -114,7 +113,6 @@ class Automation
                     pos = new Pos(x,y);
                     var sy:Int = 0;
                     if (i > 0) sy = new ObjectData(array[0]).noBackAcess ? -1 : 0;
-                    trace("pos " + pos);
                     //no repeat so this is last function call
                     if (!program.goto(pos.x,pos.y + sy)) return true;
                     program.use(pos.x,pos.y);

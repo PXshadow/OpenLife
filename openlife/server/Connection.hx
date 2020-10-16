@@ -13,16 +13,35 @@ class Connection implements ServerHeader
     var sock:Socket;
     var server:Server;
     var tag:ServerTag;
-    var player:PlayerInstance;
-    var gx:Int = 0; //global x offset
-    var gy:Int = 0; //global y offset
+    public var player:GlobalPlayerInstance;
+
+    //public function get_player():GlobalPlayerInstance{return player;}
+
+    /* public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>):Void{
+        if(player == null){
+            return;
+        }
+
+        // TODO some how it throws nulls no clue why. maybe so or so better to directly call functions on player???
+        trace("player" + moves);
+        trace("player" + seq);
+        player.move(x,y,seq,moves);
+    } */
+
+    public function use(x:Int,y:Int):Void{
+        player.use(x,y);
+    }
+    public function drop(x:Int,y:Int):Void{
+        player.drop(x,y);
+    }
+
     public function new(sock:Socket,server:Server)
     {
         this.sock = sock;
         this.server = server;
         var challenge = "dsdjsiojdiasjiodsjiosd";
-        var version = "350";
-        send(SERVER_INFO,["0/0",challenge,version]);
+        var version = server.dataVersionNumber;
+        send(SERVER_INFO,["0/0",challenge,'$version']);
     }
     public function update()
     {
@@ -34,12 +53,7 @@ class Connection implements ServerHeader
         sock.close();
         server.connections.remove(this);
     }
-    private function moveString(moves:Array<Pos>):String
-    {
-        var string = "";
-        for (m in moves) string += " " + m.x + " " + m.y;
-        return string.substr(1);
-    }
+    
     public function keepAlive()
     {
 
@@ -55,27 +69,24 @@ class Connection implements ServerHeader
         var id = player.p_id;
         for (c in server.connections)
         {
+            c.send(PLAYER_MOVES_START,[
+                "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
+                "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
+            ]);
             c.send(PLAYER_SAYS,['$id/$curse $text']);
             c.send(FRAME);
         }
     }
-    public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>)
+    public function flip()
     {
-        var total = 0.267;
-        var eta = total;
-        var trunc = 0;
-        var last = moves.pop();
-        player.x += last.x;
-        player.y += last.y;
-        moves.push(last);
         
-        for (c in server.connections) 
-        {
-            c.send(PLAYER_MOVES_START,['${player.p_id} $x $y $total $eta $trunc ${moveString(moves)}']);
-            c.send(PLAYER_UPDATE,[player.toData()]);
-            c.send(FRAME);
-        }
     }
+
+    public function sendMapChunk() // TODO TODO TODO
+    {
+
+    }
+    
     public function login()
     {
         send(ACCEPTED);
@@ -84,15 +95,16 @@ class Connection implements ServerHeader
         var uncompressed = Bytes.ofString(map);
         var bytes = haxe.zip.Compress.run(uncompressed,-1);
         //return;
-        gx = 16;
-        gy = 15;
+        //gx = 16;
+        //gy = 15;
         send(MAP_CHUNK,["32 30 -16 -15",'${uncompressed.length} ${bytes.length}']);
         sock.output.write(bytes);
         send(VALLEY_SPACING,["40 40"]);
-        player = new PlayerInstance([]);
+
+
+        player = new GlobalPlayerInstance([]);
         var id = server.index++;
         player.p_id = id;
-        player.o_id = [33];
         send(FRAME);
         var data:Array<String> = [];//[player.toData()];
         for (c in server.connections)
@@ -100,8 +112,8 @@ class Connection implements ServerHeader
             data.push(c.player.toData());
             if (c != this)
             {
-                c.send(FRAME);
                 c.send(PLAYER_UPDATE,[player.toData()]);
+                c.send(FRAME);
             }
         }
         send(PLAYER_UPDATE,data);
@@ -116,39 +128,7 @@ class Connection implements ServerHeader
             c.send(PLAYER_EMOT,['${player.p_id} $id']);
         }
     }
-    public function use(x:Int,y:Int)
-    {
-        player.action = 1;
-        trace("USE " + x + " " + y);
-        player.o_id = server.map.get(x + gx,y + gy,true);
-        player.forced = true;
-        player.o_origin_x = x;
-        player.o_origin_y = y;
-        player.o_origin_valid = 1;
-        player.action_target_x = x;
-        player.action_target_y = y;
-        for (c in server.connections)
-        {
-            c.send(PLAYER_UPDATE,[player.toData()]);
-            c.send(FRAME);
-        }
-        player.action = 0;
-        player.forced = false;
-    }
-    public function drop(x:Int,y:Int)
-    {
-        player.o_id = [0];
-        player.action = 1;
-        player.action_target_x = x;
-        player.action_target_y = y;
-        for (c in server.connections)
-        {
-            c.send(PLAYER_UPDATE,[player.toData()]);
-            c.send(FRAME);
-        }
-        player.action = 0;
-        player.forced = false;
-    }
+    
     public function rlogin()
     {
         login();
@@ -157,7 +137,6 @@ class Connection implements ServerHeader
     {
         var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
         sock.output.writeString(string);
-        //trace(string);
     }
 }
 #end
