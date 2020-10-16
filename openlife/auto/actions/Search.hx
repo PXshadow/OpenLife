@@ -10,6 +10,12 @@ class Search extends openlife.auto.Action{
         this.name = 'Search';
     }
 
+    //As long as this function returns true we continue the action
+    //When this function returns false we call nextAction from the role
+    override public function isValidAction():Bool{
+        return true;
+    }
+
     //We are going to use newTarget() to check inside work() if
     //we need to keep going or not.
     //once a target has been discovered and added to the bot
