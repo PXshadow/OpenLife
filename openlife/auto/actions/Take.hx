@@ -17,7 +17,7 @@ class Take extends openlife.auto.Action{
 
     override public function step(bot:BotType){
         //check isValidAction and other validators if present
-        if(this.isValidAction()){
+        if(this.isValidAction()){ //this isValidAction() check is subject to change
             this.work(bot);
         }
         //then call this.work();

@@ -16,7 +16,7 @@ class Eat extends openlife.auto.Action{
     
     override public function step(bot:BotType){
         //call this.work();
-        if(this.isValidTarget()){
+        if(this.isValidTarget()){ //this isValidTarget() check is subject to change
             this.work(bot);
         }
     }

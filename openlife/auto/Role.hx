@@ -17,6 +17,10 @@ class Role{
     }
 
     //TODO: Figure out how to string the actions; how to go from action to action.
+    //I think I want an array of actions checked
+    //Fill the array as we go through the actions
+    //empty the array after we completed the last action
+    //need to think about this
     //####MAGIC WITH THE ACTION ARRAYS
     public function selectInflowAction(){
 
