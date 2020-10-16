@@ -11,7 +11,6 @@ class Debug
         if (!FileSystem.exists("data.json"))
             return;
         var data = OpenLifeData.getData();
-        trace("data " + data);
         if (data.debug) 
         {
             haxe.macro.Compiler.define("debug","");

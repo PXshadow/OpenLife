@@ -27,7 +27,6 @@ class App
     public static var vector:Vector<Int>;
     var followingId:Int = -1;
     static var overseer = new Overseer();
-    public static var server:openlife.server.Server;
     public function new()
     {
         //openlife.auto.actions.
@@ -45,17 +44,6 @@ class App
             File.saveContent("config.json",Json.stringify(config));
         }else{
             config = Json.parse(File.getContent("config.json"));
-        }
-        if (data.server)
-        {
-            #if (sys.threaded)
-            sys.thread.Thread.create(function()
-            {
-                server = new openlife.server.Server();
-            });
-            #else
-            trace("threading is not supported on target language/platform");
-            #end
         }
         if (!data.relay && data.combo > 0)
         {

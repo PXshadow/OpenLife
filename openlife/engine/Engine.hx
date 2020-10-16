@@ -28,6 +28,8 @@ class Engine
     var _header:EngineHeader;
     var _event:EngineEvent;
     public var players:Map<Int,PlayerInstance>;
+    public var setPlayer:Void->Void;
+    public var player:PlayerInstance = null;
     var _eventBool:Bool;
     public var relayPort:Int = 8005;
     public static function create(header:EngineHeader,event:EngineEvent=null,client:Client=null,dir:String=null)
@@ -132,6 +134,12 @@ class Engine
                     player.update(temp);
                 }
                 list.push(player);
+            }
+            if (this.player == null)
+            {
+                this.player = list[list.length - 1];
+                if (setPlayer != null)
+                    setPlayer();
             }
             _playerUpdate(list);
             case PLAYER_MOVES_START:

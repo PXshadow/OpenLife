@@ -15,7 +15,7 @@ class OpenLifeData
     }
     public static function getDefault():OpenLifeDataType
     {
-        return {relay: true,combo: 0,syncSettings: false,script: "Script.hx",server: false,debug:false};
+        return {relay: true,combo: 0,syncSettings: false,script: "Script.hx",debug:false};
     }
 }
-typedef OpenLifeDataType = {relay:Bool,combo:Int,syncSettings:Bool,script:String,server:Bool,debug:Bool}
+typedef OpenLifeDataType = {relay:Bool,combo:Int,syncSettings:Bool,script:String,debug:Bool}

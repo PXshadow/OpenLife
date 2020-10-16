@@ -3,9 +3,4 @@
 -cp app
 -main Main
 -D app
-# these libraries are only needed for the server.
-# however since it's app and the main sample we should allow use of both client and server at the same time
--lib format
--lib record-macros
-
 -hl app.hl
