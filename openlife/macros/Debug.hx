@@ -5,6 +5,7 @@ import sys.FileSystem;
 
 class Debug
 {
+    #if macro
     public static function run()
     {
         if (!FileSystem.exists("data.json"))
@@ -14,8 +15,9 @@ class Debug
         if (data.debug) 
         {
             haxe.macro.Compiler.define("debug","");
-            haxe.macro.Compiler.addNativeArg("--no-inline");
-            haxe.macro.Compiler.addNativeArg("-v");
+            //haxe.macro.Compiler.addGlobalMetadata("--no-inline");
+            //haxe.macro.Compiler.addNativeArg("-v");
         }
     }
+    #end
 }
