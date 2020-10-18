@@ -6,6 +6,10 @@ import openlife.data.map.MapChange;
 @:expose
 class EngineEvent
 {
+    public static function create():EngineEvent
+    {
+        return new EngineEvent();
+    }
     public var playerUpdate:(instances:Array<PlayerInstance>)->Void; //PLAYER_UPDATE
     public var playerMoveStart:(move:PlayerMove)->Void; //PLAYER_MOVES_START
 
