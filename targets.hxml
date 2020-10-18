@@ -1,5 +1,5 @@
--cmd echo C++
-targets/cpp.hxml
+#-cmd echo C++
+#targets/cpp.hxml
 --next
 -cmd echo Java
 targets/java.hxml

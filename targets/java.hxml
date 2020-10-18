@@ -1,3 +1,6 @@
 targets/set.hxml
--D jvm
+--jvm export/java/openlife.jar
+
+--next
+targets/set.hxml
 -java export/java
