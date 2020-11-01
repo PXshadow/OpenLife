@@ -89,6 +89,7 @@ class Map
 
         var xOffset = 420;
         var yOffset = 300;
+        length = 400;
 
         for (y in 0...height){
             for (x in 0...width) {
@@ -123,13 +124,15 @@ class Map
                 biomes[x+y*width] = biomeInt;
             }
         }
-
+        width = 32;
+        height = 30;
+        length = width * height;
         var x:Int = 0;
         var y:Int = 0;
         for (i in 0...length)
         {
             //biome[i] = i % 100;
-            //biome[i] = SNOW;
+            biomes[i] = SNOW;
             
             objects[i] = [0];
             floors[i] = 0;//898;
@@ -143,7 +146,7 @@ class Map
         //set(16,15,[33]); //33
         //set(15,16,[121]);
         //set(16,16,[121]);
-        set(16,20,[434,33,33,33]);
+        //set(16,20,[434,33,33,33]);
         for (x in 10...16) set(x,10,[2959]);
     }
 
