@@ -44,7 +44,7 @@ class GlobalPlayerInstance extends PlayerInstance {
             this.o_origin_x = 0;
             this.o_origin_y = 0;
 
-            connection.sendMapChunk();
+            //connection.sendMapChunk();
         }
         
         for (c in Server.server.connections) 
