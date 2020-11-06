@@ -3,6 +3,8 @@ import openlife.data.Pos;
 import openlife.data.object.player.PlayerInstance;
 
 class GlobalPlayerInstance extends PlayerInstance {
+    public var connection:Connection; 
+
     public var gx:Int = 430; //global x offset
     public var gy:Int = 440; //global y offset
 
@@ -38,7 +40,18 @@ class GlobalPlayerInstance extends PlayerInstance {
             c.send(FRAME);
         }
 
+        
+
         // TODO send current player map chunk
+        trace("x: " + this.x);
+        trace("gx: " + this.gx);
+        trace("y: " + this.y);
+        trace("gy: " + this.gy);
+
+        this.gx += x;
+        this.gy += y;
+        
+        connection.sendMapChunk();
     }
 
     private function moveString(moves:Array<Pos>):String
