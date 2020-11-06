@@ -82,13 +82,20 @@ class Connection implements ServerHeader
         
     }
 
-    public function sendMapChunk(x:Int,y:Int,width:Int,height:Int)
+    public function sendMapChunk(x:Int,y:Int,width:Int = 32,height:Int = 30)
     {
+
+        
+        var width = 32;
+        var height = 30;
+
         //var map = server.map.toString();
-        var map = server.map.getChunk(x,y,width,height).toString();
+        var map = server.map.getChunk(x + player.gx, y + player.gy,width,height).toString();
         var uncompressed = Bytes.ofString(map);
         var bytes = haxe.zip.Compress.run(uncompressed,-1);
 
+        x -= Std.int(width / 2);
+        y -= Std.int(height / 2);
         send(MAP_CHUNK,['$width $height $x $y','${uncompressed.length} ${bytes.length}']);
         sock.output.write(bytes);
         //send(VALLEY_SPACING,["40 40"]);
@@ -104,10 +111,10 @@ class Connection implements ServerHeader
         player.connection = this;
         var id = server.index++;
         player.p_id = id;
-        player.gx = 100;
-        player.gy = 100;
+        player.gx = 400;
+        player.gy = 400;
 
-        sendMapChunk(player.gx,player.gy,32,30);
+        sendMapChunk(0,0);
 
         var data:Array<String> = [];//[player.toData()];
         for (c in server.connections)

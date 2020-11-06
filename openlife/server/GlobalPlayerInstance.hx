@@ -34,17 +34,17 @@ class GlobalPlayerInstance extends PlayerInstance {
             trace("y: " + this.y);
             trace("gy: " + this.gy);
 
-            this.gx += x;
-            this.gy += y;
+            //this.gx += x;
+            //this.gy += y;
 
-            this.forced = true; // TODO change (test to force position)
-            this.x = 0;
-            this.y = 0;
+            //this.forced = true; // TODO change (test to force position)
+            //this.x = 0;
+            //this.y = 0;
 
-            this.o_origin_x = 0;
-            this.o_origin_y = 0;
+            //this.o_origin_x = 0;
+            //this.o_origin_y = 0;
 
-            //connection.sendMapChunk();
+            connection.sendMapChunk(x,y);
         }
         
         for (c in Server.server.connections) 
