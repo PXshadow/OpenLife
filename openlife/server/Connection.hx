@@ -91,20 +91,24 @@ class Connection implements ServerHeader
     {
         send(ACCEPTED);
         server.connections.push(this);
-        var map = server.map.toString();
+
+        player = new GlobalPlayerInstance([]);
+        var id = server.index++;
+        player.p_id = id;
+        player.gx = 100;
+        player.gy = 100;
+
+        //var map = server.map.toString();
+        var map = server.map.getChunk(player.gx, player.gy,32,30).toString();
         var uncompressed = Bytes.ofString(map);
         var bytes = haxe.zip.Compress.run(uncompressed,-1);
-        //return;
-        //gx = 16;
-        //gy = 15;
+       
         send(MAP_CHUNK,["32 30 -16 -15",'${uncompressed.length} ${bytes.length}']);
         sock.output.write(bytes);
         send(VALLEY_SPACING,["40 40"]);
 
 
-        player = new GlobalPlayerInstance([]);
-        var id = server.index++;
-        player.p_id = id;
+        
         send(FRAME);
         var data:Array<String> = [];//[player.toData()];
         for (c in server.connections)

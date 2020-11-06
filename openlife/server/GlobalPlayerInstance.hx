@@ -3,8 +3,8 @@ import openlife.data.Pos;
 import openlife.data.object.player.PlayerInstance;
 
 class GlobalPlayerInstance extends PlayerInstance {
-    var gx:Int = 430; //global x offset
-    var gy:Int = 440; //global y offset
+    public var gx:Int = 430; //global x offset
+    public var gy:Int = 440; //global y offset
 
     public function new(a:Array<String>)
     {
@@ -83,5 +83,4 @@ class GlobalPlayerInstance extends PlayerInstance {
             this.action = 0;
             this.forced = false;
         }
-
 }

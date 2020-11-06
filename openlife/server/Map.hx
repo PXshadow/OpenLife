@@ -83,17 +83,29 @@ class Map
         var pngDir = "./map.png";
         var pngmap = readPixels(pngDir);
         
+        width = pngmap.width;
+        height = pngmap.height;
+        length = width * height;
+
+        //var xOffset = 420;
+        //var yOffset = 300;
+
+        //width = 32;
+        //height = 30;
+        
+        
+        trace('map width: ' + width);
+        trace('map height: ' + height);
 
         createVectors(length);
-        
 
-        var xOffset = 420;
-        var yOffset = 300;
-        length = 400;
+        //length = 400;
 
         for (y in 0...height){
             for (x in 0...width) {
-                var p = pngmap.data.getInt32(4*(x+xOffset+(y+yOffset)*pngmap.width));
+                //var p = pngmap.data.getInt32(4*(x+xOffset+(y+yOffset)*pngmap.width));
+                var p = pngmap.data.getInt32(4*(x + y*pngmap.width));
+
                 // ARGB, each 0-255
                 //var a:Int = p>>>24;
                 //var r:Int = (p>>>16)&0xff;
@@ -124,15 +136,15 @@ class Map
                 biomes[x+y*width] = biomeInt;
             }
         }
-        width = 32;
-        height = 30;
-        length = width * height;
+        //width = 32;
+        //height = 30;
+        //length = width * height;
         var x:Int = 0;
         var y:Int = 0;
         for (i in 0...length)
         {
             //biome[i] = i % 100;
-            biomes[i] = SNOW;
+            //biomes[i] = SNOW;
             
             objects[i] = [0];
             floors[i] = 0;//898;
@@ -149,11 +161,7 @@ class Map
         //set(16,20,[434,33,33,33]);
         for (x in 10...16) set(x,10,[2959]);
     }
-
     
-    
-    
-
     function readPixels(file:String):{data:Bytes, width:Int, height:Int} {
         var handle = sys.io.File.read(file, true);
         var d = new Reader(handle).read();
@@ -166,7 +174,8 @@ class Map
         handle.close();
         return ret;
     }
-    function getChunk(x:Int,y:Int,width:Int,height:Int):Map
+
+    public function getChunk(x:Int,y:Int,width:Int,height:Int):Map
     {
         var map = new Map();
         var length = width * height;
@@ -233,6 +242,7 @@ class Map
         var out = sign * abs * k / (1 + k - abs);
         return (out + 1) * 0.5;
     }
+
     public function toString():String
     {
         var string = "";
@@ -245,6 +255,7 @@ class Map
         }
         return string.substr(1);
     }
+
     public function findClosest(){
         
     }
