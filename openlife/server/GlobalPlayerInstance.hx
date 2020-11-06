@@ -23,6 +23,29 @@ class GlobalPlayerInstance extends PlayerInstance {
         this.x += last.x;
         this.y += last.y;
         moves.push(last);
+
+        trace("x: " + this.x);
+        trace("y: " + this.y);
+
+        if(this.x > 8 || this.x < -8 || this.y > 8 || this.y < -8 ) {
+            // TODO send current player map chunk
+            trace("x: " + this.x);
+            trace("gx: " + this.gx);
+            trace("y: " + this.y);
+            trace("gy: " + this.gy);
+
+            this.gx += x;
+            this.gy += y;
+
+            this.forced = true; // TODO change (test to force position)
+            this.x = 0;
+            this.y = 0;
+
+            this.o_origin_x = 0;
+            this.o_origin_y = 0;
+
+            connection.sendMapChunk();
+        }
         
         for (c in Server.server.connections) 
         {
@@ -35,6 +58,10 @@ class GlobalPlayerInstance extends PlayerInstance {
             //player.move_speed = speed;
             
             // TODO place sending logic in connection???
+            
+            
+
+
             c.send(PLAYER_MOVES_START,['${this.p_id} $x $y $total $eta $trunc ${moveString(moves)}']);
             c.send(PLAYER_UPDATE,[this.toData()]);
             c.send(FRAME);
@@ -42,16 +69,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         
 
-        // TODO send current player map chunk
-        trace("x: " + this.x);
-        trace("gx: " + this.gx);
-        trace("y: " + this.y);
-        trace("gy: " + this.gy);
-
-        this.gx += x;
-        this.gy += y;
         
-        connection.sendMapChunk();
     }
 
     private function moveString(moves:Array<Pos>):String

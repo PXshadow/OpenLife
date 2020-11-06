@@ -89,7 +89,7 @@ class Connection implements ServerHeader
         var uncompressed = Bytes.ofString(map);
         var bytes = haxe.zip.Compress.run(uncompressed,-1);
 
-        send(MAP_CHUNK,["32 30 -1 -1",'${uncompressed.length} ${bytes.length}']);
+        send(MAP_CHUNK,["32 30 -16 -15",'${uncompressed.length} ${bytes.length}']);
         trace(MAP_CHUNK,["32 30 -16 -15",'${uncompressed.length} ${bytes.length}']);
 
         //send(MAP_CHUNK,["32 30 ",'${ player.gx - 16 } ${ player.gy - 15 }${uncompressed.length} ${bytes.length}']);
