@@ -90,7 +90,7 @@ class Connection implements ServerHeader
         //var height = 30;
 
         //var map = server.map.toString();
-        var map = server.map.getChunk(x + player.gx, player.gy - y, width, height).toString();
+        var map = server.map.getChunk(x + player.gx,player.gy + y, width, height).toString();
         var uncompressed = Bytes.ofString(map);
         var bytes = haxe.zip.Compress.run(uncompressed,-1);
 
