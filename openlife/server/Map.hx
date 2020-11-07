@@ -78,6 +78,9 @@ class Map
         biomes = new Vector<Int>(length);
         this.length = length;
     }
+
+    // The Server and Client map is saved in an array with y starting from bottom, 
+    // The Map is saved with y starting from top. Therefore the map is y inversed during generation from picture
     public function generate()
     {
         var pngDir = "./map.png";
@@ -85,14 +88,7 @@ class Map
         
         width = pngmap.width;
         height = pngmap.height;
-        length = width * height;
-
-        //var xOffset = 420;
-        //var yOffset = 300;
-
-        //width = 32;
-        //height = 30;
-        
+        length = width * height;       
         
         trace('map width: ' + width);
         trace('map height: ' + height);
@@ -105,7 +101,7 @@ class Map
         for (y in 0...height){
             for (x in 0...width) {
                 //var p = pngmap.data.getInt32(4*(x+xOffset+(y+yOffset)*pngmap.width));
-                var p = pngmap.data.getInt32(4*(x + y*pngmap.width));
+                var p = pngmap.data.getInt32(4*(x + ((height - 1) - y) * pngmap.width));
 
                 // ARGB, each 0-255
                 //var a:Int = p>>>24;
@@ -176,9 +172,6 @@ class Map
         return ret;
     }
 
-    // The Server map is saved in an array with y starting from top, 
-    // The client wants an array with y starting from bottom.
-    // GetChunk transforms y coordinates between these server and client arrays   
     public function getChunk(x:Int,y:Int,width:Int,height:Int):Map
     {
         var map = new Map();
@@ -188,7 +181,8 @@ class Map
         {
             for (py in 0...height)
             {
-                var localIndex = px + ((height - 1) - py) * width;
+                //var localIndex = px + ((height - 1) - py) * width;
+                var localIndex = px + py * width;
                 var index = (x + px) + (y + py) * this.width;
                 map.biomes[localIndex] = biomes[index];
                 map.floors[localIndex] = floors[index];
