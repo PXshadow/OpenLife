@@ -68,10 +68,6 @@ class GlobalPlayerInstance extends PlayerInstance {
             c.send(PLAYER_UPDATE,[this.toData()]);
             c.send(FRAME);
         }
-
-        
-
-        
     }
 
     private function moveString(moves:Array<Pos>):String

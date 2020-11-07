@@ -126,9 +126,10 @@ class Server
             header.emote(Std.parseInt(input[2]));
             case USE:
             trace("USE!");
-            header.use(Std.parseInt(input[0]),Std.parseInt(input[1]));
+            header.player.use(Std.parseInt(input[0]),Std.parseInt(input[1]));
             case DROP:
-            header.drop(Std.parseInt(input[0]),Std.parseInt(input[1]));
+            trace("DROP!");
+            header.player.drop(Std.parseInt(input[0]),Std.parseInt(input[1]));
             case SAY:
             var text = string.substring(4);
             header.say(text);

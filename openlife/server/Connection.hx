@@ -27,14 +27,14 @@ class Connection implements ServerHeader
         trace("player" + seq);
         player.move(x,y,seq,moves);
     } */
-
+/*
     public function use(x:Int,y:Int):Void{
         player.use(x,y);
     }
     public function drop(x:Int,y:Int):Void{
         player.drop(x,y);
     }
-
+*/
     public function new(sock:Socket,server:Server)
     {
         this.sock = sock;
