@@ -101,6 +101,7 @@ class Map
 
         //length = 400;
 
+        //for (y in 0...height){
         for (y in 0...height){
             for (x in 0...width) {
                 //var p = pngmap.data.getInt32(4*(x+xOffset+(y+yOffset)*pngmap.width));
