@@ -30,7 +30,7 @@ class Engine
     public var players:Map<Int,PlayerInstance>;
     public var setPlayer:Void->Void;
     public var player:PlayerInstance = null;
-    var _eventBool:Bool;
+    var _onlyEventBool:Bool;
     public var relayPort:Int = 8005;
     public static function create(header:EngineHeader,event:EngineEvent=null,client:Client=null,dir:String=null)
     {
@@ -42,7 +42,7 @@ class Engine
         players = new Map<Int,PlayerInstance>();
         this._header = header;
         _event = event;
-        _eventBool = _event != null;
+        _onlyEventBool = _header == null;
         map = new MapData();
         if (client == null) client = new Client();
         @:privateAccess program = new Program(client,map);
@@ -336,228 +336,313 @@ class Engine
     //functions
     private inline function _playerUpdate(instances:Array<PlayerInstance>)
     {
-        _header.playerUpdate(instances);
-        if (_eventBool && _event.playerUpdate != null) _event.playerUpdate(instances);
+        if (!_onlyEventBool)
+            _header.playerUpdate(instances);
+        if (_event != null && _event.playerUpdate != null) 
+            _event.playerUpdate(instances);
     } //PLAYER_UPDATE
     private inline function _playerMoveStart(move:PlayerMove)
     {
-        _header.playerMoveStart(move);
-        if (_eventBool && _event.playerMoveStart != null) _event.playerMoveStart(move);
+        if (!_onlyEventBool)
+            _header.playerMoveStart(move);
+        if (_event != null && _event.playerMoveStart != null) 
+            _event.playerMoveStart(move);
     } //PLAYER_MOVES_START
 
     private inline function _playerOutOfRange(list:Array<Int>)
     {
-        _header.playerOutOfRange(list);
-        if (_eventBool && _event.playerOutOfRange != null) _event.playerOutOfRange(list);
+        if (!_onlyEventBool)
+            _header.playerOutOfRange(list);
+        if (_event != null && _event.playerOutOfRange != null) 
+            _event.playerOutOfRange(list);
     } //PLAYER_OUT_OF_RANGE
     private inline function _playerName(id:Int,firstName:String,lastName:String)
     {
-        _header.playerName(id,firstName,lastName);
-        if (_eventBool && _event.playerName != null) _event.playerName(id,firstName,lastName);
+        if (!_onlyEventBool)
+            _header.playerName(id,firstName,lastName);
+        if (_event != null && _event.playerName != null) 
+            _event.playerName(id,firstName,lastName);
     } //NAME
 
     private inline function _apocalypse()
     {
-        _header.apocalypse();
-        if (_eventBool && _event.apocalypse != null) _event.apocalypse();
+        if (!_onlyEventBool)
+            _header.apocalypse();
+        if (_event != null && _event.apocalypse != null) 
+            _event.apocalypse();
     } //APOCALYPSE
     private inline function _apocalypseDone()
     {
-        _header.apocalypseDone();
-        if (_eventBool && _event.apocalypseDone != null) _event.apocalypseDone();
+        if (!_onlyEventBool)
+            _header.apocalypseDone();
+        if (_event != null && _event.apocalypseDone != null) 
+            _event.apocalypseDone();
     } //APOCALYPSE_DONE
 
     private inline function _posse(killer:Int,target:Int)
     {
-        _header.posse(killer,target);
-        if (_eventBool && _event.posse != null) _event.posse(killer,target);
+        if (!_onlyEventBool)
+            _header.posse(killer,target);
+        if (_event != null && _event.posse != null) 
+            _event.posse(killer,target);
     } //POSSE_JOIN
 
     private inline function _following(follower:Int,leader:Int,color:Int)
     {
-        _header.following(follower,leader,color);
-        if (_eventBool && _event.following != null) _event.following(follower,leader,color);
+        if (!_onlyEventBool)
+            _header.following(follower,leader,color);
+        if (_event != null && _event.following != null) 
+            _event.following(follower,leader,color);
     } //FOLLOWING
     private inline function _exiled(target:Int,id:Int)
     {
-        _header.exiled(target,id);
-        if (_eventBool && _event.exiled != null) _event.exiled(target,id);
+        if (!_onlyEventBool)
+            _header.exiled(target,id);
+        if (_event != null && _event.exiled != null) 
+            _event.exiled(target,id);
     } //EXILED
     private inline function _cursed(id:Int,level:Int,word:String)
     {
-        _header.cursed(id,level,word);
-        if (_eventBool && _event.cursed != null) _event.cursed(id,level,word);
+        if (!_onlyEventBool)
+            _header.cursed(id,level,word);
+        if (_event != null && _event.cursed != null) 
+            _event.cursed(id,level,word);
     } //CURSED
     private inline function _curseToken(count:Int)
     {
-        _header.curseToken(count);
-        if (_eventBool && _event.curseToken != null) _event.curseToken(count);
+        if (!_onlyEventBool)
+            _header.curseToken(count);
+        if (_event != null && _event.curseToken != null) 
+            _event.curseToken(count);
     } //CURSE_TOKEN_CHANGE
     private inline function _curseScore(excess:Int)
     {
-        _header.curseScore(excess);
-        if (_eventBool && _event.curseScore != null) _event.curseScore(excess);
+        if (!_onlyEventBool)
+            _header.curseScore(excess);
+        if (_event != null && _event.curseScore != null) 
+            _event.curseScore(excess);
     } //CURSE_SCORE_CHANGE
 
     private inline function _badBiomes(id:Int,name:String)
     {
-        _header.badBiomes(id,name);
-        if (_eventBool && _event.badBiomes != null) _event.badBiomes(id,name);
+        if (!_onlyEventBool)
+            _header.badBiomes(id,name);
+        if (_event != null && _event.badBiomes != null) 
+            _event.badBiomes(id,name);
     } //BAD_BIOMES
 
     private inline function _vogUpdate()
     {
-        _header.vogUpdate();
-        if (_eventBool && _event.vogUpdate != null) _event.vogUpdate();
+        if (!_onlyEventBool)
+            _header.vogUpdate();
+        if (_event != null && _event.vogUpdate != null) 
+            _event.vogUpdate();
     } //VOG_UPDATE
     private inline function _photo(x:Int,y:Int,signature:String)
     {
-        _header.photo(x,y,signature);
-        if (_eventBool && _event.photo != null) _event.photo(x,y,signature);
+        if (!_onlyEventBool)
+            _header.photo(x,y,signature);
+        if (_event != null && _event.photo != null) 
+            _event.photo(x,y,signature);
     } //PHOTO_SIGNATURE
 
     private inline function _shutdown()
     {
-        _header.shutdown();
-        if (_eventBool && _event.shutdown != null) _event.shutdown();
+        if (!_onlyEventBool)
+            _header.shutdown();
+        if (_event != null && _event.shutdown != null) 
+            _event.shutdown();
     } //FORCED_SHUTDOWN
 
     private inline function _global(text:String)
     {
-        _header.global(text);
-        if (_eventBool && _event.global != null) _event.global(text);
+        if (!_onlyEventBool)
+            _header.global(text);
+        if (_event != null && _event.global != null) 
+            _event.global(text);
     } //GLOBAL_MESSAGE
     private inline function _war(a:Int,b:Int,status:String)
     {
-        _header.war(a,b,status);
-        if (_eventBool && _event.war != null) _event.war(a,b,status);
+        if (!_onlyEventBool)
+            _header.war(a,b,status);
+        if (_event != null && _event.war != null) 
+            _event.war(a,b,status);
     } //WAR_REPORT
 
     private inline function _learnedTools(list:Array<Int>)
     {
-        _header.learnedTools(list);
-        if (_eventBool && _event.learnedTools != null) _event.learnedTools(list);
+        if (!_onlyEventBool)
+            _header.learnedTools(list);
+        if (_event != null && _event.learnedTools != null) 
+            _event.learnedTools(list);
     } //LEARNED_TOOL_REPORT
     private inline function _toolExperts(list:Array<Int>)
     {
-        _header.toolExperts(list);
-        if (_eventBool && _event.toolExperts != null) _event.toolExperts(list);
+        if (!_onlyEventBool)
+            _header.toolExperts(list);
+        if (_event != null && _event.toolExperts != null) 
+            _event.toolExperts(list);
     } //TOOL_EXPERTS
     private inline function _toolSlots(total:Int)
     {
-        _header.toolSlots(total);
-        if (_eventBool && _event.toolSlots != null) _event.toolSlots(total);
+        if (!_onlyEventBool)
+            _header.toolSlots(total);
+        if (_event != null && _event.toolSlots != null) 
+            _event.toolSlots(total);
     } //TOOL_SLOTS
     
     private inline function _babyWiggle(list:Array<Int>)
     {
+        if (!_onlyEventBool)
         _header.babyWiggle(list);
-        if (_eventBool && _event.babyWiggle != null) _event.babyWiggle(list);
+        if (_event != null && _event.babyWiggle != null) 
+            _event.babyWiggle(list);
     } //BABY_WIGGLE
     private inline function _saysLocation(x:Int,y:Int,text:String)
     {
-        _header.saysLocation(x,y,text);
-        if (_eventBool && _event.saysLocation != null) _event.saysLocation(x,y,text);
+        if (!_onlyEventBool)
+            _header.saysLocation(x,y,text);
+        if (_event != null && _event.saysLocation != null) 
+            _event.saysLocation(x,y,text);
     } //LOCATION_SAYS
     private inline function _dying(id:Int,sick:Bool)
     {
-        _header.dying(id,sick);
-        if (_eventBool && _event.dying != null) _event.dying(id,sick);
+        if (!_onlyEventBool)
+            _header.dying(id,sick);
+        if (_event != null && _event.dying != null) 
+            _event.dying(id,sick);
     } //DYING
     private inline function _says(id:Int,text:String,curse:Bool)
     {
-        _header.says(id,text,curse);
-        if (_eventBool && _event.says != null) _event.says(id,text,curse);
+        if (!_onlyEventBool)
+            _header.says(id,text,curse);
+        if (_event != null && _event.says != null) 
+            _event.says(id,text,curse);
     } //PLAYER_SAYS
     private inline function _emot(id:Int,index:Int,sec:Int)
     {
-        _header.emot(id,index,sec);
-        if (_eventBool && _event.emot != null) _event.emot(id,index,sec);
+        if (!_onlyEventBool)
+            _header.emot(id,index,sec);
+        if (_event != null && _event.emot != null) 
+            _event.emot(id,index,sec);
     } //PLAYER_EMOT
     
     private inline function _mapChunk(instance:MapInstance)
     {
-        _header.mapChunk(instance);
-        if (_eventBool && _event.mapChunk != null) _event.mapChunk(instance);
+        if (!_onlyEventBool)
+            _header.mapChunk(instance);
+        if (_event != null && _event.mapChunk != null) 
+            _event.mapChunk(instance);
     } //MAP_CHUNK
     private inline function _mapChange(change:MapChange)
     {
-        _header.mapChange(change);
-        if (_eventBool && _event.mapChange != null) _event.mapChange(change);
+        if (!_onlyEventBool)
+            _header.mapChange(change);
+        if (_event != null && _event.mapChange != null) 
+            _event.mapChange(change);
     } //MAP_CHANGE
     private inline function _foodChange(store:Int,capacity:Int,ateId:Int,fillMax:Int,speed:Float,responsible:Int)
     {
-        _header.foodChange(store,capacity,ateId,fillMax,speed,responsible);
-        if (_eventBool && _event.foodChange != null) _event.foodChange(store,capacity,ateId,fillMax,speed,responsible);
+        if (!_onlyEventBool)
+            _header.foodChange(store,capacity,ateId,fillMax,speed,responsible);
+        if (_event != null && _event.foodChange != null) 
+            _event.foodChange(store,capacity,ateId,fillMax,speed,responsible);
     } //FOOD_CHANGE
     private inline function _heatChange(heat:Float,foodTime:Float,indoorBonus:Float)
     {
-        _header.heatChange(heat,foodTime,indoorBonus);
-        if (_eventBool && _event.heatChange != null) _event.heatChange(heat,foodTime,indoorBonus);
+        if (!_onlyEventBool)
+            _header.heatChange(heat,foodTime,indoorBonus);
+        if (_event != null && _event.heatChange != null) 
+            _event.heatChange(heat,foodTime,indoorBonus);
     } //HEAT_CHANGE
     private inline function _frame()
     {
-        _header.frame();
-        if (_eventBool && _event.frame != null) _event.frame();
+        if (!_onlyEventBool)
+            _header.frame();
+        if (_event != null && _event.frame != null) 
+            _event.frame();
     } //FRAME
     private inline function _lineage(list:Array<Int>,eve:Int)
     {
-        _header.lineage(list,eve);
-        if (_eventBool && _event.lineage != null) _event.lineage(list,eve);
+        if (!_onlyEventBool)
+            _header.lineage(list,eve);
+        if (_event != null && _event.lineage != null) 
+            _event.lineage(list,eve);
     } //LINEAGE
     private inline function _healed(id:Int)
     {
-        _header.healed(id);
-        if (_eventBool && _event.healed != null) _event.healed(id);
+        if (!_onlyEventBool)
+            _header.healed(id);
+        if (_event != null && _event.healed != null) 
+            _event.healed(id);
     } //HEALED
     private inline function _monument(x:Int,y:Int,id:Int)
     {
-        _header.monument(x,y,id);
-        if (_eventBool && _event.monument != null) _event.monument(x,y,id);
+        if (!_onlyEventBool)
+            _header.monument(x,y,id);
+        if (_event != null && _event.monument != null) 
+            _event.monument(x,y,id);
     } //MONUMENT_CALL
     private inline function _grave(x:Int,y:Int,id:Int)
     {
-        _header.grave(x,y,id);
-        if (_eventBool && _event.grave != null) _event.grave(x,y,id);
+        if (!_onlyEventBool)
+            _header.grave(x,y,id);
+        if (_event != null && _event.grave != null) 
+            _event.grave(x,y,id);
     } //GRAVE
     private inline function _graveOld(x:Int,y:Int,pid:Int,poid:Int,age:Float,name:String,lineage:Array<String>)
     {
-        _header.graveOld(x,y,pid,poid,age,name,lineage);
-        if (_eventBool && _event.graveOld != null) _event.graveOld(x,y,pid,poid,age,name,lineage);
+        if (!_onlyEventBool)
+            _header.graveOld(x,y,pid,poid,age,name,lineage);
+        if (_event != null && _event.graveOld != null) 
+            _event.graveOld(x,y,pid,poid,age,name,lineage);
     } //GRAVE_OLD
     private inline function _graveMove(xs:Int,ys:Int,xd:Int,yd:Int,swapDest:Bool)
     {
-        _header.graveMove(xs,ys,xd,yd,swapDest);
-        if (_eventBool && _event.graveMove != null) _event.graveMove(xs,ys,xd,yd,swapDest);
+        if (!_onlyEventBool)
+            _header.graveMove(xs,ys,xd,yd,swapDest);
+        if (_event != null && _event.graveMove != null) 
+            _event.graveMove(xs,ys,xd,yd,swapDest);
     } //GRAVE_MOVE
     private inline function _ownerList(x:Int,y:Int,list:Array<Int>)
     {
+        if (!_onlyEventBool)
         _header.ownerList(x,y,list);
-        if (_eventBool && _event.ownerList != null) _event.ownerList(x,y,list);
+        if (_event != null && _event.ownerList != null) _event.ownerList(x,y,list);
     } //OWNER_LIST
     private inline function _valley(spacing:Int,offset:Int)
     {
-        _header.valley(spacing,offset);
-        if (_eventBool && _event.valley != null) _event.valley(spacing,offset);
+        if (!_onlyEventBool)
+            _header.valley(spacing,offset);
+        if (_event != null && _event.valley != null) 
+            _event.valley(spacing,offset);
     } //VALLEY_SPACING
     private inline function _flight(id:Int,x:Int,y:Int)
     {
-        _header.flight(id,x,y);
-        if (_eventBool && _event.flight != null) _event.flight(id,x,y);
+        if (!_onlyEventBool)
+            _header.flight(id,x,y);
+        if (_event != null && _event.flight != null) 
+            _event.flight(id,x,y);
     } //FLIGHT_DEST
     private inline function _homeland(x:Int,y:Int,name:String)
     {
-        _header.homeland(x,y,name);
-        if (_eventBool && _event.homeland != null) _event.homeland(x,y,name);
+        if (!_onlyEventBool)
+            _header.homeland(x,y,name);
+        if (_event != null && _event.homeland != null)
+             _event.homeland(x,y,name);
     } //HOMELAND
     private inline function _craving(id:Int,bonus:Int)
     {
-        _header.craving(id,bonus);
-        if (_eventBool && _event.craving != null) _event.craving(id,bonus);
+        if (!_onlyEventBool)
+            _header.craving(id,bonus);
+        if (_event != null && _event.craving != null)
+            _event.craving(id,bonus);
     } //CRAVING
     private inline function _flip(x:Int,y:Int)
     {
-        _header.flip(x,y);
-        if (_eventBool && _event.flip != null) _event.flip(x,y);
+        if (!_onlyEventBool)
+            _header.flip(x,y);
+        if (_event != null && _event.flip != null)
+            _event.flip(x,y);
     } //FLIP
 }

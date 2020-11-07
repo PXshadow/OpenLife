@@ -3,8 +3,13 @@ import openlife.data.Pos;
 import openlife.data.object.player.PlayerInstance;
 
 class GlobalPlayerInstance extends PlayerInstance {
-    var gx:Int = 430; //global x offset
-    var gy:Int = 440; //global y offset
+    public var connection:Connection; 
+
+    public var gx:Int = 430; //global x offset from birth
+    public var gy:Int = 440; //global y offset from birth
+
+    private var tx:Int = 0;
+    private var ty:Int = 0;
 
     public function new(a:Array<String>)
     {
@@ -17,14 +22,48 @@ class GlobalPlayerInstance extends PlayerInstance {
         var total = (1/this.move_speed) * moves.length;
         var eta = total;
         var trunc = 0;
-        var last = moves.pop();
-        this.x += last.x;
-        this.y += last.y;
+        var last = moves.pop(); 
+        //this.x += last.x; // TODO check if movement is valid
+        //this.y += last.y;
+        this.x = x;
+        this.y = y;
+
+
         moves.push(last);
+
+        var tgx = this.gx + this.x;
+        var tgy = this.gy - this.y;
+
+        trace("x: " + this.x);
+        trace("y: " + this.y);
+        trace("tx: " + this.tx);
+        trace("ty: " + this.ty);
+        trace("gx: " + tgx);
+        trace("gy: " + tgy);
+
+        if(this.x - tx> 6 || this.x - tx < -6 || this.y - ty > 6 || this.y - ty < -6 ) {
+            // TODO send current player map chunk
+            trace("new chunk");
+            
+            this.tx = x;
+            this.ty = y;
+
+            //this.gx += x;
+            //this.gy += y;
+
+            //this.forced = true; // TODO change (test to force position)
+            //this.x = 0;
+            //this.y = 0;
+
+            //this.o_origin_x = 0;
+            //this.o_origin_y = 0;
+
+            connection.sendMapChunk(x,y);
+        }
         
         for (c in Server.server.connections) 
         {
-            var speed = PlayerInstance.initial_move_speed * Server.server.map.getBiomeSpeed(this.x + gx, this.y + gy);
+            var speed = PlayerInstance.initial_move_speed * Server.server.map.getBiomeSpeed(this.x + gx, gy - this.y);
 
             trace("speed: " + speed);
 
@@ -33,12 +72,18 @@ class GlobalPlayerInstance extends PlayerInstance {
             //player.move_speed = speed;
             
             // TODO place sending logic in connection???
+            
+            
+
+
             c.send(PLAYER_MOVES_START,['${this.p_id} $x $y $total $eta $trunc ${moveString(moves)}']);
             c.send(PLAYER_UPDATE,[this.toData()]);
             c.send(FRAME);
         }
 
-        // TODO send current player map chunk
+        
+
+        
     }
 
     private function moveString(moves:Array<Pos>):String
@@ -83,5 +128,4 @@ class GlobalPlayerInstance extends PlayerInstance {
             this.action = 0;
             this.forced = false;
         }
-
 }

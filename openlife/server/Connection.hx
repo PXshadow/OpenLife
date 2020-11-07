@@ -82,30 +82,40 @@ class Connection implements ServerHeader
         
     }
 
-    public function sendMapChunk() // TODO TODO TODO
+    public function sendMapChunk(x:Int,y:Int,width:Int = 32,height:Int = 30)
     {
 
+        
+        //var width = 32;
+        //var height = 30;
+
+        //var map = server.map.toString();
+        var map = server.map.getChunk(x + player.gx, player.gy - y, width, height).toString();
+        var uncompressed = Bytes.ofString(map);
+        var bytes = haxe.zip.Compress.run(uncompressed,-1);
+
+        x -= Std.int(width / 2);
+        y -= Std.int(height / 2);
+        send(MAP_CHUNK,['$width $height $x $y','${uncompressed.length} ${bytes.length}']);
+        sock.output.write(bytes);
+        //send(VALLEY_SPACING,["40 40"]);
+        send(FRAME);
     }
     
     public function login()
     {
         send(ACCEPTED);
         server.connections.push(this);
-        var map = server.map.toString();
-        var uncompressed = Bytes.ofString(map);
-        var bytes = haxe.zip.Compress.run(uncompressed,-1);
-        //return;
-        //gx = 16;
-        //gy = 15;
-        send(MAP_CHUNK,["32 30 -16 -15",'${uncompressed.length} ${bytes.length}']);
-        sock.output.write(bytes);
-        send(VALLEY_SPACING,["40 40"]);
-
 
         player = new GlobalPlayerInstance([]);
+        player.connection = this;
         var id = server.index++;
         player.p_id = id;
-        send(FRAME);
+        player.gx = 400;
+        player.gy = 400;
+
+        sendMapChunk(0,0);
+
         var data:Array<String> = [];//[player.toData()];
         for (c in server.connections)
         {
