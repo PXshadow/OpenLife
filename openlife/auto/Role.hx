@@ -4,10 +4,14 @@ import openlife.auto.actions.*;
 import openlife.engine.Engine;
 
 class Role{
+    public var resourceNeeded:Int;
+    public var name:String;
     public var actions:Array<Action>;
     public var inflowActions:Array<Action>;
     public var outflowActions:Array<Action>;
+    public var actionsChecked:Array<String>;
 
+    //need to figure out how to assign actions to bot
     public function assignAction():Bool{
         //check isValidAction
         //check isValidTarget
@@ -15,27 +19,55 @@ class Role{
         return true;
     }
 
+    //Think the action flow is mostly implemented
     //####MAGIC WITH THE ACTION ARRAYS
-    public function selectInflowAction(){
-
+    public function selectInflowAction():Action{
+        for(i in inflowActions){
+            if(i.isValidAction() && !actionsChecked.contains(i.name)){
+                actionsChecked.push(i.name);
+                return i;
+            }
+        }
+        //default return to get rid of compile errors
+        return null;
     }
-    public function selectOutflowAction(){
-
+    public function selectOutflowAction():Action{
+        for(i in outflowActions){
+            if(i.isValidAction() && !actionsChecked.contains(i.name)){
+                actionsChecked.push(i.name);
+                return i;
+            }
+        }
+        return null;
     }
-    //Had some issues with this
-    //selectAction should return an Action and so should nextAction but I couldn't get the individual actions to be reckognized by vcode, even with the import.
-    public function selectAction():String{
-        return "";
+    public function selectAction():Action{
+        actionsChecked = new Array<String>();
+        if(resourceNeeded == 0 && this.inflowActions.length > 0) {
+            return this.selectInflowAction();
+        } else if(this.outflowActions.length>0){
+            return this.selectOutflowAction();
+        } else {
+            //default cycle through actions array
+            for(i in actions){
+                if(i.isValidAction() && !actionsChecked.contains(i.name)){
+                    actionsChecked.push(i.name);
+                    return i;
+                }
+            }
+        }
+        return null;
     }
-    public function nextAction():String{
+    public function nextAction():Action{
         return this.selectAction();
     }
     //###END MAGIC
 
     public function run(bot:BotType){
+        //Use select action
         //Check current action isValidAction
         //if action is valid then run action
         //otherwise next action
+        bot.currentAction.step(bot);
     }
 
     public function assign(bot:BotType){
