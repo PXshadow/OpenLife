@@ -40,8 +40,8 @@ class GlobalPlayerInstance extends PlayerInstance {
         trace("ty: " + this.ty);
         trace("gx: " + tgx);
         trace("gy: " + tgy);
-
-        if(this.x - tx> 6 || this.x - tx < -6 || this.y - ty > 6 || this.y - ty < -6 ) {
+        final spacing = 8;
+        if(this.x - tx > spacing || this.x - tx < -spacing || this.y - ty > spacing || this.y - ty < -spacing ) {
             // TODO send current player map chunk
             trace("new chunk");
             
