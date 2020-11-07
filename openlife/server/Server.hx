@@ -19,6 +19,7 @@ import sys.net.Host;
 import sys.FileSystem;
 import sys.io.File;
 import haxe.io.Path;
+import openlife.data.object.ObjectData;
 
 class Server
 {
@@ -28,7 +29,7 @@ class Server
     public var tick:Int = 0;
     public var index:Int = 1;
     public var map:Map;
-    public var vector:Vector<Int>;
+    public static var vector:Vector<ObjectData>;
     public var dataVersionNumber:Int = 0;
     public static function main()
     {
@@ -52,8 +53,7 @@ class Server
         {
             TableCreate.create(MapTable.manager);
         }
-
-        var row = MapTable.manager.select($p_id == 30,null);
+        /*var row = MapTable.manager.select($p_id == 30);
         trace("row: " + row);
         if (row != null)
         {
@@ -65,10 +65,13 @@ class Server
         row.p_id = 30;
         row.timestamp = Date.now();
         row.insert();
-        trace("insert");
+        trace("insert");*/
 
         Engine.dir = Utility.dir();
-        vector = ObjectBake.objectList();
+        var tmp = ObjectBake.objectList();
+        vector = new Vector<ObjectData>(tmp.length);
+        for (i in 0...vector.length)
+            vector[i] = new ObjectData(tmp[i]);
         dataVersionNumber = Resource.dataVersionNumber();
         trace('dataVersionNumber: $dataVersionNumber');
         map = new Map();

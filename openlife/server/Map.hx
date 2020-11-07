@@ -4,6 +4,7 @@ import format.png.Reader;
 import openlife.data.map.MapData;
 import haxe.ds.Vector;
 import openlife.data.FractalNoise;
+import openlife.data.object.ObjectData;
 
 import haxe.io.Bytes;
 
@@ -126,32 +127,24 @@ class Map
                 }
                 //biomeInt = x % 100;
                 biomes[x+y*width] = biomeInt;
+                objects[x+y*width] = [0];
+                if (Math.random() > 0.4) continue;
+                var buffer:Array<ObjectData> = [];
+                for (obj in Server.vector) {
+                    if (obj.mapChance == 0) continue;
+                    if (obj.biomes.indexOf(biomeInt) != -1)
+                        buffer.push(obj);
+                }
+                var set:Bool = false;
+                for (obj in buffer) {
+                    if (set) continue;
+                    if (Math.random() > obj.mapChance) {
+                        objects[x+y*width] = [obj.id];
+                        set = true;
+                    }
+                }
             }
         }
-        //width = 32;
-        //height = 30;
-        //length = width * height;
-        var x:Int = 0;
-        var y:Int = 0;
-        for (i in 0...length)
-        {
-            //biome[i] = i % 100;
-            //biomes[i] = SNOW;
-            
-            objects[i] = [0];
-            floors[i] = 0;//898;
-            if (++x > width)
-            {
-                x = 0;
-                y++;
-            }
-        }
-        //set(15,15,[32]);
-        //set(16,15,[33]); //33
-        //set(15,16,[121]);
-        //set(16,16,[121]);
-        //set(16,20,[434,33,33,33]);
-        for (x in 10...16) set(x,10,[2959]);
     }
     
     function readPixels(file:String):{data:Bytes, width:Int, height:Int} {
