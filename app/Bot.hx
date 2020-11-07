@@ -18,7 +18,6 @@ import openlife.data.Target;
 import haxe.ds.Map;
 class Bot extends Engine implements EngineHeader
 {
-    public var currentAction:Action;
     public var target:openlife.data.Target;
     public var auto:Automation;
     public var resetFlag:Bool = false;

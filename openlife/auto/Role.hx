@@ -42,7 +42,7 @@ class Role{
     }
     public function selectAction():Action{
         actionsChecked = new Array<String>();
-        if(resourceNeeded==null && this.inflowActions.length>0){
+        if(resourceNeeded == 0 && this.inflowActions.length > 0) {
             return this.selectInflowAction();
         } else if(this.outflowActions.length>0){
             return this.selectOutflowAction();
@@ -67,7 +67,7 @@ class Role{
         //Check current action isValidAction
         //if action is valid then run action
         //otherwise next action
-        bot.currentAction.step();
+        bot.currentAction.step(bot);
     }
 
     public function assign(bot:BotType){
