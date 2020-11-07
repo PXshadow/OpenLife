@@ -19,7 +19,7 @@ import haxe.io.Bytes;
 
     public var SNOWINGREY = 7; // TODO 
     public var OCEAN = 9;  // TODO
-    public var RIVER = 10;  // TODO 
+    public var RIVER = 13;  // TODO 
 }
 
 @:enum abstract BiomeMapColor(String) from String to String
@@ -57,12 +57,6 @@ class Map
     var objects:Vector<Array<Int>>;
     var floors:Vector<Int>;
     public var biomes:Vector<Int>;
-
-    // public var length(get, null):Int;
-    
-    // function get_length():Int {
-    //     return width * height;
-    // }
 
     public var width:Int;
     public var height:Int;
@@ -130,6 +124,7 @@ class Map
                 if(biomeInt == GREEN){
                     //trace('${ x },${ y }:BI ${ biomeInt },${ r },${ g },${ b } - ${ StringTools.hex(p,8) }');
                 }
+                //biomeInt = x % 100;
                 biomes[x+y*width] = biomeInt;
             }
         }
@@ -183,7 +178,19 @@ class Map
             {
                 //var localIndex = px + ((height - 1) - py) * width;
                 var localIndex = px + py * width;
-                var index = (x + px) + (y + py) * this.width;
+                var tx = x + px;
+                var ty = y + py;
+
+                // make map round x wise
+                if(tx < 0) tx += this.width; 
+                else if(tx >= this.width) tx -= this.width;
+
+                // make map round y wise
+                if(ty < 0) ty += this.height; 
+                else if(ty >= this.height) ty -= this.height;
+
+                var index = tx + ty * this.width;
+                
                 map.biomes[localIndex] = biomes[index];
                 map.floors[localIndex] = floors[index];
                 map.objects[localIndex] = objects[index];
@@ -193,27 +200,25 @@ class Map
     }
 
     public function getBiomeSpeed(x:Int, y:Int):Float 
-        {
-            var biomeType = biomes[index(x,y)];
-    
-            trace('${ x },${ y }:BI ${ biomeType }');
-    
-            
-    
-            return switch biomeType {
-                case GREEN: SGREEN;
-                case SWAMP: SSWAMP;
-                case YELLOW: SYELLOW;
-                case GREY: SGREY;
-                case SNOW: SSNOW;
-                case DESERT: SDESERT;
-                case JUNGLE: SJUNGLE;
-                case SNOWINGREY: SSNOWINGREY;
-                case OCEAN: SOCEAN;
-                case RIVER: SRIVER;
-                default: 1;
-            }
-        } 
+    {
+        var biomeType = biomes[index(x,y)];
+
+        trace('${ x },${ y }:BI ${ biomeType }');
+
+        return switch biomeType {
+            case GREEN: SGREEN;
+            case SWAMP: SSWAMP;
+            case YELLOW: SYELLOW;
+            case GREY: SGREY;
+            case SNOW: SSNOW;
+            case DESERT: SDESERT;
+            case JUNGLE: SJUNGLE;
+            case SNOWINGREY: SSNOWINGREY;
+            case OCEAN: SOCEAN;
+            case RIVER: SRIVER;
+            default: 1;
+        }
+    } 
 
     public function get(x:Int,y:Int,delete:Bool=false,floorBool:Bool=false):Array<Int>
     {
@@ -221,11 +226,13 @@ class Map
         if (delete) set(x,y,[0],floorBool);
         return i;
     }
+
     public function set(x:Int,y:Int,id:Array<Int>,floorBool:Bool=false)
     {
         if (!floorBool) objects[index(x,y)] = id;
         if (floorBool) floors[index(x,y)] = id[0];
     }
+
     private inline function index(x:Int,y:Int):Int
     {
         var i = x + y * width;
