@@ -47,6 +47,7 @@ class Connection implements ServerHeader
     {
         
     }
+
     public function close()
     {
         running = false;
@@ -58,11 +59,13 @@ class Connection implements ServerHeader
     {
 
     }
+
     public function die()
     {
         server.connections.remove(this);
         sock.close();
     }
+
     public function say(text:String)
     {
         var curse = 0;
@@ -77,39 +80,12 @@ class Connection implements ServerHeader
             c.send(FRAME);
         }
     }
+
     public function flip()
     {
         
     }
 
-    public function sendMapChunk(x:Int,y:Int,width:Int = 32,height:Int = 30)
-    {
-
-        var tgx = player.gx + x;
-        var tgy = player.gy - y;
-
-        trace("x: " + x);
-        trace("y: " + y);
-        trace("gx: " + tgx);
-        trace("gy: " + tgy);
-
-        x -= Std.int(width / 2);
-        y -= Std.int(height / 2);
-              
-        // x + gx and y + gy are exactly the pixel location in the map image
-        //var map = server.map.getChunk(x + player.gx, player.gy - y - (height-1), width, height).toString();
-        var map = server.map.getChunk(x + player.gx, y + player.gy - 1, width, height).toString();
-        var uncompressed = Bytes.ofString(map);
-        var bytes = haxe.zip.Compress.run(uncompressed,-1);
-
-       
-        
-        send(MAP_CHUNK,['$width $height $x $y','${uncompressed.length} ${bytes.length}']);
-        sock.output.write(bytes);
-        //send(VALLEY_SPACING,["40 40"]); // TODO what is this for?
-        send(FRAME);
-    }
-    
     public function login()
     {
         send(ACCEPTED);
@@ -138,6 +114,34 @@ class Connection implements ServerHeader
         send(FRAME);
         send(LINEAGE,['$id eve=$id']);
     }
+
+    public function sendMapChunk(x:Int,y:Int,width:Int = 32,height:Int = 30)
+    {
+/*
+        var tgx = player.gx + x;
+        var tgy = player.gy - y;
+
+        trace("x: " + x);
+        trace("y: " + y);
+        trace("gx: " + tgx);
+        trace("gy: " + tgy);
+*/
+        x -= Std.int(width / 2);
+        y -= Std.int(height / 2);
+              
+        // x + gx and y + gy are exactly the pixel location in the map image
+        //var map = server.map.getChunk(x + player.gx, player.gy - y - (height-1), width, height).toString();
+        var map = server.map.getChunk(x + player.gx, y + player.gy - 1, width, height).toString();
+        var uncompressed = Bytes.ofString(map);
+        var bytes = haxe.zip.Compress.run(uncompressed,-1);
+        
+        send(MAP_CHUNK,['$width $height $x $y','${uncompressed.length} ${bytes.length}']);
+        sock.output.write(bytes);
+        //send(VALLEY_SPACING,["40 40"]); // TODO what is this for?
+        send(FRAME);
+    }
+    
+    
     public function emote(id:Int)
     {
         for (c in server.connections)

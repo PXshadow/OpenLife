@@ -55,19 +55,15 @@ class GlobalPlayerInstance extends PlayerInstance {
         
         for (c in Server.server.connections) 
         {
-            var speed = PlayerInstance.initial_move_speed * Server.server.map.getBiomeSpeed(this.x + gx, gy - this.y);
+            var speed = PlayerInstance.initial_move_speed * Server.server.map.getBiomeSpeed(this.x + gx, this.y + gy);
 
             trace("speed: " + speed);
 
-            this.move_speed = 10;
+            //this.move_speed = 10;
 
-            //player.move_speed = speed;
+            this.move_speed = speed;
             
             // TODO place sending logic in connection???
-            
-            
-
-
             c.send(PLAYER_MOVES_START,['${this.p_id} $x $y $total $eta $trunc ${moveString(moves)}']);
             c.send(PLAYER_UPDATE,[this.toData()]);
             c.send(FRAME);

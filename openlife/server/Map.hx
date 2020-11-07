@@ -39,17 +39,17 @@ import haxe.io.Bytes;
 
 @:enum abstract BiomeSpeed(Float) from Float to Float
 {
-    public var SGREEN = 0.2;//1;  
-    public var SSWAMP = 0.2;  
-    public var SYELLOW = 1;
-    public var SGREY = 0.03;//0.8;
-    public var SSNOW = 0.5;
-    public var SDESERT= 0.02;//0.5;
-    public var SJUNGLE = 0.6;  
+    public var SGREEN = 1;//1;  
+    public var SSWAMP = 0.201;  
+    public var SYELLOW = 1.02;
+    public var SGREY = 0.803;//0.8;
+    public var SSNOW = 0.504;
+    public var SDESERT= 0.505;//0.5;
+    public var SJUNGLE = 0.606;  
 
-    public var SSNOWINGREY = 0.1;
-    public var SOCEAN = 0.1;  
-    public var SRIVER = 0.1;   
+    public var SSNOWINGREY = 0.107;
+    public var SOCEAN = 0.109;  
+    public var SRIVER = 0.1013;   
 }
 
 class Map
@@ -180,7 +180,7 @@ class Map
                 var localIndex = px + py * width;
                 var tx = x + px;
                 var ty = y + py;
-
+/*
                 // make map round x wise
                 if(tx < 0) tx += this.width; 
                 else if(tx >= this.width) tx -= this.width;
@@ -188,8 +188,8 @@ class Map
                 // make map round y wise
                 if(ty < 0) ty += this.height; 
                 else if(ty >= this.height) ty -= this.height;
-
-                var index = tx + ty * this.width;
+*/
+                var index = index(tx,ty); //tx + ty * this.width;
                 
                 map.biomes[localIndex] = biomes[index];
                 map.floors[localIndex] = floors[index];
@@ -201,7 +201,8 @@ class Map
 
     public function getBiomeSpeed(x:Int, y:Int):Float 
     {
-        var biomeType = biomes[index(x,y)];
+        // dont know why, but adding x + 1 finds the right biome to the position
+        var biomeType = biomes[index(x, y - 1)];
 
         trace('${ x },${ y }:BI ${ biomeType }');
 
@@ -235,9 +236,18 @@ class Map
 
     private inline function index(x:Int,y:Int):Int
     {
+        // make map round x wise
+        if(x < 0) x += this.width; 
+        else if(x >= this.width) x -= this.width;
+
+        // make map round y wise
+        if(y < 0) y += this.height; 
+        else if(y >= this.height) y -= this.height;
+
         var i = x + y * width;
         return i;
     }
+
     private inline function sigmoid(input:Float,knee:Float):Float
     {
         var shifted = input * 2 -1;

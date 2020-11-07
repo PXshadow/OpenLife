@@ -76,7 +76,7 @@ class PlayerInstance
      */
     public var age_r:Float = 60;
 
-    public static var initial_move_speed:Float = 10;//3.75;
+    public static var initial_move_speed:Float = 3.75; //10;
 
     /**
      * move speed of player
