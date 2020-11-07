@@ -42,6 +42,7 @@ class Server
             Sys.sleep(1/20);
         }
     }
+
     public function new()
     {
         //initalize database
@@ -79,13 +80,17 @@ class Server
             thread.create();
         });
     }
+
     private function update()
     {
+        //if(this.tick % 20 == 0) trace("Ticks: " + this.tick);
+
         for (connection in connections)
         {
             connection.update();
         }
     }
+
     public function process(connection:Connection,string:String)
     {
         Sys.println(string); //log messages
@@ -97,6 +102,7 @@ class Server
         if (array.length == 0) return;
         message(connection,tag,array,string);
     }
+
     private function message(header:ServerHeader,tag:ServerTag,input:Array<String>,string:String)
     {
         switch (tag)

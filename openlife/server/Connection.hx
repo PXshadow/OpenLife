@@ -43,9 +43,15 @@ class Connection implements ServerHeader
         var version = server.dataVersionNumber;
         send(SERVER_INFO,["0/0",challenge,'$version']);
     }
+
     public function update()
     {
-        
+        if(server.tick % 20 == 0){
+            //trace("Ticks: " + server.tick);
+            // TODO needs to calculate the player position first
+            // player.sendSpeedUpdate(this);
+            //this.send(FRAME);
+        }
     }
 
     public function close()
@@ -141,7 +147,6 @@ class Connection implements ServerHeader
         send(FRAME);
     }
     
-    
     public function emote(id:Int)
     {
         for (c in server.connections)
@@ -155,6 +160,7 @@ class Connection implements ServerHeader
     {
         login();
     }
+
     public function send(tag:ClientTag,data:Array<String>=null)
     {
         var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
