@@ -127,8 +127,8 @@ class Map
                 }
                 //biomeInt = x % 100;
                 biomes[x+y*width] = biomeInt;
-
-                objects[x+y*width] = [30];
+                objects[x+y*width] = [0];
+                if (Math.random() > 0.4) continue;
                 var buffer:Array<ObjectData> = [];
                 for (obj in Server.vector) {
                     if (obj.mapChance == 0) continue;

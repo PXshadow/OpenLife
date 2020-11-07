@@ -52,8 +52,7 @@ class Server
         {
             TableCreate.create(MapTable.manager);
         }
-
-        var row = MapTable.manager.select($p_id == 30,null);
+        /*var row = MapTable.manager.select($p_id == 30);
         trace("row: " + row);
         if (row != null)
         {
@@ -65,7 +64,7 @@ class Server
         row.p_id = 30;
         row.timestamp = Date.now();
         row.insert();
-        trace("insert");
+        trace("insert");*/
 
         Engine.dir = Utility.dir();
         var tmp = ObjectBake.objectList();
