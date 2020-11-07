@@ -11,7 +11,8 @@ TODO
 
 SERVER
 ======
-1. Generate map using image color as index for biome id
-2. Map generates on the fly objects
-3. Player can interact with objects (use,drop,remove,self(eat),move), map persistance as part of it. (Use our own data models)
-4. set up transition system for object using/delay time example: stone + bighardrock -> sharp rock,  milkweed flowering -> 15 seconds -> milkweed fruiting
+DONE: Generate limited map using image color as index for biome id
+DONE: Made map "round", so you can walk over both x,y borders and come out on the other side. 
+1. Map generates on the fly objects
+2. Player can interact with objects (use,drop,remove,self(eat),move), map persistance as part of it. (Use our own data models)
+3. set up transition system for object using/delay time example: stone + bighardrock -> sharp rock,  milkweed flowering -> 15 seconds -> milkweed fruiting
