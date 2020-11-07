@@ -23,14 +23,14 @@ class GlobalPlayerInstance extends PlayerInstance {
         var eta = total;
         var trunc = 0;
         var last = moves.pop(); 
-        //this.x += last.x; // TODO check if movement is valid
+        //this.x += last.x; // TODO check if client movement is valid
         //this.y += last.y;
         this.x = x;
         this.y = y;
 
 
         moves.push(last);
-
+/*
         var tgx = this.gx + this.x;
         var tgy = this.gy - this.y;
 
@@ -40,23 +40,15 @@ class GlobalPlayerInstance extends PlayerInstance {
         trace("ty: " + this.ty);
         trace("gx: " + tgx);
         trace("gy: " + tgy);
+*/
+        // TODO spacing / chunk loading in x direction is too slow with high speed
+        var spacing = 4;
 
-        if(this.x - tx> 6 || this.x - tx < -6 || this.y - ty > 6 || this.y - ty < -6 ) {
-            // TODO send current player map chunk
-            trace("new chunk");
+        if(this.x - tx> spacing || this.x - tx < -spacing || this.y - ty > spacing || this.y - ty < -spacing ) {          
+            //trace("new chunk");
             
             this.tx = x;
             this.ty = y;
-
-            //this.gx += x;
-            //this.gy += y;
-
-            //this.forced = true; // TODO change (test to force position)
-            //this.x = 0;
-            //this.y = 0;
-
-            //this.o_origin_x = 0;
-            //this.o_origin_y = 0;
 
             connection.sendMapChunk(x,y);
         }

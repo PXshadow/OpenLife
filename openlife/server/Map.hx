@@ -176,6 +176,9 @@ class Map
         return ret;
     }
 
+    // The Server map is saved in an array with y starting from top, 
+    // The client wants an array with y starting from bottom.
+    // GetChunk transforms y coordinates between these server and client arrays   
     public function getChunk(x:Int,y:Int,width:Int,height:Int):Map
     {
         var map = new Map();
@@ -185,7 +188,7 @@ class Map
         {
             for (py in 0...height)
             {
-                var localIndex = px + py * width;
+                var localIndex = px + ((height - 1) - py) * width;
                 var index = (x + px) + (y + py) * this.width;
                 map.biomes[localIndex] = biomes[index];
                 map.floors[localIndex] = floors[index];
