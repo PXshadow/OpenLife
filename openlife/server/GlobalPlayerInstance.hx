@@ -69,7 +69,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         //speed = (speed + startSpeed) / 2; 
         if(startSpeed < speed) speed = startSpeed;
 
-        trace("speed:" + speed);
+        //trace("speed:" + speed);
 
         speed *= PlayerInstance.initial_move_speed;
         this.move_speed = speed;
@@ -92,12 +92,13 @@ class GlobalPlayerInstance extends PlayerInstance {
             connection.sendMapChunk(x,y);
         }
         
+
         //this.sendSpeedUpdate(connection);
 
         for (c in Server.server.connections) 
         {
-            c.send(PLAYER_UPDATE,[this.toData()]);
             c.send(PLAYER_MOVES_START,['${this.p_id} $x $y $total $eta $trunc ${moveString(newMoves)}']);
+            c.send(PLAYER_UPDATE,[this.toData()]);
             c.send(FRAME);
         }
     }

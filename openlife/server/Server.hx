@@ -96,7 +96,7 @@ class Server
 
     public function process(connection:Connection,string:String)
     {
-        Sys.println(string); //log messages
+        //Sys.println(string); //log messages
         var index = string.indexOf(" ");
         if (index == -1) return;
         var tag = string.substring(0,index);

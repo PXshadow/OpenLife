@@ -43,7 +43,10 @@ class ThreadServer
         {
             try {
                 message = socket.input.readUntil("#".code);
+
+                trace(message);
                 ka = Timer.stamp();
+                
             }catch(e:Dynamic)
             {
                 if (e != haxe.io.Error.Blocked)

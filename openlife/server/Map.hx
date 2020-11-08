@@ -95,7 +95,7 @@ class Map
 
         for (y in 0...height){
             for (x in 0...width) {
-                if(y % 100 == 0){
+                if(y % 100 == 0 && x == 0){
                     trace('generating map up to y: ' + y);
                 }
                 
@@ -206,7 +206,7 @@ class Map
     {
         var biomeType = biomes[index(x, y - 1)];
 
-        trace('${ x },${ y }:BI ${ biomeType }');
+        //trace('${ x },${ y }:BI ${ biomeType }');
 
         return switch biomeType {
             case GREEN: SGREEN;

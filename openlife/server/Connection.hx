@@ -102,7 +102,7 @@ class Connection implements ServerHeader
         var id = server.index++;
         player.p_id = id;
         player.gx = 400;
-        player.gy = 600 - 200; // server map is saved y inverse 
+        player.gy = 600 - 400; // server map is saved y inverse 
 
         sendMapChunk(0,0);
 
@@ -133,7 +133,7 @@ class Connection implements ServerHeader
         send(MAP_CHUNK,['$width $height $x $y','${uncompressed.length} ${bytes.length}']);
         sock.output.write(bytes);
         //send(VALLEY_SPACING,["40 40"]); // TODO what is this for?
-        send(FRAME);
+        //send(FRAME);
     }
     
     public function emote(id:Int)
@@ -153,7 +153,7 @@ class Connection implements ServerHeader
     public function send(tag:ClientTag,data:Array<String>=null)
     {
         var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
-        trace(string);
+        //trace(string);
         sock.output.writeString(string);
     }
 }
