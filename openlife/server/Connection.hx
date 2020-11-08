@@ -102,7 +102,7 @@ class Connection implements ServerHeader
         var id = server.index++;
         player.p_id = id;
         player.gx = 400;
-        player.gy = 600 - 400; // server map is saved y inverse 
+        player.gy = 600 - 200; // server map is saved y inverse 
 
         sendMapChunk(0,0);
 
@@ -123,20 +123,9 @@ class Connection implements ServerHeader
 
     public function sendMapChunk(x:Int,y:Int,width:Int = 32,height:Int = 30)
     {
-/*
-        var tgx = player.gx + x;
-        var tgy = player.gy - y;
-
-        trace("x: " + x);
-        trace("y: " + y);
-        trace("gx: " + tgx);
-        trace("gy: " + tgy);
-*/
         x -= Std.int(width / 2);
         y -= Std.int(height / 2);
               
-        // x + gx and y + gy are exactly the pixel location in the map image
-        //var map = server.map.getChunk(x + player.gx, player.gy - y - (height-1), width, height).toString();
         var map = server.map.getChunk(x + player.gx, y + player.gy - 1, width, height).toString();
         var uncompressed = Bytes.ofString(map);
         var bytes = haxe.zip.Compress.run(uncompressed,-1);

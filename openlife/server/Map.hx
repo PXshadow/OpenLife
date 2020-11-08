@@ -136,11 +136,11 @@ class Map
                 objects[x+y*width] = [0];
 
                 // TODO this is work around to make object creation faster
-                //if(x < 350 || x > 450) continue; 
+                if(x < 350 || x > 450) continue; 
                 if (Math.random() > 0.4) continue;
                 
                 var set:Bool = false;
-                
+
                 for (obj in biomeObjectData[biomeInt]) {
                     if (set) continue;
                     if (Math.random() > obj.mapChance) {
@@ -191,20 +191,8 @@ class Map
         {
             for (py in 0...height)
             {
-                //var localIndex = px + ((height - 1) - py) * width;
                 var localIndex = px + py * width;
-                var tx = x + px;
-                var ty = y + py;
-/*
-                // make map round x wise
-                if(tx < 0) tx += this.width; 
-                else if(tx >= this.width) tx -= this.width;
-
-                // make map round y wise
-                if(ty < 0) ty += this.height; 
-                else if(ty >= this.height) ty -= this.height;
-*/
-                var index = index(tx,ty); //tx + ty * this.width;
+                var index = index(x + px, y + py); 
                 
                 map.biomes[localIndex] = biomes[index];
                 map.floors[localIndex] = floors[index];
@@ -216,7 +204,6 @@ class Map
 
     public function getBiomeSpeed(x:Int, y:Int):Float 
     {
-        // dont know why, but adding x + 1 finds the right biome to the position
         var biomeType = biomes[index(x, y - 1)];
 
         trace('${ x },${ y }:BI ${ biomeType }');
@@ -252,12 +239,14 @@ class Map
     private inline function index(x:Int,y:Int):Int
     {
         // make map round x wise
+        x = x % this.width;
         if(x < 0) x += this.width; 
-        else if(x >= this.width) x -= this.width;
+        //else if(x >= this.width) x -= this.width;
 
         // make map round y wise
+        y = y % this.height;
         if(y < 0) y += this.height; 
-        else if(y >= this.height) y -= this.height;
+        //else if(y >= this.height) y -= this.height;
 
         var i = x + y * width;
         return i;
