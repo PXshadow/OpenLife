@@ -5,8 +5,8 @@ import openlife.data.object.player.PlayerInstance;
 class GlobalPlayerInstance extends PlayerInstance {
     public var connection:Connection; 
 
-    public var gx:Int = 430; //global x offset from birth
-    public var gy:Int = 440; //global y offset from birth
+    public var gx:Int = 400; //global x offset from birth
+    public var gy:Int = 300; //global y offset from birth // remember that y is counted from bottom not from top
 
     private var tx:Int = 0;
     private var ty:Int = 0;
@@ -26,10 +26,6 @@ class GlobalPlayerInstance extends PlayerInstance {
         //this.y += last.y;
         this.x = x;
         this.y = y;
-
-        
-
-
         moves.push(last);
 
         // since it seems speed cannot be set for each tile, the idea is to cut the movement once it crosses in different biomes
@@ -41,6 +37,10 @@ class GlobalPlayerInstance extends PlayerInstance {
         var speed = startSpeed;
         var newMoves:Array<Pos> = [];
 
+        
+        var length = 0.0;
+        var lastPos:Pos = new Pos(0,0);
+
         //trace(moves);
 
         for (move in moves) {
@@ -49,45 +49,38 @@ class GlobalPlayerInstance extends PlayerInstance {
 
             if(speed != startSpeed) {
                 if(newMoves.length == 0){
+                    length += calculateLength(lastPos,move);
                     newMoves.push(move);
                 }
                 if(moves.length > 1) trunc = 1;
                 
-                break;
             }
 
+            length += calculateLength(lastPos,move);
+
             newMoves.push(move);
+            lastPos = move;
+
         }
 
         //trace(newMoves);
 
-        // in case the new field has another speed take the average speed
+        // in case the new field has another speed take the (average speed) worse speed
         //speed = (speed + startSpeed) / 2; 
         if(startSpeed < speed) speed = startSpeed;
 
         trace("speed:" + speed);
-        
+
         speed *= PlayerInstance.initial_move_speed;
         this.move_speed = speed;
-        var total = (1/this.move_speed) * moves.length;
+        var total = (1/this.move_speed) * length;
         var eta = total;
 
 
-        connection.send(PLAYER_UPDATE,[this.toData()]);
+        
 
-
-/*
-        var tgx = this.gx + this.x;
-        var tgy = this.gy - this.y;
-
-        trace("x: " + this.x);
-        trace("y: " + this.y);
-        trace("tx: " + this.tx);
-        trace("ty: " + this.ty);
-        trace("gx: " + tgx);
-        trace("gy: " + tgy);
-*/
         // TODO spacing / chunk loading in x direction is too slow with high speed
+        // TODO general better chunk loading
         var spacing = 4;
 
         if(this.x - tx> spacing || this.x - tx < -spacing || this.y - ty > spacing || this.y - ty < -spacing ) {          
@@ -103,10 +96,58 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         for (c in Server.server.connections) 
         {
+            c.send(PLAYER_UPDATE,[this.toData()]);
             c.send(PLAYER_MOVES_START,['${this.p_id} $x $y $total $eta $trunc ${moveString(newMoves)}']);
             c.send(FRAME);
         }
     }
+
+    public function calculateLength(lastPos:Pos, pos:Pos):Float
+    {
+        // diagonal steps are longer
+        if(lastPos.x != pos.x && lastPos.y != pos.y ){
+            // diags are square root of 2 in length
+            var diagLength = 1.41421356237; 
+            return diagLength;
+        }
+        else {
+            return 1;
+        }
+    }
+
+    /* pixel calulation stuff from Jason server.cpp
+// never move at 0 speed, divide by 0 errors for eta times
+    if( speed < 0.01 ) {
+        speed = 0.01;
+        }
+
+    
+    // after all multipliers, make sure it's a whole number of pixels per frame
+
+    double pixelsPerFrame = speed * 128.0 / 60.0;
+    
+    
+    if( pixelsPerFrame > 0.5 ) {
+        // can round to at least one pixel per frame
+        pixelsPerFrame = lrint( pixelsPerFrame );
+        }
+    else {
+        // fractional pixels per frame
+        
+        // ensure a whole number of frames per pixel
+        double framesPerPixel = 1.0 / pixelsPerFrame;
+        
+        framesPerPixel = lrint( framesPerPixel );
+        
+        pixelsPerFrame = 1.0 / framesPerPixel;
+        }
+    
+    speed = pixelsPerFrame * 60 / 128.0;
+        
+    return speed;
+    }
+
+    */
 
     public function sendSpeedUpdate(c:Connection)
     {
