@@ -18,7 +18,8 @@ import haxe.io.Bytes;
     public var DESERT= 5;
     public var JUNGLE = 6;  
 
-    public var SNOWINGREY = 7; // TODO 
+    // TODO // SNOWINGREY is snow biome on top of mountains. This biome should be therefore harder to pass then snow
+    public var SNOWINGREY = 7; 
     public var OCEAN = 9;  // TODO
     public var RIVER = 13;  // TODO 
 }
@@ -90,11 +91,14 @@ class Map
 
         createVectors(length);
 
-        //length = 400;
+        var biomeObjectData = generateBiomeObjectData();
 
-        //for (y in 0...height){
         for (y in 0...height){
             for (x in 0...width) {
+                if(y % 100 == 0){
+                    trace('generating map up to y: ' + y);
+                }
+                
                 //var p = pngmap.data.getInt32(4*(x+xOffset+(y+yOffset)*pngmap.width));
                 var p = pngmap.data.getInt32(4*(x + ((height - 1) - y) * pngmap.width));
 
@@ -126,17 +130,18 @@ class Map
                     //trace('${ x },${ y }:BI ${ biomeInt },${ r },${ g },${ b } - ${ StringTools.hex(p,8) }');
                 }
                 //biomeInt = x % 100;
+
+                
                 biomes[x+y*width] = biomeInt;
                 objects[x+y*width] = [0];
+
+                // TODO this is work around to make object creation faster
+                //if(x < 350 || x > 450) continue; 
                 if (Math.random() > 0.4) continue;
-                var buffer:Array<ObjectData> = [];
-                for (obj in Server.vector) {
-                    if (obj.mapChance == 0) continue;
-                    if (obj.biomes.indexOf(biomeInt) != -1)
-                        buffer.push(obj);
-                }
+                
                 var set:Bool = false;
-                for (obj in buffer) {
+                
+                for (obj in biomeObjectData[biomeInt]) {
                     if (set) continue;
                     if (Math.random() > obj.mapChance) {
                         objects[x+y*width] = [obj.id];
@@ -145,6 +150,23 @@ class Map
                 }
             }
         }
+    }
+
+    function generateBiomeObjectData():Array<Array<ObjectData>>
+    {
+        var biomeObjectData:Array<Array<ObjectData>> = [];
+
+        for (biomeInt in 0...20){
+            var buffer:Array<ObjectData> = [];
+            biomeObjectData.push(buffer);
+            for (obj in Server.vector) {
+                if (obj.mapChance == 0) continue;
+                if (obj.biomes.indexOf(biomeInt) != -1)
+                    buffer.push(obj);
+            }
+        }
+
+        return biomeObjectData;
     }
     
     function readPixels(file:String):{data:Bytes, width:Int, height:Int} {
