@@ -43,7 +43,7 @@ import haxe.io.Bytes;
 {
     public var SGREEN = 1;//1;  
     public var SSWAMP = 0.201;  
-    public var SYELLOW = 1.02;
+    public var SYELLOW = 1;
     public var SGREY = 0.803;//0.8;
     public var SSNOW = 0.504;
     public var SDESERT= 0.505;//0.5;
