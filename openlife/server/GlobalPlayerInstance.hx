@@ -16,6 +16,7 @@ class GlobalPlayerInstance extends PlayerInstance {
     private var ty:Int = 0;
 
     // to calculate if the move is finished
+    private var newMoveSeqNumber:Int = 0; 
     private var newMoves:Array<Pos>;
     private var totalMoveTime:Float = 0;
     private var startingMoveTicks:Int = 0;
@@ -51,19 +52,21 @@ class GlobalPlayerInstance extends PlayerInstance {
             newMoves = null;
 
             // TODO should not be null, but may because of sync issues
-            if(last != null){
+            //if(last != null){
 
                 this.x += last.x; 
                 this.y += last.y;
-            }
+            //}
 
+            this.done_moving_seqNum = newMoveSeqNumber;
             this.move_speed = server.map.getBiomeSpeed(tx + gx, ty + gy) * PlayerInstance.initial_move_speed;
+            //this.forced = true;
 
 
 
-            trace("reached position: x: " + this.x);
-            trace("reached position: y: " + this.y);
-            trace("forced: " + this.forced);
+            //trace("reached position: x: " + this.x);
+            //trace("reached position: y: " + this.y);
+            //trace("forced: " + this.forced);
 
             
             for (c in Server.server.connections) 
@@ -80,6 +83,11 @@ class GlobalPlayerInstance extends PlayerInstance {
     public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>)
     {
         mutux.acquire(); 
+
+        newMoveSeqNumber = seq;
+        done_moving_seqNum = 0;
+
+        //trace("newMoveSeqNumber: " + newMoveSeqNumber);
 
         // TODO what to do if old movement is not finished?
         newMoves = [];
@@ -140,9 +148,9 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         if(newMoves.length < 1) throw "newMoves.length < 1";
 
-        // in case the new field has another speed take the (average speed) worse speed
-        //speed = (speed + startSpeed) / 2; 
-        if(startSpeed < speed) speed = startSpeed;
+        // in case the new field has another speed take the average speed
+        speed = (speed + startSpeed) / 2; 
+        //if(startSpeed < speed) speed = startSpeed;
 
         
 

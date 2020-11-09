@@ -81,7 +81,7 @@ class PlayerInstance
     /**
      * move speed of player
      */
-    public var move_speed:Float = 10;//3.75;
+    public var move_speed:Float = 3.75;
     /**
      * clothing set string
      */
