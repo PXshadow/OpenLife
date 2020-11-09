@@ -24,8 +24,10 @@ import openlife.data.object.ObjectData;
 class Server
 {
     public static var server:Server; 
+    public static var tickTime = 1 / 20;
 
     public var connections:Array<Connection> = [];
+   
     public var tick:Int = 0;
     public var index:Int = 1;
     public var map:Map;
@@ -40,7 +42,7 @@ class Server
             @:privateAccess haxe.MainLoop.tick();
             @:privateAccess server.update();
             server.tick++;
-            Sys.sleep(1/20);
+            Sys.sleep(tickTime);
         }
     }
 
@@ -134,10 +136,10 @@ class Server
             trace("data " + input);
             header.emote(Std.parseInt(input[2]));
             case USE:
-            trace("USE!");
+            //trace("USE!");
             header.player.use(Std.parseInt(input[0]),Std.parseInt(input[1]));
             case DROP:
-            trace("DROP!");
+            //trace("DROP!");
             header.player.drop(Std.parseInt(input[0]),Std.parseInt(input[1]));
             case SAY:
             var text = string.substring(4);

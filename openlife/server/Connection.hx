@@ -46,12 +46,15 @@ class Connection implements ServerHeader
 
     public function update()
     {
-        if(server.tick % 20 == 0){
+        player.handleUpdate();
+
+
+        //if(server.tick % 20 == 0){
             //trace("Ticks: " + server.tick);
             // TODO needs to calculate the player position first
             // player.sendSpeedUpdate(this);
             //this.send(FRAME);
-        }
+        //}
     }
 
     public function close()
