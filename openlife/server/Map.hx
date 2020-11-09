@@ -63,9 +63,42 @@ class Map
     public var width:Int;
     public var height:Int;
     private var length:Int;
+    private var seed:Int = 38383834;
+    static inline final MULTIPLIER:Float = 48271.0;
+    static inline final MAX_NUM:Int = 2147483647;
+    static inline final MODULUS:Int = MAX_NUM;
+
     public function new()
     {
 
+    }
+    private function shuffleBiomeArray(array:Array<ObjectData>)
+    {
+        if (array.length == 0)
+            return;
+        var temp:ObjectData;
+        var j = 0;
+        var k = 0;
+        for (i in 0...6)
+        {
+            j = randomInt(array.length - 1);
+            k = randomInt(array.length - 1);
+            temp = array[j].clone();
+            array[j] = array[k];
+            array[k] = temp;
+        }
+    }
+    private function generateSeed():Int
+    {
+        return seed = Std.int((seed * MULTIPLIER) % MODULUS);
+    }
+    private function randomInt(x:Int=MAX_NUM):Int
+    {
+        return Math.floor(generateSeed() / MODULUS * (x + 1));
+    }
+    private function randomFloat():Float
+    {
+        return generateSeed() / MODULUS;
     }
     public function createVectors(length:Int)
     {
@@ -136,14 +169,14 @@ class Map
                 objects[x+y*width] = [0];
 
                 // TODO this is work around to make object creation faster
-                if(x < 350 || x > 450) continue; 
-                if (Math.random() > 0.4) continue;
+                if(x < 350 || x > 450) continue;
+                if (randomFloat() > 0.4) continue;
                 
                 var set:Bool = false;
 
                 for (obj in biomeObjectData[biomeInt]) {
                     if (set) continue;
-                    if (Math.random() > obj.mapChance) {
+                    if (randomFloat() > obj.mapChance) {
                         objects[x+y*width] = [obj.id];
                         set = true;
                     }
@@ -158,14 +191,14 @@ class Map
 
         for (biomeInt in 0...20){
             var buffer:Array<ObjectData> = [];
-            biomeObjectData.push(buffer);
             for (obj in Server.vector) {
                 if (obj.mapChance == 0) continue;
                 if (obj.biomes.indexOf(biomeInt) != -1)
                     buffer.push(obj);
             }
+            shuffleBiomeArray(buffer); //seeded random
+            biomeObjectData.push(buffer);
         }
-
         return biomeObjectData;
     }
     
