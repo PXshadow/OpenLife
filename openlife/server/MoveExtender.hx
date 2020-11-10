@@ -36,21 +36,29 @@ class MoveExtender{
 
     static public function move(p:GlobalPlayerInstance, x:Int,y:Int,seq:Int,moves:Array<Pos>)
         {
+            // since move update may acces this also
+            p.mutux.acquire(); 
+
+            var me = p.me;
+
+            if(me.newMoves != null){
+                var lastPos = calculateNewPos(me.newMoves, me.startingMoveTicks, p.move_speed);
+
+                p.x += lastPos.x;
+                p.y += lastPos.y;
+
+                trace('LastPos ${ lastPos.x } ${ lastPos.y }');
+            }
+
             trace('Server ${ p.x },${ p.y }:Client ${ x },${ y }');
 
-            
-            var me = p.me;
-    
-            //trace("newMoveSeqNumber: " + newMoveSeqNumber);
-    
-            // TODO what to do if old movement is not finished?
-            
-            //var last = moves.pop(); 
-            //this.x += last.x; // TODO check if client movement is valid
-            //this.y += last.y;
-    
+            // TODO find a solution that server x,y are calculated right
             p.x = x;
             p.y = y;
+            //p.forced = (p.x != x || p.y != y);
+            //trace(p.forced);
+
+            //trace("newMoveSeqNumber: " + newMoveSeqNumber);
     
             // since it seems speed cannot be set for each tile, the idea is to cut the movement once it crosses in different biomes
             // TODO maybe better to not cut it and make a player update one the new biome is reached?
@@ -66,8 +74,6 @@ class MoveExtender{
             //trace("speed:" + speed);
             var speedChanged = (p.move_speed != newMovements.startSpeed);
             
-            // since move update may acces this also
-            p.mutux.acquire(); 
 
             p.move_speed = newMovements.startSpeed;
 
@@ -104,6 +110,31 @@ class MoveExtender{
             }
         }
 
+        static private function moveString(moves:Array<Pos>):String
+        {
+            var string = "";
+            for (m in moves) string += " " + m.x + " " + m.y;
+            return string.substr(1);
+        }
+    
+        static private function calculateLength(lastPos:Pos, pos:Pos):Float
+        {
+            // diagonal steps are longer
+            if(lastPos.x != pos.x && lastPos.y != pos.y ){
+                // diags are square root of 2 in length
+                var diagLength = 1.41421356237; 
+                return diagLength;
+            }
+            else {
+                return 1;
+            }
+        }
+
+        static private function calculateTimeSinceStartMovementInSec(startingMoveTicks:Int):Float
+        {
+            return (Server.server.tick - startingMoveTicks) * Server.tickTime;
+        }
+
         static private function calculateNewMovements(tx:Int,ty:Int,moves:Array<Pos>):NewMovements 
         {
             var newMovements:NewMovements = new NewMovements();
@@ -134,26 +165,29 @@ class MoveExtender{
             }
 
             return newMovements;
-        }
+        }      
 
-        static private function moveString(moves:Array<Pos>):String
+        // this calculates which position is reached in case the movement was changed while moving
+        static private function calculateNewPos(moves:Array<Pos>, startingMoveTicks:Int, speed:Float):Pos
         {
-            var string = "";
-            for (m in moves) string += " " + m.x + " " + m.y;
-            return string.substr(1);
-        }
-    
-        private static function calculateLength(lastPos:Pos, pos:Pos):Float
-        {
-            // diagonal steps are longer
-            if(lastPos.x != pos.x && lastPos.y != pos.y ){
-                // diags are square root of 2 in length
-                var diagLength = 1.41421356237; 
-                return diagLength;
+            var timeSinceStartMovementInSec = calculateTimeSinceStartMovementInSec(startingMoveTicks);
+            var movedLength = timeSinceStartMovementInSec * speed;
+            var lastPos:Pos = new Pos(0,0);
+            var length = 0.0;
+
+            for (move in moves) {
+                length += calculateLength(lastPos,move);
+                trace('length $length movedLength$movedLength');
+                
+                //me.totalMoveTime = (1/p.move_speed) * newMovements.length;
+                if(length > movedLength) return lastPos;
+
+                lastPos = move;
             }
-            else {
-                return 1;
-            }
+
+            // in this case the hole movement finished 
+            trace("The hole movement finished");
+            return lastPos;
         }
 
         static public function updateMovement(p:GlobalPlayerInstance)
@@ -161,17 +195,17 @@ class MoveExtender{
             var me = p.me;
             // check if movement arrived on destination and if so update all players  
             var server = Server.server;
-            var timeSinceLastMovementInSec = (server.tick - me.startingMoveTicks) * Server.tickTime;
+            var timeSinceStartMovementInSec = calculateTimeSinceStartMovementInSec(me.startingMoveTicks);
     
             if(me.newMoves == null) return;
     
             if(server.tick % 60 == 100){
                 trace("Ticks: " + server.tick);
-                trace("timeSinceLastMovementInSec: " + timeSinceLastMovementInSec);
+                trace("timeSinceStartMovementInSec: " + timeSinceStartMovementInSec);
                 trace("totalMoveTime: " + me.totalMoveTime);
             }
     
-            if(timeSinceLastMovementInSec >= me.totalMoveTime){
+            if(timeSinceStartMovementInSec >= me.totalMoveTime){
 
                 // a new move or command might also change the player data
                 p.mutux.acquire(); 

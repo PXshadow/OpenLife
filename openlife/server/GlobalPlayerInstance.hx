@@ -6,13 +6,16 @@ import sys.thread.Mutex;
 using openlife.server.MoveExtender;
 
 class GlobalPlayerInstance extends PlayerInstance {
+    // handles all the movement stuff
     public var me:MoveExtender = new MoveExtender();
+    // is used since move and move update can change the player at the same time
     public var mutux = new Mutex();
 
     public var connection:Connection; 
 
+    // remember that y is counted from bottom not from top
     public var gx:Int = 400; //global x offset from birth
-    public var gy:Int = 300; //global y offset from birth // remember that y is counted from bottom not from top
+    public var gy:Int = 300; //global y offset from birth 
 
     public function new(a:Array<String>)
     {
