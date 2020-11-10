@@ -241,6 +241,8 @@ class Map
 
         //trace('${ x },${ y }:BI ${ biomeType }');
 
+        //return 0.2;
+
         return switch biomeType {
             case GREEN: SGREEN;
             case SWAMP: SSWAMP;

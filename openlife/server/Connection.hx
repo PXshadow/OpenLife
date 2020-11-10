@@ -1,4 +1,5 @@
 package openlife.server;
+import format.swf.Data.PlaceObject;
 #if (target.threaded)
 import openlife.data.Pos;
 import openlife.data.object.player.PlayerInstance;
@@ -103,11 +104,15 @@ class Connection implements ServerHeader
         server.connections.push(this);
 
         player = new GlobalPlayerInstance([]);
+        
         player.connection = this;
         var id = server.index++;
         player.p_id = id;
         player.gx = 400;
         player.gy = 600 - 400; // server map is saved y inverse 
+        player.move_speed = server.map.getBiomeSpeed(player.gx, player.gy) * PlayerInstance.initial_move_speed;
+
+        trace("move_speed: " + player.move_speed);
 
         sendMapChunk(0,0);
 
@@ -158,7 +163,7 @@ class Connection implements ServerHeader
     public function send(tag:ClientTag,data:Array<String>=null)
     {
         var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
-        trace("S: " + string);
+        //trace("S: " + string);
         sock.output.writeString(string);
     }
 }

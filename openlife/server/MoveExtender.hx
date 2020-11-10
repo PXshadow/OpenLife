@@ -52,11 +52,21 @@ class MoveExtender{
 
             trace('Server ${ p.x },${ p.y }:Client ${ x },${ y }');
 
-            // TODO find a solution that server x,y are calculated right
-            p.x = x;
-            p.y = y;
+
+            // TODO dont accept moves untill a force is confirmed
+            // TODO it accepts one position further even if not fully reached there. 
+            // This could be miss used to double movement speed. But Client seems to do it this way...
+
             //p.forced = (p.x != x || p.y != y);
-            //trace(p.forced);
+            if(((p.x - x) * (p.x - x) > 1) || (p.y - y) * (p.y - y) > 1)
+            {
+                p.forced = true;
+                trace(p.forced);
+            } else{
+                p.forced = false;
+                p.x = x;
+                p.y = y;
+            }
 
             //trace("newMoveSeqNumber: " + newMoveSeqNumber);
     
@@ -176,10 +186,12 @@ class MoveExtender{
             var length = 0.0;
 
             for (move in moves) {
-                length += calculateLength(lastPos,move);
-                trace('length $length movedLength$movedLength');
+                var thisStepLength = calculateLength(lastPos,move);
+                length += thisStepLength;
+                //trace('length: $length movedLength: $movedLength speed: $speed timeSinceStartMovementInSec: $timeSinceStartMovementInSec'  );
                 
-                //me.totalMoveTime = (1/p.move_speed) * newMovements.length;
+                // TODO make exact calculatation there the client thinks he is
+                //if(length - thisStepLength / 2 > movedLength) return lastPos;
                 if(length > movedLength) return lastPos;
 
                 lastPos = move;
