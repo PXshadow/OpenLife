@@ -41,17 +41,17 @@ import haxe.io.Bytes;
 
 @:enum abstract BiomeSpeed(Float) from Float to Float
 {
-    public var SGREEN = 1;//1;  
-    public var SSWAMP = 0.201;  
+    public var SGREEN = 1;  
+    public var SSWAMP = 0.2;  
     public var SYELLOW = 1;
-    public var SGREY = 0.803;//0.8;
-    public var SSNOW = 0.504;
-    public var SDESERT= 0.505;//0.5;
-    public var SJUNGLE = 0.606;  
+    public var SGREY = 0.2;//0.8;
+    public var SSNOW = 0.5;
+    public var SDESERT= 0.5;//0.5;
+    public var SJUNGLE = 0.5;  
 
-    public var SSNOWINGREY = 0.107;
-    public var SOCEAN = 0.109;  
-    public var SRIVER = 0.1013;   
+    public var SSNOWINGREY = 0.1;
+    public var SOCEAN = 0.2;  
+    public var SRIVER = 0.2;   
 }
 
 class Map

@@ -21,6 +21,8 @@ import sys.io.File;
 import haxe.io.Path;
 import openlife.data.object.ObjectData;
 
+using openlife.server.MoveExtender;
+
 class Server
 {
     public static var server:Server; 
@@ -92,7 +94,7 @@ class Server
 
         for (connection in connections)
         {
-            connection.update();
+            connection.player.updateMovement();
         }
     }
 

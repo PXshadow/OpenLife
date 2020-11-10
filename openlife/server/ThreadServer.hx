@@ -41,6 +41,8 @@ class ThreadServer
         var ka:Float = Timer.stamp();
         while (connection.running)
         {
+            Sys.sleep(0.1);
+
             try {
                 message = socket.input.readUntil("#".code);
 
@@ -60,7 +62,7 @@ class ThreadServer
                     }
                 }
             }
-            Sys.sleep(0.1);
+            
             if (message.length == 0) continue;
             try {
                 server.process(connection,message);

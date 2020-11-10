@@ -44,6 +44,7 @@ class Connection implements ServerHeader
         send(SERVER_INFO,["0/0",challenge,'$version']);
     }
 
+    /*
     public function update()
     {
         player.handleUpdate();
@@ -56,6 +57,7 @@ class Connection implements ServerHeader
             //this.send(FRAME);
         //}
     }
+    */
 
     public function close()
     {
@@ -109,7 +111,7 @@ class Connection implements ServerHeader
 
         sendMapChunk(0,0);
 
-        var data:Array<String> = [];//[player.toData()];
+        var data:Array<String> = [];
         for (c in server.connections)
         {
             data.push(c.player.toData());
@@ -156,7 +158,7 @@ class Connection implements ServerHeader
     public function send(tag:ClientTag,data:Array<String>=null)
     {
         var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
-        //trace(string);
+        trace("S: " + string);
         sock.output.writeString(string);
     }
 }
