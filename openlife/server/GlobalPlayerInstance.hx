@@ -38,14 +38,18 @@ class GlobalPlayerInstance extends PlayerInstance {
             return; // TODO do use after reached???
         }
 
-        // TODO check this.o_id[0] == 0
-
         var tx = x + gx;
         var ty = y + gy;
+
+        var tile_o_id = this.o_id;
+        trace("USE: o_id: " + tile_o_id);
+
+        this.o_id = Server.server.map.getObjectId(tx, ty);
+        Server.server.map.setObjectId(tx, ty, tile_o_id);
         
         var newFloorId = Server.server.map.getFloorId(tx, ty);
-        this.o_id = Server.server.map.getObjectId(tx, ty);
-        Server.server.map.setObjectId(tx, ty,[0]);
+        //this.o_id = Server.server.map.getObjectId(tx, ty);
+        //Server.server.map.setObjectId(tx, ty,[0]);
 
         this.action = 1;
         this.o_origin_x = x;
@@ -58,7 +62,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         for (c in Server.server.connections) // TODO only for visible players
         {
             c.send(PLAYER_UPDATE,[this.toData()]);
-            c.sendMapUpdate(x,y,newFloorId, 0, this.p_id);
+            c.sendMapUpdate(x,y,newFloorId, tile_o_id[0], this.p_id);
             c.send(FRAME);
         }
 
@@ -85,17 +89,19 @@ class GlobalPlayerInstance extends PlayerInstance {
         // TODO check this.o_id[0] == 0
         // TODO check if tile is empty
         var newFloorId = Server.server.map.getFloorId(tx, ty);
-        var tile_o_id = Server.server.map.getObjectId(tx, ty);
+        
 
-        if(tile_o_id[0] != 0){
+        /*if(tile_o_id[0] != 0){
             trace("DROP: There is object on tile");
             return; 
-        }
+        }*/
 
-        tile_o_id = this.o_id;
+        var tile_o_id = this.o_id;
+        trace("DROP: o_id: " + tile_o_id);
+
+        this.o_id = Server.server.map.getObjectId(tx, ty);
         Server.server.map.setObjectId(tx, ty, tile_o_id);
-
-        this.o_id = [0];
+        
         this.action = 1;
         this.o_origin_x = 0;
         this.o_origin_y = 0;
