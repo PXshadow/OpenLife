@@ -136,7 +136,7 @@ class Connection implements ServerHeader
         x -= Std.int(width / 2);
         y -= Std.int(height / 2);
               
-        var map = server.map.getChunk(x + player.gx, y + player.gy - 1, width, height).toString();
+        var map = server.map.getChunk(x + player.gx, y + player.gy, width, height).toString();
         var uncompressed = Bytes.ofString(map);
         var bytes = haxe.zip.Compress.run(uncompressed,-1);
         

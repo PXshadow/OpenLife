@@ -24,24 +24,25 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     public function use(x:Int,y:Int)
     {
-        
-        this.o_id = Server.server.map.get(x + gx,y + gy,true);
+        this.o_id = Server.server.map.get(x + gx, y + gy, true);
         this.action = 1;
         this.o_origin_x = x;
         this.o_origin_y = y;
         this.o_origin_valid = 0;
         this.action_target_x = x;
         this.action_target_y = y;
+        this.forced = false;
+
         for (c in Server.server.connections)
         {
             c.send(PLAYER_UPDATE,[this.toData()]);
             c.send(FRAME);
         }
         this.action = 0;
-        this.forced = false;
-        this.o_origin_valid = 0;
         
+        //this.o_origin_valid = 0;
     }
+
     public function drop(x:Int,y:Int)
     {
         this.o_id = [0];
@@ -51,12 +52,13 @@ class GlobalPlayerInstance extends PlayerInstance {
         this.o_origin_valid = 0;
         this.action_target_x = x;
         this.action_target_y = y;
+        this.forced = false;
+
         for (c in Server.server.connections) // TODO only for visible players
         {
             c.send(PLAYER_UPDATE,[this.toData()]);
             c.send(FRAME);
         }
         this.action = 0;
-        this.forced = false;
     }
 }

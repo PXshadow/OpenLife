@@ -237,7 +237,7 @@ class Map
 
     public function getBiomeSpeed(x:Int, y:Int):Float 
     {
-        var biomeType = biomes[index(x, y - 1)];
+        var biomeType = biomes[index(x, y)];
 
         //trace('${ x },${ y }:BI ${ biomeType }');
 
@@ -273,6 +273,9 @@ class Map
 
     private inline function index(x:Int,y:Int):Int
     {
+        // Dont know why yet, but y seems to be right if -1
+        y -= 1;
+
         // make map round x wise
         x = x % this.width;
         if(x < 0) x += this.width; 
