@@ -34,6 +34,10 @@ class MoveExtender{
     public function new(){
     }
 
+    public function isMoveing():Bool{    
+        return (this.newMoves != null);
+    }
+
     static public function move(p:GlobalPlayerInstance, x:Int,y:Int,seq:Int,moves:Array<Pos>)
         {
             // since move update may acces this also
@@ -58,11 +62,14 @@ class MoveExtender{
             // This could be miss used to double movement speed. But Client seems to do it this way...
 
             //p.forced = (p.x != x || p.y != y);
-            if(((p.x - x) * (p.x - x) > 1) || (p.y - y) * (p.y - y) > 1)
+            //if(((p.x - x) * (p.x - x) > 1) || (p.y - y) * (p.y - y) > 1)
+            if(p.isClose(x,y) == false)
             {
                 p.forced = true;
                 trace(p.forced);
-            } else{
+            }
+            else
+            {
                 p.forced = false;
                 p.x = x;
                 p.y = y;

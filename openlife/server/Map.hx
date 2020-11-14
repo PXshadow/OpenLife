@@ -258,17 +258,20 @@ class Map
         }
     } 
 
-    public function get(x:Int,y:Int,delete:Bool=false,floorBool:Bool=false):Array<Int>
+    public function getObjectId(x:Int, y:Int):Array<Int>
     {
-        var i = floorBool ? [floors[index(x,y)]] : objects[index(x,y)];
-        if (delete) set(x,y,[0],floorBool);
-        return i;
+        return objects[index(x,y)];
     }
 
-    public function set(x:Int,y:Int,id:Array<Int>,floorBool:Bool=false)
+    public function getFloorId(x:Int, y:Int):Int
     {
-        if (!floorBool) objects[index(x,y)] = id;
-        if (floorBool) floors[index(x,y)] = id[0];
+        return floors[index(x,y)];
+    }
+
+    public function setObjectId(x:Int,y:Int,id:Array<Int>)
+    {
+        objects[index(x,y)] = id;
+        //if (floorBool) floors[index(x,y)] = id[0];
     }
 
     private inline function index(x:Int,y:Int):Int

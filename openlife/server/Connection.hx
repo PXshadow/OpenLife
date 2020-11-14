@@ -145,6 +145,22 @@ class Connection implements ServerHeader
         //send(VALLEY_SPACING,["40 40"]); // TODO what is this for?
         //send(FRAME);
     }
+
+    /*
+    MX
+    x y new_floor_id new_id p_id
+    #
+
+    Or 
+
+    MX
+    x y new_floor_id new_id p_id old_x old_y speed
+    #
+    */
+    public function sendMapUpdate(x:Int, y:Int, newFloorId:Int, newObjectId:Int, playerId:Int)
+    {
+        send(MAP_CHANGE,['$x $y $newFloorId $newObjectId $playerId']);
+    }
     
     public function emote(id:Int)
     {
@@ -163,7 +179,7 @@ class Connection implements ServerHeader
     public function send(tag:ClientTag,data:Array<String>=null)
     {
         var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
-        //trace("S: " + string);
+        trace("S: " + string);
         sock.output.writeString(string);
     }
 }

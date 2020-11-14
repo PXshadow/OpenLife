@@ -22,30 +22,31 @@ class GlobalPlayerInstance extends PlayerInstance {
         super(a);
     }
 
-    public function use(x:Int,y:Int)
-    {
-        this.o_id = Server.server.map.get(x + gx, y + gy, true);
-        this.action = 1;
-        this.o_origin_x = x;
-        this.o_origin_y = y;
-        this.o_origin_valid = 0;
-        this.action_target_x = x;
-        this.action_target_y = y;
-        this.forced = false;
-
-        for (c in Server.server.connections)
-        {
-            c.send(PLAYER_UPDATE,[this.toData()]);
-            c.send(FRAME);
-        }
-        this.action = 0;
-        
-        //this.o_origin_valid = 0;
+    public function isClose(x:Int, y:Int, distance:Int = 1):Bool{    
+        return (((this.x - x) * (this.x - x) <= distance) && ((this.y - y) * (this.y - y) <= distance));
     }
 
-    public function drop(x:Int,y:Int)
+    public function use(x:Int,y:Int)
     {
-        this.o_id = [0];
+        if(me.isMoveing()) {
+            trace("USE: Player is still moving");
+            return; // TODO do use after reached???
+        }
+
+        if(this.isClose(x,y) == false) {
+            trace('USE: object position is too far away p${this.x},p${this.y} o$x,o$y');
+            return; // TODO do use after reached???
+        }
+
+        // TODO check this.o_id[0] == 0
+
+        var tx = x + gx;
+        var ty = y + gy;
+        
+        var newFloorId = Server.server.map.getFloorId(tx, ty);
+        this.o_id = Server.server.map.getObjectId(tx, ty);
+        Server.server.map.setObjectId(tx, ty,[0]);
+
         this.action = 1;
         this.o_origin_x = x;
         this.o_origin_y = y;
@@ -57,8 +58,59 @@ class GlobalPlayerInstance extends PlayerInstance {
         for (c in Server.server.connections) // TODO only for visible players
         {
             c.send(PLAYER_UPDATE,[this.toData()]);
+            c.sendMapUpdate(x,y,newFloorId, 0, this.p_id);
             c.send(FRAME);
         }
+
+        this.action = 0;
+        
+        //this.o_origin_valid = 0;
+    }
+
+    public function drop(x:Int,y:Int)
+    {
+        if(me.isMoveing()) {
+            trace("DROP: Player is still moving");
+            return; // TODO do use after reached???
+        }
+
+        if(this.isClose(x,y) == false) {
+            trace('DROP: object position is too far away p${this.x},p${this.y} o$x,o$y');
+            return; 
+        }
+
+        var tx = x + gx;
+        var ty = y + gy;
+
+        // TODO check this.o_id[0] == 0
+        // TODO check if tile is empty
+        var newFloorId = Server.server.map.getFloorId(tx, ty);
+        var tile_o_id = Server.server.map.getObjectId(tx, ty);
+
+        if(tile_o_id[0] != 0){
+            trace("DROP: There is object on tile");
+            return; 
+        }
+
+        tile_o_id = this.o_id;
+        Server.server.map.setObjectId(tx, ty, tile_o_id);
+
+        this.o_id = [0];
+        this.action = 1;
+        this.o_origin_x = 0;
+        this.o_origin_y = 0;
+        this.o_origin_valid = 0;
+        this.action_target_x = x;
+        this.action_target_y = y;
+        this.forced = false;
+
+        for (c in Server.server.connections) // TODO only for visible players
+        {
+            c.send(PLAYER_UPDATE,[this.toData()]);
+            c.sendMapUpdate(x,y,newFloorId, tile_o_id[0], this.p_id);
+            c.send(FRAME);
+        }
+
         this.action = 0;
     }
 }
