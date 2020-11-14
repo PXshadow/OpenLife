@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.transition.TransitionData;
 import openlife.data.Pos;
 import openlife.data.object.player.PlayerInstance;
 import sys.thread.Mutex;
@@ -51,6 +52,16 @@ class GlobalPlayerInstance extends PlayerInstance {
         if(objectID[0] != 0){
             var objectData = Server.objectDataMap[objectID[0]];
             trace("OD: " + objectData.toFileString());
+
+            var transitions = Server.transitionImporter.transitionsByTargetID[objectID[0]];
+
+            if(transitions != null){
+
+                for(trans in transitions){
+                    trace(trans.actorID);
+                }
+                
+            }
 
             if(objectData.permanent != 0) doaction = false;
         }

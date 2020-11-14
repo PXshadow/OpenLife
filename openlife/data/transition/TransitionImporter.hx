@@ -9,6 +9,9 @@ class TransitionImporter
 {
     public var transitions:Array<TransitionData>;
     public var categories:Array<Category>;
+
+    public var transitionsByTargetID:Map<Int, Array<TransitionData>>;
+
     public function new()
     {
 
@@ -23,8 +26,10 @@ class TransitionImporter
         }
     }
     public function importTransitions()
-    {
+    {        
         transitions = [];
+        transitionsByTargetID = [];
+
         for (name in sys.FileSystem.readDirectory(Engine.dir + "transitions"))
         {
             //Last use determines whether the current transition is used when numUses is greater than 1
@@ -32,6 +37,17 @@ class TransitionImporter
             var transition = new TransitionData(Path.withoutExtension(name),File.getContent(Engine.dir + 'transitions/$name'));
             //actor + target = new actor + new target
             transitions.push(transition);
+
+            var trans = transitionsByTargetID[transition.targetID];
+            
+            if(trans == null){
+                trans = [];
+                transitionsByTargetID[transition.targetID] = trans;
+            }
+
+            trans.push(transition);
+
+            trace('${transition.targetID} ' + trans.length);
         }
     }
 }

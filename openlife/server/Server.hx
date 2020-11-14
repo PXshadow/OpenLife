@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.transition.TransitionImporter;
 import openlife.server.tables.MapTable;
 import sys.db.TableCreate;
 import sys.db.Manager;
@@ -29,6 +30,10 @@ class Server
     public static var tickTime = 1 / 20;
     public static var vector:Vector<ObjectData>;
     public static var objectDataMap:Map<Int, ObjectData> = [];
+    public static var transitionMap:Map<Int, ObjectData> = [];
+
+    public static var transitionImporter:TransitionImporter = new TransitionImporter();
+
 
     public var connections:Array<Connection> = [];
    
@@ -78,6 +83,8 @@ class Server
         var tmp = ObjectBake.objectList();
         vector = new Vector<ObjectData>(tmp.length);
 
+
+
         objectDataMap = [];
 
         for (i in 0...vector.length){
@@ -85,6 +92,8 @@ class Server
             vector[i] = objectData;
             objectDataMap[objectData.id] = objectData;
         }
+
+        transitionImporter.importTransitions();
 
         dataVersionNumber = Resource.dataVersionNumber();
         trace('dataVersionNumber: $dataVersionNumber');
