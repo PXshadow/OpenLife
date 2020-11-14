@@ -54,7 +54,7 @@ import haxe.io.Bytes;
     public var SRIVER = 0.2;   
 }
 
-class Map
+class WorldMap
 {
     var objects:Vector<Array<Int>>;
     var floors:Vector<Int>;
@@ -215,9 +215,9 @@ class Map
         return ret;
     }
 
-    public function getChunk(x:Int,y:Int,width:Int,height:Int):Map
+    public function getChunk(x:Int,y:Int,width:Int,height:Int):WorldMap
     {
-        var map = new Map();
+        var map = new WorldMap();
         var length = width * height;
         map.createVectors(length);
         for (px in 0...width)

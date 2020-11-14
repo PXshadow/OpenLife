@@ -30,12 +30,12 @@ class GlobalPlayerInstance extends PlayerInstance {
     {
         if(me.isMoveing()) {
             trace("USE: Player is still moving");
-            return; // TODO do use after reached???
+            return; 
         }
 
         if(this.isClose(x,y) == false) {
             trace('USE: object position is too far away p${this.x},p${this.y} o$x,o$y');
-            return; // TODO do use after reached???
+            return; 
         }
 
         var tx = x + gx;
@@ -44,25 +44,44 @@ class GlobalPlayerInstance extends PlayerInstance {
         var tile_o_id = this.o_id;
         trace("USE: o_id: " + tile_o_id);
 
-        this.o_id = Server.server.map.getObjectId(tx, ty);
-        Server.server.map.setObjectId(tx, ty, tile_o_id);
-        
-        var newFloorId = Server.server.map.getFloorId(tx, ty);
-        //this.o_id = Server.server.map.getObjectId(tx, ty);
-        //Server.server.map.setObjectId(tx, ty,[0]);
+        var objectID = Server.server.map.getObjectId(tx, ty);
 
-        this.action = 1;
-        this.o_origin_x = x;
-        this.o_origin_y = y;
-        this.o_origin_valid = 0;
-        this.action_target_x = x;
-        this.action_target_y = y;
-        this.forced = false;
+        var doaction = true;
+
+        if(objectID[0] != 0){
+            var objectData = Server.objectDataMap[objectID[0]];
+            trace("OD: " + objectData.toFileString());
+
+            if(objectData.permanent != 0) doaction = false;
+        }
+        
+        // TODO check pickup age
+        // TODO check if pickup is possible
+        // TODO add transitions
+
+        //deadlyDistance
+
+        var newFloorId = Server.server.map.getFloorId(tx, ty);
+
+        if(doaction){
+
+            Server.server.map.setObjectId(tx, ty, tile_o_id);
+        
+            this.o_id = objectID;
+            this.action = 1;
+            this.o_origin_x = x;
+            this.o_origin_y = y;
+            this.o_origin_valid = 0;
+            this.action_target_x = x;
+            this.action_target_y = y;
+            this.forced = false;
+
+        }
 
         for (c in Server.server.connections) // TODO only for visible players
         {
             c.send(PLAYER_UPDATE,[this.toData()]);
-            c.sendMapUpdate(x,y,newFloorId, tile_o_id[0], this.p_id);
+            if(doaction) c.sendMapUpdate(x,y,newFloorId, tile_o_id[0], this.p_id);
             c.send(FRAME);
         }
 
@@ -75,7 +94,7 @@ class GlobalPlayerInstance extends PlayerInstance {
     {
         if(me.isMoveing()) {
             trace("DROP: Player is still moving");
-            return; // TODO do use after reached???
+            return; 
         }
 
         if(this.isClose(x,y) == false) {
@@ -86,15 +105,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         var tx = x + gx;
         var ty = y + gy;
 
-        // TODO check this.o_id[0] == 0
-        // TODO check if tile is empty
         var newFloorId = Server.server.map.getFloorId(tx, ty);
-        
-
-        /*if(tile_o_id[0] != 0){
-            trace("DROP: There is object on tile");
-            return; 
-        }*/
 
         var tile_o_id = this.o_id;
         trace("DROP: o_id: " + tile_o_id);

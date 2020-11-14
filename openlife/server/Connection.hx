@@ -108,7 +108,7 @@ class Connection implements ServerHeader
         player.connection = this;
         var id = server.index++;
         player.p_id = id;
-        player.gx = 400;
+        player.gx = 360;
         player.gy = 600 - 400; // server map is saved y inverse 
         player.move_speed = server.map.getBiomeSpeed(player.gx, player.gy) * PlayerInstance.initial_move_speed;
 

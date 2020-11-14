@@ -27,14 +27,17 @@ class Server
 {
     public static var server:Server; 
     public static var tickTime = 1 / 20;
+    public static var vector:Vector<ObjectData>;
+    public static var objectDataMap:Map<Int, ObjectData> = [];
 
     public var connections:Array<Connection> = [];
    
     public var tick:Int = 0;
     public var index:Int = 1;
-    public var map:Map;
-    public static var vector:Vector<ObjectData>;
+    public var map:WorldMap;
+    
     public var dataVersionNumber:Int = 0;
+
     public static function main()
     {
         Sys.println("Starting OpenLife Server"#if debug + " in debug mode" #end);
@@ -74,11 +77,18 @@ class Server
         Engine.dir = Utility.dir();
         var tmp = ObjectBake.objectList();
         vector = new Vector<ObjectData>(tmp.length);
-        for (i in 0...vector.length)
-            vector[i] = new ObjectData(tmp[i]);
+
+        objectDataMap = [];
+
+        for (i in 0...vector.length){
+            var objectData = new ObjectData(tmp[i]);
+            vector[i] = objectData;
+            objectDataMap[objectData.id] = objectData;
+        }
+
         dataVersionNumber = Resource.dataVersionNumber();
         trace('dataVersionNumber: $dataVersionNumber');
-        map = new Map();
+        map = new WorldMap();
         map.generate();
         trace("length " + vector.length);
         var thread = new ThreadServer(this,8005);
