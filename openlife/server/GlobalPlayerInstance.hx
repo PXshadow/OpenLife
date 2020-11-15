@@ -27,6 +27,8 @@ class GlobalPlayerInstance extends PlayerInstance {
         return (((this.x - x) * (this.x - x) <= distance) && ((this.y - y) * (this.y - y) <= distance));
     }
 
+    
+
     public function use(x:Int,y:Int)
     {
         if(me.isMoveing()) {
@@ -123,6 +125,95 @@ class GlobalPlayerInstance extends PlayerInstance {
         //this.o_origin_valid = 0;
     }
 
+    /*
+    SELF x y i#
+
+    SELF is special case of USE action taken on self (to eat what we're holding
+     or add/remove clothing).
+     This differentiates between use actions on the object at our feet
+     (same grid cell as us) and actions on ourself.
+     If holding food i is ignored.
+	 If not holding food, then SELF removes clothing, and i specifies
+	 clothing slot:
+     0=hat, 1=tunic, 2=frontShoe, 3=backShoe, 4=bottom, 5=backpack
+    */
+    public function self(x:Int, y:Int, clothingSlot:Int)
+    {
+        var doaction = false;
+        var p_clothingSlot = -1;
+
+        // TODO food on self
+
+        if(this.o_id[0] != 0){
+            var objectData = Server.objectDataMap[this.o_id[0]];
+            //trace("OD: " + objectData.toFileString());
+
+            if(objectData.clothing.charAt(0) == 'h'){
+                p_clothingSlot = 0;
+            }
+
+            switch objectData.clothing.charAt(0) {
+                case "h": p_clothingSlot = 0;
+                case "t": p_clothingSlot = 1;
+                case "s": p_clothingSlot = 2;
+                //case "s": p_clothingSlot = 3; 
+                case "b": p_clothingSlot = 4;
+                case "p": p_clothingSlot = 5;
+            }
+
+            //trace('objectData.clothing: ${objectData.clothing}');
+            //trace('p_clothingSlot:  ${p_clothingSlot}');
+            //trace('clothingSlot:  ${clothingSlot}');
+        }
+
+        if(p_clothingSlot >= 0 || clothingSlot >=0){
+            var array = this.clothing_set.split(";");
+
+            if(array.length < 6){
+                trace('Clothing string missing slots: ${this.clothing_set}' );
+            }  
+
+            // set  the index for shoes that come on the other feet
+            if(p_clothingSlot == 2 && clothingSlot == -1){
+                clothingSlot = 3;
+            }else{
+                clothingSlot = p_clothingSlot;
+            }
+
+            // TODO if the clothing are shoes and there are shoes allready on the first shoe but not on the second and if the index is not set
+            
+            if(clothingSlot >= 0){
+                // switch clothing if there is a clothing on this slot
+                var tmp = Std.parseInt(array[clothingSlot]);
+                array[clothingSlot] = '${this.o_id[0]}';
+                this.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
+
+                doaction = true;
+                this.o_id = [tmp];
+                this.action = 1;
+                this.action_target_x = x;
+                this.action_target_y = y;
+                this.o_origin_x = x;
+                this.o_origin_y = y;
+                this.o_origin_valid = 0; // TODO ???
+
+                //trace('this.clothing_set: ${this.clothing_set}');
+            }
+
+            //this.clothing_set = "0;0;0;0;0;0";
+        }
+        
+
+        for (c in Server.server.connections) // TODO only for visible players
+        {
+            c.send(PLAYER_UPDATE,[this.toData()]);
+            //if(doaction) c.sendMapUpdate(x,y,newFloorId, tile_o_id[0], this.p_id);
+            c.send(FRAME);
+        }
+
+        this.action = 0;
+    }
+
     public function drop(x:Int,y:Int)
     {
         if(me.isMoveing()) {
@@ -147,8 +238,8 @@ class GlobalPlayerInstance extends PlayerInstance {
         Server.server.map.setObjectId(tx, ty, tile_o_id);
         
         this.action = 1;
-        this.o_origin_x = 0;
-        this.o_origin_y = 0;
+        this.o_origin_x = x;
+        this.o_origin_y = y;
         this.o_origin_valid = 0;
         this.action_target_x = x;
         this.action_target_y = y;

@@ -157,11 +157,11 @@ class Server
             trace("data " + input);
             header.emote(Std.parseInt(input[2]));
             case USE:
-            //trace("USE!");
-            header.player.use(Std.parseInt(input[0]),Std.parseInt(input[1]));
+            header.player.use(Std.parseInt(input[0]), Std.parseInt(input[1]));
+            case SELF:
+            header.player.self(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]));
             case DROP:
-            //trace("DROP!");
-            header.player.drop(Std.parseInt(input[0]),Std.parseInt(input[1]));
+            header.player.drop(Std.parseInt(input[0]), Std.parseInt(input[1]));
             case SAY:
             var text = string.substring(4);
             header.say(text);

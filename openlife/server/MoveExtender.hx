@@ -61,13 +61,13 @@ class MoveExtender{
             if(p.isClose(x,y) == false)
             {
                 p.forced = true;
-                trace(p.forced);
+
+                trace('Force: Server ${ p.x },${ p.y }:Client ${ x },${ y }');
             }
             else
             {
                 p.forced = false;
 
-                trace('Force: Server ${ p.x },${ p.y }:Client ${ x },${ y }');
                 p.x = x;
                 p.y = y;
             }

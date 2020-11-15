@@ -45,6 +45,56 @@ class Connection implements ServerHeader
         send(SERVER_INFO,["0/0",challenge,'$version']);
     }
 
+    public function login()
+        {
+            send(ACCEPTED);
+            server.connections.push(this);
+    
+            player = new GlobalPlayerInstance([]);
+            
+            player.connection = this;
+            var id = server.index++;
+            player.p_id = id;
+            player.gx = 360;
+            player.gy = 600 - 400; // server map is saved y inverse 
+            player.move_speed = server.map.getBiomeSpeed(player.gx, player.gy) * PlayerInstance.initial_move_speed;
+    
+            Server.server.map.setObjectId(player.gx, player.gy, [33]);
+            Server.server.map.setObjectId(player.gx+1, player.gy, [32]);
+            Server.server.map.setObjectId(player.gx+2, player.gy+1, [33]);
+            Server.server.map.setObjectId(player.gx+3, player.gy+1, [33]);
+            Server.server.map.setObjectId(player.gx+4, player.gy+1, [33]);
+
+            // add some clothing for testing
+            Server.server.map.setObjectId(player.gx, player.gy+1, [2916]);
+            Server.server.map.setObjectId(player.gx+1, player.gy+1, [2456]);
+            Server.server.map.setObjectId(player.gx+2, player.gy+1, [766]);
+            Server.server.map.setObjectId(player.gx+3, player.gy+1, [2919]);
+            Server.server.map.setObjectId(player.gx+4, player.gy+1, [198]);
+            Server.server.map.setObjectId(player.gx+5, player.gy+1, [2886]);
+            Server.server.map.setObjectId(player.gx+6, player.gy+1, [586]);
+            Server.server.map.setObjectId(player.gx+7, player.gy+1, [2951]);
+
+            
+            trace("move_speed: " + player.move_speed);
+    
+            sendMapChunk(0,0);
+    
+            var data:Array<String> = [];
+            for (c in server.connections)
+            {
+                data.push(c.player.toData());
+                if (c != this)
+                {
+                    c.send(PLAYER_UPDATE,[player.toData()]);
+                    c.send(FRAME);
+                }
+            }
+            send(PLAYER_UPDATE,data);
+            send(FRAME);
+            send(LINEAGE,['$id eve=$id']);
+        }
+
     /*
     public function update()
     {
@@ -96,42 +146,7 @@ class Connection implements ServerHeader
     public function flip()
     {
         
-    }
-
-    public function login()
-    {
-        send(ACCEPTED);
-        server.connections.push(this);
-
-        player = new GlobalPlayerInstance([]);
-        
-        player.connection = this;
-        var id = server.index++;
-        player.p_id = id;
-        player.gx = 360;
-        player.gy = 600 - 400; // server map is saved y inverse 
-        player.move_speed = server.map.getBiomeSpeed(player.gx, player.gy) * PlayerInstance.initial_move_speed;
-
-        Server.server.map.setObjectId(player.gx, player.gy, [33]);
-        Server.server.map.setObjectId(player.gx+1, player.gy, [32]);
-        trace("move_speed: " + player.move_speed);
-
-        sendMapChunk(0,0);
-
-        var data:Array<String> = [];
-        for (c in server.connections)
-        {
-            data.push(c.player.toData());
-            if (c != this)
-            {
-                c.send(PLAYER_UPDATE,[player.toData()]);
-                c.send(FRAME);
-            }
-        }
-        send(PLAYER_UPDATE,data);
-        send(FRAME);
-        send(LINEAGE,['$id eve=$id']);
-    }
+    }   
 
     public function sendMapChunk(x:Int,y:Int,width:Int = 32,height:Int = 30)
     {
