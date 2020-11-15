@@ -176,7 +176,7 @@ class WorldMap
 
                 // TODO this is work around to make object creation faster
                 //if(x < 200 || x > 600) continue;
-                //if (randomFloat() > 0.4) continue;
+                if (randomFloat() > 0.4) continue;
                 
                 var set:Bool = false;
 
@@ -184,17 +184,21 @@ class WorldMap
 
                 if(biomeData == null) continue;
 
+                var random = randomFloat() * this.biomeTotalChance[biomeInt]; 
+                var sumChance = 0.0;
+                
+                //chance / this.biomeTotalChance[biomeInt]; 
+
                 for (obj in biomeData) {
                     if (set) continue;
 
-                    var random = randomFloat();
                     var chance = obj.mapChance;
-                    chance /=20; // TODO the chance must be loaded for each biome
+                    sumChance += chance;
 
-                    if (random <= chance) {
+                    if (random <= sumChance) {
                         objects[x+y*width] = [obj.id];
 
-                        //trace('generate: bi: $biomeInt id: ${obj.id} r: $random c: $chance');
+                        trace('generate: bi: $biomeInt id: ${obj.id} rand: $random sc: $sumChance');
                         set = true;
                         generatedObjects++;
                     }
@@ -210,7 +214,6 @@ class WorldMap
         this.biomeObjectData = [];
         this.biomeTotalChance = [];
 
-        //for (biomeInt in 0...20){
         var buffer:Array<ObjectData> = [];
 
         for (obj in Server.vector) {
@@ -226,7 +229,6 @@ class WorldMap
                     this.biomeTotalChance[biome] = 0;
                 }
 
-                //if (obj.biomes.indexOf(biomeInt) != -1){
                 biomeData.push(obj);
                 this.biomeTotalChance[biome] += obj.mapChance;
 
