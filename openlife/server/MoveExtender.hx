@@ -54,15 +54,10 @@ class MoveExtender{
                 trace('LastPos ${ lastPos.x } ${ lastPos.y }');
             }
 
-            trace('Server ${ p.x },${ p.y }:Client ${ x },${ y }');
-
-
             // TODO dont accept moves untill a force is confirmed
             // TODO it accepts one position further even if not fully reached there. 
             // This could be miss used to double movement speed. But Client seems to do it this way...
 
-            //p.forced = (p.x != x || p.y != y);
-            //if(((p.x - x) * (p.x - x) > 1) || (p.y - y) * (p.y - y) > 1)
             if(p.isClose(x,y) == false)
             {
                 p.forced = true;
@@ -71,6 +66,8 @@ class MoveExtender{
             else
             {
                 p.forced = false;
+
+                trace('Force: Server ${ p.x },${ p.y }:Client ${ x },${ y }');
                 p.x = x;
                 p.y = y;
             }
@@ -125,6 +122,8 @@ class MoveExtender{
                 
                 c.send(FRAME);
             }
+
+            p.forced = false;
         }
 
         static private function moveString(moves:Array<Pos>):String

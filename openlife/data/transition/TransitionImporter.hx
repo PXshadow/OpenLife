@@ -1,5 +1,6 @@
 package openlife.data.transition;
 
+import openlife.server.Server;
 import openlife.data.object.ObjectData;
 import haxe.io.Path;
 import sys.io.File;
@@ -10,7 +11,7 @@ class TransitionImporter
     public var transitions:Array<TransitionData>;
     public var categories:Array<Category>;
 
-    public var transitionsByTargetID:Map<Int, Array<TransitionData>>;
+    private var transitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
 
     public function new()
     {
@@ -28,7 +29,7 @@ class TransitionImporter
     public function importTransitions()
     {        
         transitions = [];
-        transitionsByTargetID = [];
+        transitionsByActorIdTargetId = [];
 
         for (name in sys.FileSystem.readDirectory(Engine.dir + "transitions"))
         {
@@ -38,16 +39,43 @@ class TransitionImporter
             //actor + target = new actor + new target
             transitions.push(transition);
 
-            var trans = transitionsByTargetID[transition.targetID];
+            var transitionsByTargetId = transitionsByActorIdTargetId[transition.actorID];
             
-            if(trans == null){
-                trans = [];
-                transitionsByTargetID[transition.targetID] = trans;
+            if(transitionsByTargetId == null){
+                transitionsByTargetId = [];
+                transitionsByActorIdTargetId[transition.actorID] = transitionsByTargetId;
             }
 
-            trans.push(transition);
+            var trans = transitionsByTargetId[transition.targetID];
 
-            trace('${transition.targetID} ' + trans.length);
+            // if there is a transition allready, then there is an additional "last" transition
+            if(trans != null){
+                
+                // TODO make map for last transitions
+                trace('Double transition: actor: ${trans.actorID} target: ${trans.targetID}');
+                //trace('New transition: a${transition.actorID} t${transition.targetID}');
+                var objectDataActor = Server.objectDataMap[trans.actorID];
+                var objectDataTarget = Server.objectDataMap[trans.targetID];
+
+                if(objectDataActor != null) trace('actor: ${objectDataActor.description}');
+                if(objectDataTarget != null) trace('target: ${objectDataTarget.description}');
+
+            }
+
+            transitionsByTargetId[transition.targetID] = transition;
+
+            //trans.push(transition);
+
+            //trace('${transition.targetID} ' + trans.length);
         }
+    }
+
+    public function getTransition(actorId:Int, targetId:Int):TransitionData{
+
+        var transitionsByTargetId = transitionsByActorIdTargetId[actorId];
+
+        if(transitionsByTargetId == null) return null;
+
+        return transitionsByTargetId[targetId];
     }
 }

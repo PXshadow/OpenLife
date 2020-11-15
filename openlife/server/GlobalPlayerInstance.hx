@@ -42,35 +42,57 @@ class GlobalPlayerInstance extends PlayerInstance {
         var tx = x + gx;
         var ty = y + gy;
 
-        var tile_o_id = this.o_id;
-        trace("USE: o_id: " + tile_o_id);
+        var hand_o_id = this.o_id;
+        trace("USE: hand_o_id: " + hand_o_id);
 
-        var objectID = Server.server.map.getObjectId(tx, ty);
+        var tile_o_id = Server.server.map.getObjectId(tx, ty);
 
         var doaction = true;
 
-        if(objectID[0] != 0){
-            var objectData = Server.objectDataMap[objectID[0]];
-            trace("OD: " + objectData.toFileString());
+        if(tile_o_id[0] != 0){
+            
+            var transition = Server.transitionImporter.getTransition(hand_o_id[0], tile_o_id[0]);
 
-            var transitions = Server.transitionImporter.transitionsByTargetID[objectID[0]];
+            if(transition != null){
 
-            if(transitions != null){
+                trace('Found transition: a${transition.actorID} t${transition.targetID}');
+                //for(trans in transitions){
+                //    trace(trans.actorID);
+                //}
 
-                for(trans in transitions){
-                    trace(trans.actorID);
+                hand_o_id = [transition.newActorID];
+                tile_o_id = [transition.newTargetID];
+
+                // transition source object id (or -1) if held object is result of a transition,
+                // this.o_transition_source_id
+
+                //doaction = true;
+            }
+            else{
+                var objectData = Server.objectDataMap[tile_o_id[0]];
+                //trace("OD: " + objectData.toFileString());
+
+                if(objectData.permanent != 0) doaction = false;
+                else{
+                    var tmp = hand_o_id;
+                    hand_o_id = tile_o_id;
+                    tile_o_id = tmp;
                 }
                 
             }
-
-            if(objectData.permanent != 0) doaction = false;
         }
         
         // TODO check pickup age
-        // TODO check if pickup is possible
-        // TODO add transitions
 
-        //deadlyDistance
+        // TODO kill deadlyDistance
+
+        // TODO change movement speed
+
+        // TODO feed baby
+
+        // TODO floor
+
+        // TODO last transitions
 
         var newFloorId = Server.server.map.getFloorId(tx, ty);
 
@@ -78,7 +100,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
             Server.server.map.setObjectId(tx, ty, tile_o_id);
         
-            this.o_id = objectID;
+            this.o_id = hand_o_id;
             this.action = 1;
             this.o_origin_x = x;
             this.o_origin_y = y;

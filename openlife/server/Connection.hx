@@ -112,6 +112,8 @@ class Connection implements ServerHeader
         player.gy = 600 - 400; // server map is saved y inverse 
         player.move_speed = server.map.getBiomeSpeed(player.gx, player.gy) * PlayerInstance.initial_move_speed;
 
+        Server.server.map.setObjectId(player.gx, player.gy, [33]);
+        Server.server.map.setObjectId(player.gx+1, player.gy, [32]);
         trace("move_speed: " + player.move_speed);
 
         sendMapChunk(0,0);
@@ -179,7 +181,7 @@ class Connection implements ServerHeader
     public function send(tag:ClientTag,data:Array<String>=null)
     {
         var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
-        trace("S: " + string);
+        //trace("S: " + string);
         sock.output.writeString(string);
     }
 }
