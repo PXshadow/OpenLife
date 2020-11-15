@@ -75,35 +75,22 @@ class WorldMap
     {
 
     }
-    /*
-    private function shuffleBiomeArray(array:Array<ObjectData>)
-    {
-        if (array.length == 0)
-            return;
-        var temp:ObjectData;
-        var j = 0;
-        var k = 0;
-        for (i in 0...6)
-        {
-            j = randomInt(array.length - 1);
-            k = randomInt(array.length - 1);
-            temp = array[j].clone();
-            array[j] = array[k];
-            array[k] = temp;
-        }
-    }*/
+    
     private function generateSeed():Int
     {
         return seed = Std.int((seed * MULTIPLIER) % MODULUS);
     }
+
     private function randomInt(x:Int=MAX_NUM):Int
     {
         return Math.floor(generateSeed() / MODULUS * (x + 1));
     }
+
     private function randomFloat():Float
     {
         return generateSeed() / MODULUS;
     }
+
     public function createVectors(length:Int)
     {
         objects = new Vector<Array<Int>>(length);
@@ -174,7 +161,6 @@ class WorldMap
                 biomes[x+y*width] = biomeInt;
                 objects[x+y*width] = [0];
 
-                // TODO this is work around to make object creation faster
                 //if(x < 200 || x > 600) continue;
                 if (randomFloat() > 0.4) continue;
                 
@@ -187,8 +173,6 @@ class WorldMap
                 var random = randomFloat() * this.biomeTotalChance[biomeInt]; 
                 var sumChance = 0.0;
                 
-                //chance / this.biomeTotalChance[biomeInt]; 
-
                 for (obj in biomeData) {
                     if (set) continue;
 
@@ -198,7 +182,7 @@ class WorldMap
                     if (random <= sumChance) {
                         objects[x+y*width] = [obj.id];
 
-                        trace('generate: bi: $biomeInt id: ${obj.id} rand: $random sc: $sumChance');
+                        //trace('generate: bi: $biomeInt id: ${obj.id} rand: $random sc: $sumChance');
                         set = true;
                         generatedObjects++;
                     }
@@ -213,8 +197,6 @@ class WorldMap
     {
         this.biomeObjectData = [];
         this.biomeTotalChance = [];
-
-        var buffer:Array<ObjectData> = [];
 
         for (obj in Server.vector) {
             if (obj.mapChance == 0) continue;
@@ -232,8 +214,8 @@ class WorldMap
                 biomeData.push(obj);
                 this.biomeTotalChance[biome] += obj.mapChance;
 
-                var objectDataTarget = Server.objectDataMap[obj.id];
-                if(objectDataTarget != null) trace('biome: $biome c:${obj.mapChance} tc:${this.biomeTotalChance[biome]} ${objectDataTarget.description}');
+                //var objectDataTarget = Server.objectDataMap[obj.id];
+                //if(objectDataTarget != null) trace('biome: $biome c:${obj.mapChance} tc:${this.biomeTotalChance[biome]} ${objectDataTarget.description}');
                 
             }
         }

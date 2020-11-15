@@ -114,7 +114,8 @@ class MoveExtender{
             }
     
             // TODO there is a bug with speed update 
-            if(speedChanged) p.connection.send(PLAYER_UPDATE,[p.toData()]);
+            //if(speedChanged) p.connection.send(PLAYER_UPDATE,[p.toData()]);
+            p.connection.send(PLAYER_UPDATE,[p.toData()]);
     
             for (c in Server.server.connections) 
             {

@@ -48,18 +48,24 @@ class TransitionImporter
 
             var trans = transitionsByTargetId[transition.targetID];
 
+            
+            var objectDataActor = Server.objectDataMap[transition.actorID];
+            var objectDataTarget = Server.objectDataMap[transition.targetID];
+
+            var actorDescription = "";
+            var targetDescription = "";
+
+            if(objectDataActor != null) actorDescription = objectDataActor.description; //trace('actor: ${objectDataActor.description}');
+            if(objectDataTarget != null) targetDescription = objectDataTarget.description;//trace('target: ${objectDataTarget.description}');
+           
+            trace('New transition: a: ${transition.actorID} t: ${transition.targetID} - $actorDescription - $targetDescription');
+
+
             // if there is a transition allready, then there is an additional "last" transition
             if(trans != null){
                 
                 // TODO make map for last transitions
                 trace('Double transition: actor: ${trans.actorID} target: ${trans.targetID}');
-                //trace('New transition: a${transition.actorID} t${transition.targetID}');
-                var objectDataActor = Server.objectDataMap[trans.actorID];
-                var objectDataTarget = Server.objectDataMap[trans.targetID];
-
-                if(objectDataActor != null) trace('actor: ${objectDataActor.description}');
-                if(objectDataTarget != null) trace('target: ${objectDataTarget.description}');
-
             }
 
             transitionsByTargetId[transition.targetID] = transition;

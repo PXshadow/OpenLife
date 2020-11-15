@@ -45,11 +45,16 @@ class GlobalPlayerInstance extends PlayerInstance {
         var ty = y + gy;
 
         var hand_o_id = this.o_id;
+        var transitionSource = hand_o_id[0];
+
         trace("USE: hand_o_id: " + hand_o_id);
 
         var tile_o_id = Server.server.map.getObjectId(tx, ty);
+        trace("USE: tile_o_id: " + tile_o_id);
 
-        var doaction = true;
+
+        var doaction = false;
+        
 
         if(tile_o_id[0] != 0){
             
@@ -58,29 +63,31 @@ class GlobalPlayerInstance extends PlayerInstance {
             if(transition != null){
 
                 trace('Found transition: a${transition.actorID} t${transition.targetID}');
-                //for(trans in transitions){
-                //    trace(trans.actorID);
-                //}
+
+                //transition source object id (or -1) if held object is result of a transition,
+                if(transition.newActorID != hand_o_id[0]) transitionSource = -1;
 
                 hand_o_id = [transition.newActorID];
                 tile_o_id = [transition.newTargetID];
 
-                // transition source object id (or -1) if held object is result of a transition,
-                // this.o_transition_source_id
-
-                //doaction = true;
+                doaction = true;
             }
             else{
                 var objectData = Server.objectDataMap[tile_o_id[0]];
                 //trace("OD: " + objectData.toFileString());
 
-                if(objectData.permanent != 0) doaction = false;
-                else{
+                var parmanent = (objectData != null) && objectData.permanent == 1;
+
+                // switch only if object not permanent and hand or tile is free
+                if(parmanent == false && (hand_o_id[0] == 0 || tile_o_id[0] == 0)) {
+
                     var tmp = hand_o_id;
                     hand_o_id = tile_o_id;
                     tile_o_id = tmp;
+
+                    doaction = true;
+                    
                 }
-                
             }
         }
         
@@ -107,6 +114,7 @@ class GlobalPlayerInstance extends PlayerInstance {
             this.o_origin_x = x;
             this.o_origin_y = y;
             this.o_origin_valid = 0;
+            this.o_transition_source_id = transitionSource;
             this.action_target_x = x;
             this.action_target_y = y;
             this.forced = false;
