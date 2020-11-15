@@ -400,6 +400,7 @@ class ObjectData extends LineReader
             var array = map.substring(index + 1,map.length).split(",");
             biomes = [];
             for (string in array) biomes.push(Std.parseInt(string));
+            trace('MC: $map');
         }
         //values
         heatValue = getInt();

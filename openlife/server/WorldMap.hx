@@ -44,7 +44,7 @@ import haxe.io.Bytes;
     public var SGREEN = 1;  
     public var SSWAMP = 0.2;  
     public var SYELLOW = 1;
-    public var SGREY = 2;//0.2;
+    public var SGREY = 0.2;
     public var SSNOW = 0.5;
     public var SDESERT= 0.5;//0.5;
     public var SJUNGLE = 0.5;  
@@ -68,10 +68,14 @@ class WorldMap
     static inline final MAX_NUM:Int = 2147483647;
     static inline final MODULUS:Int = MAX_NUM;
 
+    private var biomeTotalChance:Map<Int,Float>; 
+    private var biomeObjectData:Map<Int, Array<ObjectData>>;
+
     public function new()
     {
 
     }
+    /*
     private function shuffleBiomeArray(array:Array<ObjectData>)
     {
         if (array.length == 0)
@@ -87,7 +91,7 @@ class WorldMap
             array[j] = array[k];
             array[k] = temp;
         }
-    }
+    }*/
     private function generateSeed():Int
     {
         return seed = Std.int((seed * MULTIPLIER) % MODULUS);
@@ -124,7 +128,9 @@ class WorldMap
 
         createVectors(length);
 
-        var biomeObjectData = generateBiomeObjectData();
+        generateBiomeObjectData();
+        
+        var generatedObjects = 0;
 
         for (y in 0...height){
             for (x in 0...width) {
@@ -169,37 +175,70 @@ class WorldMap
                 objects[x+y*width] = [0];
 
                 // TODO this is work around to make object creation faster
-                if(x < 350 || x > 450) continue;
-                if (randomFloat() > 0.4) continue;
+                //if(x < 200 || x > 600) continue;
+                //if (randomFloat() > 0.4) continue;
                 
                 var set:Bool = false;
 
-                for (obj in biomeObjectData[biomeInt]) {
+                var biomeData = biomeObjectData[biomeInt];
+
+                if(biomeData == null) continue;
+
+                for (obj in biomeData) {
                     if (set) continue;
-                    if (randomFloat() > obj.mapChance) {
+
+                    var random = randomFloat();
+                    var chance = obj.mapChance;
+                    chance /=20; // TODO the chance must be loaded for each biome
+
+                    if (random <= chance) {
                         objects[x+y*width] = [obj.id];
+
+                        //trace('generate: bi: $biomeInt id: ${obj.id} r: $random c: $chance');
                         set = true;
+                        generatedObjects++;
                     }
                 }
             }
         }
+
+        trace('generatedObjects: $generatedObjects');
     }
 
-    function generateBiomeObjectData():Array<Array<ObjectData>>
+    function generateBiomeObjectData()
     {
-        var biomeObjectData:Array<Array<ObjectData>> = [];
+        this.biomeObjectData = [];
+        this.biomeTotalChance = [];
 
-        for (biomeInt in 0...20){
-            var buffer:Array<ObjectData> = [];
-            for (obj in Server.vector) {
-                if (obj.mapChance == 0) continue;
-                if (obj.biomes.indexOf(biomeInt) != -1)
-                    buffer.push(obj);
+        //for (biomeInt in 0...20){
+        var buffer:Array<ObjectData> = [];
+
+        for (obj in Server.vector) {
+            if (obj.mapChance == 0) continue;
+
+            for(biome in obj.biomes){
+
+                var biomeData = this.biomeObjectData[biome];
+
+                if(biomeData == null){
+                    biomeData = [];
+                    this.biomeObjectData[biome] = biomeData;
+                    this.biomeTotalChance[biome] = 0;
+                }
+
+                //if (obj.biomes.indexOf(biomeInt) != -1){
+                biomeData.push(obj);
+                this.biomeTotalChance[biome] += obj.mapChance;
+
+                var objectDataTarget = Server.objectDataMap[obj.id];
+                if(objectDataTarget != null) trace('biome: $biome c:${obj.mapChance} tc:${this.biomeTotalChance[biome]} ${objectDataTarget.description}');
+                
             }
-            shuffleBiomeArray(buffer); //seeded random
-            biomeObjectData.push(buffer);
         }
-        return biomeObjectData;
+        //shuffleBiomeArray(buffer); //seeded random
+        //biomeObjectData.push(buffer);
+        //}
+        //return biomeObjectData;
     }
     
     function readPixels(file:String):{data:Bytes, width:Int, height:Int} {
