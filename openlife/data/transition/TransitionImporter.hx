@@ -150,7 +150,7 @@ class TransitionImporter
         // if there is a transition allready, then there is an additional "last" transition
         if(trans != null){
             // TODO make map for last transitions
-            trace('Double transition: actor: ${trans.actorID} target: ${trans.targetID}');
+            //trace('Double transition: actor: ${trans.actorID} target: ${trans.targetID}');
         }
 
         this.transitions.push(transition);
@@ -158,8 +158,6 @@ class TransitionImporter
 
         //traceTransition(transition);
     }
-
-    
 
     public function getTransition(actorId:Int, targetId:Int):TransitionData{
 

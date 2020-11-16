@@ -64,16 +64,16 @@ class ThreadServer
             }
             
             if (message.length == 0) continue;
-            try {
+            //try {
                 server.process(connection,message);
                 message = "";
-            }catch(e:Exception)
+            /*}catch(e:Exception)
             {
                 trace(e.details());
                 error("---STACK---\n" + e.details());
                 connection.close();
                 continue;
-            }
+            }*/
         }
     }
     private function error(message:String) 
