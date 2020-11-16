@@ -71,76 +71,56 @@ class TransitionImporter
         trace('$s transition: a: ${transition.actorID} t: ${transition.targetID} - $actorDescription - $targetDescription');
     }
 
-    /*
-    public function generateAndAddCategoryTransitions(){
-
-        if(transitions.length == 0) importTransitions();
-        if(categories.length == 0) importCategories();
-
-        var count = 0;
-
-        for(category in categories){
-
-            // TODO do also for last transitions
-            // TODO currently it adds only transitions if category is actor
-
-            var transitionsByTargetId = transitionsByActorIdTargetId[category.parentID];
-
-            if(transitionsByTargetId == null){
-                trace('no action found for category: ${category}');
-                continue;
-            }
-
-            for(transition in transitionsByTargetId){
-
-                for(id in category.ids){
-                    
-                    var newTransition = transition.clone();
-                    newTransition.actorID = id;
-                    if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
-                    if(newTransition.newTargetID == category.parentID) newTransition.newTargetID = id;
-
-                    addTransition(newTransition);                   
-
-                    count++;
-                }
-            }
-        }
-
-        trace('added category transitions: $count');
-    }
-    */
-
     public function createAndaddCategoryTransitions(transition:TransitionData){
 
-        var category = this.categoriesById[transition.actorID];
-        var bothActionAndTargetIsCategory = (category != null);
+        var actorCategory = this.categoriesById[transition.actorID];
+        var targetCategory = this.categoriesById[transition.targetID];
+        var bothActionAndTargetIsCategory = (actorCategory != null) && (targetCategory != null);
 
-        if(category != null){
-            for(id in category.ids){
-
-                var newTransition = transition.clone();
-                newTransition.actorID = id;
-                if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
-                //if(newTransition.newTargetID == category.parentID) newTransition.newTargetID = id;
-
-                addTransition(newTransition); 
-            }
-        }
-
-        category = this.categoriesById[transition.targetID];
-        bothActionAndTargetIsCategory = bothActionAndTargetIsCategory && (category != null);
         if(bothActionAndTargetIsCategory){
             traceTransition(transition, 'bothActionAndTargetIsCategory: ');
         }
 
+        var category = actorCategory;
+
+        if(category != null){
+            for(id in category.ids){
+
+                if(targetCategory == null){
+                    var newTransition = transition.clone();
+                    newTransition.actorID = id;
+                    if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
+
+                    addTransition(newTransition);
+                } 
+                else{
+                    for(targetId in targetCategory.ids){
+
+                        var newTransition = transition.clone();
+                        newTransition.actorID = id;
+                        newTransition.targetID = targetId;
+
+                        if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
+                        if(newTransition.newTargetID == targetCategory.parentID) newTransition.newTargetID = targetId;
+
+                        addTransition(newTransition);
+                        //traceTransition(newTransition, 'bothActionAndTargetIsCategory: ');
+
+                    }
+                }
+            }
+        }
+
+        if(bothActionAndTargetIsCategory) return;
+
+        // for transitions where actor is no category but target is a category
+        category = targetCategory;
 
         if(category != null){
             for(id in category.ids){
 
                 var newTransition = transition.clone();
                 newTransition.targetID = id;
-                //if(newTransition.newTargetID == targetCategory.parentID) newTransition.newActorID = id;
                 if(newTransition.newTargetID == category.parentID) newTransition.newTargetID = id;
 
                 addTransition(newTransition); 
@@ -176,7 +156,7 @@ class TransitionImporter
         this.transitions.push(transition);
         transitionsByTargetId[transition.targetID] = transition;
 
-        traceTransition(transition);
+        //traceTransition(transition);
     }
 
     
