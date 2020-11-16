@@ -56,7 +56,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         var doaction = false;
         trace("hand " + hand_o_id + " tile " + tile_o_id);
 
-        if(tile_o_id[0]){
+        if(tile_o_id[0] != 0){
             
             for (trans in Server.transitionImporter.transitions) {
                 if (trans.targetID == tile_o_id[0] || trans.actorID == tile_o_id[0] || trans.newTargetID == tile_o_id[0] || trans.newActorID == tile_o_id[0]) {

@@ -76,9 +76,13 @@ class Connection implements ServerHeader
             Server.server.map.setObjectId(player.gx+7, player.gy+1, [2951]);
 
 
-            //test transitions
+            //test transitions of numUses + decay
             Server.server.map.setObjectId(player.gx,player.gy + 10,[238]);
             Server.server.map.setObjectId(player.gx,player.gy + 11,[1599]);
+
+            //containers testing SREMV
+            Server.server.map.setObjectId(player.gx - 4,player.gy + 10,[434]);
+            Server.server.map.setObjectId(player.gx - 5,player.gy + 10,[292,2143,2143,2143]);
 
             
             trace("move_speed: " + player.move_speed);
