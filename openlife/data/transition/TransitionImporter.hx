@@ -8,15 +8,17 @@ import openlife.engine.Engine;
 @:expose
 class TransitionImporter
 {
-    public var transitions:Array<TransitionData>;
-    public var categories:Array<Category>;
+    public var transitions:Array<TransitionData> = [];
+    public var categories:Array<Category> = [];
 
     private var transitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
+    private var lastTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
 
     public function new()
     {
 
     }
+
     public function importCategories()
     {
         categories = [];
@@ -26,63 +28,117 @@ class TransitionImporter
             categories.push(category);
         }
     }
+
     public function importTransitions()
     {        
         transitions = [];
         transitionsByActorIdTargetId = [];
+        lastTransitionsByActorIdTargetId = [];
 
         for (name in sys.FileSystem.readDirectory(Engine.dir + "transitions"))
         {
-            //Last use determines whether the current transition is used when numUses is greater than 1
-            //MinUse for variable-use objects that occasionally use more than one "use", this sets a minimum per interaction.
-            var transition = new TransitionData(Path.withoutExtension(name),File.getContent(Engine.dir + 'transitions/$name'));
-            //actor + target = new actor + new target
-            transitions.push(transition);
-
-            var transitionsByTargetId = transitionsByActorIdTargetId[transition.actorID];
             
-            if(transitionsByTargetId == null){
-                transitionsByTargetId = [];
-                transitionsByActorIdTargetId[transition.actorID] = transitionsByTargetId;
-            }
-
-            var trans = transitionsByTargetId[transition.targetID];
-
+            var transition = TransitionData.createNewFromFile(Path.withoutExtension(name),File.getContent(Engine.dir + 'transitions/$name'));
             
-            var objectDataActor = Server.objectDataMap[transition.actorID];
-            var objectDataTarget = Server.objectDataMap[transition.targetID];
+            addTransition(transition);
 
-            var actorDescription = "";
-            var targetDescription = "";
-
-            if(objectDataActor != null) actorDescription = objectDataActor.description; //trace('actor: ${objectDataActor.description}');
-            if(objectDataTarget != null) targetDescription = objectDataTarget.description;//trace('target: ${objectDataTarget.description}');
-           
-            //trace('New transition: a: ${transition.actorID} t: ${transition.targetID} - $actorDescription - $targetDescription');
-
-
-            // if there is a transition allready, then there is an additional "last" transition
-            if(trans != null){
-                
-                // TODO make map for last transitions
-                //trace('Double transition: actor: ${trans.actorID} target: ${trans.targetID}');
-            }
-
-            transitionsByTargetId[transition.targetID] = transition;
-
-            //trans.push(transition);
-
-            //trace('${transition.targetID} ' + trans.length);
         }
+
+        trace('Transitions loaded: ${transitions.length}');
     }
+
+    public function traceTransition(transition:TransitionData){
+
+        var objectDataActor = Server.objectDataMap[transition.actorID];
+        var objectDataTarget = Server.objectDataMap[transition.targetID];
+
+        var actorDescription = "";
+        var targetDescription = "";
+
+        if(objectDataActor != null) actorDescription = objectDataActor.description;
+        if(objectDataTarget != null) targetDescription = objectDataTarget.description;
+        
+        trace('New transition: a: ${transition.actorID} t: ${transition.targetID} - $actorDescription - $targetDescription');
+    }
+
+    public function generateAndAddCategoryTransitions(){
+
+        if(transitions.length == 0) importTransitions();
+        if(categories.length == 0) importCategories();
+
+        var count = 0;
+
+        // TODO currently it adds only transitions if category is actor
+
+        for(category in categories){
+
+            // TODO do also for last transitions
+
+            var transitionsByTargetId = transitionsByActorIdTargetId[category.parentID];
+
+            if(transitionsByTargetId == null){
+                trace('no action found for category: ${category}');
+                continue;
+            }
+
+            for(transition in transitionsByTargetId){
+
+                for(id in category.ids){
+                    
+                    var newTransition = transition.clone();
+                    newTransition.actorID = id;
+                    if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
+                    if(newTransition.newTargetID == category.parentID) newTransition.newTargetID = id;
+
+                    addTransition(newTransition);                   
+
+                    count++;
+                }
+            }
+        }
+
+        trace('added category transitions: $count');
+    }
+
+    public function addTransition(transition:TransitionData){
+
+        var transitionsByTargetId;
+
+        // there is one map for last transitions
+        if(transition.lastUseActor){
+            transitionsByTargetId = lastTransitionsByActorIdTargetId[transition.actorID];
+        }
+        else{
+            transitionsByTargetId = transitionsByActorIdTargetId[transition.actorID];
+        }
+        
+        if(transitionsByTargetId == null){
+            transitionsByTargetId = [];
+            transitionsByActorIdTargetId[transition.actorID] = transitionsByTargetId;
+        }
+
+        var trans = transitionsByTargetId[transition.targetID];
+        
+        // if there is a transition allready, then there is an additional "last" transition
+        if(trans != null){
+            // TODO make map for last transitions
+            trace('Double transition: actor: ${trans.actorID} target: ${trans.targetID}');
+        }
+
+        this.transitions.push(transition);
+        transitionsByTargetId[transition.targetID] = transition;
+
+        traceTransition(transition);
+    }
+
+    
 
     public function getTransition(actorId:Int, targetId:Int):TransitionData{
 
         var transitionsByTargetId = transitionsByActorIdTargetId[actorId];
-        if(transitionsByTargetId != null) {
-            trace("tt " + transitionsByTargetId[targetId]);
-            return transitionsByTargetId[targetId];
-        }
-        return null;
+
+        if(transitionsByTargetId == null) return null;
+
+        return transitionsByTargetId[targetId];
     }
 }

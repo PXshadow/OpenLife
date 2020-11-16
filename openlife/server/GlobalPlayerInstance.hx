@@ -103,8 +103,6 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         // TODO kill deadlyDistance
 
-        // TODO change movement speed
-
         // TODO feed baby
 
         // TODO floor

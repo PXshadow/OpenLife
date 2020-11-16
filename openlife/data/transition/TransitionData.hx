@@ -4,16 +4,23 @@ import openlife.data.object.ObjectData;
 @:expose
 class TransitionData
 {
+    //Last use determines whether the current transition is used when numUses is greater than 1
     public var lastUseActor:Bool = false;
     public var lastUseTarget:Bool = false;
+
+    //actor + target = new actor + new target
     public var actorID:Int = 0;
     public var targetID:Int = 0;
 
     public var newActorID:Int = 0;
     public var newTargetID:Int = 0;
+
     public var autoDecaySeconds:Int = 0;
+
+    //MinUse for variable-use objects that occasionally use more than one "use", this sets a minimum per interaction.
     public var actorMinUseFraction:Float = 0;
     public var targetMinUseFraction:Float = 0;
+
     public var reverseUseActor:Bool = false;
     public var reverseUseTarget:Bool = false;
     public var move:Int = 0;
@@ -25,11 +32,57 @@ class TransitionData
     public var tool:Bool = false;
     public var targetRemains:Bool = false;
 
-    public function new(fileName:String,string:String)
-    {
-        parseFilename(fileName);
-        parseData(string.split(" "));
+    public static function createNewFromFile(fileName:String,string:String):TransitionData{
+
+      var t = new TransitionData();
+
+      t.parseFilename(fileName);
+      t.parseData(string.split(" "));
+
+      return t;
     }
+
+    public function new()
+    {
+        
+    }
+
+    public function clone():TransitionData
+      {
+        // Reflect seems to give back null :/
+        //return Reflect.copy(this);
+  
+        var t = new TransitionData();
+        var trans = this;
+
+        t.lastUseActor = trans.lastUseActor;
+        t.lastUseTarget = trans.lastUseTarget;
+    
+        t.actorID = trans.actorID;
+        t.targetID = trans.targetID;
+    
+        t.newActorID = trans.newActorID;
+        t.newTargetID = trans.newTargetID;
+    
+        t.autoDecaySeconds = trans.autoDecaySeconds;
+    
+        t.actorMinUseFraction = trans.actorMinUseFraction;
+        t.targetMinUseFraction = trans.targetMinUseFraction;
+    
+        t.reverseUseActor = trans.reverseUseActor;
+        t.reverseUseTarget = trans.reverseUseTarget;
+        t.move = trans.move;
+        t.desireMoveDist = trans.desireMoveDist;
+        t.noUseActor = trans.noUseActor;
+        t.noUseTarget = trans.noUseTarget;
+    
+        t.playerActor = trans.playerActor;
+        t.tool = trans.tool;
+        t.targetRemains = trans.targetRemains;
+
+        return t;
+    }
+
     private function parseFilename(fileName:String)
     {
         //name
@@ -39,6 +92,7 @@ class TransitionData
         actorID = Std.parseInt(parts[0]);
         targetID = Std.parseInt(parts[1]);
     }
+
     private function parseData(data:Array<String>)
     {
         newActorID = Std.parseInt(data[0]);
@@ -58,22 +112,27 @@ class TransitionData
         tool = (actorID >= 0 && actorID == newActorID);
         targetRemains = (targetID >= 0 && targetID == newTargetID);
     }
+
     public function isGeneric()
     {
       return targetID == -1 && newTargetID == 0 && actorID != newActorID;
     }
+
     public function isAttack():Bool
     {
       return targetID == 0 && !lastUseActor && !lastUseTarget;
     }
+
     public function isLastUse():Bool
     {
       return lastUseActor || lastUseTarget;
     }
+
     public function targetsPlayer()
     {
       return targetID == 0 || targetID == -1 && new ObjectData(actorID).foodValue > 0;
     }
+
     public function calculateDecay(seconds:Int):String
     {
         if (seconds < 0)
@@ -84,12 +143,10 @@ class TransitionData
           return '$seconds seconds';
         return "";
     }
+
     public function toString():String
     {
       return '$actorID + $targetID = $newActorID + $newTargetID';
     }
-    public function clone():TransitionData
-    {
-      return Reflect.copy(this);
-    }
+
 }
