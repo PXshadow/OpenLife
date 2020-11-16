@@ -254,8 +254,9 @@ private class TransitionHelper{
 
         trace('Found transition: a${transition.actorID} t${transition.targetID}');
 
-        //transition source object id (or -1) if held object is result of a transition,
-        if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
+        //transition source object id (or -1) if held object is result of a transition 
+        //if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
+        this.newTransitionSource = transition.actorID;
 
         this.newHandObject = [transition.newActorID];
         this.newTileObject = [transition.newTargetID];
@@ -300,22 +301,30 @@ private class TransitionHelper{
         return true;
     }
 
-    public function sendUpdateToClient(){
+    public function sendUpdateToClient() : Bool{
 
-        if(this.doAction){
-            Server.server.map.setObjectId(this.tx, this.ty, this.newTileObject);
-
-            player.o_id = this.newHandObject;
-
-            player.action = 1;
-            player.o_origin_x = this.x;
-            player.o_origin_y = this.y;
-            player.o_origin_valid = 0; // what is this for???
-            player.o_transition_source_id = this.newTransitionSource;
-            player.action_target_x = this.x;
-            player.action_target_y = this.y;
-            player.forced = false;
+        // even send Player Update / PU if nothing happend. Otherwise client will get stuck
+        if(this.doAction == false){
+            player.connection.send(PLAYER_UPDATE,[player.toData()]);
+            player.connection.send(FRAME);
+            return false;
         }
+
+        Server.server.map.setObjectId(this.tx, this.ty, this.newTileObject);
+
+        player.o_id = this.newHandObject;
+
+        player.action = 1;
+
+        // TODO set right
+        player.o_origin_x = this.x;
+        player.o_origin_y = this.y;
+        player.o_origin_valid = 1; // what is this for???
+
+        player.o_transition_source_id = this.newTransitionSource;
+        player.action_target_x = this.x;
+        player.action_target_y = this.y;
+        player.forced = false;
 
         for (c in Server.server.connections) // TODO only for visible players
         {
@@ -326,6 +335,6 @@ private class TransitionHelper{
 
         player.action = 0;
 
-        return this.doAction;
+        return true;
     }
 }
