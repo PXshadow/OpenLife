@@ -137,114 +137,21 @@ class GlobalPlayerInstance extends PlayerInstance {
             }
     }
 
-    public function use(x:Int,y:Int)
-    {
-        if(me.isMoveing()) {
-            trace("USE: Player is still moving");
-            return; 
-        }
-
-        if(this.isClose(x,y) == false) {
-            trace('USE: object position is too far away p${this.x},p${this.y} o$x,o$y');
-            return; 
-        }
-
-        var tx = x + gx;
-        var ty = y + gy;
-
-        var hand_o_id = this.o_id;
-        var transitionSource = hand_o_id[0];
-        var tile_o_id = Server.server.map.getObjectId(tx, ty);
-
-        var doaction = false;
-        trace("hand " + hand_o_id + " tile " + tile_o_id);
-
-        if(tile_o_id[0] != 0){
-
-            var transition = Server.transitionImporter.getTransition(hand_o_id[0], tile_o_id[0]);
-            if(transition != null){
-
-                trace('Found transition: a${transition.actorID} t${transition.targetID}');
-
-                //transition source object id (or -1) if held object is result of a transition,
-                if(transition.newActorID != hand_o_id[0]) transitionSource = -1;
-
-                hand_o_id = [transition.newActorID];
-                tile_o_id = [transition.newTargetID];
-
-                doaction = true;
-            }else{
-                var objectData = Server.objectDataMap[tile_o_id[0]];
-                //trace("OD: " + objectData.toFileString());
-
-                var permanent = (objectData != null) && (objectData.permanent == 1);
-                // switch only if object not permanent and hand or tile is free
-                if(permanent == false && (hand_o_id[0] == 0 || tile_o_id[0] == 0)) {
-
-                    var tmp = hand_o_id;
-                    hand_o_id = tile_o_id;
-                    tile_o_id = tmp;
-
-                    doaction = true;
-                    
-                }else{
-                    trace("containable " + objectData.containable + " desc " + objectData.description + " numSlots " + objectData.numSlots);
-                    if (objectData.numSlots > 0 && MapData.numSlots(tile_o_id) < objectData.numSlots) {
-                        var handObject = Server.objectDataMap[hand_o_id[0]];
-                        if (handObject.slotSize >= objectData.containSize) {
-                            tile_o_id = tile_o_id.concat(hand_o_id);
-                            hand_o_id = [0];
-                            doaction = true;
-                        }
-                    }
-                }
-            }
-        }
-        
-        // TODO check pickup age
-
-        // TODO kill deadlyDistance
-
-        // TODO feed baby
-
-        // TODO floor
-
-        // TODO last transitions
-
-        var newFloorId = Server.server.map.getFloorId(tx, ty);
-
-        if(doaction){
-
-            Server.server.map.setObjectId(tx, ty, tile_o_id);
-        
-            this.o_id = hand_o_id;
-            this.action = 1;
-            this.o_origin_x = x;
-            this.o_origin_y = y;
-            this.o_origin_valid = 0;
-            this.o_transition_source_id = transitionSource;
-            this.action_target_x = x;
-            this.action_target_y = y;
-            this.forced = false;
-
-        }
-
-        for (c in Server.server.connections) // TODO only for visible players
-        {
-            c.send(PLAYER_UPDATE,[this.toData()]);
-            if(doaction) c.sendMapUpdate(x,y,newFloorId, tile_o_id, this.p_id);
-            c.send(FRAME);
-        }
-
-        this.action = 0;
-        
-        //this.o_origin_valid = 0;
-    }
-
-    public function drop(x:Int,y:Int) : Bool
+    // even send Player Update / PU if nothing happend. Otherwise client will get stuck
+    public function use(x:Int,y:Int) : Bool
     {
         var helper = new TransitionHelper(this, x, y);
 
+        helper.use();
+
+        return helper.sendUpdateToClient();
+    }
+
+    // even send Player Update / PU if nothing happend. Otherwise client will get stuck
+    public function drop(x:Int,y:Int) : Bool
+    {
+        var helper = new TransitionHelper(this, x, y);
+        
         if(helper.checkIfNotMovingAndCloseEnough() == false) return helper.sendUpdateToClient();
 
         helper.swapHandAndFloorObject();            
@@ -266,10 +173,12 @@ private class TransitionHelper{
     public var handObject:Array<Int>;
     public var tileObject:Array<Int>;
     public var floorId:Int;
+    public var transitionSource:Int;
 
     public var newHandObject:Array<Int>;
     public var newTileObject:Array<Int>;
     public var newFloorId:Int;
+    public var newTransitionSource:Int;
 
     public var doAction:Bool;
 
@@ -281,17 +190,46 @@ private class TransitionHelper{
         this.y = y;
 
         this.tx = x + player.gx;
-        this.ty = x + player.gy;
+        this.ty = y + player.gy;
 
         this.handObject = player.o_id;
         this.tileObject = Server.server.map.getObjectId(tx, ty);
         this.floorId = Server.server.map.getFloorId(tx, ty);
+        this.transitionSource = player.o_transition_source_id;
         
         this.newHandObject = this.handObject;
         this.newTileObject = this.tileObject;
         this.newFloorId = this.floorId;
+        this.newTransitionSource = this.transitionSource;
 
-        trace("hand: " + this.handObject + " tile: " + this.tileObject);
+        trace("hand: " + this.handObject + " tile: " + this.tileObject + ' gx: $tx gy:$ty');
+    }
+
+    public function use() : Bool
+    {
+        // TODO check pickup age
+
+        // TODO kill deadlyDistance
+
+        // TODO feed baby
+
+        // TODO floor
+
+        // TODO last transitions
+        
+        if(this.checkIfNotMovingAndCloseEnough() == false) return false;
+
+        // do nothing if tile Object is empty
+        if(this.tileObject[0] == 0) return false;
+
+        // do actor + target = newActor + newTarget
+        if(this.doTransitionIfPossible()) return true;
+
+        // do pickup if hand is empty
+        if(this.handObject[0] == 0 && this.swapHandAndFloorObject()) return true;            
+        
+        // do container stuff
+        return this.placeObjectInContainerOnGroundIfPossible();
     }
 
     public function checkIfNotMovingAndCloseEnough():Bool{
@@ -308,33 +246,22 @@ private class TransitionHelper{
         return true;
     }
 
-    public function sendUpdateToClient(){
+    public function doTransitionIfPossible() : Bool {
 
-        if(this.doAction){
-            Server.server.map.setObjectId(this.tx, this.ty, this.newTileObject);
+        var transition = Server.transitionImporter.getTransition(this.handObject[0], this.tileObject[0]);
 
-            player.o_id = this.newHandObject;
+        if(transition == null) return false;
 
-            player.action = 1;
-            player.o_origin_x = x;
-            player.o_origin_y = y;
-            player.o_origin_valid = 0;
-            //this.o_transition_source_id = transitionSource;
-            player.action_target_x = x;
-            player.action_target_y = y;
-            player.forced = false;
-        }
+        trace('Found transition: a${transition.actorID} t${transition.targetID}');
 
-        for (c in Server.server.connections) // TODO only for visible players
-        {
-            c.send(PLAYER_UPDATE,[player.toData()]);
-            if(this.doAction) c.sendMapUpdate(x, y, this.newFloorId, this.newTileObject, player.p_id);
-            c.send(FRAME);
-        }
+        //transition source object id (or -1) if held object is result of a transition,
+        if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
 
-        player.action = 0;
+        this.newHandObject = [transition.newActorID];
+        this.newTileObject = [transition.newTargetID];
 
-        return this.doAction;
+        this.doAction = true;
+        return true;
     }
 
     public function swapHandAndFloorObject():Bool{
@@ -350,7 +277,55 @@ private class TransitionHelper{
         this.newHandObject = this.tileObject;
 
         this.doAction = true;
-
         return true;
+    }
+
+    public function placeObjectInContainerOnGroundIfPossible() : Bool {
+        var objectData = Server.objectDataMap[this.tileObject[0]];
+
+        trace("containable: " + objectData.containable + " desc: " + objectData.description + " numSlots: " + objectData.numSlots);
+
+        // dont continue if tileObject is a container or if there is no space in it 
+        if ((objectData.numSlots == 0 || MapData.numSlots(this.tileObject) >= objectData.numSlots)) return false;
+        
+        var handObjectData = Server.objectDataMap[this.handObject[0]];
+
+        //if (handObjectData.slotSize >= objectData.containSize) {
+        if (handObjectData.slotSize > objectData.containSize) return false;
+
+        this.newTileObject = this.tileObject.concat(this.handObject);
+        this.newHandObject = [0];
+
+        this.doAction = true;
+        return true;
+    }
+
+    public function sendUpdateToClient(){
+
+        if(this.doAction){
+            Server.server.map.setObjectId(this.tx, this.ty, this.newTileObject);
+
+            player.o_id = this.newHandObject;
+
+            player.action = 1;
+            player.o_origin_x = this.x;
+            player.o_origin_y = this.y;
+            player.o_origin_valid = 0; // what is this for???
+            player.o_transition_source_id = this.newTransitionSource;
+            player.action_target_x = this.x;
+            player.action_target_y = this.y;
+            player.forced = false;
+        }
+
+        for (c in Server.server.connections) // TODO only for visible players
+        {
+            c.send(PLAYER_UPDATE,[player.toData()]);
+            if(this.doAction) c.sendMapUpdate(x, y, this.newFloorId, this.newTileObject, player.p_id);
+            c.send(FRAME);
+        }
+
+        player.action = 0;
+
+        return this.doAction;
     }
 }
