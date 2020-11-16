@@ -57,14 +57,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         trace("hand " + hand_o_id + " tile " + tile_o_id);
 
         if(tile_o_id[0] != 0){
-            
-            for (trans in Server.transitionImporter.transitions) {
-                if (trans.targetID == tile_o_id[0] || trans.actorID == tile_o_id[0] || trans.newTargetID == tile_o_id[0] || trans.newActorID == tile_o_id[0]) {
-                    trace("for loop trans " + trans);
-                }
-            }
             var transition = Server.transitionImporter.getTransition(hand_o_id[0], tile_o_id[0]);
-            trace("trans " + transition);
             if(transition != null){
 
                 trace('Found transition: a${transition.actorID} t${transition.targetID}');
@@ -128,7 +121,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         for (c in Server.server.connections) // TODO only for visible players
         {
             c.send(PLAYER_UPDATE,[this.toData()]);
-            if(doaction) c.sendMapUpdate(x,y,newFloorId, tile_o_id[0], this.p_id);
+            if(doaction) c.sendMapUpdate(x,y,newFloorId, tile_o_id, this.p_id);
             c.send(FRAME);
         }
 
@@ -265,11 +258,11 @@ class GlobalPlayerInstance extends PlayerInstance {
         this.action_target_x = x;
         this.action_target_y = y;
         this.forced = false;
-
+        
         for (c in Server.server.connections) // TODO only for visible players
         {
             c.send(PLAYER_UPDATE,[this.toData()]);
-            c.sendMapUpdate(x,y,newFloorId, tile_o_id[0], this.p_id);
+            c.sendMapUpdate(x,y,newFloorId, tile_o_id, this.p_id);
             c.send(FRAME);
         }
 

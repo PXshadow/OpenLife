@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.map.MapData;
 import format.swf.Data.PlaceObject;
 #if (target.threaded)
 import openlife.data.Pos;
@@ -183,9 +184,9 @@ class Connection implements ServerHeader
     x y new_floor_id new_id p_id old_x old_y speed
     #
     */
-    public function sendMapUpdate(x:Int, y:Int, newFloorId:Int, newObjectId:Int, playerId:Int)
+    public function sendMapUpdate(x:Int, y:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int)
     {
-        send(MAP_CHANGE,['$x $y $newFloorId $newObjectId $playerId']);
+        send(MAP_CHANGE,['$x $y $newFloorId ${MapData.stringID(newObjectId)} $playerId']);
     }
     
     public function emote(id:Int)
