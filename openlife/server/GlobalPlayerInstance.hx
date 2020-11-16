@@ -225,7 +225,16 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         this.action = 0;
     }
+    
+    public function remove(x:Int,y:Int,id:Null<Int>)
+    {
+        trace("remove " + x + " " + y + " id " + id);
+    }
 
+    public function specialRemove(x:Int,y:Int,clothing:Int,id:Null<Int>)
+    {
+
+    }
     public function drop(x:Int,y:Int)
     {
         if(me.isMoveing()) {

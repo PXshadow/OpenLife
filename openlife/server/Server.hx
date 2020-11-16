@@ -156,6 +156,10 @@ class Server
             case EMOT:
             trace("data " + input);
             header.emote(Std.parseInt(input[2]));
+            case SREMV:
+            header.player.specialRemove(Std.parseInt(input[0]),Std.parseInt(input[1]),Std.parseInt(input[2]),input.length > 3 ? Std.parseInt(input[3]) : null);
+            case REMV:
+            header.player.remove(Std.parseInt(input[0]),Std.parseInt(input[1]),input.length > 2 ? Std.parseInt(input[2]) : null);
             case USE:
             header.player.use(Std.parseInt(input[0]), Std.parseInt(input[1]));
             case SELF:
