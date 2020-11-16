@@ -58,14 +58,14 @@ class TransitionImporter
             if(objectDataActor != null) actorDescription = objectDataActor.description; //trace('actor: ${objectDataActor.description}');
             if(objectDataTarget != null) targetDescription = objectDataTarget.description;//trace('target: ${objectDataTarget.description}');
            
-            trace('New transition: a: ${transition.actorID} t: ${transition.targetID} - $actorDescription - $targetDescription');
+            //trace('New transition: a: ${transition.actorID} t: ${transition.targetID} - $actorDescription - $targetDescription');
 
 
             // if there is a transition allready, then there is an additional "last" transition
             if(trans != null){
                 
                 // TODO make map for last transitions
-                trace('Double transition: actor: ${trans.actorID} target: ${trans.targetID}');
+                //trace('Double transition: actor: ${trans.actorID} target: ${trans.targetID}');
             }
 
             transitionsByTargetId[transition.targetID] = transition;

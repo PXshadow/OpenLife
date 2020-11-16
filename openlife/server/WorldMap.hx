@@ -42,12 +42,12 @@ import haxe.io.Bytes;
 @:enum abstract BiomeSpeed(Float) from Float to Float
 {
     public var SGREEN = 1;  
-    public var SSWAMP = 0.2;  
+    public var SSWAMP = 0.4;  
     public var SYELLOW = 1;
-    public var SGREY = 0.2;
+    public var SGREY = 0.9;
     public var SSNOW = 0.5;
-    public var SDESERT= 0.5;//0.5;
-    public var SJUNGLE = 0.5;  
+    public var SDESERT= 0.7;//0.5;
+    public var SJUNGLE = 0.7;  
 
     public var SSNOWINGREY = 0.1;
     public var SOCEAN = 0.2;  
@@ -200,17 +200,16 @@ class WorldMap
 
         for (obj in Server.vector) {
             if (obj.mapChance == 0) continue;
+            if (obj.clothing != "n") continue;
 
             for(biome in obj.biomes){
 
                 var biomeData = this.biomeObjectData[biome];
-
                 if(biomeData == null){
                     biomeData = [];
                     this.biomeObjectData[biome] = biomeData;
                     this.biomeTotalChance[biome] = 0;
                 }
-
                 biomeData.push(obj);
                 this.biomeTotalChance[biome] += obj.mapChance;
 
