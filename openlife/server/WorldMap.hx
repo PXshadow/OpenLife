@@ -200,7 +200,6 @@ class WorldMap
 
         for (obj in Server.vector) {
             if (obj.mapChance == 0) continue;
-            if (obj.clothing != "n") continue;
 
             for(biome in obj.biomes){
 
@@ -293,14 +292,12 @@ class WorldMap
     public function setObjectId(x:Int,y:Int,id:Array<Int>)
     {
         objects[index(x,y)] = id;
-        //if (floorBool) floors[index(x,y)] = id[0];
     }
 
     private inline function index(x:Int,y:Int):Int
     {
         // Dont know why yet, but y seems to be right if -1
         y -= 1;
-
         // make map round x wise
         x = x % this.width;
         if(x < 0) x += this.width; 

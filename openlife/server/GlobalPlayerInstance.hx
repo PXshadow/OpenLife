@@ -54,12 +54,17 @@ class GlobalPlayerInstance extends PlayerInstance {
 
 
         var doaction = false;
-        
+        trace("hand " + hand_o_id + " tile " + tile_o_id);
 
-        if(tile_o_id[0] != 0){
+        if(tile_o_id[0]){
             
+            for (trans in Server.transitionImporter.transitions) {
+                if (trans.targetID == tile_o_id[0] || trans.actorID == tile_o_id[0] || trans.newTargetID == tile_o_id[0] || trans.newActorID == tile_o_id[0]) {
+                    trace("for loop trans " + trans);
+                }
+            }
             var transition = Server.transitionImporter.getTransition(hand_o_id[0], tile_o_id[0]);
-
+            trace("trans " + transition);
             if(transition != null){
 
                 trace('Found transition: a${transition.actorID} t${transition.targetID}');
@@ -71,8 +76,7 @@ class GlobalPlayerInstance extends PlayerInstance {
                 tile_o_id = [transition.newTargetID];
 
                 doaction = true;
-            }
-            else{
+            }else{
                 var objectData = Server.objectDataMap[tile_o_id[0]];
                 //trace("OD: " + objectData.toFileString());
 

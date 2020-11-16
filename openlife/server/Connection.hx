@@ -75,6 +75,11 @@ class Connection implements ServerHeader
             Server.server.map.setObjectId(player.gx+6, player.gy+1, [586]);
             Server.server.map.setObjectId(player.gx+7, player.gy+1, [2951]);
 
+
+            //test transitions
+            Server.server.map.setObjectId(player.gx,player.gy + 10,[238]);
+            Server.server.map.setObjectId(player.gx,player.gy + 11,[1599]);
+
             
             trace("move_speed: " + player.move_speed);
     

@@ -79,9 +79,10 @@ class TransitionImporter
     public function getTransition(actorId:Int, targetId:Int):TransitionData{
 
         var transitionsByTargetId = transitionsByActorIdTargetId[actorId];
-
-        if(transitionsByTargetId == null) return null;
-
-        return transitionsByTargetId[targetId];
+        if(transitionsByTargetId != null) {
+            trace("tt " + transitionsByTargetId[targetId]);
+            return transitionsByTargetId[targetId];
+        }
+        return null;
     }
 }
