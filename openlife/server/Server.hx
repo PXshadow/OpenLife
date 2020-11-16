@@ -96,7 +96,6 @@ class Server
         trace("Import transitions");
         transitionImporter.importCategories();
         transitionImporter.importTransitions();
-        transitionImporter.generateAndAddCategoryTransitions();
 
         dataVersionNumber = Resource.dataVersionNumber();
         trace('dataVersionNumber: $dataVersionNumber');

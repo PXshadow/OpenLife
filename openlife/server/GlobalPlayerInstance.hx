@@ -47,12 +47,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         var hand_o_id = this.o_id;
         var transitionSource = hand_o_id[0];
-
-        trace("USE: hand_o_id: " + hand_o_id);
-
         var tile_o_id = Server.server.map.getObjectId(tx, ty);
-        trace("USE: tile_o_id: " + tile_o_id);
-
 
         var doaction = false;
         trace("hand " + hand_o_id + " tile " + tile_o_id);
@@ -75,7 +70,7 @@ class GlobalPlayerInstance extends PlayerInstance {
                 var objectData = Server.objectDataMap[tile_o_id[0]];
                 //trace("OD: " + objectData.toFileString());
 
-                var permanent = (objectData != null) && objectData.permanent == 1;
+                var permanent = (objectData != null) && (objectData.permanent == 1);
                 // switch only if object not permanent and hand or tile is free
                 if(permanent == false && (hand_o_id[0] == 0 || tile_o_id[0] == 0)) {
 
@@ -138,6 +133,58 @@ class GlobalPlayerInstance extends PlayerInstance {
         
         //this.o_origin_valid = 0;
     }
+
+    public function drop(x:Int,y:Int)
+        {
+            if(me.isMoveing()) {
+                trace("DROP: Player is still moving");
+                return; 
+            }
+    
+            if(this.isClose(x,y) == false) {
+                trace('DROP: object position is too far away p${this.x},p${this.y} o$x,o$y');
+                return; 
+            }
+
+            var helper = new TransitionHelper(x + gx, y + gy, this.o_id);
+
+            helper.swapHandAndFloorObject();
+    
+            //var tx = x + gx;
+            //var ty = y + gy;
+    
+            //var newFloorId = Server.server.map.getFloorId(tx, ty);
+    
+            //var tile_o_id = this.o_id;
+            //trace("DROP: o_id: " + tile_o_id);
+    
+            //this.o_id = Server.server.map.getObjectId(tx, ty);
+            //Server.server.map.setObjectId(tx, ty, tile_o_id);
+            
+            if(helper.doAction){
+                Server.server.map.setObjectId(helper.tx, helper.ty, helper.newTileObject);
+
+                this.o_id = helper.newHandObject;
+
+                this.action = 1;
+                this.o_origin_x = x;
+                this.o_origin_y = y;
+                this.o_origin_valid = 0;
+                //this.o_transition_source_id = transitionSource;
+                this.action_target_x = x;
+                this.action_target_y = y;
+                this.forced = false;
+            }
+            
+            for (c in Server.server.connections) // TODO only for visible players
+            {
+                c.send(PLAYER_UPDATE,[this.toData()]);
+                if(helper.doAction) c.sendMapUpdate(x, y, helper.newFloorId, helper.newTileObject, this.p_id);
+                c.send(FRAME);
+            }
+    
+            this.action = 0;
+        }
 
     /*
     SELF x y i#
@@ -231,50 +278,72 @@ class GlobalPlayerInstance extends PlayerInstance {
     public function remove(x:Int,y:Int,id:Null<Int>)
     {
         trace("remove " + x + " " + y + " id " + id);
+
+        for (c in Server.server.connections) // TODO only for visible players
+            {
+                c.send(PLAYER_UPDATE,[this.toData()]);
+                c.send(FRAME);
+            }
     }
 
     public function specialRemove(x:Int,y:Int,clothing:Int,id:Null<Int>)
     {
-
-    }
-    public function drop(x:Int,y:Int)
-    {
-        if(me.isMoveing()) {
-            trace("DROP: Player is still moving");
-            return; 
-        }
-
-        if(this.isClose(x,y) == false) {
-            trace('DROP: object position is too far away p${this.x},p${this.y} o$x,o$y');
-            return; 
-        }
-
-        var tx = x + gx;
-        var ty = y + gy;
-
-        var newFloorId = Server.server.map.getFloorId(tx, ty);
-
-        var tile_o_id = this.o_id;
-        trace("DROP: o_id: " + tile_o_id);
-
-        this.o_id = Server.server.map.getObjectId(tx, ty);
-        Server.server.map.setObjectId(tx, ty, tile_o_id);
-        
-        this.action = 1;
-        this.o_origin_x = x;
-        this.o_origin_y = y;
-        this.o_origin_valid = 0;
-        this.action_target_x = x;
-        this.action_target_y = y;
-        this.forced = false;
-        
         for (c in Server.server.connections) // TODO only for visible players
-        {
-            c.send(PLAYER_UPDATE,[this.toData()]);
-            c.sendMapUpdate(x,y,newFloorId, tile_o_id, this.p_id);
-            c.send(FRAME);
-        }
+            {
+                c.send(PLAYER_UPDATE,[this.toData()]);
+                c.send(FRAME);
+            }
+    }
+}
 
-        this.action = 0;
+private class TransitionHelper{
+
+    public var handObject:Array<Int>;
+    public var tileObject:Array<Int>;
+    public var floorId:Int;
+
+    public var newHandObject:Array<Int>;
+    public var newTileObject:Array<Int>;
+    public var newFloorId:Int;
+
+    public var doAction:Bool;
+
+    public var tx:Int;
+    public var ty:Int;
+
+    //public var tx:Int;
+    //public var ty:Int;
+
+    public function new(tx:Int,ty:Int, handObject:Array<Int>)
+    {
+        this.tx = tx;
+        this.ty = ty;
+
+        this.handObject = handObject;
+        this.tileObject = Server.server.map.getObjectId(tx, ty);
+        this.floorId = Server.server.map.getFloorId(tx, ty);
+        
+        this.newHandObject = this.handObject;
+        this.newTileObject = this.tileObject;
+        this.newFloorId = this.floorId;
+
+        trace("hand: " + this.handObject + " tile: " + this.tileObject);
+    }
+
+    public function swapHandAndFloorObject():Bool{
+
+        var objectData = Server.objectDataMap[this.tileObject[0]];
+        //trace("OD: " + objectData.toFileString());
+
+        var permanent = (objectData != null) && (objectData.permanent == 1);
+
+        if(permanent) return false;
+
+        this.newTileObject = this.handObject;
+        this.newHandObject = this.tileObject;
+
+        this.doAction = true;
+
+        return true;
     }
 }

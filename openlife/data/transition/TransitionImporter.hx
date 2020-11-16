@@ -10,6 +10,7 @@ class TransitionImporter
 {
     public var transitions:Array<TransitionData> = [];
     public var categories:Array<Category> = [];
+    private var categoriesById:Map<Int, Category> = [];
 
     private var transitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
     private var lastTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
@@ -22,15 +23,22 @@ class TransitionImporter
     public function importCategories()
     {
         categories = [];
+        categoriesById = [];
+
         for (name in sys.FileSystem.readDirectory(Engine.dir + "categories"))
         {
             var category = new Category(File.getContent(Engine.dir + 'categories/$name'));
+            
             categories.push(category);
+            categoriesById[category.parentID] = category;
+
         }
     }
 
     public function importTransitions()
     {        
+        if(categories.length == 0) importCategories();
+
         transitions = [];
         transitionsByActorIdTargetId = [];
         lastTransitionsByActorIdTargetId = [];
@@ -42,12 +50,14 @@ class TransitionImporter
             
             addTransition(transition);
 
+            createAndaddCategoryTransitions(transition); 
+
         }
 
         trace('Transitions loaded: ${transitions.length}');
     }
 
-    public function traceTransition(transition:TransitionData){
+    public function traceTransition(transition:TransitionData, s:String = ""){
 
         var objectDataActor = Server.objectDataMap[transition.actorID];
         var objectDataTarget = Server.objectDataMap[transition.targetID];
@@ -58,9 +68,10 @@ class TransitionImporter
         if(objectDataActor != null) actorDescription = objectDataActor.description;
         if(objectDataTarget != null) targetDescription = objectDataTarget.description;
         
-        trace('New transition: a: ${transition.actorID} t: ${transition.targetID} - $actorDescription - $targetDescription');
+        trace('$s transition: a: ${transition.actorID} t: ${transition.targetID} - $actorDescription - $targetDescription');
     }
 
+    /*
     public function generateAndAddCategoryTransitions(){
 
         if(transitions.length == 0) importTransitions();
@@ -68,11 +79,10 @@ class TransitionImporter
 
         var count = 0;
 
-        // TODO currently it adds only transitions if category is actor
-
         for(category in categories){
 
             // TODO do also for last transitions
+            // TODO currently it adds only transitions if category is actor
 
             var transitionsByTargetId = transitionsByActorIdTargetId[category.parentID];
 
@@ -98,6 +108,44 @@ class TransitionImporter
         }
 
         trace('added category transitions: $count');
+    }
+    */
+
+    public function createAndaddCategoryTransitions(transition:TransitionData){
+
+        var category = this.categoriesById[transition.actorID];
+        var bothActionAndTargetIsCategory = (category != null);
+
+        if(category != null){
+            for(id in category.ids){
+
+                var newTransition = transition.clone();
+                newTransition.actorID = id;
+                if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
+                //if(newTransition.newTargetID == category.parentID) newTransition.newTargetID = id;
+
+                addTransition(newTransition); 
+            }
+        }
+
+        category = this.categoriesById[transition.targetID];
+        bothActionAndTargetIsCategory = bothActionAndTargetIsCategory && (category != null);
+        if(bothActionAndTargetIsCategory){
+            traceTransition(transition, 'bothActionAndTargetIsCategory: ');
+        }
+
+
+        if(category != null){
+            for(id in category.ids){
+
+                var newTransition = transition.clone();
+                newTransition.targetID = id;
+                //if(newTransition.newTargetID == targetCategory.parentID) newTransition.newActorID = id;
+                if(newTransition.newTargetID == category.parentID) newTransition.newTargetID = id;
+
+                addTransition(newTransition); 
+            }
+        }
     }
 
     public function addTransition(transition:TransitionData){
