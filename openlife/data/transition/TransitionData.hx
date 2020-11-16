@@ -88,4 +88,8 @@ class TransitionData
     {
       return '$actorID + $targetID = $newActorID + $newTargetID';
     }
+    public function clone():TransitionData
+    {
+      return Reflect.copy(this);
+    }
 }
