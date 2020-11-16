@@ -57,6 +57,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         trace("hand " + hand_o_id + " tile " + tile_o_id);
 
         if(tile_o_id[0] != 0){
+
             var transition = Server.transitionImporter.getTransition(hand_o_id[0], tile_o_id[0]);
             if(transition != null){
 
@@ -73,10 +74,9 @@ class GlobalPlayerInstance extends PlayerInstance {
                 var objectData = Server.objectDataMap[tile_o_id[0]];
                 //trace("OD: " + objectData.toFileString());
 
-                var parmanent = (objectData != null) && objectData.permanent == 1;
-
+                var permanent = (objectData != null) && objectData.permanent == 1;
                 // switch only if object not permanent and hand or tile is free
-                if(parmanent == false && (hand_o_id[0] == 0 || tile_o_id[0] == 0)) {
+                if(permanent == false && (hand_o_id[0] == 0 || tile_o_id[0] == 0)) {
 
                     var tmp = hand_o_id;
                     hand_o_id = tile_o_id;
@@ -84,6 +84,16 @@ class GlobalPlayerInstance extends PlayerInstance {
 
                     doaction = true;
                     
+                }else{
+                    trace("containable " + objectData.containable + " desc " + objectData.description + " numSlots " + objectData.numSlots);
+                    if (objectData.numSlots > 0) { //TODO: MapData needs to give a correct numSlots back
+                        var handObject = Server.objectDataMap[hand_o_id[0]];
+                        if (handObject.slotSize >= objectData.containSize) {
+                            tile_o_id = tile_o_id.concat(hand_o_id);
+                            hand_o_id = [0];
+                            doaction = true;
+                        }
+                    }
                 }
             }
         }
