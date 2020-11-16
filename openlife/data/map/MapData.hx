@@ -167,6 +167,16 @@ class MapData
         }
         return string.substring(0,string.length - 1);
     }
+    public static function numSlots(a:Array<Int>):Int
+    {
+        var count:Int = 0;
+        for (i in 1...a.length)
+        {
+            if (i >= 0)
+                count++;
+        }
+        return count;
+    }
 }
 class MapCollision implements openlife.auto.Pathfinder.MapHeader
 {

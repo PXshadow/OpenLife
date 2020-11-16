@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.map.MapData;
 import openlife.data.transition.TransitionData;
 import openlife.data.Pos;
 import openlife.data.object.player.PlayerInstance;
@@ -86,7 +87,7 @@ class GlobalPlayerInstance extends PlayerInstance {
                     
                 }else{
                     trace("containable " + objectData.containable + " desc " + objectData.description + " numSlots " + objectData.numSlots);
-                    if (objectData.numSlots > 0) { //TODO: MapData needs to give a correct numSlots back
+                    if (objectData.numSlots > 0 && MapData.numSlots(tile_o_id) < objectData.numSlots) {
                         var handObject = Server.objectDataMap[hand_o_id[0]];
                         if (handObject.slotSize >= objectData.containSize) {
                             tile_o_id = tile_o_id.concat(hand_o_id);
