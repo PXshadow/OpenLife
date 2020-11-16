@@ -204,8 +204,8 @@ class MoveExtender{
                 lastPos = move;
             }
 
-            // in this case the hole movement finished 
-            trace("The hole movement finished");
+            // in this case the whole movement finished 
+            trace("The whole movement finished");
             return lastPos;
         }
 
