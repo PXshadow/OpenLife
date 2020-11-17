@@ -1,4 +1,6 @@
 package openlife.server;
+import haxe.ds.Vector;
+import openlife.data.object.ObjectHelper;
 import openlife.data.map.MapData;
 import openlife.data.transition.TransitionData;
 import openlife.data.Pos;
@@ -8,6 +10,12 @@ import sys.thread.Mutex;
 using openlife.server.MoveExtender;
 
 class GlobalPlayerInstance extends PlayerInstance {
+    // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
+    public var heldObject:ObjectHelper; 
+
+    // additional ObjectInformation for the object stored in backpack or other clothing. The size is 6 since 6 clothing slots
+    public var clothingObjects:Vector<ObjectHelper> = new Vector(6); 
+
     // handles all the movement stuff
     public var me:MoveExtender = new MoveExtender();
     // is used since move and move update can change the player at the same time
