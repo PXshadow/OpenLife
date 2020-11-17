@@ -12,8 +12,14 @@ class TransitionImporter
     public var categories:Array<Category> = [];
     private var categoriesById:Map<Int, Category> = [];
 
+    // transitions without any last use transitions
     private var transitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
-    private var lastTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
+    // transitions where both actor and target is last use
+    private var lastUseBothTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
+    // transitions where only actor is last use
+    private var lastUseActorTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
+    // transitions where only target is last use
+    private var lastUseTargetTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
 
     public function new()
     {
@@ -41,7 +47,9 @@ class TransitionImporter
 
         transitions = [];
         transitionsByActorIdTargetId = [];
-        lastTransitionsByActorIdTargetId = [];
+        lastUseBothTransitionsByActorIdTargetId = [];
+        lastUseActorTransitionsByActorIdTargetId = [];
+        lastUseTargetTransitionsByActorIdTargetId = [];
 
         for (name in sys.FileSystem.readDirectory(Engine.dir + "transitions"))
         {
@@ -57,35 +65,109 @@ class TransitionImporter
         trace('Transitions loaded: ${transitions.length}');
     }
 
-    public function traceTransition(transition:TransitionData, s:String = ""){
+    public function traceTransition(transition:TransitionData, s:String = "", targetDescContains:String = ""){
 
         var objectDataActor = Server.objectDataMap[transition.actorID];
         var objectDataTarget = Server.objectDataMap[transition.targetID];
+        var objectDataNewActor = Server.objectDataMap[transition.newActorID];
+        var objectDataNewTarget = Server.objectDataMap[transition.newTargetID];
 
         var actorDescription = "";
         var targetDescription = "";
+        var newActorDescription = "";
+        var newTargetDescription = "";
 
         if(objectDataActor != null) actorDescription = objectDataActor.description;
         if(objectDataTarget != null) targetDescription = objectDataTarget.description;
+        if(objectDataNewActor != null) newActorDescription = objectDataNewActor.description;
+        if(objectDataNewTarget != null) newTargetDescription = objectDataNewTarget.description;
+
+        if(targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
         
-        trace('$s transition: a: ${transition.actorID} t: ${transition.targetID} - $actorDescription - $targetDescription');
+        trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
+    }
+
+    private function getTransitionMap(lastUseActor:Bool, lastUseTarget:Bool):Map<Int, Map<Int, TransitionData>>
+    {
+        if(lastUseActor && lastUseTarget)
+        {
+            return lastUseBothTransitionsByActorIdTargetId;
+        }
+        else if(lastUseActor && lastUseTarget == false)
+        {
+            return lastUseActorTransitionsByActorIdTargetId;
+        }
+        else if(lastUseActor == false && lastUseTarget)
+        {
+            return lastUseTargetTransitionsByActorIdTargetId;
+        } 
+        else
+        {
+            return transitionsByActorIdTargetId;
+        }
+    }
+
+    public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false):TransitionData{
+        
+        var transitionMap = getTransitionMap(lastUseActor, lastUseTarget);
+
+        var transitionsByTargetId = transitionMap[actorId];
+
+        if(transitionsByTargetId == null) return null;
+
+        return transitionsByTargetId[targetId];
+    }
+
+    public function addTransition(transition:TransitionData){
+        
+        var transitionMap = getTransitionMap(transition.lastUseActor, transition.lastUseTarget);
+
+        var transitionsByTargetId = transitionMap[transition.actorID];
+
+        if(transitionsByTargetId == null){
+            transitionsByTargetId = [];
+            transitionsByActorIdTargetId[transition.actorID] = transitionsByTargetId;
+        }
+
+        var trans = transitionsByTargetId[transition.targetID];
+        
+        // TODO there are a lot of double transactions, like Oil Movement, Horse Stuff, Fence / Wall Alignment
+        if(trans != null){
+            //traceTransition(trans, "WARNING DOUBLE 1!!", "");
+            //traceTransition(transition, "WARNING DOUBLE 2!!", "");
+            return;
+        }
+
+        this.transitions.push(transition);
+        transitionsByTargetId[transition.targetID] = transition;
+
+        //traceTransition(transition, "", "Pile");
     }
 
     public function createAndaddCategoryTransitions(transition:TransitionData){
 
         var actorCategory = this.categoriesById[transition.actorID];
         var targetCategory = this.categoriesById[transition.targetID];
+        var newTargetCategory = this.categoriesById[transition.newTargetID];
         var bothActionAndTargetIsCategory = (actorCategory != null) && (targetCategory != null);
 
+
+        // TODO 1600 is a pile, 1601 is a pile element: what to do with this transitions? 
+        // @ Pile Element + @ Pile Element -->   + @ Pile 
+        // 0   + @ Pile -->  @ Pile Element + @ Pile
+        // Ignore piles for now
+        if(actorCategory != null && (actorCategory.parentID == 1600 || actorCategory.parentID == 1601)) return;
+        // if(newTargetCategory != null && newTargetCategory.parentID != 1600 && newTargetCategory.parentID != 1601) return;
+        if(targetCategory != null && (targetCategory.parentID == 1600 || targetCategory.parentID == 1601)) return;
+
         if(bothActionAndTargetIsCategory){
-            traceTransition(transition, 'bothActionAndTargetIsCategory: ');
+            //traceTransition(transition, 'bothActionAndTargetIsCategory: ');
         }
 
         var category = actorCategory;
 
         if(category != null){
-            for(id in category.ids){
-
+            for(id in category.ids){                
                 if(targetCategory == null){
                     var newTransition = transition.clone();
                     newTransition.actorID = id;
@@ -126,45 +208,5 @@ class TransitionImporter
                 addTransition(newTransition); 
             }
         }
-    }
-
-    public function addTransition(transition:TransitionData){
-
-        var transitionsByTargetId;
-
-        // there is one map for last transitions
-        if(transition.lastUseActor){
-            transitionsByTargetId = lastTransitionsByActorIdTargetId[transition.actorID];
-        }
-        else{
-            transitionsByTargetId = transitionsByActorIdTargetId[transition.actorID];
-        }
-        
-        if(transitionsByTargetId == null){
-            transitionsByTargetId = [];
-            transitionsByActorIdTargetId[transition.actorID] = transitionsByTargetId;
-        }
-
-        var trans = transitionsByTargetId[transition.targetID];
-        
-        // if there is a transition allready, then there is an additional "last" transition
-        if(trans != null){
-            // TODO make map for last transitions
-            //trace('Double transition: actor: ${trans.actorID} target: ${trans.targetID}');
-        }
-
-        this.transitions.push(transition);
-        transitionsByTargetId[transition.targetID] = transition;
-
-        //traceTransition(transition);
-    }
-
-    public function getTransition(actorId:Int, targetId:Int):TransitionData{
-
-        var transitionsByTargetId = transitionsByActorIdTargetId[actorId];
-
-        if(transitionsByTargetId == null) return null;
-
-        return transitionsByTargetId[targetId];
     }
 }

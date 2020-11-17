@@ -84,7 +84,7 @@ class Server
         vector = new Vector<ObjectData>(tmp.length);
 
 
-
+        trace("Import Object Data...");
         objectDataMap = [];
 
         for (i in 0...vector.length){
@@ -92,8 +92,9 @@ class Server
             vector[i] = objectData;
             objectDataMap[objectData.id] = objectData;
         }
+        trace("Object Data imported: " + vector.length);
 
-        trace("Import transitions");
+        trace("Import transitions...");
         transitionImporter.importCategories();
         transitionImporter.importTransitions();
 
@@ -101,7 +102,7 @@ class Server
         trace('dataVersionNumber: $dataVersionNumber');
         map = new WorldMap();
         map.generate();
-        trace("length " + vector.length);
+        
         var thread = new ThreadServer(this,8005);
         Thread.create(function()
         {

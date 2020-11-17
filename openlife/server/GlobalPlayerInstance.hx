@@ -243,9 +243,9 @@ private class TransitionHelper{
 
         // TODO feed baby
 
-        // TODO floor removal
-
         // TODO last transitions
+
+        // TODO Pile transitions
         
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;
 
@@ -283,7 +283,6 @@ private class TransitionHelper{
 
         // check if there is a floor and no object is on the floor. otherwise the object may be overriden
         if((transition == null) && (this.floorId != 0) && (this.tileObject[0] == 0)){
-            //trace('check Floor $floorId');
             transition = Server.transitionImporter.getTransition(this.handObject[0], this.floorId);
             if(transition != null) targetIsFloor = true;
         }
