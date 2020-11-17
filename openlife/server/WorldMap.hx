@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.object.ObjectHelper;
 import format.png.Reader;
 #if (target.threaded)
 import openlife.data.map.MapData;
@@ -57,17 +58,22 @@ import haxe.io.Bytes;
 class WorldMap
 {
     var objects:Vector<Array<Int>>;
+    var objectHelpers:Vector<ObjectHelper>; 
     var floors:Vector<Int>;
-    public var biomes:Vector<Int>;
+    var biomes:Vector<Int>;
+    
 
     public var width:Int;
     public var height:Int;
     private var length:Int;
+
+    // stuff for random generator
     private var seed:Int = 38383834;
     static inline final MULTIPLIER:Float = 48271.0;
     static inline final MAX_NUM:Int = 2147483647;
     static inline final MODULUS:Int = MAX_NUM;
 
+    // used for creation of the map
     private var biomeTotalChance:Map<Int,Float>; 
     private var biomeObjectData:Map<Int, Array<ObjectData>>;
 
@@ -91,12 +97,14 @@ class WorldMap
         return generateSeed() / MODULUS;
     }
 
-    public function createVectors(length:Int)
+    private function createVectors(length:Int)
     {
+        this.length = length;
+
         objects = new Vector<Array<Int>>(length);
+        objectHelpers = new Vector<ObjectHelper>(length);
         floors = new Vector<Int>(length);
         biomes = new Vector<Int>(length);
-        this.length = length;
     }
 
     // The Server and Client map is saved in an array with y starting from bottom, 
@@ -284,14 +292,29 @@ class WorldMap
         return objects[index(x,y)];
     }
 
+    public function setObjectId(x:Int, y:Int, id:Array<Int>)
+    {
+        objects[index(x,y)] = id;
+    }
+
+    public function getObjectHelper(x:Int, y:Int):ObjectHelper
+    {
+        return objectHelpers[index(x,y)];
+    }
+
+    public function setObjectHelper(x:Int, y:Int, objectHelper:ObjectHelper)
+    {
+        objectHelpers[index(x,y)] = objectHelper;
+    }
+
     public function getFloorId(x:Int, y:Int):Int
     {
         return floors[index(x,y)];
     }
 
-    public function setObjectId(x:Int,y:Int,id:Array<Int>)
+    public function setFloorId(x:Int, y:Int, floor:Int)
     {
-        objects[index(x,y)] = id;
+        floors[index(x,y)] = floor;
     }
 
     private inline function index(x:Int,y:Int):Int
