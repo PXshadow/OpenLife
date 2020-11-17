@@ -157,15 +157,16 @@ class MapData
         var string:String = "";
         for (i in 0...a.length)
         {
-            string += a[i];
-            if (i >= 0)
+            if (a[i] >= 0)
             {
-                string += ",";
+                string += "," + a[i];
             }else{
-                string += ":";
+                string += ":" + (a[i] * -1);
             }
         }
-        return string.substring(0,string.length - 1);
+        string = string.substr(1);
+        trace("gen " + string);
+        return string;
     }
     public static function numSlots(a:Array<Int>):Int
     {
@@ -176,6 +177,37 @@ class MapData
                 count++;
         }
         return count;
+    }
+    public static function toContainer(a:Array<Int>):Array<Int>
+    {
+        for (i in 1...a.length)
+        {
+            if (a[i] > 0)
+                a[i] *= -1;
+        }
+        return a;
+    }
+    public static function toHeldObject(a:Array<Int>):Array<Int>
+    {
+        for (i in 1...a.length)
+        {
+            if (a[i] < 0)
+                a[i] *= -1;
+        }
+        return a;
+    }
+    public static function getObjectFromContainer(a:Array<Int>,index:Int=0):Array<Int>
+    {
+        var b:Array<Int> = [a[index + 1]];
+        a.remove(a[index + 1]);
+        for (i in index + 2...a.length)
+        {
+            if (a[i] >= 0) 
+                break;
+            b.push(a[i] * -1);
+            a.remove(a[i]);
+        }
+        return b;
     }
 }
 class MapCollision implements openlife.auto.Pathfinder.MapHeader

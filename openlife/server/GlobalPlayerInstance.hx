@@ -128,12 +128,34 @@ class GlobalPlayerInstance extends PlayerInstance {
     public function remove(x:Int,y:Int,id:Null<Int>)
     {
         trace("remove " + x + " " + y + " id " + id);
-
-        for (c in Server.server.connections) // TODO only for visible players
+        var newTileObject = Server.server.map.getObjectId(x + gx,y + gy);
+        trace("tile: "  + newTileObject);
+        var doAction = false;
+        if (newTileObject.length > 1) 
+        {
+            doAction = true;
+            if (this.o_id[0] == 0)
             {
-                c.send(PLAYER_UPDATE,[this.toData()]);
-                c.send(FRAME);
+                //non swap
+                trace("before: " + newTileObject);
+                this.o_id = MapData.getObjectFromContainer(newTileObject);
+                trace("after: " + newTileObject);
+            }else{
+                //swap
+                trace("swap before: hand: " + o_id + " tile " + newTileObject);
+                var hand = MapData.toContainer(o_id);
+                newTileObject = newTileObject.concat(hand);
+                hand = MapData.getObjectFromContainer(newTileObject);
+                o_id = hand;
+                trace("swap after: hand: " + o_id + " tile " + newTileObject);
             }
+        }        
+        for (c in Server.server.connections) // TODO only for visible players
+        {
+            c.send(PLAYER_UPDATE,[this.toData()]);
+            if(doAction) c.sendMapUpdate(x, y, 0, newTileObject, p_id);
+            c.send(FRAME);
+        }
     }
 
     public function specialRemove(x:Int,y:Int,clothing:Int,id:Null<Int>)
@@ -315,7 +337,7 @@ private class TransitionHelper{
 
         //if (handObjectData.slotSize >= objectData.containSize) {
         if (handObjectData.slotSize > objectData.containSize) return false;
-
+        this.handObject = MapData.toContainer(handObject);
         this.newTileObject = this.tileObject.concat(this.handObject);
         this.newHandObject = [0];
 
