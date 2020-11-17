@@ -187,6 +187,28 @@ class MapData
         }
         return a;
     }
+    public static function toHeldObject(a:Array<Int>):Array<Int>
+    {
+        for (i in 1...a.length)
+        {
+            if (a[i] < 0)
+                a[i] *= -1;
+        }
+        return a;
+    }
+    public static function getObjectFromContainer(a:Array<Int>,index:Int=0):Array<Int>
+    {
+        var b:Array<Int> = [a[index + 1]];
+        a.remove(a[index + 1]);
+        for (i in index + 2...a.length)
+        {
+            if (a[i] >= 0) 
+                break;
+            b.push(a[i] * -1);
+            a.remove(a[i]);
+        }
+        return b;
+    }
 }
 class MapCollision implements openlife.auto.Pathfinder.MapHeader
 {
