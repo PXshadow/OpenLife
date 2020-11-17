@@ -118,8 +118,20 @@ class TransitionImporter
         return transitionsByTargetId[targetId];
     }
 
-    public function addTransition(transition:TransitionData){
+    public function addTransition(transition:TransitionData,  lastUseActor:Bool = false, lastUseTarget:Bool = false){
         
+        if(lastUseActor == false && lastUseTarget == false){
+            // if transition is not a reverse transition, it can be done also on lastUse Items so add Transaction for that
+            if(transition.lastUseActor == false && transition.reverseUseActor && transition.lastUseTarget == false && transition.reverseUseTarget) addTransition(transition, true, true);
+            else if(transition.lastUseActor == false && transition.reverseUseActor) addTransition(transition, true, transition.lastUseTarget);
+            else if(transition.lastUseTarget == false && transition.reverseUseTarget) addTransition(transition, transition.lastUseActor, true);
+        }
+        else{
+            transition = transition.clone();
+            if(lastUseActor) transition.lastUseActor = true;
+            if(lastUseTarget) transition.lastUseTarget = true;
+        }
+       
         var transitionMap = getTransitionMap(transition.lastUseActor, transition.lastUseTarget);
 
         var transitionsByTargetId = transitionMap[transition.actorID];

@@ -294,15 +294,6 @@ private class TransitionHelper{
 
         var transition = Server.transitionImporter.getTransition(this.handObject[0], this.tileObject[0], lastUseActorObject, lastUseTileObject);
 
-        // if none found check if there is a reverse use transaction
-        if(transition == null && lastUseTileObject) {
-            transition = Server.transitionImporter.getTransition(this.handObject[0], this.tileObject[0], lastUseActorObject, false);
-            if(transition != null && transition.reverseUseTarget == false) {
-                transition = null;
-            }; 
-        }
-            
-
         var targetIsFloor = false;
 
         // check if there is a floor and no object is on the floor. otherwise the object may be overriden
@@ -349,7 +340,6 @@ private class TransitionHelper{
             
             // a Pile starts with 2 uses not with the full
             // if the ObjectHelper is created through a reverse use, it must be a pile...
-            //if(newTargetObjectData.description.indexOf("Pile") != -1){
             if(transition.reverseUseTarget){
                 trace("NEW PILE?");
                 this.tileObjectHelper.numberOfUses = 2;
@@ -378,8 +368,6 @@ private class TransitionHelper{
                     Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
                 }
             }
-
-            
         }
 
         this.doAction = true;
