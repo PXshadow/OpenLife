@@ -243,17 +243,17 @@ private class TransitionHelper{
 
         // TODO feed baby
 
-        // TODO floor
+        // TODO floor removal
 
         // TODO last transitions
         
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;
 
-        // do nothing if tile Object is empty
-        if(this.tileObject[0] == 0) return false;
-
         // do actor + target = newActor + newTarget
         if(this.doTransitionIfPossible()) return true;
+
+        // do nothing if tile Object is empty
+        if(this.tileObject[0] == 0) return false;
 
         // do pickup if hand is empty
         if(this.handObject[0] == 0 && this.swapHandAndFloorObject()) return true;            
@@ -279,11 +279,18 @@ private class TransitionHelper{
     public function doTransitionIfPossible() : Bool {
 
         var transition = Server.transitionImporter.getTransition(this.handObject[0], this.tileObject[0]);
+        var targetIsFloor = false;
+
+        // check if there is a floor and no object is on the floor. otherwise the object may be overriden
+        if((transition == null) && (this.floorId != 0) && (this.tileObject[0] == 0)){
+            //trace('check Floor $floorId');
+            transition = Server.transitionImporter.getTransition(this.handObject[0], this.floorId);
+            if(transition != null) targetIsFloor = true;
+        }
 
         if(transition == null) return false;
 
         trace('Found transition: a${transition.actorID} t${transition.targetID}');
-
 
         var objectData = Server.objectDataMap[transition.newTargetID];
         
@@ -291,17 +298,18 @@ private class TransitionHelper{
 
         if(objectData.floor)
         {
-            this.newTileObject = [0];
+            if(targetIsFloor == false) this.newTileObject = [0];
             this.newFloorId = transition.newTargetID;
         }
         else
         {
+            if(targetIsFloor) this.newFloorId = 0;
             this.newTileObject = [transition.newTargetID];
         }
 
         //transition source object id (or -1) if held object is result of a transition 
         //if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
-        this.newTransitionSource = transition.actorID;
+        this.newTransitionSource = transition.targetID;
 
         this.newHandObject = [transition.newActorID];
 

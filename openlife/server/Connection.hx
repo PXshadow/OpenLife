@@ -62,9 +62,11 @@ class Connection implements ServerHeader
     
             Server.server.map.setObjectId(player.gx, player.gy, [33]);
             Server.server.map.setObjectId(player.gx+1, player.gy, [32]);
-            Server.server.map.setObjectId(player.gx+2, player.gy+1, [33]);
-            Server.server.map.setObjectId(player.gx+3, player.gy+1, [33]);
-            Server.server.map.setObjectId(player.gx+4, player.gy+1, [33]);
+            Server.server.map.setObjectId(player.gx+2, player.gy, [486]);
+            Server.server.map.setObjectId(player.gx+3, player.gy, [486]);
+            Server.server.map.setObjectId(player.gx+4, player.gy, [677]);
+            Server.server.map.setObjectId(player.gx+5, player.gy, [684]);
+            Server.server.map.setObjectId(player.gx+6, player.gy, [677]);
 
             // add some clothing for testing
             Server.server.map.setObjectId(player.gx, player.gy+1, [2916]);
