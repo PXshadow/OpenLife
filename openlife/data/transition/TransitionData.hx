@@ -148,9 +148,8 @@ class TransitionData
     {
       var s = '$actorID + $targetID = $newActorID + $newTargetID ';
       
-
-      //public var lastUseActor:Bool = false;
-    //public var lastUseTarget:Bool = false;
+      s += 'lastUseActor: $lastUseActor ';
+      s += 'lastUseTarget: $lastUseTarget ';
 
     //s += 'autoDecaySeconds: $autoDecaySeconds ';
 

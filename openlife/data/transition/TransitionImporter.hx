@@ -126,7 +126,7 @@ class TransitionImporter
 
         if(transitionsByTargetId == null){
             transitionsByTargetId = [];
-            transitionsByActorIdTargetId[transition.actorID] = transitionsByTargetId;
+            transitionMap[transition.actorID] = transitionsByTargetId;
         }
 
         var trans = transitionsByTargetId[transition.targetID];
@@ -141,33 +141,53 @@ class TransitionImporter
         this.transitions.push(transition);
         transitionsByTargetId[transition.targetID] = transition;
 
-        //traceTransition(transition, "", "Pile");
+        traceTransition(transition, "", "Stone Pile");
+    }
+
+    // seems like obid can be at the same time a category and an object / Cabbage Seed + Bowl of Cabbage Seeds / 1206 + 1312
+    // so better look also for @ in the description
+    public function getCategory(id:Int) : Category
+    {
+        var objectData = Server.objectDataMap[id];
+
+        if(objectData == null) return null;
+
+        if(objectData.description.indexOf("@") == -1) return null;
+
+        return categoriesById[id];
     }
 
     public function createAndaddCategoryTransitions(transition:TransitionData){
 
-        var actorCategory = this.categoriesById[transition.actorID];
-        var targetCategory = this.categoriesById[transition.targetID];
-        var newTargetCategory = this.categoriesById[transition.newTargetID];
+        var actorCategory = getCategory(transition.actorID);
+        var targetCategory = getCategory(transition.targetID);
+        //var newTargetCategory = this.categoriesById[transition.newTargetID];
         var bothActionAndTargetIsCategory = (actorCategory != null) && (targetCategory != null);
 
+        if(bothActionAndTargetIsCategory){
+            // traceTransition(transition, 'bothActionAndTargetIsCategory: ');
+            // TODO i dont know
+            return;
+        }
 
         // TODO 1600 is a pile, 1601 is a pile element: what to do with this transitions? 
         // @ Pile Element + @ Pile Element -->   + @ Pile 
         // 0   + @ Pile -->  @ Pile Element + @ Pile
         // Ignore piles for now
-        if(actorCategory != null && (actorCategory.parentID == 1600 || actorCategory.parentID == 1601)) return;
+        if(actorCategory != null && (actorCategory.parentID == 1600 || actorCategory.parentID == 1601)) {
+            trace(transition);
+            return;
+        }
         // if(newTargetCategory != null && newTargetCategory.parentID != 1600 && newTargetCategory.parentID != 1601) return;
-        if(targetCategory != null && (targetCategory.parentID == 1600 || targetCategory.parentID == 1601)) return;
-
-        if(bothActionAndTargetIsCategory){
-            //traceTransition(transition, 'bothActionAndTargetIsCategory: ');
+        if(targetCategory != null && (targetCategory.parentID == 1600 || targetCategory.parentID == 1601)) {
+            trace(transition);
+            return;
         }
 
         var category = actorCategory;
 
         if(category != null){
-            for(id in category.ids){                
+            for(id in category.ids){                 
                 if(targetCategory == null){
                     var newTransition = transition.clone();
                     newTransition.actorID = id;
@@ -175,6 +195,7 @@ class TransitionImporter
 
                     addTransition(newTransition);
                 } 
+                // TODO both category may not be needed
                 else{
                     for(targetId in targetCategory.ids){
 

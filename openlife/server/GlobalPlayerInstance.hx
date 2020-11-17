@@ -277,6 +277,9 @@ private class TransitionHelper{
     }
 
     public function doTransitionIfPossible() : Bool {
+        
+        trace("hand: " + this.handObject + " tile: " + this.tileObject + ' gx: $tx gy:$ty');
+
 
         var transition = Server.transitionImporter.getTransition(this.handObject[0], this.tileObject[0]);
         var targetIsFloor = false;
