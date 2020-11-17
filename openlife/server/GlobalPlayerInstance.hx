@@ -262,12 +262,26 @@ private class TransitionHelper{
 
         trace('Found transition: a${transition.actorID} t${transition.targetID}');
 
+
+        var objectData = Server.objectDataMap[transition.newTargetID];
+        
+        if(objectData.floor && this.floorId != 0) return false;
+
+        if(objectData.floor)
+        {
+            this.newTileObject = [0];
+            this.newFloorId = transition.newTargetID;
+        }
+        else
+        {
+            this.newTileObject = [transition.newTargetID];
+        }
+
         //transition source object id (or -1) if held object is result of a transition 
         //if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
         this.newTransitionSource = transition.actorID;
 
         this.newHandObject = [transition.newActorID];
-        this.newTileObject = [transition.newTargetID];
 
         this.doAction = true;
         return true;
@@ -319,6 +333,7 @@ private class TransitionHelper{
         }
 
         Server.server.map.setObjectId(this.tx, this.ty, this.newTileObject);
+        Server.server.map.setFloorId(this.tx, this.ty, this.newFloorId);
 
         player.o_id = this.newHandObject;
 
