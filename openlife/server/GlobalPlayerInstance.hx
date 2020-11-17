@@ -301,7 +301,7 @@ private class TransitionHelper{
 
         //if (handObjectData.slotSize >= objectData.containSize) {
         if (handObjectData.slotSize > objectData.containSize) return false;
-
+        this.handObject = MapData.toContainer(handObject);
         this.newTileObject = this.tileObject.concat(this.handObject);
         this.newHandObject = [0];
 
