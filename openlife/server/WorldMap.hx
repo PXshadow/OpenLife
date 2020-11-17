@@ -299,11 +299,13 @@ class WorldMap
 
     public function getObjectHelper(x:Int, y:Int):ObjectHelper
     {
+        //trace('objectHelper: $x,$y');
         return objectHelpers[index(x,y)];
     }
 
     public function setObjectHelper(x:Int, y:Int, objectHelper:ObjectHelper)
     {
+        //trace('objectHelper: $x,$y');
         objectHelpers[index(x,y)] = objectHelper;
     }
 

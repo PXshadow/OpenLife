@@ -210,6 +210,8 @@ private class TransitionHelper{
     public var newFloorId:Int;
     public var newTransitionSource:Int;
 
+    public var tileObjectHelper:ObjectHelper;
+
     public var doAction:Bool;
 
     public function new(player:GlobalPlayerInstance, x:Int,y:Int)
@@ -232,7 +234,10 @@ private class TransitionHelper{
         this.newFloorId = this.floorId;
         this.newTransitionSource = this.transitionSource;
 
-        trace("hand: " + this.handObject + " tile: " + this.tileObject + ' gx: $tx gy:$ty');
+        // ObjectHelpers are for storing advanced dato like USES, CREATION TIME, OWNER
+        this.tileObjectHelper = Server.server.map.getObjectHelper(tx,ty);
+
+        trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
     }
 
     public function use() : Bool
@@ -276,12 +281,28 @@ private class TransitionHelper{
         return true;
     }
 
-    public function doTransitionIfPossible() : Bool {
-        
-        trace("hand: " + this.handObject + " tile: " + this.tileObject + ' gx: $tx gy:$ty');
+    public function doTransitionIfPossible() : Bool
+    {
+        // TODO lastUseActorObject
+        var lastUseActorObject = false;
+        var lastUseTileObject = false;
 
+        if(this.tileObjectHelper != null && this.tileObjectHelper.numberOfUses <= 2){
+            lastUseTileObject = true;
+            trace("lastUseTileObject = true");
+        }
 
-        var transition = Server.transitionImporter.getTransition(this.handObject[0], this.tileObject[0]);
+        var transition = Server.transitionImporter.getTransition(this.handObject[0], this.tileObject[0], lastUseActorObject, lastUseTileObject);
+
+        // if none found check if there is a reverse use transaction
+        if(transition == null && lastUseTileObject) {
+            transition = Server.transitionImporter.getTransition(this.handObject[0], this.tileObject[0], lastUseActorObject, false);
+            if(transition != null && transition.reverseUseTarget == false) {
+                transition = null;
+            }; 
+        }
+            
+
         var targetIsFloor = false;
 
         // check if there is a floor and no object is on the floor. otherwise the object may be overriden
@@ -294,11 +315,11 @@ private class TransitionHelper{
 
         trace('Found transition: a${transition.actorID} t${transition.targetID}');
 
-        var objectData = Server.objectDataMap[transition.newTargetID];
+        var newTargetObjectData = Server.objectDataMap[transition.newTargetID];
         
-        if(objectData.floor && this.floorId != 0) return false;
+        if(newTargetObjectData.floor && this.floorId != 0) return false;
 
-        if(objectData.floor)
+        if(newTargetObjectData.floor)
         {
             if(targetIsFloor == false) this.newTileObject = [0];
             this.newFloorId = transition.newTargetID;
@@ -311,9 +332,55 @@ private class TransitionHelper{
 
         //transition source object id (or -1) if held object is result of a transition 
         //if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
-        this.newTransitionSource = transition.targetID;
+        this.newTransitionSource = transition.targetID; // TODO ???
 
         this.newHandObject = [transition.newActorID];
+
+
+
+
+        // TODO Create HelperObject if newTargetObject has time transitions
+        
+        // create advanced object if USES > 0
+        if(this.tileObjectHelper == null && newTargetObjectData.numUses > 0)
+        {
+            this.tileObjectHelper = new ObjectHelper(newTargetObjectData, this.player);
+            Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
+            
+            // a Pile starts with 2 uses not with the full
+            // if the ObjectHelper is created through a reverse use, it must be a pile...
+            //if(newTargetObjectData.description.indexOf("Pile") != -1){
+            if(transition.reverseUseTarget){
+                trace("NEW PILE?");
+                this.tileObjectHelper.numberOfUses = 2;
+            } 
+
+            trace('NEW OBJECT: numberOfUses: ' + this.tileObjectHelper.numberOfUses);
+
+        }
+        else{
+            this.tileObjectHelper.objectData = newTargetObjectData; // ??? not sure if this is good 
+
+            if(transition.reverseUseTarget)
+            {
+                this.tileObjectHelper.numberOfUses += 1;
+                trace('numberOfUses: ' + this.tileObjectHelper.numberOfUses);
+            } 
+            else
+            {
+                this.tileObjectHelper.numberOfUses -= 1;
+
+                trace("REMOVE ObjectHelper USES < 2");
+                trace('numberOfUses: ' + this.tileObjectHelper.numberOfUses);
+
+                if(this.tileObjectHelper.numberOfUses < 2) {
+                    this.tileObjectHelper = null;
+                    Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
+                }
+            }
+
+            
+        }
 
         this.doAction = true;
         return true;

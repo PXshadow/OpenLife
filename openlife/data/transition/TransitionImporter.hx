@@ -142,6 +142,8 @@ class TransitionImporter
         transitionsByTargetId[transition.targetID] = transition;
 
         traceTransition(transition, "", "Stone Pile");
+
+        //if(transition.reverseUseTarget) traceTransition(transition, "", "");
     }
 
     // seems like obid can be at the same time a category and an object / Cabbage Seed + Bowl of Cabbage Seeds / 1206 + 1312
