@@ -335,7 +335,7 @@ private class TransitionHelper{
         // create advanced object if USES > 0
         if(this.tileObjectHelper == null && newTargetObjectData.numUses > 0)
         {
-            this.tileObjectHelper = new ObjectHelper(newTargetObjectData, this.player);
+            this.tileObjectHelper = new ObjectHelper(this.player, transition.newTargetID);
             Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
             
             // a Pile starts with 2 uses not with the full

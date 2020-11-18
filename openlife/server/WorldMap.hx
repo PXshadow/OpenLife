@@ -292,9 +292,9 @@ class WorldMap
         return objects[index(x,y)];
     }
 
-    public function setObjectId(x:Int, y:Int, id:Array<Int>)
+    public function setObjectId(x:Int, y:Int, ids:Array<Int>)
     {
-        objects[index(x,y)] = id;
+        objects[index(x,y)] = ids;
     }
 
     public function getObjectHelper(x:Int, y:Int):ObjectHelper
