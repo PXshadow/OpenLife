@@ -38,7 +38,10 @@ class ObjectHelper {
         while(i < ids.length)
         {
             // negative values are used only for subcontained items so skip them
-            if(isFirst && ids[i] < 0) continue;
+            if(isFirst && ids[i] < 0) {
+                i++;
+                continue;
+            }
             
             // in subcontainer contained items must be negative, so return if there is no negative item
             if(isFirst == false && ids[i] >= 0) return helper;

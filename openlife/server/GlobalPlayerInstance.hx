@@ -124,38 +124,15 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         this.action = 0;
     }
-    
-    public function remove(x:Int,y:Int,id:Null<Int>)
+     
+     public function remove(x:Int,y:Int,id:Null<Int>) : Bool
     {
-        trace("remove " + x + " " + y + " id " + id);
-        var newTileObject = Server.server.map.getObjectId(x + gx,y + gy);
-        trace("tile: "  + newTileObject);
-        var doAction = false;
-        if (newTileObject.length > 1) 
-        {
-            doAction = true;
-            if (this.o_id[0] == 0)
-            {
-                //non swap
-                trace("before: " + newTileObject);
-                this.o_id = MapData.getObjectFromContainer(newTileObject);
-                trace("after: " + newTileObject);
-            }else{
-                //swap
-                trace("swap before: hand: " + o_id + " tile " + newTileObject);
-                var hand = MapData.toContainer(o_id);
-                newTileObject = newTileObject.concat(hand);
-                hand = MapData.getObjectFromContainer(newTileObject);
-                o_id = hand;
-                trace("swap after: hand: " + o_id + " tile " + newTileObject);
-            }
-        }        
-        for (c in Server.server.connections) // TODO only for visible players
-        {
-            c.send(PLAYER_UPDATE,[this.toData()]);
-            if(doAction) c.sendMapUpdate(x, y, 0, newTileObject, p_id);
-            c.send(FRAME);
-        }
+        var helper = new TransitionHelper(this, x, y);
+
+        helper.remove(id);
+        
+        trace("remove end");
+        return helper.sendUpdateToClient();
     }
 
     public function specialRemove(x:Int,y:Int,clothing:Int,id:Null<Int>)
@@ -250,7 +227,9 @@ private class TransitionHelper{
 
         // TODO last transitions
 
-        // TODO Pile transitions
+        // TODO fix Pile animations
+
+        // TODO fix general animations (sound, and where object comes from)
         
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;
 
@@ -430,6 +409,73 @@ private class TransitionHelper{
         this.doAction = true;
         return true;
     }
+
+    /*
+    REMV x y i#
+
+    REMV is special case of removing an object from a container.
+     i specifies the index of the container item to remove, or -1 to
+     remove top of stack.*/
+
+    public function remove(id:Null<Int>)
+        {
+            trace("remove id " + id);
+
+            // do nothing if tile Object is empty
+            if(this.tileObject[0] == 0) return false;
+
+            // TODO move to init            
+            //trace('Read Tile object:');
+            var tileObjectHelper = ObjectHelper.readObjectHelper(this.player, this.tileObject);
+
+            if(tileObjectHelper.containedObjects.length < 1) return false;
+
+            if(this.handObject [0] != 0){
+                trace('Read Hand object:');
+                var handObjectHelper = ObjectHelper.readObjectHelper(this.player, this.handObject);
+                // TODO check if it fits in container
+                tileObjectHelper.containedObjects.push(handObjectHelper);
+            }
+
+            trace('Write To Hand object:');
+            this.newHandObject = tileObjectHelper.containedObjects.pop().writeObjectHelper([]);
+            this.newTileObject = tileObjectHelper.writeObjectHelper([]);
+
+            this.doAction = true;
+            return true;
+
+            /*
+            //var newTileObject = Server.server.map.getObjectId(x + gx,y + gy);
+            //trace("tile: "  + newTileObject);
+
+
+            var doAction = false;
+            if (newTileObject.length > 1) 
+            {
+                doAction = true;
+                if (this.o_id[0] == 0)
+                {
+                    //non swap
+                    trace("before: " + newTileObject);
+                    this.o_id = MapData.getObjectFromContainer(newTileObject);
+                    trace("after: " + newTileObject);
+                }else{
+                    //swap
+                    trace("swap before: hand: " + o_id + " tile " + newTileObject);
+                    var hand = MapData.toContainer(o_id);
+                    newTileObject = newTileObject.concat(hand);
+                    hand = MapData.getObjectFromContainer(newTileObject);
+                    o_id = hand;
+                    trace("swap after: hand: " + o_id + " tile " + newTileObject);
+                }
+            }        
+            for (c in Server.server.connections) // TODO only for visible players
+            {
+                c.send(PLAYER_UPDATE,[this.toData()]);
+                if(doAction) c.sendMapUpdate(x, y, 0, newTileObject, p_id);
+                c.send(FRAME);
+            }*/
+        }
 
     public function sendUpdateToClient() : Bool{
 
