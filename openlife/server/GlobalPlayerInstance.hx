@@ -264,7 +264,7 @@ private class TransitionHelper{
         if(this.handObject[0] == 0 && this.swapHandAndFloorObject()) return true;            
         
         // do container stuff
-        return this.placeObjectInContainerOnGroundIfPossible();
+        return this.doContainerStuff();
     }
 
     public function checkIfNotMovingAndCloseEnough():Bool{
@@ -327,9 +327,6 @@ private class TransitionHelper{
 
         this.newHandObject = [transition.newActorID];
 
-
-
-
         // TODO Create HelperObject if newTargetObject has time transitions
         
         // create advanced object if USES > 0
@@ -377,7 +374,8 @@ private class TransitionHelper{
     public function swapHandAndFloorObject():Bool{
 
         var objectData = Server.objectDataMap[this.tileObject[0]];
-        //trace("OD: " + objectData.toFileString());
+        if(objectData != null) trace("SWAP OBJECT DATA OD: " + objectData.toFileString());
+        
 
         var permanent = (objectData != null) && (objectData.permanent == 1);
 
@@ -390,21 +388,44 @@ private class TransitionHelper{
         return true;
     }
 
-    public function placeObjectInContainerOnGroundIfPossible() : Bool {
+    public function doContainerStuff() : Bool {
         var objectData = Server.objectDataMap[this.tileObject[0]];
 
         trace("containable: " + objectData.containable + " desc: " + objectData.description + " numSlots: " + objectData.numSlots);
 
         // dont continue if tileObject is a container or if there is no space in it 
+        // TODO change container check
         if ((objectData.numSlots == 0 || MapData.numSlots(this.tileObject) >= objectData.numSlots)) return false;
         
         var handObjectData = Server.objectDataMap[this.handObject[0]];
 
+        // place hand object in container if container has enough space
         //if (handObjectData.slotSize >= objectData.containSize) {
         if (handObjectData.slotSize > objectData.containSize) return false;
-        this.handObject = MapData.toContainer(handObject);
-        this.newTileObject = this.tileObject.concat(this.handObject);
+
+        trace('HO ${this.handObject[0]}');
+        trace('HO Slot size: ${handObjectData.slotSize} TO: container Size size: ${objectData.containSize}');
+
+        //this.handObject = MapData.toContainer(handObject);
+        //this.newTileObject = this.tileObject.concat(this.handObject);
+
         this.newHandObject = [0];
+
+        // TODO move to init
+        //trace('Read Hand object:');
+        var handObjectHelper = ObjectHelper.readObjectHelper(this.player, this.handObject);
+        //trace('Read Tile object:');
+        var tileObjectHelper = ObjectHelper.readObjectHelper(this.player, this.tileObject);
+
+        //trace('Hand object: ${handObjectHelper.writeObjectHelper([])}');
+
+        tileObjectHelper.containedObjects.push(handObjectHelper);
+
+        trace('Tile object: ${tileObject}');
+
+        this.newTileObject = tileObjectHelper.writeObjectHelper([]);
+
+        trace('New Tile object: ${newTileObject}');
 
         this.doAction = true;
         return true;

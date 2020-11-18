@@ -16,10 +16,11 @@ class ObjectHelper {
     
     public static function readObjectHelper(creator:GlobalPlayerInstance, ids:Array<Int>, i:Int = 0) : ObjectHelper
     {
-
         var id = ids[i];
         var isFirst = (i == 0);
         var isInSubcontainer = false;
+
+        //trace('read: id:$id i:$i ids:$ids isInSubcontainer: $isInSubcontainer');
 
         // negative values are used for subcontained items
         if(id < 0){
@@ -34,72 +35,28 @@ class ObjectHelper {
         i++;
 
         // read container items
-        while(i < ids.length){
-            if(isFirst)
-            {
-                // negative values are used for subcontained items
-                if(ids[i] < 0) continue;
-            }
-            else
-            {
-                // in subcontainer contained items must be negative, so return if there is no negative item
-                if(ids[i] >= 0) return helper;
-            }
+        while(i < ids.length)
+        {
+            // negative values are used only for subcontained items so skip them
+            if(isFirst && ids[i] < 0) continue;
+            
+            // in subcontainer contained items must be negative, so return if there is no negative item
+            if(isFirst == false && ids[i] >= 0) return helper;
 
             var item = readObjectHelper(creator, ids, i);
             helper.containedObjects.push(item);
+
             i++;
         }
 
         return helper;
-
-        // Or iterativ?
-        /*
-        var first = null;
-        var container = null;
-        var isInSubcontainer = false;
-        var helper = null;
-
-        for(id in ids){
-            // negative values are used for subcontained items
-            if(id < 0){
-                if(isInSubcontainer == false) {
-                    container = helper;        
-                }
-
-                isInSubcontainer = true;
-                id *= -1;
-                
-            }
-            // if it is not in subcontainer, it must be in first object
-            else
-            {
-                isInSubcontainer = false;
-                container = first;
-            }
-
-            var objectData = Server.objectDataMap[id];
-            helper = new ObjectHelper(creator, objectData);
-
-            // the object is either the first one, or its in a container
-            if(first == null)
-            {
-                first = helper;
-                
-            } else
-            {
-                container.containedObjects.push(helper);
-            }
-        }
-
-        return first;
-        */
     }
 
     public function writeObjectHelper(ids:Array<Int>, isInSubcontainer:Bool = false) : Array<Int>
     {
-        var first = (ids.length > 0);
-        //var isInSubcontainer = 
+        var first = (ids.length == 0);
+
+        //trace('write: id:${this.objectData.id} ids:$ids isInSubcontainer: $isInSubcontainer');
 
         // negative values are used for subcontained items
         if(isInSubcontainer){
@@ -110,8 +67,8 @@ class ObjectHelper {
         ids.push(this.objectData.id);
 
         for(item in containedObjects){
-            if(first) writeObjectHelper(ids);
-            else writeObjectHelper(ids, true);
+            if(first) item.writeObjectHelper(ids);
+            else item.writeObjectHelper(ids, true);
         }
 
         return ids;
