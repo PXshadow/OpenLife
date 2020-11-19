@@ -86,13 +86,25 @@ class ObjectHelper {
         this.numberOfUses = objectData.numUses;
 
         
-        //objectData.numSlots > 0;
-        //public var useChance:Float = 0;
+        
     }
 
     public function getCreator() : GlobalPlayerInstance
     {
         return this.livingOwners[0];
+    }
+
+    // returns removed object or null if there was none
+    public function removeContainedObject(index:Int) : ObjectHelper
+    {
+        if(index < 0){
+            return this.containedObjects.pop();
+        }
+
+        var obj = this.containedObjects[index];
+        this.containedObjects.remove(obj);
+
+        return obj;
     }
 
 }

@@ -53,7 +53,8 @@ class TransitionHelper{
         this.newFloorId = this.floorId;
         this.newTransitionSource = this.transitionSource;
 
-        this.handObjectHelper = this.player.heldObject;
+        // TODO
+        //this.handObjectHelper = this.player.heldObject;
         //trace('Read Hand object:');
         if(this.handObjectHelper == null) this.handObjectHelper = ObjectHelper.readObjectHelper(this.player, this.handObject);
 
@@ -66,10 +67,52 @@ class TransitionHelper{
         this.tileObjectData = tileObjectHelper.objectData;
 
         trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
+
+        trace('handObjectHelper: ' + handObjectHelper.writeObjectHelper([]));
+        trace('tileObjectHelper: ' + tileObjectHelper.writeObjectHelper([]));
     }
+
+    /*
+    DROP x y c#
+
+    DROP is for setting held object down on empty grid square OR
+	 for adding something to a container
+     c is -1 except when adding something to own clothing, then c
+     indicates clothing with:
+     0=hat, 1=tunic, 2=frontShoe, 3=backShoe, 4=bottom, 5=backpack*/
+
+     public function drop(clothingIndex:Int=-1) : Bool
+    {
+        // this is a drop and not a transition
+        this.doTransition = false;
+        
+        if(this.checkIfNotMovingAndCloseEnough() == false) return false;
+
+        // TODO drop hand object in container
+
+        return this.swapHandAndFloorObject();            
+    } 
+
+
+    /*
+    USE x y id i#
+
+    USE  is for bare-hand or held-object action on target object in non-empty 
+     grid square, including picking something up (if there's no bare-handed 
+     action), and picking up a container.
+     id parameter is optional, and is used by server to differentiate 
+     intentional use-on-bare-ground actions from use actions (in case
+     where target animal moved out of the way).
+     i parameter is optional, and specifies a container slot to use a held
+     object on (for example, using a knife to slice bread sitting on a table).
+    */
 
     public function use() : Bool
     {
+        // TODO intentional use, see description above
+
+        // TODO use on container, see description above
+
         // TODO check pickup age
 
         // TODO kill deadlyDistance
@@ -80,8 +123,6 @@ class TransitionHelper{
 
         // TODO fix Pile animations
 
-        // TODO fix general animations (sound, and where object comes from)
-        
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;
 
         // do actor + target = newActor + newTarget
@@ -113,6 +154,8 @@ class TransitionHelper{
 
     public function doTransitionIfPossible() : Bool
     {
+        // TODO //public var useChance:Float = 0;
+
         // TODO lastUseActorObject
         var lastUseActorObject = false;
         var lastUseTileObject = false;
@@ -278,16 +321,16 @@ class TransitionHelper{
             // do nothing if tile Object is empty
             if(this.tileObject[0] == 0) return false;
 
-            if(tileObjectHelper.containedObjects.length < 1) return false;
+            if(tileObjectHelper.containedObjects.length < 1) return false;            
+
+            this.newHandObject = tileObjectHelper.removeContainedObject(index).writeObjectHelper([]);
+
+            this.newTileObject = tileObjectHelper.writeObjectHelper([]);
 
             if(this.handObject [0] != 0){
                 // TODO check if it hand item fits in container
                 tileObjectHelper.containedObjects.push(handObjectHelper);
             }
-
-            //trace('Write To Hand object:');
-            this.newHandObject = tileObjectHelper.containedObjects.pop().writeObjectHelper([]);
-            this.newTileObject = tileObjectHelper.writeObjectHelper([]);
 
             this.doAction = true;
             return true;

@@ -154,16 +154,11 @@ class GlobalPlayerInstance extends PlayerInstance {
     }
 
     // even send Player Update / PU if nothing happend. Otherwise client will get stuck
-    public function drop(x:Int,y:Int) : Bool
+    public function drop(x:Int,y:Int, clothingIndex:Int=-1) : Bool
     {
         var helper = new TransitionHelper(this, x, y);
 
-        // this is a drop and not a transition
-        helper.doTransition = false;
-        
-        if(helper.checkIfNotMovingAndCloseEnough() == false) return helper.sendUpdateToClient();
-
-        helper.swapHandAndFloorObject();            
+        helper.drop(clothingIndex);          
         
         return helper.sendUpdateToClient();
     }   
