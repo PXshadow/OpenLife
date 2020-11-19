@@ -1,0 +1,352 @@
+package openlife.server;
+
+import openlife.data.object.ObjectData;
+import openlife.data.object.ObjectHelper;
+
+class TransitionHelper{
+
+    public var x:Int;
+    public var y:Int;
+
+    public var tx:Int;
+    public var ty:Int;
+
+    public var player:GlobalPlayerInstance;
+
+    public var handObject:Array<Int>;
+    public var tileObject:Array<Int>;
+    public var floorId:Int;
+    public var transitionSource:Int;
+
+    public var newHandObject:Array<Int>;
+    public var newTileObject:Array<Int>;
+    public var newFloorId:Int;
+    public var newTransitionSource:Int;
+
+    public var tileObjectHelper:ObjectHelper;
+    public var handObjectHelper:ObjectHelper;
+
+    public var handObjectData:ObjectData;
+    public var tileObjectData:ObjectData;
+
+    public var doAction:Bool;
+
+    public function new(player:GlobalPlayerInstance, x:Int,y:Int)
+    {
+        this.player = player;
+
+        this.x = x;
+        this.y = y;
+
+        this.tx = x + player.gx;
+        this.ty = y + player.gy;
+
+        this.handObject = player.o_id;
+        this.tileObject = Server.server.map.getObjectId(tx, ty);
+        this.floorId = Server.server.map.getFloorId(tx, ty);
+        this.transitionSource = player.o_transition_source_id;
+        
+        this.newHandObject = this.handObject;
+        this.newTileObject = this.tileObject;
+        this.newFloorId = this.floorId;
+        this.newTransitionSource = this.transitionSource;
+
+        this.handObjectHelper = this.player.heldObject;
+        //trace('Read Hand object:');
+        if(this.handObjectHelper == null) this.handObjectHelper = ObjectHelper.readObjectHelper(this.player, this.handObject);
+
+        // ObjectHelpers are for storing advanced dato like USES, CREATION TIME, OWNER
+        this.tileObjectHelper = Server.server.map.getObjectHelper(tx,ty);
+        //trace('Read Tile object:');
+        if(this.tileObjectHelper == null) this.tileObjectHelper = ObjectHelper.readObjectHelper(this.player, this.tileObject);
+
+        this.handObjectData = handObjectHelper.objectData;
+        this.tileObjectData = tileObjectHelper.objectData;
+
+        trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
+    }
+
+    public function use() : Bool
+    {
+        // TODO check pickup age
+
+        // TODO kill deadlyDistance
+
+        // TODO feed baby
+
+        // TODO last transitions
+
+        // TODO fix Pile animations
+
+        // TODO fix general animations (sound, and where object comes from)
+        
+        if(this.checkIfNotMovingAndCloseEnough() == false) return false;
+
+        // do actor + target = newActor + newTarget
+        if(this.doTransitionIfPossible()) return true;
+
+        // do nothing if tile Object is empty
+        if(this.tileObject[0] == 0) return false;
+
+        // do pickup if hand is empty
+        if(this.handObject[0] == 0 && this.swapHandAndFloorObject()) return true;            
+        
+        // do container stuff
+        return this.doContainerStuff();
+    }
+
+    public function checkIfNotMovingAndCloseEnough():Bool{
+        if(player.me.isMoveing()) {
+            trace("Player is still moving");
+            return false; 
+        }
+
+        if(player.isClose(x,y) == false) {
+            trace('Object position is too far away p${player.x},p${player.y} o$x,o$y');
+            return false; 
+        }
+
+        return true;
+    }
+
+    public function doTransitionIfPossible() : Bool
+    {
+        // TODO lastUseActorObject
+        var lastUseActorObject = false;
+        var lastUseTileObject = false;
+
+        trace('tileObjectData.numUses: ${tileObjectData.numUses} tileObjectHelper.numberOfUses: ${this.tileObjectHelper.numberOfUses} ${tileObjectData.description}'  );
+        if(tileObjectData.numUses > 1 && this.tileObjectHelper.numberOfUses <= 2){
+            lastUseTileObject = true;
+            trace("lastUseTileObject = true");
+        }
+
+        var transition = Server.transitionImporter.getTransition(this.handObject[0], this.tileObject[0], lastUseActorObject, lastUseTileObject);
+
+        var targetIsFloor = false;
+
+        // check if there is a floor and no object is on the floor. otherwise the object may be overriden
+        if((transition == null) && (this.floorId != 0) && (this.tileObject[0] == 0)){
+            transition = Server.transitionImporter.getTransition(this.handObject[0], this.floorId);
+            if(transition != null) targetIsFloor = true;
+        }
+
+        if(transition == null) return false;
+
+        trace('Found transition: a${transition.actorID} t${transition.targetID}');
+
+        var newTargetObjectData = Server.objectDataMap[transition.newTargetID];
+        
+        if(newTargetObjectData.floor && this.floorId != 0) return false;
+
+        if(newTargetObjectData.floor)
+        {
+            if(targetIsFloor == false) this.newTileObject = [0];
+            this.newFloorId = transition.newTargetID;
+        }
+        else
+        {
+            if(targetIsFloor) this.newFloorId = 0;
+            this.newTileObject = [transition.newTargetID];
+        }
+
+        //transition source object id (or -1) if held object is result of a transition 
+        //if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
+        this.newTransitionSource = transition.targetID; // TODO ???
+
+        this.newHandObject = [transition.newActorID];
+
+        // TODO Create HelperObject if newTargetObject has time transitions
+        
+
+        this.tileObjectHelper.objectData = newTargetObjectData; // ??? not sure if this is good 
+
+        // create advanced object if USES > 0
+        trace('tileObject: ${tileObject} newTileObject: ${newTileObject} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
+        if(this.tileObject[0] != this.newTileObject[0] && newTargetObjectData.numUses > 1) //&& newTargetObjectData.numUses > 0)
+        {
+            // a Pile starts with 2 uses not with the full
+            // if the ObjectHelper is created through a reverse use, it must be a pile...
+            if(transition.reverseUseTarget){
+                trace("NEW PILE?");
+                this.tileObjectHelper.numberOfUses = 2;
+            } 
+
+            Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
+
+            trace('Changed Target Object Type: numberOfUses: ' + this.tileObjectHelper.numberOfUses);
+
+            this.doAction = true;
+
+            return true;
+
+        }
+        
+        
+
+        if(transition.reverseUseTarget)
+        {
+            this.tileObjectHelper.numberOfUses += 1;
+            trace('numberOfUses: ' + this.tileObjectHelper.numberOfUses);
+        } 
+        else
+        {
+            this.tileObjectHelper.numberOfUses -= 1;
+
+            trace("REMOVE ObjectHelper USES < 2");
+            trace('numberOfUses: ' + this.tileObjectHelper.numberOfUses);
+
+            if(this.tileObjectHelper.numberOfUses < 2) {
+                this.tileObjectHelper = null;
+                Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
+            }
+        }
+    
+        this.doAction = true;
+
+        return true;
+    }
+
+    public function swapHandAndFloorObject():Bool{
+
+        //trace("SWAP tileObjectData: " + tileObjectData.toFileString());
+        
+        var permanent = (tileObjectData != null) && (tileObjectData.permanent == 1);
+
+        if(permanent) return false;
+
+        this.newTileObject = this.handObject;
+        this.newHandObject = this.tileObject;
+
+        this.doAction = true;
+        return true;
+    }
+
+    public function doContainerStuff() : Bool
+    {
+        trace("containable: " + tileObjectData.containable + " desc: " + tileObjectData.description + " numSlots: " + tileObjectData.numSlots);
+
+        // TODO change container check
+        //if ((objectData.numSlots == 0 || MapData.numSlots(this.tileObject) >= objectData.numSlots)) return false;
+        if (tileObjectData.numSlots == 0) return false; 
+
+        if(this.tileObjectHelper.containedObjects.length >= tileObjectData.numSlots) return false;
+        
+        // place hand object in container if container has enough space
+        //if (handObjectData.slotSize >= objectData.containSize) {
+        trace('handObjectData.slotSize: ${handObjectData.slotSize} tileObjectData.containSize: ${tileObjectData.containSize}');
+        if (handObjectData.slotSize > tileObjectData.containSize) return false;
+
+        trace('HO ${this.handObject[0]}');
+        trace('HO Slot size: ${handObjectData.slotSize} TO: container Size size: ${tileObjectData.containSize}');
+
+        this.newHandObject = [0];
+
+        //trace('Hand object: ${handObjectHelper.writeObjectHelper([])}');
+
+        tileObjectHelper.containedObjects.push(handObjectHelper);
+
+        trace('Tile object: ${tileObject}');
+
+        this.newTileObject = tileObjectHelper.writeObjectHelper([]);
+
+        trace('New Tile object: ${newTileObject}');
+
+        this.doAction = true;
+        return true;
+    }
+
+    /*
+    REMV x y i#
+
+    REMV is special case of removing an object from a container.
+     i specifies the index of the container item to remove, or -1 to
+     remove top of stack.*/
+
+    public function remove(index:Int)
+        {
+            trace("remove index " + index);
+
+            // do nothing if tile Object is empty
+            if(this.tileObject[0] == 0) return false;
+
+            if(tileObjectHelper.containedObjects.length < 1) return false;
+
+            if(this.handObject [0] != 0){
+                // TODO check if it hand item fits in container
+                tileObjectHelper.containedObjects.push(handObjectHelper);
+            }
+
+            //trace('Write To Hand object:');
+            this.newHandObject = tileObjectHelper.containedObjects.pop().writeObjectHelper([]);
+            this.newTileObject = tileObjectHelper.writeObjectHelper([]);
+
+            this.doAction = true;
+            return true;
+
+            /*
+            //var newTileObject = Server.server.map.getObjectId(x + gx,y + gy);
+            //trace("tile: "  + newTileObject);
+
+
+            var doAction = false;
+            if (newTileObject.length > 1) 
+            {
+                doAction = true;
+                if (this.o_id[0] == 0)
+                {
+                    //non swap
+                    trace("before: " + newTileObject);
+                    this.o_id = MapData.getObjectFromContainer(newTileObject);
+                    trace("after: " + newTileObject);
+                }else{
+                    //swap
+                    trace("swap before: hand: " + o_id + " tile " + newTileObject);
+                    var hand = MapData.toContainer(o_id);
+                    newTileObject = newTileObject.concat(hand);
+                    hand = MapData.getObjectFromContainer(newTileObject);
+                    o_id = hand;
+                    trace("swap after: hand: " + o_id + " tile " + newTileObject);
+                }
+            }        
+            */
+        }
+
+    public function sendUpdateToClient() : Bool{
+
+        // even send Player Update / PU if nothing happend. Otherwise client will get stuck
+        if(this.doAction == false){
+            player.connection.send(PLAYER_UPDATE,[player.toData()]);
+            player.connection.send(FRAME);
+            return false;
+        }
+
+        Server.server.map.setObjectId(this.tx, this.ty, this.newTileObject);
+        Server.server.map.setFloorId(this.tx, this.ty, this.newFloorId);
+
+        player.o_id = this.newHandObject;
+
+        player.action = 1;
+
+        // TODO set right
+        player.o_origin_x = this.x;
+        player.o_origin_y = this.y;
+        player.o_origin_valid = 1; // what is this for???
+
+        player.o_transition_source_id = this.newTransitionSource;
+        player.action_target_x = this.x;
+        player.action_target_y = this.y;
+        player.forced = false;
+
+        for (c in Server.server.connections) // TODO only for visible players
+        {
+            c.send(PLAYER_UPDATE,[player.toData()]);
+            if(this.doAction) c.sendMapUpdate(x, y, this.newFloorId, this.newTileObject, player.p_id);
+            c.send(FRAME);
+        }
+
+        player.action = 0;
+
+        return true;
+    }
+}

@@ -297,9 +297,15 @@ class ObjectData extends LineReader
     var maxWideRadius:Int = 0;
     var onlyDescription:Bool;
     public var noBackAcess:Bool = false;
-    public function new(i:Int=0,onlyDescription:Bool=false)
+    public function new(i:Int=0,onlyDescription:Bool=false, createNullObject:Bool = false)
     {
         super();
+
+        if(createNullObject) {
+            this.description = "Empty";
+            return;
+        }
+
         this.onlyDescription = onlyDescription;
         var string:String;
         try {
@@ -581,6 +587,8 @@ class ObjectData extends LineReader
     }
     public function toFileString():String
     {
+        if(this.id == 0) return "Empty";
+
         var objectString = 'id=$id${LineReader.EOL}' +
         '$description${LineReader.EOL}' +
         'containable=${containable ? "1" : "0"}${LineReader.EOL}' +

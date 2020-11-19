@@ -92,6 +92,10 @@ class Server
             vector[i] = objectData;
             objectDataMap[objectData.id] = objectData;
         }
+
+        // Add empty object
+        objectDataMap[0] = new ObjectData(0,false,true);
+
         trace("Object Data imported: " + vector.length);
 
         trace("Import transitions...");
@@ -162,7 +166,8 @@ class Server
             case SREMV:
             header.player.specialRemove(Std.parseInt(input[0]),Std.parseInt(input[1]),Std.parseInt(input[2]),input.length > 3 ? Std.parseInt(input[3]) : null);
             case REMV:
-            header.player.remove(Std.parseInt(input[0]),Std.parseInt(input[1]),input.length > 2 ? Std.parseInt(input[2]) : null);
+            //header.player.remove(Std.parseInt(input[0]),Std.parseInt(input[1]),input.length > 2 ? Std.parseInt(input[2]) : null);
+            header.player.remove(Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
             case USE:
             header.player.use(Std.parseInt(input[0]), Std.parseInt(input[1]));
             case SELF:

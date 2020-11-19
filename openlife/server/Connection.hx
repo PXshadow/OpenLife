@@ -86,6 +86,11 @@ class Connection implements ServerHeader
             //containers testing SREMV
             Server.server.map.setObjectId(player.gx - 4,player.gy + 10,[434]);
             Server.server.map.setObjectId(player.gx - 5,player.gy + 10,[292,2143,2143,2143]);
+            Server.server.map.setObjectId(player.gx - 6,player.gy + 10,[292,2143,2143,2143]);
+            Server.server.map.setObjectId(player.gx - 7,player.gy + 10,[292,33,2143,33]);
+            Server.server.map.setObjectId(player.gx - 8,player.gy + 10,[2143,2143,2143]);
+            Server.server.map.setObjectId(player.gx - 7,player.gy + 10,[3371,33,2143,33]);
+            
 
             
             trace("move_speed: " + player.move_speed);
