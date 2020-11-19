@@ -157,6 +157,9 @@ class GlobalPlayerInstance extends PlayerInstance {
     public function drop(x:Int,y:Int) : Bool
     {
         var helper = new TransitionHelper(this, x, y);
+
+        // this is a drop and not a transition
+        helper.doTransition = false;
         
         if(helper.checkIfNotMovingAndCloseEnough() == false) return helper.sendUpdateToClient();
 

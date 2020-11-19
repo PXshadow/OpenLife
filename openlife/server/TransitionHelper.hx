@@ -29,6 +29,8 @@ class TransitionHelper{
     public var handObjectData:ObjectData;
     public var tileObjectData:ObjectData;
 
+    // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
+    public var doTransition:Bool = true;
     public var doAction:Bool;
 
     public function new(player:GlobalPlayerInstance, x:Int,y:Int)
@@ -116,7 +118,7 @@ class TransitionHelper{
         var lastUseTileObject = false;
 
         trace('tileObjectData.numUses: ${tileObjectData.numUses} tileObjectHelper.numberOfUses: ${this.tileObjectHelper.numberOfUses} ${tileObjectData.description}'  );
-        if(tileObjectData.numUses > 1 && this.tileObjectHelper.numberOfUses <= 2){
+        if(tileObjectData.numUses > 1 && this.tileObjectHelper.numberOfUses <= 1){
             lastUseTileObject = true;
             trace("lastUseTileObject = true");
         }
@@ -158,8 +160,8 @@ class TransitionHelper{
 
         // TODO Create HelperObject if newTargetObject has time transitions
         
-
-        this.tileObjectHelper.objectData = newTargetObjectData; // ??? not sure if this is good 
+        // TODO not sure if there needs to be done more if object changes type
+        this.tileObjectHelper.objectData = newTargetObjectData; 
 
         // create advanced object if USES > 0
         trace('tileObject: ${tileObject} newTileObject: ${newTileObject} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
@@ -169,20 +171,20 @@ class TransitionHelper{
             // if the ObjectHelper is created through a reverse use, it must be a pile...
             if(transition.reverseUseTarget){
                 trace("NEW PILE?");
-                this.tileObjectHelper.numberOfUses = 2;
+                this.tileObjectHelper.numberOfUses = 1;
             } 
-
+            
             Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
 
             trace('Changed Target Object Type: numberOfUses: ' + this.tileObjectHelper.numberOfUses);
 
+            // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
+            this.doTransition = true;
             this.doAction = true;
 
             return true;
 
         }
-        
-        
 
         if(transition.reverseUseTarget)
         {
@@ -193,15 +195,21 @@ class TransitionHelper{
         {
             this.tileObjectHelper.numberOfUses -= 1;
 
-            trace("REMOVE ObjectHelper USES < 2");
+            
             trace('numberOfUses: ' + this.tileObjectHelper.numberOfUses);
 
-            if(this.tileObjectHelper.numberOfUses < 2) {
+            if(this.tileObjectHelper.numberOfUses < 1) {
+                trace("REMOVE ObjectHelper USES < 1");
                 this.tileObjectHelper = null;
+                Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
+            }
+            else{
                 Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
             }
         }
     
+        // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
+        this.doTransition = true;
         this.doAction = true;
 
         return true;
@@ -341,7 +349,21 @@ class TransitionHelper{
         for (c in Server.server.connections) // TODO only for visible players
         {
             c.send(PLAYER_UPDATE,[player.toData()]);
-            if(this.doAction) c.sendMapUpdate(x, y, this.newFloorId, this.newTileObject, player.p_id);
+            /*
+            MX (MAP UPDATE)
+            p_id is the player that was responsible for the change (in the case of an 
+            object drop only), or -1 if change was not player triggered.  p_id < -1 means
+            that the change was triggered by player -(p_id), but that the object
+            wasn't dropped (transform triggered by a player action).
+            */
+            if(this.doAction){
+                if(this.doTransition){
+                    c.sendMapUpdate(x, y, this.newFloorId, this.newTileObject, (-1) * player.p_id);
+                }
+                else{
+                    c.sendMapUpdate(x, y, this.newFloorId, this.newTileObject, player.p_id);
+                }
+            }
             c.send(FRAME);
         }
 
