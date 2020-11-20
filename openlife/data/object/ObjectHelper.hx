@@ -101,6 +101,8 @@ class ObjectHelper {
             return this.containedObjects.pop();
         }
 
+        // TODO SEE if table switch objects can be fixed. Maybe add empty object in between, but never in the end
+
         var obj = this.containedObjects[index];
         this.containedObjects.remove(obj);
 
