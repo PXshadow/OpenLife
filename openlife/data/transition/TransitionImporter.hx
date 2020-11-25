@@ -145,15 +145,16 @@ class TransitionImporter
         
         // TODO there are a lot of double transactions, like Oil Movement, Horse Stuff, Fence / Wall Alignment
         if(trans != null){
-            //traceTransition(trans, "WARNING DOUBLE 1!!", "");
-            //traceTransition(transition, "WARNING DOUBLE 2!!", "");
+            traceTransition(trans, "WARNING DOUBLE 1!!", "Milkweed");
+            traceTransition(transition, "WARNING DOUBLE 2!!", "Milkweed");
             return;
         }
 
         this.transitions.push(transition);
         transitionsByTargetId[transition.targetID] = transition;
 
-        traceTransition(transition, "", "Stone Pile");
+        //traceTransition(transition, "", "Stone Pile");
+        traceTransition(transition, "", "Milkweed");
 
         //if(transition.reverseUseTarget) traceTransition(transition, "", "");
     }
@@ -179,7 +180,7 @@ class TransitionImporter
         var bothActionAndTargetIsCategory = (actorCategory != null) && (targetCategory != null);
 
         if(bothActionAndTargetIsCategory){
-            // traceTransition(transition, 'bothActionAndTargetIsCategory: ');
+            //traceTransition(transition, 'bothActionAndTargetIsCategory: ');
             // TODO i dont know
             return;
         }

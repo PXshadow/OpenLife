@@ -114,9 +114,9 @@ class TransitionHelper{
 
     public function use() : Bool
     {
-        // TODO intentional use, see description above
+        // TODO intentional use with index, see description above
 
-        // TODO use on container, see description above
+        // TODO use on container with index, see description above
 
         // TODO check pickup age
 
@@ -124,7 +124,7 @@ class TransitionHelper{
 
         // TODO feed baby
 
-        // TODO last transitions
+        // TODO last transitions for handObject
 
         // TODO fix Pile animations
 
@@ -171,7 +171,7 @@ class TransitionHelper{
         var tileObject = Server.server.map.getObjectId(tx, ty);
         var floorId = Server.server.map.getFloorId(tx, ty);
 
-        trace('Time: tileObject: $tileObject');
+        //trace('Time: tileObject: $tileObject');
 
         var transition = Server.transitionImporter.getTransition(-1, tileObject[0], false, false);
 
@@ -185,6 +185,9 @@ class TransitionHelper{
 
         var newTileObject = [transition.newTargetID];
         Server.server.map.setObjectId(tx, ty, newTileObject);
+        Server.server.map.setObjectHelper(tx, ty, null);
+
+        // TODO take care if newTileObject has time transition
 
         for (c in Server.server.connections) // TODO only for visible players
         {
@@ -327,6 +330,9 @@ class TransitionHelper{
         var permanent = (tileObjectData != null) && (tileObjectData.permanent == 1);
 
         if(permanent) return false;
+
+        // TODO for now picking up stuff that can change is forbidden
+        //if(tileObjectHelper.timeToChange > 0) return false;
 
         this.newTileObject = this.handObject;
         this.newHandObject = this.tileObject;

@@ -38,6 +38,7 @@ class Server
     public var connections:Array<Connection> = [];
    
     public var tick:Int = 0;
+    public var serverStartingTime:Float;
     public var index:Int = 1;
     public var map:WorldMap;
     
@@ -116,7 +117,7 @@ class Server
 
     private function update()
     {
-        //if(this.tick % 20 == 0) trace("Ticks: " + this.tick);
+        
 
         for (connection in connections)
         {
@@ -125,15 +126,24 @@ class Server
 
         for(helper in this.map.timeObjectHelpers){
             var passedTime = calculateTimeSinceTicksInSec(helper.creationTimeInTicks);
-            if(passedTime >= helper.timeToChange){
+            if(passedTime >= helper.timeToChange)
+            {
                 trace('TIME: ${helper.objectData.description} passedTime: $passedTime neededTime: ${helper.timeToChange}');       
 
                 TransitionHelper.doTimeTransition(helper);
-
-                //var helper = new TransitionHelper(null, helper.tx, helper.ty);
-
-                //helper.sendUpdateToClient();
             }
+        }
+
+        if(this.tick % 20 == 0)
+        {
+            if(serverStartingTime <= 0) serverStartingTime = Sys.time();
+            var time = Sys.time() - serverStartingTime;
+            trace('Do some time stuff every 1 sec. sec: ${this.tick / 20} Time: $time');
+
+            // TODO what to do if server is too slow?
+            if(this.tick / 20 < time - 1) this.tick += 10;
+
+            map.DoSomeTimeStuff();
         }
     }
 

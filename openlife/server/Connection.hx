@@ -101,6 +101,10 @@ class Connection implements ServerHeader
             Server.server.map.setObjectId(player.gx+6, player.gy+1, [586]);
             Server.server.map.setObjectId(player.gx+7, player.gy+1, [2951]);
 
+            // test time / decay transitions
+            Server.server.map.setObjectId(player.gx - 4,player.gy + 5,[248]);
+            Server.server.map.setObjectId(player.gx - 5,player.gy + 5,[82]);
+            Server.server.map.setObjectId(player.gx - 6,player.gy + 5,[418]);
 
             //test transitions of numUses + decay
             Server.server.map.setObjectId(player.gx,player.gy + 10,[238]);

@@ -340,6 +340,7 @@ class WorldMap
         //else if(y >= this.height) y -= this.height;
 
         var i = x + y * width;
+
         return i;
     }
 
@@ -368,6 +369,63 @@ class WorldMap
 
     public function findClosest(){
         
+    }
+
+    public function DoSomeTimeStuff()
+    {
+        for (i in 0...length)
+        {
+            var obj = objects[i];
+            if(obj[0] == 0) continue;
+
+            var helper = objectHelpers[i];
+            if(helper != null)
+            {
+                if(obj[0] != helper.objectData.id){
+                    trace("WARNING: object helper did not fit to object id");
+
+                    objectHelpers[i] = null;
+                    continue;
+                } 
+
+                if(helper.timeToChange == 0) continue;
+
+                var passedTime = Server.server.calculateTimeSinceTicksInSec(helper.creationTimeInTicks);
+
+                var timeToChange = helper.timeToChange < 0 ?  (-3600) * helper.timeToChange : helper.timeToChange;
+
+                if(passedTime >= timeToChange)
+                {
+                    //trace('TIME: ${helper.objectData.description} passedTime: $passedTime neededTime: ${timeToChange}');       
+
+                    objectHelpers[i] = null;
+
+                    TransitionHelper.doTimeTransition(helper);
+
+                }
+
+                continue;
+            }
+            
+
+            var timeTransition = Server.transitionImporter.getTransition(-1, obj[0], false, false);
+            if(timeTransition == null) continue;
+
+            // create object helper with the current time
+
+            helper = ObjectHelper.readObjectHelper(null, obj);
+
+            helper.timeToChange = timeTransition.autoDecaySeconds;
+            helper.tx = i % this.width;
+            helper.ty = Math.floor(i / this.width) + 1;
+
+            objectHelpers[i] = helper;
+
+            //var testObj = getObjectId(helper.tx, helper.ty);
+
+            //trace('testObj: $testObj obj: $obj ${helper.tx},${helper.ty} i:$i index:${index(helper.tx, helper.ty)}');
+
+        }
     }
 }
 #end
