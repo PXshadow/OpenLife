@@ -82,7 +82,7 @@ class TransitionImporter
         if(objectDataNewActor != null) newActorDescription = objectDataNewActor.description;
         if(objectDataNewTarget != null) newTargetDescription = objectDataNewTarget.description;
 
-        if(targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
+        if(transition.targetID != 1206 && targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
         
         trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
     }
@@ -145,8 +145,8 @@ class TransitionImporter
         
         // TODO there are a lot of double transactions, like Oil Movement, Horse Stuff, Fence / Wall Alignment
         if(trans != null){
-            traceTransition(trans, "WARNING DOUBLE 1!!", "Milkweed");
-            traceTransition(transition, "WARNING DOUBLE 2!!", "Milkweed");
+            traceTransition(trans, "WARNING DOUBLE 1!!", "Seed");
+            traceTransition(transition, "WARNING DOUBLE 2!!", "Seed");
             return;
         }
 
@@ -154,7 +154,7 @@ class TransitionImporter
         transitionsByTargetId[transition.targetID] = transition;
 
         //traceTransition(transition, "", "Stone Pile");
-        traceTransition(transition, "", "Milkweed");
+        traceTransition(transition, "", "Seed");
 
         //if(transition.reverseUseTarget) traceTransition(transition, "", "");
     }
@@ -167,7 +167,8 @@ class TransitionImporter
 
         if(objectData == null) return null;
 
-        if(objectData.description.indexOf("@") == -1) return null;
+        // TODO there was a reason for checking for @, but 1206 (Cabbage Seed) is an object and an category so wont work for this
+        //if(objectData.description.indexOf("@") == -1) return null;
 
         return categoriesById[id];
     }
