@@ -62,6 +62,7 @@ class WorldMap
     var floors:Vector<Int>;
     var biomes:Vector<Int>;
     
+    public var timeObjectHelpers:Array<ObjectHelper>; 
 
     public var width:Int;
     public var height:Int;
@@ -105,6 +106,8 @@ class WorldMap
         objectHelpers = new Vector<ObjectHelper>(length);
         floors = new Vector<Int>(length);
         biomes = new Vector<Int>(length);
+
+        timeObjectHelpers = [];
     }
 
     // The Server and Client map is saved in an array with y starting from bottom, 

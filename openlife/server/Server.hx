@@ -122,6 +122,20 @@ class Server
         {
             connection.player.updateMovement();
         }
+
+        for(helper in this.map.timeObjectHelpers){
+            var passedTime = calculateTimeSinceTicksInSec(helper.creationTimeInTicks);
+            if(passedTime >= helper.timeToChange){
+                trace('TIME: ${helper.objectData.description} passedTime: $passedTime neededTime: ${helper.timeToChange}');
+                this.map.timeObjectHelpers.remove(helper);
+                // TODO do time transition
+            }
+        }
+    }
+
+    public function calculateTimeSinceTicksInSec(ticks:Int):Float
+    {
+        return (this.tick - ticks) * Server.tickTime;
     }
 
     public function process(connection:Connection,string:String)

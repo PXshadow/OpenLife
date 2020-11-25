@@ -145,12 +145,7 @@ class MoveExtender{
             else {
                 return 1;
             }
-        }
-
-        static private function calculateTimeSinceStartMovementInSec(startingMoveTicks:Int):Float
-        {
-            return (Server.server.tick - startingMoveTicks) * Server.tickTime;
-        }
+        }        
 
         static private function calculateNewMovements(tx:Int,ty:Int,moves:Array<Pos>):NewMovements 
         {
@@ -187,7 +182,7 @@ class MoveExtender{
         // this calculates which position is reached in case the movement was changed while moving
         static private function calculateNewPos(moves:Array<Pos>, startingMoveTicks:Int, speed:Float):Pos
         {
-            var timeSinceStartMovementInSec = calculateTimeSinceStartMovementInSec(startingMoveTicks);
+            var timeSinceStartMovementInSec = Server.server.calculateTimeSinceTicksInSec(startingMoveTicks);
             var movedLength = timeSinceStartMovementInSec * speed;
             var lastPos:Pos = new Pos(0,0);
             var length = 0.0;
@@ -214,15 +209,17 @@ class MoveExtender{
             var me = p.me;
             // check if movement arrived on destination and if so update all players  
             var server = Server.server;
-            var timeSinceStartMovementInSec = calculateTimeSinceStartMovementInSec(me.startingMoveTicks);
+            var timeSinceStartMovementInSec = server.calculateTimeSinceTicksInSec(me.startingMoveTicks);
     
             if(me.newMoves == null) return;
     
-            if(server.tick % 60 == 100){
+            /*
+            if(server.tick % 60 == 0){
                 trace("Ticks: " + server.tick);
                 trace("timeSinceStartMovementInSec: " + timeSinceStartMovementInSec);
                 trace("totalMoveTime: " + me.totalMoveTime);
             }
+            */
     
             if(timeSinceStartMovementInSec >= me.totalMoveTime){
 

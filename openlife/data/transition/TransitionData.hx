@@ -151,23 +151,23 @@ class TransitionData
       s += 'lastUseActor: $lastUseActor ';
       s += 'lastUseTarget: $lastUseTarget ';
 
-    //s += 'autoDecaySeconds: $autoDecaySeconds ';
+      s += 'autoDecaySeconds: $autoDecaySeconds ';
 
-    //MinUse for variable-use objects that occasionally use more than one "use", this sets a minimum per interaction.
-    //public var actorMinUseFraction:Float = 0;
-    //public var targetMinUseFraction:Float = 0;
+      //MinUse for variable-use objects that occasionally use more than one "use", this sets a minimum per interaction.
+      //public var actorMinUseFraction:Float = 0;
+      //public var targetMinUseFraction:Float = 0;
 
-    s += 'reverseUseActor: $reverseUseActor ';
-    s += 'reverseUseTarget: $reverseUseTarget ';
-    //s += 'move: $move ';
+      //s += 'reverseUseActor: $reverseUseActor ';
+      //s += 'reverseUseTarget: $reverseUseTarget ';
+      //s += 'move: $move ';
 
-    //public var desireMoveDist:Bool = false;
-    //public var noUseActor:Bool = false;
-    //public var noUseTarget:Bool = false;
+      //public var desireMoveDist:Bool = false;
+      //public var noUseActor:Bool = false;
+      //public var noUseTarget:Bool = false;
 
-    //public var playerActor:Bool = false;
-    //public var tool:Bool = false;
-    //public var targetRemains:Bool = false;
+      //public var playerActor:Bool = false;
+      //public var tool:Bool = false;
+      //public var targetRemains:Bool = false;
 
       return s;
     }

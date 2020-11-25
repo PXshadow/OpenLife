@@ -8,6 +8,8 @@ class ObjectHelper {
     public var numberOfUses = 0;
     public var creationTimeInTicks:Int;
 
+    public var timeToChange = 0; // in sec // needed for time Transitions
+
     // first one is always creator
     public var livingOwners:Array<GlobalPlayerInstance> = [];
 
@@ -84,8 +86,6 @@ class ObjectHelper {
 
         this.creationTimeInTicks = Server.server.tick;
         this.numberOfUses = objectData.numUses;
-
-        
         
     }
 

@@ -201,14 +201,25 @@ class TransitionHelper{
 
         this.newHandObject = [transition.newActorID];
 
-        // TODO Create HelperObject if newTargetObject has time transitions
+        
         
         // TODO not sure if there needs to be done more if object changes type
         this.tileObjectHelper.objectData = newTargetObjectData; 
 
+        // Add HelperObject to timeObjectHelpers if newTargetObject has time transitions
+        var timeTransition = Server.transitionImporter.getTransition(-1, transition.newTargetID, false, false);
+        if(timeTransition != null)
+        {
+            trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');
+
+            tileObjectHelper.timeToChange = timeTransition.autoDecaySeconds;
+            Server.server.map.timeObjectHelpers.push(tileObjectHelper);
+            Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
+        }
+
         // create advanced object if USES > 0
         trace('tileObject: ${tileObject} newTileObject: ${newTileObject} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
-        if(this.tileObject[0] != this.newTileObject[0] && newTargetObjectData.numUses > 1) //&& newTargetObjectData.numUses > 0)
+        if(this.tileObject[0] != this.newTileObject[0] && newTargetObjectData.numUses > 1)
         {
             // a Pile starts with 2 uses not with the full
             // if the ObjectHelper is created through a reverse use, it must be a pile...
