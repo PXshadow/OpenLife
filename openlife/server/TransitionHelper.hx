@@ -35,7 +35,9 @@ class TransitionHelper{
 
     public function new(player:GlobalPlayerInstance, x:Int,y:Int)
     {
+        trace("try to acquire player mutex");
         player.mutux.acquire();
+        trace("try to acquire map mutex");
         Server.server.map.mutex.acquire();
 
         this.player = player;
@@ -155,6 +157,49 @@ class TransitionHelper{
         return true;
     }
 
+    public static function doTimeTransition(helper:ObjectHelper)
+    {
+        // TODO support moved objects
+
+        Server.server.map.mutex.acquire();
+
+        Server.server.map.timeObjectHelpers.remove(helper);
+
+        var tx = helper.tx;
+        var ty = helper.ty;
+
+        var tileObject = Server.server.map.getObjectId(tx, ty);
+        var floorId = Server.server.map.getFloorId(tx, ty);
+
+        trace('Time: tileObject: $tileObject');
+
+        var transition = Server.transitionImporter.getTransition(-1, tileObject[0], false, false);
+
+        if(transition == null)
+        {
+            // TODO should not happen
+            trace('Time: no transtion found! This should not happen!!! Maybe object was moved?');
+            Server.server.map.mutex.release();
+            return;
+        }
+
+        var newTileObject = [transition.newTargetID];
+        Server.server.map.setObjectId(tx, ty, newTileObject);
+
+        for (c in Server.server.connections) // TODO only for visible players
+        {
+            // since player has relative coordinates, transform them for player
+            var player = c.player;
+            var x = tx - player.gx;
+            var y = ty - player.gy;
+
+            c.sendMapUpdate(x, y, floorId, newTileObject, -1);
+            c.send(FRAME);
+        }
+
+        Server.server.map.mutex.release();
+    } 
+
     public function doTransitionIfPossible() : Bool
     {
         // TODO //public var useChance:Float = 0;
@@ -216,6 +261,9 @@ class TransitionHelper{
             trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');
 
             tileObjectHelper.timeToChange = timeTransition.autoDecaySeconds;
+            tileObjectHelper.tx = this.tx;
+            tileObjectHelper.ty = this.ty;
+
             Server.server.map.timeObjectHelpers.push(tileObjectHelper);
             Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
         }
@@ -329,60 +377,67 @@ class TransitionHelper{
      remove top of stack.*/
 
     public function remove(index:Int)
-        {
-            trace("remove index " + index);
+    {
+        trace("remove index " + index);
 
-            // do nothing if tile Object is empty
-            if(this.tileObject[0] == 0) return false;
+        // do nothing if tile Object is empty
+        if(this.tileObject[0] == 0) return false;
 
-            if(tileObjectHelper.containedObjects.length < 1) return false;            
+        if(tileObjectHelper.containedObjects.length < 1) return false;            
 
-            this.newHandObject = tileObjectHelper.removeContainedObject(index).writeObjectHelper([]);
+        this.newHandObject = tileObjectHelper.removeContainedObject(index).writeObjectHelper([]);
 
-            this.newTileObject = tileObjectHelper.writeObjectHelper([]);
+        this.newTileObject = tileObjectHelper.writeObjectHelper([]);
 
-            if(this.handObject [0] != 0){
-                // TODO check if it hand item fits in container
-                tileObjectHelper.containedObjects.push(handObjectHelper);
-            }
-
-            this.doAction = true;
-            return true;
-
-            /*
-            //var newTileObject = Server.server.map.getObjectId(x + gx,y + gy);
-            //trace("tile: "  + newTileObject);
-
-
-            var doAction = false;
-            if (newTileObject.length > 1) 
-            {
-                doAction = true;
-                if (this.o_id[0] == 0)
-                {
-                    //non swap
-                    trace("before: " + newTileObject);
-                    this.o_id = MapData.getObjectFromContainer(newTileObject);
-                    trace("after: " + newTileObject);
-                }else{
-                    //swap
-                    trace("swap before: hand: " + o_id + " tile " + newTileObject);
-                    var hand = MapData.toContainer(o_id);
-                    newTileObject = newTileObject.concat(hand);
-                    hand = MapData.getObjectFromContainer(newTileObject);
-                    o_id = hand;
-                    trace("swap after: hand: " + o_id + " tile " + newTileObject);
-                }
-            }        
-            */
+        if(this.handObject [0] != 0){
+            // TODO check if it hand item fits in container
+            tileObjectHelper.containedObjects.push(handObjectHelper);
         }
 
-    public function sendUpdateToClient() : Bool{
+        this.doAction = true;
+        return true;
+
+        /*
+        //var newTileObject = Server.server.map.getObjectId(x + gx,y + gy);
+        //trace("tile: "  + newTileObject);
+
+
+        var doAction = false;
+        if (newTileObject.length > 1) 
+        {
+            doAction = true;
+            if (this.o_id[0] == 0)
+            {
+                //non swap
+                trace("before: " + newTileObject);
+                this.o_id = MapData.getObjectFromContainer(newTileObject);
+                trace("after: " + newTileObject);
+            }else{
+                //swap
+                trace("swap before: hand: " + o_id + " tile " + newTileObject);
+                var hand = MapData.toContainer(o_id);
+                newTileObject = newTileObject.concat(hand);
+                hand = MapData.getObjectFromContainer(newTileObject);
+                o_id = hand;
+                trace("swap after: hand: " + o_id + " tile " + newTileObject);
+            }
+        }        
+        */
+    }
+
+    public function sendUpdateToClient() : Bool
+    {
 
         // even send Player Update / PU if nothing happend. Otherwise client will get stuck
         if(this.doAction == false){
             player.connection.send(PLAYER_UPDATE,[player.toData()]);
             player.connection.send(FRAME);
+
+            trace("release player mutex");
+            Server.server.map.mutex.release();
+            trace("release map mutex");
+            player.mutux.release();
+
             return false;
         }
 
@@ -426,7 +481,10 @@ class TransitionHelper{
 
         player.action = 0;
 
+        
+        trace("release player mutex");
         Server.server.map.mutex.release();
+        trace("release map mutex");
         player.mutux.release();
 
         return true;

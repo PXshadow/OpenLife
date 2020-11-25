@@ -126,9 +126,13 @@ class Server
         for(helper in this.map.timeObjectHelpers){
             var passedTime = calculateTimeSinceTicksInSec(helper.creationTimeInTicks);
             if(passedTime >= helper.timeToChange){
-                trace('TIME: ${helper.objectData.description} passedTime: $passedTime neededTime: ${helper.timeToChange}');
-                this.map.timeObjectHelpers.remove(helper);
-                // TODO do time transition
+                trace('TIME: ${helper.objectData.description} passedTime: $passedTime neededTime: ${helper.timeToChange}');       
+
+                TransitionHelper.doTimeTransition(helper);
+
+                //var helper = new TransitionHelper(null, helper.tx, helper.ty);
+
+                //helper.sendUpdateToClient();
             }
         }
     }

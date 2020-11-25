@@ -8,7 +8,10 @@ class ObjectHelper {
     public var numberOfUses = 0;
     public var creationTimeInTicks:Int;
 
-    public var timeToChange = 0; // in sec // needed for time Transitions
+    // needed for time Transitions
+    public var timeToChange = 0; // in sec 
+    public var tx:Int = 0;
+    public var ty:Int = 0;
 
     // first one is always creator
     public var livingOwners:Array<GlobalPlayerInstance> = [];
