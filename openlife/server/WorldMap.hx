@@ -406,7 +406,6 @@ class WorldMap
 
                 continue;
             }
-            
 
             var timeTransition = Server.transitionImporter.getTransition(-1, obj[0], false, false);
             if(timeTransition == null) continue;
@@ -415,12 +414,18 @@ class WorldMap
 
             helper = ObjectHelper.readObjectHelper(null, obj);
 
-            helper.timeToChange = timeTransition.autoDecaySeconds;
+            // hours are negative
+            var timeToChange = timeTransition.autoDecaySeconds < 0 ?  (-3600) * timeTransition.autoDecaySeconds : timeTransition.autoDecaySeconds;                 
+            timeToChange = Math.ceil((randomInt(timeToChange) + timeToChange)/2);
+
+            helper.timeToChange = timeToChange;
             helper.tx = i % this.width;
             helper.ty = Math.floor(i / this.width) + 1;
 
             objectHelpers[i] = helper;
 
+            //trace('TIME: ${helper.objectData.description} neededTime: ${timeToChange}');  
+            
             //var testObj = getObjectId(helper.tx, helper.ty);
 
             //trace('testObj: $testObj obj: $obj ${helper.tx},${helper.ty} i:$i index:${index(helper.tx, helper.ty)}');
