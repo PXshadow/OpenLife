@@ -35,6 +35,9 @@ class TransitionHelper{
 
     public function new(player:GlobalPlayerInstance, x:Int,y:Int)
     {
+        player.mutux.acquire();
+        Server.server.map.mutex.acquire();
+
         this.player = player;
 
         this.x = x;
@@ -422,6 +425,9 @@ class TransitionHelper{
         }
 
         player.action = 0;
+
+        Server.server.map.mutex.release();
+        player.mutux.release();
 
         return true;
     }

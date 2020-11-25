@@ -50,6 +50,8 @@ class GlobalPlayerInstance extends PlayerInstance {
     */
     public function self(x:Int, y:Int, clothingSlot:Int)
     {
+        this.mutux.acquire();
+
         var doaction = false;
         var p_clothingSlot = -1;
 
@@ -123,15 +125,17 @@ class GlobalPlayerInstance extends PlayerInstance {
         }
 
         this.action = 0;
+        this.mutux.release();
     }
      
-     public function remove(x:Int,y:Int,index:Int) : Bool
+     public function remove(x:Int,y:Int,index:Int)
     {
         var helper = new TransitionHelper(this, x, y);
 
         helper.remove(index);
         
-        return helper.sendUpdateToClient();
+        helper.sendUpdateToClient();
+
     }
 
     public function specialRemove(x:Int,y:Int,clothing:Int,id:Null<Int>)
@@ -144,22 +148,25 @@ class GlobalPlayerInstance extends PlayerInstance {
     }
 
     // even send Player Update / PU if nothing happend. Otherwise client will get stuck
-    public function use(x:Int,y:Int) : Bool
+    public function use(x:Int,y:Int)         
     {
         var helper = new TransitionHelper(this, x, y);
 
         helper.use();
 
-        return helper.sendUpdateToClient();
+        helper.sendUpdateToClient();
+
     }
 
     // even send Player Update / PU if nothing happend. Otherwise client will get stuck
-    public function drop(x:Int,y:Int, clothingIndex:Int=-1) : Bool
+    public function drop(x:Int,y:Int, clothingIndex:Int=-1)        
     {
+
         var helper = new TransitionHelper(this, x, y);
 
         helper.drop(clothingIndex);          
         
-        return helper.sendUpdateToClient();
+        helper.sendUpdateToClient();
+
     }   
 }

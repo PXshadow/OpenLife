@@ -1,4 +1,5 @@
 package openlife.server;
+import sys.thread.Mutex;
 import openlife.data.object.ObjectHelper;
 import format.png.Reader;
 #if (target.threaded)
@@ -57,6 +58,8 @@ import haxe.io.Bytes;
 
 class WorldMap
 {
+    public var mutex = new Mutex();
+
     var objects:Vector<Array<Int>>;
     var objectHelpers:Vector<ObjectHelper>; 
     var floors:Vector<Int>;
