@@ -65,7 +65,9 @@ class WorldMap
     var floors:Vector<Int>;
     var biomes:Vector<Int>;
     
+    // TODO currently not needed, since for all objects on the map every second all time objects are generated
     public var timeObjectHelpers:Array<ObjectHelper>; 
+    private var mapTimeStep = 0; // counts the time steps for doing map time stuff, since some ticks may be skiped because of server too slow
 
     public var width:Int;
     public var height:Int;
@@ -373,7 +375,17 @@ class WorldMap
 
     public function DoSomeTimeStuff()
     {
-        for (i in 0...length)
+        // devide in 20 steps
+        var partSize = Std.int(length / 20);
+        var start = (mapTimeStep % 20) * partSize;
+        var end = start + partSize;
+
+        //trace('$start $end $length');
+
+        mapTimeStep++;
+
+
+        for (i in start...length)
         {
             var obj = objects[i];
             if(obj[0] == 0) continue;

@@ -121,6 +121,7 @@ class Server
         var time = Sys.time() - serverStartingTime;
 
         // never skip a time task tick that is every 20 ticks
+        // TODO what to do if server is too slow?
         if(this.tick % 20 != 0 && this.tick / 20 < time - 0.05) this.tick += 1;
 
         for (connection in connections)
@@ -128,6 +129,7 @@ class Server
             connection.player.updateMovement();
         }
 
+        /* TODO currently it goes through the hole map each sec / this may later not work
         for(helper in this.map.timeObjectHelpers){
             var passedTime = calculateTimeSinceTicksInSec(helper.creationTimeInTicks);
             if(passedTime >= helper.timeToChange)
@@ -136,18 +138,11 @@ class Server
 
                 TransitionHelper.doTimeTransition(helper);
             }
-        }
+        }*/
 
-        if(this.tick % 20 == 0)
-        {
-            
-            trace('Do some time stuff every 1 sec. sec: ${this.tick / 20} Time: $time');
+        map.DoSomeTimeStuff();
 
-            // TODO what to do if server is too slow?
-            
-
-            map.DoSomeTimeStuff();
-        }
+        if(this.tick % 200 == 0) trace('Time: ${this.tick / 20} Time: $time');
     }
 
     public function calculateTimeSinceTicksInSec(ticks:Int):Float
