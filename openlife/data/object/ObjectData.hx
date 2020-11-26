@@ -297,6 +297,8 @@ class ObjectData extends LineReader
     var maxWideRadius:Int = 0;
     var onlyDescription:Bool;
     public var noBackAcess:Bool = false;
+
+    
     public function new(i:Int=0,onlyDescription:Bool=false, createNullObject:Bool = false)
     {
         super();

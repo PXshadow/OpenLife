@@ -6,23 +6,23 @@ class TransitionData
 {
     //Last use determines whether the current transition is used when numUses is greater than 1
     public var lastUseActor:Bool = false;
-    public var lastUseTarget:Bool = false;
+    public var lastUseTarget:Bool = false;  // USED in transitions
 
     //actor + target = new actor + new target
-    public var actorID:Int = 0;
-    public var targetID:Int = 0;
+    public var actorID:Int = 0; // USED in transitions
+    public var targetID:Int = 0; // USED in transitions
 
-    public var newActorID:Int = 0;
-    public var newTargetID:Int = 0;
+    public var newActorID:Int = 0; // USED in transitions
+    public var newTargetID:Int = 0; // USED in transitions
 
-    public var autoDecaySeconds:Int = 0;
+    public var autoDecaySeconds:Int = 0; // USED in time transitions
 
     //MinUse for variable-use objects that occasionally use more than one "use", this sets a minimum per interaction.
     public var actorMinUseFraction:Float = 0;
     public var targetMinUseFraction:Float = 0;
 
     public var reverseUseActor:Bool = false;
-    public var reverseUseTarget:Bool = false;
+    public var reverseUseTarget:Bool = false; // USED in transitions
     public var move:Int = 0;
     public var desireMoveDist:Bool = false;
     public var noUseActor:Bool = false;

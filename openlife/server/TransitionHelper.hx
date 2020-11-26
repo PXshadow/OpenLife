@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.data.transition.TransitionData;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 
@@ -178,7 +179,13 @@ class TransitionHelper{
         if(transition == null)
         {
             // TODO should not happen
-            trace('Time: no transtion found! This should not happen!!! Maybe object was moved?');
+            trace('WARNING: Time: no transtion found! Maybe object was moved? tile: $tileObject helper: ${helper.id()} ${helper.description()}');
+            Server.server.map.mutex.release();
+            return;
+        }
+
+        if(doAnimalMovement(helper, transition))
+        {
             Server.server.map.mutex.release();
             return;
         }
@@ -202,6 +209,97 @@ class TransitionHelper{
 
         Server.server.map.mutex.release();
     } 
+
+    private static function doAnimalMovement(helper:ObjectHelper, timeTransition:TransitionData) : Bool
+    {
+        // TODO use chance for movement
+        // TODO LAST movement
+        // TODO check if movement is blocked
+        // TODO collision detection if animal is deadly
+
+        var moveDist = timeTransition.move;
+
+        if(moveDist <= 0) return false;
+
+        var worldmap = Server.server.map;
+
+        var x = helper.tx;
+        var y = helper.ty;
+
+        for (i in 0...10)
+        {
+            
+            var tx = helper.tx - moveDist + worldmap.randomInt(moveDist * 2);
+            var ty = helper.ty - moveDist + worldmap.randomInt(moveDist * 2);
+            
+            var target = worldmap.getObjectHelper(tx, ty);
+            //var obj = worldmap.getObjectId(tx, ty);
+            //var objData = Server.objectDataMap[obj[0]];
+
+            if(target.id() != 0) continue;
+
+            if(target.blocksWalking()) continue;
+            // dont move move on top of other moving stuff
+            if(target.timeToChange != 0) continue;  
+            if(target.groundObject != null) continue;
+            // make sure that target is not the old tile
+            if(tx == helper.tx && ty == helper.ty) continue;
+            
+            // save what was on the ground, so that we can move on this tile and later restore it
+            var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.writeObjectHelper([]);
+            var newTileObject = helper.writeObjectHelper([]);
+
+            //var des = helper.groundObject == null ? "NONE": helper.groundObject.description();
+            //trace('MOVE: oldTile: $oldTileObject $des newTile: $newTileObject ${helper.description()}');
+
+            // TODO only change after movement is finished
+            helper.timeToChange = worldmap.calculateTimeToChange(timeTransition);
+            helper.creationTimeInTicks = Server.server.tick;
+
+            worldmap.setObjectHelper(x, y, helper.groundObject);
+            worldmap.setObjectId(x,y, oldTileObject); // TODO move to setter
+
+            helper.groundObject = target;
+            worldmap.setObjectHelper(tx, ty, helper);
+            
+
+            var floorId = Server.server.map.getFloorId(tx, ty);
+            // TODO better speed calculation
+            var speed = 5;
+
+            for (c in Server.server.connections) // TODO only for visible players
+            {
+                // since player has relative coordinates, transform them for player
+                var player = c.player;
+                var fromX = x - player.gx;
+                var fromY = y - player.gy;
+                var targetX = tx - player.gx;
+                var targetY = ty - player.gy;
+
+                /*
+                MX
+                x y new_floor_id new_id p_id old_x old_y speed
+
+                Optionally, a line can contain old_x, old_y, and speed.
+                This indicates that the object came from the old coordinates and is moving
+                with a given speed.
+                */
+
+                c.sendMapUpdateForMoving(targetX, targetY, floorId, newTileObject, -1, fromX, fromY, speed);
+                //c.sendMapUpdate(fromX, fromY, floorId, oldTileObject, -1);
+                c.sendMapUpdate(fromX, fromY, floorId, [0], -1);
+                c.send(FRAME);
+            }
+            
+
+            return true;
+        }
+
+        helper.creationTimeInTicks = Server.server.tick;
+
+        return false;
+    }    
+        
 
     public function doTransitionIfPossible() : Bool
     {

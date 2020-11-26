@@ -13,6 +13,9 @@ class ObjectHelper {
     public var tx:Int = 0;
     public var ty:Int = 0;
 
+    // needed to store ground object in case something moves on top
+    public var groundObject:ObjectHelper;
+
     // first one is always creator
     public var livingOwners:Array<GlobalPlayerInstance> = [];
 
@@ -90,6 +93,24 @@ class ObjectHelper {
         this.creationTimeInTicks = Server.server.tick;
         this.numberOfUses = objectData.numUses;
         
+    }
+
+    // TODO make look like variable
+    public function id() : Int
+    {
+        return objectData.id;
+    }
+    
+    // TODO make look like variable
+    public function description() : String
+    {
+        return objectData.description;
+    }
+
+    // TODO make look like variable
+    public function blocksWalking() : Bool
+    {
+        return objectData.blocksWalking;
     }
 
     public function getCreator() : GlobalPlayerInstance

@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.transition.TransitionData;
 import sys.thread.Mutex;
 import openlife.data.object.ObjectHelper;
 import format.png.Reader;
@@ -93,7 +94,7 @@ class WorldMap
         return seed = Std.int((seed * MULTIPLIER) % MODULUS);
     }
 
-    private function randomInt(x:Int=MAX_NUM):Int
+    public function randomInt(x:Int=MAX_NUM):Int
     {
         return Math.floor(generateSeed() / MODULUS * (x + 1));
     }
@@ -308,13 +309,30 @@ class WorldMap
     public function getObjectHelper(x:Int, y:Int):ObjectHelper
     {
         //trace('objectHelper: $x,$y');
-        return objectHelpers[index(x,y)];
+        var helper = objectHelpers[index(x,y)];        
+
+        if(helper != null) return helper;
+
+        helper = ObjectHelper.readObjectHelper(null, getObjectId(x , y));
+        helper.tx = x;
+        helper.ty = y;
+
+        return helper;
     }
 
-    public function setObjectHelper(x:Int, y:Int, objectHelper:ObjectHelper)
+    // sets objectHelper and also Object Ids on same Tile
+    public function setObjectHelper(x:Int, y:Int, helper:ObjectHelper)
     {
         //trace('objectHelper: $x,$y');
-        objectHelpers[index(x,y)] = objectHelper;
+        objectHelpers[index(x,y)] = helper;
+
+        if(helper == null) return;
+
+        helper.tx = x;
+        helper.ty = y;
+
+        var ids = helper.writeObjectHelper([]);
+        setObjectId(x,y,ids);
     }
 
     public function getFloorId(x:Int, y:Int):Int
@@ -404,14 +422,15 @@ class WorldMap
 
                 var passedTime = Server.server.calculateTimeSinceTicksInSec(helper.creationTimeInTicks);
 
-                var timeToChange = helper.timeToChange < 0 ?  (-3600) * helper.timeToChange : helper.timeToChange;
+                //var timeToChange = helper.timeToChange < 0 ?  (-3600) * helper.timeToChange : helper.timeToChange;
+                var timeToChange = helper.timeToChange;
 
                 if(passedTime >= timeToChange)
                 {
                     //trace('TIME: ${helper.objectData.description} passedTime: $passedTime neededTime: ${timeToChange}');       
 
                     objectHelpers[i] = null;
-
+                    
                     TransitionHelper.doTimeTransition(helper);
 
                 }
@@ -425,12 +444,7 @@ class WorldMap
             // create object helper with the current time
 
             helper = ObjectHelper.readObjectHelper(null, obj);
-
-            // hours are negative
-            var timeToChange = timeTransition.autoDecaySeconds < 0 ?  (-3600) * timeTransition.autoDecaySeconds : timeTransition.autoDecaySeconds;                 
-            timeToChange = Math.ceil((randomInt(timeToChange) + timeToChange)/2);
-
-            helper.timeToChange = timeToChange;
+            helper.timeToChange = calculateTimeToChange(timeTransition);
             helper.tx = i % this.width;
             helper.ty = Math.floor(i / this.width) + 1;
 
@@ -443,6 +457,16 @@ class WorldMap
             //trace('testObj: $testObj obj: $obj ${helper.tx},${helper.ty} i:$i index:${index(helper.tx, helper.ty)}');
 
         }
+    }
+
+    public function calculateTimeToChange(timeTransition:TransitionData) : Int
+    {
+        // hours are negative
+        var timeToChange = timeTransition.autoDecaySeconds < 0 ?  (-3600) * timeTransition.autoDecaySeconds : timeTransition.autoDecaySeconds;                 
+        timeToChange = Math.ceil((randomInt(timeToChange) + timeToChange)/2);
+
+        return timeToChange;
+
     }
 }
 #end
