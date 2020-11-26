@@ -224,7 +224,7 @@ class TransitionHelper{
 
         var moveDist = timeTransition.move;
 
-        if(moveDist <= 0 || moveDist == null) return false;
+        if(moveDist <= 0) return false;
 
         var worldmap = Server.server.map;
 
