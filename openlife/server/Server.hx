@@ -31,8 +31,9 @@ class Server
     public static var vector:Vector<ObjectData>;
     public static var objectDataMap:Map<Int, ObjectData> = [];
     public static var transitionMap:Map<Int, ObjectData> = [];
-
     public static var transitionImporter:TransitionImporter = new TransitionImporter();
+
+    public static var maxDistanceToBeConsideredAsClose = 100;
 
 
     public var connections:Array<Connection> = [];

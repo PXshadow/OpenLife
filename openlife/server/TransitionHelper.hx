@@ -196,12 +196,16 @@ class TransitionHelper{
 
         // TODO take care if newTileObject has time transition
 
-        for (c in Server.server.connections) // TODO only for visible players
-        {
-            // since player has relative coordinates, transform them for player
+        for (c in Server.server.connections)
+        {      
             var player = c.player;
+            
+            // since player has relative coordinates, transform them for player
             var x = tx - player.gx;
             var y = ty - player.gy;
+
+            // update only close players
+            if(player.isClose(x,y, Server.maxDistanceToBeConsideredAsClose) == false) continue;
 
             c.sendMapUpdate(x, y, floorId, newTileObject, -1);
             c.send(FRAME);
@@ -267,14 +271,18 @@ class TransitionHelper{
             // TODO better speed calculation
             var speed = 5;
 
-            for (c in Server.server.connections) // TODO only for visible players
-            {
-                // since player has relative coordinates, transform them for player
+            for (c in Server.server.connections) 
+            {            
                 var player = c.player;
+              
+                 // since player has relative coordinates, transform them for player
                 var fromX = x - player.gx;
                 var fromY = y - player.gy;
                 var targetX = tx - player.gx;
                 var targetY = ty - player.gy;
+
+                // update only close players
+                if(player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
 
                 /*
                 MX

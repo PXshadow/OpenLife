@@ -32,8 +32,10 @@ class GlobalPlayerInstance extends PlayerInstance {
         super(a);
     }
 
-    public function isClose(x:Int, y:Int, distance:Int = 1):Bool{    
-        return (((this.x - x) * (this.x - x) <= distance) && ((this.y - y) * (this.y - y) <= distance));
+    // works with coordinates relative to the player
+    public function isClose(x:Int, y:Int, distance:Int = 1):Bool
+    {    
+        return (((this.x - x) * (this.x - x) <= distance * distance) && ((this.y - y) * (this.y - y) <= distance * distance));
     }
 
     /*
