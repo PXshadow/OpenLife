@@ -70,6 +70,13 @@ class WorldMap
     public var timeObjectHelpers:Array<ObjectHelper>; 
     private var mapTimeStep = 0; // counts the time steps for doing map time stuff, since some ticks may be skiped because of server too slow
 
+    // for calulating offsprings
+    public var chanceForOffspring = 0.01; // This means for each movement there is X chance to generate an offspring  
+    public var maxOffspringFactor = 5; // This means max X times the initial population
+    public var initialPopulation:Map<Int,Int>;
+    public var currentPopulation:Map<Int,Int>;
+
+
     public var width:Int;
     public var height:Int;
     private var length:Int;
@@ -99,7 +106,7 @@ class WorldMap
         return Math.floor(generateSeed() / MODULUS * (x + 1));
     }
 
-    private function randomFloat():Float
+    public function randomFloat():Float
     {
         return generateSeed() / MODULUS;
     }
@@ -112,8 +119,11 @@ class WorldMap
         objectHelpers = new Vector<ObjectHelper>(length);
         floors = new Vector<Int>(length);
         biomes = new Vector<Int>(length);
-
+        
         timeObjectHelpers = [];
+
+        initialPopulation = new Map<Int,Int>();
+        currentPopulation = new Map<Int,Int>();
     }
 
     // The Server and Client map is saved in an array with y starting from bottom, 
@@ -199,6 +209,9 @@ class WorldMap
                     if (random <= sumChance) {
                         objects[x+y*width] = [obj.id];
 
+                        initialPopulation[obj.id] += 1;  
+                        currentPopulation[obj.id] += 1;                      
+
                         //trace('generate: bi: $biomeInt id: ${obj.id} rand: $random sc: $sumChance');
                         set = true;
                         generatedObjects++;
@@ -207,7 +220,14 @@ class WorldMap
             }
         }
 
-        trace('generatedObjects: $generatedObjects');
+        trace('generatedObjects: $generatedObjects');      
+
+        for(key in initialPopulation.keys()){
+            //trace('${initialPopulation[obj.id]}');
+            var objData = Server.objectDataMap[key];
+            trace('Generated obj[${key}] ${objData.description}: ${initialPopulation[key]}');
+        }
+        
     }
 
     function generateBiomeObjectData()

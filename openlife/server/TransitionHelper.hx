@@ -231,8 +231,7 @@ class TransitionHelper{
         var y = helper.ty;
 
         for (i in 0...10)
-        {
-            
+        {        
             var tx = helper.tx - moveDist + worldmap.randomInt(moveDist * 2);
             var ty = helper.ty - moveDist + worldmap.randomInt(moveDist * 2);
             
@@ -249,6 +248,7 @@ class TransitionHelper{
             // make sure that target is not the old tile
             if(tx == helper.tx && ty == helper.ty) continue;
             
+
             // save what was on the ground, so that we can move on this tile and later restore it
             var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.writeObjectHelper([]);
             var newTileObject = helper.writeObjectHelper([]);
@@ -263,10 +263,26 @@ class TransitionHelper{
             worldmap.setObjectHelper(x, y, helper.groundObject);
             worldmap.setObjectId(x,y, oldTileObject); // TODO move to setter
 
+            var tmpGroundObject = helper.groundObject;
             helper.groundObject = target;
             worldmap.setObjectHelper(tx, ty, helper);
-            
 
+            if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] * worldmap.maxOffspringFactor && worldmap.randomFloat() <= worldmap.chanceForOffspring)
+            {
+                // TODo consider dead 
+                worldmap.currentPopulation[newTileObject[0]] += 1;
+
+                trace('NEW: [$newTileObject] ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]}');
+
+                oldTileObject = newTileObject;
+                
+                var newAnimal = ObjectHelper.readObjectHelper(null, newTileObject);
+                newAnimal.timeToChange = worldmap.calculateTimeToChange(timeTransition);
+                newAnimal.groundObject = tmpGroundObject;
+                worldmap.setObjectHelper(x, y, newAnimal);
+                //worldmap.setObjectId(x,y, newTileObject); // TODO move to setter
+            }
+            
             var floorId = Server.server.map.getFloorId(tx, ty);
             // TODO better speed calculation
             var speed = 5;
