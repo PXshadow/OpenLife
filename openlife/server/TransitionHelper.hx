@@ -224,7 +224,7 @@ class TransitionHelper{
 
         var moveDist = timeTransition.move;
 
-        if(moveDist <= 0) return false;
+        if(moveDist <= 0 || moveDist == null) return false;
 
         var worldmap = Server.server.map;
 
@@ -232,7 +232,7 @@ class TransitionHelper{
         var y = helper.ty;
 
         for (i in 0...10)
-        {        
+        {
             var tx = helper.tx - moveDist + worldmap.randomInt(moveDist * 2);
             var ty = helper.ty - moveDist + worldmap.randomInt(moveDist * 2);
             

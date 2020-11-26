@@ -39,7 +39,7 @@ class Server
     public var connections:Array<Connection> = [];
    
     public var tick:Int = 0;
-    public var serverStartingTime:Float;
+    public var serverStartingTime:Float = 0;
     public var index:Int = 1;
     public var map:WorldMap;
     

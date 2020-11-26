@@ -314,9 +314,12 @@ class WorldMap
 
                     if (random <= sumChance) {
                         objects[x+y*width] = [obj.id];
-
-                        initialPopulation[obj.id] += 1;  
-                        currentPopulation[obj.id] += 1;                      
+                        if (!initialPopulation.exists(obj.id))
+                            initialPopulation[obj.id] = 0;
+                        if (!currentPopulation.exists(obj.id))
+                            currentPopulation[obj.id] = 0;
+                        initialPopulation[obj.id] += 1;
+                        currentPopulation[obj.id] = 1;                      
 
                         //trace('generate: bi: $biomeInt id: ${obj.id} rand: $random sc: $sumChance');
                         set = true;

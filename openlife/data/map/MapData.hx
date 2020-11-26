@@ -165,7 +165,6 @@ class MapData
             }
         }
         string = string.substr(1);
-        trace("gen " + string);
         return string;
     }
     public static function numSlots(a:Array<Int>):Int
