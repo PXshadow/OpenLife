@@ -229,6 +229,8 @@ class WorldMap
     // The Map is saved with y starting from top. Therefore the map is y inversed during generation from picture
     public function generate()
     {
+        this.mutex.acquire();
+
         var pngDir = "./map.png";
         var pngmap = readPixels(pngDir);
         
@@ -285,10 +287,15 @@ class WorldMap
 
                 
                 biomes[x+y*width] = biomeInt;
+
+                // since i may place stuff during generation like for example more iron around existing iron
+                //if(objects[x+y*width][0] != 0) continue;
+
                 objects[x+y*width] = [0];
 
                 //if(x < 200 || x > 600) continue;
                 if (randomFloat() > 0.4) continue;
+                
                 
                 var set:Bool = false;
 
@@ -313,11 +320,15 @@ class WorldMap
 
                         //trace('generate: bi: $biomeInt id: ${obj.id} rand: $random sc: $sumChance');
                         set = true;
-                        generatedObjects++;
+                        generatedObjects++;                      
                     }
                 }
             }
         }
+
+        generateExtraStuff();
+
+        this.mutex.release();
 
         trace('generatedObjects: $generatedObjects');      
 
@@ -329,6 +340,61 @@ class WorldMap
         
     }
 
+    function generateExtraStuff()
+    {
+        for (y in 0...height){
+            for (x in 0...width) {
+                var obj = objects[x+y*width];
+
+                // change muddy iron vein to loose muddy iron vein // TODO better patch the data
+                if(obj[0] == 942) // iron vein
+                {
+                    objects[x+y*width] = [3962]; // loose muddy iron vein
+
+                    // generate also some random stones and some more mines nearby
+
+                    var random = randomInt(20) + 10;
+
+                    for(i in 0...100)
+                    {
+                        var dist = 12;
+                        var tx = x + randomInt(dist * 2) - dist;
+                        var ty = y + randomInt(dist * 2) - dist; 
+
+
+                        if(((tx -x) * (tx - x)) + ((ty - y) * (ty - y)) > dist * dist) continue;
+
+                        if(biomes[tx+ty*width] != BiomeTag.GREY && biomes[tx+ty*width] != BiomeTag.YELLOW) continue; 
+                        if(objects[tx+ty*width][0] != 0) continue;
+
+                        objects[tx+ty*width] = [503];
+
+                        random -= 1;
+                        if(random <= 0) break;
+                    }
+
+                    var random = randomInt(4);
+                    if(random == 1 || random == 3) random += 1;
+                    for(i in 0...50)
+                    {
+                        var dist = 5;
+                        var tx = x + randomInt(dist * 2) - dist;
+                        var ty = y + randomInt(dist * 2) - dist; 
+
+                        if(((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) > dist * dist) continue;
+
+                        if(biomes[tx+ty*width] != BiomeTag.GREY) continue; 
+
+                        objects[tx+ty*width] = [3962];
+
+                        random -= 1;
+                        if(random <= 0) break;
+                    }
+                } 
+            }
+        }
+    }
+
     function generateBiomeObjectData()
     {
         this.biomeObjectData = [];
@@ -336,6 +402,12 @@ class WorldMap
 
         for (obj in Server.vector) {
             if (obj.mapChance == 0) continue;
+
+            // increase chance for iron // TODO better patch data directly
+            if(obj.id == 942)
+            {
+                obj.mapChance *= 3;
+            }
 
             for(biome in obj.biomes){
 

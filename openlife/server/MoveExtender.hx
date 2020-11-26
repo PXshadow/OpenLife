@@ -94,9 +94,7 @@ class MoveExtender{
             me.newMoves = newMovements.moves;
             me.totalMoveTime = (1/p.move_speed) * newMovements.length;
             me.startingMoveTicks = Server.server.tick;
-            me.newMoveSeqNumber = seq;
-
-            p.mutux.release();
+            me.newMoveSeqNumber = seq;  
             
             var eta = me.totalMoveTime;
             //p.done_moving_seqNum = 0;
@@ -125,6 +123,8 @@ class MoveExtender{
             }
 
             p.forced = false;
+
+            p.mutux.release();
         }
 
         static private function moveString(moves:Array<Pos>):String
