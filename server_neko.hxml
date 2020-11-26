@@ -1,0 +1,10 @@
+-main openlife.server.Server
+#-hl export/server/server.hl
+#-cpp export/server
+-D analyzer-optimize
+-dce full
+-lib record-macros
+--macro openlife.macros.Debug.run()
+#--interp
+-lib format
+-neko server.n

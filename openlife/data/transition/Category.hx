@@ -29,7 +29,7 @@ class Category
             case "pattern": pattern = true;
             case "probSet": probSet = true;
             case "numObjects": return false;
-            default: throw 'Unknown category header |${parts[0]}|';
+            default: trace('Unknown category header |${parts[0]}|');
         }
         return true;
     }
