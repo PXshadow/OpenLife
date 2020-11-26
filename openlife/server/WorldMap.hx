@@ -71,9 +71,9 @@ class WorldMap
     private var mapTimeStep = 0; // counts the time steps for doing map time stuff, since some ticks may be skiped because of server too slow
 
     // for movement
-    public var chancePreferredBiome = 0.8;
+    public var chancePreferredBiome = 0.6;
     // for calulating offsprings
-    public var chanceForOffspring = 0.01; // This means for each movement there is X chance to generate an offspring  
+    public var chanceForOffspring = 0.02; // This means for each movement there is X chance to generate an offspring  
     public var maxOffspringFactor = 3; // This means max X times the initial population
     public var initialPopulation:Map<Int,Int>;
     public var currentPopulation:Map<Int,Int>;

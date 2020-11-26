@@ -261,9 +261,14 @@ class TransitionHelper{
                     isPreferredBiome = true;
                 } 
             }
-
+            
             // lower the chances even more if on river
-            var chancePreferredBiome = (targetBiome == BiomeTag.RIVER || (targetBiome == BiomeTag.GREY)) ? (worldmap.chancePreferredBiome + 4) / 5: worldmap.chancePreferredBiome;
+            //var isHardbiome = targetBiome == BiomeTag.RIVER || (targetBiome == BiomeTag.GREY) || (targetBiome == BiomeTag.SNOW) || (targetBiome == BiomeTag.DESERT);
+            var isNotHardbiome =  isPreferredBiome || targetBiome == BiomeTag.GREEN || targetBiome == BiomeTag.YELLOW;
+
+            var chancePreferredBiome = isNotHardbiome ? worldmap.chancePreferredBiome : (worldmap.chancePreferredBiome + 4) / 5;
+
+            //trace('chance: $chancePreferredBiome isNotHardbiome: $isNotHardbiome biome: $targetBiome');
 
             // skip with chancePreferredBiome if this biome is not preferred
             if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 10) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
@@ -288,12 +293,15 @@ class TransitionHelper{
 
             var chanceForOffspring = isPreferredBiome ? worldmap.chanceForOffspring : worldmap.chanceForOffspring * (1 - chancePreferredBiome);
 
+            // give extra birth chance bonus if population is very low
+            if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] / 2) chanceForOffspring *=5;
+
             if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] * worldmap.maxOffspringFactor && worldmap.randomFloat() <= chanceForOffspring)
             {
                 // TODO consider dead 
                 worldmap.currentPopulation[newTileObject[0]] += 1;
 
-                trace('NEW: [$newTileObject] ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]} chance: $chanceForOffspring');
+                if(chanceForOffspring < worldmap.chanceForOffspring) trace('NEW: $newTileObject ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]} chance: $chanceForOffspring biome: $targetBiome');
 
                 oldTileObject = newTileObject;
                 
@@ -331,8 +339,8 @@ class TransitionHelper{
                 */
 
                 c.sendMapUpdateForMoving(targetX, targetY, floorId, newTileObject, -1, fromX, fromY, speed);
-                //c.sendMapUpdate(fromX, fromY, floorId, oldTileObject, -1);
-                c.sendMapUpdate(fromX, fromY, floorId, [0], -1);
+                c.sendMapUpdate(fromX, fromY, floorId, oldTileObject, -1);
+                //c.sendMapUpdate(fromX, fromY, floorId, [0], -1);
                 c.send(FRAME);
             }
             
