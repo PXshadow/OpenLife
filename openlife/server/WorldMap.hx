@@ -70,9 +70,11 @@ class WorldMap
     public var timeObjectHelpers:Array<ObjectHelper>; 
     private var mapTimeStep = 0; // counts the time steps for doing map time stuff, since some ticks may be skiped because of server too slow
 
+    // for movement
+    public var chancePreferredBiome = 0.8;
     // for calulating offsprings
     public var chanceForOffspring = 0.01; // This means for each movement there is X chance to generate an offspring  
-    public var maxOffspringFactor = 5; // This means max X times the initial population
+    public var maxOffspringFactor = 3; // This means max X times the initial population
     public var initialPopulation:Map<Int,Int>;
     public var currentPopulation:Map<Int,Int>;
 
@@ -124,6 +126,103 @@ class WorldMap
 
         initialPopulation = new Map<Int,Int>();
         currentPopulation = new Map<Int,Int>();
+    }
+
+    public function getBiomeSpeed(x:Int, y:Int):Float 
+    {
+        var biomeType = biomes[index(x, y)];
+
+        //trace('${ x },${ y }:BI ${ biomeType }');
+
+        //return 0.2;
+
+        return switch biomeType {
+            case GREEN: SGREEN;
+            case SWAMP: SSWAMP;
+            case YELLOW: SYELLOW;
+            case GREY: SGREY;
+            case SNOW: SSNOW;
+            case DESERT: SDESERT;
+            case JUNGLE: SJUNGLE;
+            case SNOWINGREY: SSNOWINGREY;
+            case OCEAN: SOCEAN;
+            case RIVER: SRIVER;
+            default: 1;
+        }
+    } 
+
+    public function getBiomeId(x:Int, y:Int):Int
+    {
+        return biomes[index(x,y)];
+    }
+    
+
+    public function getObjectId(x:Int, y:Int):Array<Int>
+    {
+        return objects[index(x,y)];
+    }
+
+    public function setObjectId(x:Int, y:Int, ids:Array<Int>)
+    {
+        objects[index(x,y)] = ids;
+    }
+
+    public function getObjectHelper(x:Int, y:Int):ObjectHelper
+    {
+        //trace('objectHelper: $x,$y');
+        var helper = objectHelpers[index(x,y)];        
+
+        if(helper != null) return helper;
+
+        helper = ObjectHelper.readObjectHelper(null, getObjectId(x , y));
+        helper.tx = x;
+        helper.ty = y;
+
+        return helper;
+    }
+
+    // sets objectHelper and also Object Ids on same Tile
+    public function setObjectHelper(x:Int, y:Int, helper:ObjectHelper)
+    {
+        //trace('objectHelper: $x,$y');
+        objectHelpers[index(x,y)] = helper;
+
+        if(helper == null) return;
+
+        helper.tx = x;
+        helper.ty = y;
+
+        var ids = helper.writeObjectHelper([]);
+        setObjectId(x,y,ids);
+    }
+
+    public function getFloorId(x:Int, y:Int):Int
+    {
+        return floors[index(x,y)];
+    }
+
+    public function setFloorId(x:Int, y:Int, floor:Int)
+    {
+        floors[index(x,y)] = floor;
+    }
+
+    private inline function index(x:Int,y:Int):Int
+    {
+        // Dont know why yet, but y seems to be right if -1
+        y -= 1;
+        // make map round x wise
+        x = x % this.width;
+        if(x < 0) x += this.width; 
+        //else if(x >= this.width) x -= this.width;
+
+        // make map round y wise
+        y = y % this.height;
+        if(y < 0) y += this.height; 
+        //else if(y >= this.height) y -= this.height;
+
+        var i = x + y * width;
+
+        return i;
     }
 
     // The Server and Client map is saved in an array with y starting from bottom, 
@@ -291,98 +390,7 @@ class WorldMap
             }
         }
         return map;
-    }
-
-    public function getBiomeSpeed(x:Int, y:Int):Float 
-    {
-        var biomeType = biomes[index(x, y)];
-
-        //trace('${ x },${ y }:BI ${ biomeType }');
-
-        //return 0.2;
-
-        return switch biomeType {
-            case GREEN: SGREEN;
-            case SWAMP: SSWAMP;
-            case YELLOW: SYELLOW;
-            case GREY: SGREY;
-            case SNOW: SSNOW;
-            case DESERT: SDESERT;
-            case JUNGLE: SJUNGLE;
-            case SNOWINGREY: SSNOWINGREY;
-            case OCEAN: SOCEAN;
-            case RIVER: SRIVER;
-            default: 1;
-        }
-    } 
-
-    public function getObjectId(x:Int, y:Int):Array<Int>
-    {
-        return objects[index(x,y)];
-    }
-
-    public function setObjectId(x:Int, y:Int, ids:Array<Int>)
-    {
-        objects[index(x,y)] = ids;
-    }
-
-    public function getObjectHelper(x:Int, y:Int):ObjectHelper
-    {
-        //trace('objectHelper: $x,$y');
-        var helper = objectHelpers[index(x,y)];        
-
-        if(helper != null) return helper;
-
-        helper = ObjectHelper.readObjectHelper(null, getObjectId(x , y));
-        helper.tx = x;
-        helper.ty = y;
-
-        return helper;
-    }
-
-    // sets objectHelper and also Object Ids on same Tile
-    public function setObjectHelper(x:Int, y:Int, helper:ObjectHelper)
-    {
-        //trace('objectHelper: $x,$y');
-        objectHelpers[index(x,y)] = helper;
-
-        if(helper == null) return;
-
-        helper.tx = x;
-        helper.ty = y;
-
-        var ids = helper.writeObjectHelper([]);
-        setObjectId(x,y,ids);
-    }
-
-    public function getFloorId(x:Int, y:Int):Int
-    {
-        return floors[index(x,y)];
-    }
-
-    public function setFloorId(x:Int, y:Int, floor:Int)
-    {
-        floors[index(x,y)] = floor;
-    }
-
-    private inline function index(x:Int,y:Int):Int
-    {
-        // Dont know why yet, but y seems to be right if -1
-        y -= 1;
-        // make map round x wise
-        x = x % this.width;
-        if(x < 0) x += this.width; 
-        //else if(x >= this.width) x -= this.width;
-
-        // make map round y wise
-        y = y % this.height;
-        if(y < 0) y += this.height; 
-        //else if(y >= this.height) y -= this.height;
-
-        var i = x + y * width;
-
-        return i;
-    }
+    }  
 
     private inline function sigmoid(input:Float,knee:Float):Float
     {

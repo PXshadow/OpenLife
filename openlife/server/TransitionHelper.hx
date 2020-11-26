@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.server.WorldMap.BiomeTag;
 import openlife.data.transition.TransitionData;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
@@ -248,6 +249,24 @@ class TransitionHelper{
             // make sure that target is not the old tile
             if(tx == helper.tx && ty == helper.ty) continue;
             
+            var targetBiome = worldmap.getBiomeId(tx,ty);
+            if(targetBiome == BiomeTag.SNOWINGREY) continue;
+            if(targetBiome == BiomeTag.OCEAN) continue;
+
+            var isPreferredBiome = false;
+
+            for(biome in helper.objectData.biomes){
+                if(targetBiome == biome){
+                    //trace('isPreferredBiome: $biome');
+                    isPreferredBiome = true;
+                } 
+            }
+
+            // lower the chances even more if on river
+            var chancePreferredBiome = (targetBiome == BiomeTag.RIVER || (targetBiome == BiomeTag.GREY)) ? (worldmap.chancePreferredBiome + 4) / 5: worldmap.chancePreferredBiome;
+
+            // skip with chancePreferredBiome if this biome is not preferred
+            if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 10) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
 
             // save what was on the ground, so that we can move on this tile and later restore it
             var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.writeObjectHelper([]);
@@ -267,12 +286,14 @@ class TransitionHelper{
             helper.groundObject = target;
             worldmap.setObjectHelper(tx, ty, helper);
 
-            if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] * worldmap.maxOffspringFactor && worldmap.randomFloat() <= worldmap.chanceForOffspring)
+            var chanceForOffspring = isPreferredBiome ? worldmap.chanceForOffspring : worldmap.chanceForOffspring * (1 - chancePreferredBiome);
+
+            if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] * worldmap.maxOffspringFactor && worldmap.randomFloat() <= chanceForOffspring)
             {
-                // TODo consider dead 
+                // TODO consider dead 
                 worldmap.currentPopulation[newTileObject[0]] += 1;
 
-                trace('NEW: [$newTileObject] ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]}');
+                trace('NEW: [$newTileObject] ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]} chance: $chanceForOffspring');
 
                 oldTileObject = newTileObject;
                 

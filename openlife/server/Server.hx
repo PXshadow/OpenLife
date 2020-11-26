@@ -33,7 +33,7 @@ class Server
     public static var transitionMap:Map<Int, ObjectData> = [];
     public static var transitionImporter:TransitionImporter = new TransitionImporter();
 
-    public static var maxDistanceToBeConsideredAsClose = 10;
+    public static var maxDistanceToBeConsideredAsClose = 20;
 
 
     public var connections:Array<Connection> = [];

@@ -13,6 +13,7 @@ class ObjectHelper {
     public var tx:Int = 0;
     public var ty:Int = 0;
 
+    // public var preferredBiome:Int; // used for movement
     // needed to store ground object in case something moves on top
     public var groundObject:ObjectHelper;
 
