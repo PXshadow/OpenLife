@@ -29,17 +29,19 @@ import haxe.io.Bytes;
 
 @:enum abstract BiomeMapColor(String) from String to String
 {
-    public var CGREEN = "none";  // is auto generated
-    public var CSWAMP = "none";  // is auto generated
-    public var CYELLOW = "FFDCFF2D";
-    public var CGREY = "FF404040";
+    public var CGREEN = "FFB5E61D";  // is auto generated
+    public var CSWAMP = "FF008080";  // is auto generated
+    public var CYELLOW = "FFFECC36"; //savannah
+    public var CGREY = "FF808080"; //badlands
     public var CSNOW = "FFFFFFFF";
-    public var CDESERT= "FFFF0000";
-    public var CJUNGLE = "FF007F0E";  
+    public var CDESERT= "FFDB7F4D";
+    public var CJUNGLE = "FF007F0E"; 
+    
+    public var CSAND = "FFefe4b0";
 
-    public var CSNOWINGREY = "FF808080";
-    public var COCEAN = "FF21007F";  
-    public var CRIVER = "FF0026FF"; 
+    public var CSNOWINGREY = "FFFFFFFF";
+    public var COCEAN = "FF004080"; //deep ocean 
+    public var CRIVER = "FF00809b"; //shallow water
 }
 
 @:enum abstract BiomeSpeed(Float) from Float to Float
@@ -134,7 +136,7 @@ class WorldMap
 
         //trace('${ x },${ y }:BI ${ biomeType }');
 
-        //return 0.2;
+        return 1;
 
         return switch biomeType {
             case GREEN: SGREEN;
@@ -263,17 +265,14 @@ class WorldMap
                 //var b:Int = (p)&0xff;
                 // Or, AARRGGBB in hex:
                 var hex:String = StringTools.hex(p,8);
-                
-                
-
                 var biomeInt;
-                
 
                 switch hex {
                     case CYELLOW: biomeInt = YELLOW;
                     case CGREY: biomeInt = GREY;
                     case CSNOW: biomeInt = SNOW;
                     case CDESERT: biomeInt = DESERT;
+                    case CSAND: biomeInt = DESERT;
                     case CJUNGLE: biomeInt = JUNGLE;
                     case CSNOWINGREY: biomeInt = SNOWINGREY;
                     case COCEAN: biomeInt = OCEAN;
@@ -308,7 +307,6 @@ class WorldMap
                 
                 for (obj in biomeData) {
                     if (set) continue;
-
                     var chance = obj.mapChance;
                     sumChance += chance;
 
@@ -338,7 +336,7 @@ class WorldMap
         for(key in initialPopulation.keys()){
             //trace('${initialPopulation[obj.id]}');
             var objData = Server.objectDataMap[key];
-            trace('Generated obj[${key}] ${objData.description}: ${initialPopulation[key]}');
+            //trace('Generated obj[${key}] ${objData.description}: ${initialPopulation[key]}');
         }
         
     }
@@ -402,15 +400,16 @@ class WorldMap
     {
         this.biomeObjectData = [];
         this.biomeTotalChance = [];
-
         for (obj in Server.vector) {
             if (obj.mapChance == 0) continue;
-
             // increase chance for iron // TODO better patch data directly
             if(obj.id == 942)
-            {
                 obj.mapChance *= 3;
-            }
+            if (obj.id == 2156)
+                obj.mapChance *= 3;
+            if (obj.deadlyDistance > 0)
+                obj.mapChance *= 0;
+            
 
             for(biome in obj.biomes){
 
