@@ -21,25 +21,24 @@ import haxe.io.Bytes;
     public var DESERT= 5;
     public var JUNGLE = 6;  
 
-    // TODO // SNOWINGREY is snow biome on top of mountains. This biome should be therefore harder to pass then snow
-    public var SNOWINGREY = 7; 
-    public var OCEAN = 9;  // TODO
-    public var RIVER = 13;  // TODO 
+    public var SNOWINGREY = 7; // its snow on top of mountains which should not be walkable
+    public var OCEAN = 9;  //deep ocean
+    public var RIVER = 13;  //shallow water // TODO deep river water which is not walkable 
 }
 
 @:enum abstract BiomeMapColor(String) from String to String
 {
-    public var CGREEN = "FFB5E61D";  // is auto generated
-    public var CSWAMP = "FF008080";  // is auto generated
+    public var CGREEN = "FFB5E61D";  
+    public var CSWAMP = "FF008080";  
     public var CYELLOW = "FFFECC36"; //savannah
-    public var CGREY = "FF808080"; //badlands
+    public var CGREY = "FF808080"; //badlands // bevor it was: FF404040
     public var CSNOW = "FFFFFFFF";
     public var CDESERT= "FFDB7F4D";
     public var CJUNGLE = "FF007F0E"; 
     
     public var CSAND = "FFefe4b0";
 
-    public var CSNOWINGREY = "FFFFFFFF";
+    public var CSNOWINGREY = "FFFFFFFF"; // TODO assign color // its snow on top of mountains which should not be walkable
     public var COCEAN = "FF004080"; //deep ocean 
     public var CRIVER = "FF0080FF"; //shallow water
 }

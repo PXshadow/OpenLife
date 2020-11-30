@@ -168,44 +168,47 @@ class Server
         switch (tag)
         {
             case LOGIN:
-            header.login();
+                header.login();
             case RLOGIN:
-            header.rlogin();
-            case MOVE:
-            var x = Std.parseInt(input[0]);
-            var y = Std.parseInt(input[1]);
-            var seq = Std.parseInt(input[2].substr(1));
-            input = input.slice(3);
-            var moves:Array<Pos> = [];
-            for (i in 0...Std.int(input.length/2))
-            {
-                moves.push(new Pos(Std.parseInt(input[i * 2]),Std.parseInt(input[i * 2 + 1])));
-            }
+                header.rlogin();
+                case MOVE:
+                var x = Std.parseInt(input[0]);
+                var y = Std.parseInt(input[1]);
+                var seq = Std.parseInt(input[2].substr(1));
+                input = input.slice(3);
+                var moves:Array<Pos> = [];
+                for (i in 0...Std.int(input.length/2))
+                {
+                    moves.push(new Pos(Std.parseInt(input[i * 2]),Std.parseInt(input[i * 2 + 1])));
+                }
 
-            header.player.move(x,y,seq,moves);
+                header.player.move(x,y,seq,moves);
             case DIE:
-            header.die();
+                header.die();
             case KA:
-            header.keepAlive();
+                header.keepAlive();
             case EMOT:
-            trace("data " + input);
-            header.emote(Std.parseInt(input[2]));
+                trace("data " + input);
+                header.emote(Std.parseInt(input[2]));
             case SREMV:
-            header.player.specialRemove(Std.parseInt(input[0]),Std.parseInt(input[1]),Std.parseInt(input[2]),input.length > 3 ? Std.parseInt(input[3]) : null);
+                header.player.specialRemove(Std.parseInt(input[0]),Std.parseInt(input[1]),Std.parseInt(input[2]),input.length > 3 ? Std.parseInt(input[3]) : null);
             case REMV:
-            //header.player.remove(Std.parseInt(input[0]),Std.parseInt(input[1]),input.length > 2 ? Std.parseInt(input[2]) : null);
-            header.player.remove(Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
+                TransitionHelper.doCommand(header.player, tag, Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
+                //header.player.remove(Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
             case USE:
-            header.player.use(Std.parseInt(input[0]), Std.parseInt(input[1]));
-            case SELF:
-            header.player.self(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]));
+                // TODO handles 3 and 4 optional parameter see USE protocoll
+                TransitionHelper.doCommand(header.player, tag, Std.parseInt(input[0]),Std.parseInt(input[1]));
+                //header.player.use(Std.parseInt(input[0]), Std.parseInt(input[1]));
             case DROP:
-            header.player.drop(Std.parseInt(input[0]), Std.parseInt(input[1]));
+                TransitionHelper.doCommand(header.player, tag, Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
+                //header.player.drop(Std.parseInt(input[0]), Std.parseInt(input[1]));
+            case SELF:
+                header.player.self(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]));
             case SAY:
-            var text = string.substring(4);
-            header.say(text);
+                var text = string.substring(4);
+                header.say(text);
             case FLIP:
-            header.flip();
+                header.flip();
             default:
         }
     }

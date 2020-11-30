@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.settings.ServerSettings;
 import haxe.ds.Vector;
 import openlife.data.object.ObjectHelper;
 import openlife.data.map.MapData;
@@ -19,7 +20,7 @@ class GlobalPlayerInstance extends PlayerInstance {
     // handles all the movement stuff
     public var me:MoveExtender = new MoveExtender();
     // is used since move and move update can change the player at the same time
-    public var mutux = new Mutex();
+    public var mutex = new Mutex();
 
     public var connection:Connection; 
 
@@ -62,8 +63,31 @@ class GlobalPlayerInstance extends PlayerInstance {
     */
     public function self(x:Int, y:Int, clothingSlot:Int)
     {
-        this.mutux.acquire();
+        this.mutex.acquire();
 
+        if(ServerSettings.debug)
+        {
+            doSelf(x,y,clothingSlot);
+        }
+        else{
+            try{
+                doSelf(x,y,clothingSlot);
+            }
+            catch(e)
+            {                
+                trace(e);
+
+                // send PU so that player wont get stuck
+                this.connection.send(PLAYER_UPDATE,[this.toData()]);
+                this.connection.send(FRAME);
+            }
+        }
+
+        this.mutex.release();
+    }
+
+    public function doSelf(x:Int, y:Int, clothingSlot:Int)
+    {
         var doaction = false;
         var p_clothingSlot = -1;
 
@@ -143,9 +167,11 @@ class GlobalPlayerInstance extends PlayerInstance {
         }
 
         this.action = 0;
-        this.mutux.release();
     }
-     
+
+    
+    
+    /*
     public function remove(x:Int,y:Int,index:Int)
     {
         var helper = new TransitionHelper(this, x, y);
@@ -153,11 +179,14 @@ class GlobalPlayerInstance extends PlayerInstance {
         helper.remove(index);
         
         helper.sendUpdateToClient();
-
     }
+
+    */
 
     public function specialRemove(x:Int,y:Int,clothing:Int,id:Null<Int>)
     {
+        // TODO implement
+
         for (c in Server.server.connections) 
             {
                 // since player has relative coordinates, transform them for player
@@ -172,6 +201,7 @@ class GlobalPlayerInstance extends PlayerInstance {
             }
     }
 
+    /*
     // even send Player Update / PU if nothing happend. Otherwise client will get stuck
     public function use(x:Int,y:Int)         
     {
@@ -186,11 +216,42 @@ class GlobalPlayerInstance extends PlayerInstance {
     // even send Player Update / PU if nothing happend. Otherwise client will get stuck
     public function drop(x:Int,y:Int, clothingIndex:Int=-1)        
     {
-        var helper = new TransitionHelper(this, x, y);
+        //trace("try to acquire player mutex");
+        player.mutex.acquire();
+        //trace("try to acquire map mutex");
+        Server.server.map.mutex.acquire();
 
-        helper.drop(clothingIndex);          
-        
-        helper.sendUpdateToClient();
+        if(ServerSettings.debug)
+        {
+            var helper = new TransitionHelper(this, x, y);
+    
+            helper.drop(clothingIndex); 
+            
+            helper.sendUpdateToClient();
+        }
+        else{
+            try
+            {
+                var helper = new TransitionHelper(this, x, y);
+    
+                helper.drop(clothingIndex); 
+                
+                helper.sendUpdateToClient();
+            } 
+            catch(e)
+            {                
+                trace(e);
 
+                // send PU so that player wont get stuck
+                player.connection.send(PLAYER_UPDATE,[player.toData()]);
+                player.connection.send(FRAME);
+            }
+        }
+
+        //trace("release player mutex");
+        Server.server.map.mutex.release();
+        //trace("release map mutex");
+        player.mutex.release();
     }   
+    */
 }

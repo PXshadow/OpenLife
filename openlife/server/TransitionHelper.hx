@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.settings.ServerSettings;
 import openlife.server.WorldMap.BiomeTag;
 import openlife.data.transition.TransitionData;
 import openlife.data.object.ObjectData;
@@ -14,6 +15,8 @@ class TransitionHelper{
     public var ty:Int;
 
     public var player:GlobalPlayerInstance;
+
+    //public var index:Int = -1; // Index in container or clothing index in case of drop
 
     public var handObject:Array<Int>;
     public var tileObject:Array<Int>;
@@ -35,13 +38,66 @@ class TransitionHelper{
     public var doTransition:Bool = true;
     public var doAction:Bool;
 
-    public function new(player:GlobalPlayerInstance, x:Int,y:Int)
+    public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1)
     {
-        trace("try to acquire player mutex");
-        player.mutux.acquire();
-        trace("try to acquire map mutex");
+        //trace("try to acquire player mutex");
+        player.mutex.acquire();
+        //trace("try to acquire map mutex");
         Server.server.map.mutex.acquire();
 
+        if(ServerSettings.debug)
+        {
+            var helper = new TransitionHelper(player, x, y);
+
+            switch (tag)
+            {
+                case USE: 
+                    helper.use();
+                case DROP:
+                    helper.drop(index); 
+                case REMV:
+                    helper.remove(index);
+                default:
+            }
+    
+            helper.sendUpdateToClient();
+        }
+        else{
+            try
+            {
+                var helper = new TransitionHelper(player, x, y);
+    
+                switch (tag)
+                {
+                    case USE: 
+                        helper.use();
+                    case DROP:
+                        helper.drop(index); 
+                    case REMV:
+                        helper.remove(index);
+                    default:
+                }
+                
+                helper.sendUpdateToClient();
+            } 
+            catch(e)
+            {                
+                trace(e);
+
+                // send PU so that player wont get stuck
+                player.connection.send(PLAYER_UPDATE,[player.toData()]);
+                player.connection.send(FRAME);
+            }
+        }
+
+        //trace("release player mutex");
+        Server.server.map.mutex.release();
+        //trace("release map mutex");
+        player.mutex.release();
+    }  
+
+    public function new(player:GlobalPlayerInstance, x:Int,y:Int)
+    {
         this.player = player;
 
         this.x = x;
@@ -96,6 +152,8 @@ class TransitionHelper{
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;
 
         // TODO drop hand object in container
+
+        // TODO adding something to own clothing using clothingIndex
 
         return this.swapHandAndFloorObject();            
     } 
@@ -597,11 +655,6 @@ class TransitionHelper{
             player.connection.send(PLAYER_UPDATE,[player.toData()]);
             player.connection.send(FRAME);
 
-            trace("release player mutex");
-            Server.server.map.mutex.release();
-            trace("release map mutex");
-            player.mutux.release();
-
             return false;
         }
 
@@ -645,12 +698,6 @@ class TransitionHelper{
         }
 
         player.action = 0;
-
-        
-        trace("release player mutex");
-        Server.server.map.mutex.release();
-        trace("release map mutex");
-        player.mutux.release();
 
         return true;
     }

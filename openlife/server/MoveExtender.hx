@@ -41,7 +41,7 @@ class MoveExtender{
     static public function move(p:GlobalPlayerInstance, x:Int,y:Int,seq:Int,moves:Array<Pos>)
         {
             // since move update may acces this also
-            p.mutux.acquire(); 
+            p.mutex.acquire(); 
 
             var me = p.me;
 
@@ -56,9 +56,10 @@ class MoveExtender{
 
             // TODO dont accept moves untill a force is confirmed
             // TODO it accepts one position further even if not fully reached there. 
+            // TODO maybe make player "exhausted" with lower movementspeed if he "cheats" to much
             // This could be miss used to double movement speed. But Client seems to do it this way...
 
-            if(p.isClose(x,y,3) == false)
+            if(p.isClose(x,y,2) == false)
             {
                 p.forced = true;
 
@@ -127,7 +128,7 @@ class MoveExtender{
 
             p.forced = false;
 
-            p.mutux.release();
+            p.mutex.release();
         }
 
         static private function moveString(moves:Array<Pos>):String
@@ -195,9 +196,9 @@ class MoveExtender{
                 length += thisStepLength;
                 //trace('length: $length movedLength: $movedLength speed: $speed timeSinceStartMovementInSec: $timeSinceStartMovementInSec'  );
                 
-                // TODO make exact calculatation there the client thinks he is
-                //if(length - thisStepLength / 2 > movedLength) return lastPos;
-                if(length > movedLength) return lastPos;
+                // TODO make exact calculatation where the client thinks he is
+                if(length - thisStepLength / 2 > movedLength) return lastPos;
+                //if(length > movedLength) return lastPos;
 
                 lastPos = move;
             }
@@ -227,7 +228,7 @@ class MoveExtender{
             if(timeSinceStartMovementInSec >= me.totalMoveTime){
 
                 // a new move or command might also change the player data
-                p.mutux.acquire(); 
+                p.mutex.acquire(); 
 
                 var last = me.newMoves.pop(); 
                 me.totalMoveTime = 0;
@@ -241,7 +242,7 @@ class MoveExtender{
                 p.move_speed = server.map.getBiomeSpeed(p.x + p.gx, p.y + p.gy) * PlayerInstance.initial_move_speed;
                 //this.forced = true;
     
-                p.mutux.release();
+                p.mutex.release();
     
                 //trace('reached position: ${p.x},${p.y}');
              

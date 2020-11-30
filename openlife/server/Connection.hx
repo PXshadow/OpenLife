@@ -178,6 +178,7 @@ class Connection implements ServerHeader
         var id = player.p_id;
         for (c in server.connections)
         {
+            // TODO why send movement ???
             c.send(PLAYER_MOVES_START,[
                 "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
                 "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
