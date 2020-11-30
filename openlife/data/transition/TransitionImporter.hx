@@ -84,7 +84,7 @@ class TransitionImporter
 
         if(transition.targetID != 1206 && targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
         
-        trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
+        //trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
     }
 
     private function getTransitionMap(lastUseActor:Bool, lastUseTarget:Bool):Map<Int, Map<Int, TransitionData>>

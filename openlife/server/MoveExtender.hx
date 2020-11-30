@@ -51,14 +51,14 @@ class MoveExtender{
                 p.x += lastPos.x;
                 p.y += lastPos.y;
 
-                trace('LastPos ${ lastPos.x } ${ lastPos.y }');
+                //trace('LastPos ${ lastPos.x } ${ lastPos.y }');
             }
 
             // TODO dont accept moves untill a force is confirmed
             // TODO it accepts one position further even if not fully reached there. 
             // This could be miss used to double movement speed. But Client seems to do it this way...
 
-            if(p.isClose(x,y) == false)
+            if(p.isClose(x,y,3) == false)
             {
                 p.forced = true;
 
