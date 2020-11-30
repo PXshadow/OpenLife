@@ -41,7 +41,7 @@ import haxe.io.Bytes;
 
     public var CSNOWINGREY = "FFFFFFFF";
     public var COCEAN = "FF004080"; //deep ocean 
-    public var CRIVER = "FF00809b"; //shallow water
+    public var CRIVER = "FF0080FF"; //shallow water
 }
 
 @:enum abstract BiomeSpeed(Float) from Float to Float
@@ -136,7 +136,7 @@ class WorldMap
 
         //trace('${ x },${ y }:BI ${ biomeType }');
 
-        return 1;
+        return 1 * 2;
 
         return switch biomeType {
             case GREEN: SGREEN;
@@ -235,7 +235,7 @@ class WorldMap
 
         var pngDir = "./map.png";
         var pngmap = readPixels(pngDir);
-        
+        //size 726x405
         width = pngmap.width;
         height = pngmap.height;
         length = width * height;       

@@ -51,7 +51,7 @@ class MoveExtender{
                 p.x += lastPos.x;
                 p.y += lastPos.y;
 
-                trace('LastPos ${ lastPos.x } ${ lastPos.y }');
+                //trace('LastPos ${ lastPos.x } ${ lastPos.y }');
             }
 
             // TODO dont accept moves untill a force is confirmed
