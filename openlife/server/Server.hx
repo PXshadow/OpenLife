@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.settings.ServerSettings;
 import openlife.data.transition.TransitionImporter;
 import openlife.server.tables.MapTable;
 import sys.db.TableCreate;
@@ -48,6 +49,7 @@ class Server
     public static function main()
     {
         Sys.println("Starting OpenLife Server"#if debug + " in debug mode" #end);
+        if(ServerSettings.debug) trace('Debug Mode: ${ServerSettings.debug}');
         server = new Server();
         while (true)
         {

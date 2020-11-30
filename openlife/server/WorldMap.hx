@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.settings.ServerSettings;
 import openlife.data.transition.TransitionData;
 import sys.thread.Mutex;
 import openlife.data.object.ObjectHelper;
@@ -97,6 +98,44 @@ class WorldMap
     public function new()
     {
 
+    }
+
+    private function generateExtraDebugStuff(tx:Int, ty:Int)
+    {
+        setObjectId(tx, ty, [33]);
+        setObjectId(tx+1, ty, [32]);
+        setObjectId(tx+2, ty, [486]);
+        setObjectId(tx+3, ty, [486]);
+        setObjectId(tx+4, ty, [677]);
+        setObjectId(tx+5, ty, [684]);
+        setObjectId(tx+6, ty, [677]);
+
+        // add some clothing for testing
+        setObjectId(tx, ty+1, [2916]);
+        setObjectId(tx+1, ty+1, [2456]);
+        setObjectId(tx+2, ty+1, [766]);
+        setObjectId(tx+3, ty+1, [2919]);
+        setObjectId(tx+4, ty+1, [198]);
+        setObjectId(tx+5, ty+1, [2886]);
+        setObjectId(tx+6, ty+1, [586]);
+        setObjectId(tx+7, ty+1, [2951]);
+
+        // test time / decay transitions
+        setObjectId(tx - 4,ty + 5,[248]);
+        setObjectId(tx - 5,ty + 5,[82]);
+        setObjectId(tx - 6,ty + 5,[418]);
+
+        //test transitions of numUses + decay
+        setObjectId(tx,ty + 10,[238]);
+        setObjectId(tx,ty + 11,[1599]);
+
+        //containers testing SREMV
+        setObjectId(tx - 4,ty + 10,[434]);
+        setObjectId(tx - 5,ty + 10,[292,2143,2143,2143]);
+        setObjectId(tx - 6,ty + 10,[292,2143,2143,2143]);
+        setObjectId(tx - 7,ty + 10,[292,33,2143,33]);
+        setObjectId(tx - 8,ty + 10,[2143,2143,2143]);
+        setObjectId(tx - 7,ty + 10,[3371,33,2143,33]);
     }
     
     private function generateSeed():Int
@@ -327,6 +366,8 @@ class WorldMap
         }
 
         generateExtraStuff();
+
+        if(ServerSettings.debug) generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
 
         this.mutex.release();
 

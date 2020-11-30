@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.settings.ServerSettings;
 #if (target.threaded)
 import haxe.Timer;
 import haxe.Exception;
@@ -64,16 +65,24 @@ class ThreadServer
             }
             
             if (message.length == 0) continue;
-            //try {
+
+            if(ServerSettings.debug){
                 server.process(connection,message);
                 message = "";
-            /*}catch(e:Exception)
-            {
-                trace(e.details());
-                error("---STACK---\n" + e.details());
-                connection.close();
-                continue;
-            }*/
+            }
+            else {
+                try {
+                    server.process(connection,message);
+                    message = "";
+                }
+                catch(e:Exception)
+                {
+                    trace(e.details());
+                    error("---STACK---\n" + e.details());
+                    connection.close();
+                    continue;
+                }
+            }
         }
     }
     private function error(message:String) 

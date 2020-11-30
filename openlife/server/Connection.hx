@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.settings.ServerSettings;
 import openlife.data.map.MapData;
 import format.swf.Data.PlaceObject;
 #if (target.threaded)
@@ -82,49 +83,10 @@ class Connection implements ServerHeader
         player.connection = this;
         var id = server.index++;
         player.p_id = id;
-        player.gx = 360;
-        player.gy = 600 - 400; // server map is saved y inverse 
+        player.gx = ServerSettings.startingGx;
+        player.gy = ServerSettings.startingGy;
+
         player.move_speed = server.map.getBiomeSpeed(player.gx, player.gy) * PlayerInstance.initial_move_speed;
-
-        Server.server.map.setObjectId(player.gx, player.gy, [33]);
-        Server.server.map.setObjectId(player.gx+1, player.gy, [32]);
-        Server.server.map.setObjectId(player.gx+2, player.gy, [486]);
-        Server.server.map.setObjectId(player.gx+3, player.gy, [486]);
-        Server.server.map.setObjectId(player.gx+4, player.gy, [677]);
-        Server.server.map.setObjectId(player.gx+5, player.gy, [684]);
-        Server.server.map.setObjectId(player.gx+6, player.gy, [677]);
-
-        // add some clothing for testing
-        Server.server.map.setObjectId(player.gx, player.gy+1, [2916]);
-        Server.server.map.setObjectId(player.gx+1, player.gy+1, [2456]);
-        Server.server.map.setObjectId(player.gx+2, player.gy+1, [766]);
-        Server.server.map.setObjectId(player.gx+3, player.gy+1, [2919]);
-        Server.server.map.setObjectId(player.gx+4, player.gy+1, [198]);
-        Server.server.map.setObjectId(player.gx+5, player.gy+1, [2886]);
-        Server.server.map.setObjectId(player.gx+6, player.gy+1, [586]);
-        Server.server.map.setObjectId(player.gx+7, player.gy+1, [2951]);
-
-        // test time / decay transitions
-        Server.server.map.setObjectId(player.gx - 4,player.gy + 5,[248]);
-        Server.server.map.setObjectId(player.gx - 5,player.gy + 5,[82]);
-        Server.server.map.setObjectId(player.gx - 6,player.gy + 5,[418]);
-
-        //test transitions of numUses + decay
-        Server.server.map.setObjectId(player.gx,player.gy + 10,[238]);
-        Server.server.map.setObjectId(player.gx,player.gy + 11,[1599]);
-
-        //containers testing SREMV
-        Server.server.map.setObjectId(player.gx - 4,player.gy + 10,[434]);
-        Server.server.map.setObjectId(player.gx - 5,player.gy + 10,[292,2143,2143,2143]);
-        Server.server.map.setObjectId(player.gx - 6,player.gy + 10,[292,2143,2143,2143]);
-        Server.server.map.setObjectId(player.gx - 7,player.gy + 10,[292,33,2143,33]);
-        Server.server.map.setObjectId(player.gx - 8,player.gy + 10,[2143,2143,2143]);
-        Server.server.map.setObjectId(player.gx - 7,player.gy + 10,[3371,33,2143,33]);
-        
-
-
-        
-        server.map.mutex.release();
         
         trace("move_speed: " + player.move_speed);
 
@@ -148,6 +110,7 @@ class Connection implements ServerHeader
             //}
         }
         
+        server.map.mutex.release();
 
         //send(PLAYER_UPDATE,data);
         //send(FRAME);
