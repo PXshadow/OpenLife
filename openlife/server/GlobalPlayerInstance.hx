@@ -32,6 +32,16 @@ class GlobalPlayerInstance extends PlayerInstance {
         super(a);
     }
 
+    public function toRelativeData(forPlayer:GlobalPlayerInstance):String
+    {
+        var relativeX = this.gx - forPlayer.gx;
+        var relativeY = this.gy - forPlayer.gy;
+
+        o_origin_valid = 1; // TODO ???
+        //441 2404 0 1 4 -6 33 1 4 -6 -1 0.26 8 0 4 -6 16.14 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 1
+        return '$p_id $po_id $facing $action ${action_target_x + relativeX}  ${action_target_y  + relativeY} ${MapData.stringID(o_id)} $o_origin_valid ${o_origin_x + relativeX} ${o_origin_y + relativeY} $o_transition_source_id $heat $done_moving_seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '${x + relativeX} ${y + relativeY}'} $age $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
+    }
+
     // works with coordinates relative to the player
     public function isClose(x:Int, y:Int, distance:Int = 1):Bool
     {    
@@ -119,10 +129,16 @@ class GlobalPlayerInstance extends PlayerInstance {
         }
         
 
-        for (c in Server.server.connections) // TODO only for visible players
+        for (c in Server.server.connections)
         {
-            c.send(PLAYER_UPDATE,[this.toData()]);
-            //if(doaction) c.sendMapUpdate(x,y,newFloorId, tile_o_id[0], this.p_id);
+            // since player has relative coordinates, transform them for player
+            var targetX = this.gx - c.player.gx;
+            var targetY = this.gy - c.player.gy;
+
+            // update only close players
+            if(c.player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+
+            c.send(PLAYER_UPDATE,[this.toRelativeData(c.player)]);
             c.send(FRAME);
         }
 
@@ -130,7 +146,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         this.mutux.release();
     }
      
-     public function remove(x:Int,y:Int,index:Int)
+    public function remove(x:Int,y:Int,index:Int)
     {
         var helper = new TransitionHelper(this, x, y);
 
@@ -142,9 +158,16 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     public function specialRemove(x:Int,y:Int,clothing:Int,id:Null<Int>)
     {
-        for (c in Server.server.connections) // TODO only for visible players
+        for (c in Server.server.connections) 
             {
-                c.send(PLAYER_UPDATE,[this.toData()]);
+                // since player has relative coordinates, transform them for player
+                var targetX = this.gx - c.player.gx;
+                var targetY = this.gy - c.player.gy;
+
+                // update only close players
+                if(c.player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+
+                c.send(PLAYER_UPDATE,[this.toRelativeData(c.player)]);
                 c.send(FRAME);
             }
     }

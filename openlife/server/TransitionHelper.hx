@@ -215,6 +215,15 @@ class TransitionHelper{
         Server.server.map.mutex.release();
     } 
 
+    /*
+                MX
+                x y new_floor_id new_id p_id old_x old_y speed
+
+                Optionally, a line can contain old_x, old_y, and speed.
+                This indicates that the object came from the old coordinates and is moving
+                with a given speed.
+    */
+
     private static function doAnimalMovement(helper:ObjectHelper, timeTransition:TransitionData) : Bool
     {
         // TODO use chance for movement
@@ -224,7 +233,7 @@ class TransitionHelper{
 
         var moveDist = timeTransition.move;
 
-        if(moveDist <= 0 || moveDist == null) return false;
+        if(moveDist <= 0) return false;
 
         var worldmap = Server.server.map;
 
@@ -291,7 +300,7 @@ class TransitionHelper{
             helper.groundObject = target;
             worldmap.setObjectHelper(tx, ty, helper);
 
-            var chanceForOffspring = isPreferredBiome ? worldmap.chanceForOffspring : worldmap.chanceForOffspring * (1 - chancePreferredBiome);
+            var chanceForOffspring = isPreferredBiome ? worldmap.chanceForOffspring : worldmap.chanceForOffspring * Math.pow((1 - chancePreferredBiome), 2);
 
             // give extra birth chance bonus if population is very low
             if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] / 2) chanceForOffspring *=5;
@@ -329,21 +338,11 @@ class TransitionHelper{
                 // update only close players
                 if(player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
 
-                /*
-                MX
-                x y new_floor_id new_id p_id old_x old_y speed
-
-                Optionally, a line can contain old_x, old_y, and speed.
-                This indicates that the object came from the old coordinates and is moving
-                with a given speed.
-                */
-
                 c.sendMapUpdateForMoving(targetX, targetY, floorId, newTileObject, -1, fromX, fromY, speed);
                 c.sendMapUpdate(fromX, fromY, floorId, oldTileObject, -1);
                 //c.sendMapUpdate(fromX, fromY, floorId, [0], -1);
                 c.send(FRAME);
             }
-            
 
             return true;
         }
@@ -457,6 +456,7 @@ class TransitionHelper{
             
             trace('numberOfUses: ' + this.tileObjectHelper.numberOfUses);
 
+            // TODO maybe better to do a general cleanup in the setter and or worldmap
             if(this.tileObjectHelper.numberOfUses < 1) {
                 trace("REMOVE ObjectHelper USES < 1");
                 this.tileObjectHelper = null;
@@ -507,8 +507,8 @@ class TransitionHelper{
         trace('handObjectData.slotSize: ${handObjectData.slotSize} tileObjectData.containSize: ${tileObjectData.containSize}');
         if (handObjectData.slotSize > tileObjectData.containSize) return false;
 
-        trace('HO ${this.handObject[0]}');
-        trace('HO Slot size: ${handObjectData.slotSize} TO: container Size size: ${tileObjectData.containSize}');
+        trace('Hand Object ${this.handObject[0]}');
+        trace('Hand Object Slot size: ${handObjectData.slotSize} TO: container Size: ${tileObjectData.containSize}');
 
         this.newHandObject = [0];
 
@@ -582,9 +582,16 @@ class TransitionHelper{
         */
     }
 
+    /*
+            MX (MAP UPDATE)
+            p_id is the player that was responsible for the change (in the case of an 
+            object drop only), or -1 if change was not player triggered.  p_id < -1 means
+            that the change was triggered by player -(p_id), but that the object
+            wasn't dropped (transform triggered by a player action).
+    */
+
     public function sendUpdateToClient() : Bool
     {
-
         // even send Player Update / PU if nothing happend. Otherwise client will get stuck
         if(this.doAction == false){
             player.connection.send(PLAYER_UPDATE,[player.toData()]);
@@ -615,22 +622,23 @@ class TransitionHelper{
         player.action_target_y = this.y;
         player.forced = false;
 
-        for (c in Server.server.connections) // TODO only for visible players
+        for (c in Server.server.connections) 
         {
-            c.send(PLAYER_UPDATE,[player.toData()]);
-            /*
-            MX (MAP UPDATE)
-            p_id is the player that was responsible for the change (in the case of an 
-            object drop only), or -1 if change was not player triggered.  p_id < -1 means
-            that the change was triggered by player -(p_id), but that the object
-            wasn't dropped (transform triggered by a player action).
-            */
+            // since player has relative coordinates, transform them for player
+            var targetX = this.tx - c.player.gx;
+            var targetY = this.ty - c.player.gy;
+
+            // update only close players
+            if(c.player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+
+            c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)]);
+            
             if(this.doAction){
                 if(this.doTransition){
-                    c.sendMapUpdate(x, y, this.newFloorId, this.newTileObject, (-1) * player.p_id);
+                    c.sendMapUpdate(targetX, targetY, this.newFloorId, this.newTileObject, (-1) * player.p_id);
                 }
                 else{
-                    c.sendMapUpdate(x, y, this.newFloorId, this.newTileObject, player.p_id);
+                    c.sendMapUpdate(targetX, targetY, this.newFloorId, this.newTileObject, player.p_id);
                 }
             }
             c.send(FRAME);

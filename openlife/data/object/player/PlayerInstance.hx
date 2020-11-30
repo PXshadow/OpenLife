@@ -232,6 +232,8 @@ class PlayerInstance
         }
         return string;
     }
+
+    // TODO better use relative toData which transforms x,y to relative position
     public function toData():String
     {
         o_origin_valid = 1;

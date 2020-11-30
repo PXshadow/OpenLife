@@ -112,12 +112,15 @@ class MoveExtender{
             }
     
             // TODO there is a bug with speed update 
-            //if(speedChanged) p.connection.send(PLAYER_UPDATE,[p.toData()]);
+            // TODO send PU to all players?
             p.connection.send(PLAYER_UPDATE,[p.toData()]);
     
             for (c in Server.server.connections) 
             {
-                c.send(PLAYER_MOVES_START,['${p.p_id} $x $y ${me.totalMoveTime} $eta ${newMovements.trunc} ${moveString(me.newMoves)}']);
+                var relativeX = p.gx - c.player.gx;
+                var relativeY = p.gy - c.player.gy;
+
+                c.send(PLAYER_MOVES_START,['${p.p_id} ${x + relativeX} ${y + relativeY} ${me.totalMoveTime} $eta ${newMovements.trunc} ${moveString(me.newMoves)}']);
                 
                 c.send(FRAME);
             }
@@ -246,8 +249,15 @@ class MoveExtender{
     
                 for (c in Server.server.connections) 
                 {
+                    // since player has relative coordinates, transform them for player
+                    var targetX = p.gx - c.player.gx;
+                    var targetY = p.gy - c.player.gy;
+
+                    // update only close players
+                    if(c.player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+
                     //c.send(PLAYER_MOVES_START,['${this.p_id} $x $y $totalMoveTime $totalMoveTime $trunc ${moveString(newMoves)}']);
-                    c.send(PLAYER_UPDATE,[p.toData()]);
+                    c.send(PLAYER_UPDATE,[p.toRelativeData(c.player)]);
                     c.send(FRAME);
                 }
             }

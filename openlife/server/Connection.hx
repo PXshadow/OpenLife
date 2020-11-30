@@ -130,37 +130,29 @@ class Connection implements ServerHeader
 
         sendMapChunk(0,0);
 
-        var data:Array<String> = [];
+        //var data:Array<String> = [];
         for (c in server.connections)
         {
-            data.push(c.player.toData());
-            if (c != this)
-            {
-                c.send(PLAYER_UPDATE,[player.toData()]);
+            // since player has relative coordinates, transform them for player
+            var targetX = player.gx - c.player.gx;
+            var targetY = player.gy - c.player.gy;
+
+            // update only close players
+            if(c.player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+
+            //data.push(c.player.toData());
+            //if (c != this)
+            //{
+                c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)]);
                 c.send(FRAME);
-            }
+            //}
         }
-        send(PLAYER_UPDATE,data);
-        send(FRAME);
-        send(LINEAGE,['$id eve=$id']);
-
         
+
+        //send(PLAYER_UPDATE,data);
+        //send(FRAME);
+        send(LINEAGE,['$id eve=$id']);
     }
-
-    /*
-    public function update()
-    {
-        player.handleUpdate();
-
-
-        //if(server.tick % 20 == 0){
-            //trace("Ticks: " + server.tick);
-            // TODO needs to calculate the player position first
-            // player.sendSpeedUpdate(this);
-            //this.send(FRAME);
-        //}
-    }
-    */
 
     public function close()
     {
