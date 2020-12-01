@@ -593,7 +593,7 @@ class TransitionHelper{
                 //var isHardbiome = targetBiome == BiomeTag.RIVER || (targetBiome == BiomeTag.GREY) || (targetBiome == BiomeTag.SNOW) || (targetBiome == BiomeTag.DESERT);
                 var isNotHardbiome =  isPreferredBiome || targetBiome == BiomeTag.GREEN || targetBiome == BiomeTag.YELLOW;
     
-                var chancePreferredBiome = isNotHardbiome ? worldmap.chancePreferredBiome : (worldmap.chancePreferredBiome + 4) / 5;
+                var chancePreferredBiome = isNotHardbiome ? ServerSettings.chancePreferredBiome : (ServerSettings.chancePreferredBiome + 4) / 5;
     
                 //trace('chance: $chancePreferredBiome isNotHardbiome: $isNotHardbiome biome: $targetBiome');
     
@@ -618,12 +618,12 @@ class TransitionHelper{
                 helper.groundObject = target;
                 worldmap.setObjectHelper(tx, ty, helper);
     
-                var chanceForOffspring = isPreferredBiome ? worldmap.chanceForOffspring : worldmap.chanceForOffspring * Math.pow((1 - chancePreferredBiome), 2);
+                var chanceForOffspring = isPreferredBiome ? ServerSettings.chanceForOffspring : ServerSettings.chanceForOffspring * Math.pow((1 - chancePreferredBiome), 2);
     
                 // give extra birth chance bonus if population is very low
                 if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] / 2) chanceForOffspring *=5;
     
-                if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] * worldmap.maxOffspringFactor && worldmap.randomFloat() <= chanceForOffspring)
+                if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] * ServerSettings.maxOffspringFactor && worldmap.randomFloat() <= chanceForOffspring)
                 {
                     // TODO consider dead 
                     worldmap.currentPopulation[newTileObject[0]] += 1;
