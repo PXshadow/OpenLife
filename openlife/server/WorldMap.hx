@@ -227,13 +227,30 @@ class WorldMap
         //trace('objectHelper: $x,$y');
         objectHelpers[index(x,y)] = helper;
 
-        if(helper == null) return;
+        if(helper == null) return; // TODO setObjectId([0]);
+
+        var ids = helper.writeObjectHelper([]);
+        setObjectId(x,y,ids);
 
         helper.tx = x;
         helper.ty = y;
 
-        var ids = helper.writeObjectHelper([]);
-        setObjectId(x,y,ids);
+        if(deleteObjectHelperIfUseless(helper)) return;
+    }
+
+    // to save space keep ObjectHelper only if used to store number of uses, or has time transition...
+    // ... or has owner or is a container or has a groundObject (used if a animal walks on an object)
+    // TODO dont delete stuff with owners like a gate 
+    private function deleteObjectHelperIfUseless(helper:ObjectHelper) : Bool
+    {
+        if(helper.numberOfUses < 1 && helper.timeToChange == 0 && helper.containedObjects.length == 0 && helper.groundObject == null)
+        {
+            //if(x != helper.tx || y != helper.ty) trace('REMOVE ObjectHelper $x,$y h${helper.tx},h${helper.ty} USES < 1 && timeToChange == 0 && containedObjects.length == 0 && groundObject == null');
+            objectHelpers[index(helper.tx, helper.ty)] = null;
+            return true;
+        }
+        
+        return false;
     }
 
     public function getFloorId(x:Int, y:Int):Int
@@ -548,9 +565,9 @@ class WorldMap
         for (i in start...length)
         {
             var obj = objects[i];
-            if(obj[0] == 0) continue;
+            if(obj[0] == 0) continue;     
 
-            var helper = objectHelpers[i];
+            var helper = objectHelpers[i];            
             if(helper != null)
             {
                 if(obj[0] != helper.objectData.id){
@@ -558,7 +575,10 @@ class WorldMap
 
                     objectHelpers[i] = null;
                     continue;
-                } 
+                }
+                
+                // clear up not needed ObjectHelpers to save space
+                if(deleteObjectHelperIfUseless(helper)) continue;
 
                 if(helper.timeToChange == 0) continue;
 
@@ -574,7 +594,6 @@ class WorldMap
                     objectHelpers[i] = null;
                     
                     TransitionHelper.doTimeTransition(helper);
-
                 }
 
                 continue;
@@ -584,11 +603,12 @@ class WorldMap
             if(timeTransition == null) continue;
 
             // create object helper with the current time
-
             helper = ObjectHelper.readObjectHelper(null, obj);
             helper.timeToChange = calculateTimeToChange(timeTransition);
-            helper.tx = i % this.width;
-            helper.ty = Math.floor(i / this.width) + 1;
+            var tx = i % this.width;
+            var ty = Math.floor(i / this.width);
+            helper.tx = tx;
+            helper.ty = ty + 1; // TODO find a better solution for +1 maybe map chunks must be send different?
 
             objectHelpers[i] = helper;
 
@@ -597,7 +617,6 @@ class WorldMap
             //var testObj = getObjectId(helper.tx, helper.ty);
 
             //trace('testObj: $testObj obj: $obj ${helper.tx},${helper.ty} i:$i index:${index(helper.tx, helper.ty)}');
-
         }
     }
 
@@ -605,10 +624,9 @@ class WorldMap
     {
         // hours are negative
         var timeToChange = timeTransition.autoDecaySeconds < 0 ?  (-3600) * timeTransition.autoDecaySeconds : timeTransition.autoDecaySeconds;                 
-        timeToChange = Math.ceil((randomInt(timeToChange) + timeToChange)/2);
+        timeToChange = Math.ceil((randomInt(timeToChange * 2) + timeToChange)/2);
 
         return timeToChange;
-
     }
 }
 #end

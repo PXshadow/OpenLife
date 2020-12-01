@@ -118,10 +118,13 @@ class MoveExtender{
     
             for (c in Server.server.connections) 
             {
-                var relativeX = p.gx - c.player.gx;
-                var relativeY = p.gy - c.player.gy;
+                var targetX = x + p.gx - c.player.gx;
+                var targetY = y + p.gy - c.player.gy;
 
-                c.send(PLAYER_MOVES_START,['${p.p_id} ${x + relativeX} ${y + relativeY} ${me.totalMoveTime} $eta ${newMovements.trunc} ${moveString(me.newMoves)}']);
+                // update only close players
+                if(c.player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+
+                c.send(PLAYER_MOVES_START,['${p.p_id} ${targetX} ${targetY} ${me.totalMoveTime} $eta ${newMovements.trunc} ${moveString(me.newMoves)}']);
                 
                 c.send(FRAME);
             }

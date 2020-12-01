@@ -47,38 +47,12 @@ class TransitionHelper{
 
         if(ServerSettings.debug)
         {
-            var helper = new TransitionHelper(player, x, y);
-
-            switch (tag)
-            {
-                case USE: 
-                    helper.use();
-                case DROP:
-                    helper.drop(index); 
-                case REMV:
-                    helper.remove(index);
-                default:
-            }
-    
-            helper.sendUpdateToClient();
+            doCommandHelper(player, tag, x, y, index);
         }
         else{
             try
             {
-                var helper = new TransitionHelper(player, x, y);
-    
-                switch (tag)
-                {
-                    case USE: 
-                        helper.use();
-                    case DROP:
-                        helper.drop(index); 
-                    case REMV:
-                        helper.remove(index);
-                    default:
-                }
-                
-                helper.sendUpdateToClient();
+                doCommandHelper(player, tag, x, y, index);
             } 
             catch(e)
             {                
@@ -95,6 +69,24 @@ class TransitionHelper{
         //trace("release map mutex");
         player.mutex.release();
     }  
+
+    public static function doCommandHelper(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1)
+    {
+        var helper = new TransitionHelper(player, x, y);
+
+        switch (tag)
+        {
+            case USE: 
+                helper.use();
+            case DROP:
+                helper.drop(index); 
+            case REMV:
+                helper.remove(index);
+            default:
+        }
+
+        helper.sendUpdateToClient();
+    }
 
     public function new(player:GlobalPlayerInstance, x:Int,y:Int)
     {
@@ -219,8 +211,6 @@ class TransitionHelper{
 
     public static function doTimeTransition(helper:ObjectHelper)
     {
-        // TODO support moved objects
-
         Server.server.map.mutex.acquire();
 
         Server.server.map.timeObjectHelpers.remove(helper);
@@ -274,12 +264,12 @@ class TransitionHelper{
     } 
 
     /*
-                MX
-                x y new_floor_id new_id p_id old_x old_y speed
+        MX
+        x y new_floor_id new_id p_id old_x old_y speed
 
-                Optionally, a line can contain old_x, old_y, and speed.
-                This indicates that the object came from the old coordinates and is moving
-                with a given speed.
+        Optionally, a line can contain old_x, old_y, and speed.
+        This indicates that the object came from the old coordinates and is moving
+        with a given speed.
     */
 
     private static function doAnimalMovement(helper:ObjectHelper, timeTransition:TransitionData) : Bool
@@ -456,13 +446,14 @@ class TransitionHelper{
 
         //transition source object id (or -1) if held object is result of a transition 
         //if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
-        this.newTransitionSource = transition.targetID; // TODO ???
+        this.newTransitionSource = transition.targetID; // TODO 
 
         this.newHandObject = [transition.newActorID];
 
         
         
-        // TODO not sure if there needs to be done more if object changes type
+        // TODO not sure if there needs to be done more if object changes type 
+        // TODO set numberOfUses for Helper???
         this.tileObjectHelper.objectData = newTargetObjectData; 
 
         // Add HelperObject to timeObjectHelpers if newTargetObject has time transitions
@@ -499,7 +490,6 @@ class TransitionHelper{
             this.doAction = true;
 
             return true;
-
         }
 
         if(transition.reverseUseTarget)
@@ -510,19 +500,8 @@ class TransitionHelper{
         else
         {
             this.tileObjectHelper.numberOfUses -= 1;
-
-            
             trace('numberOfUses: ' + this.tileObjectHelper.numberOfUses);
-
-            // TODO maybe better to do a general cleanup in the setter and or worldmap
-            if(this.tileObjectHelper.numberOfUses < 1) {
-                trace("REMOVE ObjectHelper USES < 1");
-                this.tileObjectHelper = null;
-                Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
-            }
-            else{
-                Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
-            }
+            Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper); // deletes ObjectHelper in case it has no uses
         }
     
         // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop

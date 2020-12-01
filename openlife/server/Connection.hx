@@ -102,19 +102,13 @@ class Connection implements ServerHeader
             // update only close players
             if(c.player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
 
-            //data.push(c.player.toData());
-            //if (c != this)
-            //{
-                c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)]);
-                c.send(FRAME);
-            //}
+            c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)]);
+            c.send(FRAME);
         }
         
-        server.map.mutex.release();
-
-        //send(PLAYER_UPDATE,data);
-        //send(FRAME);
         send(LINEAGE,['$id eve=$id']);
+
+        server.map.mutex.release();
     }
 
     public function close()
