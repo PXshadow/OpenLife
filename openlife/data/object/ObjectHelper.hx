@@ -93,7 +93,6 @@ class ObjectHelper {
 
         this.creationTimeInTicks = Server.server.tick;
         this.numberOfUses = objectData.numUses;
-        
     }
 
     // TODO make look like variable
@@ -101,6 +100,15 @@ class ObjectHelper {
     {
         return objectData.id;
     }
+
+    public function setId(newID:Int) : Bool
+    {
+        if(this.id() == newID) return false;
+
+        objectData = Server.objectDataMap[newID];
+        return true;
+    }
+    
     
     // TODO make look like variable
     public function description() : String

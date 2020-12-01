@@ -31,6 +31,8 @@ class GlobalPlayerInstance extends PlayerInstance {
     public function new(a:Array<String>)
     {
         super(a);
+
+        this.heldObject = ObjectHelper.readObjectHelper(this, [0]);
     }
 
     public function toRelativeData(forPlayer:GlobalPlayerInstance):String
@@ -88,34 +90,39 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     public function doSelf(x:Int, y:Int, clothingSlot:Int)
     {
-        var doaction = false;
-        var p_clothingSlot = -1;
+        //var doaction = false;
+        var objClothingSlot = -1;
 
         // TODO food on self
 
+        trace('self: ${this.o_id[0]} clothingSlot: $clothingSlot');
+
         if(this.o_id[0] != 0){
             var objectData = Server.objectDataMap[this.o_id[0]];
-            //trace("OD: " + objectData.toFileString());
-
-            if(objectData.clothing.charAt(0) == 'h'){
-                p_clothingSlot = 0;
-            }
+            //trace("OD: " + objectData.toFileString());        
 
             switch objectData.clothing.charAt(0) {
-                case "h": p_clothingSlot = 0;
-                case "t": p_clothingSlot = 1;
-                case "s": p_clothingSlot = 2;
-                //case "s": p_clothingSlot = 3; 
-                case "b": p_clothingSlot = 4;
-                case "p": p_clothingSlot = 5;
+                case "h": objClothingSlot = 0;
+                case "t": objClothingSlot = 1;
+                case "s": objClothingSlot = 2;
+                //case "s": objClothingSlot = 3; 
+                case "b": objClothingSlot = 4;
+                case "p": objClothingSlot = 5;
             }
 
-            //trace('objectData.clothing: ${objectData.clothing}');
-            //trace('p_clothingSlot:  ${p_clothingSlot}');
-            //trace('clothingSlot:  ${clothingSlot}');
+            trace('objectData.clothing: ${objectData.clothing}');
+            trace('objClothingSlot:  ${objClothingSlot}');
+            trace('clothingSlot:  ${clothingSlot}');
+
+            if(objClothingSlot < 0)
+            {
+                this.connection.send(PLAYER_UPDATE,[this.toData()]);
+                this.connection.send(FRAME);
+                return;
+            } 
         }
 
-        if(p_clothingSlot >= 0 || clothingSlot >=0){
+        if(objClothingSlot >= 0 || clothingSlot >=0){
             var array = this.clothing_set.split(";");
 
             if(array.length < 6){
@@ -123,21 +130,27 @@ class GlobalPlayerInstance extends PlayerInstance {
             }  
 
             // set  the index for shoes that come on the other feet
-            if(p_clothingSlot == 2 && clothingSlot == -1){
+            // TODO setting shoes is not always working nice
+            // TODO if the clothing are shoes and there are shoes allready on the first shoe but not on the second and if the index is not set
+
+            if(objClothingSlot == 2 && clothingSlot == -1){
                 clothingSlot = 3;
             }else{
-                clothingSlot = p_clothingSlot;
+                // always use clothing slot from the hold object if it has
+                if(objClothingSlot > -1) clothingSlot = objClothingSlot;
             }
 
-            // TODO if the clothing are shoes and there are shoes allready on the first shoe but not on the second and if the index is not set
-            
+            trace('self: ${this.o_id[0]} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
+
             if(clothingSlot >= 0){
                 // switch clothing if there is a clothing on this slot
                 var tmp = Std.parseInt(array[clothingSlot]);
                 array[clothingSlot] = '${this.o_id[0]}';
                 this.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
 
-                doaction = true;
+                this.heldObject = ObjectHelper.readObjectHelper(this, [tmp]);
+
+                //doaction = true;
                 this.o_id = [tmp];
                 this.action = 1;
                 this.action_target_x = x;
@@ -146,13 +159,10 @@ class GlobalPlayerInstance extends PlayerInstance {
                 this.o_origin_y = y;
                 this.o_origin_valid = 0; // TODO ???
 
-                //trace('this.clothing_set: ${this.clothing_set}');
+                trace('this.clothing_set: ${this.clothing_set}');
             }
-
-            //this.clothing_set = "0;0;0;0;0;0";
         }
         
-
         for (c in Server.server.connections)
         {
             // since player has relative coordinates, transform them for player

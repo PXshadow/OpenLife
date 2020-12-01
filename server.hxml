@@ -2,6 +2,7 @@
 #-hl export/server/server.hl
 #-cpp export/server
 -D analyzer-optimize
+#-D debug
 -dce full
 -lib record-macros
 --macro openlife.macros.Debug.run()

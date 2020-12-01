@@ -18,18 +18,18 @@ class TransitionHelper{
 
     //public var index:Int = -1; // Index in container or clothing index in case of drop
 
-    public var handObject:Array<Int>;
-    public var tileObject:Array<Int>;
+    //public var handObject:Array<Int>;
+    //public var tileObject:Array<Int>;
     public var floorId:Int;
     public var transitionSource:Int;
 
-    public var newHandObject:Array<Int>;
-    public var newTileObject:Array<Int>;
+    //public var newHandObject:Array<Int>;
+    //public var newTileObject:Array<Int>;
     public var newFloorId:Int;
     public var newTransitionSource:Int;
 
     public var tileObjectHelper:ObjectHelper;
-    public var handObjectHelper:ObjectHelper;
+    //public var handObjectHelper:ObjectHelper;
 
     public var handObjectData:ObjectData;
     public var tileObjectData:ObjectData;
@@ -98,32 +98,21 @@ class TransitionHelper{
         this.tx = x + player.gx;
         this.ty = y + player.gy;
 
-        this.handObject = player.o_id;
-        this.tileObject = Server.server.map.getObjectId(tx, ty);
         this.floorId = Server.server.map.getFloorId(tx, ty);
         this.transitionSource = player.o_transition_source_id;
         
-        this.newHandObject = this.handObject;
-        this.newTileObject = this.tileObject;
         this.newFloorId = this.floorId;
         this.newTransitionSource = this.transitionSource;
 
-        // TODO
-        //this.handObjectHelper = this.player.heldObject;
-        //trace('Read Hand object:');
-        if(this.handObjectHelper == null) this.handObjectHelper = ObjectHelper.readObjectHelper(this.player, this.handObject);
-
         // ObjectHelpers are for storing advanced dato like USES, CREATION TIME, OWNER
         this.tileObjectHelper = Server.server.map.getObjectHelper(tx,ty);
-        //trace('Read Tile object:');
-        if(this.tileObjectHelper == null) this.tileObjectHelper = ObjectHelper.readObjectHelper(this.player, this.tileObject);
-
-        this.handObjectData = handObjectHelper.objectData;
+       
+        this.handObjectData = player.heldObject.objectData;
         this.tileObjectData = tileObjectHelper.objectData;
 
-        trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
+        //trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
 
-        trace('handObjectHelper: ' + handObjectHelper.writeObjectHelper([]));
+        trace('handObjectHelper: ' + player.heldObject.writeObjectHelper([]));
         trace('tileObjectHelper: ' + tileObjectHelper.writeObjectHelper([]));
     }
 
@@ -186,10 +175,10 @@ class TransitionHelper{
         if(this.doTransitionIfPossible()) return true;
 
         // do nothing if tile Object is empty
-        if(this.tileObject[0] == 0) return false;
+        if(this.tileObjectHelper.id() == 0) return false;
 
         // do pickup if hand is empty
-        if(this.handObject[0] == 0 && this.swapHandAndFloorObject()) return true;            
+        if(this.player.heldObject.id() == 0 && this.swapHandAndFloorObject()) return true;            
         
         // do container stuff
         return this.doContainerStuff();
@@ -209,198 +198,6 @@ class TransitionHelper{
         return true;
     }
 
-    public static function doTimeTransition(helper:ObjectHelper)
-    {
-        Server.server.map.mutex.acquire();
-
-        Server.server.map.timeObjectHelpers.remove(helper);
-
-        var tx = helper.tx;
-        var ty = helper.ty;
-
-        var tileObject = Server.server.map.getObjectId(tx, ty);
-        var floorId = Server.server.map.getFloorId(tx, ty);
-
-        //trace('Time: tileObject: $tileObject');
-
-        var transition = Server.transitionImporter.getTransition(-1, tileObject[0], false, false);
-
-        if(transition == null)
-        {
-            // TODO should not happen
-            trace('WARNING: Time: no transtion found! Maybe object was moved? tile: $tileObject helper: ${helper.id()} ${helper.description()}');
-            Server.server.map.mutex.release();
-            return;
-        }
-
-        if(doAnimalMovement(helper, transition))
-        {
-            Server.server.map.mutex.release();
-            return;
-        }
-
-        var newTileObject = [transition.newTargetID];
-        Server.server.map.setObjectId(tx, ty, newTileObject);
-        Server.server.map.setObjectHelper(tx, ty, null);
-
-        // TODO take care if newTileObject has time transition
-
-        for (c in Server.server.connections)
-        {      
-            var player = c.player;
-            
-            // since player has relative coordinates, transform them for player
-            var x = tx - player.gx;
-            var y = ty - player.gy;
-
-            // update only close players
-            if(player.isClose(x,y, Server.maxDistanceToBeConsideredAsClose) == false) continue;
-
-            c.sendMapUpdate(x, y, floorId, newTileObject, -1);
-            c.send(FRAME);
-        }
-
-        Server.server.map.mutex.release();
-    } 
-
-    /*
-        MX
-        x y new_floor_id new_id p_id old_x old_y speed
-
-        Optionally, a line can contain old_x, old_y, and speed.
-        This indicates that the object came from the old coordinates and is moving
-        with a given speed.
-    */
-
-    private static function doAnimalMovement(helper:ObjectHelper, timeTransition:TransitionData) : Bool
-    {
-        // TODO use chance for movement
-        // TODO LAST movement
-        // TODO check if movement is blocked
-        // TODO collision detection if animal is deadly
-
-        var moveDist = timeTransition.move;
-
-        if(moveDist <= 0) return false;
-
-        var worldmap = Server.server.map;
-
-        var x = helper.tx;
-        var y = helper.ty;
-
-        for (i in 0...10)
-        {
-            var tx = helper.tx - moveDist + worldmap.randomInt(moveDist * 2);
-            var ty = helper.ty - moveDist + worldmap.randomInt(moveDist * 2);
-            
-            var target = worldmap.getObjectHelper(tx, ty);
-            //var obj = worldmap.getObjectId(tx, ty);
-            //var objData = Server.objectDataMap[obj[0]];
-
-            if(target.id() != 0) continue;
-
-            if(target.blocksWalking()) continue;
-            // dont move move on top of other moving stuff
-            if(target.timeToChange != 0) continue;  
-            if(target.groundObject != null) continue;
-            // make sure that target is not the old tile
-            if(tx == helper.tx && ty == helper.ty) continue;
-            
-            var targetBiome = worldmap.getBiomeId(tx,ty);
-            if(targetBiome == BiomeTag.SNOWINGREY) continue;
-            if(targetBiome == BiomeTag.OCEAN) continue;
-
-            var isPreferredBiome = false;
-
-            for(biome in helper.objectData.biomes){
-                if(targetBiome == biome){
-                    //trace('isPreferredBiome: $biome');
-                    isPreferredBiome = true;
-                } 
-            }
-            
-            // lower the chances even more if on river
-            //var isHardbiome = targetBiome == BiomeTag.RIVER || (targetBiome == BiomeTag.GREY) || (targetBiome == BiomeTag.SNOW) || (targetBiome == BiomeTag.DESERT);
-            var isNotHardbiome =  isPreferredBiome || targetBiome == BiomeTag.GREEN || targetBiome == BiomeTag.YELLOW;
-
-            var chancePreferredBiome = isNotHardbiome ? worldmap.chancePreferredBiome : (worldmap.chancePreferredBiome + 4) / 5;
-
-            //trace('chance: $chancePreferredBiome isNotHardbiome: $isNotHardbiome biome: $targetBiome');
-
-            // skip with chancePreferredBiome if this biome is not preferred
-            if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 10) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
-
-            // save what was on the ground, so that we can move on this tile and later restore it
-            var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.writeObjectHelper([]);
-            var newTileObject = helper.writeObjectHelper([]);
-
-            //var des = helper.groundObject == null ? "NONE": helper.groundObject.description();
-            //trace('MOVE: oldTile: $oldTileObject $des newTile: $newTileObject ${helper.description()}');
-
-            // TODO only change after movement is finished
-            helper.timeToChange = worldmap.calculateTimeToChange(timeTransition);
-            helper.creationTimeInTicks = Server.server.tick;
-
-            worldmap.setObjectHelper(x, y, helper.groundObject);
-            worldmap.setObjectId(x,y, oldTileObject); // TODO move to setter
-
-            var tmpGroundObject = helper.groundObject;
-            helper.groundObject = target;
-            worldmap.setObjectHelper(tx, ty, helper);
-
-            var chanceForOffspring = isPreferredBiome ? worldmap.chanceForOffspring : worldmap.chanceForOffspring * Math.pow((1 - chancePreferredBiome), 2);
-
-            // give extra birth chance bonus if population is very low
-            if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] / 2) chanceForOffspring *=5;
-
-            if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] * worldmap.maxOffspringFactor && worldmap.randomFloat() <= chanceForOffspring)
-            {
-                // TODO consider dead 
-                worldmap.currentPopulation[newTileObject[0]] += 1;
-
-                if(chanceForOffspring < worldmap.chanceForOffspring) trace('NEW: $newTileObject ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]} chance: $chanceForOffspring biome: $targetBiome');
-
-                oldTileObject = newTileObject;
-                
-                var newAnimal = ObjectHelper.readObjectHelper(null, newTileObject);
-                newAnimal.timeToChange = worldmap.calculateTimeToChange(timeTransition);
-                newAnimal.groundObject = tmpGroundObject;
-                worldmap.setObjectHelper(x, y, newAnimal);
-                //worldmap.setObjectId(x,y, newTileObject); // TODO move to setter
-            }
-            
-            var floorId = Server.server.map.getFloorId(tx, ty);
-            // TODO better speed calculation
-            var speed = 5;
-
-            for (c in Server.server.connections) 
-            {            
-                var player = c.player;
-              
-                 // since player has relative coordinates, transform them for player
-                var fromX = x - player.gx;
-                var fromY = y - player.gy;
-                var targetX = tx - player.gx;
-                var targetY = ty - player.gy;
-
-                // update only close players
-                if(player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
-
-                c.sendMapUpdateForMoving(targetX, targetY, floorId, newTileObject, -1, fromX, fromY, speed);
-                c.sendMapUpdate(fromX, fromY, floorId, oldTileObject, -1);
-                //c.sendMapUpdate(fromX, fromY, floorId, [0], -1);
-                c.send(FRAME);
-            }
-
-            return true;
-        }
-
-        helper.creationTimeInTicks = Server.server.tick;
-
-        return false;
-    }    
-        
-
     public function doTransitionIfPossible() : Bool
     {
         // TODO //public var useChance:Float = 0;
@@ -415,13 +212,13 @@ class TransitionHelper{
             trace("lastUseTileObject = true");
         }
 
-        var transition = Server.transitionImporter.getTransition(this.handObject[0], this.tileObject[0], lastUseActorObject, lastUseTileObject);
+        var transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.tileObjectHelper.id(), lastUseActorObject, lastUseTileObject);
 
         var targetIsFloor = false;
 
         // check if there is a floor and no object is on the floor. otherwise the object may be overriden
-        if((transition == null) && (this.floorId != 0) && (this.tileObject[0] == 0)){
-            transition = Server.transitionImporter.getTransition(this.handObject[0], this.floorId);
+        if((transition == null) && (this.floorId != 0) && (this.tileObjectHelper.id() == 0)){
+            transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.floorId);
             if(transition != null) targetIsFloor = true;
         }
 
@@ -429,50 +226,45 @@ class TransitionHelper{
 
         trace('Found transition: a${transition.actorID} t${transition.targetID}');
 
-        var newTargetObjectData = Server.objectDataMap[transition.newTargetID];
+        var targetChanged = this.tileObjectHelper.setId(transition.newTargetID);
+        var newTargetObjectData = this.tileObjectHelper.objectData;
         
-        if(newTargetObjectData.floor && this.floorId != 0) return false;
+        // dont allow to place another floor on existing floor
+        // TODO allow to change floor if new floor is different???
+        if(newTargetObjectData.floor && this.floorId != 0) return false; 
 
         if(newTargetObjectData.floor)
         {
-            if(targetIsFloor == false) this.newTileObject = [0];
+            if(targetIsFloor == false) this.tileObjectHelper.setId(0);
             this.newFloorId = transition.newTargetID;
         }
         else
         {
             if(targetIsFloor) this.newFloorId = 0;
-            this.newTileObject = [transition.newTargetID];
         }
 
         //transition source object id (or -1) if held object is result of a transition 
         //if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
         this.newTransitionSource = transition.targetID; // TODO 
 
-        this.newHandObject = [transition.newActorID];
-
-        
-        
-        // TODO not sure if there needs to be done more if object changes type 
-        // TODO set numberOfUses for Helper???
-        this.tileObjectHelper.objectData = newTargetObjectData; 
-
+        player.heldObject.objectData = Server.objectDataMap[transition.newActorID];
+             
         // Add HelperObject to timeObjectHelpers if newTargetObject has time transitions
         var timeTransition = Server.transitionImporter.getTransition(-1, transition.newTargetID, false, false);
         if(timeTransition != null)
         {
             trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');
 
-            tileObjectHelper.timeToChange = timeTransition.autoDecaySeconds;
-            tileObjectHelper.tx = this.tx;
-            tileObjectHelper.ty = this.ty;
+            tileObjectHelper.timeToChange = Server.server.map.calculateTimeToChange(timeTransition);  
 
-            Server.server.map.timeObjectHelpers.push(tileObjectHelper);
             Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
+            Server.server.map.timeObjectHelpers.push(tileObjectHelper);
         }
 
+        trace('newTileObject: ${this.tileObjectHelper.id()} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
+
         // create advanced object if USES > 0
-        trace('tileObject: ${tileObject} newTileObject: ${newTileObject} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
-        if(this.tileObject[0] != this.newTileObject[0] && newTargetObjectData.numUses > 1)
+        if(targetChanged && newTargetObjectData.numUses > 1)
         {
             // a Pile starts with 2 uses not with the full
             // if the ObjectHelper is created through a reverse use, it must be a pile...
@@ -481,7 +273,7 @@ class TransitionHelper{
                 this.tileObjectHelper.numberOfUses = 1;
             } 
             
-            Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
+            //Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
 
             trace('Changed Target Object Type: numberOfUses: ' + this.tileObjectHelper.numberOfUses);
 
@@ -519,11 +311,12 @@ class TransitionHelper{
 
         if(permanent) return false;
 
-        // TODO for now picking up stuff that can change is forbidden
-        //if(tileObjectHelper.timeToChange > 0) return false;
+        var tmpTileObject = tileObjectHelper;
 
-        this.newTileObject = this.handObject;
-        this.newHandObject = this.tileObject;
+        this.tileObjectHelper = this.player.heldObject;
+        this.player.heldObject = tmpTileObject;
+        //this.newTileObject = this.handObject;
+        //this.newHandObject = this.tileObject;
 
         this.doAction = true;
         return true;
@@ -544,20 +337,21 @@ class TransitionHelper{
         trace('handObjectData.slotSize: ${handObjectData.slotSize} tileObjectData.containSize: ${tileObjectData.containSize}');
         if (handObjectData.slotSize > tileObjectData.containSize) return false;
 
-        trace('Hand Object ${this.handObject[0]}');
+        trace('Hand Object ${this.player.heldObject.id()}');
         trace('Hand Object Slot size: ${handObjectData.slotSize} TO: container Size: ${tileObjectData.containSize}');
 
-        this.newHandObject = [0];
+        //this.newHandObject = [0];
+        this.player.heldObject.setId(0);
 
         //trace('Hand object: ${handObjectHelper.writeObjectHelper([])}');
 
-        tileObjectHelper.containedObjects.push(handObjectHelper);
+        tileObjectHelper.containedObjects.push(this.player.heldObject);
 
-        trace('Tile object: ${tileObject}');
+        //trace('Tile object: ${tileObject}');
 
-        this.newTileObject = tileObjectHelper.writeObjectHelper([]);
+        //this.newTileObject = tileObjectHelper.writeObjectHelper([]);
 
-        trace('New Tile object: ${newTileObject}');
+        trace('New Tile object: ${tileObjectHelper.writeObjectHelper([])}');
 
         this.doAction = true;
         return true;
@@ -575,17 +369,19 @@ class TransitionHelper{
         trace("remove index " + index);
 
         // do nothing if tile Object is empty
-        if(this.tileObject[0] == 0) return false;
+        if(this.tileObjectHelper.id() == 0) return false;
 
         if(tileObjectHelper.containedObjects.length < 1) return false;            
 
-        this.newHandObject = tileObjectHelper.removeContainedObject(index).writeObjectHelper([]);
+        var tmpHeldObject = this.player.heldObject;
+        this.player.heldObject = tileObjectHelper.removeContainedObject(index);
 
-        this.newTileObject = tileObjectHelper.writeObjectHelper([]);
+        //this.newTileObject = tileObjectHelper.writeObjectHelper([]);
 
-        if(this.handObject [0] != 0){
+        if(tmpHeldObject.id() != 0){
             // TODO check if it hand item fits in container
-            tileObjectHelper.containedObjects.push(handObjectHelper);
+            trace('pushed held object in container: ${tmpHeldObject.writeObjectHelper([])}');
+            tileObjectHelper.containedObjects.push(tmpHeldObject);
         }
 
         this.doAction = true;
@@ -637,10 +433,12 @@ class TransitionHelper{
             return false;
         }
 
-        Server.server.map.setObjectId(this.tx, this.ty, this.newTileObject);
         Server.server.map.setFloorId(this.tx, this.ty, this.newFloorId);
+        Server.server.map.setObjectHelper(this.tx, this.ty, this.tileObjectHelper);
 
-        player.o_id = this.newHandObject;
+        var newTileObject = this.tileObjectHelper.writeObjectHelper([]);
+
+        player.o_id = this.player.heldObject.writeObjectHelper([]);
 
         player.action = 1;
 
@@ -667,10 +465,10 @@ class TransitionHelper{
             
             if(this.doAction){
                 if(this.doTransition){
-                    c.sendMapUpdate(targetX, targetY, this.newFloorId, this.newTileObject, (-1) * player.p_id);
+                    c.sendMapUpdate(targetX, targetY, this.newFloorId, newTileObject, (-1) * player.p_id);
                 }
                 else{
-                    c.sendMapUpdate(targetX, targetY, this.newFloorId, this.newTileObject, player.p_id);
+                    c.sendMapUpdate(targetX, targetY, this.newFloorId, newTileObject, player.p_id);
                 }
             }
             c.send(FRAME);
@@ -680,4 +478,195 @@ class TransitionHelper{
 
         return true;
     }
+
+    public static function doTimeTransition(helper:ObjectHelper)
+        {
+            Server.server.map.mutex.acquire();
+    
+            Server.server.map.timeObjectHelpers.remove(helper);
+    
+            var tx = helper.tx;
+            var ty = helper.ty;
+    
+            var tileObject = Server.server.map.getObjectId(tx, ty);
+            var floorId = Server.server.map.getFloorId(tx, ty);
+    
+            //trace('Time: tileObject: $tileObject');
+    
+            var transition = Server.transitionImporter.getTransition(-1, tileObject[0], false, false);
+    
+            if(transition == null)
+            {
+                // TODO should not happen
+                trace('WARNING: Time: no transtion found! Maybe object was moved? tile: $tileObject helper: ${helper.id()} ${helper.description()}');
+                Server.server.map.mutex.release();
+                return;
+            }
+    
+            if(doAnimalMovement(helper, transition))
+            {
+                Server.server.map.mutex.release();
+                return;
+            }
+    
+            var newTileObject = [transition.newTargetID];
+            Server.server.map.setObjectId(tx, ty, newTileObject);
+            Server.server.map.setObjectHelper(tx, ty, null);
+    
+            // TODO take care if newTileObject has time transition
+    
+            for (c in Server.server.connections)
+            {      
+                var player = c.player;
+                
+                // since player has relative coordinates, transform them for player
+                var x = tx - player.gx;
+                var y = ty - player.gy;
+    
+                // update only close players
+                if(player.isClose(x,y, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+    
+                c.sendMapUpdate(x, y, floorId, newTileObject, -1);
+                c.send(FRAME);
+            }
+    
+            Server.server.map.mutex.release();
+        } 
+    
+        /*
+            MX
+            x y new_floor_id new_id p_id old_x old_y speed
+    
+            Optionally, a line can contain old_x, old_y, and speed.
+            This indicates that the object came from the old coordinates and is moving
+            with a given speed.
+        */
+    
+        private static function doAnimalMovement(helper:ObjectHelper, timeTransition:TransitionData) : Bool
+        {
+            // TODO use chance for movement
+            // TODO LAST movement
+            // TODO check if movement is blocked
+            // TODO collision detection if animal is deadly
+    
+            var moveDist = timeTransition.move;
+    
+            if(moveDist <= 0) return false;
+    
+            var worldmap = Server.server.map;
+    
+            var x = helper.tx;
+            var y = helper.ty;
+    
+            for (i in 0...10)
+            {
+                var tx = helper.tx - moveDist + worldmap.randomInt(moveDist * 2);
+                var ty = helper.ty - moveDist + worldmap.randomInt(moveDist * 2);
+                
+                var target = worldmap.getObjectHelper(tx, ty);
+                //var obj = worldmap.getObjectId(tx, ty);
+                //var objData = Server.objectDataMap[obj[0]];
+    
+                if(target.id() != 0) continue;
+    
+                if(target.blocksWalking()) continue;
+                // dont move move on top of other moving stuff
+                if(target.timeToChange != 0) continue;  
+                if(target.groundObject != null) continue;
+                // make sure that target is not the old tile
+                if(tx == helper.tx && ty == helper.ty) continue;
+                
+                var targetBiome = worldmap.getBiomeId(tx,ty);
+                if(targetBiome == BiomeTag.SNOWINGREY) continue;
+                if(targetBiome == BiomeTag.OCEAN) continue;
+    
+                var isPreferredBiome = false;
+    
+                for(biome in helper.objectData.biomes){
+                    if(targetBiome == biome){
+                        //trace('isPreferredBiome: $biome');
+                        isPreferredBiome = true;
+                    } 
+                }
+                
+                // lower the chances even more if on river
+                //var isHardbiome = targetBiome == BiomeTag.RIVER || (targetBiome == BiomeTag.GREY) || (targetBiome == BiomeTag.SNOW) || (targetBiome == BiomeTag.DESERT);
+                var isNotHardbiome =  isPreferredBiome || targetBiome == BiomeTag.GREEN || targetBiome == BiomeTag.YELLOW;
+    
+                var chancePreferredBiome = isNotHardbiome ? worldmap.chancePreferredBiome : (worldmap.chancePreferredBiome + 4) / 5;
+    
+                //trace('chance: $chancePreferredBiome isNotHardbiome: $isNotHardbiome biome: $targetBiome');
+    
+                // skip with chancePreferredBiome if this biome is not preferred
+                if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 10) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
+    
+                // save what was on the ground, so that we can move on this tile and later restore it
+                var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.writeObjectHelper([]);
+                var newTileObject = helper.writeObjectHelper([]);
+    
+                //var des = helper.groundObject == null ? "NONE": helper.groundObject.description();
+                //trace('MOVE: oldTile: $oldTileObject $des newTile: $newTileObject ${helper.description()}');
+    
+                // TODO only change after movement is finished
+                helper.timeToChange = worldmap.calculateTimeToChange(timeTransition);
+                helper.creationTimeInTicks = Server.server.tick;
+    
+                worldmap.setObjectHelper(x, y, helper.groundObject);
+                worldmap.setObjectId(x,y, oldTileObject); // TODO move to setter
+    
+                var tmpGroundObject = helper.groundObject;
+                helper.groundObject = target;
+                worldmap.setObjectHelper(tx, ty, helper);
+    
+                var chanceForOffspring = isPreferredBiome ? worldmap.chanceForOffspring : worldmap.chanceForOffspring * Math.pow((1 - chancePreferredBiome), 2);
+    
+                // give extra birth chance bonus if population is very low
+                if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] / 2) chanceForOffspring *=5;
+    
+                if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] * worldmap.maxOffspringFactor && worldmap.randomFloat() <= chanceForOffspring)
+                {
+                    // TODO consider dead 
+                    worldmap.currentPopulation[newTileObject[0]] += 1;
+    
+                    //if(chanceForOffspring < worldmap.chanceForOffspring) trace('NEW: $newTileObject ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]} chance: $chanceForOffspring biome: $targetBiome');
+    
+                    oldTileObject = newTileObject;
+                    
+                    var newAnimal = ObjectHelper.readObjectHelper(null, newTileObject);
+                    newAnimal.timeToChange = worldmap.calculateTimeToChange(timeTransition);
+                    newAnimal.groundObject = tmpGroundObject;
+                    worldmap.setObjectHelper(x, y, newAnimal);
+                    //worldmap.setObjectId(x,y, newTileObject); // TODO move to setter
+                }
+                
+                var floorId = Server.server.map.getFloorId(tx, ty);
+                // TODO better speed calculation
+                var speed = 5;
+    
+                for (c in Server.server.connections) 
+                {            
+                    var player = c.player;
+                  
+                     // since player has relative coordinates, transform them for player
+                    var fromX = x - player.gx;
+                    var fromY = y - player.gy;
+                    var targetX = tx - player.gx;
+                    var targetY = ty - player.gy;
+    
+                    // update only close players
+                    if(player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+    
+                    c.sendMapUpdateForMoving(targetX, targetY, floorId, newTileObject, -1, fromX, fromY, speed);
+                    c.sendMapUpdate(fromX, fromY, floorId, oldTileObject, -1);
+                    //c.sendMapUpdate(fromX, fromY, floorId, [0], -1);
+                    c.send(FRAME);
+                }
+    
+                return true;
+            }
+    
+            helper.creationTimeInTicks = Server.server.tick;
+    
+            return false;
+        }    
 }
