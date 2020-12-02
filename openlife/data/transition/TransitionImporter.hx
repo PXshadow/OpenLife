@@ -1,5 +1,6 @@
 package openlife.data.transition;
 
+import openlife.settings.ServerSettings;
 import openlife.server.Server;
 import openlife.data.object.ObjectData;
 import haxe.io.Path;
@@ -82,9 +83,9 @@ class TransitionImporter
         if(objectDataNewActor != null) newActorDescription = objectDataNewActor.description;
         if(objectDataNewTarget != null) newTargetDescription = objectDataNewTarget.description;
 
-        if(transition.targetID != 1206 && targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
+        if(transition.targetID != ServerSettings.traceTransitionById && targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
         
-        //trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
+        trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
     }
 
     private function getTransitionMap(lastUseActor:Bool, lastUseTarget:Bool):Map<Int, Map<Int, TransitionData>>
@@ -143,18 +144,17 @@ class TransitionImporter
 
         var trans = transitionsByTargetId[transition.targetID];
         
-        // TODO there are a lot of double transactions, like Oil Movement, Horse Stuff, Fence / Wall Alignment
+        // TODO there are a lot of double transactions, like Oil Movement, Horse Stuff, Fence / Wall Alignment, Rose Seed
         if(trans != null){
-            traceTransition(trans, "WARNING DOUBLE 1!!", "Seed");
-            traceTransition(transition, "WARNING DOUBLE 2!!", "Seed");
+            traceTransition(trans, "WARNING DOUBLE 1!!", ServerSettings.traceTransitionByTargetDescription);
+            traceTransition(transition, "WARNING DOUBLE 2!!", ServerSettings.traceTransitionByTargetDescription);
             return;
         }
 
         this.transitions.push(transition);
         transitionsByTargetId[transition.targetID] = transition;
 
-        //traceTransition(transition, "", "Stone Pile");
-        traceTransition(transition, "", "Seed");
+        traceTransition(transition, "", ServerSettings.traceTransitionByTargetDescription);
 
         //if(transition.reverseUseTarget) traceTransition(transition, "", "");
     }
@@ -189,14 +189,41 @@ class TransitionImporter
         // TODO 1600 is a pile, 1601 is a pile element: what to do with this transitions? 
         // @ Pile Element + @ Pile Element -->   + @ Pile 
         // 0   + @ Pile -->  @ Pile Element + @ Pile
+        
         // Ignore piles for now
         if(actorCategory != null && (actorCategory.parentID == 1600 || actorCategory.parentID == 1601)) {
             trace(transition);
             return;
         }
         // if(newTargetCategory != null && newTargetCategory.parentID != 1600 && newTargetCategory.parentID != 1601) return;
-        if(targetCategory != null && (targetCategory.parentID == 1600 || targetCategory.parentID == 1601)) {
+        if(targetCategory != null && (targetCategory.parentID == 1600 || targetCategory.parentID == 1601)) 
+        {
             trace(transition);
+
+            var pileItemsCategory = getCategory(1601);
+
+            for(i in 0...targetCategory.ids.length)
+            {
+                var newTransition = transition.clone();
+
+                newTransition.targetID = targetCategory.ids[i];
+                newTransition.newActorID = pileItemsCategory.ids[i];
+
+                if(newTransition.newTargetID == 1600)
+                {
+                    // 0 + 1600 = 1601 + 1600 
+                    newTransition.newTargetID = targetCategory.ids[i];
+                }
+                else
+                {
+                    // 0 + 1600 = 1601 + 1601 (last)
+                    newTransition.newTargetID = pileItemsCategory.ids[i];
+                }
+
+                addTransition(newTransition);
+            }
+            
+
             return;
         }
 
