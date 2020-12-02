@@ -177,53 +177,46 @@ class TransitionImporter
 
         var actorCategory = getCategory(transition.actorID);
         var targetCategory = getCategory(transition.targetID);
-        //var newTargetCategory = this.categoriesById[transition.newTargetID];
+
         var bothActionAndTargetIsCategory = (actorCategory != null) && (targetCategory != null);
 
-        if(bothActionAndTargetIsCategory){
-            //traceTransition(transition, 'bothActionAndTargetIsCategory: ');
-            // TODO i dont know
-            return;
-        }
-
-        // TODO 1600 is a pile, 1601 is a pile element: what to do with this transitions? 
-        // @ Pile Element + @ Pile Element -->   + @ Pile 
-        // 0   + @ Pile -->  @ Pile Element + @ Pile
-        
-        // Ignore piles for now
-        if(actorCategory != null && (actorCategory.parentID == 1600 || actorCategory.parentID == 1601)) {
-            trace(transition);
-            return;
-        }
-        // if(newTargetCategory != null && newTargetCategory.parentID != 1600 && newTargetCategory.parentID != 1601) return;
-        if(targetCategory != null && (targetCategory.parentID == 1600 || targetCategory.parentID == 1601)) 
+        if(bothActionAndTargetIsCategory)
         {
-            trace(transition);
+            // TODO many strange transitions to look at...
+            //traceTransition(transition, 'bothActionAndTargetIsCategory: ');
+            //return;
+        }
+             
+        // add some pile target transitions
+        // 1601 + 1600 = 0 + 1600
+        // 1601 + 1601
+        // 0 + 1600 = 1601 + 1601 (last)
+        // 0 + 1600 = 1601 + 1600 
+        var isPileTransition = targetCategory != null && (targetCategory.parentID == 1600 || targetCategory.parentID == 1601);
+        isPileTransition = isPileTransition || (actorCategory != null && (actorCategory.parentID == 1600 || actorCategory.parentID == 1601));
 
+        if(isPileTransition) 
+        {
+            //trace(transition);
+
+            var pileCategory = getCategory(1600);
             var pileItemsCategory = getCategory(1601);
 
-            for(i in 0...targetCategory.ids.length)
+            for(i in 0...pileCategory.ids.length)
             {
                 var newTransition = transition.clone();
 
-                newTransition.targetID = targetCategory.ids[i];
-                newTransition.newActorID = pileItemsCategory.ids[i];
-
-                if(newTransition.newTargetID == 1600)
-                {
-                    // 0 + 1600 = 1601 + 1600 
-                    newTransition.newTargetID = targetCategory.ids[i];
-                }
-                else
-                {
-                    // 0 + 1600 = 1601 + 1601 (last)
-                    newTransition.newTargetID = pileItemsCategory.ids[i];
-                }
+                if(newTransition.actorID == 1601) newTransition.actorID = pileItemsCategory.ids[i];
+                if(newTransition.targetID == 1600) newTransition.targetID = pileCategory.ids[i];
+                else if(newTransition.targetID == 1601) newTransition.targetID = pileItemsCategory.ids[i];
+                
+                if(newTransition.newActorID == 1601) newTransition.newActorID = pileItemsCategory.ids[i];
+                if(newTransition.newTargetID == 1600) newTransition.newTargetID = pileCategory.ids[i];
+                else if(newTransition.newTargetID == 1601) newTransition.newTargetID = pileItemsCategory.ids[i];
 
                 addTransition(newTransition);
             }
             
-
             return;
         }
 
