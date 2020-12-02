@@ -324,6 +324,7 @@ class WorldMap
                     case CDESERT: biomeInt = DESERT;
                     case CSAND: biomeInt = DESERT;
                     case CJUNGLE: biomeInt = JUNGLE;
+                    case CSWAMP: biomeInt = SWAMP;
                     case CSNOWINGREY: biomeInt = SNOWINGREY;
                     case COCEAN: biomeInt = OCEAN;
                     case CRIVER: biomeInt = RIVER;
