@@ -340,12 +340,12 @@ class TransitionHelper{
         trace('Hand Object ${this.player.heldObject.id()}');
         trace('Hand Object Slot size: ${handObjectData.slotSize} TO: container Size: ${tileObjectData.containSize}');
 
-        //this.newHandObject = [0];
-        this.player.heldObject.setId(0);
-
+        
         //trace('Hand object: ${handObjectHelper.writeObjectHelper([])}');
 
         tileObjectHelper.containedObjects.push(this.player.heldObject);
+
+        this.player.heldObject = ObjectHelper.readObjectHelper(player,[0]);
 
         //trace('Tile object: ${tileObject}');
 
