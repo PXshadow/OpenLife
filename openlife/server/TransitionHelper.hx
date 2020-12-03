@@ -132,7 +132,8 @@ class TransitionHelper{
         
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;
 
-        // TODO drop hand object in container
+        // switch hand object in container with last object in container 
+        if(this.doContainerStuff(true)) return true;
 
         // TODO adding something to own clothing using clothingIndex
 
@@ -322,7 +323,8 @@ class TransitionHelper{
         return true;
     }
 
-    public function doContainerStuff() : Bool
+    // DROP switches the object with the last object in the container and cycles throuh the objects / USE just put it in
+    public function doContainerStuff(isDrop:Bool = false) : Bool
     {
         trace("containable: " + tileObjectData.containable + " desc: " + tileObjectData.description + " numSlots: " + tileObjectData.numSlots);
 
@@ -330,8 +332,16 @@ class TransitionHelper{
         //if ((objectData.numSlots == 0 || MapData.numSlots(this.tileObject) >= objectData.numSlots)) return false;
         if (tileObjectData.numSlots == 0) return false; 
 
-        if(this.tileObjectHelper.containedObjects.length >= tileObjectData.numSlots) return false;
-        
+        var amountOfContainedObjects = tileObjectHelper.containedObjects.length;
+
+        // if hand is empty then remove last object from container
+        if(player.heldObject.id() == 0 && amountOfContainedObjects > 0)
+        {
+            trace("CALL REMOVE");
+            if(remove(amountOfContainedObjects -1)) return true;
+            return false;
+        }
+
         // place hand object in container if container has enough space
         //if (handObjectData.slotSize >= objectData.containSize) {
         trace('handObjectData.slotSize: ${handObjectData.slotSize} tileObjectData.containSize: ${tileObjectData.containSize}');
@@ -340,18 +350,27 @@ class TransitionHelper{
         trace('Hand Object ${this.player.heldObject.id()}');
         trace('Hand Object Slot size: ${handObjectData.slotSize} TO: container Size: ${tileObjectData.containSize}');
 
-        
-        //trace('Hand object: ${handObjectHelper.writeObjectHelper([])}');
+        if(isDrop == false)            
+        {
+            if(amountOfContainedObjects >= tileObjectData.numSlots) return false;
 
-        tileObjectHelper.containedObjects.push(this.player.heldObject);
+            tileObjectHelper.containedObjects.push(this.player.heldObject);
 
-        this.player.heldObject = ObjectHelper.readObjectHelper(player,[0]);
+            this.player.heldObject = ObjectHelper.readObjectHelper(player,[0]);
 
-        //trace('Tile object: ${tileObject}');
+            this.doAction = true;
+            return true;
+        }
 
-        //this.newTileObject = tileObjectHelper.writeObjectHelper([]);
+        var tmpObject = tileObjectHelper.removeContainedObject(-1);
 
-        trace('New Tile object: ${tileObjectHelper.writeObjectHelper([])}');
+        tileObjectHelper.containedObjects.insert(0 , this.player.heldObject);
+
+        this.player.heldObject = tmpObject;
+
+
+        trace('DROP SWITCH Hand object: ${player.heldObject.writeObjectHelper([])}');
+        trace('DROP SWITCH New Tile object: ${tileObjectHelper.writeObjectHelper([])}');
 
         this.doAction = true;
         return true;
@@ -364,7 +383,7 @@ class TransitionHelper{
      i specifies the index of the container item to remove, or -1 to
      remove top of stack.*/
 
-    public function remove(index:Int)
+    public function remove(index:Int) : Bool
     {
         trace("remove index " + index);
 
@@ -373,16 +392,17 @@ class TransitionHelper{
 
         if(tileObjectHelper.containedObjects.length < 1) return false;            
 
-        var tmpHeldObject = this.player.heldObject;
+        //var tmpHeldObject = this.player.heldObject;
         this.player.heldObject = tileObjectHelper.removeContainedObject(index);
 
         //this.newTileObject = tileObjectHelper.writeObjectHelper([]);
 
+        /*
         if(tmpHeldObject.id() != 0){
             // TODO check if it hand item fits in container
             trace('pushed held object in container: ${tmpHeldObject.writeObjectHelper([])}');
             tileObjectHelper.containedObjects.push(tmpHeldObject);
-        }
+        }*/
 
         this.doAction = true;
         return true;
