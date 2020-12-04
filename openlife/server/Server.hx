@@ -29,20 +29,18 @@ class Server
 {
     public static var server:Server; 
     public static var tickTime = 1 / 20;
-    public static var vector:Vector<ObjectData>;
-    public static var objectDataMap:Map<Int, ObjectData> = [];
+    //public static var vector:Vector<ObjectData>;
+    
     public static var transitionMap:Map<Int, ObjectData> = [];
     public static var transitionImporter:TransitionImporter = new TransitionImporter();
 
-    public static var maxDistanceToBeConsideredAsClose = 20;
-
-
+    public var map:WorldMap; // THE WORLD
     public var connections:Array<Connection> = [];
    
     public var tick:Int = 0;
     public var serverStartingTime:Float = 0;
-    public var index:Int = 1;
-    public var map:WorldMap;
+    public var playerIndex:Int = 1; // used for giving new IDs to players
+    
     
     public var dataVersionNumber:Int = 0;
 
@@ -83,55 +81,25 @@ class Server
         row.insert();
         trace("insert");*/
 
-        Engine.dir = Utility.dir();
-        var tmp = ObjectBake.objectList();
-        vector = new Vector<ObjectData>(tmp.length);
+        // do all the object inititalisation stuff
+        ObjectData.ImportObjectData();
+        ObjectData.CreateAndAddDummyObjectData();
+        ObjectData.GenerateBiomeObjectData();
 
+        dataVersionNumber = Resource.dataVersionNumber();
+        trace('dataVersionNumber: $dataVersionNumber');
 
-        trace("Import Object Data...");
-        objectDataMap = [];
-
-        
-
-        for (i in 0...vector.length){
-            var objectData = new ObjectData(tmp[i]);
-            vector[i] = objectData;
-            objectDataMap[objectData.id] = objectData;            
-        }
-
-        //var dummyId = vector.length;
-        var dummyId = vector[vector.length-1].id + 1;
-
-        trace('starting dummyId :$dummyId');
-        
-        for (i in 0...vector.length)
-        {
-            if(vector[i].numUses < 2) continue;
-            
-            for(ii in 0...vector[i].numUses-1)
-            {
-                if(vector[i].id <= 30){
-                    trace('id: ${vector[i].id} dummyID: $dummyId ${vector[i].description}');
-                }
-
-                dummyId++;
-            }
-        }
-
-        // Add empty object
-        objectDataMap[0] = new ObjectData(0,false,true);
-
-        trace("Object Data imported: " + vector.length);
-
+        // do all the object transition inititalisation stuff
         trace("Import transitions...");
         transitionImporter.importCategories();
         transitionImporter.importTransitions();
 
-        dataVersionNumber = Resource.dataVersionNumber();
-        trace('dataVersionNumber: $dataVersionNumber');
+        
+        // do all the map inititalisation stuff
         map = new WorldMap();
         map.generate();
         
+        // run run run Thread run run run
         var thread = new ThreadServer(this,8005);
         Thread.create(function()
         {

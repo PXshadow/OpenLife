@@ -86,10 +86,6 @@ class WorldMap
     static inline final MAX_NUM:Int = 2147483647;
     static inline final MODULUS:Int = MAX_NUM;
 
-    // used for creation of the map
-    private var biomeTotalChance:Map<Int,Float>; 
-    private var biomeObjectData:Map<Int, Array<ObjectData>>;
-
     public function new()
     {
 
@@ -294,7 +290,7 @@ class WorldMap
 
         var pngDir = "./map.png";
         var pngmap = readPixels(pngDir);
-        //size 726x405
+
         width = pngmap.width;
         height = pngmap.height;
         length = width * height;       
@@ -304,8 +300,6 @@ class WorldMap
 
         createVectors(length);
 
-        generateBiomeObjectData();
-        
         var generatedObjects = 0;
 
         for (y in 0...height){
@@ -359,11 +353,11 @@ class WorldMap
                 
                 var set:Bool = false;
 
-                var biomeData = biomeObjectData[biomeInt];
+                var biomeData = ObjectData.biomeObjectData[biomeInt];
 
                 if(biomeData == null) continue;
 
-                var random = randomFloat() * this.biomeTotalChance[biomeInt]; 
+                var random = randomFloat() * ObjectData.biomeTotalChance[biomeInt]; 
                 var sumChance = 0.0;
                 
                 for (obj in biomeData) {
@@ -396,12 +390,13 @@ class WorldMap
 
         trace('generatedObjects: $generatedObjects');      
 
-        for(key in initialPopulation.keys()){
-            //trace('${initialPopulation[obj.id]}');
-            var objData = Server.objectDataMap[key];
-            //trace('Generated obj[${key}] ${objData.description}: ${initialPopulation[key]}');
+        if(ServerSettings.traceAmountGeneratedObjects)
+        {
+            for(key in initialPopulation.keys()){
+                var objData = ObjectData.getObjectData(key);
+                trace('Generated obj[${key}] ${objData.description}: ${initialPopulation[key]}');
+            }
         }
-        
     }
 
     function generateExtraStuff()
@@ -457,44 +452,7 @@ class WorldMap
                 } 
             }
         }
-    }
-
-    function generateBiomeObjectData()
-    {
-        this.biomeObjectData = [];
-        this.biomeTotalChance = [];
-        for (obj in Server.vector) {
-            if (obj.mapChance == 0) continue;
-            // increase chance for iron // TODO better patch data directly
-            if(obj.id == 942)
-                obj.mapChance *= 3;
-            if (obj.id == 2156)
-                obj.mapChance *= 3;
-            if (obj.deadlyDistance > 0)
-                obj.mapChance *= 0;
-            
-
-            for(biome in obj.biomes){
-
-                var biomeData = this.biomeObjectData[biome];
-                if(biomeData == null){
-                    biomeData = [];
-                    this.biomeObjectData[biome] = biomeData;
-                    this.biomeTotalChance[biome] = 0;
-                }
-                biomeData.push(obj);
-                this.biomeTotalChance[biome] += obj.mapChance;
-
-                //var objectDataTarget = Server.objectDataMap[obj.id];
-                //if(objectDataTarget != null) trace('biome: $biome c:${obj.mapChance} tc:${this.biomeTotalChance[biome]} ${objectDataTarget.description}');
-                
-            }
-        }
-        //shuffleBiomeArray(buffer); //seeded random
-        //biomeObjectData.push(buffer);
-        //}
-        //return biomeObjectData;
-    }
+    }    
     
     function readPixels(file:String):{data:Bytes, width:Int, height:Int} {
         var handle = sys.io.File.read(file, true);

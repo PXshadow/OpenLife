@@ -81,7 +81,7 @@ class Connection implements ServerHeader
         player = new GlobalPlayerInstance([]);
         
         player.connection = this;
-        var id = server.index++;
+        var id = server.playerIndex++;
         player.p_id = id;
         player.gx = ServerSettings.startingGx;
         player.gy = ServerSettings.startingGy;
@@ -100,7 +100,7 @@ class Connection implements ServerHeader
             var targetY = player.gy - c.player.gy;
 
             // update only close players
-            if(c.player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+            if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
             c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)]);
             c.send(FRAME);

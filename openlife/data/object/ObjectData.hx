@@ -1,4 +1,6 @@
 package openlife.data.object;
+import openlife.engine.Utility;
+import openlife.engine.Engine;
 import openlife.resources.ObjectBake;
 import haxe.io.Input;
 import haxe.ds.Vector;
@@ -6,6 +8,15 @@ import openlife.data.sound.SoundData;
 @:expose
 class ObjectData extends LineReader
 {
+    private static var importedObjectData:Vector<ObjectData>;
+
+    // stores all ObjectData including dummy objects for objects with numUse > 2
+    private static var objectDataMap:Map<Int, ObjectData> = [];
+
+    // used for creation of the inital objects on the worldmap
+    public static var biomeTotalChance:Map<Int,Float>; 
+    public static var biomeObjectData:Map<Int, Array<ObjectData>>;
+
     /**
      * Max clothing pieces
      */
@@ -297,6 +308,96 @@ class ObjectData extends LineReader
     var maxWideRadius:Int = 0;
     var onlyDescription:Bool;
     public var noBackAcess:Bool = false;
+
+    public static function getObjectData(id:Int)
+    {
+        return objectDataMap[id];
+    }
+        
+    public static function ImportObjectData()
+    {
+        trace("Import Object Data...");
+
+        Engine.dir = Utility.dir();
+        var tmp = ObjectBake.objectList();
+        importedObjectData = new Vector<ObjectData>(tmp.length);
+
+        objectDataMap = [];
+
+        // Add empty object
+        objectDataMap[0] = new ObjectData(0,false,true);
+
+        trace("Create Object Data...");
+
+        for (i in 0...importedObjectData.length){
+            var objectData = new ObjectData(tmp[i]);
+            importedObjectData[i] = objectData;
+            objectDataMap[objectData.id] = objectData;            
+        }
+
+        trace("Object Data imported: " + importedObjectData.length);
+    }
+
+    // link dummy ObjectData for objects with numUse > 2
+    public static function CreateAndAddDummyObjectData()
+    {
+        var dummyId = importedObjectData[importedObjectData.length-1].id + 1;
+        var starting = dummyId;
+
+        trace('starting dummyId :$dummyId');
+        
+        for (i in 0...importedObjectData.length)
+        {
+            if(importedObjectData[i].numUses < 2) continue;
+            
+            for(ii in 0...importedObjectData[i].numUses - 1)
+            {
+                if(importedObjectData[i].id <= 30) trace('id: ${importedObjectData[i].id} dummyID: $dummyId ${importedObjectData[i].description}');
+
+                objectDataMap[dummyId] = importedObjectData[i];
+
+                dummyId++;
+            }
+        }
+
+        trace('finished adding dummy objects with numUse > 2 :${dummyId - starting}');
+    }
+
+
+
+    public static function GenerateBiomeObjectData()
+    {
+        biomeObjectData = [];
+        biomeTotalChance = [];
+        
+        for (obj in importedObjectData)
+        {
+            if (obj.mapChance == 0) continue;
+            // increase chance for iron // TODO better patch data directly
+            if(obj.id == 942)
+                obj.mapChance *= 3;
+            if (obj.id == 2156)
+                obj.mapChance *= 3;
+            if (obj.deadlyDistance > 0)
+                obj.mapChance *= 0;
+            
+
+            for(biome in obj.biomes){
+
+                var biomeData = biomeObjectData[biome];
+                if(biomeData == null){
+                    biomeData = [];
+                    biomeObjectData[biome] = biomeData;
+                    biomeTotalChance[biome] = 0;
+                }
+                biomeData.push(obj);
+                biomeTotalChance[biome] += obj.mapChance;
+
+                //var objectDataTarget = Server.objectDataMap[obj.id];
+                //if(objectDataTarget != null) trace('biome: $biome c:${obj.mapChance} tc:${this.biomeTotalChance[biome]} ${objectDataTarget.description}');
+            }
+        }
+    }
 
     
     public function new(i:Int=0,onlyDescription:Bool=false, createNullObject:Bool = false)

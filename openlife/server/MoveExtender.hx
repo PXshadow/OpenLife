@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.settings.ServerSettings;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.Pos;
 
@@ -61,7 +62,7 @@ class MoveExtender{
             // TODO maybe make player "exhausted" with lower movementspeed if he "cheats" to much
             // This could be miss used to double movement speed. But Client seems to do it this way...
 
-            if(p.isClose(x,y,2) == false)
+            if(p.isClose(x,y,ServerSettings.MaxMovementCheatingDistanceBeforeForce) == false)
             {
                 p.forced = true;
 
@@ -124,7 +125,7 @@ class MoveExtender{
                 var targetY = y + p.gy - c.player.gy;
 
                 // update only close players
-                if(c.player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
                 c.send(PLAYER_MOVES_START,['${p.p_id} ${targetX} ${targetY} ${me.totalMoveTime} $eta ${newMovements.trunc} ${moveString(me.newMoves)}']);
                 
@@ -260,7 +261,7 @@ class MoveExtender{
                     var targetY = p.gy - c.player.gy;
 
                     // update only close players
-                    if(c.player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+                    if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
                     //c.send(PLAYER_MOVES_START,['${this.p_id} $x $y $totalMoveTime $totalMoveTime $trunc ${moveString(newMoves)}']);
                     c.send(PLAYER_UPDATE,[p.toRelativeData(c.player)]);

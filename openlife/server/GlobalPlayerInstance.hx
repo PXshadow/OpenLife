@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.object.ObjectData;
 import openlife.settings.ServerSettings;
 import haxe.ds.Vector;
 import openlife.data.object.ObjectHelper;
@@ -97,8 +98,9 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         trace('self: ${this.o_id[0]} clothingSlot: $clothingSlot');
 
-        if(this.o_id[0] != 0){
-            var objectData = Server.objectDataMap[this.o_id[0]];
+        if(this.o_id[0] != 0)
+        {
+            var objectData = ObjectData.getObjectData(this.o_id[0]);
             //trace("OD: " + objectData.toFileString());        
 
             switch objectData.clothing.charAt(0) {
@@ -170,7 +172,7 @@ class GlobalPlayerInstance extends PlayerInstance {
             var targetY = this.gy - c.player.gy;
 
             // update only close players
-            if(c.player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+            if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
             c.send(PLAYER_UPDATE,[this.toRelativeData(c.player)]);
             c.send(FRAME);
@@ -204,7 +206,7 @@ class GlobalPlayerInstance extends PlayerInstance {
                 var targetY = this.gy - c.player.gy;
 
                 // update only close players
-                if(c.player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
                 c.send(PLAYER_UPDATE,[this.toRelativeData(c.player)]);
                 c.send(FRAME);

@@ -68,10 +68,10 @@ class TransitionImporter
 
     public function traceTransition(transition:TransitionData, s:String = "", targetDescContains:String = ""){
 
-        var objectDataActor = Server.objectDataMap[transition.actorID];
-        var objectDataTarget = Server.objectDataMap[transition.targetID];
-        var objectDataNewActor = Server.objectDataMap[transition.newActorID];
-        var objectDataNewTarget = Server.objectDataMap[transition.newTargetID];
+        var objectDataActor = ObjectData.getObjectData(transition.actorID);
+        var objectDataTarget = ObjectData.getObjectData(transition.targetID);
+        var objectDataNewActor = ObjectData.getObjectData(transition.newActorID);
+        var objectDataNewTarget = ObjectData.getObjectData(transition.newTargetID);
 
         var actorDescription = "";
         var targetDescription = "";
@@ -163,9 +163,9 @@ class TransitionImporter
     // so better look also for @ in the description
     public function getCategory(id:Int) : Category
     {
-        var objectData = Server.objectDataMap[id];
+        //var objectData = ObjectData.getObjectData(id);
 
-        if(objectData == null) return null;
+        //if(objectData == null) return null;
 
         // TODO there was a reason for checking for @, but 1206 (Cabbage Seed) is an object and an category so wont work for this
         //if(objectData.description.indexOf("@") == -1) return null;

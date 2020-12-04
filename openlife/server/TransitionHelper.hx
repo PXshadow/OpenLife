@@ -484,7 +484,7 @@ class TransitionHelper{
             var targetY = this.ty - c.player.gy;
 
             // update only close players
-            if(c.player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+            if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
             c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)]);
             
@@ -549,7 +549,7 @@ class TransitionHelper{
                 var y = ty - player.gy;
     
                 // update only close players
-                if(player.isClose(x,y, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+                if(player.isClose(x,y, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
     
                 c.sendMapUpdate(x, y, floorId, newTileObject, -1);
                 c.send(FRAME);
@@ -679,7 +679,7 @@ class TransitionHelper{
                     var targetY = ty - player.gy;
     
                     // update only close players
-                    if(player.isClose(targetX,targetY, Server.maxDistanceToBeConsideredAsClose) == false) continue;
+                    if(player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
     
                     c.sendMapUpdateForMoving(targetX, targetY, floorId, newTileObject, -1, fromX, fromY, speed);
                     c.sendMapUpdate(fromX, fromY, floorId, oldTileObject, -1);
