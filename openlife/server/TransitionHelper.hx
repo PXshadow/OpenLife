@@ -38,7 +38,7 @@ class TransitionHelper{
     public var doTransition:Bool = true;
     public var doAction:Bool;
 
-    public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1)
+    public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0)
     {
         //trace("try to acquire player mutex");
         player.mutex.acquire();
@@ -47,12 +47,12 @@ class TransitionHelper{
 
         if(ServerSettings.debug)
         {
-            doCommandHelper(player, tag, x, y, index);
+            doCommandHelper(player, tag, x, y, index, target);
         }
         else{
             try
             {
-                doCommandHelper(player, tag, x, y, index);
+                doCommandHelper(player, tag, x, y, index, target);
             } 
             catch(e)
             {                
@@ -70,14 +70,14 @@ class TransitionHelper{
         player.mutex.release();
     }  
 
-    public static function doCommandHelper(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1)
+    public static function doCommandHelper(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0)
     {
         var helper = new TransitionHelper(player, x, y);
 
         switch (tag)
         {
             case USE: 
-                helper.use();
+                helper.use(target, index);
             case DROP:
                 helper.drop(index); 
             case REMV:
@@ -112,6 +112,7 @@ class TransitionHelper{
 
         //trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
 
+        
         trace('handObjectHelper: ' + player.heldObject.writeObjectHelper([]));
         trace('tileObjectHelper: ' + tileObjectHelper.writeObjectHelper([]));
     }
@@ -154,7 +155,7 @@ class TransitionHelper{
      object on (for example, using a knife to slice bread sitting on a table).
     */
 
-    public function use() : Bool
+    public function use(target:Int, index:Int) : Bool
     {
         // TODO intentional use with index, see description above
 
@@ -182,7 +183,7 @@ class TransitionHelper{
         if(this.player.heldObject.id() == 0 && this.swapHandAndFloorObject()) return true;            
         
         // do container stuff
-        return this.doContainerStuff();
+        return this.doContainerStuff(false, index);
     }
 
     public function checkIfNotMovingAndCloseEnough():Bool{
@@ -227,6 +228,12 @@ class TransitionHelper{
 
         trace('Found transition: a${transition.actorID} t${transition.targetID}');
 
+        // if it is a reverse transition, check if it would exceed max numberOfUses
+        if(transition.reverseUseTarget && this.tileObjectHelper.numberOfUses >= this.tileObjectData.numUses){
+            trace('Cannot do reverse transition for taget: TileObject: ${this.tileObjectHelper.id()} numUses: ${this.tileObjectHelper.numberOfUses} targetObjectData.numUses: ${tileObjectData.numUses}');
+            return false;
+        }
+
         var targetChanged = this.tileObjectHelper.setId(transition.newTargetID);
         var newTargetObjectData = this.tileObjectHelper.objectData;
         
@@ -247,8 +254,8 @@ class TransitionHelper{
         //transition source object id (or -1) if held object is result of a transition 
         //if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
         this.newTransitionSource = transition.targetID; // TODO 
-
-        player.heldObject.objectData = Server.objectDataMap[transition.newActorID];
+        
+        player.heldObject.setId(transition.newActorID);
              
         // Add HelperObject to timeObjectHelpers if newTargetObject has time transitions
         var timeTransition = Server.transitionImporter.getTransition(-1, transition.newTargetID, false, false);
@@ -259,7 +266,7 @@ class TransitionHelper{
             tileObjectHelper.timeToChange = Server.server.map.calculateTimeToChange(timeTransition);  
 
             Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
-            Server.server.map.timeObjectHelpers.push(tileObjectHelper);
+            // TODO Server.server.map.timeObjectHelpers.push(tileObjectHelper);
         }
 
         trace('newTileObject: ${this.tileObjectHelper.id()} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
@@ -274,8 +281,6 @@ class TransitionHelper{
                 this.tileObjectHelper.numberOfUses = 1;
             } 
             
-            //Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
-
             trace('Changed Target Object Type: numberOfUses: ' + this.tileObjectHelper.numberOfUses);
 
             // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
@@ -324,7 +329,7 @@ class TransitionHelper{
     }
 
     // DROP switches the object with the last object in the container and cycles throuh the objects / USE just put it in
-    public function doContainerStuff(isDrop:Bool = false) : Bool
+    public function doContainerStuff(isDrop:Bool = false, index:Int = -1) : Bool
     {
         trace("containable: " + tileObjectData.containable + " desc: " + tileObjectData.description + " numSlots: " + tileObjectData.numSlots);
 
@@ -338,7 +343,7 @@ class TransitionHelper{
         if(player.heldObject.id() == 0 && amountOfContainedObjects > 0)
         {
             trace("CALL REMOVE");
-            if(remove(amountOfContainedObjects -1)) return true;
+            if(remove(index)) return true;
             return false;
         }
 

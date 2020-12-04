@@ -115,6 +115,12 @@ class WorldMap
         setObjectId(tx+6, ty+1, [586]);
         setObjectId(tx+7, ty+1, [2951]);
 
+        // spring / tool use
+        setObjectId(tx - 4,ty + 4,[3030]);
+        setObjectId(tx - 5,ty + 4,[334]);
+        setObjectId(tx - 6,ty + 4,[334]);
+        setObjectId(tx - 7,ty + 4,[661]);
+
         // test time / decay transitions
         setObjectId(tx - 4,ty + 5,[248]);
         setObjectId(tx - 5,ty + 5,[82]);
@@ -130,8 +136,11 @@ class WorldMap
         setObjectId(tx - 6,ty + 10,[292,2143,2143,2143]);
         setObjectId(tx - 7,ty + 10,[292,33,2143,33]);
         setObjectId(tx - 8,ty + 10,[2143,2143,2143]);
-        setObjectId(tx - 7,ty + 10,[3371,33,2143,33]);
+        // table
+        setObjectId(tx - 9,ty + 10,[3371,33,2143,33]);
+        setObjectId(tx - 10,ty + 10,[3371,2873,2873,245]);
     }
+    
     
     private function generateSeed():Int
     {
@@ -342,7 +351,8 @@ class WorldMap
                 //if(objects[x+y*width][0] != 0) continue;
 
                 objects[x+y*width] = [0];
-
+                //if(x+y*width < 10000) objects[x+y*width] = [4746];
+                 
                 //if(x < 200 || x > 600) continue;
                 if (randomFloat() > 0.4) continue;
                 

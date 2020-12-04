@@ -4,7 +4,7 @@ class ServerSettings
 {
     public static var debug = true;
     public static var traceTransitionById = 99972;
-    public static var traceTransitionByTargetDescription = "!!!Kindling";
+    public static var traceTransitionByTargetDescription = "!!!Gooseberry Bush";
 
     public static var startingGx = 360;
     public static var startingGy = 600 - 400; // server map is saved y inverse 

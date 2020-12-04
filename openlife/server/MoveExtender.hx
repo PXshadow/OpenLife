@@ -40,6 +40,8 @@ class MoveExtender{
 
     static public function move(p:GlobalPlayerInstance, x:Int,y:Int,seq:Int,moves:Array<Pos>)
         {
+            //trace(Server.server.map.getObjectId(p.gx + x, p.gy + y));
+
             // since move update may acces this also
             p.mutex.acquire(); 
 

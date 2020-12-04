@@ -91,10 +91,31 @@ class Server
         trace("Import Object Data...");
         objectDataMap = [];
 
+        
+
         for (i in 0...vector.length){
             var objectData = new ObjectData(tmp[i]);
             vector[i] = objectData;
-            objectDataMap[objectData.id] = objectData;
+            objectDataMap[objectData.id] = objectData;            
+        }
+
+        //var dummyId = vector.length;
+        var dummyId = vector[vector.length-1].id + 1;
+
+        trace('starting dummyId :$dummyId');
+        
+        for (i in 0...vector.length)
+        {
+            if(vector[i].numUses < 2) continue;
+            
+            for(ii in 0...vector[i].numUses-1)
+            {
+                if(vector[i].id <= 30){
+                    trace('id: ${vector[i].id} dummyID: $dummyId ${vector[i].description}');
+                }
+
+                dummyId++;
+            }
         }
 
         // Add empty object
@@ -196,14 +217,10 @@ class Server
                 header.player.specialRemove(Std.parseInt(input[0]),Std.parseInt(input[1]),Std.parseInt(input[2]),input.length > 3 ? Std.parseInt(input[3]) : null);
             case REMV:
                 TransitionHelper.doCommand(header.player, tag, Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
-                //header.player.remove(Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
             case USE:
-                // TODO handles 3 and 4 optional parameter see USE protocoll
-                TransitionHelper.doCommand(header.player, tag, Std.parseInt(input[0]),Std.parseInt(input[1]));
-                //header.player.use(Std.parseInt(input[0]), Std.parseInt(input[1]));
+                TransitionHelper.doCommand(header.player, tag, Std.parseInt(input[0]),Std.parseInt(input[1]), input.length > 3 ? Std.parseInt(input[3]) : -1 ,input.length > 2 ? Std.parseInt(input[2]) : 0);
             case DROP:
                 TransitionHelper.doCommand(header.player, tag, Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
-                //header.player.drop(Std.parseInt(input[0]), Std.parseInt(input[1]));
             case SELF:
                 header.player.self(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]));
             case SAY:
