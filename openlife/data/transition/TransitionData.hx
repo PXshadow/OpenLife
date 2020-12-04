@@ -157,17 +157,17 @@ class TransitionData
       //public var actorMinUseFraction:Float = 0;
       //public var targetMinUseFraction:Float = 0;
 
-      //s += 'reverseUseActor: $reverseUseActor ';
-      //s += 'reverseUseTarget: $reverseUseTarget ';
+      s += 'reverseUseActor: $reverseUseActor ';
+      s += 'reverseUseTarget: $reverseUseTarget ';
       //s += 'move: $move ';
 
       //public var desireMoveDist:Bool = false;
-      //public var noUseActor:Bool = false;
-      //public var noUseTarget:Bool = false;
+      s += 'noUseActor: $noUseActor ';
+      s += 'noUseTarget: $noUseTarget ';
 
       //public var playerActor:Bool = false;
       //public var tool:Bool = false;
-      //public var targetRemains:Bool = false;
+      s += 'targetRemains: $targetRemains ';
 
       return s;
     }

@@ -1,5 +1,6 @@
 package openlife.server;
 
+import sys.db.Object;
 import openlife.settings.ServerSettings;
 import openlife.server.WorldMap.BiomeTag;
 import openlife.data.transition.TransitionData;
@@ -202,6 +203,11 @@ class TransitionHelper{
 
     public function doTransitionIfPossible() : Bool
     {
+        // dummies are objects with numUses > 1 numUse = maxUse is the original
+        if(tileObjectData.dummy)
+        {
+            tileObjectData = tileObjectData.dummyParent;
+        }
         // TODO //public var useChance:Float = 0;
 
         // TODO lastUseActorObject
@@ -214,28 +220,33 @@ class TransitionHelper{
             trace("lastUseTileObject = true");
         }
 
-        var transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.tileObjectHelper.id(), lastUseActorObject, lastUseTileObject);
+        var transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.tileObjectData.id, lastUseActorObject, lastUseTileObject);
 
         var targetIsFloor = false;
 
         // check if there is a floor and no object is on the floor. otherwise the object may be overriden
-        if((transition == null) && (this.floorId != 0) && (this.tileObjectHelper.id() == 0)){
+        if((transition == null) && (this.floorId != 0) && (this.tileObjectData.id == 0))
+        {
             transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.floorId);
             if(transition != null) targetIsFloor = true;
         }
 
         if(transition == null) return false;
 
-        trace('Found transition: a${transition.actorID} t${transition.targetID}');
+        trace('Found transition: a${transition.actorID} t${transition.targetID}');        
+
+        var newTargetObjectData = ObjectData.getObjectData(transition.newTargetID);
 
         // if it is a reverse transition, check if it would exceed max numberOfUses
-        if(transition.reverseUseTarget && this.tileObjectHelper.numberOfUses >= this.tileObjectData.numUses){
-            trace('Cannot do reverse transition for taget: TileObject: ${this.tileObjectHelper.id()} numUses: ${this.tileObjectHelper.numberOfUses} targetObjectData.numUses: ${tileObjectData.numUses}');
+        if(transition.reverseUseTarget && this.tileObjectHelper.numberOfUses >= newTargetObjectData.numUses){
+            trace('Cannot do reverse transition for taget: TileObject: ${this.tileObjectHelper.id()} numUses: ${this.tileObjectHelper.numberOfUses} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
             return false;
         }
 
-        var targetChanged = this.tileObjectHelper.setId(transition.newTargetID);
-        var newTargetObjectData = this.tileObjectHelper.objectData;
+        this.tileObjectHelper.setId(transition.newTargetID);
+        
+        // target did not change if it is same dummy
+        var targetChanged = tileObjectData.id != newTargetObjectData.id;
         
         // dont allow to place another floor on existing floor
         // TODO allow to change floor if new floor is different???
@@ -282,24 +293,37 @@ class TransitionHelper{
             } 
             
             trace('Changed Target Object Type: numberOfUses: ' + this.tileObjectHelper.numberOfUses);
-
-            // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
-            this.doTransition = true;
-            this.doAction = true;
-
-            return true;
         }
-
-        if(transition.reverseUseTarget)
-        {
-            this.tileObjectHelper.numberOfUses += 1;
-            trace('numberOfUses: ' + this.tileObjectHelper.numberOfUses);
-        } 
         else
         {
-            this.tileObjectHelper.numberOfUses -= 1;
-            trace('numberOfUses: ' + this.tileObjectHelper.numberOfUses);
-            Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper); // deletes ObjectHelper in case it has no uses
+            if(transition.reverseUseTarget)
+            {
+                this.tileObjectHelper.numberOfUses += 1;
+                trace('numberOfUses: ' + this.tileObjectHelper.numberOfUses);
+            } 
+            else
+            {
+                this.tileObjectHelper.numberOfUses -= 1;
+                trace('numberOfUses: ' + this.tileObjectHelper.numberOfUses);
+                Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper); // deletes ObjectHelper in case it has no uses
+            }
+        }
+
+        // DO dummies
+        if(newTargetObjectData.numUses > 1)
+        {
+            if(tileObjectHelper.numberOfUses == newTargetObjectData.numUses)
+            {
+                if(tileObjectHelper.objectData.dummy)
+                {
+                    tileObjectHelper.objectData = tileObjectHelper.objectData.dummyParent;
+                }
+            }
+            else
+            {
+                tileObjectHelper.objectData = newTargetObjectData.dummyObjects[tileObjectHelper.numberOfUses-1];
+                trace('dummy id: ${tileObjectHelper.objectData.id}');
+            }
         }
     
         // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop

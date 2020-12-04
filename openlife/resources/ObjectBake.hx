@@ -9,6 +9,7 @@ import haxe.io.Path;
 /**
  * Bakes the numUses objects into files, rather than having to run through all the objects in the start of the session
  */
+ 
  @:expose
 class ObjectBake
 {
@@ -68,7 +69,7 @@ class ObjectBake
                     data.id = 0;
                     data.numUses = 0;
                     data.dummy = true;
-                    data.dummyParent = id;
+                    data.dummyParent = data;
                     array.push(data);
                 }
             }
@@ -77,10 +78,10 @@ class ObjectBake
     }
     public static function dummy(obj:ObjectData)
     {
-        var array = dummies.get(obj.dummyParent);
+        var array = dummies.get(obj.dummyParent.id);
         if (array == null) array = [];
         array.push(obj.id);
-        dummies.set(obj.dummyParent,array);
-        dummiesMap.set(obj.id,obj.dummyParent);
+        dummies.set(obj.dummyParent.id,array);
+        dummiesMap.set(obj.id,obj.dummyParent.id);
     }
 }

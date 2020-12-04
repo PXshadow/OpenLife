@@ -102,12 +102,11 @@ class ObjectHelper {
         return objectData.id;
     }
 
-    public function setId(newID:Int) : Bool
+    public function setId(newID:Int)
     {
-        if(this.id() == newID) return false;
+        if(this.id() == newID) return;
 
         objectData = ObjectData.getObjectData(newID);
-        return true;
     }
     
     

@@ -113,9 +113,11 @@ class WorldMap
 
         // spring / tool use
         setObjectId(tx - 4,ty + 4,[3030]);
-        setObjectId(tx - 5,ty + 4,[334]);
-        setObjectId(tx - 6,ty + 4,[334]);
+        setObjectId(tx - 5,ty + 4,[661]);
+        setObjectId(tx - 6,ty + 4,[661]);
         setObjectId(tx - 7,ty + 4,[661]);
+        setObjectId(tx - 8,ty + 4,[334]);
+        setObjectId(tx - 9,ty + 4,[334]);
 
         // test time / decay transitions
         setObjectId(tx - 4,ty + 5,[248]);

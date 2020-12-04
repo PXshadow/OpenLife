@@ -17,6 +17,8 @@ class ObjectData extends LineReader
     public static var biomeTotalChance:Map<Int,Float>; 
     public static var biomeObjectData:Map<Int, Array<ObjectData>>;
 
+    public var dummyObjects:Array<ObjectData> = [];
+
     /**
      * Max clothing pieces
      */
@@ -296,7 +298,8 @@ class ObjectData extends LineReader
     /**
      * dummy parent id
      */
-    public var dummyParent:Int = 0;
+    //public var dummyParent:Int = 0;
+    public var dummyParent:ObjectData = null;
     /**
      * dummyIndex, the amount of uses
      */
@@ -353,8 +356,14 @@ class ObjectData extends LineReader
             if(importedObjectData[i].numUses < 2) continue;
             
             for(ii in 0...importedObjectData[i].numUses - 1)
-            {
+            {                
                 if(importedObjectData[i].id <= 30) trace('id: ${importedObjectData[i].id} dummyID: $dummyId ${importedObjectData[i].description}');
+
+                var dummy = importedObjectData[i].clone();
+                dummy.dummy = true;
+                dummy.id = dummyId;
+                dummy.dummyParent = importedObjectData[i];
+                importedObjectData[i].dummyObjects.push(dummy);
 
                 objectDataMap[dummyId] = importedObjectData[i];
 
