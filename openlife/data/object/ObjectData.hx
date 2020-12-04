@@ -327,9 +327,11 @@ class ObjectData extends LineReader
         // Add empty object
         objectDataMap[0] = new ObjectData(0,false,true);
 
-        trace("Create Object Data...");
+        
 
         for (i in 0...importedObjectData.length){
+            if(i % 301 == 300)  trace('Create Object Data... $i from ${importedObjectData.length}');
+                
             var objectData = new ObjectData(tmp[i]);
             importedObjectData[i] = objectData;
             objectDataMap[objectData.id] = objectData;            
@@ -362,8 +364,6 @@ class ObjectData extends LineReader
 
         trace('finished adding dummy objects with numUse > 2 :${dummyId - starting}');
     }
-
-
 
     public static function GenerateBiomeObjectData()
     {
@@ -399,7 +399,6 @@ class ObjectData extends LineReader
         }
     }
 
-    
     public function new(i:Int=0,onlyDescription:Bool=false, createNullObject:Bool = false)
     {
         super();

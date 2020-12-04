@@ -160,14 +160,13 @@ class MoveExtender{
         static private function calculateNewMovements(tx:Int,ty:Int,moves:Array<Pos>):NewMovements 
         {
             var newMovements:NewMovements = new NewMovements();
-            var map =  Server.server.map;
             var lastPos:Pos = new Pos(0,0);
             
-            newMovements.startSpeed = map.getBiomeSpeed(tx,ty);
+            newMovements.startSpeed = calculateSpeed(tx,ty);
             
             for (move in moves) {
 
-                newMovements.endSpeed = map.getBiomeSpeed(tx + move.x,ty + move.y);
+                newMovements.endSpeed = calculateSpeed(tx + move.x,ty + move.y);
 
                 if(newMovements.endSpeed != newMovements.startSpeed) {
                     if(newMovements.moves.length == 0){
@@ -188,6 +187,19 @@ class MoveExtender{
 
             return newMovements;
         }      
+
+        static private function calculateSpeed(tx:Int,ty:Int) : Float
+        {
+            var map =  Server.server.map;
+
+            // TODO check hand objects
+
+            var speed = map.getBiomeSpeed(tx,ty);
+
+            speed *= ServerSettings.SpeedFactor;
+
+            return speed;
+        }
 
         // this calculates which position is reached in case the movement was changed while moving
         static private function calculateNewPos(moves:Array<Pos>, startingMoveTicks:Int, speed:Float):Pos
