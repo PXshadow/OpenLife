@@ -22,6 +22,11 @@ class TransitionImporter
     // transitions where only target is last use
     private var lastUseTargetTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
 
+    // maxUseTransitions
+    private var maxUseTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
+
+
+
     public function new()
     {
 
@@ -51,6 +56,8 @@ class TransitionImporter
         lastUseBothTransitionsByActorIdTargetId = [];
         lastUseActorTransitionsByActorIdTargetId = [];
         lastUseTargetTransitionsByActorIdTargetId = [];
+
+        maxUseTransitionsByActorIdTargetId = [];
 
         for (name in sys.FileSystem.readDirectory(Engine.dir + "transitions"))
         {
@@ -88,8 +95,10 @@ class TransitionImporter
         trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
     }
 
-    private function getTransitionMap(lastUseActor:Bool, lastUseTarget:Bool):Map<Int, Map<Int, TransitionData>>
+    private function getTransitionMap(lastUseActor:Bool, lastUseTarget:Bool, maxUseTarget:Bool=false):Map<Int, Map<Int, TransitionData>>
     {
+        if(maxUseTarget) return maxUseTransitionsByActorIdTargetId;
+
         if(lastUseActor && lastUseTarget)
         {
             return lastUseBothTransitionsByActorIdTargetId;
@@ -108,9 +117,23 @@ class TransitionImporter
         }
     }
 
-    public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false):TransitionData{
+    private function getTransitionMapByTargetId(id:Int, lastUseActor:Bool, lastUseTarget:Bool, maxUseTarget:Bool=false):Map<Int, TransitionData>
+    {
+        var transitionMap = getTransitionMap(lastUseActor, lastUseTarget, maxUseTarget);
+
+        var transitionsByTargetId = transitionMap[id];
+
+        if(transitionsByTargetId == null){
+            transitionsByTargetId = [];
+            transitionMap[id] = transitionsByTargetId;
+        }
+
+        return transitionsByTargetId;
+    }
+
+    public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false, maxUseTarget:Bool=false):TransitionData{
         
-        var transitionMap = getTransitionMap(lastUseActor, lastUseTarget);
+        var transitionMap = getTransitionMap(lastUseActor, lastUseTarget, maxUseTarget);
 
         var transitionsByTargetId = transitionMap[actorId];
 
@@ -133,30 +156,55 @@ class TransitionImporter
             if(lastUseTarget) transition.lastUseTarget = true;
         }
        
-        var transitionMap = getTransitionMap(transition.lastUseActor, transition.lastUseTarget);
-
-        var transitionsByTargetId = transitionMap[transition.actorID];
-
-        if(transitionsByTargetId == null){
-            transitionsByTargetId = [];
-            transitionMap[transition.actorID] = transitionsByTargetId;
-        }
-
+        var transitionsByTargetId = getTransitionMapByTargetId(transition.actorID, transition.lastUseActor, transition.lastUseTarget);
         var trans = transitionsByTargetId[transition.targetID];
         
-        // TODO there are a lot of double transactions, like Oil Movement, Horse Stuff, Fence / Wall Alignment, Rose Seed
-        if(trans != null){
-            traceTransition(trans, "WARNING DOUBLE 1!!", ServerSettings.traceTransitionByTargetDescription);
-            traceTransition(transition, "WARNING DOUBLE 2!!", ServerSettings.traceTransitionByTargetDescription);
+        if(trans == null)
+        {
+            this.transitions.push(transition);
+            transitionsByTargetId[transition.targetID] = transition;
+
+            traceTransition(transition, "", ServerSettings.traceTransitionByTargetDescription);
+
+            //if(transition.reverseUseTarget) traceTransition(transition, "", "");
             return;
         }
 
-        this.transitions.push(transition);
-        transitionsByTargetId[transition.targetID] = transition;
+        // handle double transitions
 
-        traceTransition(transition, "", ServerSettings.traceTransitionByTargetDescription);
+        // add max use transitions that change target like in case of a well site with max stones or Canada Goose Pond with max
+        // 33 + 1096 = 0 + 1096 targetRemains: true
+        // 33 + 1096 = 0 + 3963 targetRemains: false
+        if(trans.targetRemains && transition.targetRemains == false)
+        {
+            traceTransition(trans, "1maxUseTransition targetRemains true: ", ServerSettings.traceTransitionByTargetDescription);
+            traceTransition(transition, "1maxUseTransition targetRemains: false: ", ServerSettings.traceTransitionByTargetDescription);
 
-        //if(transition.reverseUseTarget) traceTransition(transition, "", "");
+            var maxUseTransitionsByTargetId = getTransitionMapByTargetId(transition.actorID, false, false, true);
+            maxUseTransitionsByTargetId[transition.targetID] = transition;
+
+            this.transitions.push(transition);
+
+            return;
+        }
+
+        if(trans.targetRemains == false && transition.targetRemains)
+        {
+            traceTransition(transition, "2maxUseTransition targetRemains: true", ServerSettings.traceTransitionByTargetDescription);
+            traceTransition(trans, "2maxUseTransition targetRemains: false:", ServerSettings.traceTransitionByTargetDescription);
+
+            var maxUseTransitionsByTargetId = getTransitionMapByTargetId(transition.actorID, false, false, true);
+
+            this.transitions.push(transition);
+            transitionsByTargetId[transition.targetID] = transition;
+            maxUseTransitionsByTargetId[trans.targetID] = trans;
+
+            return;
+        }
+
+        // TODO there are a lot of double transactions, like Oil Movement, Horse Stuff, Fence / Wall Alignment, Rose Seed
+        traceTransition(trans, "WARNING DOUBLE 1!!", ServerSettings.traceTransitionByTargetDescription);
+        traceTransition(transition, "WARNING DOUBLE 2!!", ServerSettings.traceTransitionByTargetDescription);
     }
 
     // seems like obid can be at the same time a category and an object / Cabbage Seed + Bowl of Cabbage Seeds / 1206 + 1312

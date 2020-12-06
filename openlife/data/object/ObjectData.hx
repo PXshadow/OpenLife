@@ -333,7 +333,7 @@ class ObjectData extends LineReader
         
 
         for (i in 0...importedObjectData.length){
-            if(i % 301 == 300)  trace('Create Object Data... $i from ${importedObjectData.length}');
+            if(i % 400 == 0)  trace('Create Object Data... $i from ${importedObjectData.length}');
                 
             var objectData = new ObjectData(tmp[i]);
             importedObjectData[i] = objectData;
@@ -357,7 +357,7 @@ class ObjectData extends LineReader
             
             for(ii in 0...importedObjectData[i].numUses - 1)
             {                
-                if(importedObjectData[i].id <= 30) trace('id: ${importedObjectData[i].id} dummyID: $dummyId ${importedObjectData[i].description}');
+                //if(importedObjectData[i].id <= 30) trace('id: ${importedObjectData[i].id} dummyID: $dummyId ${importedObjectData[i].description}');
 
                 var dummy = importedObjectData[i].clone();
                 dummy.dummy = true;

@@ -238,9 +238,24 @@ class TransitionHelper{
         var newTargetObjectData = ObjectData.getObjectData(transition.newTargetID);
 
         // if it is a reverse transition, check if it would exceed max numberOfUses
-        if(transition.reverseUseTarget && this.tileObjectHelper.numberOfUses >= newTargetObjectData.numUses){
-            trace('Cannot do reverse transition for taget: TileObject: ${this.tileObjectHelper.id()} numUses: ${this.tileObjectHelper.numberOfUses} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
-            return false;
+        if(transition.reverseUseTarget && this.tileObjectHelper.numberOfUses >= newTargetObjectData.numUses)
+        {
+            trace('?use maxUseTransition');
+            transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.tileObjectData.id, false, false, true);
+
+            if(transition == null)
+            {
+                trace('Cannot do reverse transition for taget: TileObject: ${this.tileObjectHelper.id()} numUses: ${this.tileObjectHelper.numberOfUses} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
+
+                return false;
+            }
+
+            // for example a well site with max stones
+            // 33 + 1096 = 0 + 1096 targetRemains: true
+            // 33 + 1096 = 0 + 3963 targetRemains: false (maxUseTransition)
+            trace('use maxUseTransition');
+
+            //transition = transition.maxUseTransition;
         }
 
         this.tileObjectHelper.setId(transition.newTargetID);
@@ -312,6 +327,11 @@ class TransitionHelper{
         // DO dummies
         if(newTargetObjectData.numUses > 1)
         {
+            // in case of an maxUses object changing like a well site numOfUses can be too big
+            if(tileObjectHelper.numberOfUses > newTargetObjectData.numUses){
+                tileObjectHelper.numberOfUses = newTargetObjectData.numUses;
+            }
+
             if(tileObjectHelper.numberOfUses == newTargetObjectData.numUses)
             {
                 if(tileObjectHelper.objectData.dummy)
@@ -530,6 +550,10 @@ class TransitionHelper{
 
     public static function doTimeTransition(helper:ObjectHelper)
         {
+            // TODO time transition for maxUseTaget like Goose Pond:
+            // -1 + 142 = 0 + 142
+            // -1 + 142 = 0 + 141
+
             Server.server.map.mutex.acquire();
     
             Server.server.map.timeObjectHelpers.remove(helper);
