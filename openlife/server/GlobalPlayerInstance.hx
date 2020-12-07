@@ -28,6 +28,10 @@ class GlobalPlayerInstance extends PlayerInstance {
     // remember that y is counted from bottom not from top
     public var gx:Int = 400; //global x offset from birth
     public var gy:Int = 300; //global y offset from birth 
+    //food vars
+    var food_capacity:Float = 10;
+    public var food_store:Float = 10;
+    var last_ate_fill_max:Int = 0;
 
     public function new(a:Array<String>)
     {
@@ -88,6 +92,11 @@ class GlobalPlayerInstance extends PlayerInstance {
         this.mutex.release();
     }
 
+    public function doFood(yum_bonus:Int,yum_multiplier:Int)
+    {
+        this.connection.send(FOOD_CHANGE,['${Std.int(food_store)} ${Std.int(food_capacity)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id $yum_bonus $yum_multiplier']);
+    }
+
     public function doSelf(x:Int, y:Int, clothingSlot:Int)
     {
         //var doaction = false;
@@ -97,8 +106,20 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         trace('self: ${this.o_id[0]} clothingSlot: $clothingSlot');
 
-        if(this.o_id[0] != 0)
-        {
+
+        if (clothingSlot == -1) {
+            var objectData = ObjectData.getObjectData(this.o_id[0]);
+            //food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id yum_bonus yum_multiplier#
+            food_store += objectData.foodValue;
+            if (food_store > food_capacity)
+                food_store = food_capacity;
+            doFood(0,0);
+            this.o_id[0] = 0;
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);
+            this.connection.send(FRAME);
+            return;
+        } 
+        if(this.o_id[0] != 0) {
             var objectData = ObjectData.getObjectData(this.o_id[0]);
             //trace("OD: " + objectData.toFileString());        
 

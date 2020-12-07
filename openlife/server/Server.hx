@@ -118,6 +118,7 @@ class Server
 
         for (connection in connections)
         {
+            connection.player.food_store += -tickTime * 0.1; //try food storage decay
             connection.player.updateMovement();
         }
 

@@ -108,7 +108,8 @@ class Connection implements ServerHeader
         
         send(LINEAGE,['$id eve=$id']);
         send(TOOL_SLOTS,["0 1000"]);
-
+        player.doFood(0,0);
+        send(FRAME);
         server.map.mutex.release();
     }
 
