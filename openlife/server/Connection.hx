@@ -107,6 +107,7 @@ class Connection implements ServerHeader
         }
         
         send(LINEAGE,['$id eve=$id']);
+        send(TOOL_SLOTS,["0 1000"]);
 
         server.map.mutex.release();
     }

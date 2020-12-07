@@ -171,7 +171,10 @@ class TransitionHelper{
         // TODO last transitions for handObject
 
         // TODO fix Pile animations
-
+        if (this.tileObjectHelper.objectData.tool) {
+            player.connection.send(LEARNED_TOOL_REPORT,['0 ${this.tileObjectHelper.id()}']);
+            trace("TOOL LEARNED! " + this.tileObjectHelper.id());
+        }
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;
 
         // do actor + target = newActor + newTarget

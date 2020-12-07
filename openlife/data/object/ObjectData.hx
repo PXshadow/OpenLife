@@ -287,6 +287,7 @@ class ObjectData extends LineReader
      * N/A
      */
     public var toolLearned:Bool = false;
+    public var tool:Bool = false;
     /**
      * Sound array for objects
      */
@@ -459,6 +460,7 @@ class ObjectData extends LineReader
             }
             //new
             if (!set) toolsetRecord.push({setTag: setTag, setMembership: [id]});
+            tool = true;
         }
         if (description.indexOf("+noBackAccess") > -1)
         {
