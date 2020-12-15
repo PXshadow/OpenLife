@@ -107,19 +107,27 @@ class GlobalPlayerInstance extends PlayerInstance {
         trace('self: ${this.o_id[0]} clothingSlot: $clothingSlot');
 
 
-        if (clothingSlot == -1) {
+        if (clothingSlot == -1)
+        {
             var objectData = ObjectData.getObjectData(this.o_id[0]);
             //food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id yum_bonus yum_multiplier#
             food_store += objectData.foodValue;
-            if (food_store > food_capacity)
-                food_store = food_capacity;
+            
+            if (food_store > food_capacity) food_store = food_capacity;
+
             doFood(0,0);
+
+            // do not forget to change ObjectHelper also!!!
             this.o_id[0] = 0;
+            this.heldObject = ObjectHelper.readObjectHelper(this, [0]);
+
             this.connection.send(PLAYER_UPDATE,[this.toData()]);
             this.connection.send(FRAME);
             return;
-        } 
-        if(this.o_id[0] != 0) {
+        }
+
+        if(this.o_id[0] != 0)
+            {
             var objectData = ObjectData.getObjectData(this.o_id[0]);
             //trace("OD: " + objectData.toFileString());        
 

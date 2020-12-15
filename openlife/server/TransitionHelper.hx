@@ -172,6 +172,8 @@ class TransitionHelper{
 
         // TODO noUseActor / noUseTarget
 
+        // TODO dummy object for handObject like tools / axe 
+
         // TODO transitions on animals and caves
 
         if (this.tileObjectHelper.objectData.tool) {
