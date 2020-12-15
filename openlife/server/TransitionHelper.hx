@@ -172,6 +172,8 @@ class TransitionHelper{
 
         // TODO noUseActor / noUseTarget
 
+        // TODO transitions on animals and caves
+
         if (this.tileObjectHelper.objectData.tool) {
             player.connection.send(LEARNED_TOOL_REPORT,['0 ${this.tileObjectHelper.id()}']);
             trace("TOOL LEARNED! " + this.tileObjectHelper.id());
@@ -244,7 +246,8 @@ class TransitionHelper{
 
         if(transition == null) return false;
 
-        trace('Found transition: a${transition.actorID} t${transition.targetID}');        
+        trace('Found transition: a${transition.actorID} t${transition.targetID} ');
+        transition.traceTransition();
 
         var newTargetObjectData = ObjectData.getObjectData(transition.newTargetID);
 
@@ -309,58 +312,74 @@ class TransitionHelper{
             // TODO Server.server.map.timeObjectHelpers.push(tileObjectHelper);
         }
 
-        if(transition.reverseUseActor)
+        if(transition.actorID == transition.newActorID)
         {
-            this.player.heldObject.numberOfUses += 1;
-            trace('HandObject: numberOfUses: ' + this.player.heldObject.numberOfUses);
-        } 
-        else
-        {
-            trace('handObjectData.useChance: ${handObjectData.useChance}');
-
-            if(Server.server.map.randomFloat() < handObjectData.useChance)
+            if(transition.reverseUseActor)
             {
-                this.player.heldObject.numberOfUses -= 1;
+                this.player.heldObject.numberOfUses += 1;
                 trace('HandObject: numberOfUses: ' + this.player.heldObject.numberOfUses);
+            } 
+            else
+            {
+                trace('handObjectData.useChance: ${handObjectData.useChance}');
 
-                if(this.player.heldObject.numberOfUses <= 0 && handObjectData.numUses > 1)
+                if(handObjectData.useChance <= 0 || Server.server.map.randomFloat() < handObjectData.useChance)
                 {
-                    var toolTransition = Server.transitionImporter.getTransition(this.player.heldObject.id(), -1, true, false);
+                    this.player.heldObject.numberOfUses -= 1;
+                    trace('HandObject: numberOfUses: ' + this.player.heldObject.numberOfUses);
 
-                    if(toolTransition != null)
+                    if(this.player.heldObject.numberOfUses <= 0)
                     {
-                        trace('Change Actor from: ${this.player.heldObject.id} to ${toolTransition.newActorID}');
-                        this.player.heldObject.setId(toolTransition.newActorID);
+                        // for example for a tool like axe lastUseActor: true
+                        var toolTransition = Server.transitionImporter.getTransition(this.player.heldObject.id(), -1, true, false);
+                        
+                        // for example for a water bowl lastUseActor: false
+                        if(toolTransition == null)
+                        {
+                            toolTransition = Server.transitionImporter.getTransition(this.player.heldObject.id(), -1, false, false);
+                        }
+
+                        if(toolTransition != null)
+                        {
+                            trace('Change Actor from: ${this.player.heldObject.id} to ${toolTransition.newActorID}');
+                            this.player.heldObject.setId(toolTransition.newActorID);
+                        }
                     }
                 }
             }
         }
 
-        trace('newTileObject: ${this.tileObjectHelper.id()} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
+        trace('NewTileObject: ${newTargetObjectData.description} ${this.tileObjectHelper.id()} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
 
         if(targetChanged && newTargetObjectData.numUses > 1)
         {
-            // a Pile starts with 2 uses not with the full
-            // if the ObjectHelper is created through a reverse use, it must be a pile...
-            if(transition.reverseUseTarget){
-                trace("NEW PILE?");
+            // a Pile starts with 1 uses not with the full
+            // if the ObjectHelper is created through a reverse use, it must be a pile or a bucket...
+            if(transition.reverseUseTarget)
+            {
+                trace("NEW PILE OR BUCKET?");
                 this.tileObjectHelper.numberOfUses = 1;
             } 
             
-            trace('Changed Target Object Type: numberOfUses: ' + this.tileObjectHelper.numberOfUses);
+            trace('Changed Target Object Type: ${newTargetObjectData.description} numberOfUses: ' + this.tileObjectHelper.numberOfUses);
         }
         else
         {
             if(transition.reverseUseTarget)
             {
                 this.tileObjectHelper.numberOfUses += 1;
-                trace('TileObject: numberOfUses: ' + this.tileObjectHelper.numberOfUses);
+                trace('TileObject: ${newTargetObjectData.description} numberOfUses: ' + this.tileObjectHelper.numberOfUses);
             } 
             else
             {
-                this.tileObjectHelper.numberOfUses -= 1;
-                trace('TileObject: numberOfUses: ' + this.tileObjectHelper.numberOfUses);
-                Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper); // deletes ObjectHelper in case it has no uses
+                trace('TileObject: ${newTargetObjectData.description} newTargetObjectData.useChance: ${newTargetObjectData.useChance}');
+
+                if(newTargetObjectData.useChance <= 0 || Server.server.map.randomFloat() < newTargetObjectData.useChance)
+                {
+                    this.tileObjectHelper.numberOfUses -= 1;
+                    trace('TileObject: ${newTargetObjectData.description} numberOfUses: ' + this.tileObjectHelper.numberOfUses);
+                    Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper); // deletes ObjectHelper in case it has no uses
+                }
             }
         }
 

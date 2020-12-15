@@ -1,5 +1,6 @@
 package openlife.data.transition;
 
+import openlife.settings.ServerSettings;
 import openlife.data.object.ObjectData;
 @:expose
 class TransitionData
@@ -153,7 +154,7 @@ class TransitionData
 
       s += 'autoDecaySeconds: $autoDecaySeconds ';
 
-      //MinUse for variable-use objects that occasionally use more than one "use", this sets a minimum per interaction.
+      //TODO ??? MinUse for variable-use objects that occasionally use more than one "use", this sets a minimum per interaction.
       //public var actorMinUseFraction:Float = 0;
       //public var targetMinUseFraction:Float = 0;
 
@@ -171,6 +172,30 @@ class TransitionData
 
       return s;
     }
-    
 
+    public function traceTransition(s:String = "", targetDescContains:String = "")
+    {
+      var transition = this;
+
+      var objectDataActor = ObjectData.getObjectData(transition.actorID);
+      var objectDataTarget = ObjectData.getObjectData(transition.targetID);
+      var objectDataNewActor = ObjectData.getObjectData(transition.newActorID);
+      var objectDataNewTarget = ObjectData.getObjectData(transition.newTargetID);
+
+      var actorDescription = "";
+      var targetDescription = "";
+      var newActorDescription = "";
+      var newTargetDescription = "";
+
+      if(objectDataActor != null) actorDescription = objectDataActor.description;
+      if(objectDataTarget != null) targetDescription = objectDataTarget.description;
+      if(objectDataNewActor != null) newActorDescription = objectDataNewActor.description;
+      if(objectDataNewTarget != null) newTargetDescription = objectDataNewTarget.description;
+
+      var dontTraceActor = actorDescription.indexOf(ServerSettings.traceTransitionByActorDescription) == -1;
+
+      if(dontTraceActor && transition.targetID != ServerSettings.traceTransitionById && targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
+      
+      trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
+  }
 }

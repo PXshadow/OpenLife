@@ -73,30 +73,6 @@ class TransitionImporter
         trace('Transitions loaded: ${transitions.length}');
     }
 
-    public function traceTransition(transition:TransitionData, s:String = "", targetDescContains:String = ""){
-
-        var objectDataActor = ObjectData.getObjectData(transition.actorID);
-        var objectDataTarget = ObjectData.getObjectData(transition.targetID);
-        var objectDataNewActor = ObjectData.getObjectData(transition.newActorID);
-        var objectDataNewTarget = ObjectData.getObjectData(transition.newTargetID);
-
-        var actorDescription = "";
-        var targetDescription = "";
-        var newActorDescription = "";
-        var newTargetDescription = "";
-
-        if(objectDataActor != null) actorDescription = objectDataActor.description;
-        if(objectDataTarget != null) targetDescription = objectDataTarget.description;
-        if(objectDataNewActor != null) newActorDescription = objectDataNewActor.description;
-        if(objectDataNewTarget != null) newTargetDescription = objectDataNewTarget.description;
-
-        var dontTraceActor = actorDescription.indexOf(ServerSettings.traceTransitionByActorDescription) == -1;
-
-        if(dontTraceActor && transition.targetID != ServerSettings.traceTransitionById && targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
-        
-        trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
-    }
-
     private function getTransitionMap(lastUseActor:Bool, lastUseTarget:Bool, maxUseTarget:Bool=false):Map<Int, Map<Int, TransitionData>>
     {
         if(maxUseTarget) return maxUseTransitionsByActorIdTargetId;
@@ -166,7 +142,7 @@ class TransitionImporter
             this.transitions.push(transition);
             transitionsByTargetId[transition.targetID] = transition;
 
-            traceTransition(transition, "", ServerSettings.traceTransitionByTargetDescription);
+            transition.traceTransition("", ServerSettings.traceTransitionByTargetDescription);
 
             //if(transition.reverseUseTarget) traceTransition(transition, "", "");
             return;
@@ -179,8 +155,8 @@ class TransitionImporter
         // 33 + 1096 = 0 + 3963 targetRemains: false
         if(trans.targetRemains && transition.targetRemains == false)
         {
-            traceTransition(trans, "1maxUseTransition targetRemains true: ", ServerSettings.traceTransitionByTargetDescription);
-            traceTransition(transition, "1maxUseTransition targetRemains: false: ", ServerSettings.traceTransitionByTargetDescription);
+            trans.traceTransition("1maxUseTransition targetRemains true: ", ServerSettings.traceTransitionByTargetDescription);
+            transition.traceTransition("1maxUseTransition targetRemains: false: ", ServerSettings.traceTransitionByTargetDescription);
 
             var maxUseTransitionsByTargetId = getTransitionMapByTargetId(transition.actorID, false, false, true);
             maxUseTransitionsByTargetId[transition.targetID] = transition;
@@ -192,8 +168,8 @@ class TransitionImporter
 
         if(trans.targetRemains == false && transition.targetRemains)
         {
-            traceTransition(transition, "2maxUseTransition targetRemains: true", ServerSettings.traceTransitionByTargetDescription);
-            traceTransition(trans, "2maxUseTransition targetRemains: false:", ServerSettings.traceTransitionByTargetDescription);
+            transition.traceTransition( "2maxUseTransition targetRemains: true", ServerSettings.traceTransitionByTargetDescription);
+            trans.traceTransition("2maxUseTransition targetRemains: false:", ServerSettings.traceTransitionByTargetDescription);
 
             var maxUseTransitionsByTargetId = getTransitionMapByTargetId(transition.actorID, false, false, true);
 
@@ -205,8 +181,8 @@ class TransitionImporter
         }
 
         // TODO there are a lot of double transactions, like Oil Movement, Horse Stuff, Fence / Wall Alignment, Rose Seed
-        traceTransition(trans, "WARNING DOUBLE 1!!", ServerSettings.traceTransitionByTargetDescription);
-        traceTransition(transition, "WARNING DOUBLE 2!!", ServerSettings.traceTransitionByTargetDescription);
+        trans.traceTransition("WARNING DOUBLE 1!!", ServerSettings.traceTransitionByTargetDescription);
+        transition.traceTransition("WARNING DOUBLE 2!!", ServerSettings.traceTransitionByTargetDescription);
     }
 
     // seems like obid can be at the same time a category and an object / Cabbage Seed + Bowl of Cabbage Seeds / 1206 + 1312

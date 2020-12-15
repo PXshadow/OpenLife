@@ -111,13 +111,27 @@ class WorldMap
         setObjectId(tx+6, ty+1, [586]);
         setObjectId(tx+7, ty+1, [2951]);
 
+
+        // pond
+        setObjectId(tx - 4,ty + 3,[511]);
+        setObjectId(tx - 5,ty + 3,[235]);
+        setObjectId(tx - 6,ty + 3,[659]);
+        setObjectId(tx - 7,ty + 3,[659]);
+        setObjectId(tx - 8,ty + 3,[659]);
+        setObjectId(tx - 9,ty + 3,[659]);
+        setObjectId(tx - 10,ty + 3,[659]);
+
+        // carts
+        setObjectId(tx - 11,ty + 3,[659]);
+        setObjectId(tx - 12,ty + 3,[3158]);
+
         // spring / tool use
         setObjectId(tx - 4,ty + 4,[3030]);
         setObjectId(tx - 5,ty + 4,[661]);
         setObjectId(tx - 6,ty + 4,[661]);
         setObjectId(tx - 7,ty + 4,[661]);
         setObjectId(tx - 8,ty + 4,[334]);
-        setObjectId(tx - 9,ty + 4,[334]);
+        setObjectId(tx - 9,ty + 4,[502]);
 
         // test time / decay transitions
         setObjectId(tx - 4,ty + 5,[248]);
