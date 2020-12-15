@@ -109,10 +109,20 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         if (clothingSlot == -1)
         {
-            var objectData = ObjectData.getObjectData(this.o_id[0]);
+            //var objectData = ObjectData.getObjectData(this.o_id[0]);
             //food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id yum_bonus yum_multiplier#
-            food_store += objectData.foodValue;
-            
+
+            if(heldObject.objectData.foodValue < 1)
+            {
+                trace('cannot eat this stuff no food value!!! ${heldObject.objectData.description}');
+
+                this.connection.send(PLAYER_UPDATE,[this.toData()]);
+                this.connection.send(FRAME);
+                return;
+            }
+
+            food_store += heldObject.objectData.foodValue; //objectData.foodValue;
+
             if (food_store > food_capacity) food_store = food_capacity;
 
             doFood(0,0);
