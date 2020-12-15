@@ -168,9 +168,10 @@ class TransitionHelper{
 
         // TODO feed baby
 
-        // TODO last transitions for handObject
+        // TODO hungry work
 
-        // TODO fix Pile animations
+        // TODO noUseActor / noUseTarget
+
         if (this.tileObjectHelper.objectData.tool) {
             player.connection.send(LEARNED_TOOL_REPORT,['0 ${this.tileObjectHelper.id()}']);
             trace("TOOL LEARNED! " + this.tileObjectHelper.id());
@@ -211,13 +212,20 @@ class TransitionHelper{
         {
             tileObjectData = tileObjectData.dummyParent;
         }
-        // TODO //public var useChance:Float = 0;
-
-        // TODO lastUseActorObject
+    
         var lastUseActorObject = false;
         var lastUseTileObject = false;
 
+        trace('handObjectData.numUses: ${handObjectData.numUses} heldObject.numberOfUses: ${this.player.heldObject.numberOfUses} ${handObjectData.description}'  );
+        
+        if(handObjectData.numUses > 1 && this.player.heldObject.numberOfUses <= 1){
+            // TODO ??? seems like for tools there is not always a last use transition
+            //lastUseActorObject = true;
+            //trace("lastUseActorObject = true");
+        }
+
         trace('tileObjectData.numUses: ${tileObjectData.numUses} tileObjectHelper.numberOfUses: ${this.tileObjectHelper.numberOfUses} ${tileObjectData.description}'  );
+
         if(tileObjectData.numUses > 1 && this.tileObjectHelper.numberOfUses <= 1){
             lastUseTileObject = true;
             trace("lastUseTileObject = true");
@@ -240,7 +248,8 @@ class TransitionHelper{
 
         var newTargetObjectData = ObjectData.getObjectData(transition.newTargetID);
 
-        // if it is a reverse transition, check if it would exceed max numberOfUses
+        // TODO check also for handobject???
+        // if it is a reverse transition, check if it would exceed max numberOfUses 
         if(transition.reverseUseTarget && this.tileObjectHelper.numberOfUses >= newTargetObjectData.numUses)
         {
             trace('?use maxUseTransition');
@@ -282,12 +291,14 @@ class TransitionHelper{
 
         //transition source object id (or -1) if held object is result of a transition 
         //if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
-        this.newTransitionSource = transition.targetID; // TODO 
+        this.newTransitionSource = transition.targetID; // TODO ???
         
         player.heldObject.setId(transition.newActorID);
              
         // Add HelperObject to timeObjectHelpers if newTargetObject has time transitions
+        // TODO move to SetObjectHelper
         var timeTransition = Server.transitionImporter.getTransition(-1, transition.newTargetID, false, false);
+
         if(timeTransition != null)
         {
             trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');
@@ -298,9 +309,32 @@ class TransitionHelper{
             // TODO Server.server.map.timeObjectHelpers.push(tileObjectHelper);
         }
 
+        if(transition.reverseUseActor)
+        {
+            this.player.heldObject.numberOfUses += 1;
+            trace('HandObject: numberOfUses: ' + this.player.heldObject.numberOfUses);
+        } 
+        else
+        {
+            // TODO //public var useChance:Float = 0;
+
+            this.player.heldObject.numberOfUses -= 1;
+            trace('HandObject: numberOfUses: ' + this.player.heldObject.numberOfUses);
+
+            if(this.player.heldObject.numberOfUses <= 0 && handObjectData.numUses > 1)
+            {
+                var toolTransition = Server.transitionImporter.getTransition(this.player.heldObject.id(), -1, true, false);
+
+                if(toolTransition != null)
+                {
+                    trace('Change Actor from: ${this.player.heldObject.id} to ${toolTransition.newActorID}');
+                    this.player.heldObject.setId(toolTransition.newActorID);
+                }
+            }
+        }
+
         trace('newTileObject: ${this.tileObjectHelper.id()} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
 
-        // create advanced object if USES > 0
         if(targetChanged && newTargetObjectData.numUses > 1)
         {
             // a Pile starts with 2 uses not with the full
@@ -317,12 +351,12 @@ class TransitionHelper{
             if(transition.reverseUseTarget)
             {
                 this.tileObjectHelper.numberOfUses += 1;
-                trace('numberOfUses: ' + this.tileObjectHelper.numberOfUses);
+                trace('TileObject: numberOfUses: ' + this.tileObjectHelper.numberOfUses);
             } 
             else
             {
                 this.tileObjectHelper.numberOfUses -= 1;
-                trace('numberOfUses: ' + this.tileObjectHelper.numberOfUses);
+                trace('TileObject: numberOfUses: ' + this.tileObjectHelper.numberOfUses);
                 Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper); // deletes ObjectHelper in case it has no uses
             }
         }

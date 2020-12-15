@@ -90,7 +90,9 @@ class TransitionImporter
         if(objectDataNewActor != null) newActorDescription = objectDataNewActor.description;
         if(objectDataNewTarget != null) newTargetDescription = objectDataNewTarget.description;
 
-        if(transition.targetID != ServerSettings.traceTransitionById && targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
+        var dontTraceActor = actorDescription.indexOf(ServerSettings.traceTransitionByActorDescription) == -1;
+
+        if(dontTraceActor && transition.targetID != ServerSettings.traceTransitionById && targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
         
         trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
     }
@@ -145,7 +147,7 @@ class TransitionImporter
     public function addTransition(transition:TransitionData,  lastUseActor:Bool = false, lastUseTarget:Bool = false){
         
         if(lastUseActor == false && lastUseTarget == false){
-            // if transition is not a reverse transition, it can be done also on lastUse Items so add Transaction for that
+            // if transition is a reverse transition, it can be done also on lastUse Items so add Transaction for that
             if(transition.lastUseActor == false && transition.reverseUseActor && transition.lastUseTarget == false && transition.reverseUseTarget) addTransition(transition, true, true);
             else if(transition.lastUseActor == false && transition.reverseUseActor) addTransition(transition, true, transition.lastUseTarget);
             else if(transition.lastUseTarget == false && transition.reverseUseTarget) addTransition(transition, transition.lastUseActor, true);

@@ -5,7 +5,8 @@ class ServerSettings
     // for debugging
     public static var debug = true; // activates or deactivates try catch blocks and initial debug objects generation 
     public static var traceTransitionById = 99972; // TransitionImporter
-    public static var traceTransitionByTargetDescription = "!!!Well Site"; // TransitionImporter
+    public static var traceTransitionByActorDescription = "Steel Axe"; // TransitionImporter
+    public static var traceTransitionByTargetDescription = "!!!Steel Axe"; // TransitionImporter
 
     public static var traceAmountGeneratedObjects = false; // WorldMap
 
