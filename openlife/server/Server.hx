@@ -38,6 +38,7 @@ class Server
     public var connections:Array<Connection> = [];
    
     public var tick:Int = 0;
+    public var lastTick:Int = 0;
     public var serverStartingTime:Float = 0;
     public var playerIndex:Int = 1; // used for giving new IDs to players
     
@@ -118,7 +119,18 @@ class Server
 
         for (connection in connections)
         {
-            connection.player.food_store += -tickTime * 0.1; //try food storage decay
+            //trace('food_store: ${connection.player.food_store}');
+
+            var tmpFood = Math.ceil(connection.player.food_store);
+
+            connection.player.food_store += (lastTick - tick) * tickTime * ServerSettings.FoodUsePerSecond; //try food storage decay
+            
+            if(tmpFood != Math.ceil(connection.player.food_store))
+            {
+               connection.player.doFood(0,0);
+               connection.send(FRAME);
+            }
+
             connection.player.updateMovement();
         }
 
@@ -134,6 +146,7 @@ class Server
         }*/
 
         map.DoSomeTimeStuff();
+        lastTick = tick;
 
         if(this.tick % 200 == 0) trace('Time: ${this.tick / 20} Time: $time');
     }

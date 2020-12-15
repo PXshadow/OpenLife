@@ -97,7 +97,7 @@ class PlayerInstance
     /**
      * responsible for player id
      */
-    public var responsible_id:Int = 0;
+    public var responsible_id:Int = -1;
     /**
      * held yum boolean
      */

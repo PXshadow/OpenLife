@@ -205,8 +205,13 @@ class Connection implements ServerHeader
     public function send(tag:ClientTag,data:Array<String>=null)
     {
         var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
-        //trace("S: " + string);
         sock.output.writeString(string);
+
+        if(ServerSettings.TraceSend)
+        {
+            var tmpString = StringTools.replace(string, "\n", "\t");
+            trace("Send: " + tmpString);
+        }
     }
 }
 #end

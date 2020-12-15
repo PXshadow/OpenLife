@@ -28,6 +28,7 @@ class GlobalPlayerInstance extends PlayerInstance {
     // remember that y is counted from bottom not from top
     public var gx:Int = 400; //global x offset from birth
     public var gy:Int = 300; //global y offset from birth 
+
     //food vars
     var food_capacity:Float = 10;
     public var food_store:Float = 10;
@@ -91,10 +92,36 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         this.mutex.release();
     }
+    /*
+        FX
+
+        food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
+        yum_bonus yum_multiplier#
+
+        food_store is integer amount of food left in body, capacity is the integer 
+        maximum amount of food.
+
+        last_ate_id is the object id of the last piece of food eaten, or 0 if nothing
+        was eaten recently
+
+        last_ate_fill_max is an integer number indicating how many slots were full
+        before what was just eaten.  Amount that what was eaten filled us up is
+        (food_store - last_ate_fill_max).
+
+        move_speed is floating point speed in grid square widths per second.
+
+        responsible_id is id of player that fed you if you're a baby, or -1
+
+        yum_bonus is an integer indicating the current stored bonus food.
+
+        yum_multiplier is an integer indicating how many yum bonus points are earned
+        when the next yummy food is eaten.
+    */
 
     public function doFood(yum_bonus:Int,yum_multiplier:Int)
     {
-        this.connection.send(FOOD_CHANGE,['${Std.int(food_store)} ${Std.int(food_capacity)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id $yum_bonus $yum_multiplier']);
+        trace('\n\tFX food_store: ${Math.ceil(food_store)} food_capacity: ${Std.int(food_capacity)} last_ate_id: $last_ate_id last_ate_fill_max: $last_ate_fill_max move_speed: $move_speed responsible_id: $responsible_id yum_bonus: $yum_bonus yum_multiplier: $yum_multiplier');
+        this.connection.send(FOOD_CHANGE,['${Math.ceil(food_store)} ${Std.int(food_capacity)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id $yum_bonus $yum_multiplier']);
     }
 
     public function doSelf(x:Int, y:Int, clothingSlot:Int)
@@ -138,16 +165,26 @@ class GlobalPlayerInstance extends PlayerInstance {
                 return;
             }
 
-            if(food_capacity - food_store < foodValue / 2){
+            if(food_capacity - food_store < (foodValue + 1) / 2){
 
-                trace('too full to eat: food_capacity: $food_capacity - food_store: $food_store < foodValue: $foodValue / 2');
+                trace('too full to eat: food_capacity: $food_capacity - food_store: $food_store < ( foodValue: $foodValue + 1 ) / 2');
 
                 this.connection.send(PLAYER_UPDATE,[this.toData()]);
                 this.connection.send(FRAME);
                 return;
             }
-            
-            food_store += foodValue; //objectData.foodValue;
+
+            // food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
+            /*
+                last_ate_fill_max is an integer number indicating how many slots were full
+                before what was just eaten.  Amount that what was eaten filled us up is
+                (food_store - last_ate_fill_max).
+            */
+            this.last_ate_fill_max = Math.ceil(this.food_store);
+            trace('last_ate_fill_max: $last_ate_fill_max');
+            this.food_store += foodValue;
+            this.last_ate_id = heldObject.id();
+            this.responsible_id = -1; // self
 
             if (food_store > food_capacity) food_store = food_capacity;
 
