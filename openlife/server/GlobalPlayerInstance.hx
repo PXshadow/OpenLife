@@ -99,15 +99,30 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     public function doSelf(x:Int, y:Int, clothingSlot:Int)
     {
-        //var doaction = false;
-        var objClothingSlot = -1;
-
-        // TODO food on self
-
         trace('self: ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
+        var objClothingSlot = -1;
 
-        if (clothingSlot == -1)
+        if(this.o_id[0] != 0)
+        {
+            var objectData = ObjectData.getObjectData(this.o_id[0]);
+            //trace("OD: " + objectData.toFileString());        
+
+            switch objectData.clothing.charAt(0) {
+                case "h": objClothingSlot = 0;
+                case "t": objClothingSlot = 1;
+                case "s": objClothingSlot = 2;
+                //case "s": objClothingSlot = 3; 
+                case "b": objClothingSlot = 4;
+                case "p": objClothingSlot = 5;
+            }
+
+            trace('objectData.clothing: ${objectData.clothing}');
+            trace('objClothingSlot:  ${objClothingSlot}');
+            trace('clothingSlot:  ${clothingSlot}');
+        }
+
+        if (this.o_id[0] != 0 && objClothingSlot == -1)
         {
             //var objectData = ObjectData.getObjectData(this.o_id[0]);
             //food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id yum_bonus yum_multiplier#
@@ -131,7 +146,7 @@ class GlobalPlayerInstance extends PlayerInstance {
                 this.connection.send(FRAME);
                 return;
             }
-
+            
             food_store += foodValue; //objectData.foodValue;
 
             if (food_store > food_capacity) food_store = food_capacity;
@@ -145,33 +160,7 @@ class GlobalPlayerInstance extends PlayerInstance {
             this.connection.send(PLAYER_UPDATE,[this.toData()]);
             this.connection.send(FRAME);
             return;
-        }
-
-        if(this.o_id[0] != 0)
-            {
-            var objectData = ObjectData.getObjectData(this.o_id[0]);
-            //trace("OD: " + objectData.toFileString());        
-
-            switch objectData.clothing.charAt(0) {
-                case "h": objClothingSlot = 0;
-                case "t": objClothingSlot = 1;
-                case "s": objClothingSlot = 2;
-                //case "s": objClothingSlot = 3; 
-                case "b": objClothingSlot = 4;
-                case "p": objClothingSlot = 5;
-            }
-
-            trace('objectData.clothing: ${objectData.clothing}');
-            trace('objClothingSlot:  ${objClothingSlot}');
-            trace('clothingSlot:  ${clothingSlot}');
-
-            if(objClothingSlot < 0)
-            {
-                this.connection.send(PLAYER_UPDATE,[this.toData()]);
-                this.connection.send(FRAME);
-                return;
-            } 
-        }
+        }    
 
         if(objClothingSlot >= 0 || clothingSlot >=0){
             var array = this.clothing_set.split(";");
