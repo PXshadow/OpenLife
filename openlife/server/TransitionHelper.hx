@@ -316,19 +316,22 @@ class TransitionHelper{
         } 
         else
         {
-            // TODO //public var useChance:Float = 0;
+            trace('handObjectData.useChance: ${handObjectData.useChance}');
 
-            this.player.heldObject.numberOfUses -= 1;
-            trace('HandObject: numberOfUses: ' + this.player.heldObject.numberOfUses);
-
-            if(this.player.heldObject.numberOfUses <= 0 && handObjectData.numUses > 1)
+            if(Server.server.map.randomFloat() < handObjectData.useChance)
             {
-                var toolTransition = Server.transitionImporter.getTransition(this.player.heldObject.id(), -1, true, false);
+                this.player.heldObject.numberOfUses -= 1;
+                trace('HandObject: numberOfUses: ' + this.player.heldObject.numberOfUses);
 
-                if(toolTransition != null)
+                if(this.player.heldObject.numberOfUses <= 0 && handObjectData.numUses > 1)
                 {
-                    trace('Change Actor from: ${this.player.heldObject.id} to ${toolTransition.newActorID}');
-                    this.player.heldObject.setId(toolTransition.newActorID);
+                    var toolTransition = Server.transitionImporter.getTransition(this.player.heldObject.id(), -1, true, false);
+
+                    if(toolTransition != null)
+                    {
+                        trace('Change Actor from: ${this.player.heldObject.id} to ${toolTransition.newActorID}');
+                        this.player.heldObject.setId(toolTransition.newActorID);
+                    }
                 }
             }
         }
