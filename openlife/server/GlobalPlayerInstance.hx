@@ -104,7 +104,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         // TODO food on self
 
-        trace('self: ${this.o_id[0]} clothingSlot: $clothingSlot');
+        trace('self: ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
 
         if (clothingSlot == -1)
@@ -112,7 +112,9 @@ class GlobalPlayerInstance extends PlayerInstance {
             //var objectData = ObjectData.getObjectData(this.o_id[0]);
             //food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id yum_bonus yum_multiplier#
 
-            if(heldObject.objectData.foodValue < 1)
+            var foodValue = heldObject.objectData.foodValue;
+
+            if(foodValue < 1)
             {
                 trace('cannot eat this stuff no food value!!! ${heldObject.objectData.description}');
 
@@ -121,7 +123,16 @@ class GlobalPlayerInstance extends PlayerInstance {
                 return;
             }
 
-            food_store += heldObject.objectData.foodValue; //objectData.foodValue;
+            if(food_capacity - food_store < foodValue / 2){
+
+                trace('too full to eat: food_capacity: $food_capacity - food_store: $food_store < foodValue: $foodValue / 2');
+
+                this.connection.send(PLAYER_UPDATE,[this.toData()]);
+                this.connection.send(FRAME);
+                return;
+            }
+
+            food_store += foodValue; //objectData.foodValue;
 
             if (food_store > food_capacity) food_store = food_capacity;
 
