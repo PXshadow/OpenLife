@@ -86,7 +86,7 @@ class Connection implements ServerHeader
         player.gx = ServerSettings.startingGx;
         player.gy = ServerSettings.startingGy;
 
-        player.move_speed = MoveExtender.calculateSpeed(player.gx, player.gy);
+        player.move_speed = MoveExtender.calculateSpeed(player, player.gx, player.gy);
         
         trace("move_speed: " + player.move_speed);
 

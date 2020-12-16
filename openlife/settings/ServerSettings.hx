@@ -17,7 +17,7 @@ class ServerSettings
     public static var  FoodUsePerSecond = 0.2; // 0.1;
 
     // PlayerInstance
-    public static var StartingEveAge = 3;  // 12
+    public static var StartingEveAge = 0;  // 12
     public static var SecondsPerYear = 10; // 60
 
     public static var startingGx = 360;

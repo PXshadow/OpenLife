@@ -39,6 +39,40 @@ class MoveExtender{
         return (this.newMoves != null);
     }
 
+    static public function calculateSpeed(p:GlobalPlayerInstance, tx:Int,ty:Int) : Float
+    {
+        var map =  Server.server.map;
+
+        // TODO check hand objects
+
+        // TODO heavy objects in chart
+
+        // TODO chart off road
+
+        // TODO shoes extra speed
+
+        // TODO road 
+
+        // TODO food
+
+        var speed = map.getBiomeSpeed(tx,ty);
+
+        speed *= ServerSettings.SpeedFactor;
+
+        speed *= PlayerInstance.initial_move_speed;
+
+        if(p.age < 1) speed *= 0.5;
+        else if(p.age < 2) speed *= 0.6;
+        else if(p.age < 3) speed *= 0.7;
+        else if(p.age < 6) speed *= 0.8;
+        else if(p.age < 10) speed *= 0.9;
+        else if(p.age > 55) speed *= 0.9;
+
+        //trace('age: ${p.age} speed: $speed');
+
+        return speed;
+    }
+
     static public function move(p:GlobalPlayerInstance, x:Int,y:Int,seq:Int,moves:Array<Pos>)
         {
             //trace(Server.server.map.getObjectId(p.gx + x, p.gy + y));
@@ -81,7 +115,7 @@ class MoveExtender{
             // since it seems speed cannot be set for each tile, the idea is to cut the movement once it crosses in different biomes
             // TODO maybe better to not cut it and make a player update one the new biome is reached?
             // if passing in an biome with different speed only the first movement is kept
-            var newMovements = calculateNewMovements(p.x + p.gx, p.y + p.gy, moves);
+            var newMovements = calculateNewMovements(p, p.x + p.gx, p.y + p.gy, moves);
             if(newMovements.moves.length < 1) throw "newMoves.length < 1";
             
             // in case the new field has another speed take the lower (average) speed
@@ -156,16 +190,16 @@ class MoveExtender{
             }
         }        
 
-        static private function calculateNewMovements(tx:Int,ty:Int,moves:Array<Pos>):NewMovements 
+        static private function calculateNewMovements(p:GlobalPlayerInstance, tx:Int,ty:Int,moves:Array<Pos>):NewMovements 
         {
             var newMovements:NewMovements = new NewMovements();
             var lastPos:Pos = new Pos(0,0);
             
-            newMovements.startSpeed = calculateSpeed(tx,ty);
+            newMovements.startSpeed = calculateSpeed(p, tx,ty);
             
             for (move in moves) {
 
-                newMovements.endSpeed = calculateSpeed(tx + move.x,ty + move.y);
+                newMovements.endSpeed = calculateSpeed(p, tx + move.x,ty + move.y);
 
                 if(newMovements.endSpeed != newMovements.startSpeed) {
                     if(newMovements.moves.length == 0){
@@ -186,27 +220,6 @@ class MoveExtender{
 
             return newMovements;
         }      
-
-        static public function calculateSpeed(tx:Int,ty:Int) : Float
-        {
-            var map =  Server.server.map;
-
-            // TODO check hand objects
-
-            // TODO road 
-
-            // TODO age
-
-            // TODO food
-
-            var speed = map.getBiomeSpeed(tx,ty);
-
-            speed *= ServerSettings.SpeedFactor;
-
-            speed *= PlayerInstance.initial_move_speed;
-
-            return speed;
-        }
 
         // this calculates which position is reached in case the movement was changed while moving
         static private function calculateNewPos(moves:Array<Pos>, startingMoveTicks:Int, speed:Float):Pos
@@ -264,7 +277,7 @@ class MoveExtender{
                 p.y += last.y;
                 
                 p.done_moving_seqNum = me.newMoveSeqNumber;
-                p.move_speed = calculateSpeed(p.x + p.gx, p.y + p.gy);
+                p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
                 //this.forced = true;
     
                 p.mutex.release();
