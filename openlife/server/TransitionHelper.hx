@@ -176,6 +176,12 @@ class TransitionHelper{
 
         // TODO transitions on animals and caves
 
+        if(this.tileObjectData.minPickupAge > player.age)
+        {
+            trace('tileObjectData.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
+            return false;
+        }
+
         if (this.tileObjectHelper.objectData.tool) {
             player.connection.send(LEARNED_TOOL_REPORT,['0 ${this.tileObjectHelper.id()}']);
             trace("TOOL LEARNED! " + this.tileObjectHelper.id());
