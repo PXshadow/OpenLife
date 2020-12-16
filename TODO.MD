@@ -11,8 +11,62 @@ TODO
 
 SERVER
 ======
-DONE: Generate limited map using image color as index for biome id
-DONE: Made map "round", so you can walk over both x,y borders and come out on the other side. 
-1. Map generates on the fly objects
-2. Player can interact with objects (use,drop,remove,self(eat),move), map persistance as part of it. (Use our own data models)
-3. set up transition system for object using/delay time example: stone + bighardrock -> sharp rock,  milkweed flowering -> 15 seconds -> milkweed fruiting
+MAP:
+- Generate limited map using image color as index for biome id
+- Made map "round", so you can walk over both x,y borders and come out on the other side. 
+- Has rivers and oceans  
+- Iron can be used by default 
+- No dry spring and tarry spot
+- no gradients
+- no waystones
+
+SPEED:
+- different speed for different biomes
+- limited speed for lower age < 10 
+
+Food - YUM:
+- YUM gives flat 2X food boni
+- MEH reduces food value minus one for each eaten / For example Berry Default 3: 6 / 2 / 1 / 1 / 1 ...
+- You can only eat if you have space for at least half the food value, not counting yum.
+- Extra food is stored as YUM Extra food
+- YUM chain is used as SCORE  (SOON) (Not how long you live is important but how you live is important)
+
+
+Animals:
+- Animals can multiply
+- Animals can leave their biome, but prefare to stay in own biome
+
+
+TODO:
+- world persistance 
+- incarnation
+- leadership
+- cravings
+- temperature
+- animal interactions / collisions
+- blocking animal movement
+- curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
+- combat / generally allowed
+- fences / gates
+- death
+- wounds / healing
+- better map
+- hard work
+- horses / carts
+- speed stuff
+- multiplayer testing
+- score / score boni
+- nobles
+- job boni
+- biome boni for different races
+- feeding of other people
+- naming
+- families
+- commands 
+- speech limit
+- different languages
+- advanced transitions like oil stuff, sprinkler, cars
+
+
+
+
