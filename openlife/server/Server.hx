@@ -124,12 +124,21 @@ class Server
             //trace('food_store: ${connection.player.food_store}');
 
             var tmpFood = Math.ceil(connection.player.food_store);
+            var tmpExtraFood = Math.ceil(connection.player.yum_bonus);
+            var foodDecay = (tick - lastTick) * tickTime * ServerSettings.FoodUsePerSecond; 
 
-            connection.player.food_store += (lastTick - tick) * tickTime * ServerSettings.FoodUsePerSecond; //try food storage decay
-            
-            if(tmpFood != Math.ceil(connection.player.food_store))
+            if(connection.player.yum_bonus > 0)
             {
-               connection.player.doFood(0,0);
+                connection.player.yum_bonus -= foodDecay;
+            }
+            else
+            {
+                connection.player.food_store -= foodDecay;
+            }
+            
+            if(tmpFood != Math.ceil(connection.player.food_store) || tmpExtraFood != Math.ceil(connection.player.yum_bonus))
+            {
+               connection.player.sendFoodUpdate();
                connection.send(FRAME);
             }
 

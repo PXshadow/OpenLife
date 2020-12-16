@@ -30,9 +30,11 @@ class GlobalPlayerInstance extends PlayerInstance {
     public var gy:Int = 300; //global y offset from birth 
 
     //food vars
-    var food_capacity:Float = 10;
     public var food_store:Float = 10;
+    var food_capacity:Float = 10;
     var last_ate_fill_max:Int = 0;
+    public var yum_bonus:Float = 0;
+    var yum_multiplier = 0;
 
     public function new(a:Array<String>)
     {
@@ -118,10 +120,10 @@ class GlobalPlayerInstance extends PlayerInstance {
         when the next yummy food is eaten.
     */
 
-    public function doFood(yum_bonus:Int,yum_multiplier:Int)
+    public function sendFoodUpdate()
     {
         //trace('\n\tFX food_store: ${Math.ceil(food_store)} food_capacity: ${Std.int(food_capacity)} last_ate_id: $last_ate_id last_ate_fill_max: $last_ate_fill_max move_speed: $move_speed responsible_id: $responsible_id yum_bonus: $yum_bonus yum_multiplier: $yum_multiplier');
-        this.connection.send(FOOD_CHANGE,['${Math.ceil(food_store)} ${Std.int(food_capacity)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id $yum_bonus $yum_multiplier']);
+        this.connection.send(FOOD_CHANGE,['${Math.ceil(food_store)} ${Std.int(food_capacity)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id ${Math.ceil(yum_bonus)} $yum_multiplier']);
     }
 
     public function doSelf(x:Int, y:Int, clothingSlot:Int)
@@ -186,9 +188,12 @@ class GlobalPlayerInstance extends PlayerInstance {
             this.last_ate_id = heldObject.id();
             this.responsible_id = -1; // self
 
-            if (food_store > food_capacity) food_store = food_capacity;
+            if (food_store > food_capacity){
+                this.yum_bonus = food_store - food_capacity;
+                food_store = food_capacity;
+            } 
 
-            doFood(0,0);
+            sendFoodUpdate();
 
             // do not forget to change ObjectHelper also!!!
             this.o_id[0] = 0;

@@ -87,10 +87,9 @@ class MoveExtender{
             // in case the new field has another speed take the lower (average) speed
             //speed = (speed + startSpeed) / 2; 
             if(newMovements.endSpeed < newMovements.startSpeed) newMovements.startSpeed = newMovements.endSpeed;
-    
-            newMovements.startSpeed *= PlayerInstance.initial_move_speed;
+                
             //trace("speed:" + speed);
-            var speedChanged = (p.move_speed != newMovements.startSpeed);
+            //var speedChanged = (p.move_speed != newMovements.startSpeed);
             
 
             p.move_speed = newMovements.startSpeed;
@@ -188,15 +187,23 @@ class MoveExtender{
             return newMovements;
         }      
 
-        static private function calculateSpeed(tx:Int,ty:Int) : Float
+        static public function calculateSpeed(tx:Int,ty:Int) : Float
         {
             var map =  Server.server.map;
 
             // TODO check hand objects
 
+            // TODO road 
+
+            // TODO age
+
+            // TODO food
+
             var speed = map.getBiomeSpeed(tx,ty);
 
             speed *= ServerSettings.SpeedFactor;
+
+            speed *= PlayerInstance.initial_move_speed;
 
             return speed;
         }
@@ -257,12 +264,12 @@ class MoveExtender{
                 p.y += last.y;
                 
                 p.done_moving_seqNum = me.newMoveSeqNumber;
-                p.move_speed = server.map.getBiomeSpeed(p.x + p.gx, p.y + p.gy) * PlayerInstance.initial_move_speed;
+                p.move_speed = calculateSpeed(p.x + p.gx, p.y + p.gy);
                 //this.forced = true;
     
                 p.mutex.release();
     
-                //trace('reached position: ${p.x},${p.y}');
+                trace('reached position: ${p.x},${p.y}');
              
                 //trace("forced: " + p.forced);
     

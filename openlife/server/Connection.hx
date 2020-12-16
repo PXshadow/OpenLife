@@ -86,7 +86,7 @@ class Connection implements ServerHeader
         player.gx = ServerSettings.startingGx;
         player.gy = ServerSettings.startingGy;
 
-        player.move_speed = server.map.getBiomeSpeed(player.gx, player.gy) * PlayerInstance.initial_move_speed;
+        player.move_speed = MoveExtender.calculateSpeed(player.gx, player.gy);
         
         trace("move_speed: " + player.move_speed);
 
@@ -108,7 +108,7 @@ class Connection implements ServerHeader
         
         send(LINEAGE,['$id eve=$id']);
         send(TOOL_SLOTS,["0 1000"]);
-        player.doFood(0,0);
+        player.sendFoodUpdate();
         send(FRAME);
         server.map.mutex.release();
     }

@@ -5,7 +5,7 @@ class ServerSettings
     // for debugging
     public static var debug = true; // activates or deactivates try catch blocks and initial debug objects generation 
     
-    public static var TraceSend = false;
+    public static var TraceSend = false; // used to trace connection.send commands
 
     public static var traceTransitionById = 99972; // TransitionImporter
     public static var traceTransitionByActorDescription = "!!!Bowl of Water"; // TransitionImporter
@@ -16,6 +16,7 @@ class ServerSettings
     // food stuff
     public static var  FoodUsePerSecond = 0.2; // 0.1;
 
+    // PlayerInstance
     public static var StartingEveAge = 3;  // 12
     public static var SecondsPerYear = 10; // 60
 
