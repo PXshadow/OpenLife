@@ -119,6 +119,8 @@ class Server
 
         for (connection in connections)
         {
+            connection.player.age += (tick - lastTick) * tickTime  / (connection.player.age_r);
+
             //trace('food_store: ${connection.player.food_store}');
 
             var tmpFood = Math.ceil(connection.player.food_store);

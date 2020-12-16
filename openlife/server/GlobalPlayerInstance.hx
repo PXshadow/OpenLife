@@ -120,7 +120,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     public function doFood(yum_bonus:Int,yum_multiplier:Int)
     {
-        trace('\n\tFX food_store: ${Math.ceil(food_store)} food_capacity: ${Std.int(food_capacity)} last_ate_id: $last_ate_id last_ate_fill_max: $last_ate_fill_max move_speed: $move_speed responsible_id: $responsible_id yum_bonus: $yum_bonus yum_multiplier: $yum_multiplier');
+        //trace('\n\tFX food_store: ${Math.ceil(food_store)} food_capacity: ${Std.int(food_capacity)} last_ate_id: $last_ate_id last_ate_fill_max: $last_ate_fill_max move_speed: $move_speed responsible_id: $responsible_id yum_bonus: $yum_bonus yum_multiplier: $yum_multiplier');
         this.connection.send(FOOD_CHANGE,['${Math.ceil(food_store)} ${Std.int(food_capacity)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id $yum_bonus $yum_multiplier']);
     }
 

@@ -12,11 +12,13 @@ class ServerSettings
     public static var traceTransitionByTargetDescription = "!!!Steel Axe"; // TransitionImporter
 
     public static var traceAmountGeneratedObjects = false; // WorldMap
-
+   
     // food stuff
     public static var  FoodUsePerSecond = 0.2; // 0.1;
 
-    // real stuff
+    public static var StartingEveAge = 3;  // 12
+    public static var SecondsPerYear = 10; // 60
+
     public static var startingGx = 360;
     public static var startingGy = 600 - 400; // server map is saved y inverse 
 

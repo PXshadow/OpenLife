@@ -1,4 +1,5 @@
 package openlife.data.object.player;
+import openlife.settings.ServerSettings;
 import openlife.data.map.MapData;
 @:expose("PlayerInstance")
 class PlayerInstance
@@ -70,13 +71,13 @@ class PlayerInstance
     /**
      * age of player
      */
-    public var age:Float = 3; //24;
+    public var age:Float = ServerSettings.StartingEveAge;
     /**
      * age rate of increase
      */
-    public var age_r:Float = 60;
+    public var age_r:Float = ServerSettings.SecondsPerYear;
 
-    public static var initial_move_speed:Float = 3.75; //3.75; //10;
+    public static var initial_move_speed:Float = 3.75;
 
     /**
      * move speed of player
