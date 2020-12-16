@@ -14,11 +14,12 @@ class ServerSettings
     public static var traceAmountGeneratedObjects = false; // WorldMap
    
     // food stuff
-    public static var  FoodUsePerSecond = 0.2; // 0.1;
+    public static var FoodUsePerSecond = 0.2; // 0.1;
+    public static var GrownUpFood = 20;
 
     // PlayerInstance
     public static var StartingEveAge = 0;  // 12
-    public static var SecondsPerYear = 1; // 60
+    public static var SecondsPerYear = 3; // 60
 
     public static var startingGx = 360;
     public static var startingGy = 600 - 400; // server map is saved y inverse 

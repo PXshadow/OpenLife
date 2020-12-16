@@ -30,8 +30,8 @@ class GlobalPlayerInstance extends PlayerInstance {
     public var gy:Int = 300; //global y offset from birth 
 
     //food vars
-    public var food_store:Float = 10;
-    var food_capacity:Float = 10;
+    public var food_store:Float = ServerSettings.GrownUpFood;
+    var food_capacity:Float = ServerSettings.GrownUpFood;
     var last_ate_fill_max:Int = 0;
     public var yum_bonus:Float = 0;
     var yum_multiplier = 0;
