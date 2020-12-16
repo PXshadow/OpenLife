@@ -128,9 +128,15 @@ class TransitionHelper{
      0=hat, 1=tunic, 2=frontShoe, 3=backShoe, 4=bottom, 5=backpack*/
 
      public function drop(clothingIndex:Int=-1) : Bool
-    {
+    {     
         // this is a drop and not a transition
         this.doTransition = false;
+
+        if(this.tileObjectData.minPickupAge > player.age)
+        {
+            trace('DROP: tileObjectData.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
+            return false;
+        }
         
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;
 
@@ -161,8 +167,6 @@ class TransitionHelper{
         // TODO intentional use with index, see description above
 
         // TODO use on container with index, see description above
-
-        // TODO check pickup age
 
         // TODO kill deadlyDistance
 

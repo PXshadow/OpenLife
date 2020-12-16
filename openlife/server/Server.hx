@@ -154,7 +154,7 @@ class Server
         if(Std.int(tmpAge) != Std.int(c.player.age))
         {
             //trace('update age');
-            c.player.po_id += 1;
+            //c.player.po_id += 1;
             Connection.SendUpdateToAllClosePlayers(c.player);
         }
     }

@@ -158,6 +158,14 @@ class GlobalPlayerInstance extends PlayerInstance {
             //var objectData = ObjectData.getObjectData(this.o_id[0]);
             //food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id yum_bonus yum_multiplier#
 
+            if(this.age < ServerSettings.MinAgeToEat)
+            {
+                trace('too young to eat player.age: ${this.age} < ServerSettings.MinAgeToEat: ${ServerSettings.MinAgeToEat} ');
+                this.connection.send(PLAYER_UPDATE,[this.toData()]);
+                this.connection.send(FRAME);
+                return;
+            }
+
             var foodValue = heldObject.objectData.foodValue;
 
             if(foodValue < 1)
