@@ -36,6 +36,8 @@ class GlobalPlayerInstance extends PlayerInstance {
     public var yum_bonus:Float = 0;
     var yum_multiplier = 0;
 
+    var hasEatenMap = new Map<Int, Int>();
+
     public function new(a:Array<String>)
     {
         super(a);
@@ -175,6 +177,24 @@ class GlobalPlayerInstance extends PlayerInstance {
                 this.connection.send(FRAME);
                 return;
             }
+
+            var countEaten = hasEatenMap[heldObject.id()];
+
+            if(countEaten < 1)
+            {
+                // yum
+                foodValue *=2;
+                yum_multiplier += 1;
+            } else
+            {
+                // meh
+                foodValue -= countEaten;
+                foodValue = Std.int(Math.max(1, foodValue));
+            }
+
+            trace('foodValue: $foodValue countEaten: $countEaten');
+
+            hasEatenMap[heldObject.id()] += 1;
 
             // food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
             /*
