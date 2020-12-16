@@ -294,7 +294,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     public function isHoldingYum() : Bool
     {
-        if(heldObject.id() == 0) return false;
+        if(heldObject.objectData.foodValue < 1) return false;
 
         var countEaten = hasEatenMap[heldObject.id()];
 

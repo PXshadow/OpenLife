@@ -101,6 +101,10 @@ class WorldMap
         setObjectId(tx+5, ty, [684]);
         setObjectId(tx+6, ty, [677]);
 
+        // sheares with pink rose
+        setObjectId(tx+6, ty, [3842]);
+        
+
         // add some clothing for testing
         setObjectId(tx, ty+1, [2916]);
         setObjectId(tx+1, ty+1, [2456]);

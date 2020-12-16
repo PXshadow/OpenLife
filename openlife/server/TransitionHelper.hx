@@ -484,8 +484,7 @@ class TransitionHelper{
 
         tileObjectHelper.containedObjects.insert(0 , this.player.heldObject);
 
-        this.player.heldObject = tmpObject;
-
+        this.player.setHeldObject(tmpObject);
 
         trace('DROP SWITCH Hand object: ${player.heldObject.writeObjectHelper([])}');
         trace('DROP SWITCH New Tile object: ${tileObjectHelper.writeObjectHelper([])}');
@@ -510,47 +509,10 @@ class TransitionHelper{
 
         if(tileObjectHelper.containedObjects.length < 1) return false;            
 
-        //var tmpHeldObject = this.player.heldObject;
-        this.player.heldObject = tileObjectHelper.removeContainedObject(index);
-
-        //this.newTileObject = tileObjectHelper.writeObjectHelper([]);
-
-        /*
-        if(tmpHeldObject.id() != 0){
-            // TODO check if it hand item fits in container
-            trace('pushed held object in container: ${tmpHeldObject.writeObjectHelper([])}');
-            tileObjectHelper.containedObjects.push(tmpHeldObject);
-        }*/
+        this.player.setHeldObject(tileObjectHelper.removeContainedObject(index));
 
         this.doAction = true;
         return true;
-
-        /*
-        //var newTileObject = Server.server.map.getObjectId(x + gx,y + gy);
-        //trace("tile: "  + newTileObject);
-
-
-        var doAction = false;
-        if (newTileObject.length > 1) 
-        {
-            doAction = true;
-            if (this.o_id[0] == 0)
-            {
-                //non swap
-                trace("before: " + newTileObject);
-                this.o_id = MapData.getObjectFromContainer(newTileObject);
-                trace("after: " + newTileObject);
-            }else{
-                //swap
-                trace("swap before: hand: " + o_id + " tile " + newTileObject);
-                var hand = MapData.toContainer(o_id);
-                newTileObject = newTileObject.concat(hand);
-                hand = MapData.getObjectFromContainer(newTileObject);
-                o_id = hand;
-                trace("swap after: hand: " + o_id + " tile " + newTileObject);
-            }
-        }        
-        */
     }
 
     /*
