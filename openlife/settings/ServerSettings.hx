@@ -18,7 +18,7 @@ class ServerSettings
 
     // PlayerInstance
     public static var StartingEveAge = 0;  // 12
-    public static var SecondsPerYear = 10; // 60
+    public static var SecondsPerYear = 1; // 60
 
     public static var startingGx = 360;
     public static var startingGy = 600 - 400; // server map is saved y inverse 

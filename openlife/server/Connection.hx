@@ -92,8 +92,18 @@ class Connection implements ServerHeader
 
         sendMapChunk(0,0);
 
-        //var data:Array<String> = [];
-        for (c in server.connections)
+        SendUpdateToAllClosePlayers(player);
+        
+        send(LINEAGE,['$id eve=$id']);
+        send(TOOL_SLOTS,["0 1000"]);
+        player.sendFoodUpdate();
+        send(FRAME);
+        server.map.mutex.release();
+    }
+
+    public static function SendUpdateToAllClosePlayers(player:GlobalPlayerInstance)
+    {
+        for (c in Server.server.connections)
         {
             // since player has relative coordinates, transform them for player
             var targetX = player.gx - c.player.gx;
@@ -105,12 +115,6 @@ class Connection implements ServerHeader
             c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)]);
             c.send(FRAME);
         }
-        
-        send(LINEAGE,['$id eve=$id']);
-        send(TOOL_SLOTS,["0 1000"]);
-        player.sendFoodUpdate();
-        send(FRAME);
-        server.map.mutex.release();
     }
 
     public function close()

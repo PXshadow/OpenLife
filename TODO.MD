@@ -18,7 +18,7 @@ MAP:
 - Iron can be used by default 
 - No dry spring and tarry spot
 - no gradients
-- no waystones
+- no expert waystones
 
 SPEED:
 - different speed for different biomes
@@ -66,6 +66,8 @@ TODO:
 - speech limit
 - different languages
 - advanced transitions like oil stuff, sprinkler, cars
+- backpack
+- use on table
 
 
 

@@ -112,6 +112,9 @@ class Server
     {
         if(serverStartingTime <= 0) serverStartingTime = Sys.time();
         var time = Sys.time() - serverStartingTime;
+        var timePassedInSeconds = (tick - lastTick) * tickTime;
+
+        lastTick = tick;
 
         // never skip a time task tick that is every 20 ticks
         // TODO what to do if server is too slow?
@@ -119,31 +122,14 @@ class Server
 
         for (connection in connections)
         {
-            connection.player.age += (tick - lastTick) * tickTime  / (connection.player.age_r);
+            updateAge(connection, timePassedInSeconds);
 
-            //trace('food_store: ${connection.player.food_store}');
-
-            var tmpFood = Math.ceil(connection.player.food_store);
-            var tmpExtraFood = Math.ceil(connection.player.yum_bonus);
-            var foodDecay = (tick - lastTick) * tickTime * ServerSettings.FoodUsePerSecond; 
-
-            if(connection.player.yum_bonus > 0)
-            {
-                connection.player.yum_bonus -= foodDecay;
-            }
-            else
-            {
-                connection.player.food_store -= foodDecay;
-            }
-            
-            if(tmpFood != Math.ceil(connection.player.food_store) || tmpExtraFood != Math.ceil(connection.player.yum_bonus))
-            {
-               connection.player.sendFoodUpdate();
-               connection.send(FRAME);
-            }
+            updateFood(connection, timePassedInSeconds);
 
             connection.player.updateMovement();
         }
+
+        map.DoSomeTimeStuff();
 
         /* TODO currently it goes through the hole map each sec / this may later not work
         for(helper in this.map.timeObjectHelpers){
@@ -156,10 +142,44 @@ class Server
             }
         }*/
 
-        map.DoSomeTimeStuff();
-        lastTick = tick;
-
         if(this.tick % 200 == 0) trace('Time: ${this.tick / 20} Time: $time');
+    }
+
+    private function updateAge(c:Connection, timePassedInSeconds:Float)
+    {
+        var tmpAge = c.player.age;
+
+        c.player.age += timePassedInSeconds / c.player.age_r;
+        
+        if(Std.int(tmpAge) != Std.int(c.player.age))
+        {
+            //trace('update age');
+            Connection.SendUpdateToAllClosePlayers(c.player);
+        }
+    }
+
+    private function updateFood(c:Connection, timePassedInSeconds:Float)
+    {
+        //trace('food_store: ${connection.player.food_store}');
+
+        var tmpFood = Math.ceil(c.player.food_store);
+        var tmpExtraFood = Math.ceil(c.player.yum_bonus);
+        var foodDecay = timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
+
+        if(c.player.yum_bonus > 0)
+        {
+            c.player.yum_bonus -= foodDecay;
+        }
+        else
+        {
+            c.player.food_store -= foodDecay;
+        }
+
+        if(tmpFood != Math.ceil(c.player.food_store) || tmpExtraFood != Math.ceil(c.player.yum_bonus))
+        {
+            c.player.sendFoodUpdate();
+            c.send(FRAME);
+        }
     }
 
     public function calculateTimeSinceTicksInSec(ticks:Int):Float
