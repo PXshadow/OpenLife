@@ -308,7 +308,7 @@ class TransitionHelper{
         //if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
         this.newTransitionSource = transition.targetID; // TODO ???
         
-        player.heldObject.setId(transition.newActorID);
+        player.transformHeldObject(transition.newActorID);
              
         // Add HelperObject to timeObjectHelpers if newTargetObject has time transitions
         // TODO move to SetObjectHelper
@@ -435,9 +435,7 @@ class TransitionHelper{
         var tmpTileObject = tileObjectHelper;
 
         this.tileObjectHelper = this.player.heldObject;
-        this.player.heldObject = tmpTileObject;
-        //this.newTileObject = this.handObject;
-        //this.newHandObject = this.tileObject;
+        this.player.setHeldObject(tmpTileObject);
 
         this.doAction = true;
         return true;

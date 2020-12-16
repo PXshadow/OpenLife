@@ -155,9 +155,6 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         if (this.o_id[0] != 0 && objClothingSlot == -1)
         {
-            //var objectData = ObjectData.getObjectData(this.o_id[0]);
-            //food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id yum_bonus yum_multiplier#
-
             if(this.age < ServerSettings.MinAgeToEat)
             {
                 trace('too young to eat player.age: ${this.age} < ServerSettings.MinAgeToEat: ${ServerSettings.MinAgeToEat} ');
@@ -223,9 +220,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
             sendFoodUpdate();
 
-            // do not forget to change ObjectHelper also!!!
-            this.o_id[0] = 0;
-            this.heldObject = ObjectHelper.readObjectHelper(this, [0]);
+            setHeldObject(null);
 
             this.connection.send(PLAYER_UPDATE,[this.toData()]);
             this.connection.send(FRAME);
@@ -235,7 +230,8 @@ class GlobalPlayerInstance extends PlayerInstance {
         if(objClothingSlot >= 0 || clothingSlot >=0){
             var array = this.clothing_set.split(";");
 
-            if(array.length < 6){
+            if(array.length < 6)
+            {
                 trace('Clothing string missing slots: ${this.clothing_set}' );
             }  
 
@@ -273,35 +269,10 @@ class GlobalPlayerInstance extends PlayerInstance {
             }
         }
         
-        for (c in Server.server.connections)
-        {
-            // since player has relative coordinates, transform them for player
-            var targetX = this.gx - c.player.gx;
-            var targetY = this.gy - c.player.gy;
-
-            // update only close players
-            if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-
-            c.send(PLAYER_UPDATE,[this.toRelativeData(c.player)]);
-            c.send(FRAME);
-        }
+        Connection.SendUpdateToAllClosePlayers(this);
 
         this.action = 0;
     }
-
-    
-    
-    /*
-    public function remove(x:Int,y:Int,index:Int)
-    {
-        var helper = new TransitionHelper(this, x, y);
-
-        helper.remove(index);
-        
-        helper.sendUpdateToClient();
-    }
-
-    */
 
     public function specialRemove(x:Int,y:Int,clothing:Int,id:Null<Int>)
     {
@@ -321,57 +292,27 @@ class GlobalPlayerInstance extends PlayerInstance {
             }
     }
 
-    /*
-    // even send Player Update / PU if nothing happend. Otherwise client will get stuck
-    public function use(x:Int,y:Int)         
+    public function isHoldingYum() : Bool
     {
-        var helper = new TransitionHelper(this, x, y);
+        if(heldObject.id() == 0) return false;
 
-        helper.use();
+        var countEaten = hasEatenMap[heldObject.id()];
 
-        helper.sendUpdateToClient();
-
+        return countEaten < 1; 
     }
 
-    // even send Player Update / PU if nothing happend. Otherwise client will get stuck
-    public function drop(x:Int,y:Int, clothingIndex:Int=-1)        
+    public function setHeldObject(obj:ObjectHelper)
     {
-        //trace("try to acquire player mutex");
-        player.mutex.acquire();
-        //trace("try to acquire map mutex");
-        Server.server.map.mutex.acquire();
+        if(obj == null) obj = ObjectHelper.readObjectHelper(this, [0]);
 
-        if(ServerSettings.debug)
-        {
-            var helper = new TransitionHelper(this, x, y);
-    
-            helper.drop(clothingIndex); 
-            
-            helper.sendUpdateToClient();
-        }
-        else{
-            try
-            {
-                var helper = new TransitionHelper(this, x, y);
-    
-                helper.drop(clothingIndex); 
-                
-                helper.sendUpdateToClient();
-            } 
-            catch(e)
-            {                
-                trace(e);
+        this.heldObject = obj;
+        this.o_id = obj.writeObjectHelper([]);
+        this.held_yum = isHoldingYum();    
+    }
 
-                // send PU so that player wont get stuck
-                player.connection.send(PLAYER_UPDATE,[player.toData()]);
-                player.connection.send(FRAME);
-            }
-        }
-
-        //trace("release player mutex");
-        Server.server.map.mutex.release();
-        //trace("release map mutex");
-        player.mutex.release();
-    }   
-    */
+    public function transformHeldObject(id:Int)
+    {
+        heldObject.setId(id);
+        setHeldObject(heldObject);
+    }
 }
