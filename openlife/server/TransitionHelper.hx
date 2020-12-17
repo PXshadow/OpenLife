@@ -291,7 +291,18 @@ class TransitionHelper{
             //transition = transition.maxUseTransition;
         }
 
+        // if it is a transition that picks up an object like 0 + 1422 = 778 + 0  (horse with cart) then switch the hole tile object to the hand object
+        // TODO this may make trouble
+        if(transition.actorID == 0 && transition.targetID != transition.newTargetID)
+        {
+            var tmpHeldObject = player.heldObject;
+            player.setHeldObject(this.tileObjectHelper);
+            this.tileObjectHelper = tmpHeldObject;
+        }
+            
+
         this.tileObjectHelper.setId(transition.newTargetID);
+        
         
         // target did not change if it is same dummy
         var targetChanged = tileObjectData.id != newTargetObjectData.id;
@@ -313,9 +324,9 @@ class TransitionHelper{
         //transition source object id (or -1) if held object is result of a transition 
         //if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
         this.newTransitionSource = transition.targetID; // TODO ???
-        
+
         player.transformHeldObject(transition.newActorID);
-             
+                    
         // Add HelperObject to timeObjectHelpers if newTargetObject has time transitions
         // TODO move to SetObjectHelper
         var timeTransition = Server.transitionImporter.getTransition(-1, transition.newTargetID, false, false);
@@ -544,6 +555,9 @@ class TransitionHelper{
 
             return false;
         }
+
+        trace('NEW: handObjectHelper: ${player.heldObject.description()} ' + player.heldObject.writeObjectHelper([]));
+        trace('NEW: tileObjectHelper: ${tileObjectHelper.description()} ' + tileObjectHelper.writeObjectHelper([]));
 
         Server.server.map.setFloorId(this.tx, this.ty, this.newFloorId);
         Server.server.map.setObjectHelper(this.tx, this.ty, this.tileObjectHelper);
