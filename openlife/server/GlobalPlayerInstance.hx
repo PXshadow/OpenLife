@@ -45,10 +45,14 @@ class GlobalPlayerInstance extends PlayerInstance {
         this.heldObject = ObjectHelper.readObjectHelper(this, [0]);
     }
 
+    public function tx() : Int {return x + gx;}
+    public function ty() : Int {return y + gy;}
+
     public function toRelativeData(forPlayer:GlobalPlayerInstance):String
     {
         var relativeX = this.gx - forPlayer.gx;
         var relativeY = this.gy - forPlayer.gy;
+
         o_origin_valid = 1; // TODO ???
         //441 2404 0 1 4 -6 33 1 4 -6 -1 0.26 8 0 4 -6 16.14 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 1
         return '$p_id $po_id $facing $action ${action_target_x + relativeX}  ${action_target_y  + relativeY} ${MapData.stringID(o_id)} $o_origin_valid ${o_origin_x + relativeX} ${o_origin_y + relativeY} $o_transition_source_id $heat $done_moving_seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '${x + relativeX} ${y + relativeY}'} $age $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
@@ -122,10 +126,10 @@ class GlobalPlayerInstance extends PlayerInstance {
         when the next yummy food is eaten.
     */
 
-    public function sendFoodUpdate()
+    public function sendFoodUpdate(isPlayerAction:Bool = true)
     {
         //trace('\n\tFX food_store: ${Math.ceil(food_store)} food_capacity: ${Std.int(food_capacity)} last_ate_id: $last_ate_id last_ate_fill_max: $last_ate_fill_max move_speed: $move_speed responsible_id: $responsible_id yum_bonus: $yum_bonus yum_multiplier: $yum_multiplier');
-        this.connection.send(FOOD_CHANGE,['${Math.ceil(food_store)} ${Std.int(food_capacity)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id ${Math.ceil(yum_bonus)} $yum_multiplier']);
+        this.connection.send(FOOD_CHANGE,['${Math.ceil(food_store)} ${Std.int(food_capacity)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id ${Math.ceil(yum_bonus)} $yum_multiplier'], isPlayerAction);
     }
 
     public function doSelf(x:Int, y:Int, clothingSlot:Int)
@@ -239,9 +243,12 @@ class GlobalPlayerInstance extends PlayerInstance {
             // TODO setting shoes is not always working nice
             // TODO if the clothing are shoes and there are shoes allready on the first shoe but not on the second and if the index is not set
 
-            if(objClothingSlot == 2 && clothingSlot == -1){
+            if(objClothingSlot == 2 && clothingSlot == -1)
+            {
                 clothingSlot = 3;
-            }else{
+            }
+            else
+            {
                 // always use clothing slot from the hold object if it has
                 if(objClothingSlot > -1) clothingSlot = objClothingSlot;
             }
@@ -278,18 +285,7 @@ class GlobalPlayerInstance extends PlayerInstance {
     {
         // TODO implement
 
-        for (c in Server.server.connections) 
-            {
-                // since player has relative coordinates, transform them for player
-                var targetX = this.gx - c.player.gx;
-                var targetY = this.gy - c.player.gy;
-
-                // update only close players
-                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-
-                c.send(PLAYER_UPDATE,[this.toRelativeData(c.player)]);
-                c.send(FRAME);
-            }
+        Connection.SendUpdateToAllClosePlayers(this);
     }
 
     public function isHoldingYum() : Bool

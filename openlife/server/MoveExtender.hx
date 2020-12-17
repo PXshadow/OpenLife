@@ -280,25 +280,13 @@ class MoveExtender{
                 p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
                 //this.forced = true;
     
-                p.mutex.release();
-    
                 trace('reached position: ${p.x},${p.y}');
              
                 //trace("forced: " + p.forced);
     
-                for (c in Server.server.connections) 
-                {
-                    // since player has relative coordinates, transform them for player
-                    var targetX = p.gx - c.player.gx;
-                    var targetY = p.gy - c.player.gy;
+                Connection.SendUpdateToAllClosePlayers(p);
 
-                    // update only close players
-                    if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-
-                    //c.send(PLAYER_MOVES_START,['${this.p_id} $x $y $totalMoveTime $totalMoveTime $trunc ${moveString(newMoves)}']);
-                    c.send(PLAYER_UPDATE,[p.toRelativeData(c.player)]);
-                    c.send(FRAME);
-                }
+                p.mutex.release();
             }
         }
     

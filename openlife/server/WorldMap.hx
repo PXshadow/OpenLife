@@ -125,9 +125,9 @@ class WorldMap
         setObjectId(tx - 9,ty + 3,[659]);
         setObjectId(tx - 10,ty + 3,[659]);
 
-        // carts
+        // horses and carts
         setObjectId(tx - 11,ty + 3,[659]);
-        setObjectId(tx - 12,ty + 3,[3158]);
+        setObjectId(tx - 12,ty + 3,[774]); // riding horse 
         setObjectId(tx - 13,ty + 3,[484]); // cart
         setObjectId(tx - 16,ty + 3,[1422]); // escaped horse cart
 
@@ -539,9 +539,11 @@ class WorldMap
 
     public function DoSomeTimeStuff()
     {
-        // devide in 20 steps
-        var partSize = Std.int(length / 20);
-        var start = (mapTimeStep % 20) * partSize;
+        // devide in X steps
+        var timeParts = 40; 
+
+        var partSize = Std.int(length / timeParts);
+        var start = (mapTimeStep % timeParts) * partSize;
         var end = start + partSize;
 
         //trace('$start $end $length');
@@ -554,7 +556,8 @@ class WorldMap
             var obj = objects[i];
             if(obj[0] == 0) continue;     
 
-            var helper = objectHelpers[i];            
+            var helper = objectHelpers[i]; 
+
             if(helper != null)
             {
                 if(obj[0] != helper.objectData.id){

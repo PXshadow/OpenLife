@@ -101,19 +101,19 @@ class Connection implements ServerHeader
         server.map.mutex.release();
     }
 
-    public static function SendUpdateToAllClosePlayers(player:GlobalPlayerInstance)
+    public static function SendUpdateToAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true)
     {
         for (c in Server.server.connections)
         {
             // since player has relative coordinates, transform them for player
-            var targetX = player.gx - c.player.gx;
-            var targetY = player.gy - c.player.gy;
+            var targetX = player.tx() - c.player.gx;
+            var targetY = player.ty() - c.player.gy;
 
             // update only close players
             if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
-            c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)]);
-            c.send(FRAME);
+            c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)], isPlayerAction);
+            c.send(FRAME, null, isPlayerAction);
         }
     }
 
@@ -182,14 +182,14 @@ class Connection implements ServerHeader
     x y new_floor_id new_id p_id old_x old_y speed
     #
     */
-    public function sendMapUpdate(x:Int, y:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int)
+    public function sendMapUpdate(x:Int, y:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, isPlayerAction:Bool = true)
     {
-        send(MAP_CHANGE,['$x $y $newFloorId ${MapData.stringID(newObjectId)} $playerId']);
+        send(MAP_CHANGE,['$x $y $newFloorId ${MapData.stringID(newObjectId)} $playerId'], isPlayerAction);
     }
 
     public function sendMapUpdateForMoving(toX:Int, toY:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, fromX:Int, fromY:Int, speed:Float)
     {
-        send(MAP_CHANGE,['$toX $toY $newFloorId ${MapData.stringID(newObjectId)} $playerId $fromX $fromY $speed']);
+        send(MAP_CHANGE,['$toX $toY $newFloorId ${MapData.stringID(newObjectId)} $playerId $fromX $fromY $speed'], false);
     }
     
     public function emote(id:Int)
@@ -206,13 +206,13 @@ class Connection implements ServerHeader
         login();
     }
 
-    public function send(tag:ClientTag,data:Array<String>=null)
+    public function send(tag:ClientTag,data:Array<String>=null, isPlayerAction:Bool = true)
     {
         var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
         sock.output.writeString(string);
 
         //if(ServerSettings.TraceSend && tag != MAP_CHANGE && tag != FRAME)
-        if(ServerSettings.TraceSend)
+        if(ServerSettings.TraceSend && (isPlayerAction || ServerSettings.TraceOnlyPlayerActions == false))
         {
             var tmpString = StringTools.replace(string, "\n", "\t");
             trace("Send: " + tmpString);
@@ -221,7 +221,7 @@ class Connection implements ServerHeader
 
     public function sendPong(unique_id:String)
     {
-        var tmpString = '$PONG\n$unique_id#';
+        var tmpString = '$PONG $unique_id#';
 
         sock.output.writeString(tmpString);
 

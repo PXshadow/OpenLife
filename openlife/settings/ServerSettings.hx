@@ -6,6 +6,7 @@ class ServerSettings
     public static var debug = true; // activates or deactivates try catch blocks and initial debug objects generation 
     
     public static var TraceSend = true; // used to trace connection.send commands
+    public static var TraceOnlyPlayerActions = true; // only trace player actions / ignores MX from animal, FX and PU from food / age
 
     public static var traceTransitionById = 99972; // TransitionImporter
     public static var traceTransitionByActorDescription = "!!!Bowl of Water"; // TransitionImporter

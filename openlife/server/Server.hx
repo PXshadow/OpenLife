@@ -120,6 +120,8 @@ class Server
         // TODO what to do if server is too slow?
         if(this.tick % 20 != 0 && this.tick / 20 < time - 0.05) this.tick += 1;
 
+        map.mutex.acquire(); // TODO add try catch for non debug
+
         for (connection in connections)
         {
             updateAge(connection, timePassedInSeconds);
@@ -130,6 +132,8 @@ class Server
         }
 
         map.DoSomeTimeStuff();
+
+        map.mutex.release();
 
         /* TODO currently it goes through the hole map each sec / this may later not work
         for(helper in this.map.timeObjectHelpers){
@@ -155,7 +159,7 @@ class Server
         {
             //trace('update age');
             //c.player.po_id += 1;
-            Connection.SendUpdateToAllClosePlayers(c.player);
+            Connection.SendUpdateToAllClosePlayers(c.player, false);
         }
     }
 
@@ -178,8 +182,8 @@ class Server
 
         if(tmpFood != Math.ceil(c.player.food_store) || tmpExtraFood != Math.ceil(c.player.yum_bonus))
         {
-            c.player.sendFoodUpdate();
-            c.send(FRAME);
+            c.player.sendFoodUpdate(false);
+            c.send(FRAME, null, false);
         }
     }
 

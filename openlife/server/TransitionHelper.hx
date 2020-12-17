@@ -507,7 +507,13 @@ class TransitionHelper{
         // do nothing if tile Object is empty
         if(this.tileObjectHelper.id() == 0) return false;
 
-        if(tileObjectHelper.containedObjects.length < 1) return false;            
+        if(tileObjectHelper.containedObjects.length < 1)
+        {
+            if(index != -1) return false;
+
+            // it may be a USE on a horse cart???
+            return doTransitionIfPossible();            
+        }
 
         this.player.setHeldObject(tileObjectHelper.removeContainedObject(index));
 
@@ -630,8 +636,8 @@ class TransitionHelper{
                 // update only close players
                 if(player.isClose(x,y, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
     
-                c.sendMapUpdate(x, y, floorId, newTileObject, -1);
-                c.send(FRAME);
+                c.sendMapUpdate(x, y, floorId, newTileObject, -1, false);
+                c.send(FRAME, null, false);
             }
     
             Server.server.map.mutex.release();
@@ -761,9 +767,9 @@ class TransitionHelper{
                     if(player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
     
                     c.sendMapUpdateForMoving(targetX, targetY, floorId, newTileObject, -1, fromX, fromY, speed);
-                    c.sendMapUpdate(fromX, fromY, floorId, oldTileObject, -1);
+                    c.sendMapUpdate(fromX, fromY, floorId, oldTileObject, -1, false);
                     //c.sendMapUpdate(fromX, fromY, floorId, [0], -1);
-                    c.send(FRAME);
+                    c.send(FRAME, null, false);
                 }
     
                 return true;
