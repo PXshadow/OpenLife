@@ -221,7 +221,7 @@ class Connection implements ServerHeader
 
     public function sendPong(unique_id:String)
     {
-        var tmpString = '$PONG $unique_id#';
+        var tmpString = '$PONG\n$unique_id#';
 
         sock.output.writeString(tmpString);
 

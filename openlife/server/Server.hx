@@ -40,7 +40,7 @@ class Server
     public var tick:Int = 0;
     public var lastTick:Int = 0;
     public var serverStartingTime:Float = 0;
-    public var playerIndex:Int = 1; // used for giving new IDs to players
+    public var playerIndex:Int = 2; // used for giving new IDs to players // better start with 2 since -1 has other use in MX update
     
     
     public var dataVersionNumber:Int = 0;
