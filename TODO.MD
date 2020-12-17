@@ -52,7 +52,6 @@ TODO:
 - wounds / healing
 - better map
 - hard work
-- horses / carts
 - speed stuff
 - multiplayer testing
 - score / score boni
