@@ -128,6 +128,11 @@ class WorldMap
         // carts
         setObjectId(tx - 11,ty + 3,[659]);
         setObjectId(tx - 12,ty + 3,[3158]);
+        setObjectId(tx - 13,ty + 3,[484]); // cart
+        setObjectId(tx - 16,ty + 3,[1422]); // escaped horse cart
+
+        
+        
 
         // spring / tool use
         setObjectId(tx - 4,ty + 4,[3030]);

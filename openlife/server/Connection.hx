@@ -211,11 +211,21 @@ class Connection implements ServerHeader
         var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
         sock.output.writeString(string);
 
+        //if(ServerSettings.TraceSend && tag != MAP_CHANGE && tag != FRAME)
         if(ServerSettings.TraceSend)
         {
             var tmpString = StringTools.replace(string, "\n", "\t");
             trace("Send: " + tmpString);
         }
+    }
+
+    public function sendPong(unique_id:String)
+    {
+        var tmpString = '$PONG\n$unique_id#';
+
+        sock.output.writeString(tmpString);
+
+        if(ServerSettings.TraceSend) trace("Send: " + tmpString);
     }
 }
 #end

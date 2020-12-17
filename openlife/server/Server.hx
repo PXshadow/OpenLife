@@ -200,7 +200,7 @@ class Server
         message(connection,tag,array,string);
     }
 
-    private function message(header:ServerHeader,tag:ServerTag,input:Array<String>,string:String)
+    private function message(header:Connection, tag:ServerTag,input:Array<String>,string:String)
     {
         switch (tag)
         {
@@ -242,6 +242,9 @@ class Server
                 header.say(text);
             case FLIP:
                 header.flip();
+            case PING:
+                // PING x y unique_id#
+                header.sendPong(input[2]);
             default:
         }
     }
