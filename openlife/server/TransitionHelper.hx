@@ -114,8 +114,8 @@ class TransitionHelper{
         //trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
 
         
-        trace('handObjectHelper: ' + player.heldObject.writeObjectHelper([]));
-        trace('tileObjectHelper: ' + tileObjectHelper.writeObjectHelper([]));
+        trace('handObjectHelper: ${handObjectData.description} ' + player.heldObject.writeObjectHelper([]));
+        trace('tileObjectHelper: ${tileObjectData.description} ' + tileObjectHelper.writeObjectHelper([]));
     }
 
     /*
@@ -246,6 +246,12 @@ class TransitionHelper{
         }
 
         var transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.tileObjectData.id, lastUseActorObject, lastUseTileObject);
+
+        // sometimes ground is -1 not 0 like for Riding Horse: 770 + -1 = 0 + 1421 // TODO -1 --> 0 in transition importer???
+        if(transition == null && tileObjectHelper.id() == 0)
+        {
+            transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), -1, lastUseActorObject, lastUseTileObject);
+        }
 
         var targetIsFloor = false;
 
@@ -512,7 +518,7 @@ class TransitionHelper{
             if(index != -1) return false;
 
             // it may be a USE on a horse cart???
-            return doTransitionIfPossible();            
+            //return doTransitionIfPossible();            
         }
 
         this.player.setHeldObject(tileObjectHelper.removeContainedObject(index));

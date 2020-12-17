@@ -160,7 +160,7 @@ class TransitionData
 
       s += 'reverseUseActor: $reverseUseActor ';
       s += 'reverseUseTarget: $reverseUseTarget ';
-      //s += 'move: $move ';
+      s += 'move: $move ';
 
       //public var desireMoveDist:Bool = false;
       s += 'noUseActor: $noUseActor ';

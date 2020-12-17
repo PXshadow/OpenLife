@@ -9,7 +9,7 @@ class ServerSettings
     public static var TraceOnlyPlayerActions = true; // only trace player actions / ignores MX from animal, FX and PU from food / age
 
     public static var traceTransitionById = 99972; // TransitionImporter
-    public static var traceTransitionByActorDescription = "!!!Bowl of Water"; // TransitionImporter
+    public static var traceTransitionByActorDescription = "Riding Horse"; // TransitionImporter
     public static var traceTransitionByTargetDescription = "!!!Steel Axe"; // TransitionImporter
 
     public static var traceAmountGeneratedObjects = false; // WorldMap
