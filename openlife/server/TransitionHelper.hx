@@ -345,6 +345,10 @@ class TransitionHelper{
             Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
             // TODO Server.server.map.timeObjectHelpers.push(tileObjectHelper);
         }
+        else
+        {
+            tileObjectHelper.timeToChange = 0;
+        }
 
         if(transition.actorID == transition.newActorID)
         {
@@ -664,7 +668,7 @@ class TransitionHelper{
             helper.setId(transition.newTargetID);
             helper.timeToChange = ObjectHelper.calculateTimeToChangeForObj(helper);
             helper.creationTimeInTicks = Server.server.tick;
-            
+
             Server.server.map.setObjectHelper(tx, ty, helper);
             
             var newTileObject = helper.writeObjectHelper([]);
