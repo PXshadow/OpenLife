@@ -303,6 +303,9 @@ class TransitionHelper{
             var tmpHeldObject = player.heldObject;
             player.setHeldObject(this.tileObjectHelper);
             this.tileObjectHelper = tmpHeldObject;
+
+            // reset creation time, so that horses wont esape instantly
+            this.tileObjectHelper.creationTimeInTicks = Server.server.tick;
         }
             
 
