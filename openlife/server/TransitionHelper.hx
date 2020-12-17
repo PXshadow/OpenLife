@@ -340,7 +340,7 @@ class TransitionHelper{
         {
             trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');
 
-            tileObjectHelper.timeToChange = Server.server.map.calculateTimeToChange(timeTransition);  
+            tileObjectHelper.timeToChange = ObjectHelper.calculateTimeToChange(timeTransition);  
 
             Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
             // TODO Server.server.map.timeObjectHelpers.push(tileObjectHelper);
@@ -661,12 +661,14 @@ class TransitionHelper{
                 return;
             }
     
-            var newTileObject = [transition.newTargetID];
-            Server.server.map.setObjectId(tx, ty, newTileObject);
-            Server.server.map.setObjectHelper(tx, ty, null);
-    
-            // TODO take care if newTileObject has time transition
-    
+            helper.setId(transition.newTargetID);
+            helper.timeToChange = ObjectHelper.calculateTimeToChangeForObj(helper);
+            helper.creationTimeInTicks = Server.server.tick;
+            
+            Server.server.map.setObjectHelper(tx, ty, helper);
+            
+            var newTileObject = helper.writeObjectHelper([]);
+
             for (c in Server.server.connections)
             {      
                 var player = c.player;
@@ -760,7 +762,7 @@ class TransitionHelper{
                 //trace('MOVE: oldTile: $oldTileObject $des newTile: $newTileObject ${helper.description()}');
     
                 // TODO only change after movement is finished
-                helper.timeToChange = worldmap.calculateTimeToChange(timeTransition);
+                helper.timeToChange = ObjectHelper.calculateTimeToChange(timeTransition);
                 helper.creationTimeInTicks = Server.server.tick;
     
                 worldmap.setObjectHelper(x, y, helper.groundObject);
@@ -785,7 +787,7 @@ class TransitionHelper{
                     oldTileObject = newTileObject;
                     
                     var newAnimal = ObjectHelper.readObjectHelper(null, newTileObject);
-                    newAnimal.timeToChange = worldmap.calculateTimeToChange(timeTransition);
+                    newAnimal.timeToChange = ObjectHelper.calculateTimeToChange(timeTransition);
                     newAnimal.groundObject = tmpGroundObject;
                     worldmap.setObjectHelper(x, y, newAnimal);
                     //worldmap.setObjectId(x,y, newTileObject); // TODO move to setter

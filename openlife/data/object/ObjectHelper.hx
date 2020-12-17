@@ -1,5 +1,7 @@
 package openlife.data.object;
 
+import openlife.server.WorldMap;
+import openlife.data.transition.TransitionData;
 import openlife.server.GlobalPlayerInstance;
 import openlife.server.Server;
 
@@ -142,4 +144,20 @@ class ObjectHelper {
         return obj;
     }
 
+    public static function calculateTimeToChangeForObj(obj:ObjectHelper) : Int
+    {
+        var timeTransition = Server.transitionImporter.getTransition(-1, obj.id(), false, false);
+        if(timeTransition == null) return 0;
+
+        return calculateTimeToChange(timeTransition);
+    }
+
+    public static function calculateTimeToChange(timeTransition:TransitionData) : Int
+    {
+        // hours are negative
+        var timeToChange = timeTransition.autoDecaySeconds < 0 ?  (-3600) * timeTransition.autoDecaySeconds : timeTransition.autoDecaySeconds;                 
+        timeToChange = Math.ceil((Server.server.map.randomInt(timeToChange * 2) + timeToChange)/2);
+
+        return timeToChange;
+    }
 }

@@ -9,7 +9,7 @@ class ServerSettings
     public static var TraceOnlyPlayerActions = true; // only trace player actions / ignores MX from animal, FX and PU from food / age
 
     public static var traceTransitionById = 99972; // TransitionImporter
-    public static var traceTransitionByActorDescription = "Riding Horse"; // TransitionImporter
+    public static var traceTransitionByActorDescription = "!!!Riding Horse"; // TransitionImporter
     public static var traceTransitionByTargetDescription = "!!!Steel Axe"; // TransitionImporter
 
     public static var traceAmountGeneratedObjects = false; // WorldMap
@@ -20,7 +20,7 @@ class ServerSettings
     public static var GrownUpFood = 20;
 
     // PlayerInstance
-    public static var StartingEveAge = 12;  // 12
+    public static var StartingEveAge = 13;  // 12
     public static var SecondsPerYear = 8; // 60
 
     public static var startingGx = 360;

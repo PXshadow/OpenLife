@@ -258,6 +258,8 @@ class WorldMap
         helper.tx = x;
         helper.ty = y;
 
+        // TODO set time to chage if it has time transition
+
         if(deleteObjectHelperIfUseless(helper)) return;
     }
 
@@ -594,7 +596,7 @@ class WorldMap
 
             // create object helper with the current time
             helper = ObjectHelper.readObjectHelper(null, obj);
-            helper.timeToChange = calculateTimeToChange(timeTransition);
+            helper.timeToChange = ObjectHelper.calculateTimeToChange(timeTransition);
             var tx = i % this.width;
             var ty = Math.floor(i / this.width);
             helper.tx = tx;
@@ -608,15 +610,6 @@ class WorldMap
 
             //trace('testObj: $testObj obj: $obj ${helper.tx},${helper.ty} i:$i index:${index(helper.tx, helper.ty)}');
         }
-    }
-
-    public function calculateTimeToChange(timeTransition:TransitionData) : Int
-    {
-        // hours are negative
-        var timeToChange = timeTransition.autoDecaySeconds < 0 ?  (-3600) * timeTransition.autoDecaySeconds : timeTransition.autoDecaySeconds;                 
-        timeToChange = Math.ceil((randomInt(timeToChange * 2) + timeToChange)/2);
-
-        return timeToChange;
-    }
+    }  
 }
 #end
