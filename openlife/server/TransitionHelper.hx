@@ -145,7 +145,9 @@ class TransitionHelper{
 
         // TODO adding something to own clothing using clothingIndex
 
-        return this.swapHandAndFloorObject();            
+        // TODO check if there is enough space for horse cart
+
+        return this.swapHandAndFloorObject();  
     } 
 
 
@@ -293,8 +295,11 @@ class TransitionHelper{
 
         // if it is a transition that picks up an object like 0 + 1422 = 778 + 0  (horse with cart) then switch the hole tile object to the hand object
         // TODO this may make trouble
-        if(transition.actorID == 0 && transition.targetID != transition.newTargetID)
+        // 778 + -1 = 0 + 1422
+        if((transition.actorID == 0 && transition.targetID != transition.newTargetID) || (transition.targetID == -1 && transition.newActorID == 0))
         {
+            trace('switch held object with tile object');
+
             var tmpHeldObject = player.heldObject;
             player.setHeldObject(this.tileObjectHelper);
             this.tileObjectHelper = tmpHeldObject;
@@ -454,6 +459,17 @@ class TransitionHelper{
         this.tileObjectHelper = this.player.heldObject;
         this.player.setHeldObject(tmpTileObject);
 
+        // transform object if put down like for horse transitions
+        // 778 + -1 = 0 + 1422 
+        // 770 + -1 = 0 + 1421
+        var transition = Server.transitionImporter.getTransition(this.tileObjectHelper.id(), -1, false, false);
+        if(transition != null)
+        {
+            trace('transform object ${tileObjectHelper.description()} in ${transition.newTargetID} / used when to put down horses');
+
+            tileObjectHelper.setId(transition.newTargetID);
+        }
+
         this.doAction = true;
         return true;
     }
@@ -474,6 +490,12 @@ class TransitionHelper{
         {
             trace("CALL REMOVE");
             if(remove(index)) return true;
+            return false;
+        }
+
+        if(handObjectData.containable == false)
+        {
+            trace('handObject is not containable!');
             return false;
         }
 
