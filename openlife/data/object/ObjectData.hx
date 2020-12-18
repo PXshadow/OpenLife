@@ -384,12 +384,14 @@ class ObjectData extends LineReader
         {
             if (obj.mapChance == 0) continue;
             // increase chance for iron // TODO better patch data directly
-            if(obj.id == 942)
+            if(obj.id == 942) // Muddy Iron Vein
                 obj.mapChance *= 3;
-            if (obj.id == 2156)
-                obj.mapChance *= 3;
-            if (obj.deadlyDistance > 0)
-                obj.mapChance *= 0;
+            //if (obj.id == 2156) // Mosquito Swarm
+            //    obj.mapChance *= 3;
+
+            //trace('Patch: ${ObjectData.getObjectData(942).description}');
+            //if (obj.deadlyDistance > 0)
+            //    obj.mapChance *= 0;
             
 
             for(biome in obj.biomes){
