@@ -5,8 +5,10 @@ class ServerSettings
     // for debugging
     public static var debug = true; // activates or deactivates try catch blocks and initial debug objects generation 
     
-    public static var TraceSend = true; // used to trace connection.send commands
-    public static var TraceOnlyPlayerActions = true; // only trace player actions / ignores MX from animal, FX and PU from food / age
+    // used to trace connection.send commands //  only trace player actions // ignores MX from animal, FX and PU from food / age
+    public static var TraceSendPlayerActions = true; 
+    // used to trace connection.send commands //  only trace non player actions // traces only MX from animal, FX and PU from food / age
+    public static var TraceSendNonPlayerActions = false;  
 
     public static var traceTransitionById = 99972; // TransitionImporter
     public static var traceTransitionByActorDescription = "!!!Riding Horse"; // TransitionImporter
@@ -26,7 +28,7 @@ class ServerSettings
     public static var startingGx = 360;
     public static var startingGy = 600 - 400; // server map is saved y inverse 
 
-    public static var maxDistanceToBeConsideredAsClose = 15; // only close players are updated with PU and MX and Movement 
+    public static var maxDistanceToBeConsideredAsClose = 20; // only close players are updated with PU and MX and Movement 
 
     // for movement
     public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed

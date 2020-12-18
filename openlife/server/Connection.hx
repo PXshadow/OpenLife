@@ -212,7 +212,7 @@ class Connection implements ServerHeader
         sock.output.writeString(string);
 
         //if(ServerSettings.TraceSend && tag != MAP_CHANGE && tag != FRAME)
-        if(ServerSettings.TraceSend && (isPlayerAction || ServerSettings.TraceOnlyPlayerActions == false))
+        if((ServerSettings.TraceSendPlayerActions && isPlayerAction) || (ServerSettings.TraceSendNonPlayerActions && isPlayerAction == false))
         {
             var tmpString = StringTools.replace(string, "\n", "\t");
             trace("Send: " + tmpString);
@@ -225,7 +225,7 @@ class Connection implements ServerHeader
 
         sock.output.writeString(tmpString);
 
-        if(ServerSettings.TraceSend) trace("Send: " + tmpString);
+        if(ServerSettings.TraceSendPlayerActions) trace("Send: " + tmpString);
     }
 }
 #end
