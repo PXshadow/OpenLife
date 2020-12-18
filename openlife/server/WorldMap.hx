@@ -127,7 +127,17 @@ class WorldMap
         setObjectId(tx - 13,ty + 3,[484]); // cart
         setObjectId(tx - 16,ty + 3,[1422]); // escaped horse cart
 
-        
+        // test movement restriction
+        setObjectId(tx,ty - 3,[775]); // escaped riding horse 
+        setObjectId(tx - 0,ty - 2,[887]); // wall
+        setObjectId(tx - 2,ty - 2,[887]); // wall
+        setObjectId(tx + 1,ty - 2,[887]); // wall
+        setObjectId(tx - 0,ty - 4,[887]);
+        setObjectId(tx - 1,ty - 4,[887]); // wall
+        setObjectId(tx + 1,ty - 4,[887]); // wall
+        setObjectId(tx - 0,ty - 5,[0]);
+        setObjectId(tx - 1,ty - 3,[887]);
+        setObjectId(tx + 1,ty - 3,[887]);
         
 
         // spring / tool use

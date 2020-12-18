@@ -270,6 +270,8 @@ class TimeHelper
 
         if(moveDist <= 0) return false;
 
+        moveDist += 1; // movement distance is plus 4 in original code if walking over objects
+
         var worldmap = Server.server.map;
 
         var x = helper.tx;
@@ -334,7 +336,42 @@ class TimeHelper
             // skip with chancePreferredBiome if this biome is not preferred
             if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 10) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
 
+            // limit movement if blocked
 
+            var tmpX = x;
+            var tmpY = y;
+            var tmpTarget = null;
+
+            for(ii in 0...10)
+            {                
+                if(tmpX == tx && tmpY == ty) break;
+
+                if(tx > tmpX)  tmpX += 1;
+                else if(tx < tmpX)  tmpX -= 1;
+
+                if(ty > tmpY)  tmpY += 1;
+                else if(ty < tmpY)  tmpY -= 1;
+
+                //trace('movement: $tmpX,$tmpY');
+
+                var movementTile = worldmap.getObjectHelper(tmpX , tmpY);
+                var movementBiome = worldmap.getBiomeId(tmpX , tmpY);
+
+                if(movementTile.blocksWalking() ||  movementBiome == BiomeTag.OCEAN ||  movementBiome == BiomeTag.SNOWINGREY)
+                {
+                    trace('movement blocked ${movementTile.description()} ${movementBiome}');
+                    break;
+                }
+
+                // TODO allow move on non empty ground
+                if(movementTile.id() == 0) tmpTarget = movementTile;
+            }
+
+            if(tmpTarget == null) continue;
+
+            tx = tmpTarget.tx;
+            ty = tmpTarget.ty;
+            target = tmpTarget;
 
             // save what was on the ground, so that we can move on this tile and later restore it
             var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.writeObjectHelper([]);
@@ -383,7 +420,7 @@ class TimeHelper
             {            
                 var player = c.player;
                 
-                    // since player has relative coordinates, transform them for player
+                // since player has relative coordinates, transform them for player
                 var fromX = x - player.gx;
                 var fromY = y - player.gy;
                 var targetX = tx - player.gx;
