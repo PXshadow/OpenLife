@@ -276,6 +276,23 @@ class TimeHelper
 
         for (i in 0...10)
         {
+            // limit movement if blocking stuff is close
+            /*var closeTile = worldmap.getObjectHelper(tx + 1 , ty);
+            var closeBiome = worldmap.getBiomeId(x + 1 , ty);
+
+            var moveDistXPlus = moveDist;
+            var moveDistXMinus = moveDist;
+            var moveDistYPlus = moveDist;
+            var moveDistYMinus = moveDist;
+
+            if(closeTile.blocksWalking() ||  closeBiome == BiomeTag.OCEAN ||  closeBiome == BiomeTag.SNOWINGREY){
+                moveDistXRight =  moveDist - 1;
+            }
+
+            var tx = helper.tx + worldmap.randomInt(moveDistXPlus + moveDistXMinus) - moveDistXMinus;
+            var ty = helper.ty + worldmap.randomInt(moveDistYPlus + moveDistYMinus) - moveDistYMinus;
+            */
+
             var tx = helper.tx - moveDist + worldmap.randomInt(moveDist * 2);
             var ty = helper.ty - moveDist + worldmap.randomInt(moveDist * 2);
             
@@ -315,6 +332,8 @@ class TimeHelper
 
             // skip with chancePreferredBiome if this biome is not preferred
             if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 10) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
+
+
 
             // save what was on the ground, so that we can move on this tile and later restore it
             var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.writeObjectHelper([]);
@@ -356,8 +375,8 @@ class TimeHelper
             }
             
             var floorId = Server.server.map.getFloorId(tx, ty);
-            // TODO better speed calculation
-            var speed = 5;
+
+            var speed = ServerSettings.InitialPlayerMoveSpeed * helper.objectData.speedMult;
 
             for (c in Server.server.connections) 
             {            

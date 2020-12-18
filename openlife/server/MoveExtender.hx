@@ -43,8 +43,6 @@ class MoveExtender{
     {
         var map =  Server.server.map;
 
-        // TODO check hand objects
-
         // TODO heavy objects in chart
 
         // TODO chart off road
@@ -60,6 +58,8 @@ class MoveExtender{
         speed *= ServerSettings.SpeedFactor;
 
         speed *= ServerSettings.InitialPlayerMoveSpeed;
+
+        speed *= p.heldObject.objectData.speedMult;
 
         if(p.age < 1) speed *= 0.5;
         else if(p.age < 2) speed *= 0.6;
