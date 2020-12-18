@@ -59,7 +59,7 @@ class MoveExtender{
 
         speed *= ServerSettings.SpeedFactor;
 
-        speed *= PlayerInstance.initial_move_speed;
+        speed *= ServerSettings.InitialPlayerMoveSpeed;
 
         if(p.age < 1) speed *= 0.5;
         else if(p.age < 2) speed *= 0.6;

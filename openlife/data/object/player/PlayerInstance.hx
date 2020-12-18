@@ -77,12 +77,12 @@ class PlayerInstance
      */
     public var age_r:Float = ServerSettings.SecondsPerYear;
 
-    public static var initial_move_speed:Float = 3.75;
+    //public static var initial_move_speed:Float = 3.75;
 
     /**
      * move speed of player
      */
-    public var move_speed:Float = 3.75;
+    public var move_speed:Float = ServerSettings.InitialPlayerMoveSpeed;
     /**
      * clothing set string
      */
