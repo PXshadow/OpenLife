@@ -392,7 +392,12 @@ class ObjectData extends LineReader
             //trace('Patch: ${ObjectData.getObjectData(942).description}');
             //if (obj.deadlyDistance > 0)
             //    obj.mapChance *= 0;
-            
+
+            if(obj.description.indexOf("Expert Way Stone") != -1)
+            {
+                obj.mapChance = 0;
+                continue;
+            }
 
             for(biome in obj.biomes){
 
