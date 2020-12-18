@@ -70,8 +70,9 @@ class TimeHelper
 
     public static function DoTimeStuff()
     {
-        TimeHelper.lastTick = tick;
         var timePassedInSeconds = CalculateTimeSinceTicksInSec(lastTick);
+
+        TimeHelper.lastTick = tick;
 
         Server.server.map.mutex.acquire(); // TODO add try catch for non debug
 
