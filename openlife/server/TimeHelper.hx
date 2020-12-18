@@ -28,30 +28,50 @@ class TimeHelper
 
     public static function DoTimeLoop()
     {
+        var averageSleepTime = 0.0;
+        var skipedTicks = 0;
+
         while (true)
         {
+            TimeHelper.tick++;
+
+            var timeSinceStart = Sys.time() - TimeHelper.serverStartingTime;
+            var timeSinceStartCountedFromTicks = TimeHelper.tick * TimeHelper.tickTime;
+
+            // TODO what to do if server is too slow?
+            if(TimeHelper.tick % 200 != 0  && timeSinceStartCountedFromTicks < timeSinceStart)
+            {
+                 TimeHelper.tick += 1;
+                 skipedTicks++;
+            }
+            if(TimeHelper.tick % 200 == 0)
+            {
+                averageSleepTime /= 200;
+
+                trace('timeSinceStartCountedFromTicks: ${timeSinceStartCountedFromTicks} TimeSinceStart: $timeSinceStart skipedTicks in 10 sec: $skipedTicks averageSleepTime: $averageSleepTime');
+                averageSleepTime = 0;
+                skipedTicks = 0;
+            }
+
             @:privateAccess haxe.MainLoop.tick();
             @:privateAccess TimeHelper.DoTimeStuff();
-            TimeHelper.tick++;
-            Sys.sleep(TimeHelper.tickTime);
+
+            timeSinceStart = Sys.time() - TimeHelper.serverStartingTime;
+            if(timeSinceStartCountedFromTicks > timeSinceStart)
+            {
+                var sleepTime = timeSinceStartCountedFromTicks - timeSinceStart;
+                averageSleepTime += sleepTime;
+
+                //trace('sleep: ${sleepTime}');
+                Sys.sleep(sleepTime);
+            }
         }
     }
 
     public static function DoTimeStuff()
     {
-        //if(TimeHelper.serverStartingTime <= 0) serverStartingTime = Sys.time();
-
-        var timeSinceStart = Sys.time() - TimeHelper.serverStartingTime;
-        var timePassedInSeconds = CalculateTimeSinceTicksInSec(lastTick);
-
         TimeHelper.lastTick = tick;
-
-        // never skip a time task tick that is every 20 ticks
-        // TODO what to do if server is too slow?
-        //if(TimeHelper.tick % 20 != 0 && TimeHelper.tick * TimeHelper.tickTime < timeSinceStart - TimeHelper.tickTime) TimeHelper.tick += 1;
-        if((TimeHelper.tick + 1) * TimeHelper.tickTime < timeSinceStart) TimeHelper.tick += 1;
-
-        if(TimeHelper.tick % 200 == 0) trace('Time: ${TimeHelper.tick * TimeHelper.tickTime} TimeSinceStart: $timeSinceStart');
+        var timePassedInSeconds = CalculateTimeSinceTicksInSec(lastTick);
 
         Server.server.map.mutex.acquire(); // TODO add try catch for non debug
 
@@ -89,7 +109,6 @@ class TimeHelper
         if(Std.int(tmpAge) != Std.int(c.player.age))
         {
             //trace('update age');
-            //c.player.po_id += 1;
             Connection.SendUpdateToAllClosePlayers(c.player, false);
         }
     }
