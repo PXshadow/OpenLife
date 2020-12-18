@@ -263,7 +263,6 @@ class TimeHelper
     {
         // TODO use chance for movement
         // TODO LAST movement
-        // TODO check if movement is blocked
         // TODO collision detection if animal is deadly
 
         var moveDist = timeTransition.move;

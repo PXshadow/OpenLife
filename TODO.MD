@@ -35,24 +35,31 @@ Food - YUM:
 Animals:
 - Animals can multiply
 - Animals can leave their biome, but prefare to stay in own biome
+- Stuff like trees and rabit holes wont block animal movement // TODO also for player
 
 
 TODO:
+- hard work
+- speed stuff
+- backpack
+- use on table
+- animal interactions / collisions
+- more food logic like food influencing speed and maxage
+- yum category // for example for berry / berry bowl
+- death
 - world persistance 
 - incarnation
 - leadership
 - cravings
+- faces / for example hungry / ill
+- ill from moskitos
 - temperature
-- animal interactions / collisions
-- blocking animal movement
 - curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
 - combat / generally allowed
 - fences / gates
-- death
 - wounds / healing
+- epecial stuff like hercules / snake master / super fast ager 
 - better map
-- hard work
-- speed stuff
 - multiplayer testing
 - score / score boni
 - nobles
@@ -65,8 +72,7 @@ TODO:
 - speech limit
 - different languages
 - advanced transitions like oil stuff, sprinkler, cars
-- backpack
-- use on table
+
 
 
 
