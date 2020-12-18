@@ -28,18 +28,14 @@ using openlife.server.MoveExtender;
 class Server
 {
     public static var server:Server; 
-    public static var tickTime = 1 / 20;
-    //public static var vector:Vector<ObjectData>;
-    
+      
     public static var transitionMap:Map<Int, ObjectData> = [];
     public static var transitionImporter:TransitionImporter = new TransitionImporter();
 
     public var map:WorldMap; // THE WORLD
     public var connections:Array<Connection> = [];
    
-    public var tick:Int = 0;
-    public var lastTick:Int = 0;
-    public var serverStartingTime:Float = 0;
+
     public var playerIndex:Int = 2; // used for giving new IDs to players // better start with 2 since -1 has other use in MX update
     
     
@@ -50,13 +46,8 @@ class Server
         Sys.println("Starting OpenLife Server"#if debug + " in debug mode" #end);
         if(ServerSettings.debug) trace('Debug Mode: ${ServerSettings.debug}');
         server = new Server();
-        while (true)
-        {
-            @:privateAccess haxe.MainLoop.tick();
-            @:privateAccess server.update();
-            server.tick++;
-            Sys.sleep(tickTime);
-        }
+
+        TimeHelper.DoTimeLoop();
     }
 
     public function new()
@@ -106,90 +97,6 @@ class Server
         {
             thread.create();
         });
-    }
-
-    private function update()
-    {
-        if(serverStartingTime <= 0) serverStartingTime = Sys.time();
-        var time = Sys.time() - serverStartingTime;
-        var timePassedInSeconds = (tick - lastTick) * tickTime;
-
-        lastTick = tick;
-
-        // never skip a time task tick that is every 20 ticks
-        // TODO what to do if server is too slow?
-        if(this.tick % 20 != 0 && this.tick / 20 < time - 0.05) this.tick += 1;
-
-        map.mutex.acquire(); // TODO add try catch for non debug
-
-        for (connection in connections)
-        {
-            updateAge(connection, timePassedInSeconds);
-
-            updateFood(connection, timePassedInSeconds);
-
-            connection.player.updateMovement();
-        }
-
-        map.DoSomeTimeStuff();
-
-        map.mutex.release();
-
-        /* TODO currently it goes through the hole map each sec / this may later not work
-        for(helper in this.map.timeObjectHelpers){
-            var passedTime = calculateTimeSinceTicksInSec(helper.creationTimeInTicks);
-            if(passedTime >= helper.timeToChange)
-            {
-                trace('TIME: ${helper.objectData.description} passedTime: $passedTime neededTime: ${helper.timeToChange}');       
-
-                TransitionHelper.doTimeTransition(helper);
-            }
-        }*/
-
-        if(this.tick % 200 == 0) trace('Time: ${this.tick / 20} Time: $time');
-    }
-
-    private function updateAge(c:Connection, timePassedInSeconds:Float)
-    {
-        var tmpAge = c.player.age;
-
-        c.player.age += timePassedInSeconds / c.player.age_r;
-        
-        if(Std.int(tmpAge) != Std.int(c.player.age))
-        {
-            //trace('update age');
-            //c.player.po_id += 1;
-            Connection.SendUpdateToAllClosePlayers(c.player, false);
-        }
-    }
-
-    private function updateFood(c:Connection, timePassedInSeconds:Float)
-    {
-        //trace('food_store: ${connection.player.food_store}');
-
-        var tmpFood = Math.ceil(c.player.food_store);
-        var tmpExtraFood = Math.ceil(c.player.yum_bonus);
-        var foodDecay = timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
-
-        if(c.player.yum_bonus > 0)
-        {
-            c.player.yum_bonus -= foodDecay;
-        }
-        else
-        {
-            c.player.food_store -= foodDecay;
-        }
-
-        if(tmpFood != Math.ceil(c.player.food_store) || tmpExtraFood != Math.ceil(c.player.yum_bonus))
-        {
-            c.player.sendFoodUpdate(false);
-            c.send(FRAME, null, false);
-        }
-    }
-
-    public function calculateTimeSinceTicksInSec(ticks:Int):Float
-    {
-        return (this.tick - ticks) * Server.tickTime;
     }
 
     public function process(connection:Connection,string:String)

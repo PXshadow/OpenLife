@@ -67,10 +67,6 @@ class WorldMap
     var objectHelpers:Vector<ObjectHelper>; 
     var floors:Vector<Int>;
     var biomes:Vector<Int>;
-    
-    // TODO currently not needed, since for all objects on the map every second all time objects are generated
-    public var timeObjectHelpers:Array<ObjectHelper>; 
-    private var mapTimeStep = 0; // counts the time steps for doing map time stuff, since some ticks may be skiped because of server too slow
 
     public var initialPopulation:Map<Int,Int>;
     public var currentPopulation:Map<Int,Int>;
@@ -187,7 +183,7 @@ class WorldMap
         floors = new Vector<Int>(length);
         biomes = new Vector<Int>(length);
         
-        timeObjectHelpers = [];
+        //timeObjectHelpers = [];
 
         initialPopulation = new Map<Int,Int>();
         currentPopulation = new Map<Int,Int>();
@@ -230,18 +226,23 @@ class WorldMap
         objects[index(x,y)] = ids;
     }
 
-    public function getObjectHelper(x:Int, y:Int):ObjectHelper
+    public function getObjectHelper(x:Int, y:Int, allowNull:Bool = false):ObjectHelper
     {
         //trace('objectHelper: $x,$y');
-        var helper = objectHelpers[index(x,y)];        
+        var helper = objectHelpers[index(x,y)];   
 
-        if(helper != null) return helper;
+        if(helper != null || allowNull) return helper;
 
         helper = ObjectHelper.readObjectHelper(null, getObjectId(x , y));
         helper.tx = x;
         helper.ty = y;
 
         return helper;
+    }
+
+    public function setObjectHelperNull(x:Int, y:Int)
+    {
+        objectHelpers[index(x,y)] = null;
     }
 
     // sets objectHelper and also Object Ids on same Tile
@@ -266,8 +267,19 @@ class WorldMap
     // to save space keep ObjectHelper only if used to store number of uses, or has time transition...
     // ... or has owner or is a container or has a groundObject (used if a animal walks on an object)
     // TODO dont delete stuff with owners like a gate 
-    private function deleteObjectHelperIfUseless(helper:ObjectHelper) : Bool
+    public function deleteObjectHelperIfUseless(helper:ObjectHelper) : Bool
     {
+        var obj = getObjectId(helper.tx, helper.ty);
+
+        if(obj[0] != helper.id())
+        {
+            trace('WARNING: objectHelper.Id: ${helper.id()} did not fit to objectId: ${helper.id()} ${helper.description()}');
+
+            objectHelpers[index(helper.tx, helper.ty)] = null;
+
+            return true;
+        }
+
         if(helper.numberOfUses < 1 && helper.timeToChange == 0 && helper.containedObjects.length == 0 && helper.groundObject == null)
         {
             //if(x != helper.tx || y != helper.ty) trace('REMOVE ObjectHelper $x,$y h${helper.tx},h${helper.ty} USES < 1 && timeToChange == 0 && containedObjects.length == 0 && groundObject == null');
@@ -538,78 +550,5 @@ class WorldMap
     public function findClosest(){
         
     }
-
-    public function DoSomeTimeStuff()
-    {
-        // devide in X steps
-        var timeParts = 40; 
-
-        var partSize = Std.int(length / timeParts);
-        var start = (mapTimeStep % timeParts) * partSize;
-        var end = start + partSize;
-
-        //trace('$start $end $length');
-
-        mapTimeStep++;
-
-
-        for (i in start...length)
-        {
-            var obj = objects[i];
-            if(obj[0] == 0) continue;     
-
-            var helper = objectHelpers[i]; 
-
-            if(helper != null)
-            {
-                if(obj[0] != helper.objectData.id){
-                    trace("WARNING: object helper did not fit to object id");
-
-                    objectHelpers[i] = null;
-                    continue;
-                }
-                
-                // clear up not needed ObjectHelpers to save space
-                if(deleteObjectHelperIfUseless(helper)) continue;
-
-                if(helper.timeToChange == 0) continue;
-
-                var passedTime = Server.server.calculateTimeSinceTicksInSec(helper.creationTimeInTicks);
-
-                //var timeToChange = helper.timeToChange < 0 ?  (-3600) * helper.timeToChange : helper.timeToChange;
-                var timeToChange = helper.timeToChange;
-
-                if(passedTime >= timeToChange)
-                {
-                    //trace('TIME: ${helper.objectData.description} passedTime: $passedTime neededTime: ${timeToChange}');       
-
-                    objectHelpers[i] = null;
-                    
-                    TransitionHelper.doTimeTransition(helper);
-                }
-
-                continue;
-            }
-
-            var timeTransition = Server.transitionImporter.getTransition(-1, obj[0], false, false);
-            if(timeTransition == null) continue;
-
-            // create object helper with the current time
-            helper = ObjectHelper.readObjectHelper(null, obj);
-            helper.timeToChange = ObjectHelper.calculateTimeToChange(timeTransition);
-            var tx = i % this.width;
-            var ty = Math.floor(i / this.width);
-            helper.tx = tx;
-            helper.ty = ty + 1; // TODO find a better solution for +1 maybe map chunks must be send different?
-
-            objectHelpers[i] = helper;
-
-            //trace('TIME: ${helper.objectData.description} neededTime: ${timeToChange}');  
-            
-            //var testObj = getObjectId(helper.tx, helper.ty);
-
-            //trace('testObj: $testObj obj: $obj ${helper.tx},${helper.ty} i:$i index:${index(helper.tx, helper.ty)}');
-        }
-    }  
 }
 #end

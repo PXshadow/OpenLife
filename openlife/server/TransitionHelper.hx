@@ -305,7 +305,7 @@ class TransitionHelper{
             this.tileObjectHelper = tmpHeldObject;
 
             // reset creation time, so that horses wont esape instantly
-            this.tileObjectHelper.creationTimeInTicks = Server.server.tick;
+            this.tileObjectHelper.creationTimeInTicks = TimeHelper.tick;
         }
             
 
@@ -636,13 +636,13 @@ class TransitionHelper{
 
     public static function doTimeTransition(helper:ObjectHelper)
         {
-            // TODO time transition for maxUseTaget like Goose Pond:
+            // TODO test time transition for maxUseTaget like Goose Pond:
             // -1 + 142 = 0 + 142
             // -1 + 142 = 0 + 141
 
-            Server.server.map.mutex.acquire();
+            //Server.server.map.mutex.acquire();
     
-            Server.server.map.timeObjectHelpers.remove(helper);
+            //Server.server.map.timeObjectHelpers.remove(helper);
     
             var tx = helper.tx;
             var ty = helper.ty;
@@ -658,19 +658,19 @@ class TransitionHelper{
             {
                 // TODO should not happen
                 trace('WARNING: Time: no transtion found! Maybe object was moved? tile: $tileObject helper: ${helper.id()} ${helper.description()}');
-                Server.server.map.mutex.release();
+                //Server.server.map.mutex.release();
                 return;
             }
     
             if(doAnimalMovement(helper, transition))
             {
-                Server.server.map.mutex.release();
+                //Server.server.map.mutex.release();
                 return;
             }
     
             helper.setId(transition.newTargetID);
             helper.timeToChange = ObjectHelper.calculateTimeToChangeForObj(helper);
-            helper.creationTimeInTicks = Server.server.tick;
+            helper.creationTimeInTicks = TimeHelper.tick;
 
             Server.server.map.setObjectHelper(tx, ty, helper);
             
@@ -691,7 +691,7 @@ class TransitionHelper{
                 c.send(FRAME, null, false);
             }
     
-            Server.server.map.mutex.release();
+            //Server.server.map.mutex.release();
         } 
     
         /*
@@ -770,7 +770,7 @@ class TransitionHelper{
     
                 // TODO only change after movement is finished
                 helper.timeToChange = ObjectHelper.calculateTimeToChange(timeTransition);
-                helper.creationTimeInTicks = Server.server.tick;
+                helper.creationTimeInTicks = TimeHelper.tick;
     
                 worldmap.setObjectHelper(x, y, helper.groundObject);
                 worldmap.setObjectId(x,y, oldTileObject); // TODO move to setter
@@ -826,7 +826,7 @@ class TransitionHelper{
                 return true;
             }
     
-            helper.creationTimeInTicks = Server.server.tick;
+            helper.creationTimeInTicks = TimeHelper.tick;
     
             return false;
         }    

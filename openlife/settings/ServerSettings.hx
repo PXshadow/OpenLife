@@ -29,7 +29,7 @@ class ServerSettings
     public static var maxDistanceToBeConsideredAsClose = 15; // only close players are updated with PU and MX and Movement 
 
     // for movement
-    public static var SpeedFactor = 2; // MovementExtender // used to incease or deacrease speed
+    public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed
     // TODO FIX this can make jumps if too small / ideally this should be 0 so that the client cannot cheap while moving
     public static var MaxMovementCheatingDistanceBeforeForce = 2; // if client player position is bigger then X, client is forced in PU to use server position 
 

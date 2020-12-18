@@ -1,5 +1,6 @@
 package openlife.data.object;
 
+import openlife.server.TimeHelper;
 import openlife.server.WorldMap;
 import openlife.data.transition.TransitionData;
 import openlife.server.GlobalPlayerInstance;
@@ -94,7 +95,7 @@ class ObjectHelper {
         //if(this.objectData == null) this.objectData = Server.objectDataMap[0];
         this.livingOwners[0] = creator;
 
-        this.creationTimeInTicks = Server.server.tick;
+        this.creationTimeInTicks = TimeHelper.tick;
         this.numberOfUses = objectData.numUses;
     }
 

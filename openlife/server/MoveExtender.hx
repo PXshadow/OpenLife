@@ -130,7 +130,7 @@ class MoveExtender{
 
             me.newMoves = newMovements.moves;
             me.totalMoveTime = (1/p.move_speed) * newMovements.length;
-            me.startingMoveTicks = Server.server.tick;
+            me.startingMoveTicks = TimeHelper.tick;
             me.newMoveSeqNumber = seq;  
             
             var eta = me.totalMoveTime;
@@ -224,7 +224,7 @@ class MoveExtender{
         // this calculates which position is reached in case the movement was changed while moving
         static private function calculateNewPos(moves:Array<Pos>, startingMoveTicks:Int, speed:Float):Pos
         {
-            var timeSinceStartMovementInSec = Server.server.calculateTimeSinceTicksInSec(startingMoveTicks);
+            var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(startingMoveTicks);
             var movedLength = timeSinceStartMovementInSec * speed;
             var lastPos:Pos = new Pos(0,0);
             var length = 0.0;
@@ -250,8 +250,8 @@ class MoveExtender{
         {
             var me = p.me;
             // check if movement arrived on destination and if so update all players  
-            var server = Server.server;
-            var timeSinceStartMovementInSec = server.calculateTimeSinceTicksInSec(me.startingMoveTicks);
+            //var server = Server.server;
+            var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(me.startingMoveTicks);
     
             if(me.newMoves == null) return;
     
