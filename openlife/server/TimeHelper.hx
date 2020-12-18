@@ -337,6 +337,7 @@ class TimeHelper
             if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 10) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
 
             // limit movement if blocked
+            // start block movement
 
             var tmpX = x;
             var tmpY = y;
@@ -354,14 +355,23 @@ class TimeHelper
 
                 //trace('movement: $tmpX,$tmpY');
 
-                var movementTile = worldmap.getObjectHelper(tmpX , tmpY);
-                var movementBiome = worldmap.getBiomeId(tmpX , tmpY);
+                var movementTile = worldmap.getObjectHelper(tmpX , tmpY); 
+                var movementBiome = worldmap.getBiomeId(tmpX , tmpY);  
 
-                if(movementTile.blocksWalking() ||  movementBiome == BiomeTag.OCEAN ||  movementBiome == BiomeTag.SNOWINGREY)
+                var cannotMoveInBiome = movementBiome == BiomeTag.OCEAN ||  movementBiome == BiomeTag.SNOWINGREY;
+
+                // TODO better patch in the objects, i dont see any reason why a rabit or a tree should block movement
+                if(cannotMoveInBiome || (movementTile.blocksWalking() 
+                        && movementTile.description().indexOf("Tarry Spot") == -1
+                        && movementTile.description().indexOf("Tree") == -1 && movementTile.description().indexOf("Rabbit") == -1  
+                        && movementTile.description().indexOf("Iron") == -1 && movementTile.description().indexOf("Spring") == -1
+                        && movementTile.description().indexOf("Sugarcane") == -1 && movementTile.description().indexOf("Pond") == -1
+                        && movementTile.description().indexOf("Palm") == -1  && movementTile.description().indexOf("Plant") == -1))
                 {
-                    trace('movement blocked ${movementTile.description()} ${movementBiome}');
+                    //trace('movement blocked ${movementTile.description()} ${movementBiome}');
                     break;
                 }
+                
 
                 // TODO allow move on non empty ground
                 if(movementTile.id() == 0) tmpTarget = movementTile;
@@ -372,6 +382,8 @@ class TimeHelper
             tx = tmpTarget.tx;
             ty = tmpTarget.ty;
             target = tmpTarget;
+
+            // end block movement
 
             // save what was on the ground, so that we can move on this tile and later restore it
             var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.writeObjectHelper([]);
