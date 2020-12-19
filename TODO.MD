@@ -34,6 +34,8 @@ Food - YUM:
 - the first 3 times eaten a food is YUM
 - food value is reduced minus one for each eaten
     For example Berry Default 3: 6 YUM / 5 YUM / 4 YUM / 3 MEH / 2 MEH / 1 MEH / 1 MEH / 1 MEH ...
+- if you eat YUM 1 pip is restored from a random eaten food. Zero are restored if random food is the current eaten food
+    For eample eats a Yum berry / then eats a YUM onion / 50% chance that eating YUM onion restored berry to full food value / YUM    
 - You can only eat if you have space for at least half the food value, not counting YUM or food reduction
 - When food value is less then halve it can only be eaten if starving to death
 - Extra food is stored as YUM Extra food

@@ -189,7 +189,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
             var countEaten = hasEatenMap[heldObject.id()];      
 
-            if(isHoldingYum()) yum_multiplier += 1;
+            
 
             foodValue += ServerSettings.YumBonus;
             foodValue -= countEaten;
@@ -204,8 +204,27 @@ class GlobalPlayerInstance extends PlayerInstance {
                 return;
             }
 
-            // if eating meh food, reduce prestige / score
-            if(foodValue < heldObject.objectData.foodValue) yum_multiplier -= 1;
+            // eating YUM increases prestige / score while eating MEH reduces it
+            if(isHoldingYum()){
+                yum_multiplier += 1;
+
+                var hasEatenKeys = [for(key in hasEatenMap.keys()) key];
+
+                // restore one food pip if eaten YUM
+                if(hasEatenKeys.length > 1)
+                {
+                    var key = hasEatenKeys[Server.server.map.randomInt(hasEatenKeys.length)];
+
+                    if(key != heldObject.id())
+                    {
+                        hasEatenMap[key] -= ServerSettings.YumFoodRestore;
+                        trace('hasEatenMap: key: $key, ${hasEatenMap[key]}');
+
+                        if(hasEatenMap[key] <= 0) hasEatenMap.remove(key);
+                    }
+                }
+            }
+            else if(isHoldingMeh()) yum_multiplier -= 1;
 
 
             trace('foodValue: $foodValue countEaten: $countEaten');
@@ -302,6 +321,15 @@ class GlobalPlayerInstance extends PlayerInstance {
         var countEaten = hasEatenMap[heldObject.id()];
 
         return countEaten < ServerSettings.YumBonus; 
+    }
+
+    public function isHoldingMeh() : Bool
+    {
+        if(heldObject.objectData.foodValue < 1) return false;
+
+        var countEaten = hasEatenMap[heldObject.id()];
+
+        return countEaten > ServerSettings.YumBonus; 
     }
 
     public function setHeldObject(obj:ObjectHelper)
