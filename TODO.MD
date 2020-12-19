@@ -20,6 +20,9 @@ MAP:
 - no gradients
 - no expert waystones
 
+Aging:
+- starving to death slows down aging below 14 and increases above  
+
 SPEED:
 - different speed for different biomes
 - limited speed for lower age < 10 and age > 55

@@ -30,8 +30,8 @@ class GlobalPlayerInstance extends PlayerInstance {
     public var gy:Int = 300; //global y offset from birth 
 
     //food vars
-    public var food_store:Float = ServerSettings.GrownUpFood;
-    var food_capacity:Float = ServerSettings.GrownUpFood;
+    public var food_store:Float = ServerSettings.GrownUpFoodStoreMax / 2;
+    public var food_store_max:Float = ServerSettings.GrownUpFoodStoreMax;
     var last_ate_fill_max:Int = 0;
     public var yum_bonus:Float = 0;
     var yum_multiplier = 0;
@@ -129,7 +129,7 @@ class GlobalPlayerInstance extends PlayerInstance {
     public function sendFoodUpdate(isPlayerAction:Bool = true)
     {
         //trace('\n\tFX food_store: ${Math.ceil(food_store)} food_capacity: ${Std.int(food_capacity)} last_ate_id: $last_ate_id last_ate_fill_max: $last_ate_fill_max move_speed: $move_speed responsible_id: $responsible_id yum_bonus: $yum_bonus yum_multiplier: $yum_multiplier');
-        this.connection.send(FOOD_CHANGE,['${Math.ceil(food_store)} ${Std.int(food_capacity)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id ${Math.ceil(yum_bonus)} $yum_multiplier'], isPlayerAction);
+        this.connection.send(FOOD_CHANGE,['${Math.ceil(food_store)} ${Std.int(food_store_max)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id ${Math.ceil(yum_bonus)} $yum_multiplier'], isPlayerAction);
     }
 
     public function doSelf(x:Int, y:Int, clothingSlot:Int)
@@ -178,9 +178,9 @@ class GlobalPlayerInstance extends PlayerInstance {
                 return;
             }
 
-            if(food_capacity - food_store < (foodValue + 1) / 2){
+            if(food_store_max - food_store < (foodValue + 1) / 2){
 
-                trace('too full to eat: food_capacity: $food_capacity - food_store: $food_store < ( foodValue: $foodValue + 1 ) / 2');
+                trace('too full to eat: food_store_max: $food_store_max - food_store: $food_store < ( foodValue: $foodValue + 1 ) / 2');
 
                 this.connection.send(PLAYER_UPDATE,[this.toData()]);
                 this.connection.send(FRAME);
@@ -217,9 +217,9 @@ class GlobalPlayerInstance extends PlayerInstance {
             this.last_ate_id = heldObject.id();
             this.responsible_id = -1; // self
 
-            if (food_store > food_capacity){
-                this.yum_bonus = food_store - food_capacity;
-                food_store = food_capacity;
+            if (food_store > food_store_max){
+                this.yum_bonus = food_store - food_store_max;
+                food_store = food_store_max;
             } 
 
             sendFoodUpdate();

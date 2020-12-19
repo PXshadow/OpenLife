@@ -117,9 +117,25 @@ class TimeHelper
         
         if(Std.int(tmpAge) != Std.int(c.player.age))
         {
-            //trace('update age');
+            c.player.food_store_max = CalculateFoodStoreMax(c.player.age);
+
+            // TODO death if OldAgeFoodStoreMax = XX
+
+            //trace('update age: ${c.player.age} food_store_max: ${c.player.food_store_max}');
+            c.player.sendFoodUpdate(false);
+
             Connection.SendUpdateToAllClosePlayers(c.player, false);
         }
+    }
+
+    public static function CalculateFoodStoreMax(age:Float) : Float
+    {
+        var food_store_max:Float = ServerSettings.GrownUpFoodStoreMax;
+
+        if(age < 30) food_store_max = ServerSettings.NewBornFoodStoreMax + age / 30 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.NewBornFoodStoreMax);
+        if(age > 50) food_store_max = ServerSettings.OldAgeFoodStoreMax + (60 - age) / 10 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.OldAgeFoodStoreMax);
+
+        return food_store_max;
     }
 
     private static function updateFood(c:Connection, timePassedInSeconds:Float)

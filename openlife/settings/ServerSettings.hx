@@ -18,12 +18,14 @@ class ServerSettings
    
     // food stuff
     public static var MinAgeToEat = 3;
-    public static var FoodUsePerSecond = 2; // 0.2;
-    public static var GrownUpFood = 20;
+    public static var FoodUsePerSecond = 0.2; // 0.2;
+    public static var GrownUpFoodStoreMax = 30;
+    public static var NewBornFoodStoreMax = 4;
+    public static var OldAgeFoodStoreMax = 10;
 
     // PlayerInstance
-    public static var StartingEveAge = 13;  // 12
-    public static var SecondsPerYear = 8; // 60
+    public static var StartingEveAge = 13;  // 13
+    public static var SecondsPerYear = 10; // 60
     public static var AgingFactorWhileStarvingToDeath = 0.2; // if starving to death aging is slowed factor X up to AgeUpToStarvingSlowsAging, otherwise aging is speed up factor X
     public static var AgeUpToStarvingSlowsAging = 14; 
 
