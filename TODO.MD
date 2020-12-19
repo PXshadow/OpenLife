@@ -22,7 +22,7 @@ MAP:
 
 Aging:
 - starving to death slows down aging below 14 and increases above  
-- double food use for age below 14
+- double food use for age below 14 if not starving to death / they need to grow!
 
 SPEED:
 - different speed for different biomes

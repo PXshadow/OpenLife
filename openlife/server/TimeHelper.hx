@@ -157,7 +157,7 @@ class TimeHelper
         var tmpFoodStoreMax = Math.ceil(c.player.food_store_max);
         var foodDecay = timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
 
-        if(c.player.age < ServerSettings.GrownUpAge) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
+        if(c.player.age < ServerSettings.GrownUpAge && c.player.food_store > 0) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
 
         if(c.player.yum_bonus > 0)
         {
