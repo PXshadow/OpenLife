@@ -13,7 +13,7 @@ class TimeHelper
 
     public static var tick:Int = 0;
     private static var lastTick:Int = 0;
-    private static var serverStartingTime:Float = Sys.time();
+    private static var serverStartingTime:Float;
 
     // TODO currently not needed, since for all objects on the map every second all time objects are generated
     //public var timeObjectHelpers:Array<ObjectHelper>; 
@@ -28,6 +28,7 @@ class TimeHelper
 
     public static function DoTimeLoop()
     {
+        serverStartingTime = Sys.time();
         var averageSleepTime = 0.0;
         var skipedTicks = 0;
 
