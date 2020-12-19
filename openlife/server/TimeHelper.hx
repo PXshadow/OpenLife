@@ -119,7 +119,14 @@ class TimeHelper
         {
             c.player.food_store_max = CalculateFoodStoreMax(c.player.age);
 
-            // TODO death if OldAgeFoodStoreMax = XX
+            if(c.player.age > 60)
+            {
+                c.player.reason = 'reason_age';
+                c.player.deleted = true;
+
+                // TODO clear connection and create bones with items
+                // TODO calculate score
+            }
 
             //trace('update age: ${c.player.age} food_store_max: ${c.player.food_store_max}');
             c.player.sendFoodUpdate(false);
