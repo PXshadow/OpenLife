@@ -105,8 +105,15 @@ class TimeHelper
     private static function updateAge(c:Connection, timePassedInSeconds:Float)
     {
         var tmpAge = c.player.age;
+        var aging = timePassedInSeconds / c.player.age_r;
 
-        c.player.age += timePassedInSeconds / c.player.age_r;
+        if(c.player.food_store < 0)
+        {
+            if(c.player.age < ServerSettings.AgeUpToStarvingSlowsAging) aging *= ServerSettings.AgingFactorWhileStarvingToDeath;
+            else aging *= 1 / ServerSettings.AgingFactorWhileStarvingToDeath;
+        }
+
+        c.player.age += aging;
         
         if(Std.int(tmpAge) != Std.int(c.player.age))
         {

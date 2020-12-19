@@ -18,12 +18,15 @@ class ServerSettings
    
     // food stuff
     public static var MinAgeToEat = 3;
-    public static var FoodUsePerSecond = 2; // 0.1;
+    public static var FoodUsePerSecond = 2; // 0.2;
     public static var GrownUpFood = 20;
 
     // PlayerInstance
     public static var StartingEveAge = 13;  // 12
     public static var SecondsPerYear = 8; // 60
+    public static var AgingFactorWhileStarvingToDeath = 0.2; // if starving to death aging is slowed factor X up to AgeUpToStarvingSlowsAging, otherwise aging is speed up factor X
+    public static var AgeUpToStarvingSlowsAging = 14; 
+
 
     public static var startingGx = 360;
     public static var startingGy = 600 - 400; // server map is saved y inverse 
