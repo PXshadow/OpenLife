@@ -109,7 +109,7 @@ class TimeHelper
 
         if(c.player.food_store < 0)
         {
-            if(c.player.age < ServerSettings.AgeUpToStarvingSlowsAging) aging *= ServerSettings.AgingFactorWhileStarvingToDeath;
+            if(c.player.age < ServerSettings.GrownUpAge) aging *= ServerSettings.AgingFactorWhileStarvingToDeath;
             else aging *= 1 / ServerSettings.AgingFactorWhileStarvingToDeath;
         }
 
@@ -156,6 +156,8 @@ class TimeHelper
         var tmpExtraFood = Math.ceil(c.player.yum_bonus);
         var tmpFoodStoreMax = Math.ceil(c.player.food_store_max);
         var foodDecay = timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
+
+        if(c.player.age < ServerSettings.GrownUpAge) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
 
         if(c.player.yum_bonus > 0)
         {

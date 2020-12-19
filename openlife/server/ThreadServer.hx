@@ -42,9 +42,10 @@ class ThreadServer
         var ka:Float = Timer.stamp();
         while (connection.running)
         {
-            Sys.sleep(0.1);
-
             try {
+                Sys.sleep(0.1);
+
+            
                 message = socket.input.readUntil("#".code);
 
                 trace(message);
@@ -52,6 +53,9 @@ class ThreadServer
                 
             }catch(e:Dynamic)
             {
+                trace('WARNING: EXEPTION: ' + e);
+                //error("---STACK---\n" + e.details());
+
                 if (e != haxe.io.Error.Blocked)
                 {
                     connection.close();
