@@ -187,19 +187,13 @@ class GlobalPlayerInstance extends PlayerInstance {
                 return;
             }
 
-            var countEaten = hasEatenMap[heldObject.id()];
+            var countEaten = hasEatenMap[heldObject.id()];      
 
-            if(countEaten < 1)
-            {
-                // yum
-                foodValue *=2;
-                yum_multiplier += 1;
-            } else
-            {
-                // meh
-                foodValue -= countEaten;
-                foodValue = Std.int(Math.max(1, foodValue));
-            }
+            if(isHoldingYum()) yum_multiplier += 1;
+
+            foodValue += ServerSettings.YumBonus;
+            foodValue -= countEaten;
+            foodValue = Std.int(Math.max(1, foodValue));
 
             trace('foodValue: $foodValue countEaten: $countEaten');
 
@@ -294,7 +288,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         var countEaten = hasEatenMap[heldObject.id()];
 
-        return countEaten < 1; 
+        return countEaten < ServerSettings.YumBonus; 
     }
 
     public function setHeldObject(obj:ObjectHelper)

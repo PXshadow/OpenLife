@@ -22,15 +22,18 @@ class ServerSettings
     public static var GrownUpFoodStoreMax = 30;
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
-    public static var FoodStoreMaxReductionWhileStarvingToDeath = 5; // reduces food store max with factor XX for each food below 0
-    public static var DeathWithFoodStoreMax = -2; // Death through starvation if food store max reaches below XX 
+    public static var DeathWithFoodStoreMax = -1; // Death through starvation if food store max reaches below XX 
+    public static var YumBonus = 3; // First team eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
 
     // PlayerInstance
     public static var StartingEveAge = 3;  // 13
     public static var SecondsPerYear = 10; // 60
+    
+    // starving to death
     public static var AgingFactorWhileStarvingToDeath = 0.2; // if starving to death aging is slowed factor X up to AgeUpToStarvingSlowsAging, otherwise aging is speed up factor X
     public static var AgeUpToStarvingSlowsAging = 14; 
-
+    public static var StarvingToDeathMoveSpeedFactor = 0.5; // reduces speed if stored food is below 0
+    public static var FoodStoreMaxReductionWhileStarvingToDeath = 2; // reduces food store max with factor XX for each food below 0
 
     public static var startingGx = 360;
     public static var startingGy = 600 - 400; // server map is saved y inverse 
@@ -39,7 +42,6 @@ class ServerSettings
 
     // for movement
     public static var InitialPlayerMoveSpeed = 3.75; // in Tiles per Second
-    public static var StarvingToDeathMoveSpeedFactor = 0.5; // reduces speed if stored food is below 0
     public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed factor X
     // TODO FIX this can make jumps if too small / ideally this should be 0 so that the client cannot cheap while moving
     public static var MaxMovementCheatingDistanceBeforeForce = 2; // if client player position is bigger then X, client is forced in PU to use server position 
