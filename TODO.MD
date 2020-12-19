@@ -37,7 +37,7 @@ Food - YUM:
 - if you eat YUM 1 pip is restored from a random eaten food. Zero are restored if random food is the current eaten food
     For eample eats a Yum berry / then eats a YUM onion / 50% chance that eating YUM onion restored berry to full food value / YUM    
 - You can only eat if you have space for at least half the food value, not counting YUM or food reduction
-- When food value is less then halve it can only be eaten if starving to death
+- When food value is less then halve it can only be eaten if starving to death in this case the food has at least half the value
 - Extra food is stored as YUM Extra food
 - YUM chain is used as Health
 - eating YUM increases YUM chain, while eating MEH reduces it

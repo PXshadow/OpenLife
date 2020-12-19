@@ -193,9 +193,12 @@ class GlobalPlayerInstance extends PlayerInstance {
 
             foodValue += ServerSettings.YumBonus;
             foodValue -= countEaten;
-            foodValue = Std.int(Math.max(1, foodValue));
 
-            if(foodValue < heldObject.objectData.foodValue / 2 && food_store > 0)
+            var isSuperMeth = foodValue < heldObject.objectData.foodValue / 2;
+
+            if(isSuperMeth) foodValue = Math.ceil(heldObject.objectData.foodValue / 2);
+
+            if(isSuperMeth && food_store > 0)
             {
                 trace('when food value is less then halve it can only be eaten if starving to death: foodValue: $foodValue original food value: ${heldObject.objectData.foodValue} food_store: $food_store');
 
