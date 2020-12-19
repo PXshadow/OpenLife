@@ -22,9 +22,11 @@ class ServerSettings
     public static var GrownUpFoodStoreMax = 30;
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
+    public static var FoodStoreMaxReductionWhileStarvingToDeath = 5; // reduces food store max with factor XX for each food below 0
+    public static var DeathWithFoodStoreMax = -2; // Death through starvation if food store max reaches below XX 
 
     // PlayerInstance
-    public static var StartingEveAge = 13;  // 13
+    public static var StartingEveAge = 3;  // 13
     public static var SecondsPerYear = 10; // 60
     public static var AgingFactorWhileStarvingToDeath = 0.2; // if starving to death aging is slowed factor X up to AgeUpToStarvingSlowsAging, otherwise aging is speed up factor X
     public static var AgeUpToStarvingSlowsAging = 14; 

@@ -117,7 +117,7 @@ class TimeHelper
         
         if(Std.int(tmpAge) != Std.int(c.player.age))
         {
-            c.player.food_store_max = CalculateFoodStoreMax(c.player.age);
+            c.player.food_store_max = CalculateFoodStoreMax(c.player);
 
             if(c.player.age > 60)
             {
@@ -135,12 +135,15 @@ class TimeHelper
         }
     }
 
-    public static function CalculateFoodStoreMax(age:Float) : Float
+    public static function CalculateFoodStoreMax(p:GlobalPlayerInstance) : Float
     {
+        var age = p.age;
         var food_store_max:Float = ServerSettings.GrownUpFoodStoreMax;
 
         if(age < 30) food_store_max = ServerSettings.NewBornFoodStoreMax + age / 30 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.NewBornFoodStoreMax);
         if(age > 50) food_store_max = ServerSettings.OldAgeFoodStoreMax + (60 - age) / 10 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.OldAgeFoodStoreMax);
+
+        if(p.food_store < 0) food_store_max += ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath * p.food_store;
 
         return food_store_max;
     }
@@ -151,6 +154,7 @@ class TimeHelper
 
         var tmpFood = Math.ceil(c.player.food_store);
         var tmpExtraFood = Math.ceil(c.player.yum_bonus);
+        var tmpFoodStoreMax = Math.ceil(c.player.food_store_max);
         var foodDecay = timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
 
         if(c.player.yum_bonus > 0)
@@ -162,7 +166,12 @@ class TimeHelper
             c.player.food_store -= foodDecay;
         }
 
-        if(tmpFood != Math.ceil(c.player.food_store) || tmpExtraFood != Math.ceil(c.player.yum_bonus))
+        c.player.food_store_max = CalculateFoodStoreMax(c.player);
+
+        var hasChanged = tmpFood != Math.ceil(c.player.food_store) || tmpExtraFood != Math.ceil(c.player.yum_bonus);
+        hasChanged = hasChanged || tmpFoodStoreMax != Math.ceil(c.player.food_store_max);
+
+        if(hasChanged)
         {
             c.player.sendFoodUpdate(false);
             c.send(FRAME, null, false);

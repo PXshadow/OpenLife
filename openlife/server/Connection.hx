@@ -87,7 +87,7 @@ class Connection implements ServerHeader
         player.gy = ServerSettings.startingGy;
 
         player.move_speed = MoveExtender.calculateSpeed(player, player.gx, player.gy);
-        player.food_store_max = TimeHelper.CalculateFoodStoreMax(player.age);
+        player.food_store_max = TimeHelper.CalculateFoodStoreMax(player);
         player.food_store = player.food_store_max / 2;
         
         trace("move_speed: " + player.move_speed);
