@@ -278,23 +278,6 @@ class TimeHelper
 
         for (i in 0...10)
         {
-            // limit movement if blocking stuff is close
-            /*var closeTile = worldmap.getObjectHelper(tx + 1 , ty);
-            var closeBiome = worldmap.getBiomeId(x + 1 , ty);
-
-            var moveDistXPlus = moveDist;
-            var moveDistXMinus = moveDist;
-            var moveDistYPlus = moveDist;
-            var moveDistYMinus = moveDist;
-
-            if(closeTile.blocksWalking() ||  closeBiome == BiomeTag.OCEAN ||  closeBiome == BiomeTag.SNOWINGREY){
-                moveDistXRight =  moveDist - 1;
-            }
-
-            var tx = helper.tx + worldmap.randomInt(moveDistXPlus + moveDistXMinus) - moveDistXMinus;
-            var ty = helper.ty + worldmap.randomInt(moveDistYPlus + moveDistYMinus) - moveDistYMinus;
-            */
-
             var tx = helper.tx - moveDist + worldmap.randomInt(moveDist * 2);
             var ty = helper.ty - moveDist + worldmap.randomInt(moveDist * 2);
             
@@ -336,54 +319,13 @@ class TimeHelper
             if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 10) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
 
             // limit movement if blocked
-            // start block movement
+            target = calculateNonBlockedTarget(x, y, target);
 
-            var tmpX = x;
-            var tmpY = y;
-            var tmpTarget = null;
+            if(target == null) continue; // movement was fully bocked, search another target
 
-            for(ii in 0...10)
-            {                
-                if(tmpX == tx && tmpY == ty) break;
-
-                if(tx > tmpX)  tmpX += 1;
-                else if(tx < tmpX)  tmpX -= 1;
-
-                if(ty > tmpY)  tmpY += 1;
-                else if(ty < tmpY)  tmpY -= 1;
-
-                //trace('movement: $tmpX,$tmpY');
-
-                var movementTile = worldmap.getObjectHelper(tmpX , tmpY); 
-                var movementBiome = worldmap.getBiomeId(tmpX , tmpY);  
-
-                var cannotMoveInBiome = movementBiome == BiomeTag.OCEAN ||  movementBiome == BiomeTag.SNOWINGREY;
-
-                // TODO better patch in the objects, i dont see any reason why a rabit or a tree should block movement
-                if(cannotMoveInBiome || (movementTile.blocksWalking() 
-                        && movementTile.description().indexOf("Tarry Spot") == -1
-                        && movementTile.description().indexOf("Tree") == -1 && movementTile.description().indexOf("Rabbit") == -1  
-                        && movementTile.description().indexOf("Iron") == -1 && movementTile.description().indexOf("Spring") == -1
-                        && movementTile.description().indexOf("Sugarcane") == -1 && movementTile.description().indexOf("Pond") == -1
-                        && movementTile.description().indexOf("Palm") == -1  && movementTile.description().indexOf("Plant") == -1))
-                {
-                    //trace('movement blocked ${movementTile.description()} ${movementBiome}');
-                    break;
-                }
-                
-
-                // TODO allow move on non empty ground
-                if(movementTile.id() == 0) tmpTarget = movementTile;
-            }
-
-            if(tmpTarget == null) continue;
-
-            tx = tmpTarget.tx;
-            ty = tmpTarget.ty;
-            target = tmpTarget;
-
-            // end block movement
-
+            tx = target.tx;
+            ty = target.ty;
+    
             // save what was on the ground, so that we can move on this tile and later restore it
             var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.writeObjectHelper([]);
             var newTileObject = helper.writeObjectHelper([]);
@@ -453,4 +395,49 @@ class TimeHelper
 
         return false;
     }    
+
+    private static function calculateNonBlockedTarget(fromX:Int, fromY:Int, toTarget:ObjectHelper) : ObjectHelper
+    {
+        var tx = toTarget.tx;
+        var ty = toTarget.ty;
+        var tmpX = fromX;
+        var tmpY = fromY;
+        var tmpTarget = null;
+
+        for(ii in 0...10)
+        {                
+            if(tmpX == tx && tmpY == ty) break;
+
+            if(tx > tmpX)  tmpX += 1;
+            else if(tx < tmpX)  tmpX -= 1;
+
+            if(ty > tmpY)  tmpY += 1;
+            else if(ty < tmpY)  tmpY -= 1;
+
+            //trace('movement: $tmpX,$tmpY');
+
+            var movementTileObj = WorldMap.worldGetObjectHelper(tmpX , tmpY); 
+            var movementBiome = WorldMap.worldGetBiomeId(tmpX , tmpY);  
+
+            var cannotMoveInBiome = movementBiome == BiomeTag.OCEAN ||  movementBiome == BiomeTag.SNOWINGREY;
+
+            // TODO better patch in the objects, i dont see any reason why a rabit or a tree should block movement
+            if(cannotMoveInBiome || (movementTileObj.blocksWalking() 
+                    && movementTileObj.description().indexOf("Tarry Spot") == -1
+                    && movementTileObj.description().indexOf("Tree") == -1 && movementTileObj.description().indexOf("Rabbit") == -1  
+                    && movementTileObj.description().indexOf("Iron") == -1 && movementTileObj.description().indexOf("Spring") == -1
+                    && movementTileObj.description().indexOf("Sugarcane") == -1 && movementTileObj.description().indexOf("Pond") == -1
+                    && movementTileObj.description().indexOf("Palm") == -1  && movementTileObj.description().indexOf("Plant") == -1))
+            {
+                //trace('movement blocked ${movementTile.description()} ${movementBiome}');
+                break;
+            }
+            
+
+            // TODO allow move on non empty ground
+            if(movementTileObj.id() == 0) tmpTarget = movementTileObj;
+        }
+   
+        return tmpTarget;
+    }
 }

@@ -220,6 +220,11 @@ class WorldMap
         }
     } 
 
+    public static function worldGetBiomeId(x:Int, y:Int):Int
+    {
+        return Server.server.map.getBiomeId(x,y);
+    }
+
     public function getBiomeId(x:Int, y:Int):Int
     {
         return biomes[index(x,y)];
@@ -234,6 +239,11 @@ class WorldMap
     public function setObjectId(x:Int, y:Int, ids:Array<Int>)
     {
         objects[index(x,y)] = ids;
+    }
+
+    public static function worldGetObjectHelper(x:Int, y:Int, allowNull:Bool = false):ObjectHelper
+    {
+        return Server.server.map.getObjectHelper(x, y, allowNull);
     }
 
     public function getObjectHelper(x:Int, y:Int, allowNull:Bool = false):ObjectHelper
