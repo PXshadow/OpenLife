@@ -195,6 +195,19 @@ class GlobalPlayerInstance extends PlayerInstance {
             foodValue -= countEaten;
             foodValue = Std.int(Math.max(1, foodValue));
 
+            if(foodValue < heldObject.objectData.foodValue / 2 && food_store > 0)
+            {
+                trace('when food value is less then halve it can only be eaten if starving to death: foodValue: $foodValue original food value: ${heldObject.objectData.foodValue} food_store: $food_store');
+
+                this.connection.send(PLAYER_UPDATE,[this.toData()]);
+                this.connection.send(FRAME);
+                return;
+            }
+
+            // if eating meh food, reduce prestige / score
+            if(foodValue < heldObject.objectData.foodValue) yum_multiplier -= 1;
+
+
             trace('foodValue: $foodValue countEaten: $countEaten');
 
             hasEatenMap[heldObject.id()] += 1;

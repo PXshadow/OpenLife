@@ -22,6 +22,7 @@ MAP:
 
 Aging:
 - starving to death slows down aging below 14 and increases above  
+- double food use for age below 14
 
 SPEED:
 - different speed for different biomes
@@ -34,8 +35,11 @@ Food - YUM:
 - food value is reduced minus one for each eaten
     For example Berry Default 3: 6 YUM / 5 YUM / 4 YUM / 3 MEH / 2 MEH / 1 MEH / 1 MEH / 1 MEH ...
 - You can only eat if you have space for at least half the food value, not counting YUM or food reduction
+- When food value is less then halve it can only be eaten if starving to death
 - Extra food is stored as YUM Extra food
-- YUM chain is used as SCORE  (SOON) (Not how long you live is important but how you live is important)
+- YUM chain is used as Health
+- eating YUM increases YUM chain, while eating MEH reduces it
+- TODO Eating YUM increases prestiege, eating MEH reduces it (Not how long you live is important but how you live is important)
 
 
 Animals:
