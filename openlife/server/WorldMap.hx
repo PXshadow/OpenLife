@@ -184,6 +184,11 @@ class WorldMap
         return Math.floor(generateSeed() / MODULUS * (x + 1));
     }
 
+    public static function calculateRandomFloat():Float
+    {
+        return Server.server.map.randomFloat();
+    }
+
     public function randomFloat():Float
     {
         return generateSeed() / MODULUS;

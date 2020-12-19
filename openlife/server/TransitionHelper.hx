@@ -364,7 +364,7 @@ class TransitionHelper{
             {
                 trace('handObjectData.useChance: ${handObjectData.useChance}');
 
-                if(handObjectData.useChance <= 0 || Server.server.map.randomFloat() < handObjectData.useChance)
+                if(handObjectData.useChance <= 0 || WorldMap.calculateRandomFloat() < handObjectData.useChance)
                 {
                     this.player.heldObject.numberOfUses -= 1;
                     trace('HandObject: numberOfUses: ' + this.player.heldObject.numberOfUses);
@@ -415,7 +415,7 @@ class TransitionHelper{
             {
                 trace('TileObject: ${newTargetObjectData.description} newTargetObjectData.useChance: ${newTargetObjectData.useChance}');
 
-                if(newTargetObjectData.useChance <= 0 || Server.server.map.randomFloat() < newTargetObjectData.useChance)
+                if(newTargetObjectData.useChance <= 0 || WorldMap.calculateRandomFloat() < newTargetObjectData.useChance)
                 {
                     this.tileObjectHelper.numberOfUses -= 1;
                     trace('TileObject: ${newTargetObjectData.description} numberOfUses: ' + this.tileObjectHelper.numberOfUses);

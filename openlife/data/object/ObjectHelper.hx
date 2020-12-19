@@ -157,7 +157,7 @@ class ObjectHelper {
     {
         // hours are negative
         var timeToChange = timeTransition.autoDecaySeconds < 0 ?  (-3600) * timeTransition.autoDecaySeconds : timeTransition.autoDecaySeconds;                 
-        timeToChange = Math.ceil((Server.server.map.randomInt(timeToChange * 2) + timeToChange)/2);
+        timeToChange = Math.ceil((WorldMap.calculateRandomInt(timeToChange * 2) + timeToChange)/2);
 
         return timeToChange;
     }
