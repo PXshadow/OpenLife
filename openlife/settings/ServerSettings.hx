@@ -18,7 +18,7 @@ class ServerSettings
    
     // food stuff
     public static var MinAgeToEat = 3;
-    public static var FoodUsePerSecond = 0.2; // 0.1;
+    public static var FoodUsePerSecond = 2; // 0.1;
     public static var GrownUpFood = 20;
 
     // PlayerInstance
@@ -32,7 +32,8 @@ class ServerSettings
 
     // for movement
     public static var InitialPlayerMoveSpeed = 3.75; // in Tiles per Second
-    public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed
+    public static var StarvingToDeathMoveSpeedFactor = 0.5; // reduces speed if stored food is below 0
+    public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed factor X
     // TODO FIX this can make jumps if too small / ideally this should be 0 so that the client cannot cheap while moving
     public static var MaxMovementCheatingDistanceBeforeForce = 2; // if client player position is bigger then X, client is forced in PU to use server position 
 

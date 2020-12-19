@@ -59,6 +59,9 @@ class MoveExtender{
 
         speed *= ServerSettings.InitialPlayerMoveSpeed;
 
+        // only reduce speed when starving if not riding or in car 
+        if(p.food_store < 0 && p.heldObject.objectData.speedMult < 1.1) speed *= ServerSettings.StarvingToDeathMoveSpeedFactor;
+
         speed *= p.heldObject.objectData.speedMult;
 
         if(p.age < 1) speed *= 0.5;
@@ -66,9 +69,9 @@ class MoveExtender{
         else if(p.age < 3) speed *= 0.7;
         else if(p.age < 6) speed *= 0.8;
         else if(p.age < 10) speed *= 0.9;
-        else if(p.age > 55) speed *= 0.9;
+        else if(p.age > 55) speed *= 0.8;
 
-        //trace('age: ${p.age} speed: $speed');
+        trace('age: ${p.age} speed: $speed');
 
         return speed;
     }

@@ -22,7 +22,8 @@ MAP:
 
 SPEED:
 - different speed for different biomes
-- limited speed for lower age < 10 
+- limited speed for lower age < 10 and age > 55
+- starving to death reduces speed X0.5 if not in car or on horse
 
 Food - YUM:
 - YUM gives flat 2X food boni
