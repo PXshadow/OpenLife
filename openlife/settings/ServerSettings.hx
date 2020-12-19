@@ -1,5 +1,8 @@
 package openlife.settings;
 
+import openlife.server.WorldMap.BiomeTag;
+import openlife.data.object.ObjectData;
+
 class ServerSettings
 {
     // for debugging
@@ -15,6 +18,9 @@ class ServerSettings
     public static var traceTransitionByTargetDescription = "!!!Steel Axe"; // TransitionImporter
 
     public static var traceAmountGeneratedObjects = false; // WorldMap
+
+    // worldMap
+    public static var ChanceForLuckySpot = 0.03; // chance that during generation an object is lucky and tons more of that are generated close by
    
     // food stuff
     public static var MinAgeToEat = 3;
@@ -37,8 +43,8 @@ class ServerSettings
     public static var StarvingToDeathMoveSpeedFactor = 0.5; // reduces speed if stored food is below 0
     public static var FoodStoreMaxReductionWhileStarvingToDeath = 2; // reduces food store max with factor XX for each food below 0
 
-    public static var startingGx = 360;
-    public static var startingGy = 600 - 400; // server map is saved y inverse 
+    public static var startingGx = 640; // 360;
+    public static var startingGy = 600 - 180;//- 400; // server map is saved y inverse 
 
     public static var maxDistanceToBeConsideredAsClose = 20; // only close players are updated with PU and MX and Movement 
 
@@ -54,4 +60,22 @@ class ServerSettings
     // for animal offsprings
     public static var chanceForOffspring = 0.001; // For each movement there is X chance to generate an offspring  
     public static var maxOffspringFactor = 3; // The population can only be at max X times the initial population
+
+
+    public static function PatchObjectData()
+    {
+        // increase chance for iron
+        ObjectData.getObjectData(942).mapChance *= 1.5; // Muddy Iron Vein
+        ObjectData.getObjectData(2135).mapChance /= 3; // Rubber Tree
+        ObjectData.getObjectData(418).biomes.push(BiomeTag.YELLOW); // Happy Wolfs now also in Yellow biome :)
+        ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
+        ObjectData.getObjectData(290).speedMult = 0.25; // Iron Ore
+        
+        //if (obj.id == 2156) // Mosquito Swarm
+        //    obj.mapChance *= 3;
+
+        //trace('Patch: ${ObjectData.getObjectData(942).description}');
+        //if (obj.deadlyDistance > 0)
+        //    obj.mapChance *= 0;
+    }
 }

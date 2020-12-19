@@ -326,7 +326,7 @@ class TimeHelper
         var x = helper.tx;
         var y = helper.ty;
 
-        for (i in 0...10)
+        for (i in 0...20)
         {
             var tx = helper.tx - moveDist + worldmap.randomInt(moveDist * 2);
             var ty = helper.ty - moveDist + worldmap.randomInt(moveDist * 2);

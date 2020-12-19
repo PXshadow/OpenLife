@@ -1,4 +1,5 @@
 package openlife.data.object;
+import openlife.server.WorldMap.BiomeTag;
 import openlife.engine.Utility;
 import openlife.engine.Engine;
 import openlife.resources.ObjectBake;
@@ -382,16 +383,7 @@ class ObjectData extends LineReader
         
         for (obj in importedObjectData)
         {
-            if (obj.mapChance == 0) continue;
-            // increase chance for iron // TODO better patch data directly
-            if(obj.id == 942) // Muddy Iron Vein
-                obj.mapChance *= 3;
-            //if (obj.id == 2156) // Mosquito Swarm
-            //    obj.mapChance *= 3;
-
-            //trace('Patch: ${ObjectData.getObjectData(942).description}');
-            //if (obj.deadlyDistance > 0)
-            //    obj.mapChance *= 0;
+            if (obj.mapChance == 0) continue;          
 
             if(obj.description.indexOf("Expert Way Stone") != -1)
             {

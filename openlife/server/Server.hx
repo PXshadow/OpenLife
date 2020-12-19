@@ -76,6 +76,8 @@ class Server
         // do all the object inititalisation stuff
         ObjectData.ImportObjectData();
         ObjectData.CreateAndAddDummyObjectData();
+        ServerSettings.PatchObjectData();
+
         ObjectData.GenerateBiomeObjectData();
 
         dataVersionNumber = Resource.dataVersionNumber();
