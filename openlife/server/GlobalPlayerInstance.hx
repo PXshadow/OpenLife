@@ -213,7 +213,7 @@ class GlobalPlayerInstance extends PlayerInstance {
                 // restore one food pip if eaten YUM
                 if(hasEatenKeys.length > 1)
                 {
-                    var key = hasEatenKeys[Server.server.map.randomInt(hasEatenKeys.length)];
+                    var key = hasEatenKeys[WorldMap.calculateRandomInt(hasEatenKeys.length)];
 
                     if(key != heldObject.id())
                     {

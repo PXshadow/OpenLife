@@ -174,6 +174,11 @@ class WorldMap
         return seed = Std.int((seed * MULTIPLIER) % MODULUS);
     }
 
+    public static function calculateRandomInt(maxInt:Int)
+    {
+        return Server.server.map.randomInt(maxInt);
+    }
+
     public function randomInt(x:Int=MAX_NUM):Int
     {
         return Math.floor(generateSeed() / MODULUS * (x + 1));
