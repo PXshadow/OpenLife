@@ -22,7 +22,7 @@ class ServerSettings
     public static var GrownUpFoodStoreMax = 30;
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
-    public static var DeathWithFoodStoreMax = -1; // Death through starvation if food store max reaches below XX 
+    public static var DeathWithFoodStoreMax = 0; // Death through starvation if food store max reaches below XX 
     public static var YumBonus = 3; // First team eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
     public static var IncreasedFoodNeedForChildren = 2; // children need XX food is below GrownUpAge
 

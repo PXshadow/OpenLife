@@ -39,7 +39,7 @@ import haxe.io.Bytes;
     
     public var CSAND = "FFefe4b0";
 
-    public var CSNOWINGREY = "FFFFFFFF"; // TODO assign color // its snow on top of mountains which should not be walkable
+    public var CSNOWINGREY = "404040"; // TODO exchange with CGREY here and on map // its snow on top of mountains which should not be walkable
     public var COCEAN = "FF004080"; //deep ocean 
     public var CRIVER = "FF0080FF"; //shallow water
 }
@@ -405,6 +405,10 @@ class WorldMap
                 //if(x+y*width < 10000) objects[x+y*width] = [4746];
                  
                 //if(x < 200 || x > 600) continue;
+
+                // if there is a object below allready continue
+                if(y > 0 && objects[x+(y-1)*width][0] != 0) continue;
+
                 if (randomFloat() > 0.4) continue;
                 
                 
