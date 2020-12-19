@@ -211,19 +211,22 @@ class GlobalPlayerInstance extends PlayerInstance {
             if(isHoldingYum()){
                 yum_multiplier += 1;
 
-                var hasEatenKeys = [for(key in hasEatenMap.keys()) key];
-
-                // restore one food pip if eaten YUM
-                if(hasEatenKeys.length > 1)
+                if(WorldMap.calculateRandomFloat() < ServerSettings.YumFoodRestore)
                 {
-                    var key = hasEatenKeys[WorldMap.calculateRandomInt(hasEatenKeys.length)];
+                    var hasEatenKeys = [for(key in hasEatenMap.keys()) key];
 
-                    if(key != heldObject.id())
+                    // restore one food pip if eaten YUM
+                    if(hasEatenKeys.length > 1)
                     {
-                        hasEatenMap[key] -= ServerSettings.YumFoodRestore;
-                        trace('hasEatenMap: key: $key, ${hasEatenMap[key]}');
+                        var key = hasEatenKeys[WorldMap.calculateRandomInt(hasEatenKeys.length)];
+                        
+                        if(key != heldObject.id())
+                        {
+                            hasEatenMap[key] -= 1;
+                            trace('hasEatenMap: key: $key, ${hasEatenMap[key]}');
 
-                        if(hasEatenMap[key] <= 0) hasEatenMap.remove(key);
+                            if(hasEatenMap[key] <= 0) hasEatenMap.remove(key);
+                        }
                     }
                 }
             }

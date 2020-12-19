@@ -25,7 +25,7 @@ class ServerSettings
     public static var DeathWithFoodStoreMax = 0; // Death through starvation if food store max reaches below XX 
     public static var IncreasedFoodNeedForChildren = 2; // children need XX food is below GrownUpAge
     public static var YumBonus = 3; // First team eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
-    public static var YumFoodRestore = 1; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food.
+    public static var YumFoodRestore = 0.8; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food.
 
     // PlayerInstance
     public static var StartingEveAge = 3;  // 13
