@@ -67,9 +67,15 @@ class ServerSettings
         // increase chance for iron
         ObjectData.getObjectData(942).mapChance *= 1.5; // Muddy Iron Vein
         ObjectData.getObjectData(2135).mapChance /= 3; // Rubber Tree
+
         ObjectData.getObjectData(418).biomes.push(BiomeTag.YELLOW); // Happy Wolfs now also in Yellow biome :)
         ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
-        ObjectData.getObjectData(290).speedMult = 0.25; // Iron Ore
+        ObjectData.getObjectData(418).mapChance *= 1.5; // More Happy Wolfs
+        ObjectData.getObjectData(418).speedMult = 1.5; // Boost Wolfs even more :)
+
+        ObjectData.getObjectData(290).speedMult = 0.40; // Iron Ore
+        ObjectData.getObjectData(838).mapChance = ObjectData.getObjectData(211).mapChance / 5; // Add some lovely mushrooms  
+        ObjectData.getObjectData(838).biomes.push(BiomeTag.GREEN); // Add some lovely mushrooms 
         
         //if (obj.id == 2156) // Mosquito Swarm
         //    obj.mapChance *= 3;

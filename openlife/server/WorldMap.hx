@@ -567,7 +567,7 @@ class WorldMap
                             if(random <= 0) break;
                         }
 
-                        trace('lucky: ${objData.description} placed: ${tmpRandom-random} from $tmpRandom');
+                        //trace('lucky: ${objData.description} placed: ${tmpRandom-random} from $tmpRandom');
                     } 
                 }
             }

@@ -207,25 +207,37 @@ class GlobalPlayerInstance extends PlayerInstance {
                 return;
             }
 
+            hasEatenMap[heldObject.id()] += 1;
+
             // eating YUM increases prestige / score while eating MEH reduces it
             if(isHoldingYum()){
                 yum_multiplier += 1;
 
+                trace('YUM: ${heldObject.id()} foodValue: $foodValue');
+
                 if(WorldMap.calculateRandomFloat() < ServerSettings.YumFoodRestore)
-                {
+                {                    
                     var hasEatenKeys = [for(key in hasEatenMap.keys()) key];
 
+                    trace('YUM: hasEatenKeys.length: ${hasEatenKeys.length}');
+
                     // restore one food pip if eaten YUM
-                    if(hasEatenKeys.length > 1)
+                    if(hasEatenKeys.length > 0)
                     {
-                        var key = hasEatenKeys[WorldMap.calculateRandomInt(hasEatenKeys.length)];
+                        var random = WorldMap.calculateRandomInt(hasEatenKeys.length -1);
+                        var key = hasEatenKeys[random];
+
+                        trace('YUM: random: $random hasEatenKeys.length: ${hasEatenKeys.length}');
                         
                         if(key != heldObject.id())
                         {
                             hasEatenMap[key] -= 1;
-                            trace('hasEatenMap: key: $key, ${hasEatenMap[key]}');
+                            trace('YUM: hasEaten YES!!!: key: $key, ${hasEatenMap[key]}');
 
                             if(hasEatenMap[key] <= 0) hasEatenMap.remove(key);
+                        }
+                        else{
+                            trace('YUM: hasEaten: NO!!!: key: $key, heldObject.id(): ${heldObject.id()}');
                         }
                     }
                 }
@@ -235,7 +247,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
             trace('foodValue: $foodValue countEaten: $countEaten');
 
-            hasEatenMap[heldObject.id()] += 1;
+            
 
             // food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
             /*
