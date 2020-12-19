@@ -175,6 +175,14 @@ class TimeHelper
         {
             c.player.sendFoodUpdate(false);
             c.send(FRAME, null, false);
+
+            if(c.player.food_store_max < ServerSettings.DeathWithFoodStoreMax)
+            {
+                c.player.reason = 'reason_hunger';
+                c.player.deleted = true;
+
+                Connection.SendUpdateToAllClosePlayers(c.player, false);
+            }
         }
     }
 
