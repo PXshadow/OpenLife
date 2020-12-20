@@ -342,40 +342,57 @@ class TransitionHelper{
         if(tileObjectData.id == 838 || tileObjectData.id == 837) return false;
 
         var lastUseActorObject = false;
-        var lastUseTileObject = false;
 
-        if(tileObjectData.numUses > 1 && this.tileObjectHelper.numberOfUses <= 1)
-        {
-            lastUseTileObject = true;
-            trace("TRANS: lastUseTileObject = true");
-        }           
-    
-        var transition = Server.transitionImporter.getTransition(0, this.tileObjectData.id, lastUseActorObject, lastUseTileObject);
+        var objData = tileObjectData;
+        var tmpTileObjectId = tileObjectData.id;
+        var tmpHeldObject = player.heldObject;
 
-        if(transition == null) return false;
+        var transition = null;
         
-        var objData = ObjectData.getObjectData(transition.newActorID);
+        if(tileObjectData.foodValue < 1)
+        {
+            transition = Server.transitionImporter.getTransition(0, this.tileObjectData.id, lastUseActorObject, lastUseTileObject);
 
+            if(transition == null) return false;
+
+            objData = ObjectData.getObjectData(transition.newActorID);
+
+            if(objData.foodValue < 1) return false;
+        }
+        
         trace('HORSE: Actor: ${this.player.heldObject.id() } NewActor: ${objData.description}');
         
-        if(objData.foodValue < 1) return false;
-
-        var tmpHelpObjectId = player.heldObject.id();
-
-        player.heldObject.setId(objData.id);
+        if(transition != null)
+        {   
+            player.heldObject = ObjectHelper.readObjectHelper(player, [transition.newActorID]);
+        } 
+        else
+        {
+            player.heldObject = tileObjectHelper;
+        }
 
         if(player.doEating() == false)
         {
-            player.heldObject.setId(tmpHelpObjectId);
+            player.heldObject = tmpHeldObject;
+
             return false;
         }
 
-        player.heldObject.setId(tmpHelpObjectId);
-        this.tileObjectHelper.setId(transition.newTargetID);
+        if(transition == null)
+        {
+            trace('HORSE: without trans / has eaten: ${player.heldObject.description()}');
+            this.tileObjectHelper = player.heldObject;
+        }
+        else
+        {
+            trace('HORSE: with trans / has eaten: ${player.heldObject.description()}');
+            this.tileObjectHelper.setId(transition.newTargetID);
 
-        DoChangeNumberOfUsesOnTarget(this.tileObjectHelper, transition.targetID != transition.newTargetID, transition.reverseUseTarget);
+            DoChangeNumberOfUsesOnTarget(this.tileObjectHelper, transition.targetID != transition.newTargetID, transition.reverseUseTarget);
+        }
 
-        // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
+        player.heldObject = tmpHeldObject;
+
         this.doTransition = true;
         this.doAction = true;
 
@@ -501,9 +518,11 @@ class TransitionHelper{
     // used for transitions and for eating food like bana or bowl of stew
     public static function DoChangeNumberOfUsesOnActor(obj:ObjectHelper, idHasChanged:Bool, reverseUse:Bool) : Bool
     {
-        if(idHasChanged) return false;
+        if(idHasChanged) return true;
 
         var objectData  = obj.objectData;
+
+        if(objectData.dummyParent != null) objectData = objectData.dummyParent;
 
         if(reverseUse)
         {
@@ -512,12 +531,12 @@ class TransitionHelper{
             return true;
         } 
 
-        trace('handObjectData.useChance: ${objectData.useChance}');
+        trace('DoChangeNumberOfUsesOnActor: ${objectData.description} ${objectData.id} useChance: ${objectData.useChance}');
 
         if(objectData.useChance > 0 && WorldMap.calculateRandomFloat() > objectData.useChance) return true;
 
         obj.numberOfUses -= 1;
-        trace('HandObject: numberOfUses: ' + obj.numberOfUses);
+        trace('DoChangeNumberOfUsesOnActor: numberOfUses: ' + obj.numberOfUses);
 
         if(obj.numberOfUses > 0) return true;
 
@@ -527,17 +546,17 @@ class TransitionHelper{
         // 1251 + -1 = 235 + 0 lastUseActor: true Bowl of Stew
 
         // for example for a tool like axe lastUseActor: true
-        var toolTransition = Server.transitionImporter.getTransition(obj.id(), -1, true, false);
+        var toolTransition = Server.transitionImporter.getTransition(objectData.id, -1, true, false);
         
         // for example for a water bowl lastUseActor: false
         if(toolTransition == null)
         {
-            toolTransition = Server.transitionImporter.getTransition(obj.id(), -1, false, false);
+            toolTransition = Server.transitionImporter.getTransition(objectData.id, -1, false, false);
         }
 
         if(toolTransition != null)
         {
-            trace('Change Actor from: ${obj.id} to ${toolTransition.newActorID}');
+            trace('Change Actor from: ${objectData.id} to ${toolTransition.newActorID}');
             obj.setId(toolTransition.newActorID);
             return true;
         }

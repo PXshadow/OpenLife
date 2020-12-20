@@ -221,6 +221,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         // 1251 + -1 = 235 + 0 lastUseActor: true Bowl of Stew
         if(TransitionHelper.DoChangeNumberOfUsesOnActor(this.heldObject, false, false) == false)
         {
+            trace('FOOD: set held object null');
             setHeldObject(null);
         }
 
@@ -277,7 +278,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         player.o_id = this.heldObject.toArray();
 
         //player.o_transition_source_id = this.newTransitionSource; TODO ??????????????????????????
-        //player.o_transition_source_id = -1;
+        player.o_transition_source_id = -1;
 
         // TODO set right
         // this changes where the client moves the objec from on display
