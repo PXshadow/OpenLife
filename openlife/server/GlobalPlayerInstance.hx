@@ -101,13 +101,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         this.mutex.release();
     }    
 
-    public function sendFoodUpdate(isPlayerAction:Bool = true)
-    {
-        //trace('\n\tFX food_store: ${Math.ceil(food_store)} food_capacity: ${Std.int(food_capacity)} last_ate_id: $last_ate_id last_ate_fill_max: $last_ate_fill_max move_speed: $move_speed responsible_id: $responsible_id yum_bonus: $yum_bonus yum_multiplier: $yum_multiplier');
-        this.connection.send(FOOD_CHANGE,['${Math.ceil(food_store)} ${Std.int(food_store_max)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id ${Math.ceil(yum_bonus)} $yum_multiplier'], isPlayerAction);
-    }
-
-    public function doSelf(x:Int, y:Int, clothingSlot:Int)
+    private function doSelf(x:Int, y:Int, clothingSlot:Int)
     {
         trace('self: ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
@@ -141,6 +135,12 @@ class GlobalPlayerInstance extends PlayerInstance {
         yum_multiplier is an integer indicating how many yum bonus points are earned
         when the next yummy food is eaten.
     */
+
+    public function sendFoodUpdate(isPlayerAction:Bool = true)
+    {
+        //trace('\n\tFX food_store: ${Math.ceil(food_store)} food_capacity: ${Std.int(food_capacity)} last_ate_id: $last_ate_id last_ate_fill_max: $last_ate_fill_max move_speed: $move_speed responsible_id: $responsible_id yum_bonus: $yum_bonus yum_multiplier: $yum_multiplier');
+        this.connection.send(FOOD_CHANGE,['${Math.ceil(food_store)} ${Std.int(food_store_max)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id ${Math.ceil(yum_bonus)} $yum_multiplier'], isPlayerAction);
+    }
 
     public function doEating() : Bool
     {
