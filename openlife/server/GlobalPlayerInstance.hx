@@ -198,6 +198,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
             if(isSuperMeth) foodValue = Math.ceil(heldObject.objectData.foodValue / 2);
 
+            /*
             if(isSuperMeth && food_store > 0)
             {
                 trace('when food value is less then halve it can only be eaten if starving to death: foodValue: $foodValue original food value: ${heldObject.objectData.foodValue} food_store: $food_store');
@@ -205,7 +206,7 @@ class GlobalPlayerInstance extends PlayerInstance {
                 this.connection.send(PLAYER_UPDATE,[this.toData()]);
                 this.connection.send(FRAME);
                 return;
-            }
+            }*/
 
             hasEatenMap[heldObject.id()] += 1;
 

@@ -73,12 +73,14 @@ class ServerSettings
         ObjectData.getObjectData(418).mapChance *= 1.5; // More Happy Wolfs
         ObjectData.getObjectData(418).speedMult = 1.5; // Boost Wolfs even more :)
 
-        ObjectData.getObjectData(290).speedMult = 0.40; // Iron Ore
+        ObjectData.getObjectData(290).speedMult = 0.50; // Iron Ore
         ObjectData.getObjectData(838).mapChance = ObjectData.getObjectData(211).mapChance / 5; // Add some lovely mushrooms  
         ObjectData.getObjectData(838).biomes.push(BiomeTag.GREEN); // Add some lovely mushrooms 
+
+        // Horse-Drawn Cart
+        ObjectData.getObjectData(290).speedMult = 1.50; // Nerved horse cart little bit :)
         
-        //if (obj.id == 2156) // Mosquito Swarm
-        //    obj.mapChance *= 3;
+        ObjectData.getObjectData(2156).mapChance *= 0.5; // Less UnHappy Mosquitos
 
         //trace('Patch: ${ObjectData.getObjectData(942).description}');
         //if (obj.deadlyDistance > 0)

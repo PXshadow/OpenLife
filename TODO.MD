@@ -32,14 +32,14 @@ SPEED:
 Food - YUM:
 - YUM gives 3 food boni first eaten. 
 - the first 3 times eaten a food is YUM
-- food value is reduced minus one for each eaten
-    For example Berry Default 3: 6 YUM / 5 YUM / 4 YUM / 3 MEH / 2 MEH / 1 MEH / 1 MEH / 1 MEH ...
-- if you eat YUM 1 pip is restored from a random eaten food. Zero are restored if random food is the current eaten food
-    For eample eats a Yum berry / then eats a YUM onion / 50% chance that eating YUM onion restored berry to full food value / YUM    
+- food value is reduced minus one for each eaten / food has at least half the food value
+    For example Berry Default 3: 6 YUM / 5 YUM / 4 YUM / 3 MEH / 2 MEH / 2 MEH / 2 MEH / 2 MEH ...
+- if you eat YUM 1 pip is restored with a 0.8% chance from a random eaten food. If the random chosen food is the same food, no food value is restored
+    For eample eats a Yum berry / then eats a YUM onion / 80%  x 50% = 40% chance that eating YUM onion restores 1 pip of berry food value 
+    For eample eats a Yum berry / then eats a YUM onion / Then eats a YUM carrot / 80%  x 66%% = 52% chance that eating YUM carrot restores 1 pip of berry or onion food value   
 - You can only eat if you have space for at least half the food value, not counting YUM or food reduction
-- When food value is less then halve it can only be eaten if starving to death in this case the food has at least half the value
 - Extra food is stored as YUM Extra food
-- YUM chain is used as Health
+- TODO YUM chain is used as Health 
 - eating YUM increases YUM chain, while eating MEH reduces it
 - TODO Eating YUM increases prestiege, eating MEH reduces it (Not how long you live is important but how you live is important)
 
