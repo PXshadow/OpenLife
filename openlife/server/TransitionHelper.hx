@@ -232,19 +232,21 @@ class TransitionHelper{
         var lastUseActorObject = false;
         var lastUseTileObject = false;
 
-        trace('handObjectData.numUses: ${handObjectData.numUses} heldObject.numberOfUses: ${this.player.heldObject.numberOfUses} ${handObjectData.description}'  );
+        trace('TRANS: handObjectData.numUses: ${handObjectData.numUses} heldObject.numberOfUses: ${this.player.heldObject.numberOfUses} ${handObjectData.description}'  );
         
-        if(handObjectData.numUses > 1 && this.player.heldObject.numberOfUses <= 1){
+        if(handObjectData.numUses > 1 && this.player.heldObject.numberOfUses <= 1)
+        {
             // TODO ??? seems like for tools there is not always a last use transition
             //lastUseActorObject = true;
             //trace("lastUseActorObject = true");
         }
 
-        trace('tileObjectData.numUses: ${tileObjectData.numUses} tileObjectHelper.numberOfUses: ${this.tileObjectHelper.numberOfUses} ${tileObjectData.description}'  );
+        trace('TRANS: tileObjectData.numUses: ${tileObjectData.numUses} tileObjectHelper.numberOfUses: ${this.tileObjectHelper.numberOfUses} ${tileObjectData.description}'  );
 
-        if(tileObjectData.numUses > 1 && this.tileObjectHelper.numberOfUses <= 1){
+        if(tileObjectData.numUses > 1 && this.tileObjectHelper.numberOfUses <= 1)
+        {
             lastUseTileObject = true;
-            trace("lastUseTileObject = true");
+            trace("TRANS: lastUseTileObject = true");
         }
 
         var transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.tileObjectData.id, lastUseActorObject, lastUseTileObject);
@@ -266,7 +268,7 @@ class TransitionHelper{
 
         if(transition == null) return false;
 
-        trace('Found transition: a${transition.actorID} t${transition.targetID} ');
+        trace('TRANS: Found transition: a${transition.actorID} t${transition.targetID} ');
         transition.traceTransition();
 
         var newTargetObjectData = ObjectData.getObjectData(transition.newTargetID);
@@ -275,12 +277,12 @@ class TransitionHelper{
         // if it is a reverse transition, check if it would exceed max numberOfUses 
         if(transition.reverseUseTarget && this.tileObjectHelper.numberOfUses >= newTargetObjectData.numUses)
         {
-            trace('?use maxUseTransition');
+            trace('TRANS: numberOfUses >= newTargetObjectData.numUses: try use maxUseTransition');
             transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.tileObjectData.id, false, false, true);
 
             if(transition == null)
             {
-                trace('Cannot do reverse transition for taget: TileObject: ${this.tileObjectHelper.id()} numUses: ${this.tileObjectHelper.numberOfUses} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
+                trace('TRANS: Cannot do reverse transition for taget: TileObject: ${this.tileObjectHelper.id()} numUses: ${this.tileObjectHelper.numberOfUses} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
 
                 return false;
             }
@@ -288,9 +290,11 @@ class TransitionHelper{
             // for example a well site with max stones
             // 33 + 1096 = 0 + 1096 targetRemains: true
             // 33 + 1096 = 0 + 3963 targetRemains: false (maxUseTransition)
-            trace('use maxUseTransition');
+            trace('TRANS: use maxUseTransition');
 
             //transition = transition.maxUseTransition;
+
+            // TODO must set newTargetObjectData???
         }
 
         // if it is a transition that picks up an object like 0 + 1422 = 778 + 0  (horse with cart) then switch the hole tile object to the hand object
@@ -298,7 +302,7 @@ class TransitionHelper{
         // 778 + -1 = 0 + 1422
         if((transition.actorID == 0 && transition.targetID != transition.newTargetID) || (transition.targetID == -1 && transition.newActorID == 0))
         {
-            trace('switch held object with tile object');
+            trace('TRANS: switch held object with tile object');
 
             var tmpHeldObject = player.heldObject;
             player.setHeldObject(this.tileObjectHelper);
@@ -308,16 +312,12 @@ class TransitionHelper{
             this.tileObjectHelper.creationTimeInTicks = TimeHelper.tick;
         }
             
-
-        this.tileObjectHelper.setId(transition.newTargetID);
-        
-        
-        // target did not change if it is same dummy
-        var targetChanged = tileObjectData.id != newTargetObjectData.id;
-        
         // dont allow to place another floor on existing floor
-        // TODO allow to change floor if new floor is different???
         if(newTargetObjectData.floor && this.floorId != 0) return false; 
+
+        // do now the magic transformation
+        player.transformHeldObject(transition.newActorID);
+        this.tileObjectHelper.setId(transition.newTargetID);
 
         if(newTargetObjectData.floor)
         {
@@ -331,126 +331,130 @@ class TransitionHelper{
 
         //transition source object id (or -1) if held object is result of a transition 
         //if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
-        this.newTransitionSource = transition.targetID; // TODO ???
-
-        player.transformHeldObject(transition.newActorID);
+        //this.newTransitionSource = transition.targetID; // TODO ???
                     
-        // Add HelperObject to timeObjectHelpers if newTargetObject has time transitions
         // TODO move to SetObjectHelper
-        var timeTransition = Server.transitionImporter.getTransition(-1, transition.newTargetID, false, false);
+        this.tileObjectHelper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(this.tileObjectHelper);
 
-        if(timeTransition != null)
-        {
-            trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');
+        DoChangeNumberOfUsesOnActor(this.player.heldObject, transition.actorID != transition.newActorID, transition.reverseUseActor);
 
-            tileObjectHelper.timeToChange = ObjectHelper.calculateTimeToChange(timeTransition);  
+        trace('TRANS: NewTileObject: ${newTargetObjectData.description} ${this.tileObjectHelper.id()} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
 
-            Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper);
-            // TODO Server.server.map.timeObjectHelpers.push(tileObjectHelper);
-        }
-        else
-        {
-            tileObjectHelper.timeToChange = 0;
-        }
+        // target did not change if it is same dummy
+        //var targetChanged = tileObjectData.id != newTargetObjectData.id;
 
-        if(transition.actorID == transition.newActorID)
-        {
-            if(transition.reverseUseActor)
-            {
-                this.player.heldObject.numberOfUses += 1;
-                trace('HandObject: numberOfUses: ' + this.player.heldObject.numberOfUses);
-            } 
-            else
-            {
-                trace('handObjectData.useChance: ${handObjectData.useChance}');
+        DoChangeNumberOfUsesOnTarget(this.tileObjectHelper, transition.targetID != transition.newTargetID, transition.reverseUseTarget);
 
-                if(handObjectData.useChance <= 0 || WorldMap.calculateRandomFloat() < handObjectData.useChance)
-                {
-                    this.player.heldObject.numberOfUses -= 1;
-                    trace('HandObject: numberOfUses: ' + this.player.heldObject.numberOfUses);
+        // DO dummies for objects that have more then one numUses
+        DoDummies(this.tileObjectHelper);
 
-                    if(this.player.heldObject.numberOfUses <= 0)
-                    {
-                        // for example for a tool like axe lastUseActor: true
-                        var toolTransition = Server.transitionImporter.getTransition(this.player.heldObject.id(), -1, true, false);
-                        
-                        // for example for a water bowl lastUseActor: false
-                        if(toolTransition == null)
-                        {
-                            toolTransition = Server.transitionImporter.getTransition(this.player.heldObject.id(), -1, false, false);
-                        }
-
-                        if(toolTransition != null)
-                        {
-                            trace('Change Actor from: ${this.player.heldObject.id} to ${toolTransition.newActorID}');
-                            this.player.heldObject.setId(toolTransition.newActorID);
-                        }
-                    }
-                }
-            }
-        }
-
-        trace('NewTileObject: ${newTargetObjectData.description} ${this.tileObjectHelper.id()} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
-
-        if(targetChanged && newTargetObjectData.numUses > 1)
-        {
-            // a Pile starts with 1 uses not with the full
-            // if the ObjectHelper is created through a reverse use, it must be a pile or a bucket...
-            if(transition.reverseUseTarget)
-            {
-                trace("NEW PILE OR BUCKET?");
-                this.tileObjectHelper.numberOfUses = 1;
-            } 
-            
-            trace('Changed Target Object Type: ${newTargetObjectData.description} numberOfUses: ' + this.tileObjectHelper.numberOfUses);
-        }
-        else
-        {
-            if(transition.reverseUseTarget)
-            {
-                this.tileObjectHelper.numberOfUses += 1;
-                trace('TileObject: ${newTargetObjectData.description} numberOfUses: ' + this.tileObjectHelper.numberOfUses);
-            } 
-            else
-            {
-                trace('TileObject: ${newTargetObjectData.description} newTargetObjectData.useChance: ${newTargetObjectData.useChance}');
-
-                if(newTargetObjectData.useChance <= 0 || WorldMap.calculateRandomFloat() < newTargetObjectData.useChance)
-                {
-                    this.tileObjectHelper.numberOfUses -= 1;
-                    trace('TileObject: ${newTargetObjectData.description} numberOfUses: ' + this.tileObjectHelper.numberOfUses);
-                    Server.server.map.setObjectHelper(tx,ty, this.tileObjectHelper); // deletes ObjectHelper in case it has no uses
-                }
-            }
-        }
-
-        // DO dummies
-        if(newTargetObjectData.numUses > 1)
-        {
-            // in case of an maxUses object changing like a well site numOfUses can be too big
-            if(tileObjectHelper.numberOfUses > newTargetObjectData.numUses){
-                tileObjectHelper.numberOfUses = newTargetObjectData.numUses;
-            }
-
-            if(tileObjectHelper.numberOfUses == newTargetObjectData.numUses)
-            {
-                if(tileObjectHelper.objectData.dummy)
-                {
-                    tileObjectHelper.objectData = tileObjectHelper.objectData.dummyParent;
-                }
-            }
-            else
-            {
-                tileObjectHelper.objectData = newTargetObjectData.dummyObjects[tileObjectHelper.numberOfUses-1];
-                trace('dummy id: ${tileObjectHelper.objectData.id}');
-            }
-        }
+        // TODO do dummies for hand object???
     
         // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
         this.doTransition = true;
         this.doAction = true;
 
         return true;
+    }
+    
+    private static function DoChangeNumberOfUsesOnActor(obj:ObjectHelper, idHasChanged:Bool, reverseUse:Bool)
+    {
+        if(idHasChanged) return;
+
+        var objectData  = obj.objectData;
+
+        if(reverseUse)
+        {
+            obj.numberOfUses += 1;
+            trace('HandObject: numberOfUses: ' + obj.numberOfUses);
+            return;
+        } 
+
+        trace('handObjectData.useChance: ${objectData.useChance}');
+
+        if(objectData.useChance > 0 && WorldMap.calculateRandomFloat() > objectData.useChance) return;
+
+        obj.numberOfUses -= 1;
+        trace('HandObject: numberOfUses: ' + obj.numberOfUses);
+
+        if(obj.numberOfUses > 0) return;
+
+        // for example for a tool like axe lastUseActor: true
+        var toolTransition = Server.transitionImporter.getTransition(obj.id(), -1, true, false);
+        
+        // for example for a water bowl lastUseActor: false
+        if(toolTransition == null)
+        {
+            toolTransition = Server.transitionImporter.getTransition(obj.id(), -1, false, false);
+        }
+
+        if(toolTransition != null)
+        {
+            trace('Change Actor from: ${obj.id} to ${toolTransition.newActorID}');
+            obj.setId(toolTransition.newActorID);
+        }
+    }
+
+    private static function DoChangeNumberOfUsesOnTarget(obj:ObjectHelper, idHasChanged:Bool, reverseUse:Bool)
+    {
+        var objectData  = obj.objectData;
+
+        if(idHasChanged && objectData.numUses > 1)
+        {
+            // a Pile starts with 1 uses not with the full numberOfUses
+            // if the ObjectHelper is created through a reverse use, it must be a pile or a bucket... hopefully...
+            if(reverseUse)
+            {
+                trace("TRANS: NEW PILE OR BUCKET?");
+                obj.numberOfUses = 1;
+            } 
+            
+            trace('TRANS: Changed Object Type: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
+            return;
+        }
+
+        if(reverseUse)
+        {
+            obj.numberOfUses += 1;
+            trace('TRANS: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
+        } 
+        else
+        {
+            trace('TRANS: ${objectData.description} objectData.useChance: ${objectData.useChance}');
+
+            if(objectData.useChance <= 0 || WorldMap.calculateRandomFloat() < objectData.useChance)
+            {
+                obj.numberOfUses -= 1;
+                trace('TRANS: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
+                //Server.server.map.setObjectHelper(tx,ty, obj); // deletes ObjectHelper in case it has no uses
+            }
+        }
+    }
+
+    private static function DoDummies(obj:ObjectHelper)
+    {
+        var objectData  = obj.objectData;
+
+        if(objectData.numUses < 2) return;
+
+        // in case of an maxUses object changing like a well site numOfUses can be too big
+        if(obj.numberOfUses > objectData.numUses)
+        {
+            obj.numberOfUses = objectData.numUses;
+        }
+
+        if(obj.numberOfUses == objectData.numUses)
+        {
+            if(obj.objectData.dummy)
+            {
+                obj.objectData = obj.objectData.dummyParent;
+            }
+        }
+        else
+        {
+            obj.objectData = objectData.dummyObjects[obj.numberOfUses-1];
+            trace('dummy id: ${obj.objectData.id}');
+        }
     }
 
     public function swapHandAndFloorObject():Bool{

@@ -239,7 +239,7 @@ class TimeHelper
                 if(timeTransition == null) continue;
 
                 helper = worldMap.getObjectHelper(x,y); 
-                helper.timeToChange = ObjectHelper.calculateTimeToChange(timeTransition);
+                helper.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
 
                 worldMap.setObjectHelper(x,y,helper);
 
@@ -277,7 +277,7 @@ class TimeHelper
         if(doAnimalMovement(helper, transition)) return;
 
         helper.setId(transition.newTargetID);
-        helper.timeToChange = ObjectHelper.calculateTimeToChangeForObj(helper);
+        helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper);
         helper.creationTimeInTicks = TimeHelper.tick;
 
         Server.server.map.setObjectHelper(tx, ty, helper);
@@ -384,7 +384,7 @@ class TimeHelper
             //trace('MOVE: oldTile: $oldTileObject $des newTile: $newTileObject ${helper.description()}');
 
             // TODO only change after movement is finished
-            helper.timeToChange = ObjectHelper.calculateTimeToChange(timeTransition);
+            helper.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
             helper.creationTimeInTicks = TimeHelper.tick;
 
             worldmap.setObjectHelper(x, y, helper.groundObject);
@@ -409,7 +409,7 @@ class TimeHelper
                 oldTileObject = newTileObject;
                 
                 var newAnimal = ObjectHelper.readObjectHelper(null, newTileObject);
-                newAnimal.timeToChange = ObjectHelper.calculateTimeToChange(timeTransition);
+                newAnimal.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
                 newAnimal.groundObject = tmpGroundObject;
                 worldmap.setObjectHelper(x, y, newAnimal);
                 //worldmap.setObjectId(x,y, newTileObject); // TODO move to setter

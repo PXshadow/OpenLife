@@ -145,15 +145,17 @@ class ObjectHelper {
         return obj;
     }
 
-    public static function calculateTimeToChangeForObj(obj:ObjectHelper) : Int
+    public static function CalculateTimeToChangeForObj(obj:ObjectHelper) : Int
     {
         var timeTransition = Server.transitionImporter.getTransition(-1, obj.id(), false, false);
         if(timeTransition == null) return 0;
 
-        return calculateTimeToChange(timeTransition);
+        //trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');
+
+        return CalculateTimeToChange(timeTransition);
     }
 
-    public static function calculateTimeToChange(timeTransition:TransitionData) : Int
+    public static function CalculateTimeToChange(timeTransition:TransitionData) : Int
     {
         // hours are negative
         var timeToChange = timeTransition.autoDecaySeconds < 0 ?  (-3600) * timeTransition.autoDecaySeconds : timeTransition.autoDecaySeconds;                 
