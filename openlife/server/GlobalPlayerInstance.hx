@@ -91,12 +91,12 @@ class GlobalPlayerInstance extends PlayerInstance {
             catch(e)
             {                
                 trace(e);
-
-                // send PU so that player wont get stuck
-                this.connection.send(PLAYER_UPDATE,[this.toData()]);
-                this.connection.send(FRAME);
             }
         }
+
+        // send always PU so that player wont get stuck
+        this.connection.send(PLAYER_UPDATE,[this.toData()]);
+        this.connection.send(FRAME);
 
         this.mutex.release();
     }
@@ -136,6 +136,180 @@ class GlobalPlayerInstance extends PlayerInstance {
     {
         trace('self: ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
+        if(doEating()) return;
+
+        doSwitchCloths(clothingSlot);
+    }
+
+    public function doEating() : Bool
+    {
+        if (this.o_id[0] == 0) return false;
+
+        if(this.age < ServerSettings.MinAgeToEat)
+        {
+            trace('too young to eat player.age: ${this.age} < ServerSettings.MinAgeToEat: ${ServerSettings.MinAgeToEat} ');
+            return false;
+        }
+
+        var foodValue = heldObject.objectData.foodValue;
+
+        if(foodValue < 1)
+        {
+            trace('cannot eat this stuff no food value!!! ${heldObject.objectData.description}');
+            return false;
+        }
+
+        if(food_store_max - food_store < (foodValue + 1) / 2)
+        {
+            trace('too full to eat: food_store_max: $food_store_max - food_store: $food_store < ( foodValue: $foodValue + 1 ) / 2');
+            return false;
+        }
+
+        var countEaten = hasEatenMap[heldObject.id()];      
+
+        foodValue += ServerSettings.YumBonus;
+        foodValue -= countEaten;
+
+        var isSuperMeth = foodValue < heldObject.objectData.foodValue / 2;
+
+        if(isSuperMeth) foodValue = Math.ceil(heldObject.objectData.foodValue / 2);
+
+        /*
+        if(isSuperMeth && food_store > 0)
+        {
+            trace('when food value is less then halve it can only be eaten if starving to death: foodValue: $foodValue original food value: ${heldObject.objectData.foodValue} food_store: $food_store');
+            return;
+        }*/
+
+        var isHoldingYum = isHoldingYum();
+
+        hasEatenMap[heldObject.id()] += 1;
+
+        // eating YUM increases prestige / score while eating MEH reduces it
+        if(isHoldingYum)
+        {
+            yum_multiplier += 1;
+            doIncreaseFoodValue();
+        }
+        else yum_multiplier -= 1;
+        //else if(isHoldingMeh()) yum_multiplier -= 1;
+
+        trace('foodValue: $foodValue countEaten: $countEaten');
+
+        // food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
+        /*
+            last_ate_fill_max is an integer number indicating how many slots were full
+            before what was just eaten.  Amount that what was eaten filled us up is
+            (food_store - last_ate_fill_max).
+        */
+        this.last_ate_fill_max = Math.ceil(this.food_store);
+        trace('last_ate_fill_max: $last_ate_fill_max');
+        this.food_store += foodValue;
+        this.last_ate_id = heldObject.id();
+        this.responsible_id = -1; // self
+
+        if (food_store > food_store_max)
+        {
+            this.yum_bonus = food_store - food_store_max;
+            food_store = food_store_max;
+        } 
+
+        sendFoodUpdate();
+
+        setHeldObject(null);
+
+        return true;    
+    }
+
+    private function doIncreaseFoodValue()
+    {
+        trace('YUM: ${heldObject.id()}');
+
+        if(WorldMap.calculateRandomFloat() > ServerSettings.YumFoodRestore) return;
+
+        var hasEatenKeys = [for(key in hasEatenMap.keys()) key];
+
+        trace('YUM: hasEatenKeys.length: ${hasEatenKeys.length}');
+
+        // restore one food pip if eaten YUM
+        if(hasEatenKeys.length < 1) return;
+
+        var random = WorldMap.calculateRandomInt(hasEatenKeys.length -1);
+        var key = hasEatenKeys[random];
+
+        //trace('YUM: random: $random hasEatenKeys.length: ${hasEatenKeys.length}');
+        
+        if(key != heldObject.id())
+        {
+            hasEatenMap[key] -= 1;
+            trace('YUM: hasEaten YES!!!: key: $key, ${hasEatenMap[key]}');
+
+            if(hasEatenMap[key] <= 0) hasEatenMap.remove(key);
+        }
+        else{
+            trace('YUM: hasEaten: NO!!!: key: $key, heldObject.id(): ${heldObject.id()}');
+        }
+    }
+
+
+    private function doSwitchCloths(clothingSlot:Int) : Bool
+    {
+        var objClothingSlot = calculateClothingSlot();
+
+        if(objClothingSlot < 0 && clothingSlot < 0) return false;
+
+        var array = this.clothing_set.split(";");
+
+        if(array.length < 6)
+        {
+            trace('Clothing string missing slots: ${this.clothing_set}' );
+        }  
+
+        // set  the index for shoes that come on the other feet
+        // TODO setting shoes is not always working nice
+        // TODO if the clothing are shoes and there are shoes allready on the first shoe but not on the second and if the index is not set
+
+        if(objClothingSlot == 2 && clothingSlot == -1)
+        {
+            clothingSlot = 3;
+        }
+        else
+        {
+            // always use clothing slot from the hold object if it has
+            if(objClothingSlot > -1) clothingSlot = objClothingSlot;
+        }
+
+        trace('self: ${this.o_id[0]} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
+
+        if(clothingSlot < 0) return false;
+
+        // switch clothing if there is a clothing on this slot
+        var tmp = Std.parseInt(array[clothingSlot]);
+        array[clothingSlot] = '${this.o_id[0]}';
+        this.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
+
+        this.heldObject = ObjectHelper.readObjectHelper(this, [tmp]);
+
+        //doaction = true;
+        this.o_id = [tmp];
+        this.action = 1;
+        this.action_target_x = x;
+        this.action_target_y = y;
+        this.o_origin_x = x;
+        this.o_origin_y = y;
+        this.o_origin_valid = 0; // TODO ???
+
+        trace('this.clothing_set: ${this.clothing_set}');
+        
+        Connection.SendUpdateToAllClosePlayers(this);
+
+        this.action = 0;
+
+        return true;
+    }
+
+    private function calculateClothingSlot() : Int
+    {
         var objClothingSlot = -1;
 
         if(this.o_id[0] != 0)
@@ -154,176 +328,10 @@ class GlobalPlayerInstance extends PlayerInstance {
 
             trace('objectData.clothing: ${objectData.clothing}');
             trace('objClothingSlot:  ${objClothingSlot}');
-            trace('clothingSlot:  ${clothingSlot}');
+            //trace('clothingSlot:  ${clothingSlot}');
         }
 
-        if (this.o_id[0] != 0 && objClothingSlot == -1)
-        {
-            if(this.age < ServerSettings.MinAgeToEat)
-            {
-                trace('too young to eat player.age: ${this.age} < ServerSettings.MinAgeToEat: ${ServerSettings.MinAgeToEat} ');
-                this.connection.send(PLAYER_UPDATE,[this.toData()]);
-                this.connection.send(FRAME);
-                return;
-            }
-
-            var foodValue = heldObject.objectData.foodValue;
-
-            if(foodValue < 1)
-            {
-                trace('cannot eat this stuff no food value!!! ${heldObject.objectData.description}');
-
-                this.connection.send(PLAYER_UPDATE,[this.toData()]);
-                this.connection.send(FRAME);
-                return;
-            }
-
-            if(food_store_max - food_store < (foodValue + 1) / 2){
-
-                trace('too full to eat: food_store_max: $food_store_max - food_store: $food_store < ( foodValue: $foodValue + 1 ) / 2');
-
-                this.connection.send(PLAYER_UPDATE,[this.toData()]);
-                this.connection.send(FRAME);
-                return;
-            }
-
-            var countEaten = hasEatenMap[heldObject.id()];      
-
-            
-
-            foodValue += ServerSettings.YumBonus;
-            foodValue -= countEaten;
-
-            var isSuperMeth = foodValue < heldObject.objectData.foodValue / 2;
-
-            if(isSuperMeth) foodValue = Math.ceil(heldObject.objectData.foodValue / 2);
-
-            /*
-            if(isSuperMeth && food_store > 0)
-            {
-                trace('when food value is less then halve it can only be eaten if starving to death: foodValue: $foodValue original food value: ${heldObject.objectData.foodValue} food_store: $food_store');
-
-                this.connection.send(PLAYER_UPDATE,[this.toData()]);
-                this.connection.send(FRAME);
-                return;
-            }*/
-
-            hasEatenMap[heldObject.id()] += 1;
-
-            // eating YUM increases prestige / score while eating MEH reduces it
-            if(isHoldingYum()){
-                yum_multiplier += 1;
-
-                trace('YUM: ${heldObject.id()} foodValue: $foodValue');
-
-                if(WorldMap.calculateRandomFloat() < ServerSettings.YumFoodRestore)
-                {                    
-                    var hasEatenKeys = [for(key in hasEatenMap.keys()) key];
-
-                    trace('YUM: hasEatenKeys.length: ${hasEatenKeys.length}');
-
-                    // restore one food pip if eaten YUM
-                    if(hasEatenKeys.length > 0)
-                    {
-                        var random = WorldMap.calculateRandomInt(hasEatenKeys.length -1);
-                        var key = hasEatenKeys[random];
-
-                        trace('YUM: random: $random hasEatenKeys.length: ${hasEatenKeys.length}');
-                        
-                        if(key != heldObject.id())
-                        {
-                            hasEatenMap[key] -= 1;
-                            trace('YUM: hasEaten YES!!!: key: $key, ${hasEatenMap[key]}');
-
-                            if(hasEatenMap[key] <= 0) hasEatenMap.remove(key);
-                        }
-                        else{
-                            trace('YUM: hasEaten: NO!!!: key: $key, heldObject.id(): ${heldObject.id()}');
-                        }
-                    }
-                }
-            }
-            else if(isHoldingMeh()) yum_multiplier -= 1;
-
-
-            trace('foodValue: $foodValue countEaten: $countEaten');
-
-            
-
-            // food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
-            /*
-                last_ate_fill_max is an integer number indicating how many slots were full
-                before what was just eaten.  Amount that what was eaten filled us up is
-                (food_store - last_ate_fill_max).
-            */
-            this.last_ate_fill_max = Math.ceil(this.food_store);
-            trace('last_ate_fill_max: $last_ate_fill_max');
-            this.food_store += foodValue;
-            this.last_ate_id = heldObject.id();
-            this.responsible_id = -1; // self
-
-            if (food_store > food_store_max){
-                this.yum_bonus = food_store - food_store_max;
-                food_store = food_store_max;
-            } 
-
-            sendFoodUpdate();
-
-            setHeldObject(null);
-
-            this.connection.send(PLAYER_UPDATE,[this.toData()]);
-            this.connection.send(FRAME);
-            return;
-        }    
-
-        if(objClothingSlot >= 0 || clothingSlot >=0){
-            var array = this.clothing_set.split(";");
-
-            if(array.length < 6)
-            {
-                trace('Clothing string missing slots: ${this.clothing_set}' );
-            }  
-
-            // set  the index for shoes that come on the other feet
-            // TODO setting shoes is not always working nice
-            // TODO if the clothing are shoes and there are shoes allready on the first shoe but not on the second and if the index is not set
-
-            if(objClothingSlot == 2 && clothingSlot == -1)
-            {
-                clothingSlot = 3;
-            }
-            else
-            {
-                // always use clothing slot from the hold object if it has
-                if(objClothingSlot > -1) clothingSlot = objClothingSlot;
-            }
-
-            trace('self: ${this.o_id[0]} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
-
-            if(clothingSlot >= 0){
-                // switch clothing if there is a clothing on this slot
-                var tmp = Std.parseInt(array[clothingSlot]);
-                array[clothingSlot] = '${this.o_id[0]}';
-                this.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
-
-                this.heldObject = ObjectHelper.readObjectHelper(this, [tmp]);
-
-                //doaction = true;
-                this.o_id = [tmp];
-                this.action = 1;
-                this.action_target_x = x;
-                this.action_target_y = y;
-                this.o_origin_x = x;
-                this.o_origin_y = y;
-                this.o_origin_valid = 0; // TODO ???
-
-                trace('this.clothing_set: ${this.clothing_set}');
-            }
-        }
-        
-        Connection.SendUpdateToAllClosePlayers(this);
-
-        this.action = 0;
+        return objClothingSlot;
     }
 
     public function specialRemove(x:Int,y:Int,clothing:Int,id:Null<Int>)
