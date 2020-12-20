@@ -30,7 +30,7 @@ class TransitionHelper{
     public var newTransitionSource:Int;
 
     public var tileObjectHelper:ObjectHelper;
-    //public var handObjectHelper:ObjectHelper;
+    public var lastUseTileObject = false;
 
     public var handObjectData:ObjectData;
     public var tileObjectData:ObjectData;
@@ -110,6 +110,19 @@ class TransitionHelper{
        
         this.handObjectData = player.heldObject.objectData;
         this.tileObjectData = tileObjectHelper.objectData;
+
+        // dummies are objects with numUses > 1 numUse = maxUse is the original
+        if(tileObjectData.dummy)
+        {
+            trace('is dummy: ${tileObjectData.description} dummyParent: ${tileObjectData.dummyParent.description}');
+            tileObjectData = tileObjectData.dummyParent;
+        }
+
+        if(tileObjectData.numUses > 1 && this.tileObjectHelper.numberOfUses <= 1)
+        {
+            this.lastUseTileObject = true;
+            trace("TRANS: lastUseTileObject = true");
+        }
 
         //trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
 
@@ -291,6 +304,8 @@ class TransitionHelper{
 
         // TODO transitions on animals and caves
 
+        if(this.doHorseStuffPossible()) return true;
+
         if(this.tileObjectData.minPickupAge > player.age)
         {
             trace('tileObjectData.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
@@ -316,16 +331,57 @@ class TransitionHelper{
         return this.doContainerStuff(false, index);
     }
 
-    public function doTransitionIfPossible(onPlayer:Bool = false) : Bool
+    public function doHorseStuffPossible() : Bool
     {
-        // dummies are objects with numUses > 1 numUse = maxUse is the original
-        if(tileObjectData.dummy)
-        {
-            tileObjectData = tileObjectData.dummyParent;
-        }
-    
+        var objId = this.player.heldObject.id();
+
+        // 770 Riding Horse // 778 Horse-Drawn Cart // 3159 Hitched Horse-Drawn Tire Cart
+        if(objId != 770 && objId != 778 && objId != 3159) return false;
+
         var lastUseActorObject = false;
         var lastUseTileObject = false;
+
+        if(tileObjectData.numUses > 1 && this.tileObjectHelper.numberOfUses <= 1)
+        {
+            lastUseTileObject = true;
+            trace("TRANS: lastUseTileObject = true");
+        }           
+    
+        var transition = Server.transitionImporter.getTransition(0, this.tileObjectData.id, lastUseActorObject, lastUseTileObject);
+
+        if(transition == null) return false;
+        
+        var objData = ObjectData.getObjectData(transition.newActorID);
+
+        trace('HORSE: Actor: ${this.player.heldObject.id() } NewActor: ${objData.description}');
+        
+        if(objData.foodValue < 1) return false;
+
+        var tmpHelpObjectId = player.heldObject.id();
+
+        player.heldObject.setId(objData.id);
+
+        if(player.doEating() == false)
+        {
+            player.heldObject.setId(tmpHelpObjectId);
+            return false;
+        }
+
+        player.heldObject.setId(tmpHelpObjectId);
+        this.tileObjectHelper.setId(transition.newTargetID);
+
+        DoChangeNumberOfUsesOnTarget(this.tileObjectHelper, transition.targetID != transition.newTargetID, transition.reverseUseTarget);
+
+        // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
+        this.doTransition = true;
+        this.doAction = true;
+
+        return true;
+    }
+
+    public function doTransitionIfPossible(onPlayer:Bool = false) : Bool
+    {  
+        var lastUseActorObject = false;
 
         trace('TRANS: handObjectData.numUses: ${handObjectData.numUses} heldObject.numberOfUses: ${this.player.heldObject.numberOfUses} ${handObjectData.description}'  );
         
@@ -336,13 +392,7 @@ class TransitionHelper{
             //trace("lastUseActorObject = true");
         }
 
-        trace('TRANS: tileObjectData.numUses: ${tileObjectData.numUses} tileObjectHelper.numberOfUses: ${this.tileObjectHelper.numberOfUses} ${tileObjectData.description}'  );
-
-        if(tileObjectData.numUses > 1 && this.tileObjectHelper.numberOfUses <= 1)
-        {
-            lastUseTileObject = true;
-            trace("TRANS: lastUseTileObject = true");
-        }
+        trace('TRANS: tileObjectData.numUses: ${tileObjectData.numUses} tileObjectHelper.numberOfUses: ${this.tileObjectHelper.numberOfUses} ${tileObjectData.description}'  );        
       
         var transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.tileObjectData.id, lastUseActorObject, lastUseTileObject);
 
@@ -436,15 +486,8 @@ class TransitionHelper{
         trace('TRANS: NewTileObject: ${newTargetObjectData.description} ${this.tileObjectHelper.id()} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
 
         // target did not change if it is same dummy
-        //var targetChanged = tileObjectData.id != newTargetObjectData.id;
-
         DoChangeNumberOfUsesOnTarget(this.tileObjectHelper, transition.targetID != transition.newTargetID, transition.reverseUseTarget);
 
-        // DO dummies for objects that have more then one numUses
-        DoDummies(this.tileObjectHelper);
-
-        // TODO do dummies for hand object???
-    
         // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
         this.doTransition = true;
         this.doAction = true;
@@ -607,6 +650,10 @@ class TransitionHelper{
 
             return false;
         }
+
+        // TODO do dummies for hand object???
+        // DO dummies for objects that have more then one numUses
+        DoDummies(this.tileObjectHelper);
 
         trace('NEW: handObjectHelper: ${player.heldObject.description()} ' + player.heldObject.toArray());
         trace('NEW: tileObjectHelper: ${tileObjectHelper.description()} ' + tileObjectHelper.toArray());
