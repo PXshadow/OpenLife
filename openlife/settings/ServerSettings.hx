@@ -24,8 +24,8 @@ class ServerSettings
    
     // food stuff
     public static var MinAgeToEat = 3;
-    public static var FoodUsePerSecond = 1; // 0.2; // 5 sec per pip
-    public static var GrownUpFoodStoreMax = 30;
+    public static var FoodUsePerSecond = 0.2; // 0.2; // 5 sec per pip
+    public static var GrownUpFoodStoreMax = 20;
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
     public static var DeathWithFoodStoreMax = 0; // Death through starvation if food store max reaches below XX 
