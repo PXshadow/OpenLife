@@ -599,7 +599,8 @@ class TransitionHelper{
     public function sendUpdateToClient() : Bool
     {
         // even send Player Update / PU if nothing happend. Otherwise client will get stuck
-        if(this.doAction == false){
+        if(this.doAction == false)
+        {
             player.connection.send(PLAYER_UPDATE,[player.toData()]);
             player.connection.send(FRAME);
 
@@ -611,6 +612,8 @@ class TransitionHelper{
 
         Server.server.map.setFloorId(this.tx, this.ty, this.newFloorId);
         Server.server.map.setObjectHelper(this.tx, this.ty, this.tileObjectHelper);
+        this.player.move_speed = MoveExtender.calculateSpeed(player, this.tx, this.ty);
+
 
         var newTileObject = this.tileObjectHelper.toArray();
 
