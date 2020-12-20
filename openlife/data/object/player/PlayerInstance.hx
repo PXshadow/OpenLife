@@ -75,7 +75,7 @@ class PlayerInstance
     /**
      * age rate of increase
      */
-    public var age_r:Float = ServerSettings.SecondsPerYear;
+    public var age_r:Float = ServerSettings.AgingSecondsPerYear;
 
     //public static var initial_move_speed:Float = 3.75;
 

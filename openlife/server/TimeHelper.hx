@@ -109,8 +109,19 @@ class TimeHelper
 
         if(c.player.food_store < 0)
         {
-            if(c.player.age < ServerSettings.GrownUpAge) aging *= ServerSettings.AgingFactorWhileStarvingToDeath;
-            else aging *= 1 / ServerSettings.AgingFactorWhileStarvingToDeath;
+            if(c.player.age < ServerSettings.GrownUpAge)
+            {
+                aging *= ServerSettings.AgingFactorWhileStarvingToDeath;
+                c.player.age_r = ServerSettings.AgingSecondsPerYear / ServerSettings.AgingFactorWhileStarvingToDeath; 
+            } 
+            else
+            {
+                aging *= 1 / ServerSettings.AgingFactorWhileStarvingToDeath;
+                c.player.age_r = ServerSettings.AgingSecondsPerYear * ServerSettings.AgingFactorWhileStarvingToDeath; 
+            }
+        }
+        else {
+            c.player.age_r = ServerSettings.AgingSecondsPerYear;
         }
 
         c.player.age += aging;

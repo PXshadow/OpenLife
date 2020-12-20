@@ -35,10 +35,10 @@ class ServerSettings
 
     // PlayerInstance
     public static var StartingEveAge = 20;  // 13
-    public static var SecondsPerYear = 10; // 60
+    public static var AgingSecondsPerYear = 10; // 60
     
     // starving to death
-    public static var AgingFactorWhileStarvingToDeath = 0.2; // if starving to death aging is slowed factor XX up to GrownUpAge, otherwise aging is speed up factor XX
+    public static var AgingFactorWhileStarvingToDeath = 0.5; // if starving to death aging is slowed factor XX up to GrownUpAge, otherwise aging is speed up factor XX
     public static var GrownUpAge = 14; // is used for AgingFactorWhileStarvingToDeath and for increase food need for children
     public static var StarvingToDeathMoveSpeedFactor = 0.5; // reduces speed if stored food is below 0
     public static var FoodStoreMaxReductionWhileStarvingToDeath = 2; // reduces food store max with factor XX for each food below 0
