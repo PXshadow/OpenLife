@@ -114,8 +114,8 @@ class TransitionHelper{
         //trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
 
         
-        trace('handObjectHelper: ${handObjectData.description} ' + player.heldObject.writeObjectHelper([]));
-        trace('tileObjectHelper: ${tileObjectData.description} ' + tileObjectHelper.writeObjectHelper([]));
+        trace('handObjectHelper: ${handObjectData.description} ' + player.heldObject.toArray());
+        trace('tileObjectHelper: ${tileObjectData.description} ' + tileObjectHelper.toArray());
     }
 
     /*
@@ -221,7 +221,7 @@ class TransitionHelper{
         return true;
     }
 
-    public function doTransitionIfPossible() : Bool
+    public function doTransitionIfPossible(onPlayer:Bool = false) : Bool
     {
         // dummies are objects with numUses > 1 numUse = maxUse is the original
         if(tileObjectData.dummy)
@@ -248,7 +248,7 @@ class TransitionHelper{
             lastUseTileObject = true;
             trace("TRANS: lastUseTileObject = true");
         }
-
+      
         var transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.tileObjectData.id, lastUseActorObject, lastUseTileObject);
 
         // sometimes ground is -1 not 0 like for Riding Horse: 770 + -1 = 0 + 1421 // TODO -1 --> 0 in transition importer???
@@ -357,9 +357,10 @@ class TransitionHelper{
         return true;
     }
     
-    private static function DoChangeNumberOfUsesOnActor(obj:ObjectHelper, idHasChanged:Bool, reverseUse:Bool)
+    // used for transitions and for eating food like bana or bowl of stew
+    public static function DoChangeNumberOfUsesOnActor(obj:ObjectHelper, idHasChanged:Bool, reverseUse:Bool) : Bool
     {
-        if(idHasChanged) return;
+        if(idHasChanged) return false;
 
         var objectData  = obj.objectData;
 
@@ -367,17 +368,22 @@ class TransitionHelper{
         {
             obj.numberOfUses += 1;
             trace('HandObject: numberOfUses: ' + obj.numberOfUses);
-            return;
+            return true;
         } 
 
         trace('handObjectData.useChance: ${objectData.useChance}');
 
-        if(objectData.useChance > 0 && WorldMap.calculateRandomFloat() > objectData.useChance) return;
+        if(objectData.useChance > 0 && WorldMap.calculateRandomFloat() > objectData.useChance) return true;
 
         obj.numberOfUses -= 1;
         trace('HandObject: numberOfUses: ' + obj.numberOfUses);
 
-        if(obj.numberOfUses > 0) return;
+        if(obj.numberOfUses > 0) return true;
+
+        // check if there is a player transition like:
+        // 2143 + -1 = 2144 + 0 Banana
+        // 1251 + -1 = 1251 + 0 lastUseActor: false Bowl of Stew
+        // 1251 + -1 = 235 + 0 lastUseActor: true Bowl of Stew
 
         // for example for a tool like axe lastUseActor: true
         var toolTransition = Server.transitionImporter.getTransition(obj.id(), -1, true, false);
@@ -392,7 +398,10 @@ class TransitionHelper{
         {
             trace('Change Actor from: ${obj.id} to ${toolTransition.newActorID}');
             obj.setId(toolTransition.newActorID);
+            return true;
         }
+
+        return false;
     }
 
     private static function DoChangeNumberOfUsesOnTarget(obj:ObjectHelper, idHasChanged:Bool, reverseUse:Bool)
@@ -544,8 +553,8 @@ class TransitionHelper{
 
         this.player.setHeldObject(tmpObject);
 
-        trace('DROP SWITCH Hand object: ${player.heldObject.writeObjectHelper([])}');
-        trace('DROP SWITCH New Tile object: ${tileObjectHelper.writeObjectHelper([])}');
+        trace('DROP SWITCH Hand object: ${player.heldObject.toArray()}');
+        trace('DROP SWITCH New Tile object: ${tileObjectHelper.toArray()}');
 
         this.doAction = true;
         return true;
@@ -597,27 +606,18 @@ class TransitionHelper{
             return false;
         }
 
-        trace('NEW: handObjectHelper: ${player.heldObject.description()} ' + player.heldObject.writeObjectHelper([]));
-        trace('NEW: tileObjectHelper: ${tileObjectHelper.description()} ' + tileObjectHelper.writeObjectHelper([]));
+        trace('NEW: handObjectHelper: ${player.heldObject.description()} ' + player.heldObject.toArray());
+        trace('NEW: tileObjectHelper: ${tileObjectHelper.description()} ' + tileObjectHelper.toArray());
 
         Server.server.map.setFloorId(this.tx, this.ty, this.newFloorId);
         Server.server.map.setObjectHelper(this.tx, this.ty, this.tileObjectHelper);
 
-        var newTileObject = this.tileObjectHelper.writeObjectHelper([]);
-
-        player.o_id = this.player.heldObject.writeObjectHelper([]);
-
-        player.action = 1;
+        var newTileObject = this.tileObjectHelper.toArray();
 
         // TODO set right
-        player.o_origin_x = this.x;
-        player.o_origin_y = this.y;
-        player.o_origin_valid = 1; // what is this for???
-
         player.o_transition_source_id = this.newTransitionSource;
-        player.action_target_x = this.x;
-        player.action_target_y = this.y;
-        player.forced = false;
+
+        player.SetTransitionData(this.x,this.y);
 
         for (c in Server.server.connections) 
         {

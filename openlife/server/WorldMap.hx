@@ -89,6 +89,7 @@ class WorldMap
 
     private function generateExtraDebugStuff(tx:Int, ty:Int)
     {
+        setObjectId(tx - 1,ty,[3371,1251,1251,245]); // table with stew
         setObjectId(tx, ty, [33]);
         setObjectId(tx+1, ty, [32]);
         setObjectId(tx+2, ty, [486]);
@@ -166,6 +167,7 @@ class WorldMap
         // table
         setObjectId(tx - 9,ty + 10,[3371,33,2143,33]);
         setObjectId(tx - 10,ty + 10,[3371,2873,2873,245]);
+        setObjectId(tx - 11,ty + 10,[3371,1251,1251,245]);
     }
     
     
@@ -283,7 +285,7 @@ class WorldMap
 
         if(helper == null) return; // TODO setObjectId([0]);
 
-        var ids = helper.writeObjectHelper([]);
+        var ids = helper.toArray();
         setObjectId(x,y,ids);
 
         helper.tx = x;

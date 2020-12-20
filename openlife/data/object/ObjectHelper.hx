@@ -67,7 +67,12 @@ class ObjectHelper {
         return helper;
     }
 
-    public function writeObjectHelper(ids:Array<Int>, isInSubcontainer:Bool = false) : Array<Int>
+    public function toArray() : Array<Int>
+    {
+        return writeObjectHelper([]);
+    }
+
+    private function writeObjectHelper(ids:Array<Int>, isInSubcontainer:Bool = false) : Array<Int>
     {
         var first = (ids.length == 0);
 

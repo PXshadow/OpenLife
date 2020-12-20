@@ -282,7 +282,7 @@ class TimeHelper
 
         Server.server.map.setObjectHelper(tx, ty, helper);
         
-        var newTileObject = helper.writeObjectHelper([]);
+        var newTileObject = helper.toArray();
 
         for (c in Server.server.connections)
         {      
@@ -377,8 +377,8 @@ class TimeHelper
             ty = target.ty;
     
             // save what was on the ground, so that we can move on this tile and later restore it
-            var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.writeObjectHelper([]);
-            var newTileObject = helper.writeObjectHelper([]);
+            var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.toArray();
+            var newTileObject = helper.toArray();
 
             //var des = helper.groundObject == null ? "NONE": helper.groundObject.description();
             //trace('MOVE: oldTile: $oldTileObject $des newTile: $newTileObject ${helper.description()}');

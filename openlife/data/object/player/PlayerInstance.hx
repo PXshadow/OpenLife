@@ -31,7 +31,7 @@ class PlayerInstance
     /**
      * object id array from container format
      */
-    public var o_id:Array<Int> = [0];
+    public var o_id:Array<Int> = [0]; // replaced with heldObject in GlobalPlayerInstance be sure to still set it if changing heldObject
     /**
      * N/A
      */

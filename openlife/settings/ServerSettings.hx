@@ -14,7 +14,7 @@ class ServerSettings
     public static var TraceSendNonPlayerActions = false;  
 
     public static var traceTransitionById = 99972; // TransitionImporter
-    public static var traceTransitionByActorDescription = "!!!Riding Horse"; // TransitionImporter
+    public static var traceTransitionByActorDescription = "Bowl of Stew"; // TransitionImporter
     public static var traceTransitionByTargetDescription = "!!!Steel Axe"; // TransitionImporter
 
     public static var traceAmountGeneratedObjects = false; // WorldMap
@@ -24,7 +24,7 @@ class ServerSettings
    
     // food stuff
     public static var MinAgeToEat = 3;
-    public static var FoodUsePerSecond = 0.2; // 0.2;
+    public static var FoodUsePerSecond = 2; // 0.2;
     public static var GrownUpFoodStoreMax = 30;
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
@@ -34,7 +34,7 @@ class ServerSettings
     public static var YumFoodRestore = 0.8; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food.
 
     // PlayerInstance
-    public static var StartingEveAge = 3;  // 13
+    public static var StartingEveAge = 30;  // 13
     public static var SecondsPerYear = 10; // 60
     
     // starving to death

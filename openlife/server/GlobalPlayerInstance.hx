@@ -202,8 +202,10 @@ class GlobalPlayerInstance extends PlayerInstance {
         this.last_ate_fill_max = Math.ceil(this.food_store);
         trace('last_ate_fill_max: $last_ate_fill_max');
         this.food_store += foodValue;
+        this.just_ate = 1;
         this.last_ate_id = heldObject.id();
         this.responsible_id = -1; // self
+        //this.o_transition_source_id = -1;
 
         if (food_store > food_store_max)
         {
@@ -213,9 +215,79 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         sendFoodUpdate();
 
-        setHeldObject(null);
+        // check if there is a player transition like:
+        // 2143 + -1 = 2144 + 0 Banana
+        // 1251 + -1 = 1251 + 0 lastUseActor: false Bowl of Stew
+        // 1251 + -1 = 235 + 0 lastUseActor: true Bowl of Stew
+        if(TransitionHelper.DoChangeNumberOfUsesOnActor(this.heldObject, false, false) == false)
+        {
+            setHeldObject(null);
+        }
+
+        SetTransitionData(this.x, this.y);
+
+        Connection.SendUpdateToAllClosePlayers(this);
+
+        this.just_ate = 0;
+        this.action = 0;
 
         return true;    
+    }
+
+    /**
+        PU
+        List of player ids with their display object ids, facing direction, action
+        attempt flag, action attempt target position,
+        held object ids (in CONTAINER OBJECT FORMAT, see above), 
+        whether held origin is valid (1 or 0), origin position on map of that held 
+        object (where it was picked up from), 
+        transition source object id (or -1) if held object is result of a transition,
+        player's current heat value, 
+        done_moving_seqNum (to signal destination reached), force flag (to signal
+        a move truncated unexpectedly), x,y grid positions of player,
+        floating point age in "years", floating point aging rate in sec/year (how many
+        seconds it takes the player to age 1 year), and
+        floating point move speeds (in grid square widths per second) and clothing
+        set, just_ate = 1 or 0 to indicate whether the player just ate what they were 
+        holding, the ID of the object they just ate, and the player responsible for this update.
+
+        If facing is 0, then the player's facing direction doesn't change.
+        If facing is 1, then they should face right, and -1 to face left.
+
+        action flag is 1 if player is attempting an action, 0 otherwise;
+
+        Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest,
+        and 0.5 is ideal.
+
+        If done_moving_seqNum is > 0, this means the player is stationary at this position (and this is the sequence number of their last move).
+        Otherwise, player may still be in the middle of a move (for example, if what
+        they are holding decays while they are moving, a PU will be sent with
+        done_moving_seqNum set to 0).
+
+        force is usually 0 except in special cases of move truncation where it is 1.
+        A player receiving force for itself must snap back to that location
+        before continuing to move.
+    **/
+    public function SetTransitionData(x:Int, y:Int)
+    {
+        var player = this;
+
+        player.forced = false;
+        player.action = 1;        
+        player.o_id = this.heldObject.toArray();
+
+        //player.o_transition_source_id = this.newTransitionSource; TODO ??????????????????????????
+        //player.o_transition_source_id = -1;
+
+        // TODO set right
+        // this changes where the client moves the objec from on display
+        player.o_origin_x = x;
+        player.o_origin_y = y;
+        
+        player.o_origin_valid = 1; // what is this for???
+        
+        player.action_target_x = x;
+        player.action_target_y = y;
     }
 
     private function doIncreaseFoodValue()
@@ -361,7 +433,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         if(obj == null) obj = ObjectHelper.readObjectHelper(this, [0]);
 
         this.heldObject = obj;
-        this.o_id = obj.writeObjectHelper([]);
+        this.o_id = obj.toArray();
         this.held_yum = isHoldingYum();    
     }
 
