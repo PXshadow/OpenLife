@@ -99,7 +99,23 @@ class GlobalPlayerInstance extends PlayerInstance {
         this.connection.send(FRAME);
 
         this.mutex.release();
+    }    
+
+    public function sendFoodUpdate(isPlayerAction:Bool = true)
+    {
+        //trace('\n\tFX food_store: ${Math.ceil(food_store)} food_capacity: ${Std.int(food_capacity)} last_ate_id: $last_ate_id last_ate_fill_max: $last_ate_fill_max move_speed: $move_speed responsible_id: $responsible_id yum_bonus: $yum_bonus yum_multiplier: $yum_multiplier');
+        this.connection.send(FOOD_CHANGE,['${Math.ceil(food_store)} ${Std.int(food_store_max)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id ${Math.ceil(yum_bonus)} $yum_multiplier'], isPlayerAction);
     }
+
+    public function doSelf(x:Int, y:Int, clothingSlot:Int)
+    {
+        trace('self: ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
+
+        if(doEating()) return;
+
+        doSwitchCloths(clothingSlot);
+    }
+
     /*
         FX
 
@@ -125,21 +141,6 @@ class GlobalPlayerInstance extends PlayerInstance {
         yum_multiplier is an integer indicating how many yum bonus points are earned
         when the next yummy food is eaten.
     */
-
-    public function sendFoodUpdate(isPlayerAction:Bool = true)
-    {
-        //trace('\n\tFX food_store: ${Math.ceil(food_store)} food_capacity: ${Std.int(food_capacity)} last_ate_id: $last_ate_id last_ate_fill_max: $last_ate_fill_max move_speed: $move_speed responsible_id: $responsible_id yum_bonus: $yum_bonus yum_multiplier: $yum_multiplier');
-        this.connection.send(FOOD_CHANGE,['${Math.ceil(food_store)} ${Std.int(food_store_max)} $last_ate_id $last_ate_fill_max $move_speed $responsible_id ${Math.ceil(yum_bonus)} $yum_multiplier'], isPlayerAction);
-    }
-
-    public function doSelf(x:Int, y:Int, clothingSlot:Int)
-    {
-        trace('self: ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
-
-        if(doEating()) return;
-
-        doSwitchCloths(clothingSlot);
-    }
 
     public function doEating() : Bool
     {
@@ -197,11 +198,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         trace('foodValue: $foodValue countEaten: $countEaten');
 
         // food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
-        /*
-            last_ate_fill_max is an integer number indicating how many slots were full
-            before what was just eaten.  Amount that what was eaten filled us up is
-            (food_store - last_ate_fill_max).
-        */
+       
         this.last_ate_fill_max = Math.ceil(this.food_store);
         trace('last_ate_fill_max: $last_ate_fill_max');
         this.food_store += foodValue;
