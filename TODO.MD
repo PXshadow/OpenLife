@@ -48,6 +48,7 @@ Animals:
 - Animals can multiply
 - Animals can leave their biome, but prefare to stay in own biome
 - Stuff like trees and rabit holes wont block animal movement // TODO also for player
+- horses are the ultimative devourers you can eat anything from horse!
 
 
 TODO:

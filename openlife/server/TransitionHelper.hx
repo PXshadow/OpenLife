@@ -338,6 +338,9 @@ class TransitionHelper{
         // 770 Riding Horse // 778 Horse-Drawn Cart // 3159 Hitched Horse-Drawn Tire Cart
         if(objId != 770 && objId != 778 && objId != 3159) return false;
 
+        // 838 Dont eat the dam drugs! Wormless Soil Pit with Mushroom // 837 Psilocybe Mushroom
+        if(tileObjectData.id == 838 || tileObjectData.id == 837) return false;
+
         var lastUseActorObject = false;
         var lastUseTileObject = false;
 

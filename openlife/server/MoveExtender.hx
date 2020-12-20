@@ -51,7 +51,7 @@ class MoveExtender{
 
         // TODO road 
 
-        // TODO food
+        // TODO health
 
         var speed = map.getBiomeSpeed(tx,ty);
 
@@ -76,6 +76,50 @@ class MoveExtender{
         return speed;
     }
 
+    static public function updateMovement(p:GlobalPlayerInstance)
+    {
+        var me = p.me;
+        // check if movement arrived on destination and if so update all players  
+        //var server = Server.server;
+        var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(me.startingMoveTicks);
+
+        if(me.newMoves == null) return;
+
+        /*
+        if(server.tick % 60 == 0){
+            trace("Ticks: " + server.tick);
+            trace("timeSinceStartMovementInSec: " + timeSinceStartMovementInSec);
+            trace("totalMoveTime: " + me.totalMoveTime);
+        }
+        */
+
+        if(timeSinceStartMovementInSec >= me.totalMoveTime){
+
+            // a new move or command might also change the player data
+            p.mutex.acquire(); 
+
+            var last = me.newMoves.pop(); 
+            me.totalMoveTime = 0;
+            me.startingMoveTicks = 0;
+            me.newMoves = null;
+                
+            p.x += last.x; 
+            p.y += last.y;
+            
+            p.done_moving_seqNum = me.newMoveSeqNumber;
+            p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
+            //this.forced = true;
+
+            trace('reached position: ${p.x},${p.y}');
+            
+            //trace("forced: " + p.forced);
+
+            Connection.SendUpdateToAllClosePlayers(p);
+
+            p.mutex.release();
+        }
+    }
+
     static public function move(p:GlobalPlayerInstance, x:Int,y:Int,seq:Int,moves:Array<Pos>)
         {
             //trace(Server.server.map.getObjectId(p.gx + x, p.gy + y));
@@ -85,7 +129,8 @@ class MoveExtender{
 
             var me = p.me;
 
-            if(me.newMoves != null){
+            if(me.newMoves != null)
+            {
                 var lastPos = calculateNewPos(me.newMoves, me.startingMoveTicks, p.move_speed);
 
                 p.x += lastPos.x;
@@ -103,10 +148,12 @@ class MoveExtender{
             {
                 p.forced = true;
 
-                trace('Force: Server ${ p.x },${ p.y }:Client ${ x },${ y }');
+                trace('MOVE: Force!   Server ${ p.x },${ p.y }:Client ${ x },${ y }');
             }
             else
             {
+                if(p.x != x && p.y != y) trace('MOVE: NoForce! Server ${ p.x },${ p.y }:Client ${ x },${ y }');
+
                 p.forced = false;
 
                 p.x = x;
@@ -249,49 +296,6 @@ class MoveExtender{
             return lastPos;
         }
 
-        static public function updateMovement(p:GlobalPlayerInstance)
-        {
-            var me = p.me;
-            // check if movement arrived on destination and if so update all players  
-            //var server = Server.server;
-            var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(me.startingMoveTicks);
-    
-            if(me.newMoves == null) return;
-    
-            /*
-            if(server.tick % 60 == 0){
-                trace("Ticks: " + server.tick);
-                trace("timeSinceStartMovementInSec: " + timeSinceStartMovementInSec);
-                trace("totalMoveTime: " + me.totalMoveTime);
-            }
-            */
-    
-            if(timeSinceStartMovementInSec >= me.totalMoveTime){
-
-                // a new move or command might also change the player data
-                p.mutex.acquire(); 
-
-                var last = me.newMoves.pop(); 
-                me.totalMoveTime = 0;
-                me.startingMoveTicks = 0;
-                me.newMoves = null;
-                   
-                p.x += last.x; 
-                p.y += last.y;
-                
-                p.done_moving_seqNum = me.newMoveSeqNumber;
-                p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
-                //this.forced = true;
-    
-                trace('reached position: ${p.x},${p.y}');
-             
-                //trace("forced: " + p.forced);
-    
-                Connection.SendUpdateToAllClosePlayers(p);
-
-                p.mutex.release();
-            }
-        }
     
         /* pixel calulation stuff from Jason server.cpp
     // never move at 0 speed, divide by 0 errors for eta times
@@ -326,18 +330,4 @@ class MoveExtender{
         }
     
         */
-    /*
-    static private function sendSpeedUpdate(c:Connection)
-    {
-        var speed = PlayerInstance.initial_move_speed * Server.server.map.getBiomeSpeed(p.x + p.gx, p.y + p.gy);
-
-        //trace("speed: " + speed);
-
-        //this.move_speed = 10;
-
-        p.move_speed = speed;
-        
-        // TODO place sending logic in connection???
-        c.send(PLAYER_UPDATE,[p.toData()]);
-    }   */
 }
