@@ -14,7 +14,7 @@ class ServerSettings
     public static var TraceSendNonPlayerActions = false;  
 
     public static var traceTransitionById = 99972; // TransitionImporter
-    public static var traceTransitionByActorDescription = "Bowl of Stew"; // TransitionImporter
+    public static var traceTransitionByActorDescription = "!!!Bowl of Stew"; // TransitionImporter
     public static var traceTransitionByTargetDescription = "!!!Steel Axe"; // TransitionImporter
 
     public static var traceAmountGeneratedObjects = false; // WorldMap

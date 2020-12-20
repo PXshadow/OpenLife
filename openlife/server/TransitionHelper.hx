@@ -150,6 +150,115 @@ class TransitionHelper{
         return this.swapHandAndFloorObject();  
     } 
 
+    public function checkIfNotMovingAndCloseEnough():Bool
+    {
+        if(player.me.isMoveing()) {
+            trace("Player is still moving");
+            return false; 
+        }
+
+        if(player.isClose(x,y) == false) {
+            trace('Object position is too far away p${player.x},p${player.y} o$x,o$y');
+            return false; 
+        }
+
+        return true;
+    }
+
+    // DROP switches the object with the last object in the container and cycles throuh the objects / USE just put it in
+    public function doContainerStuff(isDrop:Bool = false, index:Int = -1) : Bool
+    {
+        trace("containable: " + tileObjectData.containable + " desc: " + tileObjectData.description + " numSlots: " + tileObjectData.numSlots);
+
+        // TODO change container check
+        //if ((objectData.numSlots == 0 || MapData.numSlots(this.tileObject) >= objectData.numSlots)) return false;
+        if (tileObjectData.numSlots == 0) return false; 
+
+        var amountOfContainedObjects = tileObjectHelper.containedObjects.length;
+
+        // if hand is empty then remove last object from container
+        if(player.heldObject.id() == 0 && amountOfContainedObjects > 0)
+        {
+            trace("CALL REMOVE");
+            if(remove(index)) return true;
+            return false;
+        }
+
+        if(handObjectData.containable == false)
+        {
+            trace('handObject is not containable!');
+            return false;
+        }
+
+        // place hand object in container if container has enough space
+        //if (handObjectData.slotSize >= objectData.containSize) {
+        trace('handObjectData.slotSize: ${handObjectData.slotSize} tileObjectData.containSize: ${tileObjectData.containSize}');
+        if (handObjectData.slotSize > tileObjectData.containSize) return false;
+
+        trace('Hand Object ${this.player.heldObject.id()}');
+        trace('Hand Object Slot size: ${handObjectData.slotSize} TO: container Size: ${tileObjectData.containSize}');
+
+        if(isDrop == false)            
+        {
+            if(amountOfContainedObjects >= tileObjectData.numSlots) return false;
+
+            tileObjectHelper.containedObjects.push(this.player.heldObject);
+
+            this.player.heldObject = ObjectHelper.readObjectHelper(player,[0]);
+
+            this.doAction = true;
+            return true;
+        }
+
+        var tmpObject = tileObjectHelper.removeContainedObject(-1);
+
+        tileObjectHelper.containedObjects.insert(0 , this.player.heldObject);
+
+        this.player.setHeldObject(tmpObject);
+
+        trace('DROP SWITCH Hand object: ${player.heldObject.toArray()}');
+        trace('DROP SWITCH New Tile object: ${tileObjectHelper.toArray()}');
+
+        this.doAction = true;
+        return true;
+    }
+
+    private function swapHandAndFloorObject():Bool{
+
+        //trace("SWAP tileObjectData: " + tileObjectData.toFileString());
+        
+        var permanent = (tileObjectData != null) && (tileObjectData.permanent == 1);
+
+        if(permanent) return false;
+
+        var tmpTileObject = tileObjectHelper;
+
+        this.tileObjectHelper = this.player.heldObject;
+        this.player.setHeldObject(tmpTileObject);
+
+        // transform object if put down like for horse transitions
+        // 778 + -1 = 0 + 1422 
+        // 770 + -1 = 0 + 1421
+        // Dont tranform this transitionslike claybowl or bana
+        // DO NOT!!! 235 + -1 = 382 + 0
+        var transition = Server.transitionImporter.getTransition(this.tileObjectHelper.id(), -1, false, false);
+
+        if(transition != null)
+        {
+            if(transition.newActorID == 0)
+            {
+                trace('transform object ${tileObjectHelper.description()} in ${transition.newTargetID} / used when to put down horses');
+
+                transition.traceTransition();
+
+                tileObjectHelper.setId(transition.newTargetID);
+            }
+        }
+
+        this.doAction = true;
+        return true;
+    }
+
 
     /*
     USE x y id i#
@@ -205,20 +314,6 @@ class TransitionHelper{
         
         // do container stuff
         return this.doContainerStuff(false, index);
-    }
-
-    public function checkIfNotMovingAndCloseEnough():Bool{
-        if(player.me.isMoveing()) {
-            trace("Player is still moving");
-            return false; 
-        }
-
-        if(player.isClose(x,y) == false) {
-            trace('Object position is too far away p${player.x},p${player.y} o$x,o$y');
-            return false; 
-        }
-
-        return true;
     }
 
     public function doTransitionIfPossible(onPlayer:Bool = false) : Bool
@@ -464,100 +559,6 @@ class TransitionHelper{
             obj.objectData = objectData.dummyObjects[obj.numberOfUses-1];
             trace('dummy id: ${obj.objectData.id}');
         }
-    }
-
-    public function swapHandAndFloorObject():Bool{
-
-        //trace("SWAP tileObjectData: " + tileObjectData.toFileString());
-        
-        var permanent = (tileObjectData != null) && (tileObjectData.permanent == 1);
-
-        if(permanent) return false;
-
-        var tmpTileObject = tileObjectHelper;
-
-        this.tileObjectHelper = this.player.heldObject;
-        this.player.setHeldObject(tmpTileObject);
-
-        // transform object if put down like for horse transitions
-        // 778 + -1 = 0 + 1422 
-        // 770 + -1 = 0 + 1421
-        // Dont tranform this transitionslike claybowl or bana
-        // DO NOT!!! 235 + -1 = 382 + 0
-        var transition = Server.transitionImporter.getTransition(this.tileObjectHelper.id(), -1, false, false);
-
-        if(transition != null)
-        {
-            if(transition.newActorID == 0)
-            {
-                trace('transform object ${tileObjectHelper.description()} in ${transition.newTargetID} / used when to put down horses');
-
-                transition.traceTransition();
-
-                tileObjectHelper.setId(transition.newTargetID);
-            }
-        }
-
-        this.doAction = true;
-        return true;
-    }
-
-    // DROP switches the object with the last object in the container and cycles throuh the objects / USE just put it in
-    public function doContainerStuff(isDrop:Bool = false, index:Int = -1) : Bool
-    {
-        trace("containable: " + tileObjectData.containable + " desc: " + tileObjectData.description + " numSlots: " + tileObjectData.numSlots);
-
-        // TODO change container check
-        //if ((objectData.numSlots == 0 || MapData.numSlots(this.tileObject) >= objectData.numSlots)) return false;
-        if (tileObjectData.numSlots == 0) return false; 
-
-        var amountOfContainedObjects = tileObjectHelper.containedObjects.length;
-
-        // if hand is empty then remove last object from container
-        if(player.heldObject.id() == 0 && amountOfContainedObjects > 0)
-        {
-            trace("CALL REMOVE");
-            if(remove(index)) return true;
-            return false;
-        }
-
-        if(handObjectData.containable == false)
-        {
-            trace('handObject is not containable!');
-            return false;
-        }
-
-        // place hand object in container if container has enough space
-        //if (handObjectData.slotSize >= objectData.containSize) {
-        trace('handObjectData.slotSize: ${handObjectData.slotSize} tileObjectData.containSize: ${tileObjectData.containSize}');
-        if (handObjectData.slotSize > tileObjectData.containSize) return false;
-
-        trace('Hand Object ${this.player.heldObject.id()}');
-        trace('Hand Object Slot size: ${handObjectData.slotSize} TO: container Size: ${tileObjectData.containSize}');
-
-        if(isDrop == false)            
-        {
-            if(amountOfContainedObjects >= tileObjectData.numSlots) return false;
-
-            tileObjectHelper.containedObjects.push(this.player.heldObject);
-
-            this.player.heldObject = ObjectHelper.readObjectHelper(player,[0]);
-
-            this.doAction = true;
-            return true;
-        }
-
-        var tmpObject = tileObjectHelper.removeContainedObject(-1);
-
-        tileObjectHelper.containedObjects.insert(0 , this.player.heldObject);
-
-        this.player.setHeldObject(tmpObject);
-
-        trace('DROP SWITCH Hand object: ${player.heldObject.toArray()}');
-        trace('DROP SWITCH New Tile object: ${tileObjectHelper.toArray()}');
-
-        this.doAction = true;
-        return true;
     }
 
     /*
