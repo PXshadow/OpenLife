@@ -473,12 +473,20 @@ class TransitionHelper{
         // transform object if put down like for horse transitions
         // 778 + -1 = 0 + 1422 
         // 770 + -1 = 0 + 1421
+        // Dont tranform this transitionslike claybowl or bana
+        // DO NOT!!! 235 + -1 = 382 + 0
         var transition = Server.transitionImporter.getTransition(this.tileObjectHelper.id(), -1, false, false);
+
         if(transition != null)
         {
-            trace('transform object ${tileObjectHelper.description()} in ${transition.newTargetID} / used when to put down horses');
+            if(transition.newActorID == 0)
+            {
+                trace('transform object ${tileObjectHelper.description()} in ${transition.newTargetID} / used when to put down horses');
 
-            tileObjectHelper.setId(transition.newTargetID);
+                transition.traceTransition();
+
+                tileObjectHelper.setId(transition.newTargetID);
+            }
         }
 
         this.doAction = true;
