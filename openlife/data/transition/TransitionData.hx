@@ -173,7 +173,8 @@ class TransitionData
       return s;
     }
 
-    public function traceTransition(s:String = "", targetDescContains:String = "")
+    //public function traceTransition(s:String = "", targetDescContains:String = "")
+      public function traceTransition(s:String = "", forceTrace = false)
     {
       var transition = this;
 
@@ -193,8 +194,9 @@ class TransitionData
       if(objectDataNewTarget != null) newTargetDescription = objectDataNewTarget.description;
 
       var dontTraceActor = actorDescription.indexOf(ServerSettings.traceTransitionByActorDescription) == -1;
+      var targetDescContains = ServerSettings.traceTransitionByTargetDescription;
 
-      if(dontTraceActor && transition.targetID != ServerSettings.traceTransitionById && targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
+      if(forceTrace == false && dontTraceActor && transition.targetID != ServerSettings.traceTransitionById && targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
       
       trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
   }

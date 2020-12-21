@@ -145,7 +145,9 @@ class WorldMap
         
 
         // spring / tool use
-        setObjectId(tx - 4,ty + 4,[3030]);
+        setObjectId(tx - 2,ty + 4,[1096]); // well site
+        setObjectId(tx - 3,ty + 4,[1096]); // well site
+        setObjectId(tx - 4,ty + 4,[3030]); // natural spring
         setObjectId(tx - 5,ty + 4,[661]);
         setObjectId(tx - 6,ty + 4,[661]);
         setObjectId(tx - 7,ty + 4,[661]);

@@ -1,5 +1,7 @@
 package openlife.settings;
 
+import openlife.data.transition.TransitionData;
+import openlife.data.transition.TransitionImporter;
 import openlife.server.WorldMap.BiomeTag;
 import openlife.data.object.ObjectData;
 
@@ -22,7 +24,7 @@ class ServerSettings
     // worldMap
     public static var ChanceForLuckySpot = 0.03; // chance that during generation an object is lucky and tons more of that are generated close by
     public static var MapFileName = "mysteraV1.png";    
-    public static var startingGx = 250; // 360;
+    public static var startingGx = 270; // 360;
     public static var startingGy = 200;//- 400; // server map is saved y inverse 
     public static var CreateGreenBiomeAroundRiverDistance = 4;
    
@@ -88,5 +90,19 @@ class ServerSettings
         //trace('Patch: ${ObjectData.getObjectData(942).description}');
         //if (obj.deadlyDistance > 0)
         //    obj.mapChance *= 0;
+    }
+
+    public static function PatchTransitions(transtions:TransitionImporter)
+    {
+        var trans = new TransitionData();
+        // let come berrys back!
+        trans.actorID = -1;
+        trans.targetID = 30; // Wild Gooseberry Bush
+        trans.newActorID = 0;
+        trans.newTargetID = 30;
+        trans.reverseUseTarget = true;
+        trans.autoDecaySeconds = 600;
+
+        transtions.addTransition(trans);
     }
 }

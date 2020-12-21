@@ -88,7 +88,8 @@ class Server
         transitionImporter.importCategories();
         transitionImporter.importTransitions();
 
-        
+        ServerSettings.PatchTransitions(transitionImporter);
+
         // do all the map inititalisation stuff
         map = new WorldMap();
         map.generate();

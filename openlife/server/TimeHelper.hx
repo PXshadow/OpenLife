@@ -291,6 +291,8 @@ class TimeHelper
         helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper);
         helper.creationTimeInTicks = TimeHelper.tick;
 
+        TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, false, true);
+
         Server.server.map.setObjectHelper(tx, ty, helper);
         
         var newTileObject = helper.toArray();

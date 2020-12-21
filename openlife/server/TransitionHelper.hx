@@ -434,7 +434,7 @@ class TransitionHelper{
         if(transition == null) return false;
 
         trace('TRANS: Found transition: a${transition.actorID} t${transition.targetID} ');
-        transition.traceTransition();
+        transition.traceTransition("TRANS: ", true);
 
         var newTargetObjectData = ObjectData.getObjectData(transition.newTargetID);
 
@@ -465,7 +465,8 @@ class TransitionHelper{
         // if it is a transition that picks up an object like 0 + 1422 = 778 + 0  (horse with cart) then switch the hole tile object to the hand object
         // TODO this may make trouble
         // 778 + -1 = 0 + 1422
-        if((transition.actorID == 0 && transition.targetID != transition.newTargetID) || (transition.targetID == -1 && transition.newActorID == 0))
+        // 0 + 3963 = 33 + 1096 // Transition for Well Site should not be affected by this
+        if((transition.actorID == 0 && transition.newTargetID == 0 && transition.targetID != transition.newTargetID) || (transition.targetID == -1 && transition.newActorID == 0))
         {
             trace('TRANS: switch held object with tile object');
 
@@ -564,9 +565,10 @@ class TransitionHelper{
         return false;
     }
 
-    private static function DoChangeNumberOfUsesOnTarget(obj:ObjectHelper, idHasChanged:Bool, reverseUse:Bool)
+    public static function DoChangeNumberOfUsesOnTarget(obj:ObjectHelper, idHasChanged:Bool, reverseUse:Bool)
     {
         var objectData  = obj.objectData;
+        if(objectData.numUses < 2) return; 
 
         if(idHasChanged && objectData.numUses > 1)
         {
@@ -584,6 +586,8 @@ class TransitionHelper{
 
         if(reverseUse)
         {
+            if(obj.numberOfUses > objectData.numUses - 1) return; 
+
             obj.numberOfUses += 1;
             trace('TRANS: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
         } 
