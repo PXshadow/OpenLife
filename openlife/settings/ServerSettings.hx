@@ -15,7 +15,7 @@ class ServerSettings
 
     public static var traceTransitionById = 99972; // TransitionImporter
     public static var traceTransitionByActorDescription = "!!!Bowl of Stew"; // TransitionImporter
-    public static var traceTransitionByTargetDescription = "!!!Steel Axe"; // TransitionImporter
+    public static var traceTransitionByTargetDescription = "Wild Gooseberry Bush"; // TransitionImporter
 
     public static var traceAmountGeneratedObjects = false; // WorldMap
 

@@ -168,4 +168,31 @@ class ObjectHelper {
 
         return timeToChange;
     }
+
+    public function TransformToDummy()
+    {
+        var obj:ObjectHelper = this;
+        var objectData  = obj.objectData;
+
+        if(objectData.numUses < 2) return;
+
+        // in case of an maxUses object changing like a well site numOfUses can be too big
+        if(obj.numberOfUses > objectData.numUses)
+        {
+            obj.numberOfUses = objectData.numUses;
+        }
+
+        if(obj.numberOfUses == objectData.numUses)
+        {
+            if(obj.objectData.dummy)
+            {
+                obj.objectData = obj.objectData.dummyParent;
+            }
+        }
+        else
+        {
+            obj.objectData = objectData.dummyObjects[obj.numberOfUses-1];
+            trace('dummy id: ${obj.objectData.id}');
+        }
+    }
 }

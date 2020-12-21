@@ -109,15 +109,21 @@ class TransitionImporter
         return transitionsByTargetId;
     }
 
-    public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false, maxUseTarget:Bool=false):TransitionData{
-        
+    public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false, maxUseTarget:Bool=false):TransitionData
+    {
+        var objDataActor = ObjectData.getObjectData(actorId);
+        var objDataTarget = ObjectData.getObjectData(targetId);
+
+        if(objDataActor.dummyParent != null) objDataActor = objDataActor.dummyParent;
+        if(objDataTarget.dummyParent != null) objDataTarget = objDataTarget.dummyParent;
+
         var transitionMap = getTransitionMap(lastUseActor, lastUseTarget, maxUseTarget);
 
-        var transitionsByTargetId = transitionMap[actorId];
+        var transitionsByTargetId = transitionMap[objDataActor.id];
 
         if(transitionsByTargetId == null) return null;
 
-        return transitionsByTargetId[targetId];
+        return transitionsByTargetId[objDataTarget.id];
     }
 
     public function addTransition(transition:TransitionData,  lastUseActor:Bool = false, lastUseTarget:Bool = false){

@@ -600,32 +600,6 @@ class TransitionHelper{
         }
     }
 
-    private static function DoDummies(obj:ObjectHelper)
-    {
-        var objectData  = obj.objectData;
-
-        if(objectData.numUses < 2) return;
-
-        // in case of an maxUses object changing like a well site numOfUses can be too big
-        if(obj.numberOfUses > objectData.numUses)
-        {
-            obj.numberOfUses = objectData.numUses;
-        }
-
-        if(obj.numberOfUses == objectData.numUses)
-        {
-            if(obj.objectData.dummy)
-            {
-                obj.objectData = obj.objectData.dummyParent;
-            }
-        }
-        else
-        {
-            obj.objectData = objectData.dummyObjects[obj.numberOfUses-1];
-            trace('dummy id: ${obj.objectData.id}');
-        }
-    }
-
     /*
     REMV x y i#
 
@@ -675,7 +649,7 @@ class TransitionHelper{
 
         // TODO do dummies for hand object???
         // DO dummies for objects that have more then one numUses
-        DoDummies(this.tileObjectHelper);
+        //this.tileObjectHelper.TransformToDummy();
 
         trace('NEW: handObjectHelper: ${player.heldObject.description()} ' + player.heldObject.toArray());
         trace('NEW: tileObjectHelper: ${tileObjectHelper.description()} ' + tileObjectHelper.toArray());

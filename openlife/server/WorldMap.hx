@@ -296,6 +296,8 @@ class WorldMap
     // sets objectHelper and also Object Ids on same Tile
     public function setObjectHelper(x:Int, y:Int, helper:ObjectHelper)
     {
+        if(helper != null) helper.TransformToDummy();
+
         //trace('objectHelper: $x,$y');
         objectHelpers[index(x,y)] = helper;
 
