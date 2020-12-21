@@ -20,6 +20,9 @@ MAP:
 - no gradients
 - no expert waystones
 
+Transitions:
+- Paradise is back! Wild Berries come finally back with time 
+
 Aging:
 - starving to death slows down aging below 14 and increases above  
 - double food use for age below 14 if not starving to death / they need to grow!
