@@ -1,4 +1,5 @@
 package openlife.server;
+import haxe.Serializer;
 import openlife.settings.ServerSettings;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.Pos;
@@ -144,9 +145,14 @@ class MoveExtender{
             // TODO maybe make player "exhausted" with lower movementspeed if he "cheats" to much
             // This could be miss used to double movement speed. But Client seems to do it this way...
 
-            if(p.isClose(x,y,ServerSettings.MaxMovementCheatingDistanceBeforeForce) == false)
+            var biomeSpeed = Server.server.map.getBiomeSpeed(x + p.gx, y + p.gy);
+            var isBlockingBiome = biomeSpeed < 0.1;
+
+            if(isBlockingBiome || p.isClose(x,y,ServerSettings.MaxMovementCheatingDistanceBeforeForce) == false)
             {
                 p.forced = true;
+                p.done_moving_seqNum  = seq;
+                me.newMoves = null; // cancle all movements
 
                 trace('MOVE: Force!   Server ${ p.x },${ p.y }:Client ${ x },${ y }');
             }
@@ -166,7 +172,24 @@ class MoveExtender{
             // TODO maybe better to not cut it and make a player update one the new biome is reached?
             // if passing in an biome with different speed only the first movement is kept
             var newMovements = calculateNewMovements(p, p.x + p.gx, p.y + p.gy, moves);
-            if(newMovements.moves.length < 1) throw "newMoves.length < 1";
+
+            if(newMovements.moves.length < 1)
+            {
+                p.done_moving_seqNum  = seq;
+                me.newMoves = null; // cancle all movements
+
+                //cancle movement
+                p.forced = true;
+                p.connection.send(PLAYER_UPDATE,[p.toData()]);
+                p.connection.send(FRAME);
+
+                
+                p.forced = false;
+                p.mutex.release();
+
+                return;
+                // throw "newMoves.length < 1";
+            }
             
             // in case the new field has another speed take the lower (average) speed
             //speed = (speed + startSpeed) / 2; 
@@ -243,13 +266,26 @@ class MoveExtender{
         static private function calculateNewMovements(p:GlobalPlayerInstance, tx:Int,ty:Int,moves:Array<Pos>):NewMovements 
         {
             var newMovements:NewMovements = new NewMovements();
+            var map = Server.server.map;
             var lastPos:Pos = new Pos(0,0);
             
             newMovements.startSpeed = calculateSpeed(p, tx,ty);
             
             for (move in moves) {
+                // check if biome is not walkable
+                if(map.getBiomeSpeed(tx + move.x,ty + move.y) < 0.1)
+                {
+                    trace('biome ${map.getBiomeId(tx + move.x,ty + move.y)} is blocking movement! movement length: ${newMovements.length}');
+                    
+                    newMovements.trunc = 1;
+                    //newMovements.length = 0;
+                    //newMovements.moves = new Array<Pos>();
+                    return newMovements;
+                }
 
                 newMovements.endSpeed = calculateSpeed(p, tx + move.x,ty + move.y);
+
+                
 
                 if(newMovements.endSpeed != newMovements.startSpeed) {
                     if(newMovements.moves.length == 0){

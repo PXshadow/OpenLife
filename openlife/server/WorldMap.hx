@@ -24,7 +24,8 @@ import haxe.io.Bytes;
 
     public var SNOWINGREY = 7; // its snow on top of mountains which should not be walkable
     public var OCEAN = 9;  //deep ocean
-    public var RIVER = 13;  //shallow water // TODO deep river water which is not walkable 
+    public var PASSABLERIVER = 13;
+    public var RIVER = 17;  // TODO deep river which is not walkable 
 }
 
 @:enum abstract BiomeMapColor(String) from String to String
@@ -42,7 +43,7 @@ import haxe.io.Bytes;
     public var CSNOWINGREY = "FF404040"; // TODO exchange with CGREY here and on map // its snow on top of mountains which should not be walkable
     public var COCEAN = "FF004080"; //deep ocean 
     public var CRIVER = "FF0080FF"; //shallow water
-    public var PASSABLERIVER = "FF00E8FF";
+    public var CPASSABLERIVER = "FF00E8FF";
 }
 
 @:enum abstract BiomeSpeed(Float) from Float to Float
@@ -55,10 +56,10 @@ import haxe.io.Bytes;
     public var SDESERT= 0.8;//0.5;
     public var SJUNGLE = 0.8;  
 
-    public var SSNOWINGREY = 0.1;
-    public var SOCEAN = 0.25;  
-    public var SRIVER = 0.25;
-    public var PASSABLERIVER = 0.25;   
+    public var SSNOWINGREY = 0.01;
+    public var SOCEAN = 0.01;  
+    public var SRIVER = 0.01;
+    public var SPASSABLERIVER = 0.25;   
 }
 
 class WorldMap
@@ -230,6 +231,7 @@ class WorldMap
             case SNOWINGREY: SSNOWINGREY;
             case OCEAN: SOCEAN;
             case RIVER: SRIVER;
+            case PASSABLERIVER: SPASSABLERIVER;
             default: 1;
         }
     } 
@@ -405,6 +407,7 @@ class WorldMap
                     case CSNOWINGREY: biomeInt = SNOWINGREY;
                     case COCEAN: biomeInt = OCEAN;
                     case CRIVER: biomeInt = RIVER;
+                    case CPASSABLERIVER: biomeInt = PASSABLERIVER;
                     default: biomeInt = GREEN;
                 }
                 if(biomeInt == GREEN){
