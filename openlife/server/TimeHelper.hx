@@ -202,7 +202,7 @@ class TimeHelper
     public static function DoWorldMapTimeStuff()
     {
         // devide in X steps
-        var timeParts = 20; 
+        var timeParts = ServerSettings.WorldTimeParts; 
         var worldMap = Server.server.map;
 
         var partSizeY = Std.int(worldMap.height / timeParts);

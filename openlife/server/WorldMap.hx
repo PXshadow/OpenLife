@@ -39,9 +39,10 @@ import haxe.io.Bytes;
     
     public var CSAND = "FFefe4b0";
 
-    public var CSNOWINGREY = "404040"; // TODO exchange with CGREY here and on map // its snow on top of mountains which should not be walkable
+    public var CSNOWINGREY = "FF404040"; // TODO exchange with CGREY here and on map // its snow on top of mountains which should not be walkable
     public var COCEAN = "FF004080"; //deep ocean 
     public var CRIVER = "FF0080FF"; //shallow water
+    public var PASSABLERIVER = "FF00E8FF";
 }
 
 @:enum abstract BiomeSpeed(Float) from Float to Float
@@ -49,14 +50,15 @@ import haxe.io.Bytes;
     public var SGREEN = 1;  
     public var SSWAMP = 0.4;  
     public var SYELLOW = 1;
-    public var SGREY = 0.9;
+    public var SGREY = 0.8;
     public var SSNOW = 0.5;
-    public var SDESERT= 0.7;//0.5;
-    public var SJUNGLE = 0.7;  
+    public var SDESERT= 0.8;//0.5;
+    public var SJUNGLE = 0.8;  
 
     public var SSNOWINGREY = 0.1;
-    public var SOCEAN = 0.2;  
-    public var SRIVER = 0.2;   
+    public var SOCEAN = 0.25;  
+    public var SRIVER = 0.25;
+    public var PASSABLERIVER = 0.25;   
 }
 
 class WorldMap
@@ -241,6 +243,11 @@ class WorldMap
     {
         return biomes[index(x,y)];
     }
+
+    public function setBiomeId(x:Int, y:Int, biomeId:Int)
+    {
+        return biomes[index(x,y)] = biomeId;
+    }
     
 
     public function getObjectId(x:Int, y:Int):Array<Int>
@@ -357,7 +364,7 @@ class WorldMap
     {
         this.mutex.acquire();
 
-        var pngDir = "./map.png";
+        var pngDir = './${ServerSettings.MapFileName}';// "./map.png";
         var pngmap = readPixels(pngDir);
 
         width = pngmap.width;
@@ -368,8 +375,6 @@ class WorldMap
         trace('map height: ' + height);
 
         createVectors(length);
-
-        var generatedObjects = 0;
 
         for (y in 0...height){
             for (x in 0...width) {
@@ -405,13 +410,57 @@ class WorldMap
                 if(biomeInt == GREEN){
                     //trace('${ x },${ y }:BI ${ biomeInt },${ r },${ g },${ b } - ${ StringTools.hex(p,8) }');
                 }
+
                 //biomeInt = x % 100;
 
-                
-                biomes[x+y*width] = biomeInt;
+                biomes[x+y*width] = biomeInt;           
+            }
+        } 
 
-                // since i may place stuff during generation like for example more iron around existing iron
-                //if(objects[x+y*width][0] != 0) continue;
+        addExtraBiomes();
+
+        generateObjects();
+
+        generateExtraStuff();
+
+        if(ServerSettings.debug) generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
+
+        this.mutex.release();      
+    }
+
+    function addExtraBiomes()
+    {
+        for (y in 0...height)
+        {
+            for (x in 0...width)
+            {
+                var biome = getBiomeId(x,y);
+
+                if(biome == BiomeTag.RIVER || biome == BiomeTag.JUNGLE)
+                {
+                    for(ix in -3...4)
+                    {
+                        for(iy in -3...4)
+                        {
+                            var nextBiome = getBiomeId(x + ix, y + iy);
+
+                            if(nextBiome == BiomeTag.YELLOW || biome == BiomeTag.DESERT) setBiomeId(x + ix, y + iy, BiomeTag.GREEN); 
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function generateObjects()
+    {
+        var generatedObjects = 0;
+
+        for (y in 0...height)
+        {
+            for (x in 0...width)
+            {
+                var biomeInt = biomes[index(x,y)];
 
                 objects[x+y*width] = [0];
                 //if(x+y*width < 10000) objects[x+y*width] = [4746];
@@ -455,12 +504,6 @@ class WorldMap
             }
         }
 
-        generateExtraStuff();
-
-        if(ServerSettings.debug) generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
-
-        this.mutex.release();
-
         trace('generatedObjects: $generatedObjects');      
 
         if(ServerSettings.traceAmountGeneratedObjects)
@@ -477,8 +520,10 @@ class WorldMap
         var tmpIsPlaced = new Vector<Bool>(length);
 
 
-        for (y in 0...height){
-            for (x in 0...width) {
+        for (y in 0...height)
+        {
+            for (x in 0...width)
+            {
                 var obj = objects[x+y*width];
 
                 // change muddy iron vein to loose muddy iron vein // TODO better patch the data

@@ -21,8 +21,12 @@ class ServerSettings
 
     // worldMap
     public static var ChanceForLuckySpot = 0.03; // chance that during generation an object is lucky and tons more of that are generated close by
+    public static var MapFileName = "mysteraV1.png";    
+    public static var startingGx = 250; // 360;
+    public static var startingGy = 200;//- 400; // server map is saved y inverse 
    
     // food stuff
+    public static var WorldTimeParts = 40; // in each tick 1/40 DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX
     public static var MinAgeToEat = 3;
     public static var FoodUsePerSecond = 0.2; // 0.2; // 5 sec per pip
     public static var GrownUpFoodStoreMax = 20;
@@ -42,9 +46,6 @@ class ServerSettings
     public static var GrownUpAge = 14; // is used for AgingFactorWhileStarvingToDeath and for increase food need for children
     public static var StarvingToDeathMoveSpeedFactor = 0.5; // reduces speed if stored food is below 0
     public static var FoodStoreMaxReductionWhileStarvingToDeath = 2; // reduces food store max with factor XX for each food below 0
-
-    public static var startingGx = 640; // 360;
-    public static var startingGy = 600 - 180;//- 400; // server map is saved y inverse 
 
     public static var maxDistanceToBeConsideredAsClose = 20; // only close players are updated with PU and MX and Movement 
 
