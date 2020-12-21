@@ -22,7 +22,7 @@ import haxe.io.Bytes;
     public var DESERT= 5;
     public var JUNGLE = 6;  
 
-    public var SNOWINGREY = 7; // its snow on top of mountains which should not be walkable
+    public var SNOWINGREY = 21; //7 // its snow on top of mountains which should not be walkable
     public var OCEAN = 9;  //deep ocean
     public var PASSABLERIVER = 13;
     public var RIVER = 17;  // TODO deep river which is not walkable 
@@ -40,21 +40,21 @@ import haxe.io.Bytes;
     
     public var CSAND = "FFefe4b0";
 
-    public var CSNOWINGREY = "FF404040"; // TODO exchange with CGREY here and on map // its snow on top of mountains which should not be walkable
+    public var CSNOWINGREY = "FF404040"; // its snow on top of mountains which should not be walkable
     public var COCEAN = "FF004080"; //deep ocean 
     public var CRIVER = "FF0080FF"; //shallow water
-    public var CPASSABLERIVER = "FF00E8FF";
+    public var CPASSABLERIVER = "FF00E8FF"; // TODO use also for passable ocean? otherwise use biomeID: 22??? 
 }
 
 @:enum abstract BiomeSpeed(Float) from Float to Float
 {
     public var SGREEN = 1;  
-    public var SSWAMP = 0.4;  
+    public var SSWAMP = 0.5;  
     public var SYELLOW = 1;
-    public var SGREY = 0.8;
-    public var SSNOW = 0.5;
-    public var SDESERT= 0.8;//0.5;
-    public var SJUNGLE = 0.8;  
+    public var SGREY = 0.5; // TODO make fast with shoes
+    public var SSNOW = 0.5; // TODO make fast with shoes
+    public var SDESERT= 0.5;//0.5; // TODO make fast for specialists 
+    public var SJUNGLE = 0.5;  // TODO make fast for specialists
 
     public var SSNOWINGREY = 0.01;
     public var SOCEAN = 0.01;  
@@ -421,7 +421,7 @@ class WorldMap
                     //trace('${ x },${ y }:BI ${ biomeInt },${ r },${ g },${ b } - ${ StringTools.hex(p,8) }');
                 }
 
-                //biomeInt = x % 100;
+                //biomeInt = x % 30;
 
                 biomes[x+y*width] = biomeInt;           
             }
