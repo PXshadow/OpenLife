@@ -24,6 +24,7 @@ class ServerSettings
     public static var MapFileName = "mysteraV1.png";    
     public static var startingGx = 250; // 360;
     public static var startingGy = 200;//- 400; // server map is saved y inverse 
+    public static var CreateGreenBiomeAroundRiverDistance = 4;
    
     // food stuff
     public static var WorldTimeParts = 40; // in each tick 1/40 DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX
