@@ -421,7 +421,7 @@ class WorldMap
                     case CPASSABLERIVER: biomeInt = PASSABLERIVER;
                     default: biomeInt = GREEN;
                 }
-                if(biomeInt == GREEN){
+                if(biomeInt == YELLOW){
                     //trace('${ x },${ y }:BI ${ biomeInt },${ r },${ g },${ b } - ${ StringTools.hex(p,8) }');
                 }
 
@@ -445,22 +445,49 @@ class WorldMap
     function addExtraBiomes()
     {
         var dist = ServerSettings.CreateGreenBiomeAroundRiverDistance;
+        var tmpIsPlaced = new Vector<Bool>(length);
 
         for (y in 0...height)
         {
             for (x in 0...width)
             {
+                if(tmpIsPlaced[index(x,y)]) continue;
+
                 var biome = getBiomeId(x,y);
 
-                if(biome == BiomeTag.RIVER || biome == BiomeTag.JUNGLE)
+                if(biome == BiomeTag.RIVER || biome == BiomeTag.PASSABLERIVER || biome == BiomeTag.JUNGLE)
                 {
                     for(ix in -dist...dist+1)
                     {
                         for(iy in -dist...dist+1)
                         {
-                            var nextBiome = getBiomeId(x + ix, y + iy);
+                            var tmpX = x + ix;
+                            var tmpY = y + iy;
 
-                            if(nextBiome == BiomeTag.YELLOW || biome == BiomeTag.DESERT) setBiomeId(x + ix, y + iy, BiomeTag.GREEN); 
+                            if(tmpIsPlaced[index(tmpX,tmpY)]) continue;
+                            var nextBiome = getBiomeId(tmpX, tmpY);
+                            
+                            if((biome == BiomeTag.RIVER || biome == BiomeTag.PASSABLERIVER) && ix * ix < 2 && iy * iy < 2)
+                            {
+                                if(nextBiome == BiomeTag.GREEN || nextBiome == BiomeTag.YELLOW || nextBiome == BiomeTag.DESERT || nextBiome == BiomeTag.RIVER)
+                                {
+                                    //trace('$ix,$iy biome: $biome nextBiome: $nextBiome ');
+                                    if(biome == BiomeTag.PASSABLERIVER || nextBiome != BiomeTag.RIVER)
+                                    {
+                                        //trace('SET!!! $ix,$iy biome: $biome nextBiome: $nextBiome ');
+                                        setBiomeId(tmpX, tmpY, BiomeTag.PASSABLERIVER); 
+                                        tmpIsPlaced[index(tmpX, tmpY)] = true;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if(nextBiome == BiomeTag.YELLOW || nextBiome == BiomeTag.DESERT)
+                                {
+                                     setBiomeId(tmpX, tmpY, BiomeTag.GREEN);                                 
+                                     //tmpIsPlaced[index(tmpX, tmpY)] = true;
+                                }
+                            }
                         }
                     }
                 }
