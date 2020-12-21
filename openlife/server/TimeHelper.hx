@@ -478,12 +478,16 @@ class TimeHelper
             //trace('movement: $tmpX,$tmpY');
 
             var movementTileObj = WorldMap.worldGetObjectHelper(tmpX , tmpY); 
-            var movementBiome = WorldMap.worldGetBiomeId(tmpX , tmpY);  
+            //var movementBiome = WorldMap.worldGetBiomeId(tmpX , tmpY);  
 
-            var cannotMoveInBiome = movementBiome == BiomeTag.OCEAN ||  movementBiome == BiomeTag.SNOWINGREY;
+            //var cannotMoveInBiome = movementBiome == BiomeTag.OCEAN ||  movementBiome == BiomeTag.SNOWINGREY;
+
+            var isBiomeBlocking = WorldMap.isBiomeBlocking(tmpX, tmpY);
+
+            if(isBiomeBlocking && ServerSettings.ChanceThatAnimalsCanPassBlockingBiome > 0) isBiomeBlocking = WorldMap.calculateRandomFloat() > ServerSettings.ChanceThatAnimalsCanPassBlockingBiome; 
 
             // TODO better patch in the objects, i dont see any reason why a rabit or a tree should block movement
-            if(cannotMoveInBiome || (movementTileObj.blocksWalking() 
+            if(isBiomeBlocking || (movementTileObj.blocksWalking() 
                     && movementTileObj.description().indexOf("Tarry Spot") == -1
                     && movementTileObj.description().indexOf("Tree") == -1 && movementTileObj.description().indexOf("Rabbit") == -1  
                     && movementTileObj.description().indexOf("Iron") == -1 && movementTileObj.description().indexOf("Spring") == -1

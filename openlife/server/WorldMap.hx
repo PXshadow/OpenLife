@@ -236,6 +236,13 @@ class WorldMap
         }
     } 
 
+    public static function isBiomeBlocking(x:Int, y:Int) : Bool
+    {
+        var biomeSpeed = Server.server.map.getBiomeSpeed(x,y);
+
+        return biomeSpeed < 0.1;
+    }
+
     public static function worldGetBiomeId(x:Int, y:Int):Int
     {
         return Server.server.map.getBiomeId(x,y);
