@@ -51,7 +51,8 @@ Food - Health
 
 Food - Cravings:
 - Cravings display now a random food with a full YUM Boni, that has allready been eaten
-- Cravings give plus one extra food boni and YUM chain (Health)
+- There is a Chance that a new complete never eaten radom food is chosen which is ID wise close to the last craved one
+- Cravings give plus one extra food boni and YUM chain / Health which influences speed and aging
 
 
 Animals:

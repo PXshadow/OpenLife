@@ -337,6 +337,8 @@ class GlobalPlayerInstance extends PlayerInstance {
     private function doIncreaseFoodValue(eatenFoodId:Int)
     {
         trace('YUM: ${eatenFoodId}');
+        
+        if(hasEatenMap[eatenFoodId] > 0) cravings.remove(eatenFoodId);
 
         var hasEatenKeys = [for(key in hasEatenMap.keys()) key];
 
@@ -373,7 +375,10 @@ class GlobalPlayerInstance extends PlayerInstance {
         newHasEatenCount--;  // A food with full YUM is displayed as +1 craving 
         cravingHasEatenCount--; // A food with full YUM is displayed as +1 craving
 
-        if(cravingHasEatenCount < 0 && currentlyCraving != 0)
+        //if(newHasEatenCount >= 0) cravings.remove(eatenFoodId);
+        //if(cravingHasEatenCount >= 0) cravings.remove(currentlyCraving);
+
+        if(cravingHasEatenCount < 0 && currentlyCraving != 0 && currentlyCraving == eatenFoodId)
         {            
             trace('YUM: craving: currentlyCraving: $currentlyCraving ${-cravingHasEatenCount}');
 
@@ -386,9 +391,9 @@ class GlobalPlayerInstance extends PlayerInstance {
                 this.connection.send(ClientTag.CRAVING, ['$key ${-newHasEatenCount}']);
                 currentlyCraving = key;
             }*/
-            cravings.remove(currentlyCraving);
+            
 
-            if(cravings.length < 1)
+            if(cravings.length < 1 || WorldMap.calculateRandomFloat() < ServerSettings.YumNewCravingChance)
             {
                 trace('YUM: no new craving / choose random new: Eaten: ${eatenFoodId}');
 
@@ -412,7 +417,9 @@ class GlobalPlayerInstance extends PlayerInstance {
             
                     if(index >= ObjectData.foodObjects.length) continue;
 
-                    if(hasEatenMap[index] > 0) continue;
+                    var newObjData = ObjectData.foodObjects[index];
+
+                    if(hasEatenMap[newObjData.id] > 0) continue;
 
                     break;
                 }
@@ -426,15 +433,15 @@ class GlobalPlayerInstance extends PlayerInstance {
 
                 var newObjData = ObjectData.foodObjects[index];
 
-                newHasEatenCount = hasEatenMap[key];
+                if(hasEatenMap.exists(newObjData.id) == false) hasEatenMap[newObjData.id] = -1; // make sure to add it to the cravins and give a little boni
+
+                newHasEatenCount = hasEatenMap[newObjData.id];
                 newHasEatenCount--;
 
                 trace('YUM; new random craving: ${newObjData.description} ${newObjData.id} lastCravingIndex: $lastCravingIndex index: $index  newHasEatenCount: ${-newHasEatenCount}');
 
                 lastCravingIndex = index;
                 currentlyCraving = newObjData.id;
-
-                
 
                 this.connection.send(ClientTag.CRAVING, ['${currentlyCraving} ${-newHasEatenCount}']); 
             }

@@ -42,7 +42,8 @@ class ServerSettings
     public static var DeathWithFoodStoreMax = 0; // Death through starvation if food store max reaches below XX 
     public static var IncreasedFoodNeedForChildren = 2; // children need XX food is below GrownUpAge
     public static var YumBonus = 3; // First team eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
-    public static var YumFoodRestore = 0.8; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food.
+    public static var YumFoodRestore = 0.8; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food
+    public static var YumNewCravingChance = 0.2; // XX chance that a new random craving is chosen even if there are existing ones
 
     // health
     public static var HealthFactor = 40; // Changes how much health / yum_mulpiplier affects speed and aging. (From 0.5 to 1.2)  
