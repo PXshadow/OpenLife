@@ -23,15 +23,15 @@ class ServerSettings
 
     // worldMap
     public static var ChanceForLuckySpot = 0.03; // chance that during generation an object is lucky and tons more of that are generated close by
-    public static var MapFileName = "mysteraV1.png";    
-    public static var startingGx = 270; // 360;
-    public static var startingGy = 200;//- 400; // server map is saved y inverse 
+    public static var MapFileName = "mysteraV1Test.png";    
+    public static var startingGx = 225; //270; // 360;
+    public static var startingGy = 150; //200;//- 400; // server map is saved y inverse 
     public static var CreateGreenBiomeAroundRiverDistance = 4;
    
     // food stuff
     public static var WorldTimeParts = 40; // in each tick 1/40 DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX
     public static var MinAgeToEat = 3;
-    public static var FoodUsePerSecond = 0.2; // 0.2; // 5 sec per pip
+    public static var FoodUsePerSecond = 0.8; // 0.2; // 5 sec per pip
     public static var GrownUpFoodStoreMax = 20;
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;

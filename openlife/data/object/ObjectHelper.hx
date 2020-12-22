@@ -173,6 +173,7 @@ class ObjectHelper {
     {
         var obj:ObjectHelper = this;
         var objectData  = obj.objectData;
+        if(objectData.dummyParent != null) objectData = objectData.dummyParent;
 
         if(objectData.numUses < 2) return;
 

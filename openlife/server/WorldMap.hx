@@ -92,6 +92,9 @@ class WorldMap
 
     private function generateExtraDebugStuff(tx:Int, ty:Int)
     {
+        setObjectId(tx - 3,ty-1,[1121]); // popcorn
+        setObjectId(tx - 3,ty,[3900]); // onion pile
+        setObjectId(tx - 2,ty,[2742]); // carrot pile
         setObjectId(tx - 1,ty,[3371,1251,1251,245]); // table with stew
         setObjectId(tx, ty, [33]);
         setObjectId(tx+1, ty, [32]);

@@ -46,6 +46,9 @@ Food - YUM:
 - eating YUM increases YUM chain, while eating MEH reduces it
 - TODO Eating YUM increases prestiege, eating MEH reduces it (Not how long you live is important but how you live is important)
 
+Food - Cravings:
+- Cravings display now a random food with a full YUM Boni, that has allready been eaten
+- Cravings give plus one extra food boni and YUM chain (Health)
 
 Animals:
 - Animals can multiply
