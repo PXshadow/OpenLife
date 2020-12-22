@@ -216,14 +216,13 @@ class MoveHelper{
             }
             
             // in case the new field has another speed take the lower (average) speed
-            //speed = (speed + startSpeed) / 2; 
-            if(newMovements.endSpeed < newMovements.startSpeed) newMovements.startSpeed = newMovements.endSpeed;
+            //if(newMovements.endSpeed < newMovements.startSpeed) newMovements.startSpeed = newMovements.endSpeed;
                 
             //trace("speed:" + speed);
             //var speedChanged = (p.move_speed != newMovements.startSpeed);
             
-
-            p.move_speed = newMovements.startSpeed;
+            p.move_speed = newMovements.endSpeed;
+            //p.move_speed = newMovements.startSpeed;
 
             moveHelper.newMoves = newMovements.moves;
             moveHelper.totalMoveTime = (1/p.move_speed) * newMovements.length;
