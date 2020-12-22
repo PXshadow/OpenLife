@@ -43,6 +43,11 @@ class ServerSettings
     // PlayerInstance
     public static var StartingEveAge = 20;  // 13
     public static var AgingSecondsPerYear = 60; // 60
+
+    public static var HealthFactor = 20; // Changes how much health / yum_mulpiplier affects speed and aging. (From 0.5 to 1.2)  
+    public static var HealthAgingStart = -20; // For calculation Aging starts with a yum_mulpiplier of -20
+    //if(health >= 0) healthFactor = (1.2  * health + ServerSettings.HealthFactor) / (health + ServerSettings.HealthFactor);
+    //else healthFactor = (health - ServerSettings.HealthFactor) / ( 2 * health - ServerSettings.HealthFactor);
     
     // starving to death
     public static var AgingFactorWhileStarvingToDeath = 0.5; // if starving to death aging is slowed factor XX up to GrownUpAge, otherwise aging is speed up factor XX

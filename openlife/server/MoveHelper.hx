@@ -52,27 +52,41 @@ class MoveHelper{
 
         // TODO road 
 
-        // TODO health
+        // TODO health        
 
-        var speed = map.getBiomeSpeed(tx,ty);
+        var speed = ServerSettings.InitialPlayerMoveSpeed;
 
-        speed *= ServerSettings.SpeedFactor;
+        speed *= ServerSettings.SpeedFactor; // used to increase speed if for example debuging
 
-        speed *= ServerSettings.InitialPlayerMoveSpeed;
+        var biomeSpeed = map.getBiomeSpeed(tx,ty);
+
+        speed *= biomeSpeed;
+
+        var speedModHeldObj = p.heldObject.objectData.speedMult;
+
+        speed *= speedModHeldObj;
 
         // only reduce speed when starving if not riding or in car 
         if(p.food_store < 0 && p.heldObject.objectData.speedMult < 1.1) speed *= ServerSettings.StarvingToDeathMoveSpeedFactor;
 
-        speed *= p.heldObject.objectData.speedMult;
+        var healthFactor = p.CalculateHealthFactor(true);
 
-        if(p.age < 1) speed *= 0.5;
-        else if(p.age < 2) speed *= 0.6;
-        else if(p.age < 3) speed *= 0.7;
-        else if(p.age < 6) speed *= 0.8;
-        else if(p.age < 10) speed *= 0.9;
-        else if(p.age > 55) speed *= 0.8;
+        trace('speed: healthFactor: $healthFactor health: ${p.yum_multiplier}');
 
-        trace('age: ${p.age} speed: $speed');
+        speed *= healthFactor;
+
+        var ageSpeedFactor:Float = 1;
+
+        if(p.age < 1) ageSpeedFactor = 0.5;
+        else if(p.age < 2) ageSpeedFactor = 0.6;
+        else if(p.age < 3) ageSpeedFactor = 0.7;
+        else if(p.age < 6) ageSpeedFactor = 0.8;
+        else if(p.age < 10) ageSpeedFactor = 0.9;
+        else if(p.age > 55) ageSpeedFactor = 0.8;
+
+        speed *= ageSpeedFactor;
+
+        trace('speed: $speed age: ${p.age} ageSpeedFactor: ${ageSpeedFactor} biomeSpeed: $biomeSpeed speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
 
         return speed;
     }

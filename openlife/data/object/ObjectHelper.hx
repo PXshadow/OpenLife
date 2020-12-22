@@ -193,7 +193,7 @@ class ObjectHelper {
         else
         {
             obj.objectData = objectData.dummyObjects[obj.numberOfUses-1];
-            trace('dummy id: ${obj.objectData.id}');
+            //trace('dummy id: ${obj.objectData.id}');
         }
     }
 }

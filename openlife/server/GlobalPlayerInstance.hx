@@ -30,12 +30,14 @@ class GlobalPlayerInstance extends PlayerInstance {
     public var gx:Int = 400; //global x offset from birth
     public var gy:Int = 300; //global y offset from birth 
 
+    public var trueAge:Float = ServerSettings.StartingEveAge;
+
     //food vars
     public var food_store:Float = ServerSettings.GrownUpFoodStoreMax / 2;
     public var food_store_max:Float = ServerSettings.GrownUpFoodStoreMax;
     var last_ate_fill_max:Int = 0;
     public var yum_bonus:Float = 0;
-    var yum_multiplier = 0;
+    public var yum_multiplier = 0;
 
     var hasEatenMap = new Map<Int, Int>();
 
@@ -67,6 +69,24 @@ class GlobalPlayerInstance extends PlayerInstance {
     public function isClose(x:Int, y:Int, distance:Int = 1):Bool
     {    
         return (((this.x - x) * (this.x - x) <= distance * distance) && ((this.y - y) * (this.y - y) <= distance * distance));
+    }
+
+    public function CalculateHealthFactor(forSpeed:Bool) : Float
+    {
+        var health:Float = forSpeed ? this.yum_multiplier : this.yum_multiplier + ServerSettings.HealthAgingStart;
+
+        //var healthFactor = 1 + (health / ServerSettings.HealthFactor);
+        var healthFactor:Float; 
+
+        var maxBoni = forSpeed ? 1.2 : 2;
+
+        if(health >= 0) healthFactor = (maxBoni  * health + ServerSettings.HealthFactor) / (health + ServerSettings.HealthFactor);
+        else healthFactor = (health - ServerSettings.HealthFactor) / ( 2 * health - ServerSettings.HealthFactor);
+
+        //healthFactor = Math.min(1.2, healthFactor);
+        //healthFactor = Math.max(0.8, healthFactor);
+
+        return healthFactor;
     }
 
     /*

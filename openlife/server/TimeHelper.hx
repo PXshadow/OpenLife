@@ -107,31 +107,47 @@ class TimeHelper
         var tmpAge = c.player.age;
         var aging = timePassedInSeconds / c.player.age_r;
 
+        var healthFactor = c.player.CalculateHealthFactor(false);
+        var agingFactor:Float = 1;        
+
+        if(c.player.age < ServerSettings.GrownUpAge)
+        {
+            agingFactor = healthFactor;
+        }
+        else
+        {
+            agingFactor = 1 / healthFactor;
+        }
+
         if(c.player.food_store < 0)
         {
             if(c.player.age < ServerSettings.GrownUpAge)
             {
-                aging *= ServerSettings.AgingFactorWhileStarvingToDeath;
-                c.player.age_r = ServerSettings.AgingSecondsPerYear / ServerSettings.AgingFactorWhileStarvingToDeath; 
+                agingFactor *= ServerSettings.AgingFactorWhileStarvingToDeath;
             } 
             else
             {
-                aging *= 1 / ServerSettings.AgingFactorWhileStarvingToDeath;
-                c.player.age_r = ServerSettings.AgingSecondsPerYear * ServerSettings.AgingFactorWhileStarvingToDeath; 
+                agingFactor *= 1 / ServerSettings.AgingFactorWhileStarvingToDeath;
             }
         }
-        else {
-            c.player.age_r = ServerSettings.AgingSecondsPerYear;
-        }
+
+        c.player.age_r = ServerSettings.AgingSecondsPerYear * agingFactor;
+
+        c.player.trueAge += aging;
+
+        aging *= agingFactor;
 
         c.player.age += aging;
         
         if(Std.int(tmpAge) != Std.int(c.player.age))
         {
+            trace('Age: ${c.player.age} TrueAge: ${c.player.trueAge} agingFactor: $agingFactor healthFactor: $healthFactor');
+
             c.player.food_store_max = CalculateFoodStoreMax(c.player);
 
             if(c.player.age > 60)
             {
+                c.player.age = c.player.trueAge; // bad health and starving can influence health
                 c.player.reason = 'reason_age';
                 c.player.deleted = true;
 
@@ -191,6 +207,7 @@ class TimeHelper
 
             if(c.player.food_store_max < ServerSettings.DeathWithFoodStoreMax)
             {
+                c.player.age = c.player.trueAge; // bad health and starving can influence health
                 c.player.reason = 'reason_hunger';
                 c.player.deleted = true;
 
