@@ -43,6 +43,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     // craving
     var currentlyCraving:Int = 0;
+    var lastCravingIndex:Int = 0;
     var cravings = new Array<Int>();
 
     public function new(a:Array<String>)
@@ -389,16 +390,57 @@ class GlobalPlayerInstance extends PlayerInstance {
 
             if(cravings.length < 1)
             {
-                trace('YUM: no new craving: Eaten: ${eatenFoodId}');
+                trace('YUM: no new craving / choose random new: Eaten: ${eatenFoodId}');
 
-                if(currentlyCraving != 0)
+                currentlyCraving = 0;
+
+                // chose random new craving
+                // TODO sort cravinglist by how difficult they are
+
+                var index = 0;
+                var iterations = 0;
+
+                for(i in 0...31)
                 {
-                    currentlyCraving = 0;
-                    this.connection.send(ClientTag.CRAVING, ['${eatenFoodId} 0']); // TODO send another craving
+                    iterations = i;
+                    
+                    index = lastCravingIndex + WorldMap.calculateRandomInt(6 + i) - 3;
+
+                    if(index == lastCravingIndex) index++;
+
+                    if(index < 0) continue;
+            
+                    if(index >= ObjectData.foodObjects.length) continue;
+
+                    if(hasEatenMap[index] > 0) continue;
+
+                    break;
                 }
+
+                if(iterations >= 30)
+                {
+                    trace('WARNING: No new random craving found!!!');
+                    this.connection.send(ClientTag.CRAVING, ['${currentlyCraving} 0']); 
+                    return;
+                }
+
+                var newObjData = ObjectData.foodObjects[index];
+
+                newHasEatenCount = hasEatenMap[key];
+                newHasEatenCount--;
+
+                trace('YUM; new random craving: ${newObjData.description} ${newObjData.id} lastCravingIndex: $lastCravingIndex index: $index  newHasEatenCount: ${-newHasEatenCount}');
+
+                lastCravingIndex = index;
+                currentlyCraving = newObjData.id;
+
+                
+
+                this.connection.send(ClientTag.CRAVING, ['${currentlyCraving} ${-newHasEatenCount}']); 
             }
             else
             {
+                // chose craving from known craving list
                 var random = WorldMap.calculateRandomInt(cravings.length -1);
                 var key = cravings[random];
                 newHasEatenCount = hasEatenMap[key];
@@ -528,6 +570,8 @@ class GlobalPlayerInstance extends PlayerInstance {
     public function setHeldObject(obj:ObjectHelper)
     {
         if(obj == null) obj = ObjectHelper.readObjectHelper(this, [0]);
+
+        obj.TransformToDummy();
 
         this.heldObject = obj;
         this.o_id = obj.toArray();

@@ -167,15 +167,15 @@ class WorldMap
         setObjectId(tx,ty + 11,[1599]);
 
         //containers testing SREMV
-        setObjectId(tx - 4,ty + 10,[434]);
-        setObjectId(tx - 5,ty + 10,[292,2143,2143,2143]);
-        setObjectId(tx - 6,ty + 10,[292,2143,2143,2143]);
-        setObjectId(tx - 7,ty + 10,[292,33,2143,33]);
-        setObjectId(tx - 8,ty + 10,[2143,2143,2143]);
+        setObjectId(tx - 4,ty + 7,[434]);
+        setObjectId(tx - 5,ty + 7,[292,2143,2143,2143]);
+        setObjectId(tx - 6,ty + 7,[292,2143,2143,2143]);
+        setObjectId(tx - 7,ty + 7,[292,33,2143,33]);
+        setObjectId(tx - 8,ty + 7,[2143,2143,2143]);
         // table
-        setObjectId(tx - 9,ty + 10,[3371,33,2143,33]);
-        setObjectId(tx - 10,ty + 10,[3371,2873,2873,245]);
-        setObjectId(tx - 11,ty + 10,[3371,1251,1251,245]);
+        setObjectId(tx - 9,ty + 7,[3371,33,2143,33]);
+        setObjectId(tx - 10,ty + 7,[3371,2873,2873,245]);
+        setObjectId(tx - 11,ty + 7,[3371,1251,1251,245]);
     }
     
     

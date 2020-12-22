@@ -623,9 +623,14 @@ class TransitionHelper{
 
         if(tileObjectHelper.containedObjects.length < 1)
         {
-            if(index != -1) return false;
+            //return false;
 
-            // it may be a USE on a horse cart???
+            //if(index != -1) return false;
+
+            // pickup Bowl of Gooseberries???
+            return swapHandAndFloorObject();
+
+            // it may be a TRANSITION on a horse cart or 
             //return doTransitionIfPossible();            
         }
 

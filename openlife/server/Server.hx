@@ -76,6 +76,7 @@ class Server
         // do all the object inititalisation stuff
         ObjectData.ImportObjectData();
         ObjectData.CreateAndAddDummyObjectData();
+        ObjectData.CreateFoodObjectArray();
         ServerSettings.PatchObjectData();
 
         ObjectData.GenerateBiomeObjectData();

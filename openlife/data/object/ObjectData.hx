@@ -17,8 +17,10 @@ class ObjectData extends LineReader
     // used for creation of the inital objects on the worldmap
     public static var biomeTotalChance:Map<Int,Float>; 
     public static var biomeObjectData:Map<Int, Array<ObjectData>>;
+    public static var foodObjects:Array<ObjectData> = [];
 
     public var dummyObjects:Array<ObjectData> = [];
+    
 
     /**
      * Max clothing pieces
@@ -377,6 +379,23 @@ class ObjectData extends LineReader
         }
 
         trace('finished adding dummy objects with numUse > 2 :${dummyId - starting}');
+    }
+
+    public static function CreateFoodObjectArray()
+    {
+        foodObjects = [];
+        var index = 0;
+
+        for (obj in importedObjectData)
+        {
+            if (obj.foodValue < 1) continue;
+            
+            index++;
+            
+            //trace('${obj.description} $index');
+
+            foodObjects.push(obj);
+        }
     }
 
     public static function GenerateBiomeObjectData()
