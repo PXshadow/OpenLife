@@ -42,13 +42,17 @@ Food - YUM:
     For eample eats a Yum berry / then eats a YUM onion / Then eats a YUM carrot / 80%  x 66%% = 52% chance that eating YUM carrot restores 1 pip of berry or onion food value   
 - You can only eat if you have space for at least half the food value, not counting YUM or food reduction
 - Extra food is stored as YUM Extra food
-- TODO YUM chain is used as Health 
+- YUM chain is used as Health 
 - eating YUM increases YUM chain, while eating MEH reduces it
 - TODO Eating YUM increases prestiege, eating MEH reduces it (Not how long you live is important but how you live is important)
+
+Food - Health
+- YUM chain / Health influences now aging (0.5X to 2X) and speed (1.2X to 0.5X) / With this Berry munching is even worse
 
 Food - Cravings:
 - Cravings display now a random food with a full YUM Boni, that has allready been eaten
 - Cravings give plus one extra food boni and YUM chain (Health)
+
 
 Animals:
 - Animals can multiply
@@ -63,7 +67,6 @@ TODO:
 - backpack
 - use on table
 - animal interactions / collisions
-- more food logic like food influencing speed and maxage
 - yum category // for example for berry / berry bowl
 - death
 - world persistance 

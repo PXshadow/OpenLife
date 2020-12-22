@@ -21,6 +21,10 @@ class ServerSettings
 
     public static var traceAmountGeneratedObjects = false; // WorldMap
 
+    // PlayerInstance
+    public static var StartingEveAge = 20;  // 13
+    public static var AgingSecondsPerYear = 60; // 60
+    
     // worldMap
     public static var ChanceForLuckySpot = 0.03; // chance that during generation an object is lucky and tons more of that are generated close by
     public static var MapFileName = "mysteraV1Test.png";    
@@ -40,12 +44,9 @@ class ServerSettings
     public static var YumBonus = 3; // First team eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
     public static var YumFoodRestore = 0.8; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food.
 
-    // PlayerInstance
-    public static var StartingEveAge = 20;  // 13
-    public static var AgingSecondsPerYear = 60; // 60
-
-    public static var HealthFactor = 20; // Changes how much health / yum_mulpiplier affects speed and aging. (From 0.5 to 1.2)  
-    public static var HealthAgingStart = -20; // For calculation Aging starts with a yum_mulpiplier of -20
+    // health
+    public static var HealthFactor = 40; // Changes how much health / yum_mulpiplier affects speed and aging. (From 0.5 to 1.2)  
+    public static var HealthStart = -20; // For calculation Aging starts with a yum_mulpiplier of -20
     //if(health >= 0) healthFactor = (1.2  * health + ServerSettings.HealthFactor) / (health + ServerSettings.HealthFactor);
     //else healthFactor = (health - ServerSettings.HealthFactor) / ( 2 * health - ServerSettings.HealthFactor);
     
