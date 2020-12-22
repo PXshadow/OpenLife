@@ -21,7 +21,7 @@ MAP:
 - no expert waystones
 
 Transitions:
-- Paradise is back! Wild Berries come finally back with time 
+- Paradise is back! Wild Berries and Bana come finaly back with time 
 
 Aging:
 - starving to death slows down aging below 14 and increases above  
