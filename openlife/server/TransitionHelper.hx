@@ -165,7 +165,7 @@ class TransitionHelper{
 
     public function checkIfNotMovingAndCloseEnough():Bool
     {
-        if(player.me.isMoveing()) {
+        if(player.moveHelper.isMoveing()) {
             trace("Player is still moving");
             return false; 
         }
@@ -663,7 +663,7 @@ class TransitionHelper{
 
         Server.server.map.setFloorId(this.tx, this.ty, this.newFloorId);
         Server.server.map.setObjectHelper(this.tx, this.ty, this.tileObjectHelper);
-        this.player.move_speed = MoveExtender.calculateSpeed(player, this.tx, this.ty);
+        this.player.move_speed = MoveHelper.calculateSpeed(player, this.tx, this.ty);
 
 
         var newTileObject = this.tileObjectHelper.toArray();

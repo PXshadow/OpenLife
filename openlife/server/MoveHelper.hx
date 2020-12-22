@@ -21,7 +21,7 @@ private class NewMovements {
 }
 
 
-class MoveExtender{
+class MoveHelper{
 
     // x,y when last chunk was send
     private var tx:Int = 0;
@@ -79,12 +79,12 @@ class MoveExtender{
 
     static public function updateMovement(p:GlobalPlayerInstance)
     {
-        var me = p.me;
+        var moveHelper = p.moveHelper;
         // check if movement arrived on destination and if so update all players  
         //var server = Server.server;
-        var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(me.startingMoveTicks);
+        var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.startingMoveTicks);
 
-        if(me.newMoves == null) return;
+        if(moveHelper.newMoves == null) return;
 
         /*
         if(server.tick % 60 == 0){
@@ -94,20 +94,20 @@ class MoveExtender{
         }
         */
 
-        if(timeSinceStartMovementInSec >= me.totalMoveTime){
+        if(timeSinceStartMovementInSec >= moveHelper.totalMoveTime){
 
             // a new move or command might also change the player data
             p.mutex.acquire(); 
 
-            var last = me.newMoves.pop(); 
-            me.totalMoveTime = 0;
-            me.startingMoveTicks = 0;
-            me.newMoves = null;
+            var last = moveHelper.newMoves.pop(); 
+            moveHelper.totalMoveTime = 0;
+            moveHelper.startingMoveTicks = 0;
+            moveHelper.newMoves = null;
                 
             p.x += last.x; 
             p.y += last.y;
             
-            p.done_moving_seqNum = me.newMoveSeqNumber;
+            p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
             p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
             //this.forced = true;
 
@@ -128,11 +128,11 @@ class MoveExtender{
             // since move update may acces this also
             p.mutex.acquire(); 
 
-            var me = p.me;
+            var moveHelper = p.moveHelper;
 
-            if(me.newMoves != null)
+            if(moveHelper.newMoves != null)
             {
-                var lastPos = calculateNewPos(me.newMoves, me.startingMoveTicks, p.move_speed);
+                var lastPos = calculateNewPos(moveHelper.newMoves, moveHelper.startingMoveTicks, p.move_speed);
 
                 p.x += lastPos.x;
                 p.y += lastPos.y;
@@ -152,7 +152,7 @@ class MoveExtender{
             {
                 p.forced = true;
                 p.done_moving_seqNum  = seq;
-                me.newMoves = null; // cancle all movements
+                moveHelper.newMoves = null; // cancle all movements
 
                 trace('MOVE: Force!   Server ${ p.x },${ p.y }:Client ${ x },${ y }');
             }
@@ -176,7 +176,7 @@ class MoveExtender{
             if(newMovements.moves.length < 1)
             {
                 p.done_moving_seqNum  = seq;
-                me.newMoves = null; // cancle all movements
+                moveHelper.newMoves = null; // cancle all movements
 
                 //cancle movement
                 p.forced = true;
@@ -201,22 +201,22 @@ class MoveExtender{
 
             p.move_speed = newMovements.startSpeed;
 
-            me.newMoves = newMovements.moves;
-            me.totalMoveTime = (1/p.move_speed) * newMovements.length;
-            me.startingMoveTicks = TimeHelper.tick;
-            me.newMoveSeqNumber = seq;  
+            moveHelper.newMoves = newMovements.moves;
+            moveHelper.totalMoveTime = (1/p.move_speed) * newMovements.length;
+            moveHelper.startingMoveTicks = TimeHelper.tick;
+            moveHelper.newMoveSeqNumber = seq;  
             
-            var eta = me.totalMoveTime;
+            var eta = moveHelper.totalMoveTime;
             //p.done_moving_seqNum = 0;
             
             // TODO spacing / chunk loading in x direction is too slow with high speed
             // TODO general better chunk loading
             var spacing = 4;
     
-            if(p.x - me.tx> spacing || p.x - me.tx < -spacing || p.y - me.ty > spacing || p.y - me.ty < -spacing ) {          
+            if(p.x - moveHelper.tx> spacing || p.x - moveHelper.tx < -spacing || p.y - moveHelper.ty > spacing || p.y - moveHelper.ty < -spacing ) {          
                 
-                me.tx = p.x;
-                me.ty = p.y;
+                moveHelper.tx = p.x;
+                moveHelper.ty = p.y;
     
                 p.connection.sendMapChunk(p.x,p.y);
             }
@@ -233,7 +233,7 @@ class MoveExtender{
                 // update only close players
                 if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
-                c.send(PLAYER_MOVES_START,['${p.p_id} ${targetX} ${targetY} ${me.totalMoveTime} $eta ${newMovements.trunc} ${moveString(me.newMoves)}']);
+                c.send(PLAYER_MOVES_START,['${p.p_id} ${targetX} ${targetY} ${moveHelper.totalMoveTime} $eta ${newMovements.trunc} ${moveString(moveHelper.newMoves)}']);
                 
                 c.send(FRAME);
             }

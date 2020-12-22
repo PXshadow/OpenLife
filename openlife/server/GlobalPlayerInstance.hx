@@ -10,7 +10,7 @@ import openlife.data.Pos;
 import openlife.data.object.player.PlayerInstance;
 import sys.thread.Mutex;
 
-using openlife.server.MoveExtender;
+using openlife.server.MoveHelper;
 
 class GlobalPlayerInstance extends PlayerInstance {
     // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
@@ -20,7 +20,7 @@ class GlobalPlayerInstance extends PlayerInstance {
     public var clothingObjects:Vector<ObjectHelper> = new Vector(6); 
 
     // handles all the movement stuff
-    public var me:MoveExtender = new MoveExtender();
+    public var moveHelper = new MoveHelper();
     // is used since move and move update can change the player at the same time
     public var mutex = new Mutex();
 

@@ -23,7 +23,7 @@ import sys.io.File;
 import haxe.io.Path;
 import openlife.data.object.ObjectData;
 
-using openlife.server.MoveExtender;
+using openlife.server.MoveHelper;
 
 class Server
 {

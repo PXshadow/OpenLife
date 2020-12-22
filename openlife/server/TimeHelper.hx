@@ -83,7 +83,7 @@ class TimeHelper
 
             updateFood(connection, timePassedInSeconds);
 
-            MoveExtender.updateMovement(connection.player);
+            MoveHelper.updateMovement(connection.player);
         }
 
         DoWorldMapTimeStuff();
