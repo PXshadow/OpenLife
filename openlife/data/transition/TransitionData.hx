@@ -43,9 +43,12 @@ class TransitionData
       return t;
     }
 
-    public function new()
+    public function new(actorID:Int = 0, targetID:Int = 0, newActorID:Int = 0, newTargetID:Int = 0)
     {
-        
+        this.actorID = actorID;
+        this.targetID = targetID;
+        this.newActorID = newActorID;
+        this.newTargetID = newTargetID;
     }
 
     public function clone():TransitionData

@@ -335,7 +335,7 @@ class ObjectData extends LineReader
         objectDataMap[-1].description = "TIME";
         objectDataMap[-1].id = -1;
 
-        trace('TEST: ${objectDataMap[-1].id}');
+        //trace('TEST: ${objectDataMap[-1].id}');
 
         for (i in 0...importedObjectData.length){
             if(i % 400 == 0)  trace('Create Object Data... $i from ${importedObjectData.length}');
