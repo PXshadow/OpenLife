@@ -447,7 +447,7 @@ class WorldMap
 
     function addExtraBiomes()
     {
-        var dist = ServerSettings.CreateGreenBiomeAroundRiverDistance;
+        var dist = ServerSettings.CreateGreenBiomeDistance;
         var tmpIsPlaced = new Vector<Bool>(length);
 
         for (y in 0...height)
@@ -458,7 +458,7 @@ class WorldMap
 
                 var biome = getBiomeId(x,y);
 
-                if(biome == BiomeTag.RIVER || biome == BiomeTag.PASSABLERIVER || biome == BiomeTag.JUNGLE)
+                if(biome == BiomeTag.RIVER || biome == BiomeTag.PASSABLERIVER || biome == BiomeTag.JUNGLE || biome == BiomeTag.SWAMP)
                 {
                     for(ix in -dist...dist+1)
                     {
