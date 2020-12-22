@@ -66,7 +66,7 @@ class MoveHelper{
         if(biomeSpeed < 0.9 && speedModHeldObj > 1.2)
         {
             if(speedModHeldObj > 2.50) speedModHeldObj = 0.7; // super speedy stuff like cars
-            else if(speedModHeldObj > 1.60) speedModHeldObj = 0.8; // for example horse
+            else if(speedModHeldObj > 1.8) speedModHeldObj = 0.8; // for example horse
             else speedModHeldObj = 0.6; // for example horse cart
 
             trace('Speed: New ${p.heldObject.objectData.description} speed in bad biome: ${p.heldObject.objectData.speedMult} --> $speedModHeldObj');
