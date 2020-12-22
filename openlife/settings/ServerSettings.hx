@@ -35,7 +35,7 @@ class ServerSettings
     // food stuff
     public static var WorldTimeParts = 40; // in each tick 1/40 DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX
     public static var MinAgeToEat = 3;
-    public static var FoodUsePerSecond = 0.2; // 0.2; // 5 sec per pip
+    public static var FoodUsePerSecond = 0.2; // 0.2; // 5 sec per pip // use 0.6 or something to test cravings...
     public static var GrownUpFoodStoreMax = 20;
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
@@ -90,7 +90,9 @@ class ServerSettings
         ObjectData.getObjectData(838).biomes.push(BiomeTag.GREEN); // Add some lovely mushrooms 
 
         // Horse-Drawn Cart
-        ObjectData.getObjectData(290).speedMult = 1.50; // Nerved horse cart little bit :)
+        ObjectData.getObjectData(778).speedMult = 1.50; // Nerved horse cart little bit :)
+
+        
         
         ObjectData.getObjectData(2156).mapChance *= 0.5; // Less UnHappy Mosquitos
 
