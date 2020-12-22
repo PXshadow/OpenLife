@@ -31,7 +31,7 @@ class ServerSettings
     // food stuff
     public static var WorldTimeParts = 40; // in each tick 1/40 DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX
     public static var MinAgeToEat = 3;
-    public static var FoodUsePerSecond = 1; // 0.2; // 5 sec per pip
+    public static var FoodUsePerSecond = 0.2; // 0.2; // 5 sec per pip
     public static var GrownUpFoodStoreMax = 20;
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
@@ -87,7 +87,7 @@ class ServerSettings
         
         ObjectData.getObjectData(2156).mapChance *= 0.5; // Less UnHappy Mosquitos
 
-        //ObjectData.getObjectData(2143).foodValue = 5; // banana
+        //ObjectData.getObjectData(2143).foodValue = 1; // banana
         //ObjectData.getObjectData(31).foodValue = 1; // Gooseberry
 
         //trace('Patch: ${ObjectData.getObjectData(942).description}');
@@ -106,7 +106,7 @@ class ServerSettings
 
         trans = new TransitionData(-1,279,0,30); // Empty Wild Gooseberry Bush --> // Wild Gooseberry Bush
         trans.reverseUseTarget = true; 
-        trans.autoDecaySeconds = 1200; // currently it returns two
+        trans.autoDecaySeconds = 600; 
         transtions.addTransition(trans);
 
         // let get bana back!
@@ -117,7 +117,7 @@ class ServerSettings
 
         trans = new TransitionData(-1,2145,0,2142); // Empty Banana Plant --> Banana Plant
         trans.reverseUseTarget = true;
-        trans.autoDecaySeconds = 2000; // currently it returns two
+        trans.autoDecaySeconds = 1000; 
         transtions.addTransition(trans);
     }
 }

@@ -388,7 +388,7 @@ class TransitionHelper{
             trace('HORSE: with trans / has eaten: ${player.heldObject.description()}');
             this.tileObjectHelper.setId(transition.newTargetID);
 
-            DoChangeNumberOfUsesOnTarget(this.tileObjectHelper, transition.targetID != transition.newTargetID, transition.reverseUseTarget);
+            DoChangeNumberOfUsesOnTarget(this.tileObjectHelper, transition);
         }
 
         player.heldObject = tmpHeldObject;
@@ -507,7 +507,7 @@ class TransitionHelper{
         trace('TRANS: NewTileObject: ${newTargetObjectData.description} ${this.tileObjectHelper.id()} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
 
         // target did not change if it is same dummy
-        DoChangeNumberOfUsesOnTarget(this.tileObjectHelper, transition.targetID != transition.newTargetID, transition.reverseUseTarget);
+        DoChangeNumberOfUsesOnTarget(this.tileObjectHelper, transition);
 
         // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
         this.doTransition = true;
@@ -565,8 +565,11 @@ class TransitionHelper{
         return false;
     }
 
-    public static function DoChangeNumberOfUsesOnTarget(obj:ObjectHelper, idHasChanged:Bool, reverseUse:Bool)
+    public static function DoChangeNumberOfUsesOnTarget(obj:ObjectHelper, transition:TransitionData, doTrace:Bool = true)
     {
+        var idHasChanged:Bool = transition.targetID != transition.newTargetID;
+        var reverseUse = transition.reverseUseTarget;
+
         var objectData  = obj.objectData;
         if(objectData.numUses < 2) return; 
 
@@ -576,11 +579,11 @@ class TransitionHelper{
             // if the ObjectHelper is created through a reverse use, it must be a pile or a bucket... hopefully...
             if(reverseUse)
             {
-                trace("TRANS: NEW PILE OR BUCKET?");
+                if(doTrace) trace("TRANS: NEW PILE OR BUCKET?");
                 obj.numberOfUses = 1;
             } 
             
-            trace('TRANS: Changed Object Type: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
+            if(doTrace) trace('TRANS: Changed Object Type: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
             return;
         }
 
@@ -589,16 +592,16 @@ class TransitionHelper{
             if(obj.numberOfUses > objectData.numUses - 1) return; 
 
             obj.numberOfUses += 1;
-            trace('TRANS: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
+            if(doTrace) trace('TRANS: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
         } 
         else
         {
-            trace('TRANS: ${objectData.description} objectData.useChance: ${objectData.useChance}');
+            if(doTrace) trace('TRANS: ${objectData.description} objectData.useChance: ${objectData.useChance}');
 
             if(objectData.useChance <= 0 || WorldMap.calculateRandomFloat() < objectData.useChance)
             {
                 obj.numberOfUses -= 1;
-                trace('TRANS: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
+                if(doTrace) trace('TRANS: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
                 //Server.server.map.setObjectHelper(tx,ty, obj); // deletes ObjectHelper in case it has no uses
             }
         }
