@@ -46,11 +46,9 @@ class MoveHelper{
 
         // TODO heavy objects in chart
 
-        // TODO chart off road
+        // TODO shoes extra speed / if not on horse / in car
 
-        // TODO shoes extra speed
-
-        // TODO road 
+        // TODO road boni / especialy for nerved carts and horses
 
         var speed = ServerSettings.InitialPlayerMoveSpeed;
 
@@ -68,12 +66,33 @@ class MoveHelper{
             if(speedModHeldObj > 2.50) speedModHeldObj = 0.7; // super speedy stuff like cars
             else if(speedModHeldObj > 1.8) speedModHeldObj = 0.8; // for example horse
             else if(speedModHeldObj > 1.2) speedModHeldObj = 0.6; // for example horse cart
-            else if(speedModHeldObj < 0.99) speedModHeldObj *= 0.6; // for example horse cart
+            //else if(speedModHeldObj < 0.99) speedModHeldObj *= 0.6; // for example horse cart  // DONE with containedObjSpeedMult
             
             trace('Speed: New ${p.heldObject.objectData.description} speed in bad biome: ${p.heldObject.objectData.speedMult} --> $speedModHeldObj');
         }
 
         speed *= speedModHeldObj;
+
+        // TODO obj in backpack
+        // TODO half penalty if on road
+        // TODO half penalty for strong 
+        var containedObjSpeedMult:Float = 1;
+
+        for(obj in p.heldObject.containedObjects)
+        {
+            containedObjSpeedMult *= Math.min(ServerSettings.MinSpeedReductionPerContainedObj, obj.objectData.speedMult); 
+            
+            for(subObj in obj.containedObjects)
+            {
+                containedObjSpeedMult *= Math.min(ServerSettings.MinSpeedReductionPerContainedObj, subObj.objectData.speedMult); 
+            }
+        }
+
+        if(biomeSpeed < 0.9) containedObjSpeedMult *= containedObjSpeedMult;
+        
+        if(containedObjSpeedMult < 1) trace('Speed: containedObjSpeedMult ${containedObjSpeedMult}');
+
+        speed *= containedObjSpeedMult;
 
         // only reduce speed when starving if not riding or in car 
         if(p.food_store < 0 && p.heldObject.objectData.speedMult < 1.1) speed *= ServerSettings.StarvingToDeathMoveSpeedFactor;

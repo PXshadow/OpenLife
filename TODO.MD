@@ -31,6 +31,8 @@ SPEED:
 - different speed for different biomes
 - limited speed for lower age < 10 and age > 55
 - starving to death reduces speed X0.5 if not in car or on horse
+- objects in container / sub container lower speed
+- horses and cars and carts are slower in bad biomes
 
 Food - YUM:
 - YUM gives 3 food boni first eaten. 
@@ -61,8 +63,11 @@ Animals:
 - Stuff like trees and rabit holes wont block animal movement // TODO also for player
 - horses are the ultimative devourers you can eat anything from horse!
 
+TODO Features
+- Winter
+- Underground
 
-TODO:
+TODO Missing:
 - hard work
 - speed stuff
 - backpack
@@ -72,8 +77,10 @@ TODO:
 - death
 - world persistance 
 - incarnation
+- biome boni for different races
+- feeding of other people
 - leadership
-- cravings
+- better order of craving list (currently its just ordered accoring to obj ID)
 - faces / for example hungry / ill
 - ill from moskitos
 - temperature
@@ -87,14 +94,19 @@ TODO:
 - score / score boni
 - nobles
 - job boni
-- biome boni for different races
-- feeding of other people
 - naming
 - families
 - commands 
 - speech limit
 - different languages
+
+
+Low priority stuff:
 - advanced transitions like oil stuff, sprinkler, cars
+- radio
+- photo
+
+
 
 
 

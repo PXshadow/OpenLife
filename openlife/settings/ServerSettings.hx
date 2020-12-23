@@ -60,8 +60,10 @@ class ServerSettings
     public static var maxDistanceToBeConsideredAsClose = 20; // only close players are updated with PU and MX and Movement 
 
     // for movement
-    public static var InitialPlayerMoveSpeed = 3.75; // in Tiles per Second
+    public static var InitialPlayerMoveSpeed:Float = 4; //3.75; // in Tiles per Second
     public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed factor X
+    public static var MinSpeedReductionPerContainedObj = 0.96;
+    
     // TODO FIX this can make jumps if too small / ideally this should be 0 so that the client cannot cheap while moving
     public static var MaxMovementCheatingDistanceBeforeForce = 2; // if client player position is bigger then X, client is forced in PU to use server position 
     public static var ChanceThatAnimalsCanPassBlockingBiome = 0.05;
@@ -87,7 +89,7 @@ class ServerSettings
 
         ObjectData.getObjectData(418).speedMult = 1.5; // Boost Wolfs even more :)
 
-        ObjectData.getObjectData(290).speedMult = 0.50; // Iron Ore
+        ObjectData.getObjectData(290).speedMult = 0.80; // Iron Ore
         ObjectData.getObjectData(838).mapChance = ObjectData.getObjectData(211).mapChance / 5; // Add some lovely mushrooms  
         ObjectData.getObjectData(838).biomes.push(BiomeTag.GREEN); // Add some lovely mushrooms 
 
