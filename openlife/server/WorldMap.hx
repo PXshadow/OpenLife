@@ -134,11 +134,11 @@ class WorldMap
         setObjectId(tx, ty+1, [2916]);
         setObjectId(tx+1, ty+1, [2456]);
         setObjectId(tx+2, ty+1, [766]);
-        setObjectId(tx+3, ty+1, [2919]);
-        setObjectId(tx+4, ty+1, [198]);
-        setObjectId(tx+5, ty+1, [2886]);
-        setObjectId(tx+6, ty+1, [586]);
-        setObjectId(tx+7, ty+1, [2951]);
+        setObjectId(tx-1, ty+1, [2919]);
+        setObjectId(tx-2, ty+1, [198]);
+        setObjectId(tx-3, ty+1, [2886]);
+        setObjectId(tx-4, ty+1, [586]);
+        setObjectId(tx-5, ty+1, [2951]);
 
 
         // pond

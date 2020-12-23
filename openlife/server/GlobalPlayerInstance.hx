@@ -51,6 +51,11 @@ class GlobalPlayerInstance extends PlayerInstance {
         super(a);
 
         this.heldObject = ObjectHelper.readObjectHelper(this, [0]);
+
+        for(i in 0...this.clothingObjects.length)
+        {
+            this.clothingObjects[i] = ObjectHelper.readObjectHelper(this, [0]);
+        }
     }
 
     public function tx() : Int {return x + gx;}
@@ -184,7 +189,7 @@ class GlobalPlayerInstance extends PlayerInstance {
             trace('cannot eat this stuff no food value!!! ${heldObjData.description}');
             return false;
         }
-
+        
         if(food_store_max - food_store < (foodValue + 1) / 2)
         {
             trace('too full to eat: food_store_max: $food_store_max - food_store: $food_store < ( foodValue: $foodValue + 1 ) / 2');
@@ -463,8 +468,9 @@ class GlobalPlayerInstance extends PlayerInstance {
     private function doSwitchCloths(clothingSlot:Int) : Bool
     {
         var objClothingSlot = calculateClothingSlot();
+        trace('self:o_id: ${this.o_id[0]} helobj.id: ${this.heldObject.id()} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
 
-        if(objClothingSlot < 0 && clothingSlot < 0) return false;
+        if(objClothingSlot < 0 && this.heldObject.id() != 0) return false;
 
         var array = this.clothing_set.split(";");
 
@@ -496,7 +502,9 @@ class GlobalPlayerInstance extends PlayerInstance {
         array[clothingSlot] = '${this.o_id[0]}';
         this.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
 
-        this.heldObject = ObjectHelper.readObjectHelper(this, [tmp]);
+        var tmpObj = this.clothingObjects[clothingSlot];
+        this.clothingObjects[clothingSlot] = this.heldObject;
+        this.setHeldObject(tmpObj);
 
         //doaction = true;
         this.o_id = [tmp];

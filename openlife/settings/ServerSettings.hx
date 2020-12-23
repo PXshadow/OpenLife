@@ -60,7 +60,7 @@ class ServerSettings
     public static var maxDistanceToBeConsideredAsClose = 20; // only close players are updated with PU and MX and Movement 
 
     // for movement
-    public static var InitialPlayerMoveSpeed:Float = 4; //3.75; // in Tiles per Second
+    public static var InitialPlayerMoveSpeed:Float = 3.75; //3.75; // in Tiles per Second
     public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed factor X
     public static var MinSpeedReductionPerContainedObj = 0.96;
     
