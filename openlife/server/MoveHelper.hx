@@ -120,7 +120,7 @@ class MoveHelper{
 
         var healthFactor = p.CalculateHealthFactor(true);
 
-        trace('speed: healthFactor: $healthFactor health: ${p.yum_multiplier}');
+        trace('speed: healthFactor: $healthFactor health: ${p.yum_multiplier} trueAge: ${p.trueAge} expected health: ${p.trueAge  * ServerSettings.MinHealthPerYear}');
 
         speed *= healthFactor;
 

@@ -74,8 +74,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     public function CalculateHealthFactor(forSpeed:Bool) : Float
     {
-        //var health:Float = forSpeed ? this.yum_multiplier : this.yum_multiplier + ServerSettings.HealthStart;
-        var health:Float = this.yum_multiplier + ServerSettings.HealthStart;
+        var health:Float = this.yum_multiplier - this.trueAge  * ServerSettings.MinHealthPerYear;
 
         var healthFactor:Float; 
 

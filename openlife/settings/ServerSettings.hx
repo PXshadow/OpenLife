@@ -47,7 +47,7 @@ class ServerSettings
 
     // health
     public static var HealthFactor = 40; // Changes how much health / yum_mulpiplier affects speed and aging. (From 0.5 to 1.2)  
-    public static var HealthStart = -20; // For calculation Aging starts with a yum_mulpiplier of -20
+    public static var MinHealthPerYear = 1; // For calculation Aging starts with a yum_mulpiplier of -20
     //if(health >= 0) healthFactor = (1.2  * health + ServerSettings.HealthFactor) / (health + ServerSettings.HealthFactor);
     //else healthFactor = (health - ServerSettings.HealthFactor) / ( 2 * health - ServerSettings.HealthFactor);
     
