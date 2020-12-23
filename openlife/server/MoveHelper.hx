@@ -76,7 +76,7 @@ class MoveHelper{
         // DO biomes
         var biomeSpeed = map.getBiomeSpeed(tx,ty);  
         // road reduces speed mali of bad biome with sqrt 
-        if(onRoad && biomeSpeed < 0.99) biomeSpeed = Math.sqrt(biomeSpeed);
+        if(onRoad && biomeSpeed < 0.99) biomeSpeed = 1; //biomeSpeed = Math.sqrt(biomeSpeed);
         speed *= biomeSpeed;
         
         var speedModHeldObj = p.heldObject.objectData.speedMult;
@@ -86,7 +86,6 @@ class MoveHelper{
             if(speedModHeldObj > 2.50) speedModHeldObj = 0.7; // super speedy stuff like cars
             else if(speedModHeldObj > 1.8) speedModHeldObj = 0.8; // for example horse
             else if(speedModHeldObj > 1.2) speedModHeldObj = 0.6; // for example horse cart
-            //else if(speedModHeldObj < 0.99) speedModHeldObj *= 0.6; // for example horse cart  // DONE with containedObjSpeedMult
             
             trace('Speed: New ${p.heldObject.objectData.description} speed in bad biome: ${p.heldObject.objectData.speedMult} --> $speedModHeldObj');
         }
@@ -95,7 +94,6 @@ class MoveHelper{
         speed *= speedModHeldObj;
 
         // TODO obj in backpack
-        // TODO half penalty if on road
         // TODO half penalty for strong 
         var containedObjSpeedMult:Float = 1;
 
@@ -340,6 +338,7 @@ class MoveHelper{
             }
         }        
 
+        // if path has a biome with different speed, path is trunced if movement is not on a road
         static private function calculateNewMovements(p:GlobalPlayerInstance, tx:Int,ty:Int,moves:Array<Pos>):NewMovements 
         {
             var newMovements:NewMovements = new NewMovements();
@@ -374,7 +373,7 @@ class MoveHelper{
 
                 newMovements.endSpeed = map.getBiomeSpeed(tx,ty); 
 
-                if(newMovements.endSpeed != newMovements.startSpeed)
+                if(newMovements.fullPathHasRoad == false && newMovements.endSpeed != newMovements.startSpeed)
                 {
                     if(newMovements.moves.length == 0){
                         newMovements.length += calculateLength(lastPos,move);
