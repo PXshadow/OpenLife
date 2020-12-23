@@ -207,7 +207,7 @@ class TransitionHelper{
         // if hand is empty then remove last object from container
         if(objToStore.id() == 0 && amountOfContainedObjects > 0)
         {
-            trace("CALL REMOVE");
+            trace("REMOVE");
 
             player.setHeldObject(container.removeContainedObject(index));
 

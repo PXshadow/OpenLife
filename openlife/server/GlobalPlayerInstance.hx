@@ -314,7 +314,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         A player receiving force for itself must snap back to that location
         before continuing to move.
     **/
-    public function SetTransitionData(x:Int, y:Int)
+    public function SetTransitionData(x:Int, y:Int, objOriginValid = 1)
     {
         var player = this;
 
@@ -330,7 +330,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         player.o_origin_x = x;
         player.o_origin_y = y;
         
-        player.o_origin_valid = 1; // what is this for???
+        player.o_origin_valid = objOriginValid; // what is this for???
         
         player.action_target_x = x;
         player.action_target_y = y;
@@ -513,6 +513,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         array[clothingSlot] = '${clothingObjects[clothingSlot].toString()}';
         this.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
 
+        /*
         //doaction = true;
         //this.o_id = [tmp];
         this.action = 1;
@@ -521,6 +522,9 @@ class GlobalPlayerInstance extends PlayerInstance {
         this.o_origin_x = x;
         this.o_origin_y = y;
         this.o_origin_valid = 0; // TODO ???
+        */
+
+        SetTransitionData(x, y, 0);
 
         trace('this.clothing_set: ${this.clothing_set}');
         
@@ -565,6 +569,17 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         if(TransitionHelper.doContainerStuffOnObj(this, clothing, true) == false) return false;
 
+        setInClothingSet(clothingSlot);
+
+        SetTransitionData(this.x, this.y, 0);
+
+        Connection.SendUpdateToAllClosePlayers(this);
+
+        return true;
+    }
+
+    private function setInClothingSet(clothingSlot:Int)
+    {
         var array = this.clothing_set.split(";");
 
         if(array.length < 6)
@@ -574,8 +589,6 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         array[clothingSlot] = '${clothingObjects[clothingSlot].toString()}';
         this.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
-
-        return true;
     }
 
     /*
@@ -588,14 +601,43 @@ class GlobalPlayerInstance extends PlayerInstance {
       i specifies the index of the container item to remove, or -1 to
 	  remove top of stack.
     */
-
-    public function specialRemove(x:Int,y:Int,clothingSlot:Int,index:Null<Int>)
+    // SREMV -5 6 5 -1 remnove from backpack
+    public function specialRemove(x:Int,y:Int,clothingSlot:Int,index:Null<Int>) : Bool
     {
         // TODO implement
-        // SREMV -5 6 5 -1 remnove from backpack
+        trace("SPECIAL REMOVE:");
 
+        if(clothingSlot < 0) return false;
+
+        var container = this.clothingObjects[clothingSlot];
+
+        if(container.containedObjects.length < 1) return false;
+
+        this.mutex.acquire();
+
+        this.setHeldObject(container.removeContainedObject(index));
+
+        setInClothingSet(clothingSlot);
+
+        SetTransitionData(x,y, 0);
+        /*
+        this.action = 1;
+        this.action_target_x = x;
+        this.action_target_y = y;
+        this.o_origin_x = x;
+        this.o_origin_y = y;
+        this.o_origin_valid = 0; // TODO ???
+        */
+
+        trace('this.clothing_set: ${this.clothing_set}');
+
+        this.mutex.release();
 
         Connection.SendUpdateToAllClosePlayers(this);
+
+        //this.connection.send(FRAME);
+
+        return true;
     }
 
     public function isHoldingYum() : Bool

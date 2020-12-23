@@ -22,7 +22,7 @@ class ServerSettings
     public static var traceAmountGeneratedObjects = false; // WorldMap
 
     // PlayerInstance
-    public static var StartingEveAge = 12;  // 13
+    public static var StartingEveAge = 10;  // 13
     public static var AgingSecondsPerYear = 60; // 60
 
     // worldMap
