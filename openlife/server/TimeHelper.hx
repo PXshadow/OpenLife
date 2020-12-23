@@ -353,15 +353,15 @@ class TimeHelper
 
         var worldmap = Server.server.map;
 
-        var x = helper.tx;
-        var y = helper.ty;
+        var fromTx = helper.tx;
+        var fromTy = helper.ty;
 
         for (i in 0...20)
         {
-            var tx = helper.tx - moveDist + worldmap.randomInt(moveDist * 2);
-            var ty = helper.ty - moveDist + worldmap.randomInt(moveDist * 2);
+            var toTx = helper.tx - moveDist + worldmap.randomInt(moveDist * 2);
+            var toTy = helper.ty - moveDist + worldmap.randomInt(moveDist * 2);
             
-            var target = worldmap.getObjectHelper(tx, ty);
+            var target = worldmap.getObjectHelper(toTx, toTy);
             //var obj = worldmap.getObjectId(tx, ty);
             //var objData = Server.objectDataMap[obj[0]];
 
@@ -372,9 +372,9 @@ class TimeHelper
             if(target.timeToChange != 0) continue;  
             if(target.groundObject != null) continue;
             // make sure that target is not the old tile
-            if(tx == helper.tx && ty == helper.ty) continue;
+            if(toTx == helper.tx && toTy == helper.ty) continue;
             
-            var targetBiome = worldmap.getBiomeId(tx,ty);
+            var targetBiome = worldmap.getBiomeId(toTx,toTy);
             if(targetBiome == BiomeTag.SNOWINGREY) continue;
             if(targetBiome == BiomeTag.OCEAN) continue;
 
@@ -399,12 +399,12 @@ class TimeHelper
             if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 10) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
 
             // limit movement if blocked
-            target = calculateNonBlockedTarget(x, y, target);
+            target = calculateNonBlockedTarget(fromTx, fromTy, target);
 
             if(target == null) continue; // movement was fully bocked, search another target
 
-            tx = target.tx;
-            ty = target.ty;
+            toTx = target.tx;
+            toTy = target.ty;
     
             // save what was on the ground, so that we can move on this tile and later restore it
             var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.toArray();
@@ -417,12 +417,12 @@ class TimeHelper
             helper.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
             helper.creationTimeInTicks = TimeHelper.tick;
 
-            worldmap.setObjectHelper(x, y, helper.groundObject);
-            worldmap.setObjectId(x,y, oldTileObject); // TODO move to setter
+            worldmap.setObjectHelper(fromTx, fromTy, helper.groundObject);
+            worldmap.setObjectId(fromTx,fromTy, oldTileObject); // TODO move to setter
 
             var tmpGroundObject = helper.groundObject;
             helper.groundObject = target;
-            worldmap.setObjectHelper(tx, ty, helper);
+            worldmap.setObjectHelper(toTx, toTy, helper);
 
             var chanceForOffspring = isPreferredBiome ? ServerSettings.chanceForOffspring : ServerSettings.chanceForOffspring * Math.pow((1 - chancePreferredBiome), 2);
 
@@ -441,11 +441,12 @@ class TimeHelper
                 var newAnimal = ObjectHelper.readObjectHelper(null, newTileObject);
                 newAnimal.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
                 newAnimal.groundObject = tmpGroundObject;
-                worldmap.setObjectHelper(x, y, newAnimal);
+                worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
                 //worldmap.setObjectId(x,y, newTileObject); // TODO move to setter
             }
             
-            var floorId = Server.server.map.getFloorId(tx, ty);
+            var floorIdTarget = Server.server.map.getFloorId(toTx, toTy);
+            var floorIdFrom = Server.server.map.getFloorId(fromTx, fromTy);
 
             var speed = ServerSettings.InitialPlayerMoveSpeed * helper.objectData.speedMult;
 
@@ -454,16 +455,18 @@ class TimeHelper
                 var player = c.player;
                 
                 // since player has relative coordinates, transform them for player
-                var fromX = x - player.gx;
-                var fromY = y - player.gy;
-                var targetX = tx - player.gx;
-                var targetY = ty - player.gy;
+                var fromX = fromTx - player.gx;
+                var fromY = fromTy - player.gy;
+                var toX = toTx - player.gx;
+                var toY = toTy - player.gy;
+
+                
 
                 // update only close players
-                if(player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+                if(player.isClose(toX,toY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
-                c.sendMapUpdateForMoving(targetX, targetY, floorId, newTileObject, -1, fromX, fromY, speed);
-                c.sendMapUpdate(fromX, fromY, floorId, oldTileObject, -1, false);
+                c.sendMapUpdateForMoving(toX, toY, floorIdTarget, newTileObject, -1, fromX, fromY, speed);
+                c.sendMapUpdate(fromX, fromY, floorIdFrom, oldTileObject, -1, false);
                 //c.sendMapUpdate(fromX, fromY, floorId, [0], -1);
                 c.send(FRAME, null, false);
             }
