@@ -101,13 +101,12 @@ class ServerSettings
         ObjectData.getObjectData(861).speedMult = 0.85; // // Old Hand Cart
         ObjectData.getObjectData(2172).speedMult = 0.9; // Hand Cart with Tires
         
-        
         //ObjectData.getObjectData(2143).foodValue = 1; // banana
         //ObjectData.getObjectData(31).foodValue = 1; // Gooseberry
 
         //trace('Patch: ${ObjectData.getObjectData(942).description}');
         //if (obj.deadlyDistance > 0)
-        //    obj.mapChance *= 0;
+        //    obj.mapChance *= 0;  
     }
 
     public static function PatchTransitions(transtions:TransitionImporter)

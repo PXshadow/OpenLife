@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.object.ObjectData;
 import haxe.Serializer;
 import openlife.settings.ServerSettings;
 import openlife.data.object.player.PlayerInstance;
@@ -8,12 +9,17 @@ import openlife.data.Pos;
 private class NewMovements {
     public var moves:Array<Pos> = [];
     public var length:Float;
-    // speed of starting Tile
+    // biome speed of starting Tile
     public var startSpeed:Float;
-    // speed of last Movement Tile
+    // biome speed of last Movement Tile
     public var endSpeed:Float;
-    // true if movement was cut
+    // complete speed of last Movement Tile
+    public var finalEndSpeed:Float;
+
+    // true if movement was cut    
     public var trunc:Int;
+
+    public var fullPathHasRoad = false;
     
     public function new() {
 
@@ -40,7 +46,7 @@ class MoveHelper{
         return (this.newMoves != null);
     }
 
-    static public function calculateSpeed(p:GlobalPlayerInstance, tx:Int,ty:Int) : Float
+    static public function calculateSpeed(p:GlobalPlayerInstance, tx:Int, ty:Int, fullPathHasRoad:Bool = true) : Float
     {
         var map =  Server.server.map;
 
@@ -50,18 +56,32 @@ class MoveHelper{
 
         // TODO road boni / especialy for nerved carts and horses
 
+        var onHorseOrCar = p.heldObject.objectData.speedMult >= 1.1;
+        
+
         var speed = ServerSettings.InitialPlayerMoveSpeed;
 
         speed *= ServerSettings.SpeedFactor; // used to increase speed if for example debuging
 
-        var biomeSpeed = map.getBiomeSpeed(tx,ty);
+        // DO floors / road
+        var floorObjData = ObjectData.getObjectData(map.getFloorId(tx,ty));
+        var floorSpeed = floorObjData.speedMult;
+        
+        if(fullPathHasRoad == false) floorSpeed = 1; // only consider road if the pull path is on road
 
+        var onRoad = floorSpeed >= 1.01;
+        speed *= floorSpeed;
+
+        
+        // DO biomes
+        var biomeSpeed = map.getBiomeSpeed(tx,ty);  
+        // road reduces speed mali of bad biome with sqrt 
+        if(onRoad && biomeSpeed < 0.99) biomeSpeed = Math.sqrt(biomeSpeed);
         speed *= biomeSpeed;
-
+        
         var speedModHeldObj = p.heldObject.objectData.speedMult;
-
         // horses and cars are bad in bad biome // TODO only if not on a road
-        if(biomeSpeed < 0.9)
+        if(biomeSpeed < 0.9 && speedModHeldObj > 1)
         {
             if(speedModHeldObj > 2.50) speedModHeldObj = 0.7; // super speedy stuff like cars
             else if(speedModHeldObj > 1.8) speedModHeldObj = 0.8; // for example horse
@@ -70,7 +90,8 @@ class MoveHelper{
             
             trace('Speed: New ${p.heldObject.objectData.description} speed in bad biome: ${p.heldObject.objectData.speedMult} --> $speedModHeldObj');
         }
-
+        
+        if(onRoad && speedModHeldObj < 0.99) speedModHeldObj = Math.sqrt(speedModHeldObj); // on road
         speed *= speedModHeldObj;
 
         // TODO obj in backpack
@@ -80,22 +101,24 @@ class MoveHelper{
 
         for(obj in p.heldObject.containedObjects)
         {
-            containedObjSpeedMult *= Math.min(ServerSettings.MinSpeedReductionPerContainedObj, obj.objectData.speedMult); 
+            containedObjSpeedMult *= Math.max(0.6, Math.min(ServerSettings.MinSpeedReductionPerContainedObj, obj.objectData.speedMult)); 
             
             for(subObj in obj.containedObjects)
             {
-                containedObjSpeedMult *= Math.min(ServerSettings.MinSpeedReductionPerContainedObj, subObj.objectData.speedMult); 
+                containedObjSpeedMult *= Math.max(0.6, Math.min(ServerSettings.MinSpeedReductionPerContainedObj, subObj.objectData.speedMult)); 
             }
         }
 
-        if(biomeSpeed < 0.9) containedObjSpeedMult *= containedObjSpeedMult;
-        
+        if(biomeSpeed < 0.9 && onRoad == false) containedObjSpeedMult *= containedObjSpeedMult; // in bad biome and off road double mali
+        if(onRoad && containedObjSpeedMult < 0.99) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult); // on road
+        if(onHorseOrCar && containedObjSpeedMult < 0.99) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult); // on horse / in car // TODO or strong
+
         if(containedObjSpeedMult < 1) trace('Speed: containedObjSpeedMult ${containedObjSpeedMult}');
 
         speed *= containedObjSpeedMult;
 
         // only reduce speed when starving if not riding or in car 
-        if(p.food_store < 0 && p.heldObject.objectData.speedMult < 1.1) speed *= ServerSettings.StarvingToDeathMoveSpeedFactor;
+        if(p.food_store < 0 && onHorseOrCar == false) speed *= ServerSettings.StarvingToDeathMoveSpeedFactor;
 
         var healthFactor = p.CalculateHealthFactor(true);
 
@@ -124,11 +147,11 @@ class MoveHelper{
 
         speed *= ageSpeedFactor;
 
-        trace('speed: $speed age: ${p.age} ageSpeedFactor: ${ageSpeedFactor} biomeSpeed: $biomeSpeed speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
+        trace('speed: $speed age: ${p.age} ageSpeedFactor: ${ageSpeedFactor} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
 
         return speed;
     }
-
+    
     static public function updateMovement(p:GlobalPlayerInstance)
     {
         var moveHelper = p.moveHelper;
@@ -228,6 +251,7 @@ class MoveHelper{
             if(newMovements.moves.length < 1)
             {
                 p.done_moving_seqNum  = seq;
+                p.move_speed = calculateSpeed(p, p.tx(), p.ty());
                 moveHelper.newMoves = null; // cancle all movements
 
                 //cancle movement
@@ -249,7 +273,9 @@ class MoveHelper{
             //trace("speed:" + speed);
             //var speedChanged = (p.move_speed != newMovements.startSpeed);
             
-            p.move_speed = newMovements.endSpeed;
+            p.move_speed = newMovements.finalEndSpeed;
+
+            //p.move_speed = newMovements.endSpeed;
             //p.move_speed = newMovements.startSpeed;
 
             moveHelper.newMoves = newMovements.moves;
@@ -319,32 +345,46 @@ class MoveHelper{
             var newMovements:NewMovements = new NewMovements();
             var map = Server.server.map;
             var lastPos:Pos = new Pos(0,0);
+            newMovements.fullPathHasRoad = true;
             
-            newMovements.startSpeed = calculateSpeed(p, tx,ty);
-            
-            for (move in moves) {
+            newMovements.startSpeed = map.getBiomeSpeed(tx,ty);
+                        
+            for (move in moves)
+            {
+                var tmpX = tx + move.x;
+                var tmpY = ty + move.y;
+
                 // check if biome is not walkable
-                if(map.getBiomeSpeed(tx + move.x,ty + move.y) < 0.1)
+                if(map.getBiomeSpeed(tmpX,ty + move.y) < 0.1)
                 {
-                    trace('biome ${map.getBiomeId(tx + move.x,ty + move.y)} is blocking movement! movement length: ${newMovements.length}');
+                    trace('biome ${map.getBiomeId(tmpX,tmpY)} is blocking movement! movement length: ${newMovements.length}');
                     
                     newMovements.trunc = 1;
-                    //newMovements.length = 0;
-                    //newMovements.moves = new Array<Pos>();
+
+                    newMovements.finalEndSpeed = calculateSpeed(p, p.tx() + lastPos.x, p.ty() + lastPos.y, newMovements.fullPathHasRoad);
+
                     return newMovements;
                 }
 
-                newMovements.endSpeed = calculateSpeed(p, tx + move.x,ty + move.y);
+                if(newMovements.fullPathHasRoad)
+                {
+                    var floorObjData = ObjectData.getObjectData(map.getFloorId(tmpX,tmpY));
+                    if(floorObjData.speedMult < 1.01) newMovements.fullPathHasRoad = false;
+                }
 
-                
+                newMovements.endSpeed = map.getBiomeSpeed(tx,ty); 
 
-                if(newMovements.endSpeed != newMovements.startSpeed) {
+                if(newMovements.endSpeed != newMovements.startSpeed)
+                {
                     if(newMovements.moves.length == 0){
                         newMovements.length += calculateLength(lastPos,move);
                         newMovements.moves.push(move);
                     }
 
                     if(moves.length > 1) newMovements.trunc = 1;
+
+                    newMovements.finalEndSpeed = calculateSpeed(p, tmpX,tmpY, newMovements.fullPathHasRoad);
+
                     return newMovements;
                 }
 
@@ -352,8 +392,9 @@ class MoveHelper{
 
                 newMovements.moves.push(move);
                 lastPos = move;
+            }       
 
-            }
+            newMovements.finalEndSpeed = calculateSpeed(p, p.tx() + lastPos.x, p.ty() + lastPos.y, newMovements.fullPathHasRoad);
 
             return newMovements;
         }      

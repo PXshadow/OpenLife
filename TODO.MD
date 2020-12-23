@@ -33,6 +33,7 @@ SPEED:
 - starving to death reduces speed X0.5 if not in car or on horse
 - objects in container / sub container lower speed
 - horses and cars and carts are slower in bad biomes
+- road reduces speed mali of bad biome and heavy obj with sqrt 
 
 Food - YUM:
 - YUM gives 3 food boni first eaten. 

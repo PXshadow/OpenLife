@@ -59,7 +59,7 @@ import haxe.io.Bytes;
     public var SSNOWINGREY = 0.01;
     public var SOCEAN = 0.01;  
     public var SRIVER = 0.01;
-    public var SPASSABLERIVER = 0.25;   
+    public var SPASSABLERIVER = 0.3;   
 }
 
 class WorldMap
@@ -92,6 +92,27 @@ class WorldMap
 
     private function generateExtraDebugStuff(tx:Int, ty:Int)
     {
+        setFloorId(tx - 3, ty - 2, 1596); // stone road
+        setFloorId(tx - 3, ty - 3, 1596); // stone road
+        setFloorId(tx - 3, ty - 4, 1596); // stone road
+        setFloorId(tx - 3, ty - 5, 1596); // stone road
+        setFloorId(tx - 3, ty - 6, 1596); // stone road
+        setFloorId(tx - 3, ty - 7, 1596); // stone road
+        setFloorId(tx - 4, ty - 7, 1596); // stone road
+        setFloorId(tx - 5, ty - 7, 1596); // stone road
+        setFloorId(tx - 6, ty - 7, 1596); // stone road
+
+        setObjectId(tx - 3, ty - 2, [0]); //  clear road
+        setObjectId(tx - 3, ty - 3, [0]); //  clear road
+        setObjectId(tx - 3, ty - 4, [0]); //  clear road
+        setObjectId(tx - 3, ty - 5, [0]); //  clear road
+        setObjectId(tx - 3, ty - 6, [0]); //  clear road
+        setObjectId(tx - 3, ty - 7, [0]); //  clear road
+        setObjectId(tx - 4, ty - 7, [0]); //  clear road
+        setObjectId(tx - 5, ty - 7, [0]); //  clear road
+        setObjectId(tx - 6, ty - 7, [0]); //  clear road
+
+
         setObjectId(tx - 3,ty-1,[1121]); // popcorn
         setObjectId(tx - 3,ty,[3900]); // onion pile
         setObjectId(tx - 2,ty-1,[2742]); // carrot pile
