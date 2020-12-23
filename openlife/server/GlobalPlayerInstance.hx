@@ -137,7 +137,9 @@ class GlobalPlayerInstance extends PlayerInstance {
             if(doEating()) return;
         }
 
-        doSwitchCloths(clothingSlot);
+        if(doSwitchCloths(clothingSlot)) return;
+
+        doPlaceObjInClothing(clothingSlot);
     }
 
     /*
@@ -412,12 +414,10 @@ class GlobalPlayerInstance extends PlayerInstance {
                 // TODO sort cravinglist by how difficult they are
 
                 var index = 0;
-                var iterations = 0;
+                var foundNewCraving = false;
 
                 for(i in 0...31)
                 {
-                    iterations = i;
-                    
                     index = lastCravingIndex + WorldMap.calculateRandomInt(6 + i) - 3;
 
                     if(index == lastCravingIndex) index++;
@@ -430,10 +430,12 @@ class GlobalPlayerInstance extends PlayerInstance {
 
                     if(hasEatenMap[newObjData.id] > 0) continue;
 
+                    foundNewCraving = true;
+
                     break;
                 }
 
-                if(iterations >= 30)
+                if(foundNewCraving == false)
                 {
                     trace('WARNING: No new random craving found!!!');
                     this.connection.send(ClientTag.CRAVING, ['${currentlyCraving} 0']); 
@@ -553,6 +555,18 @@ class GlobalPlayerInstance extends PlayerInstance {
         }
 
         return objClothingSlot;
+    }
+
+    private function doPlaceObjInClothing(clothingSlot:Int) : Bool
+    {
+        if(clothingSlot < 0) return false;
+
+        var clothing = this.clothingObjects[clothingSlot];
+
+        //if clothing.objectData
+
+            
+        return true;
     }
 
     public function specialRemove(x:Int,y:Int,clothing:Int,id:Null<Int>)

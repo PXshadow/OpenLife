@@ -181,23 +181,41 @@ class TransitionHelper{
     // DROP switches the object with the last object in the container and cycles throuh the objects / USE just put it in
     public function doContainerStuff(isDrop:Bool = false, index:Int = -1) : Bool
     {
-        trace("containable: " + tileObjectData.containable + " desc: " + tileObjectData.description + " numSlots: " + tileObjectData.numSlots);
-
-        // TODO change container check
-        //if ((objectData.numSlots == 0 || MapData.numSlots(this.tileObject) >= objectData.numSlots)) return false;
-        if (tileObjectData.numSlots == 0) return false; 
-
-        var amountOfContainedObjects = tileObjectHelper.containedObjects.length;
-
-        // if hand is empty then remove last object from container
-        if(player.heldObject.id() == 0 && amountOfContainedObjects > 0)
+        if(doContainerStuffOnObj(tileObjectHelper,this.player, isDrop, index))
         {
-            trace("CALL REMOVE");
-            if(remove(index)) return true;
-            return false;
+            this.doAction = true;
+            return true;
         }
 
-        if(handObjectData.containable == false)
+        return false;
+    }
+
+    public static function doContainerStuffOnObj(container:ObjectHelper, player:GlobalPlayerInstance, isDrop:Bool = false, index:Int = -1) : Bool
+    {
+        var objToStore:ObjectHelper = player.heldObject;
+        var containerObjData = container.objectData;
+        var objToStoreObjData = objToStore.objectData;
+
+        trace("Container: " + containerObjData.description + "containable: " + containerObjData.containable + " numSlots: " + containerObjData.numSlots);
+        
+        // TODO change container check
+        //if ((objectData.numSlots == 0 || MapData.numSlots(this.tileObject) >= objectData.numSlots)) return false;
+        if (containerObjData.numSlots == 0) return false; 
+
+        var amountOfContainedObjects = container.containedObjects.length;
+
+        // if hand is empty then remove last object from container
+        if(objToStore.id() == 0 && amountOfContainedObjects > 0)
+        {
+            trace("CALL REMOVE");
+
+            player.setHeldObject(container.removeContainedObject(index));
+
+            //if(remove(index)) return true;
+            return true;
+        }
+
+        if(objToStoreObjData.containable == false)
         {
             trace('handObject is not containable!');
             return false;
@@ -205,39 +223,36 @@ class TransitionHelper{
 
         // place hand object in container if container has enough space
         //if (handObjectData.slotSize >= objectData.containSize) {
-        trace('handObjectData.slotSize: ${handObjectData.slotSize} tileObjectData.containSize: ${tileObjectData.containSize}');
-        if (handObjectData.slotSize > tileObjectData.containSize) return false;
+        trace('Container: ${objToStore.description()} objToStore.slotSize: ${objToStoreObjData.slotSize} container.containSize: ${containerObjData.containSize}');
+        if (objToStoreObjData.slotSize > containerObjData.containSize) return false;
 
-        trace('Hand Object ${this.player.heldObject.id()}');
-        trace('Hand Object Slot size: ${handObjectData.slotSize} TO: container Size: ${tileObjectData.containSize}');
+        trace('Container: ${objToStore.description()} objToStore.slotSize: ${objToStoreObjData.slotSize} TO: container.containSize: ${containerObjData.containSize}');
 
         if(isDrop == false)            
         {
-            if(amountOfContainedObjects >= tileObjectData.numSlots) return false;
+            if(amountOfContainedObjects >= containerObjData.numSlots) return false;
 
-            tileObjectHelper.containedObjects.push(this.player.heldObject);
+            container.containedObjects.push(player.heldObject);
 
-            this.player.heldObject = ObjectHelper.readObjectHelper(player,[0]);
+            player.setHeldObject(null);
 
-            this.doAction = true;
             return true;
         }
 
-        var tmpObject = tileObjectHelper.removeContainedObject(-1);
+        var tmpObject = container.removeContainedObject(-1);
 
-        tileObjectHelper.containedObjects.insert(0 , this.player.heldObject);
+        container.containedObjects.insert(0 , player.heldObject);
 
-        this.player.setHeldObject(tmpObject);
+        player.setHeldObject(tmpObject);
 
         trace('DROP SWITCH Hand object: ${player.heldObject.toArray()}');
-        trace('DROP SWITCH New Tile object: ${tileObjectHelper.toArray()}');
+        trace('DROP SWITCH New Tile object: ${container.toArray()}');
 
-        this.doAction = true;
         return true;
     }
 
-    private function swapHandAndFloorObject():Bool{
-
+    private function swapHandAndFloorObject():Bool
+    {
         //trace("SWAP tileObjectData: " + tileObjectData.toFileString());
         
         var permanent = (tileObjectData != null) && (tileObjectData.permanent == 1);
@@ -614,14 +629,25 @@ class TransitionHelper{
      i specifies the index of the container item to remove, or -1 to
      remove top of stack.*/
 
-    public function remove(index:Int) : Bool
+     public function remove(index:Int) : Bool
+    {
+        if(removeObj(this.player, tileObjectHelper, index))
+        {
+            this.doAction = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    public function removeObj(player:GlobalPlayerInstance, container:ObjectHelper, index:Int) : Bool
     {
         trace("remove index " + index);
 
         // do nothing if tile Object is empty
-        if(this.tileObjectHelper.id() == 0) return false;
+        if(container.id() == 0) return false;
 
-        if(tileObjectHelper.containedObjects.length < 1)
+        if(container.containedObjects.length < 1)
         {
             //return false;
 
@@ -634,9 +660,8 @@ class TransitionHelper{
             //return doTransitionIfPossible();            
         }
 
-        this.player.setHeldObject(tileObjectHelper.removeContainedObject(index));
-
-        this.doAction = true;
+        player.setHeldObject(container.removeContainedObject(index));
+        
         return true;
     }
 
