@@ -1,4 +1,5 @@
 package openlife.server;
+import haxe.Serializer;
 import openlife.settings.ServerSettings;
 import openlife.data.map.MapData;
 import format.swf.Data.PlaceObject;
@@ -89,7 +90,7 @@ class Connection implements ServerHeader
         player.move_speed = MoveHelper.calculateSpeed(player, player.gx, player.gy);
         player.food_store_max = TimeHelper.CalculateFoodStoreMax(player);
         player.food_store = player.food_store_max / 2;
-        //player.yum_multiplier = HealthStart 
+        player.yum_multiplier = ServerSettings.MinHealthPerYear * ServerSettings.StartingEveAge; 
         
         trace("move_speed: " + player.move_speed);
 

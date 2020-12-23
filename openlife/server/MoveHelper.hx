@@ -83,7 +83,7 @@ class MoveHelper{
         // horses and cars are bad in bad biome // TODO only if not on a road
         if(biomeSpeed < 0.9 && speedModHeldObj > 1)
         {
-            if(speedModHeldObj > 2.50) speedModHeldObj = 0.7; // super speedy stuff like cars
+            if(speedModHeldObj > 2.50) speedModHeldObj = 0.5; // super speedy stuff like cars
             else if(speedModHeldObj > 1.8) speedModHeldObj = 0.8; // for example horse
             else if(speedModHeldObj > 1.2) speedModHeldObj = 0.6; // for example horse cart
             
