@@ -181,7 +181,7 @@ class TransitionHelper{
     // DROP switches the object with the last object in the container and cycles throuh the objects / USE just put it in
     public function doContainerStuff(isDrop:Bool = false, index:Int = -1) : Bool
     {
-        if(doContainerStuffOnObj(tileObjectHelper,this.player, isDrop, index))
+        if(doContainerStuffOnObj(this.player, tileObjectHelper, isDrop, index))
         {
             this.doAction = true;
             return true;
@@ -190,7 +190,7 @@ class TransitionHelper{
         return false;
     }
 
-    public static function doContainerStuffOnObj(container:ObjectHelper, player:GlobalPlayerInstance, isDrop:Bool = false, index:Int = -1) : Bool
+    public static function doContainerStuffOnObj(player:GlobalPlayerInstance, container:ObjectHelper, isDrop:Bool = false, index:Int = -1) : Bool
     {
         var objToStore:ObjectHelper = player.heldObject;
         var containerObjData = container.objectData;

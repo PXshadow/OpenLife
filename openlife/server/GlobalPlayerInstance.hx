@@ -509,7 +509,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         this.setHeldObject(tmpObj);
 
         // switch clothing if there is a clothing on this slot
-        var tmp = Std.parseInt(array[clothingSlot]);
+        //var tmp = Std.parseInt(array[clothingSlot]);
         array[clothingSlot] = '${clothingObjects[clothingSlot].toString()}';
         this.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
 
@@ -563,15 +563,37 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         var clothing = this.clothingObjects[clothingSlot];
 
-        //if clothing.objectData
+        if(TransitionHelper.doContainerStuffOnObj(this, clothing, true) == false) return false;
 
-            
+        var array = this.clothing_set.split(";");
+
+        if(array.length < 6)
+        {
+            trace('Clothing string missing slots: ${this.clothing_set}' );
+        }  
+
+        array[clothingSlot] = '${clothingObjects[clothingSlot].toString()}';
+        this.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
+
         return true;
     }
 
-    public function specialRemove(x:Int,y:Int,clothing:Int,id:Null<Int>)
+    /*
+    SREMV x y c i#
+
+    SREMV is special case of removing an object contained in a piece of worn 
+      clothing.
+      c specifies the clothing slot to remove from:  0=hat, 1=tunic, 
+         2=frontShoe, 3=backShoe, 4=bottom, 5=backpack
+      i specifies the index of the container item to remove, or -1 to
+	  remove top of stack.
+    */
+
+    public function specialRemove(x:Int,y:Int,clothingSlot:Int,index:Null<Int>)
     {
         // TODO implement
+        // SREMV -5 6 5 -1 remnove from backpack
+
 
         Connection.SendUpdateToAllClosePlayers(this);
     }
