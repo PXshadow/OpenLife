@@ -502,19 +502,19 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         trace('self: ${this.o_id[0]} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
 
-        if(clothingSlot < 0) return false;
-
-        // switch clothing if there is a clothing on this slot
-        var tmp = Std.parseInt(array[clothingSlot]);
-        array[clothingSlot] = '${this.o_id[0]}';
-        this.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
+        if(clothingSlot < 0) return false;        
 
         var tmpObj = this.clothingObjects[clothingSlot];
         this.clothingObjects[clothingSlot] = this.heldObject;
         this.setHeldObject(tmpObj);
 
+        // switch clothing if there is a clothing on this slot
+        var tmp = Std.parseInt(array[clothingSlot]);
+        array[clothingSlot] = '${clothingObjects[clothingSlot].toString()}';
+        this.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
+
         //doaction = true;
-        this.o_id = [tmp];
+        //this.o_id = [tmp];
         this.action = 1;
         this.action_target_x = x;
         this.action_target_y = y;

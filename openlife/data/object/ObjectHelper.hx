@@ -94,6 +94,27 @@ class ObjectHelper {
         return ids;
     }
 
+    public function toString() : String
+    {
+        var objString = "";
+
+        objString += '${this.objectData.id}';
+
+        for(item in containedObjects)
+        {
+            objString += ',${item.objectData.id}';
+
+            for(subitem in item.containedObjects)
+            {
+                objString += ':${subitem.objectData.id}';
+            }
+        }
+
+        //trace('write obj to String: ${objString}');
+
+        return objString;
+    }
+
     public function new(creator:GlobalPlayerInstance, id:Int)
     {
         this.objectData = ObjectData.getObjectData(id); 
