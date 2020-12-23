@@ -132,7 +132,10 @@ class GlobalPlayerInstance extends PlayerInstance {
     {
         trace('self: ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
-        if(doEating()) return;
+        if(clothingSlot < 0)
+        {
+            if(doEating()) return;
+        }
 
         doSwitchCloths(clothingSlot);
     }
@@ -183,6 +186,8 @@ class GlobalPlayerInstance extends PlayerInstance {
         if(heldObjData.dummyParent != null) heldObjData = heldObjData.dummyParent;
 
         var foodValue = heldObjData.foodValue;
+
+        trace('FOOD: food_store_max: $food_store_max food_store: $food_store foodValue: $foodValue');
 
         if(foodValue < 1)
         {
