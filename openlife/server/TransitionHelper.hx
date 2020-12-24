@@ -146,6 +146,8 @@ class TransitionHelper{
         // this is a drop and not a transition
         this.doTransition = false;
 
+        if(clothingIndex >=0) return player.doPlaceObjInClothing(clothingIndex, true);
+            
         if(this.tileObjectData.minPickupAge > player.age)
         {
             trace('DROP: tileObjectData.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
@@ -156,8 +158,6 @@ class TransitionHelper{
 
         // switch hand object in container with last object in container 
         if(this.doContainerStuff(true)) return true;
-
-        // TODO adding something to own clothing using clothingIndex
 
         return this.swapHandAndFloorObject();  
     } 
@@ -180,7 +180,7 @@ class TransitionHelper{
     // DROP switches the object with the last object in the container and cycles throuh the objects / USE just put it in
     public function doContainerStuff(isDrop:Bool = false, index:Int = -1) : Bool
     {
-        if(doContainerStuffOnObj(this.player, tileObjectHelper, isDrop, index))
+        if(DoContainerStuffOnObj(this.player, tileObjectHelper, isDrop, index))
         {
             this.doAction = true;
             return true;
@@ -189,7 +189,7 @@ class TransitionHelper{
         return false;
     }
 
-    public static function doContainerStuffOnObj(player:GlobalPlayerInstance, container:ObjectHelper, isDrop:Bool = false, index:Int = -1) : Bool
+    public static function DoContainerStuffOnObj(player:GlobalPlayerInstance, container:ObjectHelper, isDrop:Bool = false, index:Int = -1) : Bool
     {
         var objToStore:ObjectHelper = player.heldObject;
         var containerObjData = container.objectData;

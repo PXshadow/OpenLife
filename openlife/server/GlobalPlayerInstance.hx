@@ -539,15 +539,17 @@ class GlobalPlayerInstance extends PlayerInstance {
         return objClothingSlot;
     }
 
-    private function doPlaceObjInClothing(clothingSlot:Int) : Bool
+    public function doPlaceObjInClothing(clothingSlot:Int, isDrop:Bool = false) : Bool
     {
-        if(clothingSlot < 0) return false;
+        if(clothingSlot < 0 ||  clothingSlot >= this.clothingObjects.length) return false;
 
         var clothing = this.clothingObjects[clothingSlot];
 
-        if(TransitionHelper.doContainerStuffOnObj(this, clothing, false) == false) return false;
+        if(TransitionHelper.DoContainerStuffOnObj(this, clothing, isDrop) == false) return false;
 
         setInClothingSet(clothingSlot);
+
+        if(isDrop) return true; // currently flase if called from drop
 
         SetTransitionData(this.x, this.y, 0);
 
