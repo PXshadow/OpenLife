@@ -103,12 +103,18 @@ class ServerSettings
         ObjectData.getObjectData(2172).speedMult = 0.9; // Hand Cart with Tires
 
 
+        // nerve food
+        ObjectData.getObjectData(2143).foodValue = 5; // banana
+        ObjectData.getObjectData(31).foodValue = 2; // Gooseberry
+        ObjectData.getObjectData(2855).foodValue = 2; // Onion
+        ObjectData.getObjectData(808).foodValue = 2; // Wild Onion
+
+        
+
         //trace('Trace: ${ObjectData.getObjectData(8881).description}');
          
         
-        //ObjectData.getObjectData(2143).foodValue = 1; // banana
-        //ObjectData.getObjectData(31).foodValue = 1; // Gooseberry
-
+        
         //trace('Patch: ${ObjectData.getObjectData(942).description}');
         //if (obj.deadlyDistance > 0)
         //    obj.mapChance *= 0;  
