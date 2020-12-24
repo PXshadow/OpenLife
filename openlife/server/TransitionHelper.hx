@@ -687,10 +687,6 @@ class TransitionHelper{
             return false;
         }
 
-        // TODO do dummies for hand object???
-        // DO dummies for objects that have more then one numUses
-        //this.tileObjectHelper.TransformToDummy();
-
         trace('NEW: handObjectHelper: ${player.heldObject.description()} numberOfUses: ${player.heldObject.numberOfUses} ' + player.heldObject.toArray());
         trace('NEW: tileObjectHelper: ${tileObjectHelper.description()} numberOfUses: ${tileObjectHelper.numberOfUses} ' + tileObjectHelper.toArray());
 
@@ -702,7 +698,7 @@ class TransitionHelper{
         var newTileObject = this.tileObjectHelper.toArray();
 
         // TODO set right
-        player.o_transition_source_id = this.newTransitionSource;
+        //player.o_transition_source_id = this.newTransitionSource;
 
         player.SetTransitionData(this.x,this.y, this.pickUpObject);
 

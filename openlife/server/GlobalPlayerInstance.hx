@@ -311,7 +311,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         player.o_id = this.heldObject.toArray();
 
         //player.o_transition_source_id = this.newTransitionSource; TODO ??????????????????????????
-        player.o_transition_source_id = -1;
+        player.o_transition_source_id = objOriginValid ? -1 : this.heldObject.id();
 
         // this changes where the client moves the objec from on display
         player.o_origin_x = objOriginValid ? x : 0;
