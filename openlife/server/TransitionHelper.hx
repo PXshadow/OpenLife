@@ -127,8 +127,8 @@ class TransitionHelper{
         //trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
 
         
-        trace('handObjectHelper: ${handObjectData.description} ' + player.heldObject.toArray());
-        trace('tileObjectHelper: ${tileObjectData.description} ' + tileObjectHelper.toArray());
+        trace('handObjectHelper: ${handObjectData.description} numberOfUses: ${player.heldObject.numberOfUses} ' + player.heldObject.toArray());
+        trace('tileObjectHelper: ${tileObjectData.description} numberOfUses: ${tileObjectHelper.numberOfUses} ' + tileObjectHelper.toArray());
     }
 
     /*
@@ -451,13 +451,20 @@ class TransitionHelper{
         trace('TRANS: Found transition: a${transition.actorID} t${transition.targetID} ');
         transition.traceTransition("TRANS: ", true);
 
+        var newActorObjectData = ObjectData.getObjectData(transition.newActorID);
         var newTargetObjectData = ObjectData.getObjectData(transition.newTargetID);
 
-        // TODO check also for handobject???
+        // if it is a reverse transition, check if it would exceed max numberOfUses 
+        if(transition.reverseUseActor && this.player.heldObject.numberOfUses >= newActorObjectData.numUses)
+        {
+            trace('TRANS Actor: numberOfUses >= newTargetObjectData.numUses: ${this.player.heldObject.numberOfUses} ${newActorObjectData.numUses}');
+            return false;
+        }
+
         // if it is a reverse transition, check if it would exceed max numberOfUses 
         if(transition.reverseUseTarget && this.tileObjectHelper.numberOfUses >= newTargetObjectData.numUses)
         {
-            trace('TRANS: numberOfUses >= newTargetObjectData.numUses: try use maxUseTransition');
+            trace('TRANS Target: numberOfUses >= newTargetObjectData.numUses: ${this.tileObjectHelper.numberOfUses} ${newTargetObjectData.numUses} try use maxUseTransition');
             transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.tileObjectData.id, false, false, true);
 
             if(transition == null)
@@ -688,8 +695,8 @@ class TransitionHelper{
         // DO dummies for objects that have more then one numUses
         //this.tileObjectHelper.TransformToDummy();
 
-        trace('NEW: handObjectHelper: ${player.heldObject.description()} ' + player.heldObject.toArray());
-        trace('NEW: tileObjectHelper: ${tileObjectHelper.description()} ' + tileObjectHelper.toArray());
+        trace('NEW: handObjectHelper: ${player.heldObject.description()} numberOfUses: ${player.heldObject.numberOfUses} ' + player.heldObject.toArray());
+        trace('NEW: tileObjectHelper: ${tileObjectHelper.description()} numberOfUses: ${tileObjectHelper.numberOfUses} ' + tileObjectHelper.toArray());
 
         Server.server.map.setFloorId(this.tx, this.ty, this.newFloorId);
         Server.server.map.setObjectHelper(this.tx, this.ty, this.tileObjectHelper);

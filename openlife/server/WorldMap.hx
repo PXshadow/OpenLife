@@ -112,7 +112,9 @@ class WorldMap
         setObjectId(tx - 5, ty - 7, [0]); //  clear road
         setObjectId(tx - 6, ty - 7, [0]); //  clear road
 
-
+        
+        setObjectId(tx - 4,ty-1,[391]); // Domestic Gooseberry Bush
+        setObjectId(tx - 4,ty-2,[391]); // Domestic Gooseberry Bush
         setObjectId(tx - 3,ty-1,[1121]); // popcorn
         setObjectId(tx - 3,ty,[3900]); // onion pile
         setObjectId(tx - 2,ty-1,[2742]); // carrot pile

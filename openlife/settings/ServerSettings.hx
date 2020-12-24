@@ -138,7 +138,7 @@ class ServerSettings
         trans.autoDecaySeconds = 1000; 
         transtions.addTransition(trans);
 
-
+        //  Wild Gooseberry Bush
         trans = new TransitionData(253,30,253,30); // Bowl of Gooseberries + Wild Gooseberry Bush --> Bowl of Gooseberries(+1) + Wild Gooseberry Bush
         trans.reverseUseActor = true;
         transtions.addTransition(trans);
@@ -147,9 +147,27 @@ class ServerSettings
         transtions.addTransition(trans);
 
         trans = new TransitionData(253,30,253,279); // Bowl of Gooseberries + Wild Gooseberry Bush (Last) --> Bowl of Gooseberries(+1) + Empty Wild Gooseberry Bush
+        trans.reverseUseActor = true;
         transtions.addTransition(trans, false, true);
 
         trans = new TransitionData(235,30,253,279); // Clay Bowl + Wild Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Wild Gooseberry Bush
         transtions.addTransition(trans, false, true);
+
+
+        // Domestic Gooseberry Bush
+        trans = new TransitionData(253,391,253,391); // Bowl of Gooseberries + Domestic Gooseberry Bush --> Bowl of Gooseberries(+1) + Domestic Gooseberry Bush
+        trans.reverseUseActor = true;
+        transtions.addTransition(trans);
+
+        trans = new TransitionData(235,391,253,391); // Clay Bowl + Domestic Gooseberry Bush --> Bowl of Gooseberries + Domestic Gooseberry Bush
+        transtions.addTransition(trans);
+
+        trans = new TransitionData(253,391,253,1135); // Bowl of Gooseberries + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries(+1) + Empty Domestic Wild Gooseberry Bush
+        trans.reverseUseActor = true;
+        transtions.addTransition(trans, false, true);
+
+        trans = new TransitionData(235,391,253,1135); // Clay Bowl + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Domestic Gooseberry  Bush
+        transtions.addTransition(trans, false, true);
+        
     }
 }
