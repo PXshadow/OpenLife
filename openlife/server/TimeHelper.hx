@@ -186,6 +186,13 @@ class TimeHelper
 
         if(c.player.age < ServerSettings.GrownUpAge && c.player.food_store > 0) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
 
+        // if starving to death and there is some health left, reduce food need and heath
+        if(c.player.food_store < 0 && c.player.yum_multiplier > 0)
+        {
+            foodDecay /= 2;
+            c.player.yum_multiplier -= foodDecay;
+        }
+
         if(c.player.yum_bonus > 0)
         {
             c.player.yum_bonus -= foodDecay;

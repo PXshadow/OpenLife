@@ -27,10 +27,6 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     public var connection:Connection; 
 
-    // remember that y is counted from bottom not from top
-    public var gx:Int = 400; //global x offset from birth
-    public var gy:Int = 300; //global y offset from birth 
-
     public var trueAge:Float = ServerSettings.StartingEveAge;
 
     //food vars
@@ -38,7 +34,7 @@ class GlobalPlayerInstance extends PlayerInstance {
     public var food_store_max:Float = ServerSettings.GrownUpFoodStoreMax;
     var last_ate_fill_max:Int = 0;
     public var yum_bonus:Float = 0;
-    public var yum_multiplier = 0;
+    public var yum_multiplier:Float = 0;
 
     var hasEatenMap = new Map<Int, Int>();
 
@@ -61,16 +57,6 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     public function tx() : Int {return x + gx;}
     public function ty() : Int {return y + gy;}
-
-    public function toRelativeData(forPlayer:GlobalPlayerInstance):String
-    {
-        var relativeX = this.gx - forPlayer.gx;
-        var relativeY = this.gy - forPlayer.gy;
-
-        o_origin_valid = 1; // TODO ???
-        //441 2404 0 1 4 -6 33 1 4 -6 -1 0.26 8 0 4 -6 16.14 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 1
-        return '$p_id $po_id $facing $action ${action_target_x + relativeX}  ${action_target_y  + relativeY} ${MapData.stringID(o_id)} $o_origin_valid ${o_origin_x + relativeX} ${o_origin_y + relativeY} $o_transition_source_id $heat $done_moving_seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '${x + relativeX} ${y + relativeY}'} ${Std.int(age*100)/100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
-    }
 
     // works with coordinates relative to the player
     public function isClose(x:Int, y:Int, distance:Int = 1):Bool
