@@ -184,7 +184,7 @@ class TransitionHelper{
         if(DoContainerStuffOnObj(this.player, tileObjectHelper, isDrop, index))
         {
             this.pickUpObject = true;
-            //this.doAction = true;            
+            this.doAction = true;            
             return true;
         }
 
