@@ -100,6 +100,10 @@ class ServerSettings
         ObjectData.getObjectData(484).speedMult = 0.85; // Hand Cart
         ObjectData.getObjectData(861).speedMult = 0.85; // // Old Hand Cart
         ObjectData.getObjectData(2172).speedMult = 0.9; // Hand Cart with Tires
+
+
+        //trace('Trace: ${ObjectData.getObjectData(8881).description}');
+         
         
         //ObjectData.getObjectData(2143).foodValue = 1; // banana
         //ObjectData.getObjectData(31).foodValue = 1; // Gooseberry
@@ -133,5 +137,19 @@ class ServerSettings
         trans.reverseUseTarget = true;
         trans.autoDecaySeconds = 1000; 
         transtions.addTransition(trans);
+
+
+        trans = new TransitionData(253,30,253,30); // Bowl of Gooseberries + Wild Gooseberry Bush --> Bowl of Gooseberries(+1) + Wild Gooseberry Bush
+        trans.reverseUseActor = true;
+        transtions.addTransition(trans);
+
+        trans = new TransitionData(235,30,253,30); // Clay Bowl + Wild Gooseberry Bush --> Bowl of Gooseberries + Wild Gooseberry Bush
+        transtions.addTransition(trans);
+
+        trans = new TransitionData(253,30,253,279); // Bowl of Gooseberries + Wild Gooseberry Bush (Last) --> Bowl of Gooseberries(+1) + Empty Wild Gooseberry Bush
+        transtions.addTransition(trans, false, true);
+
+        trans = new TransitionData(235,30,253,279); // Clay Bowl + Wild Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Wild Gooseberry Bush
+        transtions.addTransition(trans, false, true);
     }
 }

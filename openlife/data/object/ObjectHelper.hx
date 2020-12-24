@@ -1,5 +1,7 @@
 package openlife.data.object;
 
+import haxe.macro.Type.TVar;
+import haxe.Exception;
 import openlife.server.TimeHelper;
 import openlife.server.WorldMap;
 import openlife.data.transition.TransitionData;
@@ -133,9 +135,11 @@ class ObjectHelper {
 
     public function setId(newID:Int)
     {
-        if(this.id() == newID) return;
+        if(this.id() == newID) return;    
 
         objectData = ObjectData.getObjectData(newID);
+
+        if(objectData == null) throw new Exception('No ObjectData for: ${newID}');
     }
     
     
@@ -194,9 +198,16 @@ class ObjectHelper {
     {
         var obj:ObjectHelper = this;
         var objectData  = obj.objectData;
-        if(objectData.dummyParent != null) objectData = objectData.dummyParent;
+        if(objectData.dummyParent != null) objectData = objectData.dummyParent;        
 
         if(objectData.numUses < 2) return;
+
+        if(obj.numberOfUses < 1)
+        {
+            throw new Exception('TransformToDummy: WARNING: ${objectData.description}: obj.numberOfUses < 1: ${obj.numberOfUses}');
+
+            obj.numberOfUses = 1;
+        }
 
         // in case of an maxUses object changing like a well site numOfUses can be too big
         if(obj.numberOfUses > objectData.numUses)
@@ -214,7 +225,9 @@ class ObjectHelper {
         else
         {
             obj.objectData = objectData.dummyObjects[obj.numberOfUses-1];
-            //trace('dummy id: ${obj.objectData.id}');
+            if(obj.objectData == null) throw new Exception('TransformToDummy: no object Data!');
+
+            trace('dummy id: ${obj.objectData.id}');
         }
     }
 }

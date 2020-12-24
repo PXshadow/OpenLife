@@ -1,4 +1,5 @@
 package openlife.server;
+import haxe.display.Server.HaxeModuleMemoryResult;
 import openlife.client.ClientTag;
 import openlife.data.object.ObjectData;
 import openlife.settings.ServerSettings;
@@ -677,6 +678,20 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     public function transformHeldObject(id:Int)
     {
+        var toObjData = ObjectData.getObjectData(id);
+        if(toObjData.dummyParent != null) toObjData = toObjData.dummyParent;
+
+        var fromObjData = heldObject.objectData;
+        if(fromObjData.dummyParent != null) fromObjData = fromObjData.dummyParent;
+
+        if(toObjData.id != fromObjData.id)
+        {
+            trace('transformHeldObject: ${id} --> ${heldObject.id()} / numberOfUses set to 1');
+            heldObject.numberOfUses = 1;
+        }
+
+        trace('transformHeldObject: heldObject.numberOfUses: ${heldObject.numberOfUses}');
+
         heldObject.setId(id);
         setHeldObject(heldObject);
     }
