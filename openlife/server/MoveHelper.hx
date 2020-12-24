@@ -262,27 +262,15 @@ class MoveHelper{
                 p.mutex.release();
 
                 return;
-                // throw "newMoves.length < 1";
             }
             
-            // in case the new field has another speed take the lower (average) speed
-            //if(newMovements.endSpeed < newMovements.startSpeed) newMovements.startSpeed = newMovements.endSpeed;
-                
-            //trace("speed:" + speed);
-            //var speedChanged = (p.move_speed != newMovements.startSpeed);
-            
             p.move_speed = newMovements.finalEndSpeed;
-
-            //p.move_speed = newMovements.endSpeed;
-            //p.move_speed = newMovements.startSpeed;
 
             moveHelper.newMoves = newMovements.moves;
             moveHelper.totalMoveTime = (1/p.move_speed) * newMovements.length;
             moveHelper.startingMoveTicks = TimeHelper.tick;
             moveHelper.newMoveSeqNumber = seq;  
-            
             var eta = moveHelper.totalMoveTime;
-            //p.done_moving_seqNum = 0;
             
             // TODO spacing / chunk loading in x direction is too slow with high speed
             // TODO general better chunk loading
@@ -295,9 +283,7 @@ class MoveHelper{
     
                 p.connection.sendMapChunk(p.x,p.y);
             }
-    
-            // TODO there is a bug with speed update 
-            // TODO send PU to all players?
+
             p.connection.send(PLAYER_UPDATE,[p.toData()]);
     
             for (c in Server.server.connections) 
@@ -374,20 +360,24 @@ class MoveHelper{
                 newMovements.endSpeed = map.getBiomeSpeed(tmpX,tmpY); 
 
                 if(newMovements.fullPathHasRoad == false && newMovements.endSpeed != newMovements.startSpeed)
-                {
-                    trace('movement is trunc because of moving from bad biome to good biome or good biome to bad biome: ${newMovements.moves.length}');
-
+                {                    
                     if(newMovements.moves.length == 0)
                     {
-                        newMovements.length += calculateLength(lastPos,move);
-                        newMovements.moves.push(move);
+                        // dont cut the patch if one tile close to new biome
+                        // TODO this may make problems, since client does now update move speed after move started
+                        newMovements.startSpeed = newMovements.endSpeed;
+                        //newMovements.length += calculateLength(lastPos,move);
+                        //newMovements.moves.push(move);
                     }
+                    else{
+                        trace('movement is trunc because of moving from bad biome to good biome or good biome to bad biome: ${newMovements.moves.length}');
 
-                    if(moves.length > 1) newMovements.trunc = 1;
+                        if(moves.length > 1) newMovements.trunc = 1;
 
-                    newMovements.finalEndSpeed = calculateSpeed(p, tmpX,tmpY, newMovements.fullPathHasRoad);
+                        newMovements.finalEndSpeed = calculateSpeed(p, tmpX,tmpY, newMovements.fullPathHasRoad);
 
-                    return newMovements;
+                        return newMovements;
+                    }
                 }
 
                 newMovements.length += calculateLength(lastPos,move);
