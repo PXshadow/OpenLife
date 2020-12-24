@@ -500,25 +500,15 @@ class GlobalPlayerInstance extends PlayerInstance {
         //var tmp = Std.parseInt(array[clothingSlot]);
         array[clothingSlot] = '${clothingObjects[clothingSlot].toString()}';
         this.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
-
-        /*
-        //doaction = true;
-        //this.o_id = [tmp];
-        this.action = 1;
-        this.action_target_x = x;
-        this.action_target_y = y;
-        this.o_origin_x = x;
-        this.o_origin_y = y;
-        this.o_origin_valid = 0; // TODO ???
-        */
-
-        SetTransitionData(x, y, 0);
-
         trace('this.clothing_set: ${this.clothing_set}');
+
+        this.action = 0;
+ 
+        SetTransitionData(x, y, 0);
         
         Connection.SendUpdateToAllClosePlayers(this);
 
-        this.action = 0;
+        //this.action = 0;
 
         return true;
     }
@@ -555,7 +545,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         var clothing = this.clothingObjects[clothingSlot];
 
-        if(TransitionHelper.doContainerStuffOnObj(this, clothing, true) == false) return false;
+        if(TransitionHelper.doContainerStuffOnObj(this, clothing, false) == false) return false;
 
         setInClothingSet(clothingSlot);
 

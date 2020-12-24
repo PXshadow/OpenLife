@@ -142,6 +142,7 @@ class TransitionHelper{
 
      public function drop(clothingIndex:Int=-1) : Bool
     {     
+        trace('drop: clothingIndex: $clothingIndex');
         // this is a drop and not a transition
         this.doTransition = false;
 
@@ -157,8 +158,6 @@ class TransitionHelper{
         if(this.doContainerStuff(true)) return true;
 
         // TODO adding something to own clothing using clothingIndex
-
-        // TODO check if there is enough space for horse cart
 
         return this.swapHandAndFloorObject();  
     } 
