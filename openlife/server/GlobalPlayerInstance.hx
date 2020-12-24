@@ -258,7 +258,7 @@ class GlobalPlayerInstance extends PlayerInstance {
             setHeldObject(null);
         }
 
-        SetTransitionData(this.x, this.y, 0);
+        SetTransitionData(this.x, this.y);
 
         Connection.SendUpdateToAllClosePlayers(this);
 
@@ -302,7 +302,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         A player receiving force for itself must snap back to that location
         before continuing to move.
     **/
-    public function SetTransitionData(x:Int, y:Int, objOriginValid = 0)
+    public function SetTransitionData(x:Int, y:Int, objOriginValid = false)
     {
         var player = this;
 
@@ -313,12 +313,11 @@ class GlobalPlayerInstance extends PlayerInstance {
         //player.o_transition_source_id = this.newTransitionSource; TODO ??????????????????????????
         player.o_transition_source_id = -1;
 
-        // TODO set right
         // this changes where the client moves the objec from on display
-        player.o_origin_x = objOriginValid == 1 ? x : 0;
-        player.o_origin_y = objOriginValid == 1 ? y : 0;
+        player.o_origin_x = objOriginValid ? x : 0;
+        player.o_origin_y = objOriginValid ? y : 0;
         
-        player.o_origin_valid = objOriginValid; // what is this for???
+        player.o_origin_valid = objOriginValid ? 1 : 0; // if set to 0 no animation is displayed to pick up hold obj from o_origin_x o_origin_y
         
         player.action_target_x = x;
         player.action_target_y = y;
@@ -504,7 +503,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         this.action = 0;
  
-        SetTransitionData(x, y, 0);
+        SetTransitionData(x, y);
         
         Connection.SendUpdateToAllClosePlayers(this);
 
@@ -551,7 +550,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         if(isDrop) return true; // currently flase if called from drop
 
-        SetTransitionData(this.x, this.y, 0);
+        SetTransitionData(this.x, this.y);
 
         Connection.SendUpdateToAllClosePlayers(this);
 
@@ -599,7 +598,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         setInClothingSet(clothingSlot);
 
-        SetTransitionData(x,y, 0);
+        SetTransitionData(x,y);
         
         /*
         this.action = 1;

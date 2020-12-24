@@ -38,6 +38,7 @@ class TransitionHelper{
     // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
     public var doTransition:Bool = true;
     public var doAction:Bool;
+    public var pickUpObject:Bool = false;
 
     public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0)
     {
@@ -182,7 +183,8 @@ class TransitionHelper{
     {
         if(DoContainerStuffOnObj(this.player, tileObjectHelper, isDrop, index))
         {
-            this.doAction = true;
+            this.pickUpObject = true;
+            //this.doAction = true;            
             return true;
         }
 
@@ -282,7 +284,9 @@ class TransitionHelper{
             }
         }
 
+        this.pickUpObject = true;
         this.doAction = true;
+
         return true;
     }
 
@@ -314,11 +318,9 @@ class TransitionHelper{
 
         // TODO noUseActor / noUseTarget
 
-        // TODO dummy object for handObject like tools / axe 
-
         // TODO transitions on animals and caves
 
-        if(this.doHorseStuffPossible()) return true;
+        if(this.checkIfNotMovingAndCloseEnough() == false) return false;
 
         if(this.tileObjectData.minPickupAge > player.age)
         {
@@ -326,11 +328,14 @@ class TransitionHelper{
             return false;
         }
 
-        if (this.tileObjectHelper.objectData.tool) {
+        if (this.tileObjectHelper.objectData.tool)
+        {
             player.connection.send(LEARNED_TOOL_REPORT,['0 ${this.tileObjectHelper.id()}']);
             trace("TOOL LEARNED! " + this.tileObjectHelper.id());
         }
-        if(this.checkIfNotMovingAndCloseEnough() == false) return false;
+
+        // like eating stuff from horse
+        if(this.doHorseStuffPossible()) return true;
 
         // do actor + target = newActor + newTarget
         if(this.doTransitionIfPossible()) return true;
@@ -501,8 +506,9 @@ class TransitionHelper{
             
         // dont allow to place another floor on existing floor
         if(newTargetObjectData.floor && this.floorId != 0) return false; 
-
+        
         // do now the magic transformation
+        if(transition.actorID != transition.newActorID) this.pickUpObject = true;
         player.transformHeldObject(transition.newActorID);
         this.tileObjectHelper.setId(transition.newTargetID);
 
@@ -640,6 +646,7 @@ class TransitionHelper{
         if(removeObj(this.player, tileObjectHelper, index))
         {
             this.doAction = true;
+            this.pickUpObject = true;
             return true;
         }
 
@@ -653,18 +660,8 @@ class TransitionHelper{
         // do nothing if tile Object is empty
         if(container.id() == 0) return false;
 
-        if(container.containedObjects.length < 1)
-        {
-            //return false;
-
-            //if(index != -1) return false;
-
-            // pickup Bowl of Gooseberries???
-            return swapHandAndFloorObject();
-
-            // it may be a TRANSITION on a horse cart or 
-            //return doTransitionIfPossible();            
-        }
+        // pickup Bowl of Gooseberries???
+        if(container.containedObjects.length < 1) return swapHandAndFloorObject(); 
 
         player.setHeldObject(container.removeContainedObject(index));
         
@@ -707,7 +704,7 @@ class TransitionHelper{
         // TODO set right
         player.o_transition_source_id = this.newTransitionSource;
 
-        player.SetTransitionData(this.x,this.y, 1);
+        player.SetTransitionData(this.x,this.y, this.pickUpObject);
 
         for (c in Server.server.connections) 
         {

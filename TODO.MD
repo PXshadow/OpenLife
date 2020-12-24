@@ -39,7 +39,7 @@ Food - YUM:
 - YUM gives 3 food boni first eaten. 
 - the first 3 times eaten a food is YUM
 - food value is reduced minus one for each eaten / food has at least half the food value
-    For example Berry Default 3: 6 YUM / 5 YUM / 4 YUM / 3 MEH / 2 MEH / 2 MEH / 2 MEH / 2 MEH ...
+    For example Berry Default 2: 5 YUM / 4 YUM / 3 YUM / 2 MEH / 1 MEH / 1 MEH / 1 MEH / 1 MEH ...
 - if you eat YUM 1 pip is restored with a 0.8% chance from a random eaten food. If the random chosen food is the same food, no food value is restored
     For eample eats a Yum berry / then eats a YUM onion / 80%  x 50% = 40% chance that eating YUM onion restores 1 pip of berry food value 
     For eample eats a Yum berry / then eats a YUM onion / Then eats a YUM carrot / 80%  x 66%% = 52% chance that eating YUM carrot restores 1 pip of berry or onion food value   
