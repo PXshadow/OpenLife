@@ -257,8 +257,9 @@ class GlobalPlayerInstance extends PlayerInstance {
             trace('FOOD: set held object null');
             setHeldObject(null);
         }
-        else{
-            setHeldObject(this.heldObject);
+        else
+        {
+            //setHeldObject(this.heldObject);
         }
 
         SetTransitionData(this.x, this.y);
@@ -657,13 +658,24 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     public function setHeldObject(obj:ObjectHelper)
     {
-        if(obj == null) obj = ObjectHelper.readObjectHelper(this, [0]);
+        this.heldObject = obj;
+
+        MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed();
+    }
+
+    public function MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed()
+    {
+        var obj = this.heldObject;
+
+        if(obj == null)
+        {
+            obj = ObjectHelper.readObjectHelper(this, [0]);
+            this.heldObject = obj;
+        } 
 
         obj.TransformToDummy();
-
-        this.heldObject = obj;
         this.o_id = obj.toArray();
-        this.held_yum = isHoldingYum();    
+        this.held_yum = isHoldingYum(); 
     }
 
     public function transformHeldObject(id:Int)

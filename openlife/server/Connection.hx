@@ -107,6 +107,8 @@ class Connection implements ServerHeader
 
     public static function SendUpdateToAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true)
     {
+        player.MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed(); 
+
         for (c in Server.server.connections)
         {
             // since player has relative coordinates, transform them for player
