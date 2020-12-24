@@ -257,12 +257,8 @@ class GlobalPlayerInstance extends PlayerInstance {
             trace('FOOD: set held object null');
             setHeldObject(null);
         }
-        else
-        {
-            //setHeldObject(this.heldObject);
-        }
 
-        SetTransitionData(this.x, this.y);
+        SetTransitionData(this.x, this.y, 0);
 
         Connection.SendUpdateToAllClosePlayers(this);
 
@@ -306,7 +302,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         A player receiving force for itself must snap back to that location
         before continuing to move.
     **/
-    public function SetTransitionData(x:Int, y:Int, objOriginValid = 1)
+    public function SetTransitionData(x:Int, y:Int, objOriginValid = 0)
     {
         var player = this;
 
@@ -319,8 +315,8 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         // TODO set right
         // this changes where the client moves the objec from on display
-        player.o_origin_x = x;
-        player.o_origin_y = y;
+        player.o_origin_x = objOriginValid == 1 ? x : 0;
+        player.o_origin_y = objOriginValid == 1 ? y : 0;
         
         player.o_origin_valid = objOriginValid; // what is this for???
         
@@ -612,6 +608,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         setInClothingSet(clothingSlot);
 
         SetTransitionData(x,y, 0);
+        
         /*
         this.action = 1;
         this.action_target_x = x;

@@ -708,7 +708,7 @@ class TransitionHelper{
         // TODO set right
         player.o_transition_source_id = this.newTransitionSource;
 
-        player.SetTransitionData(this.x,this.y);
+        player.SetTransitionData(this.x,this.y, 1);
 
         for (c in Server.server.connections) 
         {
