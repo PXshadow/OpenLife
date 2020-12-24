@@ -50,15 +50,11 @@ class MoveHelper{
     {
         var map =  Server.server.map;
 
-        // TODO heavy objects in chart
+        // TODO reduce speed for buckets depending on how full they are
 
         // TODO shoes extra speed / if not on horse / in car
 
-        // TODO road boni / especialy for nerved carts and horses
-
         var onHorseOrCar = p.heldObject.objectData.speedMult >= 1.1;
-        
-
         var speed = ServerSettings.InitialPlayerMoveSpeed;
 
         speed *= ServerSettings.SpeedFactor; // used to increase speed if for example debuging
@@ -116,7 +112,11 @@ class MoveHelper{
         speed *= containedObjSpeedMult;
 
         // only reduce speed when starving if not riding or in car 
-        if(p.food_store < 0 && onHorseOrCar == false) speed *= ServerSettings.StarvingToDeathMoveSpeedFactor;
+        if(p.food_store < 0 && onHorseOrCar == false)
+        {
+            if(p.yum_multiplier > 0) speed *= ServerSettings.StarvingToDeathMoveSpeedFactorWhileHealthAboveZero;
+            else speed *= ServerSettings.StarvingToDeathMoveSpeedFactor;
+        }
 
         var healthFactor = p.CalculateHealthFactor(true);
 

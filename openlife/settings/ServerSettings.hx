@@ -55,6 +55,7 @@ class ServerSettings
     public static var AgingFactorWhileStarvingToDeath = 0.5; // if starving to death aging is slowed factor XX up to GrownUpAge, otherwise aging is speed up factor XX
     public static var GrownUpAge = 14; // is used for AgingFactorWhileStarvingToDeath and for increase food need for children
     public static var StarvingToDeathMoveSpeedFactor = 0.5; // reduces speed if stored food is below 0
+    public static var StarvingToDeathMoveSpeedFactorWhileHealthAboveZero = 0.8; // reduces speed if stored food is below 0 and health / yum multiplier > 0
     public static var FoodStoreMaxReductionWhileStarvingToDeath = 2; // reduces food store max with factor XX for each food below 0
 
     public static var maxDistanceToBeConsideredAsClose = 20; // only close players are updated with PU and MX and Movement 

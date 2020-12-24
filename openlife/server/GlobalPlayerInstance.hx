@@ -244,6 +244,8 @@ class GlobalPlayerInstance extends PlayerInstance {
             food_store = food_store_max;
         } 
 
+        this.move_speed = MoveHelper.calculateSpeed(this, this.tx(), this.ty());
+
         sendFoodUpdate();
 
         // check if there is a player transition like:
