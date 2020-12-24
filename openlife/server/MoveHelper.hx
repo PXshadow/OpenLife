@@ -354,7 +354,7 @@ class MoveHelper{
                 var tmpY = ty + move.y;
 
                 // check if biome is not walkable
-                if(map.getBiomeSpeed(tmpX,ty + move.y) < 0.1)
+                if(map.getBiomeSpeed(tmpX,tmpY) < 0.1)
                 {
                     trace('biome ${map.getBiomeId(tmpX,tmpY)} is blocking movement! movement length: ${newMovements.length}');
                     
@@ -371,11 +371,14 @@ class MoveHelper{
                     if(floorObjData.speedMult < 1.01) newMovements.fullPathHasRoad = false;
                 }
 
-                newMovements.endSpeed = map.getBiomeSpeed(tx,ty); 
+                newMovements.endSpeed = map.getBiomeSpeed(tmpX,tmpY); 
 
                 if(newMovements.fullPathHasRoad == false && newMovements.endSpeed != newMovements.startSpeed)
                 {
-                    if(newMovements.moves.length == 0){
+                    trace('movement is trunc because of moving from bad biome to good biome or good biome to bad biome: ${newMovements.moves.length}');
+
+                    if(newMovements.moves.length == 0)
+                    {
                         newMovements.length += calculateLength(lastPos,move);
                         newMovements.moves.push(move);
                     }
