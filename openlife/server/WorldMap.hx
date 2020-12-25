@@ -120,6 +120,7 @@ class WorldMap
         setObjectId(tx - 2,ty-1,[2742]); // carrot pile
         setObjectId(tx - 2,ty,[2742]); // carrot pile
         setObjectId(tx - 1,ty,[3371,1251,1251,245]); // table with stew
+        setObjectId(tx - 1,ty-1,[3371,291,807,107]); // table flat stone / burdock / stakes
         setObjectId(tx, ty, [33]);
         setObjectId(tx+1, ty, [32]);
         setObjectId(tx+2, ty, [486]);

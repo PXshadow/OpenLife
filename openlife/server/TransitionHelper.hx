@@ -304,8 +304,6 @@ class TransitionHelper{
     {
         // TODO intentional use with index, see description above
 
-        // TODO use on container with index, see description above
-
         // TODO kill deadlyDistance
 
         // TODO feed baby

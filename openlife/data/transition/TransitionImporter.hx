@@ -64,7 +64,7 @@ class TransitionImporter
             
             var transition = TransitionData.createNewFromFile(Path.withoutExtension(name),File.getContent(Engine.dir + 'transitions/$name'));
             
-            addTransition(transition);
+            addTransition("importTransitions: ", transition);
 
             createAndaddCategoryTransitions(transition); 
 
@@ -126,13 +126,13 @@ class TransitionImporter
         return transitionsByTargetId[objDataTarget.id];
     }
 
-    public function addTransition(transition:TransitionData,  lastUseActor:Bool = false, lastUseTarget:Bool = false){
+    public function addTransition(calledFrom:String, transition:TransitionData,  lastUseActor:Bool = false, lastUseTarget:Bool = false){
         
         if(lastUseActor == false && lastUseTarget == false){
             // if transition is a reverse transition, it can be done also on lastUse Items so add Transaction for that
-            if(transition.lastUseActor == false && transition.reverseUseActor && transition.lastUseTarget == false && transition.reverseUseTarget) addTransition(transition, true, true);
-            else if(transition.lastUseActor == false && transition.reverseUseActor) addTransition(transition, true, transition.lastUseTarget);
-            else if(transition.lastUseTarget == false && transition.reverseUseTarget) addTransition(transition, transition.lastUseActor, true);
+            if(transition.lastUseActor == false && transition.reverseUseActor && transition.lastUseTarget == false && transition.reverseUseTarget) addTransition("reverseUseActor & reverseUseTarget", transition, true, true);
+            else if(transition.lastUseActor == false && transition.reverseUseActor) addTransition("reverseUseActor", transition, true, transition.lastUseTarget);
+            else if(transition.lastUseTarget == false && transition.reverseUseTarget) addTransition("reverseUseTarget", transition, transition.lastUseActor, true);
         }
         else{
             transition = transition.clone();
@@ -148,7 +148,7 @@ class TransitionImporter
             this.transitions.push(transition);
             transitionsByTargetId[transition.targetID] = transition;
 
-            transition.traceTransition();
+            transition.traceTransition(calledFrom);
 
             //if(transition.reverseUseTarget) traceTransition(transition, "", "");
             return;
@@ -161,8 +161,8 @@ class TransitionImporter
         // 33 + 1096 = 0 + 3963 targetRemains: false
         if(trans.targetRemains && transition.targetRemains == false)
         {
-            trans.traceTransition("1maxUseTransition targetRemains true: ");
-            transition.traceTransition("1maxUseTransition targetRemains: false: ");
+            trans.traceTransition('$calledFrom 1maxUseTransition targetRemains true: ');
+            transition.traceTransition('$calledFrom 1maxUseTransition targetRemains: false: ');
 
             var maxUseTransitionsByTargetId = getTransitionMapByTargetId(transition.actorID, false, false, true);
             maxUseTransitionsByTargetId[transition.targetID] = transition;
@@ -174,8 +174,8 @@ class TransitionImporter
 
         if(trans.targetRemains == false && transition.targetRemains)
         {
-            transition.traceTransition( "2maxUseTransition targetRemains: true");
-            trans.traceTransition("2maxUseTransition targetRemains: false:");
+            transition.traceTransition( '$calledFrom 2maxUseTransition targetRemains: true');
+            trans.traceTransition('$calledFrom 2maxUseTransition targetRemains: false:');
 
             var maxUseTransitionsByTargetId = getTransitionMapByTargetId(transition.actorID, false, false, true);
 
@@ -187,8 +187,8 @@ class TransitionImporter
         }
 
         // TODO there are a lot of double transactions, like Oil Movement, Horse Stuff, Fence / Wall Alignment, Rose Seed
-        trans.traceTransition("WARNING DOUBLE 1!!");
-        transition.traceTransition("WARNING DOUBLE 2!!");
+        trans.traceTransition('$calledFrom WARNING DOUBLE 1!!');
+        transition.traceTransition('$calledFrom WARNING DOUBLE 2!!');
     }
 
     // seems like obid can be at the same time a category and an object / Cabbage Seed + Bowl of Cabbage Seeds / 1206 + 1312
@@ -246,7 +246,7 @@ class TransitionImporter
                 if(newTransition.newTargetID == 1600) newTransition.newTargetID = pileCategory.ids[i];
                 else if(newTransition.newTargetID == 1601) newTransition.newTargetID = pileItemsCategory.ids[i];
 
-                addTransition(newTransition);
+                addTransition("Pile: ", newTransition);
             }
             
             return;
@@ -261,7 +261,7 @@ class TransitionImporter
                     newTransition.actorID = id;
                     if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
 
-                    addTransition(newTransition);
+                    addTransition("Actor Category: ", newTransition);
                 } 
                 // TODO both category may not be needed
                 else{
@@ -274,7 +274,7 @@ class TransitionImporter
                         if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
                         if(newTransition.newTargetID == targetCategory.parentID) newTransition.newTargetID = targetId;
 
-                        addTransition(newTransition);
+                        addTransition("Both Category: ", newTransition);
                         //traceTransition(newTransition, 'bothActionAndTargetIsCategory: ');
 
                     }
@@ -294,7 +294,7 @@ class TransitionImporter
                 newTransition.targetID = id;
                 if(newTransition.newTargetID == category.parentID) newTransition.newTargetID = id;
 
-                addTransition(newTransition); 
+                addTransition("Target Category: ", newTransition); 
             }
         }
     }
