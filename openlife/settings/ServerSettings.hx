@@ -81,6 +81,17 @@ class ServerSettings
 
     public static function PatchObjectData()
     {
+        // allow some smithing on tables // TODO fix time transition for contained obj
+        for(obj in ObjectData.importedObjectData)
+        {
+            if( obj.description.indexOf("on Flat Rock") != -1 ){
+                obj.containSize = 2;
+                obj.containable = true;
+            }
+
+            //if(obj.containable) trace('${obj.description} ${obj.containSize}');
+        }
+
         // Change map spawn chances
         ObjectData.getObjectData(942).mapChance *= 1.5; // Muddy Iron Vein
         ObjectData.getObjectData(2135).mapChance /= 3; // Rubber Tree
@@ -123,7 +134,7 @@ class ServerSettings
     }
 
     public static function PatchTransitions(transtions:TransitionImporter)
-    {
+    {   
         // Original: Riding Horse: 770 + -1 = 0 + 1421
         var trans = new TransitionData(770,0,0,1421);
         transtions.addTransition("PatchTransitions: ", trans);

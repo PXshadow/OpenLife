@@ -9,7 +9,7 @@ import openlife.data.sound.SoundData;
 @:expose
 class ObjectData extends LineReader
 {
-    private static var importedObjectData:Vector<ObjectData>;
+    public static var importedObjectData:Vector<ObjectData>;
 
     // stores all ObjectData including dummy objects for objects with numUse > 2
     private static var objectDataMap:Map<Int, ObjectData> = [];

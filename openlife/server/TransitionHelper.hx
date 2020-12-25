@@ -417,6 +417,8 @@ class TransitionHelper{
         var originalTileObjectHelper = null;
         var originalTileObjectData = null;
 
+        var returnValue;
+
         // check if you can use on item in container
         if(containerIndex >= 0)
         {
@@ -429,22 +431,23 @@ class TransitionHelper{
             this.tileObjectData = this.tileObjectHelper.objectData;
 
             trace('Use on container: $containerIndex ${this.tileObjectHelper.description()}');
-        }
 
-        var value = doTransitionIfPossibleHelper();
+            returnValue = doTransitionIfPossibleHelper(originalTileObjectData.slotSize);
 
-        if(originalTileObjectHelper != null)
-        {
             this.tileObjectHelper.TransformToDummy();
 
             this.tileObjectHelper = originalTileObjectHelper;
             this.tileObjectData = originalTileObjectData;
         }
-
-        return value;
+        else
+        {
+            returnValue = doTransitionIfPossibleHelper(-1);
+        }
+        
+        return returnValue;
     } 
 
-    public function doTransitionIfPossibleHelper(onPlayer:Bool = false) : Bool
+    public function doTransitionIfPossibleHelper(containerSlotSize:Float, onPlayer:Bool = false) : Bool
     {  
         var lastUseActor = false;
         var lastUseTarget = tileObjectHelper.isLastUse();
@@ -534,6 +537,13 @@ class TransitionHelper{
             
         // dont allow to place another floor on existing floor
         if(newTargetObjectData.floor && this.floorId != 0) return false; 
+
+        if(containerSlotSize >= 0) trace('Test if fit in container ${newTargetObjectData.description} containable: ${newTargetObjectData.containable} containSize: ${newTargetObjectData.containSize} containerSlotSize: $containerSlotSize');
+        if(containerSlotSize >= 0 && (newTargetObjectData.containable == false || newTargetObjectData.containSize > containerSlotSize))
+        {
+            trace('Result ${newTargetObjectData.description} does not fit in container: containable: ${newTargetObjectData.containable} containSize: ${newTargetObjectData.containSize} > containerSlotSize: $containerSlotSize');
+            return false;
+        }
         
         // do now the magic transformation
         if(transition.actorID != transition.newActorID) this.pickUpObject = true;
@@ -690,6 +700,8 @@ class TransitionHelper{
 
         // pickup Bowl of Gooseberries???
         if(container.containedObjects.length < 1) return swapHandAndFloorObject(); 
+
+        if(index >= container.containedObjects.length) return false;
 
         if(container.containedObjects[index].objectData.permanent == 1) return false;
 
