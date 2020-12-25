@@ -199,7 +199,7 @@ class TransitionData
       var dontTraceActor = actorDescription.indexOf(ServerSettings.traceTransitionByActorDescription) == -1;
       var targetDescContains = ServerSettings.traceTransitionByTargetDescription;
 
-      if(forceTrace == false && dontTraceActor && transition.targetID != ServerSettings.traceTransitionById && targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
+      if(forceTrace == false && dontTraceActor && transition.targetID != ServerSettings.traceTransitionByActorId && transition.targetID != ServerSettings.traceTransitionByTargetId && targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
       
       trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
   }

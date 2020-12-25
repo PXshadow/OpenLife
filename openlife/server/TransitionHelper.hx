@@ -30,7 +30,6 @@ class TransitionHelper{
     public var newTransitionSource:Int;
 
     public var tileObjectHelper:ObjectHelper;
-    public var lastUseTileObject = false;
 
     public var handObjectData:ObjectData;
     public var tileObjectData:ObjectData;
@@ -119,12 +118,6 @@ class TransitionHelper{
             tileObjectData = tileObjectData.dummyParent;
         }
 
-        if(tileObjectData.numUses > 1 && this.tileObjectHelper.numberOfUses <= 1)
-        {
-            this.lastUseTileObject = true;
-            trace("TRANS: lastUseTileObject = true");
-        }
-
         //trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
 
         
@@ -209,6 +202,9 @@ class TransitionHelper{
         if(objToStore.id() == 0 && amountOfContainedObjects > 0)
         {
             trace("REMOVE");
+
+            // cannot pickup Threshed Wheat from Table
+            if(container.containedObjects[index].objectData.permanent == 1) return false; 
 
             player.setHeldObject(container.removeContainedObject(index));
 
@@ -304,7 +300,7 @@ class TransitionHelper{
      object on (for example, using a knife to slice bread sitting on a table).
     */
 
-    public function use(target:Int, index:Int) : Bool
+    public function use(target:Int, containerIndex:Int) : Bool
     {
         // TODO intentional use with index, see description above
 
@@ -320,9 +316,9 @@ class TransitionHelper{
 
         // TODO transitions on animals and caves
 
-        if(this.checkIfNotMovingAndCloseEnough() == false) return false;
+        if(this.checkIfNotMovingAndCloseEnough() == false) return false;     
 
-        if(this.tileObjectData.minPickupAge > player.age)
+        if(this.tileObjectData.minPickupAge > player.age + ServerSettings.AddAgeForConsideringPickupAge)
         {
             trace('tileObjectData.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
             return false;
@@ -338,7 +334,7 @@ class TransitionHelper{
         if(this.doHorseStuffPossible()) return true;
 
         // do actor + target = newActor + newTarget
-        if(this.doTransitionIfPossible()) return true;
+        if(this.doTransitionIfPossible(containerIndex)) return true;
 
         // do nothing if tile Object is empty
         if(this.tileObjectHelper.id() == 0) return false;
@@ -347,7 +343,7 @@ class TransitionHelper{
         if(this.player.heldObject.id() == 0 && this.swapHandAndFloorObject()) return true;            
         
         // do container stuff
-        return this.doContainerStuff(false, index);
+        return this.doContainerStuff(false, containerIndex);
     }
 
     public function doHorseStuffPossible() : Bool
@@ -370,7 +366,7 @@ class TransitionHelper{
         
         if(tileObjectData.foodValue < 1)
         {
-            transition = Server.transitionImporter.getTransition(0, this.tileObjectData.id, lastUseActorObject, lastUseTileObject);
+            transition = Server.transitionImporter.getTransition(0, this.tileObjectData.id, lastUseActorObject, this.tileObjectHelper.isLastUse());
 
             if(transition == null) return false;
 
@@ -418,9 +414,42 @@ class TransitionHelper{
         return true;
     }
 
-    public function doTransitionIfPossible(onPlayer:Bool = false) : Bool
+    public function doTransitionIfPossible(containerIndex:Int) : Bool        
+    {
+        var originalTileObjectHelper = null;
+        var originalTileObjectData = null;
+
+        // check if you can use on item in container
+        if(containerIndex >= 0)
+        {
+            if(this.tileObjectHelper.containedObjects.length < containerIndex +1) return false;
+
+            originalTileObjectHelper = this.tileObjectHelper;
+            originalTileObjectData = this.tileObjectData;
+
+            this.tileObjectHelper = this.tileObjectHelper.containedObjects[containerIndex];
+            this.tileObjectData = this.tileObjectHelper.objectData;
+
+            trace('Use on container: $containerIndex ${this.tileObjectHelper.description()}');
+        }
+
+        var value = doTransitionIfPossibleHelper();
+
+        if(originalTileObjectHelper != null)
+        {
+            this.tileObjectHelper.TransformToDummy();
+
+            this.tileObjectHelper = originalTileObjectHelper;
+            this.tileObjectData = originalTileObjectData;
+        }
+
+        return value;
+    } 
+
+    public function doTransitionIfPossibleHelper(onPlayer:Bool = false) : Bool
     {  
-        var lastUseActorObject = false;
+        var lastUseActor = false;
+        var lastUseTarget = tileObjectHelper.isLastUse();
 
         trace('TRANS: handObjectData.numUses: ${handObjectData.numUses} heldObject.numberOfUses: ${this.player.heldObject.numberOfUses} ${handObjectData.description}'  );
         
@@ -433,13 +462,14 @@ class TransitionHelper{
 
         trace('TRANS: tileObjectData.numUses: ${tileObjectData.numUses} tileObjectHelper.numberOfUses: ${this.tileObjectHelper.numberOfUses} ${tileObjectData.description}'  );        
       
-        var transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.tileObjectData.id, lastUseActorObject, lastUseTileObject);
+        var transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.tileObjectData.id, lastUseActor, lastUseTarget);
 
         // sometimes ground is -1 not 0 like for Riding Horse: 770 + -1 = 0 + 1421 // TODO -1 --> 0 in transition importer???
-        if(transition == null && tileObjectHelper.id() == 0)
+        // gives strange results like this: 235 + -1 = 382 + 0  Clay Bowl# empty + TIME  -->  Bowl of Water + EMPTY
+        /*if(transition == null && tileObjectHelper.id() == 0)
         {
-            transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), -1, lastUseActorObject, lastUseTileObject);
-        }
+            transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), -1, lastUseActor, lastUseTarget);
+        }*/
 
         var targetIsFloor = false;
 
@@ -452,7 +482,7 @@ class TransitionHelper{
 
         if(transition == null) return false;
 
-        trace('TRANS: Found transition: a${transition.actorID} t${transition.targetID} ');
+        trace('TRANS: Found transition: actor: ${transition.actorID} target: ${transition.targetID} ');
         transition.traceTransition("TRANS: ", true);
 
         var newActorObjectData = ObjectData.getObjectData(transition.newActorID);
@@ -662,6 +692,8 @@ class TransitionHelper{
 
         // pickup Bowl of Gooseberries???
         if(container.containedObjects.length < 1) return swapHandAndFloorObject(); 
+
+        if(container.containedObjects[index].objectData.permanent == 1) return false;
 
         player.setHeldObject(container.removeContainedObject(index));
         

@@ -676,7 +676,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         if(toObjData.id != fromObjData.id)
         {
-            trace('transformHeldObject: ${id} --> ${heldObject.id()} / numberOfUses set to 1');
+            trace('transformHeldObject: ${fromObjData.id} --> ${toObjData.id} / numberOfUses set to 1');
             heldObject.numberOfUses = 1;
         }
 

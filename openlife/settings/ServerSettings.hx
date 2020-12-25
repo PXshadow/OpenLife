@@ -15,15 +15,17 @@ class ServerSettings
     // used to trace connection.send commands //  only trace non player actions // traces only MX from animal, FX and PU from food / age
     public static var TraceSendNonPlayerActions = false;  
 
-    public static var traceTransitionById = 99972; // TransitionImporter
+    public static var traceTransitionByActorId = 99972; // TransitionImporter
     public static var traceTransitionByActorDescription = "!!!Bowl of Stew"; // TransitionImporter
-    public static var traceTransitionByTargetDescription = "!!!Banana Plant"; // TransitionImporter
+    public static var traceTransitionByTargetId = -1; // TransitionImporter
+    public static var traceTransitionByTargetDescription = "Escaped Horse-Drawn Cart"; // TransitionImporter
 
     public static var traceAmountGeneratedObjects = false; // WorldMap
 
     // PlayerInstance
-    public static var StartingEveAge = 10;  // 13
+    public static var StartingEveAge = 11;  // 13
     public static var AgingSecondsPerYear = 60; // 60
+    public static var AddAgeForConsideringPickupAge = 2; // With set to two an item that needs 13 years to be allowed to be picked up can be picked up with 11
 
     // worldMap
     public static var ChanceForLuckySpot = 0.03; // chance that during generation an object is lucky and tons more of that are generated close by
@@ -122,8 +124,12 @@ class ServerSettings
 
     public static function PatchTransitions(transtions:TransitionImporter)
     {
+        // Original: Riding Horse: 770 + -1 = 0 + 1421
+        var trans = new TransitionData(770,0,0,1421);
+        transtions.addTransition(trans);
+
         // let get berrys back!
-        var trans = new TransitionData(-1,30,0,30); // Wild Gooseberry Bush
+        trans = new TransitionData(-1,30,0,30); // Wild Gooseberry Bush
         
         trans.reverseUseTarget = true;
         trans.autoDecaySeconds = 600;

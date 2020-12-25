@@ -204,7 +204,10 @@ class ObjectHelper {
 
         if(obj.numberOfUses < 1)
         {
-            throw new Exception('TransformToDummy: WARNING: ${objectData.description}: obj.numberOfUses < 1: ${obj.numberOfUses}');
+            var message = 'TransformToDummy: WARNING: ${objectData.description}: obj.numberOfUses < 1: ${obj.numberOfUses}';
+            trace(message);
+
+            throw new Exception(message);
 
             obj.numberOfUses = 1;
         }
@@ -227,7 +230,12 @@ class ObjectHelper {
             obj.objectData = objectData.dummyObjects[obj.numberOfUses-1];
             if(obj.objectData == null) throw new Exception('TransformToDummy: no object Data!');
 
-            trace('dummy id: ${obj.objectData.id}');
+            //trace('dummy id: ${obj.objectData.id}');
         }
+    }
+
+    public function isLastUse() : Bool
+    {
+        return this.objectData.numUses > 1 && this.numberOfUses <= 1;
     }
 }

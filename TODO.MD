@@ -71,7 +71,6 @@ TODO Features
 TODO Missing:
 - hard work
 - speed stuff
-- backpack
 - use on table
 - animal interactions / collisions
 - yum category // for example for berry / berry bowl
