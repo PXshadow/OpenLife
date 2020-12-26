@@ -65,10 +65,15 @@ class MoveHelper{
         
         if(fullPathHasRoad == false) floorSpeed = 1; // only consider road if the pull path is on road
 
-        var onRoad = floorSpeed >= 1.01;
-        speed *= floorSpeed;
-
+        var onRoad = false;
         
+        // only give road speed boni if full path is on road
+        if(fullPathHasRoad)
+        {
+            onRoad = floorSpeed >= 1.01;
+            speed *= floorSpeed;
+        }
+
         // DO biomes
         var biomeSpeed = map.getBiomeSpeed(tx,ty);  
         // road reduces speed mali of bad biome with sqrt 
