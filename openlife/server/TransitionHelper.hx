@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.client.ClientTag;
 import sys.db.Object;
 import openlife.settings.ServerSettings;
 import openlife.server.WorldMap.BiomeTag;
@@ -520,7 +521,7 @@ class TransitionHelper{
             //transition = transition.maxUseTransition;
 
             // TODO must set newTargetObjectData???
-        }
+        }     
 
         // if it is a transition that picks up an object like 0 + 1422 = 778 + 0  (horse with cart) then switch the hole tile object to the hand object
         // TODO this may make trouble
@@ -548,6 +549,22 @@ class TransitionHelper{
         {
             trace('Result ${newTargetObjectData.description} does not fit in container: containable: ${newTargetObjectData.containable} containSize: ${newTargetObjectData.containSize} > containerSlotSize: $containerSlotSize');
             return false;
+        }
+
+        // check if it is hungry work like cutting down a tree or mining
+        if(newTargetObjectData.description.indexOf("+hungryWork") != -1)
+        {
+            trace('Trans hungry Work');
+
+            if(player.food_store < ServerSettings.HungryWorkCost)
+            {
+                var missingFood = Math.ceil(ServerSettings.HungryWorkCost - player.food_store);
+                var message = 'Its hungry work! Need ${missingFood} more food!';
+                player.connection.sendGlobalMessage(message);
+                return false;
+            }
+            
+            player.addFood(-ServerSettings.HungryWorkCost);
         }
         
         // do now the magic transformation

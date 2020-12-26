@@ -34,6 +34,7 @@ SPEED:
 - objects in container / sub container lower speed
 - horses and cars and carts are slower in bad biomes
 - road reduces speed mali of bad biome and heavy obj with sqrt 
+- having both shoes give now X1.1 Speed
 
 Food - YUM:
 - YUM gives 3 food boni first eaten. 
@@ -66,11 +67,10 @@ Animals:
 
 TODO Features
 - Winter
-- Underground
+- Respawn stuff
 
 TODO Missing:
 - hard work
-- speed stuff
 - animal interactions / collisions
 - yum category // for example for berry / berry bowl
 - death

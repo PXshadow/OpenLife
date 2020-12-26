@@ -17,8 +17,8 @@ class ServerSettings
 
     public static var traceTransitionByActorId = 99972; // TransitionImporter
     public static var traceTransitionByActorDescription = "!!!Bowl of Stew"; // TransitionImporter
-    public static var traceTransitionByTargetId = -1; // TransitionImporter
-    public static var traceTransitionByTargetDescription = "Escaped Horse-Drawn Cart"; // TransitionImporter
+    public static var traceTransitionByTargetId = 999999; // TransitionImporter
+    public static var traceTransitionByTargetDescription = "!!!Escaped Horse-Drawn Cart"; // TransitionImporter
 
     public static var traceAmountGeneratedObjects = false; // WorldMap
 
@@ -70,6 +70,9 @@ class ServerSettings
     // TODO FIX this can make jumps if too small / ideally this should be 0 so that the client cannot cheap while moving
     public static var MaxMovementCheatingDistanceBeforeForce = 2; // if client player position is bigger then X, client is forced in PU to use server position 
     public static var ChanceThatAnimalsCanPassBlockingBiome = 0.05;
+
+    // hungry work
+    public static var HungryWorkCost = 10;
 
     // for animal movement
     public static var chancePreferredBiome = 0.8; // Chance that the animal ignors the chosen target if its not from his original biome

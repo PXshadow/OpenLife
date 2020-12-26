@@ -17,9 +17,9 @@ class TransitionImporter
     // transitions without any last use transitions
     private var transitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
     // transitions where both actor and target is last use
-    private var lastUseBothTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
+    private var lastUseBothTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>; // maybe no need
     // transitions where only actor is last use
-    private var lastUseActorTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
+    private var lastUseActorTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>; // maybe no need
     // transitions where only target is last use
     private var lastUseTargetTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
 

@@ -233,5 +233,11 @@ class Connection implements ServerHeader
 
         if(ServerSettings.TraceSendPlayerActions) trace("Send: " + tmpString);
     }
+
+    public function sendGlobalMessage(message:String)
+    {
+        message  = StringTools.replace(message,' ', '_');
+        send(ClientTag.GLOBAL_MESSAGE, [message]);
+    }
 }
 #end

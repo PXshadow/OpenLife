@@ -74,6 +74,17 @@ class GlobalPlayerInstance extends PlayerInstance {
         return (this.clothingObjects[2].id() != 0 && this.clothingObjects[3].id() != 0) ;   
     }
 
+    public function addFood(foodValue:Float)
+    {
+        this.food_store += foodValue;
+
+        if (food_store > food_store_max)
+        {
+            this.yum_bonus = food_store - food_store_max;
+            food_store = food_store_max;
+        } 
+    }
+
     public function CalculateHealthFactor(forSpeed:Bool) : Float
     {
         var health:Float = this.yum_multiplier - this.trueAge  * ServerSettings.MinHealthPerYear;
@@ -186,7 +197,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         var heldObjData = heldObject.objectData;
         if(heldObjData.dummyParent != null) heldObjData = heldObjData.dummyParent;
 
-        var foodValue = heldObjData.foodValue;
+        var foodValue:Float = heldObjData.foodValue;
 
         trace('FOOD: food_store_max: $food_store_max food_store: $food_store foodValue: $foodValue');
 
@@ -196,9 +207,9 @@ class GlobalPlayerInstance extends PlayerInstance {
             return false;
         }
         
-        if(food_store_max - food_store < (foodValue + 1) / 2)
+        if(food_store_max - food_store < Math.ceil(foodValue / 3))
         {
-            trace('too full to eat: food_store_max: $food_store_max - food_store: $food_store < ( foodValue: $foodValue + 1 ) / 2');
+            trace('too full to eat: food_store_max: $food_store_max - food_store: $food_store < foodValue: $foodValue  / 3');
             return false;
         }
 
@@ -213,7 +224,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         var isSuperMeth = foodValue < heldObject.objectData.foodValue / 2;
 
-        if(isSuperMeth) foodValue = Math.ceil(heldObject.objectData.foodValue / 2);
+        if(isSuperMeth) foodValue = heldObject.objectData.foodValue / 2;
 
         /*
         if(isSuperMeth && food_store > 0)
@@ -242,17 +253,13 @@ class GlobalPlayerInstance extends PlayerInstance {
        
         this.last_ate_fill_max = Math.ceil(this.food_store);
         trace('last_ate_fill_max: $last_ate_fill_max');
-        this.food_store += foodValue;
+        //this.food_store += foodValue;
         this.just_ate = 1;
         this.last_ate_id = heldObjData.id;
         this.responsible_id = -1; // self
         //this.o_transition_source_id = -1;
 
-        if (food_store > food_store_max)
-        {
-            this.yum_bonus = food_store - food_store_max;
-            food_store = food_store_max;
-        } 
+        addFood(foodValue);
 
         this.move_speed = MoveHelper.calculateSpeed(this, this.tx(), this.ty());
 
