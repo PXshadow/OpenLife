@@ -20,7 +20,8 @@ import haxe.io.Bytes;
     public var GREY = 3;
     public var SNOW = 4;
     public var DESERT= 5;
-    public var JUNGLE = 6;  
+    public var JUNGLE = 6; //6 
+    public var BORDERJUNGLE = 15; // 8 or 15  
 
     public var SNOWINGREY = 21; //7 // its snow on top of mountains which should not be walkable
     public var OCEAN = 9;  //deep ocean
@@ -36,7 +37,8 @@ import haxe.io.Bytes;
     public var CGREY = "FF808080"; //badlands // bevor it was: FF404040
     public var CSNOW = "FFFFFFFF";
     public var CDESERT= "FFDB7F4D";
-    public var CJUNGLE = "FF007F0E"; 
+    public var CJUNGLE = "FF007F0E";
+    public var CBORDERJUNGLE = "FF007F00";  
     
     public var CSAND = "FFefe4b0";
 
@@ -55,11 +57,12 @@ import haxe.io.Bytes;
     public var SSNOW = 0.8; // TODO make fast with shoes
     public var SDESERT= 0.8; // TODO make fast for specialists 
     public var SJUNGLE = 0.8;  // TODO make fast for specialists
+    public var SCBORDERJUNGLE = 0.8;  // TODO make fast for specialists
 
-    public var SSNOWINGREY = 0.01;
-    public var SOCEAN = 0.01;  
-    public var SRIVER = 0.01;
-    public var SPASSABLERIVER = 0.4;   
+    public var SSNOWINGREY = 1.01;
+    public var SOCEAN = 1.01;  
+    public var SRIVER = 1.01;
+    public var SPASSABLERIVER = 1.4;   
 }
 
 class WorldMap
@@ -113,6 +116,11 @@ class WorldMap
         setObjectId(tx - 6, ty - 7, [0]); //  clear road
 
         
+        setObjectId(tx - 8,ty-1,[779]); // Hitched Horse-Drawn Cart
+        setObjectId(tx - 7,ty-1,[331]); // Hot Steel Axe Head
+        setObjectId(tx - 6,ty-1,[334]); // Axe
+        setObjectId(tx - 5,ty-2,[767]); //Lasso
+        setObjectId(tx - 5,ty-1,[769]); // Wild Horse
         setObjectId(tx - 4,ty-1,[391]); // Domestic Gooseberry Bush
         setObjectId(tx - 4,ty-2,[391]); // Domestic Gooseberry Bush
         setObjectId(tx - 3,ty-1,[1121]); // popcorn
@@ -260,6 +268,7 @@ class WorldMap
             case SNOW: SSNOW;
             case DESERT: SDESERT;
             case JUNGLE: SJUNGLE;
+            case BORDERJUNGLE: SCBORDERJUNGLE;
             case SNOWINGREY: SSNOWINGREY;
             case OCEAN: SOCEAN;
             case RIVER: SRIVER;
@@ -444,6 +453,7 @@ class WorldMap
                     case CDESERT: biomeInt = DESERT;
                     case CSAND: biomeInt = DESERT;
                     case CJUNGLE: biomeInt = JUNGLE;
+                    case CBORDERJUNGLE: biomeInt = BORDERJUNGLE;
                     case CSWAMP: biomeInt = SWAMP;
                     case CSNOWINGREY: biomeInt = SNOWINGREY;
                     case COCEAN: biomeInt = OCEAN;

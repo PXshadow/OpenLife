@@ -473,7 +473,7 @@ class TransitionHelper{
             transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), -1, lastUseActor, lastUseTarget);
 
             // only allow this transition if it is for switching stuff like for horses
-            if(transition.newActorID != 0) transition = null;
+            if(transition != null && transition.newActorID != 0) transition = null;
         }
 
         var targetIsFloor = false;
@@ -527,11 +527,17 @@ class TransitionHelper{
         // TODO this may make trouble
         // 770 + -1 = 0 + 1421  Riding Horse + ? = 0 + Escaped Riding Horse
         // 778 + -1 = 0 + 1422  Horse-Drawn Cart
+        // 0 + 1422 = 778 + 0 // isHorsePickupTrans: true / Empty + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + Empty
         // 0 + 3963 = 33 + 1096 // Transition for Well Site should not be affected by this
-        //if((transition.actorID == 0 && transition.newTargetID == 0 && transition.targetID != transition.newTargetID) || (transition.targetID == -1 && transition.newActorID == 0))
-        if(transition.targetID == -1 && transition.newActorID == 0 && target.isPermanent() == false)
+
+        var isHorseDropTrans = (transition.targetID == -1 && transition.newActorID == 0) && target.isPermanent() == false;
+        var isHorsePickupTrans = (transition.actorID == 0 && transition.newTargetID == 0 && transition.targetID != transition.actorID);
+        //if( || (transition.targetID == -1 && transition.newActorID == 0))
+
+        trace('TRANS: isHorseDropTrans: $isHorseDropTrans isHorsePickupTrans: $isHorsePickupTrans target.isPermanent: ${target.isPermanent()}');
+        if(isHorsePickupTrans || isHorseDropTrans)
         {
-            trace('TRANS: switch held object with tile object');
+            trace('TRANS: switch held object with tile object / This should be for transitions with horses, especially horse carts that can otherwise loose items');
 
             var tmpHeldObject = player.heldObject;
             player.setHeldObject(this.target);
