@@ -463,14 +463,17 @@ class TransitionHelper{
 
         trace('TRANS: tileObjectData.numUses: ${tileObjectData.numUses} target.numberOfUses: ${this.target.numberOfUses} ${tileObjectData.description}'  );        
       
-        var transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), this.tileObjectData.id, lastUseActor, lastUseTarget);
+        var transition = Server.transitionImporter.getTrans(this.player.heldObject, target);
 
         // sometimes ground is -1 not 0 like for Riding Horse: 770 + -1 = 0 + 1421 // TODO -1 --> 0 in transition importer???
-        // gives strange results like this: 235 + -1 = 382 + 0  Clay Bowl# empty + TIME  -->  Bowl of Water + EMPTY
-        /*if(transition == null && target.id() == 0)
+        // Should not work for: 235 + -1 = 382 + 0  Clay Bowl# empty + TIME  -->  Bowl of Water + EMPTY
+        if(transition == null && target.id() == 0)
         {
             transition = Server.transitionImporter.getTransition(this.player.heldObject.id(), -1, lastUseActor, lastUseTarget);
-        }*/
+
+            // only allow this transition if it is for switching stuff like for horses
+            if(transition.newActorID != 0) transition = null;
+        }
 
         var targetIsFloor = false;
 
@@ -521,8 +524,8 @@ class TransitionHelper{
 
         // if it is a transition that picks up an object like 0 + 1422 = 778 + 0  (horse with cart) then switch the hole tile object to the hand object
         // TODO this may make trouble
-        // 770 + -1 = 0 + 1421 
-        // 778 + -1 = 0 + 1422
+        // 770 + -1 = 0 + 1421  Riding Horse + ? = 0 + Escaped Riding Horse
+        // 778 + -1 = 0 + 1422  Horse-Drawn Cart
         // 0 + 3963 = 33 + 1096 // Transition for Well Site should not be affected by this
         //if((transition.actorID == 0 && transition.newTargetID == 0 && transition.targetID != transition.newTargetID) || (transition.targetID == -1 && transition.newActorID == 0))
         if(transition.targetID == -1 && transition.newActorID == 0 && target.isPermanent() == false)
