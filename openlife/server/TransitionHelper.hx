@@ -731,11 +731,11 @@ class TransitionHelper{
         // pickup Bowl of Gooseberries???
         if(container.containedObjects.length < 1) return swapHandAndFloorObject(); 
 
-        if(index >= container.containedObjects.length) return false;
+        if(index >= container.containedObjects.length) return false; 
 
-        if(index < 0) index = container.containedObjects.length - 1;
+        if(index < 0) index = container.containedObjects.length - 1; 
 
-        if(container.containedObjects[index].objectData.permanent == 1) return false;
+        if(container.containedObjects[index].objectData.permanent == 1) return false; // this is needed if something permanent was created on the table
 
         player.setHeldObject(container.removeContainedObject(index));
         

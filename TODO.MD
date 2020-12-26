@@ -70,16 +70,15 @@ TODO Features
 - Respawn stuff
 
 TODO Missing:
-- hard work
 - animal interactions / collisions
-- yum category // for example for berry / berry bowl
 - death
 - world persistance 
 - incarnation
-- biome boni for different races
+- multiplayer testing
 - feeding of other people
+- biome boni for different races
 - leadership
-- better order of craving list (currently its just ordered accoring to obj ID)
+- naming
 - faces / for example hungry / ill
 - ill from moskitos
 - temperature
@@ -89,14 +88,14 @@ TODO Missing:
 - wounds / healing
 - epecial stuff like hercules / snake master / super fast ager 
 - better map
-- multiplayer testing
 - score / score boni
 - nobles
 - job boni
-- naming
 - families
 - commands 
 - speech limit
+- yum category // for example for berry / berry bowl
+- better order of craving list (currently its just ordered accoring to obj ID)
 - different languages
 
 
