@@ -16,8 +16,8 @@ class ServerSettings
     public static var TraceSendNonPlayerActions = false;  
 
     public static var traceTransitionByActorId = 99972; // TransitionImporter
-    public static var traceTransitionByActorDescription = "Horse-Drawn Tire Cart"; // TransitionImporter
-    public static var traceTransitionByTargetId = 3161; // TransitionImporter
+    public static var traceTransitionByActorDescription = "!!!Horse-Drawn Tire Cart"; // TransitionImporter
+    public static var traceTransitionByTargetId = 9993161; // TransitionImporter
     public static var traceTransitionByTargetDescription = "!!!Horse-Drawn Tire Cart"; // TransitionImporter
 
     public static var traceAmountGeneratedObjects = false; // WorldMap
@@ -143,13 +143,13 @@ class ServerSettings
         transtions.addTransition("PatchTransitions: ", trans);
 
         // TODO this should function somehow with categories???
-        // original transition makes cart use rubber if putting down horse cart
+        // original transition makes cart loose rubber if putting down horse cart
         //Original: 3158 + -1 = 0 + 1422 // Horse-Drawn Tire Cart + ???  -->  Empty + Escaped Horse-Drawn Cart --> must be: 3158 + -1 = 0 + 3161
         trans = transtions.getTransition(3158, -1);
         trans.newTargetID = 3161;
         trans.traceTransition("PatchTransitions: ");
 
-         // original transition makes cart use rubber if picking up horse cart
+         // original transition makes cart loose rubber if picking up horse cart
         //Original:  0 + 3161 = 778 + 0 //Empty + Escaped Horse-Drawn Tire Cart# just released -->  Horse-Drawn Cart + Empty
         trans = transtions.getTransition(0, 3161);
         trans.newActorID = 3158;
@@ -157,6 +157,10 @@ class ServerSettings
 
         trans = transtions.getTransition(-1, 3161);
         trans.newTargetID = 3157;
+        trans.traceTransition("PatchTransitions: ");
+
+        trans = transtions.getTransition(0, 3157);
+        trans.newActorID = 3158;
         trans.traceTransition("PatchTransitions: ");
 
         
