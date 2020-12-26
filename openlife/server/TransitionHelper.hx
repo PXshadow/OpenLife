@@ -309,8 +309,6 @@ class TransitionHelper{
 
         // TODO feed baby
 
-        // TODO hungry work
-
         // TODO noUseActor / noUseTarget
 
         // TODO transitions on animals and caves
@@ -527,11 +525,13 @@ class TransitionHelper{
         // TODO this may make trouble
         // 770 + -1 = 0 + 1421  Riding Horse + ? = 0 + Escaped Riding Horse
         // 778 + -1 = 0 + 1422  Horse-Drawn Cart
+        // 778 + 4154 = 0 + 779 // Horse-Drawn Cart + Hitching Post# +wall +causeAutoOrientH -->  Empty + Hitched Horse-Drawn Cart
         // 0 + 1422 = 778 + 0 // isHorsePickupTrans: true // Empty + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + Empty
         // 0 + 779 = 778 + 4154 // isHorsePickupTrans: true // Empty + Hitched Horse-Drawn Cart# +causeAutoOrientH -->  Horse-Drawn Cart + Hitching Post 
         // 0 + 3963 = 33 + 1096 // Transition for Well Site should not be affected by this
 
-        var isHorseDropTrans = (transition.targetID == -1 && transition.newActorID == 0) && target.isPermanent() == false;
+        //var isHorseDropTrans = (transition.targetID == -1 && transition.newActorID == 0) && target.isPermanent() == false;
+        var isHorseDropTrans = transition.newActorID == 0  && player.heldObject.containedObjects.length > 0;
         // TODO better set in transition itself if it is a switch transition?
         var isHorsePickupTrans = (transition.actorID == 0 && transition.playerActor && target.containedObjects.length > 0);
         //if( || (transition.targetID == -1 && transition.newActorID == 0))

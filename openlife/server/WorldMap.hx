@@ -115,7 +115,9 @@ class WorldMap
         setObjectId(tx - 5, ty - 7, [0]); //  clear road
         setObjectId(tx - 6, ty - 7, [0]); //  clear road
 
-        
+        setObjectId(tx - 8,ty-3,[3159]); // Hitched Horse-Drawn Tire Cart
+        setObjectId(tx - 8,ty-2,[774]); // Hitched Riding Horse
+        setObjectId(tx - 8,ty-2,[779]); // Hitched Horse-Drawn Cart
         setObjectId(tx - 8,ty-1,[779]); // Hitched Horse-Drawn Cart
         setObjectId(tx - 7,ty-1,[331]); // Hot Steel Axe Head
         setObjectId(tx - 6,ty-1,[334]); // Axe
@@ -185,6 +187,7 @@ class WorldMap
         // spring / tool use
         setObjectId(tx - 2,ty + 4,[1096]); // well site
         setObjectId(tx - 3,ty + 4,[1096]); // well site
+        setObjectId(tx - 3,ty + 3,[0]); // 0
         setObjectId(tx - 4,ty + 4,[3030]); // natural spring
         setObjectId(tx - 5,ty + 4,[661]);
         setObjectId(tx - 6,ty + 4,[661]);
