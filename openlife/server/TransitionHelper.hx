@@ -733,6 +733,8 @@ class TransitionHelper{
 
         if(index >= container.containedObjects.length) return false;
 
+        if(index < 0) index = container.containedObjects.length - 1;
+
         if(container.containedObjects[index].objectData.permanent == 1) return false;
 
         player.setHeldObject(container.removeContainedObject(index));
