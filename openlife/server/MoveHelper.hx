@@ -14,7 +14,7 @@ private class NewMovements {
     // biome speed of last Movement Tile
     public var endSpeed:Float;
     // complete speed of last Movement Tile
-    public var finalEndSpeed:Float;
+    public var finalSpeed:Float;
 
     // true if movement was cut    
     public var trunc:Int;
@@ -264,7 +264,7 @@ class MoveHelper{
                 return;
             }
             
-            p.move_speed = newMovements.finalEndSpeed;
+            p.move_speed = newMovements.finalSpeed;
 
             moveHelper.newMoves = newMovements.moves;
             moveHelper.totalMoveTime = (1/p.move_speed) * newMovements.length;
@@ -346,7 +346,7 @@ class MoveHelper{
                     
                     newMovements.trunc = 1;
 
-                    newMovements.finalEndSpeed = calculateSpeed(p, p.tx() + lastPos.x, p.ty() + lastPos.y, newMovements.fullPathHasRoad);
+                    newMovements.finalSpeed = calculateSpeed(p, p.tx(), p.ty(), newMovements.fullPathHasRoad);
 
                     return newMovements;
                 }
@@ -361,23 +361,26 @@ class MoveHelper{
 
                 if(newMovements.fullPathHasRoad == false && newMovements.endSpeed != newMovements.startSpeed)
                 {                    
-                    if(newMovements.moves.length == 0)
+                    /*if(newMovements.moves.length == 0)
                     {
                         // dont cut the patch if one tile close to new biome
                         // TODO this may make problems, since client does now update move speed after move started
                         newMovements.startSpeed = newMovements.endSpeed;
                         //newMovements.length += calculateLength(lastPos,move);
                         //newMovements.moves.push(move);
-                    }
-                    else{
-                        trace('movement is trunc because of moving from bad biome to good biome or good biome to bad biome: ${newMovements.moves.length}');
+                    }*/
+                    
+                    
+                    trace('movement is trunc because of moving from bad biome to good biome or good biome to bad biome: ${newMovements.moves.length}');
 
-                        if(moves.length > 1) newMovements.trunc = 1;
+                    newMovements.length += calculateLength(lastPos,move);
+                    newMovements.moves.push(move);
 
-                        newMovements.finalEndSpeed = calculateSpeed(p, tmpX,tmpY, newMovements.fullPathHasRoad);
+                    if(moves.length > 1) newMovements.trunc = 1;
 
-                        return newMovements;
-                    }
+                    newMovements.finalSpeed = calculateSpeed(p, p.tx(),p.ty(), newMovements.fullPathHasRoad);
+
+                    return newMovements;
                 }
 
                 newMovements.length += calculateLength(lastPos,move);
@@ -386,7 +389,7 @@ class MoveHelper{
                 lastPos = move;
             }       
 
-            newMovements.finalEndSpeed = calculateSpeed(p, p.tx() + lastPos.x, p.ty() + lastPos.y, newMovements.fullPathHasRoad);
+            newMovements.finalSpeed = calculateSpeed(p, p.tx(), p.ty(), newMovements.fullPathHasRoad);
 
             return newMovements;
         }      
