@@ -69,6 +69,11 @@ class GlobalPlayerInstance extends PlayerInstance {
         return this.clothingObjects[5];
     }
 
+    public function hasBothShoes() : Bool
+    {
+        return (this.clothingObjects[2].id() != 0 && this.clothingObjects[3].id() != 0) ;   
+    }
+
     public function CalculateHealthFactor(forSpeed:Bool) : Float
     {
         var health:Float = this.yum_multiplier - this.trueAge  * ServerSettings.MinHealthPerYear;

@@ -67,6 +67,10 @@ class MoveHelper{
         if(fullPathHasRoad == false) floorSpeed = 1; // only consider road if the pull path is on road
 
         var onRoad = false;
+        var hasBothShoes = p.hasBothShoes();
+
+        trace('speed: hasBothShoes: $hasBothShoes');
+        if(hasBothShoes) speed *= 1.1;
         
         // only give road speed boni if full path is on road
         if(fullPathHasRoad)
@@ -105,7 +109,7 @@ class MoveHelper{
             containedObjSpeedMult *= calculateObjSpeedMult(obj);             
         }
 
-        containedObjSpeedMult = Math.sqrt(containedObjSpeedMult);
+        if(hasBothShoes) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult);
         trace('speed: backpack: containedObjSpeedMult: $containedObjSpeedMult');
         
         for(obj in p.heldObject.containedObjects)
