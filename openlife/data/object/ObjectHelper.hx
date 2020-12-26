@@ -141,6 +141,11 @@ class ObjectHelper {
 
         if(objectData == null) throw new Exception('No ObjectData for: ${newID}');
     }
+
+    public function isPermanent()
+    {
+        return objectData.permanent == 1;
+    }
     
     
     // TODO make look like variable
