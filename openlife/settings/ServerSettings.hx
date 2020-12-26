@@ -142,17 +142,24 @@ class ServerSettings
         var trans = new TransitionData(770,0,0,1421);
         transtions.addTransition("PatchTransitions: ", trans);
 
+        // TODO this should function somehow with categories???
         // original transition makes cart use rubber if putting down horse cart
         //Original: 3158 + -1 = 0 + 1422 // Horse-Drawn Tire Cart + ???  -->  Empty + Escaped Horse-Drawn Cart --> must be: 3158 + -1 = 0 + 3161
         trans = transtions.getTransition(3158, -1);
         trans.newTargetID = 3161;
         trans.traceTransition("PatchTransitions: ");
 
-         // original transition makes cart use rubber if putting down horse cart
+         // original transition makes cart use rubber if picking up horse cart
         //Original:  0 + 3161 = 778 + 0 //Empty + Escaped Horse-Drawn Tire Cart# just released -->  Horse-Drawn Cart + Empty
         trans = transtions.getTransition(0, 3161);
         trans.newActorID = 3158;
         trans.traceTransition("PatchTransitions: ");
+
+        trans = transtions.getTransition(-1, 3161);
+        trans.newTargetID = 3157;
+        trans.traceTransition("PatchTransitions: ");
+
+        
 
         // let get berrys back!
         trans = new TransitionData(-1,30,0,30); // Wild Gooseberry Bush
