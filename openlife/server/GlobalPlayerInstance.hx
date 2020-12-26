@@ -64,6 +64,11 @@ class GlobalPlayerInstance extends PlayerInstance {
         return (((this.x - x) * (this.x - x) <= distance * distance) && ((this.y - y) * (this.y - y) <= distance * distance));
     }
 
+    public function getPackpack() : ObjectHelper
+    {
+        return this.clothingObjects[5];
+    }
+
     public function CalculateHealthFactor(forSpeed:Bool) : Float
     {
         var health:Float = this.yum_multiplier - this.trueAge  * ServerSettings.MinHealthPerYear;

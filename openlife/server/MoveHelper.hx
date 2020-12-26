@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.object.ObjectHelper;
 import openlife.data.object.ObjectData;
 import haxe.Serializer;
 import openlife.settings.ServerSettings;
@@ -98,13 +99,22 @@ class MoveHelper{
         // TODO half penalty for strong 
         var containedObjSpeedMult:Float = 1;
 
+        var backpack = p.getPackpack();
+        for(obj in backpack.containedObjects)
+        {
+            containedObjSpeedMult *= calculateObjSpeedMult(obj);             
+        }
+
+        containedObjSpeedMult = Math.sqrt(containedObjSpeedMult);
+        trace('speed: backpack: containedObjSpeedMult: $containedObjSpeedMult');
+        
         for(obj in p.heldObject.containedObjects)
         {
-            containedObjSpeedMult *= Math.max(0.6, Math.min(ServerSettings.MinSpeedReductionPerContainedObj, obj.objectData.speedMult)); 
+            containedObjSpeedMult *= calculateObjSpeedMult(obj); 
             
             for(subObj in obj.containedObjects)
             {
-                containedObjSpeedMult *= Math.max(0.6, Math.min(ServerSettings.MinSpeedReductionPerContainedObj, subObj.objectData.speedMult)); 
+                containedObjSpeedMult *= calculateObjSpeedMult(subObj); 
             }
         }
 
@@ -155,6 +165,11 @@ class MoveHelper{
         return speed;
     }
     
+    static private function calculateObjSpeedMult(obj:ObjectHelper) : Float
+    {
+        return Math.max(0.6, Math.min(ServerSettings.MinSpeedReductionPerContainedObj, obj.objectData.speedMult)); 
+    }
+
     static public function updateMovement(p:GlobalPlayerInstance)
     {
         var moveHelper = p.moveHelper;
