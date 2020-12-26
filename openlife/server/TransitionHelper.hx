@@ -527,14 +527,16 @@ class TransitionHelper{
         // TODO this may make trouble
         // 770 + -1 = 0 + 1421  Riding Horse + ? = 0 + Escaped Riding Horse
         // 778 + -1 = 0 + 1422  Horse-Drawn Cart
-        // 0 + 1422 = 778 + 0 // isHorsePickupTrans: true / Empty + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + Empty
+        // 0 + 1422 = 778 + 0 // isHorsePickupTrans: true // Empty + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + Empty
+        // 0 + 779 = 778 + 4154 // isHorsePickupTrans: true // Empty + Hitched Horse-Drawn Cart# +causeAutoOrientH -->  Horse-Drawn Cart + Hitching Post 
         // 0 + 3963 = 33 + 1096 // Transition for Well Site should not be affected by this
 
         var isHorseDropTrans = (transition.targetID == -1 && transition.newActorID == 0) && target.isPermanent() == false;
-        var isHorsePickupTrans = (transition.actorID == 0 && transition.newTargetID == 0 && transition.targetID != transition.actorID);
+        // TODO better set in transition itself if it is a switch transition?
+        var isHorsePickupTrans = (transition.actorID == 0 && transition.playerActor && target.containedObjects.length > 0);
         //if( || (transition.targetID == -1 && transition.newActorID == 0))
 
-        trace('TRANS: isHorseDropTrans: $isHorseDropTrans isHorsePickupTrans: $isHorsePickupTrans target.isPermanent: ${target.isPermanent()}');
+        trace('TRANS: isHorseDropTrans: $isHorseDropTrans isHorsePickupTrans: $isHorsePickupTrans target.isPermanent: ${target.isPermanent()} targetRemains: ${transition.targetRemains}');
         if(isHorsePickupTrans || isHorseDropTrans)
         {
             trace('TRANS: switch held object with tile object / This should be for transitions with horses, especially horse carts that can otherwise loose items');

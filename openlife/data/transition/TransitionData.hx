@@ -169,7 +169,7 @@ class TransitionData
       s += 'noUseActor: $noUseActor ';
       s += 'noUseTarget: $noUseTarget ';
 
-      //public var playerActor:Bool = false;
+      s += 'playerActor: $playerActor ';
       //public var tool:Bool = false;
       s += 'targetRemains: $targetRemains ';
 
