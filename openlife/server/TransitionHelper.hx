@@ -274,8 +274,8 @@ class TransitionHelper{
             if(transition.newActorID == 0)
             {
                 trace('transform object ${target.description()} in ${transition.newTargetID} / used when to put down horses');
-
-                transition.traceTransition();
+                //  3158 + -1 = 0 + 1422 // Horse-Drawn Tire Cart + ???  -->  Empty + Escaped Horse-Drawn Cart --> must be: 3158 + -1 = 0 + 3161
+                transition.traceTransition("transform: ", true);
 
                 target.setId(transition.newTargetID);
             }

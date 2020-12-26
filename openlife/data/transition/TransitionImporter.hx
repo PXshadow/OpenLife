@@ -260,15 +260,22 @@ class TransitionImporter
         }
 
         var category = actorCategory;
+        
 
-        if(category != null){
-            for(id in category.ids){                 
-                if(targetCategory == null){
+        if(category != null)
+        {
+            var objData = ObjectData.getObjectData(category.parentID);
+            var categoryDesc = objData == null ? '${category.parentID}' : '${category.parentID} ${objData.description}';
+
+            for(id in category.ids)
+            {                 
+                if(targetCategory == null)
+                {
                     var newTransition = transition.clone();
                     newTransition.actorID = id;
                     if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
 
-                    addTransition("Actor Category: ", newTransition);
+                    addTransition('Actor Category: ${categoryDesc} Trans:', newTransition);
                 } 
                 // TODO both category may not be needed
                 else{
@@ -294,14 +301,18 @@ class TransitionImporter
         // for transitions where actor is no category but target is a category
         category = targetCategory;
 
-        if(category != null){
-            for(id in category.ids){
+        if(category != null)
+        {
+            var objData = ObjectData.getObjectData(category.parentID);
+            var categoryDesc = objData == null ? '${category.parentID}' : '${category.parentID} ${objData.description}';
 
+            for(id in category.ids)
+            {
                 var newTransition = transition.clone();
                 newTransition.targetID = id;
                 if(newTransition.newTargetID == category.parentID) newTransition.newTargetID = id;
 
-                addTransition("Target Category: ", newTransition); 
+                addTransition('Target Category ${categoryDesc}: ', newTransition); 
             }
         }
     }

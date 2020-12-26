@@ -16,9 +16,9 @@ class ServerSettings
     public static var TraceSendNonPlayerActions = false;  
 
     public static var traceTransitionByActorId = 99972; // TransitionImporter
-    public static var traceTransitionByActorDescription = "!!!Bowl of Stew"; // TransitionImporter
-    public static var traceTransitionByTargetId = 999999; // TransitionImporter
-    public static var traceTransitionByTargetDescription = "!!!Escaped Horse-Drawn Cart"; // TransitionImporter
+    public static var traceTransitionByActorDescription = "Horse-Drawn Tire Cart"; // TransitionImporter
+    public static var traceTransitionByTargetId = 3161; // TransitionImporter
+    public static var traceTransitionByTargetDescription = "!!!Horse-Drawn Tire Cart"; // TransitionImporter
 
     public static var traceAmountGeneratedObjects = false; // WorldMap
 
@@ -141,6 +141,18 @@ class ServerSettings
         // Original: Riding Horse: 770 + -1 = 0 + 1421
         var trans = new TransitionData(770,0,0,1421);
         transtions.addTransition("PatchTransitions: ", trans);
+
+        // original transition makes cart use rubber if putting down horse cart
+        //Original: 3158 + -1 = 0 + 1422 // Horse-Drawn Tire Cart + ???  -->  Empty + Escaped Horse-Drawn Cart --> must be: 3158 + -1 = 0 + 3161
+        trans = transtions.getTransition(3158, -1);
+        trans.newTargetID = 3161;
+        trans.traceTransition("PatchTransitions: ");
+
+         // original transition makes cart use rubber if putting down horse cart
+        //Original:  0 + 3161 = 778 + 0 //Empty + Escaped Horse-Drawn Tire Cart# just released -->  Horse-Drawn Cart + Empty
+        trans = transtions.getTransition(0, 3161);
+        trans.newActorID = 3158;
+        trans.traceTransition("PatchTransitions: ");
 
         // let get berrys back!
         trans = new TransitionData(-1,30,0,30); // Wild Gooseberry Bush
