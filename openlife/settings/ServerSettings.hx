@@ -20,16 +20,25 @@ class ServerSettings
     public static var traceTransitionByTargetId = 9993161; // TransitionImporter
     public static var traceTransitionByTargetDescription = "!!!Horse-Drawn Tire Cart"; // TransitionImporter
 
-    public static var traceAmountGeneratedObjects = false; // WorldMap
+    public static var traceAmountGeneratedObjects = true; // WorldMap
 
     // PlayerInstance
     public static var StartingEveAge = 11;  // 13
     public static var AgingSecondsPerYear = 60; // 60
     public static var AddAgeForConsideringPickupAge = 2; // With set to two an item that needs 13 years to be allowed to be picked up can be picked up with 11
 
+    // serialisation
+    public static var GenerateMapNew = false;
+    public static var MapFileName = "mysteraV1Test.png";  
+    public static var OriginalBiomesFileName = "OriginalBiomes.bin"; 
+    public static var CurrentFloorsFileName = "CurrentFloors.bin";    
+    public static var OriginalObjectsFileName = "OriginalObjects.bin";    
+    public static var CurrentObjectsFileName = "CurrentObjects.bin"; 
+    public static var CurrentObjHelpersFileName = "CurrentObjHelper.bin"; 
+    
+
     // worldMap
     public static var ChanceForLuckySpot = 0.03; // chance that during generation an object is lucky and tons more of that are generated close by
-    public static var MapFileName = "mysteraV1Test.png";    
     public static var startingGx = 235; //270; // 360;
     public static var startingGy = 150; //200;//- 400; // server map is saved y inverse 
     public static var CreateGreenBiomeDistance = 5;

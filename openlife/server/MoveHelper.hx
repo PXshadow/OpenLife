@@ -73,11 +73,8 @@ class MoveHelper{
         if(hasBothShoes) speed *= 1.1;
         
         // only give road speed boni if full path is on road
-        if(fullPathHasRoad)
-        {
-            onRoad = floorSpeed >= 1.01;
-            speed *= floorSpeed;
-        }
+        onRoad = floorSpeed >= 1.01;
+        speed *= floorSpeed;
 
         // DO biomes
         var biomeSpeed = map.getBiomeSpeed(tx,ty);  

@@ -1,4 +1,7 @@
 package openlife.server;
+import haxe.macro.Expr.Catch;
+import haxe.Exception;
+import sys.io.File;
 import openlife.settings.ServerSettings;
 import openlife.data.transition.TransitionData;
 import sys.thread.Mutex;
@@ -74,8 +77,8 @@ class WorldMap
     var floors:Vector<Int>;
     var biomes:Vector<Int>;
 
-    public var initialPopulation:Map<Int,Int>;
-    public var currentPopulation:Map<Int,Int>;
+    public var originalObjectsCount:Map<Int,Int>;
+    public var currentObjectsCount:Map<Int,Int>;
 
 
     public var width:Int;
@@ -253,8 +256,8 @@ class WorldMap
         
         //timeObjectHelpers = [];
 
-        initialPopulation = new Map<Int,Int>();
-        currentPopulation = new Map<Int,Int>();
+        originalObjectsCount = new Map<Int,Int>();
+        currentObjectsCount = new Map<Int,Int>();
     }
 
     public function getBiomeSpeed(x:Int, y:Int):Float 
@@ -478,11 +481,313 @@ class WorldMap
 
         generateObjects();
 
-        generateExtraStuff();
+        generateExtraStuff();        
 
         if(ServerSettings.debug) generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
 
         this.mutex.release();      
+    }
+
+    public function writeToDisk()
+    {
+        this.mutex.acquire();
+
+        writeMapBiomes(ServerSettings.OriginalBiomesFileName, biomes);
+
+        writeMapFloors(ServerSettings.CurrentFloorsFileName, floors);
+
+        writeMapObjects(ServerSettings.OriginalObjectsFileName, objects);
+
+        writeMapObjects(ServerSettings.CurrentObjectsFileName, objects);
+
+        writeMapObjHelpers(ServerSettings.CurrentObjHelpersFileName, objectHelpers);
+
+        this.mutex.release();
+    } 
+
+    public function readFromDisk() : Bool
+    {
+        this.mutex.acquire();
+
+        try
+        {
+            this.biomes = readMapBiomes(ServerSettings.OriginalBiomesFileName);
+
+            this.floors = readMapBiomes(ServerSettings.CurrentFloorsFileName);
+
+            this.objects = readMapObjects(ServerSettings.CurrentObjectsFileName);
+
+            this.objectHelpers = readMapObjHelpers(ServerSettings.CurrentObjHelpersFileName);
+
+            this.originalObjectsCount = countObjects(this.objects);
+
+            this.currentObjectsCount = countObjects(this.objects);
+        }
+        catch(ex)
+        {
+            trace(ex);
+            return false;
+        }
+
+        this.mutex.release();
+
+        return true;
+    }
+
+    public function writeMapBiomes(path:String, biomesToWrite:Vector<Int>)
+    {
+        trace('Wrtie to file: $path width: $width height: $height length: $length');
+
+        if(width * height != length) throw new Exception('width * height != length');
+        if(biomesToWrite.length != length) throw new Exception('biomesToWrite.length != length');
+
+        var writer = File.write(path, true);
+
+        writer.writeInt32(width);
+        writer.writeInt32(height);
+
+        for(biome in biomesToWrite)
+        {
+            writer.writeInt8(biome);
+        }
+
+        writer.close();
+    }
+
+    public function readMapBiomes(path:String) : Vector<Int>
+    {
+        var reader = File.read(path, true);
+        this.width = reader.readInt32();
+        this.height = reader.readInt32();
+        this.length = width * height;
+        var newBiomes = new Vector<Int>(length);
+
+        trace('Read from file: $path width: $width height: $height length: $length');
+
+        if(width * height != length) throw new Exception('width * height != length');
+        
+        for(i in 0...newBiomes.length)
+        {
+            newBiomes[i] = reader.readInt8();
+        }
+
+        reader.close();
+
+        return newBiomes;
+    }
+
+    public function writeMapFloors(path:String, floorsToWrite:Vector<Int>)
+    {
+        trace('Wrtie to file: $path width: $width height: $height length: $length');
+
+        if(width * height != length) throw new Exception('width * height != length');
+        if(floorsToWrite.length != length) throw new Exception('floorsToWrite.length != length');
+
+        var writer = File.write(path, true);
+
+        writer.writeInt32(width);
+        writer.writeInt32(height);
+
+        for(floor in floorsToWrite)
+        {
+            writer.writeInt32(floor);
+        }
+
+        writer.close();
+    }
+
+    public function readMapFloors(path:String) : Vector<Int>
+    {
+        var reader = File.read(path, true);
+        var width = reader.readInt32();
+        var height = reader.readInt32();
+        var length = width * height;
+        var newFloors = new Vector<Int>(length);
+
+        trace('Read from file: $path width: $width height: $height length: $length');
+
+        if(width != this.width) throw new Exception('width != this.width');
+        if(height != this.height) throw new Exception('height != this.height');
+        if(length != this.length) throw new Exception('length != this.length');
+
+        for(i in 0...newFloors.length)
+        {
+            newFloors[i] = reader.readInt32();
+        }
+
+        reader.close();
+
+        return newFloors;
+    }
+
+    public function writeMapObjects(path:String, objectsToWrite:Vector<Array<Int>>)
+    {
+        trace('Wrtie to file: $path width: $width height: $height length: $length');
+        if(objectsToWrite.length != length) throw new Exception('objectsToWrite.length != length');
+
+        var writer = File.write(path, true);
+
+        writer.writeInt32(width);
+        writer.writeInt32(height);
+
+        for(obj in objectsToWrite)
+        {
+            writer.writeInt32(obj[0]);
+        }
+
+        writer.close();
+    }
+
+    public function readMapObjects(path:String) : Vector<Array<Int>>
+    {
+        var reader = File.read(path, true);
+        var width = reader.readInt32();
+        var height = reader.readInt32();
+        var length = width * height;
+        var newObjects = new Vector<Array<Int>>(length);
+        
+        trace('Read from file: $path width: $width height: $height length: $length');
+
+        if(width != this.width) throw new Exception('width != this.width');
+        if(height != this.height) throw new Exception('height != this.height');
+        if(length != this.length) throw new Exception('length != this.length');
+        
+        for(i in 0...newObjects.length)
+        {
+            newObjects[i] = [reader.readInt32()];
+        }
+
+        reader.close();
+
+        return newObjects;
+    }
+
+    public function writeMapObjHelpers(path:String, objHelpersToWrite:Vector<ObjectHelper>)
+    {
+        trace('Wrtie to file: $path width: $width height: $height length: $length');
+
+        if(width * height != length) throw new Exception('width * height != length');
+        if(objHelpersToWrite.length != length) throw new Exception('objHelpersToWrite.length != length');
+
+        var count = 0;
+        var writer = File.write(path, true);
+        
+        writer.writeInt32(width);
+        writer.writeInt32(height);        
+
+        for(obj in objHelpersToWrite)
+        {
+            //if(obj.deleteObjectHelperIfUseless())
+            if(obj == null) continue;
+
+            count++;
+
+            var objArray = obj.toArray();
+
+            writer.writeInt8(objArray.length);
+
+            for(i in objArray)
+            {
+                writer.writeInt32(i);
+            }
+
+            writer.writeInt32(obj.tx);
+            writer.writeInt32(obj.ty);
+            writer.writeInt32(obj.numberOfUses);
+            writer.writeInt32(obj.creationTimeInTicks);
+        }
+
+        writer.close();
+
+        trace('wrote $count ObjectHelpers...');
+    }
+
+    public function readMapObjHelpers(path:String) : Vector<ObjectHelper>
+    {
+        var reader = File.read(path, true);
+        trace('reader.eof(): ${reader.eof()}');
+        var width = reader.readInt32();
+        var height = reader.readInt32();
+        var length = width * height;
+        var newObjects = new Vector<ObjectHelper>(length);
+        var count = 0;
+
+        if(width != this.width) throw new Exception('width != this.width');
+        if(height != this.height) throw new Exception('height != this.height');
+        if(length != this.length) throw new Exception('length != this.length');
+
+        trace('Read from file: $path width: $width height: $height length: $length eof: ${reader.eof()} ');
+
+        try{
+            while(reader.eof() == false)
+            {
+                var arrayLength = reader.readInt8();
+
+                count++;
+
+                trace(arrayLength);
+
+                var newObjArray = new Array<Int>();
+
+                for(i in 0...arrayLength)
+                {
+                    newObjArray.push(reader.readInt32());
+                    trace(i);
+                }
+
+                var newObject = ObjectHelper.readObjectHelper(null, newObjArray);
+                newObject.tx = reader.readInt32();
+                newObject.ty = reader.readInt32();
+                newObject.numberOfUses = reader.readInt32();
+                newObject.creationTimeInTicks = reader.readInt32();
+
+                newObjects[index(newObject.tx, newObject.ty)] = newObject;
+                objects[index(newObject.tx, newObject.ty)] = newObjArray;
+            }
+        }
+        catch(ex)
+        {
+            trace('reader.eof(): ${reader.eof()}');
+
+            trace(ex);    
+        }
+
+        reader.close();
+
+        trace('read $count ObjectHelpers...');
+
+        return newObjects;
+    }
+
+    function countObjects(objectsToCount:Vector<Array<Int>>, objHelpersToCount:Vector<ObjectHelper> = null) :  Map<Int, Int>
+    {
+        var objList = new Map<Int, Int>();
+        
+        for(obj in objectsToCount)
+        {
+            if(obj[0] == 0) continue;
+
+            objList[obj[0]]++;
+        }
+
+        if(objHelpersToCount == null) return objList;
+
+        for(obj in objHelpersToCount)
+        {
+            if(obj == null) continue;
+
+            for(containedObj in obj.containedObjects)
+            {
+                objList[containedObj.id()]++;
+
+                for(subContainedObj in containedObj.containedObjects)
+                {
+                    objList[subContainedObj.id()]++;
+                }
+            }
+        }
+
+        return objList;
     }
 
     function addExtraBiomes()
@@ -541,6 +846,8 @@ class WorldMap
     function generateObjects()
     {
         var generatedObjects = 0;
+        originalObjectsCount = new Map<Int, Int>();
+        currentObjectsCount = new Map<Int, Int>();
 
         for (y in 0...height)
         {
@@ -573,15 +880,13 @@ class WorldMap
                     var chance = obj.mapChance;
                     sumChance += chance;
 
-                    if (random <= sumChance) {
+                    if (random <= sumChance)
+                    {
                         objects[x+y*width] = [obj.id];
-                        if (!initialPopulation.exists(obj.id))
-                            initialPopulation[obj.id] = 0;
-                        if (!currentPopulation.exists(obj.id))
-                            currentPopulation[obj.id] = 0;
-                        initialPopulation[obj.id] += 1;
-                        currentPopulation[obj.id] = 1;                      
 
+                        originalObjectsCount[obj.id] += 1;
+                        currentObjectsCount[obj.id] += 1; 
+                                            
                         //trace('generate: bi: $biomeInt id: ${obj.id} rand: $random sc: $sumChance');
                         set = true;
                         generatedObjects++;                      
@@ -594,9 +899,9 @@ class WorldMap
 
         if(ServerSettings.traceAmountGeneratedObjects)
         {
-            for(key in initialPopulation.keys()){
+            for(key in originalObjectsCount.keys()){
                 var objData = ObjectData.getObjectData(key);
-                trace('Generated obj[${key}] ${objData.description}: ${initialPopulation[key]}');
+                trace('Generated obj[${key}] ${objData.description}: ${originalObjectsCount[key]}');
             }
         }
     }

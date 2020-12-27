@@ -93,7 +93,22 @@ class Server
 
         // do all the map inititalisation stuff
         map = new WorldMap();
-        map.generate();
+
+        if(ServerSettings.GenerateMapNew)
+        {
+            map.generate();
+            map.writeToDisk();
+        }
+        else
+        {
+            if(map.readFromDisk() == false)
+            {
+                trace('could not read World Map from disk! Start generating new map...');
+
+                map.generate();
+                map.writeToDisk();
+            }
+        }
         
         // run run run Thread run run run
         var thread = new ThreadServer(this,8005);

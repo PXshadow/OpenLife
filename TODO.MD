@@ -76,9 +76,12 @@ TODO Missing:
 - incarnation
 - multiplayer testing
 - feeding of other people
+- naming
+- time transitions for objects in container
+- animal movement that changes animal
+- do pattern transitions right like rubber horsecart pickup 
 - biome boni for different races
 - leadership
-- naming
 - faces / for example hungry / ill
 - ill from moskitos
 - temperature

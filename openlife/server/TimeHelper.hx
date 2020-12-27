@@ -434,12 +434,12 @@ class TimeHelper
             var chanceForOffspring = isPreferredBiome ? ServerSettings.chanceForOffspring : ServerSettings.chanceForOffspring * Math.pow((1 - chancePreferredBiome), 2);
 
             // give extra birth chance bonus if population is very low
-            if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] / 2) chanceForOffspring *=5;
+            if(worldmap.currentObjectsCount[newTileObject[0]] < worldmap.originalObjectsCount[newTileObject[0]] / 2) chanceForOffspring *=5;
 
-            if(worldmap.currentPopulation[newTileObject[0]] < worldmap.initialPopulation[newTileObject[0]] * ServerSettings.maxOffspringFactor && worldmap.randomFloat() <= chanceForOffspring)
+            if(worldmap.currentObjectsCount[newTileObject[0]] < worldmap.originalObjectsCount[newTileObject[0]] * ServerSettings.maxOffspringFactor && worldmap.randomFloat() <= chanceForOffspring)
             {
                 // TODO consider dead 
-                worldmap.currentPopulation[newTileObject[0]] += 1;
+                worldmap.currentObjectsCount[newTileObject[0]] += 1;
 
                 //if(chanceForOffspring < worldmap.chanceForOffspring) trace('NEW: $newTileObject ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]} chance: $chanceForOffspring biome: $targetBiome');
 
@@ -466,8 +466,6 @@ class TimeHelper
                 var fromY = fromTy - player.gy;
                 var toX = toTx - player.gx;
                 var toY = toTy - player.gy;
-
-                
 
                 // update only close players
                 if(player.isClose(toX,toY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
