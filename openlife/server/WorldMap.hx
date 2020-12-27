@@ -1,4 +1,5 @@
 package openlife.server;
+import sys.FileSystem;
 import haxe.macro.Expr.Catch;
 import haxe.Exception;
 import sys.io.File;
@@ -492,15 +493,19 @@ class WorldMap
     {
         this.mutex.acquire();
 
-        writeMapBiomes(ServerSettings.OriginalBiomesFileName, biomes);
+        var dir = './${ServerSettings.SaveDirectory}/';
 
-        writeMapFloors(ServerSettings.CurrentFloorsFileName, floors);
+        if(FileSystem.exists(dir) == false) FileSystem.createDirectory(dir);
 
-        writeMapObjects(ServerSettings.OriginalObjectsFileName, objects);
+        writeMapBiomes(dir + ServerSettings.OriginalBiomesFileName, biomes);
 
-        writeMapObjects(ServerSettings.CurrentObjectsFileName, objects);
+        writeMapFloors(dir + ServerSettings.CurrentFloorsFileName, floors);
 
-        writeMapObjHelpers(ServerSettings.CurrentObjHelpersFileName, objectHelpers);
+        writeMapObjects(dir + ServerSettings.OriginalObjectsFileName, objects);
+
+        writeMapObjects(dir + ServerSettings.CurrentObjectsFileName, objects);
+
+        writeMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName, objectHelpers);
 
         this.mutex.release();
     } 
@@ -511,13 +516,15 @@ class WorldMap
 
         try
         {
-            this.biomes = readMapBiomes(ServerSettings.OriginalBiomesFileName);
+            var dir = './${ServerSettings.SaveDirectory}/';
 
-            this.floors = readMapBiomes(ServerSettings.CurrentFloorsFileName);
+            this.biomes = readMapBiomes(dir + ServerSettings.OriginalBiomesFileName);
 
-            this.objects = readMapObjects(ServerSettings.CurrentObjectsFileName);
+            this.floors = readMapBiomes(dir + ServerSettings.CurrentFloorsFileName);
 
-            this.objectHelpers = readMapObjHelpers(ServerSettings.CurrentObjHelpersFileName);
+            this.objects = readMapObjects(dir + ServerSettings.CurrentObjectsFileName);
+
+            this.objectHelpers = readMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName);
 
             this.originalObjectsCount = countObjects(this.objects);
 

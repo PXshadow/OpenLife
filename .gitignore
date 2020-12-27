@@ -49,3 +49,4 @@ node_modules
 package-lock.json
 hashlink-debugger
 *.db
+/SaveFiles
