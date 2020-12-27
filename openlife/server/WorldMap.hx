@@ -74,9 +74,11 @@ class WorldMap
     public var mutex = new Mutex();
 
     var objects:Vector<Array<Int>>;
+    var originalObjects:Vector<Array<Int>>;
     var objectHelpers:Vector<ObjectHelper>; 
     var floors:Vector<Int>;
     var biomes:Vector<Int>;
+    var originalBiomes:Vector<Int>;
 
     public var originalObjectsCount:Map<Int,Int>;
     public var currentObjectsCount:Map<Int,Int>;
@@ -482,14 +484,18 @@ class WorldMap
 
         generateObjects();
 
-        generateExtraStuff();        
+        generateExtraStuff();
+        
+        this.originalBiomes = biomes.copy();
+
+        this.originalObjects = objects.copy();
 
         if(ServerSettings.debug) generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
 
         this.mutex.release();      
     }
 
-    public function writeToDisk()
+    public function writeToDisk(saveOriginals:Bool = true)
     {
         this.mutex.acquire();
 
@@ -497,11 +503,13 @@ class WorldMap
 
         if(FileSystem.exists(dir) == false) FileSystem.createDirectory(dir);
 
-        writeMapBiomes(dir + ServerSettings.OriginalBiomesFileName, biomes);
+        if(saveOriginals) writeMapBiomes(dir + ServerSettings.OriginalBiomesFileName, originalBiomes);
+
+        if(saveOriginals) writeMapObjects(dir + ServerSettings.OriginalObjectsFileName, originalObjects);
+
+        writeMapBiomes(dir + ServerSettings.CurrentBiomesFileName, biomes);
 
         writeMapFloors(dir + ServerSettings.CurrentFloorsFileName, floors);
-
-        writeMapObjects(dir + ServerSettings.OriginalObjectsFileName, objects);
 
         writeMapObjects(dir + ServerSettings.CurrentObjectsFileName, objects);
 
@@ -518,7 +526,11 @@ class WorldMap
         {
             var dir = './${ServerSettings.SaveDirectory}/';
 
-            this.biomes = readMapBiomes(dir + ServerSettings.OriginalBiomesFileName);
+            this.originalBiomes = readMapBiomes(dir + ServerSettings.OriginalBiomesFileName);
+
+            this.originalObjects = readMapObjects(dir + ServerSettings.OriginalObjectsFileName);
+
+            this.biomes = readMapBiomes(dir + ServerSettings.CurrentBiomesFileName);
 
             this.floors = readMapBiomes(dir + ServerSettings.CurrentFloorsFileName);
 
@@ -526,7 +538,7 @@ class WorldMap
 
             this.objectHelpers = readMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName);
 
-            this.originalObjectsCount = countObjects(this.objects);
+            this.originalObjectsCount = countObjects(this.originalObjects);
 
             this.currentObjectsCount = countObjects(this.objects);
         }
@@ -765,7 +777,7 @@ class WorldMap
         }
         catch(ex)
         {
-            trace('reader.eof(): ${reader.eof()}');
+            //trace('reader.eof(): ${reader.eof()}');
 
             trace(ex);    
         }
