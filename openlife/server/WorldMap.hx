@@ -371,16 +371,16 @@ class WorldMap
     {
         var obj = getObjectId(helper.tx, helper.ty);
 
-        if(obj[0] != helper.id())
+        if(obj[0] != helper.dummyId())
         {
-            trace('WARNING: objectHelper.Id: ${helper.id()} did not fit to objectId: ${helper.id()} ${helper.description()}');
+            trace('WARNING: objectHelper.Id: ${obj[0]} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id()} ${helper.description()}');
 
             objectHelpers[index(helper.tx, helper.ty)] = null;
 
             return true;
         }
 
-        if(helper.numberOfUses < 1 && helper.timeToChange == 0 && helper.containedObjects.length == 0 && helper.groundObject == null)
+        if((helper.numberOfUses == helper.objectData.numUses || helper.numberOfUses < 1) && helper.timeToChange == 0 && helper.containedObjects.length == 0 && helper.groundObject == null)
         {
             //if(x != helper.tx || y != helper.ty) trace('REMOVE ObjectHelper $x,$y h${helper.tx},h${helper.ty} USES < 1 && timeToChange == 0 && containedObjects.length == 0 && groundObject == null');
             objectHelpers[index(helper.tx, helper.ty)] = null;
@@ -496,8 +496,10 @@ class WorldMap
     }
 
     public function writeToDisk(saveOriginals:Bool = true)
-    {
-        this.mutex.acquire();
+    {        
+        this.mutex.acquire();        
+
+        var time = Sys.time();
 
         var dir = './${ServerSettings.SaveDirectory}/';
 
@@ -513,9 +515,11 @@ class WorldMap
 
         writeMapObjects(dir + ServerSettings.CurrentObjectsFileName, objects);
 
-        writeMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName, objectHelpers);
+        writeMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName, objectHelpers);        
 
         this.mutex.release();
+
+        trace('Write to disk: Time: ${Sys.time() - time}');
     } 
 
     public function readFromDisk() : Bool
@@ -555,7 +559,7 @@ class WorldMap
 
     public function writeMapBiomes(path:String, biomesToWrite:Vector<Int>)
     {
-        trace('Wrtie to file: $path width: $width height: $height length: $length');
+        //trace('Wrtie to file: $path width: $width height: $height length: $length');
 
         if(width * height != length) throw new Exception('width * height != length');
         if(biomesToWrite.length != length) throw new Exception('biomesToWrite.length != length');
@@ -600,7 +604,7 @@ class WorldMap
 
     public function writeMapFloors(path:String, floorsToWrite:Vector<Int>)
     {
-        trace('Wrtie to file: $path width: $width height: $height length: $length');
+        //trace('Wrtie to file: $path width: $width height: $height length: $length');
 
         if(width * height != length) throw new Exception('width * height != length');
         if(floorsToWrite.length != length) throw new Exception('floorsToWrite.length != length');
@@ -647,7 +651,7 @@ class WorldMap
 
     public function writeMapObjects(path:String, objectsToWrite:Vector<Array<Int>>)
     {
-        trace('Wrtie to file: $path width: $width height: $height length: $length');
+        //trace('Wrtie to file: $path width: $width height: $height length: $length');
         if(objectsToWrite.length != length) throw new Exception('objectsToWrite.length != length');
 
         var writer = File.write(path, true);
@@ -692,7 +696,7 @@ class WorldMap
 
     public function writeMapObjHelpers(path:String, objHelpersToWrite:Vector<ObjectHelper>)
     {
-        trace('Wrtie to file: $path width: $width height: $height length: $length');
+        //trace('Wrtie to file: $path width: $width height: $height length: $length');
 
         if(width * height != length) throw new Exception('width * height != length');
         if(objHelpersToWrite.length != length) throw new Exception('objHelpersToWrite.length != length');
@@ -755,14 +759,11 @@ class WorldMap
 
                 count++;
 
-                trace(arrayLength);
-
                 var newObjArray = new Array<Int>();
 
                 for(i in 0...arrayLength)
                 {
                     newObjArray.push(reader.readInt32());
-                    trace(i);
                 }
 
                 var newObject = ObjectHelper.readObjectHelper(null, newObjArray);
@@ -771,14 +772,21 @@ class WorldMap
                 newObject.numberOfUses = reader.readInt32();
                 newObject.creationTimeInTicks = reader.readInt32();
 
+                if(newObject.numberOfUses > 1 || newObject.containedObjects.length > 0)
+                {
+                    // 1435 = bison // 1261 = Canada Goose Pond with Egg // 30 = Gooseberry Bush // 2142 = Banana Plant // 1323 = Wild Boar
+                    if(newObject.id() != 1435 && newObject.id() != 1261  && newObject.id() != 30 && newObject.id() != 2142 && newObject.id() != 1323)
+                    {
+                        trace('${newObject.description()} numberOfUses: ${newObject.numberOfUses} from  ${newObject.objectData.numUses} ' + newObjArray);
+                    }
+                }
+
                 newObjects[index(newObject.tx, newObject.ty)] = newObject;
                 objects[index(newObject.tx, newObject.ty)] = newObjArray;
             }
         }
         catch(ex)
         {
-            //trace('reader.eof(): ${reader.eof()}');
-
             trace(ex);    
         }
 

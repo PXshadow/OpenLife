@@ -89,6 +89,8 @@ class TimeHelper
         DoWorldMapTimeStuff();
 
         Server.server.map.mutex.release();
+ 
+        if(tick % ServerSettings.TicksBetweenSaving == 0) Server.server.map.writeToDisk(false);
 
         /* TODO currently it goes through the hole map each sec / this may later not work
         for(helper in this.map.timeObjectHelpers){

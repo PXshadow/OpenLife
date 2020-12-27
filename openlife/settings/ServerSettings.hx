@@ -8,7 +8,7 @@ import openlife.data.object.ObjectData;
 class ServerSettings
 {
     // for debugging
-    public static var debug = true; // activates or deactivates try catch blocks and initial debug objects generation 
+    public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation 
     
     // used to trace connection.send commands //  only trace player actions // ignores MX from animal, FX and PU from food / age
     public static var TraceSendPlayerActions = true; 
@@ -27,8 +27,9 @@ class ServerSettings
     public static var AgingSecondsPerYear = 60; // 60
     public static var AddAgeForConsideringPickupAge = 2; // With set to two an item that needs 13 years to be allowed to be picked up can be picked up with 11
 
-    // serialisation
+    // load save to disk
     public static var GenerateMapNew = false;
+    public static var TicksBetweenSaving = 200;
     public static var MapFileName = "mysteraV1Test.png";  
     public static var SaveDirectory = "SaveFiles";
     public static var OriginalBiomesFileName = "OriginalBiomes.bin"; 

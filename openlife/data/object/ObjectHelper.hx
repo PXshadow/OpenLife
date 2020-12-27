@@ -133,6 +133,15 @@ class ObjectHelper {
         return objectData.id;
     }
 
+    public function dummyId() : Int
+    {
+        if(objectData.dummyObjects.length <= 0 || numberOfUses == objectData.numUses) return objectData.id;
+
+        return objectData.dummyObjects[numberOfUses-1].id;
+    }
+
+    
+
     public function setId(newID:Int)
     {
         if(this.id() == newID) return;    
