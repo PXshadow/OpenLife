@@ -549,7 +549,9 @@ class WorldMap
         if(biomesToWrite.length != length) throw new Exception('biomesToWrite.length != length');
 
         var writer = File.write(path, true);
+        var dataVersion = 1;
 
+        writer.writeInt32(dataVersion);
         writer.writeInt32(width);
         writer.writeInt32(height);
 
@@ -564,6 +566,7 @@ class WorldMap
     public function readMapBiomes(path:String) : Vector<Int>
     {
         var reader = File.read(path, true);
+        var dataVersion = reader.readInt32();
         this.width = reader.readInt32();
         this.height = reader.readInt32();
         this.length = width * height;
@@ -591,7 +594,9 @@ class WorldMap
         if(floorsToWrite.length != length) throw new Exception('floorsToWrite.length != length');
 
         var writer = File.write(path, true);
+        var dataVersion = 1;
 
+        writer.writeInt32(dataVersion);
         writer.writeInt32(width);
         writer.writeInt32(height);
 
@@ -606,6 +611,7 @@ class WorldMap
     public function readMapFloors(path:String) : Vector<Int>
     {
         var reader = File.read(path, true);
+        var dataVersion = reader.readInt32();
         var width = reader.readInt32();
         var height = reader.readInt32();
         var length = width * height;
@@ -633,7 +639,9 @@ class WorldMap
         if(objectsToWrite.length != length) throw new Exception('objectsToWrite.length != length');
 
         var writer = File.write(path, true);
+        var dataVersion = 1;
 
+        writer.writeInt32(dataVersion);        
         writer.writeInt32(width);
         writer.writeInt32(height);
 
@@ -648,6 +656,7 @@ class WorldMap
     public function readMapObjects(path:String) : Vector<Array<Int>>
     {
         var reader = File.read(path, true);
+        var dataVersion = reader.readInt32();
         var width = reader.readInt32();
         var height = reader.readInt32();
         var length = width * height;
@@ -678,7 +687,9 @@ class WorldMap
 
         var count = 0;
         var writer = File.write(path, true);
-        
+        var dataVersion = 1;
+
+        writer.writeInt32(dataVersion);        
         writer.writeInt32(width);
         writer.writeInt32(height);        
 
@@ -712,7 +723,7 @@ class WorldMap
     public function readMapObjHelpers(path:String) : Vector<ObjectHelper>
     {
         var reader = File.read(path, true);
-        trace('reader.eof(): ${reader.eof()}');
+        var dataVersion = reader.readInt32();
         var width = reader.readInt32();
         var height = reader.readInt32();
         var length = width * height;
