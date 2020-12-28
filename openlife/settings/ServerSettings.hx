@@ -20,7 +20,7 @@ class ServerSettings
     public static var traceTransitionByTargetId = 9993161; // TransitionImporter
     public static var traceTransitionByTargetDescription = "!!!Horse-Drawn Tire Cart"; // TransitionImporter
 
-    public static var traceAmountGeneratedObjects = true; // WorldMap
+    public static var traceAmountGeneratedObjects = false; // WorldMap
 
     // PlayerInstance
     public static var StartingEveAge = 11;  // 13
@@ -32,12 +32,12 @@ class ServerSettings
     public static var TicksBetweenSaving = 200;
     public static var MapFileName = "mysteraV1Test.png";  
     public static var SaveDirectory = "SaveFiles";
-    public static var OriginalBiomesFileName = "OriginalBiomes.bin"; 
-    public static var CurrentBiomesFileName = "CurrentBiomes.bin"; 
-    public static var CurrentFloorsFileName = "CurrentFloors.bin";    
-    public static var OriginalObjectsFileName = "OriginalObjects.bin";    
-    public static var CurrentObjectsFileName = "CurrentObjects.bin"; 
-    public static var CurrentObjHelpersFileName = "CurrentObjHelper.bin"; 
+    public static var OriginalBiomesFileName = "OriginalBiomes"; // .bin is added
+    public static var CurrentBiomesFileName = "CurrentBiomes"; // .bin is added
+    public static var CurrentFloorsFileName = "CurrentFloors";    // .bin is added
+    public static var OriginalObjectsFileName = "OriginalObjects";    // .bin is added
+    public static var CurrentObjectsFileName = "CurrentObjects"; // .bin is added
+    public static var CurrentObjHelpersFileName = "CurrentObjHelper"; // .bin is added
     
 
     // worldMap
@@ -108,7 +108,7 @@ class ServerSettings
         }
 
         // Change map spawn chances
-        ObjectData.getObjectData(942).mapChance *= 1.5; // Muddy Iron Vein
+        ObjectData.getObjectData(942).mapChance *= 3; // Muddy Iron Vein
         ObjectData.getObjectData(2135).mapChance /= 3; // Rubber Tree
         ObjectData.getObjectData(2156).mapChance *= 0.5; // Less UnHappy Mosquitos
         
@@ -119,6 +119,8 @@ class ServerSettings
         ObjectData.getObjectData(418).speedMult = 1.5; // Boost Wolfs even more :)
 
         ObjectData.getObjectData(290).speedMult = 0.80; // Iron Ore
+        ObjectData.getObjectData(314).speedMult = 0.80; // Wrought Iron
+        ObjectData.getObjectData(326).speedMult = 0.80; // Steel Ingot
         ObjectData.getObjectData(838).mapChance = ObjectData.getObjectData(211).mapChance / 5; // Add some lovely mushrooms  
         ObjectData.getObjectData(838).biomes.push(BiomeTag.GREEN); // Add some lovely mushrooms 
 

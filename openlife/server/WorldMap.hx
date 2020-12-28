@@ -94,6 +94,8 @@ class WorldMap
     static inline final MAX_NUM:Int = 2147483647;
     static inline final MODULUS:Int = MAX_NUM;
 
+    var saveDataNumber = 0;
+
     public function new()
     {
 
@@ -500,26 +502,35 @@ class WorldMap
         this.mutex.acquire();        
 
         var time = Sys.time();
-
         var dir = './${ServerSettings.SaveDirectory}/';
-
+        
         if(FileSystem.exists(dir) == false) FileSystem.createDirectory(dir);
 
-        if(saveOriginals) writeMapBiomes(dir + ServerSettings.OriginalBiomesFileName, originalBiomes);
+        
+        var tmpDataNumber = (saveDataNumber % 10) + 1;
+        
+        if(saveOriginals) writeMapBiomes(dir + ServerSettings.OriginalBiomesFileName + ".bin", originalBiomes);
 
-        if(saveOriginals) writeMapObjects(dir + ServerSettings.OriginalObjectsFileName, originalObjects);
+        if(saveOriginals) writeMapObjects(dir + ServerSettings.OriginalObjectsFileName + ".bin", originalObjects);
 
-        writeMapBiomes(dir + ServerSettings.CurrentBiomesFileName, biomes);
+        writeMapBiomes(dir + ServerSettings.CurrentBiomesFileName  + tmpDataNumber + ".bin", biomes);
 
-        writeMapFloors(dir + ServerSettings.CurrentFloorsFileName, floors);
+        writeMapFloors(dir + ServerSettings.CurrentFloorsFileName  + tmpDataNumber + ".bin", floors);
 
-        writeMapObjects(dir + ServerSettings.CurrentObjectsFileName, objects);
+        writeMapObjects(dir + ServerSettings.CurrentObjectsFileName + tmpDataNumber + ".bin", objects);
 
-        writeMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName, objectHelpers);        
+        writeMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + tmpDataNumber + ".bin", objectHelpers);
+        
+        var path = dir + "lastDataNumber.txt";
+        var writer = File.write(path, false);
+        writer.writeInt32(tmpDataNumber);
+        writer.close();
 
+        saveDataNumber++;
+         
         this.mutex.release();
 
-        trace('Write to disk: Time: ${Sys.time() - time}');
+        trace('Write to disk: saveDataNumber: $tmpDataNumber Time: ${Sys.time() - time}');
     } 
 
     public function readFromDisk() : Bool
@@ -529,18 +540,24 @@ class WorldMap
         try
         {
             var dir = './${ServerSettings.SaveDirectory}/';
+            var path = dir + "lastDataNumber.txt";
+            var reader = File.read(path, false);
+            this.saveDataNumber = reader.readInt32();
+            reader.close();    
 
-            this.originalBiomes = readMapBiomes(dir + ServerSettings.OriginalBiomesFileName);
+            trace('saveDataNumber: $saveDataNumber');        
 
-            this.originalObjects = readMapObjects(dir + ServerSettings.OriginalObjectsFileName);
+            this.originalBiomes = readMapBiomes(dir + ServerSettings.OriginalBiomesFileName + ".bin");
 
-            this.biomes = readMapBiomes(dir + ServerSettings.CurrentBiomesFileName);
+            this.originalObjects = readMapObjects(dir + ServerSettings.OriginalObjectsFileName + ".bin");
 
-            this.floors = readMapBiomes(dir + ServerSettings.CurrentFloorsFileName);
+            this.biomes = readMapBiomes(dir + ServerSettings.CurrentBiomesFileName + saveDataNumber + ".bin");
 
-            this.objects = readMapObjects(dir + ServerSettings.CurrentObjectsFileName);
+            this.floors = readMapBiomes(dir + ServerSettings.CurrentFloorsFileName + saveDataNumber + ".bin");
 
-            this.objectHelpers = readMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName);
+            this.objects = readMapObjects(dir + ServerSettings.CurrentObjectsFileName + saveDataNumber + ".bin");
+
+            this.objectHelpers = readMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + saveDataNumber + ".bin");
 
             this.originalObjectsCount = countObjects(this.originalObjects);
 
@@ -756,7 +773,7 @@ class WorldMap
         if(height != this.height) throw new Exception('height != this.height');
         if(length != this.length) throw new Exception('length != this.length');
 
-        trace('Read from file: $path width: $width height: $height length: $length eof: ${reader.eof()} ');
+        trace('Read from file: $path width: $width height: $height length: $length');
 
         try{
             while(reader.eof() == false)
@@ -971,11 +988,11 @@ class WorldMap
 
                     // generate also some random stones and some more mines nearby
 
-                    var random = randomInt(20) + 10;
+                    var random = randomInt(6) + 3;
 
                     for(i in 0...100)
                     {
-                        var dist = 12;
+                        var dist = 8;
                         var tx = x + randomInt(dist * 2) - dist;
                         var ty = y + randomInt(dist * 2) - dist; 
 
@@ -992,6 +1009,7 @@ class WorldMap
                         if(random <= 0) break;
                     }
 
+                    /*
                     var random = randomInt(4);
                     if(random == 1 || random == 3) random += 1;
                     for(i in 0...50)
@@ -1009,7 +1027,7 @@ class WorldMap
 
                         random -= 1;
                         if(random <= 0) break;
-                    }
+                    }*/
                 } 
 
                 var tmpObj = getObjectId(x,y);
