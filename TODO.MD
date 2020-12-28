@@ -19,6 +19,7 @@ MAP:
 - No dry spring and tarry spot
 - no gradients
 - no expert waystones
+- objects respawn near original objects with a small chance
 
 Transitions:
 - Paradise is back! Wild Berries and Bana come finaly back with time 

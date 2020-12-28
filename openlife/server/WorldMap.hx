@@ -317,6 +317,11 @@ class WorldMap
         return objects[index(x,y)];
     }
 
+    public function getOriginalObjectId(x:Int, y:Int) : Array<Int>
+    {
+        return originalObjects[index(x,y)];
+    }
+
     public function setObjectId(x:Int, y:Int, ids:Array<Int>)
     {
         objects[index(x,y)] = ids;
@@ -1051,41 +1056,40 @@ class WorldMap
                 if(tmpIsPlaced[index(x,y)]) continue; 
 
                 // if obj is no iron, no tary spot and no spring there is a chance for winning lottery
-                if(tmpObj[0] != 942 && tmpObj[0] !=3030 && tmpObj[0] != 2285 && tmpObj[0] != 3962 && tmpObj[0] != 503)
+                if(ServerSettings.CanObjectRespawn(tmpObj[0]) == false) continue;
+
+                if(randomFloat() < ServerSettings.ChanceForLuckySpot)
                 {
-                    if(randomFloat() < ServerSettings.ChanceForLuckySpot)
+                    var objData = ObjectData.getObjectData(tmpObj[0]);
+                    var timeTransition = Server.transitionImporter.getTransition(-1, tmpObj[0], false, false);
+                    var random = 4 + randomInt(timeTransition != null ? 4 : 16);
+
+                    var tmpRandom = random;               
+
+                    for(i in 0...100)
                     {
-                        var objData = ObjectData.getObjectData(tmpObj[0]);
-                        var timeTransition = Server.transitionImporter.getTransition(-1, tmpObj[0], false, false);
-                        var random = 4 + randomInt(timeTransition != null ? 4 : 16);
+                        var dist = 10;
+                        var tx = x + randomInt(dist * 2) - dist;
+                        var ty = y + randomInt(dist * 2) - dist; 
 
-                        var tmpRandom = random;               
+                        if(((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) > dist * dist) continue;
+                        
+                        var biomeId = getBiomeId(x,y);
 
-                        for(i in 0...100)
-                        {
-                            var dist = 10;
-                            var tx = x + randomInt(dist * 2) - dist;
-                            var ty = y + randomInt(dist * 2) - dist; 
-    
-                            if(((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) > dist * dist) continue;
-                            
-                            var biomeId = getBiomeId(x,y);
+                        if(biomeId != getBiomeId(tx,ty)) continue; 
 
-                            if(biomeId != getBiomeId(tx,ty)) continue; 
+                        if(getObjectId(tx,ty)[0] != 0) continue;
+                        if(getObjectId(tx,ty-1)[0] != 0) continue;
 
-                            if(getObjectId(tx,ty)[0] != 0) continue;
-                            if(getObjectId(tx,ty-1)[0] != 0) continue;
-    
-                            tmpIsPlaced[index(tx,ty)] = true;
-                            setObjectId(tx,ty, tmpObj);
+                        tmpIsPlaced[index(tx,ty)] = true;
+                        setObjectId(tx,ty, tmpObj);
 
 
-                            random -= 1;
-                            if(random <= 0) break;
-                        }
-
-                        //trace('lucky: ${objData.description} placed: ${tmpRandom-random} from $tmpRandom');
-                    } 
+                        random -= 1;
+                        if(random <= 0) break;
+                    }
+                    
+                    //trace('lucky: ${objData.description} placed: ${tmpRandom-random} from $tmpRandom');
                 }
             }
         }

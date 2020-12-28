@@ -221,7 +221,7 @@ class ObjectHelper {
             var message = 'TransformToDummy: WARNING: ${objectData.description}: obj.numberOfUses < 1: ${obj.numberOfUses}';
             trace(message);
 
-            throw new Exception(message);
+            //throw new Exception(message);
 
             obj.numberOfUses = 1;
         }

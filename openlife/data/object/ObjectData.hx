@@ -719,6 +719,19 @@ class ObjectData extends LineReader
     {
         return mapChance > 0;
     }
+
+    public function isSpawningIn(biomeId:Int) : Bool
+    {
+        for(biome in this.biomes)
+        {
+            if(biomeId == biome){
+                return true;
+            } 
+        }
+        
+        return false;
+    }
+
     public function toFileString():String
     {
         if(this.id == 0) return "Empty";

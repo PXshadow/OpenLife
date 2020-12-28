@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.data.object.ObjectData;
 import openlife.server.WorldMap.BiomeTag;
 import openlife.data.transition.TransitionData;
 import openlife.data.object.ObjectHelper;
@@ -87,6 +88,8 @@ class TimeHelper
         }
 
         DoWorldMapTimeStuff();
+
+        RespawnObjects();
 
         Server.server.map.mutex.release();
  
@@ -247,7 +250,9 @@ class TimeHelper
             {
                 var obj = worldMap.getObjectId(x,y);
 
-                if(obj[0] == 0) continue;     
+                if(obj[0] == 0) continue; 
+                
+                //RespawnPlant(obj[0]);
 
                 var helper = worldMap.getObjectHelper(x,y,true); 
 
@@ -290,6 +295,63 @@ class TimeHelper
             }
         }
     }  
+
+    public static function RespawnObjects()
+    {
+        var timeParts = ServerSettings.WorldTimeParts * 10; 
+        var worldMap = Server.server.map;
+        var partSizeY = Std.int(worldMap.height / timeParts);
+        var startY = (worldMapTimeStep % timeParts) * partSizeY;
+        var endY = startY + partSizeY;
+
+        //trace('startY: $startY endY: $endY worldMap.height: ${worldMap.height}');
+
+        for (y in startY...endY)
+        {
+            for(x in 0...worldMap.width)
+            {
+                var obj = worldMap.getOriginalObjectId(x,y)[0];
+                
+                if(obj == 0) continue;
+
+                if(ServerSettings.CanObjectRespawn(obj) == false) continue;
+
+                if(worldMap.currentObjectsCount[obj] >= worldMap.originalObjectsCount[obj]) continue;
+
+                if(worldMap.randomFloat() > ServerSettings.ObjRespawnChance) continue;
+
+                var dist = 6;
+                var tmpX = worldMap.randomInt(dist) + x;
+                var tmpY = worldMap.randomInt(dist) + y;
+
+                if(worldMap.getObjectId(tmpX, tmpY)[0] != 0) continue;
+
+                if(worldMap.getObjectId(tmpX, tmpY-1)[0] != 0) continue; // make sure that obj does not spawn above one tile of existing obj
+
+                var biomeId = worldMap.getBiomeId(tmpX,tmpY);
+                var objData = ObjectData.getObjectData(obj);
+
+                if(objData.isSpawningIn(biomeId) == false) continue;
+
+                worldMap.setObjectId(tmpX, tmpY, [obj]);
+
+                worldMap.currentObjectsCount[obj]++;
+
+                Connection.SendMapUpdateToAllClosePlayers(tmpX, tmpY, [obj]);
+
+                //trace('respawn object: ${objData.description} $obj');
+            }
+        }    
+    }
+
+    public static function RespawnPlant()
+    {
+        // TODO
+    }
+
+    public static function RespawnObj()
+    {
+    }
 
     public static function doTimeTransition(helper:ObjectHelper)
     {
@@ -389,15 +451,8 @@ class TimeHelper
             if(targetBiome == BiomeTag.SNOWINGREY) continue;
             if(targetBiome == BiomeTag.OCEAN) continue;
 
-            var isPreferredBiome = false;
+            var isPreferredBiome = helper.objectData.isSpawningIn(targetBiome);
 
-            for(biome in helper.objectData.biomes){
-                if(targetBiome == biome){
-                    //trace('isPreferredBiome: $biome');
-                    isPreferredBiome = true;
-                } 
-            }
-            
             // lower the chances even more if on river
             //var isHardbiome = targetBiome == BiomeTag.RIVER || (targetBiome == BiomeTag.GREY) || (targetBiome == BiomeTag.SNOW) || (targetBiome == BiomeTag.DESERT);
             var isNotHardbiome =  isPreferredBiome || targetBiome == BiomeTag.GREEN || targetBiome == BiomeTag.YELLOW;
