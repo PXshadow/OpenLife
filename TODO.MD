@@ -65,17 +65,20 @@ Animals:
 - Stuff like trees and rabit holes wont block animal movement // TODO also for player
 - horses are the ultimative devourers you can eat anything from horse!
 
-TODO Features
-- Winter
+TODO Features: 
+more up in the list means more likely to be implemented first but no gurantee!
 - Respawn stuff
+- Winter
+- horses that follow owner
 
 TODO Missing:
-- animal interactions / collisions
+more up in the list means more likely to be implemented first but no gurantee!
 - death
-- world persistance 
 - incarnation
 - multiplayer testing
 - feeding of other people
+- biome locked planting
+- animal interactions / collisions
 - naming
 - time transitions for objects in container
 - animal movement that changes animal
@@ -107,6 +110,9 @@ Low priority stuff:
 - radio
 - photo
 
+TODO Testing
+- transition testing
+- multiplayer testing
 
 
 
