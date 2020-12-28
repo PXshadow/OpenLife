@@ -321,8 +321,8 @@ class TimeHelper
                 if(worldMap.randomFloat() > ServerSettings.ObjRespawnChance) continue;
 
                 var dist = 6;
-                var tmpX = worldMap.randomInt(dist) + x;
-                var tmpY = worldMap.randomInt(dist) + y;
+                var tmpX = worldMap.randomInt(2*dist) - dist + x;
+                var tmpY = worldMap.randomInt(2*dist) - dist + y;
 
                 if(worldMap.getObjectId(tmpX, tmpY)[0] != 0) continue;
 
