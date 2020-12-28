@@ -95,6 +95,7 @@ class WorldMap
     static inline final MODULUS:Int = MAX_NUM;
 
     var saveDataNumber = 0;
+    var backupDataNumber = 0;
 
     public function new()
     {
@@ -497,15 +498,26 @@ class WorldMap
         this.mutex.release();      
     }
 
-    public function writeToDisk(saveOriginals:Bool = true)
+    public function writeBackup()
+    {
+        var tmpBackupDataNumber =  (backupDataNumber % ServerSettings.MaxNumberOfBackups) + 1;
+
+        var dir = './${ServerSettings.SaveDirectory}/$tmpBackupDataNumber/';
+
+        writeToDisk(false, dir);
+
+        trace('Wrote backup: backupDataNumber: $tmpBackupDataNumber');
+        backupDataNumber++;
+    }
+
+    public function writeToDisk(saveOriginals:Bool = true, dir:String = null)
     {        
         this.mutex.acquire();        
 
         var time = Sys.time();
-        var dir = './${ServerSettings.SaveDirectory}/';
+        if(dir == null) dir = './${ServerSettings.SaveDirectory}/';
         
         if(FileSystem.exists(dir) == false) FileSystem.createDirectory(dir);
-
         
         var tmpDataNumber = (saveDataNumber % 10) + 1;
         
@@ -523,7 +535,8 @@ class WorldMap
         
         var path = dir + "lastDataNumber.txt";
         var writer = File.write(path, false);
-        writer.writeInt32(tmpDataNumber);
+        writer.writeString('$tmpDataNumber\r\n');
+        writer.writeString('$backupDataNumber\r\n');
         writer.close();
 
         saveDataNumber++;
@@ -542,10 +555,11 @@ class WorldMap
             var dir = './${ServerSettings.SaveDirectory}/';
             var path = dir + "lastDataNumber.txt";
             var reader = File.read(path, false);
-            this.saveDataNumber = reader.readInt32();
+            this.saveDataNumber = Std.parseInt(reader.readLine());
+            this.backupDataNumber = Std.parseInt(reader.readLine());
             reader.close();    
 
-            trace('saveDataNumber: $saveDataNumber');        
+            trace('saveDataNumber: $saveDataNumber backupDataNumber: $backupDataNumber');        
 
             this.originalBiomes = readMapBiomes(dir + ServerSettings.OriginalBiomesFileName + ".bin");
 

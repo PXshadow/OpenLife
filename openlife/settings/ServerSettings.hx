@@ -30,6 +30,9 @@ class ServerSettings
     // load save to disk
     public static var GenerateMapNew = false;
     public static var TicksBetweenSaving = 200;
+    public static var TicksBetweenBackups = 20 * 60 * 60 * 8; // 20 * 60 * 60 * 8 = every 8 hours
+    public static var MaxNumberOfBackups = 90;
+
     public static var MapFileName = "mysteraV1Test.png";  
     public static var SaveDirectory = "SaveFiles";
     public static var OriginalBiomesFileName = "OriginalBiomes"; // .bin is added
