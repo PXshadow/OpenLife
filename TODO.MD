@@ -70,10 +70,13 @@ more up in the list means more likely to be implemented first but no gurantee!
 - Respawn stuff
 - Winter
 - horses that follow owner
+- princess / princess / nobles
+- special stuff like hercules / snake master / super fast ager 
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
-- death
+- death and graves
+- dead connections cleanup
 - incarnation
 - multiplayer testing
 - feeding of other people
@@ -92,10 +95,8 @@ more up in the list means more likely to be implemented first but no gurantee!
 - combat / generally allowed
 - fences / gates
 - wounds / healing
-- epecial stuff like hercules / snake master / super fast ager 
 - better map
 - score / score boni
-- nobles
 - job boni
 - families
 - commands 
