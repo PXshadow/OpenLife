@@ -703,7 +703,7 @@ class WorldMap
 
         var count = 0;
         var writer = File.write(path, true);
-        var dataVersion = 1;
+        var dataVersion = 2;
 
         writer.writeInt32(dataVersion);        
         writer.writeInt32(width);
@@ -729,7 +729,10 @@ class WorldMap
             writer.writeInt32(obj.ty);
             writer.writeInt32(obj.numberOfUses);
             writer.writeInt32(obj.creationTimeInTicks);
+            writer.writeInt32(obj.timeToChange);
         }
+
+        writer.writeInt8(100); // end sign
 
         writer.close();
 
@@ -739,13 +742,16 @@ class WorldMap
     public function readMapObjHelpers(path:String) : Vector<ObjectHelper>
     {
         var reader = File.read(path, true);
+        var expectedDataVersion = 2;
         var dataVersion = reader.readInt32();
         var width = reader.readInt32();
         var height = reader.readInt32();
         var length = width * height;
         var newObjects = new Vector<ObjectHelper>(length);
         var count = 0;
+        
 
+        if(dataVersion != 2) throw new Exception('Data version is: $dataVersion expected data version is: $expectedDataVersion');
         if(width != this.width) throw new Exception('width != this.width');
         if(height != this.height) throw new Exception('height != this.height');
         if(length != this.length) throw new Exception('length != this.length');
@@ -756,7 +762,8 @@ class WorldMap
             while(reader.eof() == false)
             {
                 var arrayLength = reader.readInt8();
-
+                if(arrayLength == 100) break; // reached the end
+                if(arrayLength > 100) throw new Exception('array length is: $arrayLength > 100');
                 count++;
 
                 var newObjArray = new Array<Int>();
@@ -771,6 +778,7 @@ class WorldMap
                 newObject.ty = reader.readInt32();
                 newObject.numberOfUses = reader.readInt32();
                 newObject.creationTimeInTicks = reader.readInt32();
+                newObject.timeToChange = reader.readInt32();
 
                 if(newObject.numberOfUses > 1 || newObject.containedObjects.length > 0)
                 {
@@ -787,7 +795,8 @@ class WorldMap
         }
         catch(ex)
         {
-            trace(ex);    
+            reader.close();
+            throw ex;
         }
 
         reader.close();
