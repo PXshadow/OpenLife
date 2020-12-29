@@ -51,7 +51,7 @@ class ServerSettings
    
     // food stuff
     public static var MinAgeToEat = 3;
-    public static var FoodUsePerSecond = 0.2; // 0.2; // 5 sec per pip // use 0.6 or something to test cravings...
+    public static var FoodUsePerSecond = 0.001; // 0.2; // 5 sec per pip // use 0.6 or something to test cravings...
     public static var GrownUpFoodStoreMax = 20;
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;

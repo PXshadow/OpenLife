@@ -311,6 +311,10 @@ class WorldMap
         return biomes[index(x,y)] = biomeId;
     }
     
+    public static function worldGetObjectId(x:Int, y:Int) : Array<Int>
+        {
+            return Server.server.map.getObjectId(x,y);
+        }
 
     public function getObjectId(x:Int, y:Int):Array<Int>
     {

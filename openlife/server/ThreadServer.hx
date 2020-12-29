@@ -55,11 +55,11 @@ class ThreadServer
                 
             }catch(e:Dynamic)
             {
-                trace('WARNING: EXEPTION: ' + e);
                 //error("---STACK---\n" + e.details());
 
                 if (e != haxe.io.Error.Blocked)
                 {
+                    trace('WARNING: EXEPTION: ' + e);
                     connection.close();
                     break;
                 }

@@ -702,4 +702,70 @@ class GlobalPlayerInstance extends PlayerInstance {
         heldObject.setId(id);
         setHeldObject(heldObject);
     }
+
+    public function doDeath()
+    {
+        // TODO place clothing
+
+        var world = Server.server.map;
+        var grave = new ObjectHelper(this, 87); // 87 = Fresh Grave
+
+        if(this.heldObject != null)
+        {
+            grave.containedObjects.push(this.heldObject);
+            this.setHeldObject(null);
+        }
+
+        if(placeGrave(this.tx(), this.ty(), grave)) return; 
+
+        var distance = 1;
+        
+        for(i in 1...10000)
+        {
+            distance = Math.ceil(i / (30 * distance * distance)); 
+
+            trace('rand: ${world.randomInt(distance * 2) - distance}');
+
+            var tmpX = this.tx() + world.randomInt(distance * 2) - distance;
+            var tmpY = this.ty() + world.randomInt(distance * 2) - distance;
+
+            if(placeGrave(tmpX, tmpY, grave)) return; 
+        }
+
+        trace('WARNING: could not place any grave for player: ${this.p_id}');
+    }
+
+    function placeGrave(x:Int, y:Int, grave:ObjectHelper) : Bool
+    {
+        var world = Server.server.map;
+
+        var obj = world.getObjectHelper(x, y);
+
+        if(obj.id() == 0)
+        {
+            world.setObjectHelper(x, y, grave);
+
+            Connection.SendUpdateToAllClosePlayers(this);
+
+            Connection.SendMapUpdateToAllClosePlayers(x, y, grave.toArray());
+
+            return true;
+        }
+        else if(obj.containedObjects.length < 1 && obj.objectData.containable)
+        {
+            grave.containedObjects.push(obj);
+
+            world.setObjectHelper(x, y, grave);
+
+            Connection.SendUpdateToAllClosePlayers(this);
+
+            Connection.SendMapUpdateToAllClosePlayers(x, y, grave.toArray());
+
+            return true;
+        }
+
+        //trace('Do death: could not place grave at: ${obj.description()}');
+
+        return false;
+    }
 }

@@ -53,13 +53,15 @@ class TimeHelper
                  TimeHelper.tick += 1;
                  skipedTicks++;
             }
-            if(TimeHelper.tick % 200 == 0)
+            if(TimeHelper.tick % 100 == 0)
             {
-                averageSleepTime /= 200;
+                averageSleepTime /= 100;
 
                 trace('Connections: ${Server.server.connections.length} timeSinceStartCountedFromTicks: ${timeSinceStartCountedFromTicks} TimeSinceStart: $timeSinceStart skipedTicks in 10 sec: $skipedTicks averageSleepTime: $averageSleepTime');
                 averageSleepTime = 0;
                 skipedTicks = 0;
+
+                if(Server.server.connections.length > 0) Server.server.connections[0].player.doDeath();
             }
 
             @:privateAccess haxe.MainLoop.tick();
