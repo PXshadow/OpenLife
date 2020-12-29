@@ -436,7 +436,7 @@ class ObjectData extends LineReader
     {
         super();
 
-        if(createNullObject) {
+        if(i == 0 || createNullObject) {
             this.description = "Empty";
             return;
         }

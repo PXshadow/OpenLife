@@ -32,13 +32,18 @@ class TimeHelper
         serverStartingTime = Sys.time();
         var averageSleepTime = 0.0;
         var skipedTicks = 0;
+        var timeSinceStartCountedFromTicks = TimeHelper.tick * TimeHelper.tickTime;
+        serverStartingTime -= timeSinceStartCountedFromTicks;  // pretend the server was started before to be aligned with ticks
+
+        //trace('Server Startign time: sys.time: ${Sys.time()} serverStartingTime: $serverStartingTime timeSinceStartCountedFromTicks: $timeSinceStartCountedFromTicks');
 
         while (true)
         {
             TimeHelper.tick++;
 
             var timeSinceStart = Sys.time() - TimeHelper.serverStartingTime;
-            var timeSinceStartCountedFromTicks = TimeHelper.tick * TimeHelper.tickTime;
+            timeSinceStartCountedFromTicks = TimeHelper.tick * TimeHelper.tickTime;
+            
 
             // TODO what to do if server is too slow?
             if(TimeHelper.tick % 200 != 0  && timeSinceStartCountedFromTicks < timeSinceStart)
@@ -57,7 +62,7 @@ class TimeHelper
 
             @:privateAccess haxe.MainLoop.tick();
 
-            Server.server.map.mutex.acquire(); // TODO add try catch for non debug
+            Server.server.map.mutex.acquire(); 
 
             if(ServerSettings.debug)
             {
@@ -67,6 +72,7 @@ class TimeHelper
             {
                 try
                 {
+                    
                     @:privateAccess TimeHelper.DoTimeStuff();
                 }
                 catch(ex)
@@ -79,6 +85,7 @@ class TimeHelper
 
 
             timeSinceStart = Sys.time() - TimeHelper.serverStartingTime;
+
             if(timeSinceStartCountedFromTicks > timeSinceStart)
             {
                 var sleepTime = timeSinceStartCountedFromTicks - timeSinceStart;

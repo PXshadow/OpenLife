@@ -540,15 +540,16 @@ class WorldMap
         
         var path = dir + "lastDataNumber.txt";
         var writer = File.write(path, false);
-        writer.writeString('$tmpDataNumber\r\n');
-        writer.writeString('$backupDataNumber\r\n');
+        writer.writeString('$tmpDataNumber\n');
+        writer.writeString('$backupDataNumber\n');
+        writer.writeString('${TimeHelper.tick}\n');
         writer.close();
 
         saveDataNumber++;
          
         this.mutex.release();
 
-        trace('Write to disk: saveDataNumber: $tmpDataNumber Time: ${Sys.time() - time}');
+        trace('Write to disk: saveDataNumber: $tmpDataNumber Time: ${Sys.time() - time} backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');
     } 
 
     public function readFromDisk() : Bool
@@ -562,9 +563,10 @@ class WorldMap
             var reader = File.read(path, false);
             this.saveDataNumber = Std.parseInt(reader.readLine());
             this.backupDataNumber = Std.parseInt(reader.readLine());
+            TimeHelper.tick = Std.parseInt(reader.readLine());
             reader.close();    
 
-            trace('saveDataNumber: $saveDataNumber backupDataNumber: $backupDataNumber');        
+            trace('saveDataNumber: $saveDataNumber backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');        
 
             this.originalBiomes = readMapBiomes(dir + ServerSettings.OriginalBiomesFileName + ".bin");
 
@@ -815,6 +817,8 @@ class WorldMap
                 newObject.numberOfUses = reader.readInt32();
                 newObject.creationTimeInTicks = reader.readInt32();
                 newObject.timeToChange = reader.readInt32();
+
+                if(newObject.creationTimeInTicks > TimeHelper.tick) newObject.creationTimeInTicks = TimeHelper.tick;
 
                 if(newObject.numberOfUses > 1 || newObject.containedObjects.length > 0)
                 {
