@@ -7,7 +7,25 @@ TODO
 5. Task Queue system with Auto.hx class
 6. Algorithm to identify what is needed next for overseer
 
+Summary: 
+- the server is completly new written from scratch in haxe and in early ALPHA, so except errors and please report them!
+- Limited hand made map which can be designed using a picture
+- rivers oceans and mountains that block the movement
+- No Locked Iron or Wells
+- All Natural stuff can respawn (exception well, iron and oil stuff) 
+--> So having a lucky spot of one thing keeps it lucky also in the future
+- All But ancient stuff can decay (exception well, iron and oil stuff)
+- New craving system that shows you what has full YUM boni
+- Yum chain is now your prestiege (score) / health and influcences movement speed and aging
+--> so yes in theory you can life longer then 60
+- Quality of Life: You can pick berriers directly with a bowl, you can eat while on a horse. Shoes give extra speed
 
+
+Not yet implemented:
+- temperature
+- combat
+- player interactions like feeding / incarnation / family
+- see more in detail below
 
 SERVER
 ======
