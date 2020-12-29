@@ -56,7 +56,27 @@ class TimeHelper
             }
 
             @:privateAccess haxe.MainLoop.tick();
-            @:privateAccess TimeHelper.DoTimeStuff();
+
+            Server.server.map.mutex.acquire(); // TODO add try catch for non debug
+
+            if(ServerSettings.debug)
+            {
+                @:privateAccess TimeHelper.DoTimeStuff();
+            }
+            else
+            {
+                try
+                {
+                    @:privateAccess TimeHelper.DoTimeStuff();
+                }
+                catch(ex)
+                {
+                    trace(ex);   
+                }
+            }
+
+            Server.server.map.mutex.release();
+
 
             timeSinceStart = Sys.time() - TimeHelper.serverStartingTime;
             if(timeSinceStartCountedFromTicks > timeSinceStart)
@@ -74,9 +94,7 @@ class TimeHelper
     {
         var timePassedInSeconds = CalculateTimeSinceTicksInSec(lastTick);
 
-        TimeHelper.lastTick = tick;
-
-        Server.server.map.mutex.acquire(); // TODO add try catch for non debug
+        TimeHelper.lastTick = tick;  
 
         for (connection in Server.server.connections)
         {
@@ -91,9 +109,7 @@ class TimeHelper
 
         RespawnObjects();
 
-        DecaynObjects();
-
-        Server.server.map.mutex.release();
+        DecayObjects();
 
         var worldMap = Server.server.map; 
  
@@ -349,10 +365,11 @@ class TimeHelper
         }    
     }
 
-    public static function DecaynObjects()
+    public static function DecayObjects()
     {
         // TODO decay stuff in containers
         // TODO decay stuff with number of uses > 1
+        // TODO create custom decay transitions
 
         var timeParts = ServerSettings.WorldTimeParts * 10; 
         var worldMap = Server.server.map;
