@@ -384,6 +384,8 @@ class TimeHelper
 
                 var decayChance = ServerSettings.ObjDecayChance * objData.decayFactor;
 
+                if(objData.foodValue > 0) decayChance *= ServerSettings.ObjDecayFactorForFood;
+
                 if(worldMap.getFloorId(x,y) != 0) decayChance *= ServerSettings.ObjDecayFactorOnFloor;
 
                 if(worldMap.randomFloat() > decayChance) continue;
@@ -393,11 +395,11 @@ class TimeHelper
                 worldMap.setObjectId(x,y, [0]);
                 worldMap.setObjectHelperNull(x, y);
 
-                worldMap.currentObjectsCount[obj]++;
+                worldMap.currentObjectsCount[obj]--;
 
                 Connection.SendMapUpdateToAllClosePlayers(x, y, [0]);
 
-                trace('decay object: ${objData.description} $obj');
+                //trace('decay object: ${objData.description} $obj');
             }
         }    
     }

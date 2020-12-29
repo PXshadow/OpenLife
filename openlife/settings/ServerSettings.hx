@@ -8,7 +8,7 @@ import openlife.data.object.ObjectData;
 class ServerSettings
 {
     // for debugging
-    public static var debug = true; // activates or deactivates try catch blocks and initial debug objects generation 
+    public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation 
     
     // used to trace connection.send commands //  only trace player actions // ignores MX from animal, FX and PU from food / age
     public static var TraceSendPlayerActions = true; 
@@ -20,7 +20,7 @@ class ServerSettings
     public static var traceTransitionByTargetId = 9993161; // TransitionImporter
     public static var traceTransitionByTargetDescription = "!!!Horse-Drawn Tire Cart"; // TransitionImporter
 
-    public static var traceAmountGeneratedObjects = true; // WorldMap
+    public static var TraceCountObjects = false; // WorldMap
 
     // PlayerInstance
     public static var StartingEveAge = 11;  // 13
@@ -96,9 +96,10 @@ class ServerSettings
     public static var maxOffspringFactor = 3; // The population can only be at max X times the initial population
 
     public static var WorldTimeParts = 25; // in each tick 1/XX DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX * 10 
-    public static var ObjRespawnChance = 0.002; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
-    public static var ObjDecayChance = 0.001; // 0.001;
-    public static var ObjDecayFactorOnFloor = 0.1;
+    public static var ObjRespawnChance = 0.001; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
+    public static var ObjDecayChance = 0.0002; // 0.001; (X0.08)
+    public static var ObjDecayFactorOnFloor:Float = 0.1;
+    public static var ObjDecayFactorForFood:Float = 10;
 
 
     // iron, tary spot spring cannot respawn or win lottery

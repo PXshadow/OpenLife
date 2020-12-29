@@ -102,7 +102,7 @@ class WorldMap
 
     }
 
-    private function generateExtraDebugStuff(tx:Int, ty:Int)
+    public function generateExtraDebugStuff(tx:Int, ty:Int)
     {
         setFloorId(tx - 3, ty - 2, 1596); // stone road
         setFloorId(tx - 3, ty - 3, 1596); // stone road
@@ -850,7 +850,7 @@ class WorldMap
 
         //trace('count objects time: ${ Sys.time() - time}');
 
-        if(ServerSettings.traceAmountGeneratedObjects)
+        if(ServerSettings.TraceCountObjects)
         {
             for(key in currentObjectsCount.keys()){
                 var objData = ObjectData.getObjectData(key);
@@ -997,7 +997,7 @@ class WorldMap
 
         trace('generatedObjects: $generatedObjects');      
 
-        if(ServerSettings.traceAmountGeneratedObjects)
+        if(ServerSettings.TraceCountObjects)
         {
             for(key in originalObjectsCount.keys()){
                 var objData = ObjectData.getObjectData(key);

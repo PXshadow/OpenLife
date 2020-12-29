@@ -102,6 +102,9 @@ class Connection implements ServerHeader
         send(TOOL_SLOTS,["0 1000"]);
         player.sendFoodUpdate();
         send(FRAME);
+
+        if(ServerSettings.debug) Server.server.map.generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
+
         server.map.mutex.release();
     }
 

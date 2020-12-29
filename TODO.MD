@@ -19,10 +19,16 @@ MAP:
 - No dry spring and tarry spot
 - no gradients
 - no expert waystones
+
+
+World:
+- Paradise is back! Wild Berries and Bana come finaly back with time 
 - objects respawn near original objects with a small chance
+- objects except ancient, well, Iron Mine, Oil Pumps decay with a small chance
+- decay chance is 10X reduced if on floor and 10X increeased if food
 
 Transitions:
-- Paradise is back! Wild Berries and Bana come finaly back with time 
+- you can harvest Berries directly with a bowl
 
 Aging:
 - starving to death slows down aging below 14 and increases above  
@@ -59,7 +65,6 @@ Food - Cravings:
 - There is a Chance that a new complete never eaten radom food is chosen which is ID wise close to the last craved one
 - Cravings give plus one extra food boni and YUM chain / Health which influences speed and aging
 
-
 Animals:
 - Animals can multiply
 - Animals can leave their biome, but prefare to stay in own biome
@@ -68,7 +73,6 @@ Animals:
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
-- Respawn stuff
 - Winter
 - horses that follow owner
 - princess / princess / nobles
