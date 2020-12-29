@@ -8,7 +8,7 @@ import openlife.data.object.ObjectData;
 class ServerSettings
 {
     // for debugging
-    public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation 
+    public static var debug = true; // activates or deactivates try catch blocks and initial debug objects generation 
     
     // used to trace connection.send commands //  only trace player actions // ignores MX from animal, FX and PU from food / age
     public static var TraceSendPlayerActions = true; 
@@ -98,7 +98,7 @@ class ServerSettings
     public static var WorldTimeParts = 25; // in each tick 1/XX DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX * 10 
     public static var ObjRespawnChance = 0.002; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
     public static var ObjDecayChance = 0.001; // 0.001;
-    public static var ObjDecayFactorOnFloor = 0.2;
+    public static var ObjDecayFactorOnFloor = 0.1;
 
 
     // iron, tary spot spring cannot respawn or win lottery
@@ -112,10 +112,22 @@ class ServerSettings
         // allow some smithing on tables // TODO fix time transition for contained obj
         for(obj in ObjectData.importedObjectData)
         {
-            if( obj.description.indexOf("on Flat Rock") != -1 ){
+            if( obj.description.indexOf("on Flat Rock") != -1 )
+            {
                 obj.containSize = 2;
                 obj.containable = true;
             }
+
+            if( obj.description.indexOf("Well") != -1 || (obj.description.indexOf("Pump") != -1 && obj.description.indexOf("Pumpkin") == -1)
+                || obj.description.indexOf("Vein") != -1 || obj.description.indexOf("Mine") != -1 || obj.description.indexOf("Iron Pit") != -1
+                || obj.description.indexOf("Drilling") != -1 || obj.description.indexOf("Rig") != -1)
+            {
+                obj.decayFactor = -1;
+
+                //trace('Settings: ${obj.description} ${obj.containSize}');
+            }
+
+            
 
             //if(obj.containable) trace('${obj.description} ${obj.containSize}');
         }

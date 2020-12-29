@@ -20,6 +20,8 @@ class ObjectData extends LineReader
     public static var foodObjects:Array<ObjectData> = [];
 
     public var dummyObjects:Array<ObjectData> = [];
+
+    public var decayFactor:Float = 1;
     
 
     /**

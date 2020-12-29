@@ -351,6 +351,9 @@ class TimeHelper
 
     public static function DecaynObjects()
     {
+        // TODO decay stuff in containers
+        // TODO decay stuff with number of uses > 1
+
         var timeParts = ServerSettings.WorldTimeParts * 10; 
         var worldMap = Server.server.map;
         var partSizeY = Std.int(worldMap.height / timeParts);
@@ -371,19 +374,19 @@ class TimeHelper
 
                 var objectHelper = worldMap.getObjectHelper(x,y, true);
 
-                if(objectHelper != null && objectHelper.containedObjects.length > 0) continue; // TODO decay stuff in containers
-
-                // TODO decay stuff with number of uses > 1
+                if(objectHelper != null && objectHelper.containedObjects.length > 0) continue; 
 
                 //if(worldMap.currentObjectsCount[obj] >= worldMap.originalObjectsCount[obj]) continue;
+
+                var objData = ObjectData.getObjectData(obj);
                 
-                var decayChance = ServerSettings.ObjDecayChance;
+                if(objData.decayFactor <= 0) continue;       
+
+                var decayChance = ServerSettings.ObjDecayChance * objData.decayFactor;
 
                 if(worldMap.getFloorId(x,y) != 0) decayChance *= ServerSettings.ObjDecayFactorOnFloor;
 
                 if(worldMap.randomFloat() > decayChance) continue;
-
-                //var objData = ObjectData.getObjectData(obj);
 
                 //if(objData.isSpawningIn(biomeId) == false) continue;
 
@@ -394,7 +397,7 @@ class TimeHelper
 
                 Connection.SendMapUpdateToAllClosePlayers(x, y, [0]);
 
-                //trace('respawn object: ${objData.description} $obj');
+                trace('decay object: ${objData.description} $obj');
             }
         }    
     }
