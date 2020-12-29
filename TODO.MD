@@ -20,6 +20,13 @@ Summary:
 --> so yes in theory you can life longer then 60
 - Quality of Life: You can pick berriers directly with a bowl, you can eat while on a horse. Shoes give extra speed
 
+How to setup:
+- Tons of server settings can be changed in the ServerSettings class / not yet implemented to load them from file
+- you can put another map in the base directory 
+--> just override the current used one, or change to the new map in the Server Settings
+- every 10 sec the server state is saved in the SaveFiles directory and by default reused
+- every 8 hours a backup is made which is cycled through (up to 90 backups) / this can also be changed in Server Settings
+--> the backups are in the folders: SaveFiles/1/ SaveFiles/2/.... SaveFiles/90/ 
 
 Not yet implemented:
 - temperature
