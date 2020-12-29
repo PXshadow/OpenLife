@@ -11,7 +11,7 @@ import openlife.server.Server;
 class ObjectHelper {
     public var objectData:ObjectData; 
     public var numberOfUses = 0;
-    public var creationTimeInTicks:Int;
+    public var creationTimeInTicks:Float;
 
     // needed for time Transitions
     public var timeToChange = 0; // in sec 

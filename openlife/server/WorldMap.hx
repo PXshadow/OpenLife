@@ -549,7 +549,9 @@ class WorldMap
          
         this.mutex.release();
 
-        trace('Write to disk: saveDataNumber: $tmpDataNumber Time: ${Sys.time() - time} backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');
+        var time = Math.round((Sys.time() - time) * 100) / 100;
+
+        trace('Write to disk: saveDataNumber: $tmpDataNumber Time: $time backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');
     } 
 
     public function readFromDisk() : Bool
@@ -563,7 +565,7 @@ class WorldMap
             var reader = File.read(path, false);
             this.saveDataNumber = Std.parseInt(reader.readLine());
             this.backupDataNumber = Std.parseInt(reader.readLine());
-            TimeHelper.tick = Std.parseInt(reader.readLine());
+            TimeHelper.tick = Std.parseFloat(reader.readLine());
             reader.close();    
 
             trace('saveDataNumber: $saveDataNumber backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');        
@@ -766,7 +768,7 @@ class WorldMap
             writer.writeInt32(obj.tx);
             writer.writeInt32(obj.ty);
             writer.writeInt32(obj.numberOfUses);
-            writer.writeInt32(obj.creationTimeInTicks);
+            writer.writeDouble(obj.creationTimeInTicks);
             writer.writeInt32(obj.timeToChange);
         }
 
@@ -815,7 +817,7 @@ class WorldMap
                 newObject.tx = reader.readInt32();
                 newObject.ty = reader.readInt32();
                 newObject.numberOfUses = reader.readInt32();
-                newObject.creationTimeInTicks = reader.readInt32();
+                newObject.creationTimeInTicks = reader.readDouble();
                 newObject.timeToChange = reader.readInt32();
 
                 if(newObject.creationTimeInTicks > TimeHelper.tick) newObject.creationTimeInTicks = TimeHelper.tick;

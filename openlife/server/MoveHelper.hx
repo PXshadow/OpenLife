@@ -38,7 +38,7 @@ class MoveHelper{
     private var newMoveSeqNumber:Int = 0; 
     private var newMoves:Array<Pos>;
     private var totalMoveTime:Float = 0;
-    private var startingMoveTicks:Int = 0;
+    private var startingMoveTicks:Float = 0;
 
     public function new(){
     }
@@ -416,7 +416,7 @@ class MoveHelper{
         }      
 
         // this calculates which position is reached in case the movement was changed while moving
-        static private function calculateNewPos(moves:Array<Pos>, startingMoveTicks:Int, speed:Float):Pos
+        static private function calculateNewPos(moves:Array<Pos>, startingMoveTicks:Float, speed:Float):Pos
         {
             var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(startingMoveTicks);
             var movedLength = timeSinceStartMovementInSec * speed;

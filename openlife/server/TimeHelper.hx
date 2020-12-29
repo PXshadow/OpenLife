@@ -12,8 +12,8 @@ class TimeHelper
 
     //private static var TimeHelper = new TimeHelper();
 
-    public static var tick:Int = 0;
-    private static var lastTick:Int = 0;
+    public static var tick:Float = 0;
+    private static var lastTick:Float = 0;
     private static var serverStartingTime:Float;
 
     // TODO currently not needed, since for all objects on the map every second all time objects are generated
@@ -22,7 +22,7 @@ class TimeHelper
 
     //private function new(){}
 
-    public static function CalculateTimeSinceTicksInSec(ticks:Int):Float
+    public static function CalculateTimeSinceTicksInSec(ticks:Float):Float
     {
         return (TimeHelper.tick - ticks) * TimeHelper.tickTime;
     }
