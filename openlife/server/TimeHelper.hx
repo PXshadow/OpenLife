@@ -92,7 +92,10 @@ class TimeHelper
         RespawnObjects();
 
         Server.server.map.mutex.release();
+
+        var worldMap = Server.server.map; 
  
+        if((tick + 10) % ServerSettings.TicksBetweenSaving  == 0) worldMap.updateObjectCounts();
         if(tick % ServerSettings.TicksBetweenSaving == 0) Server.server.map.writeToDisk(false);
         if(tick % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Server.server.map.writeBackup();
         

@@ -20,7 +20,7 @@ class ServerSettings
     public static var traceTransitionByTargetId = 9993161; // TransitionImporter
     public static var traceTransitionByTargetDescription = "!!!Horse-Drawn Tire Cart"; // TransitionImporter
 
-    public static var traceAmountGeneratedObjects = false; // WorldMap
+    public static var traceAmountGeneratedObjects = true; // WorldMap
 
     // PlayerInstance
     public static var StartingEveAge = 11;  // 13

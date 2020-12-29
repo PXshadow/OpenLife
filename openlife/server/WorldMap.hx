@@ -842,7 +842,24 @@ class WorldMap
         return newObjects;
     }
 
-    function countObjects(objectsToCount:Vector<Array<Int>>, objHelpersToCount:Vector<ObjectHelper> = null) :  Map<Int, Int>
+    public function updateObjectCounts() 
+    {
+        //var time = Sys.time();
+
+        this.currentObjectsCount = countObjects(objects, objectHelpers);
+
+        //trace('count objects time: ${ Sys.time() - time}');
+
+        if(ServerSettings.traceAmountGeneratedObjects)
+        {
+            for(key in currentObjectsCount.keys()){
+                var objData = ObjectData.getObjectData(key);
+                trace('Count object: [${key}] ${objData.description}: ${currentObjectsCount[key]}');
+            }
+        }
+    }
+
+    public function countObjects(objectsToCount:Vector<Array<Int>>, objHelpersToCount:Vector<ObjectHelper> = null) :  Map<Int, Int>
     {
         var objList = new Map<Int, Int>();
         
