@@ -854,7 +854,7 @@ class WorldMap
         {
             for(key in currentObjectsCount.keys()){
                 var objData = ObjectData.getObjectData(key);
-                trace('Count object: [${key}] ${objData.description}: ${currentObjectsCount[key]}');
+                trace('Count object: [${key}] ${objData.description}: ${currentObjectsCount[key]} original: ${originalObjectsCount[key]}');
             }
         }
     }

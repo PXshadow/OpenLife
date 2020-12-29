@@ -91,6 +91,8 @@ class TimeHelper
 
         RespawnObjects();
 
+        DecaynObjects();
+
         Server.server.map.mutex.release();
 
         var worldMap = Server.server.map; 
@@ -253,7 +255,7 @@ class TimeHelper
             {
                 var obj = worldMap.getObjectId(x,y);
 
-                if(obj[0] == 0) continue; 
+                if(obj[0] == 0) continue;      
                 
                 //RespawnPlant(obj[0]);
 
@@ -341,6 +343,56 @@ class TimeHelper
                 worldMap.currentObjectsCount[obj]++;
 
                 Connection.SendMapUpdateToAllClosePlayers(tmpX, tmpY, [obj]);
+
+                //trace('respawn object: ${objData.description} $obj');
+            }
+        }    
+    }
+
+    public static function DecaynObjects()
+    {
+        var timeParts = ServerSettings.WorldTimeParts * 10; 
+        var worldMap = Server.server.map;
+        var partSizeY = Std.int(worldMap.height / timeParts);
+        var startY = (worldMapTimeStep % timeParts) * partSizeY;
+        var endY = startY + partSizeY;
+
+        //trace('startY: $startY endY: $endY worldMap.height: ${worldMap.height}');
+
+        for (y in startY...endY)
+        {
+            for(x in 0...worldMap.width)
+            {
+                var obj = worldMap.getObjectId(x,y)[0];
+                
+                if(obj == 0) continue;
+
+                if(ServerSettings.CanObjectRespawn(obj) == false) continue;
+
+                var objectHelper = worldMap.getObjectHelper(x,y, true);
+
+                if(objectHelper != null && objectHelper.containedObjects.length > 0) continue; // TODO decay stuff in containers
+
+                // TODO decay stuff with number of uses > 1
+
+                //if(worldMap.currentObjectsCount[obj] >= worldMap.originalObjectsCount[obj]) continue;
+                
+                var decayChance = ServerSettings.ObjDecayChance;
+
+                if(worldMap.getFloorId(x,y) != 0) decayChance *= ServerSettings.ObjDecayFactorOnFloor;
+
+                if(worldMap.randomFloat() > decayChance) continue;
+
+                //var objData = ObjectData.getObjectData(obj);
+
+                //if(objData.isSpawningIn(biomeId) == false) continue;
+
+                worldMap.setObjectId(x,y, [0]);
+                worldMap.setObjectHelperNull(x, y);
+
+                worldMap.currentObjectsCount[obj]++;
+
+                Connection.SendMapUpdateToAllClosePlayers(x, y, [0]);
 
                 //trace('respawn object: ${objData.description} $obj');
             }

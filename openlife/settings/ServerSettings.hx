@@ -96,7 +96,10 @@ class ServerSettings
     public static var maxOffspringFactor = 3; // The population can only be at max X times the initial population
 
     public static var WorldTimeParts = 25; // in each tick 1/XX DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX * 10 
-    public static var ObjRespawnChance = 0.001; // 34 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
+    public static var ObjRespawnChance = 0.002; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
+    public static var ObjDecayChance = 0.001; // 0.001;
+    public static var ObjDecayFactorOnFloor = 0.2;
+
 
     // iron, tary spot spring cannot respawn or win lottery
     public static function CanObjectRespawn(obj:Int) : Bool
