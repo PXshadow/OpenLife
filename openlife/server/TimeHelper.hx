@@ -12,7 +12,9 @@ class TimeHelper
 
     //private static var TimeHelper = new TimeHelper();
 
-    public static var tick:Float = 0;
+    public static var tick:Float = 0;       // some are skipped if server is too slow
+    //public static var allTicks:Float = 0;   // these ticks will not be skipped, but can be slower then expected
+
     private static var lastTick:Float = 0;
     private static var serverStartingTime:Float;
 
@@ -46,7 +48,7 @@ class TimeHelper
             
 
             // TODO what to do if server is too slow?
-            if(TimeHelper.tick % 200 != 0  && timeSinceStartCountedFromTicks < timeSinceStart)
+            if(TimeHelper.tick % 10 != 0  && timeSinceStartCountedFromTicks < timeSinceStart)
             {
                  TimeHelper.tick += 1;
                  skipedTicks++;
@@ -120,9 +122,10 @@ class TimeHelper
 
         var worldMap = Server.server.map; 
  
-        if((tick + 10) % ServerSettings.TicksBetweenSaving  == 0) worldMap.updateObjectCounts();
+        // make sure they are not all at same tick!
+        if((tick + 20) % ServerSettings.TicksBetweenSaving  == 0) worldMap.updateObjectCounts();
         if(tick % ServerSettings.TicksBetweenSaving == 0) Server.server.map.writeToDisk(false);
-        if(tick % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Server.server.map.writeBackup();
+        if((tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Server.server.map.writeBackup();
         
 
         /* TODO currently it goes through the hole map each sec / this may later not work
