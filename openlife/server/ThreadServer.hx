@@ -7,6 +7,7 @@ import sys.net.Socket;
 import sys.thread.Thread;
 import sys.thread.Mutex;
 import sys.net.Host;
+
 class ThreadServer
 {
     public var socket:Socket;
@@ -40,6 +41,7 @@ class ThreadServer
         var connection = new Connection(socket,server);
         var message:String = "";
         var ka:Float = Timer.stamp();
+
         while (connection.running)
         {
             try {
@@ -53,14 +55,15 @@ class ThreadServer
                 
             }catch(e:Dynamic)
             {
-                //trace('WARNING: EXEPTION: ' + e);
+                trace('WARNING: EXEPTION: ' + e);
                 //error("---STACK---\n" + e.details());
 
                 if (e != haxe.io.Error.Blocked)
                 {
                     connection.close();
                     break;
-                }else{
+                }
+                else{
                     if (Timer.stamp() - ka > 20) 
                     {
                         connection.close();
@@ -89,6 +92,7 @@ class ThreadServer
             }
         }
     }
+    
     private function error(message:String) 
     {
         

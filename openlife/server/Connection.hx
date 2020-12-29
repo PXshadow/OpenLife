@@ -156,6 +156,7 @@ class Connection implements ServerHeader
 
     }
 
+    
     public function die()
     {
         server.connections.remove(this);

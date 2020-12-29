@@ -76,12 +76,14 @@ more up in the list means more likely to be implemented first but no gurantee!
 - Winter
 - horses that follow owner
 - princess / princess / nobles
+- reconnection after server shutdown
 - special stuff like hercules / snake master / super fast ager 
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
-- death and graves
-- dead connections cleanup
+- graves
+- put player items in graves when dead
+- reconnection
 - incarnation
 - multiplayer testing
 - feeding of other people
@@ -96,6 +98,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - faces / for example hungry / ill
 - ill from moskitos
 - temperature
+- server stats
 - curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
 - combat / generally allowed
 - fences / gates
@@ -105,9 +108,11 @@ more up in the list means more likely to be implemented first but no gurantee!
 - job boni
 - families
 - commands 
+- maps / maps on waystone
 - speech limit
 - yum category // for example for berry / berry bowl
 - better order of craving list (currently its just ordered accoring to obj ID)
+- twinning
 - different languages
 
 

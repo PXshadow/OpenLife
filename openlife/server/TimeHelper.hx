@@ -57,7 +57,7 @@ class TimeHelper
             {
                 averageSleepTime /= 200;
 
-                trace('timeSinceStartCountedFromTicks: ${timeSinceStartCountedFromTicks} TimeSinceStart: $timeSinceStart skipedTicks in 10 sec: $skipedTicks averageSleepTime: $averageSleepTime');
+                trace('Connections: ${Server.server.connections.length} timeSinceStartCountedFromTicks: ${timeSinceStartCountedFromTicks} TimeSinceStart: $timeSinceStart skipedTicks in 10 sec: $skipedTicks averageSleepTime: $averageSleepTime');
                 averageSleepTime = 0;
                 skipedTicks = 0;
             }

@@ -121,7 +121,7 @@ class ServerSettings
 
             if( obj.description.indexOf("Well") != -1 || (obj.description.indexOf("Pump") != -1 && obj.description.indexOf("Pumpkin") == -1)
                 || obj.description.indexOf("Vein") != -1 || obj.description.indexOf("Mine") != -1 || obj.description.indexOf("Iron Pit") != -1
-                || obj.description.indexOf("Drilling") != -1 || obj.description.indexOf("Rig") != -1)
+                || obj.description.indexOf("Drilling") != -1 || obj.description.indexOf("Rig") != -1 || obj.description.indexOf("Ancient") != -1)
             {
                 obj.decayFactor = -1;
 
