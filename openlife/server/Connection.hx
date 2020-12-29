@@ -92,7 +92,7 @@ class Connection implements ServerHeader
         player.food_store = player.food_store_max / 2;
         player.yum_multiplier = ServerSettings.MinHealthPerYear * ServerSettings.StartingEveAge; 
         
-        trace("move_speed: " + player.move_speed);
+        trace("login: move_speed: " + player.move_speed);
 
         sendMapChunk(0,0);
 

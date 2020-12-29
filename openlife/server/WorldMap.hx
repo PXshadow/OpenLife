@@ -63,10 +63,10 @@ import haxe.io.Bytes;
     public var SJUNGLE = 0.8;  // TODO make fast for specialists
     public var SCBORDERJUNGLE = 0.8;  // TODO make fast for specialists
 
-    public var SSNOWINGREY = 1.01;
-    public var SOCEAN = 1.01;  
-    public var SRIVER = 1.01;
-    public var SPASSABLERIVER = 1.4;   
+    public var SSNOWINGREY = 0.01;
+    public var SOCEAN = 0.01;  
+    public var SRIVER = 0.01;
+    public var SPASSABLERIVER = 0.4;   
 }
 
 class WorldMap
@@ -1083,9 +1083,9 @@ class WorldMap
 
                 if(randomFloat() < ServerSettings.ChanceForLuckySpot)
                 {
-                    var objData = ObjectData.getObjectData(tmpObj[0]);
+                    //var objData = ObjectData.getObjectData(tmpObj[0]);
                     var timeTransition = Server.transitionImporter.getTransition(-1, tmpObj[0], false, false);
-                    var random = 4 + randomInt(timeTransition != null ? 4 : 16);
+                    var random = 2 + randomInt(timeTransition != null ? 3 : 8);
 
                     var tmpRandom = random;               
 

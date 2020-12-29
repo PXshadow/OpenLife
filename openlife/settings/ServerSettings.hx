@@ -44,7 +44,7 @@ class ServerSettings
     
 
     // worldMap
-    public static var ChanceForLuckySpot = 0.03; // chance that during generation an object is lucky and tons more of that are generated close by
+    public static var ChanceForLuckySpot = 0.1; // chance that during generation an object is lucky and tons more of that are generated close by
     public static var startingGx = 235; //270; // 360;
     public static var startingGy = 150; //200;//- 400; // server map is saved y inverse 
     public static var CreateGreenBiomeDistance = 5;
