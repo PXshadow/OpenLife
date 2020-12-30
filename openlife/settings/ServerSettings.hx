@@ -10,10 +10,11 @@ class ServerSettings
     // for debugging
     public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation 
     public static var DebugWrite = false; // WordMap writeToDisk
-    public static var DebugSpeed = false;
+    public static var TraceCountObjects = false; // WorldMap
+    public static var DebugSpeed = false; // MovementHelper
     
     // used to trace connection.send commands //  only trace player actions // ignores MX from animal, FX and PU from food / age
-    public static var TraceSendPlayerActions = true; 
+    public static var TraceSendPlayerActions = false; 
     // used to trace connection.send commands //  only trace non player actions // traces only MX from animal, FX and PU from food / age
     public static var TraceSendNonPlayerActions = false;  
 
@@ -22,15 +23,14 @@ class ServerSettings
     public static var traceTransitionByTargetId = 9993161; // TransitionImporter
     public static var traceTransitionByTargetDescription = "!!!Horse-Drawn Tire Cart"; // TransitionImporter
 
-    public static var TraceCountObjects = false; // WorldMap
+    
 
     // PlayerInstance
     public static var StartingEveAge = 11;  // 13
     public static var AgingSecondsPerYear = 60; // 60
     public static var AddAgeForConsideringPickupAge = 2; // With set to two an item that needs 13 years to be allowed to be picked up can be picked up with 11
 
-    // load save to disk
-    public static var GenerateMapNew = false;
+    // save to disk
     public static var TicksBetweenSaving = 200;
     public static var TicksBetweenBackups = 20 * 60 * 60 * 8; // 20 * 60 * 60 * 8 = every 8 hours
     public static var MaxNumberOfBackups = 90;
@@ -46,6 +46,7 @@ class ServerSettings
     
 
     // worldMap
+    public static var GenerateMapNew = false;
     public static var ChanceForLuckySpot = 0.1; // chance that during generation an object is lucky and tons more of that are generated close by
     public static var startingGx = 235; //270; // 360;
     public static var startingGy = 150; //200;//- 400; // server map is saved y inverse 
@@ -53,7 +54,7 @@ class ServerSettings
    
     // food stuff
     public static var MinAgeToEat = 3;
-    public static var FoodUsePerSecond = 0.001; // 0.2; // 5 sec per pip // use 0.6 or something to test cravings...
+    public static var FoodUsePerSecond = 0.2; // 0.2; // 5 sec per pip // use 0.6 or something to test cravings...
     public static var GrownUpFoodStoreMax = 20;
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
@@ -83,7 +84,7 @@ class ServerSettings
     public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed factor X
     public static var MinSpeedReductionPerContainedObj = 0.96;
     
-    // TODO FIX this can make jumps if too small / ideally this should be 0 so that the client cannot cheap while moving
+    // TODO FIX this can make jumps if too small / ideally this should be 0 so that the client cannot cheat while moving
     public static var MaxMovementCheatingDistanceBeforeForce = 2; // if client player position is bigger then X, client is forced in PU to use server position 
     public static var ChanceThatAnimalsCanPassBlockingBiome = 0.05;
 
