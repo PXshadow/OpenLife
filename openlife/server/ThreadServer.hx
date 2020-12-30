@@ -1,4 +1,5 @@
 package openlife.server;
+import haxe.io.Eof;
 import openlife.settings.ServerSettings;
 #if (target.threaded)
 import haxe.Timer;
@@ -47,7 +48,6 @@ class ThreadServer
             try {
                 Sys.sleep(0.1);
 
-            
                 message = socket.input.readUntil("#".code);
 
                 trace(message);
@@ -59,8 +59,14 @@ class ThreadServer
 
                 if (e != haxe.io.Error.Blocked)
                 {
-                    trace('WARNING: EXEPTION: ' + e);
+                    if(e == Eof)
+                    {
+                        trace('Client closed connection / EOF');
+                    }
+                    else trace('WARNING: EXEPTION: ' + e);
+
                     connection.close();
+                    
                     break;
                 }
                 else{

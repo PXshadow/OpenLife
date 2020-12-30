@@ -269,10 +269,19 @@ class TimeHelper
 
                 if(helper != null)
                 {              
+                    if(helper.timeToChange == 0) // maybe timeToChange was forgotten to be set
+                    {
+                        var timeTransition = Server.transitionImporter.getTransition(-1, obj[0], false, false);
+
+                        if(timeTransition == null) continue;
+
+                        trace('WARNING: found helper without time transition: ${helper.description}');
+
+                        helper.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
+                    }
+
                     // clear up not needed ObjectHelpers to save space
                     if(worldMap.deleteObjectHelperIfUseless(helper)) continue;
-
-                    if(helper.timeToChange == 0) continue;
 
                     var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(helper.creationTimeInTicks);
                     var timeToChange = helper.timeToChange;
@@ -438,7 +447,7 @@ class TimeHelper
 
         if(transition == null)
         {
-            trace('WARNING: Time: no transtion found! Maybe object was moved? tile: $tileObject helper: ${helper.id} ${helper.description()}');
+            trace('WARNING: Time: no transtion found! Maybe object was moved? tile: $tileObject helper: ${helper.id} ${helper.description}');
             return;
         }
 
@@ -641,11 +650,11 @@ class TimeHelper
 
             // TODO better patch in the objects, i dont see any reason why a rabit or a tree should block movement
             if(isBiomeBlocking || (movementTileObj.blocksWalking() 
-                    && movementTileObj.description().indexOf("Tarry Spot") == -1
-                    && movementTileObj.description().indexOf("Tree") == -1 && movementTileObj.description().indexOf("Rabbit") == -1  
-                    && movementTileObj.description().indexOf("Iron") == -1 && movementTileObj.description().indexOf("Spring") == -1
-                    && movementTileObj.description().indexOf("Sugarcane") == -1 && movementTileObj.description().indexOf("Pond") == -1
-                    && movementTileObj.description().indexOf("Palm") == -1  && movementTileObj.description().indexOf("Plant") == -1))
+                    && movementTileObj.description.indexOf("Tarry Spot") == -1
+                    && movementTileObj.description.indexOf("Tree") == -1 && movementTileObj.description.indexOf("Rabbit") == -1  
+                    && movementTileObj.description.indexOf("Iron") == -1 && movementTileObj.description.indexOf("Spring") == -1
+                    && movementTileObj.description.indexOf("Sugarcane") == -1 && movementTileObj.description.indexOf("Pond") == -1
+                    && movementTileObj.description.indexOf("Palm") == -1  && movementTileObj.description.indexOf("Plant") == -1))
             {
                 //trace('movement blocked ${movementTile.description()} ${movementBiome}');
                 break;

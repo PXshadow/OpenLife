@@ -221,10 +221,10 @@ class TransitionHelper{
 
         // place hand object in container if container has enough space
         //if (handObjectData.slotSize >= objectData.containSize) {
-        trace('Container: ${objToStore.description()} objToStore.slotSize: ${objToStoreObjData.slotSize} container.containSize: ${containerObjData.containSize}');
+        trace('Container: ${objToStore.description} objToStore.slotSize: ${objToStoreObjData.slotSize} container.containSize: ${containerObjData.containSize}');
         if (objToStoreObjData.slotSize > containerObjData.containSize) return false;
 
-        trace('Container: ${objToStore.description()} objToStore.slotSize: ${objToStoreObjData.slotSize} TO: container.containSize: ${containerObjData.containSize}');
+        trace('Container: ${objToStore.description} objToStore.slotSize: ${objToStoreObjData.slotSize} TO: container.containSize: ${containerObjData.containSize}');
 
         if(isDrop == false)            
         {
@@ -273,7 +273,7 @@ class TransitionHelper{
         {
             if(transition.newActorID == 0)
             {
-                trace('transform object ${target.description()} in ${transition.newTargetID} / used when to put down horses');
+                trace('transform object ${target.description} in ${transition.newTargetID} / used when to put down horses');
                 //  3158 + -1 = 0 + 1422 // Horse-Drawn Tire Cart + ???  -->  Empty + Escaped Horse-Drawn Cart --> must be: 3158 + -1 = 0 + 3161
                 transition.traceTransition("transform: ", true);
 
@@ -392,12 +392,12 @@ class TransitionHelper{
 
         if(transition == null)
         {
-            trace('HORSE: without trans / has eaten: ${player.heldObject.description()}');
+            trace('HORSE: without trans / has eaten: ${player.heldObject.description}');
             this.target = player.heldObject;
         }
         else
         {
-            trace('HORSE: with trans / has eaten: ${player.heldObject.description()}');
+            trace('HORSE: with trans / has eaten: ${player.heldObject.description}');
             this.target.id = transition.newTargetID;
 
             DoChangeNumberOfUsesOnTarget(this.target, transition);
@@ -429,7 +429,7 @@ class TransitionHelper{
             this.target = this.target.containedObjects[containerIndex];
             this.tileObjectData = this.target.objectData;
 
-            trace('Use on container: $containerIndex ${this.target.description()}');
+            trace('Use on container: $containerIndex ${this.target.description}');
 
             returnValue = doTransitionIfPossibleHelper(originalTileObjectData.slotSize);
 
@@ -766,8 +766,8 @@ class TransitionHelper{
             return false;
         }
 
-        trace('NEW: handObjectHelper: ${player.heldObject.description()} numberOfUses: ${player.heldObject.numberOfUses} ' + player.heldObject.toArray());
-        trace('NEW: target: ${target.description()} numberOfUses: ${target.numberOfUses} ' + target.toArray());
+        trace('NEW: handObjectHelper: ${player.heldObject.description} numberOfUses: ${player.heldObject.numberOfUses} ' + player.heldObject.toArray());
+        trace('NEW: target: ${target.description} numberOfUses: ${target.numberOfUses} ' + target.toArray());
 
         Server.server.map.setFloorId(this.tx, this.ty, this.newFloorId);
         Server.server.map.setObjectHelper(this.tx, this.ty, this.target);

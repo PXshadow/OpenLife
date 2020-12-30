@@ -413,7 +413,7 @@ class WorldMap
             // TODO look who sets the dummy wrong
             var objData = ObjectData.getObjectData(obj[0]);
 
-            trace('WARNING: ${helper.tx},${helper.ty} object Id: ${obj[0]} ${objData.description} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id} ${helper.description()}');
+            trace('WARNING: ${helper.tx},${helper.ty} object Id: ${obj[0]} ${objData.description} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id} ${helper.description}');
 
             objectHelpers[index(helper.tx, helper.ty)] = null;
 

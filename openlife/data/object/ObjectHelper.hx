@@ -157,12 +157,19 @@ class ObjectHelper {
         return objectData.permanent == 1;
     }
     
-    
-    // TODO make look like variable
-    public function description() : String
+    public var description(get, null):String;
+
+    public function get_description()
     {
         return objectData.description;
     }
+
+    
+    // TODO make look like variable
+    //public function description() : String
+    //{
+    //    return objectData.description;
+    //}
 
     // TODO make look like variable
     public function blocksWalking() : Bool
