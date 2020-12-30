@@ -34,34 +34,34 @@ class TimeHelper
         serverStartingTime = Sys.time();
         var averageSleepTime = 0.0;
         var skipedTicks = 0;
-        var timeSinceStartCountedFromTicks = TimeHelper.tick * TimeHelper.tickTime;
+        var timeSinceStartCountedFromTicks:Float = TimeHelper.tick * TimeHelper.tickTime;
         serverStartingTime -= timeSinceStartCountedFromTicks;  // pretend the server was started before to be aligned with ticks
 
         //trace('Server Startign time: sys.time: ${Sys.time()} serverStartingTime: $serverStartingTime timeSinceStartCountedFromTicks: $timeSinceStartCountedFromTicks');
 
         while (true)
         {
-            TimeHelper.tick++;
+            TimeHelper.tick = Std.int(TimeHelper.tick + 1);
 
-            var timeSinceStart = Sys.time() - TimeHelper.serverStartingTime;
+            var timeSinceStart:Float = Sys.time() - TimeHelper.serverStartingTime;
             timeSinceStartCountedFromTicks = TimeHelper.tick * TimeHelper.tickTime;
             
 
             // TODO what to do if server is too slow?
             if(TimeHelper.tick % 10 != 0  && timeSinceStartCountedFromTicks < timeSinceStart)
             {
-                 TimeHelper.tick += 1;
-                 skipedTicks++;
+                TimeHelper.tick = Std.int(TimeHelper.tick + 1);
+                skipedTicks++;
             }
-            if(TimeHelper.tick % 100 == 0)
+            if(TimeHelper.tick % 200 == 0)
             {
-                averageSleepTime /= 100;
-
-                trace('Connections: ${Server.server.connections.length} timeSinceStartCountedFromTicks: ${timeSinceStartCountedFromTicks} TimeSinceStart: $timeSinceStart skipedTicks in 10 sec: $skipedTicks averageSleepTime: $averageSleepTime');
+                averageSleepTime = Math.ceil(averageSleepTime / 200 * 1000) / 1000;
+                //trace('Ticks: ${TimeHelper.tick}');
+                trace('Connections: ${Server.server.connections.length} Time Counted From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Aaverage Sleep Time: $averageSleepTime');
                 averageSleepTime = 0;
                 skipedTicks = 0;
 
-                if(Server.server.connections.length > 0) Server.server.connections[0].player.doDeath();
+                //if(Server.server.connections.length > 0) Server.server.connections[0].player.doDeath();
             }
 
             @:privateAccess haxe.MainLoop.tick();

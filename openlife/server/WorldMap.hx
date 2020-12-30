@@ -385,11 +385,12 @@ class WorldMap
 
         if(obj[0] != helper.dummyId())
         {
+            // TODO look who sets the dummy wrong
             trace('WARNING: objectHelper.Id: ${obj[0]} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id()} ${helper.description()}');
 
             objectHelpers[index(helper.tx, helper.ty)] = null;
 
-            return true;
+            setObjectId(helper.tx, helper.ty, helper.toArray());
         }
 
         if((helper.numberOfUses == helper.objectData.numUses || helper.numberOfUses < 1) && helper.timeToChange == 0 && helper.containedObjects.length == 0 && helper.groundObject == null)
@@ -555,7 +556,7 @@ class WorldMap
 
         var time = Math.round((Sys.time() - time) * 100) / 100;
 
-        trace('Write to disk: saveDataNumber: $tmpDataNumber Time: $time backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');
+        if(ServerSettings.DebugWrite) trace('Write to disk: saveDataNumber: $tmpDataNumber Time: $time backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');
     } 
 
     public function readFromDisk() : Bool
@@ -780,7 +781,7 @@ class WorldMap
 
         writer.close();
 
-        trace('wrote $count ObjectHelpers...');
+        if(ServerSettings.DebugWrite) trace('wrote $count ObjectHelpers...');
     }
 
     public function readMapObjHelpers(path:String) : Vector<ObjectHelper>

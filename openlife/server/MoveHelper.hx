@@ -69,7 +69,7 @@ class MoveHelper{
         var onRoad = false;
         var hasBothShoes = p.hasBothShoes();
 
-        trace('speed: hasBothShoes: $hasBothShoes');
+        if(ServerSettings.DebugSpeed) trace('speed: hasBothShoes: $hasBothShoes');
         if(hasBothShoes) speed *= 1.1;
         
         // only give road speed boni if full path is on road
@@ -90,7 +90,7 @@ class MoveHelper{
             else if(speedModHeldObj > 1.8) speedModHeldObj = 0.8; // for example horse
             else if(speedModHeldObj > 1.2) speedModHeldObj = 0.6; // for example horse cart
             
-            trace('Speed: New ${p.heldObject.objectData.description} speed in bad biome: ${p.heldObject.objectData.speedMult} --> $speedModHeldObj');
+            if(ServerSettings.DebugSpeed) trace('Speed: New ${p.heldObject.objectData.description} speed in bad biome: ${p.heldObject.objectData.speedMult} --> $speedModHeldObj');
         }
         
         if(onRoad && speedModHeldObj < 0.99) speedModHeldObj = Math.sqrt(speedModHeldObj); // on road
@@ -107,7 +107,7 @@ class MoveHelper{
         }
 
         if(hasBothShoes) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult);
-        trace('speed: backpack: containedObjSpeedMult: $containedObjSpeedMult');
+        if(ServerSettings.DebugSpeed) trace('speed: backpack: containedObjSpeedMult: $containedObjSpeedMult');
         
         for(obj in p.heldObject.containedObjects)
         {
@@ -123,7 +123,7 @@ class MoveHelper{
         if(onRoad && containedObjSpeedMult < 0.99) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult); // on road
         if(onHorseOrCar && containedObjSpeedMult < 0.99) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult); // on horse / in car // TODO or strong
 
-        if(containedObjSpeedMult < 1) trace('Speed: containedObjSpeedMult ${containedObjSpeedMult}');
+        if(containedObjSpeedMult < 1 && ServerSettings.DebugSpeed) trace('Speed: containedObjSpeedMult ${containedObjSpeedMult}');
 
         speed *= containedObjSpeedMult;
 
@@ -136,7 +136,7 @@ class MoveHelper{
 
         var healthFactor = p.CalculateHealthFactor(true);
 
-        trace('speed: healthFactor: $healthFactor health: ${p.yum_multiplier} trueAge: ${p.trueAge} expected health: ${p.trueAge  * ServerSettings.MinHealthPerYear}');
+        if(ServerSettings.DebugSpeed) trace('speed: healthFactor: $healthFactor health: ${p.yum_multiplier} trueAge: ${p.trueAge} expected health: ${p.trueAge  * ServerSettings.MinHealthPerYear}');
 
         speed *= healthFactor;
 
@@ -161,7 +161,7 @@ class MoveHelper{
 
         speed *= ageSpeedFactor;
 
-        trace('speed: $speed age: ${p.age} ageSpeedFactor: ${ageSpeedFactor} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
+        if(ServerSettings.DebugSpeed) trace('speed: $speed age: ${p.age} ageSpeedFactor: ${ageSpeedFactor} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
 
         return speed;
     }

@@ -691,10 +691,13 @@ class GlobalPlayerInstance extends PlayerInstance {
         var fromObjData = heldObject.objectData;
         if(fromObjData.dummyParent != null) fromObjData = fromObjData.dummyParent;
 
+        
         if(toObjData.id != fromObjData.id)
         {
-            trace('transformHeldObject: ${fromObjData.id} --> ${toObjData.id} / numberOfUses set to 1');
             heldObject.numberOfUses = 1;
+            //TODO set to max numberOfUses??? heldObject.numberOfUses = heldObject.objectData
+
+            trace('transformHeldObject: ${fromObjData.id} --> ${toObjData.id} / numberOfUses set to 1');
         }
 
         trace('transformHeldObject: heldObject.numberOfUses: ${heldObject.numberOfUses}');
@@ -751,7 +754,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
             return true;
         }
-        else if(obj.containedObjects.length < 1 && obj.objectData.containable)
+        else if(obj.objectData.containable)
         {
             grave.containedObjects.push(obj);
 

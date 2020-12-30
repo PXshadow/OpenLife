@@ -9,6 +9,8 @@ class ServerSettings
 {
     // for debugging
     public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation 
+    public static var DebugWrite = false; // WordMap writeToDisk
+    public static var DebugSpeed = false;
     
     // used to trace connection.send commands //  only trace player actions // ignores MX from animal, FX and PU from food / age
     public static var TraceSendPlayerActions = true; 

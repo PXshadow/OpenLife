@@ -677,6 +677,11 @@ class TransitionHelper{
                 if(doTrace) trace("TRANS: NEW PILE OR BUCKET?");
                 obj.numberOfUses = 1;
             } 
+            else
+            {
+                //  numberOfUses = MAX // 0 + 125 = 126 + 409 // Empty + Clay Deposit -->  Clay + Clay Pit#partial
+                obj.numberOfUses = objectData.numUses;
+            }
             
             if(doTrace) trace('TRANS: Changed Object Type: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
             return;
