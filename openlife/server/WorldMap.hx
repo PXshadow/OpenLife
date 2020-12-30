@@ -1,4 +1,5 @@
 package openlife.server;
+import haxe.Serializer;
 import sys.FileSystem;
 import haxe.macro.Expr.Catch;
 import haxe.Exception;

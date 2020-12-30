@@ -168,7 +168,7 @@ class ServerSettings
         ObjectData.getObjectData(2855).foodValue = 2; // Onion
         ObjectData.getObjectData(808).foodValue = 2; // Wild Onion
 
-        
+        //ObjectData.getObjectData(31).writeToFile();
 
         //trace('Trace: ${ObjectData.getObjectData(8881).description}');
          

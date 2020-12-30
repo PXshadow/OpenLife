@@ -75,6 +75,10 @@ class Server
 
         // do all the object inititalisation stuff
         ObjectData.ImportObjectData();
+
+        //ObjectData.WriteAllToFile();
+        //ObjectData.ReadAllFromFile();
+
         ObjectData.CreateAndAddDummyObjectData();
         ObjectData.CreateFoodObjectArray();
         ServerSettings.PatchObjectData();

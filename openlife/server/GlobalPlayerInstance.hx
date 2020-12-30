@@ -744,7 +744,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         
         for(i in 1...10000)
         {
-            distance = Math.ceil(i / (30 * distance * distance)); 
+            distance = Math.ceil(i / (20 * distance * distance)); 
 
             trace('rand: ${world.randomInt(distance * 2) - distance}');
 

@@ -1,4 +1,9 @@
 package openlife.data.object;
+import sys.io.FileOutput;
+import sys.io.File;
+import openlife.settings.ServerSettings;
+import haxe.Unserializer;
+import haxe.Serializer;
 import openlife.server.WorldMap.BiomeTag;
 import openlife.engine.Utility;
 import openlife.engine.Engine;
@@ -18,6 +23,11 @@ class ObjectData extends LineReader
     public static var biomeTotalChance:Map<Int,Float>; 
     public static var biomeObjectData:Map<Int, Array<ObjectData>>;
     public static var foodObjects:Array<ObjectData> = [];
+
+    /**
+    * Toolset record set
+    */
+    public static var toolsetRecord:Array<ToolSetRecord> = [];
 
     public var dummyObjects:Array<ObjectData> = [];
 
@@ -324,8 +334,9 @@ class ObjectData extends LineReader
     }
         
     public static function ImportObjectData()
-    {
+    {        
         trace("Import Object Data...");
+        var startTime = Sys.time();
 
         Engine.dir = Utility.dir();
         var tmp = ObjectBake.objectList();
@@ -349,7 +360,8 @@ class ObjectData extends LineReader
             objectDataMap[objectData.id] = objectData;            
         }
 
-        trace("Object Data imported: " + importedObjectData.length);
+        trace('Read ObjectData Time: ');
+        trace('Object Data imported: Time: ${Sys.time() - startTime} Count: ' + importedObjectData.length);
     }
 
     // link dummy ObjectData for objects with numUse > 2
@@ -844,9 +856,131 @@ class ObjectData extends LineReader
         object.useVanishIndex = useVanishIndex;
         object.vertSlotRot = vertSlotRot;
         return object;
+    } 
+
+    /*
+    public function writeToFile(writer:FileOutput)
+    {
+        writer.writeInt32(object.id);
+        //object.apocalypseTrigger = apocalypseTrigger;
+        //object.backFootIndex = backFootIndex;
+        writer.writeInt8(blocksWalking);
+        //writer.write bodyIndex );
+        //writer.writecacheHeight = cacheHeight;
+        writer.write clothing );
+        //writer.writeclothingOffset = clothingOffset;
+        writer.writecontainSize );
+        writer.writecontainable );
+        //writer.writecreationSoundForce = creationSoundForce;
+        //writer.writecreationSoundInitialOnly = creationSoundInitialOnly;
+        writer.writedeadlyDistance = );
+        writer.writedeathMarker = );
+        writer.writedescription =);
+        //writer.writedrawBehindPlayer = drawBehindPlayer;
+        //writer.writeeyesIndex = eyesIndex;
+        //writer.writeeyesOffset = eyesOffset;
+        writer.writefloor);
+        writer.writefloorHugging );
+        writer.writefoodValue );
+        //writer.writefrontFootIndex = frontFootIndex;
+        //writer.writeheadIndex = headIndex;
+        //writer.writeheatValue = heatValue;
+        writer.writeheldInHand );
+        //writer.writeheldOffset = heldOffset;
+        writer.writehomeMarker);
+        writer.writeid);
+        writer.writeleftBlockingRadius );
+        writer.writemale );
+        writer.writemapChance );
+        writer.writeminPickupAge );
+        //writer.writemonumentCall = monumentCall;
+        //writer.writemonumentDone = monumentCall;
+        //writer.writemonumentStep = monumentStep;
+        //writer.writemouthIndex = mouthIndex;
+        writer.writeneverDrop );
+        writer.writenoFlip );
+        writer.writenoSpawn );
+        writer.writenumSlots );
+        //writer.writenumSprites = numSprites;
+        writer.writenumUses );
+        writer.writepermanent);
+        writer.writeperson );
+        //writer.writerValue = rValue;
+        writer.writerideable );
+        writer.writerightBlockingRadius );
+        writer.writesideAcess );
+        writer.writeslotParent );
+        writer.writeslotPos);
+        writer.writeslotSize );
+        writer.writeslotVert );
+        writer.writeslotsLocked );
+        //writer.writesounds = sounds;
+        writer.writespeedMult );
+        //writer.writespriteArray = spriteArray;
+        writer.writetimeStretch);
+        writer.writetoolLearned );
+        writer.writetoolSetIndex);
+        writer.writeuseAppearIndex );
+        writer.writeuseChance );
+        writer.writeuseDistance );
+        writer.writeuseVanishIndex );
+        writer.writevertSlotRot );
+        return object;
+    }*/
+
+    public static function WriteAllToFile()
+    {
+        var dir = './${ServerSettings.SaveDirectory}/';
+        var path = dir + "saveObjectData.txt";
+
+        var writer = File.write(path, true);
+
+        writer.writeInt32(importedObjectData.length);
+
+        for(objectData in importedObjectData)
+        {
+            var serializer = new Serializer();
+            //serializer.useCache = true;
+
+            serializer.serialize(objectData);
+
+            var s = serializer.toString();
+            writer.writeInt32(s.length);
+            writer.writeString(s);
+
+            //trace(objectData.description);
+        }
+
+        writer.writeInt32(-1);
+
+        writer.close();
     }
-    /**
-     * Toolset record set
-     */
-    public static var toolsetRecord:Array<ToolSetRecord> = [];
+
+    public static function ReadAllFromFile()
+    {
+        var startTime = Sys.time();
+        var dir = './${ServerSettings.SaveDirectory}/';
+        var path = dir + "saveObjectData.txt";
+
+        var reader = File.read(path, true);
+        var count = reader.readInt32();        
+        var length = reader.readInt32();
+
+        importedObjectData = new Vector<ObjectData>(count);
+
+        for(i in 0...count)
+        {
+            var s = reader.readString(length);
+            length = reader.readInt32();
+            var unserializer = new Unserializer(s);
+            var objectData:ObjectData = unserializer.unserialize();
+            importedObjectData[i] = objectData;
+            //trace(objectData.description);
+        }        
+        
+        reader.close();
+
+        trace('Read ObjectData Time: ${Sys.time() - startTime}');
+    }
 }
+
