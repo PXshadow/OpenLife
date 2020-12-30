@@ -116,7 +116,7 @@ class TimeHelper
             MoveHelper.updateMovement(connection.player);
         }
 
-        DoWorldMapTimeStuff();
+        DoWorldMapTimeStuff(); // TODO currently it goes through the hole map each sec / this may later not work
 
         RespawnObjects();
 
@@ -128,17 +128,6 @@ class TimeHelper
         if((tick + 20) % ServerSettings.TicksBetweenSaving  == 0) worldMap.updateObjectCounts();
         if(ServerSettings.debug == false && tick % ServerSettings.TicksBetweenSaving == 0) Server.server.map.writeToDisk(false);
         if(ServerSettings.debug == false && (tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Server.server.map.writeBackup();
-        
-        /* TODO currently it goes through the hole map each sec / this may later not work
-        for(helper in this.map.timeObjectHelpers){
-            var passedTime = calculateTimeSinceTicksInSec(helper.creationTimeInTicks);
-            if(passedTime >= helper.timeToChange)
-            {
-                trace('TIME: ${helper.objectData.description} passedTime: $passedTime neededTime: ${helper.timeToChange}');       
-
-                TransitionHelper.doTimeTransition(helper);
-            }
-        }*/
     }
 
     private static function updateAge(c:Connection, timePassedInSeconds:Float)
@@ -184,15 +173,7 @@ class TimeHelper
 
             c.player.food_store_max = CalculateFoodStoreMax(c.player);
 
-            if(c.player.age > 60)
-            {
-                c.player.age = c.player.trueAge; // bad health and starving can influence health
-                c.player.reason = 'reason_age';
-                c.player.deleted = true;
-
-                // TODO clear connection and create bones with items
-                // TODO calculate score
-            }
+            if(c.player.age > 60) c.player.doDeath('reason_age');
 
             //trace('update age: ${c.player.age} food_store_max: ${c.player.food_store_max}');
             c.player.sendFoodUpdate(false);
@@ -253,9 +234,7 @@ class TimeHelper
 
             if(c.player.food_store_max < ServerSettings.DeathWithFoodStoreMax)
             {
-                c.player.age = c.player.trueAge; // bad health and starving can influence health
-                c.player.reason = 'reason_hunger';
-                c.player.deleted = true;
+                c.player.doDeath('reason_hunger');
 
                 Connection.SendUpdateToAllClosePlayers(c.player, false);
             }

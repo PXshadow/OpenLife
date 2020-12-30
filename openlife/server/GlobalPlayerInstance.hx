@@ -706,11 +706,22 @@ class GlobalPlayerInstance extends PlayerInstance {
         setHeldObject(heldObject);
     }
 
-    public function doDeath()
+    public function doDeath(deathReason:String)
     {
-        // TODO place clothing
+        // TODO calculate score
 
-        var world = Server.server.map;
+        this.age = this.trueAge; // bad health and starving can influence health, so setback true time a player lifed so that he sees in death screen
+        this.reason = deathReason;
+        this.deleted = true;
+
+        //this.connection.die();
+
+        placeGrave();
+    }
+
+    public function placeGrave()
+    {
+        var world = WorldMap.world;
         var grave = new ObjectHelper(this, 87); // 87 = Fresh Grave
 
         if(this.heldObject != null)
@@ -719,7 +730,7 @@ class GlobalPlayerInstance extends PlayerInstance {
             this.setHeldObject(null);
         }
 
-        // place the clothings in the grave, but not need to remove them from the player, since he is dead...
+        // place the clothings in the grave, but not need to remove them from the player, since he is dead... //clothing_set:String = "0;0;0;0;0;0";
         for(obj in this.clothingObjects)
         {
             if(obj.id == 0) continue;
@@ -727,10 +738,7 @@ class GlobalPlayerInstance extends PlayerInstance {
             grave.containedObjects.push(obj);
         }
 
-        //clothing_set:String = "0;0;0;0;0;0";
-
-
-        if(placeGrave(this.tx(), this.ty(), grave)) return; 
+        if(tryPlaceGrave(this.tx(), this.ty(), grave)) return; 
 
         var distance = 1;
         
@@ -743,13 +751,13 @@ class GlobalPlayerInstance extends PlayerInstance {
             var tmpX = this.tx() + world.randomInt(distance * 2) - distance;
             var tmpY = this.ty() + world.randomInt(distance * 2) - distance;
 
-            if(placeGrave(tmpX, tmpY, grave)) return; 
+            if(tryPlaceGrave(tmpX, tmpY, grave)) return; 
         }
 
         trace('WARNING: could not place any grave for player: ${this.p_id}');
     }
 
-    function placeGrave(x:Int, y:Int, grave:ObjectHelper) : Bool
+    function tryPlaceGrave(x:Int, y:Int, grave:ObjectHelper) : Bool
     {
         var world = Server.server.map;
 
@@ -759,7 +767,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         {
             world.setObjectHelper(x, y, grave);
 
-            Connection.SendUpdateToAllClosePlayers(this);
+            //Connection.SendUpdateToAllClosePlayers(this);
 
             Connection.SendMapUpdateToAllClosePlayers(x, y, grave.toArray());
 
@@ -771,7 +779,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
             world.setObjectHelper(x, y, grave);
 
-            Connection.SendUpdateToAllClosePlayers(this);
+            //Connection.SendUpdateToAllClosePlayers(this);
 
             Connection.SendMapUpdateToAllClosePlayers(x, y, grave.toArray());
 

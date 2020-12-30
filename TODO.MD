@@ -106,8 +106,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
-- graves
-- put player items in graves when dead
+- decay contained stuff in graves 
 - reconnection
 - incarnation
 - multiplayer testing
