@@ -1,4 +1,5 @@
 package openlife.server;
+import haxe.macro.Expr.Catch;
 import haxe.Serializer;
 import openlife.settings.ServerSettings;
 import openlife.data.map.MapData;
@@ -76,11 +77,12 @@ class Connection implements ServerHeader
         send(ACCEPTED);
         // TODO choose better mutex
         server.map.mutex.acquire();
+
+        if(ServerSettings.debug) Server.server.map.generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
         
         server.connections.push(this);
 
         player = new GlobalPlayerInstance([]);
-        
         player.connection = this;
         var id = server.playerIndex++;
         player.p_id = id;
@@ -103,7 +105,7 @@ class Connection implements ServerHeader
         player.sendFoodUpdate();
         send(FRAME);
 
-        if(ServerSettings.debug) Server.server.map.generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
+        
 
         server.map.mutex.release();
     }
@@ -146,9 +148,20 @@ class Connection implements ServerHeader
 
     public function close()
     {
-        running = false;
-        sock.close();
-        server.connections.remove(this);
+        WorldMap.world.mutex.acquire();
+
+        try
+        {
+            server.connections.remove(this);
+            running = false;
+            sock.close();
+        }
+        catch(ex)
+        {
+            trace('WARNING: ' + ex);
+        }
+
+        WorldMap.world.mutex.release();
     }
     
     public function keepAlive()
@@ -159,8 +172,7 @@ class Connection implements ServerHeader
     
     public function die()
     {
-        server.connections.remove(this);
-        sock.close();
+        this.close();
     }
 
     public function say(text:String)

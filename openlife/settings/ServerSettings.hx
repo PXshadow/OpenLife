@@ -8,7 +8,7 @@ import openlife.data.object.ObjectData;
 class ServerSettings
 {
     // for debugging
-    public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation 
+    public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation // deactivates saving
     public static var DebugWrite = false; // WordMap writeToDisk
     public static var TraceCountObjects = false; // WorldMap
     public static var DebugSpeed = false; // MovementHelper

@@ -126,10 +126,9 @@ class TimeHelper
  
         // make sure they are not all at same tick!
         if((tick + 20) % ServerSettings.TicksBetweenSaving  == 0) worldMap.updateObjectCounts();
-        if(tick % ServerSettings.TicksBetweenSaving == 0) Server.server.map.writeToDisk(false);
-        if((tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Server.server.map.writeBackup();
+        if(ServerSettings.debug == false && tick % ServerSettings.TicksBetweenSaving == 0) Server.server.map.writeToDisk(false);
+        if(ServerSettings.debug == false && (tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Server.server.map.writeBackup();
         
-
         /* TODO currently it goes through the hole map each sec / this may later not work
         for(helper in this.map.timeObjectHelpers){
             var passedTime = calculateTimeSinceTicksInSec(helper.creationTimeInTicks);
@@ -422,7 +421,7 @@ class TimeHelper
                 //if(objData.isSpawningIn(biomeId) == false) continue;
 
                 worldMap.setObjectId(x,y, [0]);
-                worldMap.setObjectHelperNull(x, y);
+                //worldMap.setObjectHelperNull(x, y);
 
                 worldMap.currentObjectsCount[obj]--;
 
@@ -573,7 +572,7 @@ class TimeHelper
             helper.creationTimeInTicks = TimeHelper.tick;
 
             worldmap.setObjectHelper(fromTx, fromTy, helper.groundObject);
-            worldmap.setObjectId(fromTx,fromTy, oldTileObject); // TODO move to setter
+            //worldmap.setObjectId(fromTx,fromTy, oldTileObject); // TODO move to setter
 
             var tmpGroundObject = helper.groundObject;
             helper.groundObject = target;

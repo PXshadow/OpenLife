@@ -102,6 +102,16 @@ class WorldMap
 
     }
 
+    public static var world(get, set):WorldMap;
+
+    public static function get_world() {
+        return Server.server.map;
+    }
+
+    public static function set_world(world) {
+        return Server.server.map = world;
+    }
+
     public function generateExtraDebugStuff(tx:Int, ty:Int)
     {
         setFloorId(tx - 3, ty - 2, 1596); // stone road
@@ -329,6 +339,17 @@ class WorldMap
     public function setObjectId(x:Int, y:Int, ids:Array<Int>)
     {
         objects[index(x,y)] = ids;
+
+        if(ids.length > 1)
+        {
+            // set object Helper, otherwiese stuff in containers will not be saved
+            setObjectHelper(x,y, ObjectHelper.readObjectHelper(null, ids));
+        }
+        else
+        {
+            // TODO create time transition
+            setObjectHelperNull(x, y);
+        }
     }
 
     public static function worldGetObjectHelper(x:Int, y:Int, allowNull:Bool = false):ObjectHelper
@@ -363,10 +384,14 @@ class WorldMap
         //trace('objectHelper: $x,$y');
         objectHelpers[index(x,y)] = helper;
 
-        if(helper == null) return; // TODO setObjectId([0]);
+        if(helper == null)
+        {
+            objects[index(x,y)] = [0]; 
+            return; 
+        }
 
         var ids = helper.toArray();
-        setObjectId(x,y,ids);
+        objects[index(x,y)] = ids; 
 
         helper.tx = x;
         helper.ty = y;
@@ -386,7 +411,9 @@ class WorldMap
         if(obj[0] != helper.dummyId())
         {
             // TODO look who sets the dummy wrong
-            trace('WARNING: objectHelper.Id: ${obj[0]} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id()} ${helper.description()}');
+            var objData = ObjectData.getObjectData(obj[0]);
+
+            trace('WARNING: ${helper.tx},${helper.ty} object Id: ${obj[0]} ${objData.description} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id()} ${helper.description()}');
 
             objectHelpers[index(helper.tx, helper.ty)] = null;
 
@@ -756,7 +783,6 @@ class WorldMap
 
         for(obj in objHelpersToWrite)
         {
-            //if(obj.deleteObjectHelperIfUseless())
             if(obj == null) continue;
 
             count++;
