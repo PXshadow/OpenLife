@@ -459,13 +459,13 @@ class TimeHelper
 
         if(transition == null)
         {
-            trace('WARNING: Time: no transtion found! Maybe object was moved? tile: $tileObject helper: ${helper.id()} ${helper.description()}');
+            trace('WARNING: Time: no transtion found! Maybe object was moved? tile: $tileObject helper: ${helper.id} ${helper.description()}');
             return;
         }
 
         if(doAnimalMovement(helper, transition)) return;
 
-        helper.setId(transition.newTargetID);
+        helper.id = transition.newTargetID;
         helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper);
         helper.creationTimeInTicks = TimeHelper.tick;
 
@@ -526,7 +526,7 @@ class TimeHelper
             //var obj = worldmap.getObjectId(tx, ty);
             //var objData = Server.objectDataMap[obj[0]];
 
-            if(target.id() != 0) continue;
+            if(target.id != 0) continue;
 
             if(target.blocksWalking()) continue;
             // dont move move on top of other moving stuff
@@ -674,7 +674,7 @@ class TimeHelper
             
 
             // TODO allow move on non empty ground
-            if(movementTileObj.id() == 0) tmpTarget = movementTileObj;
+            if(movementTileObj.id == 0) tmpTarget = movementTileObj;
         }
    
         return tmpTarget;

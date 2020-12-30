@@ -113,7 +113,7 @@ class TransitionImporter
     public function getTrans(actor:ObjectHelper, target:ObjectHelper):TransitionData
     {
         // actor last use is handled through actor + -1 = newActor + 0 transitions
-        return getTransition(actor.id(), target.id(), false, target.isLastUse());
+        return getTransition(actor.id, target.id, false, target.isLastUse());
     }
 
     public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false, maxUseTarget:Bool=false):TransitionData

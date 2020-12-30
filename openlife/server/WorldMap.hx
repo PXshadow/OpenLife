@@ -413,7 +413,7 @@ class WorldMap
             // TODO look who sets the dummy wrong
             var objData = ObjectData.getObjectData(obj[0]);
 
-            trace('WARNING: ${helper.tx},${helper.ty} object Id: ${obj[0]} ${objData.description} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id()} ${helper.description()}');
+            trace('WARNING: ${helper.tx},${helper.ty} object Id: ${obj[0]} ${objData.description} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id} ${helper.description()}');
 
             objectHelpers[index(helper.tx, helper.ty)] = null;
 
@@ -856,7 +856,7 @@ class WorldMap
                 if(newObject.numberOfUses > 1 || newObject.containedObjects.length > 0)
                 {
                     // 1435 = bison // 1261 = Canada Goose Pond with Egg // 30 = Gooseberry Bush // 2142 = Banana Plant // 1323 = Wild Boar
-                    if(newObject.id() != 1435 && newObject.id() != 1261  && newObject.id() != 30 && newObject.id() != 2142 && newObject.id() != 1323)
+                    if(newObject.id != 1435 && newObject.id != 1261  && newObject.id != 30 && newObject.id != 2142 && newObject.id != 1323)
                     {
                         trace('${newObject.description()} numberOfUses: ${newObject.numberOfUses} from  ${newObject.objectData.numUses} ' + newObjArray);
                     }
@@ -915,11 +915,11 @@ class WorldMap
 
             for(containedObj in obj.containedObjects)
             {
-                objList[containedObj.id()]++;
+                objList[containedObj.id]++;
 
                 for(subContainedObj in containedObj.containedObjects)
                 {
-                    objList[subContainedObj.id()]++;
+                    objList[subContainedObj.id]++;
                 }
             }
         }

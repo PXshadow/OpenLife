@@ -127,10 +127,22 @@ class ObjectHelper {
         this.numberOfUses = objectData.numUses;
     }
 
-    // TODO make look like variable
-    public function id() : Int
+    public var id(get, set):Int;
+
+    public function get_id()
     {
         return objectData.id;
+    }
+
+    public function set_id(newID)
+    {
+        if(this.id == newID) return newID;    
+
+        this.objectData = ObjectData.getObjectData(newID);
+
+        if(this.objectData == null) throw new Exception('No ObjectData for: ${newID}');
+
+        return newID;
     }
 
     public function dummyId() : Int
@@ -138,17 +150,6 @@ class ObjectHelper {
         if(objectData.dummyObjects.length <= 0 || numberOfUses == objectData.numUses) return objectData.id;
 
         return objectData.dummyObjects[numberOfUses-1].id;
-    }
-
-    
-
-    public function setId(newID:Int)
-    {
-        if(this.id() == newID) return;    
-
-        objectData = ObjectData.getObjectData(newID);
-
-        if(objectData == null) throw new Exception('No ObjectData for: ${newID}');
     }
 
     public function isPermanent()
@@ -191,7 +192,7 @@ class ObjectHelper {
 
     public static function CalculateTimeToChangeForObj(obj:ObjectHelper) : Int
     {
-        var timeTransition = Server.transitionImporter.getTransition(-1, obj.id(), false, false);
+        var timeTransition = Server.transitionImporter.getTransition(-1, obj.id, false, false);
         if(timeTransition == null) return 0;
 
         //trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');

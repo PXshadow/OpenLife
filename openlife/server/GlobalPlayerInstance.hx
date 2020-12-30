@@ -71,7 +71,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
     public function hasBothShoes() : Bool
     {
-        return (this.clothingObjects[2].id() != 0 && this.clothingObjects[3].id() != 0) ;   
+        return (this.clothingObjects[2].id != 0 && this.clothingObjects[3].id != 0) ;   
     }
 
     public function addFood(foodValue:Float)
@@ -328,7 +328,7 @@ class GlobalPlayerInstance extends PlayerInstance {
         player.o_id = this.heldObject.toArray();
 
         //player.o_transition_source_id = this.newTransitionSource; TODO ??????????????????????????
-        player.o_transition_source_id = objOriginValid ? -1 : this.heldObject.id();
+        player.o_transition_source_id = objOriginValid ? -1 : this.heldObject.id;
 
         // this changes where the client moves the objec from on display
         player.o_origin_x = objOriginValid ? x : 0;
@@ -479,9 +479,9 @@ class GlobalPlayerInstance extends PlayerInstance {
     private function doSwitchCloths(clothingSlot:Int) : Bool
     {
         var objClothingSlot = calculateClothingSlot();
-        trace('self:o_id: ${this.o_id[0]} helobj.id: ${this.heldObject.id()} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
+        trace('self:o_id: ${this.o_id[0]} helobj.id: ${this.heldObject.id} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
 
-        if(objClothingSlot < 0 && this.heldObject.id() != 0) return false;
+        if(objClothingSlot < 0 && this.heldObject.id != 0) return false;
 
         var array = this.clothing_set.split(";");
 
@@ -702,7 +702,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         trace('transformHeldObject: heldObject.numberOfUses: ${heldObject.numberOfUses}');
 
-        heldObject.setId(id);
+        heldObject.id = id;
         setHeldObject(heldObject);
     }
 
@@ -717,6 +717,12 @@ class GlobalPlayerInstance extends PlayerInstance {
         {
             grave.containedObjects.push(this.heldObject);
             this.setHeldObject(null);
+        }
+
+        for(obj in this.clothingObjects)
+        {
+            if(obj.id == 0) continue;
+            grave.containedObjects.push(obj);
         }
 
         if(placeGrave(this.tx(), this.ty(), grave)) return; 
@@ -744,7 +750,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         var obj = world.getObjectHelper(x, y);
 
-        if(obj.id() == 0)
+        if(obj.id == 0)
         {
             world.setObjectHelper(x, y, grave);
 
