@@ -719,11 +719,16 @@ class GlobalPlayerInstance extends PlayerInstance {
             this.setHeldObject(null);
         }
 
+        // place the clothings in the grave, but not need to remove them from the player, since he is dead...
         for(obj in this.clothingObjects)
         {
             if(obj.id == 0) continue;
+
             grave.containedObjects.push(obj);
         }
+
+        //clothing_set:String = "0;0;0;0;0;0";
+
 
         if(placeGrave(this.tx(), this.ty(), grave)) return; 
 
