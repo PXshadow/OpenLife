@@ -5,6 +5,7 @@ import openlife.data.transition.TransitionImporter;
 import openlife.server.WorldMap.BiomeTag;
 import openlife.data.object.ObjectData;
 
+@:rtti
 class ServerSettings
 {
     // for debugging

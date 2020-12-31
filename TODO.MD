@@ -21,6 +21,10 @@ Summary:
 - Quality of Life: You can pick berriers directly with a bowl, you can eat while on a horse. Shoes give extra speed
 
 How to setup:
+- TODO how to load new ObjectData from Repository
+- server uses cached ObjectData to start fast
+--> if you want to clear the cache you need to use another .\OneLifeData7\dataVersionNumber 
+--> or delete the cache file file: .\SaveFiles\saveObjectData.bin
 - Tons of server settings can be changed in the ServerSettings class / not yet implemented to load them from file
 - you can put another map in the base directory 
 --> just override the current used one, or change to the new map in the Server Settings

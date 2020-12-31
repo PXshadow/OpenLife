@@ -1085,7 +1085,7 @@ class ObjectData extends LineReader
     {
         var startTime = Sys.time();
         var dir = './${ServerSettings.SaveDirectory}/';
-        var path = dir + "saveObjectData.txt";
+        var path = dir + "saveObjectData.bin";
 
         var writer = File.write(path, true);
 
@@ -1111,7 +1111,7 @@ class ObjectData extends LineReader
         try{
             var startTime = Sys.time();
             var dir = './${ServerSettings.SaveDirectory}/';
-            var path = dir + "saveObjectData.txt";
+            var path = dir + "saveObjectData.bin";
 
             reader = File.read(path, true);
             var fileVersionNumber = reader.readInt32();
