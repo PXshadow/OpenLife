@@ -120,7 +120,7 @@ class ObjectHelper {
     public function new(creator:GlobalPlayerInstance, id:Int)
     {
         this.objectData = ObjectData.getObjectData(id); 
-        //if(this.objectData == null) this.objectData = Server.objectDataMap[0];
+
         this.livingOwners[0] = creator;
 
         this.creationTimeInTicks = TimeHelper.tick;

@@ -511,8 +511,6 @@ class TimeHelper
             var toTy = helper.ty - moveDist + worldmap.randomInt(moveDist * 2);
             
             var target = worldmap.getObjectHelper(toTx, toTy);
-            //var obj = worldmap.getObjectId(tx, ty);
-            //var objData = Server.objectDataMap[obj[0]];
 
             if(target.id != 0) continue;
 

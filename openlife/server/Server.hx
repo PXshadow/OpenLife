@@ -52,6 +52,8 @@ class Server
 
     public function new()
     {
+        //ServerSettings.createReadWriteFile();
+
         //initalize database
         Manager.initialize();
         Manager.cnx = sys.db.Sqlite.open("server.db");
@@ -74,10 +76,15 @@ class Server
         trace("insert");*/
 
         // do all the object inititalisation stuff
-        ObjectData.ImportObjectData();
-
-        //ObjectData.WriteAllToFile();
-        //ObjectData.ReadAllFromFile();
+        Engine.dir = Utility.dir();
+        dataVersionNumber = Resource.dataVersionNumber();
+        trace('dataVersionNumber: $dataVersionNumber');
+        
+        if(ObjectData.ReadAllFromFile(dataVersionNumber) == false)
+        {
+            ObjectData.ImportObjectData();
+            ObjectData.WriteAllToFile(dataVersionNumber);
+        }
 
         ObjectData.CreateAndAddDummyObjectData();
         ObjectData.CreateFoodObjectArray();
@@ -85,8 +92,7 @@ class Server
 
         ObjectData.GenerateBiomeObjectData();
 
-        dataVersionNumber = Resource.dataVersionNumber();
-        trace('dataVersionNumber: $dataVersionNumber');
+        
 
         // do all the object transition inititalisation stuff
         trace("Import transitions...");

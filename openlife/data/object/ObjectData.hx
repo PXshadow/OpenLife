@@ -1,4 +1,8 @@
 package openlife.data.object;
+import haxe.Exception;
+import openlife.server.Server;
+import haxe.macro.Expr.Catch;
+import sys.io.FileInput;
 import sys.io.FileOutput;
 import sys.io.File;
 import openlife.settings.ServerSettings;
@@ -12,6 +16,7 @@ import haxe.io.Input;
 import haxe.ds.Vector;
 import openlife.data.sound.SoundData;
 @:expose
+@:rtti
 class ObjectData extends LineReader
 {
     public static var importedObjectData:Vector<ObjectData>;
@@ -338,19 +343,13 @@ class ObjectData extends LineReader
         trace("Import Object Data...");
         var startTime = Sys.time();
 
-        Engine.dir = Utility.dir();
         var tmp = ObjectBake.objectList();
         importedObjectData = new Vector<ObjectData>(tmp.length);
 
         objectDataMap = [];
 
-        // Add empty object
-        objectDataMap[0] = new ObjectData(0,false,true);
-        objectDataMap[-1] = new ObjectData(0,false,true); // Add Time Object Data
-        objectDataMap[-1].description = "TIME";
-        objectDataMap[-1].id = -1;
-
-        //trace('TEST: ${objectDataMap[-1].id}');
+        // Add empty and time ObjectData
+        addEmptyAndTimeObjectData(); 
 
         for (i in 0...importedObjectData.length){
             if(i % 400 == 0)  trace('Create Object Data... $i from ${importedObjectData.length}');
@@ -360,8 +359,17 @@ class ObjectData extends LineReader
             objectDataMap[objectData.id] = objectData;            
         }
 
-        trace('Read ObjectData Time: ');
         trace('Object Data imported: Time: ${Sys.time() - startTime} Count: ' + importedObjectData.length);
+    }
+
+    public static function addEmptyAndTimeObjectData()
+    {
+        objectDataMap[0] = new ObjectData(0,false,true);
+        objectDataMap[-1] = new ObjectData(0,false,true); // Add Time Object Data
+        objectDataMap[-1].description = "TIME";
+        objectDataMap[-1].id = -1;
+
+        //trace('TEST: ${objectDataMap[-1].id}');
     }
 
     // link dummy ObjectData for objects with numUse > 2
@@ -928,59 +936,213 @@ class ObjectData extends LineReader
         return object;
     }*/
 
-    public static function WriteAllToFile()
+    private static function writeToFile(obj:ObjectData, writer:FileOutput)
     {
+        writer.writeFloat(obj.decayFactor);
+        writer.writeInt32(obj.id);
+        writer.writeInt16(obj.description.length);
+        writer.writeString(obj.description);
+        writer.writeInt8(obj.containable ? 1 : 0);
+        writer.writeFloat(obj.containSize);
+        writer.writeInt8(obj.noFlip ? 1 : 0);
+        writer.writeInt8(obj.sideAcess ? 1 : 0);
+        writer.writeFloat(obj.vertSlotRot);
+        writer.writeInt32(obj.permanent);
+        writer.writeInt32(obj.minPickupAge);
+        writer.writeInt8(obj.heldInHand ? 1 : 0);
+        writer.writeInt8(obj.rideable ? 1 : 0);
+        writer.writeInt8(obj.blocksWalking ? 1 : 0);
+        writer.writeInt32(obj.leftBlockingRadius);
+        writer.writeInt32(obj.rightBlockingRadius);
+        writer.writeInt8(obj.drawBehindPlayer ? 1 : 0);
+        writer.writeFloat(obj.mapChance);
+        writer.writeInt16(obj.biomes.length);
+        for(i in obj.biomes) writer.writeInt32(i);
+        writer.writeInt32(obj.heatValue);
+        writer.writeFloat(obj.rValue);
+        writer.writeInt32(obj.person);
+        writer.writeInt8(obj.noSpawn ? 1 : 0);
+        writer.writeInt8(obj.male ? 1 : 0);
+        writer.writeInt32(obj.deathMarker);
+        writer.writeInt32(obj.homeMarker);
+        writer.writeInt8(obj.floor ? 1 : 0);
+        writer.writeInt8(obj.floorHugging ? 1 : 0);
+        writer.writeInt32(obj.foodValue);
+        writer.writeFloat(obj.speedMult);
+        writer.writeInt16(obj.clothing.length);
+        writer.writeString(obj.clothing);
+        writer.writeInt8(obj.neverDrop ? 1 : 0);
+        writer.writeInt32(obj.deadlyDistance);
+        writer.writeInt32(obj.useDistance);
+        writer.writeInt8(obj.creationSoundInitialOnly ? 1 : 0);
+        writer.writeInt8(obj.creationSoundForce ? 1 : 0);
+        writer.writeInt32(obj.numSlots);
+        writer.writeFloat(obj.timeStretch);
+        writer.writeFloat(obj.slotSize);
+        writer.writeInt32(obj.slotsLocked);
+        writer.writeInt32(obj.numSprites);
+        writer.writeInt32(obj.headIndex);
+        writer.writeInt32(obj.bodyIndex);
+        writer.writeInt32(obj.backFootIndex);
+        writer.writeInt32(obj.frontFootIndex);
+        writer.writeInt32(obj.eyesIndex);
+        writer.writeInt32(obj.mouthIndex);
+        writer.writeInt32(obj.numUses);
+        writer.writeFloat(obj.useChance);
+        writer.writeInt16(obj.useVanishIndex.length);
+        for(i in obj.useVanishIndex) writer.writeInt32(i);
+        writer.writeInt16(obj.useAppearIndex.length);
+        for(i in obj.useAppearIndex) writer.writeInt32(i);
+        writer.writeInt32(obj.cacheHeight);
+        writer.writeInt8(obj.apocalypseTrigger ? 1 : 0);
+        writer.writeInt8(obj.monumentStep ? 1 : 0);
+        writer.writeInt8(obj.monumentDone ? 1 : 0);
+        writer.writeInt8(obj.monumentCall ? 1 : 0);
+        writer.writeInt32(obj.toolSetIndex);
+        writer.writeInt8(obj.toolLearned ? 1 : 0);
+        writer.writeInt8(obj.tool ? 1 : 0);
+        writer.writeInt8(obj.dummy ? 1 : 0);
+        writer.writeInt32(obj.maxWideRadius);
+        writer.writeInt8(obj.onlyDescription ? 1 : 0);
+        writer.writeInt8(obj.noBackAcess ? 1 : 0);
+    }
+
+    public static function readFromFile(obj:ObjectData, reader:FileInput)
+    {
+        obj.decayFactor = reader.readFloat();
+		obj.id = reader.readInt32();
+		var len = reader.readInt16();
+		obj.description = reader.readString(len);
+		obj.containable = reader.readInt8() != 0 ? true : false;
+		obj.containSize = reader.readFloat();
+		obj.noFlip = reader.readInt8() != 0 ? true : false;
+		obj.sideAcess = reader.readInt8() != 0 ? true : false;
+		obj.vertSlotRot = reader.readFloat();
+		obj.permanent = reader.readInt32();
+		obj.minPickupAge = reader.readInt32();
+		obj.heldInHand = reader.readInt8() != 0 ? true : false;
+		obj.rideable = reader.readInt8() != 0 ? true : false;
+		obj.blocksWalking = reader.readInt8() != 0 ? true : false;
+		obj.leftBlockingRadius = reader.readInt32();
+		obj.rightBlockingRadius = reader.readInt32();
+		obj.drawBehindPlayer = reader.readInt8() != 0 ? true : false;
+		obj.mapChance = reader.readFloat();
+		obj.biomes = new Array<Int>();
+		var len = reader.readInt16();
+		for(i in 0...len){obj.biomes[i] = reader.readInt32();}
+		obj.heatValue = reader.readInt32();
+		obj.rValue = reader.readFloat();
+		obj.person = reader.readInt32();
+		obj.noSpawn = reader.readInt8() != 0 ? true : false;
+		obj.male = reader.readInt8() != 0 ? true : false;
+		obj.deathMarker = reader.readInt32();
+		obj.homeMarker = reader.readInt32();
+		obj.floor = reader.readInt8() != 0 ? true : false;
+		obj.floorHugging = reader.readInt8() != 0 ? true : false;
+		obj.foodValue = reader.readInt32();
+		obj.speedMult = reader.readFloat();
+		var len = reader.readInt16();
+		obj.clothing = reader.readString(len);
+		obj.neverDrop = reader.readInt8() != 0 ? true : false;
+		obj.deadlyDistance = reader.readInt32();
+		obj.useDistance = reader.readInt32();
+		obj.creationSoundInitialOnly = reader.readInt8() != 0 ? true : false;
+		obj.creationSoundForce = reader.readInt8() != 0 ? true : false;
+		obj.numSlots = reader.readInt32();
+		obj.timeStretch = reader.readFloat();
+		obj.slotSize = reader.readFloat();
+		obj.slotsLocked = reader.readInt32();
+		obj.numSprites = reader.readInt32();
+		obj.headIndex = reader.readInt32();
+		obj.bodyIndex = reader.readInt32();
+		obj.backFootIndex = reader.readInt32();
+		obj.frontFootIndex = reader.readInt32();
+		obj.eyesIndex = reader.readInt32();
+		obj.mouthIndex = reader.readInt32();
+		obj.numUses = reader.readInt32();
+		obj.useChance = reader.readFloat();
+		obj.useVanishIndex = new Array<Int>();
+		var len = reader.readInt16();
+		for(i in 0...len){obj.useVanishIndex[i] = reader.readInt32();}
+		obj.useAppearIndex = new Array<Int>();
+		var len = reader.readInt16();
+		for(i in 0...len){obj.useAppearIndex[i] = reader.readInt32();}
+		obj.cacheHeight = reader.readInt32();
+		obj.apocalypseTrigger = reader.readInt8() != 0 ? true : false;
+		obj.monumentStep = reader.readInt8() != 0 ? true : false;
+		obj.monumentDone = reader.readInt8() != 0 ? true : false;
+		obj.monumentCall = reader.readInt8() != 0 ? true : false;
+		obj.toolSetIndex = reader.readInt32();
+		obj.toolLearned = reader.readInt8() != 0 ? true : false;
+		obj.tool = reader.readInt8() != 0 ? true : false;
+		obj.dummy = reader.readInt8() != 0 ? true : false;
+		obj.maxWideRadius = reader.readInt32();
+		obj.onlyDescription = reader.readInt8() != 0 ? true : false;
+		obj.noBackAcess = reader.readInt8() != 0 ? true : false;
+    }
+
+    public static function WriteAllToFile(dataVersionNumber:Int)
+    {
+        var startTime = Sys.time();
         var dir = './${ServerSettings.SaveDirectory}/';
         var path = dir + "saveObjectData.txt";
 
         var writer = File.write(path, true);
 
+        writer.writeInt32(dataVersionNumber);
         writer.writeInt32(importedObjectData.length);
 
         for(objectData in importedObjectData)
         {
-            var serializer = new Serializer();
-            //serializer.useCache = true;
-
-            serializer.serialize(objectData);
-
-            var s = serializer.toString();
-            writer.writeInt32(s.length);
-            writer.writeString(s);
-
-            //trace(objectData.description);
+            writeToFile(objectData, writer);
         }
+
+        trace('Write ${importedObjectData.length}  data version number: ${dataVersionNumber} ObjectData Time: ${Sys.time() - startTime}');
 
         writer.writeInt32(-1);
 
         writer.close();
     }
 
-    public static function ReadAllFromFile()
+    public static function ReadAllFromFile(dataVersionNumber:Int) : Bool
     {
-        var startTime = Sys.time();
-        var dir = './${ServerSettings.SaveDirectory}/';
-        var path = dir + "saveObjectData.txt";
+        var reader = null;
 
-        var reader = File.read(path, true);
-        var count = reader.readInt32();        
-        var length = reader.readInt32();
+        try{
+            var startTime = Sys.time();
+            var dir = './${ServerSettings.SaveDirectory}/';
+            var path = dir + "saveObjectData.txt";
 
-        importedObjectData = new Vector<ObjectData>(count);
+            reader = File.read(path, true);
+            var fileVersionNumber = reader.readInt32();
+            if(fileVersionNumber != dataVersionNumber) throw new Exception('server data version number ${dataVersionNumber} did not fit with file $fileVersionNumber');
+            var count = reader.readInt32();        
 
-        for(i in 0...count)
-        {
-            var s = reader.readString(length);
-            length = reader.readInt32();
-            var unserializer = new Unserializer(s);
-            var objectData:ObjectData = unserializer.unserialize();
-            importedObjectData[i] = objectData;
-            //trace(objectData.description);
-        }        
+            importedObjectData = new Vector<ObjectData>(count);
+            objectDataMap = [];
+            addEmptyAndTimeObjectData();
+
+            for(i in 0...count)
+            {
+                var obj = new ObjectData();
+                readFromFile(obj, reader);
+                importedObjectData[i] = obj;
+                objectDataMap[obj.id] = obj;
+            }        
+            
+            reader.close();
         
-        reader.close();
 
-        trace('Read ObjectData Time: ${Sys.time() - startTime}');
+            trace('Read ${importedObjectData.length} ObjectData  data version number: ${dataVersionNumber} Time: ${Sys.time() - startTime}');
+        }
+        catch(ex)
+        {
+            trace(ex);
+            if(reader != null) reader.close();
+            return false;
+        }
+
+        return true;
     }
 }
 
