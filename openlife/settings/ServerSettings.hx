@@ -1,4 +1,5 @@
 package openlife.settings;
+import haxe.macro.Expr.Catch;
 import sys.io.File;
 import openlife.data.transition.TransitionData;
 import openlife.data.transition.TransitionImporter;
@@ -262,8 +263,93 @@ class ServerSettings
 
         trans = new TransitionData(235,391,253,1135); // Clay Bowl + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Domestic Gooseberry  Bush
         transtions.addTransition("PatchTransitions: ", trans, false, true);
-        
     }
 
-    
+    public static function writeToFile()
+    {
+        var rtti = haxe.rtti.Rtti.getRtti(ServerSettings);
+        var dir = './${ServerSettings.SaveDirectory}/';
+        var writer = File.write(dir + "ServerSettings.txt", false);
+
+        writer.writeString('Remove **default** if you dont want to use default value!\n');
+
+        var count = 0;
+
+        for (field in rtti.statics)
+        {
+            if('$field'.indexOf('CFunction') != -1 ) continue;
+            count++;
+            var value:Dynamic = Reflect.field(ServerSettings, field.name);
+
+            //trace('ServerSettings: $count ${field.name} ${field.type} $value');
+            
+            if('${field.type}' == "CClass(String,[])")
+            {
+                writer.writeString('**default** ${field.name} = "$value"\n');
+            }
+            else
+            {
+                writer.writeString('**default** ${field.name} = $value\n');
+            }
+        }
+
+        writer.writeString('**END**\n');
+
+        writer.close();
+    }
+
+    public static function readFromFile()
+    {
+        var reader = null;
+
+        try{
+            var rtti = haxe.rtti.Rtti.getRtti(ServerSettings);
+            var dir = './${ServerSettings.SaveDirectory}/';
+            reader = File.read(dir + "ServerSettings.txt", false);
+
+            reader.readLine();
+
+            var line = "";
+
+            while(line.indexOf('**END**') == -1 )
+            {
+                line = reader.readLine();
+
+                //trace('Read: ${line}');
+
+                if(line.indexOf('**default**') != -1 ) continue;
+
+                line = StringTools.replace(line, ' ', '');
+
+                var splitLine = line.split("=");
+
+                if(splitLine.length < 2) continue;
+
+                trace('Load Setting: ${splitLine[0]} = ${splitLine[1]}');
+
+                var fieldName = splitLine[0];
+                var value:Dynamic = splitLine[1];
+
+                if(line.indexOf('"') != -1 )
+                {
+                    value = StringTools.replace(value, '"', '');
+                }
+                else 
+                {
+                    value = Std.parseFloat(value);
+                }
+
+                Reflect.setField(ServerSettings, fieldName, value);
+            }
+        }
+        catch(ex)
+        {
+            if(reader != null) reader.close();
+
+            trace(ex);
+        }
+
+        //trace('Read Test: traceTransitionByTargetDescription: $traceTransitionByTargetDescription');
+        //trace('Read Test: YumBonus: $YumBonus');
+    }
 }

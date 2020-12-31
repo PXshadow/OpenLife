@@ -1,5 +1,9 @@
 package openlife.server;
 
+import sys.io.File;
+import openlife.data.object.ObjectData;
+import openlife.settings.ServerSettings;
+
 class SerializeHelper
 {
     public static function createReadWriteFile()

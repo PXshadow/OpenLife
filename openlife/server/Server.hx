@@ -52,6 +52,8 @@ class Server
 
     public function new()
     {
+        //ServerSettings.writeToFile();
+        ServerSettings.readFromFile();
         //ServerSettings.createReadWriteFile();
 
         //initalize database
