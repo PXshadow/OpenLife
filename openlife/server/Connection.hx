@@ -93,6 +93,8 @@ class Connection implements ServerHeader
         player.food_store_max = TimeHelper.CalculateFoodStoreMax(player);
         player.food_store = player.food_store_max / 2;
         player.yum_multiplier = ServerSettings.MinHealthPerYear * ServerSettings.StartingEveAge; 
+
+        //player.transformHeldObject(2710);
         
         trace("login: move_speed: " + player.move_speed);
 

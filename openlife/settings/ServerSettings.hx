@@ -10,7 +10,7 @@ import openlife.data.object.ObjectData;
 class ServerSettings
 {
     // for debugging
-    public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation // deactivates saving
+    public static var debug = true; // activates or deactivates try catch blocks and initial debug objects generation // deactivates saving
     public static var DebugWrite = false; // WordMap writeToDisk
     public static var TraceCountObjects = false; // WorldMap
     public static var DebugSpeed = false; // MovementHelper
@@ -20,10 +20,10 @@ class ServerSettings
     // used to trace connection.send commands //  only trace non player actions // traces only MX from animal, FX and PU from food / age
     public static var TraceSendNonPlayerActions = false;  
 
-    public static var traceTransitionByActorId = 99972; // TransitionImporter
-    public static var traceTransitionByActorDescription = "!!!Horse-Drawn Tire Cart"; // TransitionImporter
-    public static var traceTransitionByTargetId = 9993161; // TransitionImporter
-    public static var traceTransitionByTargetDescription = "!!!Horse-Drawn Tire Cart"; // TransitionImporter
+    public static var traceTransitionByActorId = 9992710; // TransitionImporter
+    public static var traceTransitionByActorDescription = "Wild Horse with Lasso"; // TransitionImporter
+    public static var traceTransitionByTargetId = 2710; // TransitionImporter
+    public static var traceTransitionByTargetDescription = "Wild Horse with Lasso"; // TransitionImporter
 
     
 

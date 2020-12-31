@@ -440,13 +440,13 @@ class TransitionHelper{
         }
         else
         {
-            returnValue = doTransitionIfPossibleHelper(-1);
+            returnValue = doTransitionIfPossibleHelper();
         }
         
         return returnValue;
     } 
 
-    public function doTransitionIfPossibleHelper(containerSlotSize:Float, onPlayer:Bool = false) : Bool
+    public function doTransitionIfPossibleHelper(containerSlotSize:Float = -1, onPlayer:Bool = false) : Bool
     {  
         var lastUseActor = false;
         var lastUseTarget = target.isLastUse();
@@ -696,9 +696,11 @@ class TransitionHelper{
         } 
         else
         {
-            if(doTrace) trace('TRANS: ${objectData.description} objectData.useChance: ${objectData.useChance}');
+            var rand = objectData.useChance <= 0 ? -1 : WorldMap.calculateRandomFloat();
 
-            if(objectData.useChance <= 0 || WorldMap.calculateRandomFloat() < objectData.useChance)
+            if(doTrace) trace('TRANS: ${objectData.description} objectData.useChance: ${objectData.useChance} random: $rand');
+
+            if(objectData.useChance <= 0 || rand < objectData.useChance)
             {
                 obj.numberOfUses -= 1;
                 if(doTrace) trace('TRANS: ${objectData.description} numberOfUses: ' + obj.numberOfUses);

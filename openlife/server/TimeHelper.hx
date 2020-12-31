@@ -549,6 +549,10 @@ class TimeHelper
 
             toTx = target.tx;
             toTy = target.ty;
+
+            helper.id = timeTransition.newTargetID;
+
+            TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, timeTransition, false);
     
             // save what was on the ground, so that we can move on this tile and later restore it
             var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.toArray();
@@ -562,7 +566,6 @@ class TimeHelper
             helper.creationTimeInTicks = TimeHelper.tick;
 
             worldmap.setObjectHelper(fromTx, fromTy, helper.groundObject);
-            //worldmap.setObjectId(fromTx,fromTy, oldTileObject); // TODO move to setter
 
             var tmpGroundObject = helper.groundObject;
             helper.groundObject = target;

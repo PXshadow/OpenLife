@@ -177,7 +177,7 @@ class TransitionData
     }
 
     //public function traceTransition(s:String = "", targetDescContains:String = "")
-      public function traceTransition(s:String = "", forceTrace = false)
+    public function traceTransition(s:String = "", forceTrace = false)
     {
       var transition = this;
 
@@ -197,9 +197,9 @@ class TransitionData
       if(objectDataNewTarget != null) newTargetDescription = objectDataNewTarget.description;
 
       var dontTraceActor = actorDescription.indexOf(ServerSettings.traceTransitionByActorDescription) == -1;
-      var targetDescContains = ServerSettings.traceTransitionByTargetDescription;
+      var dontTraceTarget = targetDescription.indexOf(ServerSettings.traceTransitionByTargetDescription) == -1 ;
 
-      if(forceTrace == false && dontTraceActor && transition.targetID != ServerSettings.traceTransitionByActorId && transition.targetID != ServerSettings.traceTransitionByTargetId && targetDescContains.length != 0 && targetDescription.indexOf(targetDescContains) == -1 ) return;
+      if(forceTrace == false && dontTraceActor && dontTraceTarget && transition.targetID != ServerSettings.traceTransitionByActorId && transition.targetID != ServerSettings.traceTransitionByTargetId) return;
       
       trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
   }
