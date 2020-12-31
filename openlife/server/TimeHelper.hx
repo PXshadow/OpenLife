@@ -525,7 +525,11 @@ class TimeHelper
             if(targetBiome == BiomeTag.SNOWINGREY) continue;
             if(targetBiome == BiomeTag.OCEAN) continue;
 
-            var isPreferredBiome = helper.objectData.isSpawningIn(targetBiome);
+            var objectData = helper.objectData.dummyParent == null ? helper.objectData : helper.objectData.dummyParent;
+
+            var isPreferredBiome = objectData.isSpawningIn(targetBiome);
+
+            //if(helper.objectData.dummyParent != null) trace('Animal Move: ${objectData.description} $isPreferredBiome');
 
             // lower the chances even more if on river
             //var isHardbiome = targetBiome == BiomeTag.RIVER || (targetBiome == BiomeTag.GREY) || (targetBiome == BiomeTag.SNOW) || (targetBiome == BiomeTag.DESERT);
@@ -536,7 +540,7 @@ class TimeHelper
             //trace('chance: $chancePreferredBiome isNotHardbiome: $isNotHardbiome biome: $targetBiome');
 
             // skip with chancePreferredBiome if this biome is not preferred
-            if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 10) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
+            if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 20) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
 
             // limit movement if blocked
             target = calculateNonBlockedTarget(fromTx, fromTy, target);
@@ -588,7 +592,7 @@ class TimeHelper
             var floorIdTarget = Server.server.map.getFloorId(toTx, toTy);
             var floorIdFrom = Server.server.map.getFloorId(fromTx, fromTy);
 
-            var speed = ServerSettings.InitialPlayerMoveSpeed * helper.objectData.speedMult;
+            var speed = ServerSettings.InitialPlayerMoveSpeed * objectData.speedMult;
 
             for (c in Server.server.connections) 
             {            
