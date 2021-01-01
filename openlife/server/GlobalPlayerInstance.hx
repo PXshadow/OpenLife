@@ -709,6 +709,9 @@ class GlobalPlayerInstance extends PlayerInstance {
     public function doDeath(deathReason:String)
     {
         // TODO calculate score
+        // TODO set coordinates player based
+        ServerSettings.startingGx = this.tx();
+        ServerSettings.startingGy = this.ty();
 
         this.age = this.trueAge; // bad health and starving can influence health, so setback true time a player lifed so that he sees in death screen
         this.reason = deathReason;
