@@ -207,7 +207,11 @@ class ServerSettings
         trans.newActorID = 3158;
         trans.traceTransition("PatchTransitions: ");
 
-        
+
+        // let Tule Stumps (122) grow back
+        trans = transtions.getTransition(-1, 122); 
+        trans.newTargetID = 121; // 121 = Tule Reeds
+        trans.traceTransition("PatchTransitions: ");
 
         // let get berrys back!
         trans = new TransitionData(-1,30,0,30); // Wild Gooseberry Bush

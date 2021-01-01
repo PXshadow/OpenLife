@@ -25,6 +25,12 @@ Summary:
 --> so yes in theory you can life longer then 60
 - Quality of Life: You can pick berriers directly with a bowl, you can eat while on a horse. Shoes give extra speed
 
+Not yet implemented:
+- temperature
+- combat
+- player interactions like feeding / incarnation / family
+- see more in detail below
+
 How to setup:
 - TODO how to load new ObjectData from Repository
 - there is a ServerSettings.txt file in SaveFiles folder. Settings are read at start and every 10 sec.
@@ -39,11 +45,6 @@ How to setup:
 - every 8 hours a backup is made which is cycled through (up to 90 backups) / this can also be changed in Server Settings
 --> the backups are in the folders: SaveFiles/1/ SaveFiles/2/.... SaveFiles/90/ 
 
-Not yet implemented:
-- temperature
-- combat
-- player interactions like feeding / incarnation / family
-- see more in detail below
 
 SERVER
 ======
@@ -65,6 +66,7 @@ World:
 
 Transitions:
 - you can harvest Berries directly with a bowl
+- Tule Stumps grow back after one hour 
 
 Aging:
 - starving to death slows down aging below 14 and increases above  
