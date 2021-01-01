@@ -53,7 +53,7 @@ class ServerSettings
     public static var CreateGreenBiomeDistance = 5;
    
     // food stuff
-    public static var FoodUsePerSecond = 0.2; // 0.2; // 5 sec per pip // use 0.6 or something to test cravings...
+    public static var FoodUsePerSecond = 0.15; // 0.2; // 5 sec per pip // normal game has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good 
     public static var MinAgeToEat = 3;
     public static var GrownUpFoodStoreMax = 25;
     public static var NewBornFoodStoreMax = 4;
