@@ -1,4 +1,5 @@
 package openlife.settings;
+import sys.FileSystem;
 import haxe.macro.Expr.Catch;
 import sys.io.File;
 import openlife.data.transition.TransitionData;
@@ -267,6 +268,9 @@ class ServerSettings
     {
         var rtti = haxe.rtti.Rtti.getRtti(ServerSettings);
         var dir = './${ServerSettings.SaveDirectory}/';
+
+        if(FileSystem.exists(dir) == false) FileSystem.createDirectory(dir);
+
         var writer = File.write(dir + "ServerSettings.txt", false);
 
         writer.writeString('Remove **default** if you dont want to use default value!\n');
@@ -296,7 +300,7 @@ class ServerSettings
         writer.close();
     }
 
-    public static function readFromFile()
+    public static function readFromFile() : Bool
     {
         var reader = null;
 
@@ -345,7 +349,11 @@ class ServerSettings
             if(reader != null) reader.close();
 
             trace(ex);
+
+            return false;
         }
+
+        return true;
 
         //trace('Read Test: traceTransitionByTargetDescription: $traceTransitionByTargetDescription');
         //trace('Read Test: YumBonus: $YumBonus');

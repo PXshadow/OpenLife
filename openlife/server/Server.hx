@@ -52,9 +52,13 @@ class Server
 
     public function new()
     {
-        //ServerSettings.writeToFile();
-        ServerSettings.readFromFile();
-        //ServerSettings.createReadWriteFile();
+        //SerializeHelper.createReadWriteFile();
+        
+        if(ServerSettings.readFromFile() == false)
+        {
+            ServerSettings.writeToFile();
+        }
+        
 
         //initalize database
         Manager.initialize();
