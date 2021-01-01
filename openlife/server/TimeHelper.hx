@@ -189,7 +189,7 @@ class TimeHelper
         var age = p.age;
         var food_store_max:Float = ServerSettings.GrownUpFoodStoreMax;
 
-        if(age < 30) food_store_max = ServerSettings.NewBornFoodStoreMax + age / 30 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.NewBornFoodStoreMax);
+        if(age < 20) food_store_max = ServerSettings.NewBornFoodStoreMax + age / 20 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.NewBornFoodStoreMax);
         if(age > 50) food_store_max = ServerSettings.OldAgeFoodStoreMax + (60 - age) / 10 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.OldAgeFoodStoreMax);
 
         if(p.food_store < 0) food_store_max += ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath * p.food_store;
