@@ -540,7 +540,7 @@ class TimeHelper
             //trace('chance: $chancePreferredBiome isNotHardbiome: $isNotHardbiome biome: $targetBiome');
 
             // skip with chancePreferredBiome if this biome is not preferred
-            if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 20) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
+            if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 10) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
 
             // limit movement if blocked
             target = calculateNonBlockedTarget(fromTx, fromTy, target);
@@ -549,6 +549,8 @@ class TimeHelper
 
             toTx = target.tx;
             toTy = target.ty;
+
+            if(helper.isLastUse()) timeTransition = Server.transitionImporter.getTransition(-1, helper.id, false, true);
 
             helper.id = timeTransition.newTargetID;
 

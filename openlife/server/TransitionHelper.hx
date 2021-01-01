@@ -449,7 +449,7 @@ class TransitionHelper{
     public function doTransitionIfPossibleHelper(containerSlotSize:Float = -1, onPlayer:Bool = false) : Bool
     {  
         var lastUseActor = false;
-        var lastUseTarget = target.isLastUse();
+        //var lastUseTarget = target.isLastUse();
 
         trace('TRANS: handObjectData.numUses: ${handObjectData.numUses} heldObject.numberOfUses: ${this.player.heldObject.numberOfUses} ${handObjectData.description}'  );
         
@@ -468,7 +468,7 @@ class TransitionHelper{
         // Should not work for: 235 + -1 = 382 + 0  Clay Bowl# empty + TIME  -->  Bowl of Water + EMPTY
         if(transition == null && target.id == 0)
         {
-            transition = Server.transitionImporter.getTransition(this.player.heldObject.id, -1, lastUseActor, lastUseTarget);
+            transition = Server.transitionImporter.getTransition(this.player.heldObject.id, -1, lastUseActor, target.isLastUse());
 
             // only allow this transition if it is for switching stuff like for horses
             if(transition != null && transition.newActorID != 0) transition = null;
