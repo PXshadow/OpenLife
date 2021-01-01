@@ -26,7 +26,7 @@ Summary:
 - Quality of Life: You can pick berriers directly with a bowl, you can eat while on a horse. Shoes give extra speed
 
 Not yet implemented:
-- temperature (clothing does already reduce food use up to 1/3 )
+- temperature (clothing does already reduce food use up to 66% - Jungle reduces food need 33%
 - combat
 - player interactions like feeding / incarnation / family
 - see more in detail below
