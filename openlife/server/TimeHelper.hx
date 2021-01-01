@@ -584,14 +584,14 @@ class TimeHelper
             helper.groundObject = target;
             worldmap.setObjectHelper(toTx, toTy, helper);
 
-            var chanceForOffspring = isPreferredBiome ? ServerSettings.chanceForOffspring : ServerSettings.chanceForOffspring * Math.pow((1 - chancePreferredBiome), 2);
+            var chanceForOffspring = isPreferredBiome ? ServerSettings.ChanceForOffspring : ServerSettings.ChanceForOffspring * Math.pow((1 - chancePreferredBiome), 2);
+            var chanceForAnimalDying = isPreferredBiome ? ServerSettings.ChanceForOffspring / 2: ServerSettings.ChanceForAnimalDying;
 
             // give extra birth chance bonus if population is very low
             if(worldmap.currentObjectsCount[newTileObject[0]] < worldmap.originalObjectsCount[newTileObject[0]] / 2) chanceForOffspring *=5;
 
-            if(worldmap.currentObjectsCount[newTileObject[0]] < worldmap.originalObjectsCount[newTileObject[0]] * ServerSettings.maxOffspringFactor && worldmap.randomFloat() <= chanceForOffspring)
+            if(worldmap.currentObjectsCount[newTileObject[0]] < worldmap.originalObjectsCount[newTileObject[0]] * ServerSettings.MaxOffspringFactor && worldmap.randomFloat() <= chanceForOffspring)
             {
-                // TODO consider dead 
                 worldmap.currentObjectsCount[newTileObject[0]] += 1;
 
                 //if(chanceForOffspring < worldmap.chanceForOffspring) trace('NEW: $newTileObject ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]} chance: $chanceForOffspring biome: $targetBiome');
@@ -603,6 +603,14 @@ class TimeHelper
                 newAnimal.groundObject = tmpGroundObject;
                 worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
                 //worldmap.setObjectId(x,y, newTileObject); // TODO move to setter
+            }
+            else if(worldmap.currentObjectsCount[newTileObject[0]] > worldmap.originalObjectsCount[newTileObject[0]] * ServerSettings.MaxOffspringFactor && worldmap.randomFloat() <= chanceForAnimalDying)
+            {
+                trace('Animal DEAD: $newTileObject ${helper.description}: Count: ${worldmap.currentObjectsCount[newTileObject[0]]} Original Count: ${worldmap.originalObjectsCount[newTileObject[0]]} chance: $chanceForAnimalDying biome: $targetBiome');
+
+                helper.id = 0;
+                newTileObject = [0];
+                worldmap.setObjectHelper(toTx, toTy, helper);
             }
             
             var floorIdTarget = Server.server.map.getFloorId(toTx, toTy);

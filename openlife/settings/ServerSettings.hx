@@ -96,8 +96,9 @@ class ServerSettings
     public static var chancePreferredBiome = 0.8; // Chance that the animal ignors the chosen target if its not from his original biome
     
     // for animal offsprings
-    public static var chanceForOffspring = 0.001; // For each movement there is X chance to generate an offspring.   
-    public static var maxOffspringFactor = 1; // The population can only be at max X times the initial population
+    public static var ChanceForOffspring = 0.001; // For each movement there is X chance to generate an offspring.   
+    public static var ChanceForAnimalDying = 0.0005; // For each movement there is X chance that the animal dies  
+    public static var MaxOffspringFactor = 1; // The population can only be at max X times the initial population
 
     public static var WorldTimeParts = 25; // in each tick 1/XX DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX * 10 
     public static var ObjRespawnChance = 0.001; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
