@@ -32,7 +32,7 @@ class TimeHelper
     public static function DoTimeLoop()
     {
         serverStartingTime = Sys.time();
-        var averageSleepTime = 0.0;
+        var averageSleepTime:Float = 0.0;
         var skipedTicks = 0;
         var timeSinceStartCountedFromTicks:Float = TimeHelper.tick * TimeHelper.tickTime;
         serverStartingTime -= timeSinceStartCountedFromTicks;  // pretend the server was started before to be aligned with ticks
