@@ -92,9 +92,10 @@ class GlobalPlayerInstance extends PlayerInstance {
         var healthFactor:Float; 
 
         var maxBoni = forSpeed ? 1.2 : 2;
+        var maxMali = forSpeed ? 0.8 : 0.5;
 
         if(health >= 0) healthFactor = (maxBoni  * health + ServerSettings.HealthFactor) / (health + ServerSettings.HealthFactor);
-        else healthFactor = (health - ServerSettings.HealthFactor) / ( 2 * health - ServerSettings.HealthFactor);
+        else healthFactor = (health - ServerSettings.HealthFactor) / ( (1 / maxMali) * health - ServerSettings.HealthFactor);
 
         return healthFactor;
     }
