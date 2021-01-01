@@ -143,7 +143,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         if(clothingSlot < 0)
         {
-            if(doEating()) return;
+            if(doEating(this,this)) return;
         }
 
         if(doSwitchCloths(clothingSlot)) return;
@@ -166,7 +166,67 @@ class GlobalPlayerInstance extends PlayerInstance {
     */
     public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int)
     {
-        
+        this.mutex.acquire();
+
+        if(ServerSettings.debug)
+        {
+            doOnOtherHelper(x,y,clothingSlot, playerId);
+        }
+        else{
+            try{
+                doOnOtherHelper(x,y,clothingSlot, playerId);
+            }
+            catch(e)
+            {                
+                trace(e);
+            }
+        }
+
+        // send always PU so that player wont get stuck
+        this.connection.send(PLAYER_UPDATE,[this.toData()]);
+        this.connection.send(FRAME);
+
+        this.mutex.release();
+    }
+
+    public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, playerId:Int) : Bool
+    {
+        trace('doOnOtherHelper: playerId: ${playerId} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
+
+        var targetPlayer = getPlayerAt(x,y, playerId);
+
+        if(this.isClose(targetPlayer.tx() - this.gx , targetPlayer.ty() - this.gy) == false)
+        {
+            trace('Targt position is too far away player: ${this.tx()},${this.ty()} target: ${targetPlayer.tx},${targetPlayer.ty}');
+            return false; 
+        }
+
+        if(clothingSlot < 0)
+        {
+            if(doEating(this, targetPlayer)) return true;
+        }
+
+        return false;
+
+        // TODO
+        //if(doSwitchCloths(clothingSlot)) return true;
+
+        //return doPlaceObjInClothing(clothingSlot);
+    }
+
+    public static function getPlayerAt(x:Int, y:Int, playerId:Int) : GlobalPlayerInstance
+    {
+        for(c in Server.server.connections)
+        {
+            if(c.player.p_id == playerId) return c.player;
+
+            if(playerId <= 0)
+            {
+                if(c.player.x == x && c.player.y == y) return c.player;
+            }
+        }
+
+        return null;
     }
 
     /*
@@ -203,22 +263,22 @@ class GlobalPlayerInstance extends PlayerInstance {
         this.connection.send(FOOD_CHANGE,['${Math.ceil(food_store)} ${Std.int(food_store_max)} $last_ate_id $last_ate_fill_max $cut_move_speed $responsible_id ${Math.ceil(yum_bonus)} ${Math.ceil(yum_multiplier)}'], isPlayerAction);
     }
 
-    public function doEating() : Bool
+    public static function doEating(playerFrom:GlobalPlayerInstance, playerTo:GlobalPlayerInstance) : Bool
     {
-        if (this.o_id[0] == 0) return false;
+        if (playerFrom.o_id[0] == 0) return false;
 
-        if(this.age < ServerSettings.MinAgeToEat)
+        if(playerFrom.age < ServerSettings.MinAgeToEat)
         {
-            trace('too young to eat player.age: ${this.age} < ServerSettings.MinAgeToEat: ${ServerSettings.MinAgeToEat} ');
+            trace('too young to eat player.age: ${playerFrom.age} < ServerSettings.MinAgeToEat: ${ServerSettings.MinAgeToEat} ');
             return false;
         }
 
-        var heldObjData = heldObject.objectData;
+        var heldObjData = playerFrom.heldObject.objectData;
         if(heldObjData.dummyParent != null) heldObjData = heldObjData.dummyParent;
 
         var foodValue:Float = heldObjData.foodValue;
 
-        trace('FOOD: food_store_max: $food_store_max food_store: $food_store foodValue: $foodValue');
+        trace('FOOD: food_store_max: ${playerTo.food_store_max} food_store: ${playerTo.food_store} foodValue: ${foodValue}');
 
         if(foodValue < 1)
         {
@@ -226,24 +286,24 @@ class GlobalPlayerInstance extends PlayerInstance {
             return false;
         }
         
-        if(food_store_max - food_store < Math.ceil(foodValue / 3))
+        if(playerTo.food_store_max - playerTo.food_store < Math.ceil(foodValue / 3))
         {
-            trace('too full to eat: food_store_max: $food_store_max - food_store: $food_store < foodValue: $foodValue  / 3');
+            trace('too full to eat: food_store_max: ${playerTo.food_store_max} - food_store: ${playerTo.food_store} < foodValue: $foodValue  / 3');
             return false;
         }
 
-        var countEaten = hasEatenMap[heldObjData.id]; 
+        var countEaten = playerTo.hasEatenMap[heldObjData.id]; 
         if(countEaten < 0) countEaten = 0;    
 
         foodValue += ServerSettings.YumBonus;
         foodValue -= countEaten;
 
-        var isCravingEatenObject = heldObjData.id == currentlyCraving;
+        var isCravingEatenObject = heldObjData.id == playerTo.currentlyCraving;
         if(isCravingEatenObject) foodValue += 1; // craved food give more boni
 
-        var isSuperMeh = foodValue < heldObject.objectData.foodValue / 2;
+        var isSuperMeh = foodValue < playerFrom.heldObject.objectData.foodValue / 2;
 
-        if(isSuperMeh) foodValue = heldObject.objectData.foodValue / 2;
+        if(isSuperMeh) foodValue = playerFrom.heldObject.objectData.foodValue / 2;
 
         /*
         if(isSuperMeh && food_store > 0)
@@ -252,21 +312,21 @@ class GlobalPlayerInstance extends PlayerInstance {
             return;
         }*/
 
-        var isHoldingYum = isHoldingYum();
+        var isHoldingYum = playerFrom.isHoldingYum();
 
         if(isSuperMeh == false)
         {
-            hasEatenMap[heldObjData.id] += 1;
-            doIncreaseFoodValue(heldObjData.id);
+            playerTo.hasEatenMap[heldObjData.id] += 1;
+            playerTo.doIncreaseFoodValue(heldObjData.id);
         }
 
         // eating YUM increases prestige / score while eating MEH reduces it
         if(isHoldingYum)
         {
-            if(isCravingEatenObject) yum_multiplier += 2;
-            else yum_multiplier += 1;            
+            if(isCravingEatenObject) playerTo.yum_multiplier += 2;
+            else playerTo.yum_multiplier += 1;            
         }
-        else yum_multiplier -= 1;
+        else playerTo.yum_multiplier -= 1;
              
         //else if(isHoldingMeh()) yum_multiplier -= 1;
 
@@ -274,36 +334,41 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         // food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
        
-        this.last_ate_fill_max = Math.ceil(this.food_store);
-        trace('last_ate_fill_max: $last_ate_fill_max');
+        playerTo.last_ate_fill_max = Math.ceil(playerTo.food_store);
+        trace('last_ate_fill_max: ${playerTo.last_ate_fill_max}');
         //this.food_store += foodValue;
-        this.just_ate = 1;
-        this.last_ate_id = heldObjData.id;
-        this.responsible_id = -1; // self
+        playerTo.just_ate = 1;
+        playerTo.last_ate_id = heldObjData.id;
+        playerTo.responsible_id = playerFrom.p_id; // -1; // self???
         //this.o_transition_source_id = -1;
 
-        addFood(foodValue);
+        playerTo.addFood(foodValue);
 
-        this.move_speed = MoveHelper.calculateSpeed(this, this.tx(), this.ty());
+        playerTo.move_speed = MoveHelper.calculateSpeed(playerTo, playerTo.tx(), playerTo.ty());
 
-        sendFoodUpdate();
+        playerTo.sendFoodUpdate();
 
         // check if there is a player transition like:
         // 2143 + -1 = 2144 + 0 Banana
         // 1251 + -1 = 1251 + 0 lastUseActor: false Bowl of Stew
         // 1251 + -1 = 235 + 0 lastUseActor: true Bowl of Stew
-        if(TransitionHelper.DoChangeNumberOfUsesOnActor(this.heldObject, false, false) == false)
+        if(TransitionHelper.DoChangeNumberOfUsesOnActor(playerFrom.heldObject, false, false) == false)
         {
             trace('FOOD: set held object null');
-            setHeldObject(null);
+            playerFrom.setHeldObject(null);
         }
 
-        SetTransitionData(this.x, this.y);
+        playerTo.SetTransitionData(playerTo.x, playerTo.y);
 
-        Connection.SendUpdateToAllClosePlayers(this);
+        Connection.SendUpdateToAllClosePlayers(playerTo);
 
-        this.just_ate = 0;
-        this.action = 0;
+        if(playerFrom != playerTo)
+        {
+            Connection.SendUpdateToAllClosePlayers(playerFrom);
+        }
+
+        playerTo.just_ate = 0;
+        playerTo.action = 0;
 
         return true;    
     }

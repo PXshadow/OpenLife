@@ -383,7 +383,7 @@ class TransitionHelper{
             player.heldObject = target;
         }
 
-        if(player.doEating() == false)
+        if(GlobalPlayerInstance.doEating(player,player) == false)
         {
             player.heldObject = tmpHeldObject;
 
