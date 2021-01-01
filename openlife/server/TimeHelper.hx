@@ -492,9 +492,10 @@ class TimeHelper
 
     private static function doAnimalMovement(helper:ObjectHelper, timeTransition:TransitionData) : Bool
     {
-        // TODO use chance for movement
-        // TODO LAST movement
         // TODO collision detection if animal is deadly
+        // TODO chasing
+        // TODO fleeing
+        // TODO Offspring only if with child
 
         var moveDist = timeTransition.move;
 

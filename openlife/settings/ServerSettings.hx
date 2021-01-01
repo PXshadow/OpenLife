@@ -9,29 +9,27 @@ import openlife.data.object.ObjectData;
 @:rtti
 class ServerSettings
 {
-    // for debugging
+    // DEBUG: switch on / off
     public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation // deactivates saving
     public static var DebugWrite = false; // WordMap writeToDisk
     public static var TraceCountObjects = false; // WorldMap
     public static var DebugSpeed = false; // MovementHelper
     
-    // used to trace connection.send commands //  only trace player actions // ignores MX from animal, FX and PU from food / age
-    public static var TraceSendPlayerActions = false; 
-    // used to trace connection.send commands //  only trace non player actions // traces only MX from animal, FX and PU from food / age
-    public static var TraceSendNonPlayerActions = false;  
+    // DEBUG: used to trace connection.send commands 
+    public static var TraceSendPlayerActions = false;  //  only trace player actions // ignores MX from animal, FX and PU from food / age
+    public static var TraceSendNonPlayerActions = false;  //  only trace non player actions // traces only MX from animal, FX and PU from food / age
 
-    public static var traceTransitionByActorId = 9992710; // TransitionImporter
-    public static var traceTransitionByActorDescription = "!!!Wild Horse with Lasso"; // TransitionImporter
-    public static var traceTransitionByTargetId = 9992710; // TransitionImporter
-    public static var traceTransitionByTargetDescription = "!!!Wild Horse with Lasso"; // TransitionImporter
-
-    
+    // DEBUG: TransitionImporter // for debugging transitions
+    public static var traceTransitionByActorId = 9992710; // set to object id which you want to debug
+    public static var traceTransitionByActorDescription = "!!!Wild Horse with Lasso"; // set to object description which you want to debug
+    public static var traceTransitionByTargetId = 9992710; // set to object id which you want to debug
+    public static var traceTransitionByTargetDescription = "!!!Wild Horse with Lasso"; // set to object description which you want to debug
 
     // PlayerInstance
     public static var StartingEveAge = 11;  // 13
     public static var AgingSecondsPerYear = 60; // 60
     public static var AddAgeForConsideringPickupAge = 2; // With set to two an item that needs 13 years to be allowed to be picked up can be picked up with 11
-
+    
     // save to disk
     public static var TicksBetweenSaving = 200;
     public static var TicksBetweenBackups = 20 * 60 * 60 * 8; // 20 * 60 * 60 * 8 = every 8 hours
@@ -39,14 +37,13 @@ class ServerSettings
 
     public static var MapFileName = "mysteraV1Test.png";  
     public static var SaveDirectory = "SaveFiles";
-    public static var OriginalBiomesFileName = "OriginalBiomes"; // .bin is added
-    public static var CurrentBiomesFileName = "CurrentBiomes"; // .bin is added
-    public static var CurrentFloorsFileName = "CurrentFloors";    // .bin is added
-    public static var OriginalObjectsFileName = "OriginalObjects";    // .bin is added
-    public static var CurrentObjectsFileName = "CurrentObjects"; // .bin is added
-    public static var CurrentObjHelpersFileName = "CurrentObjHelper"; // .bin is added
+    public static var OriginalBiomesFileName    =   "OriginalBiomes";   // .bin is added
+    public static var CurrentBiomesFileName     =   "CurrentBiomes";    // .bin is added
+    public static var CurrentFloorsFileName     =   "CurrentFloors";    // .bin is added
+    public static var OriginalObjectsFileName   =   "OriginalObjects";  // .bin is added
+    public static var CurrentObjectsFileName    =   "CurrentObjects";   // .bin is added
+    public static var CurrentObjHelpersFileName =   "CurrentObjHelper"; // .bin is added
     
-
     // worldMap
     public static var GenerateMapNew = false;
     public static var ChanceForLuckySpot = 0.1; // chance that during generation an object is lucky and tons more of that are generated close by
@@ -55,8 +52,8 @@ class ServerSettings
     public static var CreateGreenBiomeDistance = 5;
    
     // food stuff
-    public static var MinAgeToEat = 3;
     public static var FoodUsePerSecond = 0.2; // 0.2; // 5 sec per pip // use 0.6 or something to test cravings...
+    public static var MinAgeToEat = 3;
     public static var GrownUpFoodStoreMax = 20;
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
@@ -67,8 +64,9 @@ class ServerSettings
     public static var YumNewCravingChance = 0.2; // XX chance that a new random craving is chosen even if there are existing ones
 
     // health
-    public static var HealthFactor = 40; // Changes how much health / yum_mulpiplier affects speed and aging. (From 0.5 to 1.2)  
-    public static var MinHealthPerYear = 2; // For calculation Aging starts with a yum_mulpiplier of -20
+    public static var HealthFactor = 40; // Changes how much health(yum_mulpiplier) affects speed and aging. (From 0.5 to 1.2)  (From 0.5 to 2) 
+    public static var MinHealthPerYear = 2; // for calulating aging / speed: MinHealthPerYear * age is reduced from health(yum_mulpiplier)
+    // for example a men with age 20 needs 20 * MinHealthPerYear health(yum_mulpiplier) to be healthy
     //if(health >= 0) healthFactor = (1.2  * health + ServerSettings.HealthFactor) / (health + ServerSettings.HealthFactor);
     //else healthFactor = (health - ServerSettings.HealthFactor) / ( 2 * health - ServerSettings.HealthFactor);
     
