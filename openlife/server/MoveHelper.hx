@@ -53,8 +53,6 @@ class MoveHelper{
 
         // TODO reduce speed for buckets depending on how full they are
 
-        // TODO shoes extra speed / if not on horse / in car
-
         var onHorseOrCar = p.heldObject.objectData.speedMult >= 1.1;
         var speed = ServerSettings.InitialPlayerMoveSpeed;
 
@@ -70,7 +68,7 @@ class MoveHelper{
         var hasBothShoes = p.hasBothShoes();
 
         if(ServerSettings.DebugSpeed) trace('speed: hasBothShoes: $hasBothShoes');
-        if(hasBothShoes) speed *= 1.1;
+        if(hasBothShoes && onHorseOrCar == false) speed *= 1.1;
         
         // only give road speed boni if full path is on road
         onRoad = floorSpeed >= 1.01;
