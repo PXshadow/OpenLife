@@ -27,7 +27,7 @@ class ServerSettings
     public static var traceTransitionByTargetDescription = "!!!Wild Horse with Lasso"; // set to object description which you want to debug
 
     // PlayerInstance
-    public static var StartingEveAge = 11;  // 13
+    public static var StartingEveAge = 14;  // 13
     public static var AgingSecondsPerYear = 60; // 60
     public static var AddAgeForConsideringPickupAge = 2; // With set to two an item that needs 13 years to be allowed to be picked up can be picked up with 11
     
