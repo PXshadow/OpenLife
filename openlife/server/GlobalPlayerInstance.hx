@@ -222,12 +222,12 @@ class GlobalPlayerInstance extends PlayerInstance {
         var isCravingEatenObject = heldObjData.id == currentlyCraving;
         if(isCravingEatenObject) foodValue += 1; // craved food give more boni
 
-        var isSuperMeth = foodValue < heldObject.objectData.foodValue / 2;
+        var isSuperMeh = foodValue < heldObject.objectData.foodValue / 2;
 
-        if(isSuperMeth) foodValue = heldObject.objectData.foodValue / 2;
+        if(isSuperMeh) foodValue = heldObject.objectData.foodValue / 2;
 
         /*
-        if(isSuperMeth && food_store > 0)
+        if(isSuperMeh && food_store > 0)
         {
             trace('when food value is less then halve it can only be eaten if starving to death: foodValue: $foodValue original food value: ${heldObject.objectData.foodValue} food_store: $food_store');
             return;
@@ -235,7 +235,7 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         var isHoldingYum = isHoldingYum();
 
-        hasEatenMap[heldObjData.id] += 1;
+        if(isSuperMeh == false) hasEatenMap[heldObjData.id] += 1;
 
         // eating YUM increases prestige / score while eating MEH reduces it
         if(isHoldingYum)
@@ -245,6 +245,7 @@ class GlobalPlayerInstance extends PlayerInstance {
             doIncreaseFoodValue(heldObjData.id);
         }
         else yum_multiplier -= 1;
+             
         //else if(isHoldingMeh()) yum_multiplier -= 1;
 
         trace('YUM: ${heldObjData.description} foodValue: $foodValue countEaten: $countEaten');
