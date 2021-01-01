@@ -27,6 +27,8 @@ Summary:
 
 How to setup:
 - TODO how to load new ObjectData from Repository
+- there is a ServerSettings.txt file in SaveFiles folder. Settings are read at start and every 10 sec.
+--> To change settings you need reduce also **default** otherwise the default value will still be used 
 - server uses cached ObjectData to start fast
 --> if you want to clear the cache you need to use another .\OneLifeData7\dataVersionNumber 
 --> or delete the cache file file: .\SaveFiles\saveObjectData.bin
