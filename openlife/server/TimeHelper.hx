@@ -602,11 +602,10 @@ class TimeHelper
                 newAnimal.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
                 newAnimal.groundObject = tmpGroundObject;
                 worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
-                //worldmap.setObjectId(x,y, newTileObject); // TODO move to setter
             }
             else if(worldmap.currentObjectsCount[newTileObject[0]] > worldmap.originalObjectsCount[newTileObject[0]] * ServerSettings.MaxOffspringFactor && worldmap.randomFloat() <= chanceForAnimalDying)
             {
-                trace('Animal DEAD: $newTileObject ${helper.description}: Count: ${worldmap.currentObjectsCount[newTileObject[0]]} Original Count: ${worldmap.originalObjectsCount[newTileObject[0]]} chance: $chanceForAnimalDying biome: $targetBiome');
+                //trace('Animal DEAD: $newTileObject ${helper.description}: Count: ${worldmap.currentObjectsCount[newTileObject[0]]} Original Count: ${worldmap.originalObjectsCount[newTileObject[0]]} chance: $chanceForAnimalDying biome: $targetBiome');
 
                 helper.id = 0;
                 newTileObject = [0];
