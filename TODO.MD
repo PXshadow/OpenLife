@@ -1,3 +1,8 @@
+How to connect to the test server:
+ip: thinqbator.app
+port: 8005
+
+
 TODO
 ====
 1. Transition history system (used by both bot and server)

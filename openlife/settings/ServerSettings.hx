@@ -53,7 +53,7 @@ class ServerSettings
     public static var CreateGreenBiomeDistance = 5;
    
     // food stuff
-    public static var FoodUsePerSecond = 0.2; // 0.2; // 5 sec per pip // use 0.6 or something to test cravings...
+    public static var FoodUsePerSecond = 0.1; // 0.2; // 5 sec per pip // use 0.6 or something to test cravings...
     public static var MinAgeToEat = 3;
     public static var GrownUpFoodStoreMax = 20;
     public static var NewBornFoodStoreMax = 4;
@@ -165,9 +165,9 @@ class ServerSettings
 
         // nerve food
         ObjectData.getObjectData(2143).foodValue = 5; // banana
-        ObjectData.getObjectData(31).foodValue = 2; // Gooseberry
-        ObjectData.getObjectData(2855).foodValue = 2; // Onion
-        ObjectData.getObjectData(808).foodValue = 2; // Wild Onion
+        ObjectData.getObjectData(31).foodValue = 3; // Gooseberry
+        ObjectData.getObjectData(2855).foodValue = 3; // Onion
+        ObjectData.getObjectData(808).foodValue = 3; // Wild Onion
 
         //ObjectData.getObjectData(31).writeToFile();
 
