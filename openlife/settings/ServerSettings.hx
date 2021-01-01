@@ -22,9 +22,9 @@ class ServerSettings
 
     // DEBUG: TransitionImporter // for debugging transitions
     public static var traceTransitionByActorId = 9992710; // set to object id which you want to debug
-    public static var traceTransitionByActorDescription = "!!!Wild Horse with Lasso"; // set to object description which you want to debug
+    public static var traceTransitionByActorDescription = "!!!Basket of Soil"; // set to object description which you want to debug
     public static var traceTransitionByTargetId = 9992710; // set to object id which you want to debug
-    public static var traceTransitionByTargetDescription = "!!!Wild Horse with Lasso"; // set to object description which you want to debug
+    public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
 
     // PlayerInstance
     public static var StartingEveAge = 14;  // 13
@@ -319,22 +319,27 @@ class ServerSettings
 
                 //trace('Read: ${line}');
 
-                if(line.indexOf('**default**') != -1 ) continue;
+                if(line.indexOf('**default**') != -1 ) continue;           
 
-                line = StringTools.replace(line, ' ', '');
-
-                var splitLine = line.split("=");
+                var splitLine = line.split("=");                
 
                 if(splitLine.length < 2) continue;
+
+                splitLine[0] = StringTools.replace(splitLine[0], ' ', '');
+                //splitLine[1] = StringTools.replace(splitLine[1], '\n', '');
 
                 trace('Load Setting: ${splitLine[0]} = ${splitLine[1]}');
 
                 var fieldName = splitLine[0];
                 var value:Dynamic = splitLine[1];
 
-                if(line.indexOf('"') != -1 )
+                if(splitLine[1].indexOf('"') != -1 )
                 {
-                    value = StringTools.replace(value, '"', '');
+                    var splitString = splitLine[1].split('"');
+
+                    if(splitString.length < 3) continue;
+                    
+                    value = splitString[1]; 
                 }
                 else 
                 {
