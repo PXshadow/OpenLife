@@ -169,6 +169,9 @@ class ServerSettings
         ObjectData.getObjectData(2855).foodValue = 3; // Onion
         ObjectData.getObjectData(808).foodValue = 3; // Wild Onion
 
+
+        //trace('Insulation: ${ObjectData.getObjectData(128).getInsulation()}'); // Redd Skirt
+
         //ObjectData.getObjectData(31).writeToFile();
 
         //trace('Trace: ${ObjectData.getObjectData(8881).description}');

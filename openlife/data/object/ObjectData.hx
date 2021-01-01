@@ -867,76 +867,6 @@ class ObjectData extends LineReader
         return object;
     } 
 
-    /*
-    public function writeToFile(writer:FileOutput)
-    {
-        writer.writeInt32(object.id);
-        //object.apocalypseTrigger = apocalypseTrigger;
-        //object.backFootIndex = backFootIndex;
-        writer.writeInt8(blocksWalking);
-        //writer.write bodyIndex );
-        //writer.writecacheHeight = cacheHeight;
-        writer.write clothing );
-        //writer.writeclothingOffset = clothingOffset;
-        writer.writecontainSize );
-        writer.writecontainable );
-        //writer.writecreationSoundForce = creationSoundForce;
-        //writer.writecreationSoundInitialOnly = creationSoundInitialOnly;
-        writer.writedeadlyDistance = );
-        writer.writedeathMarker = );
-        writer.writedescription =);
-        //writer.writedrawBehindPlayer = drawBehindPlayer;
-        //writer.writeeyesIndex = eyesIndex;
-        //writer.writeeyesOffset = eyesOffset;
-        writer.writefloor);
-        writer.writefloorHugging );
-        writer.writefoodValue );
-        //writer.writefrontFootIndex = frontFootIndex;
-        //writer.writeheadIndex = headIndex;
-        //writer.writeheatValue = heatValue;
-        writer.writeheldInHand );
-        //writer.writeheldOffset = heldOffset;
-        writer.writehomeMarker);
-        writer.writeid);
-        writer.writeleftBlockingRadius );
-        writer.writemale );
-        writer.writemapChance );
-        writer.writeminPickupAge );
-        //writer.writemonumentCall = monumentCall;
-        //writer.writemonumentDone = monumentCall;
-        //writer.writemonumentStep = monumentStep;
-        //writer.writemouthIndex = mouthIndex;
-        writer.writeneverDrop );
-        writer.writenoFlip );
-        writer.writenoSpawn );
-        writer.writenumSlots );
-        //writer.writenumSprites = numSprites;
-        writer.writenumUses );
-        writer.writepermanent);
-        writer.writeperson );
-        //writer.writerValue = rValue;
-        writer.writerideable );
-        writer.writerightBlockingRadius );
-        writer.writesideAcess );
-        writer.writeslotParent );
-        writer.writeslotPos);
-        writer.writeslotSize );
-        writer.writeslotVert );
-        writer.writeslotsLocked );
-        //writer.writesounds = sounds;
-        writer.writespeedMult );
-        //writer.writespriteArray = spriteArray;
-        writer.writetimeStretch);
-        writer.writetoolLearned );
-        writer.writetoolSetIndex);
-        writer.writeuseAppearIndex );
-        writer.writeuseChance );
-        writer.writeuseDistance );
-        writer.writeuseVanishIndex );
-        writer.writevertSlotRot );
-        return object;
-    }*/
-
     private static function writeToFile(obj:ObjectData, writer:FileOutput)
     {
         writer.writeFloat(obj.decayFactor);
@@ -1146,6 +1076,22 @@ class ObjectData extends LineReader
         }
 
         return true;
+    }
+
+    public function getInsulation() : Float
+    {
+        var parts:Map<String,Float> = ["h"=> 0.4, "t"=> 0.4, "b"=> 0.4, "s"=> 0.2, "p"=> 0.4];
+        
+        //trace('Insulation: clothing: ${this.clothing} ' + parts);
+
+        if(this.clothing.length > 1) this.clothing = StringTools.trim(this.clothing);
+
+        if(parts[this.clothing] == 0) return this.rValue;
+
+        //trace('Insulation2: clothing: ${this.clothing} ${this.clothing.length} ${parts[this.clothing]}');
+            
+        if(rValue > 0) return parts[this.clothing] * rValue; 
+        else  return parts[this.clothing];  // TODO find out why rValue is zero
     }
 }
 

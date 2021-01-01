@@ -798,4 +798,23 @@ class GlobalPlayerInstance extends PlayerInstance {
 
         return false;
     }
+
+    // insulation reaches from 0 to 2
+    public function calculateClothingInsulation() : Float
+    {
+        var clothingInsulation:Float = 0;
+        
+        for(clothing in this.clothingObjects)
+        {
+            if(clothing.id == 0) continue;
+             
+            clothingInsulation += clothing.objectData.getInsulation();
+            
+            //trace('insulation: ${clothing.description} ${clothing.objectData.getInsulation()}');
+        }
+
+        trace('clothingInsulation: $clothingInsulation');
+
+        return clothingInsulation;
+    }
 }

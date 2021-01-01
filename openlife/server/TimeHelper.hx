@@ -208,6 +208,8 @@ class TimeHelper
 
         if(c.player.age < ServerSettings.GrownUpAge && c.player.food_store > 0) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
 
+        foodDecay *= 1 / (1 + c.player.calculateClothingInsulation()) ; // clothing can reduce food use at max to 1 / 3
+
         // if starving to death and there is some health left, reduce food need and heath
         if(c.player.food_store < 0 && c.player.yum_multiplier > 0)
         {
