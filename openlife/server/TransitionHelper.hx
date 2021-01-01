@@ -464,14 +464,17 @@ class TransitionHelper{
       
         var transition = Server.transitionImporter.getTrans(this.player.heldObject, target);
 
-        // sometimes ground is -1 not 0 like for Riding Horse: 770 + -1 = 0 + 1421 // TODO -1 --> 0 in transition importer???
+        // sometimes ground is -1 not 0 like for Riding Horse:
+        // Should work for: 770 + -1 = 0 + 1421 // TODO -1 --> 0 in transition importer???
+        // Should work for: 336 + -1 = 292 + 1101  Basket of Soil + TIME  -->  Basket + Fertile Soil Pile
         // Should not work for: 235 + -1 = 382 + 0  Clay Bowl# empty + TIME  -->  Bowl of Water + EMPTY
+        
         if(transition == null && target.id == 0)
         {
             transition = Server.transitionImporter.getTransition(this.player.heldObject.id, -1, lastUseActor, target.isLastUse());
 
             // only allow this transition if it is for switching stuff like for horses
-            if(transition != null && transition.newActorID != 0) transition = null;
+            if(transition != null && transition.newTargetID == 0) transition = null; // TODO do right
         }
 
         var targetIsFloor = false;
