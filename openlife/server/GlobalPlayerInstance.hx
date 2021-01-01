@@ -193,11 +193,19 @@ class GlobalPlayerInstance extends PlayerInstance {
     {
         trace('doOnOtherHelper: playerId: ${playerId} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
+        // 838 Dont feed dam drugs! Wormless Soil Pit with Mushroom // 837 Psilocybe Mushroom
+        if(heldObject.objectData.isDrugs()) return false;
+
         var targetPlayer = getPlayerAt(x,y, playerId);
+
+        if(targetPlayer == null)
+        {
+            trace('doOnOtherHelper: could not find target player!');
+        }
 
         if(this.isClose(targetPlayer.tx() - this.gx , targetPlayer.ty() - this.gy) == false)
         {
-            trace('Targt position is too far away player: ${this.tx()},${this.ty()} target: ${targetPlayer.tx},${targetPlayer.ty}');
+            trace('doOnOtherHelper: Targt position is too far away player: ${this.tx()},${this.ty()} target: ${targetPlayer.tx},${targetPlayer.ty}');
             return false; 
         }
 

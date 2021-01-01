@@ -1094,5 +1094,11 @@ class ObjectData extends LineReader
         if(rValue > 0) return parts[this.clothing] * rValue; 
         else  return parts[this.clothing];  // TODO find out why rValue is zero
     }
+
+    public function isDrugs() : Bool
+    {
+        // 838 Dont eat the dam drugs! Wormless Soil Pit with Mushroom // 837 Psilocybe Mushroom
+        return (this.id == 838 || this.id == 837);        
+    }
 }
 

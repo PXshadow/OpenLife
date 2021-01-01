@@ -351,12 +351,12 @@ class TransitionHelper{
         if(objId != 770 && objId != 778 && objId != 3158) return false; 
 
         // 838 Dont eat the dam drugs! Wormless Soil Pit with Mushroom // 837 Psilocybe Mushroom
-        if(tileObjectData.id == 838 || tileObjectData.id == 837) return false;
+        if(tileObjectData.isDrugs()) return false;
 
         var lastUseActorObject = false;
 
         var objData = tileObjectData;
-        var tmpTileObjectId = tileObjectData.id;
+        //var tmpTileObjectId = tileObjectData.id;
         var tmpHeldObject = player.heldObject;
 
         var transition = null;
