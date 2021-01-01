@@ -57,7 +57,7 @@ class TimeHelper
             {
                 averageSleepTime = Math.ceil(averageSleepTime / 200 * 1000) / 1000;
                 //trace('Ticks: ${TimeHelper.tick}');
-                trace('Connections: ${Server.server.connections.length} Time Counted From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Aaverage Sleep Time: $averageSleepTime');
+                trace('Connections: ${Server.server.connections.length} Time Counted From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime');
                 averageSleepTime = 0;
                 skipedTicks = 0;
 
@@ -453,11 +453,13 @@ class TimeHelper
 
         if(doAnimalMovement(helper, transition)) return;
 
+        if(helper.isLastUse()) transition = Server.transitionImporter.getTransition(-1, helper.id, false, true);
+
         helper.id = transition.newTargetID;
         helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper);
         helper.creationTimeInTicks = TimeHelper.tick;
 
-        TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, transition, true);
+        TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, transition, false);
 
         Server.server.map.setObjectHelper(tx, ty, helper);
         
