@@ -519,10 +519,36 @@ class TransitionHelper{
             // 33 + 1096 = 0 + 3963 targetRemains: false (maxUseTransition)
             trace('TRANS: use maxUseTransition');
 
-            //transition = transition.maxUseTransition;
+            newActorObjectData = ObjectData.getObjectData(transition.newActorID);
+            newTargetObjectData = ObjectData.getObjectData(transition.newTargetID);
+        }          
+            
+        // dont allow to place another floor on existing floor
+        if(newTargetObjectData.floor && this.floorId != 0) return false; 
 
-            // TODO must set newTargetObjectData???
-        }     
+        if(containerSlotSize >= 0) trace('Test if fit in container ${newTargetObjectData.description} containable: ${newTargetObjectData.containable} containSize: ${newTargetObjectData.containSize} containerSlotSize: $containerSlotSize');
+
+        if(containerSlotSize >= 0 && (newTargetObjectData.containable == false || newTargetObjectData.containSize > containerSlotSize))
+        {
+            trace('Result ${newTargetObjectData.description} does not fit in container: containable: ${newTargetObjectData.containable} containSize: ${newTargetObjectData.containSize} > containerSlotSize: $containerSlotSize');
+            return false;
+        }
+
+        // check if it is hungry work like cutting down a tree or mining
+        if(newTargetObjectData.description.indexOf("+hungryWork") != -1)
+        {
+            trace('Trans hungry Work');
+
+            if(player.food_store < ServerSettings.HungryWorkCost)
+            {
+                var missingFood = Math.ceil(ServerSettings.HungryWorkCost - player.food_store);
+                var message = 'Its hungry work! Need ${missingFood} more food!';
+                player.connection.sendGlobalMessage(message);
+                return false;
+            }
+            
+            player.addFood(-ServerSettings.HungryWorkCost);
+        }
 
         // if it is a transition that picks up an object like 0 + 1422 = 778 + 0  (horse with cart) then switch the hole tile object to the hand object
         // TODO this may make trouble
@@ -550,32 +576,15 @@ class TransitionHelper{
 
             // reset creation time, so that horses wont esape instantly
             this.target.creationTimeInTicks = TimeHelper.tick;
-        }
-            
-        // dont allow to place another floor on existing floor
-        if(newTargetObjectData.floor && this.floorId != 0) return false; 
-
-        if(containerSlotSize >= 0) trace('Test if fit in container ${newTargetObjectData.description} containable: ${newTargetObjectData.containable} containSize: ${newTargetObjectData.containSize} containerSlotSize: $containerSlotSize');
-        if(containerSlotSize >= 0 && (newTargetObjectData.containable == false || newTargetObjectData.containSize > containerSlotSize))
+        }else
         {
-            trace('Result ${newTargetObjectData.description} does not fit in container: containable: ${newTargetObjectData.containable} containSize: ${newTargetObjectData.containSize} > containerSlotSize: $containerSlotSize');
-            return false;
-        }
-
-        // check if it is hungry work like cutting down a tree or mining
-        if(newTargetObjectData.description.indexOf("+hungryWork") != -1)
-        {
-            trace('Trans hungry Work');
-
-            if(player.food_store < ServerSettings.HungryWorkCost)
+            // check if not horse pickup or drop
+            if(player.heldObject.containedObjects.length > newActorObjectData.numSlots)
             {
-                var missingFood = Math.ceil(ServerSettings.HungryWorkCost - player.food_store);
-                var message = 'Its hungry work! Need ${missingFood} more food!';
-                player.connection.sendGlobalMessage(message);
+                trace('TRANS: New actor can only contain ${newActorObjectData.numSlots} but old actor had ${player.heldObject.containedObjects.length} contained objects!');
+    
                 return false;
             }
-            
-            player.addFood(-ServerSettings.HungryWorkCost);
         }
         
         // do now the magic transformation
