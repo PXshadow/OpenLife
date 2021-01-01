@@ -61,6 +61,8 @@ class TimeHelper
                 averageSleepTime = 0;
                 skipedTicks = 0;
 
+                ServerSettings.readFromFile(false);
+
                 //if(Server.server.connections.length > 0) Server.server.connections[0].player.doDeath();
             }
 

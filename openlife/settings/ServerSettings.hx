@@ -300,12 +300,12 @@ class ServerSettings
         writer.close();
     }
 
-    public static function readFromFile() : Bool
+    public static function readFromFile(traceit:Bool = true) : Bool
     {
         var reader = null;
 
         try{
-            var rtti = haxe.rtti.Rtti.getRtti(ServerSettings);
+            //var rtti = haxe.rtti.Rtti.getRtti(ServerSettings);
             var dir = './${ServerSettings.SaveDirectory}/';
             reader = File.read(dir + "ServerSettings.txt", false);
 
@@ -328,7 +328,7 @@ class ServerSettings
                 splitLine[0] = StringTools.replace(splitLine[0], ' ', '');
                 //splitLine[1] = StringTools.replace(splitLine[1], '\n', '');
 
-                trace('Load Setting: ${splitLine[0]} = ${splitLine[1]}');
+                if(traceit) trace('Load Setting: ${splitLine[0]} = ${splitLine[1]}');
 
                 var fieldName = splitLine[0];
                 var value:Dynamic = splitLine[1];
@@ -353,7 +353,7 @@ class ServerSettings
         {
             if(reader != null) reader.close();
 
-            trace(ex);
+            if(traceit) trace(ex);
 
             return false;
         }
