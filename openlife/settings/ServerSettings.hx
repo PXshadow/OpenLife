@@ -268,10 +268,11 @@ class ServerSettings
     {
         var rtti = haxe.rtti.Rtti.getRtti(ServerSettings);
         var dir = './${ServerSettings.SaveDirectory}/';
+        var path = dir + "ServerSettings.txt";
 
         if(FileSystem.exists(dir) == false) FileSystem.createDirectory(dir);
 
-        var writer = File.write(dir + "ServerSettings.txt", false);
+        var writer = File.write(path, false);
 
         writer.writeString('Remove **default** if you dont want to use default value!\n');
 
@@ -338,22 +339,30 @@ class ServerSettings
                     var splitString = splitLine[1].split('"');
 
                     if(splitString.length < 3) continue;
-                    
+
                     value = splitString[1]; 
                 }
                 else 
                 {
+                    value = StringTools.replace(value, 'true', '1');
+                    value = StringTools.replace(value, 'false', '0');
                     value = Std.parseFloat(value);
                 }
 
+                var oldValue:Dynamic = Reflect.field(ServerSettings, fieldName);
+
                 Reflect.setField(ServerSettings, fieldName, value);
+
+                var newValue:Dynamic = Reflect.field(ServerSettings, fieldName);
+
+                if('$newValue' != '$oldValue') trace('Setting changed: ${fieldName} = ${newValue} // old value: $oldValue');
             }
         }
         catch(ex)
         {
             if(reader != null) reader.close();
 
-            if(traceit) trace(ex);
+            trace(ex);
 
             return false;
         }

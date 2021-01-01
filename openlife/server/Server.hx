@@ -56,7 +56,10 @@ class Server
         
         if(ServerSettings.readFromFile() == false)
         {
-            ServerSettings.writeToFile();
+            var dir = './${ServerSettings.SaveDirectory}/';
+            var path = dir + "ServerSettings.txt";
+
+            if(FileSystem.exists(path)) ServerSettings.writeToFile();
         }
         
 
