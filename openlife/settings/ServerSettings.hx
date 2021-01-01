@@ -138,7 +138,7 @@ class ServerSettings
         }
 
         // Change map spawn chances
-        ObjectData.getObjectData(942).mapChance *= 3; // Muddy Iron Vein
+        ObjectData.getObjectData(942).mapChance *= 5; // Muddy Iron Vein
         ObjectData.getObjectData(2135).mapChance /= 3; // Rubber Tree
         ObjectData.getObjectData(2156).mapChance *= 0.5; // Less UnHappy Mosquitos
         
