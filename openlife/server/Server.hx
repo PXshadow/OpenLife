@@ -87,7 +87,7 @@ class Server
             ObjectData.ImportObjectData();
             ObjectData.WriteAllToFile(dataVersionNumber);
         }
-
+        
         ObjectData.CreateAndAddDummyObjectData();
         ObjectData.CreateFoodObjectArray();
         ServerSettings.PatchObjectData();

@@ -1,4 +1,5 @@
 package openlife.data.object;
+import sys.FileSystem;
 import haxe.Exception;
 import openlife.server.Server;
 import haxe.macro.Expr.Catch;
@@ -1086,6 +1087,8 @@ class ObjectData extends LineReader
         var startTime = Sys.time();
         var dir = './${ServerSettings.SaveDirectory}/';
         var path = dir + "saveObjectData.bin";
+
+        if(FileSystem.exists(dir) == false) FileSystem.createDirectory(dir);
 
         var writer = File.write(path, true);
 
