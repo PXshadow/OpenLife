@@ -813,7 +813,7 @@ class GlobalPlayerInstance extends PlayerInstance {
             //trace('insulation: ${clothing.description} ${clothing.objectData.getInsulation()}');
         }
 
-        trace('clothingInsulation: $clothingInsulation');
+        //trace('clothingInsulation: $clothingInsulation');
 
         return clothingInsulation;
     }
