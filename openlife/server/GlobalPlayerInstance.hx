@@ -151,6 +151,24 @@ class GlobalPlayerInstance extends PlayerInstance {
         doPlaceObjInClothing(clothingSlot);
     }
 
+    //UBABY x y i id#
+    /*
+    UBABY is a special case of SELF applied to a baby (to feed baby food
+	  or add/remove clothing from baby).  Also works on elderly.
+      Note that server currently allows UBABY to feed anyone food, but
+      only putting clothing on babies and elderly.
+      ALSO:  UBABY is used for healing wounded players.
+      Essentially, any action where held item is used on another player.
+      Should be called UOTHER, but UBABY is used for historical reasons.
+      NOTE the alternate call for UBABY with extra id parameter.
+      this specifies a specific person to do the action on, if more than one is
+	  close to the target tile.
+    */
+    public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int)
+    {
+        
+    }
+
     /*
         FX
 
@@ -544,12 +562,12 @@ class GlobalPlayerInstance extends PlayerInstance {
             //trace("OD: " + objectData.toFileString());        
 
             switch objectData.clothing.charAt(0) {
-                case "h": objClothingSlot = 0;
-                case "t": objClothingSlot = 1;
-                case "s": objClothingSlot = 2;
-                //case "s": objClothingSlot = 3; 
-                case "b": objClothingSlot = 4;
-                case "p": objClothingSlot = 5;
+                case "h": objClothingSlot = 0;      // head
+                case "t": objClothingSlot = 1;      // torso
+                case "s": objClothingSlot = 2;      // shoes
+                //case "s": objClothingSlot = 3;    // shoes
+                case "b": objClothingSlot = 4;      // skirt / trouser
+                case "p": objClothingSlot = 5;      // backpack
             }
 
             trace('objectData.clothing: ${objectData.clothing}');

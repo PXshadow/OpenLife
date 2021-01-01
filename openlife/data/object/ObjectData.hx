@@ -1080,6 +1080,7 @@ class ObjectData extends LineReader
 
     public function getInsulation() : Float
     {
+        // original: {'h': 0.25, 't': 0.35, 'b': 0.2, 's': 0.1, 'p': 0.1};
         var parts:Map<String,Float> = ["h"=> 0.4, "t"=> 0.4, "b"=> 0.4, "s"=> 0.2, "p"=> 0.4];
         
         //trace('Insulation: clothing: ${this.clothing} ' + parts);
