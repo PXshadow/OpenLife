@@ -449,17 +449,9 @@ class TransitionHelper{
     public function doTransitionIfPossibleHelper(containerSlotSize:Float = -1, onPlayer:Bool = false) : Bool
     {  
         var lastUseActor = false;
-        //var lastUseTarget = target.isLastUse();
 
         trace('TRANS: handObjectData.numUses: ${handObjectData.numUses} heldObject.numberOfUses: ${this.player.heldObject.numberOfUses} ${handObjectData.description}'  );
         
-        if(handObjectData.numUses > 1 && this.player.heldObject.numberOfUses <= 1)
-        {
-            // TODO ??? seems like for tools there is not always a last use transition
-            //lastUseActorObject = true;
-            //trace("lastUseActorObject = true");
-        }
-
         trace('TRANS: tileObjectData.numUses: ${tileObjectData.numUses} target.numberOfUses: ${this.target.numberOfUses} ${tileObjectData.description}'  );        
       
         var transition = Server.transitionImporter.getTrans(this.player.heldObject, target);
@@ -468,7 +460,6 @@ class TransitionHelper{
         // Should work for: 770 + -1 = 0 + 1421 // TODO -1 --> 0 in transition importer???
         // Should work for: 336 + -1 = 292 + 1101  Basket of Soil + TIME  -->  Basket + Fertile Soil Pile
         // Should not work for: 235 + -1 = 382 + 0  Clay Bowl# empty + TIME  -->  Bowl of Water + EMPTY
-        
         if(transition == null && target.id == 0)
         {
             transition = Server.transitionImporter.getTransition(this.player.heldObject.id, -1, lastUseActor, target.isLastUse());
@@ -582,6 +573,13 @@ class TransitionHelper{
             if(player.heldObject.containedObjects.length > newActorObjectData.numSlots)
             {
                 trace('TRANS: New actor can only contain ${newActorObjectData.numSlots} but old actor had ${player.heldObject.containedObjects.length} contained objects!');
+    
+                return false;
+            }
+
+            if(target.containedObjects.length > newTargetObjectData.numSlots)
+            {
+                trace('TRANS: New target can only contain ${newTargetObjectData.numSlots} but old target had ${target.containedObjects.length} contained objects!');
     
                 return false;
             }

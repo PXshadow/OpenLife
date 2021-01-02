@@ -153,8 +153,11 @@ class WorldMap
         setObjectId(tx - 1,ty-1,[3371,291,807,107]); // table flat stone / burdock / stakes 
         setObjectId(tx - 1,ty-1,[3371,441,309,309]); // table smithing hammer / Hot Iron Bloom on Flat Rock / Hot Iron Bloom on Flat Rock 
         
+        
+        setObjectId(tx - 3, ty-3, [461]); // saw
         setObjectId(tx - 2, ty-3, [336]);
         setObjectId(tx - 1, ty-3, [211]);
+        
         setObjectId(tx, ty, [33]);
         setObjectId(tx+1, ty, [32]);
         setObjectId(tx+2, ty, [486]);
