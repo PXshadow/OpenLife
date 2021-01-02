@@ -158,14 +158,17 @@ class ServerSettings
         ObjectData.getObjectData(838).mapChance = ObjectData.getObjectData(211).mapChance / 5; // Add some lovely mushrooms  
         ObjectData.getObjectData(838).biomes.push(BiomeTag.GREEN); // Add some lovely mushrooms 
 
-         // horse cart little bit :)
+
+        ObjectData.getObjectData(663).description += "+hungryWork"; // Deep Well // TODO test
+
+         // nerve horse cart little bit :)
         ObjectData.getObjectData(778).speedMult = 1.50; // Horse-Drawn Cart
         ObjectData.getObjectData(3158).speedMult = 1.60; // Horse-Drawn Tire Cart
         
         ObjectData.getObjectData(484).speedMult = 0.85; // Hand Cart
         ObjectData.getObjectData(861).speedMult = 0.85; // // Old Hand Cart
         ObjectData.getObjectData(2172).speedMult = 0.9; // Hand Cart with Tires
-
+        
 
         // nerve food
         ObjectData.getObjectData(2143).foodValue = 5; // banana
@@ -198,6 +201,27 @@ class ServerSettings
                 trans.actorID = 0; 
                 transtions.addTransition("PatchTransitions: ", trans);
                 trans.traceTransition("PatchTransitions: ");
+            }
+
+            if(trans.autoDecaySeconds == -168)
+            {
+                trans.autoDecaySeconds = -2; // use chance 20%: 10 uses / 120 min 0.08 Bowls per min
+
+                //trans.traceTransition("PatchTransitions: ", true);    
+            }
+
+            if(trans.autoDecaySeconds == 9000) // 150 min like deep well 0.53 bowls per min
+            {
+                trans.autoDecaySeconds = 1200; // 20 min one bucket 12.5% (bucket has 10 uses): 80 uses / 20 min = 4 bowls per min
+
+                //trans.traceTransition("PatchTransitions: ", true);    
+            }
+
+            if(trans.autoDecaySeconds == 2160) // 36 min like well  0.91 bowls per min
+            {
+                trans.autoDecaySeconds = 720; // 12 min one bowl 3%: 33 uses / 12 min = 2.7 bowls per min
+
+                //trans.traceTransition("PatchTransitions: ", true);    
             }
         }
 
@@ -237,11 +261,12 @@ class ServerSettings
         //trans.autoDecaySeconds = 10; 
         //trans.traceTransition("PatchTransitions: ");
 
-        //-2 + 141 = 0 + 143 // some how we have -2 transactions like hand + ghoose pond = ghoose pond with feathers
-        trans = transtions.getTransition(-2, 141); 
-        trans.actorID = 0; 
-        transtions.addTransition("PatchTransitions: ", trans);
-        trans.traceTransition("PatchTransitions: ");
+        // should be fixed now with the rest of the -2 transitions
+        //-2 + 141 = 0 + 143 // some how we have -2 transactions like hand + ghoose pond = ghoose pond with feathers 
+        //trans = transtions.getTransition(-2, 141); 
+        //trans.actorID = 0; 
+        //transtions.addTransition("PatchTransitions: ", trans);
+        //trans.traceTransition("PatchTransitions: ");
         
 
         // let get berrys back!

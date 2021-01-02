@@ -14,6 +14,7 @@ Summary:
 - Yum chain is now your prestiege (score) / health and influcences movement speed and aging
 --> so yes in theory you can life longer then 60
 - Quality of Life: You can pick berriers directly with a bowl, you can eat while on a horse. Shoes give extra speed
+- wells fill up at least 3 times faster
 
 Not yet implemented:
 - temperature (clothing does already reduce food use up to 66% - Jungle reduces food need 33%)
