@@ -127,7 +127,20 @@ class ObjectHelper {
         this.numberOfUses = objectData.numUses;
     }
 
-    public var id(get, set):Int;
+    /**
+        gives back a non dummy id
+    **/
+    public var parentId(get, null):Int; 
+
+    public function get_parentId()
+    {
+        if(objectData.dummyParent != null) return objectData.dummyParent.id;
+
+        return objectData.id;
+    }
+
+
+    public var id(get, set):Int; // TODO replace with parentId or dummyId
 
     public function get_id()
     {

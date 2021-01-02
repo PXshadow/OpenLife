@@ -561,11 +561,27 @@ class TimeHelper
             toTx = target.tx;
             toTy = target.ty;
 
+            // 2710 + -1 = 767 + 769 // Wild Horse with Lasso + TIME  -->  Lasso# tool + Wild Horse
+            var transition = Server.transitionImporter.getTransition(helper.parentId, -1, false, false);
+
+            if(transition != null)
+            {            
+                var tmpGroundObject = helper.groundObject;
+                helper.groundObject = new ObjectHelper(null, transition.newActorID);
+                helper.groundObject.groundObject = tmpGroundObject;
+
+                //trace('animal movement: found -1 transition: ${helper.description} --> ${helper.groundObject.description}');
+            } 
+
             if(helper.isLastUse()) timeTransition = Server.transitionImporter.getTransition(-1, helper.id, false, true);
 
             helper.id = timeTransition.newTargetID;
 
             TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, timeTransition, false);
+
+            
+
+            
     
             // save what was on the ground, so that we can move on this tile and later restore it
             var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.toArray();
