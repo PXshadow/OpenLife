@@ -219,9 +219,9 @@ class ServerSettings
         trans.traceTransition("PatchTransitions: ");
 
         // change decay time for grave 88 = Grave
-        trans = transtions.getTransition(-1, 88); 
-        trans.autoDecaySeconds = 10; 
-        trans.traceTransition("PatchTransitions: ");
+        //trans = transtions.getTransition(-1, 88); 
+        //trans.autoDecaySeconds = 10; 
+        //trans.traceTransition("PatchTransitions: ");
         
 
         // let get berrys back!
