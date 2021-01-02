@@ -270,7 +270,7 @@ class TimeHelper
 
         var foodDrainTime = (1 / ServerSettings.FoodUsePerSecond) * temperature;
 
-        var heat = (temperature / (temperature + maxTemerature)) / 2; // TODO change
+        var heat = ((temperature - 1) / ((temperature - 1) + (maxTemerature -1))) / 2; // TODO change
 
         heat = Math.round(heat * 100) / 100;
 
@@ -278,9 +278,11 @@ class TimeHelper
 
         var message = '$heat $foodDrainTime 0';
 
+        c.player.heat = heat;
+
         c.send(HEAT_CHANGE, [message]);
 
-        //trace('Temerature update: temperature: $temperature mesage: $message');
+        trace('Temerature update: temperature: $temperature mesage: $message');
     } 
 
     public static function DoWorldMapTimeStuff()

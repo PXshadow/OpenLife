@@ -55,7 +55,7 @@ class PlayerInstance
     /**
      * heat value
      */
-    public var heat:Int = 0;
+    public var heat:Float = 0;
     /**
      * sequence number of done moving
      */
