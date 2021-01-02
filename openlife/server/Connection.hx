@@ -74,11 +74,12 @@ class Connection implements ServerHeader
 
     public function login()
     {
-        send(ACCEPTED);
         // TODO choose better mutex
         server.map.mutex.acquire();
 
-        try{
+        try
+        {
+            send(ACCEPTED);
 
             if(ServerSettings.debug) Server.server.map.generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
             
@@ -198,17 +199,24 @@ class Connection implements ServerHeader
 
     public function say(text:String)
     {
-        var curse = 0;
-        var id = player.p_id;
-        for (c in server.connections)
+        try
         {
-            // TODO why send movement ???
-            c.send(PLAYER_MOVES_START,[
-                "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
-                "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
-            ]);
-            c.send(PLAYER_SAYS,['$id/$curse $text']);
-            c.send(FRAME);
+            var curse = 0;
+            var id = player.p_id;
+            for (c in server.connections)
+            {
+                // TODO why send movement ???
+                c.send(PLAYER_MOVES_START,[
+                    "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
+                    "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
+                ]);
+                c.send(PLAYER_SAYS,['$id/$curse $text']);
+                c.send(FRAME);
+            }
+        }
+        catch(ex)
+        {
+            trace(ex.details);
         }
     }
 
@@ -219,17 +227,24 @@ class Connection implements ServerHeader
 
     public function sendMapChunk(x:Int,y:Int,width:Int = 32,height:Int = 30)
     {
-        x -= Std.int(width / 2);
-        y -= Std.int(height / 2);
-              
-        var map = server.map.getChunk(x + player.gx, y + player.gy, width, height).toString();
-        var uncompressed = Bytes.ofString(map);
-        var bytes = haxe.zip.Compress.run(uncompressed,-1);
-        
-        send(MAP_CHUNK,['$width $height $x $y','${uncompressed.length} ${bytes.length}']);
-        sock.output.write(bytes);
-        //send(VALLEY_SPACING,["40 40"]); // TODO what is this for?
-        //send(FRAME);
+        try
+        {
+            x -= Std.int(width / 2);
+            y -= Std.int(height / 2);
+                
+            var map = server.map.getChunk(x + player.gx, y + player.gy, width, height).toString();
+            var uncompressed = Bytes.ofString(map);
+            var bytes = haxe.zip.Compress.run(uncompressed,-1);
+            
+            send(MAP_CHUNK,['$width $height $x $y','${uncompressed.length} ${bytes.length}']);
+            sock.output.write(bytes);
+            //send(VALLEY_SPACING,["40 40"]); // TODO what is this for?
+            //send(FRAME);
+        }
+        catch(ex)
+        {
+            trace(ex.details);
+        }
     }
 
     /*
@@ -245,20 +260,41 @@ class Connection implements ServerHeader
     */
     public function sendMapUpdate(x:Int, y:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, isPlayerAction:Bool = true)
     {
-        send(MAP_CHANGE,['$x $y $newFloorId ${MapData.stringID(newObjectId)} $playerId'], isPlayerAction);
+        try
+        {
+            send(MAP_CHANGE,['$x $y $newFloorId ${MapData.stringID(newObjectId)} $playerId'], isPlayerAction);        
+        }
+        catch(ex)
+        {
+            trace(ex.details);
+        }
     }
 
     public function sendMapUpdateForMoving(toX:Int, toY:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, fromX:Int, fromY:Int, speed:Float)
     {
-        send(MAP_CHANGE,['$toX $toY $newFloorId ${MapData.stringID(newObjectId)} $playerId $fromX $fromY $speed'], false);
+        try
+        {
+            send(MAP_CHANGE,['$toX $toY $newFloorId ${MapData.stringID(newObjectId)} $playerId $fromX $fromY $speed'], false);
+        }
+        catch(ex)
+        {
+            trace(ex.details);
+        }
     }
     
     public function emote(id:Int)
     {
-        for (c in server.connections)
+        try
         {
-            c.send(FRAME);
-            c.send(PLAYER_EMOT,['${player.p_id} $id']);
+            for (c in server.connections)
+            {
+                c.send(FRAME);
+                c.send(PLAYER_EMOT,['${player.p_id} $id']);
+            }
+        }
+        catch(ex)
+        {
+            trace(ex.details);
         }
     }
     
@@ -269,30 +305,52 @@ class Connection implements ServerHeader
 
     public function send(tag:ClientTag,data:Array<String>=null, isPlayerAction:Bool = true)
     {
-        var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
-        sock.output.writeString(string);
-
-        //if(ServerSettings.TraceSend && tag != MAP_CHANGE && tag != FRAME)
-        if((ServerSettings.TraceSendPlayerActions && isPlayerAction) || (ServerSettings.TraceSendNonPlayerActions && isPlayerAction == false))
+        try 
         {
-            var tmpString = StringTools.replace(string, "\n", "\t");
-            trace("Send: " + tmpString);
+            var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
+            sock.output.writeString(string);
+
+            //if(ServerSettings.TraceSend && tag != MAP_CHANGE && tag != FRAME)
+            if((ServerSettings.TraceSendPlayerActions && isPlayerAction) || (ServerSettings.TraceSendNonPlayerActions && isPlayerAction == false))
+            {
+                var tmpString = StringTools.replace(string, "\n", "\t");
+                trace("Send: " + tmpString);
+            }
+
+        }
+        catch(ex)
+        {
+            trace(ex.details);
         }
     }
 
     public function sendPong(unique_id:String)
     {
-        var tmpString = '$PONG\n$unique_id#';
+        try
+        {
+            var tmpString = '$PONG\n$unique_id#';
 
-        sock.output.writeString(tmpString);
+            sock.output.writeString(tmpString);
 
-        if(ServerSettings.TraceSendPlayerActions) trace("Send: " + tmpString);
+            if(ServerSettings.TraceSendPlayerActions) trace("Send: " + tmpString);            
+        }
+        catch(ex)
+        {
+            trace(ex.details);
+        }
     }
 
     public function sendGlobalMessage(message:String)
     {
-        message  = StringTools.replace(message,' ', '_');
-        send(ClientTag.GLOBAL_MESSAGE, [message]);
+        try
+        {
+            message  = StringTools.replace(message,' ', '_');
+            send(ClientTag.GLOBAL_MESSAGE, [message]);
+        }
+        catch(ex)
+        {
+            trace(ex.details);
+        }
     }
 }
 #end
