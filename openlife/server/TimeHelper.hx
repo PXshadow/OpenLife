@@ -9,20 +9,13 @@ import openlife.settings.ServerSettings;
 class TimeHelper
 {
     private static var tickTime = 1 / 20;
-
-    //private static var TimeHelper = new TimeHelper();
-
     public static var tick:Float = 0;       // some are skipped if server is too slow
     //public static var allTicks:Float = 0;   // these ticks will not be skipped, but can be slower then expected
 
     private static var lastTick:Float = 0;
     private static var serverStartingTime:Float;
 
-    // TODO currently not needed, since for all objects on the map every second all time objects are generated
-    //public var timeObjectHelpers:Array<ObjectHelper>; 
     private static var worldMapTimeStep = 0; // counts the time steps for doing map time stuff, since some ticks may be skiped because of server too slow
-
-    //private function new(){}
 
     public static function CalculateTimeSinceTicksInSec(ticks:Float):Float
     {
@@ -113,9 +106,11 @@ class TimeHelper
         {
             updateAge(connection, timePassedInSeconds);
 
-            updateFood(connection, timePassedInSeconds);
+            updateFood(connection, timePassedInSeconds);            
 
             MoveHelper.updateMovement(connection.player);
+
+            if(TimeHelper.tick % 40 == 0) updateTemperature(connection);
         }
 
         DoWorldMapTimeStuff(); // TODO currently it goes through the hole map each sec / this may later not work
@@ -208,11 +203,7 @@ class TimeHelper
 
         if(c.player.age < ServerSettings.GrownUpAge && c.player.food_store > 0) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
 
-        var biome = WorldMap.worldGetBiomeId(c.player.tx(), c.player.ty());
-
-        var biomeValue = biome == BiomeTag.JUNGLE ? 1.5 : 1; 
-
-        foodDecay /= (biomeValue + c.player.calculateClothingInsulation()) ; // clothing can reduce food use at max to 1 / 3
+        foodDecay /= calculateTemperature(c.player);
 
         // if starving to death and there is some health left, reduce food need and heath
         if(c.player.food_store < 0 && c.player.yum_multiplier > 0)
@@ -248,6 +239,49 @@ class TimeHelper
             }
         }
     }
+
+    private static function calculateTemperature(player:GlobalPlayerInstance) : Float
+    {
+        var biome = WorldMap.worldGetBiomeId(player.tx(), player.ty()); // TODO other biomes
+
+        var biomeValue = biome == BiomeTag.JUNGLE ? 1.5 : 1; 
+
+        var temperature = (biomeValue + player.calculateClothingInsulation()) ; // clothing insulation can be between 0 and 2 for now
+
+        return temperature;
+    }
+
+    /*
+        HX
+        heat food_time indoor_bonus#
+
+        Tells player about their current heat value, food drain time, and indoor bonus.
+
+        Food drain time and indoor bonus are in seconds.
+
+        Food drain time is total including bonus.
+    */
+
+    private static function updateTemperature(c:Connection)
+    {
+        var maxTemerature = 2.5; // TODO change
+
+        var temperature = calculateTemperature(c.player);
+
+        var foodDrainTime = (1 / ServerSettings.FoodUsePerSecond) * temperature;
+
+        var heat = (temperature / (temperature + maxTemerature)) / 2; // TODO change
+
+        heat = Math.round(heat * 100) / 100;
+
+        foodDrainTime = Math.round(foodDrainTime * 100) / 100;
+
+        var message = '$heat $foodDrainTime 0';
+
+        c.send(HEAT_CHANGE, [message]);
+
+        //trace('Temerature update: temperature: $temperature mesage: $message');
+    } 
 
     public static function DoWorldMapTimeStuff()
     {
