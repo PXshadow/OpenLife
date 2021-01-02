@@ -342,7 +342,7 @@ class ObjectData extends LineReader
     public function get_parentId()
     {
         var objectData = this;
-        
+
         if(objectData.dummyParent != null) return objectData.dummyParent.id;
 
         return objectData.id;
@@ -1099,11 +1099,13 @@ class ObjectData extends LineReader
         
         //trace('Insulation: clothing: ${this.clothing} ' + parts);
 
+        if(this.numSlots > 1) return 0; // backpack has no insulation TODO fix with using instead rValue 
+
         if(this.clothing.length > 1) this.clothing = StringTools.trim(this.clothing);
 
         if(parts[this.clothing] == 0) return this.rValue;
 
-        //trace('Insulation2: clothing: ${this.clothing} ${this.clothing.length} ${parts[this.clothing]}');
+        //trace('Insulation: clothing: ${this.clothing} ${this.clothing.length} ${parts[this.clothing]}');
             
         if(rValue > 0) return parts[this.clothing] * rValue; 
         else  return parts[this.clothing];  // TODO find out why rValue is zero
