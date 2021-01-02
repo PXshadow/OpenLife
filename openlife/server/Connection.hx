@@ -78,36 +78,41 @@ class Connection implements ServerHeader
         // TODO choose better mutex
         server.map.mutex.acquire();
 
-        if(ServerSettings.debug) Server.server.map.generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
-        
-        server.connections.push(this);
+        try{
 
-        player = new GlobalPlayerInstance([]);
-        player.connection = this;
-        var id = server.playerIndex++;
-        player.p_id = id;
-        player.gx = ServerSettings.startingGx;
-        player.gy = ServerSettings.startingGy;
+            if(ServerSettings.debug) Server.server.map.generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
+            
+            server.connections.push(this);
 
-        player.move_speed = MoveHelper.calculateSpeed(player, player.gx, player.gy);
-        player.food_store_max = TimeHelper.CalculateFoodStoreMax(player);
-        player.food_store = player.food_store_max / 2;
-        player.yum_multiplier = ServerSettings.MinHealthPerYear * ServerSettings.StartingEveAge; 
+            player = new GlobalPlayerInstance([]);
+            player.connection = this;
+            var id = server.playerIndex++;
+            player.p_id = id;
+            player.gx = ServerSettings.startingGx;
+            player.gy = ServerSettings.startingGy;
 
-        //player.transformHeldObject(2710);
-        
-        trace("login: move_speed: " + player.move_speed);
+            player.move_speed = MoveHelper.calculateSpeed(player, player.gx, player.gy);
+            player.food_store_max = TimeHelper.CalculateFoodStoreMax(player);
+            player.food_store = player.food_store_max / 2;
+            player.yum_multiplier = ServerSettings.MinHealthPerYear * ServerSettings.StartingEveAge; 
 
-        sendMapChunk(0,0);
+            //player.transformHeldObject(2710);
+            
+            trace("login: move_speed: " + player.move_speed);
 
-        SendUpdateToAllClosePlayers(player);
-        
-        send(LINEAGE,['$id eve=$id']);
-        send(TOOL_SLOTS,["0 1000"]);
-        player.sendFoodUpdate();
-        send(FRAME);
+            sendMapChunk(0,0);
 
-        
+            SendUpdateToAllClosePlayers(player);
+            
+            send(LINEAGE,['$id eve=$id']);
+            send(TOOL_SLOTS,["0 1000"]);
+            player.sendFoodUpdate();
+            send(FRAME);
+        }
+        catch(ex)
+        {
+            trace(ex.details);
+        }
 
         server.map.mutex.release();
     }
@@ -124,9 +129,16 @@ class Connection implements ServerHeader
 
             // update only close players
             if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-
-            c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)], isPlayerAction);
-            c.send(FRAME, null, isPlayerAction);
+            
+            try
+            {
+                c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)], isPlayerAction);
+                c.send(FRAME, null, isPlayerAction);
+            }
+            catch(ex)
+            {
+                trace(ex.details);
+            }
         }
     }
 
@@ -142,9 +154,16 @@ class Connection implements ServerHeader
 
             // update only close players
             if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-
-            c.sendMapUpdate(targetX, targetY, floorId, obj, -1, false);
-            c.send(FRAME, null, false);
+            
+            try
+            {
+                c.sendMapUpdate(targetX, targetY, floorId, obj, -1, false);
+                c.send(FRAME, null, false);
+            }
+            catch(ex)
+            {
+                trace(ex.details);
+            }
         }
     }
 

@@ -282,7 +282,7 @@ class TimeHelper
 
         c.send(HEAT_CHANGE, [message]);
 
-        trace('Temerature update: temperature: $temperature mesage: $message');
+        // trace('Temerature update: temperature: $temperature mesage: $message');
     } 
 
     public static function DoWorldMapTimeStuff()
