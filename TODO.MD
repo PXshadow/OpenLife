@@ -2,16 +2,6 @@ How to connect to the test server:
 ip: thinqbator.app
 port: 8005
 
-
-TODO
-====
-1. Transition history system (used by both bot and server)
-2. Implement another path finding algorithm
-3. Algorithm to score tech tree climb, time dependent, and based on future potential for survival as well
-4. Solo Eve Bot run, scored after 1 life and world is static and reset each time
-5. Task Queue system with Auto.hx class
-6. Algorithm to identify what is needed next for overseer
-
 Summary: 
 - the server is completly new written from scratch in haxe and in early ALPHA, so except errors and please report them!
 - Limited hand made map which can be designed using a picture
@@ -26,7 +16,7 @@ Summary:
 - Quality of Life: You can pick berriers directly with a bowl, you can eat while on a horse. Shoes give extra speed
 
 Not yet implemented:
-- temperature (clothing does already reduce food use up to 66% - Jungle reduces food need 33%
+- temperature (clothing does already reduce food use up to 66% - Jungle reduces food need 33%)
 - combat
 - player interactions like feeding / incarnation / family
 - see more in detail below
@@ -104,7 +94,7 @@ Food - Cravings:
 - Cravings give plus one extra food boni and YUM chain / Health which influences speed and aging
 
 Animals:
-- Animals can multiply
+- Animals can multiply and die
 - Animals can leave their biome, but prefare to stay in own biome
 - Stuff like trees and rabit holes wont block animal movement // TODO also for player
 - horses are the ultimative devourers you can eat anything from horse!
@@ -123,18 +113,18 @@ more up in the list means more likely to be implemented first but no gurantee!
 - reconnection
 - incarnation
 - multiplayer testing
-- feeding of other people
+- feeding of other people (needs testing)
 - biome locked planting
 - animal interactions / collisions
 - naming
 - time transitions for objects in container
-- animal movement that changes animal
 - do pattern transitions right like rubber horsecart pickup 
 - biome boni for different races
 - leadership
+- rails 
 - faces / for example hungry / ill
 - ill from moskitos
-- temperature
+- temperature / fire / heat objects / indoor / different biomes are missing
 - server stats
 - curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
 - combat / generally allowed
@@ -147,7 +137,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - commands 
 - maps / maps on waystone
 - speech limit
-- yum category // for example for berry / berry bowl
+- yum category // for example for berry / berry bowl (maybe not needed?)
 - better order of craving list (currently its just ordered accoring to obj ID)
 - twinning
 - different languages
@@ -162,8 +152,11 @@ TODO Testing
 - transition testing
 - multiplayer testing
 
-
-
-
-
-
+PX TODO
+====
+1. Transition history system (used by both bot and server)
+2. Implement another path finding algorithm
+3. Algorithm to score tech tree climb, time dependent, and based on future potential for survival as well
+4. Solo Eve Bot run, scored after 1 life and world is static and reset each time
+5. Task Queue system with Auto.hx class
+6. Algorithm to identify what is needed next for overseer
