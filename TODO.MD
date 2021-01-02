@@ -115,11 +115,15 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
-- decay contained stuff in graves 
+- better map
+- decay contained stuff in graves / generally decay stuff in containers
 - reconnection
 - incarnation
 - multiplayer testing
-- feeding of other people (needs testing)
+- clothing to other players needs testing
+- pickup of players
+- drop of players
+- breastfeeding
 - biome locked planting
 - animal interactions / collisions
 - naming
@@ -136,7 +140,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 - combat / generally allowed
 - fences / gates
 - wounds / healing
-- better map
 - score / score boni
 - job boni
 - families
