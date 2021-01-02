@@ -59,7 +59,7 @@ class Server
             var dir = './${ServerSettings.SaveDirectory}/';
             var path = dir + "ServerSettings.txt";
 
-            if(FileSystem.exists(path)) ServerSettings.writeToFile();
+            if(FileSystem.exists(path) == false) ServerSettings.writeToFile();
         }
         
 
