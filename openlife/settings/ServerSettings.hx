@@ -77,7 +77,7 @@ class ServerSettings
     public static var GrownUpAge = 14; // is used for AgingFactorWhileStarvingToDeath and for increase food need for children
     public static var StarvingToDeathMoveSpeedFactor = 0.5; // reduces speed if stored food is below 0
     public static var StarvingToDeathMoveSpeedFactorWhileHealthAboveZero = 0.8; // reduces speed if stored food is below 0 and health / yum multiplier > 0
-    public static var FoodStoreMaxReductionWhileStarvingToDeath = 2; // reduces food store max with factor XX for each food below 0
+    public static var FoodStoreMaxReductionWhileStarvingToDeath = 5; // reduces food store max with factor XX for each food below 0
 
     public static var maxDistanceToBeConsideredAsClose = 20; // only close players are updated with PU and MX and Movement 
 
@@ -218,6 +218,12 @@ class ServerSettings
         trans.newTargetID = 121; // 121 = Tule Reeds
         trans.traceTransition("PatchTransitions: ");
 
+        // change decay time for grave 88 = Grave
+        trans = transtions.getTransition(-1, 88); 
+        trans.autoDecaySeconds = 10; 
+        trans.traceTransition("PatchTransitions: ");
+        
+
         // let get berrys back!
         trans = new TransitionData(-1,30,0,30); // Wild Gooseberry Bush
         
@@ -271,6 +277,8 @@ class ServerSettings
 
         trans = new TransitionData(235,391,253,1135); // Clay Bowl + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Domestic Gooseberry  Bush
         transtions.addTransition("PatchTransitions: ", trans, false, true);
+
+
     }
 
     public static function writeToFile()
