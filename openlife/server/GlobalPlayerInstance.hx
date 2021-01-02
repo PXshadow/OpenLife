@@ -146,7 +146,7 @@ class GlobalPlayerInstance extends PlayerInstance {
             if(doEating(this,this)) return;
         }
 
-        if(doSwitchCloths(clothingSlot)) return;
+        if(doSwitchCloths(this, this, clothingSlot)) return;
 
         doPlaceObjInClothing(clothingSlot);
     }
@@ -214,12 +214,9 @@ class GlobalPlayerInstance extends PlayerInstance {
             if(doEating(this, targetPlayer)) return true;
         }
 
+        if(doSwitchCloths(this, targetPlayer, clothingSlot)) return true;
+
         return false;
-
-        // TODO
-        //if(doSwitchCloths(clothingSlot)) return true;
-
-        //return doPlaceObjInClothing(clothingSlot);
     }
 
     public static function getPlayerAt(x:Int, y:Int, playerId:Int) : GlobalPlayerInstance
@@ -366,12 +363,14 @@ class GlobalPlayerInstance extends PlayerInstance {
             playerFrom.setHeldObject(null);
         }
 
-        playerTo.SetTransitionData(playerTo.x, playerTo.y);
+        playerTo.SetTransitionData(playerTo.x, playerTo.y); // TODO needs to be set right
 
         Connection.SendUpdateToAllClosePlayers(playerTo);
 
         if(playerFrom != playerTo)
         {
+            playerFrom.SetTransitionData(playerTo.x, playerTo.y); // TODO needs to be set right
+
             Connection.SendUpdateToAllClosePlayers(playerFrom);
         }
 
@@ -572,18 +571,30 @@ class GlobalPlayerInstance extends PlayerInstance {
     }
 
 
-    private function doSwitchCloths(clothingSlot:Int) : Bool
+    private static function doSwitchCloths(playerFrom:GlobalPlayerInstance, playerTo:GlobalPlayerInstance, clothingSlot:Int) : Bool
     {
-        var objClothingSlot = calculateClothingSlot();
-        trace('self:o_id: ${this.o_id[0]} helobj.id: ${this.heldObject.id} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
+        var objClothingSlot = playerFrom.calculateClothingSlot();
+        trace('self:o_id: ${playerFrom.o_id[0]} helobj.id: ${playerFrom.heldObject.id} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
 
-        if(objClothingSlot < 0 && this.heldObject.id != 0) return false;
+        if(playerFrom != playerTo)
+        {
+            if(playerTo.age < ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers)
+            {
+                trace('doSwitchCloths: target player age ${playerTo.age} < ${ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers}');
 
-        var array = this.clothing_set.split(";");
+                return false;
+            }
+        }
+
+        if(objClothingSlot < 0 && playerFrom.heldObject.id != 0) return false;
+
+        var array = playerTo.clothing_set.split(";");
 
         if(array.length < 6)
         {
-            trace('Clothing string missing slots: ${this.clothing_set}' );
+            trace('WARNING! Clothing string missing slots: ${playerTo.clothing_set}' );
+
+            return false;
         }  
 
         // set  the index for shoes that come on the other feet
@@ -600,25 +611,32 @@ class GlobalPlayerInstance extends PlayerInstance {
             if(objClothingSlot > -1) clothingSlot = objClothingSlot;
         }
 
-        trace('self: ${this.o_id[0]} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
+        trace('self: ${playerFrom.o_id[0]} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
 
         if(clothingSlot < 0) return false;        
 
-        var tmpObj = this.clothingObjects[clothingSlot];
-        this.clothingObjects[clothingSlot] = this.heldObject;
-        this.setHeldObject(tmpObj);
+        var tmpObj = playerTo.clothingObjects[clothingSlot];
+        playerTo.clothingObjects[clothingSlot] = playerFrom.heldObject;
+        playerFrom.setHeldObject(tmpObj);
 
         // switch clothing if there is a clothing on this slot
         //var tmp = Std.parseInt(array[clothingSlot]);
-        array[clothingSlot] = '${clothingObjects[clothingSlot].toString()}';
-        this.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
-        trace('this.clothing_set: ${this.clothing_set}');
+        array[clothingSlot] = '${playerTo.clothingObjects[clothingSlot].toString()}';
+        playerTo.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
+        trace('this.clothing_set: ${playerTo.clothing_set}');
 
-        this.action = 0;
+        playerFrom.action = 0;
  
-        SetTransitionData(x, y);
+        playerTo.SetTransitionData(playerTo.x, playerTo.y); // TODO needs to be set right
         
-        Connection.SendUpdateToAllClosePlayers(this);
+        Connection.SendUpdateToAllClosePlayers(playerTo);
+
+        if(playerFrom != playerTo)
+        {
+            playerFrom.SetTransitionData(playerTo.x, playerTo.y); // TODO needs to be set right
+
+            Connection.SendUpdateToAllClosePlayers(playerFrom);
+        }
 
         //this.action = 0;
 
