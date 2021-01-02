@@ -459,6 +459,19 @@ class TimeHelper
             return;
         }
 
+        var newObjectData = ObjectData.getObjectData(transition.newTargetID);
+
+        // for example if a grave with objects decays
+        if(helper.containedObjects.length > newObjectData.slotSize)
+        {
+            // check in another 10 sec
+            helper.timeToChange += 10;
+            WorldMap.world.setObjectHelper(tx,ty, helper);
+
+            trace('time: do not decay newTarget cannot store contained objects! ${helper.description}');
+            return;
+        }
+
         if(doAnimalMovement(helper, transition)) return;
 
         if(helper.isLastUse()) transition = Server.transitionImporter.getTransition(-1, helper.id, false, true);
