@@ -909,9 +909,7 @@ class WorldMap
 
             var objData = ObjectData.getObjectData(obj[0]);
 
-            if(objData.dummyParent != null) objData = objData.dummyParent;
-
-            objList[objData.id]++;
+            objList[objData.parentId]++;
         }
 
         if(objHelpersToCount == null) return objList;
@@ -922,19 +920,11 @@ class WorldMap
 
             for(containedObj in obj.containedObjects)
             {
-                var objData = containedObj.objectData;
-
-                if(objData.dummyParent != null) objData = objData.dummyParent;
-
-                objList[objData.id]++;
+                objList[containedObj.parentId]++;
 
                 for(subContainedObj in containedObj.containedObjects)
                 {
-                    objData = subContainedObj.objectData;
-
-                    if(objData.dummyParent != null) objData = objData.dummyParent;
-
-                    objList[objData.id]++;
+                    objList[subContainedObj.parentId]++;
                 }
             }
         }

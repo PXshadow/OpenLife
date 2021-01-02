@@ -334,6 +334,20 @@ class ObjectData extends LineReader
     var onlyDescription:Bool;
     public var noBackAcess:Bool = false;
 
+    /**
+        gives back a non dummy id
+    **/
+    public var parentId(get, null):Int; 
+
+    public function get_parentId()
+    {
+        var objectData = this;
+        
+        if(objectData.dummyParent != null) return objectData.dummyParent.id;
+
+        return objectData.id;
+    }
+
     public static function getObjectData(id:Int)
     {
         return objectDataMap[id];
