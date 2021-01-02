@@ -384,6 +384,10 @@ class ObjectData extends LineReader
         objectDataMap[-1].description = "TIME";
         objectDataMap[-1].id = -1;
 
+        objectDataMap[-2] = new ObjectData(0,false,true); // Add Player Object Data
+        objectDataMap[-2].description = "PLAYER";
+        objectDataMap[-2].id = -2;
+
         //trace('TEST: ${objectDataMap[-1].id}');
     }
 

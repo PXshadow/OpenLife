@@ -1,4 +1,6 @@
 package openlife.settings;
+import openlife.server.TransitionHelper;
+import openlife.server.Server;
 import sys.FileSystem;
 import haxe.macro.Expr.Catch;
 import sys.io.File;
@@ -185,8 +187,20 @@ class ServerSettings
         //    obj.mapChance *= 0;  
     }
 
-    public static function PatchTransitions(transtions:TransitionImporter)
+    public static function PatchTransitions(transtions:TransitionImporter)        
     {   
+        for(trans in Server.transitionImporter.transitions)
+        {
+            if(trans.actorID < -1) 
+            {
+                // trans.traceTransition("PatchTransitions: ", true);
+
+                trans.actorID = 0; 
+                transtions.addTransition("PatchTransitions: ", trans);
+                trans.traceTransition("PatchTransitions: ");
+            }
+        }
+
         // Original: Riding Horse: 770 + -1 = 0 + 1421
         var trans = new TransitionData(770,0,0,1421);
         transtions.addTransition("PatchTransitions: ", trans);
@@ -222,6 +236,12 @@ class ServerSettings
         //trans = transtions.getTransition(-1, 88); 
         //trans.autoDecaySeconds = 10; 
         //trans.traceTransition("PatchTransitions: ");
+
+        //-2 + 141 = 0 + 143 // some how we have -2 transactions like hand + ghoose pond = ghoose pond with feathers
+        trans = transtions.getTransition(-2, 141); 
+        trans.actorID = 0; 
+        transtions.addTransition("PatchTransitions: ", trans);
+        trans.traceTransition("PatchTransitions: ");
         
 
         // let get berrys back!
