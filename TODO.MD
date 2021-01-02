@@ -55,6 +55,11 @@ World:
 - objects except ancient, well, Iron Mine, Oil Pumps decay with a small chance
 - decay chance is 10X reduced if on floor and 10X increeased if food
 
+Objects:
+- Cooked Rabbit Food Value: 10 --> 18
+- Turkey Slice on Plate Food Value: 17 --> 24
+- Omelette Food Value: 12 --> 18
+
 Transitions:
 - you can harvest Berries directly with a bowl
 - Tule Stumps grow back after one hour 

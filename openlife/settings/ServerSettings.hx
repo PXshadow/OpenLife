@@ -176,6 +176,11 @@ class ServerSettings
         ObjectData.getObjectData(2855).foodValue = 3; // Onion
         ObjectData.getObjectData(808).foodValue = 3; // Wild Onion
 
+        // boost hunted food
+        ObjectData.getObjectData(197).foodValue = 18; // Cooked Rabbit 10 --> 18
+        ObjectData.getObjectData(2190).foodValue = 24; // Turkey Slice on Plate 17 --> 24
+        ObjectData.getObjectData(1285).foodValue = 18; // Omelette 12 --> 18
+        
 
         //trace('Insulation: ${ObjectData.getObjectData(128).getInsulation()}'); // Redd Skirt
 
@@ -255,6 +260,11 @@ class ServerSettings
         trans = transtions.getTransition(-1, 122); 
         trans.newTargetID = 121; // 121 = Tule Reeds
         trans.traceTransition("PatchTransitions: ");
+
+        // 141 Canada Goose Pond
+        //1261 Canada Goose Pond with Egg // TODO let egg come back
+        //Server.transitionImporter.
+
 
         // change decay time for grave 88 = Grave
         //trans = transtions.getTransition(-1, 88); 
