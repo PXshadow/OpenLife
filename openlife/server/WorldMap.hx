@@ -41,7 +41,7 @@ import haxe.io.Bytes;
     public var CYELLOW = "FFFECC36"; //savannah
     public var CGREY = "FF808080"; //badlands // bevor it was: FF404040
     public var CSNOW = "FFFFFFFF";
-    public var CDESERT= "FFDB7F4D";
+    public var CDESERT= "FFDBAC4D"; 
     public var CJUNGLE = "FF007F0E";
     public var CBORDERJUNGLE = "FF007F00";  
     

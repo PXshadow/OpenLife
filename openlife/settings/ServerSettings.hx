@@ -51,8 +51,8 @@ class ServerSettings
     // worldMap
     public static var GenerateMapNew = false;
     public static var ChanceForLuckySpot = 0.1; // chance that during generation an object is lucky and tons more of that are generated close by
-    public static var startingGx = 235; //270; // 360;
-    public static var startingGy = 150; //200;//- 400; // server map is saved y inverse 
+    public static var startingGx = 250; // 235; //270; // 360;
+    public static var startingGy = 180; //200;//- 400; // server map is saved y inverse 
     public static var CreateGreenBiomeDistance = 5;
    
     // food stuff
@@ -143,7 +143,8 @@ class ServerSettings
         }
 
         // Change map spawn chances
-        ObjectData.getObjectData(942).mapChance *= 5; // Muddy Iron Vein
+        ObjectData.getObjectData(769).mapChance *= 5; // Wild Horse
+        ObjectData.getObjectData(942).mapChance *= 10; // Muddy Iron Vein
         ObjectData.getObjectData(2135).mapChance /= 3; // Rubber Tree
         ObjectData.getObjectData(2156).mapChance *= 0.5; // Less UnHappy Mosquitos
         
@@ -172,10 +173,10 @@ class ServerSettings
         
 
         // nerve food
-        ObjectData.getObjectData(2143).foodValue = 5; // banana
-        ObjectData.getObjectData(31).foodValue = 3; // Gooseberry
-        ObjectData.getObjectData(2855).foodValue = 3; // Onion
-        ObjectData.getObjectData(808).foodValue = 3; // Wild Onion
+        ObjectData.getObjectData(2143).foodValue = 6; // banana
+        ObjectData.getObjectData(31).foodValue = 4; // Gooseberry
+        ObjectData.getObjectData(2855).foodValue = 4; // Onion
+        ObjectData.getObjectData(808).foodValue = 4; // Wild Onion
 
         // boost hunted food
         ObjectData.getObjectData(197).foodValue = 18; // Cooked Rabbit 10 --> 18

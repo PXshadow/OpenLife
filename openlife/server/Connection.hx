@@ -486,6 +486,12 @@ class Connection implements ServerHeader
         catch(ex)
         {
             var tmpString = StringTools.replace(string, "\n", "\t");
+
+            if('$ex' == 'Eof')
+            {
+                this.close();   
+            }
+            
             trace('WARNING Send: $tmpString ' + ex);
         }
 
