@@ -61,7 +61,7 @@ class TimeHelper
 
             @:privateAccess haxe.MainLoop.tick();
 
-            Server.server.map.mutex.acquire(); 
+            //Server.server.map.mutex.acquire(); 
 
             if(ServerSettings.debug)
             {
@@ -80,7 +80,7 @@ class TimeHelper
                 }
             }
 
-            Server.server.map.mutex.release();
+            //Server.server.map.mutex.release();
 
 
             timeSinceStart = Sys.time() - TimeHelper.serverStartingTime;
@@ -325,7 +325,7 @@ class TimeHelper
                     }
 
                     // clear up not needed ObjectHelpers to save space
-                    if(worldMap.deleteObjectHelperIfUseless(helper)) continue;
+                    if(worldMap.deleteObjectHelperIfUseless(helper)) continue; // uses worlmap mutex
 
                     var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(helper.creationTimeInTicks);
                     var timeToChange = helper.timeToChange;
@@ -335,7 +335,7 @@ class TimeHelper
                         //trace('TIME: ${helper.objectData.description} passedTime: $passedTime neededTime: ${timeToChange}');       
 
                         // TODO maybe better not delete by default...
-                        worldMap.setObjectHelperNull(x,y);
+                        // worldMap.setObjectHelperNull(x,y);
                         
                         TimeHelper.doTimeTransition(helper);
                     }
@@ -479,50 +479,37 @@ class TimeHelper
         // -1 + 142 = 0 + 142
         // -1 + 142 = 0 + 141
 
-        var tx = helper.tx;
-        var ty = helper.ty;
-
-        var tileObject = Server.server.map.getObjectId(tx, ty);
-        //var floorId = Server.server.map.getFloorId(tx, ty);
-
-        //trace('Time: tileObject: $tileObject');
-
-        var transition = Server.transitionImporter.getTransition(-1, tileObject[0], false, false);
-
-        if(transition == null)
-        {
-            trace('WARNING: Time: no transtion found! Maybe object was moved? tile: $tileObject helper: ${helper.id} ${helper.description}');
-            return;
-        }
-
-        var newObjectData = ObjectData.getObjectData(transition.newTargetID);
-
-        // for example if a grave with objects decays
-        if(helper.containedObjects.length > newObjectData.slotSize)
-        {
-            // check in another 10 sec
-            helper.timeToChange += 10;
-            WorldMap.world.setObjectHelper(tx,ty, helper);
-
-            trace('time: do not decay newTarget cannot store contained objects! ${helper.description}');
-            return;
-        }
-
-        if(doAnimalMovement(helper, transition)) return;
-
-        if(helper.isLastUse()) transition = Server.transitionImporter.getTransition(-1, helper.id, false, true);
-
-        helper.id = transition.newTargetID;
-        helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper);
-        helper.creationTimeInTicks = TimeHelper.tick;
-
-        TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, transition, false);
-
-        Server.server.map.setObjectHelper(tx, ty, helper);
+        WorldMap.world.mutex.acquire();
         
+        // just to be sure, that no other thread changed object meanwhile 
+        
+        if(helper != WorldMap.world.getObjectHelper(helper.tx, helper.ty))
+        {
+            WorldMap.world.mutex.release();
+
+            trace("TIME: some one changed helper meanwhile");
+
+            return;
+        } 
+
+        var sendUpdate = false;
+
+        try
+        {
+            sendUpdate = doTimeTransitionHelper(helper);
+        }
+        catch(ex)
+        {
+            trace(ex);
+        }
+
+        WorldMap.world.mutex.release();
+
+        if(sendUpdate == false) return;
+
         var newTileObject = helper.toArray();
 
-        Connection.SendMapUpdateToAllClosePlayers(tx, ty, newTileObject);
+        Connection.SendMapUpdateToAllClosePlayers(helper.tx, helper.ty, newTileObject);
 
         /*for (c in Server.server.connections)
         {      
@@ -540,6 +527,59 @@ class TimeHelper
         }
         */
     } 
+
+    public static function doTimeTransitionHelper(helper:ObjectHelper) : Bool
+    {
+        var tx = helper.tx;
+        var ty = helper.ty;
+
+        var tileObject = Server.server.map.getObjectId(tx, ty);
+
+        //trace('Time: tileObject: $tileObject');
+
+        var transition = Server.transitionImporter.getTransition(-1, tileObject[0], false, false);
+
+        if(transition == null)
+        {
+            helper.timeToChange = 0;
+            WorldMap.world.setObjectHelperNull(tx,ty);
+
+            trace('WARNING: Time: no transtion found! Maybe object was moved? tile: $tileObject helper: ${helper.id} ${helper.description}');
+            return false;
+        }
+
+        var newObjectData = ObjectData.getObjectData(transition.newTargetID);
+
+        // for example if a grave with objects decays
+        if(helper.containedObjects.length > newObjectData.slotSize)
+        {
+            // check in another 10 sec
+            helper.timeToChange += 10;
+            //WorldMap.world.setObjectHelper(tx,ty, helper);
+
+            trace('time: do not decay newTarget cannot store contained objects! ${helper.description}');
+            return false;
+        }
+
+        if(transition.move > 0)
+        {
+            doAnimalMovement(helper, transition);
+            
+            return false;
+        }
+
+        if(helper.isLastUse()) transition = Server.transitionImporter.getTransition(-1, helper.id, false, true);
+
+        helper.id = transition.newTargetID;
+        helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper);
+        helper.creationTimeInTicks = TimeHelper.tick;
+
+        TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, transition, false);
+
+        WorldMap.world.setObjectHelper(tx, ty, helper);
+
+        return true;
+    }
 
     /*
         MX

@@ -454,7 +454,11 @@ class TransitionHelper{
         
         trace('TRANS: tileObjectData.numUses: ${tileObjectData.numUses} target.numberOfUses: ${this.target.numberOfUses} ${tileObjectData.description}'  );        
       
+        trace('TRANS: search: ${player.heldObject.parentId} + ${target.parentId}');
+
         var transition = Server.transitionImporter.getTrans(this.player.heldObject, target);
+
+        if(transition != null) trace('TRANS: found transition!');
 
         // sometimes ground is -1 not 0 like for Riding Horse:
         // Should work for: 770 + -1 = 0 + 1421 // TODO -1 --> 0 in transition importer???

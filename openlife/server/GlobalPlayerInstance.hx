@@ -841,6 +841,8 @@ class GlobalPlayerInstance extends PlayerInstance
 
     public function doDeath(deathReason:String)
     {
+        Server.server.map.mutex.acquire();
+
         // TODO calculate score
         // TODO set coordinates player based
         ServerSettings.startingGx = this.tx();
@@ -853,6 +855,8 @@ class GlobalPlayerInstance extends PlayerInstance
         //this.connection.die();
 
         placeGrave();
+
+        Server.server.map.mutex.release();
     }
 
     public function placeGrave()

@@ -113,7 +113,7 @@ class TransitionImporter
     public function getTrans(actor:ObjectHelper, target:ObjectHelper):TransitionData
     {
         // actor last use is handled through actor + -1 = newActor + 0 transitions
-        return getTransition(actor.id, target.id, false, target.isLastUse());
+        return getTransition(actor.parentId, target.parentId, false, target.isLastUse());
     }
 
     public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false, maxUseTarget:Bool=false):TransitionData
@@ -123,6 +123,8 @@ class TransitionImporter
 
         if(objDataActor.dummyParent != null) objDataActor = objDataActor.dummyParent;
         if(objDataTarget.dummyParent != null) objDataTarget = objDataTarget.dummyParent;
+
+        if(objDataActor.id != -1 && objDataTarget.id != -1) trace('getTransition: ${objDataActor.id} + ${objDataTarget.id} lastUseTarget: $lastUseTarget maxUseTarget: $maxUseTarget');
 
         var transitionMap = getTransitionMap(lastUseActor, lastUseTarget, maxUseTarget);
 

@@ -416,24 +416,58 @@ class WorldMap
 
         if(obj[0] != helper.dummyId())
         {
-            // TODO look who sets the dummy wrong
-            var objData = ObjectData.getObjectData(obj[0]);
+            WorldMap.world.mutex.acquire();
 
-            trace('WARNING: ${helper.tx},${helper.ty} object Id: ${obj[0]} ${objData.description} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id} ${helper.description}');
+            try
+            {
+                // test again after receiving mutex
+                var obj = getObjectId(helper.tx, helper.ty);
 
-            objectHelpers[index(helper.tx, helper.ty)] = null;
+                if(obj[0] != helper.dummyId())
+                {
+                    // TODO look who sets the dummy wrong
+                    var objData = ObjectData.getObjectData(obj[0]);
 
-            setObjectId(helper.tx, helper.ty, helper.toArray());
+                    trace('WARNING: ${helper.tx},${helper.ty} object Id: ${obj[0]} ${objData.description} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id} ${helper.description}');
+
+                    objectHelpers[index(helper.tx, helper.ty)] = null;
+
+                    setObjectId(helper.tx, helper.ty, helper.toArray());
+                }
+            }
+            catch(ex) trace(ex);
+
+            WorldMap.world.mutex.release();
         }
 
-        if((helper.numberOfUses == helper.objectData.numUses || helper.numberOfUses < 1) && helper.timeToChange == 0 && helper.containedObjects.length == 0 && helper.groundObject == null)
+        if(isHelperToBeDeleted(helper))
         {
-            //if(x != helper.tx || y != helper.ty) trace('REMOVE ObjectHelper $x,$y h${helper.tx},h${helper.ty} USES < 1 && timeToChange == 0 && containedObjects.length == 0 && groundObject == null');
-            objectHelpers[index(helper.tx, helper.ty)] = null;
+            WorldMap.world.mutex.acquire();
+
+            try
+            {
+                helper = getObjectHelper(helper.tx, helper.ty);
+
+                if(isHelperToBeDeleted(helper))
+                {
+                    // test again after receiving mutex
+                    //if(x != helper.tx || y != helper.ty) trace('REMOVE ObjectHelper $x,$y h${helper.tx},h${helper.ty} USES < 1 && timeToChange == 0 && containedObjects.length == 0 && groundObject == null');
+                    objectHelpers[index(helper.tx, helper.ty)] = null;
+                }
+            }
+            catch(ex) trace(ex);
+
+            WorldMap.world.mutex.release();
+
             return true;
         }
         
         return false;
+    }
+
+    public static function isHelperToBeDeleted(helper:ObjectHelper) : Bool
+    {
+        return ((helper.numberOfUses == helper.objectData.numUses || helper.numberOfUses < 1) && helper.timeToChange == 0 && helper.containedObjects.length == 0 && helper.groundObject == null);
     }
 
     public function getFloorId(x:Int, y:Int):Int
