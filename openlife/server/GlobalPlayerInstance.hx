@@ -13,7 +13,8 @@ import sys.thread.Mutex;
 
 using openlife.server.MoveHelper;
 
-class GlobalPlayerInstance extends PlayerInstance {
+class GlobalPlayerInstance extends PlayerInstance
+{
     // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
     public var heldObject:ObjectHelper; 
 
@@ -114,15 +115,18 @@ class GlobalPlayerInstance extends PlayerInstance {
     */
     public function self(x:Int, y:Int, clothingSlot:Int)
     {
+        var done = false;
+
         this.mutex.acquire();
 
         if(ServerSettings.debug)
         {
-            doSelf(x,y,clothingSlot);
+            done = doSelf(x,y,clothingSlot);
         }
         else{
-            try{
-                doSelf(x,y,clothingSlot);
+            try
+            {
+                done = doSelf(x,y,clothingSlot);
             }
             catch(e)
             {                
@@ -131,24 +135,27 @@ class GlobalPlayerInstance extends PlayerInstance {
         }
 
         // send always PU so that player wont get stuck
-        this.connection.send(PLAYER_UPDATE,[this.toData()]);
-        this.connection.send(FRAME);
+        if(done == false)
+        {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);
+            this.connection.send(FRAME);
+        }
 
         this.mutex.release();
     }    
 
-    private function doSelf(x:Int, y:Int, clothingSlot:Int)
+    private function doSelf(x:Int, y:Int, clothingSlot:Int) : Bool
     {
         trace('self: ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
         if(clothingSlot < 0)
         {
-            if(doEating(this,this)) return;
+            if(doEating(this,this)) return true;
         }
 
-        if(doSwitchCloths(this, this, clothingSlot)) return;
+        if(doSwitchCloths(this, this, clothingSlot)) return true;
 
-        doPlaceObjInClothing(clothingSlot);
+        return doPlaceObjInClothing(clothingSlot);
     }
 
     //UBABY x y i id#
@@ -166,15 +173,29 @@ class GlobalPlayerInstance extends PlayerInstance {
     */
     public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int)
     {
+        WorldMap.world.mutex.acquire();  // if both players at the same time try to interact with each other it could end up in a dead lock // TODO change
+
         this.mutex.acquire();
 
+        var targetPlayer = getPlayerAt(x,y, playerId);
+        var done = false;
+
+        if(targetPlayer == null)
+        {
+            trace('doOnOtherHelper: could not find target player!');
+        }
+
+        targetPlayer.mutex.acquire();        
+        
         if(ServerSettings.debug)
         {
-            doOnOtherHelper(x,y,clothingSlot, playerId);
+            done = doOnOtherHelper(x,y,clothingSlot, targetPlayer);
         }
-        else{
-            try{
-                doOnOtherHelper(x,y,clothingSlot, playerId);
+        else
+        {
+            try
+            {
+                done = doOnOtherHelper(x,y,clothingSlot, targetPlayer);
             }
             catch(e)
             {                
@@ -183,25 +204,23 @@ class GlobalPlayerInstance extends PlayerInstance {
         }
 
         // send always PU so that player wont get stuck
-        this.connection.send(PLAYER_UPDATE,[this.toData()]);
-        this.connection.send(FRAME);
+        if(done == false)
+        {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);
+            this.connection.send(FRAME);
+        }
 
+        if(targetPlayer != null) targetPlayer.mutex.release();
         this.mutex.release();
+        WorldMap.world.mutex.release(); 
     }
 
-    public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, playerId:Int) : Bool
+    public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, targetPlayer:GlobalPlayerInstance) : Bool
     {
-        trace('doOnOtherHelper: playerId: ${playerId} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
+        trace('doOnOtherHelper: playerId: ${targetPlayer.p_id} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
         // 838 Dont feed dam drugs! Wormless Soil Pit with Mushroom // 837 Psilocybe Mushroom
-        if(heldObject.objectData.isDrugs()) return false;
-
-        var targetPlayer = getPlayerAt(x,y, playerId);
-
-        if(targetPlayer == null)
-        {
-            trace('doOnOtherHelper: could not find target player!');
-        }
+        if(heldObject.objectData.isDrugs()) return false;        
 
         if(this.isClose(targetPlayer.tx() - this.gx , targetPlayer.ty() - this.gy) == false)
         {

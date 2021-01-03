@@ -120,52 +120,60 @@ class Connection implements ServerHeader
 
     public static function SendUpdateToAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true)
     {
-        player.MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed(); 
-
-        for (c in Server.server.connections)
+        try
         {
-            // since player has relative coordinates, transform them for player
-            var targetX = player.tx() - c.player.gx;
-            var targetY = player.ty() - c.player.gy;
+            player.MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed(); 
 
-            // update only close players
-            if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-            
-            try
+            for (c in Server.server.connections)
             {
-                c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)], isPlayerAction);
-                c.send(FRAME, null, isPlayerAction);
-            }
-            catch(ex)
-            {
-                trace(ex.details);
+                // since player has relative coordinates, transform them for player
+                var targetX = player.tx() - c.player.gx;
+                var targetY = player.ty() - c.player.gy;
+
+                // update only close players
+                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+                
+                try
+                {
+                    c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)], isPlayerAction);
+                    c.send(FRAME, null, isPlayerAction);
+                }
+                catch(ex)
+                {
+                    trace(ex.details);
+                }
             }
         }
+        catch(ex) trace(ex.details);
     }
 
     public static function SendMapUpdateToAllClosePlayers(tx:Int, ty:Int, obj:Array<Int>)
-    {       
-        var floorId = Server.server.map.getFloorId(tx,ty);
+    {    
+        try
+        {  
+            var floorId = Server.server.map.getFloorId(tx,ty);
 
-        for (c in Server.server.connections)
-        {
-            // since player has relative coordinates, transform them for player
-            var targetX = tx - c.player.gx;
-            var targetY = ty - c.player.gy;
+            for (c in Server.server.connections)
+            {
+                // since player has relative coordinates, transform them for player
+                var targetX = tx - c.player.gx;
+                var targetY = ty - c.player.gy;
 
-            // update only close players
-            if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-            
-            try
-            {
-                c.sendMapUpdate(targetX, targetY, floorId, obj, -1, false);
-                c.send(FRAME, null, false);
-            }
-            catch(ex)
-            {
-                trace(ex.details);
+                // update only close players
+                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+                
+                try
+                {
+                    c.sendMapUpdate(targetX, targetY, floorId, obj, -1, false);
+                    c.send(FRAME, null, false);
+                }
+                catch(ex)
+                {
+                    trace(ex.details);
+                }
             }
         }
+        catch(ex) trace(ex.details);
     }
 
     public function close()
