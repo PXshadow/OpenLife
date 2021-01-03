@@ -92,7 +92,7 @@ class ThreadServer
                 {
                     trace(e.details());
                     error("---STACK---\n" + e.details());
-                    connection.close();
+                    //connection.close();
                     continue;
                 }
             }
