@@ -56,18 +56,18 @@ import haxe.io.Bytes;
 @:enum abstract BiomeSpeed(Float) from Float to Float
 {
     public var SGREEN = 1;  
-    public var SSWAMP = 0.6;  
+    public var SSWAMP = 0.8;  
     public var SYELLOW = 1;
-    public var SGREY = 0.8; // TODO make fast with shoes
-    public var SSNOW = 0.8; // TODO make fast with shoes
-    public var SDESERT= 0.8; // TODO make fast for specialists 
-    public var SJUNGLE = 0.8;  // TODO make fast for specialists
-    public var SCBORDERJUNGLE = 0.8;  // TODO make fast for specialists
+    public var SGREY = 0.98; // TODO make fast with shoes
+    public var SSNOW = 0.98; // TODO make fast with shoes
+    public var SDESERT= 0.98; // TODO make fast for specialists 
+    public var SJUNGLE = 0.98;  // 0.8 TODO make fast for specialists
+    public var SCBORDERJUNGLE = 0.98;  // TODO make fast for specialists
 
     public var SSNOWINGREY = 0.01;
     public var SOCEAN = 0.01;  
     public var SRIVER = 0.01;
-    public var SPASSABLERIVER = 0.4;   
+    public var SPASSABLERIVER = 0.8;   
 }
 
 class WorldMap
