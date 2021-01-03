@@ -50,7 +50,7 @@ class TimeHelper
             {
                 averageSleepTime = Math.ceil(averageSleepTime / 200 * 1000) / 1000;
                 //trace('Ticks: ${TimeHelper.tick}');
-                trace('Connections: ${Server.server.connections.length} Time Counted From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime');
+                trace('Connections: ${Connection.getConnections().length} Time Counted From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime');
                 averageSleepTime = 0;
                 skipedTicks = 0;
 
@@ -102,7 +102,7 @@ class TimeHelper
 
         TimeHelper.lastTick = tick;  
 
-        for (connection in Server.server.connections)
+        for (connection in Connection.getConnections())
         {
             updateAge(connection, timePassedInSeconds);
 
@@ -483,7 +483,7 @@ class TimeHelper
         var ty = helper.ty;
 
         var tileObject = Server.server.map.getObjectId(tx, ty);
-        var floorId = Server.server.map.getFloorId(tx, ty);
+        //var floorId = Server.server.map.getFloorId(tx, ty);
 
         //trace('Time: tileObject: $tileObject');
 
@@ -522,7 +522,9 @@ class TimeHelper
         
         var newTileObject = helper.toArray();
 
-        for (c in Server.server.connections)
+        Connection.SendMapUpdateToAllClosePlayers(tx, ty, newTileObject);
+
+        /*for (c in Server.server.connections)
         {      
             var player = c.player;
             
@@ -536,6 +538,7 @@ class TimeHelper
             c.sendMapUpdate(x, y, floorId, newTileObject, -1, false);
             c.send(FRAME, null, false);
         }
+        */
     } 
 
     /*
@@ -675,14 +678,13 @@ class TimeHelper
                 helper.id = 0;
                 newTileObject = [0];
                 worldmap.setObjectHelper(toTx, toTy, helper);
-            }
-            
-            var floorIdTarget = Server.server.map.getFloorId(toTx, toTy);
-            var floorIdFrom = Server.server.map.getFloorId(fromTx, fromTy);
+            }       
 
             var speed = ServerSettings.InitialPlayerMoveSpeed * objectData.speedMult;
 
-            for (c in Server.server.connections) 
+            Connection.SendAnimalMoveUpdateToAllClosePlayers(fromTx, fromTy, toTx, toTy, oldTileObject, newTileObject, speed);
+
+            /*for (c in Server.server.connections) 
             {            
                 var player = c.player;
                 
@@ -697,9 +699,8 @@ class TimeHelper
 
                 c.sendMapUpdateForMoving(toX, toY, floorIdTarget, newTileObject, -1, fromX, fromY, speed);
                 c.sendMapUpdate(fromX, fromY, floorIdFrom, oldTileObject, -1, false);
-                //c.sendMapUpdate(fromX, fromY, floorId, [0], -1);
                 c.send(FRAME, null, false);
-            }
+            }*/
 
             return true;
         }

@@ -33,7 +33,7 @@ class Server
     public static var transitionImporter:TransitionImporter = new TransitionImporter();
 
     public var map:WorldMap; // THE WORLD
-    public var connections:Array<Connection> = [];
+    
    
 
     public var playerIndex:Int = 2; // used for giving new IDs to players // better start with 2 since -1 has other use in MX update

@@ -9,7 +9,10 @@ import haxe.io.Bytes;
 
 class Connection implements ServerHeader
 {
+    private static var connections:Array<Connection> = [];
+
     private var mutex = new Mutex();
+
 
     public var running:Bool = true;
     var sock:Socket;
@@ -81,7 +84,7 @@ class Connection implements ServerHeader
 
             if(ServerSettings.debug) Server.server.map.generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
             
-            server.connections.push(this);
+            connections.push(this);
 
             player = new GlobalPlayerInstance([]);
             player.connection = this;
@@ -116,6 +119,26 @@ class Connection implements ServerHeader
         this.mutex.release();
         server.map.mutex.release();
     }
+    
+    public static function getConnections() : Array<Connection>
+    {
+        return connections;
+    }
+
+    public static function getPlayerAt(x:Int, y:Int, playerId:Int) : GlobalPlayerInstance
+    {
+        for(c in connections)
+        {
+            if(c.player.p_id == playerId) return c.player;
+
+            if(playerId <= 0)
+            {
+                if(c.player.x == x && c.player.y == y) return c.player;
+            }
+        }
+
+        return null;
+    }
 
     public static function SendUpdateToAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true)
     {
@@ -123,7 +146,7 @@ class Connection implements ServerHeader
         {
             player.MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed(); // TODO better change, since it can mess with other threads
 
-            for (c in Server.server.connections)
+            for (c in connections)
             {
                 // since player has relative coordinates, transform them for player
                 var targetX = player.tx() - c.player.gx;
@@ -146,13 +169,42 @@ class Connection implements ServerHeader
         catch(ex) trace(ex.details);
     }
 
+    public static function SendTransitionUpdateToAllClosePlayers(player:GlobalPlayerInstance, tx:Int, ty:Int, newFloorId:Int, newTileObject:Array<Int>, doTransition:Bool, isPlayerAction:Bool = true)
+    {
+        try
+        {
+            for (c in connections) 
+            {
+                // since player has relative coordinates, transform them for player
+                var targetX = tx - c.player.gx;
+                var targetY = ty - c.player.gy;
+
+                // update only close players
+                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+
+                c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)]);
+                
+                if(doTransition)
+                {
+                    c.sendMapUpdate(targetX, targetY, newFloorId, newTileObject, (-1) * player.p_id);
+                }
+                else
+                {
+                    c.sendMapUpdate(targetX, targetY, newFloorId, newTileObject, player.p_id);
+                }
+                
+                c.send(FRAME);
+            }
+        } catch(ex) trace(ex.details);
+    }
+
     public static function SendMapUpdateToAllClosePlayers(tx:Int, ty:Int, obj:Array<Int>)
     {    
         try
         {  
             var floorId = Server.server.map.getFloorId(tx,ty);
 
-            for (c in Server.server.connections)
+            for (c in connections)
             {
                 // since player has relative coordinates, transform them for player
                 var targetX = tx - c.player.gx;
@@ -175,6 +227,64 @@ class Connection implements ServerHeader
         catch(ex) trace(ex.details);
     }
 
+    public static function SendAnimalMoveUpdateToAllClosePlayers(fromTx:Int, fromTy:Int, toTx:Int, toTy:Int, fromObj:Array<Int>, toObj:Array<Int>, speed:Float)
+    {    
+        try
+        {  
+            var floorIdTarget = Server.server.map.getFloorId(toTx, toTy);
+            var floorIdFrom = Server.server.map.getFloorId(fromTx, fromTy);
+
+            for (c in connections) 
+            {            
+                var player = c.player;
+                
+                // since player has relative coordinates, transform them for player
+                var fromX = fromTx - player.gx;
+                var fromY = fromTy - player.gy;
+                var toX = toTx - player.gx;
+                var toY = toTy - player.gy;
+
+                // update only close players
+                if(player.isClose(toX,toY, ServerSettings.maxDistanceToBeConsideredAsClose) == false && player.isClose(fromX,fromY, ServerSettings.maxDistanceToBeConsideredAsClose)) continue;
+
+                c.mutex.acquire(); // do all in one frame
+
+                c.sendMapUpdate(fromX, fromY, floorIdFrom, fromObj, -1, false);
+                c.sendMapUpdateForMoving(toX, toY, floorIdTarget, toObj, -1, fromX, fromY, speed);
+                c.send(FRAME, null, false);
+
+                c.mutex.release();
+            }
+        }
+        catch(ex) trace(ex.details);
+    }
+
+    public static function SendMoveUpdateToAllClosePlayers(player:GlobalPlayerInstance, totalMoveTime:Float, trunc:Int, moveString:String, isPlayerAction:Bool = true)
+    {
+        var eta = totalMoveTime; // TODO change???
+
+        try
+        {
+            for (c in connections) 
+            {
+                // since player has relative coordinates, transform them for player
+                var targetX = player.tx() - c.player.gx;
+                var targetY = player.ty() - c.player.gy;
+
+                //var targetX = x + p.gx - c.player.gx;
+                //var targetY = y + p.gy - c.player.gy;
+
+                // update only close players
+                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+
+                c.send(PLAYER_MOVES_START,['${player.p_id} ${targetX} ${targetY} ${totalMoveTime} $eta ${trunc} ${moveString}']);
+                
+                c.send(FRAME);
+            }
+        } 
+        catch(ex) trace(ex.details);
+    }
+
     public function close()
     {
         WorldMap.world.mutex.acquire(); // TODO change
@@ -182,7 +292,7 @@ class Connection implements ServerHeader
 
         try
         {
-            server.connections.remove(this);
+            connections.remove(this);
             running = false;
             sock.close();
         }
@@ -214,13 +324,13 @@ class Connection implements ServerHeader
         {
             var curse = 0;
             var id = player.p_id;
-            for (c in server.connections)
+            for (c in connections)
             {
                 // TODO why send movement ???
-                c.send(PLAYER_MOVES_START,[
+                /*c.send(PLAYER_MOVES_START,[
                     "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
                     "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
-                ]);
+                ]);*/
                 c.send(PLAYER_SAYS,['$id/$curse $text']);
                 c.send(FRAME);
             }
@@ -310,10 +420,10 @@ class Connection implements ServerHeader
 
         try
         {
-            for (c in server.connections)
+            for (c in connections)
             {
-                c.send(FRAME);
                 c.send(PLAYER_EMOT,['${player.p_id} $id']);
+                c.send(FRAME);
             }
         }
         catch(ex) trace(ex.details);

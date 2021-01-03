@@ -240,17 +240,7 @@ class GlobalPlayerInstance extends PlayerInstance
 
     public static function getPlayerAt(x:Int, y:Int, playerId:Int) : GlobalPlayerInstance
     {
-        for(c in Server.server.connections)
-        {
-            if(c.player.p_id == playerId) return c.player;
-
-            if(playerId <= 0)
-            {
-                if(c.player.x == x && c.player.y == y) return c.player;
-            }
-        }
-
-        return null;
+        return Connection.getPlayerAt(x,y,playerId);
     }
 
     /*

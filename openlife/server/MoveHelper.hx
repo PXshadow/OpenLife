@@ -334,26 +334,10 @@ class MoveHelper
 
                 p.connection.send(PLAYER_UPDATE,[p.toData()]);
 
-                //WorldMap.world.mutex.acquire(); // TODO change
-                
-                try
-                {
-                    for (c in Server.server.connections) 
-                    {
-                        var targetX = x + p.gx - c.player.gx;
-                        var targetY = y + p.gy - c.player.gy;
+                //c.send(PLAYER_MOVES_START,['${player.p_id} ${targetX} ${targetY} ${player.moveHelper.totalMoveTime} $eta ${newMovements.trunc} ${player.moveHelper.moveString(player.moveHelper.newMoves)}']);
 
-                        // update only close players
-                        if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+                Connection.SendMoveUpdateToAllClosePlayers(p, moveHelper.totalMoveTime, newMovements.trunc, moveString(moveHelper.newMoves));
 
-                        c.send(PLAYER_MOVES_START,['${p.p_id} ${targetX} ${targetY} ${moveHelper.totalMoveTime} $eta ${newMovements.trunc} ${moveString(moveHelper.newMoves)}']);
-                        
-                        c.send(FRAME);
-                    }
-                } 
-                catch(ex) trace(ex.details);
-
-                //WorldMap.world.mutex.release();
             }
             catch(ex)
             {

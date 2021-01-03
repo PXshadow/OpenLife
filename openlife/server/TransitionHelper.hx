@@ -793,27 +793,7 @@ class TransitionHelper{
 
         player.SetTransitionData(this.x,this.y, this.pickUpObject);
 
-        for (c in Server.server.connections) 
-        {
-            // since player has relative coordinates, transform them for player
-            var targetX = this.tx - c.player.gx;
-            var targetY = this.ty - c.player.gy;
-
-            // update only close players
-            if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-
-            c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)]);
-            
-            if(this.doAction){
-                if(this.doTransition){
-                    c.sendMapUpdate(targetX, targetY, this.newFloorId, newTileObject, (-1) * player.p_id);
-                }
-                else{
-                    c.sendMapUpdate(targetX, targetY, this.newFloorId, newTileObject, player.p_id);
-                }
-            }
-            c.send(FRAME);
-        }
+        Connection.SendTransitionUpdateToAllClosePlayers(player, tx, ty, newFloorId, newTileObject, doTransition);
 
         player.action = 0;
 
