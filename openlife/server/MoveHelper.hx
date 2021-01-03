@@ -1,20 +1,22 @@
 package openlife.server;
-import haxe.xml.Parser;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.ObjectData;
-import haxe.Serializer;
 import openlife.settings.ServerSettings;
-import openlife.data.object.player.PlayerInstance;
 import openlife.data.Pos;
 
 //@:multiReturn extern class NewMovements {
-private class NewMovements {
+private class NewMovements
+{
     public var moves:Array<Pos> = [];
+
     public var length:Float;
+
     // biome speed of starting Tile
     public var startSpeed:Float;
+
     // biome speed of last Movement Tile
     public var endSpeed:Float;
+
     // complete speed of last Movement Tile
     public var finalSpeed:Float;
 
@@ -29,7 +31,8 @@ private class NewMovements {
 }
 
 
-class MoveHelper{
+class MoveHelper
+{
 
     // x,y when last chunk was send
     private var tx:Int = 0;
@@ -41,49 +44,53 @@ class MoveHelper{
     private var totalMoveTime:Float = 0;
     private var startingMoveTicks:Float = 0;
 
-    public function new(){
-    }
+    public function new(){}
 
-    public function isMoveing():Bool{    
+    public function isMoveing():Bool
+    {    
         return (this.newMoves != null);
     }
 
     static public function calculateSpeed(p:GlobalPlayerInstance, tx:Int, ty:Int, fullPathHasRoad:Bool = true) : Float
     {
-        var map =  Server.server.map;
-
         // TODO reduce speed for buckets depending on how full they are
 
+        var map =  Server.server.map;
         var onHorseOrCar = p.heldObject.objectData.speedMult >= 1.1;
         var speed = ServerSettings.InitialPlayerMoveSpeed;
-
-        speed *= ServerSettings.SpeedFactor; // used to increase speed if for example debuging
-
-        // DO floors / road
         var floorObjData = ObjectData.getObjectData(map.getFloorId(tx,ty));
         var floorSpeed = floorObjData.speedMult;
-        
-        if(fullPathHasRoad == false) floorSpeed = 1; // only consider road if the pull path is on road
-
         var onRoad = false;
-        var hasBothShoes = p.hasBothShoes();
+        var hasBothShoes = p.hasBothShoes();        
 
         if(ServerSettings.DebugSpeed) trace('speed: hasBothShoes: $hasBothShoes');
+
         if(hasBothShoes && onHorseOrCar == false) speed *= 1.1;
+
+        if(fullPathHasRoad == false) floorSpeed = 1; // only consider road if the pull path is on road
+
+        onRoad = floorSpeed >= 1.01; // only give road speed boni if full path is on road
         
-        // only give road speed boni if full path is on road
-        onRoad = floorSpeed >= 1.01;
+        speed *= ServerSettings.SpeedFactor; // used to increase speed if for example debuging
+
         speed *= floorSpeed;
+
+
 
         // DO biomes
         var biomeSpeed = map.getBiomeSpeed(tx,ty);  
+
         // road reduces speed mali of bad biome with sqrt 
         if(onRoad && biomeSpeed < 0.99) biomeSpeed = 1; //biomeSpeed = Math.sqrt(biomeSpeed);
+
         speed *= biomeSpeed;
-        
+
+
+
+        // DO speed held objects
         var speedModHeldObj = p.heldObject.objectData.speedMult;
-        // horses and cars are bad in bad biome // TODO only if not on a road
-        if(biomeSpeed < 0.9 && speedModHeldObj > 1)
+
+        if(biomeSpeed < 0.9 && speedModHeldObj > 1) // horses and cars are bad in bad biome 
         {
             if(speedModHeldObj > 2.50) speedModHeldObj = 0.5; // super speedy stuff like cars
             else if(speedModHeldObj > 1.8) speedModHeldObj = 0.8; // for example horse
@@ -95,11 +102,13 @@ class MoveHelper{
         if(onRoad && speedModHeldObj < 0.99) speedModHeldObj = Math.sqrt(speedModHeldObj); // on road
         speed *= speedModHeldObj;
 
-        // TODO obj in backpack
+
+
+        // DO speed contained objects
         // TODO half penalty for strong 
         var containedObjSpeedMult:Float = 1;
-
         var backpack = p.getPackpack();
+
         for(obj in backpack.containedObjects)
         {
             containedObjSpeedMult *= calculateObjSpeedMult(obj);             
@@ -119,20 +128,26 @@ class MoveHelper{
         }
 
         if(biomeSpeed < 0.9 && onRoad == false) containedObjSpeedMult *= containedObjSpeedMult; // in bad biome and off road double mali
+
         if(onRoad && containedObjSpeedMult < 0.99) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult); // on road
+
         if(onHorseOrCar && containedObjSpeedMult < 0.99) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult); // on horse / in car // TODO or strong
 
         if(containedObjSpeedMult < 1 && ServerSettings.DebugSpeed) trace('Speed: containedObjSpeedMult ${containedObjSpeedMult}');
 
         speed *= containedObjSpeedMult;
 
-        // only reduce speed when starving if not riding or in car 
-        if(p.food_store < 0 && onHorseOrCar == false)
+
+
+        // DO starving speed
+        if(p.food_store < 0 && onHorseOrCar == false) // only reduce speed when starving if not riding or in car 
         {
             if(p.yum_multiplier > 0) speed *= ServerSettings.StarvingToDeathMoveSpeedFactorWhileHealthAboveZero;
             else speed *= ServerSettings.StarvingToDeathMoveSpeedFactor;
         }
 
+
+        // Do health speed
         var healthFactor = p.CalculateHealthFactor(true);
 
         if(ServerSettings.DebugSpeed) trace('speed: healthFactor: $healthFactor health: ${p.yum_multiplier} trueAge: ${p.trueAge} expected health: ${p.trueAge  * ServerSettings.MinHealthPerYear}');
@@ -141,7 +156,9 @@ class MoveHelper{
 
         var ageSpeedFactor:Float = 1;
 
-        // may not be needed, since speed is slowed down because of bad YUM / health in the beginning
+
+        
+        // Do age speed
         if(p.age < 1) ageSpeedFactor = 0.5;
         else if(p.age < 2) ageSpeedFactor = 0.6; 
         else if(p.age < 3) ageSpeedFactor = 0.7;
