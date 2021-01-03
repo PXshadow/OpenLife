@@ -173,19 +173,30 @@ class GlobalPlayerInstance extends PlayerInstance
     */
     public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int)
     {
-        WorldMap.world.mutex.acquire();  // if both players at the same time try to interact with each other it could end up in a dead lock // TODO change
-
-        this.mutex.acquire();
-
         var targetPlayer = getPlayerAt(x,y, playerId);
+
         var done = false;
 
         if(targetPlayer == null)
         {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);
+
             trace('doOnOtherHelper: could not find target player!');
+
+            return;
         }
 
-        targetPlayer.mutex.acquire();        
+        this.mutex.acquire();
+
+        // make sure that if both players at the same time try to interact with each other it does not end up in a dead lock 
+        while(targetPlayer.mutex.tryAcquire() == false)
+        {
+            this.mutex.release();
+
+            Sys.sleep(WorldMap.calculateRandomFloat() / 5);
+
+            this.mutex.acquire();
+        }        
         
         if(ServerSettings.debug)
         {
@@ -212,7 +223,6 @@ class GlobalPlayerInstance extends PlayerInstance
 
         if(targetPlayer != null) targetPlayer.mutex.release();
         this.mutex.release();
-        WorldMap.world.mutex.release(); 
     }
 
     public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, targetPlayer:GlobalPlayerInstance) : Bool
