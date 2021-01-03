@@ -9,6 +9,7 @@ import haxe.io.Bytes;
 
 class Connection implements ServerHeader
 {
+    private static var globalMutex = new Mutex();
     private static var connections:Array<Connection> = [];
 
     private var mutex = new Mutex();
@@ -74,18 +75,15 @@ class Connection implements ServerHeader
 
     public function login()
     {
-        // TODO choose better mutex
-        server.map.mutex.acquire();
-        this.mutex.acquire();
+        //server.map.mutex.acquire();
+        //this.mutex.acquire();
 
         try
         {
             send(ACCEPTED);
 
             if(ServerSettings.debug) Server.server.map.generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
-            
-            connections.push(this);
-
+                   
             player = new GlobalPlayerInstance([]);
             player.connection = this;
             var id = server.playerIndex++;
@@ -103,21 +101,23 @@ class Connection implements ServerHeader
             trace("login: move_speed: " + player.move_speed);
 
             sendMapChunk(0,0);
-
-            SendUpdateToAllClosePlayers(player);
             
             send(LINEAGE,['$id eve=$id']);
             send(TOOL_SLOTS,["0 1000"]);
             player.sendFoodUpdate();
-            send(FRAME);
+
+            addToConnections();
+
+            // send PU and FRAME also to the connection --> therefore make sure that addToConnections is called first 
+            SendUpdateToAllClosePlayers(player); 
         }
         catch(ex)
         {
             trace(ex.details);
         }
 
-        this.mutex.release();
-        server.map.mutex.release();
+        //this.mutex.release();
+        //server.map.mutex.release();
     }
     
     public static function getConnections() : Array<Connection>
@@ -154,19 +154,13 @@ class Connection implements ServerHeader
 
                 // update only close players
                 if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-                
-                try
-                {
-                    c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)], isPlayerAction);
-                    c.send(FRAME, null, isPlayerAction);
-                }
-                catch(ex)
-                {
-                    trace(ex.details);
-                }
+
+                c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)], isPlayerAction);
+                c.send(FRAME, null, isPlayerAction);
+
             }
         }
-        catch(ex) trace(ex.details);
+        catch(ex) trace(ex);
     }
 
     public static function SendTransitionUpdateToAllClosePlayers(player:GlobalPlayerInstance, tx:Int, ty:Int, newFloorId:Int, newTileObject:Array<Int>, doTransition:Bool, isPlayerAction:Bool = true)
@@ -195,7 +189,7 @@ class Connection implements ServerHeader
                 
                 c.send(FRAME);
             }
-        } catch(ex) trace(ex.details);
+        } catch(ex) trace(ex);
     }
 
     public static function SendMapUpdateToAllClosePlayers(tx:Int, ty:Int, obj:Array<Int>)
@@ -220,11 +214,11 @@ class Connection implements ServerHeader
                 }
                 catch(ex)
                 {
-                    trace(ex.details);
+                    trace(ex);
                 }
             }
         }
-        catch(ex) trace(ex.details);
+        catch(ex) trace(ex);
     }
 
     public static function SendAnimalMoveUpdateToAllClosePlayers(fromTx:Int, fromTy:Int, toTx:Int, toTy:Int, fromObj:Array<Int>, toObj:Array<Int>, speed:Float)
@@ -256,7 +250,7 @@ class Connection implements ServerHeader
                 c.mutex.release();
             }
         }
-        catch(ex) trace(ex.details);
+        catch(ex) trace(ex);
     }
 
     public static function SendMoveUpdateToAllClosePlayers(player:GlobalPlayerInstance, totalMoveTime:Float, trunc:Int, moveString:String, isPlayerAction:Bool = true)
@@ -282,27 +276,62 @@ class Connection implements ServerHeader
                 c.send(FRAME);
             }
         } 
-        catch(ex) trace(ex.details);
+        catch(ex) trace(ex);
+    }
+
+    private function addToConnections()
+    {
+        globalMutex.acquire();
+
+        // it copies the connection array to be thread save 
+        // other threads should meanwhile be able to iterate on connections. 
+        var newConnections = [];
+
+        newConnections.push(this);
+
+        for(c in connections)
+        {
+            newConnections.push(c);
+        }
+
+        connections = newConnections; 
+
+        globalMutex.release();
     }
 
     public function close()
     {
-        WorldMap.world.mutex.acquire(); // TODO change
         this.mutex.acquire();
+
+        globalMutex.acquire();
 
         try
         {
-            connections.remove(this);
+            // it copies the connection array to be thread save 
+            // other threads should meanwhile be able to iterate on connections. replaces: //connections.remove(this);
+            var newConnections = [];
+
+            for(c in connections)
+            {
+                if(c == this) continue;
+
+                newConnections.push(c);
+            }
+
+            connections = newConnections; 
+
+            
             running = false;
             sock.close();
         }
         catch(ex)
         {
-            trace(ex.details);
+            trace(ex);
         }
 
+        globalMutex.release();
+
         this.mutex.release();
-        WorldMap.world.mutex.release();
     }
     
     public function keepAlive()
@@ -337,7 +366,7 @@ class Connection implements ServerHeader
         }
         catch(ex)
         {
-            trace(ex.details);
+            trace(ex);
         }
 
         this.mutex.release();
@@ -368,7 +397,7 @@ class Connection implements ServerHeader
         }
         catch(ex)
         {
-            trace(ex.details);
+            trace(ex);
         }
 
         this.mutex.release();
@@ -395,7 +424,7 @@ class Connection implements ServerHeader
         }
         catch(ex)
         {
-            trace(ex.details);
+            trace(ex);
         }
 
         this.mutex.release();
@@ -409,7 +438,7 @@ class Connection implements ServerHeader
         {
             send(MAP_CHANGE,['$toX $toY $newFloorId ${MapData.stringID(newObjectId)} $playerId $fromX $fromY $speed'], false);
         }
-        catch(ex) trace(ex.details);
+        catch(ex) trace(ex);
 
         this.mutex.release();
     }
@@ -426,7 +455,7 @@ class Connection implements ServerHeader
                 c.send(FRAME);
             }
         }
-        catch(ex) trace(ex.details);
+        catch(ex) trace(ex);
 
         this.mutex.release();
     }
@@ -440,9 +469,11 @@ class Connection implements ServerHeader
     {
         this.mutex.acquire();
 
+        var string = "";
+
         try 
         {
-            var string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
+            string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
             sock.output.writeString(string);
 
             //if(ServerSettings.TraceSend && tag != MAP_CHANGE && tag != FRAME)
@@ -451,9 +482,12 @@ class Connection implements ServerHeader
                 var tmpString = StringTools.replace(string, "\n", "\t");
                 trace("Send: " + tmpString);
             }
-
         }
-        catch(ex) trace(ex.details);
+        catch(ex)
+        {
+            var tmpString = StringTools.replace(string, "\n", "\t");
+            trace('WARNING Send: $tmpString ' + ex);
+        }
 
         this.mutex.release();
     }
@@ -472,7 +506,7 @@ class Connection implements ServerHeader
         }
         catch(ex)
         {
-            trace(ex.details);
+            trace(ex);
         }
 
         this.mutex.release();
@@ -489,7 +523,7 @@ class Connection implements ServerHeader
         }
         catch(ex)
         {
-            trace(ex.details);
+            trace(ex);
         }
 
         this.mutex.release();

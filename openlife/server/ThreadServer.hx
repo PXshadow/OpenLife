@@ -59,7 +59,7 @@ class ThreadServer
 
                 if (e != haxe.io.Error.Blocked)
                 {
-                    if(e == Eof)
+                    if('$e' == 'Eof')
                     {
                         trace('Client closed connection / EOF');
                     }
