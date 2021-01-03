@@ -37,7 +37,7 @@ class GlobalPlayerInstance extends PlayerInstance
     public var yum_bonus:Float = 0;
     public var yum_multiplier:Float = 0;
 
-    var hasEatenMap = new Map<Int, Int>();
+    var hasEatenMap = new Map<Int, Float>();
 
     // craving
     var currentlyCraving:Int = 0;
@@ -340,7 +340,7 @@ class GlobalPlayerInstance extends PlayerInstance
 
         if(isSuperMeh == false)
         {
-            playerTo.hasEatenMap[heldObjData.id] += 1;
+            playerTo.hasEatenMap[heldObjData.id] += ServerSettings.FoodReductionPerEating;
             playerTo.doIncreaseFoodValue(heldObjData.id);
         }
 
@@ -486,7 +486,7 @@ class GlobalPlayerInstance extends PlayerInstance
         
         if(key != eatenFoodId && WorldMap.calculateRandomFloat() < ServerSettings.YumFoodRestore)
         {
-            hasEatenMap[key] -= 1;
+            hasEatenMap[key] -= ServerSettings.FoodReductionPerEating;
             newHasEatenCount = hasEatenMap[key];
             trace('IncreaseFoodValue: craving: hasEaten YES!!!: key: $key, ${newHasEatenCount}');
 
