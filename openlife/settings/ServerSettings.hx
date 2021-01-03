@@ -180,6 +180,10 @@ class ServerSettings
         ObjectData.getObjectData(197).foodValue = 18; // Cooked Rabbit 10 --> 18
         ObjectData.getObjectData(2190).foodValue = 24; // Turkey Slice on Plate 17 --> 24
         ObjectData.getObjectData(1285).foodValue = 18; // Omelette 12 --> 18
+
+        ObjectData.getObjectData(518).useChance = 0.3; // Cooked Goose
+
+         
         
 
         //trace('Insulation: ${ObjectData.getObjectData(128).getInsulation()}'); // Redd Skirt
@@ -193,6 +197,8 @@ class ServerSettings
         //trace('Patch: ${ObjectData.getObjectData(942).description}');
         //if (obj.deadlyDistance > 0)
         //    obj.mapChance *= 0;  
+
+
     }
 
     public static function PatchTransitions(transtions:TransitionImporter)        
@@ -260,6 +266,8 @@ class ServerSettings
         trans = transtions.getTransition(-1, 122); 
         trans.newTargetID = 121; // 121 = Tule Reeds
         trans.traceTransition("PatchTransitions: ");
+
+
 
         // 141 Canada Goose Pond
         //1261 Canada Goose Pond with Egg // TODO let egg come back
@@ -445,3 +453,18 @@ class ServerSettings
         //trace('Read Test: YumBonus: $YumBonus');
     }
 }
+
+/**Actor Category: 1641 @ Deadly Wolf
+ Trans: 1640 + 0 = 427 + 1363 
+Semi-tame Wolf# just fed 
+ + Empty  
+ --> Attacking Wolf
+ + Bite Wound
+
+Actor Category: 1641 @ Deadly Wolf
+ Trans: 1630 + 0 = 427 + 1363 
+ Semi-tame Wolf
+ + Empty  
+ --> Attacking Wolf
+ + Bite Wound
+ **/

@@ -59,6 +59,7 @@ Objects:
 - Cooked Rabbit Food Value: 10 --> 18
 - Turkey Slice on Plate Food Value: 17 --> 24
 - Omelette Food Value: 12 --> 18
+- Cooked Goose: useChance = 0.3;
 
 Transitions:
 - you can harvest Berries directly with a bowl
