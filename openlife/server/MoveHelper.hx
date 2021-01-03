@@ -1,4 +1,5 @@
 package openlife.server;
+import haxe.xml.Parser;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.ObjectData;
 import haxe.Serializer;
@@ -169,47 +170,53 @@ class MoveHelper{
         return Math.max(0.6, Math.min(ServerSettings.MinSpeedReductionPerContainedObj, obj.objectData.speedMult)); 
     }
 
+    /**
+        Check if movement arrived on destination and if so update all players  
+    **/
     static public function updateMovement(p:GlobalPlayerInstance)
     {
         var moveHelper = p.moveHelper;
-        // check if movement arrived on destination and if so update all players  
-        //var server = Server.server;
-        var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.startingMoveTicks);
 
         if(moveHelper.newMoves == null) return;
+        
+        var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.startingMoveTicks);
 
-        /*
-        if(server.tick % 60 == 0){
-            trace("Ticks: " + server.tick);
-            trace("timeSinceStartMovementInSec: " + timeSinceStartMovementInSec);
-            trace("totalMoveTime: " + me.totalMoveTime);
-        }
-        */
+        timeSinceStartMovementInSec *= ServerSettings.LetTheClientCheatLittleBitFactor;
 
-        if(timeSinceStartMovementInSec >= moveHelper.totalMoveTime){
-
+        if(timeSinceStartMovementInSec >= moveHelper.totalMoveTime)
+        {
             // a new move or command might also change the player data
             p.mutex.acquire(); 
+            WorldMap.world.mutex.acquire(); // make sure that no other threat uses connections TODO change
 
-            var last = moveHelper.newMoves.pop(); 
-            moveHelper.totalMoveTime = 0;
-            moveHelper.startingMoveTicks = 0;
-            moveHelper.newMoves = null;
+            if(moveHelper.newMoves == null){p.mutex.release();  return;} // to be sure that meanwhile no other thread messed around
+
+            try
+            {
+                var last = moveHelper.newMoves.pop(); 
+                moveHelper.totalMoveTime = 0;
+                moveHelper.startingMoveTicks = 0;
+                moveHelper.newMoves = null;
+                    
+                p.x += last.x; 
+                p.y += last.y;
                 
-            p.x += last.x; 
-            p.y += last.y;
-            
-            p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
-            p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
-            //this.forced = true;
+                p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
+                p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
 
-            trace('reached position: ${p.x},${p.y}');
-            
-            //trace("forced: " + p.forced);
+                //p.forced = true; // TODO try out
 
-            Connection.SendUpdateToAllClosePlayers(p);
+                Connection.SendUpdateToAllClosePlayers(p);
+            }
+            catch(ex)
+            {
+                trace(ex.details);
+            }
 
             p.mutex.release();
+            WorldMap.world.mutex.release();
+
+            trace('reached position: ${p.x},${p.y}');
         }
     }
 

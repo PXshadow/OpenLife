@@ -88,6 +88,7 @@ class ServerSettings
     public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed factor X
     public static var MinSpeedReductionPerContainedObj = 0.96;
     
+    public static var LetTheClientCheatLittleBitFactor = 1.1; // when considering if the position is reached, allow the client to cheat little bit, so there is no lag
     // TODO FIX this can make jumps if too small / ideally this should be 0 so that the client cannot cheat while moving
     public static var MaxMovementCheatingDistanceBeforeForce = 2; // if client player position is bigger then X, client is forced in PU to use server position 
     public static var ChanceThatAnimalsCanPassBlockingBiome = 0.05;
