@@ -113,7 +113,12 @@ class TransitionImporter
     public function getTrans(actor:ObjectHelper, target:ObjectHelper):TransitionData
     {
         // actor last use is handled through actor + -1 = newActor + 0 transitions
-        return getTransition(actor.parentId, target.parentId, false, target.isLastUse());
+        var transition = getTransition(actor.parentId, target.parentId, false, target.isLastUse());
+
+        // 58 + 139 // thread + skwer --> skewer does not seem to have a last use transtion, so if none found, 
+        if(transition == null) transition = getTransition(actor.parentId, target.parentId, false, false); // this might make errors... 
+
+        return transition;
     }
 
     public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false, maxUseTarget:Bool=false):TransitionData
