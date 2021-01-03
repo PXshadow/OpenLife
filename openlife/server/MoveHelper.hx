@@ -208,7 +208,7 @@ class MoveHelper
             
             if(moveHelper.newMoves == null){p.mutex.release();  return;} // to be sure that meanwhile no other thread messed around
 
-            WorldMap.world.mutex.acquire(); // make sure that no other threat uses connections TODO change
+            //WorldMap.world.mutex.acquire(); // make sure that no other threat uses connections TODO change
 
             try
             {
@@ -233,7 +233,7 @@ class MoveHelper
             }
 
             p.mutex.release();
-            WorldMap.world.mutex.release();
+            //WorldMap.world.mutex.release();
 
             trace('reached position: ${p.x},${p.y}');
         }
@@ -334,7 +334,7 @@ class MoveHelper
 
                 p.connection.send(PLAYER_UPDATE,[p.toData()]);
 
-                WorldMap.world.mutex.acquire(); // TODO change
+                //WorldMap.world.mutex.acquire(); // TODO change
                 
                 try
                 {
@@ -353,7 +353,7 @@ class MoveHelper
                 } 
                 catch(ex) trace(ex.details);
 
-                WorldMap.world.mutex.release();
+                //WorldMap.world.mutex.release();
             }
             catch(ex)
             {
