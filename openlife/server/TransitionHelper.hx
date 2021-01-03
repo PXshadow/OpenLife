@@ -164,7 +164,13 @@ class TransitionHelper{
             return false; 
         }
 
-        if(player.isClose(x,y) == false) {
+        var useDistance = player.heldObject.objectData.useDistance;
+
+        if(useDistance < 1) useDistance = 1;
+
+        trace('TRANS: ${player.heldObject.description} useDistance: $useDistance');
+
+        if(player.isClose(x,y, useDistance) == false) {
             trace('Object position is too far away p${player.x},p${player.y} o$x,o$y');
             return false; 
         }
