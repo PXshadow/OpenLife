@@ -31,7 +31,10 @@ class ObjectData extends LineReader
     public static var foodObjects:Array<ObjectData> = [];
 
     // to store the different persons
+    // person ==> 4 = White / Brown = 3 / Ginger = 6 / Black = 1  
     public static var personObjectData:Array<ObjectData> = [];
+    public static var maleByRaceObjectData:Map<Int, Array<ObjectData>> = [];
+    public static var femaleByRaceObjectData:Map<Int, Array<ObjectData>> = [];
 
     /**
     * Toolset record set
@@ -1126,14 +1129,29 @@ class ObjectData extends LineReader
 
     public static function CreatePersonArray()
     {
+        personObjectData = [];
+        maleByRaceObjectData = new Map<Int, Array<ObjectData>>();
+        femaleByRaceObjectData = new Map<Int, Array<ObjectData>>();
+
         for(obj in ObjectData.importedObjectData)
         {
             if(obj.person == 0) continue;
 
             personObjectData.push(obj);
 
-            //trace('${obj.description} Id: ${obj.parentId} P: ${obj.person}');
+            var personByRace = obj.male ? maleByRaceObjectData : femaleByRaceObjectData;
+
+            var race = personByRace[obj.person];
+
+            if(race == null)
+            {
+                race = [];
+                personByRace[obj.person] = race; 
+            }
+
+            race.push(obj);
+
+            //trace('${obj.description} Id: ${obj.parentId} P: ${obj.person} race-length: ${race.length}');
         }
     } 
 }
-
