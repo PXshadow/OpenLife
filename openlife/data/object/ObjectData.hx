@@ -1137,6 +1137,8 @@ class ObjectData extends LineReader
         {
             if(obj.person == 0) continue;
 
+            if(obj.description.indexOf('Jason') != -1) continue;
+
             personObjectData.push(obj);
 
             var personByRace = obj.male ? maleByRaceObjectData : femaleByRaceObjectData;
