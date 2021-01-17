@@ -34,7 +34,6 @@ private class NewMovements
 
 class MoveHelper
 {
-
     // x,y when last chunk was send
     private var tx:Int = 0;
     private var ty:Int = 0;
@@ -77,21 +76,19 @@ class MoveHelper
         speed *= floorSpeed;
 
 
-
         // DO biomes
         var biomeSpeed = map.getBiomeSpeed(tx,ty);  
 
-        // road reduces speed mali of bad biome with sqrt 
+        // road reduces speed mali of bad biome
         if(onRoad && biomeSpeed < 0.99) biomeSpeed = 1; //biomeSpeed = Math.sqrt(biomeSpeed);
 
         speed *= biomeSpeed;
 
 
-
         // DO speed held objects
         var speedModHeldObj = p.heldObject.objectData.speedMult;
 
-        if(biomeSpeed < 0.9 && speedModHeldObj > 1) // horses and cars are bad in bad biome 
+        if(biomeSpeed < 0.999 && speedModHeldObj > 1) // horses and cars are bad in bad biome 
         {
             if(speedModHeldObj > 2.50) speedModHeldObj = 0.5; // super speedy stuff like cars
             else if(speedModHeldObj > 1.8) speedModHeldObj = 0.8; // for example horse
@@ -102,7 +99,6 @@ class MoveHelper
         
         if(onRoad && speedModHeldObj < 0.99) speedModHeldObj = Math.sqrt(speedModHeldObj); // on road
         speed *= speedModHeldObj;
-
 
 
         // DO speed contained objects
@@ -371,6 +367,7 @@ class MoveHelper
         // if path has a biome with different speed, path is trunced if movement is not on a road
         static private function calculateNewMovements(p:GlobalPlayerInstance, tx:Int,ty:Int,moves:Array<Pos>):NewMovements 
         {
+            var truncMovementSpeedDiff = 0.1;
             var newMovements:NewMovements = new NewMovements();
             var map = Server.server.map;
             var lastPos:Pos = new Pos(0,0);
@@ -403,7 +400,7 @@ class MoveHelper
 
                 newMovements.endSpeed = map.getBiomeSpeed(tmpX,tmpY); 
 
-                if(newMovements.fullPathHasRoad == false && newMovements.endSpeed != newMovements.startSpeed)
+                if(newMovements.fullPathHasRoad == false && Math.pow(newMovements.endSpeed - newMovements.startSpeed, 2) > Math.pow(truncMovementSpeedDiff, 2))
                 {                    
                     /*if(newMovements.moves.length == 0)
                     {
