@@ -19,21 +19,19 @@ Summary:
 Not yet implemented:
 - temperature (clothing does already reduce food use up to 66% - Jungle reduces food need 33%)
 - combat
-- player interactions like feeding / incarnation / family
-- see more in detail below
+- player pickup / incarnation / family
+- see more in TODO below
 
 How to setup:
 - TODO how to load new ObjectData from Repository
 - there is a ServerSettings.txt file in SaveFiles folder. Settings are read at start and every 10 sec.
---> To change settings you need reduce also **default** otherwise the default value will still be used 
 - server uses cached ObjectData to start fast
 --> if you want to clear the cache you need to use another .\OneLifeData7\dataVersionNumber 
 --> or delete the cache file file: .\SaveFiles\saveObjectData.bin
-- Tons of server settings can be changed in the ServerSettings class / not yet implemented to load them from file
-- you can put another map in the base directory 
---> just override the current used one, or change to the new map in the Server Settings
-- every 10 sec the server state is saved in the SaveFiles directory and by default reused
-- every 8 hours a backup is made which is cycled through (up to 90 backups) / this can also be changed in Server Settings
+- you can use another map 
+--> just override the current used one, or change the map file name in the Server ServerSettings.txt
+- every 10 sec the server state is saved in the SaveFiles directory 
+- every 8 hours a backup is made which is cycled through (up to 90 backups) / this can also be changed in ServerSettings.txt
 --> the backups are in the folders: SaveFiles/1/ SaveFiles/2/.... SaveFiles/90/ 
 
 
@@ -44,7 +42,7 @@ MAP:
 - Made map "round", so you can walk over both x,y borders and come out on the other side. 
 - Has rivers and oceans  
 - Iron can be used by default 
-- No dry spring and tarry spot
+- No dry spring and dry tarry spot
 - no gradients
 - no expert waystones
 
@@ -67,7 +65,7 @@ Transitions:
 
 Aging:
 - starving to death slows down aging below 14 and increases above  
-- double food use for age below 14 if not starving to death / they need to grow!
+- higher food use for age below 14 if not starving to death / they need to grow!
 
 SPEED:
 - different speed for different biomes
@@ -75,7 +73,7 @@ SPEED:
 - starving to death reduces speed X0.5 if not in car or on horse
 - objects in container / sub container lower speed
 - horses and cars and carts are slower in bad biomes
-- road reduces speed mali of bad biome and heavy obj with sqrt 
+- road reduces speed mali of bad biome and heavy objects
 - having both shoes give now X1.1 Speed
 
 Food - YUM:
@@ -90,7 +88,6 @@ Food - YUM:
 - Extra food is stored as YUM Extra food
 - YUM chain is used as Health 
 - eating YUM increases YUM chain, while eating MEH reduces it
-- TODO Eating YUM increases prestiege, eating MEH reduces it (Not how long you live is important but how you live is important)
 
 Food - Health
 - YUM chain / Health influences now aging (0.5X to 2X) and speed (1.2X to 0.5X) / With this Berry munching is even worse
@@ -116,6 +113,9 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
+- give more space for cities in the map
+- change biome speed
+- give option to use normal YUM mechanics
 - better map
 - decay contained stuff in graves / generally decay stuff in containers
 - reconnection
