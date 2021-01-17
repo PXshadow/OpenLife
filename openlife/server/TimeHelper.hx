@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.client.ClientTag;
 import openlife.data.object.ObjectData;
 import openlife.server.WorldMap.BiomeTag;
 import openlife.data.transition.TransitionData;
@@ -127,20 +128,24 @@ class TimeHelper
         if(ServerSettings.debug == false && (tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Server.server.map.writeBackup();
 
         /*
-        if(tick % 200 == 0) 
+        if(tick % 100 == 0) 
         {
             if(Connection.getConnections().length > 0)
             {
                 var c = Connection.getConnections()[0];
                 var obj = ObjectData.personObjectData[personIndex];
                 c.player.po_id = obj.id;
-
+                
                 Connection.SendUpdateToAllClosePlayers(c.player);
-                c.sendGlobalMessage('${obj.description}Id${obj.parentId}P${obj.person}');
+                if(tick % 200 == 0) c.send(ClientTag.DYING, ['${c.player.p_id}']);
+                else c.send(ClientTag.HEALED, ['${c.player.p_id}']);
+
+                c.sendGlobalMessage('Id ${obj.parentId} P${obj.person} ${obj.description}');
 
                 personIndex++;
             }
-        }*/
+        }
+        */
     }
 
     static var personIndex = 0;

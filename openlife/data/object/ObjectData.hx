@@ -1132,7 +1132,7 @@ class ObjectData extends LineReader
 
             personObjectData.push(obj);
 
-            trace('${obj.description} Id: ${obj.parentId} P: ${obj.person}');
+            //trace('${obj.description} Id: ${obj.parentId} P: ${obj.person}');
         }
     } 
 }

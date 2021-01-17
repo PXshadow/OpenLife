@@ -528,7 +528,6 @@ class Connection implements ServerHeader
         try
         {
             message  = StringTools.replace(message,' ', '_');
-            trace(message);
             send(ClientTag.GLOBAL_MESSAGE, [message]);
         }
         catch(ex)
