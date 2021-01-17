@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.object.ObjectData;
 import sys.thread.Mutex;
 import openlife.settings.ServerSettings;
 import openlife.data.map.MapData;
@@ -86,6 +87,8 @@ class Connection implements ServerHeader
                    
             player = new GlobalPlayerInstance([]);
             player.connection = this;
+            player.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
+
             var id = server.playerIndex++;
             player.p_id = id;
             player.gx = ServerSettings.startingGx;
@@ -525,6 +528,7 @@ class Connection implements ServerHeader
         try
         {
             message  = StringTools.replace(message,' ', '_');
+            trace(message);
             send(ClientTag.GLOBAL_MESSAGE, [message]);
         }
         catch(ex)

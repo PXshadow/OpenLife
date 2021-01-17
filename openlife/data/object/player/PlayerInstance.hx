@@ -117,8 +117,9 @@ class PlayerInstance
      */
     public var deleted:Bool = false;
     public var reason:String = "";
-     var i:Int = 0;
-     var a:Array<String>;
+    var i:Int = 0;
+    var a:Array<String>;
+
     public function new(a:Array<String>)
     {
         this.a = a;

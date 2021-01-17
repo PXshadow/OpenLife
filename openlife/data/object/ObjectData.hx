@@ -30,6 +30,9 @@ class ObjectData extends LineReader
     public static var biomeObjectData:Map<Int, Array<ObjectData>>;
     public static var foodObjects:Array<ObjectData> = [];
 
+    // to store the different persons
+    public static var personObjectData:Array<ObjectData> = [];
+
     /**
     * Toolset record set
     */
@@ -1120,5 +1123,17 @@ class ObjectData extends LineReader
         // 838 Dont eat the dam drugs! Wormless Soil Pit with Mushroom // 837 Psilocybe Mushroom
         return (this.id == 838 || this.id == 837);        
     }
+
+    public static function CreatePersonArray()
+    {
+        for(obj in ObjectData.importedObjectData)
+        {
+            if(obj.person == 0) continue;
+
+            personObjectData.push(obj);
+
+            trace('${obj.description} Id: ${obj.parentId} P: ${obj.person}');
+        }
+    } 
 }
 

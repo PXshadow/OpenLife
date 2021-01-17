@@ -125,7 +125,25 @@ class TimeHelper
         if((tick + 20) % ServerSettings.TicksBetweenSaving  == 0) worldMap.updateObjectCounts();
         if(ServerSettings.debug == false && tick % ServerSettings.TicksBetweenSaving == 0) Server.server.map.writeToDisk(false);
         if(ServerSettings.debug == false && (tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Server.server.map.writeBackup();
+
+        /*
+        if(tick % 200 == 0) 
+        {
+            if(Connection.getConnections().length > 0)
+            {
+                var c = Connection.getConnections()[0];
+                var obj = ObjectData.personObjectData[personIndex];
+                c.player.po_id = obj.id;
+
+                Connection.SendUpdateToAllClosePlayers(c.player);
+                c.sendGlobalMessage('${obj.description}Id${obj.parentId}P${obj.person}');
+
+                personIndex++;
+            }
+        }*/
     }
+
+    static var personIndex = 0;
 
     private static function updateAge(c:Connection, timePassedInSeconds:Float)
     {

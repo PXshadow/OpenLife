@@ -94,7 +94,8 @@ class Server
             ObjectData.ImportObjectData();
             ObjectData.WriteAllToFile(dataVersionNumber);
         }
-        
+
+        ObjectData.CreatePersonArray();        
         ObjectData.CreateAndAddDummyObjectData();
         ObjectData.CreateFoodObjectArray();
         ServerSettings.PatchObjectData();
