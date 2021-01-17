@@ -174,10 +174,10 @@ class ServerSettings
         
 
         // nerve food
-        ObjectData.getObjectData(2143).foodValue = 6; // banana
-        ObjectData.getObjectData(31).foodValue = 4; // Gooseberry
-        ObjectData.getObjectData(2855).foodValue = 4; // Onion
-        ObjectData.getObjectData(808).foodValue = 4; // Wild Onion
+        //ObjectData.getObjectData(2143).foodValue = 6; // banana
+        //ObjectData.getObjectData(31).foodValue = 4; // Gooseberry
+        //ObjectData.getObjectData(2855).foodValue = 4; // Onion
+        //ObjectData.getObjectData(808).foodValue = 4; // Wild Onion
 
         // boost hunted food
         ObjectData.getObjectData(197).foodValue = 18; // Cooked Rabbit 10 --> 18
