@@ -3,18 +3,20 @@ ip: thinqbator.app
 port: 8005
 
 Summary: 
-- the server is completly new written from scratch in haxe and in early ALPHA, so except errors and please report them!
+- The server is written from scratch in Haxe and in early ALPHA, so except errors / feel welcome to report them
 - Limited hand made map which can be designed using a picture
-- rivers oceans and mountains that block the movement
-- No Locked Iron or Wells
-- All Natural stuff can respawn (exception well, iron and oil stuff) 
+- Rivers oceans and mountains that block the movement
+- No locked iron or wells
+- All natural stuff can re-spawn (exception well, iron and oil stuff)
 --> So having a lucky spot of one thing keeps it lucky also in the future
 - All But ancient stuff can decay (exception well, iron and oil stuff)
 - New craving system that shows you what has full YUM boni
 - Yum chain is now your prestiege (score) / health and influcences movement speed and aging
 --> so yes in theory you can life longer then 60
 - Quality of Life: You can pick berriers directly with a bowl, you can eat while on a horse. Shoes give extra speed
-- wells fill up at least 3 times faster
+- Wells fill up at least 3 times faster
+
+
 
 Not yet implemented:
 - temperature (clothing does already reduce food use up to 66% - Jungle reduces food need 33%)
