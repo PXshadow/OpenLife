@@ -137,12 +137,14 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
             for (ai in Connection.getAis())
             {
+                trace('ai1: ${ai.me.p_id} player: ${player.p_id}');
                 ai.say(player,curse == 1 ? true : false,text);
+                trace('ai2: ${ai.me.p_id} player: ${player.p_id}');
             }
         }
         catch(ex)
         {
-            trace(ex);
+            trace(ex.details);
         }
 
         this.mutex.release();

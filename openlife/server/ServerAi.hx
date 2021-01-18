@@ -8,7 +8,7 @@ class ServerAi extends Ai
 
     public function new(player:GlobalPlayerInstance)
     {
-        super(me, me);
+        super(player, player);
 
         me = player;
     }   

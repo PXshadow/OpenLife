@@ -92,6 +92,7 @@ class Connection implements ServerHeader
             player.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
 
             var id = server.playerIndex++;
+
             player.p_id = id;
             player.gx = ServerSettings.startingGx;
             player.gy = ServerSettings.startingGy;
@@ -202,9 +203,7 @@ class Connection implements ServerHeader
                 }
                 for (ai in ais)
                 {
-                    trace('one AI');
                     player.connection.send(PLAYER_UPDATE,[ai.me.toRelativeData(player)], true);
-                    trace('end AI');
                 }
                 player.connection.send(FRAME, null, isPlayerAction);
             }

@@ -4,11 +4,12 @@ import openlife.data.object.player.PlayerInstance;
 using StringTools;
 
 class Ai {
-    public var player:PlayerInstance;
+    public var myPlayer:PlayerInstance;
     var handler:MessageHandler;
+
     public function new(player:PlayerInstance,handler:MessageHandler) 
     {
-        this.player = player;
+        this.myPlayer = player;
         this.handler = handler;
     }
 
@@ -19,10 +20,20 @@ class Ai {
 
     public function say(player:PlayerInstance,curse:Bool,text:String)
     {
-        if (this.player.p_id == player.p_id) return;
+        trace('im a super evil bot!');
+
+        trace('ai3: ${myPlayer.p_id} player: ${player.p_id}');
+
+        if (this.myPlayer.p_id == player.p_id) return;
+
+        trace('im a evil bot!');
+
         if (text.indexOf("HELLO") != -1) 
         {
             //HELLO WORLD
+
+            trace('im a nice bot!');
+
             handler.say("HELLO WORLD");
         }
     }
