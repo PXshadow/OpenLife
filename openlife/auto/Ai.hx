@@ -22,7 +22,6 @@ class Ai {
         if (this.player.p_id == player.p_id) return;
         if (text.indexOf("HELLO") != -1) 
         {
-            trace("-----------------------------------------");
             //HELLO WORLD
             handler.say("HELLO WORLD");
         }

@@ -117,7 +117,8 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
             text = text.toUpperCase();
 
-            if(ServerSettings.debug) DoDebugCommands(player, text);
+            //if(ServerSettings.debug) 
+                DoDebugCommands(player, text);
 
             var maxLenght = player.age > 14 ? 30 : Math.ceil(player.age *=2); 
 
@@ -1018,7 +1019,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
             {
                 trace('HIT');
     
-                player.hits +=5;
+                player.hits +=10;
                 player.food_store_max = player.calculateFoodStoreMax();
     
                 // reason_killed_id 
