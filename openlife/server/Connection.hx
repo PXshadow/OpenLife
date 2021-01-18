@@ -203,12 +203,12 @@ class Connection implements ServerHeader
                 for (ai in ais)
                 {
                     trace('one AI');
-                    player.connection.send(PLAYER_UPDATE,[ai.player.toRelativeData(player)], true);
+                    player.connection.send(PLAYER_UPDATE,[ai.me.toRelativeData(player)], true);
                     trace('end AI');
                 }
                 player.connection.send(FRAME, null, isPlayerAction);
             }
-            catch(ex) trace(ex.stack);
+            catch(ex) trace(ex);
         }
 
     public static function SendTransitionUpdateToAllClosePlayers(player:GlobalPlayerInstance, tx:Int, ty:Int, newFloorId:Int, newTileObject:Array<Int>, doTransition:Bool, isPlayerAction:Bool = true)
