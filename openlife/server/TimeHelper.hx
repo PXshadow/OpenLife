@@ -13,7 +13,7 @@ class TimeHelper
     public static var tick:Float = 0;       // some are skipped if server is too slow
     //public static var allTicks:Float = 0;   // these ticks will not be skipped, but can be slower then expected
 
-    private static var lastTick:Float = 0;
+    public static var lastTick:Float = 0;
     private static var serverStartingTime:Float;
 
     private static var worldMapTimeStep = 0; // counts the time steps for doing map time stuff, since some ticks may be skiped because of server too slow
@@ -51,7 +51,7 @@ class TimeHelper
             {
                 averageSleepTime = Math.ceil(averageSleepTime / 200 * 1000) / 1000;
                 //trace('Ticks: ${TimeHelper.tick}');
-                trace('Connections: ${Connection.getConnections().length} Time Counted From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime');
+                trace('Connections: ${Connection.getConnections().length} AIs: ${Connection.getAis().length} Time Counted From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime');
                 averageSleepTime = 0;
                 skipedTicks = 0;
 
@@ -77,7 +77,7 @@ class TimeHelper
                 }
                 catch(ex)
                 {
-                    trace(ex);   
+                    trace('WARNING' + ex);   
                 }
             }
 
@@ -103,16 +103,31 @@ class TimeHelper
 
         TimeHelper.lastTick = tick;  
 
-        for (connection in Connection.getConnections())
-        {
-            updateAge(connection, timePassedInSeconds);
+        for (c in Connection.getConnections())
+        {            
+            updateAge(c.player, timePassedInSeconds);
 
-            updateFoodAndDoHealing(connection, timePassedInSeconds);            
+            updateFoodAndDoHealing(c.player, timePassedInSeconds);            
 
-            MoveHelper.updateMovement(connection.player);
+            MoveHelper.updateMovement(c.player);
 
-            if(TimeHelper.tick % 40 == 0) updateTemperature(connection);
+            if(TimeHelper.tick % 40 == 0) updateTemperature(c.player);
         }
+        
+        
+        for (ai in Connection.getAis())
+        {
+            updateAge(ai.me, timePassedInSeconds);
+
+            updateFoodAndDoHealing(ai.me, timePassedInSeconds);            
+
+            MoveHelper.updateMovement(ai.me);
+
+            //if(TimeHelper.tick % 40 == 0) updateTemperature(ai.me);
+
+            ai.doTimeStuff(timePassedInSeconds);
+        }
+
 
         DoWorldMapTimeStuff(); // TODO currently it goes through the hole map each sec / this may later not work
 
@@ -151,15 +166,21 @@ class TimeHelper
 
     static var personIndex = 0;
 
-    private static function updateAge(c:Connection, timePassedInSeconds:Float)
+    private static function updateAge(player:GlobalPlayerInstance, timePassedInSeconds:Float)
     {
-        var tmpAge = c.player.age;
-        var aging = timePassedInSeconds / c.player.age_r;
+        var tmpAge = player.age;
+        var aging = timePassedInSeconds / player.age_r;
 
-        var healthFactor = c.player.CalculateHealthFactor(false);
-        var agingFactor:Float = 1;        
+        //trace('aging: ${aging}');
 
-        if(c.player.age < ServerSettings.GrownUpAge)
+        //trace('player.age_r: ${player.age_r}');
+
+        var healthFactor = player.CalculateHealthFactor(false);
+        var agingFactor:Float = 1;    
+        
+        //trace('healthFactor: ${healthFactor}');
+
+        if(player.age < ServerSettings.GrownUpAge)
         {
             agingFactor = healthFactor;
         }
@@ -168,9 +189,9 @@ class TimeHelper
             agingFactor = 1 / healthFactor;
         }
 
-        if(c.player.food_store < 0)
+        if(player.food_store < 0)
         {
-            if(c.player.age < ServerSettings.GrownUpAge)
+            if(player.age < ServerSettings.GrownUpAge)
             {
                 agingFactor *= ServerSettings.AgingFactorWhileStarvingToDeath;
             } 
@@ -180,40 +201,39 @@ class TimeHelper
             }
         }
 
-        c.player.age_r = ServerSettings.AgingSecondsPerYear * agingFactor;
+        player.age_r = ServerSettings.AgingSecondsPerYear * agingFactor;
 
-        c.player.trueAge += aging;
+        player.trueAge += aging;
 
         aging *= agingFactor;
 
-        c.player.age += aging;
+        player.age += aging;
         
-        if(Std.int(tmpAge) != Std.int(c.player.age))
+        if(Std.int(tmpAge) != Std.int(player.age))
         {
-            trace('Age: ${c.player.age} TrueAge: ${c.player.trueAge} agingFactor: $agingFactor healthFactor: $healthFactor');
+            trace('Age: ${player.age} TrueAge: ${player.trueAge} agingFactor: $agingFactor healthFactor: $healthFactor');
 
-            c.player.food_store_max = c.player.calculateFoodStoreMax();
+            player.food_store_max = player.calculateFoodStoreMax();
 
-            if(c.player.age > 60) c.player.doDeath('reason_age');
+            if(player.age > 60) player.doDeath('reason_age');
 
-            //trace('update age: ${c.player.age} food_store_max: ${c.player.food_store_max}');
-            c.player.sendFoodUpdate(false);
+            //trace('update age: ${player.age} food_store_max: ${player.food_store_max}');
+            player.sendFoodUpdate(false);
 
-            Connection.SendUpdateToAllClosePlayers(c.player, false);
+            Connection.SendUpdateToAllClosePlayers(player, false);
         }
     }
 
-    private static function updateFoodAndDoHealing(c:Connection, timePassedInSeconds:Float)
+    private static function updateFoodAndDoHealing(player:GlobalPlayerInstance, timePassedInSeconds:Float)
     {
         //trace('food_store: ${connection.player.food_store}');
 
-        var player = c.player;
-        var tmpFood = Math.ceil(c.player.food_store);
-        var tmpExtraFood = Math.ceil(c.player.yum_bonus);
-        var tmpFoodStoreMax = Math.ceil(c.player.food_store_max);
+        var tmpFood = Math.ceil(player.food_store);
+        var tmpExtraFood = Math.ceil(player.yum_bonus);
+        var tmpFoodStoreMax = Math.ceil(player.food_store_max);
         var foodDecay = timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
 
-        if(c.player.age < ServerSettings.GrownUpAge && c.player.food_store > 0) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
+        if(player.age < ServerSettings.GrownUpAge && player.food_store > 0) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
 
         // do healing but increase food use
         if(player.hits > 0)
@@ -227,45 +247,45 @@ class TimeHelper
             if(player.woundedBy != 0 && player.hits < 1)
             {
                 player.woundedBy = 0;
-                c.send(ClientTag.HEALED, ['${player.p_id}']);
+                if(player.connection != null) player.connection.send(ClientTag.HEALED, ['${player.p_id}']);
             }
         }
 
-        foodDecay /= calculateTemperature(c.player);
+        foodDecay /= calculateTemperature(player);
 
         // if starving to death and there is some health left, reduce food need and heath
-        if(c.player.food_store < 0 && c.player.yum_multiplier > 0)
+        if(player.food_store < 0 && player.yum_multiplier > 0)
         {
-            c.player.yum_multiplier -= foodDecay;
+            player.yum_multiplier -= foodDecay;
             foodDecay /= 2;
         }
 
-        if(c.player.yum_bonus > 0)
+        if(player.yum_bonus > 0)
         {
-            c.player.yum_bonus -= foodDecay;
+            player.yum_bonus -= foodDecay;
         }
         else
         {
-            c.player.food_store -= foodDecay;
+            player.food_store -= foodDecay;
         }
 
-        c.player.food_store_max = c.player.calculateFoodStoreMax();
+        player.food_store_max = player.calculateFoodStoreMax();
 
-        var hasChanged = tmpFood != Math.ceil(c.player.food_store) || tmpExtraFood != Math.ceil(c.player.yum_bonus);
-        hasChanged = hasChanged || tmpFoodStoreMax != Math.ceil(c.player.food_store_max);
+        var hasChanged = tmpFood != Math.ceil(player.food_store) || tmpExtraFood != Math.ceil(player.yum_bonus);
+        hasChanged = hasChanged || tmpFoodStoreMax != Math.ceil(player.food_store_max);
 
         if(hasChanged)
         {
-            c.player.sendFoodUpdate(false);
-            c.send(FRAME, null, false);
+            player.sendFoodUpdate(false);
+            if(player.connection != null) player.connection.send(FRAME, null, false);
 
-            if(c.player.food_store_max < ServerSettings.DeathWithFoodStoreMax)
+            if(player.food_store_max < ServerSettings.DeathWithFoodStoreMax)
             {
                 var reason = player.woundedBy == 0 ? 'reason_hunger': 'reason_killed_${player.woundedBy}';
 
-                c.player.doDeath(reason);
+                player.doDeath(reason);
 
-                Connection.SendUpdateToAllClosePlayers(c.player, false);
+                Connection.SendUpdateToAllClosePlayers(player, false);
             }
         }
     }
@@ -292,11 +312,11 @@ class TimeHelper
         Food drain time is total including bonus.
     */
 
-    private static function updateTemperature(c:Connection)
+    private static function updateTemperature(player:GlobalPlayerInstance)
     {
         var maxTemerature = 2.5; // TODO change
 
-        var temperature = calculateTemperature(c.player);
+        var temperature = calculateTemperature(player);
 
         var foodDrainTime = (1 / ServerSettings.FoodUsePerSecond) * temperature;
 
@@ -308,9 +328,9 @@ class TimeHelper
 
         var message = '$heat $foodDrainTime 0';
 
-        c.player.heat = heat;
+        player.heat = heat;
 
-        c.send(HEAT_CHANGE, [message]);
+        if(player.connection != null) player.connection.send(HEAT_CHANGE, [message]);
 
         // trace('Temerature update: temperature: $temperature mesage: $message');
     } 
@@ -701,9 +721,6 @@ class TimeHelper
 
             TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, timeTransition, false);
 
-            
-
-            
     
             // save what was on the ground, so that we can move on this tile and later restore it
             var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.toArray();

@@ -331,6 +331,8 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
     public function sendFoodUpdate(isPlayerAction:Bool = true)
     {
+        if(connection == null) return;
+
         //trace('\n\tFX food_store: ${Math.ceil(food_store)} food_capacity: ${Std.int(food_capacity)} last_ate_id: $last_ate_id last_ate_fill_max: $last_ate_fill_max move_speed: $move_speed responsible_id: $responsible_id yum_bonus: $yum_bonus yum_multiplier: $yum_multiplier');
         var cut_move_speed = Std.int(move_speed * 100) / 100;
 
@@ -945,7 +947,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
         {
             distance = Math.ceil(i / (20 * distance * distance)); 
 
-            trace('rand: ${world.randomInt(distance * 2) - distance}');
+            //trace('rand: ${world.randomInt(distance * 2) - distance}');
 
             var tmpX = this.tx() + world.randomInt(distance * 2) - distance;
             var tmpY = this.ty() + world.randomInt(distance * 2) - distance;

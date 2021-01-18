@@ -54,6 +54,7 @@ class Server
         player.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
 
         var id = server.playerIndex++;
+
         player.p_id = id;
         player.gx = ServerSettings.startingGx;
         player.gy = ServerSettings.startingGy;
@@ -61,6 +62,7 @@ class Server
         player.move_speed = MoveHelper.calculateSpeed(player, player.gx, player.gy);
         player.food_store_max = player.calculateFoodStoreMax();
         player.food_store = player.food_store_max / 2;
+        player.yum_multiplier = ServerSettings.MinHealthPerYear * ServerSettings.StartingEveAge; 
 
         var ai = new ServerAi(player);
         Connection.addAi(ai);

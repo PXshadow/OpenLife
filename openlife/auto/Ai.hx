@@ -13,9 +13,9 @@ class Ai {
         this.handler = handler;
     }
 
-    public function update() 
+    public function doTimeStuff(timePassedInSeconds:Float) 
     {
-
+        // @PX do time stuff here is called from TimeHelper
     }
 
     public function say(player:PlayerInstance,curse:Bool,text:String)

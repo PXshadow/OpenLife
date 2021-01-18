@@ -641,6 +641,8 @@ class WorldMap
             this.saveDataNumber = Std.parseInt(reader.readLine());
             this.backupDataNumber = Std.parseInt(reader.readLine());
             TimeHelper.tick = Std.parseFloat(reader.readLine());
+            TimeHelper.lastTick = TimeHelper.tick; 
+
             reader.close();    
 
             trace('saveDataNumber: $saveDataNumber backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');        
