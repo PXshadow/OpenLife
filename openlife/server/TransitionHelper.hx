@@ -1,9 +1,6 @@
 package openlife.server;
 
-import openlife.client.ClientTag;
-import sys.db.Object;
 import openlife.settings.ServerSettings;
-import openlife.server.WorldMap.BiomeTag;
 import openlife.data.transition.TransitionData;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
