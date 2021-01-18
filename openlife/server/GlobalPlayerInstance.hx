@@ -61,6 +61,26 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
         }
     }
 
+    public static function CreateNew() : GlobalPlayerInstance
+    {
+        var player = new GlobalPlayerInstance([]);
+
+        player.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
+
+        var id = Server.server.playerIndex++;
+
+        player.p_id = id;
+        player.gx = ServerSettings.startingGx;
+        player.gy = ServerSettings.startingGy;
+
+        player.move_speed = MoveHelper.calculateSpeed(player, player.gx, player.gy);
+        player.food_store_max = player.calculateFoodStoreMax();
+        player.food_store = player.food_store_max / 2;
+        player.yum_multiplier = ServerSettings.MinHealthPerYear * ServerSettings.StartingEveAge; 
+
+        return player;
+    }
+
     public function tx() : Int {return x + gx;}
     public function ty() : Int {return y + gy;}
 
@@ -138,9 +158,9 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
             for (ai in Connection.getAis())
             {
-                trace('ai1: ${ai.me.p_id} player: ${player.p_id}');
+                //trace('ai1: ${ai.me.p_id} player: ${player.p_id}');
                 ai.say(player,curse == 1 ? true : false,text);
-                trace('ai2: ${ai.me.p_id} player: ${player.p_id}');
+                //trace('ai2: ${ai.me.p_id} player: ${player.p_id}');
             }
         }
         catch(ex)
