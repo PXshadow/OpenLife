@@ -355,47 +355,17 @@ class Connection implements ServerHeader
         try
         {
             var player = this.player;
+            var curse = 0;
+            var id = player.p_id;
 
             text = text.toUpperCase();
 
-            if(text.indexOf('HIT') != -1)
-            {
-                trace('HIT');
+            if(ServerSettings.debug) DoDebugCommands(player, text);
 
-                player.hits +=5;
-                player.food_store_max = player.calculateFoodStoreMax();
+            var maxLenght = player.age > 14 ? 30 : Math.ceil(player.age *=2); 
 
-                // reason_killed_id 
-                if(player.food_store_max < 0)
-                {
-                    player.doDeath('reason_killed_${player.woundedBy}');
-                }
-                else if(player.woundedBy == 0 && player.food_store_max < ServerSettings.WoundWhenFoodStoreMaxBelow)
-                {
-                    player.woundedBy = 418;
-                    this.send(ClientTag.DYING, ['${player.p_id}']);
-                }
+            if(text.length > maxLenght) text = text.substr(0, maxLenght);
 
-                Connection.SendUpdateToAllClosePlayers(player);
-            }
-            else if(text.indexOf('HEAL') != -1)
-            {
-                player.hits -=5;
-                if(player.hits < 0) player.hits = 0; 
-
-                player.food_store_max = player.calculateFoodStoreMax();
-
-                if(player.woundedBy != 0 && (player.hits < 1 || player.food_store_max > ServerSettings.WoundWhenFoodStoreMaxBelow))
-                {
-                    player.woundedBy = 0; 
-                    this.send(ClientTag.HEALED, ['${player.p_id}']);
-                }
-
-                Connection.SendUpdateToAllClosePlayers(player);
-            }
-
-            var curse = 0;
-            var id = player.p_id;
             for (c in connections)
             {
                 // TODO why send movement ???
@@ -576,6 +546,45 @@ class Connection implements ServerHeader
         }
 
         this.mutex.release();
+    }
+
+    private static function DoDebugCommands(player:GlobalPlayerInstance, text:String)
+    {
+        if(text.indexOf('HIT') != -1)
+        {
+            trace('HIT');
+
+            player.hits +=5;
+            player.food_store_max = player.calculateFoodStoreMax();
+
+            // reason_killed_id 
+            if(player.food_store_max < 0)
+            {
+                player.doDeath('reason_killed_${player.woundedBy}');
+            }
+            else if(player.woundedBy == 0)
+            {
+                player.woundedBy = 418;
+                player.connection.send(ClientTag.DYING, ['${player.p_id}']);
+            }
+
+            Connection.SendUpdateToAllClosePlayers(player);
+        }
+        else if(text.indexOf('HEAL') != -1)
+        {
+            player.hits -=5;
+            if(player.hits < 0) player.hits = 0; 
+
+            player.food_store_max = player.calculateFoodStoreMax();
+
+            if(player.woundedBy != 0 && player.hits < 1)
+            {
+                player.woundedBy = 0; 
+                player.connection.send(ClientTag.HEALED, ['${player.p_id}']);
+            }
+
+            Connection.SendUpdateToAllClosePlayers(player);
+        }
     }
 }
 #end

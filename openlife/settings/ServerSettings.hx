@@ -112,7 +112,7 @@ class ServerSettings
     public static var ObjDecayFactorForFood:Float = 10;
 
     // combat
-    public static var WoundWhenFoodStoreMaxBelow = 10;
+    //public static var WoundWhenFoodStoreMaxBelow = 10;
 
 
     // iron, tary spot spring cannot respawn or win lottery

@@ -224,7 +224,7 @@ class TimeHelper
 
             if(player.hits < 0) player.hits = 0; 
 
-            if(player.woundedBy != 0 && (player.hits < 1 || player.food_store_max > ServerSettings.WoundWhenFoodStoreMaxBelow * 2))
+            if(player.woundedBy != 0 && player.hits < 1)
             {
                 player.woundedBy = 0;
                 c.send(ClientTag.HEALED, ['${player.p_id}']);
@@ -262,7 +262,7 @@ class TimeHelper
             if(c.player.food_store_max < ServerSettings.DeathWithFoodStoreMax)
             {
                 var reason = player.woundedBy == 0 ? 'reason_hunger': 'reason_killed_${player.woundedBy}';
-                
+
                 c.player.doDeath(reason);
 
                 Connection.SendUpdateToAllClosePlayers(c.player, false);
