@@ -107,7 +107,7 @@ class TimeHelper
         {
             updateAge(connection, timePassedInSeconds);
 
-            updateFood(connection, timePassedInSeconds);            
+            updateFoodAndDoHealing(connection, timePassedInSeconds);            
 
             MoveHelper.updateMovement(connection.player);
 
@@ -203,13 +203,7 @@ class TimeHelper
         }
     }
 
-    private static function updateHitpoints()
-    {
-
-    }
-
-
-    private static function updateFood(c:Connection, timePassedInSeconds:Float)
+    private static function updateFoodAndDoHealing(c:Connection, timePassedInSeconds:Float)
     {
         //trace('food_store: ${connection.player.food_store}');
 
@@ -267,7 +261,9 @@ class TimeHelper
 
             if(c.player.food_store_max < ServerSettings.DeathWithFoodStoreMax)
             {
-                c.player.doDeath('reason_hunger');
+                var reason = player.woundedBy == 0 ? 'reason_hunger': 'reason_killed_${player.woundedBy}';
+                
+                c.player.doDeath(reason);
 
                 Connection.SendUpdateToAllClosePlayers(c.player, false);
             }
