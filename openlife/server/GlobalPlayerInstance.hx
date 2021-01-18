@@ -1,4 +1,5 @@
 package openlife.server;
+import haxe.macro.Expr.Catch;
 import haxe.display.Server.HaxeModuleMemoryResult;
 import openlife.client.ClientTag;
 import openlife.data.object.ObjectData;
@@ -890,20 +891,29 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
     public function doDeath(deathReason:String)
     {
+        if(this.deleted) return;
+
         Server.server.map.mutex.acquire();
 
-        // TODO calculate score
-        // TODO set coordinates player based
-        ServerSettings.startingGx = this.tx();
-        ServerSettings.startingGy = this.ty();
+        try
+        {
+            this.deleted = true;
+            this.age = this.trueAge; // bad health and starving can influence health, so setback true time a player lifed so that he sees in death screen
+            this.reason = deathReason;
 
-        this.age = this.trueAge; // bad health and starving can influence health, so setback true time a player lifed so that he sees in death screen
-        this.reason = deathReason;
-        this.deleted = true;
+            // TODO calculate score
+            // TODO set coordinates player based
+            ServerSettings.startingGx = this.tx();
+            ServerSettings.startingGy = this.ty();
 
-        //this.connection.die();
+            //this.connection.die();
+        
+            placeGrave();
 
-        placeGrave();
+        }catch(ex)
+        {
+            trace('WARNING: ' + ex);
+        }
 
         Server.server.map.mutex.release();
     }
