@@ -1,4 +1,6 @@
 package openlife.server;
+import openlife.auto.MessageHandler;
+import openlife.auto.Ai;
 import openlife.settings.ServerSettings;
 import openlife.data.transition.TransitionImporter;
 import openlife.server.tables.MapTable;
@@ -46,6 +48,22 @@ class Server
         Sys.println("Starting OpenLife Server"#if debug + " in debug mode" #end);
         if(ServerSettings.debug) trace('Debug Mode: ${ServerSettings.debug}');
         server = new Server();
+        //create ai
+        var player = new GlobalPlayerInstance([]);
+        player.connection = null;
+        player.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
+
+        var id = server.playerIndex++;
+        player.p_id = id;
+        player.gx = ServerSettings.startingGx;
+        player.gy = ServerSettings.startingGy;
+
+        player.move_speed = MoveHelper.calculateSpeed(player, player.gx, player.gy);
+        player.food_store_max = player.calculateFoodStoreMax();
+        player.food_store = player.food_store_max / 2;
+
+        var ai = new openlife.auto.Ai(player,player);
+        Connection.addAi(ai);
 
         TimeHelper.DoTimeLoop();
     }
@@ -138,6 +156,11 @@ class Server
         });
     }
 
+    public function sendSay(text:String,curse:Bool)
+    {
+        
+    }
+
     public function process(connection:Connection,string:String)
     {
         //Sys.println(string); //log messages
@@ -191,7 +214,7 @@ class Server
                 header.player.doOnOther(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]), input.length > 3 ? Std.parseInt(input[3]) : -1);
             case SAY:
                 var text = string.substring(4);
-                header.say(text);
+                header.player.say(text);
             case FLIP:
                 header.flip();
             case PING:

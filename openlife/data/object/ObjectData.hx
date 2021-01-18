@@ -591,7 +591,7 @@ class ObjectData extends LineReader
         }
         //values
         heatValue = getInt();
-        rValue = getInt();
+        rValue = getFloat();
 
         i = getArrayInt();
         //person is the race of the person
@@ -961,7 +961,7 @@ class ObjectData extends LineReader
         writer.writeInt8(obj.onlyDescription ? 1 : 0);
         writer.writeInt8(obj.noBackAcess ? 1 : 0);
     }
-
+    //note to future self, if you happen to wander by the client doesn't save special data such as sound data
     public static function readFromFile(obj:ObjectData, reader:FileInput)
     {
         obj.decayFactor = reader.readFloat();

@@ -47,10 +47,10 @@ class App
         }
         if (!data.relay && data.combo > 0)
         {
-            //multiple bots from combo
+            //multiple ais from combo
             if (!FileSystem.exists("combo.txt")) throw "no combo list found";
             var list = File.getContent("combo.txt").split("\r\n");
-            var bots:Array<Bot> = [];
+            var ais:Array<Ai> = [];
             if (data.combo > list.length) data.combo = list.length;
             for (i in 0...data.combo)
             {
@@ -60,8 +60,8 @@ class App
                 config.key = data[1];
                 var client = new Client();
                 client.config = config;
-                var bot = new Bot(client);
-                bot.connect(false,false);
+                var ai = new Ai(client);
+                ai.connect(false,false);
                 bots.push(bot);
                 Sys.sleep(0.1);
             }

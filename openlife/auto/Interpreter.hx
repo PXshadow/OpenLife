@@ -5,10 +5,9 @@ import haxe.ds.Vector;
 @:expose
 class Interpreter
 {
-    var list:Vector<Int>;
-    public function new(list:Vector<Int>)
+    public function new()
     {
-        this.list = list;
+
     }
     public function stringNumber(string:String):Int
     {
@@ -37,7 +36,7 @@ class Interpreter
             default: 1;
         }
     }
-    public function stringObject(words:Array<String>):Int
+    /*public function stringObject(words:Array<String>):Int
     {
         for (id in list)
         {
@@ -51,7 +50,7 @@ class Interpreter
             if (!fail) return id;
         }
         return -1;
-    }
+    }*/
     private inline function removePlural(string:String):String
     {
         if (string.substring(string.length - 1,string.length) == "s") string = string.substring(0,string.length - 1);

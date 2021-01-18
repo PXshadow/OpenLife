@@ -4,3 +4,5 @@
 -main Main
 -D app
 -hl app.hl
+-lib format
+-lib record-macros

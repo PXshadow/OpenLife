@@ -7,11 +7,13 @@ import openlife.data.map.MapData;
 import openlife.client.ClientTag;
 import sys.net.Socket;
 import haxe.io.Bytes;
+import openlife.auto.Ai;
 
 class Connection implements ServerHeader
 {
     private static var globalMutex = new Mutex();
     private static var connections:Array<Connection> = [];
+    private static var ais:Array<Ai> = [];
 
     private var mutex = new Mutex();
 
@@ -127,6 +129,15 @@ class Connection implements ServerHeader
     {
         return connections;
     }
+    public static function getAis() : Array<Ai>
+    {
+        return ais;
+    }
+    
+    public static function addAi(ai:Ai)
+    {
+        ais.push(ai);
+    }
 
     public static function getPlayerAt(x:Int, y:Int, playerId:Int) : GlobalPlayerInstance
     {
@@ -162,9 +173,40 @@ class Connection implements ServerHeader
                 c.send(FRAME, null, isPlayerAction);
 
             }
+
+            for (ai in ais)
+            {
+                ai.playerUpdate(player);
+            }
         }
         catch(ex) trace(ex);
     }
+
+    public static function SendUpdateToMeAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true)
+        {
+            try
+            {
+                player.MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed(); // TODO better change, since it can mess with other threads
+    
+                for (c in connections)
+                {
+                    // since player has relative coordinates, transform them for player
+                    var targetX = player.tx() - c.player.gx;
+                    var targetY = player.ty() - c.player.gy;
+    
+                    // update only close players
+                    if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+    
+                    player.connection.send(PLAYER_UPDATE,[player.toRelativeData(c.player)], isPlayerAction);
+                }
+                for (ai in ais)
+                {
+                    player.connection.send(PLAYER_UPDATE,[player.toRelativeData(ai.player)], isPlayerAction);
+                }
+                player.connection.send(FRAME, null, isPlayerAction);
+            }
+            catch(ex) trace(ex);
+        }
 
     public static function SendTransitionUpdateToAllClosePlayers(player:GlobalPlayerInstance, tx:Int, ty:Int, newFloorId:Int, newTileObject:Array<Int>, doTransition:Bool, isPlayerAction:Bool = true)
     {
@@ -192,6 +234,12 @@ class Connection implements ServerHeader
                 
                 c.send(FRAME);
             }
+
+            for (ai in ais)
+            {
+                ai.mapUpdate(tx,ty);
+            }
+            
         } catch(ex) trace(ex);
     }
 
@@ -252,6 +300,11 @@ class Connection implements ServerHeader
 
                 c.mutex.release();
             }
+
+            for (ai in ais)
+            {
+                ai.mapUpdate(fromTx,fromTy,true);
+            }
         }
         catch(ex) trace(ex);
     }
@@ -277,6 +330,10 @@ class Connection implements ServerHeader
                 c.send(PLAYER_MOVES_START,['${player.p_id} ${targetX} ${targetY} ${totalMoveTime} $eta ${trunc} ${moveString}']);
                 
                 c.send(FRAME);
+            }
+            for (ai in ais)
+            {
+                ai.playerMove(player,player.tx(),player.ty());
             }
         } 
         catch(ex) trace(ex);
@@ -346,43 +403,6 @@ class Connection implements ServerHeader
     public function die()
     {
         this.close();
-    }
-
-    public function say(text:String)
-    {
-        this.mutex.acquire();
-
-        try
-        {
-            var player = this.player;
-            var curse = 0;
-            var id = player.p_id;
-
-            text = text.toUpperCase();
-
-            if(ServerSettings.debug) DoDebugCommands(player, text);
-
-            var maxLenght = player.age > 14 ? 30 : Math.ceil(player.age *=2); 
-
-            if(text.length > maxLenght) text = text.substr(0, maxLenght);
-
-            for (c in connections)
-            {
-                // TODO why send movement ???
-                /*c.send(PLAYER_MOVES_START,[
-                    "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
-                    "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
-                ]);*/
-                c.send(PLAYER_SAYS,['$id/$curse $text']);
-                c.send(FRAME);
-            }
-        }
-        catch(ex)
-        {
-            trace(ex);
-        }
-
-        this.mutex.release();
     }
 
     public function flip()
@@ -469,8 +489,15 @@ class Connection implements ServerHeader
             }
         }
         catch(ex) trace(ex);
-
         this.mutex.release();
+
+        try
+        {
+            for (ai in ais)
+            {
+                ai.emote(player,id);
+            }
+        }catch(ex) trace(ex);
     }
     
     public function rlogin()
@@ -546,45 +573,6 @@ class Connection implements ServerHeader
         }
 
         this.mutex.release();
-    }
-
-    private static function DoDebugCommands(player:GlobalPlayerInstance, text:String)
-    {
-        if(text.indexOf('HIT') != -1)
-        {
-            trace('HIT');
-
-            player.hits +=5;
-            player.food_store_max = player.calculateFoodStoreMax();
-
-            // reason_killed_id 
-            if(player.food_store_max < 0)
-            {
-                player.doDeath('reason_killed_${player.woundedBy}');
-            }
-            else if(player.woundedBy == 0)
-            {
-                player.woundedBy = 418;
-                player.connection.send(ClientTag.DYING, ['${player.p_id}']);
-            }
-
-            Connection.SendUpdateToAllClosePlayers(player);
-        }
-        else if(text.indexOf('HEAL') != -1)
-        {
-            player.hits -=5;
-            if(player.hits < 0) player.hits = 0; 
-
-            player.food_store_max = player.calculateFoodStoreMax();
-
-            if(player.woundedBy != 0 && player.hits < 1)
-            {
-                player.woundedBy = 0; 
-                player.connection.send(ClientTag.HEALED, ['${player.p_id}']);
-            }
-
-            Connection.SendUpdateToAllClosePlayers(player);
-        }
     }
 }
 #end

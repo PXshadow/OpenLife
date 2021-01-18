@@ -14,7 +14,7 @@ class Overseer{
 
 
         //Run the bots
-        //for (bot in bots) bot.role.run();
-        for (bot in bots) bot.update();
+        //for (ai in ais) bot.role.run();
+        for (ai in ais) bot.update();
     }
 }

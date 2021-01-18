@@ -13,7 +13,7 @@ import sys.thread.Mutex;
 
 using openlife.server.MoveHelper;
 
-class GlobalPlayerInstance extends PlayerInstance
+class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.MessageHandler
 {
     // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
     public var heldObject:ObjectHelper; 
@@ -103,6 +103,48 @@ class GlobalPlayerInstance extends PlayerInstance
         else healthFactor = (health - ServerSettings.HealthFactor) / ( (1 / maxMali) * health - ServerSettings.HealthFactor);
 
         return healthFactor;
+    }
+
+    public function say(text:String)
+    {
+        this.mutex.acquire();
+
+        try
+        {
+            var player = this;
+            var curse = 0;
+            var id = player.p_id;
+
+            text = text.toUpperCase();
+
+            if(ServerSettings.debug) DoDebugCommands(player, text);
+
+            var maxLenght = player.age > 14 ? 30 : Math.ceil(player.age *=2); 
+
+            if(text.length > maxLenght) text = text.substr(0, maxLenght);
+
+            for (c in Connection.getConnections())
+            {
+                // TODO why send movement ???
+                /*c.send(PLAYER_MOVES_START,[
+                    "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
+                    "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
+                ]);*/
+                c.send(PLAYER_SAYS,['$id/$curse $text']);
+                c.send(FRAME);
+            }
+
+            for (ai in Connection.getAis())
+            {
+                ai.say(player,curse == 1 ? true : false,text);
+            }
+        }
+        catch(ex)
+        {
+            trace(ex);
+        }
+
+        this.mutex.release();
     }
 
     /*
@@ -969,4 +1011,43 @@ class GlobalPlayerInstance extends PlayerInstance
 
         return food_store_max;
     }
+
+    private static function DoDebugCommands(player:GlobalPlayerInstance, text:String)
+        {
+            if(text.indexOf('HIT') != -1)
+            {
+                trace('HIT');
+    
+                player.hits +=5;
+                player.food_store_max = player.calculateFoodStoreMax();
+    
+                // reason_killed_id 
+                if(player.food_store_max < 0)
+                {
+                    player.doDeath('reason_killed_${player.woundedBy}');
+                }
+                else if(player.woundedBy == 0)
+                {
+                    player.woundedBy = 418;
+                    player.connection.send(ClientTag.DYING, ['${player.p_id}']);
+                }
+    
+                Connection.SendUpdateToAllClosePlayers(player);
+            }
+            else if(text.indexOf('HEAL') != -1)
+            {
+                player.hits -=5;
+                if(player.hits < 0) player.hits = 0; 
+    
+                player.food_store_max = player.calculateFoodStoreMax();
+    
+                if(player.woundedBy != 0 && player.hits < 1)
+                {
+                    player.woundedBy = 0; 
+                    player.connection.send(ClientTag.HEALED, ['${player.p_id}']);
+                }
+    
+                Connection.SendUpdateToAllClosePlayers(player);
+            }
+        }
 }

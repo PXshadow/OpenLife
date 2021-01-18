@@ -16,13 +16,11 @@ import openlife.engine.Program;
 class Automation
 {
     public var program:Program;
-    var list:Vector<Int>;
     public var interp:Interpreter;
-    public function new(program:Program,list:Vector<Int>=null)
+    public function new(program:Program)
     {
         this.program = program;
-        this.list = list;
-        interp = new Interpreter(list);
+        interp = new Interpreter();
     }
     public function goto(id:Array<Int>,buffer:Pos->Void):Bool
     {
