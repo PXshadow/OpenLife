@@ -115,6 +115,7 @@ class Connection implements ServerHeader
 
             // send PU and FRAME also to the connection --> therefore make sure that addToConnections is called first 
             SendUpdateToAllClosePlayers(player); 
+            SendUpdateToMeAllClosePlayers(player);
         }
         catch(ex)
         {
