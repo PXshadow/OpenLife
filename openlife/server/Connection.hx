@@ -368,11 +368,11 @@ class Connection implements ServerHeader
                 // reason_killed_id 
                 if(player.food_store_max < 0)
                 {
-                    player.doDeath('reason_killed_418');
+                    player.doDeath('reason_killed_${player.woundedBy}');
                 }
-                else if(player.wounded == false && player.food_store_max < ServerSettings.WoundWhenFoodStoreMaxBelow)
+                else if(player.woundedBy == 0 && player.food_store_max < ServerSettings.WoundWhenFoodStoreMaxBelow)
                 {
-                    player.wounded = true;
+                    player.woundedBy = 418;
                     this.send(ClientTag.DYING, ['${player.p_id}']);
                 }
 
@@ -385,9 +385,9 @@ class Connection implements ServerHeader
 
                 player.food_store_max = player.calculateFoodStoreMax();
 
-                if(player.wounded && (player.hits < 1 || player.food_store_max > ServerSettings.WoundWhenFoodStoreMaxBelow))
+                if(player.woundedBy != 0 && (player.hits < 1 || player.food_store_max > ServerSettings.WoundWhenFoodStoreMaxBelow))
                 {
-                    player.wounded = false; 
+                    player.woundedBy = 0; 
                     this.send(ClientTag.HEALED, ['${player.p_id}']);
                 }
 

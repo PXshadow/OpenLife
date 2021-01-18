@@ -55,6 +55,10 @@ World:
 - objects except ancient, well, Iron Mine, Oil Pumps decay with a small chance
 - decay chance is 10X reduced if on floor and 10X increeased if food
 
+Healing
+- max food store equals hitpoints
+- player heals with time but healing doubles food use
+
 Objects:
 - Cooked Rabbit Food Value: 10 --> 18
 - Turkey Slice on Plate Food Value: 17 --> 24

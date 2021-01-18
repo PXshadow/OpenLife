@@ -203,17 +203,39 @@ class TimeHelper
         }
     }
 
+    private static function updateHitpoints()
+    {
+
+    }
+
 
     private static function updateFood(c:Connection, timePassedInSeconds:Float)
     {
         //trace('food_store: ${connection.player.food_store}');
 
+        var player = c.player;
         var tmpFood = Math.ceil(c.player.food_store);
         var tmpExtraFood = Math.ceil(c.player.yum_bonus);
         var tmpFoodStoreMax = Math.ceil(c.player.food_store_max);
         var foodDecay = timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
 
         if(c.player.age < ServerSettings.GrownUpAge && c.player.food_store > 0) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
+
+        // do healing but increase food use
+        if(player.hits > 0)
+        {
+            player.hits -= foodDecay;
+
+            foodDecay *= 2;
+
+            if(player.hits < 0) player.hits = 0; 
+
+            if(player.woundedBy != 0 && (player.hits < 1 || player.food_store_max > ServerSettings.WoundWhenFoodStoreMaxBelow * 2))
+            {
+                player.woundedBy = 0;
+                c.send(ClientTag.HEALED, ['${player.p_id}']);
+            }
+        }
 
         foodDecay /= calculateTemperature(c.player);
 

@@ -46,7 +46,7 @@ class GlobalPlayerInstance extends PlayerInstance
 
     // combat 
     public var hits:Float = 0;
-    public var wounded = false;
+    public var woundedBy = 0;
 
     public function new(a:Array<String>)
     {
