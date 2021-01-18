@@ -62,7 +62,7 @@ class Server
         player.food_store_max = player.calculateFoodStoreMax();
         player.food_store = player.food_store_max / 2;
 
-        var ai = new openlife.auto.Ai(player,player);
+        var ai = new ServerAi(player);
         Connection.addAi(ai);
 
         TimeHelper.DoTimeLoop();

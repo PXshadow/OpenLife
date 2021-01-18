@@ -13,7 +13,7 @@ class Connection implements ServerHeader
 {
     private static var globalMutex = new Mutex();
     private static var connections:Array<Connection> = [];
-    private static var ais:Array<Ai> = [];
+    private static var ais:Array<ServerAi> = [];
 
     private var mutex = new Mutex();
 
@@ -115,7 +115,7 @@ class Connection implements ServerHeader
 
             // send PU and FRAME also to the connection --> therefore make sure that addToConnections is called first 
             SendUpdateToAllClosePlayers(player); 
-            SendUpdateToMeAllClosePlayers(player);
+            SendToMeAllClosePlayers(player);
         }
         catch(ex)
         {
@@ -130,12 +130,12 @@ class Connection implements ServerHeader
     {
         return connections;
     }
-    public static function getAis() : Array<Ai>
+    public static function getAis() : Array<ServerAi>
     {
         return ais;
     }
     
-    public static function addAi(ai:Ai)
+    public static function addAi(ai:ServerAi)
     {
         ais.push(ai);
     }
@@ -183,7 +183,7 @@ class Connection implements ServerHeader
         catch(ex) trace(ex);
     }
 
-    public static function SendUpdateToMeAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true)
+    public static function SendToMeAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true)
         {
             try
             {
@@ -198,15 +198,17 @@ class Connection implements ServerHeader
                     // update only close players
                     if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
     
-                    player.connection.send(PLAYER_UPDATE,[player.toRelativeData(c.player)], isPlayerAction);
+                    player.connection.send(PLAYER_UPDATE,[c.player.toRelativeData(player)], isPlayerAction);
                 }
                 for (ai in ais)
                 {
-                    player.connection.send(PLAYER_UPDATE,[player.toRelativeData(ai.player)], isPlayerAction);
+                    trace('one AI');
+                    player.connection.send(PLAYER_UPDATE,[ai.player.toRelativeData(player)], true);
+                    trace('end AI');
                 }
                 player.connection.send(FRAME, null, isPlayerAction);
             }
-            catch(ex) trace(ex);
+            catch(ex) trace(ex.stack);
         }
 
     public static function SendTransitionUpdateToAllClosePlayers(player:GlobalPlayerInstance, tx:Int, ty:Int, newFloorId:Int, newTileObject:Array<Int>, doTransition:Bool, isPlayerAction:Bool = true)
@@ -511,6 +513,8 @@ class Connection implements ServerHeader
         this.mutex.acquire();
 
         var string = "";
+
+        //trace('send:  ${data}');
 
         try 
         {
