@@ -44,6 +44,10 @@ class GlobalPlayerInstance extends PlayerInstance
     var lastCravingIndex:Int = 0;
     var cravings = new Array<Int>();
 
+    // combat 
+    public var hits:Float = 0;
+    public var wounded = false;
+
     public function new(a:Array<String>)
     {
         super(a);
@@ -948,5 +952,21 @@ class GlobalPlayerInstance extends PlayerInstance
         //trace('clothingInsulation: $clothingInsulation');
 
         return clothingInsulation;
+    }
+
+    public function calculateFoodStoreMax() : Float
+    {
+        var p:GlobalPlayerInstance = this;
+        var age = p.age;
+        var food_store_max:Float = ServerSettings.GrownUpFoodStoreMax;
+
+        if(age < 20) food_store_max = ServerSettings.NewBornFoodStoreMax + age / 20 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.NewBornFoodStoreMax);
+        if(age > 50) food_store_max = ServerSettings.OldAgeFoodStoreMax + (60 - age) / 10 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.OldAgeFoodStoreMax);
+
+        if(p.food_store < 0) food_store_max += ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath * p.food_store;
+
+        food_store_max -= p.hits;
+
+        return food_store_max;
     }
 }

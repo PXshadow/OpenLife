@@ -111,6 +111,9 @@ class ServerSettings
     public static var ObjDecayFactorOnFloor:Float = 0.1;
     public static var ObjDecayFactorForFood:Float = 10;
 
+    // combat
+    public static var WoundWhenFoodStoreMaxBelow = 10;
+
 
     // iron, tary spot spring cannot respawn or win lottery
     public static function CanObjectRespawn(obj:Int) : Bool

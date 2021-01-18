@@ -95,7 +95,7 @@ class Connection implements ServerHeader
             player.gy = ServerSettings.startingGy;
 
             player.move_speed = MoveHelper.calculateSpeed(player, player.gx, player.gy);
-            player.food_store_max = TimeHelper.CalculateFoodStoreMax(player);
+            player.food_store_max = player.calculateFoodStoreMax();
             player.food_store = player.food_store_max / 2;
             player.yum_multiplier = ServerSettings.MinHealthPerYear * ServerSettings.StartingEveAge; 
 
@@ -354,6 +354,46 @@ class Connection implements ServerHeader
 
         try
         {
+            var player = this.player;
+
+            text = text.toUpperCase();
+
+            if(text.indexOf('HIT') != -1)
+            {
+                trace('HIT');
+
+                player.hits +=5;
+                player.food_store_max = player.calculateFoodStoreMax();
+
+                // reason_killed_id 
+                if(player.food_store_max < 0)
+                {
+                    player.doDeath('reason_killed_418');
+                }
+                else if(player.wounded == false && player.food_store_max < ServerSettings.WoundWhenFoodStoreMaxBelow)
+                {
+                    player.wounded = true;
+                    this.send(ClientTag.DYING, ['${player.p_id}']);
+                }
+
+                Connection.SendUpdateToAllClosePlayers(player);
+            }
+            else if(text.indexOf('HEAL') != -1)
+            {
+                player.hits -=5;
+                if(player.hits < 0) player.hits = 0; 
+
+                player.food_store_max = player.calculateFoodStoreMax();
+
+                if(player.wounded && (player.hits < 1 || player.food_store_max > ServerSettings.WoundWhenFoodStoreMaxBelow))
+                {
+                    player.wounded = false; 
+                    this.send(ClientTag.HEALED, ['${player.p_id}']);
+                }
+
+                Connection.SendUpdateToAllClosePlayers(player);
+            }
+
             var curse = 0;
             var id = player.p_id;
             for (c in connections)

@@ -143,6 +143,7 @@ class TimeHelper
                 c.sendGlobalMessage('Id ${obj.parentId} P${obj.person} ${obj.description}');
 
                 personIndex++;
+                //  418 + 0 = 427 + 1363 / @ Deadly Wolf + Empty  -->  Attacking Wolf + Bite Wound 
             }
         }
         */
@@ -191,7 +192,7 @@ class TimeHelper
         {
             trace('Age: ${c.player.age} TrueAge: ${c.player.trueAge} agingFactor: $agingFactor healthFactor: $healthFactor');
 
-            c.player.food_store_max = CalculateFoodStoreMax(c.player);
+            c.player.food_store_max = c.player.calculateFoodStoreMax();
 
             if(c.player.age > 60) c.player.doDeath('reason_age');
 
@@ -202,18 +203,6 @@ class TimeHelper
         }
     }
 
-    public static function CalculateFoodStoreMax(p:GlobalPlayerInstance) : Float
-    {
-        var age = p.age;
-        var food_store_max:Float = ServerSettings.GrownUpFoodStoreMax;
-
-        if(age < 20) food_store_max = ServerSettings.NewBornFoodStoreMax + age / 20 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.NewBornFoodStoreMax);
-        if(age > 50) food_store_max = ServerSettings.OldAgeFoodStoreMax + (60 - age) / 10 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.OldAgeFoodStoreMax);
-
-        if(p.food_store < 0) food_store_max += ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath * p.food_store;
-
-        return food_store_max;
-    }
 
     private static function updateFood(c:Connection, timePassedInSeconds:Float)
     {
@@ -244,7 +233,7 @@ class TimeHelper
             c.player.food_store -= foodDecay;
         }
 
-        c.player.food_store_max = CalculateFoodStoreMax(c.player);
+        c.player.food_store_max = c.player.calculateFoodStoreMax();
 
         var hasChanged = tmpFood != Math.ceil(c.player.food_store) || tmpExtraFood != Math.ceil(c.player.yum_bonus);
         hasChanged = hasChanged || tmpFoodStoreMax != Math.ceil(c.player.food_store_max);
