@@ -1225,6 +1225,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
         Connection.SendUpdateToAllClosePlayers(heldPlayer);
 
         heldPlayer.forced = false;
+        heldPlayer.responsible_id = -1;
 
         return true; 
     }

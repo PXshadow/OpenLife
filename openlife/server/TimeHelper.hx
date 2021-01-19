@@ -269,6 +269,26 @@ class TimeHelper
             player.food_store -= foodDecay;
         }
 
+        // do breast feeding
+        // TODO check if player is fertile women
+        var heldPlayer = player.heldPlayer;
+
+        if(heldPlayer != null && player.food_store > 1 && heldPlayer.age < ServerSettings.MaxAgeForBreastFeeding)
+        {
+            //trace('feeding:');
+
+            if(heldPlayer.food_store < heldPlayer.food_store_max)
+            {
+                var food = 5 * timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
+
+                heldPlayer.food_store += food;
+                
+                player.food_store -= food / 2;
+
+                //trace('feeding: $food foodDecay: $foodDecay');
+            }
+        }
+
         player.food_store_max = player.calculateFoodStoreMax();
 
         var hasChanged = tmpFood != Math.ceil(player.food_store) || tmpExtraFood != Math.ceil(player.yum_bonus);
