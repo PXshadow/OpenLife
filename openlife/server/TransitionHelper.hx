@@ -138,6 +138,8 @@ class TransitionHelper{
         // this is a drop and not a transition
         this.doTransition = false;
 
+        if(player.heldPlayer != null) return dropPlayer();
+
         if(clothingIndex >=0) return player.doPlaceObjInClothing(clothingIndex, true);
             
         if(this.tileObjectData.minPickupAge > player.age)
@@ -153,6 +155,31 @@ class TransitionHelper{
 
         return this.swapHandAndFloorObject();  
     } 
+
+    private function dropPlayer() : Bool
+    {
+        trace('drop player');
+
+        // TODO mutex on heldPlayer
+        var heldPlayer = player.heldPlayer;
+        
+        heldPlayer.x = player.tx() - heldPlayer.gx;
+        heldPlayer.y = player.ty() - heldPlayer.gy;
+
+        player.heldPlayer = null;
+        player.o_id = [0];
+
+        heldPlayer.forced = true;
+
+        Connection.SendUpdateToAllClosePlayers(player);
+        Connection.SendUpdateToAllClosePlayers(heldPlayer);
+
+        heldPlayer.forced = false;
+
+        // TODO dont send double player update / move to global player instance
+
+        return false; // there is no map object changed
+    }
 
     public function checkIfNotMovingAndCloseEnough():Bool
     {
