@@ -2,6 +2,11 @@ How to connect to the test server:
 ip: thinqbator.app
 port: 8005
 
+For debugging:
+if AllowDebugCommmands = true in ServerSettings.txt:
+    can create objects with saying "create ID" / "create object" "create object!" with ! indicating that object ends with "object" or test wounds with using "hit" or "heal"
+    --> for example: "create ore!" creates iron ore. create iron creates the first object with iron in the name.
+
 Summary: 
 - The server is written from scratch in Haxe and in early ALPHA, so except errors / feel welcome to report them
 - Limited hand made map which can be designed using a picture

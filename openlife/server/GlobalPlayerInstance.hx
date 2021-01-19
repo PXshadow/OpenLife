@@ -138,8 +138,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
             text = text.toUpperCase();
 
-            //if(ServerSettings.debug) 
-                DoDebugCommands(player, text);
+            if(ServerSettings.AllowDebugCommmands) DoDebugCommands(player, text);
 
             var maxLenght = player.age > 14 ? 30 : Math.ceil(player.age *=2); 
 
@@ -1083,6 +1082,64 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
                 }
     
                 Connection.SendUpdateToAllClosePlayers(player);
+            }
+
+            // "create xxx" with xxx = id
+            if(text.indexOf('CREATE') != -1)
+            {
+                trace('Create debug object');
+
+                var strings = text.split(' ');
+
+                if(strings.length < 2) return;
+
+                var id = Std.parseInt(strings[1]);
+
+                trace('${strings[1]} $id');
+
+                var endsWith = false;
+
+                if(strings[1].indexOf('!') != -1)
+                {
+                    endsWith = true;
+
+                    strings[1] = StringTools.replace(strings[1], '!', '');
+                }
+
+                if(id == null)
+                {
+                    for(obj in ObjectData.importedObjectData)
+                    {
+                        var description = obj.description.toUpperCase();
+                        description = StringTools.replace(description, '\n', '');
+                        description = StringTools.replace(description, '\r', '');
+
+                        trace('/${description}/');
+
+                        if(endsWith)
+                        {
+                            if(StringTools.endsWith(description, strings[1]))
+                            {
+                                id = obj.id;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            if(description.indexOf(strings[1]) != -1)
+                            {
+                                id = obj.id;
+                                break;
+                            }
+                        }
+                    }
+                } 
+
+                if(id == null) return;
+                
+                WorldMap.world.setObjectId(player.tx(), player.ty(), [id]);
+
+                Connection.SendMapUpdateToAllClosePlayers(player.tx(), player.ty(), [id]);
             }
         }
 }
