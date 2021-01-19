@@ -172,9 +172,9 @@ class TransitionHelper{
 
         heldPlayer.forced = true;
         heldPlayer.responsible_id = player.p_id;
+        heldPlayer.done_moving_seqNum += 1;
 
         Connection.SendUpdateToAllClosePlayers(player,true, false);
-        //Connection.SendMoveUpdateToAllClosePlayers(heldPlayer, 0,0,"", true);
         Connection.SendUpdateToAllClosePlayers(heldPlayer);
 
         heldPlayer.forced = false;
