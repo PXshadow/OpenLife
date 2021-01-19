@@ -1,5 +1,6 @@
 package openlife.server;
 
+import format.hl.Data.CodeFlag;
 import openlife.settings.ServerSettings;
 import openlife.data.transition.TransitionData;
 import openlife.data.object.ObjectData;
@@ -170,8 +171,10 @@ class TransitionHelper{
         player.o_id = [0];
 
         heldPlayer.forced = true;
+        heldPlayer.responsible_id = player.p_id;
 
-        Connection.SendUpdateToAllClosePlayers(player);
+        Connection.SendUpdateToAllClosePlayers(player,true, false);
+        //Connection.SendMoveUpdateToAllClosePlayers(heldPlayer, 0,0,"", true);
         Connection.SendUpdateToAllClosePlayers(heldPlayer);
 
         heldPlayer.forced = false;

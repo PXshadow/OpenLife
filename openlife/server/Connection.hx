@@ -157,7 +157,7 @@ class Connection implements ServerHeader
         return null;
     }
 
-    public static function SendUpdateToAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true)
+    public static function SendUpdateToAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true, sendFrame:Bool = true)
     {
         try
         {
@@ -173,8 +173,7 @@ class Connection implements ServerHeader
                 if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
                 c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)], isPlayerAction);
-                c.send(FRAME, null, isPlayerAction);
-
+                if(sendFrame) c.send(FRAME, null, isPlayerAction);
             }
 
             for (ai in ais)
