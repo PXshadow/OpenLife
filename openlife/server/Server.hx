@@ -197,7 +197,13 @@ class Server
             case USE:
                 TransitionHelper.doCommand(header.player, tag, Std.parseInt(input[0]),Std.parseInt(input[1]), input.length > 3 ? Std.parseInt(input[3]) : -1 ,input.length > 2 ? Std.parseInt(input[2]) : 0);
             case DROP:
-                TransitionHelper.doCommand(header.player, tag, Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
+                if(header.player.heldPlayer == null)
+                {
+                    TransitionHelper.doCommand(header.player, tag, Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
+                }
+                else{
+                    header.player.dropPlayer();
+                }
             case SELF:
                 header.player.self(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]));
             case UBABY:

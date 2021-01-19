@@ -56,7 +56,7 @@ class TransitionHelper{
             } 
             catch(e)
             {                
-                trace(e);
+                trace('WARNING: ' + e);
 
                 // send PU so that player wont get stuck
                 player.connection.send(PLAYER_UPDATE,[player.toData()]);
@@ -139,7 +139,14 @@ class TransitionHelper{
         // this is a drop and not a transition
         this.doTransition = false;
 
-        if(player.heldPlayer != null) return dropPlayer();
+        if(player.heldPlayer != null)
+        {
+            var message = 'WARNING: Drop player should be handled by GlobalPlayer.dropPlayer() not drop for objects!!!';
+            
+            trace(message);
+
+            throw(message);    
+        }
 
         if(clothingIndex >=0) return player.doPlaceObjInClothing(clothingIndex, true);
             
@@ -156,33 +163,6 @@ class TransitionHelper{
 
         return this.swapHandAndFloorObject();  
     } 
-
-    private function dropPlayer() : Bool
-    {
-        trace('drop player');
-
-        // TODO mutex on heldPlayer
-        var heldPlayer = player.heldPlayer;
-        
-        heldPlayer.x = player.tx() - heldPlayer.gx;
-        heldPlayer.y = player.ty() - heldPlayer.gy;
-
-        player.heldPlayer = null;
-        player.o_id = [0];
-
-        heldPlayer.forced = true;
-        heldPlayer.responsible_id = player.p_id;
-        heldPlayer.done_moving_seqNum += 1;
-
-        Connection.SendUpdateToAllClosePlayers(player,true, false);
-        Connection.SendUpdateToAllClosePlayers(heldPlayer);
-
-        heldPlayer.forced = false;
-
-        // TODO dont send double player update / move to global player instance
-
-        return false; // there is no map object changed
-    }
 
     public function checkIfNotMovingAndCloseEnough():Bool
     {

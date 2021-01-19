@@ -1114,7 +1114,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
             }
             catch(e)
             {                
-                trace(e);
+                trace("WARNING: " + e);
             }
         }
 
@@ -1154,6 +1154,79 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
         Connection.SendUpdateToAllClosePlayers(this, true);
 
         return true;
+    }
+
+    public function dropPlayer() 
+    {
+        trace('drop player');
+
+        this.mutex.acquire();
+
+        var targetPlayer = this.heldPlayer;
+        var done = false;
+    
+        // make sure that if both players at the same time try to interact with each other it does not end up in a dead lock 
+        while(targetPlayer.mutex.tryAcquire() == false)
+        {
+            this.mutex.release();
+
+            Sys.sleep(WorldMap.calculateRandomFloat() / 5);
+
+            this.mutex.acquire();
+        } 
+
+        if(ServerSettings.debug)
+        {
+            done = dropPlayerHelper();
+        }
+        else
+        {
+            try
+            {
+                done = dropPlayerHelper();
+            }
+            catch(e)
+            {                
+                trace("WARNING: " + e);
+            }
+        }
+
+        // send always PU so that player wont get stuck
+        if(done == false)
+        {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);
+            this.connection.send(FRAME);
+        }
+
+        targetPlayer.mutex.release();
+        this.mutex.release();
+    }
+
+    private function dropPlayerHelper() : Bool
+    {
+        trace('drop player helper');
+
+        var player = this;
+
+        // TODO mutex on heldPlayer
+        var heldPlayer = player.heldPlayer;
+        
+        heldPlayer.x = player.tx() - heldPlayer.gx;
+        heldPlayer.y = player.ty() - heldPlayer.gy;
+
+        player.heldPlayer = null;
+        player.o_id = [0];
+
+        heldPlayer.forced = true;
+        heldPlayer.responsible_id = player.p_id;
+        heldPlayer.done_moving_seqNum += 1;
+
+        Connection.SendUpdateToAllClosePlayers(player,true, false);
+        Connection.SendUpdateToAllClosePlayers(heldPlayer);
+
+        heldPlayer.forced = false;
+
+        return true; 
     }
 
     private static function DoDebugCommands(player:GlobalPlayerInstance, text:String)
