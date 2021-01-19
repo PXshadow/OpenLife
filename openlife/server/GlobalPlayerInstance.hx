@@ -1302,7 +1302,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
                         description = StringTools.replace(description, '\n', '');
                         description = StringTools.replace(description, '\r', '');
 
-                        trace('/${description}/');
+                        //trace('/${description}/');
 
                         if(endsWith)
                         {
