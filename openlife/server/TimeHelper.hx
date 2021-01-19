@@ -123,7 +123,7 @@ class TimeHelper
 
             MoveHelper.updateMovement(ai.me);
 
-            //if(TimeHelper.tick % 40 == 0) updateTemperature(ai.me);
+            if(TimeHelper.tick % 40 == 0) updateTemperature(ai.me);
 
             ai.doTimeStuff(timePassedInSeconds);
         }
