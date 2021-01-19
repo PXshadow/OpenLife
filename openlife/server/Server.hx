@@ -52,7 +52,8 @@ class Server
         server = new Server();
 
         // add a new test bot // TODO remove later
-        ServerAi.CreateNew();
+        var ai = ServerAi.CreateNew();
+        ai.myPlayer.age = 1;
 
         TimeHelper.DoTimeLoop();
     }
@@ -209,6 +210,8 @@ class Server
             case PING:
                 // PING x y unique_id#
                 header.sendPong(input[2]);
+            case BABY: // BABY x y# // BABY x y id#
+                header.player.doBaby(Std.parseInt(input[0]), Std.parseInt(input[1]), input.length > 2 ? Std.parseInt(input[2]) : -1);
             default:
         }
     }

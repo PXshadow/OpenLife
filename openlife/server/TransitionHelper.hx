@@ -318,7 +318,7 @@ class TransitionHelper{
 
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;     
 
-        if(this.tileObjectData.minPickupAge > player.age + ServerSettings.AddAgeForConsideringPickupAge)
+        if(this.tileObjectData.minPickupAge > player.age + ServerSettings.ReduceAgeNeededToPickupObjects)
         {
             trace('tileObjectData.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
             return false;

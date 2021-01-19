@@ -330,7 +330,7 @@ class TimeHelper
 
         player.heat = heat;
 
-        if(player.connection != null) player.connection.send(HEAT_CHANGE, [message]);
+        if(player.connection != null) player.connection.send(HEAT_CHANGE, [message], false);
 
         // trace('Temerature update: temperature: $temperature mesage: $message');
     } 

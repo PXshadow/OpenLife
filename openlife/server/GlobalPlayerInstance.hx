@@ -18,6 +18,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 {
     // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
     public var heldObject:ObjectHelper; 
+    public var heldPlayer:GlobalPlayerInstance;
 
     // additional ObjectInformation for the object stored in backpack or other clothing. The size is 6 since 6 clothing slots
     public var clothingObjects:Vector<ObjectHelper> = new Vector(6); 
@@ -84,7 +85,15 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
     public function tx() : Int {return x + gx;}
     public function ty() : Int {return y + gy;}
 
-    // works with coordinates relative to the player
+    public function isCloseToPlayer(player:GlobalPlayerInstance, distance:Int = 1)
+    {
+        var targetX = player.tx() - this.gx;
+        var targetY = player.ty() - this.gy;
+
+        return isClose(targetX,targetY,distance);
+    }
+
+    /** works with coordinates relative to the player **/
     public function isClose(x:Int, y:Int, distance:Int = 1):Bool
     {    
         return (((this.x - x) * (this.x - x) <= distance * distance) && ((this.y - y) * (this.y - y) <= distance * distance));
@@ -874,6 +883,8 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
     public function MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed()
     {
+        if(this.o_id[0] < 0) return; // do nothing if a player is hold
+
         var obj = this.heldObject;
 
         if(obj == null)
@@ -1044,6 +1055,105 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
         food_store_max -= p.hits;
 
         return food_store_max;
+    }
+
+
+    // BABY x y# // BABY x y id#
+    /**BABY is special case of USE action taken on a baby to pick them up.
+     They are dropped with the normal DROP action.
+     NOTE the alternate call for BABY with extra id parameter.
+     this specifies a specific person to pick up, if more than one is
+     close to the target tile.**/
+    public function doBaby(x:Int, y:Int, playerId:Int) // playerId = -1 if no specific player is slected
+    {
+        var done = false;
+        var targetPlayer = getPlayerAt(this.tx() + x, this.tx() + y, playerId);
+
+        trace('doBaby($x, $y playerId: $playerId)');
+
+        if(isCloseToPlayer(targetPlayer) == false)
+        {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);
+
+            trace('doBaby: x,y is too far away!');
+
+            return;
+        }
+
+        if(targetPlayer == null)
+        {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);
+
+            trace('doBaby: could not find target player!');
+
+            return;
+        }
+
+        this.mutex.acquire();
+    
+        // make sure that if both players at the same time try to interact with each other it does not end up in a dead lock 
+        /*while(targetPlayer.mutex.tryAcquire() == false)
+        {
+            this.mutex.release();
+
+            Sys.sleep(WorldMap.calculateRandomFloat() / 5);
+
+            this.mutex.acquire();
+        } 
+        */  
+        
+        if(ServerSettings.debug)
+        {
+            done = doBabyHelper(x,y, targetPlayer);
+        }
+        else
+        {
+            try
+            {
+                done = doBabyHelper(x,y, targetPlayer);
+            }
+            catch(e)
+            {                
+                trace(e);
+            }
+        }
+
+        // send always PU so that player wont get stuck
+        if(done == false)
+        {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);
+            this.connection.send(FRAME);
+        }
+    
+        //if(targetPlayer != null) targetPlayer.mutex.release();
+
+        this.mutex.release();
+    }
+
+    public function doBabyHelper(x:Int, y:Int, player:GlobalPlayerInstance) : Bool
+    {
+        if(this.o_id[0] != 0)
+        {
+            trace('Cannot pickup player, since hands are not empty!');
+
+            return false;
+        }
+
+        if(player.age >= ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers ) // TODO allow pickup of knocked out players 
+        {
+            trace('Cannot pickup player, player is too old! player.age: ${player.age}');
+
+            return false;
+        }
+
+        this.heldPlayer = player;
+        this.o_id = [-player.p_id]; 
+
+        trace('doBabyHelper: o_id:  ${this.o_id}');
+
+        Connection.SendUpdateToAllClosePlayers(this, true);
+
+        return true;
     }
 
     private static function DoDebugCommands(player:GlobalPlayerInstance, text:String)

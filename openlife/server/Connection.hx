@@ -144,6 +144,16 @@ class Connection implements ServerHeader
             }
         }
 
+        for(c in ais)
+        {
+            if(c.me.p_id == playerId) return c.me;
+
+            if(playerId <= 0)
+            {
+                if(c.me.x == x && c.me.y == y) return c.me;
+            }
+        }
+
         return null;
     }
 
