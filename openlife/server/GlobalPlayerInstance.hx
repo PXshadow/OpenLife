@@ -1089,6 +1089,15 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
             {
                 trace('Create debug object');
 
+                var endsWith = false;
+
+                if(text.indexOf('!') != -1)
+                {
+                    endsWith = true;
+
+                    text = StringTools.replace(text, '!', '');
+                }
+
                 var strings = text.split(' ');
 
                 if(strings.length < 2) return;
@@ -1097,17 +1106,12 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
                 trace('${strings[1]} $id');
 
-                var endsWith = false;
-
-                if(strings[1].indexOf('!') != -1)
-                {
-                    endsWith = true;
-
-                    strings[1] = StringTools.replace(strings[1], '!', '');
-                }
-
                 if(id == null)
                 {
+                    var toSearch = StringTools.replace(text, '${strings[0]} ', '');
+
+                    trace('toSearch: /${toSearch}/');
+
                     for(obj in ObjectData.importedObjectData)
                     {
                         var description = obj.description.toUpperCase();
@@ -1118,7 +1122,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
                         if(endsWith)
                         {
-                            if(StringTools.endsWith(description, strings[1]))
+                            if(StringTools.endsWith(description, toSearch))
                             {
                                 id = obj.id;
                                 break;
@@ -1126,7 +1130,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
                         }
                         else
                         {
-                            if(description.indexOf(strings[1]) != -1)
+                            if(description.indexOf(toSearch) != -1)
                             {
                                 id = obj.id;
                                 break;
