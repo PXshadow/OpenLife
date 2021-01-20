@@ -498,6 +498,7 @@ class TimeHelper
         // TODO decay stuff in containers
         // TODO decay stuff with number of uses > 1
         // TODO create custom decay transitions
+        // TODO add decay object so that decay is visible
 
         var timeParts = ServerSettings.WorldTimeParts * 10; 
         var worldMap = Server.server.map;
@@ -517,11 +518,13 @@ class TimeHelper
 
                 if(ServerSettings.CanObjectRespawn(obj) == false) continue;
 
+                if(worldMap.currentObjectsCount[obj] <= worldMap.originalObjectsCount[obj]) continue; // dont decay natural stuff if there are too few
+
                 var objectHelper = worldMap.getObjectHelper(x,y, true);
 
-                if(objectHelper != null && objectHelper.containedObjects.length > 0) continue; 
+                if(objectHelper != null && objectHelper.containedObjects.length > 0) continue; // TODO change
 
-                //if(worldMap.currentObjectsCount[obj] >= worldMap.originalObjectsCount[obj]) continue;
+                if(objectHelper != null && objectHelper.timeToChange > 0) continue; // dont decay object if there is a time transition
 
                 var objData = ObjectData.getObjectData(obj);
                 
