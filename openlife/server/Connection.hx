@@ -134,6 +134,8 @@ class Connection implements ServerHeader
     {
         for(c in connections)
         {
+            if(c.player.deleted) continue;
+
             if(c.player.p_id == playerId) return c.player;
 
             if(playerId <= 0)
@@ -144,6 +146,8 @@ class Connection implements ServerHeader
 
         for(c in ais)
         {
+            if(c.me.deleted) continue;
+
             if(c.me.p_id == playerId) return c.me;
 
             if(playerId <= 0)

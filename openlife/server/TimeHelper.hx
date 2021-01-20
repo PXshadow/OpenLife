@@ -78,7 +78,7 @@ class TimeHelper
                 }
                 catch(ex)
                 {
-                    trace('WARNING' + ex);   
+                    trace('WARNING: ${ex}\n' + ex.details);   
                 }
             }
 
@@ -106,6 +106,8 @@ class TimeHelper
 
         for (c in Connection.getConnections())
         {            
+            if(c.player.deleted) continue; // maybe remove?
+
             updateAge(c.player, timePassedInSeconds);
 
             updateFoodAndDoHealing(c.player, timePassedInSeconds);            
@@ -118,6 +120,8 @@ class TimeHelper
         
         for (ai in Connection.getAis())
         {
+            if(ai.me.deleted) continue;
+
             updateAge(ai.me, timePassedInSeconds);
 
             updateFoodAndDoHealing(ai.me, timePassedInSeconds);            

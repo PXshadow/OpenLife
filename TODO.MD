@@ -139,6 +139,8 @@ more up in the list means more likely to be implemented first but no gurantee!
 - give option to use normal YUM mechanics
 - better map
 - decay contained stuff in graves / generally decay stuff in containers
+- decay: dont decay stuff with time transition / use item for decay like trash
+- decay floors
 - death while holding some one, or riding / driving something or using cart
 - reconnection
 - incarnation
@@ -159,7 +161,8 @@ more up in the list means more likely to be implemented first but no gurantee!
 - fences / gates
 - score / score boni
 - families
-- commands 
+- / commands 
+- leader commands
 - maps / maps on waystone
 - yum category // for example for berry / berry bowl (maybe not needed?)
 - better order of craving list (currently its just ordered accoring to obj ID)

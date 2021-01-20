@@ -413,6 +413,8 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
         for(c in Connection.getConnections())
         {
+            if(c.player.deleted) continue;
+
             if(c.player == this) continue;
 
             var pX = c.player.tx() - this.gx;
@@ -424,6 +426,8 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
         for(ai in Connection.getAis())
         {
+            if(ai.me.deleted) continue;
+
             if(ai.me == this) continue;
             
             var pX = ai.me.tx() - this.gx;
