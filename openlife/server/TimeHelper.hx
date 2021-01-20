@@ -1,5 +1,7 @@
 package openlife.server;
 
+import haxe.Exception;
+import openlife.macros.Macro;
 import haxe.macro.Expr.Catch;
 import openlife.client.ClientTag;
 import openlife.data.object.ObjectData;
@@ -63,28 +65,8 @@ class TimeHelper
 
             @:privateAccess haxe.MainLoop.tick();
 
-            //Server.server.map.mutex.acquire(); 
-
-            if(ServerSettings.debug)
-            {
-                @:privateAccess TimeHelper.DoTimeStuff();
-            }
-            else
-            {
-                try
-                {
-                    
-                    @:privateAccess TimeHelper.DoTimeStuff();
-                }
-                catch(ex)
-                {
-                    trace('WARNING: ${ex}\n' + ex.details);   
-                }
-            }
-
-            //Server.server.map.mutex.release();
-
-
+            Macro.exception(TimeHelper.DoTimeStuff());
+            
             timeSinceStart = Sys.time() - TimeHelper.serverStartingTime;
 
             if(timeSinceStartCountedFromTicks > timeSinceStart)

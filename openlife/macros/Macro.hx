@@ -11,8 +11,9 @@ class Macro {
         }else{
             try {
                 $expr;
-            }catch(e) {
-                trace(e);
+            }
+            catch(e) {
+                trace('WARNING: ' + e + '\n' + e.details() );
             }
         }
     }
