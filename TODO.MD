@@ -118,7 +118,7 @@ Animals:
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
-- Winter
+- Winter / seasons / ice ages
 - horses that follow owner
 - princess / princess / nobles
 - reconnection after server shutdown
@@ -131,16 +131,15 @@ more up in the list means more likely to be implemented first but no gurantee!
 - give option to use normal YUM mechanics
 - better map
 - decay contained stuff in graves / generally decay stuff in containers
+- death while holding some one, or riding / driving something or using cart
 - reconnection
 - incarnation
 - multiplayer testing
-- clothing to other players needs testing
-- pickup of players
-- drop of players
-- breastfeeding
+- jump out from player holding
+- wiggle command
 - biome locked planting
 - animal interactions / collisions
-- naming
+- predefined naming
 - time transitions for objects in container
 - do pattern transitions right like rubber horsecart pickup 
 - biome boni for different races
@@ -153,17 +152,17 @@ more up in the list means more likely to be implemented first but no gurantee!
 - curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
 - combat / generally allowed
 - fences / gates
-- wounds / healing
+- wounds / healing part 2
 - score / score boni
 - job boni
 - families
 - commands 
 - maps / maps on waystone
-- speech limit
 - yum category // for example for berry / berry bowl (maybe not needed?)
 - better order of craving list (currently its just ordered accoring to obj ID)
 - twinning
 - different languages
+- bell tower ringing
 
 
 Low priority stuff:

@@ -202,20 +202,26 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
     */
     public function doNaming(text:String)
     {
-        text.startsWith('YOU ARE');
+        var doFamilyName = text.startsWith('I AM');
+        
+        if(doFamilyName == false && text.startsWith('YOU ARE') == false) return;
 
-        var player = this.heldPlayer;
+        var player = doFamilyName ? this : this.heldPlayer;
         
         if(player == null) player = this.getClosestPlayer(5);
 
         if(player == null) return;
 
-        if(player.name != "") return;
+        if(doFamilyName)
+        {
+            if(player.familyName != "Snow") return;
+        }
+        else if(player.name != "") return;
 
         var strings = text.split(' ');
 
         if(strings.length < 3) return;
-
+        
         var name = strings[2];
 
         trace('naming: ${name}');
@@ -232,7 +238,15 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
         if(name.length < 2) return;
 
-        player.name = name;
+        if(doFamilyName)
+        {
+            player.familyName = name;
+        }
+        else
+        {
+            player.name = name;
+        }
+       
 
         for(c in Connection.getConnections())
         {
