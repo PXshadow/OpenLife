@@ -569,7 +569,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
             newHasEatenCount = hasEatenMap[key];
             trace('IncreaseFoodValue: craving: hasEaten YES!!!: key: $key, ${newHasEatenCount}');
 
-            if(newHasEatenCount < 1 && cravings.contains(key) == false)
+            if(newHasEatenCount <= 0 && cravings.contains(key) == false)
             {
                 trace('IncreaseFoodValue: added craving: key: $key');
                 cravings.push(key);
@@ -1329,7 +1329,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
                         }
                     }
                 } 
-                
+
                 if(id == null)
                 {
                     for(obj in ObjectData.importedObjectData)

@@ -72,7 +72,7 @@ class ServerSettings
 
     // health
     public static var HealthFactor = 40; // Changes how much health(yum_mulpiplier) affects speed and aging. (From 0.5 to 1.2)  (From 0.5 to 2) 
-    public static var MinHealthPerYear = 2; // for calulating aging / speed: MinHealthPerYear * age is reduced from health(yum_mulpiplier)
+    public static var MinHealthPerYear = 1; // for calulating aging / speed: MinHealthPerYear * age is reduced from health(yum_mulpiplier)
     // for example a men with age 20 needs 20 * MinHealthPerYear health(yum_mulpiplier) to be healthy
     //if(health >= 0) healthFactor = (1.2  * health + ServerSettings.HealthFactor) / (health + ServerSettings.HealthFactor);
     //else healthFactor = (health - ServerSettings.HealthFactor) / ( 2 * health - ServerSettings.HealthFactor);
