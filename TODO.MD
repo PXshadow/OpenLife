@@ -123,11 +123,19 @@ more up in the list means more likely to be implemented first but no gurantee!
 - princess / princess / nobles
 - reconnection after server shutdown
 - special stuff like hercules / snake master / super fast ager 
+- job boni
+- bridges
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
+- jump out from player holding
+- wiggle command
+- animal interactions / collisions
 - give more space for cities in the map
-- change biome speed
+- wounds / healing part 2
+- combat / generally allowed
+- better temperature calculation
+- change biome speed for specialists
 - give option to use normal YUM mechanics
 - better map
 - decay contained stuff in graves / generally decay stuff in containers
@@ -135,10 +143,8 @@ more up in the list means more likely to be implemented first but no gurantee!
 - reconnection
 - incarnation
 - multiplayer testing
-- jump out from player holding
-- wiggle command
 - biome locked planting
-- animal interactions / collisions
+- no dropping of stuff on water
 - predefined naming
 - time transitions for objects in container
 - do pattern transitions right like rubber horsecart pickup 
@@ -150,11 +156,8 @@ more up in the list means more likely to be implemented first but no gurantee!
 - temperature / fire / heat objects / indoor / different biomes are missing
 - server stats
 - curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
-- combat / generally allowed
 - fences / gates
-- wounds / healing part 2
 - score / score boni
-- job boni
 - families
 - commands 
 - maps / maps on waystone
