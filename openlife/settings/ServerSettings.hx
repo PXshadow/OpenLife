@@ -59,7 +59,7 @@ class ServerSettings
    
     // food stuff
     public static var FoodUsePerSecond = 0.10; // 0.2; // 5 sec per pip // normal game has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good 
-    public static var FoodReductionPerEating = 0.5;
+    public static var FoodReductionPerEating = 1;
     public static var MinAgeToEat = 3;
     public static var GrownUpFoodStoreMax = 25;
     public static var NewBornFoodStoreMax = 4;
@@ -349,6 +349,15 @@ class ServerSettings
         trans = new TransitionData(235,391,253,1135); // Clay Bowl + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Domestic Gooseberry  Bush
         transtions.addTransition("PatchTransitions: ", trans, false, true);
 
+
+        // give wolfs some meat
+        trans = transtions.getTransition(0, 423); // 423 Skinned Wolf 
+        trans.newTargetID = 565;  // 565 Butchered Mouflon
+        trans.traceTransition("PatchTransitions: "); 
+
+        // allow to cook mutton on cloals
+        trans = new TransitionData(569,85,570,85); // 569 Raw Mutton + 85 Hot Coals --> 570 Cooked Mutton + 85 Hot Coals
+        transtions.addTransition("PatchTransitions: ", trans);
 
     }
 

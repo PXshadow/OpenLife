@@ -71,8 +71,10 @@ Objects:
 - Cooked Goose: useChance = 0.3;
 
 Transitions:
-- you can harvest Berries directly with a bowl
+- You can harvest Berries directly with a bowl
 - Tule Stumps grow back after one hour 
+- You can cook meat (mutton) on hot coals
+- If you kill a Wolf you get meat (mutton) 
 
 Aging:
 - starving to death slows down aging below 14 and increases above  
