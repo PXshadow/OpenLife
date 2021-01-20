@@ -58,8 +58,8 @@ class ServerSettings
     public static var CreateGreenBiomeDistance = 5;
    
     // food stuff
-    public static var FoodUsePerSecond = 0.15; // 0.2; // 5 sec per pip // normal game has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good 
-    public static var FoodReductionPerEating = 0.5;
+    public static var FoodUsePerSecond = 0.10; // 0.2; // 5 sec per pip // normal game has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good 
+    public static var FoodReductionPerEating = 1;
     public static var MinAgeToEat = 3;
     public static var GrownUpFoodStoreMax = 25;
     public static var NewBornFoodStoreMax = 4;
@@ -153,12 +153,15 @@ class ServerSettings
         ObjectData.getObjectData(942).mapChance *= 10; // Muddy Iron Vein
         ObjectData.getObjectData(2135).mapChance /= 3; // Rubber Tree
         ObjectData.getObjectData(2156).mapChance *= 0.5; // Less UnHappy Mosquitos
+        ObjectData.getObjectData(2156).biomes.push(BiomeTag.SWAMP); // Evil Mosquitos now also in Swamp
+        
         
         ObjectData.getObjectData(418).biomes.push(BiomeTag.YELLOW); // Happy Wolfs now also in Yellow biome :)
         ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
         ObjectData.getObjectData(418).mapChance *= 1.5; // More Happy Wolfs
-
         ObjectData.getObjectData(418).speedMult = 1.5; // Boost Wolfs even more :)
+
+        ObjectData.getObjectData(769).biomes.push(BiomeTag.GREEN); // Beautiful Horses now also in Green biome :)
 
         ObjectData.getObjectData(290).speedMult = 0.80; // Iron Ore
         ObjectData.getObjectData(314).speedMult = 0.80; // Wrought Iron
@@ -349,6 +352,15 @@ class ServerSettings
         trans = new TransitionData(235,391,253,1135); // Clay Bowl + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Domestic Gooseberry  Bush
         transtions.addTransition("PatchTransitions: ", trans, false, true);
 
+
+        // give wolfs some meat
+        trans = transtions.getTransition(0, 423); // 423 Skinned Wolf 
+        trans.newTargetID = 565;  // 565 Butchered Mouflon
+        trans.traceTransition("PatchTransitions: "); 
+
+        // allow to cook mutton on cloals
+        trans = new TransitionData(569,85,570,85); // 569 Raw Mutton + 85 Hot Coals --> 570 Cooked Mutton + 85 Hot Coals
+        transtions.addTransition("PatchTransitions: ", trans);
 
     }
 

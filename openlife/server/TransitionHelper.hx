@@ -320,11 +320,7 @@ class TransitionHelper{
 
         // TODO kill deadlyDistance
 
-        // TODO feed baby
-
         // TODO noUseActor / noUseTarget
-
-        // TODO transitions on animals and caves
 
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;     
 
@@ -606,6 +602,10 @@ class TransitionHelper{
         //if(transition.actorID != transition.newActorID) this.pickUpObject = true;
         player.transformHeldObject(transition.newActorID);
         this.target.id = transition.newTargetID;
+
+        // reset creation / last change time
+        player.heldObject.creationTimeInTicks = TimeHelper.tick;
+        this.target.creationTimeInTicks = TimeHelper.tick;
 
         if(newTargetObjectData.floor)
         {

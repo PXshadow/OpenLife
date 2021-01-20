@@ -12,10 +12,16 @@ import openlife.data.Pos;
 import openlife.data.object.player.PlayerInstance;
 import sys.thread.Mutex;
 
+using StringTools;
+
+
 using openlife.server.MoveHelper;
 
 class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.MessageHandler
 {
+    public var name = "";
+    public var familyName = "Snow";
+
     // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
     public var heldObject:ObjectHelper; 
     public var heldPlayer:GlobalPlayerInstance;
@@ -153,6 +159,8 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
             {
                 if(ServerSettings.AllowDebugCommmands) DoDebugCommands(player, text);
             }
+
+            doNaming(text);
             
             var maxLenght = player.age > 14 ? 30 : Math.ceil(player.age *=2); 
 
@@ -176,6 +184,74 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
         }
 
         this.mutex.release();
+    }
+
+    /*
+    NM
+    p_id first_name last_name
+    p_id first_name last_name
+    p_id first_name last_name
+    ...
+    p_id first_name last_name
+    #
+
+
+    Gives name of player p_id.
+
+    last_name may be ommitted.
+    */
+    public function doNaming(text:String)
+    {
+        var doFamilyName = text.startsWith('I AM');
+        
+        if(doFamilyName == false && text.startsWith('YOU ARE') == false) return;
+
+        var player = doFamilyName ? this : this.heldPlayer;
+        
+        if(player == null) player = this.getClosestPlayer(5);
+
+        if(player == null) return;
+
+        if(doFamilyName)
+        {
+            if(player.familyName != "Snow") return;
+        }
+        else if(player.name != "") return;
+
+        var strings = text.split(' ');
+
+        if(strings.length < 3) return;
+        
+        var name = strings[2];
+
+        trace('naming: ${name}');
+
+        /*
+        name = name.replace('1','');
+        name = name.replace('2','');
+        name = name.replace('3','');
+        name = name.replace('4','');
+        name = name.replace('5,'');
+        name = name.replace('6,'');
+        name = name.replace('7','');
+        */
+
+        if(name.length < 2) return;
+
+        if(doFamilyName)
+        {
+            player.familyName = name;
+        }
+        else
+        {
+            player.name = name;
+        }
+       
+
+        for(c in Connection.getConnections())
+        {
+            c.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
+        }
     }
 
     /*
@@ -329,6 +405,42 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
     {
         return Connection.getPlayerAt(x,y,playerId);
     }
+
+    public function getClosestPlayer(maxDistance:Int) : GlobalPlayerInstance
+    {
+        var player:GlobalPlayerInstance = null;
+        var distance = maxDistance * maxDistance;
+
+        for(c in Connection.getConnections())
+        {
+            if(c.player.deleted) continue;
+
+            if(c.player == this) continue;
+
+            var pX = c.player.tx() - this.gx;
+            var pY = c.player.ty() - this.gy;
+            var tmpDistance = (pX - x) * (pX - x) + (pY - y) * (pY - y);
+
+            if(tmpDistance < distance) player = c.player;
+        }
+
+        for(ai in Connection.getAis())
+        {
+            if(ai.me.deleted) continue;
+
+            if(ai.me == this) continue;
+            
+            var pX = ai.me.tx() - this.gx;
+            var pY = ai.me.ty() - this.gy;
+            var tmpDistance = (pX - x) * (pX - x) + (pY - y) * (pY - y);
+
+            if(tmpDistance < distance) player = ai.me;
+        }
+
+        return player;
+    }
+
+    
 
     /*
         FX
@@ -694,19 +806,17 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
             return false;
         }  
-
-        // set  the index for shoes that come on the other feet
-        // TODO setting shoes is not always working nice
-        // TODO if the clothing are shoes and there are shoes allready on the first shoe but not on the second and if the index is not set
-
+   
+        // if object is a shoe (objClothingSlot == 2) and if no clothingSlot is set, then use on empty foot if there is
         if(objClothingSlot == 2 && clothingSlot == -1)
         {
-            clothingSlot = 3;
+            if(playerTo.clothingObjects[2].id != 0 && playerTo.clothingObjects[3].id == 0) clothingSlot = 3;
+            else clothingSlot = 2;
         }
         else
         {
-            // always use clothing slot from the hold object if it has
-            if(objClothingSlot > -1) clothingSlot = objClothingSlot;
+            // if not a shoe use clothing slot from the held object if it has
+            if(objClothingSlot > -1 && clothingSlot != 2 && clothingSlot != 3 ) clothingSlot = objClothingSlot;
         }
 
         trace('self: ${playerFrom.o_id[0]} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
@@ -812,41 +922,55 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
     // SREMV -5 6 5 -1 remnove from backpack
     public function specialRemove(x:Int,y:Int,clothingSlot:Int,index:Null<Int>) : Bool
     {
-        // TODO implement
         trace("SPECIAL REMOVE:");
 
-        if(clothingSlot < 0) return false;
-
+        if(clothingSlot < 0)
+        {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);            
+            return false;
+        }
+             
         var container = this.clothingObjects[clothingSlot];
 
-        if(container.containedObjects.length < 1) return false;
+        if(container.containedObjects.length < 1) 
+        {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);            
+            return false;
+        }
 
         this.mutex.acquire();
 
-        this.setHeldObject(container.removeContainedObject(index));
-
-        setInClothingSet(clothingSlot);
-
-        SetTransitionData(x,y);
-        
-        /*
-        this.action = 1;
-        this.action_target_x = x;
-        this.action_target_y = y;
-        this.o_origin_x = x;
-        this.o_origin_y = y;
-        this.o_origin_valid = 0; // TODO ???
-        */
-
-        trace('this.clothing_set: ${this.clothing_set}');
+        if(ServerSettings.debug)
+        {
+            specialRemoveHelper(container, clothingSlot, index);
+        }
+        else{
+            try
+            {
+                specialRemoveHelper(container, clothingSlot, index);
+            }
+            catch(ex)
+            {
+                trace('WARNING: $ex ' + ex.details);
+            }
+        }
 
         this.mutex.release();
 
         Connection.SendUpdateToAllClosePlayers(this);
 
-        //this.connection.send(FRAME);
-
         return true;
+    }
+
+    private function specialRemoveHelper(container:ObjectHelper, clothingSlot:Int,index:Null<Int>)
+    {
+        this.setHeldObject(container.removeContainedObject(index));
+
+        setInClothingSet(clothingSlot);
+
+        SetTransitionData(x,y);
+
+        trace('this.clothing_set: ${this.clothing_set}');
     }
 
     public function isHoldingYum() : Bool
@@ -1230,127 +1354,137 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
     }
 
     private static function DoDebugCommands(player:GlobalPlayerInstance, text:String)
+    {
+        if(text.indexOf('!HIT') != -1)
         {
-            if(text.indexOf('!HIT') != -1)
+            trace('!HIT');
+
+            player.hits +=10;
+            player.food_store_max = player.calculateFoodStoreMax();
+
+            // reason_killed_id 
+            if(player.food_store_max < 0)
             {
-                trace('!HIT');
-    
-                player.hits +=10;
-                player.food_store_max = player.calculateFoodStoreMax();
-    
-                // reason_killed_id 
-                if(player.food_store_max < 0)
-                {
-                    player.doDeath('reason_killed_${player.woundedBy}');
-                }
-                else if(player.woundedBy == 0)
-                {
-                    player.woundedBy = 418;
-                    player.connection.send(ClientTag.DYING, ['${player.p_id}']);
-                }
-    
-                Connection.SendUpdateToAllClosePlayers(player);
+                player.doDeath('reason_killed_${player.woundedBy}');
             }
-            else if(text.indexOf('!HEAL') != -1)
+            else if(player.woundedBy == 0)
             {
-                player.hits -=5;
-                if(player.hits < 0) player.hits = 0; 
-    
-                player.food_store_max = player.calculateFoodStoreMax();
-    
-                if(player.woundedBy != 0 && player.hits < 1)
-                {
-                    player.woundedBy = 0; 
-                    player.connection.send(ClientTag.HEALED, ['${player.p_id}']);
-                }
-    
-                Connection.SendUpdateToAllClosePlayers(player);
+                player.woundedBy = 418;
+                player.connection.send(ClientTag.DYING, ['${player.p_id}']);
             }
-            else if(text.indexOf('!CREATEALL') != -1)
-            {
-                Server.server.map.generateExtraDebugStuff(player.tx(), player.ty());
-            }
-            else if(text.indexOf('!CREATE') != -1) // "create xxx" with xxx = id
-            {
-                trace('Create debug object');
 
-                /* var startsWith = true;
-
-                if(text.indexOf('!!') != -1)
-                {
-                    startsWith = false;
-
-                    text = StringTools.replace(text, '!', '');
-                }
-                */
-
-                var strings = text.split(' ');
-
-                if(strings.length < 2) return;
-
-                var id = Std.parseInt(strings[1]);
-
-                //trace('${strings[1]} $id');
-
-                var toSearch = StringTools.replace(text, '${strings[0]} ', '');
-
-                trace('To Create: /${toSearch}/');
-
-                if(id == null)
-                {
-                    for(obj in ObjectData.importedObjectData)
-                    {
-                        var description = obj.description.toUpperCase();
-                        description = StringTools.replace(description, '\n', '');
-                        description = StringTools.replace(description, '\r', '');
-
-                        if(description == toSearch)
-                        {
-                            id = obj.id;
-                            break;
-                        }
-                    }
-                }
-
-                if(id == null)
-                {
-                    for(obj in ObjectData.importedObjectData)
-                    {
-                        var description = obj.description.toUpperCase();
-                        description = StringTools.replace(description, '\n', '');
-                        description = StringTools.replace(description, '\r', '');
-
-                        //trace('/${description}/');
-                        
-                        if(StringTools.startsWith(description, toSearch))
-                        {
-                            id = obj.id;
-                            break;
-                        }
-                    }
-                } 
-
-                if(id == null)
-                {
-                    for(obj in ObjectData.importedObjectData)
-                    {
-                        var description = obj.description.toUpperCase();
-                        description = StringTools.replace(description, '\n', '');
-                        description = StringTools.replace(description, '\r', '');
-
-                        if(description.indexOf(toSearch) != -1)
-                        {
-                            id = obj.id;
-                            break;
-                        }
-                    }
-                } 
-
-                if(id == null) return;
-                
-                WorldMap.world.setObjectId(player.tx(), player.ty(), [id]);
-
-                Connection.SendMapUpdateToAllClosePlayers(player.tx(), player.ty(), [id]);
-            }
+            Connection.SendUpdateToAllClosePlayers(player);
         }
+        else if(text.indexOf('!HEAL') != -1)
+        {
+            player.hits -=5;
+            if(player.hits < 0) player.hits = 0; 
+
+            player.food_store_max = player.calculateFoodStoreMax();
+
+            if(player.woundedBy != 0 && player.hits < 1)
+            {
+                player.woundedBy = 0; 
+                player.connection.send(ClientTag.HEALED, ['${player.p_id}']);
+            }
+
+            Connection.SendUpdateToAllClosePlayers(player);
+        }
+        else if(text.indexOf('!CREATEALL') != -1)
+        {
+            Server.server.map.generateExtraDebugStuff(player.tx(), player.ty());
+        }
+        else if(text.indexOf('!CREATE') != -1) // "create xxx" with xxx = id
+        {
+            trace('Create debug object');
+
+            /* var startsWith = true;
+
+            if(text.indexOf('!!') != -1)
+            {
+                startsWith = false;
+
+                text = StringTools.replace(text, '!', '');
+            }
+            */
+
+            var strings = text.split(' ');
+
+            if(strings.length < 2) return;
+
+            var id = Std.parseInt(strings[1]);
+
+            //trace('${strings[1]} $id');
+
+            var toSearch = StringTools.replace(text, '${strings[0]} ', '');
+
+            trace('To Create: /${toSearch}/');
+
+            if(id == null)
+            {
+                for(obj in ObjectData.importedObjectData)
+                {
+                    var description = obj.description.toUpperCase();
+                    description = StringTools.replace(description, '\n', '');
+                    description = StringTools.replace(description, '\r', '');
+
+                    if(description == toSearch)
+                    {
+                        id = obj.id;
+                        break;
+                    }
+                }
+            }
+
+            if(id == null)
+            {
+                for(obj in ObjectData.importedObjectData)
+                {
+                    var description = obj.description.toUpperCase();
+                    description = StringTools.replace(description, '\n', '');
+                    description = StringTools.replace(description, '\r', '');
+
+                    //trace('/${description}/');
+                    
+                    if(StringTools.startsWith(description, toSearch))
+                    {
+                        id = obj.id;
+                        break;
+                    }
+                }
+            } 
+
+            if(id == null)
+            {
+                for(obj in ObjectData.importedObjectData)
+                {
+                    var description = obj.description.toUpperCase();
+                    description = StringTools.replace(description, '\n', '');
+                    description = StringTools.replace(description, '\r', '');
+
+                    if(description.indexOf(toSearch) != -1)
+                    {
+                        id = obj.id;
+                        break;
+                    }
+                }
+            } 
+
+            if(id == null) return;
+            
+            WorldMap.world.setObjectId(player.tx(), player.ty(), [id]);
+
+            Connection.SendMapUpdateToAllClosePlayers(player.tx(), player.ty(), [id]);
+        }
+    }
+
+    public function isFertile() : Bool
+    {
+        if(this.age < 14 || this.age > 40) return false;
+
+        var person = ObjectData.getObjectData(this.po_id);
+
+        return person.male == false; 
+    }
+
 }

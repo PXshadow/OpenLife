@@ -160,8 +160,8 @@ class MoveHelper
         else if(p.age < 2) ageSpeedFactor = 0.6; 
         else if(p.age < 3) ageSpeedFactor = 0.7;
         else if(p.age < 6) ageSpeedFactor = 0.8;
-        else if(p.age < 10) ageSpeedFactor = 0.9;
-        else if(p.age > 55) ageSpeedFactor = 0.8;
+        else if(p.age < 12) ageSpeedFactor = 0.9;
+        else if(p.age > 55) ageSpeedFactor = 0.9;
         
         /*
         if(p.age < 1) ageSpeedFactor = 0.5;

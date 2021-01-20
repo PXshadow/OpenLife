@@ -1,4 +1,6 @@
 package openlife.server;
+import format.gif.Data.Frame;
+import openlife.data.object.ObjectHelper;
 import openlife.data.object.ObjectData;
 import sys.thread.Mutex;
 import openlife.settings.ServerSettings;
@@ -99,13 +101,19 @@ class Connection implements ServerHeader
             
             send(LINEAGE,['$id eve=$id']);
             send(TOOL_SLOTS,["0 1000"]);
-            player.sendFoodUpdate();
+
+            //trace('food_store_max: ${player.food_store_max}');
+
+            //player.setHeldObject(ObjectHelper.readObjectHelper(player, [2098]));
 
             addToConnections();
 
             // send PU and FRAME also to the connection --> therefore make sure that addToConnections is called first 
             SendUpdateToAllClosePlayers(player); 
             SendToMeAllClosePlayers(player);
+            player.sendFoodUpdate();
+
+            send(FRAME, null, true);
         }
         catch(ex)
         {
@@ -134,6 +142,8 @@ class Connection implements ServerHeader
     {
         for(c in connections)
         {
+            if(c.player.deleted) continue;
+
             if(c.player.p_id == playerId) return c.player;
 
             if(playerId <= 0)
@@ -144,6 +154,8 @@ class Connection implements ServerHeader
 
         for(c in ais)
         {
+            if(c.me.deleted) continue;
+
             if(c.me.p_id == playerId) return c.me;
 
             if(playerId <= 0)

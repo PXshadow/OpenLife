@@ -71,8 +71,10 @@ Objects:
 - Cooked Goose: useChance = 0.3;
 
 Transitions:
-- you can harvest Berries directly with a bowl
+- You can harvest Berries directly with a bowl
 - Tule Stumps grow back after one hour 
+- You can cook meat (mutton) on hot coals
+- If you kill a Wolf you get meat (mutton) 
 
 Aging:
 - starving to death slows down aging below 14 and increases above  
@@ -116,29 +118,37 @@ Animals:
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
-- Winter
+- Winter / seasons / ice ages
 - horses that follow owner
 - princess / princess / nobles
 - reconnection after server shutdown
 - special stuff like hercules / snake master / super fast ager 
+- job boni
+- bridges
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
+- jump out from player holding
+- support multiple time transitions see Fishing Pole --> store in ObjectData 
+- wiggle command
+- animal interactions / collisions
 - give more space for cities in the map
-- change biome speed
+- wounds / healing part 2
+- combat / generally allowed
+- better temperature calculation
+- change biome speed for specialists
 - give option to use normal YUM mechanics
 - better map
 - decay contained stuff in graves / generally decay stuff in containers
+- decay use item for decay like trash
+- decay floors
+- death while holding some one, or riding / driving something or using cart
 - reconnection
 - incarnation
 - multiplayer testing
-- clothing to other players needs testing
-- pickup of players
-- drop of players
-- breastfeeding
 - biome locked planting
-- animal interactions / collisions
-- naming
+- no dropping of stuff on water
+- predefined naming
 - time transitions for objects in container
 - do pattern transitions right like rubber horsecart pickup 
 - biome boni for different races
@@ -149,19 +159,17 @@ more up in the list means more likely to be implemented first but no gurantee!
 - temperature / fire / heat objects / indoor / different biomes are missing
 - server stats
 - curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
-- combat / generally allowed
 - fences / gates
-- wounds / healing
 - score / score boni
-- job boni
 - families
-- commands 
+- / commands 
+- leader commands
 - maps / maps on waystone
-- speech limit
 - yum category // for example for berry / berry bowl (maybe not needed?)
 - better order of craving list (currently its just ordered accoring to obj ID)
 - twinning
 - different languages
+- bell tower ringing
 
 
 Low priority stuff:

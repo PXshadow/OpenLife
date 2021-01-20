@@ -1,5 +1,6 @@
 package openlife.server;
 
+import haxe.macro.Expr.Catch;
 import openlife.client.ClientTag;
 import openlife.data.object.ObjectData;
 import openlife.server.WorldMap.BiomeTag;
@@ -77,7 +78,7 @@ class TimeHelper
                 }
                 catch(ex)
                 {
-                    trace('WARNING' + ex);   
+                    trace('WARNING: ${ex}\n' + ex.details);   
                 }
             }
 
@@ -105,6 +106,8 @@ class TimeHelper
 
         for (c in Connection.getConnections())
         {            
+            if(c.player.deleted) continue; // maybe remove?
+
             updateAge(c.player, timePassedInSeconds);
 
             updateFoodAndDoHealing(c.player, timePassedInSeconds);            
@@ -117,6 +120,8 @@ class TimeHelper
         
         for (ai in Connection.getAis())
         {
+            if(ai.me.deleted) continue;
+
             updateAge(ai.me, timePassedInSeconds);
 
             updateFoodAndDoHealing(ai.me, timePassedInSeconds);            
@@ -273,20 +278,30 @@ class TimeHelper
         // TODO check if player is fertile women
         var heldPlayer = player.heldPlayer;
 
-        if(heldPlayer != null && player.food_store > 1 && heldPlayer.age < ServerSettings.MaxAgeForBreastFeeding)
+        if(heldPlayer != null && player.food_store > 1 && heldPlayer.age < ServerSettings.MaxAgeForBreastFeeding && player.isFertile())
         {
-            //trace('feeding:');
+            heldPlayer.mutex.acquire();
 
-            if(heldPlayer.food_store < heldPlayer.food_store_max)
-            {
-                var food = 5 * timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
+            try{
+                //trace('feeding:');
 
-                heldPlayer.food_store += food;
-                
-                player.food_store -= food / 2;
+                if(heldPlayer.food_store < heldPlayer.food_store_max)
+                {
+                    var food = 5 * timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
 
-                //trace('feeding: $food foodDecay: $foodDecay');
+                    heldPlayer.food_store += food;
+                    
+                    player.food_store -= food / 2;
+
+                    //trace('feeding: $food foodDecay: $foodDecay');
+                }
             }
+            catch(ex)
+            {
+                trace('WARNING: ' + ex.details);
+            }
+
+            heldPlayer.mutex.release();
         }
 
         player.food_store_max = player.calculateFoodStoreMax();
@@ -483,6 +498,7 @@ class TimeHelper
         // TODO decay stuff in containers
         // TODO decay stuff with number of uses > 1
         // TODO create custom decay transitions
+        // TODO add decay object so that decay is visible
 
         var timeParts = ServerSettings.WorldTimeParts * 10; 
         var worldMap = Server.server.map;
@@ -502,11 +518,13 @@ class TimeHelper
 
                 if(ServerSettings.CanObjectRespawn(obj) == false) continue;
 
+                if(worldMap.currentObjectsCount[obj] <= worldMap.originalObjectsCount[obj]) continue; // dont decay natural stuff if there are too few
+
                 var objectHelper = worldMap.getObjectHelper(x,y, true);
 
-                if(objectHelper != null && objectHelper.containedObjects.length > 0) continue; 
+                if(objectHelper != null && objectHelper.containedObjects.length > 0) continue; // TODO change
 
-                //if(worldMap.currentObjectsCount[obj] >= worldMap.originalObjectsCount[obj]) continue;
+                if(objectHelper != null && objectHelper.timeToChange > 0) continue; // dont decay object if there is a time transition
 
                 var objData = ObjectData.getObjectData(obj);
                 
