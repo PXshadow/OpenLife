@@ -806,19 +806,17 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
             return false;
         }  
-
-        // set  the index for shoes that come on the other feet
-        // TODO setting shoes is not always working nice
-        // TODO if the clothing are shoes and there are shoes allready on the first shoe but not on the second and if the index is not set
-
+   
+        // if object is a shoe (objClothingSlot == 2) and if no clothingSlot is set, then use on empty foot if there is
         if(objClothingSlot == 2 && clothingSlot == -1)
         {
-            clothingSlot = 3;
+            if(playerTo.clothingObjects[2].id != 0 && playerTo.clothingObjects[3].id == 0) clothingSlot = 3;
+            else clothingSlot = 2;
         }
         else
         {
-            // always use clothing slot from the hold object if it has
-            if(objClothingSlot > -1) clothingSlot = objClothingSlot;
+            // if not a shoe use clothing slot from the held object if it has
+            if(objClothingSlot > -1 && clothingSlot != 2 && clothingSlot != 3 ) clothingSlot = objClothingSlot;
         }
 
         trace('self: ${playerFrom.o_id[0]} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
