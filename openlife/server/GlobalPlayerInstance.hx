@@ -924,41 +924,55 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
     // SREMV -5 6 5 -1 remnove from backpack
     public function specialRemove(x:Int,y:Int,clothingSlot:Int,index:Null<Int>) : Bool
     {
-        // TODO implement
         trace("SPECIAL REMOVE:");
 
-        if(clothingSlot < 0) return false;
-
+        if(clothingSlot < 0)
+        {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);            
+            return false;
+        }
+             
         var container = this.clothingObjects[clothingSlot];
 
-        if(container.containedObjects.length < 1) return false;
+        if(container.containedObjects.length < 1) 
+        {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);            
+            return false;
+        }
 
         this.mutex.acquire();
 
-        this.setHeldObject(container.removeContainedObject(index));
-
-        setInClothingSet(clothingSlot);
-
-        SetTransitionData(x,y);
-        
-        /*
-        this.action = 1;
-        this.action_target_x = x;
-        this.action_target_y = y;
-        this.o_origin_x = x;
-        this.o_origin_y = y;
-        this.o_origin_valid = 0; // TODO ???
-        */
-
-        trace('this.clothing_set: ${this.clothing_set}');
+        if(ServerSettings.debug)
+        {
+            specialRemoveHelper(container, clothingSlot, index);
+        }
+        else{
+            try
+            {
+                specialRemoveHelper(container, clothingSlot, index);
+            }
+            catch(ex)
+            {
+                trace('WARNING: $ex ' + ex.details);
+            }
+        }
 
         this.mutex.release();
 
         Connection.SendUpdateToAllClosePlayers(this);
 
-        //this.connection.send(FRAME);
-
         return true;
+    }
+
+    private function specialRemoveHelper(container:ObjectHelper, clothingSlot:Int,index:Null<Int>)
+    {
+        this.setHeldObject(container.removeContainedObject(index));
+
+        setInClothingSet(clothingSlot);
+
+        SetTransitionData(x,y);
+
+        trace('this.clothing_set: ${this.clothing_set}');
     }
 
     public function isHoldingYum() : Bool
