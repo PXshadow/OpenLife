@@ -20,19 +20,19 @@ class Ai {
 
     public function say(player:PlayerInstance,curse:Bool,text:String)
     {
-        trace('im a super evil bot!');
+        //trace('im a super evil bot!');
 
-        trace('ai3: ${myPlayer.p_id} player: ${player.p_id}');
+        //trace('ai3: ${myPlayer.p_id} player: ${player.p_id}');
 
         if (this.myPlayer.p_id == player.p_id) return;
 
-        trace('im a evil bot!');
+        //trace('im a evil bot!');
 
         if (text.indexOf("HELLO") != -1) 
         {
             //HELLO WORLD
 
-            trace('im a nice bot!');
+            //trace('im a nice bot!');
 
             handler.say("HELLO WORLD");
         }

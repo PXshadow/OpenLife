@@ -90,9 +90,9 @@ class MoveHelper
 
         if(biomeSpeed < 0.999 && speedModHeldObj > 1) // horses and cars are bad in bad biome 
         {
-            if(speedModHeldObj > 2.50) speedModHeldObj = 0.6; // super speedy stuff like cars
-            else if(speedModHeldObj > 1.8) speedModHeldObj = 0.8; // for example horse
-            else if(speedModHeldObj > 1.2) speedModHeldObj = 0.6; // for example horse cart
+            if(speedModHeldObj > 2.50) speedModHeldObj = 0.8; // super speedy stuff like cars
+            else if(speedModHeldObj > 1.8) speedModHeldObj = 0.9; // for example horse
+            else if(speedModHeldObj > 1.2) speedModHeldObj = 0.8; // for example horse cart
             
             if(ServerSettings.DebugSpeed) trace('Speed: New ${p.heldObject.objectData.description} speed in bad biome: ${p.heldObject.objectData.speedMult} --> $speedModHeldObj');
         }

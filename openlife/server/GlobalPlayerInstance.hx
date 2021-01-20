@@ -139,6 +139,8 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
     {
         this.mutex.acquire();
 
+        trace('say: $text');
+
         try
         {
             var player = this;
@@ -147,29 +149,26 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
             text = text.toUpperCase();
 
-            if(ServerSettings.AllowDebugCommmands) DoDebugCommands(player, text);
-
+            if(StringTools.contains(text, '!'))
+            {
+                if(ServerSettings.AllowDebugCommmands) DoDebugCommands(player, text);
+            }
+            
             var maxLenght = player.age > 14 ? 30 : Math.ceil(player.age *=2); 
 
             if(text.length > maxLenght) text = text.substr(0, maxLenght);
 
             for (c in Connection.getConnections())
             {
-                // TODO why send movement ???
-                /*c.send(PLAYER_MOVES_START,[
-                    "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
-                    "p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN",
-                ]);*/
                 c.send(PLAYER_SAYS,['$id/$curse $text']);
                 c.send(FRAME);
             }
 
             for (ai in Connection.getAis())
             {
-                //trace('ai1: ${ai.me.p_id} player: ${player.p_id}');
                 ai.say(player,curse == 1 ? true : false,text);
-                //trace('ai2: ${ai.me.p_id} player: ${player.p_id}');
             }
+            
         }
         catch(ex)
         {
@@ -1232,9 +1231,9 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
     private static function DoDebugCommands(player:GlobalPlayerInstance, text:String)
         {
-            if(text.indexOf('HIT') != -1)
+            if(text.indexOf('!HIT') != -1)
             {
-                trace('HIT');
+                trace('!HIT');
     
                 player.hits +=10;
                 player.food_store_max = player.calculateFoodStoreMax();
@@ -1252,7 +1251,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
     
                 Connection.SendUpdateToAllClosePlayers(player);
             }
-            else if(text.indexOf('HEAL') != -1)
+            else if(text.indexOf('!HEAL') != -1)
             {
                 player.hits -=5;
                 if(player.hits < 0) player.hits = 0; 
@@ -1269,13 +1268,13 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
             }
 
             // "create xxx" with xxx = id
-            if(text.indexOf('CREATE') != -1)
+            if(text.indexOf('!CREATE') != -1)
             {
                 trace('Create debug object');
 
                 var endsWith = false;
 
-                if(text.indexOf('!') != -1)
+                if(text.indexOf('!!') != -1)
                 {
                     endsWith = true;
 
@@ -1302,7 +1301,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
                         description = StringTools.replace(description, '\n', '');
                         description = StringTools.replace(description, '\r', '');
 
-                        //trace('/${description}/');
+                        trace('/${description}/');
 
                         if(endsWith)
                         {

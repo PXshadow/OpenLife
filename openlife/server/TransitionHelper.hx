@@ -603,7 +603,7 @@ class TransitionHelper{
         }
         
         // do now the magic transformation
-        if(transition.actorID != transition.newActorID) this.pickUpObject = true;
+        //if(transition.actorID != transition.newActorID) this.pickUpObject = true;
         player.transformHeldObject(transition.newActorID);
         this.target.id = transition.newTargetID;
 
