@@ -1274,14 +1274,15 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
             {
                 trace('Create debug object');
 
-                var endsWith = false;
+                /* var startsWith = true;
 
                 if(text.indexOf('!!') != -1)
                 {
-                    endsWith = true;
+                    startsWith = false;
 
                     text = StringTools.replace(text, '!', '');
                 }
+                */
 
                 var strings = text.split(' ');
 
@@ -1289,37 +1290,58 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
                 var id = Std.parseInt(strings[1]);
 
-                trace('${strings[1]} $id');
+                //trace('${strings[1]} $id');
+
+                var toSearch = StringTools.replace(text, '${strings[0]} ', '');
+
+                trace('To Create: /${toSearch}/');
 
                 if(id == null)
                 {
-                    var toSearch = StringTools.replace(text, '${strings[0]} ', '');
-
-                    trace('toSearch: /${toSearch}/');
-
                     for(obj in ObjectData.importedObjectData)
                     {
                         var description = obj.description.toUpperCase();
                         description = StringTools.replace(description, '\n', '');
                         description = StringTools.replace(description, '\r', '');
 
-                        trace('/${description}/');
-
-                        if(endsWith)
+                        if(description == toSearch)
                         {
-                            if(StringTools.endsWith(description, toSearch))
-                            {
-                                id = obj.id;
-                                break;
-                            }
+                            id = obj.id;
+                            break;
                         }
-                        else
+                    }
+                }
+
+                if(id == null)
+                {
+                    for(obj in ObjectData.importedObjectData)
+                    {
+                        var description = obj.description.toUpperCase();
+                        description = StringTools.replace(description, '\n', '');
+                        description = StringTools.replace(description, '\r', '');
+
+                        //trace('/${description}/');
+                        
+                        if(StringTools.startsWith(description, toSearch))
                         {
-                            if(description.indexOf(toSearch) != -1)
-                            {
-                                id = obj.id;
-                                break;
-                            }
+                            id = obj.id;
+                            break;
+                        }
+                    }
+                } 
+                
+                if(id == null)
+                {
+                    for(obj in ObjectData.importedObjectData)
+                    {
+                        var description = obj.description.toUpperCase();
+                        description = StringTools.replace(description, '\n', '');
+                        description = StringTools.replace(description, '\r', '');
+
+                        if(description.indexOf(toSearch) != -1)
+                        {
+                            id = obj.id;
+                            break;
                         }
                     }
                 } 
