@@ -13,6 +13,7 @@ import openlife.data.object.ObjectData;
 class ServerSettings
 {
     // DEBUG: switch on / off
+    public static var dumpOutput = false;
     public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation // deactivates saving
     public static var AllowDebugCommmands = true; // can create objects with saying "create ID" / "create object" "create object!" with ! indicating that object ends with "object" or test wounds with using "hit" or "heal"
     public static var DebugWrite = false; // WordMap writeToDisk

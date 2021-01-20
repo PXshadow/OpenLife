@@ -69,8 +69,14 @@ class Server
 
             if(FileSystem.exists(path) == false) ServerSettings.writeToFile();
         }
-        
 
+        if (ServerSettings.dumpOutput)
+        {
+            var dump = File.append("dump.txt",false);
+            haxe.Log.trace = (v:Dynamic,?infos:haxe.PosInfos) -> {
+                dump.writeString('$v\n');
+            }
+        }
         //initalize database
         Manager.initialize();
         Manager.cnx = sys.db.Sqlite.open("server.db");
