@@ -1,5 +1,6 @@
 package openlife.server;
 
+import haxe.macro.Expr.Catch;
 import openlife.client.ClientTag;
 import openlife.data.object.ObjectData;
 import openlife.server.WorldMap.BiomeTag;
@@ -273,20 +274,30 @@ class TimeHelper
         // TODO check if player is fertile women
         var heldPlayer = player.heldPlayer;
 
-        if(heldPlayer != null && player.food_store > 1 && heldPlayer.age < ServerSettings.MaxAgeForBreastFeeding)
+        if(heldPlayer != null && player.food_store > 1 && heldPlayer.age < ServerSettings.MaxAgeForBreastFeeding && player.isFertile())
         {
-            //trace('feeding:');
+            heldPlayer.mutex.acquire();
 
-            if(heldPlayer.food_store < heldPlayer.food_store_max)
-            {
-                var food = 5 * timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
+            try{
+                //trace('feeding:');
 
-                heldPlayer.food_store += food;
-                
-                player.food_store -= food / 2;
+                if(heldPlayer.food_store < heldPlayer.food_store_max)
+                {
+                    var food = 5 * timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
 
-                //trace('feeding: $food foodDecay: $foodDecay');
+                    heldPlayer.food_store += food;
+                    
+                    player.food_store -= food / 2;
+
+                    //trace('feeding: $food foodDecay: $foodDecay');
+                }
             }
+            catch(ex)
+            {
+                trace('WARNING: ' + ex.details);
+            }
+
+            heldPlayer.mutex.release();
         }
 
         player.food_store_max = player.calculateFoodStoreMax();

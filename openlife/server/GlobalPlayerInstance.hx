@@ -1230,127 +1230,137 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
     }
 
     private static function DoDebugCommands(player:GlobalPlayerInstance, text:String)
+    {
+        if(text.indexOf('!HIT') != -1)
         {
-            if(text.indexOf('!HIT') != -1)
+            trace('!HIT');
+
+            player.hits +=10;
+            player.food_store_max = player.calculateFoodStoreMax();
+
+            // reason_killed_id 
+            if(player.food_store_max < 0)
             {
-                trace('!HIT');
-    
-                player.hits +=10;
-                player.food_store_max = player.calculateFoodStoreMax();
-    
-                // reason_killed_id 
-                if(player.food_store_max < 0)
-                {
-                    player.doDeath('reason_killed_${player.woundedBy}');
-                }
-                else if(player.woundedBy == 0)
-                {
-                    player.woundedBy = 418;
-                    player.connection.send(ClientTag.DYING, ['${player.p_id}']);
-                }
-    
-                Connection.SendUpdateToAllClosePlayers(player);
+                player.doDeath('reason_killed_${player.woundedBy}');
             }
-            else if(text.indexOf('!HEAL') != -1)
+            else if(player.woundedBy == 0)
             {
-                player.hits -=5;
-                if(player.hits < 0) player.hits = 0; 
-    
-                player.food_store_max = player.calculateFoodStoreMax();
-    
-                if(player.woundedBy != 0 && player.hits < 1)
-                {
-                    player.woundedBy = 0; 
-                    player.connection.send(ClientTag.HEALED, ['${player.p_id}']);
-                }
-    
-                Connection.SendUpdateToAllClosePlayers(player);
+                player.woundedBy = 418;
+                player.connection.send(ClientTag.DYING, ['${player.p_id}']);
             }
-            else if(text.indexOf('!CREATEALL') != -1)
-            {
-                Server.server.map.generateExtraDebugStuff(player.tx(), player.ty());
-            }
-            else if(text.indexOf('!CREATE') != -1) // "create xxx" with xxx = id
-            {
-                trace('Create debug object');
 
-                /* var startsWith = true;
-
-                if(text.indexOf('!!') != -1)
-                {
-                    startsWith = false;
-
-                    text = StringTools.replace(text, '!', '');
-                }
-                */
-
-                var strings = text.split(' ');
-
-                if(strings.length < 2) return;
-
-                var id = Std.parseInt(strings[1]);
-
-                //trace('${strings[1]} $id');
-
-                var toSearch = StringTools.replace(text, '${strings[0]} ', '');
-
-                trace('To Create: /${toSearch}/');
-
-                if(id == null)
-                {
-                    for(obj in ObjectData.importedObjectData)
-                    {
-                        var description = obj.description.toUpperCase();
-                        description = StringTools.replace(description, '\n', '');
-                        description = StringTools.replace(description, '\r', '');
-
-                        if(description == toSearch)
-                        {
-                            id = obj.id;
-                            break;
-                        }
-                    }
-                }
-
-                if(id == null)
-                {
-                    for(obj in ObjectData.importedObjectData)
-                    {
-                        var description = obj.description.toUpperCase();
-                        description = StringTools.replace(description, '\n', '');
-                        description = StringTools.replace(description, '\r', '');
-
-                        //trace('/${description}/');
-                        
-                        if(StringTools.startsWith(description, toSearch))
-                        {
-                            id = obj.id;
-                            break;
-                        }
-                    }
-                } 
-
-                if(id == null)
-                {
-                    for(obj in ObjectData.importedObjectData)
-                    {
-                        var description = obj.description.toUpperCase();
-                        description = StringTools.replace(description, '\n', '');
-                        description = StringTools.replace(description, '\r', '');
-
-                        if(description.indexOf(toSearch) != -1)
-                        {
-                            id = obj.id;
-                            break;
-                        }
-                    }
-                } 
-
-                if(id == null) return;
-                
-                WorldMap.world.setObjectId(player.tx(), player.ty(), [id]);
-
-                Connection.SendMapUpdateToAllClosePlayers(player.tx(), player.ty(), [id]);
-            }
+            Connection.SendUpdateToAllClosePlayers(player);
         }
+        else if(text.indexOf('!HEAL') != -1)
+        {
+            player.hits -=5;
+            if(player.hits < 0) player.hits = 0; 
+
+            player.food_store_max = player.calculateFoodStoreMax();
+
+            if(player.woundedBy != 0 && player.hits < 1)
+            {
+                player.woundedBy = 0; 
+                player.connection.send(ClientTag.HEALED, ['${player.p_id}']);
+            }
+
+            Connection.SendUpdateToAllClosePlayers(player);
+        }
+        else if(text.indexOf('!CREATEALL') != -1)
+        {
+            Server.server.map.generateExtraDebugStuff(player.tx(), player.ty());
+        }
+        else if(text.indexOf('!CREATE') != -1) // "create xxx" with xxx = id
+        {
+            trace('Create debug object');
+
+            /* var startsWith = true;
+
+            if(text.indexOf('!!') != -1)
+            {
+                startsWith = false;
+
+                text = StringTools.replace(text, '!', '');
+            }
+            */
+
+            var strings = text.split(' ');
+
+            if(strings.length < 2) return;
+
+            var id = Std.parseInt(strings[1]);
+
+            //trace('${strings[1]} $id');
+
+            var toSearch = StringTools.replace(text, '${strings[0]} ', '');
+
+            trace('To Create: /${toSearch}/');
+
+            if(id == null)
+            {
+                for(obj in ObjectData.importedObjectData)
+                {
+                    var description = obj.description.toUpperCase();
+                    description = StringTools.replace(description, '\n', '');
+                    description = StringTools.replace(description, '\r', '');
+
+                    if(description == toSearch)
+                    {
+                        id = obj.id;
+                        break;
+                    }
+                }
+            }
+
+            if(id == null)
+            {
+                for(obj in ObjectData.importedObjectData)
+                {
+                    var description = obj.description.toUpperCase();
+                    description = StringTools.replace(description, '\n', '');
+                    description = StringTools.replace(description, '\r', '');
+
+                    //trace('/${description}/');
+                    
+                    if(StringTools.startsWith(description, toSearch))
+                    {
+                        id = obj.id;
+                        break;
+                    }
+                }
+            } 
+
+            if(id == null)
+            {
+                for(obj in ObjectData.importedObjectData)
+                {
+                    var description = obj.description.toUpperCase();
+                    description = StringTools.replace(description, '\n', '');
+                    description = StringTools.replace(description, '\r', '');
+
+                    if(description.indexOf(toSearch) != -1)
+                    {
+                        id = obj.id;
+                        break;
+                    }
+                }
+            } 
+
+            if(id == null) return;
+            
+            WorldMap.world.setObjectId(player.tx(), player.ty(), [id]);
+
+            Connection.SendMapUpdateToAllClosePlayers(player.tx(), player.ty(), [id]);
+        }
+    }
+
+    public function isFertile() : Bool
+    {
+        if(this.age < 14 || this.age > 40) return false;
+
+        var person = ObjectData.getObjectData(this.po_id);
+
+        return person.male == false; 
+    }
+
 }
