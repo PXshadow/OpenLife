@@ -84,8 +84,6 @@ class Connection implements ServerHeader
         try
         {
             send(ACCEPTED);
-
-            if(ServerSettings.debug) Server.server.map.generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
                    
             this.player = GlobalPlayerInstance.CreateNew();
             

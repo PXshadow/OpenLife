@@ -1266,9 +1266,11 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
     
                 Connection.SendUpdateToAllClosePlayers(player);
             }
-
-            // "create xxx" with xxx = id
-            if(text.indexOf('!CREATE') != -1)
+            else if(text.indexOf('!CREATEALL') != -1)
+            {
+                Server.server.map.generateExtraDebugStuff(player.tx(), player.ty());
+            }
+            else if(text.indexOf('!CREATE') != -1) // "create xxx" with xxx = id
             {
                 trace('Create debug object');
 
