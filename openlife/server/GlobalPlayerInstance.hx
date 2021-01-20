@@ -12,10 +12,16 @@ import openlife.data.Pos;
 import openlife.data.object.player.PlayerInstance;
 import sys.thread.Mutex;
 
+using StringTools;
+
+
 using openlife.server.MoveHelper;
 
 class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.MessageHandler
 {
+    public var name = "";
+    public var familyName = "Snow";
+
     // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
     public var heldObject:ObjectHelper; 
     public var heldPlayer:GlobalPlayerInstance;
@@ -153,6 +159,8 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
             {
                 if(ServerSettings.AllowDebugCommmands) DoDebugCommands(player, text);
             }
+
+            doNaming(text);
             
             var maxLenght = player.age > 14 ? 30 : Math.ceil(player.age *=2); 
 
@@ -176,6 +184,60 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
         }
 
         this.mutex.release();
+    }
+
+    /*
+    NM
+    p_id first_name last_name
+    p_id first_name last_name
+    p_id first_name last_name
+    ...
+    p_id first_name last_name
+    #
+
+
+    Gives name of player p_id.
+
+    last_name may be ommitted.
+    */
+    public function doNaming(text:String)
+    {
+        text.startsWith('YOU ARE');
+
+        var player = this.heldPlayer;
+        
+        if(player == null) player = this.getClosestPlayer(5);
+
+        if(player == null) return;
+
+        if(player.name != "") return;
+
+        var strings = text.split(' ');
+
+        if(strings.length < 3) return;
+
+        var name = strings[2];
+
+        trace('naming: ${name}');
+
+        /*
+        name = name.replace('1','');
+        name = name.replace('2','');
+        name = name.replace('3','');
+        name = name.replace('4','');
+        name = name.replace('5,'');
+        name = name.replace('6,'');
+        name = name.replace('7','');
+        */
+
+        if(name.length < 2) return;
+
+        player.name = name;
+
+        for(c in Connection.getConnections())
+        {
+            c.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
+        }
     }
 
     /*
@@ -329,6 +391,38 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
     {
         return Connection.getPlayerAt(x,y,playerId);
     }
+
+    public function getClosestPlayer(maxDistance:Int) : GlobalPlayerInstance
+    {
+        var player:GlobalPlayerInstance = null;
+        var distance = maxDistance * maxDistance;
+
+        for(c in Connection.getConnections())
+        {
+            if(c.player == this) continue;
+
+            var pX = c.player.tx() - this.gx;
+            var pY = c.player.ty() - this.gy;
+            var tmpDistance = (pX - x) * (pX - x) + (pY - y) * (pY - y);
+
+            if(tmpDistance < distance) player = c.player;
+        }
+
+        for(ai in Connection.getAis())
+        {
+            if(ai.me == this) continue;
+            
+            var pX = ai.me.tx() - this.gx;
+            var pY = ai.me.ty() - this.gy;
+            var tmpDistance = (pX - x) * (pX - x) + (pY - y) * (pY - y);
+
+            if(tmpDistance < distance) player = ai.me;
+        }
+
+        return player;
+    }
+
+    
 
     /*
         FX

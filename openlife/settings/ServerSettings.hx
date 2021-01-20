@@ -153,12 +153,15 @@ class ServerSettings
         ObjectData.getObjectData(942).mapChance *= 10; // Muddy Iron Vein
         ObjectData.getObjectData(2135).mapChance /= 3; // Rubber Tree
         ObjectData.getObjectData(2156).mapChance *= 0.5; // Less UnHappy Mosquitos
+        ObjectData.getObjectData(2156).biomes.push(BiomeTag.SWAMP); // Evil Mosquitos now also in Swamp
+        
         
         ObjectData.getObjectData(418).biomes.push(BiomeTag.YELLOW); // Happy Wolfs now also in Yellow biome :)
         ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
         ObjectData.getObjectData(418).mapChance *= 1.5; // More Happy Wolfs
-
         ObjectData.getObjectData(418).speedMult = 1.5; // Boost Wolfs even more :)
+
+        ObjectData.getObjectData(769).biomes.push(BiomeTag.GREEN); // Beautiful Horses now also in Green biome :)
 
         ObjectData.getObjectData(290).speedMult = 0.80; // Iron Ore
         ObjectData.getObjectData(314).speedMult = 0.80; // Wrought Iron
