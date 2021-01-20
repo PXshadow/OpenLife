@@ -6,6 +6,8 @@ import openlife.data.transition.TransitionData;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 
+using StringTools;
+
 class TransitionHelper{
 
     public var x:Int;
@@ -150,9 +152,9 @@ class TransitionHelper{
 
         if(clothingIndex >=0) return player.doPlaceObjInClothing(clothingIndex, true);
             
-        if(this.tileObjectData.minPickupAge > player.age)
+        if(this.tileObjectData.minPickupAge - ServerSettings.ReduceAgeNeededToPickupObjects > player.age)
         {
-            trace('DROP: tileObjectData.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
+            trace('DROP: TOO young to pickup: target.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
             return false;
         }
         
@@ -326,9 +328,11 @@ class TransitionHelper{
 
         if(this.tileObjectData.minPickupAge > player.age + ServerSettings.ReduceAgeNeededToPickupObjects)
         {
-            trace('tileObjectData.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
+            trace('USE: Too low age to use: target.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
             return false;
         }
+
+        var oldEnoughForTransitions = this.tileObjectData.minPickupAge <= player.age || this.tileObjectData.description.toUpperCase().contains('BERRY');
 
         if (this.target.objectData.tool)
         {
@@ -337,10 +341,10 @@ class TransitionHelper{
         }
 
         // like eating stuff from horse
-        if(this.doHorseStuffPossible()) return true;
+        if(oldEnoughForTransitions && this.doHorseStuffPossible()) return true;
 
         // do actor + target = newActor + newTarget
-        if(this.doTransitionIfPossible(containerIndex)) return true;
+        if(oldEnoughForTransitions && this.doTransitionIfPossible(containerIndex)) return true;
 
         // do nothing if tile Object is empty
         if(this.target.id == 0) return false;
