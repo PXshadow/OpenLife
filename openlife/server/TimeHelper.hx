@@ -122,8 +122,8 @@ class TimeHelper
  
         // make sure they are not all at same tick!
         if((tick + 20) % ServerSettings.TicksBetweenSaving  == 0) Macro.exception(worldMap.updateObjectCounts());
-        if(ServerSettings.debug == false && tick % ServerSettings.TicksBetweenSaving == 0) Macro.exception(Server.server.map.writeToDisk(false));
-        if(ServerSettings.debug == false && (tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Macro.exception(Server.server.map.writeBackup());
+        if(ServerSettings.saveToDisk && tick % ServerSettings.TicksBetweenSaving == 0) Macro.exception(Server.server.map.writeToDisk(false));
+        if(ServerSettings.saveToDisk && (tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Macro.exception(Server.server.map.writeBackup());
 
         /*
         if(tick % 100 == 0) 
@@ -191,10 +191,12 @@ class TimeHelper
         aging *= agingFactor;
 
         player.age += aging;
+
+        //trace('player.age: ${player.age}');
         
         if(Std.int(tmpAge) != Std.int(player.age))
         {
-            trace('Age: ${player.age} TrueAge: ${player.trueAge} agingFactor: $agingFactor healthFactor: $healthFactor');
+            trace('Player: ${player.p_id} Old Age: $tmpAge New Age: ${player.age} TrueAge: ${player.trueAge} agingFactor: $agingFactor healthFactor: $healthFactor');
 
             player.food_store_max = player.calculateFoodStoreMax();
 

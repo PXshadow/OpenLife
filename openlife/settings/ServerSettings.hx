@@ -15,6 +15,7 @@ class ServerSettings
     // DEBUG: switch on / off
     public static var dumpOutput = false;
     public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation // deactivates saving
+    public static var saveToDisk = true; 
     public static var AllowDebugCommmands = true; // can create objects with saying "create ID" / "create object" "create object!" with ! indicating that object ends with "object" or test wounds with using "hit" or "heal"
     public static var DebugWrite = false; // WordMap writeToDisk
     public static var TraceCountObjects = false; // WorldMap
@@ -31,7 +32,7 @@ class ServerSettings
     public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
 
     // PlayerInstance
-    public static var StartingEveAge = 1;  // 13
+    public static var StartingEveAge = 14;  // 14
     public static var AgingSecondsPerYear = 60; // 60
     public static var ReduceAgeNeededToPickupObjects = 2; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
     public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;

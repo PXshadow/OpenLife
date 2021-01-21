@@ -140,13 +140,15 @@ class TransitionImporter
         return transitionsByTargetId[objDataTarget.id];
     }
 
-    public function addTransition(calledFrom:String, transition:TransitionData,  lastUseActor:Bool = false, lastUseTarget:Bool = false){
+    public function addTransition(addedBy:String, transition:TransitionData,  lastUseActor:Bool = false, lastUseTarget:Bool = false)
+    {
+        transition.addedBy = addedBy;
         
         if(lastUseActor == false && lastUseTarget == false){
             // if transition is a reverse transition, it can be done also on lastUse Items so add Transaction for that
             if(transition.lastUseActor == false && transition.reverseUseActor && transition.lastUseTarget == false && transition.reverseUseTarget) addTransition("reverseUseActor & reverseUseTarget", transition, true, true);
-            else if(transition.lastUseActor == false && transition.reverseUseActor) addTransition("reverseUseActor", transition, true, transition.lastUseTarget);
-            else if(transition.lastUseTarget == false && transition.reverseUseTarget) addTransition("reverseUseTarget", transition, transition.lastUseActor, true);
+            else if(transition.lastUseActor == false && transition.reverseUseActor) addTransition('$addedBy-reverseUseActor', transition, true, transition.lastUseTarget);
+            else if(transition.lastUseTarget == false && transition.reverseUseTarget) addTransition('$addedBy-reverseUseTarget', transition, transition.lastUseActor, true);
         }
         else{
             transition = transition.clone();
@@ -162,7 +164,7 @@ class TransitionImporter
             this.transitions.push(transition);
             transitionsByTargetId[transition.targetID] = transition;
 
-            transition.traceTransition(calledFrom);
+            transition.traceTransition(addedBy);
 
             //if(transition.reverseUseTarget) traceTransition(transition, "", "");
             return;
@@ -175,8 +177,8 @@ class TransitionImporter
         // 33 + 1096 = 0 + 3963 targetRemains: false
         if(trans.targetRemains && transition.targetRemains == false)
         {
-            trans.traceTransition('$calledFrom 1maxUseTransition targetRemains true: ');
-            transition.traceTransition('$calledFrom 1maxUseTransition targetRemains: false: ');
+            trans.traceTransition('$addedBy 1maxUseTransition targetRemains true: ');
+            transition.traceTransition('$addedBy 1maxUseTransition targetRemains: false: ');
 
             var maxUseTransitionsByTargetId = getTransitionMapByTargetId(transition.actorID, false, false, true);
             maxUseTransitionsByTargetId[transition.targetID] = transition;
@@ -188,8 +190,8 @@ class TransitionImporter
 
         if(trans.targetRemains == false && transition.targetRemains)
         {
-            transition.traceTransition( '$calledFrom 2maxUseTransition targetRemains: true');
-            trans.traceTransition('$calledFrom 2maxUseTransition targetRemains: false:');
+            transition.traceTransition( '$addedBy 2maxUseTransition targetRemains: true');
+            trans.traceTransition('$addedBy 2maxUseTransition targetRemains: false:');
 
             var maxUseTransitionsByTargetId = getTransitionMapByTargetId(transition.actorID, false, false, true);
 
@@ -201,8 +203,8 @@ class TransitionImporter
         }
 
         // TODO there are a lot of double transactions, like Oil Movement, Horse Stuff, Fence / Wall Alignment, Rose Seed
-        trans.traceTransition('$calledFrom WARNING DOUBLE 1!!');
-        transition.traceTransition('$calledFrom WARNING DOUBLE 2!!');
+        trans.traceTransition('$addedBy WARNING DOUBLE 1!!');
+        transition.traceTransition('$addedBy WARNING DOUBLE 2!!');
     }
 
     // seems like obid can be at the same time a category and an object / Cabbage Seed + Bowl of Cabbage Seeds / 1206 + 1312

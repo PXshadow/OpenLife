@@ -5,6 +5,8 @@ import openlife.data.object.ObjectData;
 @:expose
 class TransitionData
 {
+    public var addedBy = "Not Set"; // Arcurus gives a hint from who this Transiton was created, like a normal transition, or category or if it was patched
+
     //Last use determines whether the current transition is used when numUses is greater than 1
     public var lastUseActor:Bool = false;
     public var lastUseTarget:Bool = false;  // USED in transitions
@@ -150,7 +152,8 @@ class TransitionData
     
     public function toString():String
     {
-      var s = '$actorID + $targetID = $newActorID + $newTargetID ';
+      var s = addedBy;
+      s += ' $actorID + $targetID = $newActorID + $newTargetID ';
       
       s += 'lastUseActor: $lastUseActor ';
       s += 'lastUseTarget: $lastUseTarget ';

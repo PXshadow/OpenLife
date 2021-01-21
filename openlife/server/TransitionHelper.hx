@@ -127,7 +127,7 @@ class TransitionHelper{
 
         //trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
 
-        
+        trace('TRANS AGE: ${player.age}');
         trace('handObjectHelper: ${handObjectData.description} numberOfUses: ${player.heldObject.numberOfUses} ' + player.heldObject.toArray());
         trace('target: ${tileObjectData.description} numberOfUses: ${target.numberOfUses} ' + target.toArray());
     }
@@ -831,6 +831,8 @@ class TransitionHelper{
 
         // TODO set right
         //player.o_transition_source_id = this.newTransitionSource;
+
+        //trace('TRANS AGE: ${player.age}');
 
         player.SetTransitionData(this.x,this.y, this.pickUpObject);
 

@@ -282,7 +282,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             doNaming(text);
             
-            var maxLenght = player.age < 10 ? Math.ceil(player.age *=2) : player.age < 20 ? Math.ceil(player.age *=4) : 80; 
+            var maxLenght = player.age < 10 ? Math.ceil(player.age * 2) : player.age < 20 ? Math.ceil(player.age * 4) : 80; 
 
             if(text.length > maxLenght) text = text.substr(0, maxLenght);
 
