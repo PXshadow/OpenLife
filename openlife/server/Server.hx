@@ -117,7 +117,6 @@ class Server
         ServerSettings.PatchObjectData();
 
         ObjectData.GenerateBiomeObjectData();
-
         
 
         // do all the object transition inititalisation stuff
@@ -145,7 +144,14 @@ class Server
                 map.writeToDisk();
             }
         }
-        
+
+        //prevent any blocking object on global starting position
+        var startObj = map.getObjectHelper(ServerSettings.startingGx,ServerSettings.startingGy,false);
+        if (startObj != null) 
+        {
+            if (startObj.blocksWalking())
+                map.setObjectId(ServerSettings.startingGx,ServerSettings.startingGy,[0]);
+        }
         // run run run Thread run run run
         var thread = new ThreadServer(this,8005);
         Thread.create(function()
