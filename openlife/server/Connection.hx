@@ -1,7 +1,4 @@
 package openlife.server;
-import format.gif.Data.Frame;
-import openlife.data.object.ObjectHelper;
-import openlife.data.object.ObjectData;
 import sys.thread.Mutex;
 import openlife.settings.ServerSettings;
 import openlife.data.map.MapData;
@@ -9,9 +6,8 @@ import openlife.data.map.MapData;
 import openlife.client.ClientTag;
 import sys.net.Socket;
 import haxe.io.Bytes;
-import openlife.auto.Ai;
 
-class Connection implements ServerHeader
+class Connection 
 {
     private static var globalMutex = new Mutex();
     private static var connections:Array<Connection> = [];
