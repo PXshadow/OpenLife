@@ -2,7 +2,6 @@ package openlife.server;
 
 import haxe.Exception;
 import openlife.macros.Macro;
-import haxe.macro.Expr.Catch;
 import openlife.client.ClientTag;
 import openlife.data.object.ObjectData;
 import openlife.server.WorldMap.BiomeTag;
@@ -43,7 +42,6 @@ class TimeHelper
             var timeSinceStart:Float = Sys.time() - TimeHelper.serverStartingTime;
             timeSinceStartCountedFromTicks = TimeHelper.tick * TimeHelper.tickTime;
             
-
             // TODO what to do if server is too slow?
             if(TimeHelper.tick % 10 != 0  && timeSinceStartCountedFromTicks < timeSinceStart)
             {
@@ -98,7 +96,6 @@ class TimeHelper
 
             if(TimeHelper.tick % 40 == 0) Macro.exception(updateTemperature(c.player));
         }
-        
         
         for (ai in Connection.getAis())
         {

@@ -163,6 +163,13 @@ class TransitionHelper{
             trace('DROP: TOO young to pickup: target.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
             return false;
         }
+
+        // if target cointains item, then dont reduce pickup age
+        if(this.target.containedObjects.length > 0 && this.tileObjectData.minPickupAge > player.age)
+        {
+            trace('DROP: Container: TOO young to pickup: target.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
+            return false;
+        }
         
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;
 
@@ -224,6 +231,8 @@ class TransitionHelper{
         if(objToStore.id == 0 && amountOfContainedObjects > 0)
         {
             trace("REMOVE");
+
+            if(index < 0) index = 0;
 
             // cannot pickup Threshed Wheat from Table
             if(container.containedObjects[index].objectData.permanent == 1) return false; 
@@ -339,6 +348,7 @@ class TransitionHelper{
         }
 
         var oldEnoughForTransitions = this.tileObjectData.minPickupAge <= player.age || this.tileObjectData.description.toUpperCase().contains('BERRY');
+        var oldEnoughForPickup = this.tileObjectData.minPickupAge <= player.age || (this.target.containedObjects.length < 1 && this.tileObjectData.speedMult >= 0.98);
 
         trace('TRANS: oldEnoughForTransitions: $oldEnoughForTransitions');
 
@@ -355,13 +365,15 @@ class TransitionHelper{
         if(oldEnoughForTransitions && this.doTransitionIfPossible(containerIndex)) return true;
 
         // do nothing if tile Object is empty
-        if(this.target.id == 0) return false;
+        if(this.target.id == 0) return false;        
 
         // do pickup if hand is empty
-        if(this.player.heldObject.id == 0 && this.swapHandAndFloorObject()) return true;            
+        if(oldEnoughForPickup && this.player.heldObject.id == 0 && this.swapHandAndFloorObject()) return true; 
         
         // do container stuff
-        return this.doContainerStuff(false, containerIndex);
+        if(oldEnoughForPickup && this.doContainerStuff(false, containerIndex)) return true;
+
+        return false;
     }
 
     public function doHorseStuffPossible() : Bool

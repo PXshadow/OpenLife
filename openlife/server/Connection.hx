@@ -319,6 +319,8 @@ class Connection
 
     public static function SendMoveUpdateToAllClosePlayers(player:GlobalPlayerInstance, totalMoveTime:Float, trunc:Int, moveString:String, isPlayerAction:Bool = true)
     {
+        totalMoveTime = Math.round(totalMoveTime * 100) / 100;
+
         var eta = totalMoveTime; // TODO change???
 
         try

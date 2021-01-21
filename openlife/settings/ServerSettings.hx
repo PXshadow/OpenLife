@@ -31,7 +31,7 @@ class ServerSettings
     public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
 
     // PlayerInstance
-    public static var StartingEveAge = 14;  // 13
+    public static var StartingEveAge = 1;  // 13
     public static var AgingSecondsPerYear = 60; // 60
     public static var ReduceAgeNeededToPickupObjects = 2; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
     public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
