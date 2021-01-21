@@ -913,7 +913,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     private static function doSwitchCloths(playerFrom:GlobalPlayerInstance, playerTo:GlobalPlayerInstance, clothingSlot:Int) : Bool
     {
         var objClothingSlot = playerFrom.calculateClothingSlot();
+
         trace('self:o_id: ${playerFrom.o_id[0]} helobj.id: ${playerFrom.heldObject.id} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
+
+        if(playerFrom.age < ServerSettings.MinAgeToEat && playerFrom.heldObject.id != 0)
+        {
+            trace('doSwitchCloths: playerFrom age ${playerTo.age} < ${ServerSettings.MinAgeToEat} cannot put on cloths');
+            
+            return false;
+        }
 
         if(playerFrom != playerTo)
         {
