@@ -10,7 +10,7 @@ interface MessageHandler
     public function specialRemove(x:Int,y:Int,clothingSlot:Int,index:Null<Int>) : Bool;
     public function use(x:Int, y:Int, containerIndex:Int = -1, target:Int = 0) : Bool;
     public function drop(x:Int, y:Int, clothingIndex:Int = -1) : Bool;
-    //public function dropPlayer() : Bool;
-    //public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int) : Bool; // UBABY
-    //public function doBaby(x:Int, y:Int, playerId:Int) : Bool;
+    public function dropPlayer() : Bool;
+    public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int) : Bool; // UBABY
+    public function doBaby(x:Int, y:Int, playerId:Int) : Bool;
 }

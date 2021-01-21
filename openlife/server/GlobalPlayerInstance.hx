@@ -385,7 +385,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
       this specifies a specific person to do the action on, if more than one is
 	  close to the target tile.
     */
-    public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int)
+    public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int) : Bool
     {
         var targetPlayer = getPlayerAt(x,y, playerId);
 
@@ -397,7 +397,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
             trace('doOnOtherHelper: could not find target player!');
 
-            return;
+            return false;
         }
 
         this.mutex.acquire();
@@ -437,6 +437,8 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
         if(targetPlayer != null) targetPlayer.mutex.release();
         this.mutex.release();
+
+        return done;
     }
 
     public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, targetPlayer:GlobalPlayerInstance) : Bool
