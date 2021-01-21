@@ -343,12 +343,14 @@ class MoveHelper
                 // TODO general better chunk loading
                 var spacing = 4;
         
-                if(p.x - moveHelper.tx> spacing || p.x - moveHelper.tx < -spacing || p.y - moveHelper.ty > spacing || p.y - moveHelper.ty < -spacing )
+                if(p.x - moveHelper.tx > spacing || p.x - moveHelper.tx < -spacing || p.y - moveHelper.ty > spacing || p.y - moveHelper.ty < -spacing )
                 {          
                     moveHelper.tx = p.x;
                     moveHelper.ty = p.y;
         
                     p.connection.sendMapChunk(p.x,p.y);
+
+                    Connection.SendToMeAllClosePlayers(p);
                 }
 
 
