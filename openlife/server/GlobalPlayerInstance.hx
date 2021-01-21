@@ -102,6 +102,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return this;
     } 
 
+    public function getObjectData(id:Int) : ObjectData
+    {
+        return ObjectData.getObjectData(id);
+    }
+
     public function getTrans(actor:ObjectHelper, target:ObjectHelper) : TransitionData
     {
         return Server.transitionImporter.getTrans(actor, target);
@@ -518,13 +523,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return false;
     }
 
-    public static function getPlayerAt(x:Int, y:Int, playerId:Int) : GlobalPlayerInstance
+    public function getPlayerAt(x:Int, y:Int, playerId:Int) : GlobalPlayerInstance
     {
         return Connection.getPlayerAt(x,y,playerId);
     }
 
     public function getClosestPlayer(maxDistance:Int) : GlobalPlayerInstance
     {
+        // TODO limit max distance for ai
+
         var player:GlobalPlayerInstance = null;
         var distance = maxDistance * maxDistance;
 

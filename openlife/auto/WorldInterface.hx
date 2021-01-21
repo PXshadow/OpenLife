@@ -1,10 +1,14 @@
 package openlife.auto;
 
+import openlife.data.object.player.PlayerInstance;
+import openlife.data.object.ObjectData;
 import openlife.data.transition.TransitionData;
 import openlife.data.object.ObjectHelper;
 
 interface WorldInterface
 {
+    public function getObjectData(id:Int) :ObjectData;
+
     public function getTrans(actor:ObjectHelper, target:ObjectHelper) : TransitionData;
     public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false, maxUseTarget:Bool=false) : TransitionData;
 
@@ -17,10 +21,6 @@ interface WorldInterface
     //** returns -1 of x,y is too far away from player **/
     public function getFloorId(x:Int, y:Int):Int; 
 
-    
-
-    /*
-    getNearestPlayer()
-    getPlayer(x,y)
-    */
+    public function getClosestPlayer(maxDistance:Int) : PlayerInstance;
+    public function getPlayerAt(x:Int, y:Int, playerId:Int) : PlayerInstance;
 }
