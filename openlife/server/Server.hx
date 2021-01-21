@@ -117,7 +117,6 @@ class Server
         ServerSettings.PatchObjectData();
 
         ObjectData.GenerateBiomeObjectData();
-
         
 
         // do all the object transition inititalisation stuff
@@ -145,7 +144,14 @@ class Server
                 map.writeToDisk();
             }
         }
-        
+
+        //prevent any blocking object on global starting position
+        var startObj = map.getObjectHelper(ServerSettings.startingGx,ServerSettings.startingGy,false);
+        if (startObj != null) 
+        {
+            if (startObj.blocksWalking())
+                map.setObjectId(ServerSettings.startingGx,ServerSettings.startingGy,[0]);
+        }
         // run run run Thread run run run
         var thread = new ThreadServer(this,8005);
         Thread.create(function()
@@ -179,18 +185,17 @@ class Server
                 header.login();
             case RLOGIN:
                 header.rlogin();
-                case MOVE:
-                var x = Std.parseInt(input[0]);
-                var y = Std.parseInt(input[1]);
-                var seq = Std.parseInt(input[2].substr(1));
-                input = input.slice(3);
-                var moves:Array<Pos> = [];
-                for (i in 0...Std.int(input.length/2))
-                {
-                    moves.push(new Pos(Std.parseInt(input[i * 2]),Std.parseInt(input[i * 2 + 1])));
-                }
-
-                header.player.move(x,y,seq,moves);
+            case MOVE:
+            var x = Std.parseInt(input[0]);
+            var y = Std.parseInt(input[1]);
+            var seq = Std.parseInt(input[2].substr(1));
+            input = input.slice(3);
+            var moves:Array<Pos> = [];
+            for (i in 0...Std.int(input.length/2))
+            {
+                moves.push(new Pos(Std.parseInt(input[i * 2]),Std.parseInt(input[i * 2 + 1])));
+            }
+            header.player.move(x,y,seq,moves);
             case DIE:
                 header.die();
             case KA:
