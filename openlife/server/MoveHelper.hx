@@ -235,6 +235,30 @@ class MoveHelper
         }
     }
 
+    /*
+    PM
+    p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
+    p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
+    ...
+    p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
+    #
+
+    List of player ids that just started moving, their start x y grid position,
+    their delta grid offsets along their path (xs + xdelt0 = first destination x), 
+    how long the total move should take (in case we 
+    come into the game in the middle of a move), and their time to arrival in 
+    floating point seconds
+
+    trunc is 0 for untruncated path, or 1 for truncated path.
+    Truncated paths are shorter than what the player originally requested.
+    This can happen in immediate response to the move request or later, mid-move,
+    if the path gets cut off (a new PM will be sent to truncate the path at that
+    point)
+
+    A PLAYER_UPDATE will be sent with done_moving set to 1 when these players 
+    reach their destination.
+    Until that has happened, client must assume player is still in transit.
+    */
     static public function move(p:GlobalPlayerInstance, x:Int,y:Int,seq:Int,moves:Array<Pos>)
         {
             //trace(Server.server.map.getObjectId(p.gx + x, p.gy + y));

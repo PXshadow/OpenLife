@@ -40,21 +40,23 @@ class TransitionHelper{
     public var doAction:Bool;
     public var pickUpObject:Bool = false;
 
-    public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0)
+    public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0) : Bool
     {
         //trace("try to acquire player mutex");
         player.mutex.acquire();
         //trace("try to acquire map mutex");
         Server.server.map.mutex.acquire();
 
+        var done = false;
+
         if(ServerSettings.debug)
         {
-            doCommandHelper(player, tag, x, y, index, target);
+            done = doCommandHelper(player, tag, x, y, index, target);
         }
         else{
             try
             {
-                doCommandHelper(player, tag, x, y, index, target);
+                done = doCommandHelper(player, tag, x, y, index, target);
             } 
             catch(e)
             {                
@@ -70,9 +72,11 @@ class TransitionHelper{
         Server.server.map.mutex.release();
         //trace("release map mutex");
         player.mutex.release();
+
+        return done;
     }  
 
-    public static function doCommandHelper(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0)
+    public static function doCommandHelper(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0) : Bool
     {
         var helper = new TransitionHelper(player, x, y);
 
@@ -88,6 +92,8 @@ class TransitionHelper{
         }
 
         helper.sendUpdateToClient();
+
+        return helper.doAction;
     }
 
     public function new(player:GlobalPlayerInstance, x:Int,y:Int)
@@ -135,7 +141,7 @@ class TransitionHelper{
      indicates clothing with:
      0=hat, 1=tunic, 2=frontShoe, 3=backShoe, 4=bottom, 5=backpack*/
 
-     public function drop(clothingIndex:Int=-1) : Bool
+    public function drop(clothingIndex:Int=-1) : Bool
     {     
         trace('drop: clothingIndex: $clothingIndex');
         // this is a drop and not a transition
@@ -749,7 +755,7 @@ class TransitionHelper{
      i specifies the index of the container item to remove, or -1 to
      remove top of stack.*/
 
-     public function remove(index:Int) : Bool
+    public function remove(index:Int) : Bool
     {
         if(removeObj(this.player, target, index))
         {

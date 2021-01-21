@@ -405,18 +405,28 @@ class Connection implements ServerHeader
 
         this.mutex.release();
     }
-    
+
+    // KA x y#
     public function keepAlive()
     {
 
     }
 
-    
+    // DIE x y#
     public function die()
     {
         this.close();
     }
 
+
+    /**
+        FL
+        p_id face_left
+        p_id face_left
+        ...
+        p_id face_left
+        #
+    **/
     public function flip()
     {
         // TODO
@@ -487,7 +497,15 @@ class Connection implements ServerHeader
 
         this.mutex.release();
     }
-    
+    /**
+        PE
+        p_id emot_index ttl_sec
+        p_id emot_index
+        p_id emot_index ttl_sec
+        ...
+        p_id emot_index ttl_sec
+        #
+    **/
     public function emote(id:Int)
     {
         this.mutex.acquire();

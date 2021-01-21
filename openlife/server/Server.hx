@@ -184,52 +184,45 @@ class Server
                 header.login();
             case RLOGIN:
                 header.rlogin();
-            case MOVE:
-            var x = Std.parseInt(input[0]);
-            var y = Std.parseInt(input[1]);
-            var seq = Std.parseInt(input[2].substr(1));
-            input = input.slice(3);
-            var moves:Array<Pos> = [];
-            for (i in 0...Std.int(input.length/2))
-            {
-                moves.push(new Pos(Std.parseInt(input[i * 2]),Std.parseInt(input[i * 2 + 1])));
-            }
-            header.player.move(x,y,seq,moves);
-            case DIE:
+            case DIE:   // DIE x y#
                 header.die();
-            case KA:
+            case KA:    // KA x y# 
                 header.keepAlive();
-            case EMOT:
-                trace("data " + input);
-                header.emote(Std.parseInt(input[2]));
-            case SREMV:
-                header.player.specialRemove(Std.parseInt(input[0]),Std.parseInt(input[1]),Std.parseInt(input[2]),input.length > 3 ? Std.parseInt(input[3]) : null);
-            case REMV:
-                TransitionHelper.doCommand(header.player, tag, Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
-            case USE:
-                TransitionHelper.doCommand(header.player, tag, Std.parseInt(input[0]),Std.parseInt(input[1]), input.length > 3 ? Std.parseInt(input[3]) : -1 ,input.length > 2 ? Std.parseInt(input[2]) : 0);
-            case DROP:
-                if(header.player.heldPlayer == null)
-                {
-                    TransitionHelper.doCommand(header.player, tag, Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
-                }
-                else{
-                    header.player.dropPlayer();
-                }
-            case SELF:
-                header.player.self(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]));
-            case UBABY:
-                header.player.doOnOther(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]), input.length > 3 ? Std.parseInt(input[3]) : -1);
-            case SAY:
-                var text = string.substring(4);
-                header.player.say(text);
-            case FLIP:
+            case FLIP:  // FL p_id face_left
                 header.flip();
-            case PING:
-                // PING x y unique_id#
+            case PING:  // PING x y unique_id#
                 header.sendPong(input[2]);
-            case BABY: // BABY x y# // BABY x y id#
+            case EMOT:  // PE p_id emot_index ttl_sec
+                header.emote(Std.parseInt(input[2]));
+            case SREMV: // SREMV x y c i#
+                header.player.specialRemove(Std.parseInt(input[0]),Std.parseInt(input[1]),Std.parseInt(input[2]),input.length > 3 ? Std.parseInt(input[3]) : null);
+            case REMV:  // REMV x y i#
+                header.player.remove(Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
+            case USE:   // USE x y id i#
+                header.player.use(Std.parseInt(input[0]),Std.parseInt(input[1]), input.length > 3 ? Std.parseInt(input[3]) : -1 ,input.length > 2 ? Std.parseInt(input[2]) : 0);
+            case DROP:  // DROP x y c#
+                header.player.drop(Std.parseInt(input[0]),Std.parseInt(input[1]), Std.parseInt(input[2]));
+            case SELF:  // SELF x y i#
+                header.player.self(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]));
+            case UBABY: // UBABY x y i id#
+                header.player.doOnOther(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]), input.length > 3 ? Std.parseInt(input[3]) : -1);
+            case SAY:   // PS p_id/isCurse text 
+                header.player.say(string.substring(4)); // TODO change
+            case BABY:  // BABY x y# // BABY x y id#
                 header.player.doBaby(Std.parseInt(input[0]), Std.parseInt(input[1]), input.length > 2 ? Std.parseInt(input[2]) : -1);
+            case MOVE:  // PM p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
+                var x = Std.parseInt(input[0]);
+                var y = Std.parseInt(input[1]);
+                var seq = Std.parseInt(input[2].substr(1));
+                input = input.slice(3);
+                var moves:Array<Pos> = [];
+
+                for (i in 0...Std.int(input.length/2))
+                {
+                    moves.push(new Pos(Std.parseInt(input[i * 2]),Std.parseInt(input[i * 2 + 1])));
+                }
+
+                header.player.move(x,y,seq,moves);
             default:
         }
     }

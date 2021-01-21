@@ -1,4 +1,5 @@
 package openlife.server;
+import haxe.ds.BalancedTree;
 import haxe.macro.Expr.Catch;
 import haxe.display.Server.HaxeModuleMemoryResult;
 import openlife.client.ClientTag;
@@ -88,6 +89,41 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
         return player;
     }
 
+    public function remove(x:Int, y:Int, index:Int = -1) : Bool
+    {
+        return TransitionHelper.doCommand(this, ServerTag.REMV, x, y, index);
+    }
+
+    public function drop(x:Int, y:Int, clothingIndex:Int=-1) : Bool
+    {
+        if(heldPlayer == null)
+        {
+            return TransitionHelper.doCommand(this, ServerTag.DROP, x, y, clothingIndex);
+        }
+        else{
+            return dropPlayer();
+        }
+    }
+
+    /*
+    USE x y id i#
+
+    USE  is for bare-hand or held-object action on target object in non-empty 
+     grid square, including picking something up (if there's no bare-handed 
+     action), and picking up a container.
+     id parameter is optional, and is used by server to differentiate 
+     intentional use-on-bare-ground actions from use actions (in case
+     where target animal moved out of the way).
+     i parameter is optional, and specifies a container slot to use a held
+     object on (for example, using a knife to slice bread sitting on a table).
+    */
+    public function use(x:Int, y:Int, containerIndex:Int = -1, target:Int = 0) : Bool
+    {
+        return TransitionHelper.doCommand(this, ServerTag.USE, x, y, containerIndex, target);
+    }
+
+    //public function specialRemove(x:Int,y:Int,clothingSlot:Int,index:Null<Int>) : Bool;
+    
     public function tx() : Int {return x + gx;}
     public function ty() : Int {return y + gy;}
 
@@ -140,7 +176,27 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
         return healthFactor;
     }
+    /**
+    PS
+    p_id/isCurse text
+    p_id/isCurse text
+    p_id/isCurse text
+    ...
+    p_id/isCurse text
+    #
 
+    isCurse is 0 if not a successful curse, or 1 if successful.
+
+    Text that each player says must not contain # or newline.
+
+    Example:
+
+    PS
+    1432/0 HELLO THERE
+    1501/1 CURSE JOHN SMITH
+    1448/0 HELP ME
+    #
+    **/
     public function say(text:String)
     {
         this.mutex.acquire();
@@ -1192,7 +1248,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
      NOTE the alternate call for BABY with extra id parameter.
      this specifies a specific person to pick up, if more than one is
      close to the target tile.**/
-    public function doBaby(x:Int, y:Int, playerId:Int) // playerId = -1 if no specific player is slected
+    public function doBaby(x:Int, y:Int, playerId:Int) : Bool // playerId = -1 if no specific player is slected
     {
         var done = false;
         var targetPlayer = getPlayerAt(this.tx() + x, this.tx() + y, playerId);
@@ -1205,7 +1261,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
             trace('doBaby: x,y is too far away!');
 
-            return;
+            return false;
         }
 
         if(targetPlayer == null)
@@ -1214,7 +1270,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
             trace('doBaby: could not find target player!');
 
-            return;
+            return false;
         }
 
         this.mutex.acquire();
@@ -1256,6 +1312,8 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
         //if(targetPlayer != null) targetPlayer.mutex.release();
 
         this.mutex.release();
+
+        return done;
     }
 
     public function doBabyHelper(x:Int, y:Int, player:GlobalPlayerInstance) : Bool
@@ -1284,7 +1342,7 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
         return true;
     }
 
-    public function dropPlayer() 
+    public function dropPlayer() : Bool
     {
         trace('drop player');
 
@@ -1328,6 +1386,8 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
         targetPlayer.mutex.release();
         this.mutex.release();
+
+        return done;
     }
 
     private function dropPlayerHelper() : Bool
