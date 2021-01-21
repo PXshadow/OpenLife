@@ -148,6 +148,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return WorldMap.world.getFloorId(x,y);
     }
 
+    public function doEmote(id:Int)
+    {
+        this.connection.emote(id);
+    }
+
     public function remove(x:Int, y:Int, index:Int = -1) : Bool
     {
         return TransitionHelper.doCommand(this, ServerTag.REMV, x, y, index);
