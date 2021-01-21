@@ -1,8 +1,6 @@
 package openlife.data.transition;
 
 import openlife.data.object.ObjectHelper;
-import openlife.settings.ServerSettings;
-import openlife.server.Server;
 import openlife.data.object.ObjectData;
 import haxe.io.Path;
 import sys.io.File;
@@ -13,6 +11,9 @@ class TransitionImporter
     public var transitions:Array<TransitionData> = [];
     public var categories:Array<Category> = [];
     private var categoriesById:Map<Int, Category> = [];
+
+    // for reverse lookup of transitions
+    private var transitionsByNewTargetMap:Map<Int, Array<TransitionData>>;
 
     // transitions without any last use transitions
     private var transitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
@@ -51,6 +52,8 @@ class TransitionImporter
     public function importTransitions()
     {        
         if(categories.length == 0) importCategories();
+
+        transitionsByNewTargetMap = [];
 
         transitions = [];
         transitionsByActorIdTargetId = [];
@@ -140,10 +143,17 @@ class TransitionImporter
         return transitionsByTargetId[objDataTarget.id];
     }
 
+    public function getTransitionByNewTarget(newTargetId:Int) : Array<TransitionData>
+    {
+        var transitions = transitionsByNewTargetMap[newTargetId];
+
+        return transitions != null ? transitions : new Array<TransitionData>(); 
+    }
+
     public function addTransition(addedBy:String, transition:TransitionData,  lastUseActor:Bool = false, lastUseTarget:Bool = false)
     {
         transition.addedBy = addedBy;
-        
+
         if(lastUseActor == false && lastUseTarget == false){
             // if transition is a reverse transition, it can be done also on lastUse Items so add Transaction for that
             if(transition.lastUseActor == false && transition.reverseUseActor && transition.lastUseTarget == false && transition.reverseUseTarget) addTransition("reverseUseActor & reverseUseTarget", transition, true, true);
@@ -163,6 +173,7 @@ class TransitionImporter
         {
             this.transitions.push(transition);
             transitionsByTargetId[transition.targetID] = transition;
+            addTransitionByTarget(transition);            
 
             transition.traceTransition(addedBy);
 
@@ -205,6 +216,19 @@ class TransitionImporter
         // TODO there are a lot of double transactions, like Oil Movement, Horse Stuff, Fence / Wall Alignment, Rose Seed
         trans.traceTransition('$addedBy WARNING DOUBLE 1!!');
         transition.traceTransition('$addedBy WARNING DOUBLE 2!!');
+    }
+
+    private function addTransitionByTarget(transition:TransitionData)
+    {
+        var transitionsByNewTarget = transitionsByNewTargetMap[transition.newTargetID];
+
+        if(transitionsByNewTarget == null)
+        {
+            transitionsByNewTargetMap[transition.newTargetID] = new Array<TransitionData>();
+            transitionsByNewTarget = transitionsByNewTargetMap[transition.newTargetID];
+        }
+
+        transitionsByNewTarget.push(transition);
     }
 
     // seems like obid can be at the same time a category and an object / Cabbage Seed + Bowl of Cabbage Seeds / 1206 + 1312

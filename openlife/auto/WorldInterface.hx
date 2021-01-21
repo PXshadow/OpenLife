@@ -9,8 +9,9 @@ interface WorldInterface
 {
     public function getObjectData(id:Int) :ObjectData;
 
-    public function getTrans(actor:ObjectHelper, target:ObjectHelper) : TransitionData;
+    public function getTrans(actor:ObjectHelper, target:ObjectHelper) : TransitionData;    
     public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false, maxUseTarget:Bool=false) : TransitionData;
+    public function getTransitionByNewTarget(newTargetId:Int) : Array<TransitionData>;
 
     public function getBiomeId(x:Int, y:Int):Int;           // since map is known no need for out of range
     public function isBiomeBlocking(x:Int, y:Int) : Bool;   // since map is known no need for out of range

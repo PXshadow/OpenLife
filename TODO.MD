@@ -137,6 +137,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - combat / generally allowed
 - better temperature calculation
 - change biome speed for specialists
+- send player out of range update
 - give option to use normal YUM mechanics
 - better map
 - decay contained stuff in graves / generally decay stuff in containers

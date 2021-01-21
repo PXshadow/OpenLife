@@ -22,6 +22,7 @@ class Ai
     public function say(player:PlayerInstance,curse:Bool,text:String)
     {
         var myPlayer = playerInterface.getPlayerInstance();
+        var world = playerInterface.getWorld();
         //trace('im a super evil bot!');
 
         //trace('ai3: ${myPlayer.p_id} player: ${player.p_id}');
@@ -29,6 +30,34 @@ class Ai
         if (myPlayer.p_id == player.p_id) return;
 
         //trace('im a evil bot!');
+
+        trace('AI ${text}');
+
+        if (text.contains("TRANS")) 
+        {
+            trace('AI look for transitions: ${text}');
+
+            var transitions = world.getTransitionByNewTarget(250); // 273 = Cooked Carrot Pie // 250 = Hot Adobe Oven
+
+            for(trans in transitions)
+            {
+                trans.traceTransition("AI:", true);
+
+                var actorTransitions = world.getTransitionByNewTarget(trans.newActorID);
+
+                for(actorTrans in transitions)
+                {
+                    actorTrans.traceTransition("AI Actor:", true);
+                }
+
+                var targetTransitions = world.getTransitionByNewTarget(trans.newTargetID);
+
+                for(targetTrans in targetTransitions)
+                {
+                    targetTrans.traceTransition("AI Target:", true);
+                }
+            }
+        }
 
         if (text.indexOf("HELLO") != -1) 
         {

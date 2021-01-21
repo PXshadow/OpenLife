@@ -117,6 +117,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return Server.transitionImporter.getTransition(actorId, targetId, lastUseActor, lastUseTarget, maxUseTarget);
     }
 
+    public function getTransitionByNewTarget(newTargetId:Int) : Array<TransitionData>
+    {
+        return Server.transitionImporter.getTransitionByNewTarget(newTargetId);
+    }
+
     public function getBiomeId(x:Int, y:Int):Int
     {
         return WorldMap.world.getBiomeId(x,y);
