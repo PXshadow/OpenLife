@@ -85,7 +85,6 @@ class Server
             TableCreate.create(MapTable.manager);
         }
 
-        openlife.macros.Macro.exception(trace("hello"));
         /*var row = MapTable.manager.select($p_id == 30);
         trace("row: " + row);
         if (row != null)
