@@ -35,14 +35,14 @@ private class NewMovements
 class MoveHelper
 {
     // x,y when last chunk was send
-    private var tx:Int = 0;
-    private var ty:Int = 0;
+    public var tx:Int = 0;
+    public var ty:Int = 0;
 
     // to calculate if the move is finished
-    private var newMoveSeqNumber:Int = 0; 
-    private var newMoves:Array<Pos>;
-    private var totalMoveTime:Float = 0;
-    private var startingMoveTicks:Float = 0;
+    public var newMoveSeqNumber:Int = 0; 
+    public var newMoves:Array<Pos>;
+    public var totalMoveTime:Float = 0;
+    public var startingMoveTicks:Float = 0;
 
     public function new(){}
 
@@ -235,116 +235,7 @@ class MoveHelper
         }
     }
 
-    static public function move(p:GlobalPlayerInstance, x:Int,y:Int,seq:Int,moves:Array<Pos>)
-        {
-            //trace(Server.server.map.getObjectId(p.gx + x, p.gy + y));
-
-            // since move update may acces this also
-            p.mutex.acquire(); 
-
-            try
-            {
-                var moveHelper = p.moveHelper;
-
-                if(moveHelper.newMoves != null)
-                {
-                    var lastPos = calculateNewPos(moveHelper.newMoves, moveHelper.startingMoveTicks, p.move_speed);
-
-                    p.x += lastPos.x;
-                    p.y += lastPos.y;
-
-                    //trace('LastPos ${ lastPos.x } ${ lastPos.y }');
-                }
-
-                // TODO dont accept moves untill a force is confirmed
-                // TODO it accepts one position further even if not fully reached there. 
-                // TODO maybe make player "exhausted" with lower movementspeed if he "cheats" to much
-                // This could be miss used to double movement speed. But Client seems to do it this way...
-
-                var biomeSpeed = Server.server.map.getBiomeSpeed(x + p.gx, y + p.gy);
-                var isBlockingBiome = biomeSpeed < 0.1;
-
-                if(isBlockingBiome || p.isClose(x,y,ServerSettings.MaxMovementCheatingDistanceBeforeForce) == false)
-                {
-                    p.forced = true;
-                    p.done_moving_seqNum  = seq;
-                    moveHelper.newMoves = null; // cancle all movements
-
-                    trace('MOVE: Force!   Server ${ p.x },${ p.y }:Client ${ x },${ y }');
-                }
-                else
-                {
-                    if(p.x != x && p.y != y) trace('MOVE: NoForce! Server ${ p.x },${ p.y }:Client ${ x },${ y }');
-
-                    p.forced = false;
-
-                    p.x = x;
-                    p.y = y;
-                }
-
-                //trace("newMoveSeqNumber: " + newMoveSeqNumber);
-        
-                // since it seems speed cannot be set for each tile, the idea is to cut the movement once it crosses in different biomes
-                // TODO maybe better to not cut it and make a player update one the new biome is reached?
-                // if passing in an biome with different speed only the first movement is kept
-                var newMovements = calculateNewMovements(p, p.x + p.gx, p.y + p.gy, moves);
-
-                if(newMovements.moves.length < 1)
-                {
-                    p.done_moving_seqNum  = seq;
-                    p.move_speed = calculateSpeed(p, p.tx(), p.ty());
-                    moveHelper.newMoves = null; // cancle all movements
-
-                    //cancle movement
-                    p.forced = true;
-                    p.connection.send(PLAYER_UPDATE,[p.toData()]);
-                    p.connection.send(FRAME);
-
-                    
-                    p.forced = false;
-                    p.mutex.release();
-
-                    return;
-                }
-                
-                p.move_speed = newMovements.finalSpeed;
-
-                moveHelper.newMoves = newMovements.moves;
-                moveHelper.totalMoveTime = (1/p.move_speed) * newMovements.length;
-                moveHelper.startingMoveTicks = TimeHelper.tick;
-                moveHelper.newMoveSeqNumber = seq;  
-                var eta = moveHelper.totalMoveTime;
-                
-                // TODO chunk loading in x direction is too slow with high speed
-                // TODO general better chunk loading
-                var spacing = 4;
-        
-                if(p.x - moveHelper.tx> spacing || p.x - moveHelper.tx < -spacing || p.y - moveHelper.ty > spacing || p.y - moveHelper.ty < -spacing )
-                {          
-                    moveHelper.tx = p.x;
-                    moveHelper.ty = p.y;
-        
-                    p.connection.sendMapChunk(p.x,p.y);
-                }
-
-
-                p.connection.send(PLAYER_UPDATE,[p.toData()]);
-
-                //c.send(PLAYER_MOVES_START,['${player.p_id} ${targetX} ${targetY} ${player.moveHelper.totalMoveTime} $eta ${newMovements.trunc} ${player.moveHelper.moveString(player.moveHelper.newMoves)}']);
-
-                Connection.SendMoveUpdateToAllClosePlayers(p, moveHelper.totalMoveTime, newMovements.trunc, moveString(moveHelper.newMoves));
-
-            }
-            catch(ex)
-            {
-                trace(ex.details);
-            }
-
-            p.forced = false;
-            p.mutex.release();
-        }
-
-        static private function moveString(moves:Array<Pos>):String
+        static public function moveString(moves:Array<Pos>):String
         {
             var string = "";
             for (m in moves) string += " " + m.x + " " + m.y;
@@ -365,7 +256,7 @@ class MoveHelper
         }        
 
         // if path has a biome with different speed, path is trunced if movement is not on a road
-        static private function calculateNewMovements(p:GlobalPlayerInstance, tx:Int,ty:Int,moves:Array<Pos>):NewMovements 
+        static public function calculateNewMovements(p:GlobalPlayerInstance, tx:Int,ty:Int,moves:Array<Pos>):NewMovements 
         {
             var truncMovementSpeedDiff = 0.1;
             var newMovements:NewMovements = new NewMovements();
@@ -436,7 +327,7 @@ class MoveHelper
         }      
 
         // this calculates which position is reached in case the movement was changed while moving
-        static private function calculateNewPos(moves:Array<Pos>, startingMoveTicks:Float, speed:Float):Pos
+        static public function calculateNewPos(moves:Array<Pos>, startingMoveTicks:Float, speed:Float):Pos
         {
             var lastPos:Pos = new Pos(0,0);
             var length = 0.0;
