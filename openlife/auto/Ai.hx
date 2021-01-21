@@ -3,15 +3,16 @@ package openlife.auto;
 import openlife.data.object.player.PlayerInstance;
 using StringTools;
 
-class Ai {
-    public var myPlayer:PlayerInstance;
-    var handler:MessageHandler;
+class Ai
+{
+    var playerInterface:PlayerInterface;
 
-    public function new(player:PlayerInstance,handler:MessageHandler) 
+    public function new(player:PlayerInterface) 
     {
-        this.myPlayer = player;
-        this.handler = handler;
+        this.playerInterface = player;
     }
+
+    //public var player(get, null):Int; 
 
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
@@ -20,11 +21,12 @@ class Ai {
 
     public function say(player:PlayerInstance,curse:Bool,text:String)
     {
+        var myPlayer = playerInterface.getPlayerInstance();
         //trace('im a super evil bot!');
 
         //trace('ai3: ${myPlayer.p_id} player: ${player.p_id}');
 
-        if (this.myPlayer.p_id == player.p_id) return;
+        if (myPlayer.p_id == player.p_id) return;
 
         //trace('im a evil bot!');
 
@@ -34,7 +36,7 @@ class Ai {
 
             //trace('im a nice bot!');
 
-            handler.say("HELLO WORLD");
+            playerInterface.say("HELLO WORLD");
         }
     }
 

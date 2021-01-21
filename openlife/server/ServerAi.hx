@@ -4,13 +4,13 @@ import openlife.auto.Ai;
 
 class ServerAi extends Ai
 {
-    public var me:GlobalPlayerInstance;
+    public var player:GlobalPlayerInstance;
 
     public function new(player:GlobalPlayerInstance)
     {
-        super(player, player);
+        super(player);
 
-        me = player;
+        this.player = player;
     }  
     
     public static function CreateNew() : ServerAi 

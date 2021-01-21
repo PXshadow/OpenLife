@@ -1,8 +1,12 @@
 package openlife.auto;
+import openlife.data.object.player.PlayerInstance;
 import openlife.data.Pos;
 
-interface MessageHandler
+interface PlayerInterface
 {
+    public function getWorld() : WorldInterface;   
+    public function getPlayerInstance() : PlayerInstance;
+
     public function say(text:String):Void;
     public function self(x:Int,y:Int,clothingSlot:Int):Void;
     public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>):Void;
@@ -13,4 +17,6 @@ interface MessageHandler
     public function dropPlayer() : Bool;
     public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int) : Bool; // UBABY
     public function doBaby(x:Int, y:Int, playerId:Int) : Bool;
+
+    
 }

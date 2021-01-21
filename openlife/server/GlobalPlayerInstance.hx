@@ -1,4 +1,6 @@
 package openlife.server;
+import openlife.auto.WorldInterface;
+import openlife.auto.PlayerInterface;
 import haxe.ds.BalancedTree;
 import haxe.macro.Expr.Catch;
 import haxe.display.Server.HaxeModuleMemoryResult;
@@ -18,7 +20,7 @@ using StringTools;
 
 using openlife.server.MoveHelper;
 
-class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.MessageHandler
+class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface
 {
     public var name = "";
     public var familyName = "Snow";
@@ -88,6 +90,16 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
         return player;
     }
+
+    public function getPlayerInstance() : PlayerInstance
+    {
+        return this;
+    }
+
+    public function getWorld() : WorldInterface
+    {
+        return WorldMap.world;
+    }    
 
     public function remove(x:Int, y:Int, index:Int = -1) : Bool
     {
@@ -489,15 +501,15 @@ class GlobalPlayerInstance extends PlayerInstance implements openlife.auto.Messa
 
         for(ai in Connection.getAis())
         {
-            if(ai.me.deleted) continue;
+            if(ai.player.deleted) continue;
 
-            if(ai.me == this) continue;
+            if(ai.player == this) continue;
             
-            var pX = ai.me.tx() - this.gx;
-            var pY = ai.me.ty() - this.gy;
+            var pX = ai.player.tx() - this.gx;
+            var pY = ai.player.ty() - this.gy;
             var tmpDistance = (pX - x) * (pX - x) + (pY - y) * (pY - y);
 
-            if(tmpDistance < distance) player = ai.me;
+            if(tmpDistance < distance) player = ai.player;
         }
 
         return player;

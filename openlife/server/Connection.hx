@@ -154,13 +154,13 @@ class Connection implements ServerHeader
 
         for(c in ais)
         {
-            if(c.me.deleted) continue;
+            if(c.player.deleted) continue;
 
-            if(c.me.p_id == playerId) return c.me;
+            if(c.player.p_id == playerId) return c.player;
 
             if(playerId <= 0)
             {
-                if(c.me.x == x && c.me.y == y) return c.me;
+                if(c.player.x == x && c.player.y == y) return c.player;
             }
         }
 
@@ -213,7 +213,7 @@ class Connection implements ServerHeader
                 }
                 for (ai in ais)
                 {
-                    player.connection.send(PLAYER_UPDATE,[ai.myPlayer.toRelativeData(player)], true);
+                    player.connection.send(PLAYER_UPDATE,[ai.player.toRelativeData(player)], true);
                 }
                 player.connection.send(FRAME, null, isPlayerAction);
             }

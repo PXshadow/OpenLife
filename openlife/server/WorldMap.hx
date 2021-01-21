@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.auto.WorldInterface;
 import haxe.Serializer;
 import sys.FileSystem;
 import haxe.macro.Expr.Catch;
@@ -73,7 +74,7 @@ import haxe.io.Bytes;
     public var SPASSABLERIVER = 0.6;   
 }
 
-class WorldMap
+class WorldMap implements WorldInterface    
 {
     public var mutex = new Mutex();
 

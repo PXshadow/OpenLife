@@ -102,15 +102,15 @@ class TimeHelper
         
         for (ai in Connection.getAis())
         {
-            if(ai.me.deleted) continue;
+            if(ai.player.deleted) continue;
 
-            updateAge(ai.me, timePassedInSeconds);
+            updateAge(ai.player, timePassedInSeconds);
 
-            updateFoodAndDoHealing(ai.me, timePassedInSeconds);            
+            updateFoodAndDoHealing(ai.player, timePassedInSeconds);            
 
-            MoveHelper.updateMovement(ai.me);
+            MoveHelper.updateMovement(ai.player);
 
-            if(TimeHelper.tick % 40 == 0) updateTemperature(ai.me);
+            if(TimeHelper.tick % 40 == 0) updateTemperature(ai.player);
 
             ai.doTimeStuff(timePassedInSeconds);
         }

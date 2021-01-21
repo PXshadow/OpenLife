@@ -1,5 +1,5 @@
 package openlife.server;
-import openlife.auto.MessageHandler;
+import openlife.auto.PlayerInterface;
 import openlife.auto.Ai;
 import openlife.settings.ServerSettings;
 import openlife.data.transition.TransitionImporter;
@@ -53,7 +53,7 @@ class Server
 
         // add a new test bot // TODO remove later
         var ai = ServerAi.CreateNew();
-        ai.myPlayer.age = 1;
+        ai.player.age = 1;
 
         TimeHelper.DoTimeLoop();
     }
