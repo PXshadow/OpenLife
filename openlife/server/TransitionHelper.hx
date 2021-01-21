@@ -334,6 +334,8 @@ class TransitionHelper{
 
         var oldEnoughForTransitions = this.tileObjectData.minPickupAge <= player.age || this.tileObjectData.description.toUpperCase().contains('BERRY');
 
+        trace('TRANS: oldEnoughForTransitions: $oldEnoughForTransitions');
+
         if (this.target.objectData.tool)
         {
             player.connection.send(LEARNED_TOOL_REPORT,['0 ${this.target.id}']);

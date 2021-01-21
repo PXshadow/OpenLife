@@ -33,7 +33,7 @@ class ServerSettings
     // PlayerInstance
     public static var StartingEveAge = 14;  // 13
     public static var AgingSecondsPerYear = 60; // 60
-    public static var ReduceAgeNeededToPickupObjects = 2; // With set to two an item that needs 13 years to be allowed to be picked up can be picked up with 11
+    public static var ReduceAgeNeededToPickupObjects = 2; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
     public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
     public static var MaxAgeForBreastFeeding = 10;
     
