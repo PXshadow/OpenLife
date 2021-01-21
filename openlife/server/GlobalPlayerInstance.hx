@@ -20,7 +20,7 @@ using StringTools;
 
 using openlife.server.MoveHelper;
 
-class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface
+class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface
 {
     public var name = "";
     public var familyName = "Snow";
@@ -98,8 +98,32 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface
 
     public function getWorld() : WorldInterface
     {
-        return WorldMap.world;
-    }    
+        return this;
+    } 
+
+    public function getBiomeId(x:Int, y:Int):Int
+    {
+        return WorldMap.world.getBiomeId(x,y);
+    }
+
+    public function isBiomeBlocking(x:Int, y:Int) : Bool
+    {
+        return WorldMap.isBiomeBlocking(x,y);
+    }
+    
+    //** returns NULL of x,y is too far away from player **/
+    public function getObjectId(x:Int, y:Int):Array<Int>
+    {
+        // TODO check if too far away
+        return WorldMap.world.getObjectId(x,y);
+    }
+
+    //** returns -1 of x,y is too far away from player **/
+    public function getFloorId(x:Int, y:Int):Int
+    {
+        // TODO check if too far away
+        return WorldMap.world.getFloorId(x,y);
+    }
 
     public function remove(x:Int, y:Int, index:Int = -1) : Bool
     {

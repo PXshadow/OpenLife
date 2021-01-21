@@ -74,7 +74,7 @@ import haxe.io.Bytes;
     public var SPASSABLERIVER = 0.6;   
 }
 
-class WorldMap implements WorldInterface    
+class WorldMap   
 {
     public var mutex = new Mutex();
 
