@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.data.transition.TransitionData;
 import openlife.data.object.player.PlayerInstance;
 using StringTools;
 
@@ -37,26 +38,9 @@ class Ai
         {
             trace('AI look for transitions: ${text}');
 
-            var transitions = world.getTransitionByNewTarget(250); // 273 = Cooked Carrot Pie // 250 = Hot Adobe Oven
+            var objectIdToSearch = 273; // 273 = Cooked Carrot Pie // 250 = Hot Adobe Oven
 
-            for(trans in transitions)
-            {
-                trans.traceTransition("AI:", true);
-
-                var actorTransitions = world.getTransitionByNewTarget(trans.newActorID);
-
-                for(actorTrans in transitions)
-                {
-                    actorTrans.traceTransition("AI Actor:", true);
-                }
-
-                var targetTransitions = world.getTransitionByNewTarget(trans.newTargetID);
-
-                for(targetTrans in targetTransitions)
-                {
-                    targetTrans.traceTransition("AI Target:", true);
-                }
-            }
+            searchTransitions(objectIdToSearch);
         }
 
         if (text.indexOf("HELLO") != -1) 
@@ -91,6 +75,41 @@ class Ai
     public function dying(sick:Bool)
     {
 
+    }
+
+    private function searchTransitions(objectIdToSearch:Int)
+    {
+        var world = this.playerInterface.getWorld();
+        var transitionsByObject = new Map<Int, TransitionData>();
+        
+        var transitions = world.getTransitionByNewTarget(objectIdToSearch); 
+
+        if(transitions.length == 0) transitions =  world.getTransitionByNewActor(objectIdToSearch);
+
+        for(trans in transitions)
+        {
+            trans.traceTransition("AI:", true);
+
+            if(trans.actorID > 0) // ignore time - 1 = transitions 
+            {
+                var actorTransitions = world.getTransitionByNewTarget(trans.actorID);
+
+                for(actorTrans in actorTransitions)
+                {
+                    actorTrans.traceTransition("AI Actor:", true);
+                }
+            }
+
+            if(trans.targetID > 0) // ignore time - 1 = player transitions and other "strange" transitions 
+            {
+                var targetTransitions = world.getTransitionByNewTarget(trans.targetID);
+
+                for(targetTrans in targetTransitions)
+                {
+                    targetTrans.traceTransition("AI Target:", true);
+                }
+            }
+        }
     }
 }
 //time routine

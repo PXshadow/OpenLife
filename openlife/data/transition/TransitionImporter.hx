@@ -14,6 +14,7 @@ class TransitionImporter
 
     // for reverse lookup of transitions
     private var transitionsByNewTargetMap:Map<Int, Array<TransitionData>>;
+    private var transitionsByNewActorMap:Map<Int, Array<TransitionData>>;
 
     // transitions without any last use transitions
     private var transitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
@@ -54,6 +55,7 @@ class TransitionImporter
         if(categories.length == 0) importCategories();
 
         transitionsByNewTargetMap = [];
+        transitionsByNewActorMap = []; 
 
         transitions = [];
         transitionsByActorIdTargetId = [];
@@ -150,6 +152,13 @@ class TransitionImporter
         return transitions != null ? transitions : new Array<TransitionData>(); 
     }
 
+    public function getTransitionByNewActor(newActorId:Int) : Array<TransitionData>
+    {
+        var transitions = transitionsByNewActorMap[newActorId];
+
+        return transitions != null ? transitions : new Array<TransitionData>(); 
+    }
+
     public function addTransition(addedBy:String, transition:TransitionData,  lastUseActor:Bool = false, lastUseTarget:Bool = false)
     {
         transition.addedBy = addedBy;
@@ -173,7 +182,8 @@ class TransitionImporter
         {
             this.transitions.push(transition);
             transitionsByTargetId[transition.targetID] = transition;
-            addTransitionByTarget(transition);            
+            addTransitionByNewTarget(transition); 
+            addTransitionByNewActor(transition);           
 
             transition.traceTransition(addedBy);
 
@@ -195,6 +205,8 @@ class TransitionImporter
             maxUseTransitionsByTargetId[transition.targetID] = transition;
 
             this.transitions.push(transition);
+            addTransitionByNewTarget(transition); 
+            addTransitionByNewActor(transition);
 
             return;
         }
@@ -207,6 +219,9 @@ class TransitionImporter
             var maxUseTransitionsByTargetId = getTransitionMapByTargetId(transition.actorID, false, false, true);
 
             this.transitions.push(transition);
+            addTransitionByNewTarget(transition); 
+            addTransitionByNewActor(transition);
+
             transitionsByTargetId[transition.targetID] = transition;
             maxUseTransitionsByTargetId[trans.targetID] = trans;
 
@@ -218,7 +233,7 @@ class TransitionImporter
         transition.traceTransition('$addedBy WARNING DOUBLE 2!!');
     }
 
-    private function addTransitionByTarget(transition:TransitionData)
+    private function addTransitionByNewTarget(transition:TransitionData)
     {
         var transitionsByNewTarget = transitionsByNewTargetMap[transition.newTargetID];
 
@@ -230,6 +245,21 @@ class TransitionImporter
 
         transitionsByNewTarget.push(transition);
     }
+
+    private function addTransitionByNewActor(transition:TransitionData)
+    {
+        var transitions = transitionsByNewActorMap[transition.newActorID];
+
+        if(transitions == null)
+        {
+            transitionsByNewActorMap[transition.newActorID] = new Array<TransitionData>();
+            transitions = transitionsByNewActorMap[transition.newActorID];
+        }
+
+        transitions.push(transition);
+    }
+
+    
 
     // seems like obid can be at the same time a category and an object / Cabbage Seed + Bowl of Cabbage Seeds / 1206 + 1312
     // so better look also for @ in the description
