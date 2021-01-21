@@ -329,9 +329,6 @@ class Connection
                 var targetX = player.tx() - c.player.gx;
                 var targetY = player.ty() - c.player.gy;
 
-                //var targetX = x + p.gx - c.player.gx;
-                //var targetY = y + p.gy - c.player.gy;
-
                 // update only close players
                 if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
@@ -422,10 +419,25 @@ class Connection
         ...
         p_id face_left
         #
+
+        Tells player about other players that have flipped.  face_left is true if facing
+        left, false if facing right.  Only sent in response to stationary player flip
+        requests (clients should still auto-flip players based on movement).
     **/
-    public function flip()
+    public function flip(x:Int, y:Int)
     {
-        // TODO
+        for (c in connections) 
+        {
+            // since player has relative coordinates, transform them for player
+            var targetX = player.tx() - c.player.gx;
+            var targetY = player.ty() - c.player.gy;
+
+            // update only close players
+            if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+
+            var face_left = x < player.x ? 'true' : 'false';
+            c.send(FLIP,['${player.p_id} $face_left']);
+        }
     }   
 
     public function sendMapChunk(x:Int,y:Int,width:Int = 32,height:Int = 30)

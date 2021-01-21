@@ -188,8 +188,8 @@ class Server
                 connection.die();
             case KA:    // KA x y# 
                 connection.keepAlive();
-            case FLIP:  // FL p_id face_left
-                connection.flip();
+            case FLIP:  // FLIP x y#
+                connection.flip(Std.parseInt(input[0]),Std.parseInt(input[1]));
             case PING:  // PING x y unique_id#
                 connection.sendPong(input[2]);
             case EMOT:  // PE p_id emot_index ttl_sec
