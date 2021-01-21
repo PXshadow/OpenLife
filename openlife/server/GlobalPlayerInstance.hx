@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.transition.TransitionImporter;
 import openlife.auto.WorldInterface;
 import openlife.auto.PlayerInterface;
 import haxe.ds.BalancedTree;
@@ -101,6 +102,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return this;
     } 
 
+    public function getTrans(actor:ObjectHelper, target:ObjectHelper) : TransitionData
+    {
+        return Server.transitionImporter.getTrans(actor, target);
+    }
+
+    public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false, maxUseTarget:Bool=false):TransitionData
+    {
+        return Server.transitionImporter.getTransition(actorId, targetId, lastUseActor, lastUseTarget, maxUseTarget);
+    }
+
     public function getBiomeId(x:Int, y:Int):Int
     {
         return WorldMap.world.getBiomeId(x,y);
@@ -116,6 +127,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         // TODO check if too far away
         return WorldMap.world.getObjectId(x,y);
+    }
+
+    //** returns NULL of x,y is too far away from player / allowNull means it wont create a object helper if there is none **/
+    public function getObjectHelper(x:Int, y:Int, allowNull:Bool = false) : ObjectHelper
+    {
+        // TODO check if too far away
+        return WorldMap.world.getObjectHelper(x,y, allowNull);
     }
 
     //** returns -1 of x,y is too far away from player **/
