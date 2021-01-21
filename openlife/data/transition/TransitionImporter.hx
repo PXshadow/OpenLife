@@ -225,6 +225,8 @@ class TransitionImporter
 
         var actorCategory = getCategory(transition.actorID);
         var targetCategory = getCategory(transition.targetID);
+        var newActorCategory = getCategory(transition.newActorID);
+        var newTargetCategory = getCategory(transition.newTargetID);
 
         var bothActionAndTargetIsCategory = (actorCategory != null) && (targetCategory != null);
 
@@ -234,7 +236,49 @@ class TransitionImporter
             //traceTransition(transition, 'bothActionAndTargetIsCategory: ');
             //return;
         }
-             
+
+        if((actorCategory != null && actorCategory.pattern) || (targetCategory != null && targetCategory.pattern)) 
+        {
+            //trace('Pattern: ${actorCategory.parentID}');
+            /*if(actorCategory != null)
+            {
+                if(actorCategory.parentID == 1206) trace('Pattern: actorCategory.ids.length: ${actorCategory.ids.length}');
+                if(actorCategory.parentID == 1206 && targetCategory != null) trace('Pattern: targetCategory.ids.length: ${targetCategory.ids.length}');
+                if(actorCategory.parentID == 1206 && newActorCategory != null) trace('Pattern: newActorCategory.ids.length: ${newActorCategory.ids.length}');
+                if(actorCategory.parentID == 1206 && newTargetCategory != null) trace('Pattern: newTargetCategory.ids.length: ${newTargetCategory.ids.length}');
+            }*/
+
+            var description = "Pattern: ";
+            if(actorCategory != null)
+            {
+                var objData = ObjectData.getObjectData(actorCategory.parentID);
+                description += objData == null ? '${actorCategory.parentID} ' : '${actorCategory.parentID} ${objData.description} ';
+            }
+
+            if(targetCategory != null)
+            {
+                var objData = ObjectData.getObjectData(targetCategory.parentID);
+                description += objData == null ? '${targetCategory.parentID} ' : '${targetCategory.parentID} ${objData.description} ';
+            }
+
+            var length = actorCategory != null ? actorCategory.ids.length : targetCategory.ids.length;
+
+            for(i in 0...length)
+            { 
+                var newTransition = transition.clone();
+                if(actorCategory != null) newTransition.actorID = actorCategory.ids[i];
+                if(targetCategory != null) newTransition.targetID = targetCategory.ids[i];
+                if(newActorCategory != null) newTransition.newActorID = newActorCategory.ids[i];
+                if(newTargetCategory != null) newTransition.newTargetID = newTargetCategory.ids[i];
+
+                //newTransition.traceTransition('$description/', true);
+                addTransition('$description/', newTransition);
+            }
+
+            return;
+        }
+
+        /*     
         // add some pile target transitions
         // 1601 + 1600 = 0 + 1600
         // 1601 + 1601
@@ -267,6 +311,7 @@ class TransitionImporter
             
             return;
         }
+        */
 
         var category = actorCategory;
         
