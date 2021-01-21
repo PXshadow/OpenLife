@@ -90,13 +90,13 @@ class TimeHelper
         {            
             if(c.player.deleted) continue; // maybe remove?
 
-            updateAge(c.player, timePassedInSeconds);
+            Macro.exception(updateAge(c.player, timePassedInSeconds));
 
-            updateFoodAndDoHealing(c.player, timePassedInSeconds);            
+            Macro.exception(updateFoodAndDoHealing(c.player, timePassedInSeconds));            
 
-            MoveHelper.updateMovement(c.player);
+            Macro.exception(MoveHelper.updateMovement(c.player));
 
-            if(TimeHelper.tick % 40 == 0) updateTemperature(c.player);
+            if(TimeHelper.tick % 40 == 0) Macro.exception(updateTemperature(c.player));
         }
         
         
@@ -104,30 +104,29 @@ class TimeHelper
         {
             if(ai.player.deleted) continue;
 
-            updateAge(ai.player, timePassedInSeconds);
+            Macro.exception(updateAge(ai.player, timePassedInSeconds));
 
-            updateFoodAndDoHealing(ai.player, timePassedInSeconds);            
+            Macro.exception(updateFoodAndDoHealing(ai.player, timePassedInSeconds));            
 
-            MoveHelper.updateMovement(ai.player);
+            Macro.exception(MoveHelper.updateMovement(ai.player));
 
-            if(TimeHelper.tick % 40 == 0) updateTemperature(ai.player);
+            if(TimeHelper.tick % 40 == 0) Macro.exception(updateTemperature(ai.player));
 
-            ai.doTimeStuff(timePassedInSeconds);
+            Macro.exception(ai.doTimeStuff(timePassedInSeconds));
         }
 
+        Macro.exception(DoWorldMapTimeStuff()); // TODO currently it goes through the hole map each sec / this may later not work
 
-        DoWorldMapTimeStuff(); // TODO currently it goes through the hole map each sec / this may later not work
+        Macro.exception(RespawnObjects());
 
-        RespawnObjects();
-
-        DecayObjects();
+        Macro.exception(DecayObjects());
 
         var worldMap = Server.server.map; 
  
         // make sure they are not all at same tick!
-        if((tick + 20) % ServerSettings.TicksBetweenSaving  == 0) worldMap.updateObjectCounts();
-        if(ServerSettings.debug == false && tick % ServerSettings.TicksBetweenSaving == 0) Server.server.map.writeToDisk(false);
-        if(ServerSettings.debug == false && (tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Server.server.map.writeBackup();
+        if((tick + 20) % ServerSettings.TicksBetweenSaving  == 0) Macro.exception(worldMap.updateObjectCounts());
+        if(ServerSettings.debug == false && tick % ServerSettings.TicksBetweenSaving == 0) Macro.exception(Server.server.map.writeToDisk(false));
+        if(ServerSettings.debug == false && (tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Macro.exception(Server.server.map.writeBackup());
 
         /*
         if(tick % 100 == 0) 
