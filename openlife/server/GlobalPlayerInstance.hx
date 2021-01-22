@@ -87,7 +87,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         player.move_speed = MoveHelper.calculateSpeed(player, player.gx, player.gy);
         player.food_store_max = player.calculateFoodStoreMax();
         player.food_store = player.food_store_max / 2;
-        player.yum_multiplier = ServerSettings.MinHealthPerYear * ServerSettings.StartingEveAge; 
+        // player.yum_multiplier = ServerSettings.MinHealthPerYear * ServerSettings.StartingEveAge; 
 
         return player;
     }
@@ -238,7 +238,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function CalculateHealthFactor(forSpeed:Bool) : Float
     {
-        var health:Float = this.yum_multiplier - this.trueAge  * ServerSettings.MinHealthPerYear;
+        var health:Float = this.yum_multiplier; // - this.trueAge  * ServerSettings.MinHealthPerYear;
 
         var healthFactor:Float; 
 

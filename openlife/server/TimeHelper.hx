@@ -198,6 +198,8 @@ class TimeHelper
         {
             trace('Player: ${player.p_id} Old Age: $tmpAge New Age: ${player.age} TrueAge: ${player.trueAge} agingFactor: $agingFactor healthFactor: $healthFactor');
 
+            player.yum_multiplier -= ServerSettings.MinHealthPerYear; // each year some health is lost
+
             player.food_store_max = player.calculateFoodStoreMax();
 
             if(player.age > 60) player.doDeath('reason_age');

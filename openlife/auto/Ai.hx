@@ -163,12 +163,14 @@ class Ai
 
         trace('search: $count transtions found! ${Sys.time() - startTime}');
 
+        /*
         for(key in transitionsForObject.keys())            
         {
             var trans = transitionsForObject[key].getDesciption();
 
             trace('Search: ${trans}');
         }
+        */
 
         return transitionsForObject;
 
