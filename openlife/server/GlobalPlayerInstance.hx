@@ -1238,64 +1238,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             grave.containedObjects.push(obj);
         }
 
-        placeObject(grave);
-    }
-
-    public function placeObject(objectToPlace:ObjectHelper)
-    {
-        var world = WorldMap.world;
-
-        if(tryPlaceObject(this.tx(), this.ty(), objectToPlace)) return; 
-
-        var distance = 1;
-        
-        for(i in 1...10000)
-        {
-            distance = Math.ceil(i / (20 * distance * distance)); 
-
-            //trace('rand: ${world.randomInt(distance * 2) - distance}');
-
-            var tmpX = this.tx() + world.randomInt(distance * 2) - distance;
-            var tmpY = this.ty() + world.randomInt(distance * 2) - distance;
-
-            if(tryPlaceObject(tmpX, tmpY, objectToPlace)) return; 
-        }
-
-        trace('WARNING: could not place any grave for player: ${this.p_id}');
-    }
-
-    function tryPlaceObject(x:Int, y:Int, objectToPlace:ObjectHelper) : Bool
-    {
-        var world = Server.server.map;
-
-        var obj = world.getObjectHelper(x, y);
-
-        if(obj.id == 0)
-        {
-            world.setObjectHelper(x, y, objectToPlace);
-
-            //Connection.SendUpdateToAllClosePlayers(this);
-
-            Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
-
-            return true;
-        }
-        else if(obj.objectData.containable)
-        {
-            objectToPlace.containedObjects.push(obj);
-
-            world.setObjectHelper(x, y, objectToPlace);
-
-            //Connection.SendUpdateToAllClosePlayers(this);
-
-            Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
-
-            return true;
-        }
-
-        //trace('Do death: could not place grave at: ${obj.description()}');
-
-        return false;
+        if(WorldMap.PlaceObject(this.tx(), this.ty(), grave) == false) trace('WARNING: could not place any grave for player: ${this.p_id}');
     }
 
     // insulation reaches from 0 to 2

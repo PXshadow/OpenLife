@@ -1253,8 +1253,61 @@ class WorldMap
         return string.substr(1);
     }
 
-    public function findClosest(){
+    public static function PlaceObject(tx:Int, ty:Int, objectToPlace:ObjectHelper) : Bool
+    {
+        var world = WorldMap.world;
+
+        if(TryPlaceObject(tx, ty, objectToPlace)) return true; 
+
+        var distance = 1;
         
+        for(i in 1...10000)
+        {
+            distance = Math.ceil(i / (20 * distance * distance)); 
+
+            //trace('rand: ${world.randomInt(distance * 2) - distance}');
+
+            var tmpX = tx + world.randomInt(distance * 2) - distance;
+            var tmpY = ty + world.randomInt(distance * 2) - distance;
+
+            if(TryPlaceObject(tmpX, tmpY, objectToPlace)) return true; 
+        }
+
+        return false;
+    }
+    
+    private static function TryPlaceObject(x:Int, y:Int, objectToPlace:ObjectHelper) : Bool
+    {
+        var world = Server.server.map;
+
+        var obj = world.getObjectHelper(x, y);
+
+        if(obj.id == 0)
+        {
+            world.setObjectHelper(x, y, objectToPlace);
+
+            //Connection.SendUpdateToAllClosePlayers(this);
+
+            Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
+
+            return true;
+        }
+        else if(obj.objectData.containable)
+        {
+            objectToPlace.containedObjects.push(obj);
+
+            world.setObjectHelper(x, y, objectToPlace);
+
+            //Connection.SendUpdateToAllClosePlayers(this);
+
+            Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
+
+            return true;
+        }
+
+        //trace('Do death: could not place grave at: ${obj.description()}');
+
+        return false;
     }
 }
 #end
