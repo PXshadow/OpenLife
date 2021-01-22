@@ -1243,8 +1243,7 @@ class WorldMap
     public function toString():String
     {
         var string = "";
-        //trace("length: ");
-        //trace(length);
+
         for (i in 0...length)
         {
             var obj = MapData.stringID(objects[i]);
@@ -1264,8 +1263,6 @@ class WorldMap
         for(i in 1...10000)
         {
             distance = Math.ceil(i / (20 * distance * distance)); 
-
-            //trace('rand: ${world.randomInt(distance * 2) - distance}');
 
             var tmpX = tx + world.randomInt(distance * 2) - distance;
             var tmpY = ty + world.randomInt(distance * 2) - distance;
@@ -1287,8 +1284,6 @@ class WorldMap
         {
             world.setObjectHelper(x, y, objectToPlace);
 
-            //Connection.SendUpdateToAllClosePlayers(this);
-
             Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
 
             return true;
@@ -1299,14 +1294,10 @@ class WorldMap
 
             world.setObjectHelper(x, y, objectToPlace);
 
-            //Connection.SendUpdateToAllClosePlayers(this);
-
             Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
 
             return true;
         }
-
-        //trace('Do death: could not place grave at: ${obj.description()}');
 
         return false;
     }
