@@ -1279,8 +1279,9 @@ class WorldMap
     private static function TryPlaceObject(x:Int, y:Int, objectToPlace:ObjectHelper) : Bool
     {
         var world = Server.server.map;
-
         var obj = world.getObjectHelper(x, y);
+
+        if(WorldMap.isBiomeBlocking(x,y)) return false;
 
         if(obj.id == 0)
         {
@@ -1292,7 +1293,7 @@ class WorldMap
 
             return true;
         }
-        else if(obj.objectData.containable)
+        else if(obj.objectData.containable && objectToPlace.containedObjects.length < objectToPlace.objectData.numSlots)
         {
             objectToPlace.containedObjects.push(obj);
 

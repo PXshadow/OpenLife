@@ -626,9 +626,13 @@ class TimeHelper
             // check in another 20 sec
             helper.timeToChange += 20;
 
-            //WorldMap.world.setObjectHelper(tx,ty, helper);
+            var containedObject = helper.containedObjects.pop();
 
-            trace('time: could not decay newTarget cannot store contained objects! ${helper.description}');
+            WorldMap.PlaceObject(tx, ty, containedObject);
+
+            trace('time: placed object ${containedObject.description} from ${helper.description}');
+
+            //trace('time: could not decay newTarget cannot store contained objects! ${helper.description}');
 
             return false;
         }
