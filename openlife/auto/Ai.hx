@@ -25,7 +25,12 @@ class Ai
 
         done = true;
 
-        searchTransitions(273);
+        var transitionsForObject = searchTransitions(273);
+
+        // TODO look if any of the objects you see is in transitionsForObject
+        // TODO if none object is found or if the needed steps from the object you found are too high, search for a better object
+        // TODO consider too look for a natural spawned object with the fewest steps on the list
+        // TODO how to handle if you have allready some of the needed objects ready... 
     }
 
     public function say(player:PlayerInstance,curse:Bool,text:String)
@@ -85,90 +90,139 @@ class Ai
 
     }
 
-    private function searchTransitions(objectIdToSearch:Int)
+    private function searchTransitions(objectIdToSearch:Int) : Map<Int, TransitionForObject>
     {    
         // TODO might be good to also allow multiple transitions for one object
         var world = this.playerInterface.getWorld();
         var transitionsByObject = new Map<Int, TransitionData>();
+        var transitionsForObject = new Map<Int, TransitionForObject>();
+        
         var transitionsToProcess = new Array<Array<TransitionData>>();
+        var steps = new Array<Int>();
+        var wantedObjIds = new Array<Int>();
+        var stepsCount = 1;
 
         transitionsToProcess.push(world.getTransitionByNewTarget(objectIdToSearch)); 
         transitionsToProcess.push(world.getTransitionByNewActor(objectIdToSearch)); 
 
-        var count = 1;
+        steps.push(stepsCount);
+        steps.push(stepsCount);
+
+        wantedObjIds.push(objectIdToSearch);
+        wantedObjIds.push(objectIdToSearch);
+
+        var count = 1;  
+        
+        var startTime = Sys.time();
 
         while (transitionsToProcess.length > 0)
         {
-            var transitions = transitionsToProcess.pop();
+            var transitions = transitionsToProcess.shift();
+            stepsCount = steps.shift();
+            var wantedObjId = wantedObjIds.shift();
 
             for(trans in transitions)
             {
-                if(transitionsByObject.exists(trans.actorID) && transitionsByObject.exists(trans.targetID)) continue;
+                if(transitionsByObject.exists(trans.actorID) || transitionsByObject.exists(trans.targetID)) continue;
 
-                if(count < 100) trans.traceTransition('AI $count:', true);
+                //if(count < 10000) trans.traceTransition('AI stepsCount: $stepsCount count: $count:', true);
 
                 if(trans.actorID > 0 && trans.actorID != trans.newActorID && transitionsByObject.exists(trans.actorID) == false)
                 {
                     transitionsToProcess.push(world.getTransitionByNewTarget(trans.actorID)); 
                     transitionsToProcess.push(world.getTransitionByNewActor(trans.actorID)); 
+
+                    steps.push(stepsCount + 1);
+                    steps.push(stepsCount + 1);
+
+                    wantedObjIds.push(trans.actorID);
+                    wantedObjIds.push(trans.actorID);
                 }
 
                 if(trans.targetID > 0 && trans.targetID != trans.newTargetID && transitionsByObject.exists(trans.targetID) == false)
                 {
                     transitionsToProcess.push(world.getTransitionByNewTarget(trans.targetID)); 
                     transitionsToProcess.push(world.getTransitionByNewActor(trans.targetID)); 
+
+                    steps.push(stepsCount + 1);
+                    steps.push(stepsCount + 1);
+
+                    wantedObjIds.push(trans.targetID);
+                    wantedObjIds.push(trans.targetID);
                 }
 
-                transitionsByObject[trans.actorID] = trans;
-                transitionsByObject[trans.targetID] = trans;
+                if(trans.actorID > 0) transitionsByObject[trans.actorID] = trans;
+                if(trans.targetID > 0) transitionsByObject[trans.targetID] = trans;
+
+                if(trans.actorID > 0) addTransition(transitionsForObject, trans, trans.actorID, wantedObjId, stepsCount);
+                if(trans.targetID > 0) addTransition(transitionsForObject, trans, trans.targetID, wantedObjId, stepsCount);
 
                 count++;
             }
         }
 
-        trace('search: $count transtions found!');
-        //ar transitionsByOjectKeys = [for(key in transitionsByObject.keys()) key];
+        trace('search: $count transtions found! ${Sys.time() - startTime}');
 
-        for(key in transitionsByObject.keys())            
+        for(key in transitionsForObject.keys())            
         {
-            var trans = transitionsByObject[key].getDesciption();
+            var trans = transitionsForObject[key].getDesciption();
 
-            trace('Search: object: $key trans: ${trans}');
+            trace('Search: ${trans}');
         }
 
-        /*
+        return transitionsForObject;
 
-        for(trans in transitions)
+        //var transitionsByOjectKeys = [for(key in transitionsByObject.keys()) key];
+    }
+    
+    private function addTransition(transitionsForObject:Map<Int, TransitionForObject>, transition:TransitionData, objId:Int, wantedObjId:Int, steps:Int)
+    {
+        var transitionForObject = transitionsForObject[objId];
+
+        if(transitionForObject == null)
         {
-            trans.traceTransition("AI:", true);
+             transitionForObject = new TransitionForObject(objId, steps, wantedObjId, transition);
+             transitionForObject.steps = steps;
+             transitionForObject.bestTransition = transition;
+             transitionForObject.transitions.push(new TransitionForObject(objId, steps, wantedObjId, transition));
 
-            transitionsByObject[trans.actorID] = trans;
-            transitionsByObject[trans.targetID] = trans;
-
-            if(trans.actorID > 0 transitionsByObject) // ignore time - 1 = transitions 
-            {
-                var actorTransitions = world.getTransitionByNewTarget(trans.actorID);
-
-                for(actorTrans in actorTransitions)
-                {
-                    actorTrans.traceTransition("AI Actor:", true);                
-                }
-            }
-
-            if(trans.targetID > 0) // ignore time - 1 = player transitions and other "strange" transitions 
-            {
-                var targetTransitions = world.getTransitionByNewTarget(trans.targetID);
-
-                for(targetTrans in targetTransitions)
-                {
-                    targetTrans.traceTransition("AI Target:", true);
-                }
-            }
+             transitionsForObject[objId] = transitionForObject;
         }
 
-        */
+        if(transitionForObject.steps > steps)
+        {
+            transitionForObject.steps = steps;
+            transitionForObject.bestTransition = transition;
+        } 
+
+        transitionForObject.transitions.push(new TransitionForObject(objId, steps, wantedObjId, transition));
     }
 }
 //time routine
 //update loop
 //map
+
+class TransitionForObject
+{
+    public var objId:Int;
+    public var wantedObjId:Int;
+    public var steps:Int;
+
+    public var bestTransition:TransitionData;
+
+    public var transitions:Array<TransitionForObject> = [];
+
+    public function new(objId:Int, steps:Int, wantedObjId:Int, transition:TransitionData) 
+    {
+        this.objId = objId;
+        this.wantedObjId = wantedObjId;
+        this.steps = steps;
+        this.bestTransition = transition;
+    }
+
+    public function getDesciption() : String
+    {
+        var description = 'objId: $objId wantedObjId: $wantedObjId steps: $steps trans: ' + bestTransition.getDesciption();
+        return description;
+    }
+}
