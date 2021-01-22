@@ -374,6 +374,27 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
         else
         {
+            // check if name is used
+            for(c in Connection.getConnections())
+            {
+                if(c.player.name == name)
+                {
+                    trace('name: "$name" is used already!');
+
+                    return;
+                }
+            }
+
+            for(ai in Connection.getAis())
+            {
+                if(ai.player.name == name)
+                {
+                    trace('name: "$name" is used already!');
+
+                    return;
+                }
+            }
+
             player.name = name;
         }
        
