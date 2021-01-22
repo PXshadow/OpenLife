@@ -242,7 +242,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         var healthFactor:Float; 
 
-        var maxBoni = forSpeed ? 1.2 : 2;
+        var maxBoni = forSpeed ? 1.2 : 2; // for Speed or for aging
         var maxMali = forSpeed ? 0.8 : 0.5;
 
         if(health >= 0) healthFactor = (maxBoni  * health + ServerSettings.HealthFactor) / (health + ServerSettings.HealthFactor);
