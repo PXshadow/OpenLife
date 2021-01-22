@@ -1222,7 +1222,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function placeGrave()
     {
-        var grave = new ObjectHelper(this, 87); // 87 = Fresh Grave
+        var grave = new ObjectHelper(this, 87); // 87 = Fresh Grave 88 = grave
 
         if(this.heldObject != null)
         {

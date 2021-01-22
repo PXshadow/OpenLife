@@ -256,8 +256,10 @@ class TransitionHelper{
 
         trace('Container: ${objToStore.description} objToStore.slotSize: ${objToStoreObjData.slotSize} TO: container.containSize: ${containerObjData.containSize}');
 
-        if(isDrop == false)            
-        {
+        if(isDrop == false)  
+        {            
+            if(container.id == 87 || container.id == 88) return false; // 87 = Fresh Grave 88 = grave // connot place in grave
+
             if(amountOfContainedObjects >= containerObjData.numSlots) return false;
 
             container.containedObjects.push(player.heldObject);
