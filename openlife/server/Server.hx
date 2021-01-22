@@ -159,11 +159,6 @@ class Server
         });
     }
 
-    public function sendSay(text:String,curse:Bool)
-    {
-        
-    }
-
     public function process(connection:Connection,string:String)
     {
         //Sys.println(string); //log messages
@@ -207,7 +202,7 @@ class Server
             case UBABY: // UBABY x y i id#
                 connection.player.doOnOther(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]), input.length > 3 ? Std.parseInt(input[3]) : -1);
             case SAY:   // PS p_id/isCurse text 
-                connection.player.say(string.substring(4)); // TODO change
+                connection.player.say(input[2]); // string.substring(4)); // TODO change
             case BABY:  // BABY x y# // BABY x y id#
                 connection.player.doBaby(Std.parseInt(input[0]), Std.parseInt(input[1]), input.length > 2 ? Std.parseInt(input[2]) : -1);
             case MOVE:  // PM p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
