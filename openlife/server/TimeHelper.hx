@@ -623,11 +623,13 @@ class TimeHelper
         // for example if a grave with objects decays
         if(helper.containedObjects.length > newObjectData.slotSize)
         {
-            // check in another 10 sec
-            helper.timeToChange += 10;
+            // check in another 20 sec
+            helper.timeToChange += 20;
+
             //WorldMap.world.setObjectHelper(tx,ty, helper);
 
-            trace('time: do not decay newTarget cannot store contained objects! ${helper.description}');
+            trace('time: could not decay newTarget cannot store contained objects! ${helper.description}');
+
             return false;
         }
 

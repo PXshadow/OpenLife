@@ -87,7 +87,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         player.move_speed = MoveHelper.calculateSpeed(player, player.gx, player.gy);
         player.food_store_max = player.calculateFoodStoreMax();
         player.food_store = player.food_store_max / 2;
-        // player.yum_multiplier = ServerSettings.MinHealthPerYear * ServerSettings.StartingEveAge; 
+        player.yum_multiplier = ServerSettings.MinHealthPerYear * 3; // start with health for 3 years
 
         return player;
     }
@@ -1222,7 +1222,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function placeGrave()
     {
-        var world = WorldMap.world;
         var grave = new ObjectHelper(this, 87); // 87 = Fresh Grave
 
         if(this.heldObject != null)
@@ -1239,7 +1238,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             grave.containedObjects.push(obj);
         }
 
-        if(tryPlaceGrave(this.tx(), this.ty(), grave)) return; 
+        placeObject(grave);
+    }
+
+    public function placeObject(objectToPlace:ObjectHelper)
+    {
+        var world = WorldMap.world;
+
+        if(tryPlaceObject(this.tx(), this.ty(), objectToPlace)) return; 
 
         var distance = 1;
         
@@ -1252,13 +1258,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             var tmpX = this.tx() + world.randomInt(distance * 2) - distance;
             var tmpY = this.ty() + world.randomInt(distance * 2) - distance;
 
-            if(tryPlaceGrave(tmpX, tmpY, grave)) return; 
+            if(tryPlaceObject(tmpX, tmpY, objectToPlace)) return; 
         }
 
         trace('WARNING: could not place any grave for player: ${this.p_id}');
     }
 
-    function tryPlaceGrave(x:Int, y:Int, grave:ObjectHelper) : Bool
+    function tryPlaceObject(x:Int, y:Int, objectToPlace:ObjectHelper) : Bool
     {
         var world = Server.server.map;
 
@@ -1266,23 +1272,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(obj.id == 0)
         {
-            world.setObjectHelper(x, y, grave);
+            world.setObjectHelper(x, y, objectToPlace);
 
             //Connection.SendUpdateToAllClosePlayers(this);
 
-            Connection.SendMapUpdateToAllClosePlayers(x, y, grave.toArray());
+            Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
 
             return true;
         }
         else if(obj.objectData.containable)
         {
-            grave.containedObjects.push(obj);
+            objectToPlace.containedObjects.push(obj);
 
-            world.setObjectHelper(x, y, grave);
+            world.setObjectHelper(x, y, objectToPlace);
 
             //Connection.SendUpdateToAllClosePlayers(this);
 
-            Connection.SendMapUpdateToAllClosePlayers(x, y, grave.toArray());
+            Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
 
             return true;
         }
