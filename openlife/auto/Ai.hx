@@ -8,6 +8,8 @@ class Ai
 {
     var playerInterface:PlayerInterface;
 
+    var done = false;
+
     public function new(player:PlayerInterface) 
     {
         this.playerInterface = player;
@@ -18,6 +20,12 @@ class Ai
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
         // @PX do time stuff here is called from TimeHelper
+
+        if(done) return;
+
+        done = true;
+
+        searchTransitions(273);
     }
 
     public function say(player:PlayerInstance,curse:Bool,text:String)
@@ -78,25 +86,72 @@ class Ai
     }
 
     private function searchTransitions(objectIdToSearch:Int)
-    {
+    {    
+        // TODO might be good to also allow multiple transitions for one object
         var world = this.playerInterface.getWorld();
         var transitionsByObject = new Map<Int, TransitionData>();
-        
-        var transitions = world.getTransitionByNewTarget(objectIdToSearch); 
+        var transitionsToProcess = new Array<Array<TransitionData>>();
 
-        if(transitions.length == 0) transitions =  world.getTransitionByNewActor(objectIdToSearch);
+        transitionsToProcess.push(world.getTransitionByNewTarget(objectIdToSearch)); 
+        transitionsToProcess.push(world.getTransitionByNewActor(objectIdToSearch)); 
+
+        var count = 1;
+
+        while (transitionsToProcess.length > 0)
+        {
+            var transitions = transitionsToProcess.pop();
+
+            for(trans in transitions)
+            {
+                if(transitionsByObject.exists(trans.actorID) && transitionsByObject.exists(trans.targetID)) continue;
+
+                if(count < 100) trans.traceTransition('AI $count:', true);
+
+                if(trans.actorID > 0 && trans.actorID != trans.newActorID && transitionsByObject.exists(trans.actorID) == false)
+                {
+                    transitionsToProcess.push(world.getTransitionByNewTarget(trans.actorID)); 
+                    transitionsToProcess.push(world.getTransitionByNewActor(trans.actorID)); 
+                }
+
+                if(trans.targetID > 0 && trans.targetID != trans.newTargetID && transitionsByObject.exists(trans.targetID) == false)
+                {
+                    transitionsToProcess.push(world.getTransitionByNewTarget(trans.targetID)); 
+                    transitionsToProcess.push(world.getTransitionByNewActor(trans.targetID)); 
+                }
+
+                transitionsByObject[trans.actorID] = trans;
+                transitionsByObject[trans.targetID] = trans;
+
+                count++;
+            }
+        }
+
+        trace('search: $count transtions found!');
+        //ar transitionsByOjectKeys = [for(key in transitionsByObject.keys()) key];
+
+        for(key in transitionsByObject.keys())            
+        {
+            var trans = transitionsByObject[key].getDesciption();
+
+            trace('Search: object: $key trans: ${trans}');
+        }
+
+        /*
 
         for(trans in transitions)
         {
             trans.traceTransition("AI:", true);
 
-            if(trans.actorID > 0) // ignore time - 1 = transitions 
+            transitionsByObject[trans.actorID] = trans;
+            transitionsByObject[trans.targetID] = trans;
+
+            if(trans.actorID > 0 transitionsByObject) // ignore time - 1 = transitions 
             {
                 var actorTransitions = world.getTransitionByNewTarget(trans.actorID);
 
                 for(actorTrans in actorTransitions)
                 {
-                    actorTrans.traceTransition("AI Actor:", true);
+                    actorTrans.traceTransition("AI Actor:", true);                
                 }
             }
 
@@ -110,6 +165,8 @@ class Ai
                 }
             }
         }
+
+        */
     }
 }
 //time routine

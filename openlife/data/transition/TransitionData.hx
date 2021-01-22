@@ -180,7 +180,7 @@ class TransitionData
     }
 
     //public function traceTransition(s:String = "", targetDescContains:String = "")
-    public function traceTransition(s:String = "", forceTrace = false)
+    public function traceTransition(s:String = "", forceTrace = false, smalTrace = false)
     {
       var transition = this;
 
@@ -203,7 +203,32 @@ class TransitionData
       var dontTraceTarget = targetDescription.indexOf(ServerSettings.traceTransitionByTargetDescription) == -1 ;
 
       if(forceTrace == false && dontTraceActor && dontTraceTarget && transition.targetID != ServerSettings.traceTransitionByActorId && transition.targetID != ServerSettings.traceTransitionByTargetId) return;
+
+      var description = getDesciption(smalTrace);
       
-      trace('$s $transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n');
+      trace('$s $description');
+  }
+
+  public function getDesciption(smal:Bool = true) : String
+  {
+      var transition = this;
+
+      var objectDataActor = ObjectData.getObjectData(transition.actorID);
+      var objectDataTarget = ObjectData.getObjectData(transition.targetID);
+      var objectDataNewActor = ObjectData.getObjectData(transition.newActorID);
+      var objectDataNewTarget = ObjectData.getObjectData(transition.newTargetID);
+
+      var actorDescription = "";
+      var targetDescription = "";
+      var newActorDescription = "";
+      var newTargetDescription = "";
+
+      if(objectDataActor != null) actorDescription = objectDataActor.description;
+      if(objectDataTarget != null) targetDescription = objectDataTarget.description;
+      if(objectDataNewActor != null) newActorDescription = objectDataNewActor.description;
+      if(objectDataNewTarget != null) newTargetDescription = objectDataNewTarget.description;
+
+      if(smal) return '$actorID + $targetID = $newActorID + $newTargetID / $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n';
+      else return '$transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n';
   }
 }
