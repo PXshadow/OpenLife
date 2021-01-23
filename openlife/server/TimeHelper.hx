@@ -564,15 +564,8 @@ class TimeHelper
 
         var sendUpdate = false;
 
-        try
-        {
-            sendUpdate = doTimeTransitionHelper(helper);
-        }
-        catch(ex)
-        {
-            trace(ex);
-        }
-
+         Macro.exception(sendUpdate = doTimeTransitionHelper(helper));
+       
         WorldMap.world.mutex.release();
 
         if(sendUpdate == false) return;
@@ -580,22 +573,6 @@ class TimeHelper
         var newTileObject = helper.toArray();
 
         Connection.SendMapUpdateToAllClosePlayers(helper.tx, helper.ty, newTileObject);
-
-        /*for (c in Server.server.connections)
-        {      
-            var player = c.player;
-            
-            // since player has relative coordinates, transform them for player
-            var x = tx - player.gx;
-            var y = ty - player.gy;
-
-            // update only close players
-            if(player.isClose(x,y, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-
-            c.sendMapUpdate(x, y, floorId, newTileObject, -1, false);
-            c.send(FRAME, null, false);
-        }
-        */
     } 
 
     public static function doTimeTransitionHelper(helper:ObjectHelper) : Bool

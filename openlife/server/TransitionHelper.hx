@@ -42,10 +42,11 @@ class TransitionHelper{
 
     public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0) : Bool
     {
-        //trace("try to acquire player mutex");
+        //trace('doCommand try to acquire player mutex');
         player.mutex.acquire();
-        //trace("try to acquire map mutex");
+        //trace('doCommand try to acquire map mutex');
         Server.server.map.mutex.acquire();
+        //trace('doCommand got all mutex');
 
         var done = false;
 
@@ -335,6 +336,7 @@ class TransitionHelper{
 
     public function use(target:Int, containerIndex:Int) : Bool
     {
+        trace('USE target: $target containerIndex: $containerIndex');
         // TODO intentional use with index, see description above
 
         // TODO kill deadlyDistance

@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.macros.Macro;
 import openlife.auto.WorldInterface;
 import haxe.Serializer;
 import sys.FileSystem;
@@ -509,6 +510,13 @@ class WorldMap
     {
         this.mutex.acquire();
 
+        Macro.exception(generateHelper());
+
+        this.mutex.release();  
+    }
+
+    public function generateHelper()
+    {
         var pngDir = './${ServerSettings.MapFileName}';// "./map.png";
         var pngmap = readPixels(pngDir);
 
@@ -574,9 +582,7 @@ class WorldMap
 
         this.originalObjects = objects.copy();
 
-        if(ServerSettings.debug) generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
-
-        this.mutex.release();      
+        if(ServerSettings.debug) generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);            
     }
 
     public function writeBackup()
@@ -592,10 +598,18 @@ class WorldMap
     }
 
     public function writeToDisk(saveOriginals:Bool = true, dir:String = null)
-    {        
-        this.mutex.acquire();        
+    {  
+        this.mutex.acquire();   
 
+        Macro.exception(writeToDiskHelper(saveOriginals, dir));
+
+        this.mutex.release();
+    }
+
+    public function writeToDiskHelper(saveOriginals:Bool = true, dir:String = null)
+    {        
         var time = Sys.time();
+        
         if(dir == null) dir = './${ServerSettings.SaveDirectory}/';
         
         if(FileSystem.exists(dir) == false) FileSystem.createDirectory(dir);
@@ -622,8 +636,6 @@ class WorldMap
         writer.close();
 
         saveDataNumber++;
-         
-        this.mutex.release();
 
         var time = Math.round((Sys.time() - time) * 100) / 100;
 
@@ -667,6 +679,9 @@ class WorldMap
         catch(ex)
         {
             trace(ex);
+
+            this.mutex.release();
+
             return false;
         }
 

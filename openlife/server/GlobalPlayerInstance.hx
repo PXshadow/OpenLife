@@ -1235,7 +1235,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         }catch(ex)
         {
-            trace('WARNING: ' + ex);
+            trace('WARNING: ' + ex.details);
         }
 
         Server.server.map.mutex.release();
