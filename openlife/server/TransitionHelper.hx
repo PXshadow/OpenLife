@@ -343,6 +343,12 @@ class TransitionHelper{
 
         // TODO noUseActor / noUseTarget
 
+        if(this.player.heldPlayer != null)
+        {
+            trace('USE: cannot to use since holding a player!');
+            return false;
+        }
+
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;     
 
         if(this.tileObjectData.minPickupAge > player.age + ServerSettings.ReduceAgeNeededToPickupObjects)

@@ -790,7 +790,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         player.forced = false;
         player.action = 1;        
-        player.o_id = this.heldObject.toArray();
+        player.o_id = this.heldPlayer != null ? this.o_id = [-heldPlayer.p_id] : this.heldObject.toArray();
 
         //player.o_transition_source_id = this.newTransitionSource; TODO ??????????????????????????
         player.o_transition_source_id = objOriginValid ? -1 : this.heldObject.id;
@@ -1330,17 +1330,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         this.mutex.acquire();
-    
-        // make sure that if both players at the same time try to interact with each other it does not end up in a dead lock 
-        /*while(targetPlayer.mutex.tryAcquire() == false)
-        {
-            this.mutex.release();
-
-            Sys.sleep(WorldMap.calculateRandomFloat() / 5);
-
-            this.mutex.acquire();
-        } 
-        */  
         
         if(ServerSettings.debug)
         {
@@ -1364,8 +1353,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.connection.send(PLAYER_UPDATE,[this.toData()]);
             this.connection.send(FRAME);
         }
-    
-        //if(targetPlayer != null) targetPlayer.mutex.release();
 
         this.mutex.release();
 
@@ -1389,7 +1376,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         this.heldPlayer = player;
-        this.o_id = [-player.p_id]; 
+
+        this.SetTransitionData(x,y,true);
 
         trace('doBabyHelper: o_id:  ${this.o_id}');
 
