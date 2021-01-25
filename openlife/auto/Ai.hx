@@ -10,6 +10,8 @@ class Ai
 
     var done = false;
 
+    var time:Float = 5;
+
     public function new(player:PlayerInterface) 
     {
         this.playerInterface = player;
@@ -20,6 +22,14 @@ class Ai
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
         // @PX do time stuff here is called from TimeHelper
+
+        time -= timePassedInSeconds;
+
+        if(time < 0)
+        {
+            time = 5;
+            playerInterface.say('${playerInterface.getPlayerInstance().food_store}');
+        }
 
         if(done) return;
 

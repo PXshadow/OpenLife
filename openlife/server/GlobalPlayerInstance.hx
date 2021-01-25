@@ -46,13 +46,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public var trueAge:Float = ServerSettings.StartingEveAge;
 
-    //food vars
-    public var food_store:Float = ServerSettings.GrownUpFoodStoreMax / 2;
-    public var food_store_max:Float = ServerSettings.GrownUpFoodStoreMax;
-    var last_ate_fill_max:Int = 0;
-    public var yum_bonus:Float = 0;
-    public var yum_multiplier:Float = 0;
-
     var hasEatenMap = new Map<Int, Float>();
 
     // craving
