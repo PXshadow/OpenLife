@@ -56,13 +56,18 @@ class Ai
             searchTransitions(objectIdToSearch);
         }
 
-        if (text.indexOf("HELLO") != -1) 
+        if (text.contains("HELLO")) 
         {
             //HELLO WORLD
 
             //trace('im a nice bot!');
 
             playerInterface.say("HELLO WORLD");
+        }
+        if (text.contains("JUMP")) 
+        {
+            playerInterface.say("JUMP");
+            playerInterface.jump();
         }
     }
 

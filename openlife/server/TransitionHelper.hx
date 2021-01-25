@@ -42,6 +42,13 @@ class TransitionHelper{
 
     public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0) : Bool
     {
+        if(player.heldPlayer != null)
+        {
+            trace('doCommand: cannot to use since holding a player!');
+            player.connection.send(PLAYER_UPDATE,[player.toData()]);
+            return false;
+        }
+
         //trace('doCommand try to acquire player mutex');
         player.mutex.acquire();
         //trace('doCommand try to acquire map mutex');
@@ -342,12 +349,6 @@ class TransitionHelper{
         // TODO kill deadlyDistance
 
         // TODO noUseActor / noUseTarget
-
-        if(this.player.heldPlayer != null)
-        {
-            trace('USE: cannot to use since holding a player!');
-            return false;
-        }
 
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;     
 

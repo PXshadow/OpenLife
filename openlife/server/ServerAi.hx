@@ -16,10 +16,10 @@ class ServerAi extends Ai
     public static function CreateNew() : ServerAi 
     {
         var player = GlobalPlayerInstance.CreateNew();       
-        var ai = new ServerAi(player);
+        player.serverAi = new ServerAi(player);
 
-        Connection.addAi(ai);
+        Connection.addAi(player.serverAi);
 
-        return ai;
+        return player.serverAi;
     }
 }

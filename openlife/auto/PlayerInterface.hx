@@ -18,4 +18,5 @@ interface PlayerInterface
     public function dropPlayer() : Bool;
     public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int) : Bool; // UBABY
     public function doBaby(x:Int, y:Int, playerId:Int) : Bool;
+    public function jump() : Bool; 
 }

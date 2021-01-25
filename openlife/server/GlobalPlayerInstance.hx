@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.macros.Macro;
 import openlife.data.transition.TransitionImporter;
 import openlife.auto.WorldInterface;
 import openlife.auto.PlayerInterface;
@@ -29,6 +30,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
     public var heldObject:ObjectHelper; 
     public var heldPlayer:GlobalPlayerInstance;
+    public var heldByPlayer:GlobalPlayerInstance;
 
     // additional ObjectInformation for the object stored in backpack or other clothing. The size is 6 since 6 clothing slots
     public var clothingObjects:Vector<ObjectHelper> = new Vector(6); 
@@ -39,6 +41,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var mutex = new Mutex();
 
     public var connection:Connection; 
+    public var serverAi:ServerAi;
 
     public var trueAge:Float = ServerSettings.StartingEveAge;
 
@@ -1376,6 +1379,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         this.heldPlayer = player;
+        player.heldByPlayer = this;
 
         this.SetTransitionData(x,y,true);
 
@@ -1389,6 +1393,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function dropPlayer() : Bool
     {
         trace('drop player');
+
+        if(this.heldPlayer == null)
+        {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);
+            return false;    
+        }
 
         this.mutex.acquire();
 
@@ -1405,21 +1415,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.mutex.acquire();
         } 
 
-        if(ServerSettings.debug)
-        {
-            done = dropPlayerHelper();
-        }
-        else
-        {
-            try
-            {
-                done = dropPlayerHelper();
-            }
-            catch(e)
-            {                
-                trace("WARNING: " + e);
-            }
-        }
+        Macro.exception(done = dropPlayerHelper(this));        
 
         // send always PU so that player wont get stuck
         if(done == false)
@@ -1434,21 +1430,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return done;
     }
 
-    private function dropPlayerHelper() : Bool
+    private static function dropPlayerHelper(player:GlobalPlayerInstance) : Bool
     {
         trace('drop player helper');
 
-        var player = this;
-
-        // TODO mutex on heldPlayer
         var heldPlayer = player.heldPlayer;
-        
+
         heldPlayer.x = player.tx() - heldPlayer.gx;
         heldPlayer.y = player.ty() - heldPlayer.gy;
 
         player.heldPlayer = null;
         player.o_id = [0];
 
+        heldPlayer.heldByPlayer = null;
         heldPlayer.forced = true;
         heldPlayer.responsible_id = player.p_id;
         heldPlayer.done_moving_seqNum += 1;
@@ -1460,6 +1454,65 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         heldPlayer.responsible_id = -1;
 
         return true; 
+    }
+
+    /**
+        JUMP is used by a baby to jump out of its mother's arms.  The x and y 
+     coordinates are ignored.
+     MOVE can NO LONGER be used to jump out of arms (it was the old way).
+     It was less safe, because bad message interleavings server-side make
+     MOVE ambiguous in the case of jump-out (for example, if the baby
+     has already been dropped by the time the MOVE arrives, the server will
+     interpret it as a legitimate move attempt).
+     JUMP is also used to make an immobile baby wiggle on the ground.
+    **/
+    public function jump() : Bool
+    {
+        trace('jump');
+
+        if(this.heldByPlayer == null)
+        {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);
+            return false;    
+        }
+
+        this.mutex.acquire();
+
+        var targetPlayer = this.heldByPlayer;
+        var done = false;
+    
+        // make sure that if both players at the same time try to interact with each other it does not end up in a dead lock 
+        while(targetPlayer.mutex.tryAcquire() == false)
+        {
+            this.mutex.release();
+
+            Sys.sleep(WorldMap.calculateRandomFloat() / 5);
+
+            this.mutex.acquire();
+        } 
+
+        Macro.exception(done = dropPlayerHelper(this.heldByPlayer));
+
+        // send always PU so that player wont get stuck
+        if(done == false)
+        {
+            this.connection.send(PLAYER_UPDATE,[this.toData()]);
+            this.connection.send(FRAME);
+        }
+
+        targetPlayer.mutex.release();
+        this.mutex.release();
+
+        return done;
+    }
+
+    public function isFertile() : Bool
+    {
+        if(this.age < 14 || this.age > 40) return false;
+
+        var person = ObjectData.getObjectData(this.po_id);
+
+        return person.male == false; 
     }
 
     private static function DoDebugCommands(player:GlobalPlayerInstance, text:String)
@@ -1499,6 +1552,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             Connection.SendUpdateToAllClosePlayers(player);
         }
+        /*else if(text.contains('!SWITCH')) // TODO needs support from client
+        {
+            var playerToSwitchTo = player.getClosestPlayer(20);
+
+            if(playerToSwitchTo != null)
+            {
+                trace('switch platyer from: ${player.p_id} to ${playerToSwitchTo.p_id} ');
+
+                player.connection.player = playerToSwitchTo;
+
+                if(playerToSwitchTo.connection != null) playerToSwitchTo.connection.player = player;
+                else{
+                    playerToSwitchTo.serverAi.player = player;
+                }
+            }
+        } */
         else if(text.indexOf('!CREATEALL') != -1)
         {
             Server.server.map.generateExtraDebugStuff(player.tx(), player.ty());
@@ -1586,14 +1655,4 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             Connection.SendMapUpdateToAllClosePlayers(player.tx(), player.ty(), [id]);
         }
     }
-
-    public function isFertile() : Bool
-    {
-        if(this.age < 14 || this.age > 40) return false;
-
-        var person = ObjectData.getObjectData(this.po_id);
-
-        return person.male == false; 
-    }
-
 }

@@ -171,6 +171,39 @@ class Server
         message(connection,tag,array,string);
     }
 
+    /**
+        KA x y#
+        USE x y id i#
+        BABY x y#
+        BABY x y id#
+        SELF x y i#
+        UBABY x y i#
+        UBABY x y i id#
+        REMV x y i#
+        SREMV x y c i#
+        DROP x y c#
+        KILL x y#
+        KILL x y id#
+        JUMP x y#
+        EMOT x y e#
+        DIE x y#
+        GRAVE x y#
+        OWNER x y#
+        FORCE x y#
+        PING x y unique_id#
+        VOGS x y#
+        VOGN x y#
+        VOGP x y#
+        VOGM x y#
+        VOGI x y id#
+        VOGT x y text# 
+        VOGX x y#
+        PHOTO x y seq#
+        LEAD x y#
+        UNFOL x y#
+        FLIP x y#
+    **/
+
     private function message(connection:Connection, tag:ServerTag,input:Array<String>,string:String)
     {
         switch (tag)
@@ -203,8 +236,10 @@ class Server
                 connection.player.doOnOther(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]), input.length > 3 ? Std.parseInt(input[3]) : -1);
             case SAY:   // PS p_id/isCurse text 
                 connection.player.say(string.substring(4));
-            case BABY:  // BABY x y# // BABY x y id#
+            case BABY:  // BABY x y# // BABY x y id#    
                 connection.player.doBaby(Std.parseInt(input[0]), Std.parseInt(input[1]), input.length > 2 ? Std.parseInt(input[2]) : -1);
+            case JUMP:  // JUMP x y#
+                connection.player.jump();
             case MOVE:  // PM p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
                 var x = Std.parseInt(input[0]);
                 var y = Std.parseInt(input[1]);
