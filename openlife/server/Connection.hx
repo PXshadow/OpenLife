@@ -616,5 +616,20 @@ class Connection
 
         this.mutex.release();
     }
+    /**
+    BABY_WIGGLE (BW):
+    BW
+    p_id
+    p_id
+    ...
+    p_id
+    #
+
+    A list of player IDs that are babies who just started wiggling.
+    **/
+    public function sendWiggle(player:GlobalPlayerInstance)
+    {
+        send(BABY_WIGGLE,['${player.p_id}'], true);
+    }
 }
 #end

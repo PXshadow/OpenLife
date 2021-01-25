@@ -1,4 +1,5 @@
 package openlife.server;
+import haxe.macro.Expr;
 import openlife.macros.Macro;
 import openlife.data.transition.TransitionImporter;
 import openlife.auto.WorldInterface;
@@ -1394,37 +1395,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         trace('drop player');
 
+        this.mutex.acquire();
+
         if(this.heldPlayer == null)
         {
             this.connection.send(PLAYER_UPDATE,[this.toData()]);
+            this.mutex.release();
             return false;    
         }
 
-        this.mutex.acquire();
+        var done = doHelper(this, this.heldPlayer, dropPlayerHelper);
 
-        var targetPlayer = this.heldPlayer;
-        var done = false;
-    
-        // make sure that if both players at the same time try to interact with each other it does not end up in a dead lock 
-        while(targetPlayer.mutex.tryAcquire() == false)
-        {
-            this.mutex.release();
-
-            Sys.sleep(WorldMap.calculateRandomFloat() / 5);
-
-            this.mutex.acquire();
-        } 
-
-        Macro.exception(done = dropPlayerHelper(this));        
-
-        // send always PU so that player wont get stuck
-        if(done == false)
-        {
-            this.connection.send(PLAYER_UPDATE,[this.toData()]);
-            this.connection.send(FRAME);
-        }
-
-        targetPlayer.mutex.release();
         this.mutex.release();
 
         return done;
@@ -1470,38 +1451,48 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         trace('jump');
 
+        this.mutex.acquire();
+
         if(this.heldByPlayer == null)
         {
             this.connection.send(PLAYER_UPDATE,[this.toData()]);
+            this.connection.sendWiggle(this);
+            this.connection.send(FRAME, null, true);
+            this.mutex.release();
             return false;    
         }
 
-        this.mutex.acquire();
+        var done = doHelper(this.heldByPlayer, this, dropPlayerHelper);
 
-        var targetPlayer = this.heldByPlayer;
+        this.mutex.release();
+
+        return done;
+    }
+
+    private static function doHelper(player:GlobalPlayerInstance, targetPlayer:GlobalPlayerInstance, doFunction:GlobalPlayerInstance->Bool) : Bool
+    {
         var done = false;
     
         // make sure that if both players at the same time try to interact with each other it does not end up in a dead lock 
         while(targetPlayer.mutex.tryAcquire() == false)
         {
-            this.mutex.release();
+            player.mutex.release();
 
             Sys.sleep(WorldMap.calculateRandomFloat() / 5);
 
-            this.mutex.acquire();
+            player.mutex.acquire();
         } 
 
-        Macro.exception(done = dropPlayerHelper(this.heldByPlayer));
+        Macro.exception(done = doFunction(player));
 
         // send always PU so that player wont get stuck
         if(done == false)
         {
-            this.connection.send(PLAYER_UPDATE,[this.toData()]);
-            this.connection.send(FRAME);
+            player.connection.send(PLAYER_UPDATE,[player.toData()]);
+            player.connection.send(FRAME);
         }
 
         targetPlayer.mutex.release();
-        this.mutex.release();
 
         return done;
     }
