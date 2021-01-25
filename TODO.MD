@@ -190,3 +190,11 @@ PX TODO
 4. Solo Eve Bot run, scored after 1 life and world is static and reset each time
 5. Task Queue system with Auto.hx class
 6. Algorithm to identify what is needed next for overseer
+
+
+How to Push stuff to git:
+git push -u origin master
+git push -u https://github.com/PXshadow/OpenLife
+
+How to pull stuff from git:
+git pull https://github.com/PXshadow/OpenLife
