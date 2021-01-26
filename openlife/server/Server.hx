@@ -52,8 +52,8 @@ class Server
         server = new Server();
 
         // add a new test bot // TODO remove later
-        var ai = ServerAi.CreateNew();
-        ai.player.age = 1;
+        var ai = new ServerAi();
+        ai.player.age = 16;
 
         TimeHelper.DoTimeLoop();
     }

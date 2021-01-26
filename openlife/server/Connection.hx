@@ -83,7 +83,7 @@ class Connection
         {
             send(ACCEPTED);
                    
-            this.player = GlobalPlayerInstance.CreateNew();
+            this.player = new GlobalPlayerInstance();
             
             var id = player.p_id;
 

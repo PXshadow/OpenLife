@@ -1,12 +1,11 @@
 package openlife.data.object.player;
-import openlife.settings.ServerSettings;
 import openlife.data.map.MapData;
 @:expose("PlayerInstance")
 class PlayerInstance
 {
     //ARcurus: food vars
-    public var food_store:Float = ServerSettings.GrownUpFoodStoreMax / 2;
-    public var food_store_max:Float = ServerSettings.GrownUpFoodStoreMax;
+    public var food_store:Float = 0;
+    public var food_store_max:Float = 0;
     public var last_ate_fill_max:Int = 0;
     public var yum_bonus:Float = 0;
     public var yum_multiplier:Float = 0;
@@ -82,18 +81,18 @@ class PlayerInstance
     /**
      * age of player
      */
-    public var age:Float = ServerSettings.StartingEveAge;
+    public var age:Float = 14;
     /**
      * age rate of increase
      */
-    public var age_r:Float = ServerSettings.AgingSecondsPerYear;
+    public var age_r:Float = 60;
 
     //public static var initial_move_speed:Float = 3.75;
 
     /**
      * move speed of player
      */
-    public var move_speed:Float = ServerSettings.InitialPlayerMoveSpeed;
+    public var move_speed:Float = 3.75;
     /**
      * clothing set string
      */

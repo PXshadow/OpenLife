@@ -57,9 +57,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var hits:Float = 0;
     public var woundedBy = 0;
 
-    public function new(a:Array<String>)
+    public function new()
     {
-        super(a);
+        super([]);
 
         this.heldObject = ObjectHelper.readObjectHelper(this, [0]);
 
@@ -67,26 +67,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             this.clothingObjects[i] = ObjectHelper.readObjectHelper(this, [0]);
         }
-    }
 
-    public static function CreateNew() : GlobalPlayerInstance
-    {
-        var player = new GlobalPlayerInstance([]);
+        age = ServerSettings.StartingEveAge;
+        age_r = ServerSettings.AgingSecondsPerYear;
+        move_speed = ServerSettings.InitialPlayerMoveSpeed;
 
-        player.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
+        po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
 
-        var id = Server.server.playerIndex++;
+        p_id = Server.server.playerIndex++;
+        gx = ServerSettings.startingGx;
+        gy = ServerSettings.startingGy;
 
-        player.p_id = id;
-        player.gx = ServerSettings.startingGx;
-        player.gy = ServerSettings.startingGy;
+        food_store = ServerSettings.GrownUpFoodStoreMax / 2;
+        food_store_max = ServerSettings.GrownUpFoodStoreMax;
 
-        player.move_speed = MoveHelper.calculateSpeed(player, player.gx, player.gy);
-        player.food_store_max = player.calculateFoodStoreMax();
-        player.food_store = player.food_store_max / 2;
-        player.yum_multiplier = ServerSettings.MinHealthPerYear * 3; // start with health for 3 years
+        move_speed = MoveHelper.calculateSpeed(this, gx, gy);
+        food_store_max = calculateFoodStoreMax();
+        food_store = food_store_max / 2;
+        yum_multiplier = ServerSettings.MinHealthPerYear * 3; // start with health for 3 years
 
-        return player;
     }
 
     public function getPlayerInstance() : PlayerInstance
@@ -219,6 +218,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function hasBothShoes() : Bool
     {
+        if (this.clothingObjects[2] == null || this.clothingObjects[3] == null)
+            return false;
         return (this.clothingObjects[2].id != 0 && this.clothingObjects[3].id != 0) ;   
     }
 
@@ -351,7 +352,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         var name = strings[2];
 
-        trace('naming: ${name}');
+        trace('naming: $name');
 
         /*
         name = name.replace('1','');
