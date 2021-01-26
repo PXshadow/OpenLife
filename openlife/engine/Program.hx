@@ -1,4 +1,5 @@
 package openlife.engine;
+import openlife.server.GlobalPlayerInstance;
 import openlife.data.object.player.PlayerMove;
 import openlife.client.ClientTag;
 import openlife.auto.Pathfinder;
@@ -47,8 +48,8 @@ class Program
         }
         client.send('$tag $x $y $data');
     }
-    var parent:PlayerInstance;
-    public function update(player:PlayerInstance)
+    var parent:GlobalPlayerInstance;
+    public function update(player:GlobalPlayerInstance)
     {
         if (!moving) return;
         if (forcePlayerDropNext && client.relayIn != null)
@@ -90,11 +91,11 @@ class Program
         if (onComplete != null) onComplete();
     }
     var forcePlayerDropNext:Bool = false;
-    public function playerMainMove(player:PlayerInstance,move:PlayerMove)
+    public function playerMainMove(player:GlobalPlayerInstance,move:PlayerMove)
     {
         if (client.relayIn == null || !parentMove)
             return;
-        parent = new PlayerInstance([]);
+        parent = new GlobalPlayerInstance([]);
         parent.p_id = 999999;
         //parent.po_id = 1663; //dog
         parent.po_id = 33; //ROCK

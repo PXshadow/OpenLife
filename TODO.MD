@@ -128,9 +128,8 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
-- jump out from player holding
+- learning tools (hold wrong if not learned)
 - support multiple time transitions see Fishing Pole --> store in ObjectData 
-- wiggle command
 - animal interactions / collisions
 - give more space for cities in the map
 - wounds / healing part 2
@@ -140,10 +139,11 @@ more up in the list means more likely to be implemented first but no gurantee!
 - send player out of range update
 - give option to use normal YUM mechanics
 - better map
-- decay contained stuff in graves / generally decay stuff in containers
+- decay stuff in containers
 - decay use item for decay like trash
 - decay floors
 - death while holding some one, or riding / driving something or using cart
+- death: baby grave
 - reconnection
 - incarnation
 - multiplayer testing
@@ -169,6 +169,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - yum category // for example for berry / berry bowl (maybe not needed?)
 - better order of craving list (currently its just ordered accoring to obj ID)
 - twinning
+- home marker
 - different languages
 - bell tower ringing
 
