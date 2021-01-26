@@ -176,6 +176,30 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
     }
 
+    // TODO better use relative toData which transforms x,y to relative position
+    public function toData():String
+    {
+        //o_origin_valid = 1;
+        //441 2404 0 1 4 -6 33 1 4 -6 -1 0.26 8 0 4 -6 16.14 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 1
+        //return '$p_id $po_id $facing $action $action_target_x $action_target_y ${MapData.stringID(o_id)} $o_origin_valid $o_origin_x $o_origin_y $o_transition_source_id $heat $done_moving_seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$x $y'} ${Std.int(age*100)/100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
+
+        return toRelativeData(this);
+    }
+
+    public function toRelativeData(forPlayer:PlayerInstance):String
+    {
+        var relativeX = this.gx - forPlayer.gx;
+        var relativeY = this.gy - forPlayer.gy;
+
+        var cutAge = Std.int(age * 100) / 100;
+        var cutAge_r = Std.int(age_r * 100) / 100;
+        var cutMove_speed = Std.int(move_speed * 100) / 100;
+        var heldObject = o_id[0] < 0 ?  '${o_id[0]}' : MapData.stringID(o_id); 
+
+        //441 2404 0 1 4 -6 33 1 4 -6 -1 0.26 8 0 4 -6 16.14 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 1
+        return '$p_id $po_id $facing $action ${action_target_x + relativeX}  ${action_target_y  + relativeY} ${heldObject} $o_origin_valid ${o_origin_x + relativeX} ${o_origin_y + relativeY} $o_transition_source_id $heat $done_moving_seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '${x + relativeX} ${y + relativeY}'} $cutAge $cutAge_r $cutMove_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
+    }
+
     /*
     USE x y id i#
 
