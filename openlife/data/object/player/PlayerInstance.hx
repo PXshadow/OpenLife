@@ -244,6 +244,23 @@ class PlayerInstance
         }
         return string;
     }
+    public function toData(?gx:Int,?gy:Int,?age:Float,?age_r:Float,?move_speed:Float,heldObject:String=""):String
+    {
+        o_origin_valid = 1;
+        if (heldObject == "")
+            heldObject = MapData.stringID(o_id);
+        if (gx == null)
+            gx = this.gx;
+        if (gy == null)
+            gy = this.gy;
+        if (age == null)
+            age = this.age;
+        if (age_r == null)
+            age_r = this.age_r;
+        if (move_speed == null)
+            move_speed = this.move_speed;
+        return '$p_id $po_id $facing $action $action_target_x $action_target_y $heldObject $o_origin_valid $o_origin_x $o_origin_y $o_transition_source_id $heat $done_moving_seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$x $y'} ${Std.int(age*100)/100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
+    }
 }
 /*
 Deleted players reported in update with
