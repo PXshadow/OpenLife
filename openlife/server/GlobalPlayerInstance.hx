@@ -317,7 +317,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             for (ai in Connection.getAis())
             {
-                ai.say(player,curse == 1 ? true : false,text);
+                ai.player.say(text);
             }
             
         }

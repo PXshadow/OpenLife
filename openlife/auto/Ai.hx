@@ -2,15 +2,24 @@ package openlife.auto;
 
 import openlife.data.transition.TransitionData;
 import openlife.data.object.player.PlayerInstance;
+import openlife.data.map.MapData;
+import openlife.data.Pos;
 using StringTools;
+import openlife.auto.Pathfinder.Coordinate;
 
 class Ai
 {
     var playerInterface:PlayerInterface;
 
+    var goal:Pos;
+    var dest:Pos;
+    var init:Pos;
+
     var done = false;
 
     var time:Float = 5;
+
+    var berryHunter:Bool = false;
 
     public function new(player:PlayerInterface) 
     {
@@ -22,6 +31,7 @@ class Ai
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
         // @PX do time stuff here is called from TimeHelper
+        /*
 
         time -= timePassedInSeconds;
 
@@ -33,9 +43,11 @@ class Ai
 
         if(done) return;
 
-        done = true;
+        done = true;*/
 
-        var transitionsForObject = searchTransitions(273);
+        //var transitionsForObject = searchTransitions(273);
+
+
 
         // TODO look if any of the objects you see is in transitionsForObject
         // TODO if none object is found or if the needed steps from the object you found are too high, search for a better object
@@ -43,43 +55,73 @@ class Ai
         // TODO how to handle if you have allready some of the needed objects ready... 
     }
 
-    public function say(player:PlayerInstance,curse:Bool,text:String)
-    {
-        var myPlayer = playerInterface.getPlayerInstance();
-        var world = playerInterface.getWorld();
-        //trace('im a super evil bot!');
+    final RAD:Int = MapData.RAD;
 
-        //trace('ai3: ${myPlayer.p_id} player: ${player.p_id}');
-
-        if (myPlayer.p_id == player.p_id) return;
-
-        //trace('im a evil bot!');
-
-        trace('AI ${text}');
-
-        if (text.contains("TRANS")) 
+    public function goto(x:Int,y:Int):Bool
         {
-            trace('AI look for transitions: ${text}');
-
-            var objectIdToSearch = 273; // 273 = Cooked Carrot Pie // 250 = Hot Adobe Oven
-
-            searchTransitions(objectIdToSearch);
+            var player = playerInterface.getPlayerInstance();
+            //if (player.x == x && player.y == y || moving) return false;
+            //set pos
+            var px = x - player.x;
+            var py = y - player.y;
+            if (px > RAD - 1) px = RAD - 1;
+            if (py > RAD - 1) py = RAD - 1;
+            if (px < -RAD) px = -RAD;
+            if (py < -RAD) py = -RAD;
+            //cords
+            var start = new Coordinate(RAD,RAD);
+            //map
+            var map = {};//new MapCollision(map.collisionChunk(player));
+            //pathing
+            var path = new Pathfinder(cast map);
+            var paths:Array<Coordinate> = null;
+            //move the end cords
+            var tweakX:Int = 0;
+            var tweakY:Int = 0;
+            for (i in 0...3)
+            {
+                switch(i)
+                {
+                    case 1:
+                    tweakX = x - player.x < 0 ? 1 : -1;
+                    case 2:
+                    tweakX = 0;
+                    tweakY = y - player.y < 0 ? 1 : -1;
+                }
+                var end = new Coordinate(px + RAD + tweakX,py + RAD + tweakY);
+                paths = path.createPath(start,end,MANHATTAN,true);
+                if (paths != null) break;
+            }
+            if (paths == null) 
+            {
+                //if (onError != null) onError("can not generate path");
+                trace("CAN NOT GENERATE PATH");
+                return false;
+            }
+            var data:Array<Pos> = [];
+            paths.shift();
+            var mx:Array<Int> = [];
+            var my:Array<Int> = [];
+            var tx:Int = start.x;
+            var ty:Int = start.y;
+            for (path in paths)
+            {
+                data.push(new Pos(path.x - tx,path.y - ty));
+            }
+            goal = new Pos(x,y);
+            if (px == goal.x - player.x && py == goal.y - player.y)
+            {
+                trace("shift goal!");
+                //shift goal as well
+                goal.x += tweakX;
+                goal.y += tweakY;
+            }
+            dest = new Pos(px + player.x,py + player.y);
+            init = new Pos(player.x,player.y);
+            //movePlayer(data);
+            return true;
         }
-
-        if (text.contains("HELLO")) 
-        {
-            //HELLO WORLD
-
-            //trace('im a nice bot!');
-
-            playerInterface.say("HELLO WORLD");
-        }
-        if (text.contains("JUMP")) 
-        {
-            playerInterface.say("JUMP");
-            playerInterface.jump();
-        }
-    }
+   
 
     public function emote(player:PlayerInstance,index:Int)
     {
