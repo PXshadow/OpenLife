@@ -146,6 +146,9 @@ class Ai
     {
 
     }
+    public function say(player:PlayerInstance,curse:Bool,text:String) {
+        trace("message: " + text);
+    }
 
     private function searchTransitions(objectIdToSearch:Int) : Map<Int, TransitionForObject>
     {    
