@@ -150,8 +150,43 @@ class Ai
     {
 
     }
-    public function say(player:PlayerInstance,curse:Bool,text:String) {
-        if (text.indexOf("MOVE") != -1) {
+    public function say(player:PlayerInstance,curse:Bool,text:String) 
+    {
+        var myPlayer = playerInterface.getPlayerInstance();
+        var world = playerInterface.getWorld();
+        //trace('im a super evil bot!');
+
+        //trace('ai3: ${myPlayer.p_id} player: ${player.p_id}');
+
+        if (myPlayer.p_id == player.p_id) return;
+
+        //trace('im a evil bot!');
+
+        trace('AI ${text}');
+
+        if (text.contains("TRANS")) 
+        {
+            trace('AI look for transitions: ${text}');
+
+            var objectIdToSearch = 273; // 273 = Cooked Carrot Pie // 250 = Hot Adobe Oven
+
+            searchTransitions(objectIdToSearch);
+        }
+
+        if (text.contains("HELLO")) 
+        {
+            //HELLO WORLD
+
+            //trace('im a nice bot!');
+
+            playerInterface.say("HELLO WORLD");
+        }
+        if (text.contains("JUMP")) 
+        {
+            playerInterface.say("JUMP");
+            playerInterface.jump();
+        }
+        if (text.contains("MOVE")) {
             goto(1,1);
             playerInterface.say("YES CAPTAIN");
         }
