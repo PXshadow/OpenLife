@@ -71,7 +71,9 @@ class Ai
             //cords
             var start = new Coordinate(RAD,RAD);
             //map
-            var map = {};//new MapCollision(map.collisionChunk(player));
+            //var map = {};//new MapCollision(map.collisionChunk(player));
+
+            var map = new MapCollision(playerInterface.getWorld().collisionChunk());
             //pathing
             var path = new Pathfinder(cast map);
             var paths:Array<Coordinate> = null;
@@ -119,8 +121,10 @@ class Ai
             dest = new Pos(px + player.x,py + player.y);
             init = new Pos(player.x,player.y);
             //movePlayer(data);
+            playerInterface.move(player.x,player.y,player.done_moving_seqNum++,data);
             return true;
         }
+
    
 
     public function emote(player:PlayerInstance,index:Int)
@@ -147,7 +151,10 @@ class Ai
 
     }
     public function say(player:PlayerInstance,curse:Bool,text:String) {
-        trace("message: " + text);
+        if (text.indexOf("MOVE") != -1) {
+            goto(1,1);
+            playerInterface.say("YES CAPTAIN");
+        }
     }
 
     private function searchTransitions(objectIdToSearch:Int) : Map<Int, TransitionForObject>

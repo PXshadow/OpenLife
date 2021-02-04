@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.object.player.PlayerInstance;
 import openlife.macros.Macro;
 import openlife.auto.WorldInterface;
 import haxe.Serializer;
@@ -1041,6 +1042,24 @@ class WorldMap
                 }
             }
         }
+    }
+    final RAD = 16;
+    public function collisionChunk(player:PlayerInstance):Vector<Bool> {
+         //16 + 1
+        //16 + 1
+        var vector = new Vector<Bool>((RAD * 2) * (RAD * 2));
+        var int:Int = 0;
+        for (y in player.y - RAD...player.y + RAD)
+        {
+            for (x in player.x - RAD...player.x + RAD)
+            {
+                vector[int++] = false;
+                var obj = getObjectHelper(x,y);
+                if (obj == null) continue;
+                vector[int - 1] = obj.blocksWalking();
+            }
+        }
+        return vector;
     }
 
     function generateObjects()

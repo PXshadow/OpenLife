@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import haxe.ds.Vector;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.object.ObjectData;
 import openlife.data.transition.TransitionData;
@@ -25,4 +26,5 @@ interface WorldInterface
 
     public function getClosestPlayer(maxDistance:Int) : PlayerInstance;
     public function getPlayerAt(x:Int, y:Int, playerId:Int) : PlayerInstance;
+    public function collisionChunk():Vector<Bool>;
 }

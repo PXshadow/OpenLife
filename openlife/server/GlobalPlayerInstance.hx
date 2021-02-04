@@ -128,6 +128,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return WorldMap.world.getBiomeId(x,y);
     }
 
+    public function collisionChunk():Vector<Bool>
+    {
+        return WorldMap.world.collisionChunk(this); 
+    }
+
     public function isBiomeBlocking(x:Int, y:Int) : Bool
     {
         return WorldMap.isBiomeBlocking(x,y);

@@ -264,8 +264,7 @@ class MoveHelper
             //trace(Server.server.map.getObjectId(p.gx + x, p.gy + y));
 
             // since move update may acces this also
-            p.mutex.acquire(); 
-
+            //p.mutex.acquire(); 
             try
             {
                 var moveHelper = p.moveHelper;
@@ -353,8 +352,8 @@ class MoveHelper
                     Connection.SendToMeAllClosePlayers(p);
                 }
 
-
-                p.connection.send(PLAYER_UPDATE,[p.toData()]);
+                if (p.serverAi == null)
+                    p.connection.send(PLAYER_UPDATE,[p.toData()]); //this is causing error
 
                 //c.send(PLAYER_MOVES_START,['${player.p_id} ${targetX} ${targetY} ${player.moveHelper.totalMoveTime} $eta ${newMovements.trunc} ${player.moveHelper.moveString(player.moveHelper.newMoves)}']);
 
@@ -363,7 +362,7 @@ class MoveHelper
             }
             catch(ex)
             {
-                trace(ex.details);
+                trace(ex.details());
             }
 
             p.forced = false;

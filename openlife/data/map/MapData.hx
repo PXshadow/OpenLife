@@ -26,7 +26,7 @@ class MapData
     //max pos
     public var mx:Int;
     public var my:Int;
-    public static inline var RAD:Int = 16;
+    public static final RAD:Int = 16;
     public function new()
     {
         clear();   
