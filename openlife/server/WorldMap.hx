@@ -1054,20 +1054,24 @@ class WorldMap
         return false;
     } 
     
-    final RAD = 16;
+    final RAD = 3;
     public function getCollisionChunk(player:PlayerInstance):Vector<Bool>
     {
         //16 + 1
         var vector = new Vector<Bool>((RAD * 2) * (RAD * 2));
         var int:Int = 0;
 
-        for (y in player.y - RAD...player.y + RAD)
+        for (y in player.ty() - RAD...player.ty() + RAD)
         {
-            for (x in player.x - RAD...player.x + RAD)
+            for (x in player.tx() - RAD...player.tx() + RAD)
             {
                 vector[int++] = false;
+                vector[int - 1] = isBlockingBiome(x,y);
+
                 var obj = getObjectHelper(x,y);
-                if (obj == null) continue;
+
+                if(obj.blocksWalking()) trace('${player.tx()} ${player.ty()} $x $y ${obj.description}');  
+
                 vector[int - 1] = obj.blocksWalking() || isBlockingBiome(x,y); 
             }
         }

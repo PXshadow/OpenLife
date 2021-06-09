@@ -78,6 +78,7 @@ class Ai
         //move the end cords
         var tweakX:Int = 0;
         var tweakY:Int = 0;
+
         for (i in 0...3)
         {
             switch(i)
@@ -88,27 +89,33 @@ class Ai
                 tweakX = 0;
                 tweakY = y - player.y < 0 ? 1 : -1;
             }
+
             var end = new Coordinate(px + RAD + tweakX,py + RAD + tweakY);
             paths = path.createPath(start,end,MANHATTAN,true);
             if (paths != null) break;
         }
+
         if (paths == null) 
         {
             //if (onError != null) onError("can not generate path");
             trace("CAN NOT GENERATE PATH");
             return false;
         }
+
         var data:Array<Pos> = [];
         paths.shift();
         var mx:Array<Int> = [];
         var my:Array<Int> = [];
         var tx:Int = start.x;
         var ty:Int = start.y;
+
         for (path in paths)
         {
             data.push(new Pos(path.x - tx,path.y - ty));
         }
+
         goal = new Pos(x,y);
+
         if (px == goal.x - player.x && py == goal.y - player.y)
         {
             trace("shift goal!");
@@ -116,10 +123,12 @@ class Ai
             goal.x += tweakX;
             goal.y += tweakY;
         }
+
         dest = new Pos(px + player.x,py + player.y);
         init = new Pos(player.x,player.y);
         //movePlayer(data);
         playerInterface.move(player.x,player.y,player.done_moving_seqNum++,data);
+
         return true;
     }
 
@@ -183,7 +192,7 @@ class Ai
             playerInterface.jump();
         }
         if (text.contains("MOVE")) {
-            goto(1,1);
+            goto(3,3);
             playerInterface.say("YES CAPTAIN");
         }
     }

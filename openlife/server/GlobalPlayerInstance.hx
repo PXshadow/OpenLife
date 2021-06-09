@@ -214,8 +214,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     //public function specialRemove(x:Int,y:Int,clothingSlot:Int,index:Null<Int>) : Bool;
     
-    public function tx() : Int {return x + gx;}
-    public function ty() : Int {return y + gy;}
+    
 
     public function isCloseToPlayer(player:GlobalPlayerInstance, distance:Int = 1)
     {

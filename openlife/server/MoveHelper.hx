@@ -231,7 +231,7 @@ class MoveHelper
             p.mutex.release();
             //WorldMap.world.mutex.release();
 
-            trace('reached position: ${p.x},${p.y}');
+            trace('reached position: g${p.tx()},g${p.ty()} ${p.x},${p.y}');
         }
     }
 
@@ -264,7 +264,7 @@ class MoveHelper
             //trace(Server.server.map.getObjectId(p.gx + x, p.gy + y));
 
             // since move update may acces this also
-            //p.mutex.acquire(); 
+            p.mutex.acquire(); 
             try
             {
                 var moveHelper = p.moveHelper;

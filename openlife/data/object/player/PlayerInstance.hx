@@ -14,6 +14,9 @@ class PlayerInstance
     public var gx:Int = 400; //global x offset from birth
     public var gy:Int = 300; //global y offset from birth 
 
+    public function tx() : Int {return x + gx;}
+    public function ty() : Int {return y + gy;}
+
     /**
      * Player ID, given by server
      */
