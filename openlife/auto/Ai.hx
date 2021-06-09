@@ -57,6 +57,7 @@ class Ai
 
     final RAD:Int = MapData.RAD;
 
+    // TODO goto uses global coordinates
     public function goto(x:Int,y:Int):Bool
     {
         var player = playerInterface.getPlayerInstance();
@@ -71,7 +72,9 @@ class Ai
         //cords
         var start = new Coordinate(RAD,RAD);
 
-        var map = new MapCollision(playerInterface.getWorld().getCollisionChunk());
+        trace('Goto: $px $py');
+
+        var map = new MapCollision(playerInterface.getWorld().createCollisionChunk());
         //pathing
         var path = new Pathfinder(cast map);
         var paths:Array<Coordinate> = null;
@@ -90,7 +93,10 @@ class Ai
                 tweakY = y - player.y < 0 ? 1 : -1;
             }
 
-            var end = new Coordinate(px + RAD + tweakX,py + RAD + tweakY);
+            var end = new Coordinate(px + RAD + tweakX, py + RAD + tweakY);
+
+            trace('goto: end $end');
+
             paths = path.createPath(start,end,MANHATTAN,true);
             if (paths != null) break;
         }
@@ -102,10 +108,15 @@ class Ai
             return false;
         }
 
+        for(path in paths)
+        {
+            trace(path);
+        }
+
         var data:Array<Pos> = [];
         paths.shift();
-        var mx:Array<Int> = [];
-        var my:Array<Int> = [];
+        //var mx:Array<Int> = [];
+        //var my:Array<Int> = [];
         var tx:Int = start.x;
         var ty:Int = start.y;
 
@@ -191,8 +202,9 @@ class Ai
             playerInterface.say("JUMP");
             playerInterface.jump();
         }
-        if (text.contains("MOVE")) {
-            goto(3,3);
+        if (text.contains("MOVE"))
+        {
+            goto(player.tx() - myPlayer.gx, player.ty() - myPlayer.gy);
             playerInterface.say("YES CAPTAIN");
         }
     }

@@ -209,9 +209,9 @@ class MapData
         return b;
     }
 }
+
 class MapCollision implements openlife.auto.Pathfinder.MapHeader
 {
-    
     public var rows( default, null ):Int;
     public var cols( default, null ):Int;
     public var data:Vector<Bool>;
@@ -219,11 +219,11 @@ class MapCollision implements openlife.auto.Pathfinder.MapHeader
     public function new(data:Vector<Bool>)
     {
         this.data = data;
-        cols = 32 + 1 * 0;
-        rows = 32 + 1 * 0;
+        cols = MapData.RAD * 2 + 1 * 0;
+        rows = MapData.RAD * 2 + 1 * 0;
     }
     public function isWalkable( p_x:Int, p_y:Int ):Bool
     {
-        return !data[p_x + p_y * (32)];
+        return !data[p_x + p_y * (MapData.RAD * 2)];
     }
 }

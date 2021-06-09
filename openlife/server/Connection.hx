@@ -1,4 +1,5 @@
 package openlife.server;
+import haxe.macro.Expr.Catch;
 import sys.thread.Mutex;
 import openlife.settings.ServerSettings;
 import openlife.data.map.MapData;
@@ -14,6 +15,8 @@ class Connection
     private static var ais:Array<ServerAi> = [];
 
     private var mutex = new Mutex();
+
+    public var serverAi:ServerAi; // null if connected to a client
 
 
     public var running:Bool = true;
@@ -548,6 +551,20 @@ class Connection
     public function send(tag:ClientTag,data:Array<String>=null, isPlayerAction:Bool = true)
     {
         this.mutex.acquire();
+
+        if(serverAi != null)
+        {
+            try{
+                // TODO call serverAi.
+            } catch(ex)
+            {
+                trace(ex);
+            }
+
+            this.mutex.release();
+
+            return;
+        } 
 
         var string = "";
 

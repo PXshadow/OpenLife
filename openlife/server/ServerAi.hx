@@ -11,6 +11,9 @@ class ServerAi extends Ai
         player = new GlobalPlayerInstance();
         super(player);
         player.serverAi = this;
+        player.connection = new Connection(null, Server.server); 
+        player.connection.serverAi = this;
+
         Connection.addAi(player.serverAi);
     }
 }
