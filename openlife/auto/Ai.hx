@@ -58,74 +58,70 @@ class Ai
     final RAD:Int = MapData.RAD;
 
     public function goto(x:Int,y:Int):Bool
+    {
+        var player = playerInterface.getPlayerInstance();
+        //if (player.x == x && player.y == y || moving) return false;
+        //set pos
+        var px = x - player.x;
+        var py = y - player.y;
+        if (px > RAD - 1) px = RAD - 1;
+        if (py > RAD - 1) py = RAD - 1;
+        if (px < -RAD) px = -RAD;
+        if (py < -RAD) py = -RAD;
+        //cords
+        var start = new Coordinate(RAD,RAD);
+
+        var map = new MapCollision(playerInterface.getWorld().getCollisionChunk());
+        //pathing
+        var path = new Pathfinder(cast map);
+        var paths:Array<Coordinate> = null;
+        //move the end cords
+        var tweakX:Int = 0;
+        var tweakY:Int = 0;
+        for (i in 0...3)
         {
-            var player = playerInterface.getPlayerInstance();
-            //if (player.x == x && player.y == y || moving) return false;
-            //set pos
-            var px = x - player.x;
-            var py = y - player.y;
-            if (px > RAD - 1) px = RAD - 1;
-            if (py > RAD - 1) py = RAD - 1;
-            if (px < -RAD) px = -RAD;
-            if (py < -RAD) py = -RAD;
-            //cords
-            var start = new Coordinate(RAD,RAD);
-            //map
-            //var map = {};//new MapCollision(map.collisionChunk(player));
-
-            var map = new MapCollision(playerInterface.getWorld().collisionChunk());
-            //pathing
-            var path = new Pathfinder(cast map);
-            var paths:Array<Coordinate> = null;
-            //move the end cords
-            var tweakX:Int = 0;
-            var tweakY:Int = 0;
-            for (i in 0...3)
+            switch(i)
             {
-                switch(i)
-                {
-                    case 1:
-                    tweakX = x - player.x < 0 ? 1 : -1;
-                    case 2:
-                    tweakX = 0;
-                    tweakY = y - player.y < 0 ? 1 : -1;
-                }
-                var end = new Coordinate(px + RAD + tweakX,py + RAD + tweakY);
-                paths = path.createPath(start,end,MANHATTAN,true);
-                if (paths != null) break;
+                case 1:
+                tweakX = x - player.x < 0 ? 1 : -1;
+                case 2:
+                tweakX = 0;
+                tweakY = y - player.y < 0 ? 1 : -1;
             }
-            if (paths == null) 
-            {
-                //if (onError != null) onError("can not generate path");
-                trace("CAN NOT GENERATE PATH");
-                return false;
-            }
-            var data:Array<Pos> = [];
-            paths.shift();
-            var mx:Array<Int> = [];
-            var my:Array<Int> = [];
-            var tx:Int = start.x;
-            var ty:Int = start.y;
-            for (path in paths)
-            {
-                data.push(new Pos(path.x - tx,path.y - ty));
-            }
-            goal = new Pos(x,y);
-            if (px == goal.x - player.x && py == goal.y - player.y)
-            {
-                trace("shift goal!");
-                //shift goal as well
-                goal.x += tweakX;
-                goal.y += tweakY;
-            }
-            dest = new Pos(px + player.x,py + player.y);
-            init = new Pos(player.x,player.y);
-            //movePlayer(data);
-            playerInterface.move(player.x,player.y,player.done_moving_seqNum++,data);
-            return true;
+            var end = new Coordinate(px + RAD + tweakX,py + RAD + tweakY);
+            paths = path.createPath(start,end,MANHATTAN,true);
+            if (paths != null) break;
         }
-
-   
+        if (paths == null) 
+        {
+            //if (onError != null) onError("can not generate path");
+            trace("CAN NOT GENERATE PATH");
+            return false;
+        }
+        var data:Array<Pos> = [];
+        paths.shift();
+        var mx:Array<Int> = [];
+        var my:Array<Int> = [];
+        var tx:Int = start.x;
+        var ty:Int = start.y;
+        for (path in paths)
+        {
+            data.push(new Pos(path.x - tx,path.y - ty));
+        }
+        goal = new Pos(x,y);
+        if (px == goal.x - player.x && py == goal.y - player.y)
+        {
+            trace("shift goal!");
+            //shift goal as well
+            goal.x += tweakX;
+            goal.y += tweakY;
+        }
+        dest = new Pos(px + player.x,py + player.y);
+        init = new Pos(player.x,player.y);
+        //movePlayer(data);
+        playerInterface.move(player.x,player.y,player.done_moving_seqNum++,data);
+        return true;
+    }
 
     public function emote(player:PlayerInstance,index:Int)
     {

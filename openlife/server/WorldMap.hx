@@ -1043,12 +1043,24 @@ class WorldMap
             }
         }
     }
+
+    public function isBlockingBiome(x:Int, y:Int)
+    {
+        var targetBiome = getBiomeId(x,y);
+
+        if(targetBiome == BiomeTag.SNOWINGREY) return true;
+        if(targetBiome == BiomeTag.OCEAN) return true;
+
+        return false;
+    } 
+    
     final RAD = 16;
-    public function collisionChunk(player:PlayerInstance):Vector<Bool> {
-         //16 + 1
+    public function getCollisionChunk(player:PlayerInstance):Vector<Bool>
+    {
         //16 + 1
         var vector = new Vector<Bool>((RAD * 2) * (RAD * 2));
         var int:Int = 0;
+
         for (y in player.y - RAD...player.y + RAD)
         {
             for (x in player.x - RAD...player.x + RAD)
@@ -1056,10 +1068,10 @@ class WorldMap
                 vector[int++] = false;
                 var obj = getObjectHelper(x,y);
                 if (obj == null) continue;
-                vector[int - 1] = obj.blocksWalking();
+                vector[int - 1] = obj.blocksWalking() || isBlockingBiome(x,y); 
             }
         }
-        return vector;
+        return vector;       
     }
 
     function generateObjects()

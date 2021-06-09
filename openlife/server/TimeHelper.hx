@@ -678,8 +678,8 @@ class TimeHelper
             if(toTx == helper.tx && toTy == helper.ty) continue;
             
             var targetBiome = worldmap.getBiomeId(toTx,toTy);
-            if(targetBiome == BiomeTag.SNOWINGREY) continue;
-            if(targetBiome == BiomeTag.OCEAN) continue;
+            
+            if(worldmap.isBlockingBiome(toTx, toTy)) continue; 
 
             var objectData = helper.objectData.dummyParent == null ? helper.objectData : helper.objectData.dummyParent;
 
