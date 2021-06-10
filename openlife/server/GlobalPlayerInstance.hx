@@ -755,13 +755,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             playerFrom.setHeldObject(null);
         }
 
-        playerTo.SetTransitionData(playerTo.x, playerTo.y); // TODO needs to be set right
+        playerTo.SetTransitionData(playerTo.x, playerTo.y, true); // TODO needs to be set right
 
         Connection.SendUpdateToAllClosePlayers(playerTo);
 
         if(playerFrom != playerTo)
         {
-            playerFrom.SetTransitionData(playerTo.x, playerTo.y); // TODO needs to be set right
+            playerFrom.SetTransitionData(playerTo.x, playerTo.y, true); // TODO needs to be set right
 
             Connection.SendUpdateToAllClosePlayers(playerFrom);
         }

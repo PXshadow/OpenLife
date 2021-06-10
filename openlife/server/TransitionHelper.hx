@@ -634,7 +634,7 @@ class TransitionHelper{
         }
         
         // do now the magic transformation
-        //if(transition.actorID != transition.newActorID) this.pickUpObject = true;
+        if(transition.actorID != transition.newActorID) this.pickUpObject = true;
         player.transformHeldObject(transition.newActorID);
         this.target.id = transition.newTargetID;
 
@@ -845,6 +845,7 @@ class TransitionHelper{
 
         //trace('TRANS AGE: ${player.age}');
 
+        //this.pickUpObject = true;
         player.SetTransitionData(this.x,this.y, this.pickUpObject);
 
         Connection.SendTransitionUpdateToAllClosePlayers(player, tx, ty, newFloorId, newTileObject, doTransition);
