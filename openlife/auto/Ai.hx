@@ -24,6 +24,8 @@ class Ai
 
     //var berryHunter:Bool = false;
     var isHungry = false;
+    var foodTarget:ObjectHelper = null; 
+    var doingAction = false;
 
     var playerToFollow:PlayerInstance;
 
@@ -40,11 +42,38 @@ class Ai
 
         var myPlayer = playerInterface.getPlayerInstance();
 
-        if(playerInterface.isMoving() == false)
+        if(foodTarget == null && playerInterface.isMoving() == false)
         {
             if(playerToFollow != null && (playerToFollow.tx() != myPlayer.tx() ||  playerToFollow.ty() != myPlayer.ty()))
             {
                 goto(playerToFollow.tx() - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
+            }
+        } 
+
+        if(foodTarget != null && playerInterface.isMoving() == false)
+        {
+            var distance = calculateDistanceToPlayer(myPlayer, foodTarget);
+
+            if(distance > 1)
+            {
+                goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+            }
+            else
+            {
+                //if(myPlayer.holdsEatable)
+                if(doingAction == false)
+                {
+                    //doingAction = true;
+                    trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
+                    
+                    // x,y is relativ to birth position, since this is the center of the universe for a player
+                    var done = playerInterface.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+                    foodTarget = null;
+
+                    playerInterface.self();
+
+                    //trace('Eat - USE: $done');
+                }
             }
         } 
 
@@ -58,7 +87,7 @@ class Ai
 
             var objData = playerInterface.getWorld().getObjectData(30); // Wild Gooseberry Bush
             var obj = getClosestObjectToPlayer(myPlayer, objData);
-            if(obj != null) trace(obj.description);
+            //if(obj != null) trace(obj.description);
 
             //playerInterface.say('${playerInterface.getPlayerInstance().food_store}');
         }
@@ -82,6 +111,13 @@ class Ai
         // TODO if none object is found or if the needed steps from the object you found are too high, search for a better object
         // TODO consider too look for a natural spawned object with the fewest steps on the list
         // TODO how to handle if you have allready some of the needed objects ready... 
+    }
+
+    private function searchFoodTarget() : ObjectHelper
+    {
+        var myPlayer = playerInterface.getPlayerInstance();
+        var objData = playerInterface.getWorld().getObjectData(30); // Wild Gooseberry Bush
+        return getClosestObjectToPlayer(myPlayer, objData);
     }
 
     private function getClosestObjectToPlayer(player:PlayerInstance, objData:ObjectData) : ObjectHelper
@@ -116,6 +152,11 @@ class Ai
         }
 
         return closestObject;
+    }
+
+    private function calculateDistanceToPlayer(player:PlayerInstance, obj:ObjectHelper) : Float
+    {
+        return calculateDistance(player.tx(), player.ty(), obj);
     }
 
     private function calculateDistance(baseX:Int, baseY:Int, obj:ObjectHelper) : Float
@@ -300,6 +341,12 @@ class Ai
         if (text.contains("STOP"))
         {
             playerToFollow = null;
+            playerInterface.say("YES CAPTAIN");
+        }
+        if (text.contains("EAT!"))
+        {
+            foodTarget = searchFoodTarget();
+            if(foodTarget != null) goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
             playerInterface.say("YES CAPTAIN");
         }
     }

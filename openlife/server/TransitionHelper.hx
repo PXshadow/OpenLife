@@ -114,6 +114,8 @@ class TransitionHelper{
         this.tx = x + player.gx;
         this.ty = y + player.gy;
 
+        //trace('$ $ t$ p$');
+
         this.floorId = Server.server.map.getFloorId(tx, ty);
         this.transitionSource = player.o_transition_source_id;
         
@@ -137,7 +139,7 @@ class TransitionHelper{
 
         trace('TRANS AGE: ${player.age}');
         trace('handObjectHelper: ${handObjectData.description} numberOfUses: ${player.heldObject.numberOfUses} ' + player.heldObject.toArray());
-        trace('target: ${tileObjectData.description} numberOfUses: ${target.numberOfUses} ' + target.toArray());
+        trace('target: ${tileObjectData.description} ${target.tx}, ${target.ty} numberOfUses: ${target.numberOfUses} ' + target.toArray());
     }
 
     /*

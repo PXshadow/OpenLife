@@ -435,7 +435,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	 clothing slot:
      0=hat, 1=tunic, 2=frontShoe, 3=backShoe, 4=bottom, 5=backpack
     */
-    public function self(x:Int, y:Int, clothingSlot:Int)
+    public function self(x:Int = 0, y:Int = 0, clothingSlot:Int = -1)
     {
         var done = false;
 
