@@ -23,6 +23,7 @@ using StringTools;
 
 using openlife.server.MoveHelper;
 
+// GlobalPlayerInstance is used as a WorldInterface for an AI, since it may be limited what the AI can see so player information is relevant
 class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface
 {
     public var name = "";
@@ -131,11 +132,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function getBiomeId(x:Int, y:Int):Int
     {
         return WorldMap.world.getBiomeId(x,y);
-    }
-
-    public function createCollisionChunk():Vector<Bool>
-    {
-        return WorldMap.world.createCollisionChunk(this); 
     }
 
     public function isBiomeBlocking(x:Int, y:Int) : Bool

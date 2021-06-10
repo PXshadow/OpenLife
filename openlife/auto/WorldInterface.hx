@@ -26,5 +26,4 @@ interface WorldInterface
 
     public function getClosestPlayer(maxDistance:Int) : PlayerInstance;
     public function getPlayerAt(x:Int, y:Int, playerId:Int) : PlayerInstance;
-    public function createCollisionChunk():Vector<Bool>;
 }

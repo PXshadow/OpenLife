@@ -679,7 +679,7 @@ class TimeHelper
             
             var targetBiome = worldmap.getBiomeId(toTx,toTy);
             
-            if(worldmap.isBlockingBiome(toTx, toTy)) continue; 
+            if(WorldMap.isBiomeBlocking(toTx, toTy)) continue; 
 
             var objectData = helper.objectData.dummyParent == null ? helper.objectData : helper.objectData.dummyParent;
 

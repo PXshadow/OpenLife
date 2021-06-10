@@ -1,11 +1,14 @@
 package openlife.auto;
 
+import openlife.data.object.ObjectHelper;
+import openlife.data.object.ObjectData;
 import openlife.data.transition.TransitionData;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.map.MapData;
 import openlife.data.Pos;
 using StringTools;
 import openlife.auto.Pathfinder.Coordinate;
+import haxe.ds.Vector;
 
 class Ai
 {
@@ -19,7 +22,8 @@ class Ai
 
     var time:Float = 5;
 
-    var berryHunter:Bool = false;
+    //var berryHunter:Bool = false;
+    var isHungry = false;
 
     var playerToFollow:PlayerInstance;
 
@@ -34,29 +38,41 @@ class Ai
     {
         // @PX do time stuff here is called from TimeHelper
 
+        var myPlayer = playerInterface.getPlayerInstance();
+
         if(playerInterface.isMoving() == false)
         {
-            var myPlayer = playerInterface.getPlayerInstance();
-
             if(playerToFollow != null && (playerToFollow.tx() != myPlayer.tx() ||  playerToFollow.ty() != myPlayer.ty()))
             {
                 goto(playerToFollow.tx() - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
             }
         } 
 
-        /*
-
         time -= timePassedInSeconds;
 
         if(time < 0)
         {
-            time = 5;
-            playerInterface.say('${playerInterface.getPlayerInstance().food_store}');
+            time = 3;
+
+            isHungry = myPlayer.food_store < 10;
+
+            var objData = playerInterface.getWorld().getObjectData(30); // Wild Gooseberry Bush
+            var obj = getClosestObjectToPlayer(myPlayer, objData);
+            if(obj != null) trace(obj.description);
+
+            //playerInterface.say('${playerInterface.getPlayerInstance().food_store}');
         }
 
-        if(done) return;
+        // TODO if hungry
+        // look for close berrybush
 
-        done = true;*/
+        
+        // move to berrybush
+        // if close to berrybush eat
+
+        //if(done) return;
+
+        //done = true;
 
         //var transitionsForObject = searchTransitions(273);
 
@@ -66,6 +82,45 @@ class Ai
         // TODO if none object is found or if the needed steps from the object you found are too high, search for a better object
         // TODO consider too look for a natural spawned object with the fewest steps on the list
         // TODO how to handle if you have allready some of the needed objects ready... 
+    }
+
+    private function getClosestObjectToPlayer(player:PlayerInstance, objData:ObjectData) : ObjectHelper
+    {
+        return getClosestObject(player.tx(), player.ty(), objData);
+    }
+
+    private function getClosestObject(baseX:Int, baseY:Int, objData:ObjectData) : ObjectHelper
+    {
+        var world = playerInterface.getWorld();
+        var closestObject = null;
+        var bestDistance = 0.0;
+
+        for(ty in baseY - RAD...baseY + RAD)
+        {
+            for(tx in baseX - RAD...baseX + RAD)
+            {
+                var obj = world.getObjectHelper(tx, ty, true);
+                if(obj == null) continue;
+
+                if(obj.parentId == objData.parentId)                    
+                {
+                    var distance = calculateDistance(baseX, baseY, obj);
+
+                    if(closestObject == null || distance < bestDistance)
+                    {
+                        closestObject = obj;
+                        bestDistance = distance;
+                    }
+                }
+            }
+        }
+
+        return closestObject;
+    }
+
+    private function calculateDistance(baseX:Int, baseY:Int, obj:ObjectHelper) : Float
+    {
+        return (obj.tx - baseX) * (obj.tx - baseX) + (obj.ty - baseY) * (obj.ty - baseY);
     }
 
     final RAD:Int = MapData.RAD;
@@ -88,9 +143,9 @@ class Ai
         //cords
         var start = new Coordinate(RAD,RAD);
 
-        trace('Goto: $px $py');
+        //trace('Goto: $px $py');
 
-        var map = new MapCollision(playerInterface.getWorld().createCollisionChunk());
+        var map = new MapCollision(createCollisionChunk());
         //pathing
         var path = new Pathfinder(cast map);
         var paths:Array<Coordinate> = null;
@@ -124,10 +179,10 @@ class Ai
             return false;
         }
 
-        for(path in paths)
+        /*for(path in paths)
         {
             trace(path);
-        }
+        }*/
 
         var data:Array<Pos> = [];
         paths.shift();
@@ -357,6 +412,32 @@ class Ai
         } 
 
         transitionForObject.transitions.push(new TransitionForObject(objId, steps, wantedObjId, transition));
+    }
+
+    public function createCollisionChunk():Vector<Bool>
+    {
+        var player:PlayerInstance = playerInterface.getPlayerInstance();
+        var world = playerInterface.getWorld(); 
+        var RAD = MapData.RAD;
+        var vector = new Vector<Bool>((RAD * 2) * (RAD * 2));
+        var int:Int = -1;
+
+        for (y in player.ty() - RAD...player.ty() + RAD)
+        {
+            for (x in player.tx() - RAD...player.tx() + RAD)
+            {
+                int++;
+
+                var obj = world.getObjectHelper(x,y);
+                vector[int] = obj.blocksWalking() || world.isBiomeBlocking(x,y); 
+
+                //if(obj.blocksWalking()) trace('${player.tx()} ${player.ty()} $x $y ${obj.description}');  
+            }
+        }
+
+        //trace(vector);
+
+        return vector;       
     }
 }
 //time routine

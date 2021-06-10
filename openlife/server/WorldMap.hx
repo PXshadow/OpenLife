@@ -318,6 +318,14 @@ class WorldMap
         return biomeSpeed < 0.1;
     }
 
+    /**
+        var targetBiome = getBiomeId(x,y);
+
+        if(targetBiome == BiomeTag.SNOWINGREY) return true;
+        if(targetBiome == BiomeTag.OCEAN) return true;
+        return false;
+    } **/
+
     public static function worldGetBiomeId(x:Int, y:Int):Int
     {
         return Server.server.map.getBiomeId(x,y);
@@ -1042,44 +1050,6 @@ class WorldMap
                 }
             }
         }
-    }
-
-    public function isBlockingBiome(x:Int, y:Int)
-    {
-        var targetBiome = getBiomeId(x,y);
-
-        if(targetBiome == BiomeTag.SNOWINGREY) return true;
-        if(targetBiome == BiomeTag.OCEAN) return true;
-
-        return false;
-    } 
-    
-    
-    public function createCollisionChunk(player:PlayerInstance):Vector<Bool>
-    {
-        var RAD = MapData.RAD;
-        //16 + 1
-        var vector = new Vector<Bool>((RAD * 2) * (RAD * 2));
-        var int:Int = -1;
-
-        for (y in player.ty() - RAD...player.ty() + RAD)
-        //for (y in 0...RAD * 2)
-        {
-            //for (x in 0...RAD * 2)   
-            for (x in player.tx() - RAD...player.tx() + RAD)
-            {
-                int++;
-
-                var obj = getObjectHelper(x,y);
-                vector[int] = obj.blocksWalking() || isBlockingBiome(x,y); 
-
-                //if(obj.blocksWalking()) trace('${player.tx()} ${player.ty()} $x $y ${obj.description}');  
-            }
-        }
-
-        //trace(vector);
-
-        return vector;       
     }
 
     function generateObjects()
