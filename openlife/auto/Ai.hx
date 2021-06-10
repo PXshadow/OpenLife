@@ -72,13 +72,13 @@ class Ai
         }
         if (text.contains("MOVE"))
         {
-            goto(player.tx() - myPlayer.gx, player.ty() - myPlayer.gy);
+            goto(player.tx() + 1 - myPlayer.gx, player.ty() - myPlayer.gy);
             playerInterface.say("YES CAPTAIN");
         }
         if (text.contains("FOLLOW ME"))
         {
             playerToFollow = player;
-            goto(player.tx() - myPlayer.gx, player.ty() - myPlayer.gy);
+            goto(player.tx() + 1 - myPlayer.gx, player.ty() - myPlayer.gy);
             playerInterface.say("SURE CAPTAIN");
         }
         if (text.contains("STOP"))
@@ -108,15 +108,15 @@ class Ai
 
         if(foodTarget == null && playerInterface.isMoving() == false)
         {
-            if(playerToFollow != null && (playerToFollow.tx() != myPlayer.tx() ||  playerToFollow.ty() != myPlayer.ty()))
+            if(playerToFollow != null && calculateDistanceToPlayer(myPlayer, playerToFollow) > 2)
             {
-                goto(playerToFollow.tx() - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
+                goto(playerToFollow.tx() + 1 - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
             }
         } 
 
         if(foodTarget != null && playerInterface.isMoving() == false)
         {
-            var distance = calculateDistanceToPlayer(myPlayer, foodTarget);
+            var distance = calculateDistanceToObject(myPlayer, foodTarget);
 
             if(distance > 1)
             {
@@ -124,26 +124,24 @@ class Ai
             }
             else
             {
-                //if(myPlayer.holdsEatable)
-                if(doingAction == false)
+
+                //doingAction = true;
+                trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
+                
+                var oldNumberOfUses = foodTarget.numberOfUses;
+
+                // x,y is relativ to birth position, since this is the center of the universe for a player
+                var done = playerInterface.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+                
+                playerInterface.self();
+
+                trace('Eat: foodTarget.numberOfUses ${foodTarget.numberOfUses} == oldNumberOfUses $oldNumberOfUses || emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
+
+                if(foodTarget.numberOfUses == oldNumberOfUses || myPlayer.food_store_max - myPlayer.food_store < 3)
                 {
-                    //doingAction = true;
-                    trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
-                    
-                    var oldNumberOfUses = foodTarget.numberOfUses;
-
-                    // x,y is relativ to birth position, since this is the center of the universe for a player
-                    var done = playerInterface.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
-                    
-                    playerInterface.self();
-
-                    trace('Eat: foodTarget.numberOfUses ${foodTarget.numberOfUses} == oldNumberOfUses $oldNumberOfUses || emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
-
-                    if(foodTarget.numberOfUses == oldNumberOfUses || myPlayer.food_store_max - myPlayer.food_store < 3)
-                    {
-                        foodTarget = null;
-                    }
+                    foodTarget = null;
                 }
+                
             }
         } 
 
@@ -184,12 +182,14 @@ class Ai
     // is called once a movement is finished (client side it must be called manually after a PlayerUpdate)
     public function finishedMovement()
     {
-        if(playerToFollow != null && foodTarget == null)
+        /*if(playerToFollow != null && foodTarget == null)
         {
             var myPlayer = playerInterface.getPlayerInstance();
-            goto(playerToFollow.tx() - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
+
+            var distance = calculateDistanceToPlayer(myPlayer, playerToFollow);
+            if(distance > 2) goto(playerToFollow.tx() + 1 - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
             //playerInterface.say("I FOLLOW");
-        }
+        }*/
     }
 
     private function searchFoodTarget() : ObjectHelper
@@ -219,7 +219,7 @@ class Ai
 
                 if(obj.parentId == objData.parentId)                    
                 {
-                    var distance = calculateDistance(baseX, baseY, obj);
+                    var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
 
                     if(closestObject == null || distance < bestDistance)
                     {
@@ -233,14 +233,19 @@ class Ai
         return closestObject;
     }
 
-    private function calculateDistanceToPlayer(player:PlayerInstance, obj:ObjectHelper) : Float
+    private function calculateDistanceToPlayer(player:PlayerInstance, playerTo:PlayerInstance) : Float
     {
-        return calculateDistance(player.tx(), player.ty(), obj);
+        return calculateDistance(player.tx(), player.ty(), playerTo.tx(), playerTo.ty());
     }
 
-    private function calculateDistance(baseX:Int, baseY:Int, obj:ObjectHelper) : Float
+    private function calculateDistanceToObject(player:PlayerInstance, obj:ObjectHelper) : Float
     {
-        return (obj.tx - baseX) * (obj.tx - baseX) + (obj.ty - baseY) * (obj.ty - baseY);
+        return calculateDistance(player.tx(), player.ty(), obj.tx, obj.ty);
+    }
+
+    private function calculateDistance(baseX:Int, baseY:Int, toX:Int, toY:Int) : Float
+    {
+        return (toX - baseX) * (toX - baseX) + (toY - baseY) * (toY - baseY);
     }
 
     final RAD:Int = MapData.RAD;
