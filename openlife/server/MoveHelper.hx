@@ -219,9 +219,9 @@ class MoveHelper
                 p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
                 p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
 
-                //p.forced = true; // TODO try out
-
                 Connection.SendUpdateToAllClosePlayers(p);
+
+                if(p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
             }
             catch(ex)
             {

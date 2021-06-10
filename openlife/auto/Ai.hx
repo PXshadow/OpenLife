@@ -16,10 +16,13 @@ class Ai
     var init:Pos;
 
     var done = false;
+    var isMoving = false;
 
     var time:Float = 5;
 
     var berryHunter:Bool = false;
+
+    var playerToFollow:PlayerInstance;
 
     public function new(player:PlayerInterface) 
     {
@@ -31,6 +34,18 @@ class Ai
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
         // @PX do time stuff here is called from TimeHelper
+
+
+        if(isMoving == false)
+        {
+            var myPlayer = playerInterface.getPlayerInstance();
+
+            if(playerToFollow != null && (playerToFollow.tx() != myPlayer.tx() ||  playerToFollow.ty() != myPlayer.ty()))
+            {
+                goto(playerToFollow.tx() - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
+            }
+        } 
+
         /*
 
         time -= timePassedInSeconds;
@@ -65,6 +80,9 @@ class Ai
         //set pos
         var px = x - player.x;
         var py = y - player.y;
+
+        if(px == 0 && py == 0) return false; // no need to move
+
         if (px > RAD - 1) px = RAD - 1;
         if (py > RAD - 1) py = RAD - 1;
         if (px < -RAD) px = -RAD;
@@ -140,6 +158,8 @@ class Ai
         //movePlayer(data);
         playerInterface.move(player.x,player.y,player.done_moving_seqNum++,data);
 
+        isMoving = true;
+
         return true;
     }
 
@@ -150,7 +170,20 @@ class Ai
 
     public function playerUpdate(player:PlayerInstance)
     {
+        
+    }
 
+    // is called once a movement is finished (client side it must be called manually after a PlayerUpdate)
+    public function finishedMovement()
+    {
+        isMoving = false;
+
+        if(playerToFollow != null)
+        {
+            var myPlayer = playerInterface.getPlayerInstance();
+            goto(playerToFollow.tx() - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
+            playerInterface.say("I FOLLOW");
+        }
     }
 
     public function mapUpdate(targetX:Int,targetY:Int,isAnimal:Bool=false) 
@@ -205,6 +238,17 @@ class Ai
         if (text.contains("MOVE"))
         {
             goto(player.tx() - myPlayer.gx, player.ty() - myPlayer.gy);
+            playerInterface.say("YES CAPTAIN");
+        }
+        if (text.contains("FOLLOW ME"))
+        {
+            playerToFollow = player;
+            goto(player.tx() - myPlayer.gx, player.ty() - myPlayer.gy);
+            playerInterface.say("SURE CAPTAIN");
+        }
+        if (text.contains("STOP"))
+        {
+            playerToFollow = null;
             playerInterface.say("YES CAPTAIN");
         }
     }
