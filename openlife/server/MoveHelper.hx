@@ -184,6 +184,11 @@ class MoveHelper
         return Math.max(0.6, Math.min(ServerSettings.MinSpeedReductionPerContainedObj, obj.objectData.speedMult)); 
     }
 
+    public function isMoving()
+    {
+        return newMoves != null;        
+    }
+
     /**
         Check if movement arrived on destination and if so update all players  
     **/
@@ -222,6 +227,8 @@ class MoveHelper
                 Connection.SendUpdateToAllClosePlayers(p);
 
                 if(p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
+
+                
             }
             catch(ex)
             {

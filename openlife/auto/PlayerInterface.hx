@@ -7,6 +7,8 @@ interface PlayerInterface
     public function getWorld() : WorldInterface;   
     public function getPlayerInstance() : PlayerInstance;
 
+    public function isMoving() : Bool;
+
     public function doEmote(id:Int) : Void;
     public function say(text:String) : Void;
     public function self(x:Int,y:Int,clothingSlot:Int) : Void;

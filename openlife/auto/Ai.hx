@@ -16,7 +16,6 @@ class Ai
     var init:Pos;
 
     var done = false;
-    var isMoving = false;
 
     var time:Float = 5;
 
@@ -35,8 +34,7 @@ class Ai
     {
         // @PX do time stuff here is called from TimeHelper
 
-
-        if(isMoving == false)
+        if(playerInterface.isMoving() == false)
         {
             var myPlayer = playerInterface.getPlayerInstance();
 
@@ -158,7 +156,7 @@ class Ai
         //movePlayer(data);
         playerInterface.move(player.x,player.y,player.done_moving_seqNum++,data);
 
-        isMoving = true;
+        //isMoving = true;
 
         return true;
     }
@@ -176,13 +174,11 @@ class Ai
     // is called once a movement is finished (client side it must be called manually after a PlayerUpdate)
     public function finishedMovement()
     {
-        isMoving = false;
-
         if(playerToFollow != null)
         {
             var myPlayer = playerInterface.getPlayerInstance();
             goto(playerToFollow.tx() - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
-            playerInterface.say("I FOLLOW");
+            //playerInterface.say("I FOLLOW");
         }
     }
 

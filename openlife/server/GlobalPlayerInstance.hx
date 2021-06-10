@@ -98,6 +98,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return this;
     } 
 
+    public function isMoving()
+    {
+        return moveHelper.isMoveing();      
+    }
+
     public function getObjectData(id:Int) : ObjectData
     {
         return ObjectData.getObjectData(id);
