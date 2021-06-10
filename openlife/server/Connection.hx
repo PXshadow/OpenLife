@@ -27,13 +27,16 @@ class Connection
 
     //public function get_player():GlobalPlayerInstance{return player;}
 
+    // if it is an AI sock = null
     public function new(sock:Socket,server:Server)
     {
         this.sock = sock;
         this.server = server;
         var challenge = "dsdjsiojdiasjiodsjiosd";
         var version = server.dataVersionNumber;
-        send(SERVER_INFO,["0/0",challenge,'$version']);
+
+        // if it is an AI there is no sock
+        if(sock != null) send(SERVER_INFO,["0/0",challenge,'$version']);
     }
 
     // TODO Arcurus>> add birth logic - suggestion:
