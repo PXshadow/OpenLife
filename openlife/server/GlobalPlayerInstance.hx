@@ -423,6 +423,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
     }
 
+    /*public function eat() {
+        return self();
+    }*/
+
     /*
     SELF x y i#
 

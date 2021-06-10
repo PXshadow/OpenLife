@@ -34,7 +34,71 @@ class Ai
         this.playerInterface = player;
     }
 
-    //public var player(get, null):Int; 
+    public function say(player:PlayerInstance,curse:Bool,text:String) 
+    {
+        var myPlayer = playerInterface.getPlayerInstance();
+        var world = playerInterface.getWorld();
+        //trace('im a super evil bot!');
+
+        //trace('ai3: ${myPlayer.p_id} player: ${player.p_id}');
+
+        if (myPlayer.p_id == player.p_id) return;
+
+        //trace('im a evil bot!');
+
+        trace('AI ${text}');
+
+        if (text.contains("TRANS")) 
+        {
+            trace('AI look for transitions: ${text}');
+
+            var objectIdToSearch = 273; // 273 = Cooked Carrot Pie // 250 = Hot Adobe Oven
+
+            searchTransitions(objectIdToSearch);
+        }
+
+        if (text.contains("HELLO")) 
+        {
+            //HELLO WORLD
+
+            //trace('im a nice bot!');
+
+            playerInterface.say("HELLO WORLD");
+        }
+        if (text.contains("JUMP")) 
+        {
+            playerInterface.say("JUMP");
+            playerInterface.jump();
+        }
+        if (text.contains("MOVE"))
+        {
+            goto(player.tx() - myPlayer.gx, player.ty() - myPlayer.gy);
+            playerInterface.say("YES CAPTAIN");
+        }
+        if (text.contains("FOLLOW ME"))
+        {
+            playerToFollow = player;
+            goto(player.tx() - myPlayer.gx, player.ty() - myPlayer.gy);
+            playerInterface.say("SURE CAPTAIN");
+        }
+        if (text.contains("STOP"))
+        {
+            playerToFollow = null;
+            playerInterface.say("YES CAPTAIN");
+        }
+        if (text.contains("EAT!"))
+        {
+            searchFoodAndEat();
+            playerInterface.say("YES CAPTAIN");
+        }
+    }
+
+    public function searchFoodAndEat()
+    {
+        var myPlayer = playerInterface.getPlayerInstance();
+        foodTarget = searchFoodTarget();
+        if(foodTarget != null) goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+    }
 
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
@@ -66,13 +130,19 @@ class Ai
                     //doingAction = true;
                     trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
                     
+                    var oldNumberOfUses = foodTarget.numberOfUses;
+
                     // x,y is relativ to birth position, since this is the center of the universe for a player
                     var done = playerInterface.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
-                    foodTarget = null;
-
+                    
                     playerInterface.self();
 
-                    //trace('Eat - USE: $done');
+                    trace('Eat: foodTarget.numberOfUses ${foodTarget.numberOfUses} == oldNumberOfUses $oldNumberOfUses || emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
+
+                    if(foodTarget.numberOfUses == oldNumberOfUses || myPlayer.food_store_max - myPlayer.food_store < 3)
+                    {
+                        foodTarget = null;
+                    }
                 }
             }
         } 
@@ -85,11 +155,9 @@ class Ai
 
             isHungry = myPlayer.food_store < 10;
 
-            var objData = playerInterface.getWorld().getObjectData(30); // Wild Gooseberry Bush
-            var obj = getClosestObjectToPlayer(myPlayer, objData);
-            //if(obj != null) trace(obj.description);
+            if(isHungry && foodTarget == null) searchFoodAndEat();
 
-            //playerInterface.say('${playerInterface.getPlayerInstance().food_store}');
+            playerInterface.say('${playerInterface.getPlayerInstance().food_store}');
         }
 
         // TODO if hungry
@@ -111,6 +179,17 @@ class Ai
         // TODO if none object is found or if the needed steps from the object you found are too high, search for a better object
         // TODO consider too look for a natural spawned object with the fewest steps on the list
         // TODO how to handle if you have allready some of the needed objects ready... 
+    }
+
+    // is called once a movement is finished (client side it must be called manually after a PlayerUpdate)
+    public function finishedMovement()
+    {
+        if(playerToFollow != null && foodTarget == null)
+        {
+            var myPlayer = playerInterface.getPlayerInstance();
+            goto(playerToFollow.tx() - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
+            //playerInterface.say("I FOLLOW");
+        }
     }
 
     private function searchFoodTarget() : ObjectHelper
@@ -267,17 +346,6 @@ class Ai
         
     }
 
-    // is called once a movement is finished (client side it must be called manually after a PlayerUpdate)
-    public function finishedMovement()
-    {
-        if(playerToFollow != null)
-        {
-            var myPlayer = playerInterface.getPlayerInstance();
-            goto(playerToFollow.tx() - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
-            //playerInterface.say("I FOLLOW");
-        }
-    }
-
     public function mapUpdate(targetX:Int,targetY:Int,isAnimal:Bool=false) 
     {
         
@@ -290,65 +358,6 @@ class Ai
     public function dying(sick:Bool)
     {
 
-    }
-    public function say(player:PlayerInstance,curse:Bool,text:String) 
-    {
-        var myPlayer = playerInterface.getPlayerInstance();
-        var world = playerInterface.getWorld();
-        //trace('im a super evil bot!');
-
-        //trace('ai3: ${myPlayer.p_id} player: ${player.p_id}');
-
-        if (myPlayer.p_id == player.p_id) return;
-
-        //trace('im a evil bot!');
-
-        trace('AI ${text}');
-
-        if (text.contains("TRANS")) 
-        {
-            trace('AI look for transitions: ${text}');
-
-            var objectIdToSearch = 273; // 273 = Cooked Carrot Pie // 250 = Hot Adobe Oven
-
-            searchTransitions(objectIdToSearch);
-        }
-
-        if (text.contains("HELLO")) 
-        {
-            //HELLO WORLD
-
-            //trace('im a nice bot!');
-
-            playerInterface.say("HELLO WORLD");
-        }
-        if (text.contains("JUMP")) 
-        {
-            playerInterface.say("JUMP");
-            playerInterface.jump();
-        }
-        if (text.contains("MOVE"))
-        {
-            goto(player.tx() - myPlayer.gx, player.ty() - myPlayer.gy);
-            playerInterface.say("YES CAPTAIN");
-        }
-        if (text.contains("FOLLOW ME"))
-        {
-            playerToFollow = player;
-            goto(player.tx() - myPlayer.gx, player.ty() - myPlayer.gy);
-            playerInterface.say("SURE CAPTAIN");
-        }
-        if (text.contains("STOP"))
-        {
-            playerToFollow = null;
-            playerInterface.say("YES CAPTAIN");
-        }
-        if (text.contains("EAT!"))
-        {
-            foodTarget = searchFoodTarget();
-            if(foodTarget != null) goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
-            playerInterface.say("YES CAPTAIN");
-        }
     }
 
     private function searchTransitions(objectIdToSearch:Int) : Map<Int, TransitionForObject>

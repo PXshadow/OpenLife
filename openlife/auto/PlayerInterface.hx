@@ -11,6 +11,7 @@ interface PlayerInterface
 
     public function doEmote(id:Int) : Void;
     public function say(text:String) : Void;
+    //public function eat(); 
     public function self(x:Int = 0, y:Int = 0, clothingSlot:Int = -1) : Void; // for eating and clothing
     public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>) : Void;
     public function remove(x:Int, y:Int, index:Int = -1) : Bool;
