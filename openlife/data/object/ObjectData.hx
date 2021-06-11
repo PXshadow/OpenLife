@@ -1,4 +1,6 @@
 package openlife.data.object;
+import openlife.data.transition.TransitionData;
+import openlife.resources.Resource;
 import sys.FileSystem;
 import haxe.Exception;
 import openlife.server.Server;
@@ -20,6 +22,7 @@ import openlife.data.sound.SoundData;
 @:rtti
 class ObjectData extends LineReader
 {
+    public static var dataVersionNumber:Int;
     public static var importedObjectData:Vector<ObjectData>;
 
     // stores all ObjectData including dummy objects for objects with numUse > 2
@@ -28,6 +31,8 @@ class ObjectData extends LineReader
     // used for creation of the inital objects on the worldmap
     public static var biomeTotalChance:Map<Int,Float>; 
     public static var biomeObjectData:Map<Int, Array<ObjectData>>;
+
+    // lists all objects that can be eaten
     public static var foodObjects:Array<ObjectData> = [];
 
     // to store the different persons
@@ -40,6 +45,9 @@ class ObjectData extends LineReader
     * Toolset record set
     */
     public static var toolsetRecord:Array<ToolSetRecord> = [];
+
+    // Indicates that this object can be used to creat parentFood OR (TODO) specifies food catgegory like BowlOfBerry --> Berry
+    public var parentFood:ObjectData; // do not save on disk since it can be calculated after loading
 
     public var dummyObjects:Array<ObjectData> = [];
 
@@ -358,6 +366,26 @@ class ObjectData extends LineReader
     {
         return objectDataMap[id];
     }
+
+    public static function DoAllTheObjectInititalisationStuff()
+    {
+        dataVersionNumber = Resource.dataVersionNumber();
+
+        trace('dataVersionNumber: $dataVersionNumber');
+        
+        if(ObjectData.ReadAllFromFile(dataVersionNumber) == false)
+        {
+            ObjectData.ImportObjectData();
+            ObjectData.WriteAllToFile(dataVersionNumber);
+        }
+
+        ObjectData.CreatePersonArray();        
+        ObjectData.CreateAndAddDummyObjectData();
+        ObjectData.CreateFoodObjectArray();
+        ServerSettings.PatchObjectData();
+
+        ObjectData.GenerateBiomeObjectData();
+    }
         
     public static function ImportObjectData()
     {        
@@ -431,17 +459,19 @@ class ObjectData extends LineReader
     public static function CreateFoodObjectArray()
     {
         foodObjects = [];
-        var index = 0;
+        //var index = 0;
 
         for (obj in importedObjectData)
         {
             if (obj.foodValue < 1) continue;
             
-            index++;
+            //index++;
             
             //trace('${obj.description} $index');
 
             foodObjects.push(obj);
+
+            
         }
     }
 
