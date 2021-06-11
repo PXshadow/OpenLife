@@ -1,5 +1,6 @@
 package openlife.data.transition;
 
+import openlife.settings.ServerSettings;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.ObjectData;
 import haxe.io.Path;
@@ -36,6 +37,49 @@ class TransitionImporter
     public function new()
     {
 
+    }
+
+    public static function DoAllInititalisationStuff()
+    {
+        trace("Import transitions...");
+        TransitionImporter.transitionImporter.importCategories();
+        TransitionImporter.transitionImporter.importTransitions();
+        TransitionImporter.transitionImporter.setParentFoods();
+
+        ServerSettings.PatchTransitions(TransitionImporter.transitionImporter);
+    }
+
+    public function setParentFoods()
+    {
+        for(food in ObjectData.foodObjects)
+        {
+            var transData = TransitionImporter.GetTransitionByNewActor(food.id);
+
+            for(trans in transData)
+            {
+                // food target with empty hand like wild onion or berrybush
+                if(trans.targetID > 0 && trans.actorID == 0)
+                {
+                    var obj = ObjectData.getObjectData(trans.targetID);
+
+                    obj.foodFromTarget = food;    
+
+                    trace('Food Target: ${food.description} actor: ${trans.actorID} <-- ${obj.description} ${obj.id}');
+                }
+                // TODO food target with tool like sharpstone
+                // For cooking like transitions: Cooked Garlic Shrimp actor: 4324 <-- Hot Coals# +tool 85
+                if(trans.targetID > 0 && trans.actorID != 0)
+                {
+                    var targetObj = ObjectData.getObjectData(trans.targetID);
+                    var actorObj = ObjectData.getObjectData(trans.actorID);
+
+                    targetObj.foodFromTargetWithTool = food;    
+                    actorObj.foodFromActor = food;   
+
+                    trace('Food Target With Tool: ${food.description} <-- ${actorObj.id} ${actorObj.description} + ${targetObj.id} ${targetObj.description} ');
+                }
+            }           
+        }
     }
 
     public function importCategories()

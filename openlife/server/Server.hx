@@ -95,12 +95,7 @@ class Server
 
         ObjectData.DoAllTheObjectInititalisationStuff();
 
-        // do all the object transition inititalisation stuff
-        trace("Import transitions...");
-        TransitionImporter.transitionImporter.importCategories();
-        TransitionImporter.transitionImporter.importTransitions();
-
-        ServerSettings.PatchTransitions(TransitionImporter.transitionImporter);
+        TransitionImporter.DoAllInititalisationStuff();
 
         // do all the map inititalisation stuff
         map = new WorldMap();

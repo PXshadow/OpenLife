@@ -3,6 +3,10 @@ import openlife.data.map.MapData;
 @:expose("PlayerInstance")
 class PlayerInstance
 {
+    // Arcurus
+    // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
+    public var heldObject:ObjectHelper; 
+    
     //ARcurus: food vars
     public var food_store:Float = 0;
     public var food_store_max:Float = 0;

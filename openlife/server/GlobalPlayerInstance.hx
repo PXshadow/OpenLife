@@ -30,7 +30,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var familyName = "Snow";
 
     // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
-    public var heldObject:ObjectHelper; 
+    //public var heldObject:ObjectHelper; 
     public var heldPlayer:GlobalPlayerInstance;
     public var heldByPlayer:GlobalPlayerInstance;
 

@@ -48,8 +48,12 @@ class ObjectData extends LineReader
     */
     public static var toolsetRecord:Array<ToolSetRecord> = [];
 
-    // Indicates that this object can be used to creat parentFood OR (TODO) specifies food catgegory like BowlOfBerry --> Berry
-    public var parentFood:ObjectData; // do not save on disk since it can be calculated after loading
+    // Indicates that this object can be used to creat foodFromTarget
+    public var foodFromTarget:ObjectData; // do not save on disk since it can be calculated after loading
+    // Indicates that this object can be used to creat foodFromTarget with a tool
+    public var foodFromTargetWithTool:ObjectData; // do not save on disk since it can be calculated after loading
+    // Indicates that this object can be used to creat foodFromActor
+    public var foodFromActor:ObjectData; // do not save on disk since it can be calculated after loading
 
     public var dummyObjects:Array<ObjectData> = [];
 

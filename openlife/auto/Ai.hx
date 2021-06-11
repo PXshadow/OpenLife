@@ -25,6 +25,7 @@ class Ai
     //var berryHunter:Bool = false;
     var isHungry = false;
     var foodTarget:ObjectHelper = null; 
+    var dropTarget:ObjectHelper = null;
     var doingAction = false;
 
     var playerToFollow:PlayerInstance;
@@ -96,7 +97,7 @@ class Ai
     public function searchFoodAndEat()
     {
         var myPlayer = playerInterface.getPlayerInstance();
-        foodTarget = searchFoodTarget();
+        foodTarget = searchBestFood();
         if(foodTarget != null) goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
     }
 
@@ -105,6 +106,23 @@ class Ai
         // @PX do time stuff here is called from TimeHelper
 
         var myPlayer = playerInterface.getPlayerInstance();
+
+        if(dropTarget != null && playerInterface.isMoving() == false)
+        {
+            var distance = calculateDistanceToObject(myPlayer, dropTarget);
+
+            if(distance > 1)
+            {
+                goto(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
+            }
+            else
+            {
+                playerInterface.drop(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
+                dropTarget = null;
+            }
+            
+            return;
+        }
 
         if(foodTarget == null && playerInterface.isMoving() == false)
         {
@@ -124,9 +142,10 @@ class Ai
             }
             else
             {
+                //trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
 
-                //doingAction = true;
-                trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
+                // TODO eat food if held food is eatable
+                
                 
                 var oldNumberOfUses = foodTarget.numberOfUses;
 
@@ -135,13 +154,24 @@ class Ai
                 
                 playerInterface.self();
 
-                trace('Eat: foodTarget.numberOfUses ${foodTarget.numberOfUses} == oldNumberOfUses $oldNumberOfUses || emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
+                trace('Eat: ${foodTarget.description} foodTarget.numberOfUses ${foodTarget.numberOfUses} == oldNumberOfUses $oldNumberOfUses || emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
 
                 if(foodTarget.numberOfUses == oldNumberOfUses || myPlayer.food_store_max - myPlayer.food_store < 3)
                 {
                     foodTarget = null;
                 }
-                
+
+                // drop held object
+                if(myPlayer.heldObject.id > 0)
+                {
+                    var emptyObject = ObjectData.getObjectData(0);
+                    var emptyTileObj = getClosestObject(myPlayer, emptyObject);
+                    dropTarget = emptyTileObj;
+
+                    trace('Eat: Drop ${emptyTileObj.tx} ${emptyTileObj.ty} $emptyTileObj');
+                    // x,y is relativ to birth position, since this is the center of the universe for a player
+                    //if(emptyTileObj != null) playerInterface.drop(emptyTileObj.tx - myPlayer.gx, emptyTileObj.ty - myPlayer.gy);
+                }
             }
         } 
 
@@ -192,20 +222,53 @@ class Ai
         }*/
     }
 
-    private function searchFoodTarget() : ObjectHelper
+    
+
+    private function searchBestFood() : ObjectHelper
     {
-        var myPlayer = playerInterface.getPlayerInstance();
-        var objData = playerInterface.getWorld().getObjectData(30); // Wild Gooseberry Bush
-        return getClosestObjectToPlayer(myPlayer, objData);
+        var player = playerInterface.getPlayerInstance();
+        var baseX = player.tx();
+        var baseY = player.ty();
+        var world = playerInterface.getWorld();
+        var bestFood = null;
+        var bestDistance = 0.0;
+        
+
+        // TODO consider current food vlaue cravings
+
+        for(ty in baseY - RAD...baseY + RAD)
+        {
+            for(tx in baseX - RAD...baseX + RAD)
+            {
+                var obj = world.getObjectHelper(tx, ty, true);
+                if(obj == null) continue;
+
+                var objData = obj.objectData;
+                if(objData.dummyParent !=null) objData = objData.dummyParent; // use parent objectdata
+
+                if(objData.foodValue > 0 || objData.foodFromTarget != null)                    
+                {
+                    var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
+                    //trace('search food: best $bestDistance dist $distance ${obj.description}');
+
+                    if(bestFood == null || distance < bestDistance)
+                    {
+                        bestFood = obj;
+                        bestDistance = distance;
+                    }
+                }
+            }
+        }
+
+        trace('bestfood: $bestDistance ${bestFood.description}');
+
+        return bestFood;
     }
 
-    private function getClosestObjectToPlayer(player:PlayerInstance, objData:ObjectData) : ObjectHelper
+    public function getClosestObject(player:PlayerInstance, objData:ObjectData) : ObjectHelper
     {
-        return getClosestObject(player.tx(), player.ty(), objData);
-    }
-
-    private function getClosestObject(baseX:Int, baseY:Int, objData:ObjectData) : ObjectHelper
-    {
+        var baseX = player.tx();
+        var baseY = player.ty();
         var world = playerInterface.getWorld();
         var closestObject = null;
         var bestDistance = 0.0;
@@ -229,6 +292,8 @@ class Ai
                 }
             }
         }
+
+        trace('bestdistance: $bestDistance ${closestObject.description}');
 
         return closestObject;
     }
