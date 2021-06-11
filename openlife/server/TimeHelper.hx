@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.data.transition.TransitionImporter;
 import haxe.Exception;
 import openlife.macros.Macro;
 import openlife.client.ClientTag;
@@ -382,7 +383,7 @@ class TimeHelper
                 {              
                     if(helper.timeToChange == 0) // maybe timeToChange was forgotten to be set
                     {
-                        var timeTransition = Server.transitionImporter.getTransition(-1, obj[0], false, false);
+                        var timeTransition = TransitionImporter.GetTransition(-1, obj[0], false, false);
 
                         if(timeTransition == null) continue;
 
@@ -410,7 +411,7 @@ class TimeHelper
                     continue;
                 }
 
-                var timeTransition = Server.transitionImporter.getTransition(-1, obj[0], false, false);
+                var timeTransition = TransitionImporter.GetTransition(-1, obj[0], false, false);
                 if(timeTransition == null) continue;
 
                 helper = worldMap.getObjectHelper(x,y); 
@@ -584,7 +585,7 @@ class TimeHelper
 
         //trace('Time: tileObject: $tileObject');
 
-        var transition = Server.transitionImporter.getTransition(-1, tileObject[0], false, false);
+        var transition = TransitionImporter.GetTransition(-1, tileObject[0], false, false);
 
         if(transition == null)
         {
@@ -621,7 +622,7 @@ class TimeHelper
             return false;
         }
 
-        if(helper.isLastUse()) transition = Server.transitionImporter.getTransition(-1, helper.id, false, true);
+        if(helper.isLastUse()) transition = TransitionImporter.GetTransition(-1, helper.id, false, true);
 
         helper.id = transition.newTargetID;
         helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper);
@@ -707,7 +708,7 @@ class TimeHelper
             toTy = target.ty;
 
             // 2710 + -1 = 767 + 769 // Wild Horse with Lasso + TIME  -->  Lasso# tool + Wild Horse
-            var transition = Server.transitionImporter.getTransition(helper.parentId, -1, false, false);
+            var transition = TransitionImporter.GetTransition(helper.parentId, -1, false, false);
 
             if(transition != null)
             {            
@@ -718,7 +719,7 @@ class TimeHelper
                 //trace('animal movement: found -1 transition: ${helper.description} --> ${helper.groundObject.description}');
             } 
 
-            if(helper.isLastUse()) timeTransition = Server.transitionImporter.getTransition(-1, helper.id, false, true);
+            if(helper.isLastUse()) timeTransition = TransitionImporter.GetTransition(-1, helper.id, false, true);
 
             helper.id = timeTransition.newTargetID;
 

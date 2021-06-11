@@ -1,4 +1,6 @@
 package openlife.data.object;
+import openlife.data.transition.TransitionImporter;
+import openlife.server.WorldMap;
 import openlife.data.transition.TransitionData;
 import openlife.resources.Resource;
 import sys.FileSystem;
@@ -470,8 +472,6 @@ class ObjectData extends LineReader
             //trace('${obj.description} $index');
 
             foodObjects.push(obj);
-
-            
         }
     }
 

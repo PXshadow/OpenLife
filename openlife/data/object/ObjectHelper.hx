@@ -1,5 +1,6 @@
 package openlife.data.object;
 
+import openlife.data.transition.TransitionImporter;
 import haxe.macro.Type.TVar;
 import haxe.Exception;
 import openlife.server.TimeHelper;
@@ -212,7 +213,7 @@ class ObjectHelper {
 
     public static function CalculateTimeToChangeForObj(obj:ObjectHelper) : Int
     {
-        var timeTransition = Server.transitionImporter.getTransition(-1, obj.id, false, false);
+        var timeTransition = TransitionImporter.GetTransition(-1, obj.id, false, false);
         if(timeTransition == null) return 0;
 
         //trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');

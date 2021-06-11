@@ -216,7 +216,7 @@ class ServerSettings
 
     public static function PatchTransitions(transtions:TransitionImporter)        
     {   
-        for(trans in Server.transitionImporter.transitions)
+        for(trans in TransitionImporter.transitionImporter.transitions)
         {
             if(trans.actorID < -1) 
             {

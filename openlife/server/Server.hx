@@ -30,9 +30,6 @@ using openlife.server.MoveHelper;
 class Server
 {
     public static var server:Server; 
-      
-    public static var transitionMap:Map<Int, ObjectData> = [];
-    public static var transitionImporter:TransitionImporter = new TransitionImporter();
 
     public var map:WorldMap; // THE WORLD
     
@@ -100,10 +97,10 @@ class Server
 
         // do all the object transition inititalisation stuff
         trace("Import transitions...");
-        transitionImporter.importCategories();
-        transitionImporter.importTransitions();
+        TransitionImporter.transitionImporter.importCategories();
+        TransitionImporter.transitionImporter.importTransitions();
 
-        ServerSettings.PatchTransitions(transitionImporter);
+        ServerSettings.PatchTransitions(TransitionImporter.transitionImporter);
 
         // do all the map inititalisation stuff
         map = new WorldMap();

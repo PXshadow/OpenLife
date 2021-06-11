@@ -8,6 +8,9 @@ import openlife.engine.Engine;
 @:expose
 class TransitionImporter
 {
+    public static var transitionMap:Map<Int, ObjectData> = [];
+    public static var transitionImporter:TransitionImporter = new TransitionImporter();
+
     public var transitions:Array<TransitionData> = [];
     public var categories:Array<Category> = [];
     private var categoriesById:Map<Int, Category> = [];
@@ -115,6 +118,11 @@ class TransitionImporter
         return transitionsByTargetId;
     }
 
+    public static function GetTrans(actor:ObjectHelper, target:ObjectHelper):TransitionData
+    {
+        return transitionImporter.getTrans(actor, target);
+    }
+
     public function getTrans(actor:ObjectHelper, target:ObjectHelper):TransitionData
     {
         // actor last use is handled through actor + -1 = newActor + 0 transitions
@@ -124,6 +132,11 @@ class TransitionImporter
         if(transition == null) transition = getTransition(actor.parentId, target.parentId, false, false); // this might make errors... 
 
         return transition;
+    }
+
+    public static function GetTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false, maxUseTarget:Bool=false):TransitionData
+    {
+        return transitionImporter.getTransition(actorId, targetId, lastUseActor, lastUseTarget, maxUseTarget);
     }
 
     public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false, maxUseTarget:Bool=false):TransitionData
@@ -145,11 +158,21 @@ class TransitionImporter
         return transitionsByTargetId[objDataTarget.id];
     }
 
+    public static function GetTransitionByNewTarget(newTargetId:Int) : Array<TransitionData>
+    {
+        return transitionImporter.getTransitionByNewTarget(newTargetId);
+    }
+
     public function getTransitionByNewTarget(newTargetId:Int) : Array<TransitionData>
     {
         var transitions = transitionsByNewTargetMap[newTargetId];
 
         return transitions != null ? transitions : new Array<TransitionData>(); 
+    }
+
+    public static function GetTransitionByNewActor(newActorId:Int) : Array<TransitionData>
+    {
+        return transitionImporter.getTransitionByNewActor(newActorId);
     }
 
     public function getTransitionByNewActor(newActorId:Int) : Array<TransitionData>

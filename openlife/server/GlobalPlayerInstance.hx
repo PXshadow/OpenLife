@@ -111,22 +111,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function getTrans(actor:ObjectHelper, target:ObjectHelper) : TransitionData
     {
-        return Server.transitionImporter.getTrans(actor, target);
+        return TransitionImporter.GetTrans(actor, target);
     }
 
     public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false, maxUseTarget:Bool=false):TransitionData
     {
-        return Server.transitionImporter.getTransition(actorId, targetId, lastUseActor, lastUseTarget, maxUseTarget);
+        return TransitionImporter.GetTransition(actorId, targetId, lastUseActor, lastUseTarget, maxUseTarget);
     }
 
     public function getTransitionByNewTarget(newTargetId:Int) : Array<TransitionData>
     {
-        return Server.transitionImporter.getTransitionByNewTarget(newTargetId);
+        return TransitionImporter.GetTransitionByNewTarget(newTargetId);
     }
 
     public function getTransitionByNewActor(newActorId:Int) : Array<TransitionData>
     {
-        return Server.transitionImporter.getTransitionByNewActor(newActorId);
+        return TransitionImporter.GetTransitionByNewActor(newActorId);
     }
 
     public function getBiomeId(x:Int, y:Int):Int

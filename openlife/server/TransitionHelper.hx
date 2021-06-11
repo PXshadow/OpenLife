@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.data.transition.TransitionImporter;
 import format.hl.Data.CodeFlag;
 import openlife.settings.ServerSettings;
 import openlife.data.transition.TransitionData;
@@ -309,7 +310,7 @@ class TransitionHelper{
         // 770 + -1 = 0 + 1421
         // Dont tranform this transitionslike claybowl or bana
         // DO NOT!!! 235 + -1 = 382 + 0
-        var transition = Server.transitionImporter.getTransition(this.target.id, -1, false, false);
+        var transition = TransitionImporter.GetTransition(this.target.id, -1, false, false);
 
         if(transition != null)
         {
@@ -409,7 +410,7 @@ class TransitionHelper{
         
         if(tileObjectData.foodValue < 1)
         {
-            transition = Server.transitionImporter.getTransition(0, this.tileObjectData.id, lastUseActorObject, this.target.isLastUse());
+            transition = TransitionImporter.GetTransition(0, this.tileObjectData.id, lastUseActorObject, this.target.isLastUse());
 
             if(transition == null) return false;
 
@@ -502,7 +503,7 @@ class TransitionHelper{
       
         trace('TRANS: search: ${player.heldObject.parentId} + ${target.parentId}');
 
-        var transition = Server.transitionImporter.getTrans(this.player.heldObject, target);
+        var transition = TransitionImporter.GetTrans(this.player.heldObject, target);
 
         if(transition != null) trace('TRANS: found transition!');
 
@@ -512,7 +513,7 @@ class TransitionHelper{
         // Should not work for: 235 + -1 = 382 + 0  Clay Bowl# empty + TIME  -->  Bowl of Water + EMPTY
         if(transition == null && target.id == 0)
         {
-            transition = Server.transitionImporter.getTransition(this.player.heldObject.id, -1, lastUseActor, target.isLastUse());
+            transition = TransitionImporter.GetTransition(this.player.heldObject.id, -1, lastUseActor, target.isLastUse());
 
             // only allow this transition if it is for switching stuff like for horses
             if(transition != null && transition.newTargetID == 0) transition = null; // TODO do right
@@ -523,7 +524,7 @@ class TransitionHelper{
         // check if there is a floor and no object is on the floor. otherwise the object may be overriden
         if((transition == null) && (this.floorId != 0) && (this.tileObjectData.id == 0))
         {
-            transition = Server.transitionImporter.getTransition(this.player.heldObject.id, this.floorId);
+            transition = TransitionImporter.GetTransition(this.player.heldObject.id, this.floorId);
             if(transition != null) targetIsFloor = true;
         }
 
@@ -546,7 +547,7 @@ class TransitionHelper{
         if(transition.reverseUseTarget && this.target.numberOfUses >= newTargetObjectData.numUses)
         {
             trace('TRANS Target: numberOfUses >= newTargetObjectData.numUses: ${this.target.numberOfUses} ${newTargetObjectData.numUses} try use maxUseTransition');
-            transition = Server.transitionImporter.getTransition(this.player.heldObject.id, this.tileObjectData.id, false, false, true);
+            transition = TransitionImporter.GetTransition(this.player.heldObject.id, this.tileObjectData.id, false, false, true);
 
             if(transition == null)
             {
@@ -706,12 +707,12 @@ class TransitionHelper{
         // 1251 + -1 = 235 + 0 lastUseActor: true Bowl of Stew
 
         // for example for a tool like axe lastUseActor: true
-        var toolTransition = Server.transitionImporter.getTransition(objectData.id, -1, true, false);
+        var toolTransition = TransitionImporter.GetTransition(objectData.id, -1, true, false);
         
         // for example for a water bowl lastUseActor: false
         if(toolTransition == null)
         {
-            toolTransition = Server.transitionImporter.getTransition(objectData.id, -1, false, false);
+            toolTransition = TransitionImporter.GetTransition(objectData.id, -1, false, false);
         }
 
         if(toolTransition != null)

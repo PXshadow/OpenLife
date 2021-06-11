@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.transition.TransitionImporter;
 import openlife.data.object.player.PlayerInstance;
 import openlife.macros.Macro;
 import openlife.auto.WorldInterface;
@@ -1187,7 +1188,7 @@ class WorldMap
                 if(randomFloat() < ServerSettings.ChanceForLuckySpot)
                 {
                     //var objData = ObjectData.getObjectData(tmpObj[0]);
-                    var timeTransition = Server.transitionImporter.getTransition(-1, tmpObj[0], false, false);
+                    var timeTransition = TransitionImporter.GetTransition(-1, tmpObj[0], false, false);
                     var random = 2 + randomInt(timeTransition != null ? 3 : 8);
 
                     var tmpRandom = random;               
