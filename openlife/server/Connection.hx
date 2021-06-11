@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.object.ObjectData;
 import haxe.macro.Expr.Catch;
 import sys.thread.Mutex;
 import openlife.settings.ServerSettings;
@@ -33,7 +34,7 @@ class Connection
         this.sock = sock;
         this.server = server;
         var challenge = "dsdjsiojdiasjiodsjiosd";
-        var version = server.dataVersionNumber;
+        var version = ObjectData.dataVersionNumber;
 
         // if it is an AI there is no sock
         if(sock != null) send(SERVER_INFO,["0/0",challenge,'$version']);

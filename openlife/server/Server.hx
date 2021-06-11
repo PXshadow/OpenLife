@@ -36,13 +36,8 @@ class Server
 
     public var map:WorldMap; // THE WORLD
     
-   
-
     public var playerIndex:Int = 2; // used for giving new IDs to players // better start with 2 since -1 has other use in MX update
     
-    
-    public var dataVersionNumber:Int = 0;
-
     public static function main()
     {
         Sys.println("Starting OpenLife Server"#if debug + " in debug mode" #end);
@@ -99,24 +94,9 @@ class Server
         row.insert();
         trace("insert");*/
 
-        // do all the object inititalisation stuff
         Engine.dir = Utility.dir();
-        dataVersionNumber = Resource.dataVersionNumber();
-        trace('dataVersionNumber: $dataVersionNumber');
-        
-        if(ObjectData.ReadAllFromFile(dataVersionNumber) == false)
-        {
-            ObjectData.ImportObjectData();
-            ObjectData.WriteAllToFile(dataVersionNumber);
-        }
 
-        ObjectData.CreatePersonArray();        
-        ObjectData.CreateAndAddDummyObjectData();
-        ObjectData.CreateFoodObjectArray();
-        ServerSettings.PatchObjectData();
-
-        ObjectData.GenerateBiomeObjectData();
-        
+        ObjectData.DoAllTheObjectInititalisationStuff();
 
         // do all the object transition inititalisation stuff
         trace("Import transitions...");
