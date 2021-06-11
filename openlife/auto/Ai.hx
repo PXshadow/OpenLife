@@ -89,6 +89,7 @@ class Ai
         }
         if (text.contains("EAT!"))
         {
+            searchBestFood();
             searchFoodAndEat();
             playerInterface.say("YES CAPTAIN");
         }
@@ -181,7 +182,7 @@ class Ai
         {
             time = 3;
 
-            isHungry = myPlayer.food_store < 10;
+            isHungry = myPlayer.food_store < 15;
 
             if(isHungry && foodTarget == null) searchFoodAndEat();
 
@@ -232,19 +233,28 @@ class Ai
         var world = playerInterface.getWorld();
         var bestFood = null;
         var bestDistance = 0.0;
-        
 
+        var radius = RAD;
+        
         // TODO consider current food vlaue cravings
 
-        for(ty in baseY - RAD...baseY + RAD)
+        for(ty in baseY - radius...baseY + radius)
         {
-            for(tx in baseX - RAD...baseX + RAD)
+            for(tx in baseX - radius...baseX + radius)
             {
-                var obj = world.getObjectHelper(tx, ty, true);
-                if(obj == null) continue;
+                // TODO directly get object data for speed without creating helperobject
+                if(world.getObjectId(tx, ty)[0] == 0) continue; // to speed up dont create object helper for empty objects
 
+                var obj = world.getObjectHelper(tx, ty);
                 var objData = obj.objectData;
+
                 if(objData.dummyParent !=null) objData = objData.dummyParent; // use parent objectdata
+
+                //var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
+                //trace('search food $tx, $ty: foodvalue: ${objData.foodValue} bestdistance: $bestDistance distance: $distance ${obj.description}');
+
+                //var tmp = ObjectData.getObjectData(31);
+                //trace('berry food: ${tmp.foodValue}');
 
                 if(objData.foodValue > 0 || objData.foodFromTarget != null)                    
                 {
@@ -260,7 +270,7 @@ class Ai
             }
         }
 
-        trace('bestfood: $bestDistance ${bestFood.description}');
+        if(bestFood !=null) trace('bestfood: $bestDistance ${bestFood.description}');
 
         return bestFood;
     }
@@ -277,8 +287,9 @@ class Ai
         {
             for(tx in baseX - RAD...baseX + RAD)
             {
-                var obj = world.getObjectHelper(tx, ty, true);
-                if(obj == null) continue;
+                // TODO speed up
+                var obj = world.getObjectHelper(tx, ty);
+                //if(obj == null) continue;
 
                 if(obj.parentId == objData.parentId)                    
                 {
@@ -293,7 +304,7 @@ class Ai
             }
         }
 
-        trace('bestdistance: $bestDistance ${closestObject.description}');
+        if(closestObject !=null) trace('bestdistance: $bestDistance ${closestObject.description}');
 
         return closestObject;
     }
