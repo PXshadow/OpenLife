@@ -30,7 +30,7 @@ class AiHelper
         return (toX - baseX) * (toX - baseX) + (toY - baseY) * (toY - baseY);
     }
 
-    public static function GetClosestObject(playerInterface:PlayerInterface, objData:ObjectData) : ObjectHelper
+    public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData) : ObjectHelper
     {
         var world = playerInterface.getWorld();
         var player = playerInterface.getPlayerInstance();
@@ -43,12 +43,11 @@ class AiHelper
         {
             for(tx in baseX - RAD...baseX + RAD)
             {
-                // TODO speed up
-                var obj = world.getObjectHelper(tx, ty);
-                //if(obj == null) continue;
-
-                if(obj.parentId == objData.parentId)                    
+                var objData = world.getObjectDataAtPosition(tx, ty);
+                
+                if(objData.parentId == objDataToSearch.parentId)  // compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs                    
                 {
+                    var obj = world.getObjectHelper(tx, ty);
                     var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
 
                     if(closestObject == null || distance < bestDistance)

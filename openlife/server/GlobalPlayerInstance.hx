@@ -109,6 +109,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return ObjectData.getObjectData(id);
     }
 
+    //** faster way of getting ObjectData wihout needing to create the object first. Use this instead getObjectHelper if you just want the ObjectData **/
+    public function getObjectDataAtPosition(x:Int, y:Int) : ObjectData
+    {
+        return WorldMap.world.getObjectDataAtPosition(x, y);
+    }
+
     public function getTrans(actor:ObjectHelper, target:ObjectHelper) : TransitionData
     {
         return TransitionImporter.GetTrans(actor, target);

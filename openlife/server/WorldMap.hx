@@ -373,6 +373,17 @@ class WorldMap
         }
     }
 
+    public function getObjectDataAtPosition(x:Int, y:Int) : ObjectData
+    {
+        var helper = objectHelpers[index(x,y)]; 
+
+        if(helper != null) return helper.objectData;
+
+        var objId = getObjectId(x,y);
+
+        return ObjectData.getObjectData(objId[0]);
+    }
+
     public static function worldGetObjectHelper(x:Int, y:Int, allowNull:Bool = false):ObjectHelper
     {
         return Server.server.map.getObjectHelper(x, y, allowNull);

@@ -9,6 +9,8 @@ import openlife.data.object.ObjectHelper;
 interface WorldInterface
 {
     public function getObjectData(id:Int) :ObjectData;
+    //** faster way of getting ObjectData wihout needing to create the object first. Use this instead getObjectHelper if you just want the ObjectData **/
+    public function getObjectDataAtPosition(x:Int, y:Int) : ObjectData;
 
     public function getTrans(actor:ObjectHelper, target:ObjectHelper) : TransitionData;    
     public function getTransition(actorId:Int, targetId:Int, lastUseActor:Bool = false, lastUseTarget:Bool = false, maxUseTarget:Bool=false) : TransitionData;

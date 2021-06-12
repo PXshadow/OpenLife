@@ -211,12 +211,6 @@ class Ai
         // TODO how to handle if you have allready some of the needed objects ready... 
     }
 
-    // is called once a movement is finished (client side it must be called manually after a PlayerUpdate)
-    public function finishedMovement()
-    {
-
-    }
-
     private function searchBestFood() : ObjectHelper
     {
         var player = playerInterface.getPlayerInstance();
@@ -234,11 +228,7 @@ class Ai
         {
             for(tx in baseX - radius...baseX + radius)
             {
-                // TODO directly get object data for speed without creating helperobject
-                if(world.getObjectId(tx, ty)[0] == 0) continue; // to speed up dont create object helper for empty objects
-
-                var obj = world.getObjectHelper(tx, ty);
-                var objData = obj.objectData;
+                var objData = world.getObjectDataAtPosition(tx, ty);
 
                 if(objData.dummyParent !=null) objData = objData.dummyParent; // use parent objectdata
 
@@ -250,6 +240,7 @@ class Ai
 
                 if(objData.foodValue > 0 || objData.foodFromTarget != null)                    
                 {
+                    var obj = world.getObjectHelper(tx, ty);
                     var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
                     //trace('search food: best $bestDistance dist $distance ${obj.description}');
 
@@ -265,6 +256,12 @@ class Ai
         if(bestFood !=null) trace('bestfood: $bestDistance ${bestFood.description}');
 
         return bestFood;
+    }
+
+    // is called once a movement is finished (client side it must be called manually after a PlayerUpdate)
+    public function finishedMovement()
+    {
+
     }
 
     public function emote(player:PlayerInstance,index:Int)
