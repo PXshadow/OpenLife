@@ -30,6 +30,12 @@ class AiHelper
         return (toX - baseX) * (toX - baseX) + (toY - baseY) * (toY - baseY);
     }
 
+    public static function GetClosestObjectById(playerInterface:PlayerInterface, objId:Int) : ObjectHelper
+    {
+        var objData = ObjectData.getObjectData(objId);
+        return GetClosestObject(playerInterface, objData);
+    }
+
     public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData) : ObjectHelper
     {
         var world = playerInterface.getWorld();

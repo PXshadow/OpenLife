@@ -23,10 +23,12 @@ class Ai
 
     var time:Float = 5;
 
-    //var berryHunter:Bool = false;
-    var isHungry = false;
     var foodTarget:ObjectHelper = null; 
     var dropTarget:ObjectHelper = null;
+    var useTarget:ObjectHelper = null;
+
+    //var berryHunter:Bool = false;
+    var isHungry = false;
     var doingAction = false;
 
     var playerToFollow:PlayerInstance;
@@ -103,11 +105,27 @@ class Ai
         if(foodTarget != null) playerInterface.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
     }
 
+    public function dropHeldObject() 
+    {
+        var myPlayer = playerInterface.getPlayerInstance();
+        
+        if(myPlayer.heldObject.id == 0) return;
+
+        var emptyTileObj = playerInterface.GetClosestObjectById(0); // empty
+        dropTarget = emptyTileObj;
+
+        trace('Drop ${emptyTileObj.tx} ${emptyTileObj.ty} $emptyTileObj');
+        // x,y is relativ to birth position, since this is the center of the universe for a player
+        //if(emptyTileObj != null) playerInterface.drop(emptyTileObj.tx - myPlayer.gx, emptyTileObj.ty - myPlayer.gy);
+    }
+
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
         // @PX do time stuff here is called from TimeHelper
 
         var myPlayer = playerInterface.getPlayerInstance();
+
+        if(playerInterface.isMoving()) return;
 
         if(dropTarget != null && playerInterface.isMoving() == false)
         {
@@ -124,15 +142,7 @@ class Ai
             }
             
             return;
-        }
-
-        if(foodTarget == null && playerInterface.isMoving() == false)
-        {
-            if(playerToFollow != null && playerInterface.CalculateDistanceToPlayer(playerToFollow) > 2)
-            {
-                playerInterface.Goto(playerToFollow.tx() + 1 - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
-            }
-        } 
+        }       
 
         if(foodTarget != null && playerInterface.isMoving() == false)
         {
@@ -147,33 +157,110 @@ class Ai
                 //trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
 
                 // TODO eat food if held food is eatable
+                var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
                 
+
+                if(myPlayer.heldObject.id != 0)
+                {
+                    if(heldObjectIsEatable)
+                    {
+                        playerInterface.self(); // eat
+
+                        trace('AI: Eat: held: ${ myPlayer.heldObject.description} food: ${foodTarget.description} foodTarget.numberOfUses ${foodTarget.numberOfUses} emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
+
+                        foodTarget = null;
+                        return;
+                    }
+                    else
+                    {
+                        dropHeldObject();
+
+                        trace('AI: drop held object to eat');
+                        return;
+                    }                                            
+                }
+
+                // pickup food from floor
+                // x,y is relativ to birth position, since this is the center of the universe for a player
+                var done = playerInterface.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy); 
                 
                 var oldNumberOfUses = foodTarget.numberOfUses;
 
-                // x,y is relativ to birth position, since this is the center of the universe for a player
-                var done = playerInterface.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
-                
-                playerInterface.self();
+                heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
+                if(heldObjectIsEatable) playerInterface.self(); // eat
 
-                trace('Eat: ${foodTarget.description} foodTarget.numberOfUses ${foodTarget.numberOfUses} == oldNumberOfUses $oldNumberOfUses || emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
+                trace('AI: Eat: held: ${ myPlayer.heldObject.description} food: ${foodTarget.description} foodTarget.numberOfUses ${foodTarget.numberOfUses} == oldNumberOfUses $oldNumberOfUses || emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
 
-                if(foodTarget.numberOfUses == oldNumberOfUses || myPlayer.food_store_max - myPlayer.food_store < 3)
+                if(foodTarget.numberOfUses == oldNumberOfUses || myPlayer.food_store_max - myPlayer.food_store < 6)
                 {
+                    trace('AI: Eat: set foodTarget to null');
                     foodTarget = null;
                 }
 
-                // drop held object
-                if(myPlayer.heldObject.id > 0)
-                {
-                    var emptyObject = ObjectData.getObjectData(0);
-                    var emptyTileObj = AiHelper.GetClosestObject(playerInterface, emptyObject);
-                    dropTarget = emptyTileObj;
+                dropHeldObject();
+            }       
+            
+            return;
+        } 
 
-                    trace('Eat: Drop ${emptyTileObj.tx} ${emptyTileObj.ty} $emptyTileObj');
-                    // x,y is relativ to birth position, since this is the center of the universe for a player
-                    //if(emptyTileObj != null) playerInterface.drop(emptyTileObj.tx - myPlayer.gx, emptyTileObj.ty - myPlayer.gy);
+        if(foodTarget == null && useTarget != null && playerInterface.isMoving() == false)
+        {
+            var distance = playerInterface.CalculateDistanceToObject(useTarget);
+
+            trace('AI: ${useTarget.description} ${useTarget.tx} ${useTarget.ty} distance: $distance');
+
+            if(distance > 1)
+            {
+                playerInterface.Goto(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
+            }
+            else
+            {
+                // x,y is relativ to birth position, since this is the center of the universe for a player
+                var done = playerInterface.use(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
+
+                trace('AI: ${useTarget.description} done: $done');
+
+                useTarget = null;
+            }
+        }
+
+        if(foodTarget == null && useTarget == null && playerInterface.isMoving() == false)
+        {
+            if(myPlayer.heldObject.id == 33) // 33 Stone // 34 Sharp Stone
+            {
+                // make rock sharp
+                useTarget = playerInterface.GetClosestObjectById(32); // 32 Big Hard Rock   
+                if(useTarget != null) trace('AI: new useTarget ${useTarget.description}');
+            }
+            else if(myPlayer.heldObject.id != 34) // 33 Stone // 34 Sharp Stone
+            {
+                useTarget = playerInterface.GetClosestObjectById(34);
+                
+                if(useTarget != null) trace('AI: new useTarget ${useTarget.description}');
+
+                if(useTarget == null)
+                {
+                    trace('AI: no new useTarget found! Sharp Stone');
+
+                    if(myPlayer.heldObject.id != 33) // 33 Stone // 34 Sharp Stone
+                    {
+                        useTarget = playerInterface.GetClosestObjectById(33); // 33 Stone
+
+                        if(useTarget == null)
+                        {
+                            trace('AI: no new useTarget found! Stone');
+                        }
+                    }
                 }
+            }
+            //useTarget = null;
+        }
+
+        if(foodTarget == null && playerInterface.isMoving() == false)
+        {
+            if(playerToFollow != null && playerInterface.CalculateDistanceToPlayer(playerToFollow) > 2)
+            {
+                playerInterface.Goto(playerToFollow.tx() + 1 - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
             }
         } 
 
