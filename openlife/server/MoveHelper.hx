@@ -225,10 +225,9 @@ class MoveHelper
                 p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
 
                 Connection.SendUpdateToAllClosePlayers(p);
+                Connection.SendToMeAllClosePlayers(p);
 
                 if(p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
-
-                
             }
             catch(ex)
             {
@@ -272,6 +271,7 @@ class MoveHelper
 
             // since move update may acces this also
             p.mutex.acquire(); 
+
             try
             {
                 var moveHelper = p.moveHelper;
@@ -293,18 +293,24 @@ class MoveHelper
 
                 var biomeSpeed = Server.server.map.getBiomeSpeed(x + p.gx, y + p.gy);
                 var isBlockingBiome = biomeSpeed < 0.1;
+                var positionChanged = false;
 
                 if(isBlockingBiome || p.isClose(x,y,ServerSettings.MaxMovementCheatingDistanceBeforeForce) == false)
                 {
+                    positionChanged = true;
                     p.forced = true;
                     p.done_moving_seqNum  = seq;
                     moveHelper.newMoves = null; // cancle all movements
 
-                    trace('MOVE: Force!   Server ${ p.x },${ p.y }:Client ${ x },${ y }');
+                    trace('MOVE: positionChanged Force!   Server ${ p.x },${ p.y }:Client ${ x },${ y }');
                 }
                 else
                 {
-                    if(p.x != x && p.y != y) trace('MOVE: NoForce! Server ${ p.x },${ p.y }:Client ${ x },${ y }');
+                    if(p.x != x || p.y != y)
+                    {
+                        positionChanged = true;
+                        trace('MOVE: positionChanged NoForce! Server ${ p.x },${ p.y }:Client ${ x },${ y }');
+                    }
 
                     p.forced = false;
 
@@ -354,15 +360,19 @@ class MoveHelper
                     moveHelper.tx = p.x;
                     moveHelper.ty = p.y;
         
-                    p.connection.sendMapChunk(p.x,p.y);
-
-                    Connection.SendToMeAllClosePlayers(p);
+                    p.connection.sendMapChunk(p.x,p.y);         
                 }
 
                 if (p.serverAi == null)
                     p.connection.send(PLAYER_UPDATE,[p.toData()]); //this is causing error
 
                 //c.send(PLAYER_MOVES_START,['${player.p_id} ${targetX} ${targetY} ${player.moveHelper.totalMoveTime} $eta ${newMovements.trunc} ${player.moveHelper.moveString(player.moveHelper.newMoves)}']);
+                // TODO 
+                if(positionChanged)
+                {
+                    Connection.SendToMeAllClosePlayers(p);
+                    Connection.SendUpdateToAllClosePlayers(p);
+                }
 
                 Connection.SendMoveUpdateToAllClosePlayers(p, moveHelper.totalMoveTime, newMovements.trunc, moveString(moveHelper.newMoves));
 

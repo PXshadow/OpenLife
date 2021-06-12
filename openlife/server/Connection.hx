@@ -113,7 +113,7 @@ class Connection
 
             // send PU and FRAME also to the connection --> therefore make sure that addToConnections is called first 
             SendUpdateToAllClosePlayers(player); 
-            SendToMeAllClosePlayers(player);
+            SendToMeAllClosePlayers(player);  // TODO may need to send updates for current movements too
             player.sendFoodUpdate();
 
             send(FRAME, null, true);
@@ -182,8 +182,8 @@ class Connection
                 var targetX = player.tx() - c.player.gx;
                 var targetY = player.ty() - c.player.gy;
 
-                // update only close players
-                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+                // update only close players except if player is deleted (death)
+                if(player.deleted == false && c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
                 c.send(PLAYER_UPDATE,[player.toRelativeData(c.player)], isPlayerAction);
                 if(sendFrame) c.send(FRAME, null, isPlayerAction);
@@ -197,31 +197,44 @@ class Connection
         catch(ex) trace(ex);
     }
 
+    public function sendToMeAllClosePlayers(isPlayerAction:Bool = true)
+    {
+        return SendToMeAllClosePlayers(this.player, isPlayerAction);
+    }
+
     public static function SendToMeAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true)
+    {
+        try
         {
-            try
+            player.MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed(); // TODO better change, since it can mess with other threads
+
+            for (c in connections)
             {
-                player.MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed(); // TODO better change, since it can mess with other threads
-    
-                for (c in connections)
-                {
-                    // since player has relative coordinates, transform them for player
-                    var targetX = player.tx() - c.player.gx;
-                    var targetY = player.ty() - c.player.gy;
-    
-                    // update only close players
-                    if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-    
-                    player.connection.send(PLAYER_UPDATE,[c.player.toRelativeData(player)], isPlayerAction);
-                }
-                for (ai in ais)
-                {
-                    player.connection.send(PLAYER_UPDATE,[ai.player.toRelativeData(player)], true);
-                }
-                player.connection.send(FRAME, null, isPlayerAction);
+                // since player has relative coordinates, transform them for player
+                var targetX = player.tx() - c.player.gx;
+                var targetY = player.ty() - c.player.gy;
+
+                // update only close players
+                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+
+                player.connection.send(PLAYER_UPDATE,[c.player.toRelativeData(player)], isPlayerAction);
             }
-            catch(ex) trace(ex);
+
+            for (ai in ais)
+            {
+                // since player has relative coordinates, transform them for player
+                var targetX = player.tx() - ai.player.gx;
+                var targetY = player.ty() - ai.player.gy;
+
+                // update only close players
+                if(ai.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+
+                player.connection.send(PLAYER_UPDATE,[ai.player.toRelativeData(player)], true);
+            }
+            player.connection.send(FRAME, null, isPlayerAction);
         }
+        catch(ex) trace(ex);
+    }
 
     public static function SendTransitionUpdateToAllClosePlayers(player:GlobalPlayerInstance, tx:Int, ty:Int, newFloorId:Int, newTileObject:Array<Int>, doTransition:Bool, isPlayerAction:Bool = true)
     {
@@ -250,9 +263,16 @@ class Connection
                 c.send(FRAME);
             }
 
-            for (ai in ais)
+            for (c in ais)
             {
-                ai.mapUpdate(tx,ty);
+                // since player has relative coordinates, transform them for player
+                var targetX = tx - c.player.gx;
+                var targetY = ty - c.player.gy;
+
+                // update only close players
+                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+
+                c.mapUpdate(tx,ty);
             }
             
         } catch(ex) trace(ex);
@@ -316,9 +336,20 @@ class Connection
                 c.mutex.release();
             }
 
-            for (ai in ais)
+            for (c in ais)
             {
-                ai.mapUpdate(fromTx,fromTy,true);
+                var player = c.player;
+                
+                // since player has relative coordinates, transform them for player
+                var fromX = fromTx - player.gx;
+                var fromY = fromTy - player.gy;
+                var toX = toTx - player.gx;
+                var toY = toTy - player.gy;
+
+                // update only close players
+                if(player.isClose(toX,toY, ServerSettings.maxDistanceToBeConsideredAsClose) == false && player.isClose(fromX,fromY, ServerSettings.maxDistanceToBeConsideredAsClose)) continue;
+
+                c.mapUpdate(fromTx,fromTy,true);
             }
         }
         catch(ex) trace(ex);
@@ -345,9 +376,17 @@ class Connection
                 
                 c.send(FRAME);
             }
-            for (ai in ais)
+
+            for (c in ais)
             {
-                ai.playerMove(player,player.tx(),player.ty());
+                // since player has relative coordinates, transform them for player
+                var targetX = player.tx() - c.player.gx;
+                var targetY = player.ty() - c.player.gy;
+
+                // update only close players
+                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+
+                c.playerMove(player,player.tx(),player.ty());
             }
         } 
         catch(ex) trace(ex);
@@ -490,6 +529,8 @@ class Connection
     */
     public function sendMapUpdate(x:Int, y:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, isPlayerAction:Bool = true)
     {
+        if(serverAi != null) return;
+
         this.mutex.acquire();
 
         try
@@ -506,6 +547,8 @@ class Connection
 
     public function sendMapUpdateForMoving(toX:Int, toY:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, fromX:Int, fromY:Int, speed:Float)
     {
+        if(serverAi != null) return;
+
         this.mutex.acquire();
 
         try
@@ -527,6 +570,7 @@ class Connection
     **/
     public function emote(id:Int)
     {
+        // TODO only send to close players
         this.mutex.acquire();
 
         try
@@ -538,6 +582,7 @@ class Connection
             }
         }
         catch(ex) trace(ex);
+
         this.mutex.release();
 
         try
@@ -546,7 +591,8 @@ class Connection
             {
                 ai.emote(player,id);
             }
-        }catch(ex) trace(ex);
+        }
+        catch(ex) trace(ex);
     }
     
     public function rlogin()

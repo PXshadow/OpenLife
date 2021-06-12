@@ -26,6 +26,9 @@ using openlife.server.MoveHelper;
 // GlobalPlayerInstance is used as a WorldInterface for an AI, since it may be limited what the AI can see so player information is relevant
 class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface
 {
+    // handles all the movement stuff
+    public var moveHelper = new MoveHelper();
+    
     public var name = "";
     public var familyName = "Snow";
 
@@ -37,8 +40,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // additional ObjectInformation for the object stored in backpack or other clothing. The size is 6 since 6 clothing slots
     public var clothingObjects:Vector<ObjectHelper> = new Vector(6); 
 
-    // handles all the movement stuff
-    public var moveHelper = new MoveHelper();
+    
     // is used since move and move update can change the player at the same time
     public var mutex = new Mutex();
 

@@ -96,6 +96,7 @@ class TimeHelper
             Macro.exception(MoveHelper.updateMovement(c.player));
 
             if(TimeHelper.tick % 40 == 0) Macro.exception(updateTemperature(c.player));
+            //if(TimeHelper.tick % 31 == 0) Macro.exception(c.sendToMeAllClosePlayers(false));
         }
         
         for (ai in Connection.getAis())

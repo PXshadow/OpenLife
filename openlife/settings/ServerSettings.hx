@@ -86,7 +86,7 @@ class ServerSettings
     public static var StarvingToDeathMoveSpeedFactorWhileHealthAboveZero = 0.8; // reduces speed if stored food is below 0 and health / yum multiplier > 0
     public static var FoodStoreMaxReductionWhileStarvingToDeath = 5; // reduces food store max with factor XX for each food below 0
 
-    public static var maxDistanceToBeConsideredAsClose = 15; // only close players are updated with PU and MX and Movement 
+    public static var maxDistanceToBeConsideredAsClose = 20; // only close players are updated with PU and MX and Movement 
 
     // for movement
     public static var InitialPlayerMoveSpeed:Float = 3.75; //3.75; // in Tiles per Second
