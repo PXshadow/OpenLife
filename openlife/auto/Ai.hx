@@ -121,6 +121,10 @@ class Ai
 
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
+        time -= timePassedInSeconds;
+
+        if(time > 0) return;
+
         // @PX do time stuff here is called from TimeHelper
 
         var myPlayer = playerInterface.getPlayerInstance();
@@ -139,6 +143,7 @@ class Ai
             {
                 playerInterface.drop(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
                 dropTarget = null;
+                time = 0.5;
             }
             
             return;
@@ -168,6 +173,7 @@ class Ai
 
                         trace('AI: Eat: held: ${ myPlayer.heldObject.description} food: ${foodTarget.description} foodTarget.numberOfUses ${foodTarget.numberOfUses} emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
 
+                        time = 0.2;
                         foodTarget = null;
                         return;
                     }
@@ -198,6 +204,8 @@ class Ai
                 }
 
                 dropHeldObject();
+
+                time = 0.3;
             }       
             
             return;
@@ -220,11 +228,12 @@ class Ai
 
                 trace('AI: ${useTarget.description} done: $done');
 
+                time = 0.2;
                 useTarget = null;
             }
         }
 
-        if(foodTarget == null && useTarget == null && playerInterface.isMoving() == false)
+        if(time < 0 && foodTarget == null && useTarget == null && playerInterface.isMoving() == false)
         {
             if(myPlayer.heldObject.id == 33) // 33 Stone // 34 Sharp Stone
             {
@@ -256,7 +265,7 @@ class Ai
             //useTarget = null;
         }
 
-        if(foodTarget == null && playerInterface.isMoving() == false)
+        if(time < 0 && foodTarget == null && playerInterface.isMoving() == false)
         {
             if(playerToFollow != null && playerInterface.CalculateDistanceToPlayer(playerToFollow) > 2)
             {
@@ -264,11 +273,9 @@ class Ai
             }
         } 
 
-        time -= timePassedInSeconds;
-
         if(time < 0)
         {
-            time = 3;
+            time = 1;
 
             isHungry = myPlayer.food_store < 15;
 
