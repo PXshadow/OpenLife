@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.data.Pos;
 import openlife.auto.Pathfinder.Coordinate;
@@ -10,13 +11,17 @@ import haxe.ds.Vector;
 
 class AiHelper
 {
-    public static function CalculateDistanceToPlayer(player:PlayerInstance, playerTo:PlayerInstance) : Float
+    static final RAD:Int = MapData.RAD; // search radius
+
+    public static function CalculateDistanceToPlayer(playerInterface:PlayerInterface, playerTo:PlayerInstance) : Float
     {
+        var player = playerInterface.getPlayerInstance();
         return CalculateDistance(player.tx(), player.ty(), playerTo.tx(), playerTo.ty());
     }
 
-    public static function CalculateDistanceToObject(player:PlayerInstance, obj:ObjectHelper) : Float
+    public static function CalculateDistanceToObject(playerInterface:PlayerInterface, obj:ObjectHelper) : Float
     {
+        var player = playerInterface.getPlayerInstance();
         return CalculateDistance(player.tx(), player.ty(), obj.tx, obj.ty);
     }
 
@@ -25,16 +30,49 @@ class AiHelper
         return (toX - baseX) * (toX - baseX) + (toY - baseY) * (toY - baseY);
     }
 
-    // TODO goto uses global coordinates
-    public static function Goto(ai:Ai, x:Int,y:Int):Bool
+    public static function GetClosestObject(playerInterface:PlayerInterface, objData:ObjectData) : ObjectHelper
     {
-        var player = ai.playerInterface.getPlayerInstance();
+        var world = playerInterface.getWorld();
+        var player = playerInterface.getPlayerInstance();
+        var baseX = player.tx();
+        var baseY = player.ty();
+        var closestObject = null;
+        var bestDistance = 0.0;
+
+        for(ty in baseY - RAD...baseY + RAD)
+        {
+            for(tx in baseX - RAD...baseX + RAD)
+            {
+                // TODO speed up
+                var obj = world.getObjectHelper(tx, ty);
+                //if(obj == null) continue;
+
+                if(obj.parentId == objData.parentId)                    
+                {
+                    var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
+
+                    if(closestObject == null || distance < bestDistance)
+                    {
+                        closestObject = obj;
+                        bestDistance = distance;
+                    }
+                }
+            }
+        }
+
+        if(closestObject !=null) trace('bestdistance: $bestDistance ${closestObject.description}');
+
+        return closestObject;
+    }
+
+    // TODO goto uses global coordinates
+    public static function Goto(playerInterface:PlayerInterface, x:Int,y:Int):Bool
+    {
+        var player = playerInterface.getPlayerInstance();
 
         var goal:Pos;
         var dest:Pos;
         var init:Pos;
-
-        final RAD:Int = MapData.RAD;
 
         //if (player.x == x && player.y == y || moving) return false;
         //set pos
@@ -52,7 +90,7 @@ class AiHelper
 
         //trace('Goto: $px $py');
 
-        var map = new MapCollision(AiHelper.CreateCollisionChunk(ai.playerInterface));
+        var map = new MapCollision(AiHelper.CreateCollisionChunk(playerInterface));
         //pathing
         var path = new Pathfinder(cast map);
         var paths:Array<Coordinate> = null;
@@ -116,7 +154,7 @@ class AiHelper
         dest = new Pos(px + player.x,py + player.y);
         init = new Pos(player.x,player.y);
         //movePlayer(data);
-        ai.playerInterface.move(player.x,player.y,player.done_moving_seqNum++,data);
+        playerInterface.move(player.x,player.y,player.done_moving_seqNum++,data);
 
         //isMoving = true;
 

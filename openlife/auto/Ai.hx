@@ -74,13 +74,13 @@ class Ai
         }
         if (text.contains("MOVE"))
         {
-            this.Goto(player.tx() + 1 - myPlayer.gx, player.ty() - myPlayer.gy);
+            playerInterface.Goto(player.tx() + 1 - myPlayer.gx, player.ty() - myPlayer.gy);
             playerInterface.say("YES CAPTAIN");
         }
         if (text.contains("FOLLOW ME"))
         {
             playerToFollow = player;
-            this.Goto(player.tx() + 1 - myPlayer.gx, player.ty() - myPlayer.gy);
+            playerInterface.Goto(player.tx() + 1 - myPlayer.gx, player.ty() - myPlayer.gy);
             playerInterface.say("SURE CAPTAIN");
         }
         if (text.contains("STOP"))
@@ -100,7 +100,7 @@ class Ai
     {
         var myPlayer = playerInterface.getPlayerInstance();
         foodTarget = searchBestFood();
-        if(foodTarget != null) this.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+        if(foodTarget != null) playerInterface.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
     }
 
     public function doTimeStuff(timePassedInSeconds:Float) 
@@ -111,11 +111,11 @@ class Ai
 
         if(dropTarget != null && playerInterface.isMoving() == false)
         {
-            var distance = AiHelper.CalculateDistanceToObject(myPlayer, dropTarget);
+            var distance = playerInterface.CalculateDistanceToObject(dropTarget);
 
             if(distance > 1)
             {
-                this.Goto(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
+                playerInterface.Goto(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
             }
             else
             {
@@ -128,19 +128,19 @@ class Ai
 
         if(foodTarget == null && playerInterface.isMoving() == false)
         {
-            if(playerToFollow != null && AiHelper.CalculateDistanceToPlayer(myPlayer, playerToFollow) > 2)
+            if(playerToFollow != null && playerInterface.CalculateDistanceToPlayer(playerToFollow) > 2)
             {
-                this.Goto(playerToFollow.tx() + 1 - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
+                playerInterface.Goto(playerToFollow.tx() + 1 - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
             }
         } 
 
         if(foodTarget != null && playerInterface.isMoving() == false)
         {
-            var distance = AiHelper.CalculateDistanceToObject(myPlayer, foodTarget);
+            var distance = playerInterface.CalculateDistanceToObject(foodTarget);
 
             if(distance > 1)
             {
-                this.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+                playerInterface.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
             }
             else
             {
@@ -167,7 +167,7 @@ class Ai
                 if(myPlayer.heldObject.id > 0)
                 {
                     var emptyObject = ObjectData.getObjectData(0);
-                    var emptyTileObj = getClosestObject(myPlayer, emptyObject);
+                    var emptyTileObj = AiHelper.GetClosestObject(playerInterface, emptyObject);
                     dropTarget = emptyTileObj;
 
                     trace('Eat: Drop ${emptyTileObj.tx} ${emptyTileObj.ty} $emptyTileObj');
@@ -265,40 +265,6 @@ class Ai
         if(bestFood !=null) trace('bestfood: $bestDistance ${bestFood.description}');
 
         return bestFood;
-    }
-
-    public function getClosestObject(player:PlayerInstance, objData:ObjectData) : ObjectHelper
-    {
-        var baseX = player.tx();
-        var baseY = player.ty();
-        var world = playerInterface.getWorld();
-        var closestObject = null;
-        var bestDistance = 0.0;
-
-        for(ty in baseY - RAD...baseY + RAD)
-        {
-            for(tx in baseX - RAD...baseX + RAD)
-            {
-                // TODO speed up
-                var obj = world.getObjectHelper(tx, ty);
-                //if(obj == null) continue;
-
-                if(obj.parentId == objData.parentId)                    
-                {
-                    var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
-
-                    if(closestObject == null || distance < bestDistance)
-                    {
-                        closestObject = obj;
-                        bestDistance = distance;
-                    }
-                }
-            }
-        }
-
-        if(closestObject !=null) trace('bestdistance: $bestDistance ${closestObject.description}');
-
-        return closestObject;
     }
 
     public function emote(player:PlayerInstance,index:Int)
