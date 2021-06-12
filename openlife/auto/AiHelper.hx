@@ -69,9 +69,9 @@ class AiHelper
     {
         var player = playerInterface.getPlayerInstance();
 
-        var goal:Pos;
-        var dest:Pos;
-        var init:Pos;
+        //var goal:Pos;
+        //var dest:Pos;
+        //var init:Pos;
 
         //if (player.x == x && player.y == y || moving) return false;
         //set pos
@@ -140,6 +140,7 @@ class AiHelper
             data.push(new Pos(path.x - tx,path.y - ty));
         }
 
+        /*
         goal = new Pos(x,y);
 
         if (px == goal.x - player.x && py == goal.y - player.y)
@@ -148,12 +149,12 @@ class AiHelper
             //shift goal as well
             goal.x += tweakX;
             goal.y += tweakY;
-        }
+        }*/
 
-        dest = new Pos(px + player.x,py + player.y);
-        init = new Pos(player.x,player.y);
+        //dest = new Pos(px + player.x, py + player.y);
+        //init = new Pos(player.x,player.y);
         //movePlayer(data);
-        playerInterface.move(player.x,player.y,player.done_moving_seqNum++,data);
+        playerInterface.move(player.x, player.y, player.done_moving_seqNum++, data);
 
         //isMoving = true;
 

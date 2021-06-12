@@ -291,11 +291,13 @@ class MoveHelper
                 // TODO maybe make player "exhausted" with lower movementspeed if he "cheats" to much
                 // This could be miss used to double movement speed. But Client seems to do it this way...
 
-                var biomeSpeed = Server.server.map.getBiomeSpeed(x + p.gx, y + p.gy);
-                var isBlockingBiome = biomeSpeed < 0.1;
+                var obj = WorldMap.world.getObjectHelper(x + p.gx, y + p.gy);
+                var isBlocking = obj.blocksWalking() ||  WorldMap.isBiomeBlocking(x + p.gx, y + p.gy); 
+                //var biomeSpeed = Server.server.map.getBiomeSpeed(x + p.gx, y + p.gy);
+                //var isBlockingBiome = biomeSpeed < 0.1;
                 var positionChanged = false;
 
-                if(isBlockingBiome || p.isClose(x,y,ServerSettings.MaxMovementCheatingDistanceBeforeForce) == false)
+                if(isBlocking || p.isClose(x,y,ServerSettings.MaxMovementCheatingDistanceBeforeForce) == false)
                 {
                     positionChanged = true;
                     p.forced = true;
@@ -416,16 +418,24 @@ class MoveHelper
             newMovements.fullPathHasRoad = true;
             
             newMovements.startSpeed = map.getBiomeSpeed(tx,ty);
-                        
+
+            
+
+
             for (move in moves)
             {
                 var tmpX = tx + move.x;
                 var tmpY = ty + move.y;
 
+                var obj = WorldMap.world.getObjectHelper(tmpX, tmpY);
+                var isBlockingObj = obj.blocksWalking();
+                var isBlockingBiome = WorldMap.isBiomeBlocking(tmpX, tmpY);
+
                 // check if biome is not walkable
-                if(map.getBiomeSpeed(tmpX,tmpY) < 0.1)
+                if(isBlockingBiome || isBlockingObj)
                 {
-                    trace('biome ${map.getBiomeId(tmpX,tmpY)} is blocking movement! movement length: ${newMovements.length}');
+                    if(isBlockingBiome) trace('biome ${map.getBiomeId(tmpX,tmpY)} is blocking movement! movement length: ${newMovements.length}');
+                    if(isBlockingObj) trace('object ${obj.description} is blocking movement! movement length: ${newMovements.length}');
                     
                     newMovements.trunc = 1;
 
