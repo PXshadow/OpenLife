@@ -119,14 +119,14 @@ class Ai
         //if(emptyTileObj != null) playerInterface.drop(emptyTileObj.tx - myPlayer.gx, emptyTileObj.ty - myPlayer.gy);
     }
 
+    // do time stuff here is called from TimeHelper
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
         time -= timePassedInSeconds;
 
         if(time > 0) return;
-
-        // @PX do time stuff here is called from TimeHelper
-
+        
+        var world = playerInterface.getWorld();
         var myPlayer = playerInterface.getPlayerInstance();
 
         if(playerInterface.isMoving()) return;
@@ -267,9 +267,18 @@ class Ai
 
         if(time < 0 && foodTarget == null && playerInterface.isMoving() == false)
         {
-            if(playerToFollow != null && playerInterface.CalculateDistanceToPlayer(playerToFollow) > 2)
+            if(playerToFollow != null)
             {
-                playerInterface.Goto(playerToFollow.tx() + 1 - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
+                if(playerInterface.CalculateDistanceToPlayer(playerToFollow) > 2)
+                {
+                    playerInterface.Goto(playerToFollow.tx() + 1 - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
+                }
+            }
+            else
+            {
+                playerToFollow = world.getClosestPlayer(20, true);
+
+                if(playerToFollow != null) trace('AI: follow player ${playerToFollow.p_id}');
             }
         } 
 

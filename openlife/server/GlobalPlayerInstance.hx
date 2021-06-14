@@ -28,7 +28,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 {
     // handles all the movement stuff
     public var moveHelper = new MoveHelper();
-    
+
     public var name = "";
     public var familyName = "Snow";
 
@@ -594,7 +594,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return Connection.getPlayerAt(x,y,playerId);
     }
 
-    public function getClosestPlayer(maxDistance:Int) : GlobalPlayerInstance
+    public function getClosestPlayer(maxDistance:Int, onlyHuman:Bool = false) : GlobalPlayerInstance
     {
         // TODO limit max distance for ai
 
@@ -613,6 +613,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(tmpDistance < distance) player = c.player;
         }
+
+        if(onlyHuman) return player;
 
         for(ai in Connection.getAis())
         {
