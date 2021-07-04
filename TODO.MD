@@ -26,7 +26,7 @@ Summary:
 Not yet implemented:
 - temperature (clothing does already reduce food use up to 66% - Jungle reduces food need 33%)
 - combat
-- player pickup / incarnation / family
+- incarnation / family
 - see more in TODO below
 
 How to setup:
@@ -128,7 +128,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
-- learning tools (hold wrong if not learned)
+- sync movement for multiple players
 - support multiple time transitions see Fishing Pole --> store in ObjectData 
 - animal interactions / collisions
 - give more space for cities in the map
@@ -148,6 +148,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - incarnation
 - multiplayer testing
 - biome locked planting
+- learning tools (hold wrong if not learned)
 - no dropping of stuff on water
 - predefined naming
 - time transitions for objects in container

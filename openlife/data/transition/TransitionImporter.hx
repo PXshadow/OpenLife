@@ -64,7 +64,7 @@ class TransitionImporter
 
                     obj.foodFromTarget = food;    
 
-                    trace('Food Target: ${food.description} actor: ${trans.actorID} <-- ${obj.description} ${obj.id}');
+                    //trace('Food Target: ${food.description} actor: ${trans.actorID} <-- ${obj.description} ${obj.id}');
                 }
                 // TODO food target with tool like sharpstone
                 // For cooking like transitions: Cooked Garlic Shrimp actor: 4324 <-- Hot Coals# +tool 85

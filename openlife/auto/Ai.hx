@@ -27,6 +27,8 @@ class Ai
     var dropTarget:ObjectHelper = null;
     var useTarget:ObjectHelper = null;
 
+    var itemToCraft:IntemToCraft = new IntemToCraft();
+
     //var berryHunter:Bool = false;
     var isHungry = false;
     var doingAction = false;
@@ -96,6 +98,11 @@ class Ai
             searchFoodAndEat();
             playerInterface.say("YES CAPTAIN");
         }
+        if (text.contains("MAKE!"))
+        {
+            craftItem(292); // basket
+            playerInterface.say("YES CAPTAIN");
+        }
     }
 
     public function searchFoodAndEat()
@@ -122,7 +129,8 @@ class Ai
     // do time stuff here is called from TimeHelper
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
-        time -= timePassedInSeconds;
+        // TODO put in again if testing AI
+        // time -= timePassedInSeconds;
 
         if(time > 0) return;
         
@@ -233,7 +241,7 @@ class Ai
             }
         }
 
-        if(time < 0 && foodTarget == null && useTarget == null && playerInterface.isMoving() == false)
+        /*if(time < 0 && foodTarget == null && useTarget == null && playerInterface.isMoving() == false)
         {
             if(myPlayer.heldObject.id == 33) // 33 Stone // 34 Sharp Stone
             {
@@ -263,6 +271,28 @@ class Ai
                 }
             }
             //useTarget = null;
+        }*/
+
+        if(time < 0 && foodTarget == null && useTarget == null && itemToCraft != null && itemToCraft.transActor == null && playerInterface.isMoving() == false)
+        {
+            craftItem(292);
+        }
+
+        if(itemToCraft.transActor != null)
+        {
+            var isHoldingTransActor = itemToCraft.transActor.parentId == myPlayer.heldObject.parentId;
+
+            if(time < 0 && foodTarget == null && isHoldingTransActor && itemToCraft.transTarget != null && playerInterface.isMoving() == false)
+            {
+                // is holding transActor, so set use target to trans target
+                useTarget = itemToCraft.transTarget;
+                itemToCraft.transActor = null;
+                trace('AI: craft: set usetarget to: ${itemToCraft.transTarget.description}');
+            }
+        }
+
+        if(time < 0 && foodTarget == null && useTarget == null && itemToCraft.transActor == null && playerInterface.isMoving() == false)
+        {
         }
 
         if(time < 0 && foodTarget == null && playerInterface.isMoving() == false)
@@ -312,6 +342,84 @@ class Ai
         // TODO if none object is found or if the needed steps from the object you found are too high, search for a better object
         // TODO consider too look for a natural spawned object with the fewest steps on the list
         // TODO how to handle if you have allready some of the needed objects ready... 
+    }
+
+    private function craftItem(objId:Int)
+    {
+        var player = playerInterface.getPlayerInstance();
+        if(player.heldObject.id != 0) return dropHeldObject();
+        
+        var transitionsForObject = playerInterface.SearchTransitions(292); // 292 basket
+        var itemToCraft = searchBestObjectForCrafting(transitionsForObject);
+
+        if(player.heldObject.parentId == itemToCraft.transActor.parentId)
+        {
+
+        }
+
+        useTarget = itemToCraft.transActor;
+
+        var trans = transitionsForObject[useTarget.parentId];
+        var transition = trans.bestTransition;
+        trace('AI: craft' + transition);
+
+
+    }
+
+    private function searchBestObjectForCrafting(transitionsForObject:Map<Int, TransitionForObject>) : IntemToCraft
+    {
+        var itemToCraft = new IntemToCraft();
+        var player = playerInterface.getPlayerInstance();
+        var baseX = player.tx();
+        var baseY = player.ty();
+        var world = playerInterface.getWorld();
+        //var bestObj = null;
+        var bestDistance = 0.0;
+        var bestSteps = 0;
+        var radius = RAD;
+
+        for(ty in baseY - radius...baseY + radius)
+        {
+            for(tx in baseX - radius...baseX + radius)
+            {
+                var objData = world.getObjectDataAtPosition(tx, ty);
+
+                if(objData.id == 0) continue;            
+                if(objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
+
+                // check if object can be used to craft item
+                var trans = transitionsForObject[objData.id];
+                if(trans == null) continue;  
+
+                var steps = trans.steps;        
+                var obj = world.getObjectHelper(tx, ty);
+                var targetObj = playerInterface.GetClosestObjectById(trans.bestTransition.targetID, obj);
+
+                if(targetObj == null)
+                    trace('ai: craft: steps: $steps actor: ${obj.description} target: not found!!!'); // + trans.bestTransition);
+                else 
+                    trace('ai: craft: steps: $steps actor: ${obj.description} target: ${targetObj.id} ${targetObj.description}'); // + trans.bestTransition);
+
+                if(targetObj == null) continue; // TODO check if target can be crafted
+                
+                
+                
+                var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
+                //trace('search food: best $bestDistance dist $distance ${obj.description}');
+
+                if(itemToCraft.transActor == null || steps < bestSteps || (steps == bestSteps && distance < bestDistance))
+                {
+                    itemToCraft.transActor = obj;
+                    itemToCraft.transTarget = targetObj;                    
+                    bestSteps = steps;
+                    bestDistance = distance;
+                }
+            }
+        }
+
+        if(itemToCraft.transActor !=null) trace('ai: craft: steps: $bestSteps bestActor: ${itemToCraft.transActor.description} target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}');
+
+        return itemToCraft;
     }
 
     private function searchBestFood() : ObjectHelper
@@ -392,3 +500,10 @@ class Ai
     }
 }
 
+class IntemToCraft
+{
+    public var transActor:ObjectHelper = null;
+    public var transTarget:ObjectHelper = null;
+
+    public function new() {}
+}
