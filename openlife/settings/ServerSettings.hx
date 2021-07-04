@@ -6,7 +6,7 @@ import haxe.macro.Expr.Catch;
 import sys.io.File;
 import openlife.data.transition.TransitionData;
 import openlife.data.transition.TransitionImporter;
-import openlife.server.WorldMap.BiomeTag;
+import openlife.server.Biome.BiomeTag;
 import openlife.data.object.ObjectData;
 
 @:rtti

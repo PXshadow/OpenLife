@@ -13,7 +13,7 @@ import sys.io.File;
 import openlife.settings.ServerSettings;
 import haxe.Unserializer;
 import haxe.Serializer;
-import openlife.server.WorldMap.BiomeTag;
+import openlife.server.Biome.BiomeTag;
 import openlife.engine.Utility;
 import openlife.engine.Engine;
 import openlife.resources.ObjectBake;

@@ -5,7 +5,7 @@ import haxe.Exception;
 import openlife.macros.Macro;
 import openlife.client.ClientTag;
 import openlife.data.object.ObjectData;
-import openlife.server.WorldMap.BiomeTag;
+import openlife.server.Biome.BiomeTag;
 import openlife.data.transition.TransitionData;
 import openlife.data.object.ObjectHelper;
 import openlife.settings.ServerSettings;
