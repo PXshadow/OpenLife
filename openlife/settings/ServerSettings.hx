@@ -115,6 +115,9 @@ class ServerSettings
     public static var ObjDecayFactorOnFloor:Float = 0.1;
     public static var ObjDecayFactorForFood:Float = 10;
 
+    // AI
+    public static var NumberOfAis:Int = 1;
+
     // combat
     //public static var WoundWhenFoodStoreMaxBelow = 10;
 
