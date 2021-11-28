@@ -259,10 +259,9 @@ class TimeHelper
         }
 
         // do breast feeding
-        // TODO check if player is fertile women
         var heldPlayer = player.heldPlayer;
 
-        if(heldPlayer != null && player.food_store > 1 && heldPlayer.age < ServerSettings.MaxAgeForBreastFeeding && player.isFertile())
+        if(heldPlayer != null && player.food_store > 1 && heldPlayer.age < ServerSettings.MaxChildAgeForBreastFeeding && player.isFertile())
         {
             heldPlayer.mutex.acquire();
 
