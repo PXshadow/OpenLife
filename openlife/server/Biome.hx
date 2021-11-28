@@ -56,8 +56,47 @@ package openlife.server;
     public var SPASSABLERIVER = 0.6;   
 }
 
+@:enum abstract BiomeTemperature(Float) from Float to Float
+{
+    // var truncMovementSpeedDiff = 0.1;
+    // considered as bad biome for horses if speed < 0.999
+    // TODO make fast for specialists 
+    public var TGREEN = 1;  
+    public var TSWAMP = 0.5;  
+    public var TYELLOW = 0.8;
+    public var TGREY = 0.25; 
+    public var TSNOW = 0; 
+    public var TDESERT= 2; // perfect for black
+    public var TJUNGLE = 1.5;  // perfect for brown
+    public var TCBORDERJUNGLE = 1.5; // perfect for brown
+
+    public var TSNOWINGREY = 0.0; 
+    public var TOCEAN = 0.0;  
+    public var TRIVER = 0.0;
+    public var TPASSABLERIVER = 0.2;   
+}
+
 class Biome   
 {
+    public static function getBiomeTemperature(biomeTag:BiomeTag) : Float
+    {
+        return switch biomeTag {
+            case GREEN: SGREEN;
+            case SWAMP: SSWAMP;
+            case YELLOW: SYELLOW;
+            case GREY: SGREY;
+            case SNOW: SSNOW;
+            case DESERT: SDESERT;
+            case JUNGLE: SJUNGLE;
+            case BORDERJUNGLE: SCBORDERJUNGLE;
+            case SNOWINGREY: SSNOWINGREY;
+            case OCEAN: SOCEAN;
+            case RIVER: SRIVER;
+            case PASSABLERIVER: SPASSABLERIVER;
+            default: 1;
+        }
+    }
+
     public function new()
     {
 
