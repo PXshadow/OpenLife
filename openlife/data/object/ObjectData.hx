@@ -434,10 +434,12 @@ class ObjectData extends LineReader
     // link dummy ObjectData for objects with numUse > 2
     public static function CreateAndAddDummyObjectData()
     {
-        var dummyId = importedObjectData[importedObjectData.length-1].id + 1;
-        var starting = dummyId;
+        //var dummyId = importedObjectData[importedObjectData.length-1].id + 1;
+        
+        var startingId = ObjectBake.nextObjectNumber;
+        var dummyId = startingId;
 
-        trace('starting dummyId :$dummyId');
+        trace('starting dummyId :$startingId');
         
         for (i in 0...importedObjectData.length)
         {
@@ -459,7 +461,7 @@ class ObjectData extends LineReader
             }
         }
 
-        trace('finished adding dummy objects with numUse > 2 :${dummyId - starting}');
+        trace('finished adding dummy objects with numUse > 2 :${dummyId - startingId}');
     }
 
     public static function CreateFoodObjectArray()
