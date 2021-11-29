@@ -32,10 +32,12 @@ class ServerSettings
     public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
 
     // PlayerInstance
-    public static var MaxPlayersBeforeStartingAsChild = 0; // 0
+    public static var MaxPlayersBeforeStartingAsChild = -1; // -1
     public static var StartingEveAge = 14;  // 14
+    public static var StartingFamilyName = "Snow";
+    public static var StartingName = "Spoonwood";
     public static var AgingSecondsPerYear = 60; // 60
-    public static var ReduceAgeNeededToPickupObjects = 2; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
+    public static var ReduceAgeNeededToPickupObjects = 3; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
     public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
     public static var MaxChildAgeForBreastFeeding = 10;
     public static var MinAgeFertile = 12;

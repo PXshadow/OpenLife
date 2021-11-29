@@ -387,20 +387,9 @@ class ObjectData extends LineReader
             ObjectData.WriteAllToFile(dataVersionNumber);
         }
 
-        var tmpObj = ObjectData.getObjectData(3158);
-        trace('???2 ${tmpObj.id} ${tmpObj.description}');
-
-        ObjectData.CreatePersonArray(); 
-        var tmpObj = ObjectData.getObjectData(3158);
-        trace('???3 ${tmpObj.id} ${tmpObj.description}');
-        
+        ObjectData.CreatePersonArray();         
         ObjectData.CreateAndAddDummyObjectData();
-        var tmpObj = ObjectData.getObjectData(3158);
-        trace('???4 ${tmpObj.id} ${tmpObj.description}');
         ObjectData.CreateFoodObjectArray();
-
-        var tmpObj = ObjectData.getObjectData(3158);
-        trace('???5 ${tmpObj.id} ${tmpObj.description}');
         ServerSettings.PatchObjectData();
 
         ObjectData.GenerateBiomeObjectData();

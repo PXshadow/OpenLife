@@ -29,8 +29,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // handles all the movement stuff
     public var moveHelper = new MoveHelper();
 
-    public var name = "";
-    public var familyName = "Snow";
+    public var name = ServerSettings.StartingName;
+    public var familyName = ServerSettings.StartingFamilyName;
 
     // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
     //public var heldObject:ObjectHelper; 
@@ -60,6 +60,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var hits:Float = 0;
     public var woundedBy = 0;
 
+    // birth stuff 
+    public var childrenBirthMali:Float = 0;  // increases for each child // reduces for dead childs
+
     public static function GetNumberLifingPlayers() : Int
     {
         var numberLifingPlayers = 0;
@@ -84,7 +87,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.clothingObjects[i] = ObjectHelper.readObjectHelper(this, [0]);
         }
 
-        age = ServerSettings.StartingEveAge;
+        
+
+        if(GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild)
+        {
+            spawnAsEve();
+        }
+        else
+        {
+            if(spawnAsChild() == false)
+            {
+                spawnAsEve();
+            }
+        }
+
         age_r = ServerSettings.AgingSecondsPerYear;
         move_speed = ServerSettings.InitialPlayerMoveSpeed;
 
@@ -100,21 +116,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         food_store = food_store_max / 2;
         yum_multiplier = ServerSettings.MinHealthPerYear * 3; // start with health for 3 years
 
-        if(GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild)
-        {
-            spawnAsEve();
-        }
-        else
-        {
-            if(spawnAsChild() == false)
-            {
-                spawnAsEve();
-            }
-        }
+        
     }
 
     private function spawnAsEve()
     {
+        age = ServerSettings.StartingEveAge;
+        this.trueAge = ServerSettings.StartingEveAge;
+
         // TODO spawn eve in jungle with bananaplants
         gx = ServerSettings.startingGx;
         gy = ServerSettings.startingGy;
@@ -163,25 +172,70 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private function spawnAsChild() : Bool
     {
-        var mother = null;
-        var numberOfLivingChildren = 0;
+        var mother:GlobalPlayerInstance = null;
+        var fitness = -1000.0;
         
+        // TODO consider AI vs player
+
         // search fertile mother
         for (c in Connection.getConnections())
         {            
-            if(c.player.deleted) continue;
-            if(c.player.isFertile() == false) continue;
+            var tmpFitness = CalculateMotherFitness(c.player);
+            trace('Child: Fitness player mother: $tmpFitness ${c.player.name} ${c.player.familyName}');
 
-            mother = c.player;
+            if(tmpFitness < -100) continue;
+
+            if(tmpFitness > fitness || mother == null)
+            {
+                mother = c.player;
+                fitness = tmpFitness;    
+            }
+        }
+
+        // search fertile mother
+        for (ai in Connection.getAis())
+        {           
+            var tmpFitness = CalculateMotherFitness(ai.player);
+            trace('Child: Fitness AI mother: $tmpFitness ${ai.player.name} ${ai.player.familyName}');
+
+            if(tmpFitness < -100) continue;
+
+            if(tmpFitness > fitness || mother == null)
+            {
+                mother = ai.player;
+                fitness = tmpFitness;    
+            }
         }
 
         if(mother == null) return false;
 
+        mother.childrenBirthMali += 1; // make it less likely to get new child
+
+        this.age = 0.01;
+        this.trueAge = 0.01;
         gx = mother.gx;
         gy = mother.gy;
 
+        trace('New child is born to mother: ${mother.name} ${mother.familyName}');
+        
         return true;
     } 
+
+    private static function CalculateMotherFitness(p:GlobalPlayerInstance) : Float
+    {
+        if(p.deleted) return -1000;
+        if(p.isFertile() == false) return -1000;
+        if(p.food_store < 3) return -100; // no starving mothers
+
+        var tmpFitness = p.childrenBirthMali * (-1); // the more children the less likely
+        tmpFitness += p.food_store /= 10; // the more food the more likely 
+        tmpFitness += p.food_store_max /= 10; // the more healthy the more likely 
+        tmpFitness += p.yum_bonus /= 20; // the more yum / prestige the more likely 
+
+        // TODO consider dead children
+        
+        return tmpFitness;
+    }
 
     public function getPlayerInstance() : PlayerInstance
     {
@@ -462,9 +516,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(doFamilyName)
         {
-            if(player.familyName != "Snow") return;
+            if(player.familyName != ServerSettings.StartingFamilyName) return;
         }
-        else if(player.name != "") return;
+        else if(player.name != ServerSettings.StartingName) return;
 
         var strings = text.split(' ');
 
