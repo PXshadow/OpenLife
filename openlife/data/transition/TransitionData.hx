@@ -202,7 +202,7 @@ class TransitionData
       var dontTraceActor = actorDescription.indexOf(ServerSettings.traceTransitionByActorDescription) == -1;
       var dontTraceTarget = targetDescription.indexOf(ServerSettings.traceTransitionByTargetDescription) == -1 ;
 
-      if(forceTrace == false && dontTraceActor && dontTraceTarget && transition.targetID != ServerSettings.traceTransitionByActorId && transition.targetID != ServerSettings.traceTransitionByTargetId) return;
+      if(forceTrace == false && dontTraceActor && dontTraceTarget && transition.actorID != ServerSettings.traceTransitionByActorId && transition.targetID != ServerSettings.traceTransitionByTargetId) return;
 
       var description = getDesciption(smalTrace);
       
