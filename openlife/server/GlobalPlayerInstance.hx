@@ -26,6 +26,10 @@ using openlife.server.MoveHelper;
 // GlobalPlayerInstance is used as a WorldInterface for an AI, since it may be limited what the AI can see so player information is relevant
 class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface
 {
+    public var mother:GlobalPlayerInstance;
+    public var father:GlobalPlayerInstance;
+    public var followPlayer:GlobalPlayerInstance;
+
     // handles all the movement stuff
     public var moveHelper = new MoveHelper();
 
@@ -87,8 +91,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.clothingObjects[i] = ObjectHelper.readObjectHelper(this, [0]);
         }
 
+        // TODO inherit race
+        po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
         
-
         if(GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild)
         {
             spawnAsEve();
@@ -104,7 +109,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         age_r = ServerSettings.AgingSecondsPerYear;
         move_speed = ServerSettings.InitialPlayerMoveSpeed;
 
-        po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
+        
 
         p_id = Server.server.playerIndex++;
         
@@ -116,11 +121,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         food_store = food_store_max / 2;
         yum_multiplier = ServerSettings.MinHealthPerYear * 3; // start with health for 3 years
 
-        
     }
 
     private function spawnAsEve()
     {
+        if(isFemal())
+        {
+            name = "Eve";
+        }
+        else
+        {
+            name = "Adam";
+        }
+        
         age = ServerSettings.StartingEveAge;
         this.trueAge = ServerSettings.StartingEveAge;
 
@@ -129,53 +142,36 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         gy = ServerSettings.startingGy;
     } 
 
-    // TODO Arcurus>> add birth logic - suggestion:
-    // select mother or Admam / Eve
-    // if no mother 50% born as Adam 50 % born as Eve
-    // First companion of Adam is Eve, of Eve it is Adam
-
-    // TODO Arcurus>> "curses" function through dead bodies that are not properly burried
-    // bone pile an normal grave blocks 200 Tiles nearby
-    // bone pile dos not decay
-    // grave with at least a grave stone block for 15 min
-    // additional if you are blocked, you are shown "cursed" to others of you go near
-    // for "cursed" your name is consantly shown in "cursed" color
-    // "cursed" lowers your speed to 80% and pickup of Age 3 items (you can still use if you have one)
-    // "cursed" hinders you to engage with your own dead body 
-    // if you are blocked everywhere you may be born as "lowborn"
-
-    // TODO Arcurus>> birth logic if you are not blocked
-    // mothers on horses / cars cannot have children
-    // mothers who where not close to a male in last 9 months cannot have a child 
-    // mother must be at least 14 and max 40
-    // X2 times chance for each grave with at least a gravestone nearby (100 Tiles)
-    // X1/2 chance for each living child a mother has
-    // X (score this life) / (average this live score of living players) (score is connected to YUM plus extra)
-    
-    // TODO Arcurus>> nobles and low born
-    // If you are top 20% score of currently playing players (min 5 player) you are born as "noble"
-    // If you are lowest 20% score of currently playing players (min 5 player) you are born as "low born"
-    // as noble / low born first noble / low born mothers are considered
-    // (new players have a 50% change of noble birth in their first 5 lifes)
-    // nobels follow by default the leader
-    // by default you follow your mother or / and??? father 50%
-    // if your mother / father dies, you follow the noble of the mother / father
-    // people in a village are distributed as followers among the nobles if a nobles dies
-    
-    // TODO Arcurus>> prince
-    // if you have the highest score in this village (not counting the leader score) you are born as prince / princess to the leader
-    // the eldest prince / princess becomes the crown prince
-    // if there is no prince the noble with the highest score in this village becomes Cancelor
-    // exiles / commands from crown prince / cancelor are valid for all followers if not overriden by the leader
-    // giving a crown from the leader to a noble or prince makes them the new Cancelor / crown prince as long as he keeps the crown. 
-    // A cancelor with a crown will get the new leader in case of the leaders death
-
     private function spawnAsChild() : Bool
+    {
+        var mother:GlobalPlayerInstance = GetFitesstMother();
+
+        if(mother == null) return false;
+
+        // TODO father
+        // TODO set zero when dead because of garbage collection
+        this.mother = mother;
+        this.followPlayer = mother; // the mother is the leader
+
+        // TODO consider dead children for mother fitness
+
+        mother.childrenBirthMali += 1; // make it less likely to get new child
+
+        this.age = 0.01;
+        this.trueAge = 0.01;
+        gx = mother.gx;
+        gy = mother.gy;
+
+        trace('New child is born to mother: ${mother.name} ${mother.familyName}');
+        
+        return true;
+    } 
+
+    // TODO consider AI vs player
+    private static function GetFitesstMother() : GlobalPlayerInstance
     {
         var mother:GlobalPlayerInstance = null;
         var fitness = -1000.0;
-        
-        // TODO consider AI vs player
 
         // search fertile mother
         for (c in Connection.getConnections())
@@ -207,19 +203,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             }
         }
 
-        if(mother == null) return false;
-
-        mother.childrenBirthMali += 1; // make it less likely to get new child
-
-        this.age = 0.01;
-        this.trueAge = 0.01;
-        gx = mother.gx;
-        gy = mother.gy;
-
-        trace('New child is born to mother: ${mother.name} ${mother.familyName}');
-        
-        return true;
-    } 
+        return mother;
+    }
 
     private static function CalculateMotherFitness(p:GlobalPlayerInstance) : Float
     {
@@ -231,8 +216,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         tmpFitness += p.food_store /= 10; // the more food the more likely 
         tmpFitness += p.food_store_max /= 10; // the more healthy the more likely 
         tmpFitness += p.yum_bonus /= 20; // the more yum / prestige the more likely 
-
-        // TODO consider dead children
         
         return tmpFitness;
     }
@@ -1675,9 +1658,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         if(this.age < ServerSettings.MinAgeFertile || this.age > ServerSettings.MaxAgeFertile) return false;
 
-        var person = ObjectData.getObjectData(this.po_id);
+        return isFemal();
+    }
 
+    public function isFemal()
+    {
+        var person = ObjectData.getObjectData(this.po_id);
         return person.male == false; 
+    }
+
+    public function isMale()
+    {
+        var person = ObjectData.getObjectData(this.po_id);
+        return person.male; 
     }
 
     private static function DoDebugCommands(player:GlobalPlayerInstance, text:String)
@@ -1821,3 +1814,46 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
     }
 }
+
+
+
+// TODO Arcurus>> add birth logic - suggestion:
+    // select mother or Admam / Eve
+    // if no mother 50% born as Adam 50 % born as Eve
+    // First companion of Adam is Eve, of Eve it is Adam
+
+    // TODO Arcurus>> "curses" function through dead bodies that are not properly burried
+    // bone pile an normal grave blocks 200 Tiles nearby
+    // bone pile dos not decay
+    // grave with at least a grave stone block for 15 min
+    // additional if you are blocked, you are shown "cursed" to others of you go near
+    // for "cursed" your name is consantly shown in "cursed" color
+    // "cursed" lowers your speed to 80% and pickup of Age 3 items (you can still use if you have one)
+    // "cursed" hinders you to engage with your own dead body 
+    // if you are blocked everywhere you may be born as "lowborn"
+
+    // TODO Arcurus>> birth logic if you are not blocked
+    // mothers on horses / cars cannot have children
+    // mothers who where not close to a male in last 9 months cannot have a child 
+    // mother must be at least 14 and max 40
+    // X2 times chance for each grave with at least a gravestone nearby (100 Tiles)
+    // X1/2 chance for each living child a mother has
+    // X (score this life) / (average this live score of living players) (score is connected to YUM plus extra)
+    
+    // TODO Arcurus>> nobles and low born
+    // If you are top 20% score of currently playing players (min 5 player) you are born as "noble"
+    // If you are lowest 20% score of currently playing players (min 5 player) you are born as "low born"
+    // as noble / low born first noble / low born mothers are considered
+    // (new players have a 50% change of noble birth in their first 5 lifes)
+    // nobels follow by default the leader
+    // by default you follow your mother or / and??? father 50%
+    // if your mother / father dies, you follow the noble of the mother / father
+    // people in a village are distributed as followers among the nobles if a nobles dies
+    
+    // TODO Arcurus>> prince
+    // if you have the highest score in this village (not counting the leader score) you are born as prince / princess to the leader
+    // the eldest prince / princess becomes the crown prince
+    // if there is no prince the noble with the highest score in this village becomes Cancelor
+    // exiles / commands from crown prince / cancelor are valid for all followers if not overriden by the leader
+    // giving a crown from the leader to a noble or prince makes them the new Cancelor / crown prince as long as he keeps the crown. 
+    // A cancelor with a crown will get the new leader in case of the leaders death
