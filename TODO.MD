@@ -83,7 +83,7 @@ Aging:
 SPEED:
 - different speed for different biomes
 - limited speed for lower age < 10 and age > 55
-- starving to death reduces speed X0.5 if not in car or on horse
+- starving to death reduces speed if not in car or on horse
 - objects in container / sub container lower speed
 - horses and cars and carts are slower in bad biomes
 - road reduces speed mali of bad biome and heavy objects
@@ -99,7 +99,7 @@ Food - YUM:
     For eample eats a Yum berry / then eats a YUM onion / Then eats a YUM carrot / 80%  x 66%% = 52% chance that eating YUM carrot restores 1 pip of berry or onion food value   
 - You can only eat if you have space for at least half the food value, not counting YUM or food reduction
 - Extra food is stored as YUM Extra food
-- YUM chain is used as Health 
+- YUM chain is used as Health // TODO change YUM --> Prestiege Max_Food --> Health 
 - eating YUM increases YUM chain, while eating MEH reduces it
 
 Food - Health
@@ -131,19 +131,22 @@ more up in the list means more likely to be implemented first but no gurantee!
 - sync movement for multiple players
 - support multiple time transitions see Fishing Pole --> store in ObjectData 
 - animal interactions / collisions
-- give more space for cities in the map
+- give more space for villages on the map
 - wounds / healing part 2
 - combat / generally allowed
 - better temperature calculation
-- change biome speed for specialists
+- change biome speed / boni for specialists
 - send player out of range update
 - give option to use normal YUM mechanics
 - better map
+- time transitions for objects in container
 - decay stuff in containers
+- decay clothing
 - decay use item for decay like trash
 - decay floors
 - death while holding some one, or riding / driving something or using cart
 - death: baby grave
+- cars are boats
 - reconnection
 - incarnation
 - multiplayer testing
@@ -151,7 +154,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 - learning tools (hold wrong if not learned)
 - no dropping of stuff on water
 - predefined naming
-- time transitions for objects in container
 - do pattern transitions right like rubber horsecart pickup 
 - biome boni for different races
 - leadership

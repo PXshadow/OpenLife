@@ -38,7 +38,7 @@ class ObjectData extends LineReader
     public static var foodObjects:Array<ObjectData> = [];
 
     // to store the different persons
-    // person ==> 4 = White / Brown = 3 / Ginger = 6 / Black = 1  
+    // person ==> White = 4 / Brown = 3 / Ginger = 6 / Black = 1  
     public static var personObjectData:Array<ObjectData> = [];
     public static var maleByRaceObjectData:Map<Int, Array<ObjectData>> = [];
     public static var femaleByRaceObjectData:Map<Int, Array<ObjectData>> = [];
