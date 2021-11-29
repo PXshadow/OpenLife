@@ -378,6 +378,8 @@ class ObjectData extends LineReader
         dataVersionNumber = Resource.dataVersionNumber();
 
         trace('dataVersionNumber: $dataVersionNumber');
+
+        ObjectData.Init();
         
         if(ObjectData.ReadAllFromFile(dataVersionNumber) == false)
         {
@@ -385,12 +387,28 @@ class ObjectData extends LineReader
             ObjectData.WriteAllToFile(dataVersionNumber);
         }
 
-        ObjectData.CreatePersonArray();        
+        var tmpObj = ObjectData.getObjectData(3158);
+        trace('???2 ${tmpObj.id} ${tmpObj.description}');
+
+        ObjectData.CreatePersonArray(); 
+        var tmpObj = ObjectData.getObjectData(3158);
+        trace('???3 ${tmpObj.id} ${tmpObj.description}');
+        
         ObjectData.CreateAndAddDummyObjectData();
+        var tmpObj = ObjectData.getObjectData(3158);
+        trace('???4 ${tmpObj.id} ${tmpObj.description}');
         ObjectData.CreateFoodObjectArray();
+
+        var tmpObj = ObjectData.getObjectData(3158);
+        trace('???5 ${tmpObj.id} ${tmpObj.description}');
         ServerSettings.PatchObjectData();
 
         ObjectData.GenerateBiomeObjectData();
+    }
+
+    public static function Init()
+    {
+        ObjectBake.objectList();
     }
         
     public static function ImportObjectData()
@@ -438,8 +456,9 @@ class ObjectData extends LineReader
         
         var startingId = ObjectBake.nextObjectNumber;
         var dummyId = startingId;
-
+    
         trace('starting dummyId :$startingId');
+        if(startingId < importedObjectData[importedObjectData.length-1].id + 1) throw new Exception('starting dummyId was not loaded correctly!');
         
         for (i in 0...importedObjectData.length)
         {
@@ -929,8 +948,8 @@ class ObjectData extends LineReader
 
     private static function writeToFile(obj:ObjectData, writer:FileOutput)
     {
-        writer.writeFloat(obj.decayFactor);
         writer.writeInt32(obj.id);
+        writer.writeFloat(obj.decayFactor);
         writer.writeInt16(obj.description.length);
         writer.writeString(obj.description);
         writer.writeInt8(obj.containable ? 1 : 0);
@@ -996,12 +1015,13 @@ class ObjectData extends LineReader
         writer.writeInt32(obj.maxWideRadius);
         writer.writeInt8(obj.onlyDescription ? 1 : 0);
         writer.writeInt8(obj.noBackAcess ? 1 : 0);
+        writer.writeInt32(obj.id); // write twice to check if data is corrupted
     }
     //note to future self, if you happen to wander by the client doesn't save special data such as sound data
     public static function readFromFile(obj:ObjectData, reader:FileInput)
-    {
+    {        
+        obj.id = reader.readInt32();
         obj.decayFactor = reader.readFloat();
-		obj.id = reader.readInt32();
 		var len = reader.readInt16();
 		obj.description = reader.readString(len);
 		obj.containable = reader.readInt8() != 0 ? true : false;
@@ -1070,6 +1090,16 @@ class ObjectData extends LineReader
 		obj.maxWideRadius = reader.readInt32();
 		obj.onlyDescription = reader.readInt8() != 0 ? true : false;
 		obj.noBackAcess = reader.readInt8() != 0 ? true : false;
+
+        var tmpId = reader.readInt32();
+        if(obj.id != tmpId)
+        {
+            var errorMessage = 'Read Object Data Corrupted: ObjectId: ${obj.id} != $tmpId';
+            trace(errorMessage);
+            throw new Exception(errorMessage);
+        } 
+
+        //trace('${obj.id}: ' + obj.description);
     }
 
     public static function WriteAllToFile(dataVersionNumber:Int)

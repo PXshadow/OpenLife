@@ -76,7 +76,7 @@ class TransitionImporter
                     targetObj.foodFromTargetWithTool = food;    
                     actorObj.foodFromActor = food;   
 
-                    trace('Food Target With Tool: ${food.description} <-- ${actorObj.id} ${actorObj.description} + ${targetObj.id} ${targetObj.description} ');
+                    //trace('Food Target With Tool: ${food.description} <-- ${actorObj.id} ${actorObj.description} + ${targetObj.id} ${targetObj.description} ');
                 }
             }           
         }

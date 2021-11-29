@@ -180,7 +180,7 @@ class TransitionData
     }
 
     //public function traceTransition(s:String = "", targetDescContains:String = "")
-    public function traceTransition(s:String = "", forceTrace = false, smalTrace = false)
+    public function traceTransition(s:String = "", forceTrace = false, smalTrace = true)
     {
       var transition = this;
 
