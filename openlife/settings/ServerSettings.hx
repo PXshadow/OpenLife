@@ -39,7 +39,7 @@ class ServerSettings
     public static var AgingSecondsPerYear = 60; // 60
     public static var ReduceAgeNeededToPickupObjects = 3; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
     public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
-    public static var MaxChildAgeForBreastFeeding = 10;
+    public static var MaxChildAgeForBreastFeeding = 6;
     public static var MinAgeFertile = 12;
     public static var MaxAgeFertile = 42;
     
@@ -67,13 +67,13 @@ class ServerSettings
     // food stuff
     public static var FoodUsePerSecond = 0.10; // 0.2; // 5 sec per pip // normal game has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good 
     public static var FoodReductionPerEating = 1;
-    public static var MinAgeToEat = 3; // MinAgeToEat and MinAgeFor putting on cloths on their own
+    public static var MinAgeToEat = 5; // MinAgeToEat and MinAgeFor putting on cloths on their own
     public static var GrownUpFoodStoreMax = 25;
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
     public static var DeathWithFoodStoreMax = 0; // Death through starvation if food store max reaches below XX 
     public static var IncreasedFoodNeedForChildren = 1.5; // children need XX food is below GrownUpAge
-    public static var YumBonus = 3; // First team eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
+    public static var YumBonus = 3; // First time eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
     public static var YumFoodRestore = 0.8; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food
     public static var YumNewCravingChance = 0.2; // XX chance that a new random craving is chosen even if there are existing ones
 
