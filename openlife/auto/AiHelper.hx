@@ -66,7 +66,7 @@ class AiHelper
             }
         }
 
-        if(closestObject !=null) trace('bestdistance: $bestDistance ${closestObject.description}');
+        //if(closestObject !=null) trace('AI: bestdistance: $bestDistance ${closestObject.description}');
 
         return closestObject;
     }
@@ -76,6 +76,8 @@ class AiHelper
     {
         var player = playerInterface.getPlayerInstance();
 
+        
+
         //var goal:Pos;
         //var dest:Pos;
         //var init:Pos;
@@ -84,6 +86,8 @@ class AiHelper
         //set pos
         var px = x - player.x;
         var py = y - player.y;
+
+        trace('AAI: GOTO: From: ${player.x},${player.y} To: $x $y / FROM ${player.tx()},${player.ty()} To: ${x + player.gx},${y + player.gy}');
 
         if(px == 0 && py == 0) return false; // no need to move
 
