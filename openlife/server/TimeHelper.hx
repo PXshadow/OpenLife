@@ -38,6 +38,8 @@ class TimeHelper
 
         while (true)
         {
+            //WorldMap.world.mutex.acquire(); // TODO Change
+
             TimeHelper.tick = Std.int(TimeHelper.tick + 1);
 
             var timeSinceStart:Float = Sys.time() - TimeHelper.serverStartingTime;
@@ -68,6 +70,8 @@ class TimeHelper
             
             timeSinceStart = Sys.time() - TimeHelper.serverStartingTime;
 
+            //WorldMap.world.mutex.release(); // TODO Change
+
             if(timeSinceStartCountedFromTicks > timeSinceStart)
             {
                 var sleepTime = timeSinceStartCountedFromTicks - timeSinceStart;
@@ -75,7 +79,7 @@ class TimeHelper
 
                 //trace('sleep: ${sleepTime}');
                 Sys.sleep(sleepTime);
-            }
+            }   
         }
     }
 

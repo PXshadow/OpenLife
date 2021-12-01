@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.macros.Macro;
 import openlife.auto.PlayerInterface;
 import openlife.auto.Ai;
 import openlife.settings.ServerSettings;
@@ -143,7 +144,13 @@ class Server
         string = string.substring(index + 1);
         var array = string.split(" ");
         if (array.length == 0) return;
-        message(connection,tag,array,string);
+
+
+        //WorldMap.world.mutex.acquire(); // TODO Change
+
+        Macro.exception(message(connection,tag,array,string));
+        
+        //WorldMap.world.mutex.release(); // TODO Change
     }
 
     /**
