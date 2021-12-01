@@ -67,8 +67,8 @@ class ServerSettings
     // food stuff
     public static var FoodUsePerSecond = 0.10; // 0.2; // 5 sec per pip // normal game has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good 
     public static var FoodReductionPerEating = 1;
-    public static var MinAgeToEat = 5; // MinAgeToEat and MinAgeFor putting on cloths on their own
-    public static var GrownUpFoodStoreMax = 25;
+    public static var MinAgeToEat = 3; // MinAgeToEat and MinAgeFor putting on cloths on their own
+    public static var GrownUpFoodStoreMax = 15;
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
     public static var DeathWithFoodStoreMax = 0; // Death through starvation if food store max reaches below XX 
@@ -89,9 +89,9 @@ class ServerSettings
     public static var GrownUpAge = 14; // is used for AgingFactorWhileStarvingToDeath and for increase food need for children
     public static var StarvingToDeathMoveSpeedFactor = 0.5; // reduces speed if stored food is below 0
     public static var StarvingToDeathMoveSpeedFactorWhileHealthAboveZero = 0.8; // reduces speed if stored food is below 0 and health / yum multiplier > 0
-    public static var FoodStoreMaxReductionWhileStarvingToDeath = 5; // reduces food store max with factor XX for each food below 0
+    public static var FoodStoreMaxReductionWhileStarvingToDeath = 4; // (5) reduces food store max with factor XX for each food below 0
 
-    public static var maxDistanceToBeConsideredAsClose = 20; // only close players are updated with PU and MX and Movement 
+    public static var maxDistanceToBeConsideredAsClose = 200; //20; // only close players are updated with PU and MX and Movement 
 
     // for movement
     public static var InitialPlayerMoveSpeed:Float = 3.75; //3.75; // in Tiles per Second
