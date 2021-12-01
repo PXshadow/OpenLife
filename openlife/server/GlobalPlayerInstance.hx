@@ -156,9 +156,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // TODO consider dead children for mother fitness
 
         mother.childrenBirthMali += 1; // make it less likely to get new child
+        if(mother.mother != null) mother.mother.childrenBirthMali += 0.5; // make it less likely to get new child for each grandkid
 
-        this.age = 0.01;
-        this.trueAge = 0.01;
+        this.age = 30; //0.01;
+        this.trueAge = 30;//0.01;
         gx = mother.gx;
         gy = mother.gy;
 
@@ -319,14 +320,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     }
 
     // TODO better use relative toData which transforms x,y to relative position
-    
-
     public function toRelativeData(forPlayer:PlayerInstance):String
     {
         var heldObject = o_id[0] < 0 ?  '${o_id[0]}' : MapData.stringID(o_id);
         return toData(
-            gx - forPlayer.gx,
-            gy - forPlayer.gy,
+            tx() - forPlayer.gx,
+            ty() - forPlayer.gy,
             Std.int(age * 100) / 100, Std.int(age_r * 100) / 100,
             Std.int(move_speed * 100) / 100,
              heldObject
