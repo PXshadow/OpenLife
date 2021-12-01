@@ -217,15 +217,26 @@ class MoveHelper
                 moveHelper.totalMoveTime = 0;
                 moveHelper.startingMoveTicks = 0;
                 moveHelper.newMoves = null;
-                    
+
+                var oldX = p.x;
+                var oldY = p.y;
+
                 p.x += last.x; 
                 p.y += last.y;
                 
+                if(p.connection.serverAi == null) trace('reached position: g${p.tx()},g${p.ty()} FROM ${oldX},${oldY} TO ${p.x},${p.y}');
+                else trace('AAI: GOTO: FROM ${oldX},${oldY} TO ${p.x},${p.y} / FROM g${p.tx()- last.x},g${p.ty()- last.y} TO g${p.tx()},g${p.ty()} reached position!');
+
+                
+                
                 p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
                 p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
+                //p.forced = true; // TODO change
 
                 Connection.SendUpdateToAllClosePlayers(p);
-                Connection.SendToMeAllClosePlayers(p);
+                //Connection.SendToMeAllClosePlayers(p); // TODO change
+
+                //p.forced = false; // TODO change
 
                 if(p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
             }
@@ -237,7 +248,7 @@ class MoveHelper
             p.mutex.release();
             //WorldMap.world.mutex.release();
 
-            trace('reached position: g${p.tx()},g${p.ty()} ${p.x},${p.y}');
+            
         }
     }
 
