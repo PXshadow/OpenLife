@@ -383,7 +383,7 @@ class MoveHelper
                 // TODO 
                 if(positionChanged)
                 {
-                    Connection.SendToMeAllClosePlayers(p);
+                    //Connection.SendToMeAllClosePlayers(p); // TODO may make problems with moving players
                     Connection.SendUpdateToAllClosePlayers(p);
                 }
 
