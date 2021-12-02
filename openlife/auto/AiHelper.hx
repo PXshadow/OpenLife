@@ -87,7 +87,7 @@ class AiHelper
         var px = x - player.x;
         var py = y - player.y;
 
-        trace('AAI: GOTO: From: ${player.x},${player.y} To: $x $y / FROM ${player.tx()},${player.ty()} To: ${x + player.gx},${y + player.gy}');
+        //trace('AAI: GOTO: From: ${player.x},${player.y} To: $x $y / FROM ${player.tx()},${player.ty()} To: ${x + player.gx},${y + player.gy}');
 
         if(px == 0 && py == 0) return false; // no need to move
 
@@ -267,18 +267,20 @@ class AiHelper
 
                 count++;
             }
+
+            if(count > 50) break; // TODO remove
         }
 
-        trace('search: $count transtions found! ${Sys.time() - startTime}');
+        trace('AI trans search: $count transtions found! ${Sys.time() - startTime}');
 
-        /*
+        
         for(key in transitionsForObject.keys())            
         {
             var trans = transitionsForObject[key].getDesciption();
 
-            trace('Search: ${trans}');
+            trace('AI Search: ${trans}');
         }
-        */
+        
 
         return transitionsForObject;
 
@@ -294,9 +296,12 @@ class AiHelper
                 transitionForObject = new TransitionForObject(objId, steps, wantedObjId, transition);
                 transitionForObject.steps = steps;
                 transitionForObject.bestTransition = transition;
-                transitionForObject.transitions.push(new TransitionForObject(objId, steps, wantedObjId, transition));
+                //transitionForObject.transitions.push(new TransitionForObject(objId, steps, wantedObjId, transition));
+                transitionForObject.transitions.push(transition);
 
                 transitionsForObject[objId] = transitionForObject;
+
+                return;
         }
 
         if(transitionForObject.steps > steps)
@@ -305,7 +310,8 @@ class AiHelper
             transitionForObject.bestTransition = transition;
         } 
 
-        transitionForObject.transitions.push(new TransitionForObject(objId, steps, wantedObjId, transition));
+        //transitionForObject.transitions.push(new TransitionForObject(objId, steps, wantedObjId, transition));
+        transitionForObject.transitions.push(transition);
     }
    
     //time routine
@@ -321,7 +327,12 @@ class TransitionForObject
 
     public var bestTransition:TransitionData;
 
-    public var transitions:Array<TransitionForObject> = [];
+    public var transitions:Array<TransitionData> = [];
+
+    //public var transitions:Array<TransitionForObject> = [];
+
+    public var closestObject:ObjectHelper;
+    public var closestObjectDistance:Float;
 
     public function new(objId:Int, steps:Int, wantedObjId:Int, transition:TransitionData) 
     {

@@ -575,7 +575,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         this.mutex.acquire();
 
-        trace('say: $text');
+        //trace('say: $text');
 
         try
         {

@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.settings.ServerSettings;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.ObjectData;
 import openlife.data.transition.TransitionData;
@@ -129,15 +130,11 @@ class Ai
     // do time stuff here is called from TimeHelper
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
-        // TODO put in again if testing AI
         time -= timePassedInSeconds;
 
         if(time > 0) return;
-        time = 0.2; // minimum AI reacting time
+        time += 0.5; // minimum AI reacting time
         
-        var world = playerInterface.getWorld();
-        var myPlayer = playerInterface.getPlayerInstance();
-
         //trace('AI:1');
         if(playerInterface.isMoving()) return;
 
@@ -157,41 +154,27 @@ class Ai
         //trace('AI:5');
         if(isUsingItem()) return;
         trace('AI:6');
+
+        if(itemToCraft != null && itemToCraft.countDone >= itemToCraft.count) return;
         
-        craftItem(292); // 292 basket
-        
-        return;
+        //craftItem(292); // 292 basket
+        craftItem(34,3); // 34 sharpstone
+        //craftItem(124); // Reed Bundle
+        //craftItem(224); // Harvested Wheat
+    
 
-        if(itemToCraft.transActor != null)
-        {
-            var isHoldingTransActor = itemToCraft.transActor.parentId == myPlayer.heldObject.parentId;
 
-            if(time < 0 && foodTarget == null && isHoldingTransActor && itemToCraft.transTarget != null && playerInterface.isMoving() == false)
-            {
-                // is holding transActor, so set use target to trans target
-                useTarget = itemToCraft.transTarget;
-                itemToCraft.transActor = null;
-                trace('AI: craft: set usetarget to: ${itemToCraft.transTarget.description}');
-            }
-        }
-
-        if(time < 0 && foodTarget == null && useTarget == null && itemToCraft.transActor == null && playerInterface.isMoving() == false)
-        {
-        }
-
-        
-
-        // TODO look if any of the objects you see is in transitionsForObject
         // TODO if none object is found or if the needed steps from the object you found are too high, search for a better object
         // TODO consider too look for a natural spawned object with the fewest steps on the list
-        // TODO how to handle if you have allready some of the needed objects ready... 
     }
 
-    private function craftItem(objId:Int) : Bool
+    // TODO consider held object / backpack
+    // TODO consider if object is reachable
+    private function craftItem(objId:Int, count:Int = 1) : Bool
     {
         var player = playerInterface.getPlayerInstance();
 
-        if(itemToCraft != null && player.heldObject.parentId == itemToCraft.transActor.parentId)
+        if(itemToCraft != null && itemToCraft.transActor != null && player.heldObject.parentId == itemToCraft.transActor.parentId)
         {
             useTarget = itemToCraft.transTarget;
             return true;
@@ -202,13 +185,32 @@ class Ai
              dropHeldObject();
              return true;
         }
+
+        var countDone = 0;
+        var countTransitionsDone = 0;
+
+        if(itemToCraft != null)
+        {
+            countDone = itemToCraft.countDone;
+            countTransitionsDone = itemToCraft.countTransitionsDone;
+        }
         
         var transitionsForObject = playerInterface.SearchTransitions(objId); 
         itemToCraft = searchBestObjectForCrafting(transitionsForObject);
-
-        
+        itemToCraft.itemToCraft = ObjectData.getObjectData(objId);
+        itemToCraft.count = count;
+        itemToCraft.countDone = countDone;
+        itemToCraft.countTransitionsDone = countTransitionsDone;
 
         useTarget = itemToCraft.transActor;
+
+        if(itemToCraft.transActor == null)
+        {
+            trace('AI: craft: did not find any item in search radius for crafting!');
+            return false;
+        }
+
+        trace(itemToCraft.transActor.description);
 
         var trans = transitionsForObject[useTarget.parentId];
         var transition = trans.bestTransition;
@@ -222,15 +224,15 @@ class Ai
     private function searchBestObjectForCrafting(transitionsForObject:Map<Int, TransitionForObject>) : IntemToCraft
     {
         var itemToCraft = new IntemToCraft();
+        var world = playerInterface.getWorld();
         var player = playerInterface.getPlayerInstance();
         var baseX = player.tx();
         var baseY = player.ty();
-        var world = playerInterface.getWorld();
-        //var bestObj = null;
         var bestDistance = 0.0;
         var bestSteps = 0;
-        var radius = RAD;
+        var radius = ServerSettings.AiSearchRadius;
 
+        // go through all close by objects and map them to the best transition
         for(ty in baseY - radius...baseY + radius)
         {
             for(tx in baseX - radius...baseX + radius)
@@ -242,37 +244,65 @@ class Ai
 
                 // check if object can be used to craft item
                 var trans = transitionsForObject[objData.id];
-                if(trans == null) continue;  
+                if(trans == null) continue;  // object is not useful for crafting wanted object 
 
                 var steps = trans.steps;        
-                var obj = world.getObjectHelper(tx, ty);
-                var targetObj = playerInterface.GetClosestObjectById(trans.bestTransition.targetID, obj);
-
-                /*
-                if(targetObj == null)
-                    trace('ai: craft: steps: $steps actor: ${obj.description} target: not found!!!'); // + trans.bestTransition);
-                else 
-                    trace('ai: craft: steps: $steps actor: ${obj.description} target: ${targetObj.id} ${targetObj.description}'); // + trans.bestTransition);
-                */
-
-                if(targetObj == null) continue; // TODO check if target can be crafted
+                var obj = world.getObjectHelper(tx, ty);                
+                var objDistance = playerInterface.CalculateDistanceToObject(obj);
                 
+                if(trans.closestObject != null && trans.closestObjectDistance <= objDistance) continue; // there is a closer object of same type
                 
-                
-                var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
-                //trace('search food: best $bestDistance dist $distance ${obj.description}');
-
-                if(itemToCraft.transActor == null || steps < bestSteps || (steps == bestSteps && distance < bestDistance))
-                {
-                    itemToCraft.transActor = obj;
-                    itemToCraft.transTarget = targetObj;                    
-                    bestSteps = steps;
-                    bestDistance = distance;
-                }
+                trans.closestObject = obj;
+                trans.closestObjectDistance = objDistance;        
             }
         }
 
-        if(itemToCraft.transActor !=null) trace('ai: craft: steps: $bestSteps bestActor: ${itemToCraft.transActor.description} target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}');
+        // search for the best doable transition with actor and target
+        for(trans in transitionsForObject)
+        {
+            if(trans.closestObject == null) continue;
+
+            var bestTargetTrans = null; //transitionsForObject[trans.bestTransition.targetID];
+            var bestTargetDistance = -1.0;
+
+            //  search for the best doable transition with target
+            // TODO does not yet consider best steps
+            for(targetTrans in trans.transitions)
+            {
+                if(targetTrans.actorID != trans.closestObject.parentId) continue;
+
+                var tmpTargetTrans = transitionsForObject[targetTrans.targetID];
+
+                if(tmpTargetTrans == null) continue;
+
+                if(tmpTargetTrans.closestObject == null) continue;
+
+                if(bestTargetTrans != null && bestTargetDistance <= tmpTargetTrans.closestObjectDistance) continue;
+
+                bestTargetTrans = tmpTargetTrans;
+                bestTargetDistance = tmpTargetTrans.closestObjectDistance;
+            }
+
+            if(bestTargetTrans == null) continue;
+
+            var targetObject = bestTargetTrans.closestObject;
+
+            if(targetObject == null) continue;
+
+            var steps = trans.steps;
+            var obj = trans.closestObject;
+            var distance = trans.closestObjectDistance + bestTargetDistance; // actor plus target distance
+
+            if(itemToCraft.transActor == null || steps < bestSteps || (steps == bestSteps && distance < bestDistance))
+            {
+                itemToCraft.transActor = obj;
+                itemToCraft.transTarget = targetObject;                    
+                bestSteps = steps;
+                bestDistance = distance;
+            }
+        }
+
+        if(itemToCraft.transActor != null) trace('ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}');
 
         return itemToCraft;
     }
@@ -288,7 +318,7 @@ class Ai
             trace('AAI: follow player ${playerToFollow.p_id}');
         }
 
-        if(playerInterface.CalculateDistanceToPlayer(playerToFollow) > 16)
+        if(playerInterface.CalculateDistanceToPlayer(playerToFollow) > 25)
         {
             trace('AAI: goto player');
 
@@ -446,7 +476,7 @@ class Ai
 
         if(isHungry && foodTarget == null) searchFoodAndEat();
 
-        playerInterface.say('F ${Math.round(playerInterface.getPlayerInstance().food_store)}}');
+        playerInterface.say('F ${Math.round(playerInterface.getPlayerInstance().food_store)}');
 
         //trace('AAI: F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');
         
@@ -472,6 +502,16 @@ class Ai
 
         // x,y is relativ to birth position, since this is the center of the universe for a player
         var done = playerInterface.use(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
+
+        if(done && itemToCraft != null)
+        {
+            itemToCraft.countTransitionsDone += 1; 
+            var taregtObjectId = playerInterface.getWorld().getObjectId(useTarget.tx, useTarget.ty)[0];
+            // if object to create is held by player or is on ground, then cound as done
+            if(myPlayer.heldObject.parentId == itemToCraft.itemToCraft.parentId || taregtObjectId == itemToCraft.itemToCraft.parentId) itemToCraft.countDone += 1;
+
+            trace('AAI: ItemToCraft: ${itemToCraft.itemToCraft.description} transtions done: ${itemToCraft.countTransitionsDone} done: ${itemToCraft.countDone}');
+        }
 
         trace('AAI: ${useTarget.description} done: $done');
 
@@ -560,6 +600,12 @@ class Ai
 
 class IntemToCraft
 {
+    public var itemToCraft:ObjectData;
+    public var count:Int = 1; // how many items to craft
+    public var countDone:Int = 0; // allready crafted
+    public var countTransitionsDone:Int = 0; // transitions done while crafting
+
+
     public var transActor:ObjectHelper = null;
     public var transTarget:ObjectHelper = null;
 

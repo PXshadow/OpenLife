@@ -267,7 +267,7 @@ class PlayerInstance
         if (move_speed == null)
             move_speed = this.move_speed;
 
-        trace('AAI: p$p_id $rx,$ry');
+        //trace('AAI: p$p_id $rx,$ry');
         return '$p_id $po_id $facing $action $action_target_x $action_target_y $heldObject $o_origin_valid $o_origin_x $o_origin_y $o_transition_source_id $heat $done_moving_seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${Std.int(age*100)/100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
     }
 }
