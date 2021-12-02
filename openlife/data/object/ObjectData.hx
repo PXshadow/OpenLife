@@ -20,6 +20,27 @@ import openlife.resources.ObjectBake;
 import haxe.io.Input;
 import haxe.ds.Vector;
 import openlife.data.sound.SoundData;
+
+@:enum abstract PersonColor(Int) from Int to Int
+{
+    public var Black = 1;
+    public var Brown = 3;
+    public var White = 4;
+    public var Ginger = 6;
+
+    public static function getPersonColorByBiome(biome:Int) : Int
+    {
+        if(biome == BiomeTag.DESERT) return PersonColor.Black;
+        if(biome == BiomeTag.JUNGLE) return PersonColor.Brown;
+        if(biome == BiomeTag.SWAMP) return PersonColor.White;
+        if(biome == BiomeTag.SNOW) return PersonColor.Ginger;
+
+        return -1; 
+    }
+}
+
+
+
 @:expose
 @:rtti
 class ObjectData extends LineReader

@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.server.Biome.BiomeTag;
 import haxe.macro.Expr;
 import openlife.macros.Macro;
 import openlife.data.transition.TransitionImporter;
@@ -170,14 +171,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var female = ServerSettings.ChanceForFemaleChild > WorldMap.calculateRandomFloat(); 
         var personsByColor = female ? ObjectData.femaleByRaceObjectData : ObjectData.maleByRaceObjectData;
         var rand = WorldMap.calculateRandomFloat();
-        var otherColorThenMom = ServerSettings.ChanceForOtherChildColor > rand;
+        var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx(), this.ty());
+        var closeToWrongSpecialBiome = (closeSpecialBiomePersonColor > 0) && (motherColor != closeSpecialBiomePersonColor);
+        var otherColorThenMom = closeToWrongSpecialBiome ? ServerSettings.ChanceForOtherChildColorIfCloseToWrongSpecialBiome > rand : ServerSettings.ChanceForOtherChildColor > rand;
 
         //trace('New child Rand: ${ServerSettings.ChanceForOtherChildColor} > $rand $otherColorThenMom '); 
 
         if(otherColorThenMom)
         {
-            // TODO consider close biome and or Y position for warmer / cold
-            var colder = WorldMap.calculateRandomFloat() > 0.5; 
+            var colder;
+            if(closeToWrongSpecialBiome)
+            {
+                colder = closeSpecialBiomePersonColor > motherColor; // lucky currently higher race Id means colder biome :)
+
+                trace('Child: $colder closeSpecialBiomePersonColor: $closeSpecialBiomePersonColor > $motherColor');
+            }
+            else colder = WorldMap.calculateRandomFloat() > 0.5; 
+
             color = getCloseColor(motherColor, colder);
 
             trace('New child has other color then mother: motherColor: $motherColor color: $color colderbiome: $colder'); 
@@ -209,6 +219,37 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(color == 1) return 3; // Black --> Brown
 
         return -1;
+    }
+    // Snow --> Ginger / Swamp --> White / Jungle --> Brown / Desert --> Black
+    public static function getCloseSpecialBiomePersonColor(x:Int, y:Int) : Int
+    {
+        var maxSearch = 200;
+        var biome = -1;
+        var personColorByBiome = -1;
+        var ii = 0;
+
+        for(ii in 0...maxSearch)
+        {
+            biome = WorldMap.world.getBiomeId(x + ii, y + ii);
+            personColorByBiome = PersonColor.getPersonColorByBiome(biome);
+            if(personColorByBiome > 0) break;
+
+            biome = WorldMap.world.getBiomeId(x - ii, y + ii);
+            personColorByBiome = PersonColor.getPersonColorByBiome(biome);
+            if(personColorByBiome > 0) break;
+
+            biome = WorldMap.world.getBiomeId(x + ii, y - ii);
+            personColorByBiome = PersonColor.getPersonColorByBiome(biome);
+            if(personColorByBiome > 0) break;
+
+            biome = WorldMap.world.getBiomeId(x - ii, y - ii);
+            personColorByBiome = PersonColor.getPersonColorByBiome(biome);
+            if(personColorByBiome > 0) break;
+        }
+
+        trace('Child: closeSpecialBiome: $biome personColor: $personColorByBiome distance: $ii');
+
+        return personColorByBiome;
     }
 
     // TODO consider AI vs player
