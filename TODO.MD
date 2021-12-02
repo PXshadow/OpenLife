@@ -26,7 +26,7 @@ Summary:
 Not yet implemented:
 - temperature (clothing does already reduce food use up to 66% - Jungle reduces food need 33%)
 - combat
-- incarnation / family
+- incarnation acording to prestige score
 - see more in TODO below
 
 How to setup:
@@ -52,6 +52,9 @@ MAP:
 - No dry spring and dry tarry spot
 - no gradients
 - no expert waystones
+
+Family:
+- Children are now more likely to be born closer to special biome color. With this one Eve can create all colors if people migrate...
 
 
 World:
@@ -128,6 +131,8 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
+- saving of peopledata so that people come back after serverrestart
+- basic nursing AI
 - sync movement for multiple players
 - support multiple time transitions see Fishing Pole --> store in ObjectData 
 - animal interactions / collisions
@@ -164,8 +169,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - server stats
 - curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
 - fences / gates
-- score / score boni
-- families
+- score / score boni / score incarnation
 - / commands 
 - leader commands
 - maps / maps on waystone
