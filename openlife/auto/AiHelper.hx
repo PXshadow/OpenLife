@@ -200,7 +200,6 @@ class AiHelper
 
     public static function SearchTransitions(playerInterface:PlayerInterface, objectIdToSearch:Int) : Map<Int, TransitionForObject>
     {    
-        // TODO might be good to also allow multiple transitions for one object
         var world = playerInterface.getWorld();
         var transitionsByObject = new Map<Int, TransitionData>();
         var transitionsForObject = new Map<Int, TransitionForObject>();
@@ -231,6 +230,7 @@ class AiHelper
 
             for(trans in transitions)
             {
+                // TODO ???
                 if(transitionsByObject.exists(trans.actorID) || transitionsByObject.exists(trans.targetID)) continue;
 
                 //if(count < 10000) trans.traceTransition('AI stepsCount: $stepsCount count: $count:', true);
@@ -268,7 +268,7 @@ class AiHelper
                 count++;
             }
 
-            if(count > 50) break; // TODO remove
+            if(count > 100) break; // TODO remove
         }
 
         trace('AI trans search: $count transtions found! ${Sys.time() - startTime}');
@@ -296,8 +296,8 @@ class AiHelper
                 transitionForObject = new TransitionForObject(objId, steps, wantedObjId, transition);
                 transitionForObject.steps = steps;
                 transitionForObject.bestTransition = transition;
-                //transitionForObject.transitions.push(new TransitionForObject(objId, steps, wantedObjId, transition));
-                transitionForObject.transitions.push(transition);
+                transitionForObject.transitions.push(new TransitionForObject(objId, steps, wantedObjId, transition));
+                //transitionForObject.transitions.push(transition);
 
                 transitionsForObject[objId] = transitionForObject;
 
@@ -310,8 +310,8 @@ class AiHelper
             transitionForObject.bestTransition = transition;
         } 
 
-        //transitionForObject.transitions.push(new TransitionForObject(objId, steps, wantedObjId, transition));
-        transitionForObject.transitions.push(transition);
+        transitionForObject.transitions.push(new TransitionForObject(objId, steps, wantedObjId, transition));
+        //transitionForObject.transitions.push(transition);
     }
    
     //time routine
@@ -327,9 +327,9 @@ class TransitionForObject
 
     public var bestTransition:TransitionData;
 
-    public var transitions:Array<TransitionData> = [];
+    //public var transitions:Array<TransitionData> = [];
 
-    //public var transitions:Array<TransitionForObject> = [];
+    public var transitions:Array<TransitionForObject> = [];
 
     public var closestObject:ObjectHelper;
     public var closestObjectDistance:Float;

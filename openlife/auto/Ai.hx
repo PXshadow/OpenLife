@@ -168,8 +168,10 @@ class Ai
         // TODO consider too look for a natural spawned object with the fewest steps on the list
     }
 
-    // TODO consider held object / backpack
+    // TODO consider held object / backpack / contained objects
     // TODO consider if object is reachable
+    // TODO reconsider closest objects after reached first object
+    // TODO store transitions for crafting to have faster lookup
     private function craftItem(objId:Int, count:Int = 1) : Bool
     {
         var player = playerInterface.getPlayerInstance();
@@ -264,23 +266,28 @@ class Ai
 
             var bestTargetTrans = null; //transitionsForObject[trans.bestTransition.targetID];
             var bestTargetDistance = -1.0;
+            var bestTargetSteps = -1;
 
             //  search for the best doable transition with target
             // TODO does not yet consider best steps
             for(targetTrans in trans.transitions)
             {
-                if(targetTrans.actorID != trans.closestObject.parentId) continue;
+                if(targetTrans.bestTransition.actorID != trans.closestObject.parentId) continue;
 
-                var tmpTargetTrans = transitionsForObject[targetTrans.targetID];
+                var tmpTargetTrans = transitionsForObject[targetTrans.bestTransition.targetID];
 
                 if(tmpTargetTrans == null) continue;
 
                 if(tmpTargetTrans.closestObject == null) continue;
 
-                if(bestTargetTrans != null && bestTargetDistance <= tmpTargetTrans.closestObjectDistance) continue;
+                var steps = tmpTargetTrans.steps;
 
-                bestTargetTrans = tmpTargetTrans;
-                bestTargetDistance = tmpTargetTrans.closestObjectDistance;
+                if(bestTargetTrans == null || bestTargetSteps > steps || (bestTargetSteps == steps && tmpTargetTrans.closestObjectDistance < bestTargetDistance))
+                {
+                    bestTargetTrans = tmpTargetTrans;
+                    bestTargetDistance = tmpTargetTrans.closestObjectDistance;
+                    bestTargetSteps = steps;
+                }
             }
 
             if(bestTargetTrans == null) continue;
@@ -289,15 +296,15 @@ class Ai
 
             if(targetObject == null) continue;
 
-            var steps = trans.steps;
+            //var steps = trans.steps;
             var obj = trans.closestObject;
             var distance = trans.closestObjectDistance + bestTargetDistance; // actor plus target distance
 
-            if(itemToCraft.transActor == null || steps < bestSteps || (steps == bestSteps && distance < bestDistance))
+            if(itemToCraft.transActor == null || bestTargetSteps < bestSteps || (bestTargetSteps == bestSteps && distance < bestDistance))
             {
                 itemToCraft.transActor = obj;
                 itemToCraft.transTarget = targetObject;                    
-                bestSteps = steps;
+                bestSteps = bestTargetSteps;
                 bestDistance = distance;
             }
         }
