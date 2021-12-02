@@ -27,6 +27,8 @@ using openlife.server.MoveHelper;
 // GlobalPlayerInstance is used as a WorldInterface for an AI, since it may be limited what the AI can see so player information is relevant
 class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface
 {
+    public static var lastEveOrAdam:GlobalPlayerInstance; 
+
     // make sure to set these null is player is deleted so that garbage collector can clean up
     public var mother:GlobalPlayerInstance;
     public var father:GlobalPlayerInstance;
@@ -105,11 +107,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // TODO on big map dont spawn eve too far away
         // TODO less hostile environment for eve (since the plan is to make human free nature more dangerous)
         // TODO give a certain eve birth %
-        // TODO spawn Adam / Eve to Eve / Adam if not there
 
         po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
         
-        if(GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild)
+        var spawnEve = lastEveOrAdam !=null || GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild;
+
+        if(spawnEve)
         {
             spawnAsEve();
         }
@@ -140,16 +143,38 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         gx = ServerSettings.startingGx;
         gy = ServerSettings.startingGy;
 
-        // give eve the right color fitting to closest special biome
-        var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx(), this.ty());
-        if(closeSpecialBiomePersonColor > 0)
+        if(lastEveOrAdam == null)
         {
-            var female = ServerSettings.ChanceForFemaleChild >= 0.5;
+            lastEveOrAdam = this;
+
+            // give eve the right color fitting to closest special biome
+            var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx(), this.ty());
+            if(closeSpecialBiomePersonColor > 0)
+            {
+                var female = ServerSettings.ChanceForFemaleChild >= 0.5;
+                var personsByColor = female ? ObjectData.femaleByRaceObjectData : ObjectData.maleByRaceObjectData;
+                var persons = personsByColor[closeSpecialBiomePersonColor];
+                po_id = persons[WorldMap.calculateRandomInt(persons.length-1)].id; 
+
+                trace('Child is an EVE / ADAM with color: ${this.getColor()}');
+            }
+        }
+        else
+        {
+            // Spawn An Eve / Adam is to last Eve / Adam
+            this.followPlayer = lastEveOrAdam;
+
+            gx = lastEveOrAdam.tx();
+            gy = lastEveOrAdam.ty();
+
+            var female = lastEveOrAdam.isFemal() == false;
             var personsByColor = female ? ObjectData.femaleByRaceObjectData : ObjectData.maleByRaceObjectData;
-            var persons = personsByColor[closeSpecialBiomePersonColor];
+            var persons = personsByColor[lastEveOrAdam.getColor()];
             po_id = persons[WorldMap.calculateRandomInt(persons.length-1)].id; 
 
-            trace('Child is an EVE / ADAM with color: ${this.getColor()}');
+            lastEveOrAdam = null;
+
+            trace('An Eve / Adam is born to an Eve / Adam with color: ${this.getColor()}');
         }
 
         name = isFemal() ? "Eve" : "Adam";
@@ -161,6 +186,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // TODO spawn in different classes (noble / citizen / worker)
     // TODO spawn noobs more likely noble
     // TODO spawn in hand of mother???
+    // TODO dont spawn as child if far too much children
     private function spawnAsChild() : Bool
     {
         var mother:GlobalPlayerInstance = GetFitesstMother();
@@ -178,8 +204,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         mother.childrenBirthMali += 1; // make it less likely to get new child
         if(mother.mother != null) mother.mother.childrenBirthMali += 0.5; // make it less likely to get new child for each grandkid
 
-        this.age = 30; //0.01;
-        this.trueAge = 30;//0.01;
+        this.age = 0.01;
+        this.trueAge = 0.01;
         gx = mother.tx();
         gy = mother.ty();
 
