@@ -146,11 +146,11 @@ class Server
         if (array.length == 0) return;
 
 
-        //WorldMap.world.mutex.acquire(); // TODO Change
+        if(ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.acquire(); 
 
         Macro.exception(message(connection,tag,array,string));
         
-        //WorldMap.world.mutex.release(); // TODO Change
+        if(ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.release();
     }
 
     /**

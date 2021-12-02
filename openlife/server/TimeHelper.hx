@@ -38,7 +38,7 @@ class TimeHelper
 
         while (true)
         {
-            //WorldMap.world.mutex.acquire(); // TODO Change
+            if(ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.acquire(); 
 
             TimeHelper.tick = Std.int(TimeHelper.tick + 1);
 
@@ -70,7 +70,7 @@ class TimeHelper
             
             timeSinceStart = Sys.time() - TimeHelper.serverStartingTime;
 
-            //WorldMap.world.mutex.release(); // TODO Change
+            if(ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.release(); 
 
             if(timeSinceStartCountedFromTicks > timeSinceStart)
             {

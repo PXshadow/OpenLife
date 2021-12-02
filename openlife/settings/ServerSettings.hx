@@ -15,6 +15,7 @@ class ServerSettings
     // DEBUG: switch on / off
     public static var dumpOutput = false;
     public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation // deactivates saving
+    public static var useOneGlobalMutex = false; // if you want to try out if there a problems with mutexes / different threads
     public static var saveToDisk = true; 
     public static var AllowDebugCommmands = true; // can create objects with saying "create ID" / "create object" "create object!" with ! indicating that object ends with "object" or test wounds with using "hit" or "heal"
     public static var DebugWrite = false; // WordMap writeToDisk
@@ -119,7 +120,8 @@ class ServerSettings
     public static var ChanceForAnimalDying = 0.0005; // For each movement there is X chance that the animal dies  
     public static var MaxOffspringFactor = 1; // The population can only be at max X times the initial population
 
-    public static var WorldTimeParts = 25; // in each tick 1/XX DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX * 10 
+    // world decay / respawm
+    public static var WorldTimeParts = 25; // TODO better auto calculate on time used // in each tick 1/XX DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX * 10 
     public static var ObjRespawnChance = 0.001; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
     public static var ObjDecayChance = 0.0002; // 0.001; (X0.08)
     public static var ObjDecayFactorOnFloor:Float = 0.1;
@@ -127,6 +129,7 @@ class ServerSettings
 
     // AI
     public static var NumberOfAis:Int = 1;
+    public static var AiSearchRadius:Int = 32;
 
     // combat
     //public static var WoundWhenFoodStoreMaxBelow = 10;
@@ -167,10 +170,12 @@ class ServerSettings
         ObjectData.getObjectData(769).mapChance *= 5; // Wild Horse
         ObjectData.getObjectData(942).mapChance *= 10; // Muddy Iron Vein
         ObjectData.getObjectData(2135).mapChance /= 3; // Rubber Tree
+        ObjectData.getObjectData(530).mapChance /= 2; // Bald Cypress Tree
+        
         ObjectData.getObjectData(2156).mapChance *= 0.5; // Less UnHappy Mosquitos
         ObjectData.getObjectData(2156).biomes.push(BiomeTag.SWAMP); // Evil Mosquitos now also in Swamp
         
-        
+        // More Wolfs needs the world
         ObjectData.getObjectData(418).biomes.push(BiomeTag.YELLOW); // Happy Wolfs now also in Yellow biome :)
         ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
         ObjectData.getObjectData(418).mapChance *= 1.5; // More Happy Wolfs
