@@ -164,10 +164,26 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         gx = mother.tx();
         gy = mother.ty();
 
+        
         var motherColor = mother.getColor();
-        var female = ServerSettings.ChanceForFemaleChild < WorldMap.calculateRandomFloat(); 
+        var color = motherColor;
+        var female = ServerSettings.ChanceForFemaleChild > WorldMap.calculateRandomFloat(); 
         var personsByColor = female ? ObjectData.femaleByRaceObjectData : ObjectData.maleByRaceObjectData;
-        var persons = personsByColor[motherColor];
+        var rand = WorldMap.calculateRandomFloat();
+        var otherColorThenMom = ServerSettings.ChanceForOtherChildColor > rand;
+
+        //trace('New child Rand: ${ServerSettings.ChanceForOtherChildColor} > $rand $otherColorThenMom '); 
+
+        if(otherColorThenMom)
+        {
+            // TODO consider close biome and or Y position for warmer / cold
+            var colder = WorldMap.calculateRandomFloat() > 0.5; 
+            color = getCloseColor(motherColor, colder);
+
+            trace('New child has other color then mother: motherColor: $motherColor color: $color colderbiome: $colder'); 
+        }
+
+        var persons = personsByColor[color];
         po_id = persons[WorldMap.calculateRandomInt(persons.length-1)].id; 
         
         trace('New child is born to mother: ${mother.name} ${mother.familyName} female: $female motherColor: $motherColor childColor: ${this.getColor()}');
@@ -175,12 +191,24 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return true;
     } 
 
+    // person ==> Ginger = 6 / White = 4 / Brown = 3 /  Black = 1  
     public function getColor() : Int
     {
         var obj = ObjectData.getObjectData(po_id);
         if(obj == null) return -1;
 
         return obj.person;
+    }
+
+    // returns a more close color. Ginger --> White --> Brown --> Black
+    public static function getCloseColor(color:Int, colder:Bool) : Int
+    {
+        if(color == 6) return 4; // Ginger --> White
+        if(color == 4) return colder ? 6 : 3; // White --> Ginger or Brown
+        if(color == 3) return colder ? 4 : 1; // Brown --> White or Black
+        if(color == 1) return 3; // Black --> Brown
+
+        return -1;
     }
 
     // TODO consider AI vs player

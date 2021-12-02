@@ -31,8 +31,11 @@ class ServerSettings
     public static var traceTransitionByTargetId = 9992710; // set to object id which you want to debug
     public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
 
-    // PlayerInstance
+    // birth
     public static var ChanceForFemaleChild = 0.6;
+    public static var ChanceForOtherChildColor = 0.2;
+
+    // PlayerInstance
     public static var MaxPlayersBeforeStartingAsChild = -1; // -1
     public static var StartingEveAge = 14;  // 14
     public static var StartingFamilyName = "Snow";
