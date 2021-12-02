@@ -379,6 +379,9 @@ class Connection
 
         try
         {
+            // set all stuff null so that nothing is hanging around
+            this.player.delete();
+
             // it copies the connection array to be thread save 
             // other threads should meanwhile be able to iterate on connections. replaces: //connections.remove(this);
             var newConnections = [];

@@ -27,9 +27,13 @@ using openlife.server.MoveHelper;
 // GlobalPlayerInstance is used as a WorldInterface for an AI, since it may be limited what the AI can see so player information is relevant
 class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface
 {
+    // make sure to set these null is player is deleted so that garbage collector can clean up
     public var mother:GlobalPlayerInstance;
     public var father:GlobalPlayerInstance;
     public var followPlayer:GlobalPlayerInstance;
+
+    public var heldPlayer:GlobalPlayerInstance;
+    public var heldByPlayer:GlobalPlayerInstance;
 
     // handles all the movement stuff
     public var moveHelper = new MoveHelper();
@@ -37,14 +41,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var name = ServerSettings.StartingName;
     public var familyName = ServerSettings.StartingFamilyName;
 
-    // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
-    //public var heldObject:ObjectHelper; 
-    public var heldPlayer:GlobalPlayerInstance;
-    public var heldByPlayer:GlobalPlayerInstance;
-
     // additional ObjectInformation for the object stored in backpack or other clothing. The size is 6 since 6 clothing slots
     public var clothingObjects:Vector<ObjectHelper> = new Vector(6); 
-
     
     // is used since move and move update can change the player at the same time
     public var mutex = new Mutex();
@@ -67,6 +65,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     // birth stuff 
     public var childrenBirthMali:Float = 0;  // increases for each child // reduces for dead childs
+
+    // set all stuff null so that nothing is hanging around
+    public function delete()
+        {
+            this.mother = null;
+            this.father = null;
+            this.followPlayer = null;
+    
+            this.heldPlayer = null;
+            this.heldByPlayer = null;
+        }
 
     public static function GetNumberLifingPlayers() : Int
     {
@@ -92,7 +101,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.clothingObjects[i] = ObjectHelper.readObjectHelper(this, [0]);
         }
 
-        // TODO inherit race
+        // TODO create different eves
+        // TODO search most empty special biome for eve
+        // TODO on big map dont spawn eve to far away
+        // TODO less hostile environment for eve (since the plan is to make human free nature more dangerous)
+        // TODO give a certain eve birth %
+        // TODO spawn Adam / Eve to Eve / Adam if not there
+        // TODO higher change of children for smaler families
+        // TODO spawn acording to presitge score
+        // TODO spawn in different classes (noble / citizen / worker)
+        // TODO spawn noobs more likely noble
+
         po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
         
         if(GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild)
@@ -107,21 +126,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             }
         }
 
-        age_r = ServerSettings.AgingSecondsPerYear;
-        move_speed = ServerSettings.InitialPlayerMoveSpeed;
-
-        
-
         p_id = Server.server.playerIndex++;
-        
-        food_store = ServerSettings.GrownUpFoodStoreMax / 2;
-        food_store_max = ServerSettings.GrownUpFoodStoreMax;
+        age_r = ServerSettings.AgingSecondsPerYear;
 
         move_speed = MoveHelper.calculateSpeed(this, gx, gy);
+        
         food_store_max = calculateFoodStoreMax();
         food_store = food_store_max / 2;
         yum_multiplier = ServerSettings.MinHealthPerYear * 3; // start with health for 3 years
-
     }
 
     private function spawnAsEve()
@@ -230,6 +242,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         for(ii in 0...maxSearch)
         {
+            // diagonal search
             biome = WorldMap.world.getBiomeId(x + ii, y + ii);
             personColorByBiome = PersonColor.getPersonColorByBiome(biome);
             if(personColorByBiome > 0) break;
@@ -243,6 +256,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             if(personColorByBiome > 0) break;
 
             biome = WorldMap.world.getBiomeId(x - ii, y - ii);
+            personColorByBiome = PersonColor.getPersonColorByBiome(biome);
+            if(personColorByBiome > 0) break;
+
+            // cross search
+            biome = WorldMap.world.getBiomeId(x + ii, y);
+            personColorByBiome = PersonColor.getPersonColorByBiome(biome);
+            if(personColorByBiome > 0) break;
+
+            biome = WorldMap.world.getBiomeId(x - ii, y);
+            personColorByBiome = PersonColor.getPersonColorByBiome(biome);
+            if(personColorByBiome > 0) break;
+
+            biome = WorldMap.world.getBiomeId(x, y + ii);
+            personColorByBiome = PersonColor.getPersonColorByBiome(biome);
+            if(personColorByBiome > 0) break;
+
+            biome = WorldMap.world.getBiomeId(x, y - ii);
             personColorByBiome = PersonColor.getPersonColorByBiome(biome);
             if(personColorByBiome > 0) break;
         }
