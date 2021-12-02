@@ -148,8 +148,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(mother == null) return false;
 
+        // TODO use childFood for birth and childfeeding
         // TODO father
-        // TODO set zero when dead because of garbage collection
+        // TODO set zero if dead because of garbage collection
         this.mother = mother;
         this.followPlayer = mother; // the mother is the leader
 
@@ -160,13 +161,27 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         this.age = 30; //0.01;
         this.trueAge = 30;//0.01;
-        gx = mother.gx;
-        gy = mother.gy;
+        gx = mother.tx();
+        gy = mother.ty();
 
-        trace('New child is born to mother: ${mother.name} ${mother.familyName}');
+        var motherColor = mother.getColor();
+        var female = ServerSettings.ChanceForFemaleChild < WorldMap.calculateRandomFloat(); 
+        var personsByColor = female ? ObjectData.femaleByRaceObjectData : ObjectData.maleByRaceObjectData;
+        var persons = personsByColor[motherColor];
+        po_id = persons[WorldMap.calculateRandomInt(persons.length-1)].id; 
+        
+        trace('New child is born to mother: ${mother.name} ${mother.familyName} female: $female motherColor: $motherColor childColor: ${this.getColor()}');
         
         return true;
     } 
+
+    public function getColor() : Int
+    {
+        var obj = ObjectData.getObjectData(po_id);
+        if(obj == null) return -1;
+
+        return obj.person;
+    }
 
     // TODO consider AI vs player
     private static function GetFitesstMother() : GlobalPlayerInstance
