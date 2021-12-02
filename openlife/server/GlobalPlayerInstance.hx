@@ -101,16 +101,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.clothingObjects[i] = ObjectHelper.readObjectHelper(this, [0]);
         }
 
-        // TODO create different eves
         // TODO search most empty special biome for eve
-        // TODO on big map dont spawn eve to far away
+        // TODO on big map dont spawn eve too far away
         // TODO less hostile environment for eve (since the plan is to make human free nature more dangerous)
         // TODO give a certain eve birth %
         // TODO spawn Adam / Eve to Eve / Adam if not there
-        // TODO higher change of children for smaler families
-        // TODO spawn acording to presitge score
-        // TODO spawn in different classes (noble / citizen / worker)
-        // TODO spawn noobs more likely noble
 
         po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
         
@@ -138,23 +133,34 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private function spawnAsEve()
     {
-        if(isFemal())
-        {
-            name = "Eve";
-        }
-        else
-        {
-            name = "Adam";
-        }
-        
         age = ServerSettings.StartingEveAge;
         this.trueAge = ServerSettings.StartingEveAge;
 
         // TODO spawn eve in jungle with bananaplants
         gx = ServerSettings.startingGx;
         gy = ServerSettings.startingGy;
+
+        // give eve the right color fitting to closest special biome
+        var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx(), this.ty());
+        if(closeSpecialBiomePersonColor > 0)
+        {
+            var female = ServerSettings.ChanceForFemaleChild >= 0.5;
+            var personsByColor = female ? ObjectData.femaleByRaceObjectData : ObjectData.maleByRaceObjectData;
+            var persons = personsByColor[closeSpecialBiomePersonColor];
+            po_id = persons[WorldMap.calculateRandomInt(persons.length-1)].id; 
+
+            trace('Child is an EVE / ADAM with color: ${this.getColor()}');
+        }
+
+        name = isFemal() ? "Eve" : "Adam";
     } 
 
+
+    // TODO higher change of children for smaler families
+    // TODO spawn acording to prestiege score
+    // TODO spawn in different classes (noble / citizen / worker)
+    // TODO spawn noobs more likely noble
+    // TODO spawn in hand of mother???
     private function spawnAsChild() : Bool
     {
         var mother:GlobalPlayerInstance = GetFitesstMother();
