@@ -212,6 +212,9 @@ class AiHelper
         transitionsToProcess.push(world.getTransitionByNewTarget(objectIdToSearch)); 
         transitionsToProcess.push(world.getTransitionByNewActor(objectIdToSearch)); 
 
+        //var tmpTrans = world.getTransitionByNewTarget(objectIdToSearch);
+        //trace('TEST' + tmpTrans);
+
         steps.push(stepsCount);
         steps.push(stepsCount);
 
@@ -228,15 +231,43 @@ class AiHelper
             stepsCount = steps.shift();
             var wantedObjId = wantedObjIds.shift();
 
+            //if(transitionsByObject.exists(wantedObjId)) continue;
+
             for(trans in transitions)
             {
                 // TODO ???
-                if(transitionsByObject.exists(trans.actorID) || transitionsByObject.exists(trans.targetID)) continue;
+                //if(transitionsByObject.exists(trans.actorID) || transitionsByObject.exists(trans.targetID)) continue;
+
+                //if(trans.newActorID == 34 ) trace('TEST1 WANTED: $wantedObjId T: ' + trans.getDesciption(true));
+                 trace('TEST1 WANTED: $wantedObjId T: ' + trans.getDesciption(true));
+                //  Not helpful to create a basket 292 + 211 = 336 + 411 / Basket + Fertile Soil Deposit  -->  Basket of Soil + Fertile Soil Pit#partial
+                // TODO allow if new actor or target is closer to wanted object
+                // like fill a basket of soil to create a basket
+                if(transitionsByObject.exists(trans.actorID) && trans.newActorID != trans.actorID && trans.newActorID != objectIdToSearch)
+                {
+                    var tmpActor = transitionsForObject[trans.actorID];
+                    var actorSteps = tmpActor != null ? tmpActor.steps : 10000;
+                    var tmpNewActor = transitionsForObject[trans.newActorID];
+                    var newActorSteps = tmpNewActor != null ? tmpNewActor.steps : 10000;
+
+                    trace('TEST1 actorSteps: $actorSteps newActorSteps: $newActorSteps');
+                    if(actorSteps < newActorSteps) continue;
+                }
+
+                // TODO above for target
+
+                 trace('TEST2');
+                if(trans.actorID == wantedObjId || trans.actorID == objectIdToSearch) continue;  
+                 trace('TEST3');
+                if(trans.targetID == wantedObjId || trans.targetID == objectIdToSearch) continue; 
+                 trace('TEST4');
 
                 //if(count < 10000) trans.traceTransition('AI stepsCount: $stepsCount count: $count:', true);
 
-                if(trans.actorID > 0 && trans.actorID != trans.newActorID && transitionsByObject.exists(trans.actorID) == false)
+                //if(trans.actorID > 0 && trans.actorID != trans.newActorID && transitionsByObject.exists(trans.actorID) == false)
+                if(trans.actorID > 0 && transitionsByObject.exists(trans.actorID) == false)
                 {
+                    trace('TEST5');
                     transitionsToProcess.push(world.getTransitionByNewTarget(trans.actorID)); 
                     transitionsToProcess.push(world.getTransitionByNewActor(trans.actorID)); 
 
@@ -247,8 +278,10 @@ class AiHelper
                     wantedObjIds.push(trans.actorID);
                 }
 
-                if(trans.targetID > 0 && trans.targetID != trans.newTargetID && transitionsByObject.exists(trans.targetID) == false)
+                //if(trans.targetID > 0 && trans.targetID != trans.newTargetID && transitionsByObject.exists(trans.targetID) == false)
+                if(trans.targetID > 0 && transitionsByObject.exists(trans.targetID) == false)
                 {
+                    trace('TEST6');
                     transitionsToProcess.push(world.getTransitionByNewTarget(trans.targetID)); 
                     transitionsToProcess.push(world.getTransitionByNewActor(trans.targetID)); 
 
@@ -268,7 +301,7 @@ class AiHelper
                 count++;
             }
 
-            if(count > 100) break; // TODO remove
+            if(count > 400) break; // TODO remove
         }
 
         trace('AI trans search: $count transtions found! ${Sys.time() - startTime}');
@@ -334,6 +367,9 @@ class TransitionForObject
     public var closestObject:ObjectHelper;
     public var closestObjectDistance:Float;
 
+    public var secondObject:ObjectHelper; // in case you need two object like using two milkeed
+    public var secondObjectDistance:Float;
+
     public function new(objId:Int, steps:Int, wantedObjId:Int, transition:TransitionData) 
     {
         this.objId = objId;
@@ -344,7 +380,7 @@ class TransitionForObject
 
     public function getDesciption() : String
     {
-        var description = 'objId: $objId wantedObjId: $wantedObjId steps: $steps trans: ' + bestTransition.getDesciption();
+        var description = 'objId: $objId wantedObjId: $wantedObjId steps: $steps trans: ' + bestTransition.getDesciption(true);
         return description;
     }
 }

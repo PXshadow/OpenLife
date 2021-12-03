@@ -153,14 +153,15 @@ class Ai
         if(isEating()) return;
         //trace('AI:5');
         if(isUsingItem()) return;
-        trace('AI:6');
+        //trace('AI:6');
 
         if(itemToCraft != null && itemToCraft.countDone >= itemToCraft.count) return;
         
         //craftItem(292); // 292 basket
-        craftItem(34,3); // 34 sharpstone
-        //craftItem(124); // Reed Bundle
+        //craftItem(34,1); // 34 sharpstone
+        craftItem(124); // Reed Bundle
         //craftItem(224); // Harvested Wheat
+        //craftItem(58); // Thread
     
 
 
@@ -178,6 +179,7 @@ class Ai
 
         if(itemToCraft != null && itemToCraft.transActor != null && player.heldObject.parentId == itemToCraft.transActor.parentId)
         {
+            itemToCraft.transActor = null; // actor is allready in the hand
             useTarget = itemToCraft.transTarget;
             return true;
         }
@@ -190,19 +192,32 @@ class Ai
 
         var countDone = 0;
         var countTransitionsDone = 0;
+        var transitionsByObjectId = null;
 
-        if(itemToCraft != null)
+        if(itemToCraft != null && itemToCraft.itemToCraft.parentId == objId)
         {
             countDone = itemToCraft.countDone;
             countTransitionsDone = itemToCraft.countTransitionsDone;
+            transitionsByObjectId = itemToCraft.transitionsByObjectId;
+
+            // reset objects so that it can be filled again
+            for(trans in transitionsByObjectId)
+            {
+                trans.closestObject = null;
+                trans.closestObjectDistance = -1;
+                trans.secondObject = null;
+                trans.closestObjectDistance = -1;
+            }
         }
         
-        var transitionsForObject = playerInterface.SearchTransitions(objId); 
-        itemToCraft = searchBestObjectForCrafting(transitionsForObject);
+        if(transitionsByObjectId == null) transitionsByObjectId = playerInterface.SearchTransitions(objId); 
+        
+        itemToCraft = searchBestObjectForCrafting(objId, transitionsByObjectId);
         itemToCraft.itemToCraft = ObjectData.getObjectData(objId);
         itemToCraft.count = count;
         itemToCraft.countDone = countDone;
         itemToCraft.countTransitionsDone = countTransitionsDone;
+        itemToCraft.transitionsByObjectId = transitionsByObjectId;
 
         useTarget = itemToCraft.transActor;
 
@@ -214,16 +229,16 @@ class Ai
 
         trace(itemToCraft.transActor.description);
 
-        var trans = transitionsForObject[useTarget.parentId];
-        var transition = trans.bestTransition;
+        //var trans = transitionsForObject[useTarget.parentId];
+        //var transition = trans.bestTransition;
         trace('AI: craft');
         //trans.traceTransition("AI: craft: ", true, true);
-        transition.traceTransition("AI: best craft: ", true, true);
+        //transition.traceTransition("AI: best craft: ", true, true);
 
         return true;
     }
 
-    private function searchBestObjectForCrafting(transitionsForObject:Map<Int, TransitionForObject>) : IntemToCraft
+    private function searchBestObjectForCrafting(objToCraftId:Int, transitionsForObject:Map<Int, TransitionForObject>) : IntemToCraft
     {
         var itemToCraft = new IntemToCraft();
         var world = playerInterface.getWorld();
@@ -232,6 +247,7 @@ class Ai
         var baseY = player.ty();
         var bestDistance = 0.0;
         var bestSteps = 0;
+        var bestTrans = null; 
         var radius = ServerSettings.AiSearchRadius;
 
         // go through all close by objects and map them to the best transition
@@ -252,10 +268,24 @@ class Ai
                 var obj = world.getObjectHelper(tx, ty);                
                 var objDistance = playerInterface.CalculateDistanceToObject(obj);
                 
-                if(trans.closestObject != null && trans.closestObjectDistance <= objDistance) continue; // there is a closer object of same type
+                if(trans.closestObject == null || trans.closestObjectDistance > objDistance)
+                {
+                    trans.secondObject = trans.closestObject;
+                    trans.secondObjectDistance = trans.closestObjectDistance;
+
+                    trans.closestObject = obj;
+                    trans.closestObjectDistance = objDistance;
+                    
+                    continue;
+                }
                 
-                trans.closestObject = obj;
-                trans.closestObjectDistance = objDistance;        
+                if(trans.secondObject == null || trans.secondObjectDistance > objDistance)
+                {
+                    trans.secondObject = obj;
+                    trans.secondObjectDistance = objDistance;
+
+                    continue;
+                }                        
             }
         }
 
@@ -264,37 +294,72 @@ class Ai
         {
             if(trans.closestObject == null) continue;
 
-            var bestTargetTrans = null; //transitionsForObject[trans.bestTransition.targetID];
+            var bestTargetTrans = null; 
+            var bestTargetObject = null; 
             var bestTargetDistance = -1.0;
             var bestTargetSteps = -1;
 
             //  search for the best doable transition with target
-            // TODO does not yet consider best steps
-            for(targetTrans in trans.transitions)
+            for(targetTrans in trans.transitions)                
             {
-                if(targetTrans.bestTransition.actorID != trans.closestObject.parentId) continue;
+                var actorID = targetTrans.bestTransition.actorID;
+                var targetID = targetTrans.bestTransition.targetID;
 
-                var tmpTargetTrans = transitionsForObject[targetTrans.bestTransition.targetID];
+                // check if there are allready two of this // TODO if only one is needed skip second
+                var tmpWanted = transitionsForObject[targetTrans.wantedObjId];
+                if(tmpWanted != null && targetTrans.wantedObjId != objToCraftId && tmpWanted.closestObjectDistance > -1 && tmpWanted.closestObjectDistance > -1) continue;
 
-                if(tmpTargetTrans == null) continue;
+                // check if there are allready two of this // TODO if only one is needed skip second
+                //var tmpNewTarget = transitionsForObject[targetTrans.bestTransition.newTargetID];
+                //if(tmpNewTarget != null && targetTrans.bestTransition.newTargetID != objToCraftId && tmpNewTarget.closestObjectDistance > -1 && tmpNewTarget.closestObjectDistance > -1) continue;
 
-                if(tmpTargetTrans.closestObject == null) continue;
 
-                var steps = tmpTargetTrans.steps;
+                if(targetID == 123 ) trace('TEST1 ');
+                if(actorID != 0 && actorID != trans.closestObject.parentId) continue;
+                if(targetID == 123 ) trace('TEST2 ');
 
-                if(bestTargetTrans == null || bestTargetSteps > steps || (bestTargetSteps == steps && tmpTargetTrans.closestObjectDistance < bestTargetDistance))
+                var tmpObject = transitionsForObject[targetTrans.bestTransition.targetID];
+
+                if(tmpObject == null) continue;
+
+                if(tmpObject.closestObject == null) continue;
+
+                var tmpDistance = tmpObject.closestObjectDistance;
+                var tmpTargetObject = tmpObject.closestObject;
+
+                if(targetID == 123 ) trace('TEST3 ');
+
+                if(targetTrans.bestTransition.actorID == targetTrans.bestTransition.targetID) // like using two milkweed
                 {
-                    bestTargetTrans = tmpTargetTrans;
-                    bestTargetDistance = tmpTargetTrans.closestObjectDistance;
+                    //trace('AI: using two ' + targetTrans.bestTransition.actorID);
+                    if(tmpObject.secondObject == null) continue;
+
+                    //trace('AI: using two222');
+
+                    tmpDistance = tmpObject.secondObjectDistance;
+                    tmpTargetObject = tmpObject.secondObject;
+                }
+
+                if(targetID == 123 ) trace('TEST4 ');
+
+                var steps = targetTrans.steps;
+
+                if(bestTargetTrans == null || bestTargetSteps > steps || (bestTargetSteps == steps && tmpDistance < bestTargetDistance))
+                {
+                    bestTargetTrans = targetTrans;
+                    bestTargetDistance = tmpDistance;
                     bestTargetSteps = steps;
+                    bestTargetObject = tmpTargetObject;
+
+                    if(targetID == 123 ) trace('TEST5 ${tmpTargetObject.description}');
                 }
             }
 
-            if(bestTargetTrans == null) continue;
+            if(bestTargetObject == null) continue;
 
-            var targetObject = bestTargetTrans.closestObject;
+            //var targetObject = bestTargetObject.closestObject;
 
-            if(targetObject == null) continue;
+            if(bestTargetObject == null) continue;
 
             //var steps = trans.steps;
             var obj = trans.closestObject;
@@ -303,13 +368,18 @@ class Ai
             if(itemToCraft.transActor == null || bestTargetSteps < bestSteps || (bestTargetSteps == bestSteps && distance < bestDistance))
             {
                 itemToCraft.transActor = obj;
-                itemToCraft.transTarget = targetObject;                    
+                itemToCraft.transTarget = bestTargetObject;                    
                 bestSteps = bestTargetSteps;
                 bestDistance = distance;
+                bestTrans = bestTargetTrans;
+
+                if(bestTargetObject.parentId == 50) trace('TEST6 actor: ${obj.description} target: ${bestTargetObject.description} ');
             }
         }
 
-        if(itemToCraft.transActor != null) trace('ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}');
+        if(itemToCraft.transActor != null) trace('ai: craft: ' + bestTrans.getDesciption());
+        if(itemToCraft.transActor != null) trace('ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.bestTransition.getDesciption(true));
+        if(itemToCraft.transActor != null) playerInterface.say('Goto ' + itemToCraft.transActor.description );
 
         return itemToCraft;
     }
@@ -483,7 +553,7 @@ class Ai
 
         if(isHungry && foodTarget == null) searchFoodAndEat();
 
-        playerInterface.say('F ${Math.round(playerInterface.getPlayerInstance().food_store)}');
+        //playerInterface.say('F ${Math.round(playerInterface.getPlayerInstance().food_store)}');
 
         //trace('AAI: F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');
         
@@ -615,6 +685,8 @@ class IntemToCraft
 
     public var transActor:ObjectHelper = null;
     public var transTarget:ObjectHelper = null;
+
+    public var transitionsByObjectId:Map<Int, TransitionForObject>; 
 
     public function new() {}
 }
