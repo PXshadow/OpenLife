@@ -135,25 +135,17 @@ class Ai
         if(time > 0) return;
         time += 0.5; // minimum AI reacting time
         
-        //trace('AI:1');
         if(playerInterface.isMoving()) return;
 
         checkIsHungry();
-
-        //trace('AI:2');
 
         if(isMovingToPlayer()) return;
 
         if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
 
-        //trace('AI:3');
-
         if(isDropingItem()) return;
-        //trace('AI:4');
         if(isEating()) return;
-        //trace('AI:5');
         if(isUsingItem()) return;
-        //trace('AI:6');
 
         if(itemToCraft != null && itemToCraft.countDone >= itemToCraft.count) return;
         
@@ -223,13 +215,7 @@ class Ai
             return false;
         }
 
-        trace(itemToCraft.transActor.description);
-
-        //var trans = transitionsForObject[useTarget.parentId];
-        //var transition = trans.bestTransition;
-        trace('AI: craft');
-        //trans.traceTransition("AI: craft: ", true, true);
-        //transition.traceTransition("AI: best craft: ", true, true);
+        trace('AI: craft ' + itemToCraft.transActor.description);
 
         return true;
     }
@@ -305,14 +291,7 @@ class Ai
                 var tmpWanted = transitionsForObject[targetTrans.wantedObjId];
                 if(tmpWanted != null && targetTrans.wantedObjId != objToCraftId && tmpWanted.closestObjectDistance > -1 && tmpWanted.closestObjectDistance > -1) continue;
 
-                // check if there are allready two of this // TODO if only one is needed skip second
-                //var tmpNewTarget = transitionsForObject[targetTrans.bestTransition.newTargetID];
-                //if(tmpNewTarget != null && targetTrans.bestTransition.newTargetID != objToCraftId && tmpNewTarget.closestObjectDistance > -1 && tmpNewTarget.closestObjectDistance > -1) continue;
-
-
-                if(targetID == 123 ) trace('TEST1 ');
                 if(actorID != 0 && actorID != trans.closestObject.parentId) continue;
-                if(targetID == 123 ) trace('TEST2 ');
 
                 var tmpObject = transitionsForObject[targetTrans.bestTransition.targetID];
 
@@ -322,8 +301,6 @@ class Ai
 
                 var tmpDistance = tmpObject.closestObjectDistance;
                 var tmpTargetObject = tmpObject.closestObject;
-
-                if(targetID == 123 ) trace('TEST3 ');
 
                 if(targetTrans.bestTransition.actorID == targetTrans.bestTransition.targetID) // like using two milkweed
                 {
@@ -336,8 +313,6 @@ class Ai
                     tmpTargetObject = tmpObject.secondObject;
                 }
 
-                if(targetID == 123 ) trace('TEST4 ');
-
                 var steps = targetTrans.steps;
 
                 if(bestTargetTrans == null || bestTargetSteps > steps || (bestTargetSteps == steps && tmpDistance < bestTargetDistance))
@@ -346,8 +321,6 @@ class Ai
                     bestTargetDistance = tmpDistance;
                     bestTargetSteps = steps;
                     bestTargetObject = tmpTargetObject;
-
-                    if(targetID == 123 ) trace('TEST5 ${tmpTargetObject.description}');
                 }
             }
 
@@ -369,12 +342,11 @@ class Ai
                 bestDistance = distance;
                 bestTrans = bestTargetTrans;
 
-                if(bestTargetObject.parentId == 50) trace('TEST6 actor: ${obj.description} target: ${bestTargetObject.description} ');
+                //if(bestTargetObject.parentId == 50) trace('TEST6 actor: ${obj.description} target: ${bestTargetObject.description} ');
             }
         }
 
-        if(itemToCraft.transActor != null) trace('ai: craft: ' + bestTrans.getDesciption());
-        if(itemToCraft.transActor != null) trace('ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.bestTransition.getDesciption(true));
+        if(itemToCraft.transActor != null) trace('ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
         if(itemToCraft.transActor != null) playerInterface.say('Goto ' + itemToCraft.transActor.description );
 
         return itemToCraft;

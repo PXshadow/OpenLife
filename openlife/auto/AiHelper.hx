@@ -231,10 +231,10 @@ class AiHelper
             stepsCount = steps.shift();
             var wantedObjId = wantedObjIds.shift();
 
-            //if(transitionsByObject.exists(wantedObjId)) continue;
-
             for(trans in transitions)
             {
+                // TODO -1 actor
+                if(trans.targetID == -1) continue; // TODO -1 target
                 if(trans.actorID == wantedObjId || trans.actorID == objectIdToSearch) continue;  
                 if(trans.targetID == wantedObjId || trans.targetID == objectIdToSearch) continue; 
 
@@ -250,11 +250,10 @@ class AiHelper
                 var newTargetSteps = tmpNewTarget != null ? tmpNewTarget.steps : 10000;
 
                 if(trans.newActorID == objectIdToSearch) newActorSteps = 0; 
-                if(trans.newTargetID == objectIdToSearch) newTargetSteps = 0; 
-
-                trace('AI craft WANTED: $wantedObjId actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
-
+                if(trans.newTargetID == objectIdToSearch) newTargetSteps = 0;                 
                 if(actorSteps <= newActorSteps && targetSteps <= newTargetSteps) continue; // nothing is won
+
+                trace('AI craft steps: $stepsCount WANTED: $wantedObjId actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
 
                 if(trans.actorID > 0 && transitionsByObject.exists(trans.actorID) == false)
                 {
@@ -347,9 +346,6 @@ class TransitionForObject
     public var steps:Int;
 
     public var bestTransition:TransitionData;
-
-    //public var transitions:Array<TransitionData> = [];
-
     public var transitions:Array<TransitionForObject> = [];
 
     public var closestObject:ObjectHelper;
