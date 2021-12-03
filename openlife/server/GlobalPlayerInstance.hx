@@ -1910,9 +1910,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         //trace('${strings[1]} $id');
 
-        var toSearch = StringTools.replace(text, '${strings[0]} ', '');
+        var toSearch = StringTools.replace(text, '${strings[0]} ', '');        
+        var end = toSearch.contains('!');
+        toSearch = StringTools.replace(toSearch, '!', '');
 
-        trace('To Create: /${toSearch}/');
+        trace('Command Search: /${toSearch}/ end: $end');
+
+        
 
         if(id == null)
         {
@@ -1939,11 +1943,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 description = StringTools.replace(description, '\r', '');
 
                 //trace('/${description}/');
-                
-                if(StringTools.startsWith(description, toSearch))
+
+                if(end)
                 {
-                    id = obj.id;
-                    break;
+                    if(StringTools.endsWith(description, toSearch))
+                    {
+                        id = obj.id;
+                        break;
+                    }
+                }
+                else
+                {
+                    if(StringTools.startsWith(description, toSearch))
+                    {
+                        id = obj.id;
+                        break;
+                    }
                 }
             }
         } 

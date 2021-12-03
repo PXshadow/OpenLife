@@ -161,7 +161,11 @@ class Ai
         {
             craftItem(itemToCraftId);
         }
-        else craftItem(292, 1); // 292 basket
+        else
+        {
+            //craftItem(292, 1); // 292 basket
+            craftItem(224); // Harvested Wheat
+        }
         //craftItem(34,1); // 34 sharpstone
         //craftItem(124); // Reed Bundle
         //craftItem(224); // Harvested Wheat
