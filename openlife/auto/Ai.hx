@@ -157,22 +157,18 @@ class Ai
 
         if(itemToCraft != null && itemToCraft.countDone >= itemToCraft.count) return;
         
-        //craftItem(292); // 292 basket
+        craftItem(292, 20); // 292 basket
         //craftItem(34,1); // 34 sharpstone
-        craftItem(124); // Reed Bundle
+        //craftItem(124); // Reed Bundle
         //craftItem(224); // Harvested Wheat
         //craftItem(58); // Thread
-    
-
-
-        // TODO if none object is found or if the needed steps from the object you found are too high, search for a better object
-        // TODO consider too look for a natural spawned object with the fewest steps on the list
     }
 
     // TODO consider held object / backpack / contained objects
     // TODO consider if object is reachable
     // TODO reconsider closest objects after reached first object
     // TODO store transitions for crafting to have faster lookup
+    // TODO consider too look for a natural spawned object with the fewest steps on the list
     private function craftItem(objId:Int, count:Int = 1) : Bool
     {
         var player = playerInterface.getPlayerInstance();
