@@ -310,6 +310,8 @@ class TransitionImporter
             transitionsByNewTarget = transitionsByNewTargetMap[transition.newTargetID];
         }
 
+        //if(transition.newActorID == 34) trace('add Trans: ' + transition.getDesciption(true));
+
         transitionsByNewTarget.push(transition);
     }
 
@@ -322,6 +324,8 @@ class TransitionImporter
             transitionsByNewActorMap[transition.newActorID] = new Array<TransitionData>();
             transitions = transitionsByNewActorMap[transition.newActorID];
         }
+
+        //if(transition.newActorID == 34) trace('add Trans: ' + transition.getDesciption(true));
 
         transitions.push(transition);
     }

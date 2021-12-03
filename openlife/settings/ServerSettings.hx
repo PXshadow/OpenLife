@@ -14,10 +14,10 @@ class ServerSettings
 {
     // DEBUG: switch on / off
     public static var dumpOutput = false;
-    public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation // deactivates saving
+    public static var debug = true; // activates or deactivates try catch blocks and initial debug objects generation // deactivates saving
     public static var useOneGlobalMutex = false; // if you want to try out if there a problems with mutexes / different threads
     public static var saveToDisk = true; 
-    public static var AllowDebugCommmands = true; // can create objects with saying "create ID" / "create object" "create object!" with ! indicating that object ends with "object" or test wounds with using "hit" or "heal"
+    public static var AllowDebugCommmands = true; // can create objects with saying "!create ID" / "!create object" "!create object!" with ! indicating that object ends with "object" or test wounds with using "!hit" or "!heal"
     public static var DebugWrite = false; // WordMap writeToDisk
     public static var TraceCountObjects = false; // WorldMap
     public static var DebugSpeed = false; // MovementHelper
@@ -27,7 +27,7 @@ class ServerSettings
     public static var TraceSendNonPlayerActions = false;  //  only trace non player actions // traces only MX from animal, FX and PU from food / age
 
     // DEBUG: TransitionImporter // for debugging transitions
-    public static var traceTransitionByActorId = 9992710; // set to object id which you want to debug
+    public static var traceTransitionByActorId = 99934; // set to object id which you want to debug
     public static var traceTransitionByActorDescription = "!!!Basket of Soil"; // set to object description which you want to debug
     public static var traceTransitionByTargetId = 9992710; // set to object id which you want to debug
     public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
@@ -169,8 +169,11 @@ class ServerSettings
         // Change map spawn chances
         ObjectData.getObjectData(769).mapChance *= 5; // Wild Horse
         ObjectData.getObjectData(942).mapChance *= 10; // Muddy Iron Vein
-        ObjectData.getObjectData(2135).mapChance /= 3; // Rubber Tree
+        ObjectData.getObjectData(2135).mapChance /= 4; // Rubber Tree
         ObjectData.getObjectData(530).mapChance /= 2; // Bald Cypress Tree
+        ObjectData.getObjectData(121).mapChance *= 5; // Tule Reeds
+
+        
         
         ObjectData.getObjectData(2156).mapChance *= 0.5; // Less UnHappy Mosquitos
         ObjectData.getObjectData(2156).biomes.push(BiomeTag.SWAMP); // Evil Mosquitos now also in Swamp
