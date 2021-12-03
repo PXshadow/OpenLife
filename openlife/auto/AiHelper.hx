@@ -130,7 +130,7 @@ class AiHelper
         if (paths == null) 
         {
             //if (onError != null) onError("can not generate path");
-            trace("CAN NOT GENERATE PATH");
+            trace("AI: CAN NOT GENERATE PATH");
             return false;
         }
 

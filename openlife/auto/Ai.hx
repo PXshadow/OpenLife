@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.server.GlobalPlayerInstance;
 import openlife.settings.ServerSettings;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.ObjectData;
@@ -28,6 +29,7 @@ class Ai
     var dropTarget:ObjectHelper = null;
     var useTarget:ObjectHelper = null;
 
+    var itemToCraftId = -1;
     var itemToCraft:IntemToCraft = null; // new IntemToCraft();
 
     //var berryHunter:Bool = false;
@@ -101,8 +103,15 @@ class Ai
         }
         if (text.contains("MAKE!"))
         {
-            craftItem(292); // basket
-            playerInterface.say("YES CAPTAIN");
+            var id = GlobalPlayerInstance.findObjectByCommand(text);
+
+            if(id > 0)
+            {
+                itemToCraftId = id;
+                var obj = ObjectData.getObjectData(id);
+                //craftItem(292); // basket
+                playerInterface.say("Making: " + obj.description);
+            }
         }
     }
 
@@ -138,18 +147,21 @@ class Ai
         if(playerInterface.isMoving()) return;
 
         checkIsHungry();
-
-        if(isMovingToPlayer()) return;
-
-        if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
-
+     
         if(isDropingItem()) return;
         if(isEating()) return;
         if(isUsingItem()) return;
+        if(isMovingToPlayer()) return;
 
-        if(itemToCraft != null && itemToCraft.countDone >= itemToCraft.count) return;
+        if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
+        if(itemToCraft != null && itemToCraftId == itemToCraft.itemToCraft.parentId && itemToCraft.countDone >= itemToCraft.count) return;
         
-        craftItem(292, 20); // 292 basket
+
+        if(itemToCraftId > 0)
+        {
+            craftItem(itemToCraftId);
+        }
+        else craftItem(292, 1); // 292 basket
         //craftItem(34,1); // 34 sharpstone
         //craftItem(124); // Reed Bundle
         //craftItem(224); // Harvested Wheat
@@ -185,17 +197,8 @@ class Ai
         if(itemToCraft != null && itemToCraft.itemToCraft.parentId == objId)
         {
             countDone = itemToCraft.countDone;
-            countTransitionsDone = itemToCraft.countTransitionsDone;
-            transitionsByObjectId = itemToCraft.transitionsByObjectId;
-
-            // reset objects so that it can be filled again
-            for(trans in transitionsByObjectId)
-            {
-                trans.closestObject = null;
-                trans.closestObjectDistance = -1;
-                trans.secondObject = null;
-                trans.closestObjectDistance = -1;
-            }
+            countTransitionsDone = itemToCraft.countTransitionsDone;            
+            transitionsByObjectId = itemToCraft.transitionsByObjectId;    
         }
         
         if(transitionsByObjectId == null) transitionsByObjectId = playerInterface.SearchTransitions(objId); 
@@ -211,7 +214,7 @@ class Ai
 
         if(itemToCraft.transActor == null)
         {
-            trace('AI: craft: did not find any item in search radius for crafting!');
+            trace('AI: craft: ${itemToCraft.itemToCraft.description} did not find any item in search radius for crafting!');
             return false;
         }
 
@@ -220,7 +223,7 @@ class Ai
         return true;
     }
 
-    private function searchBestObjectForCrafting(objToCraftId:Int, transitionsForObject:Map<Int, TransitionForObject>) : IntemToCraft
+    private function searchBestObjectForCrafting(objToCraftId:Int, transitionsByObjectId:Map<Int, TransitionForObject>) : IntemToCraft
     {
         var itemToCraft = new IntemToCraft();
         var world = playerInterface.getWorld();
@@ -230,124 +233,138 @@ class Ai
         var bestDistance = 0.0;
         var bestSteps = 0;
         var bestTrans = null; 
-        var radius = ServerSettings.AiSearchRadius;
+        var radius = 0;
 
-        // go through all close by objects and map them to the best transition
-        for(ty in baseY - radius...baseY + radius)
+        itemToCraft.transitionsByObjectId = transitionsByObjectId;
+
+        while (radius < ServerSettings.AiMaxSearchRadius)
         {
-            for(tx in baseX - radius...baseX + radius)
+            radius += ServerSettings.AiMaxSearchIncrement;
+
+            trace('AI search radius: $radius');
+
+            // reset objects so that it can be filled again
+            itemToCraft.clearTransitionsByObjectId();   
+
+            // go through all close by objects and map them to the best transition
+            for(ty in baseY - radius...baseY + radius)
             {
-                var objData = world.getObjectDataAtPosition(tx, ty);
-
-                if(objData.id == 0) continue;            
-                if(objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
-
-                // check if object can be used to craft item
-                var trans = transitionsForObject[objData.id];
-                if(trans == null) continue;  // object is not useful for crafting wanted object 
-
-                var steps = trans.steps;        
-                var obj = world.getObjectHelper(tx, ty);                
-                var objDistance = playerInterface.CalculateDistanceToObject(obj);
-                
-                if(trans.closestObject == null || trans.closestObjectDistance > objDistance)
+                for(tx in baseX - radius...baseX + radius)
                 {
-                    trans.secondObject = trans.closestObject;
-                    trans.secondObjectDistance = trans.closestObjectDistance;
+                    var objData = world.getObjectDataAtPosition(tx, ty);
 
-                    trans.closestObject = obj;
-                    trans.closestObjectDistance = objDistance;
+                    if(objData.id == 0) continue;            
+                    if(objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
+
+                    // check if object can be used to craft item
+                    var trans = transitionsByObjectId[objData.id];
+                    if(trans == null) continue;  // object is not useful for crafting wanted object 
+
+                    var steps = trans.steps;        
+                    var obj = world.getObjectHelper(tx, ty);                
+                    var objDistance = playerInterface.CalculateDistanceToObject(obj);
                     
-                    continue;
+                    if(trans.closestObject == null || trans.closestObjectDistance > objDistance)
+                    {
+                        trans.secondObject = trans.closestObject;
+                        trans.secondObjectDistance = trans.closestObjectDistance;
+
+                        trans.closestObject = obj;
+                        trans.closestObjectDistance = objDistance;
+                        
+                        continue;
+                    }
+                    
+                    if(trans.secondObject == null || trans.secondObjectDistance > objDistance)
+                    {
+                        trans.secondObject = obj;
+                        trans.secondObjectDistance = objDistance;
+
+                        continue;
+                    }                        
                 }
-                
-                if(trans.secondObject == null || trans.secondObjectDistance > objDistance)
-                {
-                    trans.secondObject = obj;
-                    trans.secondObjectDistance = objDistance;
-
-                    continue;
-                }                        
             }
-        }
 
-        // search for the best doable transition with actor and target
-        for(trans in transitionsForObject)
-        {
-            if(trans.closestObject == null) continue;
-
-            var bestTargetTrans = null; 
-            var bestTargetObject = null; 
-            var bestTargetDistance = -1.0;
-            var bestTargetSteps = -1;
-
-            //  search for the best doable transition with target
-            for(targetTrans in trans.transitions)                
+            // search for the best doable transition with actor and target
+            for(trans in transitionsByObjectId)
             {
-                var actorID = targetTrans.bestTransition.actorID;
-                var targetID = targetTrans.bestTransition.targetID;
+                if(trans.closestObject == null) continue;
 
-                // check if there are allready two of this // TODO if only one is needed skip second
-                var tmpWanted = transitionsForObject[targetTrans.wantedObjId];
-                if(tmpWanted != null && targetTrans.wantedObjId != objToCraftId && tmpWanted.closestObjectDistance > -1 && tmpWanted.closestObjectDistance > -1) continue;
+                var bestTargetTrans = null; 
+                var bestTargetObject = null; 
+                var bestTargetDistance = -1.0;
+                var bestTargetSteps = -1;
 
-                if(actorID != 0 && actorID != trans.closestObject.parentId) continue;
-
-                var tmpObject = transitionsForObject[targetTrans.bestTransition.targetID];
-
-                if(tmpObject == null) continue;
-
-                if(tmpObject.closestObject == null) continue;
-
-                var tmpDistance = tmpObject.closestObjectDistance;
-                var tmpTargetObject = tmpObject.closestObject;
-
-                if(targetTrans.bestTransition.actorID == targetTrans.bestTransition.targetID) // like using two milkweed
+                //  search for the best doable transition with target
+                for(targetTrans in trans.transitions)                
                 {
-                    //trace('AI: using two ' + targetTrans.bestTransition.actorID);
-                    if(tmpObject.secondObject == null) continue;
+                    var actorID = targetTrans.bestTransition.actorID;
+                    var targetID = targetTrans.bestTransition.targetID;
 
-                    //trace('AI: using two222');
+                    // check if there are allready two of this // TODO if only one is needed skip second
+                    var tmpWanted = transitionsByObjectId[targetTrans.wantedObjId];
+                    if(tmpWanted != null && targetTrans.wantedObjId != objToCraftId && tmpWanted.closestObjectDistance > -1 && tmpWanted.closestObjectDistance > -1) continue;
 
-                    tmpDistance = tmpObject.secondObjectDistance;
-                    tmpTargetObject = tmpObject.secondObject;
+                    if(actorID != 0 && actorID != trans.closestObject.parentId) continue;
+
+                    var tmpObject = transitionsByObjectId[targetTrans.bestTransition.targetID];
+
+                    if(tmpObject == null) continue;
+
+                    if(tmpObject.closestObject == null) continue;
+
+                    var tmpDistance = tmpObject.closestObjectDistance;
+                    var tmpTargetObject = tmpObject.closestObject;
+
+                    if(targetTrans.bestTransition.actorID == targetTrans.bestTransition.targetID) // like using two milkweed
+                    {
+                        trace('AI: using two ' + targetTrans.bestTransition.actorID);
+                        if(tmpObject.secondObject == null) continue;
+
+                        trace('AI: using two222');
+
+                        tmpDistance = tmpObject.secondObjectDistance;
+                        tmpTargetObject = tmpObject.secondObject;
+                    }
+
+                    var steps = targetTrans.steps;
+
+                    if(bestTargetTrans == null || bestTargetSteps > steps || (bestTargetSteps == steps && tmpDistance < bestTargetDistance))
+                    {
+                        bestTargetTrans = targetTrans;
+                        bestTargetDistance = tmpDistance;
+                        bestTargetSteps = steps;
+                        bestTargetObject = tmpTargetObject;
+                    }
                 }
 
-                var steps = targetTrans.steps;
+                if(bestTargetObject == null) continue;
 
-                if(bestTargetTrans == null || bestTargetSteps > steps || (bestTargetSteps == steps && tmpDistance < bestTargetDistance))
+                //var targetObject = bestTargetObject.closestObject;
+
+                if(bestTargetObject == null) continue;
+
+                //var steps = trans.steps;
+                var obj = trans.closestObject;
+                var distance = trans.closestObjectDistance + bestTargetDistance; // actor plus target distance
+
+                if(itemToCraft.transActor == null || bestTargetSteps < bestSteps || (bestTargetSteps == bestSteps && distance < bestDistance))
                 {
-                    bestTargetTrans = targetTrans;
-                    bestTargetDistance = tmpDistance;
-                    bestTargetSteps = steps;
-                    bestTargetObject = tmpTargetObject;
+                    itemToCraft.transActor = obj;
+                    itemToCraft.transTarget = bestTargetObject;                    
+                    bestSteps = bestTargetSteps;
+                    bestDistance = distance;
+                    bestTrans = bestTargetTrans;
+
+                    //if(bestTargetObject.parentId == 50) trace('TEST6 actor: ${obj.description} target: ${bestTargetObject.description} ');
                 }
             }
 
-            if(bestTargetObject == null) continue;
+            if(itemToCraft.transActor != null) trace('ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
+            if(itemToCraft.transActor != null) playerInterface.say('Goto ' + itemToCraft.transActor.description );
+            if(itemToCraft.transActor != null) itemToCraft;
 
-            //var targetObject = bestTargetObject.closestObject;
-
-            if(bestTargetObject == null) continue;
-
-            //var steps = trans.steps;
-            var obj = trans.closestObject;
-            var distance = trans.closestObjectDistance + bestTargetDistance; // actor plus target distance
-
-            if(itemToCraft.transActor == null || bestTargetSteps < bestSteps || (bestTargetSteps == bestSteps && distance < bestDistance))
-            {
-                itemToCraft.transActor = obj;
-                itemToCraft.transTarget = bestTargetObject;                    
-                bestSteps = bestTargetSteps;
-                bestDistance = distance;
-                bestTrans = bestTargetTrans;
-
-                //if(bestTargetObject.parentId == 50) trace('TEST6 actor: ${obj.description} target: ${bestTargetObject.description} ');
-            }
         }
-
-        if(itemToCraft.transActor != null) trace('ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
-        if(itemToCraft.transActor != null) playerInterface.say('Goto ' + itemToCraft.transActor.description );
 
         return itemToCraft;
     }
@@ -541,7 +558,11 @@ class Ai
         if(distance > 1)
         {
             trace('AAI: goto useItem');
-            playerInterface.Goto(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
+            var done = playerInterface.Goto(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
+
+            // TODO use item not reachable or bug in pathing?
+            if(done = false) useTarget = null;
+            
             return true;
         }
 
@@ -657,4 +678,16 @@ class IntemToCraft
     public var transitionsByObjectId:Map<Int, TransitionForObject>; 
 
     public function new() {}
+
+    public function clearTransitionsByObjectId()
+    {
+        // reset objects so that it can be filled again
+        for(trans in transitionsByObjectId)
+        {
+            trans.closestObject = null;
+            trans.closestObjectDistance = -1;
+            trans.secondObject = null;
+            trans.closestObjectDistance = -1;
+        }
+    }
 }

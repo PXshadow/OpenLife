@@ -129,7 +129,8 @@ class ServerSettings
 
     // AI
     public static var NumberOfAis:Int = 1;
-    public static var AiSearchRadius:Int = 32;
+    public static var AiMaxSearchRadius:Int = 16;
+    public static var AiMaxSearchIncrement:Int = 8;
 
     // combat
     //public static var WoundWhenFoodStoreMaxBelow = 10;

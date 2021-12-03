@@ -1879,84 +1879,94 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             trace('Create debug object');
 
-            /* var startsWith = true;
+            var id = findObjectByCommand(text);
 
-            if(text.indexOf('!!') != -1)
-            {
-                startsWith = false;
-
-                text = StringTools.replace(text, '!', '');
-            }
-            */
-
-            var strings = text.split(' ');
-
-            if(strings.length < 2) return;
-
-            var id = Std.parseInt(strings[1]);
-
-            //trace('${strings[1]} $id');
-
-            var toSearch = StringTools.replace(text, '${strings[0]} ', '');
-
-            trace('To Create: /${toSearch}/');
-
-            if(id == null)
-            {
-                for(obj in ObjectData.importedObjectData)
-                {
-                    var description = obj.description.toUpperCase();
-                    description = StringTools.replace(description, '\n', '');
-                    description = StringTools.replace(description, '\r', '');
-
-                    if(description == toSearch)
-                    {
-                        id = obj.id;
-                        break;
-                    }
-                }
-            }
-
-            if(id == null)
-            {
-                for(obj in ObjectData.importedObjectData)
-                {
-                    var description = obj.description.toUpperCase();
-                    description = StringTools.replace(description, '\n', '');
-                    description = StringTools.replace(description, '\r', '');
-
-                    //trace('/${description}/');
-                    
-                    if(StringTools.startsWith(description, toSearch))
-                    {
-                        id = obj.id;
-                        break;
-                    }
-                }
-            } 
-
-            if(id == null)
-            {
-                for(obj in ObjectData.importedObjectData)
-                {
-                    var description = obj.description.toUpperCase();
-                    description = StringTools.replace(description, '\n', '');
-                    description = StringTools.replace(description, '\r', '');
-
-                    if(description.indexOf(toSearch) != -1)
-                    {
-                        id = obj.id;
-                        break;
-                    }
-                }
-            } 
-
-            if(id == null) return;
+            if(id < 0) return;
             
             WorldMap.world.setObjectId(player.tx(), player.ty(), [id]);
 
             Connection.SendMapUpdateToAllClosePlayers(player.tx(), player.ty(), [id]);
         }
+    }
+
+    
+    public static function findObjectByCommand(text:String) : Int
+    {
+        /* var startsWith = true;
+
+        if(text.indexOf('!!') != -1)
+        {
+            startsWith = false;
+
+            text = StringTools.replace(text, '!', '');
+        }
+        */
+
+        var strings = text.split(' ');
+
+        if(strings.length < 2) return -1;
+
+        var id = Std.parseInt(strings[1]);
+
+        //trace('${strings[1]} $id');
+
+        var toSearch = StringTools.replace(text, '${strings[0]} ', '');
+
+        trace('To Create: /${toSearch}/');
+
+        if(id == null)
+        {
+            for(obj in ObjectData.importedObjectData)
+            {
+                var description = obj.description.toUpperCase();
+                description = StringTools.replace(description, '\n', '');
+                description = StringTools.replace(description, '\r', '');
+
+                if(description == toSearch)
+                {
+                    id = obj.id;
+                    break;
+                }
+            }
+        }
+
+        if(id == null)
+        {
+            for(obj in ObjectData.importedObjectData)
+            {
+                var description = obj.description.toUpperCase();
+                description = StringTools.replace(description, '\n', '');
+                description = StringTools.replace(description, '\r', '');
+
+                //trace('/${description}/');
+                
+                if(StringTools.startsWith(description, toSearch))
+                {
+                    id = obj.id;
+                    break;
+                }
+            }
+        } 
+
+        if(id == null)
+        {
+            for(obj in ObjectData.importedObjectData)
+            {
+                var description = obj.description.toUpperCase();
+                description = StringTools.replace(description, '\n', '');
+                description = StringTools.replace(description, '\r', '');
+
+                if(description.indexOf(toSearch) != -1)
+                {
+                    id = obj.id;
+                    break;
+                }
+            }
+        } 
+
+        if(id == null) return -1;
+
+        return id;
     }
 }
 
