@@ -36,6 +36,8 @@ class ServerSettings
     public static var ChanceForFemaleChild = 0.6;
     public static var ChanceForOtherChildColor = 0.2;
     public static var ChanceForOtherChildColorIfCloseToWrongSpecialBiome = 0.3; // for example Black born in or close to Jungle
+    public static var AiMotherBirthMaliForHumanChild = 3; // Means in average an AI mother for an human child is only considered after X children 
+    public static var HumanMotherBirthMaliForAiChild = 1; // Means in average a human mother for an ai child is only considered after X children 
 
     // PlayerInstance
     public static var MaxPlayersBeforeStartingAsChild = -1; // -1

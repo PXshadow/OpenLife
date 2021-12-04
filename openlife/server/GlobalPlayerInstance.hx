@@ -92,10 +92,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return numberLifingPlayers;
     }
 
-    public function new()
+    public function new(ai:ServerAi = null)
     {
         super([]);
 
+        this.serverAi = ai;
         this.heldObject = ObjectHelper.readObjectHelper(this, [0]);
 
         for(i in 0...this.clothingObjects.length)
@@ -189,7 +190,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // TODO dont spawn as child if far too much children
     private function spawnAsChild() : Bool
     {
-        var mother:GlobalPlayerInstance = GetFitesstMother();
+        var mother:GlobalPlayerInstance = GetFittestMother(this.isAi());
 
         if(mother == null) return false;
 
@@ -314,8 +315,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return personColorByBiome;
     }
 
-    // TODO consider AI vs player
-    private static function GetFitesstMother() : GlobalPlayerInstance
+    private static function GetFittestMother(childIsHuman:Bool) : GlobalPlayerInstance
     {
         var mother:GlobalPlayerInstance = null;
         var fitness = -1000.0;
@@ -324,6 +324,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         for (c in Connection.getConnections())
         {            
             var tmpFitness = CalculateMotherFitness(c.player);
+
+            if(childIsHuman == false) tmpFitness += ServerSettings.HumanMotherBirthMaliForAiChild;
+
             trace('Child: Fitness player mother: $tmpFitness ${c.player.name} ${c.player.familyName}');
 
             if(tmpFitness < -100) continue;
@@ -339,6 +342,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         for (ai in Connection.getAis())
         {           
             var tmpFitness = CalculateMotherFitness(ai.player);
+
+            if(childIsHuman) tmpFitness += ServerSettings.AiMotherBirthMaliForHumanChild;
+
             trace('Child: Fitness AI mother: $tmpFitness ${ai.player.name} ${ai.player.familyName}');
 
             if(tmpFitness < -100) continue;
@@ -1982,6 +1988,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(id == null) return -1;
 
         return id;
+    }
+
+    public function isAi() : Bool
+    {
+        return this.serverAi != null;   
     }
 }
 

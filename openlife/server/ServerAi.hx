@@ -8,9 +8,9 @@ class ServerAi extends Ai
 
     public function new()
     {
-        player = new GlobalPlayerInstance();
+        player = new GlobalPlayerInstance(this);
         super(player);
-        player.serverAi = this;
+        //player.serverAi = this;
         player.connection = new Connection(null, Server.server); 
         player.connection.serverAi = this;
 
