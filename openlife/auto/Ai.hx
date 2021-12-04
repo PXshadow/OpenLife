@@ -157,7 +157,9 @@ class Ai
 
         //if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
         if(itemToCraftId == itemToCraft.itemToCraft.parentId && itemToCraft.countDone >= itemToCraft.count) return;
-        if(itemToCraftId < 0) itemToCraftId = itemToCraft.itemToCraft.parentId;
+        if(itemToCraftId <= 0) itemToCraftId = itemToCraft.itemToCraft.parentId;
+
+        trace('AI: itemToCraftId: $itemToCraftId ${itemToCraft.itemToCraft.parentId}' );
 
         if(itemToCraftId > 0)
         {
@@ -165,8 +167,8 @@ class Ai
         }
         else
         {
-            //craftItem(58); // Thread
-            craftItem(74, 1, true); //Fire Bow Drill
+            craftItem(58); // Thread
+            //craftItem(74, 1, true); //Fire Bow Drill
             //craftItem(78, 1, true); // Smoldering Tinder
             //craftItem(808); // wild onion
             //craftItem(292, 1, true); // 292 basket
@@ -339,9 +341,10 @@ class Ai
                     if(targetTrans.bestTransition.actorID == targetTrans.bestTransition.targetID) // like using two milkweed
                     {
                         trace('AI: using two ' + targetTrans.bestTransition.actorID);
+
                         if(tmpObject.secondObject == null) continue;
 
-                        trace('AI: using two222');
+                        trace('AI: using two 2');
 
                         tmpDistance = tmpObject.secondObjectDistance;
                         tmpTargetObject = tmpObject.secondObject;

@@ -131,8 +131,8 @@ class ServerSettings
 
     // AI
     public static var NumberOfAis:Int = 1;
-    public static var AiMaxSearchRadius:Int = 16;
-    public static var AiMaxSearchIncrement:Int = 8;
+    public static var AiMaxSearchRadius:Int = 32;
+    public static var AiMaxSearchIncrement:Int = 16;
 
     // Debug AI
     public static var DebugAiCraftingObject:Int = 2222;
