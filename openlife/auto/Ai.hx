@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.server.WorldMap;
 import openlife.server.GlobalPlayerInstance;
 import openlife.settings.ServerSettings;
 import openlife.data.object.ObjectHelper;
@@ -30,13 +31,14 @@ class Ai
     var useTarget:ObjectHelper = null;
 
     var itemToCraftId = -1;
-    var itemToCraft:IntemToCraft = null; // new IntemToCraft();
+    var itemToCraft:IntemToCraft = new IntemToCraft();
 
     //var berryHunter:Bool = false;
     var isHungry = false;
     var doingAction = false;
 
     var playerToFollow:PlayerInstance;
+  
 
     public function new(player:PlayerInterface) 
     {
@@ -163,8 +165,10 @@ class Ai
         }
         else
         {
+            craftItem(74, 1, true); //Fire Bow Drill
+            //craftItem(78, 1, true); // Smoldering Tinder
             //craftItem(808); // wild onion
-            craftItem(292, 1, true); // 292 basket
+            //craftItem(292, 1, true); // 292 basket
             //craftItem(224); // Harvested Wheat
             //craftItem(124); // Reed Bundle
             //craftItem(225); //Wheat Sheaf
@@ -180,10 +184,11 @@ class Ai
     // TODO store transitions for crafting to have faster lookup
     // TODO consider too look for a natural spawned object with the fewest steps on the list
     private function craftItem(objId:Int, count:Int = 1, ignoreHighTech:Bool = false) : Bool
-    {
+    {                
+        
         var player = playerInterface.getPlayerInstance();
 
-        if(itemToCraft != null && itemToCraft.transActor != null && player.heldObject.parentId == itemToCraft.transActor.parentId)
+        if(itemToCraft.transActor != null && player.heldObject.parentId == itemToCraft.transActor.parentId)
         {
             itemToCraft.transActor = null; // actor is allready in the hand
             useTarget = itemToCraft.transTarget;
@@ -196,26 +201,17 @@ class Ai
              return true;
         }
 
-        var countDone = 0;
-        var countTransitionsDone = 0;
-        var transitionsByObjectId = null;
-
-        if(itemToCraft != null && itemToCraft.itemToCraft.parentId == objId)
+        if(itemToCraft.itemToCraft.parentId != objId)
         {
-            countDone = itemToCraft.countDone;
-            countTransitionsDone = itemToCraft.countTransitionsDone;            
-            transitionsByObjectId = itemToCraft.transitionsByObjectId;    
+            itemToCraft.itemToCraft = ObjectData.getObjectData(objId);
+            itemToCraft.countDone = 0;
+            itemToCraft.countTransitionsDone = 0;
+            itemToCraft.transitionsByObjectId = playerInterface.SearchTransitions(objId, ignoreHighTech); 
+            itemToCraft.notReachableObjects = new Map<Int,Int>();
         }
         
-        if(transitionsByObjectId == null) transitionsByObjectId = playerInterface.SearchTransitions(objId, ignoreHighTech); 
+        searchBestObjectForCrafting(itemToCraft);
         
-        itemToCraft = searchBestObjectForCrafting(objId, transitionsByObjectId);
-        itemToCraft.itemToCraft = ObjectData.getObjectData(objId);
-        itemToCraft.count = count;
-        itemToCraft.countDone = countDone;
-        itemToCraft.countTransitionsDone = countTransitionsDone;
-        itemToCraft.transitionsByObjectId = transitionsByObjectId;
-
         useTarget = itemToCraft.transActor;
 
         if(itemToCraft.transActor == null)
@@ -229,9 +225,15 @@ class Ai
         return true;
     }
 
-    private function searchBestObjectForCrafting(objToCraftId:Int, transitionsByObjectId:Map<Int, TransitionForObject>) : IntemToCraft
+    private function searchBestObjectForCrafting(itemToCraft:IntemToCraft) : IntemToCraft
     {
-        var itemToCraft = new IntemToCraft();
+        //var itemToCraft = new IntemToCraft();
+        itemToCraft.transActor = null;
+        itemToCraft.transTarget = null;
+
+        var objToCraftId = itemToCraft.itemToCraft.parentId;
+        var transitionsByObjectId = itemToCraft.transitionsByObjectId;
+
         var world = playerInterface.getWorld();
         var player = playerInterface.getPlayerInstance();
         var baseX = player.tx();
@@ -257,6 +259,8 @@ class Ai
             {
                 for(tx in baseX - radius...baseX + radius)
                 {
+                    if(itemToCraft.isObjectNotReachable(tx,ty)) continue;
+
                     var objData = world.getObjectDataAtPosition(tx, ty);
 
                     if(objData.id == 0) continue;            
@@ -567,7 +571,12 @@ class Ai
             var done = playerInterface.Goto(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
 
             // TODO use item not reachable or bug in pathing?
-            if(done = false) useTarget = null;
+            if(done = false)
+            {
+                //var world = playerInterface.getWorld();
+                itemToCraft.addNotReachableObject(useTarget);
+                useTarget = null;
+            }
             
             return true;
         }
@@ -683,7 +692,12 @@ class IntemToCraft
 
     public var transitionsByObjectId:Map<Int, TransitionForObject>; 
 
-    public function new() {}
+    public var notReachableObjects = new Map<Int, Int>();
+
+    public function new()
+    {
+        itemToCraft = ObjectData.getObjectData(0);
+    }
 
     public function clearTransitionsByObjectId()
     {
@@ -695,5 +709,21 @@ class IntemToCraft
             trans.secondObject = null;
             trans.closestObjectDistance = -1;
         }
+    }
+
+    public function addNotReachableObject(obj:ObjectHelper)
+    {
+        var index = WorldMap.world.index(obj.tx, obj.ty);
+        notReachableObjects[index] = obj.parentId;
+    }
+
+    public function isObjectNotReachable(tx:Int, ty:Int) : Bool
+    {
+        var index = WorldMap.world.index(tx, ty);
+        var notReachable = notReachableObjects.exists(index);
+
+        if(notReachable) trace('isObjectNotReachable: $notReachable $tx,$ty');
+
+        return notReachable;
     }
 }

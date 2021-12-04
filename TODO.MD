@@ -21,6 +21,9 @@ Summary:
 - Quality of Life: You can pick berriers directly with a bowl, you can eat while on a horse. Shoes give extra speed
 - Wells fill up at least 3 times faster
 
+AI:
+- by giving "make! xxx" commands you can instruct the ai to make stuff. with xxx part of an object name or ID
+
 
 
 Not yet implemented:

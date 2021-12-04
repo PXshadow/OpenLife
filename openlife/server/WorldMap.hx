@@ -451,7 +451,7 @@ class WorldMap
         floors[index(x,y)] = floor;
     }
 
-    private inline function index(x:Int,y:Int):Int
+    public function index(x:Int,y:Int):Int
     {
         // Dont know why yet, but y seems to be right if -1
         y -= 1;
