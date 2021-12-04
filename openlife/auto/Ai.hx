@@ -156,8 +156,8 @@ class Ai
         if(isMovingToPlayer()) return;
 
         //if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
-        if(itemToCraft != null && itemToCraftId == itemToCraft.itemToCraft.parentId && itemToCraft.countDone >= itemToCraft.count) return;
-        
+        if(itemToCraftId == itemToCraft.itemToCraft.parentId && itemToCraft.countDone >= itemToCraft.count) return;
+        if(itemToCraftId < 0) itemToCraftId = itemToCraft.itemToCraft.parentId;
 
         if(itemToCraftId > 0)
         {
@@ -165,6 +165,7 @@ class Ai
         }
         else
         {
+            //craftItem(58); // Thread
             craftItem(74, 1, true); //Fire Bow Drill
             //craftItem(78, 1, true); // Smoldering Tinder
             //craftItem(808); // wild onion
@@ -185,7 +186,6 @@ class Ai
     // TODO consider too look for a natural spawned object with the fewest steps on the list
     private function craftItem(objId:Int, count:Int = 1, ignoreHighTech:Bool = false) : Bool
     {                
-        
         var player = playerInterface.getPlayerInstance();
 
         if(itemToCraft.transActor != null && player.heldObject.parentId == itemToCraft.transActor.parentId)
@@ -243,7 +243,8 @@ class Ai
         var bestTrans = null; 
         var radius = 0;
 
-        itemToCraft.transitionsByObjectId = transitionsByObjectId;
+
+        // TODO dont cut down tables <3371> if not needed  
 
         while (radius < ServerSettings.AiMaxSearchRadius)
         {
@@ -310,18 +311,27 @@ class Ai
                 {
                     var actorID = targetTrans.bestTransition.actorID;
                     var targetID = targetTrans.bestTransition.targetID;
+                    var traceTrans = targetTrans.bestTransition.newActorID == 57;
+
+                    if(traceTrans) trace('Target1: ' + targetTrans.bestTransition.getDesciption(true));
 
                     // check if there are allready two of this // TODO if only one is needed skip second
                     var tmpWanted = transitionsByObjectId[targetTrans.wantedObjId];
-                    if(tmpWanted != null && targetTrans.wantedObjId != objToCraftId && tmpWanted.closestObjectDistance > -1 && tmpWanted.closestObjectDistance > -1) continue;
+                    if(tmpWanted != null && targetTrans.wantedObjId != objToCraftId && tmpWanted.closestObjectDistance > -1 && tmpWanted.secondObjectDistance > -1) continue;
+
+                    if(traceTrans) trace('Target2: ' + targetTrans.bestTransition.getDesciption(true));
 
                     if(actorID != 0 && actorID != trans.closestObject.parentId) continue;
 
                     var tmpObject = transitionsByObjectId[targetTrans.bestTransition.targetID];
 
+                    if(traceTrans) trace('Target3: ' + targetTrans.bestTransition.getDesciption(true));
+
                     if(tmpObject == null) continue;
 
                     if(tmpObject.closestObject == null) continue;
+
+                    if(traceTrans) trace('Target4: ' + targetTrans.bestTransition.getDesciption(true));
 
                     var tmpDistance = tmpObject.closestObjectDistance;
                     var tmpTargetObject = tmpObject.closestObject;
@@ -337,10 +347,13 @@ class Ai
                         tmpTargetObject = tmpObject.secondObject;
                     }
 
+                    if(traceTrans) trace('Target5: ' + targetTrans.bestTransition.getDesciption(true));
+
                     var steps = targetTrans.steps;
 
                     if(bestTargetTrans == null || bestTargetSteps > steps || (bestTargetSteps == steps && tmpDistance < bestTargetDistance))
                     {
+                        if(traceTrans) trace('Target6: bestTarget ' + targetTrans.bestTransition.getDesciption(true));
                         bestTargetTrans = targetTrans;
                         bestTargetDistance = tmpDistance;
                         bestTargetSteps = steps;
@@ -358,8 +371,13 @@ class Ai
                 var obj = trans.closestObject;
                 var distance = trans.closestObjectDistance + bestTargetDistance; // actor plus target distance
 
-                if(itemToCraft.transActor == null || bestTargetSteps < bestSteps || (bestTargetSteps == bestSteps && distance < bestDistance))
+                var traceTrans = bestTargetTrans.bestTransition.newActorID == 57;
+                if(traceTrans) trace('Target7: ' + bestTargetTrans.bestTransition.getDesciption(true));
+
+                if(itemToCraft.transActor == null || bestSteps > bestTargetSteps  || (bestTargetSteps == bestSteps && distance < bestDistance))
                 {
+                    if(traceTrans) trace('Target8: ' + bestTargetTrans.bestTransition.getDesciption(true));
+
                     itemToCraft.transActor = obj;
                     itemToCraft.transTarget = bestTargetObject;                    
                     bestSteps = bestTargetSteps;
@@ -372,7 +390,7 @@ class Ai
 
             if(itemToCraft.transActor != null) trace('ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
             if(itemToCraft.transActor != null) playerInterface.say('Goto ' + itemToCraft.transActor.description );
-            if(itemToCraft.transActor != null) itemToCraft;
+            if(itemToCraft.transActor != null) return itemToCraft;
 
         }
 
@@ -571,11 +589,13 @@ class Ai
             var done = playerInterface.Goto(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
 
             // TODO use item not reachable or bug in pathing?
-            if(done = false)
+            if(done == false)
             {
-                //var world = playerInterface.getWorld();
+                trace('AI: GOTO failed! Ignore ${useTarget.tx} ${useTarget.ty} '); 
                 itemToCraft.addNotReachableObject(useTarget);
                 useTarget = null;
+                itemToCraft.transActor = null;
+                itemToCraft.transTarget = null;
             }
             
             return true;
@@ -584,17 +604,27 @@ class Ai
         // x,y is relativ to birth position, since this is the center of the universe for a player
         var done = playerInterface.use(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
 
-        if(done && itemToCraft != null)
+        if(done)
         {
             itemToCraft.countTransitionsDone += 1; 
             var taregtObjectId = playerInterface.getWorld().getObjectId(useTarget.tx, useTarget.ty)[0];
             // if object to create is held by player or is on ground, then cound as done
             if(myPlayer.heldObject.parentId == itemToCraft.itemToCraft.parentId || taregtObjectId == itemToCraft.itemToCraft.parentId) itemToCraft.countDone += 1;
 
-            trace('AAI: ItemToCraft: ${itemToCraft.itemToCraft.description} transtions done: ${itemToCraft.countTransitionsDone} done: ${itemToCraft.countDone}');
+            trace('AI: done: ${useTarget.description} ItemToCraft: ${itemToCraft.itemToCraft.description} transtions done: ${itemToCraft.countTransitionsDone} done: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
+        }
+        else
+        {
+            trace('AI: Use failed! Ignore ${useTarget.tx} ${useTarget.ty} '); 
+
+            // TODO check why use is failed... for now add to ignore list
+            itemToCraft.addNotReachableObject(useTarget);
+            useTarget = null;
+            itemToCraft.transActor = null;
+            itemToCraft.transTarget = null;
         }
 
-        trace('AAI: ${useTarget.description} done: $done');
+        
 
         useTarget = null;
         

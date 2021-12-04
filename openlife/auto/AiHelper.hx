@@ -202,10 +202,13 @@ class AiHelper
     // TODO change so that AI considers high tech by itself
     public static function isHighTech(objId:Int) : Bool
     {
-        if(objId == 303) return true; // Forge
+        //if(objId == 62) return true; // Leaf
+        //if(objId == 303) return true; // Forge
         if(objId == 2221) return true; // Newcomen Pump with Full Boiler
         if(objId == 2241) return true; // Newcomen Hammer with Full Boiler
         if(objId == 2274) return true; // Newcomen Bore with Full Boiler
+        if(objId == 3076) return true; // Kerosene Wick Burner
+        
         return false;
     }
 
@@ -246,10 +249,10 @@ class AiHelper
 
                 // ignore high tech stuff if most likely not needed
                 if(ignoreHighTech && isHighTech(wantedObjId))
-                    {
-                        trace('TEST1 IGNORE AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
-                        continue;
-                    }
+                {
+                    trace('TEST1 IGNORE AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
+                    continue;
+                }
                 
                 if(ShouldDebug(trans)) trace('TEST1 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
 
@@ -273,11 +276,13 @@ class AiHelper
 
                 if(trans.newActorID == objectIdToSearch) newActorSteps = 0; 
                 if(trans.newTargetID == objectIdToSearch) newTargetSteps = 0;     
-                                            
-                if(actorSteps <= newActorSteps && targetSteps <= newTargetSteps) continue; // nothing is won
+                           
+                // AI get stuck with <3288> actorSteps: 2 newActorSteps: 10000 targetSteps: 10000 newTargetSteps: 3 <67> + <96> = <0> + <3288>
+                //if(actorSteps <= newActorSteps && targetSteps <= newTargetSteps) continue; // nothing is won
+                if(actorSteps + targetSteps <= newActorSteps + newTargetSteps) continue; // nothing is won
 
                 if(ShouldDebug(trans)) trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
-                //trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
+                trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
 
                 if(trans.actorID > 0 && transitionsByObject.exists(trans.actorID) == false)
                 {
