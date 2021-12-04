@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.settings.ServerSettings;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.data.Pos;
@@ -198,7 +199,17 @@ class AiHelper
         return vector;       
     }
 
-    public static function SearchTransitions(playerInterface:PlayerInterface, objectIdToSearch:Int) : Map<Int, TransitionForObject>
+    // TODO change so that AI considers high tech by itself
+    public static function isHighTech(objId:Int) : Bool
+    {
+        if(objId == 303) return true; // Forge
+        if(objId == 2221) return true; // Newcomen Pump with Full Boiler
+        if(objId == 2241) return true; // Newcomen Hammer with Full Boiler
+        if(objId == 2274) return true; // Newcomen Bore with Full Boiler
+        return false;
+    }
+
+    public static function SearchTransitions(playerInterface:PlayerInterface, objectIdToSearch:Int, ignoreHighTech:Bool = false) : Map<Int, TransitionForObject>
     {    
         var world = playerInterface.getWorld();
         var transitionsByObject = new Map<Int, TransitionData>();
@@ -211,9 +222,6 @@ class AiHelper
 
         transitionsToProcess.push(world.getTransitionByNewTarget(objectIdToSearch)); 
         transitionsToProcess.push(world.getTransitionByNewActor(objectIdToSearch)); 
-
-        //var tmpTrans = world.getTransitionByNewTarget(objectIdToSearch);
-        //trace('TEST' + tmpTrans);
 
         steps.push(stepsCount);
         steps.push(stepsCount);
@@ -232,11 +240,25 @@ class AiHelper
             var wantedObjId = wantedObjIds.shift();
 
             for(trans in transitions)
-            {
-                // TODO -1 actor
+            {                
+                if(trans.actorID == -1) continue; // TODO time
                 if(trans.targetID == -1) continue; // TODO -1 target
+
+                // ignore high tech stuff if most likely not needed
+                if(ignoreHighTech && isHighTech(wantedObjId))
+                    {
+                        trace('TEST1 IGNORE AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
+                        continue;
+                    }
+                
+                if(ShouldDebug(trans)) trace('TEST1 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
+
                 if(trans.actorID == wantedObjId || trans.actorID == objectIdToSearch) continue;  
+
+                if(ShouldDebug(trans)) trace('TEST2 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
                 if(trans.targetID == wantedObjId || trans.targetID == objectIdToSearch) continue; 
+
+                if(ShouldDebug(trans)) trace('TEST3 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
 
                 // Allow transition if new actor or target is closer to wanted object
                 var tmpActor = transitionsForObject[trans.actorID];
@@ -250,13 +272,17 @@ class AiHelper
                 var newTargetSteps = tmpNewTarget != null ? tmpNewTarget.steps : 10000;
 
                 if(trans.newActorID == objectIdToSearch) newActorSteps = 0; 
-                if(trans.newTargetID == objectIdToSearch) newTargetSteps = 0;                 
+                if(trans.newTargetID == objectIdToSearch) newTargetSteps = 0;     
+                                            
                 if(actorSteps <= newActorSteps && targetSteps <= newTargetSteps) continue; // nothing is won
 
-                trace('AI craft steps: $stepsCount WANTED: $wantedObjId actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
+                //if(ShouldDebug(trans)) trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
+                trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
 
                 if(trans.actorID > 0 && transitionsByObject.exists(trans.actorID) == false)
                 {
+                    //if(ShouldDebug(trans)) trace('TEST5 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
+
                     transitionsToProcess.push(world.getTransitionByNewTarget(trans.actorID)); 
                     transitionsToProcess.push(world.getTransitionByNewActor(trans.actorID)); 
 
@@ -269,6 +295,8 @@ class AiHelper
 
                 if(trans.targetID > 0 && transitionsByObject.exists(trans.targetID) == false)
                 {
+                    //if(ShouldDebug(trans)) trace('TEST6 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
+
                     transitionsToProcess.push(world.getTransitionByNewTarget(trans.targetID)); 
                     transitionsToProcess.push(world.getTransitionByNewActor(trans.targetID)); 
 
@@ -287,24 +315,34 @@ class AiHelper
 
                 count++;
             }
-
+            
             //if(count < 10000) trans.traceTransition('AI stepsCount: $stepsCount count: $count:', true);
-            if(count > 1000) break; // TODO remove
+            //if(count > 1000) break; // TODO remove
         }
 
         trace('AI trans search: $count transtions found! ${Sys.time() - startTime}');
 
         
-        for(key in transitionsForObject.keys())            
+        /*for(key in transitionsForObject.keys())            
         {
             var trans = transitionsForObject[key].getDesciption();
 
             trace('AI Search: ${trans}');
-        }
+        }*/
         
         return transitionsForObject;
 
         //var transitionsByOjectKeys = [for(key in transitionsByObject.keys()) key];
+    }
+
+    private static function ShouldDebug(trans:TransitionData) : Bool
+    {
+        var debugObjId = ServerSettings.DebugAiCraftingObject;
+
+        if(trans.actorID == debugObjId) return true;
+        if(trans.targetID == debugObjId) return true;
+        if(trans.newActorID == debugObjId) return true;
+        return trans.newTargetID == debugObjId;
     }
     
     private static function AddTransition(transitionsForObject:Map<Int, TransitionForObject>, transition:TransitionData, objId:Int, wantedObjId:Int, steps:Int)

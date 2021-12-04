@@ -153,7 +153,7 @@ class Ai
         if(isUsingItem()) return;
         if(isMovingToPlayer()) return;
 
-        if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
+        //if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
         if(itemToCraft != null && itemToCraftId == itemToCraft.itemToCraft.parentId && itemToCraft.countDone >= itemToCraft.count) return;
         
 
@@ -163,11 +163,13 @@ class Ai
         }
         else
         {
-            //craftItem(292, 1); // 292 basket
-            craftItem(224); // Harvested Wheat
+            //craftItem(808); // wild onion
+            craftItem(292, 1, true); // 292 basket
+            //craftItem(224); // Harvested Wheat
+            //craftItem(124); // Reed Bundle
+            //craftItem(225); //Wheat Sheaf
         }
         //craftItem(34,1); // 34 sharpstone
-        //craftItem(124); // Reed Bundle
         //craftItem(224); // Harvested Wheat
         //craftItem(58); // Thread
     }
@@ -177,7 +179,7 @@ class Ai
     // TODO reconsider closest objects after reached first object
     // TODO store transitions for crafting to have faster lookup
     // TODO consider too look for a natural spawned object with the fewest steps on the list
-    private function craftItem(objId:Int, count:Int = 1) : Bool
+    private function craftItem(objId:Int, count:Int = 1, ignoreHighTech:Bool = false) : Bool
     {
         var player = playerInterface.getPlayerInstance();
 
@@ -205,7 +207,7 @@ class Ai
             transitionsByObjectId = itemToCraft.transitionsByObjectId;    
         }
         
-        if(transitionsByObjectId == null) transitionsByObjectId = playerInterface.SearchTransitions(objId); 
+        if(transitionsByObjectId == null) transitionsByObjectId = playerInterface.SearchTransitions(objId, ignoreHighTech); 
         
         itemToCraft = searchBestObjectForCrafting(objId, transitionsByObjectId);
         itemToCraft.itemToCraft = ObjectData.getObjectData(objId);

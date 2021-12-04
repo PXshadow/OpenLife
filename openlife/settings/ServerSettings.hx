@@ -132,6 +132,9 @@ class ServerSettings
     public static var AiMaxSearchRadius:Int = 16;
     public static var AiMaxSearchIncrement:Int = 8;
 
+    // Debug AI
+    public static var DebugAiCraftingObject:Int = 2222;
+
     // combat
     //public static var WoundWhenFoodStoreMaxBelow = 10;
 

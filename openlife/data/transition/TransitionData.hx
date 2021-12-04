@@ -228,7 +228,7 @@ class TransitionData
       if(objectDataNewActor != null) newActorDescription = objectDataNewActor.description;
       if(objectDataNewTarget != null) newTargetDescription = objectDataNewTarget.description;
 
-      if(smal) return '$actorID + $targetID = $newActorID + $newTargetID / $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n';
+      if(smal) return '<${actorID}> + <${targetID}> = <${newActorID}> + <${newTargetID}> / $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n';
       else return '$transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n';
   }
 }
