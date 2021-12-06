@@ -492,7 +492,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             ty() - forPlayer.gy,
             Std.int(age * 100) / 100, Std.int(age_r * 100) / 100,
             Std.int(move_speed * 100) / 100,
-             heldObject
+             heldObject,
+             this.gx - forPlayer.gx,
+             this.gy - forPlayer.gy
         );
     }
 
@@ -1119,7 +1121,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         //player.o_transition_source_id = this.newTransitionSource; TODO ??????????????????????????
         player.o_transition_source_id = objOriginValid ? -1 : this.heldObject.id;
 
-        // this changes where the client moves the objec from on display
+        // this changes where the client moves the object from on display
         player.o_origin_x = objOriginValid ? x : 0;
         player.o_origin_y = objOriginValid ? y : 0;
         
