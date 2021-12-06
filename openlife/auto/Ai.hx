@@ -193,7 +193,9 @@ class Ai
         if(itemToCraft.transActor != null && player.heldObject.parentId == itemToCraft.transActor.parentId)
         {
             itemToCraft.transActor = null; // actor is allready in the hand
-            useTarget = itemToCraft.transTarget;
+            var target = AiHelper.GetClosestObject(playerInterface, itemToCraft.transTarget.objectData);
+            useTarget = target != null ? target : itemToCraft.transTarget; // since other search radius might be bigger
+
             return true;
         }
 

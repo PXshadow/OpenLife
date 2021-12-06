@@ -39,6 +39,7 @@ class AiHelper
 
     public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData, ignoreObj:ObjectHelper = null) : ObjectHelper
     {
+        //var RAD = ServerSettings.AiMaxSearchRadius
         var world = playerInterface.getWorld();
         var player = playerInterface.getPlayerInstance();
         var baseX = player.tx();
