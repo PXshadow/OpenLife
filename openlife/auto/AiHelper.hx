@@ -394,6 +394,7 @@ class TransitionForObject
 
     public var closestObject:ObjectHelper;
     public var closestObjectDistance:Float;
+    public var closestObjectPlayerIndex:Float; // if object is held
 
     public var secondObject:ObjectHelper; // in case you need two object like using two milkeed
     public var secondObjectDistance:Float;

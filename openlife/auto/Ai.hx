@@ -133,6 +133,8 @@ class Ai
         var emptyTileObj = playerInterface.GetClosestObjectById(0); // empty
         dropTarget = emptyTileObj;
 
+        //if(itemToCraft.transTarget.parentId == myPlayer.heldObject.parentId)
+
         trace('Drop ${emptyTileObj.tx} ${emptyTileObj.ty} $emptyTileObj');
         // x,y is relativ to birth position, since this is the center of the universe for a player
         //if(emptyTileObj != null) playerInterface.drop(emptyTileObj.tx - myPlayer.gx, emptyTileObj.ty - myPlayer.gy);
@@ -183,7 +185,6 @@ class Ai
 
     // TODO consider held object / backpack / contained objects
     // TODO consider if object is reachable
-    // TODO reconsider closest objects after reached first object
     // TODO store transitions for crafting to have faster lookup
     // TODO consider too look for a natural spawned object with the fewest steps on the list
     private function craftItem(objId:Int, count:Int = 1, ignoreHighTech:Bool = false) : Bool
@@ -197,13 +198,7 @@ class Ai
             useTarget = target != null ? target : itemToCraft.transTarget; // since other search radius might be bigger
 
             return true;
-        }
-
-        if(player.heldObject.id != 0)
-        {
-             dropHeldObject();
-             return true;
-        }
+        }    
 
         if(itemToCraft.itemToCraft.parentId != objId)
         {
@@ -215,8 +210,6 @@ class Ai
         }
         
         searchBestObjectForCrafting(itemToCraft);
-        
-        useTarget = itemToCraft.transActor;
 
         if(itemToCraft.transActor == null)
         {
@@ -224,8 +217,30 @@ class Ai
             return false;
         }
 
-        trace('AI: craft ' + itemToCraft.transActor.description);
+        if(player.heldObject.parentId == itemToCraft.transActor.parentId)
+        {
+            trace('AI: craft Actor is held already' + itemToCraft.transActor.description);
+            playerInterface.say('Goto actor ' + itemToCraft.transTarget.description );
 
+            useTarget = itemToCraft.transTarget; 
+            itemToCraft.transActor = null; // actor is allready in the hand
+
+        }
+        else
+        {
+            trace('AI: craft goto actor: ' + itemToCraft.transActor.description);
+            playerInterface.say('Goto target ' + itemToCraft.transActor.description );
+            
+            useTarget = itemToCraft.transActor;
+
+            if(player.heldObject.id != 0)
+            {
+                    dropHeldObject();
+                    return true;
+            }
+        }
+        
+        
         return true;
     }
 
@@ -258,6 +273,16 @@ class Ai
 
             // reset objects so that it can be filled again
             itemToCraft.clearTransitionsByObjectId();   
+
+            // check if held object can be used to craft item
+            var trans = transitionsByObjectId[player.heldObject.parentId];
+
+            if(trans != null)
+            {
+                trans.closestObject = player.heldObject;
+                trans.closestObjectDistance = 0;
+                trans.closestObjectPlayerIndex = 0; // held in hand
+            }
 
             // go through all close by objects and map them to the best transition
             for(ty in baseY - radius...baseY + radius)
@@ -406,7 +431,6 @@ class Ai
             }
 
             if(itemToCraft.transActor != null) trace('ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
-            if(itemToCraft.transActor != null) playerInterface.say('Goto ' + itemToCraft.transActor.description );
             if(itemToCraft.transActor != null) return itemToCraft;
 
         }
@@ -753,6 +777,8 @@ class IntemToCraft
         {
             trans.closestObject = null;
             trans.closestObjectDistance = -1;
+            trans.closestObjectPlayerIndex = -1;
+
             trans.secondObject = null;
             trans.closestObjectDistance = -1;
         }
