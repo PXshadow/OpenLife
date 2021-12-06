@@ -167,9 +167,9 @@ class Ai
         }
         else
         {
-            craftItem(58); // Thread
+            //craftItem(58); // Thread
             //craftItem(74, 1, true); //Fire Bow Drill
-            //craftItem(78, 1, true); // Smoldering Tinder
+            craftItem(78, 1, true); // Smoldering Tinder 
             //craftItem(808); // wild onion
             //craftItem(292, 1, true); // 292 basket
             //craftItem(224); // Harvested Wheat
@@ -268,6 +268,18 @@ class Ai
 
                     if(objData.id == 0) continue;            
                     if(objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
+
+                    // Ignore container with stuff inside 
+                    // TODO consider contained objects
+                    if(objData.numSlots > 0)
+                    {
+                        var container = world.getObjectHelper(tx,ty);
+                        if(container.containedObjects.length > 0)
+                        {
+                            //trace('AI: search IGNORE container: ${objData.description}');
+                            continue;
+                        }
+                    }
 
                     // check if object can be used to craft item
                     var trans = transitionsByObjectId[objData.id];
