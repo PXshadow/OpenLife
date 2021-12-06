@@ -162,7 +162,7 @@ class Ai
         if(itemToCraftId == itemToCraft.itemToCraft.parentId && itemToCraft.countDone >= itemToCraft.count) return;
         if(itemToCraftId <= 0) itemToCraftId = itemToCraft.itemToCraft.parentId;
 
-        trace('AI: itemToCraftId: $itemToCraftId ${itemToCraft.itemToCraft.parentId}' );
+        //trace('AI: itemToCraftId: $itemToCraftId ${itemToCraft.itemToCraft.parentId}' );
 
         if(itemToCraftId > 0)
         {
@@ -353,13 +353,14 @@ class Ai
                 {
                     var actorID = targetTrans.bestTransition.actorID;
                     var targetID = targetTrans.bestTransition.targetID;
+                    var isUsingTwo = targetTrans.bestTransition.actorID == targetTrans.bestTransition.targetID;
                     var traceTrans = targetTrans.bestTransition.newActorID == 57;
 
                     if(traceTrans) trace('Target1: ' + targetTrans.bestTransition.getDesciption(true));
 
                     // check if there are allready two of this // TODO if only one is needed skip second
                     var tmpWanted = transitionsByObjectId[targetTrans.wantedObjId];
-                    if(tmpWanted != null && targetTrans.wantedObjId != objToCraftId && tmpWanted.closestObjectDistance > -1 && tmpWanted.secondObjectDistance > -1) continue;
+                    if(tmpWanted != null && targetTrans.wantedObjId != objToCraftId && tmpWanted.closestObjectDistance > -1 && (isUsingTwo == false || tmpWanted.secondObjectDistance > -1)) continue;
 
                     if(traceTrans) trace('Target2: ' + targetTrans.bestTransition.getDesciption(true));
 
@@ -378,7 +379,7 @@ class Ai
                     var tmpDistance = tmpObject.closestObjectDistance;
                     var tmpTargetObject = tmpObject.closestObject;
 
-                    if(targetTrans.bestTransition.actorID == targetTrans.bestTransition.targetID) // like using two milkweed
+                    if(isUsingTwo) // like using two milkweed
                     {
                         trace('AI: using two ' + targetTrans.bestTransition.actorID);
 
