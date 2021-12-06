@@ -110,8 +110,9 @@ class Ai
             if(id > 0)
             {
                 itemToCraftId = id;
+                itemToCraft.countDone = 0;
+                itemToCraft.countTransitionsDone = 0;
                 var obj = ObjectData.getObjectData(id);
-                //craftItem(292); // basket
                 playerInterface.say("Making: " + obj.description);
             }
         }
