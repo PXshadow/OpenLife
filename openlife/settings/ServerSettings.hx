@@ -40,7 +40,7 @@ class ServerSettings
     public static var HumanMotherBirthMaliForAiChild = 1; // Means in average a human mother for an ai child is only considered after X children 
 
     // PlayerInstance
-    public static var MaxPlayersBeforeStartingAsChild = -1; // -1
+    public static var MaxPlayersBeforeStartingAsChild = 0; // -1
     public static var StartingEveAge = 14;  // 14
     public static var StartingFamilyName = "Snow";
     public static var StartingName = "Spoonwood";

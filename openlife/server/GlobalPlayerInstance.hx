@@ -27,7 +27,8 @@ using openlife.server.MoveHelper;
 // GlobalPlayerInstance is used as a WorldInterface for an AI, since it may be limited what the AI can see so player information is relevant
 class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface
 {
-    public static var lastEveOrAdam:GlobalPlayerInstance; 
+    public static var lastAiEveOrAdam:GlobalPlayerInstance; 
+    public static var lastHumanEveOrAdam:GlobalPlayerInstance; 
 
     // make sure to set these null is player is deleted so that garbage collector can clean up
     public var mother:GlobalPlayerInstance;
@@ -111,18 +112,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
         
-        var spawnEve = lastEveOrAdam !=null || GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild;
+        // spawn human eve to human adam and ai eve to ai adam except if player count is very few 
+        var isAi = this.isAi();
+        var allowHumanSpawnToAIandAiToHuman = GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild;
+        var spawnEve = allowHumanSpawnToAIandAiToHuman || (isAi && lastAiEveOrAdam != null) || (isAi == false && lastHumanEveOrAdam != null);
 
-        if(spawnEve)
-        {
-            spawnAsEve();
-        }
+        if(spawnEve) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
         else
         {
-            if(spawnAsChild() == false)
-            {
-                spawnAsEve();
-            }
+            if(spawnAsChild() == false) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
         }
 
         p_id = Server.server.playerIndex++;
@@ -135,8 +133,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         yum_multiplier = ServerSettings.MinHealthPerYear * 3; // start with health for 3 years
     }
 
-    private function spawnAsEve()
+    private function spawnAsEve(allowHumanSpawnToAIandAiToHuman:Bool)
     {
+        var isAi = this.isAi();
+        var lastEveOrAdam = isAi ? lastAiEveOrAdam : lastHumanEveOrAdam;
+
+        if(allowHumanSpawnToAIandAiToHuman && lastEveOrAdam == null)
+        {
+            // try if the other one is not null
+            lastEveOrAdam = isAi ? lastHumanEveOrAdam : lastAiEveOrAdam;
+            lastAiEveOrAdam = null;
+            lastHumanEveOrAdam = null;
+        }
+
         age = ServerSettings.StartingEveAge;
         this.trueAge = ServerSettings.StartingEveAge;
 
@@ -179,6 +188,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         name = isFemal() ? "Eve" : "Adam";
+
+        if(isAi) lastAiEveOrAdam = lastEveOrAdam;
+        else lastHumanEveOrAdam = lastEveOrAdam;
     } 
 
 
