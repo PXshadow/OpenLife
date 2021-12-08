@@ -25,9 +25,7 @@ AI:
 - by giving "make! xxx" commands you can instruct the ai to make stuff. with xxx part of an object name or ID
 
 
-
 Not yet implemented:
-- temperature (clothing does already reduce food use up to 66% - Jungle reduces food need 33%)
 - combat
 - incarnation acording to prestige score
 - see more in TODO below
@@ -58,6 +56,11 @@ MAP:
 
 Family:
 - Children are now more likely to be born closer to special biome color. With this one Eve can create all colors if people migrate...
+
+
+Heat:
+- Different color people love different temperatures
+- clothing can protect against cold and heat. The better it protects against cold the less it protects against heat
 
 
 World:
@@ -142,7 +145,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - give more space for villages on the map
 - wounds / healing part 2
 - combat / generally allowed
-- better temperature calculation
+- better temperature calculation // different temperature impact like exhaustion
 - change biome speed / boni for specialists
 - send player out of range update
 - give option to use normal YUM mechanics
@@ -150,7 +153,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - time transitions for objects in container
 - decay stuff in containers
 - decay clothing
-- decay use item for decay like trash
+- decay use item for decay like Broken Skewer  ID: 847
 - decay floors
 - death while holding some one, or riding / driving something or using cart
 - death: baby grave

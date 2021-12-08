@@ -1194,7 +1194,27 @@ class ObjectData extends LineReader
         //trace('Insulation: clothing: ${this.clothing} ${this.clothing.length} ${parts[this.clothing]}');
             
         if(rValue > 0) return parts[this.clothing] * rValue; 
-        else  return parts[this.clothing];  // TODO find out why rValue is zero
+        else  return parts[this.clothing];  // TODO find out why rValue is zero TODO Test if fixed
+    }
+
+    // TODO change
+    public function getHeatProtection() : Float
+    {
+        // original: {'h': 0.25, 't': 0.35, 'b': 0.2, 's': 0.1, 'p': 0.1};
+        var parts:Map<String,Float> = ["h"=> 0.4, "t"=> 0.4, "b"=> 0.4, "s"=> 0.2, "p"=> 0.4];
+        
+        //trace('Insulation: clothing: ${this.clothing} ' + parts);
+
+        if(this.numSlots > 1) return 0; // backpack has no insulation TODO fix with using instead rValue 
+
+        if(this.clothing.length > 1) this.clothing = StringTools.trim(this.clothing);
+
+        if(parts[this.clothing] == 0) return this.rValue;
+
+        //trace('Insulation: clothing: ${this.clothing} ${this.clothing.length} ${parts[this.clothing]}');
+            
+        if(rValue > 0) return parts[this.clothing] * (1 - rValue); 
+        else  return parts[this.clothing];  // TODO find out why rValue is zero TODO Test if fixed
     }
 
     public function isDrugs() : Bool

@@ -73,6 +73,8 @@ class Connection
             // send PU and FRAME also to the connection --> therefore make sure that addToConnections is called first 
             SendUpdateToAllClosePlayers(player); 
             SendToMeAllClosePlayers(player);  // TODO may need to send updates for current movements too
+            //p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
+            
             player.sendFoodUpdate();
 
             send(FRAME, null, true);

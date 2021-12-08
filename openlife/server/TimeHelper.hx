@@ -99,7 +99,7 @@ class TimeHelper
 
             Macro.exception(MoveHelper.updateMovement(c.player));
 
-            if(TimeHelper.tick % 40 == 0) Macro.exception(updateTemperature(c.player));
+            if(TimeHelper.tick % 20 == 0) Macro.exception(updateTemperature(c.player));
             //if(TimeHelper.tick % 31 == 0) Macro.exception(c.sendToMeAllClosePlayers(false));
         }
         
@@ -113,7 +113,7 @@ class TimeHelper
 
             Macro.exception(MoveHelper.updateMovement(ai.player));
 
-            if(TimeHelper.tick % 40 == 0) Macro.exception(updateTemperature(ai.player));
+            if(TimeHelper.tick % 20 == 0) Macro.exception(updateTemperature(ai.player));
 
             Macro.exception(ai.doTimeStuff(timePassedInSeconds));
         }
@@ -224,7 +224,7 @@ class TimeHelper
         var tmpFood = Math.ceil(player.food_store);
         var tmpExtraFood = Math.ceil(player.yum_bonus);
         var tmpFoodStoreMax = Math.ceil(player.food_store_max);
-        var foodDecay = timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
+        var foodDecay = timePassedInSeconds * player.foodUsePerSecond; // depends on temperature
 
         if(player.age < ServerSettings.GrownUpAge && player.food_store > 0) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
 
@@ -244,7 +244,6 @@ class TimeHelper
             }
         }
 
-        foodDecay /= calculateTemperature(player);
 
         // if starving to death and there is some health left, reduce food need and heath
         if(player.food_store < 0 && player.yum_multiplier > 0)
@@ -312,13 +311,51 @@ class TimeHelper
         }
     }
 
+    private static function getIdealTemperatureShiftForColor(personColor:PersonColor) : Float
+    {
+        if(personColor == PersonColor.Black) return 0.35; // ideal temperature = 0.85
+        if(personColor == PersonColor.Brown) return 0.2;
+        if(personColor == PersonColor.White) return 0;
+        if(personColor == PersonColor.Ginger) return -0.2; // ideal temperature = 0.3
+
+        return 0; 
+    }
+
+    // Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
     private static function calculateTemperature(player:GlobalPlayerInstance) : Float
     {
+        // TODO consider close biome temperature influence
         var biome = WorldMap.worldGetBiomeId(player.tx(), player.ty()); // TODO other biomes
 
-        var biomeValue = biome == BiomeTag.JUNGLE ? 1.5 : 1; 
+        var biomeTemperature = Biome.getBiomeTemperature(biome); // 
 
-        var temperature = (biomeValue + player.calculateClothingInsulation()) ; // clothing insulation can be between 0 and 2 for now
+        var colorTemperatureShift = getIdealTemperatureShiftForColor(player.getColor());
+
+        var clothingInsulation = player.calculateClothingInsulation() / 10; // clothing insulation can be between 0 and 2 for now
+
+        var clothingHeatProtection = player.calculateClothingHeatProtection() / 10; // (1-Insulation) clothing heat protection can be between 0 and 2 for now
+
+        // between -0.35 (blakck in snow) to 1.2 Ginger in dessert
+        var temperature = biomeTemperature - colorTemperatureShift; 
+
+        temperature += clothingInsulation;
+
+        //if(temperature > 0.5) temperature -= (temperature - 0.5) * clothingHeatProtection; // the hotter the better the heat protection
+
+        if(temperature > 0.5)
+        {
+            temperature -= clothingHeatProtection; 
+            if(temperature < 0.5) temperature = 0.5;
+        } 
+
+        //if(temperature < 0.15) temperature += clothingInsulation / 20; // if its far too cold clothing helps more
+
+        
+
+        if(temperature < 0) temperature = 0;
+        if(temperature > 1) temperature = 1;
+
+        trace('calculateTemperature: temperature: $temperature biomeTemperature: $biomeTemperature colorTemperatureShift: $colorTemperatureShift clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
 
         return temperature;
     }
@@ -334,27 +371,31 @@ class TimeHelper
         Food drain time is total including bonus.
     */
 
+    // Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
     private static function updateTemperature(player:GlobalPlayerInstance)
     {
-        var maxTemerature = 2.5; // TODO change
+        var heat = calculateTemperature(player); // 0 to 1
 
-        var temperature = calculateTemperature(player);
+        var temperatureFoodFactor = heat >= 0.5 ? heat : 1 - heat;
 
-        var foodDrainTime = (1 / ServerSettings.FoodUsePerSecond) * temperature;
+        var foodUsePerSecond = ServerSettings.FoodUsePerSecond * temperatureFoodFactor;
 
-        var heat = ((temperature - 1) / ((temperature - 1) + (maxTemerature -1))) / 2; // TODO change
+        var foodDrainTime = 1 / foodUsePerSecond;
+
+        //var heat = ((temperature - 1) / ((temperature - 1) + (maxTemperature -1))) / 2; // TODO change
 
         heat = Math.round(heat * 100) / 100;
 
         foodDrainTime = Math.round(foodDrainTime * 100) / 100;
 
-        var message = '$heat $foodDrainTime 0';
-
         player.heat = heat;
+        player.foodUsePerSecond = foodUsePerSecond;
+
+        var message = '$heat $foodDrainTime 0';
 
         if(player.connection != null) player.connection.send(HEAT_CHANGE, [message], false);
 
-        // trace('Temerature update: temperature: $temperature mesage: $message');
+        trace('Temperature update: heat: $heat foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond');
     } 
 
     public static function DoWorldMapTimeStuff()

@@ -69,6 +69,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // birth stuff 
     public var childrenBirthMali:Float = 0;  // increases for each child // reduces for dead childs
 
+    public var foodUsePerSecond = ServerSettings.FoodUsePerSecond; // is changed in update temperature
+
     // set all stuff null so that nothing is hanging around
     public function delete()
         {
@@ -1605,6 +1607,24 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         //trace('clothingInsulation: $clothingInsulation');
 
         return clothingInsulation;
+    }
+
+    public function calculateClothingHeatProtection() : Float
+    {
+        var clothingHeatProtection:Float = 0;
+        
+        for(clothing in this.clothingObjects)
+        {
+            if(clothing.id == 0) continue;
+                
+            clothingHeatProtection += clothing.objectData.getHeatProtection();
+            
+            //trace('insulation: ${clothing.description} ${clothing.objectData.getInsulation()}');
+        }
+
+        //trace('clothingInsulation: $clothingInsulation');
+
+        return clothingHeatProtection;
     }
 
     public function calculateFoodStoreMax() : Float

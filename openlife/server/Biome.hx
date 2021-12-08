@@ -56,19 +56,17 @@ package openlife.server;
     public var SPASSABLERIVER = 0.6;   
 }
 
+// Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
 @:enum abstract BiomeTemperature(Float) from Float to Float
 {
-    // var truncMovementSpeedDiff = 0.1;
-    // considered as bad biome for horses if speed < 0.999
-    // TODO make fast for specialists 
-    public var TGREEN = 1;  
-    public var TSWAMP = 0.5;  
-    public var TYELLOW = 0.8;
-    public var TGREY = 0.25; 
+    public var TGREEN = 0.4;  
+    public var TSWAMP = 0.2;  
+    public var TYELLOW = 0.4;
+    public var TGREY = 0.2; 
     public var TSNOW = 0; 
-    public var TDESERT= 2; // perfect for black
-    public var TJUNGLE = 1.5;  // perfect for brown
-    public var TCBORDERJUNGLE = 1.5; // perfect for brown
+    public var TDESERT= 1; // perfect for black
+    public var TJUNGLE = 0.7;  // perfect for brown
+    public var TCBORDERJUNGLE = 0.6; // perfect for brown
 
     public var TSNOWINGREY = 0.0; 
     public var TOCEAN = 0.0;  
@@ -78,22 +76,23 @@ package openlife.server;
 
 class Biome   
 {
+    // Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
     public static function getBiomeTemperature(biomeTag:BiomeTag) : Float
     {
         return switch biomeTag {
-            case GREEN: SGREEN;
-            case SWAMP: SSWAMP;
-            case YELLOW: SYELLOW;
-            case GREY: SGREY;
-            case SNOW: SSNOW;
-            case DESERT: SDESERT;
-            case JUNGLE: SJUNGLE;
-            case BORDERJUNGLE: SCBORDERJUNGLE;
-            case SNOWINGREY: SSNOWINGREY;
-            case OCEAN: SOCEAN;
-            case RIVER: SRIVER;
-            case PASSABLERIVER: SPASSABLERIVER;
-            default: 1;
+            case GREEN: TGREEN;
+            case SWAMP: TSWAMP;
+            case YELLOW: TYELLOW;
+            case GREY: TGREY;
+            case SNOW: TSNOW;
+            case DESERT: TDESERT;
+            case JUNGLE: TJUNGLE;
+            case BORDERJUNGLE: TCBORDERJUNGLE;
+            case SNOWINGREY: TSNOWINGREY;
+            case OCEAN: TOCEAN;
+            case RIVER: TRIVER;
+            case PASSABLERIVER: TPASSABLERIVER;
+            default: 0.5;
         }
     }
 
