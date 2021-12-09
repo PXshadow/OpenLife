@@ -223,8 +223,23 @@ class ServerSettings
 
         ObjectData.getObjectData(518).useChance = 0.3; // Cooked Goose
 
-         
+        // soil should replace water as most needed ressource 
+        ObjectData.getObjectData(624).numUses = 2; // // Composted Soil Uses: 3 Soil (Wheat, Berry, Dung) + water ==> 4 Soil 
+        ObjectData.getObjectData(411).useChance = 0.5; // Fertile Soil Pit 9 uses --> 18
+        // TODO let rows decay from time to time to increase soil need.
         
+
+        //var obj = ObjectData.getObjectData(624);
+
+        //trace('${obj.description} uses: ${obj.numUses} chance: ${obj.useChance}');
+
+        
+        //var obj = ObjectData.getObjectData(411);
+
+        //trace('${obj.description} uses: ${obj.numUses} chance: ${obj.useChance}');
+
+
+
 
         //trace('Insulation: ${ObjectData.getObjectData(128).getInsulation()}'); // Redd Skirt
 

@@ -78,6 +78,8 @@ Objects:
 - Turkey Slice on Plate Food Value: 17 --> 24
 - Omelette Food Value: 12 --> 18
 - Cooked Goose: useChance = 0.3;
+- Compost has less uses to make soil more rare, since water is more plenty: Soil (Wheat, Berry, Dung) + water ==> 4 Soil  
+(With this Compost works mainly to recycle Wheat and Dung)
 
 Transitions:
 - You can harvest Berries directly with a bowl
