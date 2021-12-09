@@ -332,7 +332,9 @@ class TimeHelper
         var colorTemperatureShift = getIdealTemperatureShiftForColor(player.getColor());
         
         // between -0.35 (blakck in snow) to 1.2 Ginger in dessert
-        var temperature = biomeTemperature - colorTemperatureShift;         
+        var temperature = biomeTemperature - colorTemperatureShift;  
+        
+        
 
         trace('calculateTemperature: temperature: $temperature biomeTemperature: $biomeTemperature colorTemperatureShift: $colorTemperatureShift');
 

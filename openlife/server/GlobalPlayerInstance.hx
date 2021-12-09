@@ -1331,13 +1331,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         playerFrom.action = 0;
  
-        playerTo.SetTransitionData(playerTo.x, playerTo.y); // TODO needs to be set right
+        playerTo.SetTransitionData(playerTo.x, playerTo.y, true); // TODO needs to be set right
         
         Connection.SendUpdateToAllClosePlayers(playerTo);
 
         if(playerFrom != playerTo)
         {
-            playerFrom.SetTransitionData(playerTo.x, playerTo.y); // TODO needs to be set right
+            playerFrom.SetTransitionData(playerTo.x, playerTo.y, true); // TODO needs to be set right
 
             Connection.SendUpdateToAllClosePlayers(playerFrom);
         }
@@ -1385,7 +1385,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(isDrop) return true; // currently flase if called from drop
 
-        SetTransitionData(this.x, this.y);
+        SetTransitionData(this.x, this.y, true);
 
         Connection.SendUpdateToAllClosePlayers(this);
 
@@ -1464,7 +1464,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         setInClothingSet(clothingSlot);
 
-        SetTransitionData(x,y);
+        SetTransitionData(x,y, true);
 
         trace('this.clothing_set: ${this.clothing_set}');
     }
