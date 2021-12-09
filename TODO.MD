@@ -10,7 +10,7 @@ if AllowDebugCommmands = true in ServerSettings.txt:
 Summary: 
 - The server is written from scratch in Haxe and in early ALPHA, so except errors / feel welcome to report them
 - Limited hand made map which can be designed using a picture
-- Rivers oceans and mountains that block the movement
+- Rivers oceans and mountains that block movement
 - No locked iron or wells
 - All natural stuff can re-spawn (exception well, iron and oil stuff)
 --> So having a lucky spot of one thing keeps it lucky also in the future
@@ -19,7 +19,7 @@ Summary:
 - Yum chain is now your prestiege (score) / health and influcences movement speed and aging
 --> so yes in theory you can life longer then 60
 - Quality of Life: You can pick berriers directly with a bowl, you can eat while on a horse. Shoes give extra speed
-- Wells fill up at least 3 times faster
+- Wells fill up at least 3 times faster. Better wells always makes more water then primitive wells
 
 AI:
 - by giving "make! xxx" commands you can instruct the ai to make stuff. with xxx part of an object name or ID
@@ -28,6 +28,7 @@ AI:
 Not yet implemented:
 - combat
 - incarnation acording to prestige score
+- saving of players on server restart. (Server restart should only take some seconds, so player should be able to continue once implemented)
 - see more in TODO below
 
 How to setup:
@@ -139,16 +140,23 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
-- saving of peopledata so that people come back after serverrestart
+- name display 
 - basic nursing AI
-- sync movement for multiple players
-- support multiple time transitions see Fishing Pole --> store in ObjectData 
+- Ai birth after death
+- Ai using containers
+- Ai ongoing longer distant movement
+- tests with >20 plus AIs
+- send once in a while out of range for too far away players 
+- send ongoing movement on birth
 - animal interactions / collisions
 - give more space for villages on the map
 - wounds / healing part 2
 - combat / generally allowed
+- incarnation
 - better temperature calculation // different temperature impact like exhaustion
 - change biome speed / boni for specialists
+- reconnection
+- saving of people data so that people come back after server restart
 - send player out of range update
 - give option to use normal YUM mechanics
 - better map
@@ -159,9 +167,8 @@ more up in the list means more likely to be implemented first but no gurantee!
 - decay floors
 - death while holding some one, or riding / driving something or using cart
 - death: baby grave
-- cars are boats
-- reconnection
-- incarnation
+- cars as boats
+- support multiple time transitions see Fishing Pole --> store in ObjectData 
 - multiplayer testing
 - biome locked planting
 - learning tools (hold wrong if not learned)
