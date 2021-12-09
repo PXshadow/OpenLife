@@ -31,13 +31,18 @@ class AiHelper
         return (toX - baseX) * (toX - baseX) + (toY - baseY) * (toY - baseY);
     }
 
+    public static function GetClosestHeatObject(playerInterface:PlayerInterface, searchDistance:Int = 2) : ObjectHelper
+    {
+        return(GetClosestObject(playerInterface, null, searchDistance, null, true));
+    }
+
     public static function GetClosestObjectById(playerInterface:PlayerInterface, objId:Int, ignoreObj:ObjectHelper = null) : ObjectHelper
     {
         var objData = ObjectData.getObjectData(objId);
         return GetClosestObject(playerInterface, objData, ignoreObj);
     }
 
-    public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData, ignoreObj:ObjectHelper = null) : ObjectHelper
+    public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData, searchDistance:Int = 16, ignoreObj:ObjectHelper = null, findClosestHeat:Bool = false) : ObjectHelper
     {
         //var RAD = ServerSettings.AiMaxSearchRadius
         var world = playerInterface.getWorld();
@@ -47,14 +52,17 @@ class AiHelper
         var closestObject = null;
         var bestDistance = 0.0;
 
-        for(ty in baseY - RAD...baseY + RAD)
+        for(ty in baseY - searchDistance...baseY + searchDistance)
         {
-            for(tx in baseX - RAD...baseX + RAD)
+            for(tx in baseX - searchDistance...baseX + searchDistance)
             {
                 if(ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
-                var objData = world.getObjectDataAtPosition(tx, ty);
                 
-                if(objData.parentId == objDataToSearch.parentId)  // compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs                    
+                var objData = world.getObjectDataAtPosition(tx, ty);
+
+                if(findClosestHeat && objData.heatValue == 0) continue;
+                
+                if(findClosestHeat || objData.parentId == objDataToSearch.parentId)  // compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs                    
                 {
                     var obj = world.getObjectHelper(tx, ty);
                     var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);

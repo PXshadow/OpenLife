@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.auto.AiHelper;
 import openlife.data.transition.TransitionImporter;
 import haxe.Exception;
 import openlife.macros.Macro;
@@ -333,8 +334,6 @@ class TimeHelper
         
         // between -0.35 (blakck in snow) to 1.2 Ginger in dessert
         var temperature = biomeTemperature - colorTemperatureShift;  
-        
-        
 
         trace('calculateTemperature: temperature: $temperature biomeTemperature: $biomeTemperature colorTemperatureShift: $colorTemperatureShift');
 
@@ -355,7 +354,7 @@ class TimeHelper
     // Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
     private static function updateTemperature(player:GlobalPlayerInstance)
     {
-        var temperature = calculateTemperature(player); // 0 to 1
+        var temperature = calculateTemperature(player);
 
         var clothingInsulation = player.calculateClothingInsulation() / 10; // clothing insulation can be between 0 and 2 for now
 
@@ -371,8 +370,8 @@ class TimeHelper
             if(temperature < 0.5) temperature = 0.5;
         } 
 
-        if(temperature < 0) temperature = 0;
-        if(temperature > 1) temperature = 1;
+        //if(temperature < 0) temperature = 0;
+        //if(temperature > 1) temperature = 1;
 
         var insulationFactor = clothingInsulation + 0.78; // between 0.78 and 0.98
 
@@ -382,8 +381,22 @@ class TimeHelper
 
         if(player.heat < 0.5 && player.heat < temperature) clothingFactor -= 0.1; // heating is positiv, so allow it more
         else if(player.heat > 0.5 && player.heat > temperature) clothingFactor -= 0.1; // cooling is positiv, so allow it more
+
+        var closestHeatObj = AiHelper.GetClosestHeatObject(player);
+
+        if(closestHeatObj != null)
+        {
+            var distance = AiHelper.CalculateDistanceToObject(player, closestHeatObj) + 1;
+
+            temperature += closestHeatObj.objectData.heatValue / (20 * distance);
+
+            trace('${closestHeatObj.description} Heat: ${closestHeatObj.objectData.heatValue} distance: $distance');
+        }
  
         player.heat = player.heat * clothingFactor + temperature * (1 - clothingFactor);
+
+        if(player.heat > 1) player.heat = 1;
+        if(player.heat < 0) player.heat = 0;
         
         var playerHeat = player.heat;
 
