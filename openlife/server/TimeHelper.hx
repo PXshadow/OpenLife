@@ -330,32 +330,11 @@ class TimeHelper
         var biomeTemperature = Biome.getBiomeTemperature(biome); // 
 
         var colorTemperatureShift = getIdealTemperatureShiftForColor(player.getColor());
-
-        var clothingInsulation = player.calculateClothingInsulation() / 10; // clothing insulation can be between 0 and 2 for now
-
-        var clothingHeatProtection = player.calculateClothingHeatProtection() / 10; // (1-Insulation) clothing heat protection can be between 0 and 2 for now
-
-        // between -0.35 (blakck in snow) to 1.2 Ginger in dessert
-        var temperature = biomeTemperature - colorTemperatureShift; 
-
-        temperature += clothingInsulation;
-
-        //if(temperature > 0.5) temperature -= (temperature - 0.5) * clothingHeatProtection; // the hotter the better the heat protection
-
-        if(temperature > 0.5)
-        {
-            temperature -= clothingHeatProtection; 
-            if(temperature < 0.5) temperature = 0.5;
-        } 
-
-        //if(temperature < 0.15) temperature += clothingInsulation / 20; // if its far too cold clothing helps more
-
         
+        // between -0.35 (blakck in snow) to 1.2 Ginger in dessert
+        var temperature = biomeTemperature - colorTemperatureShift;         
 
-        if(temperature < 0) temperature = 0;
-        if(temperature > 1) temperature = 1;
-
-        trace('calculateTemperature: temperature: $temperature biomeTemperature: $biomeTemperature colorTemperatureShift: $colorTemperatureShift clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
+        trace('calculateTemperature: temperature: $temperature biomeTemperature: $biomeTemperature colorTemperatureShift: $colorTemperatureShift');
 
         return temperature;
     }
@@ -374,28 +353,55 @@ class TimeHelper
     // Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
     private static function updateTemperature(player:GlobalPlayerInstance)
     {
-        var heat = calculateTemperature(player); // 0 to 1
+        var temperature = calculateTemperature(player); // 0 to 1
 
-        var temperatureFoodFactor = heat >= 0.5 ? heat : 1 - heat;
+        var clothingInsulation = player.calculateClothingInsulation() / 10; // clothing insulation can be between 0 and 2 for now
+
+        var clothingHeatProtection = player.calculateClothingHeatProtection() / 10; // (1-Insulation) clothing heat protection can be between 0 and 2 for now
+
+        temperature += clothingInsulation;
+
+        //if(temperature > 0.5) temperature -= (temperature - 0.5) * clothingHeatProtection; // the hotter the better the heat protection
+
+        if(temperature > 0.5)
+        {
+            temperature -= clothingHeatProtection; 
+            if(temperature < 0.5) temperature = 0.5;
+        } 
+
+        if(temperature < 0) temperature = 0;
+        if(temperature > 1) temperature = 1;
+
+        var insulationFactor = clothingInsulation + 0.78; // between 0.78 and 0.98
+
+        var heatProtectionFactor = clothingHeatProtection + 0.78; // between 0.78 and 0.98
+
+        var clothingFactor = temperature < 0.5 ? insulationFactor : heatProtectionFactor; 
+
+        if(player.heat < 0.5 && player.heat < temperature) clothingFactor -= 0.1; // heating is positiv, so allow it more
+        else if(player.heat > 0.5 && player.heat > temperature) clothingFactor -= 0.1; // cooling is positiv, so allow it more
+ 
+        player.heat = player.heat * clothingFactor + temperature * (1 - clothingFactor);
+        
+        var playerHeat = player.heat;
+
+        var temperatureFoodFactor = playerHeat >= 0.5 ? playerHeat : 1 - playerHeat;
 
         var foodUsePerSecond = ServerSettings.FoodUsePerSecond * temperatureFoodFactor;
 
         var foodDrainTime = 1 / foodUsePerSecond;
 
-        //var heat = ((temperature - 1) / ((temperature - 1) + (maxTemperature -1))) / 2; // TODO change
+        player.foodUsePerSecond = foodUsePerSecond;
 
-        heat = Math.round(heat * 100) / 100;
+        temperature = Math.round(temperature * 100) / 100;
 
         foodDrainTime = Math.round(foodDrainTime * 100) / 100;
 
-        player.heat = heat;
-        player.foodUsePerSecond = foodUsePerSecond;
-
-        var message = '$heat $foodDrainTime 0';
+        var message = '$playerHeat $foodDrainTime 0';
 
         if(player.connection != null) player.connection.send(HEAT_CHANGE, [message], false);
 
-        trace('Temperature update: heat: $heat foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond');
+        trace('Temperature update: playerHeat: $playerHeat temperature: $temperature clothingFactor: $clothingFactor foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
     } 
 
     public static function DoWorldMapTimeStuff()
