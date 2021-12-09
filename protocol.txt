@@ -270,7 +270,7 @@ Containment can only go two layers deep.  A wagon full of baskets full of
 carrots, for example.
 
 
-
+(CM)
 CM
 binary_raw_size binary_compressed_size 
 #
@@ -292,7 +292,7 @@ terminatin # character.
 
 
 
-
+(MC)
 MC
 sizeX sizeY x y
 binary_raw_size binary_compressed_size 
@@ -310,7 +310,7 @@ Check the code in map.cpp for details.
 
 
 
-
+(PU)
 PU
 p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum held_learned
 p_id po_id facing action action_target_x action_target_y o_id o_origin_valid o_origin_x o_origin_y o_transition_source_id heat done_moving_seqNum force x y age age_r move_speed clothing_set just_ate last_ate_id responsible_id held_yum held_learned
@@ -406,7 +406,7 @@ and a baby can wriggle out of an adult's arms while the adult is in transit.
 
 
 
-
+(PM)
 PM
 p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
 p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
@@ -433,7 +433,7 @@ Until that has happened, client must assume player is still in transit.
 
 
 
-
+(PO)
 PO
 p_id
 p_id
@@ -460,7 +460,7 @@ A list of player IDs that are babies who just started wiggling.
 
 
 
-
+(PS)
 PS
 p_id/isCurse text
 p_id/isCurse text
@@ -484,7 +484,7 @@ PS
 
 
 
-
+(LS)
 LS
 x y text
 x y text
@@ -505,7 +505,7 @@ LS
 
 
 
-
+(BB)
 BB
 bID DISPLAY_NAME
 bID DISPLAY_NAME
@@ -517,7 +517,7 @@ Lists bad biome IDs for a player, along with their display names IN_THIS_FORMAT
 
 
 
-
+(VU)
 VU
 x y
 #
@@ -531,7 +531,7 @@ VU
 
 
 
-
+(PE)
 PE
 p_id emot_index ttl_sec
 p_id emot_index
@@ -561,7 +561,7 @@ If ttl is -2, the emot is permanent but not new, so sound shoudl be skipped.
 
 
 
-
+(MX)
 MX
 x y new_floor_id new_id p_id
 x y new_floor_id new_id p_id
@@ -599,7 +599,7 @@ with a given speed.
 
 
 
-
+(FX)
 FX
 food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
  yum_bonus yum_multiplier#
@@ -625,7 +625,7 @@ when the next yummy food is eaten.
 
 
 
-
+(HX)
 HX
 heat food_time indoor_bonus#
 
@@ -637,7 +637,7 @@ Food drain time is total including bonus.
 
 
 
-
+(LN)
 LN
 p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
 p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
@@ -664,7 +664,7 @@ This message describes known lineages.
 
 
 
-
+(NM)
 NM
 p_id first_name last_name
 p_id first_name last_name
@@ -682,7 +682,7 @@ last_name may be ommitted.
 
 
 
-
+(AP)
 AP
 #
 
@@ -690,7 +690,7 @@ Indicates that an apocalypse is pending.  Gives client
 time to show a visual effect.
 
 
-
+(AD)
 AD
 #
 
@@ -698,7 +698,7 @@ Indicates that an apocalypse is now over.  Client should go back to displaying
 world.
 
 
-
+(DY)
 DY
 p_id isSick
 p_id
@@ -714,7 +714,7 @@ isSick is optional 1 flag to indicate that player is sick
 (client shouldn't show blood UI overlay for sick players)
 
 
-
+(HE)
 HE
 p_id
 p_id
@@ -726,7 +726,7 @@ p_id
 Indicates that the listed players have been healed and are no longer dying.
 
 
-
+(PJ)
 PJ
 p_id_killer p_id_target
 #
@@ -737,7 +737,7 @@ If target = 0, killer has left the posse.
 
 
 
-
+(MN)
 MN
 x y o_id
 #
@@ -748,7 +748,7 @@ of object o_id.
 
 
 
-
+(GV)
 GV
 x y p_id
 #
@@ -758,7 +758,7 @@ Grave at x y belongs to player p_id.
 
 
 
-
+(GM)
 GM
 xs ys xd yd swap_dest
 #
@@ -770,7 +770,7 @@ If optional swap_dest parameter is 1, it means that some other grave at
 destination is in mid-air.  If 0, not
 
 
-
+(GO)
 GO
 x y p_id po_id death_age underscored_name mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
 #
@@ -787,7 +787,7 @@ death_age is how long the player has been dead (in in-game years)
 Same semantics for eve= tag at end as for LN message.
 
 
-
+(OW)
 OW
 x y p_id p_id p_id ... p_id
 #
@@ -797,7 +797,7 @@ Provides owner list for position x y
 
 
 
-
+(FW)
 FW
 follower_id leader_id leader_color_index
 follower_id leader_id leader_color_index
@@ -811,7 +811,7 @@ Leader color index specifies leader's badge color from a fixed color list
 
 
 
-
+(EX)
 EX
 exile_target_id exiler_id
 exile_target_id exiler_id
@@ -842,7 +842,7 @@ exile_target_id -1
 
 
 
-
+(VS)
 VS
 y_spacing y_offset
 #
@@ -853,7 +853,7 @@ Offset is from client's birth position (0,0) of first valley.
 
 
 
-
+(CU)
 CU
 p_id level word
 p_id level
@@ -867,21 +867,21 @@ List of player ids that are cursed, and their curse level
 word is optional, which is a persistent name tag for this person.
 
 
-
+(CX)
 CX
 curse_token_count#
 
 Tells player about how many curse tokens they have
 
 
-
+(CS)
 CS
 excess_curse_points#
 
 Tells player about their curse score, if it is above the threshold.
 
 
-
+(FD)
 FD
 p_id dest_x dest_y
 #
@@ -891,7 +891,7 @@ Sent to all players to let them know about new flights.
 Flying player should wait for a MAP_CHUNK message around the destination.
 
 
-
+(PH)
 PH
 x y signature
 #
@@ -900,7 +900,7 @@ Gives the player a requested photo signature for their last PHOTO request.
 Will return a dummy signature if the photo is denied.
 
 
-
+(SD)
 SD
 #
 
@@ -908,6 +908,8 @@ Indicates that the server is undergoing a forced shutdown.  Gives client a
 chance to hear about this and close connection before connection is
 force-closed by server.
 
+
+GLOBAL_MESSAGE: (MS)
 
 MS
 some_message_text_with_space_replaced_by_underscore
@@ -918,7 +920,7 @@ Server sending a global message to be displayed by all non-tutorial clients.
 
 
 
-
+(WR)
 WR
 eve_id_a eve_id_b status
 eve_id_c eve_id_d status
@@ -935,7 +937,7 @@ peace
 
 
 
-
+(LR)
 LR
 tool_id tool_id ... tool_id 
 #
@@ -945,7 +947,7 @@ Report about new tool objects that have just been learned
 Each tool_id is an object id.
 
 
-
+(TE)
 TE
 p_id p_id ... p_id
 #
@@ -956,7 +958,7 @@ holding.
 Sent whenever player's held object changes to an unlearned tool.
 
 
-
+(TS)
 TS
 used total
 #
@@ -964,7 +966,7 @@ used total
 Tells player how many slots have been used and how many total they have.
 
 
-
+(HL)
 HL
 x y family_name
 #
@@ -973,7 +975,7 @@ Tells player about a homeland center at x,y
 family_name is 0 if homeland is expired
 
 
-
+(FL)
 FL
 p_id face_left
 p_id face_left
@@ -986,7 +988,7 @@ left, false if facing right.  Only sent in response to stationary player flip
 requests (clients should still auto-flip players based on movement).
 
 
-
+(CR)
 CR
 food_id bonus
 #
@@ -996,7 +998,7 @@ YUM multiplier will increase when they eat it.
 
 
 
-
+(FM)
 FM
 #
 
@@ -1004,7 +1006,7 @@ Indicates the end of a server frame.  All messages since the last FM message
 are part of the same batch and can be played back together on the client.
 
 
-
+(PONG)
 PONG
 unique_id#
 

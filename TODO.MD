@@ -137,6 +137,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - special stuff like hercules / snake master / super fast ager 
 - job boni
 - bridges
+- better fences
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
@@ -144,7 +145,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - basic nursing AI
 - Ai birth after death
 - Ai using containers
-- Ai ongoing longer distant movement
+- Ai ongoing longer distant movementTODO.MD
 - tests with >20 plus AIs
 - send once in a while out of range for too far away players 
 - send ongoing movement on birth
@@ -153,6 +154,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - wounds / healing part 2
 - combat / generally allowed
 - incarnation
+
 - better temperature calculation // different temperature impact like exhaustion
 - change biome speed / boni for specialists
 - reconnection
