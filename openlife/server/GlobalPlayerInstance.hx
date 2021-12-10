@@ -739,13 +739,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         var name = strings[2];
 
+        if(name.length < 3) return;
+
         //var r = ~/^[a-z]+$/i; // only letters
         var r = ~/[^a-z]/i; // true if anything but letters
         if(r.match(name)) return; // return if there is anything but letters
 
+        // TODO choose name from list
+        
         trace('TEST Naming: $name');
 
-        if(name.length < 3) return;
+        
 
         if(doFamilyName)
         {

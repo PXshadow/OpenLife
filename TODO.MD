@@ -143,65 +143,66 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
-- name display 
-- basic nursing AI
+- AI basic nursing
 - Ai birth after death
 - Ai using containers
 - Ai ongoing longer distant movement
-- tests with >20 AIs
-- animal interactions / collisions
-- map rework / place more biomes
-- wounds / healing part 2
-- calculate exact player position for combat and distance
-- calculate distance right when on end of map 
-- combat / generally allowed
-- incarnation
-- different temperature impact like exhaustion
-- exhaustion reduces speed / food use
-- exhaustion replaces hungry work
-- exhaustion in swamp / bad biome
-- exhaustion movement change
-- exhaustion carring heavy stuff
-- indoor temperature calculation 
-- /leader command
+- AI tests with >20 AIs
+- COMBAT calculate exact player position for combat and distance
+- COMBAT wounds / healing part 2 
+- COMBAT implement kill 
+- COMBAT animal interactions / collisions
+- COMBAT ill from moskitos 
+- ANIMAL animal movement on top of items
+- MAP map rework / place more biomes
+- MAP calculate distance right when on end of map 
+- SCORE save lineages
+- SCORE implement prestiege score
+- SCORE give score boni
+- BIRTH use childFood / make sure that a mother does not have too many babies at same time
+- BIRTH fathers
+- BIRTH fathers displayed in name (needs workaround since not supported from client)
+- BIRTH incarnation according to score
+- BIRTH curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
+- EXHAUSTION bad temperature impacts exhaustion
+- EXHAUSTION reduces speed / food use
+- EXHAUSTION replaces hungry work
+- EXHAUSTION in swamp / bad biome
+- EXHAUSTION movement change
+- EXHAUSTION carring heavy stuff
+- TEMPERATURE indoor temperature calculation 
+- LEADER leader and follower display
+- LEADER /leader command
 - change biome speed / boni for specialists
-- reconnection
-- saving of people data so that people come back after server restart
-- give option to use normal YUM mechanics
-- time transitions for objects in container
-- decay stuff in containers
-- decay clothing
-- decay use item for decay like Broken Skewer  ID: 847
-- decay floors
-- death while holding some one, or riding / driving something or using cart
-- death: baby grave
-- cars as boats
-- support multiple time transitions see Fishing Pole --> store in ObjectData 
-- multiplayer testing
-- biome locked planting
-- learning tools (hold wrong if not learned)
-- no dropping of stuff on water
-- predefined naming
-- do pattern transitions right like rubber horsecart pickup 
-- biome boni for different races
-- leadership
-- rails 
-- faces / for example hungry / ill
-- ill from moskitos 
-- server stats
-- curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
-- fences / gates
-- score / score boni / score incarnation
-- / commands 
-- leader commands
-- maps / maps on waystone
-- yum category // for example for berry / berry bowl (maybe not needed?)
-- better order of craving list (currently its just ordered accoring to obj ID)
-- twinning
-- home marker
-- different languages
-- bell tower ringing
-
+- CONNECTION reconnection
+- CONNECTION saving of people data so that people come back after server restart
+- TIME time transitions for objects in container
+- TIME decay stuff in containers
+- TIME decay clothing
+- TIME use item for decay like Broken Skewer  ID: 847
+- TIME decay floors
+- TIME support multiple time transitions see Fishing Pole --> store in ObjectData 
+- DEATH while holding some one, or riding / driving something or using cart
+- DEATH baby grave
+- BIOME biome boni for different races
+- BIOME cars as boats
+- BIOME no dropping of stuff on water
+- BIOME biome locked planting
+- TOOLS learning tools (hold wrong if not learned)
+- NAMING use predefined naming from list
+- DONE??? do pattern transitions right like rubber horsecart pickup  
+- RAILS implement rails
+- EMOTES for example hungry / ill / bad temperature / exhausted
+- OWNERSHIP fences / gates 
+- COMMANDS implement missing commands 
+- YUM use yum category // for example for berry / berry bowl (maybe not needed?)
+- CRAVING better order of craving list (currently its just ordered accoring to obj ID)
+- CONNECTION twinning
+- STATS implement basic server stats
+- LANGUAGE implement different languages
+- POINTER bell tower ringing
+- POINTER maps / maps on waystone
+- POINTER home marker
 
 Low priority stuff:
 - advanced transitions like oil stuff, sprinkler, cars

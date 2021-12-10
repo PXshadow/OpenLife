@@ -64,12 +64,12 @@ class Lineage
 
     public function get_familyName()
     {
-        return myFamilyName;
+        return myFamilyName; // TODO use top family head
     }
 
     public function setFamilyName(newName:String)
     {
-        return myFamilyName = newName; // TODO change  
+        return myFamilyName = newName; // TODO change only top family name 
     }
 
     // p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
