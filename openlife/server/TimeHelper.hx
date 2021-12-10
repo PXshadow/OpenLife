@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.server.Biome.BiomeMapColor;
 import openlife.auto.AiHelper;
 import openlife.data.transition.TransitionImporter;
 import haxe.Exception;
@@ -311,34 +312,6 @@ class TimeHelper
         }
     }
 
-    private static function getIdealTemperatureShiftForColor(personColor:PersonColor) : Float
-    {
-        if(personColor == PersonColor.Black) return 0.35; // ideal temperature = 0.85
-        if(personColor == PersonColor.Brown) return 0.2;
-        if(personColor == PersonColor.White) return 0;
-        if(personColor == PersonColor.Ginger) return -0.2; // ideal temperature = 0.3
-
-        return 0; 
-    }
-
-    // Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
-    private static function calculateTemperature(player:GlobalPlayerInstance) : Float
-    {
-        // TODO consider close biome temperature influence
-        var biome = WorldMap.worldGetBiomeId(player.tx(), player.ty()); // TODO other biomes
-
-        var biomeTemperature = Biome.getBiomeTemperature(biome); // 
-
-        var colorTemperatureShift = getIdealTemperatureShiftForColor(player.getColor());
-        
-        // between -0.35 (blakck in snow) to 1.2 Ginger in dessert
-        var temperature = biomeTemperature - colorTemperatureShift;  
-
-        trace('calculateTemperature: temperature: $temperature biomeTemperature: $biomeTemperature colorTemperatureShift: $colorTemperatureShift');
-
-        return temperature;
-    }
-
     /*
         HX
         heat food_time indoor_bonus#
@@ -417,6 +390,105 @@ class TimeHelper
 
         trace('Temperature update: playerHeat: $playerHeat temperature: $temperature clothingFactor: $clothingFactor foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
     } 
+
+    // Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
+    private static function calculateTemperature(player:GlobalPlayerInstance) : Float
+    {
+        var maxBiomeDistance = 10; 
+        // TODO consider close biome temperature influence
+        var biome = WorldMap.worldGetBiomeId(player.tx(), player.ty()); 
+        var originalBiomeTemperature = Biome.getBiomeTemperature(biome);
+        var biomeTemperature = originalBiomeTemperature;
+
+        // looke for close biomes that influence temperature
+        if(biome == BiomeTag.GREEN || biome == BiomeTag.YELLOW)
+        {         
+            // direct x / y   
+            for(ii in 1...maxBiomeDistance-1)
+            {
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx() + ii, player.ty(), "+X", ii, maxBiomeDistance, biomeTemperature);
+                if(biomeTemperature != originalBiomeTemperature) break; 
+            }
+
+            for(ii in 1...maxBiomeDistance-1)
+            {
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx() - ii, player.ty(), "-X", ii, maxBiomeDistance, biomeTemperature);
+                if(biomeTemperature != originalBiomeTemperature) break; 
+            }
+
+            for(ii in 1...maxBiomeDistance-1)
+            {
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx(), player.ty() + ii, "+Y",  ii, maxBiomeDistance, biomeTemperature);
+                if(biomeTemperature != originalBiomeTemperature) break; 
+            }
+
+            for(ii in 1...maxBiomeDistance-1)
+            {
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx(), player.ty() - ii, "-Y", ii, maxBiomeDistance, biomeTemperature);
+                if(biomeTemperature != originalBiomeTemperature) break; 
+            }
+
+            // diagonal x / y   
+            for(ii in 1...maxBiomeDistance-1)
+            {
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx() + ii, player.ty() + ii, "+X+Y", ii, maxBiomeDistance, biomeTemperature);
+                if(biomeTemperature != originalBiomeTemperature) break; 
+            }
+
+            for(ii in 1...maxBiomeDistance-1)
+            {
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx() - ii, player.ty() - ii, "-X-Y", ii, maxBiomeDistance, biomeTemperature);
+                if(biomeTemperature != originalBiomeTemperature) break; 
+            }
+
+            for(ii in 1...maxBiomeDistance-1)
+            {
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx() - ii, player.ty() + ii, "-X+Y", ii, maxBiomeDistance, biomeTemperature);
+                if(biomeTemperature != originalBiomeTemperature) break; 
+            }
+
+            for(ii in 1...maxBiomeDistance-1)
+            {
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx() + ii, player.ty() - ii, "+X-Y", ii, maxBiomeDistance, biomeTemperature);
+                if(biomeTemperature != originalBiomeTemperature) break; 
+            }
+        }
+
+        var colorTemperatureShift = getIdealTemperatureShiftForColor(player.getColor());
+        
+        // between -0.35 (black in snow) to 1.2 Ginger in dessert
+        var temperature = biomeTemperature - colorTemperatureShift;  
+
+        trace('calculateTemperature: temperature: $temperature biomeTemperature: $biomeTemperature colorTemperatureShift: $colorTemperatureShift');
+
+        return temperature;
+    }
+
+    private static function getIdealTemperatureShiftForColor(personColor:PersonColor) : Float
+    {
+        if(personColor == PersonColor.Black) return 0.35; // ideal temperature = 0.85
+        if(personColor == PersonColor.Brown) return 0.2;
+        if(personColor == PersonColor.White) return 0;
+        if(personColor == PersonColor.Ginger) return -0.2; // ideal temperature = 0.3
+
+        return 0; 
+    }
+
+    private static function CalculateTemperatureAtPosition(tx:Int, ty:Int, debugString:String, distance:Int, maxBiomeDistance:Int, originalTemperature:Float) : Float
+    {
+        var biome = WorldMap.worldGetBiomeId(tx, ty);
+        var biomeTemperature = originalTemperature;
+
+        if(biome == BiomeTag.DESERT || biome == BiomeTag.JUNGLE || biome == BiomeTag.SNOW)
+        {
+            var tmpBiomeTemperature = Biome.getBiomeTemperature(biome);
+            biomeTemperature = (originalTemperature * distance + tmpBiomeTemperature * (maxBiomeDistance - distance)) / maxBiomeDistance;
+
+            //trace('TEST BiomeTemp: $debugString distance: $distance biomeTemperature: $biomeTemperature tmpBiomeTemperature: $tmpBiomeTemperature');
+        }
+
+        return biomeTemperature;
+    }
 
     public static function DoWorldMapTimeStuff()
     {
