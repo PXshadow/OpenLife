@@ -78,6 +78,8 @@ class Connection
             
             player.sendFoodUpdate();
 
+            //this.send(ClientTag.LOCATION_SAYS,['0 100 ! 30']);
+
             send(FRAME, null, true);
         }
         catch(ex)
@@ -226,13 +228,29 @@ class Connection
         for(c in Connection.getConnections())
         {
             var player = c.player;
-            this.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
+            this.send(ClientTag.NAME,['${player.p_id} ${player.linage.name} ${player.familyName}']);
         }
 
         for(c in ais)
         {
             var player = c.player;
             this.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
+        }
+    }
+
+    // p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
+    public function sendToMeAllLinages()
+    {
+        for(c in Connection.getConnections())
+        {
+            var player = c.player;
+            this.send(ClientTag.LINEAGE,['${player.p_id} ${player.name} ${player.familyName}']);
+        }
+
+        for(c in ais)
+        {
+            var player = c.player;
+            this.send(ClientTag.LINEAGE,['${player.p_id} ${player.name} ${player.familyName}']);
         }
     }
 

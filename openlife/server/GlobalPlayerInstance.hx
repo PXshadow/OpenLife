@@ -27,22 +27,22 @@ using openlife.server.MoveHelper;
 // GlobalPlayerInstance is used as a WorldInterface for an AI, since it may be limited what the AI can see so player information is relevant
 class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface
 {
+    // todo remove players once dead???
+    public static var AllPlayers = new Map<Int,GlobalPlayerInstance>();
+    public static function AddPlayer(player:GlobalPlayerInstance) {AllPlayers[player.p_id] = player;}
+
     public static var lastAiEveOrAdam:GlobalPlayerInstance; 
     public static var lastHumanEveOrAdam:GlobalPlayerInstance; 
 
-    // make sure to set these null is player is deleted so that garbage collector can clean up
-    public var mother:GlobalPlayerInstance;
-    public var father:GlobalPlayerInstance;
-    public var followPlayer:GlobalPlayerInstance;
+    public var linage = new Lineage();
 
+    // make sure to set these null is player is deleted so that garbage collector can clean up
+    public var followPlayer:GlobalPlayerInstance;
     public var heldPlayer:GlobalPlayerInstance;
     public var heldByPlayer:GlobalPlayerInstance;
 
     // handles all the movement stuff
     public var moveHelper:MoveHelper;
-
-    public var name = ServerSettings.StartingName;
-    public var familyName = ServerSettings.StartingFamilyName;
 
     // additional ObjectInformation for the object stored in backpack or other clothing. The size is 6 since 6 clothing slots
     public var clothingObjects:Vector<ObjectHelper> = new Vector(6); 
@@ -73,14 +73,56 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     // set all stuff null so that nothing is hanging around
     public function delete()
-        {
-            this.mother = null;
-            this.father = null;
-            this.followPlayer = null;
-    
-            this.heldPlayer = null;
-            this.heldByPlayer = null;
-        }
+    {
+        this.followPlayer = null;
+
+        this.heldPlayer = null;
+        this.heldByPlayer = null;
+    }
+
+    public var name(get, set):String;
+
+    public function get_name()
+    {
+        return linage.name;
+    }
+
+    public function set_name(newName:String)
+    {
+        return linage.name = name;
+    }
+
+    public var familyName(get, null):String;
+
+    public function get_familyName()
+    {
+        return linage.familyName;
+    }
+
+    public var mother(get, set):GlobalPlayerInstance;
+
+    public function get_mother()
+    {
+        return linage.mother;
+    }
+
+    public function set_mother(newMother:GlobalPlayerInstance)
+    {
+        return linage.mother = newMother;
+    }
+
+    public var father(get, set):GlobalPlayerInstance;
+
+    public function get_father()
+    {
+        return linage.father;
+    }
+
+    public function set_father(newFather:GlobalPlayerInstance)
+    {
+        return linage.father = newFather;
+    }
+
 
     public static function GetNumberLifingPlayers() : Int
     {
@@ -115,6 +157,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // TODO give a certain eve birth %
 
         po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
+        AddPlayer(this);
         
         // spawn human eve to human adam and ai eve to ai adam except if player count is very few 
         var isAi = this.isAi();
@@ -217,7 +260,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         // TODO use childFood for birth and childfeeding
         // TODO father
-        // TODO set zero if dead because of garbage collection
         this.mother = mother;
         this.followPlayer = mother; // the mother is the leader
 
@@ -690,21 +732,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         trace('TEST Naming: $name');
 
-        /*
-        name = name.replace('1','');
-        name = name.replace('2','');
-        name = name.replace('3','');
-        name = name.replace('4','');
-        name = name.replace('5,'');
-        name = name.replace('6,'');
-        name = name.replace('7','');
-        */
-
         if(name.length < 3) return;
 
         if(doFamilyName)
         {
-            player.familyName = name;
+            player.linage.setFamilyName(name);
 
             // TODO use family name from family head
         }
