@@ -34,17 +34,22 @@ private class NewMovements
 
 class MoveHelper
 {
+    public var player:GlobalPlayerInstance;
+
     // x,y when last chunk was send
     private var tx:Int = 0;
     private var ty:Int = 0;
 
     // to calculate if the move is finished
     private var newMoveSeqNumber:Int = 0; 
+    private var newMovements:NewMovements;
     private var newMoves:Array<Pos>;
     private var totalMoveTime:Float = 0;
     private var startingMoveTicks:Float = 0;
 
-    public function new(){}
+    public function new(player:GlobalPlayerInstance){
+        this.player = player;
+    }
 
     public function isMoveing():Bool
     {    
@@ -217,6 +222,7 @@ class MoveHelper
                 moveHelper.totalMoveTime = 0;
                 moveHelper.startingMoveTicks = 0;
                 moveHelper.newMoves = null;
+                moveHelper.newMovements = null;
 
                 var oldX = p.x;
                 var oldY = p.y;
@@ -314,6 +320,7 @@ class MoveHelper
                     p.forced = true;
                     p.done_moving_seqNum  = seq;
                     moveHelper.newMoves = null; // cancle all movements
+                    moveHelper.newMovements = null;
 
                     trace('MOVE: positionChanged Force!   Server ${ p.x },${ p.y }:Client ${ x },${ y }');
                 }
@@ -337,12 +344,14 @@ class MoveHelper
                 // TODO maybe better to not cut it and make a player update one the new biome is reached?
                 // if passing in an biome with different speed only the first movement is kept
                 var newMovements = calculateNewMovements(p, p.x + p.gx, p.y + p.gy, moves);
+                moveHelper.newMovements = newMovements;
 
                 if(newMovements.moves.length < 1)
                 {
                     p.done_moving_seqNum  = seq;
                     p.move_speed = calculateSpeed(p, p.tx(), p.ty());
                     moveHelper.newMoves = null; // cancle all movements
+                    moveHelper.newMovements = null;
 
                     //cancle movement
                     p.forced = true;
@@ -362,7 +371,6 @@ class MoveHelper
                 moveHelper.totalMoveTime = (1/p.move_speed) * newMovements.length;
                 moveHelper.startingMoveTicks = TimeHelper.tick;
                 moveHelper.newMoveSeqNumber = seq;  
-                var eta = moveHelper.totalMoveTime;
                 
                 // TODO chunk loading in x direction is too slow with high speed
                 // TODO general better chunk loading
@@ -374,21 +382,18 @@ class MoveHelper
                     moveHelper.ty = p.y;
         
                     p.connection.sendMapChunk(p.x,p.y);         
-                }
+                }                
 
-                if (p.serverAi == null)
-                    p.connection.send(PLAYER_UPDATE,[p.toData()]); //this is causing error
-
-                //c.send(PLAYER_MOVES_START,['${player.p_id} ${targetX} ${targetY} ${player.moveHelper.totalMoveTime} $eta ${newMovements.trunc} ${player.moveHelper.moveString(player.moveHelper.newMoves)}']);
-                // TODO 
                 if(positionChanged)
                 {
-                    //Connection.SendToMeAllClosePlayers(p); // TODO may make problems with moving players
                     Connection.SendUpdateToAllClosePlayers(p);
                 }
+                else
+                {
+                    if(p.serverAi == null) p.connection.send(PLAYER_UPDATE,[p.toData()]);
+                }
 
-                Connection.SendMoveUpdateToAllClosePlayers(p, moveHelper.totalMoveTime, newMovements.trunc, moveString(moveHelper.newMoves));
-
+                Connection.SendMoveUpdateToAllClosePlayers(p);
             }
             catch(ex)
             {
@@ -397,6 +402,19 @@ class MoveHelper
 
             p.forced = false;
             p.mutex.release();
+        }
+
+        public function generateRelativeMoveUpdateString(forPlayer:GlobalPlayerInstance) : String
+        {
+            var totalMoveTime = Math.round(this.totalMoveTime * 100) / 100;
+            var targetX = player.tx() - forPlayer.gx;
+            var targetY = player.ty() - forPlayer.gy;
+            var eta = totalMoveTime - TimeHelper.CalculateTimeSinceTicksInSec(startingMoveTicks);            
+
+            var moveString = '${player.p_id} ${targetX} ${targetY} ${totalMoveTime} $eta ${newMovements.trunc} ${moveString(newMoves)}';
+            //trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
+
+           return moveString;
         }
 
         static private function moveString(moves:Array<Pos>):String

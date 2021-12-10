@@ -94,7 +94,7 @@ class TimeHelper
         {            
             if(DoTimeStuffForPlayer(c.player, timePassedInSeconds) == false) continue;
 
-            if(TimeHelper.tick % 90 == 0) Macro.exception(c.sendToMeAllClosePlayers(false));
+            if(TimeHelper.tick % 90 == 0) Macro.exception(c.sendToMeAllClosePlayers(false, false));
         }
         
         for (ai in Connection.getAis())

@@ -39,7 +39,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var heldByPlayer:GlobalPlayerInstance;
 
     // handles all the movement stuff
-    public var moveHelper = new MoveHelper();
+    public var moveHelper:MoveHelper;
 
     public var name = ServerSettings.StartingName;
     public var familyName = ServerSettings.StartingFamilyName;
@@ -98,6 +98,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function new(ai:ServerAi = null)
     {
         super([]);
+
+        this.moveHelper = new MoveHelper(this);
 
         this.serverAi = ai;
         this.heldObject = ObjectHelper.readObjectHelper(this, [0]);

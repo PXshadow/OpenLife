@@ -131,13 +131,15 @@ Animals:
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
 - Winter / seasons / ice ages
-- horses that follow owner
 - princess / princess / nobles
+- better fences- better fences
 - reconnection after server shutdown
 - special stuff like hercules / snake master / super fast ager 
 - job boni
 - bridges
-- better fences
+- horses that follow owner
+- better dogs
+
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
@@ -145,15 +147,16 @@ more up in the list means more likely to be implemented first but no gurantee!
 - basic nursing AI
 - Ai birth after death
 - Ai using containers
-- Ai ongoing longer distant movementTODO.MD
-- tests with >20 plus AIs
-- send ongoing movement on birth
+- Ai ongoing longer distant movement
+- tests with >20 AIs
 - animal interactions / collisions
 - give more space for villages on the map
 - wounds / healing part 2
+- calculate exaxt player position for combat
 - combat / generally allowed
 - incarnation
 - better temperature calculation // different temperature impact like exhaustion
+- /leader command
 - change biome speed / boni for specialists
 - reconnection
 - saving of people data so that people come back after server restart

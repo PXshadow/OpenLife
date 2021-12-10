@@ -72,7 +72,7 @@ class Connection
 
             // send PU and FRAME also to the connection --> therefore make sure that addToConnections is called first 
             SendUpdateToAllClosePlayers(player); 
-            SendToMeAllClosePlayers(player);  // TODO may need to send updates for current movements too
+            SendToMeAllClosePlayers(player, true);  // TODO may need to send updates for current movements too
             //p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
             
             player.sendFoodUpdate();
@@ -158,12 +158,12 @@ class Connection
         catch(ex) trace(ex);
     }
 
-    public function sendToMeAllClosePlayers(isPlayerAction:Bool = true)
+    public function sendToMeAllClosePlayers(sendMovingPlayer:Bool = false, isPlayerAction:Bool = true)
     {
-        return SendToMeAllClosePlayers(this.player, isPlayerAction);
+        return SendToMeAllClosePlayers(this.player, sendMovingPlayer, isPlayerAction);
     }
 
-    public static function SendToMeAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true)
+    public static function SendToMeAllClosePlayers(player:GlobalPlayerInstance, sendMovingPlayer:Bool = false, isPlayerAction:Bool = true)
     {
         try
         {
@@ -173,12 +173,12 @@ class Connection
 
             for (c in connections)
             {
-                connection.sendToMePlayerInfo(c.player, isPlayerAction);
+                connection.sendToMePlayerInfo(c.player, sendMovingPlayer, isPlayerAction);
             }
 
             for (ai in ais)
             {
-                connection.sendToMePlayerInfo(ai.player, isPlayerAction);
+                connection.sendToMePlayerInfo(ai.player, sendMovingPlayer, isPlayerAction);
             }
 
             player.connection.send(FRAME, null, isPlayerAction);
@@ -186,7 +186,7 @@ class Connection
         catch(ex) trace(ex);
     }
 
-    private function sendToMePlayerInfo(playerToSend:GlobalPlayerInstance, isPlayerAction:Bool = true)
+    private function sendToMePlayerInfo(playerToSend:GlobalPlayerInstance, sendMovingPlayer:Bool = false, isPlayerAction:Bool = true)
     {
         if(playerToSend.deleted) return;
 
@@ -197,20 +197,26 @@ class Connection
         var targetY = playerToSend.ty() - player.gy;
 
         // update only close players
-        if(player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose))
+        if(player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false)
         {
-            if(playerToSend.isMoving())
-            {
-                // TODO moving players
-            }
-            else
+            player.connection.send(PLAYER_OUT_OF_RANGE,['${playerToSend.p_id}'], isPlayerAction);
+            return;
+        }
+        
+        if(playerToSend.isMoving())
+        {        
+            if(sendMovingPlayer)
             {
                 player.connection.send(PLAYER_UPDATE,[playerToSend.toRelativeData(player)], isPlayerAction);
+                var moveString = playerToSend.moveHelper.generateRelativeMoveUpdateString(player);
+                player.connection.send(PLAYER_MOVES_START,[moveString]);
             }
+
+            // sending moving player again creates otherwise a display bug
         }
         else
         {
-            player.connection.send(PLAYER_OUT_OF_RANGE,['${playerToSend.p_id}'], isPlayerAction);
+            player.connection.send(PLAYER_UPDATE,[playerToSend.toRelativeData(player)], isPlayerAction);
         }
     }
 
@@ -333,12 +339,8 @@ class Connection
         catch(ex) trace(ex);
     }
 
-    public static function SendMoveUpdateToAllClosePlayers(player:GlobalPlayerInstance, totalMoveTime:Float, trunc:Int, moveString:String, isPlayerAction:Bool = true)
+    public static function SendMoveUpdateToAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true)
     {
-        totalMoveTime = Math.round(totalMoveTime * 100) / 100;
-
-        var eta = totalMoveTime; 
-
         try
         {
             for (c in connections) 
@@ -350,7 +352,11 @@ class Connection
                 // update only close players
                 if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
-                c.send(PLAYER_MOVES_START,['${player.p_id} ${targetX} ${targetY} ${totalMoveTime} $eta ${trunc} ${moveString}']);
+                var moveString = player.moveHelper.generateRelativeMoveUpdateString(c.player);
+
+                c.send(PLAYER_MOVES_START,[moveString]);
+
+                //c.send(PLAYER_MOVES_START,['${player.p_id} ${targetX} ${targetY} ${totalMoveTime} $eta ${trunc} ${moveString}']);
                 
                 c.send(FRAME);
             }
