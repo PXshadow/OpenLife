@@ -573,13 +573,20 @@ class Connection
     **/
     public function emote(id:Int)
     {
-        // TODO only send to close players
         this.mutex.acquire();
 
         try
         {
             for (c in connections)
             {
+
+                // since player has relative coordinates, transform them for player
+                var targetX = player.tx() - c.player.gx;
+                var targetY = player.ty() - c.player.gy;
+
+                // update only close players
+                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+
                 c.send(PLAYER_EMOT,['${player.p_id} $id']);
                 c.send(FRAME);
             }
@@ -590,9 +597,16 @@ class Connection
 
         try
         {
-            for (ai in ais)
+            for (c in ais)
             {
-                ai.emote(player,id);
+                // since player has relative coordinates, transform them for player
+                var targetX = player.tx() - c.player.gx;
+                var targetY = player.ty() - c.player.gy;
+
+                // update only close players
+                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
+
+                c.emote(player,id);
             }
         }
         catch(ex) trace(ex);
