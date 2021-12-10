@@ -82,7 +82,7 @@ class TimeHelper
                 Sys.sleep(sleepTime);
             }   
         }
-    }
+    }    
 
     public static function DoTimeStuff()
     {
@@ -92,29 +92,14 @@ class TimeHelper
 
         for (c in Connection.getConnections())
         {            
-            if(c.player.deleted) continue; // maybe remove?
+            if(DoTimeStuffForPlayer(c.player, timePassedInSeconds) == false) continue;
 
-            Macro.exception(updateAge(c.player, timePassedInSeconds));
-
-            Macro.exception(updateFoodAndDoHealing(c.player, timePassedInSeconds));            
-
-            Macro.exception(MoveHelper.updateMovement(c.player));
-
-            if(TimeHelper.tick % 20 == 0) Macro.exception(updateTemperature(c.player));
-            //if(TimeHelper.tick % 31 == 0) Macro.exception(c.sendToMeAllClosePlayers(false));
+            if(TimeHelper.tick % 90 == 0) Macro.exception(c.sendToMeAllClosePlayers(false));
         }
         
         for (ai in Connection.getAis())
         {
-            if(ai.player.deleted) continue;
-
-            Macro.exception(updateAge(ai.player, timePassedInSeconds));
-
-            Macro.exception(updateFoodAndDoHealing(ai.player, timePassedInSeconds));            
-
-            Macro.exception(MoveHelper.updateMovement(ai.player));
-
-            if(TimeHelper.tick % 20 == 0) Macro.exception(updateTemperature(ai.player));
+            if(DoTimeStuffForPlayer(ai.player, timePassedInSeconds) == false) continue;
 
             Macro.exception(ai.doTimeStuff(timePassedInSeconds));
         }
@@ -153,8 +138,22 @@ class TimeHelper
         }
         */
     }
+    //static var personIndex = 0;
 
-    static var personIndex = 0;
+    private static function DoTimeStuffForPlayer(player:GlobalPlayerInstance, timePassedInSeconds:Float) : Bool
+    {
+        if(player.deleted) return false; // maybe remove?
+
+        Macro.exception(updateAge(player, timePassedInSeconds));
+
+        Macro.exception(updateFoodAndDoHealing(player, timePassedInSeconds));            
+
+        Macro.exception(MoveHelper.updateMovement(player));
+
+        if(TimeHelper.tick % 20 == 0) Macro.exception(updateTemperature(player));
+                
+        return true;
+    }
 
     private static function updateAge(player:GlobalPlayerInstance, timePassedInSeconds:Float)
     {

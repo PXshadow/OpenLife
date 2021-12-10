@@ -26,6 +26,7 @@ class AiHelper
         return CalculateDistance(player.tx(), player.ty(), obj.tx, obj.ty);
     }
 
+    // TODO does not consider round map
     public static function CalculateDistance(baseX:Int, baseY:Int, toX:Int, toY:Int) : Float
     {
         return (toX - baseX) * (toX - baseX) + (toY - baseY) * (toY - baseY);

@@ -167,34 +167,51 @@ class Connection
     {
         try
         {
-            player.MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed(); // TODO better change, since it can mess with other threads
+            var connection = player.connection;
+
+            //player.MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed(); // TODO better change, since it can mess with other threads. A good idea maybe to use a global player mutex for all players
 
             for (c in connections)
             {
-                // since player has relative coordinates, transform them for player
-                var targetX = player.tx() - c.player.gx;
-                var targetY = player.ty() - c.player.gy;
-
-                // update only close players
-                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-
-                player.connection.send(PLAYER_UPDATE,[c.player.toRelativeData(player)], isPlayerAction);
+                connection.sendToMePlayerInfo(c.player, isPlayerAction);
             }
 
             for (ai in ais)
             {
-                // since player has relative coordinates, transform them for player
-                var targetX = player.tx() - ai.player.gx;
-                var targetY = player.ty() - ai.player.gy;
-
-                // update only close players
-                if(ai.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-
-                player.connection.send(PLAYER_UPDATE,[ai.player.toRelativeData(player)], true);
+                connection.sendToMePlayerInfo(ai.player, isPlayerAction);
             }
+
             player.connection.send(FRAME, null, isPlayerAction);
         }
         catch(ex) trace(ex);
+    }
+
+    private function sendToMePlayerInfo(playerToSend:GlobalPlayerInstance, isPlayerAction:Bool = true)
+    {
+        if(playerToSend.deleted) return;
+
+        var player = this.player;
+
+        // since player has relative coordinates, transform them for player
+        var targetX = playerToSend.tx() - player.gx;
+        var targetY = playerToSend.ty() - player.gy;
+
+        // update only close players
+        if(player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose))
+        {
+            if(playerToSend.isMoving())
+            {
+                // TODO moving players
+            }
+            else
+            {
+                player.connection.send(PLAYER_UPDATE,[playerToSend.toRelativeData(player)], isPlayerAction);
+            }
+        }
+        else
+        {
+            player.connection.send(PLAYER_OUT_OF_RANGE,['${playerToSend.p_id}'], isPlayerAction);
+        }
     }
 
     public static function SendTransitionUpdateToAllClosePlayers(player:GlobalPlayerInstance, tx:Int, ty:Int, newFloorId:Int, newTileObject:Array<Int>, doTransition:Bool, isPlayerAction:Bool = true)
@@ -320,7 +337,7 @@ class Connection
     {
         totalMoveTime = Math.round(totalMoveTime * 100) / 100;
 
-        var eta = totalMoveTime; // TODO change???
+        var eta = totalMoveTime; 
 
         try
         {

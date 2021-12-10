@@ -489,6 +489,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function toRelativeData(forPlayer:PlayerInstance):String
     {
         var heldObject = o_id[0] < 0 ?  '${o_id[0]}' : MapData.stringID(o_id);
+
         return toData(
             tx() - forPlayer.gx,
             ty() - forPlayer.gy,
@@ -515,11 +516,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function use(x:Int, y:Int, containerIndex:Int = -1, target:Int = 0) : Bool
     {
         return TransitionHelper.doCommand(this, ServerTag.USE, x, y, containerIndex, target);
-    }
-
-    //public function specialRemove(x:Int,y:Int,clothingSlot:Int,index:Null<Int>) : Bool;
-    
-    
+    }    
 
     public function isCloseToPlayer(player:GlobalPlayerInstance, distance:Int = 1)
     {
@@ -529,7 +526,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return isClose(targetX,targetY,distance);
     }
 
-    /** works with coordinates relative to the player **/
+    /** works with coordinates relative to the player **/ //TODO does not consider round map
     public function isClose(x:Int, y:Int, distance:Int = 1):Bool
     {    
         return (((this.x - x) * (this.x - x) <= distance * distance) && ((this.y - y) * (this.y - y) <= distance * distance));
