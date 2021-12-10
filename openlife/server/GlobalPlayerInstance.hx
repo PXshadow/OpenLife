@@ -169,6 +169,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var allowHumanSpawnToAIandAiToHuman = GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild;
         var spawnEve = allowHumanSpawnToAIandAiToHuman || (isAi && lastAiEveOrAdam != null) || (isAi == false && lastHumanEveOrAdam != null);
 
+        //if(false) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
         if(spawnEve) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
         else
         {
@@ -196,6 +197,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private function spawnAsEve(allowHumanSpawnToAIandAiToHuman:Bool)
     {
+        this.lineage.myEveId = this.p_id;
+
         var isAi = this.isAi();
         var lastEveOrAdam = isAi ? lastAiEveOrAdam : lastHumanEveOrAdam;
 
@@ -269,6 +272,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         // TODO use childFood for birth and childfeeding
         // TODO father
+        this.lineage.myEveId = mother.lineage.myEveId;
         this.mother = mother;
         this.followPlayer = mother; // the mother is the leader
 

@@ -18,6 +18,7 @@ class Lineage
 
     // use Ids since not all might be available
     public var myId:Int = -1;
+    public var myEveId:Int = -1;
     public var motherId:Int = -1;
     public var fatherId:Int = -1;
 
@@ -75,7 +76,11 @@ class Lineage
     public function createLineageString() : String
     {
         var lineageString = '$myId';
+
+        if(myId == myEveId) return lineageString;
+
         var tmpMotherLineage = this.getMotherLineage();
+        var addedEve = false;
 
         for (ii in 0...10)
         {
@@ -83,10 +88,22 @@ class Lineage
 
             lineageString += ' ${tmpMotherLineage.myId}';
 
+            if(tmpMotherLineage.myId == myEveId)
+            {
+                addedEve = true;
+                break;
+            } 
+
             tmpMotherLineage = tmpMotherLineage.getMotherLineage();
         }
 
-        trace('Lineage: $lineageString');
+        // if lineage too long add "eve_id eve=eve_id"
+        if(addedEve == false)
+        {
+            lineageString += ' eve_id=$myEveId'; // TODO test
+        }
+
+        trace('Lineage: ${lineageString}');
 
         return lineageString;
     }
