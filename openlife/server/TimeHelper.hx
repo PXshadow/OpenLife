@@ -388,6 +388,7 @@ class TimeHelper
 
         if(player.connection != null) player.connection.send(HEAT_CHANGE, [message], false);
 
+        //if(ServerSettings.DebugTemperature)
         trace('Temperature update: playerHeat: $playerHeat temperature: $temperature clothingFactor: $clothingFactor foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
     } 
 
@@ -401,7 +402,7 @@ class TimeHelper
         var biomeTemperature = originalBiomeTemperature;
 
         // looke for close biomes that influence temperature
-        if(biome == BiomeTag.GREEN || biome == BiomeTag.YELLOW)
+        if(biome == BiomeTag.GREEN || biome == BiomeTag.YELLOW || biome == BiomeTag.GREY)
         {         
             // direct x / y   
             for(ii in 1...maxBiomeDistance-1)
@@ -459,7 +460,7 @@ class TimeHelper
         // between -0.35 (black in snow) to 1.2 Ginger in dessert
         var temperature = biomeTemperature - colorTemperatureShift;  
 
-        trace('calculateTemperature: temperature: $temperature biomeTemperature: $biomeTemperature colorTemperatureShift: $colorTemperatureShift');
+        if(ServerSettings.DebugTemperature) trace('calculateTemperature: temperature: $temperature biomeTemperature: $biomeTemperature colorTemperatureShift: $colorTemperatureShift');
 
         return temperature;
     }
@@ -484,7 +485,7 @@ class TimeHelper
             var tmpBiomeTemperature = Biome.getBiomeTemperature(biome);
             biomeTemperature = (originalTemperature * distance + tmpBiomeTemperature * (maxBiomeDistance - distance)) / maxBiomeDistance;
 
-            //trace('TEST BiomeTemp: $debugString distance: $distance biomeTemperature: $biomeTemperature tmpBiomeTemperature: $tmpBiomeTemperature');
+            if(ServerSettings.DebugTemperature) trace('TEST BiomeTemp: $debugString distance: $distance biomeTemperature: $biomeTemperature tmpBiomeTemperature: $tmpBiomeTemperature');
         }
 
         return biomeTemperature;

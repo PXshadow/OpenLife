@@ -32,6 +32,9 @@ class ServerSettings
     public static var traceTransitionByTargetId = 9992710; // set to object id which you want to debug
     public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
 
+    // DEBUG: Temperature
+    public static var DebugTemperature = false;
+
     // birth
     public static var ChanceForFemaleChild = 0.6;
     public static var ChanceForOtherChildColor = 0.2;
