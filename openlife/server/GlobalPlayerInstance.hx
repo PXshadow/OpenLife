@@ -29,12 +29,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 {
     // todo remove players once dead???
     public static var AllPlayers = new Map<Int,GlobalPlayerInstance>();
-    public static function AddPlayer(player:GlobalPlayerInstance) {AllPlayers[player.p_id] = player;}
+    public static function AddPlayer(player:GlobalPlayerInstance)
+    {
+        AllPlayers[player.p_id] = player;
+        Lineage.AddLineage(player.p_id, player.lineage);
+    }
 
     public static var lastAiEveOrAdam:GlobalPlayerInstance; 
     public static var lastHumanEveOrAdam:GlobalPlayerInstance; 
 
-    public var linage = new Lineage();
+    public var lineage = new Lineage();
 
     // make sure to set these null is player is deleted so that garbage collector can clean up
     public var followPlayer:GlobalPlayerInstance;
@@ -84,43 +88,43 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function get_name()
     {
-        return linage.name;
+        return lineage.name;
     }
 
     public function set_name(newName:String)
     {
-        return linage.name = name;
+        return lineage.name = name;
     }
 
     public var familyName(get, null):String;
 
     public function get_familyName()
     {
-        return linage.familyName;
+        return lineage.familyName;
     }
 
     public var mother(get, set):GlobalPlayerInstance;
 
     public function get_mother()
     {
-        return linage.mother;
+        return lineage.mother;
     }
 
     public function set_mother(newMother:GlobalPlayerInstance)
     {
-        return linage.mother = newMother;
+        return lineage.mother = newMother;
     }
 
     public var father(get, set):GlobalPlayerInstance;
 
     public function get_father()
     {
-        return linage.father;
+        return lineage.father;
     }
 
     public function set_father(newFather:GlobalPlayerInstance)
     {
-        return linage.father = newFather;
+        return lineage.father = newFather;
     }
 
 
@@ -141,11 +145,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         super([]);
 
-        this.moveHelper = new MoveHelper(this);
-
         this.serverAi = ai;
-        this.heldObject = ObjectHelper.readObjectHelper(this, [0]);
+        this.p_id = Server.server.playerIndex++;
+        this.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
+        this.moveHelper = new MoveHelper(this);
+        this.heldObject = ObjectHelper.readObjectHelper(this, [0]);        
+        this.age_r = ServerSettings.AgingSecondsPerYear;
 
+        AddPlayer(this);
+        
         for(i in 0...this.clothingObjects.length)
         {
             this.clothingObjects[i] = ObjectHelper.readObjectHelper(this, [0]);
@@ -156,9 +164,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // TODO less hostile environment for eve (since the plan is to make human free nature more dangerous)
         // TODO give a certain eve birth %
 
-        po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
-        AddPlayer(this);
-        
         // spawn human eve to human adam and ai eve to ai adam except if player count is very few 
         var isAi = this.isAi();
         var allowHumanSpawnToAIandAiToHuman = GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild;
@@ -168,10 +173,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         else
         {
             if(spawnAsChild() == false) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
-        }
-
-        p_id = Server.server.playerIndex++;
-        age_r = ServerSettings.AgingSecondsPerYear;
+        }        
 
         move_speed = MoveHelper.calculateSpeed(this, gx, gy);
         
@@ -183,6 +185,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             c.send(ClientTag.NAME,['${this.p_id} ${this.name} ${this.familyName}']);
         }
+
+        for(c in Connection.getConnections())
+        {
+            c.send(ClientTag.LINEAGE,[c.player.lineage.createLineageString()]);
+        }
+
+        // TODO inform AI about new player
     }
 
     private function spawnAsEve(allowHumanSpawnToAIandAiToHuman:Bool)
@@ -736,7 +745,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(doFamilyName)
         {
-            player.linage.setFamilyName(name);
+            player.lineage.setFamilyName(name);
 
             // TODO use family name from family head
         }

@@ -72,9 +72,9 @@ class Connection
 
             // send PU and FRAME also to the connection --> therefore make sure that addToConnections is called first 
             SendUpdateToAllClosePlayers(player); 
-            SendToMeAllClosePlayers(player, true);  // TODO may need to send updates for current movements too
+            SendToMeAllClosePlayers(player, true); 
             sendToMeAllPlayerNames();
-            //p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
+            sendToMeAllLineages();
             
             player.sendFoodUpdate();
 
@@ -228,7 +228,7 @@ class Connection
         for(c in Connection.getConnections())
         {
             var player = c.player;
-            this.send(ClientTag.NAME,['${player.p_id} ${player.linage.name} ${player.familyName}']);
+            this.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
         }
 
         for(c in ais)
@@ -238,19 +238,21 @@ class Connection
         }
     }
 
-    // p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
-    public function sendToMeAllLinages()
+    // fathers are not supported by client 
+    public function sendToMeAllLineages()
     {
         for(c in Connection.getConnections())
         {
             var player = c.player;
-            this.send(ClientTag.LINEAGE,['${player.p_id} ${player.name} ${player.familyName}']);
+            var lineageString = c.player.lineage.createLineageString();
+            this.send(ClientTag.LINEAGE,[lineageString]);
         }
 
         for(c in ais)
         {
             var player = c.player;
-            this.send(ClientTag.LINEAGE,['${player.p_id} ${player.name} ${player.familyName}']);
+            var lineageString = c.player.lineage.createLineageString();
+            this.send(ClientTag.LINEAGE,[lineageString]);
         }
     }
 
