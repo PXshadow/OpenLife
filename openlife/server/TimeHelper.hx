@@ -372,9 +372,9 @@ class TimeHelper
         //if(temperature < 0) temperature = 0;
         //if(temperature > 1) temperature = 1;
 
-        var insulationFactor = clothingInsulation + 0.78; // between 0.78 and 0.98
+        var insulationFactor = clothingInsulation / 2 + 0.88; // between 0.78 and 0.98
 
-        var heatProtectionFactor = clothingHeatProtection + 0.78; // between 0.78 and 0.98
+        var heatProtectionFactor = clothingHeatProtection / 2 + 0.88; // between 0.78 and 0.98
 
         var clothingFactor = temperature < 0.5 ? insulationFactor : heatProtectionFactor; 
 
