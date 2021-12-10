@@ -132,7 +132,7 @@ TODO Features:
 more up in the list means more likely to be implemented first but no gurantee!
 - Winter / seasons / ice ages
 - princess / princess / nobles
-- better fences- better fences
+- better fences
 - reconnection after server shutdown
 - special stuff like hercules / snake master / super fast ager 
 - job boni
@@ -150,18 +150,24 @@ more up in the list means more likely to be implemented first but no gurantee!
 - Ai ongoing longer distant movement
 - tests with >20 AIs
 - animal interactions / collisions
-- give more space for villages on the map
+- map rework / place more biomes
 - wounds / healing part 2
-- calculate exaxt player position for combat
+- calculate exact player position for combat and distance
+- calculate distance right when on end of map 
 - combat / generally allowed
 - incarnation
-- better temperature calculation // different temperature impact like exhaustion
+- different temperature impact like exhaustion
+- exhaustion reduces speed / food use
+- exhaustion replaces hungry work
+- exhaustion in swamp / bad biome
+- exhaustion movement change
+- exhaustion carring heavy stuff
+- indoor temperature calculation 
 - /leader command
 - change biome speed / boni for specialists
 - reconnection
 - saving of people data so that people come back after server restart
 - give option to use normal YUM mechanics
-- better map
 - time transitions for objects in container
 - decay stuff in containers
 - decay clothing
@@ -181,8 +187,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - leadership
 - rails 
 - faces / for example hungry / ill
-- ill from moskitos
-- temperature / fire / heat objects / indoor / different biomes are missing
+- ill from moskitos 
 - server stats
 - curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
 - fences / gates
