@@ -135,6 +135,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         food_store_max = calculateFoodStoreMax();
         food_store = food_store_max / 2;
         yum_multiplier = ServerSettings.MinHealthPerYear * 3; // start with health for 3 years
+
+        for(c in Connection.getConnections())
+        {
+            c.send(ClientTag.NAME,['${this.p_id} ${this.name} ${this.familyName}']);
+        }
     }
 
     private function spawnAsEve(allowHumanSpawnToAIandAiToHuman:Bool)
@@ -651,15 +656,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     last_name may be ommitted.
     */
-    public function doNaming(text:String)
+    public function doNaming(text:String)        
     {
+        //trace('TEST Naming1: $text');
+
         var doFamilyName = text.startsWith('I AM');
         
         if(doFamilyName == false && text.startsWith('YOU ARE') == false) return;
 
         var player = doFamilyName ? this : this.heldPlayer;
         
-        if(player == null) player = this.getClosestPlayer(5);
+        if(player == null) player = this.getClosestPlayer(5); // 5
+
+        //trace('TEST Naming2: $text');
 
         if(player == null) return;
 
@@ -675,7 +684,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         var name = strings[2];
 
-        trace('naming: $name');
+        trace('TEST Naming: $name');
 
         /*
         name = name.replace('1','');
@@ -687,18 +696,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         name = name.replace('7','');
         */
 
-        if(name.length < 2) return;
+        if(name.length < 3) return;
 
         if(doFamilyName)
         {
             player.familyName = name;
+
+            // TODO use family name from family head
         }
         else
         {
             // check if name is used
             for(c in Connection.getConnections())
             {
-                if(c.player.name == name)
+                if(c.player.name == name && c.player.familyName == this.familyName)
                 {
                     trace('name: "$name" is used already!');
 
@@ -708,7 +719,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             for(ai in Connection.getAis())
             {
-                if(ai.player.name == name)
+                if(ai.player.name == name && ai.player.familyName == this.familyName)
                 {
                     trace('name: "$name" is used already!');
 
@@ -718,6 +729,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             player.name = name;
         }
+
+        trace('TEST Naming: ${player.p_id} ${player.name} ${player.familyName}');
        
 
         for(c in Connection.getConnections())

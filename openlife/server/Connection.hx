@@ -73,6 +73,7 @@ class Connection
             // send PU and FRAME also to the connection --> therefore make sure that addToConnections is called first 
             SendUpdateToAllClosePlayers(player); 
             SendToMeAllClosePlayers(player, true);  // TODO may need to send updates for current movements too
+            sendToMeAllPlayerNames();
             //p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
             
             player.sendFoodUpdate();
@@ -217,6 +218,21 @@ class Connection
         else
         {
             player.connection.send(PLAYER_UPDATE,[playerToSend.toRelativeData(player)], isPlayerAction);
+        }
+    }
+
+    public function sendToMeAllPlayerNames()
+    {
+        for(c in Connection.getConnections())
+        {
+            var player = c.player;
+            this.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
+        }
+
+        for(c in ais)
+        {
+            var player = c.player;
+            this.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
         }
     }
 
