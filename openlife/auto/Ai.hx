@@ -354,7 +354,7 @@ class Ai
                     var actorID = targetTrans.bestTransition.actorID;
                     var targetID = targetTrans.bestTransition.targetID;
                     var isUsingTwo = targetTrans.bestTransition.actorID == targetTrans.bestTransition.targetID;
-                    var traceTrans = targetTrans.bestTransition.newActorID == 57;
+                    var traceTrans = AiHelper.ShouldDebug(targetTrans.bestTransition);
 
                     if(traceTrans) trace('Target1: ' + targetTrans.bestTransition.getDesciption(true));
 
@@ -381,11 +381,11 @@ class Ai
 
                     if(isUsingTwo) // like using two milkweed
                     {
-                        trace('AI: using two ' + targetTrans.bestTransition.actorID);
+                        trace('Target4: AI: using two ' + targetTrans.bestTransition.actorID);
 
                         if(tmpObject.secondObject == null) continue;
 
-                        trace('AI: using two 2');
+                        trace('Target4: AI: using two 2');
 
                         tmpDistance = tmpObject.secondObjectDistance;
                         tmpTargetObject = tmpObject.secondObject;

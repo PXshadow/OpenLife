@@ -135,7 +135,7 @@ class ServerSettings
     public static var AiMaxSearchIncrement:Int = 16;
 
     // Debug AI
-    public static var DebugAiCraftingObject:Int = 2222;
+    public static var DebugAiCraftingObject:Int = 57;
 
     // combat
     //public static var WoundWhenFoodStoreMaxBelow = 10;

@@ -292,7 +292,7 @@ class AiHelper
                 if(actorSteps + targetSteps <= newActorSteps + newTargetSteps) continue; // nothing is won
 
                 if(ShouldDebug(trans)) trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
-                trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
+                //trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
 
                 if(trans.actorID > 0 && transitionsByObject.exists(trans.actorID) == false)
                 {
@@ -350,7 +350,7 @@ class AiHelper
         //var transitionsByOjectKeys = [for(key in transitionsByObject.keys()) key];
     }
 
-    private static function ShouldDebug(trans:TransitionData) : Bool
+    public static function ShouldDebug(trans:TransitionData) : Bool
     {
         var debugObjId = ServerSettings.DebugAiCraftingObject;
 
