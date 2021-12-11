@@ -118,13 +118,27 @@ class TimeHelper
         if(ServerSettings.saveToDisk && tick % ServerSettings.TicksBetweenSaving == 0) Macro.exception(Server.server.map.writeToDisk(false));
         if(ServerSettings.saveToDisk && (tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Macro.exception(Server.server.map.writeBackup());
 
-        /*
-        if(tick % 100 == 0) 
+        
+        if(tick % 200 == 0) 
         {
             if(Connection.getConnections().length > 0)
             {
+                /*
                 var c = Connection.getConnections()[0];
-                var obj = ObjectData.personObjectData[personIndex];
+                //FW follower_id leader_id leader_color_index
+                c.send(ClientTag.FOLLOWING, ['${c.player.p_id} 2 $colorIndex']);
+                //p_id emot_index
+                c.send(ClientTag.PLAYER_EMOT, ['${c.player.p_id} $colorIndex']);
+                //c.send(ClientTag.PLAYER_SAYS, ['0 0 $colorIndex']);
+                //c.player.say('color $colorIndex');
+                c.send(ClientTag.LOCATION_SAYS, ['100 0 /LEADER']);
+
+                trace('FOLLOW '+ '${c.player.p_id} 2 $colorIndex');
+
+                colorIndex++;
+                
+                */
+                /*
                 c.player.po_id = obj.id;
                 
                 Connection.SendUpdateToAllClosePlayers(c.player);
@@ -135,11 +149,13 @@ class TimeHelper
 
                 personIndex++;
                 //  418 + 0 = 427 + 1363 / @ Deadly Wolf + Empty  -->  Attacking Wolf + Bite Wound 
+                */
             }
         }
-        */
+        
     }
     //static var personIndex = 0;
+    //static var colorIndex = 0;
 
     private static function DoTimeStuffForPlayer(player:GlobalPlayerInstance, timePassedInSeconds:Float) : Bool
     {

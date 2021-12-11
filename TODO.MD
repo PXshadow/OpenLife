@@ -80,17 +80,16 @@ Objects:
 - Omelette Food Value: 12 --> 18
 - Cooked Goose: useChance = 0.3;
 - Compost has less uses to make soil more rare, since water is more plenty: Soil (Wheat, Berry, Dung) + water ==> 4 Soil  
-(With this Compost works mainly to recycle Wheat and Dung)
 
 Transitions:
 - You can harvest Berries directly with a bowl
 - Tule Stumps grow back after one hour 
-- You can cook meat (mutton) on hot coals
 - If you kill a Wolf you get meat (mutton) 
+- You can cook meat (mutton) on hot coals
 
 Aging:
-- starving to death slows down aging below 14 and increases above  
-- higher food use for age below 14 if not starving to death / they need to grow!
+- starving to death slows down aging below adulthood and increases above  
+- higher food use for age below adulthood if not starving to death / they need to grow!
 
 SPEED:
 - different speed for different biomes
@@ -139,6 +138,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - bridges
 - horses that follow owner
 - better dogs
+- AI advanced AI villages
 
 
 TODO Missing:
@@ -148,6 +148,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - Ai using containers
 - Ai ongoing longer distant movement
 - AI tests with >20 AIs
+- AI Stoneage
 - COMBAT calculate exact player position for combat and distance
 - COMBAT wounds / healing part 2 
 - COMBAT implement kill 
@@ -155,11 +156,11 @@ more up in the list means more likely to be implemented first but no gurantee!
 - COMBAT ill from moskitos 
 - ANIMAL animal movement on top of items
 - MAP map rework / place more biomes
-- MAP calculate distance right when on end of map 
 - SCORE save lineages
 - SCORE implement prestiege score
 - SCORE give score boni
 - BIRTH use childFood / make sure that a mother does not have too many babies at same time
+- BIRTH spawn eves on different locations
 - BIRTH fathers
 - BIRTH fathers displayed in name (needs workaround since not supported from client)
 - BIRTH incarnation according to score
@@ -190,7 +191,13 @@ more up in the list means more likely to be implemented first but no gurantee!
 - BIOME biome locked planting
 - TOOLS learning tools (hold wrong if not learned)
 - NAMING use predefined naming from list
-- DONE??? do pattern transitions right like rubber horsecart pickup  
+- DONE??? do pattern transitions right like rubber horsecart pickup 
+- AI Pottery
+- AI Fire
+- AI Advanced crafting
+- AI Farming
+- AI IRON AGE
+- AI guards 
 - RAILS implement rails
 - EMOTES for example hungry / ill / bad temperature / exhausted
 - OWNERSHIP fences / gates 
@@ -199,6 +206,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - CRAVING better order of craving list (currently its just ordered accoring to obj ID)
 - CONNECTION twinning
 - STATS implement basic server stats
+- MAP calculate distance right when on end of map 
 - LANGUAGE implement different languages
 - POINTER bell tower ringing
 - POINTER maps / maps on waystone

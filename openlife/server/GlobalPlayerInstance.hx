@@ -93,7 +93,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function set_name(newName:String)
     {
-        return lineage.name = name;
+        return lineage.name = newName;
     }
 
     public var familyName(get, null):String;
@@ -277,6 +277,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.followPlayer = mother; // the mother is the leader
 
         // TODO consider dead children for mother fitness
+        // TODO consider temerature for fitness
+        // TODO conser if on horse for fitness
 
         mother.childrenBirthMali += 1; // make it less likely to get new child
         if(mother.mother != null) mother.mother.childrenBirthMali += 0.5; // make it less likely to get new child for each grandkid
