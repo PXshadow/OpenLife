@@ -685,6 +685,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(text.length > maxLenght) text = text.substr(0, maxLenght);
 
+            doCommands(text);
+
             for (c in Connection.getConnections())
             {
                 c.send(PLAYER_SAYS,['$id/$curse $text']);
@@ -703,6 +705,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         this.mutex.release();
+    }
+
+    private function doCommands(message:String)
+    {
+        var doFollow = message.startsWith('I FOLLOW YOU');
+        if(doFollow)
+        {
+            var player = this.getClosestPlayer(5); // 5
+            if(player != null && player != this.followPlayer)
+            {
+                this.followPlayer = player; // TODO test circular?
+
+                this.connection.send(ClientTag.GLOBAL_MESSAGE, ['YOU_FOLLOW_NOW:_${player.name}_${player.familyName}']);
+
+                Connection.SendFollowingToAll(this);
+            }
+        }
     }
 
     /*
