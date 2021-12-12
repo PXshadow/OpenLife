@@ -261,8 +261,10 @@ class Connection
     Leader color index specifies leader's badge color from a fixed color list*/
     public function sendFollowing(player:GlobalPlayerInstance)
     {
+        var leader = player.getTopLeader();
+        //var leaderId = leader == null ? -1 : leader.p_id; // TODO not sure if client wants top leader or next leader
         var leaderId = player.followPlayer == null ? -1 : player.followPlayer.p_id;
-        var leaderBadgeColor = player.followPlayer == null ? 0 : player.followPlayer.leaderBadgeColor;
+        var leaderBadgeColor = leader == null ? player.leaderBadgeColor : leader.leaderBadgeColor;
 
         send(FOLLOWING,['${player.p_id} $leaderId $leaderBadgeColor']);
     }

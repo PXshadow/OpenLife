@@ -2101,6 +2101,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         return this.serverAi != null;   
     }
+
+    // if people follow circular outcome is not specified
+    public function getTopLeader() : GlobalPlayerInstance
+    {
+        var leader = followPlayer;
+        if(leader == null) return null;
+
+        for(ii in 0...10)
+        {
+            if(leader.followPlayer == null) break;
+
+            leader = leader.followPlayer;
+        }
+
+        return leader;
+    }
 }
 
 
