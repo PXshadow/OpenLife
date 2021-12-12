@@ -242,6 +242,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             // Spawn An Eve / Adam is to last Eve / Adam
             this.followPlayer = lastEveOrAdam;
+            //lastEveOrAdam.followPlayer = this;
             this.mother = lastEveOrAdam; // its not really the mother, but its the mother in spirit...  
 
             gx = lastEveOrAdam.tx();
@@ -712,16 +713,41 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var doFollow = message.startsWith('I FOLLOW YOU');
         if(doFollow)
         {
-            var player = this.getClosestPlayer(5); // 5
+            var player = this.getClosestPlayer(20); // 5
             if(player != null && player != this.followPlayer)
             {
+                var tmpFollow = this.followPlayer;
                 this.followPlayer = player; // TODO test circular?
+                var leader = this.getTopLeader();
+
+                if(leader == null)
+                {
+                    trace('FOLLOW: CIRCULAR FOLLOW --> NO CHANGE');
+                    this.followPlayer = tmpFollow;
+                    return;
+                }
 
                 this.connection.send(ClientTag.GLOBAL_MESSAGE, ['YOU_FOLLOW_NOW:_${player.name}_${player.familyName}']);
 
                 Connection.SendFollowingToAll(this);
             }
         }
+    }
+
+    // if people follow circular outcome is null / max 10 deep hierarchy is supported
+    public function getTopLeader() : GlobalPlayerInstance
+    {
+        var leader = followPlayer;
+        if(leader == null) return null;
+
+        for(ii in 0...10)
+        {
+            if(leader.followPlayer == null) return leader;
+
+            leader = leader.followPlayer;
+        }
+
+        return null;
     }
 
     /*
@@ -2119,22 +2145,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function isAi() : Bool
     {
         return this.serverAi != null;   
-    }
-
-    // if people follow circular outcome is not specified
-    public function getTopLeader() : GlobalPlayerInstance
-    {
-        var leader = followPlayer;
-        if(leader == null) return null;
-
-        for(ii in 0...10)
-        {
-            if(leader.followPlayer == null) break;
-
-            leader = leader.followPlayer;
-        }
-
-        return leader;
     }
 }
 
