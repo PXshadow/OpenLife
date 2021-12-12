@@ -75,6 +75,7 @@ class Connection
             SendToMeAllClosePlayers(player, true); 
             sendToMeAllPlayerNames();
             sendToMeAllLineages();
+            sendToMeAllFollowings();
             
             player.sendFoodUpdate();
 
@@ -243,16 +244,47 @@ class Connection
     {
         for(c in Connection.getConnections())
         {
-            var player = c.player;
             var lineageString = c.player.lineage.createLineageString();
             this.send(ClientTag.LINEAGE,[lineageString]);
         }
 
         for(c in ais)
         {
-            var player = c.player;
             var lineageString = c.player.lineage.createLineageString();
             this.send(ClientTag.LINEAGE,[lineageString]);
+        }
+    }
+
+    /* FOLLOWING (FW): follower_id leader_id leader_color_index
+    Provides list of people following other people.
+    If leader is -1, that person follows no one
+    Leader color index specifies leader's badge color from a fixed color list*/
+    public function sendFollowing(player:GlobalPlayerInstance)
+    {
+        var leaderId = player.followPlayer == null ? -1 : player.followPlayer.p_id;
+        var leaderBadgeColor = player.followPlayer == null ? 0 : player.followPlayer.leaderBadgeColor;
+
+        send(FOLLOWING,['${player.p_id} $leaderId $leaderBadgeColor']);
+    }
+
+    public static function SendFollowingToAll(player:GlobalPlayerInstance)
+    {
+        for(c in Connection.getConnections())
+        {
+            c.sendFollowing(player);
+        }
+    }
+
+    public function sendToMeAllFollowings()
+    {
+        for(c in Connection.getConnections())
+        {
+            sendFollowing(c.player);
+        }
+
+        for(c in ais)
+        {
+            sendFollowing(c.player);
         }
     }
 
@@ -722,20 +754,14 @@ class Connection
 
         this.mutex.release();
     }
-    /**
-    BABY_WIGGLE (BW):
-    BW
-    p_id
-    p_id
-    ...
-    p_id
-    #
 
+    /**
+    BABY_WIGGLE (BW): p_id
     A list of player IDs that are babies who just started wiggling.
     **/
     public function sendWiggle(player:GlobalPlayerInstance)
     {
         send(BABY_WIGGLE,['${player.p_id}'], true);
-    }
+    } 
 }
 #end

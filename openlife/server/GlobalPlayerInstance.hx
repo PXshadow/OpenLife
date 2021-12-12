@@ -37,6 +37,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public static var lastAiEveOrAdam:GlobalPlayerInstance; 
     public static var lastHumanEveOrAdam:GlobalPlayerInstance; 
+    public static var LastLeaderBadgeColor:Int = 0;
 
     public var lineage = new Lineage();
 
@@ -60,6 +61,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var trueAge:Float = ServerSettings.StartingEveAge;
 
     var hasEatenMap = new Map<Int, Float>();
+
+    public var leaderBadgeColor:Int = LastLeaderBadgeColor++;
 
     // craving
     var currentlyCraving:Int = 0;
@@ -192,6 +195,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             c.send(ClientTag.LINEAGE,[c.player.lineage.createLineageString()]);
         }
 
+        Connection.SendFollowingToAll(this);
+    
         // TODO inform AI about new player
     }
 
@@ -237,6 +242,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             // Spawn An Eve / Adam is to last Eve / Adam
             this.followPlayer = lastEveOrAdam;
+            this.mother = lastEveOrAdam; // its not really the mother, but its the mother in spirit...  
 
             gx = lastEveOrAdam.tx();
             gy = lastEveOrAdam.ty();
