@@ -765,5 +765,30 @@ class Connection
     {
         send(BABY_WIGGLE,['${player.p_id}'], true);
     } 
+
+    /**( 
+                                        "PS\n"
+                                        "%d/0 OUTSIDER %s IS MY NEW FOLLOWER "
+                                        "*visitor %d *map %d %d\n#",
+                                        otherToFollow->id,
+                                        name,
+                                        nextPlayer->id,
+                                        nextPlayer->xs - 
+                                        otherToFollow->birthPos.x,
+                                        nextPlayer->ys - 
+                                        otherToFollow->birthPos.y );
+    **/
+
+    public function sendLeader()
+    {
+        var player = this.player;
+        var leader = player.getTopLeader();
+        var message = '${player.p_id}/0 LEADER *leader ${leader.p_id} *map ${leader.tx() - player.gx} ${leader.ty() - player.gy}';
+
+        trace('LEADER: $message');
+
+        //p_id/isCurse text *display_name player_to_point_id *map map_x map_y
+        this.send(ClientTag.PLAYER_SAYS, [message], true);
+    }
 }
 #end

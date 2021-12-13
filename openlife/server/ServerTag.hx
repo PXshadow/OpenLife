@@ -44,6 +44,7 @@ package openlife.server;
      */
     public var MOVE = "MOVE";
     public var FLIP = "FLIP";
+    public var LEAD = "LEAD"; // Leader position request
 
     @:from private static function fromString(value:String):ServerTag
     {
@@ -78,6 +79,7 @@ package openlife.server;
             case "RLOGIN": RLOGIN;
             case "MOVE": MOVE;
             case "FLIP": FLIP;
+            case "LEAD": LEAD;
             default: null;
         }
     }

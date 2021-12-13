@@ -188,6 +188,8 @@ class Server
 
     private function message(connection:Connection, tag:ServerTag,input:Array<String>,string:String)
     {
+        //trace('TAG: $tag');
+
         switch (tag)
         {
             case LOGIN:
@@ -222,6 +224,8 @@ class Server
                 connection.player.doBaby(Std.parseInt(input[0]), Std.parseInt(input[1]), input.length > 2 ? Std.parseInt(input[2]) : -1);
             case JUMP:  // JUMP x y#
                 connection.player.jump();
+            case LEAD:  // LEAD 0 0#
+                connection.sendLeader();
             case MOVE:  // PM p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
                 var x = Std.parseInt(input[0]);
                 var y = Std.parseInt(input[1]);
@@ -236,6 +240,7 @@ class Server
 
                 connection.player.move(x,y,seq,moves);
             default:
+                trace('TAG NOT FOUND! $tag');
         }
     }
 }

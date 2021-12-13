@@ -469,6 +469,9 @@ p_id/isCurse text
 p_id/isCurse text
 #
 
+Alternative:
+p_id/isCurse text *display_name player_to_point_id *map map_x map_y
+
 isCurse is 0 if not a successful curse, or 1 if successful.
 
 Text that each player says must not contain # or newline.

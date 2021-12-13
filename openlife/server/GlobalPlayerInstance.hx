@@ -641,6 +641,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         return healthFactor;
     }
+
+
+
     /**
     PS
     p_id/isCurse text
@@ -681,11 +684,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 if(ServerSettings.AllowDebugCommmands) DoDebugCommands(player, text);
             }
 
-            doNaming(text);
+            
             
             var maxLenght = player.age < 10 ? Math.ceil(player.age * 2) : player.age < 20 ? Math.ceil(player.age * 4) : 80; 
 
-            if(text.length > maxLenght) text = text.substr(0, maxLenght);
+            if(text.startsWith('/') == false &&  text.length > maxLenght) text = text.substr(0, maxLenght);
+
+            doNaming(text);
 
             doCommands(text);
 
@@ -719,6 +724,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             if(name == "ME")
             {
+                // TODO check if follower color changes to new color or if needed to be send again
+
                 this.followPlayer = null;
 
                 this.connection.sendGlobalMessage('YOU_FOLLOW_NOW_NO_ONE!');
@@ -759,7 +766,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         //trace('Get Player name: $name');
 
         if(name.length < 3) return null;
-        if(name == "YOU") return this.getClosestPlayer(15); // 5
+        if(name == "YOU") return this.getClosestPlayer(6); // 6
 
         var bestPlayer = null;
         var bestDistance:Float = 10000; // 100 tiles

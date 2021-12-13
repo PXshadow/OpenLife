@@ -173,7 +173,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 - EXHAUSTION movement change
 - EXHAUSTION carring heavy stuff
 - TEMPERATURE indoor temperature calculation 
-- LEADER /leader command --> Pointer to leader
 - LEADER message to followers
 - LEADER exile
 - LEADER redeem
