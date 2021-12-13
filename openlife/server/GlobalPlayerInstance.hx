@@ -755,6 +755,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.connection.sendGlobalMessage('YOU_FOLLOW_NOW:_${player.name}_${player.familyName}');
 
             Connection.SendFollowingToAll(this);
+
+            // inform leader
+            if(leader.connection != null) leader.connection.sendMapLocation(leader, 'FOLLOWER', 'follower');
+            if(leader.connection != null) leader.connection.sendGlobalMessage('YOU_HAVE_A_NEW_FOLLOWER:_${this.name}_${this.familyName}');
             
             return;
         }
