@@ -143,6 +143,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
+- EMOTES for example hungry / ill / bad temperature / exhausted
 - AI basic nursing
 - Ai birth after death
 - Ai using containers
@@ -172,8 +173,10 @@ more up in the list means more likely to be implemented first but no gurantee!
 - EXHAUSTION movement change
 - EXHAUSTION carring heavy stuff
 - TEMPERATURE indoor temperature calculation 
-- LEADER leader and follower display
-- LEADER /leader command
+- LEADER /leader command --> Pointer to leader
+- LEADER message to followers
+- LEADER exile
+- LEADER redeem
 - change biome speed / boni for specialists
 - CONNECTION reconnection
 - CONNECTION saving of people data so that people come back after server restart
@@ -199,7 +202,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 - AI IRON AGE
 - AI guards 
 - RAILS implement rails
-- EMOTES for example hungry / ill / bad temperature / exhausted
 - OWNERSHIP fences / gates 
 - COMMANDS implement missing commands 
 - YUM use yum category // for example for berry / berry bowl (maybe not needed?)

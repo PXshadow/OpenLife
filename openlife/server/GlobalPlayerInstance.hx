@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.auto.AiHelper;
 import openlife.server.Biome.BiomeTag;
 import haxe.macro.Expr;
 import openlife.macros.Macro;
@@ -258,7 +259,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             trace('An Eve / Adam is born to an Eve / Adam with color: ${this.getColor()}');
         }
 
-        name = isFemal() ? "Eve" : "Adam";
+        name = isFemal() ? "EVE" : "ADAM";
 
         if(isAi) lastAiEveOrAdam = lastEveOrAdam;
         else lastHumanEveOrAdam = lastEveOrAdam;
@@ -710,28 +711,89 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private function doCommands(message:String)
     {
-        var doFollow = message.startsWith('I FOLLOW YOU');
+        var name = GetName(message);
+
+        var doFollow = message.startsWith('I FOLLOW ');
+
         if(doFollow)
         {
-            var player = this.getClosestPlayer(20); // 5
-            if(player != null && player != this.followPlayer)
+            if(name == "ME")
             {
-                var tmpFollow = this.followPlayer;
-                this.followPlayer = player; // TODO test circular?
-                var leader = this.getTopLeader();
+                this.followPlayer = null;
 
-                if(leader == null)
-                {
-                    trace('FOLLOW: CIRCULAR FOLLOW --> NO CHANGE');
-                    this.followPlayer = tmpFollow;
-                    return;
-                }
-
-                this.connection.send(ClientTag.GLOBAL_MESSAGE, ['YOU_FOLLOW_NOW:_${player.name}_${player.familyName}']);
+                this.connection.sendGlobalMessage('YOU_FOLLOW_NOW_NO_ONE!');
 
                 Connection.SendFollowingToAll(this);
+
+                return;
+            }
+
+            var player = GetPlayerByName(name);
+            
+            if(player == null || player == this.followPlayer) return;
+
+            // TODO allow other leader through follow?
+
+            var tmpFollow = this.followPlayer;
+            this.followPlayer = player;
+            var leader = this.getTopLeader();
+
+            if(leader == null)
+            {
+                trace('FOLLOW: CIRCULAR FOLLOW --> NO CHANGE');
+                this.followPlayer = tmpFollow;
+                return;
+            }
+
+            this.connection.sendGlobalMessage('YOU_FOLLOW_NOW:_${player.name}_${player.familyName}');
+
+            Connection.SendFollowingToAll(this);
+            
+            return;
+        }
+    }
+
+    // TODO support family name???
+    public function GetPlayerByName(name:String) : GlobalPlayerInstance
+    {
+        //trace('Get Player name: $name');
+
+        if(name.length < 3) return null;
+        if(name == "YOU") return this.getClosestPlayer(15); // 5
+
+        var bestPlayer = null;
+        var bestDistance:Float = 10000; // 100 tiles
+            
+        for(p in AllPlayers)
+        {
+            //trace('Get Player p name: ${p.name}');
+
+            if(p.name == name)
+            {
+                var distance = AiHelper.CalculateDistanceToPlayer(this, p);
+                
+                if(distance < bestDistance)
+                {
+                    bestPlayer = p;
+                    bestDistance = distance; 
+                }
             }
         }
+
+        //if(bestPlayer != null) trace('Get Player: Found name: $name is ${bestPlayer.name} ${bestPlayer.familyName}');
+
+        return bestPlayer;
+    }
+
+    public static function GetName(text:String) : String
+    {
+        var strings = text.split(' ');
+
+        if(strings.length < 3) return "";
+        
+        var name = strings[2];
+
+        return name;
     }
 
     // if people follow circular outcome is null / max 10 deep hierarchy is supported

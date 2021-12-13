@@ -45,8 +45,8 @@ class ServerSettings
     // PlayerInstance
     public static var MaxPlayersBeforeStartingAsChild = 0; // -1
     public static var StartingEveAge = 14;  // 14
-    public static var StartingFamilyName = "Snow";
-    public static var StartingName = "Spoonwood";
+    public static var StartingFamilyName = "SNOW";
+    public static var StartingName = "SPOONWOOD";
     public static var AgingSecondsPerYear = 60; // 60
     public static var ReduceAgeNeededToPickupObjects = 3; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
     public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
