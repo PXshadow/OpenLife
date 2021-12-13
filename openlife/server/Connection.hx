@@ -779,16 +779,22 @@ class Connection
                                         otherToFollow->birthPos.y );
     **/
 
+    public function sendMapLocation(toPlayer:GlobalPlayerInstance, text1:String, text2:String)
+    {
+        var player = this.player;
+        var message = '${player.p_id}/0 $text1 *$text2 ${toPlayer.p_id} *map ${toPlayer.tx() - player.gx} ${toPlayer.ty() - player.gy}';
+
+        //trace('MAPSAY: $message');
+
+        this.send(ClientTag.PLAYER_SAYS, [message], true);
+    }
+
     public function sendLeader()
     {
         var player = this.player;
         var leader = player.getTopLeader();
-        var message = '${player.p_id}/0 LEADER *leader ${leader.p_id} *map ${leader.tx() - player.gx} ${leader.ty() - player.gy}';
-
-        trace('LEADER: $message');
-
-        //p_id/isCurse text *display_name player_to_point_id *map map_x map_y
-        this.send(ClientTag.PLAYER_SAYS, [message], true);
+        
+        this.sendMapLocation(leader, "LEADER", "leader");
     }
 }
 #end
