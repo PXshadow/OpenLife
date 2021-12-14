@@ -177,7 +177,7 @@ class TimeHelper
 
     private static function UpdateEmotes(player:GlobalPlayerInstance)
     {
-        if(player.food_store < 4)
+        if(player.food_store < 0 && player.age >= ServerSettings.MinAgeToEat)
         {
             player.doEmote(Emote.starving);
             return;

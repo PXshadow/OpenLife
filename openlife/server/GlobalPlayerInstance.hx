@@ -1183,6 +1183,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(playerTo.food_store_max - playerTo.food_store < Math.ceil(foodValue / 3))
         {
             trace('too full to eat: food_store_max: ${playerTo.food_store_max} - food_store: ${playerTo.food_store} < foodValue: $foodValue  / 3');
+            playerTo.doEmote(Emote.refuseFood);
             return false;
         }
 
@@ -1702,6 +1703,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.heldObject = obj;
 
         MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed();
+
+        if(obj != null && obj.objectData.foodValue > 0)
+        {
+            if(this.isHoldingYum()) this.doEmote(Emote.joy);
+            else this.doEmote(Emote.sad);
+            //else if(isSuperMeh) playerTo.doEmote(Emote.ill);            
+        }
     }
 
     public function MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed()
