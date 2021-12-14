@@ -9,7 +9,7 @@ interface PlayerInterface
 
     public function isMoving() : Bool;
 
-    public function doEmote(id:Int) : Void;
+    public function doEmote(id:Int, seconds:Int = -10) : Void;
     public function say(text:String) : Void;
     //public function eat(); 
     public function self(x:Int = 0, y:Int = 0, clothingSlot:Int = -1) : Void; // for eating and clothing

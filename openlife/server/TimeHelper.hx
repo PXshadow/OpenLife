@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.server.GlobalPlayerInstance.Emote;
 import openlife.server.Biome.BiomeMapColor;
 import openlife.auto.AiHelper;
 import openlife.data.transition.TransitionImporter;
@@ -403,6 +404,11 @@ class TimeHelper
         var message = '$playerHeat $foodDrainTime 0';
 
         if(player.connection != null) player.connection.send(HEAT_CHANGE, [message], false);
+
+        if(playerHeat > 0.75) player.doEmote(Emote.heatStroke);
+        //else if(playerHeat > 0.6) player.doEmote(Emote.dehydration);
+        if(playerHeat < 0.25) player.doEmote(Emote.pneumonia);
+        
 
         //if(ServerSettings.DebugTemperature)
         trace('Temperature update: playerHeat: $playerHeat temperature: $temperature clothingFactor: $clothingFactor foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');

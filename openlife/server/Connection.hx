@@ -623,9 +623,15 @@ class Connection
         p_id emot_index ttl_sec
         ...
         p_id emot_index ttl_sec
-        #
+        #                
+                ttl_sec is optional, and specifies how long the emote should be shown, in
+                seconds, client-side.  If it is omitted, the client should display the emotion
+                for the standard amount of time.  If ttl is -1, this emot is permanent and
+                should layer with other permanent and non-permanent emots.
+
+                If ttl is -2, the emot is permanent but not new, so sound shoudl be skipped.
     **/
-    public function emote(id:Int)
+    public function emote(id:Int, seconds:Int = -10)
     {
         this.mutex.acquire();
 
@@ -641,7 +647,8 @@ class Connection
                 // update only close players
                 if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
-                c.send(PLAYER_EMOT,['${player.p_id} $id']);
+                if(seconds < 3)c.send(PLAYER_EMOT,['${player.p_id} $id']);
+                else c.send(PLAYER_EMOT,['${player.p_id} $id $seconds']);
                 c.send(FRAME);
             }
         }

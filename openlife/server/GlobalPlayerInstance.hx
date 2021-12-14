@@ -536,7 +536,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return WorldMap.world.getFloorId(x,y);
     }
 
-    public function doEmote(id:Int)
+    public function doEmote(id:Int, seconds:Int = -10)
     {
         this.connection.emote(id);
     }
@@ -2221,6 +2221,47 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     }
 }
 
+// TODO give one at start
+@:enum abstract Emote(Int) from Int to Int
+{
+    public var happy = 0;  // TODO YUM
+    public var mad = 1; 
+    public var angry = 2;
+    public var sad = 3;  // TODO MEH
+    public var devious = 4;
+    public var joy = 5;
+    public var blush = 6; // redface
+    public var yellowFever = 7; // TODO moskito
+    public var snowSplat = 8;
+    public var hubba = 9; // eyes
+    public var ill = 10;  // TODO super meh food
+    public var yoohoo = 11; //whistle
+    public var hmph = 12;
+    public var love = 13; // TODO partner
+    public var oreally = 14;
+    public var shock = 15;
+    public var murderFace = 16;
+    public var tattooChest= 17;
+    public var pneumonia = 18; // body white // TODO cold
+    public var biomeRelief = 19;
+    public var dehydration = 20; // redpoints // TODO heat
+    public var heatStroke = 21; // TODO super heat
+    public var tattooBack = 22;
+    public var tattooMouth = 23;
+    public var tattooHead = 24;
+    public var tattooFace = 25;
+    public var tattooStomach = 26;
+    public var terrified = 27;
+    public var homesick = 28;
+    public var spicyFood = 29; // TODO ?
+    public var refuseFood = 30; // TODO ?
+    public var starving = 31; // TODO starving
+
+    public var miamFood = 32; // ?
+    public var noHead = 33; // ?
+    public var normal = 34; // ?
+    public var moustache = 36; // ?
+}
 
 
 // TODO Arcurus>> add birth logic - suggestion:
