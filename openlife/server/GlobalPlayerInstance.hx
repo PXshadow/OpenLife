@@ -889,7 +889,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         for(ii in 0...10)
         {
             if(this.exiledByPlayers.exists(leader.p_id)) return null; // is exiled
-            
+
             if(leader.followPlayer == null) return leader;
 
             leader = leader.followPlayer;
@@ -1267,6 +1267,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         foodValue += ServerSettings.YumBonus;
         foodValue -= countEaten;
+        var isHoldingYum = countEaten < ServerSettings.YumBonus;  //playerFrom.isHoldingYum();
 
         var isCravingEatenObject = heldObjData.id == playerTo.currentlyCraving;
         if(isCravingEatenObject) foodValue += 1; // craved food give more boni
@@ -1275,14 +1276,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(isSuperMeh) foodValue = playerFrom.heldObject.objectData.foodValue / 2;
 
-        /*
-        if(isSuperMeh && food_store > 0)
+        if(isSuperMeh && playerTo.food_store > 0)
         {
-            trace('when food value is less then halve it can only be eaten if starving to death: foodValue: $foodValue original food value: ${heldObject.objectData.foodValue} food_store: $food_store');
-            return;
-        }*/
-
-        var isHoldingYum = playerFrom.isHoldingYum();
+            trace('Supermeh food can only be eaten if starving to death: foodValue: $foodValue original food value: ${playerFrom.heldObject.objectData.foodValue} food_store: ${playerTo.food_store}');
+            if(playerTo == playerFrom) playerTo.doEmote(Emote.ill);
+            else playerFrom.doEmote(Emote.sad);
+            return false;
+        }
+        if(playerTo != playerFrom && isHoldingYum == false)
+        {
+            trace('Other player can only feed YUM if not starving to death');
+            playerFrom.doEmote(Emote.sad);
+            return false;
+        }
 
         if(isSuperMeh == false)
         {
