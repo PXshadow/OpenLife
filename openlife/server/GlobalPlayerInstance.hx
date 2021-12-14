@@ -888,6 +888,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         for(ii in 0...10)
         {
+            if(this.exiledByPlayers.exists(leader.p_id)) return null; // is exiled
+            
             if(leader.followPlayer == null) return leader;
 
             leader = leader.followPlayer;

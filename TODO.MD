@@ -154,11 +154,10 @@ more up in the list means more likely to be implemented first but no gurantee!
 - COMBAT implement kill 
 - COMBAT animal interactions / collisions
 - COMBAT ill from moskitos 
-- ANIMAL animal movement on top of items
 - MAP map rework / place more biomes
 - SCORE save lineages
 - SCORE implement prestiege score
-- SCORE give score boni
+- SCORE give score boni like for great clothing
 - BIRTH use childFood / make sure that a mother does not have too many babies at same time
 - BIRTH spawn eves on different locations
 - BIRTH fathers
@@ -172,8 +171,8 @@ more up in the list means more likely to be implemented first but no gurantee!
 - EXHAUSTION in swamp / bad biome
 - EXHAUSTION movement change
 - EXHAUSTION carring heavy stuff
+- ANIMAL animal movement on top of items
 - TEMPERATURE indoor temperature calculation 
-- change biome speed / boni for specialists
 - CONNECTION reconnection
 - CONNECTION saving of people data so that people come back after server restart
 - TIME time transitions for objects in container
@@ -184,7 +183,9 @@ more up in the list means more likely to be implemented first but no gurantee!
 - TIME support multiple time transitions see Fishing Pole --> store in ObjectData 
 - DEATH while holding some one, or riding / driving something or using cart
 - DEATH baby grave
+- DEATH send grave info grave
 - BIOME biome boni for different races
+- BIOME change biome speed for specialists
 - BIOME cars as boats
 - BIOME no dropping of stuff on water
 - BIOME biome locked planting
