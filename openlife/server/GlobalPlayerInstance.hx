@@ -1283,7 +1283,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             else playerFrom.doEmote(Emote.sad);
             return false;
         }
-        if(playerTo != playerFrom && isHoldingYum == false)
+        if(playerTo != playerFrom && isHoldingYum == false && playerTo.food_store > 0)
         {
             trace('Other player can only feed YUM if not starving to death');
             playerFrom.doEmote(Emote.sad);
@@ -1302,11 +1302,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             if(isCravingEatenObject)
             {
                 playerTo.yum_multiplier += 2;
-                if(playerFrom != null) playerFrom.yum_multiplier += 0.5;
+                if(playerFrom != playerTo) playerFrom.yum_multiplier += 0.5;
             }
-            else playerTo.yum_multiplier += 1;            
+            else
+            {
+                playerTo.yum_multiplier += 1; 
+                if(playerFrom != playerTo) playerFrom.yum_multiplier += 0.25;           
+            }
         }
-        else playerTo.yum_multiplier -= 1;
+        else
+        {
+            playerTo.yum_multiplier -= 1;
+            if(playerFrom != playerTo) playerFrom.yum_multiplier += 0.5; // saved one from starving to death
+        }
              
         //else if(isHoldingMeh()) yum_multiplier -= 1;
 
