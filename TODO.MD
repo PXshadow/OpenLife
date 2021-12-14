@@ -145,10 +145,12 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 - AI basic nursing
 - Ai birth after death
+- AI basic clothing
 - Ai using containers
 - Ai ongoing longer distant movement
 - AI tests with >20 AIs
 - AI Stoneage
+- NAMING use predefined naming from list
 - COMBAT calculate exact player position for combat and distance
 - COMBAT wounds / healing part 2 
 - COMBAT implement kill 
@@ -171,8 +173,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 - EXHAUSTION in swamp / bad biome
 - EXHAUSTION movement change
 - EXHAUSTION carring heavy stuff
-- ANIMAL animal movement on top of items
-- TEMPERATURE indoor temperature calculation 
 - CONNECTION reconnection
 - CONNECTION saving of people data so that people come back after server restart
 - TIME time transitions for objects in container
@@ -189,8 +189,9 @@ more up in the list means more likely to be implemented first but no gurantee!
 - BIOME cars as boats
 - BIOME no dropping of stuff on water
 - BIOME biome locked planting
+- ANIMAL animal movement on top of items
+- TEMPERATURE indoor temperature calculation 
 - TOOLS learning tools (hold wrong if not learned)
-- NAMING use predefined naming from list
 - DONE??? do pattern transitions right like rubber horsecart pickup 
 - AI Pottery
 - AI Fire

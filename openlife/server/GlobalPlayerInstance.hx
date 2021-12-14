@@ -21,9 +21,49 @@ import openlife.data.object.player.PlayerInstance;
 import sys.thread.Mutex;
 
 using StringTools;
-
-
 using openlife.server.MoveHelper;
+
+// TODO give one at start
+@:enum abstract Emote(Int) from Int to Int
+{
+    public var happy = 0;  // used YUM
+    public var mad = 1; 
+    public var angry = 2;
+    public var sad = 3;  
+    public var devious = 4;
+    public var joy = 5;
+    public var blush = 6; // redface
+    public var yellowFever = 7; // TODO moskito
+    public var snowSplat = 8;
+    public var hubba = 9; // eyes
+    public var ill = 10;  // TODO super meh food
+    public var yoohoo = 11; //whistle
+    public var hmph = 12; // used for eating MEH food
+    public var love = 13; // TODO partner
+    public var oreally = 14;
+    public var shock = 15;
+    public var murderFace = 16;
+    public var tattooChest= 17;
+    public var pneumonia = 18; // body white // used for cold
+    public var biomeRelief = 19;
+    public var dehydration = 20; // redpoints // TODO heat?
+    public var heatStroke = 21; // used for super heat
+    public var tattooBack = 22;
+    public var tattooMouth = 23;
+    public var tattooHead = 24;
+    public var tattooFace = 25;
+    public var tattooStomach = 26;
+    public var terrified = 27;
+    public var homesick = 28;
+    public var spicyFood = 29; // TODO ?
+    public var refuseFood = 30; // TODO ?
+    public var starving = 31; // used for starving
+
+    public var miamFood = 32; // used for eating craved food
+    public var noHead = 33; // ?
+    public var normal = 34; // ?
+    public var moustache = 36; // ?
+}
 
 // GlobalPlayerInstance is used as a WorldInterface for an AI, since it may be limited what the AI can see so player information is relevant
 class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface
@@ -2362,49 +2402,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return this.serverAi != null;   
     }
 }
-
-// TODO give one at start
-@:enum abstract Emote(Int) from Int to Int
-{
-    public var happy = 0;  // used YUM
-    public var mad = 1; 
-    public var angry = 2;
-    public var sad = 3;  
-    public var devious = 4;
-    public var joy = 5;
-    public var blush = 6; // redface
-    public var yellowFever = 7; // TODO moskito
-    public var snowSplat = 8;
-    public var hubba = 9; // eyes
-    public var ill = 10;  // TODO super meh food
-    public var yoohoo = 11; //whistle
-    public var hmph = 12; // used for eating MEH food
-    public var love = 13; // TODO partner
-    public var oreally = 14;
-    public var shock = 15;
-    public var murderFace = 16;
-    public var tattooChest= 17;
-    public var pneumonia = 18; // body white // used for cold
-    public var biomeRelief = 19;
-    public var dehydration = 20; // redpoints // TODO heat?
-    public var heatStroke = 21; // used for super heat
-    public var tattooBack = 22;
-    public var tattooMouth = 23;
-    public var tattooHead = 24;
-    public var tattooFace = 25;
-    public var tattooStomach = 26;
-    public var terrified = 27;
-    public var homesick = 28;
-    public var spicyFood = 29; // TODO ?
-    public var refuseFood = 30; // TODO ?
-    public var starving = 31; // used for starving
-
-    public var miamFood = 32; // used for eating craved food
-    public var noHead = 33; // ?
-    public var normal = 34; // ?
-    public var moustache = 36; // ?
-}
-
 
 // TODO Arcurus>> add birth logic - suggestion:
     // select mother or Admam / Eve

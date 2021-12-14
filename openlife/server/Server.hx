@@ -101,6 +101,8 @@ class Server
 
         TransitionImporter.DoAllInititalisationStuff();
 
+        NamingHelper.ReadNames();
+
         // do all the map inititalisation stuff
         map = new WorldMap();
 
