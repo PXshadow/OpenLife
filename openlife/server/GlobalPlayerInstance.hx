@@ -188,7 +188,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         food_store_max = calculateFoodStoreMax();
         food_store = food_store_max / 2;
-        yum_multiplier = ServerSettings.MinHealthPerYear * 3; // start with health for 3 years
+        yum_multiplier = ServerSettings.MinHealthPerYear * 3; // start with health for 3 years // TODO change
 
         for(c in Connection.getConnections())
         {
@@ -289,8 +289,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.followPlayer = mother; // the mother is the leader
 
         // TODO consider dead children for mother fitness
-        // TODO consider temerature for fitness
-        // TODO conser if on horse for fitness
 
         mother.childrenBirthMali += 1; // make it less likely to get new child
         if(mother.mother != null) mother.mother.childrenBirthMali += 0.5; // make it less likely to get new child for each grandkid
@@ -459,6 +457,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         tmpFitness += p.food_store /= 10; // the more food the more likely 
         tmpFitness += p.food_store_max /= 10; // the more healthy the more likely 
         tmpFitness += p.yum_bonus /= 20; // the more yum / prestige the more likely 
+        var temperatureMail = Math.pow(((p.heat - 0.5) * 10), 2) / 10; // between 0 and 2.5 for very bad temperature
+        tmpFitness -= temperatureMail;
+
+        if(p.heldObject.objectData.speedMult > 1.1) tmpFitness -= 2; // if player is using fast objects
+        else if(p.heldObject.id != 0) tmpFitness -= 1; // if player is holding objects
         
         return tmpFitness;
     }

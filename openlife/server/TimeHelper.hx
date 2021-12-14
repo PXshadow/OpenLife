@@ -177,6 +177,10 @@ class TimeHelper
 
     private static function UpdateEmotes(player:GlobalPlayerInstance)
     {
+        //var temperatureMail = Math.pow(((player.heat - 0.5) * 10), 2) / 10;
+
+        //trace('temperatureMail: $temperatureMail');
+
         if(player.food_store < 0 && player.age >= ServerSettings.MinAgeToEat)
         {
             player.doEmote(Emote.starving);
