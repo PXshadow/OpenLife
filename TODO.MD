@@ -173,8 +173,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 - EXHAUSTION movement change
 - EXHAUSTION carring heavy stuff
 - TEMPERATURE indoor temperature calculation 
-- LEADER message to followers
-- LEADER redeem
 - change biome speed / boni for specialists
 - CONNECTION reconnection
 - CONNECTION saving of people data so that people come back after server restart
@@ -209,6 +207,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - MAP calculate distance right when on end of map 
 - LANGUAGE implement different languages
 - POINTER bell tower ringing
+- POINTER visitor at gate
 - POINTER maps / maps on waystone
 - POINTER home marker
 

@@ -768,9 +768,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return;
         }
 
-        var doFollow = message.startsWith('I FOLLOW ');
+        doCommand = message.startsWith('I FOLLOW ');
 
-        if(doFollow)
+        if(doCommand)
         {
             if(name == "ME")
             {
@@ -814,6 +814,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             this.doEmote(Emote.happy);
             
+            return;
+        }
+
+        doCommand = message.startsWith('ORDER, ');
+
+        if(doCommand)
+        {
+            message = message.replace('ORDER, ', '');
+
+            this.connection.sendGlobalMessage('ORDER:_$message');
+
+            for(c in Connection.getConnections())
+            {
+                var leader = c.player.getTopLeader();
+                if(leader == this) c.sendGlobalMessage('ORDER:_$message');
+
+                this.doEmote(Emote.biomeRelief);                
+            }
+            // TODO AI
             return;
         }
     }
