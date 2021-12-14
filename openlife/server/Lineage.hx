@@ -18,11 +18,26 @@ class Lineage
 
     // use Ids since not all might be available
     public var myId:Int = -1;
-    public var myEveId:Int = -1;
+    public var myEveId:Int = -1; // TODO support family head
     public var motherId:Int = -1;
     public var fatherId:Int = -1;
 
     public function new(){}
+
+    public var eve(get, null):GlobalPlayerInstance;
+
+    public function get_eve()
+    {
+        return GlobalPlayerInstance.AllPlayers[myEveId];
+    }
+
+    public var eveLineage(get, null):Lineage;
+
+    public function get_eveLineage()
+    {
+        return AllLineages[myEveId];
+    }
+
 
     public var mother(get, set):GlobalPlayerInstance;
 
@@ -64,12 +79,14 @@ class Lineage
 
     public function get_familyName()
     {
-        return myFamilyName; // TODO use top family head
+        return this.eveLineage.myFamilyName; 
     }
 
-    public function setFamilyName(newName:String)
+    // TODO support own family name with ditance X from last and prestiege Y
+    public function setFamilyName(newName:String) 
     {
-        return myFamilyName = newName; // TODO change only top family name 
+        //trace('setFamilyName: $familyName ==> $newName');
+        return this.eveLineage.myFamilyName = newName;
     }
 
     // p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id

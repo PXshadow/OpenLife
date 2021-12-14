@@ -206,9 +206,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     }
 
     private function spawnAsEve(allowHumanSpawnToAIandAiToHuman:Bool)
-    {
-        this.lineage.myEveId = this.p_id;
-
+    {    
         var isAi = this.isAi();
         var lastEveOrAdam = isAi ? lastAiEveOrAdam : lastHumanEveOrAdam;
 
@@ -230,6 +228,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(lastEveOrAdam == null)
         {
             lastEveOrAdam = this;
+            this.lineage.myEveId = this.p_id;
 
             // give eve the right color fitting to closest special biome
             var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx(), this.ty());
@@ -245,6 +244,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
         else
         {
+            this.lineage.myEveId = lastEveOrAdam.p_id;
             // Spawn An Eve / Adam is to last Eve / Adam
             this.followPlayer = lastEveOrAdam;
             //lastEveOrAdam.followPlayer = this;
@@ -954,9 +954,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(doFamilyName)
         {
-            player.lineage.setFamilyName(name);
+            // check if name is used
+            for(p in AllPlayers)
+            {
+                if(p.familyName == name)
+                {
+                    trace('family name: "$name" is used already!');
 
-            // TODO use family name from family head
+                    return;
+                }
+            }
+
+            player.lineage.setFamilyName(name); // check if used
         }
         else
         {
@@ -986,11 +995,34 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         trace('TEST Naming: ${player.p_id} ${player.name} ${player.familyName}');
        
-
-        for(c in Connection.getConnections())
+        if(doFamilyName)
         {
-            c.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
+            // all family member names changed
+            for(p in AllPlayers)
+            {
+                trace('FAMILYNAME: ${p.name} ${p.familyName}');
+
+                if(p.familyName == name)
+                {
+                    for(c in Connection.getConnections())
+                    {
+                        c.send(ClientTag.NAME,['${p.p_id} ${p.name} ${p.familyName}']);
+                    }
+                }
+            }
+
         }
+        else
+        {
+            // only one name changed
+            for(c in Connection.getConnections())
+            {
+                c.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
+            }
+        }
+
+        this.doEmote(Emote.happy); // dont worry be happy!
+        if(this != player) player.doEmote(Emote.happy); 
     }
 
     /*public function eat() {
@@ -1366,7 +1398,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             if(playerFrom != null) playerFrom.doEmote(Emote.happy);
         }
         else if(isHoldingYum) playerTo.doEmote(Emote.happy);
-        else if(isSuperMeh) playerTo.doEmote(Emote.ill);
+        else if(isSuperMeh) playerTo.doEmote(Emote.ill);  // TODO make really ill / slower speed and cannot eat same
         else playerTo.doEmote(Emote.hmph);
         
         return true;    
