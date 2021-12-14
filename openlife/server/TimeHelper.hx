@@ -169,8 +169,22 @@ class TimeHelper
         Macro.exception(MoveHelper.updateMovement(player));
 
         if(TimeHelper.tick % 20 == 0) Macro.exception(updateTemperature(player));
+
+        if(TimeHelper.tick % 30 == 0) Macro.exception(UpdateEmotes(player));
                 
         return true;
+    }
+
+    private static function UpdateEmotes(player:GlobalPlayerInstance)
+    {
+        if(player.food_store < 4)
+        {
+            player.doEmote(Emote.starving);
+            return;
+        }
+        if(player.heat > 0.75) player.doEmote(Emote.heatStroke);
+        //else if(playerHeat > 0.6) player.doEmote(Emote.dehydration);
+        if(player.heat < 0.25) player.doEmote(Emote.pneumonia);        
     }
 
     private static function updateAge(player:GlobalPlayerInstance, timePassedInSeconds:Float)
@@ -328,7 +342,7 @@ class TimeHelper
             }
         }
     }
-
+    
     /*
         HX
         heat food_time indoor_bonus#
@@ -405,9 +419,7 @@ class TimeHelper
 
         if(player.connection != null) player.connection.send(HEAT_CHANGE, [message], false);
 
-        if(playerHeat > 0.75) player.doEmote(Emote.heatStroke);
-        //else if(playerHeat > 0.6) player.doEmote(Emote.dehydration);
-        if(playerHeat < 0.25) player.doEmote(Emote.pneumonia);
+        
         
 
         //if(ServerSettings.DebugTemperature)
