@@ -1266,6 +1266,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         playerTo.just_ate = 0;
         playerTo.action = 0;
 
+        if(isCravingEatenObject) playerTo.doEmote(Emote.miamFood);
+        else if(isHoldingYum) playerTo.doEmote(Emote.happy);
+        else if(isSuperMeh) playerTo.doEmote(Emote.ill);
+        else playerTo.doEmote(Emote.hmph);
+        
         return true;    
     }
 
@@ -2224,10 +2229,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 // TODO give one at start
 @:enum abstract Emote(Int) from Int to Int
 {
-    public var happy = 0;  // TODO YUM
+    public var happy = 0;  // used YUM
     public var mad = 1; 
     public var angry = 2;
-    public var sad = 3;  // TODO MEH
+    public var sad = 3;  
     public var devious = 4;
     public var joy = 5;
     public var blush = 6; // redface
@@ -2236,16 +2241,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var hubba = 9; // eyes
     public var ill = 10;  // TODO super meh food
     public var yoohoo = 11; //whistle
-    public var hmph = 12;
+    public var hmph = 12; // used for eating MEH food
     public var love = 13; // TODO partner
     public var oreally = 14;
     public var shock = 15;
     public var murderFace = 16;
     public var tattooChest= 17;
-    public var pneumonia = 18; // body white // TODO cold
+    public var pneumonia = 18; // body white // used for cold
     public var biomeRelief = 19;
-    public var dehydration = 20; // redpoints // TODO heat
-    public var heatStroke = 21; // TODO super heat
+    public var dehydration = 20; // redpoints // TODO heat?
+    public var heatStroke = 21; // used for super heat
     public var tattooBack = 22;
     public var tattooMouth = 23;
     public var tattooHead = 24;
@@ -2255,9 +2260,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var homesick = 28;
     public var spicyFood = 29; // TODO ?
     public var refuseFood = 30; // TODO ?
-    public var starving = 31; // TODO starving
+    public var starving = 31; // used for starving
 
-    public var miamFood = 32; // ?
+    public var miamFood = 32; // used for eating craved food
     public var noHead = 33; // ?
     public var normal = 34; // ?
     public var moustache = 36; // ?
