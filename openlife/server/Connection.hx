@@ -323,6 +323,24 @@ class Connection
         }
     }
 
+    public static function SendFullExileListToAll(target:GlobalPlayerInstance)
+    {
+        var list = '${target.p_id} -1';
+
+        for(p in target.exiledByPlayers)
+        {
+            var tmp = '\n${target.p_id} ${p.p_id}';
+            list += tmp;
+        }
+
+        trace('EXILE LIST: $list');
+
+        for(c in Connection.getConnections())
+        {
+            c.send(EXILED,[list]);
+        }
+    }
+
     public static function SendTransitionUpdateToAllClosePlayers(player:GlobalPlayerInstance, tx:Int, ty:Int, newFloorId:Int, newTileObject:Array<Int>, doTransition:Bool, isPlayerAction:Bool = true)
     {
         try

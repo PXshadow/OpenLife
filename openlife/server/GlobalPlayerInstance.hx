@@ -737,11 +737,35 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             target.exiledByPlayers[target.p_id] = target;
 
             this.connection.sendGlobalMessage('YOU_EXILED:_${target.name}_${target.familyName}');
-            target.connection.sendGlobalMessage('YOU_HAVE_BEEN_EXILED_BY:_${this.name}_${this.familyName}');
+            target.connection.sendGlobalMessage('YOU_HAVE_BEEN_EXILED_BY:_${this.name}_${this.familyName} YOU CAN BE LEGALLY KILLED!');
 
             Connection.SendExileToAll(this, target);
 
             this.doEmote(Emote.angry);
+
+            return;
+        }
+
+        doCommand = message.startsWith('I REDEEM ');
+
+        if(doCommand)
+        {
+            var target = GetPlayerByName(name);
+            
+            if(target == null || target == this) return;
+            if(target.exiledByPlayers.exists(target.p_id) == false) return; // cannot redeem if not exiled
+
+            target.exiledByPlayers.remove(target.p_id);
+
+            Connection.SendFullExileListToAll(target);
+
+            this.connection.sendGlobalMessage('YOU_REDEEM:_${target.name}_${target.familyName}');
+            target.connection.sendGlobalMessage('YOU_HAVE_BEEN_REDEEMED_BY:_${this.name}_${this.familyName}');
+
+            this.doEmote(Emote.happy);
+            target.doEmote(Emote.happy);
+
+            return;
         }
 
         var doFollow = message.startsWith('I FOLLOW ');
