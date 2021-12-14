@@ -79,6 +79,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public var foodUsePerSecond = ServerSettings.FoodUsePerSecond; // is changed in update temperature
 
+    public var exiledByPlayers = new Map<Int, GlobalPlayerInstance>();
+
     // set all stuff null so that nothing is hanging around
     public function delete()
     {
@@ -86,6 +88,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         this.heldPlayer = null;
         this.heldByPlayer = null;
+
+        this.exiledByPlayers = null;
     }
 
     public var name(get, set):String;
@@ -718,6 +722,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         var name = GetName(message);
 
+        var doCommand = message.startsWith('I EXILE ');
+
+        if(doCommand)
+        {
+            var target = GetPlayerByName(name);
+            
+            if(target == null || target == this) return;
+            if(target.exiledByPlayers.exists(target.p_id)) return; // cannot exile twice before redeemed
+
+            target.exiledByPlayers[target.p_id] = target;
+
+            this.connection.sendGlobalMessage('YOU_EXILED:_${target.name}_${target.familyName}');
+            target.connection.sendGlobalMessage('YOU_HAVE_BEEN_EXILED_BY:_${this.name}_${this.familyName}');
+
+            Connection.SendExileToAll(this, target);
+
+            this.doEmote(Emote.angry);
+        }
+
         var doFollow = message.startsWith('I FOLLOW ');
 
         if(doFollow)
@@ -731,6 +754,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 this.connection.sendGlobalMessage('YOU_FOLLOW_NOW_NO_ONE!');
 
                 Connection.SendFollowingToAll(this);
+
+                this.doEmote(Emote.happy);
 
                 return;
             }
@@ -759,6 +784,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             // inform leader
             if(leader.connection != null) leader.connection.sendMapLocation(leader, 'FOLLOWER', 'follower');
             if(leader.connection != null) leader.connection.sendGlobalMessage('YOU_HAVE_A_NEW_FOLLOWER:_${this.name}_${this.familyName}');
+
+            this.doEmote(Emote.happy);
             
             return;
         }

@@ -143,7 +143,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
-- EMOTES for example hungry / ill / bad temperature / exhausted
 - AI basic nursing
 - Ai birth after death
 - Ai using containers
@@ -166,6 +165,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - BIRTH fathers displayed in name (needs workaround since not supported from client)
 - BIRTH incarnation according to score
 - BIRTH curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
+- EXHAUSTION emotesfor exhausted
 - EXHAUSTION bad temperature impacts exhaustion
 - EXHAUSTION reduces speed / food use
 - EXHAUSTION replaces hungry work
@@ -174,7 +174,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 - EXHAUSTION carring heavy stuff
 - TEMPERATURE indoor temperature calculation 
 - LEADER message to followers
-- LEADER exile
 - LEADER redeem
 - change biome speed / boni for specialists
 - CONNECTION reconnection

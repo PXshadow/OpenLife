@@ -289,6 +289,39 @@ class Connection
             sendFollowing(c.player);
         }
     }
+    /**
+                        EX
+                        exile_target_id exiler_id
+                        exile_target_id exiler_id
+                        exile_target_id exiler_id
+                        ...
+                        exile_target_id exiler_id
+                        #
+
+                        Provides list of people exiled by another person.
+
+                        If someone's exile list has changed (who's exiling them), then their whole
+                        exile list is sent.
+
+                        Each target's list is prefaced by this line:
+
+                        exile_target_id -1
+
+                        This indicates that the target's complete list is coming, and the client-side
+                        list should be cleared in preparation for this.
+
+
+                        If a target is newly exiled by no one, they show up as:
+
+                        exile_target_id -1
+**/
+    public static function SendExileToAll(exiler:GlobalPlayerInstance, target:GlobalPlayerInstance)
+    {
+        for(c in Connection.getConnections())
+        {
+            c.send(EXILED,['${target.p_id} ${exiler.p_id}']);
+        }
+    }
 
     public static function SendTransitionUpdateToAllClosePlayers(player:GlobalPlayerInstance, tx:Int, ty:Int, newFloorId:Int, newTileObject:Array<Int>, doTransition:Bool, isPlayerAction:Bool = true)
     {
