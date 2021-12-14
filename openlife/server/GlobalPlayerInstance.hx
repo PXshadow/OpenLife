@@ -1217,7 +1217,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // eating YUM increases prestige / score while eating MEH reduces it
         if(isHoldingYum)
         {
-            if(isCravingEatenObject) playerTo.yum_multiplier += 2;
+            if(isCravingEatenObject)
+            {
+                playerTo.yum_multiplier += 2;
+                if(playerFrom != null) playerFrom.yum_multiplier += 0.5;
+            }
             else playerTo.yum_multiplier += 1;            
         }
         else playerTo.yum_multiplier -= 1;
@@ -1266,7 +1270,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         playerTo.just_ate = 0;
         playerTo.action = 0;
 
-        if(isCravingEatenObject) playerTo.doEmote(Emote.miamFood);
+        if(isCravingEatenObject)
+        {
+            playerTo.doEmote(Emote.miamFood);
+            if(playerFrom != null) playerFrom.doEmote(Emote.happy);
+        }
         else if(isHoldingYum) playerTo.doEmote(Emote.happy);
         else if(isSuperMeh) playerTo.doEmote(Emote.ill);
         else playerTo.doEmote(Emote.hmph);
