@@ -56,6 +56,7 @@ class Server
 
     public function new()
     {
+        server = this;
         //SerializeHelper.createReadWriteFile();
         
         if(ServerSettings.readFromFile() == false)
@@ -99,9 +100,7 @@ class Server
 
         ObjectData.DoAllTheObjectInititalisationStuff();
 
-        TransitionImporter.DoAllInititalisationStuff();
-
-        NamingHelper.ReadNames();
+        TransitionImporter.DoAllInititalisationStuff();        
 
         // do all the map inititalisation stuff
         map = new WorldMap();
@@ -122,13 +121,16 @@ class Server
             }
         }
 
-        //prevent any blocking object on global starting position
+        //prevent any blocking object on global starting position // TODO change
         var startObj = map.getObjectHelper(ServerSettings.startingGx,ServerSettings.startingGy,false);
         if (startObj != null) 
         {
             if (startObj.blocksWalking())
                 map.setObjectId(ServerSettings.startingGx,ServerSettings.startingGy,[0]);
         }
+
+        NamingHelper.ReadNames();
+
         // run run run Thread run run run
         var thread = new ThreadServer(this,8005);
         Thread.create(function()
