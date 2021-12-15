@@ -189,10 +189,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return numberLifingPlayers;
     }
 
-    public function new(ai:ServerAi = null)
+    public static function CreateNewHumanPlayer(c:Connection) : GlobalPlayerInstance
+    {
+        return new GlobalPlayerInstance(null, c);
+    }
+
+    public static function CreateNewAiPlayer(ai:ServerAi) : GlobalPlayerInstance
+    {
+        return new GlobalPlayerInstance(ai, null);
+    }
+
+    private function new(ai:ServerAi = null, c:Connection = null)
     {
         super([]);
 
+        if(c != null) c.player = this;
+
+        this.connection = c;
         this.serverAi = ai;
         this.p_id = Server.server.playerIndex++;
         this.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
@@ -241,6 +254,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         Connection.SendFollowingToAll(this);
+
+        if(this.mother != null)
+        {
+            if(this.isAi() == false) this.connection.sendMapLocation(this.mother,'MOTHER', 'mother');
+            if(this.mother.isAi() == false) mother.connection.sendMapLocation(this.mother,'BABY', 'baby');
+        }
     
         // TODO inform AI about new player
     }
@@ -585,7 +604,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function doEmote(id:Int, seconds:Int = -10)
     {
-        this.connection.emote(id);
+        Connection.SendEmoteToAll(this, id);
     }
 
     public function remove(x:Int, y:Int, index:Int = -1) : Bool

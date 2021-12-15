@@ -8,7 +8,7 @@ class ServerAi extends Ai
 
     public function new()
     {
-        player = new GlobalPlayerInstance(this);
+        player = GlobalPlayerInstance.CreateNewAiPlayer(this); 
         super(player);
         //player.serverAi = this;
         player.connection = new Connection(null, Server.server); 

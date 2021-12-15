@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.macros.Macro;
 import openlife.data.object.ObjectData;
 import haxe.macro.Expr.Catch;
 import sys.thread.Mutex;
@@ -49,7 +50,7 @@ class Connection
         {
             send(ACCEPTED);
                    
-            this.player = new GlobalPlayerInstance();
+            this.player = GlobalPlayerInstance.CreateNewHumanPlayer(this); 
             
             var id = player.p_id;
 
@@ -682,46 +683,47 @@ class Connection
 
                 If ttl is -2, the emot is permanent but not new, so sound shoudl be skipped.
     **/
-    public function emote(id:Int, seconds:Int = -10)
+    public static function SendEmoteToAll(fromPlayer:GlobalPlayerInstance, id:Int, seconds:Int = -10)
     {
-        this.mutex.acquire();
+        //this.mutex.acquire();
 
-        try
+        for (toConnection in connections)
         {
-            for (c in connections)
-            {
-
-                // since player has relative coordinates, transform them for player
-                var targetX = player.tx() - c.player.gx;
-                var targetY = player.ty() - c.player.gy;
-
-                // update only close players
-                if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-
-                if(seconds < 3)c.send(PLAYER_EMOT,['${player.p_id} $id']);
-                else c.send(PLAYER_EMOT,['${player.p_id} $id $seconds']);
-                c.send(FRAME);
-            }
+            Macro.exception(DoHumanPlayerEmote(fromPlayer, toConnection, id, seconds));
         }
-        catch(ex) trace(ex);
 
-        this.mutex.release();
-
+        //this.mutex.release();
+        
         try
         {
             for (c in ais)
             {
                 // since player has relative coordinates, transform them for player
-                var targetX = player.tx() - c.player.gx;
-                var targetY = player.ty() - c.player.gy;
+                var targetX = fromPlayer.tx() - c.player.gx;
+                var targetY = fromPlayer.ty() - c.player.gy;
 
                 // update only close players
                 if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
-                c.emote(player,id);
+                c.emote(fromPlayer,id);
             }
         }
         catch(ex) trace(ex);
+    }
+
+    private static function DoHumanPlayerEmote(fromPlayer:GlobalPlayerInstance, toConnection:Connection, id:Int, seconds:Int = -10)
+    {
+        // since player has relative coordinates, transform them for player
+        var targetX = fromPlayer.tx() - toConnection.player.gx;
+        var targetY = fromPlayer.ty() - toConnection.player.gy;
+
+        // update only close players
+        if(toConnection.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) return;
+
+        if(seconds < 3) toConnection.send(PLAYER_EMOT,['${fromPlayer.p_id} $id']);
+        else toConnection.send(PLAYER_EMOT,['${fromPlayer.p_id} $id $seconds']);
+
+        toConnection.send(FRAME);
     }
     
     public function rlogin()

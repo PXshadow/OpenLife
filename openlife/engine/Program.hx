@@ -95,7 +95,7 @@ class Program
     {
         if (client.relayIn == null || !parentMove)
             return;
-        parent = new GlobalPlayerInstance();
+        parent = GlobalPlayerInstance.CreateNewAiPlayer(null); // TODO change
         parent.p_id = 999999;
         //parent.po_id = 1663; //dog
         parent.po_id = 33; //ROCK
