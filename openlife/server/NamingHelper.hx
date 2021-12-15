@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.auto.AiHelper;
 import openlife.settings.ServerSettings;
 import openlife.server.GlobalPlayerInstance.Emote;
 import openlife.client.ClientTag;
@@ -26,13 +27,13 @@ class NamingHelper
 
     last_name may be ommitted.
     */
-    public static function DoNaming(p:GlobalPlayerInstance, text:String)        
+    public static function DoNaming(p:GlobalPlayerInstance, text:String) : String       
     {
         //trace('TEST Naming1: $text');
 
         var doFamilyName = text.startsWith('I AM');
         
-        if(doFamilyName == false && text.startsWith('YOU ARE') == false) return;
+        if(doFamilyName == false && text.startsWith('YOU ARE') == false) return text;
 
         var targetPlayer = doFamilyName ? p : p.heldPlayer;
         
@@ -40,29 +41,37 @@ class NamingHelper
 
         //trace('TEST Naming2: $text');
 
-        if(targetPlayer == null) return;
+        if(targetPlayer == null) return text;
 
         if(doFamilyName)
         {
-            if(targetPlayer.familyName != ServerSettings.StartingFamilyName) return;
+            // TODO allow to change name after some generations and with high prestiege
+            if(targetPlayer.familyName != ServerSettings.StartingFamilyName) return text;
         }
-        else if(targetPlayer.name != ServerSettings.StartingName) return;
+        else if(targetPlayer.name != ServerSettings.StartingName) return text;
 
+        /*
         var strings = text.split(' ');
 
         if(strings.length < 3) return;
         
-        var name = strings[2];
+        var name = strings[2];*/
 
-        if(name.length < 3) return;
+        var nameFromText = GetName(text);
+
+        if(nameFromText.length < 2) return text;
 
         //var r = ~/^[a-z]+$/i; // only letters
         var r = ~/[^a-z]/i; // true if anything but letters
-        if(r.match(name)) return; // return if there is anything but letters
+        if(r.match(nameFromText)) return text; // return if there is anything but letters
 
-        // TODO choose name from list
+        var name = doFamilyName ? nameFromText : GetNameFromList(nameFromText, p.isFemal());
         
-        trace('TEST Naming: $name');
+        trace('TEST Naming: $nameFromText ==> $name');
+
+        if(name == null) return text;
+
+        text = text.replace(nameFromText, name);
 
         if(doFamilyName)
         {
@@ -73,7 +82,7 @@ class NamingHelper
                 {
                     trace('family name: "$name" is used already!');
 
-                    return;
+                    return text;
                 }
             }
 
@@ -82,6 +91,7 @@ class NamingHelper
         else
         {
             // check if name is used
+            /*
             for(c in Connection.getConnections())
             {
                 if(c.player.name == name && c.player.familyName == p.familyName)
@@ -100,7 +110,7 @@ class NamingHelper
 
                     return;
                 }
-            }
+            }*/
 
             targetPlayer.name = name;
         }
@@ -135,10 +145,55 @@ class NamingHelper
 
         p.doEmote(Emote.happy); // dont worry be happy!
         if(p != targetPlayer) targetPlayer.doEmote(Emote.happy); 
+
+        return text;
+    }
+
+    public static function GetName(text:String) : String
+    {
+        var strings = text.split(' ');
+
+        if(strings.length < 3) return "";
+        
+        var name = strings[2];
+
+        return name;
+    }
+
+    // TODO support family name???
+    public static function GetPlayerByName(player:GlobalPlayerInstance, name:String) : GlobalPlayerInstance
+    {
+        //trace('Get Player name: $name');
+
+        if(name.length < 3) return null;
+        if(name == "YOU") return player.getClosestPlayer(6); // 6
+
+        var bestPlayer = null;
+        var bestDistance:Float = 10000; // 100 tiles
+            
+        for(p in GlobalPlayerInstance.AllPlayers)
+        {
+            //trace('Get Player p name: ${p.name}');
+
+            if(p.name == name)
+            {
+                var distance = AiHelper.CalculateDistanceToPlayer(player, p);
+                
+                if(distance < bestDistance)
+                {
+                    bestPlayer = p;
+                    bestDistance = distance; 
+                }
+            }
+        }
+
+        //if(bestPlayer != null) trace('Get Player: Found name: $name is ${bestPlayer.name} ${bestPlayer.familyName}');
+
+        return bestPlayer;
     }
 
 
-    public static function GetName(newName:String, female:Bool) : String
+    public static function GetNameFromList(newName:String, female:Bool) : String
     {
         newName = newName.toUpperCase();
         var index = newName.substr(0,2);
@@ -169,7 +224,7 @@ class NamingHelper
 
             var name = map[newName];
 
-            if(name != null && isUsedName(name) == false) return name;
+            if(name != null && isUsedName(name) == false) return name; // TODO save to a file if not in list so that they may be added
 
             for(ii in 1...newName.length - 1)
             {
@@ -267,43 +322,43 @@ class NamingHelper
 
     public static function Test()
     {
-        var name = NamingHelper.GetName('Suoon', false);
+        var name = NamingHelper.GetNameFromList('Suoon', false);
         trace('Name: $name');
 
-        var name = NamingHelper.GetName('Spoon', false);
+        var name = NamingHelper.GetNameFromList('Spoon', false);
         trace('Name: $name');
 
-        var name = NamingHelper.GetName('Spoon', false);
+        var name = NamingHelper.GetNameFromList('Spoon', false);
         trace('Name: $name');
 
-        var name = NamingHelper.GetName('SpoonWood', false);
+        var name = NamingHelper.GetNameFromList('SpoonWood', false);
         trace('Name: $name');
 
-        var name = NamingHelper.GetName('Filea', false);
+        var name = NamingHelper.GetNameFromList('Filea', false);
         trace('Name: $name');
 
-        var name = NamingHelper.GetName('natragsing', true);
+        var name = NamingHelper.GetNameFromList('natragsing', true);
         trace('Name: $name');
 
-        var name = NamingHelper.GetName('Martin', true);
+        var name = NamingHelper.GetNameFromList('Martin', true);
         trace('Name: $name');
 
-        var name = NamingHelper.GetName('Jason', true);
+        var name = NamingHelper.GetNameFromList('Jason', true);
         trace('Name: $name');
 
-        var name = NamingHelper.GetName('Martina', true);
+        var name = NamingHelper.GetNameFromList('Martina', true);
         trace('Name: $name');
 
-        var name = NamingHelper.GetName('Alina', true);
+        var name = NamingHelper.GetNameFromList('Alina', true);
         trace('Name: $name');
 
-        var name = NamingHelper.GetName('xxx', true);
+        var name = NamingHelper.GetNameFromList('xxx', true);
         trace('Name: $name');
 
-        var name = NamingHelper.GetName('yyyZdsd', true);
+        var name = NamingHelper.GetNameFromList('yyyZdsd', true);
         trace('Name: $name');
 
-        var name = NamingHelper.GetName('yyyZdsd', false);
+        var name = NamingHelper.GetNameFromList('yyyZdsd', false);
         trace('Name: $name');
     }
 }

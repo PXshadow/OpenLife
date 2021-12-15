@@ -737,7 +737,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(text.startsWith('/') == false &&  text.length > maxLenght) text = text.substr(0, maxLenght);
 
-            NamingHelper.DoNaming(this, text);
+            text = NamingHelper.DoNaming(this, text);
 
             doCommands(text);
 
@@ -763,13 +763,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private function doCommands(message:String)
     {
-        var name = GetName(message);
+        var name = NamingHelper.GetName(message);
 
         var doCommand = message.startsWith('I EXILE ');
 
         if(doCommand)
         {
-            var target = GetPlayerByName(name);
+            var target = NamingHelper.GetPlayerByName(this, name);
             
             if(target == null || target == this) return;
             if(target.exiledByPlayers.exists(target.p_id)) return; // cannot exile twice before redeemed
@@ -790,7 +790,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(doCommand)
         {
-            var target = GetPlayerByName(name);
+            var target = NamingHelper.GetPlayerByName(this, name);
             
             if(target == null || target == this) return;
             if(target.exiledByPlayers.exists(target.p_id) == false) return; // cannot redeem if not exiled
@@ -827,7 +827,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 return;
             }
 
-            var player = GetPlayerByName(name);
+            var player = NamingHelper.GetPlayerByName(this, name);
             
             if(player == null || player == this.followPlayer) return;
 
@@ -875,49 +875,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             // TODO AI
             return;
         }
-    }
-
-    // TODO support family name???
-    public function GetPlayerByName(name:String) : GlobalPlayerInstance
-    {
-        //trace('Get Player name: $name');
-
-        if(name.length < 3) return null;
-        if(name == "YOU") return this.getClosestPlayer(6); // 6
-
-        var bestPlayer = null;
-        var bestDistance:Float = 10000; // 100 tiles
-            
-        for(p in AllPlayers)
-        {
-            //trace('Get Player p name: ${p.name}');
-
-            if(p.name == name)
-            {
-                var distance = AiHelper.CalculateDistanceToPlayer(this, p);
-                
-                if(distance < bestDistance)
-                {
-                    bestPlayer = p;
-                    bestDistance = distance; 
-                }
-            }
-        }
-
-        //if(bestPlayer != null) trace('Get Player: Found name: $name is ${bestPlayer.name} ${bestPlayer.familyName}');
-
-        return bestPlayer;
-    }
-
-    public static function GetName(text:String) : String
-    {
-        var strings = text.split(' ');
-
-        if(strings.length < 3) return "";
-        
-        var name = strings[2];
-
-        return name;
     }
 
     // if people follow circular outcome is null / max 10 deep hierarchy is supported
