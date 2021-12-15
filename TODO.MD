@@ -70,6 +70,14 @@ World:
 - objects except ancient, well, Iron Mine, Oil Pumps decay with a small chance
 - decay chance is 10X reduced if on floor and 10X increeased if food
 
+- Seasons / Winter is comming:
+- First part of Seasons is now implemented
+- There are winter / summer / spring / autoumn. And hard / super hard variants of it longer / colder / hotter then normal
+- Seasons influence temperature
+- Winter decays wild plants (for now only onions) and spring let it grow back
+- Plants grow only back if either one was left or one was hidden in he winter or if you place one...
+- There is now a second layer of objects where stuff can be hidden like onions in the winter
+
 Healing
 - max food store equals hitpoints
 - player heals with time but healing doubles food use
@@ -143,6 +151,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
+- WINTER decay / regrow more wild food / food plants
 - AI basic nursing
 - Ai birth after death
 - AI basic clothing

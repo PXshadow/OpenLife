@@ -78,9 +78,10 @@ class ObjectData extends LineReader
 
     public var dummyObjects:Array<ObjectData> = [];
 
-    public var decayFactor:Float = 1;
+    public var decayFactor:Float = 1; // not saved ???
+    public var winterDecayFactor:Float = 0; // not saved
+    public var springRegrowFactor:Float = 0; // not saved
     
-
     /**
      * Max clothing pieces
      */

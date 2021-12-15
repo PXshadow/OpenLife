@@ -136,7 +136,7 @@ class ServerSettings
     public static var SeasonDuration = 0.3; // default: 5 // Season duration like winter in years
     public static var AverageSeasonTemperatureImpact = 0.2; 
     public static var WinterWildFoodDecayChance:Float = 1.5; //1.5; // per Season
-    public static var SpringWildFoodRegrowChance:Float = 1.5; // per Season // use spring and summer
+    public static var SpringWildFoodRegrowChance:Float = 2; // per Season // use spring and summer
     //public static var WinterFildWoodDecayChance = 0.2;
 
     // AI
@@ -237,10 +237,22 @@ class ServerSettings
         ObjectData.getObjectData(624).numUses = 2; // // Composted Soil Uses: 3 Soil (Wheat, Berry, Dung) + water ==> 4 Soil 
         ObjectData.getObjectData(411).useChance = 0.5; // Fertile Soil Pit 9 uses --> 18
         ObjectData.getObjectData(411).speedMult = 0.8; // Fertile Soil Reduced carring speed
-
         // TODO let rows decay from time to time to increase soil need.
-        
 
+
+        // mark plants that decay and regrow
+        ObjectData.getObjectData(805).winterDecayFactor = 1; // Wild Onion 805 --> 808 (harvested)
+        ObjectData.getObjectData(805).springRegrowFactor = 1; // Wild Onion 805 --> 808 (harvested)
+        ObjectData.getObjectData(808).winterDecayFactor = 1; // Wild Onion 805 --> 808 (harvested)
+        //ObjectData.getObjectData(808).springRegrowFactor = 1; // Wild Onion 805 --> 808 (harvested) // TODO set regrow as 805
+            
+        ObjectData.getObjectData(404).winterDecayFactor = 1; // Wild Carrot
+        ObjectData.getObjectData(404).springRegrowFactor = 0.1; // Wild Carrot
+        ObjectData.getObjectData(36).winterDecayFactor = 2; // Seeding Wild Carrot
+        ObjectData.getObjectData(36).springRegrowFactor = 1.5; // Seeding Wild Carrot
+        ObjectData.getObjectData(40).winterDecayFactor = 1; // Dug Wild Carrot
+
+        
         //var obj = ObjectData.getObjectData(624);
 
         //trace('${obj.description} uses: ${obj.numUses} chance: ${obj.useChance}');
