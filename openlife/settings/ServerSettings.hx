@@ -134,6 +134,7 @@ class ServerSettings
 
     // winter / summer
     public static var SeasonDuration = 0.2; // 5 Season duration like winter in years
+    public static var AverageSeasonTemperatureImpact = 0.3; 
     public static var WinterWildFoodDecayChance = 0.2;
     public static var SpringWildFoodRegrowChance = 0.2;
     //public static var WinterFildWoodDecayChance = 0.2;

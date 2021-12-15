@@ -33,11 +33,13 @@ class TimeHelper
 
     private static var worldMapTimeStep = 0; // counts the time steps for doing map time stuff, since some ticks may be skiped because of server too slow
 
+    // Seaons
     private static var TimeToNextSeasonInYears:Float = ServerSettings.SeasonDuration;
     private static var TimeSeasonStartedInTicks:Float = 0;
-    
     private static var Season:Seasons = Seasons.Spring;
     private static var SeasonNames = ["Spring", "Summer", "Autumn", "Winter"];
+    private static var SeasonTemperatureImpact:Float = 0;
+    private static var SeasonHardness:Float = 1;
 
     public static function CalculateTimeSinceTicksInSec(ticks:Float):Float
     {
@@ -109,6 +111,20 @@ class TimeHelper
 
         var passedSeasonTime = TimeHelper.CalculateTimeSinceTicksInSec(TimeSeasonStartedInTicks);
         var timeToNextSeasonInSec =  TimeToNextSeasonInYears * 60; 
+        var tmpSeasonTemperatureImpact:Float = 0;
+        
+        tmpSeasonTemperatureImpact = ServerSettings.AverageSeasonTemperatureImpact * SeasonHardness;
+
+        if(Season == Seasons.Spring || Season == Seasons.Autumn) tmpSeasonTemperatureImpact *= 0.25;
+        if(Season == Seasons.Winter || Season == Seasons.Autumn) tmpSeasonTemperatureImpact *= -1;
+
+        var factor = TimeToNextSeasonInYears * 15 * (1 / timePassedInSeconds);
+
+        SeasonTemperatureImpact = (SeasonTemperatureImpact * factor + tmpSeasonTemperatureImpact) / (factor + 1);
+
+
+        if(tick % 20 == 0) trace('SEASON: ${SeasonHardness} TemperatureImpact: $SeasonTemperatureImpact tmp: $tmpSeasonTemperatureImpact');
+
         if(passedSeasonTime > timeToNextSeasonInSec)
         {
             TimeSeasonStartedInTicks = tick;
@@ -116,11 +132,19 @@ class TimeHelper
             TimeToNextSeasonInYears = ServerSettings.SeasonDuration / 2 + WorldMap.calculateRandomFloat() * ServerSettings.SeasonDuration;
 
             Season = (Season + 1) % 4;
+            SeasonHardness = Math.pow(WorldMap.calculateRandomFloat() + 0.5, 2);
+            TimeToNextSeasonInYears *= SeasonHardness;
+
             var seasonName = SeasonNames[Season];
-            var message = 'SEASON: ${seasonName} is there! years: ${passedSeasonTime / 60} timeToNextSeasonInSec: $timeToNextSeasonInSec';
+            var message = 'SEASON: ${seasonName} is there! hardness: $SeasonHardness years: ${passedSeasonTime / 60} timeToNextSeasonInSec: $timeToNextSeasonInSec';
+            
             trace(message);
 
-            Connection.SendGlobalMessageToAll('${seasonName} is comming!');            
+            var hardSeason = (Season == Seasons.Winter || Season == Seasons.Summer) && SeasonHardness > 1.5;
+            var hardText = hardSeason ? 'A hard ' : '';
+            if(hardSeason && SeasonHardness > 2) hardText = 'A very hard ';
+
+            Connection.SendGlobalMessageToAll('$hardText ${seasonName} is comming!');            
         }
 
         for (c in Connection.getConnections())
@@ -447,6 +471,9 @@ class TimeHelper
         // consider held object heat
         var heldObjectData = player.heldObject.objectData;
         if(heldObjectData.heatValue != 0) temperature += heldObjectData.heatValue / 20;
+
+        // add SeasonTemperatureImpact
+        temperature += SeasonTemperatureImpact;
  
         player.heat = player.heat * clothingFactor + temperature * (1 - clothingFactor);
 
@@ -471,8 +498,6 @@ class TimeHelper
 
         if(player.connection != null) player.connection.send(HEAT_CHANGE, [message], false);
 
-        
-        
 
         //if(ServerSettings.DebugTemperature)
         trace('Temperature update: playerHeat: $playerHeat temperature: $temperature clothingFactor: $clothingFactor foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
