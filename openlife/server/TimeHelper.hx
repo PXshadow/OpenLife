@@ -660,6 +660,10 @@ class TimeHelper
         {
             for(x in 0...worldMap.width)
             {
+                var hiddenObj = worldMap.getHiddenObjectId(x,y);
+
+                if(hiddenObj[0] != 0) RespawnOrDecayPlant(hiddenObj, x, y, true);     
+
                 var obj = worldMap.getObjectId(x,y);
 
                 if(obj[0] == 0) continue;      
@@ -717,20 +721,26 @@ class TimeHelper
         }
     }  
 
-    private static function RespawnOrDecayPlant(objIDs:Array<Int>, x:Int, y:Int)
+    private static function RespawnOrDecayPlant(objIDs:Array<Int>, x:Int, y:Int, hidden:Bool = false)
     {
         var objID = objIDs[0];
         // Wild Onion 805 --> 808 (harvested)
         if(objID != 805 && objID != 808) return;
 
-        if(Season == Seasons.Winter)
+        if(Season == Seasons.Winter && hidden == false)
         {
             if(WinterDecayChance < WorldMap.calculateRandomFloat()) return;
+
+            objIDs = [805]; // out of an unplanted onion also an onion grows
 
             WorldMap.world.setObjectId(x, y, [0]);
             WorldMap.world.setHiddenObjectId(x, y, objIDs); // TODO hide also object helper for advanced objects???
 
             Connection.SendMapUpdateToAllClosePlayers(x,y,[0]);
+
+            WorldMap.world.currentObjectsCount[objID]--;
+
+            trace('DECAY: Onions: ${WorldMap.world.currentObjectsCount[objID]}');
         }
         else if(Season == Seasons.Spring)
         {
@@ -740,10 +750,7 @@ class TimeHelper
 
             SpawnObject(x,y,objID);
 
-            //WorldMap.world.setObjectId(x, y, [0]);
-            //WorldMap.world.setHiddenObjectId(x, y, objIDs); // TODO hide also object helper for advanced objects???
-
-            //Connection.SendMapUpdateToAllClosePlayers(x,y,[0]);
+            if(hidden) WorldMap.world.setHiddenObjectId(x, y, [0]); // What was hidden comes back
         }
     }
 
