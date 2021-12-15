@@ -412,6 +412,10 @@ class TimeHelper
 
             trace('${closestHeatObj.description} Heat: ${closestHeatObj.objectData.heatValue} distance: $distance');
         }
+
+        // consider held object heat
+        var heldObjectData = player.heldObject.objectData;
+        if(heldObjectData.heatValue != 0) temperature += heldObjectData.heatValue / 20;
  
         player.heat = player.heat * clothingFactor + temperature * (1 - clothingFactor);
 
