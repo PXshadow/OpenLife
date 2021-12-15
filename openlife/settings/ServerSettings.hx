@@ -132,6 +132,12 @@ class ServerSettings
     public static var ObjDecayFactorOnFloor:Float = 0.1;
     public static var ObjDecayFactorForFood:Float = 10;
 
+    // winter / summer
+    public static var SeasonDuration = 0.2; // 5 Season duration like winter in years
+    public static var WinterWildFoodDecayChance = 0.2;
+    public static var SpringWildFoodRegrowChance = 0.2;
+    //public static var WinterFildWoodDecayChance = 0.2;
+
     // AI
     public static var NumberOfAis:Int = 1;
     public static var AiMaxSearchRadius:Int = 32;

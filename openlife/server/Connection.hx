@@ -819,6 +819,14 @@ class Connection
         this.mutex.release();
     }
 
+    public static function SendGlobalMessageToAll(message:String)
+    {
+        for(c in connections)
+        {
+            c.sendGlobalMessage(message);
+        }
+    }
+
     /**
     BABY_WIGGLE (BW): p_id
     A list of player IDs that are babies who just started wiggling.

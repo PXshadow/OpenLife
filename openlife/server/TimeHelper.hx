@@ -13,6 +13,15 @@ import openlife.data.transition.TransitionData;
 import openlife.data.object.ObjectHelper;
 import openlife.settings.ServerSettings;
 
+
+@:enum abstract Seasons(Int) from Int to Int
+{
+    public var Spring = 0; 
+    public var Summer = 1; 
+    public var Autumn = 2; 
+    public var Winter = 3; 
+}
+
 class TimeHelper
 {
     private static var tickTime = 1 / 20;
@@ -23,6 +32,12 @@ class TimeHelper
     private static var serverStartingTime:Float;
 
     private static var worldMapTimeStep = 0; // counts the time steps for doing map time stuff, since some ticks may be skiped because of server too slow
+
+    private static var TimeToNextSeasonInYears:Float = ServerSettings.SeasonDuration;
+    private static var TimeSeasonStartedInTicks:Float = 0;
+    
+    private static var Season:Seasons = Seasons.Spring;
+    private static var SeasonNames = ["Spring", "Summer", "Autumn", "Winter"];
 
     public static function CalculateTimeSinceTicksInSec(ticks:Float):Float
     {
@@ -91,6 +106,22 @@ class TimeHelper
         var timePassedInSeconds = CalculateTimeSinceTicksInSec(lastTick);
 
         TimeHelper.lastTick = tick;  
+
+        var passedSeasonTime = TimeHelper.CalculateTimeSinceTicksInSec(TimeSeasonStartedInTicks);
+        var timeToNextSeasonInSec =  TimeToNextSeasonInYears * 60; 
+        if(passedSeasonTime > timeToNextSeasonInSec)
+        {
+            TimeSeasonStartedInTicks = tick;
+            // TODO allow also much more variance like super hard and long winter
+            TimeToNextSeasonInYears = ServerSettings.SeasonDuration / 2 + WorldMap.calculateRandomFloat() * ServerSettings.SeasonDuration;
+
+            Season = (Season + 1) % 4;
+            var seasonName = SeasonNames[Season];
+            var message = 'SEASON: ${seasonName} is there! years: ${passedSeasonTime / 60} timeToNextSeasonInSec: $timeToNextSeasonInSec';
+            trace(message);
+
+            Connection.SendGlobalMessageToAll('${seasonName} is comming!');            
+        }
 
         for (c in Connection.getConnections())
         {            
