@@ -31,7 +31,12 @@ class TimeHelper
     public static var lastTick:Float = 0;
     private static var serverStartingTime:Float;
 
+    // Time Step Stuff
     private static var worldMapTimeStep = 0; // counts the time steps for doing map time stuff, since some ticks may be skiped because of server too slow
+    private static var TimeTimeStepsSartedInTicks:Float = 0;
+    private static var TimePassedToDoAllTimeSteps:Float = 0;
+    private static var WinterDecayChance:Float = 0; 
+    private static var SpringRegrowChance:Float = 0;
 
     // Seaons
     private static var TimeToNextSeasonInYears:Float = ServerSettings.SeasonDuration;
@@ -128,21 +133,29 @@ class TimeHelper
         if(passedSeasonTime > timeToNextSeasonInSec)
         {
             TimeSeasonStartedInTicks = tick;
-            // TODO allow also much more variance like super hard and long winter
+            
             TimeToNextSeasonInYears = ServerSettings.SeasonDuration / 2 + WorldMap.calculateRandomFloat() * ServerSettings.SeasonDuration;
 
             Season = (Season + 1) % 4;
-            SeasonHardness = Math.pow(WorldMap.calculateRandomFloat() + 0.5, 2);
-            TimeToNextSeasonInYears *= SeasonHardness;
+            SeasonHardness = WorldMap.calculateRandomFloat() + 0.5;
+            
 
             var seasonName = SeasonNames[Season];
             var message = 'SEASON: ${seasonName} is there! hardness: $SeasonHardness years: ${passedSeasonTime / 60} timeToNextSeasonInSec: $timeToNextSeasonInSec';
             
             trace(message);
 
-            var hardSeason = (Season == Seasons.Winter || Season == Seasons.Summer) && SeasonHardness > 1.5;
+            var hardSeason = (Season == Seasons.Winter || Season == Seasons.Summer) && SeasonHardness > 1.25;
             var hardText = hardSeason ? 'A hard ' : '';
-            if(hardSeason && SeasonHardness > 2) hardText = 'A very hard ';
+            if(hardSeason && SeasonHardness > 1.4)
+            {
+                SeasonHardness += 0.1; // make it even harder
+                hardText = 'A very hard ';
+            }
+
+            if(hardSeason) SeasonHardness = Math.pow(SeasonHardness, 2);
+
+            TimeToNextSeasonInYears *= SeasonHardness;
 
             Connection.SendGlobalMessageToAll('$hardText ${seasonName} is comming!');            
         }
@@ -614,8 +627,25 @@ class TimeHelper
 
         //trace('startY: $startY endY: $endY worldMap.height: ${worldMap.height}');
 
-        worldMapTimeStep++;
+        if(worldMapTimeStep % timeParts == 0)
+        {
+            if(TimeTimeStepsSartedInTicks > 0) TimePassedToDoAllTimeSteps = TimeHelper.CalculateTimeSinceTicksInSec(TimeTimeStepsSartedInTicks);
 
+            //trace('DOTIME: started: $TimeTimeStepsSartedInTicks passed: $TimePassedToDoAllTimeSteps');
+
+            WinterDecayChance = TimePassedToDoAllTimeSteps * ServerSettings.WinterWildFoodDecayChance / (TimeToNextSeasonInYears * 60);
+            SpringRegrowChance = TimePassedToDoAllTimeSteps * ServerSettings.SpringWildFoodRegrowChance / (TimeToNextSeasonInYears * 60);
+
+            WinterDecayChance *= SeasonHardness;
+            SpringRegrowChance *= SeasonHardness;
+            
+            TimeTimeStepsSartedInTicks = tick;
+
+            //trace('DOTIME: winterDecayChance: $winterDecayChance springRegrowChance: $springRegrowChance');
+        }
+
+        worldMapTimeStep++;
+        
         for (y in startY...endY)
         {
             for(x in 0...worldMap.width)
@@ -624,7 +654,7 @@ class TimeHelper
 
                 if(obj[0] == 0) continue;      
                 
-                //RespawnPlant(obj[0]);
+                RespawnOrDecayPlant(obj[0], x, y);
 
                 var helper = worldMap.getObjectHelper(x,y,true); 
 
@@ -676,6 +706,20 @@ class TimeHelper
             }
         }
     }  
+
+    private static function RespawnOrDecayPlant(objID:Int, x:Int, y:Int)
+    {
+        // Wild Onion 805 --> 808 (harvested)
+        if(objID != 805 && objID != 808) return;
+
+        if(Season != Seasons.Winter) return;
+        
+        if(WinterDecayChance < WorldMap.calculateRandomFloat()) return;
+
+        WorldMap.world.setObjectId(x, y, [0]);
+
+        Connection.SendMapUpdateToAllClosePlayers(x,y,[0]);
+    }
 
     public static function RespawnObjects()
     {
@@ -782,11 +826,6 @@ class TimeHelper
                 //trace('decay object: ${objData.description} $obj');
             }
         }    
-    }
-
-    public static function RespawnPlant()
-    {
-        // TODO
     }
 
     public static function RespawnObj()
