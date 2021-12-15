@@ -202,10 +202,10 @@ class TimeHelper
 
         if(passedSeasonTime > timeToNextSeasonInSec)
         {
-            TimeSeasonStartedInTicks = tick;
-            
-            TimeToNextSeasonInYears = ServerSettings.SeasonDuration / 2 + WorldMap.calculateRandomFloat() * ServerSettings.SeasonDuration;
+            var tmpSeasonHardness = SeasonHardness;
 
+            TimeSeasonStartedInTicks = tick;
+            TimeToNextSeasonInYears = ServerSettings.SeasonDuration / 2 + WorldMap.calculateRandomFloat() * ServerSettings.SeasonDuration;
             Season = (Season + 1) % 4;
             SeasonHardness = WorldMap.calculateRandomFloat() + 0.5;
             
@@ -224,6 +224,9 @@ class TimeHelper
             }
 
             if(hardSeason) SeasonHardness = Math.pow(SeasonHardness, 2);
+
+            // use same hardness for Spring as for winter. bad winter ==> good spring
+            if(Season == Seasons.Spring) SeasonHardness = tmpSeasonHardness;
 
             TimeToNextSeasonInYears *= SeasonHardness;
 
