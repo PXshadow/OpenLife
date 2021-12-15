@@ -114,51 +114,7 @@ class TimeHelper
 
         TimeHelper.lastTick = tick;  
 
-        var passedSeasonTime = TimeHelper.CalculateTimeSinceTicksInSec(TimeSeasonStartedInTicks);
-        var timeToNextSeasonInSec =  TimeToNextSeasonInYears * 60; 
-        var tmpSeasonTemperatureImpact:Float = 0;
-        
-        tmpSeasonTemperatureImpact = ServerSettings.AverageSeasonTemperatureImpact * SeasonHardness;
-
-        if(Season == Seasons.Spring || Season == Seasons.Autumn) tmpSeasonTemperatureImpact *= 0.25;
-        if(Season == Seasons.Winter || Season == Seasons.Autumn) tmpSeasonTemperatureImpact *= -1;
-
-        var factor = TimeToNextSeasonInYears * 15 * (1 / timePassedInSeconds);
-
-        SeasonTemperatureImpact = (SeasonTemperatureImpact * factor + tmpSeasonTemperatureImpact) / (factor + 1);
-
-
-        if(tick % 20 == 0) trace('SEASON: ${SeasonHardness} TemperatureImpact: $SeasonTemperatureImpact tmp: $tmpSeasonTemperatureImpact');
-
-        if(passedSeasonTime > timeToNextSeasonInSec)
-        {
-            TimeSeasonStartedInTicks = tick;
-            
-            TimeToNextSeasonInYears = ServerSettings.SeasonDuration / 2 + WorldMap.calculateRandomFloat() * ServerSettings.SeasonDuration;
-
-            Season = (Season + 1) % 4;
-            SeasonHardness = WorldMap.calculateRandomFloat() + 0.5;
-            
-
-            var seasonName = SeasonNames[Season];
-            var message = 'SEASON: ${seasonName} is there! hardness: $SeasonHardness years: ${passedSeasonTime / 60} timeToNextSeasonInSec: $timeToNextSeasonInSec';
-            
-            trace(message);
-
-            var hardSeason = (Season == Seasons.Winter || Season == Seasons.Summer) && SeasonHardness > 1.25;
-            var hardText = hardSeason ? 'A hard ' : '';
-            if(hardSeason && SeasonHardness > 1.4)
-            {
-                SeasonHardness += 0.1; // make it even harder
-                hardText = 'A very hard ';
-            }
-
-            if(hardSeason) SeasonHardness = Math.pow(SeasonHardness, 2);
-
-            TimeToNextSeasonInYears *= SeasonHardness;
-
-            Connection.SendGlobalMessageToAll('$hardText ${seasonName} is comming!');            
-        }
+        DoSeason(timePassedInSeconds);
 
         for (c in Connection.getConnections())
         {            
@@ -225,6 +181,55 @@ class TimeHelper
     }
     //static var personIndex = 0;
     //static var colorIndex = 0;
+
+    private static function DoSeason(timePassedInSeconds:Float)
+    {
+        var passedSeasonTime = TimeHelper.CalculateTimeSinceTicksInSec(TimeSeasonStartedInTicks);
+        var timeToNextSeasonInSec = TimeToNextSeasonInYears * 60; 
+        var tmpSeasonTemperatureImpact:Float = 0;
+        
+        tmpSeasonTemperatureImpact = ServerSettings.AverageSeasonTemperatureImpact * SeasonHardness;
+
+        if(Season == Seasons.Spring || Season == Seasons.Autumn) tmpSeasonTemperatureImpact *= 0.25;
+        if(Season == Seasons.Winter || Season == Seasons.Autumn) tmpSeasonTemperatureImpact *= -1;
+
+        var factor = TimeToNextSeasonInYears * 15 * (1 / timePassedInSeconds);
+
+        SeasonTemperatureImpact = (SeasonTemperatureImpact * factor + tmpSeasonTemperatureImpact) / (factor + 1);
+
+
+        if(tick % 20 == 0) trace('SEASON: ${SeasonHardness} TemperatureImpact: $SeasonTemperatureImpact tmp: $tmpSeasonTemperatureImpact');
+
+        if(passedSeasonTime > timeToNextSeasonInSec)
+        {
+            TimeSeasonStartedInTicks = tick;
+            
+            TimeToNextSeasonInYears = ServerSettings.SeasonDuration / 2 + WorldMap.calculateRandomFloat() * ServerSettings.SeasonDuration;
+
+            Season = (Season + 1) % 4;
+            SeasonHardness = WorldMap.calculateRandomFloat() + 0.5;
+            
+
+            var seasonName = SeasonNames[Season];
+            var message = 'SEASON: ${seasonName} is there! hardness: $SeasonHardness years: ${passedSeasonTime / 60} timeToNextSeasonInSec: $timeToNextSeasonInSec';
+            
+            trace(message);
+
+            var hardSeason = (Season == Seasons.Winter || Season == Seasons.Summer) && SeasonHardness > 1.25;
+            var hardText = hardSeason ? 'A hard ' : '';
+            if(hardSeason && SeasonHardness > 1.4)
+            {
+                SeasonHardness += 0.1; // make it even harder
+                hardText = 'A very hard ';
+            }
+
+            if(hardSeason) SeasonHardness = Math.pow(SeasonHardness, 2);
+
+            TimeToNextSeasonInYears *= SeasonHardness;
+
+            Connection.SendGlobalMessageToAll('$hardText ${seasonName} is comming!');            
+        }
+    }
 
     private static function DoTimeStuffForPlayer(player:GlobalPlayerInstance, timePassedInSeconds:Float) : Bool
     {
@@ -487,6 +492,8 @@ class TimeHelper
 
         // add SeasonTemperatureImpact
         temperature += SeasonTemperatureImpact;
+
+        // TODO useTimePassed
  
         player.heat = player.heat * clothingFactor + temperature * (1 - clothingFactor);
 
