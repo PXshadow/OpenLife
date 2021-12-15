@@ -737,7 +737,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(text.startsWith('/') == false &&  text.length > maxLenght) text = text.substr(0, maxLenght);
 
-            doNaming(text);
+            NamingHelper.DoNaming(this, text);
 
             doCommands(text);
 
@@ -937,137 +937,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         return null;
     }
-
-    /*
-    NM
-    p_id first_name last_name
-    p_id first_name last_name
-    p_id first_name last_name
-    ...
-    p_id first_name last_name
-    #
-
-
-    Gives name of player p_id.
-
-    last_name may be ommitted.
-    */
-    public function doNaming(text:String)        
-    {
-        //trace('TEST Naming1: $text');
-
-        var doFamilyName = text.startsWith('I AM');
-        
-        if(doFamilyName == false && text.startsWith('YOU ARE') == false) return;
-
-        var player = doFamilyName ? this : this.heldPlayer;
-        
-        if(player == null) player = this.getClosestPlayer(5); // 5
-
-        //trace('TEST Naming2: $text');
-
-        if(player == null) return;
-
-        if(doFamilyName)
-        {
-            if(player.familyName != ServerSettings.StartingFamilyName) return;
-        }
-        else if(player.name != ServerSettings.StartingName) return;
-
-        var strings = text.split(' ');
-
-        if(strings.length < 3) return;
-        
-        var name = strings[2];
-
-        if(name.length < 3) return;
-
-        //var r = ~/^[a-z]+$/i; // only letters
-        var r = ~/[^a-z]/i; // true if anything but letters
-        if(r.match(name)) return; // return if there is anything but letters
-
-        // TODO choose name from list
-        
-        trace('TEST Naming: $name');
-
-        
-
-        if(doFamilyName)
-        {
-            // check if name is used
-            for(p in AllPlayers)
-            {
-                if(p.familyName == name)
-                {
-                    trace('family name: "$name" is used already!');
-
-                    return;
-                }
-            }
-
-            player.lineage.setFamilyName(name); // check if used
-        }
-        else
-        {
-            // check if name is used
-            for(c in Connection.getConnections())
-            {
-                if(c.player.name == name && c.player.familyName == this.familyName)
-                {
-                    trace('name: "$name" is used already!');
-
-                    return;
-                }
-            }
-
-            for(ai in Connection.getAis())
-            {
-                if(ai.player.name == name && ai.player.familyName == this.familyName)
-                {
-                    trace('name: "$name" is used already!');
-
-                    return;
-                }
-            }
-
-            player.name = name;
-        }
-
-        trace('TEST Naming: ${player.p_id} ${player.name} ${player.familyName}');
-       
-        if(doFamilyName)
-        {
-            // all family member names changed
-            for(p in AllPlayers)
-            {
-                trace('FAMILYNAME: ${p.name} ${p.familyName}');
-
-                if(p.familyName == name)
-                {
-                    for(c in Connection.getConnections())
-                    {
-                        c.send(ClientTag.NAME,['${p.p_id} ${p.name} ${p.familyName}']);
-                    }
-                }
-            }
-
-        }
-        else
-        {
-            // only one name changed
-            for(c in Connection.getConnections())
-            {
-                c.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
-            }
-        }
-
-        this.doEmote(Emote.happy); // dont worry be happy!
-        if(this != player) player.doEmote(Emote.happy); 
-    }
-
-    /*public function eat() {
-        return self();
-    }*/
 
     /*
     SELF x y i#

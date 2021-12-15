@@ -1,13 +1,141 @@
 package openlife.server;
 
+import openlife.settings.ServerSettings;
+import openlife.server.GlobalPlayerInstance.Emote;
+import openlife.client.ClientTag;
 import sys.io.File;
+
+using StringTools;
 
 class NamingHelper
 {
     static var FemaleNames = new Map<String, Map<String, String>>();
     static var MaleNames = new Map<String, Map<String, String>>();
 
-    //static var FemaleNameCount = new Map<String,Int>();
+    /*
+    NM
+    p_id first_name last_name
+    p_id first_name last_name
+    p_id first_name last_name
+    ...
+    p_id first_name last_name
+    #
+
+
+    Gives name of player p_id.
+
+    last_name may be ommitted.
+    */
+    public static function DoNaming(p:GlobalPlayerInstance, text:String)        
+    {
+        //trace('TEST Naming1: $text');
+
+        var doFamilyName = text.startsWith('I AM');
+        
+        if(doFamilyName == false && text.startsWith('YOU ARE') == false) return;
+
+        var targetPlayer = doFamilyName ? p : p.heldPlayer;
+        
+        if(targetPlayer == null) targetPlayer = p.getClosestPlayer(5); // 5
+
+        //trace('TEST Naming2: $text');
+
+        if(targetPlayer == null) return;
+
+        if(doFamilyName)
+        {
+            if(targetPlayer.familyName != ServerSettings.StartingFamilyName) return;
+        }
+        else if(targetPlayer.name != ServerSettings.StartingName) return;
+
+        var strings = text.split(' ');
+
+        if(strings.length < 3) return;
+        
+        var name = strings[2];
+
+        if(name.length < 3) return;
+
+        //var r = ~/^[a-z]+$/i; // only letters
+        var r = ~/[^a-z]/i; // true if anything but letters
+        if(r.match(name)) return; // return if there is anything but letters
+
+        // TODO choose name from list
+        
+        trace('TEST Naming: $name');
+
+        if(doFamilyName)
+        {
+            // check if name is used
+            for(p in GlobalPlayerInstance.AllPlayers)
+            {
+                if(p.familyName == name)
+                {
+                    trace('family name: "$name" is used already!');
+
+                    return;
+                }
+            }
+
+            targetPlayer.lineage.setFamilyName(name); // check if used
+        }
+        else
+        {
+            // check if name is used
+            for(c in Connection.getConnections())
+            {
+                if(c.player.name == name && c.player.familyName == p.familyName)
+                {
+                    trace('name: "$name" is used already!');
+
+                    return;
+                }
+            }
+
+            for(ai in Connection.getAis())
+            {
+                if(ai.player.name == name && ai.player.familyName == p.familyName)
+                {
+                    trace('name: "$name" is used already!');
+
+                    return;
+                }
+            }
+
+            targetPlayer.name = name;
+        }
+
+        trace('TEST Naming: ${targetPlayer.p_id} ${targetPlayer.name} ${targetPlayer.familyName}');
+        
+        if(doFamilyName)
+        {
+            // all family member names changed
+            for(p in GlobalPlayerInstance.AllPlayers)
+            {
+                trace('FAMILYNAME: ${p.name} ${p.familyName}');
+
+                if(p.familyName == name)
+                {
+                    for(c in Connection.getConnections())
+                    {
+                        c.send(ClientTag.NAME,['${p.p_id} ${p.name} ${p.familyName}']);
+                    }
+                }
+            }
+
+        }
+        else
+        {
+            // only one name changed
+            for(c in Connection.getConnections())
+            {
+                c.send(ClientTag.NAME,['${targetPlayer.p_id} ${targetPlayer.name} ${targetPlayer.familyName}']);
+            }
+        }
+
+        p.doEmote(Emote.happy); // dont worry be happy!
+        if(p != targetPlayer) targetPlayer.doEmote(Emote.happy); 
+    }
 
 
     public static function GetName(newName:String, female:Bool) : String
