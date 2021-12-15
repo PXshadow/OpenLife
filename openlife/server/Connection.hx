@@ -83,6 +83,8 @@ class Connection
             //this.send(ClientTag.LOCATION_SAYS,['0 100 ! 30']);
 
             send(FRAME, null, true);
+
+            if(player.mother != null) this.sendMapLocation(player.mother,'MOTHER', 'leader');
         }
         catch(ex)
         {
@@ -844,7 +846,7 @@ class Connection
         var player = this.player;
         var message = '${player.p_id}/0 $text1 *$text2 ${toPlayer.p_id} *map ${toPlayer.tx() - player.gx} ${toPlayer.ty() - player.gy}';
 
-        //trace('MAPSAY: $message');
+        trace('MAPSAY: $message');
 
         this.send(ClientTag.PLAYER_SAYS, [message], true);
     }

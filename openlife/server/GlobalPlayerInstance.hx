@@ -256,12 +256,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         Connection.SendFollowingToAll(this);
 
         if(this.mother != null)
-        {
-            if(this.isAi() == false) this.connection.sendMapLocation(this.mother,'MOTHER', 'mother');
-            if(this.mother.isAi() == false) mother.connection.sendMapLocation(this.mother,'BABY', 'baby');
+        {          
+            if(this.mother.isAi() == false) mother.connection.sendMapLocation(this,'BABY', 'baby');
+            // TODO inform AI about new player
         }
-    
-        // TODO inform AI about new player
     }
 
     private function spawnAsEve(allowHumanSpawnToAIandAiToHuman:Bool)

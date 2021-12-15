@@ -194,6 +194,13 @@ class TimeHelper
         {
             player.heldPlayer.doEmote(Emote.happy);
         }
+
+        if(player.mother != null)
+            {
+                //if(this.isAi() == false) this.connection.sendMapLocation(this.mother,'MOTHER', 'mother');
+                //if(player.isAi() == false) player.connection.sendMapLocation(player.mother,'MOTHER', 'leader');
+                //if(player.mother.isAi() == false) player.mother.connection.sendMapLocation(player,'BABY', 'baby');
+            }
     }
 
     private static function updateAge(player:GlobalPlayerInstance, timePassedInSeconds:Float)
