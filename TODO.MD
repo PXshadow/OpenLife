@@ -1,15 +1,15 @@
+Project Winter is comming / Hardcore OHOL
+
 How to connect to the test server:
 ip: thinqbator.app
 port: 8005
 
-For debugging:
-if AllowDebugCommmands = true in ServerSettings.txt:
-    can create objects with saying "create ID" / "create object" "create object!" with ! indicating that object ends with "object" or test wounds with using "hit" or "heal"
-    --> for example: "create ore!" creates iron ore. "create iron" creates the first object with iron in the name.
+How to setup the server you can find in the bottom!
 
-Summary: 
-- The server is written from scratch in Haxe and in early ALPHA, so except errors / feel welcome to report them
-- Limited hand made map which can be designed using a picture
+Project Winter is comming summary: 
+- The server is written from scratch in Haxe and is in ALPHA, so expect errors / feel welcome to report them
+- There is winter as main new challange
+- The server uses a limited hand made map which can be changed using a picture
 - Rivers oceans and mountains that block movement
 - No locked iron or wells
 - All natural stuff can re-spawn (exception well, iron and oil stuff)
@@ -24,27 +24,17 @@ Summary:
 AI:
 - by giving "make! xxx" commands you can instruct the ai to make stuff. with xxx part of an object name or ID
 
-
 Not yet implemented:
 - combat
-- incarnation acording to prestige score
-- saving of players on server restart. (Server restart should only take some seconds, so player should be able to continue once implemented)
+- advaned AI
+- score / incarnation acording to prestige score
+- advaned stuff is not tested yet, so may or may not work
+- gates / fences
+- saving of players on server restart. 
+    Server restart should only take some seconds, so player should be able to continue once implemented
 - see more in TODO below
 
-How to setup:
-- TODO how to load new ObjectData from Repository
-- there is a ServerSettings.txt file in SaveFiles folder. Settings are read at start and every 10 sec.
-- server uses cached ObjectData to start fast
---> if you want to clear the cache you need to use another .\OneLifeData7\dataVersionNumber 
---> or delete the cache file file: .\SaveFiles\saveObjectData.bin
-- you can use another map 
---> just override the current used one, or change the map file name in the Server ServerSettings.txt
-- every 10 sec the server state is saved in the SaveFiles directory 
-- every 8 hours a backup is made which is cycled through (up to 90 backups) / this can also be changed in ServerSettings.txt
---> the backups are in the folders: SaveFiles/1/ SaveFiles/2/.... SaveFiles/90/ 
-
-
-SERVER
+SERVER - CHANGES TO VANILLA
 ======
 MAP:
 - Generate limited map using image color as index for biome id
@@ -58,11 +48,9 @@ MAP:
 Family:
 - Children are now more likely to be born closer to special biome color. With this one Eve can create all colors if people migrate...
 
-
 Heat:
 - Different color people love different temperatures
 - clothing can protect against cold and heat. The better it protects against cold the less it protects against heat
-
 
 World:
 - Paradise is back! Wild Berries and Bana come finaly back with time 
@@ -70,12 +58,13 @@ World:
 - objects except ancient, well, Iron Mine, Oil Pumps decay with a small chance
 - decay chance is 10X reduced if on floor and 10X increeased if food
 
-- Seasons / Winter is comming:
+Seasons / Winter is comming:
 - First part of Seasons is now implemented
 - There are winter / summer / spring / autoumn. And hard / super hard variants of it longer / colder / hotter then normal
 - Seasons influence temperature
 - Winter decays wild plants (for now only onions) and spring let it grow back
 - Plants grow only back if either one was left or one was hidden in he winter or if you place one...
+- If you eat all, still they can come back since nearly all objects can respawn, but this will take lot of time...
 - There is now a second layer of objects where stuff can be hidden like onions in the winter
 
 Healing
@@ -137,7 +126,6 @@ Animals:
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
-- Winter / seasons / ice ages
 - princess / princess / nobles
 - better fences
 - reconnection after server shutdown
@@ -146,7 +134,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - bridges
 - horses that follow owner
 - better dogs
-- AI advanced AI villages
+- advanced AI / AI villages
 
 
 TODO Missing:
@@ -239,6 +227,23 @@ PX TODO
 5. Task Queue system with Auto.hx class
 6. Algorithm to identify what is needed next for overseer
 
+
+How to setup:
+- TODO how to load new ObjectData from Repository
+- there is a ServerSettings.txt file in SaveFiles folder. Settings are read at start and every 10 sec.
+- server uses cached ObjectData to start fast
+--> if you want to clear the cache you need to use another .\OneLifeData7\dataVersionNumber 
+--> or delete the cache file file: .\SaveFiles\saveObjectData.bin
+- you can use another map 
+--> just override the current used one, or change the map file name in the Server ServerSettings.txt
+- every 10 sec the server state is saved in the SaveFiles directory 
+- every 8 hours a backup is made which is cycled through (up to 90 backups) / this can also be changed in ServerSettings.txt
+--> the backups are in the folders: SaveFiles/1/ SaveFiles/2/.... SaveFiles/90/ 
+
+For debugging:
+if AllowDebugCommmands = true in ServerSettings.txt:
+    can create objects with saying "create ID" / "create object" "create object!" with ! indicating that object ends with "object" or test wounds with using "hit" or "heal"
+    --> for example: "create ore!" creates iron ore. "create iron" creates the first object with iron in the name.
 
 How to Push stuff to git:
 git push -u origin master
