@@ -28,6 +28,7 @@ class WorldMap
 
     var objects:Vector<Array<Int>>;
     var originalObjects:Vector<Array<Int>>;
+    var hiddenObjects:Vector<Array<Int>>;
     var objectHelpers:Vector<ObjectHelper>; 
     var floors:Vector<Int>;
     var biomes:Vector<Int>;
@@ -224,6 +225,7 @@ class WorldMap
         this.length = length;
 
         objects = new Vector<Array<Int>>(length);
+        hiddenObjects = new Vector<Array<Int>>(length);
         objectHelpers = new Vector<ObjectHelper>(length);
         floors = new Vector<Int>(length);
         biomes = new Vector<Int>(length);
@@ -297,6 +299,11 @@ class WorldMap
         return objects[index(x,y)];
     }
 
+    public function getHiddenObjectId(x:Int, y:Int):Array<Int>
+    {
+        return hiddenObjects[index(x,y)];
+    }
+
     public function getOriginalObjectId(x:Int, y:Int) : Array<Int>
     {
         return originalObjects[index(x,y)];
@@ -316,6 +323,11 @@ class WorldMap
             // TODO create time transition
             setObjectHelperNull(x, y);
         }
+    }
+
+    public function setHiddenObjectId(x:Int, y:Int, ids:Array<Int>)
+    {
+        hiddenObjects[index(x,y)] = ids; // TODO ObjectHelper also hidden???
     }
 
     public function getObjectDataAtPosition(x:Int, y:Int) : ObjectData
@@ -590,6 +602,8 @@ class WorldMap
 
         writeMapFloors(dir + ServerSettings.CurrentFloorsFileName  + tmpDataNumber + ".bin", floors);
 
+        writeMapObjects(dir + ServerSettings.CurrentObjectsFileName + "Hidden" + tmpDataNumber + ".bin", hiddenObjects);
+
         writeMapObjects(dir + ServerSettings.CurrentObjectsFileName + tmpDataNumber + ".bin", objects);
 
         writeMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + tmpDataNumber + ".bin", objectHelpers);
@@ -628,13 +642,15 @@ class WorldMap
 
             this.originalBiomes = readMapBiomes(dir + ServerSettings.OriginalBiomesFileName + ".bin");
 
-            this.originalObjects = readMapObjects(dir + ServerSettings.OriginalObjectsFileName + ".bin");
+            this.originalObjects = readMapObjects(dir + ServerSettings.OriginalObjectsFileName + ".bin");            
 
             this.biomes = readMapBiomes(dir + ServerSettings.CurrentBiomesFileName + saveDataNumber + ".bin");
 
             this.floors = readMapBiomes(dir + ServerSettings.CurrentFloorsFileName + saveDataNumber + ".bin");
 
             this.objects = readMapObjects(dir + ServerSettings.CurrentObjectsFileName + saveDataNumber + ".bin");
+
+            this.hiddenObjects = readMapObjects(dir + ServerSettings.CurrentObjectsFileName + "Hidden" + saveDataNumber + ".bin");
 
             this.objectHelpers = readMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + saveDataNumber + ".bin");
 

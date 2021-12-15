@@ -664,7 +664,7 @@ class TimeHelper
 
                 if(obj[0] == 0) continue;      
                 
-                RespawnOrDecayPlant(obj[0], x, y);
+                RespawnOrDecayPlant(obj, x, y);
 
                 var helper = worldMap.getObjectHelper(x,y,true); 
 
@@ -717,18 +717,34 @@ class TimeHelper
         }
     }  
 
-    private static function RespawnOrDecayPlant(objID:Int, x:Int, y:Int)
+    private static function RespawnOrDecayPlant(objIDs:Array<Int>, x:Int, y:Int)
     {
+        var objID = objIDs[0];
         // Wild Onion 805 --> 808 (harvested)
         if(objID != 805 && objID != 808) return;
 
-        if(Season != Seasons.Winter) return;
-        
-        if(WinterDecayChance < WorldMap.calculateRandomFloat()) return;
+        if(Season == Seasons.Winter)
+        {
+            if(WinterDecayChance < WorldMap.calculateRandomFloat()) return;
 
-        WorldMap.world.setObjectId(x, y, [0]);
+            WorldMap.world.setObjectId(x, y, [0]);
+            WorldMap.world.setHiddenObjectId(x, y, objIDs); // TODO hide also object helper for advanced objects???
 
-        Connection.SendMapUpdateToAllClosePlayers(x,y,[0]);
+            Connection.SendMapUpdateToAllClosePlayers(x,y,[0]);
+        }
+        else if(Season == Seasons.Spring)
+        {
+            if(objID != 805) return;
+
+            if(SpringRegrowChance < WorldMap.calculateRandomFloat()) return;
+
+            SpawnObject(x,y,objID);
+
+            //WorldMap.world.setObjectId(x, y, [0]);
+            //WorldMap.world.setHiddenObjectId(x, y, objIDs); // TODO hide also object helper for advanced objects???
+
+            //Connection.SendMapUpdateToAllClosePlayers(x,y,[0]);
+        }
     }
 
     public static function RespawnObjects()
@@ -745,39 +761,52 @@ class TimeHelper
         {
             for(x in 0...worldMap.width)
             {
-                var obj = worldMap.getOriginalObjectId(x,y)[0];
+                var objID = worldMap.getOriginalObjectId(x,y)[0];
                 
-                if(obj == 0) continue;
+                if(objID == 0) continue;
 
-                if(ServerSettings.CanObjectRespawn(obj) == false) continue;
-
-                if(worldMap.currentObjectsCount[obj] >= worldMap.originalObjectsCount[obj]) continue;
+                if(ServerSettings.CanObjectRespawn(objID) == false) continue;
 
                 if(worldMap.randomFloat() > ServerSettings.ObjRespawnChance) continue;
 
-                var dist = 6;
-                var tmpX = worldMap.randomInt(2*dist) - dist + x;
-                var tmpY = worldMap.randomInt(2*dist) - dist + y;
-
-                if(worldMap.getObjectId(tmpX, tmpY)[0] != 0) continue;
-
-                if(worldMap.getObjectId(tmpX, tmpY-1)[0] != 0) continue; // make sure that obj does not spawn above one tile of existing obj
-
-                var biomeId = worldMap.getBiomeId(tmpX,tmpY);
-                var objData = ObjectData.getObjectData(obj);
-
-                if(objData.isSpawningIn(biomeId) == false) continue;
-
-                worldMap.setObjectId(tmpX, tmpY, [obj]);
-
-                worldMap.currentObjectsCount[obj]++;
-
-                Connection.SendMapUpdateToAllClosePlayers(tmpX, tmpY, [obj]);
+                SpawnObject(x, y, objID);
 
                 //trace('respawn object: ${objData.description} $obj');
             }
         }    
     }
+
+    public static function SpawnObject(x:Int, y:Int, objID:Int, dist:Int = 6) : Bool
+    {
+        var worldMap = WorldMap.world;
+
+        if(worldMap.currentObjectsCount[objID] >= worldMap.originalObjectsCount[objID]) return false;
+
+        for(ii in 0...5)
+        {
+            var tmpX = worldMap.randomInt(2*dist) - dist + x;
+            var tmpY = worldMap.randomInt(2*dist) - dist + y;
+
+            if(worldMap.getObjectId(tmpX, tmpY)[0] != 0) continue;
+
+            if(worldMap.getObjectId(tmpX, tmpY-1)[0] != 0) continue; // make sure that obj does not spawn above one tile of existing obj
+
+            var biomeId = worldMap.getBiomeId(tmpX,tmpY);
+            var objData = ObjectData.getObjectData(objID);
+
+            if(objData.isSpawningIn(biomeId) == false) continue;
+
+            worldMap.setObjectId(tmpX, tmpY, [objID]);
+
+            worldMap.currentObjectsCount[objID]++;
+
+            Connection.SendMapUpdateToAllClosePlayers(tmpX, tmpY, [objID]);
+
+            return true;
+        }
+
+        return false;
+    } 
 
     public static function DecayObjects()
     {
