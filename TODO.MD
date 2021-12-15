@@ -150,7 +150,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 - Ai ongoing longer distant movement
 - AI tests with >20 AIs
 - AI Stoneage
-- NAMING use predefined naming from list
 - COMBAT calculate exact player position for combat and distance
 - COMBAT wounds / healing part 2 
 - COMBAT implement kill 

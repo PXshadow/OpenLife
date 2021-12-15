@@ -2227,6 +2227,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         return this.serverAi != null;   
     }
+
+    public function isHoldingChildInBreastFeedingAgeAndCanFeed() : Bool
+    {
+        if(heldPlayer == null) return false;
+        if(heldPlayer.age > ServerSettings.MaxChildAgeForBreastFeeding) return false;
+        if(this.food_store < 1) return false;
+        return this.isFertile();
+    }
 }
 
 // TODO Arcurus>> add birth logic - suggestion:

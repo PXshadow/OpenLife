@@ -188,7 +188,12 @@ class TimeHelper
         }
         if(player.heat > 0.75) player.doEmote(Emote.heatStroke);
         //else if(playerHeat > 0.6) player.doEmote(Emote.dehydration);
-        if(player.heat < 0.25) player.doEmote(Emote.pneumonia);        
+        if(player.heat < 0.25) player.doEmote(Emote.pneumonia);  
+        
+        if(player.isHoldingChildInBreastFeedingAgeAndCanFeed())
+        {
+            player.heldPlayer.doEmote(Emote.happy);
+        }
     }
 
     private static function updateAge(player:GlobalPlayerInstance, timePassedInSeconds:Float)
@@ -300,9 +305,9 @@ class TimeHelper
         // do breast feeding
         var heldPlayer = player.heldPlayer;
 
-        if(heldPlayer != null && player.food_store > 1 && heldPlayer.age < ServerSettings.MaxChildAgeForBreastFeeding && player.isFertile())
+        if(player.isHoldingChildInBreastFeedingAgeAndCanFeed())
         {
-            heldPlayer.mutex.acquire();
+            heldPlayer.mutex.acquire(); // TODO can create a dead lock
 
             try{
                 //trace('feeding:');
@@ -346,6 +351,7 @@ class TimeHelper
             }
         }
     }
+
     
     /*
         HX
