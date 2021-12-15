@@ -41,7 +41,7 @@ class NamingHelper
 
             var name = map[newName];
 
-            if(name != null) return name;
+            if(name != null && isUsedName(name) == false) return name;
 
             for(ii in 1...newName.length - 1)
             {
@@ -50,9 +50,11 @@ class NamingHelper
                 //if(index == "SU") trace('Name: Test: $testName');
 
                 for(n in map)
-                {
-                    if(StringTools.startsWith(n, testName)) return n;
-                    if(StringTools.contains(n, testName)) return n;
+                {                
+                    if(StringTools.startsWith(n, testName) || StringTools.contains(n, testName))
+                    {
+                        if(isUsedName(name) == false) return n;
+                    }
                 }
             }
         }
@@ -60,12 +62,22 @@ class NamingHelper
         return null;
     }
 
+    private static function isUsedName(name:String) : Bool
+    {
+        for(p in GlobalPlayerInstance.AllPlayers)
+        {
+            if(p.name == name) return true;
+        }    
+
+        return false;
+    }
+
     public static function ReadNames() : Bool
     {
         var result1 = ReadNamesByGender(true);
         var result2 = ReadNamesByGender(false);
 
-        Test();
+        //Test();
       
         return result1 && result2; 
     }
