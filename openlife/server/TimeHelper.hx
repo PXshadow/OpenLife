@@ -784,7 +784,9 @@ class TimeHelper
                 return;
             }
 
-            if(SpringRegrowChance * objData.springRegrowFactor < WorldMap.calculateRandomFloat()) return;
+            var factor = hidden ? 2 : 0.2;
+
+            if(SpringRegrowChance * objData.springRegrowFactor * factor < WorldMap.calculateRandomFloat()) return;
 
             var spawnAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objID;
 
