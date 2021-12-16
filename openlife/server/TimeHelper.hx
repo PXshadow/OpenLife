@@ -754,12 +754,18 @@ class TimeHelper
 
             WorldMap.world.currentObjectsCount[objID]--;
 
-            if(WorldMap.world.currentObjectsCount[objID] % 10 == 0) trace('SEASON DECAY: ${objData.description} ${WorldMap.world.currentObjectsCount[objID]} original: ${WorldMap.world.originalObjectsCount[objID]}');
+            if(ServerSettings.DebugSeason)
+            {
+                var mod = WorldMap.world.currentObjectsCount[objID] < 1000 ? 100 : 1000;
+                mod = WorldMap.world.currentObjectsCount[objID] < 100 ? 10 : mod;
+                mod = WorldMap.world.currentObjectsCount[objID] < 10 ? 1 : mod;  
+                if(WorldMap.world.currentObjectsCount[objID] % mod == 0) trace('SEASON DECAY: ${objData.description} ${WorldMap.world.currentObjectsCount[objID]} original: ${WorldMap.world.originalObjectsCount[objID]}');
+            }
         }
         else if(Season == Seasons.Spring && objData.springRegrowFactor > 0)
         {
             // TODO regrow also from originalObjects?
-            
+
             if(SpringRegrowChance * objData.springRegrowFactor < WorldMap.calculateRandomFloat()) return;
 
              // increase uses if it is for example a berry bush
@@ -783,7 +789,13 @@ class TimeHelper
 
             if(hidden && done) WorldMap.world.setHiddenObjectId(x, y, [0]); // What was hidden comes back
 
-            if(WorldMap.world.currentObjectsCount[spawnAs] % 10 == 0) trace('SEASON REGROW: ${objData.description} ${WorldMap.world.currentObjectsCount[spawnAs]} original: ${WorldMap.world.originalObjectsCount[spawnAs]}');
+            if(ServerSettings.DebugSeason)
+            {
+                var mod = WorldMap.world.currentObjectsCount[spawnAs] < 1000 ? 100 : 1000;
+                mod = WorldMap.world.currentObjectsCount[spawnAs] < 100 ? 10 : mod;
+                mod = WorldMap.world.currentObjectsCount[spawnAs] < 10 ? 1 : mod;  
+                if(WorldMap.world.currentObjectsCount[spawnAs] % mod == 0) trace('SEASON REGROW: ${objData.description} ${WorldMap.world.currentObjectsCount[spawnAs]} original: ${WorldMap.world.originalObjectsCount[spawnAs]}');
+            }
         }
     }
 

@@ -133,6 +133,7 @@ class ServerSettings
     public static var ObjDecayFactorForFood:Float = 10;
 
     // winter / summer
+    public static var DebugSeason:Bool = true;
     public static var SeasonDuration = 0.2; // default: 5 // Season duration like winter in years
     public static var AverageSeasonTemperatureImpact = 0.2; 
     public static var WinterWildFoodDecayChance:Float = 1.5; //1.5; // per Season
