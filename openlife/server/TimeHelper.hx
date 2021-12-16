@@ -735,9 +735,9 @@ class TimeHelper
             if(objData.numUses > 1)
             {
                 var objHelper = WorldMap.world.getObjectHelper(x,y);
-                if(objHelper.numberOfUses < 2) return; // TODO remove also last berry???
+                //if(objHelper.numberOfUses < 1) return; // TODO remove also last berry???
                 
-                objHelper.numberOfUses -= 1;
+                objHelper.numberOfUses -= 1;                
                 objHelper.TransformToDummy();
                 WorldMap.world.setObjectHelper(x,y, objHelper);
                 Connection.SendMapUpdateToAllClosePlayers(x,y, [objHelper.id]);
@@ -761,12 +761,15 @@ class TimeHelper
             if(SpringRegrowChance * objData.springRegrowFactor < WorldMap.calculateRandomFloat()) return;
 
              // increase uses if it is for example a berry bush
-             if(objData.numUses > 1)
+             if(objData.numUses > 1 || objData.undoLastUseObject != 0)
             {
                 var objHelper = WorldMap.world.getObjectHelper(x,y);
-                if(objHelper.numberOfUses >= objData.numUses) return;
-                
+                if(objHelper.numberOfUses >= objData.numUses && objData.undoLastUseObject == 0) return;
+
                 objHelper.numberOfUses += 1;
+
+                //if(objData.undoLastUseObject != 0) trace('DUMMY2 numberOfUses: ${objHelper.numberOfUses} ${objData.description}');
+
                 objHelper.TransformToDummy();
                 WorldMap.world.setObjectHelper(x,y, objHelper);
                 Connection.SendMapUpdateToAllClosePlayers(x,y, [objHelper.id]);

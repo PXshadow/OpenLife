@@ -133,10 +133,10 @@ class ServerSettings
     public static var ObjDecayFactorForFood:Float = 10;
 
     // winter / summer
-    public static var SeasonDuration = 0.3; // default: 5 // Season duration like winter in years
+    public static var SeasonDuration = 0.2; // default: 5 // Season duration like winter in years
     public static var AverageSeasonTemperatureImpact = 0.2; 
     public static var WinterWildFoodDecayChance:Float = 1.5; //1.5; // per Season
-    public static var SpringWildFoodRegrowChance:Float = 2; // per Season // use spring and summer
+    public static var SpringWildFoodRegrowChance:Float = 4; // per Season // use spring and summer
     //public static var WinterFildWoodDecayChance = 0.2;
 
     // AI
@@ -302,8 +302,9 @@ class ServerSettings
         ObjectData.getObjectData(138).countsOrGrowsAs = 136; // Flowering Milkweed
 
         // Wild Gooseberry Bush
-        ObjectData.getObjectData(30).winterDecayFactor = 1.5; // Wild Gooseberry Bush
-        ObjectData.getObjectData(30).springRegrowFactor = 1.6; // Wild Gooseberry Bush
+        ObjectData.getObjectData(30).winterDecayFactor = 2; // 1.5; // Wild Gooseberry Bush
+        ObjectData.getObjectData(30).springRegrowFactor = 1.7; // 1.6 // Wild Gooseberry Bush
+        ObjectData.getObjectData(279).springRegrowFactor = 2; //1.8; // Empty Wild Gooseberry Bush
         ObjectData.getObjectData(31).winterDecayFactor = 2; //Gooseberry
 
         //Domestic Gooseberry Bush
@@ -343,6 +344,10 @@ class ServerSettings
 
     public static function PatchTransitions(transtions:TransitionImporter)        
     {   
+        // TODO set through transions
+        ObjectData.getObjectData(30).lastUseObject = 279; // Wild Gooseberry Bush ==> Empty Wild Gooseberry Bush
+        ObjectData.getObjectData(279).undoLastUseObject = 30; // Empty Wild Gooseberry Bush ==> Wild Gooseberry Bush 
+        
         for(trans in TransitionImporter.transitionImporter.transitions)
         {
             if(trans.actorID < -1) 

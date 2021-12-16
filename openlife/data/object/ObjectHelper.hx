@@ -236,22 +236,46 @@ class ObjectHelper {
         var objectData  = obj.objectData;
         if(objectData.dummyParent != null) objectData = objectData.dummyParent;        
 
-        if(objectData.numUses < 2) return;
+        // if it has not more uses then one, or can get more used by undo (like empty berry bush with a new berry), then there is nothing to do
+        if(objectData.numUses < 2 && objectData.undoLastUseObject == 0) return;
 
         if(obj.numberOfUses < 1)
         {
-            var message = 'TransformToDummy: WARNING: ${objectData.description}: obj.numberOfUses < 1: ${obj.numberOfUses}';
-            trace(message);
+            if(objectData.lastUseObject != 0)
+            {
+                objectData = ObjectData.getObjectData(objectData.lastUseObject);
+                //trace('DUMMY LASTUSE:  ${objectData.description}');
 
-            //throw new Exception(message);
+                obj.objectData = objectData;
+                obj.numberOfUses = 1;
 
-            obj.numberOfUses = 1;
+                return;
+            }
+            else
+            {
+                var message = 'TransformToDummy: WARNING: ${objectData.description}: obj.numberOfUses < 1: ${obj.numberOfUses}';
+                trace(message);
+
+                //throw new Exception(message);
+
+                obj.numberOfUses = 1;
+            }
         }
 
         // in case of an maxUses object changing like a well site numOfUses can be too big
         if(obj.numberOfUses > objectData.numUses)
         {
-            obj.numberOfUses = objectData.numUses;
+            if(objectData.undoLastUseObject != 0)
+            {
+                objectData = ObjectData.getObjectData(objectData.undoLastUseObject);
+                obj.numberOfUses = 1;
+
+                //trace('DUMMY UNDO: ${objectData.description}');
+            }
+            else
+            {
+                obj.numberOfUses = objectData.numUses;
+            }
         }
 
         if(obj.numberOfUses == objectData.numUses)
