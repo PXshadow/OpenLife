@@ -758,6 +758,8 @@ class TimeHelper
         }
         else if(Season == Seasons.Spring && objData.springRegrowFactor > 0)
         {
+            // TODO regrow also from originalObjects?
+            
             if(SpringRegrowChance * objData.springRegrowFactor < WorldMap.calculateRandomFloat()) return;
 
              // increase uses if it is for example a berry bush
@@ -768,8 +770,6 @@ class TimeHelper
 
                 objHelper.numberOfUses += 1;
 
-                //if(objData.undoLastUseObject != 0) trace('DUMMY2 numberOfUses: ${objHelper.numberOfUses} ${objData.description}');
-
                 objHelper.TransformToDummy();
                 WorldMap.world.setObjectHelper(x,y, objHelper);
                 Connection.SendMapUpdateToAllClosePlayers(x,y, [objHelper.id]);
@@ -779,9 +779,9 @@ class TimeHelper
 
             var spawnAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objID;
 
-            SpawnObject(x,y,spawnAs);
+            var done = SpawnObject(x,y,spawnAs);
 
-            if(hidden) WorldMap.world.setHiddenObjectId(x, y, [0]); // What was hidden comes back
+            if(hidden && done) WorldMap.world.setHiddenObjectId(x, y, [0]); // What was hidden comes back
 
             if(WorldMap.world.currentObjectsCount[spawnAs] % 10 == 0) trace('SEASON REGROW: ${objData.description} ${WorldMap.world.currentObjectsCount[spawnAs]} original: ${WorldMap.world.originalObjectsCount[spawnAs]}');
         }
@@ -816,7 +816,7 @@ class TimeHelper
         }    
     }
 
-    public static function SpawnObject(x:Int, y:Int, objID:Int, dist:Int = 6, tries:Int = 2) : Bool
+    public static function SpawnObject(x:Int, y:Int, objID:Int, dist:Int = 6, tries:Int = 3) : Bool
     {
         var worldMap = WorldMap.world;
 
