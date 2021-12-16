@@ -730,6 +730,20 @@ class TimeHelper
         {
             if(WinterDecayChance * objData.winterDecayFactor < WorldMap.calculateRandomFloat()) return;
 
+            // reduce uses if it is for example a berry bush
+            if(objData.numUses > 0)
+            {
+                var objHelper = WorldMap.world.getObjectHelper(x,y);
+                if(objHelper.numberOfUses < 2) return; // TODO remove also last berry???
+                
+                objHelper.numberOfUses -= 1;
+                objHelper.TransformToDummy();
+                WorldMap.world.setObjectHelper(x,y, objHelper);
+                Connection.SendMapUpdateToAllClosePlayers(x,y, [objHelper.id]);
+
+                return;
+            }
+
             var random = WorldMap.calculateRandomFloat();            
 
             WorldMap.world.setObjectId(x, y, [0]);

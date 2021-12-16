@@ -300,6 +300,13 @@ class ServerSettings
         ObjectData.getObjectData(138).winterDecayFactor = 2; // Cut Sapling Skewer
         ObjectData.getObjectData(138).springRegrowFactor = 0.5; // Cut Sapling Skewer
         ObjectData.getObjectData(138).countsOrGrowsAs = 136; // Flowering Milkweed
+
+        // Wild Gooseberry Bush
+        ObjectData.getObjectData(30).winterDecayFactor = 2; // Wild Gooseberry Bush
+        ObjectData.getObjectData(30).springRegrowFactor = 1; // Wild Gooseberry Bush
+        //ObjectData.getObjectData(279).winterDecayFactor = 2; // Empty Wild Gooseberry Bush
+        //ObjectData.getObjectData(279).springRegrowFactor = 0.5; // Empty Wild Gooseberry Bush
+        //ObjectData.getObjectData(279).countsOrGrowsAs = 30; // Empty Wild Gooseberry Bush
         
         //var obj = ObjectData.getObjectData(624);
 
