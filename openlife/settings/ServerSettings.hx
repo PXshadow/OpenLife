@@ -138,6 +138,7 @@ class ServerSettings
     public static var AverageSeasonTemperatureImpact = 0.2; 
     public static var WinterWildFoodDecayChance:Float = 1.5; //1.5; // per Season
     public static var SpringWildFoodRegrowChance:Float = 1; // per Season // use spring and summer
+    public static var GrowBackOriginalPlantsFactor:Float = 10; // 0.1
     //public static var WinterFildWoodDecayChance = 0.2;
 
     // AI
@@ -269,13 +270,6 @@ class ServerSettings
         ObjectData.getObjectData(4252).springRegrowFactor = 0.5; // Wild Garlic / out
         ObjectData.getObjectData(4252).countsOrGrowsAs = 4251; // Wild Garlic / out
 
-        // Wild Garlic
-        ObjectData.getObjectData(4251).winterDecayFactor = 1; // Wild Garlic
-        ObjectData.getObjectData(4251).springRegrowFactor = 1; // Wild Garlic
-        ObjectData.getObjectData(4252).winterDecayFactor = 2; // Wild Garlic / out
-        ObjectData.getObjectData(4252).springRegrowFactor = 0.5; // Wild Garlic / out
-        ObjectData.getObjectData(4252).countsOrGrowsAs = 4251; // Wild Garlic / out
-
         // Burdock
         ObjectData.getObjectData(804).winterDecayFactor = 1; // Burdock
         ObjectData.getObjectData(804).springRegrowFactor = 1; // Burdock
@@ -292,6 +286,9 @@ class ServerSettings
         ObjectData.getObjectData(51).winterDecayFactor = 0; // Flowering Milkweed
         ObjectData.getObjectData(51).springRegrowFactor = 0.1; // Flowering Milkweed
         ObjectData.getObjectData(51).countsOrGrowsAs = 50; // Flowering Milkweed
+        ObjectData.getObjectData(52).winterDecayFactor = 0; // Fruiting Milkweed
+        ObjectData.getObjectData(52).springRegrowFactor = 0.1; // Fruiting Milkweed
+        ObjectData.getObjectData(52).countsOrGrowsAs = 50; // Fruiting Milkweed
         ObjectData.getObjectData(57).winterDecayFactor = 2; // Milkweed Stalk
         ObjectData.getObjectData(57).springRegrowFactor = 0; // Milkweed Stalk
 

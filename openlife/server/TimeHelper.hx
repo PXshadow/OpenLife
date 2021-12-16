@@ -660,9 +660,14 @@ class TimeHelper
         {
             for(x in 0...worldMap.width)
             {
-                var hiddenObj = worldMap.getHiddenObjectId(x,y);
-
-                if(hiddenObj[0] != 0) RespawnOrDecayPlant(hiddenObj, x, y, true);     
+                if(Season == Seasons.Spring)
+                {
+                    var hiddenObj = worldMap.getHiddenObjectId(x,y);
+                    if(hiddenObj[0] != 0) RespawnOrDecayPlant(hiddenObj, x, y, true);  
+                    
+                    var originalObj = worldMap.getOriginalObjectId(x,y);
+                    if(originalObj[0] != 0) RespawnOrDecayPlant(originalObj, x, y, false, ServerSettings.GrowBackOriginalPlantsFactor);    
+                }
 
                 var obj = worldMap.getObjectId(x,y);
 
@@ -721,8 +726,7 @@ class TimeHelper
         }
     }  
 
-    // TODO regrow also fully empty berries?
-    private static function RespawnOrDecayPlant(objIDs:Array<Int>, x:Int, y:Int, hidden:Bool = false)
+    private static function RespawnOrDecayPlant(objIDs:Array<Int>, x:Int, y:Int, hidden:Bool = false, growFactor:Float = 1)
     {
         var objID = objIDs[0];
         var objData = ObjectData.getObjectData(objID);
@@ -785,6 +789,7 @@ class TimeHelper
             }
 
             var factor = hidden ? 2 : 0.2;
+            factor *= growFactor;
 
             if(SpringRegrowChance * objData.springRegrowFactor * factor < WorldMap.calculateRandomFloat()) return;
 
@@ -824,7 +829,7 @@ class TimeHelper
 
                 if(ServerSettings.CanObjectRespawn(objID) == false) continue;
 
-                if(worldMap.randomFloat() > ServerSettings.ObjRespawnChance) continue;
+                if(ServerSettings.ObjRespawnChance < worldMap.randomFloat()) continue;
 
                 SpawnObject(x, y, objID);
 

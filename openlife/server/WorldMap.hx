@@ -924,14 +924,14 @@ class WorldMap
 
     public function updateObjectCounts() 
     {
-        //var time = Sys.time();
+        var time = Sys.time();
 
         this.currentObjectsCount = countObjects(objects, objectHelpers);
 
-        //trace('count objects time: ${ Sys.time() - time}');
-
         if(ServerSettings.TraceCountObjects)
         {
+            trace('count objects time: ${ Sys.time() - time}');
+
             for(key in currentObjectsCount.keys()){
                 var objData = ObjectData.getObjectData(key);
                 trace('Count object: [${key}] ${objData.description}: ${currentObjectsCount[key]} original: ${originalObjectsCount[key]}');
@@ -948,6 +948,11 @@ class WorldMap
             if(obj[0] == 0) continue;
 
             var objData = ObjectData.getObjectData(obj[0]);
+
+            if(objData.countsOrGrowsAs != 0)
+            {
+                objData = ObjectData.getObjectData(objData.countsOrGrowsAs);
+            }
 
             objList[objData.parentId]++;
         }
