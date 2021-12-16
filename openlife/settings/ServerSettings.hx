@@ -241,17 +241,65 @@ class ServerSettings
 
 
         // mark plants that decay and regrow
+        // Wild Onion
         ObjectData.getObjectData(805).winterDecayFactor = 1; // Wild Onion 805 --> 808 (harvested)
         ObjectData.getObjectData(805).springRegrowFactor = 1; // Wild Onion 805 --> 808 (harvested)
-        ObjectData.getObjectData(808).winterDecayFactor = 1; // Wild Onion 805 --> 808 (harvested)
-        //ObjectData.getObjectData(808).springRegrowFactor = 1; // Wild Onion 805 --> 808 (harvested) // TODO set regrow as 805
-            
-        ObjectData.getObjectData(404).winterDecayFactor = 1; // Wild Carrot
-        ObjectData.getObjectData(404).springRegrowFactor = 0.1; // Wild Carrot
-        ObjectData.getObjectData(36).winterDecayFactor = 2; // Seeding Wild Carrot
-        ObjectData.getObjectData(36).springRegrowFactor = 1.5; // Seeding Wild Carrot
-        ObjectData.getObjectData(40).winterDecayFactor = 1; // Dug Wild Carrot
+        ObjectData.getObjectData(808).winterDecayFactor = 2; // Wild Onion 805 --> 808 (harvested)
+        ObjectData.getObjectData(808).springRegrowFactor = 0.5; // Wild Onion 805 --> 808 (harvested)
+        ObjectData.getObjectData(808).countsOrGrowsAs = 805; // Wild Onion 805 --> 808 (harvested)
+        
+        // Wild Carrot // TODO let seeds regrow
+        ObjectData.getObjectData(36).winterDecayFactor = 1; // Seeding Wild Carrot
+        ObjectData.getObjectData(36).springRegrowFactor = 1; // Seeding Wild Carrot
+        ObjectData.getObjectData(404).winterDecayFactor = 1; // Wild Carrot wihout Seed
+        ObjectData.getObjectData(404).springRegrowFactor = 0.5; // Wild Carrot wihout Seed
+        ObjectData.getObjectData(404).countsOrGrowsAs = 36; // Wild Carrot wihout Seed
+        ObjectData.getObjectData(40).winterDecayFactor = 2; // Wild Carrot
+        ObjectData.getObjectData(40).springRegrowFactor = 0.5; // Wild Carrot / out
+        ObjectData.getObjectData(40).countsOrGrowsAs = 36; // Wild Carrot / out
+        ObjectData.getObjectData(39).winterDecayFactor = 2; // Dug Wild Carrot
+        ObjectData.getObjectData(39).springRegrowFactor = 0.5; // Dug Wild Carrot
+        ObjectData.getObjectData(39).countsOrGrowsAs = 36; // Dug Wild Carrot
 
+        // Wild Garlic
+        ObjectData.getObjectData(4251).winterDecayFactor = 1; // Wild Garlic
+        ObjectData.getObjectData(4251).springRegrowFactor = 1; // Wild Garlic
+        ObjectData.getObjectData(4252).winterDecayFactor = 2; // Wild Garlic / out
+        ObjectData.getObjectData(4252).springRegrowFactor = 0.5; // Wild Garlic / out
+        ObjectData.getObjectData(4252).countsOrGrowsAs = 4251; // Wild Garlic / out
+
+        // Wild Garlic
+        ObjectData.getObjectData(4251).winterDecayFactor = 1; // Wild Garlic
+        ObjectData.getObjectData(4251).springRegrowFactor = 1; // Wild Garlic
+        ObjectData.getObjectData(4252).winterDecayFactor = 2; // Wild Garlic / out
+        ObjectData.getObjectData(4252).springRegrowFactor = 0.5; // Wild Garlic / out
+        ObjectData.getObjectData(4252).countsOrGrowsAs = 4251; // Wild Garlic / out
+
+        // Burdock
+        ObjectData.getObjectData(804).winterDecayFactor = 1; // Burdock
+        ObjectData.getObjectData(804).springRegrowFactor = 1; // Burdock
+        ObjectData.getObjectData(806).winterDecayFactor = 2; // Dug Burdock
+        ObjectData.getObjectData(806).springRegrowFactor = 0.5; // Dug Burdock
+        ObjectData.getObjectData(806).countsOrGrowsAs = 804; // Dug Burdock
+        ObjectData.getObjectData(807).winterDecayFactor = 2; // Burdock Root
+        ObjectData.getObjectData(807).springRegrowFactor = 0.5; // Burdock Root
+        ObjectData.getObjectData(807).countsOrGrowsAs = 804; // Burdock Root
+
+        // Milkweed
+        ObjectData.getObjectData(50).winterDecayFactor = 0; // Milkweed
+        ObjectData.getObjectData(50).springRegrowFactor = 0.1; // Milkweed
+        ObjectData.getObjectData(51).winterDecayFactor = 0; // Flowering Milkweed
+        ObjectData.getObjectData(51).springRegrowFactor = 0.1; // Flowering Milkweed
+        ObjectData.getObjectData(51).countsOrGrowsAs = 50; // Flowering Milkweed
+        ObjectData.getObjectData(57).winterDecayFactor = 2; // Milkweed Stalk
+        ObjectData.getObjectData(57).springRegrowFactor = 0; // Milkweed Stalk
+
+        //Sapling
+        //ObjectData.getObjectData(136).winterDecayFactor = 0.5; // Sapling
+        ObjectData.getObjectData(136).springRegrowFactor = 0.05; // Sapling
+        ObjectData.getObjectData(138).winterDecayFactor = 2; // Cut Sapling Skewer
+        ObjectData.getObjectData(138).springRegrowFactor = 0.5; // Cut Sapling Skewer
+        ObjectData.getObjectData(138).countsOrGrowsAs = 136; // Flowering Milkweed
         
         //var obj = ObjectData.getObjectData(624);
 

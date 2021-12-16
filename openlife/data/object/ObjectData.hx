@@ -81,6 +81,7 @@ class ObjectData extends LineReader
     public var decayFactor:Float = 1; // not saved ???
     public var winterDecayFactor:Float = 0; // not saved
     public var springRegrowFactor:Float = 0; // not saved
+    public var countsOrGrowsAs:Int = 0; // not saved // the object should be counted as this, or in case it regrows it regrows as this.
     
     /**
      * Max clothing pieces

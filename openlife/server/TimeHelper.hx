@@ -198,7 +198,7 @@ class TimeHelper
         SeasonTemperatureImpact = (SeasonTemperatureImpact * factor + tmpSeasonTemperatureImpact) / (factor + 1);
 
 
-        if(tick % 20 == 0) trace('SEASON: ${SeasonHardness} TemperatureImpact: $SeasonTemperatureImpact tmp: $tmpSeasonTemperatureImpact');
+        //if(tick % 20 == 0) trace('SEASON: ${SeasonHardness} TemperatureImpact: $SeasonTemperatureImpact tmp: $tmpSeasonTemperatureImpact');
 
         if(passedSeasonTime > timeToNextSeasonInSec)
         {
@@ -724,33 +724,34 @@ class TimeHelper
     private static function RespawnOrDecayPlant(objIDs:Array<Int>, x:Int, y:Int, hidden:Bool = false)
     {
         var objID = objIDs[0];
-        // Wild Onion 805 --> 808 (harvested)
-        if(objID != 805 && objID != 808) return;
+        var objData = ObjectData.getObjectData(objID);
 
-        if(Season == Seasons.Winter && hidden == false)
+        if(Season == Seasons.Winter && hidden == false && objData.winterDecayFactor > 0)
         {
-            if(WinterDecayChance < WorldMap.calculateRandomFloat()) return;
+            if(WinterDecayChance * objData.winterDecayFactor < WorldMap.calculateRandomFloat()) return;
 
-            objIDs = [805]; // out of an unplanted onion also an onion grows
+            var random = WorldMap.calculateRandomFloat();            
 
             WorldMap.world.setObjectId(x, y, [0]);
-            WorldMap.world.setHiddenObjectId(x, y, objIDs); // TODO hide also object helper for advanced objects???
+            if(objData.springRegrowFactor > random) WorldMap.world.setHiddenObjectId(x, y, objIDs); // TODO hide also object helper for advanced objects???
 
             Connection.SendMapUpdateToAllClosePlayers(x,y,[0]);
 
             WorldMap.world.currentObjectsCount[objID]--;
 
-            trace('DECAY: Onions: ${WorldMap.world.currentObjectsCount[objID]}');
+            if(WorldMap.world.currentObjectsCount[objID] % 10 == 0) trace('SEASON DECAY: ${objData.description} ${WorldMap.world.currentObjectsCount[objID]} original: ${WorldMap.world.originalObjectsCount[objID]}');
         }
-        else if(Season == Seasons.Spring)
+        else if(Season == Seasons.Spring && objData.springRegrowFactor > 0)
         {
-            if(objID != 805) return;
+            if(SpringRegrowChance * objData.springRegrowFactor < WorldMap.calculateRandomFloat()) return;
 
-            if(SpringRegrowChance < WorldMap.calculateRandomFloat()) return;
+            var spawnAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objID;
 
-            SpawnObject(x,y,objID);
+            SpawnObject(x,y,spawnAs);
 
             if(hidden) WorldMap.world.setHiddenObjectId(x, y, [0]); // What was hidden comes back
+
+            if(WorldMap.world.currentObjectsCount[spawnAs] % 10 == 0) trace('SEASON REGROW: ${objData.description} ${WorldMap.world.currentObjectsCount[spawnAs]} original: ${WorldMap.world.originalObjectsCount[spawnAs]}');
         }
     }
 
@@ -783,13 +784,13 @@ class TimeHelper
         }    
     }
 
-    public static function SpawnObject(x:Int, y:Int, objID:Int, dist:Int = 6) : Bool
+    public static function SpawnObject(x:Int, y:Int, objID:Int, dist:Int = 6, tries:Int = 2) : Bool
     {
         var worldMap = WorldMap.world;
 
         if(worldMap.currentObjectsCount[objID] >= worldMap.originalObjectsCount[objID]) return false;
 
-        for(ii in 0...5)
+        for(ii in 0...tries)
         {
             var tmpX = worldMap.randomInt(2*dist) - dist + x;
             var tmpY = worldMap.randomInt(2*dist) - dist + y;

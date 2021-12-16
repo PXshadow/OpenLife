@@ -58,7 +58,7 @@ Seasons / Winter is comming:
 - First part of Seasons is now implemented
 - There are winter / summer / spring / autoumn. And hard / super hard variants of it longer / colder / hotter then normal
 - Seasons influence temperature
-- Winter decays wild plants (for now only onions) and spring let it grow back
+- Winter decays wild plants and spring lets it grow back
 - Plants grow only back if either one was left or one was hidden in he winter or if you place one...
 - If you eat all, still they can come back since nearly all objects can respawn, but this will take lot of time...
 - There is now a second layer of objects where stuff can be hidden like onions in the winter
