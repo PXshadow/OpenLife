@@ -729,13 +729,12 @@ class TimeHelper
 
         if(Season == Seasons.Winter && hidden == false && objData.winterDecayFactor > 0)
         {
-            if(WinterDecayChance * objData.winterDecayFactor < WorldMap.calculateRandomFloat()) return;
-
             // reduce uses if it is for example a berry bush
             if(objData.numUses > 1)
-            {
+            {                
                 var objHelper = WorldMap.world.getObjectHelper(x,y);
-                //if(objHelper.numberOfUses < 1) return; // TODO remove also last berry???
+                
+                if(WinterDecayChance * objData.winterDecayFactor * objHelper.numberOfUses < WorldMap.calculateRandomFloat()) return;
                 
                 objHelper.numberOfUses -= 1;                
                 objHelper.TransformToDummy();
@@ -744,6 +743,8 @@ class TimeHelper
 
                 return;
             }
+
+            if(WinterDecayChance * objData.winterDecayFactor < WorldMap.calculateRandomFloat()) return;
 
             var random = WorldMap.calculateRandomFloat();            
 
@@ -765,14 +766,14 @@ class TimeHelper
         else if(Season == Seasons.Spring && objData.springRegrowFactor > 0)
         {
             // TODO regrow also from originalObjects?
-
-            if(SpringRegrowChance * objData.springRegrowFactor < WorldMap.calculateRandomFloat()) return;
-
-             // increase uses if it is for example a berry bush
-             if(objData.numUses > 1 || objData.undoLastUseObject != 0)
+            
+            // increase uses if it is for example a berry bush
+            if(objData.numUses > 1 || objData.undoLastUseObject != 0)
             {
                 var objHelper = WorldMap.world.getObjectHelper(x,y);
                 if(objHelper.numberOfUses >= objData.numUses && objData.undoLastUseObject == 0) return;
+
+                if(SpringRegrowChance * objData.springRegrowFactor * (objData.numUses - objHelper.numberOfUses) < WorldMap.calculateRandomFloat()) return;
 
                 objHelper.numberOfUses += 1;
 
@@ -782,6 +783,8 @@ class TimeHelper
 
                 return;
             }
+
+            if(SpringRegrowChance * objData.springRegrowFactor < WorldMap.calculateRandomFloat()) return;
 
             var spawnAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objID;
 

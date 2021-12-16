@@ -263,7 +263,7 @@ class ObjectHelper {
         }
 
         // in case of an maxUses object changing like a well site numOfUses can be too big
-        if(obj.numberOfUses > objectData.numUses)
+        if(obj.numberOfUses > objectData.numUses || (obj.numberOfUses > 1 && objectData.undoLastUseObject != 0))
         {
             if(objectData.undoLastUseObject != 0)
             {
@@ -278,7 +278,7 @@ class ObjectHelper {
             }
         }
 
-        if(obj.numberOfUses == objectData.numUses)
+        if(obj.numberOfUses == objectData.numUses || objectData.undoLastUseObject != 0)
         {
             if(obj.objectData.dummy)
             {
@@ -288,7 +288,11 @@ class ObjectHelper {
         else
         {
             obj.objectData = objectData.dummyObjects[obj.numberOfUses-1];
-            if(obj.objectData == null) throw new Exception('TransformToDummy: no object Data!');
+            if(obj.objectData == null)
+            {
+                trace('DUMMY UNDO: numberOfUses: ${obj.numberOfUses} ${objectData.description}');
+                throw new Exception('TransformToDummy: no object Data!');
+            }
 
             //trace('dummy id: ${obj.objectData.id}');
         }
