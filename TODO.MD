@@ -1,9 +1,5 @@
 Project Winter is comming / Hardcore OHOL
 
-How to connect to the test server:
-ip: thinqbator.app
-port: 8005
-
 How to setup the server you can find in the bottom!
 
 Project Winter is comming summary: 
@@ -251,3 +247,8 @@ git push -u https://github.com/PXshadow/OpenLife
 
 How to pull stuff from git:
 git pull https://github.com/PXshadow/OpenLife
+
+How to connect to the test server:
+Currently the test server is run By PX and is running a very very old version of the server. I will inform if there is a new version which is testable.
+ip: thinqbator.app
+port: 8005
