@@ -721,6 +721,7 @@ class TimeHelper
         }
     }  
 
+    // TODO regrow also fully empty berries?
     private static function RespawnOrDecayPlant(objIDs:Array<Int>, x:Int, y:Int, hidden:Bool = false)
     {
         var objID = objIDs[0];
@@ -731,7 +732,7 @@ class TimeHelper
             if(WinterDecayChance * objData.winterDecayFactor < WorldMap.calculateRandomFloat()) return;
 
             // reduce uses if it is for example a berry bush
-            if(objData.numUses > 0)
+            if(objData.numUses > 1)
             {
                 var objHelper = WorldMap.world.getObjectHelper(x,y);
                 if(objHelper.numberOfUses < 2) return; // TODO remove also last berry???
@@ -758,6 +759,20 @@ class TimeHelper
         else if(Season == Seasons.Spring && objData.springRegrowFactor > 0)
         {
             if(SpringRegrowChance * objData.springRegrowFactor < WorldMap.calculateRandomFloat()) return;
+
+             // increase uses if it is for example a berry bush
+             if(objData.numUses > 1)
+            {
+                var objHelper = WorldMap.world.getObjectHelper(x,y);
+                if(objHelper.numberOfUses >= objData.numUses) return;
+                
+                objHelper.numberOfUses += 1;
+                objHelper.TransformToDummy();
+                WorldMap.world.setObjectHelper(x,y, objHelper);
+                Connection.SendMapUpdateToAllClosePlayers(x,y, [objHelper.id]);
+
+                return;
+            }
 
             var spawnAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objID;
 

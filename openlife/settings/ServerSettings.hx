@@ -302,8 +302,14 @@ class ServerSettings
         ObjectData.getObjectData(138).countsOrGrowsAs = 136; // Flowering Milkweed
 
         // Wild Gooseberry Bush
-        ObjectData.getObjectData(30).winterDecayFactor = 2; // Wild Gooseberry Bush
-        ObjectData.getObjectData(30).springRegrowFactor = 1; // Wild Gooseberry Bush
+        ObjectData.getObjectData(30).winterDecayFactor = 1.5; // Wild Gooseberry Bush
+        ObjectData.getObjectData(30).springRegrowFactor = 1.6; // Wild Gooseberry Bush
+        ObjectData.getObjectData(31).winterDecayFactor = 2; //Gooseberry
+
+        //Domestic Gooseberry Bush
+        ObjectData.getObjectData(391).winterDecayFactor = 1; // Domestic Gooseberry Bush
+        ObjectData.getObjectData(391).springRegrowFactor = 0.1; // Domestic Gooseberry Bush
+
         //ObjectData.getObjectData(279).winterDecayFactor = 2; // Empty Wild Gooseberry Bush
         //ObjectData.getObjectData(279).springRegrowFactor = 0.5; // Empty Wild Gooseberry Bush
         //ObjectData.getObjectData(279).countsOrGrowsAs = 30; // Empty Wild Gooseberry Bush
