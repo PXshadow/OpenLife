@@ -354,6 +354,7 @@ class TimeHelper
         if(player.age < ServerSettings.GrownUpAge && player.food_store > 0) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
 
         var originalFoodDecay = foodDecay;
+        var healing = timePassedInSeconds * 2.5 * ServerSettings.FoodUsePerSecond - foodDecay; // higher food need ==> less healing...
         
         // do damage while starving
         if(player.food_store < 0)
@@ -362,11 +363,11 @@ class TimeHelper
         }
 
         // take care of exhaustion
-        if(player.exhaustion > 0 && playerIsStarvingOrHasBadHeat == false)
+        if(player.exhaustion > 0 && player.food_store > 2 && playerIsStarvingOrHasBadHeat == false)
         {
-            player.exhaustion -= timePassedInSeconds * 2.5 * ServerSettings.FoodUsePerSecond - foodDecay; // higher food need ==> less healing...
+            player.exhaustion -= 2 * healing;
 
-            foodDecay += originalFoodDecay;
+            foodDecay += 2 * originalFoodDecay;
 
             if(player.exhaustion < 0) player.exhaustion = 0; 
         }
@@ -378,7 +379,7 @@ class TimeHelper
         // do healing but increase food use
         if(player.hits > 0 && playerIsStarvingOrHasBadHeat == false) 
         {
-            player.hits -= timePassedInSeconds * 2.5 * ServerSettings.FoodUsePerSecond - foodDecay; // higher food need ==> less healing...
+            player.hits -= healing;
 
             foodDecay += originalFoodDecay;
 

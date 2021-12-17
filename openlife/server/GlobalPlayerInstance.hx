@@ -1866,6 +1866,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         food_store_max -= p.hits;
 
+        if(p.exhaustion > 0)
+        {
+            var tmp_food_store_max = food_store_max;
+
+            food_store_max -= p.exhaustion;
+        
+            if(food_store_max < tmp_food_store_max / 2) food_store_max = tmp_food_store_max / 2;
+        }
+
         return food_store_max;
     }
 
