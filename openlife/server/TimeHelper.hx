@@ -352,8 +352,14 @@ class TimeHelper
 
         if(player.age < ServerSettings.GrownUpAge && player.food_store > 0) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
 
+
+        if(player.food_store < 0)
+        {
+            player.hits += foodDecay;
+        }
+
         // do healing but increase food use
-        if(player.hits > 0)
+        if(player.hits > 0 && player.food_store > 0)
         {
             player.hits -= foodDecay;
 
@@ -367,6 +373,8 @@ class TimeHelper
                 if(player.connection != null) player.connection.send(ClientTag.HEALED, ['${player.p_id}']);
             }
         }
+
+        
 
 
         // if starving to death and there is some health left, reduce food need and heath
