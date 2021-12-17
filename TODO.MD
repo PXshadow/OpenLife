@@ -43,6 +43,7 @@ MAP:
 
 Family:
 - Children are now more likely to be born closer to special biome color. With this one Eve can create all colors if people migrate...
+- Partens influence which biomes are loved 
 
 Loved / Hated Biomes:
 - Bad Temperature is affected now by how much you / your partens (50%) love the biome
@@ -62,6 +63,8 @@ Exhaustion:
 - recovering exhaustion increases food need 
 - bad temperature generates exhaustion and reduces exhaustion reduction
 - half of hungry work becomes now exhaustion
+- exhaustion in not loved biome (more in swamp or river if not on floor or bridge)
+- greater reover of exhaustion in loved biome 
 
 World:
 - Paradise is back! Wild Berries and Bana come finaly back with time 
@@ -153,6 +156,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
+- HEALTH influence on food store max / food store max influence instead of age or health on speed reduction 
 - AI basic nursing
 - Ai birth after death
 - AI basic clothing
@@ -175,9 +179,9 @@ more up in the list means more likely to be implemented first but no gurantee!
 - BIRTH incarnation according to score
 - BIRTH curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
 - EXHAUSTION emotes for exhausted
-- EXHAUSTION in swamp / bad biome
-- EXHAUSTION movement change
 - EXHAUSTION carrying heavy stuff
+- EXHAUSTION for working in bad biome
+- EXHAUSTION for using bad / primitive tools like sharp stone
 - CONNECTION reconnection
 - CONNECTION saving of people data so that people come back after server restart
 - MAP use bigger map (Europe?) / create tool to auto create map

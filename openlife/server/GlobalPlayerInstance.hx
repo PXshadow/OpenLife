@@ -2305,30 +2305,40 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return (this.heat < tooCold);
     }
 
-    //** Displayes from -X to plus X if biome is loved with 0 equals a neutral biome**/
+    /** Displayes from -X to plus X if biome is loved with 0 equals a neutral biome.
+    A (brown) child with both parents same color loves (jungle) with 2. 
+    A (brown) child with none parents same color loves (jungle) with 1. 
+    A child with different color then (both) brown parents loves (jungle) with 0.5 (not for swamp).
+    A child with different color then (one) brown parent loves (jungle) with 0 (not for swamp).
+    **/
+
     public function biomeLoveFactor() : Float
     {
         var world = WorldMap.world;
         var biome = world.getBiomeId(this.tx(), this.ty());
+        var floor = world.getFloorId(this.tx(), this.ty());
         var color = this.getColor();
         var loved:Float = 0;
 
-        loved += BiomeLoveFactorForColor(biome, color);
-        if(this.mother != null) loved += BiomeLoveFactorForColor(biome, this.mother.getColor(), true);
-        if(this.father != null) loved += BiomeLoveFactorForColor(biome, this.father.getColor(), true);
+        loved += BiomeLoveFactorForColor(biome, color, floor);
+        if(this.mother != null) loved += BiomeLoveFactorForColor(biome, this.mother.getColor(), floor, true);
+        if(this.father != null) loved += BiomeLoveFactorForColor(biome, this.father.getColor(), floor, true);
 
         return loved;
     }
-
-    public static function BiomeLoveFactorForColor(biome:Int, personColor:Int, motherOrFather:Bool = false)
+    
+    public static function BiomeLoveFactorForColor(biome:Int, personColor:Int, floorId:Int, motherOrFather:Bool = false)
     {
         var loved:Float = 0;
 
+        // TODO make grey instead of swamp loved white biome???
         if(biome == BiomeTag.SNOW && personColor == PersonColor.Ginger) loved += 1;
         if(biome == BiomeTag.SWAMP && personColor == PersonColor.White) loved += 1;
         if(biome == BiomeTag.JUNGLE && personColor == PersonColor.Brown) loved += 1;
         if(biome == BiomeTag.DESERT && personColor == PersonColor.Black) loved += 1;
-        if(motherOrFather == false && loved <= 0 && (biome != BiomeTag.GREEN && biome != BiomeTag.GREY)) loved -= 0.5;
+        if(motherOrFather == false && loved <= 0 && biome != BiomeTag.GREEN && biome != BiomeTag.GREY) loved -= 0.5;
+        // only reduction if on bridge or floor in swamp or passableriver
+        if(motherOrFather == false && loved <= 0 && floorId != 0 && (biome == BiomeTag.SWAMP || biome == BiomeTag.PASSABLERIVER)) loved -= 2.5;
 
         if(motherOrFather) loved *= 0.5;
 

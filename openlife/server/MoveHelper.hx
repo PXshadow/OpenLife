@@ -159,7 +159,7 @@ class MoveHelper
             // between 1/2 and 1;
             speed *= (currenHitpoints + fullHitpoints) / (fullHitpoints + fullHitpoints);
 
-            trace('SPEED: $speed currenHitpoints: $currenHitpoints fullHitpoints: $fullHitpoints');
+            if(ServerSettings.DebugSpeed) trace('SPEED: $speed currenHitpoints: $currenHitpoints fullHitpoints: $fullHitpoints');
         }
 
         // Do health speed
