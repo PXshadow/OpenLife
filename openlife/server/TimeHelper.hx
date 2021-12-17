@@ -358,10 +358,14 @@ class TimeHelper
             player.hits += foodDecay;
         }
 
+        // take damage if temperature is too hot or cold
+        if(player.isSuperHot())  player.hits += player.heat > 0.98 ? 3 * foodDecay : foodDecay;
+        else if(player.isSuperCold()) player.hits += player.heat < 0.02 ? 3 * foodDecay : foodDecay;  
+
         // do healing but increase food use
-        if(player.hits > 0 && player.food_store > 0)
+        if(player.hits > 0 && player.food_store > 0 && player.isSuperCold() == false && player.isSuperHot() == false) 
         {
-            player.hits -= foodDecay;
+            player.hits -= timePassedInSeconds * 2.5 * ServerSettings.FoodUsePerSecond - foodDecay; // higher food need less healing...
 
             foodDecay *= 2;
 
@@ -525,7 +529,6 @@ class TimeHelper
         var message = '$playerHeat $foodDrainTime 0';
 
         if(player.connection != null) player.connection.send(HEAT_CHANGE, [message], false);
-
 
         //if(ServerSettings.DebugTemperature)
         trace('Temperature update: playerHeat: $playerHeat temperature: $temperature clothingFactor: $clothingFactor foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
