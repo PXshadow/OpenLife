@@ -138,10 +138,8 @@ more up in the list means more likely to be implemented first but no gurantee!
 - better dogs
 - advanced AI / AI villages
 
-
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
-- WINTER decay / regrow more wild food / food plants
 - AI basic nursing
 - Ai birth after death
 - AI basic clothing
@@ -154,7 +152,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 - COMBAT implement kill 
 - COMBAT animal interactions / collisions
 - COMBAT ill from moskitos 
-- MAP map rework / place more biomes
 - SCORE save lineages
 - SCORE implement prestiege score
 - SCORE give score boni like for great clothing
@@ -164,15 +161,16 @@ more up in the list means more likely to be implemented first but no gurantee!
 - BIRTH fathers displayed in name (needs workaround since not supported from client)
 - BIRTH incarnation according to score
 - BIRTH curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
-- EXHAUSTION emotesfor exhausted
+- EXHAUSTION emotes for exhausted
 - EXHAUSTION bad temperature impacts exhaustion
-- EXHAUSTION reduces speed / food use
+- EXHAUSTION reduces speed / increases food use
 - EXHAUSTION replaces hungry work
 - EXHAUSTION in swamp / bad biome
 - EXHAUSTION movement change
-- EXHAUSTION carring heavy stuff
+- EXHAUSTION carrying heavy stuff
 - CONNECTION reconnection
 - CONNECTION saving of people data so that people come back after server restart
+- MAP use bigger map (Europe?) / create tool to auto create map
 - TIME time transitions for objects in container
 - TIME decay stuff in containers
 - TIME decay clothing
@@ -189,6 +187,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - BIOME biome locked planting
 - ANIMAL animal movement on top of items
 - TEMPERATURE indoor temperature calculation 
+- WINTER change snow biome / snow banks / melting if snow
 - TOOLS learning tools (hold wrong if not learned)
 - DONE??? do pattern transitions right like rubber horsecart pickup 
 - AI Pottery
