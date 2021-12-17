@@ -512,7 +512,7 @@ class TimeHelper
         // balances temperature out if the biome is loved
         if(biomeLoveFactor > 0)
         {
-            trace('${player.p_id} biomeLoveFactor: $biomeLoveFactor');
+            //trace('${player.p_id} biomeLoveFactor: $biomeLoveFactor');
 
             if(temperature < 0.5)
             {
@@ -806,7 +806,10 @@ class TimeHelper
                 var objHelper = WorldMap.world.getObjectHelper(x,y);
                 if(objHelper.numberOfUses >= objData.numUses && objData.undoLastUseObject == 0) return;
 
-                if(SpringRegrowChance * objData.springRegrowFactor * (objData.numUses - objHelper.numberOfUses) < WorldMap.calculateRandomFloat()) return;
+                var factor = objData.numUses - objHelper.numberOfUses;
+                if(factor < 1) factor = 1;
+
+                if(SpringRegrowChance * objData.springRegrowFactor * factor < WorldMap.calculateRandomFloat()) return;
 
                 objHelper.numberOfUses += 1;
 

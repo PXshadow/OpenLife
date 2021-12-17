@@ -135,7 +135,7 @@ class ServerSettings
     public static var ObjDecayFactorForFood:Float = 10;
 
     // winter / summer
-    public static var DebugSeason:Bool = true;
+    public static var DebugSeason:Bool = false;
     public static var SeasonDuration = 0.5; // default: 5 // Season duration like winter in years
     public static var AverageSeasonTemperatureImpact = 0.2; 
     public static var WinterWildFoodDecayChance:Float = 1.5; //1.5; // per Season
@@ -304,8 +304,8 @@ class ServerSettings
         // Wild Gooseberry Bush
         ObjectData.getObjectData(30).winterDecayFactor = 1; // 1.5; // Wild Gooseberry Bush
         ObjectData.getObjectData(30).springRegrowFactor = 1; // 1.6 // Wild Gooseberry Bush
-        ObjectData.getObjectData(279).springRegrowFactor = 2; //1.8; // Empty Wild Gooseberry Bush
-        ObjectData.getObjectData(279).numUses = ObjectData.getObjectData(30).numUses; // Empty Wild Gooseberry Bush
+        ObjectData.getObjectData(279).springRegrowFactor = 6; //1.8; // Empty Wild Gooseberry Bush
+        //ObjectData.getObjectData(279).numUses = ObjectData.getObjectData(30).numUses; // Empty Wild Gooseberry Bush
         ObjectData.getObjectData(31).winterDecayFactor = 2; //Gooseberry
 
         //Domestic Gooseberry Bush
