@@ -44,12 +44,16 @@ MAP:
 Family:
 - Children are now more likely to be born closer to special biome color. With this one Eve can create all colors if people migrate...
 
+Loved / Hated Biomes:
+- Bad Temperature is affected now by how much you / your partens (50%) love the biome
+
 Heat / Temperature:
 - bad temperature reduces speed extreme temperature reduces double
 - Different color people love different temperatures (average temperature and resistance to too hot or cold temperature)
 - clothing can protect against cold and heat. The better it protects against cold the less it protects against heat
 - Heal only if not too cold or hot / heal faster the better temperature / take damage if too hot or cold 
 - Better chance of having a kid with right temperature
+- Bad Temperature is affected now by how much you / your partens (50%) love the biome
 
 World:
 - Paradise is back! Wild Berries and Bana come finaly back with time 

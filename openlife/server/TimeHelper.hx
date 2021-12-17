@@ -505,7 +505,28 @@ class TimeHelper
         // add SeasonTemperatureImpact
         temperature += SeasonTemperatureImpact;
 
-        // TODO useTimePassed
+        var biomeLoveFactor = player.biomeLoveFactor();
+        biomeLoveFactor /= 10;
+
+        // TODO impact also how fast bad / good temperature effects player heat
+        // balances temperature out if the biome is loved
+        if(biomeLoveFactor > 0)
+        {
+            trace('${player.p_id} biomeLoveFactor: $biomeLoveFactor');
+
+            if(temperature < 0.5)
+            {
+                temperature += biomeLoveFactor;
+                if(temperature > 0.5) temperature = 0.5;
+            } 
+            if(temperature > 0.5)
+            {
+                temperature -= biomeLoveFactor;
+                if(temperature < 0.5) temperature = 0.5;
+            } 
+        }
+
+        // TODO useTimePassed --> move to food update?
  
         player.heat = player.heat * clothingFactor + temperature * (1 - clothingFactor);
 

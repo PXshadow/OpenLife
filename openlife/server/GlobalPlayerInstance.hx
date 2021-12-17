@@ -2276,6 +2276,36 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         return (this.heat < tooCold);
     }
+
+    //** Displayes from -X to plus X if biome is loved with 0 equals a neutral biome**/
+    public function biomeLoveFactor() : Float
+    {
+        var world = WorldMap.world;
+        var biome = world.getBiomeId(this.tx(), this.ty());
+        var color = this.getColor();
+        var loved:Float = 0;
+
+        loved += BiomeLoveFactorForColor(biome, color);
+        if(this.mother != null) loved += BiomeLoveFactorForColor(biome, this.mother.getColor(), true);
+        if(this.father != null) loved += BiomeLoveFactorForColor(biome, this.father.getColor(), true);
+
+        return loved;
+    }
+
+    public static function BiomeLoveFactorForColor(biome:Int, personColor:Int, motherOrFather:Bool = false)
+    {
+        var loved:Float = 0;
+
+        if(biome == BiomeTag.SNOW && personColor == PersonColor.Ginger) loved += 1;
+        if(biome == BiomeTag.SWAMP && personColor == PersonColor.White) loved += 1;
+        if(biome == BiomeTag.JUNGLE && personColor == PersonColor.Brown) loved += 1;
+        if(biome == BiomeTag.DESERT && personColor == PersonColor.Black) loved += 1;
+        if(motherOrFather == false && loved <= 0 && (biome != BiomeTag.GREEN && biome != BiomeTag.GREY)) loved -= 0.5;
+
+        if(motherOrFather) loved *= 0.5;
+
+        return loved;
+    }
 }
 
 // TODO Arcurus>> add birth logic - suggestion:
