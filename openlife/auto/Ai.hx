@@ -667,8 +667,6 @@ class Ai
             itemToCraft.transTarget = null;
         }
 
-        
-
         useTarget = null;
         
         return true;
