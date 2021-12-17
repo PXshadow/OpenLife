@@ -385,7 +385,7 @@ class TimeHelper
         //var tmpexhaustion = player.exhaustion;
         var biomeLoveFactor = player.biomeLoveFactor();
         if(biomeLoveFactor < 0) player.exhaustion -= foodDecay * biomeLoveFactor;
-        if(biomeLoveFactor > 0) player.exhaustion -= foodDecay * biomeLoveFactor / 2;
+        if(biomeLoveFactor > 0 && player.exhaustion > -player.food_store_max) player.exhaustion -= foodDecay * biomeLoveFactor / 2;
         //trace('Exhaustion: $tmpexhaustion ==> ${player.exhaustion} pID: ${player.p_id} biomeLoveFactor: $biomeLoveFactor');
 
         // do healing but increase food use

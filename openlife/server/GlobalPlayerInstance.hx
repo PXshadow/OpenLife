@@ -751,8 +751,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 if(ServerSettings.AllowDebugCommmands) DoDebugCommands(player, text);
             }
 
-            
-            
             var maxLenght = player.age < 10 ? Math.ceil(player.age * 2) : player.age < 20 ? Math.ceil(player.age * 4) : 80; 
 
             if(text.startsWith('/') == false &&  text.length > maxLenght) text = text.substr(0, maxLenght);
@@ -2199,8 +2197,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         toSearch = StringTools.replace(toSearch, '!', '');
 
         trace('Command Search: /${toSearch}/ end: $end');
-
-        
 
         if(id == null)
         {
