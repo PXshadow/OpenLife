@@ -526,8 +526,10 @@ class TimeHelper
             } 
         }
 
+        // If hold by other player, just use temperature from this instead
+        if(player.heldByPlayer != null) temperature = player.heldByPlayer.heat;
+
         // TODO useTimePassed --> move to food update?
- 
         player.heat = player.heat * clothingFactor + temperature * (1 - clothingFactor);
 
         if(player.heat > 1) player.heat = 1;
