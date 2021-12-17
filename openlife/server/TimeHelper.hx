@@ -349,25 +349,38 @@ class TimeHelper
         var tmpExtraFood = Math.ceil(player.yum_bonus);
         var tmpFoodStoreMax = Math.ceil(player.food_store_max);
         var foodDecay = timePassedInSeconds * player.foodUsePerSecond; // depends on temperature
-
+        var playerIsStarvingOrHasBadHeat = player.food_store < 0 || player.isSuperCold() || player.isSuperHot();
+        
         if(player.age < ServerSettings.GrownUpAge && player.food_store > 0) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
 
-
+        var originalFoodDecay = foodDecay;
+        
+        // do damage while starving
         if(player.food_store < 0)
         {
             player.hits += foodDecay;
         }
 
+        // take care of exhaustion
+        if(player.exhaustion > 0 && playerIsStarvingOrHasBadHeat == false)
+        {
+            player.exhaustion -= timePassedInSeconds * 2.5 * ServerSettings.FoodUsePerSecond - foodDecay; // higher food need ==> less healing...
+
+            foodDecay += originalFoodDecay;
+
+            if(player.exhaustion < 0) player.exhaustion = 0; 
+        }
+        
         // take damage if temperature is too hot or cold
         if(player.isSuperHot())  player.hits += player.heat > 0.98 ? 3 * foodDecay : foodDecay;
         else if(player.isSuperCold()) player.hits += player.heat < 0.02 ? 3 * foodDecay : foodDecay;  
 
         // do healing but increase food use
-        if(player.hits > 0 && player.food_store > 0 && player.isSuperCold() == false && player.isSuperHot() == false) 
+        if(player.hits > 0 && playerIsStarvingOrHasBadHeat == false) 
         {
-            player.hits -= timePassedInSeconds * 2.5 * ServerSettings.FoodUsePerSecond - foodDecay; // higher food need less healing...
+            player.hits -= timePassedInSeconds * 2.5 * ServerSettings.FoodUsePerSecond - foodDecay; // higher food need ==> less healing...
 
-            foodDecay *= 2;
+            foodDecay += originalFoodDecay;
 
             if(player.hits < 0) player.hits = 0; 
 

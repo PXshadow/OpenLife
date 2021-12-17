@@ -114,6 +114,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var hits:Float = 0;
     public var woundedBy = 0;
 
+    // exhaustion
+    public var exhaustion:Float = 2; // even a new baby is little bit exhausted
+
     // birth stuff 
     public var childrenBirthMali:Float = 0;  // increases for each child // reduces for dead childs
 
@@ -1756,6 +1759,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         setHeldObject(heldObject);
     }
 
+    /**
+        reason_disconnected
+        reason_killed_id   (where id is the object that killed the player)
+        reason_hunger
+        reason_nursing_hunger  (starved while nursing a hungry baby)
+        reason_age
+    **/
     public function doDeath(deathReason:String)
     {
         if(this.deleted) return;
