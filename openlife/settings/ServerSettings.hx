@@ -35,7 +35,7 @@ class ServerSettings
     // DEBUG: Temperature
     public static var DebugTemperature = false;
     public static var TemperatureImpactBelow = 0.5; // take damage and display emote if temperature is below or above X from normal
-
+    public static var TemperatureSpeedImpact = 0.9; // speed * X: double impact if extreme temperature
 
     // birth
     public static var ChanceForFemaleChild = 0.6;

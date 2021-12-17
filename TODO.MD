@@ -45,6 +45,7 @@ Family:
 - Children are now more likely to be born closer to special biome color. With this one Eve can create all colors if people migrate...
 
 Heat / Temperature:
+- bad temperature reduces speed extreme temperature reduces double
 - Different color people love different temperatures (average temperature and resistance to too hot or cold temperature)
 - clothing can protect against cold and heat. The better it protects against cold the less it protects against heat
 - Heal only if not too cold or hot / heal faster the better temperature / take damage if too hot or cold 
@@ -96,6 +97,7 @@ SPEED:
 - horses and cars and carts are slower in bad biomes
 - road reduces speed mali of bad biome and heavy objects
 - having both shoes give now X1.1 Speed
+- bad temperature reduces speed extreme temperature reduces double
 
 Food - YUM:
 - YUM gives 3 food boni first eaten. 
