@@ -262,9 +262,9 @@ class TimeHelper
             player.doEmote(Emote.starving);
             return;
         }
-        if(player.heat > 0.75) player.doEmote(Emote.heatStroke);
+        if(player.isSuperHot()) player.doEmote(Emote.heatStroke);
+        if(player.isSuperCold()) player.doEmote(Emote.pneumonia);  
         //else if(playerHeat > 0.6) player.doEmote(Emote.dehydration);
-        if(player.heat < 0.25) player.doEmote(Emote.pneumonia);  
         
         if(player.isHoldingChildInBreastFeedingAgeAndCanFeed())
         {
@@ -373,9 +373,6 @@ class TimeHelper
                 if(player.connection != null) player.connection.send(ClientTag.HEALED, ['${player.p_id}']);
             }
         }
-
-        
-
 
         // if starving to death and there is some health left, reduce food need and heath
         if(player.food_store < 0 && player.yum_multiplier > 0)

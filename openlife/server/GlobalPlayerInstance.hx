@@ -2252,6 +2252,30 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(this.food_store < 1) return false;
         return this.isFertile();
     }
+
+    public function isSuperHot()
+    {
+        var tooHot = 0.5 + 0.5 * ServerSettings.TemperatureImpactBelow;
+        var color = this.getColor();
+
+        if(color == PersonColor.Black) tooHot += 0.2;
+        if(color == PersonColor.Brown) tooHot += 0.1;
+        if(color == PersonColor.White) tooHot += 0.05;
+
+        return (this.heat > tooHot);
+    }
+
+    public function isSuperCold()
+    {
+        var tooCold = 0.5 - 0.5 * ServerSettings.TemperatureImpactBelow;
+        var color = this.getColor();
+
+        if(color == PersonColor.Ginger) tooCold -= 0.2;
+        if(color == PersonColor.White) tooCold -= 0.1;
+        if(color == PersonColor.Brown) tooCold -= 0.05;
+
+        return (this.heat < tooCold);
+    }
 }
 
 // TODO Arcurus>> add birth logic - suggestion:
