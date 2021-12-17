@@ -140,14 +140,27 @@ class MoveHelper
         speed *= containedObjSpeedMult;
 
 
-
-        // DO starving speed
-        if(p.food_store < 0 && onHorseOrCar == false) // only reduce speed when starving if not riding or in car 
+        // only reduce speed when starving if not riding or in car 
+        if(onHorseOrCar == false)
         {
-            if(p.yum_multiplier > 0) speed *= ServerSettings.StarvingToDeathMoveSpeedFactorWhileHealthAboveZero;
-            else speed *= ServerSettings.StarvingToDeathMoveSpeedFactor;
-        }
+            // DO starving speed 
+            /*
+            if(p.food_store < 0) 
+            {
+                if(p.yum_multiplier > 0) speed *= ServerSettings.StarvingToDeathMoveSpeedFactorWhileHealthAboveZero;
+                else speed *= ServerSettings.StarvingToDeathMoveSpeedFactor;
+            }
+            */
 
+            // Reduce speed if damaged
+            var fullHitpoints = p.calculateNotReducedFoodStoreMax();
+            var currenHitpoints = p.calculateFoodStoreMax();
+
+            // between 1/2 and 1;
+            speed *= (currenHitpoints + fullHitpoints) / (fullHitpoints + fullHitpoints);
+
+            trace('SPEED: $speed currenHitpoints: $currenHitpoints fullHitpoints: $fullHitpoints');
+        }
 
         // Do health speed
         var healthFactor = p.CalculateHealthFactor(true);

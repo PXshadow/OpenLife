@@ -1853,29 +1853,38 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return clothingHeatProtection;
     }
 
-    public function calculateFoodStoreMax() : Float
+    // TODO increase with health
+    public function calculateNotReducedFoodStoreMax() : Float
     {
         var p:GlobalPlayerInstance = this;
         var age = p.age;
-        var food_store_max:Float = ServerSettings.GrownUpFoodStoreMax;
+        var new_food_store_max:Float = ServerSettings.GrownUpFoodStoreMax;
 
-        if(age < 20) food_store_max = ServerSettings.NewBornFoodStoreMax + age / 20 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.NewBornFoodStoreMax);
-        if(age > 50) food_store_max = ServerSettings.OldAgeFoodStoreMax + (60 - age) / 10 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.OldAgeFoodStoreMax);
+        if(age < 20) new_food_store_max = ServerSettings.NewBornFoodStoreMax + age / 20 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.NewBornFoodStoreMax);
+        if(age > 50) new_food_store_max = ServerSettings.OldAgeFoodStoreMax + (60 - age) / 10 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.OldAgeFoodStoreMax);
 
-        if(p.food_store < 0) food_store_max += ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath * p.food_store;
+        return new_food_store_max;
+    }
 
-        food_store_max -= p.hits;
+    public function calculateFoodStoreMax() : Float
+    {
+        var p:GlobalPlayerInstance = this;
+        var new_food_store_max = calculateNotReducedFoodStoreMax();
+
+        if(p.food_store < 0) new_food_store_max += ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath * p.food_store;
+
+        new_food_store_max -= p.hits;
 
         if(p.exhaustion > 0)
         {
-            var tmp_food_store_max = food_store_max;
+            var tmp_food_store_max = new_food_store_max;
 
-            food_store_max -= p.exhaustion;
+            new_food_store_max -= p.exhaustion;
         
-            if(food_store_max < tmp_food_store_max / 2) food_store_max = tmp_food_store_max / 2;
+            if(new_food_store_max < tmp_food_store_max / 2) new_food_store_max = tmp_food_store_max / 2;
         }
 
-        return food_store_max;
+        return new_food_store_max;
     }
 
 

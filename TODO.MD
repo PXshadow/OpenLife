@@ -124,8 +124,9 @@ Food - YUM:
 - YUM chain is used as Health // TODO change YUM --> Prestiege Max_Food --> Health 
 - eating YUM increases YUM chain, while eating MEH reduces it
 
-Food - Health
+Food - Health - Hits
 - YUM chain / Health influences now aging (0.5X to 2X) and speed (1.2X to 0.5X) / With this Berry munching is even worse
+- Having less hitpoints / beeing more exhausted reduces speed  
 
 Food - Cravings:
 - Cravings display now a random food with a full YUM Boni, that has allready been eaten
@@ -174,7 +175,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 - BIRTH incarnation according to score
 - BIRTH curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
 - EXHAUSTION emotes for exhausted
-- EXHAUSTION reduces speed 
 - EXHAUSTION in swamp / bad biome
 - EXHAUSTION movement change
 - EXHAUSTION carrying heavy stuff
