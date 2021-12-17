@@ -49,11 +49,19 @@ Loved / Hated Biomes:
 
 Heat / Temperature:
 - bad temperature reduces speed extreme temperature reduces double
-- Different color people love different temperatures (average temperature and resistance to too hot or cold temperature)
+- different color people love different temperatures (average temperature and resistance to too hot or cold temperature)
 - clothing can protect against cold and heat. The better it protects against cold the less it protects against heat
-- Heal only if not too cold or hot / heal faster the better temperature / take damage if too hot or cold 
-- Better chance of having a kid with right temperature
-- Bad Temperature is affected now by how much you / your partens (50%) love the biome
+- Heal only if not too cold or hot / heal faster the better temperature 
+- take damage if too hot or cold especially if far too hot / cold
+- bad temperature generates exhaustion and reduces exhaustion reduction
+- better chance of having a kid with right temperature
+- bad Temperature is affected now by how much you / your parents (50%) love the biome
+
+Exhaustion:
+- reduces food store max untill recovered
+- recovering exhaustion increases food need 
+- bad temperature generates exhaustion and reduces exhaustion reduction
+- half of hungry work becomes now exhaustion
 
 World:
 - Paradise is back! Wild Berries and Bana come finaly back with time 
@@ -166,9 +174,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - BIRTH incarnation according to score
 - BIRTH curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
 - EXHAUSTION emotes for exhausted
-- EXHAUSTION bad temperature impacts exhaustion
-- EXHAUSTION reduces speed / increases food use
-- EXHAUSTION replaces hungry work
+- EXHAUSTION reduces speed 
 - EXHAUSTION in swamp / bad biome
 - EXHAUSTION movement change
 - EXHAUSTION carrying heavy stuff

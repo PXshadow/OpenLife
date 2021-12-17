@@ -363,18 +363,23 @@ class TimeHelper
         }
 
         // take care of exhaustion
-        if(player.exhaustion > 0 && player.food_store > 2 && playerIsStarvingOrHasBadHeat == false)
+        if(player.exhaustion > -player.food_store_max && player.food_store > 3)
         {
             player.exhaustion -= healing * ServerSettings.ExhaustionHealing;
 
             foodDecay += originalFoodDecay * ServerSettings.ExhaustionHealing;
 
-            if(player.exhaustion < 0) player.exhaustion = 0; 
+            if(player.exhaustion < -player.food_store_max) player.exhaustion = -player.food_store_max; 
         }
         
         // take damage if temperature is too hot or cold
-        if(player.isSuperHot())  player.hits += player.heat > 0.98 ? 3 * foodDecay : foodDecay;
-        else if(player.isSuperCold()) player.hits += player.heat < 0.02 ? 3 * foodDecay : foodDecay;  
+        var damage:Float = 0;
+        if(player.isSuperHot())  damage = player.heat > 0.98 ? 3 * foodDecay : foodDecay;
+        else if(player.isSuperCold()) damage = player.heat < 0.02 ? 3 * foodDecay : foodDecay;
+        
+        damage /= 2;
+        player.hits += damage;
+        player.exhaustion += damage;
 
         // do healing but increase food use
         if(player.hits > 0 && playerIsStarvingOrHasBadHeat == false) 
