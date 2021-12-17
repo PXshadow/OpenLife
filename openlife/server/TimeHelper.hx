@@ -365,9 +365,9 @@ class TimeHelper
         // take care of exhaustion
         if(player.exhaustion > 0 && player.food_store > 2 && playerIsStarvingOrHasBadHeat == false)
         {
-            player.exhaustion -= 2 * healing;
+            player.exhaustion -= healing * ServerSettings.ExhaustionHealing;
 
-            foodDecay += 2 * originalFoodDecay;
+            foodDecay += originalFoodDecay * ServerSettings.ExhaustionHealing;
 
             if(player.exhaustion < 0) player.exhaustion = 0; 
         }

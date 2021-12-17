@@ -579,17 +579,22 @@ class TransitionHelper{
         // check if it is hungry work like cutting down a tree or mining
         if(newTargetObjectData.description.indexOf("+hungryWork") != -1)
         {
-            trace('Trans hungry Work');
+            var hungryWorkCost:Float = ServerSettings.HungryWorkCost;
+            
+            trace('Trans hungry Work: cost: $hungryWorkCost');
 
-            if(player.food_store < ServerSettings.HungryWorkCost)
+            if(player.food_store < hungryWorkCost)
             {
-                var missingFood = Math.ceil(ServerSettings.HungryWorkCost - player.food_store);
+                var missingFood = Math.ceil(hungryWorkCost - player.food_store);
                 var message = 'Its hungry work! Need ${missingFood} more food!';
                 player.connection.sendGlobalMessage(message);
                 return false;
             }
+
+            hungryWorkCost /= 2; // half for exhaustion
             
-            player.addFood(-ServerSettings.HungryWorkCost);
+            player.addFood(-hungryWorkCost);
+            player.exhaustion += hungryWorkCost;
         }
 
         // if it is a transition that picks up an object like 0 + 1422 = 778 + 0  (horse with cart) then switch the hole tile object to the hand object
