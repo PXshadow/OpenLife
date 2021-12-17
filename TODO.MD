@@ -44,9 +44,11 @@ MAP:
 Family:
 - Children are now more likely to be born closer to special biome color. With this one Eve can create all colors if people migrate...
 
-Heat:
-- Different color people love different temperatures
+Heat / Temperature:
+- Different color people love different temperatures (average temperature and resistance to too hot or cold temperature)
 - clothing can protect against cold and heat. The better it protects against cold the less it protects against heat
+- Heal only if not too cold or hot / heal faster the better temperature / take damage if too hot or cold 
+- Better chance of having a kid with right temperature
 
 World:
 - Paradise is back! Wild Berries and Bana come finaly back with time 
@@ -63,9 +65,11 @@ Seasons / Winter is comming:
 - If you eat all, still they can come back since nearly all objects can respawn, but this will take lot of time...
 - There is now a second layer of objects where stuff can be hidden like onions in the winter
 
-Healing
+Healing / Hits
 - max food store equals hitpoints
 - player heals with time but healing doubles food use
+- Heal only if not too cold or hot / heal faster the better temperature 
+- Starving or very bad temperature causes damage (especiallt on the far temperature edges)
 
 Objects:
 - Cooked Rabbit Food Value: 10 --> 18
