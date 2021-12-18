@@ -178,10 +178,11 @@ more up in the list means more likely to be implemented first but no gurantee!
 - BIRTH fathers displayed in name (needs workaround since not supported from client)
 - BIRTH incarnation according to score
 - BIRTH curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
-- EXHAUSTION emotes for exhausted
+- EXHAUSTION emotes for exhausted / use biome sick / relief?
 - EXHAUSTION carrying heavy stuff
 - EXHAUSTION for working in bad biome
 - EXHAUSTION for using bad / primitive tools like sharp stone
+- EXHAUSTION better indoor reduction
 - CONNECTION reconnection
 - CONNECTION saving of people data so that people come back after server restart
 - MAP use bigger map (Europe?) / create tool to auto create map
@@ -200,6 +201,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - BIOME no dropping of stuff on water
 - BIOME biome locked planting
 - ANIMAL animal movement on top of items
+
 - TEMPERATURE indoor temperature calculation 
 - WINTER change snow biome / snow banks / melting if snow
 - TOOLS learning tools (hold wrong if not learned)

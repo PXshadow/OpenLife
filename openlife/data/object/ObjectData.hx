@@ -69,6 +69,9 @@ class ObjectData extends LineReader
     */
     public static var toolsetRecord:Array<ToolSetRecord> = [];
 
+    //**searchable Name in upper letters**/
+    public var name:String; // not saved / generated from description
+
     // Indicates that this object can be used to creat foodFromTarget
     public var foodFromTarget:ObjectData; // do not save on disk since it can be calculated after loading
     // Indicates that this object can be used to creat foodFromTarget with a tool
@@ -405,21 +408,90 @@ class ObjectData extends LineReader
 
         trace('dataVersionNumber: $dataVersionNumber');
 
-        ObjectData.Init();
+        Init();
         
-        if(ObjectData.ReadAllFromFile(dataVersionNumber) == false)
+        if(ReadAllFromFile(dataVersionNumber) == false)
         {
-            ObjectData.ImportObjectData();
-            ObjectData.WriteAllToFile(dataVersionNumber);
+            ImportObjectData();
+            WriteAllToFile(dataVersionNumber);
         }
 
-        ObjectData.CreatePersonArray();         
-        ObjectData.CreateAndAddDummyObjectData();
-        ObjectData.CreateFoodObjectArray();
+        GenerateSearchableNames();
+        CreatePersonArray();         
+        CreateAndAddDummyObjectData();
+        CreateFoodObjectArray();
         ServerSettings.PatchObjectData();
+        GenerateBiomeObjectData();
 
-        ObjectData.GenerateBiomeObjectData();
+        /*
+        trace('Name: Axe id: ${GetObjectByName('Axe')}');
+        trace('Name2: Axe id: ${GetObjectByName('Axe', false)}');
+        trace('Name2: Steel Axe id: ${GetObjectByName('Steel Axe', false)}');
+        trace('Name3: Steel Axe id: ${GetObjectByName('Steel Axe', false, true)}');
+        
+        trace('Name: Tree id: ${GetObjectByName('Tree')}');
+        trace('Name2: Tree id: ${GetObjectByName('Tree', false)}');
+        trace('Name3: Tree id: ${GetObjectByName('Tree', false, true)}');
+        */
     }
+
+    // do before dummies
+    private static function GenerateSearchableNames()
+    {
+        for(objData in objectDataMap)
+        {
+            var tmpName = objData.description.toUpperCase();
+            tmpName = StringTools.replace(tmpName, '\n', '');
+            tmpName = StringTools.replace(tmpName, '\r', '');
+            
+            //trace('Name1: $tmpName');
+
+            tmpName = tmpName.split('#')[0];
+            tmpName = tmpName.split('+')[0];
+            tmpName = tmpName.split('-')[0];
+            
+            tmpName = StringTools.trim(tmpName);
+
+            //trace('Name2: $tmpName');
+
+            objData.name = tmpName;
+        }
+    }
+
+    public static function GetObjectByName(searchName:String, exactName:Bool = true, searchFromEnd:Bool = false) : Int
+    {
+        searchName = searchName.toUpperCase();
+
+        for(objData in ObjectData.importedObjectData)
+        {
+            if(searchName == objData.name)
+            {
+                return objData.id;
+            }
+        }
+
+        if(exactName) return -1;
+
+        for(objData in ObjectData.importedObjectData)
+        {
+            if(searchFromEnd)
+            {
+                if(StringTools.endsWith(objData.name, searchName)) return objData.id;
+            }
+            else
+            {
+                if(StringTools.startsWith(objData.name, searchName)) return objData.id;
+            }
+        }
+
+        for(objData in ObjectData.importedObjectData)
+        {
+            if(objData.name.indexOf(searchName) != -1) return objData.id;
+        }
+
+        return -1;
+    }
+
 
     public static function Init()
     {

@@ -2174,16 +2174,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     
     public static function findObjectByCommand(text:String) : Int
     {
-        /* var startsWith = true;
-
-        if(text.indexOf('!!') != -1)
-        {
-            startsWith = false;
-
-            text = StringTools.replace(text, '!', '');
-        }
-        */
-
         var strings = text.split(' ');
 
         if(strings.length < 2) return -1;
@@ -2198,68 +2188,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         trace('Command Search: /${toSearch}/ end: $end');
 
-        if(id == null)
-        {
-            for(obj in ObjectData.importedObjectData)
-            {
-                var description = obj.description.toUpperCase();
-                description = StringTools.replace(description, '\n', '');
-                description = StringTools.replace(description, '\r', '');
+        if(id != null) return id;
 
-                if(description == toSearch)
-                {
-                    id = obj.id;
-                    break;
-                }
-            }
-        }
-
-        if(id == null)
-        {
-            for(obj in ObjectData.importedObjectData)
-            {
-                var description = obj.description.toUpperCase();
-                description = StringTools.replace(description, '\n', '');
-                description = StringTools.replace(description, '\r', '');
-
-                //trace('/${description}/');
-
-                if(end)
-                {
-                    if(StringTools.endsWith(description, toSearch))
-                    {
-                        id = obj.id;
-                        break;
-                    }
-                }
-                else
-                {
-                    if(StringTools.startsWith(description, toSearch))
-                    {
-                        id = obj.id;
-                        break;
-                    }
-                }
-            }
-        } 
-
-        if(id == null)
-        {
-            for(obj in ObjectData.importedObjectData)
-            {
-                var description = obj.description.toUpperCase();
-                description = StringTools.replace(description, '\n', '');
-                description = StringTools.replace(description, '\r', '');
-
-                if(description.indexOf(toSearch) != -1)
-                {
-                    id = obj.id;
-                    break;
-                }
-            }
-        } 
-
-        if(id == null) return -1;
+        id = ObjectData.GetObjectByName(toSearch, false, end);
 
         return id;
     }
