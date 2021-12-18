@@ -141,8 +141,8 @@ class MoveHelper
 
 
         // only reduce speed when starving if not riding or in car 
-        if(onHorseOrCar == false)
-        {
+        //if(onHorseOrCar == false)
+        //{
             // DO starving speed 
             /*
             if(p.food_store < 0) 
@@ -160,7 +160,7 @@ class MoveHelper
             speed *= (currenHitpoints + fullHitpoints) / (fullHitpoints + fullHitpoints);
 
             if(ServerSettings.DebugSpeed) trace('SPEED: $speed currenHitpoints: $currenHitpoints fullHitpoints: $fullHitpoints');
-        }
+        //}
 
         // Do health speed
         var healthFactor = p.CalculateHealthFactor(true);
@@ -169,14 +169,16 @@ class MoveHelper
 
         speed *= healthFactor;
 
-        var ageSpeedFactor:Float = 1;
+        
 
         // Do temperature speed
         var temperatureSpeedImpact = ServerSettings.TemperatureSpeedImpact;
         if(p.isSuperHot())  speed *= p.heat > 0.98 ? Math.pow(temperatureSpeedImpact,2) : temperatureSpeedImpact;
         else if(p.isSuperCold()) speed *= p.heat < 0.02 ? Math.pow(temperatureSpeedImpact,2) : temperatureSpeedImpact;
         
+        /* speed is reduced already by age since lower foodstoremax
         // Do age speed
+        var ageSpeedFactor:Float = 1;
         if(p.age < 1) ageSpeedFactor = 0.5;
         else if(p.age < 2) ageSpeedFactor = 0.6; 
         else if(p.age < 3) ageSpeedFactor = 0.7;
@@ -184,18 +186,11 @@ class MoveHelper
         else if(p.age < 12) ageSpeedFactor = 0.9;
         else if(p.age > 55) ageSpeedFactor = 0.9;
         
-        /*
-        if(p.age < 1) ageSpeedFactor = 0.5;
-        else if(p.age < 2) ageSpeedFactor = 0.7; 
-        else if(p.age < 3) ageSpeedFactor = 0.8;
-        else if(p.age < 6) ageSpeedFactor = 0.9;
-        else if(p.age < 10) ageSpeedFactor = 0.95;
-        else if(p.age > 55) ageSpeedFactor = 0.8;
-        */
 
-        speed *= ageSpeedFactor;
+        speed *= ageSpeedFactor; */
 
-        if(ServerSettings.DebugSpeed) trace('speed: $speed age: ${p.age} ageSpeedFactor: ${ageSpeedFactor} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
+        //if(ServerSettings.DebugSpeed) trace('speed: $speed age: ${p.age} ageSpeedFactor: ${ageSpeedFactor} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
+        if(ServerSettings.DebugSpeed) trace('speed: $speed age: ${p.age} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
 
         return speed;
     }
