@@ -189,6 +189,10 @@ class ServerSettings
             //if(obj.containable) trace('${obj.description} ${obj.containSize}');
         }
 
+        // dont block walking
+        ObjectData.getObjectData(231).blocksWalking = false; // Adobe Oven Base 
+        ObjectData.getObjectData(237).blocksWalking = false; // Adobe Oven
+
         // Change map spawn chances
         ObjectData.getObjectData(769).mapChance *= 5; // Wild Horse
         ObjectData.getObjectData(942).mapChance *= 10; // Muddy Iron Vein
@@ -209,9 +213,13 @@ class ServerSettings
 
         ObjectData.getObjectData(769).biomes.push(BiomeTag.GREEN); // Beautiful Horses now also in Green biome :)
 
-        ObjectData.getObjectData(290).speedMult = 0.80; // Iron Ore
-        ObjectData.getObjectData(314).speedMult = 0.80; // Wrought Iron
-        ObjectData.getObjectData(326).speedMult = 0.80; // Steel Ingot
+        ObjectData.getObjectData(411).speedMult = 0.8; // Fertile Soil Reduced carring speed
+        ObjectData.getObjectData(345).speedMult = 0.8; // Butt Log
+        ObjectData.getObjectData(126).speedMult = 0.8; // Clay 
+        ObjectData.getObjectData(127).speedMult = 0.8; // Adobe
+        ObjectData.getObjectData(290).speedMult = 0.8; // Iron Ore
+        ObjectData.getObjectData(314).speedMult = 0.8; // Wrought Iron
+        ObjectData.getObjectData(326).speedMult = 0.8; // Steel Ingot
         ObjectData.getObjectData(838).mapChance = ObjectData.getObjectData(211).mapChance / 5; // Add some lovely mushrooms  
         ObjectData.getObjectData(838).biomes.push(BiomeTag.GREEN); // Add some lovely mushrooms 
 
@@ -243,7 +251,7 @@ class ServerSettings
         // soil should replace water as most needed ressource 
         ObjectData.getObjectData(624).numUses = 2; // // Composted Soil Uses: 3 Soil (Wheat, Berry, Dung) + water ==> 4 Soil 
         ObjectData.getObjectData(411).useChance = 0.5; // Fertile Soil Pit 9 uses --> 18
-        ObjectData.getObjectData(411).speedMult = 0.8; // Fertile Soil Reduced carring speed
+        
         // TODO let rows decay from time to time to increase soil need.
 
 
