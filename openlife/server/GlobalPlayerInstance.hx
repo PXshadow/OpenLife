@@ -115,7 +115,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var woundedBy = 0;
 
     // exhaustion
-    public var exhaustion:Float = 2; // even a new baby is little bit exhausted
+    public var exhaustion:Float = 0; 
 
     // birth stuff 
     public var childrenBirthMali:Float = 0;  // increases for each child // reduces for dead childs
@@ -335,7 +335,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // TODO spawn in different classes (noble / citizen / worker)
     // TODO spawn noobs more likely noble
     // TODO spawn in hand of mother???
-    // TODO dont spawn as child if far too much children
+    // TODO consider past families of player
+    // TODO consider curses / cursed graves
+    // TODO lock mutex from mother / granmother?
     private function spawnAsChild() : Bool
     {
         var mother:GlobalPlayerInstance = GetFittestMother(this.isAi());
@@ -349,7 +351,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.followPlayer = mother; // the mother is the leader
 
         // TODO consider dead children for mother fitness
-
+        mother.exhaustion += ServerSettings.NewChildExhaustionForMother;
         mother.childrenBirthMali += 1; // make it less likely to get new child
         if(mother.mother != null) mother.mother.childrenBirthMali += 0.5; // make it less likely to get new child for each grandkid
 
@@ -511,7 +513,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         if(p.deleted) return -1000;
         if(p.isFertile() == false) return -1000;
-        if(p.food_store < 3) return -100; // no starving mothers
+        if(p.food_store < 0) return -1000; // no starving mothers
+        if(p.exhaustion > 10) return -1000; // no super exhausted mothers
 
         var tmpFitness = p.childrenBirthMali * (-1); // the more children the less likely
         tmpFitness += p.food_store /= 10; // the more food the more likely 
