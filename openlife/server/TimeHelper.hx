@@ -288,7 +288,7 @@ class TimeHelper
 
         //trace('player.age_r: ${player.age_r}');
 
-        var healthFactor = player.CalculateHealthFactor(false);
+        var healthFactor = player.CalculateSpeedAgeFactor();
         var agingFactor:Float = 1;    
         
         //trace('healthFactor: ${healthFactor}');

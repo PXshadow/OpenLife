@@ -697,16 +697,32 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         } 
     }
 
-    public function CalculateHealthFactor(forSpeed:Bool) : Float
+    public function CalculateSpeedHealthFactor() : Float
+    {
+        return CalculateHealthFactor(1.2, 0.8);
+    }
+
+    public function CalculateSpeedAgeFactor() : Float
+    {
+        return CalculateHealthFactor(2, 0.5);
+    }
+
+    public function CalculateSpeedMaxFoodStoreFactor() : Float
+    {
+        return CalculateHealthFactor(1.5, 0.5);
+    }
+
+    public function CalculateHealthFactor(maxBoni:Float, maxMali:Float) : Float
     {
         var health:Float = this.yum_multiplier; // - this.trueAge  * ServerSettings.MinHealthPerYear;
 
         var healthFactor:Float; 
 
-        var maxBoni = forSpeed ? 1.2 : 2; // for Speed or for aging
-        var maxMali = forSpeed ? 0.8 : 0.5;
+        //var maxBoni = forSpeed ? 1.2 : 2; // for Speed or for aging
+        //var maxMali = forSpeed ? 0.8 : 0.5;
 
-        if(health >= 0) healthFactor = (maxBoni  * health + ServerSettings.HealthFactor) / (health + ServerSettings.HealthFactor);
+        // healthFactor 1.13 if health double ServerSettings.HealthFactor
+        if(health >= 0) healthFactor = (maxBoni  * health + ServerSettings.HealthFactor) / (health + ServerSettings.HealthFactor); 
         else healthFactor = (health - ServerSettings.HealthFactor) / ( (1 / maxMali) * health - ServerSettings.HealthFactor);
 
         return healthFactor;
@@ -1868,7 +1884,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         var p:GlobalPlayerInstance = this;
         var age = p.age;
-        var new_food_store_max = calculateNotReducedFoodStoreMax();
+        var healthFactor = CalculateSpeedMaxFoodStoreFactor();
+        var new_food_store_max = calculateNotReducedFoodStoreMax() * healthFactor;
 
         if(age < 20) new_food_store_max = ServerSettings.NewBornFoodStoreMax + age / 20 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.NewBornFoodStoreMax);
         if(age > 50) new_food_store_max = ServerSettings.OldAgeFoodStoreMax + (60 - age) / 10 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.OldAgeFoodStoreMax);

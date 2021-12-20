@@ -152,24 +152,20 @@ class MoveHelper
             }
             */
 
-            // Reduce speed if damaged
+            // Reduce speed if damaged or age 
             var fullHitpoints = p.calculateNotReducedFoodStoreMax();
             var currenHitpoints = p.calculateFoodStoreMax();
 
-            // between 1/2 and 1;
+            // between 1/2 and 1 if currenHitpoints <= fullHitpoints
             speed *= (currenHitpoints + fullHitpoints) / (fullHitpoints + fullHitpoints);
 
             if(ServerSettings.DebugSpeed) trace('SPEED: $speed currenHitpoints: $currenHitpoints fullHitpoints: $fullHitpoints');
         //}
 
-        // Do health speed
-        var healthFactor = p.CalculateHealthFactor(true);
-
-        if(ServerSettings.DebugSpeed) trace('speed: healthFactor: $healthFactor health: ${p.yum_multiplier} trueAge: ${p.trueAge} expected health: ${p.trueAge  * ServerSettings.MinHealthPerYear}');
-
-        speed *= healthFactor;
-
-        
+        // Do health speed // TODO maybe better use currenHitpoints...  
+        //var healthFactor = p.CalculateSpeedHealthFactor();
+        //if(ServerSettings.DebugSpeed) trace('speed: healthFactor: $healthFactor health: ${p.yum_multiplier} trueAge: ${p.trueAge} expected health: ${p.trueAge  * ServerSettings.MinHealthPerYear}');
+        //speed *= healthFactor;
 
         // Do temperature speed
         var temperatureSpeedImpact = ServerSettings.TemperatureSpeedImpact;
