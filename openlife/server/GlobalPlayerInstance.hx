@@ -124,6 +124,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public var exiledByPlayers = new Map<Int, GlobalPlayerInstance>();
 
+    public var coins:Float = 0;
+
     // set all stuff null so that nothing is hanging around
     public function delete()
     {
@@ -1236,19 +1238,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             if(isCravingEatenObject)
             {
-                playerTo.yum_multiplier += 2;
-                if(playerFrom != playerTo) playerFrom.yum_multiplier += 0.5;
+                playerTo.addHealthAndPrestiege(2);
+                if(playerFrom != playerTo) playerFrom.addHealthAndPrestiege(0.4);
             }
             else
             {
-                playerTo.yum_multiplier += 1; 
-                if(playerFrom != playerTo) playerFrom.yum_multiplier += 0.25;           
+                playerTo.addHealthAndPrestiege(1);
+                if(playerFrom != playerTo)playerFrom.addHealthAndPrestiege(0.2);          
             }
         }
         else
         {
-            playerTo.yum_multiplier -= 1;
-            if(playerFrom != playerTo) playerFrom.yum_multiplier += 0.5; // saved one from starving to death
+            playerTo.addHealthAndPrestiege(-1);
+            //if(playerFrom != playerTo) playerFrom.yum_multiplier += 0.5; // saved one from starving to death
         }
              
         //else if(isHoldingMeh()) yum_multiplier -= 1;
@@ -2291,6 +2293,31 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(motherOrFather) loved *= 0.5;
 
         return loved;
+    }
+
+    public function addHealthAndPrestiege(count:Float)
+    {
+        this.yum_multiplier += count;
+        this.coins += count;
+
+        if(this.getTopLeader() == null) return;
+
+        count /= 5;
+
+        var leader = followPlayer;
+        if(leader == null) return;
+
+        for(ii in 0...5)
+        {
+            if(this.exiledByPlayers.exists(leader.p_id)) return; // is exiled
+
+            leader.yum_multiplier += count;
+            leader.coins += count;
+
+            if(leader.followPlayer == null) return;
+
+            leader = leader.followPlayer;
+        }
     }
 }
 
