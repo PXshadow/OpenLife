@@ -2298,7 +2298,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function addHealthAndPrestiege(count:Float)
     {
         this.yum_multiplier += count;
-        this.coins += count;
+        if(count > 0) this.coins += count;
+        else return;
 
         if(this.getTopLeader() == null) return;
 
