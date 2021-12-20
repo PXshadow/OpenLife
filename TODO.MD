@@ -15,6 +15,10 @@ Project Winter is comming summary:
 - Yum chain is now your prestiege (score) / health and influcences movement speed and aging
 --> so yes in theory you can life longer then 60
 - Quality of Life: You can pick berriers directly with a bowl, you can eat while on a horse. Shoes give extra speed
+- You get now coins for eating YUM, more for eating cravings
+- You can give coins by saying: I GIVE YOU XX with XX = I=1 V=5 X=10 L=50 C=100 D=500 M=1000. The order does not matter (not Roman)
+- Leaders get 1/5 prestiege / coins their followers get 
+--> so I give you XXCIIII ==> gives 124 coins
 - Wells fill up at least 3 times faster. Better wells always makes more water then primitive wells
 
 AI:
@@ -156,7 +160,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
-- HEALTH influence on food store max / food store max influence instead of age or health on speed reduction 
 - AI basic nursing
 - Ai birth after death
 - AI basic clothing

@@ -914,6 +914,48 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             // TODO AI
             return;
         }
+
+        doCommand = message.startsWith('I GIVE ');
+
+        if(doCommand)
+        {
+            var target = NamingHelper.GetPlayerByName(this, name);
+
+            if(target == null || target == this) return;
+
+            var strings = message.split(' ');
+
+            if(strings.length < 4) return;
+
+            var coinText = strings[3];
+            var amount = 0;
+
+            for(ii in 0...coinText.length)
+            {
+                if(coinText.charAt(ii) == 'I') amount += 1;
+                else if(coinText.charAt(ii) == 'V') amount += 5;
+                else if(coinText.charAt(ii) == 'X') amount += 10;
+                else if(coinText.charAt(ii) == 'L') amount += 50;
+                else if(coinText.charAt(ii) == 'C') amount += 100;
+                else if(coinText.charAt(ii) == 'D') amount += 500;
+                else if(coinText.charAt(ii) == 'M') amount += 1000;
+            }
+
+            if(this.coins < amount)
+            {
+                if(this.connection != null) this.connection.sendGlobalMessage('YOU_NEED_${amount}_COINS(S)._BUT_YOU_HAVE_${this.coins}!');
+
+                return;
+            }
+
+            this.coins -= amount;
+            target.coins += amount;
+
+            if(this.connection != null) this.connection.sendGlobalMessage('YOU_GAVE_${target.name}_${target.familyName}_${amount}_COINS(S)._YOU_HAVE_NOW_${this.coins}!');
+            if(target.connection != null) target.connection.sendGlobalMessage('${this.name}_${this.familyName} GAVE YOU ${amount}_COINS(S)._YOU_HAVE_NOW_${target.coins}!');
+
+            trace('coinText: $coinText amount: $amount');
+        }
     }
 
     // if people follow circular outcome is null / max 10 deep hierarchy is supported
