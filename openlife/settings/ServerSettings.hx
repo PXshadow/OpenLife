@@ -15,13 +15,16 @@ class ServerSettings
     // DEBUG: switch on / off
     public static var dumpOutput = false;
     public static var debug = true; // activates or deactivates try catch blocks and initial debug objects generation // deactivates saving
-    public static var useOneGlobalMutex = false; // if you want to try out if there a problems with mutexes / different threads
     public static var saveToDisk = true; 
     public static var AllowDebugCommmands = true; // can create objects with saying "!create ID" / "!create object" "!create object!" with ! indicating that object ends with "object" or test wounds with using "!hit" or "!heal"
     public static var DebugWrite = false; // WordMap writeToDisk
     public static var TraceCountObjects = false; // WorldMap
     public static var DebugSpeed = false; // MovementHelper
     
+    // Mutex
+    public static var useOneGlobalMutex = false; // if you want to try out if there a problems with mutexes / different threads
+    public static var useOnePlayerMutex = true; // if you want to try out if there a problems with mutexes / different threads
+
     // DEBUG: used to trace connection.send commands 
     public static var TraceSendPlayerActions = false;  //  only trace player actions // ignores MX from animal, FX and PU from food / age
     public static var TraceSendNonPlayerActions = false;  //  only trace non player actions // traces only MX from animal, FX and PU from food / age

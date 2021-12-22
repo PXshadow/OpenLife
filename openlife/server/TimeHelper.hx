@@ -116,6 +116,8 @@ class TimeHelper
 
         DoSeason(timePassedInSeconds);
 
+        if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.acquire(); // TODO if no global player mutex is used
+
         for (c in Connection.getConnections())
         {            
             if(DoTimeStuffForPlayer(c.player, timePassedInSeconds) == false) continue;
@@ -129,6 +131,8 @@ class TimeHelper
 
             Macro.exception(ai.doTimeStuff(timePassedInSeconds));
         }
+
+        if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release(); // TODO mutext if no global player mutex is used
 
         Macro.exception(DoWorldMapTimeStuff()); // TODO currently it goes through the hole map each sec / this may later not work
 
@@ -433,7 +437,7 @@ class TimeHelper
 
         if(player.isHoldingChildInBreastFeedingAgeAndCanFeed())
         {
-            heldPlayer.mutex.acquire(); // TODO can create a dead lock
+            if(ServerSettings.useOnePlayerMutex == false) heldPlayer.mutex.acquire(); // TODO can create a dead lock
 
             try{
                 //trace('feeding:');
@@ -454,7 +458,7 @@ class TimeHelper
                 trace('WARNING: ' + ex.details);
             }
 
-            heldPlayer.mutex.release();
+            if(ServerSettings.useOnePlayerMutex == false) heldPlayer.mutex.release();
         }
 
         player.food_store_max = player.calculateFoodStoreMax();
@@ -542,7 +546,7 @@ class TimeHelper
                 if(temperature < 0.5) temperature = 0.5;
             } 
 
-            trace('${closestHeatObj.description} Heat: ${closestHeatObj.objectData.heatValue} distance: $distance');
+            //trace('${closestHeatObj.description} Heat: ${closestHeatObj.objectData.heatValue} distance: $distance');
         }
 
         // consider held object heat
@@ -601,7 +605,7 @@ class TimeHelper
         if(player.connection != null) player.connection.send(HEAT_CHANGE, [message], false);
 
         //if(ServerSettings.DebugTemperature)
-        trace('Temperature update: playerHeat: $playerHeat temperature: $temperature clothingFactor: $clothingFactor foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
+        //trace('Temperature update: playerHeat: $playerHeat temperature: $temperature clothingFactor: $clothingFactor foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
     } 
 
     // Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.

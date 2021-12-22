@@ -217,9 +217,15 @@ class MoveHelper
         if(timeSinceStartMovementInSec >= moveHelper.totalMoveTime)
         {
             // a new move or command might also change the player data
-            p.mutex.acquire(); 
+            if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.acquire();
+            else p.mutex.acquire();
             
-            if(moveHelper.newMoves == null){p.mutex.release();  return;} // to be sure that meanwhile no other thread messed around
+            if(moveHelper.newMoves == null)
+            {
+                if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
+                else p.mutex.release();
+                return;
+            } // to be sure that meanwhile no other thread messed around
 
             //WorldMap.world.mutex.acquire(); // make sure that no other threat uses connections TODO change
 
@@ -258,10 +264,9 @@ class MoveHelper
                 trace(ex.details);
             }
 
-            p.mutex.release();
+            if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
+            else p.mutex.release();
             //WorldMap.world.mutex.release();
-
-            
         }
     }
 
@@ -294,7 +299,8 @@ class MoveHelper
             //trace(Server.server.map.getObjectId(p.gx + x, p.gy + y));
 
             // since move update may acces this also
-            p.mutex.acquire(); 
+            if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.acquire();
+            else p.mutex.acquire();
 
             try
             {
@@ -367,7 +373,9 @@ class MoveHelper
 
                     
                     p.forced = false;
-                    p.mutex.release();
+
+                    if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
+                    else p.mutex.release();
 
                     return;
                 }
@@ -408,7 +416,9 @@ class MoveHelper
             }
 
             p.forced = false;
-            p.mutex.release();
+            
+            if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
+            else p.mutex.release();
         }
 
         public function generateRelativeMoveUpdateString(forPlayer:GlobalPlayerInstance) : String

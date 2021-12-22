@@ -68,6 +68,8 @@ using openlife.server.MoveHelper;
 // GlobalPlayerInstance is used as a WorldInterface for an AI, since it may be limited what the AI can see so player information is relevant
 class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface
 {
+    public static var AllPlayerMutex = new Mutex();
+
     // todo remove players once dead???
     public static var AllPlayers = new Map<Int,GlobalPlayerInstance>();
     public static function AddPlayer(player:GlobalPlayerInstance)
@@ -755,7 +757,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     **/
     public function say(text:String)
     {
-        this.mutex.acquire();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
+        else this.mutex.acquire();
 
         //trace('say: $text');
 
@@ -797,7 +800,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             trace(ex.details);
         }
 
-        this.mutex.release();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
+        else this.mutex.release();
     }
 
     private function doCommands(message:String)
@@ -992,7 +996,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         var done = false;
 
-        this.mutex.acquire();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
+        else this.mutex.acquire();
 
         if(ServerSettings.debug)
         {
@@ -1016,7 +1021,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.connection.send(FRAME);
         }
 
-        this.mutex.release();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
+        else this.mutex.release();
     }
     
     public function move(x:Int,y:Int,seq:Int, moves:Array<Pos>)
@@ -1066,17 +1072,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }
 
-        this.mutex.acquire();
-
-        // make sure that if both players at the same time try to interact with each other it does not end up in a dead lock 
-        while(targetPlayer.mutex.tryAcquire() == false)
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
+        else
         {
-            this.mutex.release();
-
-            Sys.sleep(WorldMap.calculateRandomFloat() / 5);
-
             this.mutex.acquire();
-        }        
+
+            // make sure that if both players at the same time try to interact with each other it does not end up in a dead lock 
+            while(targetPlayer.mutex.tryAcquire() == false)
+            {
+                this.mutex.release();
+
+                Sys.sleep(WorldMap.calculateRandomFloat() / 5);
+
+                this.mutex.acquire();
+            } 
+        }       
         
         if(ServerSettings.debug)
         {
@@ -1101,8 +1111,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.connection.send(FRAME);
         }
 
-        if(targetPlayer != null) targetPlayer.mutex.release();
-        this.mutex.release();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
+        else
+        {
+            if(targetPlayer != null) targetPlayer.mutex.release();
+            this.mutex.release();
+        }
 
         return done;
     }
@@ -1707,7 +1721,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }
 
-        this.mutex.acquire();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
+        else this.mutex.acquire();
 
         if(ServerSettings.debug)
         {
@@ -1724,9 +1739,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             }
         }
 
-        this.mutex.release();
-
         Connection.SendUpdateToAllClosePlayers(this);
+
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
+        else this.mutex.release();
 
         return true;
     }
@@ -1831,7 +1847,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         if(this.deleted) return;
 
-        Server.server.map.mutex.acquire();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
+        else this.mutex.acquire();
 
         try
         {
@@ -1853,7 +1870,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             trace('WARNING: ' + ex.details);
         }
 
-        Server.server.map.mutex.release();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
+        else this.mutex.release();
     }
 
     public function placeGrave()
@@ -1982,7 +2000,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }
 
-        this.mutex.acquire();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
+        else this.mutex.acquire();
         
         if(ServerSettings.debug)
         {
@@ -2007,7 +2026,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.connection.send(FRAME);
         }
 
-        this.mutex.release();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
+        else this.mutex.release();
 
         return done;
     }
@@ -2044,18 +2064,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         trace('drop player');
 
-        this.mutex.acquire();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
+        else this.mutex.acquire();
 
         if(this.heldPlayer == null)
         {
             this.connection.send(PLAYER_UPDATE,[this.toData()]);
-            this.mutex.release();
+            
+            if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
+            else this.mutex.release();
+
             return false;    
         }
 
         var done = doHelper(this, this.heldPlayer, dropPlayerHelper);
 
-        this.mutex.release();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
+        else this.mutex.release();
 
         return done;
     }
@@ -2100,20 +2125,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         trace('jump');
 
-        this.mutex.acquire();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
+        else this.mutex.acquire();
 
         if(this.heldByPlayer == null)
         {
             this.connection.send(PLAYER_UPDATE,[this.toData()]);
             this.connection.sendWiggle(this);
             this.connection.send(FRAME, null, true);
-            this.mutex.release();
+
+            if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
+            else this.mutex.release();
+
             return false;    
         }
 
         var done = doHelper(this.heldByPlayer, this, dropPlayerHelper);
 
-        this.mutex.release();
+        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
+        else this.mutex.release();
 
         return done;
     }
@@ -2121,16 +2151,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     private static function doHelper(player:GlobalPlayerInstance, targetPlayer:GlobalPlayerInstance, doFunction:GlobalPlayerInstance->Bool) : Bool
     {
         var done = false;
-    
-        // make sure that if both players at the same time try to interact with each other it does not end up in a dead lock 
-        while(targetPlayer.mutex.tryAcquire() == false)
-        {
-            player.mutex.release();
 
-            Sys.sleep(WorldMap.calculateRandomFloat() / 5);
+        if(ServerSettings.useOnePlayerMutex == false) 
+        {    
+            // make sure that if both players at the same time try to interact with each other it does not end up in a dead lock 
+            while(targetPlayer.mutex.tryAcquire() == false)
+            {
+                player.mutex.release();
 
-            player.mutex.acquire();
-        } 
+                Sys.sleep(WorldMap.calculateRandomFloat() / 5);
+
+                player.mutex.acquire();
+            } 
+        }
 
         Macro.exception(done = doFunction(player));
 
@@ -2141,7 +2174,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             player.connection.send(FRAME);
         }
 
-        targetPlayer.mutex.release();
+        if(ServerSettings.useOnePlayerMutex == false) targetPlayer.mutex.release();
 
         return done;
     }

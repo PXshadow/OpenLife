@@ -50,10 +50,12 @@ class TransitionHelper{
             return false;
         }
 
-        //trace('doCommand try to acquire player mutex');
-        player.mutex.acquire();
+        
         //trace('doCommand try to acquire map mutex');
         Server.server.map.mutex.acquire();
+        //trace('doCommand try to acquire player mutex');
+        if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.acquire();
+        else player.mutex.acquire();
         //trace('doCommand got all mutex');
 
         var done = false;
@@ -78,9 +80,11 @@ class TransitionHelper{
         }
 
         //trace("release player mutex");
-        Server.server.map.mutex.release();
+        if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
+        else player.mutex.release();
         //trace("release map mutex");
-        player.mutex.release();
+        Server.server.map.mutex.release();
+        
 
         return done;
     }  

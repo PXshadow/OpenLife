@@ -12,11 +12,11 @@ import haxe.io.Bytes;
 
 class Connection 
 {
-    private static var globalMutex = new Mutex();
+    //private static var globalMutex = new Mutex();
     private static var connections:Array<Connection> = [];
     private static var ais:Array<ServerAi> = [];
 
-    private var mutex = new Mutex();
+    private var mutex = new Mutex(); // TODO really needed?
 
     public var serverAi:ServerAi; // null if connected to a client
 
@@ -43,8 +43,9 @@ class Connection
 
     public function login()
     {
-        server.map.mutex.acquire();
-        this.mutex.acquire();
+        //server.map.mutex.acquire(); ???
+        GlobalPlayerInstance.AllPlayerMutex.acquire();
+        if(ServerSettings.useOnePlayerMutex == false) this.mutex.acquire();
 
         try
         {
@@ -91,8 +92,10 @@ class Connection
             trace(ex.details);
         }
 
-        this.mutex.release();
-        server.map.mutex.release();
+        if(ServerSettings.useOnePlayerMutex == false) this.mutex.release();
+        GlobalPlayerInstance.AllPlayerMutex.release();
+
+        //server.map.mutex.release(); ???
     }
     
     public static function getConnections() : Array<Connection>
@@ -502,7 +505,8 @@ class Connection
 
     private function addToConnections()
     {
-        globalMutex.acquire();
+        GlobalPlayerInstance.AllPlayerMutex.acquire();
+        
 
         // it copies the connection array to be thread save 
         // other threads should meanwhile be able to iterate on connections. 
@@ -517,14 +521,13 @@ class Connection
 
         connections = newConnections; 
 
-        globalMutex.release();
+        GlobalPlayerInstance.AllPlayerMutex.release();
     }
 
     public function close()
     {
-        this.mutex.acquire();
-
-        globalMutex.acquire();
+        GlobalPlayerInstance.AllPlayerMutex.acquire();
+        if(ServerSettings.useOnePlayerMutex == false) this.mutex.acquire();
 
         try
         {
@@ -544,7 +547,6 @@ class Connection
 
             connections = newConnections; 
 
-            
             running = false;
             sock.close();
         }
@@ -553,9 +555,9 @@ class Connection
             trace(ex);
         }
 
-        globalMutex.release();
-
-        this.mutex.release();
+        if(ServerSettings.useOnePlayerMutex == false) this.mutex.release();
+        GlobalPlayerInstance.AllPlayerMutex.release();
+        
     }
 
     // KA x y#
