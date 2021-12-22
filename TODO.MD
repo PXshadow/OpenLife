@@ -67,7 +67,8 @@ Exhaustion:
 - bad temperature generates exhaustion and reduces exhaustion reduction
 - half of hungry work becomes now exhaustion
 - exhaustion in not loved biome (more in swamp or river if not on floor or bridge)
-- greater reover of exhaustion in loved biome 
+- greater recover of exhaustion in loved biome 
+- Changing your movement while moving generates exhaustion
 
 World:
 - Paradise is back! Wild Berries and Bana come finaly back with time 
@@ -166,6 +167,8 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
+
+High priority:
 - AI basic nursing
 - Ai birth after death
 - AI basic clothing
@@ -211,6 +214,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - BIOME biome locked planting
 - ANIMAL animal movement on top of items
 
+Middle priority:
 - TEMPERATURE indoor temperature calculation 
 - WINTER change snow biome / snow banks / melting if snow
 - TOOLS learning tools (hold wrong if not learned)

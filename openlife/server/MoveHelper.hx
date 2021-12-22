@@ -313,13 +313,15 @@ class MoveHelper
                     p.x += lastPos.x;
                     p.y += lastPos.y;
 
+                    p.exhaustion += ServerSettings.ExhaustionOnMovementChange;
+
                     //trace('LastPos ${ lastPos.x } ${ lastPos.y }');
                 }
 
                 // TODO dont accept moves untill a force is confirmed
-                // TODO it accepts one position further even if not fully reached there. 
-                // TODO maybe make player "exhausted" with lower movementspeed if he "cheats" to much
+                // TODO client accepts one position further even if not fully reached there. 
                 // This could be miss used to double movement speed. But Client seems to do it this way...
+                // Exhaustion is used to limit client "cheeting"
 
                 var obj = WorldMap.world.getObjectHelper(x + p.gx, y + p.gy);
                 var isBlocking = obj.blocksWalking() ||  WorldMap.isBiomeBlocking(x + p.gx, y + p.gy); 
@@ -416,7 +418,7 @@ class MoveHelper
             }
 
             p.forced = false;
-            
+
             if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
             else p.mutex.release();
         }
