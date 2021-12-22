@@ -13,11 +13,10 @@ Project Winter is comming summary:
 - All But ancient stuff can decay (exception well, iron and oil stuff)
 - New craving system that shows you what has full YUM boni
 - Yum chain is now your prestiege (score) / health and influcences movement speed and aging
+- There is a new in game currency see more about below (Coins)
 --> so yes in theory you can life longer then 60
 - Quality of Life: You can pick berriers directly with a bowl, you can eat while on a horse. Shoes give extra speed
-- You get now coins for eating YUM, more for eating cravings
-- You can give coins by saying: I GIVE YOU XX with XX = I=1 V=5 X=10 L=50 C=100 D=500 M=1000. The order does not matter (not Roman)
-- Leaders get 1/5 prestiege / coins their followers get 
+
 --> so I give you XXCIIII ==> gives 124 coins
 - Wells fill up at least 3 times faster. Better wells always makes more water then primitive wells
 
@@ -75,6 +74,13 @@ World:
 - objects respawn near original objects with a small chance
 - objects except ancient, well, Iron Mine, Oil Pumps decay with a small chance
 - decay chance is 10X reduced if on floor and 10X increeased if food
+
+Coins / Currency:
+- You get now coins for eating YUM, more for eating cravings
+- You can give coins by saying: I GIVE YOU XX with XX = I=1 V=5 X=10 L=50 C=100 D=500 M=1000. The order does not matter (not Roman)
+- Leaders get 1/5 prestiege / coins their followers get
+- Coins decay 0.1% per year if >= 1000 coins
+- On death your kids will inherit yor coins
 
 Seasons / Winter is comming:
 - First part of Seasons is now implemented

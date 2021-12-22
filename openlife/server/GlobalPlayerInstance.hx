@@ -1865,6 +1865,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
             placeGrave();
 
+            // distribute coins to children // TODO what to do if no kids?
+            if(this.coins > 1)
+            {
+                var children = this.getAllChildren(true);
+                var tmpCoins = this.coins / children.length;
+
+                for(c in children)
+                {
+                    c.coins += tmpCoins;
+                }
+            }
+
         }catch(ex)
         {
             trace('WARNING: ' + ex.details);
@@ -1872,6 +1884,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
         else this.mutex.release();
+    }
+
+    public function getAllChildren(onlyLiving:Bool = true) : Array<GlobalPlayerInstance>
+    {
+        var children = new Array();
+
+        for(c in AllPlayers)
+        {
+            if(onlyLiving && c.deleted) continue;
+            if(c.mother == this || c.father == this) children.push(c);
+        }
+
+        return children;
     }
 
     public function placeGrave()
@@ -2070,7 +2095,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(this.heldPlayer == null)
         {
             this.connection.send(PLAYER_UPDATE,[this.toData()]);
-            
+
             if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
             else this.mutex.release();
 
