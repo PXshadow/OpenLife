@@ -16,7 +16,7 @@ class Connection
     private static var connections:Array<Connection> = [];
     private static var ais:Array<ServerAi> = [];
 
-    private var mutex = new Mutex(); // TODO really needed?
+    //private var mutex = new Mutex(); // TODO really needed?
 
     public var serverAi:ServerAi; // null if connected to a client
 
@@ -45,7 +45,7 @@ class Connection
     {
         //server.map.mutex.acquire(); ???
         GlobalPlayerInstance.AllPlayerMutex.acquire();
-        if(ServerSettings.useOnePlayerMutex == false) this.mutex.acquire();
+        //if(ServerSettings.useOnePlayerMutex == false) this.mutex.acquire();
 
         try
         {
@@ -92,7 +92,7 @@ class Connection
             trace(ex.details);
         }
 
-        if(ServerSettings.useOnePlayerMutex == false) this.mutex.release();
+        //if(ServerSettings.useOnePlayerMutex == false) this.mutex.release();
         GlobalPlayerInstance.AllPlayerMutex.release();
 
         //server.map.mutex.release(); ???
@@ -438,13 +438,13 @@ class Connection
                 // update only close players
                 if(player.isClose(toX,toY, ServerSettings.maxDistanceToBeConsideredAsClose) == false && player.isClose(fromX,fromY, ServerSettings.maxDistanceToBeConsideredAsClose)) continue;
 
-                c.mutex.acquire(); // do all in one frame
+                //c.mutex.acquire(); // do all in one frame
 
                 c.sendMapUpdate(fromX, fromY, floorIdFrom, fromObj, -1, false);
                 c.sendMapUpdateForMoving(toX, toY, floorIdTarget, toObj, -1, fromX, fromY, speed);
                 c.send(FRAME, null, false);
 
-                c.mutex.release();
+                //c.mutex.release();
             }
 
             for (c in ais)
@@ -527,7 +527,7 @@ class Connection
     public function close()
     {
         GlobalPlayerInstance.AllPlayerMutex.acquire();
-        if(ServerSettings.useOnePlayerMutex == false) this.mutex.acquire();
+        //if(ServerSettings.useOnePlayerMutex == false) this.mutex.acquire();
 
         try
         {
@@ -555,7 +555,7 @@ class Connection
             trace(ex);
         }
 
-        if(ServerSettings.useOnePlayerMutex == false) this.mutex.release();
+        //if(ServerSettings.useOnePlayerMutex == false) this.mutex.release();
         GlobalPlayerInstance.AllPlayerMutex.release();
         
     }
@@ -605,7 +605,7 @@ class Connection
     {
         if(serverAi != null) return;
 
-        this.mutex.acquire();
+        //this.mutex.acquire();
 
         try
         {
@@ -626,7 +626,7 @@ class Connection
             trace(ex);
         }
 
-        this.mutex.release();
+        //this.mutex.release();
     }
 
     /*
@@ -644,7 +644,7 @@ class Connection
     {
         if(serverAi != null) return;
 
-        this.mutex.acquire();
+        //this.mutex.acquire();
 
         try
         {
@@ -655,14 +655,14 @@ class Connection
             trace(ex);
         }
 
-        this.mutex.release();
+        //this.mutex.release();
     }
 
     public function sendMapUpdateForMoving(toX:Int, toY:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, fromX:Int, fromY:Int, speed:Float)
     {
         if(serverAi != null) return;
 
-        this.mutex.acquire();
+        //this.mutex.acquire();
 
         try
         {
@@ -670,7 +670,7 @@ class Connection
         }
         catch(ex) trace(ex);
 
-        this.mutex.release();
+        //this.mutex.release();
     }
     /**
         PE
@@ -737,7 +737,7 @@ class Connection
 
     public function send(tag:ClientTag,data:Array<String>=null, isPlayerAction:Bool = true)
     {
-        this.mutex.acquire();
+        //this.mutex.acquire();
 
         if(serverAi != null)
         {
@@ -748,7 +748,7 @@ class Connection
                 trace(ex);
             }
 
-            this.mutex.release();
+            //this.mutex.release();
 
             return;
         } 
@@ -781,12 +781,12 @@ class Connection
             trace('WARNING Send: $tmpString ' + ex);
         }
 
-        this.mutex.release();
+        //this.mutex.release();
     }
 
     public function sendPong(unique_id:String)
     {
-        this.mutex.acquire();
+        //this.mutex.acquire();
 
         try
         {
@@ -801,12 +801,12 @@ class Connection
             trace(ex);
         }
 
-        this.mutex.release();
+        //this.mutex.release();
     }
 
     public function sendGlobalMessage(message:String)
     {
-        this.mutex.acquire();
+        //this.mutex.acquire();
 
         try
         {
@@ -818,7 +818,7 @@ class Connection
             trace(ex);
         }
 
-        this.mutex.release();
+        //this.mutex.release();
     }
 
     public static function SendGlobalMessageToAll(message:String)
