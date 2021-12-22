@@ -349,7 +349,7 @@ class TimeHelper
             //trace('update age: ${player.age} food_store_max: ${player.food_store_max}');
             player.sendFoodUpdate(false);
 
-            Connection.SendUpdateToAllClosePlayers(player, false);
+            if(player.isMoving() == false) Connection.SendUpdateToAllClosePlayers(player, false);
         }
     }
 
