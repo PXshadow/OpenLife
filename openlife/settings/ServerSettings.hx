@@ -204,6 +204,9 @@ class ServerSettings
         ObjectData.getObjectData(502).hungryWork = 2; // Shovel // TODO should be cheaper then sharp stone
         ObjectData.getObjectData(496).hungryWork = 10; // Dug Stump
 
+        //ObjectData.getObjectData(496).alternativeTransitionOutcome = 10; // Dug Stump
+        
+
         // dont block walking
         ObjectData.getObjectData(231).blocksWalking = false; // Adobe Oven Base 
         ObjectData.getObjectData(237).blocksWalking = false; // Adobe Oven
@@ -374,7 +377,7 @@ class ServerSettings
         // TODO set through transions
         ObjectData.getObjectData(30).lastUseObject = 279; // Wild Gooseberry Bush ==> Empty Wild Gooseberry Bush
         ObjectData.getObjectData(279).undoLastUseObject = 30; // Empty Wild Gooseberry Bush ==> Wild Gooseberry Bush 
-        
+ 
         for(trans in TransitionImporter.transitionImporter.transitions)
         {
             if(trans.actorID < -1) 
@@ -439,7 +442,7 @@ class ServerSettings
         trans.newTargetID = 121; // 121 = Tule Reeds
         trans.traceTransition("PatchTransitions: ");
 
-
+        
 
         // 141 Canada Goose Pond
         //1261 Canada Goose Pond with Egg // TODO let egg come back
@@ -523,6 +526,13 @@ class ServerSettings
         trans = new TransitionData(569,85,570,85); // 569 Raw Mutton + 85 Hot Coals --> 570 Cooked Mutton + 85 Hot Coals
         transtions.addTransition("PatchTransitions: ", trans);
 
+        // patch alternativeTransitionOutcomes
+        
+        var trans = transtions.getTransition(502, 338); // shovel plus Stump
+        trans.alternativeTransitionOutcome.push(72); // Kindling
+         
+        ObjectData.getObjectData(342).alternativeTransitionOutcome.push(344); // Chopped Tree Big Log--> Fire Wood
+        ObjectData.getObjectData(340).alternativeTransitionOutcome.push(344); // Chopped Tree --> Fire Wood
     }
 
     public static function writeToFile()

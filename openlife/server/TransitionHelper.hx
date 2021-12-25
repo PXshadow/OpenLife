@@ -608,6 +608,24 @@ class TransitionHelper{
             player.doEmote(Emote.biomeRelief);
         }
 
+        // always use alternativeTransitionOutcome from transition if there. Second use from newTargetObjectData
+        var alternativeTransitionOutcome = transition.alternativeTransitionOutcome.length > 0 ? transition.alternativeTransitionOutcome : newTargetObjectData.alternativeTransitionOutcome;
+        //trace('TEST: ${newTargetObjectData.id} ${newTargetObjectData.description} ${newTargetObjectData.alternativeTransitionOutcome}');
+
+        if(alternativeTransitionOutcome.length > 0)
+        {
+            // TODO reduce tool 
+            // TODO support more then one obj in the list
+            if(0.8 > WorldMap.calculateRandomFloat())
+            {
+                WorldMap.PlaceObjectById(tx, ty, alternativeTransitionOutcome[0]);
+
+                trace('Place alternativeTransitionOutcome!');
+
+                return true;
+            }
+        }
+
         // if it is a transition that picks up an object like 0 + 1422 = 778 + 0  (horse with cart) then switch the hole tile object to the hand object
         // TODO this may make trouble
         // 770 + -1 = 0 + 1421  Riding Horse + ? = 0 + Escaped Riding Horse

@@ -1254,6 +1254,12 @@ class WorldMap
         return string.substr(1);
     }
 
+    public static function PlaceObjectById(tx:Int, ty:Int, objId:Int) : Bool
+    {
+        var obj = new ObjectHelper(null, objId);
+        return PlaceObject(tx, ty, obj);
+    }
+
     public static function PlaceObject(tx:Int, ty:Int, objectToPlace:ObjectHelper) : Bool
     {
         var world = WorldMap.world;

@@ -35,6 +35,8 @@ class TransitionData
     public var tool:Bool = false;
     public var targetRemains:Bool = false;
 
+    public var alternativeTransitionOutcome:Array<Int> = new Array<Int>();
+
     public static function createNewFromFile(fileName:String,string:String):TransitionData{
 
       var t = new TransitionData();

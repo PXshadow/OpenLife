@@ -83,7 +83,8 @@ class ObjectData extends LineReader
     public var lastUseObject:Int = 0; // TODO set for all according to transition // like Berry numUses: 1 ==> 0
     public var undoLastUseObject:Int = 0; // TODO set for all according to transition // like Berry numUses: 0 ==> 1
 
-    public var hungryWork:Float = 0;
+    public var hungryWork:Float = 0; 
+    public var alternativeTransitionOutcome:Array<Int> = new Array<Int>();
 
     public var decayFactor:Float = 1; // not saved ???
     public var winterDecayFactor:Float = 0; // not saved
