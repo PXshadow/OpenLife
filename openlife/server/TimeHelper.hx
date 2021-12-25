@@ -128,11 +128,14 @@ class TimeHelper
         for (ai in Connection.getAis())
         {
             if(DoTimeStuffForPlayer(ai.player, timePassedInSeconds) == false) continue;
-
-            Macro.exception(ai.doTimeStuff(timePassedInSeconds));
         }
 
         if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release(); // TODO mutext if no global player mutex is used
+
+        for (ai in Connection.getAis())
+        {
+            Macro.exception(ai.doTimeStuff(timePassedInSeconds));
+        }
 
         Macro.exception(DoWorldMapTimeStuff()); // TODO currently it goes through the hole map each sec / this may later not work
 
