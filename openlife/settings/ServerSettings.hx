@@ -173,6 +173,11 @@ class ServerSettings
         // allow some smithing on tables // TODO fix time transition for contained obj
         for(obj in ObjectData.importedObjectData)
         {
+            if(obj.description.indexOf("+hungryWork") != -1)
+            {
+                obj.hungryWork = ServerSettings.HungryWorkCost;
+            }
+
             if( obj.description.indexOf("on Flat Rock") != -1 )
             {
                 obj.containSize = 2;
@@ -192,6 +197,12 @@ class ServerSettings
 
             //if(obj.containable) trace('${obj.description} ${obj.containSize}');
         }
+
+        // set hungry work         
+        ObjectData.getObjectData(34).hungryWork = 2; // Sharp Stone
+        ObjectData.getObjectData(334).hungryWork = 5; // Steel Axe 
+        ObjectData.getObjectData(502).hungryWork = 2; // Shovel // TODO should be cheaper then sharp stone
+        ObjectData.getObjectData(496).hungryWork = 10; // Dug Stump
 
         // dont block walking
         ObjectData.getObjectData(231).blocksWalking = false; // Adobe Oven Base 
