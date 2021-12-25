@@ -190,10 +190,9 @@ High priority:
 - BIRTH fathers displayed in name (needs workaround since not supported from client)
 - BIRTH incarnation according to score
 - BIRTH curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
-- EXHAUSTION emotes for exhausted / use biome sick / relief?
 - EXHAUSTION carrying heavy stuff
 - EXHAUSTION for working in bad biome
-- EXHAUSTION for using bad / primitive tools like sharp stone
+- EXHAUSTION for more tools / tools always better then primitive tools
 - EXHAUSTION better indoor reduction
 - CONNECTION reconnection
 - CONNECTION saving of people data so that people come back after server restart

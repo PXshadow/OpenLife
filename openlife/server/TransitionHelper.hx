@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.server.GlobalPlayerInstance.Emote;
 import openlife.data.transition.TransitionImporter;
 import format.hl.Data.CodeFlag;
 import openlife.settings.ServerSettings;
@@ -51,11 +52,11 @@ class TransitionHelper{
         }
 
         
-        //trace('doCommand try to acquire map mutex');
-        Server.server.map.mutex.acquire();
         //trace('doCommand try to acquire player mutex');
         if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.acquire();
         else player.mutex.acquire();
+        //trace('doCommand try to acquire map mutex');
+        Server.server.map.mutex.acquire();
         //trace('doCommand got all mutex');
 
         var done = false;
@@ -79,11 +80,12 @@ class TransitionHelper{
             }
         }
 
+        //trace("release map mutex");
+        Server.server.map.mutex.release();
         //trace("release player mutex");
         if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
         else player.mutex.release();
-        //trace("release map mutex");
-        Server.server.map.mutex.release();
+        
         
 
         return done;
@@ -580,11 +582,13 @@ class TransitionHelper{
             return false;
         }
 
-        // check if it is hungry work like cutting down a tree or mining
-        if(newTargetObjectData.description.indexOf("+hungryWork") != -1)
+        // check if it is hungry work like cutting down a tree, using a tool or mining
+        var parentActorObjectData = handObjectData.dummyParent == null ? handObjectData : handObjectData.dummyParent;
+        var newParentTargetObjectData = newTargetObjectData.dummyParent == null ? newTargetObjectData : newTargetObjectData.dummyParent;
+        var hungryWorkCost = Math.max(parentActorObjectData.hungryWork, newParentTargetObjectData.hungryWork);
+
+        if(hungryWorkCost > 0)
         {
-            var hungryWorkCost:Float = ServerSettings.HungryWorkCost;
-            
             trace('Trans hungry Work: cost: $hungryWorkCost');
 
             if(player.food_store < hungryWorkCost)
@@ -592,6 +596,8 @@ class TransitionHelper{
                 var missingFood = Math.ceil(hungryWorkCost - player.food_store);
                 var message = 'Its hungry work! Need ${missingFood} more food!';
                 player.connection.sendGlobalMessage(message);
+                player.doEmote(Emote.homesick);
+                
                 return false;
             }
 
@@ -599,6 +605,7 @@ class TransitionHelper{
             
             player.addFood(-hungryWorkCost);
             player.exhaustion += hungryWorkCost;
+            player.doEmote(Emote.biomeRelief);
         }
 
         // if it is a transition that picks up an object like 0 + 1422 = 778 + 0  (horse with cart) then switch the hole tile object to the hand object
