@@ -38,7 +38,7 @@ class ThreadServer
         var socket:Socket = cast Thread.readMessage(true);
         trace("start connection");
         //socket.setBlocking(false);
-        //socket.setFastSend(true);
+        socket.setFastSend(true);
         var connection = new Connection(socket,server);
         var message:String = "";
         var ka:Float = Timer.stamp();
