@@ -16,6 +16,8 @@ class PlayerAccount
     public var femaleScore:Float; 
     public var maleScore:Float; 
 
+    public var lastSeenInTicks:Float;
+
     private function new(){}
 
     public static function GetOrCreatePlayerAccount(email:String, account_key_hash:String) : PlayerAccount
@@ -29,12 +31,12 @@ class PlayerAccount
 
         AllPlayerAccounts[account.email] = account;
 
-        trace('New account: $email');
+        //trace('New account: $email');
 
         return account;
     }
 
-    public function writePlayerAccounts(path:String)
+    public static function WritePlayerAccounts(path:String)
     {
         var accounts = AllPlayerAccounts;
 
@@ -51,24 +53,28 @@ class PlayerAccount
 
         for(ac in accounts)
         {
-            writer.writeString('$email\n');
-            writer.writeString('$account_key_hash\n');
-            writer.writeString('$name\n');
+            writer.writeString('${ac.email}\n');
+            writer.writeString('${ac.account_key_hash}\n');
+            writer.writeString('${ac.name}\n');
 
-            writer.writeFloat(score);
-            writer.writeFloat(femaleScore);
-            writer.writeFloat(maleScore);
+            writer.writeFloat(ac.score);
+            writer.writeFloat(ac.femaleScore);
+            writer.writeFloat(ac.maleScore);
+
+            writer.writeDouble(ac.lastSeenInTicks);
         }
 
         writer.close();
     }
 
-    public function readPlayerAccounts(path:String)
+    public static function ReadPlayerAccounts(path:String)
     {
         var reader = File.read(path, true);
         var dataVersion = reader.readInt32();
         var count = reader.readInt32();
-        var accounts = new Map<String, PlayerAccount>();
+        AllPlayerAccounts = new Map<String, PlayerAccount>();
+
+        trace('Read from file: $path count: $count');
         
         for(i in 0...count)
         {
@@ -80,10 +86,12 @@ class PlayerAccount
             account.score = reader.readFloat();
             account.femaleScore = reader.readFloat();
             account.maleScore = reader.readFloat();
+
+            account.lastSeenInTicks = reader.readDouble();
         }
 
         reader.close();
 
-        AllPlayerAccounts = accounts;
+        //trace('PlayerAccounts: $AllPlayerAccounts');
     }
 }

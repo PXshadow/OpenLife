@@ -607,6 +607,8 @@ class WorldMap
         writeMapObjects(dir + ServerSettings.CurrentObjectsFileName + tmpDataNumber + ".bin", objects);
 
         writeMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + tmpDataNumber + ".bin", objectHelpers);
+
+        Macro.exception(PlayerAccount.WritePlayerAccounts(dir + "PlayerAccounts" + tmpDataNumber + ".bin"));
         
         var path = dir + "lastDataNumber.txt";
         var writer = File.write(path, false);
@@ -654,9 +656,11 @@ class WorldMap
 
             this.objectHelpers = readMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + saveDataNumber + ".bin");
 
+            Macro.exception(PlayerAccount.ReadPlayerAccounts(dir + "PlayerAccounts" + saveDataNumber + ".bin"));
+
             this.originalObjectsCount = countObjects(this.originalObjects);
 
-            this.currentObjectsCount = countObjects(this.objects);
+            this.currentObjectsCount = countObjects(this.objects);   
         }
         catch(ex)
         {

@@ -96,6 +96,14 @@ class Connection
         this.player.connection = this;
         this.playerAccount = connectedPlayerAccount;
         this.playerAccount.lastConnection = this;
+
+        connectedPlayerAccount.lastSeenInTicks = TimeHelper.tick;
+
+        //this.player.gx += this.player.x;
+        //this.player.gy += this.player.y;
+
+        //this.player.x = 0;
+        //this.player.y = 0;
         
         addToConnections();
         sendMapChunk(player.x,player.y);
