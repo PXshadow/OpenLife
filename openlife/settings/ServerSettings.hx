@@ -199,11 +199,29 @@ class ServerSettings
             //if(obj.containable) trace('${obj.description} ${obj.containSize}');
         }
 
-        // set hungry work         
+        // set hungry work  
+        // TODO use tool hungry work factor       
         ObjectData.getObjectData(34).hungryWork = 2 * HungryWorkToolCostFactor; // Sharp Stone
         ObjectData.getObjectData(334).hungryWork = 5 * HungryWorkToolCostFactor; // Steel Axe 
         ObjectData.getObjectData(502).hungryWork = 2 * HungryWorkToolCostFactor; // Shovel // TODO should be cheaper then sharp stone
-        ObjectData.getObjectData(496).hungryWork = 10 * HungryWorkToolCostFactor; // Dug Stump
+
+        ObjectData.getObjectData(496).hungryWork = 10; // Dug Stump
+
+        ObjectData.getObjectData(213).hungryWork = 5; // Deep Tilled Row
+        ObjectData.getObjectData(1136).hungryWork = 5; // Shallow Tilled Row
+
+        //Shallow Well
+
+        
+        ObjectData.getObjectData(511).hungryWork = 2; // Pond
+        ObjectData.getObjectData(1261).hungryWork = 2; // Canada Goose Pond with Egg
+        ObjectData.getObjectData(141).hungryWork = 2;  //Canada Goose Pond
+        ObjectData.getObjectData(142).hungryWork = 2; // Canada Goose Pond swimming
+        ObjectData.getObjectData(143).hungryWork = 2; // Canada Goose Pond swimming, feather
+        ObjectData.getObjectData(662).hungryWork = 2; // Shallow Well
+        ObjectData.getObjectData(663).hungryWork = 5; // Deep Well 
+
+        // Skewer
 
         //ObjectData.getObjectData(496).alternativeTransitionOutcome = 10; // Dug Stump
         
@@ -241,9 +259,6 @@ class ServerSettings
         ObjectData.getObjectData(326).speedMult = 0.8; // Steel Ingot
         ObjectData.getObjectData(838).mapChance = ObjectData.getObjectData(211).mapChance / 5; // Add some lovely mushrooms  
         ObjectData.getObjectData(838).biomes.push(BiomeTag.GREEN); // Add some lovely mushrooms 
-
-
-        ObjectData.getObjectData(663).description += "+hungryWork"; // Deep Well // TODO test
 
          // nerve horse cart little bit :)
         ObjectData.getObjectData(778).speedMult = 1.50; // Horse-Drawn Cart
