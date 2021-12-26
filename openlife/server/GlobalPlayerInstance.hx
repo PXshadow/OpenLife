@@ -1863,23 +1863,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.age = this.trueAge; // bad health and starving can influence health, so setback true time a player lifed so that he sees in death screen
             this.reason = deathReason;
 
-            // TODO give score to AI
-            var account = this.connection.playerAccount;
+            PlayerAccount.ChangeScore(this);  
 
-            if(account != null)
-            {
-                var score = this.yum_multiplier;
-                var factor = ServerSettings.ScoreFactor;
-
-                account.score = account.score * (1 - factor) + score * factor;
-                
-                if(this.isFemal()) account.femaleScore = account.femaleScore * (1 - factor) + score * factor;
-                else account.maleScore = account.maleScore * (1 - factor) + score * factor;
-
-                trace('Score: ${account.score} This Life: $score femaleScore: ${account.femaleScore} maleScore: ${account.maleScore}');
-            }
-
-            // TODO calculate score
             // TODO set coordinates player based
             ServerSettings.startingGx = this.tx();
             ServerSettings.startingGy = this.ty();

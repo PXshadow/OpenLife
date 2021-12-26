@@ -182,7 +182,6 @@ High priority:
 - COMBAT animal interactions / collisions
 - COMBAT ill from moskitos 
 - SCORE save lineages
-- SCORE implement prestiege score
 - SCORE give score boni like for great clothing
 - BIRTH use childFood / make sure that a mother does not have too many babies at same time
 - BIRTH spawn eves on different locations

@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.settings.ServerSettings;
 import sys.io.File;
 
 class PlayerAccount
@@ -97,6 +98,28 @@ class PlayerAccount
 
     public function totalScore() : Float
     {
-        return maleScore + femaleScore;
+        return (maleScore + femaleScore) / 2; 
+    }
+
+    public static function ChangeScore(player:GlobalPlayerInstance)
+    {
+        // TODO give score to AI
+        var account = player.connection.playerAccount;
+
+        if(account == null) return;
+
+        var score = player.yum_multiplier;
+        var factor = ServerSettings.ScoreFactor;
+
+        account.score = account.score * (1 - factor) + score * factor;
+        
+        if(player.isFemal()) account.femaleScore = account.femaleScore * (1 - factor) + score * factor;
+        else account.maleScore = account.maleScore * (1 - factor) + score * factor;
+
+        account.score = Math.round(account.score * 100) / 100;
+        account.femaleScore = Math.round(account.femaleScore * 100) / 100;
+        account.maleScore = Math.round(account.maleScore * 100) / 100;
+
+        trace('Score: ${account.score} This Life: $score femaleScore: ${account.femaleScore} maleScore: ${account.maleScore}');
     }
 }
