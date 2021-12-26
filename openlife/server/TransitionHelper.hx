@@ -588,9 +588,10 @@ class TransitionHelper{
         {
             trace('Trans hungry Work: cost: $hungryWorkCost');
 
-            if(player.food_store < hungryWorkCost)
+            var missingFood = Math.ceil(hungryWorkCost - (player.food_store + player.food_store_max /2));
+
+            if(missingFood > 0)
             {
-                var missingFood = Math.ceil(hungryWorkCost - player.food_store);
                 var message = 'Its hungry work! Need ${missingFood} more food!';
                 player.connection.sendGlobalMessage(message);
                 player.doEmote(Emote.homesick);
@@ -616,7 +617,7 @@ class TransitionHelper{
             if(0.8 > WorldMap.calculateRandomFloat())
             {
                 WorldMap.PlaceObjectById(tx, ty, alternativeTransitionOutcome[0]);
-                
+
                 this.doTransition = true;
                 this.doAction = true;
 
