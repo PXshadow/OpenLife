@@ -50,7 +50,6 @@ class TransitionHelper{
             player.connection.send(PLAYER_UPDATE,[player.toData()]);
             return false;
         }
-
         
         //trace('doCommand try to acquire player mutex');
         if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.acquire();
@@ -86,8 +85,6 @@ class TransitionHelper{
         if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
         else player.mutex.release();
         
-        
-
         return done;
     }  
 
@@ -619,6 +616,9 @@ class TransitionHelper{
             if(0.8 > WorldMap.calculateRandomFloat())
             {
                 WorldMap.PlaceObjectById(tx, ty, alternativeTransitionOutcome[0]);
+                
+                this.doTransition = true;
+                this.doAction = true;
 
                 trace('Place alternativeTransitionOutcome!');
 

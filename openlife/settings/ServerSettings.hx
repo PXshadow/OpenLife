@@ -123,6 +123,7 @@ class ServerSettings
 
     // hungry work
     public static var HungryWorkCost = 10;
+    public static var HungryWorkToolCostFactor:Float = 1;
     public static var ExhaustionHealing:Float = 1; 
 
 
@@ -199,10 +200,10 @@ class ServerSettings
         }
 
         // set hungry work         
-        ObjectData.getObjectData(34).hungryWork = 2; // Sharp Stone
-        ObjectData.getObjectData(334).hungryWork = 5; // Steel Axe 
-        ObjectData.getObjectData(502).hungryWork = 2; // Shovel // TODO should be cheaper then sharp stone
-        ObjectData.getObjectData(496).hungryWork = 10; // Dug Stump
+        ObjectData.getObjectData(34).hungryWork = 2 * HungryWorkToolCostFactor; // Sharp Stone
+        ObjectData.getObjectData(334).hungryWork = 5 * HungryWorkToolCostFactor; // Steel Axe 
+        ObjectData.getObjectData(502).hungryWork = 2 * HungryWorkToolCostFactor; // Shovel // TODO should be cheaper then sharp stone
+        ObjectData.getObjectData(496).hungryWork = 10 * HungryWorkToolCostFactor; // Dug Stump
 
         //ObjectData.getObjectData(496).alternativeTransitionOutcome = 10; // Dug Stump
         
