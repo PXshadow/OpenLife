@@ -40,12 +40,18 @@ class Connection
         // if it is an AI there is no sock
         if(sock != null) send(SERVER_INFO,["0/0",challenge,'$version']);
     }
-
-    public function login()
+    /**
+        LOGIN client_tag email password_hash account_key_hash tutorial_number twin_code_hash twin_count#
+        NOTE:  The command LOGIN can be replaced with RLOGIN if the client is
+        reconnnecting to an existing life and doesn't want to start a new life
+        if the previous life is over.
+    **/
+    public function login(client_tag:String, email:String, password_hash:String, account_key_hash:String)
     {
-        //server.map.mutex.acquire(); ???
+        // TODO twins
+        trace('login: ${account_key_hash}');
+        
         GlobalPlayerInstance.AllPlayerMutex.acquire();
-        //if(ServerSettings.useOnePlayerMutex == false) this.mutex.acquire();
 
         try
         {
@@ -96,6 +102,11 @@ class Connection
         GlobalPlayerInstance.AllPlayerMutex.release();
 
         //server.map.mutex.release(); ???
+    }
+
+    public function rlogin(client_tag:String, email:String, password_hash:String, account_key_hash:String)
+    {
+        login(client_tag, email, password_hash, account_key_hash); // TODO reconnect
     }
     
     public static function getConnections() : Array<Connection>
@@ -728,11 +739,6 @@ class Connection
         else toConnection.send(PLAYER_EMOT,['${fromPlayer.p_id} $id $seconds']);
 
         toConnection.send(FRAME);
-    }
-    
-    public function rlogin()
-    {
-        login(); // TODO reconnect
     }
 
     public function send(tag:ClientTag,data:Array<String>=null, isPlayerAction:Bool = true)

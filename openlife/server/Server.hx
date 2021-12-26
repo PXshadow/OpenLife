@@ -149,10 +149,16 @@ class Server
         var array = string.split(" ");
         if (array.length == 0) return;
 
+        var input = new Array<String>();
+
+        for(s in array)
+        {
+            if(s.length > 0) input.push(s);
+        }
 
         if(ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.acquire(); 
 
-        Macro.exception(message(connection,tag,array,string));
+        Macro.exception(message(connection,tag,input,string));
         
         if(ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.release();
     }
@@ -192,14 +198,14 @@ class Server
 
     private function message(connection:Connection, tag:ServerTag,input:Array<String>,string:String)
     {
-        //trace('TAG: $tag');
+        //trace('TAG: $tag $input');
 
         switch (tag)
         {
             case LOGIN:
-                connection.login();
+                connection.login(input[0], input[1], input[2], input[3]);
             case RLOGIN:
-                connection.rlogin();
+                connection.rlogin(input[0], input[1], input[2], input[3]);
             case DIE:   // DIE x y#
                 connection.die();
             case KA:    // KA x y# 
