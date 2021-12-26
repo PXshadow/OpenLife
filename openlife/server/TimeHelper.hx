@@ -828,10 +828,14 @@ class TimeHelper
                 
                 if(WinterDecayChance * objData.winterDecayFactor * objHelper.numberOfUses < WorldMap.calculateRandomFloat()) return;
                 
+                WorldMap.world.mutex.acquire(); // TODO try catch // TODO object helper may have changed
+
                 objHelper.numberOfUses -= 1;                
                 objHelper.TransformToDummy();
                 WorldMap.world.setObjectHelper(x,y, objHelper);
                 Connection.SendMapUpdateToAllClosePlayers(x,y, [objHelper.id]);
+
+                WorldMap.world.mutex.release();
 
                 return;
             }
@@ -840,12 +844,16 @@ class TimeHelper
 
             var random = WorldMap.calculateRandomFloat();            
 
+            WorldMap.world.mutex.acquire(); // TODO try catch
+
             WorldMap.world.setObjectId(x, y, [0]);
             if(objData.springRegrowFactor > random) WorldMap.world.setHiddenObjectId(x, y, objIDs); // TODO hide also object helper for advanced objects???
 
             Connection.SendMapUpdateToAllClosePlayers(x,y,[0]);
 
             WorldMap.world.currentObjectsCount[objID]--;
+
+            WorldMap.world.mutex.release(); // TODO try catch
 
             if(ServerSettings.DebugSeason)
             {
@@ -870,10 +878,15 @@ class TimeHelper
 
                 if(SpringRegrowChance * objData.springRegrowFactor * factor < WorldMap.calculateRandomFloat()) return;
 
+                WorldMap.world.mutex.acquire(); // TODO try catch
+
                 objHelper.numberOfUses += 1;
 
                 objHelper.TransformToDummy();
                 WorldMap.world.setObjectHelper(x,y, objHelper);
+
+                WorldMap.world.mutex.release(); // TODO try catch
+
                 Connection.SendMapUpdateToAllClosePlayers(x,y, [objHelper.id]);
 
                 return;
@@ -886,9 +899,13 @@ class TimeHelper
 
             var spawnAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objID;
 
+            WorldMap.world.mutex.acquire(); // TODO try catch
+
             var done = SpawnObject(x,y,spawnAs);
 
             if(hidden && done) WorldMap.world.setHiddenObjectId(x, y, [0]); // What was hidden comes back
+
+            WorldMap.world.mutex.release(); // TODO try catch
 
             if(ServerSettings.DebugSeason)
             {
@@ -922,7 +939,11 @@ class TimeHelper
 
                 if(ServerSettings.ObjRespawnChance < worldMap.randomFloat()) continue;
 
+                WorldMap.world.mutex.acquire(); // TODO try catch
+
                 SpawnObject(x, y, objID);
+
+                WorldMap.world.mutex.release(); // TODO try catch
 
                 //trace('respawn object: ${objData.description} $obj');
             }
