@@ -26,15 +26,24 @@ AI:
 Not yet implemented:
 - combat
 - advaned AI
-- score / incarnation acording to prestige score
+- incarnation acording to prestige score
 - advaned stuff is not tested yet, so may or may not work
 - gates / fences
+- curses
 - saving of players on server restart. 
     Server restart should only take some seconds, so player should be able to continue once implemented
 - see more in TODO below
 
 SERVER - CHANGES TO VANILLA
 ======
+SCORE:
+- YUM-Multiplier is now your score / prestige
+- ON death your new score is 9/10 of the old score plus 1/10 of this life score
+- You have a seperate score for male and female lives. Your total score is one halve each.
+- Your starting prestiege is also your health displayed where the YUM-Multiplier was.
+- Your prestiege / health influences your max food pipes and therefore speed
+- You get extra score if you feed one YUM or if a follower / (grand) child gets some score
+
 MAP:
 - Generate limited map using image color as index for biome id
 - Made map "round", so you can walk over both x,y borders and come out on the other side. 
@@ -155,9 +164,11 @@ Animals:
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
+
 - princess / princess / nobles
 - better fences
 - reconnection after server shutdown
+- cars as boats
 - special stuff like hercules / snake master / super fast ager 
 - job boni
 - bridges
@@ -169,6 +180,7 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
+
 - AI basic nursing
 - Ai birth after death
 - AI basic clothing
@@ -176,67 +188,92 @@ High priority:
 - Ai ongoing longer distant movement
 - AI tests with >20 AIs
 - AI Stoneage
+
 - COMBAT calculate exact player position for combat and distance
 - COMBAT wounds / healing part 2 
 - COMBAT implement kill 
 - COMBAT animal interactions / collisions
 - COMBAT ill from moskitos 
-- SCORE save lineages
-- SCORE give score boni like for great clothing
-- BIRTH use childFood / make sure that a mother does not have too many babies at same time
+
 - BIRTH spawn eves on different locations
 - BIRTH fathers
 - BIRTH fathers displayed in name (needs workaround since not supported from client)
 - BIRTH incarnation according to score
 - BIRTH curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
+
 - EXHAUSTION carrying heavy stuff
 - EXHAUSTION for working in bad biome
 - EXHAUSTION for more tools / tools always better then primitive tools
 - EXHAUSTION better indoor reduction
-- CONNECTION saving of people data so that people come back after server restart
+
+- CONNECTION saving of people data so that people can come back after server restart
+
 - MAP use bigger map (Europe?) / create tool to auto create map
+
+- DEATH while holding some one, or riding / driving something or using cart
+- DEATH baby grave
+- DEATH send grave info grave
+
+- BIOME biome boni for different races
+- BIOME change biome speed for specialists
+- BIOME cars as boats
+- BIOME no dropping of stuff on water
+- BIOME biome locked planting
+
+
+Middle priority:
+
 - TIME time transitions for objects in container
 - TIME decay stuff in containers
 - TIME decay clothing
 - TIME use item for decay like Broken Skewer  ID: 847
 - TIME decay floors
 - TIME support multiple time transitions see Fishing Pole --> store in ObjectData 
-- DEATH while holding some one, or riding / driving something or using cart
-- DEATH baby grave
-- DEATH send grave info grave
-- BIOME biome boni for different races
-- BIOME change biome speed for specialists
-- BIOME cars as boats
-- BIOME no dropping of stuff on water
-- BIOME biome locked planting
+
 - ANIMAL animal movement on top of items
 
-Middle priority:
+- SCORE calculate real score after grandkids are dead
+- SCORE save lineages
+- SCORE give score boni like for great clothing
+
 - TEMPERATURE indoor temperature calculation 
+
 - WINTER change snow biome / snow banks / melting if snow
+
 - TOOLS learning tools (hold wrong if not learned)
+
 - DONE??? do pattern transitions right like rubber horsecart pickup 
+
 - AI Pottery
 - AI Fire
 - AI Advanced crafting
 - AI Farming
 - AI IRON AGE
 - AI guards 
+
 - RAILS implement rails
-- OWNERSHIP fences / gates 
+
+- GATES fences / gates 
+- GATES visitor at gate
+
 - COMMANDS implement missing commands 
+
 - YUM use yum category // for example for berry / berry bowl (maybe not needed?)
+
 - CRAVING better order of craving list (currently its just ordered accoring to obj ID)
+
 - CONNECTION twinning
+
 - STATS implement basic server stats
-- MAP calculate distance right when on end of map 
+
 - LANGUAGE implement different languages
+
 - POINTER bell tower ringing
-- POINTER visitor at gate
 - POINTER maps / maps on waystone
 - POINTER home marker
 
 Low priority stuff:
+- MAP calculate distance right when on end of map 
 - advanced transitions like oil stuff, sprinkler, cars
 - radio
 - photo
