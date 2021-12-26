@@ -18,6 +18,7 @@ class Connection
 
     //private var mutex = new Mutex(); // TODO really needed?
 
+    public var playerAccount:PlayerAccount;
     public var serverAi:ServerAi; // null if connected to a client
 
 
@@ -54,9 +55,11 @@ class Connection
         GlobalPlayerInstance.AllPlayerMutex.acquire();
 
         try
-        {
+        {            
             send(ACCEPTED);
-                   
+
+            this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash);
+            this.playerAccount.lastConnection = this;
             this.player = GlobalPlayerInstance.CreateNewHumanPlayer(this); 
             
             var id = player.p_id;
