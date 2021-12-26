@@ -98,7 +98,7 @@ class Connection
         this.playerAccount.lastConnection = this;
         
         addToConnections();
-        sendMapChunk(0,0);
+        sendMapChunk(player.x,player.y);
         //var id = player.p_id;
         //send(LINEAGE,['$id eve=$id']);
         send(TOOL_SLOTS,["0 1000"]);
@@ -714,14 +714,10 @@ class Connection
     **/
     public static function SendEmoteToAll(fromPlayer:GlobalPlayerInstance, id:Int, seconds:Int = -10)
     {
-        //this.mutex.acquire();
-
         for (toConnection in connections)
         {
             Macro.exception(DoHumanPlayerEmote(fromPlayer, toConnection, id, seconds));
         }
-
-        //this.mutex.release();
         
         try
         {
