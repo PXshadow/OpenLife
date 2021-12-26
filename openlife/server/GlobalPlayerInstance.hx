@@ -137,6 +137,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.heldByPlayer = null;
 
         this.exiledByPlayers = null;
+
+        AllPlayers.remove(this.p_id);
     }
 
     public var name(get, set):String;
@@ -1877,6 +1879,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 }
             }
 
+            this.delete();
+
         }catch(ex)
         {
             trace('WARNING: ' + ex.details);
@@ -2291,6 +2295,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             WorldMap.world.setObjectId(player.tx(), player.ty(), [id]);
 
             Connection.SendMapUpdateToAllClosePlayers(player.tx(), player.ty(), [id]);
+        }
+        else if(text.indexOf('!CLOSE') != -1) 
+        {
+            trace('Close connection');
+
+            player.connection.close();
         }
     }
 

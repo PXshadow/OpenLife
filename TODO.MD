@@ -194,7 +194,6 @@ High priority:
 - EXHAUSTION for working in bad biome
 - EXHAUSTION for more tools / tools always better then primitive tools
 - EXHAUSTION better indoor reduction
-- CONNECTION reconnection
 - CONNECTION saving of people data so that people come back after server restart
 - MAP use bigger map (Europe?) / create tool to auto create map
 - TIME time transitions for objects in container

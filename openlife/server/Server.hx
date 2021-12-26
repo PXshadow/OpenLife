@@ -202,9 +202,9 @@ class Server
 
         switch (tag)
         {
-            case LOGIN:
-                connection.login(input[0], input[1], input[2], input[3]);
-            case RLOGIN:
+            case LOGIN: // A normal login is treated same as a reconnect
+                connection.rlogin(input[0], input[1], input[2], input[3]);
+            case RLOGIN: // 
                 connection.rlogin(input[0], input[1], input[2], input[3]);
             case DIE:   // DIE x y#
                 connection.die();

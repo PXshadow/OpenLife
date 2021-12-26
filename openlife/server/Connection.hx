@@ -49,67 +49,73 @@ class Connection
     **/
     public function login(client_tag:String, email:String, password_hash:String, account_key_hash:String)
     {
+        // A normal login is treated same as a reconnect
         // TODO twins
+
         trace('login: ${account_key_hash}');
         
         GlobalPlayerInstance.AllPlayerMutex.acquire();
 
-        try
-        {            
-            send(ACCEPTED);
+        this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash);
+        this.player = GlobalPlayerInstance.CreateNewHumanPlayer(this); 
 
-            this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash);
-            this.playerAccount.lastConnection = this;
-            this.player = GlobalPlayerInstance.CreateNewHumanPlayer(this); 
-            
-            var id = player.p_id;
+        Macro.exception(initConnection(this.player, this.playerAccount));
 
-            player.connection = this;
-
-            //player.transformHeldObject(2710);
-            
-            trace("login: move_speed: " + player.move_speed);
-
-            sendMapChunk(0,0);
-            
-            send(LINEAGE,['$id eve=$id']);
-            send(TOOL_SLOTS,["0 1000"]);
-
-            //trace('food_store_max: ${player.food_store_max}');
-
-            //player.setHeldObject(ObjectHelper.readObjectHelper(player, [2098]));
-
-            addToConnections();
-
-            // send PU and FRAME also to the connection --> therefore make sure that addToConnections is called first 
-            SendUpdateToAllClosePlayers(player); 
-            SendToMeAllClosePlayers(player, true); 
-            sendToMeAllPlayerNames();
-            sendToMeAllLineages();
-            sendToMeAllFollowings();
-            
-            player.sendFoodUpdate();
-
-            //this.send(ClientTag.LOCATION_SAYS,['0 100 ! 30']);
-
-            send(FRAME, null, true);
-
-            if(player.mother != null) this.sendMapLocation(player.mother,'MOTHER', 'leader');
-        }
-        catch(ex)
-        {
-            trace(ex.details);
-        }
-
-        //if(ServerSettings.useOnePlayerMutex == false) this.mutex.release();
         GlobalPlayerInstance.AllPlayerMutex.release();
-
-        //server.map.mutex.release(); ???
     }
 
     public function rlogin(client_tag:String, email:String, password_hash:String, account_key_hash:String)
     {
-        login(client_tag, email, password_hash, account_key_hash); // TODO reconnect
+        GlobalPlayerInstance.AllPlayerMutex.acquire();
+
+        this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash);
+
+        if(this.playerAccount.lastConnection != null && this.playerAccount.lastConnection.player.deleted == false)
+        {
+            Macro.exception(initConnection(this.playerAccount.lastConnection.player, this.playerAccount));
+
+            trace('reconnect to ${player.p_id}');
+
+            GlobalPlayerInstance.AllPlayerMutex.release();
+
+            return;
+        }
+
+        GlobalPlayerInstance.AllPlayerMutex.release();
+
+        login(client_tag, email, password_hash, account_key_hash); 
+    }
+
+    private function initConnection(connectedPlayer:GlobalPlayerInstance, connectedPlayerAccount:PlayerAccount)
+    {
+        send(ACCEPTED);
+
+
+        this.player = connectedPlayer; 
+        this.player.connection = this;
+        this.playerAccount = connectedPlayerAccount;
+        this.playerAccount.lastConnection = this;
+        
+        addToConnections();
+        sendMapChunk(0,0);
+        //var id = player.p_id;
+        //send(LINEAGE,['$id eve=$id']);
+        send(TOOL_SLOTS,["0 1000"]);
+
+        // send PU and FRAME also to the connection --> therefore make sure that addToConnections is called first 
+        SendUpdateToAllClosePlayers(player); 
+        SendToMeAllClosePlayers(player, true); 
+        sendToMeAllPlayerNames();
+        sendToMeAllLineages();
+        sendToMeAllFollowings();
+        
+        player.sendFoodUpdate();
+
+        //this.send(ClientTag.LOCATION_SAYS,['0 100 ! 30']);
+
+        if(player.mother != null) this.sendMapLocation(player.mother,'MOTHER', 'leader');
+
+        send(FRAME, null, true);
     }
     
     public static function getConnections() : Array<Connection>
@@ -519,7 +525,7 @@ class Connection
 
     private function addToConnections()
     {
-        GlobalPlayerInstance.AllPlayerMutex.acquire();
+        //GlobalPlayerInstance.AllPlayerMutex.acquire();
         
 
         // it copies the connection array to be thread save 
@@ -535,22 +541,23 @@ class Connection
 
         connections = newConnections; 
 
-        GlobalPlayerInstance.AllPlayerMutex.release();
+        //GlobalPlayerInstance.AllPlayerMutex.release();
     }
 
     public function close()
     {
         GlobalPlayerInstance.AllPlayerMutex.acquire();
-        //if(ServerSettings.useOnePlayerMutex == false) this.mutex.acquire();
 
         try
         {
             // set all stuff null so that nothing is hanging around
-            this.player.delete();
+            //this.player.delete();
 
             // it copies the connection array to be thread save 
             // other threads should meanwhile be able to iterate on connections. replaces: //connections.remove(this);
             var newConnections = [];
+
+            // TODO remove only from connections if dead or even better use as AI?
 
             for(c in connections)
             {
@@ -569,9 +576,7 @@ class Connection
             trace(ex);
         }
 
-        //if(ServerSettings.useOnePlayerMutex == false) this.mutex.release();
         GlobalPlayerInstance.AllPlayerMutex.release();
-        
     }
 
     // KA x y#
