@@ -250,7 +250,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         food_store_max = calculateFoodStoreMax();
         food_store = food_store_max / 2;
-        yum_multiplier = ServerSettings.MinHealthPerYear * 3; // start with health for 3 years // TODO change
+        yum_multiplier = this.connection.playerAccount == null ? 1 : this.connection.playerAccount.totalScore() / 2; // start with health for 3 years // TODO change
 
         for(c in Connection.getConnections())
         {
@@ -522,10 +522,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(p.food_store < 0) return -1000; // no starving mothers
         if(p.exhaustion > 10) return -1000; // no super exhausted mothers
 
+        // boni
         var tmpFitness = p.childrenBirthMali * (-1); // the more children the less likely
-        tmpFitness += p.food_store /= 10; // the more food the more likely 
-        tmpFitness += p.food_store_max /= 10; // the more healthy the more likely 
-        tmpFitness += p.yum_bonus /= 20; // the more yum / prestige the more likely 
+        tmpFitness += p.food_store / 10; // the more food the more likely 
+        tmpFitness += p.yum_bonus / 10; // the more food the more likely 
+        tmpFitness += p.food_store_max / 10; // the more healthy the more likely 
+        tmpFitness += p.yum_multiplier / 20; // the more yum / prestige the more likely 
+
+        // mali
+        tmpFitness -= p.exhaustion / 10;
         var temperatureMail = Math.pow(((p.heat - 0.5) * 10), 2) / 10; // between 0 and 2.5 for very bad temperature
         tmpFitness -= temperatureMail;
 
@@ -1857,6 +1862,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.deleted = true;
             this.age = this.trueAge; // bad health and starving can influence health, so setback true time a player lifed so that he sees in death screen
             this.reason = deathReason;
+
+            // TODO give score to AI
+            var account = this.connection.playerAccount;
+
+            if(account != null)
+            {
+                var score = this.yum_multiplier;
+                var factor = ServerSettings.ScoreFactor;
+
+                account.score = account.score * (1 - factor) + score * factor;
+                
+                if(this.isFemal()) account.femaleScore = account.femaleScore * (1 - factor) + score * factor;
+                else account.maleScore = account.maleScore * (1 - factor) + score * factor;
+
+                trace('Score: ${account.score} This Life: $score femaleScore: ${account.femaleScore} maleScore: ${account.maleScore}');
+            }
 
             // TODO calculate score
             // TODO set coordinates player based

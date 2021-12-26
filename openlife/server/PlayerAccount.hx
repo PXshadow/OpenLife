@@ -94,4 +94,9 @@ class PlayerAccount
 
         //trace('PlayerAccounts: $AllPlayerAccounts');
     }
+
+    public function totalScore() : Float
+    {
+        return maleScore + femaleScore;
+    }
 }

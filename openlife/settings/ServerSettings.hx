@@ -39,6 +39,9 @@ class ServerSettings
     public static var DebugTemperature = false;
     public static var TemperatureImpactBelow = 0.5; // take damage and display emote if temperature is below or above X from normal
     public static var TemperatureSpeedImpact = 0.9; // speed * X: double impact if extreme temperature
+    
+    // score
+    public static var ScoreFactor:Float = 0.1; // new score influences total score with factor X. 
 
     // birth
     public static var NewChildExhaustionForMother = 15;
