@@ -407,7 +407,7 @@ class MoveHelper
                 }
                 else
                 {
-                    if(p.serverAi == null) p.connection.send(PLAYER_UPDATE,[p.toData()]);
+                    p.connection.send(PLAYER_UPDATE,[p.toData()]);
                 }
 
                 Connection.SendMoveUpdateToAllClosePlayers(p);

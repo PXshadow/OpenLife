@@ -6,14 +6,20 @@ class ServerAi extends Ai
 {
     public var player:GlobalPlayerInstance;
 
-    public function new()
+    public function new(newPlayer:GlobalPlayerInstance)
     {
-        player = GlobalPlayerInstance.CreateNewAiPlayer(this); 
-        super(player);
-        //player.serverAi = this;
-        player.connection = new Connection(null, Server.server); 
+        super(newPlayer);
+        this.player = newPlayer;
         player.connection.serverAi = this;
 
-        Connection.addAi(player.serverAi);
+        Connection.addAi(this);
+    }
+
+    public static function createNewServerAiWithNewPlayer() : ServerAi
+    {
+        var newConnection = new Connection(null, Server.server);
+        var newPlayer = GlobalPlayerInstance.CreateNewAiPlayer(newConnection);
+
+        return new ServerAi(newPlayer);
     }
 }

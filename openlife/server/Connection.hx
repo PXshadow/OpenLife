@@ -12,24 +12,19 @@ import haxe.io.Bytes;
 
 class Connection 
 {
-    //private static var globalMutex = new Mutex();
     private static var connections:Array<Connection> = [];
     private static var ais:Array<ServerAi> = [];
 
-    //private var mutex = new Mutex(); // TODO really needed?
-
+    public var player:GlobalPlayerInstance;
     public var playerAccount:PlayerAccount;
     public var serverAi:ServerAi; // null if connected to a client
 
-
     public var running:Bool = true;
+
     var sock:Socket;
     var server:Server;
     var tag:ServerTag;
-    public var player:GlobalPlayerInstance;
-
-    //public function get_player():GlobalPlayerInstance{return player;}
-
+    
     // if it is an AI sock = null
     public function new(sock:Socket,server:Server)
     {
@@ -41,6 +36,7 @@ class Connection
         // if it is an AI there is no sock
         if(sock != null) send(SERVER_INFO,["0/0",challenge,'$version']);
     }
+
     /**
         LOGIN client_tag email password_hash account_key_hash tutorial_number twin_code_hash twin_count#
         NOTE:  The command LOGIN can be replaced with RLOGIN if the client is
@@ -69,9 +65,14 @@ class Connection
         GlobalPlayerInstance.AllPlayerMutex.acquire();
 
         this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash);
+        var lastConnection = this.playerAccount.lastConnection;
 
-        if(this.playerAccount.lastConnection != null && this.playerAccount.lastConnection.player.deleted == false)
+        if(lastConnection != null && lastConnection.player.deleted == false)
         {
+            // deactivate AI
+            ais.remove(lastConnection.serverAi);
+            lastConnection.serverAi = null;
+
             Macro.exception(initConnection(this.playerAccount.lastConnection.player, this.playerAccount));
 
             trace('reconnect to ${player.p_id}');
@@ -570,6 +571,11 @@ class Connection
 
             running = false;
             sock.close();
+            this.sock = null;
+            if(this.player.deleted == false)
+            {
+                this.serverAi = new ServerAi(this.player);
+            }
         }
         catch(ex)
         {
@@ -751,18 +757,15 @@ class Connection
 
     public function send(tag:ClientTag,data:Array<String>=null, isPlayerAction:Bool = true)
     {
-        //this.mutex.acquire();
-
         if(serverAi != null)
         {
-            try{
-                // TODO call serverAi.
+            try
+            {
+                // TODO call serverAi
             } catch(ex)
             {
                 trace(ex);
             }
-
-            //this.mutex.release();
 
             return;
         } 

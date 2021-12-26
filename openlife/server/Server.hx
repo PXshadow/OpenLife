@@ -47,7 +47,7 @@ class Server
         // add a new test bot // TODO let them be born normally
         for(i in 0...ServerSettings.NumberOfAis)
         {
-            var ai = new ServerAi();
+            var ai = ServerAi.createNewServerAiWithNewPlayer();
             ai.player.age = 16;
         }
 

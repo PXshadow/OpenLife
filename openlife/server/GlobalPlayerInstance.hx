@@ -99,7 +99,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var mutex = new Mutex();
 
     public var connection:Connection; 
-    public var serverAi:ServerAi;
+    //public var serverAi:ServerAi;
 
     public var trueAge:Float = ServerSettings.StartingEveAge;
 
@@ -200,22 +200,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public static function CreateNewHumanPlayer(c:Connection) : GlobalPlayerInstance
     {
-        return new GlobalPlayerInstance(null, c);
+        return new GlobalPlayerInstance(c);
     }
 
-    public static function CreateNewAiPlayer(ai:ServerAi) : GlobalPlayerInstance
+    public static function CreateNewAiPlayer(c:Connection) : GlobalPlayerInstance
     {
-        return new GlobalPlayerInstance(ai, null);
+        return new GlobalPlayerInstance(c);
     }
 
-    private function new(ai:ServerAi = null, c:Connection = null)
+    private function new(c:Connection)
     {
         super([]);
 
         if(c != null) c.player = this;
 
         this.connection = c;
-        this.serverAi = ai;
+        //this.serverAi = ai;
         this.p_id = Server.server.playerIndex++;
         this.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
         this.moveHelper = new MoveHelper(this);
@@ -2330,7 +2330,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function isAi() : Bool
     {
-        return this.serverAi != null;   
+        return this.connection.serverAi != null;   
     }
 
     public function isHoldingChildInBreastFeedingAgeAndCanFeed() : Bool
