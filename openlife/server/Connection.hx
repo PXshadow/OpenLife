@@ -121,6 +121,7 @@ class Connection
         sendToMeAllPlayerNames();
         sendToMeAllLineages();
         sendToMeAllFollowings();
+        sendToMeAllExiles(); // TODO test
         
         player.sendFoodUpdate();
 
@@ -328,6 +329,15 @@ class Connection
             sendFollowing(c.player);
         }
     }
+
+    public function sendToMeAllExiles()
+    {
+        for(p in GlobalPlayerInstance.AllPlayers)
+        {
+            sendFullExileListToMe(p);
+        }
+    }
+
     /**
                         EX
                         exile_target_id exiler_id
@@ -362,7 +372,28 @@ class Connection
         }
     }
 
+    public function sendFullExileListToMe(target:GlobalPlayerInstance)
+    {
+        var list = CreateFullExileList(target);
+
+        if(StringTools.contains(list, '\n') == false) return;
+
+        send(EXILED,[list]);
+    }
+
     public static function SendFullExileListToAll(target:GlobalPlayerInstance)
+    {
+        var list = CreateFullExileList(target);
+
+        trace('EXILE LIST: $list');
+
+        for(c in Connection.getConnections())
+        {
+            c.send(EXILED,[list]);
+        }
+    }
+
+    private static function CreateFullExileList(target:GlobalPlayerInstance) : String
     {
         var list = '${target.p_id} -1';
 
@@ -372,12 +403,7 @@ class Connection
             list += tmp;
         }
 
-        trace('EXILE LIST: $list');
-
-        for(c in Connection.getConnections())
-        {
-            c.send(EXILED,[list]);
-        }
+        return list;
     }
 
     public static function SendTransitionUpdateToAllClosePlayers(player:GlobalPlayerInstance, tx:Int, ty:Int, newFloorId:Int, newTileObject:Array<Int>, doTransition:Bool, isPlayerAction:Bool = true)
