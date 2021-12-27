@@ -337,7 +337,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 
     // TODO higher change of children for smaler families
-    // TODO spawn acording to prestiege score
+    // TODO spawn acording to prestige score
     // TODO spawn in different classes (noble / citizen / worker)
     // TODO spawn noobs more likely noble
     // TODO spawn in hand of mother???
@@ -1303,18 +1303,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             if(isCravingEatenObject)
             {
-                playerTo.addHealthAndPrestiege(2);
-                if(playerFrom != playerTo) playerFrom.addHealthAndPrestiege(0.4);
+                playerTo.addHealthAndPrestige(2);
+                if(playerFrom != playerTo) playerFrom.addHealthAndPrestige(0.4);
             }
             else
             {
-                playerTo.addHealthAndPrestiege(1);
-                if(playerFrom != playerTo)playerFrom.addHealthAndPrestiege(0.2);          
+                playerTo.addHealthAndPrestige(1);
+                if(playerFrom != playerTo)playerFrom.addHealthAndPrestige(0.2);          
             }
         }
         else
         {
-            playerTo.addHealthAndPrestiege(-1);
+            playerTo.addHealthAndPrestige(-1);
             //if(playerFrom != playerTo) playerFrom.yum_multiplier += 0.5; // saved one from starving to death
         }
              
@@ -2488,15 +2488,49 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return loved;
     }
 
-    public function addHealthAndPrestiege(count:Float)
+    public function addHealthAndPrestige(count:Float)
     {
         this.yum_multiplier += count;
-        if(count > 0) this.coins += count;
-        else return;
+
+        if(count <= 0) return;
+
+        this.coins += count;
+
+        var tmpCount = count; 
+
+        if(this.mother != null)
+        {
+            mother.yum_multiplier += tmpCount / 2;
+
+            if(this.mother.mother != null) // grandma
+            {
+                mother.mother.yum_multiplier += tmpCount / 4;
+            }
+
+            if(this.mother.father != null) // grandpa
+            {
+                mother.father.yum_multiplier += tmpCount / 4;
+            }
+        }
+
+        if(this.father != null)
+        {
+            father.yum_multiplier += tmpCount / 2;
+
+            if(this.father.mother != null) // grandma
+            {
+                father.mother.yum_multiplier += tmpCount / 4;
+            }
+
+            if(this.father.father != null) // grandpa
+            {
+                father.father.yum_multiplier += tmpCount / 4;
+            }
+        }
 
         if(this.getTopLeader() == null) return;
 
-        count /= 5;
+        tmpCount = count / 5;
 
         var leader = followPlayer;
         if(leader == null) return;
@@ -2505,8 +2539,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             if(this.exiledByPlayers.exists(leader.p_id)) return; // is exiled
 
-            leader.yum_multiplier += count;
-            leader.coins += count;
+            leader.yum_multiplier += tmpCount;
+            leader.coins += tmpCount;
 
             if(leader.followPlayer == null) return;
 
