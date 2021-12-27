@@ -970,7 +970,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     }
 
     // if people follow circular outcome is null / max 10 deep hierarchy is supported
-    public function getTopLeader() : GlobalPlayerInstance
+    public function getTopLeader(stopWithPlayer:GlobalPlayerInstance = null) : GlobalPlayerInstance
     {
         var leader = followPlayer;
         if(leader == null) return null;
@@ -980,6 +980,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             if(this.exiledByPlayers.exists(leader.p_id)) return null; // is exiled
 
             if(leader.followPlayer == null) return leader;
+
+            if(leader == stopWithPlayer) return leader;
 
             leader = leader.followPlayer;
         }
@@ -1865,6 +1867,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             PlayerAccount.ChangeScore(this);  
 
+            ChooseNewLeader(this);
+
             // TODO set coordinates player based
             ServerSettings.startingGx = this.tx();
             ServerSettings.startingGy = this.ty();
@@ -1894,6 +1898,79 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
         else this.mutex.release();
+    }
+
+    public static function ChooseNewLeader(deadLeader:GlobalPlayerInstance)
+    {
+        // TODO test
+        var bestLeaderScore:Float = -1000;
+        var bestLeader:GlobalPlayerInstance = null;
+        var count = 0;
+
+        for(p in AllPlayers) // Find best leader
+        {
+            if(p == deadLeader) continue;
+
+            if(p.getTopLeader(deadLeader) != deadLeader) continue;
+
+            count++;
+
+            var score = p.connection.playerAccount.totalScore();
+
+            if(score < bestLeaderScore) continue;
+
+            bestLeaderScore = score;
+            bestLeader = p;
+        }    
+
+        if(bestLeader == null) return;
+
+        trace('New best leader: ${bestLeader.p_id} ${bestLeader.name} Score: $bestLeaderScore');
+
+        // make new leader follow the leader the dead leader followed
+        bestLeader.followPlayer = deadLeader.followPlayer;
+
+        // Set new leader
+        for(p in AllPlayers) 
+        {
+            if(p.followPlayer != deadLeader) continue;
+
+            p.followPlayer = bestLeader;
+        }
+
+        // Let new leader exile same players
+        for(p in AllPlayers) 
+        {
+            if(p.exiledByPlayers.exists(deadLeader.p_id) == false) continue;
+
+            p.exiledByPlayers[bestLeader.p_id] = bestLeader;
+
+            Connection.SendExileToAll(bestLeader, p);
+        }
+
+        // inform followers about new leader
+        for(p in AllPlayers) 
+        {
+            if(p.getTopLeader(deadLeader) != deadLeader) continue;            
+
+            if(count >= 5)
+            {
+                p.connection.sendGlobalMessage('The old King ${deadLeader.name} died. Long live the new king ${bestLeader.name}!');
+            }
+            else
+            {
+                p.connection.sendGlobalMessage('The old leader ${deadLeader.name} died. Long live the new leader ${bestLeader.name}!');
+            }
+        }
+
+        if(count >= 5)
+        {
+            bestLeader.connection.sendGlobalMessage('Your King ${deadLeader.name} died. You are the new King of $count people. Long live the King!');
+        }
+        else if(count > 0)
+        {
+            bestLeader.connection.sendGlobalMessage('Your leader ${deadLeader.name} died. You are the new leader of $count people. Be it worthy!');
+        }
     }
 
     public function getAllChildren(onlyLiving:Bool = true) : Array<GlobalPlayerInstance>

@@ -831,19 +831,11 @@ class Connection
 
     public function sendGlobalMessage(message:String)
     {
-        //this.mutex.acquire();
+        if(player.isAi()) return;
 
-        try
-        {
-            message  = StringTools.replace(message,' ', '_');
-            send(ClientTag.GLOBAL_MESSAGE, [message]);
-        }
-        catch(ex)
-        {
-            trace(ex);
-        }
-
-        //this.mutex.release();
+        message = message.toUpperCase();
+        message  = StringTools.replace(message,' ', '_');
+        send(ClientTag.GLOBAL_MESSAGE, [message]);
     }
 
     public static function SendGlobalMessageToAll(message:String)
