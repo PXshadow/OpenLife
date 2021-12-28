@@ -128,6 +128,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public var coins:Float = 0;
 
+    public var prestigeFromChildren:Float = 0;
+    public var prestigeFromEating:Float = 0;
+    public var prestigeFromFollowers:Float = 0;
+
     // set all stuff null so that nothing is hanging around
     public function delete()
     {
@@ -708,12 +712,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         } 
     }
 
-    public function CalculateSpeedHealthFactor() : Float
+    public function CalculateHealthSpeedFactor() : Float
     {
         return CalculateHealthFactor(1.2, 0.8);
     }
 
-    public function CalculateSpeedAgeFactor() : Float
+    public function CalculateHealthAgeFactor() : Float
     {
         return CalculateHealthFactor(2, 0.5);
     }
@@ -2489,8 +2493,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     }
 
     public function addHealthAndPrestige(count:Float)
-    {
+    {        
         this.yum_multiplier += count;
+        this.prestigeFromEating += count;
 
         if(count <= 0) return;
 
@@ -2501,30 +2506,36 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(this.mother != null)
         {
             mother.yum_multiplier += tmpCount / 2;
+            mother.prestigeFromChildren += tmpCount / 2;
 
             if(this.mother.mother != null) // grandma
             {
                 mother.mother.yum_multiplier += tmpCount / 4;
+                mother.mother.prestigeFromChildren += tmpCount / 4;
             }
 
             if(this.mother.father != null) // grandpa
             {
                 mother.father.yum_multiplier += tmpCount / 4;
+                mother.father.prestigeFromChildren += tmpCount / 4;
             }
         }
 
         if(this.father != null)
         {
             father.yum_multiplier += tmpCount / 2;
+            father.prestigeFromChildren += tmpCount / 2;
 
             if(this.father.mother != null) // grandma
             {
                 father.mother.yum_multiplier += tmpCount / 4;
+                father.mother.prestigeFromChildren += tmpCount / 4;
             }
 
             if(this.father.father != null) // grandpa
             {
                 father.father.yum_multiplier += tmpCount / 4;
+                father.father.prestigeFromChildren += tmpCount / 4;
             }
         }
 
@@ -2540,6 +2551,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             if(this.exiledByPlayers.exists(leader.p_id)) return; // is exiled
 
             leader.yum_multiplier += tmpCount;
+            leader.prestigeFromFollowers += tmpCount;
             leader.coins += tmpCount;
 
             if(leader.followPlayer == null) return;

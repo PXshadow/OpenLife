@@ -295,7 +295,7 @@ class TimeHelper
 
         //trace('player.age_r: ${player.age_r}');
 
-        var healthFactor = player.CalculateSpeedAgeFactor();
+        var healthFactor = player.CalculateHealthAgeFactor();
         var agingFactor:Float = 1;    
         
         //trace('healthFactor: ${healthFactor}');
@@ -356,6 +356,16 @@ class TimeHelper
             player.sendFoodUpdate(false);
 
             if(player.isMoving() == false) Connection.SendUpdateToAllClosePlayers(player, false);
+
+            if(Std.int(player.trueAge) % 3 == 0)
+            {
+                var factor = ServerSettings.DisplayScoreFactor;
+                var textFromChildren = player.prestigeFromChildren > 0 ? ' From children ${player.prestigeFromChildren * factor}' : '';
+                var textFromFollowers = player.prestigeFromFollowers > 0 ? ' From followers ${player.prestigeFromFollowers * factor}' : '';
+                var message = 'You have gained ${player.prestigeFromEating * factor} prestige from YUMMY food!${textFromChildren}${textFromFollowers}';
+                trace('New Age: $message');
+                player.connection.sendGlobalMessage(message);
+            }
         }
     }
 

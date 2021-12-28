@@ -42,6 +42,7 @@ class ServerSettings
     
     // score
     public static var ScoreFactor:Float = 0.1; // new score influences total score with factor X. 
+    public static var DisplayScoreFactor:Float = 100; // if display score multiply with factor X
 
     // birth
     public static var NewChildExhaustionForMother = 15;
