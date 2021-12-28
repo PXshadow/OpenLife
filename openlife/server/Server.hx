@@ -236,6 +236,8 @@ class Server
                 connection.player.jump();
             case LEAD:  // LEAD 0 0#
                 connection.sendLeader();
+            case OWNER:  // OWNER x y#
+                connection.sendOwners(Std.parseInt(input[0]), Std.parseInt(input[1]));                 
             case MOVE:  // PM p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN
                 var x = Std.parseInt(input[0]);
                 var y = Std.parseInt(input[1]);

@@ -911,5 +911,34 @@ class Connection
         
         this.sendMapLocation(leader, "LEADER", "leader");
     }
+
+    /**
+        (OW)
+        OW
+        x y p_id p_id p_id ... p_id
+        #
+
+        Provides owner list for position x y
+    **/
+
+    public function sendOwners(x:Int, y:Int)
+    {
+        var tx = player.gx + x;
+        var ty = player.gy + y;
+        var message = '$x $y';
+        var helper = WorldMap.world.getObjectHelper(tx, ty, true);
+        
+        if(helper == null) return;
+        if(helper.livingOwners.length < 1) return;
+
+        for(owner in helper.livingOwners)
+        {
+            message += ' ${owner.p_id}';
+        }
+
+        trace('OWNERS: $message');
+
+        this.send(ClientTag.OWNER_LIST, [message], false);
+    }
 }
 #end
