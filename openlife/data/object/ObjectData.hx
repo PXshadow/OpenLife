@@ -71,6 +71,7 @@ class ObjectData extends LineReader
 
     //**searchable Name in upper letters**/
     public var name:String; // not saved / generated from description
+    public var isOwned:Bool = false; // not saved / generated from description
 
     // Indicates that this object can be used to creat foodFromTarget
     public var foodFromTarget:ObjectData; // do not save on disk since it can be calculated after loading

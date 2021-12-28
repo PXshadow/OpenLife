@@ -197,8 +197,12 @@ class ServerSettings
 
                 //trace('Settings: ${obj.description} ${obj.containSize}');
             }
-
             
+            if(obj.description.indexOf("+owned") != -1) obj.isOwned = true;
+            if(obj.description.indexOf("+tempOwned") != -1) obj.isOwned = true;
+            if(obj.description.indexOf("+followerOwned") != -1) obj.isOwned = true;
+
+            //if( obj.isOwned) trace('isOwned: ${obj.description}');
 
             //if(obj.containable) trace('${obj.description} ${obj.containSize}');
         }

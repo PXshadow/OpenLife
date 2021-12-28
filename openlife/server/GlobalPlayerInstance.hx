@@ -132,6 +132,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var prestigeFromEating:Float = 0;
     public var prestigeFromFollowers:Float = 0;
 
+    // list of objects the player owns like gates
+    public var owning:Array<ObjectHelper> = new Array<ObjectHelper>(); 
+
     // set all stuff null so that nothing is hanging around
     public function delete()
     {

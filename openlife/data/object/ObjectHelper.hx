@@ -23,7 +23,6 @@ class ObjectHelper {
     // needed to store ground object in case something moves on top
     public var groundObject:ObjectHelper;
 
-    // first one is always creator
     public var livingOwners:Array<GlobalPlayerInstance> = [];
 
     // to store contained objects in case object is a container
@@ -122,7 +121,7 @@ class ObjectHelper {
     {
         this.objectData = ObjectData.getObjectData(id); 
 
-        this.livingOwners[0] = creator;
+        if(creator != null) this.livingOwners[0] = creator;
 
         this.creationTimeInTicks = TimeHelper.tick;
         this.numberOfUses = objectData.numUses;
@@ -191,10 +190,10 @@ class ObjectHelper {
         return objectData.blocksWalking;
     }
 
-    public function getCreator() : GlobalPlayerInstance
+    /*public function getCreator() : GlobalPlayerInstance
     {
         return this.livingOwners[0];
-    }
+    }*/
 
     // returns removed object or null if there was none
     public function removeContainedObject(index:Int) : ObjectHelper
