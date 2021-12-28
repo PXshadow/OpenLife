@@ -286,7 +286,7 @@ class ServerSettings
         // boost hunted food
         ObjectData.getObjectData(197).foodValue = 18; // Cooked Rabbit 10 --> 18
         ObjectData.getObjectData(2190).foodValue = 24; // Turkey Slice on Plate 17 --> 24
-        ObjectData.getObjectData(1285).foodValue = 18; // Omelette 12 --> 18
+        ObjectData.getObjectData(1285).foodValue = 15; // Omelette 12 --> 15
 
         ObjectData.getObjectData(518).useChance = 0.3; // Cooked Goose
 
