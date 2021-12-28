@@ -110,7 +110,7 @@ Healing / Hits
 Objects:
 - Cooked Rabbit Food Value: 10 --> 18
 - Turkey Slice on Plate Food Value: 17 --> 24
-- Omelette Food Value: 12 --> 18
+- Omelette Food Value: 12 --> 15
 - Cooked Goose: useChance = 0.3;
 - Compost has less uses to make soil more rare, since water is more plenty: Soil (Wheat, Berry, Dung) + water ==> 4 Soil  
 
