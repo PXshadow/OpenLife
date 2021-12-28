@@ -502,7 +502,7 @@ class TransitionHelper{
 
         if(target.objectData.isOwned)
         {
-            if(target.livingOwners.contains(player) == false)
+            if(target.livingOwners.contains(player.p_id) == false)
             {
                 trace('TRANS: Player is not owner of ${target.description}!');
                 return false;
@@ -726,8 +726,8 @@ class TransitionHelper{
     {
         if(obj.objectData.isOwned == false) return;
 
-        obj.livingOwners = new Array<GlobalPlayerInstance>();
-        obj.livingOwners.push(player);
+        obj.livingOwners = new Array<Int>();
+        obj.livingOwners.push(player.p_id);
 
         player.owning.push(obj);
     }

@@ -149,13 +149,13 @@ class NamingHelper
         return text;
     }
 
-    public static function GetName(text:String) : String
+    public static function GetName(text:String, nameFirst:Bool = false) : String
     {
         var strings = text.split(' ');
 
         if(strings.length < 3) return "";
         
-        var name = strings[2];
+        var name = nameFirst ? strings[0] : strings[2];
 
         return name;
     }
@@ -165,7 +165,7 @@ class NamingHelper
     {
         //trace('Get Player name: $name');
 
-        if(name.length < 3) return null;
+        if(name.length < 2) return null;
         if(name == "YOU") return player.getClosestPlayer(6); // 6
 
         var bestPlayer = null;

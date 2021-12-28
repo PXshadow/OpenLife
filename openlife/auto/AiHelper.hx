@@ -32,6 +32,11 @@ class AiHelper
         return (toX - baseX) * (toX - baseX) + (toY - baseY) * (toY - baseY);
     }
 
+    public static function GetClosestObjectOwnedByPlayer(playerInterface:PlayerInterface, searchDistance:Int = 10) : ObjectHelper
+    {
+        return(GetClosestObject(playerInterface, null, searchDistance, null, false, true));
+    }
+
     public static function GetClosestHeatObject(playerInterface:PlayerInterface, searchDistance:Int = 2) : ObjectHelper
     {
         return(GetClosestObject(playerInterface, null, searchDistance, null, true));
@@ -43,7 +48,7 @@ class AiHelper
         return GetClosestObject(playerInterface, objData, ignoreObj);
     }
 
-    public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData, searchDistance:Int = 16, ignoreObj:ObjectHelper = null, findClosestHeat:Bool = false) : ObjectHelper
+    public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData, searchDistance:Int = 16, ignoreObj:ObjectHelper = null, findClosestHeat:Bool = false, ownedByPlayer:Bool = false) : ObjectHelper
     {
         //var RAD = ServerSettings.AiMaxSearchRadius
         var world = playerInterface.getWorld();
@@ -61,11 +66,16 @@ class AiHelper
                 
                 var objData = world.getObjectDataAtPosition(tx, ty);
 
+                if(ownedByPlayer && objData.isOwned == false) continue; // cannot have a owner
+
                 if(findClosestHeat && objData.heatValue == 0) continue;
                 
-                if(findClosestHeat || objData.parentId == objDataToSearch.parentId)  // compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs                    
+                if(ownedByPlayer || findClosestHeat || objData.parentId == objDataToSearch.parentId)  // compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs                    
                 {
                     var obj = world.getObjectHelper(tx, ty);
+
+                    if(ownedByPlayer && obj.livingOwners.contains(playerInterface.getPlayerInstance().p_id) == false) continue;
+
                     var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
 
                     if(closestObject == null || distance < bestDistance)

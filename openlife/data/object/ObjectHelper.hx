@@ -23,7 +23,7 @@ class ObjectHelper {
     // needed to store ground object in case something moves on top
     public var groundObject:ObjectHelper;
 
-    public var livingOwners:Array<GlobalPlayerInstance> = [];
+    public var livingOwners:Array<Int> = [];
 
     // to store contained objects in case object is a container
     public var containedObjects:Array<ObjectHelper> = [];
@@ -121,7 +121,7 @@ class ObjectHelper {
     {
         this.objectData = ObjectData.getObjectData(id); 
 
-        if(creator != null) this.livingOwners[0] = creator;
+        if(creator != null) this.livingOwners.push(creator.p_id);
 
         this.creationTimeInTicks = TimeHelper.tick;
         this.numberOfUses = objectData.numUses;

@@ -933,12 +933,14 @@ class Connection
             if(helper.objectData.isOwned == false) return;
 
             // give ownership to the player that found this not owned gate
-            helper.livingOwners.push(player);
+            helper.livingOwners.push(player.p_id);
+
+            WorldMap.world.setObjectHelper(tx, ty, helper);
         }
 
-        for(owner in helper.livingOwners)
+        for(ownerId in helper.livingOwners)
         {
-            message += ' ${owner.p_id}';
+            message += ' ${ownerId}';
         }
 
         //trace('OWNERS: $message');

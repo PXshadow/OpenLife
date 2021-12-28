@@ -746,8 +746,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return healthFactor;
     }
 
-
-
     /**
     PS
     p_id/isCurse text
@@ -795,19 +793,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             text = NamingHelper.DoNaming(this, text);
 
-            doCommands(text);
-
-            for (c in Connection.getConnections())
+            if(doCommands(text))
             {
-                c.send(PLAYER_SAYS,['$id/$curse $text']);
-                c.send(FRAME);
-            }
+                for (c in Connection.getConnections())
+                {
+                    c.send(PLAYER_SAYS,['$id/$curse $text']);
+                    c.send(FRAME);
+                }
 
-            for (ai in Connection.getAis())
-            {
-                ai.say(player,curse == 1,text);
+                for (ai in Connection.getAis())
+                {
+                    ai.say(player,curse == 1,text);
+                }
             }
-            
         }
         catch(ex)
         {
@@ -818,7 +816,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         else this.mutex.release();
     }
 
-    private function doCommands(message:String)
+    private function doCommands(message:String) : Bool
     {
         var name = NamingHelper.GetName(message);
 
@@ -828,8 +826,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             var target = NamingHelper.GetPlayerByName(this, name);
             
-            if(target == null || target == this) return;
-            if(target.exiledByPlayers.exists(target.p_id)) return; // cannot exile twice before redeemed
+            if(target == null || target == this)
+            {
+                this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
+                return  false;
+            } 
+
+            if(target.exiledByPlayers.exists(target.p_id)) return false; // 
+            {
+                this.connection.sendGlobalMessage('${target.name} is allready exiled');
+                return  false;
+            } 
 
             target.exiledByPlayers[target.p_id] = target;
 
@@ -840,7 +847,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             this.doEmote(Emote.angry);
 
-            return;
+            return true;
         }
 
         doCommand = message.startsWith('I REDEEM ');
@@ -849,8 +856,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             var target = NamingHelper.GetPlayerByName(this, name);
             
-            if(target == null || target == this) return;
-            if(target.exiledByPlayers.exists(target.p_id) == false) return; // cannot redeem if not exiled
+            if(target == null || target == this)
+            {
+                this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
+                return  false;
+            }
+            // TODO target may be exiled by a sub leader, in case so redeem him also? 
+            if(target.exiledByPlayers.exists(target.p_id) == false)
+            {
+                this.connection.sendGlobalMessage('Cannot redeem ${target.name} if not exiled first!');
+                return false;
+            }
 
             target.exiledByPlayers.remove(target.p_id);
 
@@ -862,7 +878,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.doEmote(Emote.happy);
             target.doEmote(Emote.happy);
 
-            return;
+            return true;
         }
 
         doCommand = message.startsWith('I FOLLOW ');
@@ -881,12 +897,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
                 this.doEmote(Emote.happy);
 
-                return;
+                return true;
             }
 
             var player = NamingHelper.GetPlayerByName(this, name);
             
-            if(player == null || player == this.followPlayer) return;
+            if(player == null || player == this)
+            {
+                this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
+                return  false;
+            } 
+
+            if(player == this.followPlayer)
+            {
+                this.connection.sendGlobalMessage('You follow allready ${player.name}!');
+                return  false;
+            } 
 
             // TODO allow other leader through follow?
 
@@ -896,9 +922,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(leader == null)
             {
-                trace('FOLLOW: CIRCULAR FOLLOW --> NO CHANGE');
+                //trace('FOLLOW: CIRCULAR FOLLOW --> NO CHANGE');
                 this.followPlayer = tmpFollow;
-                return;
+
+                this.connection.sendGlobalMessage('${player.name} is following you or one of your allies!');
+                return false;
             }
 
             this.connection.sendGlobalMessage('YOU_FOLLOW_NOW:_${player.name}_${player.familyName}');
@@ -911,7 +939,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             this.doEmote(Emote.happy);
             
-            return;
+            return true;
         }
 
         doCommand = message.startsWith('ORDER, ');
@@ -930,7 +958,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 this.doEmote(Emote.biomeRelief);                
             }
             // TODO AI
-            return;
+            return true;
         }
 
         doCommand = message.startsWith('I GIVE ');
@@ -939,11 +967,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             var target = NamingHelper.GetPlayerByName(this, name);
 
-            if(target == null || target == this) return;
+            if(target == null || target == this)
+            {
+                this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
+                return  false;
+            } 
 
             var strings = message.split(' ');
 
-            if(strings.length < 4) return;
+            if(strings.length < 4) return false;
 
             var coinText = strings[3];
             var amount = 0;
@@ -961,19 +993,72 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(this.coins < amount)
             {
-                if(this.connection != null) this.connection.sendGlobalMessage('YOU_NEED_${amount}_COINS(S)._BUT_YOU_HAVE_${this.coins}!');
+                this.connection.sendGlobalMessage('YOU_NEED_${amount}_COINS(S)._BUT_YOU_HAVE_${this.coins}!');
 
-                return;
+                return false;
             }
 
             this.coins -= amount;
             target.coins += amount;
 
-            if(this.connection != null) this.connection.sendGlobalMessage('YOU_GAVE_${target.name}_${target.familyName}_${amount}_COINS(S)._YOU_HAVE_NOW_${this.coins}!');
-            if(target.connection != null) target.connection.sendGlobalMessage('${this.name}_${this.familyName} GAVE YOU ${amount}_COINS(S)._YOU_HAVE_NOW_${target.coins}!');
+            this.connection.sendGlobalMessage('YOU_GAVE_${target.name}_${target.familyName}_${amount}_COINS(S)._YOU_HAVE_NOW_${this.coins}!');
+            target.connection.sendGlobalMessage('${this.name}_${this.familyName} GAVE YOU ${amount}_COINS(S)._YOU_HAVE_NOW_${target.coins}!');
+
+            this.doEmote(Emote.happy); 
 
             trace('coinText: $coinText amount: $amount');
+
+            return true;
         }
+
+        doCommand = message.contains('OWNES THIS') ||  message.contains('OWN THIS');
+
+        //trace('Owner: ${message}');
+
+        if(doCommand)
+        {
+            name = NamingHelper.GetName(message, true);
+
+            var target = NamingHelper.GetPlayerByName(this, name);
+
+            //trace('Owner: ${name}');
+
+            if(target == null || target == this)
+            {
+                this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
+                return  false;
+            }
+
+            //trace('Owner: target ${target.name}');
+
+            var obj = AiHelper.GetClosestObjectOwnedByPlayer(this);
+
+            if(obj == null)
+            {
+                this.connection.sendGlobalMessage('No close enough property that you own found!');
+                return  false;
+            }
+
+            //trace('Owner: ${obj.description}');
+
+            if(obj.livingOwners.contains(target.p_id))
+            {
+                this.connection.sendGlobalMessage('${target.name} ownes this allready!');
+                return  false;
+            }
+
+            obj.livingOwners.push(target.p_id);
+
+            target.owning.push(obj);
+
+            target.connection.sendGlobalMessage('${this.name} gave you a new property!'); // TODO pointer
+
+            this.doEmote(Emote.happy);  
+
+            return true;
+        }
+
+        return true;
     }
 
     // if people follow circular outcome is null / max 10 deep hierarchy is supported
@@ -1912,13 +1997,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         for(obj in player.owning)
         {
-            obj.livingOwners.remove(player);
+            obj.livingOwners.remove(player.p_id);
             
             if(player.followPlayer == null) continue;
 
             if(obj.livingOwners.length > 0) continue; // there are more people that own this
 
-            obj.livingOwners.push(player.followPlayer); // follow player should be the new sub leader if there is one
+            obj.livingOwners.push(player.followPlayer.p_id); // follow player should be the new sub leader if there is one
 
             // TODO pointer to property
             player.followPlayer.connection.sendGlobalMessage('You inherited a new property!'); 
