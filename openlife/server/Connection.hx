@@ -936,8 +936,8 @@ class Connection
             message += ' ${owner.p_id}';
         }
 
-        trace('OWNERS: $message');
-
+        //trace('OWNERS: $message');
+        
         this.send(ClientTag.OWNER_LIST, [message], false);
     }
 }

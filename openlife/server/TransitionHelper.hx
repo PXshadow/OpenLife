@@ -500,6 +500,15 @@ class TransitionHelper{
     {  
         var lastUseActor = false;
 
+        if(target.objectData.isOwned)
+        {
+            if(target.livingOwners.contains(player) == false)
+            {
+                trace('TRANS: Player is not owner of ${target.description}!');
+                return false;
+            }
+        }
+        
         trace('TRANS: handObjectData.numUses: ${handObjectData.numUses} heldObject.numberOfUses: ${this.player.heldObject.numberOfUses} ${handObjectData.description}'  );
         
         trace('TRANS: tileObjectData.numUses: ${tileObjectData.numUses} target.numberOfUses: ${this.target.numberOfUses} ${tileObjectData.description}'  );        
