@@ -1916,6 +1916,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             
             if(player.followPlayer == null) continue;
 
+            if(obj.livingOwners.length > 0) continue; // there are more people that own this
+
             obj.livingOwners.push(player.followPlayer); // follow player should be the new sub leader if there is one
 
             // TODO pointer to property
