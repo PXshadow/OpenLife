@@ -926,10 +926,15 @@ class Connection
         var tx = player.gx + x;
         var ty = player.gy + y;
         var message = '$x $y';
-        var helper = WorldMap.world.getObjectHelper(tx, ty, true);
+        var helper = WorldMap.world.getObjectHelper(tx, ty);
         
-        if(helper == null) return;
-        if(helper.livingOwners.length < 1) return;
+        if(helper.livingOwners.length < 1)
+        {
+            if(helper.objectData.isOwned == false) return;
+
+            // give ownership to the player that found this not owned gate
+            helper.livingOwners.push(player);
+        }
 
         for(owner in helper.livingOwners)
         {
