@@ -1883,6 +1883,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             //this.connection.die();
         
             placeGrave();
+            InheritOwnership(this);
 
             // distribute coins to children // TODO what to do if no kids?
             if(this.coins > 1)
@@ -1907,7 +1908,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         else this.mutex.release();
     }
 
-    public static function ChooseNewLeader(deadLeader:GlobalPlayerInstance)
+    private static function InheritOwnership(player:GlobalPlayerInstance)
+    {
+        for(obj in player.owning)
+        {
+            obj.livingOwners.remove(player);
+            
+            if(player.followPlayer == null) continue;
+
+            obj.livingOwners.push(player.followPlayer); // follow player should be the new sub leader if there is one
+        }
+    }
+
+    public static function ChooseNewLeader(deadLeader:GlobalPlayerInstance) : GlobalPlayerInstance
     {
         // TODO test
         var bestLeaderScore:Float = -1000;
@@ -1930,7 +1943,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             bestLeader = p;
         }    
 
-        if(bestLeader == null) return;
+        if(bestLeader == null) return null;
 
         trace('New best leader: ${bestLeader.p_id} ${bestLeader.name} Score: $bestLeaderScore');
 
@@ -1958,7 +1971,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // inform followers about new leader
         for(p in AllPlayers) 
         {
-            if(p.getTopLeader(deadLeader) != deadLeader) continue;            
+            if(p != bestLeader) continue;
+            if(p.getTopLeader(bestLeader) != bestLeader) continue;            
 
             if(count >= 5)
             {
@@ -1978,6 +1992,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             bestLeader.connection.sendGlobalMessage('Your leader ${deadLeader.name} died. You are the new leader of $count people. Be it worthy!');
         }
+
+        deadLeader.followPlayer = bestLeader;
+
+        return bestLeader;
     }
 
     public function getAllChildren(onlyLiving:Bool = true) : Array<GlobalPlayerInstance>

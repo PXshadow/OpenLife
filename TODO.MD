@@ -28,7 +28,7 @@ Not yet implemented:
 - advaned AI
 - incarnation acording to prestige score
 - advaned stuff is not tested yet, so may or may not work
-- gates / fences
+- ally gates / giving ownership to others / fences
 - curses
 - saving of players on server restart. 
     Server restart should only take some seconds, so player should be able to continue once implemented
@@ -113,6 +113,10 @@ Objects:
 - Omelette Food Value: 12 --> 18
 - Cooked Goose: useChance = 0.3;
 - Compost has less uses to make soil more rare, since water is more plenty: Soil (Wheat, Berry, Dung) + water ==> 4 Soil  
+
+Ownership:
+- Normal Gates are now inherited by a follower with the highest score or if none by the one the dead was following
+- If none was there to inherit the gate the first finder will own the gate
 
 Transitions:
 - You can harvest Berries directly with a bowl
@@ -253,7 +257,7 @@ Middle priority:
 
 - RAILS implement rails
 
-- GATES fences / gates 
+- GATES fences / gates giving to others
 - GATES visitor at gate
 
 - COMMANDS implement missing commands 
