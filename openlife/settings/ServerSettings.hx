@@ -41,8 +41,8 @@ class ServerSettings
     public static var TemperatureSpeedImpact = 0.9; // speed * X: double impact if extreme temperature
     
     // score
-    public static var ScoreFactor:Float = 0.1; // new score influences total score with factor X. 
-    public static var DisplayScoreFactor:Float = 100; // if display score multiply with factor X
+    public static var ScoreFactor:Float = 0.2; // new score influences total score with factor X. 
+    public static var DisplayScoreFactor:Float = 1; // if display score multiply with factor X
 
     // birth
     public static var NewChildExhaustionForMother = 15;
