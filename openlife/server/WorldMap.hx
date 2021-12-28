@@ -423,7 +423,7 @@ class WorldMap
             WorldMap.world.mutex.release();
         }
 
-        if(isHelperToBeDeleted(helper))
+        if(helper.isHelperToBeDeleted())
         {
             WorldMap.world.mutex.acquire();
 
@@ -431,7 +431,7 @@ class WorldMap
             {
                 helper = getObjectHelper(helper.tx, helper.ty);
 
-                if(isHelperToBeDeleted(helper))
+                if(helper.isHelperToBeDeleted())
                 {
                     // test again after receiving mutex
                     //if(x != helper.tx || y != helper.ty) trace('REMOVE ObjectHelper $x,$y h${helper.tx},h${helper.ty} USES < 1 && timeToChange == 0 && containedObjects.length == 0 && groundObject == null');
@@ -446,12 +446,7 @@ class WorldMap
         }
         
         return false;
-    }
-
-    public static function isHelperToBeDeleted(helper:ObjectHelper) : Bool
-    {
-        return ((helper.numberOfUses == helper.objectData.numUses || helper.numberOfUses < 1) && helper.timeToChange == 0 && helper.containedObjects.length == 0 && helper.groundObject == null);
-    }
+    }    
 
     public function getFloorId(x:Int, y:Int):Int
     {

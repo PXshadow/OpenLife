@@ -177,13 +177,6 @@ class ObjectHelper {
         return objectData.description;
     }
 
-    
-    // TODO make look like variable
-    //public function description() : String
-    //{
-    //    return objectData.description;
-    //}
-
     // TODO make look like variable
     public function blocksWalking() : Bool
     {
@@ -300,5 +293,17 @@ class ObjectHelper {
     public function isLastUse() : Bool
     {
         return this.objectData.numUses > 1 && this.numberOfUses <= 1;
+    }
+
+    public function isHelperToBeDeleted() : Bool
+    {
+        var helper = this;
+        // TODO why not use dummy instead?
+        var toDelete = (helper.numberOfUses == helper.objectData.numUses || helper.numberOfUses < 1);
+        // TODO maybe dont use for time transitions?
+        toDelete = toDelete && helper.timeToChange == 0 && helper.containedObjects.length == 0 && helper.groundObject == null;
+        toDelete = toDelete && helper.livingOwners.length < 1;
+
+        return toDelete;
     }
 }
