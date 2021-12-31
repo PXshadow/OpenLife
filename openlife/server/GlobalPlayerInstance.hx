@@ -1887,6 +1887,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         this.heldObject = obj;
 
+        obj.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(obj); // not ideal to set it here
+
+        //trace('TIME22: SET ${obj.description} timeToChange: ${obj.timeToChange}');
+
         MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed();
 
         if(obj != null && obj.objectData.foodValue > 0)

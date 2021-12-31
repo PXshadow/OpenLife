@@ -156,7 +156,7 @@ class ServerSettings
     //public static var WinterFildWoodDecayChance = 0.2;
 
     // AI
-    public static var NumberOfAis:Int = 1;
+    public static var NumberOfAis:Int = 0;
     public static var AiMaxSearchRadius:Int = 32;
     public static var AiMaxSearchIncrement:Int = 16;
 

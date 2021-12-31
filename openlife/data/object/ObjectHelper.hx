@@ -219,6 +219,8 @@ class ObjectHelper {
         var timeToChange = timeTransition.autoDecaySeconds < 0 ?  (-3600) * timeTransition.autoDecaySeconds : timeTransition.autoDecaySeconds;                 
         timeToChange = Math.ceil((WorldMap.calculateRandomInt(timeToChange * 2) + timeToChange)/2);
 
+        // if(timeTransition.targetID == 2992) trace('TIME33:  ${timeTransition.targetID} ${timeToChange}');
+
         return timeToChange;
     }
 
