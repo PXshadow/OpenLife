@@ -2198,7 +2198,24 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         return new_food_store_max;
     }
+    /**
+        KILL is for using a deadly object on the target square.  Square can
+        be non-adjacent depending on deadly distance of held object.
+        If another player is located there (even if moving and crossing)
+        they will be killed.
+        NOTE the alternate call for KILL with extra id parameter.
+        this specifies a specific person to kill, if more than one is
+        close to the target tile.
+    **/
+    public function kill(x:Int, y:Int, playerId:Int) : Bool // playerId = -1 if no specific player is slected
+    {
+        var targetPlayer = getPlayerAt(this.tx() + x, this.tx() + y, playerId);
+        var name = targetPlayer == null ? 'not found!' : ${targetPlayer.name};
 
+        trace('kill($x, $y playerId: $playerId) ${name}');
+
+        return true;
+    }
 
     // BABY x y# // BABY x y id#
     /**BABY is special case of USE action taken on a baby to pick them up.
