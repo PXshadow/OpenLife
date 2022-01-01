@@ -34,11 +34,17 @@ private class NewMovements
 
 class MoveHelper
 {
+    private static var firstPos = new Pos(); // used for calculation of movement length. Always stays 0,0
+
     public var player:GlobalPlayerInstance;
 
     // x,y when last chunk was send
     private var tx:Int = 0;
     private var ty:Int = 0;
+
+    private var exactTx:Float = 0; // exact absolute x position calculated each time step
+    private var exactTy:Float = 0; // exact absolute y position calculated each time step
+    private var timeExactPositionChangedLast:Float = 0; // in absolute ticks
 
     // to calculate if the move is finished
     private var newMoveSeqNumber:Int = 0; 
@@ -208,7 +214,27 @@ class MoveHelper
     {
         var moveHelper = p.moveHelper;
 
-        if(moveHelper.newMoves == null) return;
+        // test if not moving
+        if(moveHelper.newMoves == null)
+        {
+            moveHelper.exactTx = p.tx();
+            moveHelper.exactTy = p.ty();
+            moveHelper.timeExactPositionChangedLast = TimeHelper.tick;
+            return;
+        } 
+
+        // caclulate exact position. Important for combat vs player or animal // TODO use mutex if no global player mutex is used
+        var timePassed = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.timeExactPositionChangedLast); 
+        var move = moveHelper.newMoves[0];
+        var length = calculateLength(firstPos, move);
+
+        moveHelper.exactTx = p.tx() + (move.x * timePassed * p.move_speed) / calculateLength(firstPos, move);
+        moveHelper.exactTy = p.ty() + (move.y * timePassed * p.move_speed) / calculateLength(firstPos, move);
+
+        //trace('Moves: ${moveHelper.newMoves} passedTime: $timePassed ${moveHelper.exactTx},${moveHelper.exactTy}');
+
+        //if(passedTime >= )
+        //moveHelper.totalMoveTime = (1 / p.move_speed) * newMovements.length;
         
         var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.startingMoveTicks);
 
@@ -383,7 +409,7 @@ class MoveHelper
                 p.move_speed = newMovements.finalSpeed;
 
                 moveHelper.newMoves = newMovements.moves;
-                moveHelper.totalMoveTime = (1/p.move_speed) * newMovements.length;
+                moveHelper.totalMoveTime = (1 / p.move_speed) * newMovements.length;
                 moveHelper.startingMoveTicks = TimeHelper.tick;
                 moveHelper.newMoveSeqNumber = seq;  
                 

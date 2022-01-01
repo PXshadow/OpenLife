@@ -309,6 +309,7 @@ class WorldMap
         return originalObjects[index(x,y)];
     }
 
+    /** Does not set timeToChange for object. If you want to set use setObjectHelper instead **/
     public function setObjectId(x:Int, y:Int, ids:Array<Int>)
     {
         objects[index(x,y)] = ids;
@@ -775,9 +776,18 @@ class WorldMap
         writer.writeInt32(width);
         writer.writeInt32(height);
 
+        var count = 0;
+
         for(obj in objectsToWrite)
         {
+            if(obj == null)
+            {
+                obj = [0];
+                objectsToWrite[count] = obj;
+            }
             writer.writeInt32(obj[0]);
+
+            count++;
         }
 
         writer.close();
