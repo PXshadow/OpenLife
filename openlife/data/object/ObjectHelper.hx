@@ -205,6 +205,8 @@ class ObjectHelper {
 
     public static function CalculateTimeToChangeForObj(obj:ObjectHelper) : Int
     {
+        if(obj == null) return 0;
+        
         var timeTransition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
         if(timeTransition == null) return 0;
 
