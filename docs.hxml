@@ -2,7 +2,6 @@
 -D app
 -cp scripts
 -lib format
--lib record-macros
 --macro scripts.FileTools.deleteDir("docs/api")
 -cp app
 -main Main
