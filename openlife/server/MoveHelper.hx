@@ -62,6 +62,15 @@ class MoveHelper
         return (this.newMoves != null);
     }
 
+    public function isCloseUseExact(targetPlayer:GlobalPlayerInstance, distance:Int = 1) : Bool
+    {    
+        var target = targetPlayer.moveHelper;
+        var xDiff = this.exactTx - target.exactTx;
+        var yDiff = this.exactTy - target.exactTy;
+
+        return (xDiff * xDiff + yDiff * yDiff <= distance * distance);
+    }
+
     static public function calculateSpeed(p:GlobalPlayerInstance, tx:Int, ty:Int, fullPathHasRoad:Bool = true) : Float
     {
         // TODO reduce speed for buckets depending on how full they are
@@ -252,11 +261,9 @@ class MoveHelper
                 }
             }
 
-            if(TimeHelper.tick % 5 == 0) trace('Moves: ${moveHelper.newMoves} passedTime: $timePassed ${p.tx()},${p.ty()} ${moveHelper.exactTx},${moveHelper.exactTy}');
+            //if(TimeHelper.tick % 5 == 0) trace('Moves: ${moveHelper.newMoves} passedTime: $timePassed ${p.tx()},${p.ty()} ${moveHelper.exactTx},${moveHelper.exactTy}');
         }
 
-        //moveHelper.totalMoveTime = (1 / p.move_speed) * newMovements.length;
-        
         var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.startingMoveTicks);
 
         timeSinceStartMovementInSec *= ServerSettings.LetTheClientCheatLittleBitFactor;

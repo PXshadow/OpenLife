@@ -148,27 +148,15 @@ class Connection
 
     public static function getPlayerAt(x:Int, y:Int, playerId:Int) : GlobalPlayerInstance
     {
-        for(c in connections)
+        for(player in GlobalPlayerInstance.AllPlayers)
         {
-            if(c.player.deleted) continue;
+            if(player.deleted) continue;
 
-            if(c.player.p_id == playerId) return c.player;
+            if(player.p_id == playerId) return player;
 
             if(playerId <= 0)
             {
-                if(c.player.x == x && c.player.y == y) return c.player;
-            }
-        }
-
-        for(c in ais)
-        {
-            if(c.player.deleted) continue;
-
-            if(c.player.p_id == playerId) return c.player;
-
-            if(playerId <= 0)
-            {
-                if(c.player.x == x && c.player.y == y) return c.player;
+                if(player.x == x && player.y == y) return player;
             }
         }
 
@@ -735,6 +723,18 @@ class Connection
 
         //this.mutex.release();
     }
+
+
+    
+
+    public static function SendDyingToAll(dyingPlayer:GlobalPlayerInstance)
+    {
+        for (c in connections)
+        {
+            c.send(ClientTag.DYING, ['${dyingPlayer.p_id}']);
+        }
+    }
+
     /**
         PE
         p_id emot_index ttl_sec
@@ -908,6 +908,8 @@ class Connection
     {
         var player = this.player;
         var leader = player.getTopLeader();
+
+        if(leader == null) return;
         
         this.sendMapLocation(leader, "LEADER", "leader");
     }

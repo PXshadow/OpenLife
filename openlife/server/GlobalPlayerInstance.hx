@@ -689,7 +689,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     /** works with coordinates relative to the player **/ //TODO does not consider round map
     public function isClose(x:Int, y:Int, distance:Int = 1):Bool
     {    
-        return (((this.x - x) * (this.x - x) <= distance * distance) && ((this.y - y) * (this.y - y) <= distance * distance));
+        var xDiff = this.x - x;
+        var yDiff = this.y - y;
+
+        return (xDiff * xDiff + yDiff * yDiff <= distance * distance);
+    }
+
+    public function isCloseUseExact(target:GlobalPlayerInstance, distance:Int = 1):Bool
+    {    
+        return this.moveHelper.isCloseUseExact(target, distance);
     }
 
     public function getPackpack() : ObjectHelper
@@ -2209,13 +2217,72 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     **/
     public function kill(x:Int, y:Int, playerId:Int) : Bool // playerId = -1 if no specific player is slected
     {
+        var result = false;
+
+        AllPlayerMutex.acquire();
+
+        Macro.exception(result = killHelper(x, y, playerId));
+
+        AllPlayerMutex.release();
+
+        return result;
+    }
+
+    public function killHelper(x:Int, y:Int, playerId:Int) : Bool // playerId = -1 if no specific player is slected
+    {
         var targetPlayer = getPlayerAt(this.tx() + x, this.tx() + y, playerId);
         var name = targetPlayer == null ? 'not found!' : ${targetPlayer.name};
+        var deadlyDistance = this.heldObject.objectData.deadlyDistance;
 
         trace('kill($x, $y playerId: $playerId) ${name}');
 
+        if(targetPlayer == null)
+        {
+            this.connection.send(PLAYER_UPDATE, [this.toData()]);
+
+            trace('kill: playerId: $playerId was not found!');
+
+            return false;
+        }
+
+        if(isCloseUseExact(targetPlayer, deadlyDistance) == false)
+        {
+            this.connection.send(PLAYER_UPDATE, [this.toData()]);
+
+            trace('kill: playerId: $playerId is too far away! deadlyDistance: $deadlyDistance');
+
+            return false;
+        }
+
+        trace('kill: HIT');
+
+        // TODO stop movement from hit target?
+        // TODO cool down
+        // TODO hit chance
+        // TODO weapon damage
+        // TODO armor / strength
+
+        targetPlayer.hits +=10;
+        targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
+
+        targetPlayer.woundedBy = this.heldObject.id;
+        
+        if(targetPlayer.food_store_max < 0)
+        {
+            targetPlayer.doDeath('reason_killed_${targetPlayer.woundedBy}');
+        }
+
+        this.connection.send(PLAYER_UPDATE, [this.toData()]);
+
+        Connection.SendDyingToAll(targetPlayer);
+
+        Connection.SendEmoteToAll(this, Emote.angry);
+
+        Connection.SendEmoteToAll(targetPlayer, Emote.shock);
+
         return true;
     }
+
 
     // BABY x y# // BABY x y id#
     /**BABY is special case of USE action taken on a baby to pick them up.
