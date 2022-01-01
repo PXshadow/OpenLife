@@ -385,7 +385,7 @@ class WorldMap
         helper.tx = x;
         helper.ty = y;
 
-        // TODO set time to chage if it has time transition
+        helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper); 
 
         if(deleteObjectHelperIfUseless(helper)) return;
     }

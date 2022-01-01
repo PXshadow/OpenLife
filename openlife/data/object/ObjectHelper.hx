@@ -205,7 +205,7 @@ class ObjectHelper {
 
     public static function CalculateTimeToChangeForObj(obj:ObjectHelper) : Int
     {
-        var timeTransition = TransitionImporter.GetTransition(-1, obj.id, false, false);
+        var timeTransition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
         if(timeTransition == null) return 0;
 
         //trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');
