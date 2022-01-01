@@ -224,21 +224,44 @@ class MoveHelper
         } 
 
         // caclulate exact position. Important for combat vs player or animal // TODO use mutex if no global player mutex is used
-        var timePassed = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.timeExactPositionChangedLast); 
-        var move = moveHelper.newMoves[0];
-        var length = calculateLength(firstPos, move);
+        if(moveHelper.newMoves.length > 0)
+        {
+            var move = moveHelper.newMoves[0];
+            var timePassed = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.timeExactPositionChangedLast); 
+            var length = calculateLength(firstPos, move);
+            var moved = timePassed * p.move_speed;
 
-        moveHelper.exactTx = p.tx() + (move.x * timePassed * p.move_speed) / calculateLength(firstPos, move);
-        moveHelper.exactTy = p.ty() + (move.y * timePassed * p.move_speed) / calculateLength(firstPos, move);
+            moveHelper.exactTx = p.tx() + (move.x * moved) / length;
+            moveHelper.exactTy = p.ty() + (move.y * moved) / length;
 
-        //trace('Moves: ${moveHelper.newMoves} passedTime: $timePassed ${moveHelper.exactTx},${moveHelper.exactTy}');
+            // check if moved one step
+            if(moved >= length)
+            {
+                move = moveHelper.newMoves.shift();
+                p.x += move.x;
+                p.y += move.y;          
 
-        //if(passedTime >= )
+                moveHelper.exactTx = p.tx();
+                moveHelper.exactTy = p.ty();
+                moveHelper.timeExactPositionChangedLast = TimeHelper.tick;
+
+                for(pos in moveHelper.newMoves)
+                {
+                    pos.x -= move.x;
+                    pos.y -= move.y;
+                }
+            }
+
+            if(TimeHelper.tick % 5 == 0) trace('Moves: ${moveHelper.newMoves} passedTime: $timePassed ${p.tx()},${p.ty()} ${moveHelper.exactTx},${moveHelper.exactTy}');
+        }
+
         //moveHelper.totalMoveTime = (1 / p.move_speed) * newMovements.length;
         
         var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.startingMoveTicks);
 
         timeSinceStartMovementInSec *= ServerSettings.LetTheClientCheatLittleBitFactor;
+
+        //if(TimeHelper.tick % 5 == 0) trace('Moves: timeSinceStartMovementInSec: ${timeSinceStartMovementInSec} totalMoveTime: ${moveHelper.totalMoveTime}');
 
         if(timeSinceStartMovementInSec >= moveHelper.totalMoveTime)
         {
@@ -255,8 +278,8 @@ class MoveHelper
 
             //WorldMap.world.mutex.acquire(); // make sure that no other threat uses connections TODO change
 
-            try
-            {
+            //try
+            //{
                 var last = moveHelper.newMoves.pop(); 
                 moveHelper.totalMoveTime = 0;
                 moveHelper.startingMoveTicks = 0;
@@ -266,11 +289,14 @@ class MoveHelper
                 var oldX = p.x;
                 var oldY = p.y;
 
-                p.x += last.x; 
-                p.y += last.y;
+                if(last != null)
+                {
+                    p.x += last.x; 
+                    p.y += last.y;
                 
-                if(p.connection.serverAi == null) trace('reached position: g${p.tx()},g${p.ty()} FROM ${oldX},${oldY} TO ${p.x},${p.y}');
-                else trace('AAI: GOTO: FROM ${oldX},${oldY} TO ${p.x},${p.y} / FROM g${p.tx()- last.x},g${p.ty()- last.y} TO g${p.tx()},g${p.ty()} reached position!');
+                    if(p.connection.serverAi == null) trace('reached position: g${p.tx()},g${p.ty()} FROM ${oldX},${oldY} TO ${p.x},${p.y}');
+                    else trace('AAI: GOTO: FROM ${oldX},${oldY} TO ${p.x},${p.y} / FROM g${p.tx()- last.x},g${p.ty()- last.y} TO g${p.tx()},g${p.ty()} reached position!');
+                }
 
                 p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
                 p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
@@ -282,11 +308,11 @@ class MoveHelper
                 //p.forced = false; // TODO change
 
                 if(p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
-            }
-            catch(ex)
-            {
-                trace(ex.details);
-            }
+            //}
+            //catch(ex)
+            //{
+             //   trace(ex.details);
+            //}
 
             if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
             else p.mutex.release();
@@ -332,10 +358,10 @@ class MoveHelper
 
                 if(moveHelper.newMoves != null)
                 {
-                    var lastPos = calculateNewPos(moveHelper.newMoves, moveHelper.startingMoveTicks, p.move_speed);
+                    //var lastPos = calculateNewPos(moveHelper.newMoves, moveHelper.startingMoveTicks, p.move_speed);
 
-                    p.x += lastPos.x;
-                    p.y += lastPos.y;
+                    //p.x += lastPos.x;
+                    //p.y += lastPos.y;
 
                     p.exhaustion += ServerSettings.ExhaustionOnMovementChange;
 
@@ -380,7 +406,7 @@ class MoveHelper
                 //trace("newMoveSeqNumber: " + newMoveSeqNumber);
         
                 // since it seems speed cannot be set for each tile, the idea is to cut the movement once it crosses in different biomes
-                // TODO maybe better to not cut it and make a player update one the new biome is reached?
+                // TODO maybe better to not cut it and make a player update if the new biome is reached?
                 // if passing in an biome with different speed only the first movement is kept
                 var newMovements = calculateNewMovements(p, p.x + p.gx, p.y + p.gy, moves);
                 moveHelper.newMovements = newMovements;
