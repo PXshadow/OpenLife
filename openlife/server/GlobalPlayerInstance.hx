@@ -2261,6 +2261,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // TODO hit chance
         // TODO weapon damage
         // TODO armor / strength
+        // TODO send death update
+        // TODO bloody weapon cooldown
+        // TODO hit animation for player
+        // TODO allow healing
+        // TODO super angry emote while trying to kill
+        // TODO fear emote if no weapon and no ally
+        // TODO presige cost if your ally
 
         targetPlayer.hits +=10;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();

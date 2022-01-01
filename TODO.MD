@@ -60,6 +60,10 @@ Family:
 Loved / Hated Biomes:
 - Bad Temperature is affected now by how much you / your partens (50%) love the biome
 
+Killing / Attacking
+- you can attack anybody if close in weapon range
+- each hit makes certain damage
+
 Heat / Temperature:
 - bad temperature reduces speed extreme temperature reduces double
 - different color people love different temperatures (average temperature and resistance to too hot or cold temperature)
@@ -169,6 +173,7 @@ Animals:
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
 
+- fathers
 - princess / princess / nobles
 - better fences
 - reconnection after server shutdown
@@ -193,9 +198,8 @@ High priority:
 - AI tests with >20 AIs
 - AI Stoneage
 
-- COMBAT calculate exact player position for combat and distance
 - COMBAT wounds / healing part 2 
-- COMBAT implement kill 
+- COMBAT fix kill display
 - COMBAT animal interactions / collisions
 - COMBAT ill from moskitos 
 
