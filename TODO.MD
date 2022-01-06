@@ -5,6 +5,7 @@ How to setup the server you can find in the bottom!
 Project Winter is comming summary: 
 - The server is written from scratch in Haxe and is in ALPHA, so expect errors / feel welcome to report them
 - There is winter as main new challange
+- killing is allowed but might give some mali
 - The server uses a limited hand made map which can be changed using a picture
 - Rivers oceans and mountains that block movement
 - No locked iron or wells

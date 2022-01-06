@@ -1994,6 +1994,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 }
             }
 
+            Connection.SendUpdateToAllClosePlayers(this, false);
+
             this.delete();
 
         }catch(ex)
@@ -2268,6 +2270,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // TODO super angry emote while trying to kill
         // TODO fear emote if no weapon and no ally
         // TODO presige cost if your ally
+        // TODO weapon range health dependen
+        // TODO higher missing if clicked more far away
 
         targetPlayer.hits +=10;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
