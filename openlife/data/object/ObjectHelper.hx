@@ -15,7 +15,7 @@ class ObjectHelper {
     public var creationTimeInTicks:Float;
 
     /**Time to next change in seconds / needed for time Transitions**/
-    public var timeToChange = 0; 
+    public var timeToChange:Float = 0; 
     public var tx:Int = 0;
     public var ty:Int = 0;
 

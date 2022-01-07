@@ -165,6 +165,7 @@ class ServerSettings
 
     // combat
     //public static var WoundWhenFoodStoreMaxBelow = 10;
+    public static var WeaponCoolDownFactor:Float = 0.1;
 
 
     // iron, tary spot spring cannot respawn or win lottery

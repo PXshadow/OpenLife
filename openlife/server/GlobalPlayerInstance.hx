@@ -1529,6 +1529,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         player.action_target_y = y;
     }
 
+    public function setHeldObjectOriginNotValid()
+    {
+        var player = this;
+
+        //player.o_transition_source_id = objOriginValid ? -1 : this.heldObject.id;
+
+        // this changes where the client moves the object from on display
+        player.o_origin_x = 0;
+        player.o_origin_y = 0;
+        
+        player.o_origin_valid = 0; // if set to 0 no animation is displayed to pick up hold obj from o_origin_x o_origin_y
+    }
+
     /*
     CR
     food_id bonus
@@ -2286,9 +2299,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(trans != null)
         {
-            // TODO drop player and held object
+            // TODO drop player 
             // TODO dont do tasks if wounded
             // TODO get rid of wound
+            if(targetPlayer.heldObject.id != 0)
+            {
+                if(WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
+            }
+
             trace('Wound: ' + trans);
             var newWound = new ObjectHelper(this, trans.newTargetID);
             targetPlayer.setHeldObject(newWound);            
@@ -2303,10 +2321,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             {
                 this.heldObject.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition) * ServerSettings.WeaponCoolDownFactor;
                 trace('Bloody Weapon Time: ${this.heldObject.timeToChange} ' + timeTransition.getDesciption());
-            }
+            }            
         }
 
-        this.connection.send(PLAYER_UPDATE, [this.toData()]);
+        this.setHeldObjectOriginNotValid(); // no animation
+        targetPlayer.setHeldObjectOriginNotValid(); // no animation
+
+        //this.connection.send(PLAYER_UPDATE, [this.toData()]);
+        Connection.SendUpdateToAllClosePlayers(this);
+        Connection.SendUpdateToAllClosePlayers(targetPlayer);
 
         Connection.SendDyingToAll(targetPlayer);
 
