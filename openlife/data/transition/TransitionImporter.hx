@@ -228,6 +228,9 @@ class TransitionImporter
 
     public function addTransition(addedBy:String, transition:TransitionData,  lastUseActor:Bool = false, lastUseTarget:Bool = false)
     {
+        // skip if transition does nothing like <560> + <0> = <560> + <0> / Knife#
+        if(transition.actorID == transition.newActorID && transition.targetID == transition.newTargetID) return;
+
         transition.addedBy = addedBy;
 
         if(lastUseActor == false && lastUseTarget == false){
@@ -343,6 +346,8 @@ class TransitionImporter
         // TODO there was a reason for checking for @, but 1206 (Cabbage Seed) is an object and an category so wont work for this
         //if(objectData.description.indexOf("@") == -1) return null;
 
+        // For example 2982 is Shaky property Fence  and a category so wont work for this if testing not for @. like knife + Shaky property Fenc
+
         return categoriesById[id];
     }
 
@@ -377,16 +382,22 @@ class TransitionImporter
             if(actorCategory != null)
             {
                 var objData = ObjectData.getObjectData(actorCategory.parentID);
-                description += objData == null ? '${actorCategory.parentID} ' : '${actorCategory.parentID} ${objData.description} ';
+                description += objData == null ? 'A: ${actorCategory.parentID} ' : 'A: ${actorCategory.parentID} ${objData.description} ';
             }
 
             if(targetCategory != null)
             {
                 var objData = ObjectData.getObjectData(targetCategory.parentID);
-                description += objData == null ? '${targetCategory.parentID} ' : '${targetCategory.parentID} ${objData.description} ';
+                description += objData == null ? 'T: ${targetCategory.parentID} ' : 'T: ${targetCategory.parentID} ${objData.description} ';
             }
 
             var length = actorCategory != null ? actorCategory.ids.length : targetCategory.ids.length;
+
+            //if(actorCategory != null && actorCategory.parentID == 2995 ) trace('TTT11: ${description}' + transition.getDesciption());
+
+            // FIX: This is not a pattern: A: 2995 @ Shaky Fence Buster T: 2982 Shaky Property Fence# +horizontalC <2995> + <2982> 
+            if(actorCategory != null && actorCategory.pattern == false) targetCategory = null;
+            //if(targetCategory != null && targetCategory.pattern == false) actorCategory = null; 
 
             for(i in 0...length)
             { 
@@ -396,6 +407,7 @@ class TransitionImporter
                 if(newActorCategory != null) newTransition.newActorID = newActorCategory.ids[i];
                 if(newTargetCategory != null) newTransition.newTargetID = newTargetCategory.ids[i];
 
+                //if(actorCategory != null && actorCategory.parentID == 2995 ) trace('TTT12: ' + newTransition.getDesciption());
                 //newTransition.traceTransition('$description/', true);
                 addTransition('$description/', newTransition);
             }
