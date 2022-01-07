@@ -2283,6 +2283,30 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             targetPlayer.doDeath('reason_killed_${targetPlayer.woundedBy}');
         }
 
+        var trans = TransitionImporter.GetTransition(this.heldObject.id, 0, true, false);
+
+        if(trans != null)
+        {
+            // TODO drop player and held object
+            // TODO dont do tasks if wounded
+            // TODO get rid of wound
+            trace('Wound: ' + trans);
+            var newWound = new ObjectHelper(this, trans.newTargetID);
+            targetPlayer.setHeldObject(newWound);            
+
+            var bloodyWeapon = new ObjectHelper(this, trans.newActorID);
+            this.setHeldObject(bloodyWeapon);
+            this.heldObject.creationTimeInTicks = TimeHelper.tick;
+
+            var timeTransition = TransitionImporter.GetTransition(-1, trans.newActorID);
+
+            if(timeTransition != null)
+            {
+                this.heldObject.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
+                trace('Bloody Weapon Time: ${this.heldObject.timeToChange} ' + timeTransition.getDesciption());
+            }
+        }
+
         this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
         Connection.SendDyingToAll(targetPlayer);
