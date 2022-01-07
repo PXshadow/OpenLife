@@ -1533,11 +1533,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         var player = this;
 
-        //player.o_transition_source_id = objOriginValid ? -1 : this.heldObject.id;
+        player.o_transition_source_id = player.heldObject.id;
 
         // this changes where the client moves the object from on display
         player.o_origin_x = 0;
         player.o_origin_y = 0;
+
+        player.action = 1;   
+        player.action_target_x = 0;
+        player.action_target_y = 0;
         
         player.o_origin_valid = 0; // if set to 0 no animation is displayed to pick up hold obj from o_origin_x o_origin_y
     }
@@ -2271,19 +2275,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         trace('kill: HIT');
 
-        // TODO cool down
         // TODO weapon damage
         // TODO armor / strength
-        // TODO send death update
-        // TODO bloody weapon cooldown
-        // TODO hit animation for player
         // TODO allow healing
         // TODO super angry emote while trying to kill
         // TODO fear emote if no weapon and no ally
         // TODO prestige cost if your ally
-        // TODO weapon range health dependen
+        // TODO weapon range health dependend
         // TODO reduce hit chance if attacked x,y is more far away 
         // TODO dont switch weapon with ground item if in attack mode
+        // TODO emote if wounded and bloody weapon
 
         targetPlayer.hits +=10;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
@@ -2300,17 +2301,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(trans != null)
         {
             // TODO drop player 
-            // TODO dont do tasks if wounded
             // TODO get rid of wound
             if(targetPlayer.heldObject.id != 0)
             {
                 if(WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
             }
 
-            trace('Wound: ' + trans);
-            var newWound = new ObjectHelper(this, trans.newTargetID);
-            targetPlayer.setHeldObject(newWound);            
+            //trace('Wound: ' + trans);
 
+            // TODO what to do with arrows / replace normal wound with arrow
+            // TODO allow wound drop on floor if knife wound and add time transition for decay
+            if(targetPlayer.heldObject.isPermanent() == false)
+            {
+                var newWound = new ObjectHelper(this, trans.newTargetID);
+                targetPlayer.setHeldObject(newWound);    
+            }
+                    
             var bloodyWeapon = new ObjectHelper(this, trans.newActorID);
             this.setHeldObject(bloodyWeapon);
             this.heldObject.creationTimeInTicks = TimeHelper.tick;
