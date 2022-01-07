@@ -280,7 +280,12 @@ class TimeHelper
             obj.objectData = ObjectData.getObjectData(transition.newTargetID);
 
             player.setHeldObject(obj);
+
+            player.setHeldObjectOriginNotValid(); // no animation
         }
+
+        // TODO contained objects
+        // TODO clothing decay / contained objects --> like in backpack
     }
 
     private static function UpdateEmotes(player:GlobalPlayerInstance)
