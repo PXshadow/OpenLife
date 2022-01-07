@@ -92,6 +92,13 @@ class TransitionHelper{
     {
         var helper = new TransitionHelper(player, x, y);
 
+        if(player.heldObject.objectData.permanent > 0)
+        {
+            trace('Cannot do command since heldObject is permanent! Maybe wounded or bloody weapon!');
+            helper.sendUpdateToClient();
+            return false;
+        }
+
         switch (tag)
         {
             case USE: 

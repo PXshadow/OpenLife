@@ -165,7 +165,7 @@ class ServerSettings
 
     // combat
     //public static var WoundWhenFoodStoreMaxBelow = 10;
-    public static var WeaponCoolDownFactor:Float = 0.1;
+    public static var WeaponCoolDownFactor:Float = 0.2;
 
 
     // iron, tary spot spring cannot respawn or win lottery
@@ -394,7 +394,9 @@ class ServerSettings
         //if (obj.deadlyDistance > 0)
         //    obj.mapChance *= 0;  
 
-
+        //trace('Permanent: ${ObjectData.getObjectData(750).permanent}');
+        //trace('Permanent: ${ObjectData.getObjectData(3816).permanent}');
+        
     }
 
     public static function PatchTransitions(transtions:TransitionImporter)        
