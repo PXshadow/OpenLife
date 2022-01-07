@@ -253,7 +253,7 @@ class PlayerInstance
     }
     public function toData(?rx:Int,?ry:Int,?age:Float,?age_r:Float,?move_speed:Float,heldObject:String="", forPlayerOffsetX:Int = 0, forPlayerOffsetY:Int = 0):String
     {
-        o_origin_valid = 1;
+        //o_origin_valid = 1;
         if (heldObject == "")
             heldObject = MapData.stringID(o_id);
         if (rx == null)
