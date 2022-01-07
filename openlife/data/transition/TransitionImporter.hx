@@ -1,5 +1,6 @@
 package openlife.data.transition;
 
+import haxe.Exception;
 import openlife.settings.ServerSettings;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.ObjectData;
@@ -396,8 +397,14 @@ class TransitionImporter
             //if(actorCategory != null && actorCategory.parentID == 2995 ) trace('TTT11: ${description}' + transition.getDesciption());
 
             // FIX: This is not a pattern: A: 2995 @ Shaky Fence Buster T: 2982 Shaky Property Fence# +horizontalC <2995> + <2982> 
-            if(actorCategory != null && actorCategory.pattern == false) targetCategory = null;
-            //if(targetCategory != null && targetCategory.pattern == false) actorCategory = null; 
+            if(actorCategory != null && actorCategory.pattern == false) targetCategory = null; // TODO loop over other category? But when, since Shaky Property Fence is an object and a total different category
+            if(targetCategory != null && targetCategory.pattern == false) actorCategory = null; // TODO loop over other category? 
+
+            if(actorCategory != null && targetCategory != null && actorCategory.ids.length != targetCategory.ids.length)
+            {
+                trace('WARNING: ${description}' + transition.getDesciption());
+                throw new Exception('actorCategory.ids.length != targetCategory.ids.length');
+            }
 
             for(i in 0...length)
             { 
