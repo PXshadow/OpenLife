@@ -2236,8 +2236,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var name = targetPlayer == null ? 'not found!' : ${targetPlayer.name};
         var deadlyDistance = this.heldObject.objectData.deadlyDistance;
 
-        trace('kill($x, $y playerId: $playerId) ${name}');
-
         if(targetPlayer == null)
         {
             this.connection.send(PLAYER_UPDATE, [this.toData()]);
@@ -2246,6 +2244,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             return false;
         }
+
+        trace('kill($x,$y ${targetPlayer.tx() - this.gx},${targetPlayer.ty() - this.gy} playerId: $playerId) ${name}');
 
         if(isCloseUseExact(targetPlayer, deadlyDistance) == false)
         {
@@ -2258,9 +2258,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         trace('kill: HIT');
 
-        // TODO stop movement from hit target?
         // TODO cool down
-        // TODO hit chance
         // TODO weapon damage
         // TODO armor / strength
         // TODO send death update
@@ -2269,9 +2267,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // TODO allow healing
         // TODO super angry emote while trying to kill
         // TODO fear emote if no weapon and no ally
-        // TODO presige cost if your ally
+        // TODO prestige cost if your ally
         // TODO weapon range health dependen
-        // TODO higher missing if clicked more far away
+        // TODO reduce hit chance if attacked x,y is more far away 
+        // TODO dont switch weapon with ground item if in attack mode
 
         targetPlayer.hits +=10;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
@@ -2302,7 +2301,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(timeTransition != null)
             {
-                this.heldObject.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
+                this.heldObject.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition) * ServerSettings.WeaponCoolDownFactor;
                 trace('Bloody Weapon Time: ${this.heldObject.timeToChange} ' + timeTransition.getDesciption());
             }
         }
