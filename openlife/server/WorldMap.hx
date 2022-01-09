@@ -656,42 +656,11 @@ class WorldMap
     public function readFromDisk() : Bool
     {
         this.mutex.acquire();
+        var done = false;
 
         try
         {
-            var dir = './${ServerSettings.SaveDirectory}/';
-            var path = dir + "lastDataNumber.txt";
-            var reader = File.read(path, false);
-            this.saveDataNumber = Std.parseInt(reader.readLine());
-            this.backupDataNumber = Std.parseInt(reader.readLine());
-            TimeHelper.tick = Std.parseFloat(reader.readLine());
-            TimeHelper.lastTick = TimeHelper.tick; 
-
-            reader.close();    
-
-            trace('saveDataNumber: $saveDataNumber backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');        
-
-            this.originalBiomes = readMapBiomes(dir + ServerSettings.OriginalBiomesFileName + ".bin");
-
-            this.originalObjects = readMapObjects(dir + ServerSettings.OriginalObjectsFileName + ".bin");            
-
-            this.biomes = readMapBiomes(dir + ServerSettings.CurrentBiomesFileName + saveDataNumber + ".bin");
-
-            this.floors = readMapBiomes(dir + ServerSettings.CurrentFloorsFileName + saveDataNumber + ".bin");
-
-            this.objects = readMapObjects(dir + ServerSettings.CurrentObjectsFileName + saveDataNumber + ".bin");
-
-            this.hiddenObjects = readMapObjects(dir + ServerSettings.CurrentObjectsFileName + "Hidden" + saveDataNumber + ".bin");
-
-            this.objectHelpers = readMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + saveDataNumber + ".bin");
-
-            Macro.exception(PlayerAccount.ReadPlayerAccounts(dir + "PlayerAccounts" + saveDataNumber + ".bin"));
-
-            this.originalObjectsCount = countObjects(this.originalObjects);
-
-            this.currentObjectsCount = countObjects(this.objects);   
-
-            fixObjectIds('read');
+            done = readFromDiskHelper();
         }
         catch(ex)
         {
@@ -704,6 +673,45 @@ class WorldMap
 
         this.mutex.release();
 
+        return done;
+    }
+
+    private function readFromDiskHelper() : Bool
+    {
+        var dir = './${ServerSettings.SaveDirectory}/';
+        var path = dir + "lastDataNumber.txt";
+        var reader = File.read(path, false);
+        this.saveDataNumber = Std.parseInt(reader.readLine());
+        this.backupDataNumber = Std.parseInt(reader.readLine());
+        TimeHelper.tick = Std.parseFloat(reader.readLine());
+        TimeHelper.lastTick = TimeHelper.tick; 
+
+        reader.close();    
+
+        trace('saveDataNumber: $saveDataNumber backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');        
+
+        this.originalBiomes = readMapBiomes(dir + ServerSettings.OriginalBiomesFileName + ".bin");
+
+        this.originalObjects = readMapObjects(dir + ServerSettings.OriginalObjectsFileName + ".bin");            
+
+        this.biomes = readMapBiomes(dir + ServerSettings.CurrentBiomesFileName + saveDataNumber + ".bin");
+
+        this.floors = readMapBiomes(dir + ServerSettings.CurrentFloorsFileName + saveDataNumber + ".bin");
+
+        this.objects = readMapObjects(dir + ServerSettings.CurrentObjectsFileName + saveDataNumber + ".bin");
+
+        this.hiddenObjects = readMapObjects(dir + ServerSettings.CurrentObjectsFileName + "Hidden" + saveDataNumber + ".bin");
+
+        readMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + saveDataNumber + ".bin");
+
+        Macro.exception(PlayerAccount.ReadPlayerAccounts(dir + "PlayerAccounts" + saveDataNumber + ".bin"));
+
+        this.originalObjectsCount = countObjects(this.originalObjects);
+
+        this.currentObjectsCount = countObjects(this.objects);   
+
+        fixObjectIds('read');
+        
         return true;
     }
 
@@ -905,9 +913,9 @@ class WorldMap
         var width = reader.readInt32();
         var height = reader.readInt32();
         var length = width * height;
-        var newObjects = new Vector<ObjectHelper>(length);
         var count = 0;
-        
+        var newObjects = new Vector<ObjectHelper>(length);
+        this.objectHelpers = newObjects;
 
         if(dataVersion != 2) throw new Exception('Data version is: $dataVersion expected data version is: $expectedDataVersion');
         if(width != this.width) throw new Exception('width != this.width');
@@ -949,8 +957,9 @@ class WorldMap
                     }
                 }
 
-                newObjects[index(newObject.tx, newObject.ty)] = newObject;
-                objects[index(newObject.tx, newObject.ty)] = newObjArray;
+                setObjectHelper(newObject.tx, newObject.ty, newObject);
+                //newObjects[index(newObject.tx, newObject.ty)] = newObject;
+                //objects[index(newObject.tx, newObject.ty)] = newObjArray;
             }
         }
         catch(ex)
