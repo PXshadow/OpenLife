@@ -412,11 +412,11 @@ class WorldMap
                     // TODO look who sets the dummy wrong
                     var objData = ObjectData.getObjectData(obj[0]);
 
-                    trace('WARNING: ${helper.tx},${helper.ty} object Id: ${obj[0]} ${objData.description} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id} ${helper.description}');
+                    trace('WARNING: ${helper.tx},${helper.ty} object Id: ${obj[0]} ${objData.description} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id} ${helper.description} NumberUses: ${helper.numberOfUses}');
 
                     objectHelpers[index(helper.tx, helper.ty)] = null;
 
-                    setObjectId(helper.tx, helper.ty, helper.toArray());
+                    setObjectHelper(helper.tx, helper.ty, helper);
                 }
             }
             catch(ex) trace(ex);
@@ -583,6 +583,8 @@ class WorldMap
     public function writeToDiskHelper(saveOriginals:Bool = true, dir:String = null)
     {        
         var time = Sys.time();
+
+        fixObjectIds('writing');
         
         if(dir == null) dir = './${ServerSettings.SaveDirectory}/';
         
@@ -619,6 +621,37 @@ class WorldMap
 
         if(ServerSettings.DebugWrite) trace('Write to disk: saveDataNumber: $tmpDataNumber Time: $time backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');
     } 
+
+    private function fixObjectIds(desc:String)
+    {
+        for(helper in objectHelpers)
+        {
+            if(helper == null) continue;
+            var obj = getObjectId(helper.tx, helper.ty);
+
+            if(obj[0] != helper.dummyId())
+            {
+                // TODO look who sets the dummy wrong
+                var objData = ObjectData.getObjectData(obj[0]);
+
+                trace('WARNING $desc: ${helper.tx},${helper.ty} object Id: ${obj[0]} ${objData.description} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id} ${helper.description} NumberUses: ${helper.numberOfUses}');
+
+                this.setObjectHelper(helper.tx, helper.ty, helper);
+            }
+
+            /*obj = getObjectId(helper.tx, helper.ty);
+
+            if(obj[0] != helper.dummyId())
+            {
+                // TODO look who sets the dummy wrong
+                var objData = ObjectData.getObjectData(obj[0]);
+
+                trace('WARNING 2 $desc: ${helper.tx},${helper.ty} object Id: ${obj[0]} ${objData.description} did not fit to object.dummyId: ${helper.dummyId()} helper.id: ${helper.id} ${helper.description} NumberUses: ${helper.numberOfUses}');
+
+                this.setObjectHelper(helper.tx, helper.ty, helper);
+            }*/
+        }
+    }
 
     public function readFromDisk() : Bool
     {
@@ -657,6 +690,8 @@ class WorldMap
             this.originalObjectsCount = countObjects(this.originalObjects);
 
             this.currentObjectsCount = countObjects(this.objects);   
+
+            fixObjectIds('read');
         }
         catch(ex)
         {
@@ -852,7 +887,7 @@ class WorldMap
             writer.writeInt32(obj.ty);
             writer.writeInt32(obj.numberOfUses);
             writer.writeDouble(obj.creationTimeInTicks);
-            writer.writeInt32(obj.timeToChange);
+            writer.writeFloat(obj.timeToChange);
         }
 
         writer.writeInt8(100); // end sign
@@ -901,7 +936,7 @@ class WorldMap
                 newObject.ty = reader.readInt32();
                 newObject.numberOfUses = reader.readInt32();
                 newObject.creationTimeInTicks = reader.readDouble();
-                newObject.timeToChange = reader.readInt32();
+                newObject.timeToChange = reader.readFloat();
 
                 if(newObject.creationTimeInTicks > TimeHelper.tick) newObject.creationTimeInTicks = TimeHelper.tick;
 
