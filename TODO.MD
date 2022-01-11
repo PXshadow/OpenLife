@@ -64,8 +64,10 @@ Killing / Attacking
 - you can attack anybody if close in weapon range
 - each hit makes certain damage
 - different weapons have different damage and cooldown
-- you will loose prestige for attacking a close relative
+- you do halve damage to ally 
 - you will loose even more prestige for attacking an ally
+- you will loose prestige for attacking a close relative
+
 
 Heat / Temperature:
 - bad temperature reduces speed extreme temperature reduces double

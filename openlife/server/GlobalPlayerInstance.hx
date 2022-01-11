@@ -2291,6 +2291,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         var damage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
         damage = (damage / 2) + damage * WorldMap.calculateRandomFloat();
+        if(targetPlayer.isAlly(this)) damage /= 2;
         
         targetPlayer.hits += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
@@ -2302,7 +2303,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             targetPlayer.doDeath('reason_killed_${targetPlayer.woundedBy}');
         }
 
-        
         var trans = TransitionImporter.GetTransition(this.heldObject.id, 0, true, false);
 
         if(trans != null)
@@ -2355,7 +2355,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         var prestigeCost:Float = 0;
 
-        
+        // TODO count as ally if exile happened not long ago ???
+        // TODO auto exile if seen by leader ???
         if(targetPlayer.isAlly(this))
         {
             prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForAlly;
