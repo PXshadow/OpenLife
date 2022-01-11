@@ -1074,7 +1074,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function getTopLeader(stopWithPlayer:GlobalPlayerInstance = null) : GlobalPlayerInstance
     {
         var leader = followPlayer;
-        if(leader == null) return null;
+        if(leader == null) return this; // is his own leader
 
         for(ii in 0...10)
         {
@@ -2284,17 +2284,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         // TODO armor / strength
         // TODO allow healing
-        // TODO super angry emote while trying to kill
         // TODO fear emote if no weapon and no ally
         // TODO prestige cost if your ally
         // TODO weapon range health dependend
         // TODO reduce hit chance if attacked x,y is more far away 
-        // TODO dont switch weapon with ground item if in attack mode
-        // TODO emote if wounded and bloody weapon
 
         var damage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
         damage = (damage / 2) + damage * WorldMap.calculateRandomFloat();
-        //trace('Wound: damage: $damage');
+        
         targetPlayer.hits += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
 
@@ -2306,7 +2303,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         
-
         var trans = TransitionImporter.GetTransition(this.heldObject.id, 0, true, false);
 
         if(trans != null)
@@ -2355,9 +2351,33 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         //this.connection.send(PLAYER_UPDATE, [this.toData()]);
         Connection.SendUpdateToAllClosePlayers(this);
         Connection.SendUpdateToAllClosePlayers(targetPlayer);
-
         Connection.SendDyingToAll(targetPlayer);
 
+        var prestigeCost:Float = 0;
+
+        
+        if(targetPlayer.isAlly(this))
+        {
+            prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForAlly;
+
+            prestigeCost = Math.ceil(prestigeCost);
+
+            this.addHealthAndPrestige(-prestigeCost);
+
+            this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking ally ${targetPlayer.name}!');
+        }
+        else if(isCloseRelative(targetPlayer))
+        {
+            prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForCloseRelatives;
+
+            prestigeCost = Math.ceil(prestigeCost);
+
+            this.addHealthAndPrestige(-prestigeCost);
+
+            this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking close relative ${targetPlayer.name}!');
+        }
+        
+        //trace('Wound: damage: $damage prestigeCost: $prestigeCost');
 
         return true;
     }
@@ -2842,6 +2862,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         return this.heldObject.isWound();  
     } 
+
+    public function isAlly(target:GlobalPlayerInstance) : Bool
+    {
+        return this.getTopLeader() == target.getTopLeader();
+    }
+
+    public function isCloseRelative(target:GlobalPlayerInstance) : Bool
+    {
+        if(target == this.mother) return true;    
+        if(target == this.father) return true;
+
+        if(target.mother == this) return true;    
+        if(target.father == this) return true;
+        
+        if(target.mother == this.mother) return true; // brother / sister   
+        if(target.father == this.father) return true; // brother / sister    
+
+        return false;
+    }
 }
 
 // TODO Arcurus>> add birth logic - suggestion:
