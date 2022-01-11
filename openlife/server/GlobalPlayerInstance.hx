@@ -2302,11 +2302,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(trans != null)
         {
-            // TODO drop player 
-            // TODO get rid of wound
-            
             //trace('Wound: ' + trans);
 
+            if(targetPlayer.heldPlayer != null) dropPlayer(); // TODO test
+
+            // TODO get rid of wound
             // TODO what to do with arrows / replace normal wound with arrow
             // TODO allow wound drop on floor if knife wound and add time transition for decay
             if(targetPlayer.heldObject.isWound() == false)
