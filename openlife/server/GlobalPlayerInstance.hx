@@ -144,7 +144,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.heldPlayer = null;
         this.heldByPlayer = null;
 
-        this.exiledByPlayers = null;
+        this.exiledByPlayers =  new Map<Int, GlobalPlayerInstance>();        ;
 
         AllPlayers.remove(this.p_id);
     }
@@ -829,13 +829,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         if(target == null) return false;
 
-        if(target.exiledByPlayers.exists(target.p_id))
+        if(target.exiledByPlayers.exists(this.p_id))
         {
             this.connection.sendGlobalMessage('${target.name} is allready exiled');
             return  false;
         } 
 
-        target.exiledByPlayers[target.p_id] = target;
+        target.exiledByPlayers[this.p_id] = this;
 
         this.connection.sendGlobalMessage('YOU_EXILED:_${target.name}_${target.familyName}');
         target.connection.sendGlobalMessage('YOU_HAVE_BEEN_EXILED_BY:_${this.name}_${this.familyName} YOU CAN BE LEGALLY KILLED!');
@@ -1060,17 +1060,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // if people follow circular outcome is null / max 10 deep hierarchy is supported
     public function getTopLeader(stopWithPlayer:GlobalPlayerInstance = null) : GlobalPlayerInstance
     {
-        var leader = followPlayer;
-        if(leader == null) return this; // is his own leader
+        //trace('getTopLeader0 ${this.name}');
+
+        if(this.followPlayer == null) return this; // is his own leader
+
+        var lastLeader = this;
+        var leader = this.followPlayer;
 
         for(ii in 0...10)
         {
-            if(this.exiledByPlayers.exists(leader.p_id)) return null; // is exiled
-
+            //trace('getTopLeader1 ${lastLeader.name} --> ${leader.name}');
+            if(this.exiledByPlayers.exists(leader.p_id)) return lastLeader; // is exiled by leader
+            //trace('getTopLeader2 ${lastLeader.name} --> ${leader.name} ' + leader.exiledByPlayers);
+            if(leader.exiledByPlayers.exists(this.p_id)) return lastLeader; // player exiled leader 
+            //trace('getTopLeader3 ${lastLeader.name} --> ${leader.name}');
             if(leader.followPlayer == null) return leader;
 
             if(leader == stopWithPlayer) return leader;
 
+            lastLeader = leader;
             leader = leader.followPlayer;
         }
 
@@ -2138,7 +2146,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             grave.containedObjects.push(obj);
         }
 
-        if(WorldMap.PlaceObject(this.tx(), this.ty(), grave) == false) trace('WARNING: could not place any grave for player: ${this.p_id}');
+        if(WorldMap.PlaceObject(this.tx(), this.ty(), grave, true) == false) trace('WARNING: could not place any grave for player: ${this.p_id}');
     }
 
     // insulation reaches from 0 to 2
@@ -2250,6 +2258,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
             trace('kill: playerId: $playerId was not found!');
+
+            return false;
+        }
+
+        if(targetPlayer.deleted)
+        {
+            this.connection.send(PLAYER_UPDATE, [this.toData()]);
+
+            trace('kill: playerId: $playerId is allready dead!');
 
             return false;
         }

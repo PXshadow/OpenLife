@@ -1313,33 +1313,42 @@ class WorldMap
         return PlaceObject(tx, ty, obj);
     }
 
-    public static function PlaceObject(tx:Int, ty:Int, objectToPlace:ObjectHelper) : Bool
+    public static function PlaceObject(tx:Int, ty:Int, objectToPlace:ObjectHelper, allowReplaceObject:Bool = false) : Bool
     {
         var world = WorldMap.world;
 
-        if(TryPlaceObject(tx, ty, objectToPlace)) return true; 
+        var originalObjectToPlace = objectToPlace;
+
+        objectToPlace = TryPlaceObject(tx, ty, objectToPlace, allowReplaceObject);
+
+        if(objectToPlace == null) return true; 
 
         var distance = 1;
         
         for(i in 1...10000)
         {
+            //trace('place $i');
+            if(originalObjectToPlace != objectToPlace) allowReplaceObject = false;
+
             distance = Math.ceil(i / (20 * distance * distance)); 
 
             var tmpX = tx + world.randomInt(distance * 2) - distance;
             var tmpY = ty + world.randomInt(distance * 2) - distance;
 
-            if(TryPlaceObject(tmpX, tmpY, objectToPlace)) return true; 
+            objectToPlace = TryPlaceObject(tmpX, tmpY, objectToPlace, allowReplaceObject);
+
+            if(objectToPlace == null) return true; 
         }
 
         return false;
     }
     
-    private static function TryPlaceObject(x:Int, y:Int, objectToPlace:ObjectHelper) : Bool
+    private static function TryPlaceObject(x:Int, y:Int, objectToPlace:ObjectHelper, allowReplaceObject:Bool) : ObjectHelper
     {
         var world = Server.server.map;
         var obj = world.getObjectHelper(x, y);
 
-        if(WorldMap.isBiomeBlocking(x,y)) return false;
+        if(WorldMap.isBiomeBlocking(x,y)) return objectToPlace;
 
         if(obj.id == 0)
         {
@@ -1347,7 +1356,7 @@ class WorldMap
 
             Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
 
-            return true;
+            return null;
         }
         else if(obj.objectData.containable && objectToPlace.containedObjects.length < objectToPlace.objectData.numSlots)
         {
@@ -1357,10 +1366,19 @@ class WorldMap
 
             Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
 
-            return true;
+            return null;
         }
 
-        return false;
+        if(allowReplaceObject && obj.isPermanent() == false)
+        {
+            world.setObjectHelper(x, y, objectToPlace);
+
+            Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
+
+            return obj;
+        }
+
+        return objectToPlace;
     }
 }
 #end
