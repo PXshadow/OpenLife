@@ -167,6 +167,9 @@ class ServerSettings
     //public static var WoundWhenFoodStoreMaxBelow = 10;
     public static var WeaponCoolDownFactor:Float = 0.1;
     public static var WeaponDamageFactor:Float = 1;
+    public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.25; // For damaging children, mother, father, brother sister  
+    public static var PrestigeCostPerDamageForAlly:Float = 0.5; // For damaging ally  
+    
     
     // iron, tary spot spring cannot respawn or win lottery
     public static function CanObjectRespawn(obj:Int) : Bool

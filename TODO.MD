@@ -25,7 +25,6 @@ AI:
 - by giving "make! xxx" commands you can instruct the ai to make stuff. with xxx part of an object name or ID
 
 Not yet implemented:
-- combat
 - advaned AI
 - incarnation acording to prestige score
 - advaned stuff is not tested yet, so may or may not work
@@ -64,6 +63,9 @@ Loved / Hated Biomes:
 Killing / Attacking
 - you can attack anybody if close in weapon range
 - each hit makes certain damage
+- different weapons have different damage and cooldown
+- you will loose prestige for attacking a close relative
+- you will loose even more prestige for attacking an ally
 
 Heat / Temperature:
 - bad temperature reduces speed extreme temperature reduces double
@@ -199,8 +201,7 @@ High priority:
 - AI tests with >20 AIs
 - AI Stoneage
 
-- COMBAT wounds / healing part 2 
-- COMBAT fix kill display
+- COMBAT healing part 2 
 - COMBAT animal interactions / collisions
 - COMBAT ill from moskitos 
 
