@@ -2136,7 +2136,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         var grave = new ObjectHelper(this, 87); // 87 = Fresh Grave 88 = grave
 
-        if(this.heldObject != null)
+        if(this.heldObject != null && heldObject.description.contains('Wound') == false) // dont place a Wound in grave
         {
             grave.containedObjects.push(this.heldObject);
             this.setHeldObject(null);
