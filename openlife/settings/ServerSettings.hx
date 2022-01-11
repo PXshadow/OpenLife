@@ -373,6 +373,9 @@ class ServerSettings
         ObjectData.getObjectData(3048).speedMult = 0.8; // Bloody War Sword
         ObjectData.getObjectData(749).speedMult = 0.6; // Bloody Yew Bow  
         
+        ObjectData.getObjectData(750).permanent = 1; // Bloody Knife
+        ObjectData.getObjectData(3048).permanent = 1; // Bloody War Sword
+        ObjectData.getObjectData(749).permanent = 1; // Bloody Yew Bow  
 
         // TODO allow damage with bloody weapon / needs support from client?
         ObjectData.getObjectData(560).damage = 6; // Knife  // damage per sec = 1

@@ -169,7 +169,12 @@ class ObjectHelper {
     {
         return objectData.permanent == 1;
     }
-    
+
+    public function isNeverDrop()
+    {
+        return StringTools.contains(objectData.description,'+neverDrop');
+    }
+
     public var description(get, null):String;
 
     public function get_description()
