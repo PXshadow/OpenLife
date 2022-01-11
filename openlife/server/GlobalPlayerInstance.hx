@@ -825,74 +825,69 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         else this.mutex.release();
     }
 
+    public function exile(target:GlobalPlayerInstance) : Bool
+    {
+        if(target == null) return false;
+
+        if(target.exiledByPlayers.exists(target.p_id))
+        {
+            this.connection.sendGlobalMessage('${target.name} is allready exiled');
+            return  false;
+        } 
+
+        target.exiledByPlayers[target.p_id] = target;
+
+        this.connection.sendGlobalMessage('YOU_EXILED:_${target.name}_${target.familyName}');
+        target.connection.sendGlobalMessage('YOU_HAVE_BEEN_EXILED_BY:_${this.name}_${this.familyName} YOU CAN BE LEGALLY KILLED!');
+
+        Connection.SendExileToAll(this, target);
+
+        this.doEmote(Emote.angry);
+
+        return true;
+    }
+
+    public function redeem(target:GlobalPlayerInstance) : Bool
+    {
+        if(target == null) return false;
+
+        // TODO target may be exiled by a sub leader, in case so redeem him also? 
+        if(target.exiledByPlayers.exists(target.p_id) == false)
+        {
+            this.connection.sendGlobalMessage('Cannot redeem ${target.name} if not exiled first!');
+            return false;
+        }
+
+        target.exiledByPlayers.remove(target.p_id);
+
+        Connection.SendFullExileListToAll(target);
+
+        this.connection.sendGlobalMessage('YOU_REDEEM:_${target.name}_${target.familyName}');
+        target.connection.sendGlobalMessage('YOU_HAVE_BEEN_REDEEMED_BY:_${this.name}_${this.familyName}');
+
+        this.doEmote(Emote.happy);
+        target.doEmote(Emote.happy);
+
+        return true;
+    }
+
     private function doCommands(message:String) : Bool
     {
         var name = NamingHelper.GetName(message);
 
-        var doCommand = message.startsWith('I EXILE ');
-
-        if(doCommand)
+        if(message.startsWith('I EXILE '))
         {
-            var target = NamingHelper.GetPlayerByName(this, name);
-            
-            if(target == null || target == this)
-            {
-                this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
-                return  false;
-            } 
-
-            if(target.exiledByPlayers.exists(target.p_id))
-            {
-                this.connection.sendGlobalMessage('${target.name} is allready exiled');
-                return  false;
-            } 
-
-            target.exiledByPlayers[target.p_id] = target;
-
-            this.connection.sendGlobalMessage('YOU_EXILED:_${target.name}_${target.familyName}');
-            target.connection.sendGlobalMessage('YOU_HAVE_BEEN_EXILED_BY:_${this.name}_${this.familyName} YOU CAN BE LEGALLY KILLED!');
-
-            Connection.SendExileToAll(this, target);
-
-            this.doEmote(Emote.angry);
-
-            return true;
+            var target = NamingHelper.GetPlayerByNameWithMessage(this, name);
+            return this.exile(target);
         }
 
-        doCommand = message.startsWith('I REDEEM ');
-
-        if(doCommand)
+        if(message.startsWith('I REDEEM '))
         {
-            var target = NamingHelper.GetPlayerByName(this, name);
-            
-            if(target == null || target == this)
-            {
-                this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
-                return  false;
-            }
-            // TODO target may be exiled by a sub leader, in case so redeem him also? 
-            if(target.exiledByPlayers.exists(target.p_id) == false)
-            {
-                this.connection.sendGlobalMessage('Cannot redeem ${target.name} if not exiled first!');
-                return false;
-            }
-
-            target.exiledByPlayers.remove(target.p_id);
-
-            Connection.SendFullExileListToAll(target);
-
-            this.connection.sendGlobalMessage('YOU_REDEEM:_${target.name}_${target.familyName}');
-            target.connection.sendGlobalMessage('YOU_HAVE_BEEN_REDEEMED_BY:_${this.name}_${this.familyName}');
-
-            this.doEmote(Emote.happy);
-            target.doEmote(Emote.happy);
-
-            return true;
+            var target = NamingHelper.GetPlayerByNameWithMessage(this, name);
+            return this.redeem(target);
         }
 
-        doCommand = message.startsWith('I FOLLOW ');
-
-        if(doCommand)
+        if(message.startsWith('I FOLLOW '))
         {
             if(name == "ME")
             {
@@ -951,9 +946,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return true;
         }
 
-        doCommand = message.startsWith('ORDER, ');
-
-        if(doCommand)
+        if(message.startsWith('ORDER, '))
         {
             message = message.replace('ORDER, ', '');
 
@@ -970,9 +963,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return true;
         }
 
-        doCommand = message.startsWith('I GIVE ');
-
-        if(doCommand)
+        if(message.startsWith('I GIVE '))
         {
             var target = NamingHelper.GetPlayerByName(this, name);
 
@@ -1020,11 +1011,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return true;
         }
 
-        doCommand = message.contains('OWNES THIS') ||  message.contains('OWN THIS');
-
-        //trace('Owner: ${message}');
-
-        if(doCommand)
+        if(message.contains('OWNES THIS') ||  message.contains('OWN THIS'))
         {
             name = NamingHelper.GetName(message, true);
 
@@ -2285,7 +2272,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // TODO armor / strength
         // TODO allow healing
         // TODO fear emote if no weapon and no ally
-        // TODO prestige cost if your ally
         // TODO weapon range health dependend
         // TODO reduce hit chance if attacked x,y is more far away 
 
@@ -2355,27 +2341,32 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         var prestigeCost:Float = 0;
 
-        // TODO count as ally if exile happened not long ago ???
-        // TODO auto exile if seen by leader ???
-        if(targetPlayer.isAlly(this))
+        if(targetPlayer.killMode == false)
         {
-            prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForAlly;
+            // TODO count as ally if exile happened not long ago ???
+            // TODO auto exile if seen by leader ???
+            if(targetPlayer.isAlly(this))
+            {
+                prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForAlly;
 
-            prestigeCost = Math.ceil(prestigeCost);
+                prestigeCost = Math.ceil(prestigeCost);
 
-            this.addHealthAndPrestige(-prestigeCost);
+                this.addHealthAndPrestige(-prestigeCost);
 
-            this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking ally ${targetPlayer.name}!');
-        }
-        else if(isCloseRelative(targetPlayer))
-        {
-            prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForCloseRelatives;
+                this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking ally ${targetPlayer.name}!');
 
-            prestigeCost = Math.ceil(prestigeCost);
+                if(targetPlayer.getTopLeader() == this) this.exile(targetPlayer); 
+            }
+            else if(isCloseRelative(targetPlayer))
+            {
+                prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForCloseRelatives;
 
-            this.addHealthAndPrestige(-prestigeCost);
+                prestigeCost = Math.ceil(prestigeCost);
 
-            this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking close relative ${targetPlayer.name}!');
+                this.addHealthAndPrestige(-prestigeCost);
+
+                this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking close relative ${targetPlayer.name}!');
+            }
         }
         
         //trace('Wound: damage: $damage prestigeCost: $prestigeCost');

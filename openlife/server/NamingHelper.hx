@@ -160,6 +160,19 @@ class NamingHelper
         return name;
     }
 
+    public static function GetPlayerByNameWithMessage(player:GlobalPlayerInstance, name:String) : GlobalPlayerInstance
+    {
+        var target = NamingHelper.GetPlayerByName(player, name);
+            
+        if(target == null || target == player)
+        {
+            player.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
+            return  null;
+        } 
+
+        return target;
+    }
+
     // TODO support family name???
     public static function GetPlayerByName(player:GlobalPlayerInstance, name:String) : GlobalPlayerInstance
     {
