@@ -2275,7 +2275,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         trace('kill: HIT');
 
-        // TODO weapon damage
         // TODO armor / strength
         // TODO allow healing
         // TODO super angry emote while trying to kill
@@ -2286,7 +2285,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // TODO dont switch weapon with ground item if in attack mode
         // TODO emote if wounded and bloody weapon
 
-        targetPlayer.hits +=10;
+        var damage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
+        damage = (damage / 2) + damage * WorldMap.calculateRandomFloat();
+        trace('Wound: damage: $damage');
+        targetPlayer.hits += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
 
         targetPlayer.woundedBy = this.heldObject.id;

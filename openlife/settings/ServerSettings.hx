@@ -165,9 +165,9 @@ class ServerSettings
 
     // combat
     //public static var WoundWhenFoodStoreMaxBelow = 10;
-    public static var WeaponCoolDownFactor:Float = 0.2;
-
-
+    public static var WeaponCoolDownFactor:Float = 0.1;
+    public static var WeaponDamageFactor:Float = 1;
+    
     // iron, tary spot spring cannot respawn or win lottery
     public static function CanObjectRespawn(obj:Int) : Bool
     {
@@ -366,6 +366,17 @@ class ServerSettings
         ObjectData.getObjectData(391).winterDecayFactor = 1; // Domestic Gooseberry Bush
         ObjectData.getObjectData(391).springRegrowFactor = 0.1; // Domestic Gooseberry Bush
 
+        ObjectData.getObjectData(750).speedMult = 0.75; // Bloody Knife
+        ObjectData.getObjectData(3048).speedMult = 0.8; // Bloody War Sword
+        ObjectData.getObjectData(749).speedMult = 0.6; // Bloody Yew Bow  
+        
+
+        // TODO allow damage with bloody weapon / needs support from client?
+        ObjectData.getObjectData(560).damage = 6; // Knife  // damage per sec = 1
+        ObjectData.getObjectData(3047).damage = 9; // War Sword // damage per sec = 2
+        ObjectData.getObjectData(152).damage = 13.5; // Bow and Arrow  // damage per sec = 1.5
+        ObjectData.getObjectData(1624).damage = 18; // Bow and Arrow with Note  // damage per sec = 2
+
         //ObjectData.getObjectData(279).winterDecayFactor = 2; // Empty Wild Gooseberry Bush
         //ObjectData.getObjectData(279).springRegrowFactor = 0.5; // Empty Wild Gooseberry Bush
         //ObjectData.getObjectData(279).countsOrGrowsAs = 30; // Empty Wild Gooseberry Bush
@@ -404,6 +415,14 @@ class ServerSettings
         // TODO set through transions
         ObjectData.getObjectData(30).lastUseObject = 279; // Wild Gooseberry Bush ==> Empty Wild Gooseberry Bush
         ObjectData.getObjectData(279).undoLastUseObject = 30; // Empty Wild Gooseberry Bush ==> Wild Gooseberry Bush 
+
+        var trans = transtions.getTransition(-1, 3048); // Bloody War Sword
+        trans.autoDecaySeconds = 45; 
+        trans.traceTransition("PatchTransitions: "); 
+
+        var trans = transtions.getTransition(-1, 749); //  Bloody Yew Bow  
+        trans.autoDecaySeconds = 90; 
+        trans.traceTransition("PatchTransitions: "); 
  
         for(trans in TransitionImporter.transitionImporter.transitions)
         {
@@ -439,7 +458,7 @@ class ServerSettings
         }
 
         // Original: Riding Horse: 770 + -1 = 0 + 1421
-        var trans = new TransitionData(770,0,0,1421);
+        trans = new TransitionData(770,0,0,1421);
         transtions.addTransition("PatchTransitions: ", trans);
 
         // TODO this should function somehow with categories???
