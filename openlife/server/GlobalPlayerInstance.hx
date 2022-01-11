@@ -841,7 +841,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 return  false;
             } 
 
-            if(target.exiledByPlayers.exists(target.p_id)) return false; // 
+            if(target.exiledByPlayers.exists(target.p_id))
             {
                 this.connection.sendGlobalMessage('${target.name} is allready exiled');
                 return  false;
