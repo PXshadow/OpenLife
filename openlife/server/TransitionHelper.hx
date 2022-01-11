@@ -99,6 +99,14 @@ class TransitionHelper{
             return false;
         }
 
+        if(player.killMode)
+        {
+            trace('kill mode deactivated try again!');
+            helper.sendUpdateToClient();
+            player.killMode = false;
+            return false;
+        }
+
         switch (tag)
         {
             case USE: 

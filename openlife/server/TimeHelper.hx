@@ -294,6 +294,12 @@ class TimeHelper
 
         //trace('temperatureMail: $temperatureMail');
 
+        if(player.killMode)
+        {
+            Connection.SendEmoteToAll(player, Emote.murderFace);
+            return;
+        }
+
         if(player.food_store < 0 && player.age >= ServerSettings.MinAgeToEat)
         {
             player.doEmote(Emote.starving);

@@ -91,6 +91,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     // handles all the movement stuff
     public var moveHelper:MoveHelper;
+    public var killMode:Bool = false;
 
     // additional ObjectInformation for the object stored in backpack or other clothing. The size is 6 since 6 clothing slots
     public var clothingObjects:Vector<ObjectHelper> = new Vector(6); 
@@ -2134,7 +2135,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function placeGrave()
     {
-        var grave = new ObjectHelper(this, 87); // 87 = Fresh Grave 88 = grave
+        var grave = heldObject.isWound() ? new ObjectHelper(this, 752) : new ObjectHelper(this, 87); // 87 = Fresh Grave 88 = grave 752 = Murder Grave
 
         if(this.heldObject != null && heldObject.isWound() == false) // dont place a Wound in grave
         {
@@ -2253,6 +2254,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var name = targetPlayer == null ? 'not found!' : ${targetPlayer.name};
         var deadlyDistance = this.heldObject.objectData.deadlyDistance;
 
+        this.killMode = true;
+
+        Connection.SendEmoteToAll(this, Emote.murderFace);
+        
         if(targetPlayer == null)
         {
             this.connection.send(PLAYER_UPDATE, [this.toData()]);
@@ -2263,6 +2268,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         trace('kill($x,$y ${targetPlayer.tx() - this.gx},${targetPlayer.ty() - this.gy} playerId: $playerId) ${name}');
+
+        Connection.SendEmoteToAll(targetPlayer, Emote.shock);
 
         if(isCloseUseExact(targetPlayer, deadlyDistance) == false)
         {
@@ -2349,9 +2356,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         Connection.SendDyingToAll(targetPlayer);
 
-        Connection.SendEmoteToAll(this, Emote.angry);
-
-        Connection.SendEmoteToAll(targetPlayer, Emote.shock);
 
         return true;
     }
