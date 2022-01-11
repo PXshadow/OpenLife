@@ -144,7 +144,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.heldPlayer = null;
         this.heldByPlayer = null;
 
-        this.exiledByPlayers =  new Map<Int, GlobalPlayerInstance>();        ;
+        this.exiledByPlayers =  new Map<Int, GlobalPlayerInstance>();
 
         AllPlayers.remove(this.p_id);
     }
@@ -2368,7 +2368,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
                 prestigeCost = Math.ceil(prestigeCost);
 
-                this.addHealthAndPrestige(-prestigeCost);
+                this.addHealthAndPrestige(-prestigeCost, false);
 
                 this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking ally ${targetPlayer.name}!');
 
@@ -2380,7 +2380,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
                 prestigeCost = Math.ceil(prestigeCost);
 
-                this.addHealthAndPrestige(-prestigeCost);
+                this.addHealthAndPrestige(-prestigeCost, false);
 
                 this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking close relative ${targetPlayer.name}!');
             }
@@ -2799,10 +2799,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return loved;
     }
 
-    public function addHealthAndPrestige(count:Float)
+    public function addHealthAndPrestige(count:Float, isFood:Bool = true)
     {        
         this.yum_multiplier += count;
-        this.prestigeFromEating += count;
+        if(isFood) this.prestigeFromEating += count;
 
         if(count <= 0) return;
 
