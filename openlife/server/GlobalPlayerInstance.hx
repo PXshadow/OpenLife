@@ -2136,7 +2136,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         var grave = new ObjectHelper(this, 87); // 87 = Fresh Grave 88 = grave
 
-        if(this.heldObject != null && heldObject.description.contains('Wound') == false) // dont place a Wound in grave
+        if(this.heldObject != null && heldObject.isWound() == false) // dont place a Wound in grave
         {
             grave.containedObjects.push(this.heldObject);
             this.setHeldObject(null);
@@ -2287,7 +2287,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         var damage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
         damage = (damage / 2) + damage * WorldMap.calculateRandomFloat();
-        trace('Wound: damage: $damage');
+        //trace('Wound: damage: $damage');
         targetPlayer.hits += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
 
@@ -2304,17 +2304,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             // TODO drop player 
             // TODO get rid of wound
-            if(targetPlayer.heldObject.id != 0)
-            {
-                if(WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
-            }
-
+            
             //trace('Wound: ' + trans);
 
             // TODO what to do with arrows / replace normal wound with arrow
             // TODO allow wound drop on floor if knife wound and add time transition for decay
-            if(targetPlayer.heldObject.isPermanent() == false)
+            if(targetPlayer.heldObject.isWound() == false)
             {
+                if(targetPlayer.heldObject.id != 0)
+                {
+                    if(WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
+                }
+
                 var newWound = new ObjectHelper(this, trans.newTargetID);
                 targetPlayer.setHeldObject(newWound);    
             }

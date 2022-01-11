@@ -310,4 +310,9 @@ class ObjectHelper {
 
         return toDelete;
     }
+
+    public function isWound() : Bool
+    {
+        return StringTools.contains(description, 'Wound');
+    }
 }
