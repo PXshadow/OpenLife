@@ -2298,26 +2298,33 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             targetPlayer.doDeath('reason_killed_${targetPlayer.woundedBy}');
         }
 
+        
+
         var trans = TransitionImporter.GetTransition(this.heldObject.id, 0, true, false);
 
         if(trans != null)
         {
             //trace('Wound: ' + trans);
 
-            if(targetPlayer.heldPlayer != null) dropPlayer(); // TODO test
+            var doWound = targetPlayer.food_store_max < targetPlayer.calculateNotReducedFoodStoreMax() / 2;
 
-            // TODO get rid of wound
-            // TODO what to do with arrows / replace normal wound with arrow
-            // TODO allow wound drop on floor if knife wound and add time transition for decay
-            if(targetPlayer.heldObject.isWound() == false)
+            if(doWound)
             {
-                if(targetPlayer.heldObject.id != 0)
-                {
-                    if(WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
-                }
+                if(targetPlayer.heldPlayer != null) dropPlayer(); // TODO test
 
-                var newWound = new ObjectHelper(this, trans.newTargetID);
-                targetPlayer.setHeldObject(newWound);    
+                // TODO get rid of wound
+                // TODO what to do with arrows / replace normal wound with arrow
+                // TODO allow wound drop on floor if knife wound and add time transition for decay
+                if(targetPlayer.heldObject.isWound() == false)
+                {
+                    if(targetPlayer.heldObject.id != 0)
+                    {
+                        if(WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
+                    }
+
+                    var newWound = new ObjectHelper(this, trans.newTargetID);
+                    targetPlayer.setHeldObject(newWound);    
+                }
             }
                     
             var bloodyWeapon = new ObjectHelper(this, trans.newActorID);
