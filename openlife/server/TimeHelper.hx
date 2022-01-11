@@ -300,6 +300,12 @@ class TimeHelper
             return;
         }
 
+        if(player.isWounded())
+        {
+            Connection.SendEmoteToAll(player, Emote.shock);
+            return;
+        }
+
         if(player.food_store < 0 && player.age >= ServerSettings.MinAgeToEat)
         {
             player.doEmote(Emote.starving);

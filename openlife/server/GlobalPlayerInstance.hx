@@ -2317,6 +2317,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(doWound)
             {
+                targetPlayer.killMode = false;
+
                 if(targetPlayer.heldPlayer != null) dropPlayer(); // TODO test
 
                 // TODO get rid of wound
@@ -2835,6 +2837,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             leader = leader.followPlayer;
         }
     }
+
+    public function isWounded() : Bool
+    {
+        return this.heldObject.isWound();  
+    } 
 }
 
 // TODO Arcurus>> add birth logic - suggestion:
