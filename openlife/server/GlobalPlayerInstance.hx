@@ -1072,7 +1072,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             //trace('getTopLeader1 ${lastLeader.name} --> ${leader.name}');
             if(this.exiledByPlayers.exists(leader.p_id)) return lastLeader; // is exiled by leader
             //trace('getTopLeader2 ${lastLeader.name} --> ${leader.name} ' + leader.exiledByPlayers);
-            if(leader.exiledByPlayers.exists(this.p_id)) return lastLeader; // player exiled leader 
+            //if(leader.exiledByPlayers.exists(this.p_id)) return lastLeader; // player exiled leader // still ally in this case???
             //trace('getTopLeader3 ${lastLeader.name} --> ${leader.name}');
             if(leader.followPlayer == null) return leader;
 
@@ -2334,7 +2334,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                     targetPlayer.setHeldObject(newWound);    
                 }
             }
-                    
+                  
             var bloodyWeapon = new ObjectHelper(this, trans.newActorID);
             this.setHeldObject(bloodyWeapon);
             this.heldObject.creationTimeInTicks = TimeHelper.tick;
@@ -2345,7 +2345,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             {
                 this.heldObject.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition) * ServerSettings.WeaponCoolDownFactor;
                 trace('Bloody Weapon Time: ${this.heldObject.timeToChange} ' + timeTransition.getDesciption());
-            }            
+            }          
         }
 
         this.setHeldObjectOriginNotValid(); // no animation
