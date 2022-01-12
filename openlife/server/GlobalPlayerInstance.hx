@@ -1282,7 +1282,24 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function getPlayerAt(x:Int, y:Int, playerId:Int) : GlobalPlayerInstance
     {
-        return Connection.getPlayerAt(x,y,playerId);
+        return GetPlayerAt(x,y,playerId);
+    }
+
+    public static function GetPlayerAt(x:Int, y:Int, playerId:Int) : GlobalPlayerInstance
+    {
+        for(player in GlobalPlayerInstance.AllPlayers)
+        {
+            if(player.deleted) continue;
+
+            if(player.p_id == playerId) return player;
+
+            if(playerId <= 0)
+            {
+                if(player.x == x && player.y == y) return player;
+            }
+        }
+
+        return null;
     }
 
     public function getClosestPlayer(maxDistance:Int, onlyHuman:Bool = false) : GlobalPlayerInstance

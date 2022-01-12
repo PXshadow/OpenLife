@@ -146,23 +146,6 @@ class Connection
         ais.push(ai);
     }
 
-    public static function getPlayerAt(x:Int, y:Int, playerId:Int) : GlobalPlayerInstance
-    {
-        for(player in GlobalPlayerInstance.AllPlayers)
-        {
-            if(player.deleted) continue;
-
-            if(player.p_id == playerId) return player;
-
-            if(playerId <= 0)
-            {
-                if(player.x == x && player.y == y) return player;
-            }
-        }
-
-        return null;
-    }
-
     public static function SendUpdateToAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true, sendFrame:Bool = true)
     {
         try
