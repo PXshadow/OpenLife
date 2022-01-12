@@ -378,6 +378,8 @@ class ServerSettings
         ObjectData.getObjectData(3048).permanent = 1; // Bloody War Sword
         ObjectData.getObjectData(749).permanent = 1; // Bloody Yew Bow  
 
+        ObjectData.getObjectData(1378).permanent = 0; // Sterile Wool Pad 
+
         // TODO allow damage with bloody weapon / needs support from client?
         ObjectData.getObjectData(560).damage = 6; // Knife  // damage per sec = 1
         ObjectData.getObjectData(3047).damage = 9; // War Sword // damage per sec = 2

@@ -1235,7 +1235,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(this.isClose(targetPlayer.tx() - this.gx , targetPlayer.ty() - this.gy) == false)
         {
-            trace('doOnOtherHelper: Targt position is too far away player: ${this.tx()},${this.ty()} target: ${targetPlayer.tx},${targetPlayer.ty}');
+            trace('doOnOtherHelper: Target position is too far away player: ${this.tx()},${this.ty()} target: ${targetPlayer.tx},${targetPlayer.ty}');
             return false; 
         }
 
@@ -1245,6 +1245,33 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         if(doSwitchCloths(this, targetPlayer, clothingSlot)) return true;
+
+        if(targetPlayer.isWounded())
+        {
+            var trans = TransitionImporter.GetTrans(this.heldObject, targetPlayer.heldObject);
+
+            if(trans != null)
+            {
+                trace('HEALING: ' + trans.getDesciption());
+
+                var objTo = targetPlayer.heldObject;
+                objTo.objectData = ObjectData.getObjectData(trans.newTargetID);
+                objTo.creationTimeInTicks = TimeHelper.tick;
+                targetPlayer.setHeldObject(objTo);
+                targetPlayer.setHeldObjectOriginNotValid(); // no animation
+
+                var objFrom = this.heldObject;
+                objFrom.objectData = ObjectData.getObjectData(trans.newActorID);
+                objFrom.creationTimeInTicks = TimeHelper.tick;
+                this.setHeldObject(objFrom);
+                this.setHeldObjectOriginNotValid(); // no animation
+
+                Connection.SendEmoteToAll(this, Emote.happy);
+                Connection.SendEmoteToAll(targetPlayer, Emote.happy);
+
+                return true;
+            }
+        }
 
         return false;
     }
