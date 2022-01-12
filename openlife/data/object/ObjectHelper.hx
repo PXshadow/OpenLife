@@ -208,7 +208,7 @@ class ObjectHelper {
         return obj;
     }
 
-    public static function CalculateTimeToChangeForObj(obj:ObjectHelper) : Int
+    public static function CalculateTimeToChangeForObj(obj:ObjectHelper) : Float
     {
         if(obj == null) return 0;
         
@@ -220,11 +220,11 @@ class ObjectHelper {
         return CalculateTimeToChange(timeTransition);
     }
 
-    public static function CalculateTimeToChange(timeTransition:TransitionData) : Int
+    public static function CalculateTimeToChange(timeTransition:TransitionData) : Float
     {
         // hours are negative
         var timeToChange = timeTransition.autoDecaySeconds < 0 ?  (-3600) * timeTransition.autoDecaySeconds : timeTransition.autoDecaySeconds;                 
-        timeToChange = Math.ceil((WorldMap.calculateRandomInt(timeToChange * 2) + timeToChange)/2);
+        timeToChange = WorldMap.calculateRandomFloat() * timeToChange + timeToChange / 2;
 
         // if(timeTransition.targetID == 2992) trace('TIME33:  ${timeTransition.targetID} ${timeToChange}');
 

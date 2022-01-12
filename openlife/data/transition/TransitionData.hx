@@ -18,7 +18,7 @@ class TransitionData
     public var newActorID:Int = 0; // USED in transitions
     public var newTargetID:Int = 0; // USED in transitions
 
-    public var autoDecaySeconds:Int = 0; // USED in time transitions
+    public var autoDecaySeconds:Float = 0; // USED in time transitions
 
     //MinUse for variable-use objects that occasionally use more than one "use", this sets a minimum per interaction.
     public var actorMinUseFraction:Float = 0;

@@ -61,13 +61,12 @@ Loved / Hated Biomes:
 - Bad Temperature is affected now by how much you / your partens (50%) love the biome
 
 Killing / Attacking
-- you can attack anybody if close in weapon range
-- each hit makes certain damage
+- you can attack anybody if close and in weapon range
 - different weapons have different damage and cooldown
+- wounds do damage / exhaustion with time and can heal with time 
 - you do halve damage to ally 
-- you will loose even more prestige for attacking an ally
 - you will loose prestige for attacking a close relative
-
+- you will loose even more prestige for attacking an ally
 
 Heat / Temperature:
 - bad temperature reduces speed extreme temperature reduces double
@@ -216,7 +215,7 @@ High priority:
 - EXHAUSTION carrying heavy stuff
 - EXHAUSTION for working in bad biome
 - EXHAUSTION for more tools / tools always better then primitive tools
-- EXHAUSTION better indoor reduction
+- EXHAUSTION better indoor exhaustion reduction
 
 - CONNECTION saving of people data so that people can come back after server restart
 
@@ -231,6 +230,8 @@ High priority:
 - BIOME cars as boats
 - BIOME no dropping of stuff on water
 - BIOME biome locked planting
+
+- GATES Ally Gates and swing doors
 
 
 Middle priority:

@@ -279,6 +279,8 @@ class TimeHelper
 
             obj.objectData = ObjectData.getObjectData(transition.newTargetID);
 
+            obj.creationTimeInTicks = TimeHelper.tick;
+
             player.setHeldObject(obj);
 
             player.setHeldObjectOriginNotValid(); // no animation

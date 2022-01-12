@@ -164,10 +164,10 @@ class ServerSettings
     public static var DebugAiCraftingObject:Int = 57;
 
     // combat
-    //public static var WoundWhenFoodStoreMaxBelow = 10;
     public static var WeaponCoolDownFactor:Float = 0.1;
     public static var WeaponDamageFactor:Float = 1;
     public static var WoundDamageFactor:Float = 1;
+    public static var WoundHealingTimeFactor:Float = 1.5;
     public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.25; // For damaging children, mother, father, brother sister  
     public static var PrestigeCostPerDamageForAlly:Float = 0.5; // For damaging ally  
     
@@ -445,7 +445,29 @@ class ServerSettings
         var trans = transtions.getTransition(-1, 749); //  Bloody Yew Bow  
         trans.autoDecaySeconds = 90; 
         trans.traceTransition("PatchTransitions: "); 
- 
+
+
+        trans = new TransitionData(-1,797,0,1380); // Stable Knife Wound --> Clean Knife Wound
+        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        transtions.addTransition("PatchTransitions: ", trans);
+        trans = new TransitionData(-1,1380,0,0); // Clean Knife Wound --> 0
+        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        transtions.addTransition("PatchTransitions: ", trans);
+
+        trans = new TransitionData(-1,1363,0,1381); //  Bite Wound --> Clean Bite Wound
+        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        transtions.addTransition("PatchTransitions: ", trans);
+        trans = new TransitionData(-1,1381,0,0); // Clean Bite Wound --> 0
+        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        transtions.addTransition("PatchTransitions: ", trans);
+
+        trans = new TransitionData(-1,1366,0,1382); // Empty Arrow Wound --> Clean Arrow Wound
+        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        transtions.addTransition("PatchTransitions: ", trans);
+        trans = new TransitionData(-1,1382,0,0); // Clean Arrow Wound --> 0
+        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        transtions.addTransition("PatchTransitions: ", trans);
+        
         for(trans in TransitionImporter.transitionImporter.transitions)
         {
             if(trans.actorID < -1) 
