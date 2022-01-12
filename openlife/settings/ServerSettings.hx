@@ -167,6 +167,7 @@ class ServerSettings
     //public static var WoundWhenFoodStoreMaxBelow = 10;
     public static var WeaponCoolDownFactor:Float = 0.1;
     public static var WeaponDamageFactor:Float = 1;
+    public static var WoundDamageFactor:Float = 1;
     public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.25; // For damaging children, mother, father, brother sister  
     public static var PrestigeCostPerDamageForAlly:Float = 0.5; // For damaging ally  
     
@@ -380,8 +381,23 @@ class ServerSettings
         // TODO allow damage with bloody weapon / needs support from client?
         ObjectData.getObjectData(560).damage = 6; // Knife  // damage per sec = 1
         ObjectData.getObjectData(3047).damage = 9; // War Sword // damage per sec = 2
-        ObjectData.getObjectData(152).damage = 13.5; // Bow and Arrow  // damage per sec = 1.5
-        ObjectData.getObjectData(1624).damage = 18; // Bow and Arrow with Note  // damage per sec = 2
+        ObjectData.getObjectData(152).damage = 9; // Bow and Arrow  // damage per sec = 1
+        ObjectData.getObjectData(1624).damage = 13.5; // Bow and Arrow with Note  // damage per sec = 1.5
+
+        ObjectData.getObjectData(3816).damage = 0.1; // per sec Gushing Knife Wound 
+        ObjectData.getObjectData(797).damage = 0.05; // per sec Stable Knife Wound
+        ObjectData.getObjectData(1380).damage = 0.03; // per sec Clean Knife Wound
+
+        ObjectData.getObjectData(1625).damage = 0.07; // per sec Note Arrow Wound
+        ObjectData.getObjectData(798).damage = 0.06; // per sec Arrow Wound
+        ObjectData.getObjectData(1365).damage = 0.04; // per sec Embedded Arrowhead Wound
+        ObjectData.getObjectData(1367).damage = 0.06; // per sec Extracted Arrowhead Wound
+        ObjectData.getObjectData(3817).damage = 0.1; // per sec  Gushing Empty Arrow Wound
+        ObjectData.getObjectData(1366).damage = 0.03; // per sec Empty Arrow Wound
+        ObjectData.getObjectData(1382).damage = 0.03; // Clean Arrow Wound
+
+        ObjectData.getObjectData(1363).damage = 0.05; // per sec Bite Wound
+        ObjectData.getObjectData(1381).damage = 0.03; // per sec Clean Bite Wound
 
         //ObjectData.getObjectData(279).winterDecayFactor = 2; // Empty Wild Gooseberry Bush
         //ObjectData.getObjectData(279).springRegrowFactor = 0.5; // Empty Wild Gooseberry Bush

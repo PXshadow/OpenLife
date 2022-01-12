@@ -426,6 +426,15 @@ class TimeHelper
         var originalFoodDecay = foodDecay;
         var healing = timePassedInSeconds * 2.5 * ServerSettings.FoodUsePerSecond - foodDecay; // higher food need ==> less healing...
         
+
+        // do damage if wound
+        if(player.isWounded())
+        {
+            var bleedingDamage = timePassedInSeconds * player.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
+            player.hits += bleedingDamage;
+            player.exhaustion += bleedingDamage;
+        }
+
         // do damage while starving
         if(player.food_store < 0)
         {
@@ -459,7 +468,7 @@ class TimeHelper
         //trace('Exhaustion: $tmpexhaustion ==> ${player.exhaustion} pID: ${player.p_id} biomeLoveFactor: $biomeLoveFactor');
 
         // do healing but increase food use
-        if(player.hits > 0 && playerIsStarvingOrHasBadHeat == false) 
+        if(player.hits > 0 && playerIsStarvingOrHasBadHeat == false && player.isWounded() == false) 
         {
             player.hits -= healing / 2;
 
