@@ -62,7 +62,7 @@ class MoveHelper
         return (this.newMoves != null);
     }
 
-    public function isCloseUseExact(targetPlayer:GlobalPlayerInstance, distance:Int = 1) : Bool
+    public function isCloseUseExact(targetPlayer:GlobalPlayerInstance, distance:Float = 1) : Bool
     {    
         var target = targetPlayer.moveHelper;
         var xDiff = this.exactTx - target.exactTx;

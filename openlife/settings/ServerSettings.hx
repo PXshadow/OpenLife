@@ -381,6 +381,9 @@ class ServerSettings
 
         ObjectData.getObjectData(1378).permanent = 0; // Sterile Wool Pad 
 
+        ObjectData.getObjectData(560).deadlyDistance = 1.5; // Knife  
+        ObjectData.getObjectData(3047).deadlyDistance = 1.5; // War Sword 
+
         // TODO allow damage with bloody weapon / needs support from client?
         ObjectData.getObjectData(560).damage = 6; // Knife  // damage per sec = 1
         ObjectData.getObjectData(3047).damage = 9; // War Sword // damage per sec = 2

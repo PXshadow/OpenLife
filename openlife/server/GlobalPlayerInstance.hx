@@ -696,7 +696,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return (xDiff * xDiff + yDiff * yDiff <= distance * distance);
     }
 
-    public function isCloseUseExact(target:GlobalPlayerInstance, distance:Int = 1):Bool
+    public function isCloseUseExact(target:GlobalPlayerInstance, distance:Float = 1):Bool
     {    
         return this.moveHelper.isCloseUseExact(target, distance);
     }

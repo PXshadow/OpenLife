@@ -225,7 +225,7 @@ class ObjectData extends LineReader
     /**
      * Deadly distance in tiles
      */
-    public var deadlyDistance:Int=0;
+    public var deadlyDistance:Float=0;
     /**
      * Use distance in tiles
      */
@@ -1073,7 +1073,7 @@ class ObjectData extends LineReader
         writer.writeInt16(obj.clothing.length);
         writer.writeString(obj.clothing);
         writer.writeInt8(obj.neverDrop ? 1 : 0);
-        writer.writeInt32(obj.deadlyDistance);
+        writer.writeFloat(obj.deadlyDistance);
         writer.writeInt32(obj.useDistance);
         writer.writeInt8(obj.creationSoundInitialOnly ? 1 : 0);
         writer.writeInt8(obj.creationSoundForce ? 1 : 0);
@@ -1146,7 +1146,7 @@ class ObjectData extends LineReader
 		var len = reader.readInt16();
 		obj.clothing = reader.readString(len);
 		obj.neverDrop = reader.readInt8() != 0 ? true : false;
-		obj.deadlyDistance = reader.readInt32();
+		obj.deadlyDistance = reader.readFloat();
 		obj.useDistance = reader.readInt32();
 		obj.creationSoundInitialOnly = reader.readInt8() != 0 ? true : false;
 		obj.creationSoundForce = reader.readInt8() != 0 ? true : false;
