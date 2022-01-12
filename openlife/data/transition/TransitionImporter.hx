@@ -469,6 +469,8 @@ class TransitionImporter
             {                 
                 if(targetCategory == null)
                 {
+                    //if(category.parentID == 1127) trace ('CATEGORY TRANS: ' + transition.getDesciption()); 
+
                     var newTransition = transition.clone();
                     newTransition.actorID = id;
                     if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;

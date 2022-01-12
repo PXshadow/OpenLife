@@ -202,7 +202,6 @@ High priority:
 - AI tests with >20 AIs
 - AI Stoneage
 
-- COMBAT healing part 2 
 - COMBAT animal interactions / collisions
 - COMBAT ill from moskitos 
 

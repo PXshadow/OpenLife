@@ -1252,7 +1252,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(trans != null)
             {
-                trace('HEALING: ' + trans.getDesciption());
+                //trace('HEALING: ' + trans.getDesciption());
 
                 var objTo = targetPlayer.heldObject;
                 objTo.objectData = ObjectData.getObjectData(trans.newTargetID);
@@ -1268,6 +1268,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
                 Connection.SendEmoteToAll(this, Emote.happy);
                 Connection.SendEmoteToAll(targetPlayer, Emote.happy);
+
+                // TODO alsow fix below in doing transitions. How does it work?
+                // TODO fix Needle and Thread --> Bone Needle 192 --> 191
+                // TODO fix Needle and Ball of Thread 1126 --> Tool use
 
                 return true;
             }
