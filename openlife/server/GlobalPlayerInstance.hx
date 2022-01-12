@@ -2306,6 +2306,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         Connection.SendEmoteToAll(targetPlayer, Emote.shock);
 
+        this.exhaustion += ServerSettings.CombatExhaustionCostPerTry;
+
         if(isCloseUseExact(targetPlayer, deadlyDistance) == false)
         {
             this.connection.send(PLAYER_UPDATE, [this.toData()]);

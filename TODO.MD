@@ -232,8 +232,8 @@ High priority:
 
 - GATES Ally Gates and swing doors
 
-
 Middle priority:
+- FIX Needle and Thread --> Bone Needle (How does this on earth work???)
 
 - TIME time transitions for objects in container
 - TIME decay stuff in containers
