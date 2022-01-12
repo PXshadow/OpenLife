@@ -401,6 +401,10 @@ class ServerSettings
         ObjectData.getObjectData(1363).damage = 0.05; // per sec Bite Wound
         ObjectData.getObjectData(1381).damage = 0.03; // per sec Clean Bite Wound
 
+        ObjectData.getObjectData(1364).damage = 0.05; // per Hog Cut
+        ObjectData.getObjectData(1383).damage = 0.03; // per sec Clean Hog Cut
+
+        
         //ObjectData.getObjectData(279).winterDecayFactor = 2; // Empty Wild Gooseberry Bush
         //ObjectData.getObjectData(279).springRegrowFactor = 0.5; // Empty Wild Gooseberry Bush
         //ObjectData.getObjectData(279).countsOrGrowsAs = 30; // Empty Wild Gooseberry Bush
@@ -469,7 +473,14 @@ class ServerSettings
         trans = new TransitionData(-1,1382,0,0); // Clean Arrow Wound --> 0
         trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
-        
+
+        trans = new TransitionData(-1,1364,0,1383); // Hog Cut --> Clean Hog Cut
+        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        transtions.addTransition("PatchTransitions: ", trans);
+        trans = new TransitionData(-1,1383,0,0); // Clean Hog Cut --> 0
+        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        transtions.addTransition("PatchTransitions: ", trans);
+
         for(trans in TransitionImporter.transitionImporter.transitions)
         {
             if(trans.actorID < -1) 
