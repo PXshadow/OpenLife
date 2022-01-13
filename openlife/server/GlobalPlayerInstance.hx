@@ -835,10 +835,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return  false;
         } 
 
+        var leader = target.getTopLeader();
+
         target.exiledByPlayers[this.p_id] = this;
 
         this.connection.sendGlobalMessage('YOU_EXILED:_${target.name}_${target.familyName}');
-        target.connection.sendGlobalMessage('YOU_HAVE_BEEN_EXILED_BY:_${this.name}_${this.familyName} YOU CAN BE LEGALLY KILLED!');
+        if(leader != target.getTopLeader()) target.connection.sendGlobalMessage('YOU_HAVE_BEEN_EXILED_BY:_${this.name}_${this.familyName} YOU CAN BE LEGALLY KILLED!');
 
         Connection.SendExileToAll(this, target);
 
