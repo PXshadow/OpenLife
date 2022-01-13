@@ -136,6 +136,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // list of objects the player owns like gates
     public var owning:Array<ObjectHelper> = new Array<ObjectHelper>(); 
 
+    public var lastAttackedPlayer:GlobalPlayerInstance = null;
+
     // set all stuff null so that nothing is hanging around
     public function delete()
     {
@@ -143,8 +145,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         this.heldPlayer = null;
         this.heldByPlayer = null;
-
+    
         this.exiledByPlayers =  new Map<Int, GlobalPlayerInstance>();
+
+        this.lastAttackedPlayer = null;
 
         AllPlayers.remove(this.p_id);
     }
@@ -825,13 +829,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         else this.mutex.release();
     }
 
-    public function exile(target:GlobalPlayerInstance) : Bool
+    public function exile(target:GlobalPlayerInstance, messageIfAllreadyExiled:Bool = true) : Bool
     {
         if(target == null) return false;
 
         if(target.exiledByPlayers.exists(this.p_id))
         {
-            this.connection.sendGlobalMessage('${target.name} is allready exiled');
+            if(messageIfAllreadyExiled) this.connection.sendGlobalMessage('${target.name} is allready exiled');
             return  false;
         } 
 
@@ -2380,7 +2384,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             return false;
         }
-
+        
         trace('kill($x,$y ${targetPlayer.tx() - this.gx},${targetPlayer.ty() - this.gy} playerId: $playerId) ${name}');
 
         Connection.SendEmoteToAll(targetPlayer, Emote.shock);
@@ -2408,9 +2412,29 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }
 
+        if(targetPlayer.isAlly(this))
+        {
+            if(lastAttackedPlayer != targetPlayer)
+            {
+                this.connection.send(PLAYER_UPDATE, [this.toData()]);
+                this.connection.sendGlobalMessage('${targetPlayer.name} is your ally! Attack again to exile!');
+
+                lastAttackedPlayer = targetPlayer;
+
+                trace('kill: playerId: $playerId is an ally!');
+
+                return false;
+            }
+            else
+            {
+                //if(targetPlayer.getTopLeader() == this) this.exile(targetPlayer);
+                this.exile(targetPlayer, false);
+            }
+        }
+
         var orgDamage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
         var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());
-        //if(targetPlayer.isAlly(this)) damage /= 2;
+        if(targetPlayer.isAlly(this)) damage /= 2;
 
         damage *= distanceFactor;    
         targetPlayer.hits += damage;
@@ -2499,9 +2523,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
                 this.addHealthAndPrestige(-prestigeCost, false);
 
-                this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking ally ${targetPlayer.name}!');
-
-                if(targetPlayer.getTopLeader() == this) this.exile(targetPlayer); 
+                this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking ally ${targetPlayer.name}!');                 
             }
             else if(isCloseRelative(targetPlayer))
             {
