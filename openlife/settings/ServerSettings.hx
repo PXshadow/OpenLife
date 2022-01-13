@@ -386,12 +386,14 @@ class ServerSettings
 
         ObjectData.getObjectData(560).deadlyDistance = 1.5; // Knife  
         ObjectData.getObjectData(3047).deadlyDistance = 1.5; // War Sword 
+        ObjectData.getObjectData(152).deadlyDistance = 4; // Bow and Arrow 
+        ObjectData.getObjectData(1624).deadlyDistance = 4; // Bow and Arrow with Note 
 
         // TODO allow damage with bloody weapon / needs support from client?
-        ObjectData.getObjectData(560).damage = 6; // Knife  // damage per sec = 1
-        ObjectData.getObjectData(3047).damage = 9; // War Sword // damage per sec = 2
-        ObjectData.getObjectData(152).damage = 9; // Bow and Arrow  // damage per sec = 1
-        ObjectData.getObjectData(1624).damage = 13.5; // Bow and Arrow with Note  // damage per sec = 1.5
+        ObjectData.getObjectData(560).damage = 5; // Knife  // damage per sec = 1
+        ObjectData.getObjectData(3047).damage = 7.5; // War Sword // damage per sec = 1.5
+        ObjectData.getObjectData(152).damage = 10; // Bow and Arrow  // damage per sec = 0.5
+        ObjectData.getObjectData(1624).damage = 15; // Bow and Arrow with Note  // damage per sec = 0.75
 
         ObjectData.getObjectData(3816).damage = 0.1; // per sec Gushing Knife Wound 
         ObjectData.getObjectData(797).damage = 0.05; // per sec Stable Knife Wound
@@ -451,12 +453,16 @@ class ServerSettings
         ObjectData.getObjectData(30).lastUseObject = 279; // Wild Gooseberry Bush ==> Empty Wild Gooseberry Bush
         ObjectData.getObjectData(279).undoLastUseObject = 30; // Empty Wild Gooseberry Bush ==> Wild Gooseberry Bush 
 
+        var trans = transtions.getTransition(-1, 750); // Bloody Knife
+        trans.autoDecaySeconds = 50; 
+        trans.traceTransition("PatchTransitions: "); 
+
         var trans = transtions.getTransition(-1, 3048); // Bloody War Sword
-        trans.autoDecaySeconds = 45; 
+        trans.autoDecaySeconds = 50; 
         trans.traceTransition("PatchTransitions: "); 
 
         var trans = transtions.getTransition(-1, 749); //  Bloody Yew Bow  
-        trans.autoDecaySeconds = 90; 
+        trans.autoDecaySeconds = 200; 
         trans.traceTransition("PatchTransitions: "); 
 
 
