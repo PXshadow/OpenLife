@@ -2357,12 +2357,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function killHelper(x:Int, y:Int, playerId:Int) : Bool // playerId = -1 if no specific player is slected
     {
         // TODO armor / strength
-        // TODO fear emote if no weapon and no ally
-        // TODO change ally color if leader changes
         // TODO stop movement if hit
         // TODO block movement if not ally (with weapon?)
         // TODO calculate damage depending on how many ally / enemy close in kill mode / posse
-
+        
         var targetPlayer = getPlayerAt(this.tx() + x, this.tx() + y, playerId);
         var name = targetPlayer == null ? 'not found!' : ${targetPlayer.name};
         var deadlyDistance = this.heldObject.objectData.deadlyDistance;

@@ -206,8 +206,16 @@ High priority:
 - AI tests with >20 AIs
 - AI Stoneage
 
+- MESSAGE send one message at a time
+
 - COMBAT animal interactions / collisions
-- COMBAT ill from moskitos 
+- COMBAT ill from moskitos
+- COMBAT block movement if other player is hostile 
+
+- ALLY change ally status after X seconds
+- ALLY allow only one new follower at a time
+- ALLY fear emote if no weapon and no ally
+- ALLY change ally color if leader changes
 
 - BIRTH spawn eves on different locations
 - BIRTH fathers
