@@ -392,7 +392,12 @@ class TimeHelper
             player.food_store_max = player.calculateFoodStoreMax();
 
             // decay some coins per year
-            if(player.coins > 1000) player.coins -=  Std.int(player.coins / 1000); // 0,1% per year or 10% in 100 years
+            if(player.coins > 100)
+            {
+                var decayedCoins = Std.int(player.coins / 100); // 0,1% per year or 10% in 100 years
+                player.coins -= decayedCoins;
+                player.addPrestige(-decayedCoins);
+            } 
 
             if(player.age > 60) player.doDeath('reason_age');
 

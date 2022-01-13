@@ -97,7 +97,8 @@ Coins / Currency:
 - You get now coins for eating YUM, more for eating cravings
 - You can give coins by saying: I GIVE YOU XX with XX = I=1 V=5 X=10 L=50 C=100 D=500 M=1000. The order does not matter (not Roman)
 - Leaders get 1/5 prestiege / coins their followers get
-- Coins decay 0.1% per year if >= 1000 coins
+- Coins decay 1% per year if >= 100 coins
+- For each deacyed coins you get one prestige
 - On death your kids will inherit yor coins
 
 Seasons / Winter is comming:

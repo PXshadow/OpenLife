@@ -2848,6 +2848,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         return loved;
     }
+    public function addPrestige(count:Float)
+    {
+        this.yum_multiplier += count;
+    }
 
     public function addHealthAndPrestige(count:Float, isFood:Bool = true)
     {        
