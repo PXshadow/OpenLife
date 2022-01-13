@@ -2337,9 +2337,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         trace('kill: HIT');
 
         // TODO armor / strength
-        // TODO allow healing
         // TODO fear emote if no weapon and no ally
-        // TODO weapon range health dependend
         // TODO reduce hit chance if attacked x,y is more far away 
 
         var damage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
@@ -2353,6 +2351,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         if(targetPlayer.food_store_max < 0)
         {
+            if(targetPlayer.coins > 0)
+            {
+                var coins = Math.floor(targetPlayer.coins * 0.8);
+                this.coins += coins;
+                targetPlayer.coins = 0;
+
+                if(coins > 0) this.connection.sendGlobalMessage('You gained ${coins} from ${targetPlayer.name}!');
+            } 
+
             targetPlayer.doDeath('reason_killed_${targetPlayer.woundedBy}');
         }
 
