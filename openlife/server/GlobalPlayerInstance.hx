@@ -1078,7 +1078,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             //trace('getTopLeader1 ${lastLeader.name} --> ${leader.name}');
             if(this.exiledByPlayers.exists(leader.p_id)) return lastLeader; // is exiled by leader
             //trace('getTopLeader2 ${lastLeader.name} --> ${leader.name} ' + leader.exiledByPlayers);
-            //if(leader.exiledByPlayers.exists(this.p_id)) return lastLeader; // player exiled leader // still ally in this case???
+            if(leader.exiledByPlayers.exists(this.p_id)) return lastLeader; // player exiled leader // still ally in this case???
             //trace('getTopLeader3 ${lastLeader.name} --> ${leader.name}');
             if(leader.followPlayer == null) return leader;
 
@@ -2358,6 +2358,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         // TODO armor / strength
         // TODO fear emote if no weapon and no ally
+        // TODO change ally color if leader changes
+        // TODO stop movement if hit
+        // TODO block movement if not ally (with weapon?)
+        // TODO calculate damage depending on how many ally / enemy close in kill mode / posse
 
         var targetPlayer = getPlayerAt(this.tx() + x, this.tx() + y, playerId);
         var name = targetPlayer == null ? 'not found!' : ${targetPlayer.name};
