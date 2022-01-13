@@ -379,16 +379,7 @@ class TimeHelper
         {
             trace('Player: ${player.p_id} Old Age: $tmpAge New Age: ${player.age} TrueAge: ${player.trueAge} agingFactor: $agingFactor healthFactor: $healthFactor');
 
-            if(player.coins > ServerSettings.MinHealthPerYear)
-            {
-                player.coins -= ServerSettings.MinHealthPerYear; // each year some coins are lost
-                player.yum_multiplier -= ServerSettings.MinHealthPerYear / 2; // each year some health is lost
-            }
-            else
-            {
-                player.yum_multiplier -= ServerSettings.MinHealthPerYear; // each year some health is lost
-            }
-
+            player.yum_multiplier -= ServerSettings.MinHealthPerYear; // each year some health is lost
             player.food_store_max = player.calculateFoodStoreMax();
 
             // decay some coins per year
