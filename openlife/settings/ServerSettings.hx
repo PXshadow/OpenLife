@@ -44,6 +44,9 @@ class ServerSettings
     public static var ScoreFactor:Float = 0.2; // new score influences total score with factor X. 
     public static var DisplayScoreFactor:Float = 1; // if display score multiply with factor X
 
+    // coins
+    public static var InheritCoinsFactor:Float = 0.8; // on death X coins are inherited
+
     // birth
     public static var NewChildExhaustionForMother = 15;
     public static var ChanceForFemaleChild = 0.6;

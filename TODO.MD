@@ -100,7 +100,8 @@ Coins / Currency:
 - Coins decay 1% per year if >= 100 coins
 - For each deacyed coins you get one prestige
 - If you kill some one you get 80% of his coins
-- On death your kids will inherit yor coins
+- On death you inherit your coins to same family or ally acording to their past actions
+- If still some coins are left your kids will inherit your coins
 
 Seasons / Winter is comming:
 - First part of Seasons is now implemented

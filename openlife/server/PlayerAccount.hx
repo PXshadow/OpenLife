@@ -19,6 +19,8 @@ class PlayerAccount
 
     public var lastSeenInTicks:Float;
 
+    public var coinsInherited:Float;
+
     private function new(){}
 
     public static function GetOrCreatePlayerAccount(email:String, account_key_hash:String) : PlayerAccount
@@ -63,6 +65,8 @@ class PlayerAccount
             writer.writeFloat(ac.maleScore);
 
             writer.writeDouble(ac.lastSeenInTicks);
+
+            writer.writeFloat(ac.coinsInherited);
         }
 
         writer.close();
@@ -89,6 +93,8 @@ class PlayerAccount
             account.maleScore = reader.readFloat();
 
             account.lastSeenInTicks = reader.readDouble();
+
+            account.coinsInherited = reader.readFloat();
         }
 
         reader.close();

@@ -2042,18 +2042,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
             placeGrave();
             InheritOwnership(this);
-
-            // distribute coins to children // TODO what to do if no kids?
-            if(this.coins > 1)
-            {
-                var children = this.getAllChildren(true);
-                var tmpCoins = this.coins / children.length;
-
-                for(c in children)
-                {
-                    c.coins += tmpCoins;
-                }
-            }
+            InheritCoins(this);
 
             Connection.SendUpdateToAllClosePlayers(this, false);
 
@@ -2066,6 +2055,72 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
         else this.mutex.release();
+    }
+
+    private static function InheritCoins(player:GlobalPlayerInstance)
+    {
+        if(player.coins < 1) return;
+
+        // TODO test
+        // TODO only inherit if ally or family member is close by / otherwise place in grave for next visitor
+        if(player.connection.playerAccount != null) player.connection.playerAccount.coinsInherited = player.coins * ServerSettings.InheritCoinsFactor;
+
+        var bestPlayer = null;
+        var score = 0.0;
+        var coinsToInherit = player.coins;
+
+        player.coins = 0;
+
+        while(coinsToInherit >= 1)
+        {
+            for(p in AllPlayers)
+            {
+                var account = p.connection.playerAccount;
+                if(account == null) continue;
+                if(p.isAlly(player) == false && p.isSameFamily(player) == false) continue;
+
+                var tmpScore = account.coinsInherited;
+
+                if(p.isCloseRelative(player)) tmpScore *= 2;
+
+                if(tmpScore < 1) continue;
+
+                if(tmpScore > score)
+                {
+                    score = tmpScore;
+                    bestPlayer = p;
+                }
+            }
+
+            if(bestPlayer == null) break;
+
+            var tmpCoins = Math.min(coinsToInherit, score);
+            tmpCoins = Math.floor(tmpCoins);
+
+            coinsToInherit -= tmpCoins;
+            bestPlayer.coins += tmpCoins;
+            bestPlayer.connection.playerAccount.coinsInherited -= bestPlayer.isCloseRelative(player) ? tmpCoins / 2 : tmpCoins;
+            bestPlayer.connection.sendGlobalMessage('You inherited $tmpCoins coins from ${player.name} because of your past actions!');
+
+            trace('COINS: You inherited $tmpCoins coins from ${player.name} because of your past actions!');
+        }
+
+        // distribute coins to children // TODO what to do if no kids?
+        if(coinsToInherit < 1) return;
+        
+        var children = player.getAllChildren(true);
+
+        if(children.length < 1) return; // TODO store coins in grave
+
+        var tmpCoins = coinsToInherit / children.length;
+
+        for(c in children)
+        {
+            c.coins += tmpCoins;
+
+            if(tmpCoins >= 1) bestPlayer.connection.sendGlobalMessage('You inherited ${Math.floor(tmpCoins)} coins from ${player.name}!');
+            trace('COINS: You inherited ${Math.floor(tmpCoins)} coins from ${player.name}!');
+        }    
     }
 
     private static function InheritOwnership(player:GlobalPlayerInstance)
@@ -2083,6 +2138,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             // TODO pointer to property
             player.followPlayer.connection.sendGlobalMessage('You inherited a new property!'); 
         }
+
+        // TODO what is if there is no new owner left
     }
 
     public static function ChooseNewLeader(deadLeader:GlobalPlayerInstance) : GlobalPlayerInstance
@@ -2343,6 +2400,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var damage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
         damage = (damage / 2) + damage * WorldMap.calculateRandomFloat();
         if(targetPlayer.isAlly(this)) damage /= 2;
+
+        //trace('KILL: damage: $damage');
         
         targetPlayer.hits += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
@@ -2936,6 +2995,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function isAlly(target:GlobalPlayerInstance) : Bool
     {
         return this.getTopLeader() == target.getTopLeader();
+    }
+
+    public function isSameFamily(target:GlobalPlayerInstance) : Bool
+    {
+        return this.lineage.myEveId == target.lineage.myEveId;
     }
 
     public function isCloseRelative(target:GlobalPlayerInstance) : Bool
