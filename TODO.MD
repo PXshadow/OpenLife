@@ -6,6 +6,7 @@ Project Winter is comming summary:
 - The server is written from scratch in Haxe and is in ALPHA, so expect errors / feel welcome to report them
 - There is winter as main new challange
 - killing is allowed but might give some mali
+- combat is more skill based / the more close you target the player the more damage
 - The server uses a limited hand made map which can be changed using a picture
 - Rivers oceans and mountains that block movement
 - No locked iron or wells

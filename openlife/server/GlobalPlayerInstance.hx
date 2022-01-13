@@ -2352,6 +2352,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function killHelper(x:Int, y:Int, playerId:Int) : Bool // playerId = -1 if no specific player is slected
     {
+        // TODO armor / strength
+        // TODO fear emote if no weapon and no ally
+
         var targetPlayer = getPlayerAt(this.tx() + x, this.tx() + y, playerId);
         var name = targetPlayer == null ? 'not found!' : ${targetPlayer.name};
         var deadlyDistance = this.heldObject.objectData.deadlyDistance;
@@ -2393,20 +2396,27 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }
 
-        trace('kill: HIT');
+        var quadDistance = AiHelper.CalculateDistance(x, y, targetPlayer.tx() - gx, targetPlayer.ty() - gy);
+        var distanceFactor = 2 / (quadDistance + 2);
 
-        // TODO armor / strength
-        // TODO fear emote if no weapon and no ally
-        // TODO reduce hit chance if attacked x,y is more far away 
+        if(distanceFactor < 0.3)
+        {
+            this.connection.send(PLAYER_UPDATE, [this.toData()]);
+
+            trace('kill: playerId: $playerId is in range but target x,y is too far away! quadDistance: $quadDistance');
+
+            return false;
+        }
 
         var damage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
         damage = (damage / 2) + damage * WorldMap.calculateRandomFloat();
         if(targetPlayer.isAlly(this)) damage /= 2;
-
-        //trace('KILL: damage: $damage');
         
+        damage *= distanceFactor;    
         targetPlayer.hits += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
+
+        trace('kill: HIT quadDistance: $quadDistance damage: $damage distanceFactor: $distanceFactor');
 
         targetPlayer.woundedBy = this.heldObject.id;
         
