@@ -534,16 +534,16 @@ class TimeHelper
         if(hasChanged)
         {
             player.sendFoodUpdate(false);
-            if(player.connection != null) player.connection.send(FRAME, null, false);
+            if(player.connection != null) player.connection.send(FRAME, null, false);            
+        }
 
-            if(player.food_store_max < ServerSettings.DeathWithFoodStoreMax)
-            {
-                var reason = player.woundedBy == 0 ? 'reason_hunger': 'reason_killed_${player.woundedBy}';
+        if(player.food_store_max < ServerSettings.DeathWithFoodStoreMax)
+        {
+            var reason = player.woundedBy == 0 ? 'reason_hunger': 'reason_killed_${player.woundedBy}';
 
-                player.doDeath(reason);
+            player.doDeath(reason);
 
-                Connection.SendUpdateToAllClosePlayers(player, false);
-            }
+            Connection.SendUpdateToAllClosePlayers(player, false);
         }
     }
 
