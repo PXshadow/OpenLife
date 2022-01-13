@@ -322,4 +322,9 @@ class ObjectHelper {
         if(StringTools.contains(description, 'Hog Cut')) return true;
         return StringTools.contains(description, 'Wound');
     }
+
+    public function isArrowWound() : Bool
+    {
+        return StringTools.contains(description, 'Arrow Wound');
+    }
 }

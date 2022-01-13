@@ -2442,15 +2442,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             var doWound = targetPlayer.food_store_max < targetPlayer.calculateNotReducedFoodStoreMax() / 2;
 
-            if(doWound && targetPlayer.heldObject.isWound() == false)
+            if(doWound && targetPlayer.heldObject.isArrowWound() == false)
             {
                 targetPlayer.killMode = false;
 
                 if(targetPlayer.heldPlayer != null) dropPlayer(); // TODO test
-
-                // TODO get rid of wound
-                // TODO what to do with arrows / replace normal wound with arrow
-                // TODO allow wound drop on floor if knife wound and add time transition for decay
                 
                 if(targetPlayer.heldObject.id != 0)
                 {
