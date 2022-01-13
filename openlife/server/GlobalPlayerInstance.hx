@@ -2408,15 +2408,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }
 
-        var damage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
-        damage = (damage / 2) + damage * WorldMap.calculateRandomFloat();
-        if(targetPlayer.isAlly(this)) damage /= 2;
-        
+        var orgDamage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
+        var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());
+        //if(targetPlayer.isAlly(this)) damage /= 2;
+
         damage *= distanceFactor;    
         targetPlayer.hits += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
 
-        trace('kill: HIT quadDistance: $quadDistance damage: $damage distanceFactor: $distanceFactor');
+        trace('kill: HIT weaponDamage: $orgDamage damage: $damage distanceFactor: $distanceFactor quadDistance: $quadDistance');
 
         targetPlayer.woundedBy = this.heldObject.id;
         
@@ -2442,7 +2442,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             var doWound = targetPlayer.food_store_max < targetPlayer.calculateNotReducedFoodStoreMax() / 2;
 
-            if(doWound)
+            if(doWound && targetPlayer.heldObject.isWound() == false)
             {
                 targetPlayer.killMode = false;
 
@@ -2451,18 +2451,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 // TODO get rid of wound
                 // TODO what to do with arrows / replace normal wound with arrow
                 // TODO allow wound drop on floor if knife wound and add time transition for decay
-                if(targetPlayer.heldObject.isWound() == false)
+                
+                if(targetPlayer.heldObject.id != 0)
                 {
-                    if(targetPlayer.heldObject.id != 0)
-                    {
-                        if(WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
-                    }
-
-                    var newWound = new ObjectHelper(this, trans.newTargetID);
-                    targetPlayer.setHeldObject(newWound);    
+                    if(WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
                 }
+
+                var newWound = new ObjectHelper(this, trans.newTargetID);
+                targetPlayer.setHeldObject(newWound);    
             }
-                  
+            else
+            {
+                // if it is an arrow wound, place arrow on ground if there is no wound
+                var newWound = new ObjectHelper(this, trans.newTargetID);
+                newWound.timeToChange = 2;
+                WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), newWound, true);
+            }      
+
             var bloodyWeapon = new ObjectHelper(this, trans.newActorID);
             this.setHeldObject(bloodyWeapon);
             this.heldObject.creationTimeInTicks = TimeHelper.tick;
