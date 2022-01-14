@@ -137,8 +137,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var owning:Array<ObjectHelper> = new Array<ObjectHelper>(); 
 
     // combat stuff
+    public var lastPlayerAttackedMe:GlobalPlayerInstance = null; 
     public var lastAttackedPlayer:GlobalPlayerInstance = null; // used to exile ally if attacked twice
-    public var angryTime:Float = -1; // before one attacks without he or an ally beeing attacked first he must be angry a certain time
+    public var angryTime:Float = ServerSettings.CombatAngryTimeBeforeAttack; // before one attacks without he or an ally beeing attacked first he must be angry a certain time
 
     // set all stuff null so that nothing is hanging around
     public function delete()
@@ -151,6 +152,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.exiledByPlayers =  new Map<Int, GlobalPlayerInstance>();
 
         this.lastAttackedPlayer = null;
+        this.lastPlayerAttackedMe = null;
 
         AllPlayers.remove(this.p_id);
     }
@@ -2397,13 +2399,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         Connection.SendEmoteToAll(targetPlayer, Emote.shock);
 
         this.exhaustion += ServerSettings.CombatExhaustionCostPerAttack;
+        targetPlayer.lastPlayerAttackedMe = this;
 
         // if player is not angry and none is in kill mode make angry first before attack is possible
-        if(this.angryTime < 0 && this.killMode == false && targetPlayer.killMode == false)
+        if(this.angryTime >= ServerSettings.CombatAngryTimeBeforeAttack && this.killMode == false && targetPlayer.killMode == false)
         {
             this.angryTime = ServerSettings.CombatAngryTimeBeforeAttack;
 
-            targetPlayer.angryTime = ServerSettings.CombatAngryTimeBeforeAttack; 
+            //targetPlayer.angryTime = ServerSettings.CombatAngryTimeBeforeAttack; 
 
             this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
@@ -2481,7 +2484,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             }
         }
 
-        targetPlayer.angryTime = 0; // make hit player angry, so that he can attack back
+        targetPlayer.angryTime = -ServerSettings.CombatAngryTimeBeforeAttack; // make hit player angry, so that he can attack back
 
         var orgDamage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
         var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());

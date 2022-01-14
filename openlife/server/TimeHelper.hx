@@ -266,8 +266,19 @@ class TimeHelper
 
     private static function UpdatePlayerStats(player:GlobalPlayerInstance, timePassedInSeconds:Float)
     {
-        if(player.angryTime > 0) player.angryTime -= timePassedInSeconds;
-        if(player.angryTime < 0 && player.angryTime > -1) player.angryTime = 0;
+        
+        //if(player.angryTime < 0 && player.angryTime > -1) player.angryTime = 0;
+
+        var moreAngry = player.isHoldingWeapon() || (player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon());
+
+        if(moreAngry)
+        {
+            if(player.angryTime > -ServerSettings.CombatAngryTimeBeforeAttack ) player.angryTime -= timePassedInSeconds;
+        } 
+        else
+        {
+            if(player.angryTime < ServerSettings.CombatAngryTimeBeforeAttack ) player.angryTime += timePassedInSeconds;
+        } 
     }
 
     private static function DoTimeOnPlayerObjects(player:GlobalPlayerInstance)
@@ -306,22 +317,16 @@ class TimeHelper
 
         //trace('temperatureMail: $temperatureMail');
 
-        if(player.killMode)
-        {
-            Connection.SendEmoteToAll(player, Emote.murderFace);
-            return;
-        }
-
         if(player.isWounded())
         {
             Connection.SendEmoteToAll(player, Emote.shock);
             return;
         }
 
-        if(player.angryTime >= 0)
+        if(player.isHoldingWeapon() && player.angryTime < ServerSettings.CombatAngryTimeBeforeAttack / 2 )
         {
-            if(player.isHoldingWeapon()) player.doEmote(Emote.angry);
-            else player.doEmote(Emote.terrified);
+            Connection.SendEmoteToAll(player, Emote.murderFace);
+            return;
         }
 
         if(player.food_store < 0 && player.age >= ServerSettings.MinAgeToEat)
@@ -329,6 +334,17 @@ class TimeHelper
             player.doEmote(Emote.starving);
             return;
         }
+
+        if(player.angryTime < ServerSettings.CombatAngryTimeBeforeAttack)
+        {
+            if(player.isHoldingWeapon()) player.doEmote(Emote.angry);
+            else
+            { 
+                if(player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon()) player.doEmote(Emote.terrified);
+                else player.doEmote(Emote.angry);
+            }
+        }
+
         if(player.isSuperHot()) player.doEmote(Emote.heatStroke);
         if(player.isSuperCold()) player.doEmote(Emote.pneumonia);  
         //else if(playerHeat > 0.6) player.doEmote(Emote.dehydration);
