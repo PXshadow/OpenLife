@@ -2396,6 +2396,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         trace('kill($x,$y ${targetPlayer.tx() - this.gx},${targetPlayer.ty() - this.gy} playerId: $playerId) ${name}');
 
+        this.killMode = true;
+
         Connection.SendEmoteToAll(targetPlayer, Emote.shock);
 
         this.exhaustion += ServerSettings.CombatExhaustionCostPerAttack;
@@ -2419,7 +2421,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }   
         
-        this.killMode = true;
+        // can only shoot at target with bow if not too close
+        if(deadlyDistance > 1.9 && isCloseUseExact(targetPlayer, 1.5))
+        {
+            this.connection.send(PLAYER_UPDATE, [this.toData()]);
+
+            this.say('Too close...');
+
+            //trace('kill: playerId: $playerId is allready dead!');
+
+            return false;
+        }
 
         Connection.SendEmoteToAll(this, Emote.murderFace);
 
