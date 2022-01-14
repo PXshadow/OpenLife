@@ -65,6 +65,7 @@ Killing / Attacking
 - you can attack anybody if you are angry and the target is terrifed
 - you get angry / terrifed 10 seconds after attacking / beingattacked
 - different weapons have different damage and cooldown
+- if you make a wound or kill some one the bloody weapon cooldown is much longer
 - wounds do damage / exhaustion with time and can heal with time 
 - you do halve damage to ally 
 - you will loose prestige for attacking a close relative

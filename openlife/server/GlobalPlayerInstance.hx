@@ -2477,9 +2477,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         trace('kill: HIT weaponDamage: $orgDamage damage: $damage distanceFactor: $distanceFactor quadDistance: $quadDistance');
 
         targetPlayer.woundedBy = this.heldObject.id;
+        var longWeaponCoolDown = false;
         
         if(targetPlayer.food_store_max < 0)
         {
+            longWeaponCoolDown = true;
+
             if(targetPlayer.coins > 0)
             {
                 var coins = Math.floor(targetPlayer.coins * 0.8);
@@ -2499,6 +2502,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             //trace('Wound: ' + trans);
 
             var doWound = targetPlayer.food_store_max < targetPlayer.calculateNotReducedFoodStoreMax() / 2;
+
+            if(doWound && targetPlayer.isWounded() == false) longWeaponCoolDown = true;
 
             if(doWound && targetPlayer.heldObject.isArrowWound() == false)
             {
@@ -2530,7 +2535,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(timeTransition != null)
             {
-                this.heldObject.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition) * ServerSettings.WeaponCoolDownFactor;
+                var timeToChangeFactor = longWeaponCoolDown ? ServerSettings.WeaponCoolDownFactorIfWounding : ServerSettings.WeaponCoolDownFactor;
+                this.heldObject.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition) * timeToChangeFactor;
                 trace('Bloody Weapon Time: ${this.heldObject.timeToChange} ' + timeTransition.getDesciption());
             }          
         }

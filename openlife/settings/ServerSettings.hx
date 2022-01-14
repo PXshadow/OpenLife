@@ -171,8 +171,9 @@ class ServerSettings
 
     // combat
     public static var CombatAngryTimeBeforeAttack:Float = 10;
-    public static var CombatExhaustionCostPerAttack:Float = 0.2;
-    public static var WeaponCoolDownFactor:Float = 0.1;
+    public static var CombatExhaustionCostPerAttack:Float = 0.25;
+    public static var WeaponCoolDownFactor:Float = 0.05;
+    public static var WeaponCoolDownFactorIfWounding:Float = 0.5;
     public static var WeaponDamageFactor:Float = 1;
     public static var WoundDamageFactor:Float = 1;
     public static var WoundHealingTimeFactor:Float = 1.5;
@@ -398,10 +399,10 @@ class ServerSettings
         ObjectData.getObjectData(749).deadlyDistance = 4; // Bloody Yew Bow  
 
         // TODO allow damage with bloody weapon / needs support from client?
-        ObjectData.getObjectData(560).damage = 5; // Knife  // damage per sec = 1
-        ObjectData.getObjectData(3047).damage = 7.5; // War Sword // damage per sec = 1.5
-        ObjectData.getObjectData(152).damage = 10; // Bow and Arrow  // damage per sec = 0.5
-        ObjectData.getObjectData(1624).damage = 15; // Bow and Arrow with Note  // damage per sec = 0.75
+        ObjectData.getObjectData(560).damage = 4; // Knife  // damage per sec = 2
+        ObjectData.getObjectData(3047).damage = 6; // War Sword // damage per sec = 3
+        ObjectData.getObjectData(152).damage = 8; // Bow and Arrow  // damage per sec = 2
+        ObjectData.getObjectData(1624).damage = 12; // Bow and Arrow with Note  // damage per sec = 3
 
         ObjectData.getObjectData(3816).damage = 0.1; // per sec Gushing Knife Wound 
         ObjectData.getObjectData(797).damage = 0.05; // per sec Stable Knife Wound
@@ -470,9 +471,8 @@ class ServerSettings
         trans.traceTransition("PatchTransitions: "); 
 
         var trans = transtions.getTransition(-1, 749); //  Bloody Yew Bow  
-        trans.autoDecaySeconds = 200; 
+        trans.autoDecaySeconds = 100; 
         trans.traceTransition("PatchTransitions: "); 
-
 
         trans = new TransitionData(-1,797,0,1380); // Stable Knife Wound --> Clean Knife Wound
         trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
