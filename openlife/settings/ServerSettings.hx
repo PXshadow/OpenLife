@@ -393,6 +393,10 @@ class ServerSettings
         ObjectData.getObjectData(152).deadlyDistance = 4; // Bow and Arrow 
         ObjectData.getObjectData(1624).deadlyDistance = 4; // Bow and Arrow with Note 
 
+        ObjectData.getObjectData(750).deadlyDistance = 1.5; // Bloody Knife
+        ObjectData.getObjectData(3048).deadlyDistance = 1.5; // Bloody War Sword
+        ObjectData.getObjectData(749).deadlyDistance = 4; // Bloody Yew Bow  
+
         // TODO allow damage with bloody weapon / needs support from client?
         ObjectData.getObjectData(560).damage = 5; // Knife  // damage per sec = 1
         ObjectData.getObjectData(3047).damage = 7.5; // War Sword // damage per sec = 1.5

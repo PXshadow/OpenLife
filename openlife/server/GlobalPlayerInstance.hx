@@ -2401,40 +2401,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.exhaustion += ServerSettings.CombatExhaustionCostPerAttack;
         targetPlayer.lastPlayerAttackedMe = this;
 
-        // if player is not angry and none is in kill mode make angry first before attack is possible
-        if(this.angryTime >= ServerSettings.CombatAngryTimeBeforeAttack && this.killMode == false && targetPlayer.killMode == false)
-        {
-            this.angryTime = ServerSettings.CombatAngryTimeBeforeAttack;
-
-            //targetPlayer.angryTime = ServerSettings.CombatAngryTimeBeforeAttack; 
-
-            this.connection.send(PLAYER_UPDATE, [this.toData()]);
-
-            var tmpAngry = Math.ceil(this.angryTime);
-
-            this.connection.sendGlobalMessage('You can attack in ${tmpAngry} seconds!');
-
-            targetPlayer.connection.sendGlobalMessage('${this.name} wants to attack you!');
-
-            Connection.SendEmoteToAll(this, Emote.angry);
-
-            trace('kill: needs to be angry first!');
-
-            return false;
-        }
 
         // if player is not angry and none is in kill mode make angry first before attack is possible
-        if(this.angryTime > 0 && this.killMode == false && targetPlayer.killMode == false)
+        if(this.angryTime > 0 || targetPlayer.angryTime > 0)
         {
             this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
-            Connection.SendEmoteToAll(this, Emote.angry);
+            //Connection.SendEmoteToAll(this, Emote.angry);
+            var tmpAngry = Math.max(this.angryTime, targetPlayer.angryTime);
 
-            var tmpAngry = Math.ceil(this.angryTime);
+            tmpAngry = Math.ceil(tmpAngry);
 
-            this.say('${tmpAngry} more seconds!');
+            this.say('${tmpAngry} more seconds to kill you!');
 
-            trace('kill: needs to be $angryTime seconds more angry!');
+            //trace('kill: needs to be $angryTime seconds more angry!');
 
             return false;
         }   

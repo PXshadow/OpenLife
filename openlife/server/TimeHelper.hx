@@ -323,9 +323,16 @@ class TimeHelper
             return;
         }
 
-        if(player.isHoldingWeapon() && player.angryTime < ServerSettings.CombatAngryTimeBeforeAttack / 2 )
+        //if(player.isHoldingWeapon() && player.angryTime < ServerSettings.CombatAngryTimeBeforeAttack / 2 )
+        if(player.angryTime < 2 )
         {
-            Connection.SendEmoteToAll(player, Emote.murderFace);
+            if(player.isHoldingWeapon()) player.doEmote(Emote.murderFace);
+            else
+            { 
+                if(player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon()) player.doEmote(Emote.terrified);
+                else player.doEmote(Emote.angry);
+            }
+
             return;
         }
 
@@ -340,7 +347,7 @@ class TimeHelper
             if(player.isHoldingWeapon()) player.doEmote(Emote.angry);
             else
             { 
-                if(player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon()) player.doEmote(Emote.terrified);
+                if(player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon()) player.doEmote(Emote.shock);
                 else player.doEmote(Emote.angry);
             }
         }

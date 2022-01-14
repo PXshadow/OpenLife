@@ -62,8 +62,8 @@ Loved / Hated Biomes:
 - Bad Temperature is affected now by how much you / your partens (50%) love the biome
 
 Killing / Attacking
-- you can attack anybody if angry and in weapon range
-- you get angry 15 seconds after attacking or beingattacked
+- you can attack anybody if you are angry and the target is terrifed
+- you get angry / terrifed 10 seconds after attacking / beingattacked
 - different weapons have different damage and cooldown
 - wounds do damage / exhaustion with time and can heal with time 
 - you do halve damage to ally 
