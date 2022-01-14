@@ -245,6 +245,8 @@ class TimeHelper
     {
         if(player.deleted) return false; // maybe remove?
 
+        Macro.exception(UpdatePlayerStats(player, timePassedInSeconds));
+
         Macro.exception(updateAge(player, timePassedInSeconds));
 
         Macro.exception(updateFoodAndDoHealing(player, timePassedInSeconds));            
@@ -258,6 +260,12 @@ class TimeHelper
         if(TimeHelper.tick % 30 == 0) Macro.exception(UpdateEmotes(player));
                 
         return true;
+    }
+
+    private static function UpdatePlayerStats(player:GlobalPlayerInstance, timePassedInSeconds:Float)
+    {
+        if(player.angryTime > 0) player.angryTime -= timePassedInSeconds;
+        if(player.angryTime < 0 && player.angryTime > -1) player.angryTime = 0;
     }
 
     private static function DoTimeOnPlayerObjects(player:GlobalPlayerInstance)
@@ -306,6 +314,12 @@ class TimeHelper
         {
             Connection.SendEmoteToAll(player, Emote.shock);
             return;
+        }
+
+        if(player.angryTime >= 0)
+        {
+            if(player.isHoldingWeapon()) player.doEmote(Emote.angry);
+            else player.doEmote(Emote.terrified);
         }
 
         if(player.food_store < 0 && player.age >= ServerSettings.MinAgeToEat)

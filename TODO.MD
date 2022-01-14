@@ -62,7 +62,8 @@ Loved / Hated Biomes:
 - Bad Temperature is affected now by how much you / your partens (50%) love the biome
 
 Killing / Attacking
-- you can attack anybody if close and in weapon range
+- you can attack anybody if angry and in weapon range
+- you get angry 15 seconds after attacking or beingattacked
 - different weapons have different damage and cooldown
 - wounds do damage / exhaustion with time and can heal with time 
 - you do halve damage to ally 
@@ -212,10 +213,13 @@ High priority:
 - COMBAT ill from moskitos
 - COMBAT block movement if other player is hostile 
 
-- ALLY change ally status after X seconds
 - ALLY allow only one new follower at a time
 - ALLY fear emote if no weapon and no ally
 - ALLY change ally color if leader changes
+- ALLY Add coolup time before you can attack first time
+- ALLY give support if in angry or posse mode
+- ALLY block pickup if hostile player is close
+- ALLY change ally status after X seconds???
 
 - BIRTH spawn eves on different locations
 - BIRTH fathers

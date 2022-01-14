@@ -136,7 +136,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // list of objects the player owns like gates
     public var owning:Array<ObjectHelper> = new Array<ObjectHelper>(); 
 
-    public var lastAttackedPlayer:GlobalPlayerInstance = null;
+    // combat stuff
+    public var lastAttackedPlayer:GlobalPlayerInstance = null; // used to exile ally if attacked twice
+    public var angryTime:Float = -1; // before one attacks without he or an ally beeing attacked first he must be angry a certain time
 
     // set all stuff null so that nothing is hanging around
     public function delete()
@@ -1958,6 +1960,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return countEaten > ServerSettings.YumBonus; 
     }
 
+    public function isHoldingWeapon() : Bool
+    {
+        return heldObject.objectData.deadlyDistance > 0;
+    }
+
+    
+
     public function setHeldObject(obj:ObjectHelper)
     {
         this.heldObject = obj;
@@ -2359,15 +2368,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // TODO armor / strength
         // TODO stop movement if hit
         // TODO block movement if not ally (with weapon?)
-        // TODO calculate damage depending on how many ally / enemy close in kill mode / posse
+        // TODO calculate damage depending on how many ally / enemy close in kill mode / poss        
         
         var targetPlayer = getPlayerAt(this.tx() + x, this.tx() + y, playerId);
         var name = targetPlayer == null ? 'not found!' : ${targetPlayer.name};
         var deadlyDistance = this.heldObject.objectData.deadlyDistance;
-
-        this.killMode = true;
-
-        Connection.SendEmoteToAll(this, Emote.murderFace);
         
         if(targetPlayer == null)
         {
@@ -2386,12 +2391,50 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             return false;
         }
-        
+
         trace('kill($x,$y ${targetPlayer.tx() - this.gx},${targetPlayer.ty() - this.gy} playerId: $playerId) ${name}');
 
         Connection.SendEmoteToAll(targetPlayer, Emote.shock);
 
-        this.exhaustion += ServerSettings.CombatExhaustionCostPerTry;
+        this.exhaustion += ServerSettings.CombatExhaustionCostPerAttack;
+
+        // if player is not angry and none is in kill mode make angry first before attack is possible
+        if(this.angryTime < 0 && this.killMode == false && targetPlayer.killMode == false)
+        {
+            this.angryTime = ServerSettings.CombatAngryTimeBeforeAttack;
+
+            targetPlayer.angryTime = ServerSettings.CombatAngryTimeBeforeAttack; 
+
+            this.connection.send(PLAYER_UPDATE, [this.toData()]);
+
+            targetPlayer.connection.sendGlobalMessage('${this.name} wants to attack you!');
+
+            Connection.SendEmoteToAll(this, Emote.angry);
+
+            trace('kill: needs to be angry first!');
+
+            return false;
+        }
+
+        // if player is not angry and none is in kill mode make angry first before attack is possible
+        if(this.angryTime > 0 && this.killMode == false && targetPlayer.killMode == false)
+        {
+            this.connection.send(PLAYER_UPDATE, [this.toData()]);
+
+            Connection.SendEmoteToAll(this, Emote.angry);
+
+            var tmpAngry = Math.ceil(this.angryTime);
+
+            this.connection.sendGlobalMessage('You can attack in ${tmpAngry} seconds!');
+
+            trace('kill: needs to be $angryTime seconds more angry!');
+
+            return false;
+        }   
+        
+        this.killMode = true;
+
+        Connection.SendEmoteToAll(this, Emote.murderFace);
 
         if(isCloseUseExact(targetPlayer, deadlyDistance) == false)
         {
@@ -2433,6 +2476,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 this.exile(targetPlayer, false);
             }
         }
+
+        targetPlayer.angryTime = 0; // make hit player angry, so that he can attack back
 
         var orgDamage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
         var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());

@@ -167,7 +167,8 @@ class ServerSettings
     public static var DebugAiCraftingObject:Int = 57;
 
     // combat
-    public static var CombatExhaustionCostPerTry:Float = 0.2;
+    public static var CombatAngryTimeBeforeAttack:Float = 15;
+    public static var CombatExhaustionCostPerAttack:Float = 0.2;
     public static var WeaponCoolDownFactor:Float = 0.1;
     public static var WeaponDamageFactor:Float = 1;
     public static var WoundDamageFactor:Float = 1;
