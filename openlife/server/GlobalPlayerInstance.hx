@@ -885,6 +885,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return true;
     }
 
+    public function isExiledBy(player:GlobalPlayerInstance) : Bool
+    {
+        return this.exiledByPlayers.exists(player.p_id);
+    }
+
+    public function isExiledByAnyLeader(player:GlobalPlayerInstance) : GlobalPlayerInstance
+    {
+        if(this.isExiledBy(player)) return player;
+
+        var topLeader = player.getTopLeader();
+        
+        if(this.isExiledBy(topLeader)) return topLeader;
+
+        return null;
+    }
+
     private function doCommands(message:String) : Bool
     {
         var name = NamingHelper.GetName(message);
@@ -923,6 +939,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             if(player == null || player == this)
             {
                 this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
+                return  false;
+            } 
+
+            var exileLeader = this.isExiledByAnyLeader(player);
+
+            if(exileLeader != null)
+            {
+                this.connection.sendGlobalMessage('${exileLeader.name} has exiled you already!');
                 return  false;
             } 
 
