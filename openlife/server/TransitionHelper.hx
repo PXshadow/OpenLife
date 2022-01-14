@@ -107,6 +107,15 @@ class TransitionHelper{
             return false;
         }
 
+        // TODO better cooldown?
+        if(player.angryTime == 0)
+        {
+            trace('angry mode deactivated try again!');
+            helper.sendUpdateToClient();
+            player.angryTime = -1;            
+            return false;
+        }
+
         switch (tag)
         {
             case USE: 
