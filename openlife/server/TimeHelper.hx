@@ -245,6 +245,8 @@ class TimeHelper
     {
         if(player.deleted) return false; // maybe remove?
 
+        Macro.exception(player.connection.doTime(timePassedInSeconds));        
+
         Macro.exception(UpdatePlayerStats(player, timePassedInSeconds));
 
         Macro.exception(updateAge(player, timePassedInSeconds));

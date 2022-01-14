@@ -24,6 +24,9 @@ class Connection
     var sock:Socket;
     var server:Server;
     var tag:ServerTag;
+
+    private var messageQueue = new Array<String>();
+    public var timeToWaitBeforeNextMessageSend:Float = 0;
     
     // if it is an AI sock = null
     public function new(sock:Socket,server:Server)
@@ -838,12 +841,37 @@ class Connection
         //this.mutex.release();
     }
 
+    public function doTime(passedTimeInSeconds:Float)
+    {
+        if(player.isAi()) return;
+        
+        if(timeToWaitBeforeNextMessageSend > 0)
+        {
+            timeToWaitBeforeNextMessageSend -= passedTimeInSeconds;
+            return;
+        }
+
+        if(messageQueue.length > 0)
+        {
+            sendGlobalMessage(messageQueue.pop());
+        }
+    }
+
     public function sendGlobalMessage(message:String)
     {
         if(player.isAi()) return;
 
         message = message.toUpperCase();
         message  = StringTools.replace(message,' ', '_');
+
+        if(timeToWaitBeforeNextMessageSend > 0)
+        {
+            messageQueue.push(message);
+            return;
+        }
+
+        timeToWaitBeforeNextMessageSend = ServerSettings.SecondsBetweenMessages;
+
         send(ClientTag.GLOBAL_MESSAGE, [message]);
     }
 

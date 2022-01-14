@@ -2407,6 +2407,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
+            var tmpAngry = Math.ceil(this.angryTime);
+
+            this.connection.sendGlobalMessage('You can attack in ${tmpAngry} seconds!');
+
             targetPlayer.connection.sendGlobalMessage('${this.name} wants to attack you!');
 
             Connection.SendEmoteToAll(this, Emote.angry);
@@ -2425,7 +2429,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             var tmpAngry = Math.ceil(this.angryTime);
 
-            this.connection.sendGlobalMessage('You can attack in ${tmpAngry} seconds!');
+            this.say('${tmpAngry} more seconds!');
 
             trace('kill: needs to be $angryTime seconds more angry!');
 

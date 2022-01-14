@@ -44,6 +44,9 @@ class ServerSettings
     public static var ScoreFactor:Float = 0.2; // new score influences total score with factor X. 
     public static var DisplayScoreFactor:Float = 1; // if display score multiply with factor X
 
+    // message
+    public static var SecondsBetweenMessages:Float = 5;
+
     // coins
     public static var InheritCoinsFactor:Float = 0.8; // on death X coins are inherited
 
@@ -167,7 +170,7 @@ class ServerSettings
     public static var DebugAiCraftingObject:Int = 57;
 
     // combat
-    public static var CombatAngryTimeBeforeAttack:Float = 15;
+    public static var CombatAngryTimeBeforeAttack:Float = 10;
     public static var CombatExhaustionCostPerAttack:Float = 0.2;
     public static var WeaponCoolDownFactor:Float = 0.1;
     public static var WeaponDamageFactor:Float = 1;
