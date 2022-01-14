@@ -161,6 +161,9 @@ class ServerSettings
     public static var GrowBackOriginalPlantsFactor:Float = 0.4; // 0.1
     //public static var WinterFildWoodDecayChance = 0.2;
 
+    // Ally
+    public static var TimeConfirmNewFollower:Float = 15; // a new follower is confirmed after X seconds
+
     // AI
     public static var NumberOfAis:Int = 1;
     public static var AiMaxSearchRadius:Int = 32;

@@ -279,6 +279,30 @@ class TimeHelper
         {
             if(player.angryTime < ServerSettings.CombatAngryTimeBeforeAttack ) player.angryTime += timePassedInSeconds;
         } 
+
+        if(player.newFollowerTime > 0) player.newFollowerTime -= timePassedInSeconds;
+        else
+        {
+            if(player.newFollower != null)
+            {
+                if(player.newFollower.followPlayer != player.newFollowerFor)
+                {
+                    player.newFollower.connection.sendGlobalMessage('You follow now ${player.newFollowerFor.name} ${player.newFollowerFor.familyName}');
+
+                    //player.newFollower.say('now I follow ${player.newFollowerFor.name}');
+
+                    //player.say('He follows now ${player.newFollowerFor.name}');
+                }
+
+                player.newFollower.followPlayer = player.newFollowerFor;
+                Connection.SendFollowingToAll(player.newFollower);
+
+                player.newFollowerFor.newFollower = null;
+                player.newFollowerFor.newFollowerFor = null;
+                player.newFollower = null;
+                player.newFollowerFor = null;       
+            }
+        }
     }
 
     private static function DoTimeOnPlayerObjects(player:GlobalPlayerInstance)

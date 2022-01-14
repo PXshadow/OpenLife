@@ -61,6 +61,9 @@ Family:
 Loved / Hated Biomes:
 - Bad Temperature is affected now by how much you / your partens (50%) love the biome
 
+Ally
+- Leader has now 15 seconds time to exile you before you follow him
+
 Killing / Attacking
 - you can attack anybody if you are angry and the target is terrifed
 - you get angry / terrifed 10 seconds after attacking / beingattacked

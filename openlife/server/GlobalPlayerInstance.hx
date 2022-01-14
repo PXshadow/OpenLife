@@ -23,7 +23,7 @@ import sys.thread.Mutex;
 using StringTools;
 using openlife.server.MoveHelper;
 
-// TODO give one at start
+// TODO give one at start?
 @:enum abstract Emote(Int) from Int to Int
 {
     public var happy = 0;  // used YUM
@@ -141,6 +141,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var lastAttackedPlayer:GlobalPlayerInstance = null; // used to exile ally if attacked twice
     public var angryTime:Float = ServerSettings.CombatAngryTimeBeforeAttack; // before one attacks without he or an ally beeing attacked first he must be angry a certain time
 
+
+    public var newFollower:GlobalPlayerInstance = null;
+    public var newFollowerFor:GlobalPlayerInstance = null;
+    public var newFollowerTime:Float = 0; 
+
     // set all stuff null so that nothing is hanging around
     public function delete()
     {
@@ -199,7 +204,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         return lineage.father = newFather;
     }
-
 
     public static function GetNumberLifingPlayers() : Int
     {
@@ -928,28 +932,66 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 return  false;
             } 
 
-            // TODO allow other leader through follow?
-
             var tmpFollow = this.followPlayer;
             this.followPlayer = player;
             var leader = this.getTopLeader();
 
+            // TODO allow other leader through follow?
             if(leader == null)
             {
                 //trace('FOLLOW: CIRCULAR FOLLOW --> NO CHANGE');
                 this.followPlayer = tmpFollow;
 
                 this.connection.sendGlobalMessage('${player.name} is following you or one of your allies!');
+                
                 return false;
             }
 
-            this.connection.sendGlobalMessage('YOU_FOLLOW_NOW:_${player.name}_${player.familyName}');
+            this.followPlayer = tmpFollow;
 
-            Connection.SendFollowingToAll(this);
+            if(leader.newFollower != null)
+            {
+                var time = Math.ceil(leader.newFollowerTime);
+
+                if(leader.newFollower == this) this.connection.sendGlobalMessage('Leader ${leader.name} will accept you in ${time} seconds...');
+                else this.connection.sendGlobalMessage('Top leader ${leader.name} is considering some one else. Try in ${time} seconds...');
+
+                return false;
+            }
+
+            if(player.newFollower != null)
+            {
+                var time = Math.ceil(player.newFollowerTime);
+
+                this.connection.sendGlobalMessage('${player.name} is considering some one else. Try in ${time} seconds...');
+
+                return false;
+            }
+
+            leader.newFollower = this;
+            leader.newFollowerFor = player;
+            leader.newFollowerTime = ServerSettings.TimeConfirmNewFollower;
+
+            // since new leader might not be the top leader
+            player.newFollower = this;
+            player.newFollowerFor = player;
+            player.newFollowerTime = ServerSettings.TimeConfirmNewFollower;
+
+            this.connection.sendGlobalMessage('In ${leader.newFollowerTime} seconds you follow ${player.name}_${player.familyName}');
+
+            //Connection.SendFollowingToAll(this);
 
             // inform leader
-            if(leader.connection != null) leader.connection.sendMapLocation(leader, 'FOLLOWER', 'follower');
-            if(leader.connection != null) leader.connection.sendGlobalMessage('YOU_HAVE_A_NEW_FOLLOWER:_${this.name}_${this.familyName}');
+            leader.connection.sendMapLocation(leader, 'FOLLOWER', 'follower');
+            leader.connection.sendGlobalMessage('YOU_HAVE_A_NEW_FOLLOWER:_${this.name}_${this.familyName}');
+            leader.doEmote(Emote.hubba);
+
+            if(leader != player)
+            {
+                player.connection.sendMapLocation(player, 'FOLLOWER', 'follower');
+                player.connection.sendGlobalMessage('YOU_HAVE_A_NEW_FOLLOWER:_${this.name}_${this.familyName}');
+                player.doEmote(Emote.hubba);
+            }
 
             this.doEmote(Emote.happy);
             
