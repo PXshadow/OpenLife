@@ -1331,7 +1331,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 //trace('HEALING: ' + trans.getDesciption());
 
                 var objTo = targetPlayer.heldObject;
-                objTo.objectData = ObjectData.getObjectData(trans.newTargetID);
+                var alternativeTimeOutcome = objTo.objectData.alternativeTimeOutcome; 
+                objTo.id = alternativeTimeOutcome >=0 ? alternativeTimeOutcome : trans.newTargetID;
                 objTo.creationTimeInTicks = TimeHelper.tick;
                 targetPlayer.setHeldObject(objTo);
                 targetPlayer.setHeldObjectOriginNotValid(); // no animation

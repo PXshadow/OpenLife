@@ -425,6 +425,14 @@ class ServerSettings
         ObjectData.getObjectData(1364).damage = 0.05; // per Hog Cut
         ObjectData.getObjectData(1383).damage = 0.03; // per sec Clean Hog Cut
 
+        ObjectData.getObjectData(797).alternativeTimeOutcome = 0; // Stable Knife Wound --> Empty
+
+        ObjectData.getObjectData(1363).alternativeTimeOutcome = 0; // Bite Wound --> Empty
+        
+        ObjectData.getObjectData(798).alternativeTimeOutcome = 1367; // Arrow Wound --> Extracted Arrowhead Wound
+        ObjectData.getObjectData(1367).alternativeTimeOutcome = 1366; // Extracted Arrowhead Wound --> Empty Arrow Wound
+        ObjectData.getObjectData(1366).alternativeTimeOutcome = 0; // Empty Arrow Wound --> Empty
+
         
         //ObjectData.getObjectData(279).winterDecayFactor = 2; // Empty Wild Gooseberry Bush
         //ObjectData.getObjectData(279).springRegrowFactor = 0.5; // Empty Wild Gooseberry Bush
@@ -477,32 +485,47 @@ class ServerSettings
         trans.autoDecaySeconds = 100; 
         trans.traceTransition("PatchTransitions: "); 
 
-        trans = new TransitionData(-1,797,0,1380); // Stable Knife Wound --> Clean Knife Wound
+        // wounds decay differenctly on ground vs on player
+        ObjectData.getObjectData(797).alternativeTimeOutcome = 1380; // Stable Knife Wound --> Clean Knife Wound // on player
+        trans = new TransitionData(-1,797,0,0); // Stable Knife Wound --> Empty // on ground
         trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
         trans = new TransitionData(-1,1380,0,0); // Clean Knife Wound --> 0
         trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
 
-        trans = new TransitionData(-1,1363,0,1381); //  Bite Wound --> Clean Bite Wound
+        ObjectData.getObjectData(1363).alternativeTimeOutcome = 1381; // Bite Wound --> Clean Bite Wound 
+        trans = new TransitionData(-1,1363,0,0); //  Bite Wound --> Empty
         trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
         trans = new TransitionData(-1,1381,0,0); // Clean Bite Wound --> 0
         trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
 
-        trans = new TransitionData(-1,1366,0,1382); // Empty Arrow Wound --> Clean Arrow Wound
+        ObjectData.getObjectData(1366).alternativeTimeOutcome = 1383; // Hog Cut --> Clean Hog Cut
+        trans = new TransitionData(-1,1364,0,0); // Hog Cut --> Empty
+        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        transtions.addTransition("PatchTransitions: ", trans);
+        trans = new TransitionData(-1,1383,0,0); // Clean Hog Cut --> 0
+        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        transtions.addTransition("PatchTransitions: ", trans); 
+
+        ObjectData.getObjectData(1366).alternativeTimeOutcome = 1382; // Empty Arrow Wound --> Clean Arrow Wound
+        trans = new TransitionData(-1,1366,0,0); // Empty Arrow Wound --> Empty
         trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
         trans = new TransitionData(-1,1382,0,0); // Clean Arrow Wound --> 0
         trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
 
-        trans = new TransitionData(-1,1364,0,1383); // Hog Cut --> Clean Hog Cut
-        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        trans = transtions.getTransition(0, 798); 
+        ObjectData.getObjectData(798).alternativeTimeOutcome = trans.newTargetID; // Arrow Wound --> Embedded Arrowhead Wound
+        trans.newTargetID = 1367; // Arrow Wound --> Extracted Arrowhead Wound 
         transtions.addTransition("PatchTransitions: ", trans);
-        trans = new TransitionData(-1,1383,0,0); // Clean Hog Cut --> 0
-        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        
+        trans = transtions.getTransition(0, 1367); 
+        ObjectData.getObjectData(1367).alternativeTimeOutcome = trans.newTargetID; // Extracted Arrowhead Wound --> Gushing Empty Arrow Wound
+        trans.newTargetID = 1366; // Extracted Arrowhead Wound --> Empty Arrow Wound
         transtions.addTransition("PatchTransitions: ", trans);
 
         for(trans in TransitionImporter.transitionImporter.transitions)

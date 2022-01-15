@@ -323,9 +323,13 @@ class TimeHelper
         {
             var transition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
 
-            //trace('TIME22: ${obj.objectData.description} --> ${transition.newTargetID} passedTime: $passedTime neededTime: ${timeToChange}'); 
+            //trace('TIME: ${obj.objectData.description} --> ${transition.newTargetID} passedTime: $passedTime neededTime: ${timeToChange}'); 
+            //var desc = obj.objectData.description;
+            // use alternative outcome for example for wound on player vs on ground
+            var alternativeTimeOutcome = obj.objectData.alternativeTimeOutcome; 
+            obj.id = alternativeTimeOutcome >=0 ? alternativeTimeOutcome : transition.newTargetID;
 
-            obj.objectData = ObjectData.getObjectData(transition.newTargetID);
+            //trace('TIME: ${desc} --> ${obj.objectData.description} transition: ${transition.newTargetID} alternative: ${obj.objectData.alternativeTimeOutcome} passedTime: $passedTime neededTime: ${timeToChange}'); 
 
             obj.creationTimeInTicks = TimeHelper.tick;
 
