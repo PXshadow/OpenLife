@@ -164,6 +164,18 @@ class ServerSettings
     // Ally
     public static var TimeConfirmNewFollower:Float = 15; // a new follower is confirmed after X seconds
 
+    // combat
+    public static var CombatAngryTimeBeforeAttack:Float = 10;
+    public static var CombatExhaustionCostPerAttack:Float = 0.25;
+    public static var WeaponCoolDownFactor:Float = 0.05;
+    public static var WeaponCoolDownFactorIfWounding:Float = 0.5;
+    public static var WeaponDamageFactor:Float = 1;
+    public static var WoundDamageFactor:Float = 1;
+    public static var AllyConsideredClose:Int = 5;
+    public static var WoundHealingTimeFactor:Float = 1.5;
+    public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.25; // For damaging children, mother, father, brother sister  
+    public static var PrestigeCostPerDamageForAlly:Float = 0.5; // For damaging ally  
+
     // AI
     public static var NumberOfAis:Int = 1;
     public static var AiMaxSearchRadius:Int = 32;
@@ -172,16 +184,7 @@ class ServerSettings
     // Debug AI
     public static var DebugAiCraftingObject:Int = 57;
 
-    // combat
-    public static var CombatAngryTimeBeforeAttack:Float = 10;
-    public static var CombatExhaustionCostPerAttack:Float = 0.25;
-    public static var WeaponCoolDownFactor:Float = 0.05;
-    public static var WeaponCoolDownFactorIfWounding:Float = 0.5;
-    public static var WeaponDamageFactor:Float = 1;
-    public static var WoundDamageFactor:Float = 1;
-    public static var WoundHealingTimeFactor:Float = 1.5;
-    public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.25; // For damaging children, mother, father, brother sister  
-    public static var PrestigeCostPerDamageForAlly:Float = 0.5; // For damaging ally  
+  
     
     
     // iron, tary spot spring cannot respawn or win lottery

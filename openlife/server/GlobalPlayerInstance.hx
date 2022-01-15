@@ -2547,13 +2547,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         var orgDamage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
         var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());
-        if(targetPlayer.isAlly(this)) damage /= 2;
+        var allyFactor = 1.0;
 
+        if(targetPlayer.isAlly(this)) allyFactor = 0.5;
+        else
+        {
+            allyFactor = this.calculateEnemyVsAllyStrengthFactor();
+            allyFactor = allyFactor > 1.2 ? 1.2 : allyFactor;
+        }
+
+        damage *= allyFactor;
         damage *= distanceFactor;    
         targetPlayer.hits += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
 
-        trace('kill: HIT weaponDamage: $orgDamage damage: $damage distanceFactor: $distanceFactor quadDistance: $quadDistance');
+        trace('kill: HIT weaponDamage: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance');
 
         targetPlayer.woundedBy = this.heldObject.id;
         var longWeaponCoolDown = false;
@@ -2659,6 +2667,29 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         //trace('Wound: damage: $damage prestigeCost: $prestigeCost');
 
         return true;
+    }
+
+    public function calculateEnemyVsAllyStrengthFactor() : Float
+    {        
+        var allyStrength = 0.0;
+        var enemyStrength = 0.0;
+
+        for(p in AllPlayers)
+        {
+            if(p.deleted) continue;
+            if(p.isCloseToPlayer(this, ServerSettings.AllyConsideredClose) == false) continue;
+
+            var strength = p.isHoldingWeapon() ? 2 * p.food_store_max : p.food_store_max;
+
+            if(p.isAlly(this)) allyStrength += strength;
+            else enemyStrength += strength;
+        }
+
+        var factor = (allyStrength + allyStrength) / (enemyStrength + allyStrength);
+
+        trace('ALLY STRENGTH: ${allyStrength} vs enemy: ${enemyStrength} factor: $factor');
+
+        return factor;
     }
 
 
