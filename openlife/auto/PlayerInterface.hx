@@ -10,7 +10,7 @@ interface PlayerInterface
     public function isMoving() : Bool;
 
     public function doEmote(id:Int, seconds:Int = -10) : Void;
-    public function say(text:String) : Void;
+    public function say(text:String, toSelf:Bool = false) : Void;
     //public function eat(); 
     public function self(x:Int = 0, y:Int = 0, clothingSlot:Int = -1) : Void; // for eating and clothing
     public function move(x:Int,y:Int,seq:Int,moves:Array<Pos>) : Void;

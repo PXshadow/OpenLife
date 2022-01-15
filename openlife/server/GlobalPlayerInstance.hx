@@ -788,7 +788,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     1448/0 HELP ME
     #
     **/
-    public function say(text:String)
+    public function say(text:String, toSelf:Bool = false)
     {
         if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
         else this.mutex.acquire();
@@ -802,6 +802,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             var id = player.p_id;
 
             text = text.toUpperCase();
+
+            if(toSelf)
+            {
+                this.connection.send(PLAYER_SAYS,['$id/$curse $text']);
+                this.connection.send(FRAME);
+
+                if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
+                else this.mutex.release();
+
+                return;
+            }
 
             if(StringTools.contains(text, '!'))
             {
@@ -2481,7 +2492,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             tmpAngry = Math.ceil(tmpAngry);
 
-            this.say('${tmpAngry} more seconds to kill you!');
+            this.say('${tmpAngry} more seconds...');
 
             //trace('kill: needs to be $angryTime seconds more angry!');
 

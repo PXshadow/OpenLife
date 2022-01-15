@@ -255,7 +255,7 @@ class TimeHelper
 
         Macro.exception(MoveHelper.updateMovement(player));
 
-        if(TimeHelper.tick % 5 == 0) Macro.exception(DoTimeOnPlayerObjects(player));
+        if(TimeHelper.tick % 5 == 0) Macro.exception(DoTimeOnPlayerObjects(player, timePassedInSeconds));
 
         if(TimeHelper.tick % 20 == 0) Macro.exception(updateTemperature(player));
 
@@ -308,7 +308,7 @@ class TimeHelper
         }
     }
 
-    private static function DoTimeOnPlayerObjects(player:GlobalPlayerInstance)
+    private static function DoTimeOnPlayerObjects(player:GlobalPlayerInstance, timePassedInSeconds:Float)
     {
         var obj = player.heldObject;
 
@@ -316,10 +316,9 @@ class TimeHelper
 
         if(obj.timeToChange <= 0) return;
         
-        var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(obj.creationTimeInTicks);
-        var timeToChange = obj.timeToChange;
-
-        if(passedTime >= timeToChange)
+        obj.timeToChange -= timePassedInSeconds;
+        
+        if(obj.timeToChange <= 0)
         {
             var transition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
 

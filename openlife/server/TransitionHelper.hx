@@ -94,8 +94,9 @@ class TransitionHelper{
 
         if(player.heldObject.isPermanent() || player.heldObject.isNeverDrop())
         {
-            trace('Cannot do command since heldObject is permanent! Maybe wounded or bloody weapon!');
+            //trace('Cannot do command since heldObject is permanent! Maybe wounded or bloody weapon!');
             helper.sendUpdateToClient();
+            if(player.heldObject.timeToChange > 0) player.say('${Math.ceil(player.heldObject.timeToChange)} seconds...', true);
             return false;
         }
 
