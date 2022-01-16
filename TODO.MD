@@ -28,8 +28,8 @@ AI:
 Not yet implemented:
 - advaned AI
 - incarnation acording to prestige score
-- advaned stuff is not tested yet, so may or may not work
-- ally gates / giving ownership to others / fences
+- advaned stuff like rails, pipes is not tested yet, so may or may not work
+- ally gates / fences
 - curses
 - saving of players on server restart. 
     Server restart should only take some seconds, so player should be able to continue once implemented
@@ -63,7 +63,7 @@ Loved / Hated Biomes:
 
 Ally
 - Leader has now 15 seconds time to exile you before you follow him
-- allow only pickup if not too close to not allies (5 Tiles)
+- allow only pickup if not too close to not allies with more total strength (5 Tiles)
 - the more your close (5 Tiles) ally stregth is vs enemy streght the more damage you do
 - stregth of players with weapons are counted twice
 

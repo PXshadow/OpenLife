@@ -805,6 +805,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(toSelf)
             {
+                //curse = 1;
+                text = '?{$text}?';
+
                 this.connection.send(PLAYER_SAYS,['$id/$curse $text']);
                 this.connection.send(FRAME);
 
