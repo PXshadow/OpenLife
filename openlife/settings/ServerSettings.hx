@@ -165,7 +165,7 @@ class ServerSettings
     public static var TimeConfirmNewFollower:Float = 15; // a new follower is confirmed after X seconds
 
     // combat
-    public static var CombatAngryTimeBeforeAttack:Float = 10;
+    public static var CombatAngryTimeBeforeAttack:Float = 5;
     public static var CombatExhaustionCostPerAttack:Float = 0.25;
     public static var WeaponCoolDownFactor:Float = 0.05;
     public static var WeaponCoolDownFactorIfWounding:Float = 0.4;

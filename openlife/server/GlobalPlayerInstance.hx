@@ -2562,6 +2562,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(targetPlayer.isAlly(this)) allyFactor = 0.5;
         else
         {
+            targetPlayer.makeAllCloseAllyAngryAt(this);
             allyFactor = this.calculateEnemyVsAllyStrengthFactor();
             allyFactor = allyFactor > 1.2 ? 1.2 : allyFactor;
         }
@@ -2700,6 +2701,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         trace('ALLY STRENGTH: ${allyStrength} vs enemy: ${enemyStrength} factor: $factor');
 
         return factor;
+    }
+
+    // TODO test
+    public function makeAllCloseAllyAngryAt(angryAtplayer:GlobalPlayerInstance) 
+    {        
+        for(p in AllPlayers)
+        {
+            if(p.deleted) continue;
+            if(p.isCloseToPlayer(this, ServerSettings.AllyConsideredClose) == false) continue;
+
+            if(p.isAlly(this)) p.lastPlayerAttackedMe = angryAtplayer;
+        }
     }
 
 

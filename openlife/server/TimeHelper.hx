@@ -357,7 +357,8 @@ class TimeHelper
             if(player.isHoldingWeapon()) player.doEmote(Emote.murderFace);
             else
             { 
-                if(player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon()) player.doEmote(Emote.terrified);
+                var lastPlayerAttackedMe = player.lastPlayerAttackedMe;
+                if(lastPlayerAttackedMe != null && lastPlayerAttackedMe.lastAttackedPlayer == player && lastPlayerAttackedMe.isHoldingWeapon()) player.doEmote(Emote.terrified);
                 else player.doEmote(Emote.angry);
             }
 
