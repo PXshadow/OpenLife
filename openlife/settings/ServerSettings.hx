@@ -168,7 +168,7 @@ class ServerSettings
     public static var CombatAngryTimeBeforeAttack:Float = 5;
     public static var CombatExhaustionCostPerAttack:Float = 0.25;
     public static var WeaponCoolDownFactor:Float = 0.05;
-    public static var WeaponCoolDownFactorIfWounding:Float = 0.4;
+    public static var WeaponCoolDownFactorIfWounding:Float = 0.2;
     public static var WeaponDamageFactor:Float = 1;
     public static var WoundDamageFactor:Float = 1;
     public static var AllyConsideredClose:Int = 5;

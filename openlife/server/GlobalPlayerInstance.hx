@@ -2137,7 +2137,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             ServerSettings.startingGy = this.ty();
 
             //this.connection.die();
-        
+            
+            if(this.heldPlayer != null) this.dropPlayer(); // TODO test
             placeGrave();
             InheritOwnership(this);
             InheritCoins(this);
@@ -2333,11 +2334,28 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function placeGrave()
     {
-        var grave = heldObject.isWound() ? new ObjectHelper(this, 752) : new ObjectHelper(this, 87); // 87 = Fresh Grave 88 = grave 752 = Murder Grave
+        var grave:ObjectHelper;
+
+        if(this.age < 1.5)
+        {
+            grave = new ObjectHelper(this, 3053); // 3053 Baby Bone Pile
+        } 
+        else
+        {
+            grave = heldObject.isWound() ? new ObjectHelper(this, 752) : new ObjectHelper(this, 87); // 87 = Fresh Grave 88 = grave 752 = Murder Grave
+        }
 
         if(this.heldObject != null && heldObject.isWound() == false) // dont place a Wound in grave
         {
-            grave.containedObjects.push(this.heldObject);
+            if(this.heldObject.isContainable())
+            {
+                grave.containedObjects.push(this.heldObject);
+            }
+            else
+            {
+                WorldMap.PlaceObject(this.tx(), this.ty(), this.heldObject, true); // TODO test for example with death on horse
+            }
+
             this.setHeldObject(null);
         }
 

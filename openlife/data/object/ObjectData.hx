@@ -1262,6 +1262,7 @@ class ObjectData extends LineReader
         return true;
     }
 
+    // insulation reaches from 0 to 2
     public function getInsulation() : Float
     {
         // original: {'h': 0.25, 't': 0.35, 'b': 0.2, 's': 0.1, 'p': 0.1};

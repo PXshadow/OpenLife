@@ -317,6 +317,11 @@ class ObjectHelper {
         return toDelete;
     }
 
+    public function isContainable() : Bool
+    {
+        return this.objectData.containable;
+    }
+
     public function isWound() : Bool
     {
         if(StringTools.contains(description, 'Hog Cut')) return true;
