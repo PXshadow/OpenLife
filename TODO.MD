@@ -219,7 +219,6 @@ High priority:
 
 - COMBAT animal interactions / collisions
 - COMBAT ill from moskitos
-- COMBAT block movement if other player is hostile 
 
 - ALLY change ally color if leader changes
 - ALLY change ally status after X seconds. Needed???
@@ -228,20 +227,13 @@ High priority:
 - BIRTH fathers
 - BIRTH fathers displayed in name (needs workaround since not supported from client)
 - BIRTH incarnation according to score
-- BIRTH curse system replaced through grave system / in short if your old body is rottening nearby you have a hard time
-
-- EXHAUSTION carrying heavy stuff
-- EXHAUSTION for working in bad biome
-- EXHAUSTION for more tools / tools always better then primitive tools
-- EXHAUSTION better indoor exhaustion reduction
+- BIRTH curse system replaced through grave system / in short if 
 
 - CONNECTION saving of people data so that people can come back after server restart
 
 - MAP use bigger map (Europe?) / create tool to auto create map
 
-- DEATH while holding some one, or riding / driving something or using cart
-- DEATH baby grave
-- DEATH send grave info grave
+- DEATH send grave info 
 
 - BIOME biome boni for different races
 - BIOME change biome speed for specialists
@@ -250,9 +242,17 @@ High priority:
 - BIOME biome locked planting
 
 - GATES Ally Gates and swing doors
+- CARS USE cars as boats
 
 Middle priority:
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
+
+- EXHAUSTION carrying heavy stuff
+- EXHAUSTION for working in bad biome
+- EXHAUSTION for more tools / tools always better then primitive tools
+- EXHAUSTION better indoor exhaustion reduction
+
+- COMBAT block movement if other player is hostile 
 
 - TIME time transitions for objects in container
 - TIME decay stuff in containers
@@ -271,8 +271,6 @@ Middle priority:
 
 - WINTER change snow biome / snow banks / melting if snow
 
-- TOOLS learning tools (hold wrong if not learned)
-
 - DONE??? do pattern transitions right like rubber horsecart pickup 
 
 - AI Pottery
@@ -282,12 +280,12 @@ Middle priority:
 - AI IRON AGE
 - AI guards 
 
+- WRITING / READING
+
 - RAILS implement rails
 
-- GATES fences / gates giving to others
+- GATES fences
 - GATES visitor at gate
-
-- COMMANDS implement missing commands 
 
 - YUM use yum category // for example for berry / berry bowl (maybe not needed?)
 
@@ -297,15 +295,18 @@ Middle priority:
 
 - STATS implement basic server stats
 
-- LANGUAGE implement different languages
-
 - POINTER bell tower ringing
 - POINTER maps / maps on waystone
 - POINTER home marker
 
+- LANGUAGE implement different languages
+
+- ADVANED oil stuff, pipes, sprinkler, plow, roadmaker
+- TOOLS use list of learned tool and set held_learned only true if tool is learned 
+
 Low priority stuff:
 - MAP calculate distance right when on end of map 
-- advanced transitions like oil stuff, sprinkler, cars
+- advanced transitions like oil stuff
 - radio
 - photo
 

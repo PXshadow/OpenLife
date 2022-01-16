@@ -799,6 +799,8 @@ class Connection
             string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
             sock.output.writeString(string);
 
+            //if(StringTools.contains(string, 'LR')) trace(string);
+            //if(StringTools.contains(string, 'LR')) trace(data);    
             //if(ServerSettings.TraceSend && tag != MAP_CHANGE && tag != FRAME)
             if((ServerSettings.TraceSendPlayerActions && isPlayerAction) || (ServerSettings.TraceSendNonPlayerActions && isPlayerAction == false))
             {
@@ -960,5 +962,22 @@ class Connection
         
         this.send(ClientTag.OWNER_LIST, [message], false);
     }
+
+    /**
+        (LR)
+        LR
+        tool_id tool_id ... tool_id 
+        #
+
+        Report about new tool objects that have just been learned
+
+        Each tool_id is an object id.
+    **/
+    public function sendLearnedTool(id:Int)
+    {
+        player.connection.send(LEARNED_TOOL_REPORT,['${id}']);
+        //player.connection.send(TOOL_SLOTS,['1 100']);
+    }
+    
 }
 #end

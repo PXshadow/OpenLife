@@ -377,8 +377,6 @@ class TransitionHelper{
         trace('USE target: $target containerIndex: $containerIndex');
         // TODO intentional use with index, see description above
 
-        // TODO kill deadlyDistance
-
         // TODO noUseActor / noUseTarget
 
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;     
@@ -394,10 +392,12 @@ class TransitionHelper{
 
         trace('TRANS: oldEnoughForTransitions: $oldEnoughForTransitions');
 
-        if (this.target.objectData.tool)
+        if (this.handObjectData.tool)
         {
-            player.connection.send(LEARNED_TOOL_REPORT,['0 ${this.target.id}']);
-            trace("TOOL LEARNED! " + this.target.id);
+            player.connection.sendLearnedTool(this.handObjectData.parentId);
+            player.held_learned = true;
+      
+            trace("TOOL LEARNED! " + this.handObjectData.parentId);
         }
 
         // like eating stuff from horse
