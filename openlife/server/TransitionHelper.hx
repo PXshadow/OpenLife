@@ -108,6 +108,15 @@ class TransitionHelper{
             return false;
         }
 
+        var allyStrengh = player.calculateEnemyVsAllyStrengthFactor();
+        
+        if(allyStrengh < 0.8)
+        {
+            player.say('Too many close enemies...', true);
+            helper.sendUpdateToClient();
+            return false;
+        }
+
         switch (tag)
         {
             case USE: 

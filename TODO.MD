@@ -63,6 +63,9 @@ Loved / Hated Biomes:
 
 Ally
 - Leader has now 15 seconds time to exile you before you follow him
+- allow only pickup if not too close to not allies (5 Tiles)
+- the more your close (5 Tiles) ally stregth is vs enemy streght the more damage you do
+- stregth of players with weapons are counted twice
 
 Killing / Attacking
 - you can attack anybody if target is terrifed, angry or in kill mode
@@ -70,6 +73,7 @@ Killing / Attacking
 - different weapons have different damage and cooldown
 - if you make a wound or kill some one the bloody weapon cooldown is much longer
 - the more your close (5 Tiles) ally stregth is vs enemy streght the more damage you do
+- stregth of players with weapons are counted twice
 - You can only shoot with bow if not too close to target
 - wounds do damage / exhaustion with time and can heal with time 
 - you do halve damage to ally 
@@ -213,19 +217,12 @@ High priority:
 - AI tests with >20 AIs
 - AI Stoneage
 
-- MESSAGE send one message at a time
-
 - COMBAT animal interactions / collisions
 - COMBAT ill from moskitos
 - COMBAT block movement if other player is hostile 
 
-- ALLY allow only one new follower at a time
-- ALLY fear emote if no weapon and no ally
 - ALLY change ally color if leader changes
-- ALLY Add coolup time before you can attack first time
-- ALLY give support if in angry or posse mode
-- ALLY block pickup if hostile player is close
-- ALLY change ally status after X seconds???
+- ALLY change ally status after X seconds. Needed???
 
 - BIRTH spawn eves on different locations
 - BIRTH fathers
