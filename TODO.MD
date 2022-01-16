@@ -65,7 +65,7 @@ Ally
 - Leader has now 15 seconds time to exile you before you follow him
 
 Killing / Attacking
-- you can attack anybody if you are angry and the target is terrifed
+- you can attack anybody if target is terrifed, angry or in kill mode
 - you get angry / terrifed 10 seconds after attacking / beingattacked
 - different weapons have different damage and cooldown
 - if you make a wound or kill some one the bloody weapon cooldown is much longer

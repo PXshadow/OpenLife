@@ -269,7 +269,8 @@ class TimeHelper
         
         //if(player.angryTime < 0 && player.angryTime > -1) player.angryTime = 0;
 
-        var moreAngry = player.isHoldingWeapon() || (player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon());
+        //var moreAngry = player.isHoldingWeapon() || (player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon());
+        var moreAngry = player.killMode || (player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon());
 
         if(moreAngry)
         {
@@ -312,17 +313,14 @@ class TimeHelper
     {
         var obj = player.heldObject;
 
-        //trace('TIME22: ${obj.objectData.description} timeToChange: ${obj.timeToChange}');
-
         if(obj.timeToChange <= 0) return;
         
         obj.timeToChange -= timePassedInSeconds;
-        
+
         if(obj.timeToChange <= 0)
         {
             var transition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
 
-            //trace('TIME: ${obj.objectData.description} --> ${transition.newTargetID} passedTime: $passedTime neededTime: ${timeToChange}'); 
             //var desc = obj.objectData.description;
             // use alternative outcome for example for wound on player vs on ground
             var alternativeTimeOutcome = obj.objectData.alternativeTimeOutcome; 

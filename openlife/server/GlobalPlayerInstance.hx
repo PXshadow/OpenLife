@@ -2481,13 +2481,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.exhaustion += ServerSettings.CombatExhaustionCostPerAttack;
         targetPlayer.lastPlayerAttackedMe = this;
 
-
         // if player is not angry and none is in kill mode make angry first before attack is possible
-        if(this.angryTime > 0 || targetPlayer.angryTime > 0)
+        //if(this.angryTime > 0 || targetPlayer.angryTime > 0)
+        if(targetPlayer.angryTime > 0 && targetPlayer.killMode == false)
         {
             this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
-            //Connection.SendEmoteToAll(this, Emote.angry);
             var tmpAngry = Math.max(this.angryTime, targetPlayer.angryTime);
 
             tmpAngry = Math.ceil(tmpAngry);
