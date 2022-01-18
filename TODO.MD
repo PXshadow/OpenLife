@@ -67,8 +67,8 @@ Ally
 - the more your close (5 Tiles) ally stregth is vs enemy streght the more damage you do
 - stregth of players with weapons are counted twice
 
-Killing / Attacking
-- you can attack anybody if target is terrifed, angry or in kill mode
+Combat / Attacking
+- you can attack anybody you are angry and if target is terrifed or angry
 - you get angry / terrifed 5 seconds after attacking / beingattacked
 - different weapons have different damage and cooldown
 - if you make a wound or kill some one the bloody weapon cooldown is much longer

@@ -2505,8 +2505,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         targetPlayer.lastPlayerAttackedMe = this;
 
         // if player is not angry and none is in kill mode make angry first before attack is possible
-        //if(this.angryTime > 0 || targetPlayer.angryTime > 0)
-        if(targetPlayer.angryTime > 0 && targetPlayer.killMode == false)
+        //
+        //if(targetPlayer.angryTime > 0 && targetPlayer.killMode == false)
+        if(this.angryTime > 0 || targetPlayer.angryTime > 0)
         {
             this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
