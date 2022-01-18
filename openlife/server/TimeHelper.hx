@@ -1234,6 +1234,9 @@ class TimeHelper
 
             var containedObject = helper.containedObjects.pop();
 
+            // For each Sharp Stone a grave needs much longer to decay / This can be used to let cursed graves exist much longer
+            if(containedObject.id == 34) helper.timeToChange += ServerSettings.CursedGraveTime * 60;    
+
             WorldMap.PlaceObject(tx, ty, containedObject);
 
             trace('time: placed object ${containedObject.description} from ${helper.description}');

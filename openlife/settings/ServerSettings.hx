@@ -61,7 +61,7 @@ class ServerSettings
     // Graves
     public static var GraveBlockingDistance = 100; // cannot incrante close to blocking graves like bone pile
     public static var CloseGraveSpeedMali:Float = 0.8; // speed maili if close to blocking grave like bone pile 
-
+    public static var CursedGraveTime:Float = 8; // hours a cursed grave continues to exist per curse token  
 
     // PlayerInstance
     public static var MaxPlayersBeforeStartingAsChild = 0; // -1

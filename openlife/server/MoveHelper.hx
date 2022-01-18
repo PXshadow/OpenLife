@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.server.GlobalPlayerInstance.Emote;
 import haxe.macro.Expr.Catch;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.ObjectData;
@@ -206,6 +207,7 @@ class MoveHelper
             {
                 Connection.SendCurseToAll(p); // TODO test
                 p.say('My grave is near...', true);
+                p.doEmote(Emote.sad);
             }
 
             speed *= ServerSettings.CloseGraveSpeedMali;
@@ -217,6 +219,7 @@ class MoveHelper
             {
                 Connection.SendCurseToAll(p, 0);
                 p.say('Im far away from my grave...', true);
+                p.doEmote(Emote.happy);
             }
             
             p.cursed = false;

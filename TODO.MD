@@ -81,6 +81,13 @@ Combat / Attacking
 - you will loose prestige for attacking a close relative
 - you will loose even more prestige for attacking an ally
 
+Graves / Curses
+- Instead player curses, curses work now through graves without grave stone
+- you cannot incarnate close to your grave without grave stone
+- you are cursed (lower speed) if going close to your grave without grave stone
+- you cannot interact with your own grave 
+- For each Sharp Stone a grave needs much longer to decay (+8 hours) / This can be used to let cursed graves exist much longer
+
 Heat / Temperature:
 - bad temperature reduces speed extreme temperature reduces double
 - different color people love different temperatures (average temperature and resistance to too hot or cold temperature)
@@ -209,7 +216,6 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-
 - AI basic nursing
 - Ai birth after death
 - AI basic clothing
