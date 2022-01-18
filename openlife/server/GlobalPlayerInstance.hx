@@ -253,7 +253,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         AddPlayer(this);
 
-        this.calculateAndSetPrestigeClass();
+        this.lineage.prestigeClass = calculatePrestigeClass();
         
         for(i in 0...this.clothingObjects.length)
         {
@@ -302,15 +302,54 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
     }
 
-    private function calculateAndSetPrestigeClass()
+    // TODO test
+    private function calculatePrestigeClass() : PrestigeClass
     {   
         var playerAccount = this.connection.playerAccount;
-        if(playerAccount == null) return;
+        if(playerAccount == null) return PrestigeClass.Commoner;
 
-        var prestigeNeededForNobleBirth = CalculatePrestigeNeededForNobleBirth();
-        this.lineage.prestigeClass = playerAccount.totalScore > prestigeNeededForNobleBirth ? PrestigeClass.Noble : PrestigeClass.Commoner;
+        //trace('PRESTIGE ${playerAccount.totalScore} prestigeNeededForNobleBirth: $prestigeNeededForNobleBirth');
+    
+        // [for(key in map.keys()) key]
+        var players = [for(p in AllPlayers) p];
 
-        trace('PRESTIGE ${playerAccount.totalScore} prestigeNeededForNobleBirth: $prestigeNeededForNobleBirth');
+        if(players.length < 2) return PrestigeClass.Commoner;
+
+        players.sort(function(a, b) {
+            if(a.linagePrestige < b.linagePrestige) return -1;
+            else if(a.linagePrestige > b.linagePrestige) return 1;
+            else return 0;
+        });
+
+        for(p in players) trace('PRESTIGE: ${p.p_id} ${p.linagePrestige}');        
+
+        var neededPrestige = CalculateNeededPrestige(players, 0.4);
+        if(playerAccount.totalScore < neededPrestige) return PrestigeClass.Serf;
+
+        if(players.length < 5) return PrestigeClass.Commoner;
+
+        var neededPrestige = CalculateNeededPrestige(players, 0.8);
+        if(playerAccount.totalScore < neededPrestige) return PrestigeClass.Commoner;
+
+        return PrestigeClass.Noble;
+    }
+
+    public static function CalculateNeededPrestige(players:Array<GlobalPlayerInstance>, percent:Float = 0.4) : Float
+    {
+        var count = 0;
+
+        for(p in players)
+        {
+            count++;
+
+            if(count < players.length * percent) continue;
+
+            trace('NEEDED PRESTIGE ${p.linagePrestige} percent: ${percent}');
+
+            return p.linagePrestige;
+        }
+
+        return 999999;
     }
 
     private function spawnAsEve(allowHumanSpawnToAIandAiToHuman:Bool)
@@ -347,7 +386,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 var persons = personsByColor[closeSpecialBiomePersonColor];
                 setObjectId(persons[WorldMap.calculateRandomInt(persons.length-1)].id); 
 
-                trace('Child is an EVE / ADAM with color: ${this.getColor()}');
+                trace('Child is an EVE / ADAM with color: ${this.getColor()} as ${this.lineage.className}');
             }
         }
         else
@@ -368,7 +407,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             lastEveOrAdam = null;
 
-            trace('An Eve / Adam is born to an Eve / Adam with color: ${this.getColor()}');
+            trace('An Eve / Adam is born to an Eve / Adam with color: ${this.getColor()} as ${this.lineage.className}');
         }
 
         name = isFemal() ? "EVE" : "ADAM";
@@ -376,36 +415,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(isAi) lastAiEveOrAdam = lastEveOrAdam;
         else lastHumanEveOrAdam = lastEveOrAdam;
     } 
-
-    // TODO test
-    public function CalculatePrestigeNeededForNobleBirth() : Float
-    {
-        // [for(key in map.keys()) key]
-        var players = [for(p in AllPlayers) p];
-
-        if(players.length < 4) return 9999999999999;
-
-        players.sort(function(a, b) {
-           if(a.linagePrestige < b.linagePrestige) return -1;
-           else if(a.linagePrestige > b.linagePrestige) return 1;
-           else return 0;
-        });
-
-        trace("PRESTIGE SORT", players);
-
-        var count = 0;
-
-        for(p in players)
-        {
-            count++;
-            if(count < players.length * 0.8) continue;
-
-            return p.linagePrestige;
-        }
-
-        return 9999999999999;
-    }
-
 
     // TODO higher change of children for smaler families
     // TODO spawn acording to prestige score
