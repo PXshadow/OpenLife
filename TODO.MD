@@ -7,6 +7,7 @@ Project Winter is comming summary:
 - There is winter as main new challange
 - killing is allowed but might give some mali
 - combat is more skill based / the more close you target the player the more damage
+- you incarnate more likely to your grave with a grave stone
 - you incarnate less likely to your grave without grave stone
 - you are cursed (lower speed / halve damage) if going close to your grave without grave stone
 - The server uses a limited hand made map which can be changed using a picture
@@ -83,9 +84,9 @@ Combat / Attacking
 
 Graves / Curses
 - Instead player curses, curses work now through graves without grave stone
+- you incarnate more likely to your grave with a grave stone
 - you incarnate less likely close to your grave without grave stone
-- you are cursed (lower speed) if going close to your grave without grave stone
-- you make halve damage if cursed
+- you are cursed (lower speed / halve damage) if going close to your grave without grave stone
 - you cannot interact with your own grave 
 - For each Sharp Stone a grave needs much longer to decay (+8 hours) / This can be used to let cursed graves exist much longer
 

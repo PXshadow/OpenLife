@@ -372,8 +372,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // TODO consider past families of player
     private function spawnAsChild() : Bool
     {
-        var mother:GlobalPlayerInstance = GetFittestMother(this.isAi(), this.connection.playerAccount);
-
+        var mother = GetFittestMother(this.isAi(), this.connection.playerAccount, true);
+        if(mother == null) mother = GetFittestMother(this.isAi(), this.connection.playerAccount);
         if(mother == null) return false;
 
         // TODO father
@@ -496,7 +496,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return personColorByBiome;
     }
 
-    private static function GetFittestMother(childIsHuman:Bool, playerAccount:PlayerAccount) : GlobalPlayerInstance
+    private static function GetFittestMother(childIsHuman:Bool, playerAccount:PlayerAccount, closeGrave:Bool = false) : GlobalPlayerInstance
     {
         var mother:GlobalPlayerInstance = null;
         var fitness = -1000.0;
@@ -504,6 +504,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // search fertile mother
         for (c in Connection.getConnections())
         {            
+            if(closeGrave && c.player.hasCloseNoneBlockingGrave(playerAccount) == false) continue;
+
             var tmpFitness = CalculateMotherFitness(c.player, playerAccount);
 
             if(childIsHuman == false) tmpFitness += ServerSettings.HumanMotherBirthMaliForAiChild;
@@ -522,6 +524,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // search fertile mother
         for (ai in Connection.getAis())
         {           
+            if(closeGrave && ai.player.hasCloseNoneBlockingGrave(playerAccount) == false) continue;
+
             var tmpFitness = CalculateMotherFitness(ai.player, playerAccount);
 
             if(childIsHuman) tmpFitness += ServerSettings.AiMotherBirthMaliForHumanChild;
@@ -573,6 +577,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
 
             if(IsBlockingGrave(grave)) return true;
+        }
+
+        return false;
+    }
+
+    public function hasCloseNoneBlockingGrave(playerAccount:PlayerAccount) : Bool
+    {
+        if(playerAccount == null) return false;
+
+        for(grave in playerAccount.graves)
+        {
+            var dist = AiHelper.CalculateDistanceToObject(this, grave);
+            if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
+
+            if(IsBlockingGrave(grave) == false) return true;
         }
 
         return false;
