@@ -200,6 +200,28 @@ class MoveHelper
 
         speed *= ageSpeedFactor; */
 
+        if(p.hasCloseBlockingGrave(p.connection.playerAccount))
+        {
+            if(p.cursed == false)
+            {
+                Connection.SendCurseToAll(p); // TODO test
+                p.say('My grave is near...', true);
+            }
+
+            speed *= ServerSettings.CloseGraveSpeedMali;
+            p.cursed = true;
+        }
+        else
+        {
+            if(p.cursed == true)
+            {
+                Connection.SendCurseToAll(p, 0);
+                p.say('Im far away from my grave...', true);
+            }
+            
+            p.cursed = false;
+        }
+
         //if(ServerSettings.DebugSpeed) trace('speed: $speed age: ${p.age} ageSpeedFactor: ${ageSpeedFactor} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
         if(ServerSettings.DebugSpeed) trace('speed: $speed age: ${p.age} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
 

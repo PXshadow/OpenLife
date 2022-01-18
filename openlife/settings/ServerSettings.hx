@@ -50,14 +50,18 @@ class ServerSettings
     // coins
     public static var InheritCoinsFactor:Float = 0.8; // on death X coins are inherited
 
-    // birth
-    public static var GraveBlockingDistance = 100;
+    // birth    
     public static var NewChildExhaustionForMother = 15;
     public static var ChanceForFemaleChild = 0.6;
     public static var ChanceForOtherChildColor = 0.2;
     public static var ChanceForOtherChildColorIfCloseToWrongSpecialBiome = 0.3; // for example Black born in or close to Jungle
     public static var AiMotherBirthMaliForHumanChild = 3; // Means in average an AI mother for an human child is only considered after X children 
     public static var HumanMotherBirthMaliForAiChild = 1; // Means in average a human mother for an ai child is only considered after X children 
+
+    // Graves
+    public static var GraveBlockingDistance = 100; // cannot incrante close to blocking graves like bone pile
+    public static var CloseGraveSpeedMali:Float = 0.8; // speed maili if close to blocking grave like bone pile 
+
 
     // PlayerInstance
     public static var MaxPlayersBeforeStartingAsChild = 0; // -1

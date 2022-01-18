@@ -145,6 +145,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var newFollowerFor:GlobalPlayerInstance = null;
     public var newFollowerTime:Float = 0; 
 
+    public var cursed:Bool = false;
+
     // set all stuff null so that nothing is hanging around
     public function delete()
     {
@@ -561,7 +563,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return false;
     }
 
-    private function hasBlockingGrave(playerAccount:PlayerAccount) : Bool
+    public function hasCloseBlockingGrave(playerAccount:PlayerAccount) : Bool
     {
         if(playerAccount == null) return false;
 
@@ -582,7 +584,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(p.isFertile() == false) return -1000;
         if(p.food_store < 0) return -1000; // no starving mothers
         if(p.exhaustion > 10) return -1000; // no super exhausted mothers
-        if(p.hasBlockingGrave(playerAccount)) return -1000; // cannot incarnate if there is a blocking grave close by
+        if(p.hasCloseBlockingGrave(playerAccount)) return -1000; // cannot incarnate if there is a blocking grave close by
 
         // boni
         var tmpFitness = p.childrenBirthMali * (-1); // the more children the less likely

@@ -1030,18 +1030,37 @@ class Connection
         send(GRAVE_OLD,[message]);
     }
 
-    
-/**
-(GM)
-GM
-xs ys xd yd swap_dest
-#
+    /*
+        (GM)
+        GM
+        xs ys xd yd swap_dest
+        #
 
 
-Grave at xs,ys moved to xd,yd.
+        Grave at xs,ys moved to xd,yd.
 
-If optional swap_dest parameter is 1, it means that some other grave at 
-destination is in mid-air.  If 0, not
-*/
+        If optional swap_dest parameter is 1, it means that some other grave at 
+        destination is in mid-air.  If 0, not
+    */
+
+    /**
+        (CU)
+        CU
+        p_id level word
+        p_id level
+        ...
+        p_id level word
+        #
+
+        List of player ids that are cursed, and their curse level
+        word is optional, which is a persistent name tag for this person.
+    **/
+    public static function SendCurseToAll(player:GlobalPlayerInstance, level:Int = 1)
+    {
+        for(c in connections)
+        {
+            c.send(CURSED,['${player.p_id} $level']);
+        }
+    }
 }
 #end

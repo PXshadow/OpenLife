@@ -7,6 +7,8 @@ Project Winter is comming summary:
 - There is winter as main new challange
 - killing is allowed but might give some mali
 - combat is more skill based / the more close you target the player the more damage
+- you cannot incarnate close to your grave without grave stone
+- you are cursed (lower speed) if going close to your grave without grave stone
 - The server uses a limited hand made map which can be changed using a picture
 - Rivers oceans and mountains that block movement
 - No locked iron or wells
@@ -30,9 +32,8 @@ Not yet implemented:
 - incarnation acording to prestige score
 - advaned stuff like rails, pipes is not tested yet, so may or may not work
 - ally gates / fences
-- curses
+
 - saving of players on server restart. 
-    Server restart should only take some seconds, so player should be able to continue once implemented
 - see more in TODO below
 
 SERVER - CHANGES TO VANILLA
@@ -221,15 +222,12 @@ High priority:
 - COMBAT ill from moskitos
 
 - ALLY change ally color if leader changes
-- ALLY change ally status after X seconds. Needed???
+- ALLY give some time after beeing exiled
 
 - BIRTH spawn eves on different locations
 - BIRTH fathers
 - BIRTH fathers displayed in name (needs workaround since not supported from client)
 - BIRTH incarnation according to score
-- BIRTH curse system replaced through grave system / in short if 
-
-- CONNECTION saving of people data so that people can come back after server restart
 
 - MAP use bigger map (Europe?) / create tool to auto create map
 
@@ -243,6 +241,7 @@ High priority:
 - CARS USE cars as boats
 
 Middle priority:
+- CONNECTION saving of people data so that people can come back after server restart
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
 
 - EXHAUSTION carrying heavy stuff
