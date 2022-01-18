@@ -420,16 +420,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     } 
 
     // TODO higher change of children for smaler families
-    // TODO spawn acording to prestige score
-    // TODO spawn in different classes (noble / citizen / worker)
     // TODO spawn noobs more likely noble
     // TODO spawn in hand of mother???
     // TODO consider past families of player
     private function spawnAsChild() : Bool
     {
         // first look for mother close to your grave with a grave stone 
-        var mother = GetFittestMother(this.isAi(), this.connection.playerAccount, true);     
-        if(mother == null) mother = GetFittestMother(this.isAi(), this.connection.playerAccount);
+        var mother = GetFittestMother(this, true);     
+        if(mother == null) mother = GetFittestMother(this);
         if(mother == null) return false;
 
         // TODO father
@@ -551,8 +549,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return personColorByBiome;
     }
 
-    private static function GetFittestMother(childIsHuman:Bool, playerAccount:PlayerAccount, closeGrave:Bool = false) : GlobalPlayerInstance
+    private static function GetFittestMother(child:GlobalPlayerInstance, closeGrave:Bool = false) : GlobalPlayerInstance
     {
+        var childIsHuman = child.isAi();
+        var playerAccount = child.connection.playerAccount;
         var mother:GlobalPlayerInstance = null;
         var fitness = -1000.0;
 
@@ -561,7 +561,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {            
             if(closeGrave && c.player.hasCloseNoneBlockingGrave(playerAccount) == false) continue;
 
-            var tmpFitness = CalculateMotherFitness(c.player, playerAccount);
+            var tmpFitness = CalculateMotherFitness(c.player, child);
 
             if(childIsHuman == false) tmpFitness += ServerSettings.HumanMotherBirthMaliForAiChild;
 
@@ -581,7 +581,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {           
             if(closeGrave && ai.player.hasCloseNoneBlockingGrave(playerAccount) == false) continue;
 
-            var tmpFitness = CalculateMotherFitness(ai.player, playerAccount);
+            var tmpFitness = CalculateMotherFitness(ai.player, child);
 
             if(childIsHuman) tmpFitness += ServerSettings.AiMotherBirthMaliForHumanChild;
 
@@ -652,27 +652,39 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return false;
     }
 
-    private static function CalculateMotherFitness(p:GlobalPlayerInstance, playerAccount:PlayerAccount) : Float
+    // TODO test
+    private function calculateClassBoni(childClass:PrestigeClass) : Float
+    {
+        var motherClass = this.lineage.prestigeClass;
+
+        if(motherClass == childClass) return 2;
+        if(motherClass == PrestigeClass.Noble && childClass == PrestigeClass.Serf) return -3;
+        if(motherClass == PrestigeClass.Serf && childClass == PrestigeClass.Noble) return -3;
+
+        return 0;
+    }
+
+    private static function CalculateMotherFitness(p:GlobalPlayerInstance, child:GlobalPlayerInstance) : Float
     {
         if(p.deleted) return -1000;
         if(p.isFertile() == false) return -1000;
         if(p.food_store < 0) return -1000; // no starving mothers
         if(p.exhaustion > 10) return -1000; // no super exhausted mothers
         
-
         // boni
-        var tmpFitness = p.childrenBirthMali * (-1); // the more children the less likely
+        var tmpFitness = 0.0;
         tmpFitness += p.food_store / 10; // the more food the more likely 
         tmpFitness += p.yum_bonus / 10; // the more food the more likely 
         tmpFitness += p.food_store_max / 10; // the more healthy the more likely 
-        tmpFitness += p.yum_multiplier / 20; // the more yum / prestige the more likely 
+        tmpFitness += p.calculateClassBoni(child.lineage.prestigeClass); // the closer the mother is to same class the better
+        //tmpFitness += p.yum_multiplier / 20; // the more yum / prestige the more likely  // not needed since influencing food_store_max
 
         // mali
-        if(p.hasCloseBlockingGrave(playerAccount)) tmpFitness -= 100; // make less likely to incarnate if there is a blocking grave close by
-        tmpFitness -= p.exhaustion / 10;
+        tmpFitness -= p.childrenBirthMali; // the more children the less likely
+        if(p.hasCloseBlockingGrave(child.connection.playerAccount)) tmpFitness -= 100; // make less likely to incarnate if there is a blocking grave close by
+        tmpFitness -= p.exhaustion / 5;
         var temperatureMail = Math.pow(((p.heat - 0.5) * 10), 2) / 10; // between 0 and 2.5 for very bad temperature
         tmpFitness -= temperatureMail;
-
         if(p.heldObject.objectData.speedMult > 1.1) tmpFitness -= 2; // if player is using fast objects
         else if(p.heldObject.id != 0) tmpFitness -= 1; // if player is holding objects
         

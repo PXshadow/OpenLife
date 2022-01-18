@@ -7,6 +7,9 @@ Project Winter is comming summary:
 - There is winter as main new challange
 - killing is allowed but might give some mali
 - combat is more skill based / the more close you target the player the more damage
+- there are three different classes: Sef / Commoner / Noble
+- you are more likely born to the same class
+- curse system is now based on graves
 - you incarnate more likely to your grave with a grave stone
 - you incarnate less likely to your grave without grave stone
 - you are cursed (lower speed / halve damage) if going close to your grave without grave stone
@@ -30,10 +33,8 @@ AI:
 
 Not yet implemented:
 - advaned AI
-- incarnation acording to prestige score
 - advaned stuff like rails, pipes is not tested yet, so may or may not work
 - ally gates / fences
-
 - saving of players on server restart. 
 - see more in TODO below
 
@@ -62,6 +63,10 @@ Family:
 
 Loved / Hated Biomes:
 - Bad Temperature is affected now by how much you / your partens (50%) love the biome
+
+Classes:
+- there are three different classes: Sef / Commoner / Noble
+- you are more likely born to the same class
 
 Ally
 - Leader has now 15 seconds time to exile you before you follow him
@@ -203,7 +208,7 @@ TODO Features:
 more up in the list means more likely to be implemented first but no gurantee!
 
 - fathers
-- princess / princess / nobles
+- princess / princess
 - better fences
 - reconnection after server shutdown
 - cars as boats
@@ -234,8 +239,6 @@ High priority:
 
 - BIRTH spawn eves on different locations
 - BIRTH fathers
-- BIRTH fathers displayed in name (needs workaround since not supported from client)
-- BIRTH incarnation according to score
 
 - MAP use bigger map (Europe?) / create tool to auto create map
 
