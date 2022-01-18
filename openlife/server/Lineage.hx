@@ -2,10 +2,21 @@ package openlife.server;
 
 import openlife.settings.ServerSettings;
 
+@:enum abstract PrestigeClass(Int) from Int to Int
+{
+    public var Serf = 0;  
+    public var Commoner = 1;  
+    public var Noble = 2;  
+    public var King = 5; 
+    public var Emperor = 6; 
+}
+
 // Holds all Saved Lineage  Information
 // TODO load on server start
 class Lineage 
 {
+    private static var PrestigeClasses = ['Serf', 'Commoner','Noble', 'Noble', 'Noble', 'King', 'Emperor'];
+
     private static var AllLineages = new Map<Int,Lineage>();
     public static function AddLineage(lineageId:Int, lineage:Lineage)
     {
@@ -29,6 +40,7 @@ class Lineage
     public var myEveId:Int = -1; // TODO support family head
     public var motherId:Int = -1;
     public var fatherId:Int = -1;
+    public var prestigeClass = 1;
 
     public function new(player:GlobalPlayerInstance)
     {
@@ -37,9 +49,16 @@ class Lineage
         this.po_id = player.po_id;
     }
 
-    public function getFullName(withUnderscore:Bool = false)
+    public var className(get, null):String;
+
+    public function get_className()
     {
-        var fullName = '${this.name} ${this.familyName}';
+        return PrestigeClasses[this.prestigeClass];
+    }
+
+    public function getFullName(withUnderscore:Bool = false, ignoreFirstName = false)
+    {
+        var fullName = ignoreFirstName ? '${this.familyName} ${this.className}' : '${this.name} ${this.familyName} ${this.className}';
         
         if(withUnderscore) return StringTools.replace(fullName, ' ', '_');
 

@@ -126,10 +126,7 @@ class NamingHelper
 
                 if(p.familyName == name)
                 {
-                    for(c in Connection.getConnections())
-                    {
-                        c.send(ClientTag.NAME,['${p.p_id} ${p.name} ${p.familyName}']);
-                    }
+                    p.connection.sendNameToAll();
                 }
             }
 
@@ -137,10 +134,7 @@ class NamingHelper
         else
         {
             // only one name changed
-            for(c in Connection.getConnections())
-            {
-                c.send(ClientTag.NAME,['${targetPlayer.p_id} ${targetPlayer.name} ${targetPlayer.familyName}']);
-            }
+            targetPlayer.connection.sendNameToAll();
         }
 
         p.doEmote(Emote.happy); // dont worry be happy!

@@ -239,18 +239,31 @@ class Connection
         }
     }
 
+    public function sendNameToAll()
+    {
+        var player = this.player;
+
+        for(c in Connection.getConnections())
+        {
+            this.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}']);
+        }
+    }
+
     public function sendToMeAllPlayerNames()
     {
         for(c in Connection.getConnections())
         {
             var player = c.player;
-            this.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
+
+            this.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}']);
+            //this.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
         }
 
         for(c in ais)
         {
             var player = c.player;
-            this.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
+            this.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}']);
+            //this.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.familyName}']);
         }
     }
 

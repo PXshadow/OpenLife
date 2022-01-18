@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.server.Lineage.PrestigeClass;
 import openlife.auto.AiHelper;
 import openlife.server.Biome.BiomeTag;
 import haxe.macro.Expr;
@@ -146,7 +147,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var newFollowerTime:Float = 0; 
 
     public var isCursed:Bool = false;
-    public var isNoble:Bool = false;
 
     // set all stuff null so that nothing is hanging around
     public function delete()
@@ -250,19 +250,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.heldObject = ObjectHelper.readObjectHelper(this, [0]);        
         this.age_r = ServerSettings.AgingSecondsPerYear;
         this.lineage = new Lineage(this);
-
         
         AddPlayer(this);
+
+        this.calculateAndSetPrestigeClass();
         
         for(i in 0...this.clothingObjects.length)
         {
             this.clothingObjects[i] = ObjectHelper.readObjectHelper(this, [0]);
-        }
-
-        var playerAccount = this.connection.playerAccount;
-        var prestigeNeededForNobleBirth = CalculatePrestigeNeededForNobleBirth();
-        this.isNoble = playerAccount != null && playerAccount.totalScore > prestigeNeededForNobleBirth;
-        if(playerAccount != null) trace('PRESTIGE ${playerAccount.totalScore} prestigeNeededForNobleBirth: $prestigeNeededForNobleBirth');
+        }        
 
         // TODO search most empty special biome for eve
         // TODO on big map dont spawn eve too far away
@@ -304,6 +300,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             if(this.mother.isAi() == false) mother.connection.sendMapLocation(this,'BABY', 'baby');
             // TODO inform AI about new player
         }
+    }
+
+    private function calculateAndSetPrestigeClass()
+    {   
+        var playerAccount = this.connection.playerAccount;
+        if(playerAccount == null) return;
+
+        var prestigeNeededForNobleBirth = CalculatePrestigeNeededForNobleBirth();
+        this.lineage.prestigeClass = playerAccount.totalScore > prestigeNeededForNobleBirth ? PrestigeClass.Noble : PrestigeClass.Commoner;
+
+        trace('PRESTIGE ${playerAccount.totalScore} prestigeNeededForNobleBirth: $prestigeNeededForNobleBirth');
     }
 
     private function spawnAsEve(allowHumanSpawnToAIandAiToHuman:Bool)
@@ -379,8 +386,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(players.length < 4) return 9999999999999;
 
         players.sort(function(a, b) {
-           if(a.prestige < b.prestige) return -1;
-           else if(a.prestige > b.prestige) return 1;
+           if(a.linagePrestige < b.linagePrestige) return -1;
+           else if(a.linagePrestige > b.linagePrestige) return 1;
            else return 0;
         });
 
@@ -393,7 +400,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             count++;
             if(count < players.length * 0.8) continue;
 
-            return p.prestige;
+            return p.linagePrestige;
         }
 
         return 9999999999999;
