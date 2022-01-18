@@ -117,6 +117,13 @@ class TransitionHelper{
             return false;
         }
 
+        if(player.isMyGrave(helper.target))
+        {
+            player.say('Its my grave...', true);
+            helper.sendUpdateToClient();
+            return false;
+        }
+
         switch (tag)
         {
             case USE: 

@@ -368,7 +368,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // TODO spawn noobs more likely noble
     // TODO spawn in hand of mother???
     // TODO consider past families of player
-    // TODO consider curses / cursed graves
     private function spawnAsChild() : Bool
     {
         var mother:GlobalPlayerInstance = GetFittestMother(this.isAi(), this.connection.playerAccount);
@@ -3289,6 +3288,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         if(target.mother == this.mother) return true; // brother / sister   
         if(target.father == this.father) return true; // brother / sister    
+
+        return false;
+    }
+
+    public function isMyGrave(obj:ObjectHelper) : Bool
+    {
+        if(connection.playerAccount == null) return false;
+
+        for(grave in connection.playerAccount.graves)    
+        {
+            if(grave == obj) return true;
+        }
 
         return false;
     }
