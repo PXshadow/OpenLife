@@ -584,7 +584,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(p.isFertile() == false) return -1000;
         if(p.food_store < 0) return -1000; // no starving mothers
         if(p.exhaustion > 10) return -1000; // no super exhausted mothers
-        if(p.hasCloseBlockingGrave(playerAccount)) return -1000; // cannot incarnate if there is a blocking grave close by
+        
 
         // boni
         var tmpFitness = p.childrenBirthMali * (-1); // the more children the less likely
@@ -594,6 +594,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         tmpFitness += p.yum_multiplier / 20; // the more yum / prestige the more likely 
 
         // mali
+        if(p.hasCloseBlockingGrave(playerAccount)) tmpFitness -= 100; // make less likely to incarnate if there is a blocking grave close by
         tmpFitness -= p.exhaustion / 10;
         var temperatureMail = Math.pow(((p.heat - 0.5) * 10), 2) / 10; // between 0 and 2.5 for very bad temperature
         tmpFitness -= temperatureMail;
