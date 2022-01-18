@@ -105,7 +105,9 @@ class PlayerAccount
         //trace('PlayerAccounts: $AllPlayerAccounts');
     }
 
-    public function totalScore() : Float
+    public var totalScore(get, null):Float;
+
+    public function get_totalScore()
     {
         return (maleScore + femaleScore) / 2; 
     }

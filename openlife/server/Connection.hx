@@ -61,7 +61,7 @@ class Connection
 
         Macro.exception(initConnection(this.player, this.playerAccount));
 
-        trace('New Born Score: ${this.playerAccount.totalScore()} Prestige: ${this.player.yum_multiplier}');
+        trace('New Born Score: ${this.playerAccount.totalScore} Prestige: ${this.player.yum_multiplier}');
 
         this.sendGlobalMessage('YOUR PRESTIGE IS ${Math.ceil(this.player.yum_multiplier * ServerSettings.DisplayScoreFactor)}');
         // EATING YUM AND HAVING MANY KIDS AND FOLLOWERS WILL INCREASE YOUR PRESTIEGE!

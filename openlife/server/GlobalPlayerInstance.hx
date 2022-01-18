@@ -146,6 +146,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var newFollowerTime:Float = 0; 
 
     public var isCursed:Bool = false;
+    public var isNoble:Bool = false;
 
     // set all stuff null so that nothing is hanging around
     public function delete()
@@ -250,12 +251,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.age_r = ServerSettings.AgingSecondsPerYear;
         this.lineage = new Lineage(this);
 
+        
         AddPlayer(this);
         
         for(i in 0...this.clothingObjects.length)
         {
             this.clothingObjects[i] = ObjectHelper.readObjectHelper(this, [0]);
         }
+
+        var playerAccount = this.connection.playerAccount;
+        var prestigeNeededForNobleBirth = CalculatePrestigeNeededForNobleBirth();
+        this.isNoble = playerAccount != null && playerAccount.totalScore > prestigeNeededForNobleBirth;
+        if(playerAccount != null) trace('PRESTIGE ${playerAccount.totalScore} prestigeNeededForNobleBirth: $prestigeNeededForNobleBirth');
 
         // TODO search most empty special biome for eve
         // TODO on big map dont spawn eve too far away
@@ -278,7 +285,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         food_store_max = calculateFoodStoreMax();
         food_store = food_store_max / 2;
-        yum_multiplier = this.connection.playerAccount == null ? 1 : this.connection.playerAccount.totalScore() / 2; // start with health for 3 years // TODO change
+        yum_multiplier = this.connection.playerAccount == null ? 1 : this.connection.playerAccount.totalScore / 2;
 
         for(c in Connection.getConnections())
         {
@@ -363,6 +370,35 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         else lastHumanEveOrAdam = lastEveOrAdam;
     } 
 
+    // TODO test
+    public function CalculatePrestigeNeededForNobleBirth() : Float
+    {
+        // [for(key in map.keys()) key]
+        var players = [for(p in AllPlayers) p];
+
+        if(players.length < 4) return 9999999999999;
+
+        players.sort(function(a, b) {
+           if(a.prestige < b.prestige) return -1;
+           else if(a.prestige > b.prestige) return 1;
+           else return 0;
+        });
+
+        trace("PRESTIGE SORT", players);
+
+        var count = 0;
+
+        for(p in players)
+        {
+            count++;
+            if(count < players.length * 0.8) continue;
+
+            return p.prestige;
+        }
+
+        return 9999999999999;
+    }
+
 
     // TODO higher change of children for smaler families
     // TODO spawn acording to prestige score
@@ -372,7 +408,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // TODO consider past families of player
     private function spawnAsChild() : Bool
     {
-        var mother = GetFittestMother(this.isAi(), this.connection.playerAccount, true);
+        // first look for mother close to your grave with a grave stone 
+        var mother = GetFittestMother(this.isAi(), this.connection.playerAccount, true);     
         if(mother == null) mother = GetFittestMother(this.isAi(), this.connection.playerAccount);
         if(mother == null) return false;
 
@@ -391,7 +428,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         gx = mother.tx();
         gy = mother.ty();
 
-        
         var motherColor = mother.getColor();
         var color = motherColor;
         var female = ServerSettings.ChanceForFemaleChild > WorldMap.calculateRandomFloat(); 
@@ -2320,7 +2356,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             count++;
 
-            var score = p.connection.playerAccount.totalScore();
+            var score = p.connection.playerAccount.totalScore;
 
             if(score < bestLeaderScore) continue;
 
@@ -3217,6 +3253,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         return loved;
     }
+
+    public var linagePrestige(get, null):Float;
+
+    public function get_linagePrestige()
+    {
+        if(this.connection.playerAccount == null) return -1.0;
+        return this.connection.playerAccount.totalScore;
+    }
+
+    public var prestige(get, null):Float;
+
+    public function get_prestige()
+    {
+        return this.yum_multiplier;
+    }
+
     public function addPrestige(count:Float)
     {
         this.yum_multiplier += count;
