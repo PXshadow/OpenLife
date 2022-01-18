@@ -213,7 +213,9 @@ class Server
             case LEAD:  // LEAD 0 0#
                 connection.sendLeader();
             case OWNER:  // OWNER x y#
-                connection.sendOwners(Std.parseInt(input[0]), Std.parseInt(input[1]));                 
+                connection.sendOwners(Std.parseInt(input[0]), Std.parseInt(input[1]));    
+            case GRAVE:  // GRAVE x y#
+                connection.sendGraveInfo(Std.parseInt(input[0]), Std.parseInt(input[1]));               
             case KILL:  // KILL x y# OR KILL x y id#
                 connection.player.kill(Std.parseInt(input[0]), Std.parseInt(input[1]), input.length > 2 ? Std.parseInt(input[2]) : -1);
             case MOVE:  // PM p_id xs ys total_sec eta_sec trunc xdelt0 ydelt0 ... xdeltN ydeltN

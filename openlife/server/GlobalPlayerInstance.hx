@@ -82,7 +82,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public static var lastHumanEveOrAdam:GlobalPlayerInstance; 
     public static var LastLeaderBadgeColor:Int = 0;
 
-    public var lineage = new Lineage();
+    public var lineage:Lineage;
 
     // make sure to set these null is player is deleted so that garbage collector can clean up
     public var followPlayer:GlobalPlayerInstance;
@@ -228,6 +228,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return new GlobalPlayerInstance(c);
     }
 
+    public function setObjectId(new_po_id:Int)
+    {
+        this.po_id = new_po_id;
+        this.lineage.po_id = new_po_id;
+    }
+
     private function new(c:Connection)
     {
         super([]);
@@ -241,6 +247,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.moveHelper = new MoveHelper(this);
         this.heldObject = ObjectHelper.readObjectHelper(this, [0]);        
         this.age_r = ServerSettings.AgingSecondsPerYear;
+        this.lineage = new Lineage(this);
 
         AddPlayer(this);
         
@@ -323,7 +330,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 var female = ServerSettings.ChanceForFemaleChild >= 0.5;
                 var personsByColor = female ? ObjectData.femaleByRaceObjectData : ObjectData.maleByRaceObjectData;
                 var persons = personsByColor[closeSpecialBiomePersonColor];
-                po_id = persons[WorldMap.calculateRandomInt(persons.length-1)].id; 
+                setObjectId(persons[WorldMap.calculateRandomInt(persons.length-1)].id); 
 
                 trace('Child is an EVE / ADAM with color: ${this.getColor()}');
             }
@@ -342,7 +349,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             var female = lastEveOrAdam.isFemal() == false;
             var personsByColor = female ? ObjectData.femaleByRaceObjectData : ObjectData.maleByRaceObjectData;
             var persons = personsByColor[lastEveOrAdam.getColor()];
-            po_id = persons[WorldMap.calculateRandomInt(persons.length-1)].id; 
+            setObjectId(persons[WorldMap.calculateRandomInt(persons.length-1)].id); 
 
             lastEveOrAdam = null;
 
@@ -363,14 +370,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // TODO spawn in hand of mother???
     // TODO consider past families of player
     // TODO consider curses / cursed graves
-    // TODO lock mutex from mother / granmother?
     private function spawnAsChild() : Bool
     {
         var mother:GlobalPlayerInstance = GetFittestMother(this.isAi());
 
         if(mother == null) return false;
 
-        // TODO use childFood for birth and childfeeding
         // TODO father
         this.lineage.myEveId = mother.lineage.myEveId;
         this.mother = mother;
@@ -415,7 +420,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         var persons = personsByColor[color];
-        po_id = persons[WorldMap.calculateRandomInt(persons.length-1)].id; 
+        setObjectId(persons[WorldMap.calculateRandomInt(persons.length-1)].id); 
         
         trace('New child is born to mother: ${mother.name} ${mother.familyName} female: $female motherColor: $motherColor childColor: ${this.getColor()}');
         

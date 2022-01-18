@@ -1,5 +1,6 @@
 package openlife.data.object;
 
+import openlife.server.Lineage;
 import openlife.data.transition.TransitionImporter;
 import haxe.macro.Type.TVar;
 import haxe.Exception;
@@ -191,7 +192,18 @@ class ObjectHelper {
 
     public function getCreatorId() : Int
     {
+        if(this.livingOwners.length < 1) return -1;
         return this.livingOwners[0];
+    }
+
+    public function getCreator() : GlobalPlayerInstance
+    {
+        return GlobalPlayerInstance.AllPlayers[this.livingOwners[0]];
+    }
+
+    public function getLinage() : Lineage
+    {
+        return Lineage.GetLineage(this.livingOwners[0]);
     }
 
     // returns removed object or null if there was none

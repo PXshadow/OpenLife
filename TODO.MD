@@ -233,8 +233,6 @@ High priority:
 
 - MAP use bigger map (Europe?) / create tool to auto create map
 
-- DEATH send grave info 
-
 - BIOME biome boni for different races
 - BIOME change biome speed for specialists
 - BIOME cars as boats

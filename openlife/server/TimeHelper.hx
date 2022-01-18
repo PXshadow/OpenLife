@@ -24,7 +24,7 @@ import openlife.settings.ServerSettings;
 
 class TimeHelper
 {
-    private static var tickTime = 1 / 20;
+    public static var tickTime = 1 / 20;
     public static var tick:Float = 0;       // some are skipped if server is too slow
     //public static var allTicks:Float = 0;   // these ticks will not be skipped, but can be slower then expected
 

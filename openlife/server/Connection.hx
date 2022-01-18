@@ -984,6 +984,8 @@ class Connection
         GV
         x y p_id
         #
+
+        Grave at x y belongs to player p_id.
     **/
     public static function SendGraveInfoToAll(grave:ObjectHelper)
     {
@@ -996,12 +998,40 @@ class Connection
         }
     }
 
+    /**
+        (GO)
+        GO
+        x y p_id po_id death_age underscored_name mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
+        #
+
+        Provides info about an old grave that wasn't created during your lifetime.
+        In response to a GRAVE message from client.
+
+        underscored_name is name with spaces replaced by _
+        If player has no name, this will be ~ character instead.
+
+        death_age is how long the player has been dead (in in-game years)
+
+        Same semantics for eve= tag at end as for LN message.
+    **/
+    public function sendGraveInfo(x:Int, y:Int)
+    {
+        var tx = player.gx + x;
+        var ty = player.gy + y;
+        var grave = WorldMap.world.getObjectHelper(tx, ty);
+        var creatorLinage = grave.getLinage();
+        
+        if(creatorLinage == null) return;
+        var linageString = creatorLinage.createLineageString();
+        var message = '$x $y ${creatorLinage.myId} ${creatorLinage.po_id} ${creatorLinage.getDeadSince()} ${creatorLinage.getFullName(true)} ${linageString}';
+
+        trace('GRAVE: $message');
+    
+        send(GRAVE_OLD,[message]);
+    }
+
     
 /**
-Grave at x y belongs to player p_id.
-
-
-
 (GM)
 GM
 xs ys xd yd swap_dest
@@ -1012,23 +1042,6 @@ Grave at xs,ys moved to xd,yd.
 
 If optional swap_dest parameter is 1, it means that some other grave at 
 destination is in mid-air.  If 0, not
-
-
-(GO)
-GO
-x y p_id po_id death_age underscored_name mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
-#
-
-
-Provides info about an old grave that wasn't created during your lifetime.
-In response to a GRAVE message from client.
-
-underscored_name is name with spaces replaced by _
-If player has no name, this will be ~ character instead.
-
-death_age is how long the player has been dead (in in-game years)
-
-Same semantics for eve= tag at end as for LN message.**/
-    
+*/
 }
 #end

@@ -13,16 +13,46 @@ class Lineage
         AllLineages[lineage.myId] = lineage;
     }
 
+    public static function GetLineage(lineageId:Int) : Lineage
+    {
+        return AllLineages[lineageId];
+    }
+
     public var name = ServerSettings.StartingName;
     private var myFamilyName = ServerSettings.StartingFamilyName;
 
     // use Ids since not all might be available
     public var myId:Int = -1;
+    public var po_id:Int = -1;
+    public var deathTime:Float;
+
     public var myEveId:Int = -1; // TODO support family head
     public var motherId:Int = -1;
     public var fatherId:Int = -1;
 
-    public function new(){}
+    public function new(player:GlobalPlayerInstance)
+    {
+        this.deathTime = TimeHelper.tick;
+        this.myId = player.p_id;
+        this.po_id = player.po_id;
+    }
+
+    public function getFullName(withUnderscore:Bool = false)
+    {
+        var fullName = '${this.name} ${this.familyName}';
+        
+        if(withUnderscore) return StringTools.replace(fullName, ' ', '_');
+
+        return fullName;
+    }
+
+    public function getDeadSince() : Int
+    {
+        var years = TimeHelper.tick - this.deathTime;
+        years *= TimeHelper.tickTime; // seconds
+        years /= 60; // years
+        return Math.floor(years);
+    }
 
     public var eve(get, null):GlobalPlayerInstance;
 
@@ -90,9 +120,9 @@ class Lineage
     }
 
     // p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
-    public function createLineageString() : String
+    public function createLineageString(withMe:Bool = false) : String
     {
-        var lineageString = '$myId';
+        var lineageString = withMe ? '$myId' : '';
 
         if(myId == myEveId) return lineageString;
 
@@ -102,8 +132,8 @@ class Lineage
         for (ii in 0...10)
         {
             if(tmpMotherLineage == null) break;
-
-            lineageString += ' ${tmpMotherLineage.myId}';
+            if(lineageString.length > 0) lineageString += ' ';
+            lineageString += '${tmpMotherLineage.myId}';
 
             if(tmpMotherLineage.myId == myEveId)
             {
