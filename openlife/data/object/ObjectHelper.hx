@@ -320,11 +320,12 @@ class ObjectHelper {
     public function isHelperToBeDeleted() : Bool
     {
         var helper = this;
-        // TODO why not use dummy instead?
+        // TODO why not use dummy instead? So no need for helper?
         var toDelete = (helper.numberOfUses == helper.objectData.numUses || helper.numberOfUses < 1);
-        // TODO maybe dont use for time transitions?
+        // TODO maybe dont use a helper for time transitions?
         toDelete = toDelete && helper.timeToChange == 0 && helper.containedObjects.length == 0 && helper.groundObject == null;
-        toDelete = toDelete && helper.livingOwners.length < 1;
+        //toDelete = toDelete && helper.livingOwners.length < 1;
+        toDelete = toDelete && helper.isOwned() == false && helper.isFollowerOwned() == false && helper.isGrave() == false;
 
         return toDelete;
     }
@@ -343,5 +344,20 @@ class ObjectHelper {
     public function isArrowWound() : Bool
     {
         return StringTools.contains(description, 'Arrow Wound');
+    }
+
+    public function isGrave() : Bool
+    {
+        return StringTools.contains(description, 'origGrave');
+    }
+
+    public function isOwned() : Bool
+    {
+        return StringTools.contains(description, '+owned');
+    }
+
+    public function isFollowerOwned() : Bool
+    {
+        return StringTools.contains(description, '+followerOwned');
     }
 }
