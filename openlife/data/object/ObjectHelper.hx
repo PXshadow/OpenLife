@@ -189,10 +189,10 @@ class ObjectHelper {
         return objectData.blocksWalking;
     }
 
-    /*public function getCreator() : GlobalPlayerInstance
+    public function getCreatorId() : Int
     {
         return this.livingOwners[0];
-    }*/
+    }
 
     // returns removed object or null if there was none
     public function removeContainedObject(index:Int) : ObjectHelper

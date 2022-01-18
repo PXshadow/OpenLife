@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.data.object.ObjectHelper;
 import openlife.macros.Macro;
 import openlife.data.object.ObjectData;
 import haxe.macro.Expr.Catch;
@@ -978,6 +979,56 @@ class Connection
         player.connection.send(LEARNED_TOOL_REPORT,['${id}']);
         //player.connection.send(TOOL_SLOTS,['1 100']);
     }
+
+    /**(GV)
+        GV
+        x y p_id
+        #
+    **/
+    public static function SendGraveInfoToAll(grave:ObjectHelper)
+    {
+        for(c in connections)
+        {
+            var x = grave.tx - c.player.gx;
+            var y = grave.ty - c.player.gy;
+
+            c.send(GRAVE,['$x $y ${grave.getCreatorId()}']);
+        }
+    }
+
+    
+/**
+Grave at x y belongs to player p_id.
+
+
+
+(GM)
+GM
+xs ys xd yd swap_dest
+#
+
+
+Grave at xs,ys moved to xd,yd.
+
+If optional swap_dest parameter is 1, it means that some other grave at 
+destination is in mid-air.  If 0, not
+
+
+(GO)
+GO
+x y p_id po_id death_age underscored_name mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
+#
+
+
+Provides info about an old grave that wasn't created during your lifetime.
+In response to a GRAVE message from client.
+
+underscored_name is name with spaces replaced by _
+If player has no name, this will be ~ character instead.
+
+death_age is how long the player has been dead (in in-game years)
+
+Same semantics for eve= tag at end as for LN message.**/
     
 }
 #end

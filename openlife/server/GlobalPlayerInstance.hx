@@ -2368,6 +2368,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         if(WorldMap.PlaceObject(this.tx(), this.ty(), grave, true) == false) trace('WARNING: could not place any grave for player: ${this.p_id}');
+
+        Connection.SendGraveInfoToAll(grave);
     }
 
     // insulation reaches from 0 to 2
