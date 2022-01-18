@@ -51,6 +51,7 @@ class ServerSettings
     public static var InheritCoinsFactor:Float = 0.8; // on death X coins are inherited
 
     // birth
+    public static var GraveBlockingDistance = 100;
     public static var NewChildExhaustionForMother = 15;
     public static var ChanceForFemaleChild = 0.6;
     public static var ChanceForOtherChildColor = 0.2;
@@ -234,7 +235,9 @@ class ServerSettings
         ObjectData.getObjectData(502).hungryWork = 2 * HungryWorkToolCostFactor; // Shovel // TODO should be cheaper then sharp stone
 
         ObjectData.getObjectData(496).hungryWork = 10; // Dug Stump
-
+        ObjectData.getObjectData(1011).hungryWork = 5; // Buried Grave
+        ObjectData.getObjectData(357).hungryWork = 5; // Bone Pile
+        
         ObjectData.getObjectData(213).hungryWork = 5; // Deep Tilled Row
         ObjectData.getObjectData(1136).hungryWork = 5; // Shallow Tilled Row
 

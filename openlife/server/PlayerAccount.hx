@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.data.object.ObjectHelper;
 import openlife.settings.ServerSettings;
 import sys.io.File;
 
@@ -20,6 +21,8 @@ class PlayerAccount
     public var lastSeenInTicks:Float;
 
     public var coinsInherited:Float;
+
+    public var graves = new Array<ObjectHelper>();
 
     private function new(){}
 

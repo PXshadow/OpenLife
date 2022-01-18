@@ -141,7 +141,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var lastAttackedPlayer:GlobalPlayerInstance = null; // used to exile ally if attacked twice
     public var angryTime:Float = ServerSettings.CombatAngryTimeBeforeAttack; // before one attacks without he or an ally beeing attacked first he must be angry a certain time
 
-
     public var newFollower:GlobalPlayerInstance = null;
     public var newFollowerFor:GlobalPlayerInstance = null;
     public var newFollowerTime:Float = 0; 
@@ -372,7 +371,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // TODO consider curses / cursed graves
     private function spawnAsChild() : Bool
     {
-        var mother:GlobalPlayerInstance = GetFittestMother(this.isAi());
+        var mother:GlobalPlayerInstance = GetFittestMother(this.isAi(), this.connection.playerAccount);
 
         if(mother == null) return false;
 
@@ -496,7 +495,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return personColorByBiome;
     }
 
-    private static function GetFittestMother(childIsHuman:Bool) : GlobalPlayerInstance
+    private static function GetFittestMother(childIsHuman:Bool, playerAccount:PlayerAccount) : GlobalPlayerInstance
     {
         var mother:GlobalPlayerInstance = null;
         var fitness = -1000.0;
@@ -504,7 +503,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // search fertile mother
         for (c in Connection.getConnections())
         {            
-            var tmpFitness = CalculateMotherFitness(c.player);
+            var tmpFitness = CalculateMotherFitness(c.player, playerAccount);
 
             if(childIsHuman == false) tmpFitness += ServerSettings.HumanMotherBirthMaliForAiChild;
 
@@ -522,7 +521,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // search fertile mother
         for (ai in Connection.getAis())
         {           
-            var tmpFitness = CalculateMotherFitness(ai.player);
+            var tmpFitness = CalculateMotherFitness(ai.player, playerAccount);
 
             if(childIsHuman) tmpFitness += ServerSettings.AiMotherBirthMaliForHumanChild;
 
@@ -540,12 +539,51 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return mother;
     }
 
-    private static function CalculateMotherFitness(p:GlobalPlayerInstance) : Float
+    private static function IsBlockingGrave(grave:ObjectHelper) : Bool
+    {
+        var objData = grave.objectData;
+
+        if(objData.id == 87) return true; // Fresh Grave
+        if(objData.id == 88) return true; // Grave
+        if(objData.id == 89) return true; // Old Grave
+        if(objData.id == 356) return true; // Basket of Bones
+        if(objData.id == 357) return true; // Bone Pile
+
+        if(objData.id == 1920) return true; // Baby Bones
+        if(objData.id == 3051) return true; // Baby Bone Pile
+        if(objData.id == 3052) return true; // Basket of Baby Bones
+
+        if(objData.id == 3195) return true; // Defaced Bone Pile
+        if(objData.id == 3196) return true; // Basket of Defaced Bones
+
+        if(objData.id == 752) return true; // Murder Grave
+        if(objData.id == 1011) return true; // Buried Grave
+
+        return false;
+    }
+
+    private function hasBlockingGrave(playerAccount:PlayerAccount) : Bool
+    {
+        if(playerAccount == null) return false;
+
+        for(grave in playerAccount.graves)
+        {
+            var dist = AiHelper.CalculateDistanceToObject(this, grave);
+            if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
+
+            if(IsBlockingGrave(grave)) return true;
+        }
+
+        return false;
+    }
+
+    private static function CalculateMotherFitness(p:GlobalPlayerInstance, playerAccount:PlayerAccount) : Float
     {
         if(p.deleted) return -1000;
         if(p.isFertile() == false) return -1000;
         if(p.food_store < 0) return -1000; // no starving mothers
         if(p.exhaustion > 10) return -1000; // no super exhausted mothers
+        if(p.hasBlockingGrave(playerAccount)) return -1000; // cannot incarnate if there is a blocking grave close by
 
         // boni
         var tmpFitness = p.childrenBirthMali * (-1); // the more children the less likely
@@ -2375,6 +2413,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(WorldMap.PlaceObject(this.tx(), this.ty(), grave, true) == false) trace('WARNING: could not place any grave for player: ${this.p_id}');
 
         Connection.SendGraveInfoToAll(grave);
+
+        this.connection.playerAccount.graves.push(grave);
     }
 
     // insulation reaches from 0 to 2
