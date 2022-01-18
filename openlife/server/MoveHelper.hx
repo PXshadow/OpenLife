@@ -203,7 +203,7 @@ class MoveHelper
 
         if(p.hasCloseBlockingGrave(p.connection.playerAccount))
         {
-            if(p.cursed == false)
+            if(p.isCursed == false)
             {
                 Connection.SendCurseToAll(p); // TODO test
                 p.say('My grave is near...', true);
@@ -211,18 +211,18 @@ class MoveHelper
             }
 
             speed *= ServerSettings.CloseGraveSpeedMali;
-            p.cursed = true;
+            p.isCursed = true;
         }
         else
         {
-            if(p.cursed == true)
+            if(p.isCursed == true)
             {
                 Connection.SendCurseToAll(p, 0);
                 p.say('Im far away from my grave...', true);
                 p.doEmote(Emote.happy);
             }
             
-            p.cursed = false;
+            p.isCursed = false;
         }
 
         //if(ServerSettings.DebugSpeed) trace('speed: $speed age: ${p.age} ageSpeedFactor: ${ageSpeedFactor} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');

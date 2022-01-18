@@ -141,7 +141,6 @@ class ServerSettings
     public static var HungryWorkToolCostFactor:Float = 1;
     public static var ExhaustionHealing:Float = 1; 
 
-
     // for animal movement
     public static var chancePreferredBiome = 0.8; // Chance that the animal ignors the chosen target if its not from his original biome
     
@@ -176,6 +175,7 @@ class ServerSettings
     public static var WeaponCoolDownFactorIfWounding:Float = 0.2;
     public static var WeaponDamageFactor:Float = 1;
     public static var WoundDamageFactor:Float = 1;
+    public static var CursedDamageFactor:Float = 0.5;
     public static var AllyConsideredClose:Int = 5;
     public static var WoundHealingTimeFactor:Float = 1.5;
     public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.25; // For damaging children, mother, father, brother sister  

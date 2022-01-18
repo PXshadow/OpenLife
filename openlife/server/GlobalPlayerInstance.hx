@@ -145,7 +145,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var newFollowerFor:GlobalPlayerInstance = null;
     public var newFollowerTime:Float = 0; 
 
-    public var cursed:Bool = false;
+    public var isCursed:Bool = false;
 
     // set all stuff null so that nothing is hanging around
     public function delete()
@@ -2635,6 +2635,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             targetPlayer.makeAllCloseAllyAngryAt(this);
             allyFactor = this.calculateEnemyVsAllyStrengthFactor();
             allyFactor = allyFactor > 1.2 ? 1.2 : allyFactor;
+        }
+
+        if(this.isCursed)
+        {
+            damage *= ServerSettings.CursedDamageFactor;
         }
 
         damage *= allyFactor;

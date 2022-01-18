@@ -85,6 +85,7 @@ Graves / Curses
 - Instead player curses, curses work now through graves without grave stone
 - you cannot incarnate close to your grave without grave stone
 - you are cursed (lower speed) if going close to your grave without grave stone
+- you make halve damage if cursed
 - you cannot interact with your own grave 
 - For each Sharp Stone a grave needs much longer to decay (+8 hours) / This can be used to let cursed graves exist much longer
 
