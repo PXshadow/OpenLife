@@ -79,6 +79,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         Lineage.AddLineage(player.p_id, player.lineage);
     }
 
+    public static var medianPrestige:Float = ServerSettings.HealthFactor;
+
     public static var lastAiEveOrAdam:GlobalPlayerInstance; 
     public static var lastHumanEveOrAdam:GlobalPlayerInstance; 
     public static var LastLeaderBadgeColor:Int = 0;
@@ -324,6 +326,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         for(p in players) trace('PRESTIGE: ${p.p_id} ${p.linagePrestige}');        
 
         var neededPrestige = CalculateNeededPrestige(players, 0.4);
+        medianPrestige = Math.max(neededPrestige, ServerSettings.HealthFactor); // is needed for calculating health
         if(playerAccount.totalScore < neededPrestige) return PrestigeClass.Serf;
 
         if(players.length < 5) return PrestigeClass.Commoner;
@@ -344,7 +347,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(count < players.length * percent) continue;
 
-            trace('NEEDED PRESTIGE ${p.linagePrestige} percent: ${percent}');
+           trace('NEEDED PRESTIGE ${p.linagePrestige} percent: ${percent}');
 
             return p.linagePrestige;
         }
@@ -869,16 +872,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function CalculateHealthFactor(maxBoni:Float, maxMali:Float) : Float
     {
-        var health:Float = this.yum_multiplier; // - this.trueAge  * ServerSettings.MinHealthPerYear;
-
+        var health:Float = this.yum_multiplier; 
         var healthFactor:Float; 
+        var medianHealth = medianPrestige;
 
-        //var maxBoni = forSpeed ? 1.2 : 2; // for Speed or for aging
-        //var maxMali = forSpeed ? 0.8 : 0.5;
+        health -= medianHealth * (this.trueAge / 30); // at half of the life the median medianHealth should be reached
 
         // healthFactor 1.13 if health double ServerSettings.HealthFactor
-        if(health >= 0) healthFactor = (maxBoni  * health + ServerSettings.HealthFactor) / (health + ServerSettings.HealthFactor); 
-        else healthFactor = (health - ServerSettings.HealthFactor) / ( (1 / maxMali) * health - ServerSettings.HealthFactor);
+        if(health >= 0) healthFactor = (maxBoni  * health + medianHealth) / (health + medianHealth); 
+        else healthFactor = (health - medianHealth) / ( (1 / maxMali) * health - medianHealth);
+
+        //trace('HEALTH: maxBoni: $maxBoni maxMali: $maxMali health: $health medianHealth: $medianHealth healthFactor: $healthFactor');
 
         return healthFactor;
     }

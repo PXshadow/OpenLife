@@ -110,11 +110,8 @@ class ServerSettings
     public static var YumNewCravingChance = 0.2; // XX chance that a new random craving is chosen even if there are existing ones
 
     // health
-    public static var MinHealthPerYear = 1; // for calulating aging / speed: MinHealthPerYear * age is reduced from health(yum_mulpiplier)
-    public static var HealthFactor = 20; // Changes how much health(yum_mulpiplier) affects speed and aging. (From 0.8 to 1.2)  (From 0.5 to 2) 
-    // for example a men with age 20 needs 20 * MinHealthPerYear health(yum_mulpiplier) to be healthy
-    //if(health >= 0) healthFactor = (1.2  * health + ServerSettings.HealthFactor) / (health + ServerSettings.HealthFactor);
-    //else healthFactor = (health - ServerSettings.HealthFactor) / ( 2 * health - ServerSettings.HealthFactor);
+    //public static var MinHealthPerYear = 1; // for calulating aging / speed: MinHealthPerYear * age is reduced from health(yum_mulpiplier)
+    public static var HealthFactor = 30; // Changes how much health(yum_mulpiplier) affects speed (From 0.8 to 1.2), aging  (From 0.5 to 2) and MaxFoodStore (From 1.5 to 0.5)
     
     // starving to death
     public static var AgingFactorWhileStarvingToDeath = 0.5; // if starving to death aging is slowed factor XX up to GrownUpAge, otherwise aging is speed up factor XX
@@ -123,7 +120,7 @@ class ServerSettings
     //public static var StarvingToDeathMoveSpeedFactorWhileHealthAboveZero = 0.9; // reduces speed if stored food is below 0 and health / yum multiplier > 0
     public static var FoodStoreMaxReductionWhileStarvingToDeath = 5; // (5) reduces food store max with factor XX for each food below 0
 
-    public static var maxDistanceToBeConsideredAsClose = 200; //20; // only close players are updated with PU and MX and Movement 
+    public static var maxDistanceToBeConsideredAsClose = 100; //20; // only close players are updated with PU and MX and Movement 
 
     // for movement
     public static var InitialPlayerMoveSpeed:Float = 3.75; //3.75; // in Tiles per Second
