@@ -630,6 +630,17 @@ class WorldMap
         writer.close();
     }
 
+    private function readIndexFileAndInitVariables(path:String)
+    {
+        var reader = File.read(path, false);
+        this.saveDataNumber = Std.parseInt(reader.readLine());
+        this.backupDataNumber = Std.parseInt(reader.readLine());
+        TimeHelper.tick = Std.parseFloat(reader.readLine());
+        TimeHelper.lastTick = TimeHelper.tick; 
+
+        reader.close();    
+    }
+
     private function fixObjectIds(desc:String)
     {
         for(helper in objectHelpers)
@@ -687,14 +698,7 @@ class WorldMap
     private function readFromDiskHelper() : Bool
     {
         var dir = './${ServerSettings.SaveDirectory}/';
-        var path = dir + "lastDataNumber.txt";
-        var reader = File.read(path, false);
-        this.saveDataNumber = Std.parseInt(reader.readLine());
-        this.backupDataNumber = Std.parseInt(reader.readLine());
-        TimeHelper.tick = Std.parseFloat(reader.readLine());
-        TimeHelper.lastTick = TimeHelper.tick; 
-
-        reader.close();    
+        readIndexFileAndInitVariables(dir + "lastDataNumber.txt");
 
         trace('saveDataNumber: $saveDataNumber backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');        
 
@@ -916,6 +920,10 @@ class WorldMap
             writer.writeInt32(i);
         }
     }
+
+    // TODO int64
+    /**readBytes and use setInt64 and getInt64 in Bytes
+    It should be included into io unfortunately not yet**/
 
     public static function ReadInt32Array(reader:FileInput) : Array<Int32>
     {
