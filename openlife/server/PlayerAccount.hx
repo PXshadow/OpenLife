@@ -6,8 +6,11 @@ import sys.io.File;
 
 class PlayerAccount
 {
-    public static var AllPlayerAccounts = new Map<String, PlayerAccount>();
+    public static var AllPlayerAccountsByEmail = new Map<String, PlayerAccount>();
+    public static var AllPlayerAccountsById = new Map<Int, PlayerAccount>();
+    public static var IdIndex:Int = 1;
     
+    public var id:Int;
     public var lastConnection:Connection;
 
     public var email:String;
@@ -26,16 +29,18 @@ class PlayerAccount
 
     private function new(){}
 
-    public static function GetOrCreatePlayerAccount(email:String, account_key_hash:String) : PlayerAccount
+    public static function GetOrCreatePlayerAccount(email:String, account_key_hash:String, id:Int = 0) : PlayerAccount
     {
-        var account = AllPlayerAccounts[email];
+        var account = AllPlayerAccountsByEmail[email];
         if(account != null) return account;
 
         account = new PlayerAccount();
+        account.id = id > 0 ? id : IdIndex++;
         account.email = email;
         account.account_key_hash = account_key_hash;
 
-        AllPlayerAccounts[account.email] = account;
+        AllPlayerAccountsByEmail[account.email] = account;
+        AllPlayerAccountsById[account.id] = account;
 
         //trace('New account: $email');
 
@@ -44,7 +49,7 @@ class PlayerAccount
 
     public static function WritePlayerAccounts(path:String)
     {
-        var accounts = AllPlayerAccounts;
+        var accounts = AllPlayerAccountsByEmail;
 
         //trace('Wrtie to file: $path width: $width height: $height length: $length');
 
@@ -80,7 +85,8 @@ class PlayerAccount
         var reader = File.read(path, true);
         var dataVersion = reader.readInt32();
         var count = reader.readInt32();
-        AllPlayerAccounts = new Map<String, PlayerAccount>();
+        AllPlayerAccountsByEmail = new Map<String, PlayerAccount>();
+        AllPlayerAccountsById = new Map<Int, PlayerAccount>();
 
         trace('Read from file: $path count: $count');
         
