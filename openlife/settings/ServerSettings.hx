@@ -71,7 +71,7 @@ class ServerSettings
     public static var AgingSecondsPerYear = 60; // 60
     public static var ReduceAgeNeededToPickupObjects = 3; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
     public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
-    public static var MaxChildAgeForBreastFeeding = 6;
+    public static var MaxChildAgeForBreastFeeding = 6; // also used for considering a child when being attacked
     public static var MinAgeFertile = 12;
     public static var MaxAgeFertile = 42;
     
@@ -177,6 +177,7 @@ class ServerSettings
     public static var WoundHealingTimeFactor:Float = 1.5;
     public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.25; // For damaging children, mother, father, brother sister  
     public static var PrestigeCostPerDamageForAlly:Float = 0.5; // For damaging ally  
+    public static var PrestigeCostPerDamageForChild:Float = 1;
 
     // AI
     public static var NumberOfAis:Int = 1;

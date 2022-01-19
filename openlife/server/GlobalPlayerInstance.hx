@@ -681,7 +681,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         // mali
         tmpFitness -= p.childrenBirthMali; // the more children the less likely
-        if(p.hasCloseBlockingGrave(child.connection.playerAccount)) tmpFitness -= 100; // make less likely to incarnate if there is a blocking grave close by
+        if(p.hasCloseBlockingGrave(child.connection.playerAccount)) tmpFitness -= 10; // make less likely to incarnate if there is a blocking grave close by
         tmpFitness -= p.exhaustion / 5;
         var temperatureMail = Math.pow(((p.heat - 0.5) * 10), 2) / 10; // between 0 and 2.5 for very bad temperature
         tmpFitness -= temperatureMail;
@@ -2816,7 +2816,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             // TODO count as ally if exile happened not long ago ???
             // TODO auto exile if seen by leader ???
-            if(targetPlayer.isAlly(this))
+            if(targetPlayer.trueAge < ServerSettings.MaxChildAgeForBreastFeeding)
+            {
+                prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForChild;
+
+                prestigeCost = Math.ceil(prestigeCost);
+
+                this.addHealthAndPrestige(-prestigeCost, false);
+
+                this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking child ${targetPlayer.name}!');                 
+            }
+            else if(targetPlayer.isAlly(this))
             {
                 prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForAlly;
 
@@ -2855,7 +2865,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             var strength = p.isHoldingWeapon() ? 2 * p.food_store_max : p.food_store_max;
 
-            if(p.isAlly(this)) allyStrength += strength;
+            if(p.isAlly(this) && p.lastAttackedPlayer != this && p.lastPlayerAttackedMe != this) allyStrength += strength;
             else enemyStrength += strength;
         }
 

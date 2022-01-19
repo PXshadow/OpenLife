@@ -75,8 +75,8 @@ Ally
 - stregth of players with weapons are counted twice
 
 Combat / Attacking
-- you can attack anybody you are angry and if target is terrifed or angry
-- you get angry / terrifed 5 seconds after attacking / beingattacked
+- you can attack anybody if you are angry and if target is terrified or angry
+- you get angry / terrified 5 seconds after attacking / being attacked
 - different weapons have different damage and cooldown
 - if you make a wound or kill some one the bloody weapon cooldown is much longer
 - the more your close (5 Tiles) ally stregth is vs enemy streght the more damage you do
@@ -84,6 +84,7 @@ Combat / Attacking
 - You can only shoot with bow if not too close to target
 - wounds do damage / exhaustion with time and can heal with time 
 - you do halve damage to ally 
+- you will loose prestige for attacking a child 
 - you will loose prestige for attacking a close relative
 - you will loose even more prestige for attacking an ally
 
