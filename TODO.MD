@@ -67,6 +67,7 @@ Loved / Hated Biomes:
 Classes:
 - there are three different classes: Sef / Commoner / Noble
 - you are more likely born to the same class
+- Nobles make 20% more damage with Sword
 
 Ally
 - Leader has now 15 seconds time to exile you before you follow him

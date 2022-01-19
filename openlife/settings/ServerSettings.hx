@@ -1,4 +1,5 @@
 package openlife.settings;
+import openlife.server.Lineage.PrestigeClass;
 import openlife.server.TransitionHelper;
 import openlife.server.Server;
 import sys.FileSystem;
@@ -400,6 +401,8 @@ class ServerSettings
 
         ObjectData.getObjectData(1378).permanent = 0; // Sterile Wool Pad 
 
+        ObjectData.getObjectData(3047).prestigeClass = PrestigeClass.Noble; // War Sword 
+
         ObjectData.getObjectData(560).deadlyDistance = 1.5; // Knife  
         ObjectData.getObjectData(3047).deadlyDistance = 1.5; // War Sword 
         ObjectData.getObjectData(152).deadlyDistance = 4; // Bow and Arrow 
@@ -593,7 +596,6 @@ class ServerSettings
         trans = transtions.getTransition(0, 3157);
         trans.newActorID = 3158;
         trans.traceTransition("PatchTransitions: ");
-
 
         // let Tule Stumps (122) grow back
         trans = transtions.getTransition(-1, 122); 

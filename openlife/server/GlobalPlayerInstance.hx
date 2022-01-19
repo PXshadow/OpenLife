@@ -2731,8 +2731,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             damage *= ServerSettings.CursedDamageFactor;
         }
 
+        var weaponPrestigeClass:Int = this.heldObject.objectData.prestigeClass;
+        var attackerPrestigeClass:Int = this.lineage.prestigeClass;
+        var isRightClassForWeapon = weaponPrestigeClass > 0 && weaponPrestigeClass <= attackerPrestigeClass;
+        trace('PRESTIGE: isRightClassForWeapon: $isRightClassForWeapon');
+
         damage *= allyFactor;
         damage *= distanceFactor;    
+        damage *= isRightClassForWeapon ? 1.2 : 1;    
         targetPlayer.hits += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
 

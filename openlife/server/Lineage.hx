@@ -4,18 +4,19 @@ import openlife.settings.ServerSettings;
 
 @:enum abstract PrestigeClass(Int) from Int to Int
 {
-    public var Serf = 0;  
-    public var Commoner = 1;  
-    public var Noble = 2;  
-    public var King = 5; 
-    public var Emperor = 6; 
+    public var NotSet = 0; 
+    public var Serf = 1;  
+    public var Commoner = 2;  
+    public var Noble = 3;  
+    public var King = 6; 
+    public var Emperor = 7; 
 }
 
 // Holds all Saved Lineage  Information
 // TODO load on server start
 class Lineage 
 {
-    private static var PrestigeClasses = ['Serf', 'Commoner','Noble', 'Noble', 'Noble', 'King', 'Emperor'];
+    private static var PrestigeClasses = ['Not Set', 'Serf', 'Commoner','Noble', 'Noble', 'Noble', 'King', 'Emperor'];
 
     private static var AllLineages = new Map<Int,Lineage>();
     public static function AddLineage(lineageId:Int, lineage:Lineage)
@@ -40,7 +41,7 @@ class Lineage
     public var myEveId:Int = -1; // TODO support family head
     public var motherId:Int = -1;
     public var fatherId:Int = -1;
-    public var prestigeClass = 1;
+    public var prestigeClass:PrestigeClass = PrestigeClass.Commoner;
 
     public function new(player:GlobalPlayerInstance)
     {

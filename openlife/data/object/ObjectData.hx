@@ -1,4 +1,5 @@
 package openlife.data.object;
+import openlife.server.Lineage.PrestigeClass;
 import openlife.data.transition.TransitionImporter;
 import openlife.server.WorldMap;
 import openlife.data.transition.TransitionData;
@@ -96,6 +97,8 @@ class ObjectData extends LineReader
     public var countsOrGrowsAs:Int = 0; // not saved // the object should be counted as this, or in case it regrows it regrows as this.
     
     public var damage:Float = 0; // not saved
+    public var prestigeClass:PrestigeClass = PrestigeClass.NotSet; // not saved
+
     /**
      * Max clothing pieces
      */
