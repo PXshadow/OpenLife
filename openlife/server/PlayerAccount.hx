@@ -42,7 +42,7 @@ class PlayerAccount
         AllPlayerAccountsByEmail[account.email] = account;
         AllPlayerAccountsById[account.id] = account;
 
-        //trace('New account: $email');
+        //trace('New account: ${id}-->${account.id} $email');
 
         return account;
     }
@@ -64,6 +64,8 @@ class PlayerAccount
 
         for(ac in accounts)
         {
+            writer.writeInt32(ac.id);
+
             writer.writeString('${ac.email}\n');
             writer.writeString('${ac.account_key_hash}\n');
             writer.writeString('${ac.name}\n');
@@ -92,9 +94,10 @@ class PlayerAccount
         
         for(i in 0...count)
         {
+            var id = reader.readInt32();
             var email = reader.readLine();
             var account_key_hash = reader.readLine();
-            var account = GetOrCreatePlayerAccount(email, account_key_hash);
+            var account = GetOrCreatePlayerAccount(email, account_key_hash, id);
             account.name = reader.readLine();
 
             account.score = reader.readFloat();

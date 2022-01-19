@@ -628,6 +628,7 @@ class WorldMap
         writer.writeString('$backupDataNumber\n');
         writer.writeString('${TimeHelper.tick}\n');
         writer.writeString('${Server.server.playerIndex}\n');
+        //writer.writeString('${Server.server.playerIndex}\n');
         writer.close();
     }
 
