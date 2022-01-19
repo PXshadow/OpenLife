@@ -941,6 +941,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             text = NamingHelper.DoNaming(this, text);
 
+            this.lineage.lastSaid = text;
+
             if(doCommands(text))
             {
                 for (c in Connection.getConnections())
