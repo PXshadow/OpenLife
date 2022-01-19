@@ -144,4 +144,12 @@ class PlayerAccount
 
         trace('Score: ${account.score} This Life: $score femaleScore: ${account.femaleScore} maleScore: ${account.maleScore}');
     }
+
+    public function removeDeletedGraves()
+    {
+        for(grave in graves)
+        {
+            if(grave.id == 0) graves.remove(grave);
+        }   
+    }
 }

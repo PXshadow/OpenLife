@@ -593,8 +593,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function hasCloseBlockingGrave(playerAccount:PlayerAccount) : Bool
     {
+        playerAccount.removeDeletedGraves();
+
         for(grave in playerAccount.graves)
-        {
+        {            
             var dist = AiHelper.CalculateDistanceToObject(this, grave);
             if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
 
@@ -606,6 +608,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function hasCloseNoneBlockingGrave(playerAccount:PlayerAccount) : Bool
     {
+        playerAccount.removeDeletedGraves();
+        
         for(grave in playerAccount.graves)
         {
             var dist = AiHelper.CalculateDistanceToObject(this, grave);
