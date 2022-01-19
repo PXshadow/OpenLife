@@ -498,6 +498,8 @@ class ObjectHelper
 
     public function addOwner(player:GlobalPlayerInstance)
     {
+        if(isOwnedByPlayer(player)) return;
+        
         livingOwners.push(player.p_id);
         ownersByPlayerAccount.push(player.account.id);
     }
