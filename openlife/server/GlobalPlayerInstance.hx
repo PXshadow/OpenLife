@@ -550,43 +550,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private static function GetFittestMother(child:GlobalPlayerInstance) : GlobalPlayerInstance
     {
-        var childIsHuman = child.isAi();
-        var playerAccount = child.connection.playerAccount;
         var mother:GlobalPlayerInstance = null;
         var fitness = -1000.0;
 
         // search fertile mother
-        for (c in Connection.getConnections())
+        for (p in AllPlayers)
         {            
-            var tmpFitness = CalculateMotherFitness(c.player, child);
+            var tmpFitness = CalculateMotherFitness(p, child);            
 
-            if(childIsHuman == false) tmpFitness += ServerSettings.HumanMotherBirthMaliForAiChild;
-
-            trace('Child: Fitness player mother: $tmpFitness ${c.player.name} ${c.player.familyName}');
+            trace('Child: Fitness: $tmpFitness ${p.name} ${p.familyName}');
 
             if(tmpFitness < -100) continue;
 
             if(tmpFitness > fitness || mother == null)
             {
-                mother = c.player;
-                fitness = tmpFitness;    
-            }
-        }
-
-        // search fertile mother
-        for (ai in Connection.getAis())
-        {           
-            var tmpFitness = CalculateMotherFitness(ai.player, child);
-
-            if(childIsHuman) tmpFitness += ServerSettings.AiMotherBirthMaliForHumanChild;
-
-            trace('Child: Fitness AI mother: $tmpFitness ${ai.player.name} ${ai.player.familyName}');
-
-            if(tmpFitness < -100) continue;
-
-            if(tmpFitness > fitness || mother == null)
-            {
-                mother = ai.player;
+                mother = p;
                 fitness = tmpFitness;    
             }
         }
@@ -648,8 +626,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     }
 
     // TODO test
-    private function calculateClassBoni(childClass:PrestigeClass) : Float
+    private function calculateClassBoni(child:GlobalPlayerInstance) : Float
     {
+        var childClass:PrestigeClass = child.lineage.prestigeClass;
         var motherClass = this.lineage.prestigeClass;
 
         if(motherClass == childClass) return 2;
@@ -661,6 +640,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private static function CalculateMotherFitness(p:GlobalPlayerInstance, child:GlobalPlayerInstance) : Float
     {        
+        var childIsHuman = child.isAi();
+        var motherIsHuman = p.isAi();
         var playerAccount = child.connection.playerAccount;
 
         if(p.deleted) return -1000;
@@ -673,7 +654,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         tmpFitness += p.food_store / 10; // the more food the more likely 
         tmpFitness += p.yum_bonus / 10; // the more food the more likely 
         tmpFitness += p.food_store_max / 10; // the more healthy the more likely 
-        tmpFitness += p.calculateClassBoni(child.lineage.prestigeClass); // the closer the mother is to same class the better
+        tmpFitness += p.calculateClassBoni(child); // the closer the mother is to same class the better
         tmpFitness += p.hasCloseNoneBlockingGrave(playerAccount) ? 3 : 0;
         //tmpFitness += p.yum_multiplier / 20; // the more yum / prestige the more likely  // not needed since influencing food_store_max
 
@@ -685,6 +666,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         tmpFitness -= p.hasCloseBlockingGrave(playerAccount) ? 10 : 0; // make less likely to incarnate if there is a blocking grave close by
         tmpFitness -= p.heldObject.objectData.speedMult > 1.1 ? 1 : 0; // if player is using fast objects
         tmpFitness -= p.heldObject.id != 0 ? 1 : 0; // if player is holding objects
+        tmpFitness -= motherIsHuman && child.isAi() ? ServerSettings.HumanMotherBirthMaliForAiChild : 0;
+        tmpFitness -= p.isAi() && childIsHuman ? ServerSettings.AiMotherBirthMaliForHumanChild : 0;
         
         return tmpFitness;
     }
