@@ -928,6 +928,7 @@ class WorldMap
         return newArray;
     }
 
+    // TODO connect livingOwners for owned objects and graves
     public function readMapObjHelpers(path:String) : Vector<ObjectHelper>
     {
         var reader = File.read(path, true);
