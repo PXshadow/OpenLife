@@ -611,12 +611,8 @@ class WorldMap
 
         Macro.exception(PlayerAccount.WritePlayerAccounts(dir + "PlayerAccounts" + tmpDataNumber + ".bin"));
         
-        var path = dir + "lastDataNumber.txt";
-        var writer = File.write(path, false);
-        writer.writeString('$tmpDataNumber\n');
-        writer.writeString('$backupDataNumber\n');
-        writer.writeString('${TimeHelper.tick}\n');
-        writer.close();
+        writeIndexFile(dir + "lastDataNumber" + tmpDataNumber + ".txt", tmpDataNumber);
+        writeIndexFile(dir + "lastDataNumber.txt", tmpDataNumber);
 
         saveDataNumber++;
 
@@ -624,6 +620,15 @@ class WorldMap
 
         if(ServerSettings.DebugWrite) trace('Write to disk: saveDataNumber: $tmpDataNumber Time: $time backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');
     } 
+
+    private function writeIndexFile(path:String, tmpDataNumber:Int)
+    {
+        var writer = File.write(path, false);
+        writer.writeString('$tmpDataNumber\n');
+        writer.writeString('$backupDataNumber\n');
+        writer.writeString('${TimeHelper.tick}\n');
+        writer.close();
+    }
 
     private function fixObjectIds(desc:String)
     {
