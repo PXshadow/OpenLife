@@ -1,4 +1,7 @@
 package openlife.server;
+import sys.io.FileInput;
+import sys.io.FileOutput;
+import haxe.Int32;
 import openlife.data.transition.TransitionImporter;
 import openlife.data.object.player.PlayerInstance;
 import openlife.macros.Macro;
@@ -870,7 +873,7 @@ class WorldMap
 
         var count = 0;
         var writer = File.write(path, true);
-        var dataVersion = 2;
+        var dataVersion = 3;
 
         writer.writeInt32(dataVersion);        
         writer.writeInt32(width);
@@ -882,14 +885,8 @@ class WorldMap
 
             count++;
 
-            var objArray = obj.toArray();
-
-            writer.writeInt8(objArray.length);
-
-            for(i in objArray)
-            {
-                writer.writeInt32(i);
-            }
+            WriteInt32Array(writer, obj.toArray());
+            WriteInt32Array(writer, obj.livingOwners);
 
             writer.writeInt32(obj.tx);
             writer.writeInt32(obj.ty);
@@ -905,10 +902,36 @@ class WorldMap
         if(ServerSettings.DebugWrite) trace('wrote $count ObjectHelpers...');
     }
 
+    public static function WriteInt32Array(writer:FileOutput, array:Array<Int32>)
+    {
+        writer.writeInt8(array.length);
+
+        for(i in array)
+        {
+            writer.writeInt32(i);
+        }
+    }
+
+    public static function ReadInt32Array(reader:FileInput) : Array<Int32>
+    {
+        var arrayLength = reader.readInt8();
+        if(arrayLength == 100) return null; // reached the end
+        if(arrayLength > 100) throw new Exception('array length is: $arrayLength > 100');
+        
+        var newArray = new Array<Int>();
+
+        for(i in 0...arrayLength)
+        {
+            newArray.push(reader.readInt32());
+        }
+
+        return newArray;
+    }
+
     public function readMapObjHelpers(path:String) : Vector<ObjectHelper>
     {
         var reader = File.read(path, true);
-        var expectedDataVersion = 2;
+        var expectedDataVersion = 3;
         var dataVersion = reader.readInt32();
         var width = reader.readInt32();
         var height = reader.readInt32();
@@ -917,7 +940,7 @@ class WorldMap
         var newObjects = new Vector<ObjectHelper>(length);
         this.objectHelpers = newObjects;
 
-        if(dataVersion != 2) throw new Exception('Data version is: $dataVersion expected data version is: $expectedDataVersion');
+        if(dataVersion != expectedDataVersion) throw new Exception('Data version is: $dataVersion expected data version is: $expectedDataVersion');
         if(width != this.width) throw new Exception('width != this.width');
         if(height != this.height) throw new Exception('height != this.height');
         if(length != this.length) throw new Exception('length != this.length');
@@ -927,19 +950,12 @@ class WorldMap
         try{
             while(reader.eof() == false)
             {
-                var arrayLength = reader.readInt8();
-                if(arrayLength == 100) break; // reached the end
-                if(arrayLength > 100) throw new Exception('array length is: $arrayLength > 100');
+                var array = ReadInt32Array(reader);
+                if(array == null) break; // reached the end
                 count++;
 
-                var newObjArray = new Array<Int>();
-
-                for(i in 0...arrayLength)
-                {
-                    newObjArray.push(reader.readInt32());
-                }
-
-                var newObject = ObjectHelper.readObjectHelper(null, newObjArray);
+                var newObject = ObjectHelper.readObjectHelper(null, array);
+                newObject.livingOwners = ReadInt32Array(reader);
                 newObject.tx = reader.readInt32();
                 newObject.ty = reader.readInt32();
                 newObject.numberOfUses = reader.readInt32();

@@ -10,7 +10,8 @@ import openlife.data.transition.TransitionData;
 import openlife.server.GlobalPlayerInstance;
 import openlife.server.Server;
 
-class ObjectHelper {
+class ObjectHelper
+{
     public var objectData:ObjectData; 
     public var numberOfUses = 0;
     public var creationTimeInTicks:Float;
