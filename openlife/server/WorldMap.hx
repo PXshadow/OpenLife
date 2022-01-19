@@ -627,6 +627,7 @@ class WorldMap
         writer.writeString('$tmpDataNumber\n');
         writer.writeString('$backupDataNumber\n');
         writer.writeString('${TimeHelper.tick}\n');
+        writer.writeString('${Server.server.playerIndex}\n');
         writer.close();
     }
 
@@ -637,6 +638,7 @@ class WorldMap
         this.backupDataNumber = Std.parseInt(reader.readLine());
         TimeHelper.tick = Std.parseFloat(reader.readLine());
         TimeHelper.lastTick = TimeHelper.tick; 
+        Server.server.playerIndex = Std.parseInt(reader.readLine());
 
         reader.close();    
     }

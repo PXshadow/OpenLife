@@ -390,7 +390,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 var persons = personsByColor[closeSpecialBiomePersonColor];
                 setObjectId(persons[WorldMap.calculateRandomInt(persons.length-1)].id); 
 
-                trace('Child is an EVE / ADAM with color: ${this.getColor()} as ${this.lineage.className}');
+                trace('New player id: ${this.p_id} is an EVE / ADAM with color: ${this.getColor()} as ${this.lineage.className}');
             }
         }
         else
@@ -411,7 +411,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             lastEveOrAdam = null;
 
-            trace('An Eve / Adam is born to an Eve / Adam with color: ${this.getColor()} as ${this.lineage.className}');
+            trace('An Eve / Adam id: ${this.p_id} is born to an Eve / Adam with color: ${this.getColor()} as ${this.lineage.className}');
         }
 
         name = isFemal() ? "EVE" : "ADAM";
