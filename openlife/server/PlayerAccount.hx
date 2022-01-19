@@ -10,10 +10,10 @@ class PlayerAccount
     public static var AllPlayerAccountsById = new Map<Int, PlayerAccount>();
     public static var AccountIdIndex:Int = 1;
     
+    // saved
     public var id:Int;
     public var isAi:Bool = false;
-    public var lastConnection:Connection;
-
+    
     public var email:String;
     public var account_key_hash:String;
     public var name:String = 'SNOW';
@@ -26,7 +26,9 @@ class PlayerAccount
 
     public var coinsInherited:Float;
 
+    // not saved
     public var graves = new Array<ObjectHelper>();
+    public var lastConnection:Connection;
 
     private function new(){}
 
@@ -66,6 +68,7 @@ class PlayerAccount
         for(ac in accounts)
         {
             writer.writeInt32(ac.id);
+            writer.writeInt8(cast (ac.isAi, Int));
 
             writer.writeString('${ac.email}\n');
             writer.writeString('${ac.account_key_hash}\n');
@@ -96,11 +99,12 @@ class PlayerAccount
         for(i in 0...count)
         {
             var id = reader.readInt32();
+            var isAi = cast (reader.readInt8(), Bool);
             var email = reader.readLine();
             var account_key_hash = reader.readLine();
             var account = GetOrCreatePlayerAccount(email, account_key_hash, id);
+            account.isAi = isAi;
             account.name = reader.readLine();
-
             account.score = reader.readFloat();
             account.femaleScore = reader.readFloat();
             account.maleScore = reader.readFloat();
