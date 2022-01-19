@@ -8,7 +8,7 @@ class PlayerAccount
 {
     public static var AllPlayerAccountsByEmail = new Map<String, PlayerAccount>();
     public static var AllPlayerAccountsById = new Map<Int, PlayerAccount>();
-    public static var IdIndex:Int = 1;
+    public static var AccountIdIndex:Int = 1;
     
     public var id:Int;
     public var lastConnection:Connection;
@@ -35,7 +35,7 @@ class PlayerAccount
         if(account != null) return account;
 
         account = new PlayerAccount();
-        account.id = id > 0 ? id : IdIndex++;
+        account.id = id > 0 ? id : AccountIdIndex++;
         account.email = email;
         account.account_key_hash = account_key_hash;
 

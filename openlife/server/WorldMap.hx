@@ -628,7 +628,7 @@ class WorldMap
         writer.writeString('$backupDataNumber\n');
         writer.writeString('${TimeHelper.tick}\n');
         writer.writeString('${Server.server.playerIndex}\n');
-        //writer.writeString('${Server.server.playerIndex}\n');
+        writer.writeString('${PlayerAccount.AccountIdIndex}\n');
         writer.close();
     }
 
@@ -640,6 +640,9 @@ class WorldMap
         TimeHelper.tick = Std.parseFloat(reader.readLine());
         TimeHelper.lastTick = TimeHelper.tick; 
         Server.server.playerIndex = Std.parseInt(reader.readLine());
+        PlayerAccount.AccountIdIndex = Std.parseInt(reader.readLine());
+
+        trace('PlayerAccount.AccountIdIndex: ${PlayerAccount.AccountIdIndex}');
 
         reader.close();    
     }
