@@ -63,8 +63,9 @@ class Connection
 
         trace('New Born Score: ${this.playerAccount.totalScore} Prestige: ${this.player.yum_multiplier}');
 
-        this.sendGlobalMessage('YOUR PRESTIGE IS ${Math.ceil(this.player.yum_multiplier * ServerSettings.DisplayScoreFactor)}');
-        // EATING YUM AND HAVING MANY KIDS AND FOLLOWERS WILL INCREASE YOUR PRESTIEGE!
+        if(this.player.trueAge < 5) this.sendGlobalMessage('YOUR PRESTIGE FROM LAST LIFE IS ${Math.ceil(this.player.yum_multiplier * ServerSettings.DisplayScoreFactor)}');
+        this.sendGlobalMessage('EATING YUMMY FOOD AND HAVING MANY KIDS AND FOLLOWERS WILL INCREASE YOUR PRESTIGE!');
+         
         GlobalPlayerInstance.AllPlayerMutex.release();
     }
 

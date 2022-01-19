@@ -284,6 +284,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         food_store_max = calculateFoodStoreMax();
         food_store = food_store_max / 2;
         yum_multiplier = this.connection.playerAccount == null ? 1 : this.connection.playerAccount.totalScore / 2;
+        yum_multiplier = Math.max(yum_multiplier, (medianPrestige / 30) * trueAge);
 
         for(c in Connection.getConnections())
         {
