@@ -128,11 +128,8 @@ class PlayerAccount
 
     public static function ChangeScore(player:GlobalPlayerInstance)
     {
-        // TODO give score to AI
-        var account = player.connection.playerAccount;
-
-        if(account == null) return;
-
+        // TODO give lower score to AI
+        var account = player.account;
         var score = player.yum_multiplier;
         var factor = ServerSettings.ScoreFactor;
 

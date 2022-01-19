@@ -53,7 +53,7 @@ class Lineage
         this.deathTime = TimeHelper.tick;
         this.myId = player.p_id;
         this.po_id = player.po_id;
-        this.accountId = player.connection.playerAccount.id;
+        this.accountId = player.account.id;
 
         //trace('accountId: ${this.accountId}');
     }

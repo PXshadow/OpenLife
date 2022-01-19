@@ -493,6 +493,7 @@ class ObjectHelper
     public function addOwner(player:GlobalPlayerInstance)
     {
         livingOwners.push(player.p_id);
+        ownersByPlayerAccount.push(player.account.id);
     }
 
     public function removeOwner(player:GlobalPlayerInstance)

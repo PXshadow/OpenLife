@@ -283,7 +283,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         food_store_max = calculateFoodStoreMax();
         food_store = food_store_max / 2;
-        yum_multiplier = this.connection.playerAccount.totalScore / 2;
+        yum_multiplier = this.account.totalScore / 2;
         yum_multiplier = Math.max(yum_multiplier, (medianPrestige / 30) * trueAge);
 
         for(c in Connection.getConnections())
@@ -311,7 +311,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         //trace('PRESTIGE ${playerAccount.totalScore} prestigeNeededForNobleBirth: $prestigeNeededForNobleBirth');
         // [for(key in map.keys()) key]
         var players = [for(p in AllPlayers) p];
-        var playerAccount = this.connection.playerAccount;
 
         if(players.length < 2) return PrestigeClass.Commoner;
 
@@ -325,12 +324,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         var neededPrestige = CalculateNeededPrestige(players, 0.4);
         medianPrestige = Math.max(neededPrestige, ServerSettings.HealthFactor); // is needed for calculating health
-        if(playerAccount.totalScore < neededPrestige) return PrestigeClass.Serf;
+        if(this.account.totalScore < neededPrestige) return PrestigeClass.Serf;
 
         if(players.length < 5) return PrestigeClass.Commoner;
 
         var neededPrestige = CalculateNeededPrestige(players, 0.8);
-        if(playerAccount.totalScore < neededPrestige) return PrestigeClass.Commoner;
+        if(this.account.totalScore < neededPrestige) return PrestigeClass.Commoner;
 
         return PrestigeClass.Noble;
     }
@@ -635,7 +634,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {        
         var childIsHuman = child.isAi();
         var motherIsHuman = p.isAi();
-        var playerAccount = child.connection.playerAccount;
 
         if(p.deleted) return -1000;
         if(p.isFertile() == false) return -1000;
@@ -648,7 +646,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         tmpFitness += p.yum_bonus / 10; // the more food the more likely 
         tmpFitness += p.food_store_max / 10; // the more healthy the more likely 
         tmpFitness += p.calculateClassBoni(child); // the closer the mother is to same class the better
-        tmpFitness += p.hasCloseNoneBlockingGrave(playerAccount) ? 3 : 0;
+        tmpFitness += p.hasCloseNoneBlockingGrave(child.account) ? 3 : 0;
         //tmpFitness += p.yum_multiplier / 20; // the more yum / prestige the more likely  // not needed since influencing food_store_max
 
         // mali
@@ -656,7 +654,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         tmpFitness -= temperatureMail;
         tmpFitness -= p.exhaustion / 5;
         tmpFitness -= p.childrenBirthMali; // the more children the less likely
-        tmpFitness -= p.hasCloseBlockingGrave(playerAccount) ? 10 : 0; // make less likely to incarnate if there is a blocking grave close by
+        tmpFitness -= p.hasCloseBlockingGrave(child.account) ? 10 : 0; // make less likely to incarnate if there is a blocking grave close by
         tmpFitness -= p.heldObject.objectData.speedMult > 1.1 ? 1 : 0; // if player is using fast objects
         tmpFitness -= p.heldObject.id != 0 ? 1 : 0; // if player is holding objects
         tmpFitness -= motherIsHuman && child.isAi() ? ServerSettings.HumanMotherBirthMaliForAiChild : 0;
@@ -2274,7 +2272,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         // TODO test
         // TODO only inherit if ally or family member is close by / otherwise place in grave for next visitor
-        player.connection.playerAccount.coinsInherited += player.coins * ServerSettings.InheritCoinsFactor;
+        player.account.coinsInherited += player.coins * ServerSettings.InheritCoinsFactor;
 
         var bestPlayer = null;
         var score = 0.0;
@@ -2285,12 +2283,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         while(coinsToInherit >= 1)
         {
             for(p in AllPlayers)
-            {
-                var account = p.connection.playerAccount;
-                
+            {             
                 if(p.isAlly(player) == false && p.isSameFamily(player) == false) continue;
 
-                var tmpScore = account.coinsInherited;
+                var tmpScore = p.account.coinsInherited;
 
                 if(p.isCloseRelative(player)) tmpScore *= 2;
 
@@ -2310,7 +2306,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             coinsToInherit -= tmpCoins;
             bestPlayer.coins += tmpCoins;
-            bestPlayer.connection.playerAccount.coinsInherited -= bestPlayer.isCloseRelative(player) ? tmpCoins / 2 : tmpCoins;
+            bestPlayer.account.coinsInherited -= bestPlayer.isCloseRelative(player) ? tmpCoins / 2 : tmpCoins;
             bestPlayer.connection.sendGlobalMessage('You inherited $tmpCoins coins from ${player.name} because of your past actions!');
 
             trace('COINS: You inherited $tmpCoins coins from ${player.name} because of your past actions!');
@@ -2368,7 +2364,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             count++;
 
-            var score = p.connection.playerAccount.totalScore;
+            var score = p.account.totalScore;
 
             if(score < bestLeaderScore) continue;
 
@@ -2483,7 +2479,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         Connection.SendGraveInfoToAll(grave);
 
-        this.connection.playerAccount.graves.push(grave);
+        this.account.graves.push(grave);
     }
 
     // insulation reaches from 0 to 2
@@ -3288,7 +3284,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function get_linagePrestige()
     {
-        return this.connection.playerAccount.totalScore;
+        return this.account.totalScore;
     }
 
     public var prestige(get, null):Float;
@@ -3402,13 +3398,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function isMyGrave(obj:ObjectHelper) : Bool
     {
-        for(grave in connection.playerAccount.graves)    
+        for(grave in account.graves)    
         {
             if(grave == obj) return true;
         }
 
         return false;
     }
+
+    public var account(get, null):PlayerAccount;
+
+    public function get_account()
+    {
+        return this.connection.playerAccount;
+    }
+    
 }
 
 // TODO Arcurus>> add birth logic - suggestion:

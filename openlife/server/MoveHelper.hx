@@ -201,7 +201,7 @@ class MoveHelper
 
         speed *= ageSpeedFactor; */
 
-        if(p.hasCloseBlockingGrave(p.connection.playerAccount))
+        if(p.hasCloseBlockingGrave(p.account))
         {
             if(p.isCursed == false)
             {
