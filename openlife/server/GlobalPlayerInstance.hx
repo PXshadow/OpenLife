@@ -283,7 +283,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         food_store_max = calculateFoodStoreMax();
         food_store = food_store_max / 2;
-        yum_multiplier = this.connection.playerAccount == null ? 1 : this.connection.playerAccount.totalScore / 2;
+        yum_multiplier = this.connection.playerAccount.totalScore / 2;
         yum_multiplier = Math.max(yum_multiplier, (medianPrestige / 30) * trueAge);
 
         for(c in Connection.getConnections())
@@ -308,13 +308,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // TODO test
     private function calculatePrestigeClass() : PrestigeClass
     {   
-        var playerAccount = this.connection.playerAccount;
-        if(playerAccount == null) return PrestigeClass.Commoner;
-
         //trace('PRESTIGE ${playerAccount.totalScore} prestigeNeededForNobleBirth: $prestigeNeededForNobleBirth');
-    
         // [for(key in map.keys()) key]
         var players = [for(p in AllPlayers) p];
+        var playerAccount = this.connection.playerAccount;
 
         if(players.length < 2) return PrestigeClass.Commoner;
 
@@ -597,8 +594,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function hasCloseBlockingGrave(playerAccount:PlayerAccount) : Bool
     {
-        if(playerAccount == null) return false;
-
         for(grave in playerAccount.graves)
         {
             var dist = AiHelper.CalculateDistanceToObject(this, grave);
@@ -612,8 +607,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function hasCloseNoneBlockingGrave(playerAccount:PlayerAccount) : Bool
     {
-        if(playerAccount == null) return false;
-
         for(grave in playerAccount.graves)
         {
             var dist = AiHelper.CalculateDistanceToObject(this, grave);
@@ -2281,7 +2274,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         // TODO test
         // TODO only inherit if ally or family member is close by / otherwise place in grave for next visitor
-        if(player.connection.playerAccount != null) player.connection.playerAccount.coinsInherited = player.coins * ServerSettings.InheritCoinsFactor;
+        player.connection.playerAccount.coinsInherited += player.coins * ServerSettings.InheritCoinsFactor;
 
         var bestPlayer = null;
         var score = 0.0;
@@ -2294,7 +2287,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             for(p in AllPlayers)
             {
                 var account = p.connection.playerAccount;
-                if(account == null) continue;
+                
                 if(p.isAlly(player) == false && p.isSameFamily(player) == false) continue;
 
                 var tmpScore = account.coinsInherited;
@@ -3295,7 +3288,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function get_linagePrestige()
     {
-        if(this.connection.playerAccount == null) return -1.0;
         return this.connection.playerAccount.totalScore;
     }
 
@@ -3410,8 +3402,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function isMyGrave(obj:ObjectHelper) : Bool
     {
-        if(connection.playerAccount == null) return false;
-
         for(grave in connection.playerAccount.graves)    
         {
             if(grave == obj) return true;
