@@ -236,7 +236,11 @@ class ObjectHelper
     {
         this.objectData = ObjectData.getObjectData(id); 
 
-        if(creator != null) this.livingOwners.push(creator.p_id);
+        if(creator != null)
+        {
+            this.livingOwners.push(creator.p_id); 
+            this.ownersByPlayerAccount.push(creator.account.id); 
+        }
 
         this.creationTimeInTicks = TimeHelper.tick;
         this.numberOfUses = objectData.numUses;
@@ -499,6 +503,7 @@ class ObjectHelper
     public function removeOwner(player:GlobalPlayerInstance)
     {
         livingOwners.remove(player.p_id);
+        ownersByPlayerAccount.remove(player.account.id);
     }
 
     // is called from TransitionHelper
@@ -506,7 +511,8 @@ class ObjectHelper
     {
         if(obj.objectData.isOwned == false) return;
 
-        obj.livingOwners = new Array<Int>(); // clear all former owner
+        obj.livingOwners = new Array<Int>(); // clear all former owners
+        obj.ownersByPlayerAccount = new Array<Int>(); // clear all former owners
         obj.addOwner(player);
 
         player.owning.push(obj);
@@ -522,7 +528,5 @@ class ObjectHelper
         }
 
         return message;
-    }
-
-    
+    }    
 }
