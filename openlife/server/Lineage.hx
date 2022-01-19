@@ -35,6 +35,7 @@ class Lineage
 
     // use Ids since not all might be available
     public var myId:Int = -1;
+    public var accountId:Int;
     public var po_id:Int = -1;
     public var deathTime:Float;
     public var age:Float;
@@ -52,6 +53,9 @@ class Lineage
         this.deathTime = TimeHelper.tick;
         this.myId = player.p_id;
         this.po_id = player.po_id;
+        this.accountId = player.connection.playerAccount.id;
+
+        //trace('accountId: ${this.accountId}');
     }
 
     public var className(get, null):String;

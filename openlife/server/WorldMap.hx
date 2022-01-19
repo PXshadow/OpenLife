@@ -642,7 +642,7 @@ class WorldMap
         Server.server.playerIndex = Std.parseInt(reader.readLine());
         PlayerAccount.AccountIdIndex = Std.parseInt(reader.readLine());
 
-        trace('PlayerAccount.AccountIdIndex: ${PlayerAccount.AccountIdIndex}');
+        //trace('PlayerAccount.AccountIdIndex: ${PlayerAccount.AccountIdIndex}');
 
         reader.close();    
     }

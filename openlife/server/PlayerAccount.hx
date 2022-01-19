@@ -11,6 +11,7 @@ class PlayerAccount
     public static var AccountIdIndex:Int = 1;
     
     public var id:Int;
+    public var isAi:Bool = false;
     public var lastConnection:Connection;
 
     public var email:String;
