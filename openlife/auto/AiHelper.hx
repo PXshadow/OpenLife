@@ -74,7 +74,7 @@ class AiHelper
                 {
                     var obj = world.getObjectHelper(tx, ty);
 
-                    if(ownedByPlayer && obj.livingOwners.contains(playerInterface.getPlayerInstance().p_id) == false) continue;
+                    if(ownedByPlayer && obj.isOwnedByPlayer(playerInterface) == false) continue;
 
                     var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
 

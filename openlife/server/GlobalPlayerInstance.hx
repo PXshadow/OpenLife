@@ -1235,13 +1235,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             //trace('Owner: ${obj.description}');
 
-            if(obj.livingOwners.contains(target.p_id))
+            if(obj.isOwnedByPlayer(target))
             {
                 this.connection.sendGlobalMessage('${target.name} ownes this allready!');
                 return  false;
             }
 
-            obj.livingOwners.push(target.p_id);
+            obj.addOwner(target);
 
             target.owning.push(obj);
 
@@ -2338,13 +2338,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         for(obj in player.owning)
         {
-            obj.livingOwners.remove(player.p_id);
+            obj.removeOwner(player);
             
             if(player.followPlayer == null) continue;
 
-            if(obj.livingOwners.length > 0) continue; // there are more people that own this
+            if(obj.hasOwners()) continue; // there are more people that own this
 
-            obj.livingOwners.push(player.followPlayer.p_id); // follow player should be the new sub leader if there is one
+            obj.addOwner(player.followPlayer); // follow player should be the new sub leader if there is one
 
             // TODO pointer to property
             player.followPlayer.connection.sendGlobalMessage('You inherited a new property!'); 

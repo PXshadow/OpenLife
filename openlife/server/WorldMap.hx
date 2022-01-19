@@ -32,7 +32,7 @@ class WorldMap
     var objects:Vector<Array<Int>>;
     var originalObjects:Vector<Array<Int>>;
     var hiddenObjects:Vector<Array<Int>>;
-    var objectHelpers:Vector<ObjectHelper>; 
+    public var objectHelpers:Vector<ObjectHelper>; 
     var floors:Vector<Int>;
     var biomes:Vector<Int>;
     var originalBiomes:Vector<Int>;
@@ -43,7 +43,7 @@ class WorldMap
 
     public var width:Int;
     public var height:Int;
-    private var length:Int;
+    public var length:Int;
 
     // stuff for random generator
     private var seed:Int = 38383834;
@@ -607,7 +607,7 @@ class WorldMap
 
         writeMapObjects(dir + ServerSettings.CurrentObjectsFileName + tmpDataNumber + ".bin", objects);
 
-        writeMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + tmpDataNumber + ".bin", objectHelpers);
+        ObjectHelper.WriteMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + tmpDataNumber + ".bin", objectHelpers);
 
         Macro.exception(PlayerAccount.WritePlayerAccounts(dir + "PlayerAccounts" + tmpDataNumber + ".bin"));
         
@@ -720,7 +720,7 @@ class WorldMap
 
         this.hiddenObjects = readMapObjects(dir + ServerSettings.CurrentObjectsFileName + "Hidden" + saveDataNumber + ".bin");
 
-        readMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + saveDataNumber + ".bin");
+        ObjectHelper.ReadMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + saveDataNumber + ".bin");
 
         Macro.exception(PlayerAccount.ReadPlayerAccounts(dir + "PlayerAccounts" + saveDataNumber + ".bin"));
 
@@ -877,155 +877,6 @@ class WorldMap
         reader.close();
 
         return newObjects;
-    }
-
-    public function writeMapObjHelpers(path:String, objHelpersToWrite:Vector<ObjectHelper>)
-    {
-        //trace('Wrtie to file: $path width: $width height: $height length: $length');
-
-        if(width * height != length) throw new Exception('width * height != length');
-        if(objHelpersToWrite.length != length) throw new Exception('objHelpersToWrite.length != length');
-
-        var count = 0;
-        var writer = File.write(path, true);
-        var dataVersion = 3;
-
-        writer.writeInt32(dataVersion);        
-        writer.writeInt32(width);
-        writer.writeInt32(height);        
-
-        for(obj in objHelpersToWrite)
-        {
-            if(obj == null) continue;
-
-            count++;
-
-            WriteInt32Array(writer, obj.toArray());
-            WriteInt32Array(writer, obj.livingOwners);
-
-            writer.writeInt32(obj.tx);
-            writer.writeInt32(obj.ty);
-            writer.writeInt32(obj.numberOfUses);
-            writer.writeDouble(obj.creationTimeInTicks);
-            writer.writeFloat(obj.timeToChange);
-        }
-
-        writer.writeInt8(100); // end sign
-
-        writer.close();
-
-        if(ServerSettings.DebugWrite) trace('wrote $count ObjectHelpers...');
-    }
-
-    public static function WriteInt32Array(writer:FileOutput, array:Array<Int32>)
-    {
-        writer.writeInt8(array.length);
-
-        for(i in array)
-        {
-            writer.writeInt32(i);
-        }
-    }
-
-    // TODO int64
-    /**readBytes and use setInt64 and getInt64 in Bytes
-    It should be included into io unfortunately not yet**/
-
-    public static function ReadInt32Array(reader:FileInput) : Array<Int32>
-    {
-        var arrayLength = reader.readInt8();
-        if(arrayLength == 100) return null; // reached the end
-        if(arrayLength > 100) throw new Exception('array length is: $arrayLength > 100');
-        
-        var newArray = new Array<Int>();
-
-        for(i in 0...arrayLength)
-        {
-            newArray.push(reader.readInt32());
-        }
-
-        return newArray;
-    }
-
-    // TODO connect livingOwners for owned objects and graves
-    public function readMapObjHelpers(path:String) : Vector<ObjectHelper>
-    {
-        var reader = File.read(path, true);
-        var expectedDataVersion = 3;
-        var dataVersion = reader.readInt32();
-        var width = reader.readInt32();
-        var height = reader.readInt32();
-        var length = width * height;
-        var count = 0;
-        var newObjects = new Vector<ObjectHelper>(length);
-        this.objectHelpers = newObjects;
-
-        if(dataVersion != expectedDataVersion) throw new Exception('Data version is: $dataVersion expected data version is: $expectedDataVersion');
-        if(width != this.width) throw new Exception('width != this.width');
-        if(height != this.height) throw new Exception('height != this.height');
-        if(length != this.length) throw new Exception('length != this.length');
-
-        trace('Read from file: $path width: $width height: $height length: $length');
-
-        try{
-            while(reader.eof() == false)
-            {
-                var array = ReadInt32Array(reader);
-                if(array == null) break; // reached the end
-                count++;
-
-                var newObject = ObjectHelper.readObjectHelper(null, array);
-                newObject.livingOwners = ReadInt32Array(reader);
-                newObject.tx = reader.readInt32();
-                newObject.ty = reader.readInt32();
-                newObject.numberOfUses = reader.readInt32();
-                newObject.creationTimeInTicks = reader.readDouble();
-                newObject.timeToChange = reader.readFloat();
-
-                if(newObject.creationTimeInTicks > TimeHelper.tick) newObject.creationTimeInTicks = TimeHelper.tick;
-
-                if(newObject.numberOfUses > 1 || newObject.containedObjects.length > 0)
-                {
-                    // 1435 = bison // 1261 = Canada Goose Pond with Egg // 30 = Gooseberry Bush // 2142 = Banana Plant // 1323 = Wild Boar
-                    if(newObject.id != 1435 && newObject.id != 1261  && newObject.id != 30 && newObject.id != 2142 && newObject.id != 1323)
-                    {
-                        // trace('${newObject.description()} numberOfUses: ${newObject.numberOfUses} from  ${newObject.objectData.numUses} ' + newObjArray);
-                    }
-                }
-
-                setObjectHelper(newObject.tx, newObject.ty, newObject);
-                //newObjects[index(newObject.tx, newObject.ty)] = newObject;
-                //objects[index(newObject.tx, newObject.ty)] = newObjArray;
-            }
-        }
-        catch(ex)
-        {
-            reader.close();
-            throw ex;
-        }
-
-        reader.close();
-
-        trace('read $count ObjectHelpers...');
-
-        return newObjects;
-    }
-
-    public function updateObjectCounts() 
-    {
-        var time = Sys.time();
-
-        this.currentObjectsCount = countObjects(objects, objectHelpers);
-
-        if(ServerSettings.TraceCountObjects)
-        {
-            trace('count objects time: ${ Sys.time() - time}');
-
-            for(key in currentObjectsCount.keys()){
-                var objData = ObjectData.getObjectData(key);
-                trace('Count object: [${key}] ${objData.description}: ${currentObjectsCount[key]} original: ${originalObjectsCount[key]}');
-            }
-        }
     }
 
     public function countObjects(objectsToCount:Vector<Array<Int>>, objHelpersToCount:Vector<ObjectHelper> = null) :  Map<Int, Int>
@@ -1415,6 +1266,53 @@ class WorldMap
         }
 
         return objectToPlace;
+    }
+
+    public static function WriteInt32Array(writer:FileOutput, array:Array<Int32>)
+    {
+        writer.writeInt8(array.length);
+
+        for(i in array)
+        {
+            writer.writeInt32(i);
+        }
+    }
+
+    // TODO int64
+    /**readBytes and use setInt64 and getInt64 in Bytes
+    It should be included into io unfortunately not yet**/
+
+    public static function ReadInt32Array(reader:FileInput) : Array<Int32>
+    {
+        var arrayLength = reader.readInt8();
+        if(arrayLength == 100) return null; // reached the end
+        if(arrayLength > 100) throw new Exception('array length is: $arrayLength > 100');
+        
+        var newArray = new Array<Int>();
+
+        for(i in 0...arrayLength)
+        {
+            newArray.push(reader.readInt32());
+        }
+
+        return newArray;
+    }
+
+    public function updateObjectCounts() 
+    {
+        var time = Sys.time();
+
+        this.currentObjectsCount = countObjects(objects, objectHelpers);
+
+        if(ServerSettings.TraceCountObjects)
+        {
+            trace('count objects time: ${ Sys.time() - time}');
+
+            for(key in currentObjectsCount.keys()){
+                var objData = ObjectData.getObjectData(key);
+                trace('Count object: [${key}] ${objData.description}: ${currentObjectsCount[key]} original: ${originalObjectsCount[key]}');
+            }
+        }
     }
 }
 #end

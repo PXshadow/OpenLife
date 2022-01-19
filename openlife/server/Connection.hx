@@ -958,20 +958,17 @@ class Connection
         var message = '$x $y';
         var helper = WorldMap.world.getObjectHelper(tx, ty);
         
-        if(helper.livingOwners.length < 1)
+        if(helper.hasOwners() == false)
         {
             if(helper.objectData.isOwned == false) return;
 
             // give ownership to the player that found this not owned gate
-            helper.livingOwners.push(player.p_id);
+            helper.addOwner(player);
 
             WorldMap.world.setObjectHelper(tx, ty, helper);
         }
 
-        for(ownerId in helper.livingOwners)
-        {
-            message += ' ${ownerId}';
-        }
+        message += helper.createOwnerString();
 
         //trace('OWNERS: $message');
         

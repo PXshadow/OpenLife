@@ -534,7 +534,7 @@ class TransitionHelper{
 
         if(target.objectData.isOwned)
         {
-            if(target.livingOwners.contains(player.p_id) == false)
+            if(target.isOwnedBy(player.p_id) == false)
             {
                 trace('TRANS: Player is not owner of ${target.description}!');
                 return false;
@@ -745,23 +745,13 @@ class TransitionHelper{
         // target did not change if it is same dummy
         DoChangeNumberOfUsesOnTarget(this.target, transition);
 
-        DoOwnerShip(this.target, this.player);
+        ObjectHelper.DoOwnerShip(this.target, this.player);
 
         // if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
         this.doTransition = true;
         this.doAction = true;
 
         return true;
-    }
-
-    private static function DoOwnerShip(obj:ObjectHelper, player:GlobalPlayerInstance)
-    {
-        if(obj.objectData.isOwned == false) return;
-
-        obj.livingOwners = new Array<Int>();
-        obj.livingOwners.push(player.p_id);
-
-        player.owning.push(obj);
     }
     
     // used for transitions and for eating food like bana or bowl of stew

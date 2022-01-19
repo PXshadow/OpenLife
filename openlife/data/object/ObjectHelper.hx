@@ -1,5 +1,8 @@
 package openlife.data.object;
 
+import openlife.settings.ServerSettings;
+import sys.io.File;
+import openlife.auto.PlayerInterface;
 import openlife.server.Lineage;
 import openlife.data.transition.TransitionImporter;
 import haxe.macro.Type.TVar;
@@ -9,6 +12,7 @@ import openlife.server.WorldMap;
 import openlife.data.transition.TransitionData;
 import openlife.server.GlobalPlayerInstance;
 import openlife.server.Server;
+import haxe.ds.Vector;
 
 class ObjectHelper
 {
@@ -25,10 +29,119 @@ class ObjectHelper
     // needed to store ground object in case something moves on top
     public var groundObject:ObjectHelper;
 
-    public var livingOwners:Array<Int> = [];
+    private var ownersByPlayerAccount:Array<Int> = [];
+    private var livingOwners:Array<Int> = [];
 
     // to store contained objects in case object is a container
     public var containedObjects:Array<ObjectHelper> = [];
+
+    public static function WriteMapObjHelpers(path:String, objHelpersToWrite:Vector<ObjectHelper>)
+    { 
+        var width = WorldMap.world.width;
+        var height = WorldMap.world.height;
+        var length = WorldMap.world.length;
+
+        //trace('Wrtie to file: $path width: $width height: $height length: $length');
+
+        if(width * height != length) throw new Exception('width * height != length');
+        if(objHelpersToWrite.length != length) throw new Exception('objHelpersToWrite.length != length');
+
+        var count = 0;
+        var dataVersion = 3;
+
+        var writer = File.write(path, true);
+        writer.writeInt32(dataVersion);        
+        writer.writeInt32(width);
+        writer.writeInt32(height);        
+
+        for(obj in objHelpersToWrite)
+        {
+            if(obj == null) continue;
+
+            count++;
+
+            WorldMap.WriteInt32Array(writer, obj.toArray());
+            WorldMap.WriteInt32Array(writer, obj.livingOwners);
+
+            writer.writeInt32(obj.tx);
+            writer.writeInt32(obj.ty);
+            writer.writeInt32(obj.numberOfUses);
+            writer.writeDouble(obj.creationTimeInTicks);
+            writer.writeFloat(obj.timeToChange);
+        }
+
+        writer.writeInt8(100); // end sign
+
+        writer.close();
+
+        if(ServerSettings.DebugWrite) trace('wrote $count ObjectHelpers...');
+    }
+
+    // TODO connect livingOwners for owned objects and graves
+    public static function ReadMapObjHelpers(path:String) : Vector<ObjectHelper>
+    {
+        var reader = File.read(path, true);
+        var expectedDataVersion = 3;
+        var dataVersion = reader.readInt32();
+        var width = reader.readInt32();
+        var height = reader.readInt32();
+        var length = width * height;
+        var count = 0;
+        var newObjects = new Vector<ObjectHelper>(length);
+        var world = WorldMap.world;
+
+        world.objectHelpers = newObjects;
+
+        if(dataVersion != expectedDataVersion) throw new Exception('Data version is: $dataVersion expected data version is: $expectedDataVersion');
+        if(width != world.width) throw new Exception('width != this.width');
+        if(height != world.height) throw new Exception('height != this.height');
+        if(length != world.length) throw new Exception('length != this.length');
+
+        trace('Read from file: $path width: $width height: $height length: $length');
+
+        try{
+            while(reader.eof() == false)
+            {
+                var array = WorldMap.ReadInt32Array(reader);
+                if(array == null) break; // reached the end
+                count++;
+
+                var newObject = ObjectHelper.readObjectHelper(null, array);
+                newObject.livingOwners = WorldMap.ReadInt32Array(reader);
+                newObject.tx = reader.readInt32();
+                newObject.ty = reader.readInt32();
+                newObject.numberOfUses = reader.readInt32();
+                newObject.creationTimeInTicks = reader.readDouble();
+                newObject.timeToChange = reader.readFloat();
+
+                if(newObject.creationTimeInTicks > TimeHelper.tick) newObject.creationTimeInTicks = TimeHelper.tick;
+
+                if(newObject.numberOfUses > 1 || newObject.containedObjects.length > 0)
+                {
+                    // 1435 = bison // 1261 = Canada Goose Pond with Egg // 30 = Gooseberry Bush // 2142 = Banana Plant // 1323 = Wild Boar
+                    if(newObject.id != 1435 && newObject.id != 1261  && newObject.id != 30 && newObject.id != 2142 && newObject.id != 1323)
+                    {
+                        // trace('${newObject.description()} numberOfUses: ${newObject.numberOfUses} from  ${newObject.objectData.numUses} ' + newObjArray);
+                    }
+                }
+
+                world.setObjectHelper(newObject.tx, newObject.ty, newObject);
+                //newObjects[index(newObject.tx, newObject.ty)] = newObject;
+                //objects[index(newObject.tx, newObject.ty)] = newObjArray;
+            }
+        }
+        catch(ex)
+        {
+            reader.close();
+            throw ex;
+        }
+
+        reader.close();
+
+        trace('read $count ObjectHelpers...');
+
+        return newObjects;
+    }
     
     public static function readObjectHelper(creator:GlobalPlayerInstance, ids:Array<Int>, i:Int = 0) : ObjectHelper
     {
@@ -357,8 +470,58 @@ class ObjectHelper
         return StringTools.contains(description, '+owned');
     }
 
+    public function hasOwners() : Bool
+    {
+        return livingOwners.length > 0;
+    }
+
     public function isFollowerOwned() : Bool
     {
         return StringTools.contains(description, '+followerOwned');
     }
+
+    public function isOwnedByPlayer(player:PlayerInterface) : Bool
+    {
+        return isOwnedBy(player.getPlayerInstance().p_id);
+    }
+
+    public function isOwnedBy(playerId:Int) : Bool
+    {
+        return livingOwners.contains(playerId);
+    }
+
+    public function addOwner(player:GlobalPlayerInstance)
+    {
+        livingOwners.push(player.p_id);
+    }
+
+    public function removeOwner(player:GlobalPlayerInstance)
+    {
+        livingOwners.remove(player.p_id);
+    }
+
+    // is called from TransitionHelper
+    public static function DoOwnerShip(obj:ObjectHelper, player:GlobalPlayerInstance)
+    {
+        if(obj.objectData.isOwned == false) return;
+
+        obj.livingOwners = new Array<Int>(); // clear all former owner
+        obj.addOwner(player);
+
+        player.owning.push(obj);
+    }
+
+    public function createOwnerString() : String
+    {
+        var message = '';
+
+        for(ownerId in livingOwners)
+        {
+            message += ' ${ownerId}';
+        }
+
+        return message;
+    }
+
+    
 }
