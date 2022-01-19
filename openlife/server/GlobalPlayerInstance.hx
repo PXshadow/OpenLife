@@ -2726,19 +2726,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             allyFactor = allyFactor > 1.2 ? 1.2 : allyFactor;
         }
 
-        if(this.isCursed)
-        {
-            damage *= ServerSettings.CursedDamageFactor;
-        }
-
         var weaponPrestigeClass:Int = this.heldObject.objectData.prestigeClass;
         var attackerPrestigeClass:Int = this.lineage.prestigeClass;
         var isRightClassForWeapon = weaponPrestigeClass > 0 && weaponPrestigeClass <= attackerPrestigeClass;
         trace('PRESTIGE: isRightClassForWeapon: $isRightClassForWeapon');
 
+        var protection = targetPlayer.calculateClothingInsulation();
+        var protectionFactor = 1 / (protection + 1); // from 1 to 1 / 3;
+        trace('kill: protection: $protection protectionFactor: $protectionFactor');
+
         damage *= allyFactor;
         damage *= distanceFactor;    
-        damage *= isRightClassForWeapon ? 1.2 : 1;    
+        damage *= isRightClassForWeapon ? 1.2 : 1; 
+        damage *= this.isCursed ? ServerSettings.CursedDamageFactor : 1;
+        damage *= protectionFactor;
+
         targetPlayer.hits += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
 
