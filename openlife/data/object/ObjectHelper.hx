@@ -47,7 +47,7 @@ class ObjectHelper
         if(objHelpersToWrite.length != length) throw new Exception('objHelpersToWrite.length != length');
 
         var count = 0;
-        var dataVersion = 3;
+        var dataVersion = 4;
 
         var writer = File.write(path, true);
         writer.writeInt32(dataVersion);        
@@ -62,6 +62,7 @@ class ObjectHelper
 
             WorldMap.WriteInt32Array(writer, obj.toArray());
             WorldMap.WriteInt32Array(writer, obj.livingOwners);
+            WorldMap.WriteInt32Array(writer, obj.ownersByPlayerAccount);
 
             writer.writeInt32(obj.tx);
             writer.writeInt32(obj.ty);
@@ -81,7 +82,7 @@ class ObjectHelper
     public static function ReadMapObjHelpers(path:String) : Vector<ObjectHelper>
     {
         var reader = File.read(path, true);
-        var expectedDataVersion = 3;
+        var expectedDataVersion = 4;
         var dataVersion = reader.readInt32();
         var width = reader.readInt32();
         var height = reader.readInt32();
@@ -108,6 +109,7 @@ class ObjectHelper
 
                 var newObject = ObjectHelper.readObjectHelper(null, array);
                 newObject.livingOwners = WorldMap.ReadInt32Array(reader);
+                newObject.ownersByPlayerAccount = WorldMap.ReadInt32Array(reader);
                 newObject.tx = reader.readInt32();
                 newObject.ty = reader.readInt32();
                 newObject.numberOfUses = reader.readInt32();
