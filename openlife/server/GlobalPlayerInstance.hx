@@ -426,9 +426,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // TODO consider past families of player
     private function spawnAsChild() : Bool
     {
-        // first look for mother close to your grave with a grave stone 
-        var mother = GetFittestMother(this, true);     
-        if(mother == null) mother = GetFittestMother(this);
+        var mother = GetFittestMother(this);     
         if(mother == null) return false;
 
         // TODO father
@@ -550,7 +548,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return personColorByBiome;
     }
 
-    private static function GetFittestMother(child:GlobalPlayerInstance, closeGrave:Bool = false) : GlobalPlayerInstance
+    private static function GetFittestMother(child:GlobalPlayerInstance) : GlobalPlayerInstance
     {
         var childIsHuman = child.isAi();
         var playerAccount = child.connection.playerAccount;
@@ -560,8 +558,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // search fertile mother
         for (c in Connection.getConnections())
         {            
-            if(closeGrave && c.player.hasCloseNoneBlockingGrave(playerAccount) == false) continue;
-
             var tmpFitness = CalculateMotherFitness(c.player, child);
 
             if(childIsHuman == false) tmpFitness += ServerSettings.HumanMotherBirthMaliForAiChild;
@@ -580,8 +576,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // search fertile mother
         for (ai in Connection.getAis())
         {           
-            if(closeGrave && ai.player.hasCloseNoneBlockingGrave(playerAccount) == false) continue;
-
             var tmpFitness = CalculateMotherFitness(ai.player, child);
 
             if(childIsHuman) tmpFitness += ServerSettings.AiMotherBirthMaliForHumanChild;
@@ -666,7 +660,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     }
 
     private static function CalculateMotherFitness(p:GlobalPlayerInstance, child:GlobalPlayerInstance) : Float
-    {
+    {        
+        var playerAccount = child.connection.playerAccount;
+
         if(p.deleted) return -1000;
         if(p.isFertile() == false) return -1000;
         if(p.food_store < 0) return -1000; // no starving mothers
@@ -678,16 +674,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         tmpFitness += p.yum_bonus / 10; // the more food the more likely 
         tmpFitness += p.food_store_max / 10; // the more healthy the more likely 
         tmpFitness += p.calculateClassBoni(child.lineage.prestigeClass); // the closer the mother is to same class the better
+        tmpFitness += p.hasCloseNoneBlockingGrave(playerAccount) ? 3 : 0;
         //tmpFitness += p.yum_multiplier / 20; // the more yum / prestige the more likely  // not needed since influencing food_store_max
 
         // mali
-        tmpFitness -= p.childrenBirthMali; // the more children the less likely
-        if(p.hasCloseBlockingGrave(child.connection.playerAccount)) tmpFitness -= 10; // make less likely to incarnate if there is a blocking grave close by
-        tmpFitness -= p.exhaustion / 5;
         var temperatureMail = Math.pow(((p.heat - 0.5) * 10), 2) / 10; // between 0 and 2.5 for very bad temperature
         tmpFitness -= temperatureMail;
-        if(p.heldObject.objectData.speedMult > 1.1) tmpFitness -= 2; // if player is using fast objects
-        else if(p.heldObject.id != 0) tmpFitness -= 1; // if player is holding objects
+        tmpFitness -= p.exhaustion / 5;
+        tmpFitness -= p.childrenBirthMali; // the more children the less likely
+        tmpFitness -= p.hasCloseBlockingGrave(playerAccount) ? 10 : 0; // make less likely to incarnate if there is a blocking grave close by
+        tmpFitness -= p.heldObject.objectData.speedMult > 1.1 ? 1 : 0; // if player is using fast objects
+        tmpFitness -= p.heldObject.id != 0 ? 1 : 0; // if player is holding objects
         
         return tmpFitness;
     }
