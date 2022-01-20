@@ -92,9 +92,20 @@ class TransitionHelper{
     {
         var helper = new TransitionHelper(player, x, y);
 
-        if(player.heldObject.isPermanent() || player.heldObject.isNeverDrop())
+        //if(player.heldObject.isPermanent() || player.heldObject.isNeverDrop())
+        if(player.heldObject.isNeverDrop())
         {
-            //trace('Cannot do command since heldObject is permanent! Maybe wounded or bloody weapon!');
+            //trace('HeldObject is permanent ${player.heldObject.isPermanent()} or cannot be dropped! ${player.heldObject.isNeverDrop()}');
+            trace('HeldObject cannot be dropped!');
+            helper.sendUpdateToClient();
+            if(player.heldObject.timeToChange > 0) player.say('${Math.ceil(player.heldObject.timeToChange)} seconds...', true);
+            return false;
+        }
+
+        if(player.heldObject.isWound())
+        {
+            //trace('HeldObject is permanent ${player.heldObject.isPermanent()} or cannot be dropped! ${player.heldObject.isNeverDrop()}');
+            trace('HeldObject is a wound!');
             helper.sendUpdateToClient();
             if(player.heldObject.timeToChange > 0) player.say('${Math.ceil(player.heldObject.timeToChange)} seconds...', true);
             return false;

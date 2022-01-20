@@ -172,7 +172,7 @@ class ServerSettings
     public static var CombatAngryTimeBeforeAttack:Float = 5;
     public static var CombatExhaustionCostPerAttack:Float = 0.25;
     public static var WeaponCoolDownFactor:Float = 0.05;
-    public static var WeaponCoolDownFactorIfWounding:Float = 0.2;
+    public static var WeaponCoolDownFactorIfWounding:Float = 0.4;
     public static var WeaponDamageFactor:Float = 1;
     public static var WoundDamageFactor:Float = 1;
     public static var CursedDamageFactor:Float = 0.5;
@@ -398,11 +398,11 @@ class ServerSettings
         ObjectData.getObjectData(3048).speedMult = 0.8; // Bloody War Sword
         ObjectData.getObjectData(749).speedMult = 0.6; // Bloody Yew Bow  
         
-        ObjectData.getObjectData(750).permanent = 1; // Bloody Knife
-        ObjectData.getObjectData(3048).permanent = 1; // Bloody War Sword
-        ObjectData.getObjectData(749).permanent = 1; // Bloody Yew Bow  
+        ObjectData.getObjectData(750).neverDrop = true; // Bloody Knife
+        ObjectData.getObjectData(3048).neverDrop = true; // Bloody War Sword
+        ObjectData.getObjectData(749).neverDrop = true; // Bloody Yew Bow  
 
-        ObjectData.getObjectData(1378).permanent = 0; // Sterile Wool Pad 
+        //ObjectData.getObjectData(1378).permanent = 0; // Sterile Wool Pad 
 
         ObjectData.getObjectData(3047).prestigeClass = PrestigeClass.Noble; // War Sword 
 
