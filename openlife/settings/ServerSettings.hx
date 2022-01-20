@@ -129,6 +129,7 @@ class ServerSettings
     public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed factor X
     public static var MinSpeedReductionPerContainedObj = 0.98;
     public static var ExhaustionOnMovementChange:Float = 0.25;
+    public static var CloseEnemyWithWeaponSpeedFactor:Float = 0.8;
     
     public static var LetTheClientCheatLittleBitFactor = 1.1; // when considering if the position is reached, allow the client to cheat little bit, so there is no lag
     // TODO FIX this can make jumps if too small / ideally this should be 0 so that the client cannot cheat while moving

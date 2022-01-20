@@ -609,7 +609,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function hasCloseNoneBlockingGrave(playerAccount:PlayerAccount) : Bool
     {
         playerAccount.removeDeletedGraves();
-        
+
         for(grave in playerAccount.graves)
         {
             var dist = AiHelper.CalculateDistanceToObject(this, grave);
@@ -2582,7 +2582,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function killHelper(x:Int, y:Int, playerId:Int) : Bool // playerId = -1 if no specific player is slected
     {
-        // TODO armor / strength
         // TODO stop movement if hit
         // TODO block movement if not ally (with weapon?)
         // TODO calculate damage depending on how many ally / enemy close in kill mode / poss        
@@ -2853,7 +2852,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             var strength = p.isHoldingWeapon() ? 2 * p.food_store_max : p.food_store_max;
 
-            if(p.isAlly(this) && p.lastAttackedPlayer != this && p.lastPlayerAttackedMe != this) allyStrength += strength;
+            if(p.isFriendly(this)) allyStrength += strength;
             else enemyStrength += strength;
         }
 
@@ -3415,6 +3414,31 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function get_account()
     {
         return this.connection.playerAccount;
+    }
+
+    public function getClosePlayer(maxDistance:Float = 1.5, hostile:Bool = true, hasWeapon = true) : GlobalPlayerInstance
+    {
+        for(p in AllPlayers)
+        {
+            if(p.deleted) continue;
+            if(p.isCloseUseExact(this, maxDistance) == false) continue;
+            if(hostile && p.isFriendly(this)) continue;
+            if(hasWeapon && p.isHoldingWeapon() == false) continue;
+
+            return p;
+        }
+
+        return null;
+    }
+
+    public function isFriendly(player:GlobalPlayerInstance) : Bool
+    {
+        return this.isAlly(player) && this.lastAttackedPlayer != player && this.lastPlayerAttackedMe != player;
+    }
+
+    public function isHostile(player:GlobalPlayerInstance) : Bool
+    {
+        return isFriendly(player) == false;
     }
     
 }

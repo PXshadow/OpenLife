@@ -225,6 +225,12 @@ class MoveHelper
             p.isCursed = false;
         }
 
+        if(p.getClosePlayer() != null)
+        {
+            //trace('SPEED HOSTLE NEAR');
+            speed *= ServerSettings.CloseEnemyWithWeaponSpeedFactor;
+        }
+
         //if(ServerSettings.DebugSpeed) trace('speed: $speed age: ${p.age} ageSpeedFactor: ${ageSpeedFactor} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
         if(ServerSettings.DebugSpeed) trace('speed: $speed age: ${p.age} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
 

@@ -79,6 +79,7 @@ Combat / Attacking
 - you can attack anybody if you are angry and if target is terrified or angry
 - you get angry / terrified 5 seconds after attacking / being attacked
 - clothing insulation reduces damage up to 66%;
+- you have reduced speed if close to enemy with weapon
 - different weapons have different damage and cooldown
 - if you make a wound or kill some one the bloody weapon cooldown is much longer
 - the more your close (5 Tiles) ally stregth is vs enemy streght the more damage you do
