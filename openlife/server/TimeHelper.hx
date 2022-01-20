@@ -255,7 +255,7 @@ class TimeHelper
 
         Macro.exception(MoveHelper.updateMovement(player));
 
-        if(TimeHelper.tick % 5 == 0) Macro.exception(DoTimeOnPlayerObjects(player, timePassedInSeconds));
+        Macro.exception(DoTimeOnPlayerObjects(player, timePassedInSeconds));
 
         if(TimeHelper.tick % 20 == 0) Macro.exception(updateTemperature(player));
 
