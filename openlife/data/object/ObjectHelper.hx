@@ -151,7 +151,7 @@ class ObjectHelper
         for(obj in WorldMap.world.objectHelpers)
         {
             if(obj == null) continue;
-            
+
             if(obj.isGrave())
             {
                 for(id in obj.ownersByPlayerAccount)
@@ -167,7 +167,11 @@ class ObjectHelper
                 for(id in obj.livingOwners) 
                 {
                     var player = GlobalPlayerInstance.AllPlayers[id];
-                    if(player == null) continue; // TODO warning
+                    if(player == null)
+                    {
+                        obj.livingOwners.remove(id);
+                        continue; // TODO warning                        
+                    }
                     if(player.deleted) obj.removeOwner(player);
 
                     player.owning.push(obj);
