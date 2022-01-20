@@ -536,6 +536,8 @@ class ObjectHelper
         if(isOwnedByPlayer(player)) return;
 
         livingOwners.push(player.p_id);
+
+        if(ownersByPlayerAccount.contains(player.account.id)) return;
         ownersByPlayerAccount.push(player.account.id);
     }
 
