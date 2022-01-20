@@ -792,7 +792,7 @@ class Connection
 
     public function send(tag:ClientTag,data:Array<String>=null, isPlayerAction:Bool = true)
     {
-        if(serverAi != null)
+        if(playerAccount != null && playerAccount.isAi)
         {
             try
             {
@@ -805,37 +805,42 @@ class Connection
             return;
         } 
 
-        var string = "";
+        var message = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
 
         //trace('send:  ${data}');
-
+        
         try 
         {
-            string = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
-            sock.output.writeString(string);
-
-            //if(StringTools.contains(string, 'LR')) trace(string);
-            //if(StringTools.contains(string, 'LR')) trace(data);    
-            //if(ServerSettings.TraceSend && tag != MAP_CHANGE && tag != FRAME)
-            if((ServerSettings.TraceSendPlayerActions && isPlayerAction) || (ServerSettings.TraceSendNonPlayerActions && isPlayerAction == false))
-            {
-                var tmpString = StringTools.replace(string, "\n", "\t");
-                trace("Send: " + tmpString);
-            }
+            sendHelper(message, isPlayerAction);
         }
         catch(ex)
         {
-            var tmpString = StringTools.replace(string, "\n", "\t");
+            var tmpString = StringTools.replace(message, "\n", "\t");
 
             if('$ex' == 'Eof')
             {
                 this.close();   
             }
-            
+
             trace('WARNING Send: $tmpString ' + ex);
         }
 
         //this.mutex.release();
+    }
+
+    private function sendHelper(message:String, isPlayerAction:Bool = true)
+    {
+        
+        sock.output.writeString(message);
+
+        //if(StringTools.contains(string, 'LR')) trace(string);
+        //if(StringTools.contains(string, 'LR')) trace(data);    
+        //if(ServerSettings.TraceSend && tag != MAP_CHANGE && tag != FRAME)
+        if((ServerSettings.TraceSendPlayerActions && isPlayerAction) || (ServerSettings.TraceSendNonPlayerActions && isPlayerAction == false))
+        {
+            var tmpString = StringTools.replace(message, "\n", "\t");
+            trace("Send: " + tmpString);
+        }
     }
 
     public function sendPong(unique_id:String)
