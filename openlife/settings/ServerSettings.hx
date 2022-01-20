@@ -50,6 +50,7 @@ class ServerSettings
 
     // coins
     public static var InheritCoinsFactor:Float = 0.8; // on death X coins are inherited
+    public static var MaxCoinDecayPerYear:Float = 5; 
 
     // birth    
     public static var NewChildExhaustionForMother = 15;

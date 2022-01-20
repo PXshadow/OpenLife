@@ -453,7 +453,8 @@ class TimeHelper
             // decay some coins per year
             if(player.coins > 100)
             {
-                var decayedCoins = Std.int(player.coins / 100); // 0,1% per year or 10% in 100 years
+                var decayedCoins:Float = Std.int(player.coins / 100); // 0,1% per year or 10% in 100 years
+                decayedCoins = Math.min(decayedCoins, ServerSettings.MaxCoinDecayPerYear);
                 player.coins -= decayedCoins;
                 player.addPrestige(-decayedCoins);
             } 
