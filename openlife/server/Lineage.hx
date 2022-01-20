@@ -42,10 +42,13 @@ class Lineage
     public var trueAge:Float;
     public var deathReason:String;
     public var lastSaid:String;
+    public var prestige:Float;
+    public var coins:Float;
 
     public var myEveId:Int = -1; // TODO support family head
     public var motherId:Int = -1;
     public var fatherId:Int = -1;
+
     public var prestigeClass:PrestigeClass = PrestigeClass.Commoner;
 
     public function new(player:GlobalPlayerInstance)

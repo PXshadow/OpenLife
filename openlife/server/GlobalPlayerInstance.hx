@@ -2235,13 +2235,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         try
         {
             this.deleted = true;
+            
             this.lineage.age = this.age;
             this.lineage.trueAge = this.trueAge;
             this.lineage.deathReason = deathReason;
+            this.lineage.prestige = this.prestige;
+            this.lineage.coins = this.coins;
+
             this.age = this.trueAge; // bad health and starving can influence health, so setback true time a player lifed so that he sees in death screen
             this.reason = deathReason;
             
-
             PlayerAccount.ChangeScore(this);  
 
             ChooseNewLeader(this);
