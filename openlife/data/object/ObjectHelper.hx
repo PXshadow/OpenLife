@@ -1,5 +1,6 @@
 package openlife.data.object;
 
+import openlife.server.PlayerAccount;
 import openlife.settings.ServerSettings;
 import sys.io.File;
 import openlife.auto.PlayerInterface;
@@ -143,6 +144,36 @@ class ObjectHelper
         trace('read $count ObjectHelpers...');
 
         return newObjects;
+    }
+
+    public static function InitObjectHelpersAfterRead()
+    {
+        for(obj in WorldMap.world.objectHelpers)
+        {
+            if(obj == null) continue;
+            
+            if(obj.isGrave())
+            {
+                for(id in obj.ownersByPlayerAccount)
+                {
+                    var account = PlayerAccount.GetPlayerAccountById(id);
+                    if(account == null) continue;
+
+                    account.graves.push(obj);
+                }
+            } else if(obj.isOwned()) 
+            {
+                // TODO Will only work once players are saved
+                for(id in obj.livingOwners) 
+                {
+                    var player = GlobalPlayerInstance.AllPlayers[id];
+                    if(player == null) continue; // TODO warning
+                    if(player.deleted) obj.removeOwner(player);
+
+                    player.owning.push(obj);
+                }
+            }
+        }
     }
     
     public static function readObjectHelper(creator:GlobalPlayerInstance, ids:Array<Int>, i:Int = 0) : ObjectHelper
@@ -499,7 +530,7 @@ class ObjectHelper
     public function addOwner(player:GlobalPlayerInstance)
     {
         if(isOwnedByPlayer(player)) return;
-        
+
         livingOwners.push(player.p_id);
         ownersByPlayerAccount.push(player.account.id);
     }

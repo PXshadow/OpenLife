@@ -683,19 +683,8 @@ class WorldMap
         this.mutex.acquire();
         var done = false;
 
-        try
-        {
-            done = readFromDiskHelper();
-        }
-        catch(ex)
-        {
-            trace(ex);
-
-            this.mutex.release();
-
-            return false;
-        }
-
+        Macro.exception(done = readFromDiskHelper());
+     
         this.mutex.release();
 
         return done;
@@ -729,6 +718,8 @@ class WorldMap
         this.currentObjectsCount = countObjects(this.objects);   
 
         fixObjectIds('read');
+
+        ObjectHelper.InitObjectHelpersAfterRead();
         
         return true;
     }

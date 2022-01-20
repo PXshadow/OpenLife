@@ -50,6 +50,11 @@ class PlayerAccount
         return account;
     }
 
+    public static function GetPlayerAccountById(id:Int) : PlayerAccount
+    {
+        return AllPlayerAccountsById[id];
+    }
+
     public static function WritePlayerAccounts(path:String)
     {
         var accounts = AllPlayerAccountsByEmail;
