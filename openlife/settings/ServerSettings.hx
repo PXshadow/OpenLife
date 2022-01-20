@@ -176,6 +176,7 @@ class ServerSettings
     public static var WeaponDamageFactor:Float = 1;
     public static var WoundDamageFactor:Float = 1;
     public static var CursedDamageFactor:Float = 0.5;
+    public static var TargetWoundedDamageFactor:Float = 0.5;
     public static var AllyConsideredClose:Int = 5;
     public static var WoundHealingTimeFactor:Float = 1.5;
     public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.25; // For damaging children, mother, father, brother sister  

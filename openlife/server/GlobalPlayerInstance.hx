@@ -2718,6 +2718,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         damage *= isRightClassForWeapon ? 1.2 : 1; 
         damage *= this.isCursed ? ServerSettings.CursedDamageFactor : 1;
         damage *= protectionFactor;
+        damage *= targetPlayer.isWounded() ? ServerSettings.TargetWoundedDamageFactor : 1;
 
         targetPlayer.hits += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
