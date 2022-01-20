@@ -281,6 +281,14 @@ class TimeHelper
             if(player.angryTime < ServerSettings.CombatAngryTimeBeforeAttack ) player.angryTime += timePassedInSeconds;
         } 
 
+        // if last attacker is far away set null
+        if(player.lastPlayerAttackedMe != null)
+        {
+            var quadDist = AiHelper.CalculateDistanceToPlayer(player, player.lastPlayerAttackedMe);
+            if(quadDist > 100)  player.lastPlayerAttackedMe = null;
+        }
+
+        // add new follower
         if(player.newFollowerTime > 0) player.newFollowerTime -= timePassedInSeconds;
         else
         {
