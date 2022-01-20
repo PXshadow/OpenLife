@@ -79,7 +79,6 @@ class ObjectHelper
         if(ServerSettings.DebugWrite) trace('wrote $count ObjectHelpers...');
     }
 
-    // TODO connect livingOwners for owned objects and graves
     public static function ReadMapObjHelpers(path:String) : Vector<ObjectHelper>
     {
         var reader = File.read(path, true);
@@ -94,7 +93,7 @@ class ObjectHelper
 
         world.objectHelpers = newObjects;
 
-        if(dataVersion != expectedDataVersion) throw new Exception('Data version is: $dataVersion expected data version is: $expectedDataVersion');
+        if(dataVersion != expectedDataVersion) throw new Exception('ReadMapObjHelpers: Data version is: $dataVersion expected data version is: $expectedDataVersion');
         if(width != world.width) throw new Exception('width != this.width');
         if(height != world.height) throw new Exception('height != this.height');
         if(length != world.length) throw new Exception('length != this.length');

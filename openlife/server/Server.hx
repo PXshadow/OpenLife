@@ -45,7 +45,7 @@ class Server
         for(i in 0...ServerSettings.NumberOfAis)
         {
             var ai = ServerAi.createNewServerAiWithNewPlayer();
-            ai.player.age = 16;
+            //ai.player.age = 16;
         }
 
         TimeHelper.DoTimeLoop();
