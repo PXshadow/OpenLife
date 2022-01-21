@@ -568,29 +568,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return mother;
     }
 
-    private static function IsBlockingGrave(grave:ObjectHelper) : Bool
-    {
-        var objData = grave.objectData;
-
-        if(objData.id == 87) return true; // Fresh Grave
-        if(objData.id == 88) return true; // Grave
-        if(objData.id == 89) return true; // Old Grave
-        if(objData.id == 356) return true; // Basket of Bones
-        if(objData.id == 357) return true; // Bone Pile
-
-        if(objData.id == 1920) return true; // Baby Bones
-        if(objData.id == 3051) return true; // Baby Bone Pile
-        if(objData.id == 3052) return true; // Basket of Baby Bones
-
-        if(objData.id == 3195) return true; // Defaced Bone Pile
-        if(objData.id == 3196) return true; // Basket of Defaced Bones
-
-        if(objData.id == 752) return true; // Murder Grave
-        if(objData.id == 1011) return true; // Buried Grave
-
-        return false;
-    }
-
     public function hasCloseBlockingGrave(playerAccount:PlayerAccount) : Bool
     {
         playerAccount.removeDeletedGraves();
@@ -600,7 +577,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             var dist = AiHelper.CalculateDistanceToObject(this, grave);
             if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
 
-            if(IsBlockingGrave(grave)) return true;
+            if(grave.isBoneGrave()) return true;
         }
 
         return false;
@@ -615,7 +592,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             var dist = AiHelper.CalculateDistanceToObject(this, grave);
             if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
 
-            if(IsBlockingGrave(grave) == false) return true;
+            if(grave.isGraveWithGraveStone()) return true;
         }
 
         return false;

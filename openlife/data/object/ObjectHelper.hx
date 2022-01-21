@@ -574,4 +574,35 @@ class ObjectHelper
     {
         return PlayerAccount.AllPlayerAccountsById[this.ownersByPlayerAccount[0]];
     }
+
+    public function isBoneGrave() : Bool
+    {
+        var grave:ObjectHelper = this;
+        var objData = grave.objectData;
+
+        if(objData.id == 87) return true; // Fresh Grave
+        if(objData.id == 88) return true; // Grave
+        if(objData.id == 89) return true; // Old Grave
+        if(objData.id == 356) return true; // Basket of Bones
+        if(objData.id == 357) return true; // Bone Pile
+
+        if(objData.id == 1920) return true; // Baby Bones
+        if(objData.id == 3051) return true; // Baby Bone Pile
+        if(objData.id == 3052) return true; // Basket of Baby Bones
+
+        if(objData.id == 3195) return true; // Defaced Bone Pile
+        if(objData.id == 3196) return true; // Basket of Defaced Bones
+
+        if(objData.id == 752) return true; // Murder Grave
+        if(objData.id == 1011) return true; // Buried Grave
+
+        return false;
+    }
+
+    public function isGraveWithGraveStone() : Bool
+    {
+        if(this.id == 1011) return false; //Buried Grave
+
+        return isBoneGrave() == false;
+    }
 }
