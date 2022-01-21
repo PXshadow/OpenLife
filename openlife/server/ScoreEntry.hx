@@ -64,4 +64,32 @@ class ScoreEntry
         
         scoreEntry.score -= ServerSettings.CursedGraveMali;
     }
+
+    public static function ProcessScoreEntry(player:GlobalPlayerInstance)
+    {
+        if(Std.int(player.trueAge) % 5 != 0) return;
+        if(player.account.scoreEntries.length < 1) return;
+
+        var scoreEntry = player.account.scoreEntries.shift();
+        var score = scoreEntry.score;
+
+        if(score < 0 && player.prestige < 10)
+        {
+            player.account.scoreEntries.push(scoreEntry);
+            return;
+        }
+
+        if(score < -20)
+        {
+            score = -10;
+            scoreEntry.score += 10;
+            player.account.scoreEntries.push(scoreEntry);
+        }
+
+        var message = scoreEntry.score > 0 ? 'You gained ${scoreEntry.score} prestige because ${scoreEntry.text}' : 'You lost ${-scoreEntry.score} prestige because ${scoreEntry.text}';
+        
+        player.addPrestige(scoreEntry.score);
+
+        player.connection.sendGlobalMessage(message);
+    }
 }

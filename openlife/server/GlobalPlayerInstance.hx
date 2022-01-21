@@ -2261,7 +2261,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             InheritOwnership(this);
             InheritCoins(this);
 
-            Connection.SendUpdateToAllClosePlayers(this, false);
+            Connection.SendUpdateToAllClosePlayers(this, false);       
 
             this.delete();
 
@@ -2488,6 +2488,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         Connection.SendGraveInfoToAll(grave);
 
         this.account.graves.push(grave);
+
+        //ScoreEntry.CreateScoreEntryForCursedGrave(grave);
     }
 
     // insulation reaches from 0 to 2

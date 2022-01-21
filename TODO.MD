@@ -40,13 +40,14 @@ Not yet implemented:
 
 SERVER - CHANGES TO VANILLA
 ======
-SCORE:
+SCORE / PRESTIGE:
 - YUM-Multiplier is now your score / prestige / health
 - Your prestiege / health influences your aging and max food pipes and therefore speed
 - Your prestiege is also your health displayed where the YUM-Multiplier was.
 - ON death your new score is 9/10 of the old score plus 1/10 of this life score
 - You have a seperate score for male and female lives. Your total score is one halve each.
 - You get extra score if you feed one YUM or if a follower / (grand) child gets some score
+- You loose score for a cursed grave or if no one burried your bones
 
 MAP:
 - Generate limited map using image color as index for biome id

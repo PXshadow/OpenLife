@@ -483,6 +483,8 @@ class TimeHelper
                 trace('New Age: $message');
                 player.connection.sendGlobalMessage(message);
             }
+
+            ScoreEntry.ProcessScoreEntry(player);
         }
     }
 
