@@ -7,7 +7,7 @@ class ScoreEntry
 {
     public var accountId:Int;
     public var playerId:Int;
-    public var score:Float;
+    public var score:Float = 0;
     public var text:String;
 
     public function new() {
@@ -28,6 +28,40 @@ class ScoreEntry
         score.playerId = creator != null ? creator.p_id : 0;
         score.score = -ServerSettings.OldGraveDecayMali;
         score.text = creator != null ? 'No one burried ${creator.name} ${creator.familyName}!' : 'No one burried your old bones!';
-        account.scoreEntry.push(score);
+        account.scoreEntries.push(score);
+    }
+
+    public static function CreateScoreEntryForCursedGrave(cursedGrave:ObjectHelper)
+    {
+        var account = cursedGrave.getOwnerAccount();
+        var creator = cursedGrave.getCreator();
+        var creatorId = cursedGrave.getCreatorId();
+
+        if(account == null) return;
+
+        var scoreEntry = null;
+
+        if(creatorId > 0)
+        {
+            for(entry in account.scoreEntries)
+            {
+                if(entry.playerId == creatorId)
+                {
+                    scoreEntry = entry;
+                    break;
+                }
+            }
+        }
+
+        if(scoreEntry == null)
+        {
+            scoreEntry = new ScoreEntry();
+            scoreEntry.accountId = account.id;
+            scoreEntry.playerId = creator != null ? creator.p_id : 0;
+            scoreEntry.text = creator != null ? '${creator.name} ${creator.familyName} bones where cursed!' : 'Your old bones where cursed!';
+            account.scoreEntries.push(scoreEntry);
+        }
+        
+        scoreEntry.score -= ServerSettings.CursedGraveMali;
     }
 }

@@ -45,7 +45,7 @@ class ServerSettings
     public static var ScoreFactor:Float = 0.2; // new score influences total score with factor X. 
     public static var DisplayScoreFactor:Float = 1; // if display score multiply with factor X
     public static var OldGraveDecayMali:Float = 10; // prestige mali if bones decay without beeing proper burried
-
+    public static var CursedGraveMali:Float = 2; // prestige mali if bones decay without beeing proper burried
 
     // message
     public static var SecondsBetweenMessages:Float = 5;
@@ -65,7 +65,7 @@ class ServerSettings
     // Graves
     public static var GraveBlockingDistance = 100; // cannot incrante close to blocking graves like bone pile
     public static var CloseGraveSpeedMali:Float = 0.8; // speed maili if close to blocking grave like bone pile 
-    public static var CursedGraveTime:Float = 8; // hours a cursed grave continues to exist per curse token  
+    public static var CursedGraveTime:Float = 12; // hours a cursed grave continues to exist per curse token  
 
     // PlayerInstance
     public static var MaxPlayersBeforeStartingAsChild = 0; // -1
