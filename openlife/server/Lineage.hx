@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.data.object.ObjectHelper;
 import haxe.Exception;
 import sys.io.File;
 import openlife.settings.ServerSettings;
@@ -295,5 +296,17 @@ class Lineage
         trace('Lineage: ${lineageString}');
 
         return lineageString;
+    }
+
+    public var grave(get, null):ObjectHelper;
+
+    public function get_grave()
+    {
+        for (grave in account.graves)
+        {
+            if(grave.getCreatorId() == myId) return grave;
+        }
+
+        return null; 
     }
 }

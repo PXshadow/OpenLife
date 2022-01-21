@@ -87,11 +87,15 @@ class ScoreEntry
             }
 
             if(player.account == ancestor.account) return;
+            if(ancestor.grave == null || ancestor.grave.isBoneGrave()) return;
+
             ancestor.account.scoreEntries.push(CreateNewScoreEntry(player, ancestor));
             return;
         }
 
         if(player.account == ancestor.account) return;
+        if(ancestor.grave == null || ancestor.grave.isBoneGrave()) return;
+        
         ancestor.account.scoreEntries.push(CreateNewScoreEntry(player, ancestor));
     }
 
