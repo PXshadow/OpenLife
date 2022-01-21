@@ -102,7 +102,7 @@ class ScoreEntry
         score.playerId = ancestor.myId;
         score.relativeAccountId = player.account.id;
         score.relativePlayerId = player.p_id;
-        score.score = player.prestige / 2;
+        score.score = player.prestige * ServerSettings.AncestorPrestigeFactor;
         score.text = '${player.name} ${player.familyName}!';
 
         return score;

@@ -42,6 +42,8 @@ class ServerSettings
     public static var TemperatureSpeedImpact = 0.9; // speed * X: double impact if extreme temperature
     
     // score
+    public static var BirthPrestigeFactor:Float = 0.4; // TODO set 0.2 if fathers are implemented // on birth your starting prestige is factor X * total prestige 
+    public static var AncestorPrestigeFactor:Float = 0.2; // if one dies the ancestors get factor X prestige of the dead
     public static var ScoreFactor:Float = 0.2; // new score influences total score with factor X. 
     public static var DisplayScoreFactor:Float = 1; // if display score multiply with factor X
     public static var OldGraveDecayMali:Float = 10; // prestige mali if bones decay without beeing proper burried
