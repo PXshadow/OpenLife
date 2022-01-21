@@ -189,6 +189,13 @@ class Lineage
         return Math.floor(years);
     }
 
+    public var account(get, null):PlayerAccount;
+
+    public function get_account()
+    {
+        return PlayerAccount.AllPlayerAccountsById[accountId];
+    }
+
     public var eve(get, null):GlobalPlayerInstance;
 
     public function get_eve()

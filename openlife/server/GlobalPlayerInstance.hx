@@ -2237,6 +2237,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             placeGrave();
             InheritOwnership(this);
             InheritCoins(this);
+            ScoreEntry.CreateScoreEntryForDeadRelative(this);
 
             Connection.SendUpdateToAllClosePlayers(this, false);       
 

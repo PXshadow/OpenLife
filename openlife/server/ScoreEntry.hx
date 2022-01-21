@@ -7,6 +7,8 @@ class ScoreEntry
 {
     public var accountId:Int;
     public var playerId:Int;
+    public var relativeAccountId:Int;
+    public var relativePlayerId:Int;
     public var score:Float = 0;
     public var text:String;
 
@@ -63,6 +65,47 @@ class ScoreEntry
         }
         
         scoreEntry.score -= ServerSettings.CursedGraveMali;
+    }
+
+    public static function CreateScoreEntryForDeadRelative(player:GlobalPlayerInstance)
+    {
+        // TODO father
+        // TODO sisters / brothers
+        if(player.prestige < 10) return;
+        if(player.mother == null) return;
+
+        var ancestor = player.lineage.getMotherLineage();
+
+        for(i in 0...10)
+        {
+            var nextAncestor = ancestor.getMotherLineage();
+
+            if(nextAncestor != null && (player.account == ancestor.account || WorldMap.calculateRandomFloat() > 0.1))
+            {
+                ancestor = nextAncestor;
+                continue;
+            }
+
+            if(player.account == ancestor.account) return;
+            ancestor.account.scoreEntries.push(CreateNewScoreEntry(player, ancestor));
+            return;
+        }
+
+        if(player.account == ancestor.account) return;
+        ancestor.account.scoreEntries.push(CreateNewScoreEntry(player, ancestor));
+    }
+
+    private static function CreateNewScoreEntry(player:GlobalPlayerInstance, ancestor:Lineage)
+    {
+        var score = new ScoreEntry();
+        score.accountId = ancestor.accountId;
+        score.playerId = ancestor.myId;
+        score.relativeAccountId = player.account.id;
+        score.relativePlayerId = player.p_id;
+        score.score = player.prestige / 2;
+        score.text = '${player.name} ${player.familyName}!';
+
+        return score;
     }
 
     public static function ProcessScoreEntry(player:GlobalPlayerInstance)
