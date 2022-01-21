@@ -28,6 +28,7 @@ class PlayerAccount
 
     // not saved
     public var graves = new Array<ObjectHelper>();
+    public var scoreEntry = new Array<ScoreEntry>(); // is used to store prestige boni / mali 
     public var lastConnection:Connection;
 
     private function new(){}

@@ -1244,7 +1244,7 @@ class TimeHelper
             var containedObject = helper.containedObjects.pop();
 
             // For each Sharp Stone a grave needs much longer to decay / This can be used to let cursed graves exist much longer
-            if(containedObject.id == 34) helper.timeToChange += ServerSettings.CursedGraveTime * 60;    
+            if(containedObject.id == 34) helper.timeToChange += ServerSettings.CursedGraveTime * 60 * 60;    
 
             WorldMap.PlaceObject(tx, ty, containedObject);
 
@@ -1262,6 +1262,8 @@ class TimeHelper
             return false;
         }
 
+        ScoreEntry.CreateScoreEntryIfGrave(helper);
+        
         if(helper.isLastUse()) transition = TransitionImporter.GetTransition(-1, helper.id, false, true);
 
         helper.id = transition.newTargetID;

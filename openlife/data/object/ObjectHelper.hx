@@ -569,4 +569,9 @@ class ObjectHelper
 
         return message;
     }    
+
+    public function getOwnerAccount()
+    {
+        return PlayerAccount.AllPlayerAccountsById[this.ownersByPlayerAccount[0]];
+    }
 }
