@@ -16,20 +16,25 @@ import openlife.settings.ServerSettings;
 }
 
 // Holds all Saved Lineage  Information
-// TODO load on server start
+// TODO delete / backup not needed lineages
 class Lineage 
 {
     private static var PrestigeClasses = ['Not Set', 'Serf', 'Commoner','Noble', 'Noble', 'Noble', 'King', 'Emperor'];
 
+    //private static var NewLineages = new Map<Int,Lineage>(); // sperate in new and old to save faster (use DB???)
     private static var AllLineages = new Map<Int,Lineage>();
+
     public static function AddLineage(lineageId:Int, lineage:Lineage)
     {
         lineage.myId = lineageId;
+        //NewLineages[lineage.myId] = lineage;
         AllLineages[lineage.myId] = lineage;
     }
 
     public static function GetLineage(lineageId:Int) : Lineage
     {
+        //var lineage = NewLineages[lineageId];
+        //if(lineage != null) return lineage;
         return AllLineages[lineageId];
     }
 
@@ -58,41 +63,51 @@ class Lineage
 
     public var prestigeClass:PrestigeClass = PrestigeClass.Commoner;
 
+    /*public static function WriteNewLineages(path:String)
+    { 
+        WriteLineages(path, NewLineages);
+    }*/
+
     public static function WriteAllLineages(path:String)
+    {
+        WriteLineages(path, AllLineages);
+    }
+
+    public static function WriteLineages(path:String, lineages:Map<Int,Lineage>)
     { 
         var count = 0;
         var dataVersion = 1;
         var writer = File.write(path, true);
 
-        for(linage in AllLineages) count++;
+        for(lineage in lineages) count++;
 
         writer.writeInt32(dataVersion); 
         writer.writeInt32(count);
         
-        for(linage in AllLineages)
+        for(lineage in lineages)
         {
-            writer.writeInt32(linage.myId);
-            writer.writeInt32(linage.accountId);
+            writer.writeInt32(lineage.myId);
+            writer.writeInt32(lineage.accountId);
 
-            writer.writeString('${linage.name}\n');
-            writer.writeString('${linage.familyName}\n'); // writes eve family name
+            writer.writeString('${lineage.name}\n');
+            writer.writeString('${lineage.familyName}\n'); // writes eve family name
 
-            writer.writeInt32(linage.po_id);
-            writer.writeDouble(linage.birthTime);
-            writer.writeDouble(linage.deathTime);
-            writer.writeFloat(linage.age);
-            writer.writeFloat(linage.trueAge);
+            writer.writeInt32(lineage.po_id);
+            writer.writeDouble(lineage.birthTime);
+            writer.writeDouble(lineage.deathTime);
+            writer.writeFloat(lineage.age);
+            writer.writeFloat(lineage.trueAge);
 
-            writer.writeString('${linage.deathReason}\n');
-            writer.writeString('${linage.lastSaid}\n');
-            writer.writeFloat(linage.prestige);
-            writer.writeFloat(linage.coins);
+            writer.writeString('${lineage.deathReason}\n');
+            writer.writeString('${lineage.lastSaid}\n');
+            writer.writeFloat(lineage.prestige);
+            writer.writeFloat(lineage.coins);
 
-            writer.writeInt32(linage.myEveId);
-            writer.writeInt32(linage.motherId);
-            writer.writeInt32(linage.fatherId);
+            writer.writeInt32(lineage.myEveId);
+            writer.writeInt32(lineage.motherId);
+            writer.writeInt32(lineage.fatherId);
 
-            writer.writeInt8(linage.prestigeClass);
+            writer.writeInt8(lineage.prestigeClass);
         }
 
         writer.close();
@@ -100,13 +115,29 @@ class Lineage
         if(ServerSettings.DebugWrite) trace('wrote $count Lineages...');
     }
 
-    public static function ReadLineages(path:String) 
+    /*public static function ReadNewLineages(path:String)
+    { 
+        WriteLineages(path, NewLineages);
+    }
+    
+    public static function ReadAndSaveAllLineages(pathAll:String, pathNew:String)
+    {
+        AllLineages = ReadLineages(pathAll);
+
+        var newLineages = ReadLineages(pathNew);
+
+        for(lineage in newLineages)  AllLineages[lineage.myId] = lineage;
+
+        WriteAllLineages(pathAll);
+    }*/
+
+    public static function ReadLineages(path:String) : Map<Int,Lineage>
     {
         var reader = File.read(path, true);
         var expectedDataVersion = 1;
         var dataVersion = reader.readInt32();
         var count = reader.readInt32();
-        AllLineages = new Map<Int,Lineage>();
+        var loadedLineages = new Map<Int,Lineage>();
 
         trace('Read from file: $path count: ${count}');
 
@@ -115,32 +146,32 @@ class Lineage
         try{
             for(i in 0...count)
             {
-                var linage = new Lineage(null);
+                var lineage = new Lineage(null);
 
-                linage.myId = reader.readInt32();
-                linage.accountId = reader.readInt32();
+                lineage.myId = reader.readInt32();
+                lineage.accountId = reader.readInt32();
     
-                linage.name = reader.readLine();
-                linage.familyName = reader.readLine();
+                lineage.name = reader.readLine();
+                lineage.familyName = reader.readLine();
 
-                linage.po_id = reader.readInt32();
-                linage.birthTime = reader.readDouble();
-                linage.deathTime = reader.readDouble();
-                linage.age = reader.readFloat();
-                linage.trueAge = reader.readFloat();
+                lineage.po_id = reader.readInt32();
+                lineage.birthTime = reader.readDouble();
+                lineage.deathTime = reader.readDouble();
+                lineage.age = reader.readFloat();
+                lineage.trueAge = reader.readFloat();
 
-                linage.deathReason = reader.readLine();
-                linage.lastSaid = reader.readLine();
-                linage.prestige = reader.readFloat();
-                linage.coins = reader.readFloat();
+                lineage.deathReason = reader.readLine();
+                lineage.lastSaid = reader.readLine();
+                lineage.prestige = reader.readFloat();
+                lineage.coins = reader.readFloat();
 
-                linage.myEveId = reader.readInt32();
-                linage.motherId = reader.readInt32();
-                linage.fatherId = reader.readInt32();
+                lineage.myEveId = reader.readInt32();
+                lineage.motherId = reader.readInt32();
+                lineage.fatherId = reader.readInt32();
 
-                linage.prestigeClass = reader.readInt8();
+                lineage.prestigeClass = reader.readInt8();
 
-                AllLineages[linage.myId] = linage;
+                loadedLineages[lineage.myId] = lineage;
             }
         }
         catch(ex)
@@ -152,6 +183,8 @@ class Lineage
         reader.close();
 
         //trace('read $count Lineages...');
+
+        return loadedLineages;
     }
 
     public function new(player:GlobalPlayerInstance)

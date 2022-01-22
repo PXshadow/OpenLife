@@ -3,6 +3,7 @@ package openlife.server;
 import openlife.settings.ServerSettings;
 import openlife.data.object.ObjectHelper;
 
+// TODO save to disk
 class ScoreEntry 
 {
     public var accountId:Int;
@@ -95,7 +96,7 @@ class ScoreEntry
 
         if(player.account == ancestor.account) return;
         if(ancestor.grave == null || ancestor.grave.isBoneGrave()) return;
-        
+
         ancestor.account.scoreEntries.push(CreateNewScoreEntry(player, ancestor));
     }
 
