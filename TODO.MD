@@ -240,11 +240,9 @@ High priority:
 - AI tests with >20 AIs
 - AI Stoneage
 
-- COMBAT animal interactions / collisions
 - COMBAT ill from moskitos
 
-- ALLY change ally color if leader changes
-- ALLY give some time after beeing exiled
+- CARS USE cars as boats
 
 - BIRTH spawn eves on different locations
 - BIRTH fathers
@@ -253,16 +251,18 @@ High priority:
 
 - BIOME biome boni for different races
 - BIOME change biome speed for specialists
-- BIOME cars as boats
 - BIOME no dropping of stuff on water
 - BIOME biome locked planting
 
 - GATES Ally Gates and swing doors
-- CARS USE cars as boats
 
 Middle priority:
 - CONNECTION saving of people data so that people can come back after server restart
+
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
+
+- ALLY change ally color if leader changes
+- ALLY give some time after beeing exiled
 
 - EXHAUSTION carrying heavy stuff
 - EXHAUSTION for working in bad biome
