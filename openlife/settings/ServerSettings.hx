@@ -427,8 +427,25 @@ class ServerSettings
         ObjectData.getObjectData(152).damage = 8; // Bow and Arrow  // damage per sec = 2
         ObjectData.getObjectData(1624).damage = 12; // Bow and Arrow with Note  // damage per sec = 3
 
+        // TODO Mouflon?
         ObjectData.getObjectData(418).deadlyDistance = 1.5; // Wolfs 
         ObjectData.getObjectData(418).damage = 5;  // Wolfs 
+        ObjectData.getObjectData(420).deadlyDistance = 1.5; // Shot Wolf
+        ObjectData.getObjectData(420).damage = 8;  // Shot Wolf
+
+        ObjectData.getObjectData(1323).deadlyDistance = 1.5; // Wild Boar 
+        ObjectData.getObjectData(1323).damage = 4;  // Wild Boar 
+        ObjectData.getObjectData(1328).deadlyDistance = 1.5; // Wild Boar with Piglet 
+        ObjectData.getObjectData(1328).damage = 7;  // Wild Boar with Piglet 
+
+        ObjectData.getObjectData(628).deadlyDistance = 1.5; // Grizzly Bear
+        ObjectData.getObjectData(628).damage = 8;  // Grizzly Bear 
+        ObjectData.getObjectData(632).deadlyDistance = 1.5; // Shot Grizzly Bear 1 
+        ObjectData.getObjectData(632).damage = 11;  // Shot Grizzly Bear 1 
+        ObjectData.getObjectData(635).deadlyDistance = 1.5; // Shot Grizzly Bear 2 
+        ObjectData.getObjectData(635).damage = 12;  // Shot Grizzly Bear 2 
+        ObjectData.getObjectData(637).deadlyDistance = 1.5; // Shot Grizzly Bear 3 
+        ObjectData.getObjectData(637).damage = 13;  // Shot Grizzly Bear 3
 
         ObjectData.getObjectData(3816).damage = 0.1; // per sec Gushing Knife Wound 
         ObjectData.getObjectData(797).damage = 0.05; // per sec Stable Knife Wound
@@ -510,7 +527,23 @@ class ServerSettings
 
         var trans = transtions.getTransition(-1, 427); // Attacking Wolf
         trans.autoDecaySeconds = 3; 
-        trans.traceTransition("PatchTransitions: "); 
+        var trans = transtions.getTransition(-1, 428); // Attacking Shot Wolf
+        trans.autoDecaySeconds = 3; 
+
+        var trans = transtions.getTransition(-1, 1333); // Attacking Wild Boar
+        trans.autoDecaySeconds = 3; 
+        var trans = transtions.getTransition(-1, 1334); // Attacking Wild Boar with Piglet
+        trans.autoDecaySeconds = 3; 
+
+        var trans = transtions.getTransition(-1, 653); // Hungry Grizzly Bear attacking
+        trans.autoDecaySeconds = 3; 
+        var trans = transtions.getTransition(-1, 654); // Shot Grizzly Bear 1 attacking
+        trans.autoDecaySeconds = 3; 
+        var trans = transtions.getTransition(-1, 655); // Shot Grizzly Bear 2 attacking
+        trans.autoDecaySeconds = 3; 
+        var trans = transtions.getTransition(-1, 637); // Shot Grizzly Bear 3 attacking
+        trans.autoDecaySeconds = 3; 
+        
 
         //ObjectData.getObjectData(427).ch = 2; // Attacking Wolf
 

@@ -1533,6 +1533,7 @@ class TimeHelper
                 if(p.isCloseUseExact(tmpX, tmpY, objData.deadlyDistance) == false) continue;
 
                 damage += p.doDamage(animal);
+                return damage;
             }
         }
 
