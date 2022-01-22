@@ -129,6 +129,8 @@ class PlayerAccount
 
     public function get_totalScore()
     {
+        var total = (maleScore + femaleScore) / 2; 
+        if(this.isAi) total *= ServerSettings.AiTotalScoreFactor;
         return (maleScore + femaleScore) / 2; 
     }
 

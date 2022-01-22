@@ -190,6 +190,7 @@ class ServerSettings
 
     // AI
     public static var NumberOfAis:Int = 1;
+    public static var AiTotalScoreFactor:Float = 0.2; 
     public static var AiMaxSearchRadius:Int = 32;
     public static var AiMaxSearchIncrement:Int = 16;
 

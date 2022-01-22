@@ -233,6 +233,10 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
 - AI basic nursing
+- AI deadly animal escape
+- AI deadly animal fight
+- AI attacker escape
+- AI player fight
 - Ai birth after death
 - AI basic clothing
 - Ai using containers
@@ -244,22 +248,27 @@ High priority:
 
 - CARS USE cars as boats
 
+- YUM Inherit YUM from grandmother
+- YUM display nearest yum if holding meh
+
 - BIRTH spawn eves on different locations
 - BIRTH fathers
 
 - MAP use bigger map (Europe?) / create tool to auto create map
 
-- BIOME biome boni for different races
-- BIOME change biome speed for specialists
-- BIOME no dropping of stuff on water
-- BIOME biome locked planting
-
 - GATES Ally Gates and swing doors
+
+- GRAVES graves with simple tools but more exhausting
 
 Middle priority:
 - CONNECTION saving of people data so that people can come back after server restart
 
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
+
+- BIOME biome boni for different races
+- BIOME change biome speed for specialists
+- BIOME no dropping of stuff on water
+- BIOME biome locked planting
 
 - ALLY change ally color if leader changes
 - ALLY give some time after beeing exiled
@@ -280,9 +289,7 @@ Middle priority:
 
 - ANIMAL animal movement on top of items
 
-- SCORE calculate real score after grandkids are dead
-- SCORE save lineages
-- SCORE give score boni like for great clothing
+- SCORE give prestige boni for clothing / crown
 
 - TEMPERATURE indoor temperature calculation 
 
@@ -301,7 +308,6 @@ Middle priority:
 
 - RAILS implement rails
 
-- GATES fences
 - GATES visitor at gate
 
 - YUM use yum category // for example for berry / berry bowl (maybe not needed?)

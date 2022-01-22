@@ -315,12 +315,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(players.length < 2) return PrestigeClass.Commoner;
 
         players.sort(function(a, b) {
-            if(a.linagePrestige < b.linagePrestige) return -1;
-            else if(a.linagePrestige > b.linagePrestige) return 1;
+            if(a.lineagePrestige < b.lineagePrestige) return -1;
+            else if(a.lineagePrestige > b.lineagePrestige) return 1;
             else return 0;
         });
 
-        for(p in players) trace('PRESTIGE: ${p.p_id} ${p.linagePrestige}');        
+        for(p in players) trace('PRESTIGE: ${p.p_id} ${p.lineagePrestige}');        
 
         var neededPrestige = CalculateNeededPrestige(players, 0.4);
         medianPrestige = Math.max(neededPrestige, ServerSettings.HealthFactor); // is needed for calculating health
@@ -344,9 +344,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(count < players.length * percent) continue;
 
-           trace('NEEDED PRESTIGE ${p.linagePrestige} percent: ${percent}');
+           trace('NEEDED PRESTIGE ${p.lineagePrestige} percent: ${percent}');
 
-            return p.linagePrestige;
+            return p.lineagePrestige;
         }
 
         return 999999;
@@ -3316,9 +3316,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return loved;
     }
 
-    public var linagePrestige(get, null):Float;
+    public var lineagePrestige(get, null):Float;
 
-    public function get_linagePrestige()
+    public function get_lineagePrestige()
     {
         return this.account.totalScore;
     }
