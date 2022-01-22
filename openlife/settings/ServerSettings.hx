@@ -288,6 +288,8 @@ class ServerSettings
         ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
         ObjectData.getObjectData(418).mapChance *= 1.5; // More Happy Wolfs
         ObjectData.getObjectData(418).speedMult = 1.5; // Boost Wolfs even more :)
+        ObjectData.getObjectData(418).deadlyDistance = 1.5; // Boost Wolfs even more :)
+        ObjectData.getObjectData(418).damage = 2; 
 
         ObjectData.getObjectData(769).biomes.push(BiomeTag.GREEN); // Beautiful Horses now also in Green biome :)
 

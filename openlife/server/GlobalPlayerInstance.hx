@@ -792,9 +792,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return (xDiff * xDiff + yDiff * yDiff <= distance * distance);
     }
 
-    public function isCloseUseExact(target:GlobalPlayerInstance, distance:Float = 1):Bool
+    public function isCloseToPlayerUseExact(target:GlobalPlayerInstance, distance:Float = 1):Bool
     {    
-        return this.moveHelper.isCloseUseExact(target, distance);
+        return this.moveHelper.isCloseToPlayerUseExact(target, distance);
+    }
+
+    public function isCloseUseExact(targetTx:Float, targetTy:Float, distance:Float = 1) : Bool
+    {    
+        return this.moveHelper.isCloseUseExact(targetTx, targetTy, distance);
     }
 
     public function getPackpack() : ObjectHelper
@@ -2619,7 +2624,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }   
         
         // can only shoot at target with bow if not too close
-        if(deadlyDistance > 1.9 && isCloseUseExact(targetPlayer, 1.5))
+        if(deadlyDistance > 1.9 && isCloseToPlayerUseExact(targetPlayer, 1.5))
         {
             this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
@@ -2632,7 +2637,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         Connection.SendEmoteToAll(this, Emote.murderFace);
 
-        if(isCloseUseExact(targetPlayer, deadlyDistance) == false)
+        if(isCloseToPlayerUseExact(targetPlayer, deadlyDistance) == false)
         {
             this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
@@ -2674,112 +2679,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         targetPlayer.angryTime = -ServerSettings.CombatAngryTimeBeforeAttack; // make hit player angry, so that he can attack back
-
-        var orgDamage = this.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
-        var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());
-        var allyFactor = 1.0;
-
-        if(targetPlayer.isAlly(this)) allyFactor = 0.5;
-        else
-        {
-            targetPlayer.makeAllCloseAllyAngryAt(this);
-            allyFactor = this.calculateEnemyVsAllyStrengthFactor();
-            allyFactor = allyFactor > 1.2 ? 1.2 : allyFactor;
-        }
-
-        var weaponPrestigeClass:Int = this.heldObject.objectData.prestigeClass;
-        var attackerPrestigeClass:Int = this.lineage.prestigeClass;
-        var isRightClassForWeapon = weaponPrestigeClass > 0 && weaponPrestigeClass <= attackerPrestigeClass;
-        trace('PRESTIGE: isRightClassForWeapon: $isRightClassForWeapon');
-
-        var protection = targetPlayer.calculateClothingInsulation();
-        var protectionFactor = 1 / (protection + 1); // from 1 to 1 / 3;
-        trace('kill: protection: $protection protectionFactor: $protectionFactor');
-
-        damage *= allyFactor;
-        damage *= distanceFactor;    
-        damage *= isRightClassForWeapon ? 1.2 : 1; 
-        damage *= this.isCursed ? ServerSettings.CursedDamageFactor : 1;
-        damage *= protectionFactor;
-        damage *= targetPlayer.isWounded() ? ServerSettings.TargetWoundedDamageFactor : 1;
-
-        targetPlayer.hits += damage;
-        targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
-
-        trace('kill: HIT weaponDamage: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance');
-
-        targetPlayer.woundedBy = this.heldObject.id;
-        var longWeaponCoolDown = false;
-        
-        if(targetPlayer.food_store_max < 0)
-        {
-            longWeaponCoolDown = true;
-
-            if(targetPlayer.coins > 0)
-            {
-                var coins = Math.floor(targetPlayer.coins * 0.8);
-                this.coins += coins;
-                targetPlayer.coins = 0;
-
-                if(coins > 0) this.connection.sendGlobalMessage('You gained ${coins} from ${targetPlayer.name}!');
-            } 
-
-            targetPlayer.doDeath('reason_killed_${targetPlayer.woundedBy}');
-        }
-
-        var trans = TransitionImporter.GetTransition(this.heldObject.id, 0, true, false);
-
-        if(trans != null)
-        {
-            //trace('Wound: ' + trans);
-
-            var doWound = targetPlayer.food_store_max < targetPlayer.calculateNotReducedFoodStoreMax() / 2;
-
-            if(doWound && targetPlayer.isWounded() == false) longWeaponCoolDown = true;
-
-            if(doWound && targetPlayer.heldObject.isArrowWound() == false)
-            {
-                targetPlayer.killMode = false;
-
-                if(targetPlayer.heldPlayer != null) dropPlayer(); // TODO test
-                
-                if(targetPlayer.heldObject.id != 0)
-                {
-                    if(WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
-                }
-
-                var newWound = new ObjectHelper(this, trans.newTargetID);
-                targetPlayer.setHeldObject(newWound);    
-            }
-            else
-            {
-                // if it is an arrow wound, place arrow on ground if there is no wound
-                var newWound = new ObjectHelper(this, trans.newTargetID);
-                newWound.timeToChange = 2;
-                WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), newWound, true);
-            }      
-
-            var bloodyWeapon = new ObjectHelper(this, trans.newActorID);
-            this.setHeldObject(bloodyWeapon);
-            this.heldObject.creationTimeInTicks = TimeHelper.tick;
-
-            var timeTransition = TransitionImporter.GetTransition(-1, trans.newActorID);
-
-            if(timeTransition != null)
-            {
-                var timeToChangeFactor = longWeaponCoolDown ? ServerSettings.WeaponCoolDownFactorIfWounding : ServerSettings.WeaponCoolDownFactor;
-                this.heldObject.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition) * timeToChangeFactor;
-                trace('Bloody Weapon Time: ${this.heldObject.timeToChange} ' + timeTransition.getDesciption());
-            }          
-        }
-
-        this.setHeldObjectOriginNotValid(); // no animation
+  
+        var damage = targetPlayer.doDamage(this.heldObject, this, distanceFactor, quadDistance);
+            
+        /*this.setHeldObjectOriginNotValid(); // no animation
         targetPlayer.setHeldObjectOriginNotValid(); // no animation
 
         //this.connection.send(PLAYER_UPDATE, [this.toData()]);
         Connection.SendUpdateToAllClosePlayers(this);
         Connection.SendUpdateToAllClosePlayers(targetPlayer);
-        Connection.SendDyingToAll(targetPlayer);
+        Connection.SendDyingToAll(targetPlayer);*/
 
         var prestigeCost:Float = 0;
 
@@ -2822,6 +2731,134 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         //trace('Wound: damage: $damage prestigeCost: $prestigeCost');
 
         return true;
+    }
+
+    public function doDamage(fromObj:ObjectHelper, attacker:GlobalPlayerInstance = null, distanceFactor:Float = 1, quadDistance:Float = 0) : Float
+    {
+        return DoDamage(this, fromObj, attacker, distanceFactor, quadDistance);
+    }
+
+    public function DoDamage(targetPlayer:GlobalPlayerInstance, fromObj:ObjectHelper, attacker:GlobalPlayerInstance = null, distanceFactor:Float = 1, quadDistance:Float = 0) : Float
+    {
+        var orgDamage = fromObj.objectData.damage * ServerSettings.WeaponDamageFactor;
+        var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());
+
+        var protection = targetPlayer.calculateClothingInsulation();
+        var protectionFactor = 1 / (protection + 1); // from 1 to 1 / 3;
+        trace('KILL: protection: $protection protectionFactor: $protectionFactor');
+
+        var allyFactor = 1.0;
+
+        if(attacker != null)
+        {
+            if(targetPlayer.isAlly(attacker)) allyFactor = 0.5;
+            else
+            {
+                targetPlayer.makeAllCloseAllyAngryAt(attacker);
+                allyFactor = attacker.calculateEnemyVsAllyStrengthFactor();
+                allyFactor = allyFactor > 1.2 ? 1.2 : allyFactor;
+            }
+
+            var weaponPrestigeClass:Int = attacker.heldObject.objectData.prestigeClass;
+            var attackerPrestigeClass:Int = attacker.lineage.prestigeClass;
+            var isRightClassForWeapon = weaponPrestigeClass > 0 && weaponPrestigeClass <= attackerPrestigeClass;
+            trace('PRESTIGE: isRightClassForWeapon: $isRightClassForWeapon');
+
+            damage *= allyFactor;
+            damage *= distanceFactor;    
+            damage *= isRightClassForWeapon ? 1.2 : 1; 
+            damage *= attacker.isCursed ? ServerSettings.CursedDamageFactor : 1;
+
+            trace('kill: HIT weaponDamage: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance');
+        }
+
+        damage *= protectionFactor;
+        damage *= targetPlayer.isWounded() ? ServerSettings.TargetWoundedDamageFactor : 1;
+
+        targetPlayer.hits += damage;
+        targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
+
+        Connection.SendDyingToAll(targetPlayer); // he is not actually dying but wounded
+
+        //trace('kill: HIT objDamage: $orgDamage damage: $damage');
+
+        targetPlayer.woundedBy = fromObj.id;
+        var longWeaponCoolDown = false;
+        
+        if(targetPlayer.food_store_max < 0)
+        {
+            longWeaponCoolDown = true;
+
+            if(attacker != null && targetPlayer.coins > 0)
+            {
+                var coins = Math.floor(targetPlayer.coins * 0.8);
+                attacker.coins += coins;
+                targetPlayer.coins = 0;
+
+                if(coins > 0) attacker.connection.sendGlobalMessage('You gained ${coins} from ${targetPlayer.name}!');
+            } 
+
+            targetPlayer.doDeath('reason_killed_${targetPlayer.woundedBy}');
+        }
+
+        var trans = TransitionImporter.GetTransition(fromObj.id, 0, true, false);
+
+        if(trans == null)
+        {
+            Connection.SendUpdateToAllClosePlayers(targetPlayer);
+            return damage;
+        }
+        //trace('Wound: ' + trans);
+
+        var doWound = targetPlayer.food_store_max < targetPlayer.calculateNotReducedFoodStoreMax() / 2;
+
+        if(doWound && targetPlayer.isWounded() == false) longWeaponCoolDown = true;
+
+        if(doWound && targetPlayer.heldObject.isArrowWound() == false)
+        {
+            targetPlayer.killMode = false;
+
+            if(targetPlayer.heldPlayer != null) dropPlayer(); // TODO test
+            
+            if(targetPlayer.heldObject.id != 0)
+            {
+                if(WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
+            }
+
+            var newWound = new ObjectHelper(attacker, trans.newTargetID);
+            targetPlayer.setHeldObject(newWound);    
+            targetPlayer.setHeldObjectOriginNotValid(); // no animation   
+            Connection.SendUpdateToAllClosePlayers(targetPlayer);             
+        }
+        else
+        {
+            // if it is an arrow wound, place arrow on ground if there is no wound
+            var newWound = new ObjectHelper(this, trans.newTargetID);
+            newWound.timeToChange = 2;
+            WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), newWound, true);
+        }  
+
+        if(attacker == null) return damage;
+
+        var bloodyWeapon = new ObjectHelper(attacker, trans.newActorID);
+        attacker.setHeldObject(bloodyWeapon);
+        attacker.heldObject.creationTimeInTicks = TimeHelper.tick;
+
+        var timeTransition = TransitionImporter.GetTransition(-1, trans.newActorID);
+
+        if(timeTransition != null)
+        {
+            var timeToChangeFactor = longWeaponCoolDown ? ServerSettings.WeaponCoolDownFactorIfWounding : ServerSettings.WeaponCoolDownFactor;
+            attacker.heldObject.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition) * timeToChangeFactor;
+            trace('Bloody Weapon Time: ${attacker.heldObject.timeToChange} ' + timeTransition.getDesciption());
+        }     
+        
+        attacker.setHeldObjectOriginNotValid(); // no animation
+        Connection.SendUpdateToAllClosePlayers(attacker);
+        
+        //this.connection.send(PLAYER_UPDATE, [this.toData()]);
+
+        return damage;
     }
 
     public function calculateEnemyVsAllyStrengthFactor() : Float
@@ -3362,6 +3399,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function isAlly(target:GlobalPlayerInstance) : Bool
     {
+        if(target == null) return false;
         return this.getTopLeader() == target.getTopLeader();
     }
 
@@ -3406,7 +3444,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         for(p in AllPlayers)
         {
             if(p.deleted) continue;
-            if(p.isCloseUseExact(this, maxDistance) == false) continue;
+            if(p.isCloseToPlayerUseExact(this, maxDistance) == false) continue;
             if(hostile && p.isFriendly(this)) continue;
             if(hasWeapon && p.isHoldingWeapon() == false) continue;
 

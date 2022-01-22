@@ -1441,6 +1441,8 @@ class TimeHelper
                 c.send(FRAME, null, false);
             }*/
 
+            DoAnimalDamage(fromTx, fromTy, helper);
+            
             return true;
         }
 
@@ -1496,5 +1498,40 @@ class TimeHelper
         }
    
         return tmpTarget;
+    }
+
+    private static function DoAnimalDamage(fromX:Int, fromY:Int, animal:ObjectHelper) 
+    {
+        var objData = animal.objectData;
+
+        if(objData.deadlyDistance <= 0) return;
+        if(objData.damage <= 0) return;
+
+        //trace('${objData.description} deadlyDistance: ${objData.deadlyDistance} damage: ${objData.damage}');
+
+        var tx = animal.tx;
+        var ty = animal.ty;
+        var tmpX = fromX;
+        var tmpY = fromY;
+
+        for(ii in 0...10)
+        {                
+            if(tmpX == tx && tmpY == ty) break;
+
+            if(tx > tmpX)  tmpX += 1;
+            else if(tx < tmpX)  tmpX -= 1;
+
+            if(ty > tmpY)  tmpY += 1;
+            else if(ty < tmpY)  tmpY -= 1;
+
+            for(p in GlobalPlayerInstance.AllPlayers)
+            {
+                if(p.deleted) continue;
+                if(p.isCloseUseExact(tmpX, tmpY, objData.deadlyDistance) == false) continue;
+
+                p.doDamage(animal);
+            }
+
+        }
     }
 }
