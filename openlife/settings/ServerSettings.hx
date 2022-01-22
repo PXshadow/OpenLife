@@ -109,7 +109,7 @@ class ServerSettings
     public static var GrownUpFoodStoreMax = 20; // defaul vanilla: 20
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
-    public static var DeathWithFoodStoreMax = 0; // Death through starvation if food store max reaches below XX 
+    public static var DeathWithFoodStoreMax:Float = -0.2; // Death through starvation if food store max reaches below XX 
     public static var IncreasedFoodNeedForChildren = 1.5; // children need XX food is below GrownUpAge
     public static var YumBonus = 3; // First time eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
     public static var YumFoodRestore = 0.8; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food

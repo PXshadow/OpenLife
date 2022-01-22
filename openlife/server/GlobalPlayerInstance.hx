@@ -2778,6 +2778,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         targetPlayer.hits += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
 
+        targetPlayer.sendFoodUpdate(false);
         Connection.SendDyingToAll(targetPlayer); // he is not actually dying but wounded
 
         //trace('kill: HIT objDamage: $orgDamage damage: $damage');
@@ -2807,7 +2808,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(trans == null)
         {
             trace('No Wound: ${fromObj.description}  ${fromObj.id}');
-            Connection.SendUpdateToAllClosePlayers(targetPlayer);
+            
+            //Connection.SendUpdateToAllClosePlayers(targetPlayer);
             return damage;
         }
         //trace('Wound: ' + trans);
