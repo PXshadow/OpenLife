@@ -2801,10 +2801,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             targetPlayer.doDeath('reason_killed_${targetPlayer.woundedBy}');
         }
 
-        var trans = TransitionImporter.GetTransition(fromObj.id, 0, true, false);
+        var trans = TransitionImporter.GetTransition(fromObj.id, 0, true, false); // weapon
+        if(trans == null) trans = TransitionImporter.GetTransition(fromObj.id, 0, false, false); // animal
 
         if(trans == null)
         {
+            trace('No Wound: ${fromObj.description}  ${fromObj.id}');
             Connection.SendUpdateToAllClosePlayers(targetPlayer);
             return damage;
         }
@@ -2838,23 +2840,32 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), newWound, true);
         }  
 
-        if(attacker == null) return damage;
-
-        var bloodyWeapon = new ObjectHelper(attacker, trans.newActorID);
-        attacker.setHeldObject(bloodyWeapon);
-        attacker.heldObject.creationTimeInTicks = TimeHelper.tick;
+        if(attacker == null) // attacker is animal
+        {
+            fromObj.id = trans.newActorID;
+        }
+        else // attacker is player
+        {
+            fromObj.id = trans.newActorID;
+            var bloodyWeapon = fromObj; //new ObjectHelper(attacker, trans.newActorID);
+            attacker.setHeldObject(bloodyWeapon);
+            attacker.heldObject.creationTimeInTicks = TimeHelper.tick;            
+            
+            attacker.setHeldObjectOriginNotValid(); // no animation
+            Connection.SendUpdateToAllClosePlayers(attacker);
+        }
 
         var timeTransition = TransitionImporter.GetTransition(-1, trans.newActorID);
 
         if(timeTransition != null)
         {
             var timeToChangeFactor = longWeaponCoolDown ? ServerSettings.WeaponCoolDownFactorIfWounding : ServerSettings.WeaponCoolDownFactor;
-            attacker.heldObject.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition) * timeToChangeFactor;
-            trace('Bloody Weapon Time: ${attacker.heldObject.timeToChange} ' + timeTransition.getDesciption());
+            // currently timetochange is overriden if object ist set
+            //timeToChangeFactor = longWeaponCoolDown && attacker == null ? ServerSettings.AnimalCoolDownFactorIfWounding : timeToChangeFactor;
+
+            fromObj.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition) * timeToChangeFactor;
+            trace('Bloody Weapon Time: ${fromObj.timeToChange} ' + timeTransition.getDesciption());
         }     
-        
-        attacker.setHeldObjectOriginNotValid(); // no animation
-        Connection.SendUpdateToAllClosePlayers(attacker);
         
         //this.connection.send(PLAYER_UPDATE, [this.toData()]);
 

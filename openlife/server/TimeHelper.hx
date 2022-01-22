@@ -61,6 +61,8 @@ class TimeHelper
 
         //trace('Server Startign time: sys.time: ${Sys.time()} serverStartingTime: $serverStartingTime timeSinceStartCountedFromTicks: $timeSinceStartCountedFromTicks');
 
+        DoTest();
+
         while (true)
         {
             if(ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.acquire(); 
@@ -1373,6 +1375,9 @@ class TimeHelper
 
             TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, timeTransition, false);
 
+            helper.tx = toTx;
+            helper.ty = toTy;
+            var damage = DoAnimalDamage(fromTx, fromTy, helper);
     
             // save what was on the ground, so that we can move on this tile and later restore it
             var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.toArray();
@@ -1382,7 +1387,7 @@ class TimeHelper
             //trace('MOVE: oldTile: $oldTileObject $des newTile: $newTileObject ${helper.description()}');
 
             // TODO only change after movement is finished
-            helper.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
+            if(damage <= 0) helper.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
             helper.creationTimeInTicks = TimeHelper.tick;
 
             worldmap.setObjectHelper(fromTx, fromTy, helper.groundObject);
@@ -1420,7 +1425,6 @@ class TimeHelper
             }       
 
             var speed = ServerSettings.InitialPlayerMoveSpeed * objectData.speedMult;
-
             Connection.SendAnimalMoveUpdateToAllClosePlayers(fromTx, fromTy, toTx, toTy, oldTileObject, newTileObject, speed);
 
             /*for (c in Server.server.connections) 
@@ -1441,7 +1445,6 @@ class TimeHelper
                 c.send(FRAME, null, false);
             }*/
 
-            DoAnimalDamage(fromTx, fromTy, helper);
             
             return true;
         }
@@ -1500,15 +1503,15 @@ class TimeHelper
         return tmpTarget;
     }
 
-    private static function DoAnimalDamage(fromX:Int, fromY:Int, animal:ObjectHelper) 
+    private static function DoAnimalDamage(fromX:Int, fromY:Int, animal:ObjectHelper) : Float
     {
         var objData = animal.objectData;
-
-        if(objData.deadlyDistance <= 0) return;
-        if(objData.damage <= 0) return;
+        
+        if(objData.deadlyDistance <= 0) return 0;
+        if(objData.damage <= 0) return 0;
 
         //trace('${objData.description} deadlyDistance: ${objData.deadlyDistance} damage: ${objData.damage}');
-
+        var damage = 0.0;
         var tx = animal.tx;
         var ty = animal.ty;
         var tmpX = fromX;
@@ -1529,9 +1532,22 @@ class TimeHelper
                 if(p.deleted) continue;
                 if(p.isCloseUseExact(tmpX, tmpY, objData.deadlyDistance) == false) continue;
 
-                p.doDamage(animal);
+                damage += p.doDamage(animal);
             }
-
         }
+
+        return damage;
+    }
+
+    // Called before time. Do tests here!
+    private static function DoTest()
+    {
+        return; // remove if testting
+        var trans = TransitionImporter.GetTransition(418, 0, false, false);
+        trace('TRANS4: $trans false, false');
+        var trans = TransitionImporter.GetTransition(418, 0, true, false);
+        trace('TRANS4: $trans true, false');
+        //var trans = TransitionImporter.GetTransition(418, 0, true, false);
+        //trace('TRANS: $trans');
     }
 }

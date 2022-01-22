@@ -177,6 +177,7 @@ class ServerSettings
     public static var CombatExhaustionCostPerAttack:Float = 0.25;
     public static var WeaponCoolDownFactor:Float = 0.05;
     public static var WeaponCoolDownFactorIfWounding:Float = 0.4;
+    //public static var AnimalCoolDownFactorIfWounding:Float = 0.2;
     public static var WeaponDamageFactor:Float = 1;
     public static var WoundDamageFactor:Float = 1;
     public static var CursedDamageFactor:Float = 0.5;
@@ -288,8 +289,7 @@ class ServerSettings
         ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
         ObjectData.getObjectData(418).mapChance *= 1.5; // More Happy Wolfs
         ObjectData.getObjectData(418).speedMult = 1.5; // Boost Wolfs even more :)
-        ObjectData.getObjectData(418).deadlyDistance = 1.5; // Boost Wolfs even more :)
-        ObjectData.getObjectData(418).damage = 2; 
+        
 
         ObjectData.getObjectData(769).biomes.push(BiomeTag.GREEN); // Beautiful Horses now also in Green biome :)
 
@@ -427,6 +427,9 @@ class ServerSettings
         ObjectData.getObjectData(152).damage = 8; // Bow and Arrow  // damage per sec = 2
         ObjectData.getObjectData(1624).damage = 12; // Bow and Arrow with Note  // damage per sec = 3
 
+        ObjectData.getObjectData(418).deadlyDistance = 1.5; // Wolfs 
+        ObjectData.getObjectData(418).damage = 5;  // Wolfs 
+
         ObjectData.getObjectData(3816).damage = 0.1; // per sec Gushing Knife Wound 
         ObjectData.getObjectData(797).damage = 0.05; // per sec Stable Knife Wound
         ObjectData.getObjectData(1380).damage = 0.03; // per sec Clean Knife Wound
@@ -501,9 +504,15 @@ class ServerSettings
         trans.autoDecaySeconds = 50; 
         trans.traceTransition("PatchTransitions: "); 
 
-        var trans = transtions.getTransition(-1, 749); //  Bloody Yew Bow  
+        var trans = transtions.getTransition(-1, 749); // Bloody Yew Bow  
         trans.autoDecaySeconds = 100; 
         trans.traceTransition("PatchTransitions: "); 
+
+        var trans = transtions.getTransition(-1, 427); // Attacking Wolf
+        trans.autoDecaySeconds = 3; 
+        trans.traceTransition("PatchTransitions: "); 
+
+        //ObjectData.getObjectData(427).ch = 2; // Attacking Wolf
 
         // wounds decay differenctly on ground vs on player
         ObjectData.getObjectData(797).alternativeTimeOutcome = 1380; // Stable Knife Wound --> Clean Knife Wound // on player
