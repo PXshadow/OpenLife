@@ -295,6 +295,8 @@ class MoveHelper
                     pos.x -= move.x;
                     pos.y -= move.y;
                 }
+
+                TimeHelper.MakeAnimalsRunAway(p);
             }
 
             //if(TimeHelper.tick % 5 == 0) trace('Moves: ${moveHelper.newMoves} passedTime: $timePassed ${p.tx()},${p.ty()} ${moveHelper.exactTx},${moveHelper.exactTy}');

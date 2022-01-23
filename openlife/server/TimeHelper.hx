@@ -921,18 +921,7 @@ class TimeHelper
                     // clear up not needed ObjectHelpers to save space
                     if(worldMap.deleteObjectHelperIfUseless(helper)) continue; // uses worlmap mutex
 
-                    var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(helper.creationTimeInTicks);
-                    var timeToChange = helper.timeToChange;
-
-                    if(passedTime >= timeToChange)
-                    {
-                        //trace('TIME: ${helper.objectData.description} passedTime: $passedTime neededTime: ${timeToChange}');       
-
-                        // TODO maybe better not delete by default...
-                        // worldMap.setObjectHelperNull(x,y);
-                        
-                        TimeHelper.doTimeTransition(helper);
-                    }
+                    TimeHelper.doTimeTransition(helper);
 
                     continue;
                 }
@@ -1187,6 +1176,9 @@ class TimeHelper
 
     public static function doTimeTransition(helper:ObjectHelper)
     {
+        if(helper.isTimeToChangeReached() == false) return; 
+        //trace('TIME: ${helper.objectData.description} passedTime: $passedTime neededTime: ${timeToChange}');  
+
         // TODO test time transition for maxUseTaget like Goose Pond:
         // -1 + 142 = 0 + 142
         // -1 + 142 = 0 + 141
@@ -1206,7 +1198,7 @@ class TimeHelper
 
         var sendUpdate = false;
 
-         Macro.exception(sendUpdate = doTimeTransitionHelper(helper));
+        Macro.exception(sendUpdate = doTimeTransitionHelper(helper));
        
         WorldMap.world.mutex.release();
 
@@ -1296,7 +1288,6 @@ class TimeHelper
 
     private static function doAnimalMovement(helper:ObjectHelper, timeTransition:TransitionData) : Bool
     {
-        // TODO collision detection if animal is deadly
         // TODO chasing
         // TODO fleeing
         // TODO Offspring only if with child
@@ -1306,6 +1297,7 @@ class TimeHelper
         if(moveDist <= 0) return false;
 
         moveDist += 1; // movement distance is plus 4 in original code if walking over objects
+        helper.objectData.moves = moveDist; // TODO better set in settings
 
         var worldmap = Server.server.map;
 
@@ -1453,6 +1445,31 @@ class TimeHelper
 
         return false;
     }    
+
+    public static function MakeAnimalsRunAway(player:GlobalPlayerInstance, searchDistance:Int = 1)
+    {
+        //AiHelper.GetClosestObject
+        var world = WorldMap.world;
+        var baseX = player.tx();
+        var baseY = player.ty();
+
+        for(ty in baseY - searchDistance...baseY + searchDistance)
+        {
+            for(tx in baseX - searchDistance...baseX + searchDistance)
+            {
+                var obj = world.getObjectHelper(tx, ty, true);
+                if(obj == null) continue;
+                if(obj.objectData.moves == 0) continue;
+
+                var tmpTimeToChange = obj.timeToChange;
+                obj.timeToChange /= 5;    
+                doTimeTransition(obj);
+
+                //trace('RUN: $tmpTimeToChange --> ${obj.timeToChange} ' + obj.description);
+                obj.timeToChange = tmpTimeToChange;
+            }
+        }
+    }
 
     private static function calculateNonBlockedTarget(fromX:Int, fromY:Int, toTarget:ObjectHelper) : ObjectHelper
     {

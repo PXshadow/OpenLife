@@ -605,4 +605,12 @@ class ObjectHelper
 
         return isBoneGrave() == false;
     }
+
+    public function isTimeToChangeReached() : Bool
+    {
+        var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(this.creationTimeInTicks);
+        var timeToChange = this.timeToChange;
+
+        return (passedTime >= timeToChange);
+    }
 }

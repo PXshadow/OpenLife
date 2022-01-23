@@ -99,6 +99,8 @@ class ObjectData extends LineReader
     public var damage:Float = 0; // not saved
     public var prestigeClass:PrestigeClass = PrestigeClass.NotSet; // not saved
 
+    public var moves:Int = 0; // not saved // animal movements
+
     /**
      * Max clothing pieces
      */
