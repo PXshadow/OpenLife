@@ -289,7 +289,7 @@ class ServerSettings
         ObjectData.getObjectData(418).biomes.push(BiomeTag.YELLOW); // Happy Wolfs now also in Yellow biome :)
         ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
         ObjectData.getObjectData(418).mapChance *= 1.5; // More Happy Wolfs
-        ObjectData.getObjectData(418).speedMult = 1.5; // Boost Wolfs even more :)
+        ObjectData.getObjectData(418).speedMult *= 1.5; // Boost Wolfs even more :)
         
 
         ObjectData.getObjectData(769).biomes.push(BiomeTag.GREEN); // Beautiful Horses now also in Green biome :)
@@ -428,11 +428,15 @@ class ServerSettings
         ObjectData.getObjectData(152).damage = 8; // Bow and Arrow  // damage per sec = 2
         ObjectData.getObjectData(1624).damage = 12; // Bow and Arrow with Note  // damage per sec = 3
 
-        // TODO Mouflon?
+        // TODO Mouflon? // TODO moskito
         ObjectData.getObjectData(418).deadlyDistance = 1.5; // Wolfs 
         ObjectData.getObjectData(418).damage = 5;  // Wolfs 
         ObjectData.getObjectData(420).deadlyDistance = 1.5; // Shot Wolf
         ObjectData.getObjectData(420).damage = 8;  // Shot Wolf
+
+        ObjectData.getObjectData(764).deadlyDistance = 1.1; // Rattle Snake
+        ObjectData.getObjectData(764).damage = 2;  //  Rattle Snake
+        ObjectData.getObjectData(764).woundFactor = 0.98;  //  Rattle Snake
 
         ObjectData.getObjectData(1323).deadlyDistance = 1.5; // Wild Boar 
         ObjectData.getObjectData(1323).damage = 4;  // Wild Boar 
@@ -463,6 +467,9 @@ class ServerSettings
         ObjectData.getObjectData(1363).damage = 0.05; // per sec Bite Wound
         ObjectData.getObjectData(1381).damage = 0.03; // per sec Clean Bite Wound
 
+        ObjectData.getObjectData(1377).damage = 0.25; // per sec Snake Bite
+        ObjectData.getObjectData(1384).damage = 0.2; // per sec Clean Snake Bite
+       
         ObjectData.getObjectData(1364).damage = 0.05; // per Hog Cut
         ObjectData.getObjectData(1383).damage = 0.03; // per sec Clean Hog Cut
 
@@ -528,9 +535,14 @@ class ServerSettings
 
         var trans = transtions.getTransition(-1, 427); // Attacking Wolf
         trans.autoDecaySeconds = 3; 
+        trans.move = 5;
         var trans = transtions.getTransition(-1, 428); // Attacking Shot Wolf
         trans.autoDecaySeconds = 3; 
+        trans.move = 4;
 
+        var trans = transtions.getTransition(-1, 1385); // Attacking Rattle Snake
+        trans.autoDecaySeconds = 3; 
+        
         var trans = transtions.getTransition(-1, 1333); // Attacking Wild Boar
         trans.autoDecaySeconds = 3; 
         var trans = transtions.getTransition(-1, 1334); // Attacking Wild Boar with Piglet
@@ -545,9 +557,6 @@ class ServerSettings
         var trans = transtions.getTransition(-1, 637); // Shot Grizzly Bear 3 attacking
         trans.autoDecaySeconds = 3; 
         
-
-        //ObjectData.getObjectData(427).ch = 2; // Attacking Wolf
-
         // wounds decay differenctly on ground vs on player
         ObjectData.getObjectData(797).alternativeTimeOutcome = 1380; // Stable Knife Wound --> Clean Knife Wound // on player
         trans = new TransitionData(-1,797,0,0); // Stable Knife Wound --> Empty // on ground
@@ -563,6 +572,14 @@ class ServerSettings
         transtions.addTransition("PatchTransitions: ", trans);
         trans = new TransitionData(-1,1381,0,0); // Clean Bite Wound --> 0
         trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        transtions.addTransition("PatchTransitions: ", trans);
+
+        ObjectData.getObjectData(1377).alternativeTimeOutcome = 1384; // Snake Bite -->  Clean Snake Bite
+        trans = new TransitionData(-1,1377,0,0); //  Snake Bite --> Empty
+        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        transtions.addTransition("PatchTransitions: ", trans);
+        trans = new TransitionData(-1,1384,0,0); //  Clean Snake Bite --> 0
+        trans.autoDecaySeconds = 120 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
 
         ObjectData.getObjectData(1366).alternativeTimeOutcome = 1383; // Hog Cut --> Clean Hog Cut

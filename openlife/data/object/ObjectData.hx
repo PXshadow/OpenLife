@@ -91,15 +91,17 @@ class ObjectData extends LineReader
     public var hungryWork:Float = 0; 
     public var alternativeTransitionOutcome:Array<Int> = new Array<Int>();
 
-    public var decayFactor:Float = 1; // not saved ???
-    public var winterDecayFactor:Float = 0; // not saved
-    public var springRegrowFactor:Float = 0; // not saved
-    public var countsOrGrowsAs:Int = 0; // not saved // the object should be counted as this, or in case it regrows it regrows as this.
+    // not saved
+    public var decayFactor:Float = 1; 
+    public var winterDecayFactor:Float = 0; 
+    public var springRegrowFactor:Float = 0; 
+    public var countsOrGrowsAs:Int = 0; // the object should be counted as this, or in case it regrows it regrows as this.
     
-    public var damage:Float = 0; // not saved
-    public var prestigeClass:PrestigeClass = PrestigeClass.NotSet; // not saved
+    public var damage:Float = 0; 
+    public var prestigeClass:PrestigeClass = PrestigeClass.NotSet; 
 
-    public var moves:Int = 0; // not saved // animal movements
+    public var moves:Int = 0; // animal movements
+    public var woundFactor:Float = 0.5; // player gets wound if X% hitpoints left
 
     /**
      * Max clothing pieces

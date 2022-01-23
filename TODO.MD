@@ -245,6 +245,7 @@ High priority:
 - AI Stoneage
 
 - COMBAT ill from moskitos
+- COMBAT poisoned from snakes
 
 - CARS USE cars as boats
 

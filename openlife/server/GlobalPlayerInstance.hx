@@ -2814,7 +2814,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
         //trace('Wound: ' + trans);
 
-        var doWound = targetPlayer.food_store_max < targetPlayer.calculateNotReducedFoodStoreMax() / 2;
+        var doWound = targetPlayer.food_store_max < targetPlayer.calculateNotReducedFoodStoreMax() * fromObj.objectData.woundFactor;
 
         if(doWound && targetPlayer.isWounded() == false) longWeaponCoolDown = true;
 

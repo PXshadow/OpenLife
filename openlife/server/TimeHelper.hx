@@ -1466,7 +1466,7 @@ class TimeHelper
                 doTimeTransition(obj);
 
                 //trace('RUN: $tmpTimeToChange --> ${obj.timeToChange} ' + obj.description);
-                obj.timeToChange = tmpTimeToChange;
+                //obj.timeToChange = tmpTimeToChange;
             }
         }
     }
