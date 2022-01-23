@@ -488,9 +488,10 @@ class ObjectHelper
     {
         return this.objectData.containable;
     }
-
+    
     public function isWound() : Bool
     {
+        if(StringTools.contains(description, 'Snake Bite')) return true;
         if(StringTools.contains(description, 'Hog Cut')) return true;
         return StringTools.contains(description, 'Wound');
     }
