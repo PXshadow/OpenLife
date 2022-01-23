@@ -36,6 +36,8 @@ class ObjectHelper
     // to store contained objects in case object is a container
     public var containedObjects:Array<ObjectHelper> = [];
 
+    public var hits:Float = 0; // not saved 
+
     public static function WriteMapObjHelpers(path:String, objHelpersToWrite:Vector<ObjectHelper>)
     { 
         var width = WorldMap.world.width;

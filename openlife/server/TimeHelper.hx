@@ -1299,6 +1299,9 @@ class TimeHelper
         moveDist += 1; // movement distance is plus 4 in original code if walking over objects
         helper.objectData.moves = moveDist; // TODO better set in settings
 
+        if(helper.hits > 0) helper.hits -= 0.02; // reduce hits the animal got
+        if(helper.hits < 0) helper.hits = 0;
+
         var worldmap = Server.server.map;
 
         var fromTx = helper.tx;
@@ -1430,9 +1433,12 @@ class TimeHelper
     public static function TryAnimaEscape(attacker:GlobalPlayerInstance, target:ObjectHelper) : Bool
     {
         var weapon = attacker.heldObject;
-        var animalEscapeFactor = weapon.objectData.animalEscapeFactor;
+        var animalEscapeFactor = weapon.objectData.animalEscapeFactor - target.hits * 0.2;
         var random = WorldMap.calculateRandomFloat();
-        trace('TryAnimaEscape: $random > $animalEscapeFactor');
+
+        trace('TryAnimaEscape: ${target.hits} $random > $animalEscapeFactor');
+        target.hits += 1;
+
         if(random > animalEscapeFactor) return false;
 
         // TODO set hits to incease chance
