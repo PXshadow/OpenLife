@@ -732,7 +732,7 @@ class TransitionHelper{
         }
         
         // do now the magic transformation
-        if(transition.actorID != transition.newActorID) this.pickUpObject = true;
+        //if(transition.actorID != transition.newActorID) this.pickUpObject = true; // TODO does error for bow animation but may be needed for other animations?
         player.transformHeldObject(transition.newActorID);
         this.target.id = transition.newTargetID;
 
