@@ -425,32 +425,32 @@ class ServerSettings
         // TODO allow damage with bloody weapon / needs support from client?
         ObjectData.getObjectData(560).damage = 4; // Knife  // damage per sec = 2
         ObjectData.getObjectData(3047).damage = 6; // War Sword // damage per sec = 3
-        ObjectData.getObjectData(152).damage = 8; // Bow and Arrow  // damage per sec = 2
-        ObjectData.getObjectData(1624).damage = 12; // Bow and Arrow with Note  // damage per sec = 3
+        ObjectData.getObjectData(152).damage = 6; // Bow and Arrow  // 
+        ObjectData.getObjectData(1624).damage = 10; // Bow and Arrow with Note  //
 
         // TODO Mouflon? // TODO moskito
         ObjectData.getObjectData(418).deadlyDistance = 1.5; // Wolfs 
-        ObjectData.getObjectData(418).damage = 5;  // Wolfs 
+        ObjectData.getObjectData(418).damage = 3.5;  // Wolfs 
         ObjectData.getObjectData(420).deadlyDistance = 1.5; // Shot Wolf
-        ObjectData.getObjectData(420).damage = 8;  // Shot Wolf
+        ObjectData.getObjectData(420).damage = 5;  // Shot Wolf
 
         ObjectData.getObjectData(764).deadlyDistance = 1.1; // Rattle Snake
         ObjectData.getObjectData(764).damage = 2;  //  Rattle Snake
         ObjectData.getObjectData(764).woundFactor = 0.98;  //  Rattle Snake
 
         ObjectData.getObjectData(1323).deadlyDistance = 1.5; // Wild Boar 
-        ObjectData.getObjectData(1323).damage = 4;  // Wild Boar 
+        ObjectData.getObjectData(1323).damage = 3;  // Wild Boar 
         ObjectData.getObjectData(1328).deadlyDistance = 1.5; // Wild Boar with Piglet 
-        ObjectData.getObjectData(1328).damage = 7;  // Wild Boar with Piglet 
+        ObjectData.getObjectData(1328).damage = 5;  // Wild Boar with Piglet 
 
         ObjectData.getObjectData(628).deadlyDistance = 1.5; // Grizzly Bear
-        ObjectData.getObjectData(628).damage = 8;  // Grizzly Bear 
+        ObjectData.getObjectData(628).damage = 5;  // Grizzly Bear 
         ObjectData.getObjectData(632).deadlyDistance = 1.5; // Shot Grizzly Bear 1 
-        ObjectData.getObjectData(632).damage = 11;  // Shot Grizzly Bear 1 
+        ObjectData.getObjectData(632).damage = 6;  // Shot Grizzly Bear 1 
         ObjectData.getObjectData(635).deadlyDistance = 1.5; // Shot Grizzly Bear 2 
-        ObjectData.getObjectData(635).damage = 12;  // Shot Grizzly Bear 2 
+        ObjectData.getObjectData(635).damage = 7;  // Shot Grizzly Bear 2 
         ObjectData.getObjectData(637).deadlyDistance = 1.5; // Shot Grizzly Bear 3 
-        ObjectData.getObjectData(637).damage = 13;  // Shot Grizzly Bear 3
+        ObjectData.getObjectData(637).damage = 8;  // Shot Grizzly Bear 3
 
         ObjectData.getObjectData(3816).damage = 0.1; // per sec Gushing Knife Wound 
         ObjectData.getObjectData(797).damage = 0.05; // per sec Stable Knife Wound
