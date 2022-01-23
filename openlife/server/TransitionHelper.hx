@@ -111,14 +111,6 @@ class TransitionHelper{
             return false;
         }
 
-        // can only shoot at target with bow if not too close
-        if(player.heldObject.objectData.deadlyDistance > 1.9 && helper.target.id != 0 && player.isCloseUseExact(helper.target.tx, helper.target.ty, 1.5))
-        {
-            helper.sendUpdateToClient();
-            player.say('Too close...');
-            return false;
-        }
-
         if(player.killMode)
         {
             trace('kill mode deactivated try again!');
@@ -401,8 +393,8 @@ class TransitionHelper{
     public function use(target:Int, containerIndex:Int) : Bool
     {
         trace('USE target: $target containerIndex: $containerIndex');
-        // TODO intentional use with index, see description above
 
+        // TODO intentional use with index, see description above
         // TODO noUseActor / noUseTarget
 
         if(this.checkIfNotMovingAndCloseEnough() == false) return false;     
@@ -411,6 +403,21 @@ class TransitionHelper{
         {
             trace('USE: Too low age to use: target.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
             return false;
+        }
+
+        var deadlyDistance = player.heldObject.objectData.deadlyDistance;
+
+        // can only shoot at target with bow if not too close
+        if(deadlyDistance > 1.9 && this.target.id != 0 && player.isCloseUseExact(this.target.tx, this.target.ty, 1.5))
+        {
+            player.say('Too close...');
+            return false;
+        }
+
+        // give animal a chance to escape
+        if(deadlyDistance > 0 && this.target.objectData.moves > 0)
+        {
+            if(TimeHelper.TryAnimaEscape(this.player, this.target)) return false;
         }
 
         var oldEnoughForTransitions = this.tileObjectData.minPickupAge <= player.age || this.tileObjectData.description.toUpperCase().contains('BERRY');

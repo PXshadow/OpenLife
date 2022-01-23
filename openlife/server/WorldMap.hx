@@ -1209,10 +1209,11 @@ class WorldMap
         
         for(i in 1...10000)
         {
-            //trace('place $i');
+            
             if(originalObjectToPlace != objectToPlace) allowReplaceObject = false;
 
             distance = Math.ceil(i / (20 * distance * distance)); 
+            trace('place $i distance: $distance');
 
             var tmpX = tx + world.randomInt(distance * 2) - distance;
             var tmpY = ty + world.randomInt(distance * 2) - distance;
@@ -1238,6 +1239,8 @@ class WorldMap
 
             Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
 
+            trace('TryPlaceObject Done ${objectToPlace.description}');
+
             return null;
         }
         else if(obj.objectData.containable && objectToPlace.containedObjects.length < objectToPlace.objectData.numSlots)
@@ -1247,6 +1250,8 @@ class WorldMap
             world.setObjectHelper(x, y, objectToPlace);
 
             Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
+
+            trace('TryPlaceObject Done in container ${objectToPlace.description}');
 
             return null;
         }

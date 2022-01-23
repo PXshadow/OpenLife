@@ -1419,25 +1419,6 @@ class TimeHelper
             var speed = ServerSettings.InitialPlayerMoveSpeed * objectData.speedMult;
             Connection.SendAnimalMoveUpdateToAllClosePlayers(fromTx, fromTy, toTx, toTy, oldTileObject, newTileObject, speed);
 
-            /*for (c in Server.server.connections) 
-            {            
-                var player = c.player;
-                
-                // since player has relative coordinates, transform them for player
-                var fromX = fromTx - player.gx;
-                var fromY = fromTy - player.gy;
-                var toX = toTx - player.gx;
-                var toY = toTy - player.gy;
-
-                // update only close players
-                if(player.isClose(toX,toY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
-
-                c.sendMapUpdateForMoving(toX, toY, floorIdTarget, newTileObject, -1, fromX, fromY, speed);
-                c.sendMapUpdate(fromX, fromY, floorIdFrom, oldTileObject, -1, false);
-                c.send(FRAME, null, false);
-            }*/
-
-            
             return true;
         }
 
@@ -1445,6 +1426,37 @@ class TimeHelper
 
         return false;
     }    
+
+    public static function TryAnimaEscape(attacker:GlobalPlayerInstance, target:ObjectHelper) : Bool
+    {
+        var weapon = attacker.heldObject;
+        var animalEscapeFactor = weapon.objectData.animalEscapeFactor;
+        var random = WorldMap.calculateRandomFloat();
+        trace('TryAnimaEscape: $random > $animalEscapeFactor');
+        if(random > animalEscapeFactor) return false;
+
+        // TODO set hits to incease chance
+
+        target.timeToChange /= 5;    
+        var tmpTimeToChange = target.timeToChange;
+        doTimeTransition(target);
+
+        var escaped = tmpTimeToChange != target.timeToChange;
+        trace('TryAnimaEscape: $escaped');
+        if(escaped == false) return false;
+
+        if(weapon.id == 152) // Bow and Arrow
+        {
+            weapon.id = 749; // 151 Bow // 749 Bloody Yew Bow
+            attacker.setHeldObject(weapon);
+            attacker.setHeldObjectOriginNotValid(); // no animation 
+            weapon.timeToChange = 2; 
+
+            WorldMap.PlaceObject(target.tx, target.ty, new ObjectHelper(attacker, 798), true); // Place Arrow Wound
+        }
+
+        return true;
+    }
 
     public static function MakeAnimalsRunAway(player:GlobalPlayerInstance, searchDistance:Int = 1)
     {
