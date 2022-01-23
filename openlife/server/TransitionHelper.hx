@@ -111,6 +111,14 @@ class TransitionHelper{
             return false;
         }
 
+        // can only shoot at target with bow if not too close
+        if(player.heldObject.objectData.deadlyDistance > 1.9 && helper.target.id != 0 && player.isCloseUseExact(helper.target.tx, helper.target.ty, 1.5))
+        {
+            helper.sendUpdateToClient();
+            player.say('Too close...');
+            return false;
+        }
+
         if(player.killMode)
         {
             trace('kill mode deactivated try again!');
