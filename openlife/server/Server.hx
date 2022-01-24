@@ -44,7 +44,7 @@ class Server
         for(i in 0...ServerSettings.NumberOfAis)
         {
             var ai = ServerAi.createNewServerAiWithNewPlayer();
-            ai.player.delete(); // delete, so that they wont all spawn at same time
+            //ai.player.delete(); // delete, so that they wont all spawn at same time
             //ai.player.age = 16;
         }
 

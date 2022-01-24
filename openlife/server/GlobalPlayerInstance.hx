@@ -77,6 +77,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         AllPlayers[player.p_id] = player;
         Lineage.AddLineage(player.p_id, player.lineage);
+
+        //var count = 0;
+        //for(p in AllPlayers) count++;
+
+        //trace('Spawn As Child2: ${player.p_id} ${player.account.email} count: $count');
     }
 
     public static var medianPrestige:Float = ServerSettings.HealthFactor;
@@ -230,7 +235,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public static function CreateNewAiPlayer(c:Connection) : GlobalPlayerInstance
     {
-        return new GlobalPlayerInstance(c);
+        var player = null;
+
+        GlobalPlayerInstance.AllPlayerMutex.acquire();
+
+        Macro.exception(player = new GlobalPlayerInstance(c));
+
+        GlobalPlayerInstance.AllPlayerMutex.release();
+
+        return player;
     }
 
     public function setObjectId(new_po_id:Int)
@@ -268,7 +281,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // spawn human eve to human adam and ai eve to ai adam except if player count is very few 
         var isAi = this.isAi();
         var allowHumanSpawnToAIandAiToHuman = GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild;
-        var spawnEve = allowHumanSpawnToAIandAiToHuman || (isAi && lastAiEveOrAdam != null) || (isAi == false && lastHumanEveOrAdam != null);
+        var spawnEve =  (isAi && lastAiEveOrAdam != null) || (isAi == false && lastHumanEveOrAdam != null);
         spawnEve = isAi == false && ServerSettings.EveOrAdamBirthChance <= WorldMap.calculateRandomFloat() ? true : spawnEve;
 
         //if(false) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
@@ -358,6 +371,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var isAi = this.isAi();
         var lastEveOrAdam = isAi ? lastAiEveOrAdam : lastHumanEveOrAdam;
 
+        //trace('Spawn As Eve: ${this.account.email}');
+
         if(allowHumanSpawnToAIandAiToHuman && lastEveOrAdam == null)
         {
             // try if the other one is not null
@@ -423,6 +438,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // TODO consider past families of player
     private function spawnAsChild() : Bool
     {
+        //trace('Spawn As Child: ${this.p_id} ${this.account.email}');
+
         var mother = GetFittestMother(this);     
         if(mother == null) return false;
 
@@ -550,12 +567,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var mother:GlobalPlayerInstance = null;
         var fitness = -1000.0;
 
+        //var count = 0;
+        //for(p in AllPlayers) count++;
+
+        //trace('Spawn As Child: GetFittestMother ${child.account.email} count: $count');
+
         // search fertile mother
         for (p in AllPlayers)
         {            
             var tmpFitness = CalculateMotherFitness(p, child);            
 
-            trace('Child: Fitness: $tmpFitness ${p.name} ${p.familyName}');
+            trace('Spawn As Child: ${child.account.email} Fitness: $tmpFitness ${p.name} ${p.familyName}');
 
             if(tmpFitness < -100) continue;
 
@@ -620,7 +642,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(p.deleted) return -1000;
         if(p.isFertile() == false) return -1000;
         if(p.food_store < 0) return -1000; // no starving mothers
-        if(p.exhaustion > 10) return -1000; // no super exhausted mothers
+        if(p.exhaustion > 16) return -1000; // no super exhausted mothers
         
         // boni
         var tmpFitness = 0.0;

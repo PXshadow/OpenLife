@@ -194,7 +194,7 @@ class ServerSettings
     public static var PrestigeCostPerDamageForChild:Float = 1;
 
     // AI
-    public static var NumberOfAis:Int = 1;
+    public static var NumberOfAis:Int = 3;
     public static var AiReactionTime:Float = 0.5;
     public static var TimeToAiRebirth:Float = 15;
     public static var AiTotalScoreFactor:Float = 0.2; 
