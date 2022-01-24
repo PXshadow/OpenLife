@@ -147,7 +147,7 @@ class Ai
         time -= timePassedInSeconds;
 
         if(time > 0) return;
-        time += 5; //0.5; // minimum AI reacting time
+        time += ServerSettings.AiReactionTime; //0.5; // minimum AI reacting time
         
         if(playerInterface.isMoving()) return;
 
