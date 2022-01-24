@@ -104,6 +104,8 @@ class ObjectData extends LineReader
     public var woundFactor:Float = 0.5; // player gets wound if X% hitpoints left
     public var animalEscapeFactor:Float = 0.7; // chance an animal escapes 
 
+    public var isBoat:Bool = false;
+
     /**
      * Max clothing pieces
      */

@@ -9,6 +9,7 @@ Project Winter is comming summary:
 - combat is more skill based / the more close you target the player the more damage
 - there are three different classes: Sef / Commoner / Noble
 - you are more likely born to the same class
+- cars are now boats (TODO need new graphics for cars)
 - curse system is now based on graves
 - you incarnate more likely to your grave with a grave stone
 - you incarnate less likely to your grave without grave stone
@@ -210,8 +211,9 @@ Food - Cravings:
 Animals:
 - Animals can multiply and die
 - Animals can leave their biome, but prefare to stay in own biome
-- Stuff like trees and rabit holes wont block animal movement // TODO also for player
+- Stuff like trees and rabit holes wont block animal movement // TODO also for player needs client support
 - horses are the ultimative devourers you can eat anything from horse!
+- Animals have more hit points so a shot / hit may or may not kill them
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
@@ -220,7 +222,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 - princess / princess
 - better fences
 - reconnection after server shutdown
-- cars as boats
 - special stuff like hercules / snake master / super fast ager 
 - job boni
 - bridges
@@ -245,9 +246,7 @@ High priority:
 - AI Stoneage
 
 - COMBAT ill from moskitos
-- COMBAT poisoned from snakes
-
-- CARS USE cars as boats
+- COMBAT make smal wounds invisible if object held and allow to work (for example for poisone from snakes)
 
 - YUM Inherit YUM from grandmother
 - YUM display nearest yum if holding meh
@@ -289,6 +288,8 @@ Middle priority:
 - TIME support multiple time transitions see Fishing Pole --> store in ObjectData 
 
 - ANIMAL animal movement on top of items
+- ANIMAl eating sheep / meat transtions 
+- ANIMAl chasing players
 
 - SCORE give prestige boni for clothing / crown
 

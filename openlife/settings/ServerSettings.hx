@@ -1,4 +1,5 @@
 package openlife.settings;
+
 import openlife.server.Lineage.PrestigeClass;
 import openlife.server.TransitionHelper;
 import openlife.server.Server;
@@ -9,6 +10,8 @@ import openlife.data.transition.TransitionData;
 import openlife.data.transition.TransitionImporter;
 import openlife.server.Biome.BiomeTag;
 import openlife.data.object.ObjectData;
+
+using StringTools;
 
 @:rtti
 class ServerSettings
@@ -482,6 +485,20 @@ class ServerSettings
         ObjectData.getObjectData(1366).alternativeTimeOutcome = 0; // Empty Arrow Wound --> Empty
 
         
+        ObjectData.getObjectData(2396).isBoat = true; // Running Crude Car
+        ObjectData.getObjectData(2396).speedMult = 2.5;
+        ObjectData.getObjectData(4655).isBoat = true; // Delivery Truck
+        ObjectData.getObjectData(4655).speedMult = 1; 
+
+        for(objData in ObjectData.importedObjectData)
+        {
+            if(objData.description.contains('Sports Car'))
+            {
+                objData.isBoat = true;
+                objData.speedMult = 3.5;
+            }
+        }
+
         //ObjectData.getObjectData(279).winterDecayFactor = 2; // Empty Wild Gooseberry Bush
         //ObjectData.getObjectData(279).springRegrowFactor = 0.5; // Empty Wild Gooseberry Bush
         //ObjectData.getObjectData(279).countsOrGrowsAs = 30; // Empty Wild Gooseberry Bush

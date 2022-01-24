@@ -96,6 +96,11 @@ class Biome
         }
     }
 
+    public static function IsWater(biome:BiomeTag) : Bool
+    {
+        return biome == OCEAN || biome == PASSABLERIVER || biome == RIVER;
+    }
+
     public function new()
     {
 

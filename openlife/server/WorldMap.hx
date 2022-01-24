@@ -239,6 +239,12 @@ class WorldMap
         currentObjectsCount = new Map<Int,Int>();
     }
 
+    public function isWater(x:Int, y:Int) : Bool
+    {
+        var biome = getBiomeId(x,y);
+        return Biome.IsWater(biome);    
+    }
+
     public function getBiomeSpeed(x:Int, y:Int):Float 
     {
         var biomeType = biomes[index(x, y)];

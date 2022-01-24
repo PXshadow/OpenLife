@@ -87,29 +87,25 @@ class MoveHelper
         var floorObjData = ObjectData.getObjectData(map.getFloorId(tx,ty));
         var floorSpeed = floorObjData.speedMult;
         var onRoad = false;
-        var hasBothShoes = p.hasBothShoes();        
+        var hasBothShoes = p.hasBothShoes();       
+        var isOnBoat = p.heldObject.objectData.isBoat; 
 
         if(ServerSettings.DebugSpeed) trace('speed: hasBothShoes: $hasBothShoes');
-
         if(hasBothShoes && onHorseOrCar == false) speed *= 1.1;
-
-        if(fullPathHasRoad == false) floorSpeed = 1; // only consider road if the pull path is on road
+        if(fullPathHasRoad == false) floorSpeed = 1; // only consider road if the full path is on road
 
         onRoad = floorSpeed >= 1.01; // only give road speed boni if full path is on road
-        
+
         speed *= ServerSettings.SpeedFactor; // used to increase speed if for example debuging
-
         speed *= floorSpeed;
-
 
         // DO biomes
         var biomeSpeed = map.getBiomeSpeed(tx,ty);  
 
         // road reduces speed mali of bad biome
-        if(onRoad && biomeSpeed < 0.99) biomeSpeed = 1; //biomeSpeed = Math.sqrt(biomeSpeed);
+        if((onRoad || isOnBoat) && biomeSpeed < 0.99) biomeSpeed = 1; //biomeSpeed = Math.sqrt(biomeSpeed);
 
         speed *= biomeSpeed;
-
 
         // DO speed held objects
         var speedModHeldObj = p.heldObject.objectData.speedMult;
@@ -126,6 +122,11 @@ class MoveHelper
         if(onRoad && speedModHeldObj < 0.99) speedModHeldObj = Math.sqrt(speedModHeldObj); // on road
         speed *= speedModHeldObj;
 
+        // make cars to boats
+        if(isOnBoat && WorldMap.world.isWater(tx,ty) == false)
+        {            
+            speed = 0.5 * ServerSettings.InitialPlayerMoveSpeed;
+        }
 
         // DO speed contained objects
         // TODO half penalty for strong 
@@ -391,7 +392,8 @@ class MoveHelper
     */
     static public function move(p:GlobalPlayerInstance, x:Int,y:Int,seq:Int,moves:Array<Pos>)
         {
-            //trace(Server.server.map.getObjectId(p.gx + x, p.gy + y));
+            var tx = x + p.gx;
+            var ty = y + p.gy;
 
             // since move update may acces this also
             if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.acquire();
@@ -401,30 +403,17 @@ class MoveHelper
             {
                 var moveHelper = p.moveHelper;
 
-                if(moveHelper.newMoves != null)
-                {
-                    //var lastPos = calculateNewPos(moveHelper.newMoves, moveHelper.startingMoveTicks, p.move_speed);
-
-                    //p.x += lastPos.x;
-                    //p.y += lastPos.y;
-
-                    p.exhaustion += ServerSettings.ExhaustionOnMovementChange;
-
-                    //trace('LastPos ${ lastPos.x } ${ lastPos.y }');
-                }
+                if(moveHelper.isMoveing()) p.exhaustion += ServerSettings.ExhaustionOnMovementChange;
 
                 // TODO dont accept moves untill a force is confirmed
                 // TODO client accepts one position further even if not fully reached there. 
                 // This could be miss used to double movement speed. But Client seems to do it this way...
                 // Exhaustion is used to limit client "cheeting"
 
-                var obj = WorldMap.world.getObjectHelper(x + p.gx, y + p.gy);
-                var isBlocking = obj.blocksWalking() ||  WorldMap.isBiomeBlocking(x + p.gx, y + p.gy); 
-                //var biomeSpeed = Server.server.map.getBiomeSpeed(x + p.gx, y + p.gy);
-                //var isBlockingBiome = biomeSpeed < 0.1;
+                //var isBlocked= p.isBlocked(tx,ty); 
                 var positionChanged = false;
 
-                if(isBlocking || p.isClose(x,y,ServerSettings.MaxMovementCheatingDistanceBeforeForce) == false)
+                if(p.isBlocked(tx,ty) || p.isClose(x,y,ServerSettings.MaxMovementCheatingDistanceBeforeForce) == false)
                 {
                     positionChanged = true;
                     p.forced = true;
@@ -516,7 +505,7 @@ class MoveHelper
 
             if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
             else p.mutex.release();
-        }
+        }        
 
         public function generateRelativeMoveUpdateString(forPlayer:GlobalPlayerInstance) : String
         {
@@ -558,27 +547,23 @@ class MoveHelper
             var newMovements:NewMovements = new NewMovements();
             var map = Server.server.map;
             var lastPos:Pos = new Pos(0,0);
+
             newMovements.fullPathHasRoad = true;
-            
             newMovements.startSpeed = map.getBiomeSpeed(tx,ty);
-
-            
-
 
             for (move in moves)
             {
                 var tmpX = tx + move.x;
                 var tmpY = ty + move.y;
 
-                var obj = WorldMap.world.getObjectHelper(tmpX, tmpY);
-                var isBlockingObj = obj.blocksWalking();
-                var isBlockingBiome = WorldMap.isBiomeBlocking(tmpX, tmpY);
+                //var obj = WorldMap.world.getObjectHelper(tmpX, tmpY);
+                //var isBlockingObj = obj.blocksWalking();
+                //var isBlockingBiome = WorldMap.isBiomeBlocking(tmpX, tmpY);
 
-                // check if biome is not walkable
-                if(isBlockingBiome || isBlockingObj)
+                if(p.isBlocked(tmpX, tmpY))
                 {
-                    if(isBlockingBiome) trace('biome ${map.getBiomeId(tmpX,tmpY)} is blocking movement! movement length: ${newMovements.length}');
-                    if(isBlockingObj) trace('object ${obj.description} is blocking movement! movement length: ${newMovements.length}');
+                    //if(isBlockingBiome) trace('biome ${map.getBiomeId(tmpX,tmpY)} is blocking movement! movement length: ${newMovements.length}');
+                    //if(isBlockingObj) trace('object ${obj.description} is blocking movement! movement length: ${newMovements.length}');
                     
                     newMovements.trunc = 1;
 
