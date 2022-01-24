@@ -153,6 +153,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // set all stuff null so that nothing is hanging around
     public function delete()
     {
+        this.deleted = true;
         this.followPlayer = null;
 
         this.heldPlayer = null;
