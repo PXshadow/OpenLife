@@ -265,12 +265,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // TODO search most empty special biome for eve
         // TODO on big map dont spawn eve too far away
         // TODO less hostile environment for eve (since the plan is to make human free nature more dangerous)
-        // TODO give a certain eve birth %
 
         // spawn human eve to human adam and ai eve to ai adam except if player count is very few 
         var isAi = this.isAi();
         var allowHumanSpawnToAIandAiToHuman = GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild;
         var spawnEve = allowHumanSpawnToAIandAiToHuman || (isAi && lastAiEveOrAdam != null) || (isAi == false && lastHumanEveOrAdam != null);
+        spawnEve = isAi == false && ServerSettings.EveOrAdamBirthChance <= WorldMap.calculateRandomFloat() ? true : spawnEve;
 
         //if(false) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
         if(spawnEve) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
@@ -3523,7 +3523,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // as noble / low born first noble / low born mothers are considered
     // (new players have a 50% change of noble birth in their first 5 lifes)
     // nobels follow by default the leader
-    // by default you follow your mother or / and??? father 50%
+    // by default you follow your mother
     // if your mother / father dies, you follow the noble of the mother / father
     // people in a village are distributed as followers among the nobles if a nobles dies
     

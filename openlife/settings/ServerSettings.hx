@@ -27,7 +27,7 @@ class ServerSettings
     
     // Mutex
     public static var useOneGlobalMutex = false; // if you want to try out if there a problems with mutexes / different threads
-    public static var useOnePlayerMutex = true; // if you want to try out if there a problems with mutexes / different threads
+    public static var useOnePlayerMutex = true;
     public static var UseBlockingSockets = false;
 
     // DEBUG: used to trace connection.send commands 
@@ -61,6 +61,7 @@ class ServerSettings
     public static var MaxCoinDecayPerYear:Float = 5; 
 
     // birth    
+    public static var EveOrAdamBirthChance = 0.05; // since each eve gets an adam the true chance is x2
     public static var NewChildExhaustionForMother = 15;
     public static var ChanceForFemaleChild = 0.6;
     public static var ChanceForOtherChildColor = 0.2;
@@ -166,7 +167,7 @@ class ServerSettings
 
     // winter / summer
     public static var DebugSeason:Bool = false;
-    public static var SeasonDuration = 0.5; // default: 5 // Season duration like winter in years
+    public static var SeasonDuration = 5; // default: 5 // Season duration like winter in years
     public static var AverageSeasonTemperatureImpact = 0.2; 
     public static var WinterWildFoodDecayChance:Float = 1.5; //1.5; // per Season
     public static var SpringWildFoodRegrowChance:Float = 1; // per Season // use spring and summer
