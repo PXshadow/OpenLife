@@ -252,8 +252,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.heldObject = ObjectHelper.readObjectHelper(this, [0]);        
         this.age_r = ServerSettings.AgingSecondsPerYear;
         this.lineage = new Lineage(this);
-        
-        AddPlayer(this);
 
         this.lineage.prestigeClass = calculatePrestigeClass();
         
@@ -285,6 +283,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         food_store = food_store_max / 2;
         yum_multiplier = this.account.totalScore * ServerSettings.BirthPrestigeFactor;
         yum_multiplier = Math.max(yum_multiplier, (medianPrestige / 30) * trueAge);
+
+        AddPlayer(this); // add after player is inited and before linage data like familyName from this player is used
 
         for(c in Connection.getConnections())
         {

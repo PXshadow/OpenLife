@@ -129,6 +129,7 @@ class TimeHelper
         
         for (ai in Connection.getAis())
         {
+            if(ai.player.deleted) ai.doRebirth(timePassedInSeconds);
             if(DoTimeStuffForPlayer(ai.player, timePassedInSeconds) == false) continue;
         }
 

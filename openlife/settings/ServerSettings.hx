@@ -195,6 +195,7 @@ class ServerSettings
 
     // AI
     public static var NumberOfAis:Int = 1;
+    public static var TimeToAiRebirth:Float = 15;
     public static var AiTotalScoreFactor:Float = 0.2; 
     public static var AiMaxSearchRadius:Int = 32;
     public static var AiMaxSearchIncrement:Int = 16;
@@ -407,7 +408,7 @@ class ServerSettings
         ObjectData.getObjectData(391).springRegrowFactor = 0.1; // Domestic Gooseberry Bush
 
         ObjectData.getObjectData(750).speedMult = 0.75; // Bloody Knife
-        ObjectData.getObjectData(3048).speedMult = 0.8; // Bloody War Sword
+        ObjectData.getObjectData(3048).speedMult = 0.85; // Bloody War Sword
         ObjectData.getObjectData(749).speedMult = 0.6; // Bloody Yew Bow  
         
         ObjectData.getObjectData(750).neverDrop = true; // Bloody Knife
@@ -549,7 +550,7 @@ class ServerSettings
         trans.traceTransition("PatchTransitions: "); 
 
         var trans = transtions.getTransition(-1, 749); // Bloody Yew Bow  
-        trans.autoDecaySeconds = 100; 
+        trans.autoDecaySeconds = 80; 
         trans.traceTransition("PatchTransitions: "); 
 
         var trans = transtions.getTransition(-1, 427); // Attacking Wolf

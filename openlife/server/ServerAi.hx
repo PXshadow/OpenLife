@@ -1,16 +1,20 @@
 package openlife.server;
 
+import openlife.settings.ServerSettings;
 import openlife.auto.Ai;
 
 class ServerAi extends Ai
 {
     public static var AiIdIndex = 1;
     public var player:GlobalPlayerInstance;
+    public var connection:Connection;
+    public var timeToRebirth:Float = 0;
 
     public function new(newPlayer:GlobalPlayerInstance)
     {
         super(newPlayer);
         this.player = newPlayer;
+        this.connection = player.connection;
         player.connection.serverAi = this;
 
         Connection.addAi(this);
@@ -25,5 +29,18 @@ class ServerAi extends Ai
         var newPlayer = GlobalPlayerInstance.CreateNewAiPlayer(newConnection);
 
         return new ServerAi(newPlayer);
+    }
+
+    public function doRebirth(timePassedInSeconds:Float)
+    {
+        if(timeToRebirth == 0) timeToRebirth = (ServerSettings.TimeToAiRebirth / 2) + WorldMap.calculateRandomFloat() * ServerSettings.TimeToAiRebirth;
+        timeToRebirth -= timePassedInSeconds;
+
+        if(timeToRebirth > 0) return;
+
+        trace('doRebirth: ');    
+
+        this.player = GlobalPlayerInstance.CreateNewAiPlayer(connection);
+        this.playerInterface = player; // TODO same player for AI
     }
 }

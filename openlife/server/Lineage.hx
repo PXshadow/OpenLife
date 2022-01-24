@@ -244,7 +244,6 @@ class Lineage
         return AllLineages[myEveId];
     }
 
-
     public var mother(get, set):GlobalPlayerInstance;
 
     public function get_mother()
