@@ -331,7 +331,6 @@ Middle priority:
 
 Low priority stuff:
 - MAP calculate distance right when on end of map 
-- advanced transitions like oil stuff
 - radio
 - photo
 

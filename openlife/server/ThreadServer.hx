@@ -37,7 +37,7 @@ class ThreadServer
     {
         var socket:Socket = cast Thread.readMessage(true);
         trace("start connection");
-        //socket.setBlocking(false);
+        socket.setBlocking(ServerSettings.UseBlockingSockets);
         socket.setFastSend(true);
         var connection = new Connection(socket,server);
         var message:String = "";
