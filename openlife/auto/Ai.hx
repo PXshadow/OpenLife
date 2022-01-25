@@ -151,7 +151,7 @@ class Ai
         
         if(playerInterface.isMoving()) return;
 
-        checkIsHungry();
+        checkIsHungryAndEat();
      
         if(isDropingItem()) return;
         if(isEating()) return;
@@ -600,16 +600,22 @@ class Ai
         return true;*/
     }
 
-    private function checkIsHungry() : Bool
+    private function checkIsHungryAndEat() : Bool
     {
-        var myPlayer = playerInterface.getPlayerInstance();
+        var player = playerInterface.getPlayerInstance();
 
-        myPlayer.food_store = 12; // TODO change
-        isHungry = myPlayer.food_store < 10;
+        if(isHungry)
+        {
+            isHungry = player.food_store < player.food_store_max * 0.75;
+        }
+        else
+        {
+            isHungry = player.food_store < Math.min(3, player.food_store_max * 0.5);
+        }
 
         if(isHungry && foodTarget == null) searchFoodAndEat();
 
-        //playerInterface.say('F ${Math.round(playerInterface.getPlayerInstance().food_store)}');
+        playerInterface.say('F ${Math.round(playerInterface.getPlayerInstance().food_store)}');
 
         //trace('AAI: F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');
         
