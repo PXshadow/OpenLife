@@ -1602,7 +1602,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public static function doEating(playerFrom:GlobalPlayerInstance, playerTo:GlobalPlayerInstance) : Bool
     {
-        if (playerFrom.o_id[0] == 0) return false;
+        if(playerFrom.o_id[0] == 0) return false;
+        if(playerFrom.o_id[0] < 0) return false; // is holding player
 
         if(playerFrom.age < ServerSettings.MinAgeToEat)
         {
@@ -1950,6 +1951,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private static function doSwitchCloths(playerFrom:GlobalPlayerInstance, playerTo:GlobalPlayerInstance, clothingSlot:Int) : Bool
     {
+        if(playerFrom.o_id[0] < 0) return false; // is holding player
+
         var objClothingSlot = playerFrom.calculateClothingSlot();
 
         trace('self:o_id: ${playerFrom.o_id[0]} helobj.id: ${playerFrom.heldObject.id} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
@@ -2141,6 +2144,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private function specialRemoveHelper(container:ObjectHelper, clothingSlot:Int,index:Null<Int>)
     {
+        if(this.o_id[0] < 0) return; // is holding player
+
         this.setHeldObject(container.removeContainedObject(index));
 
         setInClothingSet(clothingSlot);
@@ -2152,6 +2157,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function isHoldingYum() : Bool
     {
+        if(this.o_id[0] < 0) return false; // is holding player
+
         var heldObjData = heldObject.objectData;
         if(heldObjData.dummyParent != null) heldObjData = heldObjData.dummyParent;
 
@@ -2162,8 +2169,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return countEaten < ServerSettings.YumBonus; 
     }
 
-    public function isHoldingMeh() : Bool
+    public function isHoldingMeh() : Bool        
     {
+        if(this.o_id[0] < 0) return false; // is holding player
+        
         var heldObjData = heldObject.objectData;
         if(heldObjData.dummyParent != null) heldObjData = heldObjData.dummyParent;
 

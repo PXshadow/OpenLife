@@ -44,7 +44,7 @@ class TransitionHelper{
 
     public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0) : Bool
     {
-        if(player.heldPlayer != null)
+        if((player.o_id[0] < 0) || player.heldPlayer != null)
         {
             trace('doCommand: cannot to use since holding a player!');
             player.connection.send(PLAYER_UPDATE,[player.toData()]);
