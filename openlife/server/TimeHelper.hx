@@ -133,8 +133,6 @@ class TimeHelper
             if(DoTimeStuffForPlayer(ai.player, timePassedInSeconds) == false) continue;
         }
 
-        if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release(); // TODO mutext if no global player mutex is used
-
         for (ai in Connection.getAis())
         {
             Macro.exception(ai.doTimeStuff(timePassedInSeconds));
@@ -152,6 +150,8 @@ class TimeHelper
         if((tick + 20) % ServerSettings.TicksBetweenSaving  == 0) Macro.exception(worldMap.updateObjectCounts());
         if(ServerSettings.saveToDisk && tick % ServerSettings.TicksBetweenSaving == 0) Macro.exception(Server.server.map.writeToDisk(false));
         if(ServerSettings.saveToDisk && (tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Macro.exception(Server.server.map.writeBackup());
+
+        if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release(); // TODO mutext if no global player mutex is used
 
         DoTimeTestStuff();    
     }

@@ -353,7 +353,7 @@ class Connection
                         If a target is newly exiled by no one, they show up as:
 
                         exile_target_id -1
-**/
+    **/
     public static function SendExileToAll(exiler:GlobalPlayerInstance, target:GlobalPlayerInstance)
     {
         for(c in Connection.getConnections())

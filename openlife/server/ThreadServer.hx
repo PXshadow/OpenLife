@@ -23,6 +23,7 @@ class ThreadServer
         this.port = port;
         this.server = server;
     }
+
     public function create()
     {
         socket.bind(new Host("0.0.0.0"),port);
@@ -33,6 +34,7 @@ class ThreadServer
             Thread.create(connection).sendMessage(socket.accept());
         }
     }
+
     private function connection()
     {
         var socket:Socket = cast Thread.readMessage(true);

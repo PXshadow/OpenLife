@@ -782,7 +782,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             Std.int(move_speed * 100) / 100,
              heldObject,
              this.gx - forPlayer.gx,
-             this.gy - forPlayer.gy
+             this.gy - forPlayer.gy,
+             isHeld()
         );
     }
 
@@ -3493,7 +3494,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function isHeld() : Bool
     {
-        return ((this.o_id[0] < 0) || this.heldPlayer != null);
+        return (this.heldByPlayer != null);
     }
 
     public var account(get, null):PlayerAccount;
