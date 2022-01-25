@@ -98,17 +98,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var heldPlayer:GlobalPlayerInstance;
     public var heldByPlayer:GlobalPlayerInstance;
 
-    public var myfollowPlayer(get, set):PlayerInstance;
-    public var myHeldPlayer(get, set):PlayerInstance;
-    public var myHeldByPlayer(get, set):PlayerInstance;
-
-    public function get_myfollowPlayer(){return followPlayer;}
-    public function get_myHeldPlayer(){return heldPlayer;}
-    public function get_myHeldByPlayer(){return heldByPlayer;}
-
-    public function set_myfollowPlayer(value:PlayerInstance){return followPlayer = cast (value, GlobalPlayerInstance);}
-    public function set_myHeldPlayer(value:PlayerInstance){return heldPlayer = cast (value, GlobalPlayerInstance);}
-    public function set_myHeldByPlayer(value:PlayerInstance){return heldByPlayer = cast (value, GlobalPlayerInstance);}
+    public function getFollowPlayer(){return followPlayer;}
+    public function getHeldPlayer(){return heldPlayer;}
+    public function getHeldByPlayer(){return heldByPlayer;}
 
     // handles all the movement stuff
     public var moveHelper:MoveHelper;

@@ -23,7 +23,8 @@ interface PlayerInterface
     public function doBaby(x:Int, y:Int, playerId:Int) : Bool;
     public function jump() : Bool; 
 
-    public var myfollowPlayer(get, set):PlayerInstance;
-    public var myHeldPlayer(get, set):PlayerInstance;
-    public var myHeldByPlayer(get, set):PlayerInstance;
+    // variables
+    public function getFollowPlayer():PlayerInstance;
+    public function getHeldPlayer():PlayerInstance;
+    public function getHeldByPlayer():PlayerInstance;
 }
