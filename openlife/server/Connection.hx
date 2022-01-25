@@ -209,6 +209,7 @@ class Connection
     private function sendToMePlayerInfo(playerToSend:GlobalPlayerInstance, sendMovingPlayer:Bool = false, isPlayerAction:Bool = true)
     {
         if(playerToSend.deleted) return;
+        if(playerToSend.isHeld()) return;
 
         var player = this.player;
 

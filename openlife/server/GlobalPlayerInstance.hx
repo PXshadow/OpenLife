@@ -3499,6 +3499,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return false;
     }
 
+    public function isHeld() : Bool
+    {
+        return ((this.o_id[0] < 0) || this.heldPlayer != null);
+    }
+
     public var account(get, null):PlayerAccount;
 
     public function get_account()
