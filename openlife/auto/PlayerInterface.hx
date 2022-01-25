@@ -7,8 +7,6 @@ interface PlayerInterface
     public function getWorld() : WorldInterface;   
     public function getPlayerInstance() : PlayerInstance;
 
-    public function isMoving() : Bool;
-
     public function doEmote(id:Int, seconds:Int = -10) : Void;
     public function say(text:String, toSelf:Bool = false) : Void;
     //public function eat(); 
@@ -24,6 +22,7 @@ interface PlayerInterface
     public function jump() : Bool; 
 
     // variables
+    public function isMoving() : Bool;
     public function getFollowPlayer():PlayerInstance;
     public function getHeldPlayer():PlayerInstance;
     public function getHeldByPlayer():PlayerInstance;
