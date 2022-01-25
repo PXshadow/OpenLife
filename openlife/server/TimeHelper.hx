@@ -153,44 +153,8 @@ class TimeHelper
         if(ServerSettings.saveToDisk && tick % ServerSettings.TicksBetweenSaving == 0) Macro.exception(Server.server.map.writeToDisk(false));
         if(ServerSettings.saveToDisk && (tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Macro.exception(Server.server.map.writeBackup());
 
-        
-        if(tick % 200 == 0) 
-        {
-            if(Connection.getConnections().length > 0)
-            {
-                /*
-                var c = Connection.getConnections()[0];
-                //FW follower_id leader_id leader_color_index
-                c.send(ClientTag.FOLLOWING, ['${c.player.p_id} 2 $colorIndex']);
-                //p_id emot_index
-                c.send(ClientTag.PLAYER_EMOT, ['${c.player.p_id} $colorIndex']);
-                //c.send(ClientTag.PLAYER_SAYS, ['0 0 $colorIndex']);
-                //c.player.say('color $colorIndex');
-                c.send(ClientTag.LOCATION_SAYS, ['100 0 /LEADER']);
-
-                trace('FOLLOW '+ '${c.player.p_id} 2 $colorIndex');
-
-                colorIndex++;
-                
-                */
-                /*
-                c.player.po_id = obj.id;
-                
-                Connection.SendUpdateToAllClosePlayers(c.player);
-                if(tick % 200 == 0) c.send(ClientTag.DYING, ['${c.player.p_id}']);
-                else c.send(ClientTag.HEALED, ['${c.player.p_id}']);
-
-                c.sendGlobalMessage('Id ${obj.parentId} P${obj.person} ${obj.description}');
-
-                personIndex++;
-                //  418 + 0 = 427 + 1363 / @ Deadly Wolf + Empty  -->  Attacking Wolf + Bite Wound 
-                */
-            }
-        }
-        
+        DoTimeTestStuff();    
     }
-    //static var personIndex = 0;
-    //static var colorIndex = 0;
 
     private static function DoSeason(timePassedInSeconds:Float)
     {
@@ -1586,5 +1550,44 @@ class TimeHelper
         trace('TRANS4: $trans true, false');
         //var trans = TransitionImporter.GetTransition(418, 0, true, false);
         //trace('TRANS: $trans');
+    }
+    
+    //static var personIndex = 0;
+    //static var colorIndex = 0;
+    private static function DoTimeTestStuff()
+    {
+        if(tick % 200 == 0) 
+            {
+                if(Connection.getConnections().length > 0)
+                {
+                    /*
+                    var c = Connection.getConnections()[0];
+                    //FW follower_id leader_id leader_color_index
+                    c.send(ClientTag.FOLLOWING, ['${c.player.p_id} 2 $colorIndex']);
+                    //p_id emot_index
+                    c.send(ClientTag.PLAYER_EMOT, ['${c.player.p_id} $colorIndex']);
+                    //c.send(ClientTag.PLAYER_SAYS, ['0 0 $colorIndex']);
+                    //c.player.say('color $colorIndex');
+                    c.send(ClientTag.LOCATION_SAYS, ['100 0 /LEADER']);
+    
+                    trace('FOLLOW '+ '${c.player.p_id} 2 $colorIndex');
+    
+                    colorIndex++;
+                    
+                    */
+                    /*
+                    c.player.po_id = obj.id;
+                    
+                    Connection.SendUpdateToAllClosePlayers(c.player);
+                    if(tick % 200 == 0) c.send(ClientTag.DYING, ['${c.player.p_id}']);
+                    else c.send(ClientTag.HEALED, ['${c.player.p_id}']);
+    
+                    c.sendGlobalMessage('Id ${obj.parentId} P${obj.person} ${obj.description}');
+    
+                    personIndex++;
+                    //  418 + 0 = 427 + 1363 / @ Deadly Wolf + Empty  -->  Attacking Wolf + Bite Wound 
+                    */            
+                }
+            }
     }
 }
