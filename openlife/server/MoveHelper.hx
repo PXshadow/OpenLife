@@ -79,8 +79,6 @@ class MoveHelper
 
     static public function calculateSpeed(p:GlobalPlayerInstance, tx:Int, ty:Int, fullPathHasRoad:Bool = true) : Float
     {
-        // TODO reduce speed for buckets depending on how full they are
-
         var map =  Server.server.map;
         var onHorseOrCar = p.heldObject.objectData.speedMult >= 1.1;
         var speed = ServerSettings.InitialPlayerMoveSpeed;
@@ -394,6 +392,12 @@ class MoveHelper
         {
             var tx = x + p.gx;
             var ty = y + p.gy;
+
+            if(p.age < ServerSettings.MinMovementAge)
+            {
+                p.connection.send(PLAYER_UPDATE,[p.toData()]);
+                return;
+            }
 
             // since move update may acces this also
             if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.acquire();
