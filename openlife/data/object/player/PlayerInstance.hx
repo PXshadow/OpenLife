@@ -254,7 +254,7 @@ class PlayerInstance
     {
         //o_origin_valid = 1;
         if (heldObject == "")
-            heldObject = MapData.stringID(o_id);
+            heldObject = o_id[0] < 0 ?  '${o_id[0]}' : MapData.stringID(o_id);
         if (rx == null)
             rx = this.x;
         if (ry == null)

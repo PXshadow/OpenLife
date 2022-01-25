@@ -288,6 +288,7 @@ class TimeHelper
     {
         var obj = player.heldObject;
 
+        if(player.o_id[0] < 1) return;
         if(obj.timeToChange <= 0) return;
         
         obj.timeToChange -= timePassedInSeconds;
@@ -1551,7 +1552,7 @@ class TimeHelper
         //var trans = TransitionImporter.GetTransition(418, 0, true, false);
         //trace('TRANS: $trans');
     }
-    
+
     //static var personIndex = 0;
     //static var colorIndex = 0;
     private static function DoTimeTestStuff()

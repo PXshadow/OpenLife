@@ -1,4 +1,5 @@
 package openlife.server;
+import haxe.Exception;
 import openlife.server.Lineage.PrestigeClass;
 import openlife.auto.AiHelper;
 import openlife.server.Biome.BiomeTag;
@@ -1778,13 +1779,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function SetTransitionData(x:Int, y:Int, objOriginValid = false)
     {
         var player = this;
+        var isHoldingPlayer = this.o_id[0] < 0;
+
+        if(isHoldingPlayer && this.heldPlayer != null) throw new Exception('Is holding player but no platyer set!');
+        if(isHoldingPlayer) isHoldingPlayer = false;
 
         player.forced = false;
         player.action = 1;        
         player.o_id = this.heldPlayer != null ? this.o_id = [-heldPlayer.p_id] : this.heldObject.toArray();
 
         //player.o_transition_source_id = this.newTransitionSource; TODO ??????????????????????????
-        player.o_transition_source_id = objOriginValid ? -1 : this.heldObject.id;
+        player.o_transition_source_id = isHoldingPlayer || objOriginValid ? -1 : this.heldObject.id;
 
         // this changes where the client moves the object from on display
         player.o_origin_x = objOriginValid ? x : 0;
@@ -1799,8 +1804,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function setHeldObjectOriginNotValid()
     {
         var player = this;
+        var isHoldingPlayer = this.o_id[0] < 0;
 
-        player.o_transition_source_id = player.heldObject.id;
+        player.o_transition_source_id = isHoldingPlayer ? -1 : player.heldObject.id;
 
         // this changes where the client moves the object from on display
         player.o_origin_x = 0;
@@ -2033,24 +2039,24 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         var objClothingSlot = -1;
 
-        if(this.o_id[0] != 0)
-        {
-            var objectData = ObjectData.getObjectData(this.o_id[0]);
-            //trace("OD: " + objectData.toFileString());        
+        if(this.o_id[0] < 1) return -1;
+        
+        var objectData = ObjectData.getObjectData(this.o_id[0]);
+        //trace("OD: " + objectData.toFileString());        
 
-            switch objectData.clothing.charAt(0) {
-                case "h": objClothingSlot = 0;      // head
-                case "t": objClothingSlot = 1;      // torso
-                case "s": objClothingSlot = 2;      // shoes
-                //case "s": objClothingSlot = 3;    // shoes
-                case "b": objClothingSlot = 4;      // skirt / trouser
-                case "p": objClothingSlot = 5;      // backpack
-            }
-
-            trace('objectData.clothing: ${objectData.clothing}');
-            trace('objClothingSlot:  ${objClothingSlot}');
-            //trace('clothingSlot:  ${clothingSlot}');
+        switch objectData.clothing.charAt(0) {
+            case "h": objClothingSlot = 0;      // head
+            case "t": objClothingSlot = 1;      // torso
+            case "s": objClothingSlot = 2;      // shoes
+            //case "s": objClothingSlot = 3;    // shoes
+            case "b": objClothingSlot = 4;      // skirt / trouser
+            case "p": objClothingSlot = 5;      // backpack
         }
+
+        trace('objectData.clothing: ${objectData.clothing}');
+        trace('objClothingSlot:  ${objClothingSlot}');
+        //trace('clothingSlot:  ${clothingSlot}');
+        
 
         return objClothingSlot;
     }
@@ -2172,7 +2178,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function isHoldingMeh() : Bool        
     {
         if(this.o_id[0] < 0) return false; // is holding player
-        
+
         var heldObjData = heldObject.objectData;
         if(heldObjData.dummyParent != null) heldObjData = heldObjData.dummyParent;
 
