@@ -97,6 +97,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var heldPlayer:GlobalPlayerInstance;
     public var heldByPlayer:GlobalPlayerInstance;
 
+    public var myfollowPlayer(get, set):PlayerInstance;
+    public var myHeldPlayer(get, set):PlayerInstance;
+    public var myHeldByPlayer(get, set):PlayerInstance;
+
+    public function get_myfollowPlayer(){return followPlayer;}
+    public function get_myHeldPlayer(){return heldPlayer;}
+    public function get_myHeldByPlayer(){return heldByPlayer;}
+
+    public function set_myfollowPlayer(value:PlayerInstance){return followPlayer = cast (value, GlobalPlayerInstance);}
+    public function set_myHeldPlayer(value:PlayerInstance){return heldPlayer = cast (value, GlobalPlayerInstance);}
+    public function set_myHeldByPlayer(value:PlayerInstance){return heldByPlayer = cast (value, GlobalPlayerInstance);}
+
     // handles all the movement stuff
     public var moveHelper:MoveHelper;
     public var killMode:Bool = false;
@@ -1344,6 +1356,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         trace('self: ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
+        if(this.o_id[0] < 0) return false; // is holding player
+
         if(clothingSlot < 0)
         {
             if(doEating(this,this)) return true;
@@ -1434,6 +1448,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, targetPlayer:GlobalPlayerInstance) : Bool
     {
         trace('doOnOtherHelper: playerId: ${targetPlayer.p_id} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
+
+        if(this.o_id[0] < 0) return false; // is holding player
 
         // 838 Dont feed dam drugs! Wormless Soil Pit with Mushroom // 837 Psilocybe Mushroom
         if(heldObject.objectData.isDrugs()) return false;        

@@ -144,12 +144,15 @@ class Ai
     // do time stuff here is called from TimeHelper
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
+        var player = playerInterface.getPlayerInstance();
+
         time -= timePassedInSeconds;
 
         if(time > 0) return;
         time += ServerSettings.AiReactionTime; //0.5; // minimum AI reacting time
         
         if(playerInterface.isMoving()) return;
+        if(playerInterface.myHeldByPlayer != null) time += 1; // TODO still jump and do stuff once in a while?
 
         checkIsHungryAndEat();
      

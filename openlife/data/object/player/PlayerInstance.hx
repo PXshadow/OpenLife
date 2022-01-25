@@ -3,7 +3,6 @@ import openlife.data.map.MapData;
 @:expose("PlayerInstance")
 class PlayerInstance
 {
-    // Arcurus
     // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
     public var heldObject:ObjectHelper; 
     
@@ -132,7 +131,7 @@ class PlayerInstance
     public var reason:String = "";
     var i:Int = 0;
     var a:Array<String>;
-
+    
     public function new(a:Array<String>)
     {
         this.a = a;

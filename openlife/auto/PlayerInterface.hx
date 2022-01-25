@@ -22,4 +22,8 @@ interface PlayerInterface
     public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int) : Bool; // UBABY
     public function doBaby(x:Int, y:Int, playerId:Int) : Bool;
     public function jump() : Bool; 
+
+    public var myfollowPlayer(get, set):PlayerInstance;
+    public var myHeldPlayer(get, set):PlayerInstance;
+    public var myHeldByPlayer(get, set):PlayerInstance;
 }
