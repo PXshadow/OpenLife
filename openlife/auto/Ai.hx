@@ -154,7 +154,7 @@ class Ai
         if(playerInterface.isMoving()) return;
         if(playerInterface.getHeldByPlayer() != null)
         {
-            time += 1; // TODO still jump and do stuff once in a while?
+            //time += WorldMap.calculateRandomInt(); // TODO still jump and do stuff once in a while?
             return;
         } 
 

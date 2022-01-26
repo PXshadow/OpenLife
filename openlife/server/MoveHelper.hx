@@ -173,7 +173,7 @@ class MoveHelper
             */
 
             // Reduce speed if damaged or age 
-            var fullHitpoints = p.calculateNotReducedFoodStoreMax();
+            var fullHitpoints = ServerSettings.GrownUpFoodStoreMax;
             var currenHitpoints = p.calculateFoodStoreMax();
 
             // between 1/2 and 1 if currenHitpoints <= fullHitpoints
