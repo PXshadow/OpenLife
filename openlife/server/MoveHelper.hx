@@ -390,6 +390,8 @@ class MoveHelper
     */
     static public function move(p:GlobalPlayerInstance, x:Int,y:Int,seq:Int,moves:Array<Pos>)
         {
+            if(p.isHeld()) p.jump();
+
             var tx = x + p.gx;
             var ty = y + p.gy;
 
