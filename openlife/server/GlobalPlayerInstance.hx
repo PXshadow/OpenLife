@@ -646,6 +646,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(p.deleted) return -1000;
         if(p.isFertile() == false) return -1000;
+        if(p.isWounded()) return -1000;
         if(p.food_store < 0) return -1000; // no starving mothers
         if(p.exhaustion > 16) return -1000; // no super exhausted mothers
         
