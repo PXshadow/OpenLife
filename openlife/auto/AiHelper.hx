@@ -14,16 +14,14 @@ class AiHelper
 {
     static final RAD:Int = MapData.RAD; // search radius
 
-    public static function CalculateDistanceToPlayer(playerInterface:PlayerInterface, playerTo:PlayerInstance) : Float
+    public static function CalculateDistanceToPlayer(player:PlayerInterface, playerTo:PlayerInterface) : Float
     {
-        var player = playerInterface.getPlayerInstance();
-        return CalculateDistance(player.tx(), player.ty(), playerTo.tx(), playerTo.ty());
+        return CalculateDistance(player.tx, player.ty, playerTo.tx, playerTo.ty);
     }
 
-    public static function CalculateDistanceToObject(playerInterface:PlayerInterface, obj:ObjectHelper) : Float
+    public static function CalculateDistanceToObject(player:PlayerInterface, obj:ObjectHelper) : Float
     {
-        var player = playerInterface.getPlayerInstance();
-        return CalculateDistance(player.tx(), player.ty(), obj.tx, obj.ty);
+        return CalculateDistance(player.tx, player.ty, obj.tx, obj.ty);
     }
 
     // TODO does not consider round map
@@ -53,8 +51,8 @@ class AiHelper
         //var RAD = ServerSettings.AiMaxSearchRadius
         var world = playerInterface.getWorld();
         var player = playerInterface.getPlayerInstance();
-        var baseX = player.tx();
-        var baseY = player.ty();
+        var baseX = player.tx;
+        var baseY = player.ty;
         var closestObject = null;
         var bestDistance = 0.0;
 
@@ -201,9 +199,9 @@ class AiHelper
         var vector = new Vector<Bool>((RAD * 2) * (RAD * 2));
         var int:Int = -1;
 
-        for (y in player.ty() - RAD...player.ty() + RAD)
+        for (y in player.ty - RAD...player.ty + RAD)
         {
-            for (x in player.tx() - RAD...player.tx() + RAD)
+            for (x in player.tx - RAD...player.tx + RAD)
             {
                 int++;
 

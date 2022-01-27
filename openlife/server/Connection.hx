@@ -159,8 +159,8 @@ class Connection
             for (c in connections)
             {
                 // since player has relative coordinates, transform them for player
-                var targetX = player.tx() - c.player.gx;
-                var targetY = player.ty() - c.player.gy;
+                var targetX = player.tx - c.player.gx;
+                var targetY = player.ty - c.player.gy;
 
                 // update only close players except if player is deleted (death)
                 if(player.deleted == false && c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
@@ -213,8 +213,8 @@ class Connection
         var player = this.player;
 
         // since player has relative coordinates, transform them for player
-        var targetX = playerToSend.tx() - player.gx;
-        var targetY = playerToSend.ty() - player.gy;
+        var targetX = playerToSend.tx - player.gx;
+        var targetY = playerToSend.ty - player.gy;
 
         // update only close players
         if(player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false)
@@ -521,8 +521,8 @@ class Connection
             for (c in connections) 
             {
                 // since player has relative coordinates, transform them for player
-                var targetX = player.tx() - c.player.gx;
-                var targetY = player.ty() - c.player.gy;
+                var targetX = player.tx - c.player.gx;
+                var targetY = player.ty - c.player.gy;
 
                 // update only close players
                 if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
@@ -539,13 +539,13 @@ class Connection
             for (c in ais)
             {
                 // since player has relative coordinates, transform them for player
-                var targetX = player.tx() - c.player.gx;
-                var targetY = player.ty() - c.player.gy;
+                var targetX = player.tx - c.player.gx;
+                var targetY = player.ty - c.player.gy;
 
                 // update only close players
                 if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
 
-                c.playerMove(player,player.tx(),player.ty());
+                c.playerMove(player, player.tx, player.ty);
             }
         } 
         catch(ex) trace(ex);
@@ -642,8 +642,8 @@ class Connection
         for (c in connections) 
         {
             // since player has relative coordinates, transform them for player
-            var targetX = player.tx() - c.player.gx;
-            var targetY = player.ty() - c.player.gy;
+            var targetX = player.tx - c.player.gx;
+            var targetY = player.ty - c.player.gy;
 
             // update only close players
             if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
@@ -763,8 +763,8 @@ class Connection
             for (c in ais)
             {
                 // since player has relative coordinates, transform them for player
-                var targetX = fromPlayer.tx() - c.player.gx;
-                var targetY = fromPlayer.ty() - c.player.gy;
+                var targetX = fromPlayer.tx - c.player.gx;
+                var targetY = fromPlayer.ty - c.player.gy;
 
                 // update only close players
                 if(c.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) continue;
@@ -778,8 +778,8 @@ class Connection
     private static function DoHumanPlayerEmote(fromPlayer:GlobalPlayerInstance, toConnection:Connection, id:Int, seconds:Int = -10)
     {
         // since player has relative coordinates, transform them for player
-        var targetX = fromPlayer.tx() - toConnection.player.gx;
-        var targetY = fromPlayer.ty() - toConnection.player.gy;
+        var targetX = fromPlayer.tx - toConnection.player.gx;
+        var targetY = fromPlayer.ty - toConnection.player.gy;
 
         // update only close players
         if(toConnection.player.isClose(targetX,targetY, ServerSettings.maxDistanceToBeConsideredAsClose) == false) return;
@@ -930,7 +930,7 @@ class Connection
     public function sendMapLocation(toPlayer:GlobalPlayerInstance, text1:String, text2:String)
     {
         var player = this.player;
-        var message = '${player.p_id}/0 $text1 *$text2 ${toPlayer.p_id} *map ${toPlayer.tx() - player.gx} ${toPlayer.ty() - player.gy}';
+        var message = '${player.p_id}/0 $text1 *$text2 ${toPlayer.p_id} *map ${toPlayer.tx - player.gx} ${toPlayer.ty - player.gy}';
 
         trace('MAPSAY: $message');
 

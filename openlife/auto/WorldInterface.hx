@@ -26,6 +26,6 @@ interface WorldInterface
     //** returns -1 of x,y is too far away from player **/
     public function getFloorId(x:Int, y:Int):Int; 
 
-    public function getClosestPlayer(maxDistance:Int, onlyHuman:Bool = false) : PlayerInstance;
-    public function getPlayerAt(x:Int, y:Int, playerId:Int) : PlayerInstance;
+    public function getClosestPlayer(maxDistance:Int, onlyHuman:Bool = false) : PlayerInterface;
+    public function getPlayerAt(x:Int, y:Int, playerId:Int) : PlayerInterface;
 }

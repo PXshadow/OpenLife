@@ -20,7 +20,8 @@ class Ai
 {
     final RAD:Int = MapData.RAD; // search radius
 
-    public var playerInterface:PlayerInterface;
+    public var myPlayer:PlayerInterface;
+    //public var myPlayer:GlobalPlayerInstance;
 
     var done = false;
 
@@ -37,23 +38,24 @@ class Ai
     var isHungry = false;
     var doingAction = false;
 
-    var playerToFollow:PlayerInstance;
+    var playerToFollow:PlayerInterface;
   
 
     public function new(player:PlayerInterface) 
     {
-        this.playerInterface = player;
+        this.myPlayer = player;
+        //this.myPlayer = cast(playerInterface, GlobalPlayerInstance); // TODO support only client AI
     }
 
-    public function say(player:PlayerInstance,curse:Bool,text:String) 
+    public function say(player:PlayerInterface, curse:Bool,text:String) 
     {
-        var myPlayer = playerInterface.getPlayerInstance();
-        var world = playerInterface.getWorld();
+        //var myPlayer = myPlayer.getPlayerInstance();
+        var world = myPlayer.getWorld();
         //trace('im a super evil bot!');
 
         //trace('ai3: ${myPlayer.p_id} player: ${player.p_id}');
 
-        if (myPlayer.p_id == player.p_id) return;
+        if (myPlayer.id == player.id) return;
 
         //trace('im a evil bot!');
 
@@ -65,7 +67,7 @@ class Ai
 
             var objectIdToSearch = 273; // 273 = Cooked Carrot Pie // 250 = Hot Adobe Oven
 
-            AiHelper.SearchTransitions(playerInterface, objectIdToSearch);
+            AiHelper.SearchTransitions(myPlayer, objectIdToSearch);
         }
 
         if (text.contains("HELLO")) 
@@ -74,34 +76,34 @@ class Ai
 
             //trace('im a nice bot!');
 
-            playerInterface.say("HELLO WORLD");
+            myPlayer.say("HELLO WORLD");
         }
         if (text.contains("JUMP")) 
         {
-            playerInterface.say("JUMP");
-            playerInterface.jump();
+            myPlayer.say("JUMP");
+            myPlayer.jump();
         }
         if (text.contains("MOVE"))
         {
-            playerInterface.Goto(player.tx() + 1 - myPlayer.gx, player.ty() - myPlayer.gy);
-            playerInterface.say("YES CAPTAIN");
+            myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
+            myPlayer.say("YES CAPTAIN");
         }
         if (text.contains("FOLLOW ME"))
         {
             playerToFollow = player;
-            playerInterface.Goto(player.tx() + 1 - myPlayer.gx, player.ty() - myPlayer.gy);
-            playerInterface.say("SURE CAPTAIN");
+            myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
+            myPlayer.say("SURE CAPTAIN");
         }
         if (text.contains("STOP"))
         {
             playerToFollow = null;
-            playerInterface.say("YES CAPTAIN");
+            myPlayer.say("YES CAPTAIN");
         }
         if (text.contains("EAT!"))
         {
             searchBestFood();
             searchFoodAndEat();
-            playerInterface.say("YES CAPTAIN");
+            myPlayer.say("YES CAPTAIN");
         }
         if (text.contains("MAKE!"))
         {
@@ -113,25 +115,25 @@ class Ai
                 itemToCraft.countDone = 0;
                 itemToCraft.countTransitionsDone = 0;
                 var obj = ObjectData.getObjectData(id);
-                playerInterface.say("Making: " + obj.description);
+                myPlayer.say("Making: " + obj.description);
             }
         }
     }
 
     public function searchFoodAndEat()
     {
-        var myPlayer = playerInterface.getPlayerInstance();
+        //var myPlayer = myPlayer.getPlayerInstance();
         foodTarget = searchBestFood();
-        if(foodTarget != null) playerInterface.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+        if(foodTarget != null) myPlayer.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
     }
 
     public function dropHeldObject() 
     {
-        var myPlayer = playerInterface.getPlayerInstance();
+        //var myPlayer = myPlayer.getPlayerInstance();
         
         if(myPlayer.heldObject.id == 0) return;
 
-        var emptyTileObj = playerInterface.GetClosestObjectById(0); // empty
+        var emptyTileObj = myPlayer.GetClosestObjectById(0); // empty
         dropTarget = emptyTileObj;
 
         //if(itemToCraft.transTarget.parentId == myPlayer.heldObject.parentId)
@@ -141,27 +143,33 @@ class Ai
         //if(emptyTileObj != null) playerInterface.drop(emptyTileObj.tx - myPlayer.gx, emptyTileObj.ty - myPlayer.gy);
     }
 
+    public function isChildAndHasMother()
+    {
+        return (myPlayer.age < ServerSettings.MinAgeToEat &&  myPlayer.mother != null && myPlayer.mother.isDeleted() == false);
+    }
+    
     // do time stuff here is called from TimeHelper
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
-        var player = playerInterface.getPlayerInstance();
+        var player = myPlayer.getPlayerInstance();
 
         time -= timePassedInSeconds;
 
         if(time > 0) return;
         time += ServerSettings.AiReactionTime; //0.5; // minimum AI reacting time
 
-        if(playerInterface.getHeldByPlayer() != null)
+        if(myPlayer.getHeldByPlayer() != null)
         {
             //time += WorldMap.calculateRandomInt(); // TODO still jump and do stuff once in a while?
             return;
         } 
 
-        var animal = GetCloseDeadlyAnimal(playerInterface);
-        var deadlyPlater = GetCloseDeadlyPlayer(playerInterface);
+        var animal = GetCloseDeadlyAnimal(myPlayer);
+        var deadlyPlater = GetCloseDeadlyPlayer(myPlayer);
 
         if(escape(animal, deadlyPlater)) return;
-        if(playerInterface.isMoving()) return;
+        if(myPlayer.isMoving()) return;
+        if(isChildAndHasMother()){if(isMovingToPlayer()) return;}
 
         checkIsHungryAndEat();
      
@@ -200,21 +208,21 @@ class Ai
     {
         if(animal == null && deadlyPlayer == null) return false;
 
-        var player = playerInterface.getPlayerInstance();
+        var player = myPlayer.getPlayerInstance();
 
-        var distAnimal = animal == null ? 999999 : AiHelper.CalculateDistanceToObject(playerInterface, animal);
-        var distPlayer = deadlyPlayer == null ? 999999 : AiHelper.CalculateDistanceToPlayer(playerInterface, deadlyPlayer);
+        var distAnimal = animal == null ? 999999 : AiHelper.CalculateDistanceToObject(myPlayer, animal);
+        var distPlayer = deadlyPlayer == null ? 999999 : AiHelper.CalculateDistanceToPlayer(myPlayer, deadlyPlayer);
         var escapePlayer = distAnimal > distPlayer;
         var description = escapePlayer ? deadlyPlayer.name : animal.description;
-        var escapeTx = escapePlayer ? deadlyPlayer.tx() : animal.tx;
-        var escapeTy = escapePlayer ? deadlyPlayer.ty() : animal.ty;
+        var escapeTx = escapePlayer ? deadlyPlayer.tx : animal.tx;
+        var escapeTy = escapePlayer ? deadlyPlayer.ty : animal.ty;
 
-        playerInterface.say('Escape ${description}!');
+        myPlayer.say('Escape ${description}!');
         
-        var tx = escapeTx > player.tx() ?  player.tx() - 3 : player.tx() + 3;
-        var ty = escapeTy > player.ty() ?  player.ty() - 3 : player.ty() + 3;
+        var tx = escapeTx > player.tx ?  player.tx - 3 : player.tx + 3;
+        var ty = escapeTy > player.ty ?  player.ty - 3 : player.ty + 3;
 
-        playerInterface.Goto(tx - player.gx, ty - player.gy);
+        myPlayer.Goto(tx - player.gx, ty - player.gy);
 
         return true;
     }
@@ -224,8 +232,8 @@ class Ai
         //AiHelper.GetClosestObject
         var world = WorldMap.world;
         var playerInst = player.getPlayerInstance();
-        var baseX = playerInst.tx();
-        var baseY = playerInst.ty();
+        var baseX = playerInst.tx;
+        var baseY = playerInst.ty;
 
         var bestObj = null;
         var bestDist:Float = 9999999;
@@ -283,12 +291,12 @@ class Ai
     // TODO consider too look for a natural spawned object with the fewest steps on the list
     private function craftItem(objId:Int, count:Int = 1, ignoreHighTech:Bool = false) : Bool
     {                
-        var player = playerInterface.getPlayerInstance();
+        var player = myPlayer.getPlayerInstance();
 
         if(itemToCraft.transActor != null && player.heldObject.parentId == itemToCraft.transActor.parentId)
         {
             itemToCraft.transActor = null; // actor is allready in the hand
-            var target = AiHelper.GetClosestObject(playerInterface, itemToCraft.transTarget.objectData);
+            var target = AiHelper.GetClosestObject(myPlayer, itemToCraft.transTarget.objectData);
             useTarget = target != null ? target : itemToCraft.transTarget; // since other search radius might be bigger
 
             return true;
@@ -299,7 +307,7 @@ class Ai
             itemToCraft.itemToCraft = ObjectData.getObjectData(objId);
             itemToCraft.countDone = 0;
             itemToCraft.countTransitionsDone = 0;
-            itemToCraft.transitionsByObjectId = playerInterface.SearchTransitions(objId, ignoreHighTech); 
+            itemToCraft.transitionsByObjectId = myPlayer.SearchTransitions(objId, ignoreHighTech); 
             itemToCraft.notReachableObjects = new Map<Int,Int>();
         }
         
@@ -314,7 +322,7 @@ class Ai
         if(player.heldObject.parentId == itemToCraft.transActor.parentId)
         {
             trace('AI: craft Actor is held already' + itemToCraft.transActor.description);
-            playerInterface.say('Goto actor ' + itemToCraft.transTarget.description );
+            myPlayer.say('Goto actor ' + itemToCraft.transTarget.description );
 
             useTarget = itemToCraft.transTarget; 
             itemToCraft.transActor = null; // actor is allready in the hand
@@ -323,7 +331,7 @@ class Ai
         else
         {
             trace('AI: craft goto actor: ' + itemToCraft.transActor.description);
-            playerInterface.say('Goto target ' + itemToCraft.transActor.description );
+            myPlayer.say('Goto target ' + itemToCraft.transActor.description );
             
             useTarget = itemToCraft.transActor;
 
@@ -347,10 +355,10 @@ class Ai
         var objToCraftId = itemToCraft.itemToCraft.parentId;
         var transitionsByObjectId = itemToCraft.transitionsByObjectId;
 
-        var world = playerInterface.getWorld();
-        var player = playerInterface.getPlayerInstance();
-        var baseX = player.tx();
-        var baseY = player.ty();
+        var world = myPlayer.getWorld();
+        var player = myPlayer.getPlayerInstance();
+        var baseX = player.tx;
+        var baseY = player.ty;
         var bestDistance = 0.0;
         var bestSteps = 0;
         var bestTrans = null; 
@@ -408,7 +416,7 @@ class Ai
 
                     var steps = trans.steps;        
                     var obj = world.getObjectHelper(tx, ty);                
-                    var objDistance = playerInterface.CalculateDistanceToObject(obj);
+                    var objDistance = myPlayer.CalculateDistanceToObject(obj);
                     
                     if(trans.closestObject == null || trans.closestObjectDistance > objDistance)
                     {
@@ -533,23 +541,31 @@ class Ai
         return itemToCraft;
     }
 
-    private function isMovingToPlayer() : Bool
+    private function isMovingToPlayer(maxDistance = 25) : Bool
     {
         if(playerToFollow == null)
         {
-            playerToFollow = playerInterface.getWorld().getClosestPlayer(20, true);
+            if(isChildAndHasMother())
+            {   
+                playerToFollow = myPlayer.mother;
+            }
+            else
+            {
+                // get close human player
+                playerToFollow = myPlayer.getWorld().getClosestPlayer(20, true);
 
-            if(playerToFollow == null) return false;
+                if(playerToFollow == null) return false;
             
-            trace('AAI: follow player ${playerToFollow.p_id}');
+                //trace('AAI: follow player ${playerToFollow.p_id}');
+            }
         }
 
-        if(playerInterface.CalculateDistanceToPlayer(playerToFollow) > 25)
+        if(myPlayer.CalculateDistanceToPlayer(playerToFollow) > maxDistance)
         {
-            trace('AAI: goto player');
+            //trace('AAI: goto player');
 
-            var myPlayer = playerInterface.getPlayerInstance();
-            playerInterface.Goto(playerToFollow.tx() + 1 - myPlayer.gx, playerToFollow.ty() - myPlayer.gy);
+            myPlayer.Goto(playerToFollow.tx + 1 - myPlayer.gx, playerToFollow.ty - myPlayer.gy);
+            myPlayer.say('${playerToFollow.name}');
             return true;
         }
 
@@ -594,21 +610,21 @@ class Ai
     private function isDropingItem() : Bool
     {
         if(dropTarget == null) return false; 
-        if(playerInterface.isMoving()) return true;
+        if(myPlayer.isMoving()) return true;
 
-        var distance = playerInterface.CalculateDistanceToObject(dropTarget);
-        var myPlayer = playerInterface.getPlayerInstance();
+        var distance = myPlayer.CalculateDistanceToObject(dropTarget);
+        //var myPlayer = myPlayer.getPlayerInstance();
 
         if(distance > 1)
         {
             trace('AAI: goto drop');
-            playerInterface.Goto(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
+            myPlayer.Goto(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
         }
         else
         {
             trace('AAI: drop');
 
-            playerInterface.drop(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
+            myPlayer.drop(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
             
             dropTarget = null;
         }
@@ -619,18 +635,18 @@ class Ai
     private function isEating() : Bool
     {
         if(foodTarget == null) return false;
-        if(playerInterface.isMoving()) return true;
+        if(myPlayer.isMoving()) return true;
 
         // TODO check if food target is still valid
 
-        var myPlayer = playerInterface.getPlayerInstance();
+        // var myPlayer = myPlayer.getPlayerInstance();
 
-        var distance = playerInterface.CalculateDistanceToObject(foodTarget);
+        var distance = myPlayer.CalculateDistanceToObject(foodTarget);
 
         if(distance > 1)
         {
             trace('AAI: goto food');
-            playerInterface.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+            myPlayer.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
             return true;
         }
 
@@ -641,7 +657,7 @@ class Ai
             trace('AAI: pickup food from floor');
 
             // x,y is relativ to birth position, since this is the center of the universe for a player
-            var done = playerInterface.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy); 
+            var done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy); 
 
             return true;
         }
@@ -659,7 +675,7 @@ class Ai
 
         var oldNumberOfUses = foodTarget.numberOfUses;
 
-        playerInterface.self(); // eat
+        myPlayer.self(); // eat
 
         trace('AAI: Eat: held: ${ myPlayer.heldObject.description} food: ${foodTarget.description} foodTarget.numberOfUses ${foodTarget.numberOfUses} == oldNumberOfUses $oldNumberOfUses || emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
 
@@ -695,7 +711,7 @@ class Ai
 
     private function checkIsHungryAndEat() : Bool
     {
-        var player = playerInterface.getPlayerInstance();
+        var player = myPlayer.getPlayerInstance();
 
         if(isHungry)
         {
@@ -708,7 +724,7 @@ class Ai
 
         if(isHungry && foodTarget == null) searchFoodAndEat();
 
-        playerInterface.say('F ${Math.round(playerInterface.getPlayerInstance().food_store)}');
+        myPlayer.say('F ${Math.round(myPlayer.getPlayerInstance().food_store)}');
 
         //trace('AAI: F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');
         
@@ -718,17 +734,17 @@ class Ai
     private function isUsingItem() : Bool
     {
         if(useTarget == null) return false; 
-        if(playerInterface.isMoving()) return true;
+        if(myPlayer.isMoving()) return true;
 
-        var distance = playerInterface.CalculateDistanceToObject(useTarget);
-        var myPlayer = playerInterface.getPlayerInstance();
+        var distance = myPlayer.CalculateDistanceToObject(useTarget);
+        //var myPlayer = myPlayer.getPlayerInstance();
 
         trace('AAI: Use:  distance: $distance ${useTarget.description} ${useTarget.tx} ${useTarget.ty}');
     
         if(distance > 1)
         {
             trace('AAI: goto useItem');
-            var done = playerInterface.Goto(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
+            var done = myPlayer.Goto(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
 
             // TODO use item not reachable or bug in pathing?
             if(done == false)
@@ -744,12 +760,12 @@ class Ai
         }
 
         // x,y is relativ to birth position, since this is the center of the universe for a player
-        var done = playerInterface.use(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
+        var done = myPlayer.use(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
 
         if(done)
         {
             itemToCraft.countTransitionsDone += 1; 
-            var taregtObjectId = playerInterface.getWorld().getObjectId(useTarget.tx, useTarget.ty)[0];
+            var taregtObjectId = myPlayer.getWorld().getObjectId(useTarget.tx, useTarget.ty)[0];
             // if object to create is held by player or is on ground, then cound as done
             if(myPlayer.heldObject.parentId == itemToCraft.itemToCraft.parentId || taregtObjectId == itemToCraft.itemToCraft.parentId) itemToCraft.countDone += 1;
 
@@ -773,10 +789,10 @@ class Ai
 
     private function searchBestFood() : ObjectHelper
     {
-        var player = playerInterface.getPlayerInstance();
-        var baseX = player.tx();
-        var baseY = player.ty();
-        var world = playerInterface.getWorld();
+        var player = myPlayer.getPlayerInstance();
+        var baseX = player.tx;
+        var baseY = player.ty;
+        var world = myPlayer.getWorld();
         var bestFood = null;
         var bestDistance = 0.0;
 

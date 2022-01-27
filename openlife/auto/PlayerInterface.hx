@@ -1,4 +1,5 @@
 package openlife.auto;
+import openlife.data.object.ObjectHelper;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.Pos;
 
@@ -22,7 +23,23 @@ interface PlayerInterface
     public function jump() : Bool; 
 
     // variables
+    public var id(get, null):Int;
+    public var name(get, null):String;
+    public var tx(get, null):Int;
+    public var ty(get, null):Int;
+    public var gx(default, default):Int;
+    public var gy(default, default):Int;
+
+    public var food_store(default, default):Float;
+    public var food_store_max(default, default):Float;
+    public var age(default, default):Float;
+
+    public var mother(get, null):PlayerInterface;
+    public var heldObject(default, default):ObjectHelper;
+
+    public function isDeleted() : Bool;
     public function isMoving() : Bool;
+    //public function getMother():PlayerInstance;
     public function getFollowPlayer():PlayerInstance;
     public function getHeldPlayer():PlayerInstance;
     public function getHeldByPlayer():PlayerInstance;

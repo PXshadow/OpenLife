@@ -177,17 +177,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         AllPlayers.remove(this.p_id);
     }
 
+    public var id(get, null):Int;
+    public function get_id(){return p_id;}
+
     public var name(get, set):String;
-
-    public function get_name()
-    {
-        return lineage.name;
-    }
-
-    public function set_name(newName:String)
-    {
-        return lineage.name = newName;
-    }
+    public function get_name(){return lineage.name;}
+    public function set_name(newName:String){return lineage.name = newName;}
 
     public var familyName(get, null):String;
 
@@ -422,7 +417,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.lineage.myEveId = this.p_id;
 
             // give eve the right color fitting to closest special biome
-            var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx(), this.ty());
+            var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx, this.ty);
             if(closeSpecialBiomePersonColor > 0)
             {
                 var female = ServerSettings.ChanceForFemaleChild >= 0.5;
@@ -441,8 +436,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             //lastEveOrAdam.followPlayer = this;
             this.mother = lastEveOrAdam; // its not really the mother, but its the mother in spirit...  
 
-            gx = lastEveOrAdam.tx();
-            gy = lastEveOrAdam.ty();
+            gx = lastEveOrAdam.tx;
+            gy = lastEveOrAdam.ty;
 
             var female = lastEveOrAdam.isFemal() == false;
             var personsByColor = female ? ObjectData.femaleByRaceObjectData : ObjectData.maleByRaceObjectData;
@@ -482,15 +477,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         this.age = 0.01;
         this.trueAge = 0.01;
-        gx = mother.tx();
-        gy = mother.ty();
+        gx = mother.tx;
+        gy = mother.ty;
 
         var motherColor = mother.getColor();
         var color = motherColor;
         var female = ServerSettings.ChanceForFemaleChild > WorldMap.calculateRandomFloat(); 
         var personsByColor = female ? ObjectData.femaleByRaceObjectData : ObjectData.maleByRaceObjectData;
         var rand = WorldMap.calculateRandomFloat();
-        var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx(), this.ty());
+        var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx, this.ty);
         var closeToWrongSpecialBiome = (closeSpecialBiomePersonColor > 0) && (motherColor != closeSpecialBiomePersonColor);
         var otherColorThenMom = closeToWrongSpecialBiome ? ServerSettings.ChanceForOtherChildColorIfCloseToWrongSpecialBiome > rand : ServerSettings.ChanceForOtherChildColor > rand;
 
@@ -799,8 +794,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var heldObject = o_id[0] < 0 ?  '${o_id[0]}' : MapData.stringID(o_id);
 
         return toData(
-            tx() - forPlayer.gx,
-            ty() - forPlayer.gy,
+            tx - forPlayer.gx,
+            ty - forPlayer.gy,
             Std.int(age * 100) / 100, Std.int(age_r * 100) / 100,
             Std.int(move_speed * 100) / 100,
              heldObject,
@@ -829,8 +824,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function isCloseToPlayer(player:GlobalPlayerInstance, distance:Int = 1)
     {
-        var targetX = player.tx() - this.gx;
-        var targetY = player.ty() - this.gy;
+        var targetX = player.tx - this.gx;
+        var targetY = player.ty - this.gy;
 
         return isClose(targetX,targetY,distance);
     }
@@ -1471,9 +1466,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // 838 Dont feed dam drugs! Wormless Soil Pit with Mushroom // 837 Psilocybe Mushroom
         if(heldObject.objectData.isDrugs()) return false;        
 
-        if(this.isClose(targetPlayer.tx() - this.gx , targetPlayer.ty() - this.gy) == false)
+        if(this.isClose(targetPlayer.tx - this.gx , targetPlayer.ty - this.gy) == false)
         {
-            trace('doOnOtherHelper: Target position is too far away player: ${this.tx()},${this.ty()} target: ${targetPlayer.tx},${targetPlayer.ty}');
+            trace('doOnOtherHelper: Target position is too far away player: ${this.tx},${this.ty} target: ${targetPlayer.tx},${targetPlayer.ty}');
             return false; 
         }
 
@@ -1554,8 +1549,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(c.player == this) continue;
 
-            var pX = c.player.tx() - this.gx;
-            var pY = c.player.ty() - this.gy;
+            var pX = c.player.tx - this.gx;
+            var pY = c.player.ty - this.gy;
             var tmpDistance = (pX - x) * (pX - x) + (pY - y) * (pY - y);
 
             if(tmpDistance < distance) player = c.player;
@@ -1569,8 +1564,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(ai.player == this) continue;
             
-            var pX = ai.player.tx() - this.gx;
-            var pY = ai.player.ty() - this.gy;
+            var pX = ai.player.tx - this.gx;
+            var pY = ai.player.ty - this.gy;
             var tmpDistance = (pX - x) * (pX - x) + (pY - y) * (pY - y);
 
             if(tmpDistance < distance) player = ai.player;
@@ -1718,7 +1713,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         playerTo.addFood(foodValue);
 
-        playerTo.move_speed = MoveHelper.calculateSpeed(playerTo, playerTo.tx(), playerTo.ty());
+        playerTo.move_speed = MoveHelper.calculateSpeed(playerTo, playerTo.tx, playerTo.ty);
 
         playerTo.sendFoodUpdate();
 
@@ -2303,8 +2298,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             ChooseNewLeader(this);
 
             // TODO set coordinates player based
-            ServerSettings.startingGx = this.tx();
-            ServerSettings.startingGy = this.ty();
+            ServerSettings.startingGx = this.tx;
+            ServerSettings.startingGy = this.ty;
 
             //this.connection.die();
             
@@ -2314,8 +2309,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 var player = this.heldByPlayer;
                 var heldPlayer = this;
 
-                heldPlayer.x = player.tx() - heldPlayer.gx;
-                heldPlayer.y = player.ty() - heldPlayer.gy;
+                heldPlayer.x = player.tx - heldPlayer.gx;
+                heldPlayer.y = player.ty - heldPlayer.gy;
         
                 player.heldPlayer = null;
                 player.o_id = [0];
@@ -2538,7 +2533,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             }
             else
             {
-                WorldMap.PlaceObject(this.tx(), this.ty(), this.heldObject, true); // TODO test for example with death on horse
+                WorldMap.PlaceObject(this.tx, this.ty, this.heldObject, true); // TODO test for example with death on horse
             }
 
             this.setHeldObject(null);
@@ -2552,7 +2547,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             grave.containedObjects.push(obj);
         }
 
-        if(WorldMap.PlaceObject(this.tx(), this.ty(), grave, true) == false) trace('WARNING: could not place any grave for player: ${this.p_id}');
+        if(WorldMap.PlaceObject(this.tx, this.ty, grave, true) == false) trace('WARNING: could not place any grave for player: ${this.p_id}');
 
         Connection.SendGraveInfoToAll(grave);
 
@@ -2660,7 +2655,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // TODO stop movement if hit
         // TODO block movement if not ally (with weapon?)     
         
-        var targetPlayer = getPlayerAt(this.tx() + x, this.tx() + y, playerId);
+        var targetPlayer = getPlayerAt(this.tx + x, this.tx + y, playerId);
         var name = targetPlayer == null ? 'not found!' : ${targetPlayer.name};
         var deadlyDistance = this.heldObject.objectData.deadlyDistance;
         
@@ -2682,7 +2677,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }
 
-        trace('kill($x,$y ${targetPlayer.tx() - this.gx},${targetPlayer.ty() - this.gy} playerId: $playerId) ${name}');
+        trace('kill($x,$y ${targetPlayer.tx - this.gx},${targetPlayer.ty - this.gy} playerId: $playerId) ${name}');
 
         this.killMode = true;
 
@@ -2732,7 +2727,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }
 
-        var quadDistance = AiHelper.CalculateDistance(x, y, targetPlayer.tx() - gx, targetPlayer.ty() - gy);
+        var quadDistance = AiHelper.CalculateDistance(x, y, targetPlayer.tx - gx, targetPlayer.ty - gy);
         var distanceFactor = 2 / (quadDistance + 2);
 
         if(distanceFactor < 0.3)
@@ -2912,7 +2907,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             
             if(targetPlayer.heldObject.id != 0)
             {
-                if(WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
+                if(WorldMap.PlaceObject(targetPlayer.tx, targetPlayer.ty, targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
             }
 
             var newWound = new ObjectHelper(attacker, trans.newTargetID);
@@ -2925,7 +2920,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             // if it is an arrow wound, place arrow on ground if there is no wound
             var newWound = new ObjectHelper(this, trans.newTargetID);
             newWound.timeToChange = 2;
-            WorldMap.PlaceObject(targetPlayer.tx(), targetPlayer.ty(), newWound, true);
+            WorldMap.PlaceObject(targetPlayer.tx, targetPlayer.ty, newWound, true);
         }  
 
         if(attacker == null) // attacker is animal
@@ -3005,7 +3000,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function doBaby(x:Int, y:Int, playerId:Int) : Bool // playerId = -1 if no specific player is slected
     {
         var done = false;
-        var targetPlayer = getPlayerAt(this.tx() + x, this.tx() + y, playerId);
+        var targetPlayer = getPlayerAt(this.tx + x, this.tx + y, playerId);
 
         trace('doBaby($x, $y playerId: $playerId)');
 
@@ -3080,7 +3075,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(player.heldObject.isDroppable())
         {
-            WorldMap.PlaceObject(this.tx(), this.ty(), player.heldObject, false);
+            WorldMap.PlaceObject(this.tx, this.ty, player.heldObject, false);
             player.setHeldObject(null);
         }
 
@@ -3124,8 +3119,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         var heldPlayer = player.heldPlayer;
 
-        heldPlayer.x = player.tx() - heldPlayer.gx;
-        heldPlayer.y = player.ty() - heldPlayer.gy;
+        heldPlayer.x = player.tx - heldPlayer.gx;
+        heldPlayer.y = player.ty - heldPlayer.gy;
 
         player.heldPlayer = null;
         player.o_id = [0];
@@ -3298,7 +3293,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         } */
         else if(text.indexOf('!CREATEALL') != -1)
         {
-            Server.server.map.generateExtraDebugStuff(player.tx(), player.ty());
+            Server.server.map.generateExtraDebugStuff(player.tx, player.ty);
         }
         else if(text.indexOf('!CREATE') != -1) // "create xxx" with xxx = id
         {
@@ -3308,9 +3303,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(id < 0) return;
             
-            WorldMap.world.setObjectId(player.tx(), player.ty(), [id]);
+            WorldMap.world.setObjectId(player.tx, player.ty, [id]);
 
-            Connection.SendMapUpdateToAllClosePlayers(player.tx(), player.ty(), [id]);
+            Connection.SendMapUpdateToAllClosePlayers(player.tx, player.ty, [id]);
         }
         else if(text.indexOf('!CLOSE') != -1) 
         {
@@ -3392,8 +3387,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function biomeLoveFactor() : Float
     {
         var world = WorldMap.world;
-        var biome = world.getBiomeId(this.tx(), this.ty());
-        var floor = world.getFloorId(this.tx(), this.ty());
+        var biome = world.getBiomeId(this.tx, this.ty);
+        var floor = world.getFloorId(this.tx, this.ty);
         var color = this.getColor();
         var loved:Float = 0;
 
@@ -3600,6 +3595,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
         
         return WorldMap.isBiomeBlocking(tx, ty); 
+    }
+
+    public function isDeleted()
+    {
+        return deleted;   
     }
 }
 

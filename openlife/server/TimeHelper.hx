@@ -725,7 +725,7 @@ class TimeHelper
     {
         var maxBiomeDistance = 10; 
         // TODO consider close biome temperature influence
-        var biome = WorldMap.worldGetBiomeId(player.tx(), player.ty()); 
+        var biome = WorldMap.worldGetBiomeId(player.tx, player.ty); 
         var originalBiomeTemperature = Biome.getBiomeTemperature(biome);
         var biomeTemperature = originalBiomeTemperature;
 
@@ -735,50 +735,50 @@ class TimeHelper
             // direct x / y   
             for(ii in 1...maxBiomeDistance-1)
             {
-                biomeTemperature = CalculateTemperatureAtPosition(player.tx() + ii, player.ty(), "+X", ii, maxBiomeDistance, biomeTemperature);
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx + ii, player.ty, "+X", ii, maxBiomeDistance, biomeTemperature);
                 if(biomeTemperature != originalBiomeTemperature) break; 
             }
 
             for(ii in 1...maxBiomeDistance-1)
             {
-                biomeTemperature = CalculateTemperatureAtPosition(player.tx() - ii, player.ty(), "-X", ii, maxBiomeDistance, biomeTemperature);
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx - ii, player.ty, "-X", ii, maxBiomeDistance, biomeTemperature);
                 if(biomeTemperature != originalBiomeTemperature) break; 
             }
 
             for(ii in 1...maxBiomeDistance-1)
             {
-                biomeTemperature = CalculateTemperatureAtPosition(player.tx(), player.ty() + ii, "+Y",  ii, maxBiomeDistance, biomeTemperature);
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx, player.ty + ii, "+Y",  ii, maxBiomeDistance, biomeTemperature);
                 if(biomeTemperature != originalBiomeTemperature) break; 
             }
 
             for(ii in 1...maxBiomeDistance-1)
             {
-                biomeTemperature = CalculateTemperatureAtPosition(player.tx(), player.ty() - ii, "-Y", ii, maxBiomeDistance, biomeTemperature);
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx, player.ty - ii, "-Y", ii, maxBiomeDistance, biomeTemperature);
                 if(biomeTemperature != originalBiomeTemperature) break; 
             }
 
             // diagonal x / y   
             for(ii in 1...maxBiomeDistance-1)
             {
-                biomeTemperature = CalculateTemperatureAtPosition(player.tx() + ii, player.ty() + ii, "+X+Y", ii, maxBiomeDistance, biomeTemperature);
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx + ii, player.ty + ii, "+X+Y", ii, maxBiomeDistance, biomeTemperature);
                 if(biomeTemperature != originalBiomeTemperature) break; 
             }
 
             for(ii in 1...maxBiomeDistance-1)
             {
-                biomeTemperature = CalculateTemperatureAtPosition(player.tx() - ii, player.ty() - ii, "-X-Y", ii, maxBiomeDistance, biomeTemperature);
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx - ii, player.ty - ii, "-X-Y", ii, maxBiomeDistance, biomeTemperature);
                 if(biomeTemperature != originalBiomeTemperature) break; 
             }
 
             for(ii in 1...maxBiomeDistance-1)
             {
-                biomeTemperature = CalculateTemperatureAtPosition(player.tx() - ii, player.ty() + ii, "-X+Y", ii, maxBiomeDistance, biomeTemperature);
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx - ii, player.ty + ii, "-X+Y", ii, maxBiomeDistance, biomeTemperature);
                 if(biomeTemperature != originalBiomeTemperature) break; 
             }
 
             for(ii in 1...maxBiomeDistance-1)
             {
-                biomeTemperature = CalculateTemperatureAtPosition(player.tx() + ii, player.ty() - ii, "+X-Y", ii, maxBiomeDistance, biomeTemperature);
+                biomeTemperature = CalculateTemperatureAtPosition(player.tx + ii, player.ty - ii, "+X-Y", ii, maxBiomeDistance, biomeTemperature);
                 if(biomeTemperature != originalBiomeTemperature) break; 
             }
         }
@@ -1434,8 +1434,8 @@ class TimeHelper
     {
         //AiHelper.GetClosestObject
         var world = WorldMap.world;
-        var baseX = player.tx();
-        var baseY = player.ty();
+        var baseX = player.tx;
+        var baseY = player.ty;
 
         for(ty in baseY - searchDistance...baseY + searchDistance)
         {

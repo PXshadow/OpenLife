@@ -261,8 +261,8 @@ class MoveHelper
         // test if not moving
         if(moveHelper.newMoves == null)
         {
-            moveHelper.exactTx = p.tx();
-            moveHelper.exactTy = p.ty();
+            moveHelper.exactTx = p.tx;
+            moveHelper.exactTy = p.ty;
             moveHelper.timeExactPositionChangedLast = TimeHelper.tick;
             return;
         } 
@@ -275,8 +275,8 @@ class MoveHelper
             var length = calculateLength(firstPos, move);
             var moved = timePassed * p.move_speed;
 
-            moveHelper.exactTx = p.tx() + (move.x * moved) / length;
-            moveHelper.exactTy = p.ty() + (move.y * moved) / length;
+            moveHelper.exactTx = p.tx + (move.x * moved) / length;
+            moveHelper.exactTy = p.ty + (move.y * moved) / length;
 
             // check if moved one step
             if(moved >= length)
@@ -285,8 +285,8 @@ class MoveHelper
                 p.x += move.x;
                 p.y += move.y;          
 
-                moveHelper.exactTx = p.tx();
-                moveHelper.exactTy = p.ty();
+                moveHelper.exactTx = p.tx;
+                moveHelper.exactTy = p.ty;
                 moveHelper.timeExactPositionChangedLast = TimeHelper.tick;
 
                 for(pos in moveHelper.newMoves)
@@ -338,8 +338,8 @@ class MoveHelper
                     p.x += last.x; 
                     p.y += last.y;
                 
-                    if(p.connection.serverAi == null) trace('reached position: g${p.tx()},g${p.ty()} FROM ${oldX},${oldY} TO ${p.x},${p.y}');
-                    else trace('AAI: GOTO: FROM ${oldX},${oldY} TO ${p.x},${p.y} / FROM g${p.tx()- last.x},g${p.ty()- last.y} TO g${p.tx()},g${p.ty()} reached position!');
+                    if(p.connection.serverAi == null) trace('reached position: g${p.tx},g${p.ty} FROM ${oldX},${oldY} TO ${p.x},${p.y}');
+                    else trace('AAI: GOTO: FROM ${oldX},${oldY} TO ${p.x},${p.y} / FROM g${p.tx - last.x},g${p.ty- last.y} TO g${p.tx},g${p.ty} reached position!');
                 }
 
                 p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
@@ -454,7 +454,7 @@ class MoveHelper
                 if(newMovements.moves.length < 1)
                 {
                     p.done_moving_seqNum  = seq;
-                    p.move_speed = calculateSpeed(p, p.tx(), p.ty());
+                    p.move_speed = calculateSpeed(p, p.tx, p.ty);
                     moveHelper.newMoves = null; // cancle all movements
                     moveHelper.newMovements = null;
 
@@ -516,8 +516,8 @@ class MoveHelper
         public function generateRelativeMoveUpdateString(forPlayer:GlobalPlayerInstance) : String
         {
             var totalMoveTime = Math.round(this.totalMoveTime * 100) / 100;
-            var targetX = player.tx() - forPlayer.gx;
-            var targetY = player.ty() - forPlayer.gy;
+            var targetX = player.tx - forPlayer.gx;
+            var targetY = player.ty - forPlayer.gy;
             var eta = totalMoveTime - TimeHelper.CalculateTimeSinceTicksInSec(startingMoveTicks);            
 
             var moveString = '${player.p_id} ${targetX} ${targetY} ${totalMoveTime} $eta ${newMovements.trunc} ${moveString(newMoves)}';
@@ -573,7 +573,7 @@ class MoveHelper
                     
                     newMovements.trunc = 1;
 
-                    newMovements.finalSpeed = calculateSpeed(p, p.tx(), p.ty(), newMovements.fullPathHasRoad);
+                    newMovements.finalSpeed = calculateSpeed(p, p.tx, p.ty, newMovements.fullPathHasRoad);
 
                     return newMovements;
                 }
@@ -605,7 +605,7 @@ class MoveHelper
 
                     if(moves.length > 1) newMovements.trunc = 1;
 
-                    newMovements.finalSpeed = calculateSpeed(p, p.tx(),p.ty(), newMovements.fullPathHasRoad);
+                    newMovements.finalSpeed = calculateSpeed(p, p.tx, p.ty, newMovements.fullPathHasRoad);
 
                     return newMovements;
                 }
@@ -616,7 +616,7 @@ class MoveHelper
                 lastPos = move;
             }       
 
-            newMovements.finalSpeed = calculateSpeed(p, p.tx(), p.ty(), newMovements.fullPathHasRoad);
+            newMovements.finalSpeed = calculateSpeed(p, p.tx, p.ty, newMovements.fullPathHasRoad);
 
             return newMovements;
         }      
