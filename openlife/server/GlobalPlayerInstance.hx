@@ -2286,6 +2286,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             //this.connection.die();
             
             if(this.heldPlayer != null) this.dropPlayer(); // TODO test
+            if(this.heldByPlayer != null)
+            {
+                var player = this.heldByPlayer;
+                var heldPlayer = this;
+
+                heldPlayer.x = player.tx() - heldPlayer.gx;
+                heldPlayer.y = player.ty() - heldPlayer.gy;
+        
+                player.heldPlayer = null;
+                player.o_id = [0];
+        
+                heldPlayer.heldByPlayer = null;
+
+                // TODO place baby bones in arms
+            }
+
             placeGrave();
             InheritOwnership(this);
             InheritCoins(this);
@@ -3194,6 +3210,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private static function DoDebugCommands(player:GlobalPlayerInstance, text:String)
     {
+        if(text.indexOf('!HIT BABY') != -1)
+        {
+            trace('!HIT BABY');
+
+            if(player.heldPlayer == null) return;
+
+            player.heldPlayer.hits += 3;
+            player.heldPlayer.food_store_max = player.calculateFoodStoreMax();
+
+            return;
+        }
+
         if(text.indexOf('!HIT') != -1)
         {
             trace('!HIT');

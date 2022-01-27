@@ -508,7 +508,6 @@ class ObjectHelper
         return this.id != 0 && this.isWound() == false;
     }
     
-
     public function isGrave() : Bool
     {
         return StringTools.contains(description, 'origGrave');
