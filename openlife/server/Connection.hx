@@ -121,7 +121,6 @@ class Connection
         send(TOOL_SLOTS,["0 1000"]);
 
         // send PU and FRAME also to the connection --> therefore make sure that addToConnections is called first 
-        SendUpdateToAllClosePlayers(player); 
         SendToMeAllClosePlayers(player, true); 
         sendToMeAllPlayerNames();
         sendToMeAllLineages();

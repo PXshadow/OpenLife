@@ -305,6 +305,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         AddPlayer(this); // add after player is inited and before linage data like familyName from this player is used
 
+        Connection.SendUpdateToAllClosePlayers(this); 
+
         for(c in Connection.getConnections())
         {
             c.send(ClientTag.NAME,['${this.p_id} ${this.name} ${this.familyName}']);
@@ -322,6 +324,27 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             if(this.mother.isAi() == false) mother.connection.sendMapLocation(this,'BABY', 'baby');
             // TODO inform AI about new player
         }
+
+        /*if(mother != null && this.age < ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers)
+        {
+            if(mother.heldPlayer == null)
+            {
+                if(mother.heldObject.isDroppable())
+                {
+                    WorldMap.PlaceObject(this.tx(), this.ty(), mother.heldObject, false);
+                    mother.setHeldObject(null);
+                }
+            }
+            else
+            {
+                mother.dropPlayer();
+            }
+
+            // pickup baby
+            mother.doBabyHelper(mother.x, mother.y, this);
+
+            Connection.SendFollowingToAll(mother);
+        } */
     }
 
     // TODO test
@@ -439,7 +462,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     // TODO higher change of children for smaler families
     // TODO spawn noobs more likely noble
-    // TODO spawn in hand of mother???
     // TODO consider past families of player
     private function spawnAsChild() : Bool
     {
@@ -494,7 +516,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         setObjectId(persons[WorldMap.calculateRandomInt(persons.length-1)].id); 
         
         trace('New child is born to mother: ${mother.name} ${mother.familyName} female: $female motherColor: $motherColor childColor: ${this.getColor()}');
-        
+
         return true;
     } 
 
