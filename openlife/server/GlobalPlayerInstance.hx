@@ -3039,6 +3039,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.heldPlayer = player;
         player.heldByPlayer = this;
 
+        if(player.heldObject.isDroppable())
+        {
+            WorldMap.PlaceObject(this.tx(), this.ty(), player.heldObject, false);
+            player.setHeldObject(null);
+        }
+
         this.SetTransitionData(x,y,true);
 
         trace('doBabyHelper: o_id:  ${this.o_id}');

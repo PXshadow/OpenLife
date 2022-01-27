@@ -236,7 +236,6 @@ High priority:
 - AI basic nursing
 - AI deadly animal fight
 - AI player fight
-- Ai birth after death
 - AI basic clothing
 - Ai using containers
 - Ai ongoing longer distant movement

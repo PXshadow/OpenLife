@@ -503,6 +503,12 @@ class ObjectHelper
         return StringTools.contains(description, 'Arrow Wound');
     }
 
+    public function isDroppable() : Bool
+    {
+        return this.id != 0 && this.isWound() == false;
+    }
+    
+
     public function isGrave() : Bool
     {
         return StringTools.contains(description, 'origGrave');
