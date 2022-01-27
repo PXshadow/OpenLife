@@ -212,7 +212,7 @@ class Ai
 
         var heldPlayer = myPlayer.getHeldPlayer();
 
-        if(heldPlayer != null && (heldPlayer.food_store > 3.8))
+        if(heldPlayer != null && (heldPlayer.food_store > Math.min(5, heldPlayer.food_store_max - 1)))
         {
             var done = myPlayer.dropPlayer();
 
@@ -235,7 +235,7 @@ class Ai
             if(child.age >= ServerSettings.MinAgeToEat) continue;
 
             trace('AAI: child food ${child.name} ${child.food_store}');
-            if(child.food_store > 2) continue; 
+            if(child.food_store > 2.5) continue; 
 
             var distance = myPlayer.CalculateDistanceToPlayer(child);
             var childX = child.tx - myPlayer.gx;
