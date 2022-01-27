@@ -150,13 +150,17 @@ class Ai
 
         if(time > 0) return;
         time += ServerSettings.AiReactionTime; //0.5; // minimum AI reacting time
-        
-        if(playerInterface.isMoving()) return;
+
+        var animal = GetCloseDeadlyAnimal(playerInterface);
+
         if(playerInterface.getHeldByPlayer() != null)
         {
             //time += WorldMap.calculateRandomInt(); // TODO still jump and do stuff once in a while?
             return;
         } 
+
+        if(escape(animal)) return;
+        if(playerInterface.isMoving()) return;
 
         checkIsHungryAndEat();
      
@@ -189,6 +193,55 @@ class Ai
         //craftItem(34,1); // 34 sharpstone
         //craftItem(224); // Harvested Wheat
         //craftItem(58); // Thread
+    }
+
+    private function escape(animal:ObjectHelper)
+    {
+        if(animal == null) return false;
+
+        var player = playerInterface.getPlayerInstance();
+
+        playerInterface.say('Escape ${animal.description}!');
+        
+        var tx = animal.tx > player.tx() ?  player.tx() - 3 : player.tx() + 3;
+        var ty = animal.ty > player.ty() ?  player.ty() - 3 : player.ty() + 3;
+
+        playerInterface.Goto(tx - player.gx, ty - player.gy);
+
+        return true;
+    }
+
+    private static function GetCloseDeadlyAnimal(player:PlayerInterface, searchDistance:Int = 5) : ObjectHelper
+    {
+        //AiHelper.GetClosestObject
+        var world = WorldMap.world;
+        var playerInst = player.getPlayerInstance();
+        var baseX = playerInst.tx();
+        var baseY = playerInst.ty();
+
+        var bestObj = null;
+        var bestDist:Float = 9999999;
+
+        for(ty in baseY - searchDistance...baseY + searchDistance)
+        {
+            for(tx in baseX - searchDistance...baseX + searchDistance)
+            {
+                var obj = world.getObjectHelper(tx, ty, true);
+
+                if(obj == null) continue;
+                if(obj.objectData.deadlyDistance == 0) continue;
+                if(obj.objectData.damage == 0) continue;
+
+                var dist = AiHelper.CalculateDistanceToObject(player, obj);
+                
+                if(dist > bestDist) continue;
+
+                bestDist = dist;
+                bestObj = obj;
+            }
+        }
+
+        return bestObj;
     }
 
     // TODO consider held object / backpack / contained objects
