@@ -475,9 +475,10 @@ class TimeHelper
         // do damage if wound
         if(player.isWounded())
         {
-            var bleedingDamage = timePassedInSeconds * player.heldObject.objectData.damage * ServerSettings.WeaponDamageFactor;
+            var bleedingDamage = timePassedInSeconds * player.heldObject.objectData.damage * ServerSettings.WoundDamageFactor;
             player.hits += bleedingDamage;
-            player.exhaustion += bleedingDamage;
+            foodDecay += bleedingDamage;
+            //player.exhaustion += bleedingDamage;
         }
 
         // do damage while starving
@@ -487,7 +488,7 @@ class TimeHelper
         }
 
         // take care of exhaustion
-        if(player.exhaustion > -player.food_store_max && player.food_store > 3)
+        if(player.exhaustion > -player.food_store_max && player.food_store > 0)
         {
             player.exhaustion -= healing * ServerSettings.ExhaustionHealing;
 
