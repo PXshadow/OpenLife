@@ -136,7 +136,7 @@ class ServerSettings
     // for movement
     public static var InitialPlayerMoveSpeed:Float = 3.75; //3.75; // in Tiles per Second
     public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed factor X
-    public static var MinMovementAge:Float = 0.2;
+    public static var MinMovementAgeInSec:Float = 14;
     public static var MinSpeedReductionPerContainedObj = 0.98;
     public static var ExhaustionOnMovementChange:Float = 0.25;
     public static var CloseEnemyWithWeaponSpeedFactor:Float = 0.8;

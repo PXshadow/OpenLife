@@ -395,7 +395,7 @@ class MoveHelper
             var tx = x + p.gx;
             var ty = y + p.gy;
 
-            if(p.age < ServerSettings.MinMovementAge)
+            if(p.age * 60 < ServerSettings.MinMovementAgeInSec)
             {
                 p.connection.send(PLAYER_UPDATE,[p.toData()]);
                 return;
