@@ -234,9 +234,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
 - AI basic nursing
-- AI deadly animal escape
 - AI deadly animal fight
-- AI attacker escape
 - AI player fight
 - Ai birth after death
 - AI basic clothing

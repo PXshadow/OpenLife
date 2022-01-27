@@ -151,15 +151,16 @@ class Ai
         if(time > 0) return;
         time += ServerSettings.AiReactionTime; //0.5; // minimum AI reacting time
 
-        var animal = GetCloseDeadlyAnimal(playerInterface);
-
         if(playerInterface.getHeldByPlayer() != null)
         {
             //time += WorldMap.calculateRandomInt(); // TODO still jump and do stuff once in a while?
             return;
         } 
 
-        if(escape(animal)) return;
+        var animal = GetCloseDeadlyAnimal(playerInterface);
+        var deadlyPlater = GetCloseDeadlyPlayer(playerInterface);
+
+        if(escape(animal, deadlyPlater)) return;
         if(playerInterface.isMoving()) return;
 
         checkIsHungryAndEat();
@@ -195,16 +196,23 @@ class Ai
         //craftItem(58); // Thread
     }
 
-    private function escape(animal:ObjectHelper)
+    private function escape(animal:ObjectHelper, deadlyPlayer:GlobalPlayerInstance)
     {
-        if(animal == null) return false;
+        if(animal == null && deadlyPlayer == null) return false;
 
         var player = playerInterface.getPlayerInstance();
 
-        playerInterface.say('Escape ${animal.description}!');
+        var distAnimal = animal == null ? 999999 : AiHelper.CalculateDistanceToObject(playerInterface, animal);
+        var distPlayer = deadlyPlayer == null ? 999999 : AiHelper.CalculateDistanceToPlayer(playerInterface, deadlyPlayer);
+        var escapePlayer = distAnimal > distPlayer;
+        var description = escapePlayer ? deadlyPlayer.name : animal.description;
+        var escapeTx = escapePlayer ? deadlyPlayer.tx() : animal.tx;
+        var escapeTy = escapePlayer ? deadlyPlayer.ty() : animal.ty;
+
+        playerInterface.say('Escape ${description}!');
         
-        var tx = animal.tx > player.tx() ?  player.tx() - 3 : player.tx() + 3;
-        var ty = animal.ty > player.ty() ?  player.ty() - 3 : player.ty() + 3;
+        var tx = escapeTx > player.tx() ?  player.tx() - 3 : player.tx() + 3;
+        var ty = escapeTy > player.ty() ?  player.ty() - 3 : player.ty() + 3;
 
         playerInterface.Goto(tx - player.gx, ty - player.gy);
 
@@ -242,6 +250,31 @@ class Ai
         }
 
         return bestObj;
+    }
+
+    private static function GetCloseDeadlyPlayer(playerInter:PlayerInterface, searchDistance:Int = 8)
+    {
+        var player = cast(playerInter, GlobalPlayerInstance);
+        var bestPlayer = null;
+        var bestDist:Float = 999999;
+
+        if(player.angryTime > 4) return null;
+
+        for(p in GlobalPlayerInstance.AllPlayers)
+        {
+            if(p.deleted) continue;
+            if(p.isHoldingWeapon() == false) continue;
+            if(p.isFriendly(player)) continue;
+
+            var dist = AiHelper.CalculateDistanceToPlayer(player, p);
+
+            if(dist > bestDist) continue;
+
+            bestDist = dist;
+            bestPlayer = p;
+        }
+
+        return bestPlayer;
     }
 
     // TODO consider held object / backpack / contained objects
