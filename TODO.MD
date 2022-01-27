@@ -233,7 +233,6 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI basic nursing
 - AI deadly animal fight
 - AI player fight
 - AI basic clothing

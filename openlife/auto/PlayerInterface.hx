@@ -38,9 +38,11 @@ interface PlayerInterface
     public var heldObject(default, default):ObjectHelper;
 
     public function isDeleted() : Bool;
+    public function isMale() : Bool;
+    public function isFertile() : Bool;
     public function isMoving() : Bool;
-    //public function getMother():PlayerInstance;
-    public function getFollowPlayer():PlayerInstance;
-    public function getHeldPlayer():PlayerInstance;
-    public function getHeldByPlayer():PlayerInstance;
+    
+    public function getFollowPlayer():PlayerInterface;
+    public function getHeldPlayer():PlayerInterface;
+    public function getHeldByPlayer():PlayerInterface;
 }

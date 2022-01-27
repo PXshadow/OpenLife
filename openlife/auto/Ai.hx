@@ -39,7 +39,8 @@ class Ai
     var doingAction = false;
 
     var playerToFollow:PlayerInterface;
-  
+
+    var children = new Array<PlayerInterface>();
 
     public function new(player:PlayerInterface) 
     {
@@ -124,7 +125,7 @@ class Ai
     {
         //var myPlayer = myPlayer.getPlayerInstance();
         foodTarget = searchBestFood();
-        if(foodTarget != null) myPlayer.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+        //if(foodTarget != null) myPlayer.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
     }
 
     public function dropHeldObject() 
@@ -168,13 +169,13 @@ class Ai
         var deadlyPlater = GetCloseDeadlyPlayer(myPlayer);
 
         if(escape(animal, deadlyPlater)) return;
-        if(myPlayer.isMoving()) return;
-        if(isChildAndHasMother()){if(isMovingToPlayer()) return;}
-
         checkIsHungryAndEat();
-     
+        if(isChildAndHasMother()){if(isMovingToPlayer()) return;}
+        if(myPlayer.isMoving()) return;
+        
         if(isDropingItem()) return;
         if(isEating()) return;
+        if(isFeedingChild()) return;
         if(isUsingItem()) return;
         if(isMovingToPlayer()) return;
 
@@ -202,6 +203,60 @@ class Ai
         //craftItem(34,1); // 34 sharpstone
         //craftItem(224); // Harvested Wheat
         //craftItem(58); // Thread
+    }
+
+    private function isFeedingChild()
+    {
+        if(myPlayer.isFertile() == false) return false; 
+        if(myPlayer.food_store < 3) return false; 
+
+        var heldPlayer = myPlayer.getHeldPlayer();
+
+        if(heldPlayer != null && (heldPlayer.food_store > 3.8))
+        {
+            var done = myPlayer.dropPlayer();
+
+            trace('AAI: child drop ${heldPlayer.name} $done');
+
+            return true;
+        }
+
+        if(heldPlayer != null) return false;
+
+        if(myPlayer.heldObject.id != 0)
+        {
+            dropHeldObject();
+            return true;
+        }
+        
+        for(child in children)
+        {
+            if(child.isDeleted()) continue;
+            if(child.age >= ServerSettings.MinAgeToEat) continue;
+
+            trace('AAI: child food ${child.name} ${child.food_store}');
+            if(child.food_store > 2) continue; 
+
+            var distance = myPlayer.CalculateDistanceToPlayer(child);
+            var childX = child.tx - myPlayer.gx;
+            var childY = child.ty - myPlayer.gy;
+
+            if(distance > 1)
+            {
+                trace('AAI: child goto');
+                myPlayer.Goto(childX, childY);
+                return true;
+            }
+
+            myPlayer.say('Pickup ${child.name}');
+            var done = myPlayer.doBaby(childX, childY, child.id);
+
+            trace('AAI: child pickup $done');
+
+            return true;
+        }
+
+        return false;
     }
 
     private function escape(animal:ObjectHelper, deadlyPlayer:GlobalPlayerInstance)
@@ -637,6 +692,7 @@ class Ai
         if(foodTarget == null) return false;
         if(myPlayer.isMoving()) return true;
 
+
         // TODO check if food target is still valid
 
         // var myPlayer = myPlayer.getPlayerInstance();
@@ -647,6 +703,16 @@ class Ai
         {
             trace('AAI: goto food');
             myPlayer.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+            return true;
+        }
+
+        var heldPlayer = myPlayer.getHeldPlayer();
+        if(heldPlayer != null)
+        {
+            var done = myPlayer.dropPlayer();
+
+            trace('AAI: child drop for eating ${heldPlayer.name} $done');
+
             return true;
         }
 
@@ -862,6 +928,11 @@ class Ai
     public function dying(sick:Bool)
     {
 
+    }
+
+    public function newChild(child:PlayerInterface)
+    {
+        this.children.push(child);    
     }
 }
 

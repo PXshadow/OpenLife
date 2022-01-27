@@ -314,9 +314,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         Connection.SendFollowingToAll(this);
 
-        if(this.mother != null)
+        if(this.mother != null && this.age < ServerSettings.MinAgeToEat)
         {          
             if(this.mother.isAi() == false) mother.connection.sendMapLocation(this,'BABY', 'baby');
+            else mother.connection.serverAi.newChild(this);
+
             // TODO inform AI about new player
         }
 
@@ -3058,7 +3060,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         if(this.o_id[0] != 0)
         {
-            trace('Cannot pickup player, since hands are not empty!');
+            trace('Cannot pickup player, since hands are not empty ${this.o_id[0]}!');
 
             return false;
         }
@@ -3072,6 +3074,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         this.heldPlayer = player;
         player.heldByPlayer = this;
+        this.setHeldObject(null);
 
         if(player.heldObject.isDroppable())
         {
