@@ -2856,6 +2856,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             trace('kill: HIT weaponDamage: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance');
         }
         
+        damage *= targetPlayer.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
         damage *= protectionFactor;
         damage *= targetPlayer.isWounded() ? ServerSettings.TargetWoundedDamageFactor : 1;
 

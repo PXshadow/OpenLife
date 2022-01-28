@@ -65,6 +65,7 @@ MAP:
 Adam / Eve:
 - Adam / Eve use halve food
 - Adam / Eve do halve damage
+- Adam / Eve receive halve damage (also from animals)
 
 Family:
 - Children are now more likely to be born closer to special biome color. With this one Eve can create all colors if people migrate...
