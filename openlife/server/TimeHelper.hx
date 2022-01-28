@@ -535,16 +535,7 @@ class TimeHelper
             player.yum_multiplier -= foodDecay;
             foodDecay /= 2;
         }
-
-        if(player.yum_bonus > 0)
-        {
-            player.yum_bonus -= foodDecay;
-        }
-        else
-        {
-            player.food_store -= foodDecay;
-        }
-
+        
         // do breast feeding
         var heldPlayer = player.heldPlayer;
 
@@ -561,7 +552,7 @@ class TimeHelper
 
                     heldPlayer.food_store += food;
                     
-                    player.food_store -= food / 2;
+                    foodDecay += food / 2;
 
                     //trace('feeding: $food foodDecay: $foodDecay');
                 }
@@ -572,6 +563,17 @@ class TimeHelper
             }
 
             if(ServerSettings.useOnePlayerMutex == false) heldPlayer.mutex.release();
+        }
+
+        foodDecay *= player.isEveOrAdam() ? ServerSettings.EveFoodUseFactor : 1;
+
+        if(player.yum_bonus > 0)
+        {
+            player.yum_bonus -= foodDecay;
+        }
+        else
+        {
+            player.food_store -= foodDecay;
         }
 
         player.food_store_max = player.calculateFoodStoreMax();

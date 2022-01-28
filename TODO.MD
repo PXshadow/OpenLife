@@ -63,6 +63,7 @@ MAP:
 - no expert waystones
 
 Adam / Eve:
+- Adam / Eve use halve food
 - Adam / Eve do halve damage
 
 Family:
