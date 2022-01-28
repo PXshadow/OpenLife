@@ -1,5 +1,7 @@
 package openlife.auto;
 
+import openlife.server.GlobalPlayerInstance;
+import openlife.server.WorldMap;
 import openlife.settings.ServerSettings;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
@@ -393,6 +395,64 @@ class AiHelper
 
         transitionForObject.transitions.push(new TransitionForObject(objId, steps, wantedObjId, transition));
         //transitionForObject.transitions.push(transition);
+    }
+
+    public static function GetCloseDeadlyAnimal(player:PlayerInterface, searchDistance:Int = 5) : ObjectHelper
+    {
+        //AiHelper.GetClosestObject
+        var world = WorldMap.world;
+        var playerInst = player.getPlayerInstance();
+        var baseX = playerInst.tx;
+        var baseY = playerInst.ty;
+
+        var bestObj = null;
+        var bestDist:Float = 9999999;
+
+        for(ty in baseY - searchDistance...baseY + searchDistance)
+        {
+            for(tx in baseX - searchDistance...baseX + searchDistance)
+            {
+                var obj = world.getObjectHelper(tx, ty, true);
+
+                if(obj == null) continue;
+                if(obj.objectData.deadlyDistance == 0) continue;
+                if(obj.objectData.damage == 0) continue;
+
+                var dist = AiHelper.CalculateDistanceToObject(player, obj);
+                
+                if(dist > bestDist) continue;
+
+                bestDist = dist;
+                bestObj = obj;
+            }
+        }
+
+        return bestObj;
+    }
+
+    public static function GetCloseDeadlyPlayer(playerInter:PlayerInterface, searchDistance:Int = 8)
+    {
+        var player = cast(playerInter, GlobalPlayerInstance);
+        var bestPlayer = null;
+        var bestDist:Float = 999999;
+
+        if(player.angryTime > 4) return null;
+
+        for(p in GlobalPlayerInstance.AllPlayers)
+        {
+            if(p.deleted) continue;
+            if(p.isHoldingWeapon() == false) continue;
+            if(p.isFriendly(player)) continue;
+
+            var dist = AiHelper.CalculateDistanceToPlayer(player, p);
+
+            if(dist > bestDist) continue;
+
+            bestDist = dist;
+            bestPlayer = p;
+        }
+
+        return bestPlayer;
     }
    
     //time routine

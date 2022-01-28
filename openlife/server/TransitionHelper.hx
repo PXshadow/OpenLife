@@ -123,7 +123,7 @@ class TransitionHelper{
         
         if(allyStrengh < 0.8)
         {
-            player.say('Too many close enemies...', true);
+            player.say('Too many hostile people...', true);
             helper.sendUpdateToClient();
             return false;
         }

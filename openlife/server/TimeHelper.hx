@@ -321,6 +321,16 @@ class TimeHelper
 
         //trace('temperatureMail: $temperatureMail');
 
+        if(player.isHuman())
+        {
+            var animal = AiHelper.GetCloseDeadlyAnimal(player, 10);
+            if(animal != null)
+            {
+                var dist = AiHelper.CalculateDistanceToObject(player, animal);
+                if(dist > 10) player.connection.send(ClientTag.LOCATION_SAYS, ['${animal.tx - player.gx} ${animal.ty - player.gy} !!!']);
+            }
+        }
+
         if(player.isWounded())
         {
             Connection.SendEmoteToAll(player, Emote.shock);
