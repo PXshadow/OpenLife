@@ -477,7 +477,7 @@ class TimeHelper
         {
             var bleedingDamage = timePassedInSeconds * player.heldObject.objectData.damage * ServerSettings.WoundDamageFactor;
             player.hits += bleedingDamage;
-            foodDecay += bleedingDamage;
+            foodDecay += 2 * bleedingDamage;
             //player.exhaustion += bleedingDamage;
         }
 

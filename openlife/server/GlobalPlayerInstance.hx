@@ -3352,7 +3352,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         if(heldPlayer == null) return false;
         if(heldPlayer.age > ServerSettings.MaxChildAgeForBreastFeeding) return false;
-        if(this.food_store < 1) return false;
+        if(this.food_store < 0) return false;
         return this.isFertile();
     }
 
