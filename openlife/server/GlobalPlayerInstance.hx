@@ -660,14 +660,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private static function CalculateMotherFitness(p:GlobalPlayerInstance, child:GlobalPlayerInstance) : Float
     {        
-        var childIsHuman = child.isAi();
-        var motherIsHuman = p.isAi();
+        var childIsHuman = child.isAi() == false;
+        var motherIsHuman = p.isAi() == false;
+        var maxExhaustion = childIsHuman == motherIsHuman ? 20 : 10;
 
         if(p.deleted) return -1000;
         if(p.isFertile() == false) return -1000;
         if(p.isWounded()) return -1000;
         if(p.food_store < 0) return -1000; // no starving mothers
-        if(p.exhaustion > 16) return -1000; // no super exhausted mothers
+        if(p.exhaustion > maxExhaustion) return -1000; // no super exhausted mothers
         
         // boni
         var tmpFitness = 0.0;
