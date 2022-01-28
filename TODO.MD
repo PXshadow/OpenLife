@@ -62,6 +62,9 @@ MAP:
 - no gradients
 - no expert waystones
 
+Adam / Eve:
+- Adam / Eve do halve damage
+
 Family:
 - Children are now more likely to be born closer to special biome color. With this one Eve can create all colors if people migrate...
 - Partens influence which biomes are loved 

@@ -2851,10 +2851,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             damage *= distanceFactor;    
             damage *= isRightClassForWeapon ? 1.2 : 1; 
             damage *= attacker.isCursed ? ServerSettings.CursedDamageFactor : 1;
+            damage *= attacker.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
 
             trace('kill: HIT weaponDamage: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance');
         }
-
+        
         damage *= protectionFactor;
         damage *= targetPlayer.isWounded() ? ServerSettings.TargetWoundedDamageFactor : 1;
 
@@ -3603,6 +3604,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function isDeleted()
     {
         return deleted;   
+    }
+
+    public function isEveOrAdam() : Bool
+    {
+        return (this.name == "EVE" || this.name == "ADAM");
     }
 }
 
