@@ -2515,7 +2515,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         var grave:ObjectHelper;
 
-        if(this.age < 1.5)
+        if(this.age < ServerSettings.MinAgeToEat)
         {
             grave = new ObjectHelper(this, 3053); // 3053 Baby Bone Pile
         } 
