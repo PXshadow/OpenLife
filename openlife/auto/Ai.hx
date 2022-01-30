@@ -38,7 +38,8 @@ class Ai
 
     var children = new Array<PlayerInterface>();
 
-    public var objectsWithHostilePath = new Map<Int, Float>();
+    var notReachableObjects = new Map<Int, Float>();
+    var objectsWithHostilePath = new Map<Int, Float>();
 
     public function new(player:PlayerInterface) 
     {
@@ -224,6 +225,23 @@ class Ai
 
     private function cleanupBlockedObjects()
     {
+        for(key in notReachableObjects.keys())
+        {
+            var time = notReachableObjects[key];
+            time -= ServerSettings.AiReactionTime;
+
+            if(time <= 0)
+            {
+                notReachableObjects.remove(key);
+                //trace('Unblock: remove $key t: $time');
+                continue;    
+            }
+
+            //trace('Unblock: $key t: $time');
+
+            notReachableObjects[key] = time;
+        }
+
         for(key in objectsWithHostilePath.keys())
         {
             var time = objectsWithHostilePath[key];
@@ -361,7 +379,7 @@ class Ai
             itemToCraft.countDone = 0;
             itemToCraft.countTransitionsDone = 0;
             itemToCraft.transitionsByObjectId = myPlayer.SearchTransitions(objId, ignoreHighTech); 
-            itemToCraft.notReachableObjects = new Map<Int,Int>();
+            //itemToCraft.notReachableObjects = new Map<Int,Int>();
         }
         
         searchBestObjectForCrafting(itemToCraft);
@@ -443,7 +461,7 @@ class Ai
             {
                 for(tx in baseX - radius...baseX + radius)
                 {
-                    if(itemToCraft.isObjectNotReachable(tx,ty)) continue;
+                    if(this.isObjectNotReachable(tx,ty)) continue;
 
                     var objData = world.getObjectDataAtPosition(tx, ty);
 
@@ -836,7 +854,7 @@ class Ai
             if(done == false)
             {
                 trace('AI: GOTO failed! Ignore ${useTarget.tx} ${useTarget.ty} '); 
-                itemToCraft.addNotReachableObject(useTarget);
+                this.addNotReachableObject(useTarget);
                 useTarget = null;
                 itemToCraft.transActor = null;
                 itemToCraft.transTarget = null;
@@ -872,7 +890,7 @@ class Ai
             trace('AI: Use failed! Ignore ${useTarget.tx} ${useTarget.ty} '); 
 
             // TODO check why use is failed... for now add to ignore list
-            itemToCraft.addNotReachableObject(useTarget);
+            this.addNotReachableObject(useTarget);
             useTarget = null;
             itemToCraft.transActor = null;
             itemToCraft.transTarget = null;
@@ -968,9 +986,23 @@ class Ai
 
         return notReachable;
     }
-    
-        
 
+    public function addNotReachableObject(obj:ObjectHelper)
+    {
+        var index = WorldMap.world.index(obj.tx, obj.ty);
+        notReachableObjects[index] = 120; // block for 120 sec
+    }
+
+    public function isObjectNotReachable(tx:Int, ty:Int) : Bool
+    {
+        var index = WorldMap.world.index(tx, ty);
+        var notReachable = notReachableObjects.exists(index);
+
+        if(notReachable) trace('isObjectNotReachable: $notReachable $tx,$ty');
+
+        return notReachable;
+    }
+    
     // is called once a movement is finished (client side it must be called manually after a PlayerUpdate)
     public function finishedMovement()
     {
@@ -1018,9 +1050,7 @@ class IntemToCraft
     public var transActor:ObjectHelper = null;
     public var transTarget:ObjectHelper = null;
 
-    public var transitionsByObjectId:Map<Int, TransitionForObject>; 
-
-    public var notReachableObjects = new Map<Int, Int>();
+    public var transitionsByObjectId:Map<Int, TransitionForObject>;     
 
     public function new()
     {
@@ -1039,21 +1069,5 @@ class IntemToCraft
             trans.secondObject = null;
             trans.closestObjectDistance = -1;
         }
-    }
-
-    public function addNotReachableObject(obj:ObjectHelper)
-    {
-        var index = WorldMap.world.index(obj.tx, obj.ty);
-        notReachableObjects[index] = obj.parentId;
-    }
-
-    public function isObjectNotReachable(tx:Int, ty:Int) : Bool
-    {
-        var index = WorldMap.world.index(tx, ty);
-        var notReachable = notReachableObjects.exists(index);
-
-        if(notReachable) trace('isObjectNotReachable: $notReachable $tx,$ty');
-
-        return notReachable;
     }
 }
