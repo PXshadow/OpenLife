@@ -1544,6 +1544,7 @@ class TimeHelper
             for(p in GlobalPlayerInstance.AllPlayers)
             {
                 if(p.deleted) continue;
+                if(p.heldByPlayer != null) continue;
                 if(p.isCloseUseExact(tmpX, tmpY, objData.deadlyDistance) == false) continue;
 
                 damage += p.doDamage(animal);
