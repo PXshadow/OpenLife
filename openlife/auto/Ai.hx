@@ -176,6 +176,7 @@ class Ai
         if(myPlayer.isMoving()) return;
         
         if(isDropingItem()) return;
+        if(myPlayer.age < ServerSettings.MinAgeToEat && myPlayer.food_store < 2) return; // do nothing and wait for mother to feed
         if(isEating()) return;
         if(isFeedingChild()) return;
         if(isUsingItem()) return;
