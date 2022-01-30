@@ -1038,7 +1038,7 @@ class Connection
         var creatorLinage = grave.getLinage();
         
         if(creatorLinage == null) return;
-        var linageString = creatorLinage.createLineageString();
+        var linageString = creatorLinage.createLineageString(false);
         var message = '$x $y ${creatorLinage.myId} ${creatorLinage.po_id} ${creatorLinage.getDeadSince()} ${creatorLinage.getFullName(true)} ${linageString}';
 
         trace('GRAVE: $message');

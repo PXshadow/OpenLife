@@ -295,7 +295,7 @@ class Lineage
     }
 
     // p_id mother_id grandmother_id great_grandmother_id ... eve_id eve=eve_id
-    public function createLineageString(withMe:Bool = false) : String
+    public function createLineageString(withMe:Bool = true) : String
     {
         var lineageString = withMe ? '$myId' : '';
 

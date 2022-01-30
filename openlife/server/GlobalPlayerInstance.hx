@@ -305,7 +305,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         for(c in Connection.getConnections())
         {
-            c.send(ClientTag.LINEAGE,[c.player.lineage.createLineageString()]);
+            c.send(ClientTag.LINEAGE,[this.lineage.createLineageString()]);
         }
 
         Connection.SendFollowingToAll(this);
