@@ -3087,6 +3087,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         Connection.SendUpdateToAllClosePlayers(this, true);
 
+        var followPlayer = player.followPlayer;
+
+        if(followPlayer == null || (followPlayer.isFertile() == false && this.isFertile()))
+        {
+            player.followPlayer = this; // consider this player as mother
+        }
+
         return true;
     }
 
@@ -3211,6 +3218,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function isFertile() : Bool
     {
+        if(deleted) return false;
         if(this.age < ServerSettings.MinAgeFertile || this.age > ServerSettings.MaxAgeFertile) return false;
 
         return isFemale();

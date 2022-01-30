@@ -145,9 +145,10 @@ class Ai
         //if(emptyTileObj != null) playerInterface.drop(emptyTileObj.tx - myPlayer.gx, emptyTileObj.ty - myPlayer.gy);
     }
 
-    public function isChildAndHasMother()
+    public function isChildAndHasMother() // must not be his original mother
     {
-        return (myPlayer.age < ServerSettings.MinAgeToEat &&  myPlayer.mother != null && myPlayer.mother.isDeleted() == false);
+        var mother = myPlayer.getFollowPlayer();
+        return (myPlayer.age < ServerSettings.MinAgeToEat &&  mother != null && mother.isDeleted() == false);
     }
     
     // do time stuff here is called from TimeHelper
@@ -242,6 +243,12 @@ class Ai
 
         var child = AiHelper.GetCloseHungryChild(myPlayer);
         if(child == null) return false;
+
+        var childFollowPlayer = child.getFollowPlayer();
+        if(childFollowPlayer.isFertile() == false)
+        {
+            playerToFollow = myPlayer;
+        }
 
         /*for(child in children)
         {
@@ -556,7 +563,7 @@ class Ai
         {
             if(isChildAndHasMother())
             {   
-                playerToFollow = myPlayer.mother;
+                playerToFollow = myPlayer.getFollowPlayer();
             }
             else
             {

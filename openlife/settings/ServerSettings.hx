@@ -78,7 +78,7 @@ class ServerSettings
     public static var MaxPlayersBeforeStartingAsChild = 0; // -1
     public static var StartingEveAge = 14;  // 14
     public static var StartingFamilyName = "SNOW";
-    public static var StartingName = "SPOONWOOD";
+    public static var StartingName = "SPOON";
     public static var EveDamageFactor:Float = 0.5;  
     public static var EveFoodUseFactor:Float = 0.5;  
     public static var AgingSecondsPerYear = 60; // 60
