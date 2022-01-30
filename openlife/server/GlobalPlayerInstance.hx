@@ -3,14 +3,10 @@ import haxe.Exception;
 import openlife.server.Lineage.PrestigeClass;
 import openlife.auto.AiHelper;
 import openlife.server.Biome.BiomeTag;
-import haxe.macro.Expr;
 import openlife.macros.Macro;
 import openlife.data.transition.TransitionImporter;
 import openlife.auto.WorldInterface;
 import openlife.auto.PlayerInterface;
-import haxe.ds.BalancedTree;
-import haxe.macro.Expr.Catch;
-import haxe.display.Server.HaxeModuleMemoryResult;
 import openlife.client.ClientTag;
 import openlife.data.object.ObjectData;
 import openlife.settings.ServerSettings;
@@ -441,7 +437,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             gx = lastEveOrAdam.tx;
             gy = lastEveOrAdam.ty;
 
-            var female = lastEveOrAdam.isFemal() == false;
+            var female = lastEveOrAdam.isFemale() == false;
             var personsByColor = female ? ObjectData.femaleByRaceObjectData : ObjectData.maleByRaceObjectData;
             var persons = personsByColor[lastEveOrAdam.getColor()];
             setObjectId(persons[WorldMap.calculateRandomInt(persons.length-1)].id); 
@@ -451,7 +447,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             trace('An Eve / Adam id: ${this.p_id} is born to an Eve / Adam with color: ${this.getColor()} as ${this.lineage.className}');
         }
 
-        name = isFemal() ? "EVE" : "ADAM";
+        name = isFemale() ? "EVE" : "ADAM";
 
         if(isAi) lastAiEveOrAdam = lastEveOrAdam;
         else lastHumanEveOrAdam = lastEveOrAdam;
@@ -3217,16 +3213,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         if(this.age < ServerSettings.MinAgeFertile || this.age > ServerSettings.MaxAgeFertile) return false;
 
-        return isFemal();
+        return isFemale();
     }
 
-    public function isFemal()
+    public function isFemale() : Bool
     {
         var person = ObjectData.getObjectData(this.po_id);
         return person.male == false; 
     }
 
-    public function isMale()
+    public function isMale() : Bool
     {
         var person = ObjectData.getObjectData(this.po_id);
         return person.male; 

@@ -143,7 +143,7 @@ class PlayerAccount
 
         account.score = account.score * (1 - factor) + score * factor;
         
-        if(player.isFemal()) account.femaleScore = account.femaleScore * (1 - factor) + score * factor;
+        if(player.isFemale()) account.femaleScore = account.femaleScore * (1 - factor) + score * factor;
         else account.maleScore = account.maleScore * (1 - factor) + score * factor;
 
         account.score = Math.round(account.score * 100) / 100;

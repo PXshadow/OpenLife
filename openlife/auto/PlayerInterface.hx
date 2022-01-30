@@ -38,6 +38,7 @@ interface PlayerInterface
     public var heldObject(default, default):ObjectHelper;
 
     public function isDeleted() : Bool;
+    public function isFemale() : Bool;
     public function isMale() : Bool;
     public function isFertile() : Bool;
     public function isMoving() : Bool;

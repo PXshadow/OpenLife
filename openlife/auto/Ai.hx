@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.server.NamingHelper;
 import openlife.server.WorldMap;
 import openlife.server.GlobalPlayerInstance;
 import openlife.settings.ServerSettings;
@@ -212,13 +213,23 @@ class Ai
 
         var heldPlayer = myPlayer.getHeldPlayer();
 
-        if(heldPlayer != null && (heldPlayer.food_store > Math.min(5, heldPlayer.food_store_max - 1)))
+        if(heldPlayer != null)
         {
-            var done = myPlayer.dropPlayer();
+            if(heldPlayer.name == ServerSettings.StartingName)
+            {
+                var newName = NamingHelper.GetRandomName(myPlayer.isFemale());
+                trace('newName: $newName');
+                myPlayer.say('You are $newName');
+            }
 
-            trace('AAI: child drop ${heldPlayer.name} $done');
+            if(heldPlayer.food_store > Math.min(5, heldPlayer.food_store_max - 1))
+            {
+                var done = myPlayer.dropPlayer();
 
-            return true;
+                trace('AAI: child drop ${heldPlayer.name} $done');
+
+                return true;
+            }
         }
 
         if(heldPlayer != null) return false;

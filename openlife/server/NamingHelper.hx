@@ -10,8 +10,17 @@ using StringTools;
 
 class NamingHelper
 {
-    static var FemaleNames = new Map<String, Map<String, String>>();
-    static var MaleNames = new Map<String, Map<String, String>>();
+    private static var FemaleNames = new Map<String, Map<String, String>>();
+    private static var MaleNames = new Map<String, Map<String, String>>();
+    private static var FemaleNamesArray = new Array<String>();
+    private static var MaleNamesArray = new Array<String>();
+
+    public static function GetRandomName(female:Bool) : String
+    {
+        var names = female ? FemaleNamesArray : MaleNamesArray;
+
+        return names[WorldMap.calculateRandomInt(names.length - 1)];
+    }
 
     /*
     NM
@@ -65,7 +74,7 @@ class NamingHelper
         var r = ~/[^a-z]/i; // true if anything but letters
         if(r.match(nameFromText)) return text; // return if there is anything but letters
 
-        var name = doFamilyName ? nameFromText : GetNameFromList(nameFromText, p.isFemal());
+        var name = doFamilyName ? nameFromText : GetNameFromList(nameFromText, p.isFemale());
         
         trace('TEST Naming: $nameFromText ==> $name');
 
@@ -275,19 +284,19 @@ class NamingHelper
     public static function ReadNamesByGender(female:Bool) : Bool
     {
         var reader = null;
+        var count = 0;
 
         try{
             //var rtti = haxe.rtti.Rtti.getRtti(ServerSettings);
             var dir = './';
             dir += female ? "femaleNames.txt" : "maleNames.txt";
-            var nameMap = female ? FemaleNames : MaleNames;        
+            var nameMap = female ? FemaleNames : MaleNames;     
+            var nameArray = female ? FemaleNamesArray : MaleNamesArray;
 
             reader = File.read(dir, false);
 
             var name = "";
-            var count = 0;
             
-
             while(reader.eof() == false)
             {
                 count++;
@@ -305,6 +314,7 @@ class NamingHelper
                 }
 
                 map[name] = name;
+                nameArray.push(name);
 
                 //if(StringTools.startsWith(name, 'SU')) trace('Name: $name index: $index $count');
             }

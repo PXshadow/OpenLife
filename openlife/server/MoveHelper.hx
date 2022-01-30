@@ -191,19 +191,6 @@ class MoveHelper
         var temperatureSpeedImpact = ServerSettings.TemperatureSpeedImpact;
         if(p.isSuperHot())  speed *= p.heat > 0.98 ? Math.pow(temperatureSpeedImpact,2) : temperatureSpeedImpact;
         else if(p.isSuperCold()) speed *= p.heat < 0.02 ? Math.pow(temperatureSpeedImpact,2) : temperatureSpeedImpact;
-        
-        /* speed is reduced already by age since lower foodstoremax
-        // Do age speed
-        var ageSpeedFactor:Float = 1;
-        if(p.age < 1) ageSpeedFactor = 0.5;
-        else if(p.age < 2) ageSpeedFactor = 0.6; 
-        else if(p.age < 3) ageSpeedFactor = 0.7;
-        else if(p.age < 6) ageSpeedFactor = 0.8;
-        else if(p.age < 12) ageSpeedFactor = 0.9;
-        else if(p.age > 55) ageSpeedFactor = 0.9;
-        
-
-        speed *= ageSpeedFactor; */
 
         if(p.hasCloseBlockingGrave(p.account))
         {
