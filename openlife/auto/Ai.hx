@@ -22,9 +22,6 @@ class Ai
     final RAD:Int = MapData.RAD; // search radius
 
     public var myPlayer:PlayerInterface;
-    //public var myPlayer:GlobalPlayerInstance;
-
-    //var done = false;
 
     var time:Float = 5;
 
@@ -35,9 +32,7 @@ class Ai
     var itemToCraftId = -1;
     var itemToCraft:IntemToCraft = new IntemToCraft();
 
-    //var berryHunter:Bool = false;
     var isHungry = false;
-    //var doingAction = false;
 
     var playerToFollow:PlayerInterface;
 

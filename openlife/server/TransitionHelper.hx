@@ -121,7 +121,7 @@ class TransitionHelper{
 
         var allyStrengh = player.calculateEnemyVsAllyStrengthFactor();
         
-        if(allyStrengh < 0.8)
+        if(allyStrengh < 0.8 && helper.target.id != 0) // allow if target is empty
         {
             player.say('Too many hostile people...', true);
             helper.sendUpdateToClient();
