@@ -855,13 +855,7 @@ class Ai
         var bestFood = null;
         var bestDistance = 999999.0;
         var bestFoodValue = 0.1;
-        var isYum = false;
         
-
-        //var radius = RAD;
-        
-        // TODO consider current food vlaue cravings
-
         for(ty in baseY - radius...baseY + radius)
         {
             for(tx in baseX - radius...baseX + radius)
@@ -894,12 +888,12 @@ class Ai
                     var isSuperMeh = foodValue < originalFoodValue / 2; // can eat if food_store < 0
                     //trace('search food: best $bestDistance dist $distance ${obj.description}');
 
-                    if(isYum) foodValue *= 5;
+                    if(isYum) foodValue *= 10;
                     if(isSuperMeh) foodValue = originalFoodValue / 10;
                     if(isSuperMeh && myPlayer.food_store > 0) foodValue = 0;
-                    if(foodId == myPlayer.getCraving()) foodValue *= 5;
+                    if(foodId == myPlayer.getCraving()) foodValue *= 10;
 
-                    distance = Math.sqrt(distance);
+                    //distance = Math.sqrt(distance);
 
                     if(bestFood == null || foodValue / distance > bestFoodValue / bestDistance)
                     {
@@ -909,7 +903,7 @@ class Ai
                         bestDistance = distance;
                         bestFoodValue = foodValue;
 
-                        trace('search best food: d: $bestDistance f: $bestFoodValue yum: $isYum  ${obj.description}');
+                        //trace('search best food: d: $bestDistance f: $bestFoodValue yum: $isYum  ${obj.description}');
                     }
                 }
             }
