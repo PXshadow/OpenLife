@@ -466,6 +466,7 @@ class AiHelper
             if(p.deleted) continue;
             if(p.age > ServerSettings.MinAgeToEat) continue;
             if(p.food_store > 2.5) continue;
+            if(p.heldByPlayer != null) continue;
             if(bestPlayer != null && bestPlayer.mother == mother && p.mother != mother) continue;
 
             var dist = AiHelper.CalculateDistanceToPlayer(mother, p);
