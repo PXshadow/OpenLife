@@ -172,6 +172,8 @@ class Ai
 
         if(time > 0) return;
         time += ServerSettings.AiReactionTime; //0.5; // minimum AI reacting time
+        
+        cleanupBlockedObjects();
 
         if(myPlayer.getHeldByPlayer() != null)
         {
@@ -218,6 +220,26 @@ class Ai
         //craftItem(34,1); // 34 sharpstone
         //craftItem(224); // Harvested Wheat
         //craftItem(58); // Thread
+    }
+
+    private function cleanupBlockedObjects()
+    {
+        for(key in objectsWithHostilePath.keys())
+        {
+            var time = objectsWithHostilePath[key];
+            time -= ServerSettings.AiReactionTime;
+
+            if(time <= 0)
+            {
+                objectsWithHostilePath.remove(key);
+                //trace('Unblock: remove $key t: $time');
+                continue;    
+            }
+
+            //trace('Unblock: $key t: $time');
+
+            objectsWithHostilePath[key] = time;
+        }
     }
 
     private function isFeedingChild()
