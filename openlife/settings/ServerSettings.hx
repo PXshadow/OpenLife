@@ -202,13 +202,10 @@ class ServerSettings
     public static var TimeToAiRebirth:Float = 15;
     public static var AiTotalScoreFactor:Float = 0.2; 
     public static var AiMaxSearchRadius:Int = 32;
-    public static var AiMaxSearchIncrement:Int = 16;
+    public static var AiMaxSearchIncrement:Int = 35; // 16
 
     // Debug AI
-    public static var DebugAiCraftingObject:Int = 57;
-
-  
-    
+    public static var DebugAiCraftingObject:Int = 57; 
     
     // iron, tary spot spring cannot respawn or win lottery
     public static function CanObjectRespawn(obj:Int) : Bool

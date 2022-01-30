@@ -380,8 +380,7 @@ class Ai
         var bestSteps = 0;
         var bestTrans = null; 
         var radius = 0;
-
-
+        
         // TODO dont cut down tables <3371> if not needed  
 
         while (radius < ServerSettings.AiMaxSearchRadius)
@@ -437,6 +436,8 @@ class Ai
                     
                     if(trans.closestObject == null || trans.closestObjectDistance > objDistance)
                     {
+                        if(IsDangerous(obj)) continue;
+
                         trans.secondObject = trans.closestObject;
                         trans.secondObjectDistance = trans.closestObjectDistance;
 
@@ -448,6 +449,8 @@ class Ai
                     
                     if(trans.secondObject == null || trans.secondObjectDistance > objDistance)
                     {
+                        if(IsDangerous(obj)) continue;
+                        
                         trans.secondObject = obj;
                         trans.secondObjectDistance = objDistance;
 
@@ -556,6 +559,23 @@ class Ai
         }
 
         return itemToCraft;
+    }
+
+    private static function IsDangerous(object:ObjectHelper, radius:Int = 4) : Bool
+    {
+        var baseX = object.tx;
+        var baseY = object.ty;
+
+        for(ty in baseY - radius...baseY + radius)
+        {
+            for(tx in baseX - radius...baseX + radius)
+            {
+                var objData = WorldMap.world.getObjectDataAtPosition(tx,ty);
+                if(objData.deadlyDistance > 0) return true;
+            }
+        }
+
+        return false;
     }
 
     private function isMovingToPlayer(maxDistance = 25) : Bool
