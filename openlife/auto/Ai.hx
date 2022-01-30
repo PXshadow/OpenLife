@@ -173,7 +173,6 @@ class Ai
         if(escape(animal, deadlyPlayer)) return;
         checkIsHungryAndEat();
         if(isChildAndHasMother()){if(isMovingToPlayer()) return;}
-        if(myPlayer.isMoving()) return;
         
         if(isDropingItem()) return;
         if(myPlayer.age < ServerSettings.MinAgeToEat && myPlayer.food_store < 2) return; // do nothing and wait for mother to feed
@@ -181,6 +180,7 @@ class Ai
         if(isFeedingChild()) return;
         if(isUsingItem()) return;
         if(isMovingToPlayer()) return;
+        if(myPlayer.isMoving()) return;
 
         //if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
         if(itemToCraftId == itemToCraft.itemToCraft.parentId && itemToCraft.countDone >= itemToCraft.count) return;
