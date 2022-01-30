@@ -870,6 +870,8 @@ class Ai
 
                     if(bestFood == null || distance < bestDistance)
                     {
+                        if(IsDangerous(obj)) continue;
+                        
                         bestFood = obj;
                         bestDistance = distance;
                     }
