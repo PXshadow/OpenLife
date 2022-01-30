@@ -46,4 +46,7 @@ interface PlayerInterface
     public function getFollowPlayer():PlayerInterface;
     public function getHeldPlayer():PlayerInterface;
     public function getHeldByPlayer():PlayerInterface;
+
+    public function getCraving():Int;
+    public function getCountEaten(foodId:Int) : Float;
 }

@@ -836,16 +836,19 @@ class Ai
         return true;
     }
 
-    private function searchBestFood() : ObjectHelper
+    private function searchBestFood(radius:Int = 32) : ObjectHelper
     {
         var player = myPlayer.getPlayerInstance();
         var baseX = player.tx;
         var baseY = player.ty;
         var world = myPlayer.getWorld();
         var bestFood = null;
-        var bestDistance = 0.0;
+        var bestDistance = 999999.0;
+        var bestFoodValue = 0.1;
+        var isYum = false;
+        
 
-        var radius = RAD;
+        //var radius = RAD;
         
         // TODO consider current food vlaue cravings
 
@@ -855,7 +858,7 @@ class Ai
             {
                 var objData = world.getObjectDataAtPosition(tx, ty);
 
-                if(objData.dummyParent !=null) objData = objData.dummyParent; // use parent objectdata
+                if(objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
 
                 //var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
                 //trace('search food $tx, $ty: foodvalue: ${objData.foodValue} bestdistance: $bestDistance distance: $distance ${obj.description}');
@@ -863,18 +866,40 @@ class Ai
                 //var tmp = ObjectData.getObjectData(31);
                 //trace('berry food: ${tmp.foodValue}');
 
-                if(objData.foodValue > 0 || objData.foodFromTarget != null)                    
+                // TODO can eat: if(playerTo.food_store_max - playerTo.food_store < Math.ceil(foodValue / 3))
+
+                var originalFoodValue = objData.foodFromTarget == null ? objData.foodValue : objData.foodFromTarget.foodValue;
+                var foodId = objData.foodFromTarget == null ? objData.id : objData.foodFromTarget.id;                
+                var foodValue:Float = originalFoodValue;
+
+                //if(objData.foodValue > 0 || objData.foodFromTarget != null)    
+                if(foodValue > 0)                
                 {
                     var obj = world.getObjectHelper(tx, ty);
                     var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
+                    
+                    var countEaten = myPlayer.getCountEaten(foodId);
+                    foodValue -= countEaten;
+                    var isYum = countEaten < ServerSettings.YumBonus; 
+                    var isSuperMeh = foodValue < originalFoodValue / 2; // can eat if food_store < 0
                     //trace('search food: best $bestDistance dist $distance ${obj.description}');
 
-                    if(bestFood == null || distance < bestDistance)
+                    if(isYum) foodValue *= 5;
+                    if(isSuperMeh) foodValue = originalFoodValue / 10;
+                    if(isSuperMeh && myPlayer.food_store > 0) foodValue = 0;
+                    if(foodId == myPlayer.getCraving()) foodValue *= 5;
+
+                    distance = Math.sqrt(distance);
+
+                    if(bestFood == null || foodValue / distance > bestFoodValue / bestDistance)
                     {
                         if(IsDangerous(obj)) continue;
 
                         bestFood = obj;
                         bestDistance = distance;
+                        bestFoodValue = foodValue;
+
+                        trace('search best food: d: $bestDistance f: $bestFoodValue yum: $isYum  ${obj.description}');
                     }
                 }
             }

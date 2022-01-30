@@ -3622,6 +3622,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         return (this.name == "EVE" || this.name == "ADAM");
     }
+
+    public function getCraving() : Int
+    {
+        return this.currentlyCraving;    
+    }
+
+    public function getCountEaten(foodId:Int) : Float
+    {
+        return this.hasEatenMap[foodId];    
+    }
 }
 
 // TODO Arcurus>> add birth logic - suggestion:
