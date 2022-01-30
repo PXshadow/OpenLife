@@ -38,6 +38,8 @@ class Ai
 
     var children = new Array<PlayerInterface>();
 
+    public var objectsWithHostilePath = new Map<Int, Float>();
+
     public function new(player:PlayerInterface) 
     {
         this.myPlayer = player;
@@ -230,7 +232,7 @@ class Ai
             if(heldPlayer.name == ServerSettings.StartingName && (heldPlayer.mother == myPlayer || heldPlayer.age > 1.5))
             {
                 var newName = NamingHelper.GetRandomName(myPlayer.isFemale());
-                trace('AAI: child newName: $newName');
+                trace('AAI: ${myPlayer.id} child newName: $newName');
                 myPlayer.say('You are $newName');
             }
 
@@ -238,7 +240,7 @@ class Ai
             {
                 var done = myPlayer.dropPlayer();
 
-                //trace('AAI: child drop ${heldPlayer.name} $done');
+                //trace('AAI: ${myPlayer.id} child drop ${heldPlayer.name} $done');
 
                 return true;
             }
@@ -267,7 +269,7 @@ class Ai
 
         if(distance > 1)
         {
-            //trace('AAI: child goto');
+            trace('AAI: ${myPlayer.id} goto child');
             myPlayer.Goto(childX, childY);
             return true;
         }
@@ -294,11 +296,22 @@ class Ai
         var escapeTy = escapePlayer ? deadlyPlayer.ty : animal.ty;
 
         myPlayer.say('Escape ${description}!');
+        trace('AAI: ${myPlayer.id} escape!');
         
         var tx = escapeTx > player.tx ?  player.tx - 3 : player.tx + 3;
         var ty = escapeTy > player.ty ?  player.ty - 3 : player.ty + 3;
 
         myPlayer.Goto(tx - player.gx, ty - player.gy);
+
+        if(useTarget != null || foodTarget != null)
+        {
+            addObjectWithHostilePath(useTarget);
+            addObjectWithHostilePath(foodTarget);
+            useTarget = null;
+            foodTarget = null;
+            itemToCraft.transActor = null;
+            itemToCraft.transTarget = null;
+        }
 
         return true;
     }
@@ -437,7 +450,7 @@ class Ai
                     
                     if(trans.closestObject == null || trans.closestObjectDistance > objDistance)
                     {
-                        if(IsDangerous(obj)) continue;
+                        if(IsDangerous(this, obj)) continue;
 
                         trans.secondObject = trans.closestObject;
                         trans.secondObjectDistance = trans.closestObjectDistance;
@@ -450,7 +463,7 @@ class Ai
                     
                     if(trans.secondObject == null || trans.secondObjectDistance > objDistance)
                     {
-                        if(IsDangerous(obj)) continue;
+                        if(IsDangerous(this, obj)) continue;
                         
                         trans.secondObject = obj;
                         trans.secondObjectDistance = objDistance;
@@ -562,7 +575,7 @@ class Ai
         return itemToCraft;
     }
 
-    private static function IsDangerous(object:ObjectHelper, radius:Int = 4) : Bool
+    private function IsDangerous(ai:Ai, object:ObjectHelper, radius:Int = 4) : Bool
     {
         var baseX = object.tx;
         var baseY = object.ty;
@@ -573,6 +586,8 @@ class Ai
             {
                 var objData = WorldMap.world.getObjectDataAtPosition(tx,ty);
                 if(objData.deadlyDistance > 0) return true;
+
+                if(ai.isObjectWithHostilePath(tx,ty)) return true; // for example if the path is blocked through a wolf
             }
         }
 
@@ -594,13 +609,13 @@ class Ai
 
                 if(playerToFollow == null) return false;
             
-                //trace('AAI: follow player ${playerToFollow.p_id}');
+                //trace('AAI: ${myPlayer.id} follow player ${playerToFollow.p_id}');
             }
         }
 
         if(myPlayer.CalculateDistanceToPlayer(playerToFollow) > maxDistance)
         {
-            //trace('AAI: goto player');
+            trace('AAI: ${myPlayer.id} goto player');
 
             myPlayer.Goto(playerToFollow.tx + 1 - myPlayer.gx, playerToFollow.ty - myPlayer.gy);
             myPlayer.say('${playerToFollow.name}');
@@ -655,12 +670,12 @@ class Ai
 
         if(distance > 1)
         {
-            trace('AAI: goto drop');
+            trace('AAI: ${myPlayer.id} goto drop');
             myPlayer.Goto(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
         }
         else
         {
-            trace('AAI: drop');
+            trace('AAI: ${myPlayer.id} drop');
 
             myPlayer.drop(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
             
@@ -684,7 +699,7 @@ class Ai
 
         if(distance > 1)
         {
-            trace('AAI: goto food');
+            trace('AAI: ${myPlayer.id} goto food');
             myPlayer.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
             return true;
         }
@@ -694,7 +709,7 @@ class Ai
         {
             var done = myPlayer.dropPlayer();
 
-            trace('AAI: child drop for eating ${heldPlayer.name} $done');
+            trace('AAI: ${myPlayer.id} child drop for eating ${heldPlayer.name} $done');
 
             return true;
         }
@@ -703,7 +718,7 @@ class Ai
 
         if(myPlayer.heldObject.id == 0)
         {
-            trace('AAI: pickup food from floor');
+            trace('AAI: ${myPlayer.id} pickup food from floor');
 
             // x,y is relativ to birth position, since this is the center of the universe for a player
             var done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy); 
@@ -715,7 +730,7 @@ class Ai
         
         if(heldObjectIsEatable == false)
         {
-            trace('AAI: drop held object to eat');
+            trace('AAI: ${myPlayer.id} drop held object to eat');
 
             dropHeldObject();
 
@@ -726,7 +741,7 @@ class Ai
 
         myPlayer.self(); // eat
 
-        trace('AAI: Eat: held: ${ myPlayer.heldObject.description} food: ${foodTarget.description} foodTarget.numberOfUses ${foodTarget.numberOfUses} == oldNumberOfUses $oldNumberOfUses || emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
+        trace('AAI: ${myPlayer.id} Eat: held: ${ myPlayer.heldObject.description} food: ${foodTarget.description} foodTarget.numberOfUses ${foodTarget.numberOfUses} == oldNumberOfUses $oldNumberOfUses || emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
 
         /*if(foodTarget.numberOfUses == oldNumberOfUses || myPlayer.food_store_max - myPlayer.food_store < 4)
         {
@@ -775,7 +790,7 @@ class Ai
 
         myPlayer.say('F ${Math.round(myPlayer.getPlayerInstance().food_store)}');
 
-        //trace('AAI: F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');
+        //trace('AAI: ${myPlayer.id} F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');
         
         return isHungry;
     }
@@ -788,11 +803,11 @@ class Ai
         var distance = myPlayer.CalculateDistanceToObject(useTarget);
         //var myPlayer = myPlayer.getPlayerInstance();
 
-        trace('AAI: Use:  distance: $distance ${useTarget.description} ${useTarget.tx} ${useTarget.ty}');
+        trace('AAI: ${myPlayer.id} Use:  distance: $distance ${useTarget.description} ${useTarget.tx} ${useTarget.ty}');
     
         if(distance > 1)
         {
-            trace('AAI: goto useItem');
+            trace('AAI: ${myPlayer.id} goto useItem');
             var done = myPlayer.Goto(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
 
             // TODO use item not reachable or bug in pathing?
@@ -813,7 +828,7 @@ class Ai
         {
             var done = myPlayer.dropPlayer();
 
-            trace('AAI: child drop for using ${heldPlayer.name} $done');
+            trace('AAI: ${myPlayer.id} child drop for using ${heldPlayer.name} $done');
 
             return true;
         }
@@ -893,11 +908,12 @@ class Ai
                     if(isSuperMeh && myPlayer.food_store > 0) foodValue = 0;
                     if(foodId == myPlayer.getCraving()) foodValue *= 10;
 
+                    if(distance < 0.5) distance = 0.5;
                     //distance = Math.sqrt(distance);
 
                     if(bestFood == null || foodValue / distance > bestFoodValue / bestDistance)
                     {
-                        if(IsDangerous(obj)) continue;
+                        if(IsDangerous(this, obj)) continue;
 
                         bestFood = obj;
                         bestDistance = distance;
@@ -913,6 +929,25 @@ class Ai
 
         return bestFood;
     }
+
+    public function addObjectWithHostilePath(obj:ObjectHelper)
+    {
+        if(obj == null) return;
+        var index = WorldMap.world.index(obj.tx, obj.ty);
+        objectsWithHostilePath[index] = 30; // block for 30 sec
+    }
+
+    public function isObjectWithHostilePath(tx:Int, ty:Int) : Bool
+    {
+        var index = WorldMap.world.index(tx, ty);
+        var notReachable = objectsWithHostilePath.exists(index);
+
+        //if(notReachable) trace('isObjectNotReachable: $notReachable $tx,$ty');
+
+        return notReachable;
+    }
+    
+        
 
     // is called once a movement is finished (client side it must be called manually after a PlayerUpdate)
     public function finishedMovement()

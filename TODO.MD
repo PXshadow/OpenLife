@@ -224,7 +224,6 @@ TODO Features:
 more up in the list means more likely to be implemented first but no gurantee!
 
 - fathers
-- princess / princess
 - better fences
 - reconnection after server shutdown
 - special stuff like hercules / snake master / super fast ager 
@@ -233,6 +232,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - horses that follow owner
 - better dogs
 - advanced AI / AI villages
+- princess / princess
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
