@@ -454,6 +454,30 @@ class AiHelper
 
         return bestPlayer;
     }
+
+    public static function GetCloseHungryChild(mother:PlayerInterface, searchDistance:Int = 15)
+    {
+        //var player = cast(playerInter, GlobalPlayerInstance);
+        var bestPlayer:GlobalPlayerInstance = null;
+        var bestDist:Float = searchDistance * searchDistance;
+
+        for(p in GlobalPlayerInstance.AllPlayers)
+        {
+            if(p.deleted) continue;
+            if(p.age > ServerSettings.MinAgeToEat) continue;
+            if(p.food_store > 2.5) continue;
+            if(bestPlayer != null && bestPlayer.mother == mother && p.mother != mother) continue;
+
+            var dist = AiHelper.CalculateDistanceToPlayer(mother, p);
+
+            if(dist > bestDist) continue;
+
+            bestDist = dist;
+            bestPlayer = p;
+        }
+
+        return bestPlayer;
+    }
    
     //time routine
     //update loop

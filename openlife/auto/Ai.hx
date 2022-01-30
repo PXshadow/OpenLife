@@ -218,7 +218,7 @@ class Ai
             if(heldPlayer.name == ServerSettings.StartingName)
             {
                 var newName = NamingHelper.GetRandomName(myPlayer.isFemale());
-                trace('newName: $newName');
+                trace('AAI: child newName: $newName');
                 myPlayer.say('You are $newName');
             }
 
@@ -239,35 +239,36 @@ class Ai
             dropHeldObject();
             return true;
         }
-        
-        for(child in children)
+
+        var child = AiHelper.GetCloseHungryChild(myPlayer);
+        if(child == null) return false;
+
+        /*for(child in children)
         {
             if(child.isDeleted()) continue;
             if(child.age >= ServerSettings.MinAgeToEat) continue;
 
             //trace('AAI: child food ${child.name} ${child.food_store}');
-            if(child.food_store > 2.5) continue; 
+            if(child.food_store > 2.5) continue;             
+        }*/
 
-            var distance = myPlayer.CalculateDistanceToPlayer(child);
-            var childX = child.tx - myPlayer.gx;
-            var childY = child.ty - myPlayer.gy;
+        var distance = myPlayer.CalculateDistanceToPlayer(child);
+        var childX = child.tx - myPlayer.gx;
+        var childY = child.ty - myPlayer.gy;
 
-            if(distance > 1)
-            {
-                //trace('AAI: child goto');
-                myPlayer.Goto(childX, childY);
-                return true;
-            }
-
-            myPlayer.say('Pickup ${child.name}');
-            var done = myPlayer.doBaby(childX, childY, child.id);
-
-            trace('AAI: child pickup $done');
-
+        if(distance > 1)
+        {
+            //trace('AAI: child goto');
+            myPlayer.Goto(childX, childY);
             return true;
         }
 
-        return false;
+        myPlayer.say('Pickup ${child.name}');
+        var done = myPlayer.doBaby(childX, childY, child.id);
+
+        trace('AAI: child ${child.name} pickup $done');
+
+        return true;
     }
 
     private function escape(animal:ObjectHelper, deadlyPlayer:GlobalPlayerInstance)
