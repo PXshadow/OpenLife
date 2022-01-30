@@ -808,6 +808,16 @@ class Ai
             return true;
         }
 
+        var heldPlayer = myPlayer.getHeldPlayer();
+        if(heldPlayer != null)
+        {
+            var done = myPlayer.dropPlayer();
+
+            trace('AAI: child drop for using ${heldPlayer.name} $done');
+
+            return true;
+        }
+
         // x,y is relativ to birth position, since this is the center of the universe for a player
         var done = myPlayer.use(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
 
