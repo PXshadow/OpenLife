@@ -42,5 +42,6 @@ class ServerAi extends Ai
 
         this.player = GlobalPlayerInstance.CreateNewAiPlayer(connection);
         this.myPlayer = player; // TODO same player for AI
+        this.newBorn();
     }
 }

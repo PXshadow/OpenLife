@@ -24,7 +24,7 @@ class Ai
     public var myPlayer:PlayerInterface;
     //public var myPlayer:GlobalPlayerInstance;
 
-    var done = false;
+    //var done = false;
 
     var time:Float = 5;
 
@@ -37,7 +37,7 @@ class Ai
 
     //var berryHunter:Bool = false;
     var isHungry = false;
-    var doingAction = false;
+    //var doingAction = false;
 
     var playerToFollow:PlayerInterface;
 
@@ -47,6 +47,21 @@ class Ai
     {
         this.myPlayer = player;
         //this.myPlayer = cast(playerInterface, GlobalPlayerInstance); // TODO support only client AI
+    }
+
+    public function newBorn()
+    {
+        foodTarget = null; 
+        dropTarget = null;
+        useTarget = null;
+
+        itemToCraftId = -1;
+        itemToCraft = new IntemToCraft();
+
+        isHungry = false;
+
+        playerToFollow = null;
+        children = new Array<PlayerInterface>();
     }
 
     public function say(player:PlayerInterface, curse:Bool,text:String) 
