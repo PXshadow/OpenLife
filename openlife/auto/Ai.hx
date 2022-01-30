@@ -217,7 +217,7 @@ class Ai
 
         if(heldPlayer != null)
         {
-            if(heldPlayer.name == ServerSettings.StartingName)
+            if(heldPlayer.name == ServerSettings.StartingName && (heldPlayer.mother == myPlayer || heldPlayer.age > 1.5))
             {
                 var newName = NamingHelper.GetRandomName(myPlayer.isFemale());
                 trace('AAI: child newName: $newName');
@@ -228,7 +228,7 @@ class Ai
             {
                 var done = myPlayer.dropPlayer();
 
-                trace('AAI: child drop ${heldPlayer.name} $done');
+                //trace('AAI: child drop ${heldPlayer.name} $done');
 
                 return true;
             }
@@ -251,15 +251,6 @@ class Ai
             playerToFollow = myPlayer;
         }
 
-        /*for(child in children)
-        {
-            if(child.isDeleted()) continue;
-            if(child.age >= ServerSettings.MinAgeToEat) continue;
-
-            //trace('AAI: child food ${child.name} ${child.food_store}');
-            if(child.food_store > 2.5) continue;             
-        }*/
-
         var distance = myPlayer.CalculateDistanceToPlayer(child);
         var childX = child.tx - myPlayer.gx;
         var childY = child.ty - myPlayer.gy;
@@ -274,7 +265,7 @@ class Ai
         myPlayer.say('Pickup ${child.name}');
         var done = myPlayer.doBaby(childX, childY, child.id);
 
-        trace('AAI: child ${child.name} pickup $done');
+        //trace('AAI: child ${child.name} pickup $done');
 
         return true;
     }
@@ -871,7 +862,7 @@ class Ai
                     if(bestFood == null || distance < bestDistance)
                     {
                         if(IsDangerous(obj)) continue;
-                        
+
                         bestFood = obj;
                         bestDistance = distance;
                     }
