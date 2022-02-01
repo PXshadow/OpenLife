@@ -1664,7 +1664,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }
         
-        if(playerTo.food_store_max - playerTo.food_store < Math.ceil(foodValue / 3))
+        if(playerTo.food_store_max - playerTo.food_store < Math.ceil(foodValue / 4))
         {
             trace('too full to eat: food_store_max: ${playerTo.food_store_max} - food_store: ${playerTo.food_store} < foodValue: $foodValue  / 3');
             playerTo.doEmote(Emote.refuseFood);
@@ -2239,7 +2239,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         var player = this;
         this.heldObject = obj;
-
+        
         if(obj != null) obj.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(obj); // not ideal to set it here
 
         //trace('TIME22: SET ${obj.description} timeToChange: ${obj.timeToChange}');
@@ -2248,12 +2248,48 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(obj != null && obj.objectData.foodValue > 0)
         {
-            if(this.isHoldingYum()) this.doEmote(Emote.joy);
+            obj.tx = this.tx;
+            obj.ty = this.ty;
+
+            var isHoldingYum = isHoldingYum();
+            if(isHoldingYum) this.doEmote(Emote.joy);
             else this.doEmote(Emote.sad);
             //else if(isSuperMeh) playerTo.doEmote(Emote.ill);      
             
+            //if(isHoldingYum) displayFood(obj);
+            //else DisplayBestFood(player);
+            displayFood(obj);
             DisplayBestFood(player);            
         }
+    }
+
+    public function displayFood(food:ObjectHelper)
+    {
+        var player = this;
+        var countEaten = player.hasEatenMap[food.id];
+        var isYum = countEaten < ServerSettings.YumBonus; 
+        var text = 'F';
+        var count;
+
+        if(isYum)
+        {
+            text = 'Y';            
+            count = Math.ceil(ServerSettings.YumBonus - countEaten);
+            for(i in 0...count) text += 'U';
+            text += 'M!';
+        }
+        else
+        {
+            //var devide = Math.max(1, food.objectData.foodValue / 6);
+            text = 'M';            
+            count = Math.floor(1 + (countEaten - ServerSettings.YumBonus) / (food.objectData.foodValue / 4)); // three EEE if food has halve food value
+            for(i in 0...count) text += 'E';
+            text += 'H!';
+        }
+
+        trace('DisplayBestFood: ${food.description} $text count: $count countEaten: $countEaten');
+
+        player.connection.send(ClientTag.LOCATION_SAYS, ['${food.tx - player.gx} ${food.ty - player.gy} $text']);
     }
 
     public static function DisplayBestFood(player:GlobalPlayerInstance)
@@ -2261,27 +2297,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(player.isAi()) return;
         if(player.heldObject == null || player.heldObject.objectData.foodValue <= 0) return;
         if(player.food_store > player.food_store_max - 1) return;
+        if(player.isHoldingYum() && player.heldObject.id != player.currentlyCraving) return;
 
         var bestfood = AiHelper.SearchBestFood(player);
+        var displayBestFood = bestfood != null && (player.isHoldingYum() == false || bestfood.id == player.currentlyCraving);
 
-        if(bestfood != null)
-        {
-            var countEaten = player.hasEatenMap[bestfood.id];
-            var isYum = countEaten < ServerSettings.YumBonus; 
-            var text = 'FOOD!';
-
-            if(isYum)
-            {
-                text = 'Y';            
-                var count = Math.ceil(ServerSettings.YumBonus - countEaten);
-                for(i in 0...count) text += 'U';
-                text += 'M!';
-
-                trace('DisplayBestFood: ${player.heldObject.description} $text count: $count countEaten: $countEaten');
-            }
-
-            player.connection.send(ClientTag.LOCATION_SAYS, ['${bestfood.tx - player.gx} ${bestfood.ty - player.gy} $text']);
-        }
+        if(displayBestFood) player.displayFood(bestfood);
     }
 
     public function getAi() : Ai
@@ -3070,24 +3091,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         trace('doBaby($x, $y playerId: $playerId)');
 
-        if(isCloseToPlayer(targetPlayer) == false)
-        {
-            this.connection.send(PLAYER_UPDATE,[this.toData()]);
-
-            trace('doBaby: x,y is too far away!');
-
-            return false;
-        }
-
-        if(targetPlayer == null)
-        {
-            this.connection.send(PLAYER_UPDATE,[this.toData()]);
-
-            trace('doBaby: could not find target player!');
-
-            return false;
-        }
-
         if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
         else this.mutex.acquire();
         
@@ -3120,43 +3123,53 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return done;
     }
 
-    public function doBabyHelper(x:Int, y:Int, player:GlobalPlayerInstance) : Bool
+    public function doBabyHelper(x:Int, y:Int, targetPlayer:GlobalPlayerInstance) : Bool
     {
+        if(isCloseToPlayer(targetPlayer) == false)
+        {
+            trace('doBaby: x,y is too far away!');
+            return false;
+        }
+
+        if(targetPlayer == null)
+        {
+            trace('doBaby: could not find target player!');
+            return false;
+        }
+
         if(this.o_id[0] != 0)
         {
             trace('Cannot pickup player, since hands are not empty ${this.o_id[0]}!');
-
             return false;
         }
 
-        if(player.age >= ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers ) // TODO allow pickup of knocked out players 
+        if(targetPlayer.age >= ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers ) // TODO allow pickup of knocked out players 
         {
-            trace('Cannot pickup player, player is too old! player.age: ${player.age}');
-
+            trace('Cannot pickup player, player is too old! player.age: ${targetPlayer.age}');
             return false;
         }
 
-        this.heldPlayer = player;
-        player.heldByPlayer = this;
+        this.heldPlayer = targetPlayer;
+        targetPlayer.heldByPlayer = this;
         this.setHeldObject(null);
 
-        if(player.heldObject.isDroppable())
+        if(targetPlayer.heldObject.isDroppable())
         {
-            WorldMap.PlaceObject(this.tx, this.ty, player.heldObject, false);
-            player.setHeldObject(null);
+            WorldMap.PlaceObject(this.tx, this.ty, targetPlayer.heldObject, false);
+            targetPlayer.setHeldObject(null);
         }
 
         this.SetTransitionData(x,y,true);
 
-        trace('doBabyHelper: o_id:  ${this.o_id}');
+        //trace('doBabyHelper: o_id:  ${this.o_id}');
 
         Connection.SendUpdateToAllClosePlayers(this, true);
 
-        var followPlayer = player.followPlayer;
+        var followPlayer = targetPlayer.followPlayer;
 
         if(followPlayer == null || (followPlayer.isFertile() == false && this.isFertile()))
         {
-            player.followPlayer = this; // consider this player as mother
+            targetPlayer.followPlayer = this; // consider this player as mother
         }
 
         return true;

@@ -138,7 +138,6 @@ class NamingHelper
                     p.connection.sendNameToAll();
                 }
             }
-
         }
         else
         {
