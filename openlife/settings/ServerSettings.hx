@@ -195,7 +195,7 @@ class ServerSettings
     public static var WoundHealingTimeFactor:Float = 1.5;
     public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.25; // For damaging children, mother, father, brother sister  
     public static var PrestigeCostPerDamageForAlly:Float = 0.5; // For damaging ally  
-    public static var PrestigeCostPerDamageForChild:Float = 1;
+    public static var PrestigeCostPerDamageForChild:Float = 2;
 
     // AI
     public static var NumberOfAis:Int = 3;

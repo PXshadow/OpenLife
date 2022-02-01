@@ -2804,7 +2804,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             // TODO count as ally if exile happened not long ago ???
             // TODO auto exile if seen by leader ???
-            if(targetPlayer.trueAge < ServerSettings.MaxChildAgeForBreastFeeding)
+            if(targetPlayer.trueAge < ServerSettings.MinAgeToEat)
             {
                 prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForChild;
 
