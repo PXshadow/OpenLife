@@ -1703,6 +1703,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             playerTo.hasEatenMap[heldObjData.id] += ServerSettings.FoodReductionPerEating;
             playerTo.doIncreaseFoodValue(heldObjData.id);
+            //playerTo.say('FC ${playerTo.hasEatenMap[heldObjData.id]}');
         }
 
         // eating YUM increases prestige / score while eating MEH reduces it
@@ -1877,7 +1878,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         trace('IncreaseFoodValue: hasEatenKeys.length: ${hasEatenKeys.length}');
 
-        // restore one food pip if eaten not super meh
         if(hasEatenKeys.length < 1) return;
 
         var random = WorldMap.calculateRandomInt(hasEatenKeys.length -1);
@@ -3164,7 +3164,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function dropPlayer() : Bool
     {
-        trace('drop player');
+        //trace('drop player');
 
         if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
         else this.mutex.acquire();
@@ -3189,7 +3189,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private static function dropPlayerHelper(player:GlobalPlayerInstance) : Bool
     {
-        trace('drop player helper');
+        //trace('drop player helper');
 
         var heldPlayer = player.heldPlayer;
 
