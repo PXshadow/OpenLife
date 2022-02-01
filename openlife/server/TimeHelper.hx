@@ -560,7 +560,7 @@ class TimeHelper
 
                 if(heldPlayer.food_store < heldPlayer.food_store_max)
                 {
-                    var food = 5 * timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
+                    var food = ServerSettings.FoodRestoreFactorWhileFeeding * timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
 
                     heldPlayer.food_store += food;
                     
