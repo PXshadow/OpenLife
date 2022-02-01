@@ -263,7 +263,8 @@ class Ai
     private function isFeedingChild()
     {
         if(myPlayer.isFertile() == false) return false; 
-        if(myPlayer.food_store < 3) return false; 
+        if(myPlayer.food_store < 1) return false; 
+        if(foodTarget != null) return false; 
 
         var heldPlayer = myPlayer.getHeldPlayer();
 
@@ -276,7 +277,7 @@ class Ai
                 myPlayer.say('You are $newName');
             }
 
-            if(heldPlayer.food_store > Math.min(5, heldPlayer.food_store_max - 1))
+            if(heldPlayer.age > ServerSettings.MinMovementAgeInSec * 60 && heldPlayer.food_store > Math.min(5, heldPlayer.food_store_max - 0.2))
             {
                 var done = myPlayer.dropPlayer();
 
@@ -286,7 +287,7 @@ class Ai
             }
         }
 
-        if(heldPlayer != null) return false;
+        if(heldPlayer != null) return true;
 
         if(myPlayer.heldObject.id != 0)
         {
