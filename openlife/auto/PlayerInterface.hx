@@ -5,6 +5,7 @@ import openlife.data.Pos;
 
 interface PlayerInterface
 {
+    public function getAi() : Ai;
     public function getWorld() : WorldInterface;   
     public function getPlayerInstance() : PlayerInstance;
 

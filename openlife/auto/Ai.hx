@@ -114,12 +114,12 @@ class Ai
             playerToFollow = null;
             myPlayer.say("YES CAPTAIN");
         }
-        if (text.contains("EAT!"))
+        /*if (text.contains("EAT!"))
         {
-            searchBestFood();
+            AiHelper.SearchBestFood();
             searchFoodAndEat();
             myPlayer.say("YES CAPTAIN");
-        }
+        }*/
         if (text.contains("MAKE!"))
         {
             var id = GlobalPlayerInstance.findObjectByCommand(text);
@@ -138,7 +138,7 @@ class Ai
     public function searchFoodAndEat()
     {
         //var myPlayer = myPlayer.getPlayerInstance();
-        foodTarget = searchBestFood();
+        foodTarget = AiHelper.SearchBestFood(myPlayer);
         //if(foodTarget != null) myPlayer.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
     }
 
@@ -490,7 +490,7 @@ class Ai
                     
                     if(trans.closestObject == null || trans.closestObjectDistance > objDistance)
                     {
-                        if(IsDangerous(this, obj)) continue;
+                        if(AiHelper.IsDangerous(myPlayer, obj)) continue;
 
                         trans.secondObject = trans.closestObject;
                         trans.secondObjectDistance = trans.closestObjectDistance;
@@ -503,7 +503,7 @@ class Ai
                     
                     if(trans.secondObject == null || trans.secondObjectDistance > objDistance)
                     {
-                        if(IsDangerous(this, obj)) continue;
+                        if(AiHelper.IsDangerous(myPlayer, obj)) continue;
                         
                         trans.secondObject = obj;
                         trans.secondObjectDistance = objDistance;
@@ -613,25 +613,6 @@ class Ai
         }
 
         return itemToCraft;
-    }
-
-    private function IsDangerous(ai:Ai, object:ObjectHelper, radius:Int = 4) : Bool
-    {
-        var baseX = object.tx;
-        var baseY = object.ty;
-
-        for(ty in baseY - radius...baseY + radius)
-        {
-            for(tx in baseX - radius...baseX + radius)
-            {
-                var objData = WorldMap.world.getObjectDataAtPosition(tx,ty);
-                if(objData.deadlyDistance > 0) return true;
-
-                if(ai.isObjectWithHostilePath(tx,ty)) return true; // for example if the path is blocked through a wolf
-            }
-        }
-
-        return false;
     }
 
     private function isMovingToPlayer(maxDistance = 25) : Bool
@@ -899,75 +880,6 @@ class Ai
         useTarget = null;
         
         return true;
-    }
-
-    private function searchBestFood(radius:Int = 32) : ObjectHelper
-    {
-        var player = myPlayer.getPlayerInstance();
-        var baseX = player.tx;
-        var baseY = player.ty;
-        var world = myPlayer.getWorld();
-        var bestFood = null;
-        var bestDistance = 999999.0;
-        var bestFoodValue = 0.1;
-        
-        for(ty in baseY - radius...baseY + radius)
-        {
-            for(tx in baseX - radius...baseX + radius)
-            {
-                var objData = world.getObjectDataAtPosition(tx, ty);
-
-                if(objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
-
-                //var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
-                //trace('search food $tx, $ty: foodvalue: ${objData.foodValue} bestdistance: $bestDistance distance: $distance ${obj.description}');
-
-                //var tmp = ObjectData.getObjectData(31);
-                //trace('berry food: ${tmp.foodValue}');
-
-                // TODO can eat: if(playerTo.food_store_max - playerTo.food_store < Math.ceil(foodValue / 3))
-
-                var originalFoodValue = objData.foodFromTarget == null ? objData.foodValue : objData.foodFromTarget.foodValue;
-                var foodId = objData.foodFromTarget == null ? objData.id : objData.foodFromTarget.id;                
-                var foodValue:Float = originalFoodValue;
-
-                //if(objData.foodValue > 0 || objData.foodFromTarget != null)    
-                if(foodValue > 0)                
-                {
-                    var obj = world.getObjectHelper(tx, ty);
-                    var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
-                    
-                    var countEaten = myPlayer.getCountEaten(foodId);
-                    foodValue -= countEaten;
-                    var isYum = countEaten < ServerSettings.YumBonus; 
-                    var isSuperMeh = foodValue < originalFoodValue / 2; // can eat if food_store < 0
-                    //trace('search food: best $bestDistance dist $distance ${obj.description}');
-
-                    if(isYum) foodValue *= 10;
-                    if(isSuperMeh) foodValue = originalFoodValue / 10;
-                    if(isSuperMeh && myPlayer.food_store > 0) foodValue = 0;
-                    if(foodId == myPlayer.getCraving()) foodValue *= 10;
-
-                    if(distance < 0.5) distance = 0.5;
-                    //distance = Math.sqrt(distance);
-
-                    if(bestFood == null || foodValue / distance > bestFoodValue / bestDistance)
-                    {
-                        if(IsDangerous(this, obj)) continue;
-
-                        bestFood = obj;
-                        bestDistance = distance;
-                        bestFoodValue = foodValue;
-
-                        //trace('search best food: d: $bestDistance f: $bestFoodValue yum: $isYum  ${obj.description}');
-                    }
-                }
-            }
-        }
-
-        if(bestFood !=null) trace('bestfood: $bestDistance ${bestFood.description}');
-
-        return bestFood;
     }
 
     public function addObjectWithHostilePath(obj:ObjectHelper)

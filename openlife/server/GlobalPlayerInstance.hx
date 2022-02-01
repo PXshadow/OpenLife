@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.auto.Ai;
 import haxe.Exception;
 import openlife.server.Lineage.PrestigeClass;
 import openlife.auto.AiHelper;
@@ -2250,6 +2251,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             else this.doEmote(Emote.sad);
             //else if(isSuperMeh) playerTo.doEmote(Emote.ill);            
         }
+
+        
+    }
+
+    public function getAi() : Ai
+    {
+        return this.connection.serverAi;
     }
 
     public function MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed()
