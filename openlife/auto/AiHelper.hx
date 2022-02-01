@@ -108,6 +108,7 @@ class AiHelper
             {
                 var objData = world.getObjectDataAtPosition(tx, ty);
 
+                if(objData.id == 0) continue;
                 if(objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
 
                 //var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
@@ -116,42 +117,39 @@ class AiHelper
                 //var tmp = ObjectData.getObjectData(31);
                 //trace('berry food: ${tmp.foodValue}');
 
-                // TODO can eat: if(playerTo.food_store_max - playerTo.food_store < Math.ceil(foodValue / 3))
-
                 var originalFoodValue = objData.foodFromTarget == null ? objData.foodValue : objData.foodFromTarget.foodValue;
                 var foodId = objData.foodFromTarget == null ? objData.id : objData.foodFromTarget.id;                
                 var foodValue:Float = originalFoodValue;
 
-                //if(objData.foodValue > 0 || objData.foodFromTarget != null)    
-                if(foodValue > 0)                
+                if(foodValue <= 0) continue;    
+                if(player.food_store_max - player.food_store < Math.ceil(foodValue / 4)) continue;
+                            
+                var obj = world.getObjectHelper(tx, ty);
+                var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
+                
+                var countEaten = player.getCountEaten(foodId);
+                foodValue -= countEaten;
+                var isYum = countEaten < ServerSettings.YumBonus; 
+                var isSuperMeh = foodValue < originalFoodValue / 2; // can eat if food_store < 0
+                //trace('search food: best $bestDistance dist $distance ${obj.description}');
+
+                if(isYum) foodValue *= 10;
+                if(isSuperMeh) foodValue = originalFoodValue / 10;
+                if(isSuperMeh && player.food_store > 0) foodValue = 0;
+                if(foodId == player.getCraving()) foodValue *= 10;
+
+                if(distance < 0.5) distance = 0.5;
+                //distance = Math.sqrt(distance);
+
+                if(bestFood == null || foodValue / distance > bestFoodValue / bestDistance)
                 {
-                    var obj = world.getObjectHelper(tx, ty);
-                    var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
-                    
-                    var countEaten = player.getCountEaten(foodId);
-                    foodValue -= countEaten;
-                    var isYum = countEaten < ServerSettings.YumBonus; 
-                    var isSuperMeh = foodValue < originalFoodValue / 2; // can eat if food_store < 0
-                    //trace('search food: best $bestDistance dist $distance ${obj.description}');
+                    if(IsDangerous(player, obj)) continue;
 
-                    if(isYum) foodValue *= 10;
-                    if(isSuperMeh) foodValue = originalFoodValue / 10;
-                    if(isSuperMeh && player.food_store > 0) foodValue = 0;
-                    if(foodId == player.getCraving()) foodValue *= 10;
+                    bestFood = obj;
+                    bestDistance = distance;
+                    bestFoodValue = foodValue;
 
-                    if(distance < 0.5) distance = 0.5;
-                    //distance = Math.sqrt(distance);
-
-                    if(bestFood == null || foodValue / distance > bestFoodValue / bestDistance)
-                    {
-                        if(IsDangerous(player, obj)) continue;
-
-                        bestFood = obj;
-                        bestDistance = distance;
-                        bestFoodValue = foodValue;
-
-                        //trace('search best food: d: $bestDistance f: $bestFoodValue yum: $isYum  ${obj.description}');
-                    }
+                    //trace('search best food: d: $bestDistance f: $bestFoodValue yum: $isYum  ${obj.description}');
                 }
             }
         }
@@ -553,7 +551,7 @@ class AiHelper
         for(p in GlobalPlayerInstance.AllPlayers)
         {
             if(p.deleted) continue;
-            if(p.age > ServerSettings.MinAgeToEat) continue;
+            if(p.age > ServerSettings.MaxChildAgeForBreastFeeding) continue;
             if(p.food_store > 2.5) continue;
             if(p.heldByPlayer != null) continue;
             if(bestPlayer != null && bestPlayer.mother == mother && p.mother != mother) continue;
