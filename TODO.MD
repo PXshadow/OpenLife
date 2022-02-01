@@ -192,6 +192,7 @@ SPEED:
 - bad temperature reduces speed extreme temperature reduces double
 
 Food - YUM:
+- If you hold any food the closest most YUM food for you is displayed
 - YUM gives 3 food boni first eaten. 
 - the first 3 times eaten a food is YUM
 - food value is reduced minus one for each eaten / food has at least half the food value

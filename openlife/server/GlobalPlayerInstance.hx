@@ -2237,6 +2237,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function setHeldObject(obj:ObjectHelper)
     {
+        var player = this;
         this.heldObject = obj;
 
         if(obj != null) obj.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(obj); // not ideal to set it here
@@ -2249,10 +2250,38 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             if(this.isHoldingYum()) this.doEmote(Emote.joy);
             else this.doEmote(Emote.sad);
-            //else if(isSuperMeh) playerTo.doEmote(Emote.ill);            
+            //else if(isSuperMeh) playerTo.doEmote(Emote.ill);      
+            
+            DisplayBestFood(player);            
         }
+    }
 
-        
+    public static function DisplayBestFood(player:GlobalPlayerInstance)
+    {
+        if(player.isAi()) return;
+        if(player.heldObject == null || player.heldObject.objectData.foodValue <= 0) return;
+        if(player.food_store > player.food_store_max - 1) return;
+
+        var bestfood = AiHelper.SearchBestFood(player);
+
+        if(bestfood != null)
+        {
+            var countEaten = player.hasEatenMap[bestfood.id];
+            var isYum = countEaten < ServerSettings.YumBonus; 
+            var text = 'FOOD!';
+
+            if(isYum)
+            {
+                text = 'Y';            
+                var count = Math.ceil(ServerSettings.YumBonus - countEaten);
+                for(i in 0...count) text += 'U';
+                text += 'M!';
+
+                trace('DisplayBestFood: ${player.heldObject.description} $text count: $count countEaten: $countEaten');
+            }
+
+            player.connection.send(ClientTag.LOCATION_SAYS, ['${bestfood.tx - player.gx} ${bestfood.ty - player.gy} $text']);
+        }
     }
 
     public function getAi() : Ai

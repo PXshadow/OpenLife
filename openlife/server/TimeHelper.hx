@@ -329,6 +329,8 @@ class TimeHelper
                 var dist = AiHelper.CalculateDistanceToObject(player, animal);
                 if(dist > 10) player.connection.send(ClientTag.LOCATION_SAYS, ['${animal.tx - player.gx} ${animal.ty - player.gy} !!!']);
             }
+
+            GlobalPlayerInstance.DisplayBestFood(player);
         }
 
         if(player.isWounded())
