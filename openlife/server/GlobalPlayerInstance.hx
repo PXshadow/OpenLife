@@ -89,6 +89,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public var lineage:Lineage;
 
+    private var myMother:GlobalPlayerInstance;
+    private var myFather:GlobalPlayerInstance;
+
     // make sure to set these null is player is deleted so that garbage collector can clean up
     public var followPlayer:GlobalPlayerInstance;
     public var heldPlayer:GlobalPlayerInstance;
@@ -160,8 +163,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function delete()
     {
         this.deleted = true;
-        this.followPlayer = null;
 
+        // need grandmother to inherit eaten food counts to grantkids
+        if(this.myMother != null) this.myMother.myMother = null;
+        if(this.myFather != null) this.myFather.myFather = null;
+
+        this.followPlayer = null;
         this.heldPlayer = null;
         this.heldByPlayer = null;
     
@@ -190,25 +197,29 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var mother(get, set):GlobalPlayerInstance;
 
     public function get_mother()
-    {
-        return lineage.mother;
+    {   
+        return myMother;
     }
 
     public function set_mother(newMother:GlobalPlayerInstance)
     {
-        return lineage.mother = newMother;
+        this.myMother = newMother;
+        lineage.mother = newMother;
+        return this.myMother;
     }
 
     public var father(get, set):GlobalPlayerInstance;
 
     public function get_father()
     {
-        return lineage.father;
+        return myFather;
     }
 
     public function set_father(newFather:GlobalPlayerInstance)
     {
-        return lineage.father = newFather;
+        this.myFather = newFather;
+        lineage.father = newFather;
+        return this.myFather;
     }
 
     public static function GetNumberLifingPlayers() : Int
@@ -510,8 +521,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         trace('New child is born to mother: ${mother.name} ${mother.familyName} female: $female motherColor: $motherColor childColor: ${this.getColor()}');
 
+        InheritEatenFoodCounts(this);
+        
         return true;
     } 
+
+    private static function InheritEatenFoodCounts(child:GlobalPlayerInstance)
+    {
+        // TODO fathers. For example girls inherit from father boys from mother
+        var fromPlayer = child.mother.mother == null ? child.mother : child.mother.mother;
+        var inheritFromGrandma = child.mother.mother != null;
+
+        for(food in fromPlayer.hasEatenMap.keys())
+        {
+            var foodCount = fromPlayer.hasEatenMap[food] - ServerSettings.HasEatenReductionForNextGeneration;
+            if(foodCount > ServerSettings.HasEatenReductionForNextGeneration) foodCount -= ServerSettings.HasEatenReductionForNextGeneration;
+            child.hasEatenMap[food] = foodCount;
+            trace('Inherit fromGrandma: $inheritFromGrandma food: $food value: $foodCount');
+        }
+    }
 
     // person ==> Ginger = 6 / White = 4 / Brown = 3 /  Black = 1  
     public function getColor() : Int

@@ -204,6 +204,9 @@ Food - YUM:
 - YUM chain is used as Health // TODO change YUM --> Prestiege Max_Food --> Health 
 - eating YUM increases YUM chain, while eating MEH reduces it
 
+Generational Yum:
+- a child inherits what is considered as YUM (the eaten food counts minus 0.2) from his gradma / mother in case there is none // TODO consider father
+
 Food - Health - Hits
 - YUM chain / Health influences now aging (0.5X to 2X) and speed (1.2X to 0.5X) / With this Berry munching is even worse
 - Having less hitpoints / beeing more exhausted reduces speed  
@@ -249,7 +252,6 @@ High priority:
 - COMBAT ill from moskitos
 - COMBAT make smal wounds invisible if object held and allow to work (for example for poisone from snakes)
 
-- YUM Inherit YUM from grandmother
 - YUM display nearest yum if holding meh
 
 - BIRTH spawn eves on different locations

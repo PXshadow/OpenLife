@@ -74,7 +74,7 @@ class Ai
 
         //trace('im a evil bot!');
 
-        trace('AI ${text}');
+        //trace('AI ${text}');
 
         if (text.contains("TRANS")) 
         {
