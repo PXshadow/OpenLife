@@ -375,25 +375,42 @@ class Ai
 
         myPlayer.say('Escape ${description}!');
         trace('AAI: ${myPlayer.id} escape!');
+
+        var done = false;
+        var alwaysX = false;
+        var alwaysY = false;
         
-        for(i in 0...10)
+        for(ii in 0...5)
         {
-            newEscapetarget.tx = escapeTx > player.tx ?  player.tx - escapeDist : player.tx + escapeDist;
-            newEscapetarget.ty = escapeTy > player.ty ?  player.ty - escapeDist : player.ty + escapeDist;
+            for(i in 0...10)
+            {
+                var escapeInLowerX = alwaysX || escapeTx > player.tx;
+                var escapeInLowerY = alwaysY || escapeTy > player.ty;
 
-            var randX = WorldMap.calculateRandomInt(2 + i);
-            var randY = WorldMap.calculateRandomInt(2 + i);
-            randX = escapeTx > player.tx ? -randX : randX;
-            randY = escapeTy > player.ty ? -randY : randY;
+                newEscapetarget.tx = escapeInLowerX ?  player.tx - escapeDist : player.tx + escapeDist;
+                newEscapetarget.ty = escapeInLowerY ?  player.ty - escapeDist : player.ty + escapeDist;
 
-            newEscapetarget.tx += randX;
-            newEscapetarget.ty += randY;
+                var randX = WorldMap.calculateRandomInt(2 + i + 2 * ii);
+                var randY = WorldMap.calculateRandomInt(2 + i + 2 * ii);
+                randX = escapeInLowerX ? -randX : randX;
+                randY = escapeInLowerY ? -randY : randY;
 
-            if(AiHelper.IsDangerous(myPlayer, newEscapetarget)) continue;
+                newEscapetarget.tx += randX;
+                newEscapetarget.ty += randY;
 
-            var done = GotoObj(newEscapetarget);
+                if(AiHelper.IsDangerous(myPlayer, newEscapetarget)) continue;
+
+                done = GotoObj(newEscapetarget);
+
+                if(done) break;
+            }
 
             if(done) break;
+
+            alwaysX = WorldMap.calculateRandomFloat() < 0.5;
+            alwaysY = WorldMap.calculateRandomFloat() < 0.5;
+
+            trace('Escape $ii alwaysX: $alwaysX alwaysY $alwaysY');
         }
 
         if(useTarget != null || foodTarget != null || escapeTarget != null)
