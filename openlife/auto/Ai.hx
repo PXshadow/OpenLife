@@ -454,7 +454,7 @@ class Ai
         {
             radius += ServerSettings.AiMaxSearchIncrement;
 
-            //trace('AI search radius: $radius');
+            trace('AI: craft: search radius: $radius');
 
             // reset objects so that it can be filled again
             itemToCraft.clearTransitionsByObjectId();   

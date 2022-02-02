@@ -36,12 +36,7 @@ class TransitionImporter
     // maxUseTransitions
     private var maxUseTransitionsByActorIdTargetId:Map<Int, Map<Int, TransitionData>>;
 
-
-
-    public function new()
-    {
-
-    }
+    public function new(){}
 
     public static function DoAllInititalisationStuff()
     {

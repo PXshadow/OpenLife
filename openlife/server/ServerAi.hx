@@ -37,9 +37,9 @@ class ServerAi extends Ai
         timeToRebirth -= timePassedInSeconds;
 
         if(timeToRebirth > 0) return;
-
+        timeToRebirth = 0;
         //trace('doRebirth: ');    
-
+        
         this.player = GlobalPlayerInstance.CreateNewAiPlayer(connection);
         this.myPlayer = player; // TODO same player for AI
         this.newBorn();
