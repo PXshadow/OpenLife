@@ -646,6 +646,9 @@ class Ai
         for(trans in transitions)
         {
             //trace('Ai: craft: ' + trans.getDesciption());
+            //TODO? if(actorSteps + targetSteps <= newActorSteps + newTargetSteps) continue; // nothing is won
+            if(trans.actorID == wantedId || trans.actorID == objToCraftId) continue; 
+            if(trans.targetID == wantedId || trans.targetID == objToCraftId) continue; 
 
             var actor = transitionsByObjectId[trans.actorID];
             var target = transitionsByObjectId[trans.targetID];
