@@ -379,6 +379,7 @@ class Ai
         var done = false;
         var alwaysX = false;
         var alwaysY = false;
+        var checkIfDangerous = true;
         
         for(ii in 0...5)
         {
@@ -398,7 +399,7 @@ class Ai
                 newEscapetarget.tx += randX;
                 newEscapetarget.ty += randY;
 
-                if(AiHelper.IsDangerous(myPlayer, newEscapetarget)) continue;
+                if(checkIfDangerous && AiHelper.IsDangerous(myPlayer, newEscapetarget)) continue;
 
                 done = GotoObj(newEscapetarget);
 
@@ -409,6 +410,8 @@ class Ai
 
             alwaysX = WorldMap.calculateRandomFloat() < 0.5;
             alwaysY = WorldMap.calculateRandomFloat() < 0.5;
+
+            if(ii > 2) checkIfDangerous = false;
 
             //trace('Escape $ii alwaysX: $alwaysX alwaysY $alwaysY');
         }
@@ -687,7 +690,7 @@ class Ai
             {
                 wanted.craftActor = actorObj;
                 wanted.craftTarget = targetObj;
-                objectsToSearch.push(wanted.wantedObjId);
+                objectsToSearch.unshift(wanted.wantedObjId);
 
                 //trace('Ai: craft: steps: ${wanted.steps} wanted: ${wanted.objId} actor: ${actorObj.description} target: ${targetObj.description} ' + trans.getDesciption());
             }
