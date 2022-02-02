@@ -2880,7 +2880,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
                 this.addHealthAndPrestige(-prestigeCost, false);
 
-                this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking child ${targetPlayer.name}!');                 
+                this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking a child ${targetPlayer.name}!');                 
             }
             else if(targetPlayer.isAlly(this))
             {
@@ -2902,6 +2902,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
                 this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking close relative ${targetPlayer.name}!');
             }
+            else if(targetPlayer.isFemale() && targetPlayer.isHoldingWeapon() == false)
+            {
+                prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForWomenWithoutWeapon;
+
+                prestigeCost = Math.ceil(prestigeCost);
+
+                this.addHealthAndPrestige(-prestigeCost, false);
+
+                this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking a women without weapon ${targetPlayer.name}!');
+            }
         }
         
         //trace('Wound: damage: $damage prestigeCost: $prestigeCost');
@@ -2916,6 +2926,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function DoDamage(targetPlayer:GlobalPlayerInstance, fromObj:ObjectHelper, attacker:GlobalPlayerInstance = null, distanceFactor:Float = 1, quadDistance:Float = 0) : Float
     {
+        // TODO give protection from hold objects like on horse or holding a weapon 
+
         var orgDamage = fromObj.objectData.damage * ServerSettings.WeaponDamageFactor;
         var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());
 

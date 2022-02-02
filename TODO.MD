@@ -99,9 +99,10 @@ Combat / Attacking
 - wounds do damage / exhaustion with time and can heal with time 
 - you do halve damage to ally 
 - males do X1.2 damage
-- you will loose prestige for attacking a child 
 - you will loose prestige for attacking a close relative
+- you will loose prestige for attacking a women without weapon
 - you will loose even more prestige for attacking an ally
+- you will loose even more prestige for attacking a child 
 
 Graves / Curses
 - Instead player curses, curses work now through graves without grave stone
