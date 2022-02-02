@@ -177,7 +177,7 @@ class TransitionImporter
         newObj.carftingSteps = steps;
         objects.push(newObj);
 
-        trace('Steps: $steps id: ${from.id} ${from.description} -->  ${newObj.id} ${newObj.description}');
+        //trace('Steps: $steps id: ${from.id} ${from.description} -->  ${newObj.id} ${newObj.description}');
     }
 
     public function setParentFoods()

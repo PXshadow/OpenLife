@@ -585,7 +585,7 @@ class MoveHelper
                     }*/
                     
                     
-                    trace('movement is trunc because of moving from bad biome to good biome or good biome to bad biome: ${newMovements.moves.length}');
+                    //trace('movement is trunc because of moving from bad biome to good biome or good biome to bad biome: ${newMovements.moves.length}');
 
                     newMovements.length += calculateLength(lastPos,move);
                     newMovements.moves.push(move);

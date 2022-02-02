@@ -229,7 +229,7 @@ class AiHelper
 
             var end = new Coordinate(px + RAD + tweakX, py + RAD + tweakY);
 
-            trace('goto: end $end');
+            //trace('goto: end $end');
 
             paths = path.createPath(start,end,MANHATTAN,true);
             if (paths != null) break;

@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.data.transition.TransitionImporter;
 import openlife.server.NamingHelper;
 import openlife.server.WorldMap;
 import openlife.server.GlobalPlayerInstance;
@@ -220,7 +221,7 @@ class Ai
             isHungry = true; // TODO workaround
         }*/
 
-        craftItem(292, 1);
+        craftItem(78, 1);
         
         //craftItem(58); // Thread
         //craftItem(74, 1, true); //Fire Bow Drill
@@ -401,7 +402,7 @@ class Ai
 
         if(itemToCraft.transActor == null)
         {
-            trace('AI: craft: ${itemToCraft.itemToCraft.description} did not find any item in search radius for crafting!');
+            trace('AI: craft: FAILED ${itemToCraft.itemToCraft.description} did not find any item in search radius for crafting!');
 
             // TODO give some helpt to find the needed Items
             return false;
@@ -559,7 +560,7 @@ class Ai
         while(objectsToSearch.length > 0)
         {
             count++;
-            if(count > 1000) return;
+            if(count > 30000) return;
             
             var wantedId = objectsToSearch.shift();
             //var wanted = ObjectData.getObjectData(wantedId);
@@ -573,7 +574,7 @@ class Ai
         }
 
         var obj = ObjectData.getObjectData(objToCraftId);
-        trace('AI: craft: $count ${Sys.time() - startTime} ${obj.description}');
+        trace('AI: craft: FINISHED $count ${Sys.time() - startTime} ${obj.description}');
     }
 
     private static function DoTransitionSearch(itemToCraft:IntemToCraft, wantedId:Int, objectsToSearch:Array<Int>, transitions:Array<TransitionData>) : Bool
@@ -628,10 +629,9 @@ class Ai
             {
                 wanted.craftActor = actorObj;
                 wanted.craftTarget = targetObj;
-                //wanted.craftSteps = wanted.steps;
                 objectsToSearch.push(wanted.wantedObjId);
 
-                trace('Ai: craft: steps: ${wanted.steps} wanted: ${wanted.objId} actor: ${actorObj.description} target: ${targetObj.description} ' + trans.getDesciption());
+                //trace('Ai: craft: steps: ${wanted.steps} wanted: ${wanted.objId} actor: ${actorObj.description} target: ${targetObj.description} ' + trans.getDesciption());
             }
 
             if(wantedId != objToCraftId) continue;       
@@ -639,7 +639,10 @@ class Ai
             itemToCraft.transActor = actorObj;
             itemToCraft.transTarget = targetObj; 
 
-            var steps = transitionsByObjectId[actorObj.id].steps;
+            var actorSteps = transitionsByObjectId[actorObj.id].steps;
+            var targetSteps = transitionsByObjectId[targetObj.id].steps;
+            var steps = actorSteps > targetSteps ? actorSteps : targetSteps;
+            var trans = TransitionImporter.GetTrans(actorObj, targetObj);
 
             //trace('Ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
             trace('Ai: craft DONE: steps: ${steps} bestActor: ${itemToCraft.transActor.description} target: ${itemToCraft.transTarget.description} ' + trans.getDesciption());
@@ -865,7 +868,7 @@ class Ai
 
         if(distance > 1)
         {
-            trace('AAI: ${myPlayer.id} goto food');
+            //trace('AAI: ${myPlayer.id} goto food');
             myPlayer.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
             return true;
         }
