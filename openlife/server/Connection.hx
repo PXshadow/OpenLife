@@ -244,6 +244,8 @@ class Connection
     {
         var player = this.player;
 
+        trace('TEST Naming sendNameToAll ${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}');
+
         for(c in Connection.getConnections())
         {
             this.send(ClientTag.NAME,['${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}']);
@@ -790,8 +792,30 @@ class Connection
         toConnection.send(FRAME);
     }
 
+    private static var lastSend:String = "";
+
     public function send(tag:ClientTag,data:Array<String>=null, isPlayerAction:Bool = true)
     {
+        /*
+        if(tag == PLAYER_UPDATE)
+        {
+            var strings = data[0].split(' ');
+            var playerId = Std.parseInt(strings[0]);
+            var player = GlobalPlayerInstance.AllPlayers[playerId];
+
+            for (c in connections)
+            {
+                var cp = c.player;
+                var xx = player.tx - cp.gx;
+                var yy = player.ty - cp.gy;
+                var text = 'M${playerId}x${xx}y${yy}';
+
+                trace('Location: $playerId x${player.tx}y${player.ty}');
+
+                //c.send(ClientTag.LOCATION_SAYS, ['${xx} ${yy} $text']);
+            }
+        }*/
+
         if(playerAccount != null && playerAccount.isAi)
         {
             try
@@ -882,6 +906,7 @@ class Connection
     public function sendGlobalMessage(message:String)
     {
         if(player.isAi()) return;
+        if(message.length < 1) return;
 
         message = message.toUpperCase();
         message  = StringTools.replace(message,' ', '_');

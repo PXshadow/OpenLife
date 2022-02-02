@@ -457,11 +457,15 @@ class TimeHelper
             if(Std.int(player.trueAge) % 3 == 0)
             {
                 var factor = ServerSettings.DisplayScoreFactor;
-                var textFromChildren = player.prestigeFromChildren > 0 ? ' From children ${player.prestigeFromChildren * factor}' : '';
-                var textFromFollowers = player.prestigeFromFollowers > 0 ? ' From followers ${player.prestigeFromFollowers * factor}' : '';
-                var message = 'You have gained ${player.prestigeFromEating * factor} prestige from YUMMY food!${textFromChildren}${textFromFollowers}';
-                trace('New Age: $message');
-                player.connection.sendGlobalMessage(message);
+                var textFromChildren = player.prestigeFromChildren > 0 ? 'You have gained ${player.prestigeFromChildren * factor} prestige from children!' : '';
+                var textFromFollowers = player.prestigeFromFollowers > 0 ? 'You have gained ${player.prestigeFromFollowers * factor} prestige from followers!' : '';
+                var textFromEating = player.prestigeFromEating > 0 ? 'You have gained ${player.prestigeFromEating * factor} prestige from YUMMY food!' : '';
+
+                //trace('New Age: $message');
+
+                player.connection.sendGlobalMessage(textFromChildren);
+                player.connection.sendGlobalMessage(textFromFollowers);
+                player.connection.sendGlobalMessage(textFromEating);
             }
 
             ScoreEntry.ProcessScoreEntry(player);
