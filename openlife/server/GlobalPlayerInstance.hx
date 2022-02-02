@@ -2275,6 +2275,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             text = 'Y';            
             count = Math.ceil(ServerSettings.YumBonus - countEaten);
+            count = Math.ceil(Math.min(5, count));
             for(i in 0...count) text += 'U';
             text += 'M!';
         }
@@ -2297,7 +2298,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(player.isAi()) return;
         if(player.heldObject == null || player.heldObject.objectData.foodValue <= 0) return;
         if(player.food_store > player.food_store_max - 1) return;
-        if(player.isHoldingYum() && player.heldObject.id != player.currentlyCraving) return;
+        if(player.heldObject.id == player.currentlyCraving) return;
 
         var bestfood = AiHelper.SearchBestFood(player);
         var displayBestFood = bestfood != null && (player.isHoldingYum() == false || bestfood.id == player.currentlyCraving);
