@@ -105,6 +105,8 @@ class ObjectData extends LineReader
     public var animalEscapeFactor:Float = 0.7; // chance an animal escapes 
 
     public var isBoat:Bool = false;
+    
+    public var carftingSteps:Int = -1;
 
     /**
      * Max clothing pieces
@@ -598,7 +600,7 @@ class ObjectData extends LineReader
             
             //index++;
             
-            //trace('${obj.description} $index');
+            //trace('Food: $index id: ${obj.id} ${obj.description}');
 
             foodObjects.push(obj);
         }

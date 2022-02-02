@@ -17,6 +17,9 @@ class TransitionImporter
     public var categories:Array<Category> = [];
     private var categoriesById:Map<Int, Category> = [];
 
+    private var allTransitionsByTargetMap:Map<Int, Array<TransitionData>>;
+    private var allTransitionsByActorMap:Map<Int, Array<TransitionData>>;
+
     // for reverse lookup of transitions
     private var transitionsByNewTargetMap:Map<Int, Array<TransitionData>>;
     private var transitionsByNewActorMap:Map<Int, Array<TransitionData>>;
@@ -48,6 +51,122 @@ class TransitionImporter
         TransitionImporter.transitionImporter.setParentFoods();
 
         ServerSettings.PatchTransitions(TransitionImporter.transitionImporter);
+
+        TransitionImporter.transitionImporter.calculateCraftingSteps();
+    }
+
+    public function calculateCraftingSteps()
+    {
+        // TODO time transitions with other ending
+
+        var todo = new Array<ObjectData>();
+        
+        var steps = 0;
+
+        var obj = ObjectData.getObjectData(0);
+        obj.carftingSteps = 0;
+        var obj = ObjectData.getObjectData(-1);
+        obj.carftingSteps = 0;
+        var obj = ObjectData.getObjectData(3962); // Loose Muddy Iron Vein
+        obj.carftingSteps = 0;
+        todo.push(obj);
+        //var obj = ObjectData.getObjectData(3962); // Loose Muddy Iron Vein
+        //obj.carftingSteps = 0;
+
+        for (obj in ObjectData.importedObjectData)
+        {
+            if(obj.isNatural() == false) continue;
+            
+            trace('Natural: id: ${obj.id} ${obj.description}');
+
+            obj.carftingSteps = 0;
+
+            todo.push(obj);
+        }
+
+        var todo2 = todo;
+        var done = 0;
+
+        while(todo2.length > 0)
+        {
+            done += todo2.length;
+            trace('Steps: $steps done: $done d: ${todo2.length}');
+
+            todo = todo2;
+            todo2 = new Array<ObjectData>();
+            steps += 1;
+
+            for (obj in todo)
+            {
+                var transitionsByActor = allTransitionsByActorMap[obj.id];
+                if(transitionsByActor == null) continue;
+
+                for(trans in transitionsByActor)
+                {
+                    var target = ObjectData.getObjectData(trans.targetID);
+
+                    if(target.carftingSteps < 0) continue;
+
+                    AddObject(todo2, obj, trans.newActorID, steps);
+                    AddObject(todo2, obj, trans.newTargetID, steps);
+                }
+            }
+            
+            for (obj in todo)
+            {
+                var transitionsByTarget = allTransitionsByTargetMap[obj.id];
+                if(transitionsByTarget == null) continue;
+
+                for(trans in transitionsByTarget)
+                {
+                    var actor = ObjectData.getObjectData(trans.actorID);
+
+                    if(actor.carftingSteps < 0) continue;
+
+                    AddObject(todo2, obj, trans.newActorID, steps);
+                    AddObject(todo2, obj, trans.newTargetID, steps);
+                }                
+            }
+        }
+    
+        trace('Steps: ALL Steps: $steps done: $done ');
+
+        var done = 0;
+        var notDone = 0;
+
+        for(food in ObjectData.foodObjects)
+        {
+            trace('Food: steps: ${food.carftingSteps} id: ${food.id} ${food.description}');
+
+            if(food.carftingSteps < 0) notDone++;
+            else done++;
+        }
+
+        trace('Steps: ALL Food: done: $done notDone: $notDone');
+
+        var done = 0;
+        var notDone = 0;
+
+        for(obj in ObjectData.importedObjectData)
+        {
+            trace('Obj: steps: ${obj.carftingSteps} id: ${obj.id} ${obj.description}');
+
+            if(obj.carftingSteps < 0) notDone++;
+            else done++;
+        }
+
+        trace('Steps: ALL Obj: done: $done notDone: $notDone');
+    }
+
+    private static function AddObject(objects:Array<ObjectData>, from:ObjectData, objId:Int, steps:Int)
+    {
+        var newObj = ObjectData.getObjectData(objId);
+        if(newObj.carftingSteps >= 0) return;
+
+        newObj.carftingSteps = steps;
+        objects.push(newObj);
+
+        trace('Steps: $steps id: ${from.id} ${from.description} -->  ${newObj.id} ${newObj.description}');
     }
 
     public function setParentFoods()
@@ -101,6 +220,9 @@ class TransitionImporter
     public function importTransitions()
     {        
         if(categories.length == 0) importCategories();
+
+        allTransitionsByActorMap = [];
+        allTransitionsByTargetMap = []; 
 
         transitionsByNewTargetMap = [];
         transitionsByNewActorMap = []; 
@@ -253,6 +375,9 @@ class TransitionImporter
         {
             this.transitions.push(transition);
             transitionsByTargetId[transition.targetID] = transition;
+
+            addTransitionToMap(allTransitionsByActorMap, transition, transition.actorID);
+            addTransitionToMap(allTransitionsByTargetMap, transition, transition.targetID);
             addTransitionByNewTarget(transition); 
             addTransitionByNewActor(transition);           
 
@@ -302,6 +427,21 @@ class TransitionImporter
         // TODO there are a lot of double transactions, like Oil Movement, Horse Stuff, Fence / Wall Alignment, Rose Seed
         trans.traceTransition('$addedBy WARNING DOUBLE 1!!');
         transition.traceTransition('$addedBy WARNING DOUBLE 2!!');
+    }
+
+    private function addTransitionToMap(map:Map<Int, Array<TransitionData>>, transition:TransitionData, key:Int)
+    {
+        var array = map[key];
+
+        if(array == null)
+        {
+            map[key] = new Array<TransitionData>();
+            array = map[key];
+        }
+
+        //if(transition.newActorID == 34) trace('add Trans: ' + transition.getDesciption(true));
+
+        array.push(transition);
     }
 
     private function addTransitionByNewTarget(transition:TransitionData)
