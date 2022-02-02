@@ -57,8 +57,8 @@ class TransitionImporter
 
     public function calculateCraftingSteps()
     {
-        // TODO time transitions with other ending
-
+        // TODO time transitions with other ending like Blooming Squash Plant // Ripe Pumpkin Plant
+        // TODO Perhaps a Pumpkin 
         var todo = new Array<ObjectData>();
         
         var steps = 0;
@@ -378,9 +378,9 @@ class TransitionImporter
 
             addTransitionToMap(allTransitionsByActorMap, transition, transition.actorID);
             addTransitionToMap(allTransitionsByTargetMap, transition, transition.targetID);
-            addTransitionByNewTarget(transition); 
-            addTransitionByNewActor(transition);           
-
+            addTransitionToMap(transitionsByNewActorMap, transition, transition.newActorID);
+            addTransitionToMap(transitionsByNewTargetMap, transition, transition.newTargetID);
+         
             transition.traceTransition(addedBy);
 
             //if(transition.reverseUseTarget) traceTransition(transition, "", "");
@@ -401,8 +401,10 @@ class TransitionImporter
             maxUseTransitionsByTargetId[transition.targetID] = transition;
 
             this.transitions.push(transition);
-            addTransitionByNewTarget(transition); 
-            addTransitionByNewActor(transition);
+            addTransitionToMap(allTransitionsByActorMap, transition, transition.actorID);
+            addTransitionToMap(allTransitionsByTargetMap, transition, transition.targetID);
+            addTransitionToMap(transitionsByNewActorMap, transition, transition.newActorID);
+            addTransitionToMap(transitionsByNewTargetMap, transition, transition.newTargetID);
 
             return;
         }
@@ -415,8 +417,10 @@ class TransitionImporter
             var maxUseTransitionsByTargetId = getTransitionMapByTargetId(transition.actorID, false, false, true);
 
             this.transitions.push(transition);
-            addTransitionByNewTarget(transition); 
-            addTransitionByNewActor(transition);
+            addTransitionToMap(allTransitionsByActorMap, transition, transition.actorID);
+            addTransitionToMap(allTransitionsByTargetMap, transition, transition.targetID);
+            addTransitionToMap(transitionsByNewActorMap, transition, transition.newActorID);
+            addTransitionToMap(transitionsByNewTargetMap, transition, transition.newTargetID);
 
             transitionsByTargetId[transition.targetID] = transition;
             maxUseTransitionsByTargetId[trans.targetID] = trans;
@@ -444,35 +448,6 @@ class TransitionImporter
         array.push(transition);
     }
 
-    private function addTransitionByNewTarget(transition:TransitionData)
-    {
-        var transitionsByNewTarget = transitionsByNewTargetMap[transition.newTargetID];
-
-        if(transitionsByNewTarget == null)
-        {
-            transitionsByNewTargetMap[transition.newTargetID] = new Array<TransitionData>();
-            transitionsByNewTarget = transitionsByNewTargetMap[transition.newTargetID];
-        }
-
-        //if(transition.newActorID == 34) trace('add Trans: ' + transition.getDesciption(true));
-
-        transitionsByNewTarget.push(transition);
-    }
-
-    private function addTransitionByNewActor(transition:TransitionData)
-    {
-        var transitions = transitionsByNewActorMap[transition.newActorID];
-
-        if(transitions == null)
-        {
-            transitionsByNewActorMap[transition.newActorID] = new Array<TransitionData>();
-            transitions = transitionsByNewActorMap[transition.newActorID];
-        }
-
-        //if(transition.newActorID == 34) trace('add Trans: ' + transition.getDesciption(true));
-
-        transitions.push(transition);
-    }
 
     
 

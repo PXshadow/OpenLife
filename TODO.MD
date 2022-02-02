@@ -246,10 +246,12 @@ High priority:
 - AI deadly animal fight
 - AI player fight
 - AI basic clothing
-- Ai using containers
+- Ai using containers needed also for player YUM display
 - Ai ongoing longer distant movement
 - AI tests with >20 AIs
 - AI Stoneage
+
+- Time transitions with different endings like: Perhaps a Pumpkin
 
 - COMBAT ill from moskitos
 - COMBAT make smal wounds invisible if object held and allow to work (for example for poisone from snakes)
