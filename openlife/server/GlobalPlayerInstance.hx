@@ -3607,7 +3607,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 father.father.prestigeFromChildren += tmpCount / 4;
             }
         }
+
+        // prestige for children
+        for(child in myChildren)
+        {
+            child.yum_multiplier += tmpCount / 4;
+            child.prestigeFromChildren += tmpCount / 4;
+        }
         
+        // prestige for siblings
         if(mother != null && mother.myChildren.length > 0)
         {
             var sibling = myChildren[WorldMap.calculateRandomInt(myChildren.length -1)];

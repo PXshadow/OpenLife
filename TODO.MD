@@ -48,6 +48,7 @@ SCORE / PRESTIGE:
 - ON death your new score  is 9/10 of the old score plus 1/10 of this life score
 - You have a seperate score for male and female lives. Your total score is one halve each.
 - You get extra prestige if you eat / feed YUM or if a follower / (grand) child or sibling gets some prestige
+- You get prestige if your mother gets some prestige
 - As mother you get prestige for your offspring up to 10 generations even after your death
 - You get only prestige for your ancestors if your body from that life is burried and the grave still exists
 - You loose score for a cursed grave or if no one burried your bones before they decay
