@@ -2871,7 +2871,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         var prestigeCost:Float = 0;
 
-        if(targetPlayer.killMode == false)
+        if(targetPlayer.isHoldingWeapon() == false)
         {
             // TODO count as ally if exile happened not long ago ???
             // TODO auto exile if seen by leader ???
@@ -2905,7 +2905,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
                 this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking close relative ${targetPlayer.name}!');
             }
-            else if(targetPlayer.isFemale() && targetPlayer.isHoldingWeapon() == false)
+            else if(targetPlayer.isFemale())
             {
                 prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForWomenWithoutWeapon;
 

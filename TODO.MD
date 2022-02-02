@@ -100,10 +100,10 @@ Combat / Attacking
 - wounds do damage / exhaustion with time and can heal with time 
 - you do halve damage to ally 
 - males do X1.2 damage
-- you will loose prestige for attacking a close relative
+- you will loose prestige for attacking a close relative without weapon
 - you will loose prestige for attacking a women without weapon
-- you will loose even more prestige for attacking an ally
-- you will loose even more prestige for attacking a child 
+- you will loose even more prestige for attacking an ally without weapon
+- you will loose even more prestige for attacking a child without weapon
 
 Graves / Curses
 - Instead player curses, curses work now through graves without grave stone
@@ -232,12 +232,14 @@ TODO Features:
 more up in the list means more likely to be implemented first but no gurantee!
 
 - fathers
-- better fences
+- better fences / allow to climb over fences, but get wounded / make destroyable if not protected by close gate)
 - reconnection after server shutdown
 - special stuff like hercules / snake master / super fast ager 
 - job boni
 - bridges
-- horses that follow owner
+- horses that follow owner / horse ownership
+- angry / bloody weapon if killing sheeps / animals
+- animals grouping and hunting in winter
 - better dogs
 - advanced AI / AI villages
 - princess / princess
@@ -246,6 +248,7 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
+- AI better craftig
 - AI better escape that does not get stuck
 - AI deadly animal fight
 - AI player fight
