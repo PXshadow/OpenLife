@@ -92,6 +92,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private var myMother:GlobalPlayerInstance;
     private var myFather:GlobalPlayerInstance;
+    private var myChildren = new Array<GlobalPlayerInstance>();
 
     // make sure to set these null is player is deleted so that garbage collector can clean up
     public var followPlayer:GlobalPlayerInstance;
@@ -168,6 +169,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // need grandmother to inherit eaten food counts to grantkids
         if(this.myMother != null) this.myMother.myMother = null;
         if(this.myFather != null) this.myFather.myFather = null;
+
+        this.myChildren = new Array<GlobalPlayerInstance>();
 
         this.followPlayer = null;
         this.heldPlayer = null;
@@ -324,10 +327,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(this.mother != null && this.age < ServerSettings.MinAgeToEat)
         {          
+            myChildren.push(this);
+
             if(this.mother.isAi() == false) mother.connection.sendMapLocation(this,'BABY', 'baby');
             else mother.connection.serverAi.newChild(this);
-
-            // TODO inform AI about new player
         }
 
         /*if(mother != null && this.age < ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers)
@@ -3604,6 +3607,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 father.father.prestigeFromChildren += tmpCount / 4;
             }
         }
+        
+        if(mother != null && mother.myChildren.length > 0)
+        {
+            var sibling = myChildren[WorldMap.calculateRandomInt(myChildren.length -1)];
+            sibling.yum_multiplier += tmpCount / 2;
+            sibling.prestigeFromChildren += tmpCount / 2;
+        }            
 
         if(this.getTopLeader() == null) return;
 
