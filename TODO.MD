@@ -124,6 +124,7 @@ Heat / Temperature:
 Exhaustion:
 - reduces food store max untill recovered
 - recovering exhaustion increases food need 
+- males recover exhaustion X1.2
 - bad temperature generates exhaustion and reduces exhaustion reduction
 - half of hungry work becomes now exhaustion
 - exhaustion in not loved biome (more in swamp or river if not on floor or bridge)

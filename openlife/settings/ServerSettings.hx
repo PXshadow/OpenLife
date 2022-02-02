@@ -154,6 +154,7 @@ class ServerSettings
     public static var HungryWorkCost = 10;
     public static var HungryWorkToolCostFactor:Float = 1;
     public static var ExhaustionHealing:Float = 1; 
+    public static var ExhaustionHealingForMaleFaktor:Float = 1.2; 
 
     // for animal movement
     public static var chancePreferredBiome = 0.8; // Chance that the animal ignors the chosen target if its not from his original biome

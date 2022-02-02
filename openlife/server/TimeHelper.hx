@@ -502,7 +502,9 @@ class TimeHelper
         // take care of exhaustion
         if(player.exhaustion > -player.food_store_max && player.food_store > 0)
         {
-            player.exhaustion -= healing * ServerSettings.ExhaustionHealing;
+            var healingFaktor = player.isMale() ? ServerSettings.ExhaustionHealingForMaleFaktor : 1;
+
+            player.exhaustion -= healing * ServerSettings.ExhaustionHealing * healingFaktor;
 
             foodDecay += originalFoodDecay * ServerSettings.ExhaustionHealing;
 
