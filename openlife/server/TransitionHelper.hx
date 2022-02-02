@@ -119,13 +119,15 @@ class TransitionHelper{
             return false;
         }
 
-        var allyStrengh = player.calculateEnemyVsAllyStrengthFactor();
-        
-        if(allyStrengh < 0.8 && helper.target.id != 0) // allow if target is empty
+        if(ServerSettings.AllyStrenghTooLowForPickup > 0)
         {
-            player.say('Too many hostile people...', true);
-            helper.sendUpdateToClient();
-            return false;
+            var allyStrengh = player.calculateEnemyVsAllyStrengthFactor();
+            if(allyStrengh < ServerSettings.AllyStrenghTooLowForPickup && helper.target.id != 0) // allow if target is empty
+            {
+                player.say('Too many hostile people...', true);
+                helper.sendUpdateToClient();
+                return false;
+            }
         }
 
         if(player.isMyGrave(helper.target))

@@ -199,6 +199,7 @@ class ServerSettings
     public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.25; // For damaging children, mother, father, brother sister  
     public static var PrestigeCostPerDamageForAlly:Float = 0.5; // For damaging ally  
     public static var PrestigeCostPerDamageForChild:Float = 2;
+    public static var AllyStrenghTooLowForPickup:Float = 0; // 0.8
 
     // AI
     public static var NumberOfAis:Int = 3;
