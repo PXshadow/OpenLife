@@ -1971,7 +1971,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 newHasEatenCount = hasEatenMap[newObjData.id];
                 newHasEatenCount--;
 
-                trace('IncreaseFoodValue; new random craving: ${newObjData.description} ${newObjData.id} lastCravingIndex: $lastCravingIndex index: $index  newHasEatenCount: ${-newHasEatenCount}');
+                trace('New random craving: ${newObjData.description} ${newObjData.id} lastCravingIndex: $lastCravingIndex index: $index  newHasEatenCount: ${-newHasEatenCount}');
 
                 lastCravingIndex = index;
                 currentlyCraving = newObjData.id;

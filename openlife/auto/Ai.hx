@@ -198,26 +198,37 @@ class Ai
         if(myPlayer.isMoving()) return;
 
         //if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
-        if(itemToCraftId == itemToCraft.itemToCraft.parentId && itemToCraft.countDone >= itemToCraft.count) return;
+        if(itemToCraftId == itemToCraft.itemToCraft.parentId && itemToCraft.countDone >= itemToCraft.count)
+        {
+            var cravingId = myPlayer.getCraving();
+            if(cravingId > 0) craftItem(cravingId);
+            return;
+        }
         if(itemToCraftId <= 0) itemToCraftId = itemToCraft.itemToCraft.parentId;
 
         //trace('AI: itemToCraftId: $itemToCraftId ${itemToCraft.itemToCraft.parentId}' );
 
         if(itemToCraftId > 0)
         {
-            craftItem(itemToCraftId);
+            if(craftItem(itemToCraftId)) return;
+            time += 4; // TODO change
         }
-        else
-        {
-            //craftItem(58); // Thread
-            //craftItem(74, 1, true); //Fire Bow Drill
-            craftItem(78, 1, true); // Smoldering Tinder 
-            //craftItem(808); // wild onion
-            //craftItem(292, 1, true); // 292 basket
-            //craftItem(224); // Harvested Wheat
-            //craftItem(124); // Reed Bundle
-            //craftItem(225); //Wheat Sheaf
+    
+        var cravingId = myPlayer.getCraving();
+        if(cravingId > 0) craftItem(cravingId);
+        else{
+            isHungry = true; // TODO workaround
         }
+        
+        //craftItem(58); // Thread
+        //craftItem(74, 1, true); //Fire Bow Drill
+        //craftItem(78, 1, true); // Smoldering Tinder 
+        //craftItem(808); // wild onion
+        //craftItem(292, 1, true); // 292 basket
+        //craftItem(224); // Harvested Wheat
+        //craftItem(124); // Reed Bundle
+        //craftItem(225); //Wheat Sheaf
+        
         //craftItem(34,1); // 34 sharpstone
         //craftItem(224); // Harvested Wheat
         //craftItem(58); // Thread
@@ -277,7 +288,7 @@ class Ai
                 myPlayer.say('You are $newName');
             }
 
-            if(heldPlayer.age > ServerSettings.MinMovementAgeInSec * 60 && heldPlayer.food_store > Math.min(5, heldPlayer.food_store_max - 0.2))
+            if(heldPlayer.age * 60 > ServerSettings.MinMovementAgeInSec && heldPlayer.food_store > Math.min(5, heldPlayer.food_store_max - 0.2))
             {
                 var done = myPlayer.dropPlayer();
 
@@ -299,7 +310,7 @@ class Ai
         if(child == null) return false;
 
         var childFollowPlayer = child.getFollowPlayer();
-        if(childFollowPlayer.isFertile() == false)
+        if(childFollowPlayer == null || childFollowPlayer.isFertile() == false)
         {
             playerToFollow = myPlayer;
         }
@@ -380,7 +391,8 @@ class Ai
             itemToCraft.countDone = 0;
             itemToCraft.countTransitionsDone = 0;
             itemToCraft.transitionsByObjectId = myPlayer.SearchTransitions(objId, ignoreHighTech); 
-            //itemToCraft.notReachableObjects = new Map<Int,Int>();
+
+            trace('AI: new item to craft: ${itemToCraft.itemToCraft.description}!');
         }
         
         searchBestObjectForCrafting(itemToCraft);
@@ -388,6 +400,8 @@ class Ai
         if(itemToCraft.transActor == null)
         {
             trace('AI: craft: ${itemToCraft.itemToCraft.description} did not find any item in search radius for crafting!');
+
+            // TODO give some helpt to find the needed Items
             return false;
         }
 
@@ -398,7 +412,6 @@ class Ai
 
             useTarget = itemToCraft.transTarget; 
             itemToCraft.transActor = null; // actor is allready in the hand
-
         }
         else
         {
@@ -413,7 +426,6 @@ class Ai
                     return true;
             }
         }
-        
         
         return true;
     }
@@ -442,7 +454,7 @@ class Ai
         {
             radius += ServerSettings.AiMaxSearchIncrement;
 
-            trace('AI search radius: $radius');
+            //trace('AI search radius: $radius');
 
             // reset objects so that it can be filled again
             itemToCraft.clearTransitionsByObjectId();   
@@ -637,10 +649,10 @@ class Ai
 
         if(myPlayer.CalculateDistanceToPlayer(playerToFollow) > maxDistance)
         {
-            trace('AAI: ${myPlayer.id} goto player');
+            //trace('AAI: ${myPlayer.id} age: ${myPlayer.age} goto player');
 
             myPlayer.Goto(playerToFollow.tx + 1 - myPlayer.gx, playerToFollow.ty - myPlayer.gy);
-            myPlayer.say('${playerToFollow.name}');
+            //myPlayer.say('${playerToFollow.name}');
             return true;
         }
 
@@ -684,8 +696,13 @@ class Ai
     // returns true if in process of dropping item
     private function isDropingItem() : Bool
     {
-        if(dropTarget == null) return false; 
-        if(myPlayer.isMoving()) return true;
+        if(dropTarget == null) return false;
+        if(myPlayer.heldObject.id == 0)
+        {
+            dropTarget = null;
+            return false;
+        } 
+        if(myPlayer.isMoving()) return true;        
 
         var distance = myPlayer.CalculateDistanceToObject(dropTarget);
         //var myPlayer = myPlayer.getPlayerInstance();
@@ -697,7 +714,7 @@ class Ai
         }
         else
         {
-            trace('AAI: ${myPlayer.id} drop');
+            trace('AAI: ${myPlayer.id} drop ${myPlayer.heldObject.description}');
 
             myPlayer.drop(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
             
@@ -805,12 +822,13 @@ class Ai
         }
         else
         {
-            isHungry = player.food_store < Math.min(3, player.food_store_max * 0.5);
+            isHungry = player.food_store < Math.min(2.5, player.food_store_max * 0.5);
         }
 
         if(isHungry && foodTarget == null) searchFoodAndEat();
 
-        myPlayer.say('F ${Math.round(myPlayer.getPlayerInstance().food_store)}');
+        // myPlayer.say('F ${Math.round(myPlayer.getPlayerInstance().food_store)}'); // for debugging
+        if(isHungry && myPlayer.age < ServerSettings.MaxChildAgeForBreastFeeding) myPlayer.say('F');
 
         //trace('AAI: ${myPlayer.id} F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');
         

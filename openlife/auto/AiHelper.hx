@@ -351,7 +351,7 @@ class AiHelper
 
             for(trans in transitions)
             {                
-                if(trans.actorID == -1) continue; // TODO time
+                //if(trans.actorID == -1) continue; // TODO time
                 if(trans.targetID == -1) continue; // TODO -1 target
 
                 // ignore high tech stuff if most likely not needed

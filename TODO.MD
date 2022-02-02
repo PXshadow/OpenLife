@@ -242,6 +242,7 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
+- AI better escape that does not get stuck
 - AI deadly animal fight
 - AI player fight
 - AI basic clothing
@@ -252,8 +253,6 @@ High priority:
 
 - COMBAT ill from moskitos
 - COMBAT make smal wounds invisible if object held and allow to work (for example for poisone from snakes)
-
-- YUM display nearest yum if holding meh
 
 - BIRTH spawn eves on different locations
 - BIRTH fathers
