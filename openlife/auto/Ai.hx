@@ -410,7 +410,7 @@ class Ai
             alwaysX = WorldMap.calculateRandomFloat() < 0.5;
             alwaysY = WorldMap.calculateRandomFloat() < 0.5;
 
-            trace('Escape $ii alwaysX: $alwaysX alwaysY $alwaysY');
+            //trace('Escape $ii alwaysX: $alwaysX alwaysY $alwaysY');
         }
 
         if(useTarget != null || foodTarget != null || escapeTarget != null)

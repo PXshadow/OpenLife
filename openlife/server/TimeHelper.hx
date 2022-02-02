@@ -590,7 +590,7 @@ class TimeHelper
             if(ServerSettings.useOnePlayerMutex == false) heldPlayer.mutex.release();
         }
 
-        foodDecay *= player.isEveOrAdam() ? ServerSettings.EveFoodUseFactor : 1;
+        foodDecay *= player.isEveOrAdam() && player.isWounded() == false ? ServerSettings.EveFoodUseFactor : 1;
 
         if(player.yum_bonus > 0)
         {
