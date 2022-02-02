@@ -98,6 +98,7 @@ Combat / Attacking
 - You can only shoot with bow if not too close to target
 - wounds do damage / exhaustion with time and can heal with time 
 - you do halve damage to ally 
+- males do X1.2 damage
 - you will loose prestige for attacking a child 
 - you will loose prestige for attacking a close relative
 - you will loose even more prestige for attacking an ally
@@ -251,7 +252,7 @@ High priority:
 - AI tests with >20 AIs
 - AI Stoneage
 
-- Time transitions with different endings like: Perhaps a Pumpkin
+- TIME transitions with different endings like: Perhaps a Pumpkin
 
 - COMBAT ill from moskitos
 - COMBAT make smal wounds invisible if object held and allow to work (for example for poisone from snakes)

@@ -2930,6 +2930,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             var isRightClassForWeapon = weaponPrestigeClass > 0 && weaponPrestigeClass <= attackerPrestigeClass;
             trace('PRESTIGE: isRightClassForWeapon: $isRightClassForWeapon');
 
+            damage *= attacker.isMale() ? ServerSettings.MaleDamageFactor : 1;
             damage *= allyFactor;
             damage *= distanceFactor;    
             damage *= isRightClassForWeapon ? 1.2 : 1; 
