@@ -1699,9 +1699,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }
 
+        var foodEaten:Float = ServerSettings.FoodReductionPerEating;
+
         if(isSuperMeh == false)
         {
-            playerTo.hasEatenMap[heldObjData.id] += ServerSettings.FoodReductionPerEating;
+            if(countEaten < 0)
+            {
+                foodEaten = Math.max(2, -countEaten / 2); // eat more if it its a craving
+                playerTo.hasEatenMap[heldObjData.id] += foodEaten;
+            }
+
+            playerTo.hasEatenMap[heldObjData.id] += foodEaten;
             playerTo.doIncreaseFoodValue(heldObjData.id);
             //playerTo.say('FC ${playerTo.hasEatenMap[heldObjData.id]}');
         }
@@ -1709,10 +1717,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // eating YUM increases prestige / score while eating MEH reduces it
         if(isHoldingYum)
         {
-            if(isCravingEatenObject)
+            if(countEaten < 0)
             {
-                playerTo.addHealthAndPrestige(2);
-                if(playerFrom != playerTo) playerFrom.addHealthAndPrestige(0.4);
+                var gainedPrestige = isCravingEatenObject ? foodEaten + 1 : foodEaten;
+                playerTo.addHealthAndPrestige(gainedPrestige);
+                if(playerFrom != playerTo) playerFrom.addHealthAndPrestige(gainedPrestige * 0.2);
             }
             else
             {
@@ -3402,6 +3411,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             trace('Close connection');
 
             player.connection.close();
+        }
+        else if(text.indexOf('!FOOD') != -1) 
+        {
+            player.food_store -= 5;
+            player.sendFoodUpdate(false);
         }
     }
 
