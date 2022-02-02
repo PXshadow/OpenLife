@@ -224,7 +224,7 @@ Food - Cravings:
 Animals:
 - Animals can multiply and die
 - Animals can leave their biome, but prefare to stay in own biome
-- Stuff like trees and rabit holes wont block animal movement // TODO also for player needs client support
+- Stuff like trees and rabit holes wont block animal movement // TODO also for player / needs client support
 - horses are the ultimative devourers you can eat anything from horse!
 - Animals have more hit points so a shot / hit may or may not kill them
 
@@ -248,7 +248,6 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI better craftig
 - AI better escape that does not get stuck
 - AI deadly animal fight
 - AI player fight

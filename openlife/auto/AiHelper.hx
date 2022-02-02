@@ -588,6 +588,12 @@ class TransitionForObject
     public var secondObject:ObjectHelper; // in case you need two object like using two milkeed
     public var secondObjectDistance:Float;
 
+    public var craftActor:Null<ObjectHelper> = null;
+    public var craftTarget:Null<ObjectHelper> = null;
+
+    public var isDone = false;
+    //public var craftSteps:Int;
+
     public function new(objId:Int, steps:Int, wantedObjId:Int, transition:TransitionData) 
     {
         this.objId = objId;
