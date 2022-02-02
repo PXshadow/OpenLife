@@ -216,7 +216,7 @@ class MoveHelper
             p.isCursed = false;
         }
 
-        if(p.getClosePlayer() != null)
+        if(p.getClosePlayer() != null && p.angryTime < 0)
         {
             //trace('SPEED HOSTLE NEAR');
             speed *= ServerSettings.CloseEnemyWithWeaponSpeedFactor;
