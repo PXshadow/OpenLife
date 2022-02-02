@@ -248,7 +248,6 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI better escape that does not get stuck
 - AI deadly animal fight
 - AI player fight
 - AI basic clothing

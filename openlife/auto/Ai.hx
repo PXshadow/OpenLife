@@ -26,6 +26,7 @@ class Ai
 
     var time:Float = 1;
 
+    var escapeTarget:ObjectHelper = null; 
     var foodTarget:ObjectHelper = null; 
     var dropTarget:ObjectHelper = null;
     var useTarget:ObjectHelper = null;
@@ -337,36 +338,76 @@ class Ai
         return true;
     }
 
+    private function GotoObj(obj:ObjectHelper)
+    {
+        if(isObjectNotReachable(obj.tx, obj.ty)) return false;
+
+        var done = myPlayer.Goto(obj.tx - myPlayer.gx, obj.ty - myPlayer.gy);
+
+        // TODO obj not reachable or bug in pathing?
+        if(done) return true;
+
+        trace('AI: GOTO failed! Ignore ${obj.tx} ${obj.ty} '); 
+        this.addNotReachableObject(obj);
+
+        escapeTarget = null;
+        foodTarget = null;
+        useTarget = null;
+        itemToCraft.transActor = null;
+        itemToCraft.transTarget = null;
+        
+        return false;
+    }
+
     private function escape(animal:ObjectHelper, deadlyPlayer:GlobalPlayerInstance)
     {
         if(animal == null && deadlyPlayer == null) return false;
 
         var player = myPlayer.getPlayerInstance();
-
+        var escapeDist = 3;
         var distAnimal = animal == null ? 999999 : AiHelper.CalculateDistanceToObject(myPlayer, animal);
         var distPlayer = deadlyPlayer == null ? 999999 : AiHelper.CalculateDistanceToPlayer(myPlayer, deadlyPlayer);
         var escapePlayer = distAnimal > distPlayer;
         var description = escapePlayer ? deadlyPlayer.name : animal.description;
         var escapeTx = escapePlayer ? deadlyPlayer.tx : animal.tx;
         var escapeTy = escapePlayer ? deadlyPlayer.ty : animal.ty;
+        var newEscapetarget = new ObjectHelper(null, 0);
 
         myPlayer.say('Escape ${description}!');
         trace('AAI: ${myPlayer.id} escape!');
         
-        var tx = escapeTx > player.tx ?  player.tx - 3 : player.tx + 3;
-        var ty = escapeTy > player.ty ?  player.ty - 3 : player.ty + 3;
+        for(i in 0...10)
+        {
+            newEscapetarget.tx = escapeTx > player.tx ?  player.tx - escapeDist : player.tx + escapeDist;
+            newEscapetarget.ty = escapeTy > player.ty ?  player.ty - escapeDist : player.ty + escapeDist;
 
-        myPlayer.Goto(tx - player.gx, ty - player.gy);
+            var randX = WorldMap.calculateRandomInt(2 + i);
+            var randY = WorldMap.calculateRandomInt(2 + i);
+            randX = escapeTx > player.tx ? -randX : randX;
+            randY = escapeTy > player.ty ? -randY : randY;
 
-        if(useTarget != null || foodTarget != null)
+            newEscapetarget.tx += randX;
+            newEscapetarget.ty += randY;
+
+            if(AiHelper.IsDangerous(myPlayer, newEscapetarget)) continue;
+
+            var done = GotoObj(newEscapetarget);
+
+            if(done) break;
+        }
+
+        if(useTarget != null || foodTarget != null || escapeTarget != null)
         {
             addObjectWithHostilePath(useTarget);
             addObjectWithHostilePath(foodTarget);
+            addObjectWithHostilePath(escapeTarget);
             useTarget = null;
             foodTarget = null;
             itemToCraft.transActor = null;
             itemToCraft.transTarget = null;
         }
+
+        escapeTarget = newEscapetarget;
 
         return true;
     }
@@ -1051,7 +1092,8 @@ class Ai
     public function addNotReachableObject(obj:ObjectHelper)
     {
         var index = WorldMap.world.index(obj.tx, obj.ty);
-        notReachableObjects[index] = 120; // block for 120 sec
+        if(notReachableObjects.exists(index)) return;
+        notReachableObjects[index] = 25; // block for 25 sec
     }
 
     public function isObjectNotReachable(tx:Int, ty:Int) : Bool
