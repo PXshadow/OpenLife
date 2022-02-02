@@ -53,6 +53,37 @@ class TransitionImporter
         ServerSettings.PatchTransitions(TransitionImporter.transitionImporter);
 
         TransitionImporter.transitionImporter.calculateCraftingSteps();
+        TransitionImporter.SortFood();        
+    }
+
+    public static function SortFood()
+    {
+        //var players = [for(p in AllPlayers) p];
+
+        //if(players.length < 2) return PrestigeClass.Commoner;
+
+        var foods = ObjectData.foodObjects;
+
+        foods.sort(function(a, b) {
+            if(b.carftingSteps < 0) return -1; 
+            if(a.carftingSteps < 0) return 1; 
+            if(a.carftingSteps < b.carftingSteps) return -1;
+            else if(a.carftingSteps > b.carftingSteps) return 1;
+            else return 0;
+        });
+
+        var done = 0;
+        var notDone = 0;
+
+        for(food in ObjectData.foodObjects)
+        {
+            trace('Food: steps: ${food.carftingSteps} id: ${food.id} ${food.description}');
+
+            if(food.carftingSteps < 0) notDone++;
+            else done++;
+        }
+
+        trace('Steps: ALL Food: done: $done notDone: $notDone');
     }
 
     public function calculateCraftingSteps()
@@ -70,14 +101,12 @@ class TransitionImporter
         var obj = ObjectData.getObjectData(3962); // Loose Muddy Iron Vein
         obj.carftingSteps = 0;
         todo.push(obj);
-        //var obj = ObjectData.getObjectData(3962); // Loose Muddy Iron Vein
-        //obj.carftingSteps = 0;
 
         for (obj in ObjectData.importedObjectData)
         {
             if(obj.isNatural() == false) continue;
             
-            trace('Natural: id: ${obj.id} ${obj.description}');
+            //trace('Natural: id: ${obj.id} ${obj.description}');
 
             obj.carftingSteps = 0;
 
@@ -134,22 +163,9 @@ class TransitionImporter
         var done = 0;
         var notDone = 0;
 
-        for(food in ObjectData.foodObjects)
-        {
-            trace('Food: steps: ${food.carftingSteps} id: ${food.id} ${food.description}');
-
-            if(food.carftingSteps < 0) notDone++;
-            else done++;
-        }
-
-        trace('Steps: ALL Food: done: $done notDone: $notDone');
-
-        var done = 0;
-        var notDone = 0;
-
         for(obj in ObjectData.importedObjectData)
         {
-            trace('Obj: steps: ${obj.carftingSteps} id: ${obj.id} ${obj.description}');
+            //trace('Obj: steps: ${obj.carftingSteps} id: ${obj.id} ${obj.description}');
 
             if(obj.carftingSteps < 0) notDone++;
             else done++;
