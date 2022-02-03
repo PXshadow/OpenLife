@@ -595,6 +595,8 @@ class Ai
         if(player.heldObject.parentId == itemToCraft.transActor.parentId)
         {
             trace('AI: craft Actor is held already ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
+
+            if(itemToCraft.transTarget.name == null) trace('AI: craft WARNING id: ${itemToCraft.transTarget} transTarget.name == null!');
             myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
 
             useTarget = itemToCraft.transTarget; 
@@ -994,8 +996,10 @@ class Ai
         if(myPlayer.CalculateDistanceToPlayer(playerToFollow) > maxDistance)
         {
             //trace('AAI: ${myPlayer.id} age: ${myPlayer.age} goto player');
+            var randX = WorldMap.calculateRandomInt(4) - 2;
+            var randY = WorldMap.calculateRandomInt(4) - 2;
 
-            myPlayer.Goto(playerToFollow.tx + 1 - myPlayer.gx, playerToFollow.ty - myPlayer.gy);
+            myPlayer.Goto(playerToFollow.tx + randX - myPlayer.gx, playerToFollow.ty + randY - myPlayer.gy);
             //myPlayer.say('${playerToFollow.name}');
             return true;
         }
