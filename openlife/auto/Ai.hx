@@ -741,7 +741,7 @@ class Ai
 
         var objectsToSearch = new Array<Int>();
         var startTime = Sys.time();
-        var count = 0;
+        var count = 1;
 
         objectsToSearch.push(objToCraftId);
         transitionsByObjectId[0] = new TransitionForObject(0,0,0,null);
@@ -752,14 +752,23 @@ class Ai
         transitionsByObjectId[0].isDone = true;
         transitionsByObjectId[-1].isDone = true;
 
+        var objToCraft = ObjectData.getObjectData(objToCraftId);
+
         while(objectsToSearch.length > 0)
         {
-            count++;
             if(count > 30000) return;
             
             var wantedId = objectsToSearch.shift();
-            //var wanted = ObjectData.getObjectData(wantedId);
+            var wanted = ObjectData.getObjectData(wantedId);
             //trace('Ai: craft: count: $count todo: ${objectsToSearch.length} wanted: ${wanted.description}');
+            //var obj = transitionsByObjectId[wantedId];
+            //var desc = obj == null ? 'NA' : ObjectData.getObjectData(obj.wantedObjId).name;            
+
+            if(wanted.carftingSteps < 0) continue; // TODO should not be < 0 if all transitions work
+            //if(wanted.carftingSteps > objToCraft.carftingSteps + 5 || wanted.carftingSteps < 0) continue;
+            //trace('Ai: craft: count: $count todo: ${objectsToSearch.length} wanted: ${wanted.description} --> $desc steps: ${wanted.carftingSteps} > ${objToCraft.carftingSteps}');
+
+            count++;
 
             var transitions = world.getTransitionByNewActor(wantedId);
             if(DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions)) break;
@@ -786,9 +795,12 @@ class Ai
 
             var actor = transitionsByObjectId[trans.actorID];
             var target = transitionsByObjectId[trans.targetID];
+
+            if(actor == null || target == null) continue;
+
             // TODO should not be null must be bug in tansitions: Basket of Pig Bones + TIME  -->  Basket + Pig Bones#dumped 
-            if(actor == null) transitionsByObjectId[trans.actorID] = new TransitionForObject(trans.actorID,0,0,null); 
-            if(target == null) transitionsByObjectId[trans.targetID] = new TransitionForObject(trans.targetID,0,0,null); 
+            //if(actor == null) transitionsByObjectId[trans.actorID] = new TransitionForObject(trans.actorID,0,0,null); 
+            //if(target == null) transitionsByObjectId[trans.targetID] = new TransitionForObject(trans.targetID,0,0,null); 
 
             var actor = transitionsByObjectId[trans.actorID];
             var target = transitionsByObjectId[trans.targetID];
@@ -827,7 +839,7 @@ class Ai
             {
                 wanted.craftActor = actorObj;
                 wanted.craftTarget = targetObj;
-                objectsToSearch.unshift(wanted.wantedObjId);
+                if(wanted.wantedObjId > 0) objectsToSearch.unshift(wanted.wantedObjId);
 
                 //trace('Ai: craft: steps: ${wanted.steps} wanted: ${wanted.objId} actor: ${actorObj.description} target: ${targetObj.description} ' + trans.getDesciption());
             }
@@ -1179,8 +1191,8 @@ class Ai
     
         if(distance > 1)
         {
-            trace('AAI: ${myPlayer.id} goto useItem ${useTarget.name}');
             var done = myPlayer.Goto(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
+            trace('AAI: ${myPlayer.id} $done goto useItem ${useTarget.name}');
 
             myPlayer.say('Goto ${useTarget.name} for use!');
 

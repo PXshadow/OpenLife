@@ -3077,11 +3077,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // TODO bloody weapon
         if(attacker == null && targetPlayer.isHoldingMeleeWeapon())
         {
-            fromObj.hits += isRightClassForWeapon ? 1 : 0.5;
+            fromObj.hits += isRightClassForWeapon ? 0.5 : 0.25;
 
             //trace('Damage: hits: ${fromObj.hits} ${fromObj.name}');
 
-            if(fromObj.hits > WorldMap.calculateRandomInt(10))
+            if(fromObj.hits > WorldMap.calculateRandomInt(20))
             {
                 //trace('Damage: dead: ${fromObj.hits} ${fromObj.name}');
 
