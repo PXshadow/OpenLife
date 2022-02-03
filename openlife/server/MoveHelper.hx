@@ -325,8 +325,8 @@ class MoveHelper
                     p.x += last.x; 
                     p.y += last.y;
                 
-                    if(p.connection.serverAi == null) trace('reached position: g${p.tx},g${p.ty} FROM ${oldX},${oldY} TO ${p.x},${p.y}');
-                    else trace('AAI: GOTO: FROM ${oldX},${oldY} TO ${p.x},${p.y} / FROM g${p.tx - last.x},g${p.ty- last.y} TO g${p.tx},g${p.ty} reached position!');
+                    //if(p.connection.serverAi == null) trace('reached position: g${p.tx},g${p.ty} FROM ${oldX},${oldY} TO ${p.x},${p.y}');
+                    //else trace('AAI: GOTO: FROM ${oldX},${oldY} TO ${p.x},${p.y} / FROM g${p.tx - last.x},g${p.ty- last.y} TO g${p.tx},g${p.ty} reached position!');
                 }
 
                 p.done_moving_seqNum = moveHelper.newMoveSeqNumber;

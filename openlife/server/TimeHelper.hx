@@ -503,7 +503,7 @@ class TimeHelper
         // do damage while starving
         if(player.food_store < 0)
         {
-            player.hits += originalFoodDecay * ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath / 2;
+            player.exhaustion += originalFoodDecay * ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath / 2;
         }
         
         // take care of exhaustion
