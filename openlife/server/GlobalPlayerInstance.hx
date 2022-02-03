@@ -146,6 +146,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var prestigeFromChildren:Float = 0;
     public var prestigeFromEating:Float = 0;
     public var prestigeFromFollowers:Float = 0;
+    public var prestigeFromWealth:Float = 0;
 
     // list of objects the player owns like gates
     public var owning:Array<ObjectHelper> = new Array<ObjectHelper>(); 
@@ -2244,7 +2245,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         return heldObject.objectData.deadlyDistance > 0;
     }
-    
+
     public function setHeldObject(obj:ObjectHelper)
     {
         var player = this;

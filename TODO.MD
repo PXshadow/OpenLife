@@ -149,7 +149,7 @@ Coins / Currency:
 - You can give coins by saying: I GIVE YOU XX with XX = I=1 V=5 X=10 L=50 C=100 D=500 M=1000. The order does not matter (not Roman)
 - Leaders get 1/5 prestiege / coins their followers get
 - Coins decay 1% per year if >= 100 coins
-- For each deacyed coins you get one prestige
+- For each deacyed coins you get one prestige (up to 5 prestige per year)
 - If you kill some one you get 80% of his coins
 - On death you will inherit your coins to same family or ally according to their past actions
 - If still some coins are left your kids will inherit your coins

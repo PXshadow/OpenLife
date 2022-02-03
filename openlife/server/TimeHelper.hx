@@ -441,10 +441,11 @@ class TimeHelper
             // decay some coins per year
             if(player.coins > 100)
             {
-                var decayedCoins:Float = Std.int(player.coins / 100); // 0,1% per year or 10% in 100 years
-                decayedCoins = Math.min(decayedCoins, ServerSettings.MaxCoinDecayPerYear);
+                var decayedCoins:Float = Std.int(player.coins / 100); // 1% per year 
                 player.coins -= decayedCoins;
-                player.addPrestige(-decayedCoins);
+                decayedCoins = Math.min(decayedCoins, ServerSettings.MaxCoinDecayPerYear);
+                player.addPrestige(decayedCoins);
+                player.prestigeFromWealth += decayedCoins;
             } 
 
             if(player.age > 60) player.doDeath('reason_age');
@@ -453,10 +454,19 @@ class TimeHelper
             player.sendFoodUpdate(false);
 
             if(player.isMoving() == false) Connection.SendUpdateToAllClosePlayers(player, false);
+            var factor = ServerSettings.DisplayScoreFactor;
 
-            if(Std.int(player.trueAge) % 3 == 0)
+            if(Std.int(player.trueAge) % 4 == 0)
             {
-                var factor = ServerSettings.DisplayScoreFactor;
+                var text = player.prestigeFromEating > 0 ? 'You have gained ${player.prestigeFromWealth * factor} prestige from your wealth!' : '';
+                player.connection.sendGlobalMessage(text);
+
+                var coins:Float = Std.int(player.coins); 
+                var text = coins >= 10 ? 'You have ${coins} coins! You can use I give you IXC' : '';
+                player.connection.sendGlobalMessage(text);
+            }
+            else if(Std.int(player.trueAge) % 3 == 0)
+            {
                 var textFromChildren = player.prestigeFromChildren > 0 ? 'You have gained ${player.prestigeFromChildren * factor} prestige from children!' : '';
                 var textFromFollowers = player.prestigeFromFollowers > 0 ? 'You have gained ${player.prestigeFromFollowers * factor} prestige from followers!' : '';
                 var textFromEating = player.prestigeFromEating > 0 ? 'You have gained ${player.prestigeFromEating * factor} prestige from YUMMY food!' : '';
