@@ -254,7 +254,6 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI deadly animal fight
 - AI player fight
 - AI basic clothing
 - Ai using containers needed also for player YUM display

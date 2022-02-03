@@ -340,6 +340,13 @@ class ObjectHelper
         return objectData.description;
     }
 
+    public var name(get, null):String;
+
+    public function get_name()
+    {
+        return objectData.name;
+    }
+
     // TODO make look like variable
     public function blocksWalking() : Bool
     {
@@ -620,5 +627,11 @@ class ObjectHelper
         var timeToChange = this.timeToChange;
 
         return (passedTime >= timeToChange);
+    }
+
+    public function isKillableByBow() : Bool
+    {
+        var trans = TransitionImporter.GetTransition(152, this.id); // Bow and Arrow
+        return trans != null;
     }
 }

@@ -24,8 +24,11 @@ class Ai
 
     public var myPlayer:PlayerInterface;
 
-    var time:Float = 1;
+    var time:Float = 5;
 
+    var feedingPlayerTarget:PlayerInterface = null; 
+
+    var animalTarget:ObjectHelper = null; 
     var escapeTarget:ObjectHelper = null; 
     var foodTarget:ObjectHelper = null; 
     var dropTarget:ObjectHelper = null;
@@ -186,18 +189,21 @@ class Ai
 
         var animal = AiHelper.GetCloseDeadlyAnimal(myPlayer);
         var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer);
-
+    
         if(escape(animal, deadlyPlayer)) return;
         checkIsHungryAndEat();
         if(isChildAndHasMother()){if(isMovingToPlayer()) return;}
+        if(myPlayer.isWounded()){isMovingToPlayer(); return;} // do nothing then looking for player
         
         if(isDropingItem()) return;
         if(myPlayer.age < ServerSettings.MinAgeToEat && myPlayer.food_store < 2) return; // do nothing and wait for mother to feed
         if(isEating()) return;
-        if(isFeedingChild()) return;
+        if(isFeedingChild()) return;        
         if(isUsingItem()) return;
-        if(isMovingToPlayer()) return;
+        if(killAnimal(animal)) return; 
+        if(isMovingToPlayer()) return;               
         if(myPlayer.isMoving()) return;
+        
 
         //if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
         if(itemToCraftId == itemToCraft.itemToCraft.parentId && itemToCraft.countDone >= itemToCraft.count)
@@ -213,17 +219,20 @@ class Ai
         if(itemToCraftId > 0)
         {
             if(craftItem(itemToCraftId)) return;
-            time += 4; // TODO change
+            time += 2; // TODO change
         }
-    
+
+        
+        time += 2;
         /*var cravingId = myPlayer.getCraving();
         if(cravingId > 0) craftItem(cravingId);
         else{
             isHungry = true; // TODO workaround
         }*/
 
-        craftItem(78, 1);
+        craftItem(82, 1);
         
+        //craftItem(82); // Fire
         //craftItem(58); // Thread
         //craftItem(74, 1, true); //Fire Bow Drill
         //craftItem(78, 1, true); // Smoldering Tinder 
@@ -236,6 +245,100 @@ class Ai
         //craftItem(34,1); // 34 sharpstone
         //craftItem(224); // Harvested Wheat
         //craftItem(58); // Thread
+    }
+
+    private function killAnimal(animal:ObjectHelper)
+    {
+        if(animal == null && animalTarget == null) return false;
+        if(foodTarget != null) return false;
+
+        var objData = ObjectData.getObjectData(152); // Bow and Arrow
+        if(myPlayer.age < objData.minPickupAge) return false;
+
+        if(animalTarget != null && animalTarget.isKillableByBow() == false)
+        {
+            trace('AAI: ${myPlayer.id} killAnimal: Old target not killable with bow anymore: ${animalTarget.description}');
+            animalTarget = null;
+        }
+
+        if(animalTarget == null && animal != null)
+        {
+            if(animal.isKillableByBow()) this.animalTarget = animal;
+            else trace('AAI: ${myPlayer.id} killAnimal: Not killable with bow: ${animal.description}');
+        }
+
+        if(animalTarget == null) return false;
+
+        trace('AAI: ${myPlayer.id} killAnimal: kill ${animalTarget.description}');
+
+        if(myPlayer.heldObject.id != objData.id)
+        {
+            GetOrCraftItem(objData.id);
+            return false;
+        }
+
+        var distance = myPlayer.CalculateDistanceToObject(animalTarget);
+        var range = objData.useDistance;
+
+        if(distance > range * range)
+        {
+            var targetXY = new ObjectHelper(null, 0);
+
+            targetXY.tx = animalTarget.tx > myPlayer.tx ?  animalTarget.tx - range : animalTarget.tx + range - 1;
+            targetXY.ty = animalTarget.ty > myPlayer.ty ?  animalTarget.ty - range : animalTarget.ty + range - 1;
+
+            var done = GotoObj(targetXY);
+
+            trace('AAI: ${myPlayer.id} killAnimal goto animaltarget ${done} ${animalTarget.tx},${animalTarget.ty}');
+
+            return true;
+        }
+
+        var done = myPlayer.use(animalTarget.tx - myPlayer.gx, animalTarget.ty - myPlayer.gy);
+
+        trace('AAI: ${myPlayer.id} killAnimal: done: $done kill ${animalTarget.description}');
+
+        return true;
+    }
+
+    private function GetOrCraftItem(objId:Int, count:Int = 1) : Bool
+    {
+        if(myPlayer.isMoving()) return false;
+
+        var obj = AiHelper.GetClosestObjectById(myPlayer, objId);
+
+        if(obj == null) return craftItem(objId, count);
+
+        trace('killAnimal: GetOrCraftItem found ${obj.name}');
+
+        var distance = myPlayer.CalculateDistanceToObject(obj);
+
+        if(distance > 1)
+        {
+            var done = myPlayer.Goto(obj.tx - myPlayer.gx, obj.ty - myPlayer.gy);
+
+            trace('AAI: ${myPlayer.id} killAnimal done: $done goto weapon');
+            return true;
+        }
+
+        var heldPlayer = myPlayer.getHeldPlayer();
+        if(heldPlayer != null)
+        {
+            var done = myPlayer.dropPlayer();
+
+            trace('AAI: ${myPlayer.id} killAnimal child drop for get item ${heldPlayer.name} $done');
+
+            return true;
+        }
+
+        //trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
+
+        // x,y is relativ to birth position, since this is the center of the universe for a player
+        var done = myPlayer.drop(obj.tx - myPlayer.gx, obj.ty - myPlayer.gy); 
+
+        trace('AAI: ${myPlayer.id} killAnimal done: $done pickup obj from floor');
+
+        return done;
     }
 
     private function cleanupBlockedObjects()
@@ -292,12 +395,11 @@ class Ai
                 myPlayer.say('You are $newName');
             }
 
-            if(heldPlayer.age * 60 > ServerSettings.MinMovementAgeInSec && heldPlayer.food_store > Math.min(5, heldPlayer.food_store_max - 0.2))
+            if(heldPlayer.age * 60 > ServerSettings.MinMovementAgeInSec && heldPlayer.food_store > Math.max(3.5, heldPlayer.food_store_max - 0.2))
             {
                 var done = myPlayer.dropPlayer();
-
-                //trace('AAI: ${myPlayer.id} child drop ${heldPlayer.name} $done');
-
+                this.feedingPlayerTarget = null;
+                trace('AAI: ${myPlayer.id} child drop ${heldPlayer.name} $done food: ${heldPlayer.food_store} max: ${heldPlayer.food_store_max - 0.2}');
                 return true;
             }
         }
@@ -312,6 +414,8 @@ class Ai
 
         var child = AiHelper.GetCloseHungryChild(myPlayer);
         if(child == null) return false;
+
+        this.feedingPlayerTarget = child;
 
         var childFollowPlayer = child.getFollowPlayer();
         if(childFollowPlayer == null || childFollowPlayer.isFertile() == false)
@@ -340,12 +444,24 @@ class Ai
 
     private function GotoObj(obj:ObjectHelper)
     {
-        if(isObjectNotReachable(obj.tx, obj.ty)) return false;
+        var xo = 0;
+        var yo = 0;
 
-        var done = myPlayer.Goto(obj.tx - myPlayer.gx, obj.ty - myPlayer.gy);
+        for(i in 0...5)
+        {
+            if(i > 0)
+            {
+                xo = WorldMap.calculateRandomInt(2) - 1;
+                yo = WorldMap.calculateRandomInt(2) - 1;
+            }
 
-        // TODO obj not reachable or bug in pathing?
-        if(done) return true;
+            if(isObjectNotReachable(obj.tx + xo, obj.ty + yo)) continue;
+
+            var done = myPlayer.Goto(obj.tx + xo - myPlayer.gx, obj.ty + yo - myPlayer.gy);
+
+            // TODO obj not reachable or bug in pathing?
+            if(done) return true;
+        }
 
         trace('AI: GOTO failed! Ignore ${obj.tx} ${obj.ty} '); 
         this.addNotReachableObject(obj);
@@ -362,6 +478,11 @@ class Ai
     private function escape(animal:ObjectHelper, deadlyPlayer:GlobalPlayerInstance)
     {
         if(animal == null && deadlyPlayer == null) return false;
+
+        // hunt this animal
+        if(animal.isKillableByBow()) animalTarget = animal;
+        // go for hunting 
+        if(myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false) return false; 
 
         var player = myPlayer.getPlayerInstance();
         var escapeDist = 3;
@@ -380,10 +501,10 @@ class Ai
         var alwaysX = false;
         var alwaysY = false;
         var checkIfDangerous = true;
-        
+    
         for(ii in 0...5)
         {
-            for(i in 0...10)
+            for(i in 0...5)
             {
                 var escapeInLowerX = alwaysX || escapeTx > player.tx;
                 var escapeInLowerY = alwaysY || escapeTy > player.ty;
@@ -391,8 +512,8 @@ class Ai
                 newEscapetarget.tx = escapeInLowerX ?  player.tx - escapeDist : player.tx + escapeDist;
                 newEscapetarget.ty = escapeInLowerY ?  player.ty - escapeDist : player.ty + escapeDist;
 
-                var randX = WorldMap.calculateRandomInt(2 + i + 2 * ii);
-                var randY = WorldMap.calculateRandomInt(2 + i + 2 * ii);
+                var randX = WorldMap.calculateRandomInt(2 + i + ii);
+                var randY = WorldMap.calculateRandomInt(2 + i + ii);
                 randX = escapeInLowerX ? -randX : randX;
                 randY = escapeInLowerY ? -randY : randY;
 
@@ -403,6 +524,8 @@ class Ai
 
                 done = GotoObj(newEscapetarget);
 
+                trace('Escape done: $done $ii $i alwaysX: $alwaysX alwaysY $alwaysY es: ${newEscapetarget.tx},${newEscapetarget.ty}');
+
                 if(done) break;
             }
 
@@ -411,7 +534,7 @@ class Ai
             alwaysX = WorldMap.calculateRandomFloat() < 0.5;
             alwaysY = WorldMap.calculateRandomFloat() < 0.5;
 
-            if(ii > 2) checkIfDangerous = false;
+            if(ii > 0) checkIfDangerous = false;
 
             //trace('Escape $ii alwaysX: $alwaysX alwaysY $alwaysY');
         }
@@ -471,16 +594,27 @@ class Ai
 
         if(player.heldObject.parentId == itemToCraft.transActor.parentId)
         {
-            trace('AI: craft Actor is held already' + itemToCraft.transActor.description);
-            myPlayer.say('Goto actor ' + itemToCraft.transTarget.description );
+            trace('AI: craft Actor is held already ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
+            myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
 
             useTarget = itemToCraft.transTarget; 
             itemToCraft.transActor = null; // actor is allready in the hand
         }
         else
         {
-            trace('AI: craft goto actor: ' + itemToCraft.transActor.description);
-            myPlayer.say('Goto target ' + itemToCraft.transActor.description );
+            trace('AI: craft goto actor: ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
+
+            if(itemToCraft.transActor.id == 0)
+            {
+                dropHeldObject();
+                myPlayer.say('Drop since actor is empty ');
+
+                useTarget = itemToCraft.transTarget; 
+                itemToCraft.transActor = null; // actor is allready in the hand
+                return true;
+            }
+
+            myPlayer.say('Goto actor ' + itemToCraft.transActor.name );
             
             useTarget = itemToCraft.transActor;
 
@@ -703,13 +837,17 @@ class Ai
             itemToCraft.transActor = actorObj;
             itemToCraft.transTarget = targetObj; 
 
-            var actorSteps = transitionsByObjectId[actorObj.id].steps;
-            var targetSteps = transitionsByObjectId[targetObj.id].steps;
+            var actor = transitionsByObjectId[actorObj.id];
+            var target = transitionsByObjectId[targetObj.id];
+            var actorSteps = actor == null ? -1 : actor.steps;
+            var targetSteps = target == null ? -1 : target.steps;
             var steps = actorSteps > targetSteps ? actorSteps : targetSteps;
             var trans = TransitionImporter.GetTrans(actorObj, targetObj);
+            var desc = trans == null ? '${itemToCraft.transActor.name} + ${itemToCraft.transTarget.name} Trans Not found!' : trans.getDesciption(); 
+            var objToCraft = ObjectData.getObjectData(objToCraftId);
 
             //trace('Ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
-            trace('Ai: craft DONE: steps: ${steps} bestActor: ${itemToCraft.transActor.description} target: ${itemToCraft.transTarget.description} ' + trans.getDesciption());
+            trace('Ai: craft DONE: ${objToCraft.name} steps: ${steps} $desc');
 
             return true;
         }    
@@ -1041,13 +1179,15 @@ class Ai
     
         if(distance > 1)
         {
-            trace('AAI: ${myPlayer.id} goto useItem');
+            trace('AAI: ${myPlayer.id} goto useItem ${useTarget.name}');
             var done = myPlayer.Goto(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
+
+            myPlayer.say('Goto ${useTarget.name} for use!');
 
             // TODO use item not reachable or bug in pathing?
             if(done == false)
             {
-                trace('AI: GOTO failed! Ignore ${useTarget.tx} ${useTarget.ty} '); 
+                trace('AI: GOTO useItem failed! Ignore ${useTarget.tx} ${useTarget.ty} '); 
                 this.addNotReachableObject(useTarget);
                 useTarget = null;
                 itemToCraft.transActor = null;
@@ -1124,7 +1264,7 @@ class Ai
         var index = WorldMap.world.index(tx, ty);
         var notReachable = notReachableObjects.exists(index);
 
-        if(notReachable) trace('isObjectNotReachable: $notReachable $tx,$ty');
+        //if(notReachable) trace('isObjectNotReachable: $notReachable $tx,$ty');
 
         return notReachable;
     }

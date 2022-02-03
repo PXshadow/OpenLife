@@ -2244,9 +2244,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         return heldObject.objectData.deadlyDistance > 0;
     }
-
     
-
     public function setHeldObject(obj:ObjectHelper)
     {
         var player = this;

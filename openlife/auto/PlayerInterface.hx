@@ -44,6 +44,7 @@ interface PlayerInterface
     public function isFertile() : Bool;
     public function isMoving() : Bool;
     public function isWounded() : Bool;
+    public function isHoldingWeapon() : Bool;
     
     public function getFollowPlayer():PlayerInterface;
     public function getHeldPlayer():PlayerInterface;

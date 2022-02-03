@@ -114,7 +114,7 @@ class TransitionImporter
         while(todo2.length > 0)
         {
             done += todo2.length;
-            trace('Steps: $steps done: $done d: ${todo2.length}');
+            //trace('Steps: $steps done: $done d: ${todo2.length}');
 
             todo = todo2;
             todo2 = new Array<ObjectData>();
@@ -160,7 +160,7 @@ class TransitionImporter
 
         for(obj in ObjectData.importedObjectData)
         {
-            //trace('Obj: steps: ${obj.carftingSteps} id: ${obj.id} ${obj.description}');
+            trace('Obj: steps: ${obj.carftingSteps} id: ${obj.id} ${obj.description}');
 
             if(obj.carftingSteps < 0) notDone++;
             else done++;
