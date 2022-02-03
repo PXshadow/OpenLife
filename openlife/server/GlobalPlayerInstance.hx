@@ -690,7 +690,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {        
         var childIsHuman = child.isAi() == false;
         var motherIsHuman = p.isAi() == false;
-        var maxExhaustion = childIsHuman == motherIsHuman ? 20 : 10;
+        var maxExhaustion = childIsHuman == motherIsHuman ? 10 : 5;
 
         if(p.deleted) return -1000;
         if(p.isFertile() == false) return -1000;
@@ -2970,6 +2970,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         damage *= targetPlayer.isWounded() ? ServerSettings.TargetWoundedDamageFactor : 1;
 
         targetPlayer.hits += damage;
+        targetPlayer.exhaustion += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
 
         targetPlayer.sendFoodUpdate(false);

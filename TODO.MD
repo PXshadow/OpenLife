@@ -135,7 +135,8 @@ Exhaustion:
 - you get extra exhaustion in not loved biome (more in swamp or river if not on floor or bridge)
 - you recover exhaustion in your loved biome (like brown in jungle) 
 - changing your movement while moving generates exhaustion
-- trying to hit some one causes exhaustion
+- trying to hit someone causes exhaustion
+- getting damage increases exhaustion
 
 World:
 - Paradise is back! Wild Berries and Bana come finaly back with time 
