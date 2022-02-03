@@ -2928,8 +2928,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function DoDamage(targetPlayer:GlobalPlayerInstance, fromObj:ObjectHelper, attacker:GlobalPlayerInstance = null, distanceFactor:Float = 1, quadDistance:Float = 0) : Float
     {
-        // TODO give protection from hold objects like on horse or holding a weapon 
-
         var orgDamage = fromObj.objectData.damage * ServerSettings.WeaponDamageFactor;
         var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());
 
@@ -2963,7 +2961,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             trace('kill: HIT weaponDamage: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance');
         }
+
+        var weaponPrestigeClass:Int = targetPlayer.heldObject.objectData.prestigeClass;
+        var attackerPrestigeClass:Int = targetPlayer.lineage.prestigeClass;
+        var isRightClassForWeapon = weaponPrestigeClass > 0 && weaponPrestigeClass <= attackerPrestigeClass;
         
+        damage *= isRightClassForWeapon ? 0.8 : 1;
+        damage *= targetPlayer.heldObject.objectData.damageProtectionFactor;
         damage *= targetPlayer.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
         damage *= protectionFactor;
         damage *= targetPlayer.isWounded() ? ServerSettings.TargetWoundedDamageFactor : 1;

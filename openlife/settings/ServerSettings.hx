@@ -433,6 +433,10 @@ class ServerSettings
         ObjectData.getObjectData(3048).deadlyDistance = 1.5; // Bloody War Sword
         ObjectData.getObjectData(749).deadlyDistance = 4; // Bloody Yew Bow  
 
+        ObjectData.getObjectData(770).damageProtectionFactor = 0.6; // Riding Horse
+        ObjectData.getObjectData(560).damageProtectionFactor = 0.8; // Knife 
+        ObjectData.getObjectData(3047).damageProtectionFactor = 0.8; // War Sword // more for nobles
+
         // TODO allow damage with bloody weapon / needs support from client?
         ObjectData.getObjectData(560).damage = 4; // Knife  // damage per sec = 2
         ObjectData.getObjectData(3047).damage = 6; // War Sword // damage per sec = 3

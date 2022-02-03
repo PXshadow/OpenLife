@@ -98,6 +98,7 @@ class ObjectData extends LineReader
     public var countsOrGrowsAs:Int = 0; // the object should be counted as this, or in case it regrows it regrows as this.
     
     public var damage:Float = 0; 
+    public var damageProtectionFactor:Float = 1; 
     public var prestigeClass:PrestigeClass = PrestigeClass.NotSet; 
 
     public var moves:Int = 0; // animal movements

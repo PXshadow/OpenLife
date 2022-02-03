@@ -78,7 +78,8 @@ Loved / Hated Biomes:
 Classes:
 - there are three different classes: Sef / Commoner / Noble
 - you are more likely born to the same class
-- Nobles make 20% more damage with Sword
+- Nobles make 20% more damage with a sword
+- Nobles receive 20% less damage if using a sword
 
 Ally
 - Leader has now 15 seconds time to exile you before you follow him
@@ -98,8 +99,11 @@ Combat / Attacking
 - stregth of players with weapons are counted twice
 - You can only shoot with bow if not too close to target
 - wounds do damage / exhaustion with time and can heal with time 
-- you do halve damage to ally 
+- you do halve damage to an ally
+- you receive less damage if holding a knife, sword or riding a horse without a cart 
 - males do X1.2 damage
+
+Attacking prestige lost:
 - you will loose prestige for attacking a close relative without weapon
 - you will loose prestige for attacking a women without weapon
 - you will loose even more prestige for attacking an ally without weapon
