@@ -10,9 +10,6 @@ import openlife.data.object.ObjectData;
 import openlife.data.transition.TransitionData;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.map.MapData;
-import openlife.data.Pos;
-import openlife.auto.Pathfinder.Coordinate;
-import haxe.ds.Vector;
 
 using StringTools;
 using openlife.auto.AiHelper;
@@ -24,7 +21,7 @@ class Ai
 
     public var myPlayer:PlayerInterface;
 
-    var time:Float = 5;
+    var time:Float = 1;
 
     var feedingPlayerTarget:PlayerInterface = null; 
 
@@ -45,6 +42,8 @@ class Ai
 
     var notReachableObjects = new Map<Int, Float>();
     var objectsWithHostilePath = new Map<Int, Float>();
+
+    var craftingTasks = new Array<Int>();
 
     public function new(player:PlayerInterface) 
     {
@@ -204,7 +203,6 @@ class Ai
         if(isMovingToPlayer()) return;               
         if(myPlayer.isMoving()) return;
         
-
         //if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
         if(itemToCraftId == itemToCraft.itemToCraft.parentId && itemToCraft.countDone >= itemToCraft.count)
         {
@@ -230,8 +228,16 @@ class Ai
             isHungry = true; // TODO workaround
         }*/
 
-        craftItem(82, 1);
+        if(craftItem(82, 1)) return; // Fire
+        if(this.craftingTasks.contains(itemToCraft.itemToCraft.id) == false) this.craftingTasks.push(itemToCraft.itemToCraft.id);
+
+        if(craftItem(72)) return; // Kindling
+        if(this.craftingTasks.contains(itemToCraft.itemToCraft.id) == false) this.craftingTasks.push(itemToCraft.itemToCraft.id);
+
+        if(craftItem(71)) return; // Stone Hatchet
         
+        //craftItem(71); // Stone Hatchet
+        //craftItem(72); // Kindling
         //craftItem(82); // Fire
         //craftItem(58); // Thread
         //craftItem(74, 1, true); //Fire Bow Drill
@@ -269,7 +275,7 @@ class Ai
 
         if(animalTarget == null) return false;
 
-        trace('AAI: ${myPlayer.id} killAnimal: kill ${animalTarget.description}');
+        trace('AAI: ${myPlayer.id} killAnimal: ${animalTarget.description}');
 
         if(myPlayer.heldObject.id != objData.id)
         {
@@ -309,7 +315,7 @@ class Ai
 
         if(obj == null) return craftItem(objId, count);
 
-        trace('killAnimal: GetOrCraftItem found ${obj.name}');
+        trace('AAI: ${myPlayer.id} killAnimal: GetOrCraftItem found ${obj.name}');
 
         var distance = myPlayer.CalculateDistanceToObject(obj);
 
@@ -404,13 +410,7 @@ class Ai
             }
         }
 
-        if(heldPlayer != null) return true;
-
-        if(myPlayer.heldObject.id != 0)
-        {
-            dropHeldObject();
-            return true;
-        }
+        if(heldPlayer != null) return true;        
 
         var child = AiHelper.GetCloseHungryChild(myPlayer);
         if(child == null) return false;
@@ -431,6 +431,13 @@ class Ai
         {
             trace('AAI: ${myPlayer.id} goto child');
             myPlayer.Goto(childX, childY);
+            return true;
+        }
+
+        if(myPlayer.heldObject.id != 0)
+        {
+            trace('AAI: ${myPlayer.id} drop obj for feeding child');
+            dropHeldObject();
             return true;
         }
 
@@ -524,7 +531,7 @@ class Ai
 
                 done = GotoObj(newEscapetarget);
 
-                trace('Escape done: $done $ii $i alwaysX: $alwaysX alwaysY $alwaysY es: ${newEscapetarget.tx},${newEscapetarget.ty}');
+                //trace('Escape done: $done $ii $i alwaysX: $alwaysX alwaysY $alwaysY es: ${newEscapetarget.tx},${newEscapetarget.ty}');
 
                 if(done) break;
             }
@@ -560,7 +567,9 @@ class Ai
     // TODO store transitions for crafting to have faster lookup
     // TODO consider too look for a natural spawned object with the fewest steps on the list
     private function craftItem(objId:Int, count:Int = 1, ignoreHighTech:Bool = false) : Bool
-    {                
+    {
+        trace('AAI: ${myPlayer.id} craft item $objId!');
+
         var player = myPlayer.getPlayerInstance();
 
         if(itemToCraft.transActor != null && player.heldObject.parentId == itemToCraft.transActor.parentId)
@@ -579,22 +588,22 @@ class Ai
             itemToCraft.countTransitionsDone = 0;
             itemToCraft.transitionsByObjectId = myPlayer.SearchTransitions(objId, ignoreHighTech); 
 
-            trace('AI: new item to craft: ${itemToCraft.itemToCraft.description}!');
+            trace('AAI: ${myPlayer.id} new item to craft: ${itemToCraft.itemToCraft.description}!');
         }
         
         searchBestObjectForCrafting(itemToCraft);
 
         if(itemToCraft.transActor == null)
         {
-            trace('AI: craft: FAILED ${itemToCraft.itemToCraft.description} did not find any item in search radius for crafting!');
+            trace('AAI: ${myPlayer.id} craft: FAILED ${itemToCraft.itemToCraft.description} did not find any item in search radius for crafting!');
 
-            // TODO give some helpt to find the needed Items
+            // TODO give some help to find the needed Items
             return false;
         }
 
         if(player.heldObject.parentId == itemToCraft.transActor.parentId)
         {
-            trace('AI: craft Actor is held already ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
+            trace('AAI: ${myPlayer.id} craft Actor is held already ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
 
             if(itemToCraft.transTarget.name == null) trace('AI: craft WARNING id: ${itemToCraft.transTarget} transTarget.name == null!');
             myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
@@ -604,10 +613,12 @@ class Ai
         }
         else
         {
-            trace('AI: craft goto actor: ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
+            trace('AAI: ${myPlayer.id} craft goto actor: ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
 
             if(itemToCraft.transActor.id == 0)
             {
+                trace('AAI: ${myPlayer.id} drop obj since craft actor is 0');
+
                 dropHeldObject();
                 myPlayer.say('Drop since actor is empty ');
 
@@ -622,9 +633,10 @@ class Ai
 
             if(player.heldObject.id != 0)
             {
-                    dropHeldObject();
-                    return true;
-            }
+                trace('AAI: ${myPlayer.id} craft: drop obj to pickup ${itemToCraft.transActor.name}');
+                dropHeldObject();
+                return true;
+        }
         }
         
         return true;
@@ -651,7 +663,7 @@ class Ai
         {
             radius += ServerSettings.AiMaxSearchIncrement;
 
-            trace('AI: craft: search radius: $radius');
+            //trace('AI: ${myPlayer.id} craft: search radius: $radius');
 
             // reset objects so that it can be filled again
             itemToCraft.clearTransitionsByObjectId();   
@@ -780,7 +792,11 @@ class Ai
         }
 
         var obj = ObjectData.getObjectData(objToCraftId);
-        trace('AI: craft: FINISHED $count ${Sys.time() - startTime} ${obj.description}');
+        var descActor = itemToCraft.transActor == null ? 'NA' : itemToCraft.transActor.name;
+        var descTarget = itemToCraft.transTarget == null ? 'NA' : itemToCraft.transTarget.name;
+        descTarget += itemToCraft.transTarget == null ? '' : ' ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}';
+
+        trace('AI: craft: FINISHED $count ms: ${Math.round((Sys.time() - startTime) * 1000)} ${obj.name} --> $descActor + $descTarget');
     }
 
     private static function DoTransitionSearch(itemToCraft:IntemToCraft, wantedId:Int, objectsToSearch:Array<Int>, transitions:Array<TransitionData>) : Bool
@@ -995,12 +1011,15 @@ class Ai
 
         if(myPlayer.CalculateDistanceToPlayer(playerToFollow) > maxDistance)
         {
-            //trace('AAI: ${myPlayer.id} age: ${myPlayer.age} goto player');
+            trace('AAI: ${myPlayer.id} age: ${myPlayer.age} goto player');
             var randX = WorldMap.calculateRandomInt(4) - 2;
             var randY = WorldMap.calculateRandomInt(4) - 2;
 
-            myPlayer.Goto(playerToFollow.tx + randX - myPlayer.gx, playerToFollow.ty + randY - myPlayer.gy);
-            //myPlayer.say('${playerToFollow.name}');
+            var done = myPlayer.Goto(playerToFollow.tx + randX - myPlayer.gx, playerToFollow.ty + randY - myPlayer.gy);
+            myPlayer.say('${playerToFollow.name}');
+
+            trace('AAI: ${myPlayer.id} age: ${myPlayer.age} goto player $done');
+
             return true;
         }
 
@@ -1056,9 +1075,19 @@ class Ai
         //var myPlayer = myPlayer.getPlayerInstance();
 
         if(distance > 1)
-        {
-            trace('AAI: ${myPlayer.id} goto drop');
-            myPlayer.Goto(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
+        {            
+            var done = false;
+            for(i in 0...5)
+            {
+                done = GotoObj(dropTarget);            
+                //myPlayer.Goto(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
+
+                if(done) break;
+
+                dropTarget = myPlayer.GetClosestObjectById(0); // empty
+            }
+
+            trace('AAI: ${myPlayer.id} goto drop: $done');
         }
         else
         {
@@ -1086,8 +1115,14 @@ class Ai
 
         if(distance > 1)
         {
-            //trace('AAI: ${myPlayer.id} goto food');
-            myPlayer.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+            //myPlayer.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+
+            var done = GotoObj(foodTarget);
+
+            trace('AAI: ${myPlayer.id} goto food target $done');
+
+            if(done == false) foodTarget = null; // search another one
+
             return true;
         }
 
@@ -1233,7 +1268,7 @@ class Ai
             // if object to create is held by player or is on ground, then cound as done
             if(myPlayer.heldObject.parentId == itemToCraft.itemToCraft.parentId || taregtObjectId == itemToCraft.itemToCraft.parentId) itemToCraft.countDone += 1;
 
-            trace('AI: done: ${useTarget.description} ItemToCraft: ${itemToCraft.itemToCraft.description} transtions done: ${itemToCraft.countTransitionsDone} done: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
+            trace('AI: FINISHED done: ${useTarget.name} ItemToCraft: ${itemToCraft.itemToCraft.name} transtions done: ${itemToCraft.countTransitionsDone} done: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
         }
         else
         {

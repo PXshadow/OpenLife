@@ -51,6 +51,7 @@ class AiHelper
     public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData, searchDistance:Int = 16, ignoreObj:ObjectHelper = null, findClosestHeat:Bool = false, ownedByPlayer:Bool = false) : ObjectHelper
     {
         //var RAD = ServerSettings.AiMaxSearchRadius
+        var ai = playerInterface.getAi();
         var world = playerInterface.getWorld();
         var player = playerInterface.getPlayerInstance();
         var baseX = player.tx;
@@ -63,6 +64,8 @@ class AiHelper
             for(tx in baseX - searchDistance...baseX + searchDistance)
             {
                 if(ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
+
+                if(ai != null && ai.isObjectNotReachable(tx, ty)) continue;
                 
                 var objData = world.getObjectDataAtPosition(tx, ty);
 
@@ -238,7 +241,7 @@ class AiHelper
         if (paths == null) 
         {
             //if (onError != null) onError("can not generate path");
-            trace("AI: CAN NOT GENERATE PATH");
+            trace('AAI: ${player.p_id} CAN NOT GENERATE PATH');
             return false;
         }
 

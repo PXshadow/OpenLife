@@ -472,10 +472,13 @@ class ObjectData extends LineReader
             
             tmpName = StringTools.trim(tmpName);
 
-            //trace('Name2: $tmpName');
+            trace('Name: ${objData.id} ${objData.description} --> $tmpName');
 
             objData.name = tmpName;
         }
+
+        //var obj = getObjectData(6679);
+        //trace('Name!!!: ${obj.name}');
     }
 
     public static function GetObjectByName(searchName:String, exactName:Bool = true, searchFromEnd:Bool = false) : Int

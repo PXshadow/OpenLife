@@ -3496,8 +3496,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function isAi() : Bool
     {
-        return this.connection.playerAccount.isAi;
-        //return this.connection.serverAi != null;   
+        //return this.connection.playerAccount.isAi;
+        return this.connection.serverAi != null;   
     }
 
     public function isHuman() : Bool
