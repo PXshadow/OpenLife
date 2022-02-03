@@ -1,9 +1,8 @@
 package openlife.server;
+import haxe.Exception;
 import openlife.data.object.ObjectHelper;
 import openlife.macros.Macro;
 import openlife.data.object.ObjectData;
-import haxe.macro.Expr.Catch;
-import sys.thread.Mutex;
 import openlife.settings.ServerSettings;
 import openlife.data.map.MapData;
 #if (target.threaded)
@@ -816,7 +815,8 @@ class Connection
             }
         }*/
 
-        if(playerAccount != null && playerAccount.isAi)
+        //if(playerAccount != null && playerAccount.isAi)
+        if(this.sock == null)
         {
             try
             {
@@ -830,6 +830,9 @@ class Connection
         } 
 
         var message = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
+
+        // TODO change
+        //if(this.sock == null) throw new Exception('send sock == null');
 
         //trace('send:  ${data}');
         
