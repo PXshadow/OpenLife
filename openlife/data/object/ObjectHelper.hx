@@ -634,4 +634,10 @@ class ObjectHelper
         var trans = TransitionImporter.GetTransition(152, this.id); // Bow and Arrow
         return trans != null;
     }
+
+    // TODO does not work for attacking wolf etc...
+    public function isAnimal() : Bool
+    {
+        return this.objectData.moves > 0;
+    }
 }

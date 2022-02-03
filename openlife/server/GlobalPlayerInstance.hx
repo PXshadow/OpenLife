@@ -2246,6 +2246,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return heldObject.objectData.deadlyDistance > 0;
     }
 
+    public function isHoldingMeleeWeapon() : Bool
+    {
+        return heldObject.objectData.deadlyDistance > 0 && heldObject.objectData.deadlyDistance < 2;
+    }
+
+    public function isHoldingRangedWeapon() : Bool
+    {
+        return heldObject.objectData.deadlyDistance >= 2;
+    }
+
     public function setHeldObject(obj:ObjectHelper)
     {
         var player = this;
@@ -2947,9 +2957,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 allyFactor = allyFactor > 1.2 ? 1.2 : allyFactor;
             }
 
-            var weaponPrestigeClass:Int = attacker.heldObject.objectData.prestigeClass;
-            var attackerPrestigeClass:Int = attacker.lineage.prestigeClass;
-            var isRightClassForWeapon = weaponPrestigeClass > 0 && weaponPrestigeClass <= attackerPrestigeClass;
+            var isRightClassForWeapon = attacker.isRightClassForWeapon();
             trace('PRESTIGE: isRightClassForWeapon: $isRightClassForWeapon');
 
             damage *= attacker.isMale() ? ServerSettings.MaleDamageFactor : 1;
@@ -2962,9 +2970,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             trace('kill: HIT weaponDamage: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance');
         }
 
-        var weaponPrestigeClass:Int = targetPlayer.heldObject.objectData.prestigeClass;
-        var attackerPrestigeClass:Int = targetPlayer.lineage.prestigeClass;
-        var isRightClassForWeapon = weaponPrestigeClass > 0 && weaponPrestigeClass <= attackerPrestigeClass;
+        var isRightClassForWeapon = targetPlayer.isRightClassForWeapon();
         
         damage *= isRightClassForWeapon ? 0.8 : 1;
         damage *= targetPlayer.heldObject.objectData.damageProtectionFactor;
@@ -3065,7 +3071,33 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             fromObj.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition) * timeToChangeFactor;
             trace('Bloody Weapon Time: ${fromObj.timeToChange} ' + timeTransition.getDesciption());
-        }     
+        }  
+
+        // do damage to attacking animal
+        // TODO bloody weapon
+        if(attacker == null && targetPlayer.isHoldingMeleeWeapon())
+        {
+            fromObj.hits += isRightClassForWeapon ? 1 : 0.5;
+
+            //trace('Damage: hits: ${fromObj.hits} ${fromObj.name}');
+
+            if(fromObj.hits > WorldMap.calculateRandomInt(10))
+            {
+                //trace('Damage: dead: ${fromObj.hits} ${fromObj.name}');
+
+                var tmpId = fromObj.id;
+                
+                if(fromObj.id == 427) fromObj.id = 422; // Wolf 418 --> Attacking Wolf 427--> Dead Wolf 422
+                if(fromObj.id == 1333) fromObj.id = 1332; // Wild Boar 1323 --> Attacking Wild Boar 1333 --> Dead Boar 1332
+                if(fromObj.id == 1328) fromObj.id = 1331; // Wild Boar with Piglet --> Shot Boar with Piglet
+
+                if(fromObj.id != tmpId)
+                {
+                    WorldMap.world.setObjectHelper(fromObj.tx,fromObj.ty, fromObj);
+                    Connection.SendMapUpdateToAllClosePlayers(fromObj.tx, fromObj.ty, [fromObj.id]);
+                }
+            }
+        }
         
         //this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
@@ -3095,7 +3127,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return factor;
     }
 
-    // TODO test
+    // TODO test // TODO better make angry in timehelper if enemy is close?
     public function makeAllCloseAllyAngryAt(angryAtplayer:GlobalPlayerInstance) 
     {        
         for(p in AllPlayers)
@@ -3759,6 +3791,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function getCountEaten(foodId:Int) : Float
     {
         return this.hasEatenMap[foodId];    
+    }
+
+    public function isRightClassForWeapon() : Bool
+    {
+        if(this.isHoldingWeapon() == false) return false;
+
+        var player = this;
+        var weaponPrestigeClass:Int = player.heldObject.objectData.prestigeClass;
+        var attackerPrestigeClass:Int = player.lineage.prestigeClass;
+        var isRightClassForWeapon = weaponPrestigeClass > 0 && weaponPrestigeClass <= attackerPrestigeClass;
+
+        return isRightClassForWeapon;
     }
 }
 

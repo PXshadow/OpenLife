@@ -1591,6 +1591,15 @@ class TimeHelper
     // Called before time. Do tests here!
     private static function DoTest()
     {
+        /*
+        var array = [];
+        for(i in 0...1000000)
+        {
+            array[WorldMap.calculateRandomInt(10)] += 1;
+        }
+
+        for(i in 0...11) trace('rand: $i: ' + array[i]); */
+
         return; // remove if testting
         var trans = TransitionImporter.GetTransition(418, 0, false, false);
         trace('TRANS4: $trans false, false');
