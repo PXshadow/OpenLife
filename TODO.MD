@@ -124,14 +124,18 @@ Heat / Temperature:
 - bad Temperature is affected now by how much you / your parents (50%) love the biome
 
 Exhaustion:
-- reduces food store max untill recovered
+- half of hungry work becomes now exhaustion
+- exhaustion reduces food store max untill recovered
 - recovering exhaustion increases food need 
+- you only recover exhaustion if not wounded, not being in bad temperature and not starving
+- starving causes extra exhaustion
 - males recover exhaustion X1.2
 - bad temperature generates exhaustion and reduces exhaustion reduction
-- half of hungry work becomes now exhaustion
-- exhaustion in not loved biome (more in swamp or river if not on floor or bridge)
-- greater recover of exhaustion in loved biome 
-- Changing your movement while moving generates exhaustion
+- good temperature increases exhaustion reduction
+- you get extra exhaustion in not loved biome (more in swamp or river if not on floor or bridge)
+- you recover exhaustion in your loved biome (like brown in jungle) 
+- changing your movement while moving generates exhaustion
+- trying to hit some one causes exhaustion
 
 World:
 - Paradise is back! Wild Berries and Bana come finaly back with time 
@@ -160,9 +164,10 @@ Seasons / Winter is comming:
 
 Healing / Hits
 - max food store equals hitpoints
-- player heals with time but healing doubles food use
-- Heal only if not too cold or hot / heal faster the better temperature 
-- Starving or very bad temperature causes damage (especiallt on the far temperature edges)
+- player heals with time but beeing injured doubles food use
+- Heal only if not starving, too cold or hot, or wounded
+- Healing is faster the better the temperature 
+- Having very bad temperature causes damage (especially on the far temperature edges)
 
 Objects:
 - Cooked Rabbit Food Value: 10 --> 18

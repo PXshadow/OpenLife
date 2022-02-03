@@ -481,12 +481,15 @@ class TimeHelper
         var tmpFoodStoreMax = Math.ceil(player.food_store_max);
         var foodDecay = timePassedInSeconds * player.foodUsePerSecond; // depends on temperature
         var playerIsStarvingOrHasBadHeat = player.food_store < 0 || player.isSuperCold() || player.isSuperHot();
-        
-        if(player.age < ServerSettings.GrownUpAge && player.food_store > 0) foodDecay *= ServerSettings.IncreasedFoodNeedForChildren;
-
+        var doHealing = playerIsStarvingOrHasBadHeat == false && player.isWounded() == false;
         var originalFoodDecay = foodDecay;
-        var healing = timePassedInSeconds * 2.5 * ServerSettings.FoodUsePerSecond - foodDecay; // higher food need ==> less healing...
+        var healing = 1.5 * timePassedInSeconds * ServerSettings.FoodUsePerSecond - originalFoodDecay;
+
+        // healing is between 0.5 and 2 of food decay depending on temperature
+        if(healing < timePassedInSeconds * ServerSettings.FoodUsePerSecond / 2) healing = timePassedInSeconds * ServerSettings.FoodUsePerSecond / 2;
+        //if(tick % 20 == 0) trace('${player.id} heat: ${player.heat} faktor: ${healing / originalFoodDecay} healing: $healing foodDecay: $originalFoodDecay');
         
+        if(player.age < ServerSettings.GrownUpAge && player.food_store > 0) foodDecay *= ServerSettings.FoodUseChildFaktor;
 
         // do damage if wound
         if(player.isWounded())
@@ -500,11 +503,12 @@ class TimeHelper
         // do damage while starving
         if(player.food_store < 0)
         {
-            player.hits += foodDecay * ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath / 2;
+            player.hits += originalFoodDecay * ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath / 2;
         }
-
+        
         // take care of exhaustion
-        if(player.exhaustion > -player.food_store_max && player.food_store > 0)
+        //if(healing > 0 && player.exhaustion > -player.food_store_max && player.food_store > 0)
+        if(doHealing && player.exhaustion > -player.food_store_max)
         {
             var healingFaktor = player.isMale() ? ServerSettings.ExhaustionHealingForMaleFaktor : 1;
 
@@ -517,8 +521,8 @@ class TimeHelper
         
         // take damage if temperature is too hot or cold
         var damage:Float = 0;
-        if(player.isSuperHot())  damage = player.heat > 0.98 ? 3 * foodDecay : foodDecay;
-        else if(player.isSuperCold()) damage = player.heat < 0.02 ? 3 * foodDecay : foodDecay;
+        if(player.isSuperHot())  damage = player.heat > 0.95 ? 3 * originalFoodDecay : originalFoodDecay;
+        else if(player.isSuperCold()) damage = player.heat < 0.05 ? 3 * originalFoodDecay : originalFoodDecay;
         
         damage /= 2;
         player.hits += damage;
@@ -527,16 +531,20 @@ class TimeHelper
         // do Biome exhaustion
         //var tmpexhaustion = player.exhaustion;
         var biomeLoveFactor = player.biomeLoveFactor();
-        if(biomeLoveFactor < 0) player.exhaustion -= foodDecay * biomeLoveFactor;
-        if(biomeLoveFactor > 0 && player.exhaustion > -player.food_store_max) player.exhaustion -= foodDecay * biomeLoveFactor / 2;
+        if(biomeLoveFactor < 0) player.exhaustion -= originalFoodDecay * biomeLoveFactor / 2; // gain exhaustion in wrong biome
+        if(biomeLoveFactor > 0 && player.exhaustion > -player.food_store_max) player.exhaustion -= originalFoodDecay * biomeLoveFactor / 2;
         //trace('Exhaustion: $tmpexhaustion ==> ${player.exhaustion} pID: ${player.p_id} biomeLoveFactor: $biomeLoveFactor');
 
         // do healing but increase food use
-        if(player.hits > 0 && playerIsStarvingOrHasBadHeat == false && player.isWounded() == false) 
+        //if(healing > 0 && player.hits > 0 && playerIsStarvingOrHasBadHeat == false && player.isWounded() == false) 
+        if(player.hits > 0) 
         {
-            player.hits -= healing / 2;
+            var healingFaktor = doHealing ? 1 : 0.0; 
+            var foodDecayFaktor = doHealing ? 2 : 1; 
 
-            foodDecay += originalFoodDecay;
+            player.hits -= healing * ServerSettings.WoundHealing * healingFaktor;
+
+            foodDecay += originalFoodDecay * ServerSettings.WoundHealing * foodDecayFaktor;
 
             if(player.hits < 0) player.hits = 0; 
 
@@ -547,7 +555,7 @@ class TimeHelper
             }
         }
 
-        // if starving to death and there is some health left, reduce food need and heath
+        // if starving to death and there is some health left, reduce food need and health
         if(player.food_store < 0 && player.yum_multiplier > 0)
         {
             player.yum_multiplier -= foodDecay;

@@ -1,10 +1,7 @@
 package openlife.settings;
 
 import openlife.server.Lineage.PrestigeClass;
-import openlife.server.TransitionHelper;
-import openlife.server.Server;
 import sys.FileSystem;
-import haxe.macro.Expr.Catch;
 import sys.io.File;
 import openlife.data.transition.TransitionData;
 import openlife.data.transition.TransitionImporter;
@@ -62,7 +59,7 @@ class ServerSettings
 
     // birth    
     public static var EveOrAdamBirthChance = 0.05; // since each eve gets an adam the true chance is x2
-    public static var NewChildExhaustionForMother = 15;
+    public static var NewChildExhaustionForMother = 10;
     public static var ChanceForFemaleChild = 0.6;
     public static var ChanceForOtherChildColor = 0.2;
     public static var ChanceForOtherChildColorIfCloseToWrongSpecialBiome = 0.3; // for example Black born in or close to Jungle
@@ -118,7 +115,7 @@ class ServerSettings
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
     public static var DeathWithFoodStoreMax:Float = -0.1; // Death through starvation if food store max reaches below XX 
-    public static var IncreasedFoodNeedForChildren = 1.5; // children need XX food is below GrownUpAge
+    public static var FoodUseChildFaktor = 1.5; // children need X times food if below GrownUpAge
     public static var YumBonus = 3; // First time eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
     public static var YumFoodRestore = 0.8; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food
     public static var YumNewCravingChance = 0.2; // XX chance that a new random craving is chosen even if there are existing ones
@@ -153,7 +150,8 @@ class ServerSettings
     // hungry work
     public static var HungryWorkCost = 10;
     public static var HungryWorkToolCostFactor:Float = 1;
-    public static var ExhaustionHealing:Float = 1; 
+    public static var ExhaustionHealing:Float = 2; 
+    public static var WoundHealing:Float = 1; 
     public static var ExhaustionHealingForMaleFaktor:Float = 1.2; 
 
     // for animal movement
