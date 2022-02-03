@@ -273,9 +273,15 @@ class PlayerInstance
         if (move_speed == null)
             move_speed = this.move_speed;
 
+        
+        var tmpHeat = Std.int(heat * 100) / 100;
+        age = Std.int(age * 100) / 100;
+        age_r = Std.int(age_r * 100) / 100;
+        move_speed = Std.int(move_speed * 100) / 100;
+
         var moving = isHeld ? 0 : done_moving_seqNum; 
         //trace('AAI: p$p_id $rx,$ry');
-        return '$p_id $po_id $facing $action ${action_target_x + forPlayerOffsetX} ${action_target_y + forPlayerOffsetY} $heldObject $o_origin_valid ${o_origin_x + forPlayerOffsetX} ${o_origin_y + forPlayerOffsetY} $o_transition_source_id $heat $moving ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${Std.int(age*100)/100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
+        return '$p_id $po_id $facing $action ${action_target_x + forPlayerOffsetX} ${action_target_y + forPlayerOffsetY} $heldObject $o_origin_valid ${o_origin_x + forPlayerOffsetX} ${o_origin_y + forPlayerOffsetY} $o_transition_source_id $tmpHeat $moving ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${Std.int(age*100)/100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
     }
 }
 /*
