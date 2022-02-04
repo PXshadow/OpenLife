@@ -17,12 +17,13 @@ class PlayerInstance
     public var gx:Int = 400; //global x offset from birth
     public var gy:Int = 300; //global y offset from birth 
 
-
     public var tx(get, null):Int;
     public function get_tx(){return x + gx;}
 
     public var ty(get, null):Int;
     public function get_ty(){return y + gy;}
+
+
 
     //public function tx() : Int {return x + gx;}
     //public function ty() : Int {return y + gy;}
@@ -178,18 +179,25 @@ class PlayerInstance
         if (deleted)
             reason = a[i];
     }
+
+    public function isMoving() : Bool {return false;}
+    public function isHeld() : Bool {return false;}
+
     private inline function int():Int
     {
         return Std.parseInt(a[i++]);
     }
+    
     private inline function float():Float
     {
         return Std.parseFloat(a[i++]);
     }
+
     private inline function string():String
     {
         return a[i++];
     }
+
     public function update(instance:PlayerInstance)
     {
         p_id = instance.p_id;
@@ -216,6 +224,7 @@ class PlayerInstance
         held_yum = instance.held_yum;
         held_learned = instance.held_learned;
     }
+
     public function clone():PlayerInstance
     {
         var instance = new PlayerInstance([]);
@@ -244,6 +253,7 @@ class PlayerInstance
         instance.held_learned = held_learned;
         return instance;
     }
+
     /**
      * toString for debug
      * @return String output = "field: property"
@@ -257,7 +267,8 @@ class PlayerInstance
         }
         return string;
     }
-    public function toData(?rx:Int,?ry:Int,?age:Float,?age_r:Float,?move_speed:Float,heldObject:String="", forPlayerOffsetX:Int = 0, forPlayerOffsetY:Int = 0, isHeld:Bool = false):String
+
+    public function toData(?rx:Int,?ry:Int,?age:Float,?age_r:Float,?move_speed:Float,heldObject:String="", forPlayerOffsetX:Int = 0, forPlayerOffsetY:Int = 0):String
     {
         //o_origin_valid = 1;
         if (heldObject == "")
@@ -272,14 +283,15 @@ class PlayerInstance
             age_r = this.age_r;
         if (move_speed == null)
             move_speed = this.move_speed;
-
-        
+   
         var tmpHeat = Std.int(heat * 100) / 100;
         age = Std.int(age * 100) / 100;
         age_r = Std.int(age_r * 100) / 100;
         move_speed = Std.int(move_speed * 100) / 100;
 
-        var moving = isHeld ? 0 : done_moving_seqNum; 
+        var moving = isHeld() || isMoving() ? 0 : done_moving_seqNum; 
+
+        trace('TODATA isHeld: ${isHeld()} isMoving: ${isMoving()} $x $y');
         //trace('AAI: p$p_id $rx,$ry');
         return '$p_id $po_id $facing $action ${action_target_x + forPlayerOffsetX} ${action_target_y + forPlayerOffsetY} $heldObject $o_origin_valid ${o_origin_x + forPlayerOffsetX} ${o_origin_y + forPlayerOffsetY} $o_transition_source_id $tmpHeat $moving ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${Std.int(age*100)/100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
     }

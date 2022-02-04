@@ -732,7 +732,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return this;
     } 
 
-    public function isMoving()
+    public override function isMoving()
     {
         return moveHelper.isMoveing();      
     }
@@ -832,8 +832,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             Std.int(move_speed * 100) / 100,
              heldObject,
              this.gx - forPlayer.gx,
-             this.gy - forPlayer.gy,
-             isHeld()
+             this.gy - forPlayer.gy     
         );
     }
 
@@ -3728,7 +3727,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return false;
     }
 
-    public function isHeld() : Bool
+    public override function isHeld() : Bool
     {
         return (this.heldByPlayer != null);
     }
