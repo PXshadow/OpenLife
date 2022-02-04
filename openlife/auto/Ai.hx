@@ -30,6 +30,7 @@ class Ai
     var foodTarget:ObjectHelper = null; 
     var dropTarget:ObjectHelper = null;
     var useTarget:ObjectHelper = null;
+    var useActor:ObjectHelper = null; // to check if the right actor is in the hand
 
     var itemToCraftId = -1;
     var itemToCraft:IntemToCraft = new IntemToCraft();
@@ -218,11 +219,11 @@ class Ai
         if(itemToCraftId > 0)
         {
             if(craftItem(itemToCraftId)) return;
-            time += 2; // TODO change
+            //time += 2; // TODO change
         }
 
         
-        time += 2;
+        //time += 2;
         /*var cravingId = myPlayer.getCraving();
         if(cravingId > 0) craftItem(cravingId);
         else{
@@ -599,12 +600,13 @@ class Ai
 
         if(itemToCraft.transActor != null && player.heldObject.parentId == itemToCraft.transActor.parentId)
         {
+            useActor = itemToCraft.transActor;
             itemToCraft.transActor = null; // actor is allready in the hand
             var target = AiHelper.GetClosestObject(myPlayer, itemToCraft.transTarget.objectData);
             useTarget = target != null ? target : itemToCraft.transTarget; // since other search radius might be bigger
 
             return true;
-        }    
+        }
 
         if(itemToCraft.itemToCraft.parentId != objId)
         {
@@ -626,7 +628,7 @@ class Ai
             return false;
         }
 
-        if(player.heldObject.parentId == itemToCraft.transActor.parentId)
+        if(player.heldObject.parentId == itemToCraft.transActor.parentId || itemToCraft.transActor.id == 0)
         {
             trace('AAI: ${myPlayer.id} craft Actor is held already ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
 
@@ -634,27 +636,16 @@ class Ai
             myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
 
             useTarget = itemToCraft.transTarget; 
+            useActor = itemToCraft.transActor;
             itemToCraft.transActor = null; // actor is allready in the hand
         }
         else
         {
-            if(itemToCraft.transActor.id == 0)
-            {
-                trace('AAI: ${myPlayer.id} drop obj since craft actor is 0');
-
-                dropHeldObject();
-                myPlayer.say('Drop since actor is empty ');
-
-                useTarget = itemToCraft.transTarget; 
-                itemToCraft.transActor = null; // actor is allready in the hand
-                return true;
-            }
-
             trace('AAI: ${myPlayer.id} craft goto actor: ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
 
             myPlayer.say('Goto actor ' + itemToCraft.transActor.name );
             
-            useTarget = itemToCraft.transActor;
+            dropTarget = itemToCraft.transActor;
 
             if(player.heldObject.id != 0)
             {
@@ -1068,49 +1059,10 @@ class Ai
         return false;
     }
 
-    /*if(time < 0 && foodTarget == null && useTarget == null && playerInterface.isMoving() == false)
-        {
-            if(myPlayer.heldObject.id == 33) // 33 Stone // 34 Sharp Stone
-            {
-                // make rock sharp
-                useTarget = playerInterface.GetClosestObjectById(32); // 32 Big Hard Rock   
-                if(useTarget != null) trace('AI: new useTarget ${useTarget.description}');
-            }
-            else if(myPlayer.heldObject.id != 34) // 33 Stone // 34 Sharp Stone
-            {
-                useTarget = playerInterface.GetClosestObjectById(34);
-                
-                if(useTarget != null) trace('AI: new useTarget ${useTarget.description}');
-
-                if(useTarget == null)
-                {
-                    trace('AI: no new useTarget found! Sharp Stone');
-
-                    if(myPlayer.heldObject.id != 33) // 33 Stone // 34 Sharp Stone
-                    {
-                        useTarget = playerInterface.GetClosestObjectById(33); // 33 Stone
-
-                        if(useTarget == null)
-                        {
-                            trace('AI: no new useTarget found! Stone');
-                        }
-                    }
-                }
-            }
-            //useTarget = null;
-        }*/
-
-    
-
     // returns true if in process of dropping item
     private function isDropingItem() : Bool
     {
         if(dropTarget == null) return false;
-        if(myPlayer.heldObject.id == 0)
-        {
-            dropTarget = null;
-            return false;
-        } 
         if(myPlayer.isMoving()) return true;        
 
         var distance = myPlayer.CalculateDistanceToObject(dropTarget);
@@ -1259,11 +1211,21 @@ class Ai
         if(useTarget == null) return false; 
         if(myPlayer.isMoving()) return true;
 
-        var distance = myPlayer.CalculateDistanceToObject(useTarget);
-        //var myPlayer = myPlayer.getPlayerInstance();
+        // only allow to go on with use if right actor is in the hand, or if actor will be empty
+        if(myPlayer.heldObject.id != useActor.id && useActor.id != 0) 
+        {
+            trace('AAI: ${myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActor.name}');
 
-        trace('AAI: ${myPlayer.id} Use:  distance: $distance ${useTarget.description} ${useTarget.tx} ${useTarget.ty}');
-    
+            useTarget = null;
+            useActor = null;
+            //dropTarget = itemToCraft.transActor;
+            
+            return false;
+        }
+
+        var distance = myPlayer.CalculateDistanceToObject(useTarget);
+        trace('AAI: ${myPlayer.id} Use: distance: $distance ${useTarget.description} ${useTarget.tx} ${useTarget.ty}');
+
         if(distance > 1)
         {
             var name = useTarget.name;
@@ -1295,9 +1257,10 @@ class Ai
             return true;
         }
 
-        if(myPlayer.heldObject.id  != 0 && itemToCraft.transActor != null && myPlayer.heldObject.id != itemToCraft.transActor.id)
+        // Drop object to pickup actor
+        if(myPlayer.heldObject.id  != 0 && useActor.id == 0)
         {
-            trace('AAI: ${myPlayer.id} craft: drop obj to pickup ${itemToCraft.transActor.name}');
+            trace('AAI: ${myPlayer.id} craft: drop obj to to have empty hand');
             dropHeldObject(); 
             return true;
         }
@@ -1307,6 +1270,7 @@ class Ai
 
         if(done)
         {
+            itemToCraft.done = true;
             itemToCraft.countTransitionsDone += 1; 
             var taregtObjectId = myPlayer.getWorld().getObjectId(useTarget.tx, useTarget.ty)[0];
             // if object to create is held by player or is on ground, then cound as done
@@ -1411,6 +1375,7 @@ class IntemToCraft
     public var count:Int = 1; // how many items to craft
     public var countDone:Int = 0; // allready crafted
     public var countTransitionsDone:Int = 0; // transitions done while crafting
+    public var done:Bool = false; // transitions done while crafting
 
 
     public var transActor:ObjectHelper = null;
