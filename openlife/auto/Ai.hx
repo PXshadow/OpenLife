@@ -45,6 +45,9 @@ class Ai
 
     var craftingTasks = new Array<Int>();
 
+    // counts how often one could not reach food because of dedly animals
+    var didNotReachFood:Float = 0;
+
     public function new(player:PlayerInterface) 
     {
         this.myPlayer = player;
@@ -169,9 +172,9 @@ class Ai
     // do time stuff here is called from TimeHelper
     public function doTimeStuff(timePassedInSeconds:Float) 
     {
-        var player = myPlayer.getPlayerInstance();
-
         time -= timePassedInSeconds;
+
+        didNotReachFood -= timePassedInSeconds * 0.1;
 
         if(time > 0) return;
         time += ServerSettings.AiReactionTime; //0.5; // minimum AI reacting time
@@ -188,7 +191,7 @@ class Ai
         var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer);
     
         if(escape(animal, deadlyPlayer)) return;
-        checkIsHungryAndEat();
+        if(didNotReachFood < 5) checkIsHungryAndEat();
         if(isChildAndHasMother()){if(isMovingToPlayer()) return;}
         if(myPlayer.isWounded()){isMovingToPlayer(); return;} // do nothing then looking for player
         
@@ -301,6 +304,8 @@ class Ai
         var done = myPlayer.use(animalTarget.tx - myPlayer.gx, animalTarget.ty - myPlayer.gy);
 
         trace('AAI: ${myPlayer.id} killAnimal: done: $done kill ${animalTarget.description}');
+
+        didNotReachFood = 0;
 
         return true;
     }
@@ -564,6 +569,8 @@ class Ai
 
         if(useTarget != null || foodTarget != null || escapeTarget != null)
         {
+            if(foodTarget != null) didNotReachFood++;
+
             addObjectWithHostilePath(useTarget);
             addObjectWithHostilePath(foodTarget);
             addObjectWithHostilePath(escapeTarget);
@@ -1197,7 +1204,7 @@ class Ai
             trace('AI: Eat: set foodTarget to null');
             foodTarget = null;
         }*/
-
+        this.didNotReachFood = 0;
         foodTarget = null;
         return true;
         

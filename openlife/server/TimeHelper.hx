@@ -458,7 +458,7 @@ class TimeHelper
 
             if(Std.int(player.trueAge) % 4 == 0)
             {
-                var text = player.prestigeFromEating > 0 ? 'You have gained ${player.prestigeFromWealth * factor} prestige from your wealth!' : '';
+                var text = player.prestigeFromWealth > 0 ? 'You have gained ${player.prestigeFromWealth * factor} prestige from your wealth!' : '';
                 player.connection.sendGlobalMessage(text);
 
                 var coins:Float = Std.int(player.coins); 
