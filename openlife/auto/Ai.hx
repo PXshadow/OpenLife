@@ -191,7 +191,7 @@ class Ai
         var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer);
     
         if(escape(animal, deadlyPlayer)) return;
-        if(didNotReachFood < 5) checkIsHungryAndEat();
+        if(didNotReachFood < 5 || myPlayer.food_store < -1) checkIsHungryAndEat();
         if(isChildAndHasMother()){if(isMovingToPlayer()) return;}
         if(myPlayer.isWounded()){isMovingToPlayer(); return;} // do nothing then looking for player
         
@@ -509,6 +509,8 @@ class Ai
         if(animal.isKillableByBow()) animalTarget = animal;
         // go for hunting 
         if(myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false) return false; 
+        if(this.didNotReachFood > 4) return false; // need urgently food
+        //if(foodTarget != null && myPlayer.food_store < -1 && this.didNotReachFood > 4) return false; // need urgently food
 
         var player = myPlayer.getPlayerInstance();
         var escapeDist = 3;

@@ -186,7 +186,7 @@ class TransitionHelper{
 
         //trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
 
-        trace('TRANS AGE: ${player.age}');
+        trace('TRANS AGE: ${player.age} ${player.name} ${player.id}');
         trace('handObjectHelper: ${handObjectData.description} numberOfUses: ${player.heldObject.numberOfUses} ' + player.heldObject.toArray());
         trace('target: ${tileObjectData.description} ${target.tx}, ${target.ty} numberOfUses: ${target.numberOfUses} ' + target.toArray());
     }
@@ -417,7 +417,7 @@ class TransitionHelper{
         }
 
         // give animal a chance to escape
-        if(deadlyDistance > 0 && this.target.objectData.moves > 0)
+        if(deadlyDistance > 0 && this.target.isAnimal())
         {
             if(TimeHelper.TryAnimaEscape(this.player, this.target)) return false;
         }
@@ -727,9 +727,15 @@ class TransitionHelper{
             // check if not horse pickup or drop
             if(player.heldObject.containedObjects.length > newActorObjectData.numSlots)
             {
-                trace('TRANS: New actor can only contain ${newActorObjectData.numSlots} but old actor had ${player.heldObject.containedObjects.length} contained objects!');
-    
-                return false;
+                trace('TRANS: New actor can only contain ${newActorObjectData.numSlots} but old actor had ${player.heldObject.containedObjects.length} contained objects!' + player.heldObject.toString());
+
+                if(player.heldObject.id == 0)
+                {
+                    // TODO solve
+                    player.heldObject.containedObjects = [];
+                    trace('WARNING TRANS: held object is empty and contains something!' + player.heldObject.toString());
+                }
+                else return false;
             }
 
             if(target.containedObjects.length > newTargetObjectData.numSlots)

@@ -1453,8 +1453,6 @@ class TimeHelper
 
         if(random > animalEscapeFactor) return false;
 
-        // TODO set hits to incease chance
-
         target.timeToChange /= 5;    
         var tmpTimeToChange = target.timeToChange;
         doTimeTransition(target);

@@ -209,7 +209,7 @@ class ServerSettings
     public static var AiMaxSearchIncrement:Int = 20; // 16
 
     // Debug AI
-    public static var DebugAiCraftingObject:Int = 57; 
+    public static var DebugAiCraftingObject:Int = 999999; //57; 
     
     // iron, tary spot spring cannot respawn or win lottery
     public static function CanObjectRespawn(obj:Int) : Bool
