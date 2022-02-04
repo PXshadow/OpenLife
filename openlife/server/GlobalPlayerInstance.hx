@@ -1689,7 +1689,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(isSuperMeh) foodValue = playerFrom.heldObject.objectData.foodValue / 2;
 
-        if(isSuperMeh && playerTo.food_store > 0)
+        if(isSuperMeh && playerTo.food_store > 2)
         {
             trace('Supermeh food can only be eaten if starving to death: foodValue: $foodValue original food value: ${playerFrom.heldObject.objectData.foodValue} food_store: ${playerTo.food_store}');
             if(playerTo == playerFrom) playerTo.doEmote(Emote.ill);
@@ -1707,13 +1707,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(isSuperMeh == false)
         {
+            var countEaten = playerTo.hasEatenMap[heldObjData.id]; 
+
             if(countEaten < 0)
             {
-                foodEaten = Math.max(2, -countEaten / 2); // eat more if it its a craving
+                foodEaten = Math.max(1, Math.floor(-countEaten / 2)); // eat more if it its a craving
                 playerTo.hasEatenMap[heldObjData.id] += foodEaten;
+
+                trace('Craving: foodEaten: $foodEaten countEaten: $countEaten --> ${playerTo.hasEatenMap[heldObjData.id]}');
+            }
+            else
+            {
+                playerTo.hasEatenMap[heldObjData.id] += foodEaten;
+                trace('No Craving: foodEaten: $foodEaten countEaten: $countEaten --> ${playerTo.hasEatenMap[heldObjData.id]}');
             }
 
-            playerTo.hasEatenMap[heldObjData.id] += foodEaten;
             playerTo.doIncreaseFoodValue(heldObjData.id);
             //playerTo.say('FC ${playerTo.hasEatenMap[heldObjData.id]}');
         }
