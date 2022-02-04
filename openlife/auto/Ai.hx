@@ -280,7 +280,7 @@ class Ai
         if(myPlayer.heldObject.id != objData.id)
         {
             GetOrCraftItem(objData.id);
-            return false;
+            return true;
         }
 
         var distance = myPlayer.CalculateDistanceToObject(animalTarget);
@@ -321,7 +321,7 @@ class Ai
 
         if(distance > 1)
         {
-            var done = myPlayer.Goto(obj.tx - myPlayer.gx, obj.ty - myPlayer.gy);
+            var done = GotoObj(obj);
 
             trace('AAI: ${myPlayer.id} killAnimal done: $done goto weapon');
             return true;
@@ -633,10 +633,10 @@ class Ai
 
             if(player.heldObject.id != 0)
             {
-                trace('AAI: ${myPlayer.id} craft: drop obj to pickup ${itemToCraft.transActor.name}');
-                dropHeldObject();
+                //trace('AAI: ${myPlayer.id} craft: drop obj to pickup ${itemToCraft.transActor.name}');
+                //dropHeldObject(); 
                 return true;
-        }
+            }
         }
         
         return true;
@@ -757,6 +757,8 @@ class Ai
         var startTime = Sys.time();
         var count = 1;
 
+        itemToCraft.bestDistance = 99999999999999999;
+
         objectsToSearch.push(objToCraftId);
         transitionsByObjectId[0] = new TransitionForObject(0,0,0,null);
         transitionsByObjectId[-1] = new TransitionForObject(-1,0,0,null);
@@ -785,10 +787,14 @@ class Ai
             count++;
 
             var transitions = world.getTransitionByNewActor(wantedId);
-            if(DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions)) break;
+            //if(DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions)) break;
+            DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions);
 
             var transitions = world.getTransitionByNewTarget(wantedId);
-            if(DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions)) break;
+            //if(DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions)) break;
+            DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions);
+
+            if(itemToCraft.bestDistance < 100) break;
         }
 
         var obj = ObjectData.getObjectData(objToCraftId);
@@ -796,7 +802,7 @@ class Ai
         var descTarget = itemToCraft.transTarget == null ? 'NA' : itemToCraft.transTarget.name;
         descTarget += itemToCraft.transTarget == null ? '' : ' ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}';
 
-        trace('AI: craft: FINISHED $count ms: ${Math.round((Sys.time() - startTime) * 1000)} ${obj.name} --> $descActor + $descTarget');
+        trace('AI: craft: FINISHED $count ms: ${Math.round((Sys.time() - startTime) * 1000)} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
     }
 
     private static function DoTransitionSearch(itemToCraft:IntemToCraft, wantedId:Int, objectsToSearch:Array<Int>, transitions:Array<TransitionData>) : Bool
@@ -862,10 +868,19 @@ class Ai
                 //trace('Ai: craft: steps: ${wanted.steps} wanted: ${wanted.objId} actor: ${actorObj.description} target: ${targetObj.description} ' + trans.getDesciption());
             }
 
-            if(wantedId != objToCraftId) continue;       
+            if(wantedId != objToCraftId) continue;  
+            
+            var dist = actor.closestObjectDistance;
 
-            itemToCraft.transActor = actorObj;
-            itemToCraft.transTarget = targetObj; 
+            dist += AiHelper.CalculateDistance(wanted.craftActor.tx, wanted.craftActor.ty, wanted.craftTarget.tx, wanted.craftTarget.ty);
+            
+            // TODO to work it needs to allow to process further
+            if(dist < itemToCraft.bestDistance)
+            {
+                itemToCraft.bestDistance = dist;
+                itemToCraft.transActor = actorObj;
+                itemToCraft.transTarget = targetObj; 
+            }
 
             var actor = transitionsByObjectId[actorObj.id];
             var target = transitionsByObjectId[targetObj.id];
@@ -877,9 +892,9 @@ class Ai
             var objToCraft = ObjectData.getObjectData(objToCraftId);
 
             //trace('Ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
-            trace('Ai: craft DONE: ${objToCraft.name} steps: ${steps} $desc');
+            trace('Ai: craft DONE: ${objToCraft.name} dist: $dist steps: ${steps} $desc');
 
-            return true;
+            //return true;
         }    
 
         return false;
@@ -1011,7 +1026,6 @@ class Ai
 
         if(myPlayer.CalculateDistanceToPlayer(playerToFollow) > maxDistance)
         {
-            trace('AAI: ${myPlayer.id} age: ${myPlayer.age} goto player');
             var randX = WorldMap.calculateRandomInt(4) - 2;
             var randY = WorldMap.calculateRandomInt(4) - 2;
 
@@ -1231,7 +1245,7 @@ class Ai
         if(distance > 1)
         {
             var done = myPlayer.Goto(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
-            trace('AAI: ${myPlayer.id} $done goto useItem ${useTarget.name}');
+            trace('AAI: ${myPlayer.id} goto useItem ${useTarget.name} $done');
 
             myPlayer.say('Goto ${useTarget.name} for use!');
 
@@ -1367,7 +1381,9 @@ class IntemToCraft
     public var transActor:ObjectHelper = null;
     public var transTarget:ObjectHelper = null;
 
-    public var transitionsByObjectId:Map<Int, TransitionForObject>;     
+    public var transitionsByObjectId:Map<Int, TransitionForObject>; 
+    
+    public var bestDistance:Float = 99999999999999999999999;
 
     public function new()
     {

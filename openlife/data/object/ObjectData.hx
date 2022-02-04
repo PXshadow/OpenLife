@@ -472,7 +472,7 @@ class ObjectData extends LineReader
             
             tmpName = StringTools.trim(tmpName);
 
-            trace('Name: ${objData.id} ${objData.description} --> $tmpName');
+            //trace('Name: ${objData.id} ${objData.description} --> $tmpName');
 
             objData.name = tmpName;
         }

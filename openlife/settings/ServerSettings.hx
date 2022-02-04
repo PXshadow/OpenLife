@@ -205,8 +205,8 @@ class ServerSettings
     public static var AiReactionTime:Float = 0.5;
     public static var TimeToAiRebirth:Float = 15;
     public static var AiTotalScoreFactor:Float = 0.2; 
-    public static var AiMaxSearchRadius:Int = 32;
-    public static var AiMaxSearchIncrement:Int = 35; // 16
+    public static var AiMaxSearchRadius:Int = 60;
+    public static var AiMaxSearchIncrement:Int = 20; // 16
 
     // Debug AI
     public static var DebugAiCraftingObject:Int = 57; 
