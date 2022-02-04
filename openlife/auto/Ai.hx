@@ -284,16 +284,16 @@ class Ai
         var distance = myPlayer.CalculateDistanceToObject(animalTarget);
         var range = objData.useDistance;
 
-        if(distance > range * range)
+        if(distance > range * range || (range > 1.9 && distance < 1.5)) // check if too far or too close
         {
             var targetXY = new ObjectHelper(null, 0);
 
-            targetXY.tx = animalTarget.tx > myPlayer.tx ?  animalTarget.tx - range : animalTarget.tx + range - 1;
-            targetXY.ty = animalTarget.ty > myPlayer.ty ?  animalTarget.ty - range : animalTarget.ty + range - 1;
+            targetXY.tx = animalTarget.tx > myPlayer.tx ?  animalTarget.tx - range + 1 : animalTarget.tx + range - 1;
+            targetXY.ty = animalTarget.ty > myPlayer.ty ?  animalTarget.ty - range + 1 : animalTarget.ty + range - 1;
 
             var done = gotoObj(targetXY);
 
-            trace('AAI: ${myPlayer.id} killAnimal goto animaltarget ${done}');
+            trace('AAI: ${myPlayer.id} killAnimal $distance goto animaltarget ${done}');
 
             return true;
         }
@@ -476,6 +476,7 @@ class Ai
 
             rand++;
 
+            if(myPlayer.isBlocked(tx + xo, ty + yo)) continue;
             if(isObjectNotReachable(tx + xo, ty + yo)) continue;
 
             var done = myPlayer.Goto(x + xo,  y + yo);
@@ -539,6 +540,8 @@ class Ai
 
                 newEscapetarget.tx += randX;
                 newEscapetarget.ty += randY;
+
+                if(myPlayer.isBlocked(newEscapetarget.tx, newEscapetarget.ty)) continue;
 
                 if(checkIfDangerous && AiHelper.IsDangerous(myPlayer, newEscapetarget)) continue;
 
