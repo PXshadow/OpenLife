@@ -791,6 +791,10 @@ class ServerSettings
          
         ObjectData.getObjectData(342).alternativeTransitionOutcome.push(344); // Chopped Tree Big Log--> Fire Wood
         ObjectData.getObjectData(340).alternativeTransitionOutcome.push(344); // Chopped Tree --> Fire Wood
+
+        // allow more options to kill animals
+        var trans = new TransitionData(152,427,151,420); // Bow and Arrow + Attacking Wolf --> Yew Bow + Shot Wolf
+        transtions.addTransition("PatchTransitions: ", trans);
     }
 
     public static function writeToFile()
