@@ -815,8 +815,8 @@ class Ai
         var descTarget = itemToCraft.transTarget == null ? 'NA' : itemToCraft.transTarget.name;
 
         // TODO fix name == null
-        if(itemToCraft.transActor.name == null) descActor += itemToCraft.transActor == null ? '' : ' ${itemToCraft.transActor.id} ${itemToCraft.transActor.description}';
-        if(itemToCraft.transTarget.name == null) descTarget += itemToCraft.transTarget == null ? '' : ' ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}';
+        if(itemToCraft.transActor != null && itemToCraft.transActor.name == null) descActor += itemToCraft.transActor == null ? '' : ' ${itemToCraft.transActor.id} ${itemToCraft.transActor.description}';
+        if(itemToCraft.transTarget != null && itemToCraft.transTarget.name == null) descTarget += itemToCraft.transTarget == null ? '' : ' ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}';
 
         trace('AI: craft: FINISHED $count ms: ${Math.round((Sys.time() - startTime) * 1000)} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
     }
