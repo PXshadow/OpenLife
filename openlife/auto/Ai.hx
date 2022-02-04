@@ -141,9 +141,7 @@ class Ai
 
     public function searchFoodAndEat()
     {
-        //var myPlayer = myPlayer.getPlayerInstance();
         foodTarget = AiHelper.SearchBestFood(myPlayer);
-        //if(foodTarget != null) myPlayer.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
     }
 
     public function dropHeldObject() 
@@ -293,9 +291,9 @@ class Ai
             targetXY.tx = animalTarget.tx > myPlayer.tx ?  animalTarget.tx - range : animalTarget.tx + range - 1;
             targetXY.ty = animalTarget.ty > myPlayer.ty ?  animalTarget.ty - range : animalTarget.ty + range - 1;
 
-            var done = GotoObj(targetXY);
+            var done = gotoObj(targetXY);
 
-            trace('AAI: ${myPlayer.id} killAnimal goto animaltarget ${done} ${animalTarget.tx},${animalTarget.ty}');
+            trace('AAI: ${myPlayer.id} killAnimal goto animaltarget ${done}');
 
             return true;
         }
@@ -321,7 +319,7 @@ class Ai
 
         if(distance > 1)
         {
-            var done = GotoObj(obj);
+            var done = gotoObj(obj);
 
             trace('AAI: ${myPlayer.id} killAnimal done: $done goto weapon');
             return true;
@@ -424,13 +422,14 @@ class Ai
         }
 
         var distance = myPlayer.CalculateDistanceToPlayer(child);
-        var childX = child.tx - myPlayer.gx;
-        var childY = child.ty - myPlayer.gy;
+        
 
         if(distance > 1)
         {
-            trace('AAI: ${myPlayer.id} goto child');
-            myPlayer.Goto(childX, childY);
+            var done = gotoAdv(child.tx, child.ty);
+
+            trace('AAI: ${myPlayer.id} goto child $done');
+
             return true;
         }
 
@@ -441,37 +440,51 @@ class Ai
             return true;
         }
 
+        var childX = child.tx - myPlayer.gx;
+        var childY = child.ty - myPlayer.gy;
+
         myPlayer.say('Pickup ${child.name}');
         var done = myPlayer.doBaby(childX, childY, child.id);
 
-        //trace('AAI: child ${child.name} pickup $done');
+        trace('AAI: ${myPlayer.id} child ${child.name} pickup $done');
 
         return true;
     }
 
-    private function GotoObj(obj:ObjectHelper)
+    private function gotoObj(obj:ObjectHelper) : Bool
     {
-        var xo = 0;
-        var yo = 0;
+        return gotoAdv(obj.tx, obj.ty);
+    }
+
+    private function gotoAdv(tx:Int, ty:Int) : Bool
+    {
+        var rand = 0;
+        var x = tx - myPlayer.gx;
+        var y = ty - myPlayer.gy;
 
         for(i in 0...5)
         {
-            if(i > 0)
-            {
-                xo = WorldMap.calculateRandomInt(2) - 1;
-                yo = WorldMap.calculateRandomInt(2) - 1;
-            }
+            var xo = 0;
+            var yo = 0;
 
-            if(isObjectNotReachable(obj.tx + xo, obj.ty + yo)) continue;
+            if(rand > 4) break;
 
-            var done = myPlayer.Goto(obj.tx + xo - myPlayer.gx, obj.ty + yo - myPlayer.gy);
+            if(rand == 1) xo = 1;
+            if(rand == 2) yo = -1;
+            if(rand == 3) xo = -1;
+            if(rand == 4) yo = 1;
 
-            // TODO obj not reachable or bug in pathing?
+            rand++;
+
+            if(isObjectNotReachable(tx + xo, ty + yo)) continue;
+
+            var done = myPlayer.Goto(x + xo,  y + yo);
+
             if(done) return true;
         }
 
-        trace('AI: GOTO failed! Ignore ${obj.tx} ${obj.ty} '); 
-        this.addNotReachableObject(obj);
+        trace('AI: GOTO failed! Ignore ${tx} ${ty} '); 
+        this.addNotReachable(tx, ty);
 
         escapeTarget = null;
         foodTarget = null;
@@ -529,9 +542,9 @@ class Ai
 
                 if(checkIfDangerous && AiHelper.IsDangerous(myPlayer, newEscapetarget)) continue;
 
-                done = GotoObj(newEscapetarget);
+                done = gotoObj(newEscapetarget);
 
-                //trace('Escape done: $done $ii $i alwaysX: $alwaysX alwaysY $alwaysY es: ${newEscapetarget.tx},${newEscapetarget.ty}');
+                trace('AAI: ${myPlayer.id} Escape $done $ii $i alwaysX: $alwaysX alwaysY $alwaysY es: ${newEscapetarget.tx},${newEscapetarget.ty}');
 
                 if(done) break;
             }
@@ -613,8 +626,6 @@ class Ai
         }
         else
         {
-            trace('AAI: ${myPlayer.id} craft goto actor: ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
-
             if(itemToCraft.transActor.id == 0)
             {
                 trace('AAI: ${myPlayer.id} drop obj since craft actor is 0');
@@ -626,6 +637,8 @@ class Ai
                 itemToCraft.transActor = null; // actor is allready in the hand
                 return true;
             }
+
+            trace('AAI: ${myPlayer.id} craft goto actor: ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
 
             myPlayer.say('Goto actor ' + itemToCraft.transActor.name );
             
@@ -800,7 +813,10 @@ class Ai
         var obj = ObjectData.getObjectData(objToCraftId);
         var descActor = itemToCraft.transActor == null ? 'NA' : itemToCraft.transActor.name;
         var descTarget = itemToCraft.transTarget == null ? 'NA' : itemToCraft.transTarget.name;
-        descTarget += itemToCraft.transTarget == null ? '' : ' ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}';
+
+        // TODO fix name == null
+        if(itemToCraft.transActor.name == null) descActor += itemToCraft.transActor == null ? '' : ' ${itemToCraft.transActor.id} ${itemToCraft.transActor.description}';
+        if(itemToCraft.transTarget.name == null) descTarget += itemToCraft.transTarget == null ? '' : ' ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}';
 
         trace('AI: craft: FINISHED $count ms: ${Math.round((Sys.time() - startTime) * 1000)} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
     }
@@ -892,7 +908,7 @@ class Ai
             var objToCraft = ObjectData.getObjectData(objToCraftId);
 
             //trace('Ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
-            trace('Ai: craft DONE: ${objToCraft.name} dist: $dist steps: ${steps} $desc');
+            //trace('Ai: craft DONE: ${objToCraft.name} dist: $dist steps: ${steps} $desc');
 
             //return true;
         }    
@@ -1029,7 +1045,7 @@ class Ai
             var randX = WorldMap.calculateRandomInt(4) - 2;
             var randY = WorldMap.calculateRandomInt(4) - 2;
 
-            var done = myPlayer.Goto(playerToFollow.tx + randX - myPlayer.gx, playerToFollow.ty + randY - myPlayer.gy);
+            var done = gotoAdv(playerToFollow.tx + randX, playerToFollow.ty + randY);
             myPlayer.say('${playerToFollow.name}');
 
             trace('AAI: ${myPlayer.id} age: ${myPlayer.age} goto player $done');
@@ -1093,8 +1109,7 @@ class Ai
             var done = false;
             for(i in 0...5)
             {
-                done = GotoObj(dropTarget);            
-                //myPlayer.Goto(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
+                done = gotoObj(dropTarget);            
 
                 if(done) break;
 
@@ -1122,16 +1137,11 @@ class Ai
 
 
         // TODO check if food target is still valid
-
-        // var myPlayer = myPlayer.getPlayerInstance();
-
         var distance = myPlayer.CalculateDistanceToObject(foodTarget);
 
         if(distance > 1)
         {
-            //myPlayer.Goto(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
-
-            var done = GotoObj(foodTarget);
+            var done = gotoObj(foodTarget);
 
             trace('AAI: ${myPlayer.id} goto food target $done');
 
@@ -1244,12 +1254,13 @@ class Ai
     
         if(distance > 1)
         {
-            var done = myPlayer.Goto(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
-            trace('AAI: ${myPlayer.id} goto useItem ${useTarget.name} $done');
+            var name = useTarget.name;
+            var done = gotoObj(useTarget);
+            trace('AAI: ${myPlayer.id} goto useItem ${name} $done');
 
-            myPlayer.say('Goto ${useTarget.name} for use!');
+            myPlayer.say('Goto ${name} for use!');
 
-            // TODO use item not reachable or bug in pathing?
+            /*
             if(done == false)
             {
                 trace('AI: GOTO useItem failed! Ignore ${useTarget.tx} ${useTarget.ty} '); 
@@ -1257,7 +1268,7 @@ class Ai
                 useTarget = null;
                 itemToCraft.transActor = null;
                 itemToCraft.transTarget = null;
-            }
+            }*/
             
             return true;
         }
@@ -1269,6 +1280,13 @@ class Ai
 
             trace('AAI: ${myPlayer.id} child drop for using ${heldPlayer.name} $done');
 
+            return true;
+        }
+
+        if(myPlayer.heldObject.id  != 0 && itemToCraft.transActor != null && myPlayer.heldObject.id != itemToCraft.transActor.id)
+        {
+            trace('AAI: ${myPlayer.id} craft: drop obj to pickup ${itemToCraft.transActor.name}');
+            dropHeldObject(); 
             return true;
         }
 
@@ -1319,8 +1337,13 @@ class Ai
 
     public function addNotReachableObject(obj:ObjectHelper)
     {
-        var index = WorldMap.world.index(obj.tx, obj.ty);
-        if(notReachableObjects.exists(index)) return;
+        addNotReachable(obj.tx, obj.ty);
+    }
+
+    public function addNotReachable(tx:Int, ty:Int)
+    {
+        var index = WorldMap.world.index(tx, ty);
+        //if(notReachableObjects.exists(index)) return;
         notReachableObjects[index] = 25; // block for 25 sec
     }
 

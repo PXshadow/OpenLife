@@ -344,6 +344,7 @@ class ObjectHelper
 
     public function get_name()
     {
+        if(objectData.name == null && objectData.dummyParent != null) objectData.dummyParent.name;
         return objectData.name;
     }
 
