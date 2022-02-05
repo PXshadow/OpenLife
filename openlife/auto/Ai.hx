@@ -57,6 +57,8 @@ class Ai
 
     public function newBorn()
     {
+        trace('Ai: newborn!');
+
         foodTarget = null; 
         dropTarget = null;
         useTarget = null;
@@ -68,19 +70,33 @@ class Ai
 
         playerToFollow = null;
         children = new Array<PlayerInterface>();
+
+        addTask(82); // Fire
+        //addTask(80); // Burning Tinder
+        //addTask(78); // Smoldering Tinder 
+        //addTask(72); // Kindling
+        //addTask(71); // Stone Hatchet
+        
+        //craftItem(71); // Stone Hatchet
+        //craftItem(72); // Kindling
+        //craftItem(82); // Fire
+        //craftItem(58); // Thread
+        //craftItem(74, 1, true); //Fire Bow Drill
+        //craftItem(78, 1, true); // Smoldering Tinder 
+        //craftItem(808); // wild onion
+        //craftItem(292, 1, true); // 292 basket
+        //craftItem(224); // Harvested Wheat
+        //craftItem(124); // Reed Bundle
+        //craftItem(225); //Wheat Sheaf
+        
+        //craftItem(34,1); // 34 sharpstone
+        //craftItem(224); // Harvested Wheat
+        //craftItem(58); // Thread
     }
 
     public function say(player:PlayerInterface, curse:Bool,text:String) 
     {
-        //var myPlayer = myPlayer.getPlayerInstance();
-        var world = myPlayer.getWorld();
-        //trace('im a super evil bot!');
-
-        //trace('ai3: ${myPlayer.p_id} player: ${player.p_id}');
-
         if (myPlayer.id == player.id) return;
-
-        //trace('im a evil bot!');
 
         //trace('AI ${text}');
 
@@ -134,11 +150,9 @@ class Ai
 
             if(id > 0)
             {
-                itemToCraftId = id;
-                itemToCraft.countDone = 0;
-                itemToCraft.countTransitionsDone = 0;
+                craftItem(id); // TODO use mutex if Ai does not use Globalplayermutex
                 var obj = ObjectData.getObjectData(id);
-                myPlayer.say("Making: " + obj.description);
+                myPlayer.say("Making: " + obj.name);
             }
         }
     }
@@ -206,53 +220,35 @@ class Ai
         if(myPlayer.isMoving()) return;
         
         //if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
-        if(itemToCraftId == itemToCraft.itemToCraft.parentId && itemToCraft.countDone >= itemToCraft.count)
-        {
-            var cravingId = myPlayer.getCraving();
-            if(cravingId > 0) craftItem(cravingId);
-            return;
-        }
-        if(itemToCraftId <= 0) itemToCraftId = itemToCraft.itemToCraft.parentId;
 
-        //trace('AI: itemToCraftId: $itemToCraftId ${itemToCraft.itemToCraft.parentId}' );
+        trace('AI: craft ${itemToCraftId} tasks: ${craftingTasks.length}!');
 
-        if(itemToCraftId > 0)
+        if(itemToCraftId > 0 && itemToCraft.countDone < itemToCraft.count)
         {
-            if(craftItem(itemToCraftId)) return;
-            //time += 2; // TODO change
+            if(craftItem(itemToCraftId)) return;    
         }
 
-        
-        //time += 2;
-        /*var cravingId = myPlayer.getCraving();
-        if(cravingId > 0) craftItem(cravingId);
-        else{
-            isHungry = true; // TODO workaround
-        }*/
+        if(craftingTasks.length > 0)
+        {
+            for(i in 0...craftingTasks.length)
+            {
+                itemToCraftId = craftingTasks.shift();
+                if(craftItem(itemToCraftId)) return;
+                craftingTasks.push(itemToCraftId);
+            }
+        }
 
-        if(craftItem(82, 1)) return; // Fire
-        if(this.craftingTasks.contains(itemToCraft.itemToCraft.id) == false) this.craftingTasks.push(itemToCraft.itemToCraft.id);
+        var cravingId = myPlayer.getCraving();
+        itemToCraftId = cravingId;
+        if(cravingId > 0) craftItem(itemToCraftId);
+    }
 
-        if(craftItem(72)) return; // Kindling
-        if(this.craftingTasks.contains(itemToCraft.itemToCraft.id) == false) this.craftingTasks.push(itemToCraft.itemToCraft.id);
-
-        if(craftItem(71)) return; // Stone Hatchet
-        
-        //craftItem(71); // Stone Hatchet
-        //craftItem(72); // Kindling
-        //craftItem(82); // Fire
-        //craftItem(58); // Thread
-        //craftItem(74, 1, true); //Fire Bow Drill
-        //craftItem(78, 1, true); // Smoldering Tinder 
-        //craftItem(808); // wild onion
-        //craftItem(292, 1, true); // 292 basket
-        //craftItem(224); // Harvested Wheat
-        //craftItem(124); // Reed Bundle
-        //craftItem(225); //Wheat Sheaf
-        
-        //craftItem(34,1); // 34 sharpstone
-        //craftItem(224); // Harvested Wheat
-        //craftItem(58); // Thread
+    public function addTask(taskId:Int, atEnd:Bool = true)
+    {
+        if(taskId < 1) return;
+        if(this.craftingTasks.contains(taskId)) return;
+        if(atEnd) this.craftingTasks.push(taskId);
+        else this.craftingTasks.unshift(taskId);
     }
 
     private function killAnimal(animal:ObjectHelper)
@@ -610,7 +606,10 @@ class Ai
 
         if(itemToCraft.itemToCraft.parentId != objId)
         {
+            addTask(itemToCraft.itemToCraft.id, true);
+
             itemToCraft.itemToCraft = ObjectData.getObjectData(objId);
+            itemToCraft.count = count;
             itemToCraft.countDone = 0;
             itemToCraft.countTransitionsDone = 0;
             itemToCraft.transitionsByObjectId = myPlayer.SearchTransitions(objId, ignoreHighTech); 
@@ -788,7 +787,7 @@ class Ai
 
         while(objectsToSearch.length > 0)
         {
-            if(count > 30000) return;
+            if(count > 30000) break;
             
             var wantedId = objectsToSearch.shift();
             var wanted = ObjectData.getObjectData(wantedId);
@@ -803,12 +802,12 @@ class Ai
             count++;
 
             var transitions = world.getTransitionByNewActor(wantedId);
-            //if(DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions)) break;
-            DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions);
+            if(DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions)) break;
+            //DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions);
 
             var transitions = world.getTransitionByNewTarget(wantedId);
-            //if(DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions)) break;
-            DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions);
+            if(DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions)) break;
+            //DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions);
 
             if(itemToCraft.bestDistance < 100) break;
         }
@@ -839,8 +838,12 @@ class Ai
             var actor = transitionsByObjectId[trans.actorID];
             var target = transitionsByObjectId[trans.targetID];
 
-            if(actor == null || target == null) continue;
-
+            if(actor == null || target == null)
+            {
+                //trace('Ai: craft: Skipped: ' + trans.getDesciption());
+                continue;
+            }
+            
             // TODO should not be null must be bug in tansitions: Basket of Pig Bones + TIME  -->  Basket + Pig Bones#dumped 
             //if(actor == null) transitionsByObjectId[trans.actorID] = new TransitionForObject(trans.actorID,0,0,null); 
             //if(target == null) transitionsByObjectId[trans.targetID] = new TransitionForObject(trans.targetID,0,0,null); 
@@ -853,12 +856,16 @@ class Ai
 
             if(actorObj == null && actor.isDone == false)
             {
+                //trace('Ai: craft: a: wanted: $wantedId -- > ${actor.wantedObjId}');
+                actor.wantedObjId = wantedId;
                 actor.isDone = true;
                 objectsToSearch.push(actor.objId);
             }
 
             if(targetObj == null && target.isDone == false)
             {
+                //trace('Ai: craft: t: wanted: $wantedId -- > ${target.wantedObjId}');
+                target.wantedObjId = wantedId;
                 target.isDone = true;
                 objectsToSearch.push(target.objId);
             }
@@ -878,13 +885,15 @@ class Ai
             }
 
             var wanted = transitionsByObjectId[wantedId];
+            //var desc = wanted == null ? 'NA' : ObjectData.getObjectData(wanted.wantedObjId).name; 
+
             if(wanted.craftActor == null)
             {
                 wanted.craftActor = actorObj;
                 wanted.craftTarget = targetObj;
                 if(wanted.wantedObjId > 0) objectsToSearch.unshift(wanted.wantedObjId);
 
-                //trace('Ai: craft: steps: ${wanted.steps} wanted: ${wanted.objId} actor: ${actorObj.description} target: ${targetObj.description} ' + trans.getDesciption());
+                //trace('Ai: craft: steps: ${wanted.steps} wanted: ${wanted.objId} --> ${wanted.wantedObjId} --> $desc actor: ${actorObj.description} target: ${targetObj.description} ' + trans.getDesciption());
             }
 
             if(wantedId != objToCraftId) continue;  
@@ -913,7 +922,7 @@ class Ai
             //trace('Ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
             //trace('Ai: craft DONE: ${objToCraft.name} dist: $dist steps: ${steps} $desc');
 
-            //return true;
+            return true;
         }    
 
         return false;
@@ -1042,8 +1051,9 @@ class Ai
                 //trace('AAI: ${myPlayer.id} follow player ${playerToFollow.p_id}');
             }
         }
+        var distance = myPlayer.CalculateDistanceToPlayer(playerToFollow);
 
-        if(myPlayer.CalculateDistanceToPlayer(playerToFollow) > maxDistance)
+        if(distance > maxDistance)
         {
             var randX = WorldMap.calculateRandomInt(4) - 2;
             var randY = WorldMap.calculateRandomInt(4) - 2;
@@ -1051,7 +1061,7 @@ class Ai
             var done = gotoAdv(playerToFollow.tx + randX, playerToFollow.ty + randY);
             myPlayer.say('${playerToFollow.name}');
 
-            trace('AAI: ${myPlayer.id} age: ${myPlayer.age} goto player $done');
+            trace('AAI: ${myPlayer.id} age: ${myPlayer.age} dist: $distance goto player $done');
 
             return true;
         }
@@ -1276,7 +1286,7 @@ class Ai
             // if object to create is held by player or is on ground, then cound as done
             if(myPlayer.heldObject.parentId == itemToCraft.itemToCraft.parentId || taregtObjectId == itemToCraft.itemToCraft.parentId) itemToCraft.countDone += 1;
 
-            trace('AI: FINISHED done: ${useTarget.name} ItemToCraft: ${itemToCraft.itemToCraft.name} transtions done: ${itemToCraft.countTransitionsDone} done: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
+            trace('AI: FINISHED done: ${useTarget.name} ItemToCraft: ${itemToCraft.itemToCraft.name} transtions: ${itemToCraft.countTransitionsDone} done: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
         }
         else
         {
@@ -1372,7 +1382,7 @@ class Ai
 class IntemToCraft
 {
     public var itemToCraft:ObjectData;
-    public var count:Int = 1; // how many items to craft
+    public var count:Int = 0; // how many items to craft
     public var countDone:Int = 0; // allready crafted
     public var countTransitionsDone:Int = 0; // transitions done while crafting
     public var done:Bool = false; // transitions done while crafting
