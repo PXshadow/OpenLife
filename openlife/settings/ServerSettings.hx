@@ -76,8 +76,8 @@ class ServerSettings
     public static var StartingEveAge = 14;  // 14
     public static var StartingFamilyName = "SNOW";
     public static var StartingName = "SPOON";
-    public static var EveDamageFactor:Float = 0.5;  
-    public static var EveFoodUseFactor:Float = 0.5;  
+    public static var EveDamageFactor:Float = 0.8;  
+    public static var EveFoodUseFactor:Float = 0.8;  
     public static var AgingSecondsPerYear = 60; // 60
     public static var ReduceAgeNeededToPickupObjects = 3; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
     public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
