@@ -28,7 +28,9 @@ class ServerAi extends Ai
         newConnection.playerAccount.isAi = true;
         var newPlayer = GlobalPlayerInstance.CreateNewAiPlayer(newConnection);
 
-        return new ServerAi(newPlayer);
+        var ai = new ServerAi(newPlayer);
+        ai.newBorn();
+        return ai;
     }
 
     public function doRebirth(timePassedInSeconds:Float)
