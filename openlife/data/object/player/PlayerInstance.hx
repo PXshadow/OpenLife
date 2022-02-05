@@ -180,6 +180,10 @@ class PlayerInstance
             reason = a[i];
     }
 
+    public var name(get, set):String;
+    public function get_name(){return '';}
+    public function set_name(newName:String){return newName;}
+
     public function isMoving() : Bool {return false;}
     public function isHeld() : Bool {return false;}
 
@@ -291,7 +295,7 @@ class PlayerInstance
 
         var moving = isHeld() || isMoving() ? 0 : done_moving_seqNum; 
 
-        trace('TODATA isHeld: ${isHeld()} isMoving: ${isMoving()} $x $y');
+        trace('TODATA ${name} isHeld: ${isHeld()} isMoving: ${isMoving()} $x $y seqNum: ${moving}');
         //trace('AAI: p$p_id $rx,$ry');
         return '$p_id $po_id $facing $action ${action_target_x + forPlayerOffsetX} ${action_target_y + forPlayerOffsetY} $heldObject $o_origin_valid ${o_origin_x + forPlayerOffsetX} ${o_origin_y + forPlayerOffsetY} $o_transition_source_id $tmpHeat $moving ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${Std.int(age*100)/100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
     }

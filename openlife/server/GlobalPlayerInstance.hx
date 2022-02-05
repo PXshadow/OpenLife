@@ -188,9 +188,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var id(get, null):Int;
     public function get_id(){return p_id;}
 
-    public var name(get, set):String;
-    public function get_name(){return lineage.name;}
-    public function set_name(newName:String){return lineage.name = newName;}
+    //public override var name(get, set):String;
+    public override function get_name(){return lineage.name;}
+    public override function set_name(newName:String){return lineage.name = newName;}
 
     public var familyName(get, null):String;
 
