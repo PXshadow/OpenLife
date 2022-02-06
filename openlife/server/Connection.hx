@@ -40,6 +40,12 @@ class Connection
         if(sock != null) send(SERVER_INFO,["0/0",challenge,'$version']);
     }
 
+    public function isAi() : Bool
+    {
+        //return this.connection.playerAccount.isAi;
+        return this.sock == null;
+    }
+
     /**
         LOGIN client_tag email password_hash account_key_hash tutorial_number twin_code_hash twin_count#
         NOTE:  The command LOGIN can be replaced with RLOGIN if the client is

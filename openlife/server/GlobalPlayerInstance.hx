@@ -78,8 +78,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         //var count = 0;
         //for(p in AllPlayers) count++;
-
-        //trace('Children: ${player.p_id} ${player.account.email} count: $count');
+        //trace('Spawn: ${player.p_id} ${player.account.email} count: $count');
     }
 
     public static var medianPrestige:Float = ServerSettings.HealthFactor;
@@ -408,7 +407,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var isAi = this.isAi();
         var lastEveOrAdam = isAi ? lastAiEveOrAdam : lastHumanEveOrAdam;
 
-        //trace('Spawn As Eve: ${this.account.email}');
+        trace('Spawn As Eve: ${this.account.email}');
 
         if(allowHumanSpawnToAIandAiToHuman && lastEveOrAdam == null)
         {
@@ -474,7 +473,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     // TODO consider past families of player
     private function spawnAsChild() : Bool
     {
-        //trace('Spawn As Child: ${this.p_id} ${this.account.email}');
+        trace('Spawn As Child: ${this.p_id} ${this.account.email}');
 
         var mother = GetFittestMother(this);     
         if(mother == null) return false;
@@ -2415,6 +2414,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.lineage.prestige = this.prestige;
             this.lineage.coins = this.coins;
 
+            trace('Do death: ${deathReason} age: ${Math.floor(this.age)} trueAge: ${Math.floor(this.trueAge)} prestige: ${Math.floor(this.prestige)} coins: ${Math.floor(this.coins)}');
+
             this.age = this.trueAge; // bad health and starving can influence health, so setback true time a player lifed so that he sees in death screen
             this.reason = deathReason;
             
@@ -3515,7 +3516,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function isAi() : Bool
     {
         //return this.connection.playerAccount.isAi;
-        return this.connection.serverAi != null;   
+        return this.connection.isAi();   
     }
 
     public function isHuman() : Bool
