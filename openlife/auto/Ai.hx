@@ -606,7 +606,8 @@ class Ai
 
         if(itemToCraft.itemToCraft.parentId != objId)
         {
-            addTask(itemToCraft.itemToCraft.id, true);
+            if(itemToCraft.countDone < itemToCraft.count) // if taks was disturbed add it to que
+                addTask(itemToCraft.itemToCraft.id, true);
 
             itemToCraft.itemToCraft = ObjectData.getObjectData(objId);
             itemToCraft.count = count;
