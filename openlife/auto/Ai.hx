@@ -1179,10 +1179,19 @@ class Ai
 
         if(myPlayer.heldObject.id == 0)
         {
-            trace('AAI: ${myPlayer.id} pickup food from floor');
-
             // x,y is relativ to birth position, since this is the center of the universe for a player
             var done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy); 
+            trace('AAI: ${myPlayer.id} pickup food: $done');
+
+            if(done == false)
+            {
+                trace('AI: food Use failed! Ignore ${foodTarget.tx} ${foodTarget.ty} '); 
+    
+                // TODO check why use is failed... for now add to ignore list
+                this.addNotReachableObject(foodTarget, 30);
+                foodTarget = null;
+                return true;
+            }
 
             return true;
         }
@@ -1362,16 +1371,16 @@ class Ai
         return notReachable;
     }
 
-    public function addNotReachableObject(obj:ObjectHelper)
+    public function addNotReachableObject(obj:ObjectHelper, time:Float = 90)
     {
-        addNotReachable(obj.tx, obj.ty);
+        addNotReachable(obj.tx, obj.ty, time);
     }
 
-    public function addNotReachable(tx:Int, ty:Int)
+    public function addNotReachable(tx:Int, ty:Int, time:Float = 90)
     {
         var index = WorldMap.world.index(tx, ty);
         //if(notReachableObjects.exists(index)) return;
-        notReachableObjects[index] = 25; // block for 25 sec
+        notReachableObjects[index] = time; // block for 25 sec
     }
 
     public function isObjectNotReachable(tx:Int, ty:Int) : Bool
