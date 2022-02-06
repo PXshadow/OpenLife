@@ -95,6 +95,27 @@ class AiHelper
         return closestObject;
     }
 
+    public static function isStillExpectedItem(player:PlayerInterface, obj:ObjectHelper) : Bool
+    {
+        var newobj = player.getWorld().getObjectHelper(obj.tx, obj.ty);
+        return (obj.parentId == newobj.parentId);
+    }
+
+    public static function isEatableCheckAgain(player:PlayerInterface, obj:ObjectHelper) : Bool
+    {
+        var obj = player.getWorld().getObjectHelper(obj.tx, obj.ty);
+        return isEatable(player, obj);
+    }
+
+    public static function isEatable(player:PlayerInterface, obj:ObjectHelper) : Bool
+    {
+        var objData = obj.objectData;
+        var originalFoodValue = objData.foodFromTarget == null ? objData.foodValue : objData.foodFromTarget.foodValue;
+        if(originalFoodValue < 0) return false;
+        if(player.food_store_max - player.food_store < Math.ceil(originalFoodValue / 4)) return false;
+        return true;
+    }
+
     public static function SearchBestFood(player:PlayerInterface, radius:Int = 32) : ObjectHelper
     {
         //var player = myPlayer.getPlayerInstance();

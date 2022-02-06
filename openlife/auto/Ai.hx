@@ -601,7 +601,8 @@ class Ai
             var target = AiHelper.GetClosestObject(myPlayer, itemToCraft.transTarget.objectData);
             useTarget = target != null ? target : itemToCraft.transTarget; // since other search radius might be bigger
 
-            return true;
+            // check if some one meanwhile changed use target
+            if(myPlayer.isStillExpectedItem(useTarget)) return true;            
         }
 
         if(itemToCraft.itemToCraft.parentId != objId)
@@ -1148,6 +1149,14 @@ class Ai
     private function isEating() : Bool
     {
         if(foodTarget == null) return false;
+        // check if food is still eatable. Maybe some one eat it or maybe player is full meanwhile
+        if(myPlayer.isEatableCheckAgain(foodTarget) == false) 
+        {   
+            trace('AAI: ${myPlayer.id} food changed meanwhile or player is full!');
+
+            foodTarget = null;
+            return true;
+        }
         if(myPlayer.isMoving()) return true;
 
 
@@ -1269,6 +1278,12 @@ class Ai
     private function isUsingItem() : Bool
     {
         if(useTarget == null) return false; 
+        if(myPlayer.isStillExpectedItem(useTarget) == false)
+        {
+            trace('AAI: ${myPlayer.id} Use target changed meachwhile! ${useTarget.name}');
+            useTarget = null;
+            return false;
+        }
         if(myPlayer.isMoving()) return true;
 
         // only allow to go on with use if right actor is in the hand, or if actor will be empty
@@ -1343,6 +1358,7 @@ class Ai
             trace('AI: Use failed! Ignore ${useTarget.tx} ${useTarget.ty} '); 
 
             // TODO check why use is failed... for now add to ignore list
+            // TODO dont use on contained objects if result cannot contain (ignore in crafting search)
             this.addNotReachableObject(useTarget);
             useTarget = null;
             itemToCraft.transActor = null;
