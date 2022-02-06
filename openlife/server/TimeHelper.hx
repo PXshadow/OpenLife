@@ -1244,7 +1244,7 @@ class TimeHelper
         var newObjectData = ObjectData.getObjectData(transition.newTargetID);
 
         // for example if a grave with objects decays
-        if(helper.containedObjects.length > newObjectData.slotSize)
+        if(helper.containedObjects.length > newObjectData.numSlots)
         {
             // check in another 20 sec
             helper.timeToChange += 20;

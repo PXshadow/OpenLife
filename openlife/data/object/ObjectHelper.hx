@@ -6,13 +6,11 @@ import sys.io.File;
 import openlife.auto.PlayerInterface;
 import openlife.server.Lineage;
 import openlife.data.transition.TransitionImporter;
-import haxe.macro.Type.TVar;
 import haxe.Exception;
 import openlife.server.TimeHelper;
 import openlife.server.WorldMap;
 import openlife.data.transition.TransitionData;
 import openlife.server.GlobalPlayerInstance;
-import openlife.server.Server;
 import haxe.ds.Vector;
 
 class ObjectHelper
@@ -308,9 +306,18 @@ class ObjectHelper
     {
         if(this.id == newID) return newID;    
 
-        this.objectData = ObjectData.getObjectData(newID);
+        var newObjectData = ObjectData.getObjectData(newID);
+        if(newObjectData== null) throw new Exception('No ObjectData for: ${newID}');
 
-        if(this.objectData == null) throw new Exception('No ObjectData for: ${newID}');
+        if(this.containedObjects.length > newObjectData.numSlots)
+        {
+            var obj = ObjectData.getObjectData(this.containedObjects[0].id);
+            var message = 'WARNING: transform object: ${name} ${toArray()} first: ${obj.name} --> ${newObjectData.name} slots: containedObjects.length > numSlots: ${newObjectData.numSlots}';
+            trace(message);
+            throw new Exception(message);
+        }
+        
+        this.objectData = newObjectData;
 
         return newID;
     }

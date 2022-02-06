@@ -705,6 +705,7 @@ class TransitionHelper{
         // 0 + 3963 = 33 + 1096 // Transition for Well Site should not be affected by this
 
         //var isHorseDropTrans = (transition.targetID == -1 && transition.newActorID == 0) && target.isPermanent() == false;
+        // TODO change
         var isHorseDropTrans = transition.newActorID == 0  && player.heldObject.containedObjects.length > 0;
         // TODO better set in transition itself if it is a switch transition?
         var isHorsePickupTrans = (transition.actorID == 0 && transition.playerActor && target.containedObjects.length > 0);
@@ -721,7 +722,8 @@ class TransitionHelper{
 
             // reset creation time, so that horses wont esape instantly
             this.target.creationTimeInTicks = TimeHelper.tick;
-        }else
+        }
+        else
         {
             // check if not horse pickup or drop
             if(player.heldObject.containedObjects.length > newActorObjectData.numSlots)

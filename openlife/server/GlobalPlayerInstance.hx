@@ -2379,8 +2379,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             heldObject.numberOfUses = 1;
             //TODO set to max numberOfUses??? heldObject.numberOfUses = heldObject.objectData
-
-            trace('transformHeldObject: ${fromObjData.id} --> ${toObjData.id} / numberOfUses set to 1');
+            trace('transformHeldObject: ${fromObjData.id} --> ${toObjData.id} / numberOfUses set to 1');    
         }
 
         trace('transformHeldObject: heldObject.numberOfUses: ${heldObject.numberOfUses}');
@@ -2439,7 +2438,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 heldPlayer.y = player.ty - heldPlayer.gy;
         
                 player.heldPlayer = null;
-                player.o_id = [0];
+                player.setHeldObject(null);
         
                 heldPlayer.heldByPlayer = null;
 
