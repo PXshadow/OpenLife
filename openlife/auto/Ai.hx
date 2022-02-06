@@ -642,6 +642,23 @@ class Ai
         }
         else
         {
+            // check if actor is TIME
+            if(itemToCraft.transActor.id == -1)
+            {
+                // TODO wait some time, or better get next obj
+                myPlayer.say('Wait...');
+                itemToCraft.transActor = null; 
+                return true;
+            }
+            // check if actor is PLAYER
+            if(itemToCraft.transActor.id == -2)
+            {
+                // TODO PLAYER interaction not supported yet
+                myPlayer.say('Actor is player???');
+                itemToCraft.transActor = null; 
+                return false;
+            }
+
             trace('AAI: ${myPlayer.id} craft goto actor: ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
 
             myPlayer.say('Goto actor ' + itemToCraft.transActor.name );
