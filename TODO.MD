@@ -206,18 +206,20 @@ SPEED:
 - bad temperature reduces speed extreme temperature reduces double
 
 Food - YUM:
-- If you hold any food the closest most YUM food for you is displayed
+- YUM chain is used as prestige and health
+- eating YUM / Cravings increases Health / Prestige, while eating MEH reduces it (YUM +1 CARAVING: +2 (or more) MEH: -0.5 SUPERMEH: -1)
+- A Food is SUPERMEH if it has only halve of the food value. Eating SUPERMEH reduces health fast
+- If you hold any food the closest most YUM food / craving for you is displayed (TODO consider containers)
+- only eatable food is displayed. So if you are not hungry no food is displayed 
+- You can only eat if you have space for at least 1/3 the food value, not counting YUM or food reduction 
 - YUM gives 3 food boni first eaten. 
-- the first 3 times eaten a food is YUM
+- the first 3 times a food is eaten the food is YUM
 - food value is reduced minus one for each eaten / food has at least half the food value
-    For example Berry Default 2: 5 YUM / 4 YUM / 3 YUM / 2 MEH / 1 MEH / 1 MEH / 1 MEH / 1 MEH ...
-- if you eat YUM 1 pip is restored with a 0.8% chance from a random eaten food. If the random chosen food is the same food, no food value is restored
+    For example Berry Default 2: 5 YUM / 4 YUM / 3 YUM / 2 MEH / 1 SUPERMEH / 1 SUPERMEH / 1 SUPERMEH / 1 SUPERMEH ...
+- if you eat YUM 1 pip is restored with a 0.8% chance from a random eaten food. 
+- if the random chosen food is the same food, no food value is restored
     For eample eats a Yum berry / then eats a YUM onion / 80%  x 50% = 40% chance that eating YUM onion restores 1 pip of berry food value 
     For eample eats a Yum berry / then eats a YUM onion / Then eats a YUM carrot / 80%  x 66%% = 52% chance that eating YUM carrot restores 1 pip of berry or onion food value   
-- You can only eat if you have space for at least half the food value, not counting YUM or food reduction
-- Extra food is stored as YUM Extra food
-- YUM chain is used as Health // TODO change YUM --> Prestiege Max_Food --> Health 
-- eating YUM increases YUM chain, while eating MEH reduces it
 
 Generational cravings:
 - a child inherits the cravings from his gradma / mother in case there is none // TODO consider father

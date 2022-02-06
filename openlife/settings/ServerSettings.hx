@@ -119,6 +119,8 @@ class ServerSettings
     public static var YumBonus = 3; // First time eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
     public static var YumFoodRestore = 0.8; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food
     public static var YumNewCravingChance = 0.2; // XX chance that a new random craving is chosen even if there are existing ones
+    public static var HealthLostWhenEatingMeh:Float = 0.5; 
+    public static var HealthLostWhenEatingSuperMeh:Float = 1; 
     public static var MaxHasEatenForNextGeneration:Float = 0; // used in InheritEatenFoodCounts
     //public static var HasEatenReductionForNextGeneration:Float = 0.2; // used in InheritEatenFoodCounts
 
