@@ -2413,13 +2413,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.lineage.prestige = this.prestige;
             this.lineage.coins = this.coins;
 
-            trace('Do death: ${name} ${deathReason} age: ${Math.floor(this.age)} trueAge: ${Math.floor(this.trueAge)} prestige: ${Math.floor(this.prestige)} coins: ${Math.floor(this.coins)}');
+            var oldScore = this.account.totalScore;
+            PlayerAccount.ChangeScore(this);  
+
+            trace('Do death: ${name} score: ${oldScore} --> ${this.account.totalScore} ${deathReason} age: ${Math.floor(this.age)} trueAge: ${Math.floor(this.trueAge)} prestige: ${Math.floor(this.prestige)} coins: ${Math.floor(this.coins)}');
 
             this.age = this.trueAge; // bad health and starving can influence health, so setback true time a player lifed so that he sees in death screen
             this.reason = deathReason;
             
-            PlayerAccount.ChangeScore(this);  
-
             ChooseNewLeader(this);
 
             // TODO set coordinates player based
