@@ -579,6 +579,7 @@ class TransitionForObject
 {
     public var objId:Int;
     public var wantedObjId:Int;
+    public var wantedObjs = new Array<TransitionForObject>();
     public var steps:Int;
 
     public var bestTransition:TransitionData;

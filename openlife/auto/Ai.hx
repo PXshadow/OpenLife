@@ -777,7 +777,7 @@ class Ai
         transitionsByObjectId[-1] = new TransitionForObject(-1,0,0,null);
         transitionsByObjectId[objToCraftId] = new TransitionForObject(objToCraftId,0,0,null);
         transitionsByObjectId[0].closestObject = new ObjectHelper(null, 0);
-        transitionsByObjectId[-1].closestObject = new ObjectHelper(null, 0);
+        transitionsByObjectId[-1].closestObject = new ObjectHelper(null, -1);
         transitionsByObjectId[0].isDone = true;
         transitionsByObjectId[-1].isDone = true;
 
@@ -845,8 +845,10 @@ class Ai
     private static function DoTransitionSearch(itemToCraft:IntemToCraft, wantedId:Int, objectsToSearch:Array<Int>, transitions:Array<TransitionData>) : Bool
     {
         var found = false;
-        var objToCraftId = itemToCraft.itemToCraft.parentId;
         var transitionsByObjectId = itemToCraft.transitionsByObjectId;
+        var wanted = transitionsByObjectId[wantedId];
+        var objToCraftId = itemToCraft.itemToCraft.parentId;
+        
 
         for(trans in transitions)
         {
@@ -873,6 +875,15 @@ class Ai
 
             var actorObj = actor.closestObject;
             var targetObj = actor == target ? actor.secondObject : target.closestObject;
+
+            if(actorObj == null && actor.wantedObjs.contains(wanted) == false)
+            {
+                actor.wantedObjs.push(wanted);
+            }
+            if(targetObj == null && target.wantedObjs.contains(wanted) == false)
+            {
+                target.wantedObjs.push(wanted);
+            }
 
             if(actorObj == null && actor.isDone == false)
             {
@@ -905,15 +916,18 @@ class Ai
                 actorObj = target.craftActor;
                 targetObj = target.craftTarget;
             }
-
-            var wanted = transitionsByObjectId[wantedId];
+            
             //var desc = wanted == null ? 'NA' : ObjectData.getObjectData(wanted.wantedObjId).name; 
-
             if(wanted.craftActor == null)
             {
                 wanted.craftActor = actorObj;
                 wanted.craftTarget = targetObj;
-                if(wanted.wantedObjId > 0) objectsToSearch.unshift(wanted.wantedObjId);
+                //if(wanted.wantedObjId > 0) objectsToSearch.unshift(wanted.wantedObjId);
+                for(obj in wanted.wantedObjs)
+                {
+                    if(objectsToSearch.contains(obj.objId) == false)
+                        objectsToSearch.unshift(obj.objId);
+                }
 
                 itemToCraft.craftingList.push(wantedId);
                 //trace('Ai: craft: steps: ${wanted.steps} wanted: ${wanted.objId} --> ${wanted.wantedObjId} --> $desc actor: ${actorObj.description} target: ${targetObj.description} ' + trans.getDesciption());
@@ -1444,6 +1458,7 @@ class IntemToCraft
             trans.craftActor = null;
             trans.craftTarget = null;
             trans.isDone = false;
+            trans.wantedObjs = new Array<TransitionForObject>();
         }
     }
 }
