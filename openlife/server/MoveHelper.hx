@@ -54,7 +54,8 @@ class MoveHelper
     private var totalMoveTime:Float = 0;
     private var startingMoveTicks:Float = 0;
 
-    public function new(player:GlobalPlayerInstance){
+    public function new(player:GlobalPlayerInstance)
+    {
         this.player = player;
     }
 
@@ -283,6 +284,8 @@ class MoveHelper
                 }
 
                 TimeHelper.MakeAnimalsRunAway(p);
+
+                trace('Move: ${p.name} ${p.tx} ${p.ty}');
             }
 
             //if(TimeHelper.tick % 5 == 0) trace('Moves: ${moveHelper.newMoves} passedTime: $timePassed ${p.tx()},${p.ty()} ${moveHelper.exactTx},${moveHelper.exactTy}');
@@ -339,6 +342,8 @@ class MoveHelper
                 //p.forced = false; // TODO change
 
                 if(p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
+
+                trace('Move: ${p.name} Done SeqNum: ${p.done_moving_seqNum} ${p.tx} ${p.ty}');
             //}
             //catch(ex)
             //{
