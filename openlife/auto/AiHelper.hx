@@ -118,7 +118,7 @@ class AiHelper
 
     public static function SearchBestFood(player:PlayerInterface, radius:Int = 32) : ObjectHelper
     {
-        //var player = myPlayer.getPlayerInstance();
+        var ai = player.getAi();
         var baseX = player.tx;
         var baseY = player.ty;
         var world = player.getWorld();
@@ -167,7 +167,11 @@ class AiHelper
 
                 if(bestFood == null || foodValue / distance > bestFoodValue / bestDistance)
                 {
-                    if(IsDangerous(player, obj)) continue;
+                    if(ai != null)
+                    {
+                        if(IsDangerous(player, obj)) continue;
+                        if(tryGotoObj(player, obj) == false) continue;
+                    }
 
                     bestFood = obj;
                     bestDistance = distance;
@@ -205,8 +209,60 @@ class AiHelper
         return false;
     }
 
+    public static function tryGotoObj(player:PlayerInterface, obj:ObjectHelper) : Bool
+    {
+        return gotoObj(player, obj, false);
+    }
+
+    public static function gotoObj(player:PlayerInterface, obj:ObjectHelper, move:Bool = true) : Bool
+    {
+        return gotoAdv(player, obj.tx, obj.ty, move);
+    }
+
+    public static function gotoAdv(player:PlayerInterface, tx:Int, ty:Int, move:Bool = true) : Bool
+    {
+        var ai = player.getAi();
+        var rand = 0;
+        var x = tx - player.gx;
+        var y = ty - player.gy;
+
+        for(i in 0...5)
+        {
+            var xo = 0;
+            var yo = 0;
+
+            if(rand > 4) break;
+
+            if(rand == 1) xo = 1;
+            if(rand == 2) yo = -1;
+            if(rand == 3) xo = -1;
+            if(rand == 4) yo = 1;
+
+            rand++;
+
+            if(player.isBlocked(tx + xo, ty + yo)) continue;
+            if(ai.isObjectNotReachable(tx + xo, ty + yo)) continue;
+
+            var done = Goto(player, x + xo,  y + yo, move);
+
+            if(done) return true;
+        }
+
+        trace('AI: GOTO failed! Ignore ${tx} ${ty} '); 
+        ai.addNotReachable(tx, ty);
+
+        ai.resetTargets();
+        
+        return false;
+    }
+
+    public static function TryGoto(playerInterface:PlayerInterface, x:Int,y:Int):Bool
+    {
+        return Goto(playerInterface, x, y, false);
+    }
+
     // TODO goto uses global coordinates
-    public static function Goto(playerInterface:PlayerInterface, x:Int,y:Int):Bool
+    public static function Goto(playerInterface:PlayerInterface, x:Int, y:Int, move:Bool = true) : Bool
     {
         var player = playerInterface.getPlayerInstance();
 
@@ -273,8 +329,6 @@ class AiHelper
 
         var data:Array<Pos> = [];
         paths.shift();
-        //var mx:Array<Int> = [];
-        //var my:Array<Int> = [];
         var tx:Int = start.x;
         var ty:Int = start.y;
 
@@ -282,24 +336,8 @@ class AiHelper
         {
             data.push(new Pos(path.x - tx,path.y - ty));
         }
-
-        /*
-        goal = new Pos(x,y);
-
-        if (px == goal.x - player.x && py == goal.y - player.y)
-        {
-            trace("shift goal!");
-            //shift goal as well
-            goal.x += tweakX;
-            goal.y += tweakY;
-        }*/
-
-        //dest = new Pos(px + player.x, py + player.y);
-        //init = new Pos(player.x,player.y);
-        //movePlayer(data);
-        playerInterface.move(player.x, player.y, player.done_moving_seqNum++, data);
-
-        //isMoving = true;
+  
+        if(move) playerInterface.move(player.x, player.y, player.done_moving_seqNum++, data);
 
         return true;
     }

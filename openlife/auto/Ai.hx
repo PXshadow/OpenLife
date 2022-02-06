@@ -55,6 +55,15 @@ class Ai
         //this.myPlayer = cast(playerInterface, GlobalPlayerInstance); // TODO support only client AI
     }
 
+    public function resetTargets()
+    {
+        escapeTarget = null;
+        foodTarget = null;
+        useTarget = null;
+        itemToCraft.transActor = null;
+        itemToCraft.transTarget = null;
+    }
+
     public function newBorn()
     {
         trace('Ai: newborn!');
@@ -291,7 +300,7 @@ class Ai
             targetXY.tx = animalTarget.tx > myPlayer.tx ?  animalTarget.tx - range + 1 : animalTarget.tx + range - 1;
             targetXY.ty = animalTarget.ty > myPlayer.ty ?  animalTarget.ty - range + 1 : animalTarget.ty + range - 1;
 
-            var done = gotoObj(targetXY);
+            var done = myPlayer.gotoObj(targetXY);
 
             trace('AAI: ${myPlayer.id} killAnimal $distance goto animaltarget ${done}');
 
@@ -321,7 +330,7 @@ class Ai
 
         if(distance > 1)
         {
-            var done = gotoObj(obj);
+            var done = myPlayer.gotoObj(obj);
 
             trace('AAI: ${myPlayer.id} killAnimal done: $done goto weapon');
             return true;
@@ -428,7 +437,7 @@ class Ai
 
         if(distance > 1)
         {
-            var done = gotoAdv(child.tx, child.ty);
+            var done = myPlayer.gotoAdv(child.tx, child.ty);
 
             trace('AAI: ${myPlayer.id} goto child $done');
 
@@ -451,51 +460,6 @@ class Ai
         trace('AAI: ${myPlayer.id} child ${child.name} pickup $done');
 
         return true;
-    }
-
-    private function gotoObj(obj:ObjectHelper) : Bool
-    {
-        return gotoAdv(obj.tx, obj.ty);
-    }
-
-    private function gotoAdv(tx:Int, ty:Int) : Bool
-    {
-        var rand = 0;
-        var x = tx - myPlayer.gx;
-        var y = ty - myPlayer.gy;
-
-        for(i in 0...5)
-        {
-            var xo = 0;
-            var yo = 0;
-
-            if(rand > 4) break;
-
-            if(rand == 1) xo = 1;
-            if(rand == 2) yo = -1;
-            if(rand == 3) xo = -1;
-            if(rand == 4) yo = 1;
-
-            rand++;
-
-            if(myPlayer.isBlocked(tx + xo, ty + yo)) continue;
-            if(isObjectNotReachable(tx + xo, ty + yo)) continue;
-
-            var done = myPlayer.Goto(x + xo,  y + yo);
-
-            if(done) return true;
-        }
-
-        trace('AI: GOTO failed! Ignore ${tx} ${ty} '); 
-        this.addNotReachable(tx, ty);
-
-        escapeTarget = null;
-        foodTarget = null;
-        useTarget = null;
-        itemToCraft.transActor = null;
-        itemToCraft.transTarget = null;
-        
-        return false;
     }
 
     private function escape(animal:ObjectHelper, deadlyPlayer:GlobalPlayerInstance)
@@ -549,7 +513,7 @@ class Ai
 
                 if(checkIfDangerous && AiHelper.IsDangerous(myPlayer, newEscapetarget)) continue;
 
-                done = gotoObj(newEscapetarget);
+                done = myPlayer.gotoObj(newEscapetarget);
 
                 trace('AAI: ${myPlayer.id} Escape $done $ii $i alwaysX: $alwaysX alwaysY $alwaysY es: ${newEscapetarget.tx},${newEscapetarget.ty}');
 
@@ -1121,7 +1085,7 @@ class Ai
             var randX = WorldMap.calculateRandomInt(4) - 2;
             var randY = WorldMap.calculateRandomInt(4) - 2;
 
-            var done = gotoAdv(playerToFollow.tx + randX, playerToFollow.ty + randY);
+            var done = myPlayer.gotoAdv(playerToFollow.tx + randX, playerToFollow.ty + randY);
             myPlayer.say('${playerToFollow.name}');
 
             trace('AAI: ${myPlayer.id} age: ${myPlayer.age} dist: $distance goto player $done');
@@ -1146,7 +1110,7 @@ class Ai
             var done = false;
             for(i in 0...5)
             {
-                done = gotoObj(dropTarget);            
+                done = myPlayer.gotoObj(dropTarget);            
 
                 if(done) break;
 
@@ -1186,7 +1150,7 @@ class Ai
 
         if(distance > 1)
         {
-            var done = gotoObj(foodTarget);
+            var done = myPlayer.gotoObj(foodTarget);
 
             trace('AAI: ${myPlayer.id} goto food target $done');
 
@@ -1325,7 +1289,7 @@ class Ai
         if(distance > 1)
         {
             var name = useTarget.name;
-            var done = gotoObj(useTarget);
+            var done = myPlayer.gotoObj(useTarget);
             trace('AAI: ${myPlayer.id} goto useItem ${name} $done');
 
             myPlayer.say('Goto ${name} for use!');
