@@ -79,7 +79,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         //var count = 0;
         //for(p in AllPlayers) count++;
 
-        //trace('Spawn As Child2: ${player.p_id} ${player.account.email} count: $count');
+        //trace('Children: ${player.p_id} ${player.account.email} count: $count');
     }
 
     public static var medianPrestige:Float = ServerSettings.HealthFactor;
@@ -539,8 +539,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         for(food in fromPlayer.hasEatenMap.keys())
         {
-            var foodCount = fromPlayer.hasEatenMap[food] - ServerSettings.HasEatenReductionForNextGeneration;
-            if(foodCount > ServerSettings.HasEatenReductionForNextGeneration) foodCount -= ServerSettings.HasEatenReductionForNextGeneration;
+            var foodCount = fromPlayer.hasEatenMap[food]; // - ServerSettings.HasEatenReductionForNextGeneration;
+            //if(foodCount > ServerSettings.HasEatenReductionForNextGeneration) foodCount -= ServerSettings.HasEatenReductionForNextGeneration;
+            if(foodCount > ServerSettings.MaxHasEatenForNextGeneration) foodCount = ServerSettings.MaxHasEatenForNextGeneration;
             child.hasEatenMap[food] = foodCount;
             trace('Inherit fromGrandma: $inheritFromGrandma food: $food value: $foodCount');
         }
@@ -2273,6 +2274,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         //trace('TIME22: SET ${obj.description} timeToChange: ${obj.timeToChange}');
 
         MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed();
+
+        if(player.heldObject.containedObjects.length > player.heldObject.objectData.numSlots)
+        {
+            var message = 'WARNING: setHeldObject: ${player.name} ${player.heldObject.name} ${player.heldObject.toArray()} slots: containedObjects.length > player.heldObject.objectData.numSlots: ${player.heldObject.objectData.numSlots}';
+            trace(message);
+            throw new Exception(message);
+        }
 
         if(obj != null && obj.objectData.foodValue > 0)
         {

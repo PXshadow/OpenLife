@@ -219,8 +219,8 @@ Food - YUM:
 - YUM chain is used as Health // TODO change YUM --> Prestiege Max_Food --> Health 
 - eating YUM increases YUM chain, while eating MEH reduces it
 
-Generational Yum:
-- a child inherits what is considered as YUM (the eaten food counts minus 0.2) from his gradma / mother in case there is none // TODO consider father
+Generational cravings:
+- a child inherits the cravings from his gradma / mother in case there is none // TODO consider father
 
 Food - Health - Hits
 - YUM chain / Health influences now aging (0.5X to 2X) and speed (1.2X to 0.5X) / With this Berry munching is even worse
@@ -241,7 +241,6 @@ Animals:
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
-
 - fathers
 - better fences / allow to climb over fences, but get wounded / make destroyable if not protected by close gate)
 - reconnection after server shutdown
@@ -367,7 +366,6 @@ PX TODO
 5. Task Queue system with Auto.hx class
 6. Algorithm to identify what is needed next for overseer
 
-
 How to setup:
 - TODO how to load new ObjectData from Repository
 - there is a ServerSettings.txt file in SaveFiles folder. Settings are read at start and every 10 sec.
@@ -399,5 +397,3 @@ port: 8005
 
 Jason server:
 server10.onehouronelife.com
-
-test
