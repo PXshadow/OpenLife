@@ -677,6 +677,7 @@ class Ai
         while (radius < ServerSettings.AiMaxSearchRadius)
         {
             radius += ServerSettings.AiMaxSearchIncrement;
+            itemToCraft.searchRadius = radius;
 
             //trace('AI: ${myPlayer.id} craft: search radius: $radius');
 
@@ -820,7 +821,7 @@ class Ai
         if(itemToCraft.transActor != null && itemToCraft.transActor.name == null) descActor += itemToCraft.transActor == null ? '' : ' ${itemToCraft.transActor.id} ${itemToCraft.transActor.description}';
         if(itemToCraft.transTarget != null && itemToCraft.transTarget.name == null) descTarget += itemToCraft.transTarget == null ? '' : ' ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}';
 
-        trace('AI: craft: FINISHED $count ms: ${Math.round((Sys.time() - startTime) * 1000)} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
+        trace('AI: craft: FINISHED $count ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
     }
 
     private static function DoTransitionSearch(itemToCraft:IntemToCraft, wantedId:Int, objectsToSearch:Array<Int>, transitions:Array<TransitionData>) : Bool
@@ -1386,6 +1387,7 @@ class IntemToCraft
     public var countDone:Int = 0; // allready crafted
     public var countTransitionsDone:Int = 0; // transitions done while crafting
     public var done:Bool = false; // transitions done while crafting
+    public var searchRadius = 0;
 
 
     public var transActor:ObjectHelper = null;
