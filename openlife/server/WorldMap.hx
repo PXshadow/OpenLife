@@ -356,16 +356,33 @@ class WorldMap
         return Server.server.map.getObjectHelper(x, y, allowNull);
     }
 
-    public function getObjectHelper(x:Int, y:Int, allowNull:Bool = false):ObjectHelper
+    public function getObjectHelper(tx:Int, ty:Int, allowNull:Bool = false):ObjectHelper
     {
         //trace('objectHelper: $x,$y');
-        var helper = objectHelpers[index(x,y)];   
+        var position = index(tx,ty);
+        var helper = objectHelpers[position];  
 
-        if(helper != null || allowNull) return helper;
+        if(helper == null && allowNull) return helper;
+        
+        if(helper != null && (index(helper.tx, helper.ty) != position))
+        {
+            trace('WARNING: Object ${helper.name} moved meanwhile! ${helper.tx} ${helper.ty} --> ${tx} ${ty}');
+            throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
+            helper = null;
+        }
 
-        helper = ObjectHelper.readObjectHelper(null, getObjectId(x , y));
-        helper.tx = x;
-        helper.ty = y;
+        if(helper != null) return helper;
+
+        helper = ObjectHelper.readObjectHelper(null, getObjectId(tx , ty));
+        helper.tx = tx;
+        helper.ty = ty;
+
+        if(helper.containedObjects.length > helper.objectData.numSlots)
+        {
+            var message = 'WARNING: world getObjectHelper: ${helper.name} ${helper.toArray()} slots: containedObjects.length > player.heldObject.objectData.numSlots: ${helper.objectData.numSlots}';
+            trace(message);
+            throw new Exception(message);
+        }
 
         return helper;
     }
@@ -396,6 +413,16 @@ class WorldMap
         helper.ty = y;
 
         helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper); 
+
+        if(helper.containedObjects.length > helper.objectData.numSlots)
+        {
+            var objData = helper.containedObjects[0];
+            var message = 'WARNING: world setObjectHelper: ${helper.name} ${helper.toArray()} first: ${objData.name} slots: containedObjects.length > player.heldObject.objectData.numSlots: ${helper.objectData.numSlots}';
+            trace(message);
+            //helper.containedObjects = [];
+
+            throw new Exception(message);
+        }
 
         if(deleteObjectHelperIfUseless(helper)) return;
     }
@@ -468,7 +495,7 @@ class WorldMap
         floors[index(x,y)] = floor;
     }
 
-    public function index(x:Int,y:Int):Int
+    public function index(x:Int, y:Int) : Int
     {
         // Dont know why yet, but y seems to be right if -1
         y -= 1;
