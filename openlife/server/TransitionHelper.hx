@@ -44,13 +44,6 @@ class TransitionHelper{
 
     public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0) : Bool
     {
-        if((player.o_id[0] < 0) || player.heldPlayer != null)
-        {
-            trace('doCommand: cannot to use since holding a player!');
-            player.connection.send(PLAYER_UPDATE,[player.toData()]);
-            return false;
-        }
-        
         //trace('doCommand try to acquire player mutex');
         if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.acquire();
         else player.mutex.acquire();
@@ -91,6 +84,13 @@ class TransitionHelper{
     public static function doCommandHelper(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0) : Bool
     {
         var helper = new TransitionHelper(player, x, y);
+
+        if((player.o_id[0] < 0) || player.heldPlayer != null)
+        {
+            trace('doCommand: cannot do use since holding a player!');
+            helper.sendUpdateToClient();
+            return false;
+        }
 
         //if(player.heldObject.isPermanent() || player.heldObject.isNeverDrop())
         if(player.heldObject.isNeverDrop())
@@ -391,7 +391,6 @@ class TransitionHelper{
      i parameter is optional, and specifies a container slot to use a held
      object on (for example, using a knife to slice bread sitting on a table).
     */
-
     public function use(target:Int, containerIndex:Int) : Bool
     {
         trace('USE target: $target containerIndex: $containerIndex');
