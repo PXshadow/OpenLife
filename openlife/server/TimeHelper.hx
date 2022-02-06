@@ -1382,26 +1382,25 @@ class TimeHelper
 
             TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, timeTransition, false);
 
-            helper.tx = toTx;
-            helper.ty = toTy;
-            var damage = DoAnimalDamage(fromTx, fromTy, helper);
-    
             // save what was on the ground, so that we can move on this tile and later restore it
             var oldTileObject = helper.groundObject == null ? [0]: helper.groundObject.toArray();
             var newTileObject = helper.toArray();
 
             //var des = helper.groundObject == null ? "NONE": helper.groundObject.description();
             //trace('MOVE: oldTile: $oldTileObject $des newTile: $newTileObject ${helper.description()}');
-
-            // TODO only change after movement is finished
-            if(damage <= 0) helper.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
-            helper.creationTimeInTicks = TimeHelper.tick;
-
             worldmap.setObjectHelper(fromTx, fromTy, helper.groundObject);
 
             var tmpGroundObject = helper.groundObject;
             helper.groundObject = target;
-            worldmap.setObjectHelper(toTx, toTy, helper);
+            worldmap.setObjectHelper(toTx, toTy, helper); // set so that object has the right position before doing samage
+            //helper.tx = toTx;
+            //helper.ty = toTy;
+            var damage = DoAnimalDamage(fromTx, fromTy, helper);
+            // TODO only change after movement is finished
+            if(damage <= 0) helper.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
+            helper.creationTimeInTicks = TimeHelper.tick;
+
+            worldmap.setObjectHelper(toTx, toTy, helper); // set again since animal might be killed
 
             var chanceForOffspring = isPreferredBiome ? ServerSettings.ChanceForOffspring : ServerSettings.ChanceForOffspring * Math.pow((1 - chancePreferredBiome), 2);
             var chanceForAnimalDying = isPreferredBiome ? ServerSettings.ChanceForOffspring / 2: ServerSettings.ChanceForAnimalDying;
