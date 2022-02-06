@@ -1261,12 +1261,12 @@ class WorldMap
     
     private static function TryPlaceObject(x:Int, y:Int, objectToPlace:ObjectHelper, allowReplaceObject:Bool) : ObjectHelper
     {
-        var world = Server.server.map;
-        var obj = world.getObjectHelper(x, y);
-
         if(WorldMap.isBiomeBlocking(x,y)) return objectToPlace;
 
-        if(obj.id == 0)
+        var world = Server.server.map;
+        var objId = world.getObjectId(x, y); 
+
+        if(objId[0] == 0)
         {
             world.setObjectHelper(x, y, objectToPlace);
 
@@ -1276,7 +1276,10 @@ class WorldMap
 
             return null;
         }
-        else if(obj.objectData.containable && objectToPlace.containedObjects.length < objectToPlace.objectData.numSlots)
+
+        var obj = world.getObjectHelper(x, y);
+
+        if(obj.objectData.containable && objectToPlace.containedObjects.length < objectToPlace.objectData.numSlots)
         {
             objectToPlace.containedObjects.push(obj);
 
