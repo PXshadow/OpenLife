@@ -548,11 +548,11 @@ class ObjectData extends LineReader
     public static function addEmptyAndTimeObjectData()
     {
         objectDataMap[0] = new ObjectData(0,false,true);
-        objectDataMap[-1] = new ObjectData(0,false,true); // Add Time Object Data
+        objectDataMap[-1] = new ObjectData(-1,false,true); // Add Time Object Data
         objectDataMap[-1].description = "TIME";
         objectDataMap[-1].id = -1;
 
-        objectDataMap[-2] = new ObjectData(0,false,true); // Add Player Object Data
+        objectDataMap[-2] = new ObjectData(-2,false,true); // Add Player Object Data
         objectDataMap[-2].description = "PLAYER";
         objectDataMap[-2].id = -2;
 
@@ -646,8 +646,22 @@ class ObjectData extends LineReader
     {
         super();
 
-        if(i == 0 || createNullObject) {
-            this.description = "Empty";
+        if(i == 0 || createNullObject)
+        {
+            this.description = "EMPTY";
+            this.name = "EMPTY";
+            return;
+        }
+        if(i == -1)
+        {
+            this.description = "TIME";
+            this.name = "TIME";
+            return;
+        }
+        if(i == -2)
+        {
+            this.description = "PLAYER";
+            this.name = "PLAYER";
             return;
         }
 
