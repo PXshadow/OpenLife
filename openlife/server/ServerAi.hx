@@ -6,13 +6,18 @@ import openlife.auto.Ai;
 class ServerAi extends Ai
 {
     public static var AiIdIndex = 1;
+
     public var player:GlobalPlayerInstance;
+    public var number:Int;
     public var connection:Connection;
     public var timeToRebirth:Float = 0;
+
 
     public function new(newPlayer:GlobalPlayerInstance)
     {
         super(newPlayer);
+
+        this.number = AiIdIndex++;
         this.player = newPlayer;
         this.connection = player.connection;
         player.connection.serverAi = this;
@@ -22,19 +27,29 @@ class ServerAi extends Ai
 
     public static function createNewServerAiWithNewPlayer() : ServerAi
     {
-        var email = 'AI${AiIdIndex++}';
+        var email = 'AI${AiIdIndex}';
         var newConnection = new Connection(null, Server.server);
         newConnection.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, email);
         newConnection.playerAccount.isAi = true;
         var newPlayer = GlobalPlayerInstance.CreateNewAiPlayer(newConnection);
 
         var ai = new ServerAi(newPlayer);
+        
+        trace('new ai: ${ai.number} ${newConnection.playerAccount.email}');  
+        
         ai.newBorn();
         return ai;
     }
 
     public function doRebirth(timePassedInSeconds:Float)
     {
+        if(this.number > ServerSettings.NumberOfAis)
+        {
+            trace('remove ai: ${this.number}');   
+            Connection.removeAi(this);
+            return;
+        }
+
         if(timeToRebirth == 0) timeToRebirth = (ServerSettings.TimeToAiRebirth / 2) + WorldMap.calculateRandomFloat() * ServerSettings.TimeToAiRebirth;
         timeToRebirth -= timePassedInSeconds;
 
