@@ -200,6 +200,7 @@ class MoveHelper
                 Connection.SendCurseToAll(p); // TODO test
                 p.say('My grave is near...', true);
                 p.doEmote(Emote.sad);
+                p.connection.sendGlobalMessage('Since you are near your old bones you are cursed!');
             }
 
             speed *= ServerSettings.CloseGraveSpeedMali;
@@ -215,6 +216,18 @@ class MoveHelper
             }
             
             p.isCursed = false;
+        }
+
+        var biomeLoveFactor = p.biomeLoveFactor();
+        if(biomeLoveFactor < 0 && p.inWrongBiome == false)
+        {
+            p.inWrongBiome = true;
+            p.doEmote(Emote.homesick);
+        }
+        else if(biomeLoveFactor >= 0 && p.inWrongBiome)
+        {
+            p.inWrongBiome = false;
+            p.doEmote(Emote.biomeRelief);
         }
 
         if(p.getClosePlayer() != null && p.angryTime < 0)
@@ -285,7 +298,7 @@ class MoveHelper
 
                 TimeHelper.MakeAnimalsRunAway(p);
 
-                trace('Move: ${p.name} ${p.tx} ${p.ty}');
+                //trace('Move: ${p.name} ${p.tx} ${p.ty}');
             }
 
             //if(TimeHelper.tick % 5 == 0) trace('Moves: ${moveHelper.newMoves} passedTime: $timePassed ${p.tx()},${p.ty()} ${moveHelper.exactTx},${moveHelper.exactTy}');
@@ -343,7 +356,7 @@ class MoveHelper
 
                 if(p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
 
-                trace('Move: ${p.name} Done SeqNum: ${p.done_moving_seqNum} ${p.tx} ${p.ty}');
+                trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
             //}
             //catch(ex)
             //{
