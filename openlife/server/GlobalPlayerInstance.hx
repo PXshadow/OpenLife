@@ -161,6 +161,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public var isCursed:Bool = false;
     public var inWrongBiome = false;
+    public var inHomeBiome = false;
 
     // set all stuff null so that nothing is hanging around
     public function delete()

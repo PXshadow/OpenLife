@@ -227,7 +227,17 @@ class MoveHelper
         else if(biomeLoveFactor >= 0 && p.inWrongBiome)
         {
             p.inWrongBiome = false;
+            //p.doEmote(Emote.biomeRelief);
+        }
+        else if(biomeLoveFactor > 0 && p.inHomeBiome == false)
+        {
+            p.inHomeBiome = true;
             p.doEmote(Emote.biomeRelief);
+        }
+        else if(biomeLoveFactor <= 0 && p.inHomeBiome)
+        {
+            p.inHomeBiome = false;
+            //p.doEmote(Emote.biomeRelief);
         }
 
         if(p.getClosePlayer() != null && p.angryTime < 0)
