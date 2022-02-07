@@ -155,6 +155,11 @@ class Connection
         ais.push(ai);
     }
 
+    public static function removeAi(ai:ServerAi)
+    {
+        ais.remove(ai);
+    }
+
     public static function SendUpdateToAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true, sendFrame:Bool = true)
     {
         try
