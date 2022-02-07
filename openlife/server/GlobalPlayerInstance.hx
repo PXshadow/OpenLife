@@ -567,7 +567,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         return -1;
     }
-    // Snow --> Ginger / Swamp --> White / Jungle --> Brown / Desert --> Black
+    // Snow --> Ginger / Grey --> White / Jungle --> Brown / Desert --> Black
     public static function getCloseSpecialBiomePersonColor(x:Int, y:Int) : Int
     {
         var maxSearch = 200;
@@ -3608,12 +3608,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         var loved:Float = 0;
 
-        // TODO make grey instead of swamp loved white biome???
         if(biome == BiomeTag.SNOW && personColor == PersonColor.Ginger) loved += 1;
-        if(biome == BiomeTag.SWAMP && personColor == PersonColor.White) loved += 1;
+        if(biome == BiomeTag.GREY && personColor == PersonColor.White) loved += 1;
         if(biome == BiomeTag.JUNGLE && personColor == PersonColor.Brown) loved += 1;
         if(biome == BiomeTag.DESERT && personColor == PersonColor.Black) loved += 1;
-        if(motherOrFather == false && loved <= 0 && biome != BiomeTag.GREEN && biome != BiomeTag.GREY) loved -= 0.5;
+        if(motherOrFather == false && loved <= 0 && biome != BiomeTag.GREEN && biome != BiomeTag.YELLOW) loved -= 0.5;
         // only reduction if on bridge or floor in swamp or passableriver
         if(motherOrFather == false && loved <= 0 && floorId != 0 && (biome == BiomeTag.SWAMP || biome == BiomeTag.PASSABLERIVER)) loved -= 2.5;
 

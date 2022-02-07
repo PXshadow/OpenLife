@@ -68,12 +68,14 @@ Adam / Eve:
 - Adam / Eve do 20% less damage
 - Adam / Eve receive 20% less damage (also from animals)
 
-Family:
+Family / Loved / Hated Biomes:
+- Loved Biomes: Ginger --> Snow / White --> Grey / Brown --> Jungle / Black --> Desert 
 - Children are now more likely to be born closer to special biome color. With this one Eve can create all colors if people migrate...
-- Partens influence which biomes are loved 
-
-Loved / Hated Biomes:
+- Parents influence which biomes are loved 
 - Bad Temperature is affected now by how much you / your partens (50%) love the biome
+- You gain extra exhaustion in not loved biomes and loose extra exhaustion in loved ones
+- TODO differen loved food
+- TODO differen exhaustion for work in bad / loved biome
 
 Classes:
 - there are three different classes: Sef / Commoner / Noble

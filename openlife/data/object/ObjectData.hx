@@ -33,7 +33,7 @@ import openlife.data.sound.SoundData;
     {
         if(biome == BiomeTag.DESERT) return PersonColor.Black;
         if(biome == BiomeTag.JUNGLE) return PersonColor.Brown;
-        if(biome == BiomeTag.SWAMP) return PersonColor.White;
+        if(biome == BiomeTag.GREY) return PersonColor.White;
         if(biome == BiomeTag.SNOW) return PersonColor.Ginger;
 
         return -1; 
