@@ -50,7 +50,7 @@ class Pathfinder
 	 * @param	p_map	The boolean coordinate map
 	 * @param	p_timeOutDuration	The maximum time spent to find a path
 	 */
-	public function new( p_map:MapHeader, p_timeOutDuration:Int = 10000 )
+	public function new( p_map:MapHeader, p_timeOutDuration:Int = 200 )
 	{
 		configure( p_map, p_timeOutDuration );
 	}
@@ -60,7 +60,7 @@ class Pathfinder
 	 * @param	p_map	The boolean coordinate map
 	 * @param	p_timeOutDuration	The maximum time spent to find a path
 	 */
-	public function configure( p_map:MapHeader, p_timeOutDuration:Int = 10000 )
+	public function configure( p_map:MapHeader, p_timeOutDuration:Int = 200 )
 	{
 		_map = p_map;
 		_timeOutDuration = p_timeOutDuration;
@@ -186,6 +186,8 @@ class Pathfinder
 		_isCompleted = false;
 		while ( !_isCompleted )
 		{
+			//trace('Pathing: timeout: $_timeOutDuration ms: ${Std.int( ( Timer.stamp() - l_startTime ) * 1000 )}');
+
 			l_minX = l_currentNode.x - 1 < 0 ? 0 : l_currentNode.x - 1;
 			l_maxX = l_currentNode.x + 1 >= _cols ? _cols - 1 : l_currentNode.x + 1;
 			l_minY = l_currentNode.y - 1 < 0 ? 0 : l_currentNode.y - 1;
