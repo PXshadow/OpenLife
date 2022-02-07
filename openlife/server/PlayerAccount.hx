@@ -131,7 +131,8 @@ class PlayerAccount
     {
         var total = (maleScore + femaleScore) / 2; 
         if(this.isAi) total *= ServerSettings.AiTotalScoreFactor;
-        return (maleScore + femaleScore) / 2; 
+        total = Math.floor(total);
+        return total; 
     }
 
     public static function ChangeScore(player:GlobalPlayerInstance)
