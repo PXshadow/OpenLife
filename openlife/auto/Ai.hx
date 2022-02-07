@@ -80,7 +80,7 @@ class Ai
 
         playerToFollow = null;
         children = new Array<PlayerInterface>();
-
+        //addTask(837); //Psilocybe Mushroom
         addTask(82); // Fire
         //addTask(80); // Burning Tinder
         //addTask(78); // Smoldering Tinder 
@@ -850,6 +850,8 @@ class Ai
             //TODO? if(actorSteps + targetSteps <= newActorSteps + newTargetSteps) continue; // nothing is won
             if(trans.actorID == wantedId || trans.actorID == objToCraftId) continue; 
             if(trans.targetID == wantedId || trans.targetID == objToCraftId) continue; 
+            // a oven needs 15 sec to warm up this is ok, but waiting for mushroom to grow is little bit too long!
+            if(trans.calculateTimeToChange() > ServerSettings.AiIgnoreTimeTransitionsLongerThen) continue;
 
             var actor = transitionsByObjectId[trans.actorID];
             var target = transitionsByObjectId[trans.targetID];

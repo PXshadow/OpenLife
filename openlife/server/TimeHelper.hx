@@ -927,7 +927,7 @@ class TimeHelper
 
                         trace('WARNING: found helper without time transition: ${helper.description}');
 
-                        helper.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
+                        helper.timeToChange = timeTransition.calculateTimeToChange();
                     }
 
                     // clear up not needed ObjectHelpers to save space
@@ -942,7 +942,7 @@ class TimeHelper
                 if(timeTransition == null) continue;
 
                 helper = worldMap.getObjectHelper(x,y); 
-                helper.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
+                helper.timeToChange = timeTransition.calculateTimeToChange();
 
                 worldMap.setObjectHelper(x,y,helper);
 
@@ -1397,7 +1397,7 @@ class TimeHelper
             //helper.ty = toTy;
             var damage = DoAnimalDamage(fromTx, fromTy, helper);
             // TODO only change after movement is finished
-            if(damage <= 0) helper.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
+            if(damage <= 0) helper.timeToChange = timeTransition.calculateTimeToChange();
             helper.creationTimeInTicks = TimeHelper.tick;
 
             worldmap.setObjectHelper(toTx, toTy, helper); // set again since animal might be killed
@@ -1417,7 +1417,7 @@ class TimeHelper
                 oldTileObject = newTileObject;
                 
                 var newAnimal = ObjectHelper.readObjectHelper(null, newTileObject);
-                newAnimal.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition);
+                newAnimal.timeToChange = timeTransition.calculateTimeToChange();
                 newAnimal.groundObject = tmpGroundObject;
                 worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
             }

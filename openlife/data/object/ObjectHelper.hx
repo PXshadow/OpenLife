@@ -409,18 +409,7 @@ class ObjectHelper
 
         //trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');
 
-        return CalculateTimeToChange(timeTransition);
-    }
-
-    public static function CalculateTimeToChange(timeTransition:TransitionData) : Float
-    {
-        // hours are negative
-        var timeToChange = timeTransition.autoDecaySeconds < 0 ?  (-3600) * timeTransition.autoDecaySeconds : timeTransition.autoDecaySeconds;                 
-        timeToChange = WorldMap.calculateRandomFloat() * timeToChange + timeToChange / 2;
-
-        // if(timeTransition.targetID == 2992) trace('TIME33:  ${timeTransition.targetID} ${timeToChange}');
-
-        return timeToChange;
+        return timeTransition.calculateTimeToChange();
     }
 
     public function TransformToDummy()

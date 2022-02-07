@@ -3107,7 +3107,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             // currently timetochange is overriden if object ist set
             //timeToChangeFactor = longWeaponCoolDown && attacker == null ? ServerSettings.AnimalCoolDownFactorIfWounding : timeToChangeFactor;
 
-            fromObj.timeToChange = ObjectHelper.CalculateTimeToChange(timeTransition) * timeToChangeFactor;
+            fromObj.timeToChange = timeTransition.calculateTimeToChange() * timeToChangeFactor;
             trace('Bloody Weapon Time: ${fromObj.timeToChange} ' + timeTransition.getDesciption());
         }  
 

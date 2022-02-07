@@ -545,7 +545,7 @@ class AiHelper
         if(trans.newActorID == debugObjId) return true;
         return trans.newTargetID == debugObjId;
     }
-    
+
     private static function AddTransition(transitionsForObject:Map<Int, TransitionForObject>, transition:TransitionData, objId:Int, wantedObjId:Int, steps:Int)
     {
         var transitionForObject = transitionsForObject[objId];
