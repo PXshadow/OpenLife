@@ -25,19 +25,19 @@ using openlife.server.MoveHelper;
 // TODO give one at start?
 @:enum abstract Emote(Int) from Int to Int
 {
-    public var happy = 0;  // used YUM
+    public var happy = 0;  // eating YUM
     public var mad = 1; 
     public var angry = 2;
-    public var sad = 3;  
+    public var sad = 3;  // eating meh // holding SUPERMEH
     public var devious = 4;
-    public var joy = 5;
+    public var joy = 5; // holding YUM
     public var blush = 6; // redface
     public var yellowFever = 7; // TODO moskito
     public var snowSplat = 8;
     public var hubba = 9; // eyes
-    public var ill = 10;  // TODO super meh food
+    public var ill = 10;  // eating SUPERMEH food
     public var yoohoo = 11; //whistle
-    public var hmph = 12; // used for eating MEH food
+    public var hmph = 12; // holding MEH
     public var love = 13; // TODO partner
     public var oreally = 14;
     public var shock = 15;
@@ -55,7 +55,7 @@ using openlife.server.MoveHelper;
     public var terrified = 27;
     public var homesick = 28;
     public var spicyFood = 29; // TODO ?
-    public var refuseFood = 30; // TODO ?
+    public var refuseFood = 30; // used if food is reused
     public var starving = 31; // used for starving
 
     public var miamFood = 32; // used for eating craved food
@@ -160,6 +160,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var newFollowerTime:Float = 0; 
 
     public var isCursed:Bool = false;
+    public var inWrongBiome = false;
 
     // set all stuff null so that nothing is hanging around
     public function delete()
@@ -302,7 +303,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             if(spawnAsChild() == false) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
         }        
 
-        move_speed = MoveHelper.calculateSpeed(this, gx, gy);
+        move_speed = ServerSettings.InitialPlayerMoveSpeed; // MoveHelper.calculateSpeed(this, gx, gy); // DOES not set grave curse if done at init
         
         food_store_max = calculateFoodStoreMax();
         food_store = food_store_max / 2;
@@ -1799,8 +1800,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             if(playerFrom != null) playerFrom.doEmote(Emote.happy);
         }
         else if(isHoldingYum) playerTo.doEmote(Emote.happy);
-        else if(isSuperMeh) playerTo.doEmote(Emote.ill);  // TODO make really ill / slower speed and cannot eat same
-        else playerTo.doEmote(Emote.hmph);
+        else if(isSuperMeh) playerTo.doEmote(Emote.ill); 
+        else playerTo.doEmote(Emote.sad);
         
         return true;    
     }
@@ -1844,8 +1845,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var player = this;
         var isHoldingPlayer = this.o_id[0] < 0;
 
-        if(isHoldingPlayer && this.heldPlayer != null) throw new Exception('Is holding player but no platyer set!');
-        if(isHoldingPlayer) isHoldingPlayer = false;
+        if(isHoldingPlayer && this.heldPlayer == null) throw new Exception('Is holding player but no player set!');
+        if(isHoldingPlayer) isHoldingPlayer = false; // TODO?
 
         player.forced = false;
         player.action = 1;        
@@ -2268,6 +2269,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function setHeldObject(obj:ObjectHelper)
     {
+        if(obj == null) obj = ObjectHelper.readObjectHelper(this, [0]);
+        
         var player = this;
         this.heldObject = obj;
         
@@ -2291,18 +2294,35 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             var isHoldingYum = isHoldingYum();
             if(isHoldingYum) this.doEmote(Emote.joy);
-            else this.doEmote(Emote.sad);
-            //else if(isSuperMeh) playerTo.doEmote(Emote.ill);      
+            else if(isSuperMeh(this.heldObject)) this.doEmote(Emote.sad);      
+            else this.doEmote(Emote.hmph);
             
             //if(isHoldingYum) displayFood(obj);
             //else DisplayBestFood(player);
             displayFood(obj);
             DisplayBestFood(player);            
         }
+        //else{this.doEmote(Emote.homesick);}
+
+    }
+
+    public function isSuperMeh(food:ObjectHelper) : Bool
+    {
+        var foodValue:Float = food.objectData.foodValue;
+        var countEaten = this.hasEatenMap[food.id]; 
+
+        if(countEaten < 0) countEaten = 0;    
+        foodValue += ServerSettings.YumBonus;
+        foodValue -= countEaten;
+
+        var isSuperMeh = foodValue < food.objectData.foodValue / 2;    
+        return isSuperMeh;
     }
 
     public function displayFood(food:ObjectHelper)
     {
+        if(this.isAi()) return;
+
         var player = this;
         var countEaten = player.hasEatenMap[food.id];
         var isYum = countEaten < ServerSettings.YumBonus; 
@@ -2326,7 +2346,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             text += 'H!';
         }
 
-        trace('DisplayBestFood: ${food.description} $text count: $count countEaten: $countEaten');
+        //trace('DisplayBestFood: ${food.description} $text count: $count countEaten: $countEaten');
 
         player.connection.send(ClientTag.LOCATION_SAYS, ['${food.tx - player.gx} ${food.ty - player.gy} $text']);
     }
@@ -2351,7 +2371,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed()
     {
-        if(this.o_id[0] < 0) return; // do nothing if a player is hold
+        //if(this.o_id[0] < 0) return; // do nothing if a player is hold
 
         var obj = this.heldObject;
 
@@ -2362,7 +2382,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         } 
 
         obj.TransformToDummy();
-        this.o_id = obj.toArray();
+        this.o_id = this.heldPlayer == null ? obj.toArray() : [-this.heldPlayer.p_id];
         this.held_yum = isHoldingYum(); 
     }
 
@@ -2397,71 +2417,69 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     **/
     public function doDeath(deathReason:String)
     {
-        if(this.deleted) return;
-
         if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
         else this.mutex.acquire();
 
-        try
-        {
-            this.deleted = true;
-
-            this.lineage.deathTime = TimeHelper.tick;
-            this.lineage.age = this.age;
-            this.lineage.trueAge = this.trueAge;
-            this.lineage.deathReason = deathReason;
-            this.lineage.prestige = this.prestige;
-            this.lineage.coins = this.coins;
-
-            var oldScore = this.account.totalScore;
-            PlayerAccount.ChangeScore(this);  
-
-            trace('Do death: ${name} score: ${oldScore} --> ${this.account.totalScore} ${deathReason} age: ${Math.floor(this.age)} trueAge: ${Math.floor(this.trueAge)} prestige: ${Math.floor(this.prestige)} coins: ${Math.floor(this.coins)}');
-
-            this.age = this.trueAge; // bad health and starving can influence health, so setback true time a player lifed so that he sees in death screen
-            this.reason = deathReason;
-            
-            ChooseNewLeader(this);
-
-            // TODO set coordinates player based
-            ServerSettings.startingGx = this.tx;
-            ServerSettings.startingGy = this.ty;
-
-            //this.connection.die();
-            
-            if(this.heldPlayer != null) this.dropPlayer(); // TODO test
-            if(this.heldByPlayer != null)
-            {
-                var player = this.heldByPlayer;
-                var heldPlayer = this;
-
-                heldPlayer.x = player.tx - heldPlayer.gx;
-                heldPlayer.y = player.ty - heldPlayer.gy;
-        
-                player.heldPlayer = null;
-                player.setHeldObject(null);
-        
-                heldPlayer.heldByPlayer = null;
-
-                // TODO place baby bones in arms
-            }
-
-            placeGrave();
-            InheritOwnership(this);
-            InheritCoins(this);
-            ScoreEntry.CreateScoreEntryForDeadRelative(this);
-
-            Connection.SendUpdateToAllClosePlayers(this, false);       
-
-            this.delete();
-
-        }catch(ex)
-        {
-            trace('WARNING: ' + ex.details);
-        }
+        Macro.exception(doDeathHelper(deathReason));
 
         if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
         else this.mutex.release();
+    }
+
+    public function doDeathHelper(deathReason:String)
+    {
+        if(this.deleted) return;
+
+        this.deleted = true;
+
+        this.lineage.deathTime = TimeHelper.tick;
+        this.lineage.age = this.age;
+        this.lineage.trueAge = this.trueAge;
+        this.lineage.deathReason = deathReason;
+        this.lineage.prestige = this.prestige;
+        this.lineage.coins = this.coins;
+
+        var oldScore = this.account.totalScore;
+        PlayerAccount.ChangeScore(this);  
+
+        trace('Do death: ${name} score: ${oldScore} --> ${this.account.totalScore} ${deathReason} age: ${Math.floor(this.age)} trueAge: ${Math.floor(this.trueAge)} prestige: ${Math.floor(this.prestige)} coins: ${Math.floor(this.coins)}');
+
+        this.age = this.trueAge; // bad health and starving can influence health, so setback true time a player lifed so that he sees in death screen
+        this.reason = deathReason;
+        
+        ChooseNewLeader(this);
+
+        // TODO set coordinates player based
+        ServerSettings.startingGx = this.tx;
+        ServerSettings.startingGy = this.ty;
+
+        //this.connection.die();
+        
+        if(this.heldPlayer != null) this.dropPlayer(); // TODO test
+        if(this.heldByPlayer != null)
+        {
+            var player = this.heldByPlayer;
+            var heldPlayer = this;
+
+            heldPlayer.x = player.tx - heldPlayer.gx;
+            heldPlayer.y = player.ty - heldPlayer.gy;
+    
+            player.heldPlayer = null;
+            player.setHeldObject(null);
+    
+            heldPlayer.heldByPlayer = null;
+
+            // TODO place baby bones in arms
+        }
+
+        placeGrave();
+        InheritOwnership(this);
+        InheritCoins(this);
+        ScoreEntry.CreateScoreEntryForDeadRelative(this);
+
+        Connection.SendUpdateToAllClosePlayers(this, false);       
+
+        this.delete();   
     }
 
     private static function InheritCoins(player:GlobalPlayerInstance)
@@ -3206,15 +3224,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function doBabyHelper(x:Int, y:Int, targetPlayer:GlobalPlayerInstance) : Bool
     {
-        if(isCloseToPlayer(targetPlayer) == false)
-        {
-            trace('doBaby: x,y is too far away!');
-            return false;
-        }
-
         if(targetPlayer == null)
         {
             trace('doBaby: could not find target player!');
+            return false;
+        }
+
+        if(isCloseToPlayer(targetPlayer) == false)
+        {
+            trace('doBaby: x,y is too far away!');
             return false;
         }
 
@@ -3273,7 +3291,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;    
         }
 
-        var done = doHelper(this, this.heldPlayer, dropPlayerHelper);
+        var done = false;
+        Macro.exception(done = dropPlayerHelper());
 
         if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
         else this.mutex.release();
@@ -3281,10 +3300,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return done;
     }
 
-    private static function dropPlayerHelper(player:GlobalPlayerInstance) : Bool
+    private function dropPlayerHelper() : Bool
     {
         //trace('drop player helper');
-
+        var player = this;
         var heldPlayer = player.heldPlayer;
 
         heldPlayer.x = player.tx - heldPlayer.gx;
@@ -3336,7 +3355,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;    
         }
 
-        var done = doHelper(this.heldByPlayer, this, dropPlayerHelper);
+        var done = false;
+
+        Macro.exception(done = dropPlayerHelper());
+
+        //var done = doHelper(this.heldByPlayer, this, dropPlayerHelper);
+        Macro.exception(done = this.heldByPlayer.dropPlayer());
 
         if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
         else this.mutex.release();
@@ -3397,9 +3421,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private static function DoDebugCommands(player:GlobalPlayerInstance, text:String)
     {
-        if(text.indexOf('!HIT BABY') != -1)
+        if(text.indexOf('!HIT H') != -1)
         {
-            trace('!HIT BABY');
+            trace('!HIT HELD');
 
             if(player.heldPlayer == null) return;
 

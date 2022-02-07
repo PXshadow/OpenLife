@@ -87,8 +87,9 @@ class TransitionHelper{
 
         if((player.o_id[0] < 0) || player.heldPlayer != null)
         {
-            trace('doCommand: cannot do use since holding a player!');
+            trace('doCommand: cannot do use since holding a player! ${player.o_id[0]}');
             helper.sendUpdateToClient();
+            //player.dropPlayer();
             return false;
         }
 
