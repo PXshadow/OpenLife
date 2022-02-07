@@ -118,6 +118,7 @@ class AiHelper
 
     public static function SearchBestFood(player:PlayerInterface, radius:Int = 32) : ObjectHelper
     {
+        var startTime = Sys.time();
         var ai = player.getAi();
         var baseX = player.tx;
         var baseY = player.ty;
@@ -125,6 +126,7 @@ class AiHelper
         var bestFood = null;
         var bestDistance = 999999.0;
         var bestFoodValue = 0.1;
+        var bestFoods = new Array<ObjectHelper>();
         
         for(ty in baseY - radius...baseY + radius)
         {
@@ -170,8 +172,10 @@ class AiHelper
                     if(ai != null)
                     {
                         if(IsDangerous(player, obj)) continue;
-                        if(tryGotoObj(player, obj) == false) continue;
+                        //if(tryGotoObj(player, obj) == false) continue;
                     }
+
+                    bestFoods.push(obj);
 
                     bestFood = obj;
                     bestDistance = distance;
@@ -182,7 +186,26 @@ class AiHelper
             }
         }
 
-        if(bestFood !=null) trace('bestfood: $bestDistance ${bestFood.description}');
+        if(ai != null)
+        {   
+            // TODO solve This has still the problem, that the second best food might be ignored... needs to make a list and then sort or maybe just do again searchfood?
+            while(bestFoods.length > 0)
+            {
+                var food = bestFoods.pop();
+                if(tryGotoObj(player, food))
+                {
+                    bestFood = food;
+                    break;
+                }
+
+                bestFood = null;
+                trace('AI: bestfood: cannot reach food! ms: ${Math.round((Sys.time() - startTime) * 1000)}'); 
+                if((Sys.time() - startTime) * 1000 > 100) break; 
+            }
+        }
+
+        if(bestFood !=null) trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: $bestDistance ${bestFood.description}');
+        else trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: NA');
 
         return bestFood;
     }
@@ -221,6 +244,7 @@ class AiHelper
 
     public static function gotoAdv(player:PlayerInterface, tx:Int, ty:Int, move:Bool = true) : Bool
     {
+        var startTime = Sys.time();
         var ai = player.getAi();
         var rand = 0;
         var x = tx - player.gx;
@@ -246,6 +270,8 @@ class AiHelper
             var done = Goto(player, x + xo,  y + yo, move);
 
             if(done) return true;
+
+            if((Sys.time() - startTime) * 1000 > 100) break; 
         }
 
         trace('AI: GOTO failed! Ignore ${tx} ${ty} '); 
@@ -336,8 +362,9 @@ class AiHelper
         {
             data.push(new Pos(path.x - tx,path.y - ty));
         }
-  
-        if(move) playerInterface.move(player.x, player.y, player.done_moving_seqNum++, data);
+        
+        var ai = playerInterface.getAi();
+        if(move) playerInterface.move(player.x, player.y, ai.seqNum++, data);
 
         return true;
     }
