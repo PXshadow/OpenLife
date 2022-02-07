@@ -115,7 +115,7 @@ class ServerSettings
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
     public static var DeathWithFoodStoreMax:Float = -0.1; // Death through starvation if food store max reaches below XX 
-    public static var FoodUseChildFaktor = 1.5; // children need X times food if below GrownUpAge
+    public static var FoodUseChildFaktor = 1; // children need X times food if below GrownUpAge
     public static var YumBonus = 3; // First time eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
     public static var YumFoodRestore = 0.8; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food
     public static var YumNewCravingChance = 0.2; // XX chance that a new random craving is chosen even if there are existing ones
@@ -204,11 +204,11 @@ class ServerSettings
     public static var PrestigeCostPerDamageForWomenWithoutWeapon:Float = 0.25;
 
     // AI
-    public static var NumberOfAis:Int = 10;
+    public static var NumberOfAis:Int = 3;
     public static var AiReactionTime:Float = 0.5;
     public static var TimeToAiRebirth:Float = 15;
-    public static var AiTotalScoreFactor:Float = 0.2; 
-    public static var AiMaxSearchRadius:Int = 100;
+    public static var AiTotalScoreFactor:Float = 0.5; 
+    public static var AiMaxSearchRadius:Int = 60;
     public static var AiMaxSearchIncrement:Int = 20; // 16
 
     // Debug AI
@@ -328,17 +328,20 @@ class ServerSettings
         
 
         // nerve food
-        //ObjectData.getObjectData(2143).foodValue = 6; // banana
-        //ObjectData.getObjectData(31).foodValue = 4; // Gooseberry
-        //ObjectData.getObjectData(2855).foodValue = 4; // Onion
-        //ObjectData.getObjectData(808).foodValue = 4; // Wild Onion
+        ObjectData.getObjectData(2143).foodValue = 6; // banana // origional 7
+        ObjectData.getObjectData(31).foodValue = 4; // Gooseberry // origional 3
+        ObjectData.getObjectData(2855).foodValue = 4; // Onion // origional 5
+        ObjectData.getObjectData(808).foodValue = 4; // Wild Onion // origional 4
 
         // boost hunted food
-        ObjectData.getObjectData(197).foodValue = 18; // Cooked Rabbit 10 --> 18
-        ObjectData.getObjectData(2190).foodValue = 24; // Turkey Slice on Plate 17 --> 24
+        ObjectData.getObjectData(197).foodValue = 12; // Cooked Rabbit 10 --> 12
+        ObjectData.getObjectData(2190).foodValue = 20; // Turkey Slice on Plate 17 --> 20
         ObjectData.getObjectData(1285).foodValue = 15; // Omelette 12 --> 15
 
+        ObjectData.getObjectData(197).useChance = 0.3; // Cooked Rabbit
+        ObjectData.getObjectData(2190).useChance = 0.3; // Turkey Slice on Plate
         ObjectData.getObjectData(518).useChance = 0.3; // Cooked Goose
+        //ObjectData.getObjectData(2143).useChance = 0.3; // Banana
 
         // soil should replace water as most needed ressource 
         ObjectData.getObjectData(624).numUses = 2; // // Composted Soil Uses: 3 Soil (Wheat, Berry, Dung) + water ==> 4 Soil 
@@ -369,6 +372,7 @@ class ServerSettings
         ObjectData.getObjectData(39).countsOrGrowsAs = 36; // Dug Wild Carrot
 
         // Wild Garlic
+        ObjectData.getObjectData(4251).mapChance *= 5; // Wild Garlic
         ObjectData.getObjectData(4251).winterDecayFactor = 1; // Wild Garlic
         ObjectData.getObjectData(4251).springRegrowFactor = 1; // Wild Garlic
         ObjectData.getObjectData(4252).winterDecayFactor = 2; // Wild Garlic / out
