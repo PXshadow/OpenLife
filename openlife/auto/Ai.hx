@@ -22,6 +22,7 @@ class Ai
     public var myPlayer:PlayerInterface;
 
     var time:Float = 1;
+    public var seqNum = 1;
 
     var feedingPlayerTarget:PlayerInterface = null; 
 
@@ -464,6 +465,8 @@ class Ai
 
     private function escape(animal:ObjectHelper, deadlyPlayer:GlobalPlayerInstance)
     {
+        var startTime = Sys.time();
+
         if(animal == null && deadlyPlayer == null) return false;
 
         // hunt this animal
@@ -515,12 +518,14 @@ class Ai
 
                 done = myPlayer.gotoObj(newEscapetarget);
 
-                trace('AAI: ${myPlayer.id} Escape $done $ii $i alwaysX: $alwaysX alwaysY $alwaysY es: ${newEscapetarget.tx},${newEscapetarget.ty}');
+                //trace('AAI: ${myPlayer.id} Escape $done $ii $i alwaysX: $alwaysX alwaysY $alwaysY es: ${newEscapetarget.tx},${newEscapetarget.ty}');
 
                 if(done) break;
+                if((Sys.time() - startTime) * 1000 > 100) break; 
             }
 
             if(done) break;
+            if((Sys.time() - startTime) * 1000 > 100) break; 
 
             alwaysX = WorldMap.calculateRandomFloat() < 0.5;
             alwaysY = WorldMap.calculateRandomFloat() < 0.5;
@@ -646,7 +651,7 @@ class Ai
 
     private function searchBestObjectForCrafting(itemToCraft:IntemToCraft) : IntemToCraft
     {
-        //var itemToCraft = new IntemToCraft();
+        var startTime = Sys.time();
         itemToCraft.transActor = null;
         itemToCraft.transTarget = null;
 
@@ -737,6 +742,8 @@ class Ai
                     }                        
                 }
             }
+
+            trace('AI: craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
 
             searchBestTransitionTopDown(itemToCraft);
             
