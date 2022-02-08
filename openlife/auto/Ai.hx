@@ -615,7 +615,7 @@ class Ai
             if(itemToCraft.transActor.id == -1)
             {
                 trace('AAI: ${myPlayer.id} craft Actor is TIME ');
-
+                this.time += 1;
                 // TODO wait some time, or better get next obj                
                 myPlayer.say('Wait...');
                 itemToCraft.transActor = null; 
@@ -957,7 +957,7 @@ class Ai
             var desc = trans == null ? '${itemToCraft.transActor.name} + ${itemToCraft.transTarget.name} Trans Not found!' : trans.getDesciption(); 
             var objToCraft = ObjectData.getObjectData(objToCraftId);
 
-            TraceSteps(itemToCraft, true);
+            CalculateSteps(itemToCraft);
 
             //trace('Ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
             //trace('Ai: craft DONE: ${objToCraft.name} dist: $dist steps: ${steps} $desc');
@@ -972,12 +972,14 @@ class Ai
     {
         return ObjectData.getObjectData(objId).name;
     }
-
-    private static function TraceSteps(itemToCraft:IntemToCraft, done:Bool)
+    
+    private static function CalculateSteps(itemToCraft:IntemToCraft)
     {
         var transitionsByObjectId = itemToCraft.transitionsByObjectId;
         var text ='';
         var obj = transitionsByObjectId[itemToCraft.itemToCraft.id];
+        var objNoTimeWantedIndex = -1;
+        var index = 0;
 
         itemToCraft.craftingList = new Array<Int>();
         itemToCraft.craftingTransitions = new Array<TransitionData>();
@@ -990,24 +992,43 @@ class Ai
             obj = transitionsByObjectId[obj.craftFrom.objId];
 
             if(obj.craftFrom == null) break;
-
-            //itemId = obj.craftFrom.objId;  
-            //trans = obj.craftTransFrom;   
-            
         }
 
         for(wantedId in itemToCraft.craftingList)
         {
-            var wanted = transitionsByObjectId[wantedId];
             var wantedObj = ObjectData.getObjectData(wantedId);
             var trans = wantedObj.getTimeTrans();
-            var isTimeWanted = itemToCraft.craftingList.contains(trans.newTargetID);
-            //var timeObj = transitionsByObjectId[trans.newTargetID];
-            //var isTimeWanted = wanted.wantedObjs.contains(timeObj);
-
+            var isTimeWanted = trans == null ? true : itemToCraft.craftingList.contains(trans.newTargetID);
             var desc = trans == null ? '' : 'TIME: $isTimeWanted ${trans.autoDecaySeconds} ';
 
+            if(isTimeWanted == false) objNoTimeWantedIndex = index;
+
             text += '${wantedObj.name} $desc--> ';
+            index++;
+        }
+
+        if(objNoTimeWantedIndex > 0)
+        {
+            var objNoTimeWanted = itemToCraft.craftingList[objNoTimeWantedIndex];
+            var trans = itemToCraft.craftingTransitions[objNoTimeWantedIndex];
+            var doFirst = trans.actorID == objNoTimeWanted ? trans.targetID : trans.actorID;
+            var obj = transitionsByObjectId[doFirst];
+            var dist:Float = -1;
+
+            if(obj.closestObject != null)
+            {
+                dist = obj.closestObjectDistance;
+                doFirst = 0;
+
+                //trace('Ai: craft TIME not wanted: ${GetName(objNoTimeWanted)} do first: ${GetName(doFirst)} dist: $dist ${trans.getDesciption()}');
+            }
+            else
+            {
+                itemToCraft.transActor = obj.craftActor;
+                itemToCraft.transTarget = obj.craftTarget;
+
+                trace('Ai: craft TIME not wanted: ${GetName(objNoTimeWanted)} do first: ${GetName(doFirst)} ${GetName(itemToCraft.transActor.id)} + ${GetName(itemToCraft.transTarget.id)}');
+            }
         }
 
         var textTrans ='';
@@ -1022,8 +1043,8 @@ class Ai
         }
 
         var objToCraft = ObjectData.getObjectData(itemToCraft.itemToCraft.id);
-        trace('Ai: craft DONE items: $done ${objToCraft.name}: ${itemToCraft.craftingList.length} $text');
-        trace('Ai: craft DONE trans: $done ${objToCraft.name}: ${itemToCraft.craftingTransitions.length} $textTrans');
+        trace('Ai: craft DONE items: ${objToCraft.name}: ${itemToCraft.craftingList.length} $text');
+        trace('Ai: craft DONE trans: ${objToCraft.name}: ${itemToCraft.craftingTransitions.length} $textTrans');
     }
 
     /* // with this AI crafts also something if it cannot reach the goal. Is quite funny to try out :)
