@@ -992,9 +992,10 @@ class Ai
         itemToCraft.craftingList = new Array<Int>();
         itemToCraft.craftingTransitions = new Array<TransitionData>();
 
-        while (true)
+        for (i in 0...100)
         {
             if(obj.craftFrom == null) break;
+            if(itemToCraft.craftingList.contains(obj.craftFrom.objId)) break; // TODO look why there is a circle?
 
             itemToCraft.craftingList.unshift(obj.craftFrom.objId);
             if(obj.craftTransFrom != null) itemToCraft.craftingTransitions.unshift(obj.craftTransFrom);
