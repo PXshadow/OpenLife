@@ -680,6 +680,8 @@ class TransitionForObject
 
     public var craftActor:Null<ObjectHelper> = null;
     public var craftTarget:Null<ObjectHelper> = null;
+    public var craftFrom:TransitionForObject;
+    public var craftTransFrom:TransitionData;
 
     public var isDone = false;
     //public var craftSteps:Int;

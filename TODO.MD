@@ -370,6 +370,9 @@ PX TODO
 5. Task Queue system with Auto.hx class
 6. Algorithm to identify what is needed next for overseer
 
+
+IS this used? https://www.geeksforgeeks.org/a-search-algorithm/
+
 How to setup:
 - TODO how to load new ObjectData from Repository
 - there is a ServerSettings.txt file in SaveFiles folder. Settings are read at start and every 10 sec.

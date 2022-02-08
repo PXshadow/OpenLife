@@ -40,8 +40,6 @@ import openlife.data.sound.SoundData;
     }
 }
 
-
-
 @:expose
 @:rtti
 class ObjectData extends LineReader
@@ -1363,4 +1361,13 @@ class ObjectData extends LineReader
             //trace('${obj.description} Id: ${obj.parentId} P: ${obj.person} race-length: ${race.length}');
         }
     } 
+
+    public function getTimeTrans() : TransitionData
+    {
+        var timeTransition = TransitionImporter.GetTransition(-1, this.parentId, false, false);
+
+        //trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');
+
+        return timeTransition;
+    }
 }

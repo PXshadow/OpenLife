@@ -763,7 +763,6 @@ class Ai
         var count = 1;
         var objectsToSearch = new Array<Int>();
 
-        itemToCraft.craftingList = new Array<Int>();
         itemToCraft.bestDistance = 99999999999999999;
 
         objectsToSearch.push(objToCraftId);
@@ -800,12 +799,6 @@ class Ai
             var transitions = world.getTransitionByNewTarget(wantedId);
             found = found || DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions);
 
-            if(found == false && itemToCraft.craftingList.length > 0)
-            {
-                //TraceSteps(itemToCraft, false);
-                itemToCraft.craftingList = new Array<Int>();
-            }
-
             if(itemToCraft.transActor != null) break;
             if(itemToCraft.bestDistance < 100) break;
         }
@@ -821,40 +814,41 @@ class Ai
         trace('AI: craft: FINISHED $count ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
     }
 
-    private static function TraceSteps(itemToCraft:IntemToCraft, done:Bool)
-    {
-        var text ='';
-        for(wantedId in itemToCraft.craftingList)
-        {
-            var wanted = ObjectData.getObjectData(wantedId);
-
-            //text += '$wantedId --> ';
-            text += '${wanted.name} --> ';
-        }
-
-        var objToCraft = ObjectData.getObjectData(itemToCraft.itemToCraft.id);
-        trace('Ai: craft DONE: $done ${objToCraft.name} $text');
-    }
-
     private static function DoTransitionSearch(itemToCraft:IntemToCraft, wantedId:Int, objectsToSearch:Array<Int>, transitions:Array<TransitionData>) : Bool
     {
         var found = false;
         var transitionsByObjectId = itemToCraft.transitionsByObjectId;
         var wanted = transitionsByObjectId[wantedId];
         var objToCraftId = itemToCraft.itemToCraft.parentId;
-        
-
+    
         for(trans in transitions)
         {
-            //trace('Ai: craft: ' + trans.getDesciption());
-            //TODO? if(actorSteps + targetSteps <= newActorSteps + newTargetSteps) continue; // nothing is won
+            //trace('Ai: craft: ' + trans.getDesciption());            
             if(trans.actorID == wantedId || trans.actorID == objToCraftId) continue; 
             if(trans.targetID == wantedId || trans.targetID == objToCraftId) continue; 
+            
             // a oven needs 15 sec to warm up this is ok, but waiting for mushroom to grow is little bit too long!
             if(trans.calculateTimeToChange() > ServerSettings.AiIgnoreTimeTransitionsLongerThen) continue;
 
             var actor = transitionsByObjectId[trans.actorID];
             var target = transitionsByObjectId[trans.targetID];
+
+            // Allow transition if new actor or target is closer to wanted object
+            /*var tmpActor = transitionsByObjectId[trans.actorID];
+            var actorSteps = tmpActor != null && tmpActor.objId > 0 ? tmpActor.steps : 10000;
+            var tmpNewActor = transitionsByObjectId[trans.newActorID];
+            var newActorSteps = tmpNewActor != null ? tmpNewActor.steps : 10000;
+            
+            var tmpTarget = transitionsByObjectId[trans.targetID];
+            var targetSteps = tmpTarget != null && tmpTarget.objId > 0 ? tmpTarget.steps : 10000;
+            var tmpNewTarget = transitionsByObjectId[trans.newTargetID];
+            var newTargetSteps = tmpNewTarget != null ? tmpNewTarget.steps : 10000;
+
+            if(trans.newActorID == objToCraftId) newActorSteps = 0; 
+            if(trans.newTargetID == objToCraftId) newTargetSteps = 0;*/
+
+            //if(actorSteps + targetSteps <= newActorSteps + newTargetSteps) continue; // nothing is won
+            //trace('AI craft WANTED: <${GetName(wantedId)}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
 
             if(actor == null || target == null)
             {
@@ -918,15 +912,26 @@ class Ai
             {
                 wanted.craftActor = actorObj;
                 wanted.craftTarget = targetObj;
+                wanted.craftTransFrom = trans;
+
                 //if(wanted.wantedObjId > 0) objectsToSearch.unshift(wanted.wantedObjId);
                 for(obj in wanted.wantedObjs)
                 {
+                    if(obj.craftActor != null)
+                    {
+                        //trace('Ai: craft: removed steps: ${wanted.steps} wanted: ${GetName(wanted.objId)} --> ${GetName(obj.objId)}');
+                        wanted.wantedObjs.remove(obj);
+                        continue;
+                    }
+
+                    //trace('Ai: craft: steps: ${wanted.steps} wanted: ${GetName(wanted.objId)} --> ${GetName(obj.objId)}');
+
+                    obj.craftFrom = wanted;
+
+                    //objectsToSearch.remove(obj.objId);
                     if(objectsToSearch.contains(obj.objId) == false)
                         objectsToSearch.unshift(obj.objId);
                 }
-
-                itemToCraft.craftingList.push(wantedId);
-                //trace('Ai: craft: steps: ${wanted.steps} wanted: ${wanted.objId} --> ${wanted.wantedObjId} --> $desc actor: ${actorObj.description} target: ${targetObj.description} ' + trans.getDesciption());
             }
 
             if(wantedId != objToCraftId) continue;  
@@ -961,6 +966,64 @@ class Ai
         }    
 
         return found;
+    }
+
+    private static function GetName(objId:Int) : String
+    {
+        return ObjectData.getObjectData(objId).name;
+    }
+
+    private static function TraceSteps(itemToCraft:IntemToCraft, done:Bool)
+    {
+        var transitionsByObjectId = itemToCraft.transitionsByObjectId;
+        var text ='';
+        var obj = transitionsByObjectId[itemToCraft.itemToCraft.id];
+
+        itemToCraft.craftingList = new Array<Int>();
+        itemToCraft.craftingTransitions = new Array<TransitionData>();
+
+        while (true)
+        {
+            itemToCraft.craftingList.unshift(obj.craftFrom.objId);
+            if(obj.craftTransFrom != null) itemToCraft.craftingTransitions.unshift(obj.craftTransFrom);
+            
+            obj = transitionsByObjectId[obj.craftFrom.objId];
+
+            if(obj.craftFrom == null) break;
+
+            //itemId = obj.craftFrom.objId;  
+            //trans = obj.craftTransFrom;   
+            
+        }
+
+        for(wantedId in itemToCraft.craftingList)
+        {
+            var wanted = transitionsByObjectId[wantedId];
+            var wantedObj = ObjectData.getObjectData(wantedId);
+            var trans = wantedObj.getTimeTrans();
+            var isTimeWanted = itemToCraft.craftingList.contains(trans.newTargetID);
+            //var timeObj = transitionsByObjectId[trans.newTargetID];
+            //var isTimeWanted = wanted.wantedObjs.contains(timeObj);
+
+            var desc = trans == null ? '' : 'TIME: $isTimeWanted ${trans.autoDecaySeconds} ';
+
+            text += '${wantedObj.name} $desc--> ';
+        }
+
+        var textTrans ='';
+        for(trans in itemToCraft.craftingTransitions)
+        {
+            var actor = ObjectData.getObjectData(trans.actorID);
+            var target = ObjectData.getObjectData(trans.targetID);
+            var isTimeWanted = itemToCraft.craftingList.contains(trans.newTargetID);
+            var desc = trans.autoDecaySeconds == 0 ? '' : 'TIME: $isTimeWanted ${trans.autoDecaySeconds} ';
+
+            textTrans += '${actor.name} + ${target.name} $desc--> ';
+        }
+
+        var objToCraft = ObjectData.getObjectData(itemToCraft.itemToCraft.id);
+        trace('Ai: craft DONE items: $done ${objToCraft.name}: ${itemToCraft.craftingList.length} $text');
+        trace('Ai: craft DONE trans: $done ${objToCraft.name}: ${itemToCraft.craftingTransitions.length} $textTrans');
     }
 
     /* // with this AI crafts also something if it cannot reach the goal. Is quite funny to try out :)
@@ -1448,7 +1511,6 @@ class IntemToCraft
     public var done:Bool = false; // transitions done while crafting
     public var searchRadius = 0;
 
-
     public var transActor:ObjectHelper = null;
     public var transTarget:ObjectHelper = null;
 
@@ -1456,7 +1518,8 @@ class IntemToCraft
     
     public var bestDistance:Float = 99999999999999999999999;
 
-    public var craftingList = new Array<Int>();
+    public var craftingList = new Array<Int>(); // is not a complete list
+    public var craftingTransitions = new Array<TransitionData>(); // is not a complete list
 
     public function new()
     {
