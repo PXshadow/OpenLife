@@ -667,7 +667,7 @@ class Connection
 
     public function sendMapChunk(x:Int,y:Int,width:Int = 32,height:Int = 30)
     {
-        if(serverAi != null) return;
+        if(sock == null) return;
 
         //this.mutex.acquire();
 
