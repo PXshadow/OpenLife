@@ -986,13 +986,16 @@ class Ai
 
         while (true)
         {
+            if(obj.craftFrom == null) break;
+
             itemToCraft.craftingList.unshift(obj.craftFrom.objId);
             if(obj.craftTransFrom != null) itemToCraft.craftingTransitions.unshift(obj.craftTransFrom);
             
             obj = transitionsByObjectId[obj.craftFrom.objId];
-
-            if(obj.craftFrom == null) break;
         }
+
+        var altActor = null;
+        var altTarget = null;
 
         for(wantedId in itemToCraft.craftingList)
         {
@@ -1001,34 +1004,40 @@ class Ai
             var isTimeWanted = trans == null ? true : itemToCraft.craftingList.contains(trans.newTargetID);
             var desc = trans == null ? '' : 'TIME: $isTimeWanted ${trans.autoDecaySeconds} ';
 
-            if(isTimeWanted == false) objNoTimeWantedIndex = index;
+            if(isTimeWanted == false)
+            {
+                objNoTimeWantedIndex = index;
+                var objNoTimeWanted = itemToCraft.craftingList[objNoTimeWantedIndex];
+                var trans = itemToCraft.craftingTransitions[objNoTimeWantedIndex];
+                var doFirst = trans.actorID == objNoTimeWanted ? trans.targetID : trans.actorID;
+                var obj = transitionsByObjectId[doFirst];
+                var dist:Float = -1;
+
+                if(obj.closestObject != null)
+                {
+                    dist = obj.closestObjectDistance;
+                    doFirst = 0;
+
+                    //trace('Ai: craft TIME not wanted: ${GetName(objNoTimeWanted)} do first: ${GetName(doFirst)} dist: $dist ${trans.getDesciption()}');
+                }
+                else
+                {
+                    altActor = obj.craftActor;
+                    altTarget = obj.craftTarget;
+
+                    trace('Ai: craft TIME not wanted: ${GetName(objNoTimeWanted)} do first: ${GetName(doFirst)} trans: ${GetName(itemToCraft.transActor.id)} + ${GetName(itemToCraft.transTarget.id)}');
+                }
+            }
 
             text += '${wantedObj.name} $desc--> ';
             index++;
         }
 
-        if(objNoTimeWantedIndex > 0)
+        // Do first not time critical transitions
+        if(altActor != null)
         {
-            var objNoTimeWanted = itemToCraft.craftingList[objNoTimeWantedIndex];
-            var trans = itemToCraft.craftingTransitions[objNoTimeWantedIndex];
-            var doFirst = trans.actorID == objNoTimeWanted ? trans.targetID : trans.actorID;
-            var obj = transitionsByObjectId[doFirst];
-            var dist:Float = -1;
-
-            if(obj.closestObject != null)
-            {
-                dist = obj.closestObjectDistance;
-                doFirst = 0;
-
-                //trace('Ai: craft TIME not wanted: ${GetName(objNoTimeWanted)} do first: ${GetName(doFirst)} dist: $dist ${trans.getDesciption()}');
-            }
-            else
-            {
-                itemToCraft.transActor = obj.craftActor;
-                itemToCraft.transTarget = obj.craftTarget;
-
-                trace('Ai: craft TIME not wanted: ${GetName(objNoTimeWanted)} do first: ${GetName(doFirst)} ${GetName(itemToCraft.transActor.id)} + ${GetName(itemToCraft.transTarget.id)}');
-            }
+            itemToCraft.transActor = altActor;
+            itemToCraft.transTarget = altTarget;   
         }
 
         var textTrans ='';
@@ -1210,7 +1219,7 @@ class Ai
                 dropTarget = myPlayer.GetClosestObjectById(0); // empty
             }
 
-            trace('AAI: ${myPlayer.id} goto drop: $done');
+            trace('AAI: ${myPlayer.id} goto drop: $done distance: $distance');
         }
         else
         {
