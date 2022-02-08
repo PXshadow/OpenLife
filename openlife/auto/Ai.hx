@@ -210,7 +210,7 @@ class Ai
         {
             //trace('HUMAN');
             time = 0.2;
-            isMovingToPlayer(8,false);
+            isMovingToPlayer(5,false);
             return;
         }
 
@@ -1192,13 +1192,14 @@ class Ai
 
         if(distance > maxDistance)
         {
-            var randX = WorldMap.calculateRandomInt(4) - 2;
-            var randY = WorldMap.calculateRandomInt(4) - 2;
+            var dist = maxDistance > 10 ? 2 : 1;
+            var randX = WorldMap.calculateRandomInt(2 * dist) - dist;
+            var randY = WorldMap.calculateRandomInt(2 * dist) - dist;
 
             var done = myPlayer.gotoAdv(playerToFollow.tx + randX, playerToFollow.ty + randY);
             myPlayer.say('${playerToFollow.name}');
 
-            trace('AAI: ${myPlayer.id} age: ${myPlayer.age} dist: $distance goto player $done');
+            if(myPlayer.isAi()) trace('AAI: ${myPlayer.id} age: ${myPlayer.age} dist: $distance goto player $done');
 
             return true;
         }
