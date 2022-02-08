@@ -3358,8 +3358,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         var done = false;
 
-        Macro.exception(done = dropPlayerHelper());
-
         //var done = doHelper(this.heldByPlayer, this, dropPlayerHelper);
         Macro.exception(done = this.heldByPlayer.dropPlayer());
 
