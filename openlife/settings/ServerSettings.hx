@@ -214,7 +214,7 @@ class ServerSettings
 
     // Debug AI
     public static var DebugAiCraftingObject:Int = 999999; //57; 
-    public static var AutoFollowAi:Bool = true;
+    public static var AutoFollowAi:Bool = false;
     
     // iron, tary spot spring cannot respawn or win lottery
     public static function CanObjectRespawn(obj:Int) : Bool
@@ -800,6 +800,16 @@ class ServerSettings
          
         ObjectData.getObjectData(342).alternativeTransitionOutcome.push(344); // Chopped Tree Big Log--> Fire Wood
         ObjectData.getObjectData(340).alternativeTransitionOutcome.push(344); // Chopped Tree --> Fire Wood
+
+        // allow more Stone Hoe to be used to dig graves // TODO make more HUNGRY WORK / TEST if they brake
+        var trans = new TransitionData(850,87,850,1011); // Stone Hoe + Fresh Grave --> Stone Hoe + Buried Grave
+        transtions.addTransition("PatchTransitions: ", trans);
+
+        var trans = new TransitionData(850,88,850,1011); // Stone Hoe + Grave --> Stone Hoe + Buried Grave
+        transtions.addTransition("PatchTransitions: ", trans);
+
+        var trans = new TransitionData(850,89,850,1011); // Stone Hoe + Old Grave --> Stone Hoe + Buried Grave
+        transtions.addTransition("PatchTransitions: ", trans);
 
         // allow more options to kill animals
         var trans = new TransitionData(152,427,151,420); // Bow and Arrow + Attacking Wolf --> Yew Bow + Shot Wolf

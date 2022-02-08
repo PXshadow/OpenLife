@@ -112,7 +112,8 @@ Attacking prestige lost:
 - you will loose even more prestige for attacking a child without weapon
 
 Graves / Curses
-- Instead player curses, curses work now through graves without grave stone
+- instead player curses, curses work now through graves without grave stone
+- since graves are more important you can use Stone Hoe to make graves
 - you incarnate more likely to your grave with a grave stone
 - you incarnate less likely close to your grave without grave stone
 - you are cursed (lower speed / halve damage) if going close to your grave without grave stone
