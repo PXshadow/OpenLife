@@ -206,6 +206,14 @@ class Ai
         
         cleanupBlockedObjects();
 
+        if(ServerSettings.AutoFollowAi && myPlayer.isHuman())
+        {
+            //trace('HUMAN');
+            time = 0.2;
+            isMovingToPlayer(8,false);
+            return;
+        }
+
         if(myPlayer.getHeldByPlayer() != null)
         {
             //time += WorldMap.calculateRandomInt(); // TODO still jump and do stuff once in a while?
@@ -559,7 +567,7 @@ class Ai
     // TODO consider too look for a natural spawned object with the fewest steps on the list
     private function craftItem(objId:Int, count:Int = 1, ignoreHighTech:Bool = false) : Bool
     {
-        trace('AAI: ${myPlayer.id} craft item $objId!');
+        trace('AAI: ${myPlayer.id} craft item ${GetName(objId)}!');
 
         var player = myPlayer.getPlayerInstance();
 
@@ -743,7 +751,7 @@ class Ai
                 }
             }
 
-            trace('AI: craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
+            //trace('AI: craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
 
             searchBestTransitionTopDown(itemToCraft);
             
@@ -1162,7 +1170,7 @@ class Ai
         if(itemToCraft.transActor != null) trace('ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
     }*/
 
-    private function isMovingToPlayer(maxDistance = 25) : Bool
+    private function isMovingToPlayer(maxDistance = 25, followHuman:Bool = true) : Bool
     {
         if(playerToFollow == null)
         {
@@ -1173,7 +1181,7 @@ class Ai
             else
             {
                 // get close human player
-                playerToFollow = myPlayer.getWorld().getClosestPlayer(20, true);
+                playerToFollow = myPlayer.getWorld().getClosestPlayer(20, followHuman);
 
                 if(playerToFollow == null) return false;
             

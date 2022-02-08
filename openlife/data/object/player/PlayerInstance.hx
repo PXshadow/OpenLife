@@ -1,4 +1,9 @@
 package openlife.data.object.player;
+import openlife.server.ServerAi;
+import openlife.server.GlobalPlayerInstance;
+import openlife.client.ClientTag;
+import openlife.server.Connection;
+import openlife.settings.ServerSettings;
 import openlife.data.map.MapData;
 @:expose("PlayerInstance")
 class PlayerInstance
@@ -292,7 +297,31 @@ class PlayerInstance
 
         trace('TODATA: ${name} $x $y + $gx $gy = $tx $ty r: $rx $ry seqNum: ${seqNum} isHeld: ${isHeld()} isMoving: ${isMoving()} ');
         //trace('AAI: p$p_id $rx,$ry');
-        return '$p_id $po_id $facing $action ${action_target_x + forPlayerOffsetX} ${action_target_y + forPlayerOffsetY} $heldObject $o_origin_valid ${o_origin_x + forPlayerOffsetX} ${o_origin_y + forPlayerOffsetY} $o_transition_source_id $tmpHeat $seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${Std.int(age*100)/100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
+
+        
+        // TODO currently AutoFollowAi supports only one connection
+        if(ServerSettings.AutoFollowAi)
+        {
+            var player = GlobalPlayerInstance.AllPlayers[p_id];
+            var isHuman = player != null && player.isHuman();
+            
+            if(isHuman)
+            {
+                if(player.connection.serverAi == null) player.connection.serverAi = new ServerAi(player);
+                seqNum = 0; // set is held
+                player.food_store = 10; 
+                player.hits = 0;                 
+                var putext = '1 $po_id $facing $action ${action_target_x + forPlayerOffsetX} ${action_target_y + forPlayerOffsetY} $heldObject $o_origin_valid ${o_origin_x + forPlayerOffsetX} ${o_origin_y + forPlayerOffsetY} $o_transition_source_id $tmpHeat $seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${Std.int(age*100)/100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
+                player.connection.send(ClientTag.PLAYER_UPDATE,[putext], false);
+
+                heldObject = '${-1}';
+                // predent there is a dog that is carring me arrond
+                return '$p_id 1658 $facing $action ${action_target_x + forPlayerOffsetX} ${action_target_y + forPlayerOffsetY} $heldObject $o_origin_valid ${o_origin_x + forPlayerOffsetX} ${o_origin_y + forPlayerOffsetY} $o_transition_source_id $tmpHeat $seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${Std.int(age*100)/100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
+            }
+        }
+
+        var putext = '$p_id $po_id $facing $action ${action_target_x + forPlayerOffsetX} ${action_target_y + forPlayerOffsetY} $heldObject $o_origin_valid ${o_origin_x + forPlayerOffsetX} ${o_origin_y + forPlayerOffsetY} $o_transition_source_id $tmpHeat $seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${Std.int(age*100)/100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
+        return putext;
     }
 }
 /*

@@ -89,6 +89,7 @@ class MoveHelper
         var hasBothShoes = p.hasBothShoes();       
         var isOnBoat = p.heldObject.objectData.isBoat; 
 
+        if(ServerSettings.AutoFollowAi && p.isHuman()) return 2 * speed;
         if(ServerSettings.DebugSpeed) trace('speed: hasBothShoes: $hasBothShoes');
         if(hasBothShoes && onHorseOrCar == false) speed *= 1.1;
         if(fullPathHasRoad == false) floorSpeed = 1; // only consider road if the full path is on road
