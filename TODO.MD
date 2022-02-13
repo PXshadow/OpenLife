@@ -270,7 +270,6 @@ High priority:
 - AI tests with >20 AIs
 - AI Stoneage
 
-- FIX Full Portable Water Source <394>
 - NAMING fix bug
 
 - COMBAT ill from moskitos

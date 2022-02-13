@@ -34,8 +34,10 @@ class ServerSettings
 
     // DEBUG: TransitionImporter // for debugging transitions
     public static var traceTransitionByActorId = 99934; // set to object id which you want to debug
+    public static var traceTransitionByNewActorId = 99934; // set to object id which you want to debug
     public static var traceTransitionByActorDescription = "!!!Basket of Soil"; // set to object description which you want to debug
-    public static var traceTransitionByTargetId = 9992710; // set to object id which you want to debug
+    public static var traceTransitionByTargetId = 1099; // set to object id which you want to debug
+    public static var traceTransitionByNewTargetId = 9991099; // set to object id which you want to debug
     public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
 
     // DEBUG: Temperature
@@ -792,12 +794,11 @@ class ServerSettings
         trans.newTargetID = 565;  // 565 Butchered Mouflon
         trans.traceTransition("PatchTransitions: "); 
 
-        // allow to cook mutton on cloals
+        // allow to cook mutton on coals
         trans = new TransitionData(569,85,570,85); // 569 Raw Mutton + 85 Hot Coals --> 570 Cooked Mutton + 85 Hot Coals
         transtions.addTransition("PatchTransitions: ", trans);
 
-        // patch alternativeTransitionOutcomes
-        
+        // patch alternativeTransitionOutcomes // TODO use prob categories instead   
         var trans = transtions.getTransition(502, 338); // shovel plus Stump
         trans.alternativeTransitionOutcome.push(72); // Kindling
          
@@ -817,6 +818,12 @@ class ServerSettings
         // allow more options to kill animals
         var trans = new TransitionData(152,427,151,420); // Bow and Arrow + Attacking Wolf --> Yew Bow + Shot Wolf
         transtions.addTransition("PatchTransitions: ", trans);
+        
+        // FIX bucket transition // TODO why is this one missing?
+        // <394> + <1099> = <394> + <660> --> <394> + <1099> = <394> + <1099> // make bucket not full
+        var trans = new TransitionData(394,1099,394,1099); 
+        trans.targetRemains = true;
+        TransitionImporter.transitionImporter.createAndaddCategoryTransitions(trans);
 
         // for debug random outcome transitions
         /*var trans = transtions.getTransition(-1, 1195); // TIME + Blooming Squash Plant 

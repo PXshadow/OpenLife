@@ -372,7 +372,8 @@ class TransitionImporter
     public function addTransition(addedBy:String, transition:TransitionData,  lastUseActor:Bool = false, lastUseTarget:Bool = false)
     {
         // skip if transition does nothing like <560> + <0> = <560> + <0> / Knife#
-        if(transition.actorID == transition.newActorID && transition.targetID == transition.newTargetID) return;
+        // TODO <394> + <1099> = <394> + <1099> // Filling water in a bucket looks like nothing is done so dont skip!?!
+        //if(transition.actorID == transition.newActorID && transition.targetID == transition.newTargetID) return;
 
         transition.addedBy = addedBy;
 
