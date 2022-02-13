@@ -72,19 +72,17 @@ class TransitionImporter
 
         for(food in ObjectData.foodObjects)
         {
-            trace('Food: steps: ${food.carftingSteps} id: ${food.id} ${food.description}');
+            if(ServerSettings.DebugCaftingStepsForObjOrFood) trace('Food: steps: ${food.carftingSteps} id: ${food.id} ${food.description}');
 
             if(food.carftingSteps < 0) notDone++;
             else done++;
         }
 
-        trace('Steps: ALL Food: done: $done notDone: $notDone');
+        trace('Carafting: ALL Food: done: $done notDone: $notDone');
     }
 
     public function calculateCraftingSteps()
     {
-        // TODO 1869 Wet Mango Sapling Cutting
-        // TODO 3375 Feast Plate
         var todo = new Array<ObjectData>();
         
         var steps = 0;
@@ -147,20 +145,20 @@ class TransitionImporter
             }
         }
     
-        trace('Steps: ALL Steps: $steps done: $done ');
+        //trace('Steps: ALL Steps: $steps done: $done ');
 
         var done = 0;
         var notDone = 0;
 
         for(obj in ObjectData.importedObjectData)
         {
-            trace('Obj: steps: ${obj.carftingSteps} id: ${obj.id} ${obj.description}');
+            if(ServerSettings.DebugCaftingStepsForObjOrFood) trace('Obj: steps: ${obj.carftingSteps} id: ${obj.id} ${obj.description}');
 
             if(obj.carftingSteps < 0) notDone++;
             else done++;
         }
 
-        trace('Steps: ALL Obj: done: $done notDone: $notDone');
+        trace('Carafting: ALL Obj: done: $done notDone: $notDone');
     }
 
     private function calculateCraftingStepsHelper(newTodo:Array<ObjectData>, obj:ObjectData, trans:TransitionData, steps:Int)
@@ -511,24 +509,98 @@ class TransitionImporter
                 var weight = newTargetCategory.weights[i];
                 var newTransition = transition.clone();
                 
-                trace('PROB Category: $id weight: ${weight} ' + transition.getDesciption());
+                //trace('PROB Category: $id weight: ${weight} ' + transition.getDesciption());
                 
                 newTransition.newTargetID = newTargetCategory.parentID;
                 //addTransition('Prob/${objCategory.name}/', newTransition);
                 addTransitionToMap(transitionsByNewActorMap, newTransition, newTransition.newActorID);
                 addTransitionToMap(transitionsByNewTargetMap, newTransition, newTransition.newTargetID);
             }
-            
+
             return;
         }
 
-        if(bothActorAndTargetIsCategory)
+        var category = actorCategory;
+
+        // 1802 --> 1806 is pattern for trees...
+        // pattern: <394> + <1802> (Pattern) = <394> + <1806> (Pattern) / @ Full Portable Water Source + Dry Maple Sapling -->  @ Full Portable Water Source + Wet Maple Sapling
+        if(actorCategory != null && actorCategory.pattern == false)
         {
-            // TODO many strange transitions to look at...
-            //traceTransition(transition, 'bothActionAndTargetIsCategory: ');
-            //return;
+            var objData = ObjectData.getObjectData(category.parentID);
+            var categoryDesc = objData == null ? '${category.parentID}' : '${category.parentID} ${objData.description}';
+
+            for(id in category.ids)
+            {                 
+                if(targetCategory == null)
+                {
+                    //if(category.parentID == 1127) trace ('CATEGORY TRANS: ' + transition.getDesciption()); 
+
+                    var newTransition = transition.clone();
+                    newTransition.actorID = id;
+                    if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
+
+                    addTransition('Actor Category: ${categoryDesc} Trans:', newTransition);
+                } 
+                // TODO both category may not be needed // TODO target or might be pattern?
+                else
+                {
+                    // Ace of Clubs is pattern but Deck of Cards is not. Why???
+                    // <1949> + <1941> (Pattern) = <0> + <1947> // @ Any Card + Ace of Clubs -->  EMPTY + Deck of Cards
+                    if(targetCategory.pattern && newTargetCategory != null)
+                    {
+                        if(newTargetCategory == null)
+                        {
+                            trace('WARNING: $categoryDesc ' + transition.getDesciption());
+                            throw new Exception('targetCategory.pattern is pattern and newTargetCategory != null');
+                        }
+                            
+                        if(targetCategory.ids.length != newTargetCategory.ids.length)
+                        {
+                            trace('WARNING: $categoryDesc ' + transition.getDesciption());
+                            throw new Exception('targetCategory.ids.length != newTargetCategory.ids.length');
+                        }
+                
+                        for(i in 0...targetCategory.ids.length)
+                        { 
+                            var newTransition = transition.clone();
+                            newTransition.actorID = id;
+                            newTransition.targetID = targetCategory.ids[i];
+                            newTransition.newTargetID = newTargetCategory.ids[i];
+            
+                            //if(actorCategory != null && actorCategory.parentID == 2995 ) trace('TTT12: ' + newTransition.getDesciption());
+                            //newTransition.traceTransition('$description/', true);
+                            addTransition('$categoryDesc C+P/', newTransition);
+                        }
+                    }
+                    else
+                    {
+                        for(targetId in targetCategory.ids)
+                        {
+                            var newTransition = transition.clone();
+                            newTransition.actorID = id;
+                            newTransition.targetID = targetId;
+
+                            if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
+                            if(newTransition.newTargetID == targetCategory.parentID) newTransition.newTargetID = targetId;
+
+                            addTransition("Both Category: ", newTransition);
+                            //traceTransition(newTransition, 'bothActionAndTargetIsCategory: ');
+                        }
+                    }
+                }
+            }
+
+            return;
         }
 
+        // CONSIDER: <0> + <1422> = <778> + <0> / EMPTY + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + EMPTY
+        // DONE CONSIDER: <-1> + <1806> = <0> + <48> / TIME + Wet Maple Sapling (Pattern)-->  EMPTY + Maple Tree (NO Pattern WHY?????)
+        if((targetCategory != null && targetCategory.pattern) && (newTargetCategory == null && newActorCategory == null)) return;
+        
+        // possibilities:
+        // actor is pattern and target is pattern like: <0> + <1422> = <778> + <0> / EMPTY + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + EMPTY
+        // actor is pattern and newActor is pattern??? 
+        // target is pattern and newtarget is pattern 
         if((actorCategory != null && actorCategory.pattern) || (targetCategory != null && targetCategory.pattern)) 
         {
             //trace('Pattern: ${actorCategory.parentID}');
@@ -581,80 +653,6 @@ class TransitionImporter
             }
 
             return;
-        }
-
-        /*     
-        // add some pile target transitions
-        // 1601 + 1600 = 0 + 1600
-        // 1601 + 1601
-        // 0 + 1600 = 1601 + 1601 (last)
-        // 0 + 1600 = 1601 + 1600 
-        var isPileTransition = targetCategory != null && (targetCategory.parentID == 1600 || targetCategory.parentID == 1601);
-        isPileTransition = isPileTransition || (actorCategory != null && (actorCategory.parentID == 1600 || actorCategory.parentID == 1601));
-
-        if(isPileTransition) 
-        {
-            //trace(transition);
-
-            var pileCategory = getCategory(1600);
-            var pileItemsCategory = getCategory(1601);
-
-            for(i in 0...pileCategory.ids.length)
-            {
-                var newTransition = transition.clone();
-
-                if(newTransition.actorID == 1601) newTransition.actorID = pileItemsCategory.ids[i];
-                if(newTransition.targetID == 1600) newTransition.targetID = pileCategory.ids[i];
-                else if(newTransition.targetID == 1601) newTransition.targetID = pileItemsCategory.ids[i];
-                
-                if(newTransition.newActorID == 1601) newTransition.newActorID = pileItemsCategory.ids[i];
-                if(newTransition.newTargetID == 1600) newTransition.newTargetID = pileCategory.ids[i];
-                else if(newTransition.newTargetID == 1601) newTransition.newTargetID = pileItemsCategory.ids[i];
-
-                addTransition("Pile: ", newTransition);
-            }
-            
-            return;
-        }
-        */
-
-        var category = actorCategory;
-        
-
-        if(category != null)
-        {
-            var objData = ObjectData.getObjectData(category.parentID);
-            var categoryDesc = objData == null ? '${category.parentID}' : '${category.parentID} ${objData.description}';
-
-            for(id in category.ids)
-            {                 
-                if(targetCategory == null)
-                {
-                    //if(category.parentID == 1127) trace ('CATEGORY TRANS: ' + transition.getDesciption()); 
-
-                    var newTransition = transition.clone();
-                    newTransition.actorID = id;
-                    if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
-
-                    addTransition('Actor Category: ${categoryDesc} Trans:', newTransition);
-                } 
-                // TODO both category may not be needed
-                else{
-                    for(targetId in targetCategory.ids){
-
-                        var newTransition = transition.clone();
-                        newTransition.actorID = id;
-                        newTransition.targetID = targetId;
-
-                        if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
-                        if(newTransition.newTargetID == targetCategory.parentID) newTransition.newTargetID = targetId;
-
-                        addTransition("Both Category: ", newTransition);
-                        //traceTransition(newTransition, 'bothActionAndTargetIsCategory: ');
-
-                    }
-                }
-            }
         }
 
         if(bothActorAndTargetIsCategory) return;

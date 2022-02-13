@@ -21,6 +21,7 @@ class ServerSettings
     public static var DebugWrite = false; // WordMap writeToDisk
     public static var TraceCountObjects = false; // WorldMap
     public static var DebugSpeed = false; // MovementHelper
+    public static var DebugCaftingStepsForObjOrFood = false; // here you see which food or obj needs how much steps to craft
     
     // Mutex
     public static var useOneGlobalMutex = false; // if you want to try out if there a problems with mutexes / different threads
@@ -691,7 +692,9 @@ class ServerSettings
         trans.traceTransition("PatchTransitions: ");
 
          // original transition makes cart loose rubber if picking up horse cart
-        //Original:  0 + 3161 = 778 + 0 //Empty + Escaped Horse-Drawn Tire Cart# just released -->  Horse-Drawn Cart + Empty
+        
+        // Original:  0 + 3161 = 778 + 0 //Empty + Escaped Horse-Drawn Tire Cart# just released -->  Horse-Drawn Cart + Empty
+        // comes from pattern:  <0> + <1422> = <778> + <0> / EMPTY + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + EMPTY
         trans = transtions.getTransition(0, 3161);
         trans.newActorID = 3158;
         trans.traceTransition("PatchTransitions: ");
