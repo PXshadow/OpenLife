@@ -531,7 +531,7 @@ class TransitionImporter
 
             for(id in category.ids)
             {                 
-                if(targetCategory == null)
+                if(targetCategory == null || (targetCategory.pattern && newTargetCategory == null))
                 {
                     //if(category.parentID == 1127) trace ('CATEGORY TRANS: ' + transition.getDesciption()); 
 
@@ -574,6 +574,7 @@ class TransitionImporter
                     }
                     else
                     {
+                        //trace('both categories: ' + transition.getDesciption());
                         for(targetId in targetCategory.ids)
                         {
                             var newTransition = transition.clone();
@@ -583,7 +584,7 @@ class TransitionImporter
                             if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
                             if(newTransition.newTargetID == targetCategory.parentID) newTransition.newTargetID = targetId;
 
-                            addTransition("Both Category: ", newTransition);
+                            addTransition('Both Category: A: ${actorCategory.parentID} T: ${targetCategory.parentID}', newTransition);
                             //traceTransition(newTransition, 'bothActionAndTargetIsCategory: ');
                         }
                     }

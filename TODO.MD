@@ -270,6 +270,9 @@ High priority:
 - AI tests with >20 AIs
 - AI Stoneage
 
+- FIX Full Portable Water Source <394>
+- NAMING fix bug
+
 - COMBAT ill from moskitos
 - COMBAT make smal wounds invisible if object held and allow to work (for example for poisone from snakes)
 
@@ -280,15 +283,16 @@ High priority:
 
 - GATES Ally Gates and swing doors
 
+- BIOME biome locked planting
+
 Middle priority:
 - CONNECTION saving of people data so that people can come back after server restart
 
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
 
 - BIOME biome boni for different races
-- BIOME change biome speed for specialists
-- BIOME no dropping of stuff on water
-- BIOME biome locked planting
+- BIOME change biome speed for specialists (only if in attack mode or carrying heavy stuff???)
+- BIOME no dropping of stuff on water???
 
 - ALLY change ally color if leader changes
 - ALLY give some time after beeing exiled
@@ -345,10 +349,10 @@ Middle priority:
 
 - ADVANED oil stuff, pipes, sprinkler, plow, roadmaker
 - TOOLS use list of learned tool and set held_learned only true if tool is learned 
+- RADIO
 
 Low priority stuff:
 - MAP calculate distance right when on end of map 
-- radio
 - photo
 
 TODO Testing
