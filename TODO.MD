@@ -285,6 +285,7 @@ High priority:
 - GRAVES graves with simple tools but more exhausting
 
 Middle priority:
+- FOOD support 3375 Feast Plate
 - CONNECTION saving of people data so that people can come back after server restart
 
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)

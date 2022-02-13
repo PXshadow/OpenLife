@@ -83,8 +83,8 @@ class TransitionImporter
 
     public function calculateCraftingSteps()
     {
-        // TODO time transitions with other ending like Blooming Squash Plant // Ripe Pumpkin Plant
-        // TODO Perhaps a Pumpkin 
+        // TODO 1869 Wet Mango Sapling Cutting
+        // TODO 3375 Feast Plate
         var todo = new Array<ObjectData>();
         
         var steps = 0;
@@ -128,11 +128,8 @@ class TransitionImporter
                 for(trans in transitionsByActor)
                 {
                     var target = ObjectData.getObjectData(trans.targetID);
-
                     if(target.carftingSteps < 0) continue;
-
-                    AddObject(todo2, obj, trans.newActorID, steps);
-                    AddObject(todo2, obj, trans.newTargetID, steps);
+                    calculateCraftingStepsHelper(todo2, obj, trans, steps);
                 }
             }
             
@@ -144,11 +141,8 @@ class TransitionImporter
                 for(trans in transitionsByTarget)
                 {
                     var actor = ObjectData.getObjectData(trans.actorID);
-
                     if(actor.carftingSteps < 0) continue;
-
-                    AddObject(todo2, obj, trans.newActorID, steps);
-                    AddObject(todo2, obj, trans.newTargetID, steps);
+                    calculateCraftingStepsHelper(todo2, obj, trans, steps);
                 }                
             }
         }
@@ -167,6 +161,23 @@ class TransitionImporter
         }
 
         trace('Steps: ALL Obj: done: $done notDone: $notDone');
+    }
+
+    private function calculateCraftingStepsHelper(newTodo:Array<ObjectData>, obj:ObjectData, trans:TransitionData, steps:Int)
+    {
+        AddObject(newTodo, obj, trans.newActorID, steps);
+        AddObject(newTodo, obj, trans.newTargetID, steps);
+
+        var newTargetCategory = getCategory(trans.newTargetID);
+        if(newTargetCategory == null || newTargetCategory.probSet == false) return;
+
+        // time transitions with other endings like Blooming Squash Plant // Ripe Pumpkin Plant
+        // like 3221 Perhaps a Pumpkin 
+        for(i in 0...newTargetCategory.ids.length)
+        {
+            var id = newTargetCategory.ids[i];
+            AddObject(newTodo, obj, id, steps);
+        }
     }
 
     private static function AddObject(objects:Array<ObjectData>, from:ObjectData, objId:Int, steps:Int)
@@ -224,7 +235,7 @@ class TransitionImporter
             
             categories.push(category);
             categoriesById[category.parentID] = category;
-
+            //if(category.probSet) trace('Category: ${category.parentID}');
         }
     }
 
@@ -484,10 +495,34 @@ class TransitionImporter
         var targetCategory = getCategory(transition.targetID);
         var newActorCategory = getCategory(transition.newActorID);
         var newTargetCategory = getCategory(transition.newTargetID);
+        var bothActorAndTargetIsCategory = (actorCategory != null) && (targetCategory != null);
 
-        var bothActionAndTargetIsCategory = (actorCategory != null) && (targetCategory != null);
+        // Category tansitions with different outcome
+        // <-1> + <1195> = <0> + <3221> / TIME + Blooming Squash Plant -->  EMPTY + Perhaps a Pumpkin
+        if(newTargetCategory != null && newTargetCategory.probSet)
+        {
+            var objCategory = ObjectData.getObjectData(newTargetCategory.parentID);
+            //trace('PROB Category: ' + transition.getDesciption());
+            addTransition('Prob/${objCategory.name}/', transition);
 
-        if(bothActionAndTargetIsCategory)
+            for(i in 0...newTargetCategory.ids.length)
+            {
+                var id = newTargetCategory.ids[i];
+                var weight = newTargetCategory.weights[i];
+                var newTransition = transition.clone();
+                
+                trace('PROB Category: $id weight: ${weight} ' + transition.getDesciption());
+                
+                newTransition.newTargetID = newTargetCategory.parentID;
+                //addTransition('Prob/${objCategory.name}/', newTransition);
+                addTransitionToMap(transitionsByNewActorMap, newTransition, newTransition.newActorID);
+                addTransitionToMap(transitionsByNewTargetMap, newTransition, newTransition.newTargetID);
+            }
+            
+            return;
+        }
+
+        if(bothActorAndTargetIsCategory)
         {
             // TODO many strange transitions to look at...
             //traceTransition(transition, 'bothActionAndTargetIsCategory: ');
@@ -622,7 +657,7 @@ class TransitionImporter
             }
         }
 
-        if(bothActionAndTargetIsCategory) return;
+        if(bothActorAndTargetIsCategory) return;
 
         // for transitions where actor is no category but target is a category
         category = targetCategory;
