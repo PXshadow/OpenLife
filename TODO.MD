@@ -270,8 +270,6 @@ High priority:
 - AI tests with >20 AIs
 - AI Stoneage
 
-- TIME transitions with different endings like: Perhaps a Pumpkin
-
 - COMBAT ill from moskitos
 - COMBAT make smal wounds invisible if object held and allow to work (for example for poisone from snakes)
 
@@ -282,10 +280,7 @@ High priority:
 
 - GATES Ally Gates and swing doors
 
-- GRAVES graves with simple tools but more exhausting
-
 Middle priority:
-- FOOD support 3375 Feast Plate
 - CONNECTION saving of people data so that people can come back after server restart
 
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
@@ -310,7 +305,8 @@ Middle priority:
 - TIME decay clothing
 - TIME use item for decay like Broken Skewer  ID: 847
 - TIME decay floors
-- TIME support multiple time transitions see Fishing Pole --> store in ObjectData 
+
+- CRAFTING crafting on table
 
 - ANIMAL animal movement on top of items
 - ANIMAl eating sheep / meat transtions 
@@ -321,8 +317,6 @@ Middle priority:
 - TEMPERATURE indoor temperature calculation 
 
 - WINTER change snow biome / snow banks / melting if snow
-
-- DONE??? do pattern transitions right like rubber horsecart pickup 
 
 - AI Pottery
 - AI Fire
@@ -338,8 +332,6 @@ Middle priority:
 - GATES visitor at gate
 
 - YUM use yum category // for example for berry / berry bowl (maybe not needed?)
-
-- CRAVING better order of craving list (currently its just ordered accoring to obj ID)
 
 - CONNECTION twinning
 
