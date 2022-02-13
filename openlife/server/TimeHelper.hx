@@ -1278,7 +1278,8 @@ class TimeHelper
         
         if(helper.isLastUse()) transition = TransitionImporter.GetTransition(-1, helper.id, false, true);
 
-        helper.id = transition.newTargetID;
+        // can have different random outcomes like Blooming Squash Plant
+        helper.id = TransitionHelper.TransformTarget(transition.newTargetID); 
         helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper);
         helper.creationTimeInTicks = TimeHelper.tick;
 

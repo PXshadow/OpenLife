@@ -753,7 +753,7 @@ class TransitionHelper{
         // do now the magic transformation
         //if(transition.actorID != transition.newActorID) this.pickUpObject = true; // TODO does error for bow animation but may be needed for other animations?
         player.transformHeldObject(transition.newActorID);
-        this.target.id = transition.newTargetID;
+        this.target.id = TransformTarget(transition.newTargetID); // consider if there is an random outcome
 
         // reset creation / last change time
         player.heldObject.creationTimeInTicks = TimeHelper.tick;
@@ -790,6 +790,35 @@ class TransitionHelper{
         this.doAction = true;
 
         return true;
+    }
+
+    // consider if there is an random outcome
+    // transitions with other endings like Blooming Squash Plant // Ripe Pumpkin Plant
+    // category 3221 Perhaps a Pumpkin 
+    public static function TransformTarget(targetId:Int) : Int
+    {
+        var newTargetCategory = TransitionImporter.transitionImporter.getCategory(targetId);
+        if(newTargetCategory == null || newTargetCategory.probSet == false) return targetId;
+
+        var totalWeight:Float = 0;
+        for(i in 0...newTargetCategory.ids.length)
+        {
+            var weight = newTargetCategory.weights[i];
+            totalWeight += weight;
+        }
+
+        var rand = WorldMap.calculateRandomFloat() * totalWeight;
+        var totalWeight:Float = 0;
+        for(i in 0...newTargetCategory.ids.length)
+        {
+            var id = newTargetCategory.ids[i];
+            var weight = newTargetCategory.weights[i];
+            totalWeight += weight;
+
+            if(rand <= totalWeight) return id;
+        }
+
+        return targetId;
     }
     
     // used for transitions and for eating food like bana or bowl of stew

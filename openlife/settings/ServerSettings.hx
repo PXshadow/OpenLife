@@ -817,6 +817,12 @@ class ServerSettings
         // allow more options to kill animals
         var trans = new TransitionData(152,427,151,420); // Bow and Arrow + Attacking Wolf --> Yew Bow + Shot Wolf
         transtions.addTransition("PatchTransitions: ", trans);
+
+        // for debug random outcome transitions
+        /*var trans = transtions.getTransition(-1, 1195); // TIME + Blooming Squash Plant 
+        trans.autoDecaySeconds = 2;
+        transtions.addTransition("PatchTransitions: ", trans);
+        */
     }
 
     public static function writeToFile()
