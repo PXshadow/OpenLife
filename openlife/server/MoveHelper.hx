@@ -307,6 +307,12 @@ class MoveHelper
                     pos.y -= move.y;
                 }
 
+                if(p.heldPlayer != null)
+                {
+                    p.heldPlayer.x = p.tx - p.heldPlayer.gx;
+                    p.heldPlayer.y = p.ty - p.heldPlayer.gy;
+                }
+
                 TimeHelper.MakeAnimalsRunAway(p);
 
                 //trace('Move: ${p.name} ${p.tx} ${p.ty}');
@@ -359,6 +365,12 @@ class MoveHelper
                 p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
                 p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
                 //p.forced = true; // TODO change
+
+                if(p.heldPlayer != null)
+                {
+                    p.heldPlayer.x = p.tx - p.heldPlayer.gx;
+                    p.heldPlayer.y = p.ty - p.heldPlayer.gy;
+                }
 
                 Connection.SendUpdateToAllClosePlayers(p);
                 //Connection.SendToMeAllClosePlayers(p); // TODO change
