@@ -271,10 +271,16 @@ class AiHelper
 
             if(done) return true;
 
-            if((Sys.time() - startTime) * 1000 > 100) break; 
+            var passedTime = (Sys.time() - startTime) * 1000;
+
+            if(passedTime > 400)
+            {
+                trace('AI: ${player.id}  ${player.name} GOTO failed after $i because of timeout $passedTime! Ignore ${tx} ${ty}'); 
+                break; 
+            }
         }
 
-        trace('AI: GOTO failed! Ignore ${tx} ${ty} '); 
+        trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty}'); 
         ai.addNotReachable(tx, ty);
 
         ai.resetTargets();
