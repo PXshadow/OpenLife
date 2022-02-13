@@ -199,7 +199,7 @@ class Ai
     {
         time -= timePassedInSeconds;
 
-        didNotReachFood -= timePassedInSeconds * 0.1;
+        //if(didNotReachFood > 0) didNotReachFood -= timePassedInSeconds * 0.02;
 
         if(time > 0) return;
         time += ServerSettings.AiReactionTime; //0.5; // minimum AI reacting time
@@ -223,8 +223,8 @@ class Ai
         var animal = AiHelper.GetCloseDeadlyAnimal(myPlayer);
         var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer);
     
-        if(escape(animal, deadlyPlayer)) return;
-        if(didNotReachFood < 5 || myPlayer.food_store < -1) checkIsHungryAndEat();
+        if(didNotReachFood < 5) if(escape(animal, deadlyPlayer)) return;
+        if(didNotReachFood < 5 || myPlayer.food_store < 0) checkIsHungryAndEat();
         if(isChildAndHasMother()){if(isMovingToPlayer()) return;}
         if(myPlayer.isWounded()){isMovingToPlayer(); return;} // do nothing then looking for player
         
@@ -481,8 +481,6 @@ class Ai
         if(animal.isKillableByBow()) animalTarget = animal;
         // go for hunting 
         if(myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false) return false; 
-        if(this.didNotReachFood > 4) return false; // need urgently food
-        //if(foodTarget != null && myPlayer.food_store < -1 && this.didNotReachFood > 4) return false; // need urgently food
 
         var player = myPlayer.getPlayerInstance();
         var escapeDist = 3;
@@ -494,7 +492,7 @@ class Ai
         var escapeTy = escapePlayer ? deadlyPlayer.ty : animal.ty;
         var newEscapetarget = new ObjectHelper(null, 0);
 
-        myPlayer.say('Escape ${description}!');
+        myPlayer.say('Escape ${description} ${Math.ceil(didNotReachFood)}!');
         trace('AAI: ${myPlayer.id} escape!');
 
         var done = false;
@@ -1453,11 +1451,11 @@ class Ai
             // if object to create is held by player or is on ground, then cound as done
             if(myPlayer.heldObject.parentId == itemToCraft.itemToCraft.parentId || taregtObjectId == itemToCraft.itemToCraft.parentId) itemToCraft.countDone += 1;
 
-            trace('AI: FINISHED done: ${useTarget.name} ItemToCraft: ${itemToCraft.itemToCraft.name} transtions: ${itemToCraft.countTransitionsDone} done: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
+            trace('AAI: FINISHED done: ${useTarget.name} ItemToCraft: ${itemToCraft.itemToCraft.name} transtions: ${itemToCraft.countTransitionsDone} done: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
         }
         else
         {
-            trace('AI: Use failed! Ignore ${useTarget.tx} ${useTarget.ty} '); 
+            trace('AAI: Use failed! Ignore: ${useTarget.name} ${useTarget.tx} ${useTarget.ty} '); 
 
             // TODO check why use is failed... for now add to ignore list
             // TODO dont use on contained objects if result cannot contain (ignore in crafting search)
