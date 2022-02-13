@@ -661,8 +661,10 @@ class TransitionHelper{
 
             if(missingFood > 0)
             {
-                var message = 'Its hungry work! Need ${missingFood} more food!';
-                player.connection.sendGlobalMessage(message);
+                //var message = 'Its hungry work! Need ${missingFood} more food!';
+                //player.connection.sendGlobalMessage(message);
+                var message = 'Need ${missingFood} more food!';
+                player.say(message);
                 player.doEmote(Emote.homesick);
                 
                 return false;

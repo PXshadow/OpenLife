@@ -1229,7 +1229,7 @@ class Ai
                 dropTarget = myPlayer.GetClosestObjectById(0); // empty
             }
 
-            trace('AAI: ${myPlayer.id} goto drop: $done distance: $distance');
+            trace('AAI: ${myPlayer.id} goto drop: $done ${dropTarget.name} distance: $distance');
         }
         else
         {
