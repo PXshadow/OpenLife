@@ -1212,6 +1212,12 @@ class Ai
     private function isDropingItem() : Bool
     {
         if(dropTarget == null) return false;
+        if(myPlayer.isStillExpectedItem(dropTarget) == false)
+        {
+            trace('AAI: ${myPlayer.id} dropTarget changed meanwhile! ${dropTarget.name}');
+            dropTarget = null;
+            return false;
+        }
         if(myPlayer.isMoving()) return true;        
 
         var distance = myPlayer.CalculateDistanceToObject(dropTarget);
@@ -1377,12 +1383,10 @@ class Ai
         if(useTarget == null) return false; 
         if(myPlayer.isStillExpectedItem(useTarget) == false)
         {
-            trace('AAI: ${myPlayer.id} Use target changed meachwhile! ${useTarget.name}');
+            trace('AAI: ${myPlayer.id} Use target changed meanwhile! ${useTarget.name}');
             useTarget = null;
             return false;
         }
-        if(myPlayer.isMoving()) return true;
-
         // only allow to go on with use if right actor is in the hand, or if actor will be empty
         if(myPlayer.heldObject.id != useActor.id && useActor.id != 0) 
         {
@@ -1394,6 +1398,7 @@ class Ai
             
             return false;
         }
+        if(myPlayer.isMoving()) return true;
 
         var distance = myPlayer.CalculateDistanceToObject(useTarget);
         trace('AAI: ${myPlayer.id} Use: distance: $distance ${useTarget.description} ${useTarget.tx} ${useTarget.ty}');
