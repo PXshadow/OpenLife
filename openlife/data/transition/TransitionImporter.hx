@@ -565,6 +565,7 @@ class TransitionImporter
                         { 
                             var newTransition = transition.clone();
                             newTransition.actorID = id;
+                            if(newTransition.newActorID == category.parentID) newTransition.newActorID = id;
                             newTransition.targetID = targetCategory.ids[i];
                             newTransition.newTargetID = newTargetCategory.ids[i];
             

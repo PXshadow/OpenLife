@@ -36,7 +36,7 @@ class ServerSettings
     public static var traceTransitionByActorId = 99934; // set to object id which you want to debug
     public static var traceTransitionByNewActorId = 99934; // set to object id which you want to debug
     public static var traceTransitionByActorDescription = "!!!Basket of Soil"; // set to object description which you want to debug
-    public static var traceTransitionByTargetId = 1099; // set to object id which you want to debug
+    public static var traceTransitionByTargetId = 9991872; // set to object id which you want to debug
     public static var traceTransitionByNewTargetId = 9991099; // set to object id which you want to debug
     public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
 
