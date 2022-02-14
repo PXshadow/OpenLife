@@ -215,7 +215,7 @@ class Connection
         catch(ex) trace(ex);
     }
 
-    private function sendToMePlayerInfo(playerToSend:GlobalPlayerInstance, sendMovingPlayer:Bool = false, isPlayerAction:Bool = true)
+    private function sendToMePlayerInfo(playerToSend:GlobalPlayerInstance, sendMovingPlayer:Bool = true, isPlayerAction:Bool = true)
     {
         if(playerToSend.deleted) return;
         if(playerToSend.isHeld()) return;
@@ -800,6 +800,13 @@ class Connection
         else toConnection.send(PLAYER_EMOT,['${fromPlayer.p_id} $id $seconds']);
 
         toConnection.send(FRAME);
+    }
+
+    public function sendPlayerUpdate(forcePosition:Bool = false)
+    {
+        player.forced = forcePosition;
+        player.connection.send(PLAYER_UPDATE,[player.toData()]);  
+        player.forced = false;   
     }
 
     private static var lastSend:String = "";
