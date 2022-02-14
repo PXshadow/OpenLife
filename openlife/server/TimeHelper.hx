@@ -123,7 +123,6 @@ class TimeHelper
         for (c in Connection.getConnections())
         {            
             if(DoTimeStuffForPlayer(c.player, timePassedInSeconds) == false) continue;
-
             if(TimeHelper.tick % 90 == 0) Macro.exception(c.sendToMeAllClosePlayers(false, false));
         }
         
