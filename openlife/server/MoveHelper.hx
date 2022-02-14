@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.macros.Macro;
 import openlife.server.GlobalPlayerInstance.Emote;
 import haxe.macro.Expr.Catch;
 import openlife.data.object.ObjectHelper;
@@ -27,9 +28,7 @@ private class NewMovements
 
     public var fullPathHasRoad = false;
     
-    public function new() {
-
-    }
+    public function new() {}
 }
 
 
@@ -38,6 +37,7 @@ class MoveHelper
     private static var firstPos = new Pos(); // used for calculation of movement length. Always stays 0,0
 
     public var player:GlobalPlayerInstance;
+    public var waitForForce = false;
 
     // x,y when last chunk was send
     private var tx:Int = 0;
@@ -329,67 +329,53 @@ class MoveHelper
 
         if(timeSinceStartMovementInSec >= moveHelper.totalMoveTime)
         {
-            // a new move or command might also change the player data
-            if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.acquire();
-            else p.mutex.acquire();
-            
-            if(moveHelper.newMoves == null)
+            var last = moveHelper.newMoves.pop(); 
+            moveHelper.totalMoveTime = 0;
+            moveHelper.startingMoveTicks = 0;
+            moveHelper.newMoves = null;
+            moveHelper.newMovements = null;
+
+            var oldX = p.x;
+            var oldY = p.y;
+
+            if(last != null)
             {
-                if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
-                else p.mutex.release();
-                return;
-            } // to be sure that meanwhile no other thread messed around
+                p.x += last.x; 
+                p.y += last.y;
+            
+                //if(p.connection.serverAi == null) trace('reached position: g${p.tx},g${p.ty} FROM ${oldX},${oldY} TO ${p.x},${p.y}');
+                //else trace('AAI: GOTO: FROM ${oldX},${oldY} TO ${p.x},${p.y} / FROM g${p.tx - last.x},g${p.ty- last.y} TO g${p.tx},g${p.ty} reached position!');
+            }
 
-            //WorldMap.world.mutex.acquire(); // make sure that no other threat uses connections TODO change
+            p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
+            p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
+            //p.forced = true; 
 
-            //try
-            //{
-                var last = moveHelper.newMoves.pop(); 
-                moveHelper.totalMoveTime = 0;
-                moveHelper.startingMoveTicks = 0;
-                moveHelper.newMoves = null;
-                moveHelper.newMovements = null;
+            if(p.heldPlayer != null)
+            {
+                p.heldPlayer.x = p.tx - p.heldPlayer.gx;
+                p.heldPlayer.y = p.ty - p.heldPlayer.gy;
+            }
 
-                var oldX = p.x;
-                var oldY = p.y;
+            Connection.SendUpdateToAllClosePlayers(p);
 
-                if(last != null)
-                {
-                    p.x += last.x; 
-                    p.y += last.y;
-                
-                    //if(p.connection.serverAi == null) trace('reached position: g${p.tx},g${p.ty} FROM ${oldX},${oldY} TO ${p.x},${p.y}');
-                    //else trace('AAI: GOTO: FROM ${oldX},${oldY} TO ${p.x},${p.y} / FROM g${p.tx - last.x},g${p.ty- last.y} TO g${p.tx},g${p.ty} reached position!');
-                }
+            //p.forced = false; 
 
-                p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
-                p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
-                //p.forced = true; // TODO change
+            if(p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
 
-                if(p.heldPlayer != null)
-                {
-                    p.heldPlayer.x = p.tx - p.heldPlayer.gx;
-                    p.heldPlayer.y = p.ty - p.heldPlayer.gy;
-                }
-
-                Connection.SendUpdateToAllClosePlayers(p);
-                //Connection.SendToMeAllClosePlayers(p); // TODO change
-
-                //p.forced = false; // TODO change
-
-                if(p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
-
-                trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
-            //}
-            //catch(ex)
-            //{
-             //   trace(ex.details);
-            //}
-
-            if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
-            else p.mutex.release();
-            //WorldMap.world.mutex.release();
+            trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
         }
+    }
+
+    public function receivedForce(x:Int, y:Int)
+    {
+        if(player.x != x || player.y != y)
+        {
+            trace('WARNING: Force: Client: $x,$y != Server: ${player.x},${player.y}');
+            return;
+        }
+
+        waitForForce = false;
     }
 
     /*
@@ -417,299 +403,291 @@ class MoveHelper
     Until that has happened, client must assume player is still in transit.
     */
     static public function move(p:GlobalPlayerInstance, x:Int,y:Int,seq:Int,moves:Array<Pos>)
-        {
-            if(p.isHeld()) p.jump();
+    {
+        GlobalPlayerInstance.AllPlayerMutex.acquire();
 
-            var tx = x + p.gx;
-            var ty = y + p.gy;
+        Macro.exception(moveHelper(p, x, y, seq, moves));
 
-            if(p.age * 60 < ServerSettings.MinMovementAgeInSec)
-            {
-                p.connection.send(PLAYER_UPDATE,[p.toData()]);
-                return;
-            }
-
-            // since move update may acces this also
-            if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.acquire();
-            else p.mutex.acquire();
-
-            try
-            {
-                var moveHelper = p.moveHelper;
-
-                if(moveHelper.isMoveing()) p.exhaustion += ServerSettings.ExhaustionOnMovementChange;
-
-                // TODO dont accept moves untill a force is confirmed
-                // TODO client accepts one position further even if not fully reached there. 
-                // This could be miss used to double movement speed. But Client seems to do it this way...
-                // Exhaustion is used to limit client "cheeting"
-
-                //var isBlocked= p.isBlocked(tx,ty); 
-                var positionChanged = false;
-
-                if(p.isBlocked(tx,ty) || p.isClose(x,y,ServerSettings.MaxMovementCheatingDistanceBeforeForce) == false)
-                {
-                    positionChanged = true;
-                    p.forced = true;
-                    p.done_moving_seqNum  = seq;
-                    moveHelper.newMoves = null; // cancle all movements
-                    moveHelper.newMovements = null;
-
-                    trace('MOVE: positionChanged Force!   Server ${ p.x },${ p.y }:Client ${ x },${ y }');
-                }
-                else
-                {
-                    if(p.x != x || p.y != y)
-                    {
-                        positionChanged = true;
-                        trace('MOVE: positionChanged NoForce! Server ${ p.x },${ p.y }:Client ${ x },${ y }');
-                    }
-
-                    p.forced = false;
-
-                    p.x = x;
-                    p.y = y;
-                }
-
-                //trace("newMoveSeqNumber: " + newMoveSeqNumber);
-        
-                // since it seems speed cannot be set for each tile, the idea is to cut the movement once it crosses in different biomes
-                // TODO maybe better to not cut it and make a player update if the new biome is reached?
-                // if passing in an biome with different speed only the first movement is kept
-                var newMovements = calculateNewMovements(p, p.x + p.gx, p.y + p.gy, moves);
-                moveHelper.newMovements = newMovements;
-
-                if(newMovements.moves.length < 1)
-                {
-                    p.done_moving_seqNum  = seq;
-                    p.move_speed = calculateSpeed(p, p.tx, p.ty);
-                    moveHelper.newMoves = null; // cancle all movements
-                    moveHelper.newMovements = null;
-
-                    //cancle movement
-                    p.forced = true;
-                    p.connection.send(PLAYER_UPDATE,[p.toData()]);
-                    p.connection.send(FRAME);
-
-                    
-                    p.forced = false;
-
-                    if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
-                    else p.mutex.release();
-
-                    return;
-                }
-                
-                p.move_speed = newMovements.finalSpeed;
-
-                moveHelper.newMoves = newMovements.moves;
-                moveHelper.totalMoveTime = (1 / p.move_speed) * newMovements.length;
-                moveHelper.startingMoveTicks = TimeHelper.tick;
-                moveHelper.newMoveSeqNumber = seq;  
-                
-                // TODO chunk loading in x direction is too slow with high speed
-                // TODO general better chunk loading
-                var spacing = 4;
-        
-                if(p.x - moveHelper.tx > spacing || p.x - moveHelper.tx < -spacing || p.y - moveHelper.ty > spacing || p.y - moveHelper.ty < -spacing )
-                {          
-                    moveHelper.tx = p.x;
-                    moveHelper.ty = p.y;
-        
-                    p.connection.sendMapChunk(p.x,p.y);         
-                }                
-
-                if(positionChanged)
-                {
-                    Connection.SendUpdateToAllClosePlayers(p);
-                }
-                else
-                {
-                    p.connection.send(PLAYER_UPDATE,[p.toData()]);
-                }
-
-                Connection.SendMoveUpdateToAllClosePlayers(p);
-            }
-            catch(ex)
-            {
-                trace(ex.details());
-            }
-
-            p.forced = false;
-
-            if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
-            else p.mutex.release();
-        }        
-
-        public function generateRelativeMoveUpdateString(forPlayer:GlobalPlayerInstance) : String
-        {
-            var totalMoveTime = Math.round(this.totalMoveTime * 100) / 100;
-            var targetX = player.tx - forPlayer.gx;
-            var targetY = player.ty - forPlayer.gy;
-            var eta = totalMoveTime - TimeHelper.CalculateTimeSinceTicksInSec(startingMoveTicks);            
-
-            var moveString = '${player.p_id} ${targetX} ${targetY} ${totalMoveTime} $eta ${newMovements.trunc} ${moveString(newMoves)}';
-            //trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
-
-           return moveString;
-        }
-
-        static private function moveString(moves:Array<Pos>):String
-        {
-            var string = "";
-            for (m in moves) string += " " + m.x + " " + m.y;
-            return string.substr(1);
-        }
+        GlobalPlayerInstance.AllPlayerMutex.release();
+    }
     
-        static private function calculateLength(lastPos:Pos, pos:Pos):Float
+    static private function moveHelper(p:GlobalPlayerInstance, x:Int,y:Int,seq:Int,moves:Array<Pos>)
+    {
+        //trace("newMoveSeqNumber: " + newMoveSeqNumber);
+        // dont accept moves untill a force is confirmed
+        if(p.moveHelper.waitForForce)
         {
-            // diagonal steps are longer
-            if(lastPos.x != pos.x && lastPos.y != pos.y ){
-                // diags are square root of 2 in length
-                var diagLength = 1.41421356237; 
-                return diagLength;
-            }
-            else {
-                return 1;
-            }
-        }        
+            trace('${p.name}: Move ignored since waiting for force!');
+            return;
+        }
 
-        // if path has a biome with different speed, path is trunced if movement is not on a road
-        static private function calculateNewMovements(p:GlobalPlayerInstance, tx:Int,ty:Int,moves:Array<Pos>):NewMovements 
+        if(p.age * 60 < ServerSettings.MinMovementAgeInSec)
         {
-            var truncMovementSpeedDiff = 0.1;
-            var newMovements:NewMovements = new NewMovements();
-            var map = Server.server.map;
-            var lastPos:Pos = new Pos(0,0);
+            p.done_moving_seqNum  = seq;
+            p.connection.send(PLAYER_UPDATE,[p.toData()]);
+            return;
+        }
 
-            newMovements.fullPathHasRoad = true;
-            newMovements.startSpeed = map.getBiomeSpeed(tx,ty);
+        if(p.isHeld()) p.jump();
 
-            for (move in moves)
+        var tx = x + p.gx;
+        var ty = y + p.gy;
+        var moveHelper = p.moveHelper;
+
+        if(p.isBlocked(tx,ty) || p.isClose(x,y,ServerSettings.MaxMovementCheatingDistanceBeforeForce) == false)
+        {
+            trace('MOVE: FORCE! Movement cancled since blocked or Client uses too different x,y: Server ${ p.x },${ p.y }:Client ${ x },${ y }');
+            cancleMovement(p, seq);
+            return;    
+        }
+
+        var positionChanged = false;
+
+        if(p.x != x || p.y != y)
+        {
+            trace('MOVE: positionChanged NoForce! Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
+
+            // Since vanilla client handels move strangely the server accepts one position further even if not fully reached there 
+            // This a client could use to increase movement speed. 
+            // Therefore exhaustion is used to limit client "cheeting"
+            // TODO limit this cheating per time. For example allow only 50% more speed
+            if(moveHelper.isMoveing()) p.exhaustion += ServerSettings.ExhaustionOnMovementChange;
+
+            positionChanged = true;
+            
+            p.x = x;
+            p.y = y;
+        }
+
+        // since it seems speed cannot be set for each tile, the idea is to cut the movement once it crosses in different biomes
+        // if passing in an biome with different speed only the first movement is kept
+        var newMovements = calculateNewMovements(p, moves);
+        if(newMovements.moves.length < 1)
+        {
+            trace('MOVE: FORCE! Move cancled since no new movements!');
+            cancleMovement(p, seq);
+            return;
+        }
+        
+        p.move_speed = newMovements.finalSpeed;
+
+        moveHelper.newMovements = newMovements;
+        moveHelper.newMoves = newMovements.moves;
+        moveHelper.totalMoveTime = (1 / p.move_speed) * newMovements.length;
+        moveHelper.startingMoveTicks = TimeHelper.tick;
+        moveHelper.newMoveSeqNumber = seq;  
+        
+        // TODO chunk loading in x direction is too slow with high speed
+        // TODO general better chunk loading
+        var spacingX = 4;
+        var spacingY = 4;
+
+        if(p.x - moveHelper.tx > spacingX || p.x - moveHelper.tx < -spacingX || p.y - moveHelper.ty > spacingY || p.y - moveHelper.ty < -spacingY )
+        {          
+            moveHelper.tx = p.x;
+            moveHelper.ty = p.y;
+
+            p.connection.sendMapChunk(p.x,p.y);         
+        }                
+
+        p.forced = false;
+
+        if(positionChanged)
+        {
+            Connection.SendUpdateToAllClosePlayers(p);
+        }
+        else
+        {
+            //p.connection.sendPlayerUpdate();
+        }
+
+        Connection.SendMoveUpdateToAllClosePlayers(p);
+    }     
+    
+    public static function cancleMovement(p:GlobalPlayerInstance, seq:Int)
+    {
+        if(p.isHuman()) p.moveHelper.waitForForce = true; // ignore all moves untill client sends a force
+
+        p.done_moving_seqNum  = seq;
+        p.move_speed = calculateSpeed(p, p.tx, p.ty);
+        p.moveHelper.newMoves = null; 
+        p.moveHelper.newMovements = null;
+        p.forced = true;
+        Connection.SendUpdateToAllClosePlayers(p);
+        p.forced = false;
+    }
+
+    public function generateRelativeMoveUpdateString(forPlayer:GlobalPlayerInstance) : String
+    {
+        var totalMoveTime = Math.round(this.totalMoveTime * 100) / 100;
+        var targetX = player.tx - forPlayer.gx;
+        var targetY = player.ty - forPlayer.gy;
+        var eta = totalMoveTime - TimeHelper.CalculateTimeSinceTicksInSec(startingMoveTicks);            
+
+        var moveString = '${player.p_id} ${targetX} ${targetY} ${totalMoveTime} $eta ${newMovements.trunc} ${moveString(newMoves)}';
+        //trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
+
+        return moveString;
+    }
+
+    static private function moveString(moves:Array<Pos>):String
+    {
+        var string = "";
+        for (m in moves) string += " " + m.x + " " + m.y;
+        return string.substr(1);
+    }
+
+    static private function calculateLength(lastPos:Pos, pos:Pos):Float
+    {
+        // diagonal steps are longer
+        if(lastPos.x != pos.x && lastPos.y != pos.y ){
+            // diags are square root of 2 in length
+            var diagLength = 1.41421356237; 
+            return diagLength;
+        }
+        else {
+            return 1;
+        }
+    }        
+
+    // if path has a biome with different speed, path is trunced if movement is not on a road
+    static private function calculateNewMovements(p:GlobalPlayerInstance, moves:Array<Pos>) : NewMovements 
+    {
+        var tx = p.tx;
+        var ty = p.ty;
+        var truncMovementSpeedDiff = 0.1;
+        var newMovements:NewMovements = new NewMovements();
+        var map = Server.server.map;
+        var lastPos:Pos = new Pos(0,0);
+
+        newMovements.fullPathHasRoad = true;
+        newMovements.startSpeed = map.getBiomeSpeed(tx,ty);
+
+        for (move in moves)
+        {
+            var tmpX = tx + move.x;
+            var tmpY = ty + move.y;
+
+            //var obj = WorldMap.world.getObjectHelper(tmpX, tmpY);
+            //var isBlockingObj = obj.blocksWalking();
+            //var isBlockingBiome = WorldMap.isBiomeBlocking(tmpX, tmpY);
+
+            if(p.isBlocked(tmpX, tmpY))
             {
-                var tmpX = tx + move.x;
-                var tmpY = ty + move.y;
+                //if(isBlockingBiome) trace('biome ${map.getBiomeId(tmpX,tmpY)} is blocking movement! movement length: ${newMovements.length}');
+                //if(isBlockingObj) trace('object ${obj.description} is blocking movement! movement length: ${newMovements.length}');
+                
+                newMovements.trunc = 1;
 
-                //var obj = WorldMap.world.getObjectHelper(tmpX, tmpY);
-                //var isBlockingObj = obj.blocksWalking();
-                //var isBlockingBiome = WorldMap.isBiomeBlocking(tmpX, tmpY);
+                newMovements.finalSpeed = calculateSpeed(p, p.tx, p.ty, newMovements.fullPathHasRoad);
 
-                if(p.isBlocked(tmpX, tmpY))
+                return newMovements;
+            }
+
+            if(newMovements.fullPathHasRoad)
+            {
+                var floorObjData = ObjectData.getObjectData(map.getFloorId(tmpX,tmpY));
+                if(floorObjData.speedMult < 1.01) newMovements.fullPathHasRoad = false;
+            }
+
+            newMovements.endSpeed = map.getBiomeSpeed(tmpX,tmpY); 
+
+            if(newMovements.fullPathHasRoad == false && Math.pow(newMovements.endSpeed - newMovements.startSpeed, 2) > Math.pow(truncMovementSpeedDiff, 2))
+            {                    
+                /*if(newMovements.moves.length == 0)
                 {
-                    //if(isBlockingBiome) trace('biome ${map.getBiomeId(tmpX,tmpY)} is blocking movement! movement length: ${newMovements.length}');
-                    //if(isBlockingObj) trace('object ${obj.description} is blocking movement! movement length: ${newMovements.length}');
-                    
-                    newMovements.trunc = 1;
-
-                    newMovements.finalSpeed = calculateSpeed(p, p.tx, p.ty, newMovements.fullPathHasRoad);
-
-                    return newMovements;
-                }
-
-                if(newMovements.fullPathHasRoad)
-                {
-                    var floorObjData = ObjectData.getObjectData(map.getFloorId(tmpX,tmpY));
-                    if(floorObjData.speedMult < 1.01) newMovements.fullPathHasRoad = false;
-                }
-
-                newMovements.endSpeed = map.getBiomeSpeed(tmpX,tmpY); 
-
-                if(newMovements.fullPathHasRoad == false && Math.pow(newMovements.endSpeed - newMovements.startSpeed, 2) > Math.pow(truncMovementSpeedDiff, 2))
-                {                    
-                    /*if(newMovements.moves.length == 0)
-                    {
-                        // dont cut the patch if one tile close to new biome
-                        // TODO this may make problems, since client does now update move speed after move started
-                        newMovements.startSpeed = newMovements.endSpeed;
-                        //newMovements.length += calculateLength(lastPos,move);
-                        //newMovements.moves.push(move);
-                    }*/
-                    
-                    
-                    //trace('movement is trunc because of moving from bad biome to good biome or good biome to bad biome: ${newMovements.moves.length}');
-
-                    newMovements.length += calculateLength(lastPos,move);
-                    newMovements.moves.push(move);
-
-                    if(moves.length > 1) newMovements.trunc = 1;
-
-                    newMovements.finalSpeed = calculateSpeed(p, p.tx, p.ty, newMovements.fullPathHasRoad);
-
-                    return newMovements;
-                }
+                    // dont cut the patch if one tile close to new biome
+                    // TODO this may make problems, since client does now update move speed after move started
+                    newMovements.startSpeed = newMovements.endSpeed;
+                    //newMovements.length += calculateLength(lastPos,move);
+                    //newMovements.moves.push(move);
+                }*/
+                
+                
+                //trace('movement is trunc because of moving from bad biome to good biome or good biome to bad biome: ${newMovements.moves.length}');
 
                 newMovements.length += calculateLength(lastPos,move);
-
                 newMovements.moves.push(move);
-                lastPos = move;
-            }       
 
-            newMovements.finalSpeed = calculateSpeed(p, p.tx, p.ty, newMovements.fullPathHasRoad);
+                if(moves.length > 1) newMovements.trunc = 1;
 
-            return newMovements;
-        }      
+                newMovements.finalSpeed = calculateSpeed(p, p.tx, p.ty, newMovements.fullPathHasRoad);
 
-        // this calculates which position is reached in case the movement was changed while moving
-        static private function calculateNewPos(moves:Array<Pos>, startingMoveTicks:Float, speed:Float):Pos
+                return newMovements;
+            }
+
+            newMovements.length += calculateLength(lastPos,move);
+
+            newMovements.moves.push(move);
+            lastPos = move;
+        }   
+
+        newMovements.finalSpeed = calculateSpeed(p, p.tx, p.ty, newMovements.fullPathHasRoad);
+
+        return newMovements;
+    }      
+
+    // this calculates which position is reached in case the movement was changed while moving
+    static private function calculateNewPos(moves:Array<Pos>, startingMoveTicks:Float, speed:Float):Pos
+    {
+        var lastPos:Pos = new Pos(0,0);
+        var length = 0.0;
+        var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(startingMoveTicks);
+        var movedLength = timeSinceStartMovementInSec * speed;
+        
+        // since client is some how faster allow client to chat little bit
+        timeSinceStartMovementInSec *= ServerSettings.LetTheClientCheatLittleBitFactor; 
+
+        for (move in moves)
         {
-            var lastPos:Pos = new Pos(0,0);
-            var length = 0.0;
-            var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(startingMoveTicks);
-            var movedLength = timeSinceStartMovementInSec * speed;
+            var thisStepLength = calculateLength(lastPos,move);
+            length += thisStepLength;
+            //trace('length: $length movedLength: $movedLength speed: $speed timeSinceStartMovementInSec: $timeSinceStartMovementInSec'  );
             
-            // since client is some how faster allow client to chat little bit
-            timeSinceStartMovementInSec *= ServerSettings.LetTheClientCheatLittleBitFactor; 
+            // TODO make exact calculatation where the client thinks he is
+            if(length - thisStepLength / 2 > movedLength) return lastPos;
+            //if(length > movedLength) return lastPos;
 
-            for (move in moves)
-            {
-                var thisStepLength = calculateLength(lastPos,move);
-                length += thisStepLength;
-                //trace('length: $length movedLength: $movedLength speed: $speed timeSinceStartMovementInSec: $timeSinceStartMovementInSec'  );
-                
-                // TODO make exact calculatation where the client thinks he is
-                if(length - thisStepLength / 2 > movedLength) return lastPos;
-                //if(length > movedLength) return lastPos;
+            lastPos = move;
+        }
 
-                lastPos = move;
-            }
+        // in this case the whole movement finished 
+        trace("The whole movement finished");
+        return lastPos;
+    }
 
-            // in this case the whole movement finished 
-            trace("The whole movement finished");
-            return lastPos;
+
+    /* pixel calulation stuff from Jason server.cpp
+// never move at 0 speed, divide by 0 errors for eta times
+    if( speed < 0.01 ) {
+        speed = 0.01;
         }
 
     
-        /* pixel calulation stuff from Jason server.cpp
-    // never move at 0 speed, divide by 0 errors for eta times
-        if( speed < 0.01 ) {
-            speed = 0.01;
-            }
+    // after all multipliers, make sure it's a whole number of pixels per frame
+
+    double pixelsPerFrame = speed * 128.0 / 60.0;
     
-        
-        // after all multipliers, make sure it's a whole number of pixels per frame
     
-        double pixelsPerFrame = speed * 128.0 / 60.0;
+    if( pixelsPerFrame > 0.5 ) {
+        // can round to at least one pixel per frame
+        pixelsPerFrame = lrint( pixelsPerFrame );
+        }
+    else {
+        // fractional pixels per frame
         
+        // ensure a whole number of frames per pixel
+        double framesPerPixel = 1.0 / pixelsPerFrame;
         
-        if( pixelsPerFrame > 0.5 ) {
-            // can round to at least one pixel per frame
-            pixelsPerFrame = lrint( pixelsPerFrame );
-            }
-        else {
-            // fractional pixels per frame
-            
-            // ensure a whole number of frames per pixel
-            double framesPerPixel = 1.0 / pixelsPerFrame;
-            
-            framesPerPixel = lrint( framesPerPixel );
-            
-            pixelsPerFrame = 1.0 / framesPerPixel;
-            }
+        framesPerPixel = lrint( framesPerPixel );
         
-        speed = pixelsPerFrame * 60 / 128.0;
-            
-        return speed;
+        pixelsPerFrame = 1.0 / framesPerPixel;
         }
     
-        */
+    speed = pixelsPerFrame * 60 / 128.0;
+        
+    return speed;
+    }
+
+    */
 }
