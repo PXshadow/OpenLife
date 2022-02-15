@@ -1374,6 +1374,6 @@ class ObjectData extends LineReader
     // TODO does not work for attacking wolf etc...
     public function isAnimal() : Bool
     {
-        return this.moves > 0;
+        return this.moves > 0 && this.id != 2156; // no Mosquito Swarm
     }
 }
