@@ -445,13 +445,20 @@ class MoveHelper
 
         if(p.x != x || p.y != y)
         {
-            trace('MOVE: positionChanged NoForce! Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
+            if(p.jumpedTiles > ServerSettings.MaxJumpsPerTenSec || p.exhaustion > p.food_store_max / 2)
+            {
+                trace('MOVE: JUMP: FORCE! Movement cancled since too exhausted ${Math.ceil(p.exhaustion)} or jumped (${Math.ceil(p.jumpedTiles)}) to often: Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
+                cancleMovement(p, seq);
+                return;
+            } 
+
+            trace('MOVE: JUMP: positionChanged NoForce! Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
 
             // Since vanilla client handels move strangely the server accepts one position further even if not fully reached there 
-            // This a client could use to increase movement speed. 
-            // Therefore exhaustion is used to limit client "cheeting"
-            // TODO limit this cheating per time. For example allow only 50% more speed
-            if(moveHelper.isMoveing()) p.exhaustion += ServerSettings.ExhaustionOnMovementChange;
+            // This a client could use to jump.
+            // Therefore exhaustion and jumpedTiles is used to limit client jumps / "cheeting"
+            p.exhaustion += ServerSettings.ExhaustionOnJump;
+            p.jumpedTiles += 1;
 
             positionChanged = true;
             

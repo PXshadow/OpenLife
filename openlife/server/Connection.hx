@@ -26,7 +26,7 @@ class Connection
     var tag:ServerTag;
 
     private var messageQueue = new Array<String>();
-    public var timeToWaitBeforeNextMessageSend:Float = 0;
+    private var timeToWaitBeforeNextMessageSend:Float = 0;
     
     // if it is an AI sock = null
     public function new(sock:Socket,server:Server)
@@ -908,22 +908,6 @@ class Connection
         //this.mutex.release();
     }
 
-    public function doTime(passedTimeInSeconds:Float)
-    {
-        if(player.isAi()) return;
-        
-        if(timeToWaitBeforeNextMessageSend > 0)
-        {
-            timeToWaitBeforeNextMessageSend -= passedTimeInSeconds;
-            return;
-        }
-
-        if(messageQueue.length > 0)
-        {
-            sendGlobalMessage(messageQueue.shift());
-        }
-    }
-
     public function sendGlobalMessage(message:String)
     {
         if(player.isAi()) return;
@@ -1122,6 +1106,18 @@ class Connection
         for(c in connections)
         {
             c.send(CURSED,['${player.p_id} $level']);
+        }
+    }
+
+    public function doTime(passedTimeInSeconds:Float)
+    {
+        if(this.timeToWaitBeforeNextMessageSend > 0)
+        {
+            this.timeToWaitBeforeNextMessageSend -= passedTimeInSeconds;
+        }
+        else if(this.messageQueue.length > 0)
+        {
+            this.sendGlobalMessage(this.messageQueue.shift());
         }
     }
 }

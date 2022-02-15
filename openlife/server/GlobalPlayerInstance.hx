@@ -62,6 +62,8 @@ using openlife.server.MoveHelper;
     public var noHead = 33; // ?
     public var normal = 34; // ?
     public var moustache = 36; // ?
+    //4313 Satisfied Mouth???
+    //4184 Starving Mouth
 }
 
 // GlobalPlayerInstance is used as a WorldInterface for an AI, since it may be limited what the AI can see so player information is relevant
@@ -162,6 +164,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var isCursed:Bool = false;
     public var inWrongBiome = false;
     public var inHomeBiome = false;
+
+    public var jumpedTiles:Float = 0; // used to limit how often a player can "jump" per second.
 
     // set all stuff null so that nothing is hanging around
     public function delete()

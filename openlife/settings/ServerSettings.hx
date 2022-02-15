@@ -142,16 +142,16 @@ class ServerSettings
 
     // for movement
     public static var InitialPlayerMoveSpeed:Float = 3.75; //3.75; // in Tiles per Second
-    public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed factor X
+    public static var SpeedFactor = 2; // MovementExtender // used to incease or deacrease speed factor X
     public static var MinMovementAgeInSec:Float = 14;
     public static var MinSpeedReductionPerContainedObj = 0.98;
-    public static var ExhaustionOnMovementChange:Float = 0.25;
     public static var CloseEnemyWithWeaponSpeedFactor:Float = 0.8;
     
+    // since client does not seem to use exact positions allow little bit cheating / JUMPS
     public static var LetTheClientCheatLittleBitFactor = 1.1; // when considering if the position is reached, allow the client to cheat little bit, so there is no lag
-    // TODO FIX this can make jumps if too small / ideally this should be 0 so that the client cannot cheat while moving
     public static var MaxMovementCheatingDistanceBeforeForce = 2; // if client player position is bigger then X, client is forced in PU to use server position 
-    public static var ChanceThatAnimalsCanPassBlockingBiome = 0.05;
+    public static var MaxJumpsPerTenSec:Float = 2; // limit how often a client can JUMP / cheat his position
+    public static var ExhaustionOnJump:Float = 0.25;
 
     // hungry work
     public static var HungryWorkCost = 10;
@@ -161,6 +161,7 @@ class ServerSettings
     public static var ExhaustionHealingForMaleFaktor:Float = 1.2; 
 
     // for animal movement
+    public static var ChanceThatAnimalsCanPassBlockingBiome = 0.03;
     public static var chancePreferredBiome = 0.8; // Chance that the animal ignors the chosen target if its not from his original biome
     
     // for animal offsprings
@@ -208,7 +209,7 @@ class ServerSettings
 
     // AI
     public static var NumberOfAis:Int = 1;
-    public static var AiReactionTime:Float = 0.5;
+    public static var AiReactionTime:Float = 0.5; //0.5;
     public static var TimeToAiRebirth:Float = 15;
     public static var AiTotalScoreFactor:Float = 0.5; 
     public static var AiMaxSearchRadius:Int = 60;

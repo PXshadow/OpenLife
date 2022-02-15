@@ -211,7 +211,7 @@ class TimeHelper
     {
         if(player.deleted) return false; // maybe remove?
 
-        Macro.exception(player.connection.doTime(timePassedInSeconds));        
+        Macro.exception(player.connection.doTime(timePassedInSeconds));   
 
         Macro.exception(UpdatePlayerStats(player, timePassedInSeconds));
 
@@ -232,7 +232,8 @@ class TimeHelper
 
     private static function UpdatePlayerStats(player:GlobalPlayerInstance, timePassedInSeconds:Float)
     {
-        
+        if(player.jumpedTiles > 0) player.jumpedTiles -= timePassedInSeconds * ServerSettings.MaxJumpsPerTenSec * 0.1;
+
         //if(player.angryTime < 0 && player.angryTime > -1) player.angryTime = 0;
 
         //var moreAngry = player.isHoldingWeapon() || (player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon());
