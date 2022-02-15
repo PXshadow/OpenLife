@@ -56,6 +56,7 @@ class Ai
 
     // counts how often one could not reach food because of dedly animals
     var didNotReachFood:Float = 0;
+    var didNotReachAnimalTarget:Float = 0;
 
     public static function StartAiThread()
     {
@@ -388,6 +389,13 @@ class Ai
             targetXY.ty = animalTarget.ty > myPlayer.ty ?  animalTarget.ty - range + 1 : animalTarget.ty + range - 1;
 
             var done = myPlayer.gotoObj(targetXY);
+
+            if(done) didNotReachAnimalTarget = 0;
+            else
+            {
+                didNotReachAnimalTarget++;
+                if(didNotReachAnimalTarget >= 5) animalTarget = null;
+            }
 
             trace('AAI: ${myPlayer.id} killAnimal $distance goto animaltarget ${done}');
 
