@@ -50,7 +50,7 @@ class Pathfinder
 	 * @param	p_map	The boolean coordinate map
 	 * @param	p_timeOutDuration	The maximum time spent to find a path
 	 */
-	public function new( p_map:MapHeader, p_timeOutDuration:Int = 200 )
+	public function new( p_map:MapHeader, p_timeOutDuration:Int = 500 )
 	{
 		configure( p_map, p_timeOutDuration );
 	}
@@ -60,7 +60,7 @@ class Pathfinder
 	 * @param	p_map	The boolean coordinate map
 	 * @param	p_timeOutDuration	The maximum time spent to find a path
 	 */
-	public function configure( p_map:MapHeader, p_timeOutDuration:Int = 200 )
+	public function configure( p_map:MapHeader, p_timeOutDuration:Int = 500 )
 	{
 		_map = p_map;
 		_timeOutDuration = p_timeOutDuration;

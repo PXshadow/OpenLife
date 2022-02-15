@@ -1,4 +1,5 @@
 package openlife.server;
+import openlife.auto.Ai;
 import sys.io.FileInput;
 import sys.io.FileOutput;
 import haxe.Int32;
@@ -674,6 +675,8 @@ class WorldMap
         this.backupDataNumber = Std.parseInt(reader.readLine());
         TimeHelper.tick = Std.parseFloat(reader.readLine());
         TimeHelper.lastTick = TimeHelper.tick; 
+        Ai.tick = TimeHelper.tick;
+        Ai.lastTick = TimeHelper.lastTick; 
         Server.server.playerIndex = Std.parseInt(reader.readLine());
         PlayerAccount.AccountIdIndex = Std.parseInt(reader.readLine());
 

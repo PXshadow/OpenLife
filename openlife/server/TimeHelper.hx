@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.auto.Ai;
 import openlife.server.GlobalPlayerInstance.Emote;
 import openlife.server.Biome.BiomeMapColor;
 import openlife.auto.AiHelper;
@@ -29,7 +30,7 @@ class TimeHelper
     //public static var allTicks:Float = 0;   // these ticks will not be skipped, but can be slower then expected
 
     public static var lastTick:Float = 0;
-    private static var serverStartingTime:Float;
+    public static var serverStartingTime:Float;
 
     // Time Step Stuff
     private static var worldMapTimeStep = 0; // counts the time steps for doing map time stuff, since some ticks may be skiped because of server too slow
@@ -63,6 +64,8 @@ class TimeHelper
 
         DoTest();
 
+        if(ServerSettings.NumberOfAis > 0) Ai.StartAiThread();
+
         while (true)
         {
             if(ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.acquire(); 
@@ -81,8 +84,8 @@ class TimeHelper
             if(TimeHelper.tick % 200 == 0)
             {
                 averageSleepTime = Math.ceil(averageSleepTime / 200 * 1000) / 1000;
-                //trace('Ticks: ${TimeHelper.tick}');
-                trace('Connections: ${Connection.getConnections().length} AIs: ${Connection.getAis().length} Time Counted From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime');
+                trace('\nHum: ${Connection.getConnections().length} Time From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime ');
+                //trace('Connections: ${Connection.getConnections().length} Tick: ${TimeHelper.tick} Time From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime ');
                 averageSleepTime = 0;
                 skipedTicks = 0;
 
@@ -118,24 +121,20 @@ class TimeHelper
 
         DoSeason(timePassedInSeconds);
 
-        if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.acquire(); // TODO if no global player mutex is used
+        GlobalPlayerInstance.AllPlayerMutex.acquire();
 
         for (c in Connection.getConnections())
         {            
-            if(DoTimeStuffForPlayer(c.player, timePassedInSeconds) == false) continue;
+            Macro.exception(DoTimeStuffForPlayer(c.player, timePassedInSeconds));
             if(TimeHelper.tick % 90 == 0) Macro.exception(c.sendToMeAllClosePlayers(false, false));
         }
         
         for (ai in Connection.getAis())
         {
-            if(ai.player.deleted) ai.doRebirth(timePassedInSeconds);
-            if(DoTimeStuffForPlayer(ai.player, timePassedInSeconds) == false) continue;
+            Macro.exception(DoTimeStuffForPlayer(ai.player, timePassedInSeconds));
         }
 
-        for (ai in Connection.getAis())
-        {
-            Macro.exception(ai.doTimeStuff(timePassedInSeconds));
-        }
+        GlobalPlayerInstance.AllPlayerMutex.release(); 
 
         Macro.exception(DoWorldMapTimeStuff()); // TODO currently it goes through the hole map each sec / this may later not work
 
@@ -144,13 +143,11 @@ class TimeHelper
         Macro.exception(DecayObjects());
 
         var worldMap = Server.server.map; 
- 
+
         // make sure they are not all at same tick!
         if((tick + 20) % ServerSettings.TicksBetweenSaving  == 0) Macro.exception(worldMap.updateObjectCounts());
         if(ServerSettings.saveToDisk && tick % ServerSettings.TicksBetweenSaving == 0) Macro.exception(Server.server.map.writeToDisk(false));
         if(ServerSettings.saveToDisk && (tick + 60) % ServerSettings.TicksBetweenBackups == Math.ceil(ServerSettings.TicksBetweenBackups / 2)) Macro.exception(Server.server.map.writeBackup());
-
-        if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release(); // TODO mutext if no global player mutex is used
 
         DoTimeTestStuff();    
     }

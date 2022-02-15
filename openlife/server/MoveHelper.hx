@@ -445,7 +445,7 @@ class MoveHelper
 
         if(p.x != x || p.y != y)
         {
-            if(p.jumpedTiles > ServerSettings.MaxJumpsPerTenSec || p.exhaustion > p.food_store_max / 2)
+            if(Math.ceil(p.jumpedTiles) >= ServerSettings.MaxJumpsPerTenSec || p.exhaustion > p.food_store_max / 2)
             {
                 trace('MOVE: JUMP: FORCE! Movement cancled since too exhausted ${Math.ceil(p.exhaustion)} or jumped (${Math.ceil(p.jumpedTiles)}) to often: Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
                 cancleMovement(p, seq);

@@ -1,5 +1,9 @@
 package openlife.auto;
 
+import openlife.server.TimeHelper;
+import openlife.server.Connection;
+import openlife.macros.Macro;
+import sys.thread.Thread;
 import openlife.data.transition.TransitionImporter;
 import openlife.server.NamingHelper;
 import openlife.server.WorldMap;
@@ -17,6 +21,9 @@ using openlife.auto.AiHelper;
 
 class Ai
 {
+    public static var lastTick:Float = 0;
+    public static var tick:Float = 0;
+
     final RAD:Int = MapData.RAD; // search radius
 
     public var myPlayer:PlayerInterface;
@@ -49,6 +56,64 @@ class Ai
 
     // counts how often one could not reach food because of dedly animals
     var didNotReachFood:Float = 0;
+
+    public static function StartAiThread()
+    {
+        Thread.create(RunAi);
+    }
+
+    private static function RunAi()
+    {
+        var skipedTicks = 0;
+        var averageSleepTime:Float = 0;
+
+        while(true)
+        {
+            Ai.tick = Std.int(Ai.tick + 1);
+
+            var timeSinceStart:Float = Sys.time() - TimeHelper.serverStartingTime;
+            var timeSinceStartCountedFromTicks = Ai.tick * TimeHelper.tickTime;
+            
+            // TODO what to do if server is too slow?
+            if(Ai.tick % 10 != 0  && timeSinceStartCountedFromTicks < timeSinceStart)
+            {
+                Ai.tick = Std.int(Ai.tick + 1);
+                skipedTicks++;
+            }
+            if(Ai.tick % 200 == 0)
+            {
+                averageSleepTime = Math.ceil(averageSleepTime / 200 * 1000) / 1000;
+                //trace('AIs: ${Connection.getAis().length} Tick: ${Ai.tick} Time From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime');
+                trace('\nAIs: ${Connection.getAis().length} Time From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime ');
+                averageSleepTime = 0;
+                skipedTicks = 0;
+            }
+
+            var timePassedInSeconds = CalculateTimeSinceTicksInSec(lastTick);
+
+            lastTick = tick; 
+
+            for (ai in Connection.getAis())
+            {
+                if(ai.player.deleted) Macro.exception(ai.doRebirth(timePassedInSeconds));
+                Macro.exception(ai.doTimeStuff(timePassedInSeconds));
+            }
+
+            if(timeSinceStartCountedFromTicks > timeSinceStart)
+            {
+                var sleepTime = timeSinceStartCountedFromTicks - timeSinceStart;
+                averageSleepTime += sleepTime;
+
+                //trace('sleep: ${sleepTime}');
+                Sys.sleep(sleepTime);
+            }  
+        }
+    }
+
+    public static function CalculateTimeSinceTicksInSec(ticks:Float):Float
+    {
+        return (Ai.tick - ticks) * TimeHelper.tickTime;
+    }
 
     public function new(player:PlayerInterface) 
     {
@@ -177,6 +242,19 @@ class Ai
         //var myPlayer = myPlayer.getPlayerInstance();
         
         if(myPlayer.heldObject.id == 0) return;
+
+        if(foodTarget == null && itemToCraft.startLocation != null)
+        {
+            var distance = myPlayer.CalculateDistanceToObject(itemToCraft.startLocation);
+
+            if(distance > 25) 
+            {
+                var done = myPlayer.gotoObj(itemToCraft.startLocation);
+                trace('AAI: ${myPlayer.id} $done drop goto start $distance');
+                myPlayer.say('Goto start!');
+                return;
+            }
+        }
 
         var emptyTileObj = myPlayer.GetClosestObjectById(0); // empty
         dropTarget = emptyTileObj;
@@ -585,6 +663,7 @@ class Ai
             if(itemToCraft.countDone < itemToCraft.count) // if taks was disturbed add it to que
                 addTask(itemToCraft.itemToCraft.id, true);
 
+            itemToCraft.startLocation = null;
             itemToCraft.itemToCraft = ObjectData.getObjectData(objId);
             itemToCraft.count = count;
             itemToCraft.countDone = 0;
@@ -595,6 +674,14 @@ class Ai
         }
         
         searchBestObjectForCrafting(itemToCraft);
+
+        // set position where to craft the object
+        if(itemToCraft.startLocation == null && itemToCraft.transTarget != null)
+        {        
+            itemToCraft.startLocation = new ObjectHelper(null, 0);
+            itemToCraft.startLocation.tx = myPlayer.tx; //itemToCraft.transTarget.tx;
+            itemToCraft.startLocation.ty = myPlayer.ty; //itemToCraft.transTarget.ty;
+        }
 
         if(itemToCraft.transActor == null)
         {
@@ -647,7 +734,7 @@ class Ai
             if(player.heldObject.id != 0)
             {
                 //trace('AAI: ${myPlayer.id} craft: drop obj to pickup ${itemToCraft.transActor.name}');
-                //dropHeldObject(); 
+                dropHeldObject(); 
                 return true;
             }
         }
@@ -1386,13 +1473,16 @@ class Ai
             return false;
         }
         // only allow to go on with use if right actor is in the hand, or if actor will be empty
-        if(myPlayer.heldObject.id != useActor.id && useActor.id != 0) 
+        //if(myPlayer.heldObject.id != useActor.id && useActor.id != 0) 
+        if(myPlayer.heldObject.id != useActor.id) 
         {
             trace('AAI: ${myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActor.name}');
 
             useTarget = null;
             useActor = null;
             //dropTarget = itemToCraft.transActor;
+
+            dropHeldObject();
             
             return false;
         }
@@ -1407,7 +1497,8 @@ class Ai
             var done = myPlayer.gotoObj(useTarget);
             trace('AAI: ${myPlayer.id} goto useItem ${name} $done');
 
-            myPlayer.say('Goto ${name} for use!');
+            if(done) myPlayer.say('Goto ${name} for use!');
+            else myPlayer.say('Cannot Goto ${name} for use!');
 
             /*
             if(done == false)
@@ -1563,6 +1654,8 @@ class IntemToCraft
 
     public var craftingList = new Array<Int>(); // is not a complete list
     public var craftingTransitions = new Array<TransitionData>(); // is not a complete list
+
+    public var startLocation:ObjectHelper = null;
 
     public function new()
     {

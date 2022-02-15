@@ -194,6 +194,8 @@ class Connection
 
     public static function SendToMeAllClosePlayers(player:GlobalPlayerInstance, sendMovingPlayer:Bool = false, isPlayerAction:Bool = true)
     {
+        if(player.isDeleted()) return;
+
         try
         {
             var connection = player.connection;
