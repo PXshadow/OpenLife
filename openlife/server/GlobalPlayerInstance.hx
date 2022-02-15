@@ -3021,10 +3021,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             trace('kill: HIT weaponDamage: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance');
         }
 
-        var doesRealDamage = fromObj.id != 2156; // 2156 Mosquito Swarm;
         var isRightClassForWeapon = targetPlayer.isRightClassForWeapon();
+        var doesRealDamage = fromObj.id != 2156; // 2156 Mosquito Swarm;
+        var lovesJungle = targetPlayer.biomeLoveFactor(BiomeTag.JUNGLE);
+        if(lovesJungle < -0.5) lovesJungle = -0.5;
+        var moskitoDamageFactor = 1 / (1 + lovesJungle); // between 0.33 and 2
         
         if(doesRealDamage) damage *= targetPlayer.heldObject.objectData.damageProtectionFactor;
+        else damage *= moskitoDamageFactor;
         damage *= isRightClassForWeapon ? 0.8 : 1;
         damage *= targetPlayer.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
         damage *= protectionFactor;
@@ -3037,7 +3041,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         targetPlayer.sendFoodUpdate(false);
         if(doesRealDamage) Connection.SendDyingToAll(targetPlayer); // he is not actually dying but wounded
 
-        //trace('kill: HIT objDamage: $orgDamage damage: $damage');
+        trace('kill: HIT objDamage: $orgDamage damage: $damage moskitoDamageFactor: $moskitoDamageFactor');
 
         targetPlayer.woundedBy = fromObj.id;
         var longWeaponCoolDown = false;
@@ -3097,7 +3101,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             else
             {
                 targetPlayer.hiddenWound = newWound;
-                newWound.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(newWound);
+                newWound.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(newWound) * moskitoDamageFactor;
                 targetPlayer.doEmote(Emote.yellowFever);
             }
             
@@ -3612,17 +3616,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     /** Displayes from -X to plus X if biome is loved with 0 equals a neutral biome.
     A (brown) child with both parents same color loves (jungle) with 2. 
     A (brown) child with none parents same color loves (jungle) with 1. 
-    A child with different color then (both) brown parents loves (jungle) with 0.5 (not for swamp).
-    A child with different color then (one) brown parent loves (jungle) with 0 (not for swamp).
+    A child with different color then (both) brown parents loves (jungle) with 0.5
+    A child with different color then (one) brown parent loves (jungle) with 0
+    A child with different color and no brown parent hates (jungle) with -0.5
+    River or Swamp is hated with -2.5 if not on a floor.
     **/
-
-    public function biomeLoveFactor() : Float
+    public function biomeLoveFactor(biome:Int = -1) : Float
     {
         var world = WorldMap.world;
-        var biome = world.getBiomeId(this.tx, this.ty);
         var floor = world.getFloorId(this.tx, this.ty);
         var color = this.getColor();
         var loved:Float = 0;
+        if(biome < 0) biome = world.getBiomeId(this.tx, this.ty);
 
         loved += BiomeLoveFactorForColor(biome, color, floor);
         if(this.mother != null) loved += BiomeLoveFactorForColor(biome, this.mother.getColor(), floor, true);

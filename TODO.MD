@@ -243,6 +243,7 @@ Animals:
 - Stuff like trees and rabit holes wont block animal movement // TODO also for player / needs client support
 - horses are the ultimative devourers you can eat anything from horse!
 - Animals have more hit points so a shot / hit may or may not kill them
+- Moskito do very little damage but can give yellow fever. The more you love Jungle biome the less damage you get.
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
@@ -272,7 +273,6 @@ High priority:
 
 - NAMING fix bug
 
-- COMBAT ill from moskitos
 - COMBAT make smal wounds invisible if object held and allow to work (for example for poisone from snakes)
 
 - BIRTH spawn eves on different locations
