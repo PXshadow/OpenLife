@@ -599,6 +599,7 @@ class AiHelper
                 if(obj == null) continue;
                 if(obj.objectData.deadlyDistance == 0) continue;
                 if(obj.objectData.damage == 0) continue;
+                if(obj.isAnimal() == false) continue;
 
                 var dist = AiHelper.CalculateDistanceToObject(player, obj);
                 
