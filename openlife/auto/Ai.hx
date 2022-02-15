@@ -238,13 +238,13 @@ class Ai
         foodTarget = AiHelper.SearchBestFood(myPlayer);
     }
 
-    public function dropHeldObject() 
+    public function dropHeldObject(dropOnStart:Bool = false) 
     {
         //var myPlayer = myPlayer.getPlayerInstance();
         
         if(myPlayer.heldObject.id == 0) return;
 
-        if(foodTarget == null && itemToCraft.startLocation != null)
+        if(dropOnStart && itemToCraft.startLocation != null)
         {
             var distance = myPlayer.CalculateDistanceToObject(itemToCraft.startLocation);
 
@@ -745,7 +745,7 @@ class Ai
             if(player.heldObject.id != 0)
             {
                 //trace('AAI: ${myPlayer.id} craft: drop obj to pickup ${itemToCraft.transActor.name}');
-                dropHeldObject(); 
+                dropHeldObject(true); 
                 return true;
             }
         }
@@ -1493,7 +1493,7 @@ class Ai
             useActor = null;
             //dropTarget = itemToCraft.transActor;
 
-            dropHeldObject();
+            dropHeldObject(true);
             
             return false;
         }
