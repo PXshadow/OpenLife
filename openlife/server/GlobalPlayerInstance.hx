@@ -3100,9 +3100,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             }
             else
             {
-                targetPlayer.hiddenWound = newWound;
-                newWound.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(newWound) * moskitoDamageFactor;
-                targetPlayer.doEmote(Emote.yellowFever);
+                if(0.2 * Math.pow(moskitoDamageFactor,2) > WorldMap.calculateRandomFloat())
+                {
+                    targetPlayer.hiddenWound = newWound;
+                    newWound.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(newWound) * moskitoDamageFactor;
+                }
+                targetPlayer.doEmote(Emote.sad);
+                //targetPlayer.doEmote(Emote.yellowFever);
             }
             
             //trace('Wound2: ${targetPlayer.heldObject}');
