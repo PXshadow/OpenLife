@@ -1662,6 +1662,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }
 
+        if(playerTo.hasYellowFever() && playerFrom == playerTo)
+        {
+            trace('is ill cannot feed himself!');
+            playerTo.doEmote(Emote.refuseFood);
+            return false;
+        }
+
         var heldObjData = playerFrom.heldObject.objectData;
         if(heldObjData.dummyParent != null) heldObjData = heldObjData.dummyParent;
 
@@ -3023,7 +3030,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         damage *= protectionFactor;
         damage *= targetPlayer.isWounded() ? ServerSettings.TargetWoundedDamageFactor : 1;
 
-        if(doesRealDamage) targetPlayer.hits += damage;
+        targetPlayer.hits += damage;
         targetPlayer.exhaustion += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
 
@@ -3090,6 +3097,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             else
             {
                 targetPlayer.hiddenWound = newWound;
+                newWound.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(newWound);
                 targetPlayer.doEmote(Emote.yellowFever);
             }
             
@@ -3865,6 +3873,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var isRightClassForWeapon = weaponPrestigeClass > 0 && weaponPrestigeClass <= attackerPrestigeClass;
 
         return isRightClassForWeapon;
+    }
+
+    public function hasYellowFever() : Bool
+    {
+        return hiddenWound != null && hiddenWound.id == 2155; // 2155 Yellow Fever
     }
 }
 

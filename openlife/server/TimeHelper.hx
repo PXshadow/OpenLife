@@ -285,12 +285,11 @@ class TimeHelper
     {
         var obj = player.heldObject;
 
-        if(player.o_id[0] < 1) return;
-        if(obj.timeToChange <= 0) return;
-        
-        obj.timeToChange -= timePassedInSeconds;
+        //if(player.o_id[0] < 1) return;
+        //if(obj.timeToChange <= 0) return;
+        //obj.timeToChange -= timePassedInSeconds;
 
-        if(obj.timeToChange <= 0)
+        if(obj.timeToChange > 0 && obj.isTimeToChangeReached())
         {
             var transition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
 
@@ -306,6 +305,33 @@ class TimeHelper
             player.setHeldObject(obj);
 
             player.setHeldObjectOriginNotValid(); // no animation
+        }
+
+        if(player.hiddenWound != null)
+        {
+            var isYellowFever = player.hiddenWound.id == 2155; // 2155 Yellow Fever
+            if(isYellowFever)
+            {
+                player.food_store -= timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec;
+                player.exhaustion += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec;
+                player.hits += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec * 0.1;
+                
+                player.heat += timePassedInSeconds * 0.2;
+                if(player.heat > 1) player.heat = 1;
+
+                player.food_store_max = player.calculateFoodStoreMax();
+
+                if(TimeHelper.tick % 20 == 0)
+                {
+                    player.sendFoodUpdate(false);
+                    player.connection.send(FRAME, null, false);            
+                }
+            }
+            if(player.hiddenWound.isTimeToChangeReached())
+            {
+                player.hiddenWound = null;
+                player.doEmote(Emote.happy);
+            }
         }
 
         // TODO contained objects
@@ -347,6 +373,13 @@ class TimeHelper
                 else player.doEmote(Emote.angry);
             }
 
+            return;
+        }
+
+        if(player.hasYellowFever())
+        {
+            if(player.isSuperHot()) player.doEmote(Emote.heatStroke);
+            else player.doEmote(Emote.yellowFever);
             return;
         }
 
@@ -488,7 +521,7 @@ class TimeHelper
         var tmpFoodStoreMax = Math.ceil(player.food_store_max);
         var foodDecay = timePassedInSeconds * player.foodUsePerSecond; // depends on temperature
         var playerIsStarvingOrHasBadHeat = player.food_store < 0 || player.isSuperCold() || player.isSuperHot();
-        var doHealing = playerIsStarvingOrHasBadHeat == false && player.isWounded() == false;
+        var doHealing = playerIsStarvingOrHasBadHeat == false && player.isWounded() == false && player.hasYellowFever() == false;
         var originalFoodDecay = foodDecay;
         var healing = 1.5 * timePassedInSeconds * ServerSettings.FoodUsePerSecond - originalFoodDecay;
 
@@ -518,10 +551,11 @@ class TimeHelper
         if(doHealing && player.exhaustion > -player.food_store_max)
         {
             var healingFaktor = player.isMale() ? ServerSettings.ExhaustionHealingForMaleFaktor : 1;
+            var exhaustionFaktor = player.exhaustion > player.food_store_max / 2 ? 2 : 1; 
 
-            player.exhaustion -= healing * ServerSettings.ExhaustionHealing * healingFaktor;
+            player.exhaustion -= healing * ServerSettings.ExhaustionHealing * healingFaktor * exhaustionFaktor;
 
-            foodDecay += originalFoodDecay * ServerSettings.ExhaustionHealing;
+            foodDecay += originalFoodDecay * ServerSettings.ExhaustionHealing * exhaustionFaktor;
 
             if(player.exhaustion < -player.food_store_max) player.exhaustion = -player.food_store_max; 
         }
@@ -636,7 +670,6 @@ class TimeHelper
             Connection.SendUpdateToAllClosePlayers(player, false);
         }
     }
-
     
     /*
         HX
