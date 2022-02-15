@@ -219,6 +219,7 @@ class ServerSettings
     // Debug AI
     public static var DebugAiCraftingObject:Int = 999999; //57; 
     public static var AutoFollowAi:Bool = false;
+    public static var AutoFollowPlayer:Bool = false;
     
     // iron, tary spot spring cannot respawn or win lottery
     public static function CanObjectRespawn(obj:Int) : Bool

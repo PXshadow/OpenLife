@@ -312,12 +312,12 @@ class Ai
         if(isFeedingChild()) return;        
         if(isUsingItem()) return;
         if(killAnimal(animal)) return; 
-        if(isMovingToPlayer()) return;               
+        if(ServerSettings.AutoFollowPlayer && isMovingToPlayer()) return;               
         if(myPlayer.isMoving()) return;
         
         //if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
 
-        trace('AI: craft ${itemToCraftId} tasks: ${craftingTasks.length}!');
+        trace('AI: craft ${GetName(itemToCraftId)} tasks: ${craftingTasks.length}!');
 
         if(itemToCraftId > 0 && itemToCraft.countDone < itemToCraft.count)
         {
@@ -691,7 +691,8 @@ class Ai
             return false;
         }
 
-        if(player.heldObject.parentId == itemToCraft.transActor.parentId || itemToCraft.transActor.id == 0)
+        //if(player.heldObject.parentId == itemToCraft.transActor.parentId || itemToCraft.transActor.id == 0)
+        if(player.heldObject.parentId == itemToCraft.transActor.parentId)
         {
             trace('AAI: ${myPlayer.id} craft Actor is held already ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
 

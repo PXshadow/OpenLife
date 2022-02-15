@@ -1370,4 +1370,10 @@ class ObjectData extends LineReader
 
         return timeTransition;
     }
+
+    // TODO does not work for attacking wolf etc...
+    public function isAnimal() : Bool
+    {
+        return this.moves > 0;
+    }
 }

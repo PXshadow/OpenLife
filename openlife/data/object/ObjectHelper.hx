@@ -643,6 +643,6 @@ class ObjectHelper
     // TODO does not work for attacking wolf etc...
     public function isAnimal() : Bool
     {
-        return this.objectData.moves > 0;
+        return objectData.isAnimal();
     }
 }

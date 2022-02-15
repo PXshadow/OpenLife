@@ -223,7 +223,7 @@ class AiHelper
             for(tx in baseX - radius...baseX + radius)
             {
                 var objData = WorldMap.world.getObjectDataAtPosition(tx,ty);
-                if(objData.deadlyDistance > 0) return true;
+                if(objData.isAnimal() && objData.deadlyDistance > 0) return true;
 
                 if(ai.isObjectWithHostilePath(tx,ty)) return true; // for example if the path is blocked through a wolf
             }
