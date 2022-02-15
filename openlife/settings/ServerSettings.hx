@@ -458,6 +458,9 @@ class ServerSettings
         ObjectData.getObjectData(1624).damage = 10; // Bow and Arrow with Note  //
 
         // TODO Mouflon? // TODO moskito
+        ObjectData.getObjectData(2156).deadlyDistance = 1.5; // 2156 Mosquito Swarm
+        ObjectData.getObjectData(2156).damage = 1; // 2156 Mosquito Swarm
+
         ObjectData.getObjectData(418).deadlyDistance = 1.5; // Wolfs 
         ObjectData.getObjectData(418).damage = 3.5;  // Wolfs 
         ObjectData.getObjectData(420).deadlyDistance = 1.5; // Shot Wolf

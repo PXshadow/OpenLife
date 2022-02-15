@@ -167,6 +167,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public var jumpedTiles:Float = 0; // used to limit how often a player can "jump" per second.
 
+    public var hiddenWound:ObjectHelper = null; // used for yellow fever. TODO hide light wounds
+
     // set all stuff null so that nothing is hanging around
     public function delete()
     {
@@ -3012,20 +3014,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             trace('kill: HIT weaponDamage: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance');
         }
 
+        var doesRealDamage = fromObj.id != 2156; // 2156 Mosquito Swarm;
         var isRightClassForWeapon = targetPlayer.isRightClassForWeapon();
         
+        if(doesRealDamage) damage *= targetPlayer.heldObject.objectData.damageProtectionFactor;
         damage *= isRightClassForWeapon ? 0.8 : 1;
-        damage *= targetPlayer.heldObject.objectData.damageProtectionFactor;
         damage *= targetPlayer.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
         damage *= protectionFactor;
         damage *= targetPlayer.isWounded() ? ServerSettings.TargetWoundedDamageFactor : 1;
 
-        targetPlayer.hits += damage;
+        if(doesRealDamage) targetPlayer.hits += damage;
         targetPlayer.exhaustion += damage;
         targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
 
         targetPlayer.sendFoodUpdate(false);
-        Connection.SendDyingToAll(targetPlayer); // he is not actually dying but wounded
+        if(doesRealDamage) Connection.SendDyingToAll(targetPlayer); // he is not actually dying but wounded
 
         //trace('kill: HIT objDamage: $orgDamage damage: $damage');
 
@@ -3053,32 +3056,44 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(trans == null)
         {
-            trace('No Wound: ${fromObj.description}  ${fromObj.id}');
+            //trace('No Wound: ${fromObj.description}  ${fromObj.id}');
             
             //Connection.SendUpdateToAllClosePlayers(targetPlayer);
             return damage;
         }
-        //trace('Wound: ' + trans);
+        //trace('Wound: damage: ${damage} doesRealDamage: $doesRealDamage ' + trans.getDesciption());
 
         var doWound = targetPlayer.food_store_max < targetPlayer.calculateNotReducedFoodStoreMax() * fromObj.objectData.woundFactor;
-
+        
+        if(doesRealDamage == false) doWound = true; // TODO give a random chance
         if(doWound && targetPlayer.isWounded() == false) longWeaponCoolDown = true;
 
         if(doWound && targetPlayer.heldObject.isArrowWound() == false)
         {
-            targetPlayer.killMode = false;
-
-            if(targetPlayer.heldPlayer != null) dropPlayer(); // TODO test
-            
-            if(targetPlayer.heldObject.id != 0)
-            {
-                if(WorldMap.PlaceObject(targetPlayer.tx, targetPlayer.ty, targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
-            }
-
             var newWound = new ObjectHelper(attacker, trans.newTargetID);
-            targetPlayer.setHeldObject(newWound);    
-            targetPlayer.setHeldObjectOriginNotValid(); // no animation   
-            Connection.SendUpdateToAllClosePlayers(targetPlayer);             
+
+            if(doesRealDamage)
+            {
+                targetPlayer.killMode = false;
+
+                if(targetPlayer.heldPlayer != null) dropPlayer(); // TODO test
+                
+                if(targetPlayer.heldObject.id != 0)
+                {
+                    if(WorldMap.PlaceObject(targetPlayer.tx, targetPlayer.ty, targetPlayer.heldObject) == false) trace('WARNING: WOUND could not place heldobject player: ${targetPlayer.p_id}');
+                }
+
+                targetPlayer.setHeldObject(newWound);    
+                targetPlayer.setHeldObjectOriginNotValid(); // no animation   
+                Connection.SendUpdateToAllClosePlayers(targetPlayer); 
+            }
+            else
+            {
+                targetPlayer.hiddenWound = newWound;
+                targetPlayer.doEmote(Emote.yellowFever);
+            }
+            
+            //trace('Wound2: ${targetPlayer.heldObject}');
         }
         else
         {
@@ -3086,11 +3101,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             var newWound = new ObjectHelper(this, trans.newTargetID);
             newWound.timeToChange = 2;
             WorldMap.PlaceObject(targetPlayer.tx, targetPlayer.ty, newWound, true);
+            //trace('Wound3:');
         }  
 
         if(attacker == null) // attacker is animal
         {
             fromObj.id = trans.newActorID;
+            //trace('Wound4: ${fromObj.id}');
         }
         else // attacker is player
         {

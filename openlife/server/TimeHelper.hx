@@ -1301,6 +1301,7 @@ class TimeHelper
         // TODO chasing
         // TODO fleeing
         // TODO Offspring only if with child
+        // TODO eating meat / killing sheep
 
         var moveDist = timeTransition.move;
 

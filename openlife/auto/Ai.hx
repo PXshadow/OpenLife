@@ -337,7 +337,9 @@ class Ai
 
         var cravingId = myPlayer.getCraving();
         itemToCraftId = cravingId;
-        if(cravingId > 0) craftItem(itemToCraftId);
+        if(cravingId > 0) if(craftItem(itemToCraftId)) return;
+
+        myPlayer.say('nothing to do...');
     }
 
     public function addTask(taskId:Int, atEnd:Bool = true)
