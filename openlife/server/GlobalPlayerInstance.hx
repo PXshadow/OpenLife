@@ -168,6 +168,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var jumpedTiles:Float = 0; // used to limit how often a player can "jump" per second.
 
     public var hiddenWound:ObjectHelper = null; // used for yellow fever. TODO hide light wounds
+    public var yellowfeverCount:Float = 0;
 
     // set all stuff null so that nothing is hanging around
     public function delete()
@@ -3022,10 +3023,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         var isRightClassForWeapon = targetPlayer.isRightClassForWeapon();
+        
         var doesRealDamage = fromObj.id != 2156; // 2156 Mosquito Swarm;
         var lovesJungle = targetPlayer.biomeLoveFactor(BiomeTag.JUNGLE);
         if(lovesJungle < -0.5) lovesJungle = -0.5;
-        var moskitoDamageFactor = 1 / (1 + lovesJungle); // between 0.33 and 2
+        var moskitoDamageFactor = 1 / (1 + lovesJungle + yellowfeverCount); // without yellowfeverCount between 0.33 and 2
+        var healthFactor = CalculateHealthFactor(2, 0.5);
+
+        moskitoDamageFactor /= healthFactor;
+
+        if(doesRealDamage == false) yellowfeverCount += 0.02;
         
         if(doesRealDamage) damage *= targetPlayer.heldObject.objectData.damageProtectionFactor;
         else damage *= moskitoDamageFactor;
@@ -3102,7 +3109,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             {
                 if(0.2 * Math.pow(moskitoDamageFactor,2) > WorldMap.calculateRandomFloat())
                 {
+                    yellowfeverCount += 1; // increases resistance
                     targetPlayer.hiddenWound = newWound;
+                    
                     newWound.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(newWound) * moskitoDamageFactor;
                 }
                 targetPlayer.doEmote(Emote.sad);

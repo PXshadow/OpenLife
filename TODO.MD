@@ -230,6 +230,7 @@ Generational cravings:
 Food - Health - Hits
 - YUM chain / Health influences now aging (0.5X to 2X) and speed (1.2X to 0.5X) / With this Berry munching is even worse
 - Having less hitpoints / beeing more exhausted reduces speed  
+- The more healthy you are the more resistant you are against moskito bites and yellow fever
 
 Food - Cravings:
 - Cravings display now a random food with a full YUM Boni, that has allready been eaten
@@ -243,7 +244,9 @@ Animals:
 - Stuff like trees and rabit holes wont block animal movement // TODO also for player / needs client support
 - horses are the ultimative devourers you can eat anything from horse!
 - Animals have more hit points so a shot / hit may or may not kill them
-- Moskito do very little damage but can give yellow fever. The more you love Jungle biome the less damage you get.
+- Moskito do very little damage but can give yellow fever. The more you love Jungle biome the less damage you get
+- The more moskito bites and yellow fever you got the more you are resistant
+- The more healthy you are the more resistant you are against moskito bites and yellow fever
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
@@ -291,7 +294,7 @@ Middle priority:
 
 - BIOME biome boni for different races
 - BIOME change biome speed for specialists (only if in attack mode or carrying heavy stuff???)
-- BIOME no dropping of stuff on water???
+- BIOME no dropping of stuff on water??? or better let it drift back to land?
 
 - ALLY change ally color if leader changes
 - ALLY give some time after beeing exiled
@@ -312,7 +315,7 @@ Middle priority:
 - CRAFTING crafting on table
 
 - ANIMAL animal movement on top of items
-- ANIMAl eating sheep / meat transtions 
+- ANIMAl eating sheep / meat transitions 
 - ANIMAl chasing players
 
 - SCORE give prestige boni for clothing / crown
