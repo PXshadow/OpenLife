@@ -365,7 +365,7 @@ class MoveHelper
 
             if(p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
 
-            trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
+            //trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
         }
     }
 

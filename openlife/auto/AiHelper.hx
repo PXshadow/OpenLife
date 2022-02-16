@@ -638,7 +638,7 @@ class AiHelper
         return bestPlayer;
     }
 
-    public static function GetCloseHungryChild(mother:PlayerInterface, searchDistance:Int = 15)
+    public static function GetCloseHungryChild(mother:PlayerInterface, searchDistance:Int = 30)
     {
         //var player = cast(playerInter, GlobalPlayerInstance);
         var bestPlayer:GlobalPlayerInstance = null;
@@ -653,7 +653,6 @@ class AiHelper
             if(bestPlayer != null && bestPlayer.mother == mother && p.mother != mother) continue;
 
             var dist = AiHelper.CalculateDistanceToPlayer(mother, p);
-
             if(dist > bestDist) continue;
 
             bestDist = dist;
@@ -661,6 +660,34 @@ class AiHelper
         }
 
         return bestPlayer;
+    }
+
+    public static function GetMostDistamtOwnChild(mother:PlayerInterface, minDist:Int = 10, searchDistance:Int = 50)
+    {
+        //var player = cast(playerInter, GlobalPlayerInstance);
+        var worstPlayer:GlobalPlayerInstance = null;
+        var worstDist:Float = 0;
+        var maxQuadDist = searchDistance * searchDistance;
+        var minQuadDist = minDist * minDist;
+
+        for(p in GlobalPlayerInstance.AllPlayers)
+        {
+            if(p.deleted) continue;
+            if(p.age > ServerSettings.MinAgeToEat) continue;
+            if(p.heldByPlayer != null) continue;
+            if(p.mother != mother) continue;
+
+            var dist = AiHelper.CalculateDistanceToPlayer(mother, p);
+
+            if(dist > maxQuadDist) continue;
+            if(dist < minQuadDist) continue;
+            if(dist < worstDist) continue;
+
+            worstDist = dist;
+            worstPlayer = p;
+        }
+
+        return worstPlayer;
     }
    
     //time routine

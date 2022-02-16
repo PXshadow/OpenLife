@@ -310,7 +310,8 @@ class Ai
         if(isDropingItem()) return;
         if(myPlayer.age < ServerSettings.MinAgeToEat && myPlayer.food_store < 2) return; // do nothing and wait for mother to feed
         if(isEating()) return;
-        if(isFeedingChild()) return;        
+        if(isFeedingChild()) return;   
+        if(isStayingCloseToChild()) return;       
         if(isUsingItem()) return;
         if(killAnimal(animal)) return; 
         if(ServerSettings.AutoFollowPlayer && isMovingToPlayer()) return;               
@@ -490,6 +491,18 @@ class Ai
         }
     }
 
+    private function isStayingCloseToChild()
+    {
+        var child = AiHelper.GetMostDistamtOwnChild(myPlayer);
+
+        if(child == null) return false;
+
+        var done = myPlayer.gotoAdv(child.tx, child.ty);
+        trace('AAI: ${myPlayer.id} $done goto far away child ${child.name}');
+
+        return true;
+    }
+
     private function isFeedingChild()
     {
         if(myPlayer.isFertile() == false) return false; 
@@ -536,7 +549,7 @@ class Ai
         {
             var done = myPlayer.gotoAdv(child.tx, child.ty);
 
-            trace('AAI: ${myPlayer.id} goto child $done');
+            trace('AAI: ${myPlayer.id} $done goto child to feed ${child.name}');
 
             return true;
         }
