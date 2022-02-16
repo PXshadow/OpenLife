@@ -2261,7 +2261,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 var alternativeTimeOutcome = obj.objectData.alternativeTimeOutcome; 
                 var newid = alternativeTimeOutcome >=0 ? alternativeTimeOutcome : transition.newTargetID;
 
-                obj.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(obj);
+                var healthFactor = CalculateHealthFactor(2, 0.5);
+                obj.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(obj) / healthFactor;
 
                 if(newid == 0)
                 {
@@ -2270,8 +2271,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 }
             }
         }
-        
-        if(obj != null && obj != hiddenWound) obj.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(obj); // not ideal to set it here
+        else if(obj != hiddenWound) obj.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(obj); // TODO not ideal to set it here
 
         //trace('TIME22: SET ${obj.description} timeToChange: ${obj.timeToChange}');
 
