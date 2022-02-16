@@ -46,3 +46,20 @@ class Macro {
         targetPlayer.mutex.release();
     } */
 }
+
+// Mutex example
+/**if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
+        else
+        {
+            this.mutex.acquire();
+
+            // make sure that if both players at the same time try to interact with each other it does not end up in a dead lock 
+            while(targetPlayer.mutex.tryAcquire() == false)
+            {
+                this.mutex.release();
+
+                Sys.sleep(WorldMap.calculateRandomFloat() / 5);
+
+                this.mutex.acquire();
+            } 
+        }  **/
