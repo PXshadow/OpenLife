@@ -8,7 +8,7 @@ package openlife.server;
     public var GREY = 3;
     public var SNOW = 4;
     public var DESERT= 5;
-    public var JUNGLE = 6; //6 
+    public var JUNGLE = 6; 
     public var BORDERJUNGLE = 15; // 8 or 15  
 
     public var SNOWINGREY = 21; //7 // its snow on top of mountains which should not be walkable

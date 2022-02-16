@@ -1654,6 +1654,11 @@ class TimeHelper
         }
 
         for(i in 0...11) trace('rand: $i: ' + array[i]); */
+            // +biomeReq6 +biomeReq4 +biomeBlock4
+        /*for(obj in ObjectData.importedObjectData)
+        {
+            if(StringTools.contains(obj.description, '+')) trace(obj.description);
+        }*/
 
         return; // remove if testting
         var trans = TransitionImporter.GetTransition(418, 0, false, false);

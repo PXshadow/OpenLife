@@ -286,8 +286,6 @@ High priority:
 
 - GATES Ally Gates and swing doors
 
-- BIOME biome locked planting
-
 Middle priority:
 - CONNECTION saving of people data so that people can come back after server restart
 
@@ -315,6 +313,8 @@ Middle priority:
 
 - CRAFTING crafting on table
 
+- RAILS implement rails
+
 - ANIMAL animal movement on top of items
 - ANIMAl eating sheep / meat transitions 
 - ANIMAl chasing players
@@ -335,8 +335,6 @@ Middle priority:
 - AI guards 
 
 - WRITING / READING
-
-- RAILS implement rails
 
 - GATES visitor at gate
 

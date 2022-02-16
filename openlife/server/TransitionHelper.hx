@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.macros.Macro;
 import openlife.server.GlobalPlayerInstance.Emote;
 import openlife.data.transition.TransitionImporter;
 import format.hl.Data.CodeFlag;
@@ -45,38 +46,25 @@ class TransitionHelper{
     public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0) : Bool
     {
         //trace('doCommand try to acquire player mutex');
-        if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.acquire();
-        else player.mutex.acquire();
+        GlobalPlayerInstance.AllPlayerMutex.acquire();
         //trace('doCommand try to acquire map mutex');
         Server.server.map.mutex.acquire();
         //trace('doCommand got all mutex');
 
         var done = false;
-
-        if(ServerSettings.debug)
-        {
-            done = doCommandHelper(player, tag, x, y, index, target);
-        }
-        else{
-            try
-            {
-                done = doCommandHelper(player, tag, x, y, index, target);
-            } 
-            catch(e)
-            {                
-                trace('WARNING: ' + e);
-
-                // send PU so that player wont get stuck
-                player.connection.send(PLAYER_UPDATE,[player.toData()]);
-                player.connection.send(FRAME);
-            }
+        Macro.exception(done = doCommandHelper(player, tag, x, y, index, target));
+        if(done == false)
+        {                
+            //trace('WARNING: ' + e);
+            // send PU so that player wont get stuck
+            player.connection.send(PLAYER_UPDATE,[player.toData()]);
+            player.connection.send(FRAME);
         }
 
         //trace("release map mutex");
         Server.server.map.mutex.release();
         //trace("release player mutex");
-        if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AllPlayerMutex.release();
-        else player.mutex.release();
+        GlobalPlayerInstance.AllPlayerMutex.release();
         
         return done;
     }  
@@ -759,6 +747,24 @@ class TransitionHelper{
     
                 return false;
             }
+        }
+
+        // check if biome locked or blocked
+        var biome = WorldMap.worldGetBiomeId(tx,ty);
+        if(newTargetObjectData.description.contains('+biomeReq4') && biome != 4)
+        {
+            trace('${newParentTargetObjectData.name} needs ice biome!');
+            return false;
+        }
+        else if(newTargetObjectData.description.contains('+biomeReq6') && biome != 6)
+        {
+            trace('${newParentTargetObjectData.name} needs jungle biome!');
+            return false;
+        }
+        else if(newTargetObjectData.description.contains('+biomeBlock4') && biome == 4)
+        {
+            trace('${newParentTargetObjectData.name} is blocked by ice!');
+            return false;
         }
         
         // do now the magic transformation
