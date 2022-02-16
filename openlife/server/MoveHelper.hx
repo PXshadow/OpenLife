@@ -1,7 +1,6 @@
 package openlife.server;
 import openlife.macros.Macro;
 import openlife.server.GlobalPlayerInstance.Emote;
-import haxe.macro.Expr.Catch;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.ObjectData;
 import openlife.settings.ServerSettings;
@@ -413,6 +412,38 @@ class MoveHelper
 
         GlobalPlayerInstance.AllPlayerMutex.release();
     }
+
+    static private function JumpToNonBlocked(player:GlobalPlayerInstance) : Bool
+    {
+        var rand = 0;
+        var tx = player.tx;
+        var ty = player.ty;
+
+        if(player.isBlocked(tx, ty) == false) return false; 
+        
+        for(i in 1...5)
+        {
+            var xo = 0;
+            var yo = 0;
+
+            if(rand == 1) xo = 1;
+            if(rand == 2) yo = -1;
+            if(rand == 3) xo = -1;
+            if(rand == 4) yo = 1;
+
+            rand++;
+
+            if(player.isBlocked(tx + xo, ty + yo)) continue;
+
+            player.x += xo;
+            player.y += yo;
+            player.exhaustion += 3;
+
+            break;
+        }
+
+        return true;
+    }
     
     static private function moveHelper(p:GlobalPlayerInstance, x:Int,y:Int,seq:Int,moves:Array<Pos>)
     {
@@ -432,6 +463,13 @@ class MoveHelper
         }
 
         if(p.isHeld()) p.jump();
+
+        if(JumpToNonBlocked(p))
+        {
+            p.done_moving_seqNum  = seq;
+            p.connection.send(PLAYER_UPDATE,[p.toData()]);
+            return;
+        }
 
         var tx = x + p.gx;
         var ty = y + p.gy;
