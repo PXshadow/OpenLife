@@ -1469,17 +1469,12 @@ class Ai
         var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
         if(heldObjectIsEatable == false) return false;
 
-        var oldNumberOfUses = foodTarget.numberOfUses;
+        var oldNumberOfUses = myPlayer.heldObject.numberOfUses;
 
         myPlayer.self(); // eat
 
-        trace('AAI: ${myPlayer.id} Eat: held: ${ myPlayer.heldObject.description} food: ${foodTarget.description} foodTarget.numberOfUses ${foodTarget.numberOfUses} == oldNumberOfUses $oldNumberOfUses || emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
+        trace('AAI: ${myPlayer.id} Eat: held: ${myPlayer.heldObject.description}  newNumberOfUses: ${myPlayer.heldObject.numberOfUses} oldNumberOfUses: $oldNumberOfUses emptyFood: ${myPlayer.food_store_max - myPlayer.food_store}');
 
-        /*if(foodTarget.numberOfUses == oldNumberOfUses || myPlayer.food_store_max - myPlayer.food_store < 4)
-        {
-            trace('AI: Eat: set foodTarget to null');
-            foodTarget = null;
-        }*/
         this.didNotReachFood = 0;
         foodTarget = null;
         return true;
