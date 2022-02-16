@@ -457,7 +457,7 @@ class ServerSettings
         ObjectData.getObjectData(152).damage = 6; // Bow and Arrow  // 
         ObjectData.getObjectData(1624).damage = 10; // Bow and Arrow with Note  //
 
-        // TODO Mouflon? // TODO moskito
+        // TODO more animals like Mouflon?
         ObjectData.getObjectData(2156).deadlyDistance = 1.5; // 2156 Mosquito Swarm
         ObjectData.getObjectData(2156).damage = 1; // 2156 Mosquito Swarm
 
@@ -609,7 +609,7 @@ class ServerSettings
         trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
         trans = new TransitionData(-1,1380,0,0); // Clean Knife Wound --> 0
-        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        trans.autoDecaySeconds = 60 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
 
         ObjectData.getObjectData(1363).alternativeTimeOutcome = 1381; // Bite Wound --> Clean Bite Wound 
@@ -617,7 +617,7 @@ class ServerSettings
         trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
         trans = new TransitionData(-1,1381,0,0); // Clean Bite Wound --> 0
-        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        trans.autoDecaySeconds = 60 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
 
         ObjectData.getObjectData(1377).alternativeTimeOutcome = 1384; // Snake Bite -->  Clean Snake Bite
@@ -633,7 +633,7 @@ class ServerSettings
         trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
         trans = new TransitionData(-1,1383,0,0); // Clean Hog Cut --> 0
-        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        trans.autoDecaySeconds = 60 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans); 
 
         ObjectData.getObjectData(1366).alternativeTimeOutcome = 1382; // Empty Arrow Wound --> Clean Arrow Wound
@@ -641,7 +641,7 @@ class ServerSettings
         trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
         trans = new TransitionData(-1,1382,0,0); // Clean Arrow Wound --> 0
-        trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+        trans.autoDecaySeconds = 60 * WoundHealingTimeFactor;
         transtions.addTransition("PatchTransitions: ", trans);
 
         trans = transtions.getTransition(0, 798); 

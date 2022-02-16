@@ -105,14 +105,22 @@ class TransitionHelper{
             return false;
         }
 
-        if(player.heldObject.isWound())
+        if(player.heldObject.isWound()) 
         {
-            //trace('HeldObject is permanent ${player.heldObject.isPermanent()} or cannot be dropped! ${player.heldObject.isNeverDrop()}');
-            trace('HeldObject is a wound!');
-            helper.sendUpdateToClient();
-            var time = player.heldObject.timeToChange - TimeHelper.CalculateTimeSinceTicksInSec(player.heldObject.creationTimeInTicks);
-            if(time > 0) player.say('${Math.ceil(time)} seconds...', true);
-            return false;
+            // you can still do things with a hiddenwound
+            if(player.heldObject == player.hiddenWound)
+            {
+                player.setHeldObject(null);
+            }
+            else
+            {
+                //trace('HeldObject is permanent ${player.heldObject.isPermanent()} or cannot be dropped! ${player.heldObject.isNeverDrop()}');
+                trace('HeldObject is a wound!');
+                helper.sendUpdateToClient();
+                var time = player.heldObject.timeToChange - TimeHelper.CalculateTimeSinceTicksInSec(player.heldObject.creationTimeInTicks);
+                if(time > 0) player.say('${Math.ceil(time)} seconds...', true);
+                return false;
+            }
         }
 
         if(player.killMode)

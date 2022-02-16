@@ -311,18 +311,21 @@ class TimeHelper
         {
             var transition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
 
-            //var desc = obj.objectData.description;
-            // use alternative outcome for example for wound on player vs on ground
-            var alternativeTimeOutcome = obj.objectData.alternativeTimeOutcome; 
-            obj.id = alternativeTimeOutcome >=0 ? alternativeTimeOutcome : transition.newTargetID;
+            if(transition != null)
+            {
+                //var desc = obj.objectData.description;
+                // use alternative outcome for example for wound on player vs on ground
+                var alternativeTimeOutcome = obj.objectData.alternativeTimeOutcome; 
+                obj.id = alternativeTimeOutcome >=0 ? alternativeTimeOutcome : transition.newTargetID;
 
-            //trace('TIME: ${desc} --> ${obj.objectData.description} transition: ${transition.newTargetID} alternative: ${obj.objectData.alternativeTimeOutcome} passedTime: $passedTime neededTime: ${timeToChange}'); 
+                //trace('TIME: ${desc} --> ${obj.objectData.description} transition: ${transition.newTargetID} alternative: ${obj.objectData.alternativeTimeOutcome} passedTime: $passedTime neededTime: ${timeToChange}'); 
 
-            obj.creationTimeInTicks = TimeHelper.tick;
+                obj.creationTimeInTicks = TimeHelper.tick;
 
-            player.setHeldObject(obj);
+                player.setHeldObject(obj);
 
-            player.setHeldObjectOriginNotValid(); // no animation
+                player.setHeldObjectOriginNotValid(); // no animation   
+            } 
         }
 
         if(player.hiddenWound != null)
@@ -330,6 +333,26 @@ class TimeHelper
             if(player.hiddenWound.isTimeToChangeReached())
             {
                 player.hiddenWound = null;
+                player.doEmote(Emote.happy);
+            }
+            else
+            {
+                if(player.heldObject.id == 0)
+                {
+                    player.setHeldObject(player.hiddenWound);
+                    player.setHeldObjectOriginNotValid(); // no animation 
+                    Connection.SendUpdateToAllClosePlayers(player,false);
+                }
+            }
+
+            if(player.hiddenWound != null && player.hiddenWound.id == 0) player.hiddenWound = null;
+        }
+
+        if(player.fever != null)
+        {
+            if(player.fever.isTimeToChangeReached())
+            {
+                player.fever = null;
                 player.doEmote(Emote.happy);
             }
         }
@@ -532,14 +555,15 @@ class TimeHelper
         if(player.age < ServerSettings.GrownUpAge && player.food_store > 0) foodDecay *= ServerSettings.FoodUseChildFaktor;
 
         // do damage if wound
-        if(player.isWounded())
+        if(player.isWounded() || player.hiddenWound != null) 
         {
-            var bleedingDamage = timePassedInSeconds * player.heldObject.objectData.damage * ServerSettings.WoundDamageFactor;
+            var wound = player.isWounded() ? player.heldObject : player.hiddenWound;
+            var bleedingDamage = timePassedInSeconds * wound.objectData.damage * ServerSettings.WoundDamageFactor;
             player.hits += bleedingDamage;
             foodDecay += 2 * bleedingDamage;
             //player.exhaustion += bleedingDamage;
         }
-
+        
         // do damage while starving
         if(player.food_store < 0)
         {

@@ -101,6 +101,7 @@ Combat / Attacking
 - stregth of players with weapons are counted twice
 - You can only shoot with bow if not too close to target
 - wounds do damage / exhaustion with time and can heal with time 
+- with smal wounds you can still do stuff, but you will still get damage and less speed
 - you do halve damage to an ally
 - you receive less damage if holding a knife, sword or riding a horse without a cart 
 - males do X1.2 damage
@@ -275,8 +276,6 @@ High priority:
 - AI Stoneage
 
 - NAMING fix bug
-
-- COMBAT make smal wounds invisible if object held and allow to work (for example for poisone from snakes)
 
 - BIRTH spawn eves on different locations
 - BIRTH fathers

@@ -167,7 +167,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public var jumpedTiles:Float = 0; // used to limit how often a player can "jump" per second.
 
-    public var hiddenWound:ObjectHelper = null; // used for yellow fever. TODO hide light wounds
+    public var hiddenWound:ObjectHelper = null;
+    public var fever:ObjectHelper = null; // used for yellow fever
     public var yellowfeverCount:Float = 0;
 
     // set all stuff null so that nothing is hanging around
@@ -1435,77 +1436,38 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     */
     public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int) : Bool
     {
-        var targetPlayer = getPlayerAt(x,y, playerId);
-
-        var done = false;
-
-        if(targetPlayer == null)
-        {
-            this.connection.send(PLAYER_UPDATE,[this.toData()]);
-
-            trace('doOnOtherHelper: could not find target player!');
-
-            return false;
-        }
-
-        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
-        else
-        {
-            this.mutex.acquire();
-
-            // make sure that if both players at the same time try to interact with each other it does not end up in a dead lock 
-            while(targetPlayer.mutex.tryAcquire() == false)
-            {
-                this.mutex.release();
-
-                Sys.sleep(WorldMap.calculateRandomFloat() / 5);
-
-                this.mutex.acquire();
-            } 
-        }       
+        AllPlayerMutex.acquire();
         
-        if(ServerSettings.debug)
-        {
-            done = doOnOtherHelper(x,y,clothingSlot, targetPlayer);
-        }
-        else
-        {
-            try
-            {
-                done = doOnOtherHelper(x,y,clothingSlot, targetPlayer);
-            }
-            catch(e)
-            {                
-                trace(e);
-            }
-        }
-
-        // send always PU so that player wont get stuck
+        var done = false;
+        Macro.exception(done = doOnOtherHelper(x,y,clothingSlot, playerId));                
         if(done == false)
         {
+            // send always PU so that player wont get stuck
             this.connection.send(PLAYER_UPDATE,[this.toData()]);
             this.connection.send(FRAME);
         }
 
-        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
-        else
-        {
-            if(targetPlayer != null) targetPlayer.mutex.release();
-            this.mutex.release();
-        }
-
+        AllPlayerMutex.release();
+        
         return done;
     }
 
-    public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, targetPlayer:GlobalPlayerInstance) : Bool
+    //public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, targetPlayer:GlobalPlayerInstance) : Bool
+    public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, playerId:Int) : Bool
     {
-        trace('doOnOtherHelper: playerId: ${targetPlayer.p_id} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
+        trace('doOnOtherHelper: playerId: ${playerId} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
         if(this.o_id[0] < 0) return false; // is holding player
-
         // 838 Dont feed dam drugs! Wormless Soil Pit with Mushroom // 837 Psilocybe Mushroom
         if(heldObject.objectData.isDrugs()) return false;        
 
+        var targetPlayer = getPlayerAt(x,y, playerId);
+        if(targetPlayer == null)
+        {
+            trace('doOnOtherHelper: could not find target player!');
+            return false;
+        }
+    
         if(this.isClose(targetPlayer.tx - this.gx , targetPlayer.ty - this.gy) == false)
         {
             trace('doOnOtherHelper: Target position is too far away player: ${this.tx},${this.ty} target: ${targetPlayer.tx},${targetPlayer.ty}');
@@ -1531,6 +1493,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 var alternativeTimeOutcome = objTo.objectData.alternativeTimeOutcome; 
                 objTo.id = alternativeTimeOutcome >=0 ? alternativeTimeOutcome : trans.newTargetID;
                 objTo.creationTimeInTicks = TimeHelper.tick;
+                targetPlayer.hiddenWound = null; // if there is a new hidden wound setHeldObject will set it
                 targetPlayer.setHeldObject(objTo);
                 targetPlayer.setHeldObjectOriginNotValid(); // no animation
 
@@ -2285,11 +2248,30 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function setHeldObject(obj:ObjectHelper)
     {
         if(obj == null) obj = ObjectHelper.readObjectHelper(this, [0]);
-        
         var player = this;
         this.heldObject = obj;
+
+        // check if it is a light wound
+        if(obj.isWound() && player.hiddenWound == null)
+        {
+            var transition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
+            
+            if(transition != null)
+            {
+                var alternativeTimeOutcome = obj.objectData.alternativeTimeOutcome; 
+                var newid = alternativeTimeOutcome >=0 ? alternativeTimeOutcome : transition.newTargetID;
+
+                obj.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(obj);
+
+                if(newid == 0)
+                {
+                    trace('is light wound: ${obj.name}');
+                    player.hiddenWound = obj;
+                }
+            }
+        }
         
-        if(obj != null) obj.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(obj); // not ideal to set it here
+        if(obj != null && obj != hiddenWound) obj.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(obj); // not ideal to set it here
 
         //trace('TIME22: SET ${obj.description} timeToChange: ${obj.timeToChange}');
 
@@ -3023,7 +3005,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         var isRightClassForWeapon = targetPlayer.isRightClassForWeapon();
-        
+
         var doesRealDamage = fromObj.id != 2156; // 2156 Mosquito Swarm;
         var lovesJungle = targetPlayer.biomeLoveFactor(BiomeTag.JUNGLE);
         if(lovesJungle < -0.5) lovesJungle = -0.5;
@@ -3050,7 +3032,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         trace('kill: HIT objDamage: $orgDamage damage: $damage moskitoDamageFactor: $moskitoDamageFactor');
 
-        targetPlayer.woundedBy = fromObj.id;
+        if(targetPlayer.woundedBy == 0 || doesRealDamage) targetPlayer.woundedBy = fromObj.id;
         var longWeaponCoolDown = false;
         
         if(targetPlayer.food_store_max < 0)
@@ -3110,7 +3092,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 if(0.2 * Math.pow(moskitoDamageFactor,2) > WorldMap.calculateRandomFloat())
                 {
                     yellowfeverCount += 1; // increases resistance
-                    targetPlayer.hiddenWound = newWound;
+                    targetPlayer.fever = newWound;
                     
                     newWound.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(newWound) * moskitoDamageFactor;
                 }
@@ -3496,6 +3478,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 player.connection.send(ClientTag.DYING, ['${player.p_id}']);
             }
 
+            player.setHeldObject(new ObjectHelper(null, 1363));
+            player.heldObject.timeToChange *= 0.2;
+
             Connection.SendUpdateToAllClosePlayers(player);
         }
         else if(text.indexOf('!HEAL') != -1)
@@ -3554,6 +3539,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         else if(text.indexOf('!FOOD') != -1) 
         {
             player.food_store -= 5;
+            player.sendFoodUpdate(false);
+        }
+        else if(text.indexOf('!YUM') != -1) 
+        {
+            player.food_store += 5;
             player.sendFoodUpdate(false);
         }
     }
@@ -3895,7 +3885,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function hasYellowFever() : Bool
     {
-        return hiddenWound != null && hiddenWound.id == 2155; // 2155 Yellow Fever
+        return fever != null && fever.id == 2155; // 2155 Yellow Fever
     }
 }
 

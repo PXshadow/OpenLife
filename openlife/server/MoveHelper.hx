@@ -122,6 +122,9 @@ class MoveHelper
         if(onRoad && speedModHeldObj < 0.99) speedModHeldObj = Math.sqrt(speedModHeldObj); // on road
         speed *= speedModHeldObj;
 
+        // Do speed hidden wound
+        if(p.hiddenWound != null && p.hiddenWound != p.heldObject) speed *= p.hiddenWound.objectData.speedMult;
+
         // make cars to boats
         if(isOnBoat && WorldMap.world.isWater(tx,ty) == false)
         {            
