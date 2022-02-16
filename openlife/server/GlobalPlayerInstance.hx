@@ -171,6 +171,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var fever:ObjectHelper = null; // used for yellow fever
     public var yellowfeverCount:Float = 0;
 
+    public var lastSayInSec:Float = 0;
+
     // set all stuff null so that nothing is hanging around
     public function delete()
     {
@@ -968,67 +970,60 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     **/
     public function say(text:String, toSelf:Bool = false)
     {
-        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
-        else this.mutex.acquire();
+        AllPlayerMutex.acquire();
 
+        Macro.exception(sayHelper(text, toSelf));
+
+        AllPlayerMutex.release();
+    }
+    
+    public function sayHelper(text:String, toSelf:Bool = false)
+    {
         //trace('say: $text');
 
-        try
+        var player = this;
+        var curse = 0;
+        var id = player.p_id;
+
+        text = text.toUpperCase();
+
+        if(toSelf)
         {
-            var player = this;
-            var curse = 0;
-            var id = player.p_id;
-
-            text = text.toUpperCase();
-
-            if(toSelf)
-            {
-                //curse = 1;
-                text = '?{$text}?';
-
-                this.connection.send(PLAYER_SAYS,['$id/$curse $text']);
-                this.connection.send(FRAME);
-
-                if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
-                else this.mutex.release();
-
-                return;
-            }
-
-            if(StringTools.contains(text, '!'))
-            {
-                if(ServerSettings.AllowDebugCommmands) DoDebugCommands(player, text);
-            }
-
-            var maxLenght = player.age < 10 ? Math.ceil(player.age * 2) : player.age < 20 ? Math.ceil(player.age * 4) : 80; 
-
-            if(text.startsWith('/') == false &&  text.length > maxLenght) text = text.substr(0, maxLenght);
-
-            text = NamingHelper.DoNaming(this, text);
-
-            this.lineage.lastSaid = text;
-
-            if(doCommands(text))
-            {
-                for (c in Connection.getConnections())
-                {
-                    c.send(PLAYER_SAYS,['$id/$curse $text']);
-                    c.send(FRAME);
-                }
-
-                for (ai in Connection.getAis())
-                {
-                    ai.say(player,curse == 1,text);
-                }
-            }
-        }
-        catch(ex)
-        {
-            trace(ex.details);
+            text = '?{$text}?';
+            this.connection.send(PLAYER_SAYS,['$id/$curse $text']);
+            this.connection.send(FRAME);
+            return;
         }
 
-        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
-        else this.mutex.release();
+        if(StringTools.contains(text, '!'))
+        {
+            if(ServerSettings.AllowDebugCommmands) DoDebugCommands(player, text);
+        }
+
+        if(lastSayInSec > 0 && ServerSettings.debug == false) return;
+        lastSayInSec = 1;
+
+        var maxLenght = player.age < 10 ? Math.ceil(player.age * 2) : player.age < 20 ? Math.ceil(player.age * 4) : 80; 
+
+        if(text.startsWith('/') == false &&  text.length > maxLenght) text = text.substr(0, maxLenght);
+
+        text = NamingHelper.DoNaming(this, text);
+
+        this.lineage.lastSaid = text;
+
+        if(doCommands(text))
+        {
+            for (c in Connection.getConnections())
+            {
+                c.send(PLAYER_SAYS,['$id/$curse $text']);
+                c.send(FRAME);
+            }
+
+            for (ai in Connection.getAis())
+            {
+                ai.say(player,curse == 1,text);
+            }
+        }
     }
 
     public function exile(target:GlobalPlayerInstance, messageIfAllreadyExiled:Bool = true) : Bool

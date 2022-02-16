@@ -230,6 +230,8 @@ class TimeHelper
     private static function UpdatePlayerStats(player:GlobalPlayerInstance, timePassedInSeconds:Float)
     {
         if(player.jumpedTiles > 0) player.jumpedTiles -= timePassedInSeconds * ServerSettings.MaxJumpsPerTenSec * 0.1;
+        if(player.lastSayInSec > 0) player.lastSayInSec -= timePassedInSeconds;
+        
 
         //if(player.angryTime < 0 && player.angryTime > -1) player.angryTime = 0;
 

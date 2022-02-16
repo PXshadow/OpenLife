@@ -279,8 +279,6 @@ High priority:
 
 - NAMING fix bug
 
-- SAY limit words per sec
-
 - BIRTH spawn eves on different locations
 - BIRTH fathers
 
