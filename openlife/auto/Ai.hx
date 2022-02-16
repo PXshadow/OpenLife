@@ -566,7 +566,7 @@ class Ai
         if(animal == null && deadlyPlayer == null) return false;
 
         // hunt this animal
-        if(animal.isKillableByBow()) animalTarget = animal;
+        if(animal != null && animal.isKillableByBow()) animalTarget = animal;
         // go for hunting 
         if(myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false) return false; 
 
