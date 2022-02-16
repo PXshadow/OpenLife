@@ -99,7 +99,9 @@ class TransitionHelper{
             //trace('HeldObject is permanent ${player.heldObject.isPermanent()} or cannot be dropped! ${player.heldObject.isNeverDrop()}');
             trace('HeldObject cannot be dropped!');
             helper.sendUpdateToClient();
-            if(player.heldObject.timeToChange > 0) player.say('${Math.ceil(player.heldObject.timeToChange)} seconds...', true);
+
+            var time = player.heldObject.timeToChange - TimeHelper.CalculateTimeSinceTicksInSec(player.heldObject.creationTimeInTicks);
+            if(time > 0) player.say('${Math.ceil(time)} seconds...', true);
             return false;
         }
 
@@ -108,7 +110,8 @@ class TransitionHelper{
             //trace('HeldObject is permanent ${player.heldObject.isPermanent()} or cannot be dropped! ${player.heldObject.isNeverDrop()}');
             trace('HeldObject is a wound!');
             helper.sendUpdateToClient();
-            if(player.heldObject.timeToChange > 0) player.say('${Math.ceil(player.heldObject.timeToChange)} seconds...', true);
+            var time = player.heldObject.timeToChange - TimeHelper.CalculateTimeSinceTicksInSec(player.heldObject.creationTimeInTicks);
+            if(time > 0) player.say('${Math.ceil(time)} seconds...', true);
             return false;
         }
 
