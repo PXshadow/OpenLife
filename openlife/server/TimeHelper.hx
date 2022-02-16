@@ -279,6 +279,24 @@ class TimeHelper
                 player.newFollowerFor = null;       
             }
         }
+
+        if(player.hasYellowFever())
+        {
+            player.food_store -= timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec;
+            player.exhaustion += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec;
+            player.hits += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec * 0.1;
+            
+            player.heat += timePassedInSeconds * 0.2;
+            if(player.heat > 1) player.heat = 1;
+
+            player.food_store_max = player.calculateFoodStoreMax();
+
+            if(TimeHelper.tick % 20 == 0)
+            {
+                player.sendFoodUpdate(false);
+                player.connection.send(FRAME, null, false);            
+            }
+        }
     }
 
     private static function DoTimeOnPlayerObjects(player:GlobalPlayerInstance, timePassedInSeconds:Float)
@@ -309,24 +327,6 @@ class TimeHelper
 
         if(player.hiddenWound != null)
         {
-            var isYellowFever = player.hiddenWound.id == 2155; // 2155 Yellow Fever
-            if(isYellowFever)
-            {
-                player.food_store -= timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec;
-                player.exhaustion += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec;
-                player.hits += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec * 0.1;
-                
-                player.heat += timePassedInSeconds * 0.2;
-                if(player.heat > 1) player.heat = 1;
-
-                player.food_store_max = player.calculateFoodStoreMax();
-
-                if(TimeHelper.tick % 20 == 0)
-                {
-                    player.sendFoodUpdate(false);
-                    player.connection.send(FRAME, null, false);            
-                }
-            }
             if(player.hiddenWound.isTimeToChangeReached())
             {
                 player.hiddenWound = null;
