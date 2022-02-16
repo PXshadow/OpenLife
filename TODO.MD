@@ -269,7 +269,7 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI feeding others
+- AI dropping not needed crafting stuff
 - AI basic clothing
 - AI player fight
 - Ai using containers needed also for player YUM display

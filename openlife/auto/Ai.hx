@@ -310,7 +310,9 @@ class Ai
         if(isDropingItem()) return;
         if(myPlayer.age < ServerSettings.MinAgeToEat && myPlayer.food_store < 2) return; // do nothing and wait for mother to feed
         if(isEating()) return;
-        if(isFeedingChild()) return;   
+        if(isPickingupFood()) return;
+        if(isFeedingChild()) return;  
+        if(isFeedingPlayerInNeed()) return;  
         if(isStayingCloseToChild()) return;       
         if(isUsingItem()) return;
         if(killAnimal(animal)) return; 
@@ -491,8 +493,39 @@ class Ai
         }
     }
 
+    private function isFeedingPlayerInNeed()
+    {
+        if(myPlayer.age < ServerSettings.MinAgeToEat) return false;
+        if(myPlayer.food_store < 2) return false;
+
+        var targetPlayer = AiHelper.GetCloseStarvingPlayer(myPlayer);
+
+        if(targetPlayer == null) return false;
+
+        if(myPlayer.heldObject.objectData.foodValue < 1)
+        {
+            foodTarget = AiHelper.SearchBestFood(targetPlayer);            
+            return true;
+        }
+
+        var distance = myPlayer.CalculateDistanceToPlayer(targetPlayer);
+        if(distance > 1)
+        {
+            var done = myPlayer.gotoAdv(targetPlayer.tx, targetPlayer.ty);
+            trace('AAI: ${myPlayer.id} $done goto feed starving ${targetPlayer.name}');
+            return true;
+        }
+
+        var done = myPlayer.doOnOther(targetPlayer.tx - myPlayer.gx, targetPlayer.ty - myPlayer.gx, -1, targetPlayer.p_id);
+        trace('AAI: ${myPlayer.id} $done feed starving ${targetPlayer.name}');
+
+        return true;
+    }
+
     private function isStayingCloseToChild()
     {
+        if(myPlayer.isFertile() == false) return false; 
+
         var child = AiHelper.GetMostDistamtOwnChild(myPlayer);
 
         if(child == null) return false;
@@ -543,8 +576,6 @@ class Ai
         }
 
         var distance = myPlayer.CalculateDistanceToPlayer(child);
-        
-
         if(distance > 1)
         {
             var done = myPlayer.gotoAdv(child.tx, child.ty);
@@ -1358,23 +1389,29 @@ class Ai
         return true;
     }
 
-    private function isEating() : Bool
+    private function isPickingupFood() : Bool
     {
         if(foodTarget == null) return false;
-        // check if food is still eatable. Maybe some one eat it or maybe player is full meanwhile
+
+        var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
+        if(heldObjectIsEatable)
+        {
+            foodTarget = null;
+            return false;
+        }
+
+        // check if food is still eatable. Maybe some one eat it
         if(myPlayer.isEatableCheckAgain(foodTarget) == false) 
         {   
-            trace('AAI: ${myPlayer.id} food changed meanwhile or player is full!');
+            trace('AAI: ${myPlayer.id} ${foodTarget.description} ${foodTarget.id} food changed meanwhile!');
 
             foodTarget = null;
             return true;
         }
+
         if(myPlayer.isMoving()) return true;
 
-
-        // TODO check if food target is still valid
         var distance = myPlayer.CalculateDistanceToObject(foodTarget);
-
         if(distance > 1)
         {
             var done = myPlayer.gotoObj(foodTarget);
@@ -1398,35 +1435,39 @@ class Ai
 
         //trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
 
-        if(myPlayer.heldObject.id == 0)
-        {
-            // x,y is relativ to birth position, since this is the center of the universe for a player
-            var done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy); 
-            trace('AAI: ${myPlayer.id} pickup food: $done');
-
-            if(done == false)
-            {
-                trace('AI: food Use failed! Ignore ${foodTarget.tx} ${foodTarget.ty} '); 
-    
-                // TODO check why use is failed... for now add to ignore list
-                this.addNotReachableObject(foodTarget, 30);
-                foodTarget = null;
-                return true;
-            }
-
-            return true;
-        }
-
-        var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
-        
-        if(heldObjectIsEatable == false)
+        if(myPlayer.heldObject.id != 0)
         {
             trace('AAI: ${myPlayer.id} drop held object to eat');
-
             dropHeldObject();
-
             return true;
         }
+
+        // x,y is relativ to birth position, since this is the center of the universe for a player
+        var done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy); 
+        trace('AAI: ${myPlayer.id} pickup food: $done');
+
+        if(done == false)
+        {
+            trace('AI: food Use failed! Ignore ${foodTarget.tx} ${foodTarget.ty} '); 
+
+            // TODO check why use is failed... for now add to ignore list
+            this.addNotReachableObject(foodTarget, 30);
+            foodTarget = null;
+            return true;
+        }
+
+        this.didNotReachFood = 0;
+        foodTarget = null;
+
+        return true;
+    }
+
+    private function isEating() : Bool
+    {
+        if(isHungry == false) return false;
+
+        var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
+        if(heldObjectIsEatable == false) return false;
 
         var oldNumberOfUses = foodTarget.numberOfUses;
 
@@ -1442,26 +1483,6 @@ class Ai
         this.didNotReachFood = 0;
         foodTarget = null;
         return true;
-        
-        /*
-        var oldNumberOfUses = foodTarget.numberOfUses;
-
-        //heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
-        if(heldObjectIsEatable) playerInterface.self(); // eat
-
-        trace('AI: Eat: held: ${ myPlayer.heldObject.description} food: ${foodTarget.description} foodTarget.numberOfUses ${foodTarget.numberOfUses} == oldNumberOfUses $oldNumberOfUses || emptyFood: ${myPlayer.food_store_max - myPlayer.food_store} < 3)');
-
-        if(foodTarget.numberOfUses == oldNumberOfUses || myPlayer.food_store_max - myPlayer.food_store < 6)
-        {
-            trace('AI: Eat: set foodTarget to null');
-            foodTarget = null;
-        }
-
-        dropHeldObject();
-
-        time = 0.3;
-                
-        return true;*/
     }
 
     private function checkIsHungryAndEat() : Bool
@@ -1470,11 +1491,11 @@ class Ai
 
         if(isHungry)
         {
-            isHungry = player.food_store < player.food_store_max * 0.75;
+            isHungry = player.food_store < player.food_store_max * 0.8;
         }
         else
         {
-            isHungry = player.food_store < Math.min(2.5, player.food_store_max * 0.5);
+            isHungry = player.food_store < Math.min(3, player.food_store_max * 0.5);
         }
 
         if(isHungry && foodTarget == null) searchFoodAndEat();

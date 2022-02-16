@@ -109,14 +109,18 @@ class AiHelper
 
     public static function isEatable(player:PlayerInterface, obj:ObjectHelper) : Bool
     {
-        var objData = obj.objectData;
+        var objData = obj.objectData.dummyParent != null ? obj.objectData.dummyParent : obj.objectData;
         var originalFoodValue = objData.foodFromTarget == null ? objData.foodValue : objData.foodFromTarget.foodValue;
-        if(originalFoodValue < 0) return false;
-        if(player.food_store_max - player.food_store < Math.ceil(originalFoodValue / 4)) return false;
-        return true;
+
+        trace('AI: ${obj.description} ${obj.id} numberOfUses: ${obj.numberOfUses} originalFoodValue: $originalFoodValue');
+
+        return originalFoodValue > 0;
+        //if(originalFoodValue < 0) return false;
+        //if(player.food_store_max - player.food_store < Math.ceil(originalFoodValue / 4)) return false;
+        //return true;
     }
 
-    public static function SearchBestFood(player:PlayerInterface, radius:Int = 32) : ObjectHelper
+    public static function SearchBestFood(player:PlayerInterface, radius:Int = 60) : ObjectHelper
     {
         var startTime = Sys.time();
         var ai = player.getAi();
@@ -204,7 +208,7 @@ class AiHelper
             }
         }
 
-        if(bestFood !=null) trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: $bestDistance ${bestFood.description}');
+        if(bestFood != null) trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: $bestDistance ${bestFood.description} ${bestFood.id}');
         else trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: NA');
 
         return bestFood;
@@ -632,6 +636,30 @@ class AiHelper
             if(dist > bestDist) continue;
 
             bestDist = dist;
+            bestPlayer = p;
+        }
+
+        return bestPlayer;
+    }
+
+    public static function GetCloseStarvingPlayer(player:PlayerInterface, searchDistance:Int = 20)
+    {
+        var globalplayer = cast(player, GlobalPlayerInstance); // TODO find better way
+        var bestPlayer:GlobalPlayerInstance = null;
+        var bestQuadDist:Float = searchDistance * searchDistance;
+
+        for(p in GlobalPlayerInstance.AllPlayers)
+        {
+            if(p.deleted) continue;
+            if(p.food_store > 1) continue;
+            if(p.heldByPlayer != null) continue;
+            if(bestPlayer != null && bestPlayer.mother == player && p.mother != player) continue; // prefer own kids
+            if(bestPlayer != null && bestPlayer.isAlly(globalplayer) && p.isAlly(globalplayer) == false) continue; // prefer ally
+
+            var dist = AiHelper.CalculateDistanceToPlayer(player, p);
+            if(dist > bestQuadDist) continue;
+
+            bestQuadDist = dist;
             bestPlayer = p;
         }
 
