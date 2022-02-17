@@ -156,7 +156,7 @@ class AiHelper
                 if(player.food_store_max - player.food_store < Math.ceil(foodValue / 4)) continue;
                             
                 var obj = world.getObjectHelper(tx, ty);
-                var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
+                var quadDistance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
                 
                 var countEaten = player.getCountEaten(foodId);
                 foodValue -= countEaten;
@@ -164,15 +164,15 @@ class AiHelper
                 var isSuperMeh = foodValue < originalFoodValue / 2; // can eat if food_store < 0
                 //trace('search food: best $bestDistance dist $distance ${obj.description}');
 
-                if(isYum) foodValue *= 10;
-                if(isSuperMeh) foodValue = originalFoodValue / 10;
+                if(isYum) foodValue *= 25;
+                if(isSuperMeh) foodValue = originalFoodValue / 25;
                 if(isSuperMeh && player.food_store > 0) foodValue = 0;
-                if(foodId == player.getCraving()) foodValue *= 10;
+                if(foodId == player.getCraving()) foodValue *= 100;
 
-                if(distance < 0.5) distance = 0.5;
+                if(quadDistance < 0.5) quadDistance = 0.5;
                 //distance = Math.sqrt(distance);
 
-                if(bestFood == null || foodValue / distance > bestFoodValue / bestDistance)
+                if(bestFood == null || foodValue / quadDistance > bestFoodValue / bestDistance)
                 {
                     if(ai != null)
                     {
@@ -183,7 +183,7 @@ class AiHelper
                     bestFoods.push(obj);
 
                     bestFood = obj;
-                    bestDistance = distance;
+                    bestDistance = quadDistance;
                     bestFoodValue = foodValue;
 
                     //trace('search best food: d: $bestDistance f: $bestFoodValue yum: $isYum  ${obj.description}');
