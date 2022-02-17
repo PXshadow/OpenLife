@@ -269,7 +269,6 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI feed first most hungry
 - AI consider if some one else is already feeding
 - AI dropping not needed crafting stuff
 - AI if waiting for time transition check if the next step can be prepared
