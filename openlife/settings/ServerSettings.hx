@@ -126,6 +126,8 @@ class ServerSettings
     public static var HealthLostWhenEatingSuperMeh:Float = 1; 
     public static var MaxHasEatenForNextGeneration:Float = 0; // used in InheritEatenFoodCounts
     //public static var HasEatenReductionForNextGeneration:Float = 0.2; // used in InheritEatenFoodCounts
+    public static var DisplayYumAndMehFood = false;
+
 
     // health
     //public static var MinHealthPerYear = 1; // for calulating aging / speed: MinHealthPerYear * age is reduced from health(yum_mulpiplier)

@@ -343,28 +343,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(this.mother.isAi() == false) mother.connection.sendMapLocation(this,'BABY', 'baby');
             else mother.connection.serverAi.newChild(this);
-        }
-
-        /*if(mother != null && this.age < ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers)
-        {
-            if(mother.heldPlayer == null)
-            {
-                if(mother.heldObject.isDroppable())
-                {
-                    WorldMap.PlaceObject(this.tx(), this.ty(), mother.heldObject, false);
-                    mother.setHeldObject(null);
-                }
-            }
-            else
-            {
-                mother.dropPlayer();
-            }
-
-            // pickup baby
-            mother.doBabyHelper(mother.x, mother.y, this);
-
-            Connection.SendFollowingToAll(mother);
-        } */
+        }    
     }
 
     // TODO test
@@ -2289,13 +2268,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             else if(isSuperMeh(this.heldObject)) this.doEmote(Emote.sad);      
             else this.doEmote(Emote.hmph);
             
-            //if(isHoldingYum) displayFood(obj);
-            //else DisplayBestFood(player);
-            displayFood(obj);
+            if(ServerSettings.DisplayYumAndMehFood) displayFood(obj);
             DisplayBestFood(player);            
         }
-        //else{this.doEmote(Emote.homesick);}
-
     }
 
     public function isSuperMeh(food:ObjectHelper) : Bool

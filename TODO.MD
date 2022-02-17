@@ -269,13 +269,21 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
+- AI feed first most hungry
+- AI consider if some one else is already feeding
 - AI dropping not needed crafting stuff
+- AI if waiting for time transition check if the next step can be prepared
 - AI basic clothing
 - AI player fight
-- Ai using containers needed also for player YUM display
-- Ai ongoing longer distant movement
-- AI tests with >20 AIs
+- AI temperature espace
+- AI using containers needed also for player YUM display
+- AI go for search if something is needed
+- AI tests with > 20 AIs
+- AI fill baskets with bananas
+- AI using of baskets and backpack
 - AI Stoneage
+
+- MOVE better exhaustion calculation on JUMP
 
 - NAMING fix bug
 
@@ -286,9 +294,11 @@ High priority:
 
 - GATES Ally Gates and swing doors
 
-Middle priority:
 - CONNECTION saving of people data so that people can come back after server restart
 
+- CRAVINGS choose more close cravings / use best food
+
+Middle priority:
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
 
 - BIOME biome boni for different races
