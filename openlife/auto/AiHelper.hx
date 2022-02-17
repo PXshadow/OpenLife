@@ -176,7 +176,7 @@ class AiHelper
                 {
                     if(ai != null)
                     {
-                        if(IsDangerous(player, obj)) continue;
+                        if(quadDistance > 4 && IsDangerous(player, obj)) continue;
                         //if(tryGotoObj(player, obj) == false) continue;
                     }
 

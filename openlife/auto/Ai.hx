@@ -170,6 +170,78 @@ class Ai
         //craftItem(58); // Thread
     }
 
+    // do time stuff here is called from TimeHelper
+    public function doTimeStuff(timePassedInSeconds:Float) 
+    {
+        time -= timePassedInSeconds;
+
+        //if(didNotReachFood > 0) didNotReachFood -= timePassedInSeconds * 0.02;
+
+        if(time > 0) return;
+        time += ServerSettings.AiReactionTime; //0.5; // minimum AI reacting time
+        
+        cleanupBlockedObjects();
+
+        if(ServerSettings.AutoFollowAi && myPlayer.isHuman())
+        {
+            //trace('HUMAN');
+            time = 0.2;
+            isMovingToPlayer(5,false);
+            return;
+        }
+
+        if(myPlayer.getHeldByPlayer() != null)
+        {
+            //time += WorldMap.calculateRandomInt(); // TODO still jump and do stuff once in a while?
+            return;
+        } 
+
+        var animal = AiHelper.GetCloseDeadlyAnimal(myPlayer);
+        var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer);
+    
+        if(didNotReachFood < 5) if(escape(animal, deadlyPlayer)) return;
+        if(didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat();
+        if(isChildAndHasMother()){if(isMovingToPlayer()) return;}
+        if(myPlayer.isWounded()){isMovingToPlayer(); return;} // do nothing then looking for player
+        
+        if(isDropingItem()) return;
+        if(myPlayer.age < ServerSettings.MinAgeToEat && myPlayer.food_store < 2) return; // do nothing and wait for mother to feed
+        if(isEating()) return;
+        if(isPickingupFood()) return;
+        if(isFeedingChild()) return;  
+        if(isFeedingPlayerInNeed()) return;  
+        if(isStayingCloseToChild()) return;       
+        if(isUsingItem()) return;
+        if(killAnimal(animal)) return; 
+        if(ServerSettings.AutoFollowPlayer && isMovingToPlayer()) return;               
+        if(myPlayer.isMoving()) return;
+        
+        //if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
+
+        trace('AI: craft ${GetName(itemToCraftId)} tasks: ${craftingTasks.length}!');
+
+        if(itemToCraftId > 0 && itemToCraft.countDone < itemToCraft.count)
+        {
+            if(craftItem(itemToCraftId)) return;    
+        }
+
+        if(craftingTasks.length > 0)
+        {
+            for(i in 0...craftingTasks.length)
+            {
+                itemToCraftId = craftingTasks.shift();
+                if(craftItem(itemToCraftId)) return;
+                craftingTasks.push(itemToCraftId);
+            }
+        }
+
+        var cravingId = myPlayer.getCraving();
+        itemToCraftId = cravingId;
+        if(cravingId > 0) if(craftItem(itemToCraftId)) return;
+
+        myPlayer.say('nothing to do...');
+    }
+
     public function say(player:PlayerInterface, curse:Bool,text:String) 
     {
         if (myPlayer.id == player.id) return;
@@ -273,77 +345,6 @@ class Ai
         return (myPlayer.age < ServerSettings.MinAgeToEat &&  mother != null && mother.isDeleted() == false);
     }
     
-    // do time stuff here is called from TimeHelper
-    public function doTimeStuff(timePassedInSeconds:Float) 
-    {
-        time -= timePassedInSeconds;
-
-        //if(didNotReachFood > 0) didNotReachFood -= timePassedInSeconds * 0.02;
-
-        if(time > 0) return;
-        time += ServerSettings.AiReactionTime; //0.5; // minimum AI reacting time
-        
-        cleanupBlockedObjects();
-
-        if(ServerSettings.AutoFollowAi && myPlayer.isHuman())
-        {
-            //trace('HUMAN');
-            time = 0.2;
-            isMovingToPlayer(5,false);
-            return;
-        }
-
-        if(myPlayer.getHeldByPlayer() != null)
-        {
-            //time += WorldMap.calculateRandomInt(); // TODO still jump and do stuff once in a while?
-            return;
-        } 
-
-        var animal = AiHelper.GetCloseDeadlyAnimal(myPlayer);
-        var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer);
-    
-        if(didNotReachFood < 5) if(escape(animal, deadlyPlayer)) return;
-        if(didNotReachFood < 5 || myPlayer.food_store < 0) checkIsHungryAndEat();
-        if(isChildAndHasMother()){if(isMovingToPlayer()) return;}
-        if(myPlayer.isWounded()){isMovingToPlayer(); return;} // do nothing then looking for player
-        
-        if(isDropingItem()) return;
-        if(myPlayer.age < ServerSettings.MinAgeToEat && myPlayer.food_store < 2) return; // do nothing and wait for mother to feed
-        if(isEating()) return;
-        if(isPickingupFood()) return;
-        if(isFeedingChild()) return;  
-        if(isFeedingPlayerInNeed()) return;  
-        if(isStayingCloseToChild()) return;       
-        if(isUsingItem()) return;
-        if(killAnimal(animal)) return; 
-        if(ServerSettings.AutoFollowPlayer && isMovingToPlayer()) return;               
-        if(myPlayer.isMoving()) return;
-        
-        //if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
-
-        trace('AI: craft ${GetName(itemToCraftId)} tasks: ${craftingTasks.length}!');
-
-        if(itemToCraftId > 0 && itemToCraft.countDone < itemToCraft.count)
-        {
-            if(craftItem(itemToCraftId)) return;    
-        }
-
-        if(craftingTasks.length > 0)
-        {
-            for(i in 0...craftingTasks.length)
-            {
-                itemToCraftId = craftingTasks.shift();
-                if(craftItem(itemToCraftId)) return;
-                craftingTasks.push(itemToCraftId);
-            }
-        }
-
-        var cravingId = myPlayer.getCraving();
-        itemToCraftId = cravingId;
-        if(cravingId > 0) if(craftItem(itemToCraftId)) return;
-
-        myPlayer.say('nothing to do...');
-    }
 
     public function addTask(taskId:Int, atEnd:Bool = true)
     {
@@ -863,27 +864,27 @@ class Ai
 
                     var steps = trans.steps;        
                     var obj = world.getObjectHelper(tx, ty);                
-                    var objDistance = myPlayer.CalculateDistanceToObject(obj);
+                    var objQuadDistance = myPlayer.CalculateDistanceToObject(obj);
                     
-                    if(trans.closestObject == null || trans.closestObjectDistance > objDistance)
+                    if(trans.closestObject == null || trans.closestObjectDistance > objQuadDistance)
                     {
-                        if(AiHelper.IsDangerous(myPlayer, obj)) continue;
+                        if(objQuadDistance > 4 && AiHelper.IsDangerous(myPlayer, obj)) continue;
 
                         trans.secondObject = trans.closestObject;
                         trans.secondObjectDistance = trans.closestObjectDistance;
 
                         trans.closestObject = obj;
-                        trans.closestObjectDistance = objDistance;
+                        trans.closestObjectDistance = objQuadDistance;
                         
                         continue;
                     }
                     
-                    if(trans.secondObject == null || trans.secondObjectDistance > objDistance)
+                    if(trans.secondObject == null || trans.secondObjectDistance > objQuadDistance)
                     {
-                        if(AiHelper.IsDangerous(myPlayer, obj)) continue;
+                        if(objQuadDistance > 4 && AiHelper.IsDangerous(myPlayer, obj)) continue;
                         
                         trans.secondObject = obj;
-                        trans.secondObjectDistance = objDistance;
+                        trans.secondObjectDistance = objQuadDistance;
 
                         continue;
                     }                        
@@ -1498,7 +1499,7 @@ class Ai
     {
         if(obj == null) return;
         var index = WorldMap.world.index(obj.tx, obj.ty);
-        objectsWithHostilePath[index] = 30; // block for 30 sec
+        objectsWithHostilePath[index] = 20; // block for 30 sec
     }
 
     public function isObjectWithHostilePath(tx:Int, ty:Int) : Bool
