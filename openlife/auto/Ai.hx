@@ -379,8 +379,7 @@ class Ai
 
         if(myPlayer.heldObject.id != objData.id)
         {
-            GetOrCraftItem(objData.id);
-            return true;
+            return GetOrCraftItem(objData.id);
         }
 
         var distance = myPlayer.CalculateDistanceToObject(animalTarget);
@@ -504,7 +503,7 @@ class Ai
 
         if(myPlayer.heldObject.objectData.foodValue < 1)
         {
-            foodTarget = AiHelper.SearchBestFood(targetPlayer);            
+            foodTarget = AiHelper.SearchBestFood(targetPlayer, true);            
             return true;
         }
 

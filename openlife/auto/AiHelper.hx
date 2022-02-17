@@ -120,7 +120,7 @@ class AiHelper
         //return true;
     }
 
-    public static function SearchBestFood(player:PlayerInterface, radius:Int = 60) : ObjectHelper
+    public static function SearchBestFood(player:PlayerInterface, feedOther:Bool = false, radius:Int = 60) : ObjectHelper
     {
         var startTime = Sys.time();
         var ai = player.getAi();
@@ -140,7 +140,8 @@ class AiHelper
 
                 if(objData.id == 0) continue;
                 if(objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
-
+                if(feedOther && objData.id == 837) continue; // dont feed Psilocybe Mushroom to others
+ 
                 //var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
                 //trace('search food $tx, $ty: foodvalue: ${objData.foodValue} bestdistance: $bestDistance distance: $distance ${obj.description}');
 
@@ -642,48 +643,72 @@ class AiHelper
         return bestPlayer;
     }
 
-    public static function GetCloseStarvingPlayer(player:PlayerInterface, searchDistance:Int = 20)
+    public static function GetCloseStarvingPlayer(player:PlayerInterface, searchDistance:Int = 30)
     {
-        var globalplayer = cast(player, GlobalPlayerInstance); // TODO find better way
+        var globalplayer = cast(player, GlobalPlayerInstance); // TODO find better way / maybe use globalplayer also for client
         var bestPlayer:GlobalPlayerInstance = null;
-        var bestQuadDist:Float = searchDistance * searchDistance;
+        
+        var maxDist = searchDistance * searchDistance;
+        var bestQuadHungry:Float = 0;
+        var minQuadHungry = 0.01;
+        var isFertile = player.isFertile();
 
         for(p in GlobalPlayerInstance.AllPlayers)
         {
             if(p.deleted) continue;
-            if(p.food_store > 1) continue;
             if(p.heldByPlayer != null) continue;
-            if(bestPlayer != null && bestPlayer.mother == player && p.mother != player) continue; // prefer own kids
-            if(bestPlayer != null && bestPlayer.isAlly(globalplayer) && p.isAlly(globalplayer) == false) continue; // prefer ally
+            if(isFertile && p.age < ServerSettings.MaxChildAgeForBreastFeeding) continue;
 
-            var dist = AiHelper.CalculateDistanceToPlayer(player, p);
-            if(dist > bestQuadDist) continue;
+            var considerHungry = Math.min(p.lineage.prestigeClass * 2, p.food_store_max * 0.8);
+            var hungry = considerHungry - p.food_store;
+            var isAlly = p.isAlly(globalplayer);
 
-            bestQuadDist = dist;
+            if(isAlly == false && p.angryTime < ServerSettings.CombatAngryTimeBeforeAttack / 2) continue;
+            if(p.isCloseRelative(globalplayer) == false) hungry = hungry / 2 - 0.25; // prefer close relative
+            if(isAlly == false) hungry = hungry / 2 - 0.2; // prefer ally
+            if(hungry < 0) continue;
+
+            var dist = AiHelper.CalculateDistanceToPlayer(player, p) + 1;
+            if(dist > maxDist) continue;
+
+            var quadHungry = Math.pow(hungry, 2) / dist;
+            if(quadHungry < bestQuadHungry) continue;
+            trace('${p.name} class: ${p.lineage.prestigeClass} dist: $dist food: ${Math.ceil(p.food_store * 10) / 10} hungry: ${Math.ceil(hungry * 10) / 10} quadHungry: ${Math.ceil(quadHungry * 1000) / 1000}');
+            if(quadHungry < minQuadHungry) continue;
+
+            bestQuadHungry = quadHungry;
             bestPlayer = p;
         }
 
         return bestPlayer;
     }
 
-    public static function GetCloseHungryChild(mother:PlayerInterface, searchDistance:Int = 30)
+    public static function GetCloseHungryChild(mother:PlayerInterface, searchDistance:Int = 40)
     {
-        //var player = cast(playerInter, GlobalPlayerInstance);
         var bestPlayer:GlobalPlayerInstance = null;
-        var bestDist:Float = searchDistance * searchDistance;
+        var maxDist = searchDistance * searchDistance;
+        var bestQuadHungry:Float = 0;
+        var considerHungry = 2.5;
+        var minQuadHungry = 0.01;
 
         for(p in GlobalPlayerInstance.AllPlayers)
         {
             if(p.deleted) continue;
-            if(p.age > ServerSettings.MaxChildAgeForBreastFeeding) continue;
-            if(p.food_store > 2.5) continue;
+            if(p.age > ServerSettings.MaxChildAgeForBreastFeeding) continue;            
             if(p.heldByPlayer != null) continue;
-            if(bestPlayer != null && bestPlayer.mother == mother && p.mother != mother) continue;
 
-            var dist = AiHelper.CalculateDistanceToPlayer(mother, p);
-            if(dist > bestDist) continue;
+            var hungry = considerHungry - p.food_store;
+            if(p.mother != mother) hungry = hungry / 2 - 0.5; // own children count more
+            if(p.age > ServerSettings.MinAgeToEat) hungry -= 0.5;
+            if(hungry < 0) continue;
 
-            bestDist = dist;
+            var dist = AiHelper.CalculateDistanceToPlayer(mother, p) + 1;
+            if(dist > maxDist) continue;
+            var quadHungry = Math.pow(hungry, 3) / dist;
+            if(quadHungry < minQuadHungry) continue;
+            if(quadHungry < bestQuadHungry) continue;
+
+            bestQuadHungry = quadHungry;
             bestPlayer = p;
         }
 
