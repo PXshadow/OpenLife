@@ -71,17 +71,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 {
     public static var AllPlayerMutex = new Mutex();
 
-    // todo remove players once dead???
     public static var AllPlayers = new Map<Int,GlobalPlayerInstance>();
     public static function AddPlayer(player:GlobalPlayerInstance)
     {
         AllPlayers[player.p_id] = player;
         Lineage.AddLineage(player.p_id, player.lineage);
-
-        //var count = 0;
-        //for(p in AllPlayers) count++;
-        //trace('Spawn: ${player.p_id} ${player.account.email} count: $count');
-    }
+    } 
 
     public static var medianPrestige:Float = ServerSettings.HealthFactor;
 

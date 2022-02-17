@@ -163,34 +163,15 @@ class MoveHelper
 
         speed *= containedObjSpeedMult;
 
+        // Reduce speed if damaged or age 
+        var fullHitpoints = ServerSettings.GrownUpFoodStoreMax;
+        var currenHitpoints = p.calculateFoodStoreMax();
 
-        // only reduce speed when starving if not riding or in car 
-        //if(onHorseOrCar == false)
-        //{
-            // DO starving speed 
-            /*
-            if(p.food_store < 0) 
-            {
-                if(p.yum_multiplier > 0) speed *= ServerSettings.StarvingToDeathMoveSpeedFactorWhileHealthAboveZero;
-                else speed *= ServerSettings.StarvingToDeathMoveSpeedFactor;
-            }
-            */
+        // between 1/2 and 1 if currenHitpoints <= fullHitpoints
+        speed *= (currenHitpoints + fullHitpoints) / (fullHitpoints + fullHitpoints);
 
-            // Reduce speed if damaged or age 
-            var fullHitpoints = ServerSettings.GrownUpFoodStoreMax;
-            var currenHitpoints = p.calculateFoodStoreMax();
-
-            // between 1/2 and 1 if currenHitpoints <= fullHitpoints
-            speed *= (currenHitpoints + fullHitpoints) / (fullHitpoints + fullHitpoints);
-
-            if(ServerSettings.DebugSpeed) trace('SPEED: $speed currenHitpoints: $currenHitpoints fullHitpoints: $fullHitpoints');
-        //}
-
-        // Do health speed // TODO maybe better use currenHitpoints...  
-        //var healthFactor = p.CalculateSpeedHealthFactor();
-        //if(ServerSettings.DebugSpeed) trace('speed: healthFactor: $healthFactor health: ${p.yum_multiplier} trueAge: ${p.trueAge} expected health: ${p.trueAge  * ServerSettings.MinHealthPerYear}');
-        //speed *= healthFactor;
-
+        if(ServerSettings.DebugSpeed) trace('SPEED: $speed currenHitpoints: $currenHitpoints fullHitpoints: $fullHitpoints');
+        
         // Do temperature speed
         var temperatureSpeedImpact = ServerSettings.TemperatureSpeedImpact;
         if(p.isSuperHot())  speed *= p.heat > 0.98 ? Math.pow(temperatureSpeedImpact,2) : temperatureSpeedImpact;
@@ -351,7 +332,6 @@ class MoveHelper
 
             p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
             p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
-            //p.forced = true; 
 
             if(p.heldPlayer != null)
             {
@@ -360,8 +340,6 @@ class MoveHelper
             }
 
             Connection.SendUpdateToAllClosePlayers(p);
-
-            //p.forced = false; 
 
             if(p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
 
