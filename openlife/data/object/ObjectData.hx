@@ -1371,6 +1371,15 @@ class ObjectData extends LineReader
         return timeTransition;
     }
 
+    /**Considers food parent in case of dummy and if food can be made with one transition**/
+    public function getFoodId() : Int
+    {
+        var foodObjData = dummyParent == null ? this : dummyParent;
+        var foodId = foodObjData.foodFromTarget == null ? foodObjData.parentId : foodObjData.foodFromTarget.parentId;
+        return foodId;
+    }
+        
+
     // TODO does not work for attacking wolf etc...
     public function isAnimal() : Bool
     {

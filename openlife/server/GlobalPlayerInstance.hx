@@ -2257,29 +2257,29 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             {
                 // look if there is a close food that can be craved
                 currentlyCraving = 0; // ignore craving when search best food
-                var bestFood = AiHelper.SearchBestFood(this, false);
+                var bestfood = AiHelper.SearchBestFood(this, false);
                 var newHasEatenCount = 1.0;
-                var key = 0;
+                var foodId = 0;
                 
-                if(bestFood != null)
+                if(bestfood != null)
                 {
-                    newHasEatenCount = hasEatenMap[bestFood.parentId]; 
-                    key = bestFood.parentId;        
+                    foodId = bestfood.objectData.getFoodId();
+                    newHasEatenCount = hasEatenMap[foodId]; 
                     
-                    trace('Find close craving: ${bestFood.description} newHasEatenCount: $newHasEatenCount');
+                    trace('Find close craving: ${bestfood.description} newHasEatenCount: $newHasEatenCount');
                 }
 
                 if(newHasEatenCount > 0)
                 {
                     // chose craving from known craving list
                     var random = WorldMap.calculateRandomInt(cravings.length -1);
-                    key = cravings[random];
-                    newHasEatenCount = hasEatenMap[key];
+                    foodId = cravings[random];
+                    newHasEatenCount = hasEatenMap[foodId];
                 }
-                else displayFood(bestFood);
+                else displayFood(bestfood);
 
                 newHasEatenCount--;
-                this.connection.send(ClientTag.CRAVING, ['$key ${-newHasEatenCount}']);
+                this.connection.send(ClientTag.CRAVING, ['$foodId ${-newHasEatenCount}']);
                 currentlyCraving = key;
 
                 trace('IncreaseFoodValue: new craving: cravingHasEatenCount: $cravingHasEatenCount currentlyCraving: $currentlyCraving ${-newHasEatenCount}');
@@ -2617,14 +2617,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(this.isAi()) return;
 
         var player = this;
-        var countEaten = player.hasEatenMap[food.parentId];
+        var foodId = food.objectData.getFoodId();
+        var countEaten = player.hasEatenMap[foodId];
         var isYum = countEaten < ServerSettings.YumBonus; 
         var text = 'F';
         var count;
 
         if(isYum)
         {
-            text = 'Y';            
+            text = foodId == currentlyCraving ? 'YY' : 'Y';            
             count = Math.ceil(ServerSettings.YumBonus - countEaten);
             count = Math.ceil(Math.min(5, count));
             for(i in 0...count) text += 'U';
@@ -2652,7 +2653,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(player.currentlyCraving != 0 && player.heldObject.id == player.currentlyCraving) return;
 
         var bestfood = AiHelper.SearchBestFood(player);
-        var displayBestFood = bestfood != null && (player.isHoldingYum() == false || bestfood.id == player.currentlyCraving) && AiHelper.CalculateDistanceToObject(player, bestfood) > 10;
+        var foodId = bestfood.objectData.getFoodId();
+        var displayBestFood = bestfood != null && (player.isHoldingYum() == false || foodId == player.currentlyCraving) && AiHelper.CalculateDistanceToObject(player, bestfood) > 10;
 
         if(displayBestFood) player.displayFood(bestfood);
     }
@@ -3603,24 +3605,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         //trace('drop player');
 
-        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
-        else this.mutex.acquire();
-
+        AllPlayerMutex.acquire();
+        
         if(this.heldPlayer == null)
         {
             this.connection.send(PLAYER_UPDATE,[this.toData()]);
-
-            if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
-            else this.mutex.release();
-
+            AllPlayerMutex.release();   
             return false;    
         }
 
         var done = false;
         Macro.exception(done = dropPlayerHelper());
 
-        if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.release();
-        else this.mutex.release();
+        AllPlayerMutex.release();
 
         return done;
     }
@@ -3633,6 +3630,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         heldPlayer.x = player.tx - heldPlayer.gx;
         heldPlayer.y = player.ty - heldPlayer.gy;
+        heldPlayer.moveHelper.exactTx = heldPlayer.tx;
+        heldPlayer.moveHelper.exactTy = heldPlayer.ty;
 
         player.heldPlayer = null;
         player.o_id = [0];
