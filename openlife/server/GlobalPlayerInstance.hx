@@ -3741,14 +3741,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function isCloseRelative(target:GlobalPlayerInstance) : Bool
     {
-        if(target == this.mother) return true;    
-        if(target == this.father) return true;
+        if(target == this.mother) return true;  // target is mother  
+        if(target == this.father) return true;  // target is father
 
-        if(target.mother == this) return true;    
-        if(target.father == this) return true;
+        if(target.mother == this) return true;  // target is kid   
+        if(target.father == this) return true;  // target is kid
         
         if(target.mother == this.mother) return true; // brother / sister   
-        if(target.father == this.father) return true; // brother / sister    
+        if(target.father == this.father) return true; // brother / sister 
+        
+        if(target.mother != null && target.mother.mother == this) return true;  // target is grandkid
+        if(target.father != null && target.father.father == this) return true;  // target is grandkid
+
+        if(this.mother != null && this.mother.mother == this) return true;  // target is grandma
+        if(this.father != null && this.father.father == this) return true;  // target is grandpa
 
         return false;
     }
