@@ -849,15 +849,15 @@ class Connection
             return;
         } 
 
-        var message = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
+        var message = '';
 
-        // TODO change
-        //if(this.sock == null) throw new Exception('send sock == null');
-
-        //trace('send:  ${data}');
-        
-        try 
+        try
         {
+            // TODO why this creates sometimes Access Violation?
+            var message = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
+
+            //trace('send:  ${data}');
+        
             sendHelper(message, isPlayerAction);
         }
         catch(ex)
