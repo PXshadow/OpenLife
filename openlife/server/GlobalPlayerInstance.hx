@@ -2343,12 +2343,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public static function DisplayBestFood(player:GlobalPlayerInstance)
     {
         if(player.isAi()) return;
-        if(player.heldObject.objectData.foodValue <= 0) return;
+        //if(player.heldObject.objectData.foodValue <= 0) return;
         if(player.food_store > player.food_store_max * 0.8) return;
         if(player.currentlyCraving != 0 && player.heldObject.id == player.currentlyCraving) return;
 
         var bestfood = AiHelper.SearchBestFood(player);
-        var displayBestFood = bestfood != null && (player.isHoldingYum() == false || bestfood.id == player.currentlyCraving);
+        var displayBestFood = bestfood != null && (player.isHoldingYum() == false || bestfood.id == player.currentlyCraving) && AiHelper.CalculateDistanceToObject(player, bestfood) > 10;
 
         if(displayBestFood) player.displayFood(bestfood);
     }
