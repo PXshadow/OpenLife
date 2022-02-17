@@ -76,6 +76,14 @@ class MoveHelper
 
         return (xDiff * xDiff + yDiff * yDiff <= distance * distance);
     }
+    
+    public function calculateExactQuadDistance(targetTx:Float, targetTy:Float) : Float
+    {    
+        var xDiff = this.exactTx - targetTx;
+        var yDiff = this.exactTy - targetTy;
+
+        return (xDiff * xDiff + yDiff * yDiff);
+    }
 
     static public function calculateSpeed(p:GlobalPlayerInstance, tx:Int, ty:Int, fullPathHasRoad:Bool = true) : Float
     {
@@ -449,20 +457,22 @@ class MoveHelper
             return;
         }
 
+        var jump = (p.x != x || p.y != y);
         var tx = x + p.gx;
         var ty = y + p.gy;
         var moveHelper = p.moveHelper;
+        var quadDist = jump ? p.moveHelper.calculateExactQuadDistance(tx, ty) : 0;
 
-        if(p.isBlocked(tx,ty) || p.isClose(x,y,ServerSettings.MaxMovementCheatingDistanceBeforeForce) == false)
+        if(p.isBlocked(tx,ty) || quadDist > ServerSettings.MaxMovementQuadJumpDistanceBeforeForce)
         {
-            trace('MOVE: FORCE! Movement cancled since blocked or Client uses too different x,y: Server ${ p.x },${ p.y }:Client ${ x },${ y }');
+            trace('MOVE: FORCE! Movement cancled since blocked or Client uses too different x,y: quadDist: $quadDist Server ${ p.x },${ p.y } <--> Client ${ x },${ y }');
             cancleMovement(p, seq);
             return;    
         }
 
         var positionChanged = false;
 
-        if(p.x != x || p.y != y)
+        if(jump)
         {
             if(Math.ceil(p.jumpedTiles) >= ServerSettings.MaxJumpsPerTenSec || p.exhaustion > p.food_store_max / 2)
             {
@@ -471,13 +481,13 @@ class MoveHelper
                 return;
             } 
 
-            trace('MOVE: JUMP: positionChanged NoForce! Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
+            trace('MOVE: JUMP: positionChanged NoForce! quadDist: ${quadDist} Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
 
             // Since vanilla client handels move strangely the server accepts one position further even if not fully reached there 
             // This a client could use to jump.
-            // Therefore exhaustion and jumpedTiles is used to limit client jumps / "cheeting"
-            p.exhaustion += ServerSettings.ExhaustionOnJump;
-            p.jumpedTiles += 1;
+            // Therefore exhaustion and jumpedTiles is used to limit client jumps / "cheeting"      
+            p.exhaustion += quadDist * ServerSettings.ExhaustionOnJump;
+            p.jumpedTiles += quadDist;
 
             positionChanged = true;
             

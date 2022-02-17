@@ -283,8 +283,6 @@ High priority:
 - AI using of baskets and backpack
 - AI Stoneage
 
-- MOVE better exhaustion calculation on JUMP
-
 - NAMING fix bug
 
 - BIRTH spawn eves on different locations

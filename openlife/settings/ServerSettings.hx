@@ -149,8 +149,8 @@ class ServerSettings
     
     // since client does not seem to use exact positions allow little bit cheating / JUMPS
     public static var LetTheClientCheatLittleBitFactor = 1.1; // when considering if the position is reached, allow the client to cheat little bit, so there is no lag
-    public static var MaxMovementCheatingDistanceBeforeForce = 2; // if client player position is bigger then X, client is forced in PU to use server position 
-    public static var MaxJumpsPerTenSec:Float = 2; // limit how often a client can JUMP / cheat his position
+    public static var MaxMovementQuadJumpDistanceBeforeForce:Float = 1; // if quadDistance between server and client position is bigger then X the client is forced to use server position 
+    public static var MaxJumpsPerTenSec:Float = 3; // limit how often a client can JUMP / cheat his position
     public static var ExhaustionOnJump:Float = 0.25;
 
     // hungry work
