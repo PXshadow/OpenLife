@@ -501,8 +501,8 @@ class ServerSettings
         ObjectData.getObjectData(1363).damage = 0.05; // per sec Bite Wound
         ObjectData.getObjectData(1381).damage = 0.03; // per sec Clean Bite Wound
 
-        ObjectData.getObjectData(1377).damage = 0.25; // per sec Snake Bite
-        ObjectData.getObjectData(1384).damage = 0.2; // per sec Clean Snake Bite
+        ObjectData.getObjectData(1377).damage = 0.1; // per sec Snake Bite
+        ObjectData.getObjectData(1384).damage = 0.05; // per sec Clean Snake Bite
        
         ObjectData.getObjectData(1364).damage = 0.05; // per Hog Cut
         ObjectData.getObjectData(1383).damage = 0.03; // per sec Clean Hog Cut
