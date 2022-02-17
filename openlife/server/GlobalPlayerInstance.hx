@@ -1972,6 +1972,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                     key = cravings[random];
                     newHasEatenCount = hasEatenMap[key];
                 }
+                else displayFood(bestFood);
 
                 newHasEatenCount--;
                 this.connection.send(ClientTag.CRAVING, ['$key ${-newHasEatenCount}']);
@@ -2189,18 +2190,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         trace('this.clothing_set: ${this.clothing_set}');
     }
 
+    public function isYum(food:ObjectHelper) : Bool
+    {
+        var foodObjData = food.objectData;
+        if(foodObjData.dummyParent != null) foodObjData = foodObjData.dummyParent;
+
+        if(foodObjData.foodValue < 1) return false;
+
+        var countEaten = hasEatenMap[foodObjData.id];
+
+        return countEaten < ServerSettings.YumBonus; 
+    }
+
     public function isHoldingYum() : Bool
     {
         if(this.o_id[0] < 0) return false; // is holding player
 
-        var heldObjData = heldObject.objectData;
-        if(heldObjData.dummyParent != null) heldObjData = heldObjData.dummyParent;
-
-        if(heldObjData.foodValue < 1) return false;
-
-        var countEaten = hasEatenMap[heldObjData.id];
-
-        return countEaten < ServerSettings.YumBonus; 
+        return isYum(heldObject);
     }
 
     public function isHoldingMeh() : Bool        
@@ -2216,7 +2222,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         return countEaten > ServerSettings.YumBonus; 
     }
-
+    
     public function isHoldingWeapon() : Bool
     {
         return heldObject.objectData.deadlyDistance > 0;
@@ -2273,8 +2279,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(obj != null && obj.objectData.foodValue > 0)
         {
-            obj.tx = this.tx;
-            obj.ty = this.ty;
+            // this was set so that display food displays text above player. 
+            // but in an swap the position is not yet changed but it is tested in getObjectHelper if the position is correct which it is not yet...
+            // in search best food if the position is still valid 
+            //obj.tx = this.tx; 
+            //obj.ty = this.ty;
 
             var isHoldingYum = isHoldingYum();
             if(isHoldingYum) this.doEmote(Emote.joy);
@@ -2304,7 +2313,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(this.isAi()) return;
 
         var player = this;
-        var countEaten = player.hasEatenMap[food.id];
+        var countEaten = player.hasEatenMap[food.parentId];
         var isYum = countEaten < ServerSettings.YumBonus; 
         var text = 'F';
         var count;
@@ -2334,9 +2343,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public static function DisplayBestFood(player:GlobalPlayerInstance)
     {
         if(player.isAi()) return;
-        if(player.heldObject == null || player.heldObject.objectData.foodValue <= 0) return;
-        if(player.food_store > player.food_store_max - 1) return;
-        if(player.heldObject.id == player.currentlyCraving) return;
+        if(player.heldObject.objectData.foodValue <= 0) return;
+        if(player.food_store > player.food_store_max * 0.8) return;
+        if(player.currentlyCraving != 0 && player.heldObject.id == player.currentlyCraving) return;
 
         var bestfood = AiHelper.SearchBestFood(player);
         var displayBestFood = bestfood != null && (player.isHoldingYum() == false || bestfood.id == player.currentlyCraving);

@@ -269,6 +269,9 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
+- AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread
+- AI FIX bug with wanting to shoot bear in order to get a rope from bow
+
 - AI consider if some one else is already feeding
 - AI dropping not needed crafting stuff
 - AI if waiting for time transition check if the next step can be prepared
