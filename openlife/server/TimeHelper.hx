@@ -1643,6 +1643,8 @@ class TimeHelper
     // Called before time. Do tests here!
     private static function DoTest()
     {
+        //SerializeHelper.createReadWriteFile();
+
         /*
         var array = [];
         for(i in 0...1000000)

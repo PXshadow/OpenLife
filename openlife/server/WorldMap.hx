@@ -646,6 +646,7 @@ class WorldMap
         Macro.exception(PlayerAccount.WritePlayerAccounts(dir + "PlayerAccounts" + tmpDataNumber + ".bin"));
 
         Lineage.WriteAllLineages(dir + "Lineages" + tmpDataNumber + ".bin");
+        GlobalPlayerInstance.WriteAllPlayers(dir + "Players" + tmpDataNumber + ".bin");
         
         writeIndexFile(dir + "lastDataNumber" + tmpDataNumber + ".txt", tmpDataNumber);
         writeIndexFile(dir + "lastDataNumber.txt", tmpDataNumber);

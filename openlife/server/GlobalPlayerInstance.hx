@@ -1,4 +1,5 @@
 package openlife.server;
+import sys.io.File;
 import openlife.auto.Ai;
 import haxe.Exception;
 import openlife.server.Lineage.PrestigeClass;
@@ -67,6 +68,7 @@ using openlife.server.MoveHelper;
 }
 
 // GlobalPlayerInstance is used as a WorldInterface for an AI, since it may be limited what the AI can see so player information is relevant
+@:rtti
 class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface
 {
     public static var AllPlayerMutex = new Mutex();
@@ -88,7 +90,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private var myMother:GlobalPlayerInstance;
     private var myFather:GlobalPlayerInstance;
-    private var myChildren = new Array<GlobalPlayerInstance>();
+    private var myChildren = new Array<GlobalPlayerInstance>(); // TODO not needed
 
     // make sure to set these null is player is deleted so that garbage collector can clean up
     public var followPlayer:GlobalPlayerInstance;
@@ -189,6 +191,308 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.lastPlayerAttackedMe = null;
 
         AllPlayers.remove(this.p_id);
+    }
+
+    public static function WriteAllPlayers(path:String)
+    {
+        WritePlayers(path, AllPlayers);
+    }
+
+    public static function WritePlayers(path:String, players:Map<Int,GlobalPlayerInstance>)
+    { 
+        var count = 0;
+        var dataVersion = 1;
+        var writer = File.write(path, true);
+
+        for(player in players) count++;
+
+        writer.writeInt32(dataVersion); 
+        writer.writeInt32(count);
+        
+        for(obj in players)
+        {
+            // write player instance variables
+            // TODO heldObject:ObjectHelper; 
+            writer.writeInt32(obj.p_id);
+            writer.writeFloat(obj.food_store);
+            writer.writeFloat(obj.food_store_max);
+            writer.writeInt32(obj.last_ate_fill_max);
+            writer.writeFloat(obj.yum_bonus);
+            writer.writeFloat(obj.yum_multiplier);
+            writer.writeInt32(obj.gx);
+            writer.writeInt32(obj.gy);
+            //writer.writeInt32(obj.tx);
+            //writer.writeInt32(obj.ty);
+            writer.writeInt32(obj.po_id);
+            writer.writeInt32(obj.facing);
+            writer.writeInt32(obj.action);
+            writer.writeInt32(obj.action_target_x);
+            writer.writeInt32(obj.action_target_y);
+            writer.writeInt16(obj.o_id.length);
+            for(i in obj.o_id) writer.writeInt32(i);
+            writer.writeInt32(obj.o_origin_valid);
+            writer.writeInt32(obj.o_origin_x);
+            writer.writeInt32(obj.o_origin_y);
+            writer.writeInt32(obj.o_transition_source_id);
+            writer.writeFloat(obj.heat);
+            writer.writeInt32(obj.done_moving_seqNum);
+            writer.writeInt8(obj.forced ? 1 : 0);
+            writer.writeInt32(obj.x);
+            writer.writeInt32(obj.y);
+            writer.writeFloat(obj.age);
+            writer.writeFloat(obj.age_r);
+            writer.writeFloat(obj.move_speed);
+            writer.writeInt16(obj.clothing_set.length);
+            writer.writeString(obj.clothing_set);
+            writer.writeInt32(obj.just_ate);
+            writer.writeInt32(obj.last_ate_id);
+            writer.writeInt32(obj.responsible_id);
+            writer.writeInt8(obj.held_yum ? 1 : 0);
+            writer.writeInt8(obj.held_learned ? 1 : 0);
+            writer.writeInt8(obj.deleted ? 1 : 0);
+            writer.writeInt16(obj.reason.length);
+            writer.writeString(obj.reason);
+            writer.writeInt32(obj.i);
+            //writer.writeInt16(obj.name.length);
+            //writer.writeString(obj.name);
+            //TODO? var a:Array<String>;
+
+            // From GlobalPlayerInstance
+            //lineage 1 CClass(openlife.server.Lineage,[])
+            writer.writeInt32(GetPlayerIdForWrite(obj.myMother)); //2
+            writer.writeInt32(GetPlayerIdForWrite(obj.myFather)); //3
+            //myChildren 4 CClass(Array,[CClass(openlife.server.GlobalPlayerInstance,[])])
+            writer.writeInt32(GetPlayerIdForWrite(obj.followPlayer)); //5
+            writer.writeInt32(GetPlayerIdForWrite(obj.heldPlayer)); //6
+            writer.writeInt32(GetPlayerIdForWrite(obj.heldByPlayer)); //7
+            //moveHelper 11 CClass(openlife.server.MoveHelper,[])
+            writer.writeInt8(obj.killMode ? 1 : 0);
+            //clothingObjects 13 CAbstract(haxe.ds.Vector,[CClass(openlife.data.object.ObjectHelper,[])])
+            //mutex 14 CAbstract(sys.thread.Mutex,[])
+            //connection 15 CClass(openlife.server.Connection,[])
+            writer.writeFloat(obj.trueAge);
+            //hasEatenMap 17 CAbstract(haxe.ds.Map,[CAbstract(Int,[]),CAbstract(Float,[])])
+            writer.writeInt32(obj.leaderBadgeColor);
+            writer.writeInt32(obj.currentlyCraving);
+            writer.writeInt32(obj.lastCravingIndex);
+            writer.writeInt16(obj.cravings.length);
+            for(i in obj.cravings) writer.writeInt32(i);
+            writer.writeFloat(obj.hits);
+            writer.writeInt32(obj.woundedBy);
+            writer.writeFloat(obj.exhaustion);
+            writer.writeFloat(obj.childrenBirthMali);
+            writer.writeFloat(obj.foodUsePerSecond);
+            //exiledByPlayers 27 CAbstract(haxe.ds.Map,[CAbstract(Int,[]),CClass(openlife.server.GlobalPlayerInstance,[])])
+            writer.writeFloat(obj.coins);
+            writer.writeFloat(obj.prestigeFromChildren);
+            writer.writeFloat(obj.prestigeFromEating);
+            writer.writeFloat(obj.prestigeFromFollowers);
+            writer.writeFloat(obj.prestigeFromWealth);
+            //owning 33 CClass(Array,[CClass(openlife.data.object.ObjectHelper,[])])
+            writer.writeInt32(GetPlayerIdForWrite(obj.lastPlayerAttackedMe)); //34
+            writer.writeInt32(GetPlayerIdForWrite(obj.lastAttackedPlayer)); //35
+            writer.writeFloat(obj.angryTime);
+            writer.writeInt32(GetPlayerIdForWrite(obj.newFollower)); //37
+            writer.writeInt32(GetPlayerIdForWrite(obj.newFollowerFor)); //38
+            writer.writeFloat(obj.newFollowerTime);
+            writer.writeInt8(obj.isCursed ? 1 : 0);
+            writer.writeInt8(obj.inWrongBiome ? 1 : 0);
+            writer.writeInt8(obj.inHomeBiome ? 1 : 0);
+            writer.writeFloat(obj.jumpedTiles);
+            ObjectHelper.WriteToFile(obj.hiddenWound); //44
+            ObjectHelper.WriteToFile(obj.fever); //45
+            writer.writeFloat(obj.yellowfeverCount);
+            writer.writeFloat(obj.lastSayInSec);
+            //writer.writeInt32(obj.id);
+            //writer.writeInt16(obj.familyName.length);
+            //writer.writeString(obj.familyName);
+            //writer.writeInt32(GetPlayerIdForWrite(obj.mother)); //55
+            //writer.writeInt32(GetPlayerIdForWrite(obj.father)); //58
+            //writer.writeFloat(obj.lineagePrestige);
+            //writer.writeFloat(obj.prestige);
+            //account 166 CClass(openlife.server.PlayerAccount,[])
+
+            //lineage 1 CClass(openlife.server.Lineage,[])
+            //myChildren 4 CClass(Array,[CClass(openlife.server.GlobalPlayerInstance,[])])
+            //moveHelper 11 CClass(openlife.server.MoveHelper,[])
+            //clothingObjects 13 CAbstract(haxe.ds.Vector,[CClass(openlife.data.object.ObjectHelper,[])])
+            //mutex 14 CAbstract(sys.thread.Mutex,[])
+            //connection 15 CClass(openlife.server.Connection,[])
+            //hasEatenMap 17 CAbstract(haxe.ds.Map,[CAbstract(Int,[]),CAbstract(Float,[])])
+            //exiledByPlayers 27 CAbstract(haxe.ds.Map,[CAbstract(Int,[]),CClass(openlife.server.GlobalPlayerInstance,[])])
+            //owning 33 CClass(Array,[CClass(openlife.data.object.ObjectHelper,[])])
+            //account 166 CClass(openlife.server.PlayerAccount,[])
+            
+        }
+
+        writer.close();
+
+        if(ServerSettings.DebugWrite) trace('wrote $count Players...');
+    }
+
+    private static function GetPlayerIdForWrite(player:GlobalPlayerInstance) : Int
+    {
+        return player == null ? -100 : player.p_id;
+    }
+
+    private static function GetPlayerFromId(playerId:Int) : GlobalPlayerInstance
+    {
+        if(playerId == -100) return null;
+        return AllPlayers[playerId];
+    }
+    
+    public static function ReadPlayers(path:String) : Map<Int,GlobalPlayerInstance>
+    {
+        var reader = File.read(path, true);
+        var expectedDataVersion = 1;
+        var dataVersion = reader.readInt32();
+        var count = reader.readInt32();
+        var loadedPlayers = new Map<Int,GlobalPlayerInstance>();
+        var playersToLoad = new Map<Int, Map<String, Int>>();
+
+        trace('Read players from file: $path count: ${count}');
+
+        if(dataVersion != expectedDataVersion) throw new Exception('ReadPlayers: Data version is: $dataVersion expected data version is: $expectedDataVersion');
+
+        try{
+            for(i in 0...count)
+            {
+                var obj = new GlobalPlayerInstance(null);
+                var id = reader.readInt32();
+                loadedPlayers[id] = obj;
+                playersToLoad[id] = new Map<String, Int>();
+
+                // read Playerinstance variables
+                // TODO heldObject:ObjectHelper; 
+                obj.food_store = reader.readFloat();
+                obj.food_store_max = reader.readFloat();
+                obj.last_ate_fill_max = reader.readInt32();
+                obj.yum_bonus = reader.readFloat();
+                obj.yum_multiplier = reader.readFloat();
+                obj.gx = reader.readInt32();
+                obj.gy = reader.readInt32();
+                //obj.tx = reader.readInt32();
+                //obj.ty = reader.readInt32();                
+                obj.po_id = reader.readInt32();
+                obj.facing = reader.readInt32();
+                obj.action = reader.readInt32();
+                obj.action_target_x = reader.readInt32();
+                obj.action_target_y = reader.readInt32();
+                obj.o_id = new Array<Int>();
+                var len = reader.readInt16();
+                for(i in 0...len){obj.o_id[i] = reader.readInt32();}
+                obj.o_origin_valid = reader.readInt32();
+                obj.o_origin_x = reader.readInt32();
+                obj.o_origin_y = reader.readInt32();
+                obj.o_transition_source_id = reader.readInt32();
+                obj.heat = reader.readFloat();
+                obj.done_moving_seqNum = reader.readInt32();
+                obj.forced = reader.readInt8() != 0 ? true : false;
+                obj.x = reader.readInt32();
+                obj.y = reader.readInt32();
+                obj.age = reader.readFloat();
+                obj.age_r = reader.readFloat();
+                obj.move_speed = reader.readFloat();
+                var len = reader.readInt16();
+                obj.clothing_set = reader.readString(len);
+                obj.just_ate = reader.readInt32();
+                obj.last_ate_id = reader.readInt32();
+                obj.responsible_id = reader.readInt32();
+                obj.held_yum = reader.readInt8() != 0 ? true : false;
+                obj.held_learned = reader.readInt8() != 0 ? true : false;
+                obj.deleted = reader.readInt8() != 0 ? true : false;
+                var len = reader.readInt16();
+                obj.reason = reader.readString(len);
+                obj.i = reader.readInt32();
+                //var len = reader.readInt16();
+                //obj.name = reader.readString(len);
+                //TODO? var a:Array<String>;
+
+                // read GlobalPlayerInstance
+                //lineage 1 CClass(openlife.server.Lineage,[])
+                playersToLoad[obj.p_id]["myMother"] = reader.readInt32(); //2
+                playersToLoad[obj.p_id]["myFather"] = reader.readInt32(); //3
+                //myChildren 4 CClass(Array,[CClass(openlife.server.GlobalPlayerInstance,[])])
+                playersToLoad[obj.p_id]["followPlayer"] = reader.readInt32(); //5
+                playersToLoad[obj.p_id]["heldPlayer"] = reader.readInt32(); //6
+                playersToLoad[obj.p_id]["heldByPlayer"] = reader.readInt32(); //7
+                //moveHelper 11 CClass(openlife.server.MoveHelper,[])
+                obj.killMode = reader.readInt8() != 0 ? true : false;
+                //clothingObjects 13 CAbstract(haxe.ds.Vector,[CClass(openlife.data.object.ObjectHelper,[])])
+                //mutex 14 CAbstract(sys.thread.Mutex,[])
+                //connection 15 CClass(openlife.server.Connection,[])
+                obj.trueAge = reader.readFloat();
+                //hasEatenMap 17 CAbstract(haxe.ds.Map,[CAbstract(Int,[]),CAbstract(Float,[])])
+                obj.leaderBadgeColor = reader.readInt32();
+                obj.currentlyCraving = reader.readInt32();
+                obj.lastCravingIndex = reader.readInt32();
+                obj.cravings = new Array<Int>();
+                var len = reader.readInt16();
+                for(i in 0...len){obj.cravings[i] = reader.readInt32();}
+                obj.hits = reader.readFloat();
+                obj.woundedBy = reader.readInt32();
+                obj.exhaustion = reader.readFloat();
+                obj.childrenBirthMali = reader.readFloat();
+                obj.foodUsePerSecond = reader.readFloat();
+                //exiledByPlayers 27 CAbstract(haxe.ds.Map,[CAbstract(Int,[]),CClass(openlife.server.GlobalPlayerInstance,[])])
+                obj.coins = reader.readFloat();
+                obj.prestigeFromChildren = reader.readFloat();
+                obj.prestigeFromEating = reader.readFloat();
+                obj.prestigeFromFollowers = reader.readFloat();
+                obj.prestigeFromWealth = reader.readFloat();
+                //owning 33 CClass(Array,[CClass(openlife.data.object.ObjectHelper,[])])
+                playersToLoad[obj.p_id]["lastPlayerAttackedMe"] = reader.readInt32(); //34
+                playersToLoad[obj.p_id]["lastAttackedPlayer"] = reader.readInt32(); //35
+                obj.angryTime = reader.readFloat();
+                playersToLoad[obj.p_id]["newFollower"] = reader.readInt32(); //37
+                playersToLoad[obj.p_id]["newFollowerFor"] = reader.readInt32(); //38
+                obj.newFollowerTime = reader.readFloat();
+                obj.isCursed = reader.readInt8() != 0 ? true : false;
+                obj.inWrongBiome = reader.readInt8() != 0 ? true : false;
+                obj.inHomeBiome = reader.readInt8() != 0 ? true : false;
+                obj.jumpedTiles = reader.readFloat();
+                obj.hiddenWound = ObjectHelper.LoadFromFile(); //44
+                obj.fever = ObjectHelper.LoadFromFile(); //45
+                obj.yellowfeverCount = reader.readFloat();
+                obj.lastSayInSec = reader.readFloat();
+                //obj.id = reader.readInt32();
+                //var len = reader.readInt16();
+                //obj.familyName = reader.readString(len);
+                //playersToLoad[obj.p_id]["mother"] = reader.readInt32(); //55
+                //playersToLoad[obj.p_id]["father"] = reader.readInt32(); //58
+                //obj.lineagePrestige = reader.readFloat();
+                //obj.prestige = reader.readFloat();
+                //account 166 CClass(openlife.server.PlayerAccount,[])                
+            }
+        }
+        catch(ex)
+        {
+            reader.close();
+            throw ex;
+        }
+
+        reader.close();
+
+        AllPlayers = loadedPlayers;
+
+        for(obj in loadedPlayers)
+        {
+            obj.myMother = GetPlayerFromId(playersToLoad[obj.p_id]["myMother"]); //2
+            obj.myFather = GetPlayerFromId(playersToLoad[obj.p_id]["myFather"]); //3
+            obj.followPlayer = GetPlayerFromId(playersToLoad[obj.p_id]["followPlayer"]); //5
+            obj.heldPlayer = GetPlayerFromId(playersToLoad[obj.p_id]["heldPlayer"]); //6
+            obj.heldByPlayer = GetPlayerFromId(playersToLoad[obj.p_id]["heldByPlayer"]); //7
+            obj.lastPlayerAttackedMe = GetPlayerFromId(playersToLoad[obj.p_id]["lastPlayerAttackedMe"]); //34
+            obj.lastAttackedPlayer = GetPlayerFromId(playersToLoad[obj.p_id]["lastAttackedPlayer"]); //35
+            obj.newFollower = GetPlayerFromId(playersToLoad[obj.p_id]["newFollower"]); //37
+            obj.newFollowerFor = GetPlayerFromId(playersToLoad[obj.p_id]["newFollowerFor"]); //38
+            //obj.mother = GetPlayerFromId(playersToLoad[obj.p_id]["mother"]); //55
+            //obj.father = GetPlayerFromId(playersToLoad[obj.p_id]["father"]); //58     
+        }
+
+        trace('read $count Players...');
+
+        return loadedPlayers;
     }
 
     public var id(get, null):Int;

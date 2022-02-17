@@ -6,8 +6,14 @@ import openlife.server.Connection;
 import openlife.settings.ServerSettings;
 import openlife.data.map.MapData;
 @:expose("PlayerInstance")
+@:rtti
 class PlayerInstance
 {
+    /**
+     * Player ID, given by server
+     */
+     public var p_id:Int = 0;
+     
     // holds additional ObjectInformation for the object held in hand / null if there is no additional object data
     public var heldObject:ObjectHelper; 
     
@@ -28,10 +34,6 @@ class PlayerInstance
     public var ty(get, null):Int;
     public function get_ty(){return y + gy;}
 
-    /**
-     * Player ID, given by server
-     */
-    public var p_id:Int = 0;
     /**
      * Player's object ID, from objects
      */

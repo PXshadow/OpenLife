@@ -139,7 +139,7 @@ class Lineage
         var count = reader.readInt32();
         var loadedLineages = new Map<Int,Lineage>();
 
-        trace('Read from file: $path count: ${count}');
+        trace('Read lineages from file: $path count: ${count}');
 
         if(dataVersion != expectedDataVersion) throw new Exception('ReadLineages: Data version is: $dataVersion expected data version is: $expectedDataVersion');
 

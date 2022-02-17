@@ -79,6 +79,17 @@ class ObjectHelper
         if(ServerSettings.DebugWrite) trace('wrote $count ObjectHelpers...');
     }
 
+    public static function WriteToFile(obj:ObjectHelper)
+    {
+        // TODO
+    }
+
+    public static function LoadFromFile() : ObjectHelper
+    {
+        // TODO
+        return null;
+    }
+
     public static function ReadMapObjHelpers(path:String) : Vector<ObjectHelper>
     {
         var reader = File.read(path, true);

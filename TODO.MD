@@ -299,6 +299,8 @@ High priority:
 Middle priority:
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
 
+- SAVE for contained objects. Currently only ids from contained obj are saved
+
 - BIOME biome boni for different races
 - BIOME change biome speed for specialists (only if in attack mode or carrying heavy stuff???)
 - BIOME no dropping of stuff on water??? or better let it drift back to land?
