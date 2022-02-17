@@ -1951,10 +1951,28 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             }
             else
             {
-                // chose craving from known craving list
-                var random = WorldMap.calculateRandomInt(cravings.length -1);
-                var key = cravings[random];
-                newHasEatenCount = hasEatenMap[key];
+                // look if there is a close food that can be craved
+                currentlyCraving = 0; // ignore craving when search best food
+                var bestFood = AiHelper.SearchBestFood(this, false);
+                var newHasEatenCount = 1.0;
+                var key = 0;
+                
+                if(bestFood != null)
+                {
+                    newHasEatenCount = hasEatenMap[bestFood.parentId]; 
+                    key = bestFood.parentId;        
+                    
+                    trace('Find close craving: ${bestFood.description} newHasEatenCount: $newHasEatenCount');
+                }
+
+                if(newHasEatenCount > 0)
+                {
+                    // chose craving from known craving list
+                    var random = WorldMap.calculateRandomInt(cravings.length -1);
+                    key = cravings[random];
+                    newHasEatenCount = hasEatenMap[key];
+                }
+
                 newHasEatenCount--;
                 this.connection.send(ClientTag.CRAVING, ['$key ${-newHasEatenCount}']);
                 currentlyCraving = key;

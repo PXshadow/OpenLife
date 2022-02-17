@@ -235,8 +235,8 @@ Food - Health - Hits
 - the more healthy you are the more resistant you are against moskito bites and yellow fever
 
 Food - Cravings:
-- cravings display now a random food with a full YUM Boni, that has allready been eaten
-- there is a Chance that a new complete never eaten radom food is chosen which is ID wise close to the last craved one
+- cravings display now a if possible close food with a full YUM Boni
+- there is a Chance that a new complete never eaten not close random food is chosen which is tech wise close to the last craved one
 - cravings give plus one extra food boni and YUM chain / Health which influences speed and aging
 
 Animals:
@@ -292,8 +292,6 @@ High priority:
 - GATES Ally Gates and swing doors
 
 - CONNECTION saving of people data so that people can come back after server restart
-
-- CRAVINGS choose more close cravings / use best food
 
 Middle priority:
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
