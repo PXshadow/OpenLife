@@ -22,7 +22,8 @@ class ServerSettings
     public static var TraceCountObjects = false; // WorldMap
     public static var DebugSpeed = false; // MovementHelper
     public static var DebugCaftingStepsForObjOrFood = false; // here you see which food or obj needs how much steps to craft
-    
+    public static var LoadAndSavePlayers = true;
+
     // Mutex
     public static var useOneGlobalMutex = false; // if you want to try out if there a problems with mutexes / different threads
     public static var UseBlockingSockets = false;

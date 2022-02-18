@@ -646,7 +646,7 @@ class WorldMap
         PlayerAccount.WritePlayerAccounts(dir + "PlayerAccounts" + tmpDataNumber + ".bin");
 
         Lineage.WriteAllLineages(dir + "Lineages" + tmpDataNumber + ".bin");
-        GlobalPlayerInstance.WriteAllPlayers(dir + "Players" + tmpDataNumber + ".bin");
+        if(ServerSettings.LoadAndSavePlayers) GlobalPlayerInstance.WriteAllPlayers(dir + "Players" + tmpDataNumber + ".bin");
         
         writeIndexFile(dir + "lastDataNumber" + tmpDataNumber + ".txt", tmpDataNumber);
         writeIndexFile(dir + "lastDataNumber.txt", tmpDataNumber);
@@ -754,7 +754,7 @@ class WorldMap
 
         Lineage.ReadAndSetLineages(dir + "Lineages" + saveDataNumber + ".bin");
 
-        GlobalPlayerInstance.ReadPlayers(dir + "Players" + saveDataNumber + ".bin");
+        if(ServerSettings.LoadAndSavePlayers) GlobalPlayerInstance.ReadPlayers(dir + "Players" + saveDataNumber + ".bin");
 
         this.originalObjectsCount = countObjects(this.originalObjects);
 
