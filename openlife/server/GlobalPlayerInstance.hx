@@ -307,12 +307,30 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             //writer.writeFloat(obj.prestige);
             //account 166 CClass(openlife.server.PlayerAccount,[])
 
+            //clothingObjects 13
+            writer.writeInt16(obj.clothingObjects.length);
+            for(o in obj.clothingObjects)
+            {
+                ObjectHelper.WriteToFile(o, writer);
+            }
+
+            //hasEatenMap 17            
+            var keys = obj.hasEatenMap.keys();
+            var length = 0;
+            for(key in keys) length++;
+            writer.writeInt16(length);
+            for(key in keys)
+            {
+                writer.writeInt32(key);
+                writer.writeFloat(obj.hasEatenMap[key]);
+            }
+            
             //DONE lineage 1 CClass(openlife.server.Lineage,[])
             //DONE moveHelper 11 CClass(openlife.server.MoveHelper,[])
-            //clothingObjects 13 CAbstract(haxe.ds.Vector,[CClass(openlife.data.object.ObjectHelper,[])])
+            //DONE clothingObjects 13 CAbstract(haxe.ds.Vector,[CClass(openlife.data.object.ObjectHelper,[])])
             //DONE mutex 14 CAbstract(sys.thread.Mutex,[])
             //DONE connection 15 CClass(openlife.server.Connection,[])
-            //hasEatenMap 17 CAbstract(haxe.ds.Map,[CAbstract(Int,[]),CAbstract(Float,[])])
+            //DONE hasEatenMap 17 CAbstract(haxe.ds.Map,[CAbstract(Int,[]),CAbstract(Float,[])])
             //exiledByPlayers 27 CAbstract(haxe.ds.Map,[CAbstract(Int,[]),CClass(openlife.server.GlobalPlayerInstance,[])])
             //owning 33 CClass(Array,[CClass(openlife.data.object.ObjectHelper,[])])
             //DONE account 166 CClass(openlife.server.PlayerAccount,[])            
@@ -466,6 +484,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 
                 obj.moveHelper.exactTx = obj.tx;
                 obj.moveHelper.exactTy = obj.ty;
+
+                //clothingObjects 13
+                var len = reader.readInt16();
+                for(i in 0...len)
+                {
+                    obj.clothingObjects[i] = ObjectHelper.ReadFromFile(reader);
+                }
+
+                //hasEatenMap 17 
+                var len = reader.readInt16();
+                for(i in 0...len)
+                {
+                    var key = reader.readInt32();
+                    obj.hasEatenMap[key] = reader.readFloat();
+                }
             }
         }
         catch(ex)
