@@ -324,6 +324,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 writer.writeInt32(key);
                 writer.writeFloat(obj.hasEatenMap[key]);
             }
+
+            // exiledByPlayers 27
+            var keys = obj.exiledByPlayers.keys();
+            var length = 0;
+            for(key in keys) length++;
+            writer.writeInt16(length);
+            for(p in obj.exiledByPlayers)
+            {
+                writer.writeInt32(p.p_id);
+            }
+
+            // owning 33 is filled in InitObjectHelpersAfterRead 
             
             //DONE lineage 1 CClass(openlife.server.Lineage,[])
             //DONE moveHelper 11 CClass(openlife.server.MoveHelper,[])
@@ -331,8 +343,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             //DONE mutex 14 CAbstract(sys.thread.Mutex,[])
             //DONE connection 15 CClass(openlife.server.Connection,[])
             //DONE hasEatenMap 17 CAbstract(haxe.ds.Map,[CAbstract(Int,[]),CAbstract(Float,[])])
-            //exiledByPlayers 27 CAbstract(haxe.ds.Map,[CAbstract(Int,[]),CClass(openlife.server.GlobalPlayerInstance,[])])
-            //owning 33 CClass(Array,[CClass(openlife.data.object.ObjectHelper,[])])
+            //DONE exiledByPlayers 27 CAbstract(haxe.ds.Map,[CAbstract(Int,[]),CClass(openlife.server.GlobalPlayerInstance,[])])
+            //DONE owning 33 CClass(Array,[CClass(openlife.data.object.ObjectHelper,[])])
             //DONE account 166 CClass(openlife.server.PlayerAccount,[])            
         }
 
@@ -360,6 +372,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var count = reader.readInt32();
         var loadedPlayers = new Map<Int,GlobalPlayerInstance>();
         var playersToLoad = new Map<Int, Map<String, Int>>();
+        var exiledPlayersToLoad = new Map<Int, Array<Int>>();
 
         trace('Read players from file: $path count: ${count}');
 
@@ -499,6 +512,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                     var key = reader.readInt32();
                     obj.hasEatenMap[key] = reader.readFloat();
                 }
+
+                // exiledByPlayers
+                var len = reader.readInt16();
+                for(i in 0...len)
+                {
+                    var key = reader.readInt32();
+                    exiledPlayersToLoad[obj.p_id].push(key);
+                }
             }
         }
         catch(ex)
@@ -523,7 +544,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             obj.newFollower = GetPlayerFromId(playersToLoad[obj.p_id]["newFollower"]); //37
             obj.newFollowerFor = GetPlayerFromId(playersToLoad[obj.p_id]["newFollowerFor"]); //38
             //obj.mother = GetPlayerFromId(playersToLoad[obj.p_id]["mother"]); //55
-            //obj.father = GetPlayerFromId(playersToLoad[obj.p_id]["father"]); //58     
+            //obj.father = GetPlayerFromId(playersToLoad[obj.p_id]["father"]); //58 
+            
+            var exiled = exiledPlayersToLoad[obj.p_id];
+            for(id in exiled)
+            {
+                obj.exiledByPlayers[id] = AllPlayers[id];
+            }
         }
 
         trace('read $count Players...');

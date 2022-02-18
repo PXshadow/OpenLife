@@ -190,9 +190,11 @@ class ObjectHelper
                         obj.livingOwners.remove(id);
                         continue; // TODO warning                        
                     }
-                    if(player.deleted) obj.removeOwner(player);
 
+                    if(player.deleted) obj.removeOwner(player);
                     player.owning.push(obj);
+
+                    trace('Owner: ${player.name}');
                 }
             }
         }
