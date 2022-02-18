@@ -643,7 +643,7 @@ class WorldMap
 
         ObjectHelper.WriteMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + tmpDataNumber + ".bin", objectHelpers);
 
-        Macro.exception(PlayerAccount.WritePlayerAccounts(dir + "PlayerAccounts" + tmpDataNumber + ".bin"));
+        PlayerAccount.WritePlayerAccounts(dir + "PlayerAccounts" + tmpDataNumber + ".bin");
 
         Lineage.WriteAllLineages(dir + "Lineages" + tmpDataNumber + ".bin");
         GlobalPlayerInstance.WriteAllPlayers(dir + "Players" + tmpDataNumber + ".bin");
@@ -752,7 +752,9 @@ class WorldMap
 
         Macro.exception(PlayerAccount.ReadPlayerAccounts(dir + "PlayerAccounts" + saveDataNumber + ".bin"));
 
-        Lineage.ReadLineages(dir + "Lineages" + saveDataNumber + ".bin");
+        Lineage.ReadAndSetLineages(dir + "Lineages" + saveDataNumber + ".bin");
+
+        GlobalPlayerInstance.ReadPlayers(dir + "Players" + saveDataNumber + ".bin");
 
         this.originalObjectsCount = countObjects(this.originalObjects);
 

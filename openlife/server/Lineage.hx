@@ -131,6 +131,12 @@ class Lineage
         WriteAllLineages(pathAll);
     }*/
 
+    public static function ReadAndSetLineages(path:String) : Map<Int,Lineage>
+    {
+        AllLineages = ReadLineages(path);
+        return AllLineages;
+    }
+
     public static function ReadLineages(path:String) : Map<Int,Lineage>
     {
         var reader = File.read(path, true);
@@ -172,6 +178,8 @@ class Lineage
                 lineage.prestigeClass = reader.readInt8();
 
                 loadedLineages[lineage.myId] = lineage;
+
+                trace('read Lineage: ${lineage.myId} ${lineage.name}');
             }
         }
         catch(ex)

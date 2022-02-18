@@ -335,6 +335,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 writer.writeInt32(p.p_id);
             }
 
+            writer.writeInt16(-1000); // write end sign
+
             // owning 33 is filled in InitObjectHelpersAfterRead 
             
             //DONE lineage 1 CClass(openlife.server.Lineage,[])
@@ -350,6 +352,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         writer.close();
 
+        trace('wrote $count Players...');
         if(ServerSettings.DebugWrite) trace('wrote $count Players...');
     }
 
@@ -374,11 +377,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var playersToLoad = new Map<Int, Map<String, Int>>();
         var exiledPlayersToLoad = new Map<Int, Array<Int>>();
 
+        //return null;
+
         trace('Read players from file: $path count: ${count}');
 
         if(dataVersion != expectedDataVersion) throw new Exception('ReadPlayers: Data version is: $dataVersion expected data version is: $expectedDataVersion');
 
-        try{
+        //try{
             for(i in 0...count)
             {
                 var accountId = reader.readInt32();
@@ -514,19 +519,34 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 }
 
                 // exiledByPlayers
+                exiledPlayersToLoad[obj.p_id] = new Array<Int>();
                 var len = reader.readInt16();
                 for(i in 0...len)
                 {
                     var key = reader.readInt32();
                     exiledPlayersToLoad[obj.p_id].push(key);
                 }
+
+                var end = reader.readInt16(); // read end sign
+                if(end != -1000)
+                {   
+                    var message = 'read ${i+1} Players wrong end sign: ${end}';
+                    trace(message);
+                    throw new Exception(message);
+                }
+
+                if(obj.lineage == null)
+                {
+                    trace('read ${i+1} No Lineage found: ${obj.p_id}');
+                }
+                else trace('read ${i+1} Players... ${obj.name}');
             }
-        }
+        /*}
         catch(ex)
         {
             reader.close();
             throw ex;
-        }
+        }*/
 
         reader.close();
 
@@ -550,6 +570,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             for(id in exiled)
             {
                 obj.exiledByPlayers[id] = AllPlayers[id];
+                trace('read exiled Players ${obj.name} --> Exiled by: ${obj.exiledByPlayers[id].name}');
             }
         }
 
