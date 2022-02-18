@@ -211,8 +211,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         for(obj in players)
         {
+            writer.writeInt32(obj.account.id); //account 166
+
             // write player instance variables
-            // TODO heldObject:ObjectHelper; 
             writer.writeInt32(obj.p_id);
             writer.writeFloat(obj.food_store);
             writer.writeFloat(obj.food_store_max);
@@ -256,6 +257,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             //writer.writeInt16(obj.name.length);
             //writer.writeString(obj.name);
             //TODO? var a:Array<String>;
+            ObjectHelper.WriteToFile(obj.heldObject, writer);
 
             // From GlobalPlayerInstance
             //lineage 1 CClass(openlife.server.Lineage,[])
@@ -357,8 +359,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         try{
             for(i in 0...count)
             {
-                var obj = new GlobalPlayerInstance(null);
+                var accountId = reader.readInt32();
                 var id = reader.readInt32();
+                var connection = new Connection(null, Server.server);
+                connection.playerAccount = PlayerAccount.GetPlayerAccountById(accountId);
+                
+                var obj = new GlobalPlayerInstance(connection, id);
+                connection.serverAi = new ServerAi(obj); // use AI untill player logs in
+
+                obj.lineage = Lineage.GetLineage(id);
                 loadedPlayers[id] = obj;
                 playersToLoad[id] = new Map<String, Int>();
 
@@ -407,6 +416,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 //var len = reader.readInt16();
                 //obj.name = reader.readString(len);
                 //TODO? var a:Array<String>;
+                obj.heldObject = ObjectHelper.ReadFromFile(reader);
 
                 // read GlobalPlayerInstance
                 //lineage 1 CClass(openlife.server.Lineage,[])
@@ -574,14 +584,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.lineage.po_id = new_po_id;
     }
 
-    private function new(c:Connection)
+    private function new(c:Connection, loadedId:Int = -1)
     {
         super([]);
 
         if(c != null) c.player = this;
 
         this.connection = c;
-        //this.serverAi = ai;
+
+        // if loaded from file set only id;
+        if(loadedId > 0)
+        {
+            this.p_id = loadedId;
+            return;
+        }
+
         this.p_id = Server.server.playerIndex++;
         this.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
         this.moveHelper = new MoveHelper(this);
