@@ -131,6 +131,7 @@ class AiHelper
         var bestDistance = 999999.0;
         var bestFoodValue = 0.1;
         var bestFoods = new Array<ObjectHelper>();
+        var isStarving = player.food_store < 0.2;
         
         for(ty in baseY - radius...baseY + radius)
         {
@@ -149,7 +150,7 @@ class AiHelper
                 //trace('berry food: ${tmp.foodValue}');
 
                 var originalFoodValue = objData.foodFromTarget == null ? objData.foodValue : objData.foodFromTarget.foodValue;
-                var foodId = objData.foodFromTarget == null ? objData.id : objData.foodFromTarget.id;                
+                var foodId = objData.getFoodId();                
                 var foodValue:Float = originalFoodValue;
 
                 if(foodValue <= 0) continue;    
@@ -164,10 +165,12 @@ class AiHelper
                 var isSuperMeh = foodValue < originalFoodValue / 2; // can eat if food_store < 0
                 //trace('search food: best $bestDistance dist $distance ${obj.description}');
 
-                if(isYum) foodValue *= 25;
-                if(isSuperMeh) foodValue = originalFoodValue / 25;
+                var starvingFactor = isStarving ? 4 : 25; // go two times more far or 5 times
+
+                if(isYum) foodValue *= starvingFactor;
+                if(isSuperMeh) foodValue = originalFoodValue / starvingFactor; 
                 if(isSuperMeh && player.food_store > 0) foodValue = 0;
-                if(foodId == player.getCraving()) foodValue *= 100;
+                if(foodId == player.getCraving()) foodValue *= starvingFactor * 2;
 
                 if(quadDistance < 0.5) quadDistance = 0.5;
                 //distance = Math.sqrt(distance);
