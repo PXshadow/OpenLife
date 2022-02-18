@@ -299,8 +299,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             writer.writeInt8(obj.inWrongBiome ? 1 : 0);
             writer.writeInt8(obj.inHomeBiome ? 1 : 0);
             writer.writeFloat(obj.jumpedTiles);
-            ObjectHelper.WriteToFile(obj.hiddenWound); //44
-            ObjectHelper.WriteToFile(obj.fever); //45
+            ObjectHelper.WriteToFile(obj.hiddenWound, writer); //44
+            ObjectHelper.WriteToFile(obj.fever, writer); //45
             writer.writeFloat(obj.yellowfeverCount);
             writer.writeFloat(obj.lastSayInSec);
             //writer.writeInt32(obj.id);
@@ -451,8 +451,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 obj.inWrongBiome = reader.readInt8() != 0 ? true : false;
                 obj.inHomeBiome = reader.readInt8() != 0 ? true : false;
                 obj.jumpedTiles = reader.readFloat();
-                obj.hiddenWound = ObjectHelper.LoadFromFile(); //44
-                obj.fever = ObjectHelper.LoadFromFile(); //45
+                obj.hiddenWound = ObjectHelper.ReadFromFile(reader); //44
+                obj.fever = ObjectHelper.ReadFromFile(reader); //45
                 obj.yellowfeverCount = reader.readFloat();
                 obj.lastSayInSec = reader.readFloat();
                 //obj.id = reader.readInt32();

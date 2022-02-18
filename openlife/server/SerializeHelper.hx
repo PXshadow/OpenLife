@@ -58,8 +58,8 @@ class SerializeHelper
                     writer2.writeString('\t\tplayersToLoad[obj.p_id]["${field.name}"] = reader.readInt32(); //$count\n');
                     loadText += '\t\tobj.${field.name} = GetPlayerFromId(playersToLoad[obj.p_id]["${field.name}"]); //$count\n';
                 case "CClass(openlife.data.object.ObjectHelper,[])":
-                    writer.writeString('\t\tObjectHelper.WriteToFile(obj.${field.name}); //$count\n');
-                    writer2.writeString('\t\tobj.${field.name} = ObjectHelper.LoadFromFile(); //$count\n');
+                    writer.writeString('\t\tObjectHelper.WriteToFile(obj.${field.name}, writer); //$count\n');
+                    writer2.writeString('\t\tobj.${field.name} = ObjectHelper.ReadFromFile(reader); //$count\n');
                 default:
                     if(StringTools.contains(typename, 'CFunction') == false)
                     {

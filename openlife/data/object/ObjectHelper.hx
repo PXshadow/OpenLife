@@ -1,5 +1,7 @@
 package openlife.data.object;
 
+import sys.io.FileInput;
+import sys.io.FileOutput;
 import openlife.server.PlayerAccount;
 import openlife.settings.ServerSettings;
 import sys.io.File;
@@ -58,18 +60,8 @@ class ObjectHelper
         for(obj in objHelpersToWrite)
         {
             if(obj == null) continue;
-
             count++;
-
-            WorldMap.WriteInt32Array(writer, obj.toArray());
-            WorldMap.WriteInt32Array(writer, obj.livingOwners);
-            WorldMap.WriteInt32Array(writer, obj.ownersByPlayerAccount);
-
-            writer.writeInt32(obj.tx);
-            writer.writeInt32(obj.ty);
-            writer.writeInt32(obj.numberOfUses);
-            writer.writeDouble(obj.creationTimeInTicks);
-            writer.writeFloat(obj.timeToChange);
+            WriteToFile(obj, writer);
         }
 
         writer.writeInt8(100); // end sign
@@ -77,17 +69,6 @@ class ObjectHelper
         writer.close();
 
         if(ServerSettings.DebugWrite) trace('wrote $count ObjectHelpers...');
-    }
-
-    public static function WriteToFile(obj:ObjectHelper)
-    {
-        // TODO
-    }
-
-    public static function LoadFromFile() : ObjectHelper
-    {
-        // TODO
-        return null;
     }
 
     public static function ReadMapObjHelpers(path:String) : Vector<ObjectHelper>
@@ -114,33 +95,23 @@ class ObjectHelper
         try{
             while(reader.eof() == false)
             {
-                var array = WorldMap.ReadInt32Array(reader);
-                if(array == null) break; // reached the end
+                var newObject = ReadFromFile(reader);
+                if(newObject == null) break;
                 count++;
+                //trace('read: $count');
+                world.setObjectHelper(newObject.tx, newObject.ty, newObject);
+                //newObjects[index(newObject.tx, newObject.ty)] = newObject;
+                //objects[index(newObject.tx, newObject.ty)] = newObjArray;
 
-                var newObject = ObjectHelper.readObjectHelper(null, array);
-                newObject.livingOwners = WorldMap.ReadInt32Array(reader);
-                newObject.ownersByPlayerAccount = WorldMap.ReadInt32Array(reader);
-                newObject.tx = reader.readInt32();
-                newObject.ty = reader.readInt32();
-                newObject.numberOfUses = reader.readInt32();
-                newObject.creationTimeInTicks = reader.readDouble();
-                newObject.timeToChange = reader.readFloat();
-
-                if(newObject.creationTimeInTicks > TimeHelper.tick) newObject.creationTimeInTicks = TimeHelper.tick;
-
-                if(newObject.numberOfUses > 1 || newObject.containedObjects.length > 0)
+                /*if(newObject.numberOfUses > 1 || newObject.containedObjects.length > 0)
                 {
                     // 1435 = bison // 1261 = Canada Goose Pond with Egg // 30 = Gooseberry Bush // 2142 = Banana Plant // 1323 = Wild Boar
                     if(newObject.id != 1435 && newObject.id != 1261  && newObject.id != 30 && newObject.id != 2142 && newObject.id != 1323)
                     {
                         // trace('${newObject.description()} numberOfUses: ${newObject.numberOfUses} from  ${newObject.objectData.numUses} ' + newObjArray);
                     }
-                }
-
-                world.setObjectHelper(newObject.tx, newObject.ty, newObject);
-                //newObjects[index(newObject.tx, newObject.ty)] = newObject;
-                //objects[index(newObject.tx, newObject.ty)] = newObjArray;
+                }*/
+                
             }
         }
         catch(ex)
@@ -154,6 +125,43 @@ class ObjectHelper
         trace('read $count ObjectHelpers...');
 
         return newObjects;
+    }
+
+    public static function WriteToFile(obj:ObjectHelper, writer:FileOutput)
+    {
+        if(obj == null)
+        {
+            WorldMap.WriteInt32Array(writer, [-100]);
+            return;
+        }
+        WorldMap.WriteInt32Array(writer, obj.toArray());
+        WorldMap.WriteInt32Array(writer, obj.livingOwners);
+        WorldMap.WriteInt32Array(writer, obj.ownersByPlayerAccount);
+
+        writer.writeInt32(obj.tx);
+        writer.writeInt32(obj.ty);
+        writer.writeInt32(obj.numberOfUses);
+        writer.writeDouble(obj.creationTimeInTicks);
+        writer.writeFloat(obj.timeToChange);
+    }
+
+    public static function ReadFromFile(reader:FileInput) : ObjectHelper
+    {
+        var array = WorldMap.ReadInt32Array(reader);
+        if(array == null) return null; // reached the end
+        if(array[0] == -100) return null;
+        
+        var newObject = ObjectHelper.readObjectHelper(null, array);
+        newObject.livingOwners = WorldMap.ReadInt32Array(reader);
+        newObject.ownersByPlayerAccount = WorldMap.ReadInt32Array(reader);
+        newObject.tx = reader.readInt32();
+        newObject.ty = reader.readInt32();
+        newObject.numberOfUses = reader.readInt32();
+        newObject.creationTimeInTicks = reader.readDouble();
+        newObject.timeToChange = reader.readFloat();
+
+        if(newObject.creationTimeInTicks > TimeHelper.tick) newObject.creationTimeInTicks = TimeHelper.tick;
+        return newObject;
     }
 
     public static function InitObjectHelpersAfterRead()
