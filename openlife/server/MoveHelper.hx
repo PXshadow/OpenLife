@@ -42,8 +42,8 @@ class MoveHelper
     private var tx:Int = 0;
     private var ty:Int = 0;
 
-    private var exactTx:Float = 0; // exact absolute x position calculated each time step
-    private var exactTy:Float = 0; // exact absolute y position calculated each time step
+    public var exactTx:Float = 0; // exact absolute x position calculated each time step
+    public var exactTy:Float = 0; // exact absolute y position calculated each time step
     private var timeExactPositionChangedLast:Float = 0; // in absolute ticks
 
     // to calculate if the move is finished
@@ -61,6 +61,16 @@ class MoveHelper
     public function isMoveing():Bool
     {    
         return (this.newMoves != null);
+    }
+
+    public function guessX()
+    {
+        return Math.round(exactTx) - player.gx;    
+    }
+
+    public function guessY()
+    {
+        return Math.round(exactTy) - player.gy;    
     }
 
     public function isCloseToPlayerUseExact(targetPlayer:GlobalPlayerInstance, distance:Float = 1) : Bool
@@ -347,6 +357,9 @@ class MoveHelper
                 p.heldPlayer.y = p.ty - p.heldPlayer.gy;
             }
 
+            p.moveHelper.exactTx = p.tx;
+            p.moveHelper.exactTy = p.ty;
+
             Connection.SendUpdateToAllClosePlayers(p);
 
             if(p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
@@ -425,6 +438,9 @@ class MoveHelper
             player.y += yo;
             player.exhaustion += 3;
 
+            player.moveHelper.exactTx = player.tx;
+            player.moveHelper.exactTy = player.ty;
+
             break;
         }
 
@@ -461,11 +477,12 @@ class MoveHelper
         var tx = x + p.gx;
         var ty = y + p.gy;
         var moveHelper = p.moveHelper;
-        var quadDist = jump ? p.moveHelper.calculateExactQuadDistance(tx, ty) : 0;
+        var quadDist = p.moveHelper.calculateExactQuadDistance(tx, ty);
+        //var quadDist = jump ? p.moveHelper.calculateExactQuadDistance(tx, ty) : 0;
 
         if(p.isBlocked(tx,ty) || quadDist > ServerSettings.MaxMovementQuadJumpDistanceBeforeForce)
         {
-            trace('MOVE: FORCE! Movement cancled since blocked or Client uses too different x,y: quadDist: $quadDist Server ${ p.x },${ p.y } <--> Client ${ x },${ y }');
+            trace('MOVE: FORCE! Movement cancled since blocked or Client uses too different x,y: quadDist: $quadDist exact: ${Math.ceil((p.moveHelper.exactTx - p.gx) * 10) / 10},${Math.ceil((p.moveHelper.exactTy - p.gy) * 10) / 10} Server ${ p.x },${ p.y } <--> Client ${ x },${ y }');
             cancleMovement(p, seq);
             return;    
         }
@@ -493,6 +510,9 @@ class MoveHelper
             
             p.x = x;
             p.y = y;
+
+            p.moveHelper.exactTx = p.tx;
+            p.moveHelper.exactTy = p.ty;
         }
 
         // since it seems speed cannot be set for each tile, the idea is to cut the movement once it crosses in different biomes
@@ -544,6 +564,8 @@ class MoveHelper
     {
         if(p.isHuman()) p.moveHelper.waitForForce = true; // ignore all moves untill client sends a force
 
+        p.moveHelper.exactTx = p.tx;
+        p.moveHelper.exactTy = p.ty;
         p.done_moving_seqNum  = seq;
         p.move_speed = calculateSpeed(p, p.tx, p.ty);
         p.moveHelper.newMoves = null; 

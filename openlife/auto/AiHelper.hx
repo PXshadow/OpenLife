@@ -375,7 +375,8 @@ class AiHelper
         }
         
         var ai = playerInterface.getAi();
-        if(move) playerInterface.move(player.x, player.y, ai.seqNum++, data);
+        var globalPlayer = cast(player, GlobalPlayerInstance);
+        if(move) playerInterface.move(globalPlayer.moveHelper.guessX(), globalPlayer.moveHelper.guessY(), ai.seqNum++, data);
 
         return true;
     }
