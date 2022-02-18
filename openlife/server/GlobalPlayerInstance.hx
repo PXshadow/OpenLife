@@ -308,7 +308,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             //account 166 CClass(openlife.server.PlayerAccount,[])
 
             //DONE lineage 1 CClass(openlife.server.Lineage,[])
-            //moveHelper 11 CClass(openlife.server.MoveHelper,[])
+            //DONE moveHelper 11 CClass(openlife.server.MoveHelper,[])
             //clothingObjects 13 CAbstract(haxe.ds.Vector,[CClass(openlife.data.object.ObjectHelper,[])])
             //DONE mutex 14 CAbstract(sys.thread.Mutex,[])
             //DONE connection 15 CClass(openlife.server.Connection,[])
@@ -462,7 +462,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 //playersToLoad[obj.p_id]["father"] = reader.readInt32(); //58
                 //obj.lineagePrestige = reader.readFloat();
                 //obj.prestige = reader.readFloat();
-                //account 166 CClass(openlife.server.PlayerAccount,[])                
+                //account 166 CClass(openlife.server.PlayerAccount,[])    
+                
+                obj.moveHelper.exactTx = obj.tx;
+                obj.moveHelper.exactTy = obj.ty;
             }
         }
         catch(ex)
@@ -581,6 +584,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(c != null) c.player = this;
 
         this.connection = c;
+        this.moveHelper = new MoveHelper(this);
 
         // if loaded from file set only id;
         if(loadedId > 0)
@@ -591,7 +595,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         this.p_id = Server.server.playerIndex++;
         this.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length-1)].id;
-        this.moveHelper = new MoveHelper(this);
         this.heldObject = ObjectHelper.readObjectHelper(this, [0]);        
         this.age_r = ServerSettings.AgingSecondsPerYear;
         this.lineage = new Lineage(this);
