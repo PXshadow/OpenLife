@@ -630,36 +630,26 @@ class TimeHelper
         var heldPlayer = player.heldPlayer;
 
         if(player.isHoldingChildInBreastFeedingAgeAndCanFeed())
-        {
-            if(ServerSettings.useOnePlayerMutex == false) heldPlayer.mutex.acquire(); // TODO can create a dead lock
+        {          
+            //trace('feeding:');
 
-            try{
-                //trace('feeding:');
-
-                if(heldPlayer.food_store < heldPlayer.food_store_max)
-                {
-                    var food = ServerSettings.FoodRestoreFactorWhileFeeding * timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
-                    var tmpFood = heldPlayer.food_store;
-
-                    heldPlayer.food_store += food;
-                    foodDecay += food / 2;
-
-                    var hasChanged = tmpFood != Math.ceil(player.food_store);
-                    if(hasChanged)
-                    {
-                        heldPlayer.sendFoodUpdate(false);
-                        heldPlayer.connection.send(FRAME, null, false);   
-                    }
-
-                    //trace('feeding: $food foodDecay: $foodDecay');
-                }
-            }
-            catch(ex)
+            if(heldPlayer.food_store < heldPlayer.food_store_max)
             {
-                trace('WARNING: ' + ex.details);
-            }
+                var food = ServerSettings.FoodRestoreFactorWhileFeeding * timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
+                var tmpFood = heldPlayer.food_store;
 
-            if(ServerSettings.useOnePlayerMutex == false) heldPlayer.mutex.release();
+                heldPlayer.food_store += food;
+                foodDecay += food / 2;
+
+                var hasChanged = tmpFood != Math.ceil(player.food_store);
+                if(hasChanged)
+                {
+                    heldPlayer.sendFoodUpdate(false);
+                    heldPlayer.connection.send(FRAME, null, false);   
+                }
+
+                //trace('feeding: $food foodDecay: $foodDecay');
+            }
         }
 
         foodDecay *= player.isEveOrAdam() && player.isWounded() == false ? ServerSettings.EveFoodUseFactor : 1;

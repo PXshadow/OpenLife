@@ -25,7 +25,6 @@ class ServerSettings
     
     // Mutex
     public static var useOneGlobalMutex = false; // if you want to try out if there a problems with mutexes / different threads
-    public static var useOnePlayerMutex = true;
     public static var UseBlockingSockets = false;
 
     // DEBUG: used to trace connection.send commands 
