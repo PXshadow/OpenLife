@@ -227,7 +227,10 @@ Food - YUM:
     For eample eats a Yum berry / then eats a YUM onion / Then eats a YUM carrot / 80%  x 66%% = 52% chance that eating YUM carrot restores 1 pip of berry or onion food value   
 
 Generational cravings:
-- a child inherits the cravings from his gradma / mother in case there is none // TODO consider father
+- a girl inherits the cravings and food eaten count from his gradpa / father in case there is none
+- a boy inherits the cravings and food eaten count from his gradma / mother in case there is none
+- with each generation some of the eaten food count is restored
+- there is a limit on the inherited eaten food count, so that each food is at least once yum for the child
 
 Food - Health - Hits
 - YUM chain / Health influences now aging (0.5X to 2X) and speed (1.2X to 0.5X) / With this Berry munching is even worse

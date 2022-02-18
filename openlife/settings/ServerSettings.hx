@@ -124,8 +124,8 @@ class ServerSettings
     public static var YumNewCravingChance = 0.2; // XX chance that a new random craving is chosen even if there are existing ones
     public static var HealthLostWhenEatingMeh:Float = 0.5; 
     public static var HealthLostWhenEatingSuperMeh:Float = 1; 
-    public static var MaxHasEatenForNextGeneration:Float = 0; // used in InheritEatenFoodCounts
-    //public static var HasEatenReductionForNextGeneration:Float = 0.2; // used in InheritEatenFoodCounts
+    public static var MaxHasEatenForNextGeneration:Float = 2; // used in InheritEatenFoodCounts
+    public static var HasEatenReductionForNextGeneration:Float = 0.2; // used in InheritEatenFoodCounts
     public static var DisplayYumAndMehFood = false;
 
 

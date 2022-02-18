@@ -820,19 +820,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return true;
     } 
 
+    /**Girls inherit food count from father boys from mother.**/
     private static function InheritEatenFoodCounts(child:GlobalPlayerInstance)
     {
-        // TODO fathers. For example girls inherit from father boys from mother
         var fromPlayer = child.mother.mother == null ? child.mother : child.mother.mother;
-        var inheritFromGrandma = child.mother.mother != null;
+        if(child.father != null && child.isFemale()) fromPlayer = child.father.father == null ? child.father : child.father.father;
+        var inheritFromGrandparents = fromPlayer == child.mother.mother || (child.father != null && fromPlayer == child.father.father);
 
         for(food in fromPlayer.hasEatenMap.keys())
         {
-            var foodCount = fromPlayer.hasEatenMap[food]; // - ServerSettings.HasEatenReductionForNextGeneration;
-            //if(foodCount > ServerSettings.HasEatenReductionForNextGeneration) foodCount -= ServerSettings.HasEatenReductionForNextGeneration;
+            var foodCount = fromPlayer.hasEatenMap[food]; 
+            if(foodCount > 0)
+            {
+                foodCount -= ServerSettings.HasEatenReductionForNextGeneration;
+                if(foodCount < 0) foodCount = 0;
+            }
             if(foodCount > ServerSettings.MaxHasEatenForNextGeneration) foodCount = ServerSettings.MaxHasEatenForNextGeneration;
             child.hasEatenMap[food] = foodCount;
-            trace('Inherit fromGrandma: $inheritFromGrandma food: $food value: $foodCount');
+
+            trace('Inherit from:${fromPlayer.name} fromGrandparents: $inheritFromGrandparents food: $food value: $foodCount');
         }
     }
 
