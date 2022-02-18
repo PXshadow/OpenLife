@@ -1371,6 +1371,8 @@ class Ai
 
         this.didNotReachFood = 0;
         foodTarget = null;
+
+        if(myPlayer.heldObject.objectData.foodValue <= 0) dropHeldObject(); // drop for example banana peal
         return true;
     }
 
