@@ -90,7 +90,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private var myMother:GlobalPlayerInstance;
     private var myFather:GlobalPlayerInstance;
-    private var myChildren = new Array<GlobalPlayerInstance>(); // TODO not needed
 
     // make sure to set these null is player is deleted so that garbage collector can clean up
     public var followPlayer:GlobalPlayerInstance;
@@ -174,8 +173,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // need grandmother to inherit eaten food counts to grantkids
         if(this.myMother != null) this.myMother.myMother = null;
         if(this.myFather != null) this.myFather.myFather = null;
-
-        this.myChildren = new Array<GlobalPlayerInstance>();
 
         this.followPlayer = null;
         this.heldPlayer = null;
@@ -311,7 +308,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             //account 166 CClass(openlife.server.PlayerAccount,[])
 
             //DONE lineage 1 CClass(openlife.server.Lineage,[])
-            //myChildren 4 CClass(Array,[CClass(openlife.server.GlobalPlayerInstance,[])])
             //moveHelper 11 CClass(openlife.server.MoveHelper,[])
             //clothingObjects 13 CAbstract(haxe.ds.Vector,[CClass(openlife.data.object.ObjectHelper,[])])
             //DONE mutex 14 CAbstract(sys.thread.Mutex,[])
@@ -649,8 +645,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(this.mother != null && this.age < ServerSettings.MinAgeToEat)
         {          
-            myChildren.push(this);
-
             if(this.mother.isAi() == false) mother.connection.sendMapLocation(this,'BABY', 'baby');
             else mother.connection.serverAi.newChild(this);
         }    
@@ -3978,17 +3972,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             }
         }
 
+        var children = this.getAllChildren();
+
         // prestige for children
-        for(child in myChildren)
+        for(child in children)
         {
             child.yum_multiplier += tmpCount / 4;
             child.prestigeFromChildren += tmpCount / 4;
         }
         
         // prestige for siblings
-        if(mother != null && mother.myChildren.length > 0)
+        if(mother != null && children.length > 0)
         {
-            var sibling = myChildren[WorldMap.calculateRandomInt(myChildren.length -1)];
+            var sibling = children[WorldMap.calculateRandomInt(children.length -1)];
             sibling.yum_multiplier += tmpCount / 2;
             sibling.prestigeFromChildren += tmpCount / 2;
         }            
