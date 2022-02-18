@@ -43,7 +43,9 @@ class ServerAi extends Ai
 
     public function doRebirth(timePassedInSeconds:Float)
     {
-        if(this.number > ServerSettings.NumberOfAis)
+        // TODO limit / increase Ais if serversettings change, or connected players change 
+        //if(this.number > ServerSettings.NumberOfAis)
+        if(this.player.account.isAi == false) // it was a replacement for a player 
         {
             trace('remove ai: ${this.number}');   
             Connection.removeAi(this);

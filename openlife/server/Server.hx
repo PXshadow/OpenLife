@@ -41,7 +41,11 @@ class Server
 
         server = new Server();
 
-        for(i in 0...ServerSettings.NumberOfAis)
+        var aiCount = Connection.getAis().length;
+
+        trace('loaded $aiCount Ais from ${ServerSettings.NumberOfAis}');
+
+        for(i in aiCount...ServerSettings.NumberOfAis)
         {
             var ai = ServerAi.createNewServerAiWithNewPlayer();
             //ai.player.delete(); // delete, so that they wont all spawn at same time
