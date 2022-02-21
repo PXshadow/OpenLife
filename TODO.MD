@@ -387,7 +387,7 @@ PX TODO
 
 IS this used? https://www.geeksforgeeks.org/a-search-algorithm/
 
-How to setup:
+How to setup the server:
 - TODO how to load new ObjectData from Repository
 - there is a ServerSettings.txt file in SaveFiles folder. Settings are read at start and every 10 sec.
 - server uses cached ObjectData to start fast
@@ -403,6 +403,56 @@ For debugging:
 if AllowDebugCommmands = true in ServerSettings.txt:
     can create objects with saying "create ID" / "create object" "create object!" with ! indicating that object ends with "object" or test wounds with using "hit" or "heal"
     --> for example: "create ore!" creates iron ore. "create iron" creates the first object with iron in the name.
+
+For Server setup:
+Best is use Unbuntu, got tons of problems with (default) Debian...
+
+From windows putty can be used to connect to server:
+putty.exe -ssh root@x.x.x.x -pw password
+
+If you dont know which which Linux Distro the server has use:
+Get current Linux Distroinfo: 
+ls -la ~/ | more
+
+Install haxe (best use Unbuntu) Haxe Version must be 4.2 at least (Debian has old version by default so setting haxe up is tricky):
+https://haxe.org/download/linux/
+
+Get code from Github:
+sudo apt-get install git
+
+git clone https://github.com/PXshadow/OpenLife
+
+Get OHOL data from Jason option 0 (Jason): 
+haxe setup_data.hxml
+
+Install Hasklink to execute Haxe hl files:
+Dont forget to install gcc to compile hashlink :)
+https://github.com/HaxeFoundation/hashlink.git 
+
+Compile OHOL server:
+haxe server.hxml
+
+Run server:
+hl server.hxml
+
+If this error comes:
+hl: error while loading shared libraries: libhl.so: cannot open shared object file: No such file or directory
+
+Fix it with this:
+https://github.com/HaxeFoundation/hashlink/pull/483/commits/e1f78d94cf304c0ea6d873a7a523de6b945c335e
+
+This might also help to fix libhl.so:
+sudo make INSTALL_DIR=/usr install
+
+Finally:
+TODO Install tmux for letting the server run after disconnect:
+sudo apt-get install tmux
+
+Helpful stuff:
+Emacs for edditing files in terminal: (option -nw)
+emacs -nw filename
+
+Dont forget that there is a ServerSettings.txt file in SaveFiles folder. Settings are read at start and every 10 sec. If there is no folder or settings file it should be automatically created on first server start. 
 
 How to Push stuff to git:
 git push -u origin master
