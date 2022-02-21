@@ -179,7 +179,7 @@ class Lineage
 
                 loadedLineages[lineage.myId] = lineage;
 
-                trace('read Lineage: ${lineage.myId} ${lineage.name}');
+                //trace('read Lineage: ${lineage.myId} ${lineage.name}');
             }
         }
         catch(ex)

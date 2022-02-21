@@ -300,6 +300,7 @@ High priority:
 - CONNECTION saving of people data so that people can come back after server restart
 
 Middle priority:
+- FIX clearing up old lineage data / make storing lineage data more efficient
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
 
 - SAVE for contained objects. Currently only ids from contained obj are saved

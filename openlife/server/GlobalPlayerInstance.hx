@@ -283,6 +283,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             writer.writeFloat(obj.prestigeFromEating);
             writer.writeFloat(obj.prestigeFromFollowers);
             writer.writeFloat(obj.prestigeFromWealth);
+
+            //writer.writeInt16(-1000); // write end sign
+
             //owning 33 CClass(Array,[CClass(openlife.data.object.ObjectHelper,[])])
             writer.writeInt32(GetPlayerIdForWrite(obj.lastPlayerAttackedMe)); //34
             writer.writeInt32(GetPlayerIdForWrite(obj.lastAttackedPlayer)); //35
@@ -307,24 +310,32 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             //writer.writeFloat(obj.prestige);
             //account 166 CClass(openlife.server.PlayerAccount,[])
 
+            //writer.writeInt16(-1000); // write end sign
+
             //clothingObjects 13
             writer.writeInt16(obj.clothingObjects.length);
             for(o in obj.clothingObjects)
             {
                 ObjectHelper.WriteToFile(o, writer);
             }
+            //writer.writeInt16(-1000); // write end sign
 
             //hasEatenMap 17            
             var keys = obj.hasEatenMap.keys();
             var length = 0;
             for(key in keys) length++;
             writer.writeInt16(length);
+            //trace('write has eaten length: ${length}');
+            var keys = obj.hasEatenMap.keys();
             for(key in keys)
             {
                 writer.writeInt32(key);
                 writer.writeFloat(obj.hasEatenMap[key]);
+
+                //trace('write has eaten: ${key}');
             }
 
+            //writer.writeInt16(-1000); // write end sign
             // exiledByPlayers 27
             var keys = obj.exiledByPlayers.keys();
             var length = 0;
@@ -335,7 +346,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 writer.writeInt32(p.p_id);
             }
 
-            writer.writeInt16(-1000); // write end sign
+            writer.writeInt16(-1000); // write end sign (just for checking if data is valid)
 
             // owning 33 is filled in InitObjectHelpersAfterRead 
             
@@ -476,6 +487,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 obj.prestigeFromEating = reader.readFloat();
                 obj.prestigeFromFollowers = reader.readFloat();
                 obj.prestigeFromWealth = reader.readFloat();
+
+                /*var end = reader.readInt16(); // read end sign
+                if(end != -1000)
+                {   
+                    var message = 'read ${i+1} Players wrong end sign 1-1: ${end}';
+                    trace(message);
+                    throw new Exception(message);
+                }*/
+
                 //owning 33 CClass(Array,[CClass(openlife.data.object.ObjectHelper,[])])
                 playersToLoad[obj.p_id]["lastPlayerAttackedMe"] = reader.readInt32(); //34
                 playersToLoad[obj.p_id]["lastAttackedPlayer"] = reader.readInt32(); //35
@@ -503,6 +523,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 obj.moveHelper.exactTx = obj.tx;
                 obj.moveHelper.exactTy = obj.ty;
 
+                /*var end = reader.readInt16(); // read end sign
+                if(end != -1000)
+                {   
+                    var message = 'read ${i+1} Players wrong end sign2: ${end}';
+                    trace(message);
+                    throw new Exception(message);
+                }*/
+
                 //clothingObjects 13
                 var len = reader.readInt16();
                 for(i in 0...len)
@@ -510,15 +538,33 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                     obj.clothingObjects[i] = ObjectHelper.ReadFromFile(reader);
                 }
 
+                /*var end = reader.readInt16(); // read end sign
+                if(end != -1000)
+                {   
+                    var message = 'read ${i+1} Players wrong end sign: ${end}';
+                    trace(message);
+                    throw new Exception(message);
+                }*/
+
                 //hasEatenMap 17 
                 var len = reader.readInt16();
+                //trace('read has eaten length: ${len}');
                 for(i in 0...len)
-                {
+                {                    
                     var key = reader.readInt32();
                     obj.hasEatenMap[key] = reader.readFloat();
+                    //trace('read has eaten: ${key}');
                 }
 
-                // exiledByPlayers
+                /*var end = reader.readInt16(); // read end sign
+                if(end != -1000)
+                {   
+                    var message = 'read ${i+1} Players wrong end sign: ${end}';
+                    trace(message);
+                    throw new Exception(message);
+                }*/
+
+                // exiledByPlayers 27
                 exiledPlayersToLoad[obj.p_id] = new Array<Int>();
                 var len = reader.readInt16();
                 for(i in 0...len)
@@ -539,7 +585,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 {
                     trace('read ${i+1} No Lineage found: ${obj.p_id}');
                 }
-                else trace('read ${i+1} Players... ${obj.name}');
+                else trace('read ${i+1} Players... ${obj.name} account: ${obj.account.id} ${obj.account.email}');
             }
         /*}
         catch(ex)
