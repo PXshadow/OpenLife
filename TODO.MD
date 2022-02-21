@@ -430,13 +430,13 @@ Install Hasklink to execute Haxe hl files:
 Dont forget to install gcc to compile hashlink :)
 https://github.com/HaxeFoundation/hashlink.git 
 
-Compile OHOL server:
+Compile OHOL server (server.hxml --> server.hl):
 haxe server.hxml
 
 Run server:
-hl server.hxml
+hl server.hl
 
-If this error comes:
+In case of this error:
 hl: error while loading shared libraries: libhl.so: cannot open shared object file: No such file or directory
 
 Fix it with this:
@@ -455,6 +455,20 @@ emacs -nw filename
 
 Dont forget that there is a ServerSettings.txt file in SaveFiles folder. Settings are read at start and every 10 sec. If there is no folder or settings file it should be automatically created on first server start. 
 
+Update Server:
+Pull new code from github (must be in OpenLife dir):
+git pull https://github.com/PXshadow/OpenLife
+
+Compile OHOL server:
+haxe server.hxml
+
+Run server:
+hl server.hl
+
+If you want to create map from scratch delete SaveFiles folder or the stored stuff inside
+
+Programming the server:
+
 How to Push stuff to git:
 git push -u origin master
 git push -u https://github.com/PXshadow/OpenLife
@@ -462,9 +476,8 @@ git push -u https://github.com/PXshadow/OpenLife
 How to pull stuff from git:
 git pull https://github.com/PXshadow/OpenLife
 
-How to connect to the test server:
-Currently the test server is run By PX and is running a very very old version of the server. I will inform if there is a new version which is testable.
-ip: thinqbator.app
+How to connect to the test server (Currently the server is in Alpha, so expect many bugs and feel free to report them in the forum or even better on github!):
+ip: 37.120.188.155
 port: 8005
 
 Jason server:

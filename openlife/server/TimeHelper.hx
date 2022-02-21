@@ -64,7 +64,8 @@ class TimeHelper
 
         DoTest();
 
-        if(ServerSettings.NumberOfAis > 0) Ai.StartAiThread();
+        //if(ServerSettings.NumberOfAis > 0) Ai.StartAiThread();
+        Ai.StartAiThread();
 
         while (true)
         {
