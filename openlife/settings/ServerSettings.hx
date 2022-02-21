@@ -22,7 +22,8 @@ class ServerSettings
     public static var TraceCountObjects = false; // WorldMap
     public static var DebugSpeed = false; // MovementHelper
     public static var DebugCaftingStepsForObjOrFood = false; // here you see which food or obj needs how much steps to craft
-    public static var LoadAndSavePlayers = true;
+    public static var SavePlayers = true;
+    public static var LoadPlayers = true;
 
     // Mutex
     public static var useOneGlobalMutex = false; // if you want to try out if there a problems with mutexes / different threads
@@ -963,3 +964,13 @@ Actor Category: 1641 @ Deadly Wolf
  --> Attacking Wolf
  + Bite Wound
  **/
+
+ /**public static function add(a:Int, b:Int, ?pos:PosInfos) {
+    trace( 'Called from ${pos.className}');
+    trace( 'Called from ${pos.methodName}');
+    trace( 'Called from ${pos.fileName}');
+    trace( 'Called from ${pos.lineNumber}');
+    return a+b;
+}
+
+add( 1, 1 ); // "pos" will automatically be filled in by compile**/

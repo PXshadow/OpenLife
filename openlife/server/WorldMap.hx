@@ -646,7 +646,7 @@ class WorldMap
         PlayerAccount.WritePlayerAccounts(dir + "PlayerAccounts" + tmpDataNumber + ".bin");
 
         Lineage.WriteAllLineages(dir + "Lineages" + tmpDataNumber + ".bin");
-        if(ServerSettings.LoadAndSavePlayers) GlobalPlayerInstance.WriteAllPlayers(dir + "Players" + tmpDataNumber + ".bin");
+        if(ServerSettings.SavePlayers) GlobalPlayerInstance.WriteAllPlayers(dir + "Players" + tmpDataNumber + ".bin");
         
         writeIndexFile(dir + "lastDataNumber" + tmpDataNumber + ".txt", tmpDataNumber);
         writeIndexFile(dir + "lastDataNumber.txt", tmpDataNumber);
@@ -732,6 +732,13 @@ class WorldMap
     private function readFromDiskHelper() : Bool
     {
         var dir = './${ServerSettings.SaveDirectory}/';
+
+        if(sys.FileSystem.exists(dir) == false || sys.FileSystem.isDirectory(dir) == false)
+        {
+            trace('Save $dir could not be found!');
+            return false;
+        }
+
         readIndexFileAndInitVariables(dir + "lastDataNumber.txt");
 
         trace('saveDataNumber: $saveDataNumber backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');        
@@ -754,7 +761,7 @@ class WorldMap
 
         Lineage.ReadAndSetLineages(dir + "Lineages" + saveDataNumber + ".bin");
 
-        if(ServerSettings.LoadAndSavePlayers) GlobalPlayerInstance.ReadPlayers(dir + "Players" + saveDataNumber + ".bin");
+        if(ServerSettings.LoadPlayers) GlobalPlayerInstance.ReadPlayers(dir + "Players" + saveDataNumber + ".bin");
 
         this.originalObjectsCount = countObjects(this.originalObjects);
 
