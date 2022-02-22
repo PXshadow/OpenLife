@@ -1358,10 +1358,11 @@ class Ai
 
     private function isEating() : Bool
     {
-        if(isHungry == false) return false;
+        if(myPlayer.canEat(myPlayer.heldObject) == false) return false;
+        if(isHungry == false && myPlayer.isHoldingYum() == false) return false;
 
-        var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
-        if(heldObjectIsEatable == false) return false;
+        //var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
+        //if(heldObjectIsEatable == false) return false;
 
         var oldNumberOfUses = myPlayer.heldObject.numberOfUses;
 
