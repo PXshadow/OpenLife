@@ -257,13 +257,13 @@ class Ai
             AiHelper.SearchTransitions(myPlayer, objectIdToSearch);
         }
 
-        if (text.contains("HELLO")) 
+        if (text.contains("HELLO") || text == "HI") 
         {
             //HELLO WORLD
 
             //trace('im a nice bot!');
 
-            myPlayer.say("HELLO WORLD");
+            myPlayer.say('HOLA ${player.name}');
         }
         if (text.contains("JUMP")) 
         {
@@ -292,7 +292,7 @@ class Ai
             searchFoodAndEat();
             myPlayer.say("YES CAPTAIN");
         }*/
-        if (text.contains("MAKE!"))
+        if (text.startsWith("MAKE") || text.startsWith("CRAFT"))
         {
             var id = GlobalPlayerInstance.findObjectByCommand(text);
 
@@ -300,7 +300,7 @@ class Ai
             {
                 craftItem(id); // TODO use mutex if Ai does not use Globalplayermutex
                 var obj = ObjectData.getObjectData(id);
-                myPlayer.say("Making: " + obj.name);
+                myPlayer.say("Making " + obj.name);
             }
         }
     }

@@ -12,7 +12,7 @@ Life is generally more hard / deadly:
 
 AI:
 - there might be an basic AI for NPCs if activated in the settings
-- by giving "make! xxx" commands you can instruct the ai to make stuff. with xxx part of an object name or ID. 
+- by giving "make xxx" commands you can instruct the ai to make stuff. with xxx part of an object name or ID. 
 TODO: This might or might not work yet!
 
 Combat:
@@ -307,6 +307,7 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
+- AI drop made stuff after ordered in fronts of player
 - AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread
 - AI FIX bug with wanting to shoot bear in order to get a rope from bow
 
@@ -318,12 +319,19 @@ High priority:
 - AI temperature espace
 - AI using containers needed also for player YUM display
 - AI go for search if something is needed
-- AI tests with > 20 AIs
+- AI test with > 20 AIs
 - AI fill baskets with bananas
 - AI using of baskets and backpack
 - AI Stoneage
 
 - NAMING fix bug
+
+- BIOME remove bad biome exhaustion for staying but add for doing stuff in bad biome
+
+- MOVE fix jump forward not backward... 
+- MOVE fix jump also if exhausted but maybe not so far... 
+
+- ANIMALS fix they wont sometimes not display as moving
 
 - BIRTH spawn eves on different locations
 - BIRTH fathers
@@ -332,12 +340,17 @@ High priority:
 
 - GATES Ally Gates and swing doors
 
+- DISPLAY fix display of prestiege gain, coins 
+- DISPLAY give hints for crafting
+- DISPLAY give hints where other players are
+
 Middle priority:
 - FIX clearing up old lineage data / make storing lineage data more efficient
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
 
 - SAVE for contained objects. Currently only ids from contained obj are saved
 
+- BIOME give biome experience for staying in biome
 - BIOME biome boni for different biome specialists
 - BIOME change biome speed for specialists (only if in attack mode or carrying heavy stuff???)
 - BIOME no dropping of stuff on water??? or better let it drift back to land?
@@ -522,7 +535,7 @@ How to pull stuff from git:
 git pull https://github.com/PXshadow/OpenLife
 
 How to connect to the test server:
-(Currently the server is written totally new and is in Alpha, so expect many bugs and feel free to report them in the forum or even better on github! There might be an AI running which is currently very basic. It can nurse, eat, feed, craft. It does not know about containers, temperature, bad biome or clothing yet. And crafting might fail. Nevertheless you can say to the Ai to craft something with saying "make! xxx" which might or might not work... Later on the plan is that you can hire Ais to become your followers with the currency that is allready in):
+(Currently the server is written totally new and is in Alpha, so expect many bugs and feel free to report them in the forum or even better on github! There might be an AI running which is currently very basic. It can nurse, eat, feed, craft. It does not know about containers, temperature, bad biome or clothing yet. And crafting might fail. Nevertheless you can say to the Ai to craft something with saying "make xxx" which might or might not work... Later on the plan is that you can hire Ais to become your followers with the currency that is allready in):
 ip: 37.120.188.155
 port: 8005
 
