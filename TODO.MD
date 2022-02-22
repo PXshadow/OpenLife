@@ -5,41 +5,72 @@ How to setup the server you can find in the bottom!
 Project Winter is comming summary: 
 - the server is written from scratch in Haxe and is in ALPHA, so expect errors / feel welcome to report them
 - there is winter as main new challange
-- killing is allowed but might give some mali
-- combat is more skill based / the more close you target the player the more damage
-- there are three different classes: Sef / Commoner / Noble
-- you are more likely born to the same class
+
+AI:
+- there might be an basic AI for NPCs if activated in the settings
+- by giving "make! xxx" commands you can instruct the ai to make stuff. with xxx part of an object name or ID. 
+TODO: This might or might not work yet!
+
+Combat:
+- combat is allowed but might give some prestige mali like attacking children. relatives or allies...
+- combat is more skill based / the more close you hit where the playere is the more damage you do
+
+Map with rivers mountains and oceans:
+- the server uses a limited hand made map which can be changed using a picture
+- rivers oceans and mountains that block movement
+- no locked iron or wells
+- all natural stuff can re-spawn (TODO exception well, iron and oil stuff)
+--> So having a lucky spot of one thing keeps it lucky also in the future
+- all But ancient stuff can decay (exception well, iron and oil stuff)
+
+Boats:
 - cars are now boats (TODO need new graphics for cars)
+
+Reconnection:
+- Playerdata is saved, so after server restart you can reconnect.
+- The Ai takes over your payer untill you reconnect
+
+Curses based on graves:
 - curse system is now based on graves
 - you incarnate more likely to your grave with a grave stone
 - you incarnate less likely to your grave without grave stone
 - you are cursed (lower speed / halve damage) if going close to your grave without grave stone
-- the server uses a limited hand made map which can be changed using a picture
-- rivers oceans and mountains that block movement
-- no locked iron or wells
-- all natural stuff can re-spawn (exception well, iron and oil stuff)
---> So having a lucky spot of one thing keeps it lucky also in the future
-- all But ancient stuff can decay (exception well, iron and oil stuff)
-- new craving system that shows you what has full YUM boni
+
+Different Classes:
+- there are three different classes: Sef / Commoner / Noble depending on your prestige score
+- you are more likely born to the same class
+
+Prestige System:
 - yum chain is now your prestiege (score) / health and influcences movement speed and aging
-- there is a new in game currency see more about below (Coins)
 --> so yes in theory you can life longer then 60
-- quality of Life: You can pick berriers directly with a bowl, you can eat while on a horse. Shoes give extra speed
 
+Reworked Yum and Craving System:
+- new craving system that shows you what has full YUM boni
+- Cravings and YUM is inherited from grandparents
+- More changes to YUM / Craving see below
+
+New in game Currency:
+- there is a new in game currency see more about below (Coins)
 --> I give you XXCIIII ==> gives 124 coins
-- Wells fill up at least 3 times faster. Better wells always makes more water then primitive wells
 
-AI:
-- by giving "make! xxx" commands you can instruct the ai to make stuff. with xxx part of an object name or ID
+Quality of Life Changes:
+- quality of Life: You can pick berriers directly with a bowl
+- you can eat while on a horse (dont know yet if this is a good idea...)
+- Shoes give extra speed
+- Wells fill up at least 3 times faster. Better wells always refill faster then primitive wells
 
 Not yet implemented:
 - advaned AI
-- advaned stuff like rails, pipes is not tested yet, so may or may not work
+- boni for different biome specialists
+- advaned stuff like rails, pipes
+- reading / writing
+- twinning
 - ally gates / fences
-- saving of players on server restart. 
+- in door temperature
+- general lot more testing of stuff
 - see more in TODO below
 
-SERVER - CHANGES TO VANILLA
+SERVER - FULL CHANGES TO VANILLA
 ======
 SCORE / PRESTIGE:
 - YUM-Multiplier is now your score / prestige / health
@@ -70,7 +101,8 @@ Adam / Eve:
 
 Family / Loved / Hated Biomes:
 - loved Biomes: Ginger --> Snow / White --> Grey / Brown --> Jungle / Black --> Desert 
-- children are now more likely to be born closer to special biome color. With this one Eve can create all colors if people migrate...
+- children are now more likely to be born closer to special biome color. 
+--> With this one Eve can create all colors if people migrate...
 - parents influence which biomes are loved 
 - bad Temperature is affected now by how much you / your partens (50%) love the biome
 - you gain extra exhaustion in not loved biomes and loose extra exhaustion in loved ones
@@ -257,7 +289,6 @@ TODO Features:
 more up in the list means more likely to be implemented first but no gurantee!
 - fathers
 - better fences / allow to climb over fences, but get wounded / make destroyable if not protected by close gate)
-- reconnection after server shutdown
 - special stuff like hercules / snake master / super fast ager 
 - job boni
 - bridges
@@ -296,16 +327,14 @@ High priority:
 - MAP use bigger map (Europe?) / create tool to auto create map
 
 - GATES Ally Gates and swing doors
-
-- CONNECTION saving of people data so that people can come back after server restart
-
+- ANIMALS lock more close to their biome 
 Middle priority:
 - FIX clearing up old lineage data / make storing lineage data more efficient
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
 
 - SAVE for contained objects. Currently only ids from contained obj are saved
 
-- BIOME biome boni for different races
+- BIOME biome boni for different biome specialists
 - BIOME change biome speed for specialists (only if in attack mode or carrying heavy stuff???)
 - BIOME no dropping of stuff on water??? or better let it drift back to land?
 
@@ -388,8 +417,7 @@ PX TODO
 
 IS this used? https://www.geeksforgeeks.org/a-search-algorithm/
 
-How to setup the server:
-- TODO how to load new ObjectData from Repository
+How to change Server config:
 - there is a ServerSettings.txt file in SaveFiles folder. Settings are read at start and every 10 sec.
 - server uses cached ObjectData to start fast
 --> if you want to clear the cache you need to use another .\OneLifeData7\dataVersionNumber 
@@ -398,12 +426,12 @@ How to setup the server:
 --> just override the current used one, or change the map file name in the Server ServerSettings.txt
 - every 10 sec the server state is saved in the SaveFiles directory 
 - every 8 hours a backup is made which is cycled through (up to 90 backups) / this can also be changed in ServerSettings.txt
---> the backups are in the folders: SaveFiles/1/ SaveFiles/2/.... SaveFiles/90/ 
+--> the backups are in the folders: SaveFiles/1/ SaveFiles/2/.... SaveFiles/9/ 
 
 For debugging:
 if AllowDebugCommmands = true in ServerSettings.txt:
-    can create objects with saying "create ID" / "create object" "create object!" with ! indicating that object ends with "object" or test wounds with using "hit" or "heal"
-    --> for example: "create ore!" creates iron ore. "create iron" creates the first object with iron in the name.
+    can create objects with saying "!create ID" / "!create object" "!create object!" with ! indicating that object ends with "object" or test wounds with using "!hit" or "!heal"
+    --> for example: "!create ore!" creates iron ore. "!create iron" creates the first object with iron in the name.
 
 For Server setup:
 Best is use Unbuntu, got tons of problems with (default) Debian...
@@ -411,11 +439,11 @@ Best is use Unbuntu, got tons of problems with (default) Debian...
 From windows putty can be used to connect to server:
 putty.exe -ssh root@x.x.x.x -pw password
 
-If you dont know which which Linux Distro the server has use:
+If you dont know which Linux distro the server has:
 Get current Linux Distroinfo: 
 ls -la ~/ | more
 
-Install haxe (best use Unbuntu) Haxe Version must be 4.2 at least (Debian has old version by default so setting haxe up is tricky):
+Install haxe (best use Unbuntu) Haxe Version must be 4.2 at least (Debian has old version by default so setting up haxe is tricky):
 https://haxe.org/download/linux/
 
 Get code from Github:
@@ -427,7 +455,7 @@ Get OHOL data from Jason option 0 (Jason):
 haxe setup_data.hxml
 
 Install Hasklink to execute Haxe hl files:
-Dont forget to install gcc to compile hashlink :)
+Dont forget to install gcc first to compile hashlink :)
 https://github.com/HaxeFoundation/hashlink.git 
 
 Compile OHOL server (server.hxml --> server.hl):
@@ -465,9 +493,9 @@ haxe server.hxml
 Run server:
 hl server.hl
 
-If you want to create map from scratch delete SaveFiles folder or the stored stuff inside
+If you want to create the map from scratch delete SaveFiles folder or the stored stuff inside
 
-Programming the server:
+Programming:
 
 How to Push stuff to git:
 git push -u origin master
@@ -476,9 +504,11 @@ git push -u https://github.com/PXshadow/OpenLife
 How to pull stuff from git:
 git pull https://github.com/PXshadow/OpenLife
 
-How to connect to the test server (Currently the server is in Alpha, so expect many bugs and feel free to report them in the forum or even better on github!):
+How to connect to the test server:
+(Currently the server is written totally new and is in Alpha, so expect many bugs and feel free to report them in the forum or even better on github! There might be an AI running which is currently very basic. It can nurse, eat, feed, craft. It does not know about containers, temperature, bad biome or clothing yet. And crafting might fail. Nevertheless you can say to the Ai to craft something with saying "make! xxx" which might or might not work... Later on the plan is that you can hire Ais to become your followers with the currency that is allready in):
 ip: 37.120.188.155
 port: 8005
 
+In case you want to try stuff out on an original server:
 Jason server:
 server10.onehouronelife.com
