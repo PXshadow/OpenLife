@@ -275,7 +275,7 @@ Food - Cravings:
 - cravings give plus one extra food boni and YUM chain / Health which influences speed and aging
 
 Animals:
-- knife and Sword does damage to attacking animals and might kill them
+- knife and Sword does damage to attacking animals and might kill them (TODO allow to attack wolfs etc with knife / sword)
 - animals can multiply and die
 - animals can leave their biome, but prefare to stay in own biome
 - stuff like trees and rabit holes wont block animal movement // TODO also for player / needs client support

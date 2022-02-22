@@ -299,6 +299,8 @@ class ServerSettings
 
         // Change map spawn chances
         ObjectData.getObjectData(769).mapChance *= 5; // Wild Horse
+        //ObjectData.getObjectData(769).biomes.push(BiomeTag.GREEN); // Beautiful Horses now also in Green biome :)
+
         ObjectData.getObjectData(942).mapChance *= 10; // Muddy Iron Vein
         ObjectData.getObjectData(2135).mapChance /= 4; // Rubber Tree
         ObjectData.getObjectData(530).mapChance /= 2; // Bald Cypress Tree
@@ -317,7 +319,7 @@ class ServerSettings
         ObjectData.getObjectData(418).speedMult *= 1.5; // Boost Wolfs even more :)
         
 
-        ObjectData.getObjectData(769).biomes.push(BiomeTag.GREEN); // Beautiful Horses now also in Green biome :)
+        
 
         ObjectData.getObjectData(411).speedMult = 0.8; // Fertile Soil Reduced carring speed
         ObjectData.getObjectData(345).speedMult = 0.8; // Butt Log
