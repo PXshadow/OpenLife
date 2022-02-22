@@ -80,8 +80,8 @@ class ServerSettings
     public static var StartingEveAge = 14;  // 14
     public static var StartingFamilyName = "SNOW";
     public static var StartingName = "SPOON";
-    public static var EveDamageFactor:Float = 0.8;  
-    public static var EveFoodUseFactor:Float = 0.8;  
+    public static var EveDamageFactor:Float = 0.5;  // eve/adam get less damage from animals but make also less damage
+    public static var EveFoodUseFactor:Float = 0.5; // eve/adam life still in paradise, so they need less food  
     public static var AgingSecondsPerYear = 60; // 60
     public static var ReduceAgeNeededToPickupObjects = 3; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
     public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
@@ -142,8 +142,8 @@ class ServerSettings
     public static var maxDistanceToBeConsideredAsClose = 100; //20; // only close players are updated with PU and MX and Movement 
 
     // for movement
-    public static var InitialPlayerMoveSpeed:Float = 3.75; //3.75; // in Tiles per Second
-    public static var SpeedFactor = 2; // MovementExtender // used to incease or deacrease speed factor X
+    public static var InitialPlayerMoveSpeed:Float = 4; //vanilla: 3.75; // in Tiles per Second
+    public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed factor X
     public static var MinMovementAgeInSec:Float = 14;
     public static var MinSpeedReductionPerContainedObj = 0.98;
     public static var CloseEnemyWithWeaponSpeedFactor:Float = 0.8;
