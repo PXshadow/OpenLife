@@ -327,7 +327,7 @@ High priority:
 - MAP use bigger map (Europe?) / create tool to auto create map
 
 - GATES Ally Gates and swing doors
-- ANIMALS lock more close to their biome 
+
 Middle priority:
 - FIX clearing up old lineage data / make storing lineage data more efficient
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)

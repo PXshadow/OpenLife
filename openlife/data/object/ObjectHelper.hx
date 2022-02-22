@@ -38,6 +38,10 @@ class ObjectHelper
 
     public var hits:Float = 0; // not saved 
 
+    //public var isLovedSet = false; // not saved TODO save 
+    public var lovedTx:Int = 0; // not saved TODO save 
+    public var lovedTy:Int = 0; // not saved TODO saved 
+
     public static function WriteMapObjHelpers(path:String, objHelpersToWrite:Vector<ObjectHelper>)
     { 
         var width = WorldMap.world.width;

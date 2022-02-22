@@ -1351,7 +1351,6 @@ class TimeHelper
         // TODO eating meat / killing sheep
 
         var moveDist = timeTransition.move;
-
         if(moveDist <= 0) return false;
 
         moveDist += 1; // movement distance is plus 4 in original code if walking over objects
@@ -1361,11 +1360,24 @@ class TimeHelper
         if(helper.hits < 0) helper.hits = 0;
 
         var worldmap = Server.server.map;
-
+        var objectData = helper.objectData.dummyParent == null ? helper.objectData : helper.objectData.dummyParent;
         var fromTx = helper.tx;
         var fromTy = helper.ty;
+        var currentbiome = worldmap.getBiomeId(helper.tx, helper.ty);
+        var lovesCurrentBiome = objectData.isSpawningIn(currentbiome);
 
-        for (i in 0...20)
+        if(lovesCurrentBiome)
+        {
+            //trace('set loved tx,ty for animal: ${helper.description}');
+            helper.lovedTx = helper.tx;
+            helper.lovedTy = helper.ty;
+        }
+
+        var maxIterations = 20;
+        var besttarget = null;
+        var bestQuadDist = 999999999999999999999999999999999.9;
+
+        for (i in 0...maxIterations)
         {
             var toTx = helper.tx - moveDist + worldmap.randomInt(moveDist * 2);
             var toTy = helper.ty - moveDist + worldmap.randomInt(moveDist * 2);
@@ -1385,8 +1397,6 @@ class TimeHelper
             
             if(WorldMap.isBiomeBlocking(toTx, toTy)) continue; 
 
-            var objectData = helper.objectData.dummyParent == null ? helper.objectData : helper.objectData.dummyParent;
-
             var isPreferredBiome = objectData.isSpawningIn(targetBiome);
 
             //if(helper.objectData.dummyParent != null) trace('Animal Move: ${objectData.description} $isPreferredBiome');
@@ -1400,16 +1410,35 @@ class TimeHelper
             //trace('chance: $chancePreferredBiome isNotHardbiome: $isNotHardbiome biome: $targetBiome');
 
             // skip with chancePreferredBiome if this biome is not preferred
-            if(isPreferredBiome == false && i < Math.round(chancePreferredBiome * 10) &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
+            if(isPreferredBiome == false && i < 10 &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
 
             // limit movement if blocked
             target = calculateNonBlockedTarget(fromTx, fromTy, target);
-
             if(target == null) continue; // movement was fully bocked, search another target
+
+            // try to go closer to loved biome
+            if(lovesCurrentBiome == false && helper.lovedTx != 0 && helper.lovedTy != 0)
+            {
+                var quadDist = AiHelper.CalculateDistance(helper.lovedTx, helper.lovedTy, target.tx, target.ty);
+                if(quadDist < bestQuadDist)
+                {
+                    bestQuadDist = quadDist;
+                    besttarget = target;
+                    maxIterations = i + 3; // try to find better   
+                    
+                    //trace('i: $i set better target for animal: ${helper.description} quadDist: $quadDist');
+                }
+
+                if(i < maxIterations - 1) continue; // try to find better
+
+                //toTx = toTx > helper.lovedTx ? toTx - 1 : toTx + 1; 
+            }
+
+            if(besttarget != null) target = besttarget;
 
             toTx = target.tx;
             toTy = target.ty;
-
+                        
             // 2710 + -1 = 767 + 769 // Wild Horse with Lasso + TIME  -->  Lasso# tool + Wild Horse
             var transition = TransitionImporter.GetTransition(helper.parentId, -1, false, false);
 
