@@ -1,5 +1,6 @@
 package openlife.server;
 
+import haxe.display.Display.CompletionResult;
 import openlife.data.object.ObjectHelper;
 import openlife.settings.ServerSettings;
 import sys.io.File;
@@ -29,7 +30,7 @@ class PlayerAccount
     // not saved
     public var graves = new Array<ObjectHelper>();
     public var scoreEntries = new Array<ScoreEntry>(); // is used to store prestige boni / mali 
-    public var lastConnection:Connection;
+    //public var lastConnection:Connection;
 
     private function new(){}
 
@@ -161,4 +162,20 @@ class PlayerAccount
             if(grave.id == 0) graves.remove(grave);
         }   
     }
+
+    public function getLastLivingPlayer() : GlobalPlayerInstance
+    {
+        var account:PlayerAccount = this;
+        
+        for(p in GlobalPlayerInstance.AllPlayers)
+        {
+            if(p.deleted) continue;
+            if(account == p.account)
+            {
+                return p;
+            }
+        }
+
+        return null;
+    } 
 }

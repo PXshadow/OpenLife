@@ -79,17 +79,18 @@ class Connection
         GlobalPlayerInstance.AllPlayerMutex.acquire();
 
         this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash);
-        var lastConnection = this.playerAccount.lastConnection;
-
-        if(lastConnection != null && lastConnection.player.deleted == false)
+        var lastLivingPlayer = playerAccount.getLastLivingPlayer(); 
+        
+        if(lastLivingPlayer != null)
         {
+            var lastConnection = lastLivingPlayer.connection;
             // deactivate AI
             ais.remove(lastConnection.serverAi);
             lastConnection.serverAi = null;
 
-            Macro.exception(initConnection(this.playerAccount.lastConnection.player, this.playerAccount));
+            Macro.exception(initConnection(lastLivingPlayer, this.playerAccount));
 
-            trace('reconnect to ${player.p_id}');
+            trace('reconnect to ${player.p_id} ${player.name}');
 
             GlobalPlayerInstance.AllPlayerMutex.release();
 
@@ -105,11 +106,9 @@ class Connection
     {
         send(ACCEPTED);
 
-
         this.player = connectedPlayer; 
         this.player.connection = this;
         this.playerAccount = connectedPlayerAccount;
-        this.playerAccount.lastConnection = this;
 
         connectedPlayerAccount.lastSeenInTicks = TimeHelper.tick;
 

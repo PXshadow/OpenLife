@@ -47,7 +47,7 @@ class TimeHelper
     private static var SeasonTemperatureImpact:Float = 0;
     private static var SeasonHardness:Float = 1;
 
-    public static function CalculateTimeSinceTicksInSec(ticks:Float):Float
+    public static function CalculateTimeSinceTicksInSec(ticks:Float) : Float
     {
         return (TimeHelper.tick - ticks) * TimeHelper.tickTime;
     }
