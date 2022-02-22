@@ -946,7 +946,11 @@ class ObjectData extends LineReader
 
     public function isSpawningIn(biomeId:Int) : Bool
     {
-        for(biome in this.biomes)
+        var objData = this;
+
+        if(countsOrGrowsAs != 0) objData = ObjectData.getObjectData(countsOrGrowsAs);
+
+        for(biome in objData.biomes)
         {
             if(biomeId == biome){
                 return true;

@@ -309,7 +309,7 @@ class ServerSettings
                 
         ObjectData.getObjectData(2156).mapChance *= 0.4; // Less UnHappy Mosquitos
         ObjectData.getObjectData(2156).biomes.push(BiomeTag.SWAMP); // Evil Mosquitos now also in Swamp
-        
+     
         // More Wolfs needs the world
         ObjectData.getObjectData(418).biomes.push(BiomeTag.YELLOW); // Happy Wolfs now also in Yellow biome :)
         ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
@@ -360,7 +360,8 @@ class ServerSettings
         ObjectData.getObjectData(411).useChance = 0.5; // Fertile Soil Pit 9 uses --> 18
         
         // TODO let rows decay from time to time to increase soil need.
-
+        
+        ObjectData.getObjectData(532).countsOrGrowsAs = 531; //532 Mouflon with Lamb --> Mouflon
 
         // mark plants that decay and regrow
         // Wild Onion

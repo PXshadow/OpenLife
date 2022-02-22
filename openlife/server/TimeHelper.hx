@@ -1417,7 +1417,7 @@ class TimeHelper
             if(target == null) continue; // movement was fully bocked, search another target
 
             // try to go closer to loved biome
-            if(lovesCurrentBiome == false && helper.lovedTx != 0 && helper.lovedTy != 0)
+            if(lovesCurrentBiome == false && isPreferredBiome == false && (helper.lovedTx != 0 || helper.lovedTy != 0))
             {
                 var quadDist = AiHelper.CalculateDistance(helper.lovedTx, helper.lovedTy, target.tx, target.ty);
                 if(quadDist < bestQuadDist)
@@ -1431,10 +1431,12 @@ class TimeHelper
 
                 if(i < maxIterations - 1) continue; // try to find better
 
+                if(besttarget != null) target = besttarget;
+
+                Connection.SendLocationToAllClose(helper.lovedTx, helper.lovedTy, helper.name);
+
                 //toTx = toTx > helper.lovedTx ? toTx - 1 : toTx + 1; 
             }
-
-            if(besttarget != null) target = besttarget;
 
             toTx = target.tx;
             toTy = target.ty;

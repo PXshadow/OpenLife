@@ -159,6 +159,19 @@ class Connection
         ais.remove(ai);
     }
 
+    public static function SendLocationToAllClose(tx:Int, ty:Int, text:String)
+    {
+        for(c in connections)
+        {
+            // since player has relative coordinates, transform them for player
+            var targetX = tx - c.player.gx;
+            var targetY = ty - c.player.gy;
+
+            if(c.player.isClose(targetX, targetY, 20) == false) continue;
+            c.send(ClientTag.LOCATION_SAYS, ['${targetX} ${targetY} $text']);
+        }
+    }
+
     public static function SendUpdateToAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true, sendFrame:Bool = true)
     {
         try
