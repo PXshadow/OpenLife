@@ -1433,7 +1433,7 @@ class TimeHelper
 
                 if(besttarget != null) target = besttarget;
 
-                Connection.SendLocationToAllClose(helper.lovedTx, helper.lovedTy, helper.name);
+                //Connection.SendLocationToAllClose(helper.lovedTx, helper.lovedTy, helper.name);
 
                 //toTx = toTx > helper.lovedTx ? toTx - 1 : toTx + 1; 
             }

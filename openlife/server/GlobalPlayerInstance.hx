@@ -3934,6 +3934,40 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             Connection.SendUpdateToAllClosePlayers(player);
             //player.sendFoodUpdate(false);
         }
+        else if(text.indexOf('!JAI') != -1) 
+        {
+            var ais = Connection.getAis();
+
+            if(ais.length > 0)
+            {
+                var ai = ais[WorldMap.calculateRandomInt(ais.length -1)];
+                player.x = ai.connection.player.tx - player.gx;
+                player.y = ai.connection.player.ty - player.gy;
+
+                player.forced = true;
+                Connection.SendUpdateToAllClosePlayers(player);
+                player.forced = false;
+                
+                player.connection.sendMapChunk(player.x,player.y);
+            }
+        }
+        else if(text.indexOf('!JHUMAN') != -1) 
+        {
+            var cons = Connection.getConnections();
+
+            if(cons.length > 0)
+            {
+                var c = cons[WorldMap.calculateRandomInt(cons.length -1)];
+                player.x = c.player.tx - player.gx;
+                player.y = c.player.ty - player.gy;
+
+                player.forced = true;
+                Connection.SendUpdateToAllClosePlayers(player);
+                player.forced = false;
+
+                player.connection.sendMapChunk(player.x,player.y);
+            }
+        }
     }
 
     
@@ -4282,6 +4316,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function hasYellowFever() : Bool
     {
         return fever != null && fever.id == 2155; // 2155 Yellow Fever
+    }
+
+    public function canEat(food:ObjectHelper) : Bool
+    {
+        var objData = food.objectData;
+        if(objData.dummyParent != null) objData = objData.dummyParent;    
+        var originalFoodValue = objData.foodValue;
+
+        if(originalFoodValue <= 0) return false;
+        return this.food_store_max - this.food_store >= Math.ceil(originalFoodValue / 4);
     }
 }
 
