@@ -298,16 +298,15 @@ class ServerSettings
         ObjectData.getObjectData(237).blocksWalking = false; // Adobe Oven
 
         // Change map spawn chances
-        ObjectData.getObjectData(769).mapChance *= 5; // Wild Horse
+        ObjectData.getObjectData(3030).mapChance *= 2; // Natural Spring 
+        ObjectData.getObjectData(769).mapChance *= 2; // Wild Horse
         //ObjectData.getObjectData(769).biomes.push(BiomeTag.GREEN); // Beautiful Horses now also in Green biome :)
 
         ObjectData.getObjectData(942).mapChance *= 10; // Muddy Iron Vein
         ObjectData.getObjectData(2135).mapChance /= 4; // Rubber Tree
         ObjectData.getObjectData(530).mapChance /= 2; // Bald Cypress Tree
         ObjectData.getObjectData(121).mapChance *= 5; // Tule Reeds
-
-        
-        
+                
         ObjectData.getObjectData(2156).mapChance *= 0.4; // Less UnHappy Mosquitos
         ObjectData.getObjectData(2156).biomes.push(BiomeTag.SWAMP); // Evil Mosquitos now also in Swamp
         

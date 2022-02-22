@@ -473,9 +473,21 @@ https://github.com/HaxeFoundation/hashlink/pull/483/commits/e1f78d94cf304c0ea6d8
 This might also help to fix libhl.so:
 sudo make INSTALL_DIR=/usr install
 
-Finally:
-TODO Install tmux for letting the server run after disconnect:
+Install tmux for letting the server run after disconnect:
 sudo apt-get install tmux
+
+https://www.howtogeek.com/671422/how-to-use-tmux-on-linux-and-why-its-better-than-screen/
+
+tmux
+then start the server in tmux with: hl server.hl
+then detach: If you press Ctrl+B, and then D, you will detach the session.
+the server should run now still in a tmux session even after you close your connection
+Dont forget to remember the session name so that you can attach again!
+
+If you want to shut it down attack with tmux:
+tmux attach-session -t sessionname
+
+And then press "ctrl" c to stop the server.
 
 Helpful stuff:
 Emacs for edditing files in terminal: (option -nw)
