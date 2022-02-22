@@ -986,7 +986,7 @@ class Connection
         var player = this.player;
         var leader = player.getTopLeader();
 
-        if(leader == null) return;
+        if(leader == null) leader == player;
         
         this.sendMapLocation(leader, "LEADER", "leader");
     }
