@@ -6,6 +6,10 @@ Project Winter is comming summary:
 - the server is written from scratch in Haxe and is in ALPHA, so expect errors / feel welcome to report them
 - there is winter as main new challange
 
+Life is generally more hard / deadly:
+- you are generally more hunted by animals, yea once in a time human where prey... animals especially wolfs can leave their original biome, so its more deadly, but no prob, if you help the ai to make a bow and some arrows it will help you to hunt most of them down. Wolfs do spawn now in all biomes except desserts and jungle. So yea better hide in the jungle if brown since moskitos are less deadly for brown :) And once you survived a yellow fever, the next one would be hopefully not be that hard...
+// TODO implement that fire protects against animals
+
 AI:
 - there might be an basic AI for NPCs if activated in the settings
 - by giving "make! xxx" commands you can instruct the ai to make stuff. with xxx part of an object name or ID. 
@@ -492,6 +496,7 @@ And then press "ctrl" c to stop the server.
 Helpful stuff:
 Emacs for edditing files in terminal: (option -nw)
 emacs -nw filename
+rm -r dir1 // to remove a directory like if you want to delete the SaveFiles folder so that the server creates all new 
 
 Dont forget that there is a ServerSettings.txt file in SaveFiles folder. Settings are read at start and every 10 sec. If there is no folder or settings file it should be automatically created on first server start. 
 

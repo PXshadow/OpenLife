@@ -1753,6 +1753,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         for(ii in 0...10)
         {
+            if(leader.isDeleted()) return lastLeader; // TODO check why no new leader was chosen
             //trace('getTopLeader1 ${lastLeader.name} --> ${leader.name}');
             if(this.exiledByPlayers.exists(leader.p_id)) return lastLeader; // is exiled by leader
             //trace('getTopLeader2 ${lastLeader.name} --> ${leader.name} ' + leader.exiledByPlayers);
