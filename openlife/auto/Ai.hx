@@ -201,11 +201,11 @@ class Ai
     
         if(didNotReachFood < 5) if(escape(animal, deadlyPlayer)) return;
         if(didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat();
-        if(isChildAndHasMother()){if(isMovingToPlayer()) return;}
-        if(myPlayer.isWounded()){isMovingToPlayer(); return;} // do nothing then looking for player
+        if(isChildAndHasMother()){if(isMovingToPlayer(10)) return;}
+        if(myPlayer.isWounded()){isMovingToPlayer(5); return;} // do nothing then looking for player
         
         if(isDropingItem()) return;
-        if(myPlayer.age < ServerSettings.MinAgeToEat && myPlayer.food_store < 2) return; // do nothing and wait for mother to feed
+        if(myPlayer.age < ServerSettings.MinAgeToEat && isHungry) {isMovingToPlayer(5); return;} // go close to mother and wait for mother to feed
         if(isEating()) return;
         if(isPickingupFood()) return;
         if(isFeedingChild()) return;  
@@ -1205,7 +1205,7 @@ class Ai
         trace('Ai: craft DONE trans: ${objToCraft.name}: ${itemToCraft.craftingTransitions.length} $textTrans');
     }
 
-    private function isMovingToPlayer(maxDistance = 25, followHuman:Bool = true) : Bool
+    private function isMovingToPlayer(maxDistance = 10, followHuman:Bool = true) : Bool
     {
         if(playerToFollow == null)
         {
@@ -1227,7 +1227,7 @@ class Ai
 
         if(distance > maxDistance)
         {
-            var dist = maxDistance > 10 ? 2 : 1;
+            var dist = maxDistance >= 10 ? 2 : 1;
             var randX = WorldMap.calculateRandomInt(2 * dist) - dist;
             var randY = WorldMap.calculateRandomInt(2 * dist) - dist;
 
