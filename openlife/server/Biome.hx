@@ -1,5 +1,8 @@
 package openlife.server;
 
+import openlife.data.object.ObjectData.PersonColor;
+import openlife.data.object.ObjectHelper;
+
 @:enum abstract BiomeTag(Int) from Int to Int
 {
     public var GREEN = 0;
@@ -93,6 +96,48 @@ class Biome
             case RIVER: TRIVER;
             case PASSABLERIVER: TPASSABLERIVER;
             default: 0.5;
+        }
+    }
+
+    public static function IsBiomeLovedbyColor(biome:BiomeTag, player:GlobalPlayerInstance)
+    {
+        var lovedBiome = GetLovedBiomeByPlayer(player);
+        return lovedBiome == biome;
+    }
+
+    public static function GetLovedBiomeByPlayer(player:GlobalPlayerInstance) : BiomeTag
+    {
+        var personColor = player.getColor();
+
+        if(personColor == PersonColor.Ginger) return BiomeTag.SNOW;
+        if(personColor == PersonColor.White) return BiomeTag.GREY;
+        if(personColor == PersonColor.Brown) return BiomeTag.JUNGLE;
+        if(personColor == PersonColor.Black) return BiomeTag.DESERT;
+
+        return -1;
+    }
+
+    // TODO better set in ObjdData, since there could be more then one
+    // TODO not used yet. Meant for getting biome experience if eaten
+    /*public static function getBiomeByFood(food:ObjectHelper) : BiomeTag
+    {
+        return switch food.parentId {  
+            case 768: DESERT; // Cactus Fruit   
+            case 2143: JUNGLE; // banana
+            case 4252: GREY; // Wild Garlic
+            case 40: SNOW; // Wild Carrot
+            default: -1; 
+        }
+    }*/
+
+    public static function getLovedFoodId(biomeTag:BiomeTag) : Int
+    {
+        return switch biomeTag {  
+            case DESERT: 768; // Cactus Fruit   
+            case JUNGLE: 2143; // banana
+            case GREY: 4252; // Wild Garlic
+            case SNOW: 40; // Wild Carrot
+            default: -1; 
         }
     }
 

@@ -105,12 +105,13 @@ Adam / Eve:
 
 Family / Loved / Hated Biomes:
 - loved Biomes: Ginger --> Snow / White --> Grey / Brown --> Jungle / Black --> Desert 
-- children are now more likely to be born closer to special biome color. 
+- loved food: Ginger --> Wild Carrot / White --> Wild Garlic / Brown --> Banana / Black --> Cactus Fruit 
+- loved food count is restored more quickly, so it is more often YUM or craved
+- children are now more likely to be born closer to special biome color
 --> With this one Eve can create all colors if people migrate...
 - parents influence which biomes are loved 
-- bad Temperature is affected now by how much you / your partens (50%) love the biome
+- bad Temperature is affected now by how much you / your parents (50%) love the biome
 - you gain extra exhaustion in not loved biomes and loose extra exhaustion in loved ones
-- TODO differen loved food
 - TODO differen exhaustion for work in bad / loved biome
 
 Classes:
@@ -313,7 +314,6 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI fix child run away bug when it tries to craft something while hungry instead of going to mother
 - AI drop made stuff after ordered in fronts of player
 - AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread
 - AI FIX bug with wanting to shoot bear in order to get a rope from bow
@@ -353,8 +353,9 @@ Middle priority:
 
 - SAVE for contained objects. Currently only ids from contained obj are saved
 
-- BIOME give biome experience for staying in biome
-- BIOME biome boni for different biome specialists
+- BIOME give biome experience for staying in biome or eating biome food
+- BIOME biome boni for different biome specialists like harvesting more banana for brown
+- BIOME biome hide biome specific stuff for not specialists
 - BIOME change biome speed for specialists (only if in attack mode or carrying heavy stuff???)
 - BIOME no dropping of stuff on water??? or better let it drift back to land?
 

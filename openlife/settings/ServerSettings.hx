@@ -125,6 +125,7 @@ class ServerSettings
     public static var FoodUseChildFaktor:Float = 1; // children need X times food if below GrownUpAge
     public static var YumBonus = 3; // First time eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
     public static var YumFoodRestore = 0.8; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food
+    public static var LovedFoodRestore:Float = 0.2; // restore also some loved food like bana for brown 
     public static var YumNewCravingChance = 0.2; // XX chance that a new random craving is chosen even if there are existing ones
     public static var HealthLostWhenEatingMeh:Float = 0.5; 
     public static var HealthLostWhenEatingSuperMeh:Float = 1; 
@@ -282,9 +283,6 @@ class ServerSettings
         ObjectData.getObjectData(213).hungryWork = 5; // Deep Tilled Row
         ObjectData.getObjectData(1136).hungryWork = 5; // Shallow Tilled Row
 
-        //Shallow Well
-
-        
         ObjectData.getObjectData(511).hungryWork = 2; // Pond
         ObjectData.getObjectData(1261).hungryWork = 2; // Canada Goose Pond with Egg
         ObjectData.getObjectData(141).hungryWork = 2;  //Canada Goose Pond
@@ -293,10 +291,11 @@ class ServerSettings
         ObjectData.getObjectData(662).hungryWork = 2; // Shallow Well
         ObjectData.getObjectData(663).hungryWork = 5; // Deep Well 
 
-        // Skewer
-
         //ObjectData.getObjectData(496).alternativeTransitionOutcome = 10; // Dug Stump
-        
+
+        // let loved food grow in loved biomes
+        ObjectData.getObjectData(4252).biomes.push(BiomeTag.GREY); // Wild Garlic is loved now by White
+        ObjectData.getObjectData(40).biomes.push(BiomeTag.SNOW); // Wild Carrot is loved now by Ginger
 
         // dont block walking
         ObjectData.getObjectData(231).blocksWalking = false; // Adobe Oven Base 

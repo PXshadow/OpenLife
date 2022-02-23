@@ -2149,9 +2149,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             playerTo.yellowfeverCount += ServerSettings.ResistenceAginstFeverForEatingMushrooms;
         }
-             
-        //else if(isHoldingMeh()) yum_multiplier -= 1;
-
+            
         trace('YUM: ${heldObjData.description} foodValue: $foodValue countEaten: $countEaten');
 
         // food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
@@ -2294,13 +2292,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private function doIncreaseFoodValue(eatenFoodId:Int, amountEaten:Float)
     {
-        trace('IncreaseFoodValue: ${eatenFoodId}');
+        trace('${this.name} IncreaseFoodValue: ${eatenFoodId}');
         
         if(hasEatenMap[eatenFoodId] > 0) cravings.remove(eatenFoodId);
 
         var hasEatenKeys = [for(key in hasEatenMap.keys()) key];
 
-        trace('IncreaseFoodValue: hasEatenKeys.length: ${hasEatenKeys.length}');
+        trace('${this.name} IncreaseFoodValue: hasEatenKeys.length: ${hasEatenKeys.length}');
 
         if(hasEatenKeys.length < 1) return;
 
@@ -2314,20 +2312,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         if(key != eatenFoodId && WorldMap.calculateRandomFloat() < ServerSettings.YumFoodRestore)
         {
-            hasEatenMap[key] -= amountEaten;
-            newHasEatenCount = hasEatenMap[key];
-            trace('IncreaseFoodValue: craving: hasEaten YES!!!: key: $key, ${newHasEatenCount}');
-
-            if(newHasEatenCount <= 0 && cravings.contains(key) == false)
-            {
-                trace('IncreaseFoodValue: added craving: key: $key');
-                cravings.push(key);
-            }
+            restoreFoodCount(key, amountEaten);
+            newHasEatenCount = hasEatenMap[key];            
         }
         else
         {
-            trace('IncreaseFoodValue: craving hasEaten: NO!!!: key: $key, heldObject.id(): ${eatenFoodId}');
+            trace('${this.name} IncreaseFoodValue: craving hasEaten: NO!!!: key: $key, heldObject.id(): ${eatenFoodId}');
         }
+
+        // restore also some biome loved food like bana for brown
+        var lovedFoodId = getLovedFoodId();
+        restoreFoodCount(lovedFoodId, amountEaten * ServerSettings.LovedFoodRestore);
             
         newHasEatenCount--;  // A food with full YUM is displayed as +1 craving 
         cravingHasEatenCount--; // A food with full YUM is displayed as +1 craving
@@ -2337,7 +2332,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(cravingHasEatenCount < 0 && currentlyCraving != 0 && currentlyCraving == eatenFoodId)
         {            
-            trace('IncreaseFoodValue: craving: currentlyCraving: $currentlyCraving ${-cravingHasEatenCount}');
+            trace('${this.name} IncreaseFoodValue: craving: currentlyCraving: $currentlyCraving ${-cravingHasEatenCount}');
 
             this.connection.send(ClientTag.CRAVING, ['${currentlyCraving} ${-cravingHasEatenCount}']);
         }      
@@ -2352,7 +2347,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(cravings.length < 1 || WorldMap.calculateRandomFloat() < ServerSettings.YumNewCravingChance)
             {
-                trace('IncreaseFoodValue: no new craving / choose random new: Eaten: ${eatenFoodId}');
+                trace('${this.name} IncreaseFoodValue: no new craving / choose random new: Eaten: ${eatenFoodId}');
 
                 currentlyCraving = 0;
 
@@ -2383,7 +2378,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
                 if(foundNewCraving == false)
                 {
-                    trace('WARNING: No new random craving found!!!');
+                    trace('${this.name} WARNING: No new random craving found!!!');
                     this.connection.send(ClientTag.CRAVING, ['${currentlyCraving} 0']); 
                     return;
                 }
@@ -2395,7 +2390,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 newHasEatenCount = hasEatenMap[newObjData.id];
                 newHasEatenCount--;
 
-                trace('New random craving: ${newObjData.description} ${newObjData.id} lastCravingIndex: $lastCravingIndex index: $index  newHasEatenCount: ${-newHasEatenCount}');
+                trace('${this.name} New random craving: ${newObjData.description} ${newObjData.id} lastCravingIndex: $lastCravingIndex index: $index  newHasEatenCount: ${-newHasEatenCount}');
 
                 lastCravingIndex = index;
                 currentlyCraving = newObjData.id;
@@ -2415,7 +2410,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                     foodId = bestfood.objectData.getFoodId();
                     newHasEatenCount = hasEatenMap[foodId]; 
                     
-                    trace('Find close craving: ${bestfood.description} newHasEatenCount: $newHasEatenCount');
+                    trace('${this.name} Find close craving: ${bestfood.description} newHasEatenCount: $newHasEatenCount');
                 }
 
                 if(newHasEatenCount > 0)
@@ -2431,11 +2426,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 this.connection.send(ClientTag.CRAVING, ['$foodId ${-newHasEatenCount}']);
                 currentlyCraving = key;
 
-                trace('IncreaseFoodValue: new craving: cravingHasEatenCount: $cravingHasEatenCount currentlyCraving: $currentlyCraving ${-newHasEatenCount}');
+                trace('${this.name} IncreaseFoodValue: new craving: cravingHasEatenCount: $cravingHasEatenCount currentlyCraving: $currentlyCraving ${-newHasEatenCount}');
             }
         }            
     }
 
+    private function restoreFoodCount(foodId:Int, amountEaten:Float)
+    {
+        this.hasEatenMap[foodId] -= amountEaten;
+        var newHasEatenCount = hasEatenMap[foodId];
+        var objData = ObjectData.getObjectData(foodId);
+
+        trace('${this.name} IncreaseFoodValue: amountEaten: $amountEaten food: ${objData.description} ==> ${newHasEatenCount}');
+
+        if(newHasEatenCount <= 0 && cravings.contains(foodId) == false)
+        {
+            trace('${this.name} IncreaseFoodValue: added craving: ${objData.description}');
+            cravings.push(foodId);
+        }
+    }
 
     private static function doSwitchCloths(playerFrom:GlobalPlayerInstance, playerTo:GlobalPlayerInstance, clothingSlot:Int) : Bool
     {
@@ -4085,25 +4094,27 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         var world = WorldMap.world;
         var floor = world.getFloorId(this.tx, this.ty);
-        var color = this.getColor();
+        
         var loved:Float = 0;
         if(biome < 0) biome = world.getBiomeId(this.tx, this.ty);
 
-        loved += BiomeLoveFactorForColor(biome, color, floor);
-        if(this.mother != null) loved += BiomeLoveFactorForColor(biome, this.mother.getColor(), floor, true);
-        if(this.father != null) loved += BiomeLoveFactorForColor(biome, this.father.getColor(), floor, true);
+        loved += BiomeLoveFactorForColor(biome, this, floor);
+        if(this.mother != null) loved += BiomeLoveFactorForColor(biome, this.mother, floor, true);
+        if(this.father != null) loved += BiomeLoveFactorForColor(biome, this.father, floor, true);
 
         return loved;
     }
     
-    public static function BiomeLoveFactorForColor(biome:Int, personColor:Int, floorId:Int, motherOrFather:Bool = false)
+    public static function BiomeLoveFactorForColor(biome:Int, player:GlobalPlayerInstance, floorId:Int, motherOrFather:Bool = false)
     {
         var loved:Float = 0;
 
-        if(biome == BiomeTag.SNOW && personColor == PersonColor.Ginger) loved += 1;
+        if(Biome.IsBiomeLovedbyColor(biome, player)) loved += 1;
+        /*if(biome == BiomeTag.SNOW && personColor == PersonColor.Ginger) loved += 1;
         if(biome == BiomeTag.GREY && personColor == PersonColor.White) loved += 1;
         if(biome == BiomeTag.JUNGLE && personColor == PersonColor.Brown) loved += 1;
-        if(biome == BiomeTag.DESERT && personColor == PersonColor.Black) loved += 1;
+        if(biome == BiomeTag.DESERT && personColor == PersonColor.Black) loved += 1;*/
+
         if(motherOrFather == false && loved <= 0 && biome != BiomeTag.GREEN && biome != BiomeTag.YELLOW) loved -= 0.5;
         // only reduction if on bridge or floor in swamp or passableriver
         if(motherOrFather == false && loved <= 0 && floorId != 0 && (biome == BiomeTag.SWAMP || biome == BiomeTag.PASSABLERIVER)) loved -= 2.5;
@@ -4361,6 +4372,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(originalFoodValue <= 0) return false;
         return this.food_store_max - this.food_store >= Math.ceil(originalFoodValue / 4);
+    }
+
+    public function getLovedFoodId() : Int
+    {
+        var lovedBiome = Biome.GetLovedBiomeByPlayer(this);
+        return Biome.getLovedFoodId(lovedBiome);
     }
 }
 
