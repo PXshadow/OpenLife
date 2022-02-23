@@ -1344,7 +1344,7 @@ class TimeHelper
         helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper);
         helper.creationTimeInTicks = TimeHelper.tick;
 
-        TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, transition, false);
+        TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, transition, null, false);
 
         WorldMap.world.setObjectHelper(tx, ty, helper);
 

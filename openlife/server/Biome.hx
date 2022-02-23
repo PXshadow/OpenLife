@@ -141,6 +141,17 @@ class Biome
         }
     }
 
+    public static function getLovedPlants(biomeTag:BiomeTag) : Array<Int>
+    {
+        return switch biomeTag {  
+            case DESERT: [763]; // Fruiting Barrel Cactus  
+            case JUNGLE: [2142]; // Banana Plant
+            case GREY: [4251]; // Wild Garlic (on ground)
+            case SNOW: [39]; // Dug Wild Carrot
+            default: []; 
+        }
+    }
+
     public static function IsWater(biome:BiomeTag) : Bool
     {
         return biome == OCEAN || biome == PASSABLERIVER || biome == RIVER;

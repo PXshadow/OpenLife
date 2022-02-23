@@ -4397,6 +4397,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var lovedBiome = Biome.GetLovedBiomeByPlayer(this);
         return Biome.getLovedFoodId(lovedBiome);
     }
+
+    public function getLovedPlants() : Array<Int>
+    {
+        var lovedBiome = Biome.GetLovedBiomeByPlayer(this);
+        return Biome.getLovedPlants(lovedBiome);
+    }
 }
 
 // TODO Arcurus>> add birth logic - suggestion:

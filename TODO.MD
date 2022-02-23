@@ -107,6 +107,7 @@ Family / Loved / Hated Biomes:
 - loved Biomes: Ginger --> Snow / White --> Grey / Brown --> Jungle / Black --> Desert 
 - loved food: Ginger --> Wild Carrot / White --> Wild Garlic / Brown --> Banana / Black --> Cactus Fruit 
 - loved food count is restored more quickly, so it is more often YUM or craved
+- harvsting from loved plants give in average double food items (TODO White and Ginger)
 - children are now more likely to be born closer to special biome color
 --> With this one Eve can create all colors if people migrate...
 - parents influence which biomes are loved 
@@ -360,7 +361,7 @@ Middle priority:
 - SAVE for contained objects. Currently only ids from contained obj are saved
 
 - BIOME give biome experience for staying in biome or eating biome food
-- BIOME biome boni for different biome specialists like harvesting more banana for brown
+- BIOME biome boni for different biome specialists like harvesting more banana for brown TODO: White and Ginger missing
 - BIOME biome hide biome specific stuff for not specialists
 - BIOME change biome speed for specialists (only if in attack mode or carrying heavy stuff???)
 - BIOME no dropping of stuff on water??? or better let it drift back to land?
