@@ -199,21 +199,22 @@ class Ai
         var animal = AiHelper.GetCloseDeadlyAnimal(myPlayer);
         var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer);
     
-        if(didNotReachFood < 5) if(escape(animal, deadlyPlayer)) return;
-        if(didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat();
-        if(isChildAndHasMother()){if(isMovingToPlayer(10)) return;}
-        if(myPlayer.isWounded()){isMovingToPlayer(5); return;} // do nothing then looking for player
+        Macro.exception(if(didNotReachFood < 5) if(escape(animal, deadlyPlayer)) return);
+        Macro.exception(if(didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat());
+        Macro.exception(if(isChildAndHasMother()){if(isMovingToPlayer(10)) return;});
+        Macro.exception(if(myPlayer.isWounded()){isMovingToPlayer(5); return;}); // do nothing then looking for player
         
-        if(isDropingItem()) return;
-        if(myPlayer.age < ServerSettings.MinAgeToEat && isHungry) {isMovingToPlayer(5); return;} // go close to mother and wait for mother to feed
-        if(isEating()) return;
-        if(isPickingupFood()) return;
-        if(isFeedingChild()) return;  
-        if(isFeedingPlayerInNeed()) return;  
-        if(isStayingCloseToChild()) return;       
-        if(isUsingItem()) return;
-        if(killAnimal(animal)) return; 
-        if(ServerSettings.AutoFollowPlayer && isMovingToPlayer()) return;               
+        Macro.exception(if(isDropingItem()) return);
+        Macro.exception(if(myPlayer.age < ServerSettings.MinAgeToEat && isHungry) {isMovingToPlayer(5); return;}); // go close to mother and wait for mother to feed
+        Macro.exception(if(isEating()) return);
+        Macro.exception(if(isPickingupFood()) return);
+        Macro.exception(if(isFeedingChild()) return);  
+        Macro.exception(if(isFeedingPlayerInNeed()) return);  
+        Macro.exception(if(isStayingCloseToChild()) return);       
+        Macro.exception(if(isUsingItem()) return);
+        Macro.exception(if(killAnimal(animal)) return); 
+        Macro.exception(if(ServerSettings.AutoFollowPlayer && isMovingToPlayer()) return);               
+
         if(myPlayer.isMoving()) return;
         
         //if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
@@ -222,7 +223,7 @@ class Ai
 
         if(itemToCraftId > 0 && itemToCraft.countDone < itemToCraft.count)
         {
-            if(craftItem(itemToCraftId)) return;    
+            Macro.exception(if(craftItem(itemToCraftId)) return);    
         }
 
         if(craftingTasks.length > 0)
@@ -230,14 +231,14 @@ class Ai
             for(i in 0...craftingTasks.length)
             {
                 itemToCraftId = craftingTasks.shift();
-                if(craftItem(itemToCraftId)) return;
+                Macro.exception(if(craftItem(itemToCraftId)) return);
                 craftingTasks.push(itemToCraftId);
             }
         }
 
         var cravingId = myPlayer.getCraving();
         itemToCraftId = cravingId;
-        if(cravingId > 0) if(craftItem(itemToCraftId)) return;
+        Macro.exception(if(cravingId > 0) if(craftItem(itemToCraftId)) return);
 
         myPlayer.say('nothing to do...');
     }
