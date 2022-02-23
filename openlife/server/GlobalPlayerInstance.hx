@@ -3507,12 +3507,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             }
             else
             {
+                // in case of moskito check if target gets some yellow fever
                 if(0.2 * Math.pow(moskitoDamageFactor,2) > WorldMap.calculateRandomFloat())
                 {
                     yellowfeverCount += 1; // increases resistance
                     targetPlayer.fever = newWound;
                     
                     newWound.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(newWound) * moskitoDamageFactor;
+                    targetPlayer.connection.sendGlobalMessage('You got yellow fever from the moskitos. Try to cool down...');
                 }
                 targetPlayer.doEmote(Emote.sad);
                 //targetPlayer.doEmote(Emote.yellowFever);
