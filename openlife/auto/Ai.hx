@@ -511,7 +511,7 @@ class Ai
             return false;
         }
 
-        if(myPlayer.heldObject.objectData.foodValue < 1)
+        if(myPlayer.heldObject.objectData.foodValue < 1 || myPlayer.heldObject.id == 837) // dont feed 837 ==> Psilocybe Mushroom to others
         {
             foodTarget = AiHelper.SearchBestFood(targetPlayer, true);            
             return true;

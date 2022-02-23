@@ -4378,6 +4378,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function canFeedToMe(food:ObjectHelper) : Bool
     {
         if(isMeh(food) && food_store > 2) return false;
+        if(food.id == 837) return false; // dont feed 837 ==> Psilocybe Mushroom to others
 
         return canEat(food);
     }

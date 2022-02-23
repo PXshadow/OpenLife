@@ -338,6 +338,8 @@ High priority:
 
 - NAMING fix bug
 
+- RAND look at random generator for float
+
 - PICKUP / DROP CHILD fix display bug. maybe set origion or action from right?
 
 - BIOME remove bad biome exhaustion for staying but add for doing stuff in bad biome
