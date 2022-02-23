@@ -357,7 +357,7 @@ class TimeHelper
             {
                 player.fever = null;
                 player.doEmote(Emote.happy);
-                player.connection.sendGlobalMessage('Luck you! You survived yellow fever! Next time you will be more resistant...');
+                player.connection.sendGlobalMessage('You survived yellow fever! Next time you will be more resistant...');
             }
         }
 

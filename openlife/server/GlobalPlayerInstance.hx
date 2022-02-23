@@ -3695,6 +3695,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             targetPlayer.setHeldObject(null);
         }
 
+        this.exhaustion += ServerSettings.PickupExhaustionGain;
+
+        if(this.isFertile() && targetPlayer.age < ServerSettings.MaxChildAgeForBreastFeeding)
+        {
+            if(targetPlayer.food_store < targetPlayer.food_store_max)
+            {
+                var food = ServerSettings.PickupFeedingFoodRestore;
+                this.food_store -= food / 2;
+                targetPlayer.food_store += food;
+
+                this.sendFoodUpdate();
+                targetPlayer.sendFoodUpdate();
+            }
+        }
+
         this.SetTransitionData(x,y,true);
 
         //trace('doBabyHelper: o_id:  ${this.o_id}');
@@ -3942,7 +3957,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
         else if(text.indexOf('!JAI') != -1) 
         {
-            var ais = Connection.getAis();
+            var ais = Connection.getLivingAis();
 
             if(ais.length > 0)
             {
@@ -3959,13 +3974,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
         else if(text.indexOf('!JHUMAN') != -1) 
         {
-            var cons = Connection.getConnections();
+            var livingHumans = Connection.getLivingHumans();
 
-            if(cons.length > 0)
+            if(livingHumans.length > 0)
             {
-                var c = cons[WorldMap.calculateRandomInt(cons.length -1)];
-                player.x = c.player.tx - player.gx;
-                player.y = c.player.ty - player.gy;
+                var p = livingHumans[WorldMap.calculateRandomInt(livingHumans.length -1)];
+                player.x = p.tx - player.gx;
+                player.y = p.ty - player.gy;
 
                 player.forced = true;
                 Connection.SendUpdateToAllClosePlayers(player);
