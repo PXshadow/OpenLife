@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import haxe.Exception;
 import openlife.server.TimeHelper;
 import openlife.server.Connection;
 import openlife.macros.Macro;
@@ -632,11 +633,15 @@ class Ai
         var startTime = Sys.time();
 
         if(animal == null && deadlyPlayer == null) return false;
+        if(myPlayer == null) throw new Exception('WARNING! PLAYER IS NULL!!!');
+        trace('esacpe1: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
 
         // hunt this animal
         if(animal != null && animal.isKillableByBow()) animalTarget = animal;
         // go for hunting 
         if(myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false) return false; 
+
+        trace('esacpe2: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
 
         var player = myPlayer.getPlayerInstance();
         var escapeDist = 3;
@@ -647,6 +652,7 @@ class Ai
         var escapeTx = escapePlayer ? deadlyPlayer.tx : animal.tx;
         var escapeTy = escapePlayer ? deadlyPlayer.ty : animal.ty;
         var newEscapetarget = new ObjectHelper(null, 0);
+        trace('esacpe3: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
 
         myPlayer.say('Escape ${description} ${Math.ceil(didNotReachFood)}!');
         if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} escape!');
@@ -696,6 +702,8 @@ class Ai
 
             //if(ServerSettings.DebugAi) trace('Escape $ii alwaysX: $alwaysX alwaysY $alwaysY');
         }
+
+        trace('esacpe4: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
 
         if(useTarget != null || foodTarget != null || escapeTarget != null)
         {

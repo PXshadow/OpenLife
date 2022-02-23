@@ -640,11 +640,13 @@ class AiHelper
             if(p.deleted) continue;
             if(p.isHoldingWeapon() == false) continue;
             if(p.isFriendly(player)) continue;
+            //if(p.angryTime > 4) continue;
 
             var dist = AiHelper.CalculateDistanceToPlayer(player, p);
 
             if(dist > bestDist) continue;
 
+            //trace('GetCloseDeadlyPlayer: ');
             bestDist = dist;
             bestPlayer = p;
         }
