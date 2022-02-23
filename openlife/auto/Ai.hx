@@ -439,7 +439,7 @@ class Ai
         var heldPlayer = myPlayer.getHeldPlayer();
         if(heldPlayer != null)
         {
-            var done = myPlayer.dropPlayer();
+            var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
 
             trace('AAI: ${myPlayer.id} killAnimal child drop for get item ${heldPlayer.name} $done');
 
@@ -555,7 +555,7 @@ class Ai
 
             if(heldPlayer.age * 60 > ServerSettings.MinMovementAgeInSec && heldPlayer.food_store > Math.max(3.5, heldPlayer.food_store_max - 0.2))
             {
-                var done = myPlayer.dropPlayer();
+                var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
                 this.feedingPlayerTarget = null;
                 trace('AAI: ${myPlayer.id} child drop ${heldPlayer.name} $done food: ${heldPlayer.food_store} max: ${heldPlayer.food_store_max - 0.2}');
                 return true;
@@ -1320,7 +1320,7 @@ class Ai
         var heldPlayer = myPlayer.getHeldPlayer();
         if(heldPlayer != null)
         {
-            var done = myPlayer.dropPlayer();
+            var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
 
             trace('AAI: ${myPlayer.id} child drop for eating ${heldPlayer.name} $done');
 
@@ -1453,7 +1453,7 @@ class Ai
         var heldPlayer = myPlayer.getHeldPlayer();
         if(heldPlayer != null)
         {
-            var done = myPlayer.dropPlayer();
+            var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
 
             trace('AAI: ${myPlayer.id} child drop for using ${heldPlayer.name} $done');
 

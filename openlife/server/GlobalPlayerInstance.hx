@@ -1249,7 +1249,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return TransitionHelper.doCommand(this, ServerTag.DROP, x, y, clothingIndex);
         }
         else{
-            return dropPlayer();
+            return dropPlayer(x, y);
         }
     }
 
@@ -2874,7 +2874,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         //this.connection.die();
         
-        if(this.heldPlayer != null) this.dropPlayer(); // TODO test
+        if(this.heldPlayer != null) this.dropPlayer(this.x, this.y); // TODO test
         if(this.heldByPlayer != null)
         {
             var player = this.heldByPlayer;
@@ -3498,7 +3498,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             {
                 targetPlayer.killMode = false;
 
-                if(targetPlayer.heldPlayer != null) dropPlayer(); // TODO test
+                if(targetPlayer.heldPlayer != null) dropPlayer(this.x, this.y); // TODO test
                 
                 if(targetPlayer.heldObject.id != 0)
                 {
@@ -3685,6 +3685,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }
 
+        // since targetPlayer may have moved inform where the player is now
+        Connection.SendUpdateToAllClosePlayers(targetPlayer, true);
+
         this.heldPlayer = targetPlayer;
         targetPlayer.heldByPlayer = this;
         this.setHeldObject(null);
@@ -3726,7 +3729,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return true;
     }
 
-    public function dropPlayer() : Bool
+    public function dropPlayer(x:Int, y:Int) : Bool
     {
         //trace('drop player');
 
@@ -3740,21 +3743,27 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
 
         var done = false;
-        Macro.exception(done = dropPlayerHelper());
+        Macro.exception(done = dropPlayerHelper(x, y));
 
         AllPlayerMutex.release();
 
         return done;
     }
 
-    private function dropPlayerHelper() : Bool
+    private function dropPlayerHelper(x:Int, y:Int) : Bool
     {
         //trace('drop player helper');
         var player = this;
         var heldPlayer = player.heldPlayer;
 
-        heldPlayer.x = player.tx - heldPlayer.gx;
-        heldPlayer.y = player.ty - heldPlayer.gy;
+        if(player.isClose(x, y, 1) == false)
+        {
+            trace('Drop target $x,$y is too far away!');
+            return false;
+        }
+
+        heldPlayer.x = x + player.gx - heldPlayer.gx;
+        heldPlayer.y = y + player.gy - heldPlayer.gy;
         heldPlayer.moveHelper.exactTx = heldPlayer.tx;
         heldPlayer.moveHelper.exactTy = heldPlayer.ty;
 
@@ -3766,8 +3775,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         heldPlayer.responsible_id = player.p_id;
         heldPlayer.done_moving_seqNum += 1;
 
-        Connection.SendUpdateToAllClosePlayers(player,true, false);
-        Connection.SendUpdateToAllClosePlayers(heldPlayer);
+        Connection.SendUpdateToAllClosePlayers(heldPlayer, true, false);
+        Connection.SendUpdateToAllClosePlayers(player,true);
 
         heldPlayer.forced = false;
         heldPlayer.responsible_id = -1;
@@ -3805,7 +3814,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var done = false;
 
         //var done = doHelper(this.heldByPlayer, this, dropPlayerHelper);
-        Macro.exception(done = this.heldByPlayer.dropPlayer());
+        Macro.exception(done = this.heldByPlayer.dropPlayer(heldByPlayer.x, heldByPlayer.y));
 
         AllPlayerMutex.release();
 

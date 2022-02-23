@@ -18,7 +18,7 @@ interface PlayerInterface
     public function specialRemove(x:Int,y:Int,clothingSlot:Int,index:Null<Int>) : Bool;
     public function use(x:Int, y:Int, containerIndex:Int = -1, target:Int = 0) : Bool;
     public function drop(x:Int, y:Int, clothingIndex:Int = -1) : Bool;
-    public function dropPlayer() : Bool;
+    public function dropPlayer(x:Int, y:Int) : Bool;
     public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int) : Bool; // UBABY
     public function doBaby(x:Int, y:Int, playerId:Int) : Bool;
     public function jump() : Bool; 
@@ -26,10 +26,12 @@ interface PlayerInterface
     // variables
     public var id(get, null):Int;
     public var name(get, null):String;
-    public var tx(get, null):Int;
-    public var ty(get, null):Int;
+    public var x(default, default):Int;
+    public var y(default, default):Int;
     public var gx(default, default):Int;
     public var gy(default, default):Int;
+    public var tx(get, null):Int;
+    public var ty(get, null):Int;
 
     public var food_store(default, default):Float;
     public var food_store_max(default, default):Float;
