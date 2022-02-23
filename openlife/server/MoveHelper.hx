@@ -316,17 +316,17 @@ class MoveHelper
 
                 TimeHelper.MakeAnimalsRunAway(p);
 
-                //trace('Move: ${p.name} ${p.tx} ${p.ty}');
+                //if(ServerSettings.DebugMoveHelper) trace('Move: ${p.name} ${p.tx} ${p.ty}');
             }
 
-            //if(TimeHelper.tick % 5 == 0) trace('Moves: ${moveHelper.newMoves} passedTime: $timePassed ${p.tx()},${p.ty()} ${moveHelper.exactTx},${moveHelper.exactTy}');
+            //if(TimeHelper.tick % 5 == 0) if(ServerSettings.DebugMoveHelper) trace('Moves: ${moveHelper.newMoves} passedTime: $timePassed ${p.tx()},${p.ty()} ${moveHelper.exactTx},${moveHelper.exactTy}');
         }
 
         var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.startingMoveTicks);
 
         timeSinceStartMovementInSec *= ServerSettings.LetTheClientCheatLittleBitFactor;
 
-        //if(TimeHelper.tick % 5 == 0) trace('Moves: timeSinceStartMovementInSec: ${timeSinceStartMovementInSec} totalMoveTime: ${moveHelper.totalMoveTime}');
+        //if(TimeHelper.tick % 5 == 0) if(ServerSettings.DebugMoveHelper) trace('Moves: timeSinceStartMovementInSec: ${timeSinceStartMovementInSec} totalMoveTime: ${moveHelper.totalMoveTime}');
 
         if(timeSinceStartMovementInSec >= moveHelper.totalMoveTime)
         {
@@ -344,8 +344,8 @@ class MoveHelper
                 p.x += last.x; 
                 p.y += last.y;
             
-                //if(p.connection.serverAi == null) trace('reached position: g${p.tx},g${p.ty} FROM ${oldX},${oldY} TO ${p.x},${p.y}');
-                //else trace('AAI: GOTO: FROM ${oldX},${oldY} TO ${p.x},${p.y} / FROM g${p.tx - last.x},g${p.ty- last.y} TO g${p.tx},g${p.ty} reached position!');
+                //if(p.connection.serverAi == null) if(ServerSettings.DebugMoveHelper) trace('reached position: g${p.tx},g${p.ty} FROM ${oldX},${oldY} TO ${p.x},${p.y}');
+                //else if(ServerSettings.DebugMoveHelper) trace('AAI: GOTO: FROM ${oldX},${oldY} TO ${p.x},${p.y} / FROM g${p.tx - last.x},g${p.ty- last.y} TO g${p.tx},g${p.ty} reached position!');
             }
 
             p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
@@ -364,7 +364,7 @@ class MoveHelper
 
             if(p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
 
-            //trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
+            //if(ServerSettings.DebugMoveHelper) trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
         }
     }
 
@@ -494,12 +494,12 @@ class MoveHelper
             //if(Math.ceil(p.jumpedTiles) >= ServerSettings.MaxJumpsPerTenSec || p.exhaustion > 5 + p.food_store_max / 2)
             if(Math.ceil(p.jumpedTiles) >= ServerSettings.MaxJumpsPerTenSec)
             {
-                trace('${p.name} MOVE: JUMP: FORCE!! Movement cancled since too exhausted ${Math.ceil(p.exhaustion)} or jumped: ${Math.ceil(p.jumpedTiles * 10) / 10} to often: quadDist: $quadDist Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
+                if(ServerSettings.DebugMoveHelper) trace('${p.name} MOVE: JUMP: FORCE!! Movement cancled since too exhausted ${Math.ceil(p.exhaustion)} or jumped: ${Math.ceil(p.jumpedTiles * 10) / 10} to often: quadDist: $quadDist Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
                 cancleMovement(p, seq);
                 return;
             } 
 
-            trace('${p.name} MOVE: JUMP: positionChanged NoForce! jumped: ${Math.ceil(p.jumpedTiles * 10) / 10} quadDist: ${quadDist} Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
+            if(ServerSettings.DebugMoveHelper) trace('${p.name} MOVE: JUMP: positionChanged NoForce! jumped: ${Math.ceil(p.jumpedTiles * 10) / 10} quadDist: ${quadDist} Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
 
             // Since vanilla client handels move strangely the server accepts one position further even if not fully reached there 
             // This a client could use to jump.
@@ -521,7 +521,7 @@ class MoveHelper
         var newMovements = calculateNewMovements(p, moves);
         if(newMovements.moves.length < 1)
         {
-            trace('${p.name} MOVE: FORCE!! Move cancled since no new movements!');
+            if(ServerSettings.DebugMoveHelper) trace('${p.name} MOVE: FORCE!! Move cancled since no new movements!');
             cancleMovement(p, seq);
             return;
         }
@@ -584,7 +584,7 @@ class MoveHelper
         var eta = totalMoveTime - TimeHelper.CalculateTimeSinceTicksInSec(startingMoveTicks);            
 
         var moveString = '${player.p_id} ${targetX} ${targetY} ${totalMoveTime} $eta ${newMovements.trunc} ${moveString(newMoves)}';
-        //trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
+        //if(ServerSettings.DebugMoveHelper) trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
 
         return moveString;
     }
@@ -633,8 +633,8 @@ class MoveHelper
 
             if(p.isBlocked(tmpX, tmpY))
             {
-                //if(isBlockingBiome) trace('biome ${map.getBiomeId(tmpX,tmpY)} is blocking movement! movement length: ${newMovements.length}');
-                //if(isBlockingObj) trace('object ${obj.description} is blocking movement! movement length: ${newMovements.length}');
+                //if(isBlockingBiome) if(ServerSettings.DebugMoveHelper) trace('biome ${map.getBiomeId(tmpX,tmpY)} is blocking movement! movement length: ${newMovements.length}');
+                //if(isBlockingObj) if(ServerSettings.DebugMoveHelper) trace('object ${obj.description} is blocking movement! movement length: ${newMovements.length}');
                 
                 newMovements.trunc = 1;
 
@@ -663,7 +663,7 @@ class MoveHelper
                 }*/
                 
                 
-                //trace('movement is trunc because of moving from bad biome to good biome or good biome to bad biome: ${newMovements.moves.length}');
+                //if(ServerSettings.DebugMoveHelper) trace('movement is trunc because of moving from bad biome to good biome or good biome to bad biome: ${newMovements.moves.length}');
 
                 newMovements.length += calculateLength(lastPos,move);
                 newMovements.moves.push(move);
@@ -701,7 +701,7 @@ class MoveHelper
         {
             var thisStepLength = calculateLength(lastPos,move);
             length += thisStepLength;
-            //trace('length: $length movedLength: $movedLength speed: $speed timeSinceStartMovementInSec: $timeSinceStartMovementInSec'  );
+            //if(ServerSettings.DebugMoveHelper) trace('length: $length movedLength: $movedLength speed: $speed timeSinceStartMovementInSec: $timeSinceStartMovementInSec'  );
             
             // TODO make exact calculatation where the client thinks he is
             if(length - thisStepLength / 2 > movedLength) return lastPos;
@@ -711,7 +711,7 @@ class MoveHelper
         }
 
         // in this case the whole movement finished 
-        trace("The whole movement finished");
+        if(ServerSettings.DebugMoveHelper) trace("The whole movement finished");
         return lastPos;
     }
 

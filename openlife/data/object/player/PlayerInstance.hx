@@ -297,7 +297,7 @@ class PlayerInstance
 
         var seqNum = isHeld() || isMoving() ? 0 : done_moving_seqNum; 
 
-        trace('TODATA: ${name} $x $y + $gx $gy = $tx $ty r: $rx $ry seqNum: ${seqNum} isHeld: ${isHeld()} isMoving: ${isMoving()} ');
+        //trace('TODATA: ${name} $x $y + $gx $gy = $tx $ty r: $rx $ry seqNum: ${seqNum} isHeld: ${isHeld()} isMoving: ${isMoving()} ');
         //trace('AAI: p$p_id $rx,$ry');
 
         

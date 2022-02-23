@@ -48,6 +48,11 @@ class AiHelper
         return GetClosestObject(playerInterface, objData, ignoreObj);
     }
 
+    private static function GetName(objId:Int) : String
+    {
+        return ObjectData.getObjectData(objId).name;
+    }
+
     public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData, searchDistance:Int = 16, ignoreObj:ObjectHelper = null, findClosestHeat:Bool = false, ownedByPlayer:Bool = false) : ObjectHelper
     {
         //var RAD = ServerSettings.AiMaxSearchRadius
@@ -112,7 +117,7 @@ class AiHelper
         var objData = obj.objectData.dummyParent != null ? obj.objectData.dummyParent : obj.objectData;
         var originalFoodValue = objData.foodFromTarget == null ? objData.foodValue : objData.foodFromTarget.foodValue;
 
-        trace('AI: ${obj.description} ${obj.id} numberOfUses: ${obj.numberOfUses} originalFoodValue: $originalFoodValue');
+        if(ServerSettings.DebugAi) trace('AI: ${obj.description} ${obj.id} numberOfUses: ${obj.numberOfUses} originalFoodValue: $originalFoodValue');
 
         return originalFoodValue > 0;
         //if(originalFoodValue < 0) return false;
@@ -207,13 +212,13 @@ class AiHelper
                 }
 
                 bestFood = null;
-                trace('AI: bestfood: cannot reach food! ms: ${Math.round((Sys.time() - startTime) * 1000)}'); 
+                if(ServerSettings.DebugAi) trace('AI: bestfood: cannot reach food! ms: ${Math.round((Sys.time() - startTime) * 1000)}'); 
                 if((Sys.time() - startTime) * 1000 > 100) break; 
             }
         }
 
-        if(bestFood != null) trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: $bestDistance ${bestFood.description} ${bestFood.id}');
-        else trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: NA');
+        if(bestFood != null) if(ServerSettings.DebugAi) trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: $bestDistance ${bestFood.description} ${bestFood.id}');
+        else if(ServerSettings.DebugAi) trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: NA');
 
         return bestFood;
     }
@@ -281,14 +286,14 @@ class AiHelper
 
             var passedTime = (Sys.time() - startTime) * 1000;
 
-            if(passedTime > 400)
+            if(passedTime > 500)
             {
                 trace('AI: ${player.id}  ${player.name} GOTO failed after $i because of timeout $passedTime! Ignore ${tx} ${ty}'); 
                 break; 
             }
         }
 
-        trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty}'); 
+        if(ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty}'); 
         ai.addNotReachable(tx, ty);
 
         ai.resetTargets();
@@ -358,7 +363,7 @@ class AiHelper
         if (paths == null) 
         {
             //if (onError != null) onError("can not generate path");
-            trace('AAI: ${player.p_id} CAN NOT GENERATE PATH');
+            //trace('AAI: ${player.p_id} CAN NOT GENERATE PATH');
             return false;
         }
 
@@ -536,7 +541,7 @@ class AiHelper
             //if(count > 1000) break; // TODO remove
         }
 
-        trace('AI trans search: $count transtions found! ${Sys.time() - startTime}');
+        if(ServerSettings.DebugAiCrafting) trace('AI trans search: $count transtions found! ${Sys.time() - startTime}');
 
         
         /*for(key in transitionsForObject.keys())            
@@ -663,7 +668,7 @@ class AiHelper
             if(p.heldByPlayer != null) continue;
             if(isFertile && p.age < ServerSettings.MaxChildAgeForBreastFeeding) continue;
 
-            var considerHungry = Math.min(p.lineage.prestigeClass * 2, p.food_store_max * 0.8);
+            var considerHungry = Math.min(p.lineage.prestigeClass * 2, 1 + p.food_store_max * 0.8);
             var hungry = considerHungry - p.food_store;
             var isAlly = p.isAlly(globalplayer);
 
@@ -677,7 +682,7 @@ class AiHelper
 
             var quadHungry = Math.pow(hungry, 2) / dist;
             if(quadHungry < bestQuadHungry) continue;
-            trace('${p.name} class: ${p.lineage.prestigeClass} dist: $dist food: ${Math.ceil(p.food_store * 10) / 10} hungry: ${Math.ceil(hungry * 10) / 10} quadHungry: ${Math.ceil(quadHungry * 1000) / 1000}');
+            //trace('${p.name} class: ${p.lineage.prestigeClass} dist: $dist food: ${Math.ceil(p.food_store * 10) / 10} hungry: ${Math.ceil(hungry * 10) / 10} quadHungry: ${Math.ceil(quadHungry * 1000) / 1000}');
             if(quadHungry < minQuadHungry) continue;
 
             bestQuadHungry = quadHungry;

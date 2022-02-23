@@ -188,6 +188,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         AllPlayers.remove(this.p_id);
     }
 
+    private static function GetName(objId:Int) : String
+    {
+        return ObjectData.getObjectData(objId).name;
+    }
+
     public static function WriteAllPlayers(path:String)
     {
         WritePlayers(path, AllPlayers);
@@ -365,7 +370,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         writer.close();
 
-        trace('wrote $count Players...');
+        //trace('wrote $count Players...');
         if(ServerSettings.DebugWrite) trace('wrote $count Players...');
     }
 
@@ -797,7 +802,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             else return 0;
         });
 
-        for(p in players) trace('PRESTIGE: ${p.p_id} ${p.lineagePrestige}');        
+        for(p in players) trace('${p.name} PRESTIGE: ${p.lineagePrestige}');        
 
         var neededPrestige = CalculateNeededPrestige(players, 0.4);
         medianPrestige = Math.max(neededPrestige, ServerSettings.HealthFactor); // is needed for calculating health
@@ -975,7 +980,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             if(foodCount > ServerSettings.MaxHasEatenForNextGeneration) foodCount = ServerSettings.MaxHasEatenForNextGeneration;
             child.hasEatenMap[food] = foodCount;
 
-            trace('Inherit from:${fromPlayer.name} fromGrandparents: $inheritFromGrandparents food: $food value: $foodCount');
+            trace('Inherit from: ${fromPlayer.name} GP?: $inheritFromGrandparents food: ${GetName(food)} value: $foodCount');
         }
     }
 
@@ -1063,7 +1068,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {            
             var tmpFitness = CalculateMotherFitness(p, child);            
 
-            trace('Spawn As Child: ${child.account.email} Fitness: $tmpFitness ${p.name} ${p.familyName}');
+            trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness*10) / 10} ${p.name} ${p.familyName}');
 
             if(tmpFitness < -100) continue;
 
@@ -1822,7 +1827,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private function doSelf(x:Int, y:Int, clothingSlot:Int) : Bool
     {
-        trace('self: ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
+        //trace('self: ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
         if(this.o_id[0] < 0) return false; // is holding player
 
@@ -1870,7 +1875,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     //public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, targetPlayer:GlobalPlayerInstance) : Bool
     public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, playerId:Int) : Bool
     {
-        trace('doOnOtherHelper: playerId: ${playerId} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
+        if(ServerSettings.DebugPlayer) trace('doOnOtherHelper: playerId: ${playerId} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
         if(this.o_id[0] < 0) return false; // is holding player
         // 838 Dont feed dam drugs! Wormless Soil Pit with Mushroom // 837 Psilocybe Mushroom
@@ -2037,7 +2042,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(playerFrom.age < ServerSettings.MinAgeToEat)
         {
-            trace('too young to eat player.age: ${playerFrom.age} < ServerSettings.MinAgeToEat: ${ServerSettings.MinAgeToEat} ');
+            trace('too young to eat: age: ${Math.round(playerFrom.age)} < MinAgeToEat: ${ServerSettings.MinAgeToEat} ');
             return false;
         }
 
@@ -2053,7 +2058,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         var foodValue:Float = heldObjData.foodValue;
 
-        trace('FOOD: food_store_max: ${playerTo.food_store_max} food_store: ${playerTo.food_store} foodValue: ${foodValue}');
+        if(ServerSettings.DebugEating) trace('FOOD: food_store_max: ${playerTo.food_store_max} food_store: ${playerTo.food_store} foodValue: ${foodValue}');
 
         if(foodValue < 1)
         {
@@ -2108,13 +2113,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 playerTo.hasEatenMap[heldObjData.id] += foodEaten;
                 if(foodEaten > 1) foodEaten = 1 + (foodEaten - 1) / 2; 
 
-                trace('Craving: foodEaten: $foodEaten countEaten: $countEaten --> ${playerTo.hasEatenMap[heldObjData.id]}');
+                if(ServerSettings.DebugEating) trace('Craving: foodEaten: $foodEaten countEaten: $countEaten --> ${playerTo.hasEatenMap[heldObjData.id]}');
             }
             else
             {
                 if(isFoodYum == false) foodEaten *= ServerSettings.FoodReductionFaktorForEatingMeh;
                 playerTo.hasEatenMap[heldObjData.id] += foodEaten;
-                trace('No Craving: foodEaten: $foodEaten countEaten: $countEaten --> ${playerTo.hasEatenMap[heldObjData.id]}');
+                if(ServerSettings.DebugEating) trace('No Craving: foodEaten: $foodEaten countEaten: $countEaten --> ${playerTo.hasEatenMap[heldObjData.id]}');
             }
 
             playerTo.doIncreaseFoodValue(heldObjData.id, foodEaten);
@@ -2150,12 +2155,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             playerTo.yellowfeverCount += ServerSettings.ResistenceAginstFeverForEatingMushrooms;
         }
             
-        trace('YUM: ${heldObjData.description} foodValue: $foodValue countEaten: $countEaten');
+        if(ServerSettings.DebugEating) trace('YUM: ${heldObjData.description} foodValue: $foodValue countEaten: $countEaten');
 
         // food_store food_capacity last_ate_id last_ate_fill_max move_speed responsible_id
        
         playerTo.last_ate_fill_max = Math.ceil(playerTo.food_store);
-        trace('last_ate_fill_max: ${playerTo.last_ate_fill_max}');
+        if(ServerSettings.DebugEating) trace('last_ate_fill_max: ${playerTo.last_ate_fill_max}');
         //this.food_store += foodValue;
         playerTo.just_ate = 1;
         playerTo.last_ate_id = heldObjData.id;
@@ -2174,7 +2179,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         // 1251 + -1 = 235 + 0 lastUseActor: true Bowl of Stew
         if(TransitionHelper.DoChangeNumberOfUsesOnActor(playerFrom.heldObject, false, false) == false)
         {
-            trace('FOOD: set held object null');
+            if(ServerSettings.DebugEating) trace('FOOD: set held object null');
             playerFrom.setHeldObject(null);
         }
 
@@ -2292,20 +2297,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     private function doIncreaseFoodValue(eatenFoodId:Int, amountEaten:Float)
     {
-        trace('${this.name} IncreaseFoodValue: ${eatenFoodId}');
+        //trace('${this.name} IncreaseFoodValue: ${eatenFoodId}');
         
         if(hasEatenMap[eatenFoodId] > 0) cravings.remove(eatenFoodId);
 
         var hasEatenKeys = [for(key in hasEatenMap.keys()) key];
 
-        trace('${this.name} IncreaseFoodValue: hasEatenKeys.length: ${hasEatenKeys.length}');
+        if(ServerSettings.DebugEating) trace('${this.name} IncreaseFoodValue: hasEatenKeys.length: ${hasEatenKeys.length}');
 
         if(hasEatenKeys.length < 1) return;
 
         var random = WorldMap.calculateRandomInt(hasEatenKeys.length -1);
         var key = hasEatenKeys[random];
 
-        //trace('IncreaseFoodValue: random: $random hasEatenKeys.length: ${hasEatenKeys.length}');
+        //if(ServerSettings.DebugEating) trace('IncreaseFoodValue: random: $random hasEatenKeys.length: ${hasEatenKeys.length}');
 
         var newHasEatenCount = hasEatenMap[key];
         var cravingHasEatenCount = hasEatenMap[currentlyCraving];
@@ -2317,7 +2322,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
         else
         {
-            trace('${this.name} IncreaseFoodValue: craving hasEaten: NO!!!: key: $key, heldObject.id(): ${eatenFoodId}');
+            if(ServerSettings.DebugEating) trace('${this.name} IncreaseFoodValue: craving hasEaten: NO!!!: key: $key, heldObject.id(): ${eatenFoodId}');
         }
 
         // restore also some biome loved food like bana for brown
@@ -2332,7 +2337,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(cravingHasEatenCount < 0 && currentlyCraving != 0 && currentlyCraving == eatenFoodId)
         {            
-            trace('${this.name} IncreaseFoodValue: craving: currentlyCraving: $currentlyCraving ${-cravingHasEatenCount}');
+            if(ServerSettings.DebugEating) trace('${this.name} IncreaseFoodValue: craving: currentlyCraving: $currentlyCraving ${-cravingHasEatenCount}');
 
             this.connection.send(ClientTag.CRAVING, ['${currentlyCraving} ${-cravingHasEatenCount}']);
         }      
@@ -2347,7 +2352,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
             if(cravings.length < 1 || WorldMap.calculateRandomFloat() < ServerSettings.YumNewCravingChance)
             {
-                trace('${this.name} IncreaseFoodValue: no new craving / choose random new: Eaten: ${eatenFoodId}');
+                if(ServerSettings.DebugEating) trace('${this.name} IncreaseFoodValue: no new craving / choose random new: Eaten: ${eatenFoodId}');
 
                 currentlyCraving = 0;
 
@@ -2390,7 +2395,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 newHasEatenCount = hasEatenMap[newObjData.id];
                 newHasEatenCount--;
 
-                trace('${this.name} New random craving: ${newObjData.description} ${newObjData.id} lastCravingIndex: $lastCravingIndex index: $index  newHasEatenCount: ${-newHasEatenCount}');
+                if(ServerSettings.DebugEating) trace('${this.name} New random craving: ${newObjData.description} ${newObjData.id} lastCravingIndex: $lastCravingIndex index: $index  newHasEatenCount: ${-newHasEatenCount}');
 
                 lastCravingIndex = index;
                 currentlyCraving = newObjData.id;
@@ -2410,7 +2415,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                     foodId = bestfood.objectData.getFoodId();
                     newHasEatenCount = hasEatenMap[foodId]; 
                     
-                    trace('${this.name} Find close craving: ${bestfood.description} newHasEatenCount: $newHasEatenCount');
+                    if(ServerSettings.DebugEating) trace('${this.name} Find close craving: ${bestfood.name} newHasEatenCount: $newHasEatenCount');
                 }
 
                 if(newHasEatenCount > 0)
@@ -2426,7 +2431,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 this.connection.send(ClientTag.CRAVING, ['$foodId ${-newHasEatenCount}']);
                 currentlyCraving = key;
 
-                trace('${this.name} IncreaseFoodValue: new craving: cravingHasEatenCount: $cravingHasEatenCount currentlyCraving: $currentlyCraving ${-newHasEatenCount}');
+                if(ServerSettings.DebugEating) trace('${this.name} IncreaseFoodValue: new craving: cravingHasEatenCount: $cravingHasEatenCount currentlyCraving: $currentlyCraving ${-newHasEatenCount}');
             }
         }            
     }
@@ -2437,11 +2442,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var newHasEatenCount = hasEatenMap[foodId];
         var objData = ObjectData.getObjectData(foodId);
 
-        trace('${this.name} IncreaseFoodValue: amountEaten: $amountEaten food: ${objData.description} ==> ${newHasEatenCount}');
+        if(ServerSettings.DebugEating) trace('${this.name} IncreaseFoodValue: amountEaten: $amountEaten food: ${objData.description} ==> ${Math.round(newHasEatenCount * 10) / 10}');
 
         if(newHasEatenCount <= 0 && cravings.contains(foodId) == false)
         {
-            trace('${this.name} IncreaseFoodValue: added craving: ${objData.description}');
+            if(ServerSettings.DebugEating) trace('${this.name} IncreaseFoodValue: added craving: ${objData.description}');
             cravings.push(foodId);
         }
     }
@@ -2452,7 +2457,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         var objClothingSlot = playerFrom.calculateClothingSlot();
 
-        trace('self:o_id: ${playerFrom.o_id[0]} helobj.id: ${playerFrom.heldObject.id} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
+        if(objClothingSlot < 0 && playerFrom.heldObject.id != 0) return false;
+
+        if(ServerSettings.DebugPlayer) trace('self:o_id: ${playerFrom.o_id[0]} helobj.id: ${playerFrom.heldObject.id} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
 
         if(playerFrom.age < ServerSettings.MinAgeToEat && playerFrom.heldObject.id != 0)
         {
@@ -2469,9 +2476,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
                 return false;
             }
-        }
-
-        if(objClothingSlot < 0 && playerFrom.heldObject.id != 0) return false;
+        }   
 
         var array = playerTo.clothing_set.split(";");
 
@@ -2544,10 +2549,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             case "p": objClothingSlot = 5;      // backpack
         }
 
-        trace('objectData.clothing: ${objectData.clothing}');
-        trace('objClothingSlot:  ${objClothingSlot}');
+        if(ServerSettings.DebugPlayer) trace('objectData.clothing: ${objectData.clothing} objClothingSlot:  ${objClothingSlot}');
         //trace('clothingSlot:  ${clothingSlot}');
-        
 
         return objClothingSlot;
     }
@@ -2834,10 +2837,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             heldObject.numberOfUses = 1;
             //TODO set to max numberOfUses??? heldObject.numberOfUses = heldObject.objectData
-            trace('transformHeldObject: ${fromObjData.id} --> ${toObjData.id} / numberOfUses set to 1');    
+            if(ServerSettings.DebugTransitionHelper) trace('transformHeldObject: ${fromObjData.id} --> ${toObjData.id} / numberOfUses set to 1');    
         }
 
-        trace('transformHeldObject: heldObject.numberOfUses: ${heldObject.numberOfUses}');
+        if(ServerSettings.DebugTransitionHelper) trace('transformHeldObject: heldObject.numberOfUses: ${heldObject.numberOfUses}');
 
         heldObject.id = id;
         setHeldObject(heldObject);
@@ -3254,7 +3257,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             return false;
         }
 
-        trace('kill($x,$y ${targetPlayer.tx - this.gx},${targetPlayer.ty - this.gy} playerId: $playerId) ${name}');
+        if(ServerSettings.DebugCombat) trace('kill($x,$y ${targetPlayer.tx - this.gx},${targetPlayer.ty - this.gy} playerId: $playerId) ${name}');
 
         this.killMode = true;
 
@@ -3408,12 +3411,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
     public function DoDamage(targetPlayer:GlobalPlayerInstance, fromObj:ObjectHelper, attacker:GlobalPlayerInstance = null, distanceFactor:Float = 1, quadDistance:Float = 0) : Float
     {
+        // TODO do damage according to right / wrong biome
+
         var orgDamage = fromObj.objectData.damage * ServerSettings.WeaponDamageFactor;
         var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());
 
         var protection = targetPlayer.calculateClothingInsulation();
         var protectionFactor = 1 / (protection + 1); // from 1 to 1 / 3;
-        trace('KILL: protection: $protection protectionFactor: $protectionFactor');
+        if(ServerSettings.DebugCombat) trace('COMBAT: protection: $protection protectionFactor: $protectionFactor');
 
         var allyFactor = 1.0;
 
@@ -3428,7 +3433,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             }
 
             var isRightClassForWeapon = attacker.isRightClassForWeapon();
-            trace('PRESTIGE: isRightClassForWeapon: $isRightClassForWeapon');
+            if(ServerSettings.DebugCombat) trace('COMBAT: isRightClassForWeapon: $isRightClassForWeapon');
 
             damage *= attacker.isMale() ? ServerSettings.MaleDamageFactor : 1;
             damage *= allyFactor;
@@ -3437,7 +3442,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             damage *= attacker.isCursed ? ServerSettings.CursedDamageFactor : 1;
             damage *= attacker.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
 
-            trace('kill: HIT weaponDamage: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance');
+            if(ServerSettings.DebugCombat) trace('COMBAT: HIT weaponDamage: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance');
         }
 
         var isRightClassForWeapon = targetPlayer.isRightClassForWeapon();
@@ -3466,7 +3471,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         targetPlayer.sendFoodUpdate(false);
         if(doesRealDamage) Connection.SendDyingToAll(targetPlayer); // he is not actually dying but wounded
 
-        trace('kill: HIT objDamage: $orgDamage damage: $damage moskitoDamageFactor: $moskitoDamageFactor');
+        if(ServerSettings.DebugCombat) trace('COMBAT: HIT objDamage: $orgDamage damage: $damage moskitoDamageFactor: $moskitoDamageFactor');
 
         if(targetPlayer.woundedBy == 0 || doesRealDamage) targetPlayer.woundedBy = fromObj.id;
         var longWeaponCoolDown = false;
@@ -3574,7 +3579,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             //timeToChangeFactor = longWeaponCoolDown && attacker == null ? ServerSettings.AnimalCoolDownFactorIfWounding : timeToChangeFactor;
 
             fromObj.timeToChange = timeTransition.calculateTimeToChange() * timeToChangeFactor;
-            trace('Bloody Weapon Time: ${fromObj.timeToChange} ' + timeTransition.getDesciption());
+            if(ServerSettings.DebugCombat) trace('COMBAT: Bloody Weapon Time: ${fromObj.timeToChange} ' + timeTransition.getDesciption());
         }  
 
         // do damage to attacking animal
@@ -3626,6 +3631,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         var factor = (allyStrength + allyStrength) / (enemyStrength + allyStrength);
 
+        //if(ServerSettings.DebugCombat)
         trace('ALLY STRENGTH: ${allyStrength} vs enemy: ${enemyStrength} factor: $factor');
 
         return factor;
@@ -3655,7 +3661,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var done = false;
         var targetPlayer = getPlayerAt(this.tx + x, this.tx + y, playerId);
 
-        trace('doBaby($x, $y playerId: $playerId)');
+        //trace('doBaby($x, $y playerId: $playerId)');
 
         AllPlayerMutex.acquire();
         

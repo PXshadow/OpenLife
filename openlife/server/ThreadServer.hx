@@ -52,7 +52,7 @@ class ThreadServer
 
                 message = socket.input.readUntil("#".code);
 
-                trace(message);
+                //trace(message);
                 ka = Timer.stamp();
                 
             }catch(e:Dynamic)

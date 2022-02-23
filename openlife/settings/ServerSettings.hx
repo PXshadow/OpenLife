@@ -16,12 +16,21 @@ class ServerSettings
     // DEBUG: switch on / off
     public static var dumpOutput = false;
     public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation
-    public static var saveToDisk = true; 
+    public static var DebugTransitionHelper = false;
+    public static var DebugMoveHelper = false;
+    public static var DebugSpeed = false; // MovementHelper
+    public static var DebugEating = false;
+    public static var DebugCombat = false;
+    public static var DebugPlayer = false;
+
     public static var AllowDebugCommmands = true; // can create objects with saying "!create ID" / "!create object" "!create object!" with ! indicating that object ends with "object" or test wounds with using "!hit" or "!heal"
     public static var DebugWrite = false; // WordMap writeToDisk
     public static var TraceCountObjects = false; // WorldMap
-    public static var DebugSpeed = false; // MovementHelper
+    
     public static var DebugCaftingStepsForObjOrFood = false; // here you see which food or obj needs how much steps to craft
+
+    // Save / Load
+    public static var saveToDisk = true; 
     public static var SavePlayers = true;
     public static var LoadPlayers = true;
 
@@ -147,7 +156,7 @@ class ServerSettings
     public static var GrownUpAge = 14; // is used for AgingFactorWhileStarvingToDeath and for increase food need for children
     public static var FoodStoreMaxReductionWhileStarvingToDeath = 5; // (5) reduces food store max with factor XX for each food below 0
 
-    public static var maxDistanceToBeConsideredAsClose = 100; //20; // only close players are updated with PU and MX and Movement 
+    public static var MaxDistanceToBeConsideredAsClose = 20; //20; // only close players are updated with PU and MX and Movement 
 
     // for movement
     public static var InitialPlayerMoveSpeed:Float = 4; //vanilla: 3.75; // in Tiles per Second
@@ -226,6 +235,9 @@ class ServerSettings
     public static var AiIgnoreTimeTransitionsLongerThen:Int = 30; 
 
     // Debug AI
+    public static var DebugAi:Bool = false;
+    public static var DebugAiGoto:Bool = false;
+    public static var DebugAiCrafting:Bool = false;
     public static var DebugAiCraftingObject:Int = 999999; //57; 
     public static var AutoFollowAi:Bool = false;
     public static var AutoFollowPlayer:Bool = false;

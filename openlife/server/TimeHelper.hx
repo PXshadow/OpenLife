@@ -2,7 +2,6 @@ package openlife.server;
 
 import openlife.auto.Ai;
 import openlife.server.GlobalPlayerInstance.Emote;
-import openlife.server.Biome.BiomeMapColor;
 import openlife.auto.AiHelper;
 import openlife.data.transition.TransitionImporter;
 import haxe.Exception;
@@ -489,7 +488,7 @@ class TimeHelper
         
         if(Std.int(tmpAge) != Std.int(player.age))
         {
-            trace('Player: ${player.p_id} Old Age: $tmpAge New Age: ${player.age} TrueAge: ${player.trueAge} agingFactor: $agingFactor healthFactor: $healthFactor');
+            if(ServerSettings.DebugPlayer) trace('Player: ${player.p_id} Old Age: $tmpAge New Age: ${player.age} TrueAge: ${player.trueAge} agingFactor: $agingFactor healthFactor: $healthFactor');
 
             //player.yum_multiplier -= ServerSettings.MinHealthPerYear; // each year some health is lost
             player.food_store_max = player.calculateFoodStoreMax();

@@ -314,7 +314,9 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI drop made stuff after ordered in fronts of player
+- AI FIX feed meh on other only if starving
+- AI FIX child: if hungry and close to feeding player dont move 
+- AI FIX drop made stuff after ordered in fronts of player
 - AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread
 - AI FIX bug with wanting to shoot bear in order to get a rope from bow
 
@@ -333,6 +335,8 @@ High priority:
 
 - NAMING fix bug
 
+- PICKUP / DROP CHILD fix display bug. maybe set origion or action from right?
+
 - BIOME remove bad biome exhaustion for staying but add for doing stuff in bad biome
 - BIOME make moskitos for all bad in swamp
 
@@ -345,6 +349,8 @@ High priority:
 - DISPLAY give hints where other players are
 
 - MAP use bigger map (Europe?) / create tool to auto create map
+
+- SAVE season
 
 Middle priority:
 - GATES Ally Gates and swing doors

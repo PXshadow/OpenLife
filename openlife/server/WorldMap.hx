@@ -368,7 +368,7 @@ class WorldMap
         if(helper != null && (index(helper.tx, helper.ty) != position))
         {
             trace('WARNING: Object ${helper.description} moved meanwhile! ${helper.tx} ${helper.ty} --> ${tx} ${ty}');
-            throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
+            if(ServerSettings.debug) throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
             helper = null;
         }
 
@@ -1259,7 +1259,7 @@ class WorldMap
             if(originalObjectToPlace != objectToPlace) allowReplaceObject = false;
 
             distance = Math.ceil(i / (20 * distance * distance)); 
-            trace('place $i distance: $distance');
+            //trace('place $i distance: $distance');
 
             var tmpX = tx + world.randomInt(distance * 2) - distance;
             var tmpY = ty + world.randomInt(distance * 2) - distance;
@@ -1285,7 +1285,7 @@ class WorldMap
 
             Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
 
-            trace('TryPlaceObject Done ${objectToPlace.description}');
+            //trace('TryPlaceObject Done ${objectToPlace.description}');
 
             return null;
         }
