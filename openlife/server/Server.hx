@@ -178,7 +178,7 @@ class Server
 
     private function message(connection:Connection, tag:ServerTag,input:Array<String>,string:String)
     {
-        trace('TAG: $tag $input');
+        if(ServerSettings.DebugIncomingCommands) trace('TAG: $tag $input');
 
         switch (tag)
         {

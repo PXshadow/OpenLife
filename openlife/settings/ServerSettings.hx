@@ -16,6 +16,7 @@ class ServerSettings
     // DEBUG: switch on / off
     public static var dumpOutput = false;
     public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation
+    public static var DebugIncomingCommands = false;
     public static var DebugTransitionHelper = false;
     public static var DebugMoveHelper = false;
     public static var DebugSpeed = false; // MovementHelper
@@ -28,6 +29,14 @@ class ServerSettings
     public static var TraceCountObjects = false; // WorldMap
     
     public static var DebugCaftingStepsForObjOrFood = false; // here you see which food or obj needs how much steps to craft
+
+    // Debug AI
+    public static var DebugAi:Bool = false;
+    public static var DebugAiGoto:Bool = false;
+    public static var DebugAiCrafting:Bool = false;
+    public static var DebugAiCraftingObject:Int = 999999; //57; 
+    public static var AutoFollowAi:Bool = false;
+    public static var AutoFollowPlayer:Bool = false;
 
     // Save / Load
     public static var saveToDisk = true; 
@@ -233,14 +242,6 @@ class ServerSettings
     public static var AiMaxSearchRadius:Int = 60;
     public static var AiMaxSearchIncrement:Int = 20; // 16
     public static var AiIgnoreTimeTransitionsLongerThen:Int = 30; 
-
-    // Debug AI
-    public static var DebugAi:Bool = false;
-    public static var DebugAiGoto:Bool = false;
-    public static var DebugAiCrafting:Bool = false;
-    public static var DebugAiCraftingObject:Int = 999999; //57; 
-    public static var AutoFollowAi:Bool = false;
-    public static var AutoFollowPlayer:Bool = false;
     
     // iron, tary spot spring cannot respawn or win lottery
     public static function CanObjectRespawn(obj:Int) : Bool
