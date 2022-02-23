@@ -2073,7 +2073,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         foodValue += ServerSettings.YumBonus;
         foodValue -= countEaten;
-        var isHoldingYum = countEaten < ServerSettings.YumBonus;  //playerFrom.isHoldingYum();
+        var isFoodYum = countEaten < ServerSettings.YumBonus;  //playerFrom.isHoldingYum();
 
         var isCravingEatenObject = heldObjData.id == playerTo.currentlyCraving;
         if(isCravingEatenObject) foodValue += 1; // craved food give more boni
@@ -2089,7 +2089,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             else playerFrom.doEmote(Emote.sad);
             return false;
         }
-        if(playerTo != playerFrom && isHoldingYum == false && playerTo.food_store > 0)
+        if(playerTo != playerFrom && isFoodYum == false && playerTo.food_store > 0)
         {
             trace('Other player can only feed YUM if not starving to death');
             playerFrom.doEmote(Emote.sad);
@@ -2106,21 +2106,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             {
                 foodEaten = Math.max(1, Math.floor(-countEaten / 2)); // eat more if it its a craving
                 playerTo.hasEatenMap[heldObjData.id] += foodEaten;
+                if(foodEaten > 1) foodEaten = 1 + (foodEaten - 1) / 2; 
 
                 trace('Craving: foodEaten: $foodEaten countEaten: $countEaten --> ${playerTo.hasEatenMap[heldObjData.id]}');
             }
             else
             {
+                if(isFoodYum == false) foodEaten *= ServerSettings.FoodReductionFaktorForEatingMeh;
                 playerTo.hasEatenMap[heldObjData.id] += foodEaten;
                 trace('No Craving: foodEaten: $foodEaten countEaten: $countEaten --> ${playerTo.hasEatenMap[heldObjData.id]}');
             }
 
-            playerTo.doIncreaseFoodValue(heldObjData.id);
+            playerTo.doIncreaseFoodValue(heldObjData.id, foodEaten);
             //playerTo.say('FC ${playerTo.hasEatenMap[heldObjData.id]}');
         }
 
         // eating YUM increases prestige / score while eating MEH reduces it
-        if(isHoldingYum)
+        if(isFoodYum)
         {
             if(countEaten < 0)
             {
@@ -2192,7 +2194,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             playerTo.doEmote(Emote.miamFood);
             if(playerFrom != null) playerFrom.doEmote(Emote.happy);
         }
-        else if(isHoldingYum) playerTo.doEmote(Emote.happy);
+        else if(isFoodYum) playerTo.doEmote(Emote.happy);
         else if(isSuperMeh) playerTo.doEmote(Emote.ill); 
         else playerTo.doEmote(Emote.sad);
         
@@ -2285,7 +2287,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     YUM multiplier will increase when they eat it.
     */
 
-    private function doIncreaseFoodValue(eatenFoodId:Int)
+    private function doIncreaseFoodValue(eatenFoodId:Int, amountEaten:Float)
     {
         trace('IncreaseFoodValue: ${eatenFoodId}');
         
@@ -2307,7 +2309,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         
         if(key != eatenFoodId && WorldMap.calculateRandomFloat() < ServerSettings.YumFoodRestore)
         {
-            hasEatenMap[key] -= ServerSettings.FoodReductionPerEating;
+            hasEatenMap[key] -= amountEaten;
             newHasEatenCount = hasEatenMap[key];
             trace('IncreaseFoodValue: craving: hasEaten YES!!!: key: $key, ${newHasEatenCount}');
 

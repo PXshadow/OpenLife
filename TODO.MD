@@ -248,7 +248,8 @@ SPEED:
 
 Food - YUM:
 - YUM chain is used as prestige and health
-- eating YUM / Cravings increases Health / Prestige, while eating MEH reduces it (YUM +1 CARAVING: +2 (or more) MEH: -0.5 SUPERMEH: -1)
+- eating YUM / Cravings increases Health / Prestige, while eating MEH reduces it
+(YUM +1 CARAVING: +2 (or more) MEH: -0.5 SUPERMEH: -1)
 - a Food is SUPERMEH if it has only halve of the food value. Eating SUPERMEH reduces health fast
 - if you hold any food the closest most YUM food / craving for you is displayed (TODO consider containers)
 - only eatable food is displayed. So if you are not hungry no food is displayed 
@@ -256,8 +257,9 @@ Food - YUM:
 - YUM gives 3 food boni first eaten. 
 - the first 3 times a food is eaten the food is YUM
 - food value is reduced minus one for each eaten / food has at least half the food value
-    For example Berry Default 2: 5 YUM / 4 YUM / 3 YUM / 2 MEH / 1 SUPERMEH / 1 SUPERMEH / 1 SUPERMEH / 1 SUPERMEH ...
-- if you eat YUM 1 pip is restored with a 0.8% chance from a random eaten food. 
+- eating meh reduces the food only halve while eating cravings restores the food value fast
+    For example Berry Default 2: 5 YUM / 4 YUM / 3 YUM / 2 MEH / 1.5 MEH / 1 SUPERMEH / 1 SUPERMEH / 1 SUPERMEH ...
+- if you eat YUM 1 pip (MEH 0.5) is restored with a 0.8% chance from a random eaten food. 
 - if the random chosen food is the same food, no food value is restored
     For eample eats a Yum berry / then eats a YUM onion / 80%  x 50% = 40% chance that eating YUM onion restores 1 pip of berry food value 
     For eample eats a Yum berry / then eats a YUM onion / Then eats a YUM carrot / 80%  x 66%% = 52% chance that eating YUM carrot restores 1 pip of berry or onion food value   
@@ -328,8 +330,6 @@ High priority:
 - NAMING fix bug
 
 - BABAY change to insteant feeding
-
-- ILL allow ill to eat
 
 - BIOME remove bad biome exhaustion for staying but add for doing stuff in bad biome
 
