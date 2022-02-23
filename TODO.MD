@@ -307,6 +307,7 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
+- AI fix child run away bug when it tries to craft something while hungry instead of going to mother
 - AI drop made stuff after ordered in fronts of player
 - AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread
 - AI FIX bug with wanting to shoot bear in order to get a rope from bow
@@ -326,6 +327,10 @@ High priority:
 
 - NAMING fix bug
 
+- BABAY change to insteant feeding
+
+- ILL allow ill to eat
+
 - BIOME remove bad biome exhaustion for staying but add for doing stuff in bad biome
 
 - MOVE fix jump forward not backward... 
@@ -336,15 +341,15 @@ High priority:
 - BIRTH spawn eves on different locations
 - BIRTH fathers
 
-- MAP use bigger map (Europe?) / create tool to auto create map
-
-- GATES Ally Gates and swing doors
-
+- DISPLAY give hints about yellow fever and when its over
 - DISPLAY fix display of prestiege gain, coins 
 - DISPLAY give hints for crafting
 - DISPLAY give hints where other players are
 
+- MAP use bigger map (Europe?) / create tool to auto create map
+
 Middle priority:
+- GATES Ally Gates and swing doors
 - FIX clearing up old lineage data / make storing lineage data more efficient
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
 

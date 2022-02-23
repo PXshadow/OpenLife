@@ -119,7 +119,7 @@ class ServerSettings
     public static var NewBornFoodStoreMax = 4;
     public static var OldAgeFoodStoreMax = 10;
     public static var DeathWithFoodStoreMax:Float = -0.1; // Death through starvation if food store max reaches below XX 
-    public static var FoodUseChildFaktor = 1; // children need X times food if below GrownUpAge
+    public static var FoodUseChildFaktor:Float = 1; // children need X times food if below GrownUpAge
     public static var YumBonus = 3; // First time eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
     public static var YumFoodRestore = 0.8; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food
     public static var YumNewCravingChance = 0.2; // XX chance that a new random craving is chosen even if there are existing ones
@@ -128,6 +128,7 @@ class ServerSettings
     public static var MaxHasEatenForNextGeneration:Float = 2; // used in InheritEatenFoodCounts
     public static var HasEatenReductionForNextGeneration:Float = 0.2; // used in InheritEatenFoodCounts
     public static var DisplayYumAndMehFood = false;
+    public static var AllowSelfEatingIfIll = true; // for example if you have yellow fever some one needs to feed you if false
 
 
     // health
