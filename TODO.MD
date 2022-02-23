@@ -287,9 +287,12 @@ Animals:
 - stuff like trees and rabit holes wont block animal movement // TODO also for player / needs client support
 - horses are the ultimative devourers you can eat anything from horse!
 - animals have more hit points so a shot / hit may or may not kill them
+
+Yellow fever:
 - moskito do very little damage but can give yellow fever. The more you love Jungle biome the less damage you get
 - the more moskito bites and yellow fever you got the more you are resistant
 - the more healthy you are the more resistant you are against moskito bites and yellow fever
+- held kids get 5X less damage from yellow fever
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
@@ -329,14 +332,10 @@ High priority:
 
 - NAMING fix bug
 
-- BABAY change to insteant feeding
-
 - BIOME remove bad biome exhaustion for staying but add for doing stuff in bad biome
+- BIOME make moskitos for all bad in swamp
 
-- MOVE fix jump forward not backward... 
-- MOVE fix jump also if exhausted but maybe not so far... 
-
-- ANIMALS fix they wont sometimes not display as moving
+- ANIMALS fix they wont sometimes display as moving
 
 - BIRTH spawn eves on different locations
 - BIRTH fathers

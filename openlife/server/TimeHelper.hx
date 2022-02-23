@@ -285,11 +285,13 @@ class TimeHelper
 
         if(player.hasYellowFever())
         {
+            var isHeldFaktor = player.heldByPlayer != null ? 0.2 : 1; // if taken care its much less hard! 
+
             player.food_store -= timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec;
-            player.exhaustion += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec;
-            player.hits += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec * 0.1;
+            player.exhaustion += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec * isHeldFaktor;
+            player.hits += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec * 0.1 * isHeldFaktor;
             
-            player.heat += timePassedInSeconds * 0.2;
+            player.heat += timePassedInSeconds * 0.2 * isHeldFaktor;
             if(player.heat > 1) player.heat = 1;
 
             player.food_store_max = player.calculateFoodStoreMax();
