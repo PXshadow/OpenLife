@@ -2144,6 +2144,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 playerTo.addHealthAndPrestige(ServerSettings.HealthLostWhenEatingMeh);
             //if(playerFrom != playerTo) playerFrom.yum_multiplier += 0.5; // saved one from starving to death
         }
+
+        if(heldObjData.isDrugs()) // eating lovely mushrooms give protection against fever 
+        {
+            playerTo.yellowfeverCount += ServerSettings.ResistenceAginstFeverForEatingMushrooms;
+        }
              
         //else if(isHoldingMeh()) yum_multiplier -= 1;
 

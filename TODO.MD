@@ -293,6 +293,7 @@ Yellow fever:
 - the more moskito bites and yellow fever you got the more you are resistant
 - the more healthy you are the more resistant you are against moskito bites and yellow fever
 - held kids get 5X less damage from yellow fever
+- eating lovely mushrooms give some protection against fever 
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
