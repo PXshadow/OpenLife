@@ -144,11 +144,12 @@ class Connection
     {
         return connections;
     }
+
     public static function getAis() : Array<ServerAi>
     {
         return ais;
     }
-    
+
     public static function addAi(ai:ServerAi)
     {
         ais.push(ai);
@@ -157,6 +158,32 @@ class Connection
     public static function removeAi(ai:ServerAi)
     {
         ais.remove(ai);
+    }
+
+    public static function getLivingHumans() : Array<GlobalPlayerInstance>
+    {
+        var livingHumans = new Array<GlobalPlayerInstance>();
+
+        for(c in connections)
+        {
+            if(c.player.deleted) continue;
+            livingHumans.push(c.player);
+        }
+
+        return livingHumans;
+    }
+
+    public static function getLivingAis() : Array<ServerAi>
+    {
+        var livingAis = new Array<ServerAi>();
+
+        for(ai in ais)
+        {
+            if(ai.player.deleted) continue;
+            livingAis.push(ai);
+        }
+
+        return livingAis;
     }
 
     public static function SendLocationToAllClose(tx:Int, ty:Int, text:String)
