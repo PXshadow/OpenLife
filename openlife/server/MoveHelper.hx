@@ -453,7 +453,7 @@ class MoveHelper
         // dont accept moves untill a force is confirmed
         if(p.moveHelper.waitForForce)
         {
-            trace('${p.name}: Move ignored since waiting for force!');
+            trace('${p.name}: Move ignored since waiting for force!!');
             return;
         }
 
@@ -477,12 +477,12 @@ class MoveHelper
         var tx = x + p.gx;
         var ty = y + p.gy;
         var moveHelper = p.moveHelper;
-        var quadDist = p.moveHelper.calculateExactQuadDistance(tx, ty);
-        //var quadDist = jump ? p.moveHelper.calculateExactQuadDistance(tx, ty) : 0;
+        //var quadDist = p.moveHelper.calculateExactQuadDistance(tx, ty);
+        var quadDist = jump ? p.moveHelper.calculateExactQuadDistance(tx, ty) : 0;
 
         if(p.isBlocked(tx,ty) || quadDist > ServerSettings.MaxMovementQuadJumpDistanceBeforeForce)
         {
-            trace('MOVE: FORCE! Movement cancled since blocked or Client uses too different x,y: quadDist: $quadDist exact: ${Math.ceil((p.moveHelper.exactTx - p.gx) * 10) / 10},${Math.ceil((p.moveHelper.exactTy - p.gy) * 10) / 10} Server ${ p.x },${ p.y } <--> Client ${ x },${ y }');
+            trace('${p.name} MOVE: FORCE!! Movement cancled since blocked or Client uses too different x,y: quadDist: $quadDist exact: ${Math.ceil((p.moveHelper.exactTx - p.gx) * 10) / 10},${Math.ceil((p.moveHelper.exactTy - p.gy) * 10) / 10} Server ${ p.x },${ p.y } <--> Client ${ x },${ y }');
             cancleMovement(p, seq);
             return;    
         }
@@ -491,20 +491,21 @@ class MoveHelper
 
         if(jump)
         {
-            if(Math.ceil(p.jumpedTiles) >= ServerSettings.MaxJumpsPerTenSec || p.exhaustion > p.food_store_max / 2)
+            //if(Math.ceil(p.jumpedTiles) >= ServerSettings.MaxJumpsPerTenSec || p.exhaustion > 5 + p.food_store_max / 2)
+            if(Math.ceil(p.jumpedTiles) >= ServerSettings.MaxJumpsPerTenSec)
             {
-                trace('MOVE: JUMP: FORCE! Movement cancled since too exhausted ${Math.ceil(p.exhaustion)} or jumped (${Math.ceil(p.jumpedTiles)}) to often: Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
+                trace('${p.name} MOVE: JUMP: FORCE!! Movement cancled since too exhausted ${Math.ceil(p.exhaustion)} or jumped: ${Math.ceil(p.jumpedTiles * 10) / 10} to often: quadDist: $quadDist Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
                 cancleMovement(p, seq);
                 return;
             } 
 
-            trace('MOVE: JUMP: positionChanged NoForce! quadDist: ${quadDist} Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
+            trace('${p.name} MOVE: JUMP: positionChanged NoForce! jumped: ${Math.ceil(p.jumpedTiles * 10) / 10} quadDist: ${quadDist} Server ${ p.x },${ p.y } --> Client ${ x },${ y }');
 
             // Since vanilla client handels move strangely the server accepts one position further even if not fully reached there 
             // This a client could use to jump.
             // Therefore exhaustion and jumpedTiles is used to limit client jumps / "cheeting"      
             p.exhaustion += quadDist * ServerSettings.ExhaustionOnJump;
-            p.jumpedTiles += quadDist;
+            p.jumpedTiles += p.exhaustion < p.food_store_max / 2 ? quadDist / 2 : quadDist;
 
             positionChanged = true;
             
@@ -520,7 +521,7 @@ class MoveHelper
         var newMovements = calculateNewMovements(p, moves);
         if(newMovements.moves.length < 1)
         {
-            trace('MOVE: FORCE! Move cancled since no new movements!');
+            trace('${p.name} MOVE: FORCE!! Move cancled since no new movements!');
             cancleMovement(p, seq);
             return;
         }
