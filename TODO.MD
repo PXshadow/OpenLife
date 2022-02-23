@@ -341,8 +341,6 @@ High priority:
 - BIRTH spawn eves on different locations
 - BIRTH fathers
 
-- DISPLAY give hints about yellow fever and when its over
-- DISPLAY fix display of prestiege gain, coins 
 - DISPLAY give hints for crafting
 - DISPLAY give hints where other players are
 

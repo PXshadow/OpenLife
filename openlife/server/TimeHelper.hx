@@ -510,23 +510,38 @@ class TimeHelper
             if(player.isMoving() == false) Connection.SendUpdateToAllClosePlayers(player, false);
             var factor = ServerSettings.DisplayScoreFactor;
 
-            if(Std.int(player.trueAge) % 4 == 0)
+            if(Std.int(player.trueAge) % 3 == 0)
+            {
+                var prestigeFromParents = Math.floor(player.prestigeFromParents);
+                var prestigeFromSiblings = Math.floor(player.prestigeFromSiblings);
+            
+                var textFromParents = prestigeFromParents > 0 ? 'You have gained in total ${prestigeFromParents * factor} prestige from parents!' : '';
+                var textFromSiblings = prestigeFromSiblings > 0 ? 'You have gained in total ${prestigeFromSiblings * factor} prestige from siblings!' : '';
+
+                //trace('New Age: $message');
+                player.connection.sendGlobalMessage(textFromParents);
+                player.connection.sendGlobalMessage(textFromSiblings);
+            }
+            else if(Std.int(player.trueAge) % 4 == 0)
             {
                 var text = player.prestigeFromWealth > 0 ? 'You have gained ${player.prestigeFromWealth * factor} prestige from your wealth!' : '';
                 player.connection.sendGlobalMessage(text);
 
                 var coins:Float = Std.int(player.coins); 
-                var text = coins >= 10 ? 'You have ${coins} coins! You can use I give you IXC' : '';
+                var text = coins >= 10 ? 'You have ${coins} coins! You can use: I give you IXC' : '';
                 player.connection.sendGlobalMessage(text);
             }
             else if(Std.int(player.trueAge) % 3 == 0)
             {
-                var textFromChildren = player.prestigeFromChildren > 0 ? 'You have gained ${player.prestigeFromChildren * factor} prestige from children!' : '';
-                var textFromFollowers = player.prestigeFromFollowers > 0 ? 'You have gained ${player.prestigeFromFollowers * factor} prestige from followers!' : '';
-                var textFromEating = player.prestigeFromEating > 0 ? 'You have gained ${player.prestigeFromEating * factor} prestige from YUMMY food!' : '';
+                var prestigeFromChildren = Math.floor(player.prestigeFromChildren);
+                var prestigeFromFollowers = Math.floor(player.prestigeFromFollowers);
+                var prestigeFromEating = Math.floor(player.prestigeFromEating);
+            
+                var textFromChildren = prestigeFromChildren > 0 ? 'You have gained in total ${prestigeFromChildren * factor} prestige from children!' : '';
+                var textFromFollowers = prestigeFromFollowers > 0 ? 'You have gained in total ${prestigeFromFollowers * factor} prestige from followers!' : '';
+                var textFromEating = prestigeFromEating > 0 ? 'You have gained in total ${prestigeFromEating * factor} prestige from YUMMY food!' : '';
 
                 //trace('New Age: $message');
-
                 player.connection.sendGlobalMessage(textFromChildren);
                 player.connection.sendGlobalMessage(textFromFollowers);
                 player.connection.sendGlobalMessage(textFromEating);

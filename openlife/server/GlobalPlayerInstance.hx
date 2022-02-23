@@ -140,6 +140,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public var prestigeFromEating:Float = 0;
     public var prestigeFromFollowers:Float = 0;
     public var prestigeFromWealth:Float = 0;
+    public var prestigeFromParents:Float = 0; // TODO not saved yet
+    public var prestigeFromSiblings:Float = 0; // TODO not saved yet
 
     // list of objects the player owns like gates
     public var owning:Array<ObjectHelper> = new Array<ObjectHelper>(); 
@@ -4152,7 +4154,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         for(child in children)
         {
             child.yum_multiplier += tmpCount / 4;
-            child.prestigeFromChildren += tmpCount / 4;
+            child.prestigeFromParents += tmpCount / 4;
         }
         
         // prestige for siblings
@@ -4160,7 +4162,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         {
             var sibling = children[WorldMap.calculateRandomInt(children.length -1)];
             sibling.yum_multiplier += tmpCount / 2;
-            sibling.prestigeFromChildren += tmpCount / 2;
+            sibling.prestigeFromSiblings += tmpCount / 2;
         }            
 
         if(this.getTopLeader() == null) return;
