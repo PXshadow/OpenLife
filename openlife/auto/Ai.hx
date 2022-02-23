@@ -633,29 +633,24 @@ class Ai
         var startTime = Sys.time();
 
         if(animal == null && deadlyPlayer == null) return false;
-        if(myPlayer == null) throw new Exception('WARNING! PLAYER IS NULL!!!');
-        trace('esacpe1: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
+        //if(myPlayer == null) throw new Exception('WARNING! PLAYER IS NULL!!!');
+        if(ServerSettings.DebugAi) trace('esacpe: animal: ${animal != null} deadlyPlayer: ${deadlyPlayer != null}');
 
         // hunt this animal
         if(animal != null && animal.isKillableByBow()) animalTarget = animal;
         // go for hunting 
         if(myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false) return false; 
 
-        trace('esacpe2: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
-
         var player = myPlayer.getPlayerInstance();
         var escapeDist = 3;
         var distAnimal = animal == null ? 99999999 : AiHelper.CalculateDistanceToObject(myPlayer, animal);
-        trace('esacpe2-1: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
         var distPlayer = deadlyPlayer == null ? 99999999 : AiHelper.CalculateDistanceToPlayer(myPlayer, deadlyPlayer);
         var escapePlayer = deadlyPlayer != null && distAnimal > distPlayer;
-        trace('esacpe2-2: distAnimal: ${distAnimal} distPlayer: ${distPlayer}');
+        if(ServerSettings.DebugAi) trace('esacpe: distAnimal: ${distAnimal} distPlayer: ${distPlayer}');
         var description = escapePlayer ? deadlyPlayer.name : animal.description;
-        trace('esacpe2-3: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
         var escapeTx = escapePlayer ? deadlyPlayer.tx : animal.tx;
         var escapeTy = escapePlayer ? deadlyPlayer.ty : animal.ty;
         var newEscapetarget = new ObjectHelper(null, 0);
-        trace('esacpe3: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
 
         myPlayer.say('Escape ${description} ${Math.ceil(didNotReachFood)}!');
         if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} escape!');
@@ -705,8 +700,6 @@ class Ai
 
             //if(ServerSettings.DebugAi) trace('Escape $ii alwaysX: $alwaysX alwaysY $alwaysY');
         }
-
-        trace('esacpe4: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
 
         if(useTarget != null || foodTarget != null || escapeTarget != null)
         {

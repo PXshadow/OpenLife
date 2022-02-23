@@ -646,7 +646,6 @@ class AiHelper
 
             if(dist > bestDist) continue;
 
-            //trace('GetCloseDeadlyPlayer: ');
             bestDist = dist;
             bestPlayer = p;
         }
