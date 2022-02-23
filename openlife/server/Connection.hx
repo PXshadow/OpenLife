@@ -503,7 +503,7 @@ class Connection
                 var targetY = ty - c.player.gy;
 
                 // update only close players
-                if(c.player.isClose(targetX,targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
+                if(c.player.isClose(targetX,targetY, ServerSettings.MaxDistanceToBeConsideredAsCloseForMapChanges) == false) continue;
                 
                 try
                 {
@@ -537,7 +537,7 @@ class Connection
                 var toY = toTy - player.gy;
 
                 // update only close players
-                if(player.isClose(toX,toY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false && player.isClose(fromX,fromY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
+                if(player.isClose(toX,toY, ServerSettings.MaxDistanceToBeConsideredAsCloseForMapChanges) == false && player.isClose(fromX,fromY, ServerSettings.MaxDistanceToBeConsideredAsCloseForMapChanges) == false) continue;
 
                 //c.mutex.acquire(); // do all in one frame
 

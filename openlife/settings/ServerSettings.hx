@@ -151,6 +151,9 @@ class ServerSettings
     public static var HasEatenReductionForNextGeneration:Float = 0.2; // used in InheritEatenFoodCounts
     public static var DisplayYumAndMehFood = false;
 
+    // Biome Specialists
+    public static var LovedFoodUseChance:Float = 0.5; 
+
     // Yellow Fever
     public static var ExhaustionYellowFeverPerSec = 0.2;
     public static var AllowSelfEatingIfIll = true; // for example if you have yellow fever some one needs to feed you if false
@@ -165,7 +168,8 @@ class ServerSettings
     public static var GrownUpAge = 14; // is used for AgingFactorWhileStarvingToDeath and for increase food need for children
     public static var FoodStoreMaxReductionWhileStarvingToDeath = 5; // (5) reduces food store max with factor XX for each food below 0
 
-    public static var MaxDistanceToBeConsideredAsClose = 20; //20; // only close players are updated with PU and MX and Movement 
+    public static var MaxDistanceToBeConsideredAsClose = 20; //20; // only close players are updated with PU Movement 
+    public static var MaxDistanceToBeConsideredAsCloseForMapChanges = 7; // for MX
 
     // for movement
     public static var InitialPlayerMoveSpeed:Float = 4; //vanilla: 3.75; // in Tiles per Second
@@ -176,7 +180,7 @@ class ServerSettings
     
     // since client does not seem to use exact positions allow little bit cheating / JUMPS
     public static var LetTheClientCheatLittleBitFactor = 1.1; // when considering if the position is reached, allow the client to cheat little bit, so there is no lag
-    public static var MaxMovementQuadJumpDistanceBeforeForce:Float = 2; // if quadDistance between server and client position is bigger then X the client is forced to use server position 
+    public static var MaxMovementQuadJumpDistanceBeforeForce:Float = 3; // if quadDistance between server and client position is bigger then X the client is forced to use server position 
     public static var MaxJumpsPerTenSec:Float = 5; // limit how often a client can JUMP / cheat his position
     public static var ExhaustionOnJump:Float = 0.25;
 
