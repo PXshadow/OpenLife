@@ -2094,7 +2094,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             else playerFrom.doEmote(Emote.sad);
             return false;
         }
-        if(playerTo != playerFrom && isFoodYum == false && playerTo.food_store > 0)
+        if(playerTo != playerFrom && isFoodYum == false && playerTo.food_store > 2)
         {
             trace('Other player can only feed YUM if not starving to death');
             playerFrom.doEmote(Emote.sad);
@@ -2635,6 +2635,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         SetTransitionData(x,y, true);
 
         trace('this.clothing_set: ${this.clothing_set}');
+    }
+
+    public function isMeh(food:ObjectHelper) : Bool
+    {
+        return isYum(food) == false;
     }
 
     public function isYum(food:ObjectHelper) : Bool
@@ -4368,6 +4373,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     public function hasYellowFever() : Bool
     {
         return fever != null && fever.id == 2155; // 2155 Yellow Fever
+    }
+
+    public function canFeedToMe(food:ObjectHelper) : Bool
+    {
+        if(isMeh(food) && food_store > 2) return false;
+
+        return canEat(food);
     }
 
     public function canEat(food:ObjectHelper) : Bool

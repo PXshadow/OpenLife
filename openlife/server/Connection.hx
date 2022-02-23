@@ -871,7 +871,7 @@ class Connection
             // TODO why this creates sometimes Access Violation?
             var message = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
 
-            if(tag == MAP_CHANGE) trace('send: ${message}');
+            //if(tag == MAP_CHANGE) trace('send: ${message}');
         
             sendHelper(message, isPlayerAction);
         }

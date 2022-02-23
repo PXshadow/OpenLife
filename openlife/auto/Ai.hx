@@ -498,14 +498,29 @@ class Ai
         if(myPlayer.age < ServerSettings.MinAgeToEat) return false;
         if(myPlayer.food_store < 2) return false;
 
-        var targetPlayer = AiHelper.GetCloseStarvingPlayer(myPlayer);
+        if(this.feedingPlayerTarget == null) this.feedingPlayerTarget = AiHelper.GetCloseStarvingPlayer(myPlayer);
+        if(this.feedingPlayerTarget == null) return false;
 
-        if(targetPlayer == null) return false;
+        var targetPlayer = this.feedingPlayerTarget;
+
+        if(targetPlayer.food_store > targetPlayer.food_store_max * 0.85)
+        {
+            this.feedingPlayerTarget = null;
+            return false;
+        }
 
         if(myPlayer.heldObject.objectData.foodValue < 1)
         {
             foodTarget = AiHelper.SearchBestFood(targetPlayer, true);            
             return true;
+        }
+
+        if(targetPlayer.canFeedToMe(myPlayer.heldObject) == false)
+        {
+            this.feedingPlayerTarget = null;
+            //if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name}');
+            trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name} fs: ${targetPlayer.food_store}');
+            return false;
         }
 
         var distance = myPlayer.CalculateDistanceToPlayer(targetPlayer);
@@ -516,7 +531,7 @@ class Ai
             return true;
         }
 
-        var done = myPlayer.doOnOther(targetPlayer.tx - myPlayer.gx, targetPlayer.ty - myPlayer.gx, -1, targetPlayer.p_id);
+        var done = myPlayer.doOnOther(targetPlayer.tx - myPlayer.gx, targetPlayer.ty - myPlayer.gx, -1, targetPlayer.id);
         if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.id} $done feed starving ${targetPlayer.name}');
 
         return true;

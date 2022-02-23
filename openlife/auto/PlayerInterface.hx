@@ -51,8 +51,12 @@ interface PlayerInterface
     public function isHoldingWeapon() : Bool;
     public function isBlocked(tx:Int, ty:Int) : Bool;
     public function isEveOrAdam() : Bool;
+
     public function isHoldingYum() : Bool;
+    public function isYum(food:ObjectHelper) : Bool;
+    public function isMeh(food:ObjectHelper) : Bool;    
     public function canEat(food:ObjectHelper) : Bool;
+    public function canFeedToMe(food:ObjectHelper) : Bool;
     
     public function getFollowPlayer():PlayerInterface;
     public function getHeldPlayer():PlayerInterface;
