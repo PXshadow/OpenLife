@@ -1687,8 +1687,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             this.coins -= amount;
             target.coins += amount;
 
-            this.connection.sendGlobalMessage('YOU_GAVE_${target.name}_${target.familyName}_${amount}_COINS(S)._YOU_HAVE_NOW_${this.coins}!');
-            target.connection.sendGlobalMessage('${this.name}_${this.familyName} GAVE YOU ${amount}_COINS(S)._YOU_HAVE_NOW_${target.coins}!');
+            this.connection.sendGlobalMessage('YOU_GAVE_${target.name}_${target.familyName}_${amount}_COINS(S)._YOU_HAVE_NOW_${Math.ceil(this.coins)}!');
+            target.connection.sendGlobalMessage('${this.name}_${this.familyName} GAVE YOU ${amount}_COINS(S)._YOU_HAVE_NOW_${Math.ceil(target.coins)}!');
 
             this.doEmote(Emote.happy); 
 
