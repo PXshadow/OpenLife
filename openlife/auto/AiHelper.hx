@@ -602,7 +602,7 @@ class AiHelper
         var baseY = playerInst.ty;
 
         var bestObj = null;
-        var bestDist:Float = 9999999;
+        var bestDist:Float = searchDistance * searchDistance;
 
         for(ty in baseY - searchDistance...baseY + searchDistance)
         {
@@ -631,7 +631,7 @@ class AiHelper
     {
         var player = cast(playerInter, GlobalPlayerInstance);
         var bestPlayer = null;
-        var bestDist:Float = 999999;
+        var bestDist:Float = searchDistance * searchDistance;
 
         if(player.angryTime > 4) return null;
 
@@ -640,7 +640,7 @@ class AiHelper
             if(p.deleted) continue;
             if(p.isHoldingWeapon() == false) continue;
             if(p.isFriendly(player)) continue;
-            //if(p.angryTime > 4) continue;
+            if(p.angryTime > 4) continue;
 
             var dist = AiHelper.CalculateDistanceToPlayer(player, p);
 

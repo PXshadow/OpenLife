@@ -645,10 +645,10 @@ class Ai
 
         var player = myPlayer.getPlayerInstance();
         var escapeDist = 3;
-        var distAnimal = animal == null ? 999999 : AiHelper.CalculateDistanceToObject(myPlayer, animal);
+        var distAnimal = animal == null ? 99999999 : AiHelper.CalculateDistanceToObject(myPlayer, animal);
         trace('esacpe2-1: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
-        var distPlayer = deadlyPlayer == null ? 999999 : AiHelper.CalculateDistanceToPlayer(myPlayer, deadlyPlayer);
-        var escapePlayer = distAnimal > distPlayer;
+        var distPlayer = deadlyPlayer == null ? 99999999 : AiHelper.CalculateDistanceToPlayer(myPlayer, deadlyPlayer);
+        var escapePlayer = deadlyPlayer != null && distAnimal > distPlayer;
         trace('esacpe2-2: distAnimal: ${distAnimal} distPlayer: ${distPlayer}');
         var description = escapePlayer ? deadlyPlayer.name : animal.description;
         trace('esacpe2-3: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
