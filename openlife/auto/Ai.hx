@@ -646,9 +646,12 @@ class Ai
         var player = myPlayer.getPlayerInstance();
         var escapeDist = 3;
         var distAnimal = animal == null ? 999999 : AiHelper.CalculateDistanceToObject(myPlayer, animal);
+        trace('esacpe2-1: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
         var distPlayer = deadlyPlayer == null ? 999999 : AiHelper.CalculateDistanceToPlayer(myPlayer, deadlyPlayer);
+        trace('esacpe2-2: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
         var escapePlayer = distAnimal > distPlayer;
         var description = escapePlayer ? deadlyPlayer.name : animal.description;
+        trace('esacpe2-3: animal: ${animal == null} deadlyPlayer: ${deadlyPlayer == null}');
         var escapeTx = escapePlayer ? deadlyPlayer.tx : animal.tx;
         var escapeTy = escapePlayer ? deadlyPlayer.ty : animal.ty;
         var newEscapetarget = new ObjectHelper(null, 0);
