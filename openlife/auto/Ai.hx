@@ -524,7 +524,7 @@ class Ai
             return false;
         }
 
-        if(targetPlayer.getHeldByPlayer != null)
+        if(targetPlayer.getHeldByPlayer() != null)
         {
             this.feedingPlayerTarget = null;
             if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} since held by other player!');
@@ -540,10 +540,13 @@ class Ai
         }
 
         var distance = myPlayer.CalculateDistanceToPlayer(targetPlayer);
+
+        if(distance > 10 && myPlayer.isMoving()) return true; 
+
         if(distance > 1)
         {
             var done = myPlayer.gotoAdv(targetPlayer.tx, targetPlayer.ty);
-            if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done goto feed starving ${targetPlayer.name}');
+            if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done goto feed starving ${targetPlayer.name} dist: $distance');
             return true;
         }
 
@@ -791,15 +794,22 @@ class Ai
             // TODO give some help to find the needed Items
             return false;
         }
-
-        //if(player.heldObject.parentId == itemToCraft.transActor.parentId || itemToCraft.transActor.id == 0)
-        if(player.heldObject.parentId == itemToCraft.transActor.parentId)
+     
+        //if(player.heldObject.parentId == itemToCraft.transActor.parentId)
+        if(player.heldObject.parentId == itemToCraft.transActor.parentId || itemToCraft.transActor.id == 0)
         {
-            if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is held already ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
+            if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is held already ${itemToCraft.transActor.id} or Empty ' + itemToCraft.transActor.name);
 
             if(itemToCraft.transTarget.name == null) if(ServerSettings.DebugAi) trace('AI: craft WARNING id: ${itemToCraft.transTarget} transTarget.name == null!');
             myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
 
+            if(itemToCraft.transActor.id == 0 && player.heldObject.id != 0)
+            {
+                if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop heldobj at start since Empty is needed!');
+                dropHeldObject(true); 
+                return true;
+            }
+                
             useTarget = itemToCraft.transTarget; 
             useActor = itemToCraft.transActor;
             itemToCraft.transActor = null; // actor is allready in the hand
@@ -835,7 +845,7 @@ class Ai
 
             if(player.heldObject.id != 0)
             {
-                //if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop obj to pickup ${itemToCraft.transActor.name}');
+                if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop obj to pickup ${itemToCraft.transActor.name}');
                 dropHeldObject(true); 
                 return true;
             }
