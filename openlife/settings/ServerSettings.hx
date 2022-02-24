@@ -338,9 +338,6 @@ class ServerSettings
         ObjectData.getObjectData(418).mapChance *= 1.0; // More Happy Wolfs
         ObjectData.getObjectData(418).speedMult *= 1.5; // Boost Wolfs even more :)
         
-
-        
-
         ObjectData.getObjectData(411).speedMult = 0.8; // Fertile Soil Reduced carring speed
         ObjectData.getObjectData(345).speedMult = 0.8; // Butt Log
         ObjectData.getObjectData(126).speedMult = 0.8; // Clay 
@@ -485,6 +482,16 @@ class ServerSettings
         ObjectData.getObjectData(1624).damage = 10; // Bow and Arrow with Note  //
 
         // TODO more animals like Mouflon?
+        
+        ObjectData.getObjectData(1435).deadlyDistance = 1.5; // Bison
+        ObjectData.getObjectData(1435).damage = 2; // Bison
+        ObjectData.getObjectData(1438).deadlyDistance = 1.5; // Shot Bison
+        ObjectData.getObjectData(1438).damage = 5; // Shot Bison
+        ObjectData.getObjectData(1436).deadlyDistance = 1.5; // Bison with Calf
+        ObjectData.getObjectData(1436).damage = 4; // Bison with Calf
+        ObjectData.getObjectData(1440).deadlyDistance = 1.5; // Shot Bison with Calf
+        ObjectData.getObjectData(1440).damage = 6; // Shot Bison with Calf
+
         ObjectData.getObjectData(2156).deadlyDistance = 1.5; // 2156 Mosquito Swarm
         ObjectData.getObjectData(2156).damage = 1; // 2156 Mosquito Swarm
 
