@@ -651,13 +651,15 @@ class TimeHelper
         {          
             //trace('feeding:');
 
-            if(heldPlayer.food_store < heldPlayer.food_store_max)
+            if(heldPlayer.food_store < heldPlayer.getMaxChildFeeding())
             {
                 var food = ServerSettings.FoodRestoreFactorWhileFeeding * timePassedInSeconds * ServerSettings.FoodUsePerSecond; 
                 var tmpFood = heldPlayer.food_store;
 
                 heldPlayer.food_store += food;
                 foodDecay += food / 2;
+
+                if(heldPlayer.hits > 0) heldPlayer.hits -= timePassedInSeconds * 0.2;
 
                 var hasChanged = tmpFood != Math.ceil(player.food_store);
                 if(hasChanged)

@@ -104,7 +104,7 @@ class ServerSettings
     public static var ReduceAgeNeededToPickupObjects = 3; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
     public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
     public static var MaxChildAgeForBreastFeeding = 6; // also used for considering a child when being attacked
-    public static var PickupFeedingFoodRestore:Float = 2;
+    public static var PickupFeedingFoodRestore:Float = 1.5;
     public static var PickupExhaustionGain:Float = 0.2;
     public static var FoodRestoreFactorWhileFeeding:Float = 10;
     public static var MinAgeFertile = 12;

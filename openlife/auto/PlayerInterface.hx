@@ -36,6 +36,7 @@ interface PlayerInterface
     public var food_store(default, default):Float;
     public var food_store_max(default, default):Float;
     public var age(default, default):Float;
+    public var hits(default, default):Float;
 
     public var mother(get, null):PlayerInterface;
     public var heldObject(default, default):ObjectHelper;
@@ -57,6 +58,7 @@ interface PlayerInterface
     public function isMeh(food:ObjectHelper) : Bool;    
     public function canEat(food:ObjectHelper) : Bool;
     public function canFeedToMe(food:ObjectHelper) : Bool;
+    public function getMaxChildFeeding() : Float; // gives back how much a child can be fed
     
     public function getFollowPlayer():PlayerInterface;
     public function getHeldPlayer():PlayerInterface;

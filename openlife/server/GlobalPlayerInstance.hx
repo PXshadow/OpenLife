@@ -3728,7 +3728,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         if(this.isFertile() && targetPlayer.age < ServerSettings.MaxChildAgeForBreastFeeding)
         {
-            if(targetPlayer.food_store < targetPlayer.food_store_max)
+            if(targetPlayer.food_store < targetPlayer.getMaxChildFeeding())
             {
                 var food = ServerSettings.PickupFeedingFoodRestore;
                 this.food_store -= food / 2;
@@ -4407,6 +4407,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         var lovedBiome = Biome.GetLovedBiomeByPlayer(this);
         return Biome.getLovedPlants(lovedBiome);
+    }
+
+    public function getMaxChildFeeding() : Float
+    {
+        return Math.max(4, food_store_max);
     }
 }
 
