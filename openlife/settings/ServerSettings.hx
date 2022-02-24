@@ -828,12 +828,17 @@ class ServerSettings
         transtions.addTransition("PatchTransitions: ", trans, false, true);
 
 
-        // give wolfs some meat
-        trans = transtions.getTransition(0, 423); // 423 Skinned Wolf 
-        trans.newTargetID = 565;  // 565 Butchered Mouflon
-        trans.traceTransition("PatchTransitions: "); 
+        // give wolfs some meat // TODO change crafting maps
+        var trans = transtions.getTransition(0, 423); // 423 Skinned Wolf 
+        trans.newTargetID = 565;  // 565 Butchered Mouflon  
+        transtions.addTransition("PatchTransitions: ", trans);
 
-        // allow to cook mutton on coals
+        // give bison some meat // TODO change crafting maps
+        var trans = transtions.getTransition(0, 1444); // Dead Bison
+        trans.newTargetID = 565;  // 565 Butchered Mouflon
+        transtions.addTransition("PatchTransitions: ", trans);
+
+        // allow to cook mutton on coals 
         trans = new TransitionData(569,85,570,85); // 569 Raw Mutton + 85 Hot Coals --> 570 Cooked Mutton + 85 Hot Coals
         transtions.addTransition("PatchTransitions: ", trans);
 
