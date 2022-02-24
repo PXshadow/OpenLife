@@ -4392,6 +4392,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var originalFoodValue = objData.foodValue;
 
         if(originalFoodValue <= 0) return false;
+
+        if(isSuperMeh(food) && food_store > 2) return false; 
+
         return this.food_store_max - this.food_store >= Math.ceil(originalFoodValue / 4);
     }
 

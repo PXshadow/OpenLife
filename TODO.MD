@@ -315,9 +315,7 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI FIX eating super meh if not starving to death
-- AI FIX Null poiner bug in Ai.dotime but where???
-- AI FIX feeding / do on other ==> could not find target player
+- AI FIX feeding / do on other ==> could not find target player // TODO check if solved
 - AI FIX child: if hungry and close to feeding player dont move 
 - AI FIX drop made stuff after ordered in fronts of player
 - AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread
@@ -334,6 +332,7 @@ High priority:
 - AI test with > 20 AIs
 - AI fill baskets with bananas
 - AI using of baskets and backpack
+- AI consider making / using a pile
 - AI Stoneage
 
 - NAMING fix bug
