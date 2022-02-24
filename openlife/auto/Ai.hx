@@ -592,11 +592,11 @@ class Ai
                 myPlayer.say('You are $newName');
             }
 
-            if(heldPlayer.age * 60 > ServerSettings.MinMovementAgeInSec && heldPlayer.food_store > heldPlayer.food_store_max - 0.2)
+            if(heldPlayer.age * 60 > ServerSettings.MinMovementAgeInSec && heldPlayer.food_store > heldPlayer.getMaxChildFeeding() - 0.2 && heldPlayer.hits < 1)
             {
                 var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
                 this.feedingPlayerTarget = null;
-                if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} child drop ${heldPlayer.name} $done food: ${heldPlayer.food_store} max: ${heldPlayer.food_store_max - 0.2}');
+                if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} child drop ${heldPlayer.name} $done food: ${heldPlayer.food_store} max: ${heldPlayer.getMaxChildFeeding() - 0.2}');
                 return true;
             }
         }
