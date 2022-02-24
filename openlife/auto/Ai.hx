@@ -517,10 +517,17 @@ class Ai
             return true;
         }
 
+        if(targetPlayer.isDeleted())
+        {
+            this.feedingPlayerTarget = null;
+            if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} since is dead!');
+            return false;
+        }
+
         if(targetPlayer.getHeldByPlayer != null)
         {
             this.feedingPlayerTarget = null;
-            if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} since held by other player');
+            if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} since held by other player!');
             return false;
         }
 
