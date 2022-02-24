@@ -872,14 +872,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
             var bestLocationFitness = -99999999999999999999999;
 
             // TODO clear bad locations
+            // TODO in a bigger map this might spread spawns too far
             for(i in 0...20)
             {
                 var location = startLocations[WorldMap.calculateRandomInt(startLocations.length - 1)];
                 var fitness = location.numberOfUses;
+                var sumDistHumans:Float = 1;
+                for(p in GlobalPlayerInstance.AllPlayers)
+                {
+                    var quadDist = AiHelper.CalculateDistanceToObject(p, location);
+                    sumDistHumans += (1 / quadDist) * 10000; // 100 tiles
+                }   
 
-                if(fitness < bestLocationFitness) continue;
+                var totalFitness = fitness / sumDistHumans;
+                trace('spawnAsEve: fitness: $fitness / sumDistHumans: $sumDistHumans = $totalFitness');
+                if(totalFitness < bestLocationFitness) continue;
+
                 bestLocation = location;
-                bestLocationFitness = fitness;
+                bestLocationFitness = totalFitness;
+
             }
 
             if(bestLocation == null)

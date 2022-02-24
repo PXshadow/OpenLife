@@ -976,9 +976,14 @@ class TimeHelper
 
                 if(obj[0] == 0) continue;
 
-                if(obj[0] == 2142) WorldMap.world.bananaPlants[WorldMap.world.index(x,y)] = worldMap.getObjectHelper(x,y); // Banana Plant ==> possible spawn location
+                var biome = worldMap.getBiomeId(x,y);
+
                 if(obj[0] == 30) WorldMap.world.berryBushes[WorldMap.world.index(x,y)] = worldMap.getObjectHelper(x,y); // Wild Gooseberry Bush ==> possible spawn location
-                
+                if(obj[0] == 2142) WorldMap.world.bananaPlants[WorldMap.world.index(x,y)] = worldMap.getObjectHelper(x,y); // Banana Plant ==> possible spawn location                
+                if(obj[0] == 36 && biome == BiomeTag.SNOW) WorldMap.world.wildCarrots[WorldMap.world.index(x,y)] = worldMap.getObjectHelper(x,y); // Seeding Wild Carrot ==> possible spawn location
+                if(obj[0] == 761 && biome == BiomeTag.DESERT) WorldMap.world.cactuses[WorldMap.world.index(x,y)] = worldMap.getObjectHelper(x,y); // Barrel Cactus ==> possible spawn location
+                if(obj[0] == 4251 && biome == BiomeTag.GREY) WorldMap.world.wildGarlics[WorldMap.world.index(x,y)] = worldMap.getObjectHelper(x,y); // Wild Garlic ==> possible spawn location
+
                 RespawnOrDecayPlant(obj, x, y);
 
                 var helper = worldMap.getObjectHelper(x,y,true); 
