@@ -523,7 +523,7 @@ And then press "ctrl" c to stop the server.
 Helpful stuff:
 Emacs for edditing files in terminal: (option -nw)
 emacs -nw filename
-rm -r dir1 // to remove a directory like if you want to delete the SaveFiles folder so that the server creates all new 
+rm -r SaveFiles // to remove a directory like if you want to delete the SaveFiles folder so that the server creates all new 
 
 Dont forget that there is a ServerSettings.txt file in SaveFiles folder. Settings are read at start and every 10 sec. If there is no folder or settings file it should be automatically created on first server start. 
 

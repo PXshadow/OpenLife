@@ -127,9 +127,12 @@ class ServerSettings
     // worldMap
     public static var GenerateMapNew = false;
     public static var ChanceForLuckySpot = 0.1; // chance that during generation an object is lucky and tons more of that are generated close by
+    public static var CreateGreenBiomeDistance = 5;
+
+    // Eve spawning
+    public static var SpwanAtLastDead = false;
     public static var startingGx = 235; // 235; //270; // 360;
     public static var startingGy = 150; //200;//- 400; // server map is saved y inverse 
-    public static var CreateGreenBiomeDistance = 5;
    
     // food stuff
     public static var FoodUsePerSecond = 0.10; // 0.2; // 5 sec per pip // normal game has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good 

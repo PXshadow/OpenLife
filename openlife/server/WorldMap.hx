@@ -54,6 +54,9 @@ class WorldMap
     var saveDataNumber = 0;
     var backupDataNumber = 0;
 
+    public var bananaPlants = new Map<Int, ObjectHelper>();
+    public var berryBushes = new Map<Int, ObjectHelper>();
+
     public function new()
     {
 

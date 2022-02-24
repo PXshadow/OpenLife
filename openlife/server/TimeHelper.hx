@@ -974,7 +974,10 @@ class TimeHelper
 
                 var obj = worldMap.getObjectId(x,y);
 
-                if(obj[0] == 0) continue;      
+                if(obj[0] == 0) continue;
+
+                if(obj[0] == 2142) WorldMap.world.bananaPlants[WorldMap.world.index(x,y)] = worldMap.getObjectHelper(x,y); // Banana Plant ==> possible spawn location
+                if(obj[0] == 30) WorldMap.world.berryBushes[WorldMap.world.index(x,y)] = worldMap.getObjectHelper(x,y); // Wild Gooseberry Bush ==> possible spawn location
                 
                 RespawnOrDecayPlant(obj, x, y);
 

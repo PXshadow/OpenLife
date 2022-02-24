@@ -853,8 +853,46 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         this.trueAge = ServerSettings.StartingEveAge;
 
         // TODO spawn eve in jungle with bananaplants
-        gx = ServerSettings.startingGx;
-        gy = ServerSettings.startingGy;
+        //var banaPlants = [for(key in hasEatenMap.keys()) key];
+        var bananaPlants = [for(obj in WorldMap.world.bananaPlants) obj];
+        var berryBushes = [for(obj in WorldMap.world.berryBushes) obj];
+        
+        trace('spawnAsEve: banaPlants: ${bananaPlants.length} berryBushes: ${berryBushes.length}');
+        
+        if(ServerSettings.SpwanAtLastDead || bananaPlants.length + berryBushes.length < 10)
+        {
+            gx = ServerSettings.startingGx;
+            gy = ServerSettings.startingGy;
+        }
+        else
+        {
+            var rand = WorldMap.calculateRandomFloat();
+            var startLocations = rand > 0.5 && bananaPlants.length > 10 ? bananaPlants : berryBushes;
+            var bestLocation = null;
+            var bestLocationFitness = -99999999999999999999999;
+
+            // TODO clear bad locations
+            for(i in 0...20)
+            {
+                var location = startLocations[WorldMap.calculateRandomInt(startLocations.length - 1)];
+                var fitness = location.numberOfUses;
+
+                if(fitness < bestLocationFitness) continue;
+                bestLocation = location;
+                bestLocationFitness = fitness;
+            }
+
+            if(bestLocation == null)
+            {
+                gx = ServerSettings.startingGx;
+                gy = ServerSettings.startingGy;
+            }
+            else
+            {
+                gx = bestLocation.tx;
+                gy = bestLocation.ty;
+            }         
+        }
 
         if(lastEveOrAdam == null)
         {
