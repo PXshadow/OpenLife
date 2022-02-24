@@ -87,7 +87,15 @@ class Connection
             // deactivate AI
             ais.remove(lastConnection.serverAi);
             lastConnection.serverAi = null;
-
+            var tx = lastLivingPlayer.tx;
+            var ty = lastLivingPlayer.ty;
+            lastLivingPlayer.gx = 0;
+            lastLivingPlayer.gy = 0;
+            lastLivingPlayer.x = tx;
+            lastLivingPlayer.y = ty;
+            lastLivingPlayer.moveHelper.exactTx = tx;
+            lastLivingPlayer.moveHelper.exactTy = ty;
+            
             Macro.exception(initConnection(lastLivingPlayer, this.playerAccount));
 
             trace('reconnect to ${player.p_id} ${player.name}');

@@ -347,6 +347,8 @@ High priority:
 
 - ANIMALS fix they wont sometimes display as moving
 
+- MAP fix map creation objects too close
+
 - BIRTH spawn eves on different locations
 - BIRTH fathers
 

@@ -1873,7 +1873,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     }
 
     //public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, targetPlayer:GlobalPlayerInstance) : Bool
-    public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, playerId:Int) : Bool
+    public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, playerId:Int, ?infos:haxe.PosInfos) : Bool
     {
         if(ServerSettings.DebugPlayer) trace('doOnOtherHelper: playerId: ${playerId} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
@@ -1884,7 +1884,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         var targetPlayer = getPlayerAt(x,y, playerId);
         if(targetPlayer == null)
         {
-            trace('doOnOtherHelper: could not find target player!');
+            
+            trace('doOnOtherHelper: could not find target player! ${infos.methodName}');
+            //throw new Exception('');
             return false;
         }
     
