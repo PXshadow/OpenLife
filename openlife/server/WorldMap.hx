@@ -41,7 +41,6 @@ class WorldMap
     public var originalObjectsCount:Map<Int,Int>;
     public var currentObjectsCount:Map<Int,Int>;
 
-
     public var width:Int;
     public var height:Int;
     public var length:Int;
@@ -191,7 +190,7 @@ class WorldMap
         setObjectId(tx - 5,ty + 7,[292,2143,2143,2143]);
         setObjectId(tx - 6,ty + 7,[292,2143,2143,2143]);
         setObjectId(tx - 7,ty + 7,[292,33,2143,33]);
-        setObjectId(tx - 8,ty + 7,[2143,2143,2143]);
+        setObjectId(tx - 8,ty + 7,[292,2143,2143]);
         // table
         setObjectId(tx - 9,ty + 7,[3371,33,2143,33]);
         setObjectId(tx - 10,ty + 7,[3371,2873,2873,245]);
@@ -739,6 +738,12 @@ class WorldMap
             return false;
         }
 
+        if(sys.FileSystem.exists(dir + "lastDataNumber.txt") == false)
+        {
+            trace('Init file: ${dir + "lastDataNumber.txt"} could not be found!');
+            return false;
+        }
+
         readIndexFileAndInitVariables(dir + "lastDataNumber.txt");
 
         trace('saveDataNumber: $saveDataNumber backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');        
@@ -1030,7 +1035,7 @@ class WorldMap
 
                 // if there is a object below allready continue
                 if(y > 0 && objects[x+(y-1)*width][0] != 0) continue;
-
+                
                 if (randomFloat() > 0.4) continue;
                 
                 
@@ -1078,7 +1083,6 @@ class WorldMap
     {
         var tmpIsPlaced = new Vector<Bool>(length);
 
-
         for (y in 0...height)
         {
             for (x in 0...width)
@@ -1086,28 +1090,31 @@ class WorldMap
                 var obj = objects[x+y*width];
 
                 // change muddy iron vein to loose muddy iron vein // TODO better patch the data
-                if(obj[0] == 942) // iron vein
+                if(obj[0] == 942 || obj[0] == 3030) // 942 iron vein // 3030 Natural Spring
                 {
-                    objects[x+y*width] = [3962]; // loose muddy iron vein
+                    if(obj[0] == 942) objects[x+y*width] = [3962]; // loose muddy iron vein
 
-                    // generate also some random stones and some more mines nearby
-
+                    // generate also some random stones 
                     var random = randomInt(6) + 3;
 
                     for(i in 0...100)
                     {
-                        var dist = 8;
+                        var dist = 6;
                         var tx = x + randomInt(dist * 2) - dist;
                         var ty = y + randomInt(dist * 2) - dist; 
 
-
                         if(((tx -x) * (tx - x)) + ((ty - y) * (ty - y)) > dist * dist) continue;
 
-                        if(biomes[tx+ty*width] != BiomeTag.GREY && biomes[tx+ty*width] != BiomeTag.YELLOW) continue; 
-                        if(objects[tx+ty*width][0] != 0) continue;
+                        var biome = getBiomeId(tx,ty);
 
-                        objects[tx+ty*width] = [503];
-                        //tmpIsPlaced[index(tx,ty)] = true;
+                        if(biome != BiomeTag.GREY && biome != BiomeTag.YELLOW && biome != BiomeTag.GREEN) continue; 
+
+                        if(getObjectId(tx,ty)[0] != 0) continue;
+                        if(getObjectId(tx,ty-1)[0] != 0) continue;
+                        if(getObjectId(tx,ty+1)[0] != 0) continue;
+                        if(getObjectId(tx-1,ty)[0] != 0) continue;
+
+                        setObjectId(tx,ty, [503]); // Dug Big Rock
 
                         random -= 1;
                         if(random <= 0) break;
@@ -1147,13 +1154,13 @@ class WorldMap
                 {
                     //var objData = ObjectData.getObjectData(tmpObj[0]);
                     var timeTransition = TransitionImporter.GetTransition(-1, tmpObj[0], false, false);
-                    var random = 2 + randomInt(timeTransition != null ? 3 : 8);
+                    var random = 2 + randomInt(timeTransition != null ? 1 : 5);
 
                     var tmpRandom = random;               
 
                     for(i in 0...100)
                     {
-                        var dist = 10;
+                        var dist = 9;
                         var tx = x + randomInt(dist * 2) - dist;
                         var ty = y + randomInt(dist * 2) - dist; 
 
@@ -1165,10 +1172,11 @@ class WorldMap
 
                         if(getObjectId(tx,ty)[0] != 0) continue;
                         if(getObjectId(tx,ty-1)[0] != 0) continue;
+                        if(getObjectId(tx,ty+1)[0] != 0) continue;
+                        if(getObjectId(tx-1,ty)[0] != 0) continue;
 
                         tmpIsPlaced[index(tx,ty)] = true;
                         setObjectId(tx,ty, tmpObj);
-
 
                         random -= 1;
                         if(random <= 0) break;
