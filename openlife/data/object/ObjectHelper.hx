@@ -375,16 +375,13 @@ class ObjectHelper
     public var name(get, null):String;
 
     public function get_name()
-    {
-        if(objectData.name == null)
-        {
-            if(objectData.dummyParent == null) 
-                trace('Name: ${objectData.id} ${objectData.name} ${objectData.description}');
-            else
-                trace('Name: ${objectData.id} ${objectData.name} --> ${objectData.dummyParent.name} ${objectData.dummyParent.description}');
-        }
-
-        if(objectData.name == null && objectData.dummyParent != null) objectData.dummyParent.name;
+    {        
+        /*if(objectData.dummyParent == null) 
+            trace('Name: ${objectData.id} ${objectData.name} ${objectData.description}');
+        else
+            trace('Name: ${objectData.id} ${objectData.name} --> ${objectData.dummyParent.name} ${objectData.dummyParent.description}');
+        */
+        if(objectData.dummyParent != null) return objectData.dummyParent.name;
         return objectData.name;
     }
 
