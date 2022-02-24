@@ -169,7 +169,7 @@ class ServerSettings
     public static var FoodStoreMaxReductionWhileStarvingToDeath = 5; // (5) reduces food store max with factor XX for each food below 0
 
     public static var MaxDistanceToBeConsideredAsClose = 20; //20; // only close players are updated with PU Movement 
-    public static var MaxDistanceToBeConsideredAsCloseForMapChanges = 7; // for MX
+    public static var MaxDistanceToBeConsideredAsCloseForMapChanges = 8; // for MX
 
     // for movement
     public static var InitialPlayerMoveSpeed:Float = 4; //vanilla: 3.75; // in Tiles per Second
