@@ -517,6 +517,13 @@ class Ai
             return true;
         }
 
+        if(targetPlayer.getHeldByPlayer != null)
+        {
+            this.feedingPlayerTarget = null;
+            if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} since held by other player');
+            return false;
+        }
+
         if(targetPlayer.canFeedToMe(myPlayer.heldObject) == false)
         {
             this.feedingPlayerTarget = null;
@@ -634,8 +641,7 @@ class Ai
 
         if(animal == null && deadlyPlayer == null) return false;
         //if(myPlayer == null) throw new Exception('WARNING! PLAYER IS NULL!!!');
-        if(ServerSettings.DebugAi) trace('esacpe: animal: ${animal != null} deadlyPlayer: ${deadlyPlayer != null}');
-
+        if(ServerSettings.DebugAi) trace('escape: animal: ${animal != null} deadlyPlayer: ${deadlyPlayer != null}');
         // hunt this animal
         if(animal != null && animal.isKillableByBow()) animalTarget = animal;
         // go for hunting 
@@ -646,7 +652,7 @@ class Ai
         var distAnimal = animal == null ? 99999999 : AiHelper.CalculateDistanceToObject(myPlayer, animal);
         var distPlayer = deadlyPlayer == null ? 99999999 : AiHelper.CalculateDistanceToPlayer(myPlayer, deadlyPlayer);
         var escapePlayer = deadlyPlayer != null && distAnimal > distPlayer;
-        if(ServerSettings.DebugAi) trace('esacpe: distAnimal: ${distAnimal} distPlayer: ${distPlayer}');
+        if(ServerSettings.DebugAi) trace('escape: distAnimal: ${distAnimal} distPlayer: ${distPlayer}');
         var description = escapePlayer ? deadlyPlayer.name : animal.description;
         var escapeTx = escapePlayer ? deadlyPlayer.tx : animal.tx;
         var escapeTy = escapePlayer ? deadlyPlayer.ty : animal.ty;
@@ -670,8 +676,8 @@ class Ai
                 newEscapetarget.tx = escapeInLowerX ?  player.tx - escapeDist : player.tx + escapeDist;
                 newEscapetarget.ty = escapeInLowerY ?  player.ty - escapeDist : player.ty + escapeDist;
 
-                var randX = WorldMap.calculateRandomInt(2 + i + ii);
-                var randY = WorldMap.calculateRandomInt(2 + i + ii);
+                var randX = WorldMap.calculateRandomInt(1 + ii);
+                var randY = WorldMap.calculateRandomInt(1 + ii);
                 randX = escapeInLowerX ? -randX : randX;
                 randY = escapeInLowerY ? -randY : randY;
 

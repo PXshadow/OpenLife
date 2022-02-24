@@ -618,6 +618,9 @@ class AiHelper
                 var dist = AiHelper.CalculateDistanceToObject(player, obj);
                 
                 if(dist > bestDist) continue;
+                //var moveQuadDist = Math.pow(obj.objectData.moves + 1, 2);
+                //trace('GetCloseDeadlyAnimal: $dist <= $bestDist moveQuadDist: $moveQuadDist ${obj.name}');
+                if(dist > Math.pow(obj.objectData.moves + 1, 2)) continue;
 
                 bestDist = dist;
                 bestObj = obj;
