@@ -854,9 +854,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         // TODO spawn eve in jungle with bananaplants
         //var banaPlants = [for(key in hasEatenMap.keys()) key];
-        var bananaPlantsTmp = [for(obj in WorldMap.world.bananaPlants) obj];
         var berryBushesTmp = [for(obj in WorldMap.world.berryBushes) obj];
-        
+        var bananaPlantsTmp = [for(obj in WorldMap.world.bananaPlants) obj];
+        var wildCarrotsTmp = [for(obj in WorldMap.world.wildCarrots) obj];
+        var cactusesTmp = [for(obj in WorldMap.world.cactuses) obj];
+        var wildGarlicsTmp = [for(obj in WorldMap.world.wildGarlics) obj];
+
         //trace('spawnAsEve: banaPlants: ${bananaPlantsTmp.length} berryBushes: ${berryBushesTmp.length}');
         
         if(ServerSettings.SpwanAtLastDead || bananaPlantsTmp.length + berryBushesTmp.length < 10)
@@ -866,24 +869,39 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         }
         else
         {   
-            ClearStartLocations(WorldMap.world.bananaPlants);
             ClearStartLocations(WorldMap.world.berryBushes);
+            ClearStartLocations(WorldMap.world.bananaPlants);
+            ClearStartLocations(WorldMap.world.wildCarrots);
+            ClearStartLocations(WorldMap.world.cactuses);
+            ClearStartLocations(WorldMap.world.wildGarlics);
 
-            var bananaPlants = [for(obj in WorldMap.world.bananaPlants) obj];
             var berryBushes = [for(obj in WorldMap.world.berryBushes) obj];
-
-            trace('spawnAsEve: bananaPlants: ${bananaPlantsTmp.length} ==> ${bananaPlants.length} berryBushes: ${berryBushesTmp.length} ==> ${berryBushes.length} ');
-
+            var bananaPlants = [for(obj in WorldMap.world.bananaPlants) obj];
+            var wildCarrots = [for(obj in WorldMap.world.wildCarrots) obj];
+            var cactuses = [for(obj in WorldMap.world.cactuses) obj];
+            var wildGarlics = [for(obj in WorldMap.world.wildGarlics) obj];
+            var rand = WorldMap.calculateRandomInt(4); 
             var world = WorldMap.world;
-            var rand = WorldMap.calculateRandomFloat();
-            var startLocations = rand > 0.5 && bananaPlants.length > 10 ? bananaPlants : berryBushes;
+            var startLocations = berryBushes;
+
+            trace('spawnAsEve: bananaPlants: ${bananaPlantsTmp.length} ==> ${bananaPlants.length} berryBushes: ${berryBushesTmp.length} ==> ${berryBushes.length}');
+            trace('spawnAsEve: wildCarrots: ${wildCarrotsTmp.length} ==> ${wildCarrots.length} cactuses: ${cactusesTmp.length} ==> ${cactuses.length}');
+            trace('spawnAsEve: rand: $rand wildGarlics: ${wildGarlicsTmp.length} ==> ${wildGarlics.length}');
+
+            //var startLocations = rand > 0.5 && bananaPlants.length > 10 ? bananaPlants : berryBushes;
+            
+            if(rand == 1 && bananaPlants.length > 5) startLocations = bananaPlants;
+            else if(rand == 2 && bananaPlants.length > 5) startLocations = wildCarrots;
+            else if(rand == 3 && bananaPlants.length > 5) startLocations = cactuses;
+            else if(rand == 4 && bananaPlants.length > 5) startLocations = wildGarlics;
+
             var bestLocation = null;
             var bestLocationFitness = -99999999999999999999999;
             // 762 Flowering Barrel Cactus / 763 Fruiting Barrel Cactus / 404 Wild Carrot
             //var foodArray = [30, 2142, 36, 761, 4251, 762, 763, 404];           
 
-            // TODO clear bad locations
             // TODO in a bigger map this might spread spawns too far
+            // TODO consider deadly animals
             for(i in 0...20)
             {
                 var location = startLocations[WorldMap.calculateRandomInt(startLocations.length - 1)];
