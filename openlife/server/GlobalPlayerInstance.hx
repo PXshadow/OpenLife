@@ -854,30 +854,43 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
         // TODO spawn eve in jungle with bananaplants
         //var banaPlants = [for(key in hasEatenMap.keys()) key];
-        var bananaPlants = [for(obj in WorldMap.world.bananaPlants) obj];
-        var berryBushes = [for(obj in WorldMap.world.berryBushes) obj];
+        var bananaPlantsTmp = [for(obj in WorldMap.world.bananaPlants) obj];
+        var berryBushesTmp = [for(obj in WorldMap.world.berryBushes) obj];
         
-        trace('spawnAsEve: banaPlants: ${bananaPlants.length} berryBushes: ${berryBushes.length}');
+        //trace('spawnAsEve: banaPlants: ${bananaPlantsTmp.length} berryBushes: ${berryBushesTmp.length}');
         
-        if(ServerSettings.SpwanAtLastDead || bananaPlants.length + berryBushes.length < 10)
+        if(ServerSettings.SpwanAtLastDead || bananaPlantsTmp.length + berryBushesTmp.length < 10)
         {
             gx = ServerSettings.startingGx;
             gy = ServerSettings.startingGy;
         }
         else
-        {
+        {   
+            ClearStartLocations(WorldMap.world.bananaPlants);
+            ClearStartLocations(WorldMap.world.berryBushes);
+
+            var bananaPlants = [for(obj in WorldMap.world.bananaPlants) obj];
+            var berryBushes = [for(obj in WorldMap.world.berryBushes) obj];
+
+            trace('spawnAsEve: bananaPlants: ${bananaPlantsTmp.length} ==> ${bananaPlants.length} berryBushes: ${berryBushesTmp.length} ==> ${berryBushes.length} ');
+
+            var world = WorldMap.world;
             var rand = WorldMap.calculateRandomFloat();
             var startLocations = rand > 0.5 && bananaPlants.length > 10 ? bananaPlants : berryBushes;
             var bestLocation = null;
             var bestLocationFitness = -99999999999999999999999;
+            // 762 Flowering Barrel Cactus / 763 Fruiting Barrel Cactus / 404 Wild Carrot
+            //var foodArray = [30, 2142, 36, 761, 4251, 762, 763, 404];           
 
             // TODO clear bad locations
             // TODO in a bigger map this might spread spawns too far
             for(i in 0...20)
             {
                 var location = startLocations[WorldMap.calculateRandomInt(startLocations.length - 1)];
-                var fitness = location.numberOfUses;
+                location = world.getObjectHelper(location.tx, location.ty);                
+                var fitness = 1 + location.numberOfUses;
                 var sumDistHumans:Float = 1;
+
                 for(p in GlobalPlayerInstance.AllPlayers)
                 {
                     var quadDist = AiHelper.CalculateDistanceToObject(p, location);
@@ -885,7 +898,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 }   
 
                 var totalFitness = fitness / sumDistHumans;
-                trace('spawnAsEve: fitness: $fitness / sumDistHumans: $sumDistHumans = $totalFitness');
+                //trace('spawnAsEve: fitness: $fitness / sumDistHumans: $sumDistHumans = $totalFitness');
                 if(totalFitness < bestLocationFitness) continue;
 
                 bestLocation = location;
@@ -948,6 +961,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(isAi) lastAiEveOrAdam = lastEveOrAdam;
         else lastHumanEveOrAdam = lastEveOrAdam;
     } 
+
+    private static function ClearStartLocations(locations:Map<Int,ObjectHelper>)
+    {
+        var foodArray = [30, 2142, 36, 761, 4251, 762, 763, 404];
+
+        for(key in locations.keys())
+        {
+            var obj = locations[key];
+
+            if(foodArray.contains(obj.parentId) == false)
+            {
+                locations.remove(key);                                
+            }
+        }
+    }
 
     // TODO higher change of children for smaler families
     // TODO spawn noobs more likely noble
