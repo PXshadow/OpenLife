@@ -1370,7 +1370,7 @@ class TimeHelper
         var moveDist = timeTransition.move;
         if(moveDist <= 0) return false;
 
-        moveDist += 1; // movement distance is plus 4 in original code if walking over objects
+        if(moveDist < 3) moveDist += 1; // movement distance is plus 4 in vanilla if walking over objects
         helper.objectData.moves = moveDist; // TODO better set in settings
 
         if(helper.hits > 0) helper.hits -= 0.005; // reduce hits the animal got
@@ -1427,7 +1427,7 @@ class TimeHelper
             //trace('chance: $chancePreferredBiome isNotHardbiome: $isNotHardbiome biome: $targetBiome');
 
             // skip with chancePreferredBiome if this biome is not preferred
-            if(isPreferredBiome == false && i < 10 &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
+            if(isPreferredBiome == false && i < 5 &&  worldmap.randomFloat() <= chancePreferredBiome) continue;
 
             // limit movement if blocked
             target = calculateNonBlockedTarget(fromTx, fromTy, target);
@@ -1441,12 +1441,12 @@ class TimeHelper
                 {
                     bestQuadDist = quadDist;
                     besttarget = target;
-                    maxIterations = i + 3; // try to find better   
+                    maxIterations = i + 6; // try to find better   
                     
                     //trace('i: $i set better target for animal: ${helper.description} quadDist: $quadDist');
                 }
 
-                if(i < maxIterations - 1) continue; // try to find better
+                if(i < maxIterations - 2) continue; // try to find better
 
                 if(besttarget != null) target = besttarget;
 
@@ -1527,10 +1527,13 @@ class TimeHelper
             var speed = ServerSettings.InitialPlayerMoveSpeed * objectData.speedMult;
             Connection.SendAnimalMoveUpdateToAllClosePlayers(fromTx, fromTy, toTx, toTy, oldTileObject, newTileObject, speed);
 
+            //trace('ANIMALMOVE: true $i');
+
             return true;
         }
 
         helper.creationTimeInTicks = TimeHelper.tick;
+        //trace('ANIMALMOVE: false');
 
         return false;
     }    
