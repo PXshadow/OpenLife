@@ -97,9 +97,7 @@ class ServerSettings
     public static var MaxPlayersBeforeStartingAsChild = 0; // -1
     public static var StartingEveAge = 14;  // 14
     public static var StartingFamilyName = "SNOW";
-    public static var StartingName = "SPOON";
-    public static var EveDamageFactor:Float = 0.5;  // eve/adam get less damage from animals but make also less damage
-    public static var EveFoodUseFactor:Float = 0.5; // eve/adam life still in paradise, so they need less food  
+    public static var StartingName = "SPOON";  
     public static var AgingSecondsPerYear = 60; // 60
     public static var ReduceAgeNeededToPickupObjects = 3; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
     public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
@@ -133,7 +131,9 @@ class ServerSettings
     public static var SpwanAtLastDead = false;
     public static var startingGx = 235; // 235; //270; // 360;
     public static var startingGy = 150; //200;//- 400; // server map is saved y inverse 
-   
+    public static var EveDamageFactor:Float = 0.5;  // Eve / Adam get less damage from animals but make also less damage
+    public static var EveFoodUseFactor:Float = 0.8; // Eve / Adam life still in paradise, so they need less food
+    
     // food stuff
     public static var FoodUsePerSecond = 0.10; // 0.2; // 5 sec per pip // normal game has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good 
     public static var FoodReductionPerEating:Float = 1;

@@ -100,7 +100,7 @@ MAP:
 
 Adam / Eve:
 - adam / Eve use 20% less food
-- adam / Eve do 20% less damage
+- adam / Eve do 50% less damage
 - adam / Eve receive 20% less damage (also from animals)
 
 Family / Loved / Hated Biomes:
@@ -341,12 +341,13 @@ High priority:
 
 - PICKUP / DROP CHILD fix display bug. maybe set origion or action from right?
 
-- BIOME remove bad biome exhaustion for staying but add for doing stuff in bad biome
+- BIOME remove bad biome exhaustion for staying??? but add for doing stuff in bad biome
 - BIOME make moskitos for all bad in swamp
+- BIOME biome boni for different biome specialists like harvesting more banana for brown TODO: White, Black and Ginger 
 
 - ANIMALS fix they wont sometimes display as moving
 
-- BIRTH spawn eves on different locations
+- BIRTH consider deadly animals
 - BIRTH fathers
 
 - DISPLAY give hints for crafting
@@ -354,7 +355,8 @@ High priority:
 
 - MAP use bigger map (Europe?) / create tool to auto create map
 
-- SAVE season
+- SAVE season / save animal loved biome spot
+- SAVE save more stats for player, like best play, different eve runs, number of played, last loged in, amount of time played
 
 Middle priority:
 - GATES Ally Gates and swing doors
@@ -364,7 +366,6 @@ Middle priority:
 - SAVE for contained objects. Currently only ids from contained obj are saved
 
 - BIOME give biome experience for staying in biome or eating biome food
-- BIOME biome boni for different biome specialists like harvesting more banana for brown TODO: White and Ginger missing
 - BIOME biome hide biome specific stuff for not specialists
 - BIOME change biome speed for specialists (only if in attack mode or carrying heavy stuff???)
 - BIOME no dropping of stuff on water??? or better let it drift back to land?
@@ -444,7 +445,6 @@ PX TODO
 4. Solo Eve Bot run, scored after 1 life and world is static and reset each time
 5. Task Queue system with Auto.hx class
 6. Algorithm to identify what is needed next for overseer
-
 
 IS this used? https://www.geeksforgeeks.org/a-search-algorithm/
 
