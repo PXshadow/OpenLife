@@ -311,9 +311,13 @@ class ServerSettings
         //ObjectData.getObjectData(496).alternativeTransitionOutcome = 10; // Dug Stump
 
         // let loved food grow in loved biomes
-        ObjectData.getObjectData(4252).biomes.push(BiomeTag.GREY); // Wild Garlic is loved now by White
-        ObjectData.getObjectData(40).biomes.push(BiomeTag.SNOW); // Wild Carrot is loved now by Ginger
+        ObjectData.getObjectData(4251).biomes.push(BiomeTag.GREY); // Wild Garlic is loved now by White
+        ObjectData.getObjectData(36).biomes.push(BiomeTag.SNOW); // Wild Carrot is loved now by Ginger
 
+        // is set directly in map WorldMap generation
+        //ObjectData.getObjectData(141).biomes.push(BiomeTag.PASSABLERIVER); // Canada Goose Pond
+        //ObjectData.getObjectData(121).biomes.push(BiomeTag.PASSABLERIVER); // Tule Reeds
+        
         // dont block walking
         ObjectData.getObjectData(231).blocksWalking = false; // Adobe Oven Base 
         ObjectData.getObjectData(237).blocksWalking = false; // Adobe Oven

@@ -1035,9 +1035,21 @@ class WorldMap
 
                 // if there is a object below allready continue
                 if(y > 0 && objects[x+(y-1)*width][0] != 0) continue;
-                
                 if (randomFloat() > 0.4) continue;
-                
+                if(getBiomeId(x,y) == BiomeTag.PASSABLERIVER)
+                {
+                    if (randomFloat() > 0.3) continue;
+
+                    var isNearLand = getBiomeId(x+1,y) == BiomeTag.GREEN;
+                    isNearLand = isNearLand || getBiomeId(x-1,y) == BiomeTag.GREEN;
+                    isNearLand = isNearLand || getBiomeId(x,y+1) == BiomeTag.GREEN;
+                    isNearLand = isNearLand || getBiomeId(x,y-1) == BiomeTag.GREEN;
+
+                    if(isNearLand == false) continue;
+
+                    setObjectId(x,y, [141]); // Canada Goose Pond
+                    continue;
+                }                
                 
                 var set:Bool = false;
 
@@ -1149,6 +1161,8 @@ class WorldMap
 
                 // if obj is no iron, no tary spot and no spring there is a chance for winning lottery
                 if(ServerSettings.CanObjectRespawn(tmpObj[0]) == false) continue;
+
+                if(getBiomeId(x,y) == BiomeTag.PASSABLERIVER) continue;
 
                 if(randomFloat() < ServerSettings.ChanceForLuckySpot)
                 {
