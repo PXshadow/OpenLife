@@ -592,12 +592,18 @@ class Ai
                 myPlayer.say('You are $newName');
             }
 
-            if(heldPlayer.age * 60 > ServerSettings.MinMovementAgeInSec && heldPlayer.food_store > heldPlayer.getMaxChildFeeding() - 0.2 && heldPlayer.hits < 1)
+            if(heldPlayer.food_store > heldPlayer.getMaxChildFeeding() - 0.2)
             {
-                var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
-                this.feedingPlayerTarget = null;
-                if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} child drop ${heldPlayer.name} $done food: ${heldPlayer.food_store} max: ${heldPlayer.getMaxChildFeeding() - 0.2}');
-                return true;
+                var hungryChild = AiHelper.GetCloseHungryChild(myPlayer);
+                
+                // only drop child if there is another hungry child, or if the held child can walk, has near full hits and is not ill
+                if(hungryChild != null || (heldPlayer.age * 60 > ServerSettings.MinMovementAgeInSec && heldPlayer.hits < 1 && heldPlayer.isIll() == false))
+                {
+                    var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
+                    this.feedingPlayerTarget = null;
+                    if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} child drop ${heldPlayer.name} $done food: ${heldPlayer.food_store} max: ${heldPlayer.getMaxChildFeeding() - 0.2}');
+                    return true;
+                }
             }
         }
 

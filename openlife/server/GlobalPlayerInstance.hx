@@ -4413,6 +4413,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         return Math.max(4, food_store_max);
     }
+
+    public function isIll() : Bool
+    {
+        return fever != null;   
+    }
 }
 
 // TODO Arcurus>> add birth logic - suggestion:
