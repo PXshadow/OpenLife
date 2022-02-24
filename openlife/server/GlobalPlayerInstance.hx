@@ -2803,8 +2803,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         if(player.currentlyCraving != 0 && player.heldObject.id == player.currentlyCraving) return;
 
         var bestfood = AiHelper.SearchBestFood(player);
-        var foodId = bestfood.objectData.getFoodId();
-        var displayBestFood = bestfood != null && (player.isHoldingYum() == false || foodId == player.currentlyCraving) && AiHelper.CalculateDistanceToObject(player, bestfood) > 10;
+        var displayBestFood = bestfood != null && (player.isHoldingYum() == false || bestfood.objectData.getFoodId() == player.currentlyCraving) && AiHelper.CalculateDistanceToObject(player, bestfood) > 10;
 
         if(displayBestFood) player.displayFood(bestfood);
     }
