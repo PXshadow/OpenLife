@@ -1,20 +1,20 @@
 package openlife.auto;
 
 import haxe.Exception;
-import openlife.server.TimeHelper;
-import openlife.server.Connection;
-import openlife.macros.Macro;
-import sys.thread.Thread;
-import openlife.data.transition.TransitionImporter;
-import openlife.server.NamingHelper;
-import openlife.server.WorldMap;
-import openlife.server.GlobalPlayerInstance;
-import openlife.settings.ServerSettings;
-import openlife.data.object.ObjectHelper;
-import openlife.data.object.ObjectData;
-import openlife.data.transition.TransitionData;
-import openlife.data.object.player.PlayerInstance;
 import openlife.data.map.MapData;
+import openlife.data.object.ObjectData;
+import openlife.data.object.ObjectHelper;
+import openlife.data.object.player.PlayerInstance;
+import openlife.data.transition.TransitionData;
+import openlife.data.transition.TransitionImporter;
+import openlife.macros.Macro;
+import openlife.server.Connection;
+import openlife.server.GlobalPlayerInstance;
+import openlife.server.NamingHelper;
+import openlife.server.TimeHelper;
+import openlife.server.WorldMap;
+import openlife.settings.ServerSettings;
+import sys.thread.Thread;
 
 using StringTools;
 using openlife.auto.AiHelper;
@@ -1334,7 +1334,7 @@ class Ai {
 
 		if (isHungry && foodTarget == null) searchFoodAndEat();
 
-		// myPlayer.say('F ${Math.round(myPlayer.getPlayerInstance().food_store)}'); // for debugging
+		if (isHungry) myPlayer.say('F ${Math.round(myPlayer.getPlayerInstance().food_store)}'); // TODO for debugging
 		if (isHungry && myPlayer.age < ServerSettings.MaxChildAgeForBreastFeeding) myPlayer.say('F');
 
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');

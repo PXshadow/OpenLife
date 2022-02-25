@@ -1,16 +1,16 @@
 package openlife.auto;
 
+import haxe.ds.Vector;
+import openlife.auto.Pathfinder.Coordinate;
+import openlife.data.Pos;
+import openlife.data.map.MapData;
+import openlife.data.object.ObjectData;
+import openlife.data.object.ObjectHelper;
+import openlife.data.object.player.PlayerInstance;
+import openlife.data.transition.TransitionData;
 import openlife.server.GlobalPlayerInstance;
 import openlife.server.WorldMap;
 import openlife.settings.ServerSettings;
-import openlife.data.object.ObjectData;
-import openlife.data.object.ObjectHelper;
-import openlife.data.Pos;
-import openlife.auto.Pathfinder.Coordinate;
-import openlife.data.map.MapData;
-import openlife.data.object.player.PlayerInstance;
-import openlife.data.transition.TransitionData;
-import haxe.ds.Vector;
 
 class AiHelper {
 	static final RAD:Int = MapData.RAD; // search radius
@@ -577,7 +577,8 @@ class AiHelper {
 				if (dist > bestDist) continue;
 				// var moveQuadDist = Math.pow(obj.objectData.moves + 1, 2);
 				// trace('GetCloseDeadlyAnimal: $dist <= $bestDist moveQuadDist: $moveQuadDist ${obj.name}');
-				if (dist > Math.pow(obj.objectData.moves + 1, 2)) continue;
+				//if (dist > Math.pow(obj.objectData.moves + 1, 2)) continue;
+                if (dist > Math.pow(obj.objectData.moves, 2)) continue;
 
 				bestDist = dist;
 				bestObj = obj;

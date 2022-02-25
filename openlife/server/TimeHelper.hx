@@ -1,16 +1,16 @@
 package openlife.server;
 
-import openlife.auto.Ai;
-import openlife.server.GlobalPlayerInstance.Emote;
-import openlife.auto.AiHelper;
-import openlife.data.transition.TransitionImporter;
 import haxe.Exception;
-import openlife.macros.Macro;
+import openlife.auto.Ai;
+import openlife.auto.AiHelper;
 import openlife.client.ClientTag;
 import openlife.data.object.ObjectData;
-import openlife.server.Biome.BiomeTag;
-import openlife.data.transition.TransitionData;
 import openlife.data.object.ObjectHelper;
+import openlife.data.transition.TransitionData;
+import openlife.data.transition.TransitionImporter;
+import openlife.macros.Macro;
+import openlife.server.Biome.BiomeTag;
+import openlife.server.GlobalPlayerInstance.Emote;
 import openlife.settings.ServerSettings;
 
 @:enum abstract Seasons(Int) from Int to Int {
@@ -1546,11 +1546,13 @@ class TimeHelper {
 		var tmpY = fromY;
 
 		for (ii in 0...10) {
-			if (tmpX == tx && tmpY == ty) break;
+            if (tmpX == tx && tmpY == ty) break;
 
 			if (tx > tmpX) tmpX += 1; else if (tx < tmpX) tmpX -= 1;
 
 			if (ty > tmpY) tmpY += 1; else if (ty < tmpY) tmpY -= 1;
+
+            if (ii > 0 && tmpX == tx && tmpY == ty) break;
 
 			for (p in GlobalPlayerInstance.AllPlayers) {
 				if (p.deleted) continue;
