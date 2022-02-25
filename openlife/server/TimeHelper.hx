@@ -331,7 +331,7 @@ class TimeHelper {
 
 	private static function UpdateEmotes(player:GlobalPlayerInstance) {
 		if (player.isHuman()) {
-			var animal = AiHelper.GetCloseDeadlyAnimal(player, 10);
+			var animal = AiHelper.GetCloseDeadlyAnimal(player, 10, true);
 			if (animal != null) {
 				var dist = AiHelper.CalculateDistanceToObject(player, animal);
 				if (dist > 10) player.connection.send(ClientTag.LOCATION_SAYS, ['${animal.tx - player.gx} ${animal.ty - player.gy} !']);

@@ -553,7 +553,7 @@ class AiHelper {
 		// transitionForObject.transitions.push(transition);
 	}
 
-	public static function GetCloseDeadlyAnimal(player:PlayerInterface, searchDistance:Int = 5):ObjectHelper {
+	public static function GetCloseDeadlyAnimal(player:PlayerInterface, searchDistance:Int = 5, showAllways:Bool = false):ObjectHelper {
 		// AiHelper.GetClosestObject
 		var world = WorldMap.world;
 		var playerInst = player.getPlayerInstance();
@@ -578,7 +578,7 @@ class AiHelper {
 				// var moveQuadDist = Math.pow(obj.objectData.moves + 1, 2);
 				// trace('GetCloseDeadlyAnimal: $dist <= $bestDist moveQuadDist: $moveQuadDist ${obj.name}');
 				//if (dist > Math.pow(obj.objectData.moves + 1, 2)) continue;
-                if (dist > Math.pow(obj.objectData.moves, 2)) continue;
+                if (showAllways == false && dist > Math.pow(obj.objectData.moves, 2)) continue;
 
 				bestDist = dist;
 				bestObj = obj;

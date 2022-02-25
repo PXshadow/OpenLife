@@ -93,6 +93,7 @@ MAP:
 - generate limited map using image color as index for biome id
 - made map "round", so you can walk over both x,y borders and come out on the other side. 
 - has rivers and oceans  
+- you can build bridges over rivers and oceans with boards or stone (TODO let them decay)
 - iron can be used by default 
 - no dry spring and dry tarry spot
 - no gradients
@@ -176,7 +177,7 @@ Exhaustion:
 - males recover exhaustion X1.2
 - bad temperature generates exhaustion and reduces exhaustion reduction
 - good temperature increases exhaustion reduction
-- you get extra exhaustion in not loved biome (more in swamp or river if not on floor or bridge)
+- // you get extra exhaustion in not loved biome (more in swamp or river if not on floor or bridge)
 - you recover exhaustion in your loved biome (like brown in jungle) 
 - changing your movement while moving generates exhaustion
 - trying to hit someone causes exhaustion
@@ -303,7 +304,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 - better fences / allow to climb over fences, but get wounded / make destroyable if not protected by close gate)
 - special stuff like hercules / snake master / super fast ager 
 - job boni
-- bridges
 - horses that follow owner / horse ownership
 - angry / bloody weapon if killing sheeps / animals
 - animals grouping and hunting in winter
@@ -315,7 +315,6 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI FIX feeding / do on other ==> could not find target player // TODO check if solved
 - AI FIX child: if hungry and close to feeding player dont move 
 - AI FIX drop made stuff after ordered in fronts of player
 - AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread
@@ -341,11 +340,11 @@ High priority:
 
 - PICKUP / DROP CHILD fix display bug. maybe set origion or action from right?
 
-- BIOME remove bad biome exhaustion for staying??? but add for doing stuff in bad biome
+- BIOME add exhaustion for doing stuff in bad biome
 - BIOME make moskitos for all bad in swamp
 - BIOME biome boni for different biome specialists like harvesting more banana for brown TODO: White, Black and Ginger 
 
-- ANIMALS fix they wont sometimes display as moving
+- ANIMALS fix they wont sometimes display as moving / DONE???
 
 - BIRTH consider deadly animals
 - BIRTH fathers
@@ -384,7 +383,7 @@ Middle priority:
 - TIME decay stuff in containers
 - TIME decay clothing
 - TIME use item for decay like Broken Skewer  ID: 847
-- TIME decay floors
+- TIME decay floors / bridges even faster
 
 - CRAFTING crafting on table
 
