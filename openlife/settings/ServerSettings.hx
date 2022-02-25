@@ -81,7 +81,7 @@ class ServerSettings
 
     // birth    
     public static var EveOrAdamBirthChance = 0.05; // since each eve gets an adam the true chance is x2
-    public static var NewChildExhaustionForMother = 10;
+    public static var NewChildExhaustionForMother = 1;
     public static var ChanceForFemaleChild = 0.6;
     public static var ChanceForOtherChildColor = 0.2;
     public static var ChanceForOtherChildColorIfCloseToWrongSpecialBiome = 0.3; // for example Black born in or close to Jungle
@@ -172,7 +172,7 @@ class ServerSettings
     public static var FoodStoreMaxReductionWhileStarvingToDeath = 5; // (5) reduces food store max with factor XX for each food below 0
 
     public static var MaxDistanceToBeConsideredAsClose = 20; //20; // only close players are updated with PU Movement 
-    public static var MaxDistanceToBeConsideredAsCloseForMapChanges = 8; // for MX
+    public static var MaxDistanceToBeConsideredAsCloseForMapChanges = 10; // for MX
 
     // for movement
     public static var InitialPlayerMoveSpeed:Float = 4; //vanilla: 3.75; // in Tiles per Second
@@ -224,7 +224,7 @@ class ServerSettings
 
     // combat
     public static var CombatAngryTimeBeforeAttack:Float = 5;
-    public static var CombatExhaustionCostPerAttack:Float = 0.5;
+    public static var CombatExhaustionCostPerAttack:Float = 0.2;
     public static var WeaponCoolDownFactor:Float = 0.05;
     public static var MaleDamageFactor:Float = 1.2;
     public static var WeaponCoolDownFactorIfWounding:Float = 0.4;

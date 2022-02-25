@@ -287,7 +287,7 @@ class TimeHelper
             var isHeldFaktor = player.heldByPlayer != null ? 0.2 : 1; // if taken care its much less hard! 
 
             player.food_store -= timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec * 2;
-            player.exhaustion += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec * isHeldFaktor;
+            //player.exhaustion += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec * isHeldFaktor;
             //player.hits += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec * 0.05 * isHeldFaktor;
             
             player.heat += timePassedInSeconds * 0.3 * isHeldFaktor;
@@ -613,7 +613,7 @@ class TimeHelper
         // do Biome exhaustion
         //var tmpexhaustion = player.exhaustion;
         var biomeLoveFactor = player.biomeLoveFactor();
-        if(biomeLoveFactor < 0) player.exhaustion -= originalFoodDecay * biomeLoveFactor / 2; // gain exhaustion in wrong biome
+        //if(biomeLoveFactor < 0) player.exhaustion -= originalFoodDecay * biomeLoveFactor / 2; // gain exhaustion in wrong biome
         if(biomeLoveFactor > 0 && player.exhaustion > -player.food_store_max) player.exhaustion -= originalFoodDecay * biomeLoveFactor / 2;
         //trace('Exhaustion: $tmpexhaustion ==> ${player.exhaustion} pID: ${player.p_id} biomeLoveFactor: $biomeLoveFactor');
 
