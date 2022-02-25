@@ -254,6 +254,13 @@ class Ai {
 
 			myPlayer.say('HOLA ${player.name}');
 		}
+        if (text.contains("ARE YOU AI") || text.contains("ARE YOU AN AI") || text == "AI?" || text == "AI") {
+			// HELLO WORLD
+
+			// if(ServerSettings.DebugAi) trace('im a nice bot!');
+
+			myPlayer.say('Im not a stupid AI!');
+		}
 		if (text.contains("JUMP")) {
 			myPlayer.say("JUMP");
 			myPlayer.jump();
