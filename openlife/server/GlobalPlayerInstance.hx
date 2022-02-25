@@ -1,24 +1,24 @@
 package openlife.server;
 
-import sys.io.File;
-import openlife.auto.Ai;
 import haxe.Exception;
-import openlife.server.Lineage.PrestigeClass;
-import openlife.auto.AiHelper;
-import openlife.server.Biome.BiomeTag;
-import openlife.macros.Macro;
-import openlife.data.transition.TransitionImporter;
-import openlife.auto.WorldInterface;
-import openlife.auto.PlayerInterface;
-import openlife.client.ClientTag;
-import openlife.data.object.ObjectData;
-import openlife.settings.ServerSettings;
 import haxe.ds.Vector;
-import openlife.data.object.ObjectHelper;
-import openlife.data.map.MapData;
-import openlife.data.transition.TransitionData;
+import openlife.auto.Ai;
+import openlife.auto.AiHelper;
+import openlife.auto.PlayerInterface;
+import openlife.auto.WorldInterface;
+import openlife.client.ClientTag;
 import openlife.data.Pos;
+import openlife.data.map.MapData;
+import openlife.data.object.ObjectData;
+import openlife.data.object.ObjectHelper;
 import openlife.data.object.player.PlayerInstance;
+import openlife.data.transition.TransitionData;
+import openlife.data.transition.TransitionImporter;
+import openlife.macros.Macro;
+import openlife.server.Biome.BiomeTag;
+import openlife.server.Lineage.PrestigeClass;
+import openlife.settings.ServerSettings;
+import sys.io.File;
 import sys.thread.Mutex;
 
 using StringTools;
@@ -3326,6 +3326,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 					newWound.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(newWound) * moskitoDamageFactor;
 					targetPlayer.connection.sendGlobalMessage('You got yellow fever from the moskitos. Try to cool down...');
+                    targetPlayer.say('damm moskitos!', true);
 				}
 				targetPlayer.doEmote(Emote.sad);
 				// targetPlayer.doEmote(Emote.yellowFever);

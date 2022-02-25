@@ -333,7 +333,7 @@ class ServerSettings {
 		ObjectData.getObjectData(530).mapChance /= 2; // Bald Cypress Tree
 		ObjectData.getObjectData(121).mapChance *= 5; // Tule Reeds
 
-		ObjectData.getObjectData(2156).mapChance *= 0.4; // Less UnHappy Mosquitos
+		ObjectData.getObjectData(2156).mapChance *= 0.3; // Less UnHappy Mosquitos
 		ObjectData.getObjectData(2156).biomes.push(BiomeTag.SWAMP); // Evil Mosquitos now also in Swamp
 
 		// More Wolfs needs the world
