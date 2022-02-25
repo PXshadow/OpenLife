@@ -912,8 +912,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 // consider graves
                 var hasCloseBlockingGrave = this.account.hasCloseBlockingGrave(location.tx, location.ty);
                 var hasCloseNonBlockingGrave = this.account.hasCloseNonBlockingGrave(location.tx, location.ty) ;
-                sumDistHumans += hasCloseBlockingGrave ? 5 : 0; 
-                fitness += hasCloseNonBlockingGrave ? 5 : 0;
+                sumDistHumans += hasCloseBlockingGrave ? 1 : 0; 
+                fitness += hasCloseNonBlockingGrave ? 1 : 0;
 
                 for(p in GlobalPlayerInstance.AllPlayers)
                 {

@@ -1441,11 +1441,11 @@ class Ai
 
         if(isHungry)
         {
-            isHungry = player.food_store < player.food_store_max * 0.8;
+            isHungry = player.food_store < player.food_store_max * 0.85;
         }
         else
         {
-            isHungry = player.food_store < Math.min(3, player.food_store_max * 0.5);
+            isHungry = player.food_store < Math.min(3, player.food_store_max * 0.4);
         }
 
         if(isHungry && foodTarget == null) searchFoodAndEat();

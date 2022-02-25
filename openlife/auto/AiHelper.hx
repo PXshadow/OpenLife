@@ -125,7 +125,7 @@ class AiHelper
         //return true;
     }
 
-    public static function SearchBestFood(player:PlayerInterface, feedOther:Bool = false, radius:Int = 60) : ObjectHelper
+    public static function SearchBestFood(player:PlayerInterface, feedOther:Bool = false, radius:Int = 40) : ObjectHelper
     {
         var startTime = Sys.time();
         var ai = player.getAi();
@@ -136,7 +136,12 @@ class AiHelper
         var bestDistance = 999999.0;
         var bestFoodValue = 0.1;
         var bestFoods = new Array<ObjectHelper>();
-        var isStarving = player.food_store < 0.2;
+        var isStarving = player.food_store < 2;
+        var starvingFactor:Float = isStarving ? 4 : 25; 
+        
+        if(player.food_store < 0.5) starvingFactor = 2;
+        if(player.food_store < -1)  starvingFactor = 1.2;
+        if(player.food_store < -1.5)  starvingFactor = 1.1;
         
         for(ty in baseY - radius...baseY + radius)
         {
@@ -170,12 +175,10 @@ class AiHelper
                 var isSuperMeh = foodValue < originalFoodValue / 2; // can eat if food_store < 0
                 //trace('search food: best $bestDistance dist $distance ${obj.description}');
 
-                var starvingFactor = isStarving ? 4 : 25; // go two times more far or 5 times
-
                 if(isYum) foodValue *= starvingFactor;
                 if(isSuperMeh) foodValue = originalFoodValue / starvingFactor; 
                 if(isSuperMeh && player.food_store > 0) foodValue = 0;
-                if(foodId == player.getCraving()) foodValue *= starvingFactor * 2;
+                if(foodId == player.getCraving()) foodValue *= Math.pow(starvingFactor, 2);
 
                 if(quadDistance < 0.5) quadDistance = 0.5;
                 //distance = Math.sqrt(distance);
