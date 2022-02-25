@@ -1340,7 +1340,7 @@ class TimeHelper
 
         if(transition.move > 0)
         {
-            doAnimalMovement(helper, transition);
+            Macro.exception(doAnimalMovement(helper, transition));
             
             return false;
         }
