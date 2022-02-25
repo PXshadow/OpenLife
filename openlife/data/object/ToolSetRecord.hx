@@ -3,8 +3,8 @@ package openlife.data.object;
 /**
  * Toolset record
  */
- @:expose
+@:expose
 typedef ToolSetRecord = {
-    setTag:String,
-    setMembership:Array<Int>
+	setTag:String,
+	setMembership:Array<Int>
 }

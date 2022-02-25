@@ -6,233 +6,223 @@ import openlife.data.object.ObjectHelper;
 import openlife.settings.ServerSettings;
 import sys.io.File;
 
-class PlayerAccount
-{
-    public static var AllPlayerAccountsByEmail = new Map<String, PlayerAccount>();
-    public static var AllPlayerAccountsById = new Map<Int, PlayerAccount>();
-    public static var AccountIdIndex:Int = 1;
-    
-    // saved
-    public var id:Int;
-    public var isAi:Bool = false;
-    
-    public var email:String;
-    public var account_key_hash:String;
-    public var name:String = 'SNOW';
+class PlayerAccount {
+	public static var AllPlayerAccountsByEmail = new Map<String, PlayerAccount>();
+	public static var AllPlayerAccountsById = new Map<Int, PlayerAccount>();
+	public static var AccountIdIndex:Int = 1;
 
-    public var score:Float;
-    public var femaleScore:Float; 
-    public var maleScore:Float; 
+	// saved
+	public var id:Int;
+	public var isAi:Bool = false;
 
-    public var lastSeenInTicks:Float;
+	public var email:String;
+	public var account_key_hash:String;
+	public var name:String = 'SNOW';
 
-    public var coinsInherited:Float;
+	public var score:Float;
+	public var femaleScore:Float;
+	public var maleScore:Float;
 
-    // not saved
-    public var graves = new Array<ObjectHelper>();
-    public var scoreEntries = new Array<ScoreEntry>(); // is used to store prestige boni / mali 
-    //public var lastConnection:Connection;
+	public var lastSeenInTicks:Float;
 
-    private function new(){}
+	public var coinsInherited:Float;
 
-    public static function GetOrCreatePlayerAccount(email:String, account_key_hash:String, id:Int = 0) : PlayerAccount
-    {
-        var account = AllPlayerAccountsByEmail[email];
-        if(account != null) return account;
+	// not saved
+	public var graves = new Array<ObjectHelper>();
+	public var scoreEntries = new Array<ScoreEntry>(); // is used to store prestige boni / mali
 
-        account = new PlayerAccount();
-        account.id = id > 0 ? id : AccountIdIndex++;
-        account.email = email;
-        account.account_key_hash = account_key_hash;
+	// public var lastConnection:Connection;
 
-        AllPlayerAccountsByEmail[account.email] = account;
-        AllPlayerAccountsById[account.id] = account;
+	private function new() {}
 
-        //trace('New account: ${id}-->${account.id} $email');
+	public static function GetOrCreatePlayerAccount(email:String, account_key_hash:String, id:Int = 0):PlayerAccount {
+		var account = AllPlayerAccountsByEmail[email];
+		if (account != null)
+			return account;
 
-        return account;
-    }
+		account = new PlayerAccount();
+		account.id = id > 0 ? id : AccountIdIndex++;
+		account.email = email;
+		account.account_key_hash = account_key_hash;
 
-    public static function GetPlayerAccountById(id:Int) : PlayerAccount
-    {
-        return AllPlayerAccountsById[id];
-    }
+		AllPlayerAccountsByEmail[account.email] = account;
+		AllPlayerAccountsById[account.id] = account;
 
-    public static function WritePlayerAccounts(path:String)
-    {
-        var accounts = AllPlayerAccountsByEmail;
+		// trace('New account: ${id}-->${account.id} $email');
 
-        //trace('Wrtie to file: $path width: $width height: $height length: $length');
+		return account;
+	}
 
-        var writer = File.write(path, true);
-        var dataVersion = 1;
-        var count = 0;
+	public static function GetPlayerAccountById(id:Int):PlayerAccount {
+		return AllPlayerAccountsById[id];
+	}
 
-        for(ac in accounts) count++;
+	public static function WritePlayerAccounts(path:String) {
+		var accounts = AllPlayerAccountsByEmail;
 
-        writer.writeInt32(dataVersion);
-        writer.writeInt32(count);
+		// trace('Wrtie to file: $path width: $width height: $height length: $length');
 
-        for(ac in accounts)
-        {
-            writer.writeInt32(ac.id);
-            writer.writeInt8(cast (ac.isAi, Int));
+		var writer = File.write(path, true);
+		var dataVersion = 1;
+		var count = 0;
 
-            writer.writeString('${ac.email}\n');
-            writer.writeString('${ac.account_key_hash}\n');
-            writer.writeString('${ac.name}\n');
+		for (ac in accounts)
+			count++;
 
-            writer.writeFloat(ac.score);
-            writer.writeFloat(ac.femaleScore);
-            writer.writeFloat(ac.maleScore);
+		writer.writeInt32(dataVersion);
+		writer.writeInt32(count);
 
-            writer.writeDouble(ac.lastSeenInTicks);
+		for (ac in accounts) {
+			writer.writeInt32(ac.id);
+			writer.writeInt8(cast(ac.isAi, Int));
 
-            writer.writeFloat(ac.coinsInherited);
-        }
+			writer.writeString('${ac.email}\n');
+			writer.writeString('${ac.account_key_hash}\n');
+			writer.writeString('${ac.name}\n');
 
-        writer.close();
-    }
+			writer.writeFloat(ac.score);
+			writer.writeFloat(ac.femaleScore);
+			writer.writeFloat(ac.maleScore);
 
-    public static function ReadPlayerAccounts(path:String)
-    {
-        var reader = File.read(path, true);
-        var dataVersion = reader.readInt32();
-        var count = reader.readInt32();
-        AllPlayerAccountsByEmail = new Map<String, PlayerAccount>();
-        AllPlayerAccountsById = new Map<Int, PlayerAccount>();
+			writer.writeDouble(ac.lastSeenInTicks);
 
-        trace('Read from file: $path count: $count');
-        
-        for(i in 0...count)
-        {
-            var id = reader.readInt32();
-            var isAi = cast (reader.readInt8(), Bool);
-            var email = reader.readLine();
-            var account_key_hash = reader.readLine();
-            var account = GetOrCreatePlayerAccount(email, account_key_hash, id);
-            account.isAi = isAi;
-            account.name = reader.readLine();
-            account.score = reader.readFloat();
-            account.femaleScore = reader.readFloat();
-            account.maleScore = reader.readFloat();
+			writer.writeFloat(ac.coinsInherited);
+		}
 
-            account.lastSeenInTicks = reader.readDouble();
+		writer.close();
+	}
 
-            account.coinsInherited = reader.readFloat();
-        }
+	public static function ReadPlayerAccounts(path:String) {
+		var reader = File.read(path, true);
+		var dataVersion = reader.readInt32();
+		var count = reader.readInt32();
+		AllPlayerAccountsByEmail = new Map<String, PlayerAccount>();
+		AllPlayerAccountsById = new Map<Int, PlayerAccount>();
 
-        reader.close();
+		trace('Read from file: $path count: $count');
 
-        //trace('PlayerAccounts: $AllPlayerAccounts');
-    }
+		for (i in 0...count) {
+			var id = reader.readInt32();
+			var isAi = cast(reader.readInt8(), Bool);
+			var email = reader.readLine();
+			var account_key_hash = reader.readLine();
+			var account = GetOrCreatePlayerAccount(email, account_key_hash, id);
+			account.isAi = isAi;
+			account.name = reader.readLine();
+			account.score = reader.readFloat();
+			account.femaleScore = reader.readFloat();
+			account.maleScore = reader.readFloat();
 
-    public var totalScore(get, null):Float;
+			account.lastSeenInTicks = reader.readDouble();
 
-    public function get_totalScore()
-    {
-        var total = (maleScore + femaleScore) / 2; 
-        if(this.isAi) total *= ServerSettings.AiTotalScoreFactor;
-        total = Math.floor(total);
-        return total; 
-    }
+			account.coinsInherited = reader.readFloat();
+		}
 
-    public static function ChangeScore(player:GlobalPlayerInstance)
-    {
-        // TODO give lower score to AI
-        var account = player.account;
-        var score = player.yum_multiplier;
-        var factor = ServerSettings.ScoreFactor;
+		reader.close();
 
-        account.score = account.score * (1 - factor) + score * factor;
-        
-        if(player.isFemale()) account.femaleScore = account.femaleScore * (1 - factor) + score * factor;
-        else account.maleScore = account.maleScore * (1 - factor) + score * factor;
+		// trace('PlayerAccounts: $AllPlayerAccounts');
+	}
 
-        account.score = Math.round(account.score * 100) / 100;
-        account.femaleScore = Math.round(account.femaleScore * 100) / 100;
-        account.maleScore = Math.round(account.maleScore * 100) / 100;
+	public var totalScore(get, null):Float;
 
-        trace('Score: ${account.score} This Life: $score femaleScore: ${account.femaleScore} maleScore: ${account.maleScore}');
-    }
+	public function get_totalScore() {
+		var total = (maleScore + femaleScore) / 2;
+		if (this.isAi)
+			total *= ServerSettings.AiTotalScoreFactor;
+		total = Math.floor(total);
+		return total;
+	}
 
-    public function removeDeletedGraves()
-    {
-        for(grave in graves)
-        {
-            if(grave.id == 0) graves.remove(grave);
-        }   
-    }
+	public static function ChangeScore(player:GlobalPlayerInstance) {
+		// TODO give lower score to AI
+		var account = player.account;
+		var score = player.yum_multiplier;
+		var factor = ServerSettings.ScoreFactor;
 
-    public function getLastLivingPlayer() : GlobalPlayerInstance
-    {
-        var account:PlayerAccount = this;
-        
-        for(p in GlobalPlayerInstance.AllPlayers)
-        {
-            if(p.deleted) continue;
-            if(account == p.account)
-            {
-                return p;
-            }
-        }
+		account.score = account.score * (1 - factor) + score * factor;
 
-        return null;
-    } 
+		if (player.isFemale())
+			account.femaleScore = account.femaleScore * (1 - factor) + score * factor;
+		else
+			account.maleScore = account.maleScore * (1 - factor) + score * factor;
 
-    public function hasCloseBlockingGrave(tx:Int, ty:Int) : Bool
-    {
-        return calculateCloseBlockingGraveFitness(tx, ty) > 1;
-    }
+		account.score = Math.round(account.score * 100) / 100;
+		account.femaleScore = Math.round(account.femaleScore * 100) / 100;
+		account.maleScore = Math.round(account.maleScore * 100) / 100;
 
-    /**+1 for each grave in a distance of 100 / up to +10 if closer**/
-    public function calculateCloseBlockingGraveFitness(tx:Int, ty:Int) : Float
-    {
-        var playerAccount:PlayerAccount = this;
-        var fitness = 0.0;
+		trace('Score: ${account.score} This Life: $score femaleScore: ${account.femaleScore} maleScore: ${account.maleScore}');
+	}
 
-        playerAccount.removeDeletedGraves();
+	public function removeDeletedGraves() {
+		for (grave in graves) {
+			if (grave.id == 0)
+				graves.remove(grave);
+		}
+	}
 
-        for(grave in playerAccount.graves)
-        {            
-            if(grave.isBoneGrave() == false) continue;
+	public function getLastLivingPlayer():GlobalPlayerInstance {
+		var account:PlayerAccount = this;
 
-            var dist = AiHelper.CalculateDistance(tx, ty, grave.tx, grave.ty);
-            var tmpFitness = Math.pow(ServerSettings.GraveBlockingDistance, 2) / (1 + dist);
-            fitness += tmpFitness > 10 ? 10 : tmpFitness;
+		for (p in GlobalPlayerInstance.AllPlayers) {
+			if (p.deleted)
+				continue;
+			if (account == p.account) {
+				return p;
+			}
+		}
 
-            //if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
-        }
+		return null;
+	}
 
-        //trace('spawnAsEve calculateCloseBlockingGraveFitness: $fitness');
+	public function hasCloseBlockingGrave(tx:Int, ty:Int):Bool {
+		return calculateCloseBlockingGraveFitness(tx, ty) > 1;
+	}
 
-        return fitness;
-    }
+	/**+1 for each grave in a distance of 100 / up to +10 if closer**/
+	public function calculateCloseBlockingGraveFitness(tx:Int, ty:Int):Float {
+		var playerAccount:PlayerAccount = this;
+		var fitness = 0.0;
 
-    public function hasCloseNonBlockingGrave(tx:Int, ty:Int) : Bool
-    {
-        return calculateCloseNonBlockingGraveFitness(tx, ty) > 1;
-    }
+		playerAccount.removeDeletedGraves();
 
-    public function calculateCloseNonBlockingGraveFitness(tx:Int, ty:Int) : Float
-    {
-        var playerAccount:PlayerAccount = this;
-        var fitness = 0.0;
+		for (grave in playerAccount.graves) {
+			if (grave.isBoneGrave() == false)
+				continue;
 
-        playerAccount.removeDeletedGraves();
+			var dist = AiHelper.CalculateDistance(tx, ty, grave.tx, grave.ty);
+			var tmpFitness = Math.pow(ServerSettings.GraveBlockingDistance, 2) / (1 + dist);
+			fitness += tmpFitness > 10 ? 10 : tmpFitness;
 
-        for(grave in playerAccount.graves)
-        {
-            if(grave.isGraveWithGraveStone() == false) continue;
+			// if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
+		}
 
-            var dist = AiHelper.CalculateDistance(tx, ty, grave.tx, grave.ty);
-            var tmpFitness = Math.pow(ServerSettings.GraveBlockingDistance, 2) / (1 + dist);
-            fitness += tmpFitness > 10 ? 10 : tmpFitness;
-            //if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
-        }
+		// trace('spawnAsEve calculateCloseBlockingGraveFitness: $fitness');
 
-        //trace('spawnAsEve calculateCloseNonBlockingGraveFitness: $fitness');
+		return fitness;
+	}
 
-        return fitness;
-    }
+	public function hasCloseNonBlockingGrave(tx:Int, ty:Int):Bool {
+		return calculateCloseNonBlockingGraveFitness(tx, ty) > 1;
+	}
+
+	public function calculateCloseNonBlockingGraveFitness(tx:Int, ty:Int):Float {
+		var playerAccount:PlayerAccount = this;
+		var fitness = 0.0;
+
+		playerAccount.removeDeletedGraves();
+
+		for (grave in playerAccount.graves) {
+			if (grave.isGraveWithGraveStone() == false)
+				continue;
+
+			var dist = AiHelper.CalculateDistance(tx, ty, grave.tx, grave.ty);
+			var tmpFitness = Math.pow(ServerSettings.GraveBlockingDistance, 2) / (1 + dist);
+			fitness += tmpFitness > 10 ? 10 : tmpFitness;
+			// if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
+		}
+
+		// trace('spawnAsEve calculateCloseNonBlockingGraveFitness: $fitness');
+
+		return fitness;
+	}
 }

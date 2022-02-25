@@ -1,11 +1,12 @@
 package openlife.data.object;
+
 /**
  * Type of object
  */
- @:expose
+@:expose
 enum ObjectType {
-    OBJECT;
-    FLOOR;
-    PLAYER;
-    GROUND;
+	OBJECT;
+	FLOOR;
+	PLAYER;
+	GROUND;
 }
