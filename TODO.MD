@@ -350,7 +350,6 @@ High priority:
 - BIRTH fathers
 
 - DISPLAY give hints for crafting
-- DISPLAY give hints where other players are
 
 - MAP use bigger map (Europe?) / create tool to auto create map
 

@@ -67,9 +67,15 @@ class ServerSettings {
 	public static var BirthPrestigeFactor:Float = 0.4; // TODO set 0.2 if fathers are implemented // on birth your starting prestige is factor X * total prestige
 	public static var AncestorPrestigeFactor:Float = 0.2; // if one dies the ancestors get factor X prestige of the dead
 	public static var ScoreFactor:Float = 0.2; // new score influences total score with factor X.
-	public static var DisplayScoreFactor:Float = 1; // if display score multiply with factor X
 	public static var OldGraveDecayMali:Float = 10; // prestige mali if bones decay without beeing proper burried
 	public static var CursedGraveMali:Float = 2; // prestige mali if bones decay without beeing proper burried
+
+	// Display
+	public static var DisplayScoreFactor:Float = 1; // if display score multiply with factor X
+	public static var DisplayYumAndMehFood = false;
+	public static var DisplayPlayerNamesDistance = 20; 
+	public static var DisplayPlayerNamesMaxPlayer = 5; 
+
 
 	// message
 	public static var SecondsBetweenMessages:Float = 5;
@@ -151,8 +157,7 @@ class ServerSettings {
 	public static var HealthLostWhenEatingSuperMeh:Float = 1;
 	public static var MaxHasEatenForNextGeneration:Float = 2; // used in InheritEatenFoodCounts
 	public static var HasEatenReductionForNextGeneration:Float = 0.2; // used in InheritEatenFoodCounts
-	public static var DisplayYumAndMehFood = false;
-
+	
 	// Biome Specialists
 	public static var LovedFoodUseChance:Float = 0.5;
 

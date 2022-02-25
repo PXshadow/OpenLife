@@ -331,14 +331,33 @@ class TimeHelper {
 
 	private static function UpdateEmotes(player:GlobalPlayerInstance) {
 		if (player.isHuman()) {
+			GlobalPlayerInstance.DisplayBestFood(player);
+
 			var animal = AiHelper.GetCloseDeadlyAnimal(player, 10, true);
 			if (animal != null) {
 				var dist = AiHelper.CalculateDistanceToObject(player, animal);
 				if (dist > 10) player.connection.send(ClientTag.LOCATION_SAYS, ['${animal.tx - player.gx} ${animal.ty - player.gy} !']);
 			}
 
-			GlobalPlayerInstance.DisplayBestFood(player);
+			var count = 0;
+			var maxDistance = ServerSettings.DisplayPlayerNamesDistance * ServerSettings.DisplayPlayerNamesDistance;
+			for(p in GlobalPlayerInstance.AllPlayers)
+			{
+				var quadDist = AiHelper.CalculateDistanceToPlayer(player, p);
+				
+				if(quadDist < 15) continue;
+				if(quadDist > maxDistance) continue;
+				
+				var name = player.mother == p ? 'MOTHER' : p.name;
+				if(player.father == p) name = 'FATHER';
+				player.connection.send(ClientTag.LOCATION_SAYS, ['${p.tx - player.gx} ${p.ty - player.gy} ${name}']);
+
+				count++;
+				if(count >= ServerSettings.DisplayPlayerNamesMaxPlayer) break;
+			}
 		}
+
+
 
 		if (player.isWounded()) {
 			Connection.SendEmoteToAll(player, Emote.shock);
