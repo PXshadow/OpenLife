@@ -1,30 +1,30 @@
 package openlife.server;
 
+import format.png.Reader;
+import haxe.Exception;
+import haxe.Int32;
+import haxe.Serializer;
+import haxe.macro.Expr.Catch;
 import openlife.auto.Ai;
+import openlife.auto.WorldInterface;
+import openlife.data.object.ObjectHelper;
+import openlife.data.object.player.PlayerInstance;
+import openlife.data.transition.TransitionData;
+import openlife.data.transition.TransitionImporter;
+import openlife.macros.Macro;
+import openlife.settings.ServerSettings;
+import sys.FileSystem;
+import sys.io.File;
 import sys.io.FileInput;
 import sys.io.FileOutput;
-import haxe.Int32;
-import openlife.data.transition.TransitionImporter;
-import openlife.data.object.player.PlayerInstance;
-import openlife.macros.Macro;
-import openlife.auto.WorldInterface;
-import haxe.Serializer;
-import sys.FileSystem;
-import haxe.macro.Expr.Catch;
-import haxe.Exception;
-import sys.io.File;
-import openlife.settings.ServerSettings;
-import openlife.data.transition.TransitionData;
 import sys.thread.Mutex;
-import openlife.data.object.ObjectHelper;
-import format.png.Reader;
 #if (target.threaded)
-import openlife.data.map.MapData;
 import haxe.ds.Vector;
+import haxe.io.Bytes;
 import openlife.data.FractalNoise;
+import openlife.data.map.MapData;
 import openlife.data.object.ObjectData;
 import openlife.server.Biome;
-import haxe.io.Bytes;
 
 class WorldMap {
 	public var mutex = new Mutex();
@@ -238,11 +238,17 @@ class WorldMap {
 	}
 
 	public function getBiomeSpeed(x:Int, y:Int):Float {
-		var biomeType = biomes[index(x, y)];
+		var floor = WorldMap.world.getFloorId(x, y);
+		var biome = biomes[index(x, y)];
 
 		// trace('${ x },${ y }:BI ${ biomeType }');
 
-		return switch biomeType {
+		if(floor == 485 || floor ==  884 || floor ==  898)
+		{
+			if(biome == BiomeTag.OCEAN || biome == BiomeTag.PASSABLERIVER || biome == BiomeTag.RIVER) return 1;
+		}
+
+		return switch biome {
 			case GREEN: SGREEN;
 			case SWAMP: SSWAMP;
 			case YELLOW: SYELLOW;
@@ -260,6 +266,15 @@ class WorldMap {
 	}
 
 	public static function isBiomeBlocking(x:Int, y:Int):Bool {
+		var floor = WorldMap.world.getFloorId(x, y);
+		var biome = WorldMap.world.getBiomeId(x, y);
+		
+		// 485 Wooden Floor / 884 Stone Floor / 898 Ancient Stone Floor
+		if(floor == 485 || floor ==  884 || floor ==  898)
+		{
+			if(biome == BiomeTag.OCEAN || biome == BiomeTag.PASSABLERIVER || biome == BiomeTag.RIVER) return false;
+		}
+
 		var biomeSpeed = Server.server.map.getBiomeSpeed(x, y);
 
 		return biomeSpeed < 0.1;
@@ -712,7 +727,7 @@ class WorldMap {
 
 		this.biomes = readMapBiomes(dir + ServerSettings.CurrentBiomesFileName + saveDataNumber + ".bin");
 
-		this.floors = readMapBiomes(dir + ServerSettings.CurrentFloorsFileName + saveDataNumber + ".bin");
+		this.floors = readMapFloors(dir + ServerSettings.CurrentFloorsFileName + saveDataNumber + ".bin");
 
 		this.objects = readMapObjects(dir + ServerSettings.CurrentObjectsFileName + saveDataNumber + ".bin");
 
