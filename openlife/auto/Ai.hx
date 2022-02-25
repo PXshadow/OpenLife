@@ -19,7 +19,7 @@ import sys.thread.Thread;
 using StringTools;
 using openlife.auto.AiHelper;
 
-class Ai {
+class Ai implements AiBase {
 	public static var lastTick:Float = 0;
 	public static var tick:Float = 0;
 
@@ -186,7 +186,8 @@ class Ai {
 		var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer);
 
 		Macro.exception(if (didNotReachFood < 5) if (escape(animal, deadlyPlayer)) return);
-		Macro.exception(if (didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat());
+		//Macro.exception(if (didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat());
+		Macro.exception(checkIsHungryAndEat());
 		Macro.exception(if (isChildAndHasMother()) {
 			if (isMovingToPlayer(10)) return;
 		});
@@ -297,6 +298,8 @@ class Ai {
 
 	public function searchFoodAndEat() {
 		foodTarget = AiHelper.SearchBestFood(myPlayer);
+		if (ServerSettings.DebugAi && foodTarget != null) trace('AAI: ${myPlayer.name + myPlayer.id} new Foodtarget! ${foodTarget.name}');
+		if (ServerSettings.DebugAi && foodTarget == null) trace('AAI: ${myPlayer.name + myPlayer.id} no new Foodtarget!!!');
 	}
 
 	public function dropHeldObject(dropOnStart:Bool = false) {
@@ -1265,7 +1268,7 @@ class Ai {
 		if (distance > 1) {
 			var done = myPlayer.gotoObj(foodTarget);
 
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto food target $done');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto food target: dist: $distance $done');
 
 			if (done == false) foodTarget = null; // search another one
 
@@ -1291,7 +1294,7 @@ class Ai {
 
 		// x,y is relativ to birth position, since this is the center of the universe for a player
 		var done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} pickup food: $done');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} pickup food: ${foodTarget.name} $done');
 
 		if (done == false) {
 			if (ServerSettings.DebugAi) trace('AI: food Use failed! Ignore ${foodTarget.tx} ${foodTarget.ty} ');
@@ -1336,7 +1339,7 @@ class Ai {
 		if (isHungry) {
 			isHungry = player.food_store < player.food_store_max * 0.85;
 		} else {
-			isHungry = player.food_store < Math.min(3, player.food_store_max * 0.4);
+			isHungry = player.food_store < Math.max(3, player.food_store_max * 0.3);
 		}
 
 		if (isHungry && foodTarget == null) searchFoodAndEat();
@@ -1344,7 +1347,7 @@ class Ai {
 		if (isHungry) myPlayer.say('F ${Math.round(myPlayer.getPlayerInstance().food_store)}'); // TODO for debugging
 		if (isHungry && myPlayer.age < ServerSettings.MaxChildAgeForBreastFeeding) myPlayer.say('F');
 
-		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');
+		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');
 
 		return isHungry;
 	}

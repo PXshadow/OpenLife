@@ -19,7 +19,7 @@ import sys.thread.Thread;
 using StringTools;
 using openlife.auto.AiHelper;
 
-class AiPx extends AiBase {
+class AiPx implements AiBase {
 	public static var lastTick:Float = 0;
 	public static var tick:Float = 0;
 

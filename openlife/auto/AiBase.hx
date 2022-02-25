@@ -1,13 +1,7 @@
 package openlife.auto;
 
 
-class AiBase
+interface AiBase
 {
-	public var myPlayer:PlayerInterface;
-
-    public function new(player:PlayerInterface) {
-		this.myPlayer = player;
-	}
-
-    public function finishedMovement();
+    public function finishedMovement() : Void;
 }
