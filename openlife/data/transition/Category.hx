@@ -38,8 +38,7 @@ class Category {
 	private function processObject(line:String) {
 		var parts = line.split(" ");
 		ids.push(Std.parseInt(parts[0]));
-		if (probSet)
-			weights.push(Std.parseFloat(parts[1]));
+		if (probSet) weights.push(Std.parseFloat(parts[1]));
 	}
 
 	public function toString():String {

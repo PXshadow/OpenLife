@@ -51,8 +51,7 @@ class MapChange {
 		y = Std.parseInt(array[1]);
 		floor = Std.parseInt(array[2]);
 		id = MapData.id(array[3]);
-		if (id.length == 0)
-			id = [0];
+		if (id.length == 0) id = [0];
 		pid = Std.parseInt(array[4]);
 		// optional speed
 		if (array.length > 5) {

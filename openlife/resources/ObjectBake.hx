@@ -39,8 +39,7 @@ class ObjectBake {
 			}
 		}
 		list.sort(function(a:Int, b:Int) {
-			if (a > b)
-				return 1;
+			if (a > b) return 1;
 			return -1;
 		});
 		if (sys.FileSystem.exists(Engine.dir + "bake.res")) {
@@ -70,8 +69,7 @@ class ObjectBake {
 
 	public static function dummy(obj:ObjectData) {
 		var array = dummies.get(obj.dummyParent.id);
-		if (array == null)
-			array = [];
+		if (array == null) array = [];
 		array.push(obj.id);
 		dummies.set(obj.dummyParent.id, array);
 		dummiesMap.set(obj.id, obj.dummyParent.id);

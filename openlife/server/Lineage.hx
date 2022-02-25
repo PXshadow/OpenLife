@@ -105,8 +105,7 @@ class Lineage {
 
 		writer.close();
 
-		if (ServerSettings.DebugWrite)
-			trace('wrote $count Lineages...');
+		if (ServerSettings.DebugWrite) trace('wrote $count Lineages...');
 	}
 
 	/*public static function ReadNewLineages(path:String)
@@ -185,8 +184,7 @@ class Lineage {
 	}
 
 	public function new(player:GlobalPlayerInstance) {
-		if (player == null)
-			return;
+		if (player == null) return;
 
 		this.birthTime = TimeHelper.tick;
 		this.myId = player.p_id;
@@ -206,8 +204,7 @@ class Lineage {
 		// var fullName = ignoreFirstName ? '${this.familyName} ${this.className}' : '${this.name} ${this.familyName} ${this.className}';
 		var fullName = ignoreFirstName ? '${this.name} ${this.familyName} ${this.className}' : '${this.name} ${this.familyName} ${this.className}';
 
-		if (withUnderscore)
-			return StringTools.replace(fullName, ' ', '_');
+		if (withUnderscore) return StringTools.replace(fullName, ' ', '_');
 
 		return fullName;
 	}
@@ -283,17 +280,14 @@ class Lineage {
 	public function createLineageString(withMe:Bool = true):String {
 		var lineageString = withMe ? '$myId' : '';
 
-		if (myId == myEveId)
-			return lineageString;
+		if (myId == myEveId) return lineageString;
 
 		var tmpMotherLineage = this.getMotherLineage();
 		var addedEve = false;
 
 		for (ii in 0...10) {
-			if (tmpMotherLineage == null)
-				break;
-			if (lineageString.length > 0)
-				lineageString += ' ';
+			if (tmpMotherLineage == null) break;
+			if (lineageString.length > 0) lineageString += ' ';
 			lineageString += '${tmpMotherLineage.myId}';
 
 			if (tmpMotherLineage.myId == myEveId) {
@@ -318,8 +312,7 @@ class Lineage {
 
 	public function get_grave() {
 		for (grave in account.graves) {
-			if (grave.getCreatorId() == myId)
-				return grave;
+			if (grave.getCreatorId() == myId) return grave;
 		}
 
 		return null;

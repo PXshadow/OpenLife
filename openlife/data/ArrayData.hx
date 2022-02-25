@@ -43,8 +43,7 @@ package openlife.data;
 	public function shiftX(x:Int, value:T) {
 		if (x < dx) {
 			for (j in 0...array.length) {
-				if (array[j] == null)
-					array[j] = [];
+				if (array[j] == null) array[j] = [];
 				for (i in 0...dx - x) {
 					array[j].unshift(null);
 				}
@@ -57,8 +56,7 @@ package openlife.data;
 		shiftY(y);
 		shiftX(x, value);
 		// set value
-		if (array[y - dy] == null)
-			array[y - dy] = [];
+		if (array[y - dy] == null) array[y - dy] = [];
 		array[y - dy][x - dx] = value;
 	}
 }

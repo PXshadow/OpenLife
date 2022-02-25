@@ -8,8 +8,7 @@ class Say {
 
 	public static function any(text:String, list:Array<String>):Bool {
 		for (sub in list) {
-			if (has(text, sub))
-				return true;
+			if (has(text, sub)) return true;
 		}
 		return false;
 	}

@@ -31,8 +31,7 @@ class Transition {
 		importer.importCategories();
 		catMap = new Map<Int, Array<Int>>();
 		for (cat in importer.categories) {
-			if (cat.pattern)
-				continue;
+			if (cat.pattern) continue;
 			cat.ids.sort(function(a:Int, b:Int) {
 				return a > b ? 1 : -1;
 			});
@@ -43,10 +42,8 @@ class Transition {
 		importer.importTransitions();
 		transMap = new Map<Int, Array<NodeData>>();
 		for (trans in importer.transitions) {
-			if (trans.actorID != trans.newActorID)
-				add(trans.newActorID, trans);
-			if (trans.targetID != trans.newTargetID)
-				add(trans.newTargetID, trans);
+			if (trans.actorID != trans.newActorID) add(trans.newActorID, trans);
+			if (trans.targetID != trans.newTargetID) add(trans.newTargetID, trans);
 		}
 		while (true) {
 			trace("id:");
@@ -78,22 +75,16 @@ class Transition {
 
 	private inline function add(id:Int, trans:TransitionData) {
 		if (transMap.exists(trans.targetID)
-			&& (transMap.get(trans.targetID)[0].target[0] == id || transMap.get(trans.targetID)[0].actor[0] == id))
-			return;
+			&& (transMap.get(trans.targetID)[0].target[0] == id || transMap.get(trans.targetID)[0].actor[0] == id)) return;
 		if (transMap.exists(trans.actorID)
-			&& (transMap.get(trans.actorID)[0].actor[0] == id || transMap.get(trans.actorID)[0].target[0] == id))
-			return;
-		if (blacklisted.indexOf(id) != -1)
-			return;
+			&& (transMap.get(trans.actorID)[0].actor[0] == id || transMap.get(trans.actorID)[0].target[0] == id)) return;
+		if (blacklisted.indexOf(id) != -1) return;
 		// limit only objects
-		if (id <= 0)
-			return;
+		if (id <= 0) return;
 		// go through all add add potential list of objects in formula
 		for (id in get(id)) {
-			if (id == trans.targetID || id == trans.actorID)
-				continue;
-			if (!transMap.exists(id))
-				transMap.set(id, []);
+			if (id == trans.targetID || id == trans.actorID) continue;
+			if (!transMap.exists(id)) transMap.set(id, []);
 			var array = transMap.get(id);
 			var a = get(trans.actorID);
 			var b = get(trans.targetID);
@@ -125,10 +116,8 @@ class Transition {
 
 	private inline function sort(nodes:Array<NodeData>) {
 		nodes.sort(function(a:NodeData, b:NodeData) {
-			if (a.tool && !b.tool)
-				return 1;
-			if (!a.tool && b.tool)
-				return -1;
+			if (a.tool && !b.tool) return 1;
+			if (!a.tool && b.tool) return -1;
 			return (a.actor[0] + a.target[0]) >= (b.actor[0] + b.target[0]) ? 1 : -1;
 		});
 	}

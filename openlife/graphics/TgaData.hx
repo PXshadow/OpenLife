@@ -25,8 +25,7 @@ class TgaData {
 	public function read(bytes:Bytes, extractBool:Bool = true) {
 		r = new Reader(new BytesInput(bytes, 0, bytes.length));
 		this.data = r.read();
-		if (extractBool)
-			extract();
+		if (extractBool) extract();
 	}
 
 	public function extract() {
@@ -61,14 +60,10 @@ class TgaData {
 		var minY:Int = getTop(0, data.header.width, 0, Std.int(data.header.height / 2)) - padding;
 		var maxY:Int = getBottom(0, data.header.width, 0, data.header.height) + padding;
 		// if padding is to much
-		if (minX < 0)
-			minX = 0;
-		if (minY < 0)
-			minY = 0;
-		if (maxX > data.header.width)
-			maxX = data.header.width;
-		if (maxY > data.header.height)
-			maxY = data.header.height;
+		if (minX < 0) minX = 0;
+		if (minY < 0) minY = 0;
+		if (maxX > data.header.width) maxX = data.header.width;
+		if (maxY > data.header.height) maxY = data.header.height;
 		// create vector of image pixels
 		var vector = new Vector<Int>((maxX - minX) * (maxY - minY));
 		var index:Int = 0;

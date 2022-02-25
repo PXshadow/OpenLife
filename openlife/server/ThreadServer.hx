@@ -71,8 +71,7 @@ class ThreadServer {
 				}
 			}
 
-			if (message.length == 0)
-				continue;
+			if (message.length == 0) continue;
 
 			if (ServerSettings.debug) {
 				server.process(connection, message);

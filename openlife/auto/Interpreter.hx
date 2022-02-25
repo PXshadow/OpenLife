@@ -49,8 +49,7 @@ class Interpreter {
 			return -1;
 	}*/
 	private inline function removePlural(string:String):String {
-		if (string.substring(string.length - 1, string.length) == "s")
-			string = string.substring(0, string.length - 1);
+		if (string.substring(string.length - 1, string.length) == "s") string = string.substring(0, string.length - 1);
 		return string;
 	}
 }

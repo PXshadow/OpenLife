@@ -36,8 +36,7 @@ class Server {
 	public static function main() {
 		Sys.println("Starting OpenLife Server" #if debug + " in debug mode" #end);
 
-		if (ServerSettings.debug)
-			trace('Debug Mode: ${ServerSettings.debug}');
+		if (ServerSettings.debug) trace('Debug Mode: ${ServerSettings.debug}');
 
 		server = new Server();
 
@@ -62,8 +61,7 @@ class Server {
 			var dir = './${ServerSettings.SaveDirectory}/';
 			var path = dir + "ServerSettings.txt";
 
-			if (FileSystem.exists(path) == false)
-				ServerSettings.writeToFile();
+			if (FileSystem.exists(path) == false) ServerSettings.writeToFile();
 		}
 
 		if (ServerSettings.dumpOutput) {
@@ -97,8 +95,7 @@ class Server {
 		// prevent any blocking object on global starting position // TODO change
 		var startObj = map.getObjectHelper(ServerSettings.startingGx, ServerSettings.startingGy, false);
 		if (startObj != null) {
-			if (startObj.blocksWalking())
-				map.setObjectId(ServerSettings.startingGx, ServerSettings.startingGy, [0]);
+			if (startObj.blocksWalking()) map.setObjectId(ServerSettings.startingGx, ServerSettings.startingGy, [0]);
 		}
 
 		NamingHelper.ReadNames();
@@ -113,28 +110,23 @@ class Server {
 	public function process(connection:Connection, string:String) {
 		// Sys.println(string); //log messages
 		var index = string.indexOf(" ");
-		if (index == -1)
-			return;
+		if (index == -1) return;
 		var tag = string.substring(0, index);
 		string = string.substring(index + 1);
 		var array = string.split(" ");
-		if (array.length == 0)
-			return;
+		if (array.length == 0) return;
 
 		var input = new Array<String>();
 
 		for (s in array) {
-			if (s.length > 0)
-				input.push(s);
+			if (s.length > 0) input.push(s);
 		}
 
-		if (ServerSettings.useOneGlobalMutex)
-			WorldMap.world.mutex.acquire();
+		if (ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.acquire();
 
 		Macro.exception(message(connection, tag, input, string));
 
-		if (ServerSettings.useOneGlobalMutex)
-			WorldMap.world.mutex.release();
+		if (ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.release();
 	}
 
 	/**
@@ -170,8 +162,7 @@ class Server {
 		FLIP x y#
 	**/
 	private function message(connection:Connection, tag:ServerTag, input:Array<String>, string:String) {
-		if (ServerSettings.DebugIncomingCommands)
-			trace('TAG: $tag $input');
+		if (ServerSettings.DebugIncomingCommands) trace('TAG: $tag $input');
 
 		switch (tag) {
 			case LOGIN: // A normal login is treated same as a reconnect

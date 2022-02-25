@@ -5,8 +5,7 @@ import haxe.io.Path;
 
 function main() {
 	trace("start generation");
-	if (!FileSystem.exists("./docs"))
-		Sys.command("git clone https://github.com/PXshadow/OpenLife-Docs docs");
+	if (!FileSystem.exists("./docs")) Sys.command("git clone https://github.com/PXshadow/OpenLife-Docs docs");
 	// docs
 	var exclude:Array<String> = [
 		// haxe

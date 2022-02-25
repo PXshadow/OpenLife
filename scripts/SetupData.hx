@@ -14,8 +14,7 @@ class SetupData {
 	var index:Null<Int>;
 
 	public function new() {
-		if (index == null || index < 0 || index > users.length - 1)
-			index = 0;
+		if (index == null || index < 0 || index > users.length - 1) index = 0;
 		var cwd = Sys.getCwd();
 		// linux is folder name case senetive
 		if (!FileSystem.exists("OneLifeData7")) {

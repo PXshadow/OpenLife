@@ -7,8 +7,7 @@ import sys.io.File;
 
 class OpenLifeData {
 	public static function getData():OpenLifeDataType {
-		if (!FileSystem.exists("data.json"))
-			return getDefault();
+		if (!FileSystem.exists("data.json")) return getDefault();
 		var data:OpenLifeDataType = cast Json.parse(File.getContent("data.json"));
 		return data;
 	}

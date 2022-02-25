@@ -24,8 +24,7 @@ class Resource {
 
 	public static function music(id:Int):Bytes {
 		var ids = Std.string(id);
-		if (ids.length == 1)
-			ids = '0$ids';
+		if (ids.length == 1) ids = '0$ids';
 		return bytes('music/music_$ids.ogg');
 	}
 
@@ -67,14 +66,12 @@ class Resource {
 	public static var recBytes:String->Bytes = null;
 
 	public static function content(path:String):String {
-		if (recContent != null)
-			return recContent(path);
+		if (recContent != null) return recContent(path);
 		return sys.io.File.getContent('${Engine.dir}/$path');
 	}
 
 	public static function bytes(path:String):Bytes {
-		if (recBytes != null)
-			return recBytes(path);
+		if (recBytes != null) return recBytes(path);
 		return sys.io.File.getBytes('${Engine.dir}/$path');
 	}
 }

@@ -37,8 +37,7 @@ class PlayerAccount {
 
 	public static function GetOrCreatePlayerAccount(email:String, account_key_hash:String, id:Int = 0):PlayerAccount {
 		var account = AllPlayerAccountsByEmail[email];
-		if (account != null)
-			return account;
+		if (account != null) return account;
 
 		account = new PlayerAccount();
 		account.id = id > 0 ? id : AccountIdIndex++;
@@ -127,8 +126,7 @@ class PlayerAccount {
 
 	public function get_totalScore() {
 		var total = (maleScore + femaleScore) / 2;
-		if (this.isAi)
-			total *= ServerSettings.AiTotalScoreFactor;
+		if (this.isAi) total *= ServerSettings.AiTotalScoreFactor;
 		total = Math.floor(total);
 		return total;
 	}
@@ -141,9 +139,7 @@ class PlayerAccount {
 
 		account.score = account.score * (1 - factor) + score * factor;
 
-		if (player.isFemale())
-			account.femaleScore = account.femaleScore * (1 - factor) + score * factor;
-		else
+		if (player.isFemale()) account.femaleScore = account.femaleScore * (1 - factor) + score * factor; else
 			account.maleScore = account.maleScore * (1 - factor) + score * factor;
 
 		account.score = Math.round(account.score * 100) / 100;
@@ -155,8 +151,7 @@ class PlayerAccount {
 
 	public function removeDeletedGraves() {
 		for (grave in graves) {
-			if (grave.id == 0)
-				graves.remove(grave);
+			if (grave.id == 0) graves.remove(grave);
 		}
 	}
 
@@ -164,8 +159,7 @@ class PlayerAccount {
 		var account:PlayerAccount = this;
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
-			if (p.deleted)
-				continue;
+			if (p.deleted) continue;
 			if (account == p.account) {
 				return p;
 			}
@@ -186,8 +180,7 @@ class PlayerAccount {
 		playerAccount.removeDeletedGraves();
 
 		for (grave in playerAccount.graves) {
-			if (grave.isBoneGrave() == false)
-				continue;
+			if (grave.isBoneGrave() == false) continue;
 
 			var dist = AiHelper.CalculateDistance(tx, ty, grave.tx, grave.ty);
 			var tmpFitness = Math.pow(ServerSettings.GraveBlockingDistance, 2) / (1 + dist);
@@ -212,8 +205,7 @@ class PlayerAccount {
 		playerAccount.removeDeletedGraves();
 
 		for (grave in playerAccount.graves) {
-			if (grave.isGraveWithGraveStone() == false)
-				continue;
+			if (grave.isGraveWithGraveStone() == false) continue;
 
 			var dist = AiHelper.CalculateDistance(tx, ty, grave.tx, grave.ty);
 			var tmpFitness = Math.pow(ServerSettings.GraveBlockingDistance, 2) / (1 + dist);

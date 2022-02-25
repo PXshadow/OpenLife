@@ -97,14 +97,10 @@ class MoveHelper {
 		var hasBothShoes = p.hasBothShoes();
 		var isOnBoat = p.heldObject.objectData.isBoat;
 
-		if (ServerSettings.AutoFollowAi && p.isHuman())
-			return 2 * speed;
-		if (ServerSettings.DebugSpeed)
-			trace('speed: hasBothShoes: $hasBothShoes');
-		if (hasBothShoes && onHorseOrCar == false)
-			speed *= 1.1;
-		if (fullPathHasRoad == false)
-			floorSpeed = 1; // only consider road if the full path is on road
+		if (ServerSettings.AutoFollowAi && p.isHuman()) return 2 * speed;
+		if (ServerSettings.DebugSpeed) trace('speed: hasBothShoes: $hasBothShoes');
+		if (hasBothShoes && onHorseOrCar == false) speed *= 1.1;
+		if (fullPathHasRoad == false) floorSpeed = 1; // only consider road if the full path is on road
 
 		onRoad = floorSpeed >= 1.01; // only give road speed boni if full path is on road
 
@@ -115,8 +111,7 @@ class MoveHelper {
 		var biomeSpeed = map.getBiomeSpeed(tx, ty);
 
 		// road reduces speed mali of bad biome
-		if ((onRoad || isOnBoat) && biomeSpeed < 0.99)
-			biomeSpeed = 1; // biomeSpeed = Math.sqrt(biomeSpeed);
+		if ((onRoad || isOnBoat) && biomeSpeed < 0.99) biomeSpeed = 1; // biomeSpeed = Math.sqrt(biomeSpeed);
 
 		speed *= biomeSpeed;
 
@@ -125,24 +120,19 @@ class MoveHelper {
 
 		if (biomeSpeed < 0.999 && speedModHeldObj > 1) // horses and cars are bad in bad biome
 		{
-			if (speedModHeldObj > 2.50)
-				speedModHeldObj = 0.8; // super speedy stuff like cars
-			else if (speedModHeldObj > 1.8)
-				speedModHeldObj = 0.9; // for example horse
-			else if (speedModHeldObj > 1.2)
-				speedModHeldObj = 0.8; // for example horse cart
+			if (speedModHeldObj > 2.50) speedModHeldObj = 0.8; // super speedy stuff like cars
+			else if (speedModHeldObj > 1.8) speedModHeldObj = 0.9; // for example horse
+			else if (speedModHeldObj > 1.2) speedModHeldObj = 0.8; // for example horse cart
 
 			if (ServerSettings.DebugSpeed)
 				trace('Speed: New ${p.heldObject.objectData.description} speed in bad biome: ${p.heldObject.objectData.speedMult} --> $speedModHeldObj');
 		}
 
-		if (onRoad && speedModHeldObj < 0.99)
-			speedModHeldObj = Math.sqrt(speedModHeldObj); // on road
+		if (onRoad && speedModHeldObj < 0.99) speedModHeldObj = Math.sqrt(speedModHeldObj); // on road
 		speed *= speedModHeldObj;
 
 		// Do speed hidden wound
-		if (p.hiddenWound != null && p.hiddenWound != p.heldObject)
-			speed *= p.hiddenWound.objectData.speedMult;
+		if (p.hiddenWound != null && p.hiddenWound != p.heldObject) speed *= p.hiddenWound.objectData.speedMult;
 
 		// make cars to boats
 		if (isOnBoat && WorldMap.world.isWater(tx, ty) == false) {
@@ -158,10 +148,8 @@ class MoveHelper {
 			containedObjSpeedMult *= calculateObjSpeedMult(obj);
 		}
 
-		if (hasBothShoes)
-			containedObjSpeedMult = Math.sqrt(containedObjSpeedMult);
-		if (ServerSettings.DebugSpeed)
-			trace('speed: backpack: containedObjSpeedMult: $containedObjSpeedMult');
+		if (hasBothShoes) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult);
+		if (ServerSettings.DebugSpeed) trace('speed: backpack: containedObjSpeedMult: $containedObjSpeedMult');
 
 		for (obj in p.heldObject.containedObjects) {
 			containedObjSpeedMult *= calculateObjSpeedMult(obj);
@@ -171,17 +159,13 @@ class MoveHelper {
 			}
 		}
 
-		if (biomeSpeed < 0.9 && onRoad == false)
-			containedObjSpeedMult *= containedObjSpeedMult; // in bad biome and off road double mali
+		if (biomeSpeed < 0.9 && onRoad == false) containedObjSpeedMult *= containedObjSpeedMult; // in bad biome and off road double mali
 
-		if (onRoad && containedObjSpeedMult < 0.99)
-			containedObjSpeedMult = Math.sqrt(containedObjSpeedMult); // on road
+		if (onRoad && containedObjSpeedMult < 0.99) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult); // on road
 
-		if (onHorseOrCar && containedObjSpeedMult < 0.99)
-			containedObjSpeedMult = Math.sqrt(containedObjSpeedMult); // on horse / in car // TODO or strong
+		if (onHorseOrCar && containedObjSpeedMult < 0.99) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult); // on horse / in car // TODO or strong
 
-		if (containedObjSpeedMult < 1 && ServerSettings.DebugSpeed)
-			trace('Speed: containedObjSpeedMult ${containedObjSpeedMult}');
+		if (containedObjSpeedMult < 1 && ServerSettings.DebugSpeed) trace('Speed: containedObjSpeedMult ${containedObjSpeedMult}');
 
 		speed *= containedObjSpeedMult;
 
@@ -192,15 +176,12 @@ class MoveHelper {
 		// between 1/2 and 1 if currenHitpoints <= fullHitpoints
 		speed *= (currenHitpoints + fullHitpoints) / (fullHitpoints + fullHitpoints);
 
-		if (ServerSettings.DebugSpeed)
-			trace('SPEED: $speed currenHitpoints: $currenHitpoints fullHitpoints: $fullHitpoints');
+		if (ServerSettings.DebugSpeed) trace('SPEED: $speed currenHitpoints: $currenHitpoints fullHitpoints: $fullHitpoints');
 
 		// Do temperature speed
 		var temperatureSpeedImpact = ServerSettings.TemperatureSpeedImpact;
-		if (p.isSuperHot())
-			speed *= p.heat > 0.98 ? Math.pow(temperatureSpeedImpact, 2) : temperatureSpeedImpact;
-		else if (p.isSuperCold())
-			speed *= p.heat < 0.02 ? Math.pow(temperatureSpeedImpact, 2) : temperatureSpeedImpact;
+		if (p.isSuperHot()) speed *= p.heat > 0.98 ? Math.pow(temperatureSpeedImpact,
+			2) : temperatureSpeedImpact; else if (p.isSuperCold()) speed *= p.heat < 0.02 ? Math.pow(temperatureSpeedImpact, 2) : temperatureSpeedImpact;
 
 		if (p.account.hasCloseBlockingGrave(p.tx, p.ty)) {
 			if (p.isCursed == false) {
@@ -346,8 +327,7 @@ class MoveHelper {
 
 			Connection.SendUpdateToAllClosePlayers(p);
 
-			if (p.connection.serverAi != null)
-				p.connection.serverAi.finishedMovement();
+			if (p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
 
 			// if(ServerSettings.DebugMoveHelper) trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
 		}
@@ -399,26 +379,20 @@ class MoveHelper {
 		var tx = player.tx;
 		var ty = player.ty;
 
-		if (player.isBlocked(tx, ty) == false)
-			return false;
+		if (player.isBlocked(tx, ty) == false) return false;
 
 		for (i in 1...5) {
 			var xo = 0;
 			var yo = 0;
 
-			if (rand == 1)
-				xo = 1;
-			if (rand == 2)
-				yo = -1;
-			if (rand == 3)
-				xo = -1;
-			if (rand == 4)
-				yo = 1;
+			if (rand == 1) xo = 1;
+			if (rand == 2) yo = -1;
+			if (rand == 3) xo = -1;
+			if (rand == 4) yo = 1;
 
 			rand++;
 
-			if (player.isBlocked(tx + xo, ty + yo))
-				continue;
+			if (player.isBlocked(tx + xo, ty + yo)) continue;
 
 			player.x += xo;
 			player.y += yo;
@@ -447,8 +421,7 @@ class MoveHelper {
 			return;
 		}
 
-		if (p.isHeld())
-			p.jump();
+		if (p.isHeld()) p.jump();
 
 		if (JumpToNonBlocked(p)) {
 			p.done_moving_seqNum = seq;
@@ -502,8 +475,7 @@ class MoveHelper {
 		// if passing in an biome with different speed only the first movement is kept
 		var newMovements = calculateNewMovements(p, moves);
 		if (newMovements.moves.length < 1) {
-			if (ServerSettings.DebugMoveHelper)
-				trace('${p.name} MOVE: FORCE!! Move cancled since no new movements!');
+			if (ServerSettings.DebugMoveHelper) trace('${p.name} MOVE: FORCE!! Move cancled since no new movements!');
 			cancleMovement(p, seq);
 			return;
 		}
@@ -540,8 +512,7 @@ class MoveHelper {
 	}
 
 	public static function cancleMovement(p:GlobalPlayerInstance, seq:Int) {
-		if (p.isHuman())
-			p.moveHelper.waitForForce = true; // ignore all moves untill client sends a force
+		if (p.isHuman()) p.moveHelper.waitForForce = true; // ignore all moves untill client sends a force
 
 		p.moveHelper.exactTx = p.tx;
 		p.moveHelper.exactTy = p.ty;
@@ -617,8 +588,7 @@ class MoveHelper {
 
 			if (newMovements.fullPathHasRoad) {
 				var floorObjData = ObjectData.getObjectData(map.getFloorId(tmpX, tmpY));
-				if (floorObjData.speedMult < 1.01)
-					newMovements.fullPathHasRoad = false;
+				if (floorObjData.speedMult < 1.01) newMovements.fullPathHasRoad = false;
 			}
 
 			newMovements.endSpeed = map.getBiomeSpeed(tmpX, tmpY);
@@ -639,8 +609,7 @@ class MoveHelper {
 				newMovements.length += calculateLength(lastPos, move);
 				newMovements.moves.push(move);
 
-				if (moves.length > 1)
-					newMovements.trunc = 1;
+				if (moves.length > 1) newMovements.trunc = 1;
 
 				newMovements.finalSpeed = calculateSpeed(p, p.tx, p.ty, newMovements.fullPathHasRoad);
 
@@ -674,16 +643,14 @@ class MoveHelper {
 			// if(ServerSettings.DebugMoveHelper) trace('length: $length movedLength: $movedLength speed: $speed timeSinceStartMovementInSec: $timeSinceStartMovementInSec'  );
 
 			// TODO make exact calculatation where the client thinks he is
-			if (length - thisStepLength / 2 > movedLength)
-				return lastPos;
+			if (length - thisStepLength / 2 > movedLength) return lastPos;
 			// if(length > movedLength) return lastPos;
 
 			lastPos = move;
 		}
 
 		// in this case the whole movement finished
-		if (ServerSettings.DebugMoveHelper)
-			trace("The whole movement finished");
+		if (ServerSettings.DebugMoveHelper) trace("The whole movement finished");
 		return lastPos;
 	}
 	/* pixel calulation stuff from Jason server.cpp

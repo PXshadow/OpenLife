@@ -9,12 +9,10 @@ class FileTools {
 		path = Path.addTrailingSlash(path);
 		newpath = Path.addTrailingSlash(newpath);
 		if (FileSystem.exists(path) && FileSystem.isDirectory(path)) {
-			if (!FileSystem.exists(newpath))
-				FileSystem.createDirectory(newpath);
+			if (!FileSystem.exists(newpath)) FileSystem.createDirectory(newpath);
 			var dir = FileSystem.readDirectory(path);
 			for (name in dir) {
-				if (name.substring(0, 1) == ".")
-					continue; // skip git
+				if (name.substring(0, 1) == ".") continue; // skip git
 
 				if (FileSystem.isDirectory(path + name)) {
 					FileSystem.createDirectory(newpath + name);

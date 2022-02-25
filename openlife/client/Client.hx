@@ -56,10 +56,8 @@ class Client {
 	#if sys
 	public function update() {
 		@:privateAccess haxe.MainLoop.tick(); // for timers
-		if (Timer.stamp() - aliveStamp >= 15)
-			alive();
-		if (!connected)
-			return;
+		if (Timer.stamp() - aliveStamp >= 15) alive();
+		if (!connected) return;
 		data = "";
 		if (relayIn != null) {
 			// relay system embeded into client update
@@ -67,15 +65,13 @@ class Client {
 				@:privateAccess var input = relayIn.input.readUntil("#".code);
 				send(input);
 			} catch (e) {
-				if (e.message != "Blocked")
-					close();
+				if (e.message != "Blocked") close();
 			}
 		}
 		try {
 			if (compressSize > 0) {
 				var temp = socket.input.read(compressSize - compressIndex);
-				if (compressInput(temp))
-					return;
+				if (compressInput(temp)) return;
 			} else {
 				data = socket.input.readUntil("#".code);
 			}
@@ -118,14 +114,12 @@ class Client {
 
 	function update(buffer:js.node.Buffer, addition:Bool = false) {
 		trace(buffer.toString());
-		if (!addition)
-			relayIn.write(buffer);
+		if (!addition) relayIn.write(buffer);
 		var index = 0;
 		if (compressSize > 0) {
 			var tmp = buffer.slice(0, compressSize - compressIndex);
 			inputData.push(tmp.slice(tmp.length));
-			if (compressInput(tmp.hxToBytes()))
-				return;
+			if (compressInput(tmp.hxToBytes())) return;
 			index = tmp.length;
 		} else {
 			index = buffer.indexOf("#");
@@ -142,8 +136,7 @@ class Client {
 		wasCompressed = false;
 		inputData = [];
 		buffer = buffer.slice(index);
-		if (buffer.length == 0)
-			return;
+		if (buffer.length == 0) return;
 		update(buffer, true);
 	}
 	#end
@@ -211,8 +204,7 @@ class Client {
 		#end
 		// normal client
 		var array = data.split("\n");
-		if (array.length == 0)
-			return;
+		if (array.length == 0) return;
 		tag = array[0];
 		message(tag, array.slice(1, array.length > 2 ? array.length - 1 : array.length));
 	}
@@ -244,16 +236,12 @@ class Client {
 				// trace("version " + version);
 				request();
 			case ACCEPTED:
-				if (accept != null)
-					accept();
-				if (onAccept != null)
-					onAccept();
+				if (accept != null) accept();
+				if (onAccept != null) onAccept();
 			case REJECTED:
 				trace("REJECTED LOGIN");
-				if (reject != null)
-					reject();
-				if (onReject != null)
-					onReject();
+				if (reject != null) reject();
+				if (onReject != null) onReject();
 			default:
 				trace('$tag not registered');
 			case null:
@@ -267,15 +255,13 @@ class Client {
 		var password = new Hmac(SHA1).make(Bytes.ofString("262f43f043031282c645d0eb352df723a3ddc88f"), Bytes.ofString(challenge)).toHex();
 		var accountKey = new Hmac(SHA1).make(Bytes.ofString(key), Bytes.ofString(challenge)).toHex();
 		var clientTag = " client_openlife";
-		if (config.legacy)
-			clientTag = "";
+		if (config.legacy) clientTag = "";
 		var requestString = (reconnect ? "R" : "") + 'LOGIN$clientTag $email $password $accountKey ${(config.tutorial ? 1 : 0)}';
 		send(requestString);
 	}
 
 	public function send(data:String) {
-		if (!connected)
-			return;
+		if (!connected) return;
 		#if nodejs
 		socket.write('$data#');
 		#else
@@ -321,20 +307,13 @@ class Client {
 			return;
 		}
 		this.reconnect = reconnect;
-		if (config.port == null)
-			config.port = 8005;
-		if (config.tutorial == null)
-			config.tutorial = false;
-		if (config.legacy == null)
-			config.legacy = false;
-		if (config.seed == null)
-			config.seed = "";
-		if (config.twin == null)
-			config.twin = "";
-		if (config.email == null)
-			config.email = "test@email.email";
-		if (config.key == null)
-			config.key = "8888-8888-8888-8888";
+		if (config.port == null) config.port = 8005;
+		if (config.tutorial == null) config.tutorial = false;
+		if (config.legacy == null) config.legacy = false;
+		if (config.seed == null) config.seed = "";
+		if (config.twin == null) config.twin = "";
+		if (config.email == null) config.email = "test@email.email";
+		if (config.key == null) config.key = "8888-8888-8888-8888";
 		trace("attempt connect " + config.ip + ":" + config.port);
 		connected = false;
 		var host:Host;
@@ -388,7 +367,6 @@ class Client {
 		#end
 		trace("socket disconnected");
 		connected = false;
-		if (onClose != null)
-			onClose();
+		if (onClose != null) onClose();
 	}
 }

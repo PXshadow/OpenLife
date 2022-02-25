@@ -59,15 +59,9 @@ class TransitionImporter {
 		var foods = ObjectData.foodObjects;
 
 		foods.sort(function(a, b) {
-			if (b.carftingSteps < 0)
-				return -1;
-			if (a.carftingSteps < 0)
-				return 1;
-			if (a.carftingSteps < b.carftingSteps)
-				return -1;
-			else if (a.carftingSteps > b.carftingSteps)
-				return 1;
-			else
+			if (b.carftingSteps < 0) return -1;
+			if (a.carftingSteps < 0) return 1;
+			if (a.carftingSteps < b.carftingSteps) return -1; else if (a.carftingSteps > b.carftingSteps) return 1; else
 				return 0;
 		});
 
@@ -75,12 +69,9 @@ class TransitionImporter {
 		var notDone = 0;
 
 		for (food in ObjectData.foodObjects) {
-			if (ServerSettings.DebugCaftingStepsForObjOrFood)
-				trace('Food: steps: ${food.carftingSteps} id: ${food.id} ${food.description}');
+			if (ServerSettings.DebugCaftingStepsForObjOrFood) trace('Food: steps: ${food.carftingSteps} id: ${food.id} ${food.description}');
 
-			if (food.carftingSteps < 0)
-				notDone++;
-			else
+			if (food.carftingSteps < 0) notDone++; else
 				done++;
 		}
 
@@ -101,8 +92,7 @@ class TransitionImporter {
 		todo.push(obj);
 
 		for (obj in ObjectData.importedObjectData) {
-			if (obj.isNatural() == false)
-				continue;
+			if (obj.isNatural() == false) continue;
 
 			// trace('Natural: id: ${obj.id} ${obj.description}');
 
@@ -124,26 +114,22 @@ class TransitionImporter {
 
 			for (obj in todo) {
 				var transitionsByActor = allTransitionsByActorMap[obj.id];
-				if (transitionsByActor == null)
-					continue;
+				if (transitionsByActor == null) continue;
 
 				for (trans in transitionsByActor) {
 					var target = ObjectData.getObjectData(trans.targetID);
-					if (target.carftingSteps < 0)
-						continue;
+					if (target.carftingSteps < 0) continue;
 					calculateCraftingStepsHelper(todo2, obj, trans, steps);
 				}
 			}
 
 			for (obj in todo) {
 				var transitionsByTarget = allTransitionsByTargetMap[obj.id];
-				if (transitionsByTarget == null)
-					continue;
+				if (transitionsByTarget == null) continue;
 
 				for (trans in transitionsByTarget) {
 					var actor = ObjectData.getObjectData(trans.actorID);
-					if (actor.carftingSteps < 0)
-						continue;
+					if (actor.carftingSteps < 0) continue;
 					calculateCraftingStepsHelper(todo2, obj, trans, steps);
 				}
 			}
@@ -155,12 +141,9 @@ class TransitionImporter {
 		var notDone = 0;
 
 		for (obj in ObjectData.importedObjectData) {
-			if (ServerSettings.DebugCaftingStepsForObjOrFood)
-				trace('Obj: steps: ${obj.carftingSteps} id: ${obj.id} ${obj.description}');
+			if (ServerSettings.DebugCaftingStepsForObjOrFood) trace('Obj: steps: ${obj.carftingSteps} id: ${obj.id} ${obj.description}');
 
-			if (obj.carftingSteps < 0)
-				notDone++;
-			else
+			if (obj.carftingSteps < 0) notDone++; else
 				done++;
 		}
 
@@ -172,8 +155,7 @@ class TransitionImporter {
 		AddObject(newTodo, obj, trans.newTargetID, steps);
 
 		var newTargetCategory = getCategory(trans.newTargetID);
-		if (newTargetCategory == null || newTargetCategory.probSet == false)
-			return;
+		if (newTargetCategory == null || newTargetCategory.probSet == false) return;
 
 		// time transitions with other endings like Blooming Squash Plant // Ripe Pumpkin Plant
 		// like 3221 Perhaps a Pumpkin
@@ -185,8 +167,7 @@ class TransitionImporter {
 
 	private static function AddObject(objects:Array<ObjectData>, from:ObjectData, objId:Int, steps:Int) {
 		var newObj = ObjectData.getObjectData(objId);
-		if (newObj.carftingSteps >= 0)
-			return;
+		if (newObj.carftingSteps >= 0) return;
 
 		newObj.carftingSteps = steps;
 		objects.push(newObj);
@@ -236,8 +217,7 @@ class TransitionImporter {
 	}
 
 	public function importTransitions() {
-		if (categories.length == 0)
-			importCategories();
+		if (categories.length == 0) importCategories();
 
 		allTransitionsByActorMap = [];
 		allTransitionsByTargetMap = [];
@@ -265,8 +245,7 @@ class TransitionImporter {
 	}
 
 	private function getTransitionMap(lastUseActor:Bool, lastUseTarget:Bool, maxUseTarget:Bool = false):Map<Int, Map<Int, TransitionData>> {
-		if (maxUseTarget)
-			return maxUseTransitionsByActorIdTargetId;
+		if (maxUseTarget) return maxUseTransitionsByActorIdTargetId;
 
 		if (lastUseActor && lastUseTarget) {
 			return lastUseBothTransitionsByActorIdTargetId;
@@ -301,8 +280,7 @@ class TransitionImporter {
 		var transition = getTransition(actor.parentId, target.parentId, false, target.isLastUse());
 
 		// 58 + 139 // thread + skwer --> skewer does not seem to have a last use transtion, so if none found,
-		if (transition == null)
-			transition = getTransition(actor.parentId, target.parentId, false, false); // this might make errors...
+		if (transition == null) transition = getTransition(actor.parentId, target.parentId, false, false); // this might make errors...
 
 		return transition;
 	}
@@ -316,10 +294,8 @@ class TransitionImporter {
 		var objDataActor = ObjectData.getObjectData(actorId);
 		var objDataTarget = ObjectData.getObjectData(targetId);
 
-		if (objDataActor.dummyParent != null)
-			objDataActor = objDataActor.dummyParent;
-		if (objDataTarget.dummyParent != null)
-			objDataTarget = objDataTarget.dummyParent;
+		if (objDataActor.dummyParent != null) objDataActor = objDataActor.dummyParent;
+		if (objDataTarget.dummyParent != null) objDataTarget = objDataTarget.dummyParent;
 
 		// if(objDataActor.id != -1 && objDataTarget.id != -1) trace('getTransition: ${objDataActor.id} + ${objDataTarget.id} lastUseTarget: $lastUseTarget maxUseTarget: $maxUseTarget');
 
@@ -327,8 +303,7 @@ class TransitionImporter {
 
 		var transitionsByTargetId = transitionMap[objDataActor.id];
 
-		if (transitionsByTargetId == null)
-			return null;
+		if (transitionsByTargetId == null) return null;
 
 		return transitionsByTargetId[objDataTarget.id];
 	}
@@ -363,17 +338,14 @@ class TransitionImporter {
 		if (lastUseActor == false && lastUseTarget == false) {
 			// if transition is a reverse transition, it can be done also on lastUse Items so add Transaction for that
 			if (transition.lastUseActor == false && transition.reverseUseActor && transition.lastUseTarget == false && transition.reverseUseTarget)
-				addTransition("reverseUseActor & reverseUseTarget", transition, true, true);
-			else if (transition.lastUseActor == false && transition.reverseUseActor)
-				addTransition('$addedBy-reverseUseActor', transition, true, transition.lastUseTarget);
-			else if (transition.lastUseTarget == false && transition.reverseUseTarget)
+				addTransition("reverseUseActor & reverseUseTarget", transition, true,
+				true); else if (transition.lastUseActor == false && transition.reverseUseActor) addTransition('$addedBy-reverseUseActor', transition, true,
+				transition.lastUseTarget); else if (transition.lastUseTarget == false && transition.reverseUseTarget)
 				addTransition('$addedBy-reverseUseTarget', transition, transition.lastUseActor, true);
 		} else {
 			transition = transition.clone();
-			if (lastUseActor)
-				transition.lastUseActor = true;
-			if (lastUseTarget)
-				transition.lastUseTarget = true;
+			if (lastUseActor) transition.lastUseActor = true;
+			if (lastUseTarget) transition.lastUseTarget = true;
 		}
 
 		var transitionsByTargetId = getTransitionMapByTargetId(transition.actorID, transition.lastUseActor, transition.lastUseTarget);
@@ -510,8 +482,7 @@ class TransitionImporter {
 
 					var newTransition = transition.clone();
 					newTransition.actorID = id;
-					if (newTransition.newActorID == category.parentID)
-						newTransition.newActorID = id;
+					if (newTransition.newActorID == category.parentID) newTransition.newActorID = id;
 
 					addTransition('Actor Category: ${categoryDesc} Trans:', newTransition);
 				}
@@ -533,8 +504,7 @@ class TransitionImporter {
 						for (i in 0...targetCategory.ids.length) {
 							var newTransition = transition.clone();
 							newTransition.actorID = id;
-							if (newTransition.newActorID == category.parentID)
-								newTransition.newActorID = id;
+							if (newTransition.newActorID == category.parentID) newTransition.newActorID = id;
 							newTransition.targetID = targetCategory.ids[i];
 							newTransition.newTargetID = newTargetCategory.ids[i];
 
@@ -549,10 +519,8 @@ class TransitionImporter {
 							newTransition.actorID = id;
 							newTransition.targetID = targetId;
 
-							if (newTransition.newActorID == category.parentID)
-								newTransition.newActorID = id;
-							if (newTransition.newTargetID == targetCategory.parentID)
-								newTransition.newTargetID = targetId;
+							if (newTransition.newActorID == category.parentID) newTransition.newActorID = id;
+							if (newTransition.newTargetID == targetCategory.parentID) newTransition.newTargetID = targetId;
 
 							addTransition('Both Category: A: ${actorCategory.parentID} T: ${targetCategory.parentID}', newTransition);
 							// traceTransition(newTransition, 'bothActionAndTargetIsCategory: ');
@@ -566,8 +534,7 @@ class TransitionImporter {
 
 		// CONSIDER: <0> + <1422> = <778> + <0> / EMPTY + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + EMPTY
 		// DONE CONSIDER: <-1> + <1806> = <0> + <48> / TIME + Wet Maple Sapling (Pattern)-->  EMPTY + Maple Tree (NO Pattern WHY?????)
-		if ((targetCategory != null && targetCategory.pattern) && (newTargetCategory == null && newActorCategory == null))
-			return;
+		if ((targetCategory != null && targetCategory.pattern) && (newTargetCategory == null && newActorCategory == null)) return;
 
 		// possibilities:
 		// actor is pattern and target is pattern like: <0> + <1422> = <778> + <0> / EMPTY + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + EMPTY
@@ -601,8 +568,7 @@ class TransitionImporter {
 			// FIX: This is not a pattern: A: 2995 @ Shaky Fence Buster T: 2982 Shaky Property Fence# +horizontalC <2995> + <2982>
 			if (actorCategory != null && actorCategory.pattern == false)
 				targetCategory = null; // TODO loop over other category? But when, since Shaky Property Fence is an object and a total different category
-			if (targetCategory != null && targetCategory.pattern == false)
-				actorCategory = null; // TODO loop over other category?
+			if (targetCategory != null && targetCategory.pattern == false) actorCategory = null; // TODO loop over other category?
 
 			if (actorCategory != null && targetCategory != null && actorCategory.ids.length != targetCategory.ids.length) {
 				trace('WARNING: ${description}' + transition.getDesciption());
@@ -611,14 +577,10 @@ class TransitionImporter {
 
 			for (i in 0...length) {
 				var newTransition = transition.clone();
-				if (actorCategory != null)
-					newTransition.actorID = actorCategory.ids[i];
-				if (targetCategory != null)
-					newTransition.targetID = targetCategory.ids[i];
-				if (newActorCategory != null)
-					newTransition.newActorID = newActorCategory.ids[i];
-				if (newTargetCategory != null)
-					newTransition.newTargetID = newTargetCategory.ids[i];
+				if (actorCategory != null) newTransition.actorID = actorCategory.ids[i];
+				if (targetCategory != null) newTransition.targetID = targetCategory.ids[i];
+				if (newActorCategory != null) newTransition.newActorID = newActorCategory.ids[i];
+				if (newTargetCategory != null) newTransition.newTargetID = newTargetCategory.ids[i];
 
 				// if(actorCategory != null && actorCategory.parentID == 2995 ) trace('TTT12: ' + newTransition.getDesciption());
 				// newTransition.traceTransition('$description/', true);
@@ -628,8 +590,7 @@ class TransitionImporter {
 			return;
 		}
 
-		if (bothActorAndTargetIsCategory)
-			return;
+		if (bothActorAndTargetIsCategory) return;
 
 		// for transitions where actor is no category but target is a category
 		category = targetCategory;
@@ -641,8 +602,7 @@ class TransitionImporter {
 			for (id in category.ids) {
 				var newTransition = transition.clone();
 				newTransition.targetID = id;
-				if (newTransition.newTargetID == category.parentID)
-					newTransition.newTargetID = id;
+				if (newTransition.newTargetID == category.parentID) newTransition.newTargetID = id;
 
 				addTransition('Target Category ${categoryDesc}: ', newTransition);
 			}

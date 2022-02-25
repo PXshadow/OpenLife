@@ -58,20 +58,16 @@ class AiHelper {
 
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
-				if (ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty)
-					continue;
+				if (ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
 
 				// findClosestHeat == false / since its jused for player temerpature where it does not matter if blocked. Also otherwiese a mutex would be missing since isObjectNotReachable can be used from the AI at same time
-				if (ai != null && findClosestHeat == false && ai.isObjectNotReachable(tx, ty))
-					continue;
+				if (ai != null && findClosestHeat == false && ai.isObjectNotReachable(tx, ty)) continue;
 
 				var objData = world.getObjectDataAtPosition(tx, ty);
 
-				if (ownedByPlayer && objData.isOwned == false)
-					continue; // cannot have a owner
+				if (ownedByPlayer && objData.isOwned == false) continue; // cannot have a owner
 
-				if (findClosestHeat && objData.heatValue == 0)
-					continue;
+				if (findClosestHeat && objData.heatValue == 0) continue;
 
 				if (ownedByPlayer
 					|| findClosestHeat
@@ -79,8 +75,7 @@ class AiHelper {
 				{
 					var obj = world.getObjectHelper(tx, ty);
 
-					if (ownedByPlayer && obj.isOwnedByPlayer(playerInterface) == false)
-						continue;
+					if (ownedByPlayer && obj.isOwnedByPlayer(playerInterface) == false) continue;
 
 					var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
 
@@ -111,8 +106,7 @@ class AiHelper {
 		var objData = obj.objectData.dummyParent != null ? obj.objectData.dummyParent : obj.objectData;
 		var originalFoodValue = objData.foodFromTarget == null ? objData.foodValue : objData.foodFromTarget.foodValue;
 
-		if (ServerSettings.DebugAi)
-			trace('AI: ${obj.description} ${obj.id} numberOfUses: ${obj.numberOfUses} originalFoodValue: $originalFoodValue');
+		if (ServerSettings.DebugAi) trace('AI: ${obj.description} ${obj.id} numberOfUses: ${obj.numberOfUses} originalFoodValue: $originalFoodValue');
 
 		return originalFoodValue > 0;
 		// if(originalFoodValue < 0) return false;
@@ -133,23 +127,17 @@ class AiHelper {
 		var isStarving = player.food_store < 2;
 		var starvingFactor:Float = isStarving ? 4 : 25;
 
-		if (player.food_store < 0.5)
-			starvingFactor = 2;
-		if (player.food_store < -1)
-			starvingFactor = 1.2;
-		if (player.food_store < -1.5)
-			starvingFactor = 1.1;
+		if (player.food_store < 0.5) starvingFactor = 2;
+		if (player.food_store < -1) starvingFactor = 1.2;
+		if (player.food_store < -1.5) starvingFactor = 1.1;
 
 		for (ty in baseY - radius...baseY + radius) {
 			for (tx in baseX - radius...baseX + radius) {
 				var objData = world.getObjectDataAtPosition(tx, ty);
 
-				if (objData.id == 0)
-					continue;
-				if (objData.dummyParent != null)
-					objData = objData.dummyParent; // use parent objectdata
-				if (feedOther && objData.id == 837)
-					continue; // dont feed Psilocybe Mushroom to others
+				if (objData.id == 0) continue;
+				if (objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
+				if (feedOther && objData.id == 837) continue; // dont feed Psilocybe Mushroom to others
 
 				// var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
 				// trace('search food $tx, $ty: foodvalue: ${objData.foodValue} bestdistance: $bestDistance distance: $distance ${obj.description}');
@@ -161,10 +149,8 @@ class AiHelper {
 				var foodId = objData.getFoodId();
 				var foodValue:Float = originalFoodValue;
 
-				if (foodValue <= 0)
-					continue;
-				if (player.food_store_max - player.food_store < Math.ceil(foodValue / 4))
-					continue;
+				if (foodValue <= 0) continue;
+				if (player.food_store_max - player.food_store < Math.ceil(foodValue / 4)) continue;
 
 				var obj = world.getObjectHelper(tx, ty);
 				var quadDistance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
@@ -175,23 +161,17 @@ class AiHelper {
 				var isSuperMeh = foodValue < originalFoodValue / 2; // can eat if food_store < 0
 				// trace('search food: best $bestDistance dist $distance ${obj.description}');
 
-				if (isYum)
-					foodValue *= starvingFactor;
-				if (isSuperMeh)
-					foodValue = originalFoodValue / starvingFactor;
-				if (isSuperMeh && player.food_store > 0)
-					foodValue = 0;
-				if (foodId == player.getCraving())
-					foodValue *= Math.pow(starvingFactor, 2);
+				if (isYum) foodValue *= starvingFactor;
+				if (isSuperMeh) foodValue = originalFoodValue / starvingFactor;
+				if (isSuperMeh && player.food_store > 0) foodValue = 0;
+				if (foodId == player.getCraving()) foodValue *= Math.pow(starvingFactor, 2);
 
-				if (quadDistance < 0.5)
-					quadDistance = 0.5;
+				if (quadDistance < 0.5) quadDistance = 0.5;
 				// distance = Math.sqrt(distance);
 
 				if (bestFood == null || foodValue / quadDistance > bestFoodValue / bestDistance) {
 					if (ai != null) {
-						if (quadDistance > 4 && IsDangerous(player, obj))
-							continue;
+						if (quadDistance > 4 && IsDangerous(player, obj)) continue;
 						// if(tryGotoObj(player, obj) == false) continue;
 					}
 
@@ -216,18 +196,14 @@ class AiHelper {
 				}
 
 				bestFood = null;
-				if (ServerSettings.DebugAi)
-					trace('AI: bestfood: cannot reach food! ms: ${Math.round((Sys.time() - startTime) * 1000)}');
-				if ((Sys.time() - startTime) * 1000 > 100)
-					break;
+				if (ServerSettings.DebugAi) trace('AI: bestfood: cannot reach food! ms: ${Math.round((Sys.time() - startTime) * 1000)}');
+				if ((Sys.time() - startTime) * 1000 > 100) break;
 			}
 		}
 
-		if (bestFood != null)
-			if (ServerSettings.DebugAi)
-				trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: $bestDistance ${bestFood.description} ${bestFood.id}');
-			else if (ServerSettings.DebugAi)
-				trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: NA');
+		if (bestFood != null) if (ServerSettings.DebugAi)
+			trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: $bestDistance ${bestFood.description} ${bestFood.id}'); else
+			if (ServerSettings.DebugAi) trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: NA');
 
 		return bestFood;
 	}
@@ -237,17 +213,14 @@ class AiHelper {
 		var baseX = object.tx;
 		var baseY = object.ty;
 
-		if (ai == null)
-			return false;
+		if (ai == null) return false;
 
 		for (ty in baseY - radius...baseY + radius) {
 			for (tx in baseX - radius...baseX + radius) {
 				var objData = WorldMap.world.getObjectDataAtPosition(tx, ty);
-				if (objData.isAnimal() && objData.deadlyDistance > 0)
-					return true;
+				if (objData.isAnimal() && objData.deadlyDistance > 0) return true;
 
-				if (ai.isObjectWithHostilePath(tx, ty))
-					return true; // for example if the path is blocked through a wolf
+				if (ai.isObjectWithHostilePath(tx, ty)) return true; // for example if the path is blocked through a wolf
 			}
 		}
 
@@ -273,29 +246,21 @@ class AiHelper {
 			var xo = 0;
 			var yo = 0;
 
-			if (rand > 4)
-				break;
+			if (rand > 4) break;
 
-			if (rand == 1)
-				xo = 1;
-			if (rand == 2)
-				yo = -1;
-			if (rand == 3)
-				xo = -1;
-			if (rand == 4)
-				yo = 1;
+			if (rand == 1) xo = 1;
+			if (rand == 2) yo = -1;
+			if (rand == 3) xo = -1;
+			if (rand == 4) yo = 1;
 
 			rand++;
 
-			if (player.isBlocked(tx + xo, ty + yo))
-				continue;
-			if (ai.isObjectNotReachable(tx + xo, ty + yo))
-				continue;
+			if (player.isBlocked(tx + xo, ty + yo)) continue;
+			if (ai.isObjectNotReachable(tx + xo, ty + yo)) continue;
 
 			var done = Goto(player, x + xo, y + yo, move);
 
-			if (done)
-				return true;
+			if (done) return true;
 
 			var passedTime = (Sys.time() - startTime) * 1000;
 
@@ -305,8 +270,7 @@ class AiHelper {
 			}
 		}
 
-		if (ServerSettings.DebugAiGoto)
-			trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty}');
+		if (ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty}');
 		ai.addNotReachable(tx, ty);
 
 		ai.resetTargets();
@@ -333,17 +297,12 @@ class AiHelper {
 
 		// trace('AAI: GOTO: From: ${player.x},${player.y} To: $x $y / FROM ${player.tx()},${player.ty()} To: ${x + player.gx},${y + player.gy}');
 
-		if (px == 0 && py == 0)
-			return false; // no need to move
+		if (px == 0 && py == 0) return false; // no need to move
 
-		if (px > RAD - 1)
-			px = RAD - 1;
-		if (py > RAD - 1)
-			py = RAD - 1;
-		if (px < -RAD)
-			px = -RAD;
-		if (py < -RAD)
-			py = -RAD;
+		if (px > RAD - 1) px = RAD - 1;
+		if (py > RAD - 1) py = RAD - 1;
+		if (px < -RAD) px = -RAD;
+		if (py < -RAD) py = -RAD;
 		// cords
 		var start = new Coordinate(RAD, RAD);
 
@@ -371,8 +330,7 @@ class AiHelper {
 			// trace('goto: end $end');
 
 			paths = path.createPath(start, end, MANHATTAN, true);
-			if (paths != null)
-				break;
+			if (paths != null) break;
 		}
 
 		if (paths == null) {
@@ -397,8 +355,7 @@ class AiHelper {
 
 		var ai = playerInterface.getAi();
 		var globalPlayer = cast(player, GlobalPlayerInstance);
-		if (move)
-			playerInterface.move(globalPlayer.moveHelper.guessX(), globalPlayer.moveHelper.guessY(), ai.seqNum++, data);
+		if (move) playerInterface.move(globalPlayer.moveHelper.guessX(), globalPlayer.moveHelper.guessY(), ai.seqNum++, data);
 
 		return true;
 	}
@@ -430,14 +387,10 @@ class AiHelper {
 	public static function isHighTech(objId:Int):Bool {
 		// if(objId == 62) return true; // Leaf
 		// if(objId == 303) return true; // Forge
-		if (objId == 2221)
-			return true; // Newcomen Pump with Full Boiler
-		if (objId == 2241)
-			return true; // Newcomen Hammer with Full Boiler
-		if (objId == 2274)
-			return true; // Newcomen Bore with Full Boiler
-		if (objId == 3076)
-			return true; // Kerosene Wick Burner
+		if (objId == 2221) return true; // Newcomen Pump with Full Boiler
+		if (objId == 2241) return true; // Newcomen Hammer with Full Boiler
+		if (objId == 2274) return true; // Newcomen Bore with Full Boiler
+		if (objId == 3076) return true; // Kerosene Wick Burner
 
 		return false;
 	}
@@ -473,8 +426,7 @@ class AiHelper {
 
 			for (trans in transitions) {
 				// if(trans.actorID == -1) continue; // TODO time
-				if (trans.targetID == -1)
-					continue; // TODO -1 target
+				if (trans.targetID == -1) continue; // TODO -1 target
 
 				// ignore high tech stuff if most likely not needed
 				if (ignoreHighTech && isHighTech(wantedObjId)) {
@@ -482,19 +434,14 @@ class AiHelper {
 					continue;
 				}
 
-				if (ShouldDebug(trans))
-					trace('TEST1 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
+				if (ShouldDebug(trans)) trace('TEST1 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
 
-				if (trans.actorID == wantedObjId || trans.actorID == objectIdToSearch)
-					continue;
+				if (trans.actorID == wantedObjId || trans.actorID == objectIdToSearch) continue;
 
-				if (ShouldDebug(trans))
-					trace('TEST2 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
-				if (trans.targetID == wantedObjId || trans.targetID == objectIdToSearch)
-					continue;
+				if (ShouldDebug(trans)) trace('TEST2 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
+				if (trans.targetID == wantedObjId || trans.targetID == objectIdToSearch) continue;
 
-				if (ShouldDebug(trans))
-					trace('TEST3 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
+				if (ShouldDebug(trans)) trace('TEST3 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
 
 				// Allow transition if new actor or target is closer to wanted object
 				var tmpActor = transitionsForObject[trans.actorID];
@@ -507,19 +454,16 @@ class AiHelper {
 				var tmpNewTarget = transitionsForObject[trans.newTargetID];
 				var newTargetSteps = tmpNewTarget != null ? tmpNewTarget.steps : 10000;
 
-				if (trans.newActorID == objectIdToSearch)
-					newActorSteps = 0;
-				if (trans.newTargetID == objectIdToSearch)
-					newTargetSteps = 0;
+				if (trans.newActorID == objectIdToSearch) newActorSteps = 0;
+				if (trans.newTargetID == objectIdToSearch) newTargetSteps = 0;
 
 				// AI get stuck with <3288> actorSteps: 2 newActorSteps: 10000 targetSteps: 10000 newTargetSteps: 3 <67> + <96> = <0> + <3288>
 				// if(actorSteps <= newActorSteps && targetSteps <= newTargetSteps) continue; // nothing is won
-				if (actorSteps + targetSteps <= newActorSteps + newTargetSteps)
-					continue; // nothing is won
+				if (actorSteps + targetSteps <= newActorSteps + newTargetSteps) continue; // nothing is won
 
 				if (ShouldDebug(trans))
 					trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps '
-						+ trans.getDesciption(true));
+					+ trans.getDesciption(true));
 				// trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
 
 				if (trans.actorID > 0 && transitionsByObject.exists(trans.actorID) == false) {
@@ -548,15 +492,11 @@ class AiHelper {
 					wantedObjIds.push(trans.targetID);
 				}
 
-				if (trans.actorID > 0)
-					transitionsByObject[trans.actorID] = trans;
-				if (trans.targetID > 0)
-					transitionsByObject[trans.targetID] = trans;
+				if (trans.actorID > 0) transitionsByObject[trans.actorID] = trans;
+				if (trans.targetID > 0) transitionsByObject[trans.targetID] = trans;
 
-				if (trans.actorID > 0)
-					AddTransition(transitionsForObject, trans, trans.actorID, wantedObjId, stepsCount);
-				if (trans.targetID > 0)
-					AddTransition(transitionsForObject, trans, trans.targetID, wantedObjId, stepsCount);
+				if (trans.actorID > 0) AddTransition(transitionsForObject, trans, trans.actorID, wantedObjId, stepsCount);
+				if (trans.targetID > 0) AddTransition(transitionsForObject, trans, trans.targetID, wantedObjId, stepsCount);
 
 				count++;
 			}
@@ -565,8 +505,7 @@ class AiHelper {
 			// if(count > 1000) break; // TODO remove
 		}
 
-		if (ServerSettings.DebugAiCrafting)
-			trace('AI trans search: $count transtions found! ${Sys.time() - startTime}');
+		if (ServerSettings.DebugAiCrafting) trace('AI trans search: $count transtions found! ${Sys.time() - startTime}');
 
 		/*for(key in transitionsForObject.keys())            
 			{
@@ -583,12 +522,9 @@ class AiHelper {
 	public static function ShouldDebug(trans:TransitionData):Bool {
 		var debugObjId = ServerSettings.DebugAiCraftingObject;
 
-		if (trans.actorID == debugObjId)
-			return true;
-		if (trans.targetID == debugObjId)
-			return true;
-		if (trans.newActorID == debugObjId)
-			return true;
+		if (trans.actorID == debugObjId) return true;
+		if (trans.targetID == debugObjId) return true;
+		if (trans.newActorID == debugObjId) return true;
 		return trans.newTargetID == debugObjId;
 	}
 
@@ -631,23 +567,17 @@ class AiHelper {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
 				var obj = world.getObjectHelper(tx, ty, true);
 
-				if (obj == null)
-					continue;
-				if (obj.objectData.deadlyDistance == 0)
-					continue;
-				if (obj.objectData.damage == 0)
-					continue;
-				if (obj.isAnimal() == false)
-					continue;
+				if (obj == null) continue;
+				if (obj.objectData.deadlyDistance == 0) continue;
+				if (obj.objectData.damage == 0) continue;
+				if (obj.isAnimal() == false) continue;
 
 				var dist = AiHelper.CalculateDistanceToObject(player, obj);
 
-				if (dist > bestDist)
-					continue;
+				if (dist > bestDist) continue;
 				// var moveQuadDist = Math.pow(obj.objectData.moves + 1, 2);
 				// trace('GetCloseDeadlyAnimal: $dist <= $bestDist moveQuadDist: $moveQuadDist ${obj.name}');
-				if (dist > Math.pow(obj.objectData.moves + 1, 2))
-					continue;
+				if (dist > Math.pow(obj.objectData.moves + 1, 2)) continue;
 
 				bestDist = dist;
 				bestObj = obj;
@@ -662,23 +592,17 @@ class AiHelper {
 		var bestPlayer = null;
 		var bestDist:Float = searchDistance * searchDistance;
 
-		if (player.angryTime > 4)
-			return null;
+		if (player.angryTime > 4) return null;
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
-			if (p.deleted)
-				continue;
-			if (p.isHoldingWeapon() == false)
-				continue;
-			if (p.isFriendly(player))
-				continue;
-			if (p.angryTime > 4)
-				continue;
+			if (p.deleted) continue;
+			if (p.isHoldingWeapon() == false) continue;
+			if (p.isFriendly(player)) continue;
+			if (p.angryTime > 4) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p);
 
-			if (dist > bestDist)
-				continue;
+			if (dist > bestDist) continue;
 
 			bestDist = dist;
 			bestPlayer = p;
@@ -697,36 +621,27 @@ class AiHelper {
 		var isFertile = player.isFertile();
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
-			if (p.deleted)
-				continue;
-			if (p.heldByPlayer != null)
-				continue;
-			if (isFertile && p.age < ServerSettings.MaxChildAgeForBreastFeeding)
-				continue;
+			if (p.deleted) continue;
+			if (p.heldByPlayer != null) continue;
+			if (isFertile && p.age < ServerSettings.MaxChildAgeForBreastFeeding) continue;
 
 			var considerHungry = Math.min(p.lineage.prestigeClass * 2, 1 + p.food_store_max * 0.8);
 			var hungry = considerHungry - p.food_store;
 			var isAlly = p.isAlly(globalplayer);
 
-			if (isAlly == false && p.angryTime < ServerSettings.CombatAngryTimeBeforeAttack / 2)
-				continue;
-			if (p.isCloseRelative(globalplayer) == false || player.getFollowPlayer() == p)
-				hungry = hungry / 2 - 0.25; // prefer close relative
-			if (isAlly == false)
-				hungry = hungry / 2 - 0.2; // prefer ally
-			if (hungry < 0)
-				continue;
+			if (isAlly == false && p.angryTime < ServerSettings.CombatAngryTimeBeforeAttack / 2) continue;
+			if (p.isCloseRelative(globalplayer) == false
+				|| player.getFollowPlayer() == p) hungry = hungry / 2 - 0.25; // prefer close relative
+			if (isAlly == false) hungry = hungry / 2 - 0.2; // prefer ally
+			if (hungry < 0) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p) + 1;
-			if (dist > maxDist)
-				continue;
+			if (dist > maxDist) continue;
 
 			var quadHungry = Math.pow(hungry, 2) / dist;
-			if (quadHungry < bestQuadHungry)
-				continue;
+			if (quadHungry < bestQuadHungry) continue;
 			// trace('${p.name} class: ${p.lineage.prestigeClass} dist: $dist food: ${Math.ceil(p.food_store * 10) / 10} hungry: ${Math.ceil(hungry * 10) / 10} quadHungry: ${Math.ceil(quadHungry * 1000) / 1000}');
-			if (quadHungry < minQuadHungry)
-				continue;
+			if (quadHungry < minQuadHungry) continue;
 
 			bestQuadHungry = quadHungry;
 			bestPlayer = p;
@@ -743,29 +658,20 @@ class AiHelper {
 		var minQuadHungry = 0.01;
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
-			if (p.deleted)
-				continue;
-			if (p.age > ServerSettings.MaxChildAgeForBreastFeeding)
-				continue;
-			if (p.heldByPlayer != null)
-				continue;
+			if (p.deleted) continue;
+			if (p.age > ServerSettings.MaxChildAgeForBreastFeeding) continue;
+			if (p.heldByPlayer != null) continue;
 
 			var hungry = considerHungry - p.food_store;
-			if (p.mother != mother)
-				hungry = hungry / 2 - 0.5; // own children count more
-			if (p.age > ServerSettings.MinAgeToEat)
-				hungry -= 0.5;
-			if (hungry < 0)
-				continue;
+			if (p.mother != mother) hungry = hungry / 2 - 0.5; // own children count more
+			if (p.age > ServerSettings.MinAgeToEat) hungry -= 0.5;
+			if (hungry < 0) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(mother, p) + 1;
-			if (dist > maxDist)
-				continue;
+			if (dist > maxDist) continue;
 			var quadHungry = Math.pow(hungry, 3) / dist;
-			if (quadHungry < minQuadHungry)
-				continue;
-			if (quadHungry < bestQuadHungry)
-				continue;
+			if (quadHungry < minQuadHungry) continue;
+			if (quadHungry < bestQuadHungry) continue;
 
 			bestQuadHungry = quadHungry;
 			bestPlayer = p;
@@ -782,23 +688,16 @@ class AiHelper {
 		var minQuadDist = minDist * minDist;
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
-			if (p.deleted)
-				continue;
-			if (p.age > ServerSettings.MinAgeToEat)
-				continue;
-			if (p.heldByPlayer != null)
-				continue;
-			if (p.mother != mother)
-				continue;
+			if (p.deleted) continue;
+			if (p.age > ServerSettings.MinAgeToEat) continue;
+			if (p.heldByPlayer != null) continue;
+			if (p.mother != mother) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(mother, p);
 
-			if (dist > maxQuadDist)
-				continue;
-			if (dist < minQuadDist)
-				continue;
-			if (dist < worstDist)
-				continue;
+			if (dist > maxQuadDist) continue;
+			if (dist < minQuadDist) continue;
+			if (dist < worstDist) continue;
 
 			worstDist = dist;
 			worstPlayer = p;

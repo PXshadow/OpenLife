@@ -73,8 +73,7 @@ class Bot extends Engine implements EngineHeader {
 	public function playerUpdate(instances:Array<PlayerInstance>) {} // PLAYER_UPDATE
 
 	public function playerMoveStart(move:PlayerMove) {
-		if (player.p_id == move.id)
-			program.playerMainMove(player, move);
+		if (player.p_id == move.id) program.playerMainMove(player, move);
 	} // PLAYER_MOVES_START
 
 	public function playerOutOfRange(list:Array<Int>) {} // PLAYER_OUT_OF_RANGE
@@ -128,8 +127,7 @@ class Bot extends Engine implements EngineHeader {
 	var found:Int = -1;
 
 	public function says(id:Int, text:String, curse:Bool) {
-		if (id == player.p_id)
-			return;
+		if (id == player.p_id) return;
 		var words = text.split(" ");
 		words.shift();
 		var index:Int = 0;
@@ -188,8 +186,7 @@ class Bot extends Engine implements EngineHeader {
 	public function mapChange(change:MapChange) {} // MAP_CHANGE
 
 	public function foodChange(store:Int, capacity:Int, ateId:Int, fillMax:Int, speed:Float, responsible:Int) {
-		if (store / capacity < 0.2)
-			program.say("F");
+		if (store / capacity < 0.2) program.say("F");
 	} // FOOD_CHANGE
 
 	public function heatChange(heat:Float, foodTime:Float, indoorBonus:Float) {} // HEAT_CHANGE

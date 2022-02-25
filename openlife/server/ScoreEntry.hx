@@ -15,14 +15,12 @@ class ScoreEntry {
 	public function new() {}
 
 	public static function CreateScoreEntryIfGrave(decayedObj:ObjectHelper) {
-		if (decayedObj.id != 89)
-			return; // Old Grave
+		if (decayedObj.id != 89) return; // Old Grave
 
 		var account = decayedObj.getOwnerAccount();
 		var creator = decayedObj.getCreator();
 
-		if (account == null)
-			return;
+		if (account == null) return;
 
 		var score = new ScoreEntry();
 		score.accountId = account.id;
@@ -37,8 +35,7 @@ class ScoreEntry {
 		var creator = cursedGrave.getCreator();
 		var creatorId = cursedGrave.getCreatorId();
 
-		if (account == null)
-			return;
+		if (account == null) return;
 
 		var scoreEntry = null;
 
@@ -65,10 +62,8 @@ class ScoreEntry {
 	public static function CreateScoreEntryForDeadRelative(player:GlobalPlayerInstance) {
 		// TODO father
 		// TODO sisters / brothers
-		if (player.prestige < 10)
-			return;
-		if (player.mother == null)
-			return;
+		if (player.prestige < 10) return;
+		if (player.mother == null) return;
 
 		var ancestor = player.lineage.getMotherLineage();
 
@@ -80,19 +75,15 @@ class ScoreEntry {
 				continue;
 			}
 
-			if (player.account == ancestor.account)
-				return;
-			if (ancestor.grave == null || ancestor.grave.isBoneGrave())
-				return;
+			if (player.account == ancestor.account) return;
+			if (ancestor.grave == null || ancestor.grave.isBoneGrave()) return;
 
 			ancestor.account.scoreEntries.push(CreateNewScoreEntry(player, ancestor));
 			return;
 		}
 
-		if (player.account == ancestor.account)
-			return;
-		if (ancestor.grave == null || ancestor.grave.isBoneGrave())
-			return;
+		if (player.account == ancestor.account) return;
+		if (ancestor.grave == null || ancestor.grave.isBoneGrave()) return;
 
 		ancestor.account.scoreEntries.push(CreateNewScoreEntry(player, ancestor));
 	}
@@ -110,10 +101,8 @@ class ScoreEntry {
 	}
 
 	public static function ProcessScoreEntry(player:GlobalPlayerInstance) {
-		if (Std.int(player.trueAge) % 5 != 0)
-			return;
-		if (player.account.scoreEntries.length < 1)
-			return;
+		if (Std.int(player.trueAge) % 5 != 0) return;
+		if (player.account.scoreEntries.length < 1) return;
 
 		var scoreEntry = player.account.scoreEntries.shift();
 		var score = scoreEntry.score;

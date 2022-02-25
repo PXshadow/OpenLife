@@ -47,12 +47,10 @@ class App {
 		}
 		if (!data.relay && data.combo > 0) {
 			// multiple ais from combo
-			if (!FileSystem.exists("combo.txt"))
-				throw "no combo list found";
+			if (!FileSystem.exists("combo.txt")) throw "no combo list found";
 			var list = File.getContent("combo.txt").split("\r\n");
 			var ais:Array<Ai> = [];
-			if (data.combo > list.length)
-				data.combo = list.length;
+			if (data.combo > list.length) data.combo = list.length;
 			for (i in 0...data.combo) {
 				var config = configClone(config);
 				var data = list[i].split(":");

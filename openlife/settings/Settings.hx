@@ -53,15 +53,11 @@ class Settings {
 			tutorial: false
 		};
 		// settings to use infomation
-		if (valid(data.get("email")))
-			config.email = string;
-		if (valid(data.get("accountKey")))
-			config.key = string;
+		if (valid(data.get("email"))) config.email = string;
+		if (valid(data.get("accountKey"))) config.key = string;
 		if (valid(data.get("useCustomServer")) && string == "1") {
-			if (valid(data.get("customServerAddress")))
-				config.ip = string;
-			if (valid(data.get("customServerPort")))
-				config.port = Std.parseInt(string);
+			if (valid(data.get("customServerAddress"))) config.ip = string;
+			if (valid(data.get("customServerPort"))) config.port = Std.parseInt(string);
 		}
 		// by pass settings and force email and key if secret account
 		#if secret
@@ -75,8 +71,7 @@ class Settings {
 	}
 
 	private inline function valid(obj:Dynamic):Bool {
-		if (obj == null || obj == "")
-			return false;
+		if (obj == null || obj == "") return false;
 		string = cast obj;
 		return true;
 	}

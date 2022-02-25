@@ -27,8 +27,7 @@ class LineReader {
 	 * @param string text split into lines
 	 */
 	public function readLines(string:String):Bool {
-		if (string.length == 0)
-			return false;
+		if (string.length == 0) return false;
 		next = 0;
 		line = Vector.fromArrayCopy(string.split(EOL));
 		return true;
@@ -111,8 +110,7 @@ class LineReader {
 			j = string.indexOf(",", i);
 			j = j < 0 ? string.length : j;
 			array.push(Std.parseInt(string.substring(i, j)));
-			if (j >= string.length - 1)
-				bool = false;
+			if (j >= string.length - 1) bool = false;
 		}
 		array.shift(); // FIX THIS
 		return array;
@@ -131,11 +129,9 @@ class LineReader {
 	 * @return String
 	 */
 	public function getString():String {
-		if (next + 1 > line.length)
-			throw 'max $line';
+		if (next + 1 > line.length) throw 'max $line';
 		string = line[next++];
-		if (string == null || string == "")
-			return "";
+		if (string == null || string == "") return "";
 		var equals = string.indexOf("=");
 		return string.substr(equals + 1);
 	}
@@ -147,8 +143,7 @@ class LineReader {
 	 */
 	public function readName(name:String):Bool {
 		string = line[next];
-		if (name == string.substring(0, name.length))
-			return true;
+		if (name == string.substring(0, name.length)) return true;
 		return false;
 	}
 

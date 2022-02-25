@@ -62,8 +62,7 @@ class Program {
 	var parent:GlobalPlayerInstance;
 
 	public function update(player:GlobalPlayerInstance) {
-		if (!moving)
-			return;
+		if (!moving) return;
 		if (forcePlayerDropNext && client.relayIn != null) {
 			// delete parent
 			forcePlayerDropNext = false;
@@ -79,8 +78,7 @@ class Program {
 		if (player.x != dest.x || player.y != dest.y) {
 			trace('did not make it to dest player: ' + player.x + " " + player.y + " dest: " + dest.x + " " + dest.y);
 			moving = false;
-			if (onError != null)
-				onError("did not make it to dest");
+			if (onError != null) onError("did not make it to dest");
 			return;
 		}
 		moving = false;
@@ -97,15 +95,13 @@ class Program {
 		dest = null;
 		goal = null;
 		init = null;
-		if (onComplete != null)
-			onComplete();
+		if (onComplete != null) onComplete();
 	}
 
 	var forcePlayerDropNext:Bool = false;
 
 	public function playerMainMove(player:GlobalPlayerInstance, move:PlayerMove) {
-		if (client.relayIn == null || !parentMove)
-			return;
+		if (client.relayIn == null || !parentMove) return;
 		parent = GlobalPlayerInstance.CreateNewAiPlayer(null); // TODO change
 		parent.p_id = 999999;
 		// parent.po_id = 1663; //dog
@@ -172,14 +168,12 @@ class Program {
 	}
 
 	private inline function max(a:Int, b:Int):Int {
-		if (a > b)
-			return a;
+		if (a > b) return a;
 		return b;
 	}
 
 	private inline function min(a:Int, b:Int):Int {
-		if (a < b)
-			return a;
+		if (a < b) return a;
 		return b;
 	}
 
@@ -255,19 +249,14 @@ class Program {
 	}
 
 	public function goto(x:Int, y:Int):Bool {
-		if (player.x == x && player.y == y || moving)
-			return false;
+		if (player.x == x && player.y == y || moving) return false;
 		// set pos
 		var px = x - player.x;
 		var py = y - player.y;
-		if (px > RAD - 1)
-			px = RAD - 1;
-		if (py > RAD - 1)
-			py = RAD - 1;
-		if (px < -RAD)
-			px = -RAD;
-		if (py < -RAD)
-			py = -RAD;
+		if (px > RAD - 1) px = RAD - 1;
+		if (py > RAD - 1) py = RAD - 1;
+		if (px < -RAD) px = -RAD;
+		if (py < -RAD) py = -RAD;
 		// cords
 		var start = new Coordinate(RAD, RAD);
 		// map
@@ -288,12 +277,10 @@ class Program {
 			}
 			var end = new Coordinate(px + RAD + tweakX, py + RAD + tweakY);
 			paths = path.createPath(start, end, MANHATTAN, true);
-			if (paths != null)
-				break;
+			if (paths != null) break;
 		}
 		if (paths == null) {
-			if (onError != null)
-				onError("can not generate path");
+			if (onError != null) onError("can not generate path");
 			trace("CAN NOT GENERATE PATH");
 			return false;
 		}

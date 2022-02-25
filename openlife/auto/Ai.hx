@@ -90,8 +90,7 @@ class Ai {
 			lastTick = tick;
 
 			for (ai in Connection.getAis()) {
-				if (ai.player.deleted)
-					Macro.exception(ai.doRebirth(timePassedInSeconds));
+				if (ai.player.deleted) Macro.exception(ai.doRebirth(timePassedInSeconds));
 				Macro.exception(ai.doTimeStuff(timePassedInSeconds));
 			}
 
@@ -123,8 +122,7 @@ class Ai {
 	}
 
 	public function newBorn() {
-		if (ServerSettings.DebugAi)
-			trace('Ai: newborn!');
+		if (ServerSettings.DebugAi) trace('Ai: newborn!');
 
 		foodTarget = null;
 		dropTarget = null;
@@ -167,8 +165,7 @@ class Ai {
 
 		// if(didNotReachFood > 0) didNotReachFood -= timePassedInSeconds * 0.02;
 
-		if (time > 0)
-			return;
+		if (time > 0) return;
 		time += ServerSettings.AiReactionTime; // 0.5; // minimum AI reacting time
 
 		cleanupBlockedObjects();
@@ -191,8 +188,7 @@ class Ai {
 		Macro.exception(if (didNotReachFood < 5) if (escape(animal, deadlyPlayer)) return);
 		Macro.exception(if (didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat());
 		Macro.exception(if (isChildAndHasMother()) {
-			if (isMovingToPlayer(10))
-				return;
+			if (isMovingToPlayer(10)) return;
 		});
 		Macro.exception(if (myPlayer.isWounded()) {
 			isMovingToPlayer(5);
@@ -213,13 +209,11 @@ class Ai {
 		Macro.exception(if (killAnimal(animal)) return);
 		Macro.exception(if (ServerSettings.AutoFollowPlayer && isMovingToPlayer()) return);
 
-		if (myPlayer.isMoving())
-			return;
+		if (myPlayer.isMoving()) return;
 
 		// if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
 
-		if (ServerSettings.DebugAi)
-			trace('AI: craft ${GetName(itemToCraftId)} tasks: ${craftingTasks.length}!');
+		if (ServerSettings.DebugAi) trace('AI: craft ${GetName(itemToCraftId)} tasks: ${craftingTasks.length}!');
 
 		if (itemToCraftId > 0 && itemToCraft.countDone < itemToCraft.count) {
 			Macro.exception(if (craftItem(itemToCraftId)) return);
@@ -241,14 +235,12 @@ class Ai {
 	}
 
 	public function say(player:PlayerInterface, curse:Bool, text:String) {
-		if (myPlayer.id == player.id)
-			return;
+		if (myPlayer.id == player.id) return;
 
 		// if(ServerSettings.DebugAi) trace('AI ${text}');
 
 		if (text.contains("TRANS")) {
-			if (ServerSettings.DebugAi)
-				trace('AI look for transitions: ${text}');
+			if (ServerSettings.DebugAi) trace('AI look for transitions: ${text}');
 
 			var objectIdToSearch = 273; // 273 = Cooked Carrot Pie // 250 = Hot Adobe Oven
 
@@ -303,16 +295,14 @@ class Ai {
 	public function dropHeldObject(dropOnStart:Bool = false) {
 		// var myPlayer = myPlayer.getPlayerInstance();
 
-		if (myPlayer.heldObject.id == 0)
-			return;
+		if (myPlayer.heldObject.id == 0) return;
 
 		if (dropOnStart && itemToCraft.startLocation != null) {
 			var distance = myPlayer.CalculateDistanceToObject(itemToCraft.startLocation);
 
 			if (distance > 25) {
 				var done = myPlayer.gotoObj(itemToCraft.startLocation);
-				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} $done drop goto start $distance');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done drop goto start $distance');
 				myPlayer.say('Goto start!');
 				return;
 			}
@@ -323,8 +313,7 @@ class Ai {
 
 		// if(itemToCraft.transTarget.parentId == myPlayer.heldObject.parentId)
 
-		if (ServerSettings.DebugAi)
-			trace('Drop ${emptyTileObj.tx} ${emptyTileObj.ty} $emptyTileObj');
+		if (ServerSettings.DebugAi) trace('Drop ${emptyTileObj.tx} ${emptyTileObj.ty} $emptyTileObj');
 		// x,y is relativ to birth position, since this is the center of the universe for a player
 		// if(emptyTileObj != null) playerInterface.drop(emptyTileObj.tx - myPlayer.gx, emptyTileObj.ty - myPlayer.gy);
 	}
@@ -336,25 +325,18 @@ class Ai {
 	}
 
 	public function addTask(taskId:Int, atEnd:Bool = true) {
-		if (taskId < 1)
-			return;
-		if (this.craftingTasks.contains(taskId))
-			return;
-		if (atEnd)
-			this.craftingTasks.push(taskId);
-		else
+		if (taskId < 1) return;
+		if (this.craftingTasks.contains(taskId)) return;
+		if (atEnd) this.craftingTasks.push(taskId); else
 			this.craftingTasks.unshift(taskId);
 	}
 
 	private function killAnimal(animal:ObjectHelper) {
-		if (animal == null && animalTarget == null)
-			return false;
-		if (foodTarget != null)
-			return false;
+		if (animal == null && animalTarget == null) return false;
+		if (foodTarget != null) return false;
 
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
-		if (myPlayer.age < objData.minPickupAge)
-			return false;
+		if (myPlayer.age < objData.minPickupAge) return false;
 
 		if (animalTarget != null && animalTarget.isKillableByBow() == false) {
 			if (ServerSettings.DebugAi)
@@ -363,17 +345,13 @@ class Ai {
 		}
 
 		if (animalTarget == null && animal != null) {
-			if (animal.isKillableByBow())
-				this.animalTarget = animal;
-			else if (ServerSettings.DebugAi)
+			if (animal.isKillableByBow()) this.animalTarget = animal; else if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: Not killable with bow: ${animal.description}');
 		}
 
-		if (animalTarget == null)
-			return false;
+		if (animalTarget == null) return false;
 
-		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: ${animalTarget.description}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: ${animalTarget.description}');
 
 		if (myPlayer.heldObject.id != objData.id) {
 			return GetOrCraftItem(objData.id);
@@ -391,24 +369,19 @@ class Ai {
 
 			var done = myPlayer.gotoObj(targetXY);
 
-			if (done)
-				didNotReachAnimalTarget = 0;
-			else {
+			if (done) didNotReachAnimalTarget = 0; else {
 				didNotReachAnimalTarget++;
-				if (didNotReachAnimalTarget >= 5)
-					animalTarget = null;
+				if (didNotReachAnimalTarget >= 5) animalTarget = null;
 			}
 
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal $distance goto animaltarget ${done}');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal $distance goto animaltarget ${done}');
 
 			return true;
 		}
 
 		var done = myPlayer.use(animalTarget.tx - myPlayer.gx, animalTarget.ty - myPlayer.gy);
 
-		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: done: $done kill ${animalTarget.description}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: done: $done kill ${animalTarget.description}');
 
 		didNotReachFood = 0;
 
@@ -416,24 +389,20 @@ class Ai {
 	}
 
 	private function GetOrCraftItem(objId:Int, count:Int = 1):Bool {
-		if (myPlayer.isMoving())
-			return false;
+		if (myPlayer.isMoving()) return false;
 
 		var obj = AiHelper.GetClosestObjectById(myPlayer, objId);
 
-		if (obj == null)
-			return craftItem(objId, count);
+		if (obj == null) return craftItem(objId, count);
 
-		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: GetOrCraftItem found ${obj.name}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: GetOrCraftItem found ${obj.name}');
 
 		var distance = myPlayer.CalculateDistanceToObject(obj);
 
 		if (distance > 1) {
 			var done = myPlayer.gotoObj(obj);
 
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal done: $done goto weapon');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal done: $done goto weapon');
 			return true;
 		}
 
@@ -452,8 +421,7 @@ class Ai {
 		// x,y is relativ to birth position, since this is the center of the universe for a player
 		var done = myPlayer.drop(obj.tx - myPlayer.gx, obj.ty - myPlayer.gy);
 
-		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal done: $done pickup obj from floor');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal done: $done pickup obj from floor');
 
 		return done;
 	}
@@ -491,15 +459,11 @@ class Ai {
 	}
 
 	private function isFeedingPlayerInNeed() {
-		if (myPlayer.age < ServerSettings.MinAgeToEat)
-			return false;
-		if (myPlayer.food_store < 2)
-			return false;
+		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
+		if (myPlayer.food_store < 2) return false;
 
-		if (this.feedingPlayerTarget == null)
-			this.feedingPlayerTarget = AiHelper.GetCloseStarvingPlayer(myPlayer);
-		if (this.feedingPlayerTarget == null)
-			return false;
+		if (this.feedingPlayerTarget == null) this.feedingPlayerTarget = AiHelper.GetCloseStarvingPlayer(myPlayer);
+		if (this.feedingPlayerTarget == null) return false;
 
 		var targetPlayer = this.feedingPlayerTarget;
 
@@ -517,15 +481,13 @@ class Ai {
 
 		if (targetPlayer.isDeleted()) {
 			this.feedingPlayerTarget = null;
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} since is dead!');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} since is dead!');
 			return false;
 		}
 
 		if (targetPlayer.getHeldByPlayer() != null) {
 			this.feedingPlayerTarget = null;
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} since held by other player!');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} since held by other player!');
 			return false;
 		}
 
@@ -538,35 +500,29 @@ class Ai {
 
 		var distance = myPlayer.CalculateDistanceToPlayer(targetPlayer);
 
-		if (distance > 10 && myPlayer.isMoving())
-			return true;
+		if (distance > 10 && myPlayer.isMoving()) return true;
 
 		if (distance > 1) {
 			var done = myPlayer.gotoAdv(targetPlayer.tx, targetPlayer.ty);
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} $done goto feed starving ${targetPlayer.name} dist: $distance');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done goto feed starving ${targetPlayer.name} dist: $distance');
 			return true;
 		}
 
 		var done = myPlayer.doOnOther(targetPlayer.tx - myPlayer.gx, targetPlayer.ty - myPlayer.gx, -1, targetPlayer.id);
-		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} $done feed starving ${targetPlayer.name}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done feed starving ${targetPlayer.name}');
 
 		return true;
 	}
 
 	private function isStayingCloseToChild() {
-		if (myPlayer.isFertile() == false)
-			return false;
+		if (myPlayer.isFertile() == false) return false;
 
 		var child = AiHelper.GetMostDistamtOwnChild(myPlayer);
 
-		if (child == null)
-			return false;
+		if (child == null) return false;
 
 		var done = myPlayer.gotoAdv(child.tx, child.ty);
-		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} $done goto far away child ${child.name}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done goto far away child ${child.name}');
 
 		return true;
 	}
@@ -584,13 +540,11 @@ class Ai {
 			}
 			return false;
 		}
-		if (foodTarget != null)
-			return false;
+		if (foodTarget != null) return false;
 		if (heldPlayer != null) {
 			if (heldPlayer.name == ServerSettings.StartingName && (heldPlayer.mother == myPlayer || heldPlayer.age > 1.5)) {
 				var newName = myPlayer.isEveOrAdam() ? NamingHelper.GetRandomName(myPlayer.isFemale()) : myPlayer.name;
-				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} child newName: $newName');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} child newName: $newName');
 				myPlayer.say('You are $newName');
 			}
 
@@ -609,12 +563,10 @@ class Ai {
 			}
 		}
 
-		if (heldPlayer != null)
-			return true;
+		if (heldPlayer != null) return true;
 
 		var child = AiHelper.GetCloseHungryChild(myPlayer);
-		if (child == null)
-			return false;
+		if (child == null) return false;
 
 		this.feedingPlayerTarget = child;
 
@@ -627,15 +579,13 @@ class Ai {
 		if (distance > 1) {
 			var done = myPlayer.gotoAdv(child.tx, child.ty);
 
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} $done goto child to feed ${child.name}');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done goto child to feed ${child.name}');
 
 			return true;
 		}
 
 		if (myPlayer.heldObject.id != 0) {
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} drop obj for feeding child');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop obj for feeding child');
 			dropHeldObject();
 			return true;
 		}
@@ -646,8 +596,7 @@ class Ai {
 		myPlayer.say('Pickup ${child.name}');
 		var done = myPlayer.doBaby(childX, childY, child.id);
 
-		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} child ${child.name} pickup $done');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} child ${child.name} pickup $done');
 
 		return true;
 	}
@@ -655,33 +604,27 @@ class Ai {
 	private function escape(animal:ObjectHelper, deadlyPlayer:GlobalPlayerInstance) {
 		var startTime = Sys.time();
 
-		if (animal == null && deadlyPlayer == null)
-			return false;
+		if (animal == null && deadlyPlayer == null) return false;
 		// if(myPlayer == null) throw new Exception('WARNING! PLAYER IS NULL!!!');
-		if (ServerSettings.DebugAi)
-			trace('escape: animal: ${animal != null} deadlyPlayer: ${deadlyPlayer != null}');
+		if (ServerSettings.DebugAi) trace('escape: animal: ${animal != null} deadlyPlayer: ${deadlyPlayer != null}');
 		// hunt this animal
-		if (animal != null && animal.isKillableByBow())
-			animalTarget = animal;
+		if (animal != null && animal.isKillableByBow()) animalTarget = animal;
 		// go for hunting
-		if (myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false)
-			return false;
+		if (myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false) return false;
 
 		var player = myPlayer.getPlayerInstance();
 		var escapeDist = 3;
 		var distAnimal = animal == null ? 99999999 : AiHelper.CalculateDistanceToObject(myPlayer, animal);
 		var distPlayer = deadlyPlayer == null ? 99999999 : AiHelper.CalculateDistanceToPlayer(myPlayer, deadlyPlayer);
 		var escapePlayer = deadlyPlayer != null && distAnimal > distPlayer;
-		if (ServerSettings.DebugAi)
-			trace('escape: distAnimal: ${distAnimal} distPlayer: ${distPlayer}');
+		if (ServerSettings.DebugAi) trace('escape: distAnimal: ${distAnimal} distPlayer: ${distPlayer}');
 		var description = escapePlayer ? deadlyPlayer.name : animal.description;
 		var escapeTx = escapePlayer ? deadlyPlayer.tx : animal.tx;
 		var escapeTy = escapePlayer ? deadlyPlayer.ty : animal.ty;
 		var newEscapetarget = new ObjectHelper(null, 0);
 
 		myPlayer.say('Escape ${description} ${Math.ceil(didNotReachFood)}!');
-		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} escape!');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} escape!');
 
 		var done = false;
 		var alwaysX = false;
@@ -704,39 +647,31 @@ class Ai {
 				newEscapetarget.tx += randX;
 				newEscapetarget.ty += randY;
 
-				if (myPlayer.isBlocked(newEscapetarget.tx, newEscapetarget.ty))
-					continue;
+				if (myPlayer.isBlocked(newEscapetarget.tx, newEscapetarget.ty)) continue;
 
-				if (checkIfDangerous && AiHelper.IsDangerous(myPlayer, newEscapetarget))
-					continue;
+				if (checkIfDangerous && AiHelper.IsDangerous(myPlayer, newEscapetarget)) continue;
 
 				done = myPlayer.gotoObj(newEscapetarget);
 
 				// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Escape $done $ii $i alwaysX: $alwaysX alwaysY $alwaysY es: ${newEscapetarget.tx},${newEscapetarget.ty}');
 
-				if (done)
-					break;
-				if ((Sys.time() - startTime) * 1000 > 100)
-					break;
+				if (done) break;
+				if ((Sys.time() - startTime) * 1000 > 100) break;
 			}
 
-			if (done)
-				break;
-			if ((Sys.time() - startTime) * 1000 > 100)
-				break;
+			if (done) break;
+			if ((Sys.time() - startTime) * 1000 > 100) break;
 
 			alwaysX = WorldMap.calculateRandomFloat() < 0.5;
 			alwaysY = WorldMap.calculateRandomFloat() < 0.5;
 
-			if (ii > 0)
-				checkIfDangerous = false;
+			if (ii > 0) checkIfDangerous = false;
 
 			// if(ServerSettings.DebugAi) trace('Escape $ii alwaysX: $alwaysX alwaysY $alwaysY');
 		}
 
 		if (useTarget != null || foodTarget != null || escapeTarget != null) {
-			if (foodTarget != null)
-				didNotReachFood++;
+			if (foodTarget != null) didNotReachFood++;
 
 			addObjectWithHostilePath(useTarget);
 			addObjectWithHostilePath(foodTarget);
@@ -757,8 +692,7 @@ class Ai {
 	// TODO store transitions for crafting to have faster lookup
 	// TODO consider too look for a natural spawned object with the fewest steps on the list
 	private function craftItem(objId:Int, count:Int = 1, ignoreHighTech:Bool = false):Bool {
-		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} craft item ${GetName(objId)}!');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft item ${GetName(objId)}!');
 
 		var player = myPlayer.getPlayerInstance();
 
@@ -769,8 +703,7 @@ class Ai {
 			useTarget = target != null ? target : itemToCraft.transTarget; // since other search radius might be bigger
 
 			// check if some one meanwhile changed use target
-			if (myPlayer.isStillExpectedItem(useTarget))
-				return true;
+			if (myPlayer.isStillExpectedItem(useTarget)) return true;
 		}
 
 		if (itemToCraft.itemToCraft.parentId != objId) {
@@ -784,8 +717,7 @@ class Ai {
 			itemToCraft.countTransitionsDone = 0;
 			itemToCraft.transitionsByObjectId = myPlayer.SearchTransitions(objId, ignoreHighTech);
 
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} new item to craft: ${itemToCraft.itemToCraft.description}!');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} new item to craft: ${itemToCraft.itemToCraft.description}!');
 		}
 
 		searchBestObjectForCrafting(itemToCraft);
@@ -807,17 +739,15 @@ class Ai {
 
 		// if(player.heldObject.parentId == itemToCraft.transActor.parentId)
 		if (player.heldObject.parentId == itemToCraft.transActor.parentId || itemToCraft.transActor.id == 0) {
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is held already ${itemToCraft.transActor.id} or Empty ' + itemToCraft.transActor.name);
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is held already ${itemToCraft.transActor.id} or Empty '
+				+ itemToCraft.transActor.name);
 
-			if (itemToCraft.transTarget.name == null)
-				if (ServerSettings.DebugAi)
-					trace('AI: craft WARNING id: ${itemToCraft.transTarget} transTarget.name == null!');
+			if (itemToCraft.transTarget.name == null) if (ServerSettings.DebugAi)
+				trace('AI: craft WARNING id: ${itemToCraft.transTarget} transTarget.name == null!');
 			myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
 
 			if (itemToCraft.transActor.id == 0 && player.heldObject.id != 0) {
-				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop heldobj at start since Empty is needed!');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop heldobj at start since Empty is needed!');
 				dropHeldObject(true);
 				return true;
 			}
@@ -828,8 +758,7 @@ class Ai {
 		} else {
 			// check if actor is TIME
 			if (itemToCraft.transActor.id == -1) {
-				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is TIME ');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is TIME ');
 				this.time += 1;
 				// TODO wait some time, or better get next obj
 				myPlayer.say('Wait...');
@@ -838,8 +767,7 @@ class Ai {
 			}
 			// check if actor is PLAYER
 			if (itemToCraft.transActor.id == -2) {
-				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is PLAYER ');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is PLAYER ');
 
 				// TODO PLAYER interaction not supported yet
 				myPlayer.say('Actor is player!?!');
@@ -847,16 +775,15 @@ class Ai {
 				return false;
 			}
 
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} craft goto actor: ${itemToCraft.transActor.id} ' + itemToCraft.transActor.name);
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft goto actor: ${itemToCraft.transActor.id} '
+				+ itemToCraft.transActor.name);
 
 			myPlayer.say('Goto actor ' + itemToCraft.transActor.name);
 
 			dropTarget = itemToCraft.transActor;
 
 			if (player.heldObject.id != 0) {
-				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop obj to pickup ${itemToCraft.transActor.name}');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop obj to pickup ${itemToCraft.transActor.name}');
 				dropHeldObject(true);
 				return true;
 			}
@@ -902,15 +829,12 @@ class Ai {
 			// go through all close by objects and map them to the best transition
 			for (ty in baseY - radius...baseY + radius) {
 				for (tx in baseX - radius...baseX + radius) {
-					if (this.isObjectNotReachable(tx, ty))
-						continue;
+					if (this.isObjectNotReachable(tx, ty)) continue;
 
 					var objData = world.getObjectDataAtPosition(tx, ty);
 
-					if (objData.id == 0)
-						continue;
-					if (objData.dummyParent != null)
-						objData = objData.dummyParent; // use parent objectdata
+					if (objData.id == 0) continue;
+					if (objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
 
 					// Ignore container with stuff inside
 					// TODO consider contained objects
@@ -924,16 +848,14 @@ class Ai {
 
 					// check if object can be used to craft item
 					var trans = transitionsByObjectId[objData.id];
-					if (trans == null)
-						continue; // object is not useful for crafting wanted object
+					if (trans == null) continue; // object is not useful for crafting wanted object
 
 					var steps = trans.steps;
 					var obj = world.getObjectHelper(tx, ty);
 					var objQuadDistance = myPlayer.CalculateDistanceToObject(obj);
 
 					if (trans.closestObject == null || trans.closestObjectDistance > objQuadDistance) {
-						if (objQuadDistance > 4 && AiHelper.IsDangerous(myPlayer, obj))
-							continue;
+						if (objQuadDistance > 4 && AiHelper.IsDangerous(myPlayer, obj)) continue;
 
 						trans.secondObject = trans.closestObject;
 						trans.secondObjectDistance = trans.closestObjectDistance;
@@ -945,8 +867,7 @@ class Ai {
 					}
 
 					if (trans.secondObject == null || trans.secondObjectDistance > objQuadDistance) {
-						if (objQuadDistance > 4 && AiHelper.IsDangerous(myPlayer, obj))
-							continue;
+						if (objQuadDistance > 4 && AiHelper.IsDangerous(myPlayer, obj)) continue;
 
 						trans.secondObject = obj;
 						trans.secondObjectDistance = objQuadDistance;
@@ -960,8 +881,7 @@ class Ai {
 
 			searchBestTransitionTopDown(itemToCraft);
 
-			if (itemToCraft.transActor != null)
-				return itemToCraft;
+			if (itemToCraft.transActor != null) return itemToCraft;
 		}
 
 		return itemToCraft;
@@ -990,8 +910,7 @@ class Ai {
 		var objToCraft = ObjectData.getObjectData(objToCraftId);
 
 		while (objectsToSearch.length > 0) {
-			if (count > 30000)
-				break;
+			if (count > 30000) break;
 
 			var wantedId = objectsToSearch.shift();
 			var wanted = ObjectData.getObjectData(wantedId);
@@ -999,8 +918,7 @@ class Ai {
 			// var obj = transitionsByObjectId[wantedId];
 			// var desc = obj == null ? 'NA' : ObjectData.getObjectData(obj.wantedObjId).name;
 
-			if (wanted.carftingSteps < 0)
-				continue; // TODO should not be < 0 if all transitions work
+			if (wanted.carftingSteps < 0) continue; // TODO should not be < 0 if all transitions work
 			// if(wanted.carftingSteps > objToCraft.carftingSteps + 5 || wanted.carftingSteps < 0) continue;
 			// traif(ServerSettings.DebugAi) tracece('Ai: craft: count: $count todo: ${objectsToSearch.length} wanted: ${wanted.description} --> $desc steps: ${wanted.carftingSteps} > ${objToCraft.carftingSteps}');
 
@@ -1013,10 +931,8 @@ class Ai {
 			var transitions = world.getTransitionByNewTarget(wantedId);
 			found = found || DoTransitionSearch(itemToCraft, wantedId, objectsToSearch, transitions);
 
-			if (itemToCraft.transActor != null)
-				break;
-			if (itemToCraft.bestDistance < 100)
-				break;
+			if (itemToCraft.transActor != null) break;
+			if (itemToCraft.bestDistance < 100) break;
 		}
 
 		var obj = ObjectData.getObjectData(objToCraftId);
@@ -1041,14 +957,11 @@ class Ai {
 
 		for (trans in transitions) {
 			// if(ServerSettings.DebugAi) trace('Ai: craft: ' + trans.getDesciption());
-			if (trans.actorID == wantedId || trans.actorID == objToCraftId)
-				continue;
-			if (trans.targetID == wantedId || trans.targetID == objToCraftId)
-				continue;
+			if (trans.actorID == wantedId || trans.actorID == objToCraftId) continue;
+			if (trans.targetID == wantedId || trans.targetID == objToCraftId) continue;
 
 			// a oven needs 15 sec to warm up this is ok, but waiting for mushroom to grow is little bit too long!
-			if (trans.calculateTimeToChange() > ServerSettings.AiIgnoreTimeTransitionsLongerThen)
-				continue;
+			if (trans.calculateTimeToChange() > ServerSettings.AiIgnoreTimeTransitionsLongerThen) continue;
 
 			var actor = transitionsByObjectId[trans.actorID];
 			var target = transitionsByObjectId[trans.targetID];
@@ -1106,10 +1019,8 @@ class Ai {
 				objectsToSearch.push(target.objId);
 			}
 
-			if (actorObj == null && actor.craftActor == null)
-				continue;
-			if (targetObj == null && target.craftActor == null)
-				continue;
+			if (actorObj == null && actor.craftActor == null) continue;
+			if (targetObj == null && target.craftActor == null) continue;
 
 			found = true;
 
@@ -1140,13 +1051,11 @@ class Ai {
 					obj.craftFrom = wanted;
 
 					// objectsToSearch.remove(obj.objId);
-					if (objectsToSearch.contains(obj.objId) == false)
-						objectsToSearch.unshift(obj.objId);
+					if (objectsToSearch.contains(obj.objId) == false) objectsToSearch.unshift(obj.objId);
 				}
 			}
 
-			if (wantedId != objToCraftId)
-				continue;
+			if (wantedId != objToCraftId) continue;
 
 			var dist = actor.closestObjectDistance;
 
@@ -1194,14 +1103,11 @@ class Ai {
 		itemToCraft.craftingTransitions = new Array<TransitionData>();
 
 		for (i in 0...100) {
-			if (obj.craftFrom == null)
-				break;
-			if (itemToCraft.craftingList.contains(obj.craftFrom.objId))
-				break; // TODO look why there is a circle?
+			if (obj.craftFrom == null) break;
+			if (itemToCraft.craftingList.contains(obj.craftFrom.objId)) break; // TODO look why there is a circle?
 
 			itemToCraft.craftingList.unshift(obj.craftFrom.objId);
-			if (obj.craftTransFrom != null)
-				itemToCraft.craftingTransitions.unshift(obj.craftTransFrom);
+			if (obj.craftTransFrom != null) itemToCraft.craftingTransitions.unshift(obj.craftTransFrom);
 
 			obj = transitionsByObjectId[obj.craftFrom.objId];
 		}
@@ -1258,10 +1164,8 @@ class Ai {
 		}
 
 		var objToCraft = ObjectData.getObjectData(itemToCraft.itemToCraft.id);
-		if (ServerSettings.DebugAiCrafting)
-			trace('Ai: craft DONE items: ${objToCraft.name}: ${itemToCraft.craftingList.length} $text');
-		if (ServerSettings.DebugAiCrafting)
-			trace('Ai: craft DONE trans: ${objToCraft.name}: ${itemToCraft.craftingTransitions.length} $textTrans');
+		if (ServerSettings.DebugAiCrafting) trace('Ai: craft DONE items: ${objToCraft.name}: ${itemToCraft.craftingList.length} $text');
+		if (ServerSettings.DebugAiCrafting) trace('Ai: craft DONE trans: ${objToCraft.name}: ${itemToCraft.craftingTransitions.length} $textTrans');
 	}
 
 	private function isMovingToPlayer(maxDistance = 10, followHuman:Bool = true):Bool {
@@ -1272,8 +1176,7 @@ class Ai {
 				// get close human player
 				playerToFollow = myPlayer.getWorld().getClosestPlayer(20, followHuman);
 
-				if (playerToFollow == null)
-					return false;
+				if (playerToFollow == null) return false;
 
 				// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} follow player ${playerToFollow.p_id}');
 			}
@@ -1288,9 +1191,8 @@ class Ai {
 			var done = myPlayer.gotoAdv(playerToFollow.tx + randX, playerToFollow.ty + randY);
 			myPlayer.say('${playerToFollow.name}');
 
-			if (myPlayer.isAi())
-				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} dist: $distance goto player $done');
+			if (myPlayer.isAi()) if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} dist: $distance goto player $done');
 
 			return true;
 		}
@@ -1300,16 +1202,13 @@ class Ai {
 
 	// returns true if in process of dropping item
 	private function isDropingItem():Bool {
-		if (dropTarget == null)
-			return false;
+		if (dropTarget == null) return false;
 		if (myPlayer.isStillExpectedItem(dropTarget) == false) {
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} dropTarget changed meanwhile! ${dropTarget.name}');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} dropTarget changed meanwhile! ${dropTarget.name}');
 			dropTarget = null;
 			return false;
 		}
-		if (myPlayer.isMoving())
-			return true;
+		if (myPlayer.isMoving()) return true;
 
 		var distance = myPlayer.CalculateDistanceToObject(dropTarget);
 		// var myPlayer = myPlayer.getPlayerInstance();
@@ -1319,17 +1218,14 @@ class Ai {
 			for (i in 0...5) {
 				done = myPlayer.gotoObj(dropTarget);
 
-				if (done)
-					break;
+				if (done) break;
 
 				dropTarget = myPlayer.GetClosestObjectById(0); // empty
 			}
 
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} goto drop: $done ${dropTarget.name} distance: $distance');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto drop: $done ${dropTarget.name} distance: $distance');
 		} else {
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} drop ${myPlayer.heldObject.description}');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop ${myPlayer.heldObject.description}');
 
 			myPlayer.drop(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
 
@@ -1340,8 +1236,7 @@ class Ai {
 	}
 
 	private function isPickingupFood():Bool {
-		if (foodTarget == null)
-			return false;
+		if (foodTarget == null) return false;
 
 		var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
 		if (heldObjectIsEatable) {
@@ -1351,25 +1246,21 @@ class Ai {
 
 		// check if food is still eatable. Maybe some one eat it
 		if (myPlayer.isEatableCheckAgain(foodTarget) == false) {
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} ${foodTarget.description} ${foodTarget.id} food changed meanwhile!');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} ${foodTarget.description} ${foodTarget.id} food changed meanwhile!');
 
 			foodTarget = null;
 			return true;
 		}
 
-		if (myPlayer.isMoving())
-			return true;
+		if (myPlayer.isMoving()) return true;
 
 		var distance = myPlayer.CalculateDistanceToObject(foodTarget);
 		if (distance > 1) {
 			var done = myPlayer.gotoObj(foodTarget);
 
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} goto food target $done');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto food target $done');
 
-			if (done == false)
-				foodTarget = null; // search another one
+			if (done == false) foodTarget = null; // search another one
 
 			return true;
 		}
@@ -1378,8 +1269,7 @@ class Ai {
 		if (heldPlayer != null) {
 			var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
 
-			if (ServerSettings.DebugAi || done == false)
-				trace('AAI: ${myPlayer.name + myPlayer.id} child drop for eating ${heldPlayer.name} $done');
+			if (ServerSettings.DebugAi || done == false) trace('AAI: ${myPlayer.name + myPlayer.id} child drop for eating ${heldPlayer.name} $done');
 
 			return true;
 		}
@@ -1387,20 +1277,17 @@ class Ai {
 		// if(ServerSettings.DebugAi) trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
 
 		if (myPlayer.heldObject.id != 0) {
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to eat');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to eat');
 			dropHeldObject();
 			return true;
 		}
 
 		// x,y is relativ to birth position, since this is the center of the universe for a player
 		var done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
-		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} pickup food: $done');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} pickup food: $done');
 
 		if (done == false) {
-			if (ServerSettings.DebugAi)
-				trace('AI: food Use failed! Ignore ${foodTarget.tx} ${foodTarget.ty} ');
+			if (ServerSettings.DebugAi) trace('AI: food Use failed! Ignore ${foodTarget.tx} ${foodTarget.ty} ');
 
 			// TODO check why use is failed... for now add to ignore list
 			this.addNotReachableObject(foodTarget, 30);
@@ -1415,12 +1302,9 @@ class Ai {
 	}
 
 	private function isEating():Bool {
-		if (myPlayer.age < ServerSettings.MinAgeToEat)
-			return false;
-		if (myPlayer.canEat(myPlayer.heldObject) == false)
-			return false;
-		if (isHungry == false && myPlayer.isHoldingYum() == false)
-			return false;
+		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
+		if (myPlayer.canEat(myPlayer.heldObject) == false) return false;
+		if (isHungry == false && myPlayer.isHoldingYum() == false) return false;
 
 		// var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
 		// if(heldObjectIsEatable == false) return false;
@@ -1435,8 +1319,7 @@ class Ai {
 		this.didNotReachFood = 0;
 		foodTarget = null;
 
-		if (myPlayer.heldObject.objectData.foodValue <= 0)
-			dropHeldObject(); // drop for example banana peal
+		if (myPlayer.heldObject.objectData.foodValue <= 0) dropHeldObject(); // drop for example banana peal
 		return true;
 	}
 
@@ -1449,12 +1332,10 @@ class Ai {
 			isHungry = player.food_store < Math.min(3, player.food_store_max * 0.4);
 		}
 
-		if (isHungry && foodTarget == null)
-			searchFoodAndEat();
+		if (isHungry && foodTarget == null) searchFoodAndEat();
 
 		// myPlayer.say('F ${Math.round(myPlayer.getPlayerInstance().food_store)}'); // for debugging
-		if (isHungry && myPlayer.age < ServerSettings.MaxChildAgeForBreastFeeding)
-			myPlayer.say('F');
+		if (isHungry && myPlayer.age < ServerSettings.MaxChildAgeForBreastFeeding) myPlayer.say('F');
 
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');
 
@@ -1462,11 +1343,9 @@ class Ai {
 	}
 
 	private function isUsingItem():Bool {
-		if (useTarget == null)
-			return false;
+		if (useTarget == null) return false;
 		if (myPlayer.isStillExpectedItem(useTarget) == false) {
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} Use target changed meanwhile! ${useTarget.name}');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use target changed meanwhile! ${useTarget.name}');
 			useTarget = null;
 			return false;
 		}
@@ -1484,8 +1363,7 @@ class Ai {
 
 			return false;
 		}
-		if (myPlayer.isMoving())
-			return true;
+		if (myPlayer.isMoving()) return true;
 
 		var distance = myPlayer.CalculateDistanceToObject(useTarget);
 		if (ServerSettings.DebugAi)
@@ -1494,12 +1372,9 @@ class Ai {
 		if (distance > 1) {
 			var name = useTarget.name;
 			var done = myPlayer.gotoObj(useTarget);
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} goto useItem ${name} $done');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto useItem ${name} $done');
 
-			if (done)
-				myPlayer.say('Goto ${name} for use!');
-			else
+			if (done) myPlayer.say('Goto ${name} for use!'); else
 				myPlayer.say('Cannot Goto ${name} for use!');
 
 			/*
@@ -1519,16 +1394,14 @@ class Ai {
 		if (heldPlayer != null) {
 			var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
 
-			if (ServerSettings.DebugAi || done == false)
-				trace('AAI: ${myPlayer.name + myPlayer.id} child drop for using ${heldPlayer.name} $done');
+			if (ServerSettings.DebugAi || done == false) trace('AAI: ${myPlayer.name + myPlayer.id} child drop for using ${heldPlayer.name} $done');
 
 			return true;
 		}
 
 		// Drop object to pickup actor
 		if (myPlayer.heldObject.id != 0 && useActor.id == 0) {
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop obj to to have empty hand');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop obj to to have empty hand');
 			dropHeldObject();
 			return true;
 		}
@@ -1541,14 +1414,13 @@ class Ai {
 			itemToCraft.countTransitionsDone += 1;
 			var taregtObjectId = myPlayer.getWorld().getObjectId(useTarget.tx, useTarget.ty)[0];
 			// if object to create is held by player or is on ground, then cound as done
-			if (myPlayer.heldObject.parentId == itemToCraft.itemToCraft.parentId || taregtObjectId == itemToCraft.itemToCraft.parentId)
-				itemToCraft.countDone += 1;
+			if (myPlayer.heldObject.parentId == itemToCraft.itemToCraft.parentId
+				|| taregtObjectId == itemToCraft.itemToCraft.parentId) itemToCraft.countDone += 1;
 
 			if (ServerSettings.DebugAi)
 				trace('AAI: FINISHED done: ${useTarget.name} ItemToCraft: ${itemToCraft.itemToCraft.name} transtions: ${itemToCraft.countTransitionsDone} done: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
 		} else {
-			if (ServerSettings.DebugAi)
-				trace('AAI: Use failed! Ignore: ${useTarget.name} ${useTarget.tx} ${useTarget.ty} ');
+			if (ServerSettings.DebugAi) trace('AAI: Use failed! Ignore: ${useTarget.name} ${useTarget.tx} ${useTarget.ty} ');
 
 			// TODO check why use is failed... for now add to ignore list
 			// TODO dont use on contained objects if result cannot contain (ignore in crafting search)
@@ -1564,8 +1436,7 @@ class Ai {
 	}
 
 	public function addObjectWithHostilePath(obj:ObjectHelper) {
-		if (obj == null)
-			return;
+		if (obj == null) return;
 		var index = WorldMap.world.index(obj.tx, obj.ty);
 		objectsWithHostilePath[index] = 20; // block for 30 sec
 	}

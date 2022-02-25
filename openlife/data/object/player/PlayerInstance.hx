@@ -177,8 +177,7 @@ class PlayerInstance {
 	public function new(a:Array<String>) {
 		this.a = a;
 		// var name = Reflect.fields(this);
-		if (a.length < 23 + 1)
-			return;
+		if (a.length < 23 + 1) return;
 		p_id = int();
 		po_id = int();
 		facing = int();
@@ -205,14 +204,11 @@ class PlayerInstance {
 		clothing_set = string();
 		just_ate = int();
 		responsible_id = int();
-		if (a.length <= 23)
-			return;
+		if (a.length <= 23) return;
 		held_yum = a[i++] == "1";
-		if (a.length <= 24)
-			return;
+		if (a.length <= 24) return;
 		held_learned = a[i++] == "1";
-		if (deleted)
-			reason = a[i];
+		if (deleted) reason = a[i];
 	}
 
 	public var name(get, set):String;
@@ -314,18 +310,12 @@ class PlayerInstance {
 	public function toData(?rx:Int, ?ry:Int, ?age:Float, ?age_r:Float, ?move_speed:Float, heldObject:String = "", forPlayerOffsetX:Int = 0,
 			forPlayerOffsetY:Int = 0):String {
 		// o_origin_valid = 1;
-		if (heldObject == "")
-			heldObject = o_id[0] < 0 ? '${o_id[0]}' : MapData.stringID(o_id);
-		if (rx == null)
-			rx = this.x;
-		if (ry == null)
-			ry = this.y;
-		if (age == null)
-			age = this.age;
-		if (age_r == null)
-			age_r = this.age_r;
-		if (move_speed == null)
-			move_speed = this.move_speed;
+		if (heldObject == "") heldObject = o_id[0] < 0 ? '${o_id[0]}' : MapData.stringID(o_id);
+		if (rx == null) rx = this.x;
+		if (ry == null) ry = this.y;
+		if (age == null) age = this.age;
+		if (age_r == null) age_r = this.age_r;
+		if (move_speed == null) move_speed = this.move_speed;
 
 		var tmpHeat = Std.int(heat * 100) / 100;
 		age = Std.int(age * 100) / 100;
@@ -343,8 +333,7 @@ class PlayerInstance {
 			var isHuman = player != null && player.isHuman();
 
 			if (isHuman) {
-				if (player.connection.serverAi == null)
-					player.connection.serverAi = new ServerAi(player);
+				if (player.connection.serverAi == null) player.connection.serverAi = new ServerAi(player);
 				seqNum = 0; // set is held
 				player.food_store = 10;
 				player.hits = 0;

@@ -39,25 +39,20 @@ class NamingHelper {
 
 		var doFamilyName = text.startsWith('I AM');
 
-		if (doFamilyName == false && text.startsWith('YOU ARE') == false)
-			return text;
+		if (doFamilyName == false && text.startsWith('YOU ARE') == false) return text;
 
 		var targetPlayer = doFamilyName ? p : p.heldPlayer;
 
-		if (targetPlayer == null)
-			targetPlayer = p.getClosestPlayer(5); // 5
+		if (targetPlayer == null) targetPlayer = p.getClosestPlayer(5); // 5
 
 		// trace('TEST Naming2: $text');
 
-		if (targetPlayer == null)
-			return text;
+		if (targetPlayer == null) return text;
 
 		if (doFamilyName) {
 			// TODO allow to change name after some generations and with high prestiege
-			if (targetPlayer.familyName != ServerSettings.StartingFamilyName)
-				return text;
-		} else if (targetPlayer.name != ServerSettings.StartingName)
-			return text;
+			if (targetPlayer.familyName != ServerSettings.StartingFamilyName) return text;
+		} else if (targetPlayer.name != ServerSettings.StartingName) return text;
 
 		/*
 			var strings = text.split(' ');
@@ -68,20 +63,17 @@ class NamingHelper {
 
 		var nameFromText = GetName(text);
 
-		if (nameFromText.length < 2)
-			return text;
+		if (nameFromText.length < 2) return text;
 
 		// var r = ~/^[a-z]+$/i; // only letters
 		var r = ~/[^a-z]/i; // true if anything but letters
-		if (r.match(nameFromText))
-			return text; // return if there is anything but letters
+		if (r.match(nameFromText)) return text; // return if there is anything but letters
 
 		var name = doFamilyName ? nameFromText : GetNameFromList(nameFromText, p.isFemale());
 
 		trace('TEST Naming: $nameFromText ==> $name');
 
-		if (name == null)
-			return text;
+		if (name == null) return text;
 
 		text = text.replace(nameFromText, name);
 
@@ -139,8 +131,7 @@ class NamingHelper {
 		}
 
 		p.doEmote(Emote.happy); // dont worry be happy!
-		if (p != targetPlayer)
-			targetPlayer.doEmote(Emote.happy);
+		if (p != targetPlayer) targetPlayer.doEmote(Emote.happy);
 
 		return text;
 	}
@@ -148,8 +139,7 @@ class NamingHelper {
 	public static function GetName(text:String, nameFirst:Bool = false):String {
 		var strings = text.split(' ');
 
-		if (strings.length < 3)
-			return "";
+		if (strings.length < 3) return "";
 
 		var name = nameFirst ? strings[0] : strings[2];
 
@@ -171,10 +161,8 @@ class NamingHelper {
 	public static function GetPlayerByName(player:GlobalPlayerInstance, name:String):GlobalPlayerInstance {
 		// trace('Get Player name: $name');
 
-		if (name.length < 2)
-			return null;
-		if (name == "YOU")
-			return player.getClosestPlayer(6); // 6
+		if (name.length < 2) return null;
+		if (name == "YOU") return player.getClosestPlayer(6); // 6
 
 		var bestPlayer = null;
 		var bestDistance:Float = 10000; // 100 tiles
@@ -224,8 +212,7 @@ class NamingHelper {
 
 			var name = map[newName];
 
-			if (name != null && isUsedName(name) == false)
-				return name; // TODO save to a file if not in list so that they may be added
+			if (name != null && isUsedName(name) == false) return name; // TODO save to a file if not in list so that they may be added
 
 			for (ii in 1...newName.length - 1) {
 				var testName = newName.substr(0, newName.length - ii);
@@ -234,8 +221,7 @@ class NamingHelper {
 
 				for (n in map) {
 					if (StringTools.startsWith(n, testName) || StringTools.contains(n, testName)) {
-						if (isUsedName(name) == false)
-							return n;
+						if (isUsedName(name) == false) return n;
 					}
 				}
 			}
@@ -246,8 +232,7 @@ class NamingHelper {
 
 	private static function isUsedName(name:String):Bool {
 		for (p in GlobalPlayerInstance.AllPlayers) {
-			if (p.name == name)
-				return true;
+			if (p.name == name) return true;
 		}
 
 		return false;
@@ -297,8 +282,7 @@ class NamingHelper {
 				// if(StringTools.startsWith(name, 'SU')) trace('Name: $name index: $index $count');
 			}
 		} catch (ex) {
-			if (reader != null)
-				reader.close();
+			if (reader != null) reader.close();
 
 			if ('$ex' == 'Eof') {
 				reader.close();

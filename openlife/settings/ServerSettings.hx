@@ -279,12 +279,9 @@ class ServerSettings {
 				// trace('Settings: ${obj.description} ${obj.containSize}');
 			}
 
-			if (obj.description.indexOf("+owned") != -1)
-				obj.isOwned = true;
-			if (obj.description.indexOf("+tempOwned") != -1)
-				obj.isOwned = true;
-			if (obj.description.indexOf("+followerOwned") != -1)
-				obj.isOwned = true;
+			if (obj.description.indexOf("+owned") != -1) obj.isOwned = true;
+			if (obj.description.indexOf("+tempOwned") != -1) obj.isOwned = true;
+			if (obj.description.indexOf("+followerOwned") != -1) obj.isOwned = true;
 
 			// if( obj.isOwned) trace('isOwned: ${obj.description}');
 
@@ -872,8 +869,7 @@ class ServerSettings {
 		var dir = './${ServerSettings.SaveDirectory}/';
 		var path = dir + "ServerSettings.txt";
 
-		if (FileSystem.exists(dir) == false)
-			FileSystem.createDirectory(dir);
+		if (FileSystem.exists(dir) == false) FileSystem.createDirectory(dir);
 
 		var writer = File.write(path, false);
 
@@ -882,8 +878,7 @@ class ServerSettings {
 		var count = 0;
 
 		for (field in rtti.statics) {
-			if ('$field'.indexOf('CFunction') != -1)
-				continue;
+			if ('$field'.indexOf('CFunction') != -1) continue;
 			count++;
 			var value:Dynamic = Reflect.field(ServerSettings, field.name);
 
@@ -918,19 +913,16 @@ class ServerSettings {
 
 				// trace('Read: ${line}');
 
-				if (line.indexOf('**default**') != -1)
-					continue;
+				if (line.indexOf('**default**') != -1) continue;
 
 				var splitLine = line.split("=");
 
-				if (splitLine.length < 2)
-					continue;
+				if (splitLine.length < 2) continue;
 
 				splitLine[0] = StringTools.replace(splitLine[0], ' ', '');
 				// splitLine[1] = StringTools.replace(splitLine[1], '\n', '');
 
-				if (traceit)
-					trace('Load Setting: ${splitLine[0]} = ${splitLine[1]}');
+				if (traceit) trace('Load Setting: ${splitLine[0]} = ${splitLine[1]}');
 
 				var fieldName = splitLine[0];
 				var value:Dynamic = splitLine[1];
@@ -938,8 +930,7 @@ class ServerSettings {
 				if (splitLine[1].indexOf('"') != -1) {
 					var splitString = splitLine[1].split('"');
 
-					if (splitString.length < 3)
-						continue;
+					if (splitString.length < 3) continue;
 
 					value = splitString[1];
 				} else {
@@ -954,12 +945,10 @@ class ServerSettings {
 
 				var newValue:Dynamic = Reflect.field(ServerSettings, fieldName);
 
-				if ('$newValue' != '$oldValue')
-					trace('Setting changed: ${fieldName} = ${newValue} // old value: $oldValue');
+				if ('$newValue' != '$oldValue') trace('Setting changed: ${fieldName} = ${newValue} // old value: $oldValue');
 			}
 		} catch (ex) {
-			if (reader != null)
-				reader.close();
+			if (reader != null) reader.close();
 
 			trace(ex);
 

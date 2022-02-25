@@ -47,12 +47,10 @@ class ServerAi extends Ai {
 			return;
 		}
 
-		if (timeToRebirth == 0)
-			timeToRebirth = (ServerSettings.TimeToAiRebirth / 2) + WorldMap.calculateRandomFloat() * ServerSettings.TimeToAiRebirth;
+		if (timeToRebirth == 0) timeToRebirth = (ServerSettings.TimeToAiRebirth / 2) + WorldMap.calculateRandomFloat() * ServerSettings.TimeToAiRebirth;
 		timeToRebirth -= timePassedInSeconds;
 
-		if (timeToRebirth > 0)
-			return;
+		if (timeToRebirth > 0) return;
 		timeToRebirth = 0;
 		// trace('doRebirth: ');
 

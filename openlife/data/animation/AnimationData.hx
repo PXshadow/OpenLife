@@ -22,11 +22,9 @@ class AnimationData extends openlife.data.LineReader {
 		record = new Vector<AnimationRecord>(5 + 1);
 		for (i in 0...5 + 1) {
 			// skip 3
-			if (i == 3)
-				continue;
+			if (i == 3) continue;
 			// read lines
-			if (!readLines(Resource.animation(id, i)))
-				return;
+			if (!readLines(Resource.animation(id, i))) return;
 			record[i] = process();
 		}
 		line = null;
@@ -44,8 +42,7 @@ class AnimationData extends openlife.data.LineReader {
 		var string = getString();
 		var cut:Int = string.indexOf(",");
 		var sep = string.indexOf(":");
-		if (animation.type == moving)
-			trace("moving process");
+		if (animation.type == moving) trace("moving process");
 		if (sep == -1) {
 			sep = cut;
 		} else {
@@ -100,11 +97,9 @@ class AnimationData extends openlife.data.LineReader {
 		animation.numSlots = getInt();
 		// sprites
 		#if neko
-		if (animation.numSprites == null)
-			return animation;
+		if (animation.numSprites == null) return animation;
 		#end
-		if (animation.numSprites <= 0)
-			return animation;
+		if (animation.numSprites <= 0) return animation;
 		animation.params = new Vector<AnimationParameter>(animation.numSprites);
 		for (i in 0...animation.params.length)
 			animation.params[i] = processParam();

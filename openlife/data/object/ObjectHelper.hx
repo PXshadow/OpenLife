@@ -49,10 +49,8 @@ class ObjectHelper {
 
 		// trace('Wrtie to file: $path width: $width height: $height length: $length');
 
-		if (width * height != length)
-			throw new Exception('width * height != length');
-		if (objHelpersToWrite.length != length)
-			throw new Exception('objHelpersToWrite.length != length');
+		if (width * height != length) throw new Exception('width * height != length');
+		if (objHelpersToWrite.length != length) throw new Exception('objHelpersToWrite.length != length');
 
 		var count = 0;
 		var dataVersion = 4;
@@ -63,8 +61,7 @@ class ObjectHelper {
 		writer.writeInt32(height);
 
 		for (obj in objHelpersToWrite) {
-			if (obj == null)
-				continue;
+			if (obj == null) continue;
 			count++;
 			WriteToFile(obj, writer);
 		}
@@ -73,8 +70,7 @@ class ObjectHelper {
 
 		writer.close();
 
-		if (ServerSettings.DebugWrite)
-			trace('wrote $count ObjectHelpers...');
+		if (ServerSettings.DebugWrite) trace('wrote $count ObjectHelpers...');
 	}
 
 	public static function ReadMapObjHelpers(path:String):Vector<ObjectHelper> {
@@ -92,20 +88,16 @@ class ObjectHelper {
 
 		if (dataVersion != expectedDataVersion)
 			throw new Exception('ReadMapObjHelpers: Data version is: $dataVersion expected data version is: $expectedDataVersion');
-		if (width != world.width)
-			throw new Exception('width != this.width');
-		if (height != world.height)
-			throw new Exception('height != this.height');
-		if (length != world.length)
-			throw new Exception('length != this.length');
+		if (width != world.width) throw new Exception('width != this.width');
+		if (height != world.height) throw new Exception('height != this.height');
+		if (length != world.length) throw new Exception('length != this.length');
 
 		trace('Read from file: $path width: $width height: $height length: $length');
 
 		try {
 			while (reader.eof() == false) {
 				var newObject = ReadFromFile(reader);
-				if (newObject == null)
-					break;
+				if (newObject == null) break;
 				count++;
 				// trace('read: $count');
 				world.setObjectHelper(newObject.tx, newObject.ty, newObject);
@@ -151,10 +143,8 @@ class ObjectHelper {
 
 	public static function ReadFromFile(reader:FileInput):ObjectHelper {
 		var array = WorldMap.ReadInt32Array(reader);
-		if (array == null)
-			return null; // reached the end
-		if (array[0] == -100)
-			return null;
+		if (array == null) return null; // reached the end
+		if (array[0] == -100) return null;
 
 		var newObject = ObjectHelper.readObjectHelper(null, array);
 		newObject.livingOwners = WorldMap.ReadInt32Array(reader);
@@ -165,21 +155,18 @@ class ObjectHelper {
 		newObject.creationTimeInTicks = reader.readDouble();
 		newObject.timeToChange = reader.readFloat();
 
-		if (newObject.creationTimeInTicks > TimeHelper.tick)
-			newObject.creationTimeInTicks = TimeHelper.tick;
+		if (newObject.creationTimeInTicks > TimeHelper.tick) newObject.creationTimeInTicks = TimeHelper.tick;
 		return newObject;
 	}
 
 	public static function InitObjectHelpersAfterRead() {
 		for (obj in WorldMap.world.objectHelpers) {
-			if (obj == null)
-				continue;
+			if (obj == null) continue;
 
 			if (obj.isGrave()) {
 				for (id in obj.ownersByPlayerAccount) {
 					var account = PlayerAccount.GetPlayerAccountById(id);
-					if (account == null)
-						continue;
+					if (account == null) continue;
 
 					account.graves.push(obj);
 				}
@@ -192,8 +179,7 @@ class ObjectHelper {
 						continue; // TODO warning
 					}
 
-					if (player.deleted)
-						obj.removeOwner(player);
+					if (player.deleted) obj.removeOwner(player);
 					player.owning.push(obj);
 
 					trace('Owner: ${player.name}');
@@ -217,8 +203,7 @@ class ObjectHelper {
 
 		var helper = new ObjectHelper(creator, id);
 
-		if (isInSubcontainer)
-			return helper;
+		if (isInSubcontainer) return helper;
 
 		i++;
 
@@ -231,8 +216,7 @@ class ObjectHelper {
 			}
 
 			// in subcontainer contained items must be negative, so return if there is no negative item
-			if (isFirst == false && ids[i] >= 0)
-				return helper;
+			if (isFirst == false && ids[i] >= 0) return helper;
 
 			var item = readObjectHelper(creator, ids, i);
 			helper.containedObjects.push(item);
@@ -261,9 +245,7 @@ class ObjectHelper {
 		ids.push(this.objectData.id);
 
 		for (item in containedObjects) {
-			if (first)
-				item.writeObjectHelper(ids);
-			else
+			if (first) item.writeObjectHelper(ids); else
 				item.writeObjectHelper(ids, true);
 		}
 
@@ -306,8 +288,7 @@ class ObjectHelper {
 	public var parentId(get, null):Int;
 
 	public function get_parentId() {
-		if (objectData.dummyParent != null)
-			return objectData.dummyParent.id;
+		if (objectData.dummyParent != null) return objectData.dummyParent.id;
 
 		return objectData.id;
 	}
@@ -319,12 +300,10 @@ class ObjectHelper {
 	}
 
 	public function set_id(newID) {
-		if (this.id == newID)
-			return newID;
+		if (this.id == newID) return newID;
 
 		var newObjectData = ObjectData.getObjectData(newID);
-		if (newObjectData == null)
-			throw new Exception('No ObjectData for: ${newID}');
+		if (newObjectData == null) throw new Exception('No ObjectData for: ${newID}');
 
 		if (this.containedObjects.length > newObjectData.numSlots) {
 			var obj = ObjectData.getObjectData(this.containedObjects[0].id);
@@ -339,8 +318,7 @@ class ObjectHelper {
 	}
 
 	public function dummyId():Int {
-		if (objectData.dummyObjects.length <= 0 || numberOfUses == objectData.numUses)
-			return objectData.id;
+		if (objectData.dummyObjects.length <= 0 || numberOfUses == objectData.numUses) return objectData.id;
 
 		return objectData.dummyObjects[numberOfUses - 1].id;
 	}
@@ -350,8 +328,7 @@ class ObjectHelper {
 	}
 
 	public function isNeverDrop() {
-		if (objectData.neverDrop)
-			return true;
+		if (objectData.neverDrop) return true;
 		return StringTools.contains(objectData.description, '+neverDrop');
 	}
 
@@ -369,8 +346,7 @@ class ObjectHelper {
 			else
 				trace('Name: ${objectData.id} ${objectData.name} --> ${objectData.dummyParent.name} ${objectData.dummyParent.description}');
 		 */
-		if (objectData.dummyParent != null)
-			return objectData.dummyParent.name;
+		if (objectData.dummyParent != null) return objectData.dummyParent.name;
 		return objectData.name;
 	}
 
@@ -380,8 +356,7 @@ class ObjectHelper {
 	}
 
 	public function getCreatorId():Int {
-		if (this.livingOwners.length < 1)
-			return -1;
+		if (this.livingOwners.length < 1) return -1;
 		return this.livingOwners[0];
 	}
 
@@ -408,12 +383,10 @@ class ObjectHelper {
 	}
 
 	public static function CalculateTimeToChangeForObj(obj:ObjectHelper):Float {
-		if (obj == null)
-			return 0;
+		if (obj == null) return 0;
 
 		var timeTransition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
-		if (timeTransition == null)
-			return 0;
+		if (timeTransition == null) return 0;
 
 		// trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');
 
@@ -423,12 +396,10 @@ class ObjectHelper {
 	public function TransformToDummy() {
 		var obj:ObjectHelper = this;
 		var objectData = obj.objectData;
-		if (objectData.dummyParent != null)
-			objectData = objectData.dummyParent;
+		if (objectData.dummyParent != null) objectData = objectData.dummyParent;
 
 		// if it has not more uses then one, or can get more used by undo (like empty berry bush with a new berry), then there is nothing to do
-		if (objectData.numUses < 2 && objectData.undoLastUseObject == 0)
-			return;
+		if (objectData.numUses < 2 && objectData.undoLastUseObject == 0) return;
 
 		if (obj.numberOfUses < 1) {
 			if (objectData.lastUseObject != 0) {
@@ -497,10 +468,8 @@ class ObjectHelper {
 	}
 
 	public function isWound():Bool {
-		if (StringTools.contains(description, 'Snake Bite'))
-			return true;
-		if (StringTools.contains(description, 'Hog Cut'))
-			return true;
+		if (StringTools.contains(description, 'Snake Bite')) return true;
+		if (StringTools.contains(description, 'Hog Cut')) return true;
 		return StringTools.contains(description, 'Wound');
 	}
 
@@ -537,13 +506,11 @@ class ObjectHelper {
 	}
 
 	public function addOwner(player:GlobalPlayerInstance) {
-		if (isOwnedByPlayer(player))
-			return;
+		if (isOwnedByPlayer(player)) return;
 
 		livingOwners.push(player.p_id);
 
-		if (ownersByPlayerAccount.contains(player.account.id))
-			return;
+		if (ownersByPlayerAccount.contains(player.account.id)) return;
 		ownersByPlayerAccount.push(player.account.id);
 	}
 
@@ -554,8 +521,7 @@ class ObjectHelper {
 
 	// is called from TransitionHelper
 	public static function DoOwnerShip(obj:ObjectHelper, player:GlobalPlayerInstance) {
-		if (obj.objectData.isOwned == false)
-			return;
+		if (obj.objectData.isOwned == false) return;
 
 		obj.livingOwners = new Array<Int>(); // clear all former owners
 		obj.ownersByPlayerAccount = new Array<Int>(); // clear all former owners
@@ -582,40 +548,27 @@ class ObjectHelper {
 		var grave:ObjectHelper = this;
 		var objData = grave.objectData;
 
-		if (objData.id == 87)
-			return true; // Fresh Grave
-		if (objData.id == 88)
-			return true; // Grave
-		if (objData.id == 89)
-			return true; // Old Grave
-		if (objData.id == 356)
-			return true; // Basket of Bones
-		if (objData.id == 357)
-			return true; // Bone Pile
+		if (objData.id == 87) return true; // Fresh Grave
+		if (objData.id == 88) return true; // Grave
+		if (objData.id == 89) return true; // Old Grave
+		if (objData.id == 356) return true; // Basket of Bones
+		if (objData.id == 357) return true; // Bone Pile
 
-		if (objData.id == 1920)
-			return true; // Baby Bones
-		if (objData.id == 3051)
-			return true; // Baby Bone Pile
-		if (objData.id == 3052)
-			return true; // Basket of Baby Bones
+		if (objData.id == 1920) return true; // Baby Bones
+		if (objData.id == 3051) return true; // Baby Bone Pile
+		if (objData.id == 3052) return true; // Basket of Baby Bones
 
-		if (objData.id == 3195)
-			return true; // Defaced Bone Pile
-		if (objData.id == 3196)
-			return true; // Basket of Defaced Bones
+		if (objData.id == 3195) return true; // Defaced Bone Pile
+		if (objData.id == 3196) return true; // Basket of Defaced Bones
 
-		if (objData.id == 752)
-			return true; // Murder Grave
-		if (objData.id == 1011)
-			return true; // Buried Grave
+		if (objData.id == 752) return true; // Murder Grave
+		if (objData.id == 1011) return true; // Buried Grave
 
 		return false;
 	}
 
 	public function isGraveWithGraveStone():Bool {
-		if (this.id == 1011)
-			return false; // Buried Grave
+		if (this.id == 1011) return false; // Buried Grave
 
 		return isBoneGrave() == false;
 	}

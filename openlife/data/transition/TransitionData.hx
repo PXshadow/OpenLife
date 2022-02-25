@@ -134,12 +134,9 @@ class TransitionData {
 	}
 
 	public function calculateDecay(seconds:Int):String {
-		if (seconds < 0)
-			return '${- seconds} hours';
-		if (seconds > 0 && seconds % 60 == 0)
-			return '${seconds / 60} minutes';
-		if (seconds > 0)
-			return '$seconds seconds';
+		if (seconds < 0) return '${- seconds} hours';
+		if (seconds > 0 && seconds % 60 == 0) return '${seconds / 60} minutes';
+		if (seconds > 0) return '$seconds seconds';
 		return "";
 	}
 
@@ -196,14 +193,10 @@ class TransitionData {
 		var newActorDescription = "";
 		var newTargetDescription = "";
 
-		if (objectDataActor != null)
-			actorDescription = objectDataActor.description;
-		if (objectDataTarget != null)
-			targetDescription = objectDataTarget.description;
-		if (objectDataNewActor != null)
-			newActorDescription = objectDataNewActor.description;
-		if (objectDataNewTarget != null)
-			newTargetDescription = objectDataNewTarget.description;
+		if (objectDataActor != null) actorDescription = objectDataActor.description;
+		if (objectDataTarget != null) targetDescription = objectDataTarget.description;
+		if (objectDataNewActor != null) newActorDescription = objectDataNewActor.description;
+		if (objectDataNewTarget != null) newTargetDescription = objectDataNewTarget.description;
 
 		var dontTraceActor = actorDescription.indexOf(ServerSettings.traceTransitionByActorDescription) == -1;
 		var dontTraceTarget = targetDescription.indexOf(ServerSettings.traceTransitionByTargetDescription) == -1;
@@ -214,8 +207,7 @@ class TransitionData {
 			&& transition.actorID != ServerSettings.traceTransitionByActorId
 			&& transition.targetID != ServerSettings.traceTransitionByTargetId
 			&& transition.newActorID != ServerSettings.traceTransitionByNewActorId
-			&& transition.newTargetID != ServerSettings.traceTransitionByNewTargetId)
-			return;
+			&& transition.newTargetID != ServerSettings.traceTransitionByNewTargetId) return;
 
 		var description = getDesciption(smalTrace);
 
@@ -235,18 +227,13 @@ class TransitionData {
 		var newActorDescription = "";
 		var newTargetDescription = "";
 
-		if (objectDataActor != null)
-			actorDescription = objectDataActor.description;
-		if (objectDataTarget != null)
-			targetDescription = objectDataTarget.description;
-		if (objectDataNewActor != null)
-			newActorDescription = objectDataNewActor.description;
-		if (objectDataNewTarget != null)
-			newTargetDescription = objectDataNewTarget.description;
+		if (objectDataActor != null) actorDescription = objectDataActor.description;
+		if (objectDataTarget != null) targetDescription = objectDataTarget.description;
+		if (objectDataNewActor != null) newActorDescription = objectDataNewActor.description;
+		if (objectDataNewTarget != null) newTargetDescription = objectDataNewTarget.description;
 
-		if (smal)
-			return
-				'<${actorID}> + <${targetID}> = <${newActorID}> + <${newTargetID}> / $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n';
+		if (smal) return
+			'<${actorID}> + <${targetID}> = <${newActorID}> + <${newTargetID}> / $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n';
 		else
 			return '$transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n';
 	}

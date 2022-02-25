@@ -320,8 +320,7 @@ class WorldMap {
 	public function getObjectDataAtPosition(x:Int, y:Int):ObjectData {
 		var helper = objectHelpers[index(x, y)];
 
-		if (helper != null)
-			return helper.objectData;
+		if (helper != null) return helper.objectData;
 
 		var objId = getObjectId(x, y);
 
@@ -337,18 +336,15 @@ class WorldMap {
 		var position = index(tx, ty);
 		var helper = objectHelpers[position];
 
-		if (helper == null && allowNull)
-			return helper;
+		if (helper == null && allowNull) return helper;
 
 		if (helper != null && (index(helper.tx, helper.ty) != position)) {
 			trace('WARNING: Object ${helper.description} moved meanwhile! ${helper.tx} ${helper.ty} --> ${tx} ${ty}');
-			if (ServerSettings.debug)
-				throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
+			if (ServerSettings.debug) throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
 			helper = null;
 		}
 
-		if (helper != null)
-			return helper;
+		if (helper != null) return helper;
 
 		helper = ObjectHelper.readObjectHelper(null, getObjectId(tx, ty));
 		helper.tx = tx;
@@ -369,8 +365,7 @@ class WorldMap {
 
 	// sets objectHelper and also Object Ids on same Tile
 	public function setObjectHelper(x:Int, y:Int, helper:ObjectHelper) {
-		if (helper != null)
-			helper.TransformToDummy();
+		if (helper != null) helper.TransformToDummy();
 
 		// trace('objectHelper: $x,$y');
 		objectHelpers[index(x, y)] = helper;
@@ -397,8 +392,7 @@ class WorldMap {
 			throw new Exception(message);
 		}
 
-		if (deleteObjectHelperIfUseless(helper))
-			return;
+		if (deleteObjectHelperIfUseless(helper)) return;
 	}
 
 	// to save space keep ObjectHelper only if used to store number of uses, or has time transition...
@@ -465,14 +459,12 @@ class WorldMap {
 		y -= 1;
 		// make map round x wise
 		x = x % this.width;
-		if (x < 0)
-			x += this.width;
+		if (x < 0) x += this.width;
 		// else if(x >= this.width) x -= this.width;
 
 		// make map round y wise
 		y = y % this.height;
-		if (y < 0)
-			y += this.height;
+		if (y < 0) y += this.height;
 		// else if(y >= this.height) y -= this.height;
 
 		var i = x + y * width;
@@ -569,8 +561,7 @@ class WorldMap {
 
 		this.originalObjects = objects.copy();
 
-		if (ServerSettings.debug)
-			generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
+		if (ServerSettings.debug) generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
 	}
 
 	public function writeBackup() {
@@ -597,19 +588,15 @@ class WorldMap {
 
 		fixObjectIds('writing');
 
-		if (dir == null)
-			dir = './${ServerSettings.SaveDirectory}/';
+		if (dir == null) dir = './${ServerSettings.SaveDirectory}/';
 
-		if (FileSystem.exists(dir) == false)
-			FileSystem.createDirectory(dir);
+		if (FileSystem.exists(dir) == false) FileSystem.createDirectory(dir);
 
 		var tmpDataNumber = (saveDataNumber % 10) + 1;
 
-		if (saveOriginals)
-			writeMapBiomes(dir + ServerSettings.OriginalBiomesFileName + ".bin", originalBiomes);
+		if (saveOriginals) writeMapBiomes(dir + ServerSettings.OriginalBiomesFileName + ".bin", originalBiomes);
 
-		if (saveOriginals)
-			writeMapObjects(dir + ServerSettings.OriginalObjectsFileName + ".bin", originalObjects);
+		if (saveOriginals) writeMapObjects(dir + ServerSettings.OriginalObjectsFileName + ".bin", originalObjects);
 
 		writeMapBiomes(dir + ServerSettings.CurrentBiomesFileName + tmpDataNumber + ".bin", biomes);
 
@@ -624,8 +611,7 @@ class WorldMap {
 		PlayerAccount.WritePlayerAccounts(dir + "PlayerAccounts" + tmpDataNumber + ".bin");
 
 		Lineage.WriteAllLineages(dir + "Lineages" + tmpDataNumber + ".bin");
-		if (ServerSettings.SavePlayers)
-			GlobalPlayerInstance.WriteAllPlayers(dir + "Players" + tmpDataNumber + ".bin");
+		if (ServerSettings.SavePlayers) GlobalPlayerInstance.WriteAllPlayers(dir + "Players" + tmpDataNumber + ".bin");
 
 		writeIndexFile(dir + "lastDataNumber" + tmpDataNumber + ".txt", tmpDataNumber);
 		writeIndexFile(dir + "lastDataNumber.txt", tmpDataNumber);
@@ -666,8 +652,7 @@ class WorldMap {
 
 	private function fixObjectIds(desc:String) {
 		for (helper in objectHelpers) {
-			if (helper == null)
-				continue;
+			if (helper == null) continue;
 			var obj = getObjectId(helper.tx, helper.ty);
 
 			if (obj[0] != helper.dummyId()) {
@@ -739,8 +724,7 @@ class WorldMap {
 
 		Lineage.ReadAndSetLineages(dir + "Lineages" + saveDataNumber + ".bin");
 
-		if (ServerSettings.LoadPlayers)
-			GlobalPlayerInstance.ReadPlayers(dir + "Players" + saveDataNumber + ".bin");
+		if (ServerSettings.LoadPlayers) GlobalPlayerInstance.ReadPlayers(dir + "Players" + saveDataNumber + ".bin");
 
 		this.originalObjectsCount = countObjects(this.originalObjects);
 
@@ -756,10 +740,8 @@ class WorldMap {
 	public function writeMapBiomes(path:String, biomesToWrite:Vector<Int>) {
 		// trace('Wrtie to file: $path width: $width height: $height length: $length');
 
-		if (width * height != length)
-			throw new Exception('width * height != length');
-		if (biomesToWrite.length != length)
-			throw new Exception('biomesToWrite.length != length');
+		if (width * height != length) throw new Exception('width * height != length');
+		if (biomesToWrite.length != length) throw new Exception('biomesToWrite.length != length');
 
 		var writer = File.write(path, true);
 		var dataVersion = 1;
@@ -785,8 +767,7 @@ class WorldMap {
 
 		trace('Read from file: $path width: $width height: $height length: $length');
 
-		if (width * height != length)
-			throw new Exception('width * height != length');
+		if (width * height != length) throw new Exception('width * height != length');
 
 		for (i in 0...newBiomes.length) {
 			newBiomes[i] = reader.readInt8();
@@ -800,10 +781,8 @@ class WorldMap {
 	public function writeMapFloors(path:String, floorsToWrite:Vector<Int>) {
 		// trace('Wrtie to file: $path width: $width height: $height length: $length');
 
-		if (width * height != length)
-			throw new Exception('width * height != length');
-		if (floorsToWrite.length != length)
-			throw new Exception('floorsToWrite.length != length');
+		if (width * height != length) throw new Exception('width * height != length');
+		if (floorsToWrite.length != length) throw new Exception('floorsToWrite.length != length');
 
 		var writer = File.write(path, true);
 		var dataVersion = 1;
@@ -829,12 +808,9 @@ class WorldMap {
 
 		trace('Read from file: $path width: $width height: $height length: $length');
 
-		if (width != this.width)
-			throw new Exception('width != this.width');
-		if (height != this.height)
-			throw new Exception('height != this.height');
-		if (length != this.length)
-			throw new Exception('length != this.length');
+		if (width != this.width) throw new Exception('width != this.width');
+		if (height != this.height) throw new Exception('height != this.height');
+		if (length != this.length) throw new Exception('length != this.length');
 
 		for (i in 0...newFloors.length) {
 			newFloors[i] = reader.readInt32();
@@ -847,8 +823,7 @@ class WorldMap {
 
 	public function writeMapObjects(path:String, objectsToWrite:Vector<Array<Int>>) {
 		// trace('Wrtie to file: $path width: $width height: $height length: $length');
-		if (objectsToWrite.length != length)
-			throw new Exception('objectsToWrite.length != length');
+		if (objectsToWrite.length != length) throw new Exception('objectsToWrite.length != length');
 
 		var writer = File.write(path, true);
 		var dataVersion = 1;
@@ -882,12 +857,9 @@ class WorldMap {
 
 		trace('Read from file: $path width: $width height: $height length: $length');
 
-		if (width != this.width)
-			throw new Exception('width != this.width');
-		if (height != this.height)
-			throw new Exception('height != this.height');
-		if (length != this.length)
-			throw new Exception('length != this.length');
+		if (width != this.width) throw new Exception('width != this.width');
+		if (height != this.height) throw new Exception('height != this.height');
+		if (length != this.length) throw new Exception('length != this.length');
 
 		for (i in 0...newObjects.length) {
 			newObjects[i] = [reader.readInt32()];
@@ -902,8 +874,7 @@ class WorldMap {
 		var objList = new Map<Int, Int>();
 
 		for (obj in objectsToCount) {
-			if (obj[0] == 0)
-				continue;
+			if (obj[0] == 0) continue;
 
 			var objData = ObjectData.getObjectData(obj[0]);
 
@@ -914,12 +885,10 @@ class WorldMap {
 			objList[objData.parentId]++;
 		}
 
-		if (objHelpersToCount == null)
-			return objList;
+		if (objHelpersToCount == null) return objList;
 
 		for (obj in objHelpersToCount) {
-			if (obj == null)
-				continue;
+			if (obj == null) continue;
 
 			for (containedObj in obj.containedObjects) {
 				objList[containedObj.parentId]++;
@@ -939,8 +908,7 @@ class WorldMap {
 
 		for (y in 0...height) {
 			for (x in 0...width) {
-				if (tmpIsPlaced[index(x, y)])
-					continue;
+				if (tmpIsPlaced[index(x, y)]) continue;
 
 				var biome = getBiomeId(x, y);
 
@@ -950,8 +918,7 @@ class WorldMap {
 							var tmpX = x + ix;
 							var tmpY = y + iy;
 
-							if (tmpIsPlaced[index(tmpX, tmpY)])
-								continue;
+							if (tmpIsPlaced[index(tmpX, tmpY)]) continue;
 							var nextBiome = getBiomeId(tmpX, tmpY);
 
 							if ((biome == BiomeTag.RIVER || biome == BiomeTag.PASSABLERIVER) && ix * ix < 2 && iy * iy < 2) {
@@ -991,21 +958,17 @@ class WorldMap {
 				// if(x < 200 || x > 600) continue;
 
 				// if there is a object below allready continue
-				if (y > 0 && objects[x + (y - 1) * width][0] != 0)
-					continue;
-				if (randomFloat() > 0.4)
-					continue;
+				if (y > 0 && objects[x + (y - 1) * width][0] != 0) continue;
+				if (randomFloat() > 0.4) continue;
 				if (getBiomeId(x, y) == BiomeTag.PASSABLERIVER) {
-					if (randomFloat() > 0.3)
-						continue;
+					if (randomFloat() > 0.3) continue;
 
 					var isNearLand = getBiomeId(x + 1, y) == BiomeTag.GREEN;
 					isNearLand = isNearLand || getBiomeId(x - 1, y) == BiomeTag.GREEN;
 					isNearLand = isNearLand || getBiomeId(x, y + 1) == BiomeTag.GREEN;
 					isNearLand = isNearLand || getBiomeId(x, y - 1) == BiomeTag.GREEN;
 
-					if (isNearLand == false)
-						continue;
+					if (isNearLand == false) continue;
 
 					setObjectId(x, y, [141]); // Canada Goose Pond
 					continue;
@@ -1015,15 +978,13 @@ class WorldMap {
 
 				var biomeData = ObjectData.biomeObjectData[biomeInt];
 
-				if (biomeData == null)
-					continue;
+				if (biomeData == null) continue;
 
 				var random = randomFloat() * ObjectData.biomeTotalChance[biomeInt];
 				var sumChance = 0.0;
 
 				for (obj in biomeData) {
-					if (set)
-						continue;
+					if (set) continue;
 					var chance = obj.mapChance;
 					sumChance += chance;
 
@@ -1061,8 +1022,7 @@ class WorldMap {
 				// change muddy iron vein to loose muddy iron vein // TODO better patch the data
 				if (obj[0] == 942 || obj[0] == 3030) // 942 iron vein // 3030 Natural Spring
 				{
-					if (obj[0] == 942)
-						objects[x + y * width] = [3962]; // loose muddy iron vein
+					if (obj[0] == 942) objects[x + y * width] = [3962]; // loose muddy iron vein
 
 					// generate also some random stones
 					var random = randomInt(6) + 3;
@@ -1072,28 +1032,21 @@ class WorldMap {
 						var tx = x + randomInt(dist * 2) - dist;
 						var ty = y + randomInt(dist * 2) - dist;
 
-						if (((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) > dist * dist)
-							continue;
+						if (((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) > dist * dist) continue;
 
 						var biome = getBiomeId(tx, ty);
 
-						if (biome != BiomeTag.GREY && biome != BiomeTag.YELLOW && biome != BiomeTag.GREEN)
-							continue;
+						if (biome != BiomeTag.GREY && biome != BiomeTag.YELLOW && biome != BiomeTag.GREEN) continue;
 
-						if (getObjectId(tx, ty)[0] != 0)
-							continue;
-						if (getObjectId(tx, ty - 1)[0] != 0)
-							continue;
-						if (getObjectId(tx, ty + 1)[0] != 0)
-							continue;
-						if (getObjectId(tx - 1, ty)[0] != 0)
-							continue;
+						if (getObjectId(tx, ty)[0] != 0) continue;
+						if (getObjectId(tx, ty - 1)[0] != 0) continue;
+						if (getObjectId(tx, ty + 1)[0] != 0) continue;
+						if (getObjectId(tx - 1, ty)[0] != 0) continue;
 
 						setObjectId(tx, ty, [503]); // Dug Big Rock
 
 						random -= 1;
-						if (random <= 0)
-							break;
+						if (random <= 0) break;
 					}
 
 					/*
@@ -1119,18 +1072,14 @@ class WorldMap {
 
 				var tmpObj = getObjectId(x, y);
 
-				if (tmpObj[0] == 0)
-					continue;
+				if (tmpObj[0] == 0) continue;
 
-				if (tmpIsPlaced[index(x, y)])
-					continue;
+				if (tmpIsPlaced[index(x, y)]) continue;
 
 				// if obj is no iron, no tary spot and no spring there is a chance for winning lottery
-				if (ServerSettings.CanObjectRespawn(tmpObj[0]) == false)
-					continue;
+				if (ServerSettings.CanObjectRespawn(tmpObj[0]) == false) continue;
 
-				if (getBiomeId(x, y) == BiomeTag.PASSABLERIVER)
-					continue;
+				if (getBiomeId(x, y) == BiomeTag.PASSABLERIVER) continue;
 
 				if (randomFloat() < ServerSettings.ChanceForLuckySpot) {
 					// var objData = ObjectData.getObjectData(tmpObj[0]);
@@ -1144,29 +1093,22 @@ class WorldMap {
 						var tx = x + randomInt(dist * 2) - dist;
 						var ty = y + randomInt(dist * 2) - dist;
 
-						if (((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) > dist * dist)
-							continue;
+						if (((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) > dist * dist) continue;
 
 						var biomeId = getBiomeId(x, y);
 
-						if (biomeId != getBiomeId(tx, ty))
-							continue;
+						if (biomeId != getBiomeId(tx, ty)) continue;
 
-						if (getObjectId(tx, ty)[0] != 0)
-							continue;
-						if (getObjectId(tx, ty - 1)[0] != 0)
-							continue;
-						if (getObjectId(tx, ty + 1)[0] != 0)
-							continue;
-						if (getObjectId(tx - 1, ty)[0] != 0)
-							continue;
+						if (getObjectId(tx, ty)[0] != 0) continue;
+						if (getObjectId(tx, ty - 1)[0] != 0) continue;
+						if (getObjectId(tx, ty + 1)[0] != 0) continue;
+						if (getObjectId(tx - 1, ty)[0] != 0) continue;
 
 						tmpIsPlaced[index(tx, ty)] = true;
 						setObjectId(tx, ty, tmpObj);
 
 						random -= 1;
-						if (random <= 0)
-							break;
+						if (random <= 0) break;
 					}
 
 					// trace('lucky: ${objData.description} placed: ${tmpRandom-random} from $tmpRandom');
@@ -1236,14 +1178,12 @@ class WorldMap {
 
 		objectToPlace = TryPlaceObject(tx, ty, objectToPlace, allowReplaceObject);
 
-		if (objectToPlace == null)
-			return true;
+		if (objectToPlace == null) return true;
 
 		var distance = 1;
 
 		for (i in 1...10000) {
-			if (originalObjectToPlace != objectToPlace)
-				allowReplaceObject = false;
+			if (originalObjectToPlace != objectToPlace) allowReplaceObject = false;
 
 			distance = Math.ceil(i / (20 * distance * distance));
 			// trace('place $i distance: $distance');
@@ -1253,16 +1193,14 @@ class WorldMap {
 
 			objectToPlace = TryPlaceObject(tmpX, tmpY, objectToPlace, allowReplaceObject);
 
-			if (objectToPlace == null)
-				return true;
+			if (objectToPlace == null) return true;
 		}
 
 		return false;
 	}
 
 	private static function TryPlaceObject(x:Int, y:Int, objectToPlace:ObjectHelper, allowReplaceObject:Bool):ObjectHelper {
-		if (WorldMap.isBiomeBlocking(x, y))
-			return objectToPlace;
+		if (WorldMap.isBiomeBlocking(x, y)) return objectToPlace;
 
 		var world = Server.server.map;
 		var objId = world.getObjectId(x, y);
@@ -1316,10 +1254,8 @@ class WorldMap {
 		It should be included into io unfortunately not yet**/
 	public static function ReadInt32Array(reader:FileInput):Array<Int32> {
 		var arrayLength = reader.readInt8();
-		if (arrayLength == 100)
-			return null; // reached the end
-		if (arrayLength > 100)
-			throw new Exception('array length is: $arrayLength > 100');
+		if (arrayLength == 100) return null; // reached the end
+		if (arrayLength > 100) throw new Exception('array length is: $arrayLength > 100');
 
 		var newArray = new Array<Int>();
 

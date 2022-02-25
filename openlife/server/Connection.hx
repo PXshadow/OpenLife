@@ -36,8 +36,7 @@ class Connection {
 		var version = ObjectData.dataVersionNumber;
 
 		// if it is an AI there is no sock
-		if (sock != null)
-			send(SERVER_INFO, ["0/0", challenge, '$version']);
+		if (sock != null) send(SERVER_INFO, ["0/0", challenge, '$version']);
 	}
 
 	public function isAi():Bool {
@@ -139,8 +138,7 @@ class Connection {
 
 		// this.send(ClientTag.LOCATION_SAYS,['0 100 ! 30']);
 
-		if (player.mother != null)
-			this.sendMapLocation(player.mother, 'MOTHER', 'leader');
+		if (player.mother != null) this.sendMapLocation(player.mother, 'MOTHER', 'leader');
 
 		send(FRAME, null, true);
 	}
@@ -165,8 +163,7 @@ class Connection {
 		var livingHumans = new Array<GlobalPlayerInstance>();
 
 		for (c in connections) {
-			if (c.player.deleted)
-				continue;
+			if (c.player.deleted) continue;
 			livingHumans.push(c.player);
 		}
 
@@ -177,8 +174,7 @@ class Connection {
 		var livingAis = new Array<ServerAi>();
 
 		for (ai in ais) {
-			if (ai.player.deleted)
-				continue;
+			if (ai.player.deleted) continue;
 			livingAis.push(ai);
 		}
 
@@ -191,8 +187,7 @@ class Connection {
 			var targetX = tx - c.player.gx;
 			var targetY = ty - c.player.gy;
 
-			if (c.player.isClose(targetX, targetY, 20) == false)
-				continue;
+			if (c.player.isClose(targetX, targetY, 20) == false) continue;
 			c.send(ClientTag.LOCATION_SAYS, ['${targetX} ${targetY} $text']);
 		}
 	}
@@ -208,12 +203,10 @@ class Connection {
 
 				// update only close players except if player is deleted (death)
 				if (player.deleted == false
-					&& c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false)
-					continue;
+					&& c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
 
 				c.send(PLAYER_UPDATE, [player.toRelativeData(c.player)], isPlayerAction);
-				if (sendFrame)
-					c.send(FRAME, null, isPlayerAction);
+				if (sendFrame) c.send(FRAME, null, isPlayerAction);
 			}
 
 			for (ai in ais) {
@@ -228,8 +221,7 @@ class Connection {
 	}
 
 	public static function SendToMeAllClosePlayers(player:GlobalPlayerInstance, sendMovingPlayer:Bool = false, isPlayerAction:Bool = true) {
-		if (player.isDeleted())
-			return;
+		if (player.isDeleted()) return;
 
 		try {
 			var connection = player.connection;
@@ -250,10 +242,8 @@ class Connection {
 	}
 
 	private function sendToMePlayerInfo(playerToSend:GlobalPlayerInstance, sendMovingPlayer:Bool = true, isPlayerAction:Bool = true) {
-		if (playerToSend.deleted)
-			return;
-		if (playerToSend.isHeld())
-			return;
+		if (playerToSend.deleted) return;
+		if (playerToSend.isHeld()) return;
 
 		var player = this.player;
 
@@ -388,8 +378,7 @@ class Connection {
 	public function sendFullExileListToMe(target:GlobalPlayerInstance) {
 		var list = CreateFullExileList(target);
 
-		if (StringTools.contains(list, '\n') == false)
-			return;
+		if (StringTools.contains(list, '\n') == false) return;
 
 		send(EXILED, [list]);
 	}
@@ -424,8 +413,7 @@ class Connection {
 				var targetY = ty - c.player.gy;
 
 				// update only close players
-				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false)
-					continue;
+				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
 
 				c.send(PLAYER_UPDATE, [player.toRelativeData(c.player)]);
 
@@ -444,8 +432,7 @@ class Connection {
 				var targetY = ty - c.player.gy;
 
 				// update only close players
-				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false)
-					continue;
+				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
 
 				c.mapUpdate(tx, ty);
 			}
@@ -463,8 +450,7 @@ class Connection {
 				var targetY = ty - c.player.gy;
 
 				// update only close players
-				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsCloseForMapChanges) == false)
-					continue;
+				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsCloseForMapChanges) == false) continue;
 
 				try {
 					c.sendMapUpdate(targetX, targetY, floorId, obj, -1, false);
@@ -494,8 +480,7 @@ class Connection {
 
 				// update only close players
 				if (player.isClose(toX, toY, ServerSettings.MaxDistanceToBeConsideredAsCloseForMapChanges) == false
-					&& player.isClose(fromX, fromY, ServerSettings.MaxDistanceToBeConsideredAsCloseForMapChanges) == false)
-					continue;
+					&& player.isClose(fromX, fromY, ServerSettings.MaxDistanceToBeConsideredAsCloseForMapChanges) == false) continue;
 
 				// c.mutex.acquire(); // do all in one frame
 
@@ -517,8 +502,7 @@ class Connection {
 
 				// update only close players
 				if (player.isClose(toX, toY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false
-					&& player.isClose(fromX, fromY, ServerSettings.MaxDistanceToBeConsideredAsClose))
-					continue;
+					&& player.isClose(fromX, fromY, ServerSettings.MaxDistanceToBeConsideredAsClose)) continue;
 
 				c.mapUpdate(fromTx, fromTy, true);
 			}
@@ -534,8 +518,7 @@ class Connection {
 				var targetY = player.ty - c.player.gy;
 
 				// update only close players
-				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false)
-					continue;
+				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
 
 				var moveString = player.moveHelper.generateRelativeMoveUpdateString(c.player);
 
@@ -552,8 +535,7 @@ class Connection {
 				var targetY = player.ty - c.player.gy;
 
 				// update only close players
-				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false)
-					continue;
+				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
 
 				c.playerMove(player, player.tx, player.ty);
 			}
@@ -593,8 +575,7 @@ class Connection {
 			// TODO remove only from connections if dead or even better use as AI?
 
 			for (c in connections) {
-				if (c == this)
-					continue;
+				if (c == this) continue;
 
 				newConnections.push(c);
 			}
@@ -641,8 +622,7 @@ class Connection {
 			var targetY = player.ty - c.player.gy;
 
 			// update only close players
-			if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false)
-				continue;
+			if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
 
 			var face_left = x < player.x ? 'true' : 'false';
 			c.send(FLIP, ['${player.p_id} $face_left']);
@@ -650,8 +630,7 @@ class Connection {
 	}
 
 	public function sendMapChunk(x:Int, y:Int, width:Int = 32, height:Int = 30) {
-		if (sock == null)
-			return;
+		if (sock == null) return;
 
 		// this.mutex.acquire();
 
@@ -686,14 +665,12 @@ class Connection {
 		#
 	 */
 	public function sendMapUpdate(x:Int, y:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, isPlayerAction:Bool = true) {
-		if (serverAi != null)
-			return;
+		if (serverAi != null) return;
 		send(MAP_CHANGE, ['$x $y $newFloorId ${MapData.stringID(newObjectId)} $playerId'], isPlayerAction);
 	}
 
 	public function sendMapUpdateForMoving(toX:Int, toY:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, fromX:Int, fromY:Int, speed:Float) {
-		if (serverAi != null)
-			return;
+		if (serverAi != null) return;
 		send(MAP_CHANGE, [
 			'$toX $toY $newFloorId ${MapData.stringID(newObjectId)} $playerId $fromX $fromY $speed'
 		], false);
@@ -732,8 +709,7 @@ class Connection {
 				var targetY = fromPlayer.ty - c.player.gy;
 
 				// update only close players
-				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false)
-					continue;
+				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
 
 				c.emote(fromPlayer, id);
 			}
@@ -747,12 +723,9 @@ class Connection {
 		var targetY = fromPlayer.ty - toConnection.player.gy;
 
 		// update only close players
-		if (toConnection.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false)
-			return;
+		if (toConnection.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) return;
 
-		if (seconds < 3)
-			toConnection.send(PLAYER_EMOT, ['${fromPlayer.p_id} $id']);
-		else
+		if (seconds < 3) toConnection.send(PLAYER_EMOT, ['${fromPlayer.p_id} $id']); else
 			toConnection.send(PLAYER_EMOT, ['${fromPlayer.p_id} $id $seconds']);
 
 		toConnection.send(FRAME);
@@ -841,8 +814,7 @@ class Connection {
 
 			sock.output.writeString(tmpString);
 
-			if (ServerSettings.TraceSendPlayerActions)
-				trace("Send: " + tmpString);
+			if (ServerSettings.TraceSendPlayerActions) trace("Send: " + tmpString);
 		} catch (ex) {
 			trace(ex);
 		}
@@ -851,10 +823,8 @@ class Connection {
 	}
 
 	public function sendGlobalMessage(message:String) {
-		if (player.isAi())
-			return;
-		if (message.length < 1)
-			return;
+		if (player.isAi()) return;
+		if (message.length < 1) return;
 
 		message = message.toUpperCase();
 		message = StringTools.replace(message, ' ', '_');
@@ -908,8 +878,7 @@ class Connection {
 		var player = this.player;
 		var leader = player.getTopLeader();
 
-		if (leader == null)
-			leader == player;
+		if (leader == null) leader == player;
 
 		this.sendMapLocation(leader, "LEADER", "leader");
 	}
@@ -929,8 +898,7 @@ class Connection {
 		var helper = WorldMap.world.getObjectHelper(tx, ty);
 
 		if (helper.hasOwners() == false) {
-			if (helper.objectData.isOwned == false)
-				return;
+			if (helper.objectData.isOwned == false) return;
 
 			// give ownership to the player that found this not owned gate
 			helper.addOwner(player);
@@ -998,8 +966,7 @@ class Connection {
 		var grave = WorldMap.world.getObjectHelper(tx, ty);
 		var creatorLinage = grave.getLinage();
 
-		if (creatorLinage == null)
-			return;
+		if (creatorLinage == null) return;
 		var linageString = creatorLinage.createLineageString(false);
 		var message = '$x $y ${creatorLinage.myId} ${creatorLinage.po_id} ${creatorLinage.getDeadSince()} ${creatorLinage.getFullName(true)} ${linageString}';
 

@@ -30,14 +30,10 @@ import openlife.data.sound.SoundData;
 	public var Ginger = 6;
 
 	public static function getPersonColorByBiome(biome:Int):Int {
-		if (biome == BiomeTag.DESERT)
-			return PersonColor.Black;
-		if (biome == BiomeTag.JUNGLE)
-			return PersonColor.Brown;
-		if (biome == BiomeTag.GREY)
-			return PersonColor.White;
-		if (biome == BiomeTag.SNOW)
-			return PersonColor.Ginger;
+		if (biome == BiomeTag.DESERT) return PersonColor.Black;
+		if (biome == BiomeTag.JUNGLE) return PersonColor.Brown;
+		if (biome == BiomeTag.GREY) return PersonColor.White;
+		if (biome == BiomeTag.SNOW) return PersonColor.Ginger;
 
 		return -1;
 	}
@@ -479,8 +475,7 @@ class ObjectData extends LineReader {
 	public function get_parentId() {
 		var objectData = this;
 
-		if (objectData.dummyParent != null)
-			return objectData.dummyParent.id;
+		if (objectData.dummyParent != null) return objectData.dummyParent.id;
 
 		return objectData.id;
 	}
@@ -553,22 +548,18 @@ class ObjectData extends LineReader {
 			}
 		}
 
-		if (exactName)
-			return -1;
+		if (exactName) return -1;
 
 		for (objData in ObjectData.importedObjectData) {
 			if (searchFromEnd) {
-				if (StringTools.endsWith(objData.name, searchName))
-					return objData.id;
+				if (StringTools.endsWith(objData.name, searchName)) return objData.id;
 			} else {
-				if (StringTools.startsWith(objData.name, searchName))
-					return objData.id;
+				if (StringTools.startsWith(objData.name, searchName)) return objData.id;
 			}
 		}
 
 		for (objData in ObjectData.importedObjectData) {
-			if (objData.name.indexOf(searchName) != -1)
-				return objData.id;
+			if (objData.name.indexOf(searchName) != -1) return objData.id;
 		}
 
 		return -1;
@@ -591,8 +582,7 @@ class ObjectData extends LineReader {
 		addEmptyAndTimeObjectData();
 
 		for (i in 0...importedObjectData.length) {
-			if (i % 400 == 0)
-				trace('Create Object Data... $i from ${importedObjectData.length}');
+			if (i % 400 == 0) trace('Create Object Data... $i from ${importedObjectData.length}');
 
 			var objectData = new ObjectData(tmp[i]);
 			importedObjectData[i] = objectData;
@@ -623,12 +613,10 @@ class ObjectData extends LineReader {
 		var dummyId = startingId;
 
 		trace('starting dummyId :$startingId');
-		if (startingId < importedObjectData[importedObjectData.length - 1].id + 1)
-			throw new Exception('starting dummyId was not loaded correctly!');
+		if (startingId < importedObjectData[importedObjectData.length - 1].id + 1) throw new Exception('starting dummyId was not loaded correctly!');
 
 		for (i in 0...importedObjectData.length) {
-			if (importedObjectData[i].numUses < 2)
-				continue;
+			if (importedObjectData[i].numUses < 2) continue;
 
 			for (ii in 0...importedObjectData[i].numUses - 1) {
 				// if(importedObjectData[i].id <= 30) trace('id: ${importedObjectData[i].id} dummyID: $dummyId ${importedObjectData[i].description}');
@@ -653,8 +641,7 @@ class ObjectData extends LineReader {
 		// var index = 0;
 
 		for (obj in importedObjectData) {
-			if (obj.foodValue < 1)
-				continue;
+			if (obj.foodValue < 1) continue;
 
 			// index++;
 
@@ -669,8 +656,7 @@ class ObjectData extends LineReader {
 		biomeTotalChance = [];
 
 		for (obj in importedObjectData) {
-			if (obj.mapChance == 0)
-				continue;
+			if (obj.mapChance == 0) continue;
 
 			if (obj.description.indexOf("Expert Way Stone") != -1) {
 				obj.mapChance = 0;
@@ -718,12 +704,10 @@ class ObjectData extends LineReader {
 			string = openlife.resources.Resource.objectData(i);
 		} catch (e) {
 			var int = ObjectBake.dummiesMap.get(i);
-			if (int == null)
-				return;
+			if (int == null) return;
 			string = openlife.resources.Resource.objectData(int);
 		}
-		if (i <= 0 || !readLines(string))
-			return;
+		if (i <= 0 || !readLines(string)) return;
 		read();
 	}
 
@@ -733,8 +717,7 @@ class ObjectData extends LineReader {
 	public /*inline*/ function read() {
 		id = getInt();
 		description = getString();
-		if (onlyDescription)
-			return;
+		if (onlyDescription) return;
 		// tool setup
 		var toolPos = description.indexOf("+tool");
 		if (toolPos > -1) {
@@ -751,8 +734,7 @@ class ObjectData extends LineReader {
 				}
 			}
 			// new
-			if (!set)
-				toolsetRecord.push({setTag: setTag, setMembership: [id]});
+			if (!set) toolsetRecord.push({setTag: setTag, setMembership: [id]});
 			tool = true;
 		}
 		if (description.indexOf("+noBackAccess") > -1) {
@@ -776,10 +758,8 @@ class ObjectData extends LineReader {
 		}
 
 		var string = getString();
-		if (string == "1")
-			heldInHand = true;
-		if (string == "2")
-			rideable = true;
+		if (string == "1") heldInHand = true;
+		if (string == "2") rideable = true;
 		i = getArrayInt();
 		blocksWalking = (i[0] == 1);
 		leftBlockingRadius = i[1];
@@ -861,10 +841,8 @@ class ObjectData extends LineReader {
 			#end
 		}
 
-		if (readName("creationSoundInitialOnly"))
-			creationSoundInitialOnly = getBool();
-		if (readName("creationSoundForce"))
-			creationSoundForce = getBool();
+		if (readName("creationSoundInitialOnly")) creationSoundInitialOnly = getBool();
+		if (readName("creationSoundForce")) creationSoundForce = getBool();
 
 		// num slots and time stretch
 		string = getString();
@@ -891,12 +869,9 @@ class ObjectData extends LineReader {
 		// visual
 		numSprites = getInt();
 		// monument description set bools
-		if (description.indexOf("monument") > -1)
-			monumentStep = true;
-		if (description.indexOf("monumentStep") > -1)
-			monumentStep = true;
-		if (description.indexOf("monumentCall") > -1)
-			monumentCall = true;
+		if (description.indexOf("monument") > -1) monumentStep = true;
+		if (description.indexOf("monumentStep") > -1) monumentStep = true;
+		if (description.indexOf("monumentCall") > -1) monumentCall = true;
 
 		spriteArray = new Vector<SpriteData>(numSprites);
 		for (j in 0...numSprites) {
@@ -913,8 +888,7 @@ class ObjectData extends LineReader {
 			spriteArray[j].invisHolding = array[0];
 			spriteArray[j].invisWorn = array[1];
 			spriteArray[j].behindSlots = array[2];
-			if (readName("invisCont"))
-				spriteArray[j].invisCont = getBool();
+			if (readName("invisCont")) spriteArray[j].invisCont = getBool();
 		}
 		// get offset center
 		getSpriteData();
@@ -941,12 +915,9 @@ class ObjectData extends LineReader {
 			if (array.length > 1) {
 				useChance = array[1];
 			}
-			if (next < line.length)
-				useVanishIndex = getIntArray();
-			if (next < line.length)
-				useAppearIndex = getIntArray();
-			if (next < line.length)
-				cacheHeight = getInt(); // pixHeight
+			if (next < line.length) useVanishIndex = getIntArray();
+			if (next < line.length) useAppearIndex = getIntArray();
+			if (next < line.length) cacheHeight = getInt(); // pixHeight
 		}
 	}
 
@@ -954,8 +925,7 @@ class ObjectData extends LineReader {
 		// get sprite data
 		for (i in 0...spriteArray.length) {
 			var s:String = openlife.resources.Resource.spriteData(spriteArray[i].spriteID);
-			if (s.length == 0)
-				continue;
+			if (s.length == 0) continue;
 			var j:Int = 0;
 			var a = s.split(" ");
 			for (string in a) {
@@ -984,8 +954,7 @@ class ObjectData extends LineReader {
 	public function isSpawningIn(biomeId:Int):Bool {
 		var objData = this;
 
-		if (countsOrGrowsAs != 0)
-			objData = ObjectData.getObjectData(countsOrGrowsAs);
+		if (countsOrGrowsAs != 0) objData = ObjectData.getObjectData(countsOrGrowsAs);
 
 		for (biome in objData.biomes) {
 			if (biomeId == biome) {
@@ -997,8 +966,7 @@ class ObjectData extends LineReader {
 	}
 
 	public function toFileString():String {
-		if (this.id == 0)
-			return "Empty";
+		if (this.id == 0) return "Empty";
 
 		var objectString = 'id=$id${LineReader.EOL}'
 			+ '$description${LineReader.EOL}'
@@ -1280,8 +1248,7 @@ class ObjectData extends LineReader {
 		var dir = './${ServerSettings.SaveDirectory}/';
 		var path = dir + "saveObjectData.bin";
 
-		if (FileSystem.exists(dir) == false)
-			FileSystem.createDirectory(dir);
+		if (FileSystem.exists(dir) == false) FileSystem.createDirectory(dir);
 
 		var writer = File.write(path, true);
 
@@ -1329,8 +1296,7 @@ class ObjectData extends LineReader {
 			trace('Read ${importedObjectData.length} ObjectData  data version number: ${dataVersionNumber} Time: ${Sys.time() - startTime}');
 		} catch (ex) {
 			trace(ex);
-			if (reader != null)
-				reader.close();
+			if (reader != null) reader.close();
 			return false;
 		}
 
@@ -1344,17 +1310,13 @@ class ObjectData extends LineReader {
 
 		// trace('Insulation: clothing: ${this.clothing} ' + parts);
 
-		if (this.clothing.length > 1)
-			this.clothing = StringTools.trim(this.clothing);
+		if (this.clothing.length > 1) this.clothing = StringTools.trim(this.clothing);
 
-		if (parts[this.clothing] == 0)
-			return this.rValue;
+		if (parts[this.clothing] == 0) return this.rValue;
 
 		// trace('Insulation: clothing: ${this.clothing} ${this.clothing.length} ${parts[this.clothing]}');
 
-		if (rValue > 0)
-			return parts[this.clothing] * rValue;
-		else
+		if (rValue > 0) return parts[this.clothing] * rValue; else
 			return parts[this.clothing];
 	}
 
@@ -1365,17 +1327,13 @@ class ObjectData extends LineReader {
 
 		// trace('Insulation: clothing: ${this.clothing} ' + parts);
 
-		if (this.clothing.length > 1)
-			this.clothing = StringTools.trim(this.clothing);
+		if (this.clothing.length > 1) this.clothing = StringTools.trim(this.clothing);
 
-		if (parts[this.clothing] == 0)
-			return this.rValue;
+		if (parts[this.clothing] == 0) return this.rValue;
 
 		// trace('Insulation: clothing: ${this.clothing} ${this.clothing.length} ${parts[this.clothing]}');
 
-		if (rValue > 0)
-			return parts[this.clothing] * (1 - rValue);
-		else
+		if (rValue > 0) return parts[this.clothing] * (1 - rValue); else
 			return parts[this.clothing];
 	}
 
@@ -1390,11 +1348,9 @@ class ObjectData extends LineReader {
 		femaleByRaceObjectData = new Map<Int, Array<ObjectData>>();
 
 		for (obj in ObjectData.importedObjectData) {
-			if (obj.person == 0)
-				continue;
+			if (obj.person == 0) continue;
 
-			if (obj.description.indexOf('Jason') != -1)
-				continue;
+			if (obj.description.indexOf('Jason') != -1) continue;
 
 			personObjectData.push(obj);
 

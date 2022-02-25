@@ -37,8 +37,7 @@ class Node implements EngineHeader {
 			engine.program.setPlayer(player = instances.pop());
 		} else {
 			for (instance in instances) {
-				if (player.p_id == instance.p_id)
-					player.update(instance);
+				if (player.p_id == instance.p_id) player.update(instance);
 			}
 		}
 		engine.program.update(player);

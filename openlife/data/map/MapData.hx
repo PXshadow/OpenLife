@@ -54,14 +54,10 @@ class MapData {
 	 */
 	public function setRect(chunk:MapInstance, string:String) {
 		// combine
-		if (this.x > chunk.x)
-			this.x = chunk.x;
-		if (this.y > chunk.y)
-			this.y = chunk.y;
-		if (this.mx < chunk.x + chunk.width)
-			this.mx = chunk.x + chunk.width;
-		if (this.my < chunk.y + chunk.height)
-			this.my = chunk.y + chunk.height;
+		if (this.x > chunk.x) this.x = chunk.x;
+		if (this.y > chunk.y) this.y = chunk.y;
+		if (this.mx < chunk.x + chunk.width) this.mx = chunk.x + chunk.width;
+		if (this.my < chunk.y + chunk.height) this.my = chunk.y + chunk.height;
 		// create array
 		var a:Array<String> = string.split(" ");
 		// data array for object
@@ -90,14 +86,11 @@ class MapData {
 			for (x in player.x - RAD...player.x + RAD) {
 				vector[int++] = false;
 				var array = object.get(x, y);
-				if (array == null)
-					continue;
+				if (array == null) continue;
 				var id = array[0];
-				if (id <= 0)
-					continue;
+				if (id <= 0) continue;
 				var data = new ObjectData(id);
-				if (data == null)
-					continue;
+				if (data == null) continue;
 				vector[int - 1] = data.blocksWalking;
 			}
 		}
@@ -139,8 +132,7 @@ class MapData {
 	public static function id(string:String, first:String = ",", second:String = ":"):Array<Int> {
 		// postive is container, negative is subcontainer that goes into postive container
 		// 0 is first container, untill another postive number comes around
-		if (string == null || string.length == 0)
-			return [];
+		if (string == null || string.length == 0) return [];
 		var a = string.split(first);
 		var s:Array<String> = [];
 		var array:Array<Int> = [];
@@ -173,24 +165,21 @@ class MapData {
 	public static function numSlots(a:Array<Int>):Int {
 		var count:Int = 0;
 		for (i in 1...a.length) {
-			if (i >= 0)
-				count++;
+			if (i >= 0) count++;
 		}
 		return count;
 	}
 
 	public static function toContainer(a:Array<Int>):Array<Int> {
 		for (i in 1...a.length) {
-			if (a[i] > 0)
-				a[i] *= -1;
+			if (a[i] > 0) a[i] *= -1;
 		}
 		return a;
 	}
 
 	public static function toHeldObject(a:Array<Int>):Array<Int> {
 		for (i in 1...a.length) {
-			if (a[i] < 0)
-				a[i] *= -1;
+			if (a[i] < 0) a[i] *= -1;
 		}
 		return a;
 	}
@@ -199,8 +188,7 @@ class MapData {
 		var b:Array<Int> = [a[index + 1]];
 		a.remove(a[index + 1]);
 		for (i in index + 2...a.length) {
-			if (a[i] >= 0)
-				break;
+			if (a[i] >= 0) break;
 			b.push(a[i] * -1);
 			a.remove(a[i]);
 		}

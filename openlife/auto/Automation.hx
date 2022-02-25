@@ -23,10 +23,8 @@ class Automation {
 
 	public function goto(id:Array<Int>, buffer:Pos->Void):Bool {
 		var pos = select(id);
-		if (pos == null)
-			return false;
-		if (!program.goto(pos.x, pos.y))
-			return false;
+		if (pos == null) return false;
+		if (!program.goto(pos.x, pos.y)) return false;
 		buffer(pos);
 		return true;
 	}
@@ -37,8 +35,7 @@ class Automation {
 				var array = @:privateAccess program.map.object.get(x, y);
 				if (array != null) {
 					var bool = func(x, y, array);
-					if (!repeat && bool)
-						return;
+					if (!repeat && bool) return;
 				}
 			}
 		}
@@ -46,8 +43,7 @@ class Automation {
 
 	public function select(id:Array<Int>):Pos {
 		var array = ObjectBake.dummies.get(id[0]);
-		if (array != null)
-			id = id.concat(array);
+		if (array != null) id = id.concat(array);
 		var dis:Float = 2000;
 		var pos:Pos = null;
 		foreach(function(x:Int, y:Int, array:Array<Int>) {
@@ -57,8 +53,7 @@ class Automation {
 					if (dis > tdis) {
 						dis = tdis;
 						pos = new Pos(x, y);
-						if (i > 0)
-							pos.y += new ObjectData(array[0]).noBackAcess ? -1 : 0;
+						if (i > 0) pos.y += new ObjectData(array[0]).noBackAcess ? -1 : 0;
 					}
 				}
 			}
@@ -98,11 +93,9 @@ class Automation {
 				if (obj.foodValue > 0) {
 					pos = new Pos(x, y);
 					var sy:Int = 0;
-					if (i > 0)
-						sy = new ObjectData(array[0]).noBackAcess ? -1 : 0;
+					if (i > 0) sy = new ObjectData(array[0]).noBackAcess ? -1 : 0;
 					// no repeat so this is last function call
-					if (!program.goto(pos.x, pos.y + sy))
-						return true;
+					if (!program.goto(pos.x, pos.y + sy)) return true;
 					program.use(pos.x, pos.y);
 					program.self();
 					return true;

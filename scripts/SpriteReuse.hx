@@ -16,8 +16,7 @@ class SpriteReuse {
 		var index:Int = 0;
 		var object:ObjectData;
 		for (id in vector) {
-			if (id % 500 == 0)
-				trace("id " + id);
+			if (id % 500 == 0) trace("id " + id);
 			object = new ObjectData(id);
 			data[index] = [];
 			for (sprite in object.spriteArray) {
@@ -39,14 +38,12 @@ class SpriteReuse {
 			}
 			for (id in data[i]) {
 				for (j in 0...data.length) {
-					if (j == i)
-						continue;
+					if (j == i) continue;
 					// trace("id " + id + " j " + (j/data.length));
 					for (id2 in data[j]) {
 						if (id == id2) {
 							reused++;
-							if (used.indexOf(id) == -1)
-								used.push(id);
+							if (used.indexOf(id) == -1) used.push(id);
 						}
 					}
 				}

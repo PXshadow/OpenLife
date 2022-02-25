@@ -45,8 +45,7 @@ class ProtocolTagCheck {
 		// data = data.replace("\n","");
 		for (obj in string.split("\n")) {
 			index = obj.indexOf("(");
-			if (index == -1)
-				continue;
+			if (index == -1) continue;
 			names.push(StringTools.rtrim(obj.substring(0, index)));
 			tags.push(obj.substring(index + 1, obj.indexOf(")", index)));
 		}
@@ -62,10 +61,8 @@ class ProtocolTagCheck {
 		var error:Array<String> = [];
 		for (i in 0...tags.length) {
 			error = [];
-			if (enumTags.indexOf(tags[i]) == -1)
-				error.push("enum");
-			if (switchTags.indexOf(tags[i]) == -1)
-				error.push("switch");
+			if (enumTags.indexOf(tags[i]) == -1) error.push("enum");
+			if (switchTags.indexOf(tags[i]) == -1) error.push("switch");
 			if (error.length > 0) {
 				if (error.length > 1) {
 					trace(names[i] + " " + tags[i] + " | " + error[0] + " and " + error[1] + " not found");
@@ -92,8 +89,7 @@ class ProtocolTagCheck {
 		var index:Int = 0;
 		for (obj in input) {
 			index = obj.indexOf('"') + 1;
-			if (index == 0)
-				continue;
+			if (index == 0) continue;
 			index = output.push(obj.substring(index, obj.indexOf('"', index)));
 		}
 	}

@@ -96,14 +96,10 @@ class Biome {
 	public static function GetLovedBiomeByPlayer(player:GlobalPlayerInstance):BiomeTag {
 		var personColor = player.getColor();
 
-		if (personColor == PersonColor.Ginger)
-			return BiomeTag.SNOW;
-		if (personColor == PersonColor.White)
-			return BiomeTag.GREY;
-		if (personColor == PersonColor.Brown)
-			return BiomeTag.JUNGLE;
-		if (personColor == PersonColor.Black)
-			return BiomeTag.DESERT;
+		if (personColor == PersonColor.Ginger) return BiomeTag.SNOW;
+		if (personColor == PersonColor.White) return BiomeTag.GREY;
+		if (personColor == PersonColor.Brown) return BiomeTag.JUNGLE;
+		if (personColor == PersonColor.Black) return BiomeTag.DESERT;
 
 		return -1;
 	}
