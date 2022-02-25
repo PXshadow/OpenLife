@@ -3851,11 +3851,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
     {
         //trace('drop player helper');
         var player = this;
+        var tx = x + player.gx;
+        var ty = y + player.gy;
         var heldPlayer = player.heldPlayer;
 
         if(player.isClose(x, y, 1) == false)
         {
             trace('Drop target $x,$y is too far away!');
+            return false;
+        }
+
+        if(heldPlayer.isBlocked(tx, ty))
+        {
+            trace('Drop target $tx,$ty is blocked!');
             return false;
         }
 
