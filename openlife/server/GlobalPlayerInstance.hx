@@ -738,12 +738,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         for(i in 0...this.clothingObjects.length)
         {
             this.clothingObjects[i] = ObjectHelper.readObjectHelper(this, [0]);
-        }        
+        }    
+        
+        if(lastAiEveOrAdam != null && lastAiEveOrAdam.deleted) lastAiEveOrAdam = null; 
+        if(lastHumanEveOrAdam != null && lastHumanEveOrAdam.deleted) lastHumanEveOrAdam = null;
 
-        // TODO search most empty special biome for eve
         // TODO on big map dont spawn eve too far away
-        // TODO less hostile environment for eve (since the plan is to make human free nature more dangerous)
-
         // spawn human eve to human adam and ai eve to ai adam except if player count is very few 
         var isAi = this.isAi();
         var allowHumanSpawnToAIandAiToHuman = GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild;
