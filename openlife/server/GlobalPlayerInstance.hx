@@ -909,14 +909,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
                 var fitness = 1 + location.numberOfUses;
                 var sumDistHumans:Float = 1;
 
+                // consider graves
+                var hasCloseBlockingGrave = this.account.hasCloseBlockingGrave(location.tx, location.ty);
+                var hasCloseNonBlockingGrave = this.account.hasCloseNonBlockingGrave(location.tx, location.ty) ;
+                sumDistHumans += hasCloseBlockingGrave ? 5 : 0; 
+                fitness += hasCloseNonBlockingGrave ? 5 : 0;
+
                 for(p in GlobalPlayerInstance.AllPlayers)
                 {
-                    var quadDist = AiHelper.CalculateDistanceToObject(p, location);
-                    sumDistHumans += (1 / quadDist) * 10000; // 100 tiles
+                    var quadDist = 1 + AiHelper.CalculateDistanceToObject(p, location);
+                    sumDistHumans += (10000 / quadDist); // 100 tiles
                 }   
 
                 var totalFitness = fitness / sumDistHumans;
-                //trace('spawnAsEve: fitness: $fitness / sumDistHumans: $sumDistHumans = $totalFitness');
+                trace('spawnAsEve: fitness: $fitness / sumDistHumans: $sumDistHumans = $totalFitness closeBadGrave: ${hasCloseBlockingGrave} closeGoodGrave: ${hasCloseNonBlockingGrave}');
                 if(totalFitness < bestLocationFitness) continue;
 
                 bestLocation = location;
@@ -1177,36 +1183,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         return mother;
     }
 
-    public function hasCloseBlockingGrave(playerAccount:PlayerAccount) : Bool
-    {
-        playerAccount.removeDeletedGraves();
-
-        for(grave in playerAccount.graves)
-        {            
-            var dist = AiHelper.CalculateDistanceToObject(this, grave);
-            if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
-
-            if(grave.isBoneGrave()) return true;
-        }
-
-        return false;
-    }
-
-    public function hasCloseNoneBlockingGrave(playerAccount:PlayerAccount) : Bool
-    {
-        playerAccount.removeDeletedGraves();
-
-        for(grave in playerAccount.graves)
-        {
-            var dist = AiHelper.CalculateDistanceToObject(this, grave);
-            if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
-
-            if(grave.isGraveWithGraveStone()) return true;
-        }
-
-        return false;
-    }
-
     // TODO test
     private function calculateClassBoni(child:GlobalPlayerInstance) : Float
     {
@@ -1238,7 +1214,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         tmpFitness += p.yum_bonus / 10; // the more food the more likely 
         tmpFitness += p.food_store_max / 10; // the more healthy the more likely 
         tmpFitness += p.calculateClassBoni(child); // the closer the mother is to same class the better
-        tmpFitness += p.hasCloseNoneBlockingGrave(child.account) ? 3 : 0;
+        tmpFitness += child.account.hasCloseNonBlockingGrave(p.tx, p.ty) ? 3 : 0;
         //tmpFitness += p.yum_multiplier / 20; // the more yum / prestige the more likely  // not needed since influencing food_store_max
 
         // mali
@@ -1246,7 +1222,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
         tmpFitness -= temperatureMail;
         tmpFitness -= p.exhaustion / 5;
         tmpFitness -= p.childrenBirthMali; // the more children the less likely
-        tmpFitness -= p.hasCloseBlockingGrave(child.account) ? 10 : 0; // make less likely to incarnate if there is a blocking grave close by
+        tmpFitness -= child.account.hasCloseBlockingGrave(p.tx, p.ty) ? 10 : 0; // make less likely to incarnate if there is a blocking grave close by
         tmpFitness -= p.heldObject.objectData.speedMult > 1.1 ? 1 : 0; // if player is using fast objects
         tmpFitness -= p.heldObject.id != 0 ? 1 : 0; // if player is holding objects
         tmpFitness -= motherIsHuman && child.isAi() ? ServerSettings.HumanMotherBirthMaliForAiChild : 0;

@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.auto.AiHelper;
 import haxe.display.Display.CompletionResult;
 import openlife.data.object.ObjectHelper;
 import openlife.settings.ServerSettings;
@@ -178,4 +179,60 @@ class PlayerAccount
 
         return null;
     } 
+
+    public function hasCloseBlockingGrave(tx:Int, ty:Int) : Bool
+    {
+        return calculateCloseBlockingGraveFitness(tx, ty) > 1;
+    }
+
+    /**+1 for each grave in a distance of 100 / up to +10 if closer**/
+    public function calculateCloseBlockingGraveFitness(tx:Int, ty:Int) : Float
+    {
+        var playerAccount:PlayerAccount = this;
+        var fitness = 0.0;
+
+        playerAccount.removeDeletedGraves();
+
+        for(grave in playerAccount.graves)
+        {            
+            if(grave.isBoneGrave() == false) continue;
+
+            var dist = AiHelper.CalculateDistance(tx, ty, grave.tx, grave.ty);
+            var tmpFitness = Math.pow(ServerSettings.GraveBlockingDistance, 2) / (1 + dist);
+            fitness += tmpFitness > 10 ? 10 : tmpFitness;
+
+            //if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
+        }
+
+        trace('spawnAsEve calculateCloseBlockingGraveFitness: $fitness');
+
+        return fitness;
+    }
+
+    public function hasCloseNonBlockingGrave(tx:Int, ty:Int) : Bool
+    {
+        return calculateCloseNonBlockingGraveFitness(tx, ty) > 1;
+    }
+
+    public function calculateCloseNonBlockingGraveFitness(tx:Int, ty:Int) : Float
+    {
+        var playerAccount:PlayerAccount = this;
+        var fitness = 0.0;
+
+        playerAccount.removeDeletedGraves();
+
+        for(grave in playerAccount.graves)
+        {
+            if(grave.isGraveWithGraveStone() == false) continue;
+
+            var dist = AiHelper.CalculateDistance(tx, ty, grave.tx, grave.ty);
+            var tmpFitness = Math.pow(ServerSettings.GraveBlockingDistance, 2) / (1 + dist);
+            fitness += tmpFitness > 10 ? 10 : tmpFitness;
+            //if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
+        }
+
+        trace('spawnAsEve calculateCloseNonBlockingGraveFitness: $fitness');
+
+        return fitness;
+    }
 }

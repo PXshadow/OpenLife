@@ -195,7 +195,7 @@ class MoveHelper
         if(p.isSuperHot())  speed *= p.heat > 0.98 ? Math.pow(temperatureSpeedImpact,2) : temperatureSpeedImpact;
         else if(p.isSuperCold()) speed *= p.heat < 0.02 ? Math.pow(temperatureSpeedImpact,2) : temperatureSpeedImpact;
 
-        if(p.hasCloseBlockingGrave(p.account))
+        if(p.account.hasCloseBlockingGrave(p.tx, p.ty))
         {
             if(p.isCursed == false)
             {
