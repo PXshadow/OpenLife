@@ -1245,11 +1245,11 @@ class Ai {
 	private function isPickingupFood():Bool {
 		if (foodTarget == null) return false;
 
-		var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
+		/*var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
 		if (heldObjectIsEatable) {
 			foodTarget = null;
 			return false;
-		}
+		}*/
 
 		// check if food is still eatable. Maybe some one eat it
 		if (myPlayer.isEatableCheckAgain(foodTarget) == false) {
@@ -1284,7 +1284,7 @@ class Ai {
 		// if(ServerSettings.DebugAi) trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
 
 		if (myPlayer.heldObject.id != 0) {
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to eat');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to pickup food');
 			dropHeldObject();
 			return true;
 		}

@@ -128,8 +128,8 @@ class AiHelper {
 		var starvingFactor:Float = isStarving ? 4 : 25;
 
 		if (player.food_store < 0.5) starvingFactor = 2;
-		if (player.food_store < -1) starvingFactor = 1.2;
-		if (player.food_store < -1.5) starvingFactor = 1.1;
+		if (player.food_store < -1) starvingFactor = 1.5;
+		if (player.food_store < -1.5) starvingFactor = 1.2;
 
 		for (ty in baseY - radius...baseY + radius) {
 			for (tx in baseX - radius...baseX + radius) {
@@ -163,7 +163,7 @@ class AiHelper {
 
 				if (isYum) foodValue *= starvingFactor;
 				if (isSuperMeh) foodValue = originalFoodValue / starvingFactor;
-				if (isSuperMeh && player.food_store > 0) foodValue = 0;
+				if (isSuperMeh && player.food_store > 1) foodValue = 0;
 				if (foodId == player.getCraving()) foodValue *= Math.pow(starvingFactor, 2);
 
 				if (quadDistance < 0.5) quadDistance = 0.5;
