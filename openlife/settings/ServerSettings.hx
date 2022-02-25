@@ -1,12 +1,12 @@
 package openlife.settings;
 
-import openlife.server.Lineage.PrestigeClass;
-import sys.FileSystem;
-import sys.io.File;
+import openlife.data.object.ObjectData;
 import openlife.data.transition.TransitionData;
 import openlife.data.transition.TransitionImporter;
 import openlife.server.Biome.BiomeTag;
-import openlife.data.object.ObjectData;
+import openlife.server.Lineage.PrestigeClass;
+import sys.FileSystem;
+import sys.io.File;
 
 using StringTools;
 
@@ -80,7 +80,7 @@ class ServerSettings {
 
 	// birth
 	public static var EveOrAdamBirthChance = 0.05; // since each eve gets an adam the true chance is x2
-	public static var NewChildExhaustionForMother = 1;
+	public static var NewChildExhaustionForMother = 0;
 	public static var ChanceForFemaleChild = 0.6;
 	public static var ChanceForOtherChildColor = 0.2;
 	public static var ChanceForOtherChildColorIfCloseToWrongSpecialBiome = 0.3; // for example Black born in or close to Jungle
@@ -157,7 +157,7 @@ class ServerSettings {
 	public static var LovedFoodUseChance:Float = 0.5;
 
 	// Yellow Fever
-	public static var ExhaustionYellowFeverPerSec = 0.2;
+	public static var ExhaustionYellowFeverPerSec = 0.1;
 	public static var AllowSelfEatingIfIll = true; // for example if you have yellow fever some one needs to feed you if false
 	public static var ResistenceAginstFeverForEatingMushrooms:Float = 0.2;
 
@@ -184,11 +184,11 @@ class ServerSettings {
 	public static var LetTheClientCheatLittleBitFactor = 1.1; // when considering if the position is reached, allow the client to cheat little bit, so there is no lag
 	public static var MaxMovementQuadJumpDistanceBeforeForce:Float = 3; // if quadDistance between server and client position is bigger then X the client is forced to use server position
 	public static var MaxJumpsPerTenSec:Float = 5; // limit how often a client can JUMP / cheat his position
-	public static var ExhaustionOnJump:Float = 0.25;
+	public static var ExhaustionOnJump:Float = 0.2;
 
 	// hungry work
 	public static var HungryWorkCost = 10;
-	public static var HungryWorkToolCostFactor:Float = 0.5;
+	public static var HungryWorkToolCostFactor:Float = 0;
 	public static var ExhaustionHealing:Float = 2;
 	public static var WoundHealing:Float = 1;
 	public static var ExhaustionHealingForMaleFaktor:Float = 1.2;
@@ -223,7 +223,7 @@ class ServerSettings {
 
 	// combat
 	public static var CombatAngryTimeBeforeAttack:Float = 5;
-	public static var CombatExhaustionCostPerAttack:Float = 0.2;
+	public static var CombatExhaustionCostPerAttack:Float = 0.1;
 	public static var WeaponCoolDownFactor:Float = 0.05;
 	public static var MaleDamageFactor:Float = 1.2;
 	public static var WeaponCoolDownFactorIfWounding:Float = 0.4;
