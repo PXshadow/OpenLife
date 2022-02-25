@@ -189,7 +189,7 @@ class ServerSettings
 
     // hungry work
     public static var HungryWorkCost = 10;
-    public static var HungryWorkToolCostFactor:Float = 1;
+    public static var HungryWorkToolCostFactor:Float = 0.5;
     public static var ExhaustionHealing:Float = 2; 
     public static var WoundHealing:Float = 1; 
     public static var ExhaustionHealingForMaleFaktor:Float = 1.2; 
@@ -292,9 +292,9 @@ class ServerSettings
 
         // set hungry work  
         // TODO use tool hungry work factor       
-        ObjectData.getObjectData(34).hungryWork = 2 * HungryWorkToolCostFactor; // Sharp Stone
-        ObjectData.getObjectData(334).hungryWork = 5 * HungryWorkToolCostFactor; // Steel Axe 
-        ObjectData.getObjectData(502).hungryWork = 2 * HungryWorkToolCostFactor; // Shovel // TODO should be cheaper then sharp stone
+        ObjectData.getObjectData(34).hungryWork = 1 * HungryWorkToolCostFactor; // Sharp Stone
+        ObjectData.getObjectData(334).hungryWork = 1 * HungryWorkToolCostFactor; // Steel Axe 
+        ObjectData.getObjectData(502).hungryWork = 1 * HungryWorkToolCostFactor; // Shovel // TODO should be cheaper then sharp stone
 
         ObjectData.getObjectData(496).hungryWork = 10; // Dug Stump
         ObjectData.getObjectData(1011).hungryWork = 5; // Buried Grave
@@ -309,7 +309,7 @@ class ServerSettings
         ObjectData.getObjectData(142).hungryWork = 2; // Canada Goose Pond swimming
         ObjectData.getObjectData(143).hungryWork = 2; // Canada Goose Pond swimming, feather
         ObjectData.getObjectData(662).hungryWork = 2; // Shallow Well
-        ObjectData.getObjectData(663).hungryWork = 5; // Deep Well 
+        ObjectData.getObjectData(663).hungryWork = 2; // Deep Well 
 
         //ObjectData.getObjectData(496).alternativeTransitionOutcome = 10; // Dug Stump
 

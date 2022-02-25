@@ -443,7 +443,7 @@ class Ai
         {
             var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
 
-            if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal child drop for get item ${heldPlayer.name} $done');
+            if(ServerSettings.DebugAi || done == false) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal child drop for get item ${heldPlayer.name} $done');
 
             return true;
         }
@@ -581,7 +581,7 @@ class Ai
                 var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
                 this.feedingPlayerTarget = null;
                 myPlayer.say('I cannot feed you!');
-                if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ==> child drop ${heldPlayer.name} $done food: ${heldPlayer.food_store}');
+                if(ServerSettings.DebugAi || done == false) trace('AAI: ${myPlayer.name} cannot feed ==> child drop ${heldPlayer.name} food: ${heldPlayer.food_store} $done');
             }
             return false; 
         }
@@ -604,7 +604,7 @@ class Ai
                 {
                     var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
                     this.feedingPlayerTarget = null;
-                    if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} child drop ${heldPlayer.name} $done food: ${heldPlayer.food_store} max: ${heldPlayer.getMaxChildFeeding() - 0.2}');
+                    if(ServerSettings.DebugAi || done == false) trace('AAI: ${myPlayer.name + myPlayer.id} child drop ${heldPlayer.name} food: ${heldPlayer.food_store} max: ${heldPlayer.getMaxChildFeeding() - 0.2} $done');
                     return true;
                 }
             }
@@ -1379,7 +1379,7 @@ class Ai
         {
             var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
 
-            if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} child drop for eating ${heldPlayer.name} $done');
+            if(ServerSettings.DebugAi || done == false) trace('AAI: ${myPlayer.name + myPlayer.id} child drop for eating ${heldPlayer.name} $done');
 
             return true;
         }
@@ -1513,7 +1513,7 @@ class Ai
         {
             var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
 
-            if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} child drop for using ${heldPlayer.name} $done');
+            if(ServerSettings.DebugAi || done == false) trace('AAI: ${myPlayer.name + myPlayer.id} child drop for using ${heldPlayer.name} $done');
 
             return true;
         }
