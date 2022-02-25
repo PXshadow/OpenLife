@@ -1656,6 +1656,16 @@ class TimeHelper
 
     private static function DoAnimalDamage(fromX:Int, fromY:Int, animal:ObjectHelper) : Float
     {
+        var damage = 0.0;
+        GlobalPlayerInstance.AllPlayerMutex.acquire();
+        Macro.exception(damage = DoAnimalDamageHelper(fromX, fromY, animal));
+        GlobalPlayerInstance.AllPlayerMutex.release();
+
+        return damage;
+    }
+
+    private static function DoAnimalDamageHelper(fromX:Int, fromY:Int, animal:ObjectHelper) : Float
+    {
         var objData = animal.objectData;
         
         if(objData.deadlyDistance <= 0) return 0;
