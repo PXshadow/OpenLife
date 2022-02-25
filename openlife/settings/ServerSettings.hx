@@ -247,6 +247,7 @@ class ServerSettings {
 
 	// AI
 	public static var NumberOfAis:Int = 5;
+	public static var NumberOfAiPx:Int = 2;
 	public static var AiReactionTime:Float = 0.5; // 0.5;
 	public static var TimeToAiRebirth:Float = 15;
 	public static var AiTotalScoreFactor:Float = 0.5;
