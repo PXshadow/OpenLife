@@ -70,7 +70,8 @@ class AiHelper
             {
                 if(ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
 
-                if(ai != null && ai.isObjectNotReachable(tx, ty)) continue;
+                // findClosestHeat == false / since its jused for player temerpature where it does not matter if blocked. Also otherwiese a mutex would be missing since isObjectNotReachable can be used from the AI at same time
+                if(ai != null && findClosestHeat == false && ai.isObjectNotReachable(tx, ty)) continue; 
                 
                 var objData = world.getObjectDataAtPosition(tx, ty);
 
