@@ -204,7 +204,7 @@ class PlayerAccount
             //if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
         }
 
-        trace('spawnAsEve calculateCloseBlockingGraveFitness: $fitness');
+        //trace('spawnAsEve calculateCloseBlockingGraveFitness: $fitness');
 
         return fitness;
     }
@@ -231,7 +231,7 @@ class PlayerAccount
             //if(dist > ServerSettings.GraveBlockingDistance * ServerSettings.GraveBlockingDistance) continue;
         }
 
-        trace('spawnAsEve calculateCloseNonBlockingGraveFitness: $fitness');
+        //trace('spawnAsEve calculateCloseNonBlockingGraveFitness: $fitness');
 
         return fitness;
     }
