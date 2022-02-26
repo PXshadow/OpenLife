@@ -118,6 +118,8 @@ class AiHelper {
 	public static function SearchBestFood(player:PlayerInterface, feedOther:Bool = false, radius:Int = 40):ObjectHelper {
 		var bestFood = null;
 
+		// TODO might need player mutex because: player.getCountEaten(foodId);
+
 		WorldMap.world.mutex.acquire();
 		Macro.exception(bestFood = SearchBestFoodHelper(player, feedOther, radius));
 		WorldMap.world.mutex.release();
@@ -163,8 +165,7 @@ class AiHelper {
 				if (foodValue <= 0) continue;
 				if (player.food_store_max - player.food_store < Math.ceil(foodValue / 4)) continue;
 
-				var obj = world.getObjectHelper(tx, ty);
-				var quadDistance = 16 + AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
+				var quadDistance = 16 + AiHelper.CalculateDistance(baseX, baseY, tx, ty);
 
 				var countEaten = player.getCountEaten(foodId);
 				foodValue -= countEaten;
@@ -181,13 +182,15 @@ class AiHelper {
 				// distance = Math.sqrt(distance);
 
 				if (bestFood == null || foodValue / quadDistance > bestFoodValue / bestDistance) {
+					var obj = world.getObjectHelper(tx, ty);
+					
 					if (ai != null) {
 						if (quadDistance > 4 && IsDangerous(player, obj)) continue;
 						// if(tryGotoObj(player, obj) == false) continue;
 					}
 
 					bestFoods.push(obj);
-
+					
 					bestFood = obj;
 					bestDistance = quadDistance;
 					bestFoodValue = foodValue;
