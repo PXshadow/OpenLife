@@ -8,6 +8,7 @@ import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.transition.TransitionData;
+import openlife.macros.Macro;
 import openlife.server.GlobalPlayerInstance;
 import openlife.server.WorldMap;
 import openlife.settings.ServerSettings;
@@ -361,6 +362,17 @@ class AiHelper {
 	}
 
 	private static function CreateCollisionChunk(playerInterface:PlayerInterface):Vector<Bool> {
+		var map:Vector<Bool> = null;
+
+		GlobalPlayerInstance.AllPlayerMutex.acquire();
+
+		Macro.exception(map = CreateCollisionChunkHelper(playerInterface));
+
+		GlobalPlayerInstance.AllPlayerMutex.release();
+		return map;
+	}
+
+	private static function CreateCollisionChunkHelper(playerInterface:PlayerInterface):Vector<Bool> {
 		var player:PlayerInstance = playerInterface.getPlayerInstance();
 		var world = playerInterface.getWorld();
 		var RAD = MapData.RAD;
