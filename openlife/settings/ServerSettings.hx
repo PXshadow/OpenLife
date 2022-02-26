@@ -73,7 +73,7 @@ class ServerSettings {
 	// Display
 	public static var DisplayScoreFactor:Float = 1; // if display score multiply with factor X
 	public static var DisplayYumAndMehFood = false;
-	public static var DisplayPlayerNamesDistance = 20; 
+	public static var DisplayPlayerNamesDistance = 30; 
 	public static var DisplayPlayerNamesMaxPlayer = 5; 
 
 
@@ -142,7 +142,7 @@ class ServerSettings {
 	// food stuff
 	public static var FoodUsePerSecond = 0.10; // 0.2; // 5 sec per pip // normal game has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good
 	public static var FoodReductionPerEating:Float = 1;
-	public static var FoodReductionFaktorForEatingMeh:Float = 0.5;
+	public static var FoodReductionFaktorForEatingMeh:Float = 0.2;
 	public static var MinAgeToEat = 3; // MinAgeToEat and MinAgeFor putting on cloths on their own
 	public static var GrownUpFoodStoreMax = 20; // defaul vanilla: 20
 	public static var NewBornFoodStoreMax = 4;

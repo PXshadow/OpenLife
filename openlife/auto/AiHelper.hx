@@ -153,7 +153,7 @@ class AiHelper {
 				if (player.food_store_max - player.food_store < Math.ceil(foodValue / 4)) continue;
 
 				var obj = world.getObjectHelper(tx, ty);
-				var quadDistance = 5 + AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
+				var quadDistance = 16 + AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
 
 				var countEaten = player.getCountEaten(foodId);
 				foodValue -= countEaten;

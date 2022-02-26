@@ -259,10 +259,10 @@ Food - YUM:
 - you can only eat if you have space for at least 1/3 the food value, not counting YUM or food reduction 
 - YUM gives 3 food boni first eaten. 
 - the first 3 times a food is eaten the food is YUM
-- food value is reduced minus one for each eaten / food has at least half the food value
-- eating meh reduces the food only halve while eating cravings restores the food value fast
-    For example Berry Default 2: 5 YUM / 4 YUM / 3 YUM / 2 MEH / 1.5 MEH / 1 SUPERMEH / 1 SUPERMEH / 1 SUPERMEH ...
-- if you eat YUM 1 pip (MEH 0.5) is restored with a 0.8% chance from a random eaten food. 
+- food value is reduced (1 for YUM and 0.2 for MEH) for each eaten
+- food has at least half the food value
+    For example Berry default food 4: 7 YUM / 6 YUM / 5 YUM / 4 MEH / 3.8 MEH / 3.6 MEH ... 2.2 MEH / 2 SUPERMEH / 2 SUPERMEH ...
+- if you eat YUM 1 pip (MEH 0.2) is restored with a 0.8% chance from a random eaten food. 
 - if the random chosen food is the same food, no food value is restored
     For eample eats a Yum berry / then eats a YUM onion / 80%  x 50% = 40% chance that eating YUM onion restores 1 pip of berry food value 
     For eample eats a Yum berry / then eats a YUM onion / Then eats a YUM carrot / 80%  x 66%% = 52% chance that eating YUM carrot restores 1 pip of berry or onion food value   
@@ -334,6 +334,11 @@ High priority:
 - AI consider making / using a pile
 - AI Stoneage
 
+- FIX bug with getting stuck sometimes
+- FIX bug with cannot do stuff anymore sometimes
+
+- TIME add time transitions for lakes
+
 - NAMING fix bug
 
 - RAND look at random generator for float
@@ -349,8 +354,6 @@ High priority:
 - BIRTH consider deadly animals
 - BIRTH fathers
 
-- DISPLAY give hints for crafting
-
 - MAP use bigger map (Europe?) / create tool to auto create map
 
 - SAVE season / save animal loved biome spot
@@ -358,8 +361,12 @@ High priority:
 
 Middle priority:
 - GATES Ally Gates and swing doors
+
 - FIX clearing up old lineage data / make storing lineage data more efficient
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
+- FIX light wounds are not light wounds anymore after reconnect / server restart?
+
+- DISPLAY give hints for crafting
 
 - SAVE for contained objects. Currently only ids from contained obj are saved
 
