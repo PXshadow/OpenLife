@@ -137,7 +137,7 @@ class ServerSettings {
 	public static var startingGx = 235; // 235; //270; // 360;
 	public static var startingGy = 150; // 200;//- 400; // server map is saved y inverse
 	public static var EveDamageFactor:Float = 0.5; // Eve / Adam get less damage from animals but make also less damage
-	public static var EveFoodUseFactor:Float = 0.8; // Eve / Adam life still in paradise, so they need less food
+	public static var EveFoodUseFactor:Float = 1; // Eve / Adam life still in paradise, so they need less food
 
 	// food stuff
 	public static var FoodUsePerSecond = 0.10; // 0.2; // 5 sec per pip // normal game has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good
