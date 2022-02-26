@@ -269,8 +269,8 @@ class WorldMap {
 		var floor = WorldMap.world.getFloorId(x, y);
 		var biome = WorldMap.world.getBiomeId(x, y);
 		
-		// 485 Wooden Floor / 884 Stone Floor / 898 Ancient Stone Floor
-		if(floor == 485 || floor ==  884 || floor ==  898)
+		// 485 Wooden Floor / 884 Stone Floor / 898 Ancient Stone Floor / 1596 Stone Road
+		if(floor == 485 || floor ==  884 || floor ==  898 ||  floor == 1596)
 		{
 			if(biome == BiomeTag.OCEAN || biome == BiomeTag.PASSABLERIVER || biome == BiomeTag.RIVER) return false;
 		}
