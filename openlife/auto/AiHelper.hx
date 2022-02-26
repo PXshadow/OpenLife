@@ -364,11 +364,10 @@ class AiHelper {
 	private static function CreateCollisionChunk(playerInterface:PlayerInterface):Vector<Bool> {
 		var map:Vector<Bool> = null;
 
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
-
+		WorldMap.world.mutex.acquire();
 		Macro.exception(map = CreateCollisionChunkHelper(playerInterface));
+		WorldMap.world.mutex.release();
 
-		GlobalPlayerInstance.AllPlayerMutex.release();
 		return map;
 	}
 
