@@ -1497,47 +1497,6 @@ class Ai extends AiBase {
 	}
 }
 
-class IntemToCraft {
-	public var itemToCraft:ObjectData;
-	public var count:Int = 0; // how many items to craft
-	public var countDone:Int = 0; // allready crafted
-	public var countTransitionsDone:Int = 0; // transitions done while crafting
-	public var done:Bool = false; // transitions done while crafting
-	public var searchRadius = 0;
-
-	public var transActor:ObjectHelper = null;
-	public var transTarget:ObjectHelper = null;
-
-	public var transitionsByObjectId:Map<Int, TransitionForObject>;
-
-	public var bestDistance:Float = 99999999999999999999999;
-
-	public var craftingList = new Array<Int>(); // is not a complete list
-	public var craftingTransitions = new Array<TransitionData>(); // is not a complete list
-
-	public var startLocation:ObjectHelper = null;
-
-	public function new() {
-		itemToCraft = ObjectData.getObjectData(0);
-	}
-
-	public function clearTransitionsByObjectId() {
-		// reset objects so that it can be filled again
-		for (trans in transitionsByObjectId) {
-			trans.closestObject = null;
-			trans.closestObjectDistance = -1;
-			trans.closestObjectPlayerIndex = -1;
-
-			trans.secondObject = null;
-			trans.closestObjectDistance = -1;
-
-			trans.craftActor = null;
-			trans.craftTarget = null;
-			trans.isDone = false;
-			trans.wantedObjs = new Array<TransitionForObject>();
-		}
-	}
-}
 /* // with this AI crafts also something if it cannot reach the goal. Is quite funny to try out :)
 	private function searchBestTransition(itemToCraft:IntemToCraft)
 	{

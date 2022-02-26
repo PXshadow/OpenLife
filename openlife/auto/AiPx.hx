@@ -1,7 +1,6 @@
 package openlife.auto;
 
 import haxe.Exception;
-import openlife.auto.Ai.IntemToCraft;
 import openlife.data.map.MapData;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
