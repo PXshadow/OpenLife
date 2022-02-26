@@ -611,6 +611,16 @@ class AiHelper {
 	}
 
 	public static function GetCloseDeadlyPlayer(playerInter:PlayerInterface, searchDistance:Int = 8) {
+		var bestPlayer = null;
+
+		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		Macro.exception(bestPlayer = GetCloseDeadlyPlayerHelper(playerInter, searchDistance));
+		GlobalPlayerInstance.AllPlayerMutex.release();
+
+		return bestPlayer;
+	}
+
+	private static function GetCloseDeadlyPlayerHelper(playerInter:PlayerInterface, searchDistance:Int = 8) {
 		var player = cast(playerInter, GlobalPlayerInstance);
 		var bestPlayer = null;
 		var bestDist:Float = searchDistance * searchDistance;
@@ -634,7 +644,17 @@ class AiHelper {
 		return bestPlayer;
 	}
 
-	public static function GetCloseStarvingPlayer(player:PlayerInterface, searchDistance:Int = 30) {
+	public static function GetCloseStarvingPlayer(playerInter:PlayerInterface, searchDistance:Int = 30) {
+		var bestPlayer = null;
+
+		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		Macro.exception(bestPlayer = GetCloseStarvingPlayerHelper(playerInter, searchDistance));
+		GlobalPlayerInstance.AllPlayerMutex.release();
+
+		return bestPlayer;
+	}
+
+	private static function GetCloseStarvingPlayerHelper(player:PlayerInterface, searchDistance:Int = 30) {
 		var globalplayer = cast(player, GlobalPlayerInstance); // TODO find better way / maybe use globalplayer also for client
 		var bestPlayer:GlobalPlayerInstance = null;
 
@@ -673,7 +693,17 @@ class AiHelper {
 		return bestPlayer;
 	}
 
-	public static function GetCloseHungryChild(mother:PlayerInterface, searchDistance:Int = 40) {
+	public static function GetCloseHungryChild(playerInter:PlayerInterface, searchDistance:Int = 40) {
+		var bestPlayer = null;
+
+		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		Macro.exception(bestPlayer = GetCloseHungryChildHelper(playerInter, searchDistance));
+		GlobalPlayerInstance.AllPlayerMutex.release();
+
+		return bestPlayer;
+	}
+
+	private static function GetCloseHungryChildHelper(mother:PlayerInterface, searchDistance:Int = 40) {
 		var bestPlayer:GlobalPlayerInstance = null;
 		var maxDist = searchDistance * searchDistance;
 		var bestQuadHungry:Float = 0;
@@ -703,7 +733,17 @@ class AiHelper {
 		return bestPlayer;
 	}
 
-	public static function GetMostDistamtOwnChild(mother:PlayerInterface, minDist:Int = 10, searchDistance:Int = 50) {
+	public static function GetMostDistantOwnChild(mother:PlayerInterface, minDist:Int = 10, searchDistance:Int = 50) {
+		var worstPlayer = null;
+
+		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		Macro.exception(worstPlayer = GetMostDistantOwnChildHelper(mother, minDist, searchDistance));
+		GlobalPlayerInstance.AllPlayerMutex.release();
+
+		return worstPlayer;
+	}
+
+	private static function GetMostDistantOwnChildHelper(mother:PlayerInterface, minDist:Int = 10, searchDistance:Int = 50) {
 		// var player = cast(playerInter, GlobalPlayerInstance);
 		var worstPlayer:GlobalPlayerInstance = null;
 		var worstDist:Float = 0;

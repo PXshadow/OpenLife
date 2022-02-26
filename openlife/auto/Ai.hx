@@ -527,7 +527,7 @@ class Ai implements AiBase {
 	private function isStayingCloseToChild() {
 		if (myPlayer.isFertile() == false) return false;
 
-		var child = AiHelper.GetMostDistamtOwnChild(myPlayer);
+		var child = AiHelper.GetMostDistantOwnChild(myPlayer);
 
 		if (child == null) return false;
 
