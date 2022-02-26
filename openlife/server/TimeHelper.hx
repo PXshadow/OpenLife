@@ -247,6 +247,23 @@ class TimeHelper {
 		if (player.jumpedTiles > 0) player.jumpedTiles -= timePassedInSeconds * ServerSettings.MaxJumpsPerTenSec * 0.1;
 		if (player.lastSayInSec > 0) player.lastSayInSec -= timePassedInSeconds;
 
+		if (player.heldPlayer != null && player.heldPlayer.deleted)
+		{
+			player.heldPlayer = null;
+			player.o_id  = player.heldObject.toArray();
+			trace('WARNING ${player.name + player.id} held player is dead! o_id set to: ${player.heldObject.name}');
+		}
+		if (player.heldByPlayer != null && player.heldByPlayer.deleted)
+		{
+			player.heldByPlayer = null;
+			trace('WARNING ${player.name + player.id} heldByPlayer is dead!');
+		}
+		if (player.o_id[0] < 0 && player.heldPlayer == null)
+		{
+			player.o_id  = player.heldObject.toArray();
+			trace('WARNING ${player.name + player.id} ${player.o_id[0]} < 0 but no player held! o_id set to: ${player.heldObject.name}');
+		}
+		
 		// if(player.angryTime < 0 && player.angryTime > -1) player.angryTime = 0;
 
 		// var moreAngry = player.isHoldingWeapon() || (player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon());
