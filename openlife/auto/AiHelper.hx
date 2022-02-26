@@ -116,6 +116,16 @@ class AiHelper {
 	}
 
 	public static function SearchBestFood(player:PlayerInterface, feedOther:Bool = false, radius:Int = 40):ObjectHelper {
+		var bestFood = null;
+
+		WorldMap.world.mutex.acquire();
+		Macro.exception(bestFood = SearchBestFoodHelper(player, feedOther, radius));
+		WorldMap.world.mutex.release();
+
+		return bestFood;
+	}
+
+	public static function SearchBestFoodHelper(player:PlayerInterface, feedOther:Bool = false, radius:Int = 40):ObjectHelper {
 		var startTime = Sys.time();
 		var ai = player.getAi();
 		var baseX = player.tx;
