@@ -3,6 +3,7 @@ package openlife.server;
 import haxe.Exception;
 import haxe.ds.Vector;
 import openlife.auto.Ai;
+import openlife.auto.AiBase;
 import openlife.auto.AiHelper;
 import openlife.auto.PlayerInterface;
 import openlife.auto.WorldInterface;
@@ -771,7 +772,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (this.mother != null && this.age < ServerSettings.MinAgeToEat) {
 			if (this.mother.isAi() == false) mother.connection.sendMapLocation(this, 'BABY', 'baby'); else
-				mother.connection.serverAi.newChild(this);
+				mother.connection.serverAi.ai.newChild(this);
 		}
 	}
 
@@ -1426,7 +1427,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			}
 
 			for (ai in Connection.getAis()) {
-				ai.say(player, curse == 1, text);
+				ai.ai.say(player, curse == 1, text);
 			}
 		}
 	}
@@ -2659,8 +2660,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (displayBestFood) player.displayFood(bestfood);
 	}
 
-	public function getAi():Ai {
-		return this.connection.serverAi;
+	public function getAi():AiBase {
+		if(this.connection.serverAi == null) return null;
+		return this.connection.serverAi.ai;
 	}
 
 	public function MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed() {

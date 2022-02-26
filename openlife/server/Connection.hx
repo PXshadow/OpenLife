@@ -1,15 +1,15 @@
 package openlife.server;
 
 import haxe.Exception;
+import openlife.data.map.MapData;
+import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.macros.Macro;
-import openlife.data.object.ObjectData;
 import openlife.settings.ServerSettings;
-import openlife.data.map.MapData;
 #if (target.threaded)
+import haxe.io.Bytes;
 import openlife.client.ClientTag;
 import sys.net.Socket;
-import haxe.io.Bytes;
 
 class Connection {
 	private static var connections:Array<Connection> = [];
@@ -210,7 +210,7 @@ class Connection {
 			}
 
 			for (ai in ais) {
-				ai.playerUpdate(player);
+				ai.ai.playerUpdate(player);
 			}
 		} catch (ex)
 			trace(ex);
@@ -434,7 +434,7 @@ class Connection {
 				// update only close players
 				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
 
-				c.mapUpdate(tx, ty);
+				c.ai.mapUpdate(tx, ty);
 			}
 		} catch (ex)
 			trace(ex);
@@ -504,7 +504,7 @@ class Connection {
 				if (player.isClose(toX, toY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false
 					&& player.isClose(fromX, fromY, ServerSettings.MaxDistanceToBeConsideredAsClose)) continue;
 
-				c.mapUpdate(fromTx, fromTy, true);
+				c.ai.mapUpdate(fromTx, fromTy, true);
 			}
 		} catch (ex)
 			trace(ex);
@@ -537,7 +537,7 @@ class Connection {
 				// update only close players
 				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
 
-				c.playerMove(player, player.tx, player.ty);
+				c.ai.playerMove(player, player.tx, player.ty);
 			}
 		} catch (ex)
 			trace(ex);
@@ -711,7 +711,7 @@ class Connection {
 				// update only close players
 				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
 
-				c.emote(fromPlayer, id);
+				c.ai.emote(fromPlayer, id);
 			}
 		} catch (ex)
 			trace(ex);

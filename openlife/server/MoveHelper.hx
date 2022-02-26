@@ -1,11 +1,11 @@
 package openlife.server;
 
+import openlife.data.Pos;
+import openlife.data.object.ObjectData;
+import openlife.data.object.ObjectHelper;
 import openlife.macros.Macro;
 import openlife.server.GlobalPlayerInstance.Emote;
-import openlife.data.object.ObjectHelper;
-import openlife.data.object.ObjectData;
 import openlife.settings.ServerSettings;
-import openlife.data.Pos;
 
 // @:multiReturn extern class NewMovements {
 private class NewMovements {
@@ -327,7 +327,7 @@ class MoveHelper {
 
 			Connection.SendUpdateToAllClosePlayers(p);
 
-			if (p.connection.serverAi != null) p.connection.serverAi.finishedMovement();
+			if (p.connection.serverAi != null) p.connection.serverAi.ai.finishedMovement();
 
 			// if(ServerSettings.DebugMoveHelper) trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
 		}

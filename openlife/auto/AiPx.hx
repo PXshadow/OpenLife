@@ -1,6 +1,7 @@
 package openlife.auto;
 
 import haxe.Exception;
+import openlife.auto.Ai.IntemToCraft;
 import openlife.data.map.MapData;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
@@ -19,17 +20,17 @@ import sys.thread.Thread;
 using StringTools;
 using openlife.auto.AiHelper;
 
-class AiPx implements AiBase {
+class AiPx extends AiBase {
 	public static var lastTick:Float = 0;
 	public static var tick:Float = 0;
 
 	final RAD:Int = MapData.RAD; // search radius
 
-	public var myPlayer:PlayerInterface;
+	//public var myPlayer:PlayerInterface;
 
 	var time:Float = 1;
 
-	public var seqNum = 1;
+	//public var seqNum = 1;
 
 	var feedingPlayerTarget:PlayerInterface = null;
 
@@ -161,12 +162,14 @@ class AiPx implements AiBase {
 
 	// do time stuff here is called from TimeHelper
 	public function doTimeStuff(timePassedInSeconds:Float) {
+		
 		time -= timePassedInSeconds;
-
 		// if(didNotReachFood > 0) didNotReachFood -= timePassedInSeconds * 0.02;
 
 		if (time > 0) return;
 		time += ServerSettings.AiReactionTime; // 0.5; // minimum AI reacting time
+
+		trace('im a px ai! ${myPlayer.name + myPlayer.id}');
 
 		cleanupBlockedObjects();
 
@@ -524,7 +527,7 @@ class AiPx implements AiBase {
 	private function isStayingCloseToChild() {
 		if (myPlayer.isFertile() == false) return false;
 
-		var child = AiHelper.GetMostDistamtOwnChild(myPlayer);
+		var child = AiHelper.GetMostDistantOwnChild(myPlayer);
 
 		if (child == null) return false;
 
@@ -1494,47 +1497,6 @@ class AiPx implements AiBase {
 	}
 }
 
-class IntemToCraft {
-	public var itemToCraft:ObjectData;
-	public var count:Int = 0; // how many items to craft
-	public var countDone:Int = 0; // allready crafted
-	public var countTransitionsDone:Int = 0; // transitions done while crafting
-	public var done:Bool = false; // transitions done while crafting
-	public var searchRadius = 0;
-
-	public var transActor:ObjectHelper = null;
-	public var transTarget:ObjectHelper = null;
-
-	public var transitionsByObjectId:Map<Int, TransitionForObject>;
-
-	public var bestDistance:Float = 99999999999999999999999;
-
-	public var craftingList = new Array<Int>(); // is not a complete list
-	public var craftingTransitions = new Array<TransitionData>(); // is not a complete list
-
-	public var startLocation:ObjectHelper = null;
-
-	public function new() {
-		itemToCraft = ObjectData.getObjectData(0);
-	}
-
-	public function clearTransitionsByObjectId() {
-		// reset objects so that it can be filled again
-		for (trans in transitionsByObjectId) {
-			trans.closestObject = null;
-			trans.closestObjectDistance = -1;
-			trans.closestObjectPlayerIndex = -1;
-
-			trans.secondObject = null;
-			trans.closestObjectDistance = -1;
-
-			trans.craftActor = null;
-			trans.craftTarget = null;
-			trans.isDone = false;
-			trans.wantedObjs = new Array<TransitionForObject>();
-		}
-	}
-}
 /* // with this AI crafts also something if it cannot reach the goal. Is quite funny to try out :)
 	private function searchBestTransition(itemToCraft:IntemToCraft)
 	{

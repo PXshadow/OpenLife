@@ -1,11 +1,11 @@
 package openlife.auto;
 
+import openlife.data.Pos;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.player.PlayerInstance;
-import openlife.data.Pos;
 
 interface PlayerInterface {
-	public function getAi():Ai;
+	public function getAi():AiBase;
 	public function getWorld():WorldInterface;
 	public function getPlayerInstance():PlayerInstance;
 

@@ -19,17 +19,17 @@ import sys.thread.Thread;
 using StringTools;
 using openlife.auto.AiHelper;
 
-class Ai implements AiBase {
+class Ai extends AiBase {
 	public static var lastTick:Float = 0;
 	public static var tick:Float = 0;
 
 	final RAD:Int = MapData.RAD; // search radius
 
-	public var myPlayer:PlayerInterface;
+	//public var myPlayer:PlayerInterface;
 
 	var time:Float = 1;
 
-	public var seqNum = 1;
+	//public var seqNum = 1;
 
 	var feedingPlayerTarget:PlayerInterface = null;
 

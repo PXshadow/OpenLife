@@ -1,19 +1,23 @@
 package openlife.server;
 
-import openlife.settings.ServerSettings;
 import openlife.auto.Ai;
+import openlife.auto.AiBase;
+import openlife.auto.AiPx;
+import openlife.auto.AiPx;
+import openlife.settings.ServerSettings;
 
-class ServerAi extends Ai {
+class ServerAi{
 	public static var AiIdIndex = 1;
 
 	public var player:GlobalPlayerInstance;
+	public var ai:AiBase;
 	public var number:Int;
 	public var connection:Connection;
 	public var timeToRebirth:Float = 0;
 
 	public function new(newPlayer:GlobalPlayerInstance) {
-		super(newPlayer);
-
+		
+		ai = ServerSettings.NumberOfAiPx >= AiIdIndex ? new AiPx(newPlayer) : new Ai(newPlayer) ;
 		this.number = AiIdIndex++;
 		this.player = newPlayer;
 		this.connection = player.connection;
@@ -29,12 +33,12 @@ class ServerAi extends Ai {
 		newConnection.playerAccount.isAi = true;
 		var newPlayer = GlobalPlayerInstance.CreateNewAiPlayer(newConnection);
 
-		var ai = new ServerAi(newPlayer);
+		var serverAi = new ServerAi(newPlayer);
 
-		trace('new ai: ${ai.number} ${newConnection.playerAccount.email}');
+		trace('new ai: ${serverAi.number} ${newConnection.playerAccount.email}');
 
-		ai.newBorn();
-		return ai;
+		serverAi.ai.newBorn();
+		return serverAi;
 	}
 
 	public function doRebirth(timePassedInSeconds:Float) {
@@ -55,7 +59,11 @@ class ServerAi extends Ai {
 		// trace('doRebirth: ');
 
 		this.player = GlobalPlayerInstance.CreateNewAiPlayer(connection);
-		this.myPlayer = player; // TODO same player for AI
-		this.newBorn();
+		this.ai.myPlayer = player; // TODO same player for AI
+		this.ai.newBorn();
+	}
+
+	public function doTimeStuff(timePassedInSeconds:Float){
+		ai.doTimeStuff(timePassedInSeconds);
 	}
 }
