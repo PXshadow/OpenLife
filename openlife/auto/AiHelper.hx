@@ -120,9 +120,11 @@ class AiHelper {
 
 		// TODO might need player mutex because: player.getCountEaten(foodId);
 
-		WorldMap.world.mutex.acquire();
+		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		//WorldMap.world.mutex.acquire();
 		Macro.exception(bestFood = SearchBestFoodHelper(player, feedOther, radius));
-		WorldMap.world.mutex.release();
+		//WorldMap.world.mutex.release();
+		GlobalPlayerInstance.AllPlayerMutex.release();
 
 		return bestFood;
 	}
