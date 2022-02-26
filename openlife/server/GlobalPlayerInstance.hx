@@ -3756,6 +3756,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				player.connection.sendMapChunk(player.x, player.y);
 			}
+		} else if (text.indexOf('!SENDPU') != -1) {
+			player.done_moving_seqNum +=1;
+			Connection.SendUpdateToAllClosePlayers(player);
+		}
+		else if (text.indexOf('!SENDNAMES') != -1) {
+			player.connection.sendToMeAllPlayerNames();		
 		}
 	}
 
