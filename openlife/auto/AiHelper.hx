@@ -392,9 +392,10 @@ class AiHelper {
 			for (x in player.tx - RAD...player.tx + RAD) {
 				int++;
 
-				var obj = world.getObjectHelper(x, y);
-				vector[int] = obj.blocksWalking() || world.isBiomeBlocking(x, y);
+				vector[int] = playerInterface.isBlocked(x,y);
 
+				//var obj = world.getObjectData(x, y);			
+				//vector[int] = obj.blocksWalking || world.isBiomeBlocking(x, y);
 				// if(obj.blocksWalking()) trace('${player.tx()} ${player.ty()} $x $y ${obj.description}');
 			}
 		}

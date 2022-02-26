@@ -4031,9 +4031,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public function isBlocked(tx:Int, ty:Int):Bool {
 		var player:GlobalPlayerInstance = this;
-		var obj = WorldMap.world.getObjectHelper(tx, ty);
+		var obj = WorldMap.world.getObjectDataAtPosition(tx, ty);
 
-		if (obj.blocksWalking()) return true;
+		if (obj.blocksWalking) return true;
 
 		if (player.heldObject.objectData.isBoat) {
 			var biome = WorldMap.world.getBiomeId(tx, ty);
