@@ -100,9 +100,8 @@ MAP:
 - no expert waystones
 
 Adam / Eve:
-- adam / Eve use 20% less food
 - adam / Eve do 50% less damage
-- adam / Eve receive 20% less damage (also from animals)
+- adam / Eve receive 50% less damage (also from animals)
 
 Family / Loved / Hated Biomes:
 - loved Biomes: Ginger --> Snow / White --> Grey / Brown --> Jungle / Black --> Desert 
@@ -131,6 +130,7 @@ Ally
 Combat / Attacking
 - you can attack anybody if you are angry and if target is terrified or angry
 - you get angry / terrified 5 seconds after attacking / being attacked
+- The more / leass health pipes you have the more / less damage you do 
 - clothing insulation reduces damage up to 66%;
 - you have reduced speed if close to enemy with weapon
 - already wounded players receive less damage

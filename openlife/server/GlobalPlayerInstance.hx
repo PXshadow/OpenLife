@@ -3233,6 +3233,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (ServerSettings.DebugCombat) trace('COMBAT: isRightClassForWeapon: $isRightClassForWeapon');
 
 			damage *= attacker.isMale() ? ServerSettings.MaleDamageFactor : 1;
+			damage *= attacker.food_store_max / ServerSettings.GrownUpFoodStoreMax;
 			damage *= allyFactor;
 			damage *= distanceFactor;
 			damage *= isRightClassForWeapon ? 1.2 : 1;
