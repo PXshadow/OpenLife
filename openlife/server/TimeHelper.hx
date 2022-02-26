@@ -43,6 +43,8 @@ class TimeHelper {
 	private static var SeasonTemperatureImpact:Float = 0;
 	private static var SeasonHardness:Float = 1;
 
+	public static var ReadServerSettings:Bool = true;
+
 	public static function CalculateTimeSinceTicksInSec(ticks:Float):Float {
 		return (TimeHelper.tick - ticks) * TimeHelper.tickTime;
 	}
@@ -81,7 +83,7 @@ class TimeHelper {
 				averageSleepTime = 0;
 				skipedTicks = 0;
 
-				ServerSettings.readFromFile(false);
+				if(ReadServerSettings) ServerSettings.readFromFile(false);
 
 				// if(Server.server.connections.length > 0) Server.server.connections[0].player.doDeath();
 			}

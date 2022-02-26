@@ -1405,7 +1405,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		if (StringTools.contains(text, '!')) {
-			if (ServerSettings.AllowDebugCommmands) DoDebugCommands(player, text);
+			if (ServerSettings.AllowDebugCommmands) if(DoDebugCommands(player, text)) return;
 		}
 
 		if (lastSayInSec > 0 && ServerSettings.debug == false) return;
@@ -3642,16 +3642,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return person.male;
 	}
 
-	private static function DoDebugCommands(player:GlobalPlayerInstance, text:String) {
+	private static function DoDebugCommands(player:GlobalPlayerInstance, text:String) : Bool {
 		if (text.indexOf('!HIT H') != -1) {
 			trace('!HIT HELD');
 
-			if (player.heldPlayer == null) return;
+			if (player.heldPlayer == null) return false;
 
 			player.heldPlayer.hits += 3;
 			player.heldPlayer.food_store_max = player.calculateFoodStoreMax();
 
-			return;
+			return false;
 		}
 
 		if (text.indexOf('!HIT') != -1) {
@@ -3708,7 +3708,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			var id = findObjectByCommand(text);
 
-			if (id < 0) return;
+			if (id < 0) return false;
 
 			WorldMap.world.setObjectId(player.tx, player.ty, [id]);
 
@@ -3763,6 +3763,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		else if (text.indexOf('!SENDNAMES') != -1) {
 			player.connection.sendToMeAllPlayerNames();		
 		}
+		else if (text.indexOf('!DEBUG TRANS') != -1) {
+			TimeHelper.ReadServerSettings = false; // otherwise they will be loaded from file again
+			ServerSettings.DebugTransitionHelper = ServerSettings.DebugTransitionHelper ? false : true; 
+			player.say('debug TRANS: ${ServerSettings.DebugTransitionHelper}', true);
+			return true;
+		}
+		else if (text.indexOf('!DEBUG AI') != -1) {
+			TimeHelper.ReadServerSettings = false; // otherwise they will be loaded from file again
+			ServerSettings.DebugAi = ServerSettings.DebugAi ? false : true; 
+			player.say('debug ai: ${ServerSettings.DebugAi}', true);
+			return true;
+		}
+
+		return false;
 	}
 
 	public static function findObjectByCommand(text:String):Int {
