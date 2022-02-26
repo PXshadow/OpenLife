@@ -142,6 +142,7 @@ Combat / Attacking
 - you do halve damage to an ally
 - you receive less damage if holding a knife, sword or riding a horse without a cart 
 - males do X1.2 damage
+- weapon pickup age is 2 years lower each
 
 Attacking prestige lost:
 - you will loose prestige for attacking a close relative without weapon
@@ -335,9 +336,9 @@ High priority:
 - AI Stoneage
 
 - FIX bug with getting stuck sometimes
-- FIX bug with cannot do stuff anymore sometimes
+- FIX bug with reconnect if holding a player // TODO check if it is a problem
 
-- TIME add time transitions for lakes
+- TIME add time transitions for lakes (what to do with the warter???)
 
 - NAMING fix bug
 

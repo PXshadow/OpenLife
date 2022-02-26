@@ -312,7 +312,7 @@ class ServerSettings {
 		ObjectData.getObjectData(141).hungryWork = 2; // Canada Goose Pond
 		ObjectData.getObjectData(142).hungryWork = 2; // Canada Goose Pond swimming
 		ObjectData.getObjectData(143).hungryWork = 2; // Canada Goose Pond swimming, feather
-		ObjectData.getObjectData(662).hungryWork = 2; // Shallow Well
+		ObjectData.getObjectData(662).hungryWork = 1; // Shallow Well
 		ObjectData.getObjectData(663).hungryWork = 2; // Deep Well
 
 		// ObjectData.getObjectData(496).alternativeTransitionOutcome = 10; // Dug Stump
@@ -561,6 +561,13 @@ class ServerSettings {
 		ObjectData.getObjectData(2396).speedMult = 2.5;
 		ObjectData.getObjectData(4655).isBoat = true; // Delivery Truck
 		ObjectData.getObjectData(4655).speedMult = 1;
+		
+
+		// lower age for weapons since kids so or so make less damage since they have less health pipes
+		ObjectData.getObjectData(151).minPickupAge = 10; // 12   // War Sword
+		ObjectData.getObjectData(151).minPickupAge = 8; // 10   // Yew Bow
+		ObjectData.getObjectData(560).minPickupAge = 6; // 8    // Knife 
+		
 
 		for (objData in ObjectData.importedObjectData) {
 			if (objData.description.contains('Sports Car')) {
@@ -862,6 +869,19 @@ class ServerSettings {
 		var trans = new TransitionData(394, 1099, 394, 1099);
 		trans.targetRemains = true;
 		TransitionImporter.transitionImporter.createAndaddCategoryTransitions(trans);
+
+		// TODO pond animations
+		/*
+		var trans = transtions.getTransition(-1, 141); // Canada Goose Pond
+		trans.newTargetID = 142; // Canada Goose Pond swimming
+		trans.autoDecaySeconds = 5;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		var trans = transtions.getTransition(-1, 142); // Canada Goose Pond
+		trans.newTargetID = 141; // Canada Goose Pond swimming
+		trans.autoDecaySeconds = 5;
+		transtions.addTransition("PatchTransitions: ", trans);
+		*/
 
 		// for debug random outcome transitions
 		/*var trans = transtions.getTransition(-1, 1195); // TIME + Blooming Squash Plant 
