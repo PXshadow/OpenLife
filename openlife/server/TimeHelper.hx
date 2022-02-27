@@ -434,48 +434,50 @@ class TimeHelper {
 
 	private static function updateAge(player:GlobalPlayerInstance, timePassedInSeconds:Float) {
 		var tmpAge = player.age;
-		var aging = timePassedInSeconds / player.age_r;
+		
 
 		// trace('aging: ${aging}');
 
 		// trace('player.age_r: ${player.age_r}');
 
 		var healthFactor = player.CalculateHealthAgeFactor();
-		var agingFactor:Float = 1;
+		var ageingFactor:Float = 1;
 
 		// trace('healthFactor: ${healthFactor}');
 
 		if (player.age < ServerSettings.GrownUpAge) {
-			agingFactor = healthFactor;
+			ageingFactor = healthFactor;
 		} else {
-			agingFactor = 1 / healthFactor;
+			ageingFactor = 1 / healthFactor;
 		}
 
 		if(player.isHuman() && player.mother != null && player.mother.isAi() && player.age < ServerSettings.MinAgeToEat){
-			agingFactor *= ServerSettings.AgingFactorHumanBornToAi;
+			ageingFactor *= ServerSettings.AgingFactorHumanBornToAi;
+			//if(TimeHelper.tick % 20 == 0) trace('ageing: human born to ai: $ageingFactor'); 
 		}
 
 		if (player.food_store < 0) {
 			if (player.age < ServerSettings.GrownUpAge) {
-				agingFactor *= ServerSettings.AgingFactorWhileStarvingToDeath;
+				ageingFactor *= ServerSettings.AgingFactorWhileStarvingToDeath;
 			} else {
-				agingFactor *= 1 / ServerSettings.AgingFactorWhileStarvingToDeath;
+				ageingFactor *= 1 / ServerSettings.AgingFactorWhileStarvingToDeath;
 			}
 		}
 
-		player.age_r = ServerSettings.AgingSecondsPerYear * agingFactor;
+		player.age_r = ServerSettings.AgeingSecondsPerYear / ageingFactor;
+		var ageing = timePassedInSeconds / ServerSettings.AgeingSecondsPerYear;
 
-		player.trueAge += aging;
+		player.trueAge += ageing;
 
-		aging *= agingFactor;
+		ageing *= ageingFactor;
 
-		player.age += aging;
+		player.age += ageing;
 
 		// trace('player.age: ${player.age}');
 
 		if (Std.int(tmpAge) != Std.int(player.age)) {
 			if (ServerSettings.DebugPlayer)
-				trace('Player: ${player.p_id} Old Age: $tmpAge New Age: ${player.age} TrueAge: ${player.trueAge} agingFactor: $agingFactor healthFactor: $healthFactor');
+				trace('Player: ${player.p_id} Old Age: $tmpAge New Age: ${player.age} TrueAge: ${player.trueAge} agingFactor: $ageingFactor healthFactor: $healthFactor');
 
 			// player.yum_multiplier -= ServerSettings.MinHealthPerYear; // each year some health is lost
 			player.food_store_max = player.calculateFoodStoreMax();

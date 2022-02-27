@@ -101,7 +101,7 @@ class ServerSettings {
 	public static var StartingEveAge = 14; // 14
 	public static var StartingFamilyName = "SNOW";
 	public static var StartingName = "SPOON";
-	public static var AgingSecondsPerYear = 60; // 60
+	public static var AgeingSecondsPerYear = 60; // 60
 	public static var ReduceAgeNeededToPickupObjects = 3; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
 	public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
 	public static var MaxChildAgeForBreastFeeding = 6; // also used for considering a child when being attacked
@@ -253,7 +253,7 @@ class ServerSettings {
 	public static var AiMaxSearchRadius:Int = 60;
 	public static var AiMaxSearchIncrement:Int = 20; // 16
 	public static var AiIgnoreTimeTransitionsLongerThen:Int = 30;
-	public static var AgingFactorHumanBornToAi:Float = 5;
+	public static var AgingFactorHumanBornToAi:Float = 6; // 3
 
 	// iron, tary spot spring cannot respawn or win lottery
 	public static function CanObjectRespawn(obj:Int):Bool {
