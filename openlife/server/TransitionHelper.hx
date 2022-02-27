@@ -169,7 +169,7 @@ class TransitionHelper {
 
 		// if(ServerSettings.DebugTransitionHelper) trace("hand: " + this.handObject + " tile: " + this.tileObject + ' tx: $tx ty:$ty');
 
-		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} AGE: ${player.age} ${player.name} ${player.id}');
+		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} isAI: ${player.isAi()} AGE: ${player.age}');
 		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} handObjectHelper: ${handObjectData.description} numberOfUses: ${player.heldObject.numberOfUses} '
 			+ player.heldObject.toArray());
 		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} target: ${tileObjectData.description} ${target.tx}, ${target.ty} numberOfUses: ${target.numberOfUses} '

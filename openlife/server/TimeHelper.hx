@@ -249,6 +249,12 @@ class TimeHelper {
 		if (player.jumpedTiles > 0) player.jumpedTiles -= timePassedInSeconds * ServerSettings.MaxJumpsPerTenSec * 0.1;
 		if (player.lastSayInSec > 0) player.lastSayInSec -= timePassedInSeconds;
 
+		if(player.connection.sock != null && player.connection.serverAi != null)
+		{
+			player.connection.serverAi = null;
+			trace('WARNING ${player.name + player.id} has socket and serverAi! serverAi set null!');
+		}
+
 		if (player.heldPlayer != null && player.heldPlayer.deleted)
 		{
 			player.heldPlayer = null;
@@ -630,14 +636,14 @@ class TimeHelper {
 
 			if (heldPlayer.food_store < heldPlayer.getMaxChildFeeding()) {
 				var food = ServerSettings.FoodRestoreFactorWhileFeeding * timePassedInSeconds * ServerSettings.FoodUsePerSecond;
-				var tmpFood = heldPlayer.food_store;
+				var tmpFood = Math.ceil(heldPlayer.food_store);
 
 				heldPlayer.food_store += food;
 				foodDecay += food / 2;
 
 				if (heldPlayer.hits > 0) heldPlayer.hits -= timePassedInSeconds * 0.2;
 
-				var hasChanged = tmpFood != Math.ceil(player.food_store);
+				var hasChanged = tmpFood != Math.ceil(heldPlayer.food_store);
 				if (hasChanged) {
 					heldPlayer.sendFoodUpdate(false);
 					heldPlayer.connection.send(FRAME, null, false);
