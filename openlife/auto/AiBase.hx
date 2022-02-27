@@ -55,7 +55,7 @@ abstract class AiBase
 
     public var myPlayer(default, default):PlayerInterface;
     public var seqNum = 1;
-	var time:Float = 1;
+	public var time:Float = 1;
 
 	//public var seqNum = 1;
 
@@ -207,7 +207,7 @@ abstract class AiBase
 		time -= timePassedInSeconds;
 
 		// if(didNotReachFood > 0) didNotReachFood -= timePassedInSeconds * 0.02;
-
+        if(time > 5) time = 5; // wait max 5 sec
 		if (time > 0) return;
 		time += ServerSettings.AiReactionTime; // 0.5; // minimum AI reacting time
 
@@ -699,6 +699,17 @@ abstract class AiBase
 				var escapeInLowerX = alwaysX || escapeTx > player.tx;
 				var escapeInLowerY = alwaysY || escapeTy > player.ty;
 
+                if (ii > 0)
+                {
+                    var rand = WorldMap.calculateRandomFloat();
+                    if(rand < 0.2) escapeInLowerX = true;
+                    else if(rand < 0.4) escapeInLowerX = false;
+
+                    var rand = WorldMap.calculateRandomFloat();
+                    if(rand < 0.2) escapeInLowerY = true;
+                    else if(rand < 0.4) escapeInLowerY = false;
+                }
+
 				newEscapetarget.tx = escapeInLowerX ? player.tx - escapeDist : player.tx + escapeDist;
 				newEscapetarget.ty = escapeInLowerY ? player.ty - escapeDist : player.ty + escapeDist;
 
@@ -725,8 +736,8 @@ abstract class AiBase
 			if (done) break;
 			if ((Sys.time() - startTime) * 1000 > 100) break;
 
-			alwaysX = WorldMap.calculateRandomFloat() < 0.5;
-			alwaysY = WorldMap.calculateRandomFloat() < 0.5;
+			//alwaysX = WorldMap.calculateRandomFloat() < 0.5;
+			//alwaysY = WorldMap.calculateRandomFloat() < 0.5;
 
 			if (ii > 0) checkIfDangerous = false;
 
@@ -943,6 +954,8 @@ abstract class AiBase
 			// if(ServerSettings.DebugAi) trace('AI: craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
 
 			searchBestTransitionTopDown(itemToCraft);
+
+            this.time += Sys.time() - startTime;
 
 			if (itemToCraft.transActor != null) return itemToCraft;
 		}
