@@ -6,6 +6,7 @@ import haxe.Int32;
 import haxe.Serializer;
 import haxe.macro.Expr.Catch;
 import openlife.auto.Ai;
+import openlife.auto.AiBase;
 import openlife.auto.WorldInterface;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.player.PlayerInstance;
@@ -655,8 +656,8 @@ class WorldMap {
 		this.backupDataNumber = Std.parseInt(reader.readLine());
 		TimeHelper.tick = Std.parseFloat(reader.readLine());
 		TimeHelper.lastTick = TimeHelper.tick;
-		Ai.tick = TimeHelper.tick;
-		Ai.lastTick = TimeHelper.lastTick;
+		AiBase.tick = TimeHelper.tick;
+		AiBase.lastTick = TimeHelper.lastTick;
 		Server.server.playerIndex = Std.parseInt(reader.readLine());
 		PlayerAccount.AccountIdIndex = Std.parseInt(reader.readLine());
 

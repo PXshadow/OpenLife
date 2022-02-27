@@ -2,6 +2,7 @@ package openlife.server;
 
 import haxe.Exception;
 import openlife.auto.Ai;
+import openlife.auto.AiBase;
 import openlife.auto.AiHelper;
 import openlife.client.ClientTag;
 import openlife.data.object.ObjectData;
@@ -61,7 +62,7 @@ class TimeHelper {
 		DoTest();
 
 		// if(ServerSettings.NumberOfAis > 0) Ai.StartAiThread();
-		Ai.StartAiThread();
+		AiBase.StartAiThread();
 
 		while (true) {
 			if (ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.acquire();
