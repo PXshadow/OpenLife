@@ -452,7 +452,7 @@ class TimeHelper {
 		// trace('healthFactor: ${healthFactor}');
 
 		if (player.age < ServerSettings.GrownUpAge) {
-			ageingFactor = healthFactor;
+			//ageingFactor = healthFactor;
 		} else {
 			ageingFactor = 1 / healthFactor;
 		}
