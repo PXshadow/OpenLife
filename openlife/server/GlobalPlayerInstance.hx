@@ -725,7 +725,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.p_id = Server.server.playerIndex++;
 		this.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length - 1)].id;
 		this.heldObject = ObjectHelper.readObjectHelper(this, [0]);
-		this.age_r = ServerSettings.AgingSecondsPerYear;
+		this.age_r = ServerSettings.AgeingSecondsPerYear;
 		this.lineage = new Lineage(this);
 
 		this.lineage.prestigeClass = calculatePrestigeClass();
@@ -742,8 +742,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var isAi = this.isAi();
 		var allowHumanSpawnToAIandAiToHuman = GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild;
 		var spawnEve = (isAi && lastAiEveOrAdam != null) || (isAi == false && lastHumanEveOrAdam != null);
-		spawnEve = isAi == false && ServerSettings.EveOrAdamBirthChance <= WorldMap.calculateRandomFloat() ? true : spawnEve;
-
+		var rand = WorldMap.calculateRandomFloat();
+		//trace('birth1: spawnEve: $spawnEve');
+		spawnEve = isAi == false && ServerSettings.EveOrAdamBirthChance > rand ? true : spawnEve;
+		//trace('birth2: spawnEve: $spawnEve rand: $rand');
 		// if(false) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
 		if (spawnEve) spawnAsEve(allowHumanSpawnToAIandAiToHuman); else {
 			if (spawnAsChild() == false) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
@@ -972,7 +974,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	// TODO spawn noobs more likely noble
 	// TODO consider past families of player
 	private function spawnAsChild():Bool {
-		trace('Spawn As Child: ${this.p_id} ${this.account.email}');
+		trace('birth: Spawn As Child: ${this.p_id} ${this.account.email}');
 
 		var mother = GetFittestMother(this);
 		if (mother == null) return false;
