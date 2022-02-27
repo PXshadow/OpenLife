@@ -57,9 +57,9 @@ class ServerAi{
 		}
 		
 		if (timeToRebirth == 0){
-			var agefactor = Math.max(1, player.age - 60);
+			var agefactor = Math.max(1,  60 - player.age);
 			var waitingTime = agefactor * ServerSettings.TimeToAiRebirthPerYear;
-			timeToRebirth = 2 * waitingTime * WorldMap.calculateRandomFloat();
+			timeToRebirth = 10 + 2 * waitingTime * WorldMap.calculateRandomFloat();
 		}
 
 		timeToRebirth -= timePassedInSeconds;
