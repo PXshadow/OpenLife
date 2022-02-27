@@ -21,7 +21,7 @@ class Connection {
 
 	public var running:Bool = true;
 
-	var sock:Socket;
+	public var sock:Socket;
 	var server:Server;
 	var tag:ServerTag;
 
@@ -91,6 +91,8 @@ class Connection {
 			lastLivingPlayer.y = ty;
 			lastLivingPlayer.moveHelper.exactTx = tx;
 			lastLivingPlayer.moveHelper.exactTy = ty;
+
+			if(lastLivingPlayer.heldPlayer != null) lastLivingPlayer.dropPlayer(0,0);
 
 			Macro.exception(initConnection(lastLivingPlayer, this.playerAccount));
 

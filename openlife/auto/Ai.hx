@@ -177,6 +177,12 @@ class Ai extends AiBase {
 			return;
 		}
 
+		if(myPlayer.isHuman())
+		{
+			trace('AAI: ${myPlayer.name + myPlayer.id} WARNING is human!');
+			return;
+		}
+
 		if (myPlayer.getHeldByPlayer() != null) {
 			// time += WorldMap.calculateRandomInt(); // TODO still jump and do stuff once in a while?
 			return;
@@ -202,8 +208,8 @@ class Ai extends AiBase {
 			return;
 		}); // go close to mother and wait for mother to feed
 		Macro.exception(if (isEating()) return);
-		Macro.exception(if (isPickingupFood()) return);
 		Macro.exception(if (isFeedingChild()) return);
+		Macro.exception(if (isPickingupFood()) return);
 		Macro.exception(if (isFeedingPlayerInNeed()) return);
 		Macro.exception(if (isStayingCloseToChild()) return);
 		Macro.exception(if (isUsingItem()) return);
@@ -538,6 +544,8 @@ class Ai extends AiBase {
 	}
 
 	private function isFeedingChild() {
+		if(myPlayer.food_store < 2) return false;
+		
 		var heldPlayer = myPlayer.getHeldPlayer();
 
 		if (myPlayer.isFertile() == false || myPlayer.food_store < 1) {
@@ -550,7 +558,7 @@ class Ai extends AiBase {
 			}
 			return false;
 		}
-		if (foodTarget != null) return false;
+		//if (foodTarget != null) return false;
 		if (heldPlayer != null) {
 			if (heldPlayer.name == ServerSettings.StartingName && (heldPlayer.mother == myPlayer || heldPlayer.age > 1.5)) {
 				var newName = myPlayer.isEveOrAdam() ? NamingHelper.GetRandomName(myPlayer.isFemale()) : myPlayer.name;

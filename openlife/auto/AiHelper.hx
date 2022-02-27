@@ -712,8 +712,11 @@ class AiHelper {
 		var bestPlayer:GlobalPlayerInstance = null;
 		var maxDist = searchDistance * searchDistance;
 		var bestQuadHungry:Float = 0;
-		var considerHungry = 2.5;
+		var considerHungry = 2;
 		var minQuadHungry = 0.01;
+
+		// TODO consider ill
+		// TODO consider hits
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
 			if (p.deleted) continue;
@@ -721,7 +724,7 @@ class AiHelper {
 			if (p.heldByPlayer != null) continue;
 
 			var hungry = considerHungry - p.food_store;
-			if (p.mother != mother) hungry = hungry / 2 - 0.5; // own children count more
+			if (p.mother != mother) hungry = hungry / 2 - 0.25; // own children count more
 			if (p.age > ServerSettings.MinAgeToEat) hungry -= 0.5;
 			if (hungry < 0) continue;
 
