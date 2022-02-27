@@ -568,8 +568,8 @@ class ServerSettings {
 
 		// lower age for weapons since kids so or so make less damage since they have less health pipes
 		ObjectData.getObjectData(151).minPickupAge = 10; // 12   // War Sword
-		ObjectData.getObjectData(151).minPickupAge = 8; // 10   // Yew Bow
-		ObjectData.getObjectData(560).minPickupAge = 6; // 8    // Knife 
+		ObjectData.getObjectData(151).minPickupAge = 5; // 10   // Yew Bow
+		ObjectData.getObjectData(560).minPickupAge = 2; // 8    // Knife 
 		
 
 		for (objData in ObjectData.importedObjectData) {

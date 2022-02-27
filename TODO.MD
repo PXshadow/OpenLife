@@ -142,7 +142,7 @@ Combat / Attacking
 - you do halve damage to an ally
 - you receive less damage if holding a knife, sword or riding a horse without a cart 
 - males do X1.2 damage
-- weapon pickup age is 2 years lower each
+- weapon pickup age is 2/5/10 years for knife / bow / sword but remember you do less damage if not grown up
 
 Attacking prestige lost:
 - you will loose prestige for attacking a close relative without weapon
