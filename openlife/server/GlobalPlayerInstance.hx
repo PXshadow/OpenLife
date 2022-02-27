@@ -744,7 +744,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var spawnEve = (isAi && lastAiEveOrAdam != null) || (isAi == false && lastHumanEveOrAdam != null);
 		var rand = WorldMap.calculateRandomFloat();
 		//trace('birth1: spawnEve: $spawnEve');
-		spawnEve = isAi == false && ServerSettings.EveOrAdamBirthChance > rand ? true : spawnEve;
+		//spawnEve = isAi == false && ServerSettings.EveOrAdamBirthChance > rand ? true : spawnEve;
+		spawnEve = ServerSettings.EveOrAdamBirthChance > rand ? true : spawnEve;
 		//trace('birth2: spawnEve: $spawnEve rand: $rand');
 		// if(false) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
 		if (spawnEve) spawnAsEve(allowHumanSpawnToAIandAiToHuman); else {
