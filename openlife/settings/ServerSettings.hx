@@ -251,7 +251,7 @@ class ServerSettings {
 	public static var NumberOfAis:Int = 40;
 	public static var NumberOfAiPx:Int = 0;
 	public static var AiReactionTime:Float = 0.5; // 0.5;
-	public static var TimeToAiRebirthPerYear:Float = 3;
+	public static var TimeToAiRebirthPerYear:Float = 10;
 	public static var AiTotalScoreFactor:Float = 0.5;
 	public static var AiMaxSearchRadius:Int = 60;
 	public static var AiMaxSearchIncrement:Int = 20; // 16
