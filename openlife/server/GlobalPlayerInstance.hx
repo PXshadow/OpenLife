@@ -3728,7 +3728,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		} else if (text.indexOf('!YUM') != -1) {
 			player.food_store += 5;
 			player.sendFoodUpdate(false);
-		} else if (text.indexOf('!AGE') != -1) {
+		} else if (text.indexOf('!AGE') != -1 || text == '!') {
 			player.age += 5;
 			player.trueAge += 5;
 			Connection.SendUpdateToAllClosePlayers(player);
