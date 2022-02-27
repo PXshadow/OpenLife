@@ -213,6 +213,9 @@ class ServerSettings {
 	public static var ObjDecayFactorOnFloor:Float = 0.1;
 	public static var ObjDecayFactorForFood:Float = 10;
 
+	// temperature
+	public static var DamageTemperatureFactor:Float = 0.5;
+
 	// winter / summer
 	public static var DebugSeason:Bool = false;
 	public static var SeasonDuration = 5; // default: 5 // Season duration like winter in years

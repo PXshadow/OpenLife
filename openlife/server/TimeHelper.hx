@@ -582,10 +582,11 @@ class TimeHelper {
 
 		// take damage if temperature is too hot or cold
 		var damage:Float = 0;
-		if (player.isSuperHot()) damage = player.heat > 0.95 ? 3 * originalFoodDecay : originalFoodDecay; else if (player.isSuperCold())
+		if (player.isSuperHot()) damage = player.heat > 0.95 ? 3 * originalFoodDecay : originalFoodDecay;
+		else if (player.isSuperCold())
 			damage = player.heat < 0.05 ? 3 * originalFoodDecay : originalFoodDecay;
 
-		damage /= 2;
+		damage *= 0.5 * ServerSettings.DamageTemperatureFactor;
 		player.hits += damage;
 		player.exhaustion += damage;
 
