@@ -2052,8 +2052,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				if (playerFrom != playerTo) playerFrom.addHealthAndPrestige(0.2);
 			}
 		} else {
-			if (isSuperMeh) playerTo.addHealthAndPrestige(ServerSettings.HealthLostWhenEatingSuperMeh); else
-				playerTo.addHealthAndPrestige(ServerSettings.HealthLostWhenEatingMeh);
+			if (isSuperMeh) playerTo.addHealthAndPrestige(-ServerSettings.HealthLostWhenEatingSuperMeh); else
+				playerTo.addHealthAndPrestige(-ServerSettings.HealthLostWhenEatingMeh);
 			// if(playerFrom != playerTo) playerFrom.yum_multiplier += 0.5; // saved one from starving to death
 		}
 
