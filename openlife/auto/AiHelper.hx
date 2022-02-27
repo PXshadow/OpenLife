@@ -276,9 +276,12 @@ class AiHelper {
 
 			var done = Goto(player, x + xo, y + yo, move);
 
-			if (done) return true;
-
 			var passedTime = (Sys.time() - startTime) * 1000;
+
+			if (done){
+				ai.time += passedTime / 1000;
+				return true;
+			} 
 
 			if (passedTime > 500) {
 				trace('AI: ${player.id}  ${player.name} GOTO failed after $i because of timeout $passedTime! Ignore ${tx} ${ty}');
@@ -286,7 +289,11 @@ class AiHelper {
 			}
 		}
 
-		if (ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty}');
+		var passedTime = (Sys.time() - startTime) * 1000;
+		
+		ai.time += passedTime / 1000;
+
+		if(ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime');
 		ai.addNotReachable(tx, ty);
 
 		ai.resetTargets();
@@ -608,7 +615,7 @@ class AiHelper {
 				// var moveQuadDist = Math.pow(obj.objectData.moves + 1, 2);
 				// trace('GetCloseDeadlyAnimal: $dist <= $bestDist moveQuadDist: $moveQuadDist ${obj.name}');
 				//if (dist > Math.pow(obj.objectData.moves + 1, 2)) continue;
-                if (showAllways == false && dist > Math.pow(obj.objectData.moves, 2)) continue;
+                if (showAllways == false && dist > Math.pow(obj.objectData.moves + 1, 2)) continue;
 
 				bestDist = dist;
 				bestObj = obj;

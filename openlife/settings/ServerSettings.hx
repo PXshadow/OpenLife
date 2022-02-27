@@ -248,7 +248,7 @@ class ServerSettings {
 	public static var PrestigeCostPerDamageForWomenWithoutWeapon:Float = 0.25;
 
 	// AI
-	public static var NumberOfAis:Int = 5;
+	public static var NumberOfAis:Int = 100;
 	public static var NumberOfAiPx:Int = 0;
 	public static var AiReactionTime:Float = 0.5; // 0.5;
 	public static var TimeToAiRebirth:Float = 15;
@@ -347,9 +347,9 @@ class ServerSettings {
 
 		// More Wolfs needs the world
 		ObjectData.getObjectData(418).biomes.push(BiomeTag.YELLOW); // Happy Wolfs now also in Yellow biome :)
-		//ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
+		ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
 		ObjectData.getObjectData(418).biomes.push(BiomeTag.SNOW); // Happy Wolfs now also in Snow biome :)
-		ObjectData.getObjectData(418).mapChance *= 1; // less Happy Wolfs
+		ObjectData.getObjectData(418).mapChance *= 1.1; // more Happy Wolfs
 		ObjectData.getObjectData(418).speedMult *= 1.5; // Boost Wolfs even more :)
 
 		ObjectData.getObjectData(411).speedMult = 0.8; // Fertile Soil Reduced carring speed
