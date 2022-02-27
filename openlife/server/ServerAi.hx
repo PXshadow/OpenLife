@@ -43,15 +43,25 @@ class ServerAi{
 
 	public function doRebirth(timePassedInSeconds:Float) {
 		// TODO limit / increase Ais if serversettings change, or connected players change
-		// if(this.number > ServerSettings.NumberOfAis)
 		if (this.player.account.isAi == false) // it was a replacement for a player
 		{
-			trace('remove ai: ${this.number}');
+			trace('remove ai because it was to replace human: ${this.number}');
 			Connection.removeAi(this);
 			return;
 		}
+		if(this.number > ServerSettings.NumberOfAis)
+		{
+			trace('remove ai because to many ai: ${this.number}');
+			Connection.removeAi(this);
+			return;
+		}
+		
+		if (timeToRebirth == 0){
+			var agefactor = Math.max(1, player.age - 60);
+			var waitingTime = agefactor * ServerSettings.TimeToAiRebirthPerYear;
+			timeToRebirth = 2 * waitingTime * WorldMap.calculateRandomFloat();
+		}
 
-		if (timeToRebirth == 0) timeToRebirth = (ServerSettings.TimeToAiRebirth / 2) + WorldMap.calculateRandomFloat() * ServerSettings.TimeToAiRebirth;
 		timeToRebirth -= timePassedInSeconds;
 
 		if (timeToRebirth > 0) return;
