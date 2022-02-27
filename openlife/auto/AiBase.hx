@@ -163,7 +163,22 @@ abstract class AiBase
 
 		playerToFollow = null;
 		children = new Array<PlayerInterface>();
-		// addTask(837); //Psilocybe Mushroom
+		//addTask(837); //Psilocybe Mushroom
+        //addTask(134); //Flint Arrowhead
+        addTask(82); // Fire
+        addTask(152); // Bow and Arrow
+        //addTask(152); // Bow and Arrow
+        //addTask(152); // Bow and Arrow
+        //addTask(152); // Bow and Arrow
+
+        //addTask(140); // Tied Skewer
+
+        //addTask(148); // Arrow
+        //addTask(149); // Headless Arrow
+        //addTask(146); // Fletching
+        //addTask(151); // Jew Bow 
+        //addTask(151); // Jew Bow 
+        //addTask(59); // Rope 
 		addTask(82); // Fire
 		// addTask(80); // Burning Tinder
 		// addTask(78); // Smoldering Tinder
@@ -370,7 +385,9 @@ abstract class AiBase
 
 	public function addTask(taskId:Int, atEnd:Bool = true) {
 		if (taskId < 1) return;
-		if (this.craftingTasks.contains(taskId)) return;
+        var index = this.craftingTasks.indexOf(taskId);
+		if (index >= 0) return;
+            
 		if (atEnd) this.craftingTasks.push(taskId); else
 			this.craftingTasks.unshift(taskId);
 	}
@@ -992,7 +1009,7 @@ abstract class AiBase
 			descTarget += itemToCraft.transTarget == null ? '' : ' ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}';
 
 		if (ServerSettings.DebugAiCrafting)
-			trace('AI: craft: FINISHED $count ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
+			trace('AI: craft: FOUND $count ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
 	}
 
 	private static function DoTransitionSearch(itemToCraft:IntemToCraft, wantedId:Int, objectsToSearch:Array<Int>, transitions:Array<TransitionData>):Bool {
@@ -1044,7 +1061,8 @@ abstract class AiBase
 			var actorObj = actor.closestObject;
 			var targetObj = actor == target ? actor.secondObject : target.closestObject;
 
-			if (actorObj == null && actor.wantedObjs.contains(wanted) == false) {
+            // TODO consider something like put thread in claybowls to get a thread
+			if (actorObj == null && actor.wantedObjs.contains(wanted) == false) { 
 				actor.wantedObjs.push(wanted);
 			}
 			if (targetObj == null && target.wantedObjs.contains(wanted) == false) {
@@ -1464,7 +1482,7 @@ abstract class AiBase
 				|| taregtObjectId == itemToCraft.itemToCraft.parentId) itemToCraft.countDone += 1;
 
 			if (ServerSettings.DebugAi)
-				trace('AAI: FINISHED done: ${useTarget.name} ItemToCraft: ${itemToCraft.itemToCraft.name} transtions: ${itemToCraft.countTransitionsDone} done: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
+				trace('AAI: done: ${useTarget.name} ==> ${itemToCraft.itemToCraft.name} trans: ${itemToCraft.countTransitionsDone} finished: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
 		} else {
 			if (ServerSettings.DebugAi) trace('AAI: Use failed! Ignore: ${useTarget.name} ${useTarget.tx} ${useTarget.ty} ');
 

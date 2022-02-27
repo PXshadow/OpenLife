@@ -470,8 +470,9 @@ class AiHelper {
 
 				if (ShouldDebug(trans)) trace('TEST3 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
 
+				// TODO this might exclude needed tasks
 				// Allow transition if new actor or target is closer to wanted object
-				var tmpActor = transitionsForObject[trans.actorID];
+				/*var tmpActor = transitionsForObject[trans.actorID];
 				var actorSteps = tmpActor != null ? tmpActor.steps : 10000;
 				var tmpNewActor = transitionsForObject[trans.newActorID];
 				var newActorSteps = tmpNewActor != null ? tmpNewActor.steps : 10000;
@@ -487,10 +488,12 @@ class AiHelper {
 				// AI get stuck with <3288> actorSteps: 2 newActorSteps: 10000 targetSteps: 10000 newTargetSteps: 3 <67> + <96> = <0> + <3288>
 				// if(actorSteps <= newActorSteps && targetSteps <= newTargetSteps) continue; // nothing is won
 				if (actorSteps + targetSteps <= newActorSteps + newTargetSteps) continue; // nothing is won
+				
 
 				if (ShouldDebug(trans))
 					trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps '
 					+ trans.getDesciption(true));
+				*/
 				// trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
 
 				if (trans.actorID > 0 && transitionsByObject.exists(trans.actorID) == false) {
@@ -712,7 +715,7 @@ class AiHelper {
 		var bestPlayer:GlobalPlayerInstance = null;
 		var maxDist = searchDistance * searchDistance;
 		var bestQuadHungry:Float = 0;
-		var considerHungry = 2;
+		var considerHungry = 2.5;
 		var minQuadHungry = 0.01;
 
 		// TODO consider ill
