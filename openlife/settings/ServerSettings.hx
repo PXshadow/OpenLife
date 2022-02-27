@@ -76,7 +76,6 @@ class ServerSettings {
 	public static var DisplayPlayerNamesDistance = 30; 
 	public static var DisplayPlayerNamesMaxPlayer = 5; 
 
-
 	// message
 	public static var SecondsBetweenMessages:Float = 5;
 
@@ -254,6 +253,7 @@ class ServerSettings {
 	public static var AiMaxSearchRadius:Int = 60;
 	public static var AiMaxSearchIncrement:Int = 20; // 16
 	public static var AiIgnoreTimeTransitionsLongerThen:Int = 30;
+	public static var AgingFactorHumanBornToAi:Float = 5;
 
 	// iron, tary spot spring cannot respawn or win lottery
 	public static function CanObjectRespawn(obj:Int):Bool {

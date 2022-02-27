@@ -451,6 +451,10 @@ class TimeHelper {
 			agingFactor = 1 / healthFactor;
 		}
 
+		if(player.isHuman() && player.mother != null && player.mother.isAi() && player.age < ServerSettings.MinAgeToEat){
+			agingFactor *= ServerSettings.AgingFactorHumanBornToAi;
+		}
+
 		if (player.food_store < 0) {
 			if (player.age < ServerSettings.GrownUpAge) {
 				agingFactor *= ServerSettings.AgingFactorWhileStarvingToDeath;
