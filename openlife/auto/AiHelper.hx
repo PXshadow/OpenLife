@@ -202,7 +202,8 @@ class AiHelper {
 			}
 		}
 
-		if (ai != null) {
+		// TODO tryGoto not in mutex and use sorted list 
+		/*if (ai != null) {
 			// TODO solve This has still the problem, that the second best food might be ignored... needs to make a list and then sort or maybe just do again searchfood?
 			while (bestFoods.length > 0) {
 				var food = bestFoods.pop();
@@ -215,7 +216,7 @@ class AiHelper {
 				if (ServerSettings.DebugAi) trace('AI: bestfood: cannot reach food! ms: ${Math.round((Sys.time() - startTime) * 1000)}');
 				if ((Sys.time() - startTime) * 1000 > 100) break;
 			}
-		}
+		}*/
 
 		if (bestFood != null) if (ServerSettings.DebugAi)
 			trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: $bestDistance ${bestFood.description} ${bestFood.id}'); else
