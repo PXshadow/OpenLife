@@ -178,6 +178,7 @@ class ServerSettings {
 	public static var MaxDistanceToBeConsideredAsCloseForMapChanges = 10; // for MX
 
 	// for movement
+	public static var GotoTimeOut:Int = 250;
 	public static var InitialPlayerMoveSpeed:Float = 4; // vanilla: 3.75; // in Tiles per Second
 	public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed factor X
 	public static var MinMovementAgeInSec:Float = 14;

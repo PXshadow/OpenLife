@@ -258,6 +258,11 @@ class AiHelper {
 		var x = tx - player.gx;
 		var y = ty - player.gy;
 
+		if(ai == null){
+			trace('gotoAdv: WARNING Ai is null!');
+			return false;
+		}
+
 		for (i in 0...5) {
 			var xo = 0;
 			var yo = 0;
@@ -283,7 +288,7 @@ class AiHelper {
 				return true;
 			} 
 
-			if (passedTime > 500) {
+			if (passedTime > ServerSettings.GotoTimeOut) {
 				trace('AI: ${player.id}  ${player.name} GOTO failed after $i because of timeout $passedTime! Ignore ${tx} ${ty}');
 				break;
 			}
@@ -293,7 +298,14 @@ class AiHelper {
 		
 		ai.time += passedTime / 1000;
 
-		if(ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime');
+		//if(ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime');
+		trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime');
+
+		if(ai == null){
+			trace('gotoAdv2: WARNING Ai is null!');
+			return false;
+		}
+		
 		ai.addNotReachable(tx, ty);
 
 		ai.resetTargets();
