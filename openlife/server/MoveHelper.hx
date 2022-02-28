@@ -374,7 +374,7 @@ class MoveHelper {
 		GlobalPlayerInstance.AllPlayerMutex.release();
 	}
 
-	static private function JumpToNonBlocked(player:GlobalPlayerInstance):Bool {
+	static public function JumpToNonBlocked(player:GlobalPlayerInstance):Bool {
 		var rand = 0;
 		var tx = player.tx;
 		var ty = player.ty;

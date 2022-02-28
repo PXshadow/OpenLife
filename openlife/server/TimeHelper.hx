@@ -250,6 +250,11 @@ class TimeHelper {
 		if (player.jumpedTiles > 0) player.jumpedTiles -= timePassedInSeconds * ServerSettings.MaxJumpsPerTenSec * 0.1;
 		if (player.lastSayInSec > 0) player.lastSayInSec -= timePassedInSeconds;
 
+		if(player.isBlocked(player.tx, player.ty))
+		{
+			MoveHelper.JumpToNonBlocked(player);
+		}
+
 		if(player.connection.sock != null && player.connection.serverAi != null && ServerSettings.AutoFollowAi == false)
 		{
 			player.connection.serverAi = null;
