@@ -1311,6 +1311,8 @@ class TimeHelper {
 
 		var moveDist = timeTransition.move;
 		if (moveDist <= 0) return false;
+		if(moveDist > 3) moveDist = 3;
+		timeTransition.move = 3;
 
 		if (moveDist < 3) moveDist += 1; // movement distance is plus 4 in vanilla if walking over objects
 		helper.objectData.moves = moveDist; // TODO better set in settings

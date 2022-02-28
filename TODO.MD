@@ -100,8 +100,8 @@ MAP:
 - no expert waystones
 
 Adam / Eve:
-- adam / Eve do 50% less damage
-- adam / Eve receive 50% less damage (also from animals)
+// - adam / Eve do 50% less damage
+// - adam / Eve receive 50% less damage (also from animals)
 
 Family / Loved / Hated Biomes:
 - loved Biomes: Ginger --> Snow / White --> Grey / Brown --> Jungle / Black --> Desert 
@@ -316,6 +316,7 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
+- AI FIX better escape
 - AI FIX child: if hungry and close to feeding player dont move 
 - AI FIX drop made stuff after ordered in fronts of player
 - AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread
@@ -335,6 +336,8 @@ High priority:
 - AI consider making / using a pile
 - AI Stoneage
 
+- FIX getting stuck on top of something
+- FIX send map chunk if hold and moveing
 - FIX bug with getting stuck sometimes
 - FIX bug with reconnect if holding a player // TODO check if it is a problem
 

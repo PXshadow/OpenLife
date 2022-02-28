@@ -98,7 +98,6 @@ class ServerSettings {
 
 	// PlayerInstance
 	public static var MaxPlayersBeforeStartingAsChild = 0; // -1
-	public static var StartingEveAge = 14; // 14
 	public static var StartingFamilyName = "SNOW";
 	public static var StartingName = "SPOON";
 	public static var AgeingSecondsPerYear = 60; // 60
@@ -131,11 +130,12 @@ class ServerSettings {
 	public static var CreateGreenBiomeDistance = 5;
 
 	// Eve spawning
+	public static var StartingEveAge = 14; // 14
 	public static var SpwanAtLastDead = false;
     public static var EveOrAdamBirthChance = 0.05; // since each eve gets an adam the true chance is x2
 	public static var startingGx = 235; // 235; //270; // 360;
 	public static var startingGy = 150; // 200;//- 400; // server map is saved y inverse
-	public static var EveDamageFactor:Float = 0.5; // Eve / Adam get less damage from animals but make also less damage
+	public static var EveDamageFactor:Float = 1; // Eve / Adam get less damage from animals but make also less damage
 	public static var EveFoodUseFactor:Float = 1; // Eve / Adam life still in paradise, so they need less food
 
 	// food stuff
@@ -347,7 +347,7 @@ class ServerSettings {
 
 		// More Wolfs needs the world
 		ObjectData.getObjectData(418).biomes.push(BiomeTag.YELLOW); // Happy Wolfs now also in Yellow biome :)
-		ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
+		//ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
 		ObjectData.getObjectData(418).biomes.push(BiomeTag.SNOW); // Happy Wolfs now also in Snow biome :)
 		ObjectData.getObjectData(418).mapChance *= 1.1; // more Happy Wolfs
 		ObjectData.getObjectData(418).speedMult *= 1.5; // Boost Wolfs even more :)
@@ -509,7 +509,7 @@ class ServerSettings {
 		ObjectData.getObjectData(2156).damage = 1; // 2156 Mosquito Swarm
 
 		ObjectData.getObjectData(418).deadlyDistance = 1.5; // Wolfs
-		ObjectData.getObjectData(418).damage = 3.5; // Wolfs
+		ObjectData.getObjectData(418).damage = 3; // Wolfs
 		ObjectData.getObjectData(420).deadlyDistance = 1.5; // Shot Wolf
 		ObjectData.getObjectData(420).damage = 5; // Shot Wolf
 
