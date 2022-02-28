@@ -1412,7 +1412,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (ServerSettings.AllowDebugCommmands) if(DoDebugCommands(player, text)) return;
 		}
 
-		if (lastSayInSec > 0 && ServerSettings.debug == false) return;
+		if (lastSayInSec > 0 && this.isHuman() && ServerSettings.debug == false) return;
 		lastSayInSec = 1;
 
 		var maxLenght = player.age < 10 ? Math.ceil(player.age * 2) : player.age < 20 ? Math.ceil(player.age * 4) : 80;

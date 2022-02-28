@@ -1,27 +1,27 @@
 package openlife.data.object;
 
-import openlife.server.Lineage.PrestigeClass;
-import openlife.data.transition.TransitionImporter;
-import openlife.server.WorldMap;
-import openlife.data.transition.TransitionData;
-import openlife.resources.Resource;
-import sys.FileSystem;
 import haxe.Exception;
-import openlife.server.Server;
+import haxe.Serializer;
+import haxe.Unserializer;
+import haxe.ds.Vector;
+import haxe.io.Input;
 import haxe.macro.Expr.Catch;
+import openlife.data.sound.SoundData;
+import openlife.data.transition.TransitionData;
+import openlife.data.transition.TransitionImporter;
+import openlife.engine.Engine;
+import openlife.engine.Utility;
+import openlife.resources.ObjectBake;
+import openlife.resources.Resource;
+import openlife.server.Biome.BiomeTag;
+import openlife.server.Lineage.PrestigeClass;
+import openlife.server.Server;
+import openlife.server.WorldMap;
+import openlife.settings.ServerSettings;
+import sys.FileSystem;
+import sys.io.File;
 import sys.io.FileInput;
 import sys.io.FileOutput;
-import sys.io.File;
-import openlife.settings.ServerSettings;
-import haxe.Unserializer;
-import haxe.Serializer;
-import openlife.server.Biome.BiomeTag;
-import openlife.engine.Utility;
-import openlife.engine.Engine;
-import openlife.resources.ObjectBake;
-import haxe.io.Input;
-import haxe.ds.Vector;
-import openlife.data.sound.SoundData;
 
 @:enum abstract PersonColor(Int) from Int to Int {
 	public var Black = 1;
@@ -104,6 +104,8 @@ class ObjectData extends LineReader {
 	public var isBoat:Bool = false;
 
 	public var carftingSteps:Int = -1;
+
+	// saved
 
 	/**
 	 * Max clothing pieces
