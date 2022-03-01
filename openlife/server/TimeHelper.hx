@@ -559,11 +559,12 @@ class TimeHelper {
 		var tmpFood = Math.ceil(player.food_store);
 		var tmpExtraFood = Math.ceil(player.yum_bonus);
 		var tmpFoodStoreMax = Math.ceil(player.food_store_max);
-		var foodDecay = timePassedInSeconds * player.foodUsePerSecond; // depends on temperature
+		var originalFoodDecay = timePassedInSeconds * player.foodUsePerSecond; // depends on temperature
 		var playerIsStarvingOrHasBadHeat = player.food_store < 0 || player.isSuperCold() || player.isSuperHot();
 		var doHealing = playerIsStarvingOrHasBadHeat == false && player.isWounded() == false && player.hasYellowFever() == false;
-		var originalFoodDecay = foodDecay;
-		var healing = 1.5 * timePassedInSeconds * ServerSettings.FoodUsePerSecond - originalFoodDecay;
+		var foodDecay = originalFoodDecay;
+		var healing = timePassedInSeconds * ServerSettings.FoodUsePerSecond;
+		//var healing = 1.5 * timePassedInSeconds * ServerSettings.FoodUsePerSecond - originalFoodDecay;
 
 		// healing is between 0.5 and 2 of food decay depending on temperature
 		if (healing < timePassedInSeconds * ServerSettings.FoodUsePerSecond / 2) healing = timePassedInSeconds * ServerSettings.FoodUsePerSecond / 2;
@@ -582,7 +583,7 @@ class TimeHelper {
 
 		// do damage while starving
 		if (player.food_store < 0) {
-			player.exhaustion += originalFoodDecay * ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath / 2;
+			player.hits += originalFoodDecay * 0.5;
 		}
 
 		// take care of exhaustion
@@ -594,8 +595,6 @@ class TimeHelper {
 			player.exhaustion -= healing * ServerSettings.ExhaustionHealing * healingFaktor * exhaustionFaktor;
 
 			foodDecay += originalFoodDecay * ServerSettings.ExhaustionHealing * exhaustionFaktor;
-
-			if (player.exhaustion < -player.food_store_max) player.exhaustion = -player.food_store_max;
 		}
 
 		// take damage if temperature is too hot or cold
@@ -613,18 +612,19 @@ class TimeHelper {
 		var biomeLoveFactor = player.biomeLoveFactor();
 		// if(biomeLoveFactor < 0) player.exhaustion -= originalFoodDecay * biomeLoveFactor / 2; // gain exhaustion in wrong biome
 		if (biomeLoveFactor > 0
-			&& player.exhaustion > -player.food_store_max) player.exhaustion -= originalFoodDecay * biomeLoveFactor / 2;
+			&& player.exhaustion > -player.food_store_max) player.exhaustion -= healing * biomeLoveFactor / 2;
 		// trace('Exhaustion: $tmpexhaustion ==> ${player.exhaustion} pID: ${player.p_id} biomeLoveFactor: $biomeLoveFactor');
 
 		// do healing but increase food use
-		// if(healing > 0 && player.hits > 0 && playerIsStarvingOrHasBadHeat == false && player.isWounded() == false)
-		if (player.hits > 0) {
-			var healingFaktor = doHealing ? 1 : 0.0;
-			var foodDecayFaktor = doHealing ? 2 : 1;
+		// 
+		//if (player.hits > 0) {
+		if(healing > 0 && player.hits > 0 && playerIsStarvingOrHasBadHeat == false && player.isWounded() == false){
+			//var healingFaktor = doHealing ? 1.0 : 0.0;
+			//var foodDecayFaktor = doHealing ? 2 : 1;
 
-			player.hits -= healing * ServerSettings.WoundHealing * healingFaktor;
+			player.hits -= healing * ServerSettings.WoundHealing; // * healingFaktor;
 
-			foodDecay += originalFoodDecay * ServerSettings.WoundHealing * foodDecayFaktor;
+			foodDecay += originalFoodDecay * ServerSettings.WoundHealing; // * foodDecayFaktor;
 
 			if (player.hits < 0) player.hits = 0;
 
