@@ -331,8 +331,8 @@ class ServerSettings {
 		ObjectData.getObjectData(141).secondTimeOutcome = 142; // Canada Goose Pond ==> Canada Goose Pond swimming
 		ObjectData.getObjectData(141).secondTimeOutcomeTimeToChange = 15;
 
-		ObjectData.getObjectData(142).secondTimeOutcome = 141; //  Canada Goose Pond swimming ==> Canada Goose Pond
-		ObjectData.getObjectData(142).secondTimeOutcomeTimeToChange = 15;
+		ObjectData.getObjectData(142).secondTimeOutcome = 1261; //  Canada Goose Pond swimming ==> Canada Goose Pond with Egg
+		ObjectData.getObjectData(142).secondTimeOutcomeTimeToChange = 60 * 10;
 
 		ObjectData.getObjectData(164).secondTimeOutcome = 173; //  Rabbit Hole out,single ==> Rabbit Family Hole out
 		ObjectData.getObjectData(164).secondTimeOutcomeTimeToChange = 20;
