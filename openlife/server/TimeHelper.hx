@@ -965,11 +965,11 @@ class TimeHelper {
 				if (helper != null) {
 					if (helper.timeToChange == 0) // maybe timeToChange was forgotten to be set
 					{
-						var timeTransition = TransitionImporter.GetTransition(-1, obj[0], false, false);
+						var timeTransition = TransitionImporter.GetTransition(-1, helper.id, false, false);
 
 						if (timeTransition == null) continue;
 
-						trace('WARNING: found helper without time transition: ${helper.description}');
+						trace('WARNING: found helper without time transition: ${helper.description}: ' + timeTransition.getDesciption());
 
 						helper.timeToChange = timeTransition.calculateTimeToChange();
 					}
@@ -1006,15 +1006,17 @@ class TimeHelper {
 
 		if(timepassed / objData.secondTimeOutcomeTimeToChange < WorldMap.calculateRandomFloat()) return;
 
-		var obj = WorldMap.world.getObjectHelper(tx,ty, true);
+		var obj = WorldMap.world.getObjectHelper(tx,ty);
 
-		if(obj == null)
+		/*if(obj == null)
 		{
+			obj = re
 			var ids = [objData.secondTimeOutcome];
 			WorldMap.world.setObjectId(tx,ty,ids);
 			Connection.SendMapUpdateToAllClosePlayers(tx,ty, ids);
 			return;
-		}
+		}*/
+
 
 		obj.id = objData.secondTimeOutcome;
 		WorldMap.world.setObjectHelper(tx,ty, obj);
