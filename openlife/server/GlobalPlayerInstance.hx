@@ -1167,11 +1167,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// boni
 		var tmpFitness = 0.0;
 		tmpFitness += p.food_store / 10; // the more food the more likely
-		tmpFitness += p.yum_bonus / 10; // the more food the more likely
+		//tmpFitness += p.yum_bonus / 10; // the more food the more likely
 		tmpFitness += p.food_store_max / 10; // the more healthy the more likely
 		tmpFitness += p.calculateClassBoni(child); // the closer the mother is to same class the better
 		tmpFitness += child.account.hasCloseNonBlockingGrave(p.tx, p.ty) ? 3 : 0;
-		// tmpFitness += p.yum_multiplier / 20; // the more yum / prestige the more likely  // not needed since influencing food_store_max
+		tmpFitness += p.yum_multiplier / 20; // the more health / prestige the more likely 
 
 		// mali
 		var temperatureMail = Math.pow(((p.heat - 0.5) * 10), 2) / 10; // between 0 and 2.5 for very bad temperature
@@ -1183,8 +1183,26 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		tmpFitness -= p.heldObject.id != 0 ? 1 : 0; // if player is holding objects
 		tmpFitness -= motherIsHuman && child.isAi() ? ServerSettings.HumanMotherBirthMaliForAiChild : 0;
 		tmpFitness -= p.isAi() && childIsHuman ? ServerSettings.AiMotherBirthMaliForHumanChild : 0;
+		tmpFitness += CalculateMotherChildFitness(p);
 
 		return tmpFitness;
+	}
+
+	private static function CalculateMotherChildFitness(mother:GlobalPlayerInstance) : Float{	
+		var fitness = 0.0;
+		var countLittleKids = 0;
+		
+		for(p in AllPlayers){
+			if(p.mother !=mother) continue;
+			if(p.deleted) continue;
+			fitness -=1;
+			if(p.age > ServerSettings.MinAgeToEat) continue;
+			fitness -=1;
+			countLittleKids++;
+		}
+
+		if(countLittleKids >= ServerSettings.LittleKidsPerMother) fitness = -1000;
+		return fitness;
 	}
 
 	public function getPlayerInstance():PlayerInstance {

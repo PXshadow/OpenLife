@@ -85,6 +85,7 @@ class ServerSettings {
 
 	// birth
 	public static var NewChildExhaustionForMother = 0;
+	public static var LittleKidsPerMother = 3;
 	public static var ChanceForFemaleChild = 0.6;
 	public static var ChanceForOtherChildColor = 0.2;
 	public static var ChanceForOtherChildColorIfCloseToWrongSpecialBiome = 0.3; // for example Black born in or close to Jungle
