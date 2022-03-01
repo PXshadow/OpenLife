@@ -248,7 +248,7 @@ class TimeHelper {
 		if(player.displaySeason && player.isSuperHot()) player.say('too hot ${SeasonNames[Season]}...', true);
 		else if(player.displaySeason && player.isSuperCold()) player.say('too cold ${SeasonNames[Season]}...', true);
 		
-		if(player.isSuperCold() || player.isSuperCold()) player.displaySeason = false;
+		if(player.isSuperHot() || player.isSuperCold()) player.displaySeason = false;
 		else player.displaySeason = true;
 	}
 
@@ -757,7 +757,10 @@ class TimeHelper {
 		if (heldObjectData.heatValue != 0) temperature += heldObjectData.heatValue / 20;
 
 		// add SeasonTemperatureImpact
-		temperature += SeasonTemperatureImpact;
+		var seasonImpact = SeasonTemperatureImpact;
+		if(seasonImpact > 0) seasonImpact *= ServerSettings.HotSeasonTemperatureFactor;
+		if(seasonImpact < 0) seasonImpact *= ServerSettings.ColdSeasonTemperatureFactor;
+		temperature += seasonImpact;
 
 		var biomeLoveFactor = player.biomeLoveFactor();
 		biomeLoveFactor /= 10;
