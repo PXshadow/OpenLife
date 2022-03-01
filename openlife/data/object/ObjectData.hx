@@ -83,6 +83,8 @@ class ObjectData extends LineReader {
 
 	/**is used for different wound decay on player**/
 	public var alternativeTimeOutcome:Int = -1;
+	public var secondTimeOutcome:Int = -1;
+	public var secondTimeOutcomeTimeToChange:Int = -1;
 
 	public var hungryWork:Float = 0;
 	public var alternativeTransitionOutcome:Array<Int> = new Array<Int>();

@@ -934,6 +934,8 @@ class TimeHelper {
 
 				if (obj[0] == 0) continue;
 
+				DoSecondTimeOutcome(x, y, obj[0], TimePassedToDoAllTimeSteps);
+
 				var biome = worldMap.getBiomeId(x, y);
 
 				if (obj[0] == 30) WorldMap.world.berryBushes[WorldMap.world.index(x,
@@ -986,6 +988,30 @@ class TimeHelper {
 				// trace('testObj: $testObj obj: $obj ${helper.tx},${helper.ty} i:$i index:${index(helper.tx, helper.ty)}');
 			}
 		}
+	}
+
+	private static function DoSecondTimeOutcome(tx:Int, ty:Int, objId, timepassed:Float)
+	{
+		var objData = ObjectData.getObjectData(objId);
+		if(objData.secondTimeOutcome < 1 || objData.secondTimeOutcomeTimeToChange < 1) return;
+
+		if(timepassed / objData.secondTimeOutcomeTimeToChange < WorldMap.calculateRandomFloat()) return;
+
+		var obj = WorldMap.world.getObjectHelper(tx,ty, true);
+
+		if(obj == null)
+		{
+			var ids = [objData.secondTimeOutcome];
+			WorldMap.world.setObjectId(tx,ty,ids);
+			Connection.SendMapUpdateToAllClosePlayers(tx,ty, ids);
+			return;
+		}
+
+		obj.id = objData.secondTimeOutcome;
+		WorldMap.world.setObjectHelper(tx,ty, obj);
+		Connection.SendMapUpdateToAllClosePlayers(tx,ty, obj.toArray());
+
+		
 	}
 
 	private static function RespawnOrDecayPlant(objIDs:Array<Int>, x:Int, y:Int, hidden:Bool = false, growFactor:Float = 1) {

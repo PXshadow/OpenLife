@@ -328,7 +328,18 @@ class ServerSettings {
 		// is set directly in map WorldMap generation
 		// ObjectData.getObjectData(141).biomes.push(BiomeTag.PASSABLERIVER); // Canada Goose Pond
 		// ObjectData.getObjectData(121).biomes.push(BiomeTag.PASSABLERIVER); // Tule Reeds
+		ObjectData.getObjectData(141).secondTimeOutcome = 142; // Canada Goose Pond ==> Canada Goose Pond swimming
+		ObjectData.getObjectData(141).secondTimeOutcomeTimeToChange = 15;
 
+		ObjectData.getObjectData(142).secondTimeOutcome = 141; //  Canada Goose Pond swimming ==> Canada Goose Pond
+		ObjectData.getObjectData(142).secondTimeOutcomeTimeToChange = 15;
+
+		ObjectData.getObjectData(164).secondTimeOutcome = 173; //  Rabbit Hole out,single ==> Rabbit Family Hole out
+		ObjectData.getObjectData(164).secondTimeOutcomeTimeToChange = 20;
+
+		ObjectData.getObjectData(173).secondTimeOutcome = 3566; //  Rabbit Family Hole out ==> Fleeing Rabbit
+		ObjectData.getObjectData(173).secondTimeOutcomeTimeToChange = 20;		
+		
 		// dont block walking
 		ObjectData.getObjectData(231).blocksWalking = false; // Adobe Oven Base
 		ObjectData.getObjectData(237).blocksWalking = false; // Adobe Oven
@@ -761,8 +772,7 @@ class ServerSettings {
 		trans.traceTransition("PatchTransitions: ");
 
 		// 141 Canada Goose Pond
-		// 1261 Canada Goose Pond with Egg // TODO let egg come back
-		// Server.transitionImporter.
+		// 1261 Canada Goose Pond with Egg // TODO let egg come back		
 
 		// change decay time for grave 88 = Grave
 		// trans = transtions.getTransition(-1, 88);
