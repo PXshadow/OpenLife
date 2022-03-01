@@ -537,6 +537,11 @@ class ServerSettings {
 
 		ObjectData.getObjectData(628).deadlyDistance = 1.5; // Grizzly Bear
 		ObjectData.getObjectData(628).damage = 5; // Grizzly Bear
+		ObjectData.getObjectData(631).deadlyDistance = 1.5; // Hungry Grizzly Bear
+		ObjectData.getObjectData(631).damage = 6; // Hungry Grizzly Bear
+		ObjectData.getObjectData(653).deadlyDistance = 1.5; // Hungry Grizzly Bear attacking
+		ObjectData.getObjectData(653).damage = 6; // Hungry Grizzly Bear attacking
+		
 		ObjectData.getObjectData(632).deadlyDistance = 1.5; // Shot Grizzly Bear 1
 		ObjectData.getObjectData(632).damage = 6; // Shot Grizzly Bear 1
 		ObjectData.getObjectData(635).deadlyDistance = 1.5; // Shot Grizzly Bear 2
