@@ -112,7 +112,8 @@ Family / Loved / Hated Biomes:
 --> With this one Eve can create all colors if people migrate...
 - parents influence which biomes are loved 
 - bad Temperature is affected now by how much you / your parents (50%) love the biome
-- you gain extra exhaustion in not loved biomes and loose extra exhaustion in loved ones
+- you gain extra exhaustion in not loved biomes and loose extra exhaustion in loved biomes
+- you get  less / more damage in loved / not loved biomes
 - TODO differen exhaustion for work in bad / loved biome
 
 Classes:
@@ -140,6 +141,7 @@ Combat / Attacking
 - stregth of players with weapons are counted twice
 - You can only shoot with bow if not too close to target
 - you do halve damage to an ally
+- you get less / more damage in loved / not loved biomes
 - you receive less damage if holding a knife, sword or riding a horse without a cart 
 - males do X1.2 damage
 - weapon pickup age is 2/5/10 years for knife / bow / sword but remember you do less damage if not grown up

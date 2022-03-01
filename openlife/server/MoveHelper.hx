@@ -277,14 +277,7 @@ class MoveHelper {
 					pos.y -= move.y;
 				}
 
-				if (p.heldPlayer != null) {
-					p.heldPlayer.x = p.tx - p.heldPlayer.gx;
-					p.heldPlayer.y = p.ty - p.heldPlayer.gy;
-					p.heldPlayer.moveHelper.exactTx = p.heldPlayer.tx;
-					p.heldPlayer.moveHelper.exactTy = p.heldPlayer.ty;
-
-					p.heldPlayer.moveHelper.sendChunkIfNeeded();
-				}
+				SetHeldPlayerPositionToSame(p);
 
 				TimeHelper.MakeAnimalsRunAway(p);
 
@@ -320,18 +313,10 @@ class MoveHelper {
 
 			p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
 			p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
-
-			if (p.heldPlayer != null) {
-				p.heldPlayer.x = p.tx - p.heldPlayer.gx;
-				p.heldPlayer.y = p.ty - p.heldPlayer.gy;
-				p.heldPlayer.moveHelper.exactTx = p.heldPlayer.tx;
-				p.heldPlayer.moveHelper.exactTy = p.heldPlayer.ty;
-
-				p.heldPlayer.moveHelper.sendChunkIfNeeded();
-			}
-
 			p.moveHelper.exactTx = p.tx;
 			p.moveHelper.exactTy = p.ty;
+
+			SetHeldPlayerPositionToSame(p);
 
 			Connection.SendUpdateToAllClosePlayers(p);
 
@@ -339,6 +324,18 @@ class MoveHelper {
 
 			// if(ServerSettings.DebugMoveHelper) trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
 		}
+	}
+
+	public static function SetHeldPlayerPositionToSame(p:GlobalPlayerInstance)
+	{
+		if (p.heldPlayer == null) return;
+		
+		p.heldPlayer.x = p.tx - p.heldPlayer.gx;
+		p.heldPlayer.y = p.ty - p.heldPlayer.gy;
+		p.heldPlayer.moveHelper.exactTx = p.heldPlayer.tx;
+		p.heldPlayer.moveHelper.exactTy = p.heldPlayer.ty;
+
+		p.heldPlayer.moveHelper.sendChunkIfNeeded();
 	}
 
 	public function receivedForce(x:Int, y:Int) {
