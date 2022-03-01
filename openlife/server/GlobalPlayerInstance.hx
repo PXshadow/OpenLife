@@ -903,7 +903,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				}
 
 				var totalFitness = fitness / sumDistHumans;
-				trace('spawnAsEve: fitness: $fitness / sumDistHumans: $sumDistHumans = $totalFitness closeBadGrave: ${hasCloseBlockingGrave} closeGoodGrave: ${hasCloseNonBlockingGrave}');
+				//trace('spawnAsEve: fitness: $fitness / sumDistHumans: $sumDistHumans = $totalFitness closeBadGrave: ${hasCloseBlockingGrave} closeGoodGrave: ${hasCloseNonBlockingGrave}');
 				if (totalFitness < bestLocationFitness) continue;
 
 				bestLocation = location;
@@ -1128,7 +1128,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		for (p in AllPlayers) {
 			var tmpFitness = CalculateMotherFitness(p, child);
 
-			trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
+			trace('Spawn As Child: Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
+			//trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
 
 			if (tmpFitness < -100) continue;
 
@@ -1202,6 +1203,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		if(countLittleKids >= ServerSettings.LittleKidsPerMother) fitness = -1000;
+
+		trace('${mother.name + mother.id} MotherChildFitness: $fitness littlekids: $countLittleKids');
 		return fitness;
 	}
 
@@ -3301,6 +3304,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (doesRealDamage) Connection.SendDyingToAll(targetPlayer); // he is not actually dying but wounded
 
 		if (ServerSettings.DebugCombat) trace('COMBAT: HIT objDamage: $orgDamage damage: $damage moskitoDamageFactor: $moskitoDamageFactor');
+		if (doesRealDamage) trace('Real Damage!');
 
 		if (targetPlayer.woundedBy == 0 || doesRealDamage) targetPlayer.woundedBy = fromObj.id;
 		var longWeaponCoolDown = false;

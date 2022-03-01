@@ -281,6 +281,8 @@ class MoveHelper {
 
 				TimeHelper.MakeAnimalsRunAway(p);
 
+				if(p.getAi() != null) p.getAi().movedOneTile = true;
+
 				// if(ServerSettings.DebugMoveHelper) trace('Move: ${p.name} ${p.tx} ${p.ty}');
 			}
 

@@ -628,9 +628,8 @@ class AiHelper {
 				if (dist > bestDist) continue;
 				// var moveQuadDist = Math.pow(obj.objectData.moves + 1, 2);
 				// trace('GetCloseDeadlyAnimal: $dist <= $bestDist moveQuadDist: $moveQuadDist ${obj.name}');
-				//if (dist > Math.pow(obj.objectData.moves + 1, 2)) continue;
-				// remember that player could also move closer in this time
-                if (showAllways == false && dist > Math.pow(obj.objectData.moves + 2, 2)) continue;
+				//if (dist > Math.pow(obj.objectData.moves + 1, 2)) continue;			
+                if (showAllways == false && dist > Math.pow(obj.objectData.moves, 2)) continue;
 
 				bestDist = dist;
 				bestObj = obj;

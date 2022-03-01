@@ -62,6 +62,8 @@ abstract class AiBase
 	var didNotReachFood:Float = 0;
 	var didNotReachAnimalTarget:Float = 0;
 
+	public var movedOneTile = false;
+
 	public static function StartAiThread() {
 		Thread.create(RunAi);
 	}
@@ -181,6 +183,16 @@ abstract class AiBase
 	// do time stuff here is called from TimeHelper
 	public function doTimeStuff(timePassedInSeconds:Float) {
 		time -= timePassedInSeconds;
+
+		if(movedOneTile){
+			movedOneTile = false;
+
+			//trace('AI: moved one tile!');
+			var animal = AiHelper.GetCloseDeadlyAnimal(myPlayer);
+			var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer);
+
+			Macro.exception(if (didNotReachFood < 5) if (escape(animal, deadlyPlayer)) return);
+		}
 
 		// if(didNotReachFood > 0) didNotReachFood -= timePassedInSeconds * 0.02;
         if(time > 5) time = 5; // wait max 5 sec
