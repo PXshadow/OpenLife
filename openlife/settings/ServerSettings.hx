@@ -114,7 +114,7 @@ class ServerSettings {
 	// save to disk
 	public static var TicksBetweenSaving = 200;
 	public static var TicksBetweenBackups = 20 * 60 * 60 * 8; // 20 * 60 * 60 * 8 = every 8 hours
-	public static var MaxNumberOfBackups = 90;
+	public static var MaxNumberOfBackups = 10;
 
 	public static var MapFileName = "mysteraV1Test.png";
 	public static var SaveDirectory = "SaveFiles";
@@ -223,7 +223,7 @@ class ServerSettings {
 	public static var SeasonDuration = 5; // default: 5 // Season duration like winter in years
 	public static var AverageSeasonTemperatureImpact = 0.2;
 	public static var HotSeasonTemperatureFactor:Float = 0.5;
-	public static var ColdSeasonTemperatureFactor:Float = 1;
+	public static var ColdSeasonTemperatureFactor:Float = 0.5;
 	
 	public static var WinterWildFoodDecayChance:Float = 1.5; // 1.5; // per Season
 	public static var SpringWildFoodRegrowChance:Float = 1; // per Season // use spring and summer
@@ -253,10 +253,10 @@ class ServerSettings {
 	public static var PrestigeCostPerDamageForWomenWithoutWeapon:Float = 0.25;
 
 	// AI
-	public static var NumberOfAis:Int = 30;
+	public static var NumberOfAis:Int = 15;
 	public static var NumberOfAiPx:Int = 0;
 	public static var AiReactionTime:Float = 0.5; // 0.5;
-	public static var TimeToAiRebirthPerYear:Float = 10;
+	public static var TimeToAiRebirthPerYear:Float = 10; // X seconds per not lived year = 60 - death age
 	public static var AiTotalScoreFactor:Float = 0.5;
 	public static var AiMaxSearchRadius:Int = 60;
 	public static var AiMaxSearchIncrement:Int = 20; // 16

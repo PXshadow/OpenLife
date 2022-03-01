@@ -319,7 +319,10 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI FIX better escape
+- AI make commando only to closest
+- AI follow human player
+- AI FIX just standing around
+- AI FIX escape
 - AI FIX child: if hungry and close to feeding player dont move 
 - AI FIX drop made stuff after ordered in fronts of player
 - AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread
@@ -344,7 +347,13 @@ High priority:
 - FIX bug with getting stuck sometimes
 - FIX bug with reconnect if holding a player // TODO check if it is a problem
 
-- TIME add time transitions for lakes (what to do with the warter???)
+- TIME add time transitions for ponds with eggs / check why ponds are not in water
+
+- MEASSAGE FIX season message if feaver, or bad biome
+
+- FIX Rabbits count as
+
+
 
 - NAMING fix bug
 
