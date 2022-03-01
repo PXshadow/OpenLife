@@ -174,6 +174,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var yellowfeverCount:Float = 0;
 
 	public var lastSayInSec:Float = 0;
+	public var displaySeason = false; // not saved
 
 	// set all stuff null so that nothing is hanging around
 	public function delete() {

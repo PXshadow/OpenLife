@@ -218,32 +218,38 @@ class TimeHelper {
 	}
 
 	private static function DisplayStuff(player:GlobalPlayerInstance) {
-		if (player.isHuman()) {
-			GlobalPlayerInstance.DisplayBestFood(player);
+		if (player.isHuman() == false) return;
 
-			var animal = AiHelper.GetCloseDeadlyAnimal(player, 10, true);
-			if (animal != null) {
-				var dist = AiHelper.CalculateDistanceToObject(player, animal);
-				if (dist > 10) player.connection.send(ClientTag.LOCATION_SAYS, ['${animal.tx - player.gx} ${animal.ty - player.gy} !']);
-			}
+		GlobalPlayerInstance.DisplayBestFood(player);
 
-			var count = 0;
-			var maxDistance = ServerSettings.DisplayPlayerNamesDistance * ServerSettings.DisplayPlayerNamesDistance;
-			for(p in GlobalPlayerInstance.AllPlayers)
-			{
-				var quadDist = AiHelper.CalculateDistanceToPlayer(player, p);
-				
-				if(quadDist < 25) continue;
-				if(quadDist > maxDistance) continue;
-				
-				var name = player.mother == p ? 'MOTHER' : p.name;
-				if(player.father == p) name = 'FATHER';
-				player.connection.send(ClientTag.LOCATION_SAYS, ['${p.tx - player.gx} ${p.ty - player.gy} ${name}']);
-
-				count++;
-				if(count >= ServerSettings.DisplayPlayerNamesMaxPlayer) break;
-			}
+		var animal = AiHelper.GetCloseDeadlyAnimal(player, 10, true);
+		if (animal != null) {
+			var dist = AiHelper.CalculateDistanceToObject(player, animal);
+			if (dist > 10) player.connection.send(ClientTag.LOCATION_SAYS, ['${animal.tx - player.gx} ${animal.ty - player.gy} !']);
 		}
+
+		var count = 0;
+		var maxDistance = ServerSettings.DisplayPlayerNamesDistance * ServerSettings.DisplayPlayerNamesDistance;
+		for(p in GlobalPlayerInstance.AllPlayers)
+		{
+			var quadDist = AiHelper.CalculateDistanceToPlayer(player, p);
+			
+			if(quadDist < 25) continue;
+			if(quadDist > maxDistance) continue;
+			
+			var name = player.mother == p ? 'MOTHER' : p.name;
+			if(player.father == p) name = 'FATHER';
+			player.connection.send(ClientTag.LOCATION_SAYS, ['${p.tx - player.gx} ${p.ty - player.gy} ${name}']);
+
+			count++;
+			if(count >= ServerSettings.DisplayPlayerNamesMaxPlayer) break;
+		}
+
+		if(player.displaySeason && player.isSuperHot()) player.say('too hot ${SeasonNames[Season]}...', true);
+		else if(player.displaySeason && player.isSuperCold()) player.say('too cold ${SeasonNames[Season]}...', true);
+		
+		if(player.isSuperCold() || player.isSuperCold()) player.displaySeason = false;
+		else player.displaySeason = true;
 	}
 
 	private static function UpdatePlayerStats(player:GlobalPlayerInstance, timePassedInSeconds:Float) {
@@ -1010,8 +1016,6 @@ class TimeHelper {
 		obj.id = objData.secondTimeOutcome;
 		WorldMap.world.setObjectHelper(tx,ty, obj);
 		Connection.SendMapUpdateToAllClosePlayers(tx,ty, obj.toArray());
-
-		
 	}
 
 	private static function RespawnOrDecayPlant(objIDs:Array<Int>, x:Int, y:Int, hidden:Bool = false, growFactor:Float = 1) {
