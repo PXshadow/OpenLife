@@ -259,11 +259,14 @@ class AiHelper {
 		var x = tx - player.gx;
 		var y = ty - player.gy;
 		var dist = AiHelper.CalculateDistance(player.x, player.y, tx - player.gx, ty - player.gy);
+		var blockedByAnimal = false;
 
 		if(ai == null){
 			trace('gotoAdv: WARNING Ai is null!');
 			return false;
 		}
+
+		var considerAnimals = ai.didNotReachFood < 5 && ai.myPlayer.food_store > -1;
 
 		for (i in 0...5) {
 			var xo = 0;
@@ -281,7 +284,7 @@ class AiHelper {
 			if (player.isBlocked(tx + xo, ty + yo)) continue;
 			if (ai.isObjectNotReachable(tx + xo, ty + yo)) continue;
 
-			var done = Goto(player, x + xo, y + yo, move);
+			var done = Goto(player, x + xo, y + yo, considerAnimals, move);
 
 			var passedTime = (Sys.time() - startTime) * 1000;
 
@@ -289,6 +292,12 @@ class AiHelper {
 				ai.time += passedTime / 1000;
 				return true;
 			} 
+
+			// check if blocked only by animals // used for not to consider the object as blocked
+			if(considerAnimals && blockedByAnimal == false)
+			{
+				blockedByAnimal = Goto(player, x + xo, y + yo, false, move);
+			}
 
 			if (passedTime > ServerSettings.GotoTimeOut) {
 				trace('AI: ${player.id}  ${player.name} GOTO failed after $i because of timeout $passedTime! Ignore ${tx} ${ty} dist: $dist');
@@ -308,19 +317,22 @@ class AiHelper {
 			return false;
 		}
 		
-		ai.addNotReachable(tx, ty);
+		if(blockedByAnimal) ai.addHostilePath(tx, ty);
+		else ai.addNotReachable(tx, ty);
+
+		//if(blockedByAnimal) trace('blockedByAnimal!!!');
 
 		ai.resetTargets();
 
 		return false;
 	}
 
-	public static function TryGoto(playerInterface:PlayerInterface, x:Int, y:Int):Bool {
-		return Goto(playerInterface, x, y, false);
+	public static function TryGoto(playerInterface:PlayerInterface, x:Int, y:Int, considerAnimal:Bool = true):Bool {
+		return Goto(playerInterface, x, y, considerAnimal, false);
 	}
 
 	// TODO goto uses global coordinates
-	public static function Goto(playerInterface:PlayerInterface, x:Int, y:Int, move:Bool = true):Bool {
+	public static function Goto(playerInterface:PlayerInterface, x:Int, y:Int, considerAnimal:Bool = true, move:Bool = true):Bool {
 		var player = playerInterface.getPlayerInstance();
 
 		// var goal:Pos;
@@ -345,7 +357,7 @@ class AiHelper {
 
 		// trace('Goto: $px $py');
 
-		var map = new MapCollision(AiHelper.CreateCollisionChunk(playerInterface));
+		var map = new MapCollision(AiHelper.CreateCollisionChunk(playerInterface, considerAnimal));
 		// pathing
 		var path = new Pathfinder(cast map);
 		var paths:Array<Coordinate> = null;
@@ -397,34 +409,71 @@ class AiHelper {
 		return true;
 	}
 
-	private static function CreateCollisionChunk(playerInterface:PlayerInterface):Vector<Bool> {
+	private static function CreateCollisionChunk(playerInterface:PlayerInterface, considerAnimal:Bool):Vector<Bool> {
 		var map:Vector<Bool> = null;
 
 		WorldMap.world.mutex.acquire();
-		Macro.exception(map = CreateCollisionChunkHelper(playerInterface));
+		Macro.exception(map = CreateCollisionChunkHelper(playerInterface, considerAnimal));
 		WorldMap.world.mutex.release();
 
 		return map;
 	}
 
-	private static function CreateCollisionChunkHelper(playerInterface:PlayerInterface):Vector<Bool> {
+	private static function CreateCollisionChunkHelper(playerInterface:PlayerInterface, considerAnimal:Bool):Vector<Bool> {
 		var player:PlayerInstance = playerInterface.getPlayerInstance();
 		var world = playerInterface.getWorld();
 		var RAD = MapData.RAD;
 		var vector = new Vector<Bool>((RAD * 2) * (RAD * 2));
 		var int:Int = -1;
+		var minY = player.ty - RAD;
+		var minX = player.tx - RAD;
+		var maxY = player.ty + RAD;
+		var maxX = player.tx + RAD;
 
-		for (y in player.ty - RAD...player.ty + RAD) {
-			for (x in player.tx - RAD...player.tx + RAD) {
+		for (y in minY...maxY) {
+			for (x in minX...maxX) {
 				int++;
 
-				vector[int] = playerInterface.isBlocked(x,y);
+				vector[int] = vector[int] || playerInterface.isBlocked(x,y);
+
+				if(considerAnimal == false) continue;
+
+				var obj = world.getObjectHelper(x,y, true);
+				if(obj != null && obj.isAnimal() && obj.objectData.damage > 0)
+				{
+					//trace('Animal: ${obj.name}');	
+					var moves = obj.objectData.moves;
+					var minYY = y - moves;
+					var minXX = x - moves;
+					var maxYY = y + moves + 1;
+					var maxXX = x + moves + 1;
+					if(minYY < minY) minYY = minY;
+					if(minXX < minX) minXX = minX;
+					if(maxYY > maxY) maxYY = maxY;
+					if(maxXX > maxX) maxXX = maxX;
+					
+					for(yy in minYY...maxYY)
+					{
+						for(xx in minXX...maxXX)
+						{
+							var index = (xx - minX) + (yy - minY) * RAD * 2;
+							if(index < 0) trace('Animal: $index < ${vector.length} $x,$y => $xx,$yy');
+							if(index > vector.length -1) trace('Animal: $index < ${vector.length} $x,$y => $xx,$yy');
+							if(index < 0) index = 0;
+							if(index > vector.length -1) index = vector.length - 1;
+							vector[index] = true;
+						}
+					}
+				}
 
 				//var obj = world.getObjectData(x, y);			
 				//vector[int] = obj.blocksWalking || world.isBiomeBlocking(x, y);
 				// if(obj.blocksWalking()) trace('${player.tx()} ${player.ty()} $x $y ${obj.description}');
 			}
 		}
+
+		// never block own position
+		vector[RAD + RAD * 2 * RAD] = false;
 
 		// trace(vector);
 

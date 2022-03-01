@@ -59,7 +59,7 @@ abstract class AiBase
 	var craftingTasks = new Array<Int>();
 
 	// counts how often one could not reach food because of dedly animals
-	var didNotReachFood:Float = 0;
+	public var didNotReachFood:Float = 0;
 	var didNotReachAnimalTarget:Float = 0;
 
 	public var movedOneTile = false;
@@ -1504,7 +1504,11 @@ abstract class AiBase
 
 	public function addObjectWithHostilePath(obj:ObjectHelper) {
 		if (obj == null) return;
-		var index = WorldMap.world.index(obj.tx, obj.ty);
+		addHostilePath(obj.tx, obj.ty);
+	}
+
+	public function addHostilePath(tx:Int, ty:Int) {
+		var index = WorldMap.world.index(tx, ty);
 		objectsWithHostilePath[index] = 20; // block for 30 sec
 	}
 
