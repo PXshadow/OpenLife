@@ -16,6 +16,7 @@ import openlife.server.NamingHelper;
 import openlife.server.TimeHelper;
 import openlife.server.WorldMap;
 import openlife.settings.ServerSettings;
+import sys.db.Mysql;
 import sys.thread.Thread;
 
 using StringTools;
@@ -322,6 +323,8 @@ abstract class AiBase
 
 	public function searchFoodAndEat() {
 		foodTarget = AiHelper.SearchBestFood(myPlayer);
+		if(foodTarget == null) myPlayer.say('No food found...');
+		else myPlayer.say('new food ${foodTarget.name}');
 		if (ServerSettings.DebugAi && foodTarget != null) trace('AAI: ${myPlayer.name + myPlayer.id} new Foodtarget! ${foodTarget.name}');
 		if (ServerSettings.DebugAi && foodTarget == null) trace('AAI: ${myPlayer.name + myPlayer.id} no new Foodtarget!!!');
 	}
