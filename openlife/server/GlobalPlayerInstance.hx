@@ -3267,6 +3267,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		var isRightClassForWeapon = targetPlayer.isRightClassForWeapon();
 
+		var biome = WorldMap.world.getBiomeId(targetPlayer.tx, targetPlayer.ty);
+		var lovesThisBiome = targetPlayer.biomeLoveFactor(biome);
+		if(lovesThisBiome < -1) lovesThisBiome = -1;
+		var biomeDamageFactor = 2 / (2 + lovesThisBiome); // between 0.5 and 2
+
 		var doesRealDamage = fromObj.id != 2156; // 2156 Mosquito Swarm;
 		var lovesJungle = targetPlayer.biomeLoveFactor(BiomeTag.JUNGLE);
 		if (lovesJungle < -0.5) lovesJungle = -0.5;
@@ -3277,8 +3282,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (doesRealDamage == false) yellowfeverCount += 0.02;
 
-		if (doesRealDamage) damage *= targetPlayer.heldObject.objectData.damageProtectionFactor; else
-			damage *= moskitoDamageFactor;
+		if (doesRealDamage) damage *= targetPlayer.heldObject.objectData.damageProtectionFactor; 
+		else damage *= moskitoDamageFactor;
+		damage *= biomeDamageFactor;
 		damage *= isRightClassForWeapon ? 0.8 : 1;
 		damage *= targetPlayer.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
 		damage *= protectionFactor;
