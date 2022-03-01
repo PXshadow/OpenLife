@@ -164,7 +164,7 @@ class ServerSettings {
 	// Yellow Fever
 	public static var ExhaustionYellowFeverPerSec = 0.1;
 	public static var AllowSelfEatingIfIll = true; // for example if you have yellow fever some one needs to feed you if false
-	public static var ResistenceAginstFeverForEatingMushrooms:Float = 0.2;
+	public static var ResistanceAginstFeverForEatingMushrooms:Float = 0.2;
 
 	// health
 	// public static var MinHealthPerYear = 1; // for calulating aging / speed: MinHealthPerYear * age is reduced from health(yum_mulpiplier)

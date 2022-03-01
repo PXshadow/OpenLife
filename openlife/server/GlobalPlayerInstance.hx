@@ -1834,9 +1834,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (ServerSettings.DebugPlayer)
 			trace('doOnOtherHelper: playerId: ${playerId} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
-		if (this.o_id[0] < 0) return false; // is holding player
-		// 838 Dont feed dam drugs! Wormless Soil Pit with Mushroom // 837 Psilocybe Mushroom
-		if (heldObject.objectData.isDrugs()) return false;
+		if (this.o_id[0] < 0) return false; // is holding player	
 
 		var targetPlayer = getPlayerAt(x, y, playerId);
 		if (targetPlayer == null) {
@@ -1844,6 +1842,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// throw new Exception('');
 			return false;
 		}
+
+		// only feed drugs if ill! // 837 Psilocybe Mushroom
+		if (heldObject.objectData.isDrugs() && targetPlayer.isIll() == false) return false;
 
 		if (this.isClose(targetPlayer.tx - this.gx, targetPlayer.ty - this.gy) == false) {
 			trace('doOnOtherHelper: Target position is too far away player: ${this.tx},${this.ty} target: ${targetPlayer.tx},${targetPlayer.ty}');
@@ -2075,9 +2076,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// if(playerFrom != playerTo) playerFrom.yum_multiplier += 0.5; // saved one from starving to death
 		}
 
-		if (heldObjData.isDrugs()) // eating lovely mushrooms give protection against fever
+		// eating lovely mushrooms give protection against fever
+		if (heldObjData.isDrugs()) 
 		{
-			playerTo.yellowfeverCount += ServerSettings.ResistenceAginstFeverForEatingMushrooms;
+			playerTo.yellowfeverCount += ServerSettings.ResistanceAginstFeverForEatingMushrooms;
+			if(playerTo.fever != null) playerTo.fever.timeToChange *= 1 - ServerSettings.ResistanceAginstFeverForEatingMushrooms;
 		}
 
 		if (ServerSettings.DebugEating) trace('YUM: ${heldObjData.description} foodValue: $foodValue countEaten: $countEaten');
@@ -4126,7 +4129,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public function canFeedToMe(food:ObjectHelper):Bool {
 		if (isMeh(food) && food_store > 2) return false;
-		if (food.id == 837) return false; // dont feed 837 ==> Psilocybe Mushroom to others
+		if (food.id == 837 && this.hasYellowFever() == false) return false; // only feed 837 ==> Psilocybe Mushroom to others if ill
 
 		return canEat(food);
 	}
