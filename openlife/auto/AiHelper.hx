@@ -258,6 +258,7 @@ class AiHelper {
 		var rand = 0;
 		var x = tx - player.gx;
 		var y = ty - player.gy;
+		var dist = AiHelper.CalculateDistance(player.x, player.y, tx - player.gx, ty - player.gy);
 
 		if(ai == null){
 			trace('gotoAdv: WARNING Ai is null!');
@@ -290,7 +291,7 @@ class AiHelper {
 			} 
 
 			if (passedTime > ServerSettings.GotoTimeOut) {
-				trace('AI: ${player.id}  ${player.name} GOTO failed after $i because of timeout $passedTime! Ignore ${tx} ${ty}');
+				trace('AI: ${player.id}  ${player.name} GOTO failed after $i because of timeout $passedTime! Ignore ${tx} ${ty} dist: $dist');
 				break;
 			}
 		}
@@ -299,7 +300,7 @@ class AiHelper {
 		
 		ai.time += passedTime / 1000;
 
-		if(ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime');
+		if(ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime dist: $dist');
 		//trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime');
 
 		if(ai == null){
