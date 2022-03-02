@@ -35,7 +35,7 @@ class ServerSettings {
 	public static var DebugAiCrafting:Bool = false;
 	public static var DebugAiCraftingObject:Int = 999999; // 57;
 	public static var AutoFollowAi:Bool = false;
-	public static var AutoFollowPlayer:Bool = false;
+	public static var AutoFollowPlayer:Bool = true;
 
 	// Save / Load
 	public static var saveToDisk = true;

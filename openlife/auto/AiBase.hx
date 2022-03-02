@@ -204,7 +204,7 @@ abstract class AiBase
 		if (ServerSettings.AutoFollowAi && myPlayer.isHuman()) {
 			// if(ServerSettings.DebugAi) trace('HUMAN');
 			time = 0.2;
-			isMovingToPlayer(5, false);
+			isMovingToPlayer(2, false);
 			return;
 		}
 
@@ -226,16 +226,16 @@ abstract class AiBase
 		//Macro.exception(if (didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat());
 		Macro.exception(checkIsHungryAndEat());
 		Macro.exception(if (isChildAndHasMother()) {
-			if (isMovingToPlayer(10)) return;
+			if (isMovingToPlayer(4)) return;
 		});
 		Macro.exception(if (myPlayer.isWounded()) {
-			isMovingToPlayer(5);
+			isMovingToPlayer(2);
 			return;
 		}); // do nothing then looking for player
 
 		Macro.exception(if (isDropingItem()) return);
 		Macro.exception(if (myPlayer.age < ServerSettings.MinAgeToEat && isHungry) {
-			isMovingToPlayer(5);
+			isMovingToPlayer(2);
 			return;
 		}); // go close to mother and wait for mother to feed
 		Macro.exception(if (isEating()) return);
@@ -245,7 +245,7 @@ abstract class AiBase
 		Macro.exception(if (isStayingCloseToChild()) return);
 		Macro.exception(if (isUsingItem()) return);
 		Macro.exception(if (killAnimal(animal)) return);
-		Macro.exception(if (ServerSettings.AutoFollowPlayer && isMovingToPlayer()) return);
+		Macro.exception(if (ServerSettings.AutoFollowPlayer && isMovingToPlayer(20)) return);
 
 		if (myPlayer.isMoving()) return;
 
@@ -1240,7 +1240,7 @@ abstract class AiBase
 		if (ServerSettings.DebugAiCrafting) trace('Ai: craft DONE trans: ${objToCraft.name}: ${itemToCraft.craftingTransitions.length} $textTrans');
 	}
 
-	private function isMovingToPlayer(maxDistance = 10, followHuman:Bool = true):Bool {
+	private function isMovingToPlayer(maxDistance = 3, followHuman:Bool = true):Bool {
 		if (playerToFollow == null) {
 			if (isChildAndHasMother()) {
 				playerToFollow = myPlayer.getFollowPlayer();
@@ -1253,10 +1253,13 @@ abstract class AiBase
 				// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} follow player ${playerToFollow.p_id}');
 			}
 		}
-		var distance = myPlayer.CalculateDistanceToPlayer(playerToFollow);
 
-		if (distance > maxDistance) {
-			var dist = maxDistance >= 10 ? 2 : 1;
+		maxDistance = maxDistance * maxDistance;
+		
+		var quadDistance = myPlayer.CalculateDistanceToPlayer(playerToFollow);
+
+		if (quadDistance > maxDistance) {
+			var dist = maxDistance >= 9 ? 2 : 1;
 			var randX = WorldMap.calculateRandomInt(2 * dist) - dist;
 			var randY = WorldMap.calculateRandomInt(2 * dist) - dist;
 
@@ -1264,7 +1267,7 @@ abstract class AiBase
 			myPlayer.say('${playerToFollow.name}');
 
 			if (myPlayer.isAi()) if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} dist: $distance goto player $done');
+				trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} dist: $quadDistance goto player $done');
 
 			return true;
 		}
