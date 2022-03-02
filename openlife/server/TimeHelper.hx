@@ -473,6 +473,11 @@ class TimeHelper {
 			ageingFactor *= ServerSettings.AgingFactorHumanBornToAi;
 			//if(TimeHelper.tick % 20 == 0) trace('ageing: human born to ai: $ageingFactor'); 
 		}
+		else if(player.isAi() && player.mother != null && player.mother.isHuman() && player.age < ServerSettings.MinAgeToEat){
+			ageingFactor *= ServerSettings.AgingFactorAiBornToHuman;
+			//if(TimeHelper.tick % 20 == 0) trace('ageing: human born to ai: $ageingFactor'); 
+		}
+
 
 		if (player.food_store < 0) {
 			if (player.age < ServerSettings.GrownUpAge) {
