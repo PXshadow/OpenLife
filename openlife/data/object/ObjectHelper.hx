@@ -1,19 +1,19 @@
 package openlife.data.object;
 
-import sys.io.FileInput;
-import sys.io.FileOutput;
-import openlife.server.PlayerAccount;
-import openlife.settings.ServerSettings;
-import sys.io.File;
-import openlife.auto.PlayerInterface;
-import openlife.server.Lineage;
-import openlife.data.transition.TransitionImporter;
 import haxe.Exception;
+import haxe.ds.Vector;
+import openlife.auto.PlayerInterface;
+import openlife.data.transition.TransitionData;
+import openlife.data.transition.TransitionImporter;
+import openlife.server.GlobalPlayerInstance;
+import openlife.server.Lineage;
+import openlife.server.PlayerAccount;
 import openlife.server.TimeHelper;
 import openlife.server.WorldMap;
-import openlife.data.transition.TransitionData;
-import openlife.server.GlobalPlayerInstance;
-import haxe.ds.Vector;
+import openlife.settings.ServerSettings;
+import sys.io.File;
+import sys.io.FileInput;
+import sys.io.FileOutput;
 
 class ObjectHelper {
 	public var objectData:ObjectData;
@@ -280,6 +280,14 @@ class ObjectHelper {
 
 		this.creationTimeInTicks = TimeHelper.tick;
 		this.numberOfUses = objectData.numUses;
+	}
+
+	public var parentObjData(get, null):ObjectData;
+
+	public function get_parentObjData() {
+		if (objectData.dummyParent != null) return objectData.dummyParent;
+
+		return objectData;
 	}
 
 	/**

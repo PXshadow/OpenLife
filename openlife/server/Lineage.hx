@@ -1,9 +1,9 @@
 package openlife.server;
 
-import openlife.data.object.ObjectHelper;
 import haxe.Exception;
-import sys.io.File;
+import openlife.data.object.ObjectHelper;
 import openlife.settings.ServerSettings;
+import sys.io.File;
 
 @:enum abstract PrestigeClass(Int) from Int to Int {
 	public var NotSet = 0;
@@ -201,8 +201,8 @@ class Lineage {
 	}
 
 	public function getFullName(withUnderscore:Bool = false, ignoreFirstName = false) {
-		// var fullName = ignoreFirstName ? '${this.familyName} ${this.className}' : '${this.name} ${this.familyName} ${this.className}';
-		var fullName = ignoreFirstName ? '${this.name} ${this.familyName} ${this.className}' : '${this.name} ${this.familyName} ${this.className}';
+		var fullName = ignoreFirstName ? '${this.familyName} ${this.className}' : '${this.name} ${this.familyName} ${this.className}';
+		//var fullName = ignoreFirstName ? '${this.name} ${this.familyName} ${this.className}' : '${this.name} ${this.familyName} ${this.className}';
 
 		if (withUnderscore) return StringTools.replace(fullName, ' ', '_');
 

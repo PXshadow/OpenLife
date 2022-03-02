@@ -100,8 +100,8 @@ MAP:
 - no expert waystones
 
 Adam / Eve:
-- adam / Eve do 50% less damage
-- adam / Eve receive 50% less damage (also from animals)
+// - adam / Eve do 50% less damage
+// - adam / Eve receive 50% less damage (also from animals)
 
 Family / Loved / Hated Biomes:
 - loved Biomes: Ginger --> Snow / White --> Grey / Brown --> Jungle / Black --> Desert 
@@ -112,7 +112,8 @@ Family / Loved / Hated Biomes:
 --> With this one Eve can create all colors if people migrate...
 - parents influence which biomes are loved 
 - bad Temperature is affected now by how much you / your parents (50%) love the biome
-- you gain extra exhaustion in not loved biomes and loose extra exhaustion in loved ones
+- you gain extra exhaustion in not loved biomes and loose extra exhaustion in loved biomes
+- you get  less / more damage in loved / not loved biomes
 - TODO differen exhaustion for work in bad / loved biome
 
 Classes:
@@ -140,8 +141,10 @@ Combat / Attacking
 - stregth of players with weapons are counted twice
 - You can only shoot with bow if not too close to target
 - you do halve damage to an ally
+- you get less / more damage in loved / not loved biomes
 - you receive less damage if holding a knife, sword or riding a horse without a cart 
 - males do X1.2 damage
+- weapon pickup age is 2/5/10 years for knife / bow / sword but remember you do less damage if not grown up
 
 Attacking prestige lost:
 - you will loose prestige for attacking a close relative without weapon
@@ -296,7 +299,8 @@ Yellow fever:
 - the more moskito bites and yellow fever you got the more you are resistant
 - the more healthy you are the more resistant you are against moskito bites and yellow fever
 - held kids get 5X less damage from yellow fever
-- eating lovely mushrooms give some protection against fever 
+- eating lovely mushrooms give some protection against fever and reduces fever time
+- you can feed lovely mushrooms to other if they have fever
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
@@ -315,6 +319,10 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
+- AI make commando only to closest
+- AI follow human player
+- AI FIX just standing around
+- AI FIX escape
 - AI FIX child: if hungry and close to feeding player dont move 
 - AI FIX drop made stuff after ordered in fronts of player
 - AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread
@@ -335,18 +343,16 @@ High priority:
 - AI Stoneage
 
 - FIX bug with getting stuck sometimes
-- FIX bug with cannot do stuff anymore sometimes
+- FIX bug with reconnect if holding a player // TODO check if it is a problem
 
-- TIME add time transitions for lakes
+- MAP check why ponds are not in water ==> move to green near water
 
-- NAMING fix bug
+- MEASSAGE addbad biome self say meassage
 
 - RAND look at random generator for float
 
 - PICKUP / DROP CHILD fix display bug. maybe set origion or action from right?
 
-- BIOME add exhaustion for doing stuff in bad biome
-- BIOME make moskitos for all bad in swamp
 - BIOME biome boni for different biome specialists like harvesting more banana for brown TODO: White, Black and Ginger 
 
 - ANIMALS fix they wont sometimes display as moving / DONE???
@@ -374,6 +380,8 @@ Middle priority:
 - BIOME biome hide biome specific stuff for not specialists
 - BIOME change biome speed for specialists (only if in attack mode or carrying heavy stuff???)
 - BIOME no dropping of stuff on water??? or better let it drift back to land?
+- BIOME add exhaustion for doing stuff in bad biome
+- ??? BIOME make moskitos for all bad in swamp
 
 - ALLY test: change ally color if leader changes 
 - ALLY give some time after beeing exiled

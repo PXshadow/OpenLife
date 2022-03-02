@@ -53,6 +53,8 @@ interface PlayerInterface {
 	public function isBlocked(tx:Int, ty:Int):Bool;
 	public function isEveOrAdam():Bool;
 	public function isIll():Bool;
+	public function isAnimalDeadlyForMe(animal:ObjectHelper):Bool;
+	public function isAnimalNotDeadlyForMe(animal:ObjectHelper):Bool;
 
 	public function isHoldingYum():Bool;
 	public function isYum(food:ObjectHelper):Bool;

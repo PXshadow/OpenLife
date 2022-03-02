@@ -2,6 +2,7 @@ package openlife.server;
 
 import haxe.Exception;
 import openlife.auto.Ai;
+import openlife.auto.AiBase;
 import openlife.auto.AiHelper;
 import openlife.client.ClientTag;
 import openlife.data.object.ObjectData;
@@ -61,7 +62,7 @@ class TimeHelper {
 		DoTest();
 
 		// if(ServerSettings.NumberOfAis > 0) Ai.StartAiThread();
-		Ai.StartAiThread();
+		AiBase.StartAiThread();
 
 		while (true) {
 			if (ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.acquire();
@@ -170,7 +171,7 @@ class TimeHelper {
 			SeasonHardness = WorldMap.calculateRandomFloat() + 0.5;
 
 			var seasonName = SeasonNames[Season];
-			var message = 'SEASON: ${seasonName} is there! hardness: $SeasonHardness years: ${passedSeasonTime / 60} timeToNextSeasonInSec: $timeToNextSeasonInSec';
+			var message = 'SEASON: ${seasonName} is there! hardness: ${Math.round(SeasonHardness * 10) / 10} years: ${Math.round(passedSeasonTime / 60)} timeToNextSeasonInSec: $timeToNextSeasonInSec';
 
 			trace(message);
 
@@ -217,37 +218,54 @@ class TimeHelper {
 	}
 
 	private static function DisplayStuff(player:GlobalPlayerInstance) {
-		if (player.isHuman()) {
-			GlobalPlayerInstance.DisplayBestFood(player);
+		if (player.isHuman() == false) return;
 
-			var animal = AiHelper.GetCloseDeadlyAnimal(player, 10, true);
-			if (animal != null) {
-				var dist = AiHelper.CalculateDistanceToObject(player, animal);
-				if (dist > 10) player.connection.send(ClientTag.LOCATION_SAYS, ['${animal.tx - player.gx} ${animal.ty - player.gy} !']);
-			}
+		GlobalPlayerInstance.DisplayBestFood(player);
 
-			var count = 0;
-			var maxDistance = ServerSettings.DisplayPlayerNamesDistance * ServerSettings.DisplayPlayerNamesDistance;
-			for(p in GlobalPlayerInstance.AllPlayers)
-			{
-				var quadDist = AiHelper.CalculateDistanceToPlayer(player, p);
-				
-				if(quadDist < 25) continue;
-				if(quadDist > maxDistance) continue;
-				
-				var name = player.mother == p ? 'MOTHER' : p.name;
-				if(player.father == p) name = 'FATHER';
-				player.connection.send(ClientTag.LOCATION_SAYS, ['${p.tx - player.gx} ${p.ty - player.gy} ${name}']);
-
-				count++;
-				if(count >= ServerSettings.DisplayPlayerNamesMaxPlayer) break;
-			}
+		var animal = AiHelper.GetCloseDeadlyAnimal(player, 10, true);
+		if (animal != null) {
+			var dist = AiHelper.CalculateDistanceToObject(player, animal);
+			if (dist > 10) player.connection.send(ClientTag.LOCATION_SAYS, ['${animal.tx - player.gx} ${animal.ty - player.gy} !']);
 		}
+
+		var count = 0;
+		var maxDistance = ServerSettings.DisplayPlayerNamesDistance * ServerSettings.DisplayPlayerNamesDistance;
+		for(p in GlobalPlayerInstance.AllPlayers)
+		{
+			var quadDist = AiHelper.CalculateDistanceToPlayer(player, p);
+			
+			if(quadDist < 25) continue;
+			if(quadDist > maxDistance) continue;
+			
+			var name = player.mother == p ? 'MOTHER' : p.name;
+			if(player.father == p) name = 'FATHER';
+			player.connection.send(ClientTag.LOCATION_SAYS, ['${p.tx - player.gx} ${p.ty - player.gy} ${name}']);
+
+			count++;
+			if(count >= ServerSettings.DisplayPlayerNamesMaxPlayer) break;
+		}
+
+		if(player.displaySeason && player.isSuperHot() && Season == Seasons.Summer && player.isIll() == false) player.say('too hot ${SeasonNames[Season]}...', true);
+		else if(player.displaySeason && player.isSuperCold() && Season == Seasons.Winter) player.say('too cold ${SeasonNames[Season]}...', true);
+		
+		if(player.isSuperHot() || player.isSuperCold()) player.displaySeason = false;
+		else player.displaySeason = true;
 	}
 
 	private static function UpdatePlayerStats(player:GlobalPlayerInstance, timePassedInSeconds:Float) {
 		if (player.jumpedTiles > 0) player.jumpedTiles -= timePassedInSeconds * ServerSettings.MaxJumpsPerTenSec * 0.1;
 		if (player.lastSayInSec > 0) player.lastSayInSec -= timePassedInSeconds;
+
+		if(player.isBlocked(player.tx, player.ty))
+		{
+			MoveHelper.JumpToNonBlocked(player);
+		}
+
+		if(player.connection.sock != null && player.connection.serverAi != null && ServerSettings.AutoFollowAi == false)
+		{
+			player.connection.serverAi = null;
+			trace('WARNING ${player.name + player.id} has socket and serverAi! serverAi set null!');
+		}
 
 		if (player.heldPlayer != null && player.heldPlayer.deleted)
 		{
@@ -434,44 +452,54 @@ class TimeHelper {
 
 	private static function updateAge(player:GlobalPlayerInstance, timePassedInSeconds:Float) {
 		var tmpAge = player.age;
-		var aging = timePassedInSeconds / player.age_r;
+		
 
 		// trace('aging: ${aging}');
 
 		// trace('player.age_r: ${player.age_r}');
 
 		var healthFactor = player.CalculateHealthAgeFactor();
-		var agingFactor:Float = 1;
+		var ageingFactor:Float = 1;
 
 		// trace('healthFactor: ${healthFactor}');
 
 		if (player.age < ServerSettings.GrownUpAge) {
-			agingFactor = healthFactor;
+			//ageingFactor = healthFactor;
 		} else {
-			agingFactor = 1 / healthFactor;
+			ageingFactor = 1 / healthFactor;
+		}
+
+		if(player.isHuman() && player.mother != null && player.mother.isAi() && player.age < ServerSettings.MinAgeToEat){
+			ageingFactor *= ServerSettings.AgingFactorHumanBornToAi;
+			//if(TimeHelper.tick % 20 == 0) trace('ageing: human born to ai: $ageingFactor'); 
+		}
+		else if(player.isAi() && player.mother != null && player.mother.isHuman() && player.age < ServerSettings.MinAgeToEat){
+			ageingFactor *= ServerSettings.AgingFactorAiBornToHuman;
+			//if(TimeHelper.tick % 20 == 0) trace('ageing: human born to ai: $ageingFactor'); 
 		}
 
 		if (player.food_store < 0) {
 			if (player.age < ServerSettings.GrownUpAge) {
-				agingFactor *= ServerSettings.AgingFactorWhileStarvingToDeath;
+				ageingFactor *= ServerSettings.AgingFactorWhileStarvingToDeath;
 			} else {
-				agingFactor *= 1 / ServerSettings.AgingFactorWhileStarvingToDeath;
+				ageingFactor *= 1 / ServerSettings.AgingFactorWhileStarvingToDeath;
 			}
 		}
 
-		player.age_r = ServerSettings.AgingSecondsPerYear * agingFactor;
+		player.age_r = ServerSettings.AgeingSecondsPerYear / ageingFactor;
+		var ageing = timePassedInSeconds / ServerSettings.AgeingSecondsPerYear;
 
-		player.trueAge += aging;
+		player.trueAge += ageing;
 
-		aging *= agingFactor;
+		ageing *= ageingFactor;
 
-		player.age += aging;
+		player.age += ageing;
 
 		// trace('player.age: ${player.age}');
 
 		if (Std.int(tmpAge) != Std.int(player.age)) {
 			if (ServerSettings.DebugPlayer)
-				trace('Player: ${player.p_id} Old Age: $tmpAge New Age: ${player.age} TrueAge: ${player.trueAge} agingFactor: $agingFactor healthFactor: $healthFactor');
+				trace('Player: ${player.p_id} Old Age: $tmpAge New Age: ${player.age} TrueAge: ${player.trueAge} agingFactor: $ageingFactor healthFactor: $healthFactor');
 
 			// player.yum_multiplier -= ServerSettings.MinHealthPerYear; // each year some health is lost
 			player.food_store_max = player.calculateFoodStoreMax();
@@ -535,11 +563,12 @@ class TimeHelper {
 		var tmpFood = Math.ceil(player.food_store);
 		var tmpExtraFood = Math.ceil(player.yum_bonus);
 		var tmpFoodStoreMax = Math.ceil(player.food_store_max);
-		var foodDecay = timePassedInSeconds * player.foodUsePerSecond; // depends on temperature
+		var originalFoodDecay = timePassedInSeconds * player.foodUsePerSecond; // depends on temperature
 		var playerIsStarvingOrHasBadHeat = player.food_store < 0 || player.isSuperCold() || player.isSuperHot();
 		var doHealing = playerIsStarvingOrHasBadHeat == false && player.isWounded() == false && player.hasYellowFever() == false;
-		var originalFoodDecay = foodDecay;
-		var healing = 1.5 * timePassedInSeconds * ServerSettings.FoodUsePerSecond - originalFoodDecay;
+		var foodDecay = originalFoodDecay;
+		var healing = timePassedInSeconds * ServerSettings.FoodUsePerSecond;
+		//var healing = 1.5 * timePassedInSeconds * ServerSettings.FoodUsePerSecond - originalFoodDecay;
 
 		// healing is between 0.5 and 2 of food decay depending on temperature
 		if (healing < timePassedInSeconds * ServerSettings.FoodUsePerSecond / 2) healing = timePassedInSeconds * ServerSettings.FoodUsePerSecond / 2;
@@ -558,28 +587,28 @@ class TimeHelper {
 
 		// do damage while starving
 		if (player.food_store < 0) {
-			player.exhaustion += originalFoodDecay * ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath / 2;
+			player.hits += originalFoodDecay * 0.5;
 		}
 
 		// take care of exhaustion
+		var exhaustionFoodNeed = 0.0;
 		// if(healing > 0 && player.exhaustion > -player.food_store_max && player.food_store > 0)
 		if (doHealing && player.exhaustion > -player.food_store_max) {
 			var healingFaktor = player.isMale() ? ServerSettings.ExhaustionHealingForMaleFaktor : 1;
 			var exhaustionFaktor = player.exhaustion > player.food_store_max / 2 ? 2 : 1;
+			exhaustionFoodNeed = originalFoodDecay * ServerSettings.ExhaustionHealing * exhaustionFaktor;
 
 			player.exhaustion -= healing * ServerSettings.ExhaustionHealing * healingFaktor * exhaustionFaktor;
-
-			foodDecay += originalFoodDecay * ServerSettings.ExhaustionHealing * exhaustionFaktor;
-
-			if (player.exhaustion < -player.food_store_max) player.exhaustion = -player.food_store_max;
+			foodDecay += exhaustionFoodNeed;
 		}
 
 		// take damage if temperature is too hot or cold
 		var damage:Float = 0;
-		if (player.isSuperHot()) damage = player.heat > 0.95 ? 3 * originalFoodDecay : originalFoodDecay; else if (player.isSuperCold())
-			damage = player.heat < 0.05 ? 3 * originalFoodDecay : originalFoodDecay;
+		if (player.isSuperHot()) damage = player.heat > 0.95 ? 2 * originalFoodDecay : originalFoodDecay;
+		else if (player.isSuperCold())
+			damage = player.heat < 0.05 ? 2 * originalFoodDecay : originalFoodDecay;
 
-		damage /= 2;
+		damage *= 0.5 * ServerSettings.DamageTemperatureFactor;
 		player.hits += damage;
 		player.exhaustion += damage;
 
@@ -588,18 +617,18 @@ class TimeHelper {
 		var biomeLoveFactor = player.biomeLoveFactor();
 		// if(biomeLoveFactor < 0) player.exhaustion -= originalFoodDecay * biomeLoveFactor / 2; // gain exhaustion in wrong biome
 		if (biomeLoveFactor > 0
-			&& player.exhaustion > -player.food_store_max) player.exhaustion -= originalFoodDecay * biomeLoveFactor / 2;
+			&& player.exhaustion > -player.food_store_max) player.exhaustion -= healing * biomeLoveFactor / 2;
 		// trace('Exhaustion: $tmpexhaustion ==> ${player.exhaustion} pID: ${player.p_id} biomeLoveFactor: $biomeLoveFactor');
 
 		// do healing but increase food use
-		// if(healing > 0 && player.hits > 0 && playerIsStarvingOrHasBadHeat == false && player.isWounded() == false)
-		if (player.hits > 0) {
-			var healingFaktor = doHealing ? 1 : 0.0;
-			var foodDecayFaktor = doHealing ? 2 : 1;
+		//if (player.hits > 0) {
+		if(healing > 0 && player.hits > 0 && playerIsStarvingOrHasBadHeat == false && player.isWounded() == false){
+			//var healingFaktor = doHealing ? 1.0 : 0.0;
+			//var foodDecayFaktor = doHealing ? 2 : 1;
 
-			player.hits -= healing * ServerSettings.WoundHealing * healingFaktor;
+			player.hits -= healing * ServerSettings.WoundHealing; // * healingFaktor;
 
-			foodDecay += originalFoodDecay * ServerSettings.WoundHealing * foodDecayFaktor;
+			foodDecay += originalFoodDecay * ServerSettings.WoundHealing; // * foodDecayFaktor;
 
 			if (player.hits < 0) player.hits = 0;
 
@@ -623,14 +652,14 @@ class TimeHelper {
 
 			if (heldPlayer.food_store < heldPlayer.getMaxChildFeeding()) {
 				var food = ServerSettings.FoodRestoreFactorWhileFeeding * timePassedInSeconds * ServerSettings.FoodUsePerSecond;
-				var tmpFood = heldPlayer.food_store;
+				var tmpFood = Math.ceil(heldPlayer.food_store);
 
 				heldPlayer.food_store += food;
 				foodDecay += food / 2;
 
 				if (heldPlayer.hits > 0) heldPlayer.hits -= timePassedInSeconds * 0.2;
 
-				var hasChanged = tmpFood != Math.ceil(player.food_store);
+				var hasChanged = tmpFood != Math.ceil(heldPlayer.food_store);
 				if (hasChanged) {
 					heldPlayer.sendFoodUpdate(false);
 					heldPlayer.connection.send(FRAME, null, false);
@@ -647,6 +676,9 @@ class TimeHelper {
 		} else {
 			player.food_store -= foodDecay;
 		}
+
+		//if (TimeHelper.tick % 40 == 0) trace('${player.name + player.id} FoodDecay: ${Math.round(foodDecay / timePassedInSeconds * 100) / 100} org: ${Math.round(originalFoodDecay / timePassedInSeconds * 100) / 100)} fromexh: ${Math.round(exhaustionFoodNeed / timePassedInSeconds * 100) / 100}');
+		if (ServerSettings.DebugPlayer && TimeHelper.tick % 40 == 0) trace('${player.name + player.id} FoodDecay: ${Math.round(foodDecay / timePassedInSeconds * 100) / 100} org: ${Math.round(originalFoodDecay / timePassedInSeconds * 100) / 100)} fromexh: ${Math.round(exhaustionFoodNeed / timePassedInSeconds * 100) / 100}');
 
 		player.food_store_max = player.calculateFoodStoreMax();
 
@@ -732,7 +764,10 @@ class TimeHelper {
 		if (heldObjectData.heatValue != 0) temperature += heldObjectData.heatValue / 20;
 
 		// add SeasonTemperatureImpact
-		temperature += SeasonTemperatureImpact;
+		var seasonImpact = SeasonTemperatureImpact;
+		if(seasonImpact > 0) seasonImpact *= ServerSettings.HotSeasonTemperatureFactor;
+		if(seasonImpact < 0) seasonImpact *= ServerSettings.ColdSeasonTemperatureFactor;
+		temperature += seasonImpact;
 
 		var biomeLoveFactor = player.biomeLoveFactor();
 		biomeLoveFactor /= 10;
@@ -762,17 +797,23 @@ class TimeHelper {
 		if (player.heat < 0) player.heat = 0;
 
 		var playerHeat = player.heat;
-
 		var temperatureFoodFactor = playerHeat >= 0.5 ? playerHeat : 1 - playerHeat;
+		
+		// also consider the food needed for the temperature damage
+		var temperatureDamageFactor:Float = 0;
+		if (player.isSuperHot())
+			temperatureDamageFactor = player.heat > 0.95 ? 2 : 1;
+		else if (player.isSuperCold())
+			temperatureDamageFactor = player.heat < 0.05 ? 2 : 1;
+
+		temperatureDamageFactor = 1 + temperatureDamageFactor * ServerSettings.DamageTemperatureFactor;
 
 		var foodUsePerSecond = ServerSettings.FoodUsePerSecond * temperatureFoodFactor;
-
-		var foodDrainTime = 1 / foodUsePerSecond;
+		var foodDrainTime = 1 / (foodUsePerSecond * temperatureDamageFactor);
+		//trace('foodDrainTime: ${foodDrainTime} temperatureDamageFactor: $temperatureDamageFactor');
 
 		player.foodUsePerSecond = foodUsePerSecond;
-
 		temperature = Math.round(temperature * 100) / 100;
-
 		foodDrainTime = Math.round(foodDrainTime * 100) / 100;
 
 		var message = '$playerHeat $foodDrainTime 0';
@@ -915,6 +956,8 @@ class TimeHelper {
 
 				if (obj[0] == 0) continue;
 
+				DoSecondTimeOutcome(x, y, obj[0], TimePassedToDoAllTimeSteps);
+
 				var biome = worldMap.getBiomeId(x, y);
 
 				if (obj[0] == 30) WorldMap.world.berryBushes[WorldMap.world.index(x,
@@ -935,11 +978,11 @@ class TimeHelper {
 				if (helper != null) {
 					if (helper.timeToChange == 0) // maybe timeToChange was forgotten to be set
 					{
-						var timeTransition = TransitionImporter.GetTransition(-1, obj[0], false, false);
+						var timeTransition = TransitionImporter.GetTransition(-1, helper.id, false, false);
 
 						if (timeTransition == null) continue;
 
-						trace('WARNING: found helper without time transition: ${helper.description}');
+						trace('WARNING: found helper without time transition: ${helper.description}: ' + timeTransition.getDesciption());
 
 						helper.timeToChange = timeTransition.calculateTimeToChange();
 					}
@@ -967,6 +1010,30 @@ class TimeHelper {
 				// trace('testObj: $testObj obj: $obj ${helper.tx},${helper.ty} i:$i index:${index(helper.tx, helper.ty)}');
 			}
 		}
+	}
+
+	private static function DoSecondTimeOutcome(tx:Int, ty:Int, objId, timepassed:Float)
+	{
+		var objData = ObjectData.getObjectData(objId);
+		if(objData.secondTimeOutcome < 1 || objData.secondTimeOutcomeTimeToChange < 1) return;
+
+		if(timepassed / objData.secondTimeOutcomeTimeToChange < WorldMap.calculateRandomFloat()) return;
+
+		var obj = WorldMap.world.getObjectHelper(tx,ty);
+
+		/*if(obj == null)
+		{
+			obj = re
+			var ids = [objData.secondTimeOutcome];
+			WorldMap.world.setObjectId(tx,ty,ids);
+			Connection.SendMapUpdateToAllClosePlayers(tx,ty, ids);
+			return;
+		}*/
+
+
+		obj.id = objData.secondTimeOutcome;
+		WorldMap.world.setObjectHelper(tx,ty, obj);
+		Connection.SendMapUpdateToAllClosePlayers(tx,ty, obj.toArray());
 	}
 
 	private static function RespawnOrDecayPlant(objIDs:Array<Int>, x:Int, y:Int, hidden:Bool = false, growFactor:Float = 1) {
@@ -1297,6 +1364,8 @@ class TimeHelper {
 
 		var moveDist = timeTransition.move;
 		if (moveDist <= 0) return false;
+		if(moveDist > 3) moveDist = 3;
+		timeTransition.move = 3;
 
 		if (moveDist < 3) moveDist += 1; // movement distance is plus 4 in vanilla if walking over objects
 		helper.objectData.moves = moveDist; // TODO better set in settings

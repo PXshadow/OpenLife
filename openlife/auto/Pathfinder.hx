@@ -1,6 +1,7 @@
 package openlife.auto;
 
 import haxe.Timer;
+import openlife.settings.ServerSettings;
 
 /*				  __  __    _____           __
  *     ____  ____ _/ /_/ /_  / __(_)___  ____/ /__  _____
@@ -55,7 +56,7 @@ class Pathfinder {
 	 * @param	p_map	The boolean coordinate map
 	 * @param	p_timeOutDuration	The maximum time spent to find a path
 	 */
-	public function new(p_map:MapHeader, p_timeOutDuration:Int = 500) {
+	public function new(p_map:MapHeader, p_timeOutDuration:Int = -1) {
 		configure(p_map, p_timeOutDuration);
 	}
 
@@ -64,7 +65,8 @@ class Pathfinder {
 	 * @param	p_map	The boolean coordinate map
 	 * @param	p_timeOutDuration	The maximum time spent to find a path
 	 */
-	public function configure(p_map:MapHeader, p_timeOutDuration:Int = 500) {
+	public function configure(p_map:MapHeader, p_timeOutDuration:Int = -1) {
+		if(p_timeOutDuration <= 0) p_timeOutDuration = ServerSettings.GotoTimeOut;
 		_map = p_map;
 		_timeOutDuration = p_timeOutDuration;
 		_nodes = new Array<Array<Node>>();

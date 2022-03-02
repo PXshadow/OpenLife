@@ -35,7 +35,7 @@ class ServerSettings {
 	public static var DebugAiCrafting:Bool = false;
 	public static var DebugAiCraftingObject:Int = 999999; // 57;
 	public static var AutoFollowAi:Bool = false;
-	public static var AutoFollowPlayer:Bool = false;
+	public static var AutoFollowPlayer:Bool = true;
 
 	// Save / Load
 	public static var saveToDisk = true;
@@ -76,7 +76,6 @@ class ServerSettings {
 	public static var DisplayPlayerNamesDistance = 30; 
 	public static var DisplayPlayerNamesMaxPlayer = 5; 
 
-
 	// message
 	public static var SecondsBetweenMessages:Float = 5;
 
@@ -86,6 +85,7 @@ class ServerSettings {
 
 	// birth
 	public static var NewChildExhaustionForMother = 0;
+	public static var LittleKidsPerMother = 3;
 	public static var ChanceForFemaleChild = 0.6;
 	public static var ChanceForOtherChildColor = 0.2;
 	public static var ChanceForOtherChildColorIfCloseToWrongSpecialBiome = 0.3; // for example Black born in or close to Jungle
@@ -99,23 +99,22 @@ class ServerSettings {
 
 	// PlayerInstance
 	public static var MaxPlayersBeforeStartingAsChild = 0; // -1
-	public static var StartingEveAge = 14; // 14
 	public static var StartingFamilyName = "SNOW";
 	public static var StartingName = "SPOON";
-	public static var AgingSecondsPerYear = 60; // 60
+	public static var AgeingSecondsPerYear = 60; // 60
 	public static var ReduceAgeNeededToPickupObjects = 3; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
 	public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
 	public static var MaxChildAgeForBreastFeeding = 6; // also used for considering a child when being attacked
 	public static var PickupFeedingFoodRestore:Float = 1.5;
 	public static var PickupExhaustionGain:Float = 0.2;
 	public static var FoodRestoreFactorWhileFeeding:Float = 10;
-	public static var MinAgeFertile = 12;
+	public static var MinAgeFertile = 10;
 	public static var MaxAgeFertile = 42;
 
 	// save to disk
 	public static var TicksBetweenSaving = 200;
 	public static var TicksBetweenBackups = 20 * 60 * 60 * 8; // 20 * 60 * 60 * 8 = every 8 hours
-	public static var MaxNumberOfBackups = 90;
+	public static var MaxNumberOfBackups = 10;
 
 	public static var MapFileName = "mysteraV1Test.png";
 	public static var SaveDirectory = "SaveFiles";
@@ -132,11 +131,12 @@ class ServerSettings {
 	public static var CreateGreenBiomeDistance = 5;
 
 	// Eve spawning
+	public static var StartingEveAge = 14; // 14
 	public static var SpwanAtLastDead = false;
     public static var EveOrAdamBirthChance = 0.05; // since each eve gets an adam the true chance is x2
 	public static var startingGx = 235; // 235; //270; // 360;
 	public static var startingGy = 150; // 200;//- 400; // server map is saved y inverse
-	public static var EveDamageFactor:Float = 0.5; // Eve / Adam get less damage from animals but make also less damage
+	public static var EveDamageFactor:Float = 1; // Eve / Adam get less damage from animals but make also less damage
 	public static var EveFoodUseFactor:Float = 1; // Eve / Adam life still in paradise, so they need less food
 
 	// food stuff
@@ -160,11 +160,12 @@ class ServerSettings {
 	
 	// Biome Specialists
 	public static var LovedFoodUseChance:Float = 0.5;
+	public static var BiomeAnimalHitChance:Float = 0.01;
 
 	// Yellow Fever
 	public static var ExhaustionYellowFeverPerSec = 0.1;
 	public static var AllowSelfEatingIfIll = true; // for example if you have yellow fever some one needs to feed you if false
-	public static var ResistenceAginstFeverForEatingMushrooms:Float = 0.2;
+	public static var ResistanceAginstFeverForEatingMushrooms:Float = 0.2;
 
 	// health
 	// public static var MinHealthPerYear = 1; // for calulating aging / speed: MinHealthPerYear * age is reduced from health(yum_mulpiplier)
@@ -179,6 +180,7 @@ class ServerSettings {
 	public static var MaxDistanceToBeConsideredAsCloseForMapChanges = 10; // for MX
 
 	// for movement
+	public static var GotoTimeOut:Int = 250;
 	public static var InitialPlayerMoveSpeed:Float = 4; // vanilla: 3.75; // in Tiles per Second
 	public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed factor X
 	public static var MinMovementAgeInSec:Float = 14;
@@ -189,7 +191,7 @@ class ServerSettings {
 	public static var LetTheClientCheatLittleBitFactor = 1.1; // when considering if the position is reached, allow the client to cheat little bit, so there is no lag
 	public static var MaxMovementQuadJumpDistanceBeforeForce:Float = 3; // if quadDistance between server and client position is bigger then X the client is forced to use server position
 	public static var MaxJumpsPerTenSec:Float = 5; // limit how often a client can JUMP / cheat his position
-	public static var ExhaustionOnJump:Float = 0.2;
+	public static var ExhaustionOnJump:Float = 0.1;
 
 	// hungry work
 	public static var HungryWorkCost = 10;
@@ -214,10 +216,16 @@ class ServerSettings {
 	public static var ObjDecayFactorOnFloor:Float = 0.1;
 	public static var ObjDecayFactorForFood:Float = 10;
 
+	// temperature
+	public static var DamageTemperatureFactor:Float = 0.5;
+
 	// winter / summer
 	public static var DebugSeason:Bool = false;
 	public static var SeasonDuration = 5; // default: 5 // Season duration like winter in years
 	public static var AverageSeasonTemperatureImpact = 0.2;
+	public static var HotSeasonTemperatureFactor:Float = 0.5;
+	public static var ColdSeasonTemperatureFactor:Float = 0.5;
+	
 	public static var WinterWildFoodDecayChance:Float = 1.5; // 1.5; // per Season
 	public static var SpringWildFoodRegrowChance:Float = 1; // per Season // use spring and summer
 	public static var GrowBackOriginalPlantsFactor:Float = 0.4; // 0.1
@@ -246,14 +254,16 @@ class ServerSettings {
 	public static var PrestigeCostPerDamageForWomenWithoutWeapon:Float = 0.25;
 
 	// AI
-	public static var NumberOfAis:Int = 5;
+	public static var NumberOfAis:Int = 15;
 	public static var NumberOfAiPx:Int = 0;
 	public static var AiReactionTime:Float = 0.5; // 0.5;
-	public static var TimeToAiRebirth:Float = 15;
+	public static var TimeToAiRebirthPerYear:Float = 10; // X seconds per not lived year = 60 - death age
 	public static var AiTotalScoreFactor:Float = 0.5;
 	public static var AiMaxSearchRadius:Int = 60;
 	public static var AiMaxSearchIncrement:Int = 20; // 16
 	public static var AiIgnoreTimeTransitionsLongerThen:Int = 30;
+	public static var AgingFactorHumanBornToAi:Float = 3; // 3
+	public static var AgingFactorAiBornToHuman:Float = 2;
 
 	// iron, tary spot spring cannot respawn or win lottery
 	public static function CanObjectRespawn(obj:Int):Bool {
@@ -312,7 +322,7 @@ class ServerSettings {
 		ObjectData.getObjectData(141).hungryWork = 2; // Canada Goose Pond
 		ObjectData.getObjectData(142).hungryWork = 2; // Canada Goose Pond swimming
 		ObjectData.getObjectData(143).hungryWork = 2; // Canada Goose Pond swimming, feather
-		ObjectData.getObjectData(662).hungryWork = 2; // Shallow Well
+		ObjectData.getObjectData(662).hungryWork = 1; // Shallow Well
 		ObjectData.getObjectData(663).hungryWork = 2; // Deep Well
 
 		// ObjectData.getObjectData(496).alternativeTransitionOutcome = 10; // Dug Stump
@@ -324,7 +334,24 @@ class ServerSettings {
 		// is set directly in map WorldMap generation
 		// ObjectData.getObjectData(141).biomes.push(BiomeTag.PASSABLERIVER); // Canada Goose Pond
 		// ObjectData.getObjectData(121).biomes.push(BiomeTag.PASSABLERIVER); // Tule Reeds
+		ObjectData.getObjectData(141).secondTimeOutcome = 142; // Canada Goose Pond ==> Canada Goose Pond swimming
+		ObjectData.getObjectData(141).secondTimeOutcomeTimeToChange = 15;
 
+		ObjectData.getObjectData(142).secondTimeOutcome = 1261; // Canada Goose Pond swimming ==> Canada Goose Pond with Egg
+		ObjectData.getObjectData(142).secondTimeOutcomeTimeToChange = 60 * 10;
+
+		ObjectData.getObjectData(1261).secondTimeOutcome = 142; // Canada Goose Pond with Egg ==> Canada Goose Pond swimming
+		ObjectData.getObjectData(1261).secondTimeOutcomeTimeToChange = 60 * 4;
+
+		ObjectData.getObjectData(164).secondTimeOutcome = 173; // Rabbit Hole out,single ==> Rabbit Family Hole out
+		ObjectData.getObjectData(164).secondTimeOutcomeTimeToChange = 30;
+
+		ObjectData.getObjectData(173).secondTimeOutcome = 3566; // Rabbit Family Hole out ==> Fleeing Rabbit
+		ObjectData.getObjectData(173).secondTimeOutcomeTimeToChange = 30;	
+		
+		ObjectData.getObjectData(164).countsOrGrowsAs = 161; // Rabbit Hole out,single couts as Rabbit Hole
+		ObjectData.getObjectData(173).countsOrGrowsAs = 161; // Rabbit Family Hole couts as Rabbit Hole
+		
 		// dont block walking
 		ObjectData.getObjectData(231).blocksWalking = false; // Adobe Oven Base
 		ObjectData.getObjectData(237).blocksWalking = false; // Adobe Oven
@@ -346,7 +373,7 @@ class ServerSettings {
 		ObjectData.getObjectData(418).biomes.push(BiomeTag.YELLOW); // Happy Wolfs now also in Yellow biome :)
 		//ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
 		ObjectData.getObjectData(418).biomes.push(BiomeTag.SNOW); // Happy Wolfs now also in Snow biome :)
-		ObjectData.getObjectData(418).mapChance *= 1; // less Happy Wolfs
+		ObjectData.getObjectData(418).mapChance *= 1.1; // more Happy Wolfs
 		ObjectData.getObjectData(418).speedMult *= 1.5; // Boost Wolfs even more :)
 
 		ObjectData.getObjectData(411).speedMult = 0.8; // Fertile Soil Reduced carring speed
@@ -506,7 +533,7 @@ class ServerSettings {
 		ObjectData.getObjectData(2156).damage = 1; // 2156 Mosquito Swarm
 
 		ObjectData.getObjectData(418).deadlyDistance = 1.5; // Wolfs
-		ObjectData.getObjectData(418).damage = 3.5; // Wolfs
+		ObjectData.getObjectData(418).damage = 3; // Wolfs
 		ObjectData.getObjectData(420).deadlyDistance = 1.5; // Shot Wolf
 		ObjectData.getObjectData(420).damage = 5; // Shot Wolf
 
@@ -521,6 +548,11 @@ class ServerSettings {
 
 		ObjectData.getObjectData(628).deadlyDistance = 1.5; // Grizzly Bear
 		ObjectData.getObjectData(628).damage = 5; // Grizzly Bear
+		ObjectData.getObjectData(631).deadlyDistance = 1.5; // Hungry Grizzly Bear
+		ObjectData.getObjectData(631).damage = 6; // Hungry Grizzly Bear
+		ObjectData.getObjectData(653).deadlyDistance = 1.5; // Hungry Grizzly Bear attacking
+		ObjectData.getObjectData(653).damage = 6; // Hungry Grizzly Bear attacking
+		
 		ObjectData.getObjectData(632).deadlyDistance = 1.5; // Shot Grizzly Bear 1
 		ObjectData.getObjectData(632).damage = 6; // Shot Grizzly Bear 1
 		ObjectData.getObjectData(635).deadlyDistance = 1.5; // Shot Grizzly Bear 2
@@ -561,6 +593,13 @@ class ServerSettings {
 		ObjectData.getObjectData(2396).speedMult = 2.5;
 		ObjectData.getObjectData(4655).isBoat = true; // Delivery Truck
 		ObjectData.getObjectData(4655).speedMult = 1;
+		
+
+		// lower age for weapons since kids so or so make less damage since they have less health pipes
+		ObjectData.getObjectData(151).minPickupAge = 10; // 12   // War Sword
+		ObjectData.getObjectData(151).minPickupAge = 5; // 10   // Yew Bow
+		ObjectData.getObjectData(560).minPickupAge = 2; // 8    // Knife 
+		
 
 		for (objData in ObjectData.importedObjectData) {
 			if (objData.description.contains('Sports Car')) {
@@ -750,8 +789,7 @@ class ServerSettings {
 		trans.traceTransition("PatchTransitions: ");
 
 		// 141 Canada Goose Pond
-		// 1261 Canada Goose Pond with Egg // TODO let egg come back
-		// Server.transitionImporter.
+		// 1261 Canada Goose Pond with Egg // TODO let egg come back		
 
 		// change decay time for grave 88 = Grave
 		// trans = transtions.getTransition(-1, 88);
@@ -862,6 +900,19 @@ class ServerSettings {
 		var trans = new TransitionData(394, 1099, 394, 1099);
 		trans.targetRemains = true;
 		TransitionImporter.transitionImporter.createAndaddCategoryTransitions(trans);
+
+		// TODO pond animations
+		/*
+		var trans = transtions.getTransition(-1, 141); // Canada Goose Pond
+		trans.newTargetID = 142; // Canada Goose Pond swimming
+		trans.autoDecaySeconds = 5;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		var trans = transtions.getTransition(-1, 142); // Canada Goose Pond
+		trans.newTargetID = 141; // Canada Goose Pond swimming
+		trans.autoDecaySeconds = 5;
+		transtions.addTransition("PatchTransitions: ", trans);
+		*/
 
 		// for debug random outcome transitions
 		/*var trans = transtions.getTransition(-1, 1195); // TIME + Blooming Squash Plant 

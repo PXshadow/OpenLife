@@ -174,6 +174,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var yellowfeverCount:Float = 0;
 
 	public var lastSayInSec:Float = 0;
+	public var displaySeason = false; // not saved
 
 	// set all stuff null so that nothing is hanging around
 	public function delete() {
@@ -725,7 +726,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.p_id = Server.server.playerIndex++;
 		this.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length - 1)].id;
 		this.heldObject = ObjectHelper.readObjectHelper(this, [0]);
-		this.age_r = ServerSettings.AgingSecondsPerYear;
+		this.age_r = ServerSettings.AgeingSecondsPerYear;
 		this.lineage = new Lineage(this);
 
 		this.lineage.prestigeClass = calculatePrestigeClass();
@@ -742,8 +743,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var isAi = this.isAi();
 		var allowHumanSpawnToAIandAiToHuman = GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild;
 		var spawnEve = (isAi && lastAiEveOrAdam != null) || (isAi == false && lastHumanEveOrAdam != null);
-		spawnEve = isAi == false && ServerSettings.EveOrAdamBirthChance <= WorldMap.calculateRandomFloat() ? true : spawnEve;
-
+		var rand = WorldMap.calculateRandomFloat();
+		//trace('birth1: spawnEve: $spawnEve');
+		//spawnEve = isAi == false && ServerSettings.EveOrAdamBirthChance > rand ? true : spawnEve;
+		spawnEve = ServerSettings.EveOrAdamBirthChance > rand ? true : spawnEve;
+		//trace('birth2: spawnEve: $spawnEve rand: $rand');
 		// if(false) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
 		if (spawnEve) spawnAsEve(allowHumanSpawnToAIandAiToHuman); else {
 			if (spawnAsChild() == false) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
@@ -753,6 +757,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		food_store_max = calculateFoodStoreMax();
 		food_store = food_store_max / 2;
+		exhaustion = -food_store_max;
 		yum_multiplier = this.account.totalScore * ServerSettings.BirthPrestigeFactor;
 		yum_multiplier = Math.max(yum_multiplier, (medianPrestige / 30) * trueAge);
 
@@ -900,7 +905,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				}
 
 				var totalFitness = fitness / sumDistHumans;
-				trace('spawnAsEve: fitness: $fitness / sumDistHumans: $sumDistHumans = $totalFitness closeBadGrave: ${hasCloseBlockingGrave} closeGoodGrave: ${hasCloseNonBlockingGrave}');
+				//trace('spawnAsEve: fitness: $fitness / sumDistHumans: $sumDistHumans = $totalFitness closeBadGrave: ${hasCloseBlockingGrave} closeGoodGrave: ${hasCloseNonBlockingGrave}');
 				if (totalFitness < bestLocationFitness) continue;
 
 				bestLocation = location;
@@ -972,7 +977,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	// TODO spawn noobs more likely noble
 	// TODO consider past families of player
 	private function spawnAsChild():Bool {
-		trace('Spawn As Child: ${this.p_id} ${this.account.email}');
+		trace('birth: Spawn As Child: ${this.p_id} ${this.account.email}');
 
 		var mother = GetFittestMother(this);
 		if (mother == null) return false;
@@ -1125,7 +1130,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		for (p in AllPlayers) {
 			var tmpFitness = CalculateMotherFitness(p, child);
 
-			trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
+			trace('Spawn As Child: Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
+			//trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
 
 			if (tmpFitness < -100) continue;
 
@@ -1164,11 +1170,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// boni
 		var tmpFitness = 0.0;
 		tmpFitness += p.food_store / 10; // the more food the more likely
-		tmpFitness += p.yum_bonus / 10; // the more food the more likely
+		//tmpFitness += p.yum_bonus / 10; // the more food the more likely
 		tmpFitness += p.food_store_max / 10; // the more healthy the more likely
 		tmpFitness += p.calculateClassBoni(child); // the closer the mother is to same class the better
 		tmpFitness += child.account.hasCloseNonBlockingGrave(p.tx, p.ty) ? 3 : 0;
-		// tmpFitness += p.yum_multiplier / 20; // the more yum / prestige the more likely  // not needed since influencing food_store_max
+		tmpFitness += p.yum_multiplier / 20; // the more health / prestige the more likely 
 
 		// mali
 		var temperatureMail = Math.pow(((p.heat - 0.5) * 10), 2) / 10; // between 0 and 2.5 for very bad temperature
@@ -1180,8 +1186,35 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		tmpFitness -= p.heldObject.id != 0 ? 1 : 0; // if player is holding objects
 		tmpFitness -= motherIsHuman && child.isAi() ? ServerSettings.HumanMotherBirthMaliForAiChild : 0;
 		tmpFitness -= p.isAi() && childIsHuman ? ServerSettings.AiMotherBirthMaliForHumanChild : 0;
+		tmpFitness += CalculateMotherChildFitness(p, child);
 
 		return tmpFitness;
+	}
+
+	private static function CalculateMotherChildFitness(mother:GlobalPlayerInstance, child:GlobalPlayerInstance) : Float{	
+		var fitness = 0.0;
+		var countLittleKids = 0;
+		
+		for(p in AllPlayers){
+			if(p.mother !=mother) continue;
+			if(p.deleted) continue;
+
+			// allow more ai kids born to ai and human to human
+			// for example a human can have 3 human kids but only 2 ai kids (plus a human kid)
+			// for example an ai can have 3 ai kids but only 2 human kids (plus an ai kid)
+			var factor = child.isAi() && p.isAi()&& mother.isHuman() ? 2 : 1;
+			if(child.isHuman() && p.isHuman() && mother.isAi()) factor = 2;
+
+			fitness -=1 * factor;
+			if(p.age > ServerSettings.MinAgeToEat) continue;
+			fitness -=1 * factor;
+			countLittleKids += 1 * factor;
+		}
+
+		if(countLittleKids >= ServerSettings.LittleKidsPerMother) fitness = -1000;
+
+		trace('${mother.name + mother.id} MotherChildFitness: $fitness littlekids: $countLittleKids');
+		return fitness;
 	}
 
 	public function getPlayerInstance():PlayerInstance {
@@ -1409,7 +1442,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (ServerSettings.AllowDebugCommmands) if(DoDebugCommands(player, text)) return;
 		}
 
-		if (lastSayInSec > 0 && ServerSettings.debug == false) return;
+		if (lastSayInSec > 0 && this.isHuman() && ServerSettings.debug == false) return;
 		lastSayInSec = 1;
 
 		var maxLenght = player.age < 10 ? Math.ceil(player.age * 2) : player.age < 20 ? Math.ceil(player.age * 4) : 80;
@@ -1813,9 +1846,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (ServerSettings.DebugPlayer)
 			trace('doOnOtherHelper: playerId: ${playerId} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
-		if (this.o_id[0] < 0) return false; // is holding player
-		// 838 Dont feed dam drugs! Wormless Soil Pit with Mushroom // 837 Psilocybe Mushroom
-		if (heldObject.objectData.isDrugs()) return false;
+		if (this.o_id[0] < 0) return false; // is holding player	
 
 		var targetPlayer = getPlayerAt(x, y, playerId);
 		if (targetPlayer == null) {
@@ -1823,6 +1854,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// throw new Exception('');
 			return false;
 		}
+
+		// only feed drugs if ill! // 837 Psilocybe Mushroom
+		if (heldObject.objectData.isDrugs() && targetPlayer.isIll() == false) return false;
 
 		if (this.isClose(targetPlayer.tx - this.gx, targetPlayer.ty - this.gy) == false) {
 			trace('doOnOtherHelper: Target position is too far away player: ${this.tx},${this.ty} target: ${targetPlayer.tx},${targetPlayer.ty}');
@@ -2049,14 +2083,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				if (playerFrom != playerTo) playerFrom.addHealthAndPrestige(0.2);
 			}
 		} else {
-			if (isSuperMeh) playerTo.addHealthAndPrestige(ServerSettings.HealthLostWhenEatingSuperMeh); else
-				playerTo.addHealthAndPrestige(ServerSettings.HealthLostWhenEatingMeh);
+			if (isSuperMeh) playerTo.addHealthAndPrestige(-ServerSettings.HealthLostWhenEatingSuperMeh); else
+				playerTo.addHealthAndPrestige(-ServerSettings.HealthLostWhenEatingMeh);
 			// if(playerFrom != playerTo) playerFrom.yum_multiplier += 0.5; // saved one from starving to death
 		}
 
-		if (heldObjData.isDrugs()) // eating lovely mushrooms give protection against fever
+		// eating lovely mushrooms give protection against fever
+		if (heldObjData.isDrugs()) 
 		{
-			playerTo.yellowfeverCount += ServerSettings.ResistenceAginstFeverForEatingMushrooms;
+			playerTo.yellowfeverCount += ServerSettings.ResistanceAginstFeverForEatingMushrooms;
+			if(playerTo.fever != null) playerTo.fever.timeToChange *= 1 - ServerSettings.ResistanceAginstFeverForEatingMushrooms;
 		}
 
 		if (ServerSettings.DebugEating) trace('YUM: ${heldObjData.description} foodValue: $foodValue countEaten: $countEaten');
@@ -3211,7 +3247,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public function DoDamage(targetPlayer:GlobalPlayerInstance, fromObj:ObjectHelper, attacker:GlobalPlayerInstance = null, distanceFactor:Float = 1,
 			quadDistance:Float = 0):Float {
-		// TODO do damage according to right / wrong biome
+
+		// check if it is a biome animal
+		if(attacker == null)
+		{
+			if(targetPlayer.isAnimalNotDeadlyForMe(fromObj))
+			{
+				if(WorldMap.calculateRandomFloat() > ServerSettings.BiomeAnimalHitChance)
+				{
+					trace('Escaped biome animal: ${fromObj.name}');
+					return 0;
+				}
+			}
+		}
 
 		var orgDamage = fromObj.objectData.damage * ServerSettings.WeaponDamageFactor;
 		var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());
@@ -3246,6 +3294,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		var isRightClassForWeapon = targetPlayer.isRightClassForWeapon();
 
+		var biome = WorldMap.world.getBiomeId(targetPlayer.tx, targetPlayer.ty);
+		var lovesThisBiome = targetPlayer.biomeLoveFactor(biome);
+		if(lovesThisBiome < -1) lovesThisBiome = -1;
+		var biomeDamageFactor = 2 / (2 + lovesThisBiome); // between 0.5 and 2
+
 		var doesRealDamage = fromObj.id != 2156; // 2156 Mosquito Swarm;
 		var lovesJungle = targetPlayer.biomeLoveFactor(BiomeTag.JUNGLE);
 		if (lovesJungle < -0.5) lovesJungle = -0.5;
@@ -3256,8 +3309,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (doesRealDamage == false) yellowfeverCount += 0.02;
 
-		if (doesRealDamage) damage *= targetPlayer.heldObject.objectData.damageProtectionFactor; else
-			damage *= moskitoDamageFactor;
+		if (doesRealDamage) damage *= targetPlayer.heldObject.objectData.damageProtectionFactor; 
+		else damage *= moskitoDamageFactor;
+		damage *= biomeDamageFactor;
 		damage *= isRightClassForWeapon ? 0.8 : 1;
 		damage *= targetPlayer.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
 		damage *= protectionFactor;
@@ -3271,6 +3325,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (doesRealDamage) Connection.SendDyingToAll(targetPlayer); // he is not actually dying but wounded
 
 		if (ServerSettings.DebugCombat) trace('COMBAT: HIT objDamage: $orgDamage damage: $damage moskitoDamageFactor: $moskitoDamageFactor');
+		if (doesRealDamage) trace('Real Damage!');
 
 		if (targetPlayer.woundedBy == 0 || doesRealDamage) targetPlayer.woundedBy = fromObj.id;
 		var longWeaponCoolDown = false;
@@ -3726,7 +3781,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		} else if (text.indexOf('!YUM') != -1) {
 			player.food_store += 5;
 			player.sendFoodUpdate(false);
-		} else if (text.indexOf('!AGE') != -1) {
+		} else if (text.indexOf('!AGE') != -1 || text == '!') {
 			player.age += 5;
 			player.trueAge += 5;
 			Connection.SendUpdateToAllClosePlayers(player);
@@ -3759,14 +3814,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				player.connection.sendMapChunk(player.x, player.y);
 			}
-		} else if (text.indexOf('!SENDPU') != -1) {
+		} else if (text.indexOf('!SENDPU') != -1 || text == '!PU') {
 			player.done_moving_seqNum +=1;
 			Connection.SendUpdateToAllClosePlayers(player);
+			player.say('send PU done!', true);
+			return true;
 		}
-		else if (text.indexOf('!SENDNAMES') != -1) {
-			player.connection.sendToMeAllPlayerNames();		
+		else if (text.indexOf('!NAMES') != -1) {
+			player.connection.sendToMeAllPlayerNames();	
+			player.say('send names done!', true);
+			return true;	
 		}
-		else if (text.indexOf('!DEBUG TRANS') != -1) {
+		else if (text.indexOf('!DEBUG TRANS') != -1 || text.indexOf('!D T') != -1) {
 			TimeHelper.ReadServerSettings = false; // otherwise they will be loaded from file again
 			ServerSettings.DebugTransitionHelper = ServerSettings.DebugTransitionHelper ? false : true; 
 			player.say('debug TRANS: ${ServerSettings.DebugTransitionHelper}', true);
@@ -4099,7 +4158,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public function canFeedToMe(food:ObjectHelper):Bool {
 		if (isMeh(food) && food_store > 2) return false;
-		if (food.id == 837) return false; // dont feed 837 ==> Psilocybe Mushroom to others
+		if (food.id == 837 && this.hasYellowFever() == false) return false; // only feed 837 ==> Psilocybe Mushroom to others if ill
 
 		return canEat(food);
 	}
@@ -4121,6 +4180,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return Biome.getLovedFoodId(lovedBiome);
 	}
 
+	public function getBiomeAnimals():Array<Int> {
+		var lovedBiome = Biome.GetLovedBiomeByPlayer(this);
+		return Biome.getBiomeAnimals(lovedBiome);
+	}
+
 	public function getLovedPlants():Array<Int> {
 		var lovedBiome = Biome.GetLovedBiomeByPlayer(this);
 		return Biome.getLovedPlants(lovedBiome);
@@ -4132,6 +4196,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public function isIll():Bool {
 		return fever != null;
+	}
+
+	public function isAnimalNotDeadlyForMe(animal:ObjectHelper) : Bool {
+		return isAnimalDeadlyForMe(animal) == false;
+	}
+
+	public function isAnimalDeadlyForMe(animal:ObjectHelper) : Bool {
+		if (animal == null) return false;
+		var objData = animal.parentObjData;
+		if (objData.deadlyDistance == 0) return false;
+		if (objData.damage == 0) return false;
+		if (objData.isAnimal() == false) return false;
+
+		var biomeAnimals = this.getBiomeAnimals();
+		if(biomeAnimals.contains(animal.parentId) && animal.hits < 0.1) return false;
+		
+		return true;
 	}
 }
 

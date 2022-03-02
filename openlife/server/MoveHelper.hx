@@ -277,12 +277,11 @@ class MoveHelper {
 					pos.y -= move.y;
 				}
 
-				if (p.heldPlayer != null) {
-					p.heldPlayer.x = p.tx - p.heldPlayer.gx;
-					p.heldPlayer.y = p.ty - p.heldPlayer.gy;
-				}
+				SetHeldPlayerPositionToSame(p);
 
 				TimeHelper.MakeAnimalsRunAway(p);
+
+				if(p.getAi() != null) p.getAi().movedOneTile = true;
 
 				// if(ServerSettings.DebugMoveHelper) trace('Move: ${p.name} ${p.tx} ${p.ty}');
 			}
@@ -316,14 +315,10 @@ class MoveHelper {
 
 			p.done_moving_seqNum = moveHelper.newMoveSeqNumber;
 			p.move_speed = calculateSpeed(p, p.x + p.gx, p.y + p.gy);
-
-			if (p.heldPlayer != null) {
-				p.heldPlayer.x = p.tx - p.heldPlayer.gx;
-				p.heldPlayer.y = p.ty - p.heldPlayer.gy;
-			}
-
 			p.moveHelper.exactTx = p.tx;
 			p.moveHelper.exactTy = p.ty;
+
+			SetHeldPlayerPositionToSame(p);
 
 			Connection.SendUpdateToAllClosePlayers(p);
 
@@ -331,6 +326,18 @@ class MoveHelper {
 
 			// if(ServerSettings.DebugMoveHelper) trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
 		}
+	}
+
+	public static function SetHeldPlayerPositionToSame(p:GlobalPlayerInstance)
+	{
+		if (p.heldPlayer == null) return;
+		
+		p.heldPlayer.x = p.tx - p.heldPlayer.gx;
+		p.heldPlayer.y = p.ty - p.heldPlayer.gy;
+		p.heldPlayer.moveHelper.exactTx = p.heldPlayer.tx;
+		p.heldPlayer.moveHelper.exactTy = p.heldPlayer.ty;
+
+		p.heldPlayer.moveHelper.sendChunkIfNeeded();
 	}
 
 	public function receivedForce(x:Int, y:Int) {
@@ -374,7 +381,7 @@ class MoveHelper {
 		GlobalPlayerInstance.AllPlayerMutex.release();
 	}
 
-	static private function JumpToNonBlocked(player:GlobalPlayerInstance):Bool {
+	static public function JumpToNonBlocked(player:GlobalPlayerInstance):Bool {
 		var rand = 0;
 		var tx = player.tx;
 		var ty = player.ty;
@@ -396,7 +403,7 @@ class MoveHelper {
 
 			player.x += xo;
 			player.y += yo;
-			player.exhaustion += 3;
+			//player.exhaustion += 0.2;
 
 			player.moveHelper.exactTx = player.tx;
 			player.moveHelper.exactTy = player.ty;
@@ -488,17 +495,7 @@ class MoveHelper {
 		moveHelper.startingMoveTicks = TimeHelper.tick;
 		moveHelper.newMoveSeqNumber = seq;
 
-		// TODO chunk loading in x direction is too slow with high speed
-		// TODO general better chunk loading
-		var spacingX = 4;
-		var spacingY = 4;
-
-		if (p.x - moveHelper.tx > spacingX || p.x - moveHelper.tx < -spacingX || p.y - moveHelper.ty > spacingY || p.y - moveHelper.ty < -spacingY) {
-			moveHelper.tx = p.x;
-			moveHelper.ty = p.y;
-
-			p.connection.sendMapChunk(p.x, p.y);
-		}
+		moveHelper.sendChunkIfNeeded();
 
 		p.forced = false;
 
@@ -509,6 +506,23 @@ class MoveHelper {
 		}
 
 		Connection.SendMoveUpdateToAllClosePlayers(p);
+	}
+
+	public function sendChunkIfNeeded()
+	{
+		// TODO chunk loading in x direction is too slow with high speed
+		// TODO general better chunk loading
+		var spacingX = 4;
+		var spacingY = 4;
+		var p = this.player;
+		var moveHelper = this;
+
+		if (p.x - moveHelper.tx > spacingX || p.x - moveHelper.tx < -spacingX || p.y - moveHelper.ty > spacingY || p.y - moveHelper.ty < -spacingY) {
+			moveHelper.tx = p.x;
+			moveHelper.ty = p.y;
+
+			p.connection.sendMapChunk(p.x, p.y);
+		}
 	}
 
 	public static function cancleMovement(p:GlobalPlayerInstance, seq:Int) {

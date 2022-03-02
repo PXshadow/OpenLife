@@ -56,10 +56,10 @@ import openlife.data.object.ObjectHelper;
 @:enum abstract BiomeTemperature(Float) from Float to Float {
 	public var TGREEN = 0.4;
 	public var TSWAMP = 0.2;
-	public var TYELLOW = 0.4;
+	public var TYELLOW = 0.3;
 	public var TGREY = 0.2;
 	public var TSNOW = 0;
-	public var TDESERT = 1; // perfect for black
+	public var TDESERT = 1; // loved by black but still little bit too hot
 	public var TJUNGLE = 0.7; // perfect for brown
 	public var TCBORDERJUNGLE = 0.6; // perfect for brown
 	public var TSNOWINGREY = 0.0;
@@ -124,6 +124,16 @@ class Biome {
 			case GREY: 4252; // Wild Garlic
 			case SNOW: 40; // Wild Carrot
 			default: -1;
+		}
+	}
+	
+	public static function getBiomeAnimals(biomeTag:BiomeTag):Array<Int> {
+		return switch biomeTag {
+			case DESERT: [764]; // Rattle Snake
+			case JUNGLE: [2156]; // Mosquito Swarm
+			case GREY: [418]; // Wolf
+			case SNOW: [418]; // Wolf
+			default: [];
 		}
 	}
 

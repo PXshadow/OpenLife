@@ -21,7 +21,7 @@ class Connection {
 
 	public var running:Bool = true;
 
-	var sock:Socket;
+	public var sock:Socket;
 	var server:Server;
 	var tag:ServerTag;
 
@@ -91,6 +91,8 @@ class Connection {
 			lastLivingPlayer.y = ty;
 			lastLivingPlayer.moveHelper.exactTx = tx;
 			lastLivingPlayer.moveHelper.exactTy = ty;
+
+			if(lastLivingPlayer.heldPlayer != null) lastLivingPlayer.dropPlayer(0,0);
 
 			Macro.exception(initConnection(lastLivingPlayer, this.playerAccount));
 
@@ -268,15 +270,17 @@ class Connection {
 		} else {
 			player.connection.send(PLAYER_UPDATE, [playerToSend.toRelativeData(player)], isPlayerAction);
 		}
+
+		player.connection.send(ClientTag.NAME, ['${playerToSend.p_id} ${playerToSend.name} ${playerToSend.lineage.getFullName(true, true)}']);
 	}
 
 	public function sendNameToAll() {
 		var player = this.player;
 
-		trace('TEST Naming sendNameToAll ${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}');
+		//trace('TEST Naming sendNameToAll ${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}');
 
 		for (c in Connection.getConnections()) {
-			this.send(ClientTag.NAME, ['${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}']);
+			c.send(ClientTag.NAME, ['${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}']);
 		}
 	}
 

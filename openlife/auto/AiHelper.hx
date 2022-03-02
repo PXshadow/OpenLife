@@ -153,6 +153,7 @@ class AiHelper {
 				if (objData.id == 0) continue;
 				if (objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
 				if (feedOther && objData.id == 837) continue; // dont feed Psilocybe Mushroom to others
+				if(ai != null && ai.isObjectNotReachable(tx ,ty)) continue;
 
 				// var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
 				// trace('search food $tx, $ty: foodvalue: ${objData.foodValue} bestdistance: $bestDistance distance: $distance ${obj.description}');
@@ -165,7 +166,7 @@ class AiHelper {
 				var foodValue:Float = originalFoodValue;
 
 				if (foodValue <= 0) continue;
-				if (player.food_store_max - player.food_store < Math.ceil(foodValue / 4)) continue;
+				if (player.food_store_max - player.food_store < Math.ceil(originalFoodValue / 4)) continue;				
 
 				var quadDistance = 16 + AiHelper.CalculateDistance(baseX, baseY, tx, ty);
 
@@ -202,7 +203,8 @@ class AiHelper {
 			}
 		}
 
-		if (ai != null) {
+		// TODO tryGoto not in mutex and use sorted list 
+		/*if (ai != null) {
 			// TODO solve This has still the problem, that the second best food might be ignored... needs to make a list and then sort or maybe just do again searchfood?
 			while (bestFoods.length > 0) {
 				var food = bestFoods.pop();
@@ -215,7 +217,7 @@ class AiHelper {
 				if (ServerSettings.DebugAi) trace('AI: bestfood: cannot reach food! ms: ${Math.round((Sys.time() - startTime) * 1000)}');
 				if ((Sys.time() - startTime) * 1000 > 100) break;
 			}
-		}
+		}*/
 
 		if (bestFood != null) if (ServerSettings.DebugAi)
 			trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: $bestDistance ${bestFood.description} ${bestFood.id}'); else
@@ -247,16 +249,25 @@ class AiHelper {
 		return gotoObj(player, obj, false);
 	}
 
-	public static function gotoObj(player:PlayerInterface, obj:ObjectHelper, move:Bool = true):Bool {
-		return gotoAdv(player, obj.tx, obj.ty, move);
+	public static function gotoObj(player:PlayerInterface, obj:ObjectHelper, move:Bool = true, ?infos:haxe.PosInfos):Bool {
+		return gotoAdv(player, obj.tx, obj.ty, move, infos);
 	}
 
-	public static function gotoAdv(player:PlayerInterface, tx:Int, ty:Int, move:Bool = true):Bool {
+	public static function gotoAdv(player:PlayerInterface, tx:Int, ty:Int, move:Bool = true, ?infos:haxe.PosInfos):Bool {
 		var startTime = Sys.time();
 		var ai = player.getAi();
 		var rand = 0;
 		var x = tx - player.gx;
 		var y = ty - player.gy;
+		var dist = AiHelper.CalculateDistance(player.x, player.y, tx - player.gx, ty - player.gy);
+		var blockedByAnimal = false;
+
+		if(ai == null){
+			trace('gotoAdv: WARNING Ai is null!');
+			return false;
+		}
+
+		var considerAnimals = ai.didNotReachFood < 5 && ai.myPlayer.food_store > -1;
 
 		for (i in 0...5) {
 			var xo = 0;
@@ -274,32 +285,55 @@ class AiHelper {
 			if (player.isBlocked(tx + xo, ty + yo)) continue;
 			if (ai.isObjectNotReachable(tx + xo, ty + yo)) continue;
 
-			var done = Goto(player, x + xo, y + yo, move);
-
-			if (done) return true;
+			var done = Goto(player, x + xo, y + yo, considerAnimals, move);
 
 			var passedTime = (Sys.time() - startTime) * 1000;
 
-			if (passedTime > 500) {
-				trace('AI: ${player.id}  ${player.name} GOTO failed after $i because of timeout $passedTime! Ignore ${tx} ${ty}');
+			if (done){
+				ai.time += passedTime / 1000;
+				return true;
+			} 
+
+			// check if blocked only by animals // used for not to consider the object as blocked
+			if(considerAnimals && blockedByAnimal == false)
+			{
+				blockedByAnimal = Goto(player, x + xo, y + yo, false, move);
+			}
+
+			if (passedTime > ServerSettings.GotoTimeOut) {
+				trace('AI: ${player.name + player.id} GOTO failed after $i because of timeout ${Math.round(passedTime)}ms! Ignore ${tx} ${ty} dist: ${Math.round(Math.sqrt(dist))} ${infos.methodName}');
 				break;
 			}
 		}
 
-		if (ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty}');
-		ai.addNotReachable(tx, ty);
+		var passedTime = (Sys.time() - startTime) * 1000;
+		
+		ai.time += passedTime / 1000;
+
+		if(ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime dist: $dist');
+		//trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime');
+
+		if(ai == null){
+			trace('gotoAdv2: WARNING Ai is null!');
+			return false;
+		}
+		
+		if(blockedByAnimal) ai.addHostilePath(tx, ty);
+		else ai.addNotReachable(tx, ty);
+
+		//if(blockedByAnimal) trace('blockedByAnimal!!!');
 
 		ai.resetTargets();
 
 		return false;
 	}
 
-	public static function TryGoto(playerInterface:PlayerInterface, x:Int, y:Int):Bool {
-		return Goto(playerInterface, x, y, false);
+	public static function TryGoto(playerInterface:PlayerInterface, x:Int, y:Int, considerAnimal:Bool = true):Bool {
+		return Goto(playerInterface, x, y, considerAnimal, false);
 	}
 
 	// TODO goto uses global coordinates
-	public static function Goto(playerInterface:PlayerInterface, x:Int, y:Int, move:Bool = true):Bool {
+	public static function Goto(playerInterface:PlayerInterface, x:Int, y:Int, considerAnimal:Bool = true, move:Bool = true):Bool {
 		var player = playerInterface.getPlayerInstance();
 
 		// var goal:Pos;
@@ -324,7 +358,7 @@ class AiHelper {
 
 		// trace('Goto: $px $py');
 
-		var map = new MapCollision(AiHelper.CreateCollisionChunk(playerInterface));
+		var map = new MapCollision(AiHelper.CreateCollisionChunk(playerInterface, considerAnimal));
 		// pathing
 		var path = new Pathfinder(cast map);
 		var paths:Array<Coordinate> = null;
@@ -376,34 +410,71 @@ class AiHelper {
 		return true;
 	}
 
-	private static function CreateCollisionChunk(playerInterface:PlayerInterface):Vector<Bool> {
+	private static function CreateCollisionChunk(playerInterface:PlayerInterface, considerAnimal:Bool):Vector<Bool> {
 		var map:Vector<Bool> = null;
 
 		WorldMap.world.mutex.acquire();
-		Macro.exception(map = CreateCollisionChunkHelper(playerInterface));
+		Macro.exception(map = CreateCollisionChunkHelper(playerInterface, considerAnimal));
 		WorldMap.world.mutex.release();
 
 		return map;
 	}
 
-	private static function CreateCollisionChunkHelper(playerInterface:PlayerInterface):Vector<Bool> {
+	private static function CreateCollisionChunkHelper(playerInterface:PlayerInterface, considerAnimal:Bool):Vector<Bool> {
 		var player:PlayerInstance = playerInterface.getPlayerInstance();
 		var world = playerInterface.getWorld();
 		var RAD = MapData.RAD;
 		var vector = new Vector<Bool>((RAD * 2) * (RAD * 2));
 		var int:Int = -1;
+		var minY = player.ty - RAD;
+		var minX = player.tx - RAD;
+		var maxY = player.ty + RAD;
+		var maxX = player.tx + RAD;
 
-		for (y in player.ty - RAD...player.ty + RAD) {
-			for (x in player.tx - RAD...player.tx + RAD) {
+		for (y in minY...maxY) {
+			for (x in minX...maxX) {
 				int++;
 
-				vector[int] = playerInterface.isBlocked(x,y);
+				vector[int] = vector[int] || playerInterface.isBlocked(x,y);
+
+				if(considerAnimal == false) continue;
+
+				var obj = world.getObjectHelper(x,y, true);
+				if(obj != null && obj.isAnimal() && obj.objectData.damage > 0)
+				{
+					//trace('Animal: ${obj.name}');	
+					var moves = obj.objectData.moves;
+					var minYY = y - moves;
+					var minXX = x - moves;
+					var maxYY = y + moves + 1;
+					var maxXX = x + moves + 1;
+					if(minYY < minY) minYY = minY;
+					if(minXX < minX) minXX = minX;
+					if(maxYY > maxY) maxYY = maxY;
+					if(maxXX > maxX) maxXX = maxX;
+					
+					for(yy in minYY...maxYY)
+					{
+						for(xx in minXX...maxXX)
+						{
+							var index = (xx - minX) + (yy - minY) * RAD * 2;
+							if(index < 0) trace('Animal: $index < ${vector.length} $x,$y => $xx,$yy');
+							if(index > vector.length -1) trace('Animal: $index < ${vector.length} $x,$y => $xx,$yy');
+							if(index < 0) index = 0;
+							if(index > vector.length -1) index = vector.length - 1;
+							vector[index] = true;
+						}
+					}
+				}
 
 				//var obj = world.getObjectData(x, y);			
 				//vector[int] = obj.blocksWalking || world.isBiomeBlocking(x, y);
 				// if(obj.blocksWalking()) trace('${player.tx()} ${player.ty()} $x $y ${obj.description}');
 			}
 		}
+
+		// never block own position
+		vector[RAD + RAD * 2 * RAD] = false;
 
 		// trace(vector);
 
@@ -470,8 +541,9 @@ class AiHelper {
 
 				if (ShouldDebug(trans)) trace('TEST3 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
 
+				// TODO this might exclude needed tasks
 				// Allow transition if new actor or target is closer to wanted object
-				var tmpActor = transitionsForObject[trans.actorID];
+				/*var tmpActor = transitionsForObject[trans.actorID];
 				var actorSteps = tmpActor != null ? tmpActor.steps : 10000;
 				var tmpNewActor = transitionsForObject[trans.newActorID];
 				var newActorSteps = tmpNewActor != null ? tmpNewActor.steps : 10000;
@@ -487,10 +559,12 @@ class AiHelper {
 				// AI get stuck with <3288> actorSteps: 2 newActorSteps: 10000 targetSteps: 10000 newTargetSteps: 3 <67> + <96> = <0> + <3288>
 				// if(actorSteps <= newActorSteps && targetSteps <= newTargetSteps) continue; // nothing is won
 				if (actorSteps + targetSteps <= newActorSteps + newTargetSteps) continue; // nothing is won
+				
 
 				if (ShouldDebug(trans))
 					trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps '
 					+ trans.getDesciption(true));
+				*/
 				// trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
 
 				if (trans.actorID > 0 && transitionsByObject.exists(trans.actorID) == false) {
@@ -580,7 +654,7 @@ class AiHelper {
 		// transitionForObject.transitions.push(transition);
 	}
 
-	public static function GetCloseDeadlyAnimal(player:PlayerInterface, searchDistance:Int = 5, showAllways:Bool = false):ObjectHelper {
+	public static function GetCloseDeadlyAnimal(player:PlayerInterface, searchDistance:Int = 6, showAllways:Bool = false):ObjectHelper {
 		// AiHelper.GetClosestObject
 		var world = WorldMap.world;
 		var playerInst = player.getPlayerInstance();
@@ -594,17 +668,19 @@ class AiHelper {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
 				var obj = world.getObjectHelper(tx, ty, true);
 
-				if (obj == null) continue;
+				if(player.isAnimalNotDeadlyForMe(obj)) continue;
+				/*if (obj == null) continue;
 				if (obj.objectData.deadlyDistance == 0) continue;
 				if (obj.objectData.damage == 0) continue;
 				if (obj.isAnimal() == false) continue;
-
+				*/
+				
 				var dist = AiHelper.CalculateDistanceToObject(player, obj);
 
 				if (dist > bestDist) continue;
 				// var moveQuadDist = Math.pow(obj.objectData.moves + 1, 2);
 				// trace('GetCloseDeadlyAnimal: $dist <= $bestDist moveQuadDist: $moveQuadDist ${obj.name}');
-				//if (dist > Math.pow(obj.objectData.moves + 1, 2)) continue;
+				//if (dist > Math.pow(obj.objectData.moves + 1, 2)) continue;			
                 if (showAllways == false && dist > Math.pow(obj.objectData.moves, 2)) continue;
 
 				bestDist = dist;
@@ -659,7 +735,7 @@ class AiHelper {
 		return bestPlayer;
 	}
 
-	private static function GetCloseStarvingPlayerHelper(player:PlayerInterface, searchDistance:Int = 30) {
+	private static function GetCloseStarvingPlayerHelper(player:PlayerInterface, searchDistance:Int = 40) {
 		var globalplayer = cast(player, GlobalPlayerInstance); // TODO find better way / maybe use globalplayer also for client
 		var bestPlayer:GlobalPlayerInstance = null;
 
@@ -673,7 +749,7 @@ class AiHelper {
 			if (p.heldByPlayer != null) continue;
 			if (isFertile && p.age < ServerSettings.MaxChildAgeForBreastFeeding) continue;
 
-			var considerHungry = Math.min(p.lineage.prestigeClass * 2, 1 + p.food_store_max * 0.8);
+			var considerHungry = Math.min(p.lineage.prestigeClass * 2, p.food_store_max * 0.6);
 			var hungry = considerHungry - p.food_store;
 			var isAlly = p.isAlly(globalplayer);
 
@@ -715,13 +791,16 @@ class AiHelper {
 		var considerHungry = 2.5;
 		var minQuadHungry = 0.01;
 
+		// TODO consider ill
+		// TODO consider hits
+
 		for (p in GlobalPlayerInstance.AllPlayers) {
 			if (p.deleted) continue;
 			if (p.age > ServerSettings.MaxChildAgeForBreastFeeding) continue;
 			if (p.heldByPlayer != null) continue;
 
 			var hungry = considerHungry - p.food_store;
-			if (p.mother != mother) hungry = hungry / 2 - 0.5; // own children count more
+			if (p.mother != mother) hungry = hungry / 2 - 0.25; // own children count more
 			if (p.age > ServerSettings.MinAgeToEat) hungry -= 0.5;
 			if (hungry < 0) continue;
 
