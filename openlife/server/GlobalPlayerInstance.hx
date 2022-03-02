@@ -3251,8 +3251,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// check if it is a biome animal
 		if(attacker == null)
 		{
-			var biomeAnimals = targetPlayer.getBiomeAnimals();
-			if(biomeAnimals.contains(fromObj.parentId) && fromObj.hits < 0.1)
+			if(targetPlayer.isAnimalNotDeadlyForMe(fromObj))
 			{
 				if(WorldMap.calculateRandomFloat() > ServerSettings.BiomeAnimalHitChance)
 				{
@@ -4197,6 +4196,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public function isIll():Bool {
 		return fever != null;
+	}
+
+	public function isAnimalNotDeadlyForMe(animal:ObjectHelper) : Bool {
+		return isAnimalDeadlyForMe(animal) == false;
+	}
+
+	public function isAnimalDeadlyForMe(animal:ObjectHelper) : Bool {
+		if (animal == null) return false;
+		var objData = animal.parentObjData;
+		if (objData.deadlyDistance == 0) return false;
+		if (objData.damage == 0) return false;
+		if (objData.isAnimal() == false) return false;
+
+		var biomeAnimals = this.getBiomeAnimals();
+		if(biomeAnimals.contains(animal.parentId) && animal.hits < 0.1) return false;
+		
+		return true;
 	}
 }
 

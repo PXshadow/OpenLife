@@ -668,11 +668,13 @@ class AiHelper {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
 				var obj = world.getObjectHelper(tx, ty, true);
 
-				if (obj == null) continue;
+				if(player.isAnimalNotDeadlyForMe(obj)) continue;
+				/*if (obj == null) continue;
 				if (obj.objectData.deadlyDistance == 0) continue;
 				if (obj.objectData.damage == 0) continue;
 				if (obj.isAnimal() == false) continue;
-
+				*/
+				
 				var dist = AiHelper.CalculateDistanceToObject(player, obj);
 
 				if (dist > bestDist) continue;
