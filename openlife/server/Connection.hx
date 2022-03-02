@@ -270,6 +270,8 @@ class Connection {
 		} else {
 			player.connection.send(PLAYER_UPDATE, [playerToSend.toRelativeData(player)], isPlayerAction);
 		}
+
+		player.connection.send(ClientTag.NAME, ['${playerToSend.p_id} ${playerToSend.name} ${playerToSend.lineage.getFullName(true, true)}']);
 	}
 
 	public function sendNameToAll() {
@@ -278,7 +280,7 @@ class Connection {
 		trace('TEST Naming sendNameToAll ${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}');
 
 		for (c in Connection.getConnections()) {
-			this.send(ClientTag.NAME, ['${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}']);
+			c.send(ClientTag.NAME, ['${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}']);
 		}
 	}
 

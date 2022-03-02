@@ -3802,14 +3802,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				player.connection.sendMapChunk(player.x, player.y);
 			}
-		} else if (text.indexOf('!SENDPU') != -1) {
+		} else if (text.indexOf('!SENDPU') != -1 || text == '!PU') {
 			player.done_moving_seqNum +=1;
 			Connection.SendUpdateToAllClosePlayers(player);
+			player.say('send PU done!', true);
+			return true;
 		}
-		else if (text.indexOf('!SENDNAMES') != -1) {
-			player.connection.sendToMeAllPlayerNames();		
+		else if (text.indexOf('!NAMES') != -1) {
+			player.connection.sendToMeAllPlayerNames();	
+			player.say('send names done!', true);
+			return true;	
 		}
-		else if (text.indexOf('!DEBUG TRANS') != -1) {
+		else if (text.indexOf('!DEBUG TRANS') != -1 || text.indexOf('!D T') != -1) {
 			TimeHelper.ReadServerSettings = false; // otherwise they will be loaded from file again
 			ServerSettings.DebugTransitionHelper = ServerSettings.DebugTransitionHelper ? false : true; 
 			player.say('debug TRANS: ${ServerSettings.DebugTransitionHelper}', true);

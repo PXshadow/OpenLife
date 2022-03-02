@@ -342,27 +342,19 @@ High priority:
 - AI consider making / using a pile
 - AI Stoneage
 
-- FIX getting stuck on top of something
-- FIX send map chunk if hold and moveing
 - FIX bug with getting stuck sometimes
 - FIX bug with reconnect if holding a player // TODO check if it is a problem
 
 - TIME add time transitions for ponds with eggs / check why ponds are not in water
 
-- MEASSAGE FIX season message if feaver, or bad biome
+- MEASSAGE addbad biome self say meassage
 
 - FIX Rabbits count as
-
-
-
-- NAMING fix bug
 
 - RAND look at random generator for float
 
 - PICKUP / DROP CHILD fix display bug. maybe set origion or action from right?
 
-- BIOME add exhaustion for doing stuff in bad biome
-- BIOME make moskitos for all bad in swamp
 - BIOME biome boni for different biome specialists like harvesting more banana for brown TODO: White, Black and Ginger 
 
 - ANIMALS fix they wont sometimes display as moving / DONE???
@@ -390,6 +382,8 @@ Middle priority:
 - BIOME biome hide biome specific stuff for not specialists
 - BIOME change biome speed for specialists (only if in attack mode or carrying heavy stuff???)
 - BIOME no dropping of stuff on water??? or better let it drift back to land?
+- BIOME add exhaustion for doing stuff in bad biome
+- ??? BIOME make moskitos for all bad in swamp
 
 - ALLY test: change ally color if leader changes 
 - ALLY give some time after beeing exiled
