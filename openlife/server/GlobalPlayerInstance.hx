@@ -3247,7 +3247,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public function DoDamage(targetPlayer:GlobalPlayerInstance, fromObj:ObjectHelper, attacker:GlobalPlayerInstance = null, distanceFactor:Float = 1,
 			quadDistance:Float = 0):Float {
-		// TODO do damage according to right / wrong biome
+
+		// check if it is a biome animal
+		if(attacker == null)
+		{
+			var biomeAnimals = targetPlayer.getBiomeAnimals();
+			if(biomeAnimals.contains(fromObj.parentId) && fromObj.hits < 0.1)
+			{
+				if(WorldMap.calculateRandomFloat() > ServerSettings.BiomeAnimalHitChance)
+				{
+					trace('Escaped biome animal: ${fromObj.name}');
+					return 0;
+				}
+			}
+		}
 
 		var orgDamage = fromObj.objectData.damage * ServerSettings.WeaponDamageFactor;
 		var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());
@@ -4166,6 +4179,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public function getLovedFoodId():Int {
 		var lovedBiome = Biome.GetLovedBiomeByPlayer(this);
 		return Biome.getLovedFoodId(lovedBiome);
+	}
+
+	public function getBiomeAnimals():Array<Int> {
+		var lovedBiome = Biome.GetLovedBiomeByPlayer(this);
+		return Biome.getBiomeAnimals(lovedBiome);
 	}
 
 	public function getLovedPlants():Array<Int> {

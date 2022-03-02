@@ -126,6 +126,16 @@ class Biome {
 			default: -1;
 		}
 	}
+	
+	public static function getBiomeAnimals(biomeTag:BiomeTag):Array<Int> {
+		return switch biomeTag {
+			case DESERT: [764]; // Rattle Snake
+			case JUNGLE: [2156]; // Mosquito Swarm
+			case GREY: [418]; // Wolf
+			case SNOW: [418]; // Wolf
+			default: [];
+		}
+	}
 
 	public static function getLovedPlants(biomeTag:BiomeTag):Array<Int> {
 		return switch biomeTag {

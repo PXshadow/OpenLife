@@ -160,6 +160,7 @@ class ServerSettings {
 	
 	// Biome Specialists
 	public static var LovedFoodUseChance:Float = 0.5;
+	public static var BiomeAnimalHitChance:Float = 0.01;
 
 	// Yellow Fever
 	public static var ExhaustionYellowFeverPerSec = 0.1;
