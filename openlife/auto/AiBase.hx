@@ -532,20 +532,20 @@ abstract class AiBase
 
 		if (targetPlayer.isDeleted()) {
 			this.feedingPlayerTarget = null;
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} since is dead!');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} since is dead!');
 			return false;
 		}
 
 		if (targetPlayer.getHeldByPlayer() != null) {
 			this.feedingPlayerTarget = null;
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} since held by other player!');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} since held by other player!');
 			return false;
 		}
 
 		if (targetPlayer.canFeedToMe(myPlayer.heldObject) == false) {
 			this.feedingPlayerTarget = null;
 			// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name}');
-			trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name} fs: ${targetPlayer.food_store}');
+			trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name} fs: ${targetPlayer.food_store}');
 			return false;
 		}
 
