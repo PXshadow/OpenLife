@@ -1186,22 +1186,29 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		tmpFitness -= p.heldObject.id != 0 ? 1 : 0; // if player is holding objects
 		tmpFitness -= motherIsHuman && child.isAi() ? ServerSettings.HumanMotherBirthMaliForAiChild : 0;
 		tmpFitness -= p.isAi() && childIsHuman ? ServerSettings.AiMotherBirthMaliForHumanChild : 0;
-		tmpFitness += CalculateMotherChildFitness(p);
+		tmpFitness += CalculateMotherChildFitness(p, child);
 
 		return tmpFitness;
 	}
 
-	private static function CalculateMotherChildFitness(mother:GlobalPlayerInstance) : Float{	
+	private static function CalculateMotherChildFitness(mother:GlobalPlayerInstance, child:GlobalPlayerInstance) : Float{	
 		var fitness = 0.0;
 		var countLittleKids = 0;
 		
 		for(p in AllPlayers){
 			if(p.mother !=mother) continue;
 			if(p.deleted) continue;
-			fitness -=1;
+
+			// allow more ai kids born to ai and human to human
+			// for example a human can have 3 human kids but only 2 ai kids (plus a human kid)
+			// for example an ai can have 3 ai kids but only 2 human kids (plus an ai kid)
+			var factor = child.isAi() && p.isAi()&& mother.isHuman() ? 2 : 1;
+			if(child.isHuman() && p.isHuman() && mother.isAi()) factor = 2;
+
+			fitness -=1 * factor;
 			if(p.age > ServerSettings.MinAgeToEat) continue;
-			fitness -=1;
-			countLittleKids++;
+			fitness -=1 * factor;
+			countLittleKids += 1 * factor;
 		}
 
 		if(countLittleKids >= ServerSettings.LittleKidsPerMother) fitness = -1000;
