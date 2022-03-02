@@ -600,9 +600,9 @@ class TimeHelper {
 
 		// take damage if temperature is too hot or cold
 		var damage:Float = 0;
-		if (player.isSuperHot()) damage = player.heat > 0.95 ? 3 * originalFoodDecay : originalFoodDecay;
+		if (player.isSuperHot()) damage = player.heat > 0.95 ? 2 * originalFoodDecay : originalFoodDecay;
 		else if (player.isSuperCold())
-			damage = player.heat < 0.05 ? 3 * originalFoodDecay : originalFoodDecay;
+			damage = player.heat < 0.05 ? 2 * originalFoodDecay : originalFoodDecay;
 
 		damage *= 0.5 * ServerSettings.DamageTemperatureFactor;
 		player.hits += damage;
@@ -673,8 +673,8 @@ class TimeHelper {
 			player.food_store -= foodDecay;
 		}
 
-		if (TimeHelper.tick % 40 == 0) trace('${player.name + player.id} FoodDecay: ${Math.round(foodDecay / timePassedInSeconds * 100) / 100} org: ${Math.round(originalFoodDecay / timePassedInSeconds * 100) / 100)} fromexh: ${Math.round(exhaustionFoodNeed / timePassedInSeconds * 100) / 100}');
-		//if (ServerSettings.DebugPlayer && TimeHelper.tick % 40 == 0) trace('${player.name + player.id} FoodDecay: ${Math.round(foodDecay / timePassedInSeconds * 100) / 100} org: ${Math.round(originalFoodDecay / timePassedInSeconds * 100) / 100)} fromexh: ${Math.round(exhaustionFoodNeed / timePassedInSeconds * 100) / 100}');
+		//if (TimeHelper.tick % 40 == 0) trace('${player.name + player.id} FoodDecay: ${Math.round(foodDecay / timePassedInSeconds * 100) / 100} org: ${Math.round(originalFoodDecay / timePassedInSeconds * 100) / 100)} fromexh: ${Math.round(exhaustionFoodNeed / timePassedInSeconds * 100) / 100}');
+		if (ServerSettings.DebugPlayer && TimeHelper.tick % 40 == 0) trace('${player.name + player.id} FoodDecay: ${Math.round(foodDecay / timePassedInSeconds * 100) / 100} org: ${Math.round(originalFoodDecay / timePassedInSeconds * 100) / 100)} fromexh: ${Math.round(exhaustionFoodNeed / timePassedInSeconds * 100) / 100}');
 
 		player.food_store_max = player.calculateFoodStoreMax();
 
@@ -793,17 +793,23 @@ class TimeHelper {
 		if (player.heat < 0) player.heat = 0;
 
 		var playerHeat = player.heat;
-
 		var temperatureFoodFactor = playerHeat >= 0.5 ? playerHeat : 1 - playerHeat;
+		
+		// also consider the food needed for the temperature damage
+		var temperatureDamageFactor:Float = 0;
+		if (player.isSuperHot())
+			temperatureDamageFactor = player.heat > 0.95 ? 2 : 1;
+		else if (player.isSuperCold())
+			temperatureDamageFactor = player.heat < 0.05 ? 2 : 1;
+
+		temperatureDamageFactor = 1 + temperatureDamageFactor * ServerSettings.DamageTemperatureFactor;
 
 		var foodUsePerSecond = ServerSettings.FoodUsePerSecond * temperatureFoodFactor;
-
-		var foodDrainTime = 1 / foodUsePerSecond;
+		var foodDrainTime = 1 / (foodUsePerSecond * temperatureDamageFactor);
+		//trace('foodDrainTime: ${foodDrainTime} temperatureDamageFactor: $temperatureDamageFactor');
 
 		player.foodUsePerSecond = foodUsePerSecond;
-
 		temperature = Math.round(temperature * 100) / 100;
-
 		foodDrainTime = Math.round(foodDrainTime * 100) / 100;
 
 		var message = '$playerHeat $foodDrainTime 0';
