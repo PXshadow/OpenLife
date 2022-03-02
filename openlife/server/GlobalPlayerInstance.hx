@@ -3255,7 +3255,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			{
 				if(WorldMap.calculateRandomFloat() > ServerSettings.BiomeAnimalHitChance)
 				{
-					trace('Escaped biome animal: ${fromObj.name}');
+					//trace('Escaped biome animal: ${fromObj.name}');
 					return 0;
 				}
 			}

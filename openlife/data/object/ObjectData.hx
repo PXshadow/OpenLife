@@ -488,14 +488,14 @@ class ObjectData extends LineReader {
 		return objectDataMap[id];
 	}
 
-	public static function DoAllTheObjectInititalisationStuff() {
+	public static function DoAllTheObjectInititalisationStuff(readFromSaveFile:Bool = true) {
 		dataVersionNumber = Resource.dataVersionNumber();
 
 		trace('dataVersionNumber: $dataVersionNumber');
 
 		Init();
 
-		if (ReadAllFromFile(dataVersionNumber) == false) {
+		if (readFromSaveFile && ReadAllFromFile(dataVersionNumber) == false) {
 			ImportObjectData();
 			WriteAllToFile(dataVersionNumber);
 		}

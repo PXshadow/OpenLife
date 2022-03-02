@@ -287,6 +287,7 @@ Food - Cravings:
 - cravings give plus one extra food boni and YUM chain / Health which influences speed and aging
 
 Animals:
+- biome animals wont most of the time attack you if you are a biome expert... unless you make them angry...
 - knife and Sword does damage to attacking animals and might kill them (TODO allow to attack wolfs etc with knife / sword)
 - animals can multiply and die
 - animals can leave their biome, but prefare to stay in own biome
@@ -344,6 +345,8 @@ High priority:
 
 - FIX bug with getting stuck sometimes
 - FIX bug with reconnect if holding a player // TODO check if it is a problem
+- FIX connection crash on connect 
+- FIX /leader Client crash if you follow a new leader 
 
 - MAP check why ponds are not in water ==> move to green near water
 
