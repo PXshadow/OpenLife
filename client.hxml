@@ -1,0 +1,11 @@
+-cp openlife/client
+-main Main
+-lib heaps
+-lib hlsdl
+-dce full
+-lib hlopenal 
+-D sound
+-hl client.hl
+-D resourcesPath=OneLifeData7
+-D windowsSize=1600x900
+-D windowTitle=client
