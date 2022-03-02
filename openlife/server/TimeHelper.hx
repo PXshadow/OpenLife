@@ -245,8 +245,8 @@ class TimeHelper {
 			if(count >= ServerSettings.DisplayPlayerNamesMaxPlayer) break;
 		}
 
-		if(player.displaySeason && player.isSuperHot()) player.say('too hot ${SeasonNames[Season]}...', true);
-		else if(player.displaySeason && player.isSuperCold()) player.say('too cold ${SeasonNames[Season]}...', true);
+		if(player.displaySeason && player.isSuperHot() && Season == Seasons.Summer && player.isIll() == false) player.say('too hot ${SeasonNames[Season]}...', true);
+		else if(player.displaySeason && player.isSuperCold() && Season == Seasons.Winter) player.say('too cold ${SeasonNames[Season]}...', true);
 		
 		if(player.isSuperHot() || player.isSuperCold()) player.displaySeason = false;
 		else player.displaySeason = true;
@@ -587,14 +587,15 @@ class TimeHelper {
 		}
 
 		// take care of exhaustion
+		var exhaustionFoodNeed = 0.0;
 		// if(healing > 0 && player.exhaustion > -player.food_store_max && player.food_store > 0)
 		if (doHealing && player.exhaustion > -player.food_store_max) {
 			var healingFaktor = player.isMale() ? ServerSettings.ExhaustionHealingForMaleFaktor : 1;
 			var exhaustionFaktor = player.exhaustion > player.food_store_max / 2 ? 2 : 1;
+			exhaustionFoodNeed = originalFoodDecay * ServerSettings.ExhaustionHealing * exhaustionFaktor;
 
 			player.exhaustion -= healing * ServerSettings.ExhaustionHealing * healingFaktor * exhaustionFaktor;
-
-			foodDecay += originalFoodDecay * ServerSettings.ExhaustionHealing * exhaustionFaktor;
+			foodDecay += exhaustionFoodNeed;
 		}
 
 		// take damage if temperature is too hot or cold
@@ -616,7 +617,6 @@ class TimeHelper {
 		// trace('Exhaustion: $tmpexhaustion ==> ${player.exhaustion} pID: ${player.p_id} biomeLoveFactor: $biomeLoveFactor');
 
 		// do healing but increase food use
-		// 
 		//if (player.hits > 0) {
 		if(healing > 0 && player.hits > 0 && playerIsStarvingOrHasBadHeat == false && player.isWounded() == false){
 			//var healingFaktor = doHealing ? 1.0 : 0.0;
@@ -672,6 +672,9 @@ class TimeHelper {
 		} else {
 			player.food_store -= foodDecay;
 		}
+
+		if (TimeHelper.tick % 40 == 0) trace('${player.name + player.id} FoodDecay: ${Math.round(foodDecay / timePassedInSeconds * 100) / 100} org: ${Math.round(originalFoodDecay / timePassedInSeconds * 100) / 100)} fromexh: ${Math.round(exhaustionFoodNeed / timePassedInSeconds * 100) / 100}');
+		//if (ServerSettings.DebugPlayer && TimeHelper.tick % 40 == 0) trace('${player.name + player.id} FoodDecay: ${Math.round(foodDecay / timePassedInSeconds * 100) / 100} org: ${Math.round(originalFoodDecay / timePassedInSeconds * 100) / 100)} fromexh: ${Math.round(exhaustionFoodNeed / timePassedInSeconds * 100) / 100}');
 
 		player.food_store_max = player.calculateFoodStoreMax();
 
