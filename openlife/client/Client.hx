@@ -1,19 +1,19 @@
 package openlife.client;
 
-import haxe.io.BytesBuffer;
-import openlife.settings.Settings.ConfigData;
-import haxe.io.Bytes;
-import openlife.client.ClientTag;
-import sys.io.File;
-#if sys
-import sys.net.Socket;
-#else
-import js.node.net.Socket;
-#end
-import sys.net.Host;
-import haxe.io.Error;
-import haxe.crypto.Hmac;
 import haxe.Timer;
+import haxe.crypto.Hmac;
+import haxe.io.Bytes;
+import haxe.io.BytesBuffer;
+import haxe.io.Error;
+import openlife.client.ClientTag;
+import openlife.client.ClientTag;
+import openlife.settings.Settings.ConfigData;
+import sys.io.File;
+import sys.io.File;
+import sys.net.Host;
+import sys.net.Socket;
+
+// import js.node.net.Socket;
 
 /**
  * Socket Client

@@ -19,9 +19,18 @@ function genBatch() {
 }
 
 function addObject(x:Int, y:Int, ids:Array<Int>) {
+	if (ids == null || ids.length == 0 || ids[0] == 0) return;
 	x *= GRID;
 	y *= GRID;
 	final objData = new ObjectData(ids[0]);
+	if (objData == null) {
+		trace("obj data null for id: " + ids[0]);
+		return;
+	}
+	if (objData.spriteArray == null) {
+		trace("obj data sprite array null for id: " + ids[0]);
+		return;
+	}
 	final age = 20;
 	final obj = new Object(x, y, objData);
 	for (spriteData in objData.spriteArray) {

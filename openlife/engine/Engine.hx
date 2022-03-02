@@ -1,16 +1,16 @@
 package openlife.engine;
 
-import openlife.engine.EngineEvent;
-import openlife.data.map.MapData;
-import openlife.data.object.player.PlayerMove;
-import openlife.data.Pos;
-import openlife.data.object.player.PlayerInstance;
-import openlife.data.map.MapChange;
-import openlife.data.map.MapInstance;
-import openlife.client.Client;
-import openlife.settings.Settings;
 import haxe.io.Path;
+import openlife.client.Client;
 import openlife.client.ClientTag;
+import openlife.data.Pos;
+import openlife.data.map.MapChange;
+import openlife.data.map.MapData;
+import openlife.data.map.MapInstance;
+import openlife.data.object.player.PlayerInstance;
+import openlife.data.object.player.PlayerMove;
+import openlife.engine.EngineEvent;
+import openlife.settings.Settings;
 
 @:expose("Engine")
 class Engine {

@@ -14,12 +14,15 @@ function init() {
 	engineHeaps.backgroundColor = 0x2b2932;
 	world = new World();
 	engine = new Engine(world, null, null, "OneLifeData7/");
+	engine.client.config = {ip: "localhost", port: 8005};
 	Bake.run();
 	Render.genBatch();
 	Render.addObject(3, 3, [19]); // 418,575]);
+	engine.connect();
 }
 
 function update(dt:Float) {
+	engine.client.update();
 	Render.update(dt);
 }
 

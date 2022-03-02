@@ -1,14 +1,11 @@
+import openlife.data.map.MapChange;
+import openlife.data.map.MapInstance;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.object.player.PlayerMove;
-import openlife.data.map.MapInstance;
-import openlife.data.map.MapChange;
 import openlife.engine.EngineHeader;
 
 class World implements EngineHeader {
-
-    public function new() {
-		
-    }
+	public function new() {}
 
 	public function playerUpdate(instances:Array<PlayerInstance>) {}
 
@@ -62,7 +59,14 @@ class World implements EngineHeader {
 
 	public function emot(id:Int, index:Int, sec:Int) {}
 
-	public function mapChunk(instance:MapInstance) {}
+	public function mapChunk(instance:MapInstance) {
+		for (y in 0...instance.height) {
+			for (x in 0...instance.width) {
+				trace(instance.x, x, instance.y, y);
+				Render.addObject(x, y, Game.engine.map.object.get(instance.x + x, instance.y + y));
+			}
+		}
+	}
 
 	public function mapChange(change:MapChange) {}
 
