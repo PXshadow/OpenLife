@@ -747,7 +747,7 @@ class AiHelper {
 			if (p.heldByPlayer != null) continue;
 			if (isFertile && p.age < ServerSettings.MaxChildAgeForBreastFeeding) continue;
 
-			var considerHungry = Math.min(p.lineage.prestigeClass * 2, 1 + p.food_store_max * 0.8);
+			var considerHungry = Math.min(p.lineage.prestigeClass * 2, p.food_store_max * 0.8);
 			var hungry = considerHungry - p.food_store;
 			var isAlly = p.isAlly(globalplayer);
 

@@ -527,6 +527,10 @@ abstract class AiBase
 			|| myPlayer.heldObject.id == 837) // dont feed 837 ==> Psilocybe Mushroom to others
 		{
 			foodTarget = AiHelper.SearchBestFood(targetPlayer, true);
+			if(foodTarget == null){
+				this.feedingPlayerTarget = null;
+				return false;
+			}
 			return true;
 		}
 
