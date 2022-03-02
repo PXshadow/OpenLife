@@ -403,7 +403,7 @@ class MoveHelper {
 
 			player.x += xo;
 			player.y += yo;
-			player.exhaustion += 3;
+			//player.exhaustion += 0.2;
 
 			player.moveHelper.exactTx = player.tx;
 			player.moveHelper.exactTy = player.ty;

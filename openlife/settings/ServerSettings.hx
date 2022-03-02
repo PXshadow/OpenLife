@@ -190,7 +190,7 @@ class ServerSettings {
 	public static var LetTheClientCheatLittleBitFactor = 1.1; // when considering if the position is reached, allow the client to cheat little bit, so there is no lag
 	public static var MaxMovementQuadJumpDistanceBeforeForce:Float = 3; // if quadDistance between server and client position is bigger then X the client is forced to use server position
 	public static var MaxJumpsPerTenSec:Float = 5; // limit how often a client can JUMP / cheat his position
-	public static var ExhaustionOnJump:Float = 0.2;
+	public static var ExhaustionOnJump:Float = 0.1;
 
 	// hungry work
 	public static var HungryWorkCost = 10;
