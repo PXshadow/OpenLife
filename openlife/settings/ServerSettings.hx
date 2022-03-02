@@ -336,14 +336,20 @@ class ServerSettings {
 		ObjectData.getObjectData(141).secondTimeOutcome = 142; // Canada Goose Pond ==> Canada Goose Pond swimming
 		ObjectData.getObjectData(141).secondTimeOutcomeTimeToChange = 15;
 
-		ObjectData.getObjectData(142).secondTimeOutcome = 1261; //  Canada Goose Pond swimming ==> Canada Goose Pond with Egg
+		ObjectData.getObjectData(142).secondTimeOutcome = 1261; // Canada Goose Pond swimming ==> Canada Goose Pond with Egg
 		ObjectData.getObjectData(142).secondTimeOutcomeTimeToChange = 60 * 10;
 
-		ObjectData.getObjectData(164).secondTimeOutcome = 173; //  Rabbit Hole out,single ==> Rabbit Family Hole out
-		ObjectData.getObjectData(164).secondTimeOutcomeTimeToChange = 20;
+		ObjectData.getObjectData(1261).secondTimeOutcome = 142; // Canada Goose Pond with Egg ==> Canada Goose Pond swimming
+		ObjectData.getObjectData(1261).secondTimeOutcomeTimeToChange = 60 * 4;
 
-		ObjectData.getObjectData(173).secondTimeOutcome = 3566; //  Rabbit Family Hole out ==> Fleeing Rabbit
-		ObjectData.getObjectData(173).secondTimeOutcomeTimeToChange = 20;		
+		ObjectData.getObjectData(164).secondTimeOutcome = 173; // Rabbit Hole out,single ==> Rabbit Family Hole out
+		ObjectData.getObjectData(164).secondTimeOutcomeTimeToChange = 30;
+
+		ObjectData.getObjectData(173).secondTimeOutcome = 3566; // Rabbit Family Hole out ==> Fleeing Rabbit
+		ObjectData.getObjectData(173).secondTimeOutcomeTimeToChange = 30;	
+		
+		ObjectData.getObjectData(164).countsOrGrowsAs = 161; // Rabbit Hole out,single couts as Rabbit Hole
+		ObjectData.getObjectData(173).countsOrGrowsAs = 161; // Rabbit Family Hole couts as Rabbit Hole
 		
 		// dont block walking
 		ObjectData.getObjectData(231).blocksWalking = false; // Adobe Oven Base
