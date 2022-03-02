@@ -550,6 +550,7 @@ abstract class AiBase
 			this.feedingPlayerTarget = null;
 			// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name}');
 			trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name} fs: ${targetPlayer.food_store}');
+			this.dropHeldObject(); // since food might be too big to feed
 			return false;
 		}
 

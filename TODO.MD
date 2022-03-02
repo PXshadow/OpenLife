@@ -345,11 +345,9 @@ High priority:
 - FIX bug with getting stuck sometimes
 - FIX bug with reconnect if holding a player // TODO check if it is a problem
 
-- TIME add time transitions for ponds with eggs / check why ponds are not in water
+- MAP check why ponds are not in water ==> move to green near water
 
 - MEASSAGE addbad biome self say meassage
-
-- FIX Rabbits count as
 
 - RAND look at random generator for float
 

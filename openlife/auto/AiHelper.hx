@@ -166,7 +166,7 @@ class AiHelper {
 				var foodValue:Float = originalFoodValue;
 
 				if (foodValue <= 0) continue;
-				if (player.food_store_max - player.food_store < Math.ceil(foodValue / 4)) continue;				
+				if (player.food_store_max - player.food_store < Math.ceil(originalFoodValue / 4)) continue;				
 
 				var quadDistance = 16 + AiHelper.CalculateDistance(baseX, baseY, tx, ty);
 
@@ -733,7 +733,7 @@ class AiHelper {
 		return bestPlayer;
 	}
 
-	private static function GetCloseStarvingPlayerHelper(player:PlayerInterface, searchDistance:Int = 30) {
+	private static function GetCloseStarvingPlayerHelper(player:PlayerInterface, searchDistance:Int = 40) {
 		var globalplayer = cast(player, GlobalPlayerInstance); // TODO find better way / maybe use globalplayer also for client
 		var bestPlayer:GlobalPlayerInstance = null;
 
@@ -747,7 +747,7 @@ class AiHelper {
 			if (p.heldByPlayer != null) continue;
 			if (isFertile && p.age < ServerSettings.MaxChildAgeForBreastFeeding) continue;
 
-			var considerHungry = Math.min(p.lineage.prestigeClass * 2, p.food_store_max * 0.8);
+			var considerHungry = Math.min(p.lineage.prestigeClass * 2, p.food_store_max * 0.6);
 			var hungry = considerHungry - p.food_store;
 			var isAlly = p.isAlly(globalplayer);
 
