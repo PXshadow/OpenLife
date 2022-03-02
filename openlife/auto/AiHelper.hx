@@ -248,11 +248,11 @@ class AiHelper {
 		return gotoObj(player, obj, false);
 	}
 
-	public static function gotoObj(player:PlayerInterface, obj:ObjectHelper, move:Bool = true):Bool {
-		return gotoAdv(player, obj.tx, obj.ty, move);
+	public static function gotoObj(player:PlayerInterface, obj:ObjectHelper, move:Bool = true, ?infos:haxe.PosInfos):Bool {
+		return gotoAdv(player, obj.tx, obj.ty, move, infos);
 	}
 
-	public static function gotoAdv(player:PlayerInterface, tx:Int, ty:Int, move:Bool = true):Bool {
+	public static function gotoAdv(player:PlayerInterface, tx:Int, ty:Int, move:Bool = true, ?infos:haxe.PosInfos):Bool {
 		var startTime = Sys.time();
 		var ai = player.getAi();
 		var rand = 0;
@@ -300,7 +300,7 @@ class AiHelper {
 			}
 
 			if (passedTime > ServerSettings.GotoTimeOut) {
-				trace('AI: ${player.id}  ${player.name} GOTO failed after $i because of timeout $passedTime! Ignore ${tx} ${ty} dist: $dist');
+				trace('AI: ${player.name + player.id} GOTO failed after $i because of timeout ${Math.round(passedTime)}ms! Ignore ${tx} ${ty} dist: ${Math.round(Math.sqrt(dist))} ${infos.methodName}');
 				break;
 			}
 		}

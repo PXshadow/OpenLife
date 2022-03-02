@@ -277,7 +277,7 @@ class Connection {
 	public function sendNameToAll() {
 		var player = this.player;
 
-		trace('TEST Naming sendNameToAll ${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}');
+		//trace('TEST Naming sendNameToAll ${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}');
 
 		for (c in Connection.getConnections()) {
 			c.send(ClientTag.NAME, ['${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}']);

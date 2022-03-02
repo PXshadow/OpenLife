@@ -1,9 +1,9 @@
 package openlife.server;
 
 import openlife.auto.AiHelper;
-import openlife.settings.ServerSettings;
-import openlife.server.GlobalPlayerInstance.Emote;
 import openlife.client.ClientTag;
+import openlife.server.GlobalPlayerInstance.Emote;
+import openlife.settings.ServerSettings;
 import sys.io.File;
 
 using StringTools;
@@ -71,7 +71,7 @@ class NamingHelper {
 
 		var name = doFamilyName ? nameFromText : GetNameFromList(nameFromText, p.isFemale());
 
-		trace('TEST Naming: $nameFromText ==> $name');
+		//trace('TEST Naming: $nameFromText ==> $name');
 
 		if (name == null) return text;
 
@@ -114,7 +114,7 @@ class NamingHelper {
 			targetPlayer.name = name;
 		}
 
-		trace('TEST Naming: ${targetPlayer.p_id} ${targetPlayer.name} ${targetPlayer.familyName}');
+		//trace('TEST Naming: ${targetPlayer.p_id} ${targetPlayer.name} ${targetPlayer.familyName}');
 
 		if (doFamilyName) {
 			// all family member names changed

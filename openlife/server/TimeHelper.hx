@@ -171,7 +171,7 @@ class TimeHelper {
 			SeasonHardness = WorldMap.calculateRandomFloat() + 0.5;
 
 			var seasonName = SeasonNames[Season];
-			var message = 'SEASON: ${seasonName} is there! hardness: $SeasonHardness years: ${passedSeasonTime / 60} timeToNextSeasonInSec: $timeToNextSeasonInSec';
+			var message = 'SEASON: ${seasonName} is there! hardness: ${Math.round(SeasonHardness * 10) / 10} years: ${Math.round(passedSeasonTime / 60)} timeToNextSeasonInSec: $timeToNextSeasonInSec';
 
 			trace(message);
 
