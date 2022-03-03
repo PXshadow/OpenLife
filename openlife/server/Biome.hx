@@ -117,13 +117,13 @@ class Biome {
 				default: -1; 
 			}
 	}*/
-	public static function getLovedFoodId(biomeTag:BiomeTag):Int {
+	public static function getLovedFoodIds(biomeTag:BiomeTag):Array<Int> {
 		return switch biomeTag {
-			case DESERT: 768; // Cactus Fruit
-			case JUNGLE: 2143; // banana
-			case GREY: 4252; // Wild Garlic
-			case SNOW: 40; // Wild Carrot
-			default: -1;
+			case DESERT: [768, 197]; // Cactus Fruit // Cooked Rabbit
+			case JUNGLE: [2143, 1880]; // banana // Mango Slices
+			case GREY: [4252, 1242]; // Wild Garlic // Bowl of Sauerkraut
+			case SNOW: [40, 2106]; // Wild Carrot // Cooked Fish
+			default: [];
 		}
 	}
 	

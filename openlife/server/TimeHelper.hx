@@ -1478,7 +1478,7 @@ class TimeHelper {
 
 			var tmpGroundObject = helper.groundObject;
 			helper.groundObject = target;
-			worldmap.setObjectHelper(toTx, toTy, helper); // set so that object has the right position before doing samage
+			worldmap.setObjectHelper(toTx, toTy, helper); // set so that object has the right position before doing damage
 			// helper.tx = toTx;
 			// helper.ty = toTy;
 			var damage = DoAnimalDamage(fromTx, fromTy, helper);

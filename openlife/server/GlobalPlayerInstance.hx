@@ -2255,8 +2255,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		// restore also some biome loved food like bana for brown
-		var lovedFoodId = getLovedFoodId();
-		restoreFoodCount(lovedFoodId, amountEaten * ServerSettings.LovedFoodRestore);
+		var lovedFoodIds = getLovedFoodIds();
+		for(foodId in lovedFoodIds){
+			restoreFoodCount(foodId, amountEaten * ServerSettings.LovedFoodRestore);
+		}
 
 		newHasEatenCount--; // A food with full YUM is displayed as +1 craving
 		cravingHasEatenCount--; // A food with full YUM is displayed as +1 craving
@@ -4181,9 +4183,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return this.food_store_max - this.food_store >= Math.ceil(originalFoodValue / 4);
 	}
 
-	public function getLovedFoodId():Int {
+	public function getLovedFoodIds():Array<Int> {
 		var lovedBiome = Biome.GetLovedBiomeByPlayer(this);
-		return Biome.getLovedFoodId(lovedBiome);
+		return Biome.getLovedFoodIds(lovedBiome);
 	}
 
 	public function getBiomeAnimals():Array<Int> {

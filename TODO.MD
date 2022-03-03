@@ -106,6 +106,7 @@ Adam / Eve:
 Family / Loved / Hated Biomes:
 - loved Biomes: Ginger --> Snow / White --> Grey / Brown --> Jungle / Black --> Desert 
 - loved food: Ginger --> Wild Carrot / White --> Wild Garlic / Brown --> Banana / Black --> Cactus Fruit 
+- loved food2: Ginger --> Cooked Fish / White --> Bowl of Sauerkraut / Brown --> Mango Slices / Black --> Cooked Rabbit 
 - loved food count is restored more quickly, so it is more often YUM or craved
 - harvsting from loved plants give in average double food items (TODO White and Ginger)
 - children are now more likely to be born closer to special biome color
