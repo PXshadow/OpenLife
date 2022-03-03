@@ -832,8 +832,34 @@ class TransitionHelper {
 			doTrace:Bool = false) {
 		var idHasChanged:Bool = transition.targetID != transition.newTargetID;
 		var reverseUse = transition.reverseUseTarget;
-
 		var objectData = obj.objectData;
+
+		if(reverseUse == false && transition.actorID == 0){
+			var lovedPlants = player == null ? [] : player.getLovedPlants();
+			var isLovedFood = lovedPlants.contains(transition.targetID);
+
+			trace('isLovedFood1: ${obj.name}');
+
+			if(isLovedFood){
+				var useChance = ServerSettings.LovedFoodUseChance;
+				var rand = WorldMap.calculateRandomFloat();
+
+				if(objectData.numUses < 2) useChance *= 0.8;
+
+				trace('isLovedFood: ${obj.name}');
+
+				if(rand > useChance){
+					player.say('got an extra!', true);
+					player.doEmote(Emote.happy);
+
+					if (objectData.numUses > 1) return;
+					obj.id = transition.targetID; // restore old object
+
+					return;
+				}
+			}
+		}
+
 		if (objectData.numUses < 2) return;
 
 		if (idHasChanged && objectData.numUses > 1) {
@@ -858,14 +884,15 @@ class TransitionHelper {
 			if (doTrace) trace('TRANS: ${player.name + player.id} ${objectData.description} numberOfUses: ' + obj.numberOfUses);
 		} else {
 			// TODO wild garlic and dug wild carrot
-			var lovedPlants = player == null ? [] : player.getLovedPlants();
-			var isLovedFood = lovedPlants.contains(objectData.parentId);
-			var useChance = isLovedFood ? ServerSettings.LovedFoodUseChance : objectData.useChance;
+			//var lovedPlants = player == null ? [] : player.getLovedPlants();
+			//var isLovedFood = lovedPlants.contains(objectData.parentId);
+			//var useChance = isLovedFood ? ServerSettings.LovedFoodUseChance : objectData.useChance;
+			var useChance = objectData.useChance;
 			var rand = useChance <= 0 ? -1 : WorldMap.calculateRandomFloat();
 
-			if (doTrace && player != null)
-				trace('TRANS: ${player.name + player.id} isLovedFood: $isLovedFood lovedPlants: ${lovedPlants} food.parentId: ${objectData.parentId}');
-			if (doTrace) trace('TRANS: ${player.name + player.id} ${objectData.description} isLovedFood: $isLovedFood useChance: ${useChance} random: $rand');
+			//if (doTrace && player != null)
+			//	trace('TRANS: ${player.name + player.id} isLovedFood: $isLovedFood lovedPlants: ${lovedPlants} food.parentId: ${objectData.parentId}');
+			//if (doTrace) trace('TRANS: ${player.name + player.id} ${objectData.description} isLovedFood: $isLovedFood useChance: ${useChance} random: $rand');
 
 			if (useChance <= 0 || rand < useChance) {
 				obj.numberOfUses -= 1;

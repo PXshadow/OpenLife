@@ -108,7 +108,7 @@ Family / Loved / Hated Biomes:
 - loved food: Ginger --> Wild Carrot / White --> Wild Garlic / Brown --> Banana / Black --> Cactus Fruit 
 - loved food2: Ginger --> Cooked Fish / White --> Bowl of Sauerkraut / Brown --> Mango Slices / Black --> Cooked Rabbit 
 - loved food count is restored more quickly, so it is more often YUM or craved
-- harvsting from loved plants give in average double food items (TODO White and Ginger)
+- harvsting from loved plants gives extra harvested food 
 - children are now more likely to be born closer to special biome color
 --> With this one Eve can create all colors if people migrate...
 - parents influence which biomes are loved 
@@ -355,9 +355,7 @@ High priority:
 
 - RAND look at random generator for float
 
-- PICKUP / DROP CHILD fix display bug. maybe set origion or action from right?
-
-- BIOME biome boni for different biome specialists like harvesting more banana for brown TODO: White, Black and Ginger 
+- PICKUP / DROP CHILD fix display bug. maybe set origion or action from right? 
 
 - ANIMALS fix they wont sometimes display as moving / DONE???
 
