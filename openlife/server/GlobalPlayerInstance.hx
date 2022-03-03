@@ -175,6 +175,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public var lastSayInSec:Float = 0;
 	public var displaySeason = false; // not saved
+	public var displayBiomeAnimal = true; // not saved
 
 	// set all stuff null so that nothing is hanging around
 	public function delete() {
@@ -3256,6 +3257,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				if(WorldMap.calculateRandomFloat() > ServerSettings.BiomeAnimalHitChance)
 				{
 					//trace('Escaped biome animal: ${fromObj.name}');
+					if(this.displayBiomeAnimal)
+					{
+						this.displayBiomeAnimal = false;
+						this.say('im save here from ${fromObj.name}...', true);
+					}
 					return 0;
 				}
 			}
@@ -4210,7 +4216,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (objData.isAnimal() == false) return false;
 
 		var biomeAnimals = this.getBiomeAnimals();
-		if(biomeAnimals.contains(animal.parentId) && animal.hits < 0.1) return false;
+		if(biomeAnimals.contains(animal.parentId) && animal.hits < 0.1)
+		{
+			var biome = WorldMap.world.getBiomeId(this.tx, this.ty);
+			if(this.biomeLoveFactor(biome) > 0.1) return false;
+			var biome = WorldMap.world.getBiomeId(animal.tx, animal.ty);
+			if(this.biomeLoveFactor(biome) > 0.1) return false;
+		}
 		
 		return true;
 	}

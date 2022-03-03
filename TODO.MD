@@ -287,7 +287,7 @@ Food - Cravings:
 - cravings give plus one extra food boni and YUM chain / Health which influences speed and aging
 
 Animals:
-- biome animals wont most of the time attack you if you are a biome expert... unless you make them angry...
+- biome animals wont most of the time attack you if you are in your biome... unless you make them angry...
 - knife and Sword does damage to attacking animals and might kill them (TODO allow to attack wolfs etc with knife / sword)
 - animals can multiply and die
 - animals can leave their biome, but prefare to stay in own biome
