@@ -2548,11 +2548,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function isMeh(food:ObjectHelper):Bool {
-		return isYum(food) == false;
+		return isObjMeh(food.objectData);
+	}
+
+	public function isObjMeh(foodObjData:ObjectData):Bool {
+		return isObjYum(foodObjData) == false;
 	}
 
 	public function isYum(food:ObjectHelper):Bool {
-		var foodObjData = food.objectData;
+		return isObjYum(food.objectData);
+	}
+
+	public function isObjYum(foodObjData:ObjectData):Bool {
 		if (foodObjData.dummyParent != null) foodObjData = foodObjData.dummyParent;
 
 		if (foodObjData.foodValue < 1) return false;
@@ -2643,14 +2650,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function isSuperMeh(food:ObjectHelper):Bool {
-		var foodValue:Float = food.objectData.foodValue;
-		var countEaten = this.hasEatenMap[food.id];
+		return isObjSuperMeh(food.objectData);
+	}
+
+	public function isObjSuperMeh(foodObjData:ObjectData):Bool {
+		foodObjData = foodObjData.dummyParent != null ? foodObjData.dummyParent : foodObjData;
+		var foodValue:Float = foodObjData.foodValue;
+		var countEaten = this.hasEatenMap[foodObjData.parentId];
 
 		if (countEaten < 0) countEaten = 0;
 		foodValue += ServerSettings.YumBonus;
 		foodValue -= countEaten;
 
-		var isSuperMeh = foodValue < food.objectData.foodValue / 2;
+		var isSuperMeh = foodValue < foodObjData.foodValue / 2;
 		return isSuperMeh;
 	}
 
@@ -4165,20 +4177,27 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function canFeedToMe(food:ObjectHelper):Bool {
-		if (isMeh(food) && food_store > 2) return false;
-		if (food.id == 837 && this.hasYellowFever() == false) return false; // only feed 837 ==> Psilocybe Mushroom to others if ill
+		return canFeedToMeObj(food.parentObjData);
+	}
 
-		return canEat(food);
+	public function canFeedToMeObj(objData:ObjectData):Bool {
+		if (isObjMeh(objData) && food_store > 2) return false;
+		if (objData.parentId == 837 && this.hasYellowFever() == false) return false; // only feed 837 ==> Psilocybe Mushroom to others if ill
+
+		return canEatObj(objData);
 	}
 
 	public function canEat(food:ObjectHelper):Bool {
-		var objData = food.objectData;
+		return canEatObj(food.parentObjData);
+	}
+
+	public function canEatObj(objData:ObjectData):Bool {
 		if (objData.dummyParent != null) objData = objData.dummyParent;
 		var originalFoodValue = objData.foodValue;
 
 		if (originalFoodValue <= 0) return false;
 
-		if (isSuperMeh(food) && food_store > 2) return false;
+		if (isObjSuperMeh(objData) && food_store > 2) return false;
 
 		return this.food_store_max - this.food_store >= Math.ceil(originalFoodValue / 4);
 	}

@@ -152,7 +152,7 @@ class AiHelper {
 
 				if (objData.id == 0) continue;
 				if (objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
-				if (feedOther && objData.id == 837) continue; // dont feed Psilocybe Mushroom to others
+				//if (feedOther && objData.id == 837) continue; // dont feed Psilocybe Mushroom to others
 				if(ai != null && ai.isObjectNotReachable(tx ,ty)) continue;
 
 				// var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
@@ -161,11 +161,13 @@ class AiHelper {
 				// var tmp = ObjectData.getObjectData(31);
 				// trace('berry food: ${tmp.foodValue}');
 
-				var originalFoodValue = objData.foodFromTarget == null ? objData.foodValue : objData.foodFromTarget.foodValue;
+				var objData = objData.foodFromTarget == null ? objData : objData.foodFromTarget;
+				var originalFoodValue = objData.foodValue;
 				var foodId = objData.getFoodId();
 				var foodValue:Float = originalFoodValue;
 
 				if (foodValue <= 0) continue;
+				if(feedOther && player.canFeedToMeObj(objData) == false) continue;
 				if (player.food_store_max - player.food_store < Math.ceil(originalFoodValue / 4)) continue;				
 
 				var quadDistance = 16 + AiHelper.CalculateDistance(baseX, baseY, tx, ty);

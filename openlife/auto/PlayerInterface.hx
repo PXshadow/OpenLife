@@ -1,6 +1,7 @@
 package openlife.auto;
 
 import openlife.data.Pos;
+import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.player.PlayerInstance;
 
@@ -61,6 +62,7 @@ interface PlayerInterface {
 	public function isMeh(food:ObjectHelper):Bool;
 	public function canEat(food:ObjectHelper):Bool;
 	public function canFeedToMe(food:ObjectHelper):Bool;
+	public function canFeedToMeObj(objData:ObjectData):Bool;
 	public function getMaxChildFeeding():Float; // gives back how much a child can be fed
 
 	public function getFollowPlayer():PlayerInterface;

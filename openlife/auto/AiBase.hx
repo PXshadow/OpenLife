@@ -549,7 +549,7 @@ abstract class AiBase
 		if (targetPlayer.canFeedToMe(myPlayer.heldObject) == false) {
 			this.feedingPlayerTarget = null;
 			// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name}');
-			trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name} fs: ${targetPlayer.food_store}');
+			trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name} fs: ${Math.round(targetPlayer.food_store*10)/10}');
 			this.dropHeldObject(); // since food might be too big to feed
 			return false;
 		}
@@ -566,6 +566,7 @@ abstract class AiBase
 
 		var done = myPlayer.doOnOther(targetPlayer.tx - myPlayer.gx, targetPlayer.ty - myPlayer.gx, -1, targetPlayer.id);
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done feed starving ${targetPlayer.name}');
+		trace('AAI: ${myPlayer.name + myPlayer.id} $done feed starving ${targetPlayer.name}');
 
 		return true;
 	}
