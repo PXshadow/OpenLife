@@ -2329,7 +2329,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			} else {
 				// look if there is a close food that can be craved
 				currentlyCraving = 0; // ignore craving when search best food
-				var bestfood = AiHelper.SearchBestFood(this, false);
+				var bestfood = AiHelper.SearchBestFood(this);
 				var newHasEatenCount = 1.0;
 				var foodId = 0;
 

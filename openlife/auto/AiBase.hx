@@ -352,8 +352,13 @@ abstract class AiBase
 			if (distance > 25) {
 				var done = myPlayer.gotoObj(itemToCraft.startLocation);
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done drop goto start $distance');
-				myPlayer.say('Goto start!');
-				return;
+
+				if(done){
+					myPlayer.say('Goto start!');
+					return;
+				}
+				
+				myPlayer.say('Cannot Goto start!');
 			}
 		}
 
@@ -526,7 +531,7 @@ abstract class AiBase
 		if (myPlayer.heldObject.objectData.foodValue < 1
 			|| myPlayer.heldObject.id == 837) // dont feed 837 ==> Psilocybe Mushroom to others
 		{
-			foodTarget = AiHelper.SearchBestFood(targetPlayer, true);
+			foodTarget = AiHelper.SearchBestFood(targetPlayer, myPlayer);
 			if(foodTarget == null){
 				this.feedingPlayerTarget = null;
 				return false;
@@ -566,7 +571,6 @@ abstract class AiBase
 
 		var done = myPlayer.doOnOther(targetPlayer.tx - myPlayer.gx, targetPlayer.ty - myPlayer.gx, -1, targetPlayer.id);
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done feed starving ${targetPlayer.name}');
-		trace('AAI: ${myPlayer.name + myPlayer.id} $done feed starving ${targetPlayer.name}');
 
 		return true;
 	}

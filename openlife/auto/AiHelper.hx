@@ -115,23 +115,24 @@ class AiHelper {
 		// return true;
 	}
 
-	public static function SearchBestFood(player:PlayerInterface, feedOther:Bool = false, radius:Int = 40):ObjectHelper {
+	public static function SearchBestFood(player:PlayerInterface, feedingPlayer:PlayerInterface = null, radius:Int = 40):ObjectHelper {
 		var bestFood = null;
 
 		// TODO might need player mutex because: player.getCountEaten(foodId);
 
 		GlobalPlayerInstance.AllPlayerMutex.acquire();
 		//WorldMap.world.mutex.acquire();
-		Macro.exception(bestFood = SearchBestFoodHelper(player, feedOther, radius));
+		Macro.exception(bestFood = SearchBestFoodHelper(player, feedingPlayer, radius));
 		//WorldMap.world.mutex.release();
 		GlobalPlayerInstance.AllPlayerMutex.release();
 
 		return bestFood;
 	}
 
-	public static function SearchBestFoodHelper(player:PlayerInterface, feedOther:Bool = false, radius:Int = 40):ObjectHelper {
+	public static function SearchBestFoodHelper(player:PlayerInterface, feedingPlayer:PlayerInterface = null, radius:Int = 40):ObjectHelper {
 		var startTime = Sys.time();
-		var ai = player.getAi();
+		var feedOther = feedingPlayer != null;
+		var ai = feedingPlayer != null ? feedingPlayer.getAi() : player.getAi();
 		var baseX = player.tx;
 		var baseY = player.ty;
 		var world = player.getWorld();
