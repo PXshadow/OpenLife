@@ -1291,22 +1291,25 @@ abstract class AiBase
 
 		if (distance > 1) {
 			var done = false;
-			for (i in 0...5) {
+			//for (i in 0...5) {
 				done = myPlayer.gotoObj(dropTarget);
 
-				if (done) break;
+				//if (done) break;
 
-				dropTarget = myPlayer.GetClosestObjectById(0); // empty
-			}
+				//dropTarget = myPlayer.GetClosestObjectById(0); // empty
+			//}
+
+			if (done == false) dropTarget = null;
 
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto drop: $done ${dropTarget.name} distance: $distance');
-		} else {
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop ${myPlayer.heldObject.description}');
+			return true;			
+		} 		
 
-			myPlayer.drop(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
+		var done = myPlayer.drop(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
 
-			dropTarget = null;
-		}
+		dropTarget = null;
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop $done ${myPlayer.heldObject.description}');		
 
 		return true;
 	}
