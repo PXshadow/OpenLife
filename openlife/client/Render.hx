@@ -4,25 +4,22 @@ import h2d.Tile;
 import hxd.Pixels;
 import openlife.data.object.ObjectData;
 import openlife.graphics.TgaData;
+import openlife.resources.ObjectBake;
 import openlife.resources.Resource;
 
 private var batches:Array<SpriteBatch> = [];
+private var batchPixels:Array<Pixels> = [];
 private var packers:Array<BinPack> = [];
 private var objs:Array<Object> = [];
 private inline var MAX_TEXTURE = 4096;
 inline var GRID = 128;
 private var spriteMap:Map<Int, SpriteRect> = [];
 
-function genBatch() {
-	packers.push(new BinPack(MAX_TEXTURE, MAX_TEXTURE));
-	return batches.push(new SpriteBatch(Pixels.alloc(MAX_TEXTURE, MAX_TEXTURE, BGRA), Game.s2d));
-}
-
 function addObject(x:Int, y:Int, ids:Array<Int>) {
 	if (ids == null || ids.length == 0 || ids[0] == 0) return;
 	x *= GRID;
 	y *= GRID;
-	final objData = new ObjectData(ids[0]);
+	final objData = ObjectData.getObjectData(ids[0]);
 	if (objData == null) {
 		trace("obj data null for id: " + ids[0]);
 		return;
@@ -52,50 +49,53 @@ function addObject(x:Int, y:Int, ids:Array<Int>) {
 	objs.push(obj);
 }
 
-function update(dt:Float) {
-	for (obj in objs)
-		obj.update(dt);
-}
-
+function update(dt:Float) {}
 final tga = new TgaData();
 
 function getSpriteElement(id:Int):BatchElement {
-	if (spriteMap.exists(id)) {
-		final m = spriteMap.get(id);
-		final e = new BatchElement(batches[m.batchId].tile.sub(m.rect.x, m.rect.y, m.rect.width, m.rect.height).center());
-		batches[m.batchId].add(e);
-		return e;
-	}
-	tga.read(Resource.spriteImage(id));
-	final pixels = Pixels.alloc(tga.rect.width, tga.rect.height, BGRA);
-	pixels.bytes = tga.bytes;
-	var size:Rect = {width: pixels.width, height: pixels.height};
-	var rect:Rect = null;
-	function task(i:Int) {
-		rect = packers[i].pack(size);
-		if (rect == null) return false;
-		batches[i].pixels.blit(rect.x, rect.y, pixels, 0, 0, rect.width, rect.height);
-		batches[i].invalidate();
-		return true;
-	}
-	for (i in 0...packers.length) {
-		if (!task(i)) continue;
-		final e = new BatchElement(batches[i].tile.sub(rect.x, rect.y, rect.width, rect.height).center());
-		batches[i].add(e);
-		return e;
-	}
-	final i = genBatch() - 1;
-	task(i);
-	final e = new BatchElement(batches[i].tile.sub(rect.x, rect.y, rect.width, rect.height).center());
-	batches[i].add(e);
+	final m = spriteMap.get(id);
+	final e = new BatchElement(batches[m.batchId].tile.sub(m.rect.x, m.rect.y, m.rect.width, m.rect.height).center());
+	batches[m.batchId].add(e);
 	return e;
+}
+
+function loadSprites() {
+	for (id in ObjectBake.objectList()) {
+		for (spriteData in ObjectData.getObjectData(id).spriteArray) {
+			if (spriteMap.exists(spriteData.spriteID)) continue;
+
+			tga.read(Resource.spriteImage(spriteData.spriteID));
+			final pixels = Pixels.alloc(tga.rect.width, tga.rect.height, BGRA);
+			pixels.bytes = tga.bytes;
+			var size:Rect = {width: pixels.width, height: pixels.height};
+			var rect:Rect = null;
+			for (i in 0...packers.length) {
+				rect = packers[i].pack(size);
+				if (rect == null) continue;
+				batchPixels[i].blit(rect.x, rect.y, pixels, 0, 0, rect.width, rect.height);
+				spriteMap[spriteData.spriteID] = new SpriteRect(i, rect);
+			}
+			if (spriteMap.exists(spriteData.spriteID)) continue;
+
+			packers.push(new BinPack(MAX_TEXTURE, MAX_TEXTURE));
+			batchPixels.push(Pixels.alloc(MAX_TEXTURE, MAX_TEXTURE, BGRA));
+			final i = packers.length - 1;
+			rect = packers[i].pack(size);
+			batchPixels[i].blit(rect.x, rect.y, pixels, 0, 0, rect.width, rect.height);
+			spriteMap[spriteData.spriteID] = new SpriteRect(i, rect);
+		}
+	}
+	for (pixels in batchPixels) {
+		batches.push(new SpriteBatch(pixels, Game.s2d));
+	}
+	trace("batches count: " + batches.length); 
 }
 
 class SpriteRect {
 	public var rect:Rect;
 	public var batchId:Int;
 
-	public function new(batchId, rect) {
+	public inline function new(batchId, rect) {
 		this.batchId = batchId;
 		this.rect = rect;
 	}

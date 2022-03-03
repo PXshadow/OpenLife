@@ -60,9 +60,11 @@ class World implements EngineHeader {
 	public function emot(id:Int, index:Int, sec:Int) {}
 
 	public function mapChunk(instance:MapInstance) {
+		var progress = 0;
 		for (y in 0...instance.height) {
 			for (x in 0...instance.width) {
-				trace(instance.x, x, instance.y, y);
+				if (progress % 10 == 0) trace(progress / (instance.width * instance.height));
+				progress++;
 				Render.addObject(x, y, Game.engine.map.object.get(instance.x + x, instance.y + y));
 			}
 		}

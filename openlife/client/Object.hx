@@ -16,9 +16,9 @@ class Object {
 		this.x = x;
 		this.y = y;
 		this.data = data;
-		try {
+		/*try {
 			anim = new AnimationData(data.id);
-		} catch (_) {}
+		} catch (_) {}*/
 	}
 
 	public function play() {}
@@ -26,8 +26,7 @@ class Object {
 	var inFrameTime = 0.0;
 
 	public function update(dt:Float) {
-		if (anim == null)
-			return;
+		if (anim == null) return;
 		final record = anim.record[2];
 
 		for (i in 0...record.params.length) {
@@ -42,8 +41,7 @@ class Object {
 			sprite.rotation += getOscOffset(inFrameTime, 0, param.rockOscPerSec, param.rockAmp, param.rockPhase) * Math.PI * 2;
 		}
 		for (i in 0...record.params.length) {
-			if (data.spriteArray[i].parent != -1)
-				continue;
+			if (data.spriteArray[i].parent != -1) continue;
 			transformChild(i, record);
 		}
 		inFrameTime += dt / 2;
@@ -51,8 +49,7 @@ class Object {
 
 	private function transformChild(parentId:Int, record:AnimationRecord) {
 		for (i in 0...record.params.length) {
-			if (data.spriteArray[i].parent != parentId)
-				continue;
+			if (data.spriteArray[i].parent != parentId) continue;
 			final parent = sprites[parentId];
 			final parentData = data.spriteArray[parentId];
 			final childData = data.spriteArray[i];
@@ -86,8 +83,7 @@ class Object {
 		return inOffset + inAmp * Math.sin((inFrameTime * inOscPerSec + inPhase) * 2 * Math.PI);
 
 	private inline function phase(x:Float):Float {
-		if (x > 0.75)
-			return x - 1;
+		if (x > 0.75) return x - 1;
 		return (x * 2 - 1) * -2;
 	}
 }

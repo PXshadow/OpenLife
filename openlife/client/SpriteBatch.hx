@@ -52,14 +52,12 @@ class BatchElement {
 	}
 
 	public function remove() {
-		if (batch != null)
-			@:privateAccess batch.delete(this);
+		if (batch != null) @:privateAccess batch.delete(this);
 	}
 }
 
 class SpriteBatch extends Drawable {
 	public var tile:Tile;
-	public var pixels:Pixels;
 	public var hasRotationScale:Bool;
 	public var hasUpdate:Bool;
 
@@ -72,12 +70,8 @@ class SpriteBatch extends Drawable {
 	public function new(pixels, ?parent) {
 		super(parent);
 		this.hasRotationScale = true;
-		this.pixels = pixels;
 		tile = Tile.fromPixels(pixels);
 	}
-
-	public function invalidate()
-		tile.getTexture().uploadPixels(pixels);
 
 	public function add(e:BatchElement, before = false) {
 		@:privateAccess e.batch = this;
@@ -150,8 +144,7 @@ class SpriteBatch extends Drawable {
 			bufferVertices = 0;
 			return;
 		}
-		if (tmpBuf == null)
-			tmpBuf = new hxd.FloatBuffer();
+		if (tmpBuf == null) tmpBuf = new hxd.FloatBuffer();
 		var pos = 0;
 		var index = 0;
 		var e = array[index];
@@ -252,8 +245,7 @@ class SpriteBatch extends Drawable {
 			buffer.dispose();
 			buffer = null;
 		}
-		if (bufferVertices > 0)
-			buffer = h3d.Buffer.ofSubFloats(tmpBuf, 8, bufferVertices, [Dynamic, Quads, RawFormat]);
+		if (bufferVertices > 0) buffer = h3d.Buffer.ofSubFloats(tmpBuf, 8, bufferVertices, [Dynamic, Quads, RawFormat]);
 	}
 
 	override function draw(ctx:RenderContext) {
@@ -262,10 +254,8 @@ class SpriteBatch extends Drawable {
 
 	@:allow(h2d)
 	function drawWith(ctx:RenderContext, obj:Drawable) {
-		if (array.length == 0 || buffer == null || buffer.isDisposed() || bufferVertices == 0)
-			return;
-		if (!ctx.beginDrawObject(obj, tile.getTexture()))
-			return;
+		if (array.length == 0 || buffer == null || buffer.isDisposed() || bufferVertices == 0) return;
+		if (!ctx.beginDrawObject(obj, tile.getTexture())) return;
 		ctx.engine.renderQuadBuffer(buffer, 0, bufferVertices >> 1);
 	}
 
