@@ -1681,7 +1681,7 @@ class TimeHelper {
 	private static function DoTest() {
 		// SerializeHelper.createReadWriteFile();
 
-		
+			/*
 			var array = [];
 			for(i in 0...1000000)
 			{
@@ -1690,6 +1690,7 @@ class TimeHelper {
 			}
 
 			for(i in 0...101) trace('rand: $i: ' + array[i]); 
+			*/
 
 		// +biomeReq6 +biomeReq4 +biomeBlock4
 		/*for(obj in ObjectData.importedObjectData)

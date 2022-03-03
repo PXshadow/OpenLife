@@ -838,7 +838,7 @@ class TransitionHelper {
 			var lovedPlants = player == null ? [] : player.getLovedPlants();
 			var isLovedFood = lovedPlants.contains(transition.targetID);
 
-			trace('isLovedFood1: ${obj.name}');
+			//trace('isLovedFood1: ${obj.name}');
 
 			if(isLovedFood){
 				var useChance = ServerSettings.LovedFoodUseChance;
@@ -846,7 +846,7 @@ class TransitionHelper {
 
 				if(objectData.numUses < 2) useChance *= 0.8;
 
-				trace('isLovedFood: ${obj.name}');
+				//trace('isLovedFood: ${obj.name}');
 
 				if(rand > useChance){
 					player.say('got an extra!', true);
