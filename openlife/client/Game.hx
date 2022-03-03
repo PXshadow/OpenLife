@@ -1,4 +1,5 @@
 import hxd.snd.ChannelGroup;
+import openlife.data.object.ObjectData;
 import openlife.engine.Engine;
 import sys.FileSystem;
 
@@ -15,9 +16,9 @@ function init() {
 	world = new World();
 	engine = new Engine(world, null, null, "OneLifeData7/");
 	engine.client.config = {ip: "localhost", port: 8005};
-	Bake.run();
-	Render.genBatch();
-	Render.addObject(3, 3, [19]); // 418,575]);
+	ObjectData.DoAllTheObjectInititalisationStuff(true);
+	Render.loadSprites();
+	Render.addObject(3, 3, [19]);
 	engine.connect();
 }
 
