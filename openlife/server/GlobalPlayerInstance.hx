@@ -677,6 +677,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function set_father(newFather:GlobalPlayerInstance) {
+		if(newFather == null) return null;
 		this.myFather = newFather;
 		lineage.father = newFather;
 		return this.myFather;
@@ -1001,7 +1002,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.lineage.myEveId = mother.lineage.myEveId;
 		this.mother = mother;
 		this.followPlayer = mother; // the mother is the leader
-		this.father = mother.potentialMate;
+		if(mother.potentialMate != null) this.father = mother.potentialMate;
 		if(mother.partner == null) mother.partner = mother.potentialMate;
 		if(father != null && father.partner == null) father.partner = mother;
 
