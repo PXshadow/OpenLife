@@ -10,6 +10,7 @@ import openlife.data.object.player.PlayerInstance;
 import openlife.data.transition.TransitionData;
 import openlife.macros.Macro;
 import openlife.server.GlobalPlayerInstance;
+import openlife.server.Lineage.PrestigeClass;
 import openlife.server.WorldMap;
 import openlife.settings.ServerSettings;
 
@@ -753,7 +754,8 @@ class AiHelper {
 			if (p.heldByPlayer != null) continue;
 			if (isFertile && p.age < ServerSettings.MaxChildAgeForBreastFeeding) continue;
 
-			var considerHungry = Math.min(p.lineage.prestigeClass * 2, p.food_store_max * 0.6);
+			var classFood = cast(p.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int) ? p.lineage.prestigeClass * 4 : p.lineage.prestigeClass * 2;
+			var considerHungry = Math.min(classFood, p.food_store_max * 0.6);
 			var hungry = considerHungry - p.food_store;
 			var isAlly = p.isAlly(globalplayer);
 
