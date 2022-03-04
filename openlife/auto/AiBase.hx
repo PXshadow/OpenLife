@@ -269,7 +269,7 @@ abstract class AiBase
 		itemToCraftId = cravingId;
 		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
 
-		myPlayer.say('nothing to do...');
+		if(myPlayer.age > ServerSettings.MinAgeToEat) myPlayer.say('nothing to do...');
 	}
 
 	public function say(player:PlayerInterface, curse:Bool, text:String) {
@@ -1271,7 +1271,7 @@ abstract class AiBase
 			var randY = WorldMap.calculateRandomInt(2 * dist) - dist;
 
 			var done = myPlayer.gotoAdv(playerToFollow.tx + randX, playerToFollow.ty + randY);
-			myPlayer.say('${playerToFollow.name}');
+			if(myPlayer.age > ServerSettings.MinAgeToEat) myPlayer.say('${playerToFollow.name}');
 
 			if (myPlayer.isAi()) if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} dist: $quadDistance goto player $done');
