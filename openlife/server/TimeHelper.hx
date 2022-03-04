@@ -238,6 +238,7 @@ class TimeHelper {
 			if(quadDist > maxDistance) continue;
 			
 			var name = player.mother == p ? 'MOTHER' : p.name;
+			if(player.partner == p) name = 'PARTNER';
 			if(player.father == p) name = 'FATHER';
 			player.connection.send(ClientTag.LOCATION_SAYS, ['${p.tx - player.gx} ${p.ty - player.gy} ${name}']);
 
