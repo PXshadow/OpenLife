@@ -176,7 +176,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var lastSayInSec:Float = 0;
 	public var displaySeason = false; // not saved
 	public var displayBiomeAnimal = true; // not saved
-
+	public var partner:GlobalPlayerInstance = null; // not saved yet
+	public var potentialMate:GlobalPlayerInstance = null; // not saved 
+	
 	// set all stuff null so that nothing is hanging around
 	public function delete() {
 		this.deleted = true;
@@ -975,7 +977,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	// TODO higher change of children for smaler families
-	// TODO spawn noobs more likely noble
+	// TODO spawn noobs more likely to and as noble
 	// TODO consider past families of player
 	private function spawnAsChild():Bool {
 		trace('birth: Spawn As Child: ${this.p_id} ${this.account.email}');
@@ -983,15 +985,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var mother = GetFittestMother(this);
 		if (mother == null) return false;
 
-		// TODO father
 		this.lineage.myEveId = mother.lineage.myEveId;
 		this.mother = mother;
 		this.followPlayer = mother; // the mother is the leader
+		this.father = mother.potentialMate;
+		if(mother.partner == null) mother.partner = mother.potentialMate;
+		if(father != null && father.partner == null) father.partner = mother;
 
-		// TODO consider dead children for mother fitness
 		mother.exhaustion += ServerSettings.NewChildExhaustionForMother;
 		mother.childrenBirthMali += 1; // make it less likely to get new child
 		if (mother.mother != null) mother.mother.childrenBirthMali += 0.5; // make it less likely to get new child for each grandkid
+		if (this.father != null) this.father.childrenBirthMali += 0.5;
 
 		this.age = 0.01;
 		this.trueAge = 0.01;
@@ -1118,6 +1122,27 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return personColorByBiome;
 	}
 
+	private static function GetFittestFather(child:GlobalPlayerInstance, mother:GlobalPlayerInstance):GlobalPlayerInstance {
+		var bestFather:GlobalPlayerInstance = null;
+		var fitness = -1000.0;
+
+		for (p in AllPlayers) {
+			var tmpFitness = CalculateFatherFitness(p, child, mother);
+
+			//trace('Spawn As Child: father fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
+			//trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
+
+			if (tmpFitness < -100) continue;
+
+			if (tmpFitness > fitness || bestFather == null) {
+				bestFather = p;
+				fitness = tmpFitness;
+			}
+		}
+
+		return bestFather;
+	}
+
 	private static function GetFittestMother(child:GlobalPlayerInstance):GlobalPlayerInstance {
 		var mother:GlobalPlayerInstance = null;
 		var fitness = -1000.0;
@@ -1130,11 +1155,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// search fertile mother
 		for (p in AllPlayers) {
 			var tmpFitness = CalculateMotherFitness(p, child);
-
-			trace('Spawn As Child: Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
-			//trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
-
+			
 			if (tmpFitness < -100) continue;
+
+			p.potentialMate = GetFittestFather(child, p);
+
+			var fatherFitness = p.potentialMate != null ? CalculateFatherFitness(p.potentialMate, child, p) : -50;
+			var fatherName = p.potentialMate != null ? ${p.potentialMate.name} : '';
+			tmpFitness += fatherFitness / 2;
+			
+			trace('Spawn As Child: ${p.name} ${p.familyName} MFitness: ${Math.round(tmpFitness * 10) / 10} $fatherName VFitness: ${Math.round(fatherFitness * 10) / 10}');
+			//trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
 
 			if (tmpFitness > fitness || mother == null) {
 				mother = p;
@@ -1155,6 +1186,42 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (motherClass == PrestigeClass.Serf && childClass == PrestigeClass.Noble) return -3;
 
 		return 0;
+	}
+
+	private static function CalculateFatherFitness(p:GlobalPlayerInstance, child:GlobalPlayerInstance, mother:GlobalPlayerInstance):Float {
+		var childIsHuman = child.isHuman();
+		var fatherIsHuman = p.isHuman();
+		var quadDist = AiHelper.CalculateDistanceToPlayer(p, mother);
+
+		if (p.deleted) return -1000;
+		if (p.isFemale()) return -1000;
+		if (p.age < ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers) return -1000;
+		if (p.age > 55) return -1000;
+		if (mother.father == p) return -1000;
+		if (quadDist > 10000) return -1000;
+
+		// boni
+		var tmpFitness = 0.0;
+		tmpFitness += p == mother.partner ? 2 : 0; 
+		tmpFitness += p.partner == mother ? 2 : 0; 
+		
+		tmpFitness += p.food_store_max / 10; // the more healthy the more likely
+		tmpFitness += p.calculateClassBoni(mother); // the closer the mother is to same class the better
+		tmpFitness += p.yum_multiplier / 10; // the more health / prestige the more likely 
+
+		// mali
+		tmpFitness -= p.age < 16 ? 2 : 0; 
+		tmpFitness -= p.isCloseRelative(mother) ? 5 : 0; 
+		tmpFitness -= p != mother.partner && mother.partner != null ? 2 : 0; 
+		tmpFitness -= p.isWounded() ? 2 : 0;
+		tmpFitness -= quadDist / 400; // 20 tiles
+		tmpFitness -= p.exhaustion / 5;
+		tmpFitness -= p.childrenBirthMali; // the more children the less likely
+		tmpFitness -= fatherIsHuman && child.isAi() ? ServerSettings.HumanMotherBirthMaliForAiChild : 0;
+		tmpFitness -= p.isAi() && childIsHuman ? ServerSettings.AiMotherBirthMaliForHumanChild : 0;
+		//tmpFitness += CalculateParentChildFitness(p, child);
+
+		return tmpFitness;
 	}
 
 	private static function CalculateMotherFitness(p:GlobalPlayerInstance, child:GlobalPlayerInstance):Float {
@@ -1187,24 +1254,24 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		tmpFitness -= p.heldObject.id != 0 ? 1 : 0; // if player is holding objects
 		tmpFitness -= motherIsHuman && child.isAi() ? ServerSettings.HumanMotherBirthMaliForAiChild : 0;
 		tmpFitness -= p.isAi() && childIsHuman ? ServerSettings.AiMotherBirthMaliForHumanChild : 0;
-		tmpFitness += CalculateMotherChildFitness(p, child);
+		tmpFitness += CalculateParentChildFitness(p, child);	
 
 		return tmpFitness;
 	}
 
-	private static function CalculateMotherChildFitness(mother:GlobalPlayerInstance, child:GlobalPlayerInstance) : Float{	
+	private static function CalculateParentChildFitness(parent:GlobalPlayerInstance, child:GlobalPlayerInstance) : Float{	
 		var fitness = 0.0;
 		var countLittleKids = 0;
 		
 		for(p in AllPlayers){
-			if(p.mother !=mother) continue;
+			if(p.mother != parent && p.father != parent) continue;
 			if(p.deleted) continue;
 
 			// allow more ai kids born to ai and human to human
 			// for example a human can have 3 human kids but only 2 ai kids (plus a human kid)
 			// for example an ai can have 3 ai kids but only 2 human kids (plus an ai kid)
-			var factor = child.isAi() && p.isAi()&& mother.isHuman() ? 2 : 1;
-			if(child.isHuman() && p.isHuman() && mother.isAi()) factor = 2;
+			var factor = child.isAi() && p.isAi()&& parent.isHuman() ? 2 : 1;
+			if(child.isHuman() && p.isHuman() && parent.isAi()) factor = 2;
 
 			fitness -=1 * factor;
 			if(p.age > ServerSettings.MinAgeToEat) continue;
@@ -1214,7 +1281,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if(countLittleKids >= ServerSettings.LittleKidsPerMother) fitness = -1000;
 
-		trace('${mother.name + mother.id} MotherChildFitness: $fitness littlekids: $countLittleKids');
+		trace('${parent.name + parent.id} MotherChildFitness: $fitness littlekids: $countLittleKids');
 		return fitness;
 	}
 
