@@ -335,8 +335,10 @@ abstract class AiBase
 
 	public function searchFoodAndEat() {
 		foodTarget = AiHelper.SearchBestFood(myPlayer);
-		if(foodTarget == null) myPlayer.say('No food found...');
-		else myPlayer.say('new food ${foodTarget.name}');
+		if(ServerSettings.DebugAiSay){
+			if(foodTarget == null) myPlayer.say('No food found...');
+			else myPlayer.say('new food ${foodTarget.name}');
+		}
 		if (ServerSettings.DebugAi && foodTarget != null) trace('AAI: ${myPlayer.name + myPlayer.id} new Foodtarget! ${foodTarget.name}');
 		if (ServerSettings.DebugAi && foodTarget == null) trace('AAI: ${myPlayer.name + myPlayer.id} no new Foodtarget!!!');
 	}
@@ -354,11 +356,11 @@ abstract class AiBase
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done drop goto start $distance');
 
 				if(done){
-					myPlayer.say('Goto start!');
+					if(ServerSettings.DebugAiSay) myPlayer.say('Goto start!');
 					return;
 				}
 				
-				myPlayer.say('Cannot Goto start!');
+				if(ServerSettings.DebugAiSay) myPlayer.say('Cannot Goto start!');
 			}
 		}
 
@@ -656,7 +658,7 @@ abstract class AiBase
 		var childX = child.tx - myPlayer.gx;
 		var childY = child.ty - myPlayer.gy;
 
-		myPlayer.say('Pickup ${child.name}');
+		if(ServerSettings.DebugAiSay) myPlayer.say('Pickup ${child.name}');
 		var done = myPlayer.doBaby(childX, childY, child.id);
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} child ${child.name} pickup $done');
@@ -686,7 +688,7 @@ abstract class AiBase
 		var escapeTy = escapePlayer ? deadlyPlayer.ty : animal.ty;
 		var newEscapetarget = new ObjectHelper(null, 0);
 
-		myPlayer.say('Escape ${description} ${Math.ceil(didNotReachFood)}!');
+		if(ServerSettings.DebugAiSay) myPlayer.say('Escape ${description} ${Math.ceil(didNotReachFood)}!');
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} escape!');
 
 		var done = false;
@@ -818,7 +820,7 @@ abstract class AiBase
 
 			if (itemToCraft.transTarget.name == null) if (ServerSettings.DebugAi)
 				trace('AI: craft WARNING id: ${itemToCraft.transTarget} transTarget.name == null!');
-			myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
+			if(ServerSettings.DebugAiSay) myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
 
 			if (itemToCraft.transActor.id == 0 && player.heldObject.id != 0) {
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop heldobj at start since Empty is needed!');
@@ -835,7 +837,7 @@ abstract class AiBase
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is TIME ');
 				this.time += 1;
 				// TODO wait some time, or better get next obj
-				myPlayer.say('Wait...');
+				if(ServerSettings.DebugAiSay) myPlayer.say('Wait...');
 				itemToCraft.transActor = null;
 				return true;
 			}
@@ -844,7 +846,7 @@ abstract class AiBase
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is PLAYER ');
 
 				// TODO PLAYER interaction not supported yet
-				myPlayer.say('Actor is player!?!');
+				if(ServerSettings.DebugAiSay) myPlayer.say('Actor is player!?!');
 				itemToCraft.transActor = null;
 				return false;
 			}
@@ -852,7 +854,7 @@ abstract class AiBase
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft goto actor: ${itemToCraft.transActor.id} '
 				+ itemToCraft.transActor.name);
 
-			myPlayer.say('Goto actor ' + itemToCraft.transActor.name);
+			if(ServerSettings.DebugAiSay) myPlayer.say('Goto actor ' + itemToCraft.transActor.name);
 
 			dropTarget = itemToCraft.transActor;
 
@@ -1417,7 +1419,7 @@ abstract class AiBase
 
 		if (isHungry && foodTarget == null) searchFoodAndEat();
 
-		if (isHungry) myPlayer.say('F ${Math.round(myPlayer.getPlayerInstance().food_store)}'); // TODO for debugging
+		if(ServerSettings.DebugAiSay) if (isHungry) myPlayer.say('F ${Math.round(myPlayer.getPlayerInstance().food_store)}'); // TODO for debugging
 		if (isHungry && myPlayer.age < ServerSettings.MaxChildAgeForBreastFeeding) myPlayer.say('F');
 
 		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');
@@ -1457,8 +1459,10 @@ abstract class AiBase
 			var done = myPlayer.gotoObj(useTarget);
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto useItem ${name} $done');
 
-			if (done) myPlayer.say('Goto ${name} for use!'); else
-				myPlayer.say('Cannot Goto ${name} for use!');
+			if(ServerSettings.DebugAiSay){
+				if (done) myPlayer.say('Goto ${name} for use!');
+				else myPlayer.say('Cannot Goto ${name} for use!');
+			}
 
 			/*
 				if(done == false)
