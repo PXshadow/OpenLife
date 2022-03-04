@@ -1248,6 +1248,8 @@ abstract class AiBase
 	}
 
 	private function isMovingToPlayer(maxDistance = 3, followHuman:Bool = true):Bool {
+		if(playerToFollow != null && playerToFollow.isDeleted()) playerToFollow = null;
+		
 		if (playerToFollow == null) {
 			if (isChildAndHasMother()) {
 				playerToFollow = myPlayer.getFollowPlayer();
@@ -1255,11 +1257,11 @@ abstract class AiBase
 				// get close human player
 				playerToFollow = myPlayer.getWorld().getClosestPlayer(20, followHuman);
 
-				if (playerToFollow == null) return false;
-
 				// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} follow player ${playerToFollow.p_id}');
 			}
 		}
+
+		if (playerToFollow == null) return false;
 
 		maxDistance = maxDistance * maxDistance;
 		
