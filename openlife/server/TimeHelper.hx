@@ -212,7 +212,7 @@ class TimeHelper {
 
 		if (TimeHelper.tick % 30 == 0) Macro.exception(UpdateEmotes(player));
 
-		if (TimeHelper.tick % 80 == 0) Macro.exception(DisplayStuff(player));
+		if (TimeHelper.tick % 70 == 0) Macro.exception(DisplayStuff(player));
 
 		return true;
 	}
@@ -222,11 +222,12 @@ class TimeHelper {
 
 		GlobalPlayerInstance.DisplayBestFood(player);
 
-		var animal = AiHelper.GetCloseDeadlyAnimal(player, 10, true);
+		/*var animal = AiHelper.GetCloseDeadlyAnimal(player, 10, true);
 		if (animal != null) {
 			var dist = AiHelper.CalculateDistanceToObject(player, animal);
 			if (dist > 10) player.connection.send(ClientTag.LOCATION_SAYS, ['${animal.tx - player.gx} ${animal.ty - player.gy} !']);
-		}
+		}*/
+		AiHelper.DisplayCloseDeadlyAnimals(player);
 
 		var count = 0;
 		var maxDistance = ServerSettings.DisplayPlayerNamesDistance * ServerSettings.DisplayPlayerNamesDistance;

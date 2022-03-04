@@ -2,6 +2,7 @@ package openlife.auto;
 
 import haxe.ds.Vector;
 import openlife.auto.Pathfinder.Coordinate;
+import openlife.client.ClientTag;
 import openlife.data.Pos;
 import openlife.data.map.MapData;
 import openlife.data.object.ObjectData;
@@ -659,7 +660,11 @@ class AiHelper {
 		// transitionForObject.transitions.push(transition);
 	}
 
-	public static function GetCloseDeadlyAnimal(player:PlayerInterface, searchDistance:Int = 6, showAllways:Bool = false):ObjectHelper {
+	public static function DisplayCloseDeadlyAnimals(player:PlayerInterface, searchDistance:Int = 6){
+		GetCloseDeadlyAnimal(player, searchDistance, true);
+	}
+
+	public static function GetCloseDeadlyAnimal(player:PlayerInterface, searchDistance:Int = 6, display:Bool = false):ObjectHelper {
 		// AiHelper.GetClosestObject
 		var world = WorldMap.world;
 		var playerInst = player.getPlayerInstance();
@@ -682,11 +687,13 @@ class AiHelper {
 				
 				var dist = AiHelper.CalculateDistanceToObject(player, obj);
 
+				if(display) if (dist > 9) cast(player, GlobalPlayerInstance).connection.send(ClientTag.LOCATION_SAYS, ['${obj.tx - player.gx} ${obj.ty - player.gy} !']);
+
 				if (dist > bestDist) continue;
 				// var moveQuadDist = Math.pow(obj.objectData.moves + 1, 2);
 				// trace('GetCloseDeadlyAnimal: $dist <= $bestDist moveQuadDist: $moveQuadDist ${obj.name}');
 				//if (dist > Math.pow(obj.objectData.moves + 1, 2)) continue;			
-                if (showAllways == false && dist > Math.pow(obj.objectData.moves, 2)) continue;
+                if (dist > Math.pow(obj.objectData.moves, 2)) continue;
 
 				bestDist = dist;
 				bestObj = obj;
