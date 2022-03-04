@@ -628,6 +628,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				obj.exiledByPlayers[id] = AllPlayers[id];
 				trace('read exiled Players ${obj.name} --> Exiled by: ${obj.exiledByPlayers[id].name}');
 			}
+
+			if(obj.hiddenWound != null && obj.hiddenWound.id == obj.heldObject.id) obj.hiddenWound = obj.heldObject;
 		}
 
 		trace('read $count Players...');
