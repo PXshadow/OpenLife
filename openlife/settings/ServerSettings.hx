@@ -336,14 +336,21 @@ class ServerSettings {
 		// ObjectData.getObjectData(141).biomes.push(BiomeTag.PASSABLERIVER); // Canada Goose Pond
 		// ObjectData.getObjectData(121).biomes.push(BiomeTag.PASSABLERIVER); // Tule Reeds
 		ObjectData.getObjectData(141).secondTimeOutcome = 142; // Canada Goose Pond ==> Canada Goose Pond swimming
-		ObjectData.getObjectData(141).secondTimeOutcomeTimeToChange = 15;
-
+		ObjectData.getObjectData(141).secondTimeOutcomeTimeToChange = 30;
+		
 		ObjectData.getObjectData(142).secondTimeOutcome = 1261; // Canada Goose Pond swimming ==> Canada Goose Pond with Egg
 		ObjectData.getObjectData(142).secondTimeOutcomeTimeToChange = 60 * 10;
 
 		ObjectData.getObjectData(1261).secondTimeOutcome = 142; // Canada Goose Pond with Egg ==> Canada Goose Pond swimming
 		ObjectData.getObjectData(1261).secondTimeOutcomeTimeToChange = 60 * 4;
 
+		ObjectData.getObjectData(141).countsOrGrowsAs = 1261; // Canada Goose Pond
+		ObjectData.getObjectData(142).countsOrGrowsAs = 1261; // Canada Goose Pond swimming
+		ObjectData.getObjectData(510).countsOrGrowsAs = 1261; // Pond with Dead Goose plu arrow
+		ObjectData.getObjectData(509).countsOrGrowsAs = 1261; // Pond with Dead Goose
+		ObjectData.getObjectData(511).countsOrGrowsAs = 1261; // Pond
+		ObjectData.getObjectData(512).countsOrGrowsAs = 1261; // Dry Pond
+		
 		ObjectData.getObjectData(164).secondTimeOutcome = 173; // Rabbit Hole out,single ==> Rabbit Family Hole out
 		ObjectData.getObjectData(164).secondTimeOutcomeTimeToChange = 30;
 
@@ -377,7 +384,7 @@ class ServerSettings {
 		ObjectData.getObjectData(418).mapChance *= 1.2; // more Happy Wolfs
 		ObjectData.getObjectData(418).speedMult *= 1.5; // Boost Wolfs even more :)
 
-		ObjectData.getObjectData(764).mapChance *= 1.5; // more snakes needs the world!
+		ObjectData.getObjectData(764).mapChance *= 5; // more snakes needs the world!
 
 		ObjectData.getObjectData(411).speedMult = 0.8; // Fertile Soil Reduced carring speed
 		ObjectData.getObjectData(345).speedMult = 0.8; // Butt Log
