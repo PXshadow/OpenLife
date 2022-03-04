@@ -171,9 +171,10 @@ class AiHelper {
 				if(feedOther && player.canFeedToMeObj(objData) == false) continue;
 				if (player.food_store_max - player.food_store < Math.ceil(originalFoodValue / 4)) continue;				
 
-				var quadDistance = 16 + AiHelper.CalculateDistance(baseX, baseY, tx, ty);
-
 				var countEaten = player.getCountEaten(foodId);
+				var quadDistance = 16 + AiHelper.CalculateDistance(baseX, baseY, tx, ty);
+				if(feedingPlayer != null) quadDistance += 1 + AiHelper.CalculateDistance(feedingPlayer.tx, feedingPlayer.ty, tx, ty);
+
 				foodValue -= countEaten;
 				var isYum = countEaten < ServerSettings.YumBonus;
 				var isSuperMeh = foodValue < originalFoodValue / 2; // can eat if food_store < 0
@@ -184,7 +185,7 @@ class AiHelper {
 				if (isSuperMeh && player.food_store > 1) foodValue = 0;
 				if (foodId == player.getCraving()) foodValue *= Math.pow(starvingFactor, 2);
 
-				if (quadDistance < 0.5) quadDistance = 0.5;
+				if (quadDistance < 1) quadDistance = 1;
 				// distance = Math.sqrt(distance);
 
 				if (bestFood == null || foodValue / quadDistance > bestFoodValue / bestDistance) {
