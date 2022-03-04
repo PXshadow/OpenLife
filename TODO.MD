@@ -306,7 +306,6 @@ Yellow fever:
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
-- fathers
 - better fences / allow to climb over fences, but get wounded / make destroyable if not protected by close gate)
 - special stuff like hercules / snake master / super fast ager 
 - job boni
@@ -360,7 +359,6 @@ High priority:
 - ANIMALS fix they wont sometimes display as moving / DONE???
 
 - BIRTH consider deadly animals
-- BIRTH fathers
 
 - MAP use bigger map (Europe?) / create tool to auto create map
 

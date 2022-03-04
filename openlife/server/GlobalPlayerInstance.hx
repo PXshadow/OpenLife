@@ -779,11 +779,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		Connection.SendFollowingToAll(this);
 
 		if (this.mother != null && this.age < ServerSettings.MinAgeToEat) {
-			if (this.mother.isHuman()) mother.connection.sendMapLocation(this, 'BABY', 'baby'); else
+			mother.doEmote(Emote.love);
+
+			if (this.mother.isHuman())
+				mother.connection.sendMapLocation(this, 'BABY', 'baby');
+			else
 				mother.connection.serverAi.ai.newChild(this);
 		}
 
 		if (this.father != null && this.age < ServerSettings.MinAgeToEat) {
+			father.doEmote(Emote.love);
+			
 			if (this.father.isHuman()) father.connection.sendMapLocation(this, 'BABY', 'baby'); else
 				father.connection.serverAi.ai.newChild(this);
 		}
