@@ -1278,7 +1278,7 @@ abstract class AiBase
 			if (myPlayer.isAi()) if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} dist: $quadDistance goto player $done');
 
-			return true;
+			if(done) return true;
 		}
 
 		return false;
