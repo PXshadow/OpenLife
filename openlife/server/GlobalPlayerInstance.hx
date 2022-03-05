@@ -3835,6 +3835,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.hits -= 5;
 			if (player.hits < 0) player.hits = 0;
 
+			if(player.heldObject.isWound()) player.heldObject.timeToChange = 1;
+
 			player.food_store_max = player.calculateFoodStoreMax();
 
 			if (player.woundedBy != 0 && player.hits < 1) {
@@ -3936,6 +3938,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			TimeHelper.ReadServerSettings = false; // otherwise they will be loaded from file again
 			ServerSettings.DebugAi = ServerSettings.DebugAi ? false : true; 
 			player.say('debug ai: ${ServerSettings.DebugAi}', true);
+			return true;
+		}
+		else if (text.indexOf('!TP') != -1) {
+
+			player.x = 2 - player.gx;
+			player.y = 40 - player.gy;
+
+			player.forced = true;
+			Connection.SendUpdateToAllClosePlayers(player);
+			player.forced = false;
+
+			player.connection.sendMapChunk(player.x, player.y);
+
+			player.say('Teleport', true);
 			return true;
 		}
 
