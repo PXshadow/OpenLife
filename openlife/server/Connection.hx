@@ -450,8 +450,9 @@ class Connection {
 
 			for (c in connections) {
 				// since player has relative coordinates, transform them for player
-				var targetX = tx - c.player.gx;
-				var targetY = ty - c.player.gy;
+				var player = c.player;
+				var targetX = WorldMap.world.transformX(player, tx);
+				var targetY = WorldMap.world.transformY(player, ty);
 
 				// update only close players
 				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsCloseForMapChanges) == false) continue;
@@ -472,15 +473,17 @@ class Connection {
 		try {
 			var floorIdTarget = Server.server.map.getFloorId(toTx, toTy);
 			var floorIdFrom = Server.server.map.getFloorId(fromTx, fromTy);
+			var world = WorldMap.world;
 
 			for (c in connections) {
 				var player = c.player;
 
-				// since player has relative coordinates, transform them for player
-				var fromX = fromTx - player.gx;
-				var fromY = fromTy - player.gy;
-				var toX = toTx - player.gx;
-				var toY = toTy - player.gy;
+				// since player has relative coordinates, transform them for player				
+				var fromX = world.transformX(player, fromTx);
+				var fromY = world.transformY(player, fromTy);
+				var toX = world.transformX(player, toTx);
+				var toY = world.transformY(player, toTy);
+				//trace('fromX: $fromXTmp ==> $fromX fromY: $fromYTmp ==> $fromY');
 
 				// update only close players
 				if (player.isClose(toX, toY, ServerSettings.MaxDistanceToBeConsideredAsCloseForMapChanges) == false
