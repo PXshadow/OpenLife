@@ -74,8 +74,13 @@ class MoveHelper {
 	}
 
 	public function isCloseUseExact(targetTx:Float, targetTy:Float, distance:Float = 1):Bool {
-		var xDiff = this.exactTx - targetTx;
-		var yDiff = this.exactTy - targetTy;
+		var rx = WorldMap.world.transformFloatX(player, targetTx);
+		var ry = WorldMap.world.transformFloatY(player, targetTy);
+		var xDiff = this.exactTx - this.player.gx - rx;
+		var yDiff = this.exactTy - this.player.gy - ry;
+
+		//var xDiff = this.exactTx - targetTx;
+		//var yDiff = this.exactTy - targetTy;
 
 		return (xDiff * xDiff + yDiff * yDiff <= distance * distance);
 	}

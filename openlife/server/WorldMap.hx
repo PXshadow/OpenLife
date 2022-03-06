@@ -1314,5 +1314,23 @@ class WorldMap {
 		// TODO consider if walked more then one time round the world
 		return y;
 	}
+
+	public function transformFloatX(p:GlobalPlayerInstance, tx:Float) {
+		var x = tx - p.gx; // make relative to player
+		if(x - p.x > this.width / 2) x -= this.width; // consider that would is round
+		else if(x - p.x < -this.width / 2) x += this.width; // consider that would is round
+
+		// TODO consider if walked more then one time round the world
+		return x;
+	}
+
+	public function transformFloatY(p:GlobalPlayerInstance, ty:Float) {
+		var y = ty - p.gy; // make relative to player
+		if(y - p.y > this.height / 2) y -= this.height; // consider that would is round
+		else if(y - p.y < -this.height / 2) y += this.height; // consider that would is round
+
+		// TODO consider if walked more then one time round the world
+		return y;
+	}
 }
 #end
