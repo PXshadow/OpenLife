@@ -1430,10 +1430,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	/** works with coordinates relative to the player **/ // TODO does not consider round map
 	public function isClose(x:Int, y:Int, distance:Int = 1):Bool {
-		var xDiff = this.x - x;
-		var yDiff = this.y - y;
+		var quadDist = AiHelper.CalculateDistance(this.x, this.y, x, y);
+		//var xDiff = this.x - x;
+		//var yDiff = this.y - y;
 
-		return (xDiff * xDiff + yDiff * yDiff <= distance * distance);
+		//return (xDiff * xDiff + yDiff * yDiff <= distance * distance);
+		return quadDist <= distance * distance;
 	}
 
 	public function isCloseToPlayerUseExact(target:GlobalPlayerInstance, distance:Float = 1):Bool {
@@ -1955,7 +1957,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// only feed drugs if ill! // 837 Psilocybe Mushroom
 		if (heldObject.objectData.isDrugs() && targetPlayer.isIll() == false) return false;
 
-		if (this.isClose(targetPlayer.tx - this.gx, targetPlayer.ty - this.gy) == false) {
+		if (this.isCloseToPlayer(targetPlayer) == false) {
 			trace('doOnOtherHelper: Target position is too far away player: ${this.tx},${this.ty} target: ${targetPlayer.tx},${targetPlayer.ty}');
 			return false;
 		}
