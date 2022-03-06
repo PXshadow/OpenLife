@@ -2007,7 +2007,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public static function GetPlayerAt(tx:Int, ty:Int, playerId:Int):GlobalPlayerInstance {
-		trace('GetPlayerAt $tx $ty $playerId');
+		//trace('GetPlayerAt $tx $ty $playerId');
 
 		for (player in GlobalPlayerInstance.AllPlayers) {
 			if (player.deleted) continue;
