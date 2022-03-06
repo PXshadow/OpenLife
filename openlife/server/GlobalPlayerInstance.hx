@@ -3954,6 +3954,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.say('Teleport', true);
 			return true;
 		}
+		else if (text.indexOf('!SPEED') != -1) {
+			if(ServerSettings.SpeedFactor < 2) ServerSettings.SpeedFactor = 10;
+			else ServerSettings.SpeedFactor = 1;
+
+			player.say('Changed Speed!', true);
+			return true;
+		}
 
 		return false;
 	}
