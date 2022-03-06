@@ -1379,15 +1379,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	// TODO better use relative toData which transforms x,y to relative position
-	public function toRelativeData(forPlayer:PlayerInstance):String {
-		var heldObject = o_id[0] < 0 ? '${o_id[0]}' : MapData.stringID(o_id);
+	public function toRelativeData(forPlayer:GlobalPlayerInstance):String {	
+		var rx = WorldMap.world.transformX(forPlayer, tx);
+		var ry = WorldMap.world.transformY(forPlayer, ty);
+		var r_action_target_x = WorldMap.world.transformX(forPlayer, action_target_x);
+		var r_action_target_y = WorldMap.world.transformY(forPlayer, action_target_y);
+		var r_o_origin_x = WorldMap.world.transformX(forPlayer, o_origin_x);
+		var r_o_origin_y = WorldMap.world.transformY(forPlayer, o_origin_y);
 
-		return toData(tx
-			- forPlayer.gx, ty
-			- forPlayer.gy, Std.int(age * 100) / 100, Std.int(age_r * 100) / 100, Std.int(move_speed * 100) / 100, heldObject,
-			this.gx
-			- forPlayer.gx, this.gy
-			- forPlayer.gy);
+		//var heldObject = o_id[0] < 0 ? '${o_id[0]}' : MapData.stringID(o_id);
+		//var ageTmp = Std.int(age * 100) / 100;
+		//var age_rTmp = Std.int(age_r * 100) / 100;
+		//var move_speedTmp = Std.int(move_speed * 100) / 100;
+
+		return toData(rx, ry, r_action_target_x, r_action_target_y, r_o_origin_x, r_o_origin_y);
 	}
 
 	/*

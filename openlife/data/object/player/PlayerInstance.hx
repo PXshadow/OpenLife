@@ -1,11 +1,11 @@
 package openlife.data.object.player;
 
-import openlife.server.ServerAi;
-import openlife.server.GlobalPlayerInstance;
 import openlife.client.ClientTag;
-import openlife.server.Connection;
-import openlife.settings.ServerSettings;
 import openlife.data.map.MapData;
+import openlife.server.Connection;
+import openlife.server.GlobalPlayerInstance;
+import openlife.server.ServerAi;
+import openlife.settings.ServerSettings;
 
 @:expose("PlayerInstance")
 @:rtti
@@ -307,21 +307,24 @@ class PlayerInstance {
 		return string;
 	}
 
-	public function toData(?rx:Int, ?ry:Int, ?age:Float, ?age_r:Float, ?move_speed:Float, heldObject:String = "", forPlayerOffsetX:Int = 0,
-			forPlayerOffsetY:Int = 0):String {
+	public function toData(?rx:Int, ?ry:Int, ?r_action_target_x:Int, ?r_action_target_y:Int, ?r_o_origin_x:Int, ?r_o_origin_y:Int):String {
 		// o_origin_valid = 1;
-		if (heldObject == "") heldObject = o_id[0] < 0 ? '${o_id[0]}' : MapData.stringID(o_id);
+		var heldObject = o_id[0] < 0 ? '${o_id[0]}' : MapData.stringID(o_id);
 		if (rx == null) rx = this.x;
 		if (ry == null) ry = this.y;
-		if (age == null) age = this.age;
-		if (age_r == null) age_r = this.age_r;
-		if (move_speed == null) move_speed = this.move_speed;
+		if(r_action_target_x == null) r_action_target_x = action_target_x;
+		if(r_action_target_y == null) r_action_target_y = action_target_y;
+		if(r_o_origin_x == null) r_o_origin_x = o_origin_x;
+		if(r_o_origin_y == null) r_o_origin_y = o_origin_y;
+
+		//if (age == null) age = this.age;
+		//if (age_r == null) age_r = this.age_r;
+		//if (move_speed == null) move_speed = this.move_speed;
 
 		var tmpHeat = Std.int(heat * 100) / 100;
-		age = Std.int(age * 100) / 100;
-		age_r = Std.int(age_r * 100) / 100;
-		move_speed = Std.int(move_speed * 100) / 100;
-
+		var tmpAge = Std.int(age * 100) / 100;
+		var tmpAge_r = Std.int(age_r * 100) / 100;
+		var tmpMove_speed = Std.int(move_speed * 100) / 100;
 		var seqNum = isHeld() || isMoving() ? 0 : done_moving_seqNum;
 
 		// trace('TODATA: ${name} $x $y + $gx $gy = $tx $ty r: $rx $ry seqNum: ${seqNum} isHeld: ${isHeld()} isMoving: ${isMoving()} ');
@@ -337,17 +340,17 @@ class PlayerInstance {
 				seqNum = 0; // set is held
 				player.food_store = 10;
 				player.hits = 0;
-				var putext = '1 $po_id $facing $action ${action_target_x + forPlayerOffsetX} ${action_target_y + forPlayerOffsetY} $heldObject $o_origin_valid ${o_origin_x + forPlayerOffsetX} ${o_origin_y + forPlayerOffsetY} $o_transition_source_id $tmpHeat $seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${Std.int(age * 100) / 100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
+				var putext = '1 $po_id $facing $action ${r_action_target_x} ${r_action_target_y} $heldObject $o_origin_valid ${r_o_origin_x} ${r_o_origin_y} $o_transition_source_id $tmpHeat $seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${tmpAge} $tmpAge_r $tmpMove_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
 				player.connection.send(ClientTag.PLAYER_UPDATE, [putext], false);
 
 				heldObject = '${-1}';
 				// predent there is a dog that is carring me arrond
 				return
-					'$p_id 1658 $facing $action ${action_target_x + forPlayerOffsetX} ${action_target_y + forPlayerOffsetY} $heldObject $o_origin_valid ${o_origin_x + forPlayerOffsetX} ${o_origin_y + forPlayerOffsetY} $o_transition_source_id $tmpHeat $seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${Std.int(age * 100) / 100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
+					'$p_id 1658 $facing $action ${r_action_target_x} ${r_action_target_y} $heldObject $o_origin_valid ${r_o_origin_x} ${r_o_origin_y} $o_transition_source_id $tmpHeat $seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${tmpAge} $tmpAge_r $tmpMove_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
 			}
 		}
 
-		var putext = '$p_id $po_id $facing $action ${action_target_x + forPlayerOffsetX} ${action_target_y + forPlayerOffsetY} $heldObject $o_origin_valid ${o_origin_x + forPlayerOffsetX} ${o_origin_y + forPlayerOffsetY} $o_transition_source_id $tmpHeat $seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${Std.int(age * 100) / 100} $age_r $move_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
+		var putext = '$p_id $po_id $facing $action ${r_action_target_x} ${r_action_target_y} $heldObject $o_origin_valid ${r_o_origin_x} ${r_o_origin_y} $o_transition_source_id $tmpHeat $seqNum ${(forced ? "1" : "0")} ${deleted ? 'X X' : '$rx $ry'} ${tmpAge} $tmpAge_r $tmpMove_speed $clothing_set $just_ate $last_ate_id $responsible_id ${(held_yum ? "1" : "0")} ${(held_learned ? "1" : "0")} ${deleted ? reason : ''}';
 		return putext;
 	}
 }
