@@ -283,9 +283,12 @@ class AiHelper {
 		var startTime = Sys.time();
 		var ai = player.getAi();
 		var rand = 0;
-		var x = tx - player.gx;
-		var y = ty - player.gy;
-		var dist = AiHelper.CalculateDistance(player.x, player.y, tx - player.gx, ty - player.gy);
+		var rx = WorldMap.world.transformX(player, tx);
+		var ry = WorldMap.world.transformY(player, ty);
+		//var x = tx - player.gx;
+		//var y = ty - player.gy;
+
+		var dist = AiHelper.CalculateDistance(player.tx, player.ty, tx, ty);
 		var blockedByAnimal = false;
 
 		if(ai == null){
@@ -311,7 +314,7 @@ class AiHelper {
 			if (player.isBlocked(tx + xo, ty + yo)) continue;
 			if (ai.isObjectNotReachable(tx + xo, ty + yo)) continue;
 
-			var done = Goto(player, x + xo, y + yo, considerAnimals, move);
+			var done = Goto(player, rx + xo, ry + yo, considerAnimals, move);
 
 			var passedTime = (Sys.time() - startTime) * 1000;
 
@@ -323,7 +326,7 @@ class AiHelper {
 			// check if blocked only by animals // used for not to consider the object as blocked
 			if(considerAnimals && blockedByAnimal == false)
 			{
-				blockedByAnimal = Goto(player, x + xo, y + yo, false, move);
+				blockedByAnimal = Goto(player, rx + xo, ry + yo, false, move);
 			}
 
 			if (passedTime > ServerSettings.GotoTimeOut) {
