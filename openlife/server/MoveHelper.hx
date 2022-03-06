@@ -440,6 +440,33 @@ class MoveHelper {
 			return;
 		}
 
+		// since world is round check if moved one time around the world
+		var width = WorldMap.world.width;
+		var height = WorldMap.world.height;
+		var tmpX = p.x;
+		var tmpY = p.y;
+
+		if(p.x >= width) p.x -= width; 
+		if(p.x <= -width) p.x += width; 
+		if(p.y >= height) p.y -= height; 
+		if(p.y <= -height) p.y += height; 
+
+		if(tmpX != p.x || tmpY != p.y){
+			trace('${p.name + p.id} MOVED one time around the world! $tmpX,$tmpY ==> ${p.x},${p.y}');
+			
+			p.moveHelper.tx = p.tx;
+			p.moveHelper.ty = p.ty;
+			p.moveHelper.exactTx = p.tx;
+			p.moveHelper.exactTy = p.ty;
+			p.done_moving_seqNum = seq;
+			p.forced = true;
+			p.connection.send(PLAYER_UPDATE, [p.toData()]);
+			p.forced = false;
+
+			p.connection.sendMapChunk(p.x, p.y);
+			return;
+		}
+
 		var jump = (p.x != x || p.y != y);
 		var tx = x + p.gx;
 		var ty = y + p.gy;
