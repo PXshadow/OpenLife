@@ -186,33 +186,37 @@ class Connection {
 	public static function SendLocationToAllClose(tx:Int, ty:Int, text:String) {
 		for (c in connections) {
 			// since player has relative coordinates, transform them for player
-			var targetX = tx - c.player.gx;
-			var targetY = ty - c.player.gy;
+			var player = c.player;
+			var targetX = WorldMap.world.transformX(player, tx);
+			var targetY = WorldMap.world.transformY(player, ty);
 
 			if (c.player.isClose(targetX, targetY, 20) == false) continue;
 			c.send(ClientTag.LOCATION_SAYS, ['${targetX} ${targetY} $text']);
 		}
 	}
 
-	public static function SendUpdateToAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true, sendFrame:Bool = true) {
+	public static function SendUpdateToAllClosePlayers(playerToSend:GlobalPlayerInstance, isPlayerAction:Bool = true, sendFrame:Bool = true) {
 		try {
-			player.MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed(); // TODO better change, since it can mess with other threads
+			playerToSend.MakeSureHoldObjIdAndDummyIsSetRightAndNullObjUsed(); // TODO better change, since it can mess with other threads
 
 			for (c in connections) {
 				// since player has relative coordinates, transform them for player
-				var targetX = player.tx - c.player.gx;
-				var targetY = player.ty - c.player.gy;
+				//var targetX = player.tx - c.player.gx;
+				//var targetY = player.ty - c.player.gy;
+				var player = c.player;
+				var targetX = WorldMap.world.transformX(player, playerToSend.tx);
+				var targetY = WorldMap.world.transformY(player, playerToSend.ty);
 
 				// update only close players except if player is deleted (death)
-				if (player.deleted == false
+				if (playerToSend.deleted == false
 					&& c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
 
-				c.send(PLAYER_UPDATE, [player.toRelativeData(c.player)], isPlayerAction);
+				c.send(PLAYER_UPDATE, [playerToSend.toRelativeData(c.player)], isPlayerAction);
 				if (sendFrame) c.send(FRAME, null, isPlayerAction);
 			}
 
 			for (ai in ais) {
-				ai.ai.playerUpdate(player);
+				ai.ai.playerUpdate(playerToSend);
 			}
 		} catch (ex)
 			trace(ex);
@@ -247,11 +251,12 @@ class Connection {
 		if (playerToSend.deleted) return;
 		if (playerToSend.isHeld()) return;
 
-		var player = this.player;
-
 		// since player has relative coordinates, transform them for player
-		var targetX = playerToSend.tx - player.gx;
-		var targetY = playerToSend.ty - player.gy;
+		//var targetX = playerToSend.tx - player.gx;
+		//var targetY = playerToSend.ty - player.gy;
+		var player = this.player;
+		var targetX = WorldMap.world.transformX(player, playerToSend.tx);
+		var targetY = WorldMap.world.transformY(player, playerToSend.ty);
 
 		// update only close players
 		if (player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) {
@@ -413,8 +418,11 @@ class Connection {
 		try {
 			for (c in connections) {
 				// since player has relative coordinates, transform them for player
-				var targetX = tx - c.player.gx;
-				var targetY = ty - c.player.gy;
+				//var targetX = tx - c.player.gx;
+				//var targetY = ty - c.player.gy;
+				var p = c.player;
+				var targetX = WorldMap.world.transformX(p, tx);
+				var targetY = WorldMap.world.transformY(p, ty);
 
 				// update only close players
 				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
@@ -432,8 +440,11 @@ class Connection {
 
 			for (c in ais) {
 				// since player has relative coordinates, transform them for player
-				var targetX = tx - c.player.gx;
-				var targetY = ty - c.player.gy;
+				//var targetX = tx - c.player.gx;
+				//var targetY = ty - c.player.gy;
+				var p = c.player;
+				var targetX = WorldMap.world.transformX(p, tx);
+				var targetY = WorldMap.world.transformY(p, ty);
 
 				// update only close players
 				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
@@ -502,10 +513,10 @@ class Connection {
 				var player = c.player;
 
 				// since player has relative coordinates, transform them for player
-				var fromX = fromTx - player.gx;
-				var fromY = fromTy - player.gy;
-				var toX = toTx - player.gx;
-				var toY = toTy - player.gy;
+				var fromX = world.transformX(player, fromTx);
+				var fromY = world.transformY(player, fromTy);
+				var toX = world.transformX(player, toTx);
+				var toY = world.transformY(player, toTy);
 
 				// update only close players
 				if (player.isClose(toX, toY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false
@@ -521,8 +532,11 @@ class Connection {
 		try {
 			for (c in connections) {
 				// since player has relative coordinates, transform them for player
-				var targetX = player.tx - c.player.gx;
-				var targetY = player.ty - c.player.gy;
+				//var targetX = player.tx - c.player.gx;
+				//var targetY = player.ty - c.player.gy;
+				var p = c.player;
+				var targetX = WorldMap.world.transformX(p, player.tx);
+				var targetY = WorldMap.world.transformY(p, player.ty);
 
 				// update only close players
 				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
@@ -538,8 +552,11 @@ class Connection {
 
 			for (c in ais) {
 				// since player has relative coordinates, transform them for player
-				var targetX = player.tx - c.player.gx;
-				var targetY = player.ty - c.player.gy;
+				//var targetX = player.tx - c.player.gx;
+				//var targetY = player.ty - c.player.gy;
+				var p = c.player;
+				var targetX = WorldMap.world.transformX(p, player.tx);
+				var targetY = WorldMap.world.transformY(p, player.ty);
 
 				// update only close players
 				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
@@ -712,8 +729,11 @@ class Connection {
 		try {
 			for (c in ais) {
 				// since player has relative coordinates, transform them for player
-				var targetX = fromPlayer.tx - c.player.gx;
-				var targetY = fromPlayer.ty - c.player.gy;
+				//var targetX = fromPlayer.tx - c.player.gx;
+				//var targetY = fromPlayer.ty - c.player.gy;
+				var p = c.player;
+				var targetX = WorldMap.world.transformX(p, fromPlayer.tx);
+				var targetY = WorldMap.world.transformY(p, fromPlayer.ty);
 
 				// update only close players
 				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
@@ -726,8 +746,11 @@ class Connection {
 
 	private static function DoHumanPlayerEmote(fromPlayer:GlobalPlayerInstance, toConnection:Connection, id:Int, seconds:Int = -10) {
 		// since player has relative coordinates, transform them for player
-		var targetX = fromPlayer.tx - toConnection.player.gx;
-		var targetY = fromPlayer.ty - toConnection.player.gy;
+		//var targetX = fromPlayer.tx - toConnection.player.gx;
+		//var targetY = fromPlayer.ty - toConnection.player.gy;
+		var p = toConnection.player;
+		var targetX = WorldMap.world.transformX(p, fromPlayer.tx);
+		var targetY = WorldMap.world.transformY(p, fromPlayer.ty);
 
 		// update only close players
 		if (toConnection.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) return;
@@ -872,10 +895,12 @@ class Connection {
 		nextPlayer->ys - 
 		otherToFollow->birthPos.y );
 	**/
+
 	public function sendMapLocation(toPlayer:GlobalPlayerInstance, text1:String, text2:String) {
 		var player = this.player;
-		var message = '${player.p_id}/0 $text1 *$text2 ${toPlayer.p_id} *map ${toPlayer.tx - player.gx} ${toPlayer.ty - player.gy}';
-
+		//var message = '${player.p_id}/0 $text1 *$text2 ${toPlayer.p_id} *map ${toPlayer.tx - player.gx} ${toPlayer.ty - player.gy}';
+		var message = '${player.p_id}/0 $text1 *$text2 ${toPlayer.p_id} *map ${WorldMap.world.transformX(player, toPlayer.tx)} ${WorldMap.world.transformY(player, toPlayer.ty)}';
+		
 		trace('MAPSAY: $message');
 
 		this.send(ClientTag.PLAYER_SAYS, [message], true);
@@ -944,8 +969,11 @@ class Connection {
 	**/
 	public static function SendGraveInfoToAll(grave:ObjectHelper) {
 		for (c in connections) {
-			var x = grave.tx - c.player.gx;
-			var y = grave.ty - c.player.gy;
+			//var x = grave.tx - c.player.gx;
+			//var y = grave.ty - c.player.gy;
+			var p = c.player;
+			var x = WorldMap.world.transformX(p, grave.tx);
+			var y = WorldMap.world.transformY(p, grave.ty);
 
 			c.send(GRAVE, ['$x $y ${grave.getCreatorId()}']);
 		}
