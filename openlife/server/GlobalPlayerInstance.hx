@@ -1943,7 +1943,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (this.o_id[0] < 0) return false; // is holding player	
 
-		var targetPlayer = getPlayerAt(x, y, playerId);
+		var targetPlayer = getPlayerAt(x + gx, y + gy, playerId);
 		if (targetPlayer == null) {
 			trace('doOnOtherHelper: could not find target player! ${infos.methodName}');
 			// throw new Exception('');
@@ -1998,12 +1998,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return false;
 	}
 
-	public function getPlayerAt(x:Int, y:Int, playerId:Int):GlobalPlayerInstance {
-		return GetPlayerAt(x, y, playerId);
+	public function getPlayerAt(tx:Int, ty:Int, playerId:Int):GlobalPlayerInstance {
+		return GetPlayerAt(tx, ty, playerId);
 	}
 
-	public static function GetPlayerAt(x:Int, y:Int, playerId:Int):GlobalPlayerInstance {
-		trace('GetPlayerAt $x $y $playerId');
+	public static function GetPlayerAt(tx:Int, ty:Int, playerId:Int):GlobalPlayerInstance {
+		trace('GetPlayerAt $tx $ty $playerId');
 
 		for (player in GlobalPlayerInstance.AllPlayers) {
 			if (player.deleted) continue;
@@ -2011,8 +2011,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (player.p_id == playerId) return player;
 
 			if (playerId <= 0) {
+				// TODO test
+				var rx = WorldMap.world.transformX(player, tx); 
+				var ry = WorldMap.world.transformY(player, ty); 
 
-				//if (player.x == x && player.y == y) return player;
+				if (player.x == rx && player.y == ry) return player;
 			}
 		}
 
@@ -3202,7 +3205,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// TODO stop movement if hit
 		// TODO block movement if not ally (with weapon?)
 
-		var targetPlayer = getPlayerAt(this.tx + x, this.tx + y, playerId);
+		var targetPlayer = getPlayerAt(this.gx + x, this.gy + y, playerId);
 		var name = targetPlayer == null ? 'not found!' : ${targetPlayer.name};
 		var deadlyDistance = this.heldObject.objectData.deadlyDistance;
 
@@ -3610,11 +3613,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this specifies a specific person to pick up, if more than one is
 		close to the target tile.**/
 	public function doBaby(x:Int, y:Int, playerId:Int):Bool // playerId = -1 if no specific player is slected
-	{
-		var done = false;
-		var targetPlayer = getPlayerAt(this.tx + x, this.tx + y, playerId);
+	{		
+		var targetPlayer = getPlayerAt(this.gx + x, this.gy + y, playerId);
 
-		// trace('doBaby($x, $y playerId: $playerId)');
+		//if (targetPlayer != null) trace('doBaby($x, $y playerId: $playerId ${this.gx + x},${this.gy + y} == ${targetPlayer.tx}, ${targetPlayer.ty})');
 
 		AllPlayerMutex.acquire();
 
