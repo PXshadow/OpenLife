@@ -659,7 +659,7 @@ class TimeHelper {
 				heldPlayer.food_store += food;
 				foodDecay += food / 2;
 
-				if (heldPlayer.hits > 0) heldPlayer.hits -= timePassedInSeconds * 0.2;
+				//if (heldPlayer.hits > 0) heldPlayer.hits -= timePassedInSeconds * 0.2;
 
 				var hasChanged = tmpFood != Math.ceil(heldPlayer.food_store);
 				if (hasChanged) {
@@ -668,6 +668,10 @@ class TimeHelper {
 				}
 
 				// trace('feeding: $food foodDecay: $foodDecay');
+			}
+
+			if (heldPlayer.hits > 0){
+				heldPlayer.hits -= timePassedInSeconds * 0.2;
 			}
 		}
 
