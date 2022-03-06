@@ -7,6 +7,7 @@ import haxe.Serializer;
 import haxe.macro.Expr.Catch;
 import openlife.auto.Ai;
 import openlife.auto.AiBase;
+import openlife.auto.PlayerInterface;
 import openlife.auto.WorldInterface;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.player.PlayerInstance;
@@ -1297,7 +1298,7 @@ class WorldMap {
 		}
 	}
 
-	public function transformX(p:GlobalPlayerInstance, tx:Int) {
+	public function transformX(p:PlayerInterface, tx:Int) {
 		var x = tx - p.gx; // make relative to player
 		if(x - p.x > this.width / 2) x -= this.width; // consider that would is round
 		else if(x - p.x < -this.width / 2) x += this.width; // consider that would is round
@@ -1306,7 +1307,7 @@ class WorldMap {
 		return x;
 	}
 
-	public function transformY(p:GlobalPlayerInstance, ty:Int) {
+	public function transformY(p:PlayerInterface, ty:Int) {
 		var y = ty - p.gy; // make relative to player
 		if(y - p.y > this.height / 2) y -= this.height; // consider that would is round
 		else if(y - p.y < -this.height / 2) y += this.height; // consider that would is round
@@ -1315,7 +1316,7 @@ class WorldMap {
 		return y;
 	}
 
-	public function transformFloatX(p:GlobalPlayerInstance, tx:Float) {
+	public function transformFloatX(p:PlayerInterface, tx:Float) {
 		var x = tx - p.gx; // make relative to player
 		if(x - p.x > this.width / 2) x -= this.width; // consider that would is round
 		else if(x - p.x < -this.width / 2) x += this.width; // consider that would is round
@@ -1324,7 +1325,7 @@ class WorldMap {
 		return x;
 	}
 
-	public function transformFloatY(p:GlobalPlayerInstance, ty:Float) {
+	public function transformFloatY(p:PlayerInterface, ty:Float) {
 		var y = ty - p.gy; // make relative to player
 		if(y - p.y > this.height / 2) y -= this.height; // consider that would is round
 		else if(y - p.y < -this.height / 2) y += this.height; // consider that would is round

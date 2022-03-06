@@ -19,11 +19,17 @@ class AiHelper {
 	static final RAD:Int = MapData.RAD; // search radius
 
 	public static function CalculateDistanceToPlayer(player:PlayerInterface, playerTo:PlayerInterface):Float {
-		return CalculateDistance(player.tx, player.ty, playerTo.tx, playerTo.ty);
+		var rx = WorldMap.world.transformX(player, playerTo.tx);
+		var ry = WorldMap.world.transformY(player, playerTo.ty);
+
+		return CalculateDistance(player.x, player.y, rx, ry);
 	}
 
 	public static function CalculateDistanceToObject(player:PlayerInterface, obj:ObjectHelper):Float {
-		return CalculateDistance(player.tx, player.ty, obj.tx, obj.ty);
+		var rx = WorldMap.world.transformX(player, obj.tx);
+		var ry = WorldMap.world.transformY(player, obj.ty);
+
+		return CalculateDistance(player.x, player.y, rx, ry);
 	}
 
 	// TODO does not consider round map
@@ -80,7 +86,7 @@ class AiHelper {
 
 					if (ownedByPlayer && obj.isOwnedByPlayer(playerInterface) == false) continue;
 
-					var distance = AiHelper.CalculateDistance(baseX, baseY, obj.tx, obj.ty);
+					var distance = AiHelper.CalculateDistanceToObject(playerInterface, obj);
 
 					if (closestObject == null || distance < bestDistance) {
 						closestObject = obj;
