@@ -22,6 +22,7 @@ class ServerSettings {
 	public static var DebugEating = false;
 	public static var DebugCombat = false;
 	public static var DebugPlayer = false;
+	public static var DebugSayPlayerPosition = false;
 
 	public static var AllowDebugCommmands = true; // can create objects with saying "!create ID" / "!create object" "!create object!" with ! indicating that object ends with "object" or test wounds with using "!hit" or "!heal"
 	public static var DebugWrite = false; // WordMap writeToDisk

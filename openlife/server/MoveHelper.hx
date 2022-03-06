@@ -324,6 +324,8 @@ class MoveHelper {
 
 			if (p.connection.serverAi != null) p.connection.serverAi.ai.finishedMovement();
 
+			if(ServerSettings.DebugSayPlayerPosition && p.isHuman()) p.say('${p.tx} ${p.ty}');
+
 			// if(ServerSettings.DebugMoveHelper) trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
 		}
 	}
