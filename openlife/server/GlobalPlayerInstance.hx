@@ -1420,10 +1420,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function isCloseToPlayer(player:GlobalPlayerInstance, distance:Int = 1) {
-		var targetX = player.tx - this.gx;
-		var targetY = player.ty - this.gy;
+		var qaudDist = AiHelper.CalculateDistanceToPlayer(this, player);
+		//var targetX = player.tx - this.gx;
+		//var targetY = player.ty - this.gy;
 
-		return isClose(targetX, targetY, distance);
+		//return isClose(targetX, targetY, distance);
+		return qaudDist <= distance * distance;
 	}
 
 	/** works with coordinates relative to the player **/ // TODO does not consider round map
