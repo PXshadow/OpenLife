@@ -1015,6 +1015,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.trueAge = 0.01;
 		gx = mother.tx;
 		gy = mother.ty;
+		if(gx < 0) gx += WorldMap.world.width;
+		if(gx >= WorldMap.world.width) gx -= WorldMap.world.width;
+		if(gy < 0) gy += WorldMap.world.height;
+		if(gy >= WorldMap.world.height) gy -= WorldMap.world.height;
 
 		var motherColor = mother.getColor();
 		var color = motherColor;
