@@ -22,19 +22,33 @@ class AiHelper {
 		var rx = WorldMap.world.transformX(player, playerTo.tx);
 		var ry = WorldMap.world.transformY(player, playerTo.ty);
 
-		return CalculateDistance(player.x, player.y, rx, ry);
+		return CalculateDistanceHelper(player.x, player.y, rx, ry);
 	}
 
 	public static function CalculateDistanceToObject(player:PlayerInterface, obj:ObjectHelper):Float {
 		var rx = WorldMap.world.transformX(player, obj.tx);
 		var ry = WorldMap.world.transformY(player, obj.ty);
 
-		return CalculateDistance(player.x, player.y, rx, ry);
+		return CalculateDistanceHelper(player.x, player.y, rx, ry);
 	}
 
-	// TODO does not consider round map
-	public static function CalculateDistance(baseX:Int, baseY:Int, toX:Int, toY:Int):Float {
+	public static function CalculateDistanceHelper(baseX:Int, baseY:Int, toX:Int, toY:Int):Float {
 		return (toX - baseX) * (toX - baseX) + (toY - baseY) * (toY - baseY);
+	}
+
+	// does consider round map
+	public static function CalculateDistance(baseX:Int, baseY:Int, toX:Int, toY:Int):Float {
+		var diffX = toX - baseX;
+		var diffY = toY - baseY;
+		var width = WorldMap.world.width;
+		var height = WorldMap.world.height;
+
+		if(diffX > width / 2) diffX -= width; // consider that world is round
+		else if(diffX < -width / 2) diffX += width; // consider that world is round
+		if(diffY > height / 2) diffY -= height; // consider that world is round
+		else if(diffY < -height / 2) diffY += height; // consider that world is round
+
+		return diffX * diffX + diffY * diffY;
 	}
 
 	public static function GetClosestObjectOwnedByPlayer(playerInterface:PlayerInterface, searchDistance:Int = 10):ObjectHelper {

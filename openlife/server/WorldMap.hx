@@ -1300,8 +1300,8 @@ class WorldMap {
 
 	public function transformX(p:PlayerInterface, tx:Int) {
 		var x = tx - p.gx; // make relative to player
-		if(x - p.x > this.width / 2) x -= this.width; // consider that would is round
-		else if(x - p.x < -this.width / 2) x += this.width; // consider that would is round
+		if(x - p.x > this.width / 2) x -= this.width; // consider that world is round
+		else if(x - p.x < -this.width / 2) x += this.width; // consider that world is round
 
 		// TODO consider if walked more then one time round the world
 		return x;
@@ -1309,8 +1309,8 @@ class WorldMap {
 
 	public function transformY(p:PlayerInterface, ty:Int) {
 		var y = ty - p.gy; // make relative to player
-		if(y - p.y > this.height / 2) y -= this.height; // consider that would is round
-		else if(y - p.y < -this.height / 2) y += this.height; // consider that would is round
+		if(y - p.y > this.height / 2) y -= this.height; // consider that world is round
+		else if(y - p.y < -this.height / 2) y += this.height; // consider that world is round
 
 		// TODO consider if walked more then one time round the world
 		return y;
@@ -1318,8 +1318,8 @@ class WorldMap {
 
 	public function transformFloatX(p:PlayerInterface, tx:Float) {
 		var x = tx - p.gx; // make relative to player
-		if(x - p.x > this.width / 2) x -= this.width; // consider that would is round
-		else if(x - p.x < -this.width / 2) x += this.width; // consider that would is round
+		if(x - p.x > this.width / 2) x -= this.width; // consider that world is round
+		else if(x - p.x < -this.width / 2) x += this.width; // consider that world is round
 
 		// TODO consider if walked more then one time round the world
 		return x;
@@ -1327,8 +1327,8 @@ class WorldMap {
 
 	public function transformFloatY(p:PlayerInterface, ty:Float) {
 		var y = ty - p.gy; // make relative to player
-		if(y - p.y > this.height / 2) y -= this.height; // consider that would is round
-		else if(y - p.y < -this.height / 2) y += this.height; // consider that would is round
+		if(y - p.y > this.height / 2) y -= this.height; // consider that world is round
+		else if(y - p.y < -this.height / 2) y += this.height; // consider that world is round
 
 		// TODO consider if walked more then one time round the world
 		return y;
