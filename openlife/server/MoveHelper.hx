@@ -572,8 +572,10 @@ class MoveHelper {
 
 	public function generateRelativeMoveUpdateString(forPlayer:GlobalPlayerInstance):String {
 		var totalMoveTime = Math.round(this.totalMoveTime * 100) / 100;
-		var targetX = player.tx - forPlayer.gx;
-		var targetY = player.ty - forPlayer.gy;
+		//var targetX = player.tx - forPlayer.gx;
+		//var targetY = player.ty - forPlayer.gy;
+		var targetX = WorldMap.world.transformX(forPlayer, player.tx);
+		var targetY = WorldMap.world.transformY(forPlayer, player.ty);		
 		var eta = totalMoveTime - TimeHelper.CalculateTimeSinceTicksInSec(startingMoveTicks);
 
 		var moveString = '${player.p_id} ${targetX} ${targetY} ${totalMoveTime} $eta ${newMovements.trunc} ${moveString(newMoves)}';
