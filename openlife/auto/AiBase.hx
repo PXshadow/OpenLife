@@ -269,7 +269,13 @@ abstract class AiBase
 		itemToCraftId = cravingId;
 		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
 
-		if(myPlayer.age > ServerSettings.MinAgeToEat) myPlayer.say('nothing to do...');
+		time += 2.5;
+		
+		if(myPlayer.age > ServerSettings.MinAgeToEat){
+			var rand = WorldMap.calculateRandomFloat();
+			if(rand < 0.8) myPlayer.say('nothing to do...');
+			else myPlayer.say('say make xxx to give me some work!');
+		}
 	}
 
 	public function say(player:PlayerInterface, curse:Bool, text:String) {
