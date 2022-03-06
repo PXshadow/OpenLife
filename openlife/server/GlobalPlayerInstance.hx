@@ -1384,18 +1384,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	// TODO better use relative toData which transforms x,y to relative position
 	public function toRelativeData(forPlayer:GlobalPlayerInstance):String {	
+		
 		var rx = WorldMap.world.transformX(forPlayer, tx);
 		var ry = WorldMap.world.transformY(forPlayer, ty);
-		var r_action_target_x = WorldMap.world.transformX(forPlayer, action_target_x);
-		var r_action_target_y = WorldMap.world.transformY(forPlayer, action_target_y);
-		var r_o_origin_x = WorldMap.world.transformX(forPlayer, o_origin_x);
-		var r_o_origin_y = WorldMap.world.transformY(forPlayer, o_origin_y);
+		var r_action_target_x = WorldMap.world.transformX(forPlayer, action_target_x + gx);
+		var r_action_target_y = WorldMap.world.transformY(forPlayer, action_target_y + gy);
+		var r_o_origin_x = WorldMap.world.transformX(forPlayer, o_origin_x + gx);
+		var r_o_origin_y = WorldMap.world.transformY(forPlayer, o_origin_y + gy);	
 
 		//var heldObject = o_id[0] < 0 ? '${o_id[0]}' : MapData.stringID(o_id);
 		//var ageTmp = Std.int(age * 100) / 100;
 		//var age_rTmp = Std.int(age_r * 100) / 100;
 		//var move_speedTmp = Std.int(move_speed * 100) / 100;
 
+		//var rx = tx - forPlayer.gx;
+		//var ry = ty - forPlayer.gy;
+		
 		return toData(rx, ry, r_action_target_x, r_action_target_y, r_o_origin_x, r_o_origin_y);
 	}
 
@@ -1999,13 +2003,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public static function GetPlayerAt(x:Int, y:Int, playerId:Int):GlobalPlayerInstance {
+		trace('GetPlayerAt $x $y $playerId');
+
 		for (player in GlobalPlayerInstance.AllPlayers) {
 			if (player.deleted) continue;
 
 			if (player.p_id == playerId) return player;
 
 			if (playerId <= 0) {
-				if (player.x == x && player.y == y) return player;
+
+				//if (player.x == x && player.y == y) return player;
 			}
 		}
 
