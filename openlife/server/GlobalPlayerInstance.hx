@@ -4187,7 +4187,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function isWounded():Bool {
-		return this.heldObject.isWound();
+		return this.heldObject.isWound() && this.heldObject.id != this.hiddenWound.id;
 	}
 
 	public function isAlly(target:GlobalPlayerInstance):Bool {

@@ -230,7 +230,7 @@ class TimeHelper {
 		{
 			var quadDist = AiHelper.CalculateDistanceToPlayer(player, p);
 			
-			if(quadDist < 25) continue;
+			if(quadDist < 64) continue;
 			if(quadDist > maxDistance) continue;
 			
 			var name = player.mother == p ? 'MOTHER' : p.name;
@@ -240,6 +240,10 @@ class TimeHelper {
 			var ry = WorldMap.world.transformY(player, p.ty);
 			var dist = Math.round(Math.sqrt(quadDist));
 			if(ServerSettings.DisplayPlayerNamesShowDistance && dist > 4) name += '_${dist}M';
+
+			//player.connection.send(PLAYER_UPDATE, [p.toRelativeData(player)], false);
+			//player.connection.send(PLAYER_SAYS, ['${p.id}/$0 $name']);
+
 			player.connection.send(ClientTag.LOCATION_SAYS, ['${rx} ${ry} ${name}']);
 
 			count++;
