@@ -212,7 +212,7 @@ class TimeHelper {
 
 		if (TimeHelper.tick % 30 == 0) Macro.exception(UpdateEmotes(player));
 
-		if (TimeHelper.tick % 70 == 0) Macro.exception(DisplayStuff(player));
+		if (TimeHelper.tick % 80 == 0) Macro.exception(DisplayStuff(player));
 
 		return true;
 	}
@@ -222,11 +222,6 @@ class TimeHelper {
 
 		GlobalPlayerInstance.DisplayBestFood(player);
 
-		/*var animal = AiHelper.GetCloseDeadlyAnimal(player, 10, true);
-		if (animal != null) {
-			var dist = AiHelper.CalculateDistanceToObject(player, animal);
-			if (dist > 10) player.connection.send(ClientTag.LOCATION_SAYS, ['${animal.tx - player.gx} ${animal.ty - player.gy} !']);
-		}*/
 		AiHelper.DisplayCloseDeadlyAnimals(player);
 
 		var count = 0;
@@ -241,7 +236,11 @@ class TimeHelper {
 			var name = player.mother == p ? 'MOTHER' : p.name;
 			if(player.partner == p) name = 'PARTNER';
 			if(player.father == p) name = 'FATHER';
-			player.connection.send(ClientTag.LOCATION_SAYS, ['${p.tx - player.gx} ${p.ty - player.gy} ${name}']);
+			var rx = WorldMap.world.transformX(player, p.tx);
+			var ry = WorldMap.world.transformY(player, p.ty);
+			var dist = Math.round(Math.sqrt(quadDist));
+			if(ServerSettings.DisplayPlayerNamesShowDistance && dist > 4) name += '_${dist}M';
+			player.connection.send(ClientTag.LOCATION_SAYS, ['${rx} ${ry} ${name}']);
 
 			count++;
 			if(count >= ServerSettings.DisplayPlayerNamesMaxPlayer) break;
