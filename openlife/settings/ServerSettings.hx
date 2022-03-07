@@ -75,7 +75,7 @@ class ServerSettings {
 	// Display
 	public static var DisplayScoreFactor:Float = 1; // if display score multiply with factor X
 	public static var DisplayYumAndMehFood = false;
-	public static var DisplayPlayerNamesDistance = 30; 
+	public static var DisplayPlayerNamesDistance = 40; 
 	public static var DisplayPlayerNamesShowDistance = true; 
 	public static var DisplayPlayerNamesMaxPlayer = 3; 
 

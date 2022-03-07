@@ -212,7 +212,7 @@ class TimeHelper {
 
 		if (TimeHelper.tick % 30 == 0) Macro.exception(UpdateEmotes(player));
 
-		if (TimeHelper.tick % 80 == 0) Macro.exception(DisplayStuff(player));
+		if (TimeHelper.tick % 100 == 0) Macro.exception(DisplayStuff(player));
 
 		return true;
 	}
@@ -230,7 +230,7 @@ class TimeHelper {
 		{
 			var quadDist = AiHelper.CalculateDistanceToPlayer(player, p);
 			
-			if(quadDist < 64) continue;
+			if(quadDist < 100) continue;
 			if(quadDist > maxDistance) continue;
 			
 			var name = player.mother == p ? 'MOTHER' : p.name;
