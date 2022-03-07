@@ -353,6 +353,8 @@ abstract class AiBase
 		// var myPlayer = myPlayer.getPlayerInstance();
 
 		if (myPlayer.heldObject.id == 0) return;
+		if (myPlayer.heldObject.isWound()) return;
+		if (myPlayer.heldObject == myPlayer.hiddenWound) return; // you cannot drop a smal wound
 
 		if (dropOnStart && itemToCraft.startLocation != null) {
 			var distance = myPlayer.CalculateDistanceToObject(itemToCraft.startLocation);
@@ -655,7 +657,7 @@ abstract class AiBase
 			return true;
 		}
 
-		if (myPlayer.heldObject.id != 0) {
+		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop obj for feeding child');
 			dropHeldObject();
 			return true;
@@ -828,7 +830,7 @@ abstract class AiBase
 				trace('AI: craft WARNING id: ${itemToCraft.transTarget} transTarget.name == null!');
 			if(ServerSettings.DebugAiSay) myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
 
-			if (itemToCraft.transActor.id == 0 && player.heldObject.id != 0) {
+			if (itemToCraft.transActor.id == 0 && player.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop heldobj at start since Empty is needed!');
 				dropHeldObject(true);
 				return true;
@@ -864,7 +866,7 @@ abstract class AiBase
 
 			dropTarget = itemToCraft.transActor;
 
-			if (player.heldObject.id != 0) {
+			if (player.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop obj to pickup ${itemToCraft.transActor.name}');
 				dropHeldObject(true);
 				return true;
@@ -1369,7 +1371,7 @@ abstract class AiBase
 
 		// if(ServerSettings.DebugAi) trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
 
-		if (myPlayer.heldObject.id != 0) {
+		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to pickup food');
 			dropHeldObject();
 			return true;
@@ -1495,7 +1497,7 @@ abstract class AiBase
 		}
 
 		// Drop object to pickup actor
-		if (myPlayer.heldObject.id != 0 && useActor.id == 0) {
+		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound && useActor.id == 0) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop obj to to have empty hand');
 			dropHeldObject();
 			return true;
