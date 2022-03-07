@@ -49,7 +49,7 @@ import openlife.data.object.ObjectHelper;
 	public var SSNOWINGREY = 0.01;
 	public var SOCEAN = 0.01;
 	public var SRIVER = 0.01;
-	public var SPASSABLERIVER = 0.8; // 0.6;
+	public var SPASSABLERIVER = 0.98; // 0.8;
 }
 
 // Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
