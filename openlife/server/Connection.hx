@@ -5,6 +5,7 @@ import openlife.data.map.MapData;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.macros.Macro;
+import openlife.server.Biome.BiomeTag;
 import openlife.settings.ServerSettings;
 #if (target.threaded)
 import haxe.io.Bytes;
@@ -143,6 +144,15 @@ class Connection {
 		if (player.mother != null) this.sendMapLocation(player.mother, 'MOTHER', 'leader');
 
 		send(FRAME, null, true);
+
+		// bID DISPLAY_NAME
+		var badbiomes = '';
+		badbiomes += '${BiomeTag.SNOWINGREY} MOUNTAIN\n';
+		badbiomes += '${BiomeTag.RIVER} RIVER\n';
+		badbiomes += '${BiomeTag.OCEAN} OCEAN\n';
+		badbiomes += '${BiomeTag.SWAMP} SWAMP\n';
+		
+		send(BAD_BIOMES, [badbiomes]);
 	}
 
 	public static function getConnections():Array<Connection> {
