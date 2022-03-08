@@ -3751,8 +3751,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		heldPlayer.responsible_id = player.p_id;
 		heldPlayer.done_moving_seqNum += 1;
 
+		player.action = 1;
+		player.action_target_x = x;
+		player.action_target_y = y;
+
 		Connection.SendUpdateToAllClosePlayers(heldPlayer, true, false);
 		Connection.SendUpdateToAllClosePlayers(player, true);
+
+		player.action = 0;
 
 		heldPlayer.forced = false;
 		heldPlayer.responsible_id = -1;
