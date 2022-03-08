@@ -8,6 +8,7 @@ import openlife.auto.AiHelper;
 import openlife.auto.PlayerInterface;
 import openlife.auto.WorldInterface;
 import openlife.client.ClientTag;
+import openlife.data.Point;
 import openlife.data.Pos;
 import openlife.data.map.MapData;
 import openlife.data.object.ObjectData;
@@ -178,6 +179,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var displayBiomeAnimal = true; // not saved
 	public var partner:GlobalPlayerInstance = null; // not saved yet
 	public var potentialMate:GlobalPlayerInstance = null; // not saved 
+
+	public var locationSaysPositions = new Array<Point>(); // mp need to be saved
 	
 	// set all stuff null so that nothing is hanging around
 	public function delete() {

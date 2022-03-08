@@ -5,6 +5,7 @@ import openlife.auto.Ai;
 import openlife.auto.AiBase;
 import openlife.auto.AiHelper;
 import openlife.client.ClientTag;
+import openlife.data.Point;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.data.transition.TransitionData;
@@ -212,11 +213,11 @@ class TimeHelper {
 
 		if (TimeHelper.tick % 30 == 0) Macro.exception(UpdateEmotes(player));
 
-		if (TimeHelper.tick % 100 == 0) Macro.exception(DisplayStuff(player));
+		if (TimeHelper.tick % 50 == 0) Macro.exception(DisplayStuff(player));
 
 		return true;
 	}
-
+	
 	private static function DisplayStuff(player:GlobalPlayerInstance) {
 		if (player.isHuman() == false) return;
 
@@ -224,13 +225,19 @@ class TimeHelper {
 
 		AiHelper.DisplayCloseDeadlyAnimals(player);
 
+		for(point in player.locationSaysPositions){
+			player.connection.send(ClientTag.LOCATION_SAYS, ['${point.x} ${point.y} ']);
+		}
+
+		player.locationSaysPositions = new Array<Point>();
+
 		var count = 0;
 		var maxDistance = ServerSettings.DisplayPlayerNamesDistance * ServerSettings.DisplayPlayerNamesDistance;
 		for(p in GlobalPlayerInstance.AllPlayers)
 		{
 			var quadDist = AiHelper.CalculateDistanceToPlayer(player, p);
 			
-			if(quadDist < 100) continue;
+			if(quadDist < 64) continue;
 			if(quadDist > maxDistance) continue;
 			
 			var name = player.mother == p ? 'MOTHER' : p.name;
@@ -245,7 +252,8 @@ class TimeHelper {
 			//player.connection.send(PLAYER_SAYS, ['${p.id}/$0 $name']);
 
 			player.connection.send(ClientTag.LOCATION_SAYS, ['${rx} ${ry} ${name}']);
-
+			player.locationSaysPositions.push(new Point(rx,ry));
+			
 			count++;
 			if(count >= ServerSettings.DisplayPlayerNamesMaxPlayer) break;
 		}
