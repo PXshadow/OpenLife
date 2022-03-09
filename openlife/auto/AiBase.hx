@@ -372,12 +372,29 @@ abstract class AiBase
 			}
 		}
 
-		var emptyTileObj = myPlayer.GetClosestObjectById(0); // empty
-		dropTarget = emptyTileObj;
+		var newDropTarget = null;
+		var pileId = myPlayer.heldObject.objectData.getPileObjId();
+		if(pileId > 0){
+			newDropTarget = myPlayer.GetClosestObjectById(pileId, 4); 
+			if(newDropTarget != null && newDropTarget.numberOfUses >= newDropTarget.objectData.numUses) newDropTarget = null;
+			if(newDropTarget != null)  trace('AAI: ${myPlayer.name + myPlayer.id} drop on pile: $pileId');
+		}
 
+		// start a new pile?
+		if(newDropTarget == null && pileId > 0) newDropTarget = myPlayer.GetClosestObjectById(myPlayer.heldObject.id, 4);
+		// get empty tile
+		if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectById(0);
+
+		if (newDropTarget.id == 0) this.dropTarget = newDropTarget;
+		else{
+			useTarget = newDropTarget;
+			useActor = new ObjectHelper(null, myPlayer.heldObject.id);
+		}
+		
 		// if(itemToCraft.transTarget.parentId == myPlayer.heldObject.parentId)
 
-		if (ServerSettings.DebugAi) trace('Drop ${emptyTileObj.tx} ${emptyTileObj.ty} $emptyTileObj');
+		if (ServerSettings.DebugAi && newDropTarget != null) trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} new target: ${newDropTarget.name}');
+		if (ServerSettings.DebugAi && newDropTarget == null) trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} new target: null!!!');
 		// x,y is relativ to birth position, since this is the center of the universe for a player
 		// if(emptyTileObj != null) playerInterface.drop(emptyTileObj.tx - myPlayer.gx, emptyTileObj.ty - myPlayer.gy);
 	}
@@ -809,8 +826,10 @@ abstract class AiBase
 		// set position where to craft the object
 		if (itemToCraft.startLocation == null && itemToCraft.transTarget != null) {
 			itemToCraft.startLocation = new ObjectHelper(null, 0);
-			itemToCraft.startLocation.tx = myPlayer.tx; // itemToCraft.transTarget.tx;
-			itemToCraft.startLocation.ty = myPlayer.ty; // itemToCraft.transTarget.ty;
+			//itemToCraft.startLocation.tx = myPlayer.tx; // itemToCraft.transTarget.tx;
+			//itemToCraft.startLocation.ty = myPlayer.ty; // itemToCraft.transTarget.ty;
+			itemToCraft.startLocation.tx = itemToCraft.transTarget.tx;
+			itemToCraft.startLocation.ty = itemToCraft.transTarget.ty;
 		}
 
 		if (itemToCraft.transActor == null) {
@@ -823,8 +842,7 @@ abstract class AiBase
 
 		// if(player.heldObject.parentId == itemToCraft.transActor.parentId)
 		if (player.heldObject.parentId == itemToCraft.transActor.parentId || itemToCraft.transActor.id == 0) {
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is held already ${itemToCraft.transActor.id} or Empty '
-				+ itemToCraft.transActor.name);
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} is held already or Empty');
 
 			if (itemToCraft.transTarget.name == null) if (ServerSettings.DebugAi)
 				trace('AI: craft WARNING id: ${itemToCraft.transTarget} transTarget.name == null!');
@@ -1040,11 +1058,13 @@ abstract class AiBase
 		var transitionsByObjectId = itemToCraft.transitionsByObjectId;
 		var wanted = transitionsByObjectId[wantedId];
 		var objToCraftId = itemToCraft.itemToCraft.parentId;
+		var objToCraftPileId = itemToCraft.itemToCraft.getPileObjId();
 
 		for (trans in transitions) {
 			// if(ServerSettings.DebugAi) trace('Ai: craft: ' + trans.getDesciption());
 			if (trans.actorID == wantedId || trans.actorID == objToCraftId) continue;
 			if (trans.targetID == wantedId || trans.targetID == objToCraftId) continue;
+			if (objToCraftPileId > 0 && trans.targetID == objToCraftPileId) continue;
 
 			// a oven needs 15 sec to warm up this is ok, but waiting for mushroom to grow is little bit too long!
 			if (trans.calculateTimeToChange() > ServerSettings.AiIgnoreTimeTransitionsLongerThen) continue;
@@ -1315,9 +1335,9 @@ abstract class AiBase
 				//dropTarget = myPlayer.GetClosestObjectById(0); // empty
 			//}
 
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto drop: $done ${dropTarget.name} distance: $distance');
 			if (done == false) dropTarget = null;
 
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto drop: $done ${dropTarget.name} distance: $distance');
 			return true;			
 		} 		
 

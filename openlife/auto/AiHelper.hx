@@ -59,9 +59,9 @@ class AiHelper {
 		return (GetClosestObject(playerInterface, null, searchDistance, null, true));
 	}
 
-	public static function GetClosestObjectById(playerInterface:PlayerInterface, objId:Int, ignoreObj:ObjectHelper = null):ObjectHelper {
+	public static function GetClosestObjectById(playerInterface:PlayerInterface, objId:Int, ignoreObj:ObjectHelper = null, searchDistance:Int = 16):ObjectHelper {
 		var objData = ObjectData.getObjectData(objId);
-		return GetClosestObject(playerInterface, objData, ignoreObj);
+		return GetClosestObject(playerInterface, objData, searchDistance, ignoreObj);
 	}
 
 	private static function GetName(objId:Int):String {
@@ -71,6 +71,8 @@ class AiHelper {
 	public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData, searchDistance:Int = 16,
 			ignoreObj:ObjectHelper = null, findClosestHeat:Bool = false, ownedByPlayer:Bool = false):ObjectHelper {
 		// var RAD = ServerSettings.AiMaxSearchRadius
+		//if(objDataToSearch != null) trace('GetClosestObject: ${objDataToSearch.name} dis: $searchDistance ignoreObj: ${ignoreObj != null}');
+		
 		var ai = playerInterface.getAi();
 		var world = playerInterface.getWorld();
 		var player = playerInterface.getPlayerInstance();
