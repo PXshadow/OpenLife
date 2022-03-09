@@ -2520,7 +2520,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (objClothingSlot > -1 && clothingSlot != 2 && clothingSlot != 3) clothingSlot = objClothingSlot;
 		}
 
-		trace('self: ${playerFrom.o_id[0]} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
+		if (ServerSettings.DebugPlayer) trace('self: ${playerFrom.o_id[0]} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
 
 		if (clothingSlot < 0) return false;
 
@@ -2532,7 +2532,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// var tmp = Std.parseInt(array[clothingSlot]);
 		array[clothingSlot] = '${playerTo.clothingObjects[clothingSlot].toString()}';
 		playerTo.clothing_set = '${array[0]};${array[1]};${array[2]};${array[3]};${array[4]};${array[5]}';
-		trace('this.clothing_set: ${playerTo.clothing_set}');
+		if (ServerSettings.DebugPlayer) trace('this.clothing_set: ${playerTo.clothing_set}');
 
 		playerFrom.action = 0;
 

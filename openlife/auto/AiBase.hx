@@ -1420,19 +1420,28 @@ abstract class AiBase
 	private function isPickingupCloths() {
 		var clothings = myPlayer.GetCloseClothings();
 		var slot = myPlayer.heldObject.objectData.getClothingSlot();
-
-		if(slot >= 0 && myPlayer.clothingObjects[slot].id == 0){
-			trace('AAI: ${myPlayer.name + myPlayer.id} swith cloth ${myPlayer.heldObject.name} slot: $slot');
-			myPlayer.self();
-			return true;
+		
+		if(slot >= 0){
+			var switchCloths = myPlayer.clothingObjects[slot].id == 0;
+			
+			if(slot == 2) switchCloths = switchCloths || myPlayer.clothingObjects[3].id == 0;
+			if(switchCloths){
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} switch cloth ${myPlayer.heldObject.name} slot: $slot');
+				myPlayer.self();
+				return true;
+			}
 		}
 
 		for(obj in clothings)
 		{
 			var slot = obj.objectData.getClothingSlot();
-			if(myPlayer.clothingObjects[slot].id == 0){
+			var switchCloths = myPlayer.clothingObjects[slot].id == 0;
+
+			// in case of shoes either one can be needed
+			if(slot == 2) switchCloths = switchCloths || myPlayer.clothingObjects[3].id == 0;
+			if(switchCloths){
 				dropTarget = obj;
-				trace('AAI: ${myPlayer.name + myPlayer.id} pickup clothing: ${obj.name} ${obj.objectData.clothing} slot: ${slot} current: ${myPlayer.clothingObjects[slot].name}');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} pickup clothing: ${obj.name} ${obj.objectData.clothing} slot: ${slot} current: ${myPlayer.clothingObjects[slot].name}');
 				return true;
 			}
 		}
