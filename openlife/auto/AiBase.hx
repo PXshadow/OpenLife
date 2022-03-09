@@ -1418,35 +1418,44 @@ abstract class AiBase
 	}
 
 	private function isPickingupCloths() {
-		var clothings = myPlayer.GetCloseClothings();
-		var slot = myPlayer.heldObject.objectData.getClothingSlot();
+
+		var switchCloths = shouldSwitchCloth(myPlayer.heldObject);
 		
-		if(slot >= 0){
-			var switchCloths = myPlayer.clothingObjects[slot].id == 0;
-			
-			if(slot == 2) switchCloths = switchCloths || myPlayer.clothingObjects[3].id == 0;
-			if(switchCloths){
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} switch cloth ${myPlayer.heldObject.name} slot: $slot');
-				myPlayer.self();
-				return true;
-			}
+		if(switchCloths){
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} switch cloth ${myPlayer.heldObject.name}');
+			myPlayer.self();
+			return true;
 		}
 
+		var clothings = myPlayer.GetCloseClothings();
 		for(obj in clothings)
 		{
-			var slot = obj.objectData.getClothingSlot();
-			var switchCloths = myPlayer.clothingObjects[slot].id == 0;
+			var switchCloths = shouldSwitchCloth(obj);
 
-			// in case of shoes either one can be needed
-			if(slot == 2) switchCloths = switchCloths || myPlayer.clothingObjects[3].id == 0;
 			if(switchCloths){
 				dropTarget = obj;
+				var slot = obj.objectData.getClothingSlot();
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} pickup clothing: ${obj.name} ${obj.objectData.clothing} slot: ${slot} current: ${myPlayer.clothingObjects[slot].name}');
 				return true;
 			}
 		}
  
 		return false;
+	}
+
+	private function shouldSwitchCloth(obj:ObjectHelper) {
+		var slot = obj.objectData.getClothingSlot();
+		
+		if(slot < 0) return false;
+
+		var switchCloths = myPlayer.clothingObjects[slot].id == 0;
+		var isRag = obj.name.contains('RAG '); 
+
+		// in case of shoes either one can be needed
+		if(slot == 2) switchCloths = switchCloths || myPlayer.clothingObjects[3].id == 0;
+		if(isRag == false && myPlayer.clothingObjects[slot].name.contains('RAG ')) switchCloths = true;
+
+		return switchCloths;
 	}
 
 	private function isEating():Bool {
