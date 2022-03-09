@@ -1696,6 +1696,10 @@ class TimeHelper {
 
 	// Called before time. Do tests here!
 	private static function DoTest() {
+		//var objData = ObjectData.getObjectData(2143); // Banana
+		//var id = objData.getPileObjId();
+		//trace('Pile: $id');
+
 		// SerializeHelper.createReadWriteFile();
 
 			/*
