@@ -274,6 +274,8 @@ class ServerSettings {
 	}
 
 	public static function PatchObjectData() {
+		ObjectData.getObjectData(707).clothing = "n"; // ANTARCTIC FUR SEAL
+
 		// allow some smithing on tables // TODO fix time transition for contained obj
 		for (obj in ObjectData.importedObjectData) {
 			if (obj.description.indexOf("+hungryWork") != -1) {

@@ -246,6 +246,7 @@ abstract class AiBase
 		Macro.exception(if (isUsingItem()) return);
 		Macro.exception(if (killAnimal(animal)) return);
 		Macro.exception(if (ServerSettings.AutoFollowPlayer && isMovingToPlayer(20)) return);
+		Macro.exception(if (isPickingupCloths()) return);
 
 		if (myPlayer.isMoving()) return;
 
@@ -1414,6 +1415,29 @@ abstract class AiBase
 		foodTarget = null;
 
 		return true;
+	}
+
+	private function isPickingupCloths() {
+		var clothings = myPlayer.GetCloseClothings();
+		var slot = myPlayer.heldObject.objectData.getClothingSlot();
+
+		if(slot >= 0 && myPlayer.clothingObjects[slot].id == 0){
+			trace('AAI: ${myPlayer.name + myPlayer.id} swith cloth ${myPlayer.heldObject.name} slot: $slot');
+			myPlayer.self();
+			return true;
+		}
+
+		for(obj in clothings)
+		{
+			var slot = obj.objectData.getClothingSlot();
+			if(myPlayer.clothingObjects[slot].id == 0){
+				dropTarget = obj;
+				trace('AAI: ${myPlayer.name + myPlayer.id} pickup clothing: ${obj.name} ${obj.objectData.clothing} slot: ${slot} current: ${myPlayer.clothingObjects[slot].name}');
+				return true;
+			}
+		}
+ 
+		return false;
 	}
 
 	private function isEating():Bool {

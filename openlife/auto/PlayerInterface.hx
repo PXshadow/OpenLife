@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import haxe.ds.Vector;
 import openlife.data.Pos;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
@@ -42,6 +43,8 @@ interface PlayerInterface {
 	public var mother(get, null):PlayerInterface;
 	public var heldObject(default, default):ObjectHelper;
 	public var hiddenWound(default, default):ObjectHelper;
+
+	public var clothingObjects(default, default):Vector<ObjectHelper>;
 
 	public function isDeleted():Bool;
 	public function isHuman():Bool;

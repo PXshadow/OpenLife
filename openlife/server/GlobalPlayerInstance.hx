@@ -2482,7 +2482,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	private static function doSwitchCloths(playerFrom:GlobalPlayerInstance, playerTo:GlobalPlayerInstance, clothingSlot:Int):Bool {
 		if (playerFrom.o_id[0] < 0) return false; // is holding player
 
-		var objClothingSlot = playerFrom.calculateClothingSlot();
+		var objClothingSlot = playerFrom.heldObject.objectData.getClothingSlot();
 
 		if (objClothingSlot < 0 && playerFrom.heldObject.id != 0) return false;
 
@@ -2549,34 +2549,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// this.action = 0;
 
 		return true;
-	}
-
-	private function calculateClothingSlot():Int {
-		var objClothingSlot = -1;
-
-		if (this.o_id[0] < 1) return -1;
-
-		var objectData = ObjectData.getObjectData(this.o_id[0]);
-		// trace("OD: " + objectData.toFileString());
-
-		switch objectData.clothing.charAt(0) {
-			case "h":
-				objClothingSlot = 0; // head
-			case "t":
-				objClothingSlot = 1; // torso
-			case "s":
-				objClothingSlot = 2; // shoes
-			// case "s": objClothingSlot = 3;    // shoes
-			case "b":
-				objClothingSlot = 4; // skirt / trouser
-			case "p":
-				objClothingSlot = 5; // backpack
-		}
-
-		if (ServerSettings.DebugPlayer) trace('objectData.clothing: ${objectData.clothing} objClothingSlot:  ${objClothingSlot}');
-		// trace('clothingSlot:  ${clothingSlot}');
-
-		return objClothingSlot;
 	}
 
 	public function doPlaceObjInClothing(clothingSlot:Int, isDrop:Bool = false):Bool {

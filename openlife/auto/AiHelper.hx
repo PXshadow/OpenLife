@@ -87,6 +87,7 @@ class AiHelper {
 
 				// findClosestHeat == false / since its jused for player temerpature where it does not matter if blocked. Also otherwiese a mutex would be missing since isObjectNotReachable can be used from the AI at same time
 				if (ai != null && findClosestHeat == false && ai.isObjectNotReachable(tx, ty)) continue;
+				if (ai != null && findClosestHeat == false && ai.isObjectWithHostilePath(tx, ty)) continue;
 
 				var objData = world.getObjectDataAtPosition(tx, ty);
 
@@ -115,6 +116,42 @@ class AiHelper {
 		// if(closestObject !=null) trace('AI: bestdistance: $bestDistance ${closestObject.description}');
 
 		return closestObject;
+	}
+
+	public static function GetCloseClothings(playerInterface:PlayerInterface, searchDistance:Int = 8):Array<ObjectHelper> {
+		// var RAD = ServerSettings.AiMaxSearchRadius
+		//if(objDataToSearch != null) trace('GetClosestObject: ${objDataToSearch.name} dis: $searchDistance ignoreObj: ${ignoreObj != null}');
+		
+		var ai = playerInterface.getAi();
+		var world = playerInterface.getWorld();
+		var player = playerInterface.getPlayerInstance();
+		var baseX = player.tx;
+		var baseY = player.ty;
+		var clothings = new Array<ObjectHelper>();
+		//var bestDistance = 0.0;
+
+		for (ty in baseY - searchDistance...baseY + searchDistance) {
+			for (tx in baseX - searchDistance...baseX + searchDistance) {
+
+				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
+				if (ai != null && ai.isObjectWithHostilePath(tx, ty)) continue;
+
+				var objData = world.getObjectDataAtPosition(tx, ty);
+
+				if (objData.clothing.charAt(0) != "n") // compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs
+				{
+					var obj = world.getObjectHelper(tx, ty);
+					clothings.push(obj);
+				}
+			}
+		}
+
+		/*for(obj in clothings)
+		{
+			trace('Clothing: ${obj.name} ${obj.objectData.clothing} slot: ${obj.objectData.getClothingSlot()}');
+		}*/
+
+		return clothings;
 	}
 
 	public static function isStillExpectedItem(player:PlayerInterface, obj:ObjectHelper):Bool {

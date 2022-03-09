@@ -1398,4 +1398,32 @@ class ObjectData extends LineReader {
 		if (trans == null) return -1;
 		return trans.newTargetID;
 	}
+
+	public function getClothingSlot():Int {
+		var objClothingSlot = -1;
+
+		//if (this.o_id[0] < 1) return -1;
+
+		var objectData = this; //ObjectData.getObjectData(this.o_id[0]);
+		// trace("OD: " + objectData.toFileString());
+
+		switch objectData.clothing.charAt(0) {
+			case "h":
+				objClothingSlot = 0; // head
+			case "t":
+				objClothingSlot = 1; // torso
+			case "s":
+				objClothingSlot = 2; // shoes
+			// case "s": objClothingSlot = 3;    // shoes
+			case "b":
+				objClothingSlot = 4; // skirt / trouser
+			case "p":
+				objClothingSlot = 5; // backpack
+		}
+
+		//if (ServerSettings.DebugPlayer) trace('objectData.clothing: ${objectData.clothing} objClothingSlot:  ${objClothingSlot}');
+		// trace('clothingSlot:  ${clothingSlot}');
+
+		return objClothingSlot;
+	}
 }
