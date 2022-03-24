@@ -183,7 +183,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var locationSaysPositions = new Array<Point>(); // no need to be saved
 
 	public var home = new ObjectHelper(null, 0); // position player considers home
-	public var stored = new Map<String, String>(); // to store variables not saved yet
+	public var storedInt = new Map<String, Int>(); // to store variables not saved yet
 	
 	// set all stuff null so that nothing is hanging around
 	public function delete() {
@@ -366,6 +366,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			writer.writeInt16(length);
 			for (p in obj.exiledByPlayers) {
 				writer.writeInt32(p.p_id);
+			}
+
+			obj.storedInt['homeTx'] = obj.home.tx;
+			obj.storedInt['homeTy'] = obj.home.ty;
+
+			var keys = obj.storedInt.keys();
+			var length = 0;
+			for (key in keys)
+				length++;
+			writer.writeInt16(length);
+			var keys = obj.storedInt.keys();
+			
+			for (key in keys) {
+				writer.writeString('$key\n');
+				writer.writeInt32(obj.storedInt[key]);
 			}
 
 			writer.writeInt16(-1000); // write end sign (just for checking if data is valid)
@@ -592,6 +607,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				var key = reader.readInt32();
 				exiledPlayersToLoad[obj.p_id].push(key);
 			}
+
+			// read storedInt
+			var len = reader.readInt16();
+			for (i in 0...len) {
+				var key = reader.readLine();
+				var value = reader.readInt32();
+				obj.storedInt[key] = value;
+				//trace('storedInt: $key ==> $value');
+			}
+		
+			obj.home.tx = obj.storedInt['homeTx'];
+			obj.home.ty = obj.storedInt['homeTy'];
 
 			var end = reader.readInt16(); // read end sign
 			if (end != -1000) {
