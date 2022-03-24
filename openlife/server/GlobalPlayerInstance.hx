@@ -180,7 +180,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var partner:GlobalPlayerInstance = null; // not saved yet
 	public var potentialMate:GlobalPlayerInstance = null; // not saved 
 
-	public var locationSaysPositions = new Array<Point>(); // mp need to be saved
+	public var locationSaysPositions = new Array<Point>(); // no need to be saved
+
+	public var home = new ObjectHelper(null, 0); // position player considers home
+	public var stored = new Map<String, String>(); // to store variables not saved yet
 	
 	// set all stuff null so that nothing is hanging around
 	public function delete() {
@@ -791,7 +794,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				mother.connection.sendMapLocation(this, 'BABY', 'baby');
 			else
 				mother.connection.serverAi.ai.newChild(this);
-		}
+		}	
 
 		if (this.father != null && this.age < ServerSettings.MinAgeToEat) {
 			father.doEmote(Emote.love);
@@ -799,6 +802,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (this.father.isHuman()) father.connection.sendMapLocation(this, 'BABY', 'baby'); else
 				father.connection.serverAi.ai.newChild(this);
 		}
+
+		// for Eve set birth position as home
+		if(mother == null){
+			home.tx = tx;
+			home.ty = ty;
+		}
+		else {
+			home.tx = mother.home.tx;
+			home.ty = mother.home.ty;
+		}
+
+		trace('Home: ${name} ${home.tx} ${home.ty}');
 	}
 
 	// TODO test
