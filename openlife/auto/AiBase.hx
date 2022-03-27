@@ -246,10 +246,10 @@ abstract class AiBase
 		Macro.exception(if (isUsingItem()) return);
 		Macro.exception(if (killAnimal(animal)) return);
 		Macro.exception(if (ServerSettings.AutoFollowPlayer && isMovingToPlayer(20)) return);
-		Macro.exception(if (isPickingupCloths()) return);
 
 		if (myPlayer.isMoving()) return;
-
+		Macro.exception(if (isPickingupCloths()) return);
+		
 		// if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
 
 		if (ServerSettings.DebugAi) trace('AI: craft ${GetName(itemToCraftId)} tasks: ${craftingTasks.length}!');
@@ -269,6 +269,7 @@ abstract class AiBase
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
 		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
+		Macro.exception(if(isMovingToHome(4)) return);
 
 		time += 2.5;
 		
@@ -1276,6 +1277,27 @@ abstract class AiBase
 		if (ServerSettings.DebugAiCrafting) trace('Ai: craft DONE trans: ${objToCraft.name}: ${itemToCraft.craftingTransitions.length} $textTrans');
 	}
 
+	private function isMovingToHome(maxDistance = 3):Bool {
+		if(myPlayer.home == null) return false;
+		maxDistance = maxDistance * maxDistance;
+
+		var quadDistance = myPlayer.CalculateDistanceToObject(myPlayer.home);
+
+		if (quadDistance < maxDistance) return false;
+
+		var dist = 2;
+		var randX = WorldMap.calculateRandomInt(2 * dist) - dist;
+		var randY = WorldMap.calculateRandomInt(2 * dist) - dist;
+		var done = myPlayer.gotoAdv(myPlayer.home.tx + randX, myPlayer.home.ty + randY);
+	
+		if(ServerSettings.DebugAi) myPlayer.say('going home');
+
+		if (ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} dist: $quadDistance goto home $done');
+
+		return done;
+	}
+
 	private function isMovingToPlayer(maxDistance = 3, followHuman:Bool = true):Bool {
 		if(playerToFollow != null && playerToFollow.isDeleted()) playerToFollow = null;
 		
@@ -1296,21 +1318,19 @@ abstract class AiBase
 		
 		var quadDistance = myPlayer.CalculateDistanceToPlayer(playerToFollow);
 
-		if (quadDistance > maxDistance) {
-			var dist = maxDistance >= 9 ? 2 : 1;
-			var randX = WorldMap.calculateRandomInt(2 * dist) - dist;
-			var randY = WorldMap.calculateRandomInt(2 * dist) - dist;
+		if (quadDistance < maxDistance) return false;
 
-			var done = myPlayer.gotoAdv(playerToFollow.tx + randX, playerToFollow.ty + randY);
-			if(myPlayer.age > ServerSettings.MinAgeToEat) myPlayer.say('${playerToFollow.name}');
+		var dist = maxDistance >= 9 ? 2 : 1;
+		var randX = WorldMap.calculateRandomInt(2 * dist) - dist;
+		var randY = WorldMap.calculateRandomInt(2 * dist) - dist;
+		var done = myPlayer.gotoAdv(playerToFollow.tx + randX, playerToFollow.ty + randY);
 
-			if (myPlayer.isAi()) if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} dist: $quadDistance goto player $done');
+		if(myPlayer.age > ServerSettings.MinAgeToEat) myPlayer.say('${playerToFollow.name}');
 
-			if(done) return true;
-		}
+		if (myPlayer.isAi()) if (ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} dist: $quadDistance goto player $done');
 
-		return false;
+		return done;
 	}
 
 	// returns true if in process of dropping item

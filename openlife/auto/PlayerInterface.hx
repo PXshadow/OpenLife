@@ -43,6 +43,7 @@ interface PlayerInterface {
 	public var mother(get, null):PlayerInterface;
 	public var heldObject(default, default):ObjectHelper;
 	public var hiddenWound(default, default):ObjectHelper;
+	public var home(default, default):ObjectHelper;
 
 	public var clothingObjects(default, default):Vector<ObjectHelper>;
 
