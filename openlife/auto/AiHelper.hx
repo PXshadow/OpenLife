@@ -314,11 +314,11 @@ class AiHelper {
 		return gotoObj(player, obj, false);
 	}
 
-	public static function gotoObj(player:PlayerInterface, obj:ObjectHelper, move:Bool = true, ?infos:haxe.PosInfos):Bool {
-		return gotoAdv(player, obj.tx, obj.ty, move, infos);
+	public static function gotoObj(player:PlayerInterface, obj:ObjectHelper, move:Bool = true, checkIfDangerous = true, ?infos:haxe.PosInfos):Bool {
+		return gotoAdv(player, obj.tx, obj.ty, move, checkIfDangerous, infos);
 	}
 
-	public static function gotoAdv(player:PlayerInterface, tx:Int, ty:Int, move:Bool = true, ?infos:haxe.PosInfos):Bool {
+	public static function gotoAdv(player:PlayerInterface, tx:Int, ty:Int, move:Bool = true, checkIfDangerous = true, ?infos:haxe.PosInfos):Bool {
 		var startTime = Sys.time();
 		var ai = player.getAi();
 		var rand = 0;
@@ -335,7 +335,7 @@ class AiHelper {
 			return false;
 		}
 
-		var considerAnimals = ai.didNotReachFood < 5 && ai.myPlayer.food_store > -1;
+		var considerAnimals = checkIfDangerous && ai.didNotReachFood < 5 && ai.myPlayer.food_store > -1;
 
 		for (i in 0...5) {
 			var xo = 0;

@@ -334,7 +334,8 @@ abstract class AiBase
 			var id = GlobalPlayerInstance.findObjectByCommand(text);
 
 			if (id > 0) {
-				craftItem(id); // TODO use mutex if Ai does not use Globalplayermutex
+				itemToCraftId = id;
+				// craftItem(id); // TODO use mutex if Ai does not use Globalplayermutex
 				var obj = ObjectData.getObjectData(id);
 				myPlayer.say("Making " + obj.name);
 			}
@@ -698,7 +699,7 @@ abstract class AiBase
 
 		if (animal == null && deadlyPlayer == null) return false;
 		// if(myPlayer == null) throw new Exception('WARNING! PLAYER IS NULL!!!');
-		if (ServerSettings.DebugAi) trace('escape: animal: ${animal != null} deadlyPlayer: ${deadlyPlayer != null}');
+		// if (ServerSettings.DebugAi) trace('escape: animal: ${animal != null} deadlyPlayer: ${deadlyPlayer != null}');
 		// hunt this animal
 		if (animal != null && animal.isKillableByBow()) animalTarget = animal;
 		// go for hunting
@@ -716,7 +717,7 @@ abstract class AiBase
 		var newEscapetarget = new ObjectHelper(null, 0);
 
 		if(ServerSettings.DebugAiSay) myPlayer.say('Escape ${description} ${Math.ceil(didNotReachFood)}!');
-		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} escape!');
+		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} escape!');
 
 		var done = false;
 		var alwaysX = false;
@@ -755,16 +756,16 @@ abstract class AiBase
 
 				if (checkIfDangerous && AiHelper.IsDangerous(myPlayer, newEscapetarget)) continue;
 
-				done = myPlayer.gotoObj(newEscapetarget);
+				done = myPlayer.gotoObj(newEscapetarget, true, false); // TODO consider deadly animals
 
 				// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Escape $done $ii $i alwaysX: $alwaysX alwaysY $alwaysY es: ${newEscapetarget.tx},${newEscapetarget.ty}');
 
 				if (done) break;
-				if ((Sys.time() - startTime) * 1000 > 100) break;
+				if ((Sys.time() - startTime) * 1000 > 200) break;
 			}
 
 			if (done) break;
-			if ((Sys.time() - startTime) * 1000 > 100) break;
+			if ((Sys.time() - startTime) * 1000 > 200) break;
 
 			//alwaysX = WorldMap.calculateRandomFloat() < 0.5;
 			//alwaysY = WorldMap.calculateRandomFloat() < 0.5;
@@ -788,6 +789,8 @@ abstract class AiBase
 
 		escapeTarget = newEscapetarget;
 		Connection.debugText = ''; 
+
+		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} escape! ${Math.round((Sys.time() - startTime) * 1000)}ms done: $done');
 
 		return true;
 	}
