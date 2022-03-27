@@ -1597,16 +1597,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		this.lineage.lastSaid = text;
 
-		if (doCommands(text)) {
-			for (c in Connection.getConnections()) {
-				c.send(PLAYER_SAYS, ['$id/$curse $text']);
-				c.send(FRAME);
-			}
+		if (doCommands(text))
+			this.connection.sendSayToAllClose(text, curse);
 
-			for (ai in Connection.getAis()) {
-				ai.ai.say(player, curse == 1, text);
-			}
-		}
 	}
 
 	public function exile(target:GlobalPlayerInstance, messageIfAllreadyExiled:Bool = true):Bool {

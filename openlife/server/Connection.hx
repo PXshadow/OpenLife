@@ -663,8 +663,28 @@ class Connection {
 		}
 	}
 
+	public function sendSayToAllClose(text:String, curse:Int) {
+		for (c in connections) {
+			// since player has relative coordinates, transform them for player
+			var targetX = player.tx - c.player.gx;
+			var targetY = player.ty - c.player.gy;
+
+			// only close players
+			if (c.player.isClose(targetX, targetY, 5) == false) continue;
+
+			c.send(PLAYER_SAYS, ['${player.id}/$curse $text']);
+			c.send(FRAME);
+		}
+
+		for (ai in Connection.getAis()) {
+			ai.ai.say(player, curse == 1, text);
+		}
+	}
+
 	public function sendMapChunk(x:Int, y:Int, width:Int = 32, height:Int = 30) {
 		if (sock == null) return;
+
+		trace('sendMapChunk');
 
 		// this.mutex.acquire();
 
@@ -818,6 +838,9 @@ class Connection {
 			var message = data != null ? '$tag\n${data.join("\n")}\n#' : '$tag\n#';
 
 			// if(tag == MAP_CHANGE) trace('send: ${message}');
+
+			var tmpString = StringTools.replace(message, "\n", "\t");
+			trace('send: ${tmpString}');
 
 			sendHelper(message, isPlayerAction);
 		} catch (ex) {
