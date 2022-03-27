@@ -290,6 +290,9 @@ abstract class AiBase
 	public function say(player:PlayerInterface, curse:Bool, text:String) {
 		if (myPlayer.id == player.id) return;
 
+		var quadDist = AiHelper.CalculateDistanceToPlayer(this.myPlayer, player);
+		if(quadDist > 10) return;
+
 		// if(ServerSettings.DebugAi) trace('AI ${text}');
 
 		if (text.contains("TRANS")) {
@@ -337,7 +340,7 @@ abstract class AiBase
 				searchFoodAndEat();
 				myPlayer.say("YES CAPTAIN");
 		}*/
-		if (text.startsWith("MAKE") || text.startsWith("CRAFT")) {
+		if (text.startsWith("MAKE") || text.startsWith("CRAFT")) {				
 			var id = GlobalPlayerInstance.findObjectByCommand(text);
 
 			if (id > 0) {
