@@ -266,6 +266,8 @@ abstract class AiBase
 			}
 		}
 
+		Macro.exception(if(craftClothing()) return);
+
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
 		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
@@ -285,6 +287,24 @@ abstract class AiBase
 			if(rand < 0.05) myPlayer.say('say make xxx to give me some work!');
 			else if(rand < 0.2) myPlayer.say('nothing to do...');
 		}
+	}
+
+	private function craftClothing() : Bool {
+		var objData = ObjectData.getObjectData(128);
+		var slot = objData.getClothingSlot();
+		var createCloth = myPlayer.clothingObjects[slot].id == 0;
+
+		if(myPlayer.clothingObjects[slot].name.contains('RAG ')) createCloth = true;
+		if(createCloth == false) return false;
+		if(craftItem(128)){ // Reed Skirt
+			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft clothing');
+			if(ServerSettings.DebugAiSay) myPlayer.say('Craft Skirt to wear...');
+			return true;
+		}
+		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} could not craft clothing');
+		if(ServerSettings.DebugAiSay) myPlayer.say('Could not craft Skirt to wear...');
+
+		return false;
 	}
 
 	public function say(player:PlayerInterface, curse:Bool, text:String) {
