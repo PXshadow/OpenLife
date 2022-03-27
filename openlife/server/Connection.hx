@@ -684,7 +684,7 @@ class Connection {
 	public function sendMapChunk(x:Int, y:Int, width:Int = 32, height:Int = 30) {
 		if (sock == null) return;
 
-		trace('sendMapChunk');
+		//trace('sendMapChunk');
 
 		// this.mutex.acquire();
 
@@ -839,8 +839,8 @@ class Connection {
 
 			// if(tag == MAP_CHANGE) trace('send: ${message}');
 
-			var tmpString = StringTools.replace(message, "\n", "\t");
-			trace('send: ${tmpString}');
+			//var tmpString = StringTools.replace(message, "\n", "\t");
+			//trace('send: ${tmpString}');
 
 			sendHelper(message, isPlayerAction);
 		} catch (ex) {
