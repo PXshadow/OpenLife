@@ -275,8 +275,8 @@ abstract class AiBase
 		
 		if(myPlayer.age > ServerSettings.MinAgeToEat){
 			var rand = WorldMap.calculateRandomFloat();
-			if(rand < 0.8) myPlayer.say('nothing to do...');
-			else myPlayer.say('say make xxx to give me some work!');
+			if(rand < 0.05) myPlayer.say('say make xxx to give me some work!');
+			else if(rand < 0.2) myPlayer.say('nothing to do...');
 		}
 	}
 
