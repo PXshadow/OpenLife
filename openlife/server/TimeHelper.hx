@@ -215,6 +215,8 @@ class TimeHelper {
 
 		if (TimeHelper.tick % 50 == 0) Macro.exception(DisplayStuff(player));
 
+		player.connection.send(FRAME, null, false, true);
+
 		return true;
 	}
 	

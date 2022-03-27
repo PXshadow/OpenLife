@@ -15,6 +15,7 @@ class ServerSettings {
 	// DEBUG: switch on / off
 	public static var dumpOutput = false;
 	public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation
+	public static var DebugSend = false;
 	public static var DebugIncomingCommands = false;
 	public static var DebugTransitionHelper = false;
 	public static var DebugMoveHelper = false;

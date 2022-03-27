@@ -23,6 +23,7 @@ class Connection {
 	public var running:Bool = true;
 
 	public var sock:Socket;
+	public var sendFrame = false;
 	var server:Server;
 	var tag:ServerTag;
 
@@ -684,7 +685,7 @@ class Connection {
 	public function sendMapChunk(x:Int, y:Int, width:Int = 32, height:Int = 30) {
 		if (sock == null) return;
 
-		//trace('sendMapChunk');
+		if(ServerSettings.DebugSend) trace('sendMapChunk');
 
 		// this.mutex.acquire();
 
@@ -799,7 +800,17 @@ class Connection {
 
 	private static var lastSend:String = "";
 
-	public function send(tag:ClientTag, data:Array<String> = null, isPlayerAction:Bool = true) {
+	public function send(tag:ClientTag, data:Array<String> = null, isPlayerAction:Bool = true, force:Bool = false) {
+		// send frame only once every time step
+		if(tag == FRAME){
+			if(force && sendFrame == false) return; // no frame to send
+			if(force) sendFrame = false;
+			else {
+			 sendFrame = true;
+			 return;
+			}
+		}
+
 		/*
 			if(tag == PLAYER_UPDATE)
 			{
@@ -839,8 +850,10 @@ class Connection {
 
 			// if(tag == MAP_CHANGE) trace('send: ${message}');
 
-			//var tmpString = StringTools.replace(message, "\n", "\t");
-			//trace('send: ${tmpString}');
+			if(ServerSettings.DebugSend){
+				var tmpString = StringTools.replace(message, "\n", "\t");
+				trace('send: ${tmpString}');
+			}
 
 			sendHelper(message, isPlayerAction);
 		} catch (ex) {
