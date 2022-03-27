@@ -403,6 +403,7 @@ class AiHelper {
 	// TODO goto uses global coordinates
 	public static function Goto(playerInterface:PlayerInterface, x:Int, y:Int, considerAnimal:Bool = true, move:Bool = true):Bool {
 		var player = playerInterface.getPlayerInstance();
+		var ai = playerInterface.getAi();
 
 		// var goal:Pos;
 		// var dest:Pos;
@@ -421,6 +422,15 @@ class AiHelper {
 		if (py > RAD - 1) py = RAD - 1;
 		if (px < -RAD) px = -RAD;
 		if (py < -RAD) py = -RAD;
+
+		//if (playerInterface.isBlocked(player.gx + x, player.gy + y)) trace('GOTO blocked');
+		//if (ai != null && ai.isObjectNotReachable(player.gx + x, player.gy + y)) trace('GOTO not reachable');
+		var debugtext = '';
+		if (playerInterface.isBlocked(px + player.tx, py + player.ty)) return false; //trace('GOTO blocked');
+		if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) return false;//trace('GOTO not reachable');
+		//if (playerInterface.isBlocked(px + player.tx, py + player.ty)) debugtext = 'blocked';
+		//if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) debugtext = 'not reachable';
+
 		// cords
 		var start = new Coordinate(RAD, RAD);
 
@@ -452,6 +462,11 @@ class AiHelper {
 		}
 
 		if (paths == null) {
+			//trace('GOTO false ${player.tx},${player.ty} $px,$py $debugtext');
+
+			// since path was cut it might try again if not added here
+			if(ai != null) ai.addNotReachable(px + player.tx, py + player.ty);
+
 			// if (onError != null) onError("can not generate path");
 			// trace('AAI: ${player.p_id} CAN NOT GENERATE PATH');
 			return false;
@@ -474,6 +489,8 @@ class AiHelper {
 		var ai = playerInterface.getAi();
 		var globalPlayer = cast(player, GlobalPlayerInstance);
 		if (move) playerInterface.move(globalPlayer.moveHelper.guessX(), globalPlayer.moveHelper.guessY(), ai.seqNum++, data);
+
+		//trace('GOTO done $debugtext $px $py');
 
 		return true;
 	}
