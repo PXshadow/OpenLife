@@ -378,7 +378,7 @@ abstract class AiBase
 		if(pileId > 0){
 			newDropTarget = myPlayer.GetClosestObjectById(pileId, 4); 
 			if(newDropTarget != null && newDropTarget.numberOfUses >= newDropTarget.objectData.numUses) newDropTarget = null;
-			if(newDropTarget != null)  trace('AAI: ${myPlayer.name + myPlayer.id} drop on pile: $pileId');
+			//if(newDropTarget != null)  trace('AAI: ${myPlayer.name + myPlayer.id} drop on pile: $pileId');
 		}
 
 		// start a new pile?

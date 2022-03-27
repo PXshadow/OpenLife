@@ -168,7 +168,7 @@ class AiHelper {
 		var objData = obj.objectData.dummyParent != null ? obj.objectData.dummyParent : obj.objectData;
 		var originalFoodValue = objData.foodFromTarget == null ? objData.foodValue : objData.foodFromTarget.foodValue;
 
-		if (ServerSettings.DebugAi) trace('AI: ${obj.description} ${obj.id} numberOfUses: ${obj.numberOfUses} originalFoodValue: $originalFoodValue');
+		//if (ServerSettings.DebugAi) trace('AI: ${obj.description} ${obj.id} numberOfUses: ${obj.numberOfUses} originalFoodValue: $originalFoodValue');
 
 		return originalFoodValue > 0;
 		// if(originalFoodValue < 0) return false;
