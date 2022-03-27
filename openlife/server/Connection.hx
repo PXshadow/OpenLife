@@ -13,6 +13,7 @@ import openlife.client.ClientTag;
 import sys.net.Socket;
 
 class Connection {
+	public static var debugText = '';
 	private static var connections:Array<Connection> = [];
 	private static var ais:Array<ServerAi> = [];
 
@@ -852,7 +853,7 @@ class Connection {
 
 			if(ServerSettings.DebugSend){
 				var tmpString = StringTools.replace(message, "\n", "\t");
-				trace('send: ${tmpString}');
+				trace('send: ${Connection.debugText} ${tmpString}');
 			}
 
 			sendHelper(message, isPlayerAction);

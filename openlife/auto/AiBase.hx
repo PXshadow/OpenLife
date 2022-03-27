@@ -716,12 +716,13 @@ abstract class AiBase
 		var newEscapetarget = new ObjectHelper(null, 0);
 
 		if(ServerSettings.DebugAiSay) myPlayer.say('Escape ${description} ${Math.ceil(didNotReachFood)}!');
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} escape!');
+		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} escape!');
 
 		var done = false;
 		var alwaysX = false;
 		var alwaysY = false;
 		var checkIfDangerous = true;
+		Connection.debugText = 'AI:escape'; 
 
 		for (ii in 0...5) {
 			for (i in 0...5) {
@@ -786,6 +787,7 @@ abstract class AiBase
 		}
 
 		escapeTarget = newEscapetarget;
+		Connection.debugText = ''; 
 
 		return true;
 	}

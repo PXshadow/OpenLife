@@ -365,7 +365,7 @@ class AiHelper {
 			// check if blocked only by animals // used for not to consider the object as blocked
 			if(considerAnimals && blockedByAnimal == false)
 			{
-				blockedByAnimal = Goto(player, rx + xo, ry + yo, false, move);
+				blockedByAnimal = Goto(player, rx + xo, ry + yo, false, false);
 			}
 
 			if (passedTime > ServerSettings.GotoTimeOut) {
