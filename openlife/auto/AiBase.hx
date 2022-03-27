@@ -290,20 +290,29 @@ abstract class AiBase
 	}
 
 	private function craftClothing() : Bool {
-		var objData = ObjectData.getObjectData(128);
+		var color = myPlayer.getColor();
+
+		if(craftCloth(128)) return true; // Reed Skirt
+		if((color == Ginger || color == White) && craftCloth(201)) return true; // Rabbit Fur Shawl
+
+		return false;
+	}
+
+	private function craftCloth(clothId:Int) : Bool {
+		var objData = ObjectData.getObjectData(clothId);
 		var slot = objData.getClothingSlot();
+		if(slot < 0) return false;
 		var createCloth = myPlayer.clothingObjects[slot].id == 0;
 
 		if(myPlayer.clothingObjects[slot].name.contains('RAG ')) createCloth = true;
 		if(createCloth == false) return false;
-		if(craftItem(128)){ // Reed Skirt
-			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft clothing');
-			if(ServerSettings.DebugAiSay) myPlayer.say('Craft Skirt to wear...');
+		if(craftItem(clothId)){ 
+			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft clothing ${objData.name}');
+			if(ServerSettings.DebugAiSay) myPlayer.say('Craft ${objData.name} to wear...');
 			return true;
 		}
-		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} could not craft clothing');
-		if(ServerSettings.DebugAiSay) myPlayer.say('Could not craft Skirt to wear...');
-
+		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} could not craft clothing ${objData.name}');
+		if(ServerSettings.DebugAiSay) myPlayer.say('Could not craft ${objData.name} to wear...');
 		return false;
 	}
 
@@ -897,10 +906,10 @@ abstract class AiBase
 		} else {
 			// check if actor is TIME
 			if (itemToCraft.transActor.id == -1) {
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is TIME ');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is TIME target ${itemToCraft.transTarget.name} ');
 				this.time += 1;
 				// TODO wait some time, or better get next obj
-				if(ServerSettings.DebugAiSay) myPlayer.say('Wait...');
+				if(ServerSettings.DebugAiSay) myPlayer.say('Wait for ${itemToCraft.transTarget.name}...');
 				itemToCraft.transActor = null;
 				return true;
 			}

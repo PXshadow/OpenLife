@@ -76,4 +76,5 @@ interface PlayerInterface {
 
 	public function getCraving():Int;
 	public function getCountEaten(foodId:Int):Float;
+	public function getColor():Int;
 }
