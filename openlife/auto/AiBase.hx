@@ -271,6 +271,13 @@ abstract class AiBase
 		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
 		Macro.exception(if(isMovingToHome(4)) return);
 
+		// Drop held object before doing noting
+		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop obj before doing nothing');
+			dropHeldObject();
+			return;
+		}
+
 		time += 2.5;
 		
 		if(myPlayer.age > ServerSettings.MinAgeToEat){
