@@ -3380,7 +3380,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// check if it is a biome animal
 		if(attacker == null)
 		{
-			if(targetPlayer.isAnimalNotDeadlyForMe(fromObj))
+			if(targetPlayer.isAnimalNotDeadlyForMe(fromObj, false))
 			{
 				if(WorldMap.calculateRandomFloat() > ServerSettings.BiomeAnimalHitChance)
 				{
@@ -4367,20 +4367,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return fever != null;
 	}
 
-	public function isAnimalNotDeadlyForMe(animal:ObjectHelper) : Bool {
-		return isAnimalDeadlyForMe(animal) == false;
+	public function isAnimalNotDeadlyForMe(animal:ObjectHelper, checkIfAnimal = true) : Bool {
+		return isAnimalDeadlyForMe(animal, checkIfAnimal) == false;
 	}
 
-	public function isAnimalDeadlyForMe(animal:ObjectHelper) : Bool {
+	public function isAnimalDeadlyForMe(animal:ObjectHelper, checkIfAnimal = true) : Bool {
 		if (animal == null) return false;
 		var objData = animal.parentObjData;
 		if (objData.deadlyDistance == 0) return false;
 		if (objData.damage == 0) return false;
-		if (objData.isAnimal() == false) return false;
+		if (checkIfAnimal && objData.isAnimal() == false) return false;
 
 		var biomeAnimals = this.getBiomeAnimals();
+
+		//trace('isAnimalDeadlyForMe peronColor: ${getColor()} biomeAnimals: $biomeAnimals');
+
 		if(biomeAnimals.contains(animal.parentId) && animal.hits < 0.1)
 		{
+			//trace('isAnimalDeadlyForMe biomeAnimals true: $biomeAnimals');
+
 			var biome = WorldMap.world.getBiomeId(this.tx, this.ty);
 			if(this.biomeLoveFactor(biome) > 0.1) return false;
 			var biome = WorldMap.world.getBiomeId(animal.tx, animal.ty);
