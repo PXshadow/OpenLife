@@ -411,29 +411,48 @@ class AiHelper {
 
 		// if (player.x == x && player.y == y || moving) return false;
 		// set pos
-		var px = x - player.x;
-		var py = y - player.y;
-
-		// trace('AAI: GOTO: From: ${player.x},${player.y} To: $x $y / FROM ${player.tx()},${player.ty()} To: ${x + player.gx},${y + player.gy}');
-
-		if (px == 0 && py == 0) return false; // no need to move
-
-		if (px > RAD - 1) px = RAD - 1;
-		if (py > RAD - 1) py = RAD - 1;
-		if (px < -RAD) px = -RAD;
-		if (py < -RAD) py = -RAD;
-
-		//if (playerInterface.isBlocked(player.gx + x, player.gy + y)) trace('GOTO blocked');
-		//if (ai != null && ai.isObjectNotReachable(player.gx + x, player.gy + y)) trace('GOTO not reachable');
-		var debugtext = '';
+		var px = 0;
+		var py = 0;
 		var blocked = false;
-		if (playerInterface.isBlocked(px + player.tx, py + player.ty)) blocked = true; //trace('GOTO blocked');
-		if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) blocked = true;//trace('GOTO not reachable');
-		//if (playerInterface.isBlocked(px + player.tx, py + player.ty)) debugtext = 'blocked';
-		//if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) debugtext = 'not reachable';
+		var ii = 0;
 
+		for(i in 0...RAD-4){
+			ii = i;
+			px = x - player.x;
+			py = y - player.y;
+
+			// trace('AAI: GOTO: From: ${player.x},${player.y} To: $x $y / FROM ${player.tx()},${player.ty()} To: ${x + player.gx},${y + player.gy}');
+			
+			if (px == 0 && py == 0) return false; // no need to move
+
+			var tmpRad = RAD - i;
+
+			if (px > tmpRad - 1) px = tmpRad - 1;
+			if (py > tmpRad - 1) py = tmpRad - 1;
+			if (px < -tmpRad) px = -tmpRad;
+			if (py < -tmpRad) py = -tmpRad;
+
+			//if (playerInterface.isBlocked(player.gx + x, player.gy + y)) trace('GOTO blocked');
+			//if (ai != null && ai.isObjectNotReachable(player.gx + x, player.gy + y)) trace('GOTO not reachable');
+			//var debugtext = '';
+			blocked = false;
+			if (playerInterface.isBlocked(px + player.tx, py + player.ty)) blocked = true; //trace('GOTO blocked');
+			if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) blocked = true;//trace('GOTO not reachable');
+			//if (playerInterface.isBlocked(px + player.tx, py + player.ty)) debugtext = 'blocked';
+			//if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) debugtext = 'not reachable';
+			if(blocked == false) break;
+		}
+
+		//trace('Goto i: $ii blocked: $blocked ${player.tx},${player.ty} $px,$py');
+
+		if(blocked)
+		{
+			//trace('Goto blocked!$debugtext ${player.tx},${player.ty} $px,$py');
+			return false;
+		}
+		
 		// if blocked try if can move half way
-		if(blocked){
+		/*if(blocked){
 			debugtext = ' half radius';
 			px = x - player.x;
 			py = y - player.y;
@@ -456,7 +475,7 @@ class AiHelper {
 		{
 			//trace('Goto blocked!$debugtext ${player.tx},${player.ty} $px,$py');
 			return false;
-		}
+		}*/
 
 		//if(debugtext.length > 0) trace('GOTO $debugtext not blocked');
 		
