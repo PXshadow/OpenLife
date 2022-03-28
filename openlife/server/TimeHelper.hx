@@ -1681,7 +1681,7 @@ class TimeHelper {
 
 			if (ty > tmpY) tmpY += 1; else if (ty < tmpY) tmpY -= 1;
 
-            if (ii > 0 && tmpX == tx && tmpY == ty) break;
+            //if (ii > 0 && tmpX == tx && tmpY == ty) break;
 
 			for (p in GlobalPlayerInstance.AllPlayers) {
 				if (p.deleted) continue;
