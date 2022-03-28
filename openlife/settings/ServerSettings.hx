@@ -206,8 +206,9 @@ class ServerSettings {
 	public static var ExhaustionHealingForMaleFaktor:Float = 1.2;
 
 	// for animal movement
-	public static var ChanceThatAnimalsCanPassBlockingBiome = 0.03;
-	public static var chancePreferredBiome = 0.8; // Chance that the animal ignors the chosen target if its not from his original biome
+	public static var ChanceThatAnimalsCanPassBlockingBiome:Float = 0.03;
+	public static var chancePreferredBiome:Float = 0.8; // Chance that the animal ignors the chosen target if its not from his original biome
+	public static var AnimalDeadlyDistanceFactor:Float = 0.5; // How close a animal must be to make a hit
 
 	// for animal offsprings
 	public static var ChanceForOffspring = 0.001; // For each movement there is X chance to generate an offspring.
@@ -536,44 +537,44 @@ class ServerSettings {
 
 		// TODO more animals like Mouflon?
 
-		ObjectData.getObjectData(1435).deadlyDistance = 1.5; // Bison
+		ObjectData.getObjectData(1435).deadlyDistance = AnimalDeadlyDistanceFactor; // Bison
 		ObjectData.getObjectData(1435).damage = 2; // Bison
-		ObjectData.getObjectData(1438).deadlyDistance = 1.5; // Shot Bison
+		ObjectData.getObjectData(1438).deadlyDistance = AnimalDeadlyDistanceFactor; // Shot Bison
 		ObjectData.getObjectData(1438).damage = 5; // Shot Bison
-		ObjectData.getObjectData(1436).deadlyDistance = 1.5; // Bison with Calf
+		ObjectData.getObjectData(1436).deadlyDistance = AnimalDeadlyDistanceFactor; // Bison with Calf
 		ObjectData.getObjectData(1436).damage = 4; // Bison with Calf
-		ObjectData.getObjectData(1440).deadlyDistance = 1.5; // Shot Bison with Calf
+		ObjectData.getObjectData(1440).deadlyDistance = AnimalDeadlyDistanceFactor; // Shot Bison with Calf
 		ObjectData.getObjectData(1440).damage = 6; // Shot Bison with Calf
 
-		ObjectData.getObjectData(2156).deadlyDistance = 1.5; // 2156 Mosquito Swarm
+		ObjectData.getObjectData(2156).deadlyDistance = AnimalDeadlyDistanceFactor; // 2156 Mosquito Swarm
 		ObjectData.getObjectData(2156).damage = 1; // 2156 Mosquito Swarm
 
-		ObjectData.getObjectData(418).deadlyDistance = 1.5; // Wolfs
+		ObjectData.getObjectData(418).deadlyDistance = AnimalDeadlyDistanceFactor; // Wolfs
 		ObjectData.getObjectData(418).damage = 3; // Wolfs
-		ObjectData.getObjectData(420).deadlyDistance = 1.5; // Shot Wolf
+		ObjectData.getObjectData(420).deadlyDistance = AnimalDeadlyDistanceFactor; // Shot Wolf
 		ObjectData.getObjectData(420).damage = 5; // Shot Wolf
 
-		ObjectData.getObjectData(764).deadlyDistance = 1.1; // Rattle Snake
+		ObjectData.getObjectData(764).deadlyDistance = AnimalDeadlyDistanceFactor; // Rattle Snake
 		ObjectData.getObjectData(764).damage = 2; //  Rattle Snake
 		ObjectData.getObjectData(764).woundFactor = 0.98; //  Rattle Snake
 
-		ObjectData.getObjectData(1323).deadlyDistance = 1.5; // Wild Boar
+		ObjectData.getObjectData(1323).deadlyDistance = AnimalDeadlyDistanceFactor; // Wild Boar
 		ObjectData.getObjectData(1323).damage = 3; // Wild Boar
-		ObjectData.getObjectData(1328).deadlyDistance = 1.5; // Wild Boar with Piglet
+		ObjectData.getObjectData(1328).deadlyDistance = AnimalDeadlyDistanceFactor; // Wild Boar with Piglet
 		ObjectData.getObjectData(1328).damage = 5; // Wild Boar with Piglet
 
-		ObjectData.getObjectData(628).deadlyDistance = 1.5; // Grizzly Bear
+		ObjectData.getObjectData(628).deadlyDistance = AnimalDeadlyDistanceFactor; // Grizzly Bear
 		ObjectData.getObjectData(628).damage = 5; // Grizzly Bear
-		ObjectData.getObjectData(631).deadlyDistance = 1.5; // Hungry Grizzly Bear
+		ObjectData.getObjectData(631).deadlyDistance = AnimalDeadlyDistanceFactor; // Hungry Grizzly Bear
 		ObjectData.getObjectData(631).damage = 6; // Hungry Grizzly Bear
-		ObjectData.getObjectData(653).deadlyDistance = 1.5; // Hungry Grizzly Bear attacking
+		ObjectData.getObjectData(653).deadlyDistance = AnimalDeadlyDistanceFactor; // Hungry Grizzly Bear attacking
 		ObjectData.getObjectData(653).damage = 6; // Hungry Grizzly Bear attacking
 		
-		ObjectData.getObjectData(632).deadlyDistance = 1.5; // Shot Grizzly Bear 1
+		ObjectData.getObjectData(632).deadlyDistance = AnimalDeadlyDistanceFactor; // Shot Grizzly Bear 1
 		ObjectData.getObjectData(632).damage = 6; // Shot Grizzly Bear 1
-		ObjectData.getObjectData(635).deadlyDistance = 1.5; // Shot Grizzly Bear 2
+		ObjectData.getObjectData(635).deadlyDistance = AnimalDeadlyDistanceFactor; // Shot Grizzly Bear 2
 		ObjectData.getObjectData(635).damage = 7; // Shot Grizzly Bear 2
-		ObjectData.getObjectData(637).deadlyDistance = 1.5; // Shot Grizzly Bear 3
+		ObjectData.getObjectData(637).deadlyDistance = AnimalDeadlyDistanceFactor; // Shot Grizzly Bear 3
 		ObjectData.getObjectData(637).damage = 8; // Shot Grizzly Bear 3
 
 		ObjectData.getObjectData(3816).damage = 0.1; // per sec Gushing Knife Wound
