@@ -426,11 +426,40 @@ class AiHelper {
 		//if (playerInterface.isBlocked(player.gx + x, player.gy + y)) trace('GOTO blocked');
 		//if (ai != null && ai.isObjectNotReachable(player.gx + x, player.gy + y)) trace('GOTO not reachable');
 		var debugtext = '';
-		if (playerInterface.isBlocked(px + player.tx, py + player.ty)) return false; //trace('GOTO blocked');
-		if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) return false;//trace('GOTO not reachable');
+		var blocked = false;
+		if (playerInterface.isBlocked(px + player.tx, py + player.ty)) blocked = true; //trace('GOTO blocked');
+		if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) blocked = true;//trace('GOTO not reachable');
 		//if (playerInterface.isBlocked(px + player.tx, py + player.ty)) debugtext = 'blocked';
 		//if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) debugtext = 'not reachable';
 
+		// if blocked try if can move half way
+		if(blocked){
+			debugtext = ' half radius';
+			px = x - player.x;
+			py = y - player.y;
+
+			var tmpRad = Math.round(RAD / 2);
+
+			if (px > tmpRad - 1) px = tmpRad - 1;
+			if (py > tmpRad - 1) py = tmpRad - 1;
+			if (px < -tmpRad) px = -tmpRad;
+			if (py < -tmpRad) py = -tmpRad;
+			
+			//trace('Goto blocked try with halve radius ${player.tx},${player.ty} $px,$py');
+		}
+
+		var blocked = false;
+		if (playerInterface.isBlocked(px + player.tx, py + player.ty)) blocked = true; //trace('GOTO blocked');
+		if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) blocked = true;//trace('GOTO not reachable');
+
+		if(blocked)
+		{
+			//trace('Goto blocked!$debugtext ${player.tx},${player.ty} $px,$py');
+			return false;
+		}
+
+		//if(debugtext.length > 0) trace('GOTO $debugtext not blocked');
+		
 		// cords
 		var start = new Coordinate(RAD, RAD);
 
