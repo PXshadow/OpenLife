@@ -190,6 +190,7 @@ class ServerSettings {
 	public static var MinMovementAgeInSec:Float = 14;
 	public static var MinSpeedReductionPerContainedObj = 0.98;
 	public static var CloseEnemyWithWeaponSpeedFactor:Float = 0.8;
+	public static var SemiHeavyItemSpeed:Float = 0.9; // slows down if carring iron / logs / soil etc.
 
 	// since client does not seem to use exact positions allow little bit cheating / JUMPS
 	public static var LetTheClientCheatLittleBitFactor = 1.1; // when considering if the position is reached, allow the client to cheat little bit, so there is no lag
@@ -391,13 +392,13 @@ class ServerSettings {
 
 		ObjectData.getObjectData(764).mapChance *= 5; // more snakes needs the world!
 
-		ObjectData.getObjectData(411).speedMult = 0.8; // Fertile Soil Reduced carring speed
-		ObjectData.getObjectData(345).speedMult = 0.8; // Butt Log
-		ObjectData.getObjectData(126).speedMult = 0.8; // Clay
-		ObjectData.getObjectData(127).speedMult = 0.8; // Adobe
-		ObjectData.getObjectData(290).speedMult = 0.8; // Iron Ore
-		ObjectData.getObjectData(314).speedMult = 0.8; // Wrought Iron
-		ObjectData.getObjectData(326).speedMult = 0.8; // Steel Ingot
+		ObjectData.getObjectData(411).speedMult = SemiHeavyItemSpeed; // Fertile Soil Reduced carring speed
+		ObjectData.getObjectData(345).speedMult = SemiHeavyItemSpeed; // Butt Log
+		ObjectData.getObjectData(126).speedMult = SemiHeavyItemSpeed; // Clay
+		ObjectData.getObjectData(127).speedMult = SemiHeavyItemSpeed; // Adobe
+		ObjectData.getObjectData(290).speedMult = SemiHeavyItemSpeed; // Iron Ore
+		ObjectData.getObjectData(314).speedMult = SemiHeavyItemSpeed; // Wrought Iron
+		ObjectData.getObjectData(326).speedMult = SemiHeavyItemSpeed; // Steel Ingot
 		ObjectData.getObjectData(838).mapChance = ObjectData.getObjectData(211).mapChance / 5; // Add some lovely mushrooms
 		ObjectData.getObjectData(838).biomes.push(BiomeTag.GREEN); // Add some lovely mushrooms
 
