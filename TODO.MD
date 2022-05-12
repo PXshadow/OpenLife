@@ -41,7 +41,7 @@ Curses based on graves:
 - you are cursed (lower speed / halve damage) if going close to your grave without grave stone
 
 Different Classes:
-- there are three different classes: Sef / Commoner / Noble depending on your prestige score
+- there are three different classes: Serf / Commoner / Noble depending on your prestige score
 - you are more likely born to the same class
 
 Prestige System:
@@ -65,7 +65,7 @@ Quality of Life Changes:
 
 Not yet implemented:
 - advaned AI
-- boni for different biome specialists
+- more boni for biome specialists 
 - advaned stuff like rails, pipes
 - reading / writing
 - twinning
@@ -477,7 +477,8 @@ if AllowDebugCommmands = true in ServerSettings.txt:
     can create objects with saying "!create ID" / "!create object" "!create object!" with ! indicating that object ends with "object" or test wounds with using "!hit" or "!heal"
     --> for example: "!create ore!" creates iron ore. "!create iron" creates the first object with iron in the name.
 
-For Server setup:
+Server setup:
+====
 Best is use Unbuntu, got tons of problems with (default) Debian...
 
 From windows putty can be used to connect to server:

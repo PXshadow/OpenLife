@@ -254,7 +254,8 @@ class MoveHelper {
 			return;
 		}
 
-		// caclulate exact position. Important for combat vs player or animal // TODO use mutex if no global player mutex is used
+		// caclulate exact position. Important for combat vs player or animal
+		// TODO use mutex if no global player mutex is used
 		if (moveHelper.newMoves.length > 0) {
 			var move = moveHelper.newMoves[0];
 			var timePassed = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.timeExactPositionChangedLast);
