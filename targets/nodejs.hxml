@@ -6,3 +6,4 @@ targets/set.hxml
 -D hxtsdgen_skip_header
 -D hxtsdgen_enums_ts
 -js index.js
+# does not work because of Thread usage

@@ -8,7 +8,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\"",
     "build": "haxe app.hxml",
-    "prepare": "haxe targets/nodejs.hxml",
     "postinstall": "lix download"
   },
   "repository": {
