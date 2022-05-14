@@ -1,6 +1,10 @@
 Project Winter is comming / Hardcore OHOL
 
 How to setup the server you can find in the bottom!
+Thx @Colin there is now also a more detailed manual:
+https://github.com/connorhsm/OpenLife/blob/master/SERVER.md
+And a script to setup the server:
+https://github.com/connorhsm/OpenLife/blob/master/build_server.sh
 
 Project Winter is comming summary: 
 - the server is written from scratch in Haxe and is in ALPHA, so expect errors / feel welcome to report them
