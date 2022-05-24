@@ -949,7 +949,7 @@ class Connection {
 		//var message = '${player.p_id}/0 $text1 *$text2 ${toPlayer.p_id} *map ${toPlayer.tx - player.gx} ${toPlayer.ty - player.gy}';
 		var message = '${player.p_id}/0 $text1 *$text2 ${toPlayer.p_id} *map ${WorldMap.world.transformX(player, toPlayer.tx)} ${WorldMap.world.transformY(player, toPlayer.ty)}';
 		
-		trace('MAPSAY: $message');
+		//trace('MAPSAY: $message');
 
 		this.send(ClientTag.PLAYER_SAYS, [message], true);
 	}

@@ -245,7 +245,7 @@ abstract class AiBase
 		Macro.exception(if (isStayingCloseToChild()) return);
 		Macro.exception(if (isUsingItem()) return);
 		Macro.exception(if (killAnimal(animal)) return);
-		Macro.exception(if (ServerSettings.AutoFollowPlayer && isMovingToPlayer(20)) return);
+		Macro.exception(if (isMovingToPlayer(10)) return);
 
 		if (myPlayer.isMoving()) return;
 		Macro.exception(if (isPickingupCloths()) return);
@@ -1349,9 +1349,9 @@ abstract class AiBase
 			if (isChildAndHasMother()) {
 				playerToFollow = myPlayer.getFollowPlayer();
 			} else {
+				if(ServerSettings.AutoFollowPlayer == false) return false;
 				// get close human player
 				playerToFollow = myPlayer.getWorld().getClosestPlayer(20, followHuman);
-
 				// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} follow player ${playerToFollow.p_id}');
 			}
 		}
@@ -1369,7 +1369,7 @@ abstract class AiBase
 		var randY = WorldMap.calculateRandomInt(2 * dist) - dist;
 		var done = myPlayer.gotoAdv(playerToFollow.tx + randX, playerToFollow.ty + randY);
 
-		if(myPlayer.age > ServerSettings.MinAgeToEat) myPlayer.say('${playerToFollow.name}');
+		if(myPlayer.age > ServerSettings.MinAgeToEat || ServerSettings.DebugAiSay) myPlayer.say('${playerToFollow.name}');
 
 		if (myPlayer.isAi()) if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} dist: $quadDistance goto player $done');
