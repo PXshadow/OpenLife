@@ -347,6 +347,7 @@ abstract class AiBase
 
 	public function say(player:PlayerInterface, curse:Bool, text:String) {
 		if (myPlayer.id == player.id) return;
+		if (player.isAi()) return;
 
 		var quadDist = AiHelper.CalculateDistanceToPlayer(this.myPlayer, player);
 		if(quadDist > Math.pow(ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi,2)) return;
@@ -398,9 +399,17 @@ abstract class AiBase
 			myPlayer.say("YES CAPTAIN");
 		}
 		if (text.contains("GO HOME")) {			
+
+			var quadDistance = myPlayer.CalculateDistanceToObject(myPlayer.home);
+			if (quadDistance < 3) {
+				myPlayer.say("I AM HOME!");
+				this.time += 5;
+				return;
+			}
+
 			if(isMovingToHome()) myPlayer.say("GOING HOME!");
-			else myPlayer.say("I AM HOME!");
-			this.time += 10;
+			else myPlayer.say("I CANNOT GO HOME!");
+			this.time += 6;
 		}
 		/*if (text.contains("EAT!"))
 			{

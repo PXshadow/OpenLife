@@ -620,6 +620,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			obj.home.tx = obj.storedInt['homeTx'];
 			obj.home.ty = obj.storedInt['homeTy'];
 
+			trace('Home: ${obj.name} ${obj.home.tx} ${obj.home.ty} biome: ${WorldMap.world.getBiomeId(obj.home.tx, obj.home.ty)}');
+
 			var end = reader.readInt16(); // read end sign
 			if (end != -1000) {
 				var message = 'read ${i + 1} Players wrong end sign: ${end}';
@@ -840,7 +842,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			home.ty = mother.home.ty;
 		}
 
-		trace('Home: ${name} ${home.tx} ${home.ty}');
+		trace('Home: ${name} ${home.tx} ${home.ty} biome: ${WorldMap.world.getBiomeId(home.tx, home.ty)}');
 	}
 
 	// TODO test
