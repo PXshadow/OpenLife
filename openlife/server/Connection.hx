@@ -673,7 +673,7 @@ class Connection {
 			var targetY = player.ty - c.player.gy;
 
 			// only close players
-			if (c.player.isClose(targetX, targetY, 5) == false) continue;
+			if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsCloseForSay) == false) continue;
 
 			c.send(PLAYER_SAYS, ['${player.id}/$curse $text']);
 			c.send(FRAME);

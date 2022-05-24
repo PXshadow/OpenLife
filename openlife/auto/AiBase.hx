@@ -320,7 +320,7 @@ abstract class AiBase
 		if (myPlayer.id == player.id) return;
 
 		var quadDist = AiHelper.CalculateDistanceToPlayer(this.myPlayer, player);
-		if(quadDist > 10) return;
+		if(quadDist > Math.pow(ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi,2)) return;
 
 		// if(ServerSettings.DebugAi) trace('AI ${text}');
 
@@ -359,8 +359,13 @@ abstract class AiBase
 			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.say("SURE CAPTAIN");
 		}
-		if (text.contains("STOP")) {
+		if (text.contains("STOP FOLLOW")) {
 			playerToFollow = null;
+			myPlayer.say("YES CAPTAIN");
+		}
+		if (text.contains("STOP") || text.contains("WAIT")) {			
+			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
+			this.time += 10;
 			myPlayer.say("YES CAPTAIN");
 		}
 		/*if (text.contains("EAT!"))

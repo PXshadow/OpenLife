@@ -182,6 +182,8 @@ class ServerSettings {
 
 	public static var MaxDistanceToBeConsideredAsClose = 20; // 20; // only close players are updated with PU Movement
 	public static var MaxDistanceToBeConsideredAsCloseForMapChanges = 10; // for MX
+	public static var MaxDistanceToBeConsideredAsCloseForSay = 20; // if a player says something
+	public static var MaxDistanceToBeConsideredAsCloseForSayAi = 20; // if a player says something 
 
 	// for movement
 	public static var GotoTimeOut:Int = 250;
