@@ -3927,7 +3927,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.trueAge += 5;
 			Connection.SendUpdateToAllClosePlayers(player);
 			// player.sendFoodUpdate(false);
-			//player.getTopLeader();
+		} else if (text.indexOf('!KILLLEADER') != -1) {
+			var leader = player.getTopLeader();
+			if(leader != null && leader != player){
+				leader.hits += 50;
+				player.say('kill leader ${leader.name}', true);
+			}
+			return true;
 		} else if (text.indexOf('!JAI') != -1) {
 			var ais = Connection.getLivingAis();
 
