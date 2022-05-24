@@ -3948,8 +3948,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			if (livingHumans.length > 0) {
 				var p = livingHumans[WorldMap.calculateRandomInt(livingHumans.length - 1)];
-				player.x = p.tx - player.gx;
-				player.y = p.ty - player.gy;
+				player.x = WorldMap.world.transformX(player, p.tx);
+				player.y = WorldMap.world.transformY(player, p.ty);
+
+				//player.x = p.tx - player.gx;
+				//player.y = p.ty - player.gy;
 
 				player.forced = true;
 				Connection.SendUpdateToAllClosePlayers(player);
