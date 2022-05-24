@@ -295,11 +295,15 @@ abstract class AiBase
 
 	private function gatherStuff() : Bool {
 		if(myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound){
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather: go home to drop ${myPlayer.heldObject.name}');
-			if(isMovingToHome(4)) return true;
+
+			// 2144 == Banana Peel
+			if(myPlayer.heldObject.id != 2144 && isMovingToHome(5)){
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather: go home to drop ${myPlayer.heldObject.name}');
+				return true;
+			}
 
 			// Drop held object at home 
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather: drop obj at home ${myPlayer.heldObject.name}');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather: drop obj ${myPlayer.heldObject.name}');
 			dropHeldObject();
 			return true;
 		}	
@@ -445,6 +449,7 @@ abstract class AiBase
 		if (myPlayer.heldObject.id == 0) return;
 		if (myPlayer.heldObject.isWound()) return;
 		if (myPlayer.heldObject == myPlayer.hiddenWound) return; // you cannot drop a smal wound
+		if (myPlayer.heldObject.id == 2144) dropOnStart = false; // Banana Peel
 
 		if (dropOnStart && itemToCraft.startLocation != null) {
 			var distance = myPlayer.CalculateDistanceToObject(itemToCraft.startLocation);
