@@ -52,5 +52,6 @@ class SetupData {
 				FileTools.copyDir('OneLifeGameSourceData/$path', 'OneLifeData7/$path');
 			}
 		}
+		FileTools.deleteDir("OneLifeGameSourceData");
 	}
 }

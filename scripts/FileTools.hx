@@ -33,6 +33,7 @@ class FileTools {
 
 				if (FileSystem.isDirectory(path + name)) {
 					deleteDir(path + name);
+					sys.FileSystem.deleteDirectory(path + name);
 				} else {
 					FileSystem.deleteFile(path + name);
 				}
