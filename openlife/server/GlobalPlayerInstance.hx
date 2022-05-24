@@ -3916,11 +3916,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			trace('Close connection');
 
 			player.connection.close();
-		} else if (text.indexOf('!FOOD') != -1) {
-			player.food_store -= 5;
-			player.sendFoodUpdate(false);
 		} else if (text.indexOf('!YUM') != -1) {
 			player.food_store += 5;
+			player.sendFoodUpdate(false);
+		} else if (text.indexOf('!MEH') != -1) {
+			player.food_store -= 5;
 			player.sendFoodUpdate(false);
 		} else if (text.indexOf('!AGE') != -1 || text == '!') {
 			player.age += 5;
