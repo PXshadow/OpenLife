@@ -144,7 +144,7 @@ abstract class AiBase
 		//addTask(837); //Psilocybe Mushroom
         //addTask(134); //Flint Arrowhead
         addTask(82); // Fire
-        addTask(152); // Bow and Arrow
+        //addTask(152); // Bow and Arrow
         //addTask(152); // Bow and Arrow
         //addTask(152); // Bow and Arrow
         //addTask(152); // Bow and Arrow
@@ -268,9 +268,13 @@ abstract class AiBase
 
 		Macro.exception(if(craftClothing()) return);
 
+		Macro.exception(if(gatherStuff()) return);
+
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
 		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
+
+		// if there is nothing to do go home
 		Macro.exception(if(isMovingToHome(4)) return);
 
 		// Drop held object before doing noting
@@ -287,6 +291,31 @@ abstract class AiBase
 			if(rand < 0.05) myPlayer.say('say make xxx to give me some work!');
 			else if(rand < 0.2) myPlayer.say('nothing to do...');
 		}
+	}
+
+	private function gatherStuff() : Bool {
+		if(myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound){
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather: go home to drop ${myPlayer.heldObject.name}');
+			if(isMovingToHome(4)) return true;
+
+			// Drop held object at home 
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather: drop obj at home ${myPlayer.heldObject.name}');
+			dropHeldObject();
+			return true;
+		}	
+		
+		// TODO try only craft stuff if there for better speed
+		// TODO craft only stuff if not enough in home
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather!');
+
+		if(craftItem(808)) return true; // Wild Onion
+		if(craftItem(40)) return true; // Wild Carrot
+		if(craftItem(58)) return true; // Thread
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} nothing to gather!');
+
+		return false;
 	}
 
 	private function craftClothing() : Bool {
@@ -367,6 +396,11 @@ abstract class AiBase
 			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			this.time += 10;
 			myPlayer.say("YES CAPTAIN");
+		}
+		if (text.contains("GO HOME")) {			
+			if(isMovingToHome()) myPlayer.say("GOING HOME!");
+			else myPlayer.say("I AM HOME!");
+			this.time += 10;
 		}
 		/*if (text.contains("EAT!"))
 			{
@@ -645,6 +679,7 @@ abstract class AiBase
 
 		var done = myPlayer.doOnOther(targetPlayer.tx - myPlayer.gx, targetPlayer.ty - myPlayer.gx, -1, targetPlayer.id);
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done feed starving ${targetPlayer.name}');
+		time += 2; // wait 2 sec
 
 		return true;
 	}
