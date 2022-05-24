@@ -492,7 +492,7 @@ If you dont know which Linux distro the server has:
 Get current Linux Distroinfo: 
 ls -la ~/ | more
 
-Install haxe (best use Unbuntu) Haxe Version must be 4.2 at least (Debian has old version by default so setting up haxe is tricky):
+Install haxe (best use Unbuntu) Haxe Version must be 4.2 at least (Debian has old version by default so setting up haxe is tricky on Debian (beginning 2022)):
 https://haxe.org/download/linux/
 
 Get code from Github:
@@ -501,7 +501,8 @@ sudo apt-get install git
 git clone https://github.com/PXshadow/OpenLife
 
 Get OHOL data from Jason option 0 (Jason): 
-haxe setup_data.hxml
+haxe SetupDataServer.hxml
+// if SetupDataServer does not work try: haxe setup_data.hxml 
 
 Install Hasklink to execute Haxe hl files:
 Dont forget to install gcc first to compile hashlink :)
