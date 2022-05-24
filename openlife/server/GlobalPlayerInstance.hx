@@ -3927,13 +3927,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.trueAge += 5;
 			Connection.SendUpdateToAllClosePlayers(player);
 			// player.sendFoodUpdate(false);
+			//player.getTopLeader();
 		} else if (text.indexOf('!JAI') != -1) {
 			var ais = Connection.getLivingAis();
 
 			if (ais.length > 0) {
 				var ai = ais[WorldMap.calculateRandomInt(ais.length - 1)];
-				player.x = ai.connection.player.tx - player.gx;
-				player.y = ai.connection.player.ty - player.gy;
+				var aiPlayer = ai.connection.player;
+				player.x = WorldMap.world.transformX(player, aiPlayer.tx);
+				player.y = WorldMap.world.transformY(player, aiPlayer.ty);
 
 				player.forced = true;
 				Connection.SendUpdateToAllClosePlayers(player);
