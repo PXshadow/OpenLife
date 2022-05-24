@@ -347,10 +347,10 @@ High priority:
 - AI consider making / using a pile
 - AI Stoneage
 
-- FIX bug with getting stuck sometimes
-- FIX bug with reconnect if holding a player // TODO check if it is a problem
-- FIX connection crash on connect 
-- FIX /leader Client crash if you follow a new leader 
+- FIX connection crashes sometimes on connect 
+- FIX? bug with getting stuck sometimes // as workaround a new PU for the player is send once in a a while
+- FIX? /leader Client crash (if leader is out of range??) // as workaround no out of range (PO) is used)
+- FIX? bug with reconnect if holding a player // TODO check if it is a problem
 
 - MAP check why ponds are not in water ==> move to green near water
 
