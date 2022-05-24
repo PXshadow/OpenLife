@@ -271,10 +271,11 @@ class Connection {
 		var targetY = WorldMap.world.transformY(player, playerToSend.ty);
 
 		// update only close players
-		if (player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) {
+		// TODO vanilla client breaks if /LEADER is used and leader is out of range so dont send out of range for now
+		/*if (player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) {
 			player.connection.send(PLAYER_OUT_OF_RANGE, ['${playerToSend.p_id}'], isPlayerAction);
 			return;
-		}
+		}*/
 
 		if (playerToSend.isMoving()) {
 			if (sendMovingPlayer) {
@@ -959,6 +960,8 @@ class Connection {
 
 		if (leader == null) leader == player;
 
+		//trace('LEADER: ${player.id}-->${leader.id} deleted: ${leader.isDeleted()}');
+		//send(PLAYER_UPDATE, [leader.toRelativeData(player)], false);
 		this.sendMapLocation(leader, "LEADER", "leader");
 	}
 
