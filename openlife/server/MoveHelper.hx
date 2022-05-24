@@ -5,6 +5,7 @@ import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.macros.Macro;
 import openlife.server.GlobalPlayerInstance.Emote;
+import openlife.server.Lineage.PrestigeClass;
 import openlife.settings.ServerSettings;
 
 // @:multiReturn extern class NewMovements {
@@ -228,6 +229,11 @@ class MoveHelper {
 		// if(ServerSettings.DebugSpeed) trace('speed: $speed age: ${p.age} ageSpeedFactor: ${ageSpeedFactor} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
 		if (ServerSettings.DebugSpeed)
 			trace('speed: $speed age: ${p.age} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
+
+		if(p.isAi()){
+			if(p.lineage.prestigeClass == PrestigeClass.Commoner) speed *= ServerSettings.AISpeedFactorCommoner;
+			else if(p.lineage.prestigeClass == PrestigeClass.Serf) speed *= ServerSettings.AISpeedFactorSerf;
+		}
 
 		return speed;
 	}
