@@ -1,7 +1,6 @@
 package openlife.server;
 
 import haxe.Exception;
-import openlife.auto.Ai;
 import openlife.auto.AiBase;
 import openlife.auto.AiHelper;
 import openlife.client.ClientTag;
@@ -120,6 +119,10 @@ class TimeHelper {
 		for (c in Connection.getConnections()) {
 			Macro.exception(DoTimeStuffForPlayer(c.player, timePassedInSeconds));
 			if (TimeHelper.tick % 90 == 0) Macro.exception(c.sendToMeAllClosePlayers(false, false));
+			if (TimeHelper.tick % 20 == 0) {
+				// send still alive PU as workaround to unstuck stuck client
+				if(c.player.isMoving() == false) c.send(PLAYER_UPDATE, [c.player.toData()]);
+			}
 		}
 
 		for (ai in Connection.getAis()) {

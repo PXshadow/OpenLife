@@ -2,7 +2,6 @@ package openlife.server;
 
 import haxe.Exception;
 import haxe.ds.Vector;
-import openlife.auto.Ai;
 import openlife.auto.AiBase;
 import openlife.auto.AiHelper;
 import openlife.auto.PlayerInterface;
@@ -10,7 +9,6 @@ import openlife.auto.WorldInterface;
 import openlife.client.ClientTag;
 import openlife.data.Point;
 import openlife.data.Pos;
-import openlife.data.map.MapData;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.player.PlayerInstance;
@@ -620,7 +618,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			obj.home.tx = obj.storedInt['homeTx'];
 			obj.home.ty = obj.storedInt['homeTy'];
 
-			trace('Home: ${obj.name} ${obj.home.tx} ${obj.home.ty} biome: ${WorldMap.world.getBiomeId(obj.home.tx, obj.home.ty)}');
+			//trace('Home: ${obj.name} ${obj.home.tx} ${obj.home.ty} biome: ${WorldMap.world.getBiomeId(obj.home.tx, obj.home.ty)}');
 
 			var end = reader.readInt16(); // read end sign
 			if (end != -1000) {
