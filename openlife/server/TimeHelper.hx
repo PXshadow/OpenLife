@@ -1350,7 +1350,6 @@ class TimeHelper {
 
 		if (transition.move > 0) {
 			Macro.exception(doAnimalMovement(helper, transition));
-
 			return false;
 		}
 
@@ -1678,12 +1677,6 @@ class TimeHelper {
 		var tmpY = fromY;
 
 		for (ii in 0...10) {
-            if (tmpX == tx && tmpY == ty) break;
-
-			if (tx > tmpX) tmpX += 1; else if (tx < tmpX) tmpX -= 1;
-
-			if (ty > tmpY) tmpY += 1; else if (ty < tmpY) tmpY -= 1;
-
             //if (ii > 0 && tmpX == tx && tmpY == ty) break;
 
 			for (p in GlobalPlayerInstance.AllPlayers) {
@@ -1691,9 +1684,14 @@ class TimeHelper {
 				if (p.heldByPlayer != null) continue;
 				if (p.isCloseUseExact(tmpX, tmpY, objData.deadlyDistance) == false) continue;
 
+				trace('Do damage to: ${p.name}');
 				damage += p.doDamage(animal);
 				return damage;
 			}
+
+			if (tmpX == tx && tmpY == ty) break;
+			if (tx > tmpX) tmpX += 1; else if (tx < tmpX) tmpX -= 1;
+			if (ty > tmpY) tmpY += 1; else if (ty < tmpY) tmpY -= 1;
 		}
 
 		return damage;
