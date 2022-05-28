@@ -25,7 +25,7 @@ class ObjectBake {
 	public static function objectList():Vector<Int> {
 		if (!sys.FileSystem.exists(Engine.dir + "objects/nextObjectNumber.txt")) {
 			trace("object data failed to load");
-			trace("In order to fix run: haxe setup_data.hxml");
+			trace("In order to fix run: haxe setup_data_client.hxml");
 			nextObjectNumber = 0;
 			return null;
 		}
