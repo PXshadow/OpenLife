@@ -980,7 +980,7 @@ class TimeHelper {
 				var origObj = worldMap.getOriginalObjectId(x,y);
 				if (origObj[0] == 50 && obj[0] == 0)
 				{
-					if(worldMap.randomFloat() < TimePassedToDoAllTimeSteps / 30){
+					if(worldMap.randomFloat() < TimePassedToDoAllTimeSteps / 300){
 						worldMap.setObjectId(x,y, [50]);
 					}
 				}
