@@ -479,6 +479,7 @@ class ServerSettings {
 		ObjectData.getObjectData(807).countsOrGrowsAs = 804; // Burdock Root
 
 		// Milkweed
+		ObjectData.getObjectData(50).mapChance *= 2;
 		ObjectData.getObjectData(50).winterDecayFactor = 0; // Milkweed
 		ObjectData.getObjectData(50).springRegrowFactor = 0.1; // Milkweed
 		ObjectData.getObjectData(51).winterDecayFactor = 0; // Flowering Milkweed
