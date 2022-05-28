@@ -966,7 +966,7 @@ class TimeHelper {
 
 		for (y in startY...endY) {
 			for (x in 0...worldMap.width) {
-				if (Season == Seasons.Spring) {
+				if (Season == Seasons.Spring) {			
 					var hiddenObj = worldMap.getHiddenObjectId(x, y);
 					if (hiddenObj[0] != 0) RespawnOrDecayPlant(hiddenObj, x, y, true);
 
@@ -975,6 +975,15 @@ class TimeHelper {
 				}
 
 				var obj = worldMap.getObjectId(x, y);
+
+				// TODO fix Milkweed
+				var origObj = worldMap.getOriginalObjectId(x,y);
+				if (origObj[0] == 50 && obj[0] == 0)
+				{
+					if(worldMap.randomFloat() < TimePassedToDoAllTimeSteps / 30){
+						worldMap.setObjectId(x,y, [50]);
+					}
+				}
 
 				if (obj[0] == 0) continue;
 

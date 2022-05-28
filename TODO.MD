@@ -501,7 +501,7 @@ sudo apt-get install git
 git clone https://github.com/PXshadow/OpenLife
 
 Get OHOL data from Jason option 0 (Jason): 
-haxe SetupDataServer.hxml
+haxe setup_data_server.hxml
 // if SetupDataServer does not work try: haxe setup_data.hxml 
 
 Install Hasklink to execute Haxe hl files:
@@ -552,6 +552,9 @@ git pull https://github.com/PXshadow/OpenLife
 
 Compile OHOL server:
 haxe server.hxml
+
+In case you changed also the data: Get OHOL data from Jason option 0 (Jason):
+haxe setup_data_server.hxml
 
 Run server:
 hl server.hl
