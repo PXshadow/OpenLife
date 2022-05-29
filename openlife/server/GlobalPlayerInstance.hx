@@ -1588,8 +1588,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (lastSayInSec > 0 && this.isHuman() && ServerSettings.debug == false) return;
 		lastSayInSec = 1;
-
-		var maxLenght = player.age < 10 ? Math.ceil(player.age * 2) : player.age < 20 ? Math.ceil(player.age * 4) : 80;
+		var maxLenght = Math.ceil(player.age * 2);
+		var extraAge = player.age - 5;
+		if(extraAge < 0) extraAge = 0;
+		maxLenght += Math.ceil(extraAge * 4);
+		if(maxLenght > ServerSettings.MaxSayLength) maxLenght = ServerSettings.MaxSayLength;
 
 		if (text.startsWith('/') == false && text.length > maxLenght) text = text.substr(0, maxLenght);
 

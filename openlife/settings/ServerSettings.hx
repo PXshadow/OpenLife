@@ -114,6 +114,7 @@ class ServerSettings {
 	public static var FoodRestoreFactorWhileFeeding:Float = 10;
 	public static var MinAgeFertile = 10;
 	public static var MaxAgeFertile = 42;
+	public static var MaxSayLength = 80;
 
 	// save to disk
 	public static var TicksBetweenSaving = 200;
