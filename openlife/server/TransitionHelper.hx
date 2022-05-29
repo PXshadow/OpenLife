@@ -295,7 +295,7 @@ class TransitionHelper {
 			trace('TRANS: ${player.name + player.id} Container: ${objToStore.description} objToStore.slotSize: ${objToStoreObjData.slotSize} TO: container.containSize: ${containerObjData.containSize}');
 
 		if (isDrop == false) {
-			if (container.id == 87 || container.id == 88) return false; // 87 = Fresh Grave 88 = grave // connot place in grave
+			if (container.id == 87 || container.id == 88 || container.id == 752) return false; // 87 = Fresh Grave 88 = grave // cannot place in grave // 752 = Murder Grave
 
 			if (amountOfContainedObjects >= containerObjData.numSlots) return false;
 
