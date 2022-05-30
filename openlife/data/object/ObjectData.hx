@@ -83,6 +83,7 @@ class ObjectData extends LineReader {
 
 	/**is used for different wound decay on player**/
 	public var alternativeTimeOutcome:Int = -1;
+
 	public var secondTimeOutcome:Int = -1;
 	public var secondTimeOutcomeTimeToChange:Int = -1;
 
@@ -587,7 +588,6 @@ class ObjectData extends LineReader {
 
 		for (i in 0...importedObjectData.length) {
 			if (i % 400 == 0) trace('Create Object Data... $i from ${importedObjectData.length}');
-
 			var objectData = new ObjectData(tmp[i]);
 			importedObjectData[i] = objectData;
 			objectDataMap[objectData.id] = objectData;
@@ -1155,10 +1155,36 @@ class ObjectData extends LineReader {
 		writer.writeInt32(obj.maxWideRadius);
 		writer.writeInt8(obj.onlyDescription ? 1 : 0);
 		writer.writeInt8(obj.noBackAcess ? 1 : 0);
+		// sprite data
+		writer.writeInt32(obj.spriteArray.length); // length of sprite array
+		for (sprite in obj.spriteArray) {
+			writer.writeInt32(sprite.ageRange.length);
+			for (age in sprite.ageRange) {
+				writer.writeFloat(age);
+			}
+			writer.writeInt32(sprite.behindSlots);
+			writer.writeInt32(sprite.color.length);
+			for (color in sprite.color) {
+				writer.writeFloat(color);
+			}
+			writer.writeInt32(sprite.hFlip);
+			writer.writeInt32(sprite.inCenterXOffset);
+			writer.writeInt32(sprite.inCenterYOffset);
+			writer.writeInt8(sprite.invisCont ? 1 : 0);
+			writer.writeInt32(sprite.invisHolding);
+			writer.writeInt32(sprite.invisWorn);
+			writer.writeInt32(sprite.name.length); // length of name string
+			writer.writeString(sprite.name);
+			writer.writeInt32(sprite.parent);
+			writer.writeFloat(sprite.pos.x);
+			writer.writeFloat(sprite.pos.y);
+			writer.writeFloat(sprite.rot);
+			writer.writeInt32(sprite.spriteID);
+		}
 		writer.writeInt32(obj.id); // write twice to check if data is corrupted
 	}
 
-	// note to future self, if you happen to wander by the client doesn't save special data such as sound data
+	// note to future self, if you happen to wander by, the client doesn't save special data such as sound data
 	public static function readFromFile(obj:ObjectData, reader:FileInput) {
 		obj.id = reader.readInt32();
 		obj.decayFactor = reader.readFloat();
@@ -1236,6 +1262,36 @@ class ObjectData extends LineReader {
 		obj.maxWideRadius = reader.readInt32();
 		obj.onlyDescription = reader.readInt8() != 0 ? true : false;
 		obj.noBackAcess = reader.readInt8() != 0 ? true : false;
+
+		// sprite data
+		var len = reader.readInt32();
+		obj.spriteArray = new Vector<SpriteData>(len);
+		for (i in 0...obj.spriteArray.length) {
+			final sprite = new SpriteData();
+			obj.spriteArray[i] = sprite;
+
+			var len = reader.readInt32();
+			for (i in 0...len) {
+				sprite.ageRange[i] = reader.readFloat();
+			}
+			sprite.behindSlots = reader.readInt32();
+			var len = reader.readInt32();
+			for (i in 0...len) {
+				sprite.color[i] = reader.readFloat();
+			}
+			sprite.hFlip = reader.readInt32();
+			sprite.inCenterXOffset = reader.readInt32();
+			sprite.inCenterYOffset = reader.readInt32();
+			sprite.invisCont = reader.readInt8() == 1;
+			sprite.invisHolding = reader.readInt32();
+			sprite.invisWorn = reader.readInt32();
+			var len = reader.readInt32();
+			sprite.name = reader.readString(len);
+			sprite.parent = reader.readInt32();
+			sprite.pos = new Point(reader.readFloat(), reader.readFloat());
+			sprite.rot = reader.readFloat();
+			sprite.spriteID = reader.readInt32();
+		}
 
 		var tmpId = reader.readInt32();
 		if (obj.id != tmpId) {
@@ -1402,9 +1458,9 @@ class ObjectData extends LineReader {
 	public function getClothingSlot():Int {
 		var objClothingSlot = -1;
 
-		//if (this.o_id[0] < 1) return -1;
+		// if (this.o_id[0] < 1) return -1;
 
-		var objectData = this; //ObjectData.getObjectData(this.o_id[0]);
+		var objectData = this; // ObjectData.getObjectData(this.o_id[0]);
 		// trace("OD: " + objectData.toFileString());
 
 		switch objectData.clothing.charAt(0) {
@@ -1421,7 +1477,7 @@ class ObjectData extends LineReader {
 				objClothingSlot = 5; // backpack
 		}
 
-		//if (ServerSettings.DebugPlayer) trace('objectData.clothing: ${objectData.clothing} objClothingSlot:  ${objClothingSlot}');
+		// if (ServerSettings.DebugPlayer) trace('objectData.clothing: ${objectData.clothing} objClothingSlot:  ${objClothingSlot}');
 		// trace('clothingSlot:  ${clothingSlot}');
 
 		return objClothingSlot;
