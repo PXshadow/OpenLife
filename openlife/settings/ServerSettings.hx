@@ -112,7 +112,7 @@ class ServerSettings {
 	public static var PickupFeedingFoodRestore:Float = 1.5;
 	public static var PickupExhaustionGain:Float = 0.2;
 	public static var FoodRestoreFactorWhileFeeding:Float = 10;
-	public static var MinAgeFertile = 10;
+	public static var MinAgeFertile = 14;
 	public static var MaxAgeFertile = 42;
 	public static var MaxSayLength = 80;
 

@@ -3677,6 +3677,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return false;
 		}
 
+		if (this.age < targetPlayer.age + 1)
+		{
+			trace('Cannot pickup player, you need to be one year older then player to pickup: ${this.age} < ${targetPlayer.age} + 1');
+			return false;
+		}
+
 		// since targetPlayer may have moved inform where the player is now
 		Connection.SendUpdateToAllClosePlayers(targetPlayer, true);
 
