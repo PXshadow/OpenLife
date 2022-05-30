@@ -231,8 +231,9 @@ class MoveHelper {
 			trace('speed: $speed age: ${p.age} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
 
 		if(p.isAi()){
-			if(p.lineage.prestigeClass == PrestigeClass.Commoner) speed *= ServerSettings.AISpeedFactorCommoner;
-			else if(p.lineage.prestigeClass == PrestigeClass.Serf) speed *= ServerSettings.AISpeedFactorSerf;
+			if(p.lineage.prestigeClass == PrestigeClass.Serf) speed *= ServerSettings.AISpeedFactorSerf;
+			else if(p.lineage.prestigeClass == PrestigeClass.Commoner) speed *= ServerSettings.AISpeedFactorCommoner;
+			else if(p.lineage.prestigeClass == PrestigeClass.Noble) speed *= ServerSettings.AISpeedFactorNoble;
 		}
 
 		return speed;

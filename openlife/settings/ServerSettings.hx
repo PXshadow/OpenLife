@@ -112,8 +112,9 @@ class ServerSettings {
 	public static var PickupFeedingFoodRestore:Float = 1.5;
 	public static var PickupExhaustionGain:Float = 0.2;
 	public static var FoodRestoreFactorWhileFeeding:Float = 10;
-	public static var MinAgeFertile = 10;
+	public static var MinAgeFertile = 14; // TODO only make lower then 14 if client allows it
 	public static var MaxAgeFertile = 42;
+	public static var MaxSayLength = 80;
 
 	// save to disk
 	public static var TicksBetweenSaving = 200;
@@ -267,17 +268,25 @@ class ServerSettings {
 	public static var AiReactionTime:Float = 0.5; // 0.5;
 	public static var TimeToAiRebirthPerYear:Float = 10; // X seconds per not lived year = 60 - death age
 	public static var AiTotalScoreFactor:Float = 0.5;
-	public static var AISpeedFactorSerf:Float = 0.6;
-	public static var AISpeedFactorCommoner:Float = 0.8;
 	public static var AiMaxSearchRadius:Int = 60;
 	public static var AiMaxSearchIncrement:Int = 20; // 16
 	public static var AiIgnoreTimeTransitionsLongerThen:Int = 30;
 	public static var AgingFactorHumanBornToAi:Float = 3; // 3
 	public static var AgingFactorAiBornToHuman:Float = 2;
 
+	// Ai speed
+	public static var AISpeedFactorSerf:Float = 0.6;
+	public static var AISpeedFactorCommoner:Float = 0.8;
+	public static var AISpeedFactorNoble:Float = 1;
+
+	// Ai food use
+	public static var AIFoodUseFactorSerf:Float = 0.5;
+	public static var AIFoodUseFactorCommoner:Float = 0.6;
+	public static var AIFoodUseFactorNoble:Float = 1;
+
 	// iron, tary spot spring cannot respawn or win lottery
 	public static function CanObjectRespawn(obj:Int):Bool {
-		return (obj != 942 && obj != 3030 && obj != 2285 && obj != 3962 && obj != 503);
+		return (obj != 942 && obj != 3030 && obj != 2285 && obj != 3961 && obj != 3962 && obj != 503);
 	}
 
 	public static function PatchObjectData() {
@@ -322,12 +331,14 @@ class ServerSettings {
 		ObjectData.getObjectData(334).hungryWork = 1 * HungryWorkToolCostFactor; // Steel Axe
 		ObjectData.getObjectData(502).hungryWork = 1 * HungryWorkToolCostFactor; // Shovel // TODO should be cheaper then sharp stone
 
-		ObjectData.getObjectData(496).hungryWork = 10; // Dug Stump
+		ObjectData.getObjectData(496).hungryWork = 15; // Dug Stump
+		ObjectData.getObjectData(3961).hungryWork = 5; // Iron Vein
+
 		ObjectData.getObjectData(1011).hungryWork = 5; // Buried Grave
 		ObjectData.getObjectData(357).hungryWork = 5; // Bone Pile
 
-		ObjectData.getObjectData(213).hungryWork = 5; // Deep Tilled Row
-		ObjectData.getObjectData(1136).hungryWork = 5; // Shallow Tilled Row
+		ObjectData.getObjectData(213).hungryWork = 3; // Deep Tilled Row
+		ObjectData.getObjectData(1136).hungryWork = 3; // Shallow Tilled Row
 
 		ObjectData.getObjectData(511).hungryWork = 2; // Pond
 		ObjectData.getObjectData(1261).hungryWork = 2; // Canada Goose Pond with Egg
@@ -363,10 +374,10 @@ class ServerSettings {
 		ObjectData.getObjectData(512).countsOrGrowsAs = 1261; // Dry Pond
 		
 		ObjectData.getObjectData(164).secondTimeOutcome = 173; // Rabbit Hole out,single ==> Rabbit Family Hole out
-		ObjectData.getObjectData(164).secondTimeOutcomeTimeToChange = 30;
+		ObjectData.getObjectData(164).secondTimeOutcomeTimeToChange = 90;
 
 		ObjectData.getObjectData(173).secondTimeOutcome = 3566; // Rabbit Family Hole out ==> Fleeing Rabbit
-		ObjectData.getObjectData(173).secondTimeOutcomeTimeToChange = 30;	
+		ObjectData.getObjectData(173).secondTimeOutcomeTimeToChange = 90;	
 		
 		ObjectData.getObjectData(164).countsOrGrowsAs = 161; // Rabbit Hole out,single couts as Rabbit Hole
 		ObjectData.getObjectData(173).countsOrGrowsAs = 161; // Rabbit Family Hole couts as Rabbit Hole
@@ -376,7 +387,7 @@ class ServerSettings {
 		ObjectData.getObjectData(237).blocksWalking = false; // Adobe Oven
 
 		// Change map spawn chances
-		ObjectData.getObjectData(3030).mapChance *= 2; // Natural Spring
+		ObjectData.getObjectData(3030).mapChance *= 3; // Natural Spring
 		ObjectData.getObjectData(769).mapChance *= 2; // Wild Horse
 		// ObjectData.getObjectData(769).biomes.push(BiomeTag.GREEN); // Beautiful Horses now also in Green biome :)
 
@@ -422,13 +433,13 @@ class ServerSettings {
 		ObjectData.getObjectData(808).foodValue = 4; // Wild Onion // origional 4
 
 		// boost hunted food
-		ObjectData.getObjectData(197).foodValue = 12; // Cooked Rabbit 10 --> 12
+		ObjectData.getObjectData(197).foodValue = 15; // Cooked Rabbit 10 --> 15
 		ObjectData.getObjectData(2190).foodValue = 20; // Turkey Slice on Plate 17 --> 20
 		ObjectData.getObjectData(1285).foodValue = 15; // Omelette 12 --> 15
 
-		ObjectData.getObjectData(197).useChance = 0.3; // Cooked Rabbit
-		ObjectData.getObjectData(2190).useChance = 0.3; // Turkey Slice on Plate
-		ObjectData.getObjectData(518).useChance = 0.3; // Cooked Goose
+		//ObjectData.getObjectData(197).useChance = 0.3; // Cooked Rabbit
+		//ObjectData.getObjectData(2190).useChance = 0.3; // Turkey Slice on Plate
+		//ObjectData.getObjectData(518).useChance = 0.3; // Cooked Goose
 		// ObjectData.getObjectData(2143).useChance = 0.3; // Banana
 
 		// soil should replace water as most needed ressource
@@ -479,7 +490,7 @@ class ServerSettings {
 		ObjectData.getObjectData(807).countsOrGrowsAs = 804; // Burdock Root
 
 		// Milkweed
-		ObjectData.getObjectData(50).mapChance *= 1.2;
+		ObjectData.getObjectData(50).mapChance *= 1.2; // Milkweed
 		ObjectData.getObjectData(50).winterDecayFactor = 0; // Milkweed
 		ObjectData.getObjectData(50).springRegrowFactor = 0.1; // Milkweed
 		ObjectData.getObjectData(51).winterDecayFactor = 0; // Flowering Milkweed

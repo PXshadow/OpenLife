@@ -13,6 +13,7 @@ import openlife.macros.Macro;
 import openlife.server.Connection;
 import openlife.server.GlobalPlayerInstance;
 import openlife.server.NamingHelper;
+import openlife.server.ServerAi;
 import openlife.server.TimeHelper;
 import openlife.server.WorldMap;
 import openlife.settings.ServerSettings;
@@ -77,6 +78,13 @@ abstract class AiBase
 
 			var timeSinceStart:Float = Sys.time() - TimeHelper.serverStartingTime;
 			var timeSinceStartCountedFromTicks = AiBase.tick * TimeHelper.tickTime;
+
+			var aiCount = Connection.getAis().length;
+
+			if(AiBase.tick % 20 != 0 && aiCount < ServerSettings.NumberOfAis) {
+				var ai = ServerAi.createNewServerAiWithNewPlayer();
+				// ai.player.delete(); // delete, so that they wont all spawn at same time
+			}
 
 			// TODO what to do if server is too slow?
 			if (AiBase.tick % 10 != 0 && timeSinceStartCountedFromTicks < timeSinceStart) {
@@ -1426,7 +1434,7 @@ abstract class AiBase
 		if(myPlayer.age > ServerSettings.MinAgeToEat || ServerSettings.DebugAiSay) myPlayer.say('${playerToFollow.name}');
 
 		if (myPlayer.isAi()) if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} dist: $quadDistance goto player $done');
+			trace('AAI: ${myPlayer.name + myPlayer.id} age: ${Math.ceil(myPlayer.age * 10) / 10} dist: $quadDistance goto player $done');
 
 		return done;
 	}

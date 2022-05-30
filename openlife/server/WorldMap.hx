@@ -1036,16 +1036,16 @@ class WorldMap {
 			for (x in 0...width) {
 				var obj = objects[x + y * width];
 
+				if (obj[0] == 942) objects[x + y * width] = [3961]; // 3961 = Iron Vein
+
 				// change muddy iron vein to loose muddy iron vein // TODO better patch the data
 				if (obj[0] == 942 || obj[0] == 3030) // 942 iron vein // 3030 Natural Spring
 				{
-					if (obj[0] == 942) objects[x + y * width] = [3962]; // loose muddy iron vein
-
 					// generate also some random stones
-					var random = randomInt(6) + 3;
+					var random = randomInt(2) + 1;
 
 					for (i in 0...100) {
-						var dist = 6;
+						var dist = 3;
 						var tx = x + randomInt(dist * 2) - dist;
 						var ty = y + randomInt(dist * 2) - dist;
 

@@ -16,8 +16,9 @@ Life is generally more hard / deadly:
 
 AI:
 - there might be an basic AI for NPCs if activated in the settings
-- by giving "make xxx" commands you can instruct the ai to make stuff. with xxx part of an object name or ID. 
-TODO: This might or might not work yet!
+- by giving "make xxx" commands you can instruct the ai to make stuff
+ with xxx part of an object name or ID. TODO: This might or might not work yet!
+- general the lower the class of the AI the slower it is and the less food it needs (Serf/Commoner/Noble)
 
 Combat:
 - combat is allowed but might give some prestige mali like attacking children. relatives or allies...
@@ -227,8 +228,8 @@ Wounds
 - with smal wounds you can still do stuff, but you will still get damage and less speed
 
 Objects:
-- cooked Rabbit Food Value: 10 --> 18
-- turkey Slice on Plate Food Value: 17 --> 24
+- cooked Rabbit Food Value: 10 --> 15
+- turkey Slice on Plate Food Value: 17 --> 20
 - omelette Food Value: 12 --> 15
 - cooked Goose: useChance = 0.3;
 - compost has less uses to make soil more rare, since water is more plenty: Soil (Wheat, Berry, Dung) + water ==> 4 Soil  

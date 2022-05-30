@@ -814,7 +814,7 @@ class AiHelper {
 				
 				var dist = AiHelper.CalculateDistanceToObject(player, obj);
 
-				if(display) if (dist > 9) cast(player, GlobalPlayerInstance).connection.send(ClientTag.LOCATION_SAYS, ['${obj.tx - player.gx} ${obj.ty - player.gy} !']);
+				if(display) if (dist > 16) cast(player, GlobalPlayerInstance).connection.send(ClientTag.LOCATION_SAYS, ['${obj.tx - player.gx} ${obj.ty - player.gy} !']);
 
 				if (dist > bestDist) continue;
 				// var moveQuadDist = Math.pow(obj.objectData.moves + 1, 2);

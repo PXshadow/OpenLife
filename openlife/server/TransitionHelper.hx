@@ -271,7 +271,7 @@ class TransitionHelper {
 
 			if (index < 0) index = 0;
 
-			// cannot pickup Threshed Wheat from Table
+			// cannot pickup permanent objects like Threshed Wheat from Table
 			if (container.containedObjects[index].objectData.permanent == 1) return false;
 
 			player.setHeldObject(container.removeContainedObject(index));
@@ -287,15 +287,17 @@ class TransitionHelper {
 
 		// place hand object in container if container has enough space
 		// if (handObjectData.slotSize >= objectData.containSize) {
-		if (ServerSettings.DebugTransitionHelper)
-			trace('TRANS: ${player.name + player.id} Container: ${objToStore.description} objToStore.slotSize: ${objToStoreObjData.slotSize} container.containSize: ${containerObjData.containSize}');
-		if (objToStoreObjData.slotSize > containerObjData.containSize) return false;
+		if (ServerSettings.DebugTransitionHelper)			
+			trace('TRANS: ${player.name + player.id} Container: ${containerObjData.description} slots: ${containerObjData.numSlots} containerObjData.slotSize: ${containerObjData.slotSize} objToStoreObjData.containSize: ${objToStoreObjData.containSize}');
+		//trace('TRANS: ${player.name + player.id} Container: ${containerObjData.description} objToStore.slotSize: ${objToStoreObjData.slotSize} container.containSize: ${containerObjData.containSize}');
+		//if (objToStoreObjData.slotSize > containerObjData.containSize) return false;
+		if (objToStoreObjData.containSize > containerObjData.slotSize) return false;
 
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} Container: ${objToStore.description} objToStore.slotSize: ${objToStoreObjData.slotSize} TO: container.containSize: ${containerObjData.containSize}');
 
 		if (isDrop == false) {
-			if (container.id == 87 || container.id == 88) return false; // 87 = Fresh Grave 88 = grave // connot place in grave
+			if (container.id == 87 || container.id == 88 || container.id == 752) return false; // 87 = Fresh Grave 88 = grave // cannot place in grave // 752 = Murder Grave
 
 			if (amountOfContainedObjects >= containerObjData.numSlots) return false;
 
@@ -610,10 +612,9 @@ class TransitionHelper {
 		var newParentTargetObjectData = newTargetObjectData.dummyParent == null ? newTargetObjectData : newTargetObjectData.dummyParent;
 		var hungryWorkCost = Math.max(parentActorObjectData.hungryWork, newParentTargetObjectData.hungryWork);
 
-		if (hungryWorkCost > 0) {
-			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Trans hungry Work: cost: $hungryWorkCost');
-
-			var missingFood = Math.ceil(hungryWorkCost - (player.food_store + player.food_store_max / 2));
+		if (hungryWorkCost > 0) {	
+			var missingFood = Math.ceil(hungryWorkCost / 2  - player.food_store);
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} hungry Work cost: $hungryWorkCost missingFood: ${missingFood}');
 
 			if (missingFood > 0) {
 				// var message = 'Its hungry work! Need ${missingFood} more food!';
@@ -630,6 +631,8 @@ class TransitionHelper {
 			player.addFood(-hungryWorkCost);
 			player.exhaustion += hungryWorkCost;
 			player.doEmote(Emote.biomeRelief);
+
+			player.sendFoodUpdate();
 		}
 
 		// always use alternativeTransitionOutcome from transition if there. Second use from newTargetObjectData

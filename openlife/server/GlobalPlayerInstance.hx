@@ -1588,8 +1588,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (lastSayInSec > 0 && this.isHuman() && ServerSettings.debug == false) return;
 		lastSayInSec = 1;
-
-		var maxLenght = player.age < 10 ? Math.ceil(player.age * 2) : player.age < 20 ? Math.ceil(player.age * 4) : 80;
+		var maxLenght = Math.ceil(player.age * 2);
+		var extraAge = player.age - 5;
+		if(extraAge < 0) extraAge = 0;
+		maxLenght += Math.ceil(extraAge * 4);
+		if(maxLenght > ServerSettings.MaxSayLength) maxLenght = ServerSettings.MaxSayLength;
 
 		if (text.startsWith('/') == false && text.length > maxLenght) text = text.substr(0, maxLenght);
 
@@ -2806,6 +2809,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			text += 'H!';
 		}
 
+		var quadDist = AiHelper.CalculateDistanceToObject(player, food);
+		var dist = Math.round(Math.sqrt(quadDist));
+		if(dist > 9) text += '_${dist}M';
+
 		// trace('DisplayBestFood: ${food.description} $text count: $count countEaten: $countEaten');
 
 		player.connection.send(ClientTag.LOCATION_SAYS, ['${food.tx - player.gx} ${food.ty - player.gy} $text']);
@@ -2813,9 +2820,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public static function DisplayBestFood(player:GlobalPlayerInstance) {
 		if (player.isAi()) return;
-		// if(player.heldObject.objectData.foodValue <= 0) return;
-		if (player.food_store > player.food_store_max * 0.8) return;
-		if (player.currentlyCraving != 0 && player.heldObject.id == player.currentlyCraving) return;
+		if(player.heldObject.objectData.foodValue <= 0 && player.food_store > 1) return;
+		//if(player.isHoldingYum()) return;
+		//if (player.food_store > player.food_store_max * 0.8) return;
+		//if (player.currentlyCraving != 0 && player.heldObject.id == player.currentlyCraving) return;
 
 		var bestfood = AiHelper.SearchBestFood(player);
 		var displayBestFood = bestfood != null
@@ -3669,6 +3677,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return false;
 		}
 
+		if (this.age < targetPlayer.age + 1)
+		{
+			trace('Cannot pickup player, you need to be one year older then player to pickup: ${this.age} < ${targetPlayer.age} + 1');
+			return false;
+		}
+
+		if (targetPlayer.heldPlayer != null) targetPlayer.dropPlayer(this.x, this.y); // TODO test
+		if (targetPlayer.heldPlayer != null) {
+			trace('Cannot pickup player, target playing is holding other player');
+			return false;
+		}
+		
 		// since targetPlayer may have moved inform where the player is now
 		Connection.SendUpdateToAllClosePlayers(targetPlayer, true);
 

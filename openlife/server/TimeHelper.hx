@@ -12,6 +12,7 @@ import openlife.data.transition.TransitionImporter;
 import openlife.macros.Macro;
 import openlife.server.Biome.BiomeTag;
 import openlife.server.GlobalPlayerInstance.Emote;
+import openlife.server.Lineage.PrestigeClass;
 import openlife.settings.ServerSettings;
 
 @:enum abstract Seasons(Int) from Int to Int {
@@ -228,7 +229,7 @@ class TimeHelper {
 
 		GlobalPlayerInstance.DisplayBestFood(player);
 
-		AiHelper.DisplayCloseDeadlyAnimals(player);
+		if(player.hits > 1) AiHelper.DisplayCloseDeadlyAnimals(player, 10);
 
 		for(point in player.locationSaysPositions){
 			player.connection.send(ClientTag.LOCATION_SAYS, ['${point.x} ${point.y} ']);
@@ -251,7 +252,7 @@ class TimeHelper {
 			var rx = WorldMap.world.transformX(player, p.tx);
 			var ry = WorldMap.world.transformY(player, p.ty);
 			var dist = Math.round(Math.sqrt(quadDist));
-			if(ServerSettings.DisplayPlayerNamesShowDistance && dist > 4) name += '_${dist}M';
+			if(ServerSettings.DisplayPlayerNamesShowDistance && dist > 9) name += '_${dist}M';
 
 			//player.connection.send(PLAYER_UPDATE, [p.toRelativeData(player)], false);
 			//player.connection.send(PLAYER_SAYS, ['${p.id}/$0 $name']);
@@ -593,6 +594,12 @@ class TimeHelper {
 		// if(tick % 20 == 0) trace('${player.id} heat: ${player.heat} faktor: ${healing / originalFoodDecay} healing: $healing foodDecay: $originalFoodDecay');
 
 		if (player.age < ServerSettings.GrownUpAge && player.food_store > 0) foodDecay *= ServerSettings.FoodUseChildFaktor;
+
+		if(player.isAi()){
+			if(player.lineage.prestigeClass == PrestigeClass.Serf) foodDecay *= ServerSettings.AIFoodUseFactorSerf;
+			else if(player.lineage.prestigeClass == PrestigeClass.Commoner) foodDecay *= ServerSettings.AIFoodUseFactorCommoner;
+			else if(player.lineage.prestigeClass == PrestigeClass.Noble) foodDecay *= ServerSettings.AIFoodUseFactorNoble;
+		}
 
 		// do damage if wound
 		if (player.isWounded() || player.hiddenWound != null) {
@@ -1646,13 +1653,14 @@ class TimeHelper {
 					&& movementTileObj.description.indexOf("Tarry Spot") == -1
 					&& movementTileObj.description.indexOf("Tree") == -1
 					&& movementTileObj.description.indexOf("Rabbit") == -1
-					&& movementTileObj.description.indexOf("Iron") == -1
 					&& movementTileObj.description.indexOf("Spring") == -1
 					&& movementTileObj.description.indexOf("Sugarcane") == -1
 					&& movementTileObj.description.indexOf("Pond") == -1
 					&& movementTileObj.description.indexOf("Palm") == -1
 					&& movementTileObj.description.indexOf("Plant") == -1)) {
+					//&& movementTileObj.description.indexOf("Iron") == -1
 				// trace('movement blocked ${movementTile.description()} ${movementBiome}');
+
 				break;
 			}
 
