@@ -103,6 +103,7 @@ class ServerSettings {
 
 	// PlayerInstance
 	public static var MaxPlayersBeforeStartingAsChild = 0; // -1
+	public static var MaxPlayersBeforeActivatingGraveCurse = 2; 
 	public static var StartingFamilyName = "SNOW";
 	public static var StartingName = "SPOON";
 	public static var AgeingSecondsPerYear = 60; // 60
