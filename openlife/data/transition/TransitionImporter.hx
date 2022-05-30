@@ -1,12 +1,12 @@
 package openlife.data.transition;
 
 import haxe.Exception;
-import openlife.settings.ServerSettings;
-import openlife.data.object.ObjectHelper;
-import openlife.data.object.ObjectData;
 import haxe.io.Path;
-import sys.io.File;
+import openlife.data.object.ObjectData;
+import openlife.data.object.ObjectHelper;
 import openlife.engine.Engine;
+import openlife.settings.ServerSettings;
+import sys.io.File;
 
 @:expose
 class TransitionImporter {
@@ -89,6 +89,9 @@ class TransitionImporter {
 		obj.carftingSteps = 0;
 		var obj = ObjectData.getObjectData(3962); // Loose Muddy Iron Vein
 		obj.carftingSteps = 0;
+		var obj = ObjectData.getObjectData(3961); // Iron Vein
+		obj.carftingSteps = 0;
+		
 		todo.push(obj);
 
 		for (obj in ObjectData.importedObjectData) {

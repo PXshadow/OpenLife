@@ -278,7 +278,7 @@ class ServerSettings {
 
 	// iron, tary spot spring cannot respawn or win lottery
 	public static function CanObjectRespawn(obj:Int):Bool {
-		return (obj != 942 && obj != 3030 && obj != 2285 && obj != 3962 && obj != 503);
+		return (obj != 942 && obj != 3030 && obj != 2285 && obj != 3961 && obj != 3962 && obj != 503);
 	}
 
 	public static function PatchObjectData() {
