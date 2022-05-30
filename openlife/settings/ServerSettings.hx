@@ -188,7 +188,7 @@ class ServerSettings {
 
 	// for movement
 	public static var GotoTimeOut:Int = 250;
-	public static var InitialPlayerMoveSpeed:Float = 6; // vanilla: 3.75; // in Tiles per Second
+	public static var InitialPlayerMoveSpeed:Float = 4.75; // vanilla: 3.75; // in Tiles per Second
 	public static var SpeedFactor = 1; // MovementExtender // used to incease or deacrease speed factor X
 	public static var MinMovementAgeInSec:Float = 14;
 	public static var MinSpeedReductionPerContainedObj = 0.98;
