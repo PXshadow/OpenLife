@@ -612,10 +612,9 @@ class TransitionHelper {
 		var newParentTargetObjectData = newTargetObjectData.dummyParent == null ? newTargetObjectData : newTargetObjectData.dummyParent;
 		var hungryWorkCost = Math.max(parentActorObjectData.hungryWork, newParentTargetObjectData.hungryWork);
 
-		if (hungryWorkCost > 0) {
-			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Trans hungry Work: cost: $hungryWorkCost');
-
-			var missingFood = Math.ceil(hungryWorkCost - (player.food_store + player.food_store_max / 2));
+		if (hungryWorkCost > 0) {	
+			var missingFood = Math.ceil(hungryWorkCost / 2  - player.food_store);
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} hungry Work cost: $hungryWorkCost missingFood: ${missingFood}');
 
 			if (missingFood > 0) {
 				// var message = 'Its hungry work! Need ${missingFood} more food!';
@@ -632,6 +631,8 @@ class TransitionHelper {
 			player.addFood(-hungryWorkCost);
 			player.exhaustion += hungryWorkCost;
 			player.doEmote(Emote.biomeRelief);
+
+			player.sendFoodUpdate();
 		}
 
 		// always use alternativeTransitionOutcome from transition if there. Second use from newTargetObjectData

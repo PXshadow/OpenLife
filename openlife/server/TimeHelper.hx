@@ -1646,13 +1646,14 @@ class TimeHelper {
 					&& movementTileObj.description.indexOf("Tarry Spot") == -1
 					&& movementTileObj.description.indexOf("Tree") == -1
 					&& movementTileObj.description.indexOf("Rabbit") == -1
-					&& movementTileObj.description.indexOf("Iron") == -1
 					&& movementTileObj.description.indexOf("Spring") == -1
 					&& movementTileObj.description.indexOf("Sugarcane") == -1
 					&& movementTileObj.description.indexOf("Pond") == -1
 					&& movementTileObj.description.indexOf("Palm") == -1
 					&& movementTileObj.description.indexOf("Plant") == -1)) {
+					//&& movementTileObj.description.indexOf("Iron") == -1
 				// trace('movement blocked ${movementTile.description()} ${movementBiome}');
+
 				break;
 			}
 

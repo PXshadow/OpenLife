@@ -379,7 +379,7 @@ class ServerSettings {
 		ObjectData.getObjectData(237).blocksWalking = false; // Adobe Oven
 
 		// Change map spawn chances
-		ObjectData.getObjectData(3030).mapChance *= 2; // Natural Spring
+		ObjectData.getObjectData(3030).mapChance *= 3; // Natural Spring
 		ObjectData.getObjectData(769).mapChance *= 2; // Wild Horse
 		// ObjectData.getObjectData(769).biomes.push(BiomeTag.GREEN); // Beautiful Horses now also in Green biome :)
 
@@ -482,7 +482,7 @@ class ServerSettings {
 		ObjectData.getObjectData(807).countsOrGrowsAs = 804; // Burdock Root
 
 		// Milkweed
-		ObjectData.getObjectData(50).mapChance *= 1.2;
+		ObjectData.getObjectData(50).mapChance *= 1.2; // Milkweed
 		ObjectData.getObjectData(50).winterDecayFactor = 0; // Milkweed
 		ObjectData.getObjectData(50).springRegrowFactor = 0.1; // Milkweed
 		ObjectData.getObjectData(51).winterDecayFactor = 0; // Flowering Milkweed
