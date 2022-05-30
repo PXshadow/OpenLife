@@ -327,8 +327,8 @@ class ServerSettings {
 		ObjectData.getObjectData(1011).hungryWork = 5; // Buried Grave
 		ObjectData.getObjectData(357).hungryWork = 5; // Bone Pile
 
-		ObjectData.getObjectData(213).hungryWork = 5; // Deep Tilled Row
-		ObjectData.getObjectData(1136).hungryWork = 5; // Shallow Tilled Row
+		ObjectData.getObjectData(213).hungryWork = 3; // Deep Tilled Row
+		ObjectData.getObjectData(1136).hungryWork = 3; // Shallow Tilled Row
 
 		ObjectData.getObjectData(511).hungryWork = 2; // Pond
 		ObjectData.getObjectData(1261).hungryWork = 2; // Canada Goose Pond with Egg
@@ -364,10 +364,10 @@ class ServerSettings {
 		ObjectData.getObjectData(512).countsOrGrowsAs = 1261; // Dry Pond
 		
 		ObjectData.getObjectData(164).secondTimeOutcome = 173; // Rabbit Hole out,single ==> Rabbit Family Hole out
-		ObjectData.getObjectData(164).secondTimeOutcomeTimeToChange = 30;
+		ObjectData.getObjectData(164).secondTimeOutcomeTimeToChange = 90;
 
 		ObjectData.getObjectData(173).secondTimeOutcome = 3566; // Rabbit Family Hole out ==> Fleeing Rabbit
-		ObjectData.getObjectData(173).secondTimeOutcomeTimeToChange = 30;	
+		ObjectData.getObjectData(173).secondTimeOutcomeTimeToChange = 90;	
 		
 		ObjectData.getObjectData(164).countsOrGrowsAs = 161; // Rabbit Hole out,single couts as Rabbit Hole
 		ObjectData.getObjectData(173).countsOrGrowsAs = 161; // Rabbit Family Hole couts as Rabbit Hole
@@ -423,13 +423,13 @@ class ServerSettings {
 		ObjectData.getObjectData(808).foodValue = 4; // Wild Onion // origional 4
 
 		// boost hunted food
-		ObjectData.getObjectData(197).foodValue = 12; // Cooked Rabbit 10 --> 12
+		ObjectData.getObjectData(197).foodValue = 15; // Cooked Rabbit 10 --> 15
 		ObjectData.getObjectData(2190).foodValue = 20; // Turkey Slice on Plate 17 --> 20
 		ObjectData.getObjectData(1285).foodValue = 15; // Omelette 12 --> 15
 
-		ObjectData.getObjectData(197).useChance = 0.3; // Cooked Rabbit
-		ObjectData.getObjectData(2190).useChance = 0.3; // Turkey Slice on Plate
-		ObjectData.getObjectData(518).useChance = 0.3; // Cooked Goose
+		//ObjectData.getObjectData(197).useChance = 0.3; // Cooked Rabbit
+		//ObjectData.getObjectData(2190).useChance = 0.3; // Turkey Slice on Plate
+		//ObjectData.getObjectData(518).useChance = 0.3; // Cooked Goose
 		// ObjectData.getObjectData(2143).useChance = 0.3; // Banana
 
 		// soil should replace water as most needed ressource

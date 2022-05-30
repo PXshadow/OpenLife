@@ -227,8 +227,8 @@ Wounds
 - with smal wounds you can still do stuff, but you will still get damage and less speed
 
 Objects:
-- cooked Rabbit Food Value: 10 --> 18
-- turkey Slice on Plate Food Value: 17 --> 24
+- cooked Rabbit Food Value: 10 --> 15
+- turkey Slice on Plate Food Value: 17 --> 20
 - omelette Food Value: 12 --> 15
 - cooked Goose: useChance = 0.3;
 - compost has less uses to make soil more rare, since water is more plenty: Soil (Wheat, Berry, Dung) + water ==> 4 Soil  
