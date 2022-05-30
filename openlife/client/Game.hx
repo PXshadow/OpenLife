@@ -15,11 +15,12 @@ function init() {
 	engineHeaps.backgroundColor = 0x2b2932;
 	world = new World();
 	engine = new Engine(world, null, null, "OneLifeData7/");
-	engine.client.config = {ip: "localhost", port: 8005};
-	ObjectData.DoAllTheObjectInititalisationStuff(true);
-	Render.loadSprites();
+	ObjectData.DoAllTheObjectInititalisationStuff(false);
+
+	Render.loadSprites(); // serialized
 	Render.addObject(3, 3, [19]);
-	engine.connect();
+	// engine.client.config = {ip: "localhost", port: 8005};
+	// engine.connect();
 }
 
 function update(dt:Float) {
