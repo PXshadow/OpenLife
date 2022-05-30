@@ -1042,10 +1042,10 @@ class WorldMap {
 				if (obj[0] == 942 || obj[0] == 3030) // 942 iron vein // 3030 Natural Spring
 				{
 					// generate also some random stones
-					var random = randomInt(3) + 2;
+					var random = randomInt(2) + 1;
 
 					for (i in 0...100) {
-						var dist = 6;
+						var dist = 3;
 						var tx = x + randomInt(dist * 2) - dist;
 						var ty = y + randomInt(dist * 2) - dist;
 
