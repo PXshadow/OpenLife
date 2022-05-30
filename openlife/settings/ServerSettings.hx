@@ -268,13 +268,21 @@ class ServerSettings {
 	public static var AiReactionTime:Float = 0.5; // 0.5;
 	public static var TimeToAiRebirthPerYear:Float = 10; // X seconds per not lived year = 60 - death age
 	public static var AiTotalScoreFactor:Float = 0.5;
-	public static var AISpeedFactorSerf:Float = 0.6;
-	public static var AISpeedFactorCommoner:Float = 0.8;
 	public static var AiMaxSearchRadius:Int = 60;
 	public static var AiMaxSearchIncrement:Int = 20; // 16
 	public static var AiIgnoreTimeTransitionsLongerThen:Int = 30;
 	public static var AgingFactorHumanBornToAi:Float = 3; // 3
 	public static var AgingFactorAiBornToHuman:Float = 2;
+
+	// Ai speed
+	public static var AISpeedFactorSerf:Float = 0.6;
+	public static var AISpeedFactorCommoner:Float = 0.8;
+	public static var AISpeedFactorNoble:Float = 1;
+
+	// Ai food use
+	public static var AIFoodUseFactorSerf:Float = 0.5;
+	public static var AIFoodUseFactorCommoner:Float = 0.6;
+	public static var AIFoodUseFactorNoble:Float = 1;
 
 	// iron, tary spot spring cannot respawn or win lottery
 	public static function CanObjectRespawn(obj:Int):Bool {

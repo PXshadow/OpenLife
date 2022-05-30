@@ -12,6 +12,7 @@ import openlife.data.transition.TransitionImporter;
 import openlife.macros.Macro;
 import openlife.server.Biome.BiomeTag;
 import openlife.server.GlobalPlayerInstance.Emote;
+import openlife.server.Lineage.PrestigeClass;
 import openlife.settings.ServerSettings;
 
 @:enum abstract Seasons(Int) from Int to Int {
@@ -593,6 +594,12 @@ class TimeHelper {
 		// if(tick % 20 == 0) trace('${player.id} heat: ${player.heat} faktor: ${healing / originalFoodDecay} healing: $healing foodDecay: $originalFoodDecay');
 
 		if (player.age < ServerSettings.GrownUpAge && player.food_store > 0) foodDecay *= ServerSettings.FoodUseChildFaktor;
+
+		if(player.isAi()){
+			if(player.lineage.prestigeClass == PrestigeClass.Serf) foodDecay *= ServerSettings.AIFoodUseFactorSerf;
+			else if(player.lineage.prestigeClass == PrestigeClass.Commoner) foodDecay *= ServerSettings.AIFoodUseFactorCommoner;
+			else if(player.lineage.prestigeClass == PrestigeClass.Noble) foodDecay *= ServerSettings.AIFoodUseFactorNoble;
+		}
 
 		// do damage if wound
 		if (player.isWounded() || player.hiddenWound != null) {

@@ -16,8 +16,9 @@ Life is generally more hard / deadly:
 
 AI:
 - there might be an basic AI for NPCs if activated in the settings
-- by giving "make xxx" commands you can instruct the ai to make stuff. with xxx part of an object name or ID. 
-TODO: This might or might not work yet!
+- by giving "make xxx" commands you can instruct the ai to make stuff
+ with xxx part of an object name or ID. TODO: This might or might not work yet!
+- general the lower the class of the AI the slower it is and the less food it needs (Serf/Commoner/Noble)
 
 Combat:
 - combat is allowed but might give some prestige mali like attacking children. relatives or allies...
