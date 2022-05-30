@@ -60,9 +60,9 @@ function getSpriteElement(id:Int):BatchElement {
 }
 
 function loadSprites() {
-	if (sys.FileSystem.exists("SaveFiles/spritedata")) {
+	if (sys.FileSystem.exists('${ClientSettings.SaveDirectory}/SaveSpriteData.bin')) {
 		var batchExists = new Map<Int, Bool>();
-		spriteMap = haxe.Unserializer.run(sys.io.File.getContent("SaveFiles/spritedata"));
+		spriteMap = haxe.Unserializer.run(sys.io.File.getContent('${ClientSettings.SaveDirectory}/SaveSpriteData.bin'));
 		for (_ => elem in spriteMap) {
 			if (batchExists.exists(elem.batchId)) continue;
 			batchExists[elem.batchId] = true;
@@ -104,7 +104,7 @@ function loadSprites() {
 		sys.io.File.saveBytes('$i.png', pixels.toPNG());
 		batches.push(new SpriteBatch(pixels, Game.s2d));
 	}
-	sys.io.File.saveContent("SaveFiles/spritedata", haxe.Serializer.run(spriteMap));
+	sys.io.File.saveContent('${ClientSettings.SaveDirectory}/SaveSpriteData.bin', haxe.Serializer.run(spriteMap));
 }
 
 class SpriteRect {
