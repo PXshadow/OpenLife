@@ -1,28 +1,28 @@
 package openlife.server;
 
-import openlife.macros.Macro;
-import openlife.auto.PlayerInterface;
 import openlife.auto.Ai;
-import openlife.settings.ServerSettings;
+import openlife.auto.PlayerInterface;
 import openlife.data.transition.TransitionImporter;
+import openlife.macros.Macro;
 import openlife.resources.Resource;
+import openlife.settings.ServerSettings;
 #if (target.threaded)
-import openlife.engine.Utility;
-import openlife.engine.Engine;
-import openlife.resources.ObjectBake;
-import haxe.ds.Vector;
-import openlife.data.Pos;
-import openlife.client.ClientTag;
-import sys.thread.Thread;
 import haxe.Timer;
+import haxe.ds.Vector;
 import haxe.io.Bytes;
-import sys.net.Socket;
+import haxe.io.Path;
+import openlife.client.ClientTag;
+import openlife.data.Pos;
+import openlife.data.object.ObjectData;
+import openlife.engine.Engine;
+import openlife.engine.Utility;
+import openlife.resources.ObjectBake;
 import openlife.settings.Settings;
-import sys.net.Host;
 import sys.FileSystem;
 import sys.io.File;
-import haxe.io.Path;
-import openlife.data.object.ObjectData;
+import sys.net.Host;
+import sys.net.Socket;
+import sys.thread.Thread;
 
 using openlife.server.MoveHelper;
 
@@ -43,12 +43,6 @@ class Server {
 		var aiCount = Connection.getAis().length;
 
 		trace('loaded $aiCount Ais from ${ServerSettings.NumberOfAis}');
-
-		for (i in aiCount...ServerSettings.NumberOfAis) {
-			var ai = ServerAi.createNewServerAiWithNewPlayer();
-			// ai.player.delete(); // delete, so that they wont all spawn at same time
-			// ai.player.age = 16;
-		}
 
 		TimeHelper.DoTimeLoop();
 	}
