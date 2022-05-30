@@ -228,7 +228,7 @@ class TimeHelper {
 
 		GlobalPlayerInstance.DisplayBestFood(player);
 
-		AiHelper.DisplayCloseDeadlyAnimals(player);
+		if(player.hits > 1) AiHelper.DisplayCloseDeadlyAnimals(player, 10);
 
 		for(point in player.locationSaysPositions){
 			player.connection.send(ClientTag.LOCATION_SAYS, ['${point.x} ${point.y} ']);
@@ -251,7 +251,7 @@ class TimeHelper {
 			var rx = WorldMap.world.transformX(player, p.tx);
 			var ry = WorldMap.world.transformY(player, p.ty);
 			var dist = Math.round(Math.sqrt(quadDist));
-			if(ServerSettings.DisplayPlayerNamesShowDistance && dist > 4) name += '_${dist}M';
+			if(ServerSettings.DisplayPlayerNamesShowDistance && dist > 9) name += '_${dist}M';
 
 			//player.connection.send(PLAYER_UPDATE, [p.toRelativeData(player)], false);
 			//player.connection.send(PLAYER_SAYS, ['${p.id}/$0 $name']);

@@ -2809,6 +2809,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			text += 'H!';
 		}
 
+		var quadDist = AiHelper.CalculateDistanceToObject(player, food);
+		var dist = Math.round(Math.sqrt(quadDist));
+		if(dist > 9) text += '_${dist}M';
+
 		// trace('DisplayBestFood: ${food.description} $text count: $count countEaten: $countEaten');
 
 		player.connection.send(ClientTag.LOCATION_SAYS, ['${food.tx - player.gx} ${food.ty - player.gy} $text']);
@@ -2816,9 +2820,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public static function DisplayBestFood(player:GlobalPlayerInstance) {
 		if (player.isAi()) return;
-		// if(player.heldObject.objectData.foodValue <= 0) return;
-		if (player.food_store > player.food_store_max * 0.8) return;
-		if (player.currentlyCraving != 0 && player.heldObject.id == player.currentlyCraving) return;
+		if(player.heldObject.objectData.foodValue <= 0 && player.food_store > 1) return;
+		//if(player.isHoldingYum()) return;
+		//if (player.food_store > player.food_store_max * 0.8) return;
+		//if (player.currentlyCraving != 0 && player.heldObject.id == player.currentlyCraving) return;
 
 		var bestfood = AiHelper.SearchBestFood(player);
 		var displayBestFood = bestfood != null
