@@ -4,6 +4,8 @@ import haxe.Exception;
 import haxe.Serializer;
 import haxe.Unserializer;
 import haxe.ds.Vector;
+import haxe.io.BytesData;
+import haxe.io.BytesOutput;
 import haxe.io.Input;
 import haxe.macro.Expr.Catch;
 import openlife.data.sound.SoundData;
@@ -1155,37 +1157,40 @@ class ObjectData extends LineReader {
 		writer.writeInt32(obj.maxWideRadius);
 		writer.writeInt8(obj.onlyDescription ? 1 : 0);
 		writer.writeInt8(obj.noBackAcess ? 1 : 0);
-		// sprite data
+		// spritedata
 		writer.writeInt32(obj.spriteArray.length); // length of sprite array
+		var spriteWriter = new haxe.io.BytesOutput();
 		for (sprite in obj.spriteArray) {
-			writer.writeInt32(sprite.ageRange.length);
+			spriteWriter.writeInt32(sprite.spriteID);
+			spriteWriter.writeInt32(sprite.ageRange.length);
 			for (age in sprite.ageRange) {
-				writer.writeFloat(age);
+				spriteWriter.writeFloat(age);
 			}
-			writer.writeInt32(sprite.behindSlots);
-			writer.writeInt32(sprite.color.length);
+			spriteWriter.writeInt32(sprite.behindSlots);
+			spriteWriter.writeInt32(sprite.color.length);
 			for (color in sprite.color) {
-				writer.writeFloat(color);
+				spriteWriter.writeFloat(color);
 			}
-			writer.writeInt32(sprite.hFlip);
-			writer.writeInt32(sprite.inCenterXOffset);
-			writer.writeInt32(sprite.inCenterYOffset);
-			writer.writeInt8(sprite.invisCont ? 1 : 0);
-			writer.writeInt32(sprite.invisHolding);
-			writer.writeInt32(sprite.invisWorn);
-			writer.writeInt32(sprite.name.length); // length of name string
-			writer.writeString(sprite.name);
-			writer.writeInt32(sprite.parent);
-			writer.writeFloat(sprite.pos.x);
-			writer.writeFloat(sprite.pos.y);
-			writer.writeFloat(sprite.rot);
-			writer.writeInt32(sprite.spriteID);
+			spriteWriter.writeInt32(sprite.hFlip);
+			spriteWriter.writeInt32(sprite.inCenterXOffset);
+			spriteWriter.writeInt32(sprite.inCenterYOffset);
+			spriteWriter.writeInt8(sprite.invisCont ? 1 : 0);
+			spriteWriter.writeInt32(sprite.invisHolding);
+			spriteWriter.writeInt32(sprite.invisWorn);
+			spriteWriter.writeInt32(sprite.name.length); // length of name string
+			spriteWriter.writeString(sprite.name);
+			spriteWriter.writeInt32(sprite.parent);
+			spriteWriter.writeFloat(sprite.pos.x);
+			spriteWriter.writeFloat(sprite.pos.y);
+			spriteWriter.writeFloat(sprite.rot);
 		}
+		writer.writeInt32(spriteWriter.length);
+		writer.writeBytes(spriteWriter.getBytes(), 0, spriteWriter.length);
 		writer.writeInt32(obj.id); // write twice to check if data is corrupted
 	}
 
 	// note to future self, if you happen to wander by, the client doesn't save special data such as sound data
-	public static function readFromFile(obj:ObjectData, reader:FileInput) {
+	public static function readFromFile(obj:ObjectData, reader:FileInput, spriteDataBool:Bool = false) {
 		obj.id = reader.readInt32();
 		obj.decayFactor = reader.readFloat();
 		var len = reader.readInt16();
@@ -1263,36 +1268,40 @@ class ObjectData extends LineReader {
 		obj.onlyDescription = reader.readInt8() != 0 ? true : false;
 		obj.noBackAcess = reader.readInt8() != 0 ? true : false;
 
-		// sprite data
-		var len = reader.readInt32();
-		obj.spriteArray = new Vector<SpriteData>(len);
-		for (i in 0...obj.spriteArray.length) {
-			final sprite = new SpriteData();
-			obj.spriteArray[i] = sprite;
+		var spriteDataLen = reader.readInt32();
 
+		// spritedata
+		if (spriteDataBool) {
 			var len = reader.readInt32();
-			for (i in 0...len) {
-				sprite.ageRange[i] = reader.readFloat();
+			obj.spriteArray = new Vector<SpriteData>(len);
+			for (i in 0...obj.spriteArray.length) {
+				final sprite = new SpriteData();
+				obj.spriteArray[i] = sprite;
+				sprite.spriteID = reader.readInt32();
+				var len = reader.readInt32();
+				for (i in 0...len) {
+					sprite.ageRange[i] = reader.readFloat();
+				}
+				sprite.behindSlots = reader.readInt32();
+				var len = reader.readInt32();
+				for (i in 0...len) {
+					sprite.color[i] = reader.readFloat();
+				}
+				sprite.hFlip = reader.readInt32();
+				sprite.inCenterXOffset = reader.readInt32();
+				sprite.inCenterYOffset = reader.readInt32();
+				sprite.invisCont = reader.readInt8() == 1;
+				sprite.invisHolding = reader.readInt32();
+				sprite.invisWorn = reader.readInt32();
+				var len = reader.readInt32();
+				sprite.name = reader.readString(len);
+				sprite.parent = reader.readInt32();
+				sprite.pos = new Point(reader.readFloat(), reader.readFloat());
+				sprite.rot = reader.readFloat();
 			}
-			sprite.behindSlots = reader.readInt32();
-			var len = reader.readInt32();
-			for (i in 0...len) {
-				sprite.color[i] = reader.readFloat();
-			}
-			sprite.hFlip = reader.readInt32();
-			sprite.inCenterXOffset = reader.readInt32();
-			sprite.inCenterYOffset = reader.readInt32();
-			sprite.invisCont = reader.readInt8() == 1;
-			sprite.invisHolding = reader.readInt32();
-			sprite.invisWorn = reader.readInt32();
-			var len = reader.readInt32();
-			sprite.name = reader.readString(len);
-			sprite.parent = reader.readInt32();
-			sprite.pos = new Point(reader.readFloat(), reader.readFloat());
-			sprite.rot = reader.readFloat();
-			sprite.spriteID = reader.readInt32();
+		} else {
+			reader.seek(spriteDataLen, SeekCur);
 		}
-
 		var tmpId = reader.readInt32();
 		if (obj.id != tmpId) {
 			var errorMessage = 'Read Object Data Corrupted: ObjectId: ${obj.id} != $tmpId';
