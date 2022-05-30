@@ -271,7 +271,7 @@ class TransitionHelper {
 
 			if (index < 0) index = 0;
 
-			// cannot pickup Threshed Wheat from Table
+			// cannot pickup permanent objects like Threshed Wheat from Table
 			if (container.containedObjects[index].objectData.permanent == 1) return false;
 
 			player.setHeldObject(container.removeContainedObject(index));
@@ -287,9 +287,11 @@ class TransitionHelper {
 
 		// place hand object in container if container has enough space
 		// if (handObjectData.slotSize >= objectData.containSize) {
-		if (ServerSettings.DebugTransitionHelper)
-			trace('TRANS: ${player.name + player.id} Container: ${objToStore.description} objToStore.slotSize: ${objToStoreObjData.slotSize} container.containSize: ${containerObjData.containSize}');
-		if (objToStoreObjData.slotSize > containerObjData.containSize) return false;
+		if (ServerSettings.DebugTransitionHelper)			
+			trace('TRANS: ${player.name + player.id} Container: ${containerObjData.description} slots: ${containerObjData.numSlots} containerObjData.slotSize: ${containerObjData.slotSize} objToStoreObjData.containSize: ${objToStoreObjData.containSize}');
+		//trace('TRANS: ${player.name + player.id} Container: ${containerObjData.description} objToStore.slotSize: ${objToStoreObjData.slotSize} container.containSize: ${containerObjData.containSize}');
+		//if (objToStoreObjData.slotSize > containerObjData.containSize) return false;
+		if (objToStoreObjData.containSize > containerObjData.slotSize) return false;
 
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} Container: ${objToStore.description} objToStore.slotSize: ${objToStoreObjData.slotSize} TO: container.containSize: ${containerObjData.containSize}');
