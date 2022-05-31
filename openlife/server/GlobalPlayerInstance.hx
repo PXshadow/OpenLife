@@ -176,13 +176,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var displaySeason = false; // not saved
 	public var displayBiomeAnimal = true; // not saved
 	public var partner:GlobalPlayerInstance = null; // not saved yet
-	public var potentialMate:GlobalPlayerInstance = null; // not saved 
+	public var potentialMate:GlobalPlayerInstance = null; // not saved
 
 	public var locationSaysPositions = new Array<Point>(); // no need to be saved
 
 	public var home = new ObjectHelper(null, 0); // position player considers home
 	public var storedInt = new Map<String, Int>(); // to store variables not saved yet
-	
+
 	// set all stuff null so that nothing is hanging around
 	public function delete() {
 		this.deleted = true;
@@ -375,7 +375,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				length++;
 			writer.writeInt16(length);
 			var keys = obj.storedInt.keys();
-			
+
 			for (key in keys) {
 				writer.writeString('$key\n');
 				writer.writeInt32(obj.storedInt[key]);
@@ -612,13 +612,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				var key = reader.readLine();
 				var value = reader.readInt32();
 				obj.storedInt[key] = value;
-				//trace('storedInt: $key ==> $value');
+				// trace('storedInt: $key ==> $value');
 			}
-		
+
 			obj.home.tx = obj.storedInt['homeTx'];
 			obj.home.ty = obj.storedInt['homeTy'];
 
-			//trace('Home: ${obj.name} ${obj.home.tx} ${obj.home.ty} biome: ${WorldMap.world.getBiomeId(obj.home.tx, obj.home.ty)}');
+			// trace('Home: ${obj.name} ${obj.home.tx} ${obj.home.ty} biome: ${WorldMap.world.getBiomeId(obj.home.tx, obj.home.ty)}');
 
 			var end = reader.readInt16(); // read end sign
 			if (end != -1000) {
@@ -662,7 +662,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				trace('read exiled Players ${obj.name} --> Exiled by: ${obj.exiledByPlayers[id].name}');
 			}
 
-			if(obj.hiddenWound != null && obj.hiddenWound.id == obj.heldObject.id) obj.hiddenWound = obj.heldObject;
+			if (obj.hiddenWound != null && obj.hiddenWound.id == obj.heldObject.id) obj.hiddenWound = obj.heldObject;
 		}
 
 		trace('read $count Players...');
@@ -710,7 +710,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function set_father(newFather:GlobalPlayerInstance) {
-		if(newFather == null) return null;
+		if (newFather == null) return null;
 		this.myFather = newFather;
 		lineage.father = newFather;
 		return this.myFather;
@@ -783,10 +783,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var allowHumanSpawnToAIandAiToHuman = GetNumberLifingPlayers() <= ServerSettings.MaxPlayersBeforeStartingAsChild;
 		var spawnEve = (isAi && lastAiEveOrAdam != null) || (isAi == false && lastHumanEveOrAdam != null);
 		var rand = WorldMap.calculateRandomFloat();
-		//trace('birth1: spawnEve: $spawnEve');
-		//spawnEve = isAi == false && ServerSettings.EveOrAdamBirthChance > rand ? true : spawnEve;
+		// trace('birth1: spawnEve: $spawnEve');
+		// spawnEve = isAi == false && ServerSettings.EveOrAdamBirthChance > rand ? true : spawnEve;
 		spawnEve = ServerSettings.EveOrAdamBirthChance > rand ? true : spawnEve;
-		//trace('birth2: spawnEve: $spawnEve rand: $rand');
+		// trace('birth2: spawnEve: $spawnEve rand: $rand');
 		// if(false) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
 		if (spawnEve) spawnAsEve(allowHumanSpawnToAIandAiToHuman); else {
 			if (spawnAsChild() == false) spawnAsEve(allowHumanSpawnToAIandAiToHuman);
@@ -817,25 +817,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (this.mother != null && this.age < ServerSettings.MinAgeToEat) {
 			mother.doEmote(Emote.love);
 
-			if (this.mother.isHuman())
-				mother.connection.sendMapLocation(this, 'BABY', 'baby');
-			else
+			if (this.mother.isHuman()) mother.connection.sendMapLocation(this, 'BABY', 'baby'); else
 				mother.connection.serverAi.ai.newChild(this);
-		}	
+		}
 
 		if (this.father != null && this.age < ServerSettings.MinAgeToEat) {
 			father.doEmote(Emote.love);
-			
+
 			if (this.father.isHuman()) father.connection.sendMapLocation(this, 'BABY', 'baby'); else
 				father.connection.serverAi.ai.newChild(this);
 		}
 
 		// for Eve set birth position as home
-		if(mother == null){
+		if (mother == null) {
 			home.tx = tx;
 			home.ty = ty;
-		}
-		else {
+		} else {
 			home.tx = mother.home.tx;
 			home.ty = mother.home.ty;
 		}
@@ -967,7 +964,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				}
 
 				var totalFitness = fitness / sumDistHumans;
-				//trace('spawnAsEve: fitness: $fitness / sumDistHumans: $sumDistHumans = $totalFitness closeBadGrave: ${hasCloseBlockingGrave} closeGoodGrave: ${hasCloseNonBlockingGrave}');
+				// trace('spawnAsEve: fitness: $fitness / sumDistHumans: $sumDistHumans = $totalFitness closeBadGrave: ${hasCloseBlockingGrave} closeGoodGrave: ${hasCloseNonBlockingGrave}');
 				if (totalFitness < bestLocationFitness) continue;
 
 				bestLocation = location;
@@ -1047,9 +1044,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.lineage.myEveId = mother.lineage.myEveId;
 		this.mother = mother;
 		this.followPlayer = mother; // the mother is the leader
-		if(mother.potentialMate != null) this.father = mother.potentialMate;
-		if(mother.partner == null) mother.partner = mother.potentialMate;
-		if(father != null && father.partner == null) father.partner = mother;
+		if (mother.potentialMate != null) this.father = mother.potentialMate;
+		if (mother.partner == null) mother.partner = mother.potentialMate;
+		if (father != null && father.partner == null) father.partner = mother;
 
 		mother.exhaustion += ServerSettings.NewChildExhaustionForMother;
 		mother.childrenBirthMali += 1; // make it less likely to get new child
@@ -1060,10 +1057,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.trueAge = 0.01;
 		gx = mother.tx;
 		gy = mother.ty;
-		//if(gx < -WorldMap.world.width) gx += WorldMap.world.width;
-		//if(gx >= WorldMap.world.width) gx -= WorldMap.world.width;
-		//if(gy < -WorldMap.world.height) gy += WorldMap.world.height;
-		//if(gy >= WorldMap.world.height) gy -= WorldMap.world.height;
+		// if(gx < -WorldMap.world.width) gx += WorldMap.world.width;
+		// if(gx >= WorldMap.world.width) gx -= WorldMap.world.width;
+		// if(gy < -WorldMap.world.height) gy += WorldMap.world.height;
+		// if(gy >= WorldMap.world.height) gy -= WorldMap.world.height;
 
 		var motherColor = mother.getColor();
 		var color = motherColor;
@@ -1192,8 +1189,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		for (p in AllPlayers) {
 			var tmpFitness = CalculateFatherFitness(p, child, mother);
 
-			//trace('Spawn As Child: father fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
-			//trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
+			// trace('Spawn As Child: father fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
+			// trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
 
 			if (tmpFitness < -100) continue;
 
@@ -1218,7 +1215,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// search fertile mother
 		for (p in AllPlayers) {
 			var tmpFitness = CalculateMotherFitness(p, child);
-			
+
 			if (tmpFitness < -100) continue;
 
 			p.potentialMate = GetFittestFather(child, p);
@@ -1226,9 +1223,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			var fatherFitness = p.potentialMate != null ? CalculateFatherFitness(p.potentialMate, child, p) : -50;
 			var fatherName = p.potentialMate != null ? ${p.potentialMate.name} : '';
 			tmpFitness += fatherFitness / 2;
-			
+
 			trace('Spawn As Child: ${p.name} ${p.familyName} MFitness: ${Math.round(tmpFitness * 10) / 10} $fatherName VFitness: ${Math.round(fatherFitness * 10) / 10}');
-			//trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
+			// trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
 
 			if (tmpFitness > fitness || mother == null) {
 				mother = p;
@@ -1265,24 +1262,24 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// boni
 		var tmpFitness = 0.0;
-		tmpFitness += p == mother.partner ? 2 : 0; 
-		tmpFitness += p.partner == mother ? 2 : 0; 
-		
+		tmpFitness += p == mother.partner ? 2 : 0;
+		tmpFitness += p.partner == mother ? 2 : 0;
+
 		tmpFitness += p.food_store_max / 10; // the more healthy the more likely
 		tmpFitness += p.calculateClassBoni(mother); // the closer the mother is to same class the better
-		tmpFitness += p.yum_multiplier / 10; // the more health / prestige the more likely 
+		tmpFitness += p.yum_multiplier / 10; // the more health / prestige the more likely
 
 		// mali
-		tmpFitness -= p.age < 16 ? 2 : 0; 
-		tmpFitness -= p.isCloseRelative(mother) ? 5 : 0; 
-		tmpFitness -= p != mother.partner && mother.partner != null ? 2 : 0; 
+		tmpFitness -= p.age < 16 ? 2 : 0;
+		tmpFitness -= p.isCloseRelative(mother) ? 5 : 0;
+		tmpFitness -= p != mother.partner && mother.partner != null ? 2 : 0;
 		tmpFitness -= p.isWounded() ? 2 : 0;
 		tmpFitness -= quadDist / 400; // 20 tiles
 		tmpFitness -= p.exhaustion / 5;
 		tmpFitness -= p.childrenBirthMali; // the more children the less likely
 		tmpFitness -= fatherIsHuman && child.isAi() ? ServerSettings.HumanMotherBirthMaliForAiChild : 0;
 		tmpFitness -= p.isAi() && childIsHuman ? ServerSettings.AiMotherBirthMaliForHumanChild : 0;
-		//tmpFitness += CalculateParentChildFitness(p, child);
+		// tmpFitness += CalculateParentChildFitness(p, child);
 
 		return tmpFitness;
 	}
@@ -1301,11 +1298,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// boni
 		var tmpFitness = 0.0;
 		tmpFitness += p.food_store / 10; // the more food the more likely
-		//tmpFitness += p.yum_bonus / 10; // the more food the more likely
+		// tmpFitness += p.yum_bonus / 10; // the more food the more likely
 		tmpFitness += p.food_store_max / 10; // the more healthy the more likely
 		tmpFitness += p.calculateClassBoni(child); // the closer the mother is to same class the better
 		tmpFitness += child.account.hasCloseNonBlockingGrave(p.tx, p.ty) ? 3 : 0;
-		tmpFitness += p.yum_multiplier / 20; // the more health / prestige the more likely 
+		tmpFitness += p.yum_multiplier / 20; // the more health / prestige the more likely
 
 		// mali
 		var temperatureMail = Math.pow(((p.heat - 0.5) * 10), 2) / 10; // between 0 and 2.5 for very bad temperature
@@ -1317,32 +1314,32 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		tmpFitness -= p.heldObject.id != 0 ? 1 : 0; // if player is holding objects
 		tmpFitness -= motherIsHuman && child.isAi() ? ServerSettings.HumanMotherBirthMaliForAiChild : 0;
 		tmpFitness -= p.isAi() && childIsHuman ? ServerSettings.AiMotherBirthMaliForHumanChild : 0;
-		tmpFitness += CalculateParentChildFitness(p, child);	
+		tmpFitness += CalculateParentChildFitness(p, child);
 
 		return tmpFitness;
 	}
 
-	private static function CalculateParentChildFitness(parent:GlobalPlayerInstance, child:GlobalPlayerInstance) : Float{	
+	private static function CalculateParentChildFitness(parent:GlobalPlayerInstance, child:GlobalPlayerInstance):Float {
 		var fitness = 0.0;
 		var countLittleKids = 0;
-		
-		for(p in AllPlayers){
-			if(p.mother != parent && p.father != parent) continue;
-			if(p.deleted) continue;
+
+		for (p in AllPlayers) {
+			if (p.mother != parent && p.father != parent) continue;
+			if (p.deleted) continue;
 
 			// allow more ai kids born to ai and human to human
 			// for example a human can have 3 human kids but only 2 ai kids (plus a human kid)
 			// for example an ai can have 3 ai kids but only 2 human kids (plus an ai kid)
-			var factor = child.isAi() && p.isAi()&& parent.isHuman() ? 2 : 1;
-			if(child.isHuman() && p.isHuman() && parent.isAi()) factor = 2;
+			var factor = child.isAi() && p.isAi() && parent.isHuman() ? 2 : 1;
+			if (child.isHuman() && p.isHuman() && parent.isAi()) factor = 2;
 
-			fitness -=1 * factor;
-			if(p.age > ServerSettings.MinAgeToEat) continue;
-			fitness -=1 * factor;
+			fitness -= 1 * factor;
+			if (p.age > ServerSettings.MinAgeToEat) continue;
+			fitness -= 1 * factor;
 			countLittleKids += 1 * factor;
 		}
 
-		if(countLittleKids >= ServerSettings.LittleKidsPerMother) fitness = -1000;
+		if (countLittleKids >= ServerSettings.LittleKidsPerMother) fitness = -1000;
 
 		trace('${parent.name + parent.id} MotherChildFitness: $fitness littlekids: $countLittleKids');
 		return fitness;
@@ -1428,23 +1425,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	// TODO better use relative toData which transforms x,y to relative position
-	public function toRelativeData(forPlayer:GlobalPlayerInstance):String {	
-		
+	public function toRelativeData(forPlayer:GlobalPlayerInstance):String {
 		var rx = WorldMap.world.transformX(forPlayer, tx);
 		var ry = WorldMap.world.transformY(forPlayer, ty);
 		var r_action_target_x = WorldMap.world.transformX(forPlayer, action_target_x + gx);
 		var r_action_target_y = WorldMap.world.transformY(forPlayer, action_target_y + gy);
 		var r_o_origin_x = WorldMap.world.transformX(forPlayer, o_origin_x + gx);
-		var r_o_origin_y = WorldMap.world.transformY(forPlayer, o_origin_y + gy);	
+		var r_o_origin_y = WorldMap.world.transformY(forPlayer, o_origin_y + gy);
 
-		//var heldObject = o_id[0] < 0 ? '${o_id[0]}' : MapData.stringID(o_id);
-		//var ageTmp = Std.int(age * 100) / 100;
-		//var age_rTmp = Std.int(age_r * 100) / 100;
-		//var move_speedTmp = Std.int(move_speed * 100) / 100;
+		// var heldObject = o_id[0] < 0 ? '${o_id[0]}' : MapData.stringID(o_id);
+		// var ageTmp = Std.int(age * 100) / 100;
+		// var age_rTmp = Std.int(age_r * 100) / 100;
+		// var move_speedTmp = Std.int(move_speed * 100) / 100;
 
-		//var rx = tx - forPlayer.gx;
-		//var ry = ty - forPlayer.gy;
-		
+		// var rx = tx - forPlayer.gx;
+		// var ry = ty - forPlayer.gy;
+
 		return toData(rx, ry, r_action_target_x, r_action_target_y, r_o_origin_x, r_o_origin_y);
 	}
 
@@ -1466,20 +1462,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public function isCloseToPlayer(player:GlobalPlayerInstance, distance:Int = 1) {
 		var qaudDist = AiHelper.CalculateDistanceToPlayer(this, player);
-		//var targetX = player.tx - this.gx;
-		//var targetY = player.ty - this.gy;
+		// var targetX = player.tx - this.gx;
+		// var targetY = player.ty - this.gy;
 
-		//return isClose(targetX, targetY, distance);
+		// return isClose(targetX, targetY, distance);
 		return qaudDist <= distance * distance;
 	}
 
 	/** works with coordinates relative to the player **/ // TODO does not consider round map
 	public function isClose(x:Int, y:Int, distance:Int = 1):Bool {
 		var quadDist = AiHelper.CalculateDistance(this.x, this.y, x, y);
-		//var xDiff = this.x - x;
-		//var yDiff = this.y - y;
+		// var xDiff = this.x - x;
+		// var yDiff = this.y - y;
 
-		//return (xDiff * xDiff + yDiff * yDiff <= distance * distance);
+		// return (xDiff * xDiff + yDiff * yDiff <= distance * distance);
 		return quadDist <= distance * distance;
 	}
 
@@ -1583,16 +1579,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		if (StringTools.contains(text, '!')) {
-			if (ServerSettings.AllowDebugCommmands) if(DoDebugCommands(player, text)) return;
+			if (ServerSettings.AllowDebugCommmands) if (DoDebugCommands(player, text)) return;
 		}
 
 		if (lastSayInSec > 0 && this.isHuman() && ServerSettings.debug == false) return;
 		lastSayInSec = 1;
 		var maxLenght = Math.ceil(player.age * 2);
 		var extraAge = player.age - 5;
-		if(extraAge < 0) extraAge = 0;
+		if (extraAge < 0) extraAge = 0;
 		maxLenght += Math.ceil(extraAge * 4);
-		if(maxLenght > ServerSettings.MaxSayLength) maxLenght = ServerSettings.MaxSayLength;
+		if (maxLenght > ServerSettings.MaxSayLength) maxLenght = ServerSettings.MaxSayLength;
 
 		if (text.startsWith('/') == false && text.length > maxLenght) text = text.substr(0, maxLenght);
 
@@ -1600,9 +1596,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		this.lineage.lastSaid = text;
 
-		if (doCommands(text))
-			this.connection.sendSayToAllClose(text, curse);
-
+		if (doCommands(text)) this.connection.sendSayToAllClose(text, curse);
 	}
 
 	public function exile(target:GlobalPlayerInstance, messageIfAllreadyExiled:Bool = true):Bool {
@@ -1986,7 +1980,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (ServerSettings.DebugPlayer)
 			trace('doOnOtherHelper: playerId: ${playerId} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
-		if (this.o_id[0] < 0) return false; // is holding player	
+		if (this.o_id[0] < 0) return false; // is holding player
 
 		var targetPlayer = getPlayerAt(x + gx, y + gy, playerId);
 		if (targetPlayer == null) {
@@ -2048,7 +2042,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public static function GetPlayerAt(tx:Int, ty:Int, playerId:Int):GlobalPlayerInstance {
-		//trace('GetPlayerAt $tx $ty $playerId');
+		// trace('GetPlayerAt $tx $ty $playerId');
 
 		for (player in GlobalPlayerInstance.AllPlayers) {
 			if (player.deleted) continue;
@@ -2057,8 +2051,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			if (playerId <= 0) {
 				// TODO test
-				var rx = WorldMap.world.transformX(player, tx); 
-				var ry = WorldMap.world.transformY(player, ty); 
+				var rx = WorldMap.world.transformX(player, tx);
+				var ry = WorldMap.world.transformY(player, ty);
 
 				if (player.x == rx && player.y == ry) return player;
 			}
@@ -2235,10 +2229,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		// eating lovely mushrooms give protection against fever
-		if (heldObjData.isDrugs()) 
-		{
+		if (heldObjData.isDrugs()) {
 			playerTo.yellowfeverCount += ServerSettings.ResistanceAginstFeverForEatingMushrooms;
-			if(playerTo.fever != null) playerTo.fever.timeToChange *= 1 - ServerSettings.ResistanceAginstFeverForEatingMushrooms;
+			if (playerTo.fever != null) playerTo.fever.timeToChange *= 1 - ServerSettings.ResistanceAginstFeverForEatingMushrooms;
 		}
 
 		if (ServerSettings.DebugEating) trace('YUM: ${heldObjData.description} foodValue: $foodValue countEaten: $countEaten');
@@ -2401,7 +2394,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// restore also some biome loved food like bana for brown
 		var lovedFoodIds = getLovedFoodIds();
-		for(foodId in lovedFoodIds){
+		for (foodId in lovedFoodIds) {
 			restoreFoodCount(foodId, amountEaten * ServerSettings.LovedFoodRestore);
 		}
 
@@ -2811,7 +2804,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		var quadDist = AiHelper.CalculateDistanceToObject(player, food);
 		var dist = Math.round(Math.sqrt(quadDist));
-		if(dist > 9) text += '_${dist}M';
+		if (dist > 9) text += '_${dist}M';
 
 		// trace('DisplayBestFood: ${food.description} $text count: $count countEaten: $countEaten');
 
@@ -2820,10 +2813,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public static function DisplayBestFood(player:GlobalPlayerInstance) {
 		if (player.isAi()) return;
-		if(player.heldObject.objectData.foodValue <= 0 && player.food_store > 1) return;
-		//if(player.isHoldingYum()) return;
-		//if (player.food_store > player.food_store_max * 0.8) return;
-		//if (player.currentlyCraving != 0 && player.heldObject.id == player.currentlyCraving) return;
+		if (player.heldObject.objectData.foodValue <= 0 && player.food_store > 1) return;
+		// if(player.isHoldingYum()) return;
+		// if (player.food_store > player.food_store_max * 0.8) return;
+		// if (player.currentlyCraving != 0 && player.heldObject.id == player.currentlyCraving) return;
 
 		var bestfood = AiHelper.SearchBestFood(player);
 		var displayBestFood = bestfood != null
@@ -2834,7 +2827,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function getAi():AiBase {
-		if(this.connection.serverAi == null) return null;
+		if (this.connection.serverAi == null) return null;
 		return this.connection.serverAi.ai;
 	}
 
@@ -3384,17 +3377,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public function DoDamage(targetPlayer:GlobalPlayerInstance, fromObj:ObjectHelper, attacker:GlobalPlayerInstance = null, distanceFactor:Float = 1,
 			quadDistance:Float = 0):Float {
-
 		// check if it is a biome animal
-		if(attacker == null)
-		{
-			if(targetPlayer.isAnimalNotDeadlyForMe(fromObj, false))
-			{
-				if(WorldMap.calculateRandomFloat() > ServerSettings.BiomeAnimalHitChance)
-				{
-					//trace('Escaped biome animal: ${fromObj.name}');
-					if(this.displayBiomeAnimal)
-					{
+		if (attacker == null) {
+			if (targetPlayer.isAnimalNotDeadlyForMe(fromObj, false)) {
+				if (WorldMap.calculateRandomFloat() > ServerSettings.BiomeAnimalHitChance) {
+					// trace('Escaped biome animal: ${fromObj.name}');
+					if (this.displayBiomeAnimal) {
 						this.displayBiomeAnimal = false;
 						this.say('im save here from ${fromObj.name}...', true);
 					}
@@ -3438,7 +3426,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		var biome = WorldMap.world.getBiomeId(targetPlayer.tx, targetPlayer.ty);
 		var lovesThisBiome = targetPlayer.biomeLoveFactor(biome);
-		if(lovesThisBiome < -1) lovesThisBiome = -1;
+		if (lovesThisBiome < -1) lovesThisBiome = -1;
 		var biomeDamageFactor = 2 / (2 + lovesThisBiome); // between 0.5 and 2
 
 		var doesRealDamage = fromObj.id != 2156; // 2156 Mosquito Swarm;
@@ -3451,8 +3439,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (doesRealDamage == false) yellowfeverCount += 0.02;
 
-		if (doesRealDamage) damage *= targetPlayer.heldObject.objectData.damageProtectionFactor; 
-		else damage *= moskitoDamageFactor;
+		if (doesRealDamage) damage *= targetPlayer.heldObject.objectData.damageProtectionFactor; else
+			damage *= moskitoDamageFactor;
 		damage *= biomeDamageFactor;
 		damage *= isRightClassForWeapon ? 0.8 : 1;
 		damage *= targetPlayer.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
@@ -3526,7 +3514,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 					newWound.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(newWound) * moskitoDamageFactor;
 					targetPlayer.connection.sendGlobalMessage('You got yellow fever from the moskitos. Try to cool down...');
-                    targetPlayer.say('damm moskitos!', true);
+					targetPlayer.say('damm moskitos!', true);
 				}
 				targetPlayer.doEmote(Emote.sad);
 				// targetPlayer.doEmote(Emote.yellowFever);
@@ -3635,10 +3623,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this specifies a specific person to pick up, if more than one is
 		close to the target tile.**/
 	public function doBaby(x:Int, y:Int, playerId:Int):Bool // playerId = -1 if no specific player is slected
-	{		
+	{
 		var targetPlayer = getPlayerAt(this.gx + x, this.gy + y, playerId);
 
-		//if (targetPlayer != null) trace('doBaby($x, $y playerId: $playerId ${this.gx + x},${this.gy + y} == ${targetPlayer.tx}, ${targetPlayer.ty})');
+		// if (targetPlayer != null) trace('doBaby($x, $y playerId: $playerId ${this.gx + x},${this.gy + y} == ${targetPlayer.tx}, ${targetPlayer.ty})');
 
 		AllPlayerMutex.acquire();
 
@@ -3677,8 +3665,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return false;
 		}
 
-		if (this.age < targetPlayer.age + 1)
-		{
+		if (this.age < targetPlayer.age + 1) {
 			trace('Cannot pickup player, you need to be one year older then player to pickup: ${this.age} < ${targetPlayer.age} + 1');
 			return false;
 		}
@@ -3688,7 +3675,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			trace('Cannot pickup player, target playing is holding other player');
 			return false;
 		}
-		
+
 		// since targetPlayer may have moved inform where the player is now
 		Connection.SendUpdateToAllClosePlayers(targetPlayer, true);
 
@@ -3859,7 +3846,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return person.male;
 	}
 
-	private static function DoDebugCommands(player:GlobalPlayerInstance, text:String) : Bool {
+	private static function DoDebugCommands(player:GlobalPlayerInstance, text:String):Bool {
 		if (text.indexOf('!HIT H') != -1) {
 			trace('!HIT HELD');
 
@@ -3893,7 +3880,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.hits -= 5;
 			if (player.hits < 0) player.hits = 0;
 
-			if(player.heldObject.isWound()) player.heldObject.timeToChange = 1;
+			if (player.heldObject.isWound()) player.heldObject.timeToChange = 1;
 
 			player.food_store_max = player.calculateFoodStoreMax();
 
@@ -3949,7 +3936,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// player.sendFoodUpdate(false);
 		} else if (text.indexOf('!KILLLEADER') != -1) {
 			var leader = player.getTopLeader();
-			if(leader != null && leader != player){
+			if (leader != null && leader != player) {
 				leader.hits += 50;
 				player.say('kill leader ${leader.name}', true);
 			}
@@ -3977,8 +3964,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				player.x = WorldMap.world.transformX(player, p.tx);
 				player.y = WorldMap.world.transformY(player, p.ty);
 
-				//player.x = p.tx - player.gx;
-				//player.y = p.ty - player.gy;
+				// player.x = p.tx - player.gx;
+				// player.y = p.ty - player.gy;
 
 				player.forced = true;
 				Connection.SendUpdateToAllClosePlayers(player);
@@ -3987,30 +3974,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				player.connection.sendMapChunk(player.x, player.y);
 			}
 		} else if (text.indexOf('!SENDPU') != -1 || text == '!PU') {
-			player.done_moving_seqNum +=1;
+			player.done_moving_seqNum += 1;
 			Connection.SendUpdateToAllClosePlayers(player);
 			player.say('send PU done!', true);
 			return true;
-		}
-		else if (text.indexOf('!NAMES') != -1) {
-			player.connection.sendToMeAllPlayerNames();	
+		} else if (text.indexOf('!NAMES') != -1) {
+			player.connection.sendToMeAllPlayerNames();
 			player.say('send names done!', true);
-			return true;	
-		}
-		else if (text.indexOf('!DEBUG TRANS') != -1 || text.indexOf('!D T') != -1) {
+			return true;
+		} else if (text.indexOf('!DEBUG TRANS') != -1 || text.indexOf('!D T') != -1) {
 			TimeHelper.ReadServerSettings = false; // otherwise they will be loaded from file again
-			ServerSettings.DebugTransitionHelper = ServerSettings.DebugTransitionHelper ? false : true; 
+			ServerSettings.DebugTransitionHelper = ServerSettings.DebugTransitionHelper ? false : true;
 			player.say('debug TRANS: ${ServerSettings.DebugTransitionHelper}', true);
 			return true;
-		}
-		else if (text.indexOf('!DEBUG AI') != -1) {
+		} else if (text.indexOf('!DEBUG AI') != -1) {
 			TimeHelper.ReadServerSettings = false; // otherwise they will be loaded from file again
-			ServerSettings.DebugAi = ServerSettings.DebugAi ? false : true; 
+			ServerSettings.DebugAi = ServerSettings.DebugAi ? false : true;
 			player.say('debug ai: ${ServerSettings.DebugAi}', true);
 			return true;
-		}
-		else if (text.indexOf('!TP') != -1) {
-
+		} else if (text.indexOf('!TP') != -1) {
 			player.x = 2 - player.gx;
 			player.y = 40 - player.gy;
 
@@ -4022,10 +4004,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			player.say('Teleport', true);
 			return true;
-		}
-		else if (text.indexOf('!SPEED') != -1) {
-			if(ServerSettings.SpeedFactor < 2) ServerSettings.SpeedFactor = 10;
-			else ServerSettings.SpeedFactor = 1;
+		} else if (text.indexOf('!SPEED') != -1) {
+			if (ServerSettings.SpeedFactor < 2) ServerSettings.SpeedFactor = 10; else
+				ServerSettings.SpeedFactor = 1;
 
 			player.say('Changed Speed!', true);
 			return true;
@@ -4398,11 +4379,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return fever != null;
 	}
 
-	public function isAnimalNotDeadlyForMe(animal:ObjectHelper, checkIfAnimal = true) : Bool {
+	public function isAnimalNotDeadlyForMe(animal:ObjectHelper, checkIfAnimal = true):Bool {
 		return isAnimalDeadlyForMe(animal, checkIfAnimal) == false;
 	}
 
-	public function isAnimalDeadlyForMe(animal:ObjectHelper, checkIfAnimal = true) : Bool {
+	public function isAnimalDeadlyForMe(animal:ObjectHelper, checkIfAnimal = true):Bool {
 		if (animal == null) return false;
 		var objData = animal.parentObjData;
 		if (objData.deadlyDistance == 0) return false;
@@ -4411,18 +4392,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		var biomeAnimals = this.getBiomeAnimals();
 
-		//trace('isAnimalDeadlyForMe peronColor: ${getColor()} biomeAnimals: $biomeAnimals');
+		// trace('isAnimalDeadlyForMe peronColor: ${getColor()} biomeAnimals: $biomeAnimals');
 
-		if(biomeAnimals.contains(animal.parentId) && animal.hits < 0.1)
-		{
-			//trace('isAnimalDeadlyForMe biomeAnimals true: $biomeAnimals');
+		if (biomeAnimals.contains(animal.parentId) && animal.hits < 0.1) {
+			// trace('isAnimalDeadlyForMe biomeAnimals true: $biomeAnimals');
 
 			var biome = WorldMap.world.getBiomeId(this.tx, this.ty);
-			if(this.biomeLoveFactor(biome) > 0.1) return false;
+			if (this.biomeLoveFactor(biome) > 0.1) return false;
 			var biome = WorldMap.world.getBiomeId(animal.tx, animal.ty);
-			if(this.biomeLoveFactor(biome) > 0.1) return false;
+			if (this.biomeLoveFactor(biome) > 0.1) return false;
 		}
-		
+
 		return true;
 	}
 }

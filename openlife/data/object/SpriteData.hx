@@ -13,10 +13,8 @@ class SpriteData {
 	 */
 	public var spriteID:Int = 54;
 
-	/**
-	 * position of sprite
-	 */
-	public var pos:Point; // =166.000000,107.000000
+	public var x:Float = 0;
+	public var y:Float = 0;
 
 	/**
 	 * Rotation
@@ -77,7 +75,7 @@ class SpriteData {
 
 	public function toString():String {
 		return 'spriteID=$spriteID${LineReader.EOL}'
-			+ 'pos=${pos.x},${pos.y}${LineReader.EOL}'
+			+ 'pos=$x,$y${LineReader.EOL}'
 			+ 'rot=$rot${LineReader.EOL}'
 			+ 'hFlip=$hFlip${LineReader.EOL}'
 			+ 'color=${color[0]},${color[1]},${color[2]}${LineReader.EOL}'

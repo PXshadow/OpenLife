@@ -33,8 +33,8 @@ function addObject(x:Int, y:Int, ids:Array<Int>) {
 	for (spriteData in objData.spriteArray) {
 		final elem = getSpriteElement(spriteData.spriteID);
 		elem.rotation = spriteData.rot * Math.PI * 2;
-		elem.x = x + spriteData.pos.x;
-		elem.y = y - spriteData.pos.y;
+		elem.x = x + spriteData.x;
+		elem.y = y - spriteData.y;
 		elem.t.dx += -spriteData.inCenterXOffset;
 		elem.t.dy += -spriteData.inCenterYOffset;
 		elem.rotation = spriteData.rot * Math.PI * 2;

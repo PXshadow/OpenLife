@@ -7,7 +7,9 @@ class AnimationParameter {
 	/**
 	 * Offset of sprite
 	 */
-	public var offset:Point = new Point();
+	public var offsetX:Float = 0;
+
+	public var offsetY:Float = 0;
 
 	/**
 	 * the first pause, before the first animation duration,
@@ -34,7 +36,8 @@ class AnimationParameter {
 	public var yAmp:Float = 0;
 	public var yPhase:Float = 0;
 
-	public var rotationCenterOffset:Point;
+	public var rotationCenterOffsetX:Float = 0;
+	public var rotationCenterOffsetY:Float = 0;
 	// can be positive (CW) or negative (CCW)
 	public var rotPerSec:Float = 0;
 	public var rotPhase:Float = 0;
@@ -96,7 +99,8 @@ class AnimationParameter {
 
 		var s:String = array[i++];
 		var cut = s.indexOf(",");
-		rotationCenterOffset = new Point(Std.parseFloat(s.substring(1, cut)), Std.parseFloat(s.substring(cut + 1, s.length - 1)));
+		rotationCenterOffsetX = Std.parseFloat(s.substring(1, cut));
+		rotationCenterOffsetY = Std.parseFloat(s.substring(cut + 1, s.length - 1));
 
 		rotPerSec = Std.parseFloat(array[i++]);
 		rotPhase = Std.parseFloat(array[i++]);
