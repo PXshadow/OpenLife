@@ -4,6 +4,8 @@ import haxe.Exception;
 import haxe.Serializer;
 import haxe.Unserializer;
 import haxe.ds.Vector;
+import haxe.io.BytesData;
+import haxe.io.BytesOutput;
 import haxe.io.Input;
 import haxe.macro.Expr.Catch;
 import openlife.data.sound.SoundData;
@@ -83,6 +85,7 @@ class ObjectData extends LineReader {
 
 	/**is used for different wound decay on player**/
 	public var alternativeTimeOutcome:Int = -1;
+
 	public var secondTimeOutcome:Int = -1;
 	public var secondTimeOutcomeTimeToChange:Int = -1;
 
@@ -254,7 +257,9 @@ class ObjectData extends LineReader {
 	/**
 	 * Position offset of object when held
 	 */
-	public var heldOffset:Point; // =0.000000,0.000000
+	public var heldOffsetX:Float = 0; // =0.000000,0.000000
+
+	public var heldOffsetY:Float = 0;
 
 	/**
 	 * N/A
@@ -269,7 +274,9 @@ class ObjectData extends LineReader {
 	/**
 	 * Offset of object when worn
 	 */
-	public var clothingOffset:Point = new Point(); // =0.000000,0.000000
+	public var clothingOffsetX:Float = 0;
+
+	public var clothingOffsetY:Float = 0;
 
 	/**
 	 * Deadly distance in tiles
@@ -378,7 +385,9 @@ class ObjectData extends LineReader {
 	/**
 	 * Generated index from sprites of eye index
 	 */
-	public var eyesOffset:Point = null;
+	public var eyesOffsetX:Float = 0;
+
+	public var eyesOffsetY:Float = 0;
 
 	/**
 	 * Number of uses for object
@@ -488,14 +497,14 @@ class ObjectData extends LineReader {
 		return objectDataMap[id];
 	}
 
-	public static function DoAllTheObjectInititalisationStuff(init:Bool = false) {
+	public static function DoAllTheObjectInititalisationStuff(init:Bool = false, spriteDataBool:Bool = false) {
 		dataVersionNumber = Resource.dataVersionNumber();
 
 		trace('dataVersionNumber: $dataVersionNumber');
 
 		Init();
 
-		if (init || ReadAllFromFile(dataVersionNumber) == false) {
+		if (init || ReadAllFromFile(dataVersionNumber, spriteDataBool) == false) {
 			ImportObjectData();
 			WriteAllToFile(dataVersionNumber);
 		}
@@ -587,7 +596,6 @@ class ObjectData extends LineReader {
 
 		for (i in 0...importedObjectData.length) {
 			if (i % 400 == 0) trace('Create Object Data... $i from ${importedObjectData.length}');
-
 			var objectData = new ObjectData(tmp[i]);
 			importedObjectData[i] = objectData;
 			objectDataMap[objectData.id] = objectData;
@@ -824,10 +832,14 @@ class ObjectData extends LineReader {
 		foodValue = getInt();
 		speedMult = getFloat();
 
-		heldOffset = getPoint();
+		var p = getPoint();
+		heldOffsetX = p.x;
+		heldOffsetY = p.y;
 
 		clothing = getString();
-		clothingOffset = getPoint();
+		p = getPoint();
+		clothingOffsetX = p.x;
+		clothingOffsetY = p.y;
 
 		deadlyDistance = getInt();
 
@@ -881,7 +893,9 @@ class ObjectData extends LineReader {
 		for (j in 0...numSprites) {
 			spriteArray[j] = new SpriteData();
 			spriteArray[j].spriteID = getInt();
-			spriteArray[j].pos = getPoint();
+			p = getPoint();
+			spriteArray[j].x = p.x;
+			spriteArray[j].y = p.y;
 			spriteArray[j].rot = getFloat();
 			spriteArray[j].hFlip = getInt();
 			spriteArray[j].color = getFloatArray();
@@ -994,9 +1008,9 @@ class ObjectData extends LineReader {
 			+ 'floorHugging=${floorHugging ? "1" : "0"}${LineReader.EOL}'
 			+ 'foodValue=$foodValue${LineReader.EOL}'
 			+ 'speedMult=$speedMult${LineReader.EOL}'
-			+ 'heldOffset=${heldOffset.x},${heldOffset.y}${LineReader.EOL}'
+			+ 'heldOffset=${heldOffsetX},${heldOffsetY}${LineReader.EOL}'
 			+ 'clothing=$clothing${LineReader.EOL}'
-			+ 'clothingOffset=${clothingOffset.x},${clothingOffset.y}${LineReader.EOL}'
+			+ 'clothingOffset=${clothingOffsetX},${clothingOffsetY}${LineReader.EOL}'
 			+ 'deadlyDistance=$deadlyDistance${LineReader.EOL}'
 			+ 'useDistance=$useDistance${LineReader.EOL}'
 			+ 'sounds=0:0,0:0.0,0:0.0,0:0.0${LineReader.EOL}'
@@ -1024,7 +1038,8 @@ class ObjectData extends LineReader {
 		object.bodyIndex = bodyIndex;
 		object.cacheHeight = cacheHeight;
 		object.clothing = clothing;
-		object.clothingOffset = clothingOffset;
+		object.clothingOffsetX = clothingOffsetX;
+		object.clothingOffsetY = clothingOffsetY;
 		object.containSize = containSize;
 		object.containable = containable;
 		object.creationSoundForce = creationSoundForce;
@@ -1034,7 +1049,8 @@ class ObjectData extends LineReader {
 		object.description = description;
 		object.drawBehindPlayer = drawBehindPlayer;
 		object.eyesIndex = eyesIndex;
-		object.eyesOffset = eyesOffset;
+		object.eyesOffsetX = eyesOffsetX;
+		object.eyesOffsetY = eyesOffsetY;
 		object.floor = floor;
 		object.floorHugging = floorHugging;
 		object.foodValue = foodValue;
@@ -1042,7 +1058,8 @@ class ObjectData extends LineReader {
 		object.headIndex = headIndex;
 		object.heatValue = heatValue;
 		object.heldInHand = heldInHand;
-		object.heldOffset = heldOffset;
+		object.heldOffsetX = heldOffsetX;
+		object.heldOffsetY = heldOffsetY;
 		object.homeMarker = homeMarker;
 		object.id = id;
 		object.leftBlockingRadius = leftBlockingRadius;
@@ -1155,11 +1172,40 @@ class ObjectData extends LineReader {
 		writer.writeInt32(obj.maxWideRadius);
 		writer.writeInt8(obj.onlyDescription ? 1 : 0);
 		writer.writeInt8(obj.noBackAcess ? 1 : 0);
+		// spritedata
+		var spriteWriter = new haxe.io.BytesOutput();
+		spriteWriter.writeInt32(obj.spriteArray.length); // length of sprite array
+		for (sprite in obj.spriteArray) {
+			spriteWriter.writeInt32(sprite.spriteID);
+			spriteWriter.writeInt32(sprite.ageRange.length);
+			for (age in sprite.ageRange) {
+				spriteWriter.writeFloat(age);
+			}
+			spriteWriter.writeInt32(sprite.behindSlots);
+			spriteWriter.writeInt32(sprite.color.length);
+			for (color in sprite.color) {
+				spriteWriter.writeFloat(color);
+			}
+			spriteWriter.writeInt32(sprite.hFlip);
+			spriteWriter.writeInt32(sprite.inCenterXOffset);
+			spriteWriter.writeInt32(sprite.inCenterYOffset);
+			spriteWriter.writeInt8(sprite.invisCont ? 1 : 0);
+			spriteWriter.writeInt32(sprite.invisHolding);
+			spriteWriter.writeInt32(sprite.invisWorn);
+			spriteWriter.writeInt32(sprite.name.length); // length of name string
+			spriteWriter.writeString(sprite.name);
+			spriteWriter.writeInt32(sprite.parent);
+			spriteWriter.writeFloat(sprite.x);
+			spriteWriter.writeFloat(sprite.y);
+			spriteWriter.writeFloat(sprite.rot);
+		}
+		writer.writeInt32(spriteWriter.length);
+		writer.writeBytes(spriteWriter.getBytes(), 0, spriteWriter.length);
 		writer.writeInt32(obj.id); // write twice to check if data is corrupted
 	}
 
-	// note to future self, if you happen to wander by the client doesn't save special data such as sound data
-	public static function readFromFile(obj:ObjectData, reader:FileInput) {
+	// note to future self, if you happen to wander by, the client doesn't save special data such as sound data
+	public static function readFromFile(obj:ObjectData, reader:haxe.io.Input, spriteDataBool:Bool = false) {
 		obj.id = reader.readInt32();
 		obj.decayFactor = reader.readFloat();
 		var len = reader.readInt16();
@@ -1237,6 +1283,41 @@ class ObjectData extends LineReader {
 		obj.onlyDescription = reader.readInt8() != 0 ? true : false;
 		obj.noBackAcess = reader.readInt8() != 0 ? true : false;
 
+		var spriteDataLen = reader.readInt32();
+
+		// spritedata
+		if (spriteDataBool) {
+			var len = reader.readInt32();
+			obj.spriteArray = new Vector<SpriteData>(len);
+			for (i in 0...obj.spriteArray.length) {
+				final sprite = new SpriteData();
+				obj.spriteArray[i] = sprite;
+				sprite.spriteID = reader.readInt32();
+				var len = reader.readInt32();
+				for (i in 0...len) {
+					sprite.ageRange[i] = reader.readFloat();
+				}
+				sprite.behindSlots = reader.readInt32();
+				var len = reader.readInt32();
+				for (i in 0...len) {
+					sprite.color[i] = reader.readFloat();
+				}
+				sprite.hFlip = reader.readInt32();
+				sprite.inCenterXOffset = reader.readInt32();
+				sprite.inCenterYOffset = reader.readInt32();
+				sprite.invisCont = reader.readInt8() == 1;
+				sprite.invisHolding = reader.readInt32();
+				sprite.invisWorn = reader.readInt32();
+				var len = reader.readInt32();
+				sprite.name = reader.readString(len);
+				sprite.parent = reader.readInt32();
+				sprite.x = reader.readFloat();
+				sprite.y = reader.readFloat();
+				sprite.rot = reader.readFloat();
+			}
+		} else {
+			reader.readAll(spriteDataLen);
+		}
 		var tmpId = reader.readInt32();
 		if (obj.id != tmpId) {
 			var errorMessage = 'Read Object Data Corrupted: ObjectId: ${obj.id} != $tmpId';
@@ -1270,7 +1351,7 @@ class ObjectData extends LineReader {
 		writer.close();
 	}
 
-	public static function ReadAllFromFile(dataVersionNumber:Int):Bool {
+	public static function ReadAllFromFile(dataVersionNumber:Int, spriteDataBool:Bool = false):Bool {
 		var reader = null;
 
 		try {
@@ -1278,7 +1359,7 @@ class ObjectData extends LineReader {
 			var dir = './${ServerSettings.SaveDirectory}/';
 			var path = dir + "saveObjectData.bin";
 
-			reader = File.read(path, true);
+			reader = new haxe.io.BytesInput(File.getBytes(path)); // File.read(path, true);
 			var fileVersionNumber = reader.readInt32();
 			if (fileVersionNumber != dataVersionNumber)
 				throw new Exception('server data version number ${dataVersionNumber} did not fit with file $fileVersionNumber');
@@ -1290,17 +1371,19 @@ class ObjectData extends LineReader {
 
 			for (i in 0...count) {
 				var obj = new ObjectData();
-				readFromFile(obj, reader);
+				readFromFile(obj, reader, spriteDataBool);
 				importedObjectData[i] = obj;
 				objectDataMap[obj.id] = obj;
 			}
 
-			reader.close();
+			// reader.close();
+			reader = null;
 
 			trace('Read ${importedObjectData.length} ObjectData  data version number: ${dataVersionNumber} Time: ${Sys.time() - startTime}');
 		} catch (ex) {
 			trace(ex);
-			if (reader != null) reader.close();
+			// if (reader != null) reader.close();
+			reader = null;
 			return false;
 		}
 
@@ -1402,9 +1485,9 @@ class ObjectData extends LineReader {
 	public function getClothingSlot():Int {
 		var objClothingSlot = -1;
 
-		//if (this.o_id[0] < 1) return -1;
+		// if (this.o_id[0] < 1) return -1;
 
-		var objectData = this; //ObjectData.getObjectData(this.o_id[0]);
+		var objectData = this; // ObjectData.getObjectData(this.o_id[0]);
 		// trace("OD: " + objectData.toFileString());
 
 		switch objectData.clothing.charAt(0) {
@@ -1421,7 +1504,7 @@ class ObjectData extends LineReader {
 				objClothingSlot = 5; // backpack
 		}
 
-		//if (ServerSettings.DebugPlayer) trace('objectData.clothing: ${objectData.clothing} objClothingSlot:  ${objClothingSlot}');
+		// if (ServerSettings.DebugPlayer) trace('objectData.clothing: ${objectData.clothing} objClothingSlot:  ${objClothingSlot}');
 		// trace('clothingSlot:  ${clothingSlot}');
 
 		return objClothingSlot;

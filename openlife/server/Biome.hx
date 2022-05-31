@@ -39,7 +39,7 @@ import openlife.data.object.ObjectHelper;
 	// considered as bad biome for horses if speed < 0.999
 	// TODO make fast for specialists
 	public var SGREEN = 1;
-	public var SSWAMP = 0.8; // 0.6
+	public var SSWAMP = 0.9; // 0.6
 	public var SYELLOW = 1;
 	public var SGREY = 0.98;
 	public var SSNOW = 0.98;

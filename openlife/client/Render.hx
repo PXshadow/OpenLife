@@ -33,8 +33,8 @@ function addObject(x:Int, y:Int, ids:Array<Int>) {
 	for (spriteData in objData.spriteArray) {
 		final elem = getSpriteElement(spriteData.spriteID);
 		elem.rotation = spriteData.rot * Math.PI * 2;
-		elem.x = x + spriteData.pos.x;
-		elem.y = y - spriteData.pos.y;
+		elem.x = x + spriteData.x;
+		elem.y = y - spriteData.y;
 		elem.t.dx += -spriteData.inCenterXOffset;
 		elem.t.dy += -spriteData.inCenterYOffset;
 		elem.rotation = spriteData.rot * Math.PI * 2;
@@ -60,6 +60,20 @@ function getSpriteElement(id:Int):BatchElement {
 }
 
 function loadSprites() {
+	if (sys.FileSystem.exists('${ClientSettings.SaveDirectory}/SaveSpriteData.bin')) {
+		var batchExists = new Map<Int, Bool>();
+		spriteMap = haxe.Unserializer.run(sys.io.File.getContent('${ClientSettings.SaveDirectory}/SaveSpriteData.bin'));
+		for (_ => elem in spriteMap) {
+			if (batchExists.exists(elem.batchId)) continue;
+			batchExists[elem.batchId] = true;
+			final data = new format.png.Reader(sys.io.File.read(elem.batchId + ".png")).read();
+			final h = format.png.Tools.getHeader(data);
+			final pixels = Pixels.alloc(h.width, h.height, BGRA);
+			pixels.bytes = format.png.Tools.extract32(data);
+			batches.push(new SpriteBatch(pixels, Game.s2d));
+		}
+		return; // quick load
+	}
 	for (id in ObjectBake.objectList()) {
 		for (spriteData in ObjectData.getObjectData(id).spriteArray) {
 			if (spriteMap.exists(spriteData.spriteID)) continue;
@@ -71,12 +85,12 @@ function loadSprites() {
 			var rect:Rect = null;
 			for (i in 0...packers.length) {
 				rect = packers[i].pack(size);
-				if (rect == null) continue;
+				if (rect == null) continue; // if rect is null that means the texture is full
 				batchPixels[i].blit(rect.x, rect.y, pixels, 0, 0, rect.width, rect.height);
 				spriteMap[spriteData.spriteID] = new SpriteRect(i, rect);
 			}
 			if (spriteMap.exists(spriteData.spriteID)) continue;
-
+			// create new texture as others are full
 			packers.push(new BinPack(MAX_TEXTURE, MAX_TEXTURE));
 			batchPixels.push(Pixels.alloc(MAX_TEXTURE, MAX_TEXTURE, BGRA));
 			final i = packers.length - 1;
@@ -85,10 +99,12 @@ function loadSprites() {
 			spriteMap[spriteData.spriteID] = new SpriteRect(i, rect);
 		}
 	}
-	for (pixels in batchPixels) {
+	for (i in 0...batchPixels.length) {
+		final pixels = batchPixels[i];
+		sys.io.File.saveBytes('$i.png', pixels.toPNG());
 		batches.push(new SpriteBatch(pixels, Game.s2d));
 	}
-	trace("batches count: " + batches.length); 
+	sys.io.File.saveContent('${ClientSettings.SaveDirectory}/SaveSpriteData.bin', haxe.Serializer.run(spriteMap));
 }
 
 class SpriteRect {

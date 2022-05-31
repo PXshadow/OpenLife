@@ -1,7 +1,7 @@
 package openlife.data.animation;
 
-import openlife.data.sound.SoundData;
 import haxe.ds.Vector;
+import openlife.data.sound.SoundData;
 import openlife.resources.Resource;
 
 @:expose
@@ -120,7 +120,8 @@ class AnimationData extends openlife.data.LineReader {
 		if (readName("offset")) {
 			var s:String = getString();
 			var cut = s.indexOf(",");
-			param.offset = new Point(Std.parseFloat(s.substring(1, cut)), Std.parseFloat(s.substring(cut + 1, s.length - 1)));
+			param.offsetX = Std.parseFloat(s.substring(1, cut));
+			param.offsetY = Std.parseFloat(s.substring(cut + 1, s.length - 1));
 		}
 		if (readName("startPause")) {
 			param.startPauseSec = getFloat();

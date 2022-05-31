@@ -33,11 +33,11 @@ class Object {
 			final param = record.params[i];
 			final sprite = sprites[i];
 			final sprite = sprites[i];
-			sprite.x = x + data.spriteArray[i].pos.x;
-			sprite.y = y - data.spriteArray[i].pos.y;
+			sprite.x = x + data.spriteArray[i].x;
+			sprite.y = y - data.spriteArray[i].y;
 			sprite.rotation = data.spriteArray[i].rot * Math.PI * 2;
-			sprite.x += getOscOffset(inFrameTime, param.offset.x, param.xOscPerSec, param.xAmp, param.xPhase);
-			sprite.y += -getOscOffset(inFrameTime, param.offset.y, param.yOscPerSec, param.yAmp, param.yPhase);
+			sprite.x += getOscOffset(inFrameTime, param.offsetX, param.xOscPerSec, param.xAmp, param.xPhase);
+			sprite.y += -getOscOffset(inFrameTime, param.offsetY, param.yOscPerSec, param.yAmp, param.yPhase);
 			sprite.rotation += getOscOffset(inFrameTime, 0, param.rockOscPerSec, param.rockAmp, param.rockPhase) * Math.PI * 2;
 		}
 		for (i in 0...record.params.length) {
@@ -54,8 +54,8 @@ class Object {
 			final parentData = data.spriteArray[parentId];
 			final childData = data.spriteArray[i];
 			final child = sprites[i];
-			child.x += parent.x - x - parentData.pos.x;
-			child.y += parent.y - y + parentData.pos.y;
+			child.x += parent.x - x - parentData.x;
+			child.y += parent.y - y + parentData.y;
 
 			final rot = parent.rotation - parentData.rot * Math.PI * 2;
 			child.rotation += rot;

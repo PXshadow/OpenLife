@@ -99,7 +99,8 @@ class SceneCell {
 	/**
 	 * Movement of cell offset
 	 */
-	public var moveOffset:Point;
+	public var moveOffsetX:Float = 0;
+	public var moveOffsetY:Float = 0;
 
 	/**
 	 * Delay of movement
