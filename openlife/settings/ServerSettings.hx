@@ -369,7 +369,7 @@ class ServerSettings {
 
 		ObjectData.getObjectData(141).countsOrGrowsAs = 1261; // Canada Goose Pond
 		ObjectData.getObjectData(142).countsOrGrowsAs = 1261; // Canada Goose Pond swimming
-		ObjectData.getObjectData(510).countsOrGrowsAs = 1261; // Pond with Dead Goose plu arrow
+		ObjectData.getObjectData(510).countsOrGrowsAs = 1261; // Pond with Dead Goose plus arrow
 		ObjectData.getObjectData(509).countsOrGrowsAs = 1261; // Pond with Dead Goose
 		ObjectData.getObjectData(511).countsOrGrowsAs = 1261; // Pond
 		ObjectData.getObjectData(512).countsOrGrowsAs = 1261; // Dry Pond
@@ -939,13 +939,13 @@ class ServerSettings {
 			trans.newTargetID = 142; // Canada Goose Pond swimming
 			trans.autoDecaySeconds = 5;
 			transtions.addTransition("PatchTransitions: ", trans);
-
-			var trans = transtions.getTransition(-1, 142); // Canada Goose Pond
-			trans.newTargetID = 141; // Canada Goose Pond swimming
-			trans.autoDecaySeconds = 5;
-			transtions.addTransition("PatchTransitions: ", trans);
-		 */
-
+		*/
+		
+		var trans = transtions.getTransition(-1, 142); // Canada Goose Pond swimming
+		trans.newTargetID = 141; // Canada Goose Pond
+		trans.autoDecaySeconds = 20;
+		transtions.addTransition("PatchTransitions: ", trans);
+		 
 		// for debug random outcome transitions
 		/*var trans = transtions.getTransition(-1, 1195); // TIME + Blooming Squash Plant 
 			trans.autoDecaySeconds = 2;
