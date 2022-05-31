@@ -227,6 +227,13 @@ class TimeHelper {
 	private static function DisplayStuff(player:GlobalPlayerInstance) {
 		if (player.isHuman() == false) return;
 
+		// display seasons
+		if(player.displaySeason && player.isSuperHot() && Season == Seasons.Summer && player.isIll() == false) player.say('too hot ${SeasonNames[Season]}...', true);
+		else if(player.displaySeason && player.isSuperCold() && Season == Seasons.Winter) player.say('too cold ${SeasonNames[Season]}...', true);
+		
+		if(player.isSuperHot() || player.isSuperCold()) player.displaySeason = false;
+		else player.displaySeason = true;
+
 		GlobalPlayerInstance.DisplayBestFood(player);
 
 		if(player.hits > 1) AiHelper.DisplayCloseDeadlyAnimals(player, 10);
@@ -264,11 +271,41 @@ class TimeHelper {
 			if(count >= ServerSettings.DisplayPlayerNamesMaxPlayer) break;
 		}
 
-		if(player.displaySeason && player.isSuperHot() && Season == Seasons.Summer && player.isIll() == false) player.say('too hot ${SeasonNames[Season]}...', true);
-		else if(player.displaySeason && player.isSuperCold() && Season == Seasons.Winter) player.say('too cold ${SeasonNames[Season]}...', true);
-		
-		if(player.isSuperHot() || player.isSuperCold()) player.displaySeason = false;
-		else player.displaySeason = true;
+		if(ServerSettings.DisplayScoreOn){
+			var factor = ServerSettings.DisplayScoreFactor;
+
+			if (Std.int(player.trueAge) % 10 == 0) {
+				var prestigeFromParents = Math.floor(player.prestigeFromParents);
+				var prestigeFromSiblings = Math.floor(player.prestigeFromSiblings);
+
+				var textFromParents = prestigeFromParents > 5 ? 'You have gained ${prestigeFromParents * factor} prestige from parents!' : '';
+				var textFromSiblings = prestigeFromSiblings > 5 ? 'You have gained ${prestigeFromSiblings * factor} prestige from siblings!' : '';
+
+				// trace('New Age: $message');
+				player.connection.sendGlobalMessage(textFromParents);
+				player.connection.sendGlobalMessage(textFromSiblings);
+			} else if (Std.int(player.trueAge) % 6 == 0) {
+				var text = player.prestigeFromWealth > 5 ? 'You have gained ${player.prestigeFromWealth * factor} prestige from your wealth!' : '';
+				player.connection.sendGlobalMessage(text);
+
+				var coins:Float = Std.int(player.coins);
+				var text = coins >= 10 ? 'You have ${coins} coins! You can use: I give you IXC' : '';
+				player.connection.sendGlobalMessage(text);
+			} else if (Std.int(player.trueAge) % 10 == 0) {
+				var prestigeFromChildren = Math.floor(player.prestigeFromChildren);
+				var prestigeFromFollowers = Math.floor(player.prestigeFromFollowers);
+				var prestigeFromEating = Math.floor(player.prestigeFromEating);
+
+				var textFromChildren = prestigeFromChildren > 5 ? 'You have gained in total ${prestigeFromChildren * factor} prestige from children!' : '';
+				var textFromFollowers = prestigeFromFollowers > 5 ? 'You have gained in total ${prestigeFromFollowers * factor} prestige from followers!' : '';
+				var textFromEating = prestigeFromEating > 5 ? 'You have gained in total ${prestigeFromEating * factor} prestige from YUMMY food!' : '';
+
+				// trace('New Age: $message');
+				player.connection.sendGlobalMessage(textFromChildren);
+				player.connection.sendGlobalMessage(textFromFollowers);
+				player.connection.sendGlobalMessage(textFromEating);
+			}
+		}
 	}
 
 	private static function UpdatePlayerStats(player:GlobalPlayerInstance, timePassedInSeconds:Float) {
@@ -471,15 +508,11 @@ class TimeHelper {
 
 	private static function updateAge(player:GlobalPlayerInstance, timePassedInSeconds:Float) {
 		var tmpAge = player.age;
-		
+		var healthFactor = player.CalculateHealthAgeFactor();
+		var ageingFactor:Float = 1;	
 
 		// trace('aging: ${aging}');
-
 		// trace('player.age_r: ${player.age_r}');
-
-		var healthFactor = player.CalculateHealthAgeFactor();
-		var ageingFactor:Float = 1;
-
 		// trace('healthFactor: ${healthFactor}');
 
 		if (player.age < ServerSettings.GrownUpAge) {
@@ -526,6 +559,7 @@ class TimeHelper {
 			// decay some coins per year
 			if (player.coins > 100) {
 				var decayedCoins:Float = Std.int(player.coins / 100); // 1% per year
+				//var maxPrestigeFromCoins = player.prestige / 10;
 				player.coins -= decayedCoins;
 				decayedCoins = Math.min(decayedCoins, ServerSettings.MaxCoinDecayPerYear);
 				player.addPrestige(decayedCoins);
@@ -538,39 +572,6 @@ class TimeHelper {
 			player.sendFoodUpdate(false);
 
 			if (player.isMoving() == false) Connection.SendUpdateToAllClosePlayers(player, false);
-			var factor = ServerSettings.DisplayScoreFactor;
-
-			if (Std.int(player.trueAge) % 3 == 0) {
-				var prestigeFromParents = Math.floor(player.prestigeFromParents);
-				var prestigeFromSiblings = Math.floor(player.prestigeFromSiblings);
-
-				var textFromParents = prestigeFromParents > 0 ? 'You have gained in total ${prestigeFromParents * factor} prestige from parents!' : '';
-				var textFromSiblings = prestigeFromSiblings > 0 ? 'You have gained in total ${prestigeFromSiblings * factor} prestige from siblings!' : '';
-
-				// trace('New Age: $message');
-				player.connection.sendGlobalMessage(textFromParents);
-				player.connection.sendGlobalMessage(textFromSiblings);
-			} else if (Std.int(player.trueAge) % 4 == 0) {
-				var text = player.prestigeFromWealth > 0 ? 'You have gained ${player.prestigeFromWealth * factor} prestige from your wealth!' : '';
-				player.connection.sendGlobalMessage(text);
-
-				var coins:Float = Std.int(player.coins);
-				var text = coins >= 10 ? 'You have ${coins} coins! You can use: I give you IXC' : '';
-				player.connection.sendGlobalMessage(text);
-			} else if (Std.int(player.trueAge) % 3 == 0) {
-				var prestigeFromChildren = Math.floor(player.prestigeFromChildren);
-				var prestigeFromFollowers = Math.floor(player.prestigeFromFollowers);
-				var prestigeFromEating = Math.floor(player.prestigeFromEating);
-
-				var textFromChildren = prestigeFromChildren > 0 ? 'You have gained in total ${prestigeFromChildren * factor} prestige from children!' : '';
-				var textFromFollowers = prestigeFromFollowers > 0 ? 'You have gained in total ${prestigeFromFollowers * factor} prestige from followers!' : '';
-				var textFromEating = prestigeFromEating > 0 ? 'You have gained in total ${prestigeFromEating * factor} prestige from YUMMY food!' : '';
-
-				// trace('New Age: $message');
-				player.connection.sendGlobalMessage(textFromChildren);
-				player.connection.sendGlobalMessage(textFromFollowers);
-				player.connection.sendGlobalMessage(textFromEating);
-			}
 
 			ScoreEntry.ProcessScoreEntry(player);
 		}
