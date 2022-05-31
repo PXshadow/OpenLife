@@ -238,7 +238,7 @@ class TimeHelper {
 
 		if(player.hits > 1) AiHelper.DisplayCloseDeadlyAnimals(player, 10);
 
-		DisplayClosePlayers(player);
+		if(player.account.displayClosePlayers) DisplayClosePlayers(player);
 	}
 
 	private static function DisplayClosePlayers(player:GlobalPlayerInstance){

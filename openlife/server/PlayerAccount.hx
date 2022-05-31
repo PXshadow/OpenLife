@@ -1,7 +1,7 @@
 package openlife.server;
 
-import openlife.auto.AiHelper;
 import haxe.display.Display.CompletionResult;
+import openlife.auto.AiHelper;
 import openlife.data.object.ObjectHelper;
 import openlife.settings.ServerSettings;
 import sys.io.File;
@@ -27,11 +27,12 @@ class PlayerAccount {
 
 	public var coinsInherited:Float;
 
+	// not saved yet
+	public var scoreEntries = new Array<ScoreEntry>(); // is used to store prestige boni / mali
+	public var displayClosePlayers:Bool = true;
+
 	// not saved
 	public var graves = new Array<ObjectHelper>();
-	public var scoreEntries = new Array<ScoreEntry>(); // is used to store prestige boni / mali
-
-	// public var lastConnection:Connection;
 
 	private function new() {}
 
