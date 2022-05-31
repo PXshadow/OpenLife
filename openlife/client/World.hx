@@ -65,6 +65,8 @@ class World implements EngineHeader {
 			for (x in 0...instance.width) {
 				if (progress % 10 == 0) trace(progress / (instance.width * instance.height));
 				progress++;
+				final groundId = Game.engine.map.biome.get(instance.x + x, instance.y + y);
+				Render.addGround(x, y, groundId);
 				Render.addObject(x, y, Game.engine.map.object.get(instance.x + x, instance.y + y));
 			}
 		}

@@ -1,19 +1,23 @@
 import BinPack.Rect;
 import SpriteBatch.BatchElement;
 import h2d.Tile;
+import h2d.TileGroup;
+import h2d.col.Bounds;
 import hxd.Pixels;
 import openlife.data.object.ObjectData;
 import openlife.graphics.TgaData;
 import openlife.resources.ObjectBake;
 import openlife.resources.Resource;
 
+var map:TileGroup;
 private var batches:Array<SpriteBatch> = [];
 private var batchPixels:Array<Pixels> = [];
 private var packers:Array<BinPack> = [];
-private var objs:Array<Object> = [];
+var objs:Array<Object> = [];
 private inline var MAX_TEXTURE = 4096;
 inline var GRID = 128;
 private var spriteMap:Map<Int, SpriteRect> = [];
+private var groundArray:Array<Int> = [];
 
 function addObject(x:Int, y:Int, ids:Array<Int>) {
 	if (ids == null || ids.length == 0 || ids[0] == 0) return;
@@ -46,12 +50,29 @@ function addObject(x:Int, y:Int, ids:Array<Int>) {
 		if (spriteData.hFlip == 1) elem.scaleX = -1;
 		obj.sprites.push(elem);
 	}
+	obj.updateBounds();
 	objs.push(obj);
 }
 
 function update(dt:Float) {
-	for (obj in objs)
+	for (obj in objs) {
+		obj.updateBounds();
 		obj.update(dt);
+	}
+	ysort();
+}
+
+function ysort() {
+	for (batch in batches)
+		batch.clear();
+	objs.sort((a, b) -> {
+		return a.bounds.yMax > b.bounds.yMax ? 1 : -1;
+	});
+	for (obj in objs) {
+		for (sprite in obj.sprites) {
+			sprite.batch.add(sprite);
+		}
+	}
 }
 
 final tga = new TgaData();
@@ -63,6 +84,62 @@ function getSpriteElement(id:Int):BatchElement {
 	return e;
 }
 
+function addGround(x:Int, y:Int, id:Int) {
+	var index = id * 20 + abs(x % 4) + abs(y % y) * 4;
+	var tileX = groundArray[index * 4 + 0];
+	var tileY = groundArray[index * 4 + 1];
+	var tileWidth = groundArray[index * 4 + 2];
+	var tileHeight = groundArray[index * 4 + 3];
+	map.add(x * GRID, y * GRID, map.tile.sub(tileX, tileY, tileWidth, tileHeight).center());
+	if (abs(x % 4) == 0 && abs(y % 0) == 0) {
+		index = 4 * 4 * 7 + abs(x % 8) + abs(y % 8) * 2;
+		x = groundArray[index + 0];
+		y = groundArray[index + 1];
+		tileWidth = groundArray[index + 2];
+		tileHeight = groundArray[index + 3];
+		map.add(x * GRID, y * GRID, map.tile.sub(tileX, tileY, tileWidth, tileHeight).center());
+	}
+}
+
+inline function abs(x:Int):Int
+	return x >= 0 ? x : -x;
+
+function loadGround() {
+	map = new TileGroup(null, Game.s2d);
+	if (sys.FileSystem.exists('${ClientSettings.SaveDirectory}/SaveGroundData.bin')) {
+		final pixels = hxd.res.Any.fromBytes("", sys.io.File.getBytes('ground.png')).toImage().getPixels(BGRA);
+		map.tile = Tile.fromPixels(pixels);
+		groundArray = haxe.Unserializer.run(sys.io.File.getContent('${ClientSettings.SaveDirectory}/SaveGroundData.bin'));
+		return;
+	}
+	final pixels = Pixels.alloc(MAX_TEXTURE, MAX_TEXTURE, BGRA);
+	final packer = new BinPack(MAX_TEXTURE, MAX_TEXTURE);
+	final a = ""; // "_square";
+	for (id in 0...6 + 1) {
+		for (y in 0...4) {
+			for (x in 0...4) {
+				tga.read(Resource.ground(id, x, y, a));
+				final groundPixels = Pixels.alloc(tga.rect.width, tga.rect.height, BGRA);
+				groundPixels.bytes = tga.bytes;
+				final rect = packer.pack({width: groundPixels.width, height: groundPixels.height});
+				groundArray = groundArray.concat([rect.x, rect.y, rect.width, rect.height]);
+				pixels.blit(rect.x, rect.y, groundPixels, 0, 0, rect.width, rect.height);
+			}
+		}
+	}
+	for (id in 0...4) {
+		tga.read(Resource.groundOverlay(id));
+		final groundPixels = Pixels.alloc(tga.rect.width, tga.rect.height, BGRA);
+		groundPixels.bytes = tga.bytes;
+		final rect = packer.pack({width: groundPixels.width, height: groundPixels.height});
+		groundArray = groundArray.concat([rect.x, rect.y, rect.width, rect.height]);
+		pixels.blit(rect.x, rect.y, groundPixels, 0, 0, rect.width, rect.height);
+	}
+	sys.io.File.saveBytes('ground.png', pixels.toPNG());
+	sys.io.File.saveContent('${ClientSettings.SaveDirectory}/SaveGroundData.bin', haxe.Serializer.run(groundArray));
+	map.tile = Tile.fromPixels(pixels);
+}
+
 function loadSprites() {
 	if (sys.FileSystem.exists('${ClientSettings.SaveDirectory}/SaveSpriteData.bin')) {
 		var batchExists = new Map<Int, Bool>();
@@ -72,7 +149,9 @@ function loadSprites() {
 			batchExists[elem.batchId] = true;
 			final b = sys.io.File.getBytes(elem.batchId + ".png");
 			final pixels = hxd.res.Any.fromBytes("", sys.io.File.getBytes('${elem.batchId}.png')).toImage().getPixels(BGRA);
-			batches.push(new SpriteBatch(pixels, Game.s2d));
+			final b = new SpriteBatch(pixels, Game.s2d);
+			b.smooth = true;
+			batches.push(b);
 		}
 		return; // quick load
 	}

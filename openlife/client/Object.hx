@@ -1,4 +1,5 @@
 import SpriteBatch.BatchElement;
+import h2d.col.Bounds;
 import openlife.data.animation.AnimationData;
 import openlife.data.animation.AnimationRecord;
 import openlife.data.object.ObjectData;
@@ -11,6 +12,7 @@ class Object {
 	public var x:Float = 0;
 	public var y:Float = 0;
 	public var workingSpriteFades:Map<Int, Float> = [];
+	public var bounds:Bounds = new Bounds();
 
 	public function new(x, y, data) {
 		this.x = x;
@@ -21,7 +23,15 @@ class Object {
 		} catch (_) {}
 	}
 
-	public function play() {}
+	public function updateBounds() {
+		bounds.empty();
+		for (sprite in sprites) {
+			final sx = sprite.x + sprite.t.dx / 2;
+			final sy = sprite.y + sprite.t.dy / 2;
+			bounds.addPos(sx, sy);
+			bounds.addPos(sx + sprite.t.width / 2, sy + sprite.t.height / 2);
+		}
+	}
 
 	var inFrameTime = 0.0;
 
