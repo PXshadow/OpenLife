@@ -238,6 +238,12 @@ class TimeHelper {
 
 		if(player.hits > 1) AiHelper.DisplayCloseDeadlyAnimals(player, 10);
 
+		DisplayClosePlayers(player);
+	}
+
+	private static function DisplayClosePlayers(player:GlobalPlayerInstance){
+		if(ServerSettings.DisplayPlayerNamesDistance < 1) return;
+		
 		for(point in player.locationSaysPositions){
 			player.connection.send(ClientTag.LOCATION_SAYS, ['${point.x} ${point.y} ']);
 		}

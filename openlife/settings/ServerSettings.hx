@@ -77,7 +77,7 @@ class ServerSettings {
 	public static var DisplayScoreOn:Bool = false; // off for Tea
 	public static var DisplayScoreFactor:Float = 1; // if display score multiply with factor X
 	public static var DisplayYumAndMehFood = false;
-	public static var DisplayPlayerNamesDistance = 40;
+	public static var DisplayPlayerNamesDistance = 30; // set zero to deactivate
 	public static var DisplayPlayerNamesShowDistance = true;
 	public static var DisplayPlayerNamesMaxPlayer = 3;
 
