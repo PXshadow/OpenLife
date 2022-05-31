@@ -49,7 +49,11 @@ function addObject(x:Int, y:Int, ids:Array<Int>) {
 	objs.push(obj);
 }
 
-function update(dt:Float) {}
+function update(dt:Float) {
+	for (obj in objs)
+		obj.update(dt);
+}
+
 final tga = new TgaData();
 
 function getSpriteElement(id:Int):BatchElement {
@@ -66,18 +70,16 @@ function loadSprites() {
 		for (_ => elem in spriteMap) {
 			if (batchExists.exists(elem.batchId)) continue;
 			batchExists[elem.batchId] = true;
-			final data = new format.png.Reader(sys.io.File.read(elem.batchId + ".png")).read();
-			final h = format.png.Tools.getHeader(data);
-			final pixels = Pixels.alloc(h.width, h.height, BGRA);
-			pixels.bytes = format.png.Tools.extract32(data);
+			final b = sys.io.File.getBytes(elem.batchId + ".png");
+			final pixels = hxd.res.Any.fromBytes("", sys.io.File.getBytes('${elem.batchId}.png')).toImage().getPixels(BGRA);
 			batches.push(new SpriteBatch(pixels, Game.s2d));
 		}
 		return; // quick load
 	}
+
 	for (id in ObjectBake.objectList()) {
 		for (spriteData in ObjectData.getObjectData(id).spriteArray) {
 			if (spriteMap.exists(spriteData.spriteID)) continue;
-
 			tga.read(Resource.spriteImage(spriteData.spriteID));
 			final pixels = Pixels.alloc(tga.rect.width, tga.rect.height, BGRA);
 			pixels.bytes = tga.bytes;
@@ -101,6 +103,7 @@ function loadSprites() {
 	}
 	for (i in 0...batchPixels.length) {
 		final pixels = batchPixels[i];
+
 		sys.io.File.saveBytes('$i.png', pixels.toPNG());
 		batches.push(new SpriteBatch(pixels, Game.s2d));
 	}
