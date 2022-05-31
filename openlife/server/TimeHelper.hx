@@ -1271,6 +1271,9 @@ class TimeHelper {
 
 				if (worldMap.getFloorId(x, y) != 0) decayChance *= ServerSettings.ObjDecayFactorOnFloor;
 
+				if (objData.permanent > 0) decayChance *= ServerSettings.ObjDecayFactorForPermanentObjs;
+				//if (objData.permanent <= 0) trace('decay not permanent: ${objData.description}');
+
 				if (worldMap.randomFloat() > decayChance) continue;
 
 				// if(objData.isSpawningIn(biomeId) == false) continue;
@@ -1282,7 +1285,7 @@ class TimeHelper {
 
 				Connection.SendMapUpdateToAllClosePlayers(x, y, [0]);
 
-				// trace('decay object: ${objData.description} $obj');
+				trace('decay object: ${objData.description} $obj');
 			}
 		}
 	}

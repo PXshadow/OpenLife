@@ -224,6 +224,7 @@ class ServerSettings {
 	public static var ObjRespawnChance = 0.0005; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
 	public static var ObjDecayChance = 0.0001; // 0.001; (X0.08)
 	public static var ObjDecayFactorOnFloor:Float = 0.1;
+	public static var ObjDecayFactorForPermanentObjs:Float = 0.1;
 	public static var ObjDecayFactorForFood:Float = 10;
 
 	// temperature
@@ -933,7 +934,7 @@ class ServerSettings {
 		trans.targetRemains = true;
 		TransitionImporter.transitionImporter.createAndaddCategoryTransitions(trans);
 
-		// TODO pond animations
+		// pond animations
 		/*
 			var trans = transtions.getTransition(-1, 141); // Canada Goose Pond
 			trans.newTargetID = 142; // Canada Goose Pond swimming
