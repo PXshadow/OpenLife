@@ -248,6 +248,19 @@ abstract class AiBase
 		}); // go close to mother and wait for mother to feed
 		Macro.exception(if (isEating()) return);
 		Macro.exception(if (isFeedingChild()) return);
+
+		// give use high prio if close so that for example a stone can be droped on a pile before food piclup
+		if(useTarget != null){
+			var distance = myPlayer.CalculateDistanceToObject(useTarget);
+
+			if(distance < 100){
+				if (ServerSettings.DebugAi)
+					trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: distance: $distance ${useTarget.description} ${useTarget.tx} ${useTarget.ty}');
+
+				Macro.exception(if (isUsingItem()) return);
+			}
+		}
+
 		Macro.exception(if (isPickingupFood()) return);
 		Macro.exception(if (isFeedingPlayerInNeed()) return);
 		Macro.exception(if (isStayingCloseToChild()) return);
@@ -490,8 +503,9 @@ abstract class AiBase
 
 		if (newDropTarget.id == 0) this.dropTarget = newDropTarget;
 		else{
-			useTarget = newDropTarget;
-			useActor = new ObjectHelper(null, myPlayer.heldObject.id);
+			this.dropTarget = null;
+			this.useTarget = newDropTarget;
+			this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
 		}
 		
 		// if(itemToCraft.transTarget.parentId == myPlayer.heldObject.parentId)
@@ -950,10 +964,8 @@ abstract class AiBase
 
 		// if(player.heldObject.parentId == itemToCraft.transActor.parentId)
 		if (player.heldObject.parentId == itemToCraft.transActor.parentId || itemToCraft.transActor.id == 0) {
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} is held already or Empty');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} is held already or Empty. craft target ${itemToCraft.transTarget.name}');
 
-			if (itemToCraft.transTarget.name == null) if (ServerSettings.DebugAi)
-				trace('AI: craft WARNING id: ${itemToCraft.transTarget} transTarget.name == null!');
 			if(ServerSettings.DebugAiSay) myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
 
 			if (itemToCraft.transActor.id == 0 && player.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
