@@ -1571,6 +1571,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		text = text.toUpperCase();
 
+		if (StringTools.contains(text, '!MSG') || StringTools.contains(text, '!TEA')){
+			toSelf = true;
+			if(this.account.displayClosePlayers) this.account.displayClosePlayers = false;
+			else this.account.displayClosePlayers = true;
+
+			text = this.account.displayClosePlayers ? 'display players on' : 'display players off';
+			text = text.toUpperCase();
+		}
+
 		if (toSelf) {
 			text = '?{$text}?';
 			this.connection.send(PLAYER_SAYS, ['$id/$curse $text']);
@@ -1578,7 +1587,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return;
 		}
 
-		if (StringTools.contains(text, '!')) {
+		if (StringTools.startsWith(text, '!')) {
 			if (ServerSettings.AllowDebugCommmands) if (DoDebugCommands(player, text)) return;
 		}
 

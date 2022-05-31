@@ -227,10 +227,23 @@ class TimeHelper {
 	private static function DisplayStuff(player:GlobalPlayerInstance) {
 		if (player.isHuman() == false) return;
 
+		// display seasons
+		if(player.displaySeason && player.isSuperHot() && Season == Seasons.Summer && player.isIll() == false) player.say('too hot ${SeasonNames[Season]}...', true);
+		else if(player.displaySeason && player.isSuperCold() && Season == Seasons.Winter) player.say('too cold ${SeasonNames[Season]}...', true);
+		
+		if(player.isSuperHot() || player.isSuperCold()) player.displaySeason = false;
+		else player.displaySeason = true;
+
 		GlobalPlayerInstance.DisplayBestFood(player);
 
 		if(player.hits > 1) AiHelper.DisplayCloseDeadlyAnimals(player, 10);
 
+		if(player.account.displayClosePlayers) DisplayClosePlayers(player);
+	}
+
+	private static function DisplayClosePlayers(player:GlobalPlayerInstance){
+		if(ServerSettings.DisplayPlayerNamesDistance < 1) return;
+		
 		for(point in player.locationSaysPositions){
 			player.connection.send(ClientTag.LOCATION_SAYS, ['${point.x} ${point.y} ']);
 		}
@@ -263,12 +276,6 @@ class TimeHelper {
 			count++;
 			if(count >= ServerSettings.DisplayPlayerNamesMaxPlayer) break;
 		}
-
-		if(player.displaySeason && player.isSuperHot() && Season == Seasons.Summer && player.isIll() == false) player.say('too hot ${SeasonNames[Season]}...', true);
-		else if(player.displaySeason && player.isSuperCold() && Season == Seasons.Winter) player.say('too cold ${SeasonNames[Season]}...', true);
-		
-		if(player.isSuperHot() || player.isSuperCold()) player.displaySeason = false;
-		else player.displaySeason = true;
 	}
 
 	private static function UpdatePlayerStats(player:GlobalPlayerInstance, timePassedInSeconds:Float) {
@@ -471,15 +478,11 @@ class TimeHelper {
 
 	private static function updateAge(player:GlobalPlayerInstance, timePassedInSeconds:Float) {
 		var tmpAge = player.age;
-		
+		var healthFactor = player.CalculateHealthAgeFactor();
+		var ageingFactor:Float = 1;	
 
 		// trace('aging: ${aging}');
-
 		// trace('player.age_r: ${player.age_r}');
-
-		var healthFactor = player.CalculateHealthAgeFactor();
-		var ageingFactor:Float = 1;
-
 		// trace('healthFactor: ${healthFactor}');
 
 		if (player.age < ServerSettings.GrownUpAge) {
@@ -524,10 +527,13 @@ class TimeHelper {
 			player.food_store_max = player.calculateFoodStoreMax();
 
 			// decay some coins per year
-			if (player.coins > 100) {
-				var decayedCoins:Float = Std.int(player.coins / 100); // 1% per year
+			if (Std.int(player.trueAge) % 10 == 0 && player.coins > 10) {
+				var decayedCoins:Float = Std.int(player.coins / 10); // 1% per year
+				var maxPrestigeFromCoins = player.prestige / 5;
 				player.coins -= decayedCoins;
-				decayedCoins = Math.min(decayedCoins, ServerSettings.MaxCoinDecayPerYear);
+
+				maxPrestigeFromCoins = Math.max(maxPrestigeFromCoins, ServerSettings.MinPrestiegeFromCoinDecayPerYear * 10);
+				decayedCoins = Math.min(decayedCoins, maxPrestigeFromCoins);
 				player.addPrestige(decayedCoins);
 				player.prestigeFromWealth += decayedCoins;
 			}
@@ -537,39 +543,42 @@ class TimeHelper {
 			// trace('update age: ${player.age} food_store_max: ${player.food_store_max}');
 			player.sendFoodUpdate(false);
 
-			if (player.isMoving() == false) Connection.SendUpdateToAllClosePlayers(player, false);
-			var factor = ServerSettings.DisplayScoreFactor;
+			//if (player.isMoving() == false) Connection.SendUpdateToAllClosePlayers(player, false);
 
-			if (Std.int(player.trueAge) % 3 == 0) {
-				var prestigeFromParents = Math.floor(player.prestigeFromParents);
-				var prestigeFromSiblings = Math.floor(player.prestigeFromSiblings);
-
-				var textFromParents = prestigeFromParents > 0 ? 'You have gained in total ${prestigeFromParents * factor} prestige from parents!' : '';
-				var textFromSiblings = prestigeFromSiblings > 0 ? 'You have gained in total ${prestigeFromSiblings * factor} prestige from siblings!' : '';
-
-				// trace('New Age: $message');
-				player.connection.sendGlobalMessage(textFromParents);
-				player.connection.sendGlobalMessage(textFromSiblings);
-			} else if (Std.int(player.trueAge) % 4 == 0) {
-				var text = player.prestigeFromWealth > 0 ? 'You have gained ${player.prestigeFromWealth * factor} prestige from your wealth!' : '';
-				player.connection.sendGlobalMessage(text);
-
-				var coins:Float = Std.int(player.coins);
-				var text = coins >= 10 ? 'You have ${coins} coins! You can use: I give you IXC' : '';
-				player.connection.sendGlobalMessage(text);
-			} else if (Std.int(player.trueAge) % 3 == 0) {
-				var prestigeFromChildren = Math.floor(player.prestigeFromChildren);
-				var prestigeFromFollowers = Math.floor(player.prestigeFromFollowers);
-				var prestigeFromEating = Math.floor(player.prestigeFromEating);
-
-				var textFromChildren = prestigeFromChildren > 0 ? 'You have gained in total ${prestigeFromChildren * factor} prestige from children!' : '';
-				var textFromFollowers = prestigeFromFollowers > 0 ? 'You have gained in total ${prestigeFromFollowers * factor} prestige from followers!' : '';
-				var textFromEating = prestigeFromEating > 0 ? 'You have gained in total ${prestigeFromEating * factor} prestige from YUMMY food!' : '';
-
-				// trace('New Age: $message');
-				player.connection.sendGlobalMessage(textFromChildren);
-				player.connection.sendGlobalMessage(textFromFollowers);
-				player.connection.sendGlobalMessage(textFromEating);
+			if(ServerSettings.DisplayScoreOn){
+				var factor = ServerSettings.DisplayScoreFactor;
+	
+				if (Std.int(player.trueAge) % 10 == 0) {
+					var prestigeFromParents = Math.floor(player.prestigeFromParents);
+					var prestigeFromSiblings = Math.floor(player.prestigeFromSiblings);
+	
+					var textFromParents = prestigeFromParents > 5 ? 'You have gained ${prestigeFromParents * factor} prestige from parents!' : '';
+					var textFromSiblings = prestigeFromSiblings > 5 ? 'You have gained ${prestigeFromSiblings * factor} prestige from siblings!' : '';
+	
+					// trace('New Age: $message');
+					player.connection.sendGlobalMessage(textFromParents);
+					player.connection.sendGlobalMessage(textFromSiblings);
+				} else if (Std.int(player.trueAge) % 6 == 0) {
+					var text = player.prestigeFromWealth > 5 ? 'You have gained ${player.prestigeFromWealth * factor} prestige from your wealth!' : '';
+					player.connection.sendGlobalMessage(text);
+	
+					var coins:Float = Std.int(player.coins);
+					var text = coins >= 10 ? 'You have ${coins} coins! You can use: I give you IXC' : '';
+					player.connection.sendGlobalMessage(text);
+				} else if (Std.int(player.trueAge) % 10 == 0) {
+					var prestigeFromChildren = Math.floor(player.prestigeFromChildren);
+					var prestigeFromFollowers = Math.floor(player.prestigeFromFollowers);
+					var prestigeFromEating = Math.floor(player.prestigeFromEating);
+	
+					var textFromChildren = prestigeFromChildren > 5 ? 'You have gained in total ${prestigeFromChildren * factor} prestige from children!' : '';
+					var textFromFollowers = prestigeFromFollowers > 5 ? 'You have gained in total ${prestigeFromFollowers * factor} prestige from followers!' : '';
+					var textFromEating = prestigeFromEating > 5 ? 'You have gained in total ${prestigeFromEating * factor} prestige from YUMMY food!' : '';
+	
+					// trace('New Age: $message');
+					player.connection.sendGlobalMessage(textFromChildren);
+					player.connection.sendGlobalMessage(textFromFollowers);
+					player.connection.sendGlobalMessage(textFromEating);
+				}
 			}
 
 			ScoreEntry.ProcessScoreEntry(player);
@@ -1652,15 +1661,15 @@ class TimeHelper {
 
 			// TODO better patch in the objects, i dont see any reason why a rabit or a tree should block movement
 			if (isBiomeBlocking
-				|| (movementTileObj.blocksWalking()
-					&& movementTileObj.description.indexOf("Tarry Spot") == -1
-					&& movementTileObj.description.indexOf("Tree") == -1
-					&& movementTileObj.description.indexOf("Rabbit") == -1
-					&& movementTileObj.description.indexOf("Spring") == -1
-					&& movementTileObj.description.indexOf("Sugarcane") == -1
-					&& movementTileObj.description.indexOf("Pond") == -1
-					&& movementTileObj.description.indexOf("Palm") == -1
-					&& movementTileObj.description.indexOf("Plant") == -1)) {
+				|| (movementTileObj.blocksWalking())) {
+					//&& movementTileObj.description.indexOf("Tarry Spot") == -1
+					//&& movementTileObj.description.indexOf("Tree") == -1
+					//&& movementTileObj.description.indexOf("Rabbit") == -1
+					//&& movementTileObj.description.indexOf("Spring") == -1
+					//&& movementTileObj.description.indexOf("Sugarcane") == -1
+					//&& movementTileObj.description.indexOf("Pond") == -1
+					//&& movementTileObj.description.indexOf("Palm") == -1
+					//&& movementTileObj.description.indexOf("Plant") == -1)) {
 					//&& movementTileObj.description.indexOf("Iron") == -1
 				// trace('movement blocked ${movementTile.description()} ${movementBiome}');
 
