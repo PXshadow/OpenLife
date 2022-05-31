@@ -497,14 +497,14 @@ class ObjectData extends LineReader {
 		return objectDataMap[id];
 	}
 
-	public static function DoAllTheObjectInititalisationStuff(init:Bool = false, spriteDataBool:Bool = false) {
+	public static function DoAllTheObjectInititalisationStuff(init:Bool = false) {
 		dataVersionNumber = Resource.dataVersionNumber();
 
 		trace('dataVersionNumber: $dataVersionNumber');
 
 		Init();
-
-		if (init || ReadAllFromFile(dataVersionNumber, spriteDataBool) == false) {
+				
+		if (init || ReadAllFromFile(dataVersionNumber) == false) {
 			ImportObjectData();
 			WriteAllToFile(dataVersionNumber);
 		}
@@ -1205,7 +1205,7 @@ class ObjectData extends LineReader {
 	}
 
 	// note to future self, if you happen to wander by, the client doesn't save special data such as sound data
-	public static function readFromFile(obj:ObjectData, reader:haxe.io.Input, spriteDataBool:Bool = false) {
+	public static function readFromFile(obj:ObjectData, reader:haxe.io.Input) {
 		obj.id = reader.readInt32();
 		obj.decayFactor = reader.readFloat();
 		var len = reader.readInt16();
@@ -1286,38 +1286,36 @@ class ObjectData extends LineReader {
 		var spriteDataLen = reader.readInt32();
 
 		// spritedata
-		if (spriteDataBool) {
+		
+		var len = reader.readInt32();
+		obj.spriteArray = new Vector<SpriteData>(len);
+		for (i in 0...obj.spriteArray.length) {
+			final sprite = new SpriteData();
+			obj.spriteArray[i] = sprite;
+			sprite.spriteID = reader.readInt32();
 			var len = reader.readInt32();
-			obj.spriteArray = new Vector<SpriteData>(len);
-			for (i in 0...obj.spriteArray.length) {
-				final sprite = new SpriteData();
-				obj.spriteArray[i] = sprite;
-				sprite.spriteID = reader.readInt32();
-				var len = reader.readInt32();
-				for (i in 0...len) {
-					sprite.ageRange[i] = reader.readFloat();
-				}
-				sprite.behindSlots = reader.readInt32();
-				var len = reader.readInt32();
-				for (i in 0...len) {
-					sprite.color[i] = reader.readFloat();
-				}
-				sprite.hFlip = reader.readInt32();
-				sprite.inCenterXOffset = reader.readInt32();
-				sprite.inCenterYOffset = reader.readInt32();
-				sprite.invisCont = reader.readInt8() == 1;
-				sprite.invisHolding = reader.readInt32();
-				sprite.invisWorn = reader.readInt32();
-				var len = reader.readInt32();
-				sprite.name = reader.readString(len);
-				sprite.parent = reader.readInt32();
-				sprite.x = reader.readFloat();
-				sprite.y = reader.readFloat();
-				sprite.rot = reader.readFloat();
+			for (i in 0...len) {
+				sprite.ageRange[i] = reader.readFloat();
 			}
-		} else {
-			reader.readAll(spriteDataLen);
+			sprite.behindSlots = reader.readInt32();
+			var len = reader.readInt32();
+			for (i in 0...len) {
+				sprite.color[i] = reader.readFloat();
+			}
+			sprite.hFlip = reader.readInt32();
+			sprite.inCenterXOffset = reader.readInt32();
+			sprite.inCenterYOffset = reader.readInt32();
+			sprite.invisCont = reader.readInt8() == 1;
+			sprite.invisHolding = reader.readInt32();
+			sprite.invisWorn = reader.readInt32();
+			var len = reader.readInt32();
+			sprite.name = reader.readString(len);
+			sprite.parent = reader.readInt32();
+			sprite.x = reader.readFloat();
+			sprite.y = reader.readFloat();
+			sprite.rot = reader.readFloat();
 		}
+		
 		var tmpId = reader.readInt32();
 		if (obj.id != tmpId) {
 			var errorMessage = 'Read Object Data Corrupted: ObjectId: ${obj.id} != $tmpId';
@@ -1351,7 +1349,7 @@ class ObjectData extends LineReader {
 		writer.close();
 	}
 
-	public static function ReadAllFromFile(dataVersionNumber:Int, spriteDataBool:Bool = false):Bool {
+	public static function ReadAllFromFile(dataVersionNumber:Int):Bool {
 		var reader = null;
 
 		try {
@@ -1371,7 +1369,7 @@ class ObjectData extends LineReader {
 
 			for (i in 0...count) {
 				var obj = new ObjectData();
-				readFromFile(obj, reader, spriteDataBool);
+				readFromFile(obj, reader);
 				importedObjectData[i] = obj;
 				objectDataMap[obj.id] = obj;
 			}

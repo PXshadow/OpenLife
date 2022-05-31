@@ -187,15 +187,19 @@ class MoveHelper {
 			2) : temperatureSpeedImpact; else if (p.isSuperCold()) speed *= p.heat < 0.02 ? Math.pow(temperatureSpeedImpact, 2) : temperatureSpeedImpact;
 
 		if (p.account.hasCloseBlockingGrave(p.tx, p.ty)) {
-			if (p.isCursed == false) {
-				Connection.SendCurseToAll(p); // TODO test
-				p.say('My grave is near...', true);
-				p.doEmote(Emote.sad);
-				p.connection.sendGlobalMessage('Since you are near your old bones you are cursed!');
-			}
+			var allowGraveCurse = GlobalPlayerInstance.GetNumberLifingPlayers() >= ServerSettings.MaxPlayersBeforeActivatingGraveCurse;
 
-			speed *= ServerSettings.CloseGraveSpeedMali;
-			p.isCursed = true;
+			if(allowGraveCurse){
+				if (p.isCursed == false) {
+					Connection.SendCurseToAll(p); // TODO test
+					p.say('My grave is near...', true);
+					p.doEmote(Emote.sad);
+					p.connection.sendGlobalMessage('Since you are near your old bones you are cursed!');
+				}
+
+				speed *= ServerSettings.CloseGraveSpeedMali;
+				p.isCursed = true;
+			}
 		} else {
 			if (p.isCursed == true) {
 				Connection.SendCurseToAll(p, 0);

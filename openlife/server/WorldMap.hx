@@ -977,18 +977,17 @@ class WorldMap {
 				// if there is a object below allready continue
 				if (y > 0 && objects[x + (y - 1) * width][0] != 0) continue;
 				if (randomFloat() > 0.4) continue;
-				if (getBiomeId(x, y) == BiomeTag.GREEN) {
-					if (randomFloat() > 0.3) continue;
+				if (getBiomeId(x, y) == BiomeTag.GREEN && randomFloat() < 0.3) {
 
 					var isNearLand = getBiomeId(x + 1, y) == BiomeTag.PASSABLERIVER;
 					isNearLand = isNearLand || getBiomeId(x - 1, y) == BiomeTag.PASSABLERIVER;
 					isNearLand = isNearLand || getBiomeId(x, y + 1) == BiomeTag.PASSABLERIVER;
 					isNearLand = isNearLand || getBiomeId(x, y - 1) == BiomeTag.PASSABLERIVER;
 
-					if (isNearLand == false) continue;
-
-					setObjectId(x, y, [141]); // Canada Goose Pond
-					continue;
+					if (isNearLand){
+						setObjectId(x, y, [141]); // Canada Goose Pond
+						continue;
+					}
 				}
 
 				var set:Bool = false;

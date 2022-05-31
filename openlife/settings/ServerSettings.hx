@@ -103,6 +103,7 @@ class ServerSettings {
 
 	// PlayerInstance
 	public static var MaxPlayersBeforeStartingAsChild = 0; // -1
+	public static var MaxPlayersBeforeActivatingGraveCurse = 2; 
 	public static var StartingFamilyName = "SNOW";
 	public static var StartingName = "SPOON";
 	public static var AgeingSecondsPerYear = 60; // 60
@@ -220,9 +221,10 @@ class ServerSettings {
 
 	// world decay / respawm
 	public static var WorldTimeParts = 25; // TODO better auto calculate on time used // in each tick 1/XX DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX * 10
-	public static var ObjRespawnChance = 0.001; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
-	public static var ObjDecayChance = 0.0002; // 0.001; (X0.08)
+	public static var ObjRespawnChance = 0.0005; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
+	public static var ObjDecayChance = 0.0001; // 0.001; (X0.08)
 	public static var ObjDecayFactorOnFloor:Float = 0.1;
+	public static var ObjDecayFactorForPermanentObjs:Float = 0.1;
 	public static var ObjDecayFactorForFood:Float = 10;
 
 	// temperature
@@ -368,7 +370,7 @@ class ServerSettings {
 
 		ObjectData.getObjectData(141).countsOrGrowsAs = 1261; // Canada Goose Pond
 		ObjectData.getObjectData(142).countsOrGrowsAs = 1261; // Canada Goose Pond swimming
-		ObjectData.getObjectData(510).countsOrGrowsAs = 1261; // Pond with Dead Goose plu arrow
+		ObjectData.getObjectData(510).countsOrGrowsAs = 1261; // Pond with Dead Goose plus arrow
 		ObjectData.getObjectData(509).countsOrGrowsAs = 1261; // Pond with Dead Goose
 		ObjectData.getObjectData(511).countsOrGrowsAs = 1261; // Pond
 		ObjectData.getObjectData(512).countsOrGrowsAs = 1261; // Dry Pond
@@ -932,19 +934,19 @@ class ServerSettings {
 		trans.targetRemains = true;
 		TransitionImporter.transitionImporter.createAndaddCategoryTransitions(trans);
 
-		// TODO pond animations
+		// pond animations
 		/*
 			var trans = transtions.getTransition(-1, 141); // Canada Goose Pond
 			trans.newTargetID = 142; // Canada Goose Pond swimming
 			trans.autoDecaySeconds = 5;
 			transtions.addTransition("PatchTransitions: ", trans);
-
-			var trans = transtions.getTransition(-1, 142); // Canada Goose Pond
-			trans.newTargetID = 141; // Canada Goose Pond swimming
-			trans.autoDecaySeconds = 5;
-			transtions.addTransition("PatchTransitions: ", trans);
-		 */
-
+		*/
+		
+		var trans = transtions.getTransition(-1, 142); // Canada Goose Pond swimming
+		trans.newTargetID = 141; // Canada Goose Pond
+		trans.autoDecaySeconds = 20;
+		transtions.addTransition("PatchTransitions: ", trans);
+		 
 		// for debug random outcome transitions
 		/*var trans = transtions.getTransition(-1, 1195); // TIME + Blooming Squash Plant 
 			trans.autoDecaySeconds = 2;
