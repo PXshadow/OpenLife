@@ -1205,7 +1205,7 @@ class ObjectData extends LineReader {
 	}
 
 	// note to future self, if you happen to wander by, the client doesn't save special data such as sound data
-	public static function readFromFile(obj:ObjectData, reader:FileInput, spriteDataBool:Bool = false) {
+	public static function readFromFile(obj:ObjectData, reader:haxe.io.Input, spriteDataBool:Bool = false) {
 		obj.id = reader.readInt32();
 		obj.decayFactor = reader.readFloat();
 		var len = reader.readInt16();
@@ -1359,7 +1359,7 @@ class ObjectData extends LineReader {
 			var dir = './${ServerSettings.SaveDirectory}/';
 			var path = dir + "saveObjectData.bin";
 
-			reader = File.read(path, true);
+			reader = new haxe.io.BytesInput(File.getBytes(path)); // File.read(path, true);
 			var fileVersionNumber = reader.readInt32();
 			if (fileVersionNumber != dataVersionNumber)
 				throw new Exception('server data version number ${dataVersionNumber} did not fit with file $fileVersionNumber');
@@ -1376,12 +1376,14 @@ class ObjectData extends LineReader {
 				objectDataMap[obj.id] = obj;
 			}
 
-			reader.close();
+			// reader.close();
+			reader = null;
 
 			trace('Read ${importedObjectData.length} ObjectData  data version number: ${dataVersionNumber} Time: ${Sys.time() - startTime}');
 		} catch (ex) {
 			trace(ex);
-			if (reader != null) reader.close();
+			// if (reader != null) reader.close();
+			reader = null;
 			return false;
 		}
 
