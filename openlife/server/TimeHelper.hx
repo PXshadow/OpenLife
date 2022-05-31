@@ -521,11 +521,13 @@ class TimeHelper {
 			player.food_store_max = player.calculateFoodStoreMax();
 
 			// decay some coins per year
-			if (player.coins > 100) {
-				var decayedCoins:Float = Std.int(player.coins / 100); // 1% per year
-				//var maxPrestigeFromCoins = player.prestige / 10;
+			if (Std.int(player.trueAge) % 10 == 0 && player.coins > 10) {
+				var decayedCoins:Float = Std.int(player.coins / 10); // 1% per year
+				var maxPrestigeFromCoins = player.prestige / 5;
 				player.coins -= decayedCoins;
-				decayedCoins = Math.min(decayedCoins, ServerSettings.MaxCoinDecayPerYear);
+
+				maxPrestigeFromCoins = Math.max(maxPrestigeFromCoins, ServerSettings.MinPrestiegeFromCoinDecayPerYear * 10);
+				decayedCoins = Math.min(decayedCoins, maxPrestigeFromCoins);
 				player.addPrestige(decayedCoins);
 				player.prestigeFromWealth += decayedCoins;
 			}
