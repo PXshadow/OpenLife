@@ -1,6 +1,7 @@
 import hxd.snd.ChannelGroup;
 import openlife.data.object.ObjectData;
 import openlife.engine.Engine;
+import openlife.engine.Utility;
 import sys.FileSystem;
 
 var s2d:h2d.Scene = null;
@@ -11,14 +12,16 @@ var world:World = null;
 var soundChannel:ChannelGroup;
 
 function init() {
+	Engine.dir = Utility.dir();
+	if (!FileSystem.exists(ClientSettings.SaveDirectory)) FileSystem.createDirectory(ClientSettings.SaveDirectory);
 	soundChannel = new ChannelGroup("master");
 	engineHeaps.backgroundColor = 0x2b2932;
 	world = new World();
 	engine = new Engine(world, null, null, "OneLifeData7/");
 	ObjectData.DoAllTheObjectInititalisationStuff(false);
-
 	Render.loadSprites(); // serialized
 	Render.addObject(3, 3, [19]);
+	Render.addObject(4, 4, [575]);
 	// engine.client.config = {ip: "localhost", port: 8005};
 	// engine.connect();
 }
