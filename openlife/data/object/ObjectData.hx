@@ -94,6 +94,7 @@ class ObjectData extends LineReader {
 
 	// not saved
 	public var decayFactor:Float = 1;
+	public var decaysToObj:Int = 0;
 	public var winterDecayFactor:Float = 0;
 	public var springRegrowFactor:Float = 0;
 	public var countsOrGrowsAs:Int = 0; // the object should be counted as this, or in case it regrows it regrows as this.

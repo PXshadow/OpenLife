@@ -227,8 +227,9 @@ class ServerSettings {
 
 	// world decay / respawm
 	public static var WorldTimeParts = 25; // TODO better auto calculate on time used // in each tick 1/XX DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX * 10
-	public static var ObjRespawnChance = 0.0005; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
-	public static var ObjDecayChance = 0.0001; // 0.001; (X0.08)
+	public static var ObjRespawnChance:Float = 0.0005; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
+	public static var FloorDecayChance:Float = 0.00001; // 0.00001
+	public static var ObjDecayChance:Float = 0.0001; // 0.001; (X0.08)
 	public static var ObjDecayFactorOnFloor:Float = 0.1;
 	public static var ObjDecayFactorForPermanentObjs:Float = 0.1;
 	public static var ObjDecayFactorForFood:Float = 10;
@@ -333,6 +334,18 @@ class ServerSettings {
 			// if(obj.containable) trace('${obj.description} ${obj.containSize}');
 		}
 
+		// set floor decay
+		ObjectData.getObjectData(1596).decayFactor = 0.1; // 1596 Stone Road
+		ObjectData.getObjectData(1596).decaysToObj = 291; // 1596 Stone Road ==> 291 Flat Rock
+
+		ObjectData.getObjectData(884).decayFactor = 0.02; // 884 Stone Floor
+		ObjectData.getObjectData(884).decaysToObj = 881; // 884 Stone Floor ==> 881 Cut Stones
+
+		ObjectData.getObjectData(888).decayFactor = 0.5; // 888 Bear Skin Rug
+		ObjectData.getObjectData(888).decaysToObj = 884; // 888 Bear Skin Rug ==> 881 Cut Stones	
+
+		ObjectData.getObjectData(3290).decayFactor = 5; // 3290 Pine Floor
+		
 		// set hungry work
 		// TODO use tool hungry work factor
 		ObjectData.getObjectData(34).hungryWork = 1 * HungryWorkToolCostFactor; // Sharp Stone

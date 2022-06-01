@@ -10,6 +10,7 @@ import openlife.data.object.ObjectHelper;
 import openlife.data.transition.TransitionData;
 import openlife.data.transition.TransitionImporter;
 import openlife.macros.Macro;
+import openlife.resources.ObjectBake;
 import openlife.server.Biome.BiomeTag;
 import openlife.server.GlobalPlayerInstance.Emote;
 import openlife.server.Lineage.PrestigeClass;
@@ -1264,7 +1265,7 @@ class TimeHelper {
 	public static function DecayObjects() {
 		// TODO decay stuff in containers
 		// TODO decay stuff with number of uses > 1
-		// TODO create custom decay transitions
+		// TODO set custom objDecayTo
 		// TODO add decay object so that decay is visible
 
 		var timeParts = ServerSettings.WorldTimeParts * 10;
@@ -1275,9 +1276,31 @@ class TimeHelper {
 
 		// trace('startY: $startY endY: $endY worldMap.height: ${worldMap.height}');
 
+		// TODO 618 Filled Small Trash Pit
+
 		for (y in startY...endY) {
 			for (x in 0...worldMap.width) {
+
 				var obj = worldMap.getObjectId(x, y)[0];
+				var floorId = worldMap.getFloorId(x,y);
+				
+				if(obj == 0 && floorId > 0){
+					var objData = ObjectData.getObjectData(floorId);
+					var decayChance = ServerSettings.FloorDecayChance * objData.decayFactor;
+
+					if (worldMap.randomFloat() < decayChance) {
+						var decaysToObj = objData.decaysToObj == 0 ? 618 : objData.decaysToObj; // 618 Filled Small Trash Pit
+						var decaysToObjData = ObjectData.getObjectData(decaysToObj);
+
+						if(decaysToObjData.floor) worldMap.setFloorId(x,y,decaysToObj);
+						else{
+							worldMap.setFloorId(x,y,0);
+							worldMap.setObjectId(x,y,[decaysToObj]);
+						}
+
+						trace('Floor ${objData.name} decayed to: ${decaysToObjData.name}');
+					}
+				}
 
 				if (obj == 0) continue;
 
