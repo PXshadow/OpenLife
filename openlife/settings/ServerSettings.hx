@@ -746,10 +746,10 @@ class ServerSettings {
 
 		ObjectData.getObjectData(1377).alternativeTimeOutcome = 1384; // Snake Bite -->  Clean Snake Bite
 		trans = new TransitionData(-1, 1377, 0, 0); //  Snake Bite --> Empty
-		trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
+		trans.autoDecaySeconds = 10 * WoundHealingTimeFactor;
 		transtions.addTransition("PatchTransitions: ", trans);
 		trans = new TransitionData(-1, 1384, 0, 0); //  Clean Snake Bite --> 0
-		trans.autoDecaySeconds = 120 * WoundHealingTimeFactor;
+		trans.autoDecaySeconds = 300 * WoundHealingTimeFactor;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		ObjectData.getObjectData(1366).alternativeTimeOutcome = 1383; // Hog Cut --> Clean Hog Cut
