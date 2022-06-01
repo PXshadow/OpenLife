@@ -642,6 +642,14 @@ class Connection {
 			player.say('Im too old to die', true);
 			return;
 		}
+		if(player.account.score <  ServerSettings.PrestigeCostForDie){
+			player.say('I have too less prestige', true);
+			return;
+		}
+
+		player.account.score -= ServerSettings.PrestigeCostForDie;
+
+		// TODO dont lower score if /DIE is used
 		//player.hits += 100;
 		player.food_store -= 100;
 		

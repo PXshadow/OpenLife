@@ -146,7 +146,9 @@ class ServerSettings {
 	public static var EveDamageFactor:Float = 1; // Eve / Adam get less damage from animals but make also less damage
 	public static var EveFoodUseFactor:Float = 1; // Eve / Adam life still in paradise, so they need less food
 
+	// /DIE stuff
 	public static var MaxAgeForAllowingDie:Float = 2;
+	public static var PrestigeCostForDie:Float = 0;
 
 	// food stuff
 	public static var FoodUsePerSecond = 0.10; // 0.2; // 5 sec per pip // normal game has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good
