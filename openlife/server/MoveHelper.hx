@@ -115,6 +115,7 @@ class MoveHelper {
 
 		// road reduces speed mali of bad biome
 		if ((onRoad || isOnBoat) && biomeSpeed < 0.99) biomeSpeed = 1; // biomeSpeed = Math.sqrt(biomeSpeed);
+		if(biomeSpeed < ServerSettings.MinBiomeSpeedFactor) biomeSpeed = ServerSettings.MinBiomeSpeedFactor;
 
 		speed *= biomeSpeed;
 
