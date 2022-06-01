@@ -921,6 +921,10 @@ class ServerSettings {
 		ObjectData.getObjectData(340).alternativeTransitionOutcome.push(344); // Chopped Tree --> Fire Wood
 
 		// allow more Stone Hoe to be used to dig graves // TODO make more HUNGRY WORK / TEST if they brake
+		
+		var trans = new TransitionData(850, 357, 850, 1011); // Stone Hoe + Bone Pile --> Stone Hoe + Buried Grave
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		var trans = new TransitionData(850, 87, 850, 1011); // Stone Hoe + Fresh Grave --> Stone Hoe + Buried Grave
 		transtions.addTransition("PatchTransitions: ", trans);
 
