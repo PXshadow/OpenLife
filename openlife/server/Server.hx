@@ -156,7 +156,7 @@ class Server {
 		FLIP x y#
 	**/
 	private function message(connection:Connection, tag:ServerTag, input:Array<String>, string:String) {
-		if (ServerSettings.DebugIncomingCommands) trace('TAG: $tag $input');
+		if (ServerSettings.DebugIncomingCommands) trace('TAG: $tag $input $string');
 
 		switch (tag) {
 			case LOGIN: // A normal login is treated same as a reconnect

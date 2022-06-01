@@ -637,7 +637,18 @@ class Connection {
 
 	// DIE x y#
 	public function die() {
-		this.close();
+		trace('PLAYER DIE');
+		if(player.age > ServerSettings.MaxAgeForAllowingDie){
+			player.say('Im too old to die', true);
+			return;
+		}
+		//player.hits += 100;
+		player.food_store -= 100;
+		
+		//player.doDeath('reason_killed_${player.woundedBy}');
+		//player.doDeath('reason_age');
+		
+		//this.close();
 	}
 
 	/**
