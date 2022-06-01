@@ -3981,6 +3981,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				player.forced = false;
 
 				player.connection.sendMapChunk(player.x, player.y);
+				if (livingHumans.length < 2) player.say('There is only me in this world!', true);
+
+				return true;
 			}
 		} else if (text.indexOf('!SENDPU') != -1 || text == '!PU') {
 			player.done_moving_seqNum += 1;
