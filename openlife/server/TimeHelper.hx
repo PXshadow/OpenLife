@@ -228,8 +228,16 @@ class TimeHelper {
 		if (player.isHuman() == false) return;
 
 		// display seasons
-		if(player.displaySeason && player.isSuperHot() && Season == Seasons.Summer && player.isIll() == false) player.say('too hot ${SeasonNames[Season]}...', true);
-		else if(player.displaySeason && player.isSuperCold() && Season == Seasons.Winter) player.say('too cold ${SeasonNames[Season]}...', true);
+		if(player.displaySeason && player.isSuperHot()){
+			//if(player.isIll() == false){
+				//if(Season == Seasons.Summer && ) player.say('too hot ${SeasonNames[Season]}', true);
+				player.say('too hot need cooling!', true);
+			//}
+		}
+		else if(player.displaySeason && player.isSuperCold()){
+			//if(Season == Seasons.Winter) player.say('too cold ${SeasonNames[Season]}', true);
+			player.say('too cold, need a fire!', true);
+		} 
 		
 		if(player.isSuperHot() || player.isSuperCold()) player.displaySeason = false;
 		else player.displaySeason = true;
