@@ -174,6 +174,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public var lastSayInSec:Float = 0;
 	public var displaySeason = false; // not saved
+	public var displayRoadHint = true; // not saved
 	public var displayBiomeAnimal = true; // not saved
 	public var partner:GlobalPlayerInstance = null; // not saved yet
 	public var potentialMate:GlobalPlayerInstance = null; // not saved
