@@ -695,7 +695,7 @@ class ServerSettings {
 		trans.move = 5;
 		var trans = transtions.getTransition(-1, 428); // Attacking Shot Wolf
 		trans.autoDecaySeconds = 3;
-		trans.move = 4;
+		trans.move = 2;
 
 		var trans = transtions.getTransition(-1, 1385); // Attacking Rattle Snake
 		trans.autoDecaySeconds = 3;
@@ -902,6 +902,10 @@ class ServerSettings {
 		// give wolfs some meat // TODO change crafting maps
 		var trans = transtions.getTransition(0, 423); // 423 Skinned Wolf
 		trans.newTargetID = 565; // 565 Butchered Mouflon
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		var trans = transtions.getTransition(0, 709); // 709 Skinned Seal with fur
+		trans.newTargetID = 1340; // 1340 Butchered Pig
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// give bison some meat // TODO change crafting maps
