@@ -1007,6 +1007,7 @@ class TimeHelper {
 
 				var biome = worldMap.getBiomeId(x, y);
 
+				// add possible spawn localtions
 				if (obj[0] == 30) WorldMap.world.berryBushes[WorldMap.world.index(x,
 					y)] = worldMap.getObjectHelper(x, y); // Wild Gooseberry Bush ==> possible spawn location
 				if (obj[0] == 2142) WorldMap.world.bananaPlants[WorldMap.world.index(x,
@@ -1017,6 +1018,12 @@ class TimeHelper {
 					y)] = worldMap.getObjectHelper(x, y); // Barrel Cactus ==> possible spawn location
 				if (obj[0] == 4251 && biome == BiomeTag.GREY) WorldMap.world.wildGarlics[WorldMap.world.index(x,
 					y)] = worldMap.getObjectHelper(x, y); // Wild Garlic ==> possible spawn location
+				
+				// get possible teleport locations
+				var floorId = worldMap.getFloorId(x,y);
+				//1596 = Stone Road
+				if(floorId == 1596) WorldMap.world.roads[WorldMap.world.index(x,
+						y)] = worldMap.getObjectHelper(x, y); 
 
 				RespawnOrDecayPlant(obj, x, y);
 

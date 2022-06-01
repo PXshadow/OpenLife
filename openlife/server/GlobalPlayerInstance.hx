@@ -3988,6 +3988,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				return true;
 			}
+		} else if (text.indexOf('!JROAD') != -1) {
+
+			var roads = [for (obj in WorldMap.world.roads) obj];
+			// clear roads, so that old ones go away
+			WorldMap.world.roads = new Map<Int, ObjectHelper>();
+
+			if (roads.length > 0) {
+				var road = roads[WorldMap.calculateRandomInt(roads.length - 1)];
+				player.x = WorldMap.world.transformX(player, road.tx);
+				player.y = WorldMap.world.transformY(player, road.ty);
+
+				player.forced = true;
+				Connection.SendUpdateToAllClosePlayers(player);
+				player.forced = false;
+
+				player.connection.sendMapChunk(player.x, player.y);
+
+				return true;
+			}
 		} else if (text.indexOf('!SENDPU') != -1 || text == '!PU') {
 			player.done_moving_seqNum += 1;
 			Connection.SendUpdateToAllClosePlayers(player);
