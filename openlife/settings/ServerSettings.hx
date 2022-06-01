@@ -338,7 +338,7 @@ class ServerSettings {
 		ObjectData.getObjectData(1596).decayFactor = 0.1; // 1596 Stone Road
 		ObjectData.getObjectData(1596).decaysToObj = 291; // 1596 Stone Road ==> 291 Flat Rock
 
-		ObjectData.getObjectData(884).decayFactor = 0.02; // 884 Stone Floor
+		ObjectData.getObjectData(884).decayFactor = 0.001; // 884 Stone Floor
 		ObjectData.getObjectData(884).decaysToObj = 881; // 884 Stone Floor ==> 881 Cut Stones
 
 		ObjectData.getObjectData(888).decayFactor = 0.5; // 888 Bear Skin Rug
