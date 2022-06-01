@@ -595,8 +595,11 @@ class TransitionHelper {
 			newTargetObjectData = ObjectData.getObjectData(transition.newTargetID);
 		}
 
-		// dont allow to place another floor on existing floor
-		if (newTargetObjectData.floor && this.floorId != 0) return false;
+		// only allow to place another floor on existing floor if floor was target
+		if (newTargetObjectData.floor && this.floorId != 0 && targetIsFloor == false){
+			trace('TRANS: ${player.name + player.id} Cannot place another floor on existing floor!');
+			return false;
+		}
 
 		if (containerSlotSize >= 0) if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} Test if fit in container ${newTargetObjectData.description} containable: ${newTargetObjectData.containable} containSize: ${newTargetObjectData.containSize} containerSlotSize: $containerSlotSize');
@@ -728,7 +731,8 @@ class TransitionHelper {
 		this.target.creationTimeInTicks = TimeHelper.tick;
 
 		if (newTargetObjectData.floor) {
-			if (targetIsFloor == false) this.target.id = 0;
+			//if (targetIsFloor == false) this.target.id = 0;
+			this.target.id = 0;
 			this.newFloorId = transition.newTargetID;
 		} else {
 			if (targetIsFloor) this.newFloorId = 0;
