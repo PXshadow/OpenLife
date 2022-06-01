@@ -79,7 +79,7 @@ class ServerSettings {
 	public static var DisplayYumAndMehFood = false;
 	public static var DisplayPlayerNamesDistance = 30; // set zero to deactivate
 	public static var DisplayPlayerNamesShowDistance = true;
-	public static var DisplayPlayerNamesMaxPlayer = 3;
+	public static var DisplayPlayerNamesMaxPlayer = 1;
 
 	// message
 	public static var SecondsBetweenMessages:Float = 5;
