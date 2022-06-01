@@ -1004,8 +1004,14 @@ class TimeHelper {
 				var origObj = worldMap.getOriginalObjectId(x,y);
 				if (origObj[0] == 50 && obj[0] == 0)
 				{
-					if(worldMap.randomFloat() < TimePassedToDoAllTimeSteps / 300){
+					if(worldMap.randomFloat() < TimePassedToDoAllTimeSteps / (60 * 60)){
 						worldMap.setObjectId(x,y, [50]);
+					}
+				}
+				else if (origObj[0] == 1261 && obj[0] == 0) // 1261 Canada Goose Pond with Egg
+				{
+					if(worldMap.randomFloat() < TimePassedToDoAllTimeSteps / (60 * 60 * 4)){
+						worldMap.setObjectId(x,y, [1261]);
 					}
 				}
 
