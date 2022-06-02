@@ -153,7 +153,7 @@ abstract class AiBase
 		children = new Array<PlayerInterface>();
 		//addTask(837); //Psilocybe Mushroom
         //addTask(134); //Flint Arrowhead
-        addTask(82); // Fire
+        //addTask(82); // Fire
         //addTask(152); // Bow and Arrow
         //addTask(152); // Bow and Arrow
         //addTask(152); // Bow and Arrow
@@ -161,26 +161,26 @@ abstract class AiBase
 
         //addTask(140); // Tied Skewer
 
-        //addTask(148); // Arrow
+        addTask(148); // Arrow
+		addTask(292); // 292 basket
         //addTask(149); // Headless Arrow
         //addTask(146); // Fletching
         //addTask(151); // Jew Bow 
         //addTask(151); // Jew Bow 
         //addTask(59); // Rope 
-		addTask(82); // Fire
+		//addTask(82); // Fire
 		// addTask(80); // Burning Tinder
 		// addTask(78); // Smoldering Tinder
 		// addTask(72); // Kindling
 		// addTask(71); // Stone Hatchet
-
 		// craftItem(71); // Stone Hatchet
 		// craftItem(72); // Kindling
 		// craftItem(82); // Fire
 		// craftItem(58); // Thread
 		// craftItem(74, 1, true); //Fire Bow Drill
 		// craftItem(78, 1, true); // Smoldering Tinder
-		// craftItem(808); // wild onion
-		// craftItem(292, 1, true); // 292 basket
+		// craftItem(808); // wild onion	
+		//craftItem(292, 1, true); 
 		// craftItem(224); // Harvested Wheat
 		// craftItem(124); // Reed Bundle
 		// craftItem(225); //Wheat Sheaf
@@ -1191,6 +1191,8 @@ abstract class AiBase
 			if (trans.actorID == wantedId || trans.actorID == objToCraftId) continue;
 			if (trans.targetID == wantedId || trans.targetID == objToCraftId) continue;
 			if (objToCraftPileId > 0 && trans.targetID == objToCraftPileId) continue;
+			//if (trans.aiShouldIgnore) trace('Ígnore ${trans.getDesciption()}');
+			if (trans.aiShouldIgnore) continue;
 
 			// a oven needs 15 sec to warm up this is ok, but waiting for mushroom to grow is little bit too long!
 			if (trans.calculateTimeToChange() > ServerSettings.AiIgnoreTimeTransitionsLongerThen) continue;

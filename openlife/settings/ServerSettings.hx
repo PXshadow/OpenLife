@@ -1003,7 +1003,12 @@ class ServerSettings {
 		trans.newTargetID = 141; // Canada Goose Pond
 		trans.autoDecaySeconds = 20;
 		transtions.addTransition("PatchTransitions: ", trans);
-		 
+
+		// Ai should ignore
+		// TODO fix Ai craftig if Ai needs two threads for a rope it puts one thread in a bowl and gets it out again
+		// this breals making a light pulb for a radio
+		var trans = transtions.getTransition(58, 235); // Thread + Clay Bowl
+		trans.aiShouldIgnore = true; 
 		// for debug random outcome transitions
 		/*var trans = transtions.getTransition(-1, 1195); // TIME + Blooming Squash Plant 
 			trans.autoDecaySeconds = 2;

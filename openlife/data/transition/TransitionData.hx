@@ -1,8 +1,8 @@
 package openlife.data.transition;
 
+import openlife.data.object.ObjectData;
 import openlife.server.WorldMap;
 import openlife.settings.ServerSettings;
-import openlife.data.object.ObjectData;
 
 @:expose
 class TransitionData {
@@ -37,6 +37,7 @@ class TransitionData {
 	public var targetRemains:Bool = false;
 
 	public var alternativeTransitionOutcome:Array<Int> = new Array<Int>();
+	public var aiShouldIgnore = false;
 
 	public static function createNewFromFile(fileName:String, string:String):TransitionData {
 		var t = new TransitionData();
