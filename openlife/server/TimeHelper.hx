@@ -1336,7 +1336,10 @@ class TimeHelper {
 
 				// if(objData.isSpawningIn(biomeId) == false) continue;
 
-				worldMap.setObjectId(x, y, [0]);
+				var decaysToObj = objData.decaysToObj; 
+				if(decaysToObj == 0 && objData.permanent > 0) decaysToObj = 618; // 618 Filled Small Trash Pit
+
+				worldMap.setObjectId(x, y, [decaysToObj]);
 				// worldMap.setObjectHelperNull(x, y);
 
 				worldMap.currentObjectsCount[obj]--;

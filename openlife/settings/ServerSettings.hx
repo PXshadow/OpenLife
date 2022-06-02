@@ -315,6 +315,10 @@ class ServerSettings {
 				obj.containable = true;
 			}
 
+			if (obj.description.indexOf("Steel") != -1) {
+				// obj.decaysToObj = 
+			}
+
 			if (obj.description.indexOf("Well") != -1
 				|| (obj.description.indexOf("Pump") != -1 && obj.description.indexOf("Pumpkin") == -1)
 				|| obj.description.indexOf("Vein") != -1
@@ -348,7 +352,15 @@ class ServerSettings {
 		ObjectData.getObjectData(888).decaysToObj = 884; // 888 Bear Skin Rug ==> 881 Cut Stones	
 
 		ObjectData.getObjectData(3290).decayFactor = 5; // 3290 Pine Floor
-		
+
+		// set object decay
+		ObjectData.getObjectData(303).decaysToObj = 238; // 303 Forge ==> 238 Adobe Kiln
+		ObjectData.getObjectData(303).decaysToObj = 238; // 305 Forge with Charcoal ==> 238 Adobe Kiln
+		ObjectData.getObjectData(238).decaysToObj = 4201; // 303 Adobe Kiln ==> 4201 Adobe Rubble
+		ObjectData.getObjectData(281).decaysToObj = 4201; // 281 Wood-filled Adobe Kiln ==> 4201 Adobe Rubble
+		ObjectData.getObjectData(237).decaysToObj = 753; // 237 Adobe Oven ==> 753 Adobe Rubble
+		ObjectData.getObjectData(247).decaysToObj = 753; // 247 Wood-filled Adobe Oven ==> 753 Adobe Rubble
+
 		// set hungry work
 		// TODO use tool hungry work factor
 		ObjectData.getObjectData(34).hungryWork = 1 * HungryWorkToolCostFactor; // Sharp Stone
