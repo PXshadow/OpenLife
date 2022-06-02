@@ -361,7 +361,10 @@ class WorldMap {
 
 		if (helper != null && (index(helper.tx, helper.ty) != position)) {
 			trace('WARNING: Object ${helper.description} moved meanwhile! ${helper.tx} ${helper.ty} --> ${tx} ${ty}');
+			//helper.tx = tx;
+
 			if (ServerSettings.debug) throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
+			setObjectHelper(tx,ty, null);
 			helper = null;
 		}
 
