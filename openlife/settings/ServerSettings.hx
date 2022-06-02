@@ -320,6 +320,7 @@ class ServerSettings {
 				obj.decaysToObj = 862; // 862 Broken Steel Tool no wood // 858 Broken Steel Tool
 			}
 
+			// this might be override for some down below
 			if (obj.description.indexOf("Well") != -1
 				|| (obj.description.indexOf("Pump") != -1 && obj.description.indexOf("Pumpkin") == -1)
 				|| obj.description.indexOf("Vein") != -1
@@ -355,6 +356,10 @@ class ServerSettings {
 		ObjectData.getObjectData(3290).decayFactor = 5; // 3290 Pine Floor
 
 		// set object decay
+		// TODO set water right and add further wells like deep well
+		ObjectData.getObjectData(662).decayFactor = 0.5; // 662 Shallow Well
+		ObjectData.getObjectData(662).decaysToObj = 3030; // 662 Shallow Well ==> 3030 Natural Spring
+		
 		ObjectData.getObjectData(303).decaysToObj = 238; // 303 Forge ==> 238 Adobe Kiln
 		ObjectData.getObjectData(303).decaysToObj = 238; // 305 Forge with Charcoal ==> 238 Adobe Kiln
 		ObjectData.getObjectData(238).decaysToObj = 4201; // 303 Adobe Kiln ==> 4201 Adobe Rubble
