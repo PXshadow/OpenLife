@@ -227,12 +227,12 @@ class ServerSettings {
 
 	// world decay / respawm
 	public static var WorldTimeParts = 25; // TODO better auto calculate on time used // in each tick 1/XX DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX * 10
-	public static var ObjRespawnChance:Float = 0.0002; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
-	public static var ObjDecayChance:Float = 0.0001; // should be lower then ObjRespawnChance 
+	public static var ObjRespawnChance:Float = 0.00006; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
+	public static var ObjDecayChance:Float = 0.00005; // should be lower then ObjRespawnChance 
 	public static var FloorDecayChance:Float = 0.00001; // 0.00001
 	public static var ObjDecayFactorOnFloor:Float = 0.1;
-	public static var ObjDecayFactorForPermanentObjs:Float = 0.1;
-	public static var ObjDecayFactorForFood:Float = 10;
+	public static var ObjDecayFactorForPermanentObjs:Float = 0.05;
+	public static var ObjDecayFactorForFood:Float = 2;
 
 	public static var DecayFactorInDeepWater:Float = 10;
 	public static var DecayFactorInWalkableWater:Float = 5;
@@ -356,8 +356,10 @@ class ServerSettings {
 		ObjectData.getObjectData(3290).decayFactor = 5; // 3290 Pine Floor
 
 		// set object decay
+		ObjectData.getObjectData(1598).decayFactor = -1; // 1598 Iron Ore Pile
+
 		// TODO set water right and add further wells like deep well
-		ObjectData.getObjectData(662).decayFactor = 0.5; // 662 Shallow Well
+		ObjectData.getObjectData(662).decayFactor = 0.1; // 662 Shallow Well
 		ObjectData.getObjectData(662).decaysToObj = 3030; // 662 Shallow Well ==> 3030 Natural Spring
 		
 		ObjectData.getObjectData(303).decaysToObj = 238; // 303 Forge ==> 238 Adobe Kiln
