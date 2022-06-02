@@ -377,7 +377,7 @@ class ServerSettings {
 		ObjectData.getObjectData(3961).hungryWork = 5; // Iron Vein
 
 		ObjectData.getObjectData(1011).hungryWork = 5; // Buried Grave
-		ObjectData.getObjectData(357).hungryWork = 5; // Bone Pile
+		//ObjectData.getObjectData(357).hungryWork = 5; // Bone Pile
 
 		ObjectData.getObjectData(213).hungryWork = 3; // Deep Tilled Row
 		ObjectData.getObjectData(1136).hungryWork = 3; // Shallow Tilled Row
