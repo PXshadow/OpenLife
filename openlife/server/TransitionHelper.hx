@@ -673,6 +673,9 @@ class TransitionHelper {
 		var isHorsePickupTrans = (transition.actorID == 0 && transition.playerActor && target.containedObjects.length > 0);
 		// if( || (transition.targetID == -1 && transition.newActorID == 0))
 
+		// TODO workaround fix deactivate horse pickup
+		isHorsePickupTrans = false;
+		
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} isHorseDropTrans: $isHorseDropTrans isHorsePickupTrans: $isHorsePickupTrans target.isPermanent: ${target.isPermanent()} targetRemains: ${transition.targetRemains}');
 		if (isHorsePickupTrans || isHorseDropTrans) {
