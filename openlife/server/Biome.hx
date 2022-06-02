@@ -2,6 +2,7 @@ package openlife.server;
 
 import openlife.data.object.ObjectData.PersonColor;
 import openlife.data.object.ObjectHelper;
+import openlife.settings.ServerSettings;
 
 @:enum abstract BiomeTag(Int) from Int to Int {
 	public var GREEN = 0;
@@ -85,6 +86,24 @@ class Biome {
 			case RIVER: TRIVER;
 			case PASSABLERIVER: TPASSABLERIVER;
 			default: 0.5;
+		}
+	}
+
+	public static function getBiomeDecayFactor(biomeTag:BiomeTag):Float {
+		return switch biomeTag {
+			//case GREEN: TGREEN;
+			//case SWAMP: TSWAMP;
+			//case YELLOW: TYELLOW;
+			//case GREY: TGREY;
+			//case SNOW: TSNOW;
+			//case DESERT: TDESERT;
+			//case JUNGLE: TJUNGLE;
+			//case BORDERJUNGLE: TCBORDERJUNGLE;
+			//case SNOWINGREY: TSNOWINGREY;
+			case OCEAN: ServerSettings.DecayFactorInDeepWater;
+			case RIVER: ServerSettings.DecayFactorInDeepWater;
+			case PASSABLERIVER: ServerSettings.DecayFactorInWalkableWater;
+			default: 1;
 		}
 	}
 

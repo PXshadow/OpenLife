@@ -1266,7 +1266,7 @@ class TimeHelper {
 		// TODO decay stuff in containers
 		// TODO decay stuff with number of uses > 1
 		// TODO set custom objDecayTo
-		// TODO add decay object so that decay is visible
+		// TODO add decay object so that decay is visible ==> 618 Filled Small Trash Pit
 
 		var timeParts = ServerSettings.WorldTimeParts * 10;
 		var worldMap = Server.server.map;
@@ -1276,17 +1276,18 @@ class TimeHelper {
 
 		// trace('startY: $startY endY: $endY worldMap.height: ${worldMap.height}');
 
-		// TODO 618 Filled Small Trash Pit
-
 		for (y in startY...endY) {
 			for (x in 0...worldMap.width) {
 
 				var obj = worldMap.getObjectId(x, y)[0];
 				var floorId = worldMap.getFloorId(x,y);
-				
+				var biomeId = worldMap.getBiomeId(x,y);
+				var biomeDecayFactor:Float = Biome.getBiomeDecayFactor(biomeId);
+
 				if(obj == 0 && floorId > 0){
 					var objData = ObjectData.getObjectData(floorId);
 					var decayChance = ServerSettings.FloorDecayChance * objData.decayFactor;
+					decayChance *= biomeDecayFactor;
 
 					if (worldMap.randomFloat() < decayChance) {
 						var decaysToObj = objData.decaysToObj == 0 ? 618 : objData.decaysToObj; // 618 Filled Small Trash Pit
@@ -1319,7 +1320,8 @@ class TimeHelper {
 				if (objData.decayFactor <= 0) continue;
 
 				var decayChance = ServerSettings.ObjDecayChance * objData.decayFactor;
-
+				decayChance *= biomeDecayFactor;
+				
 				if (objData.foodValue > 0) decayChance *= ServerSettings.ObjDecayFactorForFood;
 
 				if (worldMap.getFloorId(x, y) != 0) decayChance *= ServerSettings.ObjDecayFactorOnFloor;

@@ -234,6 +234,9 @@ class ServerSettings {
 	public static var ObjDecayFactorForPermanentObjs:Float = 0.1;
 	public static var ObjDecayFactorForFood:Float = 10;
 
+	public static var DecayFactorInDeepWater:Float = 10;
+	public static var DecayFactorInWalkableWater:Float = 5;
+
 	// temperature
 	public static var DamageTemperatureFactor:Float = 0.5;
 
