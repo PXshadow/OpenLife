@@ -851,7 +851,7 @@ class TransitionHelper {
 				var useChance = ServerSettings.LovedFoodUseChance;
 				var rand = WorldMap.calculateRandomFloat();
 
-				if(objectData.numUses < 2) useChance *= 0.8;
+				//if(objectData.numUses < 2) useChance *= 0.8;
 
 				//trace('isLovedFood: ${obj.name}');
 
