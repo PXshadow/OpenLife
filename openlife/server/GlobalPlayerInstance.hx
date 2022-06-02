@@ -3954,6 +3954,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				player.say('kill leader ${leader.name}', true);
 			}
 			return true;
+		} else if (text.indexOf('!KILLOBJ') != -1) {
+			WorldMap.world.setObjectId(player.tx, player.ty + 1, [0]);
+			WorldMap.world.setObjectId(player.tx, player.ty - 1, [0]);
+			return true;
 		} else if (text.indexOf('!JAI') != -1) {
 			var ais = Connection.getLivingAis();
 
