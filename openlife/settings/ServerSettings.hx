@@ -357,6 +357,8 @@ class ServerSettings {
 
 		// set object decay
 		ObjectData.getObjectData(1598).decayFactor = -1; // 1598 Iron Ore Pile
+		ObjectData.getObjectData(1837).decayFactor = -1; // 1837 Stack of Steel Ingots
+		
 
 		// TODO set water right and add further wells like deep well
 		ObjectData.getObjectData(662).decayFactor = 0.1; // 662 Shallow Well
@@ -368,6 +370,10 @@ class ServerSettings {
 		ObjectData.getObjectData(281).decaysToObj = 4201; // 281 Wood-filled Adobe Kiln ==> 4201 Adobe Rubble
 		ObjectData.getObjectData(237).decaysToObj = 753; // 237 Adobe Oven ==> 753 Adobe Rubble
 		ObjectData.getObjectData(247).decaysToObj = 753; // 247 Wood-filled Adobe Oven ==> 753 Adobe Rubble
+
+		ObjectData.getObjectData(4201).decayFactor = 0.1; // 4201 Adobe Rubble
+		ObjectData.getObjectData(4201).decaysToObj = 753; // 4201 Adobe Rubble
+		ObjectData.getObjectData(753).decayFactor = 0.1; // 753 Adobe Rubble
 
 		// set hungry work
 		// TODO use tool hungry work factor
