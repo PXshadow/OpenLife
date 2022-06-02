@@ -316,7 +316,8 @@ class ServerSettings {
 			}
 
 			if (obj.description.indexOf("Steel") != -1) {
-				// obj.decaysToObj = 
+				// trace('Decays to: ${obj.name}');
+				obj.decaysToObj = 862; // 862 Broken Steel Tool no wood // 858 Broken Steel Tool
 			}
 
 			if (obj.description.indexOf("Well") != -1
