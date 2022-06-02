@@ -221,9 +221,10 @@ class ServerSettings {
 	public static var AnimalDeadlyDistanceFactor:Float = 0.5; // How close a animal must be to make a hit
 
 	// for animal offsprings
-	public static var ChanceForOffspring = 0.001; // For each movement there is X chance to generate an offspring.
-	public static var ChanceForAnimalDying = 0.0005; // For each movement there is X chance that the animal dies
-	public static var MaxOffspringFactor = 1; // The population can only be at max X times the initial population
+	public static var ChanceForOffspring:Float = 0.001; // For each movement there is X chance to generate an offspring.
+	public static var ChanceForAnimalDying:Float = 0.0005; // For each movement there is X chance that the animal dies
+	public static var OffspringFactorIfAnimalPopIsLow:Float = 2;
+	public static var MaxOffspringFactor:Float = 1; // The population can only be at max X times the initial population
 
 	// world decay / respawm
 	public static var WorldTimeParts = 25; // TODO better auto calculate on time used // in each tick 1/XX DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX * 10

@@ -1590,7 +1590,7 @@ class TimeHelper {
 			var chanceForAnimalDying = isPreferredBiome ? ServerSettings.ChanceForOffspring / 2 : ServerSettings.ChanceForAnimalDying;
 
 			// give extra birth chance bonus if population is very low
-			if (worldmap.currentObjectsCount[newTileObject[0]] < worldmap.originalObjectsCount[newTileObject[0]] / 2) chanceForOffspring *= 5;
+			if (worldmap.currentObjectsCount[newTileObject[0]] < worldmap.originalObjectsCount[newTileObject[0]] / 2) chanceForOffspring *= ServerSettings.OffspringFactorIfAnimalPopIsLow;
 
 			if (worldmap.currentObjectsCount[newTileObject[0]] < worldmap.originalObjectsCount[newTileObject[0]] * ServerSettings.MaxOffspringFactor
 				&& worldmap.randomFloat() <= chanceForOffspring) {
