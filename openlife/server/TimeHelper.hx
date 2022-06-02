@@ -232,8 +232,16 @@ class TimeHelper {
 		if(player.displaySeason && player.isSuperHot()){
 			//if(player.isIll() == false){
 				//if(Season == Seasons.Summer && ) player.say('too hot ${SeasonNames[Season]}', true);
-				player.say('too hot need cooling!', true);
+				//player.say('too hot need cooling!', true);
 			//}
+
+			var season = Season == Seasons.Summer ? ' ${SeasonNames[Season]}' : ''; 
+			var rand = WorldMap.calculateRandomInt(1);
+		
+			if(rand == 0) player.say('too hot${season} a river could help!', true);
+			else if(rand == 1) player.say('too hot${season} some snow would be nice!', true);
+			//else if(rand == 2) player.say('too hot${season} a jungle could help', true);			
+			//else player.say('too hot${season} a desert would be warm!', true);
 		}
 		else if(player.displaySeason && player.isSuperCold()){
 			//if(Season == Seasons.Winter) player.say('its ${SeasonNames[Season]} i need to get warmer', true);
