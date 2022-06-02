@@ -3955,8 +3955,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			}
 			return true;
 		} else if (text.indexOf('!KILLOBJ') != -1) {
+			WorldMap.world.setObjectId(player.tx, player.ty, [0]);
 			WorldMap.world.setObjectId(player.tx, player.ty + 1, [0]);
 			WorldMap.world.setObjectId(player.tx, player.ty - 1, [0]);
+			WorldMap.world.setObjectId(player.tx + 1, player.ty, [0]);
+			WorldMap.world.setObjectId(player.tx - 1, player.ty, [0]);
+
+			player.connection.sendMapChunk(player.x, player.y);
 			return true;
 		} else if (text.indexOf('!JAI') != -1) {
 			var ais = Connection.getLivingAis();
