@@ -1102,7 +1102,7 @@ class TimeHelper {
 
 		obj.id = objData.secondTimeOutcome;
 		WorldMap.world.setObjectHelper(tx,ty, obj);
-		Connection.SendMapUpdateToAllClosePlayers(tx,ty, obj.toArray());
+		Connection.SendMapUpdateToAllClosePlayers(tx,ty);
 	}
 
 	private static function RespawnOrDecayPlant(objIDs:Array<Int>, x:Int, y:Int, hidden:Bool = false, growFactor:Float = 1) {
@@ -1121,7 +1121,7 @@ class TimeHelper {
 				objHelper.numberOfUses -= 1;
 				objHelper.TransformToDummy();
 				WorldMap.world.setObjectHelper(x, y, objHelper);
-				Connection.SendMapUpdateToAllClosePlayers(x, y, [objHelper.id]);
+				Connection.SendMapUpdateToAllClosePlayers(x, y);
 
 				WorldMap.world.mutex.release();
 
@@ -1137,7 +1137,7 @@ class TimeHelper {
 			WorldMap.world.setObjectId(x, y, [0]);
 			if (objData.springRegrowFactor > random) WorldMap.world.setHiddenObjectId(x, y, objIDs); // TODO hide also object helper for advanced objects???
 
-			Connection.SendMapUpdateToAllClosePlayers(x, y, [0]);
+			Connection.SendMapUpdateToAllClosePlayers(x, y);
 
 			WorldMap.world.currentObjectsCount[objID]--;
 
@@ -1172,7 +1172,7 @@ class TimeHelper {
 
 				WorldMap.world.mutex.release(); // TODO try catch
 
-				Connection.SendMapUpdateToAllClosePlayers(x, y, [objHelper.id]);
+				Connection.SendMapUpdateToAllClosePlayers(x, y);
 
 				return;
 			}
@@ -1254,7 +1254,7 @@ class TimeHelper {
 
 			worldMap.currentObjectsCount[objID]++;
 
-			Connection.SendMapUpdateToAllClosePlayers(tmpX, tmpY, [objID]);
+			Connection.SendMapUpdateToAllClosePlayers(tmpX, tmpY);
 
 			return true;
 		}
@@ -1263,6 +1263,7 @@ class TimeHelper {
 	}
 
 	public static function DecayObjects() {
+		// TODO dont decay if some on is close?
 		// TODO decay stuff in containers
 		// TODO decay stuff with number of uses > 1
 		// TODO set custom objDecayTo
@@ -1298,6 +1299,8 @@ class TimeHelper {
 							worldMap.setFloorId(x,y,0);
 							worldMap.setObjectId(x,y,[decaysToObj]);
 						}
+
+						Connection.SendMapUpdateToAllClosePlayers(x, y);
 
 						trace('Floor ${objData.name} decayed to: ${decaysToObjData.name}');
 					}
@@ -1338,14 +1341,12 @@ class TimeHelper {
 
 				worldMap.currentObjectsCount[obj]--;
 
-				Connection.SendMapUpdateToAllClosePlayers(x, y, [0]);
+				Connection.SendMapUpdateToAllClosePlayers(x, y);
 
 				trace('decay object: ${objData.description} $obj');
 			}
 		}
 	}
-
-	public static function RespawnObj() {}
 
 	public static function doTimeTransition(helper:ObjectHelper) {
 		if (helper.isTimeToChangeReached() == false) return;
@@ -1375,9 +1376,7 @@ class TimeHelper {
 
 		if (sendUpdate == false) return;
 
-		var newTileObject = helper.toArray();
-
-		Connection.SendMapUpdateToAllClosePlayers(helper.tx, helper.ty, newTileObject);
+		Connection.SendMapUpdateToAllClosePlayers(helper.tx, helper.ty);
 	}
 
 	public static function doTimeTransitionHelper(helper:ObjectHelper):Bool {

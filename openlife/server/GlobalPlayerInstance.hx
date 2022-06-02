@@ -3586,7 +3586,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				if (fromObj.id != tmpId) {
 					WorldMap.world.setObjectHelper(fromObj.tx, fromObj.ty, fromObj);
-					Connection.SendMapUpdateToAllClosePlayers(fromObj.tx, fromObj.ty, [fromObj.id]);
+					Connection.SendMapUpdateToAllClosePlayers(fromObj.tx, fromObj.ty);
 				}
 			}
 		}
@@ -3931,7 +3931,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			WorldMap.world.setObjectId(player.tx, player.ty, [id]);
 
-			Connection.SendMapUpdateToAllClosePlayers(player.tx, player.ty, [id]);
+			Connection.SendMapUpdateToAllClosePlayers(player.tx, player.ty);
 		} else if (text.indexOf('!CLOSE') != -1) {
 			trace('Close connection');
 

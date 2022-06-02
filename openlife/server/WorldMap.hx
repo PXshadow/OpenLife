@@ -1228,7 +1228,7 @@ class WorldMap {
 		if (objId[0] == 0) {
 			world.setObjectHelper(x, y, objectToPlace);
 
-			Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
+			Connection.SendMapUpdateToAllClosePlayers(x, y);
 
 			// trace('TryPlaceObject Done ${objectToPlace.description}');
 
@@ -1242,7 +1242,7 @@ class WorldMap {
 
 			world.setObjectHelper(x, y, objectToPlace);
 
-			Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
+			Connection.SendMapUpdateToAllClosePlayers(x, y);
 
 			trace('TryPlaceObject Done in container ${objectToPlace.description}');
 
@@ -1252,7 +1252,7 @@ class WorldMap {
 		if (allowReplaceObject && obj.isPermanent() == false) {
 			world.setObjectHelper(x, y, objectToPlace);
 
-			Connection.SendMapUpdateToAllClosePlayers(x, y, objectToPlace.toArray());
+			Connection.SendMapUpdateToAllClosePlayers(x, y);
 
 			return obj;
 		}

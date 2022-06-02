@@ -468,9 +468,11 @@ class Connection {
 			trace(ex);
 	}
 
-	public static function SendMapUpdateToAllClosePlayers(tx:Int, ty:Int, obj:Array<Int>) {
+	//public static function SendMapUpdateToAllClosePlayers(tx:Int, ty:Int, obj:Array<Int>) {
+	public static function SendMapUpdateToAllClosePlayers(tx:Int, ty:Int) {
 		try {
 			var floorId = Server.server.map.getFloorId(tx, ty);
+			var obj = Server.server.map.getObjectId(tx, ty);
 
 			for (c in connections) {
 				// since player has relative coordinates, transform them for player
