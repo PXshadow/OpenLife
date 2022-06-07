@@ -71,7 +71,7 @@ class TransitionHelper {
 		if ((player.o_id[0] < 0) || player.heldPlayer != null) {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} cannot do use since holding a player! ${player.o_id[0]}');
 			helper.sendUpdateToClient();
-			// player.dropPlayer();
+			player.dropPlayer(player.x, player.y);
 			return false;
 		}
 
@@ -669,12 +669,9 @@ class TransitionHelper {
 		// var isHorseDropTrans = (transition.targetID == -1 && transition.newActorID == 0) && target.isPermanent() == false;
 		// TODO change
 		var isHorseDropTrans = transition.newActorID == 0 && player.heldObject.containedObjects.length > 0;
-		// TODO better set in transition itself if it is a switch transition?
-		var isHorsePickupTrans = (transition.actorID == 0 && transition.playerActor && target.containedObjects.length > 0);
-		// if( || (transition.targetID == -1 && transition.newActorID == 0))
-
-		// TODO workaround fix deactivate horse pickup
-		isHorsePickupTrans = false;
+		//var isHorsePickupTrans = (transition.actorID == 0 && transition.playerActor && target.containedObjects.length > 0);
+		// if( || (transition.targetID == -1 && transition.newActorID == 0))		
+		var isHorsePickupTrans = transition.isPickup;
 		
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} isHorseDropTrans: $isHorseDropTrans isHorsePickupTrans: $isHorsePickupTrans target.isPermanent: ${target.isPermanent()} targetRemains: ${transition.targetRemains}');

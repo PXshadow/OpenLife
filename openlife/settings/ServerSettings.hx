@@ -838,6 +838,20 @@ class ServerSettings {
 			}
 		}
 
+		// Fix pickup transitions
+		// 780 Escaped Horse-Drawn Cart
+		trans = transtions.getTransition(0, 780); 
+		trans.isPickup = true;
+		// 779 Hitched Horse-Drawn Cart
+		trans = transtions.getTransition(0, 779); 
+		trans.isPickup = true;
+		// 3161 Escaped Horse-Drawn Tire Cart
+		trans = transtions.getTransition(0, 3161); 
+		trans.isPickup = true;
+		// 3159 Hitched Horse-Drawn Tire Cart
+		trans = transtions.getTransition(0, 3159); 
+		trans.isPickup = true;
+
 		// Original: Riding Horse: 770 + -1 = 0 + 1421
 		trans = new TransitionData(770, 0, 0, 1421);
 		transtions.addTransition("PatchTransitions: ", trans);
