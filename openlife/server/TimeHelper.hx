@@ -1407,15 +1407,15 @@ class TimeHelper {
 		var ty = helper.ty;
 
 		var tileObject = Server.server.map.getObjectId(tx, ty);
-
-		// trace('Time: tileObject: $tileObject');
+		//var objData = ObjectData.getObjectData(tileObject[0]);
+		//trace('Time: tileObject: $tileObject ${objData.name}');
 
 		var transition = TransitionImporter.GetTransition(-1, tileObject[0], false, false);
 
 		if (transition == null) {
 			helper.timeToChange = 0;
 			WorldMap.world.setObjectHelperNull(tx, ty);
-
+			// FIX 4773 rabbit bones 
 			trace('WARNING: Time: no transtion found! Maybe object was moved? tile: $tileObject helper: ${helper.id} ${helper.description}');
 			return false;
 		}
@@ -1451,7 +1451,15 @@ class TimeHelper {
 
 		ScoreEntry.CreateScoreEntryIfGrave(helper);
 
-		if (helper.isLastUse()) transition = TransitionImporter.GetTransition(-1, helper.id, false, true);
+		if (helper.isLastUse()){
+			var tmpTransition = TransitionImporter.GetTransition(-1, helper.id, false, true);
+			if(tmpTransition != null) transition = tmpTransition;
+			else{
+				var objData = ObjectData.getObjectData(tileObject[0]);
+				var name = objData == null ? '' : objData.name;
+				trace('WARNING: TIME: $tileObject ${name} isLastUse transition not found!');
+			}
+		}
 
 		// can have different random outcomes like Blooming Squash Plant
 		helper.id = TransitionHelper.TransformTarget(transition.newTargetID);
