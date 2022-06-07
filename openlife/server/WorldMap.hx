@@ -677,6 +677,18 @@ class WorldMap {
 	}
 
 	private function fixObjectIds(desc:String) {
+
+		for(i in 0...this.objects.length){
+			var obj = objects[i];
+			var objData = ObjectData.getObjectData(obj[0]);
+
+			if(objData == null){
+				trace('WARNING no object data: ${obj[0]}');
+				objects[i] = [0];
+				continue;
+			} 
+		}
+		
 		for (helper in objectHelpers) {
 			if (helper == null) continue;
 			var obj = getObjectId(helper.tx, helper.ty);
@@ -752,11 +764,11 @@ class WorldMap {
 
 		if (ServerSettings.LoadPlayers) GlobalPlayerInstance.ReadPlayers(dir + "Players" + saveDataNumber + ".bin");
 
+		fixObjectIds('read');
+
 		this.originalObjectsCount = countObjects(this.originalObjects);
 
 		this.currentObjectsCount = countObjects(this.objects);
-
-		fixObjectIds('read');
 
 		ObjectHelper.InitObjectHelpersAfterRead();
 
