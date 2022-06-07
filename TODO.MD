@@ -541,6 +541,8 @@ tmux attach-session -t sessionname
 And then press "ctrl" c to stop the server.
 
 Helpful stuff:
+winscp is a nice graphical tool for windows
+
 Emacs for edditing files in terminal: (option -nw)
 emacs -nw filename
 rm -r SaveFiles // to remove a directory like if you want to delete the SaveFiles folder so that the server creates all new 

@@ -128,6 +128,10 @@ class TimeHelper {
 		}
 
 		for (ai in Connection.getAis()) {
+			if(ai.player == null){
+				Connection.removeAi(ai);
+				continue;
+			}
 			Macro.exception(DoTimeStuffForPlayer(ai.player, timePassedInSeconds));
 		}
 
@@ -200,6 +204,7 @@ class TimeHelper {
 	}
 
 	private static function DoTimeStuffForPlayer(player:GlobalPlayerInstance, timePassedInSeconds:Float):Bool {
+		if (player == null) return false;
 		if (player.deleted) return false; // maybe remove?
 
 		Macro.exception(player.connection.doTime(timePassedInSeconds));

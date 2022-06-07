@@ -170,7 +170,19 @@ class Connection {
 	}
 
 	public static function removeAi(ai:ServerAi) {
-		ais.remove(ai);
+		//ais.remove(ai);
+
+		// copies the array to be thread save
+		// other threads should meanwhile be able to iterate on the array
+		var newAis = [];
+
+		for (a in ais) {
+			if (ai == a) continue;
+
+			newAis.push(a);
+		}
+
+		ais = newAis;
 	}
 
 	public static function getLivingHumans():Array<GlobalPlayerInstance> {
@@ -493,7 +505,8 @@ class Connection {
 		} catch (ex)
 			trace(ex);
 	}
-
+	
+	@:nullSafety(Loose)
 	public static function SendAnimalMoveUpdateToAllClosePlayers(fromTx:Int, fromTy:Int, toTx:Int, toTy:Int, fromObj:Array<Int>, toObj:Array<Int>,
 			speed:Float) {
 		try {
