@@ -928,7 +928,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			var wildGarlics = [for (obj in WorldMap.world.wildGarlics) obj];
 			var rand = WorldMap.calculateRandomInt(4);
 			var world = WorldMap.world;
-			var startLocations = berryBushes;
+			var startLocations = berryBushes.length > 0 ? berryBushes : null;
 
 			trace('spawnAsEve: bananaPlants: ${bananaPlantsTmp.length} ==> ${bananaPlants.length} berryBushes: ${berryBushesTmp.length} ==> ${berryBushes.length}');
 			trace('spawnAsEve: wildCarrots: ${wildCarrotsTmp.length} ==> ${wildCarrots.length} cactuses: ${cactusesTmp.length} ==> ${cactuses.length}');
@@ -936,9 +936,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			// var startLocations = rand > 0.5 && bananaPlants.length > 10 ? bananaPlants : berryBushes;
 
-			if (rand == 1 && bananaPlants.length > 5) startLocations = bananaPlants; else if (rand == 2 && bananaPlants.length > 5)
-				startLocations = wildCarrots; else if (rand == 3
-				&& bananaPlants.length > 5) startLocations = cactuses; else if (rand == 4 && bananaPlants.length > 5) startLocations = wildGarlics;
+			if (rand == 1 && bananaPlants.length > 5) startLocations = bananaPlants;
+			else if (rand == 2 && wildCarrots.length > 5) startLocations = wildCarrots;
+			else if (rand == 3 && cactuses.length > 5) startLocations = cactuses;
+			else if (rand == 4 && wildGarlics.length > 5) startLocations = wildGarlics;
+
+			if(startLocations == null){
+				if(bananaPlants.length > 0){
+					startLocations = bananaPlants;
+					trace('spawnAsEve: rand: $rand no locations found use bananaPlants');
+				} else if(berryBushes.length > 0){
+					startLocations = berryBushes;
+					trace('spawnAsEve: rand: $rand no locations found use berryBushes');
+				} else{
+					// TODO use global spawn
+					throw new Exception('WARNING spawnAsEve: NO spawn location found!!!');
+				}
+			}
 
 			var bestLocation = null;
 			var bestLocationFitness = -99999999999999999999999;
