@@ -293,11 +293,11 @@ abstract class AiBase
 
 		Macro.exception(if(searchNewHome()) return);
 
-		Macro.exception(if(gatherStuff()) return);
-
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
 		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
+
+		Macro.exception(if(gatherStuff()) return);
 
 		// if there is nothing to do go home
 		Macro.exception(if(isMovingToHome(4)) return);
