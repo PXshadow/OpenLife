@@ -38,6 +38,10 @@ class TimeHelper {
 	private static var WinterDecayChance:Float = 0;
 	private static var SpringRegrowChance:Float = 0;
 
+	// Long Time Step Stuff
+	private static var LongTimePassedToDoAllTimeSteps:Float = 0;
+	private static var LongTimeTimeStepsSartedInTicks:Float = 0;
+
 	// Seaons
 	private static var TimeToNextSeasonInYears:Float = ServerSettings.SeasonDuration;
 	private static var TimeSeasonStartedInTicks:Float = 0;
@@ -1295,16 +1299,30 @@ class TimeHelper {
 		var startY = (worldMapTimeStep % timeParts) * partSizeY;
 		var endY = startY + partSizeY;
 
+		//trace('DOLONGTIME: $worldMapTimeStep from $timeParts');
+
+		if (worldMapTimeStep % timeParts == 0) {
+			if (LongTimeTimeStepsSartedInTicks > 0) LongTimePassedToDoAllTimeSteps = TimeHelper.CalculateTimeSinceTicksInSec(LongTimeTimeStepsSartedInTicks);
+
+			trace('DOLONGTIME: $tick started: $LongTimeTimeStepsSartedInTicks passed: ${LongTimePassedToDoAllTimeSteps}');
+
+			LongTimeTimeStepsSartedInTicks = tick;
+		}
+
+		var timePassedInYears = LongTimeTimeStepsSartedInTicks / 60;
+
 		// trace('startY: $startY endY: $endY worldMap.height: ${worldMap.height}');
 
 		for (y in startY...endY) {
 			for (x in 0...worldMap.width) {
+				DoSeasonalBiomeChanges(timePassedInYears, x, y); // TODO dont call in DecayObjects
 
 				var obj = worldMap.getObjectId(x, y)[0];
 				var floorId = worldMap.getFloorId(x,y);
 				var biomeId = worldMap.getBiomeId(x,y);
 				var biomeDecayFactor:Float = Biome.getBiomeDecayFactor(biomeId);
 
+				// decay floor
 				if(obj == 0 && floorId > 0){
 					var objData = ObjectData.getObjectData(floorId);
 					var decayChance = ServerSettings.FloorDecayChance * objData.decayFactor;
@@ -1368,6 +1386,67 @@ class TimeHelper {
 
 				trace('decay object: ${objData.description} $obj');
 			}
+		}
+	}
+
+	public static function DoSeasonalBiomeChanges(timePassedInYears:Float, tx:Int, ty:Int) {
+		var world = WorldMap.world;
+
+		//Season = Winter;
+		
+		if (Season == Seasons.Winter){
+			var biomeId = world.getBiomeId(tx,ty);
+
+			if(biomeId != SNOW && biomeId != BiomeTag.SNOWINGREY) return;
+			
+			var chance = timePassedInYears * ServerSettings.SeasonBiomeChangeChancePerYear * 4; // 4 because 4 directions
+			if (world.randomFloat() > chance) return;
+
+			var rand = world.randomInt(3);
+			var randX = tx;
+			var randY = ty;
+
+			if(rand == 0) randX = tx + 1;
+			else if(rand == 1) randX = tx - 1;
+			else if(rand == 2) randY = ty + 1;
+			else if(rand == 3) randY = ty - 1;
+
+			//var randX = tx - 1 + world.randomInt(2);
+			//var randY = ty - 1 + world.randomInt(2);
+			var biomeId = world.getBiomeId(randX,randY);
+			
+			if(biomeId != GREY && biomeId != YELLOW && biomeId != GREEN && biomeId != PASSABLERIVER) return;
+
+			world.setBiomeId(randX,randY, SNOW);
+
+			//trace('DoSeasonalBiomeChanges: $randX $randY');
+		}
+		if (Season == Seasons.Summer || Season == Seasons.Spring){
+			var biomeId = world.getBiomeId(tx,ty);
+
+			if(biomeId != SNOW) return;
+			
+			var chance = timePassedInYears * ServerSettings.SeasonBiomeChangeChancePerYear * 4; // 4 because 4 directions
+			chance *= ServerSettings.SeasonBiomeRestoreFactor;
+			if (world.randomFloat() > chance) return;
+
+			var rand = world.randomInt(3);
+			var randX = tx;
+			var randY = ty;
+			
+			if(rand == 0) randX = tx + 1;
+			else if(rand == 1) randX = tx - 1;
+			else if(rand == 2) randY = ty + 1;
+			else if(rand == 3) randY = ty - 1;
+			var biomeId = world.getBiomeId(randX,randY);
+			
+			if(biomeId == SNOW || biomeId == SNOWINGREY) return;
+
+			var originalBiome = world.getOriginalBiomeId(tx,ty);
+
+			world.setBiomeId(tx,ty, originalBiome);
+
+			//trace('DoSeasonalBiomeChanges: $randX $randY originalBiome: $originalBiome');
 		}
 	}
 

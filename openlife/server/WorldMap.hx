@@ -300,6 +300,10 @@ class WorldMap {
 	public function getBiomeId(x:Int, y:Int):Int {
 		return biomes[index(x, y)];
 	}
+	
+	public function getOriginalBiomeId(x:Int, y:Int):Int {
+		return originalBiomes[index(x, y)];
+	}
 
 	public function setBiomeId(x:Int, y:Int, biomeId:Int) {
 		return biomes[index(x, y)] = biomeId;
