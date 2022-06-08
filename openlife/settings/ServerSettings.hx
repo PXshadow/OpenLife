@@ -882,6 +882,7 @@ class ServerSettings {
 		// let Tule Stumps (122) grow back
 		trans = transtions.getTransition(-1, 122);
 		trans.newTargetID = 121; // 121 = Tule Reeds
+		trans.autoDecaySeconds = -6;
 		trans.traceTransition("PatchTransitions: ");
 
 		// 141 Canada Goose Pond
