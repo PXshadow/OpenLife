@@ -236,6 +236,8 @@ class TimeHelper {
 	
 	private static function DisplayStuff(player:GlobalPlayerInstance) {
 		if (player.isHuman() == false) return;
+		if(player.account.displayClosePlayers) DisplayClosePlayers(player);
+		if(player.age < 3) return;
 
 		// display seasons
 		if(player.displaySeason && player.isSuperHot()){
@@ -269,9 +271,7 @@ class TimeHelper {
 
 		GlobalPlayerInstance.DisplayBestFood(player);
 
-		if(player.hits > 1) AiHelper.DisplayCloseDeadlyAnimals(player, 10);
-
-		if(player.account.displayClosePlayers) DisplayClosePlayers(player);
+		if(player.hits > 1) AiHelper.DisplayCloseDeadlyAnimals(player, 10);	
 	}
 
 	private static function DisplayClosePlayers(player:GlobalPlayerInstance){
