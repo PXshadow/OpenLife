@@ -833,6 +833,10 @@ class ServerSettings {
 		trans = new TransitionData(-1, 422, 0, 566); // 422 Dead Wolf --> TODO 566 Mouflon Bones
 		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 423, 0, 566); // 423 Skinned Wolf --> TODO 566 Mouflon Bones
+		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
 		
 		trans = transtions.getTransition(-1, 891); // 891 Cracking Adobe Wall
 		trans.autoDecaySeconds = -6;
