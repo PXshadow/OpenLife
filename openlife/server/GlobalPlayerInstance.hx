@@ -3905,7 +3905,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			Connection.SendUpdateToAllClosePlayers(player);
 		} else if (text.indexOf('!HEAL') != -1) {
-			player.hits -= 5;
+			player.hits -= 10;
 			if (player.hits < 0) player.hits = 0;
 
 			if (player.heldObject.isWound()) player.heldObject.timeToChange = 1;
@@ -3962,7 +3962,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.connection.sendMapChunk(player.x, player.y);
 			return true;
 		} else if (text.indexOf('!YUM') != -1) {
-			player.food_store += 5;
+			player.food_store += 10;
 			player.sendFoodUpdate(false);
 		} else if (text.indexOf('!MEH') != -1) {
 			player.food_store -= 5;
