@@ -1059,6 +1059,10 @@ class TimeHelper {
 					y)] = worldMap.getObjectHelper(x, y); // Wild Garlic ==> possible spawn location
 				
 				// get possible teleport locations
+				// 237 Adobe Oven // 753 Adobe Rubble
+				if(obj[0] == 237 || obj[0] == 753) WorldMap.world.ovens[WorldMap.world.index(x,
+					y)] = worldMap.getObjectHelper(x, y);
+
 				var floorId = worldMap.getFloorId(x,y);
 				//1596 = Stone Road
 				if(floorId == 1596) WorldMap.world.roads[WorldMap.world.index(x,

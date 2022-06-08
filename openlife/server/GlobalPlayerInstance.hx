@@ -4042,6 +4042,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				return true;
 			}
+		} else if (text.indexOf('!JV') != -1 || text.indexOf('!JOVEN') != -1) {
+
+			var ovens = [for (obj in WorldMap.world.ovens) obj];
+			// clear ovens, so that old ones go away
+			WorldMap.world.ovens = new Map<Int, ObjectHelper>();
+
+			if (ovens.length > 0) {
+				var oven = ovens[WorldMap.calculateRandomInt(ovens.length - 1)];
+				player.x = WorldMap.world.transformX(player, oven.tx);
+				player.y = WorldMap.world.transformY(player, oven.ty);
+
+				player.forced = true;
+				Connection.SendUpdateToAllClosePlayers(player);
+				player.forced = false;
+
+				player.connection.sendMapChunk(player.x, player.y);
+
+				return true;
+			}
 		} else if (text.indexOf('!SENDPU') != -1 || text == '!PU') {
 			player.done_moving_seqNum += 1;
 			Connection.SendUpdateToAllClosePlayers(player);

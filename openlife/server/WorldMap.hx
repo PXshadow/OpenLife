@@ -67,6 +67,7 @@ class WorldMap {
 
 	// possible teleport locations
 	public var roads = new Map<Int, ObjectHelper>();
+	public var ovens = new Map<Int, ObjectHelper>();
 
 	public function new() {}
 
