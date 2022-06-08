@@ -3935,8 +3935,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				}
 		}*/ else if (text.indexOf('!CREATEALL') != -1) {
 			Server.server.map.generateExtraDebugStuff(player.tx, player.ty);
-		} else if (text.indexOf('!CREATE') != -1) // "create xxx" with xxx = id
-		{
+		} else if (text.indexOf('!CREATE') != -1) { // "create xxx" with xxx = id
 			trace('Create debug object');
 
 			var id = findObjectByCommand(text);
@@ -3956,6 +3955,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			trace('Close connection');
 
 			player.connection.close();
+		} else if (text.indexOf('!SNOW') != -1) {
+			player.say('SNOW', true);
+			WorldMap.world.setBiomeId(player.tx, player.ty, BiomeTag.SNOW);
+			player.connection.sendMapChunk(player.x, player.y);
+			return true;
 		} else if (text.indexOf('!YUM') != -1) {
 			player.food_store += 5;
 			player.sendFoodUpdate(false);
