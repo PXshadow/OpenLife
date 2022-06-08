@@ -1127,7 +1127,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (foodCount > ServerSettings.MaxHasEatenForNextGeneration) foodCount = ServerSettings.MaxHasEatenForNextGeneration;
 			child.hasEatenMap[food] = foodCount;
 
-			trace('Inherit from: ${fromPlayer.name} GP?: $inheritFromGrandparents food: ${GetName(food)} value: $foodCount');
+			trace('Inherit from: ${fromPlayer.name} GP?: $inheritFromGrandparents food: ${GetName(food)} value: ${Math.round(foodCount*10)/10}');
 		}
 	}
 
@@ -2179,7 +2179,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (ServerSettings.DebugEating) trace('FOOD: food_store_max: ${playerTo.food_store_max} food_store: ${playerTo.food_store} foodValue: ${foodValue}');
 
 		if (foodValue < 1) {
-			trace('cannot eat this stuff no food value!!! ${heldObjData.description}');
+			//trace('cannot eat this stuff no food value!!! ${heldObjData.description}');
 			return false;
 		}
 
