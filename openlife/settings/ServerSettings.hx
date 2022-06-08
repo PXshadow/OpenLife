@@ -360,7 +360,9 @@ class ServerSettings {
 		ObjectData.getObjectData(1598).decayFactor = -1; // 1598 Iron Ore Pile
 		ObjectData.getObjectData(1837).decayFactor = -1; // 1837 Stack of Steel Ingots
 		
-
+		// TODO other walls
+		ObjectData.getObjectData(1885).decaysToObj = 155; // 1885 Plaster Wall (auto horizontal) ==> 155 Adobe Wall
+		
 		// TODO set water right and add further wells like deep well
 		ObjectData.getObjectData(662).decayFactor = 0.1; // 662 Shallow Well
 		ObjectData.getObjectData(662).decaysToObj = 3030; // 662 Shallow Well ==> 3030 Natural Spring
