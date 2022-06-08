@@ -291,6 +291,8 @@ abstract class AiBase
 
 		Macro.exception(if(craftClothing()) return);
 
+		Macro.exception(if(searchNewHome()) return);
+
 		Macro.exception(if(gatherStuff()) return);
 
 		var cravingId = myPlayer.getCraving();
@@ -1416,12 +1418,42 @@ abstract class AiBase
 		var randY = WorldMap.calculateRandomInt(2 * dist) - dist;
 		var done = myPlayer.gotoAdv(myPlayer.home.tx + randX, myPlayer.home.ty + randY);
 	
-		if(ServerSettings.DebugAi) myPlayer.say('going home');
+		if(ServerSettings.DebugAi) myPlayer.say('going home $done');
 
 		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} dist: $quadDistance goto home $done');
 
 		return done;
+	}
+
+	private function searchNewHome() : Bool {
+		var world = WorldMap.world;
+		var home = myPlayer.home;
+		var obj = home == null ? [0] : world.getObjectId(home.tx, home.ty);
+		
+		// TODO check loved biome
+		// a home is where a oven is // TODO rebuild Oven if Rubble
+		if(ObjectData.IsOven(obj[0]) || obj[0] == 753) return false; // 237 Adobe Oven // 753 Adobe Rubble
+
+		var bestHome = null;
+		var bestDistance = Math.pow(80,2);
+		var ovens = [for (obj in WorldMap.world.ovens) obj];
+
+		for(oven in ovens){
+			if(ObjectData.IsOven(oven.id) == false) continue;
+			var quadDistance = myPlayer.CalculateDistanceToObject(oven);
+			if(quadDistance >= bestDistance) continue;
+
+			bestDistance = quadDistance;
+			bestHome = oven;
+		}
+
+		if(bestHome != null){
+			myPlayer.home = bestHome;
+			trace('AAI: ${myPlayer.name + myPlayer.id} searchNewHome dist: $bestDistance ${bestHome != null}');
+		}
+
+		return false;
 	}
 
 	private function isMovingToPlayer(maxDistance = 3, followHuman:Bool = true):Bool {

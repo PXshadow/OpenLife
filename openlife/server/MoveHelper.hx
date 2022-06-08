@@ -410,6 +410,8 @@ class MoveHelper {
 
 		if (player.isBlocked(tx, ty) == false) return false;
 
+		// trace('JumpToNonBlocked');
+
 		for (i in 1...5) {
 			var xo = 0;
 			var yo = 0;
