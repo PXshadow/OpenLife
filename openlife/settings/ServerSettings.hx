@@ -809,6 +809,14 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// More decay transitions
+		trans = new TransitionData(-1, 798, 0, 1365); // 798 Arrow Wound --> 1365 Embedded Arrowhead Wound
+		trans.autoDecaySeconds = -2;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 1365, 0, 0); // 1365 Embedded Arrowhead Wound --> 0
+		trans.autoDecaySeconds = -2;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		trans = new TransitionData(-1, 421, 0, 422); // 421 Dead Wolf with Arrow --> 422 Dead Wolf
 		trans.autoDecaySeconds = -12;
 		transtions.addTransition("PatchTransitions: ", trans);
