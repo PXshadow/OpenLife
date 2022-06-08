@@ -1187,14 +1187,9 @@ class TimeHelper {
 
 				if (SpringRegrowChance * objData.springRegrowFactor * factor < WorldMap.calculateRandomFloat()) return;
 
-				WorldMap.world.mutex.acquire(); // TODO try catch
-
-				objHelper.numberOfUses += 1;
-
-				objHelper.TransformToDummy();
-				WorldMap.world.setObjectHelper(x, y, objHelper);
-
-				WorldMap.world.mutex.release(); // TODO try catch
+				WorldMap.world.mutex.acquire(); 
+				Macro.exception(IncreaseNumberOfUses(objHelper));
+				WorldMap.world.mutex.release();
 
 				Connection.SendMapUpdateToAllClosePlayers(x, y);
 
@@ -1224,6 +1219,12 @@ class TimeHelper {
 					trace('SEASON REGROW: ${objData.description} ${WorldMap.world.currentObjectsCount[spawnAs]} original: ${WorldMap.world.originalObjectsCount[spawnAs]}');
 			}
 		}
+	}
+
+	private static function IncreaseNumberOfUses(objHelper:ObjectHelper){
+		objHelper.numberOfUses += 1;
+		objHelper.TransformToDummy();
+		WorldMap.world.setObjectHelper(objHelper.tx, objHelper.ty, objHelper);
 	}
 
 	public static function RespawnObjects() {
