@@ -3418,7 +3418,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			}
 		}
 
-		var orgDamage = fromObj.objectData.damage * ServerSettings.WeaponDamageFactor;
+		var orgDamage = fromObj.objectData.damage;
+		orgDamage =  attacker == null ? orgDamage * ServerSettings.AnimalDamageFactor : orgDamage * ServerSettings.WeaponDamageFactor;
 		var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());
 
 		var protection = targetPlayer.calculateClothingInsulation();

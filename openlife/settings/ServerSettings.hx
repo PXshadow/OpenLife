@@ -263,6 +263,7 @@ class ServerSettings {
 	public static var MaleDamageFactor:Float = 1.2;
 	public static var WeaponCoolDownFactorIfWounding:Float = 0.4;
 	// public static var AnimalCoolDownFactorIfWounding:Float = 0.2;
+	public static var AnimalDamageFactor:Float = 1.5;
 	public static var WeaponDamageFactor:Float = 1;
 	public static var WoundDamageFactor:Float = 1;
 	public static var CursedDamageFactor:Float = 0.5;
