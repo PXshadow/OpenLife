@@ -1596,6 +1596,7 @@ abstract class AiBase
 	}
 
 	private function isPickingupCloths() {
+		if(myPlayer.age < ServerSettings.MinAgeToEat) return false;
 
 		var switchCloths = shouldSwitchCloth(myPlayer.heldObject);
 		

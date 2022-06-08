@@ -1959,6 +1959,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// trace('self: ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
 
 		if (this.o_id[0] < 0) return false; // is holding player
+		//if (this.age < ServerSettings.MinAgeToEat) return false;
 
 		if (clothingSlot < 0) {
 			if (doEating(this, this)) return true;
