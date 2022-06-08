@@ -3940,6 +3940,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			trace('Create debug object');
 
 			var id = findObjectByCommand(text);
+			var objData = ObjectData.getObjectData(id);
+
+			if(objData == null){
+				player.say('$id is not an object', true);
+				return false;
+			}
 
 			if (id < 0) return false;
 
