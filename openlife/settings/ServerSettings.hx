@@ -808,6 +808,19 @@ class ServerSettings {
 		trans.newTargetID = 1366; // Extracted Arrowhead Wound --> Empty Arrow Wound
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// More decay transitions
+		trans = new TransitionData(-1, 421, 0, 422); // 421 Dead Wolf with Arrow --> 422 Dead Wolf
+		trans.autoDecaySeconds = -12;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 565, 0, 566); // 565 Butchered Mouflon --> TODO 566 Mouflon Bones
+		trans.autoDecaySeconds = -2;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 422, 0, 566); // 422 Dead Wolf --> TODO 566 Mouflon Bones
+		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		for (trans in TransitionImporter.transitionImporter.transitions) {
 			if (trans.actorID < -1) {
 				// trans.traceTransition("PatchTransitions: ", true);
