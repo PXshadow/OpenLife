@@ -1508,4 +1508,16 @@ class ObjectData extends LineReader {
 
 		return objClothingSlot;
 	}
+
+	public function isOven(objId:Int) {
+		return IsOven(this.id);
+	}
+
+	public static function IsOven(objId:Int) {
+		if(objId == 237) return true; // 237 Adobe Oven 
+		if(objId == 247) return true; // 247 Wood-filled Adobe Oven 
+		if(objId == 249) return true; // 249 Burning Adobe Oven
+		if(objId == 250) return true; // 250 Hot Adobe Oven 
+		return false;
+	}
 }

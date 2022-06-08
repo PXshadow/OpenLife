@@ -995,6 +995,22 @@ class TimeHelper {
 
 		// trace('startY: $startY endY: $endY worldMap.height: ${worldMap.height}');
 
+		if(tick % 2000 == 0){
+			// clear ovens, so that old ones go away
+			var ovens = [for (obj in WorldMap.world.ovens) obj];
+			var newovens = new Map<Int, ObjectHelper>();
+			
+			for(oven in ovens){
+				// 237 Adobe Oven // 753 Adobe Rubble
+				if(ObjectData.IsOven(oven.id) || oven.id == 753){
+					var index = WorldMap.world.index(oven.tx, oven.ty);
+					newovens[index] = oven;
+				}
+			}
+
+			WorldMap.world.ovens = newovens;
+		}
+
 		if (worldMapTimeStep % timeParts == 0) {
 			if (TimeTimeStepsSartedInTicks > 0) TimePassedToDoAllTimeSteps = TimeHelper.CalculateTimeSinceTicksInSec(TimeTimeStepsSartedInTicks);
 
@@ -1060,7 +1076,7 @@ class TimeHelper {
 				
 				// get possible teleport locations
 				// 237 Adobe Oven // 753 Adobe Rubble
-				if(obj[0] == 237 || obj[0] == 753) WorldMap.world.ovens[WorldMap.world.index(x,
+				if(ObjectData.IsOven(obj[0]) || obj[0] == 753) WorldMap.world.ovens[WorldMap.world.index(x,
 					y)] = worldMap.getObjectHelper(x, y);
 
 				var floorId = worldMap.getFloorId(x,y);

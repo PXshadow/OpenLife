@@ -4046,7 +4046,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			var ovens = [for (obj in WorldMap.world.ovens) obj];
 			// clear ovens, so that old ones go away
-			WorldMap.world.ovens = new Map<Int, ObjectHelper>();
+			// WorldMap.world.ovens = new Map<Int, ObjectHelper>();
 
 			if (ovens.length > 0) {
 				var oven = ovens[WorldMap.calculateRandomInt(ovens.length - 1)];
