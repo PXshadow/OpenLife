@@ -1203,13 +1203,9 @@ class TimeHelper {
 
 			var spawnAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objID;
 
-			WorldMap.world.mutex.acquire(); // TODO try catch
-
-			var done = SpawnObject(x, y, spawnAs);
-
-			if (hidden && done) WorldMap.world.setHiddenObjectId(x, y, [0]); // What was hidden comes back
-
-			WorldMap.world.mutex.release(); // TODO try catch
+			WorldMap.world.mutex.acquire();
+			Macro.exception(RegrowObj(x,y, spawnAs, hidden));
+			WorldMap.world.mutex.release();
 
 			if (ServerSettings.DebugSeason) {
 				var mod = WorldMap.world.currentObjectsCount[spawnAs] < 1000 ? 100 : 1000;
@@ -1225,6 +1221,12 @@ class TimeHelper {
 		objHelper.numberOfUses += 1;
 		objHelper.TransformToDummy();
 		WorldMap.world.setObjectHelper(objHelper.tx, objHelper.ty, objHelper);
+	}
+
+	private static function RegrowObj(tx:Int, ty:Int, spawnAs:Int, hidden:Bool) : Bool{
+		var done = SpawnObject(tx, ty, spawnAs);
+		if (hidden && done) WorldMap.world.setHiddenObjectId(tx, ty, [0]); // What was hidden comes back
+		return done;
 	}
 
 	public static function RespawnObjects() {
