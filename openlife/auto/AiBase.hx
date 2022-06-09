@@ -164,7 +164,7 @@ abstract class AiBase
         //addTask(140); // Tied Skewer
 
         addTask(148); // Arrow
-		addTask(292); // 292 basket
+		//addTask(292); // 292 basket
         //addTask(149); // Headless Arrow
         //addTask(146); // Fletching
         //addTask(151); // Jew Bow 
@@ -526,8 +526,11 @@ abstract class AiBase
 		if (myPlayer.heldObject.id == 0) return;
 		if (myPlayer.heldObject.isWound()) return;
 		if (myPlayer.heldObject == myPlayer.hiddenWound) return; // you cannot drop a smal wound
-		if (myPlayer.heldObject.id == 2144) dropOnStart = false; // Banana Peel
-
+		if (myPlayer.heldObject.id == 2144) dropOnStart = false; // 2144 Banana Peel
+		else if (myPlayer.heldObject.id == 34) dropOnStart = false; // 34 Sharp Stone
+		else if (myPlayer.heldObject.id == 135) dropOnStart = false; // 135 Flint Chip
+		else if (myPlayer.heldObject.id == 57) dropOnStart = false; // 57 Milkweed Stalk		
+		
 		if (dropOnStart && itemToCraft.startLocation != null) {
 			var distance = myPlayer.CalculateDistanceToObject(itemToCraft.startLocation);
 
