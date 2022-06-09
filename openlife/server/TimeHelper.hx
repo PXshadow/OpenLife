@@ -128,7 +128,8 @@ class TimeHelper {
 			if (TimeHelper.tick % 90 == 0) Macro.exception(c.sendToMeAllClosePlayers(false, false));
 			if (TimeHelper.tick % 20 == 0) {
 				// send still alive PU as workaround to unstuck stuck client
-				if(c.player.isMoving() == false) c.send(PLAYER_UPDATE, [c.player.toData()]);
+				//if(c.player.isMoving() == false) c.send(PLAYER_UPDATE, [c.player.toData()]);
+				c.send(PLAYER_UPDATE, [c.player.toData()]);
 			}
 		}
 
