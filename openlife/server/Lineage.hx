@@ -201,7 +201,8 @@ class Lineage {
 	}
 
 	public function getFullName(withUnderscore:Bool = false, ignoreFirstName = false) {
-		var fullName = ignoreFirstName ? '${this.familyName} ${this.className}' : '${this.name} ${this.familyName} ${this.className}';
+		var isAiText = account.isAi ? ServerSettings.AiNameEnding : '';
+		var fullName = ignoreFirstName ? '${this.familyName}$isAiText ${this.className}' : '${this.name} ${this.familyName}$isAiText ${this.className}';
 		//var fullName = ignoreFirstName ? '${this.name} ${this.familyName} ${this.className}' : '${this.name} ${this.familyName} ${this.className}';
 
 		if (withUnderscore) return StringTools.replace(fullName, ' ', '_');
