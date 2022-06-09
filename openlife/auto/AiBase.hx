@@ -249,7 +249,6 @@ abstract class AiBase
 			return;
 		}); // go close to mother and wait for mother to feed
 		Macro.exception(if (isEating()) return);
-		Macro.exception(if (isFeedingChild()) return);
 
 		// give use high prio if close so that for example a stone can be droped on a pile before food piclup
 		if(useTarget != null){
@@ -263,6 +262,8 @@ abstract class AiBase
 			}
 		}
 
+		// should be below isUsingItem since a use can be used to drop an hold item on a pile to pickup a baby
+		Macro.exception(if (isFeedingChild()) return); 
 		Macro.exception(if (isPickingupFood()) return);
 		Macro.exception(if (isFeedingPlayerInNeed()) return);
 		Macro.exception(if (isStayingCloseToChild()) return);
