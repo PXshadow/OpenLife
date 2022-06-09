@@ -117,10 +117,10 @@ class MoveHelper {
 		// road reduces speed mali of bad biome
 		if ((onRoad || isOnBoat) && biomeSpeed < 0.99) biomeSpeed = 1; // biomeSpeed = Math.sqrt(biomeSpeed);
 		if(biomeSpeed < ServerSettings.MinBiomeSpeedFactor) biomeSpeed = ServerSettings.MinBiomeSpeedFactor;
-		if(p.displayRoadHint && biomeSpeed < 0.99 && p.age > 5 && map.getBiomeId(tx, ty) == BiomeTag.SWAMP){			 
-			p.displayRoadHint = false;			
-			p.say('To be faster i could build a road!', true);	
-		} 
+		//if(p.displayRoadHint && biomeSpeed < 0.99 && p.age > 5 && map.getBiomeId(tx, ty) == BiomeTag.SWAMP){			 
+		//	p.displayRoadHint = false;			
+		//	p.say('To be faster i could build a road!', true);	
+		//} 
 
 		speed *= biomeSpeed;
 
