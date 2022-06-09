@@ -237,6 +237,10 @@ abstract class AiBase
 		Macro.exception(if (didNotReachFood < 5) if (escape(animal, deadlyPlayer)) return);
 		//Macro.exception(if (didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat());
 		Macro.exception(checkIsHungryAndEat());
+		Macro.exception(if (myPlayer.age < ServerSettings.MinAgeToEat && isHungry) {
+			isMovingToPlayer(2);
+			return;
+		}); // go close to mother and wait for mother to feed
 		Macro.exception(if (isChildAndHasMother()) {
 			if (isMovingToPlayer(4)) return;
 		});
@@ -246,10 +250,6 @@ abstract class AiBase
 		}); // do nothing then looking for player
 
 		Macro.exception(if (isDropingItem()) return);
-		Macro.exception(if (myPlayer.age < ServerSettings.MinAgeToEat && isHungry) {
-			isMovingToPlayer(2);
-			return;
-		}); // go close to mother and wait for mother to feed
 		Macro.exception(if (isEating()) return);
 
 		// give use high prio if close so that for example a stone can be droped on a pile before food piclup
