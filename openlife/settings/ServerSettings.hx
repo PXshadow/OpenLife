@@ -289,7 +289,7 @@ class ServerSettings {
 	public static var AiMaxSearchIncrement:Int = 20; // 16
 	public static var AiIgnoreTimeTransitionsLongerThen:Int = 30;
 	public static var AgingFactorHumanBornToAi:Float = 3; // 3
-	public static var AgingFactorAiBornToHuman:Float = 2;
+	public static var AgingFactorAiBornToHuman:Float = 1.5;
 
 	// Ai speed
 	public static var AISpeedFactorSerf:Float = 0.6;
