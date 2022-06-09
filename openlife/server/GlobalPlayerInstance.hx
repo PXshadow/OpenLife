@@ -3664,35 +3664,34 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		They are dropped with the normal DROP action.
 		NOTE the alternate call for BABY with extra id parameter.
 		this specifies a specific person to pick up, if more than one is
-		close to the target tile.**/
-	public function doBaby(x:Int, y:Int, playerId:Int):Bool // playerId = -1 if no specific player is slected
-	{
-		var targetPlayer = getPlayerAt(this.gx + x, this.gy + y, playerId);
-
-		// if (targetPlayer != null) trace('doBaby($x, $y playerId: $playerId ${this.gx + x},${this.gy + y} == ${targetPlayer.tx}, ${targetPlayer.ty})');
-
-		AllPlayerMutex.acquire();
-
+		close to the target tile.**/		
+	public function doBaby(x:Int, y:Int, playerId:Int):Bool  {		
+		// playerId = -1 if no specific player is slected
+		
 		var done = false;
-		Macro.exception(done = doBabyHelper(x, y, targetPlayer));
+		AllPlayerMutex.acquire();
+		Macro.exception(done = doBabyHelper(x, y, playerId));
+		AllPlayerMutex.release();
+		
 		// send always PU so that player wont get stuck
 		if (done == false) {
 			this.connection.send(PLAYER_UPDATE, [this.toData()]);
 			this.connection.send(FRAME);
 		}
 
-		AllPlayerMutex.release();
-
 		return done;
 	}
 
-	public function doBabyHelper(x:Int, y:Int, targetPlayer:GlobalPlayerInstance):Bool {
+	public function doBabyHelper(x:Int, y:Int, playerId:Int):Bool {
+		var targetPlayer = getPlayerAt(this.gx + x, this.gy + y, playerId);
+		// if (targetPlayer != null) trace('doBaby($x, $y playerId: $playerId ${this.gx + x},${this.gy + y} == ${targetPlayer.tx}, ${targetPlayer.ty})');
+
 		if (targetPlayer == null) {
 			trace('doBaby: could not find target player!');
 			return false;
 		}
 
-		if (isCloseToPlayer(targetPlayer) == false) {
+		if (isCloseToPlayerUseExact(targetPlayer, 1.5) == false) {
 			trace('doBaby: x,y is too far away!');
 			return false;
 		}
