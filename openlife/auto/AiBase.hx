@@ -361,6 +361,9 @@ abstract class AiBase
 		// TODO consider heat / cold
 		// TODO more advanced clothing
 		// TODO try to look like the one you follow
+		// TODO consider minuseage in crafting itself
+		var objData = ObjectData.getObjectData(152); // Bow and Arrow
+
 		var color = myPlayer.getColor();
 		var isWhiteOrGinger = (color == Ginger || color == White);
 
@@ -372,7 +375,7 @@ abstract class AiBase
 
 		// Chest clothing
 		// 564 Mouflon Hide ==> White / Chest
-		if(color == White && craftClothIfNeeded(564)) return true;
+		if(color == White && myPlayer.age >= objData.minPickupAge && craftClothIfNeeded(564)) return true;
 		// 712 Sealskin Coat ==> Ginger
 		if(color == Ginger && craftClothIfNeeded(712)) return true;
 		// 711 Seal Skin ==> Ginger
@@ -380,9 +383,7 @@ abstract class AiBase
 		// 202 Rabbit Fur Coat / Chest
 		if(isWhiteOrGinger && craftClothIfNeeded(202)) return true;
 		// 201 Rabbit Fur Shawl / Chest
-		if(isWhiteOrGinger && craftClothIfNeeded(201)) return true;
-
-		var objData = ObjectData.getObjectData(152); // Bow and Arrow
+		if(isWhiteOrGinger && craftClothIfNeeded(201)) return true;	
 		
 		// Hat cloting
 		// 426 Wolf Hat ==> White
