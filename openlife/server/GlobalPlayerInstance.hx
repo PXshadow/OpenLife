@@ -3979,8 +3979,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		} else if (text.indexOf('!CLOSE') != -1) {
 			trace('Close connection');
 			player.connection.close();
-		} else if (text.startsWith('!DB')) {
+		} else if (text == '!DB') {
 			player.say('isMoving ${player.isMoving()}', true);
+			return true;
+		} else if (text == '!DBL') {
+			var leader = player.getTopLeader();
+			var leaderText = leader == null ? 'NULL' : 'deleted ${leader.isDeleted()}';
+			player.say('leader $leaderText', true);
 			return true;
 		} else if (text.indexOf('!OBIOME') != -1) {
 			var biomeId = WorldMap.world.getOriginalBiomeId(player.tx, player.ty);
