@@ -295,8 +295,8 @@ class ServerSettings {
 	public static var AiNameEnding:String = 'X'; // A name ending / set '' if none
 
 	// Ai speed
-	public static var AISpeedFactorSerf:Float = 0.6;
-	public static var AISpeedFactorCommoner:Float = 0.8;
+	public static var AISpeedFactorSerf:Float = 0.7;
+	public static var AISpeedFactorCommoner:Float = 0.85;
 	public static var AISpeedFactorNoble:Float = 1;
 
 	// Ai food use

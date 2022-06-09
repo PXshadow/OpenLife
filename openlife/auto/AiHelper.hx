@@ -201,8 +201,8 @@ class AiHelper {
 		var bestDistance = 999999.0;
 		var bestFoodValue = 0.1;
 		var bestFoods = new Array<ObjectHelper>();
-		var isStarving = player.food_store < 2;
-		var starvingFactor:Float = isStarving ? 4 : 25;
+		var isStarving = player.food_store < 3;
+		var starvingFactor:Float = isStarving ? 4 : 16;
 
 		if (player.food_store < 0.5) starvingFactor = 2;
 		if (player.food_store < -1) starvingFactor = 1.5;
@@ -243,8 +243,9 @@ class AiHelper {
 
 				if (isYum) foodValue *= starvingFactor;
 				if (isSuperMeh) foodValue = originalFoodValue / starvingFactor;
-				if (isSuperMeh && player.food_store > 1) foodValue = 0;
-				if (foodId == player.getCraving()) foodValue *= Math.pow(starvingFactor, 2);
+				if (isSuperMeh && player.food_store > 3) foodValue = 0;
+				if (foodId == player.getCraving()) foodValue *= starvingFactor;
+				//if (foodId == player.getCraving()) foodValue *= Math.pow(starvingFactor, 2);
 
 				if (quadDistance < 1) quadDistance = 1;
 				// distance = Math.sqrt(distance);
