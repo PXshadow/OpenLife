@@ -3978,8 +3978,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			Connection.SendMapUpdateToAllClosePlayers(player.tx, player.ty);
 		} else if (text.indexOf('!CLOSE') != -1) {
 			trace('Close connection');
-
 			player.connection.close();
+		} else if (text.startsWith('!DB')) {
+			player.say('isMoving ${player.isMoving()}', true);
+			return true;
 		} else if (text.indexOf('!OBIOME') != -1) {
 			var biomeId = WorldMap.world.getOriginalBiomeId(player.tx, player.ty);
 			player.say('OBIOME $biomeId', true);
