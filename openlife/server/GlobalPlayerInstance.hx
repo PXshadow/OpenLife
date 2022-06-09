@@ -1502,6 +1502,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return this.moveHelper.isCloseUseExact(targetTx, targetTy, distance);
 	}
 
+	public function calculateExactQuadDistance(targetTx:Float, targetTy:Float):Float {
+		return this.moveHelper.calculateExactQuadDistance(targetTx, targetTy);
+	}
+
 	public function getPackpack():ObjectHelper {
 		return this.clothingObjects[5];
 	}
@@ -2066,24 +2070,34 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return GetPlayerAt(tx, ty, playerId);
 	}
 
-	public static function GetPlayerAt(tx:Int, ty:Int, playerId:Int):GlobalPlayerInstance {
+	public static function GetPlayerAt(tx:Int, ty:Int, playerId:Int, maxDist:Float = 1.5):GlobalPlayerInstance {
 		// trace('GetPlayerAt $tx $ty $playerId');
+		var bestDistance = Math.pow(maxDist, 2); 
+		var bestPlayer = null;
+
+		//trace('GetPlayerAt $tx $ty playerId: $playerId');
 
 		for (player in GlobalPlayerInstance.AllPlayers) {
 			if (player.deleted) continue;
-
 			if (player.p_id == playerId) return player;
+			if (playerId > 0) continue;
 
-			if (playerId <= 0) {
-				// TODO test
-				var rx = WorldMap.world.transformX(player, tx);
-				var ry = WorldMap.world.transformY(player, ty);
+			var quadDist = player.calculateExactQuadDistance(tx,ty);
 
-				if (player.x == rx && player.y == ry) return player;
-			}
+			if(quadDist > bestDistance) continue;
+
+			bestDistance = quadDist;
+			bestPlayer = player;
+			// TODO test
+			//var rx = WorldMap.world.transformX(player, tx);
+			//var ry = WorldMap.world.transformY(player, ty);
+			//if (player.x == rx && player.y == ry) return player;
+			
 		}
 
-		return null;
+		trace('GetPlayerAt ${bestPlayer != null} bestDistance: $bestDistance');
+
+		return bestPlayer;
 	}
 
 	public function getClosestPlayer(maxDistance:Int, onlyHuman:Bool = false):GlobalPlayerInstance {
