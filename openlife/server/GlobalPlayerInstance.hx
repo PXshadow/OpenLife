@@ -1599,6 +1599,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			text = text.toUpperCase();
 		}
 
+		if (StringTools.contains(text, '?SEASON')){
+			text = TimeHelper.SeasonText.toUpperCase();
+			toSelf = true;
+		}
+
+		if (StringTools.contains(text, 'SEASON?')){
+			text = TimeHelper.SeasonText.toUpperCase();
+			//toSelf = true;
+		}
+
 		if (toSelf) {
 			text = '?{$text}?';
 			this.connection.send(PLAYER_SAYS, ['$id/$curse $text']);

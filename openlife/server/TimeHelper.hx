@@ -49,6 +49,7 @@ class TimeHelper {
 	private static var SeasonNames = ["Spring", "Summer", "Autumn", "Winter"];
 	private static var SeasonTemperatureImpact:Float = 0;
 	private static var SeasonHardness:Float = 1;
+	public static var SeasonText:String = 'DONT KNOW';
 
 	public static var ReadServerSettings:Bool = true;
 
@@ -204,6 +205,8 @@ class TimeHelper {
 			TimeToNextSeasonInYears *= SeasonHardness;
 
 			Connection.SendGlobalMessageToAll('$hardText ${seasonName} is comming!');
+
+			TimeHelper.SeasonText = '$hardText ${seasonName}';
 		}
 	}
 
