@@ -262,6 +262,11 @@ abstract class AiBase
 			}
 		}
 
+		// Only follow Ai if still cannot eat // TODO allow follow AI in certain cirumstances
+		if(playerToFollow != null && playerToFollow.isAi() && myPlayer.age > ServerSettings.MinAgeToEat) {
+			playerToFollow = null;			
+		}
+
 		// should be below isUsingItem since a use can be used to drop an hold item on a pile to pickup a baby
 		Macro.exception(if (isFeedingChild()) return); 
 		Macro.exception(if (isPickingupFood()) return);
