@@ -187,7 +187,8 @@ class ServerSettings {
 	public static var GrownUpAge = 14; // is used for AgingFactorWhileStarvingToDeath and for increase food need for children
 	public static var FoodStoreMaxReductionWhileStarvingToDeath = 5; // (5) reduces food store max with factor XX for each food below 0
 
-	public static var MaxDistanceToBeConsideredAsClose = 20; // 20; // only close players are updated with PU Movement
+	// TODO /LEADER crashes if client does not get player update
+	public static var MaxDistanceToBeConsideredAsClose = 2000000; // 20; // only close players are updated with PU Movement
 	public static var MaxDistanceToBeConsideredAsCloseForMapChanges = 10; // for MX
 	public static var MaxDistanceToBeConsideredAsCloseForSay = 20; // if a player says something
 	public static var MaxDistanceToBeConsideredAsCloseForSayAi = 20; // if a player says something

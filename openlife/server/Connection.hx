@@ -355,6 +355,7 @@ class Connection {
 		var leaderId = player.followPlayer == null ? -1 : player.followPlayer.p_id;
 		var leaderBadgeColor = leader == null ? player.leaderBadgeColor : leader.leaderBadgeColor;
 
+		//trace('sendFollowing ${player.id} --> $leaderId color: $leaderBadgeColor');
 		send(FOLLOWING, ['${player.p_id} $leaderId $leaderBadgeColor']);
 	}
 

@@ -3983,6 +3983,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.say('isMoving ${player.isMoving()}', true);
 			return true;
 		} else if (text == '!DBL') {
+			player.connection.sendToMeAllFollowings();
 			var leader = player.getTopLeader();
 			var leaderText = leader == null ? 'NULL' : 'deleted ${leader.isDeleted()}';
 			player.say('leader $leaderText', true);
