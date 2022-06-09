@@ -3980,6 +3980,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			trace('Close connection');
 
 			player.connection.close();
+		} else if (text.indexOf('!OBIOME') != -1) {
+			var biomeId = WorldMap.world.getOriginalBiomeId(player.tx, player.ty);
+			player.say('OBIOME $biomeId', true);
+			return true;
 		} else if (text.indexOf('!SNOW') != -1) {
 			player.say('SNOW', true);
 			WorldMap.world.setBiomeId(player.tx, player.ty, BiomeTag.SNOW);
