@@ -245,7 +245,11 @@ class TimeHelper {
 		if(player.age < 3) return;
 
 		// display seasons
-		if(player.displaySeason && player.isSuperHot()){
+		var timeSinceLastHint = TimeHelper.CalculateTimeSinceTicksInSec(player.timeLastTemperatureHint);
+		player.displaySeason = timeSinceLastHint > ServerSettings.DisplayTemperatureHintsPerMinute * 60;
+		
+		if(player.displaySeason && player.isSuperHot() && player.hits > 3){
+			player.timeLastTemperatureHint = TimeHelper.tick;
 			//if(player.isIll() == false){
 				//if(Season == Seasons.Summer && ) player.say('too hot ${SeasonNames[Season]}', true);
 				//player.say('too hot need cooling!', true);
@@ -259,7 +263,8 @@ class TimeHelper {
 			//else if(rand == 2) player.say('too hot${season} a jungle could help', true);			
 			//else player.say('too hot${season} a desert would be warm!', true);
 		}
-		else if(player.displaySeason && player.isSuperCold()){
+		else if(player.displaySeason && player.isSuperCold() && player.hits > 3){
+			player.timeLastTemperatureHint = TimeHelper.tick;
 			//if(Season == Seasons.Winter) player.say('its ${SeasonNames[Season]} i need to get warmer', true);
 
 			var season = Season == Seasons.Winter ? ' ${SeasonNames[Season]}' : ''; 
@@ -271,8 +276,8 @@ class TimeHelper {
 			else player.say('too cold${season} a desert would be warm!', true);
 		} 
 		
-		if(player.isSuperHot() || player.isSuperCold()) player.displaySeason = false;
-		else player.displaySeason = true;
+		//if(player.isSuperHot() || player.isSuperCold()) player.displaySeason = false;
+		//else player.displaySeason = true;
 
 		GlobalPlayerInstance.DisplayBestFood(player);
 

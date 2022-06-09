@@ -173,6 +173,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var yellowfeverCount:Float = 0;
 
 	public var lastSayInSec:Float = 0;
+	public var timeLastTemperatureHint:Float = 0; // not saved
 	public var displaySeason = false; // not saved
 	public var displayRoadHint = true; // not saved
 	public var displayBiomeAnimal = true; // not saved

@@ -80,6 +80,7 @@ class ServerSettings {
 	public static var DisplayPlayerNamesDistance = 30; // set zero to deactivate
 	public static var DisplayPlayerNamesShowDistance = true;
 	public static var DisplayPlayerNamesMaxPlayer = 1;
+	public static var DisplayTemperatureHintsPerMinute:Float = 1;
 
 	// message
 	public static var SecondsBetweenMessages:Float = 5;
