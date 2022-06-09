@@ -163,7 +163,7 @@ abstract class AiBase
 
         //addTask(140); // Tied Skewer
 
-        addTask(148); // Arrow
+        //addTask(148); // Arrow
 		//addTask(292); // 292 basket
         //addTask(149); // Headless Arrow
         //addTask(146); // Fletching
@@ -1755,6 +1755,13 @@ abstract class AiBase
 			return false;
 		}
 		if (myPlayer.isMoving()) return true;
+
+		// TODO crafting does not yet consider if old enough to use a bow 
+		// 152 Bow and Arrow
+		if(myPlayer.heldObject.id == 152 && useTarget.isAnimal()){
+			trace('AAI: ${myPlayer.name + myPlayer.id} Use: kill animal ${useTarget.description}');
+			Macro.exception(if (killAnimal(useTarget)) return true);
+		}
 
 		var distance = myPlayer.CalculateDistanceToObject(useTarget);
 		if (ServerSettings.DebugAi)
