@@ -353,16 +353,59 @@ abstract class AiBase
 		return false;
 	}
 
+ 	// 2886 Wooden Shoe 
+ 	// 2181 Straw Hat with Feather
 	private function craftClothing() : Bool {
+		// TODO consider heat / cold
+		// TODO more advanced clothing
+		// TODO try to look like the one you follow
 		var color = myPlayer.getColor();
+		var isWhiteOrGinger = (color == Ginger || color == White);
 
-		if(craftCloth(128)) return true; // Reed Skirt
-		if((color == Ginger || color == White) && craftCloth(201)) return true; // Rabbit Fur Shawl
+		// Bottom clothing
+		// 200 Rabbit Fur Loincloth / bottom
+		if(isWhiteOrGinger && craftClothIfNeeded(200)) return true;
+		// 128 Reed Skirt / bottom
+		if(craftClothIfNeeded(128)) return true; 
+
+		// Chest clothing
+		// 564 Mouflon Hide ==> White / Chest
+		if(color == White && craftClothIfNeeded(564)) return true;
+		// 712 Sealskin Coat ==> Ginger
+		if(color == Ginger && craftClothIfNeeded(712)) return true;
+		// 711 Seal Skin ==> Ginger
+		if(color == Ginger && craftClothIfNeeded(711)) return true;	
+		// 202 Rabbit Fur Coat / Chest
+		if(isWhiteOrGinger && craftClothIfNeeded(202)) return true;
+		// 201 Rabbit Fur Shawl / Chest
+		if(isWhiteOrGinger && craftClothIfNeeded(201)) return true;
+
+		// Hat cloting
+		// 426 Wolf Hat ==> White
+		if(color == White && craftClothIfNeeded(426)) return true;
+		// 2180 Rabbit Fur Hat with Feather
+		if(isWhiteOrGinger && craftClothIfNeeded(2180)) return true;
+		// 199 Rabbit Fur Hat
+		if(isWhiteOrGinger && craftClothIfNeeded(199)) return true;
+
+		// Shoes
+		// 844 Fruit Boot ==> Black
+		if(color == Black && craftClothIfNeeded(844)) return true;
+		// 2887 Sandal ==> Black
+		if(color == Black && craftClothIfNeeded(2887)) return true;
+		// 766 Snake Skin Boot ==> Black
+		if(color == Black && craftClothIfNeeded(766)) return true;
+		// 203 Rabbit Fur Shoe
+		if(isWhiteOrGinger && craftClothIfNeeded(203)) return true;
+
+		// Back clothing
+		// 198 Backpack
+		if(myPlayer.age > 25 && craftClothIfNeeded(198)) return true;
 
 		return false;
 	}
 
-	private function craftCloth(clothId:Int) : Bool {
+	private function craftClothIfNeeded(clothId:Int) : Bool {
 		var objData = ObjectData.getObjectData(clothId);
 		var slot = objData.getClothingSlot();
 		if(slot < 0) return false;
