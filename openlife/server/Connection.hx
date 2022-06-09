@@ -231,6 +231,7 @@ class Connection {
 				var player = c.player;
 				var targetX = WorldMap.world.transformX(player, playerToSend.tx);
 				var targetY = WorldMap.world.transformY(player, playerToSend.ty);
+				//var topLeader = player.getTopLeader();
 
 				// update only close players except if player is deleted (death)
 				if (playerToSend.deleted == false
@@ -282,13 +283,14 @@ class Connection {
 		var player = this.player;
 		var targetX = WorldMap.world.transformX(player, playerToSend.tx);
 		var targetY = WorldMap.world.transformY(player, playerToSend.ty);
+		var topLeader = player.getTopLeader();
 
 		// update only close players
 		// TODO vanilla client breaks if /LEADER is used and leader is out of range so dont send out of range for now
-		/*if (player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) {
+		if (playerToSend != topLeader && player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) {
 			player.connection.send(PLAYER_OUT_OF_RANGE, ['${playerToSend.p_id}'], isPlayerAction);
 			return;
-		}*/
+		}
 
 		if (playerToSend.isMoving()) {
 			if (sendMovingPlayer) {
