@@ -382,11 +382,13 @@ abstract class AiBase
 		// 201 Rabbit Fur Shawl / Chest
 		if(isWhiteOrGinger && craftClothIfNeeded(201)) return true;
 
+		var objData = ObjectData.getObjectData(152); // Bow and Arrow
+		
 		// Hat cloting
 		// 426 Wolf Hat ==> White
 		if(color == White && craftClothIfNeeded(426)) return true;
-		// 2180 Rabbit Fur Hat with Feather
-		if(isWhiteOrGinger && craftClothIfNeeded(2180)) return true;
+		// 2180 Rabbit Fur Hat with Feather // TODO check minPickupAge directly in crafting
+		if(isWhiteOrGinger && myPlayer.age >= objData.minPickupAge && craftClothIfNeeded(2180)) return true;
 		// 199 Rabbit Fur Hat
 		if(isWhiteOrGinger && craftClothIfNeeded(199)) return true;
 
