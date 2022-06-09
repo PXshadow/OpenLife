@@ -201,6 +201,7 @@ class ServerSettings {
 	public static var MinSpeedReductionPerContainedObj = 0.98;
 	public static var CloseEnemyWithWeaponSpeedFactor:Float = 0.8;
 	public static var SemiHeavyItemSpeed:Float = 0.9; // slows down if carring iron / logs / soil etc.
+	public static var MaxTimeBetweenMapChunks:Float = 4;  // make sure that every X seconds at least one map chunk is send 
 
 	// since client does not seem to use exact positions allow little bit cheating / JUMPS
 	public static var LetTheClientCheatLittleBitFactor = 1.1; // when considering if the position is reached, allow the client to cheat little bit, so there is no lag

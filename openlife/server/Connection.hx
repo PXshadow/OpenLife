@@ -30,6 +30,7 @@ class Connection {
 
 	private var messageQueue = new Array<String>();
 	private var timeToWaitBeforeNextMessageSend:Float = 0;
+	private var timeLastMapChunkSend:Float = 0;
 
 	// if it is an AI sock = null
 	public function new(sock:Socket, server:Server) {
@@ -718,11 +719,18 @@ class Connection {
 		}
 	}
 
+	public function sendMapChunkIfNeeded(){
+		if(ServerSettings.MaxTimeBetweenMapChunks > TimeHelper.CalculateTimeSinceTicksInSec(timeLastMapChunkSend)) return;
+		//trace('sendMapChunkIfNeeded true');
+		//player.say('map', true);
+		sendMapChunk(player.x, player.y);
+	}
+
 	public function sendMapChunk(x:Int, y:Int, width:Int = 32, height:Int = 30) {
 		if (sock == null) return;
-
 		if(ServerSettings.DebugSend) trace('sendMapChunk');
 
+		this.timeLastMapChunkSend = TimeHelper.tick;
 		// this.mutex.acquire();
 
 		try {
