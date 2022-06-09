@@ -53,6 +53,7 @@ abstract class AiBase
 	var isHungry = false;
 
 	var playerToFollow:PlayerInterface;
+	var autoStopFollow = true;
 
 	var children = new Array<PlayerInterface>();
 
@@ -150,6 +151,7 @@ abstract class AiBase
 		isHungry = false;
 
 		playerToFollow = null;
+		autoStopFollow = true;
 		children = new Array<PlayerInterface>();
 		//addTask(837); //Psilocybe Mushroom
         //addTask(134); //Flint Arrowhead
@@ -263,7 +265,7 @@ abstract class AiBase
 		}
 
 		// Only follow Ai if still cannot eat // TODO allow follow AI in certain cirumstances
-		if(playerToFollow != null && playerToFollow.isAi() && myPlayer.age > ServerSettings.MinAgeToEat) {
+		if(playerToFollow != null && autoStopFollow && myPlayer.age > ServerSettings.MinAgeToEat * 2) {
 			playerToFollow = null;			
 		}
 
@@ -463,6 +465,7 @@ abstract class AiBase
 			myPlayer.say("YES CAPTAIN");
 		}
 		if (text.contains("FOLLOW ME")) {
+			autoStopFollow = false; // otherwise if old enough ai would stop follow
 			playerToFollow = player;
 			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.say("SURE CAPTAIN");
