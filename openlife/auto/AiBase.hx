@@ -346,10 +346,13 @@ abstract class AiBase
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather!');
 
-		if(craftItem(808)) return true; // Wild Onion
 		if(craftItem(40)) return true; // Wild Carrot
-		if(craftItem(58)) return true; // Thread
-
+		if(craftItem(807)) return true; // Burdock Root		
+		if(craftItem(808)) return true; // Wild Onion
+		if(craftItem(4252)) return true; // Wild Garlic
+		
+		//if(craftItem(58)) return true; // Thread (can desconstruct too much)
+		
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} nothing to gather!');
 
 		return false;
