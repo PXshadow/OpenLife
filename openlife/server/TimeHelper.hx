@@ -838,19 +838,20 @@ class TimeHelper {
 			var distance = AiHelper.CalculateDistanceToObject(player, closestHeatObj) + 1;
 
 			var closestHeatTemperature = closestHeatObj.objectData.heatValue / (20 * distance);
+			closestHeatTemperature *= ServerSettings.TemperatureHeatObjFactor;
 			temperature += closestHeatTemperature;
 
 			// use only half impact of close heat object if negative
-			if (temperature < 0.5 && closestHeatTemperature < 0) {
+			if (player.heat < 0.5 && closestHeatTemperature < 0) {
 				temperature -= closestHeatTemperature / 2;
-				if (temperature > 0.5) temperature = 0.5;
+				//if (temperature > 0.5) temperature = 0.5;
 			}
-			if (temperature > 0.5 && closestHeatTemperature > 0) {
+			if (player.heat > 0.5 && closestHeatTemperature > 0) {
 				temperature -= closestHeatTemperature / 2;
-				if (temperature < 0.5) temperature = 0.5;
+				//if (temperature < 0.5) temperature = 0.5;
 			}
 
-			// trace('${closestHeatObj.description} Heat: ${closestHeatObj.objectData.heatValue} distance: $distance');
+			trace('${closestHeatObj.description} Heat: ${closestHeatObj.objectData.heatValue} value: $closestHeatTemperature distance: $distance');
 		}
 
 		// consider held object heat

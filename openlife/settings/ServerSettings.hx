@@ -245,6 +245,7 @@ class ServerSettings {
 	public static var TemperatureNaturalHeatInsulation:Float = 0.5; // gives X extra natural insulation against heat 
 	public static var TemperatureClothingInsulationFactor:Float = 5; // with 100% insulation 5X more time 10X with 200% insulation / only if temperature change is ositive
 	public static var TemperatureImpactReduction:Float = 0.4; // reduces the impact of bad temperature if temperature is already bad 
+	public static var TemperatureHeatObjFactor:Float = 1; // increase or decrase impact of a head obj like fire
 	public static var TemperatureImpactBelow:Float = 0.5; // take damage and display emote if temperature is below or above X from normal
 	public static var TemperatureSpeedImpact:Float = 0.9; // speed * X: double impact if extreme temperature
 
