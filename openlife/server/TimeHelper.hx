@@ -933,7 +933,6 @@ class TimeHelper {
 	// Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
 	private static function calculateTemperature(player:GlobalPlayerInstance):Float {
 		var maxBiomeDistance = 10;
-		// TODO consider close biome temperature influence
 		var biome = WorldMap.worldGetBiomeId(player.tx, player.ty);
 		var originalBiomeTemperature = Biome.getBiomeTemperature(biome);
 		var biomeTemperature = originalBiomeTemperature;

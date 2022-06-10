@@ -70,6 +70,7 @@ Quality of Life Changes:
 
 Not yet implemented:
 - advaned AI
+- more winter / seasonal challanges like attacking wolfes
 - more boni for biome specialists 
 - advaned stuff like rails, pipes
 - reading / writing
@@ -98,7 +99,7 @@ MAP:
 - generate limited map using image color as index for biome id
 - made map "round", so you can walk over both x,y borders and come out on the other side. 
 - has rivers and oceans  
-- you can build bridges over rivers and oceans with boards or stone (TODO let them decay)
+- you can build bridges over rivers and oceans with boards or stone
 - iron can be used by default 
 - no dry spring and dry tarry spot
 - no gradients
@@ -117,7 +118,7 @@ Family / Loved / Hated Biomes:
 - children are now more likely to be born closer to special biome color
 --> With this one Eve can create all colors if people migrate...
 - parents influence which biomes are loved 
-- bad Temperature is affected now by how much you / your parents (50%) love the biome
+- bad Temperature is affected now by how much you love the biome (see under temperature)
 - you gain extra exhaustion in not loved biomes and loose extra exhaustion in loved biomes
 - you get  less / more damage in loved / not loved biomes
 - TODO differen exhaustion for work in bad / loved biome
@@ -127,6 +128,7 @@ Classes:
 - you are more likely born to the same class
 - nobles make 20% more damage with a sword
 - nobles receive 20% less damage if using a sword
+- AI:  Sef / Commoner AI classes have lower food use and speed. A Nobel Ai has same like a human 
 
 Ally
 - leader has now 15 seconds time to exile you before you follow him
@@ -168,14 +170,36 @@ Graves / Curses
 - for each Sharp Stone a grave needs much longer to decay (+8 hours) / This can be used to let cursed graves exist much longer
 
 Heat / Temperature:
-- bad temperature reduces speed extreme temperature reduces double
-- different color people love different temperatures (average temperature and resistance to too hot or cold temperature)
-- clothing can protect against cold and heat. The better it protects against cold the less it protects against heat
-- heal only if not too cold or hot / heal faster the better temperature 
+- bad temperature reduces speed / extreme temperature reduces double
 - having very bad temperature causes damage (especially on the far temperature edges)
 - bad temperature generates exhaustion and reduces exhaustion reduction
+- different color people love different temperatures (Ginger 0.4 White 0.5 Brown 0.6 Black 0.7)
+- clothing can protect against cold and heat.
+- The better clothing protects against cold the less it protects against heat
+- heal only if not too cold or hot / heal faster the better temperature 
 - better chance of having a kid with right temperature
-- bad Temperature is affected now by how much you / your parents (50%) love the biome
+- heat objects like fire have halve temperature impact if the impact is negative
+
+- Bad Temperature over time affects now halve as much as good temperature
+- River / Water affect twice as much and ignores clothing protection
+- Clothing Insulation reduces bad temperature impact per second by up to 10X 
+(Already 2X with a simple straw hat)
+- Clothing Insulation does not reduce good temperature impact
+- You have a natural heat resistance which is reduced with wearing cloths with a higher then 25% insulation
+- Wearing cloths with less then 75% insulation increases your heat resistance
+- Wearing cloths warms you up to at max plus 0.2 heat (temperature can increase also if net negative)
+- Wearing cloths cloths with less then 50% insulation reduces heat by at max 0.2 (only if net positive)
+
+With full insulation you can run 20X time outside then spending on warming up / cooling down.
+With river cooling faster and natural heat resistance you could spent 10X time in heat then to cool down.
+(2X River, 2X Good temperature, 2.5% Natural heat protection)
+
+Loved Temperature:
+- Temperature is affected now by how much you / your parents love the biome
+==> For example a Brown child has temperature boni of 0.1 in Jungle
+==> a White child born to brown mother has temperature boni of 0.05 in Jungle and 0.1 in Mountain
+==> a White child born to brown mother and father has temperature boni of 0.1 in Jungle and 0.1 in Mountain
+==> a White child born to brown mother and ginger father has temperature boni of 0.05 in Jungle, 0.1 in Mountain and 0.05 in Snow (a true multiculti kid)
 
 Exhaustion:
 - half of hungry work becomes now exhaustion
@@ -197,6 +221,10 @@ World:
 - objects respawn near original objects with a small chance
 - objects except ancient, well, Iron Mine, Oil Pumps decay with a small chance
 - decay chance is 10X reduced if on floor and 10X increeased if food
+- dacay chance is reduced for permanent stuff
+- dacay chance is increased for stuff in water
+- Ovens Forges and some other objects have custom decay transitions (to Adobe Rubble)
+- TODO iron and steel piles currently dont decay
 
 Coins / Currency:
 - you get now coins for eating YUM, more for eating cravings
@@ -209,13 +237,14 @@ Coins / Currency:
 - if still some coins are left your kids will inherit your coins
 
 Seasons / Winter is comming:
-- first part of Seasons is now implemented
-- there are winter / summer / spring / autoumn. And hard / super hard variants of it longer / colder / hotter then normal
+- there are winter / summer / spring / autoumn. 
+- there are hard / super hard variants of it longer / colder / hotter then normal
 - seasons influence temperature
+- in winter snow biome spreads and melts in spring or summer
 - winter decays wild plants and spring lets it grow back
 - plants grow only back if either one was left or one was hidden in he winter or if you place one...
-- if you eat all, still they can come back since nearly all objects can respawn, but this will take lot of time...
-- tere is now a second layer of objects where stuff can be hidden like onions in the winter
+- if you eat all, still they can come back since nearly all objects can respawn, but this can take lot of time.
+- there is now a second layer of objects where stuff can be hidden like onions in the winter
 
 Healing / Hits
 - max food store equals hitpoints
@@ -311,67 +340,73 @@ Yellow fever:
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
+- advanced AI / AI villages
+- animals grouping and hunting in winter
 - better fences / allow to climb over fences, but get wounded / make destroyable if not protected by close gate)
 - special stuff like hercules / snake master / super fast ager 
 - job boni
 - horses that follow owner / horse ownership
 - angry / bloody weapon if killing sheeps / animals
-- animals grouping and hunting in winter
 - better dogs
-- advanced AI / AI villages
 - princess / princess
 
 TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI make commando only to closest
-- AI follow human player
-- AI FIX just standing around
-- AI FIX escape
+- AI temperature handling if too hot / too cold
+- AI brng clay to home
+- AI basic nursing on fire
+- AI use fire if too cold
+- AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread 
+(for thread in bowl there is a workaound. Picking up rabbit fure from a pile to increase same pile needs fix)
+- AI build oven on the right location
+- AI emty graves from items
+- AI try to die at home near existing grave
+- AI burry people (use gravestone for leader)
+- AI help building roads
+- AI better pathing on home dependend
+- AI debug pathing / use bigger pathing map
+- AI make commando only to closest ai
+- AI make commando only to followers or mother / father
+- AI make: drop made stuff after ordered in fronts of player
+- AI drop stuff at home while crafting if home close < 50 tiles 
+- AI pickup stuff after droped for eating
+- AI better animal escape
 - AI FIX child: if hungry and close to feeding player dont move 
-- AI FIX drop made stuff after ordered in fronts of player
-- AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread
-- AI FIX bug with wanting to shoot bear in order to get a rope from bow
+- AI FIX bug with wanting to shoot bear in order to get a rope from bow (funny bug)
 
 - AI consider if some one else is already feeding
-- AI dropping not needed crafting stuff
-- AI if waiting for time transition check if the next step can be prepared
-- AI basic clothing
+- AI hand feed AI player with lower priority 
+- AI dropping stuff at home instead of crafting start if close enough to home
 - AI player fight
-- AI temperature espace
 - AI using containers needed also for player YUM display
 - AI go for search if something is needed
-- AI test with > 20 AIs
 - AI fill baskets with bananas
 - AI using of baskets and backpack
-- AI consider making / using a pile
-- AI Stoneage
+- AI if waiting for time transition check if the next step can be prepared
 
-- FIX connection crashes sometimes on connect 
-- FIX? bug with getting stuck sometimes // as workaround a new PU for the player is send once in a a while
-- FIX? /leader Client crash (if leader is out of range??) // as workaround no out of range (PO) is used)
+
+- FIX segmentation fault crash with Ai crafting (missing mutexes?)
+- FIX fishing transitions
+- FIX connection crashes sometimes on connect (did not see happen longtime)
+- FIX? bug with getting stuck sometimes 
+==> as workaround a new PU for the player is send once in a a while (does not seem to work :/ )
+- FIX? /leader Client crash (if leader or anybody? is out of range??) 
+==> as workaround all player data is send always
 - FIX? bug with reconnect if holding a player // TODO check if it is a problem
 
-- MAP check why ponds are not in water ==> move to green near water
 
-- MEASSAGE addbad biome self say meassage
+- RAND look at / fix random generator for float
 
-- RAND look at random generator for float
-
-- PICKUP / DROP CHILD fix display bug. maybe set origion or action from right? 
-
-- ANIMALS fix they wont sometimes display as moving / DONE???
-
-- BIRTH consider deadly animals
-
-- MAP use bigger map (Europe?) / create tool to auto create map
-
+- PICKUP / DROP CHILD fix display bug. maybe set origion or action right? 
 - SAVE season / save animal loved biome spot
 - SAVE save more stats for player, like best play, different eve runs, number of played, last loged in, amount of time played
 
 Middle priority:
+- MAP use bigger map (Europe?) / create tool to auto create map
 - GATES Ally Gates and swing doors
+- BIRTH consider deadly animals
 
 - FIX clearing up old lineage data / make storing lineage data more efficient
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
@@ -426,6 +461,8 @@ Middle priority:
 - AI Farming
 - AI IRON AGE
 - AI guards 
+
+- MEASSAGE add bad biome say to self meassage (not needed? / what to do with bad biomes)
 
 - WRITING / READING
 
