@@ -851,12 +851,12 @@ class TimeHelper {
 				//if (temperature < 0.5) temperature = 0.5;
 			}
 
-			trace('${closestHeatObj.description} Heat: ${closestHeatObj.objectData.heatValue} value: $closestHeatTemperature distance: $distance');
+			//trace('${closestHeatObj.description} Heat: ${closestHeatObj.objectData.heatValue} value: $closestHeatTemperature distance: $distance');
 		}
 
 		// consider held object heat
 		var heldObjectData = player.heldObject.objectData;
-		if (heldObjectData.heatValue != 0) temperature += heldObjectData.heatValue / 20;
+		if (heldObjectData.heatValue != 0) temperature += (heldObjectData.heatValue / 20) * ServerSettings.TemperatureHeatObjFactor;
 
 		// add SeasonTemperatureImpact
 		var seasonImpact = SeasonTemperatureImpact;
@@ -864,21 +864,23 @@ class TimeHelper {
 		if(seasonImpact < 0) seasonImpact *= ServerSettings.ColdSeasonTemperatureFactor;
 		temperature += seasonImpact;
 
+		// balance temperature out if the biome is loved
 		var biomeLoveFactor = player.biomeLoveFactor();
-		biomeLoveFactor /= 10;
+		var biomeLoveTemperatureBoni = biomeLoveFactor / 10;
+		var maxLovedBiomeImpact = ServerSettings.TemperatureMaxLovedBiomeImpact;
+		biomeLoveTemperatureBoni *= ServerSettings.TemperatureLovedBiomeFactor;
+		if(biomeLoveTemperatureBoni > maxLovedBiomeImpact) biomeLoveTemperatureBoni = maxLovedBiomeImpact;
 
-		// TODO impact also how fast bad / good temperature effects player heat
-		// balances temperature out if the biome is loved
-		if (biomeLoveFactor > 0) {
-			// trace('${player.p_id} biomeLoveFactor: $biomeLoveFactor');
+		if (biomeLoveTemperatureBoni > 0) {
+			//trace('${player.p_id} biomeLoveFactor: $biomeLoveFactor temperatureboni: $biomeLoveTemperatureBoni');
 
-			if (temperature < 0.5) {
-				temperature += biomeLoveFactor;
-				if (temperature > 0.5) temperature = 0.5;
+			if (player.heat < 0.5 && temperature < 0.5) {
+				temperature += biomeLoveTemperatureBoni;
+				//if (temperature > 0.5) temperature = 0.5;
 			}
-			if (temperature > 0.5) {
-				temperature -= biomeLoveFactor;
-				if (temperature < 0.5) temperature = 0.5;
+			if (player.heat > 0.5 && temperature > 0.5) {
+				temperature -= biomeLoveTemperatureBoni;
+				//if (temperature < 0.5) temperature = 0.5;
 			}
 		}
 
