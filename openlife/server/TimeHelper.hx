@@ -819,6 +819,12 @@ class TimeHelper {
 
 		var insulationFactor =  1 / (1 + clothingInsulation * ServerSettings.TemperatureClothingInsulationFactor); 
 
+		var naturalHeatInsulation = ServerSettings.TemperatureNaturalHeatInsulation - clothingInsulation;
+
+		if(naturalHeatInsulation < 0) naturalHeatInsulation = 0;
+
+		clothingHeatProtection += naturalHeatInsulation;
+
 		var heatProtectionFactor =  1 / (1 + clothingHeatProtection * ServerSettings.TemperatureClothingInsulationFactor); 
 
 		var clothingFactor = temperature < 0.5 ? insulationFactor : heatProtectionFactor;
@@ -878,8 +884,9 @@ class TimeHelper {
 		// If hold by other player, just use temperature from this instead
 		if (player.heldByPlayer != null) temperature = player.heldByPlayer.heat;
 
-		var newTemperatureIsPositive = (player.heat > 0.5 && temperature < 0.5) || (player.heat < 0.5 && temperature > 0.5);		
-		var timeFactor = newTemperatureIsPositive ? ServerSettings.TemperatureImpactPerSecIfGood : ServerSettings.TemperatureImpactPerSec;
+		var newTemperatureIsPositive = (player.heat > 0.5 && temperature < 0.5) || (player.heat < 0.5 && temperature > 0.5);
+		var temperatureImpactPerSec = ServerSettings.TemperatureImpactPerSec;		
+		var timeFactor = newTemperatureIsPositive ? ServerSettings.TemperatureImpactPerSecIfGood : temperatureImpactPerSec;
 		var impactReduction = ServerSettings.TemperatureImpactReduction; 
 		var heatchange =  temperature - (0.5 * impactReduction + player.heat * (1 - impactReduction)); 
 		// ignore clothing if heat change is positive

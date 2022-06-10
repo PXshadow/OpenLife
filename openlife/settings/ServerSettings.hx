@@ -62,9 +62,10 @@ class ServerSettings {
 	public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
 
 	// Temperature
-	public static var DebugTemperature = false;
-	public static var TemperatureImpactPerSec:Float = 0.05; 
-	public static var TemperatureImpactPerSecIfGood:Float = 0.1; // if outside temperature is helping to et closer to optimal 	
+	public static var DebugTemperature = true;
+	public static var TemperatureImpactPerSec:Float = 0.03; 	
+	public static var TemperatureImpactPerSecIfGood:Float = 0.06; // if outside temperature is helping to et closer to optimal 	
+	public static var TemperatureNaturalHeatInsulation:Float = 0.5; // gives X extra natural insulation against heat 
 	public static var TemperatureClothingInsulationFactor:Float = 5; // with 100% insulation 5X more time 10X with 200% insulation / only if temperature change is ositive
 	public static var TemperatureImpactReduction:Float = 0.4; // reduces the impact of bad temperature if temperature is already bad 
 	public static var TemperatureImpactBelow:Float = 0.5; // take damage and display emote if temperature is below or above X from normal
@@ -250,7 +251,7 @@ class ServerSettings {
 
 	// winter / summer
 	public static var DebugSeason:Bool = false;
-	public static var SeasonDuration:Float = 5; //0.25; // default: 5 // Season duration like winter in years
+	public static var SeasonDuration:Float = 0.5; //0.25; // default: 5 // Season duration like winter in years
 	public static var SeasonBiomeChangeChancePerYear:Float = 10; // 10 means it spreads 10 tiles per year in average in each direction
 	public static var SeasonBiomeRestoreFactor:Float = 2;
 	public static var AverageSeasonTemperatureImpact:Float = 0.2;
