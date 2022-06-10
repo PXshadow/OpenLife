@@ -153,7 +153,7 @@ class Connection {
 		badbiomes += '${BiomeTag.SNOWINGREY} MOUNTAIN\n';
 		badbiomes += '${BiomeTag.RIVER} RIVER\n';
 		badbiomes += '${BiomeTag.OCEAN} OCEAN\n';
-		badbiomes += '${BiomeTag.SWAMP} SWAMP\n';
+		//badbiomes += '${BiomeTag.SWAMP} SWAMP\n';
 		
 		send(BAD_BIOMES, [badbiomes]);
 	}
