@@ -255,8 +255,8 @@ class ServerSettings {
 
 	// winter / summer
 	public static var DebugSeason:Bool = false;
-	public static var SeasonDuration:Float = 0.5; //0.25; // default: 5 // Season duration like winter in years
-	public static var SeasonBiomeChangeChancePerYear:Float = 10; // 10 means it spreads 10 tiles per year in average in each direction
+	public static var SeasonDuration:Float = 7.5; // default: 5 // Season duration like winter in years
+	public static var SeasonBiomeChangeChancePerYear:Float = 5; // X means it spreads X tiles per year in average in each direction
 	public static var SeasonBiomeRestoreFactor:Float = 2;
 	public static var AverageSeasonTemperatureImpact:Float = 0.2;
 	public static var HotSeasonTemperatureFactor:Float = 0.5;
