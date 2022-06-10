@@ -61,10 +61,13 @@ class ServerSettings {
 	public static var traceTransitionByNewTargetId = 9991099; // set to object id which you want to debug
 	public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
 
-	// DEBUG: Temperature
+	// Temperature
 	public static var DebugTemperature = false;
-	public static var TemperatureImpactBelow = 0.5; // take damage and display emote if temperature is below or above X from normal
-	public static var TemperatureSpeedImpact = 0.9; // speed * X: double impact if extreme temperature
+	public static var TemperatureImpactPerSec:Float = 0.05; 
+	public static var TemperatureImpactPerSecIfGood:Float = 0.1; // if outside temperature is helping to et closer to optimal 
+	public static var TemperatureClothingInsulationFactor:Float = 5; // with 100% insulation 5X more time 10X with 200% insulation / only if temperature change is ositive
+	public static var TemperatureImpactBelow:Float = 0.5; // take damage and display emote if temperature is below or above X from normal
+	public static var TemperatureSpeedImpact:Float = 0.9; // speed * X: double impact if extreme temperature
 
 	// score
 	public static var BirthPrestigeFactor:Float = 0.4; // TODO set 0.2 if fathers are implemented // on birth your starting prestige is factor X * total prestige

@@ -184,6 +184,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public var home = new ObjectHelper(null, 0); // position player considers home
 	public var storedInt = new Map<String, Int>(); // to store variables not saved yet
+	public var timeLastTemperatureCalculation:Float = 0;
 
 	// set all stuff null so that nothing is hanging around
 	public function delete() {

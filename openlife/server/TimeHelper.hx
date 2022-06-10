@@ -792,32 +792,39 @@ class TimeHelper {
 	 */
 	// Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
 	private static function updateTemperature(player:GlobalPlayerInstance) {
+		
+		var timePassed = TimeHelper.CalculateTimeSinceTicksInSec(player.timeLastTemperatureCalculation);
+		
+		if(timePassed > 5) timePassed = 5;
+
+		player.timeLastTemperatureCalculation = TimeHelper.tick;
+
 		var temperature = calculateTemperature(player);
 
-		var clothingInsulation = player.calculateClothingInsulation() / 10; // clothing insulation can be between 0 and 2 for now
+		var clothingInsulation = player.calculateClothingInsulation(); // clothing insulation can be between 0 and 2 for now
 
-		var clothingHeatProtection = player.calculateClothingHeatProtection() / 10; // (1-Insulation) clothing heat protection can be between 0 and 2 for now
+		var clothingHeatProtection = player.calculateClothingHeatProtection(); // (1-Insulation) clothing heat protection can be between 0 and 2 for now
 
-		temperature += clothingInsulation;
+		temperature += clothingInsulation / 10;
 
 		// if(temperature > 0.5) temperature -= (temperature - 0.5) * clothingHeatProtection; // the hotter the better the heat protection
 
 		if (temperature > 0.5) {
-			temperature -= clothingHeatProtection;
+			temperature -= clothingHeatProtection / 10;
 			if (temperature < 0.5) temperature = 0.5;
 		}
 
 		// if(temperature < 0) temperature = 0;
 		// if(temperature > 1) temperature = 1;
 
-		var insulationFactor = clothingInsulation / 2 + 0.88; // between 0.88 and 0.98
+		var insulationFactor =  1 / (1 + clothingInsulation * ServerSettings.TemperatureClothingInsulationFactor); 
 
-		var heatProtectionFactor = clothingHeatProtection / 2 + 0.88; // between 0.88 and 0.98
+		var heatProtectionFactor =  1 / (1 + clothingHeatProtection * ServerSettings.TemperatureClothingInsulationFactor); 
 
 		var clothingFactor = temperature < 0.5 ? insulationFactor : heatProtectionFactor;
 
-		if (player.heat < 0.5 && player.heat < temperature) clothingFactor -= 0.1; // heating is positiv, so allow it more
-		else if (player.heat > 0.5 && player.heat > temperature) clothingFactor -= 0.1; // cooling is positiv, so allow it more
+		//if (player.heat < 0.5 && player.heat < temperature) clothingFactor -= 0.1; // heating is positiv, so allow it more
+		//else if (player.heat > 0.5 && player.heat > temperature) clothingFactor -= 0.1; // cooling is positiv, so allow it more
 
 		var closestHeatObj = AiHelper.GetClosestHeatObject(player);
 
@@ -871,8 +878,11 @@ class TimeHelper {
 		// If hold by other player, just use temperature from this instead
 		if (player.heldByPlayer != null) temperature = player.heldByPlayer.heat;
 
-		// TODO useTimePassed --> move to food update?
-		player.heat = player.heat * clothingFactor + temperature * (1 - clothingFactor);
+		var newTemperatureIsPositive = (player.heat > 0.5 && temperature < 0.5) || (player.heat < 0.5 && temperature > 0.5);		
+		var timeFactor = newTemperatureIsPositive ? ServerSettings.TemperatureImpactPerSecIfGood : ServerSettings.TemperatureImpactPerSec;
+		var heatchange = temperature - player.heat; 
+		// ignore clothing if heat change is positive
+		player.heat += newTemperatureIsPositive ? timeFactor * timePassed * heatchange : clothingFactor * timeFactor * timePassed * heatchange;
 
 		if (player.heat > 1) player.heat = 1;
 		if (player.heat < 0) player.heat = 0;
@@ -901,8 +911,9 @@ class TimeHelper {
 
 		if (player.connection != null) player.connection.send(HEAT_CHANGE, [message], false);
 
-		// if(ServerSettings.DebugTemperature)
-		// trace('Temperature update: playerHeat: $playerHeat temperature: $temperature clothingFactor: $clothingFactor foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
+		if(ServerSettings.DebugTemperature) player.say('H ${Math.round(playerHeat * 100) / 100}} --> $temperature'); 			
+		if(ServerSettings.DebugTemperature)
+		  trace('${player.name + player.id} Temperature: $temperature playerHeat: ${Math.round(playerHeat * 100) / 100} clothingFactor: $clothingFactor foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
 	}
 
 	// Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
