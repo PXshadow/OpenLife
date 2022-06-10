@@ -55,13 +55,13 @@ import openlife.settings.ServerSettings;
 
 // Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
 @:enum abstract BiomeTemperature(Float) from Float to Float {
-	public var TGREEN = 0.4;
+	public var TGREEN = 0.45;
 	public var TSWAMP = 0.2;
-	public var TYELLOW = 0.3;
-	public var TGREY = 0.2;
+	public var TYELLOW = 0.4;
+	public var TGREY = 0.3;
 	public var TSNOW = 0;
 	public var TDESERT = 1; // loved by black but still little bit too hot
-	public var TJUNGLE = 0.7; // perfect for brown
+	public var TJUNGLE = 0.7; // loved by brown
 	public var TCBORDERJUNGLE = 0.6; // perfect for brown
 	public var TSNOWINGREY = 0.0;
 	public var TOCEAN = 0.0;
