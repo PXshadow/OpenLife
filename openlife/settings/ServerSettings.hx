@@ -61,16 +61,6 @@ class ServerSettings {
 	public static var traceTransitionByNewTargetId = 9991099; // set to object id which you want to debug
 	public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
 
-	// Temperature
-	public static var DebugTemperature = true;
-	public static var TemperatureImpactPerSec:Float = 0.03; 	
-	public static var TemperatureImpactPerSecIfGood:Float = 0.06; // if outside temperature is helping to et closer to optimal 	
-	public static var TemperatureNaturalHeatInsulation:Float = 0.5; // gives X extra natural insulation against heat 
-	public static var TemperatureClothingInsulationFactor:Float = 5; // with 100% insulation 5X more time 10X with 200% insulation / only if temperature change is ositive
-	public static var TemperatureImpactReduction:Float = 0.4; // reduces the impact of bad temperature if temperature is already bad 
-	public static var TemperatureImpactBelow:Float = 0.5; // take damage and display emote if temperature is below or above X from normal
-	public static var TemperatureSpeedImpact:Float = 0.9; // speed * X: double impact if extreme temperature
-
 	// score
 	public static var BirthPrestigeFactor:Float = 0.4; // TODO set 0.2 if fathers are implemented // on birth your starting prestige is factor X * total prestige
 	public static var AncestorPrestigeFactor:Float = 0.2; // if one dies the ancestors get factor X prestige of the dead
@@ -246,8 +236,21 @@ class ServerSettings {
 	public static var DecayFactorInDeepWater:Float = 10;
 	public static var DecayFactorInWalkableWater:Float = 5;
 
-	// temperature
+	// Temperature
+	public static var DebugTemperature = true;
 	public static var DamageTemperatureFactor:Float = 0.5;
+	public static var TemperatureImpactPerSec:Float = 0.03; 	
+	public static var TemperatureImpactPerSecIfGood:Float = 0.06; // if outside temperature is helping to et closer to optimal 	
+	public static var TemperatureNaturalHeatInsulation:Float = 0.5; // gives X extra natural insulation against heat 
+	public static var TemperatureClothingInsulationFactor:Float = 5; // with 100% insulation 5X more time 10X with 200% insulation / only if temperature change is ositive
+	public static var TemperatureImpactReduction:Float = 0.4; // reduces the impact of bad temperature if temperature is already bad 
+	public static var TemperatureImpactBelow:Float = 0.5; // take damage and display emote if temperature is below or above X from normal
+	public static var TemperatureSpeedImpact:Float = 0.9; // speed * X: double impact if extreme temperature
+
+	public static var TemperatureShiftForBlack:Float = 0.2; // ideal temperature = 0.7
+	public static var TemperatureShiftForBrown:Float = 0.1;
+	public static var TemperatureShiftForWhite:Float = 0;
+	public static var TemperatureShiftForGinger:Float = -0.1;
 
 	// winter / summer
 	public static var DebugSeason:Bool = false;

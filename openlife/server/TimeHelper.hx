@@ -989,10 +989,10 @@ class TimeHelper {
 	}
 
 	private static function getIdealTemperatureShiftForColor(personColor:PersonColor):Float {
-		if (personColor == PersonColor.Black) return 0.35; // ideal temperature = 0.85
-		if (personColor == PersonColor.Brown) return 0.2;
-		if (personColor == PersonColor.White) return 0;
-		if (personColor == PersonColor.Ginger) return -0.2; // ideal temperature = 0.3
+		if (personColor == PersonColor.Black) return ServerSettings.TemperatureShiftForBlack;
+		if (personColor == PersonColor.Brown) return ServerSettings.TemperatureShiftForBrown;
+		if (personColor == PersonColor.White) return ServerSettings.TemperatureShiftForWhite;
+		if (personColor == PersonColor.Ginger) return ServerSettings.TemperatureShiftForGinger;
 
 		return 0;
 	}

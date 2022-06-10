@@ -66,7 +66,7 @@ import openlife.settings.ServerSettings;
 	public var TSNOWINGREY = 0.0;
 	public var TOCEAN = 0.0;
 	public var TRIVER = 0.0;
-	public var TPASSABLERIVER = 0.2;
+	public var TPASSABLERIVER = 0.1;
 }
 
 class Biome {
