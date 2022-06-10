@@ -64,8 +64,9 @@ class ServerSettings {
 	// Temperature
 	public static var DebugTemperature = false;
 	public static var TemperatureImpactPerSec:Float = 0.05; 
-	public static var TemperatureImpactPerSecIfGood:Float = 0.1; // if outside temperature is helping to et closer to optimal 
+	public static var TemperatureImpactPerSecIfGood:Float = 0.1; // if outside temperature is helping to et closer to optimal 	
 	public static var TemperatureClothingInsulationFactor:Float = 5; // with 100% insulation 5X more time 10X with 200% insulation / only if temperature change is ositive
+	public static var TemperatureImpactReduction:Float = 0.4; // reduces the impact of bad temperature if temperature is already bad 
 	public static var TemperatureImpactBelow:Float = 0.5; // take damage and display emote if temperature is below or above X from normal
 	public static var TemperatureSpeedImpact:Float = 0.9; // speed * X: double impact if extreme temperature
 

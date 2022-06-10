@@ -880,7 +880,8 @@ class TimeHelper {
 
 		var newTemperatureIsPositive = (player.heat > 0.5 && temperature < 0.5) || (player.heat < 0.5 && temperature > 0.5);		
 		var timeFactor = newTemperatureIsPositive ? ServerSettings.TemperatureImpactPerSecIfGood : ServerSettings.TemperatureImpactPerSec;
-		var heatchange = temperature - player.heat; 
+		var impactReduction = ServerSettings.TemperatureImpactReduction; 
+		var heatchange =  temperature - (0.5 * impactReduction + player.heat * (1 - impactReduction)); 
 		// ignore clothing if heat change is positive
 		player.heat += newTemperatureIsPositive ? timeFactor * timePassed * heatchange : clothingFactor * timeFactor * timePassed * heatchange;
 
@@ -911,7 +912,7 @@ class TimeHelper {
 
 		if (player.connection != null) player.connection.send(HEAT_CHANGE, [message], false);
 
-		if(ServerSettings.DebugTemperature) player.say('H ${Math.round(playerHeat * 100) / 100}} --> $temperature'); 			
+		if(ServerSettings.DebugTemperature) player.say('H ${Math.round(playerHeat * 100) / 100}} T $temperature'); 			
 		if(ServerSettings.DebugTemperature)
 		  trace('${player.name + player.id} Temperature: $temperature playerHeat: ${Math.round(playerHeat * 100) / 100} clothingFactor: $clothingFactor foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
 	}
@@ -1756,7 +1757,9 @@ class TimeHelper {
 				newAnimal.groundObject = tmpGroundObject;
 				worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
 			} else if (worldmap.currentObjectsCount[newTileObject[0]] > worldmap.originalObjectsCount[newTileObject[0]] * ServerSettings.MaxOffspringFactor
-				&& worldmap.randomFloat() <= chanceForAnimalDying) {
+				&& worldmap.originalObjectsCount[newTileObject[0]] > 0 && worldmap.randomFloat() <= chanceForAnimalDying) {
+				// decay animal only if it is a original one
+				// TODO decay all animals and cosider if they cointain items like a horse wagon
 				// trace('Animal DEAD: $newTileObject ${helper.description}: Count: ${worldmap.currentObjectsCount[newTileObject[0]]} Original Count: ${worldmap.originalObjectsCount[newTileObject[0]]} chance: $chanceForAnimalDying biome: $targetBiome');
 
 				helper.id = 0;
