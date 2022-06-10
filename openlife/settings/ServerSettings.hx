@@ -237,7 +237,7 @@ class ServerSettings {
 	public static var DecayFactorInWalkableWater:Float = 5;
 
 	// Temperature
-	public static var DebugTemperature = true;
+	public static var DebugTemperature = false;
 	public static var DamageTemperatureFactor:Float = 0.5;
 	public static var TemperatureImpactPerSec:Float = 0.03; 	
 	public static var TemperatureImpactPerSecIfGood:Float = 0.06; // if outside temperature is helping to et closer to optimal 	
