@@ -884,13 +884,16 @@ class TimeHelper {
 		// If hold by other player, just use temperature from this instead
 		if (player.heldByPlayer != null) temperature = player.heldByPlayer.heat;
 
+		var biomeId =  WorldMap.world.getBiomeId(player.tx, player.ty);
+		var isInWater = biomeId == PASSABLERIVER || biomeId == OCEAN;
+		var waterFactor = isInWater ? ServerSettings.TemperatureInWaterFactor : 1;
 		var newTemperatureIsPositive = (player.heat > 0.5 && temperature < 0.5) || (player.heat < 0.5 && temperature > 0.5);
 		var temperatureImpactPerSec = ServerSettings.TemperatureImpactPerSec;		
 		var timeFactor = newTemperatureIsPositive ? ServerSettings.TemperatureImpactPerSecIfGood : temperatureImpactPerSec;
 		var impactReduction = ServerSettings.TemperatureImpactReduction; 
 		var heatchange =  temperature - (0.5 * impactReduction + player.heat * (1 - impactReduction)); 
-		// ignore clothing if heat change is positive
-		player.heat += newTemperatureIsPositive ? timeFactor * timePassed * heatchange : clothingFactor * timeFactor * timePassed * heatchange;
+		// ignore clothing if heat change is positive or if in water
+		player.heat += newTemperatureIsPositive || isInWater ? waterFactor * timeFactor * timePassed * heatchange: clothingFactor * timeFactor * timePassed * heatchange;
 
 		if (player.heat > 1) player.heat = 1;
 		if (player.heat < 0) player.heat = 0;
@@ -979,7 +982,7 @@ class TimeHelper {
 
 		var colorTemperatureShift = getIdealTemperatureShiftForColor(player.getColor());
 
-		// between -0.35 (black in snow) to 1.2 Ginger in dessert
+		// between -0.2 (black in snow) to 1.1 Ginger in dessert
 		var temperature = biomeTemperature - colorTemperatureShift;
 
 		if (ServerSettings.DebugTemperature)
