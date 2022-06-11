@@ -22,17 +22,17 @@ class AiHelper {
 		var rx = WorldMap.world.transformX(player, playerTo.tx);
 		var ry = WorldMap.world.transformY(player, playerTo.ty);
 
-		return CalculateDistanceHelper(player.x, player.y, rx, ry);
+		return CalculateQuadDistanceHelper(player.x, player.y, rx, ry);
 	}
 
-	public static function CalculateDistanceToObject(player:PlayerInterface, obj:ObjectHelper):Float {
+	public static function CalculateQuadDistanceToObject(player:PlayerInterface, obj:ObjectHelper):Float {
 		var rx = WorldMap.world.transformX(player, obj.tx);
 		var ry = WorldMap.world.transformY(player, obj.ty);
 
-		return CalculateDistanceHelper(player.x, player.y, rx, ry);
+		return CalculateQuadDistanceHelper(player.x, player.y, rx, ry);
 	}
 
-	public static function CalculateDistanceHelper(baseX:Int, baseY:Int, toX:Int, toY:Int):Float {
+	public static function CalculateQuadDistanceHelper(baseX:Int, baseY:Int, toX:Int, toY:Int):Float {
 		return (toX - baseX) * (toX - baseX) + (toY - baseY) * (toY - baseY);
 	}
 
@@ -103,7 +103,7 @@ class AiHelper {
 
 					if (ownedByPlayer && obj.isOwnedByPlayer(playerInterface) == false) continue;
 
-					var distance = AiHelper.CalculateDistanceToObject(playerInterface, obj);
+					var distance = AiHelper.CalculateQuadDistanceToObject(playerInterface, obj);
 
 					if (closestObject == null || distance < bestDistance) {
 						closestObject = obj;
@@ -207,6 +207,9 @@ class AiHelper {
 		if (player.food_store < 0.5) starvingFactor = 2;
 		if (player.food_store < -1) starvingFactor = 1.5;
 		if (player.food_store < -1.5) starvingFactor = 1.2;
+
+		//var biome = WorldMap.worldGetBiomeId(player.tx, player.ty);
+		//var originalBiomeTemperature = Biome.getBiomeTemperature(biome);
 
 		for (ty in baseY - radius...baseY + radius) {
 			for (tx in baseX - radius...baseX + radius) {
@@ -813,7 +816,7 @@ class AiHelper {
 				if (obj.isAnimal() == false) continue;
 				*/
 				
-				var dist = AiHelper.CalculateDistanceToObject(player, obj);
+				var dist = AiHelper.CalculateQuadDistanceToObject(player, obj);
 
 				if(display) if (dist > 16) cast(player, GlobalPlayerInstance).connection.send(ClientTag.LOCATION_SAYS, ['${obj.tx - player.gx} ${obj.ty - player.gy} !']);
 

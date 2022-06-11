@@ -254,7 +254,7 @@ abstract class AiBase
 
 		// give use high prio if close so that for example a stone can be droped on a pile before food piclup
 		if(useTarget != null){
-			var distance = myPlayer.CalculateDistanceToObject(useTarget);
+			var distance = myPlayer.CalculateQuadDistanceToObject(useTarget);
 
 			if(distance < 100){
 				if (ServerSettings.DebugAi)
@@ -488,7 +488,7 @@ abstract class AiBase
 		}
 		if (text.contains("GO HOME")) {			
 
-			var quadDistance = myPlayer.CalculateDistanceToObject(myPlayer.home);
+			var quadDistance = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
 			if (quadDistance < 3) {
 				myPlayer.say("I AM HOME!");
 				this.time += 5;
@@ -539,7 +539,7 @@ abstract class AiBase
 		else if (myPlayer.heldObject.id == 57) dropOnStart = false; // 57 Milkweed Stalk		
 		
 		if (dropOnStart && itemToCraft.startLocation != null) {
-			var distance = myPlayer.CalculateDistanceToObject(itemToCraft.startLocation);
+			var distance = myPlayer.CalculateQuadDistanceToObject(itemToCraft.startLocation);
 
 			if (distance > 25) {
 				var done = myPlayer.gotoObj(itemToCraft.startLocation);
@@ -627,7 +627,7 @@ abstract class AiBase
 			return GetOrCraftItem(objData.id);
 		}
 
-		var distance = myPlayer.CalculateDistanceToObject(animalTarget);
+		var distance = myPlayer.CalculateQuadDistanceToObject(animalTarget);
 		var range = objData.useDistance;
 
 		if (distance > range * range || (range > 1.9 && distance < 1.5)) // check if too far or too close
@@ -667,7 +667,7 @@ abstract class AiBase
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: GetOrCraftItem found ${obj.name}');
 
-		var distance = myPlayer.CalculateDistanceToObject(obj);
+		var distance = myPlayer.CalculateQuadDistanceToObject(obj);
 
 		if (distance > 1) {
 			var done = myPlayer.gotoObj(obj);
@@ -892,7 +892,7 @@ abstract class AiBase
 
 		var player = myPlayer.getPlayerInstance();
 		var escapeDist = 3;
-		var distAnimal = animal == null ? 99999999 : AiHelper.CalculateDistanceToObject(myPlayer, animal);
+		var distAnimal = animal == null ? 99999999 : AiHelper.CalculateQuadDistanceToObject(myPlayer, animal);
 		var distPlayer = deadlyPlayer == null ? 99999999 : AiHelper.CalculateDistanceToPlayer(myPlayer, deadlyPlayer);
 		var escapePlayer = deadlyPlayer != null && distAnimal > distPlayer;
 		if (ServerSettings.DebugAi) trace('escape: distAnimal: ${distAnimal} distPlayer: ${distPlayer}');
@@ -1020,6 +1020,9 @@ abstract class AiBase
 			itemToCraft.startLocation = new ObjectHelper(null, 0);
 			//itemToCraft.startLocation.tx = myPlayer.tx; // itemToCraft.transTarget.tx;
 			//itemToCraft.startLocation.ty = myPlayer.ty; // itemToCraft.transTarget.ty;
+
+			
+
 			itemToCraft.startLocation.tx = itemToCraft.transTarget.tx;
 			itemToCraft.startLocation.ty = itemToCraft.transTarget.ty;
 		}
@@ -1144,7 +1147,7 @@ abstract class AiBase
 
 					var steps = trans.steps;
 					var obj = world.getObjectHelper(tx, ty);
-					var objQuadDistance = myPlayer.CalculateDistanceToObject(obj);
+					var objQuadDistance = myPlayer.CalculateQuadDistanceToObject(obj);
 
 					if (trans.closestObject == null || trans.closestObjectDistance > objQuadDistance) {
 						if (objQuadDistance > 4 && AiHelper.IsDangerous(myPlayer, obj)) continue;
@@ -1471,7 +1474,7 @@ abstract class AiBase
 		if(myPlayer.home == null) return false;
 		maxDistance = maxDistance * maxDistance;
 
-		var quadDistance = myPlayer.CalculateDistanceToObject(myPlayer.home);
+		var quadDistance = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
 
 		if (quadDistance < maxDistance) return false;
 
@@ -1503,7 +1506,7 @@ abstract class AiBase
 
 		for(oven in ovens){
 			if(ObjectData.IsOven(oven.id) == false) continue;
-			var quadDistance = myPlayer.CalculateDistanceToObject(oven);
+			var quadDistance = myPlayer.CalculateQuadDistanceToObject(oven);
 			if(quadDistance >= bestDistance) continue;
 
 			bestDistance = quadDistance;
@@ -1563,7 +1566,7 @@ abstract class AiBase
 		}
 		if (myPlayer.isMoving()) return true;
 
-		var distance = myPlayer.CalculateDistanceToObject(dropTarget);
+		var distance = myPlayer.CalculateQuadDistanceToObject(dropTarget);
 		// var myPlayer = myPlayer.getPlayerInstance();
 
 		if (distance > 1) {
@@ -1610,7 +1613,7 @@ abstract class AiBase
 
 		if (myPlayer.isMoving()) return true;
 
-		var distance = myPlayer.CalculateDistanceToObject(foodTarget);
+		var distance = myPlayer.CalculateQuadDistanceToObject(foodTarget);
 		if (distance > 1) {
 			var done = myPlayer.gotoObj(foodTarget);
 
@@ -1770,7 +1773,7 @@ abstract class AiBase
 			Macro.exception(if (killAnimal(useTarget)) return true);
 		}
 
-		var distance = myPlayer.CalculateDistanceToObject(useTarget);
+		var distance = myPlayer.CalculateQuadDistanceToObject(useTarget);
 		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} Use: distance: $distance ${useTarget.description} ${useTarget.tx} ${useTarget.ty}');
 

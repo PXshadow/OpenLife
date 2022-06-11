@@ -976,7 +976,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				fitness += hasCloseNonBlockingGrave ? 1 : 0;
 
 				for (p in GlobalPlayerInstance.AllPlayers) {
-					var quadDist = 1 + AiHelper.CalculateDistanceToObject(p, location);
+					var quadDist = 1 + AiHelper.CalculateQuadDistanceToObject(p, location);
 					sumDistHumans += (10000 / quadDist); // 100 tiles
 				}
 
@@ -2856,7 +2856,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			text += 'H!';
 		}
 
-		var quadDist = AiHelper.CalculateDistanceToObject(player, food);
+		var quadDist = AiHelper.CalculateQuadDistanceToObject(player, food);
 		var dist = Math.round(Math.sqrt(quadDist));
 		if (dist > 9) text += '_${dist}M';
 
@@ -2875,7 +2875,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var bestfood = AiHelper.SearchBestFood(player);
 		var displayBestFood = bestfood != null
 			&& (player.isHoldingYum() == false || bestfood.objectData.getFoodId() == player.currentlyCraving)
-			&& AiHelper.CalculateDistanceToObject(player, bestfood) > 10;
+			&& AiHelper.CalculateQuadDistanceToObject(player, bestfood) > 10;
 
 		if (displayBestFood) player.displayFood(bestfood);
 	}

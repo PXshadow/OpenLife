@@ -835,7 +835,7 @@ class TimeHelper {
 		var closestHeatObj = AiHelper.GetClosestHeatObject(player);
 
 		if (closestHeatObj != null) {
-			var distance = AiHelper.CalculateDistanceToObject(player, closestHeatObj) + 1;
+			var distance = AiHelper.CalculateQuadDistanceToObject(player, closestHeatObj) + 1;
 
 			var closestHeatTemperature = closestHeatObj.objectData.heatValue / (20 * distance);
 			closestHeatTemperature *= ServerSettings.TemperatureHeatObjFactor;
