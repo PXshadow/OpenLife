@@ -3698,35 +3698,41 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var targetPlayer = getPlayerAt(this.gx + x, this.gy + y, playerId);
 		// if (targetPlayer != null) trace('doBaby($x, $y playerId: $playerId ${this.gx + x},${this.gy + y} == ${targetPlayer.tx}, ${targetPlayer.ty})');
 
+		//if(ServerSettings.debug) this.say('doBaby', true);
+
 		if (targetPlayer == null) {
+			if(ServerSettings.debug) this.say('could not find target player', true);
 			trace('doBaby: could not find target player!');
 			return false;
 		}
 
 		if (isCloseToPlayerUseExact(targetPlayer, 1.5) == false) {
+			if(ServerSettings.debug) this.say('is too far away', true);
 			trace('doBaby: x,y is too far away!');
 			return false;
 		}
 
-		if (this.o_id[0] != 0) {
-			trace('Cannot pickup player, since hands are not empty ${this.o_id[0]}!');
+		if (this.o_id[0] != 0 && this.heldObject != this.hiddenWound) {
+			//player.setHeldObject(null);
+			if(ServerSettings.debug) this.say('hands are not empty', true);
+			trace('doBaby: Cannot pickup player, since hands are not empty ${this.o_id[0]}!');
 			return false;
 		}
 
 		if (targetPlayer.age >= ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers) // TODO allow pickup of knocked out players
 		{
-			trace('Cannot pickup player, player is too old! player.age: ${targetPlayer.age}');
+			trace('doBaby: Cannot pickup player, player is too old! player.age: ${targetPlayer.age}');
 			return false;
 		}
 
 		if (this.age < targetPlayer.age + 1) {
-			trace('Cannot pickup player, you need to be one year older then player to pickup: ${this.age} < ${targetPlayer.age} + 1');
+			trace('doBaby: Cannot pickup player, you need to be one year older then player to pickup: ${this.age} < ${targetPlayer.age} + 1');
 			return false;
 		}
 
 		if (targetPlayer.heldPlayer != null) targetPlayer.dropPlayer(this.x, this.y); // TODO test
 		if (targetPlayer.heldPlayer != null) {
-			trace('Cannot pickup player, target playing is holding other player');
+			trace('doBaby: Cannot pickup player, target playing is holding other player');
 			return false;
 		}
 
