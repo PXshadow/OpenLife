@@ -592,7 +592,7 @@ class WorldMap {
 
 		this.originalObjects = objects.copy();
 
-		if (ServerSettings.debug) generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
+		if (ServerSettings.AllowDebugObjectCreation) generateExtraDebugStuff(ServerSettings.startingGx, ServerSettings.startingGy);
 	}
 
 	public function writeBackup() {

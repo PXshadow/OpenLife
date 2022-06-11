@@ -14,7 +14,8 @@ using StringTools;
 class ServerSettings {
 	// DEBUG: switch on / off
 	public static var dumpOutput = false;
-	public static var debug = false; // activates or deactivates try catch blocks and initial debug objects generation
+	public static var debug = false; // activates or deactivates try catch blocks 
+	public static var AllowDebugObjectCreation = false; // allow debug objects creation with '!CREATEALL' and generates dubug object on start
 	public static var DebugSend = false;
 	public static var DebugIncomingCommands = false;
 	public static var DebugTransitionHelper = false;

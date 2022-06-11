@@ -3967,7 +3967,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 					}
 				}
 		}*/ else if (text.indexOf('!CREATEALL') != -1) {
-			Server.server.map.generateExtraDebugStuff(player.tx, player.ty);
+			if(ServerSettings.AllowDebugObjectCreation) Server.server.map.generateExtraDebugStuff(player.tx, player.ty);
+			else {
+				player.say('CREATEALL IS DEACTIVATED', true);
+				return false;
+			}
 		} else if (text.indexOf('!CREATE') != -1) { // "create xxx" with xxx = id
 			trace('Create debug object');
 
