@@ -1077,6 +1077,14 @@ class ServerSettings {
 		// this breals making a light pulb for a radio
 		var trans = transtions.getTransition(58, 235); // Thread + Clay Bowl
 		trans.aiShouldIgnore = true; 
+		
+		// dont deconstruct tools
+		var trans = transtions.getTransition(135, 74); // Flint Chip + Fire Bow Drill
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(560, 74); // Knife + Fire Bow Drill
+		trans.aiShouldIgnore = true; 
+
 		// for debug random outcome transitions
 		/*var trans = transtions.getTransition(-1, 1195); // TIME + Blooming Squash Plant 
 			trans.autoDecaySeconds = 2;
