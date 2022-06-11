@@ -4,8 +4,6 @@ import haxe.Exception;
 import openlife.data.map.MapData;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
-import openlife.data.object.ObjectHelper;
-import openlife.data.object.player.PlayerInstance;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.transition.TransitionData;
 import openlife.data.transition.TransitionImporter;
@@ -67,6 +65,7 @@ abstract class AiBase
 	var didNotReachAnimalTarget:Float = 0;
 
 	public var movedOneTile = false;
+	public var failedCraftings = new Map<Int,Float>(); // cleared on birth
 
 	public static function StartAiThread() {
 		Thread.create(RunAi);
@@ -153,6 +152,7 @@ abstract class AiBase
 		playerToFollow = null;
 		autoStopFollow = true;
 		children = new Array<PlayerInterface>();
+		failedCraftings = new Map<Int,Float>();
 		//addTask(837); //Psilocybe Mushroom
         //addTask(134); //Flint Arrowhead
         //addTask(82); // Fire
@@ -980,14 +980,23 @@ abstract class AiBase
 		return true;
 	}
 
-	// TODO consider held object / backpack / contained objects
+	// TODO consider backpack / contained objects
 	// TODO consider if object is reachable
 	// TODO store transitions for crafting to have faster lookup
 	// TODO consider too look for a natural spawned object with the fewest steps on the list
 	private function craftItem(objId:Int, count:Int = 1, ignoreHighTech:Bool = false):Bool {
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft item ${GetName(objId)}!');
-
+		// To save time, craft only if this item crafting did not fail resently
 		var player = myPlayer.getPlayerInstance();
+		var failedTime = failedCraftings[objId];
+		var passedTimeSinceFailed = TimeHelper.CalculateTimeSinceTicksInSec(failedTime);
+		var waitTime =  ServerSettings.AiTimeToWaitIfCraftingFailed - passedTimeSinceFailed;
+		
+		if(waitTime > 0){
+			//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft item ${GetName(objId)} wait before trying again! ${waitTime}');	
+			return false;
+		}
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft item ${GetName(objId)}!');
 
 		if (itemToCraft.transActor != null && player.heldObject.parentId == itemToCraft.transActor.parentId) {
 			useActor = itemToCraft.transActor;
@@ -1040,6 +1049,7 @@ abstract class AiBase
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} craft: FAILED ${itemToCraft.itemToCraft.description} did not find any item in search radius for crafting!');
 
+			failedCraftings[objId] = TimeHelper.tick;
 			// TODO give some help to find the needed Items
 			return false;
 		}
