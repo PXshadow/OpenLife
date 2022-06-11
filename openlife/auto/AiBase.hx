@@ -860,7 +860,7 @@ abstract class AiBase
 		}
 
 		var distance = myPlayer.CalculateDistanceToPlayer(child);
-		if (distance > 1) {
+		if (distance > ServerSettings.PickupBabyMaxDistance - 0.02) {
 			var done = myPlayer.gotoAdv(child.tx, child.ty);
 
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done goto child to feed ${child.name}');

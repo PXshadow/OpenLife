@@ -3706,7 +3706,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return false;
 		}
 
-		if (isCloseToPlayerUseExact(targetPlayer, 1.5) == false) {
+		if (isCloseToPlayerUseExact(targetPlayer, ServerSettings.PickupBabyMaxDistance) == false) {
 			if(ServerSettings.debug) this.say('is too far away', true);
 			trace('doBaby: x,y is too far away!');
 			return false;
