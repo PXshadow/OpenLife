@@ -25,6 +25,11 @@ class AiHelper {
 		return CalculateQuadDistanceHelper(player.x, player.y, rx, ry);
 	}
 
+	public static function IsCloseToObject(player:PlayerInterface, obj:ObjectHelper, distance:Float):Bool {
+		var quadDistance = CalculateQuadDistanceToObject(player, obj);
+		return quadDistance <= Math.pow(distance, 2);
+	}
+
 	public static function CalculateQuadDistanceToObject(player:PlayerInterface, obj:ObjectHelper):Float {
 		var rx = WorldMap.world.transformX(player, obj.tx);
 		var ry = WorldMap.world.transformY(player, obj.ty);

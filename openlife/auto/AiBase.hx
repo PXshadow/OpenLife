@@ -1021,10 +1021,19 @@ abstract class AiBase
 			//itemToCraft.startLocation.tx = myPlayer.tx; // itemToCraft.transTarget.tx;
 			//itemToCraft.startLocation.ty = myPlayer.ty; // itemToCraft.transTarget.ty;
 
-			
+			// use home as crafting startLocation so that stuff is hopefully droped at home 
+			if(myPlayer.home != null && myPlayer.IsCloseToObject(myPlayer.home, 60)){
+				itemToCraft.startLocation.tx = myPlayer.home.tx;
+				itemToCraft.startLocation.ty = myPlayer.home.ty;
+				//trace('AAI: ${myPlayer.name + myPlayer.id} craft: startLocation --> home');
+			}
+			else{
+				itemToCraft.startLocation.tx = itemToCraft.transTarget.tx;
+				itemToCraft.startLocation.ty = itemToCraft.transTarget.ty;
 
-			itemToCraft.startLocation.tx = itemToCraft.transTarget.tx;
-			itemToCraft.startLocation.ty = itemToCraft.transTarget.ty;
+				//var quadDistance = myPlayer.home != null ? myPlayer.CalculateQuadDistanceToObject(myPlayer.home) : -1;
+				//trace('AAI: ${myPlayer.name + myPlayer.id} craft: startLocation --> transTarget home: ${myPlayer.home != null} d: ${quadDistance}');
+			}
 		}
 
 		if (itemToCraft.transActor == null) {
@@ -1769,7 +1778,7 @@ abstract class AiBase
 		// TODO crafting does not yet consider if old enough to use a bow 
 		// 152 Bow and Arrow
 		if(myPlayer.heldObject.id == 152 && useTarget.isAnimal()){
-			trace('AAI: ${myPlayer.name + myPlayer.id} Use: kill animal ${useTarget.description}');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use: kill animal ${useTarget.description}');
 			Macro.exception(if (killAnimal(useTarget)) return true);
 		}
 
