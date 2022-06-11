@@ -408,7 +408,8 @@ abstract class AiBase
 
 		// Back clothing
 		// 198 Backpack
-		if(myPlayer.age > 25 && craftClothIfNeeded(198)) return true;
+		// TODO fix bug picking up backpack (AI drops item in it and then instead of picking up puts item out of it)
+		//if(myPlayer.age > 25 && craftClothIfNeeded(198)) return true;
 
 		return false;
 	}
