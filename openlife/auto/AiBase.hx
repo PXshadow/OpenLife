@@ -238,7 +238,13 @@ abstract class AiBase
 		//Macro.exception(if (didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat());
 		Macro.exception(checkIsHungryAndEat());
 		Macro.exception(if (myPlayer.age < ServerSettings.MinAgeToEat && isHungry) {
-			isMovingToPlayer(2);
+			if(isMovingToPlayer(5)) return;
+			// if close enough to mother wait before trying to move again
+			// otherwise child wants to catch mother and mother child but both run around
+			// TODO move to tile which is closest to target
+			isMovingToPlayer(3);
+			this.time += 2.5; 
+			
 			return;
 		}); // go close to mother and wait for mother to feed
 		Macro.exception(if (isChildAndHasMother()) {
