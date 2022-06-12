@@ -310,6 +310,7 @@ abstract class AiBase
 
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
+		if(itemToCraftId == 31) itemToCraftId = -1; // Gooseberry
 		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
 
 		Macro.exception(if(gatherStuff()) return);
