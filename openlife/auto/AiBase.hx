@@ -369,7 +369,7 @@ abstract class AiBase
 			trace('AAI: ${myPlayer.name + myPlayer.id} handle heat dist: $quadDistance goto $text $done');
 			
 
-		return true;
+		return done;
 	}
 	
 
