@@ -395,7 +395,11 @@ abstract class AiBase
 		if(craftItem(197)) return true; // Cooked Rabbit
 		if(craftItem(570)) return true; // Cooked Mutton
 		if(craftItem(1285)) return true; // Omelette
-		if(craftItem(40)) return true; // Wild Carrot
+
+		if(craftItem(272)) return true; // Cooked Berry Pie
+		if(craftItem(229)) return true; // Wet Planted Wheat
+	
+		if(craftItem(40)) return true; // Wild Carrot		
 		if(craftItem(807)) return true; // Burdock Root		
 		if(craftItem(808)) return true; // Wild Onion
 		if(craftItem(4252)) return true; // Wild Garlic
