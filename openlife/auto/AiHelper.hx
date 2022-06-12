@@ -1046,6 +1046,7 @@ class TransitionForObject {
 }
 
 class IntemToCraft {
+	public var ai:AiBase;
 	public var itemToCraft:ObjectData;
 	public var count:Int = 0; // how many items to craft
 	public var countDone:Int = 0; // allready crafted

@@ -799,8 +799,73 @@ class TimeHelper {
 
 		player.timeLastTemperatureCalculation = TimeHelper.tick;
 
-		var temperature = calculateTemperature(player);
+		var temperature = calculateTemperature(player, player.tx, player.ty);	
+		
+		var closestHeatObj = AiHelper.GetClosestHeatObject(player);
 
+		// TODO move inside calculateTemperature so that it is considered for olf cold / hot place
+		if (closestHeatObj != null) {
+			var distance = AiHelper.CalculateQuadDistanceToObject(player, closestHeatObj) + 1;
+
+			var closestHeatTemperature = closestHeatObj.objectData.heatValue / (20 * distance);
+			closestHeatTemperature *= ServerSettings.TemperatureHeatObjFactor;
+			temperature += closestHeatTemperature;
+
+			// use only half impact of close heat object if negative
+			if (player.heat < 0.5 && closestHeatTemperature < 0) {
+				temperature -= closestHeatTemperature / 2;
+				//if (temperature > 0.5) temperature = 0.5;
+			}
+			if (player.heat > 0.5 && closestHeatTemperature > 0) {
+				temperature -= closestHeatTemperature / 2;
+				//if (temperature < 0.5) temperature = 0.5;
+			}
+
+			//trace('${closestHeatObj.description} Heat: ${closestHeatObj.objectData.heatValue} value: $closestHeatTemperature distance: $distance');
+		}
+
+		// set cold / hot place
+		if(temperature > 0.55){
+			if(player.warmPlace == null){
+				player.warmPlace = new ObjectHelper(null, 0);
+				player.warmPlace.tx = player.tx;
+				player.warmPlace.ty = player.ty;
+			}
+			else{
+				var warmPlace = player.warmPlace;
+				var quadDist = AiHelper.CalculateDistance(player.tx, player.ty, warmPlace.tx, warmPlace.ty);
+				var warmPlaceTemperature = calculateTemperature(player, warmPlace.tx, warmPlace.ty);	
+				var oldfitness = (warmPlaceTemperature - 0.5)  / (quadDist + 1);
+				var newfitness = (temperature - 0.5);
+				if(newfitness >= oldfitness){
+					warmPlace.tx = player.tx;
+					warmPlace.ty = player.ty;
+				}
+				//trace('heat: found warm Place');
+			}
+		}
+		if(temperature < 0.45){
+			if(player.coldPlace == null){
+				player.coldPlace = new ObjectHelper(null, 0);
+				player.coldPlace.tx = player.tx;
+				player.coldPlace.ty = player.ty;
+			}
+			else{
+				var coldPlace = player.coldPlace;
+				var quadDist = AiHelper.CalculateDistance(player.tx, player.ty, coldPlace.tx, coldPlace.ty);
+				var coldPlaceTemperature = calculateTemperature(player, coldPlace.tx, coldPlace.ty);	
+				var oldfitness = (0.5 - coldPlaceTemperature)  / (quadDist + 1);
+				var newfitness = (0.5 - temperature);
+				if(newfitness >= oldfitness){
+					coldPlace.tx = player.tx;
+					coldPlace.ty = player.ty;
+				}
+
+				//trace('heat: found cold Place');
+			}
+		}
+
+		// apply clothing temp
 		var clothingInsulation = player.calculateClothingInsulation(); // clothing insulation can be between 0 and 2 for now
 
 		var clothingHeatProtection = player.calculateClothingHeatProtection(); // (1-Insulation) clothing heat protection can be between 0 and 2 for now
@@ -830,29 +895,7 @@ class TimeHelper {
 		var clothingFactor = temperature < 0.5 ? insulationFactor : heatProtectionFactor;
 
 		//if (player.heat < 0.5 && player.heat < temperature) clothingFactor -= 0.1; // heating is positiv, so allow it more
-		//else if (player.heat > 0.5 && player.heat > temperature) clothingFactor -= 0.1; // cooling is positiv, so allow it more
-
-		var closestHeatObj = AiHelper.GetClosestHeatObject(player);
-
-		if (closestHeatObj != null) {
-			var distance = AiHelper.CalculateQuadDistanceToObject(player, closestHeatObj) + 1;
-
-			var closestHeatTemperature = closestHeatObj.objectData.heatValue / (20 * distance);
-			closestHeatTemperature *= ServerSettings.TemperatureHeatObjFactor;
-			temperature += closestHeatTemperature;
-
-			// use only half impact of close heat object if negative
-			if (player.heat < 0.5 && closestHeatTemperature < 0) {
-				temperature -= closestHeatTemperature / 2;
-				//if (temperature > 0.5) temperature = 0.5;
-			}
-			if (player.heat > 0.5 && closestHeatTemperature > 0) {
-				temperature -= closestHeatTemperature / 2;
-				//if (temperature < 0.5) temperature = 0.5;
-			}
-
-			//trace('${closestHeatObj.description} Heat: ${closestHeatObj.objectData.heatValue} value: $closestHeatTemperature distance: $distance');
-		}
+		//else if (player.heat > 0.5 && player.heat > temperature) clothingFactor -= 0.1; // cooling is positiv, so allow it more	
 
 		// consider held object heat
 		var heldObjectData = player.heldObject.objectData;
@@ -931,9 +974,9 @@ class TimeHelper {
 	}
 
 	// Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
-	private static function calculateTemperature(player:GlobalPlayerInstance):Float {
+	private static function calculateTemperature(player:GlobalPlayerInstance, tx:Int, ty:Int):Float {
 		var maxBiomeDistance = 10;
-		var biome = WorldMap.worldGetBiomeId(player.tx, player.ty);
+		var biome = WorldMap.worldGetBiomeId(tx, ty);
 		var originalBiomeTemperature = Biome.getBiomeTemperature(biome);
 		var biomeTemperature = originalBiomeTemperature;
 
@@ -941,43 +984,43 @@ class TimeHelper {
 		if (biome == BiomeTag.GREEN || biome == BiomeTag.YELLOW || biome == BiomeTag.GREY) {
 			// direct x / y
 			for (ii in 1...maxBiomeDistance - 1) {
-				biomeTemperature = CalculateTemperatureAtPosition(player.tx + ii, player.ty, "+X", ii, maxBiomeDistance, biomeTemperature);
+				biomeTemperature = CalculateTemperatureAtPosition(tx + ii, ty, "+X", ii, maxBiomeDistance, biomeTemperature);
 				if (biomeTemperature != originalBiomeTemperature) break;
 			}
 
 			for (ii in 1...maxBiomeDistance - 1) {
-				biomeTemperature = CalculateTemperatureAtPosition(player.tx - ii, player.ty, "-X", ii, maxBiomeDistance, biomeTemperature);
+				biomeTemperature = CalculateTemperatureAtPosition(tx - ii, ty, "-X", ii, maxBiomeDistance, biomeTemperature);
 				if (biomeTemperature != originalBiomeTemperature) break;
 			}
 
 			for (ii in 1...maxBiomeDistance - 1) {
-				biomeTemperature = CalculateTemperatureAtPosition(player.tx, player.ty + ii, "+Y", ii, maxBiomeDistance, biomeTemperature);
+				biomeTemperature = CalculateTemperatureAtPosition(tx, ty + ii, "+Y", ii, maxBiomeDistance, biomeTemperature);
 				if (biomeTemperature != originalBiomeTemperature) break;
 			}
 
 			for (ii in 1...maxBiomeDistance - 1) {
-				biomeTemperature = CalculateTemperatureAtPosition(player.tx, player.ty - ii, "-Y", ii, maxBiomeDistance, biomeTemperature);
+				biomeTemperature = CalculateTemperatureAtPosition(tx, ty - ii, "-Y", ii, maxBiomeDistance, biomeTemperature);
 				if (biomeTemperature != originalBiomeTemperature) break;
 			}
 
 			// diagonal x / y
 			for (ii in 1...maxBiomeDistance - 1) {
-				biomeTemperature = CalculateTemperatureAtPosition(player.tx + ii, player.ty + ii, "+X+Y", ii, maxBiomeDistance, biomeTemperature);
+				biomeTemperature = CalculateTemperatureAtPosition(tx + ii, ty + ii, "+X+Y", ii, maxBiomeDistance, biomeTemperature);
 				if (biomeTemperature != originalBiomeTemperature) break;
 			}
 
 			for (ii in 1...maxBiomeDistance - 1) {
-				biomeTemperature = CalculateTemperatureAtPosition(player.tx - ii, player.ty - ii, "-X-Y", ii, maxBiomeDistance, biomeTemperature);
+				biomeTemperature = CalculateTemperatureAtPosition(tx - ii, ty - ii, "-X-Y", ii, maxBiomeDistance, biomeTemperature);
 				if (biomeTemperature != originalBiomeTemperature) break;
 			}
 
 			for (ii in 1...maxBiomeDistance - 1) {
-				biomeTemperature = CalculateTemperatureAtPosition(player.tx - ii, player.ty + ii, "-X+Y", ii, maxBiomeDistance, biomeTemperature);
+				biomeTemperature = CalculateTemperatureAtPosition(tx - ii, ty + ii, "-X+Y", ii, maxBiomeDistance, biomeTemperature);
 				if (biomeTemperature != originalBiomeTemperature) break;
 			}
 
 			for (ii in 1...maxBiomeDistance - 1) {
-				biomeTemperature = CalculateTemperatureAtPosition(player.tx + ii, player.ty - ii, "+X-Y", ii, maxBiomeDistance, biomeTemperature);
+				biomeTemperature = CalculateTemperatureAtPosition(tx + ii, ty - ii, "+X-Y", ii, maxBiomeDistance, biomeTemperature);
 				if (biomeTemperature != originalBiomeTemperature) break;
 			}
 		}

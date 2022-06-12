@@ -77,4 +77,10 @@ interface PlayerInterface {
 	public function getCraving():Int;
 	public function getCountEaten(foodId:Int):Float;
 	public function getColor():Int;
+
+	public function isSuperHot():Bool;
+	public function isSuperCold():Bool;
+
+	public var coldPlace(default, default):ObjectHelper;
+	public var warmPlace(default, default):ObjectHelper;
 }

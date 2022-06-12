@@ -286,6 +286,7 @@ abstract class AiBase
 
 		if (myPlayer.isMoving()) return;
 		Macro.exception(if (isPickingupCloths()) return);
+		Macro.exception(if(handleTemperature()) return);
 		
 		// if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
 
@@ -331,6 +332,45 @@ abstract class AiBase
 			else if(rand < 0.2) myPlayer.say('nothing to do...');
 		}
 	}
+
+	private function handleTemperature() : Bool {
+		var goodPlace = null;
+		var text = '';
+
+		// TODO wait little longer
+		if(myPlayer.isSuperHot()){
+			//trace('AAI: ${myPlayer.name + myPlayer.id} handle heat: too hot');
+			goodPlace = myPlayer.coldPlace;
+			text = 'cool';
+		}
+		else if(myPlayer.isSuperCold()){
+			//trace('AAI: ${myPlayer.name + myPlayer.id} handle heat: too cold');
+			goodPlace = myPlayer.warmPlace;
+			text = 'heat';
+		}
+
+		if(goodPlace == null) return false;
+
+		var quadDistance = myPlayer.CalculateQuadDistanceToObject(goodPlace);
+
+		trace('AAI: ${myPlayer.name + myPlayer.id} handle heat dist: $quadDistance wait $text');
+
+		if (quadDistance < 3){
+			this.time += 2; // just relax
+			return true;
+		}
+
+		var done = myPlayer.gotoObj(goodPlace);
+	
+		myPlayer.say('going to $text');
+
+		//if (ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} handle heat dist: $quadDistance goto $text $done');
+			
+
+		return true;
+	}
+	
 
 	private function gatherStuff() : Bool {
 		if(myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound){
@@ -1000,6 +1040,8 @@ abstract class AiBase
 	// TODO store transitions for crafting to have faster lookup
 	// TODO consider too look for a natural spawned object with the fewest steps on the list
 	private function craftItem(objId:Int, count:Int = 1, ignoreHighTech:Bool = false):Bool {
+		itemToCraft.ai = this;
+
 		// To save time, craft only if this item crafting did not fail resently
 		var player = myPlayer.getPlayerInstance();
 		var failedTime = failedCraftings[objId];
@@ -1276,11 +1318,11 @@ abstract class AiBase
 		var descActor = itemToCraft.transActor == null ? 'NA' : itemToCraft.transActor.name;
 		var descTarget = itemToCraft.transTarget == null ? 'NA' : itemToCraft.transTarget.name;
 
-		// TODO fix name == null
-		if (itemToCraft.transActor != null && itemToCraft.transActor.name == null)
+		/*if (itemToCraft.transActor != null && itemToCraft.transActor.name == null)
 			descActor += itemToCraft.transActor == null ? '' : ' ${itemToCraft.transActor.id} ${itemToCraft.transActor.description}';
 		if (itemToCraft.transTarget != null && itemToCraft.transTarget.name == null)
 			descTarget += itemToCraft.transTarget == null ? '' : ' ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}';
+		*/
 
 		if (ServerSettings.DebugAiCrafting)
 			trace('AI: craft: FOUND $count ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
@@ -1445,7 +1487,7 @@ abstract class AiBase
 		var obj = transitionsByObjectId[itemToCraft.itemToCraft.id];
 		var objNoTimeWantedIndex = -1;
 		var index = 0;
-
+		
 		itemToCraft.craftingList = new Array<Int>();
 		itemToCraft.craftingTransitions = new Array<TransitionData>();
 
@@ -1511,8 +1553,9 @@ abstract class AiBase
 		}
 
 		var objToCraft = ObjectData.getObjectData(itemToCraft.itemToCraft.id);
-		if (ServerSettings.DebugAiCrafting) trace('Ai: craft DONE items: ${objToCraft.name}: ${itemToCraft.craftingList.length} $text');
-		if (ServerSettings.DebugAiCrafting) trace('Ai: craft DONE trans: ${objToCraft.name}: ${itemToCraft.craftingTransitions.length} $textTrans');
+		var myPlayer = itemToCraft.ai.myPlayer;
+		if (ServerSettings.DebugAiCrafting) trace('Ai: ${myPlayer.name + myPlayer.id} craft DONE items: ${objToCraft.name}: ${itemToCraft.craftingList.length} $text');
+		if (ServerSettings.DebugAiCrafting) trace('Ai: ${myPlayer.name + myPlayer.id} craft DONE trans: ${objToCraft.name}: ${itemToCraft.craftingTransitions.length} $textTrans');
 	}
 
 	private function isMovingToHome(maxDistance = 3):Bool {
