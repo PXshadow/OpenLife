@@ -573,6 +573,12 @@ abstract class AiBase
 		// get empty tile
 		if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectById(0);
 
+		// dont drop on a pile if last transition removed it from similar pile // like picking a bowl from a pile to put it then back on a pile
+		if(newDropTarget.id > 0 && itemToCraft.lastNewTargetId == newDropTarget.id){
+			trace('AAI: ${myPlayer.name + myPlayer.id} ${newDropTarget.name} dont drop on pile where item was just taken from');
+			newDropTarget = myPlayer.GetClosestObjectById(0);			
+		}
+
 		if (newDropTarget.id == 0){
 			this.dropIsAUse = false;
 			this.dropTarget = newDropTarget;
@@ -1023,7 +1029,13 @@ abstract class AiBase
 			itemToCraft.count = count;
 			itemToCraft.countDone = 0;
 			itemToCraft.countTransitionsDone = 0;
+			itemToCraft.lastActorId = -1;
+			itemToCraft.lastTargetId = -1;
+			itemToCraft.lastNewActorId = -1;
+			itemToCraft.lastNewTargetId = -1;
+
 			itemToCraft.transitionsByObjectId = myPlayer.SearchTransitions(objId, ignoreHighTech);
+
 
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} new item to craft: ${itemToCraft.itemToCraft.description}!');
 		}
@@ -1867,12 +1879,15 @@ abstract class AiBase
 				return true;
 			}	
 			else{			
+				var taregtObjectId = myPlayer.getWorld().getObjectId(useTarget.tx, useTarget.ty)[0];
+				
 				itemToCraft.done = true;
 				itemToCraft.countTransitionsDone += 1;
 				itemToCraft.lastActorId = useActorId;
 				itemToCraft.lastTargetId = useTargetId;
+				itemToCraft.lastNewActorId = myPlayer.heldObject.id;
+				itemToCraft.lastNewTargetId = taregtObjectId;
 
-				var taregtObjectId = myPlayer.getWorld().getObjectId(useTarget.tx, useTarget.ty)[0];
 				// if object to create is held by player or is on ground, then cound as done
 				if (myPlayer.heldObject.parentId == itemToCraft.itemToCraft.parentId
 					|| taregtObjectId == itemToCraft.itemToCraft.parentId) itemToCraft.countDone += 1;

@@ -1067,6 +1067,8 @@ class IntemToCraft {
 
 	public var lastActorId = -1;
 	public var lastTargetId = -1;
+	public var lastNewActorId = -1;
+	public var lastNewTargetId = -1;
 
 	public function new() {
 		itemToCraft = ObjectData.getObjectData(0);
