@@ -352,6 +352,9 @@ abstract class AiBase
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather!');
 
+		if(craftItem(197)) return true; // Cooked Rabbit
+		if(craftItem(570)) return true; // Cooked Mutton
+		if(craftItem(1285)) return true; // Omelette
 		if(craftItem(40)) return true; // Wild Carrot
 		if(craftItem(807)) return true; // Burdock Root		
 		if(craftItem(808)) return true; // Wild Onion
