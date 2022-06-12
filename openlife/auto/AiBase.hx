@@ -433,8 +433,8 @@ abstract class AiBase
 			if(ServerSettings.DebugAiSay) myPlayer.say('Craft ${objData.name} to wear...');
 			return true;
 		}
-		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} could not craft clothing ${objData.name}');
-		if(ServerSettings.DebugAiSay) myPlayer.say('Could not craft ${objData.name} to wear...');
+		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} could not craft clothing ${objData.name}');
+		//if(ServerSettings.DebugAiSay) myPlayer.say('Could not craft ${objData.name} to wear...');
 		return false;
 	}
 
@@ -1285,6 +1285,11 @@ abstract class AiBase
 			if (objToCraftPileId > 0 && trans.targetID == objToCraftPileId) continue;
 			//if (trans.aiShouldIgnore) trace('Ígnore ${trans.getDesciption()}');
 			if (trans.aiShouldIgnore) continue;
+			// dont undo last transition // Should solve Taking a Rabit Fur from a pile if in the last transition the Ai put it on the pile
+			if (trans.newActorID == itemToCraft.lastActorId && trans.newTargetID == itemToCraft.lastTargetId){
+				//trace('Ignore transition since it undos last: ${trans.getDesciption()}');
+				continue;
+			}
 
 			// a oven needs 15 sec to warm up this is ok, but waiting for mushroom to grow is little bit too long!
 			if (trans.calculateTimeToChange() > ServerSettings.AiIgnoreTimeTransitionsLongerThen) continue;
@@ -1840,7 +1845,9 @@ abstract class AiBase
 			dropHeldObject();
 			return true;
 		}
-
+		
+		var useActorId = myPlayer.heldObject.id;
+		var useTargetId = useTarget.id;
 		// x,y is relativ to birth position, since this is the center of the universe for a player
 		var done = myPlayer.use(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
 
@@ -1862,6 +1869,9 @@ abstract class AiBase
 			else{			
 				itemToCraft.done = true;
 				itemToCraft.countTransitionsDone += 1;
+				itemToCraft.lastActorId = useActorId;
+				itemToCraft.lastTargetId = useTargetId;
+
 				var taregtObjectId = myPlayer.getWorld().getObjectId(useTarget.tx, useTarget.ty)[0];
 				// if object to create is held by player or is on ground, then cound as done
 				if (myPlayer.heldObject.parentId == itemToCraft.itemToCraft.parentId

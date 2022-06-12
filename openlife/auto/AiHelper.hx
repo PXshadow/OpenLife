@@ -1065,6 +1065,9 @@ class IntemToCraft {
 
 	public var startLocation:ObjectHelper = null;
 
+	public var lastActorId = -1;
+	public var lastTargetId = -1;
+
 	public function new() {
 		itemToCraft = ObjectData.getObjectData(0);
 	}
