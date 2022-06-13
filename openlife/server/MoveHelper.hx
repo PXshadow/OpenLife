@@ -439,8 +439,10 @@ class MoveHelper {
 		player.forced = true;
 		player.connection.send(PLAYER_UPDATE, [player.toData()]);
 		player.forced = false;
-		player.moveHelper.waitForForce = true;
-		player.moveHelper.timeLastForce = TimeHelper.tick;
+		if (player.isHuman()){
+			player.moveHelper.waitForForce = true;
+			player.moveHelper.timeLastForce = TimeHelper.tick;
+		}
 
 		return true;
 	}
