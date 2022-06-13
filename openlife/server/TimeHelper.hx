@@ -402,7 +402,7 @@ class TimeHelper {
 			// player.exhaustion += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec * isHeldFaktor;
 			// player.hits += timePassedInSeconds * ServerSettings.ExhaustionYellowFeverPerSec * 0.05 * isHeldFaktor;
 
-			player.heat += timePassedInSeconds * 0.1 * isHeldFaktor;
+			player.heat += timePassedInSeconds * 0.05 * isHeldFaktor;
 			if (player.heat > 1) player.heat = 1;
 
 			player.food_store_max = player.calculateFoodStoreMax();

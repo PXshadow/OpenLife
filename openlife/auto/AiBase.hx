@@ -347,7 +347,7 @@ abstract class AiBase
 
 		time += 2;
 
-		//if (ServerSettings.DebugAi)
+		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} good bye!');
 		
 		return true;
