@@ -639,13 +639,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				obj.coldPlace = new ObjectHelper(null, 0);
 				obj.coldPlace.tx = obj.storedInt['coldTx'];
 				obj.coldPlace.ty = obj.storedInt['coldTy'];
-				trace('loaded cold: ${obj.coldPlace.tx} ${obj.coldPlace.ty}');
+				//trace('loaded cold: ${obj.coldPlace.tx} ${obj.coldPlace.ty}');
 			}
 			if(obj.storedInt.exists('warmTx')){
 				obj.warmPlace = new ObjectHelper(null, 0);
 				obj.warmPlace.tx = obj.storedInt['warmTx'];
 				obj.warmPlace.ty = obj.storedInt['warmTy'];
-				trace('loaded warm: ${obj.warmPlace.tx} ${obj.warmPlace.ty}');
+				//trace('loaded warm: ${obj.warmPlace.tx} ${obj.warmPlace.ty}');
 			}
 
 			// trace('Home: ${obj.name} ${obj.home.tx} ${obj.home.ty} biome: ${WorldMap.world.getBiomeId(obj.home.tx, obj.home.ty)}');
@@ -1101,6 +1101,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.trueAge = 0.01;
 		gx = mother.tx;
 		gy = mother.ty;
+
+		this.warmPlace = mother.warmPlace;	
+		this.coldPlace = mother.coldPlace;
+		if(this.warmPlace == null && this.father != null) this.warmPlace = father.warmPlace;
+		if(this.coldPlace == null && this.father != null) this.coldPlace = father.coldPlace;
 		// if(gx < -WorldMap.world.width) gx += WorldMap.world.width;
 		// if(gx >= WorldMap.world.width) gx -= WorldMap.world.width;
 		// if(gy < -WorldMap.world.height) gy += WorldMap.world.height;
