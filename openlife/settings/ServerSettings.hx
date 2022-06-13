@@ -1086,6 +1086,12 @@ class ServerSettings {
 		var trans = transtions.getTransition(560, 74); // Knife + Fire Bow Drill
 		trans.aiShouldIgnore = true; 
 
+		var trans = transtions.getTransition(2365, 3966); // 2365 Diesel Engine + 3966 Empty Scrap Box
+		trans.aiShouldIgnore = true; 
+		
+		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
+		//trace('DEBUG: ${trans.getDesciption()}');
+
 		// for debug random outcome transitions
 		/*var trans = transtions.getTransition(-1, 1195); // TIME + Blooming Squash Plant 
 			trans.autoDecaySeconds = 2;
