@@ -385,7 +385,8 @@ class TransitionHelper {
 		var deadlyDistance = player.heldObject.objectData.deadlyDistance;
 
 		// can only shoot at target with bow if not too close
-		if (deadlyDistance > 1.9 && this.target.id != 0 && player.isCloseUseExact(this.target.tx, this.target.ty, 1.5)) {
+		//if (deadlyDistance > 1.9 && this.target.id != 0 && player.isCloseUseExact(this.target.tx, this.target.ty, 1.5)) {
+		if (deadlyDistance > 1.9 && this.target.isAnimal() && player.isCloseUseExact(this.target.tx, this.target.ty, 1.5)) {
 			player.say('Too close...');
 			return false;
 		}
