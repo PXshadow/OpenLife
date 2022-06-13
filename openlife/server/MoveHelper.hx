@@ -403,7 +403,7 @@ class MoveHelper {
 		GlobalPlayerInstance.AllPlayerMutex.release();
 	}
 
-	static public function JumpToNonBlocked(player:GlobalPlayerInstance):Bool {
+	static public function JumpToNonBlocked(player:GlobalPlayerInstance, seq:Int = -1):Bool {
 		var rand = 0;
 		var tx = player.tx;
 		var ty = player.ty;
@@ -435,6 +435,13 @@ class MoveHelper {
 			break;
 		}
 
+		if(seq > 0) player.done_moving_seqNum = seq;
+		player.forced = true;
+		player.connection.send(PLAYER_UPDATE, [player.toData()]);
+		player.forced = false;
+		player.moveHelper.waitForForce = true;
+		player.moveHelper.timeLastForce = TimeHelper.tick;
+
 		return true;
 	}
 
@@ -461,13 +468,7 @@ class MoveHelper {
 
 		if (p.isHeld()) p.jump();
 
-		if (JumpToNonBlocked(p)) {			
-			p.done_moving_seqNum = seq;
-			p.forced = true;
-			p.connection.send(PLAYER_UPDATE, [p.toData()]);
-			p.forced = false;
-			return;
-		}
+		if (JumpToNonBlocked(p, seq)) return;
 
 		// since world is round check if moved one time around the world
 		var width = WorldMap.world.width;
