@@ -354,8 +354,9 @@ abstract class AiBase
 		if(goodPlace == null) return false;
 
 		var quadDistance = myPlayer.CalculateQuadDistanceToObject(goodPlace);
+		var biomeId = WorldMap.world.getBiomeId(goodPlace.tx, goodPlace.ty);
 
-		trace('AAI: ${myPlayer.name + myPlayer.id} handle heat dist: $quadDistance wait $text');
+		trace('AAI: ${myPlayer.name + myPlayer.id} handle $text dist: $quadDistance wait heat: ${Math.round(myPlayer.heat * 100) / 100}  b: ${biomeId}');
 
 		if (quadDistance < 3){
 			this.time += 2; // just relax
@@ -367,7 +368,7 @@ abstract class AiBase
 		myPlayer.say('going to $text');
 
 		//if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} handle heat dist: $quadDistance goto $text $done');
+			trace('AAI: ${myPlayer.name + myPlayer.id} handle $text dist: $quadDistance goto: $done');
 			
 
 		return done;

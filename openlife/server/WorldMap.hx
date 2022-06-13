@@ -294,11 +294,11 @@ class WorldMap {
 		if(targetBiome == BiomeTag.OCEAN) return true;
 		return false;
 	} **/
-	public static function worldGetBiomeId(x:Int, y:Int):Int {
+	public static function worldGetBiomeId(x:Int, y:Int):BiomeTag {
 		return Server.server.map.getBiomeId(x, y);
 	}
 
-	public function getBiomeId(x:Int, y:Int):Int {
+	public function getBiomeId(x:Int, y:Int):BiomeTag {
 		return biomes[index(x, y)];
 	}
 	

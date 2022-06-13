@@ -39,6 +39,7 @@ interface PlayerInterface {
 	public var food_store_max(default, default):Float;
 	public var age(default, default):Float;
 	public var hits(default, default):Float;
+	public var heat(default, default):Float;
 
 	public var mother(get, null):PlayerInterface;
 	public var heldObject(default, default):ObjectHelper;
