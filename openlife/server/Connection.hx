@@ -96,7 +96,9 @@ class Connection {
 			lastLivingPlayer.moveHelper.exactTx = tx;
 			lastLivingPlayer.moveHelper.exactTy = ty;
 
-			if(lastLivingPlayer.heldPlayer != null) lastLivingPlayer.dropPlayer(0,0);
+			// TODO test
+			if(lastLivingPlayer.heldPlayer != null) lastLivingPlayer.dropPlayer(lastLivingPlayer.x,lastLivingPlayer.y);
+			if(lastLivingPlayer.heldByPlayer != null) lastLivingPlayer.heldByPlayer.dropPlayer(lastLivingPlayer.heldByPlayer.x,lastLivingPlayer.heldByPlayer.y);
 
 			Macro.exception(initConnection(lastLivingPlayer, this.playerAccount));
 
