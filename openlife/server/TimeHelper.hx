@@ -604,11 +604,7 @@ class TimeHelper {
 					player.connection.sendGlobalMessage(textFromSiblings);
 				} else if (Std.int(player.trueAge) % 6 == 0) {
 					var text = player.prestigeFromWealth > 5 ? 'You have gained ${player.prestigeFromWealth * factor} prestige from your wealth!' : '';
-					player.connection.sendGlobalMessage(text);
-	
-					var coins:Float = Std.int(player.coins);
-					var text = coins >= 10 ? 'You have ${coins} coins! You can use: I give you IXC' : '';
-					player.connection.sendGlobalMessage(text);
+					player.connection.sendGlobalMessage(text);		
 				} else if (Std.int(player.trueAge) % 10 == 0) {
 					var prestigeFromChildren = Math.floor(player.prestigeFromChildren);
 					var prestigeFromFollowers = Math.floor(player.prestigeFromFollowers);
@@ -623,6 +619,12 @@ class TimeHelper {
 					player.connection.sendGlobalMessage(textFromFollowers);
 					player.connection.sendGlobalMessage(textFromEating);
 				}
+			}
+
+			if (Std.int(player.trueAge) % 10 == 0){ 
+				var coins:Float = Std.int(player.coins);
+				var text = coins >= 10 ? 'You have ${coins} coins! You can use: I give you IXC' : '';
+				player.connection.sendGlobalMessage(text);
 			}
 
 			ScoreEntry.ProcessScoreEntry(player);
