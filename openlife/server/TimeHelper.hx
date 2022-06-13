@@ -837,8 +837,8 @@ class TimeHelper {
 				var warmPlace = player.warmPlace;
 				var quadDist = AiHelper.CalculateDistance(player.tx, player.ty, warmPlace.tx, warmPlace.ty);
 				var warmPlaceTemperature = calculateTemperature(player, warmPlace.tx, warmPlace.ty);	
-				var oldfitness = (warmPlaceTemperature - 0.5)  / (quadDist + 1);
-				var newfitness = (temperature - 0.5);
+				var oldfitness = (warmPlaceTemperature - 0.5)  / (quadDist + 100);
+				var newfitness = (temperature - 0.5) / 100;
 				if(newfitness >= oldfitness){
 					warmPlace.tx = player.tx;
 					warmPlace.ty = player.ty;
@@ -856,8 +856,8 @@ class TimeHelper {
 				var coldPlace = player.coldPlace;
 				var quadDist = AiHelper.CalculateDistance(player.tx, player.ty, coldPlace.tx, coldPlace.ty);
 				var coldPlaceTemperature = calculateTemperature(player, coldPlace.tx, coldPlace.ty);	
-				var oldfitness = (0.5 - coldPlaceTemperature)  / (quadDist + 1);
-				var newfitness = (0.5 - temperature);
+				var oldfitness = (0.5 - coldPlaceTemperature)  / (quadDist + 100);
+				var newfitness = (0.5 - temperature) / 100;
 				if(newfitness >= oldfitness){
 					coldPlace.tx = player.tx;
 					coldPlace.ty = player.ty;
