@@ -8,6 +8,7 @@ import openlife.data.object.player.PlayerInstance;
 import openlife.data.transition.TransitionData;
 import openlife.data.transition.TransitionImporter;
 import openlife.macros.Macro;
+import openlife.server.Biome.BiomeTag;
 import openlife.server.Connection;
 import openlife.server.GlobalPlayerInstance;
 import openlife.server.NamingHelper;
@@ -1594,7 +1595,6 @@ abstract class AiBase
 		var home = myPlayer.home;
 		var obj = home == null ? [0] : world.getObjectId(home.tx, home.ty);
 		
-		// TODO check loved biome
 		// a home is where a oven is // TODO rebuild Oven if Rubble
 		if(ObjectData.IsOven(obj[0]) || obj[0] == 753) return false; // 237 Adobe Oven // 753 Adobe Rubble
 
@@ -1602,13 +1602,19 @@ abstract class AiBase
 		var bestDistance = Math.pow(80,2);
 		var ovens = [for (obj in WorldMap.world.ovens) obj];
 
-		for(oven in ovens){
-			if(ObjectData.IsOven(oven.id) == false) continue;
-			var quadDistance = myPlayer.CalculateQuadDistanceToObject(oven);
+		for(possibleHome in ovens){
+			if(ObjectData.IsOven(possibleHome.id) == false) continue;
+			
+			var originalBiomeId = world.getOriginalBiomeId(possibleHome.tx, possibleHome.ty);
+			// TODO check loved biome
+			// For ginger rock biome should be ok
+			if(originalBiomeId == BiomeTag.SWAMP) continue;
+
+			var quadDistance = myPlayer.CalculateQuadDistanceToObject(possibleHome);
 			if(quadDistance >= bestDistance) continue;
 
 			bestDistance = quadDistance;
-			bestHome = oven;
+			bestHome = possibleHome;
 		}
 
 		if(bestHome != null){
