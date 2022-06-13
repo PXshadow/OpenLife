@@ -829,7 +829,8 @@ abstract class AiBase
 			this.feedingPlayerTarget = null;
 			// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name}');
 			trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name} fs: ${Math.round(targetPlayer.food_store*10)/10}');
-			this.dropHeldObject(); // since food might be too big to feed
+			// if droped it can be stuck in a cyle if it want for example craft carrot and picks it up again. return true instead of false might also solve this
+			//this.dropHeldObject(); // since food might be too big to feed
 			return false;
 		}
 
