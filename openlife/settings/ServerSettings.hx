@@ -368,7 +368,7 @@ class ServerSettings {
 		}
 
 		// set floor decay
-		ObjectData.getObjectData(1596).decayFactor = 0.1; // 1596 Stone Road
+		ObjectData.getObjectData(1596).decayFactor = 0.2; // 1596 Stone Road
 		ObjectData.getObjectData(1596).decaysToObj = 291; // 1596 Stone Road ==> 291 Flat Rock
 
 		ObjectData.getObjectData(884).decayFactor = 0.001; // 884 Stone Floor
@@ -401,6 +401,26 @@ class ServerSettings {
 		ObjectData.getObjectData(4201).decaysToObj = 753; // 4201 Adobe Rubble
 		ObjectData.getObjectData(753).decayFactor = 0.1; // 753 Adobe Rubble
 
+		// high tech stuff // TODO add more or use a general solution
+		ObjectData.getObjectData(2365).decaysToObj = 2385; // 2365 Diesel Engine --> 2385 Diesel Drive Assembly
+		ObjectData.getObjectData(2385).decaysToObj = 2383; // 2385 Diesel Drive Assembl --> 2383 Diesel Crank Assembly  
+
+		ObjectData.getObjectData(2240).decaysToObj = 2243; // 2240 Newcomen Hammer --> 2243 Multipurpose Newcomen Engine
+		ObjectData.getObjectData(2243).decaysToObj = 2245; // 2243 Multipurpose Newcomen Engine --> 2245 Newcomen Engine without Rope
+		ObjectData.getObjectData(2245).decaysToObj = 2246; // 2245 Newcomen Engine without Rope --> 2246 Newcomen Engine Tower
+		ObjectData.getObjectData(2365).decaysToObj = 2385; // 2365 Diesel Engine --> 2385 Diesel Drive Assembly
+
+		ObjectData.getObjectData(2280).decaysToObj = 2243; // 2280 Newcomen Roller --> 2243 Multipurpose Newcomen Engine
+		ObjectData.getObjectData(2263).decaysToObj = 2264; // 2263 Roller Mechanism --> 2264 Partial Pulley Mechanism
+
+		ObjectData.getObjectData(2270).decaysToObj = 2243; // 2270 Newcomen Bore --> 2243 Multipurpose Newcomen Engine
+		ObjectData.getObjectData(2268).decaysToObj = 2262; // 2268 Bore Mechanism --> 2262 Pulley Drive Mechanism
+
+		ObjectData.getObjectData(2359).decaysToObj = 2243; // 2359 Newcomen Lathe --> 2243 Multipurpose Newcomen Engine
+		ObjectData.getObjectData(2356).decaysToObj = 2262; // 2356 Lathe Mechanism --> 2262 Pulley Drive Mechanism
+
+		ObjectData.getObjectData(2365).decaysToObj = 2243; // 2395 Crude Car with Empty Tank --> 2365 Diesel Engine
+		
 		// set hungry work
 		// TODO use tool hungry work factor
 		ObjectData.getObjectData(34).hungryWork = 1 * HungryWorkToolCostFactor; // Sharp Stone
