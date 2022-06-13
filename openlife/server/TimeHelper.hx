@@ -595,7 +595,7 @@ class TimeHelper {
 				player.connection.sendGlobalMessage(text);
 			}
 
-			if (Std.int(player.trueAge) == 59) {
+			if (Std.int(player.age) == 58) {
 				var factor = ServerSettings.DisplayScoreFactor;
 				var totalPrestige = Math.floor(player.yum_multiplier);
 				var prestigeFromChildren = Math.floor(player.prestigeFromChildren);

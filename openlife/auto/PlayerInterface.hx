@@ -81,6 +81,7 @@ interface PlayerInterface {
 
 	public function isSuperHot():Bool;
 	public function isSuperCold():Bool;
+	public function hasYellowFever():Bool;
 
 	public var coldPlace(default, default):ObjectHelper;
 	public var warmPlace(default, default):ObjectHelper;
