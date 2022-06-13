@@ -4116,7 +4116,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			}
 		} else if (text.indexOf('!SENDPU') != -1 || text == '!PU') {
 			player.done_moving_seqNum += 1;
+			player.forced = true;
 			Connection.SendUpdateToAllClosePlayers(player);
+			player.forced = false;
+			
 			player.say('send PU done!', true);
 			return true;
 		} else if (text.indexOf('!NAMES') != -1) {
