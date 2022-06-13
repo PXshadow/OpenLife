@@ -596,6 +596,8 @@ class TimeHelper {
 			}
 
 			if (Std.int(player.age) == 58) {
+				trace('Player: ${player.name + player.p_id} death is near!');
+
 				var factor = ServerSettings.DisplayScoreFactor;
 				var totalPrestige = Math.floor(player.yum_multiplier);
 				var prestigeFromChildren = Math.floor(player.prestigeFromChildren);
