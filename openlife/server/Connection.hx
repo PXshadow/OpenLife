@@ -87,8 +87,11 @@ class Connection {
 			// deactivate AI
 			ais.remove(lastConnection.serverAi);
 			lastConnection.serverAi = null;
+			
 			var tx = lastLivingPlayer.tx;
 			var ty = lastLivingPlayer.ty;
+
+			lastLivingPlayer.moveHelper.waitForForce = false;
 			lastLivingPlayer.gx = 0;
 			lastLivingPlayer.gy = 0;
 			lastLivingPlayer.x = tx;
