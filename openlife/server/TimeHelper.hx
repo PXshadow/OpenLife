@@ -145,13 +145,13 @@ class TimeHelper {
 			Macro.exception(DoTimeStuffForPlayer(ai.player, timePassedInSeconds));
 		}
 
+		GlobalPlayerInstance.AllPlayerMutex.release(); // TODO secure connections? since changing map stuff sends map updates to players
+
 		Macro.exception(DoWorldMapTimeStuff()); // TODO currently it goes through the hole map each sec / this may later not work
 
 		Macro.exception(RespawnObjects());
 
 		Macro.exception(DecayObjects());
-
-		GlobalPlayerInstance.AllPlayerMutex.release(); // since changing map stuff sends map updates to players
 
 		var worldMap = Server.server.map;
 

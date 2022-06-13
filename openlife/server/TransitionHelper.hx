@@ -43,11 +43,13 @@ class TransitionHelper {
 
 	public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0):Bool {
 		var startTime = Sys.time();
-		// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} doCommand try to acquire player mutex');
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		
 		// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} doCommand try to acquire map mutex');
 		Server.server.map.mutex.acquire();
+		// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} doCommand try to acquire player mutex');
+		GlobalPlayerInstance.AllPlayerMutex.acquire();
 		// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} doCommand got all mutex');
+		
 
 		var done = false;
 		Macro.exception(done = doCommandHelper(player, tag, x, y, index, target));
@@ -58,10 +60,11 @@ class TransitionHelper {
 			player.connection.send(FRAME);
 		}
 
-		// if(ServerSettings.DebugTransitionHelper) trace("release map mutex");
-		Server.server.map.mutex.release();
 		// if(ServerSettings.DebugTransitionHelper) trace("release player mutex");
 		GlobalPlayerInstance.AllPlayerMutex.release();
+		// if(ServerSettings.DebugTransitionHelper) trace("release map mutex");
+		Server.server.map.mutex.release();
+		
 
 		var timepassed = (Sys.time() - startTime) * 1000;
 		if(timepassed > 100) trace('${player.name + player.id} doCommand: tag: ${tag} ${Math.round(timepassed)}ms');

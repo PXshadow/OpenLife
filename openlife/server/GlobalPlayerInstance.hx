@@ -3713,9 +3713,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// playerId = -1 if no specific player is slected
 		
 		var done = false;
+		WorldMap.world.mutex.acquire(); // since picking up a baby can drop an item from the baby
 		AllPlayerMutex.acquire();
 		Macro.exception(done = doBabyHelper(x, y, playerId));
 		AllPlayerMutex.release();
+		WorldMap.world.mutex.release();
 		
 		// send always PU so that player wont get stuck
 		if (done == false) {
