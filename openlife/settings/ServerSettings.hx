@@ -70,7 +70,7 @@ class ServerSettings {
 	public static var CursedGraveMali:Float = 2; // prestige mali if bones decay without beeing proper burried
 
 	// Display
-	public static var DisplayScoreOn:Bool = false; // off for Tea
+	public static var DisplayScoreOn:Bool = true; // only end of life
 	public static var DisplayScoreFactor:Float = 1; // if display score multiply with factor X
 	public static var DisplayYumAndMehFood = false;
 	public static var DisplayPlayerNamesDistance = 30; // set zero to deactivate

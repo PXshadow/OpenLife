@@ -589,42 +589,39 @@ class TimeHelper {
 
 			//if (player.isMoving() == false) Connection.SendUpdateToAllClosePlayers(player, false);
 
-			if(ServerSettings.DisplayScoreOn){
-				var factor = ServerSettings.DisplayScoreFactor;
-	
-				if (Std.int(player.trueAge) % 10 == 0) {
-					var prestigeFromParents = Math.floor(player.prestigeFromParents);
-					var prestigeFromSiblings = Math.floor(player.prestigeFromSiblings);
-	
-					var textFromParents = prestigeFromParents > 5 ? 'You have gained ${prestigeFromParents * factor} prestige from parents!' : '';
-					var textFromSiblings = prestigeFromSiblings > 5 ? 'You have gained ${prestigeFromSiblings * factor} prestige from siblings!' : '';
-	
-					// trace('New Age: $message');
-					player.connection.sendGlobalMessage(textFromParents);
-					player.connection.sendGlobalMessage(textFromSiblings);
-				} else if (Std.int(player.trueAge) % 6 == 0) {
-					var text = player.prestigeFromWealth > 5 ? 'You have gained ${player.prestigeFromWealth * factor} prestige from your wealth!' : '';
-					player.connection.sendGlobalMessage(text);		
-				} else if (Std.int(player.trueAge) % 10 == 0) {
-					var prestigeFromChildren = Math.floor(player.prestigeFromChildren);
-					var prestigeFromFollowers = Math.floor(player.prestigeFromFollowers);
-					var prestigeFromEating = Math.floor(player.prestigeFromEating);
-	
-					var textFromChildren = prestigeFromChildren > 5 ? 'You have gained in total ${prestigeFromChildren * factor} prestige from children!' : '';
-					var textFromFollowers = prestigeFromFollowers > 5 ? 'You have gained in total ${prestigeFromFollowers * factor} prestige from followers!' : '';
-					var textFromEating = prestigeFromEating > 5 ? 'You have gained in total ${prestigeFromEating * factor} prestige from YUMMY food!' : '';
-	
-					// trace('New Age: $message');
-					player.connection.sendGlobalMessage(textFromChildren);
-					player.connection.sendGlobalMessage(textFromFollowers);
-					player.connection.sendGlobalMessage(textFromEating);
-				}
-			}
-
 			if (Std.int(player.trueAge) % 10 == 0){ 
 				var coins:Float = Std.int(player.coins);
 				var text = coins >= 10 ? 'You have ${coins} coins! You can use: I give you IXC' : '';
 				player.connection.sendGlobalMessage(text);
+			}
+
+			if (Std.int(player.trueAge) == 59) {
+				var factor = ServerSettings.DisplayScoreFactor;
+				var totalPrestige = Math.floor(player.yum_multiplier);
+				var prestigeFromChildren = Math.floor(player.prestigeFromChildren);
+				var prestigeFromFollowers = Math.floor(player.prestigeFromFollowers);
+				var prestigeFromEating = Math.floor(player.prestigeFromEating);
+				var prestigeFromParents = Math.floor(player.prestigeFromParents);
+				var prestigeFromSiblings = Math.floor(player.prestigeFromSiblings);
+				
+				var textFromChildren = prestigeFromChildren > 5 ? 'You have gained in total ${prestigeFromChildren * factor} prestige from children!' : '';
+				var textFromFollowers = prestigeFromFollowers > 5 ? 'You have gained in total ${prestigeFromFollowers * factor} prestige from followers!' : '';
+				var textFromEating = prestigeFromEating > 5 ? 'You have gained in total ${prestigeFromEating * factor} prestige from YUMMY food!' : '';
+				var textFromWealth = player.prestigeFromWealth > 5 ? 'You have gained ${player.prestigeFromWealth * factor} prestige from your wealth!' : '';
+				var textFromParents = prestigeFromParents > 5 ? 'You have gained ${prestigeFromParents * factor} prestige from parents!' : '';
+				var textFromSiblings = prestigeFromSiblings > 5 ? 'You have gained ${prestigeFromSiblings * factor} prestige from siblings!' : '';
+
+				// trace('New Age: $message');
+				player.connection.sendGlobalMessage('Your life nears the end. You earned ${totalPrestige}!');
+
+				if(ServerSettings.DisplayScoreOn){
+					player.connection.sendGlobalMessage(textFromChildren);
+					player.connection.sendGlobalMessage(textFromFollowers);
+					player.connection.sendGlobalMessage(textFromEating);
+					player.connection.sendGlobalMessage(textFromWealth);
+					player.connection.sendGlobalMessage(textFromParents);
+					player.connection.sendGlobalMessage(textFromSiblings);		
+				}
 			}
 
 			ScoreEntry.ProcessScoreEntry(player);
