@@ -1124,7 +1124,7 @@ abstract class AiBase
 
 		// if(player.heldObject.parentId == itemToCraft.transActor.parentId)
 		if (player.heldObject.parentId == itemToCraft.transActor.parentId || itemToCraft.transActor.id == 0) {
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} is held already or Empty. Craft target ${itemToCraft.transTarget.name} held: ${player.heldObject.name}');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} is held already or Empty. Craft target ${itemToCraft.transTarget.name} ${itemToCraft.transTarget.id} held: ${player.heldObject.name}');
 
 			if(ServerSettings.DebugAiSay) myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
 
@@ -1330,7 +1330,7 @@ abstract class AiBase
 		*/
 
 		if (ServerSettings.DebugAiCrafting)
-			trace('AI: craft: FOUND $count ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
+			trace('AI: ${itemToCraft.ai.myPlayer.name + itemToCraft.ai.myPlayer.id} craft: FOUND $count ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
 	}
 
 	private static function DoTransitionSearch(itemToCraft:IntemToCraft, wantedId:Int, objectsToSearch:Array<Int>, transitions:Array<TransitionData>):Bool {
@@ -1350,6 +1350,10 @@ abstract class AiBase
 			// dont undo last transition // Should solve Taking a Rabit Fur from a pile if in the last transition the Ai put it on the pile
 			if (trans.newActorID == itemToCraft.lastActorId && trans.newTargetID == itemToCraft.lastTargetId){
 				//trace('Ignore transition since it undos last: ${trans.getDesciption()}');
+				continue;
+			}
+			if (trans.targetID == -1){
+				//trace('Ignore transition since target is -1 (player?): ${trans.getDesciption()}');
 				continue;
 			}
 
@@ -1559,8 +1563,8 @@ abstract class AiBase
 
 		var objToCraft = ObjectData.getObjectData(itemToCraft.itemToCraft.id);
 		var myPlayer = itemToCraft.ai.myPlayer;
-		if (ServerSettings.DebugAiCrafting) trace('Ai: ${myPlayer.name + myPlayer.id} craft DONE items: ${objToCraft.name}: ${itemToCraft.craftingList.length} $text');
-		if (ServerSettings.DebugAiCrafting) trace('Ai: ${myPlayer.name + myPlayer.id} craft DONE trans: ${objToCraft.name}: ${itemToCraft.craftingTransitions.length} $textTrans');
+		if (ServerSettings.DebugAiCrafting) trace('Ai: ${myPlayer.name + myPlayer.id} craft DONE items: ${itemToCraft.craftingList.length} ${objToCraft.name}: $text');
+		if (ServerSettings.DebugAiCrafting) trace('Ai: ${myPlayer.name + myPlayer.id} craft DONE trans: ${itemToCraft.craftingTransitions.length} ${objToCraft.name}: $textTrans');
 	}
 
 	private function isMovingToHome(maxDistance = 3):Bool {
