@@ -257,6 +257,7 @@ abstract class AiBase
 		}); // do nothing then looking for player
 
 		Macro.exception(if (isDropingItem()) return);
+		Macro.exception(if(handleDeath()) return);
 		Macro.exception(if (isEating()) return);
 
 		// give use high prio if close so that for example a stone can be droped on a pile before food piclup
@@ -335,6 +336,23 @@ abstract class AiBase
 		}
 	}
 
+	private function handleDeath() : Bool {
+		if(myPlayer.age < 59) return false;
+
+		var rand = WorldMap.calculateRandomFloat();
+		if(rand < 0.1) myPlayer.say('Good bye!');
+		else if(rand < 0.2) myPlayer.say('Jasonius is calling me. Take care!');
+
+		if(isMovingToHome(5)) return true;
+
+		time += 2;
+
+		//if (ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} good bye!');
+		
+		return true;
+	}
+	
 	private function handleTemperature() : Bool {
 		var goodPlace = null;
 		var text = '';
@@ -354,11 +372,10 @@ abstract class AiBase
 		if(goodPlace == null) return false;
 
 		var quadDistance = myPlayer.CalculateQuadDistanceToObject(goodPlace);
-		var biomeId = WorldMap.world.getBiomeId(goodPlace.tx, goodPlace.ty);
+		var biomeId = WorldMap.world.getBiomeId(goodPlace.tx, goodPlace.ty);		
 
-		trace('AAI: ${myPlayer.name + myPlayer.id} handle $text dist: $quadDistance wait heat: ${Math.round(myPlayer.heat * 100) / 100}  b: ${biomeId}');
-
-		if (quadDistance < 3){
+		if (quadDistance < 1){
+			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text heat: ${Math.round(myPlayer.heat * 100) / 100} dist: $quadDistance wait b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
 			this.time += 2; // just relax
 			return true;
 		}
@@ -368,7 +385,7 @@ abstract class AiBase
 		myPlayer.say('going to $text');
 
 		//if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} handle $text dist: $quadDistance goto: $done');
+			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text heat: ${Math.round(myPlayer.heat * 100) / 100} dist: $quadDistance goto: $done');
 			
 
 		return done;
