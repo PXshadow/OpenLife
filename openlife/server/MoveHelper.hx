@@ -461,9 +461,11 @@ class MoveHelper {
 
 		if (p.isHeld()) p.jump();
 
-		if (JumpToNonBlocked(p)) {
+		if (JumpToNonBlocked(p)) {			
 			p.done_moving_seqNum = seq;
+			p.forced = true;
 			p.connection.send(PLAYER_UPDATE, [p.toData()]);
+			p.forced = false;
 			return;
 		}
 
