@@ -343,6 +343,7 @@ abstract class AiBase
 		if(rand < 0.1) myPlayer.say('Good bye!');
 		else if(rand < 0.2) myPlayer.say('Jasonius is calling me. Take care!');
 
+		if(myPlayer.isMoving()) return true;
 		if(isMovingToHome(5)) return true;
 
 		time += 2;
