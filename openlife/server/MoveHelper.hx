@@ -4,7 +4,6 @@ import openlife.data.Pos;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.macros.Macro;
-import openlife.server.Biome.BiomeTag;
 import openlife.server.GlobalPlayerInstance.Emote;
 import openlife.server.Lineage.PrestigeClass;
 import openlife.settings.ServerSettings;
@@ -37,6 +36,7 @@ class MoveHelper {
 
 	public var player:GlobalPlayerInstance;
 	public var waitForForce = false;
+	public var timeLastForce:Float = 0;
 
 	// x,y when last chunk was send
 	private var tx:Int = 0;
@@ -441,9 +441,16 @@ class MoveHelper {
 	static private function moveHelper(p:GlobalPlayerInstance, x:Int, y:Int, seq:Int, moves:Array<Pos>) {
 		// trace("newMoveSeqNumber: " + newMoveSeqNumber);
 		// dont accept moves untill a force is confirmed
+		// sometimes client dpes not respond to a force, therefore after waited one second allow movements again and hope that client is synced
 		if (p.moveHelper.waitForForce) {
-			trace('${p.name}: Move ignored since waiting for force!!');
-			return;
+			var passedTimeSinceForce = TimeHelper.CalculateTimeSinceTicksInSec(p.moveHelper.timeLastForce);
+			if(passedTimeSinceForce < 1){
+				trace('${p.name + p.id}: Move ignored since waiting for force!!');
+				return;
+			}
+			else{
+				p.moveHelper.waitForForce = false;
+			}
 		}
 
 		if (p.age * 60 < ServerSettings.MinMovementAgeInSec) {
@@ -577,7 +584,10 @@ class MoveHelper {
 	}
 
 	public static function cancleMovement(p:GlobalPlayerInstance, seq:Int) {
-		if (p.isHuman()) p.moveHelper.waitForForce = true; // ignore all moves untill client sends a force
+		if (p.isHuman()){
+			p.moveHelper.waitForForce = true; // ignore all moves untill client sends a force
+			p.moveHelper.timeLastForce = TimeHelper.tick;
+		}
 
 		p.moveHelper.exactTx = p.tx;
 		p.moveHelper.exactTy = p.ty;
