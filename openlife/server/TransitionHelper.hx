@@ -637,13 +637,19 @@ class TransitionHelper {
 				return false;
 			}
 
+			player.heat += hungryWorkCost * ServerSettings.HungryWorkHeat;
+			if(player.heat > 1) player.heat = 1;
+
 			hungryWorkCost /= 2; // half for exhaustion
 
 			player.addFood(-hungryWorkCost);
-			player.exhaustion += hungryWorkCost;
+			player.exhaustion += hungryWorkCost;			
 			player.doEmote(Emote.biomeRelief);
 
 			player.sendFoodUpdate();
+
+			//var message = '$playerHeat $foodDrainTime 0';
+			//player.connection.send(HEAT_CHANGE, [message], false);
 		}
 
 		// always use alternativeTransitionOutcome from transition if there. Second use from newTargetObjectData

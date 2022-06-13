@@ -968,7 +968,7 @@ class TimeHelper {
 
 		var message = '$playerHeat $foodDrainTime 0';
 
-		if (player.connection != null) player.connection.send(HEAT_CHANGE, [message], false);
+		player.connection.send(HEAT_CHANGE, [message], false);
 
 		if(ServerSettings.DebugTemperature) player.say('H ${Math.round(playerHeat * 100) / 100}} T $temperature'); 			
 		if(ServerSettings.DebugTemperature)
