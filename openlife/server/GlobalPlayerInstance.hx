@@ -372,8 +372,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				writer.writeInt32(p.p_id);
 			}
 
+			// save custom variables
 			obj.storedInt['homeTx'] = obj.home.tx;
 			obj.storedInt['homeTy'] = obj.home.ty;
+
+			if(obj.coldPlace != null){
+				obj.storedInt['coldTx'] = obj.coldPlace.tx;
+				obj.storedInt['coldTy'] = obj.coldPlace.ty;
+			}
+			if(obj.warmPlace != null){
+				obj.storedInt['warmTx'] = obj.warmPlace.tx;
+				obj.storedInt['warmTy'] = obj.warmPlace.ty;
+			}
 
 			var keys = obj.storedInt.keys();
 			var length = 0;
@@ -621,8 +631,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				// trace('storedInt: $key ==> $value');
 			}
 
+			// load here custom variables
 			obj.home.tx = obj.storedInt['homeTx'];
 			obj.home.ty = obj.storedInt['homeTy'];
+
+			if(obj.storedInt.exists('coldTx')){
+				obj.coldPlace = new ObjectHelper(null, 0);
+				obj.coldPlace.tx = obj.storedInt['coldTx'];
+				obj.coldPlace.ty = obj.storedInt['coldTy'];
+				trace('loaded cold: ${obj.coldPlace.tx} ${obj.coldPlace.ty}');
+			}
+			if(obj.storedInt.exists('warmTx')){
+				obj.warmPlace = new ObjectHelper(null, 0);
+				obj.warmPlace.tx = obj.storedInt['warmTx'];
+				obj.warmPlace.ty = obj.storedInt['warmTy'];
+				trace('loaded warm: ${obj.warmPlace.tx} ${obj.warmPlace.ty}');
+			}
 
 			// trace('Home: ${obj.name} ${obj.home.tx} ${obj.home.ty} biome: ${WorldMap.world.getBiomeId(obj.home.tx, obj.home.ty)}');
 
