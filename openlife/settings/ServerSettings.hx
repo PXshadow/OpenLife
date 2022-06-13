@@ -97,7 +97,7 @@ class ServerSettings {
 	// Graves
 	public static var GraveBlockingDistance = 50; // cannot incrante close to blocking graves like bone pile
 	public static var CloseGraveSpeedMali:Float = 0.92; // speed maili if close to blocking grave like bone pile
-	public static var CursedGraveTime:Float = 3; // hours a cursed grave continues to exist per curse token
+	public static var CursedGraveTime:Float = 12; // 12 // hours a cursed grave continues to exist per curse token
 
 	// PlayerInstance
 	public static var MaxPlayersBeforeStartingAsChild = 0; // -1
@@ -194,7 +194,7 @@ class ServerSettings {
 
 	// for movement
 	public static var GotoTimeOut:Int = 250;
-	public static var InitialPlayerMoveSpeed:Float = 4.75; // vanilla: 3.75; // in Tiles per Second
+	public static var InitialPlayerMoveSpeed:Float = 4; // vanilla: 3.75; // in Tiles per Second
 	public static var SpeedFactor:Float = 1; // MovementExtender // used to incease or deacrease speed factor X
 	public static var MinBiomeSpeedFactor:Float = 0.2; // For example if you happen to end up in a ocean or on a mountain
 	public static var MinMovementAgeInSec:Float = 14;
