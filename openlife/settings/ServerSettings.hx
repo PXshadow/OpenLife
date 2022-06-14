@@ -211,7 +211,7 @@ class ServerSettings {
 
 	// hungry work
 	public static var HungryWorkCost:Float = 10;
-	public static var HungryWorkHeat:Float = 0.01;
+	public static var HungryWorkHeat:Float = 0.002; // 0.005; // per food used
 	public static var HungryWorkToolCostFactor:Float = 0;
 	public static var ExhaustionHealing:Float = 2;
 	public static var WoundHealing:Float = 1;

@@ -627,11 +627,26 @@ class TransitionHelper {
 			var missingFood = Math.ceil(hungryWorkCost / 2  - player.food_store);
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} hungry Work cost: $hungryWorkCost missingFood: ${missingFood}');
 
+			if(player.isSuperHot()){
+				var message = 'I am far to hot!';
+				player.say(message, true);
+				player.doEmote(Emote.yellowFever);
+				return false;
+			}
+
+			var excessExhaustion = Math.ceil(player.exhaustion - (player.food_store_max + 1));
+			if(excessExhaustion > 0){
+				var message = 'I am too exhausted! $excessExhaustion';
+				player.say(message, true);
+				player.doEmote(Emote.homesick);
+				return false;
+			}
+
 			if (missingFood > 0) {
 				// var message = 'Its hungry work! Need ${missingFood} more food!';
 				// player.connection.sendGlobalMessage(message);
 				var message = 'Need ${missingFood} more food!';
-				player.say(message);
+				player.say(message, true);
 				player.doEmote(Emote.homesick);
 
 				return false;
@@ -659,7 +674,10 @@ class TransitionHelper {
 		if (alternativeTransitionOutcome.length > 0) {
 			// TODO reduce tool
 			// TODO support more then one obj in the list
-			if (0.8 > WorldMap.calculateRandomFloat()) {
+			var rand = WorldMap.calculateRandomFloat();
+			//player.say('${Math.floor(rand * 10) / 10}');
+
+			if (rand < 0.8) {
 				WorldMap.PlaceObjectById(tx, ty, alternativeTransitionOutcome[0]);
 
 				this.doTransition = true;
