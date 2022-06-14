@@ -685,8 +685,10 @@ class TransitionHelper {
 
 			if (rand < 1) {
 				target.hits += 1;
-			rand += target.hits / 20;
-			player.say('hits ${Math.round(target.hits)}');
+				rand += target.hits / 20;
+				player.say('hits ${Math.round(target.hits)}');
+				
+				// TODO use piles
 				WorldMap.PlaceObjectById(tx, ty, alternativeTransitionOutcome[0]);
 
 				this.doTransition = true;

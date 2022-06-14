@@ -148,8 +148,14 @@ class ServerSettings {
 	public static var MaxAgeForAllowingDie:Float = 2;
 	public static var PrestigeCostForDie:Float = 0;
 
-	// food stuff
+
+	// food stuff / healing / exhaustion recover
 	public static var FoodUsePerSecond = 0.10; // 0.2; // 5 sec per pip // normal game has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good
+	public static var HealingPerSecond = 0.10;
+	public static var WoundHealingFactor:Float = 1;
+	public static var ExhaustionHealingFactor:Float = 2;
+	public static var ExhaustionHealingForMaleFaktor:Float = 1.2;
+	
 	public static var FoodReductionPerEating:Float = 1;
 	public static var FoodReductionFaktorForEatingMeh:Float = 0.2;
 	public static var MinAgeToEat = 3; // MinAgeToEat and MinAgeFor putting on cloths on their own
@@ -213,10 +219,7 @@ class ServerSettings {
 	public static var HungryWorkCost:Float = 6;
 	public static var HungryWorkHeat:Float = 0.002; // 0.005; // per food used
 	public static var HungryWorkToolCostFactor:Float = 0;
-	public static var ExhaustionHealing:Float = 2;
-	public static var WoundHealing:Float = 1;
-	public static var ExhaustionHealingForMaleFaktor:Float = 1.2;
-
+	
 	// for animal movement
 	public static var ChanceThatAnimalsCanPassBlockingBiome:Float = 0.03;
 	public static var chancePreferredBiome:Float = 0.8; // Chance that the animal ignors the chosen target if its not from his original biome
