@@ -669,14 +669,18 @@ class TransitionHelper {
 
 		// always use alternativeTransitionOutcome from transition if there. Second use from newTargetObjectData
 		var alternativeTransitionOutcome = transition.alternativeTransitionOutcome.length > 0 ? transition.alternativeTransitionOutcome : newTargetObjectData.alternativeTransitionOutcome;
-		// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} TEST: ${newTargetObjectData.id} ${newTargetObjectData.description} ${newTargetObjectData.alternativeTransitionOutcome}');
+		if(ServerSettings.DebugTransitionHelper) 
+			trace('TRANS: ${player.name + player.id} TEST: ${newTargetObjectData.name} ${newTargetObjectData.id}  ${newTargetObjectData.alternativeTransitionOutcome}');
+
+		//player.say('id ${target.id} h: ${target.objectData.hungryWork}');
 
 		if (alternativeTransitionOutcome.length > 0) {
 			// TODO reduce tool
 			// TODO support more then one obj in the list
 			var rand = WorldMap.calculateRandomFloat();
 			rand += target.hits / 20;
-			
+
+			// trace('TRANS: ${player.name + player.id} TEST: ${newTargetObjectData.name} ${newTargetObjectData.id} hits: ${target.hits} rand: ${${rand}}');
 			//player.say('${Math.floor(rand * 10) / 10}');
 
 			if (rand < 1) {

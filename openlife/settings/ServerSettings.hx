@@ -210,7 +210,7 @@ class ServerSettings {
 	public static var ExhaustionOnJump:Float = 0.05;	
 
 	// hungry work
-	public static var HungryWorkCost:Float = 10;
+	public static var HungryWorkCost:Float = 6;
 	public static var HungryWorkHeat:Float = 0.002; // 0.005; // per food used
 	public static var HungryWorkToolCostFactor:Float = 0;
 	public static var ExhaustionHealing:Float = 2;
@@ -1056,6 +1056,15 @@ class ServerSettings {
 
 		ObjectData.getObjectData(342).alternativeTransitionOutcome.push(344); // Chopped Tree Big Log--> Fire Wood
 		ObjectData.getObjectData(340).alternativeTransitionOutcome.push(344); // Chopped Tree --> Fire Wood
+		ObjectData.getObjectData(3146).alternativeTransitionOutcome.push(344); // Chopped Softwood Tree --> Fire Wood
+		
+		//ObjectData.getObjectData(99).alternativeTransitionOutcome.push(344); // White Pine Tree --> Fire Wood
+		//ObjectData.getObjectData(100).alternativeTransitionOutcome.push(344); // White Pine Tree with Needles --> Fire Wood
+		
+		ObjectData.getObjectData(3146).hungryWork = ServerSettings.HungryWorkCost; // Chopped Softwood Tree
+		//ObjectData.getObjectData(99).hungryWork = ServerSettings.HungryWorkCost; // White Pine Tree
+		//ObjectData.getObjectData(100).hungryWork = ServerSettings.HungryWorkCost; // White Pine Tree with Needles
+
 
 		// allow more Stone Hoe to be used to dig graves // TODO make more HUNGRY WORK / TEST if they brake
 		
