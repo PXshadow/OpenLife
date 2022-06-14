@@ -838,7 +838,12 @@ class TransitionHelper {
 
 		if (objectData.dummyParent != null) objectData = objectData.dummyParent;
 		if (idHasChanged){
-			if (objectData.numUses < 2 || reverseUse)  return true;
+			if (reverseUse){
+				// like putting a berry in a berry bowl directly from tree
+				obj.numberOfUses = 1;
+				return true;
+			}
+			if (objectData.numUses < 2)  return true;
 			
 			// set numUses for null item at max. For example a cooked pie
 			obj.numberOfUses = objectData.numUses;

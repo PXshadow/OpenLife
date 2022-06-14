@@ -889,6 +889,7 @@ class ServerSettings {
 
 		for (trans in TransitionImporter.transitionImporter.transitions) {
 			if (trans.actorID < -1) {
+				//trace('Debug ${trans.getDesciption()}');
 				// trans.traceTransition("PatchTransitions: ", true);
 
 				trans.actorID = 0;
@@ -1008,6 +1009,7 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(235, 30, 253, 30); // Clay Bowl + Wild Gooseberry Bush --> Bowl of Gooseberries + Wild Gooseberry Bush
+		trans.reverseUseActor = true; // otherwise new bowl will be full with berries
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(253, 30, 253,
