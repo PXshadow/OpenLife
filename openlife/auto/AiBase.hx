@@ -68,6 +68,8 @@ abstract class AiBase
 	public var movedOneTile = false;
 	public var failedCraftings = new Map<Int,Float>(); // cleared on birth
 
+	public var isHandlingTemperature = false;
+
 	public static function StartAiThread() {
 		Thread.create(RunAi);
 	}
@@ -359,24 +361,40 @@ abstract class AiBase
 		var text = '';
 
 		// TODO wait little longer
-		if(myPlayer.isSuperHot()){
+		if(myPlayer.isSuperHot() || (isHandlingTemperature && myPlayer.heat > 0.6)){
 			//trace('AAI: ${myPlayer.name + myPlayer.id} handle heat: too hot');
 			goodPlace = myPlayer.coldPlace;
 			text = 'cool';
 		}
-		else if(myPlayer.isSuperCold()){
+		else if(myPlayer.isSuperCold() || (isHandlingTemperature && myPlayer.heat < 0.4)){
 			//trace('AAI: ${myPlayer.name + myPlayer.id} handle heat: too cold');
 			goodPlace = myPlayer.warmPlace;
 			text = 'heat';
 		}
 
-		if(goodPlace == null) return false;
+		if(goodPlace == null){
+			isHandlingTemperature = false;
+			return false;
+		}
+
+		isHandlingTemperature = true;
 
 		var quadDistance = myPlayer.CalculateQuadDistanceToObject(goodPlace);
 		var biomeId = WorldMap.world.getBiomeId(goodPlace.tx, goodPlace.ty);		
+		var temperature = myPlayer.lastTemperature;	
 
-		if (quadDistance < 1){
-			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text heat: ${Math.round(myPlayer.heat * 100) / 100} dist: $quadDistance wait b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
+		if (quadDistance < 1){	
+				
+			if(myPlayer.heat > 0.5 && myPlayer.lastTemperature > 0.5){
+				trace('AAI: ${myPlayer.name + myPlayer.id} does not help: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
+				return false; // this place does not help
+			} 
+			if(myPlayer.heat < 0.5 && myPlayer.lastTemperature < 0.5){
+				trace('AAI: ${myPlayer.name + myPlayer.id} does not help: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
+				return false; // this place does not help
+			} 
+
+			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature}  dist: $quadDistance wait b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
 			this.time += 2; // just relax
 			return true;
 		}
@@ -386,7 +404,7 @@ abstract class AiBase
 		myPlayer.say('going to $text');
 
 		//if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text heat: ${Math.round(myPlayer.heat * 100) / 100} dist: $quadDistance goto: $done');
+			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} dist: $quadDistance goto: $done');
 			
 
 		return done;

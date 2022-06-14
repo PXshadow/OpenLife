@@ -107,6 +107,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public var coldPlace:ObjectHelper = null; // not saved
 	public var warmPlace:ObjectHelper = null; // not saved
+	public var lastTemperature:Float = 0.5; // not saved
+
 
 	public function getFollowPlayer() {
 		return followPlayer;

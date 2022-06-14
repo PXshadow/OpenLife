@@ -966,6 +966,7 @@ class TimeHelper {
 
 		player.foodUsePerSecond = foodUsePerSecond;
 		temperature = Math.round(temperature * 100) / 100;
+		player.lastTemperature = temperature;
 		foodDrainTime = Math.round(foodDrainTime * 100) / 100;
 
 		var message = '$playerHeat $foodDrainTime 0';
