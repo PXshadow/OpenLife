@@ -942,6 +942,12 @@ class Connection {
 
 			sock.output.writeString(tmpString);
 
+			player.responsible_id = -1;
+			player.forced = true;
+			Connection.SendUpdateToAllClosePlayers(player);
+			player.connection.send(FRAME, null, false, true);
+			player.forced = false;
+
 			if (ServerSettings.TraceSendPlayerActions) trace("Send: " + tmpString);
 		} catch (ex) {
 			trace(ex);

@@ -2339,7 +2339,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// this.food_store += foodValue;
 		playerTo.just_ate = 1;
 		playerTo.last_ate_id = heldObjData.id;
-		playerTo.responsible_id = playerFrom.p_id; // -1; // self???
+		playerTo.responsible_id = playerTo.id == playerFrom.id ? - 1 : playerFrom.p_id; // -1 == self
+		/**
+			responsible_id is used to indicate updates that were caused by another
+			player (so that client can defer these until responsible player finishes
+			local walk).  Current examples involve feeding and clothing a baby.
+			-1 if irrelevant.
+		**/
 		// this.o_transition_source_id = -1;
 
 		playerTo.addFood(foodValue);
@@ -3895,7 +3901,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			 JUMP is also used to make an immobile baby wiggle on the ground.
 	**/
 	public function jump():Bool {
-		trace('jump');
+		//trace('jump');
 
 		GlobalPlayerInstance.AcquireMutex();
 
@@ -4156,9 +4162,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				return true;
 			}
 		} else if (text.indexOf('!SENDPU') != -1 || text == '!PU') {
-			player.done_moving_seqNum += 1;
+			//player.done_moving_seqNum += 1;
 			player.forced = true;
 			Connection.SendUpdateToAllClosePlayers(player);
+			player.connection.send(FRAME, null, false, true);
 			player.forced = false;
 			
 			player.say('send PU done!', true);

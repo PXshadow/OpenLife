@@ -455,6 +455,10 @@ class MoveHelper {
 			var passedTimeSinceForce = TimeHelper.CalculateTimeSinceTicksInSec(p.moveHelper.timeLastForce);
 			if(passedTimeSinceForce < 1){
 				trace('${p.name + p.id}: Move ignored since waiting for force!!');
+				p.done_moving_seqNum = seq;
+				p.responsible_id = -1;
+				p.connection.send(PLAYER_UPDATE, [p.toData()]);
+				p.connection.send(FRAME, null, false);
 				return;
 			}
 			else{
@@ -491,6 +495,7 @@ class MoveHelper {
 			p.moveHelper.exactTx = p.tx;
 			p.moveHelper.exactTy = p.ty;
 			p.done_moving_seqNum = seq;
+			p.responsible_id = -1;
 			p.forced = true;
 			p.connection.send(PLAYER_UPDATE, [p.toData()]);
 			p.forced = false;
@@ -562,12 +567,12 @@ class MoveHelper {
 
 		p.forced = false;
 
-		if (positionChanged) {
+		//if (positionChanged) { // TODO test
 			Connection.SendUpdateToAllClosePlayers(p);
-		} else {
+		//} else {
 			// p.connection.sendPlayerUpdate();
-		}
-
+		//}
+		p.responsible_id = -1;
 		Connection.SendMoveUpdateToAllClosePlayers(p);
 	}
 
@@ -600,6 +605,7 @@ class MoveHelper {
 		p.move_speed = calculateSpeed(p, p.tx, p.ty);
 		p.moveHelper.newMoves = null;
 		p.moveHelper.newMovements = null;
+		p.responsible_id = -1;
 		p.forced = true;
 		Connection.SendUpdateToAllClosePlayers(p);
 		p.forced = false;
