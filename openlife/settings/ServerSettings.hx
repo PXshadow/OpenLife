@@ -256,7 +256,7 @@ class ServerSettings {
 	public static var TemperatureHeatObjFactor:Float = 1; // increase or decrase impact of a head obj like fire
 	public static var TemperatureLovedBiomeFactor:Float = 1; 
 	public static var TemperatureMaxLovedBiomeImpact:Float = 1; 
-	public static var TemperatureImpactBelow:Float = 0.5; // take damage and display emote if temperature is below or above X from normal
+	public static var TemperatureImpactBelow:Float = 0.6; // take damage and display emote if temperature is below or above X from normal
 	public static var TemperatureSpeedImpact:Float = 0.9; // speed * X: double impact if extreme temperature
 
 	public static var TemperatureShiftForBlack:Float = 0.2; // ideal temperature = 0.7
