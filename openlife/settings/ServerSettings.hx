@@ -1094,6 +1094,23 @@ class ServerSettings {
 		trans.autoDecaySeconds = 20;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// give more time
+		var trans = transtions.getTransition(-1, 61); // Juniper Tinder
+		trans.autoDecaySeconds = 5 * 60;
+
+		var trans = transtions.getTransition(-1, 62); // Leaf
+		trans.autoDecaySeconds = 5 * 60;
+
+		var trans = transtions.getTransition(-1, 75); // Ember Shaft
+		trans.autoDecaySeconds = 20;
+
+		var trans = transtions.getTransition(-1, 248); // Firebrand
+		trans.autoDecaySeconds = 1.5 * 60;
+
+		var trans = transtions.getTransition(-1, 80); // Burning Tinder
+		trans.autoDecaySeconds = 15;
+
+
 		// Ai should ignore
 		// TODO fix Ai craftig if Ai needs two threads for a rope it puts one thread in a bowl and gets it out again
 		// this breals making a light pulb for a radio
