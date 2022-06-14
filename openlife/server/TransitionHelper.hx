@@ -893,12 +893,14 @@ class TransitionHelper {
 			if(isLovedFood){
 				var useChance = ServerSettings.LovedFoodUseChance;
 				var rand = WorldMap.calculateRandomFloat();
+				useChance += obj.hits / 10;
 
 				//if(objectData.numUses < 2) useChance *= 0.8;
 
 				//trace('isLovedFood: ${obj.name}');
 
 				if(rand > useChance){
+					obj.hits += 1;
 					player.say('got an extra!', true);
 					player.doEmote(Emote.happy);
 
