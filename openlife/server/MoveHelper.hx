@@ -558,7 +558,7 @@ class MoveHelper {
 		p.move_speed = newMovements.finalSpeed;
 
 		moveHelper.newMovements = newMovements;
-		moveHelper.newMoves = newMovements.moves;
+		//moveHelper.newMoves = newMovements.moves;
 		moveHelper.totalMoveTime = (1 / p.move_speed) * newMovements.length;
 		moveHelper.startingMoveTicks = TimeHelper.tick;
 		moveHelper.newMoveSeqNumber = seq;
@@ -567,8 +567,11 @@ class MoveHelper {
 
 		p.forced = false;
 
+		// TODO moveHelper.newMoves = nukk since no position will be send if set (ismoving)
 		//if (positionChanged) { // TODO test
+			moveHelper.newMoves = null;
 			Connection.SendUpdateToAllClosePlayers(p);
+			moveHelper.newMoves = newMovements.moves;
 		//} else {
 			// p.connection.sendPlayerUpdate();
 		//}
