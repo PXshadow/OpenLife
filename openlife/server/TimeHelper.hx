@@ -1886,7 +1886,11 @@ class TimeHelper {
 
 				var tmpTimeToChange = obj.timeToChange;
 				obj.timeToChange /= 5;
-				doTimeTransition(obj);
+				
+				// since doTimeTransition needs the world mutex. Always aquire world mutex first!
+				GlobalPlayerInstance.AllPlayerMutex.release(); 
+				Macro.exception(doTimeTransition(obj));
+				GlobalPlayerInstance.AllPlayerMutex.acquire();
 
 				// trace('RUN: $tmpTimeToChange --> ${obj.timeToChange} ' + obj.description);
 				// obj.timeToChange = tmpTimeToChange;
