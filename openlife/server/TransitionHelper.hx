@@ -833,12 +833,18 @@ class TransitionHelper {
 
 	// used for transitions and for eating food like bana or bowl of stew
 	public static function DoChangeNumberOfUsesOnActor(player:GlobalPlayerInstance, idHasChanged:Bool, reverseUse:Bool):Bool {
-		if (idHasChanged) return true;
 		var obj = player.heldObject;
-
 		var objectData = obj.objectData;
 
 		if (objectData.dummyParent != null) objectData = objectData.dummyParent;
+		if (idHasChanged){
+			if (objectData.numUses < 2 || reverseUse)  return true;
+			
+			// set numUses for null item at max. For example a cooked pie
+			obj.numberOfUses = objectData.numUses;
+			obj.TransformToDummy();
+			return true;
+		} 
 
 		if (reverseUse) {
 			obj.numberOfUses += 1;
