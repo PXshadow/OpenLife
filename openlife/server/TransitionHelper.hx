@@ -675,9 +675,14 @@ class TransitionHelper {
 			// TODO reduce tool
 			// TODO support more then one obj in the list
 			var rand = WorldMap.calculateRandomFloat();
+			rand += target.hits / 20;
+			
 			//player.say('${Math.floor(rand * 10) / 10}');
 
-			if (rand < 0.8) {
+			if (rand < 1) {
+				target.hits += 1;
+			rand += target.hits / 20;
+			player.say('hits ${Math.round(target.hits)}');
 				WorldMap.PlaceObjectById(tx, ty, alternativeTransitionOutcome[0]);
 
 				this.doTransition = true;
