@@ -396,11 +396,11 @@ class MoveHelper {
 		Until that has happened, client must assume player is still in transit.
 	 */
 	static public function move(p:GlobalPlayerInstance, x:Int, y:Int, seq:Int, moves:Array<Pos>) {
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 
 		Macro.exception(moveHelper(p, x, y, seq, moves));
 
-		GlobalPlayerInstance.AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	static public function JumpToNonBlocked(player:GlobalPlayerInstance, seq:Int = -1):Bool {

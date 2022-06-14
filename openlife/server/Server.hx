@@ -116,11 +116,11 @@ class Server {
 			if (s.length > 0) input.push(s);
 		}
 
-		if (ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.acquire();
+		if (ServerSettings.UseOneGlobalMutex) WorldMap.world.mutex.acquire();
 
 		Macro.exception(message(connection, tag, input, string));
 
-		if (ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.release();
+		if (ServerSettings.UseOneGlobalMutex) WorldMap.world.mutex.release();
 	}
 
 	/**

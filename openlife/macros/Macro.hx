@@ -43,7 +43,7 @@ class Macro {
 	}*/
 }
 // Mutex example
-/**if(ServerSettings.useOnePlayerMutex) AllPlayerMutex.acquire();
+/**if(ServerSettings.useOnePlayerMutex) GlobalPlayerInstance.AcquireMutex();
 	else
 	{
 		this.mutex.acquire();

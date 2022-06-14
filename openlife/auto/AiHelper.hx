@@ -186,11 +186,11 @@ class AiHelper {
 
 		// TODO might need player mutex because: player.getCountEaten(foodId);
 
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 		//WorldMap.world.mutex.acquire();
 		Macro.exception(bestFood = SearchBestFoodHelper(player, feedingPlayer, radius));
 		//WorldMap.world.mutex.release();
-		GlobalPlayerInstance.AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 
 		return bestFood;
 	}
@@ -842,9 +842,9 @@ class AiHelper {
 	public static function GetCloseDeadlyPlayer(playerInter:PlayerInterface, searchDistance:Int = 8) {
 		var bestPlayer = null;
 
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 		Macro.exception(bestPlayer = GetCloseDeadlyPlayerHelper(playerInter, searchDistance));
-		GlobalPlayerInstance.AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 
 		return bestPlayer;
 	}
@@ -876,9 +876,9 @@ class AiHelper {
 	public static function GetCloseStarvingPlayer(playerInter:PlayerInterface, searchDistance:Int = 30) {
 		var bestPlayer = null;
 
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 		Macro.exception(bestPlayer = GetCloseStarvingPlayerHelper(playerInter, searchDistance));
-		GlobalPlayerInstance.AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 
 		return bestPlayer;
 	}
@@ -926,9 +926,9 @@ class AiHelper {
 	public static function GetCloseHungryChild(playerInter:PlayerInterface, searchDistance:Int = 40) {
 		var bestPlayer = null;
 
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 		Macro.exception(bestPlayer = GetCloseHungryChildHelper(playerInter, searchDistance));
-		GlobalPlayerInstance.AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 
 		return bestPlayer;
 	}
@@ -969,9 +969,9 @@ class AiHelper {
 	public static function GetMostDistantOwnChild(mother:PlayerInterface, minDist:Int = 10, searchDistance:Int = 50) {
 		var worstPlayer = null;
 
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 		Macro.exception(worstPlayer = GetMostDistantOwnChildHelper(mother, minDist, searchDistance));
-		GlobalPlayerInstance.AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 
 		return worstPlayer;
 	}

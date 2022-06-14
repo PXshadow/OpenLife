@@ -60,7 +60,7 @@ class Connection {
 
 		trace('login: ${account_key_hash}');
 
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 
 		this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash);
 		this.player = GlobalPlayerInstance.CreateNewHumanPlayer(this);
@@ -73,11 +73,11 @@ class Connection {
 			this.sendGlobalMessage('YOUR PRESTIGE FROM LAST LIFE IS ${Math.ceil(this.player.yum_multiplier * ServerSettings.DisplayScoreFactor)}');
 		this.sendGlobalMessage('EATING YUMMY FOOD AND HAVING MANY KIDS WILL INCREASE YOUR PRESTIGE!');
 
-		GlobalPlayerInstance.AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	public function rlogin(client_tag:String, email:String, password_hash:String, account_key_hash:String) {
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 
 		this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash);
 		var lastLivingPlayer = playerAccount.getLastLivingPlayer();
@@ -107,12 +107,12 @@ class Connection {
 
 			trace('reconnect to ${player.p_id} ${player.name}');
 
-			GlobalPlayerInstance.AllPlayerMutex.release();
+			GlobalPlayerInstance.ReleaseMutex();
 
 			return;
 		}
 
-		GlobalPlayerInstance.AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 
 		login(client_tag, email, password_hash, account_key_hash);
 	}
@@ -605,7 +605,7 @@ class Connection {
 	}
 
 	private function addToConnections() {
-		// GlobalPlayerInstance.AllPlayerMutex.acquire();
+		// GlobalPlayerInstance.AcquireMutex();
 
 		// it copies the connection array to be thread save
 		// other threads should meanwhile be able to iterate on connections.
@@ -619,11 +619,11 @@ class Connection {
 
 		connections = newConnections;
 
-		// GlobalPlayerInstance.AllPlayerMutex.release();
+		// GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	public function close() {
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 
 		try {
 			// set all stuff null so that nothing is hanging around
@@ -653,7 +653,7 @@ class Connection {
 			trace(ex);
 		}
 
-		GlobalPlayerInstance.AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	// KA x y#

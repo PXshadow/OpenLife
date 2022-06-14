@@ -72,6 +72,16 @@ using openlife.server.MoveHelper;
 class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface {
 	public static var AllPlayerMutex = new Mutex();
 
+	public static function AcquireMutex() {
+		if(ServerSettings.UseOneSingleMutex) WorldMap.world.mutex.acquire();			
+		else GlobalPlayerInstance.AcquireMutex();
+	}
+
+	public static function ReleaseMutex() {
+		if(ServerSettings.UseOneSingleMutex) WorldMap.world.mutex.release();			
+		else GlobalPlayerInstance.ReleaseMutex();
+	}
+
 	public static var AllPlayers = new Map<Int, GlobalPlayerInstance>();
 
 	public static function AddPlayer(player:GlobalPlayerInstance) {
@@ -764,11 +774,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public static function CreateNewAiPlayer(c:Connection):GlobalPlayerInstance {
 		var player = null;
 
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 
 		Macro.exception(player = new GlobalPlayerInstance(c));
 
-		GlobalPlayerInstance.AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 
 		return player;
 	}
@@ -1608,11 +1618,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		#
 	**/
 	public function say(text:String, toSelf:Bool = false) {
-		AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 
 		Macro.exception(sayHelper(text, toSelf));
 
-		AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	public function sayHelper(text:String, toSelf:Bool = false) {
@@ -1978,7 +1988,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public function self(x:Int = 0, y:Int = 0, clothingSlot:Int = -1) {
 		var done = false;
 
-		AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 
 		if (ServerSettings.debug) {
 			done = doSelf(x, y, clothingSlot);
@@ -1996,7 +2006,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			this.connection.send(FRAME);
 		}
 
-		AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	public function move(x:Int, y:Int, seq:Int, moves:Array<Pos>) {
@@ -2033,7 +2043,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		  close to the target tile.
 	 */
 	public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int):Bool {
-		AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 
 		var done = false;
 		Macro.exception(done = doOnOtherHelper(x, y, clothingSlot, playerId));
@@ -2043,7 +2053,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			this.connection.send(FRAME);
 		}
 
-		AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 
 		return done;
 	}
@@ -2723,11 +2733,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return false;
 		}
 
-		AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 		Macro.exception(specialRemoveHelper(container, clothingSlot, index));
 		Connection.SendUpdateToAllClosePlayers(this);
 
-		AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 		return true;
 	}
 
@@ -2959,11 +2969,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		reason_age
 	**/
 	public function doDeath(deathReason:String) {
-		AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 
 		Macro.exception(doDeathHelper(deathReason));
 
-		AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	public function doDeathHelper(deathReason:String) {
@@ -3292,11 +3302,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	{
 		var result = false;
 
-		AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 
 		Macro.exception(result = killHelper(x, y, playerId));
 
-		AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 
 		return result;
 	}
@@ -3714,9 +3724,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		
 		var done = false;
 		WorldMap.world.mutex.acquire(); // since picking up a baby can drop an item from the baby
-		AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 		Macro.exception(done = doBabyHelper(x, y, playerId));
-		AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 		WorldMap.world.mutex.release();
 		
 		// send always PU so that player wont get stuck
@@ -3813,18 +3823,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public function dropPlayer(x:Int, y:Int):Bool {
 		// trace('drop player');
 
-		AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 
 		if (this.heldPlayer == null) {
 			this.connection.send(PLAYER_UPDATE, [this.toData()]);
-			AllPlayerMutex.release();
+			GlobalPlayerInstance.ReleaseMutex();
 			return false;
 		}
 
 		var done = false;
 		Macro.exception(done = dropPlayerHelper(x, y));
 
-		AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 
 		return done;
 	}
@@ -3862,9 +3872,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		player.action = 1;
 		player.action_target_x = x;
 		player.action_target_y = y;
-
-		Connection.SendUpdateToAllClosePlayers(heldPlayer, true, false);
+		
 		Connection.SendUpdateToAllClosePlayers(player, true);
+		Connection.SendUpdateToAllClosePlayers(heldPlayer, true, false);
 
 		player.action = 0;
 
@@ -3887,14 +3897,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public function jump():Bool {
 		trace('jump');
 
-		AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 
 		if (this.heldByPlayer == null) {
 			this.connection.send(PLAYER_UPDATE, [this.toData()]);
 			this.connection.sendWiggle(this);
 			this.connection.send(FRAME, null, true);
 
-			AllPlayerMutex.release();
+			GlobalPlayerInstance.ReleaseMutex();
 
 			return false;
 		}
@@ -3904,7 +3914,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// var done = doHelper(this.heldByPlayer, this, dropPlayerHelper);
 		Macro.exception(done = this.heldByPlayer.dropPlayer(heldByPlayer.x, heldByPlayer.y));
 
-		AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 
 		return done;
 	}

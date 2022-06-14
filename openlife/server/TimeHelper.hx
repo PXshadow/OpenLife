@@ -72,7 +72,7 @@ class TimeHelper {
 		AiBase.StartAiThread();
 
 		while (true) {
-			if (ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.acquire();
+			if (ServerSettings.UseOneGlobalMutex) WorldMap.world.mutex.acquire();
 
 			TimeHelper.tick = Std.int(TimeHelper.tick + 1);
 
@@ -102,7 +102,7 @@ class TimeHelper {
 
 			timeSinceStart = Sys.time() - TimeHelper.serverStartingTime;
 
-			if (ServerSettings.useOneGlobalMutex) WorldMap.world.mutex.release();
+			if (ServerSettings.UseOneGlobalMutex) WorldMap.world.mutex.release();
 
 			if (timeSinceStartCountedFromTicks > timeSinceStart) {
 				var sleepTime = timeSinceStartCountedFromTicks - timeSinceStart;
@@ -121,7 +121,7 @@ class TimeHelper {
 
 		DoSeason(timePassedInSeconds);
 
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 
 		for (c in Connection.getConnections()) {
 
@@ -145,7 +145,7 @@ class TimeHelper {
 			Macro.exception(DoTimeStuffForPlayer(ai.player, timePassedInSeconds));
 		}
 
-		GlobalPlayerInstance.AllPlayerMutex.release(); // TODO secure connections? since changing map stuff sends map updates to players
+		GlobalPlayerInstance.ReleaseMutex(); // TODO??? secure connections? since changing map stuff sends map updates to players
 
 		Macro.exception(DoWorldMapTimeStuff()); // TODO currently it goes through the hole map each sec / this may later not work
 
@@ -1889,10 +1889,10 @@ class TimeHelper {
 				var tmpTimeToChange = obj.timeToChange;
 				obj.timeToChange /= 5;
 				
-				// since doTimeTransition needs the world mutex. Always aquire world mutex first!
-				GlobalPlayerInstance.AllPlayerMutex.release(); 
+				// release GlobalPlayermutex before trying to aquire world mutex, since doTimeTransition needs the world mutex. Always aquire world mutex first!
+				if(ServerSettings.UseOneSingleMutex == false) GlobalPlayerInstance.ReleaseMutex(); 
 				Macro.exception(doTimeTransition(obj));
-				GlobalPlayerInstance.AllPlayerMutex.acquire();
+				if(ServerSettings.UseOneSingleMutex == false) GlobalPlayerInstance.AcquireMutex();
 
 				// trace('RUN: $tmpTimeToChange --> ${obj.timeToChange} ' + obj.description);
 				// obj.timeToChange = tmpTimeToChange;
@@ -1953,9 +1953,9 @@ class TimeHelper {
 
 	private static function DoAnimalDamage(fromX:Int, fromY:Int, animal:ObjectHelper):Float {
 		var damage = 0.0;
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		GlobalPlayerInstance.AcquireMutex();
 		Macro.exception(damage = DoAnimalDamageHelper(fromX, fromY, animal));
-		GlobalPlayerInstance.AllPlayerMutex.release();
+		GlobalPlayerInstance.ReleaseMutex();
 
 		return damage;
 	}

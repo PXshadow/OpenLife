@@ -47,7 +47,7 @@ class TransitionHelper {
 		// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} doCommand try to acquire map mutex');
 		Server.server.map.mutex.acquire();
 		// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} doCommand try to acquire player mutex');
-		GlobalPlayerInstance.AllPlayerMutex.acquire();
+		if(ServerSettings.UseOneSingleMutex == false) GlobalPlayerInstance.AcquireMutex();
 		// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} doCommand got all mutex');
 		
 
@@ -61,7 +61,7 @@ class TransitionHelper {
 		}
 
 		// if(ServerSettings.DebugTransitionHelper) trace("release player mutex");
-		GlobalPlayerInstance.AllPlayerMutex.release();
+		if(ServerSettings.UseOneSingleMutex == false) GlobalPlayerInstance.ReleaseMutex();
 		// if(ServerSettings.DebugTransitionHelper) trace("release map mutex");
 		Server.server.map.mutex.release();
 		

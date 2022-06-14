@@ -47,7 +47,8 @@ class ServerSettings {
 	public static var LoadPlayers = true;
 
 	// Mutex
-	public static var useOneGlobalMutex = false; // if you want to try out if there a problems with mutexes / different threads
+	public static var UseOneGlobalMutex = false; // if you want to try out if there a problems with mutexes / different threads
+	public static var UseOneSingleMutex = true; // might get stuck if set true
 	public static var UseBlockingSockets = false;
 
 	// DEBUG: used to trace connection.send commands
