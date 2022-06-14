@@ -2358,7 +2358,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// 2143 + -1 = 2144 + 0 Banana
 		// 1251 + -1 = 1251 + 0 lastUseActor: false Bowl of Stew
 		// 1251 + -1 = 235 + 0 lastUseActor: true Bowl of Stew
-		if (TransitionHelper.DoChangeNumberOfUsesOnActor(playerFrom, false, false) == false) {
+		if (TransitionHelper.DoChangeNumberOfUsesOnActor(playerFrom, false, false, -1) == false) {
 			if (ServerSettings.DebugEating) trace('FOOD: set held object null');
 			playerFrom.setHeldObject(null);
 		}

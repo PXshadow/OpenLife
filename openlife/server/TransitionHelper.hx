@@ -788,7 +788,7 @@ class TransitionHelper {
 		// TODO move to SetObjectHelper
 		this.target.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(this.target);
 
-		DoChangeNumberOfUsesOnActor(this.player, transition.actorID != transition.newActorID, transition.reverseUseActor);
+		DoChangeNumberOfUsesOnActor(this.player, transition.actorID != transition.newActorID, transition.reverseUseActor, transition.targetID);
 
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} NewTileObject: ${newTargetObjectData.description} ${this.target.id} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
@@ -832,7 +832,7 @@ class TransitionHelper {
 	}
 
 	// used for transitions and for eating food like bana or bowl of stew
-	public static function DoChangeNumberOfUsesOnActor(player:GlobalPlayerInstance, idHasChanged:Bool, reverseUse:Bool):Bool {
+	public static function DoChangeNumberOfUsesOnActor(player:GlobalPlayerInstance, idHasChanged:Bool, reverseUse:Bool, targetId:Int):Bool {
 		var obj = player.heldObject;
 		var objectData = obj.objectData;
 
@@ -858,12 +858,12 @@ class TransitionHelper {
 		}
 
 		if (ServerSettings.DebugTransitionHelper)
-			trace('TRANS: ${player.name + player.id} DoChangeNumberOfUsesOnActor: ${objectData.description} ${objectData.id} useChance: ${objectData.useChance}');
+			trace('TRANS: ${player.name + player.id} DoChangeNumberOfUsesOnActor: ${objectData.name} ${objectData.id} useChance: ${objectData.useChance}');
 
 		if (objectData.useChance > 0 && WorldMap.calculateRandomFloat() > objectData.useChance) return true;
 
 		obj.numberOfUses -= 1;
-		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} DoChangeNumberOfUsesOnActor: numberOfUses: ' + obj.numberOfUses);
+		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} DoChangeNumberOfUsesOnActor: ${objectData.name} numberOfUses: ' + obj.numberOfUses);
 
 		if (obj.numberOfUses > 0) return true;
 
@@ -886,6 +886,16 @@ class TransitionHelper {
 			return true;
 		}
 
+		// last use transition
+		// fixes 252 --> Bowl of Dough last use --> Clay Bowl
+		var lastUseTransition = TransitionImporter.GetTransition(objectData.id, targetId, true, false);
+
+		if (lastUseTransition != null) {
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Change Actor from: ${objectData.id} to ${lastUseTransition.newActorID}');
+			obj.id = lastUseTransition.newActorID;
+			return true;
+		}
+		
 		return false;
 	}
 

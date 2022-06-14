@@ -1156,6 +1156,10 @@ class ServerSettings {
 			trans.autoDecaySeconds = 2;
 			transtions.addTransition("PatchTransitions: ", trans);
 		 */
+
+		 //var lastUseTransition = TransitionImporter.GetTransition(252, 236, true, false);
+		 //trace('Debug PAYETON4171: ${lastUseTransition.getDesciption()}');
+
 	}
 
 	public static function writeToFile() {
