@@ -1065,6 +1065,12 @@ class ServerSettings {
 		//ObjectData.getObjectData(99).hungryWork = ServerSettings.HungryWorkCost; // White Pine Tree
 		//ObjectData.getObjectData(100).hungryWork = ServerSettings.HungryWorkCost; // White Pine Tree with Needles
 
+		// mining
+		ObjectData.getObjectData(3944).alternativeTransitionOutcome.push(33); // Stripped Iron Vein --> Stone
+		ObjectData.getObjectData(3957).alternativeTransitionOutcome.push(33); // Shallow Iron Pit --> Stone
+		ObjectData.getObjectData(944).alternativeTransitionOutcome.push(291); // Iron Mine --> Flat Rock
+		//ObjectData.getObjectData(944).alternativeTransitionOutcome.push(291); // Iron Mine --> Flat Rock
+		// TODO what to do with Diesel Mining Pick with Iron. It uses a time transition
 
 		// allow more Stone Hoe to be used to dig graves // TODO make more HUNGRY WORK / TEST if they brake
 		
