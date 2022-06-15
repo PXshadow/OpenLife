@@ -264,8 +264,8 @@ class ServerSettings {
 	public static var TemperatureSpeedImpact:Float = 0.9; // speed * X: double impact if extreme temperature
 	
 	public static var TemperatureShiftForBlack:Float = 0.1; // ideal temperature = 0.6
-	public static var TemperatureShiftForBrown:Float = 0.5;
-	public static var TemperatureShiftForWhite:Float = -0.5;
+	public static var TemperatureShiftForBrown:Float = 0.05;
+	public static var TemperatureShiftForWhite:Float = -0.05;
 	public static var TemperatureShiftForGinger:Float = -0.1;
 
 	// winter / summer
