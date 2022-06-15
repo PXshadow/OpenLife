@@ -1041,8 +1041,13 @@ class ServerSettings {
 		// most important allow kill moskitos
 		trans = new TransitionData(248, 2156, 0,
 			86); // Firebrand + Mosquito Swarm --> 0 + Ashes
-		//trans
-		transtions.addTransition("PatchTransitions: ", trans, false, true);
+		trans.hungryWorkCost = 20;
+		transtions.addTransition("PatchTransitions: ", trans, false, false);
+
+		trans = new TransitionData(248, 2157, 0,
+			86); // Firebrand + Mosquito Swarm just bit --> 0 + Ashes
+		trans.hungryWorkCost = 20;
+		transtions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// give wolfs some meat // TODO change crafting maps
 		var trans = transtions.getTransition(0, 423); // 423 Skinned Wolf
