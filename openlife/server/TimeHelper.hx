@@ -151,7 +151,7 @@ class TimeHelper {
 
 		Macro.exception(RespawnObjects());
 
-		Macro.exception(DecayObjects());
+		Macro.exception(DoWorldLongTermTimeStuff());
 
 		var worldMap = Server.server.map;
 
@@ -1123,21 +1123,6 @@ class TimeHelper {
 
 				var obj = worldMap.getObjectId(x, y);
 
-				// TODO fix Milkweed
-				var origObj = worldMap.getOriginalObjectId(x,y);
-				if (origObj[0] == 50 && obj[0] == 0)
-				{
-					if(worldMap.randomFloat() < TimePassedToDoAllTimeSteps / (60 * 60)){
-						worldMap.setObjectId(x,y, [50]);
-					}
-				}
-				else if (origObj[0] == 1261 && obj[0] == 0) // 1261 Canada Goose Pond with Egg
-				{
-					if(worldMap.randomFloat() < TimePassedToDoAllTimeSteps / (60 * 60 * 4)){
-						worldMap.setObjectId(x,y, [1261]);
-					}
-				}
-
 				if (obj[0] == 0) continue;
 
 				DoSecondTimeOutcome(x, y, obj[0], TimePassedToDoAllTimeSteps);
@@ -1394,7 +1379,7 @@ class TimeHelper {
 		return false;
 	}
 
-	public static function DecayObjects() {
+	public static function DoWorldLongTermTimeStuff() {
 		// TODO dont decay if some on is close?
 		// TODO decay stuff in containers
 		// TODO decay stuff with number of uses > 1
@@ -1417,21 +1402,25 @@ class TimeHelper {
 			LongTimeTimeStepsSartedInTicks = tick;
 		}
 
+		//var timePassedInSec = LongTimeTimeStepsSartedInTicks;
+		var season = TimeHelper.Season;
 		var timePassedInYears = LongTimeTimeStepsSartedInTicks / 60;
 
 		// trace('startY: $startY endY: $endY worldMap.height: ${worldMap.height}');
 
 		for (y in startY...endY) {
 			for (x in 0...worldMap.width) {
-				DoSeasonalBiomeChanges(timePassedInYears, x, y); // TODO dont call in DecayObjects
-
-				var obj = worldMap.getObjectId(x, y)[0];
+				var objId = worldMap.getObjectId(x, y)[0];
 				var floorId = worldMap.getFloorId(x,y);
 				var biomeId = worldMap.getBiomeId(x,y);
 				var biomeDecayFactor:Float = Biome.getBiomeDecayFactor(biomeId);
 
+				DoSeasonalBiomeChanges(x, y, timePassedInYears);
+
+				if(objId == 0 && floorId == 0 && season == Spring) DoRespawnFromOriginal(x, y, timePassedInYears);
+				
 				// decay floor
-				if(obj == 0 && floorId > 0){
+				if(objId == 0 && floorId > 0){
 					var objData = ObjectData.getObjectData(floorId);
 					var decayChance = ServerSettings.FloorDecayChance * objData.decayFactor;
 					decayChance *= biomeDecayFactor;
@@ -1452,11 +1441,11 @@ class TimeHelper {
 					}
 				}
 
-				if (obj == 0) continue;
+				if (objId == 0) continue;
 
-				if (ServerSettings.CanObjectRespawn(obj) == false) continue;
+				if (ServerSettings.CanObjectRespawn(objId) == false) continue;
 
-				if (worldMap.currentObjectsCount[obj] <= worldMap.originalObjectsCount[obj]) continue; // dont decay natural stuff if there are too few
+				if (worldMap.currentObjectsCount[objId] <= worldMap.originalObjectsCount[objId]) continue; // dont decay natural stuff if there are too few
 
 				var objectHelper = worldMap.getObjectHelper(x, y, true);
 
@@ -1464,7 +1453,7 @@ class TimeHelper {
 
 				if (objectHelper != null && objectHelper.timeToChange > 0) continue; // dont decay object if there is a time transition
 
-				var objData = ObjectData.getObjectData(obj);
+				var objData = ObjectData.getObjectData(objId);
 
 				if (objData.decayFactor <= 0) continue;
 
@@ -1488,16 +1477,41 @@ class TimeHelper {
 				worldMap.setObjectId(x, y, [decaysToObj]);
 				// worldMap.setObjectHelperNull(x, y);
 
-				worldMap.currentObjectsCount[obj]--;
+				worldMap.currentObjectsCount[objId]--;
 
 				Connection.SendMapUpdateToAllClosePlayers(x, y);
 
-				trace('decay object: ${objData.description} $obj');
+				trace('decay object: ${objData.description} $objId');
+			}
+		}
+	}
+	
+	// TODO find a better way to respawn this stuff??? 
+	public static function DoRespawnFromOriginal(tx:Int, ty:Int, passedTimeInYears:Float) {
+		var world = WorldMap.world;
+		var origObj = world.getOriginalObjectId(tx,ty);
+		
+		if (origObj[0] == 50) // Milkweed
+		{
+			if(world.randomFloat() < passedTimeInYears  / 60){
+				world.setObjectId(tx,ty, [50]);
+			}
+		}
+		else if (origObj[0] == 136) // Sapling
+		{
+			if(world.randomFloat() < passedTimeInYears / (60 * 2)){
+				world.setObjectId(tx,ty, [136]);
+			}
+		}
+		else if (origObj[0] == 1261) // 1261 Canada Goose Pond with Egg
+		{
+			if(world.randomFloat() < passedTimeInYears / (60 * 4)){
+				world.setObjectId(tx,ty, [1261]);
 			}
 		}
 	}
 
-	public static function DoSeasonalBiomeChanges(timePassedInYears:Float, tx:Int, ty:Int) {
+	public static function DoSeasonalBiomeChanges(tx:Int, ty:Int, timePassedInYears:Float) {
 		var world = WorldMap.world;
 
 		//Season = Winter;
@@ -1557,6 +1571,8 @@ class TimeHelper {
 			//trace('DoSeasonalBiomeChanges: $randX $randY originalBiome: $originalBiome');
 		}
 	}
+
+	//public static function DecayObjects() {}
 
 	public static function doTimeTransition(helper:ObjectHelper) {
 		if (helper.isTimeToChangeReached() == false) return;
