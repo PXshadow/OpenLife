@@ -1045,7 +1045,7 @@ class ServerSettings {
 		// most important allow kill moskitos
 		trans = new TransitionData(248, 2156, 0,
 			86); // Firebrand + Mosquito Swarm --> 0 + Ashes
-		trans.hungryWorkCost = 20;
+		trans.hungryWorkCost = 5;
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 
 		trans = new TransitionData(248, 2157, 0,
