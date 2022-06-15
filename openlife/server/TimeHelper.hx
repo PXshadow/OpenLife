@@ -1406,7 +1406,7 @@ class TimeHelper {
 
 		//var timePassedInSec = LongTimeTimeStepsSartedInTicks;
 		var season = TimeHelper.Season;
-		var timePassedInYears = LongTimeTimeStepsSartedInTicks / 60;
+		var timePassedInYears = LongTimePassedToDoAllTimeSteps / 60;
 
 		// trace('startY: $startY endY: $endY worldMap.height: ${worldMap.height}');
 
@@ -1507,7 +1507,7 @@ class TimeHelper {
 		}
 		else if (origObj[0] == 1261) // 1261 Canada Goose Pond with Egg
 		{
-			if(world.randomFloat() < passedTimeInYears / (60 * 4)){
+			if(world.randomFloat() < passedTimeInYears / (60 * 24)){
 				world.setObjectId(tx,ty, [1261]);
 			}
 		}
