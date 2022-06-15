@@ -809,9 +809,10 @@ class TimeHelper {
 
 		// TODO move inside calculateTemperature so that it is considered for olf cold / hot place
 		if (closestHeatObj != null) {
-			var distance = AiHelper.CalculateQuadDistanceToObject(player, closestHeatObj) + 1;
-
-			var closestHeatTemperature = closestHeatObj.objectData.heatValue / (20 * distance);
+			var heatObjectFactor = ServerSettings.TemperatureHeatObjectFactor;
+			var quadDistance = 10 + AiHelper.CalculateQuadDistanceToObject(player, closestHeatObj);
+			var closestHeatTemperature = closestHeatObj.objectData.heatValue / (heatObjectFactor * quadDistance);
+			
 			closestHeatTemperature *= ServerSettings.TemperatureHeatObjFactor;
 			temperature += closestHeatTemperature;
 

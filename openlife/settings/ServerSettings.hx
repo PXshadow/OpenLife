@@ -249,6 +249,7 @@ class ServerSettings {
 
 	// Temperature
 	public static var DebugTemperature = false;
+	public static var TemperatureHeatObjectFactor:Float = 1.5; // impact of fire and ice stuff
 	public static var DamageTemperatureFactor:Float = 0.5;
 	public static var TemperatureImpactPerSec:Float = 0.03; 	
 	public static var TemperatureImpactPerSecIfGood:Float = 0.06; // if outside temperature is helping to et closer to optimal 	
@@ -261,7 +262,7 @@ class ServerSettings {
 	public static var TemperatureMaxLovedBiomeImpact:Float = 1; 
 	public static var TemperatureImpactBelow:Float = 0.6; // take damage and display emote if temperature is below or above X from normal
 	public static var TemperatureSpeedImpact:Float = 0.9; // speed * X: double impact if extreme temperature
-
+	
 	public static var TemperatureShiftForBlack:Float = 0.1; // ideal temperature = 0.6
 	public static var TemperatureShiftForBrown:Float = 0.5;
 	public static var TemperatureShiftForWhite:Float = -0.5;
