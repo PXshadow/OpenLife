@@ -1164,6 +1164,18 @@ class ServerSettings {
 		var trans = transtions.getTransition(560, 74); // Knife + Fire Bow Drill
 		trans.aiShouldIgnore = true; 
 
+		var trans = transtions.getTransition(461, 3371); // Bow Saw + Table
+		trans.aiShouldIgnore = true; 
+
+		var trans = transtions.getTransition(334, 2142); // Steel Axe + Banana Plant
+		trans.aiShouldIgnore = true; 
+
+		var trans = transtions.getTransition(560, 575); // Knife + Domestic Sheep
+		trans.aiShouldIgnore = true; 
+
+		var trans = transtions.getTransition(560, 541); // Knife + Domestic Mouflon
+		trans.aiShouldIgnore = true; 
+
 		var trans = transtions.getTransition(2365, 3966); // 2365 Diesel Engine + 3966 Empty Scrap Box
 		trans.aiShouldIgnore = true; 
 		
