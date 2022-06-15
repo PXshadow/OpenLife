@@ -1145,6 +1145,11 @@ class ServerSettings {
 		var trans = transtions.getTransition(-1, 80); // Burning Tinder
 		trans.autoDecaySeconds = 15;
 
+		var trans = transtions.getTransition(-1, 249); // Burning Adobe Oven
+		trans.autoDecaySeconds = 25;
+
+		var trans = transtions.getTransition(-1, 1281); // Cooked Omelette
+		trans.autoDecaySeconds = 20;
 
 		// Ai should ignore
 		// TODO fix Ai craftig if Ai needs two threads for a rope it puts one thread in a bowl and gets it out again
