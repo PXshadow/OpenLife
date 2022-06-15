@@ -1,6 +1,7 @@
 package openlife.server;
 
 import haxe.Exception;
+import hl.Type;
 import openlife.auto.AiBase;
 import openlife.auto.AiHelper;
 import openlife.client.ClientTag;
@@ -1529,7 +1530,7 @@ class TimeHelper {
 			var insulation = objData.getInsulation();
 			if(insulation > 0){
 				if (objData.isClothing() == false && insulation > world.randomFloat()){
-					trace('DoSeasonalBiomeChanges: ${objData.name} Insulation: $insulation ==> no snow');
+					//trace('DoSeasonalBiomeChanges: ${objData.name} Insulation: $insulation ==> no snow');
 					return;
 				}
 			}
@@ -1542,6 +1543,19 @@ class TimeHelper {
 			else if(rand == 1) randX = tx - 1;
 			else if(rand == 2) randY = ty + 1;
 			else if(rand == 3) randY = ty - 1;
+
+			//var randX = tx - 1 + world.randomInt(2);
+			//var randY = ty - 1 + world.randomInt(2);
+			var biomeId = world.getBiomeId(randX,randY);
+			var doChange = true;
+			
+			if(biomeId != GREY && biomeId != YELLOW && biomeId != GREEN && biomeId != PASSABLERIVER) doChange = false;
+
+			if(doChange) world.setBiomeId(randX,randY, SNOW);
+
+			// also diagonal
+			var randX = tx + 1 - world.randomInt(2);
+			var randY = ty + 1 - world.randomInt(2);
 
 			//var randX = tx - 1 + world.randomInt(2);
 			//var randY = ty - 1 + world.randomInt(2);
@@ -1570,13 +1584,28 @@ class TimeHelper {
 			else if(rand == 1) randX = tx - 1;
 			else if(rand == 2) randY = ty + 1;
 			else if(rand == 3) randY = ty - 1;
+
 			var biomeId = world.getBiomeId(randX,randY);
+			var doChange = true;
 			
-			if(biomeId == SNOW || biomeId == SNOWINGREY) return;
+			if(biomeId == SNOW || biomeId == SNOWINGREY) doChange = false;
 
 			var originalBiome = world.getOriginalBiomeId(tx,ty);
 
-			world.setBiomeId(tx,ty, originalBiome);
+			if(doChange) world.setBiomeId(tx,ty, originalBiome);
+
+			// also diagonal
+			var randX = tx + 1 - world.randomInt(2);
+			var randY = ty + 1 - world.randomInt(2);
+
+			var biomeId = world.getBiomeId(randX,randY);
+			var doChange = true;
+			
+			if(biomeId == SNOW || biomeId == SNOWINGREY) doChange = false;
+
+			var originalBiome = world.getOriginalBiomeId(tx,ty);
+
+			if(doChange) world.setBiomeId(tx,ty, originalBiome);
 
 			//trace('DoSeasonalBiomeChanges: $randX $randY originalBiome: $originalBiome');
 		}
