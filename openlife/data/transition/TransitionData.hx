@@ -38,6 +38,7 @@ class TransitionData {
 	public var targetRemains:Bool = false;
 
 	public var alternativeTransitionOutcome:Array<Int> = new Array<Int>();
+	public var hungryWorkCost:Float = 0;
 	public var aiShouldIgnore = false;
 
 	public static function createNewFromFile(fileName:String, string:String):TransitionData {

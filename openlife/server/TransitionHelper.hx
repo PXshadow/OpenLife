@@ -621,7 +621,10 @@ class TransitionHelper {
 		// check if it is hungry work like cutting down a tree, using a tool or mining
 		var parentActorObjectData = handObjectData.dummyParent == null ? handObjectData : handObjectData.dummyParent;
 		var newParentTargetObjectData = newTargetObjectData.dummyParent == null ? newTargetObjectData : newTargetObjectData.dummyParent;
-		var hungryWorkCost = Math.max(parentActorObjectData.hungryWork, newParentTargetObjectData.hungryWork);
+
+		// TODO better add instead of max???
+		var hungryWorkCost = Math.max(parentActorObjectData.hungryWork, newParentTargetObjectData.hungryWork); 
+		hungryWorkCost += transition.hungryWorkCost;
 
 		if (hungryWorkCost > 0) {	
 			var missingFood = Math.ceil(hungryWorkCost / 2  - player.food_store);
