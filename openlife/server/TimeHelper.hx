@@ -1038,7 +1038,7 @@ class TimeHelper {
 		var temperature = biomeTemperature - colorTemperatureShift;
 
 		if (ServerSettings.DebugTemperature)
-			trace('calculateTemperature: temperature: $temperature biomeTemperature: $biomeTemperature colorTemperatureShift: $colorTemperatureShift');
+			trace('${player.name}${player.id} calculateTemperature: temperature: $temperature biomeTemperature: $biomeTemperature colorTemperatureShift: $colorTemperatureShift');
 
 		return temperature;
 	}

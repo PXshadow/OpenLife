@@ -259,7 +259,7 @@ class ServerSettings {
 	public static var TemperatureImpactReduction:Float = 0.4; // reduces the impact of bad temperature if temperature is already bad 
 	public static var TemperatureHeatObjFactor:Float = 1; // increase or decrase impact of a head obj like fire
 	public static var TemperatureLovedBiomeFactor:Float = 1; 
-	public static var TemperatureMaxLovedBiomeImpact:Float = 1; 
+	public static var TemperatureMaxLovedBiomeImpact:Float = 0.1; // max 0.1 better in loved biome (right color or borh parents right color)
 	public static var TemperatureImpactBelow:Float = 0.6; // take damage and display emote if temperature is below or above X from normal
 	public static var TemperatureSpeedImpact:Float = 0.9; // speed * X: double impact if extreme temperature
 	
