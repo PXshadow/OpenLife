@@ -1078,6 +1078,16 @@ class ServerSettings {
 		ObjectData.getObjectData(342).alternativeTransitionOutcome.push(344); // Chopped Tree Big Log--> Fire Wood
 		ObjectData.getObjectData(340).alternativeTransitionOutcome.push(344); // Chopped Tree --> Fire Wood
 		ObjectData.getObjectData(3146).alternativeTransitionOutcome.push(344); // Chopped Softwood Tree --> Fire Wood
+
+		// push twice so that it has twice the chance
+		ObjectData.getObjectData(342).alternativeTransitionOutcome.push(344); // Chopped Tree Big Log--> Fire Wood
+		ObjectData.getObjectData(340).alternativeTransitionOutcome.push(344); // Chopped Tree --> Fire Wood
+		ObjectData.getObjectData(3146).alternativeTransitionOutcome.push(344); // Chopped Softwood Tree --> Fire Wood
+
+		// now push Butt Log
+		ObjectData.getObjectData(342).alternativeTransitionOutcome.push(345); // Chopped Tree Big Log--> Butt Log
+		ObjectData.getObjectData(340).alternativeTransitionOutcome.push(345); // Chopped Tree --> Butt Log
+		ObjectData.getObjectData(3146).alternativeTransitionOutcome.push(345); // Chopped Softwood Tree --> Butt Log
 		
 		//ObjectData.getObjectData(99).alternativeTransitionOutcome.push(344); // White Pine Tree --> Fire Wood
 		//ObjectData.getObjectData(100).alternativeTransitionOutcome.push(344); // White Pine Tree with Needles --> Fire Wood
@@ -1151,6 +1161,18 @@ class ServerSettings {
 
 		var trans = transtions.getTransition(-1, 1281); // Cooked Omelette
 		trans.autoDecaySeconds = 20;
+
+		var trans = transtions.getTransition(-1, 861); // Old Hand Cart
+		trans.autoDecaySeconds = -12;
+
+		var trans = transtions.getTransition(-1, 1281); // Cooked Omelette
+		trans.autoDecaySeconds = 20;
+
+		var trans = transtions.getTransition(-1, 846); // Broken Hand Cart
+		trans.autoDecaySeconds = -2;
+
+		var trans = new TransitionData(462, 846, 462, 67); // Steel Adze + Broken Hand Cart ==> Steel Adze + Long Straight Shaft
+		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Ai should ignore
 		// TODO fix Ai craftig if Ai needs two threads for a rope it puts one thread in a bowl and gets it out again
