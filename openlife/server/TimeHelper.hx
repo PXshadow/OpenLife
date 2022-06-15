@@ -1525,6 +1525,15 @@ class TimeHelper {
 			var chance = timePassedInYears * ServerSettings.SeasonBiomeChangeChancePerYear * 4; // 4 because 4 directions
 			if (world.randomFloat() > chance) return;
 
+			var objData = world.getObjectDataAtPosition(tx,ty);
+			var insulation = objData.getInsulation();
+			if(insulation > 0){
+				if (objData.isClothing() == false && insulation > world.randomFloat()){
+					trace('DoSeasonalBiomeChanges: ${objData.name} Insulation: $insulation ==> no snow');
+					return;
+				}
+			}
+
 			var rand = world.randomInt(3);
 			var randX = tx;
 			var randY = ty;

@@ -1192,6 +1192,9 @@ class ServerSettings {
 		 //var lastUseTransition = TransitionImporter.GetTransition(252, 236, true, false);
 		 //trace('Debug PAYETON4171: ${lastUseTransition.getDesciption()}');
 
+		 var objData = ObjectData.getObjectData(885); // 885 Stone Wall
+		 trace('${objData.name} getInsulation: ${objData.getInsulation()} rvalue: ${objData.rValue}');
+
 	}
 
 	public static function writeToFile() {
