@@ -1038,6 +1038,12 @@ class ServerSettings {
 			1135); // Clay Bowl + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Domestic Gooseberry  Bush
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
+		// most important allow kill moskitos
+		trans = new TransitionData(248, 2156, 0,
+			86); // Firebrand + Mosquito Swarm --> 0 + Ashes
+		//trans
+		transtions.addTransition("PatchTransitions: ", trans, false, true);
+
 		// give wolfs some meat // TODO change crafting maps
 		var trans = transtions.getTransition(0, 423); // 423 Skinned Wolf
 		trans.newTargetID = 565; // 565 Butchered Mouflon
