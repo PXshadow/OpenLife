@@ -1238,8 +1238,6 @@ class TimeHelper {
 
 				Connection.SendMapUpdateToAllClosePlayers(x, y);
 
-				
-
 				return;
 			}
 
@@ -1315,6 +1313,8 @@ class TimeHelper {
 	}
 
 	private static function RegrowObj(tx:Int, ty:Int, spawnAs:Int, hidden:Bool) : Bool{
+		var floorId = WorldMap.world.getFloorId(tx,ty);
+		if (floorId > 0) return false;
 		var done = SpawnObject(tx, ty, spawnAs);
 		if (hidden && done) WorldMap.world.setHiddenObjectId(tx, ty, [0]); // What was hidden comes back
 		return done;
@@ -1360,8 +1360,8 @@ class TimeHelper {
 			var tmpY = worldMap.randomInt(2 * dist) - dist + y;
 
 			if (worldMap.getObjectId(tmpX, tmpY)[0] != 0) continue;
-
 			if (worldMap.getObjectId(tmpX, tmpY - 1)[0] != 0) continue; // make sure that obj does not spawn above one tile of existing obj
+			if (worldMap.getFloorId(tmpX, tmpY) != 0) continue; // dont spawn on floors
 
 			var biomeId = worldMap.getBiomeId(tmpX, tmpY);
 			var objData = ObjectData.getObjectData(objID);
