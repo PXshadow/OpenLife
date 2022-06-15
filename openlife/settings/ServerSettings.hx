@@ -1178,6 +1178,15 @@ class ServerSettings {
 		trans.aiShouldIgnore = true; 
 
 		var trans = transtions.getTransition(2365, 3966); // 2365 Diesel Engine + 3966 Empty Scrap Box
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(345, 82); // Butt Log + Fire
+		trans.aiShouldIgnore = true; 
+
+		var trans = transtions.getTransition(345, 83); // Butt Log + Large Fast Fire
+		trans.aiShouldIgnore = true; 
+
+		var trans = transtions.getTransition(345, 3029); // Butt Log + Flash Fire
 		trans.aiShouldIgnore = true; 
 		
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
