@@ -4122,6 +4122,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// player.sendFoodUpdate(false);
 		} else if (text.indexOf('!UAGE') != -1) {
 			if(canUseServerCommands == false){
+				if(text != '!') player.say('not allowed!', true);
+				return true;
+			}
+			if(canUseServerCommands == false){
 				player.say('not allowed!', true);
 				return true;
 			}
