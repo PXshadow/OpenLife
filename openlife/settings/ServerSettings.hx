@@ -262,9 +262,9 @@ class ServerSettings {
 	public static var TemperatureImpactBelow:Float = 0.6; // take damage and display emote if temperature is below or above X from normal
 	public static var TemperatureSpeedImpact:Float = 0.9; // speed * X: double impact if extreme temperature
 
-	public static var TemperatureShiftForBlack:Float = 0.2; // ideal temperature = 0.7
-	public static var TemperatureShiftForBrown:Float = 0.1;
-	public static var TemperatureShiftForWhite:Float = 0;
+	public static var TemperatureShiftForBlack:Float = 0.1; // ideal temperature = 0.6
+	public static var TemperatureShiftForBrown:Float = 0.5;
+	public static var TemperatureShiftForWhite:Float = -0.5;
 	public static var TemperatureShiftForGinger:Float = -0.1;
 
 	// winter / summer
