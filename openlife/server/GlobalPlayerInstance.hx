@@ -4112,12 +4112,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.sendFoodUpdate(false);
 		} else if (text.indexOf('!AGE') != -1 || text == '!') {
 			if(canUseServerCommands == false){
-				player.say('not allowed!', true);
+				if(text != '!') player.say('not allowed!', true);
 				return true;
 			}
 			
 			player.age += 5;
 			player.trueAge += 5;
+			Connection.SendUpdateToAllClosePlayers(player);
+			// player.sendFoodUpdate(false);
+		} else if (text.indexOf('!UAGE') != -1) {
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return true;
+			}
+			
+			player.age -= 5;
+			player.trueAge -= 5;
 			Connection.SendUpdateToAllClosePlayers(player);
 			// player.sendFoodUpdate(false);
 		} else if (text.indexOf('!KILLLEADER') != -1) {
