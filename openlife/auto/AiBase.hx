@@ -69,6 +69,7 @@ abstract class AiBase
 	public var failedCraftings = new Map<Int,Float>(); // cleared on birth
 
 	public var isHandlingTemperature = false;
+	public var justArrived = false;
 
 	public static function StartAiThread() {
 		Thread.create(RunAi);
@@ -374,6 +375,7 @@ abstract class AiBase
 
 		if(goodPlace == null){
 			isHandlingTemperature = false;
+			justArrived = false;
 			return false;
 		}
 
@@ -384,12 +386,19 @@ abstract class AiBase
 		var temperature = myPlayer.lastTemperature;	
 
 		if (quadDistance < 1){	
+			if(justArrived == false){
+				justArrived = true;
+				this.time += 3; // just relax
+				return true;
+			}
 				
-			if(myPlayer.heat > 0.5 && myPlayer.lastTemperature > 0.5){
+			if(myPlayer.heat > 0.5 && myPlayer.lastTemperature > 0.45){
 				trace('AAI: ${myPlayer.name + myPlayer.id} does not help: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
-				return false; // this place does not help
+				myPlayer.coldPlace = null; // this place does not help
+				return false; 
 			} 
-			if(myPlayer.heat < 0.5 && myPlayer.lastTemperature < 0.5){
+			if(myPlayer.heat < 0.5 && myPlayer.lastTemperature < 0.55){
+				myPlayer.warmPlace = null; // this place does not help
 				trace('AAI: ${myPlayer.name + myPlayer.id} does not help: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
 				return false; // this place does not help
 			} 
