@@ -576,7 +576,7 @@ class Connection {
 				var targetY = WorldMap.world.transformY(p, player.ty);
 
 				// update only close players
-				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) continue;
+				if (c.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsCoseForMovement) == false) continue;
 
 				var moveString = player.moveHelper.generateRelativeMoveUpdateString(c.player);
 
