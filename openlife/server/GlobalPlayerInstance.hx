@@ -109,7 +109,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var warmPlace:ObjectHelper = null; // not saved
 	public var lastTemperature:Float = 0.5; // not saved
 
-
 	public function getFollowPlayer() {
 		return followPlayer;
 	}
@@ -3959,8 +3958,29 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	private static function DoDebugCommands(player:GlobalPlayerInstance, text:String):Bool {
+		var canUseServerCommands = player.account.canUseServerCommands;
+
+		if (text.startsWith('!S ')) {
+			var strings = text.split(' ');
+
+			if (strings.length < 2) return true;
+
+			var secret = strings[1];
+
+			player.account.canUseServerCommands = secret == ServerSettings.Secret;
+
+			player.say('Secret: ${player.account.canUseServerCommands}}', true);
+
+			return true;
+		}
+		
 		if (text.indexOf('!HIT H') != -1) {
 			trace('!HIT HELD');
+			
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return false;
+			}
 
 			if (player.heldPlayer == null) return false;
 
@@ -4019,23 +4039,35 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 					}
 				}
 		}*/ else if (text.indexOf('!CREATEALL') != -1) {
-			if(ServerSettings.AllowDebugObjectCreation) Server.server.map.generateExtraDebugStuff(player.tx, player.ty);
+			if(ServerSettings.AllowDebugObjectCreation){
+				if(canUseServerCommands == false){
+					player.say('not allowed!', true);
+					return true;
+				}
+				
+				 Server.server.map.generateExtraDebugStuff(player.tx, player.ty);
+			}
 			else {
 				player.say('CREATEALL IS DEACTIVATED', true);
-				return false;
+				return true;
 			}
 		} else if (text.indexOf('!CREATE') != -1) { // "create xxx" with xxx = id
 			trace('Create debug object');
+
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return true;
+			}
 
 			var id = findObjectByCommand(text);
 			var objData = ObjectData.getObjectData(id);
 
 			if(objData == null){
 				player.say('$id is not an object', true);
-				return false;
+				return true;
 			}
 
-			if (id < 0) return false;
+			if (id < 0) return true;
 
 			WorldMap.world.setObjectId(player.tx, player.ty, [id]);
 
@@ -4058,21 +4090,43 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return true;
 		} else if (text.indexOf('!SNOW') != -1) {
 			player.say('SNOW', true);
+
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return true;
+			}
+
 			WorldMap.world.setBiomeId(player.tx, player.ty, BiomeTag.SNOW);
 			player.connection.sendMapChunk(player.x, player.y);
 			return true;
 		} else if (text.indexOf('!YUM') != -1) {
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return true;
+			}
+
 			player.food_store += 10;
 			player.sendFoodUpdate(false);
 		} else if (text.indexOf('!MEH') != -1) {
 			player.food_store -= 5;
 			player.sendFoodUpdate(false);
 		} else if (text.indexOf('!AGE') != -1 || text == '!') {
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return true;
+			}
+			
 			player.age += 5;
 			player.trueAge += 5;
 			Connection.SendUpdateToAllClosePlayers(player);
 			// player.sendFoodUpdate(false);
 		} else if (text.indexOf('!KILLLEADER') != -1) {
+
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return true;
+			}
+
 			var leader = player.getTopLeader();
 			if (leader != null && leader != player) {
 				leader.hits += 50;
@@ -4080,6 +4134,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			}
 			return true;
 		} else if (text.indexOf('!KILLOBJ') != -1) {
+
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return true;
+			}
+
 			WorldMap.world.setObjectId(player.tx, player.ty, [0]);
 			WorldMap.world.setObjectId(player.tx, player.ty + 1, [0]);
 			WorldMap.world.setObjectId(player.tx, player.ty - 1, [0]);
@@ -4199,6 +4259,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.say('Teleport', true);
 			return true;
 		} else if (text.indexOf('!SPEED') != -1) {
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return true;
+			}
+			
 			if (ServerSettings.SpeedFactor < 2) ServerSettings.SpeedFactor = 10; else
 				ServerSettings.SpeedFactor = 1;
 

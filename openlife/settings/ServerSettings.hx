@@ -12,6 +12,8 @@ using StringTools;
 
 @:rtti
 class ServerSettings {
+	public static var Secret = 'JASON';
+
 	// DEBUG: switch on / off
 	public static var dumpOutput = false;
 	public static var debug = false; // activates or deactivates try catch blocks 

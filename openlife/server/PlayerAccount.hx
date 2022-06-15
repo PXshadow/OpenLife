@@ -18,6 +18,7 @@ class PlayerAccount {
 	public var email:String;
 	public var account_key_hash:String;
 	public var name:String = 'SNOW';
+	public var canUseServerCommands = false;
 
 	public var score:Float;
 	public var femaleScore:Float;
