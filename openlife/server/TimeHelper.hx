@@ -1723,7 +1723,7 @@ class TimeHelper {
 		This indicates that the object came from the old coordinates and is moving
 		with a given speed.
 	 */
-	private static function doAnimalMovement(helper:ObjectHelper, timeTransition:TransitionData):Bool {
+	private static function doAnimalMovement(animal:ObjectHelper, timeTransition:TransitionData):Bool {
 		// TODO chasing
 		// TODO fleeing
 		// TODO Offspring only if with child
@@ -1735,22 +1735,22 @@ class TimeHelper {
 		timeTransition.move = 3;
 
 		if (moveDist < 3) moveDist += 1; // movement distance is plus 4 in vanilla if walking over objects
-		helper.objectData.moves = moveDist; // TODO better set in settings
+		animal.objectData.moves = moveDist; // TODO better set in settings
 
-		if (helper.hits > 0) helper.hits -= 0.005; // reduce hits the animal got
-		if (helper.hits < 0) helper.hits = 0;
+		if (animal.hits > 0) animal.hits -= 0.005; // reduce hits the animal got
+		if (animal.hits < 0) animal.hits = 0;
 
 		var worldmap = Server.server.map;
-		var objectData = helper.objectData.dummyParent == null ? helper.objectData : helper.objectData.dummyParent;
-		var fromTx = helper.tx;
-		var fromTy = helper.ty;
-		var currentbiome = worldmap.getBiomeId(helper.tx, helper.ty);
+		var objectData = animal.objectData.dummyParent == null ? animal.objectData : animal.objectData.dummyParent;
+		var fromTx = animal.tx;
+		var fromTy = animal.ty;
+		var currentbiome = worldmap.getBiomeId(animal.tx, animal.ty);
 		var lovesCurrentBiome = objectData.isSpawningIn(currentbiome);
 
 		if (lovesCurrentBiome) {
-			// trace('set loved tx,ty for animal: ${helper.description}');
-			helper.lovedTx = helper.tx;
-			helper.lovedTy = helper.ty;
+			// trace('set loved tx,ty for animal: ${animal.description}');
+			animal.lovedTx = animal.tx;
+			animal.lovedTy = animal.ty;
 		}
 
 		var maxIterations = 20;
@@ -1758,8 +1758,8 @@ class TimeHelper {
 		var bestQuadDist = 999999999999999999999999999999999.9;
 
 		for (i in 0...maxIterations) {
-			var toTx = helper.tx - moveDist + worldmap.randomInt(moveDist * 2);
-			var toTy = helper.ty - moveDist + worldmap.randomInt(moveDist * 2);
+			var toTx = animal.tx - moveDist + worldmap.randomInt(moveDist * 2);
+			var toTy = animal.ty - moveDist + worldmap.randomInt(moveDist * 2);
 
 			var target = worldmap.getObjectHelper(toTx, toTy);
 
@@ -1770,7 +1770,7 @@ class TimeHelper {
 			if (target.timeToChange != 0) continue;
 			if (target.groundObject != null) continue;
 			// make sure that target is not the old tile
-			if (toTx == helper.tx && toTy == helper.ty) continue;
+			if (toTx == animal.tx && toTy == animal.ty) continue;
 
 			var targetBiome = worldmap.getBiomeId(toTx, toTy);
 
@@ -1778,7 +1778,7 @@ class TimeHelper {
 
 			var isPreferredBiome = objectData.isSpawningIn(targetBiome);
 
-			// if(helper.objectData.dummyParent != null) trace('Animal Move: ${objectData.description} $isPreferredBiome');
+			// if(animal.objectData.dummyParent != null) trace('Animal Move: ${objectData.description} $isPreferredBiome');
 
 			// lower the chances even more if on river
 			// var isHardbiome = targetBiome == BiomeTag.RIVER || (targetBiome == BiomeTag.GREY) || (targetBiome == BiomeTag.SNOW) || (targetBiome == BiomeTag.DESERT);
@@ -1796,56 +1796,57 @@ class TimeHelper {
 			if (target == null) continue; // movement was fully bocked, search another target
 
 			// try to go closer to loved biome
-			if (lovesCurrentBiome == false && isPreferredBiome == false && (helper.lovedTx != 0 || helper.lovedTy != 0)) {
-				var quadDist = AiHelper.CalculateDistance(helper.lovedTx, helper.lovedTy, target.tx, target.ty);
+			if (lovesCurrentBiome == false && isPreferredBiome == false && (animal.lovedTx != 0 || animal.lovedTy != 0)) {
+				var quadDist = AiHelper.CalculateDistance(animal.lovedTx, animal.lovedTy, target.tx, target.ty);
 				if (quadDist < bestQuadDist) {
 					bestQuadDist = quadDist;
 					besttarget = target;
 					maxIterations = i + 6; // try to find better
 
-					// trace('i: $i set better target for animal: ${helper.description} quadDist: $quadDist');
+					// trace('i: $i set better target for animal: ${animal.description} quadDist: $quadDist');
 				}
 
 				if (i < maxIterations - 2) continue; // try to find better
 
 				if (besttarget != null) target = besttarget;
 
-				// Connection.SendLocationToAllClose(helper.lovedTx, helper.lovedTy, helper.name);
+				// Connection.SendLocationToAllClose(animal.lovedTx, animal.lovedTy, animal.name);
 
-				// toTx = toTx > helper.lovedTx ? toTx - 1 : toTx + 1;
+				// toTx = toTx > animal.lovedTx ? toTx - 1 : toTx + 1;
 			}
 
 			toTx = target.tx;
 			toTy = target.ty;
 
 			// 2710 + -1 = 767 + 769 // Wild Horse with Lasso + TIME  -->  Lasso# tool + Wild Horse
-			var transition = TransitionImporter.GetTransition(helper.parentId, -1, false, false);
+			// TODO merge with timeAlternaiveTransition? // TODO shouldnt the alternative target be set?
+			var transition = TransitionImporter.GetTransition(animal.parentId, -1, false, false);
 
 			if (transition != null) {
-				var tmpGroundObject = helper.groundObject;
-				helper.groundObject = new ObjectHelper(null, transition.newActorID);
-				helper.groundObject.groundObject = tmpGroundObject;
+				var tmpGroundObject = animal.groundObject;
+				animal.groundObject = new ObjectHelper(null, transition.newActorID);
+				animal.groundObject.groundObject = tmpGroundObject;
 
-				// trace('animal movement: found -1 transition: ${helper.description} --> ${helper.groundObject.description}');
+				// trace('animal movement: found -1 transition: ${animal.description} --> ${animal.groundObject.description}');
 			}
 
-			if (helper.isLastUse()) timeTransition = TransitionImporter.GetTransition(-1, helper.id, false, true);
+			if (animal.isLastUse()) timeTransition = TransitionImporter.GetTransition(-1, animal.id, false, true);
 
 			// FIX: 544 Domestic Mouflon with Lamb + -1  ==> 545 Domestic Lamb + 541 Domestic Mouflon
-			var timeAlternaiveTransition = (helper.isLastUse()) ? TransitionImporter.GetTransition(helper.id, -1, true, false) : null;
+			var timeAlternaiveTransition = (animal.isLastUse()) ? TransitionImporter.GetTransition(animal.id, -1, true, false) : null;
 
-			helper.id = timeAlternaiveTransition != null ? timeAlternaiveTransition.newTargetID : timeTransition.newTargetID;
+			animal.id = timeAlternaiveTransition != null ? timeAlternaiveTransition.newTargetID : timeTransition.newTargetID;
 
-			TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, timeTransition, false);
+			TransitionHelper.DoChangeNumberOfUsesOnTarget(animal, timeTransition, false);
 
 			// save what was on the ground, so that we can move on this tile and later restore it
-			var oldTileObject = helper.groundObject == null ? [0] : helper.groundObject.toArray();
-			var newTileObject = helper.toArray();
+			var oldTileObject = animal.groundObject == null ? [0] : animal.groundObject.toArray();
+			var newTileObject = animal.toArray();
 
-			// var des = helper.groundObject == null ? "NONE": helper.groundObject.description();
-			// trace('MOVE: oldTile: $oldTileObject $des newTile: $newTileObject ${helper.description()}');
+			// var des = animal.groundObject == null ? "NONE": animal.groundObject.description();
+			// trace('MOVE: oldTile: $oldTileObject $des newTile: $newTileObject ${animal.description()}');
 			if(timeAlternaiveTransition == null){
-				worldmap.setObjectHelper(fromTx, fromTy, helper.groundObject);
+				worldmap.setObjectHelper(fromTx, fromTy, animal.groundObject);
 			}
 			else{
 				// FIX: 544 Domestic Mouflon with Lamb + -1  ==> 545 Domestic Lamb + 541 Domestic Mouflon
@@ -1856,17 +1857,17 @@ class TimeHelper {
 				trace('timeAlternaiveTransition: ${timeAlternaiveTransition.getDesciption()}');
 			}
 
-			var tmpGroundObject = helper.groundObject;
-			helper.groundObject = target;
-			worldmap.setObjectHelper(toTx, toTy, helper); // set so that object has the right position before doing damage
+			var tmpGroundObject = animal.groundObject;
+			animal.groundObject = target;
+			worldmap.setObjectHelper(toTx, toTy, animal); // set so that object has the right position before doing damage
 			// helper.tx = toTx;
 			// helper.ty = toTy;
-			var damage = DoAnimalDamage(fromTx, fromTy, helper);
+			var damage = DoAnimalDamage(fromTx, fromTy, animal);
 			// TODO only change after movement is finished
-			if (damage <= 0) helper.timeToChange = timeTransition.calculateTimeToChange();
-			helper.creationTimeInTicks = TimeHelper.tick;
+			if (damage <= 0) animal.timeToChange = timeTransition.calculateTimeToChange();
+			animal.creationTimeInTicks = TimeHelper.tick;
 
-			worldmap.setObjectHelper(toTx, toTy, helper); // set again since animal might be killed
+			worldmap.setObjectHelper(toTx, toTy, animal); // set again since animal might be killed
 
 			var chanceForOffspring = isPreferredBiome ? ServerSettings.ChanceForOffspring : ServerSettings.ChanceForOffspring * Math.pow((1
 				- chancePreferredBiome), 2);
@@ -1891,11 +1892,11 @@ class TimeHelper {
 				&& worldmap.originalObjectsCount[newTileObject[0]] > 0 && worldmap.randomFloat() <= chanceForAnimalDying) {
 				// decay animal only if it is a original one
 				// TODO decay all animals and cosider if they cointain items like a horse wagon
-				// trace('Animal DEAD: $newTileObject ${helper.description}: Count: ${worldmap.currentObjectsCount[newTileObject[0]]} Original Count: ${worldmap.originalObjectsCount[newTileObject[0]]} chance: $chanceForAnimalDying biome: $targetBiome');
+				// trace('Animal DEAD: $newTileObject ${animal.description}: Count: ${worldmap.currentObjectsCount[newTileObject[0]]} Original Count: ${worldmap.originalObjectsCount[newTileObject[0]]} chance: $chanceForAnimalDying biome: $targetBiome');
 
-				helper.id = 0;
+				animal.id = 0;
 				newTileObject = [0];
-				worldmap.setObjectHelper(toTx, toTy, helper);
+				worldmap.setObjectHelper(toTx, toTy, animal);
 			}
 
 			var speed = ServerSettings.InitialPlayerMoveSpeed * objectData.speedMult;
@@ -1906,7 +1907,7 @@ class TimeHelper {
 			return true;
 		}
 
-		helper.creationTimeInTicks = TimeHelper.tick;
+		animal.creationTimeInTicks = TimeHelper.tick;
 		// trace('ANIMALMOVE: false');
 
 		return false;
