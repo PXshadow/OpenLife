@@ -1831,7 +1831,10 @@ class TimeHelper {
 
 			if (helper.isLastUse()) timeTransition = TransitionImporter.GetTransition(-1, helper.id, false, true);
 
-			helper.id = timeTransition.newTargetID;
+			// FIX: 544 Domestic Mouflon with Lamb + -1  ==> 545 Domestic Lamb + 541 Domestic Mouflon
+			var timeAlternaiveTransition = (helper.isLastUse()) ? TransitionImporter.GetTransition(helper.id, -1, true, false) : null;
+
+			helper.id = timeAlternaiveTransition != null ? timeAlternaiveTransition.newTargetID : timeTransition.newTargetID;
 
 			TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, timeTransition, false);
 
@@ -1841,7 +1844,17 @@ class TimeHelper {
 
 			// var des = helper.groundObject == null ? "NONE": helper.groundObject.description();
 			// trace('MOVE: oldTile: $oldTileObject $des newTile: $newTileObject ${helper.description()}');
-			worldmap.setObjectHelper(fromTx, fromTy, helper.groundObject);
+			if(timeAlternaiveTransition == null){
+				worldmap.setObjectHelper(fromTx, fromTy, helper.groundObject);
+			}
+			else{
+				// FIX: 544 Domestic Mouflon with Lamb + -1  ==> 545 Domestic Lamb + 541 Domestic Mouflon
+				// TODO what to do with the old tile obj in case an animal moved on top of stuff?
+				oldTileObject = [timeAlternaiveTransition.newActorID];
+				worldmap.setObjectId(fromTx, fromTy, oldTileObject);
+
+				trace('timeAlternaiveTransition: ${timeAlternaiveTransition.getDesciption()}');
+			}
 
 			var tmpGroundObject = helper.groundObject;
 			helper.groundObject = target;

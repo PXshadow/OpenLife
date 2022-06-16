@@ -1240,8 +1240,12 @@ class ServerSettings {
 		 //var lastUseTransition = TransitionImporter.GetTransition(252, 236, true, false);
 		 //trace('Debug PAYETON4171: ${lastUseTransition.getDesciption()}');
 
-		 var objData = ObjectData.getObjectData(885); // 885 Stone Wall
-		 trace('${objData.name} getInsulation: ${objData.getInsulation()} rvalue: ${objData.rValue}');
+		 //var objData = ObjectData.getObjectData(885); // 885 Stone Wall
+		 //trace('${objData.name} getInsulation: ${objData.getInsulation()} rvalue: ${objData.rValue}');
+
+		//var trans = TransitionImporter.GetTransition(544, -1, true, false);
+		//trace('DEBUG: ${trans.getDesciption()}');
+
 
 	}
 
