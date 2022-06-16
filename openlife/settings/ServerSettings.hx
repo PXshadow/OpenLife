@@ -69,7 +69,7 @@ class ServerSettings {
 	public static var BirthPrestigeFactor:Float = 0.4; // TODO set 0.2 if fathers are implemented // on birth your starting prestige is factor X * total prestige
 	public static var AncestorPrestigeFactor:Float = 0.2; // if one dies the ancestors get factor X prestige of the dead
 	public static var ScoreFactor:Float = 0.2; // new score influences total score with factor X.
-	public static var OldGraveDecayMali:Float = 10; // prestige mali if bones decay without beeing proper burried
+	public static var OldGraveDecayMali:Float = 20; // prestige mali if bones decay without beeing proper burried
 	public static var CursedGraveMali:Float = 2; // prestige mali if bones decay without beeing proper burried
 
 	// Display
