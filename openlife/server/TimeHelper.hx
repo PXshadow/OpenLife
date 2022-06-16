@@ -1763,14 +1763,12 @@ class TimeHelper {
 
 			var target = worldmap.getObjectHelper(toTx, toTy);
 
-			if (target.id != 0) continue;
-
-			if (target.blocksWalking()) continue;
-			// dont move move on top of other moving stuff
-			if (target.timeToChange != 0) continue;
-			if (target.groundObject != null) continue;
+			if(AnimalCanEndUpHere(target) == false) continue;
+			
 			// make sure that target is not the old tile
 			if (toTx == animal.tx && toTy == animal.ty) continue;
+
+			//if (target.id != 0) trace('MOVE target: ${target.name}');
 
 			var targetBiome = worldmap.getBiomeId(toTx, toTy);
 
@@ -1794,6 +1792,8 @@ class TimeHelper {
 			// limit movement if blocked
 			target = calculateNonBlockedTarget(fromTx, fromTy, target);
 			if (target == null) continue; // movement was fully bocked, search another target
+
+			//if (target.id != 0) trace('MOVE target: ${target.name}');
 
 			// try to go closer to loved biome
 			if (lovesCurrentBiome == false && isPreferredBiome == false && (animal.lovedTx != 0 || animal.lovedTy != 0)) {
@@ -1843,8 +1843,9 @@ class TimeHelper {
 			var oldTileObject = animal.groundObject == null ? [0] : animal.groundObject.toArray();
 			var newTileObject = animal.toArray();
 
-			// var des = animal.groundObject == null ? "NONE": animal.groundObject.description();
-			// trace('MOVE: oldTile: $oldTileObject $des newTile: $newTileObject ${animal.description()}');
+			//var des = animal.groundObject == null ? "NONE": 'GROUND: ${animal.groundObject.name}';
+			//if(animal.groundObject != null && animal.groundObject.id != 0) trace('MOVE: oldTile: $des $oldTileObject newTile: ${animal.name} $newTileObject');
+
 			if(timeAlternaiveTransition == null){
 				worldmap.setObjectHelper(fromTx, fromTy, animal.groundObject);
 			}
@@ -1859,6 +1860,10 @@ class TimeHelper {
 
 			var tmpGroundObject = animal.groundObject;
 			animal.groundObject = target;
+
+			var des = animal.groundObject == null ? "NONE": 'GROUND: ${animal.groundObject.name}';
+			if(animal.groundObject != null && animal.groundObject.id != 0) trace('MOVE: oldTile: $des $oldTileObject newTile: ${animal.name} $newTileObject');
+
 			worldmap.setObjectHelper(toTx, toTy, animal); // set so that object has the right position before doing damage
 			// helper.tx = toTx;
 			// helper.ty = toTy;
@@ -2015,10 +2020,24 @@ class TimeHelper {
 			}
 
 			// TODO allow move on non empty ground
-			if (movementTileObj.id == 0) tmpTarget = movementTileObj;
+			//if (movementTileObj.id == 0) tmpTarget = movementTileObj;
+			if (AnimalCanEndUpHere(movementTileObj)) tmpTarget = movementTileObj;
+			
 		}
 
 		return tmpTarget;
+	}
+
+	private static function AnimalCanEndUpHere(target:ObjectHelper) : Bool{
+		//if (target.id != 0) continue; // TODO test if walked on object are restored right
+
+		if (target.blocksWalking()) return false;
+
+		if (target.groundObject != null && target.groundObject.id != 0) return false;
+
+		// dont move move on top of other moving stuff
+		//if (target.timeToChange != 0) continue;
+		return true;
 	}
 
 	private static function DoAnimalDamage(fromX:Int, fromY:Int, animal:ObjectHelper):Float {

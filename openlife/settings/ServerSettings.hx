@@ -970,6 +970,14 @@ class ServerSettings {
 		trans.autoDecaySeconds = -6;
 		trans.traceTransition("PatchTransitions: ");
 
+		// Escaped Horse-Drawn Cart just released
+		trans = transtions.getTransition(-1, 1422);
+		trans.autoDecaySeconds = 15;  // 7
+
+		// Escaped Horse-Drawn Tire Cart just released
+		trans = transtions.getTransition(-1, 1316);
+		trans.autoDecaySeconds = 30;  // 7
+
 		// 141 Canada Goose Pond
 		// 1261 Canada Goose Pond with Egg // TODO let egg come back
 
