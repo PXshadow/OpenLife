@@ -975,7 +975,8 @@ class TimeHelper {
 
 		player.connection.send(HEAT_CHANGE, [message], false);
 
-		if(ServerSettings.DebugTemperature) player.say('H ${Math.round(playerHeat * 100) / 100}} T $temperature'); 			
+		if(ServerSettings.DebugTemperature) player.say('H ${Math.round(playerHeat * 100) / 100}} T $temperature'); 					
+		//player.say(WorldMap.world.getObjectDataAtPosition(player.tx,player.ty).name); 			
 		if(ServerSettings.DebugTemperature)
 		  trace('${player.name + player.id} Temperature: $temperature playerHeat: ${Math.round(playerHeat * 100) / 100} clothingFactor: $clothingFactor foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
 	}
@@ -1861,8 +1862,8 @@ class TimeHelper {
 			var tmpGroundObject = animal.groundObject;
 			animal.groundObject = target;
 
-			var des = animal.groundObject == null ? "NONE": 'GROUND: ${animal.groundObject.name}';
-			if(animal.groundObject != null && animal.groundObject.id != 0) trace('MOVE: oldTile: $des $oldTileObject newTile: ${animal.name} $newTileObject');
+			//var des = animal.groundObject == null ? "NONE": 'GROUND: ${animal.groundObject.name}';
+			//if(animal.groundObject != null && animal.groundObject.id != 0) trace('MOVE: oldTile: $des $oldTileObject newTile: ${animal.name} $newTileObject');
 
 			worldmap.setObjectHelper(toTx, toTy, animal); // set so that object has the right position before doing damage
 			// helper.tx = toTx;
@@ -1906,6 +1907,9 @@ class TimeHelper {
 
 			var speed = ServerSettings.InitialPlayerMoveSpeed * objectData.speedMult;
 			Connection.SendAnimalMoveUpdateToAllClosePlayers(fromTx, fromTy, toTx, toTy, oldTileObject, newTileObject, speed);
+			
+			//if(tmpGroundObject == null) tmpGroundObject = new ObjectHelper(null, 0);
+			//if(tmpGroundObject.id != 0) trace('ANIMALMOVE: $oldTileObject ${tmpGroundObject.name} ${tmpGroundObject.id} ==> $newTileObject ${animal.name} ${animal.id}');
 
 			// trace('ANIMALMOVE: true $i');
 
@@ -2003,17 +2007,16 @@ class TimeHelper {
 				isBiomeBlocking = WorldMap.calculateRandomFloat() > ServerSettings.ChanceThatAnimalsCanPassBlockingBiome;
 
 			// TODO better patch in the objects, i dont see any reason why a rabit or a tree should block movement
-			if (isBiomeBlocking
-				|| (movementTileObj.blocksWalking())) {
-					//&& movementTileObj.description.indexOf("Tarry Spot") == -1
-					//&& movementTileObj.description.indexOf("Tree") == -1
-					//&& movementTileObj.description.indexOf("Rabbit") == -1
-					//&& movementTileObj.description.indexOf("Spring") == -1
-					//&& movementTileObj.description.indexOf("Sugarcane") == -1
-					//&& movementTileObj.description.indexOf("Pond") == -1
-					//&& movementTileObj.description.indexOf("Palm") == -1
-					//&& movementTileObj.description.indexOf("Plant") == -1)) {
-					//&& movementTileObj.description.indexOf("Iron") == -1
+			if (isBiomeBlocking || (movementTileObj.blocksWalking() // )) {
+					&& movementTileObj.description.indexOf("Tarry Spot") == -1
+					&& movementTileObj.description.indexOf("Tree") == -1
+					&& movementTileObj.description.indexOf("Rabbit") == -1
+					&& movementTileObj.description.indexOf("Spring") == -1
+					&& movementTileObj.description.indexOf("Sugarcane") == -1
+					&& movementTileObj.description.indexOf("Pond") == -1
+					&& movementTileObj.description.indexOf("Palm") == -1
+					&& movementTileObj.description.indexOf("Plant") == -1
+					&& movementTileObj.description.indexOf("Iron") == -1)) {
 				// trace('movement blocked ${movementTile.description()} ${movementBiome}');
 
 				break;

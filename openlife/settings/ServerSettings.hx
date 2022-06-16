@@ -975,7 +975,7 @@ class ServerSettings {
 		trans.autoDecaySeconds = 15;  // 7
 
 		// Escaped Horse-Drawn Tire Cart just released
-		trans = transtions.getTransition(-1, 1316);
+		trans = transtions.getTransition(-1, 1361);
 		trans.autoDecaySeconds = 30;  // 7
 
 		// 141 Canada Goose Pond

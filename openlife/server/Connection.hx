@@ -539,8 +539,8 @@ class Connection {
 
 				// c.mutex.acquire(); // do all in one frame
 
-				c.sendMapUpdate(fromX, fromY, floorIdFrom, fromObj, -1, false);
 				c.sendMapUpdateForMoving(toX, toY, floorIdTarget, toObj, -1, fromX, fromY, speed);
+				c.sendMapUpdate(fromX, fromY, floorIdFrom, fromObj, -1, false);
 				c.send(FRAME, null, false);
 
 				// c.mutex.release();
