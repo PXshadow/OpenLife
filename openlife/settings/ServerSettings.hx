@@ -1042,12 +1042,16 @@ class ServerSettings {
 			1135); // Clay Bowl + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Domestic Gooseberry  Bush
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
+		// hungry work transitions
+		var trans = transtions.getTransition(502, 122); // Shovel + Tule Stumps ==> Adobe
+		trans.hungryWorkCost = 20;
+
 		// most important allow kill moskitos
 		trans = new TransitionData(248, 2156, 0,
 			86); // Firebrand + Mosquito Swarm --> 0 + Ashes
 		trans.hungryWorkCost = 5;
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
-
+	
 		trans = new TransitionData(248, 2157, 0,
 			86); // Firebrand + Mosquito Swarm just bit --> 0 + Ashes
 		trans.hungryWorkCost = 20;
@@ -1215,7 +1219,15 @@ class ServerSettings {
 
 		var trans = transtions.getTransition(345, 3029); // Butt Log + Flash Fire
 		trans.aiShouldIgnore = true; 
-		
+
+		// allow shovel again if it is better then sharp stone
+		var trans = transtions.getTransition(502, 36); // Shovel + Seeding Wild Carrot
+		trans.aiShouldIgnore = true; 
+		var trans = transtions.getTransition(502, 404); // Shovel + Wild Carrot
+		trans.aiShouldIgnore = true; 
+		var trans = transtions.getTransition(502, 804); // Shovel + Burdock
+		trans.aiShouldIgnore = true; 
+			 
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');
 
