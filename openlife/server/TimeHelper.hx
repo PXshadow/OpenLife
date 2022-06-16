@@ -597,8 +597,20 @@ class TimeHelper {
 				player.connection.sendGlobalMessage(text);
 			}
 
+			if (Std.int(player.trueAge) == 1 ){ 
+				var coins:Float = Std.int(player.coins);
+				var text = 'Bad Temperature (bottom right) can kill you';
+				var text2 = 'The max food (left corner) is also your health!';
+				var text3 = 'Life is hard. Try to stay alife!';
+				var text4 = 'Good luck!';
+				player.connection.sendGlobalMessage(text);
+				player.connection.sendGlobalMessage(text2);
+				player.connection.sendGlobalMessage(text3);
+				player.connection.sendGlobalMessage(text4);
+			}
+
 			if (Std.int(player.age) == 58) {
-				trace('Player: ${player.name + player.p_id} death is near!');
+				//trace('Player: ${player.name + player.p_id} death is near!');
 
 				var factor = ServerSettings.DisplayScoreFactor;
 				var totalPrestige = Math.floor(player.yum_multiplier);
@@ -616,7 +628,7 @@ class TimeHelper {
 				var textFromSiblings = prestigeFromSiblings > 5 ? 'You have gained ${prestigeFromSiblings * factor} prestige from siblings!' : '';
 
 				// trace('New Age: $message');
-				player.connection.sendGlobalMessage('Your life nears the end. You earned ${totalPrestige}!');
+				player.connection.sendGlobalMessage('Your life nears the end. You earned ${totalPrestige} prestige!');
 
 				if(ServerSettings.DisplayScoreOn){
 					player.connection.sendGlobalMessage(textFromChildren);
