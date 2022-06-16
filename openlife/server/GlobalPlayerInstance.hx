@@ -4237,6 +4237,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				return true;
 			}
+		} else if (text.indexOf('!JCG') != -1 || text.indexOf('!JCGRAVE') != -1) {
+
+			var graves = [for (obj in WorldMap.world.cursedGraves) obj];
+			// clear ovens, so that old ones go away
+			// WorldMap.world.ovens = new Map<Int, ObjectHelper>();
+
+			if (graves.length > 0) {
+				var grave = graves[WorldMap.calculateRandomInt(graves.length - 1)];
+				player.x = WorldMap.world.transformX(player, grave.tx);
+				player.y = WorldMap.world.transformY(player, grave.ty);
+
+				player.forced = true;
+				Connection.SendUpdateToAllClosePlayers(player);
+				player.forced = false;
+
+				player.connection.sendMapChunk(player.x, player.y);
+
+				return true;
+			}
 		} else if (text.indexOf('!SENDPU') != -1 || text == '!PU') {
 			//player.done_moving_seqNum += 1;
 			player.forced = true;

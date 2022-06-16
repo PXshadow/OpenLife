@@ -2,6 +2,7 @@ package openlife.server;
 
 import haxe.Exception;
 import hl.Type;
+import hl.types.ArrayObj;
 import openlife.auto.AiBase;
 import openlife.auto.AiHelper;
 import openlife.client.ClientTag;
@@ -1068,6 +1069,23 @@ class TimeHelper {
 
 		return biomeTemperature;
 	}
+	
+	public static function ClearCursedGraves(stuff:Map<Int, ObjectHelper>) {
+		// clear ovens, so that old ones go away
+		var oldStuff = [for (obj in stuff) obj];
+		var newStuff = new Map<Int, ObjectHelper>();
+		
+		for(obj in oldStuff){
+			var objData = WorldMap.world.getObjectDataAtPosition(obj.tx, obj.ty);
+
+			if(objData.isBoneGrave()){
+				var index = WorldMap.world.index(obj.tx, obj.ty);
+				newStuff[index] = obj;
+			}
+		}
+
+		return newStuff;
+	}
 
 	public static function DoWorldMapTimeStuff() {
 		// devide in X steps
@@ -1081,13 +1099,17 @@ class TimeHelper {
 		// trace('startY: $startY endY: $endY worldMap.height: ${worldMap.height}');
 
 		if(tick % 2000 == 0){
+
+			WorldMap.world.cursedGraves = ClearCursedGraves(WorldMap.world.cursedGraves);
+
 			// clear ovens, so that old ones go away
 			var ovens = [for (obj in WorldMap.world.ovens) obj];
 			var newovens = new Map<Int, ObjectHelper>();
 			
 			for(oven in ovens){
+				var objData = WorldMap.world.getObjectDataAtPosition(oven.tx, oven.ty);
 				// 237 Adobe Oven // 753 Adobe Rubble
-				if(ObjectData.IsOven(oven.id) || oven.id == 753){
+				if(ObjectData.IsOven(objData.id) || objData.id == 753){
 					var index = WorldMap.world.index(oven.tx, oven.ty);
 					newovens[index] = oven;
 				}
@@ -1132,6 +1154,7 @@ class TimeHelper {
 
 				var biome = worldMap.getBiomeId(x, y);
 
+				// TODO move in long time processing
 				// add possible spawn localtions
 				if (obj[0] == 30) WorldMap.world.berryBushes[WorldMap.world.index(x,
 					y)] = worldMap.getObjectHelper(x, y); // Wild Gooseberry Bush ==> possible spawn location
@@ -1149,6 +1172,9 @@ class TimeHelper {
 				if(ObjectData.IsOven(obj[0]) || obj[0] == 753) WorldMap.world.ovens[WorldMap.world.index(x,
 					y)] = worldMap.getObjectHelper(x, y);
 
+				if(ObjectData.IsBoneGrave(obj[0])) WorldMap.world.cursedGraves[WorldMap.world.index(x,
+					y)] = worldMap.getObjectHelper(x, y);
+					
 				var floorId = worldMap.getFloorId(x,y);
 				//1596 = Stone Road
 				if(floorId == 1596) WorldMap.world.roads[WorldMap.world.index(x,

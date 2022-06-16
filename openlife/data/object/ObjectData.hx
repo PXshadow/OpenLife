@@ -1526,4 +1526,29 @@ class ObjectData extends LineReader {
 		if(objId == 250) return true; // 250 Hot Adobe Oven 
 		return false;
 	}
+
+	public function isBoneGrave():Bool {
+		return IsBoneGrave(this.id);
+	}
+
+	public static function IsBoneGrave(objId:Int):Bool {
+
+		if (objId == 87) return true; // Fresh Grave
+		if (objId == 88) return true; // Grave
+		if (objId == 89) return true; // Old Grave
+		if (objId == 356) return true; // Basket of Bones
+		if (objId == 357) return true; // Bone Pile
+
+		if (objId == 1920) return true; // Baby Bones
+		if (objId == 3051) return true; // Baby Bone Pile
+		if (objId == 3052) return true; // Basket of Baby Bones
+
+		if (objId == 3195) return true; // Defaced Bone Pile
+		if (objId == 3196) return true; // Basket of Defaced Bones
+
+		if (objId == 752) return true; // Murder Grave
+		if (objId == 1011) return true; // Buried Grave
+
+		return false;
+	}
 }
