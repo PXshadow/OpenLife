@@ -1742,6 +1742,30 @@ class TimeHelper {
 		return true;
 	}
 
+	private static function GetClosestBoneGrave(from:ObjectHelper) {
+		var graves = [for (obj in WorldMap.world.cursedGraves) obj];
+		var bestGrave = null;
+		var bestQuadDistance = -1.0;
+		
+		for(grave in graves){
+			if(grave.isBoneGrave() == false) continue;
+			
+			var quadDistance = AiHelper.CalculateDistance(from.tx, from.ty, grave.tx, grave.ty);
+
+			if(bestGrave == null){
+				bestGrave = grave;
+				bestQuadDistance = quadDistance;
+				continue;
+			}
+			if(quadDistance > bestQuadDistance) continue;
+
+			bestGrave = grave;
+			bestQuadDistance = quadDistance;
+		}
+
+		return bestGrave;
+	}
+
 	/*
 		MX
 		x y new_floor_id new_id p_id old_x old_y speed
@@ -1778,6 +1802,16 @@ class TimeHelper {
 			// trace('set loved tx,ty for animal: ${animal.description}');
 			animal.lovedTx = animal.tx;
 			animal.lovedTy = animal.ty;
+		}
+
+		// choose targets
+		// 418 Wolf // 631 Hungry Grizzly Bear
+		if(animal.id == 418 || animal.id == 631){
+			if(animal.target == null) animal.target = GetClosestBoneGrave(animal);
+			else{
+				var objData = WorldMap.world.getObjectDataAtPosition(animal.target.tx, animal.target.ty);
+				if(objData.isBoneGrave() == false) animal.target = GetClosestBoneGrave(animal);
+			}
 		}
 
 		var maxIterations = 20;
@@ -1821,10 +1855,16 @@ class TimeHelper {
 			if (target == null) continue; // movement was fully bocked, search another target
 
 			//if (target.id != 0) trace('MOVE target: ${target.name}');
+			var gotoTarget = TimeHelper.Season == Winter || currentbiome == BiomeTag.SNOW; 			
+			var gotoLovedBiome = gotoTarget == false && lovesCurrentBiome == false && isPreferredBiome == false && (animal.lovedTx != 0 || animal.lovedTy != 0);
+			var targetTx = gotoLovedBiome || animal.target == null ? animal.lovedTx : animal.target.tx;
+			var targetTy = gotoLovedBiome || animal.target == null ? animal.lovedTy : animal.target.ty;
+
+			//if(animal.target != null) trace('animal: ${animal.name} ${animal.tx} ${animal.ty} ==> ${animal.target.tx} ${animal.target.ty}');
 
 			// try to go closer to loved biome
-			if (lovesCurrentBiome == false && isPreferredBiome == false && (animal.lovedTx != 0 || animal.lovedTy != 0)) {
-				var quadDist = AiHelper.CalculateDistance(animal.lovedTx, animal.lovedTy, target.tx, target.ty);
+			if (gotoTarget || gotoLovedBiome) {
+				var quadDist = AiHelper.CalculateDistance(targetTx, targetTy, target.tx, target.ty);
 				if (quadDist < bestQuadDist) {
 					bestQuadDist = quadDist;
 					besttarget = target;

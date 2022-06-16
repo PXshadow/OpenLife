@@ -42,6 +42,8 @@ class ObjectHelper {
 	public var lovedTx:Int = 0; // not saved TODO save
 	public var lovedTy:Int = 0; // not saved TODO saved
 
+	public var target:ObjectHelper = null; // // not saved TODO saved
+
 	public static function WriteMapObjHelpers(path:String, objHelpersToWrite:Vector<ObjectHelper>) {
 		var width = WorldMap.world.width;
 		var height = WorldMap.world.height;
