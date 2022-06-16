@@ -69,8 +69,11 @@ class Connection {
 
 		trace('New Born Score: ${this.playerAccount.totalScore} Prestige: ${this.player.yum_multiplier}');
 
+		this.sendGlobalMessage('Voice of god said there i am! And i was.');
+
 		if (this.player.trueAge < 5)
 			this.sendGlobalMessage('YOUR PRESTIGE FROM LAST LIFE IS ${Math.ceil(this.player.yum_multiplier * ServerSettings.DisplayScoreFactor)}');
+			
 		this.sendGlobalMessage('EATING YUMMY FOOD AND HAVING MANY KIDS WILL INCREASE YOUR PRESTIGE!');
 
 		GlobalPlayerInstance.ReleaseMutex();
