@@ -279,7 +279,7 @@ class ServerSettings {
 
 	public static var WinterWildFoodDecayChance:Float = 1.5; // 1.5; // per Season
 	public static var SpringWildFoodRegrowChance:Float = 1; // per Season // use spring and summer
-	public static var GrowBackOriginalPlantsFactor:Float = 0.4; // 0.1
+	public static var GrowBackOriginalPlantsFactor:Float = 0.2; // 0.4 // 0.1
 
 	// public static var WinterFildWoodDecayChance = 0.2;
 	// Ally
@@ -548,33 +548,34 @@ class ServerSettings {
 		// ObjectData.getObjectData(2143).useChance = 0.3; // Banana
 
 		// soil should replace water as most needed ressource
-		ObjectData.getObjectData(624).numUses = 2; // // Composted Soil Uses: 3 Soil (Wheat, Berry, Dung) + water ==> 4 Soil
+		// composted soil has default 7 uses and each of it can be used twice for soil so in total 14
+		ObjectData.getObjectData(624).numUses = 2; // default 7 Composted Soil Uses: 3 Soil (Wheat, Berry, Dung) + water ==> 4 Soil
 		ObjectData.getObjectData(411).useChance = 0.5; // Fertile Soil Pit 9 uses --> 18
 
 		// TODO let rows decay from time to time to increase soil need.
 
 		ObjectData.getObjectData(532).countsOrGrowsAs = 531; // 532 Mouflon with Lamb --> Mouflon
 
-		// mark plants that decay and regrow
+		// plants that decay and regrow
 		// Wild Onion
 		ObjectData.getObjectData(805).winterDecayFactor = 1; // Wild Onion 805 --> 808 (harvested)
 		ObjectData.getObjectData(805).springRegrowFactor = 1; // Wild Onion 805 --> 808 (harvested)
 		ObjectData.getObjectData(808).winterDecayFactor = 2; // Wild Onion 805 --> 808 (harvested)
 		ObjectData.getObjectData(808).springRegrowFactor = 0.5; // Wild Onion 805 --> 808 (harvested)
-		ObjectData.getObjectData(808).countsOrGrowsAs = 805; // Wild Onion 805 --> 808 (harvested)
+		ObjectData.getObjectData(808).countsOrGrowsAs = 805; // Wild Onion (harvested) 808 --> Wild Onion 805
 
 		// Wild Carrot // TODO let seeds regrow
 		ObjectData.getObjectData(36).winterDecayFactor = 1; // Seeding Wild Carrot
 		ObjectData.getObjectData(36).springRegrowFactor = 1; // Seeding Wild Carrot
 		ObjectData.getObjectData(404).winterDecayFactor = 1; // Wild Carrot wihout Seed
 		ObjectData.getObjectData(404).springRegrowFactor = 0.5; // Wild Carrot wihout Seed
-		ObjectData.getObjectData(404).countsOrGrowsAs = 36; // Wild Carrot wihout Seed
+		ObjectData.getObjectData(404).countsOrGrowsAs = 36; // Wild Carrot wihout Seed ==> Seeding Wild Carrot
 		ObjectData.getObjectData(40).winterDecayFactor = 2; // Wild Carrot
 		ObjectData.getObjectData(40).springRegrowFactor = 0.5; // Wild Carrot / out
-		ObjectData.getObjectData(40).countsOrGrowsAs = 36; // Wild Carrot / out
+		ObjectData.getObjectData(40).countsOrGrowsAs = 36; // Wild Carrot / out ==> Seeding Wild Carrot
 		ObjectData.getObjectData(39).winterDecayFactor = 2; // Dug Wild Carrot
 		ObjectData.getObjectData(39).springRegrowFactor = 0.5; // Dug Wild Carrot
-		ObjectData.getObjectData(39).countsOrGrowsAs = 36; // Dug Wild Carrot
+		ObjectData.getObjectData(39).countsOrGrowsAs = 36; // Dug Wild Carrot ==> Seeding Wild Carrot
 
 		// Wild Garlic
 		ObjectData.getObjectData(4251).mapChance *= 5; // Wild Garlic
@@ -589,10 +590,10 @@ class ServerSettings {
 		ObjectData.getObjectData(804).springRegrowFactor = 1; // Burdock
 		ObjectData.getObjectData(806).winterDecayFactor = 2; // Dug Burdock
 		ObjectData.getObjectData(806).springRegrowFactor = 0.5; // Dug Burdock
-		ObjectData.getObjectData(806).countsOrGrowsAs = 804; // Dug Burdock
+		ObjectData.getObjectData(806).countsOrGrowsAs = 804; // Dug Burdock ==> Burdock
 		ObjectData.getObjectData(807).winterDecayFactor = 2; // Burdock Root
 		ObjectData.getObjectData(807).springRegrowFactor = 0.5; // Burdock Root
-		ObjectData.getObjectData(807).countsOrGrowsAs = 804; // Burdock Root
+		ObjectData.getObjectData(807).countsOrGrowsAs = 804; // Burdock Root ==> Burdock
 
 		// Milkweed
 		ObjectData.getObjectData(50).mapChance *= 1.2; // Milkweed
@@ -612,7 +613,7 @@ class ServerSettings {
 		ObjectData.getObjectData(136).springRegrowFactor = 0.05; // Sapling
 		ObjectData.getObjectData(138).winterDecayFactor = 2; // Cut Sapling Skewer
 		ObjectData.getObjectData(138).springRegrowFactor = 0.5; // Cut Sapling Skewer
-		ObjectData.getObjectData(138).countsOrGrowsAs = 136; // Flowering Milkweed
+		ObjectData.getObjectData(138).countsOrGrowsAs = 136; // Cut Sapling Skewer ==> Sapling
 
 		// Wild Gooseberry Bush
 		ObjectData.getObjectData(30).winterDecayFactor = 1; // 1.5; // Wild Gooseberry Bush
@@ -986,25 +987,24 @@ class ServerSettings {
 
 		// let get berrys back!
 		trans = new TransitionData(-1, 30, 0, 30); // Wild Gooseberry Bush
-
 		trans.reverseUseTarget = true;
-		trans.autoDecaySeconds = 600;
+		trans.autoDecaySeconds = 60 * 30;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 279, 0, 30); // Empty Wild Gooseberry Bush --> // Wild Gooseberry Bush
 		trans.reverseUseTarget = true;
-		trans.autoDecaySeconds = 600;
+		trans.autoDecaySeconds = 60 * 30;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// let get bana back!
 		trans = new TransitionData(-1, 2142, 0, 2142); // Banana Plant
 		trans.reverseUseTarget = true;
-		trans.autoDecaySeconds = 1200;
+		trans.autoDecaySeconds = 60 * 30;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 2145, 0, 2142); // Empty Banana Plant --> Banana Plant
 		trans.reverseUseTarget = true;
-		trans.autoDecaySeconds = 1200;
+		trans.autoDecaySeconds =  60 * 30;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		//  Wild Gooseberry Bush
