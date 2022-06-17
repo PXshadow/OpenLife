@@ -773,6 +773,21 @@ class Connection {
 		MX
 		x y new_floor_id new_id p_id old_x old_y speed
 		#
+	
+		Grid position of changes, and new floor id and object id that position must 
+		change to.
+		p_id is the player that was responsible for the change (in the case of an 
+		object drop only), or -1 if change was not player triggered.  p_id < -1 means
+		that the change was triggered by player -(p_id), but that the object
+		wasn't dropped (transform triggered by a player action).
+
+		Note that if cell contains other stuff (for a container object), new_id
+		is in the CONTAINER OBJECT FORMAT described above.
+
+
+		Optionally, a line can contain old_x, old_y, and speed.
+		This indicates that the object came from the old coordinates and is moving
+		with a given speed.
 	 */
 	public function sendMapUpdate(x:Int, y:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, isPlayerAction:Bool = true) {
 		if (serverAi != null) return;
