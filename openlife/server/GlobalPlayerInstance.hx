@@ -3205,6 +3205,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			grave = heldObject.isWound() ? new ObjectHelper(this, 752) : new ObjectHelper(this, 87); // 87 = Fresh Grave 88 = grave 752 = Murder Grave
 		}
 
+		// what to do with cows / sheep held on ropes on death?
+		var heldTransition = TransitionImporter.GetTransition(this.heldObject.id, 0);
+		if(heldTransition != null){
+			trace('ON DEATH transform held object: ${heldTransition.getDesciption()}');
+			this.transformHeldObject(heldTransition.newTargetID);
+			WorldMap.PlaceObject(this.tx, this.ty, this.heldObject, false);
+			this.setHeldObject(null);
+		}
+
 		if (this.heldObject != null && heldObject.isWound() == false) // dont place a Wound in grave
 		{
 			if (this.heldObject.isContainable()) {

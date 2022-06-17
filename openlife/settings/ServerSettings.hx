@@ -513,10 +513,18 @@ class ServerSettings {
 		ObjectData.getObjectData(4213).biomes.push(BiomeTag.GREEN); // Fed Domestic Sheep
 		ObjectData.getObjectData(576).biomes.push(BiomeTag.GREEN); // Shorn Domestic Sheep
 		ObjectData.getObjectData(614).biomes.push(BiomeTag.GREEN); // Fed Shorn Domestic Sheep
-
+		ObjectData.getObjectData(602).biomes.push(BiomeTag.GREEN); // Fed Domestic Lamb
+		ObjectData.getObjectData(542).biomes.push(BiomeTag.GREEN); // Domestic Lamb
+		ObjectData.getObjectData(604).biomes.push(BiomeTag.GREEN); // Hungry Domestic Lamb
+		
 		ObjectData.getObjectData(1489).biomes.push(BiomeTag.GREEN); // Milk Cow
 		ObjectData.getObjectData(1492).biomes.push(BiomeTag.GREEN); // Dry Milk Cow
+		ObjectData.getObjectData(1488).biomes.push(BiomeTag.GREEN); // Fed Domestic Cow
+		ObjectData.getObjectData(1458).biomes.push(BiomeTag.GREEN); // Domestic Cow
 
+		ObjectData.getObjectData(1485).biomes.push(BiomeTag.GREEN); // Fed Domestic Calf
+		ObjectData.getObjectData(1459).biomes.push(BiomeTag.GREEN); // Domestic Calf
+		
 		// More Wolfs needs the world
 		ObjectData.getObjectData(418).biomes.push(BiomeTag.YELLOW); // Happy Wolfs now also in Yellow biome :)
 		// ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
@@ -1169,6 +1177,12 @@ class ServerSettings {
 		trans.newTargetID = 141; // Canada Goose Pond
 		trans.autoDecaySeconds = 20;
 		transtions.addTransition("PatchTransitions: ", trans);
+		
+		var trans = transtions.getTransition(-1, 2180); // clonger clothing decay Rabbit Fur Hat with Feather
+		trans.autoDecaySeconds = -24; // 5
+
+		var trans = transtions.getTransition(-1, 712); // Sealskin Coat
+		trans.autoDecaySeconds = -24; // 5
 
 		// give more time
 		var trans = transtions.getTransition(-1, 61); // Juniper Tinder
