@@ -499,7 +499,7 @@ class ServerSettings {
 		ObjectData.getObjectData(942).mapChance *= 10; // Muddy Iron Vein
 		ObjectData.getObjectData(2135).mapChance /= 4; // Rubber Tree
 		ObjectData.getObjectData(530).mapChance /= 2; // Bald Cypress Tree
-		ObjectData.getObjectData(121).mapChance *= 5; // Tule Reeds
+		ObjectData.getObjectData(121).mapChance *= 4; // Tule Reeds
 
 		ObjectData.getObjectData(2156).mapChance *= 0.3; // Less UnHappy Mosquitos
 		ObjectData.getObjectData(2156).biomes.push(BiomeTag.SWAMP); // Evil Mosquitos now also in Swamp
@@ -1052,7 +1052,7 @@ class ServerSettings {
 
 		// hungry work transitions
 		var trans = transtions.getTransition(502, 122); // Shovel + Tule Stumps ==> Adobe
-		trans.hungryWorkCost = 20;
+		trans.hungryWorkCost = 10;
 
 		// most important allow kill moskitos
 		trans = new TransitionData(248, 2156, 0,
