@@ -1836,7 +1836,7 @@ class TimeHelper {
 
 			var target = worldmap.getObjectHelper(toTx, toTy);
 
-			if(AnimalCanEndUpHere(target) == false) continue;
+			if(CanAnimalEndUpHere(animal, target) == false) continue;
 			
 			// make sure that target is not the old tile
 			if (toTx == animal.tx && toTy == animal.ty) continue;
@@ -1863,7 +1863,7 @@ class TimeHelper {
 			if (isPreferredBiome == false && i < 5 && worldmap.randomFloat() <= chancePreferredBiome) continue;
 
 			// limit movement if blocked
-			target = calculateNonBlockedTarget(fromTx, fromTy, target);
+			target = calculateNonBlockedTarget(animal, fromTx, fromTy, target);
 			if (target == null) continue; // movement was fully bocked, search another target
 
 			//if (target.id != 0) trace('MOVE target: ${target.name}');
@@ -2057,7 +2057,7 @@ class TimeHelper {
 		}
 	}
 
-	private static function calculateNonBlockedTarget(fromX:Int, fromY:Int, toTarget:ObjectHelper):ObjectHelper {
+	private static function calculateNonBlockedTarget(animal:ObjectHelper, fromX:Int, fromY:Int, toTarget:ObjectHelper):ObjectHelper {
 		var tx = toTarget.tx;
 		var ty = toTarget.ty;
 		var tmpX = fromX;
@@ -2102,22 +2102,29 @@ class TimeHelper {
 
 			// TODO allow move on non empty ground
 			//if (movementTileObj.id == 0) tmpTarget = movementTileObj;
-			if (AnimalCanEndUpHere(movementTileObj)) tmpTarget = movementTileObj;
+			if (CanAnimalEndUpHere(animal, movementTileObj)) tmpTarget = movementTileObj;
 			
 		}
 
 		return tmpTarget;
 	}
 
-	private static function AnimalCanEndUpHere(target:ObjectHelper) : Bool{
+	private static function CanAnimalEndUpHere(animal:ObjectHelper, target:ObjectHelper) : Bool{
 		//if (target.id != 0) continue; // TODO test if walked on object are restored right
 
 		if (target.blocksWalking()) return false;
 
+		if (target.timeToChange != 0) return false; // dont move move on top of other moving stuff
+
 		if (target.groundObject != null && target.groundObject.id != 0) return false;
 
-		// dont move move on top of other moving stuff
-		//if (target.timeToChange != 0) continue;
+		if (animal.id == 3566){ // 3566 Fleeing Rabbit
+			if (target.id != 0) return false;
+
+			var floorId = WorldMap.world.getFloorId(target.tx, target.ty);
+			if (floorId != 0) return false;
+		}   
+
 		return true;
 	}
 
