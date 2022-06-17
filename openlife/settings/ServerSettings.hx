@@ -504,6 +504,15 @@ class ServerSettings {
 		ObjectData.getObjectData(2156).mapChance *= 0.3; // Less UnHappy Mosquitos
 		ObjectData.getObjectData(2156).biomes.push(BiomeTag.SWAMP); // Evil Mosquitos now also in Swamp
 
+		// make sheeps stay close to Green biome
+		ObjectData.getObjectData(575).biomes.push(BiomeTag.GREEN); // Domestic Sheep
+		ObjectData.getObjectData(4213).biomes.push(BiomeTag.GREEN); // Fed Domestic Sheep
+		ObjectData.getObjectData(576).biomes.push(BiomeTag.GREEN); // Shorn Domestic Sheep
+		ObjectData.getObjectData(614).biomes.push(BiomeTag.GREEN); // Fed Shorn Domestic Sheep
+
+		ObjectData.getObjectData(1489).biomes.push(BiomeTag.GREEN); // Milk Cow
+		ObjectData.getObjectData(1492).biomes.push(BiomeTag.GREEN); // Dry Milk Cow
+
 		// More Wolfs needs the world
 		ObjectData.getObjectData(418).biomes.push(BiomeTag.YELLOW); // Happy Wolfs now also in Yellow biome :)
 		// ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
