@@ -1134,10 +1134,20 @@ class ServerSettings {
 		//ObjectData.getObjectData(99).hungryWork = ServerSettings.HungryWorkCost; // White Pine Tree
 		//ObjectData.getObjectData(100).hungryWork = ServerSettings.HungryWorkCost; // White Pine Tree with Needles
 
-		// mining
-		ObjectData.getObjectData(3944).alternativeTransitionOutcome.push(33); // Stripped Iron Vein --> Stone
-		ObjectData.getObjectData(3957).alternativeTransitionOutcome.push(33); // Shallow Iron Pit --> Stone
-		ObjectData.getObjectData(944).alternativeTransitionOutcome.push(291); // Iron Mine --> Flat Rock
+		
+		//ObjectData.getObjectData(3944).alternativeTransitionOutcome.push(33); // Stripped Iron Vein --> Stone
+		ObjectData.getObjectData(3961).alternativeTransitionOutcome.push(33); // Iron Vein
+
+		ObjectData.getObjectData(3956).alternativeTransitionOutcome.push(33); // Shallow Pit with Ore --> Stone
+		ObjectData.getObjectData(3956).alternativeTransitionOutcome.push(291); // Shallow Pit with Ore --> Flat Rock
+		ObjectData.getObjectData(3956).alternativeTransitionOutcome.push(34); // Shallow Pit with Ore --> Sharp Stone
+
+		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(33); // Deep Pit with Ore --> Stone
+		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(291); // Deep Pit with Ore --> Flat Rock
+		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(34); // Deep Pit with Ore --> Sharp Stone
+
+		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(33); // Mine with Ore --> Stone
+		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(291); // Mine with Ore --> Flat Rock
 		//ObjectData.getObjectData(944).alternativeTransitionOutcome.push(291); // Iron Mine --> Flat Rock
 		// TODO what to do with Diesel Mining Pick with Iron. It uses a time transition
 
