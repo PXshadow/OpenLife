@@ -1901,9 +1901,9 @@ class TimeHelper {
 			// 2710 + -1 = 767 + 769 // Wild Horse with Lasso + TIME  -->  Lasso# tool + Wild Horse
 			// TODO merge with timeAlternaiveTransition? // TODO shouldnt the alternative target be set?
 			var transition = TransitionImporter.GetTransition(animal.parentId, -1, false, false);
+			var tmpGroundObject = animal.groundObject;
 
 			if (transition != null) {
-				var tmpGroundObject = animal.groundObject;
 				animal.groundObject = new ObjectHelper(null, transition.newActorID);
 				animal.groundObject.groundObject = tmpGroundObject;
 
@@ -1932,8 +1932,12 @@ class TimeHelper {
 			else{
 				// FIX: 544 Domestic Mouflon with Lamb + -1  ==> 545 Domestic Lamb + 541 Domestic Mouflon
 				// TODO what to do with the old tile obj in case an animal moved on top of stuff?
+				
 				oldTileObject = [timeAlternaiveTransition.newActorID];
 				worldmap.setObjectId(fromTx, fromTy, oldTileObject);
+
+				var newAnimal = worldmap.getObjectHelper(fromTx, fromTy);
+				newAnimal.groundObject = tmpGroundObject;
 
 				trace('timeAlternaiveTransition: ${timeAlternaiveTransition.getDesciption()}');
 			}
