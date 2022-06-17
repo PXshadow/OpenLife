@@ -1147,7 +1147,11 @@ class ServerSettings {
 		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(34); // Deep Pit with Ore --> Sharp Stone
 
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(33); // Mine with Ore --> Stone
+		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(33); // Mine with Ore --> Stone
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(291); // Mine with Ore --> Flat Rock
+		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(291); // Mine with Ore --> Flat Rock
+		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(503); // Mine with Ore --> Dug Big Rock
+
 		//ObjectData.getObjectData(944).alternativeTransitionOutcome.push(291); // Iron Mine --> Flat Rock
 		// TODO what to do with Diesel Mining Pick with Iron. It uses a time transition
 
