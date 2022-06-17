@@ -224,6 +224,12 @@ class ServerSettings {
 	public static var HungryWorkHeat:Float = 0.002; // 0.005; // per food used
 	public static var HungryWorkToolCostFactor:Float = 0;
 
+	// first the chance for success would be - then 10% then 20% usw ... 10 hits 100%
+	public static var AlternativeOutcomePercentIncreasePerHit:Float = 10; // for example used for extra wood for trees or stone form iron mining	
+	// once succeeded in cutting the tree / mining the hits is ruced by 5
+	public static var AlternativeOutcomeHitsDecreaseOnSucess = 5; // for example used for extra wood for trees or stone form iron mining
+
+
 	public static var TeleportCost:Float = 2; // 10
 	
 	// for animal movement

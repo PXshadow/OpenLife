@@ -679,9 +679,9 @@ class TransitionHelper {
 
 		if (alternativeTransitionOutcome.length > 0) {
 			// TODO reduce tool
-			// TODO support more then one obj in the list
+			
 			var rand = WorldMap.calculateRandomFloat();
-			rand += target.hits / 20;
+			rand += target.hits / ServerSettings.AlternativeOutcomePercentIncreasePerHit;
 
 			// trace('TRANS: ${player.name + player.id} TEST: ${newTargetObjectData.name} ${newTargetObjectData.id} hits: ${target.hits} rand: ${${rand}}');
 			//player.say('${Math.floor(rand * 10) / 10}');
@@ -689,7 +689,7 @@ class TransitionHelper {
 			if (rand < 1) {
 				target.hits += 1;
 				//rand += target.hits / 20;
-				player.say('hits ${Math.round(target.hits)}');
+				player.say('Try again! Hits ${Math.round(target.hits)}', true);
 				var rand = WorldMap.calculateRandomInt(alternativeTransitionOutcome.length - 1);
 				
 				// TODO use piles
@@ -702,6 +702,8 @@ class TransitionHelper {
 
 				return true;
 			}
+
+			target.hits -= ServerSettings.AlternativeOutcomeHitsDecreaseOnSucess;
 		}
 
 		// if it is a transition that picks up an object like 0 + 1422 = 778 + 0  (horse with cart) then switch the hole tile object to the hand object
