@@ -79,6 +79,8 @@ class ObjectData extends LineReader {
 	// Indicates that this object can be used to creat foodFromActor
 	public var foodFromActor:ObjectData; // do not save on disk since it can be calculated after loading
 
+	public var blocksDomesticAnimal = false;
+
 	public var dummyObjects:Array<ObjectData> = [];
 	public var lastUseObject:Int = 0; // TODO set for all according to transition // like Berry numUses: 1 ==> 0
 	public var undoLastUseObject:Int = 0; // TODO set for all according to transition // like Berry numUses: 0 ==> 1
@@ -1550,5 +1552,10 @@ class ObjectData extends LineReader {
 		if (objId == 1011) return true; // Buried Grave
 
 		return false;
+	}
+
+	// for example // Fed Domestic Lamb
+	public function isDomesticAnimal() : Bool {
+		return this.biomes.length == 1 && this.biomes[0] == BiomeTag.GREEN;
 	}
 }

@@ -2105,6 +2105,8 @@ class TimeHelper {
 				break;
 			}
 
+			if(animal.objectData.isDomesticAnimal() && movementTileObj.objectData.blocksDomesticAnimal) break;
+
 			// TODO allow move on non empty ground
 			//if (movementTileObj.id == 0) tmpTarget = movementTileObj;
 			if (CanAnimalEndUpHere(animal, movementTileObj)) tmpTarget = movementTileObj;
@@ -2122,6 +2124,8 @@ class TimeHelper {
 		if (target.timeToChange != 0) return false; // dont move move on top of other moving stuff
 
 		if (target.groundObject != null && target.groundObject.id != 0) return false;
+
+		if(animal.objectData.isDomesticAnimal() && target.objectData.blocksDomesticAnimal) return false;
 
 		if (animal.id == 3566){ // 3566 Fleeing Rabbit
 			if (target.id != 0) return false;

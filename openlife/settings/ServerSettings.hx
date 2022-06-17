@@ -759,6 +759,10 @@ class ServerSettings {
 		ObjectData.getObjectData(151).minPickupAge = 5; // 10   // Yew Bow
 		ObjectData.getObjectData(560).minPickupAge = 2; // 8    // Knife
 
+		// blocks domestic animal 
+
+		ObjectData.getObjectData(1851).blocksDomesticAnimal = true; // Fence Gate
+
 		for (objData in ObjectData.importedObjectData) {
 			if (objData.description.contains('Sports Car')) {
 				objData.isBoat = true;
