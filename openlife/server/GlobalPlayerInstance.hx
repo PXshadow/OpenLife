@@ -3206,12 +3206,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		// what to do with cows / sheep held on ropes on death?
-		var heldTransition = TransitionImporter.GetTransition(this.heldObject.id, 0);
+		var heldTransition = TransitionImporter.GetTransition(this.heldObject.id, -1);
+		trace('ON DEATH heldId: ${this.heldObject.id}');
+
 		if(heldTransition != null){
 			trace('ON DEATH transform held object: ${heldTransition.getDesciption()}');
-			this.transformHeldObject(heldTransition.newTargetID);
+			this.heldObject.id =  heldTransition.newTargetID;
 			WorldMap.PlaceObject(this.tx, this.ty, this.heldObject, false);
-			this.setHeldObject(null);
+
+			this.heldObject = new ObjectHelper(null, heldTransition.newActorID);
+			this.transformHeldObject(heldTransition.newActorID);
 		}
 
 		if (this.heldObject != null && heldObject.isWound() == false) // dont place a Wound in grave
@@ -4131,10 +4135,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.food_store -= 5;
 			player.sendFoodUpdate(false);
 		} else if (text.indexOf('!AGE') != -1 || text == '!') {
-			if(canUseServerCommands == false){
+			/*if(canUseServerCommands == false){
 				if(text != '!') player.say('not allowed!', true);
 				return true;
-			}
+			}*/
 			
 			player.age += 5;
 			player.trueAge += 5;

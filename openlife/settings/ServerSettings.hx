@@ -1281,6 +1281,9 @@ class ServerSettings {
 		//var trans = TransitionImporter.GetTransition(544, -1, true, false);
 		//trace('DEBUG: ${trans.getDesciption()}');
 
+		//var trans = TransitionImporter.GetTransition(3425, -1, false, false); // Domestic Cow on Rope
+		//trace('ON DEATH: ${trans.getDesciption()}');
+
 
 	}
 
