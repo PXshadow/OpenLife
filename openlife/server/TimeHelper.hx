@@ -1861,10 +1861,11 @@ class TimeHelper {
 
 			// skip with chancePreferredBiome if this biome is not preferred
 			if (isPreferredBiome == false && i < 5 && worldmap.randomFloat() <= chancePreferredBiome) continue;
-
+			
 			// limit movement if blocked
 			target = calculateNonBlockedTarget(animal, fromTx, fromTy, target);
 			if (target == null) continue; // movement was fully bocked, search another target
+			if (target.id != 0 && i < maxIterations / 2) continue; // prefer to go on empty tiles
 
 			//if (target.id != 0) trace('MOVE target: ${target.name}');
 			var gotoTarget = TimeHelper.Season == Winter || currentbiome == BiomeTag.SNOW; 			
