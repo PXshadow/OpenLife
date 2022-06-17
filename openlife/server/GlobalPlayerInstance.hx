@@ -4183,7 +4183,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				player.connection.sendMapChunk(player.x, player.y);
 			}
-		} else if (text.indexOf('!JHUMAN') != -1) {
+		} else if (text.indexOf('!JHUMAN') != -1 || text == '!JH') {
 			var livingHumans = Connection.getLivingHumans();
 
 			if (livingHumans.length > 0) {
@@ -4203,7 +4203,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				return true;
 			}
-		} else if (text.indexOf('!JROAD') != -1) {
+		} else if (text.indexOf('!JROAD') != -1 || text == '!JR') {
 
 			var roads = [for (obj in WorldMap.world.roads) obj];
 			// clear roads, so that old ones go away
