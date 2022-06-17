@@ -1282,6 +1282,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(345, 3029); // Butt Log + Flash Fire
 		trans.aiShouldIgnore = true; 
 
+		var trans = transtions.getTransition(135, 151); // Flint Chip + Yew Bow
+		trans.aiShouldIgnore = true; 
+
 		// allow shovel again if it is better then sharp stone
 		var trans = transtions.getTransition(502, 36); // Shovel + Seeding Wild Carrot
 		trans.aiShouldIgnore = true; 
