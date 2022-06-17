@@ -1979,8 +1979,8 @@ class TimeHelper {
 				// trace('Animal DEAD: $newTileObject ${animal.description}: Count: ${worldmap.currentObjectsCount[newTileObject[0]]} Original Count: ${worldmap.originalObjectsCount[newTileObject[0]]} chance: $chanceForAnimalDying biome: $targetBiome');
 
 				animal.id = 0;
-				newTileObject = [0];
-				worldmap.setObjectHelper(toTx, toTy, animal);
+				newTileObject = animal.groundObject.toArray();
+				worldmap.setObjectHelper(toTx, toTy, animal.groundObject);
 			}
 
 			var speed = ServerSettings.InitialPlayerMoveSpeed * objectData.speedMult;
