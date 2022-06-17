@@ -1218,6 +1218,9 @@ class ServerSettings {
 		var trans = new TransitionData(462, 846, 462, 67); // Steel Adze + Broken Hand Cart ==> Steel Adze + Long Straight Shaft
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		var trans = new TransitionData(0, 3425, 3425, 0); // Domestic Cow on Rope + 0 = Domestic Cow on Rope * 0
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// Ai should ignore
 		// TODO fix Ai craftig if Ai needs two threads for a rope it puts one thread in a bowl and gets it out again
 		// this breals making a light pulb for a radio
