@@ -47,7 +47,7 @@ class TimeHelper {
 	// Seaons
 	private static var TimeToNextSeasonInYears:Float = ServerSettings.SeasonDuration;
 	private static var TimeSeasonStartedInTicks:Float = 0;
-	private static var Season:Seasons = Seasons.Spring;
+	public static var Season:Seasons = Seasons.Spring;
 	private static var SeasonNames = ["Spring", "Summer", "Autumn", "Winter"];
 	private static var SeasonTemperatureImpact:Float = 0;
 	private static var SeasonHardness:Float = 1;

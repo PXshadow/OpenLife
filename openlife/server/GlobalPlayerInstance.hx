@@ -3499,7 +3499,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		var orgDamage = fromObj.objectData.damage;
+
+		// apply animal damage factors
 		orgDamage =  attacker == null ? orgDamage * ServerSettings.AnimalDamageFactor : orgDamage * ServerSettings.WeaponDamageFactor;
+		if(attacker == null){			
+			if(TimeHelper.Season == Winter) orgDamage =  orgDamage * ServerSettings.AnimalDamageFactorInWinter;
+			if(fromObj.hits > 0) orgDamage =  orgDamage * ServerSettings.AnimalDamageFactorIfAttacked;
+		}
+
 		var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());
 
 		var protection = targetPlayer.calculateClothingInsulation();
