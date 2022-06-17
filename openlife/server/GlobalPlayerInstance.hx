@@ -4229,15 +4229,32 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// WorldMap.world.ovens = new Map<Int, ObjectHelper>();
 
 			if (ovens.length > 0) {
+				var cost = ServerSettings.TeleportCost;
+				var needed = Math.ceil(player.coins - cost);
+
+				if(needed < 0){
+					player.say('You need $needed more coins to teleport!', true);
+					return true;
+				}
+
+				trace('JUMP cost: $cost needed: $needed');
+
 				var oven = ovens[WorldMap.calculateRandomInt(ovens.length - 1)];
 				player.x = WorldMap.world.transformX(player, oven.tx);
 				player.y = WorldMap.world.transformY(player, oven.ty);
+
+				if(player.isBlocked(player.tx, player.ty)) MoveHelper.JumpToNonBlocked(player);
+				if(player.isBlocked(player.tx, player.ty)) return true;
 
 				player.forced = true;
 				Connection.SendUpdateToAllClosePlayers(player);
 				player.forced = false;
 
 				player.connection.sendMapChunk(player.x, player.y);
+
+				player.coins -= cost;
+				var left = Math.floor(player.coins);
+				player.say('costed ${cost}. $left coins left!', true);
 
 				return true;
 			}

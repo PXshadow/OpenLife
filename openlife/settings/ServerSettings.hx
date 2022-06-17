@@ -223,6 +223,8 @@ class ServerSettings {
 	public static var HungryWorkCost:Float = 6; // 10
 	public static var HungryWorkHeat:Float = 0.002; // 0.005; // per food used
 	public static var HungryWorkToolCostFactor:Float = 0;
+
+	public static var TeleportCost:Float = 2; // 10
 	
 	// for animal movement
 	public static var ChanceThatAnimalsCanPassBlockingBiome:Float = 0.03;
