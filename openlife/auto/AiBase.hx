@@ -410,17 +410,22 @@ abstract class AiBase
 	private function handleTemperature() : Bool {
 		var goodPlace = null;
 		var text = '';
+		var needWarming = myPlayer.isSuperCold() || (isHandlingTemperature && myPlayer.heat < 0.4);
 
-		// TODO wait little longer
 		if(myPlayer.isSuperHot() || (isHandlingTemperature && myPlayer.heat > 0.6)){
 			//trace('AAI: ${myPlayer.name + myPlayer.id} handle heat: too hot');
 			goodPlace = myPlayer.coldPlace;
 			text = 'cool';
 		}
-		else if(myPlayer.isSuperCold() || (isHandlingTemperature && myPlayer.heat < 0.4)){
+		else if(needWarming){
 			//trace('AAI: ${myPlayer.name + myPlayer.id} handle heat: too cold');
+			goodPlace = myPlayer.firePlace;
+			text = 'heat at fire';			
+		}
+
+		if(goodPlace == null && needWarming){
 			goodPlace = myPlayer.warmPlace;
-			text = 'heat';
+			text = 'heat';	
 		}
 
 		if(goodPlace == null){
