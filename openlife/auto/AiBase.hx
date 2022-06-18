@@ -383,8 +383,10 @@ abstract class AiBase
 				else return GetOrCraftItem(72);
 			}
 		}
-			
-		return false;
+
+		myPlayer.firePlace = null;
+
+		return craftItem(82); // Fire;
 	}
 
 	private function handleDeath() : Bool {
