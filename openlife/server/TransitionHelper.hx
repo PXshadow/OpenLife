@@ -1,6 +1,8 @@
 package openlife.server;
 
+import format.agal.Data.Tex;
 import format.hl.Data.CodeFlag;
+import haxe.Exception;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.data.transition.TransitionData;
@@ -82,6 +84,19 @@ class TransitionHelper {
 			return false;
 		}
 
+		// take care to pile baskets // 292 Basket // 1605 Stack of Baskets
+		var heldConteinedLength = player.heldObject.containedObjects.length;
+		var targetConteinedLength = helper.target.containedObjects.length;
+		if(tag == USE && (heldConteinedLength > 0 || targetConteinedLength > 0) && player.heldObject.id == 292 && (helper.target.parentId == 292 || helper.target.parentId == 1605)){
+			// TODO implement hidden containers so that cointainers can be put on top of containers
+			var text = 'TRANS: ${player.name + player.id} ${player.heldObject.name} + ${helper.target.name} ${helper.target.toArray()} NOT SUPPORTET YET!'; 
+			trace(text); // 5792
+			return false;
+		}
+
+		//var text = 'TRANS: ${player.name + player.id} tag: $tag ${player.heldObject.name} + ${helper.target.name} ${helper.target.toArray()}'; 
+		//trace(text);
+		
 		// if(player.heldObject.isPermanent() || player.heldObject.isNeverDrop())
 		if (player.heldObject.isNeverDrop()) {
 			// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id}'HeldObject is permanent ${player.heldObject.isPermanent()} or cannot be dropped! ${player.heldObject.isNeverDrop()}');
@@ -304,7 +319,8 @@ class TransitionHelper {
 			trace('TRANS: ${player.name + player.id} Container: ${objToStore.description} objToStore.slotSize: ${objToStoreObjData.slotSize} TO: container.containSize: ${containerObjData.containSize}');
 
 		if (isDrop == false) {
-			if (container.id == 87 || container.id == 88 || container.id == 752) return false; // 87 = Fresh Grave 88 = grave // cannot place in grave // 752 = Murder Grave
+			// cannot place in grave: 87 = Fresh Grave // 88 = grave // // 752 = Murder Grave
+			if (container.id == 87 || container.id == 88 || container.id == 752) return false; 
 
 			if (amountOfContainedObjects >= containerObjData.numSlots) return false;
 
@@ -770,14 +786,38 @@ class TransitionHelper {
 			return false;
 		}
 
-		// do now the magic transformation
+		// take care to pile baskets // 292 Basket // 1605 Stack of Baskets
+		//if(handObjectData.id == 292 && this.target.id == 292){
+		if(player.heldObject.containedObjects.length > 0 && (this.target.id == 292 || this.target.id == 1605)){
+			// TODO implement hidden containers so that cointainers can be put on top of containers
+			var text = 'TRANS: ${player.name + player.id} ${player.heldObject.name} + ${this.target.name} ${this.target.toArray()} NOT SUPPORTET YET!'; 
+			trace(text);
+
+			throw new Exception(text);
+			/*var baseTarget = this.target;
+			
+			this.target = player.heldObject;
+			this.target.id = TransformTarget(transition.newTargetID); // make a pile of baskets
+			this.target.containedObjects.push(baseTarget);
+			*/
+
+			//this.target = new ObjectHelper(null, transition.newTargetID); // make a pile of baskets
+			//this.target.id = TransformTarget(transition.newTargetID); // make a pile of baskets
+			//this.target.containedObjects.push(baseTarget);
+			//this.target.containedObjects.push(player.heldObject);
+
+			//player.setHeldObject(null);		
+		}
+		
 		// if(transition.actorID != transition.newActorID) this.pickUpObject = true; // TODO does error for bow animation but may be needed for other animations?
+
+		// do now the magic transformation
 		player.transformHeldObject(transition.newActorID);
 		this.target.id = TransformTarget(transition.newTargetID); // consider if there is an random outcome
 
 		// reset creation / last change time
 		player.heldObject.creationTimeInTicks = TimeHelper.tick;
-		this.target.creationTimeInTicks = TimeHelper.tick;
+		this.target.creationTimeInTicks = TimeHelper.tick; // TODO dont reset if id did not change? For example hot oven
 
 		if (newTargetObjectData.floor) {
 			//if (targetIsFloor == false) this.target.id = 0;

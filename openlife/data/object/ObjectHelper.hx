@@ -317,7 +317,7 @@ class ObjectHelper {
 
 		if (this.containedObjects.length > newObjectData.numSlots) {
 			var obj = ObjectData.getObjectData(this.containedObjects[0].id);
-			var message = 'WARNING: transform object: ${name} ${toArray()} first: ${obj.name} --> ${newObjectData.name} slots: containedObjects.length > numSlots: ${newObjectData.numSlots}';
+			var message = 'WARNING: transform object: ${name} ${toArray()} --> ${newObjectData.name} slots: containedObjects.length > numSlots: ${newObjectData.numSlots} first contained: ${obj.name}';
 			trace(message);
 			throw new Exception(message);
 		}
