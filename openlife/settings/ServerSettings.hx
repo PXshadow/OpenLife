@@ -1283,6 +1283,10 @@ class ServerSettings {
 		trans.aiShouldIgnore = true; 
 		var trans = transtions.getTransition(334, 2142); // Steel Axe + Banana Plant
 		trans.aiShouldIgnore = true; 
+		var trans = transtions.getTransition(334, 239); // Steel Axe + Wooden Tongs
+		trans.aiShouldIgnore = true; 
+		var trans = transtions.getTransition(71, 239); // Stone Hatchet + Wooden Tongs
+		trans.aiShouldIgnore = true; 
 
 		var trans = transtions.getTransition(560, 575); // Knife + Domestic Sheep
 		trans.aiShouldIgnore = true; 
