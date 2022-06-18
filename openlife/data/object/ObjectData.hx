@@ -200,7 +200,7 @@ class ObjectData extends LineReader {
 	 */
 	public var mapChance:Float = 0.000000; // #biomes_0
 
-	public var biomes:Array<Int> = [0];
+	public var biomes:Array<Int> = [];
 
 	/**
 	 * Heat value of object
@@ -1556,6 +1556,8 @@ class ObjectData extends LineReader {
 
 	// for example // Fed Domestic Lamb
 	public function isDomesticAnimal() : Bool {
-		return this.biomes.length == 1 && this.biomes[0] == BiomeTag.GREEN;
+		var isDomestic = this.biomes.length >= 2 && this.biomes[1] == BiomeTag.GREEN;
+		// trace('Animal: ${this.name} ${this.biomes} isDomestic: $isDomestic');
+		return isDomestic;
 	}
 }

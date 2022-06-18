@@ -2105,6 +2105,16 @@ class TimeHelper {
 				break;
 			}
 
+			/*
+			if(animal.objectData.isDomesticAnimal() && movementTileObj.id != 0){
+				trace('Animal: ${animal.name} --> ${movementTileObj.name} not blocked!');
+			} 
+
+			if(animal.objectData.isDomesticAnimal() && movementTileObj.objectData.blocksDomesticAnimal){
+				trace('Animal: ${animal.name} --> ${movementTileObj.name} domestic animal blocked!');
+			} 
+			*/
+
 			if(animal.objectData.isDomesticAnimal() && movementTileObj.objectData.blocksDomesticAnimal) break;
 
 			// TODO allow move on non empty ground
