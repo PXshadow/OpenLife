@@ -1,8 +1,6 @@
 package openlife.server;
 
 import haxe.Exception;
-import hl.Type;
-import hl.types.ArrayObj;
 import openlife.auto.AiBase;
 import openlife.auto.AiHelper;
 import openlife.client.ClientTag;
@@ -12,7 +10,6 @@ import openlife.data.object.ObjectHelper;
 import openlife.data.transition.TransitionData;
 import openlife.data.transition.TransitionImporter;
 import openlife.macros.Macro;
-import openlife.resources.ObjectBake;
 import openlife.server.Biome.BiomeTag;
 import openlife.server.GlobalPlayerInstance.Emote;
 import openlife.server.Lineage.PrestigeClass;
@@ -439,6 +436,8 @@ class TimeHelper {
 				player.setHeldObject(obj);
 
 				player.setHeldObjectOriginNotValid(); // no animation
+
+				TransitionHelper.DoChangeNumberOfUsesOnActor(player, transition);
 			}
 		}
 

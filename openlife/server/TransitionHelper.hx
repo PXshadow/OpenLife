@@ -794,7 +794,7 @@ class TransitionHelper {
 		// TODO move to SetObjectHelper
 		this.target.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(this.target);
 
-		DoChangeNumberOfUsesOnActor(this.player, transition.actorID != transition.newActorID, transition.reverseUseActor, transition.targetID);
+		DoChangeNumberOfUsesOnActor(this.player, transition);
 
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} NewTileObject: ${newTargetObjectData.description} ${this.target.id} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
@@ -837,12 +837,21 @@ class TransitionHelper {
 		return targetId;
 	}
 
-	// used for transitions and for eating food like bana or bowl of stew
-	public static function DoChangeNumberOfUsesOnActor(player:GlobalPlayerInstance, idHasChanged:Bool, reverseUse:Bool, targetId:Int):Bool {
+	// used for transitions and for eating food like bana or bowl of stew // or in actor time transitions like just made opcorn or fries
+	
+	public static function DoChangeNumberOfUsesOnActor(player:GlobalPlayerInstance, transition:TransitionData):Bool {
+		return DoChangeNumberOfUsesOnActorManual(player, transition.actorID != transition.newActorID, transition.reverseUseActor, transition.targetID);
+	}
+
+	public static function DoChangeNumberOfUsesOnActorManual(player:GlobalPlayerInstance, idHasChanged:Bool, reverseUse:Bool, targetId:Int):Bool {			
 		var obj = player.heldObject;
 		var objectData = obj.objectData;
 
 		if (objectData.dummyParent != null) objectData = objectData.dummyParent;
+
+		if (ServerSettings.DebugTransitionHelper)
+			trace('DoChangeNumberOfUsesOnActor: ${obj.name} idHasChanged: $idHasChanged reverseUse: $reverseUse numberOfUses: ${obj.numberOfUses}');
+
 		if (idHasChanged){
 			if (reverseUse){
 				// like putting a berry in a berry bowl directly from tree
