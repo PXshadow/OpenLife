@@ -396,6 +396,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				obj.storedInt['warmTx'] = obj.warmPlace.tx;
 				obj.storedInt['warmTy'] = obj.warmPlace.ty;
 			}
+			if(obj.firePlace != null){
+				obj.storedInt['fireTx'] = obj.firePlace.tx;
+				obj.storedInt['fireTy'] = obj.firePlace.ty;
+			}
 
 			var keys = obj.storedInt.keys();
 			var length = 0;
@@ -657,6 +661,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				obj.warmPlace = new ObjectHelper(null, 0);
 				obj.warmPlace.tx = obj.storedInt['warmTx'];
 				obj.warmPlace.ty = obj.storedInt['warmTy'];
+				//trace('loaded warm: ${obj.warmPlace.tx} ${obj.warmPlace.ty}');
+			}
+			if(obj.storedInt.exists('fireTx')){
+				obj.firePlace = new ObjectHelper(null, 0);
+				obj.firePlace.tx = obj.storedInt['fireTx'];
+				obj.firePlace.ty = obj.storedInt['fireTy'];
 				//trace('loaded warm: ${obj.warmPlace.tx} ${obj.warmPlace.ty}');
 			}
 
@@ -1120,8 +1130,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		this.warmPlace = mother.warmPlace;	
 		this.coldPlace = mother.coldPlace;
+		this.firePlace = mother.firePlace;
 		if(this.warmPlace == null && this.father != null) this.warmPlace = father.warmPlace;
 		if(this.coldPlace == null && this.father != null) this.coldPlace = father.coldPlace;
+		if(this.firePlace == null && this.father != null) this.firePlace = father.firePlace;
+
 		// if(gx < -WorldMap.world.width) gx += WorldMap.world.width;
 		// if(gx >= WorldMap.world.width) gx -= WorldMap.world.width;
 		// if(gy < -WorldMap.world.height) gy += WorldMap.world.height;
