@@ -864,7 +864,7 @@ class ServerSettings {
 		trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
 		transtions.addTransition("PatchTransitions: ", trans);
 		trans = new TransitionData(-1, 1380, 0, 0); // Clean Knife Wound --> 0
-		trans.autoDecaySeconds = 60 * WoundHealingTimeFactor;
+		trans.autoDecaySeconds = 90 * WoundHealingTimeFactor;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		ObjectData.getObjectData(1363).alternativeTimeOutcome = 1381; // Bite Wound --> Clean Bite Wound
@@ -872,15 +872,15 @@ class ServerSettings {
 		trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
 		transtions.addTransition("PatchTransitions: ", trans);
 		trans = new TransitionData(-1, 1381, 0, 0); // Clean Bite Wound --> 0
-		trans.autoDecaySeconds = 60 * WoundHealingTimeFactor;
+		trans.autoDecaySeconds = 90 * WoundHealingTimeFactor;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		ObjectData.getObjectData(1377).alternativeTimeOutcome = 1384; // Snake Bite -->  Clean Snake Bite
 		trans = new TransitionData(-1, 1377, 0, 0); //  Snake Bite --> Empty
-		trans.autoDecaySeconds = 10 * WoundHealingTimeFactor;
+		trans.autoDecaySeconds = 20 * WoundHealingTimeFactor;
 		transtions.addTransition("PatchTransitions: ", trans);
 		trans = new TransitionData(-1, 1384, 0, 0); //  Clean Snake Bite --> 0
-		trans.autoDecaySeconds = 300 * WoundHealingTimeFactor;
+		trans.autoDecaySeconds = 600 * WoundHealingTimeFactor;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		ObjectData.getObjectData(1366).alternativeTimeOutcome = 1383; // Hog Cut --> Clean Hog Cut
@@ -888,7 +888,7 @@ class ServerSettings {
 		trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
 		transtions.addTransition("PatchTransitions: ", trans);
 		trans = new TransitionData(-1, 1383, 0, 0); // Clean Hog Cut --> 0
-		trans.autoDecaySeconds = 60 * WoundHealingTimeFactor;
+		trans.autoDecaySeconds = 90 * WoundHealingTimeFactor;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		ObjectData.getObjectData(1366).alternativeTimeOutcome = 1382; // Empty Arrow Wound --> Clean Arrow Wound
@@ -896,7 +896,7 @@ class ServerSettings {
 		trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
 		transtions.addTransition("PatchTransitions: ", trans);
 		trans = new TransitionData(-1, 1382, 0, 0); // Clean Arrow Wound --> 0
-		trans.autoDecaySeconds = 60 * WoundHealingTimeFactor;
+		trans.autoDecaySeconds = 90 * WoundHealingTimeFactor;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = transtions.getTransition(0, 798);
