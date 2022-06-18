@@ -582,4 +582,9 @@ class ObjectHelper {
 	public function isAnimal():Bool {
 		return objectData.isAnimal();
 	}
+
+	public function isFire():Bool {
+		// 82 Fire // 82 Fire // 83 Large Fast Fire // 346 Large Slow Fire
+		return objectData.parentId == 82 || objectData.parentId == 83 || objectData.parentId == 346;
+	}
 }

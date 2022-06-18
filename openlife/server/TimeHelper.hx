@@ -820,6 +820,8 @@ class TimeHelper {
 		
 		var closestHeatObj = AiHelper.GetClosestHeatObject(player);
 
+		if(player.firePlace == null && closestHeatObj != null && closestHeatObj.isFire()) player.firePlace = closestHeatObj;
+
 		// TODO move inside calculateTemperature so that it is considered for olf cold / hot place
 		if (closestHeatObj != null) {
 			var heatObjectFactor = ServerSettings.TemperatureHeatObjectFactor;
