@@ -464,12 +464,14 @@ abstract class AiBase
 			} 
 
 			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature}  dist: $quadDistance wait b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
-			this.time += 2; // just relax
+			this.time += 3; // just relax
 			return true;
 		}
 
 		var done = myPlayer.gotoObj(goodPlace);
 	
+		if (quadDistance < 2) this.time += 4; // if you cannot reach dont try running there too often
+
 		myPlayer.say('going to $text');
 
 		//if (ServerSettings.DebugAi)
