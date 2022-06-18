@@ -253,6 +253,7 @@ abstract class AiBase
 		}); // go close to mother and wait for mother to feed
 		Macro.exception(if (isChildAndHasMother()) {
 			if (isMovingToPlayer(4)) return;
+			Macro.exception(if (handleTemperature()) return);
 		});
 		Macro.exception(if (myPlayer.isWounded()) {
 			isMovingToPlayer(2);
@@ -260,7 +261,7 @@ abstract class AiBase
 		}); // do nothing then looking for player
 
 		Macro.exception(if (isDropingItem()) return);
-		Macro.exception(if(handleDeath()) return);
+		Macro.exception(if (handleDeath()) return);
 		Macro.exception(if (isEating()) return);
 
 		// give use high prio if close so that for example a stone can be droped on a pile before food piclup
