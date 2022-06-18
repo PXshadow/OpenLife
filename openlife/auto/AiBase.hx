@@ -352,32 +352,37 @@ abstract class AiBase
 
 		// 85 Hot Coals // 72 Kindling
 		if(objId == 85){
-			myPlayer.say('Get Kindling For Fire');
+			
 			//if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Get Kindling ==> Hot Coals!');
 
 			if(heldId == 72){
+				myPlayer.say('Use Kindling on hot coals');
 				trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Has Kindling Use On ==> Hot Coals!');
 				this.useTarget = firePlace;
 				this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
 				return true;
 			}
-			else return GetOrCraftItem(72);
+			else return{
+				myPlayer.say('Get Kindling For Fire');
+				GetOrCraftItem(72);
+			}
 		} 
 		
 		// 82 Fire // 72 Kindling // 344 Firewood
 		if(objId == 82){
-			myPlayer.say('Get Wood For Fire');
 			//if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Get Wood or Kindling ==> Fire!');
 
 			if(heldId == 72 || heldId == 344){
+				myPlayer.say('Use On Fire');
 				trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Has Kindling Or Wood Use On ==> Fire');
 				this.useTarget = firePlace;
 				this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
 				return true;
 			}
 			else{
+				myPlayer.say('Get Wood For Fire');
 				var done = GetOrCraftItem(344);
 				if(done) return true;
 				else return GetOrCraftItem(72);
