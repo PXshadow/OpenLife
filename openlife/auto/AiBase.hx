@@ -211,7 +211,7 @@ abstract class AiBase
 		}
 
 		// if(didNotReachFood > 0) didNotReachFood -= timePassedInSeconds * 0.02;
-        if(time > 5) time = 5; // wait max 5 sec
+        if(time > 10) time = 10; // wait max 10 sec
 		if (time > 0) return;
 		time += ServerSettings.AiReactionTime; // 0.5; // minimum AI reacting time
 
@@ -646,9 +646,11 @@ abstract class AiBase
 			myPlayer.say("YES CAPTAIN");
 		}
 		if (text.contains("STOP") || text.contains("WAIT")) {			
-			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
+			//myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
+			myPlayer.Goto(myPlayer.x, myPlayer.y);
+			dropHeldObject(false);
 			this.time += 10;
-			myPlayer.say("YES CAPTAIN");
+			myPlayer.say("STOPING");
 		}
 		if (text.contains("GO HOME")) {			
 
