@@ -291,7 +291,8 @@ abstract class AiBase
 
 		if (myPlayer.isMoving()) return;
 		Macro.exception(if (isPickingupCloths()) return);
-		Macro.exception(if(handleTemperature()) return);
+		Macro.exception(if (isHandlingFire()) return);
+		Macro.exception(if (handleTemperature()) return);
 		
 		// if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
 
@@ -337,6 +338,53 @@ abstract class AiBase
 			if(rand < 0.05) myPlayer.say('say make xxx to give me some work!');
 			else if(rand < 0.2) myPlayer.say('nothing to do...');
 		}
+	}
+
+	private function isHandlingFire() : Bool {
+		var firePlace = myPlayer.firePlace;
+		var heldId = myPlayer.heldObject.parentId;
+
+		if(firePlace == null) return craftItem(82); // Fire
+		var objId = WorldMap.world.getObjectId(firePlace.tx, firePlace.ty)[0];
+
+		// 83 Large Fast Fire // 346 Large Slow Fire
+		if(objId == 83 || objId == 346) return false;
+
+		// 85 Hot Coals // 72 Kindling
+		if(objId == 85){
+			myPlayer.say('Get Kindling For Fire');
+			//if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Get Kindling ==> Hot Coals!');
+
+			if(heldId == 72){
+				trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Has Kindling Use On ==> Hot Coals!');
+				this.useTarget = firePlace;
+				this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
+				return true;
+			}
+			else return GetOrCraftItem(72);
+		} 
+		
+		// 82 Fire // 72 Kindling // 344 Firewood
+		if(objId == 82){
+			myPlayer.say('Get Wood For Fire');
+			//if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Get Wood or Kindling ==> Fire!');
+
+			if(heldId == 72 || heldId == 344){
+				trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Has Kindling Or Wood Use On ==> Fire');
+				this.useTarget = firePlace;
+				this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
+				return true;
+			}
+			else{
+				var done = GetOrCraftItem(344);
+				if(done) return true;
+				else return GetOrCraftItem(72);
+			}
+		}
+			
+		return false;
 	}
 
 	private function handleDeath() : Bool {

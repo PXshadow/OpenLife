@@ -85,5 +85,6 @@ interface PlayerInterface {
 
 	public var coldPlace(default, default):ObjectHelper;
 	public var warmPlace(default, default):ObjectHelper;
+	public var firePlace(default, default):ObjectHelper;
 	public var lastTemperature(default, default):Float;
 }

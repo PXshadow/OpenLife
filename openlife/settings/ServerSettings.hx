@@ -1276,6 +1276,11 @@ class ServerSettings {
 		var trans = transtions.getTransition(461, 3371); // Bow Saw + Table
 		trans.aiShouldIgnore = true; 
 
+		// Forbid some transition to make Kindling
+		var trans = transtions.getTransition(71, 67); // Stone Hatchet + Long Straight Shaft
+		trans.aiShouldIgnore = true; 
+		var trans = transtions.getTransition(334, 67); // Steel Axe + Long Straight Shaft
+		trans.aiShouldIgnore = true; 
 		var trans = transtions.getTransition(334, 2142); // Steel Axe + Banana Plant
 		trans.aiShouldIgnore = true; 
 
