@@ -530,7 +530,22 @@ class ServerSettings {
 
 		ObjectData.getObjectData(1485).biomes.push(BiomeTag.GREEN); // Fed Domestic Calf
 		ObjectData.getObjectData(1459).biomes.push(BiomeTag.GREEN); // Domestic Calf
+
+		ObjectData.getObjectData(770).biomes.push(BiomeTag.GREEN); // Riding Horse		
+		ObjectData.getObjectData(780).biomes.push(BiomeTag.GREEN); // Escaped Horse-Drawn Cart
+		ObjectData.getObjectData(3157).biomes.push(BiomeTag.GREEN); // Escaped Horse-Drawn Tire Cart	
 		
+		// set loved biomes right
+		ObjectData.getObjectData(1328).biomes = []; // Wild Boar with Piglet
+		ObjectData.getObjectData(1328).biomes.push(BiomeTag.SWAMP); // Wild Boar with Piglet
+
+		ObjectData.getObjectData(631).biomes = []; // Hungry Grizzly Bear
+		ObjectData.getObjectData(631).biomes.push(BiomeTag.GREY); // Hungry Grizzly Bear
+		ObjectData.getObjectData(632).biomes = []; // Shot Grizzly Bear
+		ObjectData.getObjectData(632).biomes.push(BiomeTag.GREY); // Shot Grizzly Bear
+		ObjectData.getObjectData(635).biomes = []; // Shot Grizzly Bear 2 
+		ObjectData.getObjectData(635).biomes.push(BiomeTag.GREY); // Shot Grizzly Bear 2
+
 		// More Wolfs needs the world
 		ObjectData.getObjectData(418).biomes.push(BiomeTag.YELLOW); // Happy Wolfs now also in Yellow biome :)
 		// ObjectData.getObjectData(418).biomes.push(BiomeTag.GREEN); // Happy Wolfs now also in Green biome :)
