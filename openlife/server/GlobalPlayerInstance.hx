@@ -4112,6 +4112,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			var biomeId = WorldMap.world.getOriginalBiomeId(player.tx, player.ty);
 			player.say('OBIOME $biomeId', true);
 			return true;
+		} else if (text.indexOf('!BIOME') != -1) {
+			var biomeId = WorldMap.world.getBiomeId(player.tx, player.ty);
+			player.say('BIOME $biomeId', true);
+			return true;
 		} else if (text.indexOf('!SNOW') != -1) {
 			player.say('SNOW', true);
 
