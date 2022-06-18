@@ -1808,9 +1808,11 @@ class TimeHelper {
 		var fromTx = animal.tx;
 		var fromTy = animal.ty;
 		var currentbiome = worldmap.getBiomeId(animal.tx, animal.ty);
+		var currentOriginalbiome = worldmap.getOriginalBiomeId(animal.tx, animal.ty);
 		var lovesCurrentBiome = objectData.isSpawningIn(currentbiome);
+		var lovesCurrentOriginalBiome = objectData.isSpawningIn(currentOriginalbiome);
 
-		if (lovesCurrentBiome) {
+		if (lovesCurrentOriginalBiome) {
 			// trace('set loved tx,ty for animal: ${animal.description}');
 			animal.lovedTx = animal.tx;
 			animal.lovedTy = animal.ty;
