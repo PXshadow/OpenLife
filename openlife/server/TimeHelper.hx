@@ -1532,6 +1532,8 @@ class TimeHelper {
 	public static function DoRespawnFromOriginal(tx:Int, ty:Int, passedTimeInYears:Float) {
 		var world = WorldMap.world;
 		var origObj = world.getOriginalObjectId(tx,ty);
+
+		// remember that true needed time is 4x since it regrows only in spring
 		
 		if (origObj[0] == 50) // Milkweed
 		{
@@ -1541,7 +1543,7 @@ class TimeHelper {
 		}
 		else if (origObj[0] == 136) // Sapling
 		{
-			if(world.randomFloat() < passedTimeInYears / (60 * 2)){
+			if(world.randomFloat() < passedTimeInYears / 60){
 				world.setObjectId(tx,ty, [136]);
 			}
 		}
@@ -1551,6 +1553,16 @@ class TimeHelper {
 				world.setObjectId(tx,ty, [1261]);
 			}
 		}
+
+		var obj = world.getObjectId(tx,ty);
+		if (obj[0] == 511) // Pond --> Canada Goose Pond
+		{
+			if(world.randomFloat() < passedTimeInYears / (60 * 2)){
+				world.setObjectId(tx,ty, [141]);
+			}
+		}
+
+		ObjectData.getObjectData(511).countsOrGrowsAs = 1261; // Pond
 	}
 
 	public static function DoSeasonalBiomeChanges(tx:Int, ty:Int, timePassedInYears:Float) {

@@ -1217,7 +1217,7 @@ class ServerSettings {
 		trans.autoDecaySeconds = 20;
 		transtions.addTransition("PatchTransitions: ", trans);
 		
-		var trans = transtions.getTransition(-1, 2180); // clonger clothing decay Rabbit Fur Hat with Feather
+		var trans = transtions.getTransition(-1, 2180); // longer clothing decay Rabbit Fur Hat with Feather
 		trans.autoDecaySeconds = -24; // 5
 
 		var trans = transtions.getTransition(-1, 712); // Sealskin Coat
