@@ -1092,3 +1092,7 @@ class IntemToCraft {
 		}
 	}
 }
+
+class Village {
+	public var fireKeeper:GlobalPlayerInstance = null;
+}

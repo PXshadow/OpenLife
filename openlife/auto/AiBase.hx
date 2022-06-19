@@ -345,7 +345,16 @@ abstract class AiBase
 		var firePlace = myPlayer.firePlace;
 		var heldId = myPlayer.heldObject.parentId;
 
-		if(firePlace == null) return craftItem(82); // Fire
+		if(firePlace == null){
+			firePlace= AiHelper.GetClosestObjectById(myPlayer, 346, null, 30); // 346 Large Slow Fire
+			if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(myPlayer, 83, null, 30); // 83 Large Fast Fire 
+			if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(myPlayer, 82, null, 30); // 82 Fire
+			if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(myPlayer, 85, null, 30); // 85 Hot Coals
+
+			if(firePlace == null) return craftItem(82); // Fire
+			else myPlayer.firePlace = firePlace;
+		}
+
 		var objId = WorldMap.world.getObjectId(firePlace.tx, firePlace.ty)[0];
 
 		// 83 Large Fast Fire // 346 Large Slow Fire
@@ -354,7 +363,7 @@ abstract class AiBase
 		// 85 Hot Coals // 72 Kindling
 		if(objId == 85){
 			
-			//if (ServerSettings.DebugAi)
+			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Get Kindling ==> Hot Coals!');
 
 			if(heldId == 72){
@@ -372,7 +381,7 @@ abstract class AiBase
 		
 		// 82 Fire // 72 Kindling // 344 Firewood
 		if(objId == 82){
-			//if (ServerSettings.DebugAi)
+			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Get Wood or Kindling ==> Fire!');
 
 			if(heldId == 72 || heldId == 344){
@@ -392,7 +401,7 @@ abstract class AiBase
 
 		myPlayer.firePlace = null;
 
-		return craftItem(82); // Fire;
+		return false;
 	}
 
 	private function handleDeath() : Bool {
