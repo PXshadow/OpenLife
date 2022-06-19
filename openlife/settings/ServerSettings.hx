@@ -220,7 +220,7 @@ class ServerSettings {
 	public static var ExhaustionOnJump:Float = 0.05;	
 
 	// hungry work
-	public static var HungryWorkCost:Float = 6; // 10
+	public static var HungryWorkCost:Float = 8; // 10
 	public static var HungryWorkHeat:Float = 0.002; // 0.005; // per food used
 	public static var HungryWorkToolCostFactor:Float = 0;
 
@@ -446,6 +446,7 @@ class ServerSettings {
 		ObjectData.getObjectData(334).hungryWork = 1 * HungryWorkToolCostFactor; // Steel Axe
 		ObjectData.getObjectData(502).hungryWork = 1 * HungryWorkToolCostFactor; // Shovel // TODO should be cheaper then sharp stone
 
+		ObjectData.getObjectData(1020).hungryWork = 5; // Snow Bank
 		ObjectData.getObjectData(138).hungryWork = 5; // Cut Sapling Skewer
 		ObjectData.getObjectData(3961).hungryWork = 5; // Iron Vein
 		ObjectData.getObjectData(496).hungryWork = 10; // Dug Stump

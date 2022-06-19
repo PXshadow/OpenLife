@@ -1561,8 +1561,6 @@ class TimeHelper {
 				world.setObjectId(tx,ty, [141]);
 			}
 		}
-
-		ObjectData.getObjectData(511).countsOrGrowsAs = 1261; // Pond
 	}
 
 	public static function DoSeasonalBiomeChanges(tx:Int, ty:Int, timePassedInYears:Float) {
