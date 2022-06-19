@@ -1557,7 +1557,7 @@ class TimeHelper {
 		var obj = world.getObjectId(tx,ty);
 		if (obj[0] == 511) // Pond --> Canada Goose Pond
 		{
-			if(world.randomFloat() < passedTimeInYears / (60 * 2)){
+			if(world.randomFloat() < passedTimeInYears / 60){
 				world.setObjectId(tx,ty, [141]);
 			}
 		}
