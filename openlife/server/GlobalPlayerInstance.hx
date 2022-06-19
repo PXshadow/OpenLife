@@ -450,6 +450,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var count = reader.readInt32();
 		var loadedPlayers = new Map<Int, GlobalPlayerInstance>();
 		var playersToLoad = new Map<Int, Map<String, Int>>();
+		var accountsWithPlayer = new Map<Int, GlobalPlayerInstance>();
 		var exiledPlayersToLoad = new Map<Int, Array<Int>>();
 
 		// return null;
@@ -681,8 +682,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			if (obj.lineage == null) {
 				trace('read ${i + 1} No Lineage found: ${obj.p_id}');
-			} else
-				trace('read ${i + 1} Players... ${obj.name} account: ${obj.account.id} ${obj.account.email}');
+			} else{
+				trace('read ${i + 1} Players... ${obj.name} account: ${obj.account.id} ${obj.account.email}');	
+				accountsWithPlayer[obj.account.id] = obj;
+			}		
 		}
 		/*}
 			catch(ex)
@@ -691,6 +694,30 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				throw ex;
 		}*/
 
+		// TODO check why AIs have same account ids
+		// check if account has same ids
+		for(player in loadedPlayers){
+			if(player.account == null) continue;
+
+			var currentPlayer = accountsWithPlayer[player.account.id];
+			if(player.id == currentPlayer.id) continue;
+
+			//trace('WARNING Same player account found: ${player.name}${player.id} account: ${player.account.id} ${player.account.email}');
+			var allAccounts = [for (obj in PlayerAccount.AllPlayerAccountsById) obj]; 
+
+			for(account in allAccounts){
+				if(accountsWithPlayer.exists(account.id)) continue;
+				if(account.isAi == false) continue;
+				
+				trace('WARNING Same player account found: ${player.name}${player.id} account: ${player.account.id} ==> ${account.id}');
+
+				player.connection.playerAccount = account;
+				accountsWithPlayer[player.account.id] = player; 
+
+				break;
+			}
+		}
+		
 		reader.close();
 
 		AllPlayers = loadedPlayers;
