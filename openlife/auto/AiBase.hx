@@ -687,7 +687,8 @@ abstract class AiBase
 				searchFoodAndEat();
 				myPlayer.say("YES CAPTAIN");
 		}*/
-		if (text.startsWith("MAKE") || text.startsWith("CRAFT")) {				
+		if (text.startsWith("MAKE") || text.startsWith("CRAFT")) {	
+						
 			var id = GlobalPlayerInstance.findObjectByCommand(text);
 
 			if (id > 0) {

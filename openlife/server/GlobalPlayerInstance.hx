@@ -4383,6 +4383,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (id != null) return id;
 
+		if(toSearch == "PIE") return 265; // Raw Berry Pie 
+		if(toSearch == "BAKE") return 272; // Cooked Berry Pie
+		if(toSearch == "SHOE" || toSearch == "SHOES") return 203; // Rabbit Fur Shoe
+
 		id = ObjectData.GetObjectByName(toSearch, false, end);
 
 		return id;
