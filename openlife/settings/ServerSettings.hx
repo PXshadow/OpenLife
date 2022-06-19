@@ -1165,12 +1165,12 @@ class ServerSettings {
 		ObjectData.getObjectData(3961).alternativeTransitionOutcome.push(33); // Iron Vein
 
 		ObjectData.getObjectData(3956).alternativeTransitionOutcome.push(33); // Shallow Pit with Ore --> Stone
+		ObjectData.getObjectData(3956).alternativeTransitionOutcome.push(33); // Shallow Pit with Ore --> Stone
 		ObjectData.getObjectData(3956).alternativeTransitionOutcome.push(291); // Shallow Pit with Ore --> Flat Rock
-		ObjectData.getObjectData(3956).alternativeTransitionOutcome.push(34); // Shallow Pit with Ore --> Sharp Stone
 
 		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(33); // Deep Pit with Ore --> Stone
+		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(33); // Deep Pit with Ore --> Stone
 		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(291); // Deep Pit with Ore --> Flat Rock
-		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(34); // Deep Pit with Ore --> Sharp Stone
 
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(33); // Mine with Ore --> Stone
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(33); // Mine with Ore --> Stone
