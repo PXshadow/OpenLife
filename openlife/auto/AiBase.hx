@@ -650,16 +650,23 @@ abstract class AiBase
 			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.say("SURE CAPTAIN");
 		}
-		if (text.contains("STOP FOLLOW")) {
+		else if (text.contains("STOP FOLLOW")) {
 			playerToFollow = null;
 			myPlayer.say("YES CAPTAIN");
 		}
-		if (text.contains("STOP") || text.contains("WAIT") || text.contains("DROP")) {			
+		else if (text.contains("STOP") || text.contains("WAIT")) {			
 			//myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.Goto(myPlayer.x, myPlayer.y);
 			dropHeldObject(false);
 			this.time += 10;
 			myPlayer.say("STOPING");
+		}
+		else if (text.contains("DROP")) {			
+			//myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
+			myPlayer.Goto(myPlayer.x, myPlayer.y);
+			dropHeldObject(false);
+			this.time += 1;
+			myPlayer.say("DROPING");
 		}
 		if (text.contains("GO HOME")) {			
 
