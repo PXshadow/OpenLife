@@ -372,9 +372,8 @@ abstract class AiBase
 		if(objId == 85){			
 			if(heldId == 72){
 				myPlayer.say('Use Kindling on hot coals');
-				trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Has Kindling Use On ==> Hot Coals!');
-				this.useTarget = firePlace;
-				this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Has Kindling Use On ==> Hot Coals!');
+				useHeldObjOnTarget(firePlace);
 				return true;
 			}
 			else return{
@@ -389,13 +388,12 @@ abstract class AiBase
 		// 82 Fire // 72 Kindling // 344 Firewood
 		if(objId == 82){
 			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} Fire: Get Wood or Kindling ==> Fire!');
+				trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Get Wood or Kindling ==> Fire!');
 
 			if(heldId == 72 || heldId == 344){
 				myPlayer.say('Use On Fire');
-				trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} Fire: Has Kindling Or Wood Use On ==> Fire');
-				this.useTarget = firePlace;
-				this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Has Kindling Or Wood Use On ==> Fire');
+				useHeldObjOnTarget(firePlace);
 				return true;
 			}
 			else{
@@ -414,6 +412,8 @@ abstract class AiBase
 	private function useHeldObjOnTarget(target:ObjectHelper){
 		this.useTarget = target;
 		this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
+		this.useActor.tx = target.tx;
+		this.useActor.ty = target.ty;
 	}
 
 	private function isRemovingItemFromContainer(){
