@@ -41,8 +41,12 @@ abstract class AiBase
 	var escapeTarget:ObjectHelper = null;
 	var foodTarget:ObjectHelper = null;
 	var dropTarget:ObjectHelper = null;
+	var removeFromContainerTarget:ObjectHelper = null;
+	var expectedContainer:ObjectHelper = null; // needs to be set if removeFromContainerTarget is set
+
 	var useTarget:ObjectHelper = null;
 	var useActor:ObjectHelper = null; // to check if the right actor is in the hand
+
 
 	var dropIsAUse:Bool = false;
 
@@ -294,7 +298,8 @@ abstract class AiBase
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (handleTemperature()) return);
-		
+		Macro.exception(if (isHandlingGraves()) return);
+				
 		// if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
 
 		if (ServerSettings.DebugAi) trace('AI: craft ${GetName(itemToCraftId)} tasks: ${craftingTasks.length}!');
@@ -382,11 +387,11 @@ abstract class AiBase
 		// 82 Fire // 72 Kindling // 344 Firewood
 		if(objId == 82){
 			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Get Wood or Kindling ==> Fire!');
+				trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} Fire: Get Wood or Kindling ==> Fire!');
 
 			if(heldId == 72 || heldId == 344){
 				myPlayer.say('Use On Fire');
-				trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Has Kindling Or Wood Use On ==> Fire');
+				trace('AAI: ${myPlayer.name + myPlayer.id} age: ${myPlayer.age} Fire: Has Kindling Or Wood Use On ==> Fire');
 				this.useTarget = firePlace;
 				this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
 				return true;
@@ -402,6 +407,41 @@ abstract class AiBase
 		myPlayer.firePlace = null;
 
 		return false;
+	}
+
+	private function useHeldObjOnTarget(target:ObjectHelper){
+		this.useTarget = target;
+		this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
+	}
+
+	private function isRemovingItemFromContainer(){
+		
+	}
+
+	private function removeItemFromContainer(){
+		
+	}
+
+	private function isHandlingGraves() : Bool {
+		var heldId = myPlayer.heldObject.parentId;
+		var grave = AiHelper.GetClosestObjectById(myPlayer, 88, null, 20); // 88 Grave
+
+		if(grave == null) return false;
+
+		// 850 Stone Hoe // 502 = Shovel
+		if(heldId == 850 || heldId == 502){
+			myPlayer.say('dig in bones');
+			trace('AAI: ${myPlayer.name + myPlayer.id} dig in bones');
+			useHeldObjOnTarget(grave);
+			return true;
+		}
+
+		// 850 Stone Hoe
+		if(GetOrCraftItem(850) == false){
+			return GetOrCraftItem(502); // 502 = Shovel
+		}
+
+		return true;
 	}
 
 	private function handleDeath() : Bool {
@@ -1991,6 +2031,134 @@ abstract class AiBase
 			useTarget = null;
 			useActor = null;
 			// dropTarget = itemToCraft.transActor;
+
+			dropHeldObject(true);
+
+			return false;
+		}
+		if (myPlayer.isMoving()) return true;
+
+		// TODO crafting does not yet consider if old enough to use a bow 
+		// 152 Bow and Arrow
+		if(myPlayer.heldObject.id == 152 && useTarget.isAnimal()){
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use: kill animal ${useTarget.description}');
+			Macro.exception(if (killAnimal(useTarget)) return true);
+		}
+
+		var distance = myPlayer.CalculateQuadDistanceToObject(useTarget);
+		if (ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} Use: distance: $distance ${useTarget.description} ${useTarget.tx} ${useTarget.ty}');
+
+		if (distance > 1) {
+			var name = useTarget.name;
+			var done = myPlayer.gotoObj(useTarget);
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto useItem ${name} $done');
+
+			if(ServerSettings.DebugAiSay){
+				if (done) myPlayer.say('Goto ${name} for use!');
+				else myPlayer.say('Cannot Goto ${name} for use!');
+			}
+
+			/*
+				if(done == false)
+				{
+					if(ServerSettings.DebugAi) trace('AI: GOTO useItem failed! Ignore ${useTarget.tx} ${useTarget.ty} '); 
+					this.addNotReachableObject(useTarget);
+					useTarget = null;
+					itemToCraft.transActor = null;
+					itemToCraft.transTarget = null;
+			}*/
+
+			return true;
+		}
+
+		var heldPlayer = myPlayer.getHeldPlayer();
+		if (heldPlayer != null) {
+			var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
+
+			if (ServerSettings.DebugAi || done == false) trace('AAI: ${myPlayer.name + myPlayer.id} child drop for using ${heldPlayer.name} $done');
+
+			return true;
+		}
+
+		// Drop object to pickup actor
+		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound && useActor.id == 0) {
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop obj to to have empty hand');
+			dropHeldObject();
+			return true;
+		}
+		
+		var useActorId = myPlayer.heldObject.id;
+		var useTargetId = useTarget.id;
+		// x,y is relativ to birth position, since this is the center of the universe for a player
+		var done = myPlayer.use(useTarget.tx - myPlayer.gx, useTarget.ty - myPlayer.gy);
+
+		if (done) {
+			// check if the use was part of a drop to put for example stone on a pile of stones
+			if(dropIsAUse){
+				dropIsAUse = false;
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} done: drop as a use!');
+				if(foodTarget == null){
+					useTarget = itemToCraft.transTarget;
+					useActor = myPlayer.heldObject;
+				}
+				else{
+					useTarget = null;
+				}								
+
+				return true;
+			}	
+			else{			
+				var taregtObjectId = myPlayer.getWorld().getObjectId(useTarget.tx, useTarget.ty)[0];
+				
+				itemToCraft.done = true;
+				itemToCraft.countTransitionsDone += 1;
+				itemToCraft.lastActorId = useActorId;
+				itemToCraft.lastTargetId = useTargetId;
+				itemToCraft.lastNewActorId = myPlayer.heldObject.id;
+				itemToCraft.lastNewTargetId = taregtObjectId;
+
+				// if object to create is held by player or is on ground, then cound as done
+				if (myPlayer.heldObject.parentId == itemToCraft.itemToCraft.parentId
+					|| taregtObjectId == itemToCraft.itemToCraft.parentId) itemToCraft.countDone += 1;
+
+				if (ServerSettings.DebugAi)
+					trace('AAI: ${myPlayer.name + myPlayer.id} done: ${useTarget.name} ==> ${itemToCraft.itemToCraft.name} trans: ${itemToCraft.countTransitionsDone} finished: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
+			}
+		} else {
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use failed! Ignore: ${useTarget.name} ${useTarget.tx} ${useTarget.ty} ');
+
+			// TODO check why use is failed... for now add to ignore list
+			// TODO dont use on contained objects if result cannot contain (ignore in crafting search)
+			this.addNotReachableObject(useTarget);
+			useTarget = null;
+			itemToCraft.transActor = null;
+			itemToCraft.transTarget = null;
+		}
+
+		useTarget = null;
+		dropIsAUse = false;
+
+		return true;
+	}
+
+	private function isRemovingFromContainer():Bool {
+		if (removeFromContainerTarget == null) return false;
+		
+		if (myPlayer.isStillExpectedItem(expectedContainer) == false) {
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} expectedContainer changed meanwhile! ${expectedContainer.name}');
+			removeFromContainerTarget = null;
+			expectedContainer = null;
+			return false;
+		}
+
+		// TODO allow container transitions
+		if (myPlayer.heldObject.id != 0) {
+			if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} Remove from container: ${myPlayer.heldObject.name} needs to be dropped!');
+
+			removeFromContainerTarget = null;
+			expectedContainer = null;
 
 			dropHeldObject(true);
 
