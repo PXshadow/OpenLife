@@ -553,6 +553,7 @@ class ObjectHelper {
 	}
 
 	public function getOwnerAccount() {
+		if(this.ownersByPlayerAccount.length < 1) return null;
 		return PlayerAccount.AllPlayerAccountsById[this.ownersByPlayerAccount[0]];
 	}
 

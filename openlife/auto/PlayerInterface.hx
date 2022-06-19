@@ -5,6 +5,7 @@ import openlife.data.Pos;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.data.object.player.PlayerInstance;
+import openlife.server.PlayerAccount;
 
 interface PlayerInterface {
 	public function getAi():AiBase;
@@ -28,6 +29,7 @@ interface PlayerInterface {
 	// variables
 	public var id(get, null):Int;
 	public var name(get, null):String;
+	public var account(get, null):PlayerAccount;
 	public var x(default, default):Int;
 	public var y(default, default):Int;
 	public var gx(default, default):Int;
