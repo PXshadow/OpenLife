@@ -645,7 +645,7 @@ abstract class AiBase
 			playerToFollow = null;
 			myPlayer.say("YES CAPTAIN");
 		}
-		if (text.contains("STOP") || text.contains("WAIT") || text.contains("DROP") {			
+		if (text.contains("STOP") || text.contains("WAIT") || text.contains("DROP")) {			
 			//myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.Goto(myPlayer.x, myPlayer.y);
 			dropHeldObject(false);

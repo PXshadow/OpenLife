@@ -1316,6 +1316,10 @@ class ServerSettings {
 		trans.aiShouldIgnore = true; 
 		var trans = transtions.getTransition(502, 804); // Shovel + Burdock
 		trans.aiShouldIgnore = true; 
+		var trans = transtions.getTransition(67, 3065); // Long Straight Shaft + Wooden Slot Box
+		trans.aiShouldIgnore = true; 
+
+		
 			 
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');
