@@ -655,7 +655,7 @@ abstract class AiBase
 		var heldId = myPlayer.heldObject.parentId;
 		// Empty Arrow Quiver
 		var quiver = myPlayer.getClothingById(874); 
-		//  Arrow Quiver
+		// Arrow Quiver
 		if(quiver == null) quiver = myPlayer.getClothingById(3948);
 		
 		if(quiver != null){
@@ -903,7 +903,7 @@ abstract class AiBase
 			this.craftingTasks.unshift(taskId);
 	}
 
-	private function killAnimal(animal:ObjectHelper) {
+	private function killAnimal(animal:ObjectHelper) : Bool {
 		if (animal == null && animalTarget == null) return false;
 		if (foodTarget != null) return false;
 
@@ -925,6 +925,30 @@ abstract class AiBase
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: ${animalTarget.description}');
 
+		// 151 Yew Bow
+		if (myPlayer.heldObject.id == 151){
+			// Arrow Quiver
+			var quiver = myPlayer.getClothingById(3948);
+			if(quiver != null){
+				myPlayer.self(0,0,5);
+				//if(ServerSettings.DebugAi) 
+				trace('AAI: ${myPlayer.name + myPlayer.id} get Arrow from Quiver!');
+				return true;
+			} 
+		}
+		if (myPlayer.heldObject.id == 0){
+			// 4149 Empty Arrow Quiver with Bow
+			var quiver = myPlayer.getClothingById(4149);
+			// Arrow Quiver with Bow
+			if(quiver == null) quiver = myPlayer.getClothingById(4151);
+
+			if(quiver != null){
+				myPlayer.self(0,0,5);
+				//if(ServerSettings.DebugAi) 
+				trace('AAI: ${myPlayer.name + myPlayer.id} get Bow from Quiver!');
+				return true;
+			} 
+		}
 		if (myPlayer.heldObject.id != objData.id) {
 			return GetOrCraftItem(objData.id);
 		}

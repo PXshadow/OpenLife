@@ -369,7 +369,7 @@ class WorldMap {
 			trace('WARNING: Object ${helper.description} moved meanwhile! ${helper.tx} ${helper.ty} --> ${tx} ${ty}');
 			//helper.tx = tx;
 
-			if (ServerSettings.debug) throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
+			if (ServerSettings.debug && helper.id != 0) throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
 			//setObjectHelper(tx,ty, null);
 			objectHelpers[index(tx, ty)] = null;
 			//helper = null;
