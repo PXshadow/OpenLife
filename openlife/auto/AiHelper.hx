@@ -897,7 +897,8 @@ class AiHelper {
 			if (p.heldByPlayer != null) continue;
 			if (isFertile && p.age < ServerSettings.MaxChildAgeForBreastFeeding) continue;
 
-			var classFood = cast(p.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int) ? p.lineage.prestigeClass * 4 : p.lineage.prestigeClass * 2;
+			var isNobleOrMore = cast(p.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int); 
+			var classFood = isNobleOrMore ? p.lineage.prestigeClass * 4 : p.lineage.prestigeClass * 2;
 			var considerHungry = Math.min(classFood, p.food_store_max * 0.6);
 			var hungry = considerHungry - p.food_store;
 			var isAlly = p.isAlly(globalplayer);
@@ -906,6 +907,7 @@ class AiHelper {
 			if (p.isCloseRelative(globalplayer) == false
 				|| player.getFollowPlayer() == p) hungry = hungry / 2 - 0.25; // prefer close relative
 			if (isAlly == false) hungry = hungry / 2 - 0.2; // prefer ally
+			if (p.isAi() && isNobleOrMore == false) hungry / 2 - 0.2; // prefer Ai only if noble
 			if (hungry < 0) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p) + 1;
