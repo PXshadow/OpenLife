@@ -238,8 +238,8 @@ class ServerSettings {
 	public static var AnimalDeadlyDistanceFactor:Float = 0.5; // How close a animal must be to make a hit
 
 	// for animal offsprings
-	public static var ChanceForOffspring:Float = 0.001; // For each movement there is X chance to generate an offspring.
-	public static var ChanceForAnimalDying:Float = 0.0005; // For each movement there is X chance that the animal dies
+	public static var ChanceForOffspring:Float = 0.0005; // For each movement there is X chance to generate an offspring.
+	public static var ChanceForAnimalDying:Float = 0.00025; // For each movement there is X chance that the animal dies
 	public static var OffspringFactorIfAnimalPopIsLow:Float = 2;
 	public static var MaxOffspringFactor:Float = 1; // The population can only be at max X times the initial population
 
