@@ -513,7 +513,7 @@ abstract class AiBase
 		var biomeId = WorldMap.world.getBiomeId(goodPlace.tx, goodPlace.ty);		
 		var temperature = myPlayer.lastTemperature;	
 
-		if (quadDistance < 1){	
+		if (quadDistance < 2){	
 			if(justArrived == false){
 				justArrived = true;
 				this.time += 3; // just relax
@@ -545,7 +545,6 @@ abstract class AiBase
 		//if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} dist: $quadDistance goto: $done');
 			
-
 		return done;
 	}
 	
@@ -771,7 +770,7 @@ abstract class AiBase
 		if (ServerSettings.DebugAi && foodTarget == null) trace('AAI: ${myPlayer.name + myPlayer.id} no new Foodtarget!!!');
 	}
 
-	public function dropHeldObject(dropOnStart:Bool = false) {
+	public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
 		// var myPlayer = myPlayer.getPlayerInstance();
 
 		if (myPlayer.heldObject.id == 0) return;
@@ -782,10 +781,12 @@ abstract class AiBase
 		else if (myPlayer.heldObject.id == 135) dropOnStart = false; // 135 Flint Chip
 		else if (myPlayer.heldObject.id == 57) dropOnStart = false; // 57 Milkweed Stalk		
 		
-		if (dropOnStart && itemToCraft.startLocation != null) {
+		if (dropOnStart && maxDistanceToHome > 0 && itemToCraft.startLocation != null) {
+			var quadMaxDistanceToHome = Math.pow(maxDistanceToHome, 2);
 			var distance = myPlayer.CalculateQuadDistanceToObject(itemToCraft.startLocation);
 
-			if (distance > 25) {
+			// check if not too close or too far
+			if (distance > 25 && quadMaxDistanceToHome < distance) {
 				var done = myPlayer.gotoObj(itemToCraft.startLocation);
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done drop goto start $distance');
 
@@ -1901,6 +1902,12 @@ abstract class AiBase
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} ${foodTarget.description} ${foodTarget.id} food changed meanwhile!');
 
 			foodTarget = null;
+			return true;
+		}
+
+		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object at home to pickup food');
+			dropHeldObject(true, 20);
 			return true;
 		}
 
