@@ -1560,4 +1560,8 @@ class ObjectData extends LineReader {
 		// trace('Animal: ${this.name} ${this.biomes} isDomestic: $isDomestic');
 		return isDomestic;
 	}
+
+	public function isTree() : Bool {
+		return this.description.indexOf("Tree") != -1;
+	}
 }

@@ -989,6 +989,8 @@ class TimeHelper {
 
 		player.connection.send(HEAT_CHANGE, [message], false);
 
+		//player.say('${player.tx},${player.ty}'); 					
+
 		if(ServerSettings.DebugTemperature) player.say('H ${Math.round(playerHeat * 100) / 100}} T $temperature'); 					
 		//player.say(WorldMap.world.getObjectDataAtPosition(player.tx,player.ty).name); 			
 		if(ServerSettings.DebugTemperature)

@@ -1247,6 +1247,9 @@ class WorldMap {
 
 		var world = Server.server.map;
 		var objId = world.getObjectId(x, y);
+		var objDataBelow = world.getObjectDataAtPosition(x, y - 1);
+
+		if(objDataBelow.isTree()) return objectToPlace; // dont place behind a tree
 
 		if (objId[0] == 0) {
 			world.setObjectHelper(x, y, objectToPlace);
