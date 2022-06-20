@@ -2032,7 +2032,14 @@ class TimeHelper {
 		var animalEscapeFactor = weapon.objectData.animalEscapeFactor - target.hits * 0.25;
 		var random = WorldMap.calculateRandomFloat();
 
-		trace('TryAnimaEscape: ${target.hits} $random > $animalEscapeFactor');
+		// 3948 Arrow Quiver
+		// 874 Empty Arrow Quiver
+		for (obj in attacker.clothingObjects) {
+			if(obj.parentId == 3948 || obj.parentId == 874) animalEscapeFactor /= 2;		
+			if(obj.parentId == 3948 || obj.parentId == 874) trace('TryAnimaEscape: Used Quiver $animalEscapeFactor');
+		}
+
+		trace('TryAnimaEscape: ${target.hits} random: $random > escape factor: $animalEscapeFactor');
 		target.hits += 1;
 
 		if (random > animalEscapeFactor) return false;
