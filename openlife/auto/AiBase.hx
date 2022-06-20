@@ -373,8 +373,7 @@ abstract class AiBase
 			if(heldId == 72){
 				myPlayer.say('Use Kindling on hot coals');
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Has Kindling Use On ==> Hot Coals!');
-				useHeldObjOnTarget(firePlace);
-				return true;
+				return useHeldObjOnTarget(firePlace);
 			}
 			else return{
 				myPlayer.say('Get Kindling For Fire');
@@ -393,8 +392,7 @@ abstract class AiBase
 			if(heldId == 72 || heldId == 344){
 				myPlayer.say('Use On Fire');
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Has Kindling Or Wood Use On ==> Fire');
-				useHeldObjOnTarget(firePlace);
-				return true;
+				return useHeldObjOnTarget(firePlace);
 			}
 			else{
 				myPlayer.say('Get Wood For Fire');
@@ -409,11 +407,16 @@ abstract class AiBase
 		return false;
 	}
 
-	private function useHeldObjOnTarget(target:ObjectHelper){
+	private function useHeldObjOnTarget(target:ObjectHelper) : Bool{
+		if (this.isObjectNotReachable(target.tx, target.ty)) return false;
+		if (this.isObjectWithHostilePath(target.tx, target.ty)) return false;
+
 		this.useTarget = target;
 		this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
 		this.useActor.tx = target.tx;
 		this.useActor.ty = target.ty;
+
+		return true;
 	}
 
 	private function isRemovingItemFromContainer(){
@@ -446,8 +449,7 @@ abstract class AiBase
 		if(heldId == 850 || heldId == 502){
 			if(ServerSettings.DebugAiSay) myPlayer.say('dig in bones');
 			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: dig in bones');
-			useHeldObjOnTarget(grave);
-			return true;
+			return useHeldObjOnTarget(grave);
 		}
 
 		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: try to get hoe or shovel');
@@ -605,6 +607,9 @@ abstract class AiBase
 		// 128 Reed Skirt / bottom
 		if(craftClothIfNeeded(128)) return true; 
 
+		// Hunting gear 874 Empty Arrow Quiver
+		if(craftClothIfNeeded(874)) return true; 
+
 		// Chest clothing
 		// 564 Mouflon Hide ==> White / Chest
 		if(color == White && myPlayer.age >= objData.minPickupAge && craftClothIfNeeded(564)) return true;
@@ -692,7 +697,7 @@ abstract class AiBase
 
 			myPlayer.say('Im not a stupid AI!');
 		}
-		if (text.contains("JUMP")) {
+		if (text == "JUMP") {
 			myPlayer.say("JUMP");
 			myPlayer.jump();
 		}
@@ -704,7 +709,7 @@ abstract class AiBase
 			autoStopFollow = false; // otherwise if old enough ai would stop follow
 			playerToFollow = player;
 			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
-			myPlayer.say("SURE CAPTAIN");
+			myPlayer.say("IM COMMING");
 		}
 		else if (text.contains("STOP FOLLOW")) {
 			playerToFollow = null;
