@@ -363,6 +363,9 @@ abstract class AiBase
 			else myPlayer.firePlace = firePlace;
 		}
 
+		if (this.isObjectNotReachable(firePlace.tx, firePlace.ty)) return false;
+		if (this.isObjectWithHostilePath(firePlace.tx, firePlace.ty)) return false;
+
 		var objId = WorldMap.world.getObjectId(firePlace.tx, firePlace.ty)[0];
 
 		// 83 Large Fast Fire // 346 Large Slow Fire
