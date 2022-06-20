@@ -1349,7 +1349,8 @@ class ServerSettings {
 		//var trans = TransitionImporter.GetTransition(3425, -1, false, false); // Domestic Cow on Rope
 		//trace('ON DEATH: ${trans.getDesciption()}');
 
-
+		//var trans = TransitionImporter.GetTransition(0, 3948); // Arrow Quiver
+		//trace('DEBUG: ${trans.getDesciption()}');
 	}
 
 	public static function writeToFile() {

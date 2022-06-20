@@ -2060,7 +2060,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	private function doSelf(x:Int, y:Int, clothingSlot:Int):Bool {
-		// trace('self: ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
+		trace('${this.name}${this.id} doSelf: held: ${this.o_id[0]} ${heldObject.name} clothingSlot: $clothingSlot');
 
 		if (this.o_id[0] < 0) return false; // is holding player
 		//if (this.age < ServerSettings.MinAgeToEat) return false;
@@ -2068,6 +2068,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (clothingSlot < 0) {
 			if (doEating(this, this)) return true;
 		}
+		
+		// see if it is a transition like for Arrow Quiver
+		if(tryTranstionOnClothing(clothingSlot)) return true;
 
 		if (doSwitchCloths(this, this, clothingSlot)) return true;
 
@@ -2741,7 +2744,43 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (isDrop) return true; // currently flase if called from drop
 
-		SetTransitionData(this.x, this.y, true);
+		SetTransitionData(this.x, this.y, false); // true
+
+		Connection.SendUpdateToAllClosePlayers(this);
+
+		return true;
+	}
+
+	// Arrow Quiver / Bown on Backpack
+	public function tryTranstionOnClothing(clothingSlot:Int):Bool {
+		if (clothingSlot < 0 || clothingSlot >= this.clothingObjects.length) return false;
+
+		var clothing = this.clothingObjects[clothingSlot];
+
+		var trans = TransitionImporter.GetTransition(this.heldObject.parentId, clothing.parentId, false, clothing.isLastUse());
+
+		if(trans == null) return false;
+
+		trace('tryTranstionOnClothing: ${trans.getDesciption()}');
+
+		if(clothing.objectData.numUses > 1 && trans.reverseUseTarget && clothing.numberOfUses >= clothing.objectData.numUses) return false;
+
+		// Arrow and Bow + Arrow Quiver = false;
+		// Arrow and Bow + Empty Arrow Quiver = true;
+		// Arrow + Empty Arrow Quiver = true;
+		var resetNumberOfUses = clothing.objectData.numUses < 2;
+		clothing.id = trans.newTargetID;
+		TransitionHelper.DoChangeNumberOfUsesOnTarget(clothing, trans, this, true, resetNumberOfUses);
+		clothing.TransformToDummy(); // TODO call if ID is set?
+		this.transformHeldObject(trans.newActorID);
+
+		this.say('${clothing.numberOfUses}');
+
+		//if (TransitionHelper.DoContainerStuffOnObj(this, clothing, isDrop) == false) return false;
+
+		setInClothingSet(clothingSlot);
+
+		SetTransitionData(this.x, this.y, false);
 
 		Connection.SendUpdateToAllClosePlayers(this);
 

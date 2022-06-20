@@ -955,7 +955,7 @@ class TransitionHelper {
 	}
 
 	public static function DoChangeNumberOfUsesOnTarget(obj:ObjectHelper, transition:TransitionData, player:GlobalPlayerInstance = null,
-			doTrace:Bool = false) {
+			doTrace:Bool = false, resetNumberOfUses:Bool = true) {
 		var idHasChanged:Bool = transition.targetID != transition.newTargetID;
 		var reverseUse = transition.reverseUseTarget;
 		var objectData = obj.objectData;
@@ -990,7 +990,7 @@ class TransitionHelper {
 
 		if (objectData.numUses < 2) return;
 
-		if (idHasChanged && objectData.numUses > 1) {
+		if (idHasChanged && resetNumberOfUses && objectData.numUses > 1) {
 			// a Pile starts with 1 uses not with the full numberOfUses
 			// if the ObjectHelper is created through a reverse use, it must be a pile or a bucket... hopefully...
 			if (reverseUse) {
