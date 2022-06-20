@@ -588,4 +588,9 @@ class ObjectHelper {
 		// 82 Fire // 82 Fire // 83 Large Fast Fire // 346 Large Slow Fire
 		return objectData.parentId == 82 || objectData.parentId == 83 || objectData.parentId == 346;
 	}
+
+	public function canAddToQuiver() : Bool {
+		var quiver = this;
+		return (quiver.objectData.numUses < 2 || quiver.numberOfUses < quiver.objectData.numUses);
+	}
 }

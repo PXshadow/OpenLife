@@ -683,7 +683,7 @@ abstract class AiBase
 		if(quiver == null) quiver = myPlayer.getClothingById(4151);
 
 		if(quiver == null) return false;
-		if(quiver.objectData.numUses > 1 && quiver.numberOfUses >= quiver.objectData.numUses) return false;
+		if(quiver.canAddToQuiver() == false) return false;
 
 		// Arrow
 		if(heldId == 148){
@@ -823,14 +823,61 @@ abstract class AiBase
 
 	public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
 		// var myPlayer = myPlayer.getPlayerInstance();
+		var heldObjId = myPlayer.heldObject.id;
 
-		if (myPlayer.heldObject.id == 0) return;
+		if (heldObjId == 0) return;
 		if (myPlayer.heldObject.isWound()) return;
 		if (myPlayer.heldObject == myPlayer.hiddenWound) return; // you cannot drop a smal wound
-		if (myPlayer.heldObject.id == 2144) dropOnStart = false; // 2144 Banana Peel
-		else if (myPlayer.heldObject.id == 34) dropOnStart = false; // 34 Sharp Stone
-		else if (myPlayer.heldObject.id == 135) dropOnStart = false; // 135 Flint Chip
-		else if (myPlayer.heldObject.id == 57) dropOnStart = false; // 57 Milkweed Stalk		
+		if (heldObjId == 2144) dropOnStart = false; // 2144 Banana Peel
+		else if (heldObjId == 34) dropOnStart = false; // 34 Sharp Stone
+		else if (heldObjId == 135) dropOnStart = false; // 135 Flint Chip
+		else if (heldObjId == 57) dropOnStart = false; // 57 Milkweed Stalk
+		
+		// Yew Bow
+		if(heldObjId == 151){
+			// Empty Arrow Quiver
+			var quiver = myPlayer.getClothingById(874); 
+			// Arrow Quiver
+			if(quiver == null) quiver = myPlayer.getClothingById(3948);
+
+			if(quiver != null){
+				myPlayer.self(0,0,5);
+				//if(ServerSettings.DebugAi) 
+				trace('AAI: ${myPlayer.name + myPlayer.id} DROP: put bow on quiver!');
+			}
+		}
+
+		// Bow and Arrow
+		if(heldObjId == 152){
+			// Empty Arrow Quiver
+			var quiver = myPlayer.getClothingById(874); 
+			// Arrow Quiver
+			if(quiver == null) quiver = myPlayer.getClothingById(3948);
+
+			if(quiver != null &&  quiver.canAddToQuiver()){
+				myPlayer.self(0,0,5);
+				//if(ServerSettings.DebugAi) 
+				trace('AAI: ${myPlayer.name + myPlayer.id} DROP: put Bow with Arrow on quiver!');
+			}
+		}
+
+		// Arrow
+		if(heldObjId == 148){
+			// Empty Arrow Quiver
+			var quiver = myPlayer.getClothingById(874); 
+			// Empty Arrow Quiver with Bow
+			if(quiver == null) quiver = myPlayer.getClothingById(4149);
+			// Arrow Quiver
+			if(quiver == null) quiver = myPlayer.getClothingById(3948);
+			// Arrow Quiver with Bow
+			if(quiver == null) quiver = myPlayer.getClothingById(4151);
+
+			if(quiver != null && quiver.canAddToQuiver()){
+				myPlayer.self(0,0,5);
+				//if(ServerSettings.DebugAi) 
+				trace('AAI: ${myPlayer.name + myPlayer.id} DROP: put Arrow in quiver!');
+			}
+		}
 		
 		if (dropOnStart && maxDistanceToHome > 0 && itemToCraft.startLocation != null) {
 			var quadMaxDistanceToHome = Math.pow(maxDistanceToHome, 2);
@@ -936,11 +983,10 @@ abstract class AiBase
 				return true;
 			} 
 		}
+
 		if (myPlayer.heldObject.id == 0){
-			// 4149 Empty Arrow Quiver with Bow
-			var quiver = myPlayer.getClothingById(4149);
 			// Arrow Quiver with Bow
-			if(quiver == null) quiver = myPlayer.getClothingById(4151);
+			var quiver = myPlayer.getClothingById(4151);
 
 			if(quiver != null){
 				myPlayer.self(0,0,5);
@@ -949,8 +995,30 @@ abstract class AiBase
 				return true;
 			} 
 		}
+
+		// Arrow
+		if (myPlayer.heldObject.id == 148){
+			// 4149 Empty Arrow Quiver with Bow
+			var quiver = myPlayer.getClothingById(4149);
+			// Arrow Quiver with Bow
+			if(quiver == null) quiver = myPlayer.getClothingById(4151);
+
+			if(quiver != null && quiver.canAddToQuiver()){
+				myPlayer.self(0,0,5);
+				//if(ServerSettings.DebugAi) 
+				trace('AAI: ${myPlayer.name + myPlayer.id} KillAnimal: put Arrow in Quiver!');
+				return true;
+			} 
+		}
+
 		if (myPlayer.heldObject.id != objData.id) {
-			return GetOrCraftItem(objData.id);
+			// 4149 Empty Arrow Quiver with Bow
+			var quiver = myPlayer.getClothingById(4149);
+			// Arrow Quiver with Bow
+			if(quiver == null) quiver = myPlayer.getClothingById(4151);
+
+			if(quiver == null) return GetOrCraftItem(152); // Bow and Arrow
+			else return GetOrCraftItem(148); // Arrow
 		}
 
 		var distance = myPlayer.CalculateQuadDistanceToObject(animalTarget);
@@ -1438,7 +1506,7 @@ abstract class AiBase
 			dropTarget = itemToCraft.transActor;
 
 			if (player.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop obj to pickup ${itemToCraft.transActor.name}');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop ${myPlayer.heldObject.name} to pickup ${itemToCraft.transActor.name}');
 				dropHeldObject(true);
 				return true;
 			}
