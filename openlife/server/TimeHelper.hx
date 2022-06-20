@@ -2054,6 +2054,8 @@ class TimeHelper {
 		trace('TryAnimaEscape: $escaped');
 		if (escaped == false) return false;
 
+		attacker.say('Escaped! Hits ${Math.round(target.hits)}', true);
+
 		if (weapon.id == 152) // Bow and Arrow
 		{
 			weapon.id = 749; // 151 Bow // 749 Bloody Yew Bow
