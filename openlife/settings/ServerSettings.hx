@@ -328,6 +328,8 @@ class ServerSettings {
 	public static var AgingFactorHumanBornToAi:Float = 3; // 3
 	public static var AgingFactorAiBornToHuman:Float = 1.5;
 	public static var AiNameEnding:String = 'X'; // A name ending / set '' if none	
+	public static var AIAllowBuildOven:Bool = false;
+	public static var AIAllowBuilKiln:Bool = false;
 
 	// Ai speed
 	public static var AISpeedFactorSerf:Float = 0.7;
@@ -1319,6 +1321,12 @@ class ServerSettings {
 		trans.aiShouldIgnore = true; 
 		var trans = transtions.getTransition(67, 3065); // Long Straight Shaft + Wooden Slot Box
 		trans.aiShouldIgnore = true; // this would give a thread Ai wants
+		
+		var trans = transtions.getTransition(33, 127); // Stone + Adobe = 231 Adobe Oven Base
+		if(AIAllowBuildOven == false) trans.aiShouldIgnore = true; 
+		var trans = transtions.getTransition(127, 237); // Adobe + Adobe Oven = 238 Adobe Kiln
+		if(AIAllowBuilKiln == false) trans.aiShouldIgnore = true; 
+
 	 
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');

@@ -1937,6 +1937,7 @@ abstract class AiBase
 
 		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to pickup food');
+			// TODO pickup up again after eating
 			dropHeldObject();
 			return true;
 		}
