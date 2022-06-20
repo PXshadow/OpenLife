@@ -375,12 +375,12 @@ abstract class AiBase
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Has Kindling Use On ==> Hot Coals!');
 				return useHeldObjOnTarget(firePlace);
 			}
-			else return{
+			else{
 				myPlayer.say('Get Kindling For Fire');
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Get Kindling ==> Hot Coals!');
 				
-				GetOrCraftItem(72);
+				return GetOrCraftItem(72);
 			}
 		} 
 		
@@ -608,6 +608,7 @@ abstract class AiBase
 
 		// Hunting gear 874 Empty Arrow Quiver
 		if(craftClothIfNeeded(874)) return true; 
+		if(fillUpQuiver()) return true;
 
 		// Chest clothing
 		// 564 Mouflon Hide ==> White / Chest
@@ -645,6 +646,53 @@ abstract class AiBase
 		//if(myPlayer.age > 25 && craftClothIfNeeded(198)) return true;
 
 		return false;
+	}
+
+	private function fillUpQuiver() : Bool {
+		var heldId = myPlayer.heldObject.parentId;
+		// Empty Arrow Quiver
+		var quiver = myPlayer.getClothingById(874); 
+		//  Arrow Quiver
+		if(quiver == null) quiver = myPlayer.getClothingById(3948);
+		
+		if(quiver != null){
+			// Bow or Bow and Arrow
+			if(heldId == 151 || heldId == 152){
+				myPlayer.self(0,0,5);
+				//if(ServerSettings.DebugAi) 
+				trace('AAI: ${myPlayer.name + myPlayer.id} put Bow on Quiver!');
+				return true;
+			}
+
+			trace('AAI: ${myPlayer.name + myPlayer.id} find Bow for Quiver!');
+
+			if(GetItem(152)) return true;  // Bow and Arrow
+			//var obj = AiHelper.GetClosestObjectById(myPlayer, 152); // Bow and Arrow
+			
+			if(GetOrCraftItem(151)) return true;  // Get Yew Bow
+		}
+
+		// Empty Arrow Quiver
+		var quiver = myPlayer.getClothingById(874); 
+		// Arrow Quiver
+		if(quiver == null) quiver = myPlayer.getClothingById(3948);
+		// Arrow Quiver with Bow
+		if(quiver == null) quiver = myPlayer.getClothingById(4151);
+
+		if(quiver == null) return false;
+		if(quiver.objectData.numUses > 1 && quiver.numberOfUses >= quiver.objectData.numUses) return false;
+
+		// Arrow
+		if(heldId == 148){
+			myPlayer.self(0,0,5);
+			//if(ServerSettings.DebugAi) 
+			trace('AAI: ${myPlayer.name + myPlayer.id} put Arrow in Quiver!');
+			return true;
+		}
+
+		trace('AAI: ${myPlayer.name + myPlayer.id} get Arrow for Quiver!');
+
+		return GetOrCraftItem(148); // Arrow
 	}
 
 	private function craftClothIfNeeded(clothId:Int) : Bool {
@@ -909,10 +957,16 @@ abstract class AiBase
 		return true;
 	}
 
-	private function GetOrCraftItem(objId:Int, count:Int = 1):Bool {
+	private function GetItem(objId:Int) : Bool {
+		return GetOrCraftItem(objId, 1, true);
+	}
+
+	private function GetOrCraftItem(objId:Int, count:Int = 1, dontCraft:Bool = false) : Bool {
 		if (myPlayer.isMoving()) return false;
 
 		var obj = AiHelper.GetClosestObjectById(myPlayer, objId);
+
+		if(obj == null && dontCraft) return false;
 
 		if (obj == null) return craftItem(objId, count);
 

@@ -2835,6 +2835,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	private function specialRemoveHelper(container:ObjectHelper, clothingSlot:Int, index:Null<Int>) {
 		if (this.o_id[0] < 0) return; // is holding player
 
+		//this.say('Remove $clothingSlot');
+
 		this.setHeldObject(container.removeContainedObject(index));
 
 		setInClothingSet(clothingSlot);
@@ -4825,6 +4827,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		return true;
+	}
+
+	public function getClothingById(clothingId:Int) : ObjectHelper {
+		for (obj in this.clothingObjects) {
+			if(obj.parentId == clothingId ) return obj;		
+			//if(obj.parentId == 3948 || obj.parentId == 874) trace('TryAnimaEscape: Used Quiver $animalEscapeFactor');
+		}
+		return null;
 	}
 }
 

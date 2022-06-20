@@ -219,6 +219,8 @@ class TransitionHelper {
 			throw(message);
 		}
 
+		//player.say('DROP: $clothingIndex', true);
+
 		if (clothingIndex >= 0) return player.doPlaceObjInClothing(clothingIndex, true);
 
 		if (this.tileObjectData.minPickupAge - ServerSettings.ReduceAgeNeededToPickupObjects > player.age) {

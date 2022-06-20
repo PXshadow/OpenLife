@@ -84,6 +84,7 @@ interface PlayerInterface {
 	public function isSuperHot():Bool;
 	public function isSuperCold():Bool;
 	public function hasYellowFever():Bool;
+	public function getClothingById(clothingId:Int) : ObjectHelper;
 
 	public var coldPlace(default, default):ObjectHelper;
 	public var warmPlace(default, default):ObjectHelper;
