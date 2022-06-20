@@ -2031,14 +2031,17 @@ class TimeHelper {
 
 	public static function TryAnimaEscape(attacker:GlobalPlayerInstance, target:ObjectHelper):Bool {
 		var weapon = attacker.heldObject;
+		var usingBowAndArrow = weapon.id == 152; // Bow and Arrow
 		var animalEscapeFactor = weapon.objectData.animalEscapeFactor - target.hits * 0.25;
 		var random = WorldMap.calculateRandomFloat();
 
 		// 3948 Arrow Quiver
 		// 874 Empty Arrow Quiver
-		for (obj in attacker.clothingObjects) {
-			if(obj.parentId == 3948 || obj.parentId == 874) animalEscapeFactor /= 2;		
-			if(obj.parentId == 3948 || obj.parentId == 874) trace('TryAnimaEscape: Used Quiver $animalEscapeFactor');
+		if(usingBowAndArrow){
+			for (obj in attacker.clothingObjects) {
+				if(obj.parentId == 3948 || obj.parentId == 874) animalEscapeFactor /= 2;		
+				if(obj.parentId == 3948 || obj.parentId == 874) trace('TryAnimaEscape: Used Quiver $animalEscapeFactor');
+			}
 		}
 
 		trace('TryAnimaEscape: ${target.hits} random: $random > escape factor: $animalEscapeFactor');
@@ -2056,7 +2059,7 @@ class TimeHelper {
 
 		attacker.say('Escaped! Hits ${Math.round(target.hits)}', true);
 
-		if (weapon.id == 152) // Bow and Arrow
+		if (usingBowAndArrow) // Bow and Arrow
 		{
 			weapon.id = 749; // 151 Bow // 749 Bloody Yew Bow
 			attacker.setHeldObject(weapon);
