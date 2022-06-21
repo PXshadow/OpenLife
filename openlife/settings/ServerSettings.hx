@@ -829,17 +829,17 @@ class ServerSettings {
 		ObjectData.getObjectData(30).lastUseObject = 279; // Wild Gooseberry Bush ==> Empty Wild Gooseberry Bush
 		ObjectData.getObjectData(279).undoLastUseObject = 30; // Empty Wild Gooseberry Bush ==> Wild Gooseberry Bush
 
+		var trans = transtions.getTransition(-1, 887); // Stone Wall
+		trans.autoDecaySeconds = -24 * 10; // default: -10
+
 		var trans = transtions.getTransition(-1, 750); // Bloody Knife
 		trans.autoDecaySeconds = 50;
-		trans.traceTransition("PatchTransitions: ");
 
 		var trans = transtions.getTransition(-1, 3048); // Bloody War Sword
 		trans.autoDecaySeconds = 50;
-		trans.traceTransition("PatchTransitions: ");
 
 		var trans = transtions.getTransition(-1, 749); // Bloody Yew Bow
 		trans.autoDecaySeconds = 80;
-		trans.traceTransition("PatchTransitions: ");
 
 		var trans = transtions.getTransition(-1, 427); // Attacking Wolf
 		trans.autoDecaySeconds = 3;
