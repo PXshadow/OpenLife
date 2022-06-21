@@ -940,6 +940,13 @@ class ServerSettings {
 		trans = new TransitionData(-1, 423, 0, 566); // 423 Skinned Wolf --> TODO 566 Mouflon Bones
 		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 1330, 0, 1332); // Shot Boar --> Dead Boar
+		trans.autoDecaySeconds = -1;
+		trans = new TransitionData(-1, 1332, 0, 1343); // Dead Boar --> Pig Bones
+		trans.autoDecaySeconds = -1;
+		trans = transtions.getTransition(-1, 1343); // Pig Bones
+		trans.autoDecaySeconds = -4; // default -2
 		
 		trans = transtions.getTransition(-1, 891); // 891 Cracking Adobe Wall
 		trans.autoDecaySeconds = -6;
