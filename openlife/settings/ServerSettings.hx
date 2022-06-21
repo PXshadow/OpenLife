@@ -291,7 +291,7 @@ class ServerSettings {
 
 	public static var WinterWildFoodDecayChance:Float = 1.5; // 1.5; // per Season
 	public static var SpringWildFoodRegrowChance:Float = 1; // per Season // use spring and summer
-	public static var GrowBackOriginalPlantsFactor:Float = 0.2; // 0.4 // 0.1
+	public static var GrowBackOriginalPlantsFactor:Float = 0.05; // 0.4 // 0.1
 
 	// public static var WinterFildWoodDecayChance = 0.2;
 	// Ally
