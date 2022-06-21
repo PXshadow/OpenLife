@@ -4812,6 +4812,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (objData.deadlyDistance == 0) return false;
 		if (objData.damage == 0) return false;
 		if (checkIfAnimal && objData.isAnimal() == false) return false;
+		if (animal.hits > 0.5) return true; // can attack you in loved biome if hit
+		if (this.isHoldingWeapon()) return true; // can attack you in loved biome if holding weapon
 
 		var biomeAnimals = this.getBiomeAnimals();
 
