@@ -198,22 +198,21 @@ class MoveHelper {
 			if(allowGraveCurse){
 				if (p.isCursed == false) {
 					Connection.SendCurseToAll(p); // TODO test
-					p.say('My grave is near...', true);
+					p.say('My grave is near im cursed...', true);
 					p.doEmote(Emote.sad);
-					p.connection.sendGlobalMessage('Since you are near your old bones you are cursed!');
+					//p.connection.sendGlobalMessage('Since you are near your old bones you are cursed!');
 				}
 
 				speed *= ServerSettings.CloseGraveSpeedMali;
 				p.isCursed = true;
 			}
 		} else {
-			if (p.isCursed == true) {
+			if (p.isCursed == true && p.account.hasCloseBlockingGrave(p.tx, p.ty, ServerSettings.GraveBlockingDistance * 1.5) == false) {
 				Connection.SendCurseToAll(p, 0);
 				p.say('Im far away from my grave...', true);
 				p.doEmote(Emote.happy);
+				p.isCursed = false;
 			}
-
-			p.isCursed = false;
 		}
 
 		var biomeLoveFactor = p.biomeLoveFactor();
