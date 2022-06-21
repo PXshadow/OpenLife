@@ -104,6 +104,10 @@ class AiHelper {
 					|| findClosestHeat
 					|| objData.parentId == objDataToSearch.parentId) // compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs
 				{
+					var objDataBelow = world.getObjectDataAtPosition(tx, ty - 1);
+
+					if (ai != null &&  objDataToSearch.parentId == 0 && objDataBelow.isTree()) continue;
+
 					var obj = world.getObjectHelper(tx, ty);
 
 					if (ownedByPlayer && obj.isOwnedByPlayer(playerInterface) == false) continue;
