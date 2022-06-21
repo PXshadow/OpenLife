@@ -448,6 +448,9 @@ class ServerSettings {
 		ObjectData.getObjectData(334).hungryWork = 1 * HungryWorkToolCostFactor; // Steel Axe
 		ObjectData.getObjectData(502).hungryWork = 1 * HungryWorkToolCostFactor; // Shovel // TODO should be cheaper then sharp stone
 
+		ObjectData.getObjectData(123).hungryWork = 3; // Harvested Tule
+		ObjectData.getObjectData(231).hungryWork = 20; // Adobe Oven Base
+
 		ObjectData.getObjectData(1020).hungryWork = 5; // Snow Bank
 		ObjectData.getObjectData(138).hungryWork = 5; // Cut Sapling Skewer
 		ObjectData.getObjectData(3961).hungryWork = 5; // Iron Vein
