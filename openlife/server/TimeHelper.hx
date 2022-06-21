@@ -1482,52 +1482,64 @@ class TimeHelper {
 						Connection.SendMapUpdateToAllClosePlayers(x, y);
 
 						trace('Floor ${objData.name} decayed to: ${decaysToObjData.name}');
+
+						DecayObject(x, y, timePassedInYears);
 					}
 				}
-
-				if (objId == 0) continue;
-
-				if (ServerSettings.CanObjectRespawn(objId) == false) continue;
-
-				if (worldMap.currentObjectsCount[objId] <= worldMap.originalObjectsCount[objId]) continue; // dont decay natural stuff if there are too few
-
-				var objectHelper = worldMap.getObjectHelper(x, y, true);
-
-				if (objectHelper != null && objectHelper.containedObjects.length > 0) continue; // TODO change
-
-				if (objectHelper != null && objectHelper.timeToChange > 0) continue; // dont decay object if there is a time transition
-
-				var objData = ObjectData.getObjectData(objId);
-
-				if (objData.decayFactor <= 0) continue;
-
-				var decayChance = ServerSettings.ObjDecayChance * objData.decayFactor;
-				decayChance *= biomeDecayFactor;
-				
-				if (objData.foodValue > 0) decayChance *= ServerSettings.ObjDecayFactorForFood;
-
-				if (worldMap.getFloorId(x, y) != 0) decayChance *= ServerSettings.ObjDecayFactorOnFloor;
-
-				if (objData.permanent > 0) decayChance *= ServerSettings.ObjDecayFactorForPermanentObjs;
-				//if (objData.permanent <= 0) trace('decay not permanent: ${objData.description}');
-
-				if (worldMap.randomFloat() > decayChance) continue;
-
-				// if(objData.isSpawningIn(biomeId) == false) continue;
-
-				var decaysToObj = objData.decaysToObj; 
-				if(decaysToObj == 0 && objData.permanent > 0) decaysToObj = 618; // 618 Filled Small Trash Pit
-
-				worldMap.setObjectId(x, y, [decaysToObj]);
-				// worldMap.setObjectHelperNull(x, y);
-
-				worldMap.currentObjectsCount[objId]--;
-
-				Connection.SendMapUpdateToAllClosePlayers(x, y);
-
-				trace('decay object: ${objData.description} $objId');
 			}
 		}
+	}
+	
+	private static function DecayObject(x:Int, y:Int, passedTimeInYears:Float) {
+		var world = WorldMap.world;
+		var objId = world.getObjectId(x, y)[0];
+		
+		if (objId == 0) return;
+
+		var floorId = world.getFloorId(x,y);
+		var biomeId = world.getBiomeId(x,y);
+		var biomeDecayFactor:Float = Biome.getBiomeDecayFactor(biomeId);
+
+		if (ServerSettings.CanObjectRespawn(objId) == false) return;
+
+		if (world.currentObjectsCount[objId] <= world.originalObjectsCount[objId]) return; // dont decay natural stuff if there are too few
+
+		var objectHelper = world.getObjectHelper(x, y, true);
+
+		if (objectHelper != null && objectHelper.containedObjects.length > 0) return; // TODO change
+
+		// only allow object with time transition to decay if it takes longer then one hour 
+		if (objectHelper != null && objectHelper.timeToChange > 0 && objectHelper.timeToChange < 3600) return; 
+
+		var objData = ObjectData.getObjectData(objId);
+
+		if (objData.decayFactor <= 0) return;
+
+		var decayChance = ServerSettings.ObjDecayChance * objData.decayFactor;
+		decayChance *= biomeDecayFactor;
+		
+		if (objData.foodValue > 0) decayChance *= ServerSettings.ObjDecayFactorForFood;
+
+		if (world.getFloorId(x, y) != 0) decayChance *= ServerSettings.ObjDecayFactorOnFloor;
+
+		if (objData.permanent > 0) decayChance *= ServerSettings.ObjDecayFactorForPermanentObjs;
+		//if (objData.permanent <= 0) trace('decay not permanent: ${objData.description}');
+
+		if (world.randomFloat() > decayChance) return;
+
+		// if(objData.isSpawningIn(biomeId) == false) continue;
+
+		var decaysToObj = objData.decaysToObj; 
+		if(decaysToObj == 0 && objData.permanent > 0) decaysToObj = 618; // 618 Filled Small Trash Pit
+
+		world.setObjectId(x, y, [decaysToObj]);
+		// worldMap.setObjectHelperNull(x, y);
+
+		world.currentObjectsCount[objId]--;
+
+		Connection.SendMapUpdateToAllClosePlayers(x, y);
+
+		trace('decay object: ${objData.description} $objId');	
 	}
 	
 	// TODO find a better way to respawn this stuff??? 
