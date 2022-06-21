@@ -248,9 +248,9 @@ class ServerSettings {
 	public static var WorldTimeParts = 25; // TODO better auto calculate on time used // in each tick 1/XX DoTimeSuff is done for 1/XX part of the map. Map height should be dividable by XX * 10
 	public static var ObjRespawnChance:Float = 0.00006; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
 	public static var ObjDecayChance:Float = 0.00005;
-	public static var FloorDecayChance:Float = 0.00001; // 0.00001
+	public static var FloorDecayChance:Float = 0.000005; // 0.00001
 	public static var ObjDecayFactorOnFloor:Float = 0.1;
-	public static var ObjDecayFactorForPermanentObjs:Float = 0.05;
+	public static var ObjDecayFactorForPermanentObjs:Float = 0.1; // 0.05;
 	public static var ObjDecayFactorForFood:Float = 2;
 
 	public static var DecayFactorInDeepWater:Float = 10;
