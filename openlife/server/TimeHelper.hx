@@ -1474,8 +1474,8 @@ class TimeHelper {
 		var floorId = world.getFloorId(x,y);
 				
 		if(floorId == 0) return;
-		var objData = world.getObjectDataAtPosition(x,y);
-		if(objData.isPermanent()) return; // TODO allow floor decay if objId is permanent / maybe decay neighbor floor first?
+		//var objData = world.getObjectDataAtPosition(x,y);
+		//if(objData.isPermanent()) return; // TODO allow floor decay if objId is permanent / maybe decay neighbor floor first?
 
 		var biomeId = world.getBiomeId(x,y);
 		var biomeDecayFactor:Float = Biome.getBiomeDecayFactor(biomeId);
