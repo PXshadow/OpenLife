@@ -1105,6 +1105,8 @@ class ServerSettings {
 		// hungry work transitions
 		var trans = transtions.getTransition(502, 122); // Shovel + Tule Stumps ==> Adobe
 		trans.hungryWorkCost = 10;
+		var trans = transtions.getTransition(33, 32); // Stone + Big Hard Rock
+		trans.hungryWorkCost = 5;
 
 		// most important allow kill moskitos
 		trans = new TransitionData(248, 2156, 0,
