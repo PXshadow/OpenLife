@@ -2774,7 +2774,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		clothing.TransformToDummy(); // TODO call if ID is set?
 		this.transformHeldObject(trans.newActorID);
 
-		this.say('${clothing.numberOfUses}');
+		//this.say('${clothing.numberOfUses}');
 
 		//if (TransitionHelper.DoContainerStuffOnObj(this, clothing, isDrop) == false) return false;
 

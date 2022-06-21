@@ -941,6 +941,7 @@ class ServerSettings {
 		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Clear up Boar
 		trans = new TransitionData(-1, 1330, 0, 1332); // Shot Boar --> Dead Boar
 		trans.autoDecaySeconds = -1;
 		trans = new TransitionData(-1, 1332, 0, 1343); // Dead Boar --> Pig Bones
