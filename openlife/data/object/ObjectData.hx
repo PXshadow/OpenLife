@@ -1395,6 +1395,10 @@ class ObjectData extends LineReader {
 		return this.clothing != "n";
 	}
 
+	public function isWall() {
+		return isClothing() == false && rValue > 0;
+	}
+
 	// insulation reaches from 0 to 2
 	public function getInsulation():Float {
 		if(isClothing() == false) return rValue;

@@ -1484,6 +1484,16 @@ class TimeHelper {
 		var decayChance = ServerSettings.FloorDecayChance * objData.decayFactor;
 		decayChance *= biomeDecayFactor;
 
+		var strength =  ObjectHelper.CalculateSurroundingWallStrength(x,y);
+		strength += ObjectHelper.CalculateSurroundingFloorStrength(x,y);
+		// 20% for a floor souranded by 4 floors
+		// 11% for a floor souranded by 4 Walls (0%)
+		// 50% for a floor souranded by 1 floor
+		// 33% for a floor souranded by 1 Wall
+		// 14% for a floor souranded by 4 Floor and 1 Wall (0%)
+		var stregnthFactor = strength > 5 ? 0 : 1 / strength; 
+		decayChance *= stregnthFactor;
+
 		if (world.randomFloat() > decayChance) return;
 
 		var decaysToObj = objData.decaysToObj == 0 ? 618 : objData.decaysToObj; // 618 Filled Small Trash Pit
@@ -1636,11 +1646,10 @@ class TimeHelper {
 		// dont spread snow over corners to allow buildings with open corners like vic build them
 		var objData = world.getObjectDataAtPosition(tx + xOff,ty);
 		var insulation = objData.getInsulation();
-		if(insulation > 0 && objData.isClothing() == false) xOff = 0;
+		if(objData.isWall()) xOff = 0;
 
 		var objData = world.getObjectDataAtPosition(tx,ty + yOff);
-		var insulation = objData.getInsulation();
-		if(insulation > 0 && objData.isClothing() == false) yOff = 0;
+		if(objData.isWall()) yOff = 0;
 
 		var randX = tx + xOff;
 		var randY = ty + yOff;

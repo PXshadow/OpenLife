@@ -597,4 +597,43 @@ class ObjectHelper {
 	public function isDomesticAnimal() : Bool {
 		return this.objectData.isDomesticAnimal();
 	}
+
+	public function isWall() {
+		objectData.isWall();
+	}
+
+	public static function CalculateSurroundingWallStrength(tx:Int, ty:Int) : Float {
+		var world = WorldMap.world;
+
+		var obj = world.getObjectDataAtPosition(tx, ty);
+		var stength:Float = obj.isWall() ? 2 : 0; 
+		
+		var obj = world.getObjectDataAtPosition(tx + 1, ty);
+		stength += obj.isWall() ? 2 : 0; 
+		var obj = world.getObjectDataAtPosition(tx - 1, ty );
+		stength += obj.isWall() ? 2 : 0; 
+		var obj = world.getObjectDataAtPosition(tx, ty + 1);
+		stength += obj.isWall() ? 2 : 0; 
+		var obj = world.getObjectDataAtPosition(tx, ty - 1);
+		stength += obj.isWall() ? 2 : 0; 
+
+		return stength;
+	}
+
+	public static function CalculateSurroundingFloorStrength(tx:Int, ty:Int) : Float {
+		var world = WorldMap.world;
+		var obj = world.getObjectDataAtPosition(tx, ty);
+		var stength:Float = obj.floor ? 1 : 0; 
+		
+		var obj = world.getObjectDataAtPosition(tx + 1, ty);
+		stength += obj.floor ? 1 : 0; 
+		var obj = world.getObjectDataAtPosition(tx - 1, ty );
+		stength += obj.floor ? 1 : 0;
+		var obj = world.getObjectDataAtPosition(tx, ty + 1);
+		stength += obj.floor ? 1 : 0;
+		var obj = world.getObjectDataAtPosition(tx, ty - 1);
+		stength += obj.floor ? 1 : 0;
+
+		return stength;
+	}
 }
