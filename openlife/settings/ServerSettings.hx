@@ -30,7 +30,7 @@ class ServerSettings {
 
 	public static var AllowDebugCommmands = true; // can create objects with saying "!create ID" / "!create object" "!create object!" with ! indicating that object ends with "object" or test wounds with using "!hit" or "!heal"
 	public static var DebugWrite = false; // WordMap writeToDisk
-	public static var TraceCountObjects = false; // WorldMap
+	public static var TraceCountObjects = true; // WorldMap
 
 	public static var DebugCaftingStepsForObjOrFood = false; // here you see which food or obj needs how much steps to craft
 
@@ -238,10 +238,11 @@ class ServerSettings {
 	public static var AnimalDeadlyDistanceFactor:Float = 0.5; // How close a animal must be to make a hit
 
 	// for animal offsprings
-	public static var ChanceForOffspring:Float = 0.0005; // For each movement there is X chance to generate an offspring.
-	public static var ChanceForAnimalDying:Float = 0.00025; // For each movement there is X chance that the animal dies
+	public static var ChanceForOffspring:Float = 0.00005; // 0.0005 // For each movement there is X chance to generate an offspring.
+	public static var ChanceForAnimalDying:Float = 0.00002; // 0.00025 // For each movement there is X chance that the animal dies
 	public static var ChanceForAnimalDyingFactorIfInLovedBiome:Float = 0.1; // Animals die less if they are in their loved biome
-	public static var OffspringFactorIfAnimalPopIsLow:Float = 2;
+	public static var OffspringFactorLowAnimalPopulationBelow:Float = 0.2;
+	public static var OffspringFactorIfAnimalPopIsLow:Float = 10;
 	public static var MaxOffspringFactor:Float = 1; // The population can only be at max X times the initial population
 
 	// world decay / respawm

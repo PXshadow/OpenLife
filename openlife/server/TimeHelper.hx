@@ -2028,8 +2028,9 @@ class TimeHelper {
 
 			worldmap.setObjectHelper(toTx, toTy, animal); // set again since animal might be killed
 
-			var chanceForOffspring = isPreferredBiome ? ServerSettings.ChanceForOffspring : ServerSettings.ChanceForOffspring * Math.pow((1
-				- chancePreferredBiome), 2);
+			//var chanceForOffspring = isPreferredBiome ? ServerSettings.ChanceForOffspring : ServerSettings.ChanceForOffspring * Math.pow((1
+			//	- chancePreferredBiome), 2);
+			var chanceForOffspring = isPreferredBiome ? ServerSettings.ChanceForOffspring : ServerSettings.ChanceForOffspring / 100;
 			var chanceForAnimalDying = isPreferredBiome ? ServerSettings.ChanceForAnimalDying * ServerSettings.ChanceForAnimalDyingFactorIfInLovedBiome : ServerSettings.ChanceForAnimalDying;
 
 			// TODO let domestic animals multiply if there is enough green biome 
@@ -2037,12 +2038,17 @@ class TimeHelper {
 			// TODO dont consider lovesCurrentOriginalBiome once domestic animals muliply
 			if(animal.isDomesticAnimal() && (lovesCurrentBiome || lovesCurrentOriginalBiome)) chanceForAnimalDying /= 1000;
 
-			// give extra birth chance bonus if population is very low
-			if (worldmap.currentObjectsCount[newTileObject[0]] < worldmap.originalObjectsCount[newTileObject[0]] / 2) chanceForOffspring *= ServerSettings.OffspringFactorIfAnimalPopIsLow;
+			var currentPop = worldmap.currentObjectsCount[newTileObject[0]];
+			var originalPop = worldmap.originalObjectsCount[newTileObject[0]];
 
-			if (worldmap.currentObjectsCount[newTileObject[0]] < worldmap.originalObjectsCount[newTileObject[0]] * ServerSettings.MaxOffspringFactor
-				&& worldmap.randomFloat() <= chanceForOffspring) {
+			// give extra birth chance bonus if population is very low			
+			if (currentPop < originalPop * ServerSettings.OffspringFactorLowAnimalPopulationBelow) chanceForOffspring *= ServerSettings.OffspringFactorIfAnimalPopIsLow;
+
+			if (currentPop < originalPop * ServerSettings.MaxOffspringFactor
+				&& worldmap.randomFloat() < chanceForOffspring) {
 				worldmap.currentObjectsCount[newTileObject[0]] += 1;
+
+				trace('Animal Offspring: ${animal.name} id: ${newTileObject} chance: ${chanceForOffspring} curPop: ${worldmap.currentObjectsCount[newTileObject[0]]} original: ${worldmap.originalObjectsCount[newTileObject[0]]}');
 
 				// if(chanceForOffspring < worldmap.chanceForOffspring) trace('NEW: $newTileObject ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]} chance: $chanceForOffspring biome: $targetBiome');
 
@@ -2052,8 +2058,8 @@ class TimeHelper {
 				newAnimal.timeToChange = timeTransition.calculateTimeToChange();
 				newAnimal.groundObject = tmpGroundObject;
 				worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
-			} else if (worldmap.currentObjectsCount[newTileObject[0]] > worldmap.originalObjectsCount[newTileObject[0]] * ServerSettings.MaxOffspringFactor
-				&& worldmap.originalObjectsCount[newTileObject[0]] > 0 && worldmap.randomFloat() <= chanceForAnimalDying) {
+			} else if (currentPop > originalPop * ServerSettings.MaxOffspringFactor
+				&& worldmap.originalObjectsCount[newTileObject[0]] > 0 && worldmap.randomFloat() < chanceForAnimalDying) {
 				// decay animal only if it is a original one
 				// TODO decay all animals and cosider if they cointain items like a horse wagon
 				// trace('Animal DEAD: $newTileObject ${animal.description}: Count: ${worldmap.currentObjectsCount[newTileObject[0]]} Original Count: ${worldmap.originalObjectsCount[newTileObject[0]]} chance: $chanceForAnimalDying biome: $targetBiome');
