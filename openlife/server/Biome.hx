@@ -92,13 +92,13 @@ class Biome {
 	public static function getBiomeDecayFactor(biomeTag:BiomeTag):Float {
 		return switch biomeTag {
 			//case GREEN: TGREEN;
-			//case SWAMP: TSWAMP;
+			case SWAMP: ServerSettings.DecayFactorInSwamp;
 			//case YELLOW: TYELLOW;
 			//case GREY: TGREY;
 			//case SNOW: TSNOW;
 			//case DESERT: TDESERT;
-			//case JUNGLE: TJUNGLE;
-			//case BORDERJUNGLE: TCBORDERJUNGLE;
+			case JUNGLE: ServerSettings.DecayFactorInJungle;
+			case BORDERJUNGLE: ServerSettings.DecayFactorInJungle;
 			//case SNOWINGREY: TSNOWINGREY;
 			case OCEAN: ServerSettings.DecayFactorInDeepWater;
 			case RIVER: ServerSettings.DecayFactorInDeepWater;
