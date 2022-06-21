@@ -1339,6 +1339,9 @@ class ServerSettings {
 		trans.aiShouldIgnore = true; 
 		var trans = transtions.getTransition(67, 3065); // Long Straight Shaft + Wooden Slot Box
 		trans.aiShouldIgnore = true; // this would give a thread Ai wants
+
+		var trans = transtions.getTransition(0, 2244); // 0 + Newcomen Engine without Shaft
+		trans.aiShouldIgnore = true; // Ai would kill for a rope
 		
 		var trans = transtions.getTransition(33, 127); // Stone + Adobe = 231 Adobe Oven Base
 		if(AIAllowBuildOven == false) trans.aiShouldIgnore = true; 
