@@ -1509,6 +1509,7 @@ class TimeHelper {
 		var floorId = world.getFloorId(x,y);
 		var biomeId = world.getBiomeId(x,y);
 		var biomeDecayFactor:Float = Biome.getBiomeDecayFactor(biomeId);
+		if (floorId != 0) biomeDecayFactor = 1; // normal decay on floor
 
 		if (ServerSettings.CanObjectRespawn(objId) == false) return;
 
