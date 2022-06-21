@@ -98,7 +98,7 @@ class ServerSettings {
 	public static var HumanMotherBirthMaliForAiChild = 1; // Means in average a human mother for an ai child is only considered after X children
 
 	// Graves
-	public static var GraveBlockingDistance = 50; // cannot incrante close to blocking graves like bone pile
+	public static var GraveBlockingDistance = 40; // cannot incrante close to blocking graves like bone pile
 	public static var CloseGraveSpeedMali:Float = 0.92; // speed maili if close to blocking grave like bone pile
 	public static var CursedGraveTime:Float = 12; // 12 // hours a cursed grave continues to exist per curse token
 
