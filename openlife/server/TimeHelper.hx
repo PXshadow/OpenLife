@@ -1512,7 +1512,7 @@ class TimeHelper {
 
 		if (ServerSettings.CanObjectRespawn(objId) == false) return;
 
-		if (world.currentObjectsCount[objId] <= world.originalObjectsCount[objId]) return; // dont decay natural stuff if there are too few
+		if (world.currentObjectsCount[objId] < world.originalObjectsCount[objId] * 0.8) return; // dont decay natural stuff if there are too few
 
 		var objectHelper = world.getObjectHelper(x, y, true);
 
