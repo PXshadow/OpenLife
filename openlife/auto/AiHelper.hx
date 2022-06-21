@@ -106,7 +106,7 @@ class AiHelper {
 				{
 					var objDataBelow = world.getObjectDataAtPosition(tx, ty - 1);
 
-					if (ai != null &&  objDataToSearch.parentId == 0 && objDataBelow.isTree()) continue;
+					if (ai != null && objDataToSearch != null && objDataToSearch.parentId == 0 && objDataBelow.isTree()) continue;
 
 					var obj = world.getObjectHelper(tx, ty);
 
