@@ -1062,23 +1062,23 @@ class ServerSettings {
 		// let get berrys back!
 		trans = new TransitionData(-1, 30, 0, 30); // Wild Gooseberry Bush
 		trans.reverseUseTarget = true;
-		trans.autoDecaySeconds = 60 * 30;
+		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 279, 0, 30); // Empty Wild Gooseberry Bush --> // Wild Gooseberry Bush
 		trans.reverseUseTarget = true;
-		trans.autoDecaySeconds = 60 * 30;
+		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// let get bana back!
 		trans = new TransitionData(-1, 2142, 0, 2142); // Banana Plant
 		trans.reverseUseTarget = true;
-		trans.autoDecaySeconds = 60 * 30;
+		trans.autoDecaySeconds = -2;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 2145, 0, 2142); // Empty Banana Plant --> Banana Plant
 		trans.reverseUseTarget = true;
-		trans.autoDecaySeconds =  60 * 30;
+		trans.autoDecaySeconds = -2;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		//  Wild Gooseberry Bush
