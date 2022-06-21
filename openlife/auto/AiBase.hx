@@ -374,11 +374,13 @@ abstract class AiBase
 		// 85 Hot Coals // 72 Kindling
 		if(objId == 85){			
 			if(heldId == 72){
-				myPlayer.say('Use Kindling on hot coals');
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Has Kindling Use On ==> Hot Coals!');
-				return useHeldObjOnTarget(firePlace);
+				var done = useHeldObjOnTarget(firePlace);
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Has Kindling Use On ==> Hot Coals!  ${firePlace.name} $done');
+				//if(ServerSettings.DebugAiSay)
+				myPlayer.say('Use Kindling on ${firePlace.name} $done'); // hot coals
 			}
 			else{
+				//if(ServerSettings.DebugAiSay)
 				myPlayer.say('Get Kindling For Fire');
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Get Kindling ==> Hot Coals!');
@@ -393,11 +395,13 @@ abstract class AiBase
 				trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Get Wood or Kindling ==> Fire!');
 
 			if(heldId == 72 || heldId == 344){
+				//if(ServerSettings.DebugAiSay)
 				myPlayer.say('Use On Fire');
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Has Kindling Or Wood Use On ==> Fire');
 				return useHeldObjOnTarget(firePlace);
 			}
 			else{
+				//if(ServerSettings.DebugAiSay)
 				myPlayer.say('Get Wood For Fire');
 				var done = GetOrCraftItem(344);
 				if(done) return true;
@@ -427,6 +431,9 @@ abstract class AiBase
 	}
 
 	private function removeItemFromContainer(container:ObjectHelper) : Bool{
+		if (this.isObjectNotReachable(container.tx, container.ty)) return false;
+		if (this.isObjectWithHostilePath(container.tx, container.ty)) return false;
+		
 		removeFromContainerTarget = container;
 		expectedContainer = new ObjectHelper(null, container.id);
 		expectedContainer.tx = removeFromContainerTarget.tx;
@@ -543,7 +550,7 @@ abstract class AiBase
 	
 		if (quadDistance < 2) this.time += 4; // if you cannot reach dont try running there too often
 
-		myPlayer.say('going to $text');
+		if(ServerSettings.DebugAiSay) myPlayer.say('going to $text');
 
 		//if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} dist: $quadDistance goto: $done');
