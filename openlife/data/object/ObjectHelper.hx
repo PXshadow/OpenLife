@@ -622,17 +622,18 @@ class ObjectHelper {
 
 	public static function CalculateSurroundingFloorStrength(tx:Int, ty:Int) : Float {
 		var world = WorldMap.world;
-		var obj = world.getObjectDataAtPosition(tx, ty);
-		var stength:Float = obj.floor ? 1 : 0; 
+		var objId = world.getFloorId(tx, ty);
+		//trace('Decay ${obj.name} ${obj.floor}');
+		var stength:Float = objId > 0 ? 1 : 0; 
 		
-		var obj = world.getObjectDataAtPosition(tx + 1, ty);
-		stength += obj.floor ? 1 : 0; 
-		var obj = world.getObjectDataAtPosition(tx - 1, ty );
-		stength += obj.floor ? 1 : 0;
-		var obj = world.getObjectDataAtPosition(tx, ty + 1);
-		stength += obj.floor ? 1 : 0;
-		var obj = world.getObjectDataAtPosition(tx, ty - 1);
-		stength += obj.floor ? 1 : 0;
+		var objId = world.getFloorId(tx + 1, ty);
+		stength += objId > 0 ? 1 : 0; 
+		var objId = world.getFloorId(tx - 1, ty);
+		stength += objId > 0 ? 1 : 0;
+		var objId = world.getFloorId(tx, ty + 1);
+		stength += objId > 0 ? 1 : 0;
+		var objId = world.getFloorId(tx, ty - 1);
+		stength += objId > 0 ? 1 : 0;
 
 		return stength;
 	}

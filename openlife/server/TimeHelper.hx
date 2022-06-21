@@ -1484,15 +1484,19 @@ class TimeHelper {
 		var decayChance = ServerSettings.FloorDecayChance * objData.decayFactor;
 		decayChance *= biomeDecayFactor;
 
-		var strength =  ObjectHelper.CalculateSurroundingWallStrength(x,y);
-		strength += ObjectHelper.CalculateSurroundingFloorStrength(x,y);
+		var wallStrength =  ObjectHelper.CalculateSurroundingWallStrength(x,y);
+		var floorStrength = ObjectHelper.CalculateSurroundingFloorStrength(x,y);
+		var totalStrength = wallStrength + floorStrength;
+		if(totalStrength < 1) totalStrength = 1;
 		// 20% for a floor souranded by 4 floors
 		// 11% for a floor souranded by 4 Walls (0%)
 		// 50% for a floor souranded by 1 floor
 		// 33% for a floor souranded by 1 Wall
 		// 14% for a floor souranded by 4 Floor and 1 Wall (0%)
-		var stregnthFactor = strength > 5 ? 0 : 1 / strength; 
-		decayChance *= stregnthFactor;
+		var strengthFactor = totalStrength > 5 ? 0 : 1 / totalStrength; 
+		decayChance *= strengthFactor;
+
+		trace('Floor ${objData.name} try decayed chance: ${decayChance * 10000} strength: $totalStrength w: $wallStrength  f: $floorStrength strengthFactor: $strengthFactor');		
 
 		if (world.randomFloat() > decayChance) return;
 
@@ -1507,7 +1511,7 @@ class TimeHelper {
 
 		Connection.SendMapUpdateToAllClosePlayers(x, y);
 
-		trace('Floor ${objData.name} decayed to: ${decaysToObjData.name}');		
+		trace('Floor ${objData.name} decayed to: ${decaysToObjData.name} chance: $decayChance strength: $totalStrength w: $wallStrength  f: $floorStrength strengthFactor: $strengthFactor');	
 	}
 	
 	private static function DecayObject(x:Int, y:Int, passedTimeInYears:Float) {
@@ -1526,8 +1530,9 @@ class TimeHelper {
 		if (world.currentObjectsCount[objId] < world.originalObjectsCount[objId] * 0.8) return; // dont decay natural stuff if there are too few
 
 		var objectHelper = world.getObjectHelper(x, y, true);
+		var containsSomething = objectHelper != null && objectHelper.containedObjects.length > 0;
 
-		if (objectHelper != null && objectHelper.containedObjects.length > 0) return; // TODO change
+		if (containsSomething && (floorId > 0 || objId != 292)) return; // TODO 292 Basket ==> Allow all containers
 
 		// only allow object with time transition to decay if it takes longer then one hour 
 		if (objectHelper != null && objectHelper.timeToChange > 0 && objectHelper.timeToChange < 3600) return; 
@@ -1552,6 +1557,14 @@ class TimeHelper {
 
 		var decaysToObj = objData.decaysToObj; 
 		if(decaysToObj == 0 && objData.permanent > 0) decaysToObj = 618; // 618 Filled Small Trash Pit
+
+		if(containsSomething){
+			while (objectHelper.containedObjects.length > 0){
+				var containedObject = objectHelper.containedObjects.pop();
+				WorldMap.PlaceObject(x, y, containedObject);
+				trace('Decay: ${objectHelper.name} place contained: ${containedObject.name}');
+			}
+		}
 
 		world.setObjectId(x, y, [decaysToObj]);
 		// worldMap.setObjectHelperNull(x, y);
