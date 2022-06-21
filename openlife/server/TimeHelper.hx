@@ -2116,8 +2116,10 @@ class TimeHelper {
 			attacker.setHeldObject(weapon);
 			attacker.setHeldObjectOriginNotValid(); // no animation
 			weapon.timeToChange = 2;
-
-			WorldMap.PlaceObject(target.tx, target.ty, new ObjectHelper(attacker, 798), true); // Place Arrow Wound
+			var done = false;
+			Macro.exception(done = WorldMap.PlaceObject(target.tx, target.ty, new ObjectHelper(attacker, 798), true)); // Place Arrow Wound
+			if(done == false) trace('WARNING: TryAnimaEscape: FAILING TO PLACE ARROW ON GROUND! Held: ${attacker.heldObject.name}');
+			if(done == false) attacker.say('Placing Arrow failed! ${attacker.heldObject.name}', true);
 		}
 
 		return true;
