@@ -1456,38 +1456,47 @@ class TimeHelper {
 			for (x in 0...worldMap.width) {
 				var objId = worldMap.getObjectId(x, y)[0];
 				var floorId = worldMap.getFloorId(x,y);
-				var biomeId = worldMap.getBiomeId(x,y);
-				var biomeDecayFactor:Float = Biome.getBiomeDecayFactor(biomeId);
 
 				DoSeasonalBiomeChanges(x, y, timePassedInYears);
 
 				if(objId == 0 && floorId == 0 && season == Spring) DoRespawnFromOriginal(x, y, timePassedInYears);
 				
-				// decay floor
-				if(objId == 0 && floorId > 0){
-					var objData = ObjectData.getObjectData(floorId);
-					var decayChance = ServerSettings.FloorDecayChance * objData.decayFactor;
-					decayChance *= biomeDecayFactor;
+				if(floorId != 0) DecayFloor(x, y, timePassedInYears);
 
-					if (worldMap.randomFloat() < decayChance) {
-						var decaysToObj = objData.decaysToObj == 0 ? 618 : objData.decaysToObj; // 618 Filled Small Trash Pit
-						var decaysToObjData = ObjectData.getObjectData(decaysToObj);
-
-						if(decaysToObjData.floor) worldMap.setFloorId(x,y,decaysToObj);
-						else{
-							worldMap.setFloorId(x,y,0);
-							worldMap.setObjectId(x,y,[decaysToObj]);
-						}
-
-						Connection.SendMapUpdateToAllClosePlayers(x, y);
-
-						trace('Floor ${objData.name} decayed to: ${decaysToObjData.name}');
-
-						DecayObject(x, y, timePassedInYears);
-					}
-				}
+				if(objId != 0) DecayObject(x, y, timePassedInYears);
 			}
 		}
+	}
+
+	private static function DecayFloor(x:Int, y:Int, passedTimeInYears:Float) {
+		var world = WorldMap.world;
+		var objId = world.getObjectId(x, y)[0];
+		var floorId = world.getFloorId(x,y);
+		
+		// TODO allow decay if objId != 0
+		if(objId != 0 || floorId == 0) return;
+
+		var biomeId = world.getBiomeId(x,y);
+		var biomeDecayFactor:Float = Biome.getBiomeDecayFactor(biomeId);
+		
+		var objData = ObjectData.getObjectData(floorId);
+		var decayChance = ServerSettings.FloorDecayChance * objData.decayFactor;
+		decayChance *= biomeDecayFactor;
+
+		if (world.randomFloat() > decayChance) return;
+
+		var decaysToObj = objData.decaysToObj == 0 ? 618 : objData.decaysToObj; // 618 Filled Small Trash Pit
+		var decaysToObjData = ObjectData.getObjectData(decaysToObj);
+
+		if(decaysToObjData.floor) world.setFloorId(x,y,decaysToObj);
+		else{
+			world.setFloorId(x,y,0);
+			world.setObjectId(x,y,[decaysToObj]);
+		}
+
+		Connection.SendMapUpdateToAllClosePlayers(x, y);
+
+		trace('Floor ${objData.name} decayed to: ${decaysToObjData.name}');		
 	}
 	
 	private static function DecayObject(x:Int, y:Int, passedTimeInYears:Float) {
@@ -1520,7 +1529,7 @@ class TimeHelper {
 		
 		if (objData.foodValue > 0) decayChance *= ServerSettings.ObjDecayFactorForFood;
 
-		if (world.getFloorId(x, y) != 0) decayChance *= ServerSettings.ObjDecayFactorOnFloor;
+		if (floorId != 0) decayChance *= ServerSettings.ObjDecayFactorOnFloor;
 
 		if (objData.permanent > 0) decayChance *= ServerSettings.ObjDecayFactorForPermanentObjs;
 		//if (objData.permanent <= 0) trace('decay not permanent: ${objData.description}');
