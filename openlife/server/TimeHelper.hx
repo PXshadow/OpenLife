@@ -1496,7 +1496,7 @@ class TimeHelper {
 		var strengthFactor = totalStrength > 5 ? 0 : 1 / totalStrength; 
 		decayChance *= strengthFactor;
 
-		trace('Floor ${objData.name} try decayed chance: ${decayChance * 10000} strength: $totalStrength w: $wallStrength  f: $floorStrength strengthFactor: $strengthFactor');		
+		//trace('Floor ${objData.name} try decayed chance: ${decayChance * 10000} strength: $totalStrength w: $wallStrength  f: $floorStrength strengthFactor: $strengthFactor');		
 
 		if (world.randomFloat() > decayChance) return;
 
@@ -1543,6 +1543,7 @@ class TimeHelper {
 
 		var decayChance = ServerSettings.ObjDecayChance * objData.decayFactor;
 		decayChance *= biomeDecayFactor;
+		//if(containsSomething) decayChance *= 10000;
 		
 		if (objData.foodValue > 0) decayChance *= ServerSettings.ObjDecayFactorForFood;
 
