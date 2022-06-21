@@ -1984,7 +1984,12 @@ class TimeHelper {
 
 			var chanceForOffspring = isPreferredBiome ? ServerSettings.ChanceForOffspring : ServerSettings.ChanceForOffspring * Math.pow((1
 				- chancePreferredBiome), 2);
-			var chanceForAnimalDying = isPreferredBiome ? ServerSettings.ChanceForAnimalDying / 2 : ServerSettings.ChanceForAnimalDying;
+			var chanceForAnimalDying = isPreferredBiome ? ServerSettings.ChanceForAnimalDying / 10 : ServerSettings.ChanceForAnimalDying;
+
+			// TODO let domestic animals multiply if there is enough green biome 
+			// TODO let domestic animals eat up green biome
+			// TODO dont consider lovesCurrentOriginalBiome once domestic animals muliply
+			if(animal.isDomesticAnimal() && (lovesCurrentBiome || lovesCurrentOriginalBiome)) chanceForAnimalDying /= 1000;
 
 			// give extra birth chance bonus if population is very low
 			if (worldmap.currentObjectsCount[newTileObject[0]] < worldmap.originalObjectsCount[newTileObject[0]] / 2) chanceForOffspring *= ServerSettings.OffspringFactorIfAnimalPopIsLow;
@@ -2151,7 +2156,7 @@ class TimeHelper {
 			} 
 			*/
 
-			if(animal.objectData.isDomesticAnimal() && movementTileObj.objectData.blocksDomesticAnimal) break;
+			if(animal.isDomesticAnimal() && movementTileObj.objectData.blocksDomesticAnimal) break;
 
 			// TODO allow move on non empty ground
 			//if (movementTileObj.id == 0) tmpTarget = movementTileObj;
@@ -2171,7 +2176,7 @@ class TimeHelper {
 
 		if (target.groundObject != null && target.groundObject.id != 0) return false;
 
-		if(animal.objectData.isDomesticAnimal() && target.objectData.blocksDomesticAnimal) return false;
+		if(animal.isDomesticAnimal() && target.objectData.blocksDomesticAnimal) return false;
 
 		if (animal.id == 3566){ // 3566 Fleeing Rabbit
 			if (target.id != 0) return false;

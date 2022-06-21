@@ -593,4 +593,8 @@ class ObjectHelper {
 		var quiver = this;
 		return (quiver.objectData.numUses < 2 || quiver.numberOfUses < quiver.objectData.numUses);
 	}
+
+	public function isDomesticAnimal() : Bool {
+		return this.objectData.isDomesticAnimal();
+	}
 }
