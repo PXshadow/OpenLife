@@ -397,9 +397,9 @@ class ServerSettings {
 		ObjectData.getObjectData(884).decaysToObj = 881; // 884 Stone Floor ==> 881 Cut Stones
 
 		ObjectData.getObjectData(888).decayFactor = 0.5; // 888 Bear Skin Rug
-		ObjectData.getObjectData(888).decaysToObj = 884; // 888 Bear Skin Rug ==> 881 Cut Stones	
+		ObjectData.getObjectData(888).decaysToObj = 884; // 888 Bear Skin Rug ==> Stone Floor	
 
-		ObjectData.getObjectData(3290).decayFactor = 5; // 3290 Pine Floor
+		ObjectData.getObjectData(3290).decayFactor = 2; // 3290 Pine Floor
 
 		// set object decay
 		ObjectData.getObjectData(1598).decayFactor = -1; // 1598 Iron Ore Pile

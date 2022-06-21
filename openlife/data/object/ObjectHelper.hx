@@ -333,8 +333,8 @@ class ObjectHelper {
 		return objectData.dummyObjects[numberOfUses - 1].id;
 	}
 
-	public function isPermanent() {
-		return objectData.permanent == 1;
+	public function isPermanent() : Bool {
+		return objectData.isPermanent();
 	}
 
 	public function isNeverDrop() {

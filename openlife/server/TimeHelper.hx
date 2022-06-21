@@ -1472,9 +1472,10 @@ class TimeHelper {
 		var world = WorldMap.world;
 		var objId = world.getObjectId(x, y)[0];
 		var floorId = world.getFloorId(x,y);
-		
-		// TODO allow decay if objId != 0
-		if(objId != 0 || floorId == 0) return;
+				
+		if(floorId == 0) return;
+		var objData = world.getObjectDataAtPosition(x,y);
+		if(objData.isPermanent()) return; // TODO allow floor decay if objId is permanent / maybe decay neighbor floor first?
 
 		var biomeId = world.getBiomeId(x,y);
 		var biomeDecayFactor:Float = Biome.getBiomeDecayFactor(biomeId);
@@ -1491,7 +1492,7 @@ class TimeHelper {
 		if(decaysToObjData.floor) world.setFloorId(x,y,decaysToObj);
 		else{
 			world.setFloorId(x,y,0);
-			world.setObjectId(x,y,[decaysToObj]);
+			if(objId == 0) world.setObjectId(x,y,[decaysToObj]);
 		}
 
 		Connection.SendMapUpdateToAllClosePlayers(x, y);

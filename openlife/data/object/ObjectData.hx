@@ -1564,4 +1564,8 @@ class ObjectData extends LineReader {
 	public function isTree() : Bool {
 		return this.description.indexOf("Tree") != -1;
 	}
+
+	public function isPermanent() {
+		return this.permanent == 1;
+	}
 }
