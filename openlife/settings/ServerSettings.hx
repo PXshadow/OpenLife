@@ -30,7 +30,7 @@ class ServerSettings {
 
 	public static var AllowDebugCommmands = true; // can create objects with saying "!create ID" / "!create object" "!create object!" with ! indicating that object ends with "object" or test wounds with using "!hit" or "!heal"
 	public static var DebugWrite = false; // WordMap writeToDisk
-	public static var TraceCountObjects = true; // WorldMap
+	public static var TraceCountObjects = false; // WorldMap
 
 	public static var DebugCaftingStepsForObjOrFood = false; // here you see which food or obj needs how much steps to craft
 
@@ -173,8 +173,8 @@ class ServerSettings {
 	public static var YumNewCravingChance = 0.2; // XX chance that a new random craving is chosen even if there are existing ones
 	public static var HealthLostWhenEatingMeh:Float = 0.5;
 	public static var HealthLostWhenEatingSuperMeh:Float = 1;
-	public static var MaxHasEatenForNextGeneration:Float = 2; // used in InheritEatenFoodCounts
-	public static var HasEatenReductionForNextGeneration:Float = 0.2; // used in InheritEatenFoodCounts
+	public static var MaxHasEatenForNextGeneration:Float = 100; // 2; // used in InheritEatenFoodCounts
+	public static var HasEatenReductionForNextGeneration:Float = 1; // 0.2 // used in InheritEatenFoodCounts
 
 	// Biome Specialists
 	public static var LovedFoodUseChance:Float = 0.5;
