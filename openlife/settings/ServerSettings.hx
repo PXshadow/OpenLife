@@ -281,7 +281,7 @@ class ServerSettings {
 	public static var TemperatureShiftForGinger:Float = -0.1;
 
 	// winter / summer
-	public static var DebugSeason:Bool = false;
+	public static var DebugSeason:Bool = true;
 	public static var SeasonDuration:Float = 7.5; // default: 5 // Season duration like winter in years
 	public static var SeasonBiomeChangeChancePerYear:Float = 2; //5 // X means it spreads X tiles per year in average in each direction
 	public static var SeasonBiomeRestoreFactor:Float = 2;
@@ -291,7 +291,8 @@ class ServerSettings {
 
 	public static var WinterWildFoodDecayChance:Float = 1.5; // 1.5; // per Season
 	public static var SpringWildFoodRegrowChance:Float = 1; // per Season // use spring and summer
-	public static var GrowBackOriginalPlantsFactor:Float = 0.05; // 0.4 // 0.1
+	public static var GrowBackOriginalPlantsFactor:Float = 0.05; //0.05; // 0.4 // 0.1 // regrow from original plants per season
+	public static var GrowNewPlantsFromExistingFactor:Float = 0.1; // 0.2 // offsprings per season per plant
 
 	// public static var WinterFildWoodDecayChance = 0.2;
 	// Ally

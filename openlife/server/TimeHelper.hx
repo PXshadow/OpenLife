@@ -1158,7 +1158,7 @@ class TimeHelper {
 					if (hiddenObj[0] != 0) RespawnOrDecayPlant(hiddenObj, x, y, true);
 
 					var originalObj = worldMap.getOriginalObjectId(x, y);
-					if (originalObj[0] != 0) RespawnOrDecayPlant(originalObj, x, y, false, ServerSettings.GrowBackOriginalPlantsFactor);
+					if (originalObj[0] != 0) RespawnOrDecayPlant(originalObj, x, y, false, true);
 				}
 
 				var obj = worldMap.getObjectId(x, y);
@@ -1260,7 +1260,7 @@ class TimeHelper {
 		Connection.SendMapUpdateToAllClosePlayers(tx,ty);
 	}
 
-	private static function RespawnOrDecayPlant(objIDs:Array<Int>, x:Int, y:Int, hidden:Bool = false, growFactor:Float = 1) {
+	private static function RespawnOrDecayPlant(objIDs:Array<Int>, x:Int, y:Int, hidden:Bool = false, fromOriginals:Bool = false) {
 		var objID = objIDs[0];
 		var objData = ObjectData.getObjectData(objID);
 
@@ -1328,8 +1328,11 @@ class TimeHelper {
 				return;
 			}
 
-			var factor = hidden ? 2 : 0.2;
-			factor *= growFactor;
+			// hidden objects should come to surface
+			// GrowNewPlantsFromExistingFactor ==> offsprings per season per plant
+			// GrowBackOriginalPlantsFactor ==> regrow from original
+			var factor = hidden ? 2 : ServerSettings.GrowNewPlantsFromExistingFactor;
+			if(fromOriginals) factor = ServerSettings.GrowBackOriginalPlantsFactor;
 
 			if (SpringRegrowChance * objData.springRegrowFactor * factor < WorldMap.calculateRandomFloat()) return;
 
