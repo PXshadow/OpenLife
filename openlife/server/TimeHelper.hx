@@ -1004,6 +1004,23 @@ class TimeHelper {
 		var originalBiomeTemperature = Biome.getBiomeTemperature(biome);
 		var biomeTemperature = originalBiomeTemperature;
 
+		var floorId = WorldMap.world.getFloorId(tx,ty);
+		var floorObjData = ObjectData.getObjectData(floorId); 
+		var floorInsulation = floorObjData.getInsulation();
+		
+		// between 0.1 black to -0.1 Ginger 
+		var colorTemperatureShift = getIdealTemperatureShiftForColor(player.getColor());
+		
+		if (floorInsulation > 0 && floorInsulation > WorldMap.world.randomFloat()){
+			var tmpTemperature = (0.45 + originalBiomeTemperature) / 2;
+			var temperature = tmpTemperature * floorInsulation + originalBiomeTemperature * (1 - floorInsulation);
+			
+			trace('calculateTemperature: ${floorObjData.name} floorInsulation: ${Math.round(floorInsulation * 100)/100} temp: ${Math.round(temperature * 100)/100} orig: ${originalBiomeTemperature} tTemp: $tmpTemperature');
+			
+			temperature -= colorTemperatureShift;
+			return temperature; 
+		}
+
 		// looke for close biomes that influence temperature
 		if (biome == BiomeTag.GREEN || biome == BiomeTag.YELLOW || biome == BiomeTag.GREY) {
 			// direct x / y
@@ -1049,9 +1066,6 @@ class TimeHelper {
 			}
 		}
 
-		var colorTemperatureShift = getIdealTemperatureShiftForColor(player.getColor());
-
-		// between -0.2 (black in snow) to 1.1 Ginger in dessert
 		var temperature = biomeTemperature - colorTemperatureShift;
 
 		if (ServerSettings.DebugTemperature)
