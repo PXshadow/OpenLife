@@ -3780,9 +3780,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if(bloodyWeaponId > 0){
 				//attacker.setHeldObject(weapon);
 				targetPlayer.transformHeldObject(bloodyWeaponId);
-				targetPlayer.setHeldObjectOriginNotValid(); // no animation
+				targetPlayer.setHeldObjectOriginNotValid(); // no move animation
+				targetPlayer.o_transition_source_id = -1; 
+				targetPlayer.action = 0;
 				targetPlayer.heldObject.timeToChange = 3;
-				//trace('Damage: set bloody weapon');
+				trace('Damage: set bloody weapon');
 			}
 
 			trace('Damage: hits: ${fromObj.hits} ${fromObj.name}');

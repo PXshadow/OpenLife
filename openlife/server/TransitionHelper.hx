@@ -104,7 +104,14 @@ class TransitionHelper {
 			helper.sendUpdateToClient();
 
 			var time = player.heldObject.timeToChange - TimeHelper.CalculateTimeSinceTicksInSec(player.heldObject.creationTimeInTicks);
+			if(time <= 0 && player.heldObject.isBloody()){
+				// fix to get stuck with blody weapon
+				player.heldObject.timeToChange = 3;
+				trace('WARNING isNeverDrop NO TIME SET!!!');
+			}
+
 			if (time > 0) player.say('${Math.ceil(time)} seconds...', true);
+			
 			return false;
 		}
 

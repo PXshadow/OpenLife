@@ -110,6 +110,7 @@ class ObjectData extends LineReader {
 	public var animalEscapeFactor:Float = 0.7; // chance an animal escapes
 
 	public var isBoat:Bool = false;
+	public var isBloody = false;
 
 	public var carftingSteps:Int = -1;
 

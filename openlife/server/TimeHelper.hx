@@ -2100,7 +2100,7 @@ class TimeHelper {
 		if(usingBowAndArrow){
 			for (obj in attacker.clothingObjects) {
 				if(obj.parentId == 3948 || obj.parentId == 874) animalEscapeFactor /= 2;		
-				if(obj.parentId == 3948 || obj.parentId == 874) trace('TryAnimaEscape: Used Quiver $animalEscapeFactor');
+				//if(obj.parentId == 3948 || obj.parentId == 874) trace('TryAnimaEscape: Used Quiver $animalEscapeFactor');
 			}
 		}
 
@@ -2123,7 +2123,9 @@ class TimeHelper {
 		{
 			weapon.id = 749; // 151 Bow // 749 Bloody Yew Bow
 			attacker.setHeldObject(weapon);
-			attacker.setHeldObjectOriginNotValid(); // no animation
+			attacker.setHeldObjectOriginNotValid(); // no object move animation
+			attacker.o_transition_source_id = -1; 
+			attacker.action = 0;
 			weapon.timeToChange = 2;
 			var done = false;
 			Macro.exception(done = WorldMap.PlaceObject(target.tx, target.ty, new ObjectHelper(attacker, 798), true)); // Place Arrow Wound

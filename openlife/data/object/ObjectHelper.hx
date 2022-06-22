@@ -637,4 +637,8 @@ class ObjectHelper {
 
 		return stength;
 	}
+
+	public function isBloody() : Bool {
+		return objectData.isBloody;
+	}
 }

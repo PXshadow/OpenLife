@@ -688,6 +688,10 @@ class ServerSettings {
 		ObjectData.getObjectData(3048).speedMult = 0.85; // Bloody War Sword
 		ObjectData.getObjectData(749).speedMult = 0.6; // Bloody Yew Bow
 
+		ObjectData.getObjectData(750).isBloody = true; // Bloody Knife
+		ObjectData.getObjectData(3048).isBloody = true; // Bloody War Sword
+		ObjectData.getObjectData(749).isBloody = true; // Bloody Yew Bow
+
 		ObjectData.getObjectData(750).neverDrop = true; // Bloody Knife
 		ObjectData.getObjectData(3048).neverDrop = true; // Bloody War Sword
 		ObjectData.getObjectData(749).neverDrop = true; // Bloody Yew Bow
