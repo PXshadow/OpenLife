@@ -641,4 +641,8 @@ class ObjectHelper {
 	public function isBloody() : Bool {
 		return objectData.isBloody;
 	}
+
+	public function isDeadlyAnimal() : Bool {
+		return this.objectData.isDeadlyAnimal();
+	}
 }

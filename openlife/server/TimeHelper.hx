@@ -2091,23 +2091,38 @@ class TimeHelper {
 
 	public static function TryAnimaEscape(attacker:GlobalPlayerInstance, target:ObjectHelper):Bool {
 		var weapon = attacker.heldObject;
+		var isMeleeWeapon = weapon.objectData.isMeleeWeapon();
 		var usingBowAndArrow = weapon.id == 152; // Bow and Arrow
 		var animalEscapeFactor = weapon.objectData.animalEscapeFactor - target.hits * 0.25;
 		var random = WorldMap.calculateRandomFloat();
-
+		var weaponDamage = weapon.objectData.damage;
+		var damage = weaponDamage / 2 + weaponDamage * WorldMap.world.randomFloat();
+		
 		// 3948 Arrow Quiver
 		// 874 Empty Arrow Quiver
 		if(usingBowAndArrow){
+			target.hits += damage / 10; // 1;
+
 			for (obj in attacker.clothingObjects) {
 				if(obj.parentId == 3948 || obj.parentId == 874) animalEscapeFactor /= 2;		
 				//if(obj.parentId == 3948 || obj.parentId == 874) trace('TryAnimaEscape: Used Quiver $animalEscapeFactor');
 			}
 		}
+		else target.hits += damage / 50;
 
-		trace('TryAnimaEscape: ${target.hits} random: $random > escape factor: $animalEscapeFactor');
-		target.hits += 1;
+		trace('TryAnimaEscape: ${target.hits} damage: ${damage} random: $random > escape factor: $animalEscapeFactor');
 
-		if (random > animalEscapeFactor) return false;
+		//attacker.say('Hits ${Math.round(target.hits)}', true);
+
+		//if(attacker.makeWeaponBloodyIfNeeded()) return true; // TODO allow animal to be fully killed with knife
+
+		if (random > animalEscapeFactor){
+			attacker.makeWeaponBloodyIfNeeded(target);
+			target.hits += damage / 10;
+			if(isMeleeWeapon && target.isDeadlyAnimal()) attacker.say('Hits ${Math.round(target.hits)}', true);
+			
+			return false;
+		}
 
 		target.timeToChange /= 5;
 		var tmpTimeToChange = target.timeToChange;
@@ -2117,10 +2132,10 @@ class TimeHelper {
 		trace('TryAnimaEscape: $escaped');
 		if (escaped == false) return false;
 
-		attacker.say('Escaped! Hits ${Math.round(target.hits)}', true);
-
 		if (usingBowAndArrow) // Bow and Arrow
 		{
+			attacker.say('Hits ${Math.round(target.hits)}', true);
+
 			weapon.id = 749; // 151 Bow // 749 Bloody Yew Bow
 			attacker.setHeldObject(weapon);
 			attacker.setHeldObjectOriginNotValid(); // no object move animation

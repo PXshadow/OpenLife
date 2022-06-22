@@ -2890,15 +2890,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function isHoldingWeapon():Bool {
-		return heldObject.objectData.deadlyDistance > 0;
+		return heldObject.objectData.isWeapon();
 	}
 
 	public function isHoldingMeleeWeapon():Bool {
-		return heldObject.objectData.deadlyDistance > 0 && heldObject.objectData.deadlyDistance < 2;
+		return heldObject.objectData.isMeleeWeapon();
 	}
 
 	public function isHoldingRangedWeapon():Bool {
-		return heldObject.objectData.deadlyDistance >= 2;
+		return heldObject.objectData.isRangedWeapon();
 	}
 
 	public function setHeldObject(obj:ObjectHelper) {
@@ -3771,21 +3771,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (attacker == null && targetPlayer.isHoldingMeleeWeapon()) {
 			fromObj.hits += isRightClassForWeapon ? 0.5 : 0.25;
 
-			var weapon = targetPlayer.heldObject;
-			var bloodyWeaponId = -1; 
-
-			if(weapon.parentId == 560 || weapon.parentId == 750) bloodyWeaponId = 750; // Knife --> Bloody Knife
-			if(weapon.parentId == 3047 || weapon.parentId == 3048) bloodyWeaponId = 3048; // War Sword --> Bloody War Sword
-
-			if(bloodyWeaponId > 0){
-				//attacker.setHeldObject(weapon);
-				targetPlayer.transformHeldObject(bloodyWeaponId);
-				targetPlayer.setHeldObjectOriginNotValid(); // no move animation
-				targetPlayer.o_transition_source_id = -1; 
-				targetPlayer.action = 0;
-				targetPlayer.heldObject.timeToChange = 3;
-				trace('Damage: set bloody weapon');
-			}
+			targetPlayer.makeWeaponBloodyIfNeeded(fromObj);
 
 			trace('Damage: hits: ${fromObj.hits} ${fromObj.name}');
 
@@ -3808,6 +3794,27 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
 		return damage;
+	}
+
+	public function makeWeaponBloodyIfNeeded(target:ObjectHelper) : Bool {
+		if(target.isDeadlyAnimal() == false) return false;
+		var player:GlobalPlayerInstance = this;
+		var weapon = player.heldObject;
+		var bloodyWeaponId = -1;
+		
+		if(weapon.parentId == 560 || weapon.parentId == 750) bloodyWeaponId = 750; // Knife --> Bloody Knife
+		else if(weapon.parentId == 3047 || weapon.parentId == 3048) bloodyWeaponId = 3048; // War Sword --> Bloody War Sword
+
+		if(bloodyWeaponId < 1) return false;
+
+		//attacker.setHeldObject(weapon);
+		player.transformHeldObject(bloodyWeaponId);
+		player.setHeldObjectOriginNotValid(); // no move animation
+		player.o_transition_source_id = -1; 
+		player.action = 0;
+		player.heldObject.timeToChange = 3;
+		//trace('Set bloody weapon');
+		return true;
 	}
 
 	public function calculateEnemyVsAllyStrengthFactor():Float {
@@ -4175,8 +4182,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				return true;
 			}
 		} else if (text.indexOf('!CREATE') != -1) { // "create xxx" with xxx = id
-			trace('Create debug object');
-
 			if(canUseServerCommands == false){
 				player.say('not allowed!', true);
 				return true;
@@ -4191,6 +4196,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			}
 
 			if (id < 0) return true;
+
+			trace('Create debug object ${objData.name}');
 
 			WorldMap.world.setObjectId(player.tx, player.ty, [id]);
 

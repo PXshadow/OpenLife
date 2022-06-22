@@ -1573,4 +1573,21 @@ class ObjectData extends LineReader {
 	public function isPermanent() {
 		return this.permanent == 1;
 	}
+
+	public function isWeapon():Bool {
+		return deadlyDistance > 0;
+	}
+
+	public function isMeleeWeapon():Bool {
+		return deadlyDistance > 0 && deadlyDistance < 2;
+	}
+
+	public function isRangedWeapon():Bool {
+		return deadlyDistance >= 2;
+	}
+
+	public function isDeadlyAnimal() : Bool {
+		if(damage <= 0) return false;
+		return isAnimal();
+	}
 }
