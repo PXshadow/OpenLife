@@ -2101,7 +2101,7 @@ class TimeHelper {
 		// 3948 Arrow Quiver
 		// 874 Empty Arrow Quiver
 		if(usingBowAndArrow){
-			target.hits += damage / 10; // 1;
+			target.hits += 1;
 
 			for (obj in attacker.clothingObjects) {
 				if(obj.parentId == 3948 || obj.parentId == 874) animalEscapeFactor /= 2;		
