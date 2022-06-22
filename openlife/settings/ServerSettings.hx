@@ -974,6 +974,19 @@ class ServerSettings {
 		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Clear dead Turkey
+		trans = new TransitionData(-1, 2176, 0, 2177); // Shot Turkey with Arrow  --> Shot Turkey
+		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 2177, 0, 0); // Shot Turkey --> 0
+		trans.autoDecaySeconds = -2;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 2179, 0, 0); // Shot Turkey no feathers --> 0
+		trans.autoDecaySeconds = -2;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// Clear up Boar
 		trans = new TransitionData(-1, 1330, 0, 1332); // Shot Boar --> Dead Boar
 		trans.autoDecaySeconds = -1;
