@@ -2283,9 +2283,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return false;
 		}
 
-		if (ServerSettings.AllowSelfEatingIfIll == false && playerTo.hasYellowFever() && playerFrom == playerTo) {
+		if (ServerSettings.AllowEatingOrFeedingIfIll == false && playerFrom.hasYellowFever()) {
 			trace('is ill cannot feed himself!');
-			playerTo.doEmote(Emote.refuseFood);
+			playerFrom.say('I am too ill!');
+			playerTo.doEmote(Emote.yellowFever);
+			//playerTo.doEmote(Emote.refuseFood);
 			return false;
 		}
 

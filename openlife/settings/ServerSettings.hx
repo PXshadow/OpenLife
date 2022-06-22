@@ -178,11 +178,11 @@ class ServerSettings {
 
 	// Biome Specialists
 	public static var LovedFoodUseChance:Float = 0.5;
-	public static var BiomeAnimalHitChance:Float = 0.01;
+	public static var BiomeAnimalHitChance:Float = 0.0; // for example if a biome animal like a wolf can hit a white in mountain
 
 	// Yellow Fever
 	public static var ExhaustionYellowFeverPerSec = 0.1;
-	public static var AllowSelfEatingIfIll = true; // for example if you have yellow fever some one needs to feed you if false
+	public static var AllowEatingOrFeedingIfIll = false; // for example if you have yellow fever some one needs to feed you if false
 	public static var ResistanceAginstFeverForEatingMushrooms:Float = 0.2;
 
 	// health
