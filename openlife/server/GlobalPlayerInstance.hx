@@ -3651,10 +3651,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (doesRealDamage == false) yellowfeverCount += 0.02;
 
-		if (doesRealDamage) damage *= targetPlayer.heldObject.objectData.damageProtectionFactor; else
-			damage *= moskitoDamageFactor;
+		var weaponDamageProtectionFactor = targetPlayer.heldObject.objectData.damageProtectionFactor;
+
+		if (doesRealDamage) damage *= isRightClassForWeapon ? Math.pow(weaponDamageProtectionFactor,2) : weaponDamageProtectionFactor;
+		else damage *= moskitoDamageFactor;
+		
 		damage *= biomeDamageFactor;
-		damage *= isRightClassForWeapon ? 0.8 : 1;
 		damage *= targetPlayer.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
 		damage *= protectionFactor;
 		damage *= targetPlayer.isWounded() ? ServerSettings.TargetWoundedDamageFactor : 1;
