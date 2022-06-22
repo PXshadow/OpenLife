@@ -498,6 +498,8 @@ class ServerSettings {
 		ObjectData.getObjectData(511).countsOrGrowsAs = 1261; // Pond
 		ObjectData.getObjectData(512).countsOrGrowsAs = 1261; // Dry Pond
 
+		ObjectData.getObjectData(404).countsOrGrowsAs = 1435;  // Bison with Calf --> Bison
+
 		ObjectData.getObjectData(164).secondTimeOutcome = 173; // Rabbit Hole out,single ==> Rabbit Family Hole out
 		ObjectData.getObjectData(164).secondTimeOutcomeTimeToChange = 90;
 
@@ -943,6 +945,32 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 423, 0, 566); // 423 Skinned Wolf --> TODO 566 Mouflon Bones
+		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		// Clear Bison
+		// dead bison already exists
+		trans = new TransitionData(-1, 1442, 0, 1444); // Dead Bison arrow 2 --> Dead Bison arrow 1
+		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+		
+		trans = new TransitionData(-1, 1444, 0, 1446); // Dead Bison arrow 1 --> Dead Bison
+		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 1444, 0, 1446); // Dead Bison arrow 1 --> Dead Bison
+		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 1441, 0, 1443); // Dead Bison with Calf arrow 2  --> Dead Bison with Calf arrow 1 
+		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 1443, 0, 1445); // Dead Bison with Calf arrow 1  --> Dead Bison with Calf
+		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 1445, 0, 1437); // Dead Bison with Calf  --> Bison Calf
 		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
