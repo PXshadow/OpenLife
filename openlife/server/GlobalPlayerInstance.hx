@@ -3741,12 +3741,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// trace('Wound3:');
 		}
 
-		if (attacker == null) // attacker is animal
-		{
+		if (attacker == null) { // attacker is animal
 			fromObj.id = trans.newActorID;
 			// trace('Wound4: ${fromObj.id}');
-		} else // attacker is player
-		{
+		} else { 
+			// attacker is player
 			fromObj.id = trans.newActorID;
 			var bloodyWeapon = fromObj; // new ObjectHelper(attacker, trans.newActorID);
 			attacker.setHeldObject(bloodyWeapon);
@@ -3772,9 +3771,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (attacker == null && targetPlayer.isHoldingMeleeWeapon()) {
 			fromObj.hits += isRightClassForWeapon ? 0.5 : 0.25;
 
-			// trace('Damage: hits: ${fromObj.hits} ${fromObj.name}');
+			var weapon = targetPlayer.heldObject;
+			var bloodyWeaponId = -1; 
 
-			if (fromObj.hits > WorldMap.calculateRandomInt(20)) {
+			if(weapon.parentId == 560 || weapon.parentId == 750) bloodyWeaponId = 750; // Knife --> Bloody Knife
+			if(weapon.parentId == 3047 || weapon.parentId == 3048) bloodyWeaponId = 3048; // War Sword --> Bloody War Sword
+
+			if(bloodyWeaponId > 0){
+				//attacker.setHeldObject(weapon);
+				targetPlayer.transformHeldObject(bloodyWeaponId);
+				targetPlayer.setHeldObjectOriginNotValid(); // no animation
+				targetPlayer.heldObject.timeToChange = 3;
+				//trace('Damage: set bloody weapon');
+			}
+
+			trace('Damage: hits: ${fromObj.hits} ${fromObj.name}');
+
+			if (fromObj.hits > WorldMap.calculateRandomInt(10)) {
 				// trace('Damage: dead: ${fromObj.hits} ${fromObj.name}');
 
 				var tmpId = fromObj.id;
