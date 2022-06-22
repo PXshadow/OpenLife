@@ -856,6 +856,15 @@ class ServerSettings {
 		var trans = transtions.getTransition(-1, 749); // Bloody Yew Bow
 		trans.autoDecaySeconds = 80;
 
+		var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0 
+		trans.newActorID = 151; // Yew Bow instead of Yew Bow just shot
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		// FIX bug that this bow cannot be used with quiver
+		trans = new TransitionData(-1, 493, 0, 151); // Yew Bow just shot --> Yew Bow
+		trans.autoDecaySeconds = 2;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		var trans = transtions.getTransition(-1, 427); // Attacking Wolf
 		trans.autoDecaySeconds = 3;
 		trans.move = 5;
@@ -1421,6 +1430,12 @@ class ServerSettings {
 		//trace('ON DEATH: ${trans.getDesciption()}');
 
 		//var trans = TransitionImporter.GetTransition(0, 3948); // Arrow Quiver
+		//trace('DEBUG: ${trans.getDesciption()}');
+
+		//var trans = TransitionImporter.GetTransition(560, 418); // Knife + Wolf
+		//trace('DEBUG: ${trans.getDesciption()}');
+
+		//var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0
 		//trace('DEBUG: ${trans.getDesciption()}');
 	}
 
