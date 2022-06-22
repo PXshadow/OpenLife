@@ -1631,15 +1631,6 @@ class TimeHelper {
 		var chance = timePassedInYears * ServerSettings.SeasonBiomeChangeChancePerYear * 4; // 4 because 4 directions
 		if (world.randomFloat() > chance) return;
 
-		var objData = world.getObjectDataAtPosition(tx,ty);
-		var insulation = objData.getInsulation();
-		if(insulation > 0){
-			if (objData.isClothing() == false && insulation > world.randomFloat()){
-				//trace('DoSeasonalBiomeChanges: ${objData.name} Insulation: $insulation ==> no snow');
-				return;
-			}
-		}
-
 		var rand = world.randomInt(3);
 		var randX = tx;
 		var randY = ty;
@@ -1649,12 +1640,7 @@ class TimeHelper {
 		else if(rand == 2) randY = ty + 1;
 		else if(rand == 3) randY = ty - 1;
 
-		var biomeId = world.getBiomeId(randX,randY);
-		var doChange = true;
-		
-		if(biomeId != GREY && biomeId != YELLOW && biomeId != GREEN && biomeId != PASSABLERIVER) doChange = false;
-
-		if(doChange) world.setBiomeId(randX,randY, SNOW);
+		if(IsProtected(randX,randY) == false) world.setBiomeId(randX,randY, SNOW);
 
 		// also diagonal
 		var xOff = 1 - world.randomInt(2);
@@ -1662,7 +1648,6 @@ class TimeHelper {
 
 		// dont spread snow over corners to allow buildings with open corners like vic build them
 		var objData = world.getObjectDataAtPosition(tx + xOff,ty);
-		var insulation = objData.getInsulation();
 		if(objData.isWall()) xOff = 0;
 
 		var objData = world.getObjectDataAtPosition(tx,ty + yOff);
@@ -1670,13 +1655,37 @@ class TimeHelper {
 
 		var randX = tx + xOff;
 		var randY = ty + yOff;
-		var biomeId = world.getBiomeId(randX,randY);
 		
-		if(biomeId != GREY && biomeId != YELLOW && biomeId != GREEN && biomeId != PASSABLERIVER) return;
-		world.setBiomeId(randX,randY, SNOW);
+		if(IsProtected(randX,randY) == false) world.setBiomeId(randX,randY, SNOW);
 		//trace('DoSeasonalBiomeChanges: $randX $randY');
 	}
 
+	public static function IsProtected(tx:Int, ty:Int) : Bool {
+		var world = WorldMap.world;
+		var biomeId = world.getBiomeId(tx,ty);
+
+		if(biomeId != GREY && biomeId != YELLOW && biomeId != GREEN && biomeId != PASSABLERIVER) return false;
+
+		var objData = world.getObjectDataAtPosition(tx,ty);
+		var insulation = objData.isClothing() ? 0 : objData.getInsulation();
+
+		if (insulation > world.randomFloat()){
+			//trace('DoSeasonalBiomeChanges: ${objData.name} WallInsulation: $insulation ==> no snow');
+			return true;
+		}
+
+		var floorId = world.getFloorId(tx,ty);
+		var floorObjData = ObjectData.getObjectData(floorId); 
+		var floorInsulation = floorObjData.getInsulation();
+
+		if (floorInsulation > world.randomFloat()){
+			//trace('DoSeasonalBiomeChanges: ${floorObjData.name} FloorInsulation: $floorInsulation ==> no snow');
+			return true;
+		}
+		
+		return false;
+	}
+		
 	private static function RemoveSnow(tx:Int, ty:Int, timePassedInYears:Float) {
 		var world = WorldMap.world;
 		var biomeId = world.getBiomeId(tx,ty);
