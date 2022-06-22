@@ -354,14 +354,11 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI temperature handling if too hot / too cold
-- AI brng clay to home
+- AI bring clay to home
 - AI basic nursing on fire
-- AI use fire if too cold
 - AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread 
 (for thread in bowl there is a workaound. Picking up rabbit fure from a pile to increase same pile needs fix)
 - AI build oven on the right location
-- AI emty graves from items
 - AI try to die at home near existing grave
 - AI burry people (use gravestone for leader)
 - AI help building roads
@@ -377,7 +374,6 @@ High priority:
 - AI FIX bug with wanting to shoot bear in order to get a rope from bow (funny bug)
 
 - AI consider if some one else is already feeding
-- AI hand feed AI player with lower priority 
 - AI dropping stuff at home instead of crafting start if close enough to home
 - AI player fight
 - AI using containers needed also for player YUM display
@@ -385,7 +381,6 @@ High priority:
 - AI fill baskets with bananas
 - AI using of baskets and backpack
 - AI if waiting for time transition check if the next step can be prepared
-
 
 - FIX segmentation fault crash with Ai crafting (missing mutexes?)
 - FIX fishing transitions
@@ -395,12 +390,10 @@ High priority:
 - FIX? /leader Client crash (if leader or anybody? is out of range??) 
 ==> as workaround all player data is send always
 - FIX? bug with reconnect if holding a player // TODO check if it is a problem
+- FIX: PICKUP / DROP CHILD fix display bug. maybe set origion or action right?
 
-
-- RAND look at / fix random generator for float
-
-- PICKUP / DROP CHILD fix display bug. maybe set origion or action right? 
-- SAVE season / save animal loved biome spot
+- SAVE season / save animal loved biome spot 
+- SAVE secret for player
 - SAVE save more stats for player, like best play, different eve runs, number of played, last loged in, amount of time played
 
 Middle priority:
@@ -434,19 +427,19 @@ Middle priority:
 - COMBAT block movement if other player is hostile 
 
 - TIME time transitions for objects in container
-- TIME decay stuff in containers
+- TIME decay stuff in containers --> baskets decays now
 - TIME decay clothing
-- TIME use item for decay like Broken Skewer  ID: 847
-- TIME decay floors / bridges even faster
+- TIME use item for decay like Broken Skewer  ID: 847 --> uses now trash pin for permanents obj
+- TIME decay floors / bridges even faster --> Floors decay now depending on sourounding other walls / floors / stuff in water decays faster
 
 - CRAFTING crafting on table
 
 - RAILS implement rails
 
-- ANIMAL animal movement on top of items
+- ANIMAL animal movement on top of items --> Fix bug so that item apear again if animal interacted with 
 - ANIMAl eating sheep / meat transitions 
 - ANIMAl chasing players
-- ANIMAl Winter attacks
+- ANIMAl more Winter attacks (wolfes go for graves)
 - ANIMAL leaders
 - ANIMAL advanced player like animals
 
@@ -454,7 +447,7 @@ Middle priority:
 
 - TEMPERATURE indoor temperature calculation 
 
-- WINTER change snow biome / snow banks / melting if snow
+- WINTER snow banks / melting if snow
 
 - AI Pottery
 - AI Advanced crafting
@@ -476,7 +469,7 @@ Middle priority:
 
 - POINTER bell tower ringing
 - POINTER maps / maps on waystone
-- POINTER home marker
+- POINTER home marker --> Seems to work
 
 - LANGUAGE implement different languages
 
@@ -488,9 +481,8 @@ Low priority stuff:
 - MAP calculate distance right when on end of map 
 - photo
 
-TODO Testing
-- transition testing
-- multiplayer testing
+Should be DONE:
+- RAND look at / fix random generator for float --> seems to work
 
 PX TODO
 ====
