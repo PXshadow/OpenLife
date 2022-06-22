@@ -591,6 +591,9 @@ class ServerSettings {
 		ObjectData.getObjectData(31).foodValue = 4; // Gooseberry // origional 3
 		ObjectData.getObjectData(2855).foodValue = 4; // Onion // origional 5
 		ObjectData.getObjectData(808).foodValue = 4; // Wild Onion // origional 4
+		ObjectData.getObjectData(807).foodValue = 5; // Burdock Rootl 7
+		//ObjectData.getObjectData(40).foodValue = 5; // Wild Carrot // origional 5
+		//ObjectData.getObjectData(402).foodValue = 5; // Carrot // origional 5
 
 		// boost hunted food
 		ObjectData.getObjectData(197).foodValue = 15; // Cooked Rabbit 10 --> 15
