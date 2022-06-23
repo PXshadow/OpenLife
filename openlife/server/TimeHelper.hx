@@ -1354,7 +1354,10 @@ class TimeHelper {
 			var currentCount = WorldMap.world.currentObjectsCount[spawnAs];
 			var originalCount = WorldMap.world.originalObjectsCount[spawnAs];
 
-			if(currentCount < originalCount / 2) factor *= ServerSettings.GrowBackPlantsIncreaseIfLowPopulation;
+			// Dont make new offsprings if too high population, except from original to spread at possible empty regions 
+			if (fromOriginals == false && currentCount >= originalCount) return;
+			// make more offsprings if population is low
+			if (currentCount < originalCount / 2) factor *= ServerSettings.GrowBackPlantsIncreaseIfLowPopulation;
 
 			if (SpringRegrowChance * objData.springRegrowFactor * factor < WorldMap.calculateRandomFloat()) return;
 

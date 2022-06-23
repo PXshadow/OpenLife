@@ -2845,7 +2845,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (this.heldObject == this.hiddenWound) this.setHeldObject(null);
 
 		if (container.containedObjects.length < 1) {			
-			// SREMV x,y 5 -1 / SREMV is used client to put down a quiver with arrow
+			// SREMV x,y 5 -1 / SREMV is used by client to put down a quiver with arrow
 			if (doSwitchCloths(this, this, clothingSlot)) return true;
 
 			this.connection.send(PLAYER_UPDATE, [this.toData()]);
