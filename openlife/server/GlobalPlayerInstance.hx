@@ -2065,6 +2065,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (this.o_id[0] < 0) return false; // is holding player
 		//if (this.age < ServerSettings.MinAgeToEat) return false;
 
+		if (this.heldObject == this.hiddenWound) this.setHeldObject(null);
+
 		if (clothingSlot < 0) {
 			if (doEating(this, this)) return true;
 		}
@@ -2666,6 +2668,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	private static function doSwitchCloths(playerFrom:GlobalPlayerInstance, playerTo:GlobalPlayerInstance, clothingSlot:Int):Bool {
 		if (playerFrom.o_id[0] < 0) return false; // is holding player
 
+		if (playerFrom.heldObject == playerFrom.hiddenWound) playerFrom.setHeldObject(null);
+		
 		var objClothingSlot = playerFrom.heldObject.objectData.getClothingSlot();
 
 		if (objClothingSlot < 0 && playerFrom.heldObject.id != 0) return false;
@@ -2837,6 +2841,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	private function specialRemoveHelper(clothingSlot:Int, index:Null<Int>) : Bool {
 		var container = this.clothingObjects[clothingSlot];
+
+		if (this.heldObject == this.hiddenWound) this.setHeldObject(null);
 
 		if (container.containedObjects.length < 1) {			
 			// SREMV x,y 5 -1 / SREMV is used client to put down a quiver with arrow
