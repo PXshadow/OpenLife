@@ -394,6 +394,9 @@ class ServerSettings {
 			// if(obj.containable) trace('${obj.description} ${obj.containSize}');
 		}
 
+		// horse cart decay // TODO allow decay? set decay for horse cart
+		ObjectData.getObjectData(3157).decaysToObj = 780; // Escaped Horse-Drawn Tire Cart --> Escaped Horse-Drawn Cart
+
 		// set floor decay
 		ObjectData.getObjectData(1596).decayFactor = 0.2; // 1596 Stone Road
 		ObjectData.getObjectData(1596).decaysToObj = 291; // 1596 Stone Road ==> 291 Flat Rock
