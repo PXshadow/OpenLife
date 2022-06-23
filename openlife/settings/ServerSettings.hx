@@ -740,7 +740,6 @@ class ServerSettings {
 		ObjectData.getObjectData(1624).damage = 10; // Bow and Arrow with Note  //
 
 		// TODO more animals like Mouflon?
-
 		ObjectData.getObjectData(1435).deadlyDistance = AnimalDeadlyDistanceFactor; // Bison
 		ObjectData.getObjectData(1435).damage = 2; // Bison
 		ObjectData.getObjectData(1438).deadlyDistance = AnimalDeadlyDistanceFactor; // Shot Bison
@@ -989,6 +988,14 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Clear Bison
+		trans = new TransitionData(-1, 1438, 0, 1435); // Shot Bison --> Bison
+		trans.autoDecaySeconds = -2;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 1440, 0, 1436); // Shot Bison with Calf --> Bison with Calf
+		trans.autoDecaySeconds = -2;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// dead bison already exists
 		trans = new TransitionData(-1, 1442, 0, 1444); // Dead Bison arrow 2 --> Dead Bison arrow 1
 		trans.autoDecaySeconds = -1;
