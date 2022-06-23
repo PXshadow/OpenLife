@@ -745,10 +745,13 @@ class ServerSettings {
 		ObjectData.getObjectData(1435).damage = 2; // Bison
 		ObjectData.getObjectData(1438).deadlyDistance = AnimalDeadlyDistanceFactor; // Shot Bison
 		ObjectData.getObjectData(1438).damage = 5; // Shot Bison
+		ObjectData.getObjectData(1438).countsOrGrowsAs = 1435; // Shot Bison --> Bison
 		ObjectData.getObjectData(1436).deadlyDistance = AnimalDeadlyDistanceFactor; // Bison with Calf
 		ObjectData.getObjectData(1436).damage = 4; // Bison with Calf
+		ObjectData.getObjectData(1436).countsOrGrowsAs = 1435; // Bison with Calf --> Bison
 		ObjectData.getObjectData(1440).deadlyDistance = AnimalDeadlyDistanceFactor; // Shot Bison with Calf
 		ObjectData.getObjectData(1440).damage = 6; // Shot Bison with Calf
+		ObjectData.getObjectData(1440).countsOrGrowsAs = 1435; // Shot Bison with Calf --> Bison
 
 		ObjectData.getObjectData(2156).deadlyDistance = AnimalDeadlyDistanceFactor; // 2156 Mosquito Swarm
 		ObjectData.getObjectData(2156).damage = 1; // 2156 Mosquito Swarm
