@@ -401,6 +401,7 @@ class TransitionHelper {
 		 object on (for example, using a knife to slice bread sitting on a table).
 	 */
 	public function use(target:Int, containerIndex:Int):Bool {
+		// Example:  USE -10 4 1422# For picking up a horse cart
 		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} USE target: $target containerIndex: $containerIndex');
 
 		// TODO intentional use with index, see description above
