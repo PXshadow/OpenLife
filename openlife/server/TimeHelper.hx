@@ -1575,7 +1575,7 @@ class TimeHelper {
 
 		if (floorId != 0) decayChance *= ServerSettings.ObjDecayFactorOnFloor;
 
-		if (objData.permanent > 0) decayChance *= ServerSettings.ObjDecayFactorForPermanentObjs;
+		if (objData.isPermanent()) decayChance *= ServerSettings.ObjDecayFactorForPermanentObjs;
 		//if (objData.permanent <= 0) trace('decay not permanent: ${objData.description}');
 
 		if (world.randomFloat() > decayChance) return;
@@ -1639,7 +1639,7 @@ class TimeHelper {
 	}
 
 	public static function DoSeasonalBiomeChanges(tx:Int, ty:Int, timePassedInYears:Float) {
-		//Season = Winter;
+		Season = Spring;
 		
 		if (Season == Seasons.Winter) SpreadSnow(tx, ty, timePassedInYears);
 		if (Season == Seasons.Summer || Season == Seasons.Spring) RemoveSnow(tx, ty, timePassedInYears);
