@@ -1687,7 +1687,7 @@ class TimeHelper {
 		var world = WorldMap.world;
 		var biomeId = world.getBiomeId(tx,ty);
 
-		if(biomeId != GREY && biomeId != YELLOW && biomeId != GREEN && biomeId != PASSABLERIVER) return false;
+		if(biomeId != GREY && biomeId != YELLOW && biomeId != GREEN && biomeId != PASSABLERIVER) return true;
 
 		var objData = world.getObjectDataAtPosition(tx,ty);
 		var insulation = objData.isClothing() ? 0 : objData.getInsulation();
@@ -1713,7 +1713,7 @@ class TimeHelper {
 		var world = WorldMap.world;
 		var biomeId = world.getBiomeId(tx,ty);
 
-		if(biomeId != SNOW) return;
+		//if(biomeId != SNOW) return;
 		
 		var chance = timePassedInYears * ServerSettings.SeasonBiomeChangeChancePerYear * 4; // 4 because 4 directions
 		chance *= ServerSettings.SeasonBiomeRestoreFactor;
