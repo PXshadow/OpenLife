@@ -1025,16 +1025,23 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Clear up Boar
+		trans = new TransitionData(-1, 1328, 0, 1335); // Wild Boar with Piglet --> Fleeing Wild Piglet
+		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		trans = new TransitionData(-1, 1330, 0, 1332); // Shot Boar --> Dead Boar
 		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		trans = new TransitionData(-1, 1332, 0, 1343); // Dead Boar --> Pig Bones
 		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		trans = transtions.getTransition(-1, 1343); // Pig Bones
 		trans.autoDecaySeconds = -4; // default -2
-		
+
 		trans = transtions.getTransition(-1, 891); // 891 Cracking Adobe Wall
-		trans.autoDecaySeconds = -6;
-		trans.traceTransition("PatchTransitions: ");
+		trans.autoDecaySeconds = -6; // default -0.5
 
 		for (trans in TransitionImporter.transitionImporter.transitions) {
 			if (trans.actorID < -1) {
