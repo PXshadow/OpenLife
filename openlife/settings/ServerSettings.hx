@@ -1095,7 +1095,7 @@ class ServerSettings {
 		// TODO this should function somehow with categories???
 		// original transition makes cart loose rubber if putting down horse cart
 		// Original: 3158 + -1 = 0 + 1422 // Horse-Drawn Tire Cart + ???  -->  Empty + Escaped Horse-Drawn Cart --> must be: 3158 + -1 = 0 + 3161
-		trans = transtions.getTransition(3158, -1);
+		trans = transtions.getTransition(3158, -1); // Horse-Drawn Tire Cart
 		trans.newTargetID = 3161;
 		trans.traceTransition("PatchTransitions: ");
 
@@ -1104,15 +1104,15 @@ class ServerSettings {
 		// Original:  0 + 3161 = 778 + 0 //Empty + Escaped Horse-Drawn Tire Cart# just released -->  Horse-Drawn Cart + Empty
 		// comes from pattern:  <0> + <1422> = <778> + <0> / EMPTY + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + EMPTY
 		trans = transtions.getTransition(0, 3161);
-		trans.newActorID = 3158;
+		trans.newActorID = 3158; // Horse-Drawn Tire Cart
 		trans.traceTransition("PatchTransitions: ");
 
 		trans = transtions.getTransition(-1, 3161);
-		trans.newTargetID = 3157;
+		trans.newTargetID = 3157; // Escaped Horse-Drawn Tire Cart
 		trans.traceTransition("PatchTransitions: ");
 
 		trans = transtions.getTransition(0, 3157);
-		trans.newActorID = 3158;
+		trans.newActorID = 3158; // Horse-Drawn Tire Cart
 		trans.traceTransition("PatchTransitions: ");
 
 		// let Tule Stumps (122) grow back
