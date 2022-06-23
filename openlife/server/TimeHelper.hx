@@ -1713,7 +1713,7 @@ class TimeHelper {
 		var world = WorldMap.world;
 		var biomeId = world.getBiomeId(tx,ty);
 
-		//if(biomeId != SNOW) return;
+		if(biomeId != SNOW) return;
 		
 		var chance = timePassedInYears * ServerSettings.SeasonBiomeChangeChancePerYear * 4; // 4 because 4 directions
 		chance *= ServerSettings.SeasonBiomeRestoreFactor;
@@ -1731,7 +1731,7 @@ class TimeHelper {
 		var biomeId = world.getBiomeId(randX,randY);
 		var doChange = true;
 		
-		if(biomeId == SNOW || biomeId == SNOWINGREY) doChange = false;
+		//if(biomeId == SNOW || biomeId == SNOWINGREY) doChange = false;
 
 		var originalBiome = world.getOriginalBiomeId(tx,ty);
 
@@ -1744,7 +1744,7 @@ class TimeHelper {
 		var biomeId = world.getBiomeId(randX,randY);
 		var doChange = true;
 		
-		if(biomeId == SNOW || biomeId == SNOWINGREY) doChange = false;
+		//if(biomeId == SNOW || biomeId == SNOWINGREY) doChange = false;
 
 		var originalBiome = world.getOriginalBiomeId(tx,ty);
 
