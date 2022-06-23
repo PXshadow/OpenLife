@@ -298,6 +298,7 @@ abstract class AiBase
 		Macro.exception(if (isMovingToPlayer(10)) return);
 
 		if (myPlayer.isMoving()) return;
+		Macro.exception(if (searchNewHome()) return);
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (handleTemperature()) return);
@@ -319,15 +320,16 @@ abstract class AiBase
 			}
 		}
 
-		Macro.exception(if(craftClothing()) return);
-
-		Macro.exception(if(searchNewHome()) return);
+		Macro.exception(if(craftHighPriorityClothing()) return);
 
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
 		if(itemToCraftId == 31) itemToCraftId = -1; // Gooseberry
 		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
 
+		if(myPlayer.age > 10) Macro.exception(if(craftMediumPriorityClothing()) return);
+		if(myPlayer.age > 20) Macro.exception(if(craftLowPriorityClothing()) return);
+		
 		Macro.exception(if(gatherStuff()) return);
 
 		// if there is nothing to do go home
@@ -603,13 +605,12 @@ abstract class AiBase
 
  	// 2886 Wooden Shoe 
  	// 2181 Straw Hat with Feather
-	private function craftClothing() : Bool {
+	private function craftHighPriorityClothing() : Bool {
 		// TODO consider heat / cold
 		// TODO more advanced clothing
 		// TODO try to look like the one you follow
 		// TODO consider minuseage in crafting itself
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
-
 		var color = myPlayer.getColor();
 		var isWhiteOrGinger = (color == Ginger || color == White);
 
@@ -618,6 +619,14 @@ abstract class AiBase
 		if(isWhiteOrGinger && craftClothIfNeeded(200)) return true;
 		// 128 Reed Skirt / bottom
 		if(craftClothIfNeeded(128)) return true; 
+
+		return false;
+}
+
+private function craftMediumPriorityClothing() : Bool {
+		var objData = ObjectData.getObjectData(152); // Bow and Arrow
+		var color = myPlayer.getColor();
+		var isWhiteOrGinger = (color == Ginger || color == White);
 
 		// Hunting gear 874 Empty Arrow Quiver
 		if(craftClothIfNeeded(874)) return true; 
@@ -634,7 +643,15 @@ abstract class AiBase
 		if(isWhiteOrGinger && craftClothIfNeeded(202)) return true;
 		// 201 Rabbit Fur Shawl / Chest
 		if(isWhiteOrGinger && craftClothIfNeeded(201)) return true;	
-		
+
+		return false;
+}
+	
+private function craftLowPriorityClothing() : Bool {
+		var objData = ObjectData.getObjectData(152); // Bow and Arrow
+		var color = myPlayer.getColor();
+		var isWhiteOrGinger = (color == Ginger || color == White);
+	
 		// Hat cloting
 		// 426 Wolf Hat ==> White
 		if(color == White && craftClothIfNeeded(426)) return true;
