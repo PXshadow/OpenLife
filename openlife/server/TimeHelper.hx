@@ -2076,17 +2076,20 @@ class TimeHelper {
 			// TODO dont consider lovesCurrentOriginalBiome once domestic animals muliply
 			if(animal.isDomesticAnimal() && (lovesCurrentBiome || lovesCurrentOriginalBiome)) chanceForAnimalDying /= 1000;
 
-			var currentPop = worldmap.currentObjectsCount[newTileObject[0]];
-			var originalPop = worldmap.originalObjectsCount[newTileObject[0]];
+			//var currentPop = worldmap.currentObjectsCount[newTileObject[0]];
+			//var originalPop = worldmap.originalObjectsCount[newTileObject[0]];
+			var countAs = animal.objectData.countsOrGrowsAs < 1 ? animal.parentId : animal.objectData.countsOrGrowsAs; 
+			var currentPop = worldmap.currentObjectsCount[countAs];
+			var originalPop = worldmap.originalObjectsCount[countAs];
 
 			// give extra birth chance bonus if population is very low			
 			if (currentPop < originalPop * ServerSettings.OffspringFactorLowAnimalPopulationBelow) chanceForOffspring *= ServerSettings.OffspringFactorIfAnimalPopIsLow;
 
 			if (currentPop < originalPop * ServerSettings.MaxOffspringFactor
 				&& worldmap.randomFloat() < chanceForOffspring) {
-				worldmap.currentObjectsCount[newTileObject[0]] += 1;
+				worldmap.currentObjectsCount[countAs] += 1;
 
-				trace('Animal Offspring: ${animal.name} id: ${newTileObject} chance: ${chanceForOffspring} curPop: ${worldmap.currentObjectsCount[newTileObject[0]]} original: ${worldmap.originalObjectsCount[newTileObject[0]]}');
+				trace('Animal Offspring: ${animal.name} id: ${newTileObject} chance: ${chanceForOffspring} curPop: ${currentPop]} original: ${originalPop}');
 
 				// if(chanceForOffspring < worldmap.chanceForOffspring) trace('NEW: $newTileObject ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]} chance: $chanceForOffspring biome: $targetBiome');
 
@@ -2097,11 +2100,13 @@ class TimeHelper {
 				newAnimal.groundObject = tmpGroundObject;
 				worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
 			} else if (currentPop > originalPop * ServerSettings.MaxOffspringFactor
-				&& worldmap.originalObjectsCount[newTileObject[0]] > 0 && worldmap.randomFloat() < chanceForAnimalDying) {
+				&& originalPop > 0 && worldmap.randomFloat() < chanceForAnimalDying) {
+				
 				// decay animal only if it is a original one
 				// TODO decay all animals and cosider if they cointain items like a horse wagon
-				// trace('Animal DEAD: $newTileObject ${animal.description}: Count: ${worldmap.currentObjectsCount[newTileObject[0]]} Original Count: ${worldmap.originalObjectsCount[newTileObject[0]]} chance: $chanceForAnimalDying biome: $targetBiome');
+				trace('Animal DEAD: ${animal.name} $newTileObject Count: ${currentPop} Original Count: ${originalPop} chance: $chanceForAnimalDying biome: $targetBiome');
 
+				worldmap.currentObjectsCount[countAs] -= 1;
 				animal.id = 0;
 				newTileObject = animal.groundObject.toArray();
 				worldmap.setObjectHelper(toTx, toTy, animal.groundObject);
