@@ -1639,7 +1639,7 @@ class TimeHelper {
 	}
 
 	public static function DoSeasonalBiomeChanges(tx:Int, ty:Int, timePassedInYears:Float) {
-		Season = Spring;
+		//Season = Spring;
 		
 		if (Season == Seasons.Winter) SpreadSnow(tx, ty, timePassedInYears);
 		if (Season == Seasons.Summer || Season == Seasons.Spring) RemoveSnow(tx, ty, timePassedInYears);
@@ -1731,7 +1731,7 @@ class TimeHelper {
 		var biomeId = world.getBiomeId(randX,randY);
 		var doChange = true;
 		
-		//if(biomeId == SNOW || biomeId == SNOWINGREY) doChange = false;
+		if(biomeId == SNOW || biomeId == SNOWINGREY) doChange = false;
 
 		var originalBiome = world.getOriginalBiomeId(tx,ty);
 
@@ -1744,7 +1744,7 @@ class TimeHelper {
 		var biomeId = world.getBiomeId(randX,randY);
 		var doChange = true;
 		
-		//if(biomeId == SNOW || biomeId == SNOWINGREY) doChange = false;
+		if(biomeId == SNOW || biomeId == SNOWINGREY) doChange = false;
 
 		var originalBiome = world.getOriginalBiomeId(tx,ty);
 
