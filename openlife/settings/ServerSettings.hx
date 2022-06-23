@@ -1166,6 +1166,15 @@ class ServerSettings {
 		trans.autoDecaySeconds = -2;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// get some ropes back	
+		trans = new TransitionData(135, 850, 59, 67); // Flint Chip + Stone Hoe --> Rope + Long Straight Shaft
+		trans.aiShouldIgnore = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(135, 71, 59, 69); // Flint Chip + Stone Hatchet --> Rope + Short Shaft
+		trans.aiShouldIgnore = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		//  Wild Gooseberry Bush
 		trans = new TransitionData(253, 30, 253, 30); // Bowl of Gooseberries + Wild Gooseberry Bush --> Bowl of Gooseberries(+1) + Wild Gooseberry Bush
 		trans.reverseUseActor = true;
