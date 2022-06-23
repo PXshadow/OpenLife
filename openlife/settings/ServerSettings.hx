@@ -1103,7 +1103,7 @@ class ServerSettings {
 		trans = transtions.getTransition(0, 3161); 
 		trans.isPickup = true;
 		// Escaped Horse-Drawn Tire Cart
-		trans = transtions.getTransition(0, 3161); 
+		trans = transtions.getTransition(0, 3157); 
 		trans.isPickup = true;
 		// Hitched Horse-Drawn Tire Cart
 		trans = transtions.getTransition(0, 3159); 
