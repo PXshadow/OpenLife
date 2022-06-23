@@ -1278,6 +1278,8 @@ class TimeHelper {
 		var objID = objIDs[0];
 		var objData = ObjectData.getObjectData(objID);
 
+		//Season = Seasons.Spring;
+
 		if (Season == Seasons.Winter && hidden == false && objData.winterDecayFactor > 0) {
 			// reduce uses if it is for example a berry bush
 			if (objData.numUses > 1) {
@@ -1348,20 +1350,27 @@ class TimeHelper {
 			var factor = hidden ? 2 : ServerSettings.GrowNewPlantsFromExistingFactor;
 			if(fromOriginals) factor = ServerSettings.GrowBackOriginalPlantsFactor;
 
-			if (SpringRegrowChance * objData.springRegrowFactor * factor < WorldMap.calculateRandomFloat()) return;
-
 			var spawnAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objID;
+			var currentCount = WorldMap.world.currentObjectsCount[spawnAs];
+			var originalCount = WorldMap.world.originalObjectsCount[spawnAs];
+
+			if(currentCount < originalCount / 2) factor *= ServerSettings.GrowBackPlantsIncreaseIfLowPopulation;
+
+			if (SpringRegrowChance * objData.springRegrowFactor * factor < WorldMap.calculateRandomFloat()) return;
 
 			WorldMap.world.mutex.acquire();
 			Macro.exception(RegrowObj(x,y, spawnAs, hidden));
 			WorldMap.world.mutex.release();
 
+			currentCount += 1;
+			WorldMap.world.currentObjectsCount[spawnAs] = currentCount;
+
 			if (ServerSettings.DebugSeason) {
-				var mod = WorldMap.world.currentObjectsCount[spawnAs] < 1000 ? 100 : 1000;
-				mod = WorldMap.world.currentObjectsCount[spawnAs] < 100 ? 10 : mod;
-				mod = WorldMap.world.currentObjectsCount[spawnAs] < 10 ? 1 : mod;
-				if (WorldMap.world.currentObjectsCount[spawnAs] % mod == 0)
-					trace('SEASON REGROW: ${objData.description} ${WorldMap.world.currentObjectsCount[spawnAs]} original: ${WorldMap.world.originalObjectsCount[spawnAs]}');
+				var mod = currentCount < 1000 ? 100 : 1000;
+				mod = currentCount < 100 ? 10 : mod;
+				mod = currentCount < 10 ? 1 : mod;
+				if (currentCount % mod == 0)
+					trace('SEASON REGROW: ${objData.name} ${currentCount} original: ${originalCount} spawnAs: $spawnAs');
 			}
 		}
 	}
