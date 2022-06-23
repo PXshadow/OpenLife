@@ -518,6 +518,9 @@ class ServerSettings {
 
 		ObjectData.getObjectData(404).countsOrGrowsAs = 1435;  // Bison with Calf --> Bison
 
+		ObjectData.getObjectData(2145).countsOrGrowsAs = 2142;  // Empty Banana Plant --> Banana Plant
+		ObjectData.getObjectData(279).countsOrGrowsAs = 30;  // Empty Wild Gooseberry Bush --> Wild Gooseberry Bush
+
 		ObjectData.getObjectData(164).secondTimeOutcome = 173; // Rabbit Hole out,single ==> Rabbit Family Hole out
 		ObjectData.getObjectData(164).secondTimeOutcomeTimeToChange = 90;
 
