@@ -398,7 +398,7 @@ class ServerSettings {
 		ObjectData.getObjectData(1596).decayFactor = 0.2; // 1596 Stone Road
 		ObjectData.getObjectData(1596).decaysToObj = 291; // 1596 Stone Road ==> 291 Flat Rock
 
-		ObjectData.getObjectData(884).decayFactor = 0.001; // 884 Stone Floor
+		ObjectData.getObjectData(884).decayFactor = 0.1; // 884 Stone Floor
 		ObjectData.getObjectData(884).decaysToObj = 881; // 884 Stone Floor ==> 881 Cut Stones
 
 		ObjectData.getObjectData(888).decayFactor = 0.5; // 888 Bear Skin Rug
@@ -406,6 +406,14 @@ class ServerSettings {
 
 		ObjectData.getObjectData(3290).decayFactor = 2; // 3290 Pine Floor
 
+		// set wall decay
+		ObjectData.getObjectData(885).decayFactor = 0.1; //  Stone Wall+cornerStone
+		ObjectData.getObjectData(885).decaysToObj = 1853; //  Stone Wall+cornerStone ==> Cut Stones
+		ObjectData.getObjectData(886).decayFactor = 0.1; //  Stone Wall+verticalStone
+		ObjectData.getObjectData(886).decaysToObj = 1853; //  Stone Wall+verticalStone  ==> Cut Stones
+		ObjectData.getObjectData(887).decayFactor = 0.1; //  Stone Wall+horizontalStone
+		ObjectData.getObjectData(887).decaysToObj = 1853; //  Stone Wall+horizontalStone  ==> Cut Stones
+			
 		// set object decay
 		ObjectData.getObjectData(1598).decayFactor = -1; // 1598 Iron Ore Pile
 		ObjectData.getObjectData(1837).decayFactor = -1; // 1837 Stack of Steel Ingots
@@ -1441,6 +1449,9 @@ class ServerSettings {
 
 		//var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0
 		//trace('DEBUG: ${trans.getDesciption()}');
+
+		//var objData = ObjectData.getObjectData(887); // Stone Wall
+		//trace('${objData.name} isPermanent ${objData.isPermanent()}');
 	}
 
 	public static function writeToFile() {
