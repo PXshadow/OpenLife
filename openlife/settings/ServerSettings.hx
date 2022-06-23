@@ -413,13 +413,21 @@ class ServerSettings {
 		ObjectData.getObjectData(886).decaysToObj = 1853; //  Stone Wall+verticalStone  ==> Cut Stones
 		ObjectData.getObjectData(887).decayFactor = 0.1; //  Stone Wall+horizontalStone
 		ObjectData.getObjectData(887).decaysToObj = 1853; //  Stone Wall+horizontalStone  ==> Cut Stones
-			
+		
+		// Adobe Wall
+		ObjectData.getObjectData(154).decaysToObj = 889; //  Adobe Wall+corner  ==> Cracking Adobe Wall corner
+		ObjectData.getObjectData(155).decaysToObj = 891; //  Adobe Wall+horizontalAdobe  ==> Cracking Adobe Wall
+		ObjectData.getObjectData(156).decaysToObj = 890; //  Fixed Adobe Wall (vertical)  ==> Cracking Adobe Wall (vertival)
+		
+		// Plastered Walls
+		ObjectData.getObjectData(1883).decaysToObj = 154; // Plaster Wall (corner) ==> 155 Adobe Wall (Vorner)
+		ObjectData.getObjectData(1884).decaysToObj = 156; // Plaster Wall (auto vertical) ==> 156 Adobe Wall ( vertical)		
+		ObjectData.getObjectData(1885).decaysToObj = 155; // Plaster Wall (auto horizontal) ==> 155 Adobe Wall (horizontal))
+		// TODO other walls
+
 		// set object decay
 		ObjectData.getObjectData(1598).decayFactor = -1; // 1598 Iron Ore Pile
 		ObjectData.getObjectData(1837).decayFactor = -1; // 1837 Stack of Steel Ingots
-		
-		// TODO other walls
-		ObjectData.getObjectData(1885).decaysToObj = 155; // 1885 Plaster Wall (auto horizontal) ==> 155 Adobe Wall
 		
 		// TODO set water right and add further wells like deep well
 		ObjectData.getObjectData(662).decayFactor = 0.1; // 662 Shallow Well
