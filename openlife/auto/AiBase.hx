@@ -584,15 +584,17 @@ abstract class AiBase
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather!');
 
-		if(craftItem(197)) return true; // Cooked Rabbit
-		if(craftItem(570)) return true; // Cooked Mutton
-		if(craftItem(1285)) return true; // Omelette
+		if(myPlayer.age < 10 && makeSharpieFood()) return true;
+		if(myPlayer.age < 20 && makeFireFood()) return true;
 
 		if(craftItem(272)) return true; // Cooked Berry Pie
 		if(craftItem(229)) return true; // Wet Planted Wheat
 	
-		if(craftItem(40)) return true; // Wild Carrot		
-		if(craftItem(807)) return true; // Burdock Root		
+		if(craftItem(1285)) return true; // Omelette
+		
+		if(makeFireFood()) return true;
+		if(makeSharpieFood()) return true;
+			
 		if(craftItem(808)) return true; // Wild Onion
 		if(craftItem(4252)) return true; // Wild Garlic
 		
@@ -600,6 +602,18 @@ abstract class AiBase
 		
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} nothing to gather!');
 
+		return false;
+	}
+
+	private function makeSharpieFood() : Bool {
+		if(craftItem(40)) return true; // Wild Carrot		
+		if(craftItem(807)) return true; // Burdock Root	
+		return false;
+	}
+
+	private function makeFireFood() : Bool {
+		if(craftItem(570)) return true; // Cooked Mutton
+		if(craftItem(197)) return true; // Cooked Rabbit
 		return false;
 	}
 
