@@ -447,6 +447,9 @@ abstract class AiBase
 		if(grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 89, null, 10); // 89 Old Grave 
 		if(grave == null) return false;
 
+		if (this.isObjectNotReachable(grave.tx, grave.ty)) return false;
+		if (this.isObjectWithHostilePath(grave.tx, grave.ty)) return false;
+
 		// cannot touch own grave
 		var account = grave.getOwnerAccount();
 		if(account != null && account.id == myPlayer.account.id) {
