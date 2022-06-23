@@ -1687,7 +1687,7 @@ class TimeHelper {
 		var world = WorldMap.world;
 		var biomeId = world.getBiomeId(tx,ty);
 
-		if(biomeId != GREY && biomeId != YELLOW && biomeId != GREEN && biomeId != PASSABLERIVER) return true;
+		if(biomeId != GREY && biomeId != YELLOW && biomeId != GREEN && biomeId != SWAMP && biomeId != PASSABLERIVER) return true;
 
 		var objData = world.getObjectDataAtPosition(tx,ty);
 		var insulation = objData.isClothing() ? 0 : objData.getInsulation();
