@@ -552,7 +552,7 @@ abstract class AiBase
 
 		if(ServerSettings.DebugAiSay) myPlayer.say('going to $text');
 
-		//if (ServerSettings.DebugAi)
+		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} dist: $quadDistance goto: $done');
 			
 		return done;

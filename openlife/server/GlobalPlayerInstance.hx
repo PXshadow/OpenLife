@@ -2810,32 +2810,41 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		  i specifies the index of the container item to remove, or -1 to
 		  remove top of stack.
 	 */
-	// SREMV -5 6 5 -1 remnove from backpack
+	// SREMV x y 5 -1 remnove from backpack
+	// SREMV x y 5 -1 remove quiver with arrows
 	public function specialRemove(x:Int, y:Int, clothingSlot:Int, index:Null<Int>):Bool {
-		trace("SPECIAL REMOVE:");
+		//trace('SPECIAL REMOVE: $clothingSlot $index');
 
 		if (clothingSlot < 0) {
 			this.connection.send(PLAYER_UPDATE, [this.toData()]);
 			return false;
 		}
 
+		if (this.o_id[0] < 0){ // is holding player
+			this.connection.send(PLAYER_UPDATE, [this.toData()]);
+			return false;
+		} 
+
+		var done = false;
+		GlobalPlayerInstance.AcquireMutex();
+		Macro.exception(done = specialRemoveHelper(clothingSlot, index));
+		GlobalPlayerInstance.ReleaseMutex();
+
+		Connection.SendUpdateToAllClosePlayers(this);
+		
+		return done;
+	}
+
+	private function specialRemoveHelper(clothingSlot:Int, index:Null<Int>) : Bool {
 		var container = this.clothingObjects[clothingSlot];
 
-		if (container.containedObjects.length < 1) {
+		if (container.containedObjects.length < 1) {			
+			// SREMV x,y 5 -1 / SREMV is used client to put down a quiver with arrow
+			if (doSwitchCloths(this, this, clothingSlot)) return true;
+
 			this.connection.send(PLAYER_UPDATE, [this.toData()]);
 			return false;
 		}
-
-		GlobalPlayerInstance.AcquireMutex();
-		Macro.exception(specialRemoveHelper(container, clothingSlot, index));
-		Connection.SendUpdateToAllClosePlayers(this);
-
-		GlobalPlayerInstance.ReleaseMutex();
-		return true;
-	}
-
-	private function specialRemoveHelper(container:ObjectHelper, clothingSlot:Int, index:Null<Int>) {
-		if (this.o_id[0] < 0) return; // is holding player
 
 		//this.say('Remove $clothingSlot');
 
@@ -2846,6 +2855,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		SetTransitionData(x, y, true);
 
 		trace('this.clothing_set: ${this.clothing_set}');
+
+		return true;
 	}
 
 	public function isMeh(food:ObjectHelper):Bool {
