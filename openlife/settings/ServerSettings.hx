@@ -352,6 +352,103 @@ class ServerSettings {
 		return (obj != 942 && obj != 3030 && obj != 2285 && obj != 3961 && obj != 3962 && obj != 503);
 	}
 
+	public static function writeToFile() {
+		var rtti = haxe.rtti.Rtti.getRtti(ServerSettings);
+		var dir = './${ServerSettings.SaveDirectory}/';
+		var path = dir + "ServerSettings.txt";
+
+		if (FileSystem.exists(dir) == false) FileSystem.createDirectory(dir);
+
+		var writer = File.write(path, false);
+
+		writer.writeString('Remove **default** if you dont want to use default value!\n');
+
+		var count = 0;
+
+		for (field in rtti.statics) {
+			if ('$field'.indexOf('CFunction') != -1) continue;
+			count++;
+			var value:Dynamic = Reflect.field(ServerSettings, field.name);
+
+			// trace('ServerSettings: $count ${field.name} ${field.type} $value');
+
+			if ('${field.type}' == "CClass(String,[])") {
+				writer.writeString('**default** ${field.name} = "$value"\n');
+			} else {
+				writer.writeString('**default** ${field.name} = $value\n');
+			}
+		}
+
+		writer.writeString('**END**\n');
+
+		writer.close();
+	}
+
+	public static function readFromFile(traceit:Bool = true):Bool {
+		var reader = null;
+
+		try {
+			// var rtti = haxe.rtti.Rtti.getRtti(ServerSettings);
+			var dir = './${ServerSettings.SaveDirectory}/';
+			reader = File.read(dir + "ServerSettings.txt", false);
+
+			reader.readLine();
+
+			var line = "";
+
+			while (line.indexOf('**END**') == -1) {
+				line = reader.readLine();
+
+				// trace('Read: ${line}');
+
+				if (line.indexOf('**default**') != -1) continue;
+
+				var splitLine = line.split("=");
+
+				if (splitLine.length < 2) continue;
+
+				splitLine[0] = StringTools.replace(splitLine[0], ' ', '');
+				// splitLine[1] = StringTools.replace(splitLine[1], '\n', '');
+
+				if (traceit) trace('Load Setting: ${splitLine[0]} = ${splitLine[1]}');
+
+				var fieldName = splitLine[0];
+				var value:Dynamic = splitLine[1];
+
+				if (splitLine[1].indexOf('"') != -1) {
+					var splitString = splitLine[1].split('"');
+
+					if (splitString.length < 3) continue;
+
+					value = splitString[1];
+				} else {
+					value = StringTools.replace(value, 'true', '1');
+					value = StringTools.replace(value, 'false', '0');
+					value = Std.parseFloat(value);
+				}
+
+				var oldValue:Dynamic = Reflect.field(ServerSettings, fieldName);
+
+				Reflect.setField(ServerSettings, fieldName, value);
+
+				var newValue:Dynamic = Reflect.field(ServerSettings, fieldName);
+
+				if ('$newValue' != '$oldValue') trace('Setting changed: ${fieldName} = ${newValue} // old value: $oldValue');
+			}
+		} catch (ex) {
+			if (reader != null) reader.close();
+
+			trace(ex);
+
+			return false;
+		}
+
+		return true;
+
+		// trace('Read Test: traceTransitionByTargetDescription: $traceTransitionByTargetDescription');
+		// trace('Read Test: YumBonus: $YumBonus');
+	}
+
 	public static function PatchObjectData() {
 		ObjectData.getObjectData(707).clothing = "n"; // ANTARCTIC FUR SEAL
 
@@ -1503,105 +1600,9 @@ class ServerSettings {
 
 		//var objData = ObjectData.getObjectData(887); // Stone Wall
 		//trace('${objData.name} isPermanent ${objData.isPermanent()}');
-	}
-
-	public static function writeToFile() {
-		var rtti = haxe.rtti.Rtti.getRtti(ServerSettings);
-		var dir = './${ServerSettings.SaveDirectory}/';
-		var path = dir + "ServerSettings.txt";
-
-		if (FileSystem.exists(dir) == false) FileSystem.createDirectory(dir);
-
-		var writer = File.write(path, false);
-
-		writer.writeString('Remove **default** if you dont want to use default value!\n');
-
-		var count = 0;
-
-		for (field in rtti.statics) {
-			if ('$field'.indexOf('CFunction') != -1) continue;
-			count++;
-			var value:Dynamic = Reflect.field(ServerSettings, field.name);
-
-			// trace('ServerSettings: $count ${field.name} ${field.type} $value');
-
-			if ('${field.type}' == "CClass(String,[])") {
-				writer.writeString('**default** ${field.name} = "$value"\n');
-			} else {
-				writer.writeString('**default** ${field.name} = $value\n');
-			}
-		}
-
-		writer.writeString('**END**\n');
-
-		writer.close();
-	}
-
-	public static function readFromFile(traceit:Bool = true):Bool {
-		var reader = null;
-
-		try {
-			// var rtti = haxe.rtti.Rtti.getRtti(ServerSettings);
-			var dir = './${ServerSettings.SaveDirectory}/';
-			reader = File.read(dir + "ServerSettings.txt", false);
-
-			reader.readLine();
-
-			var line = "";
-
-			while (line.indexOf('**END**') == -1) {
-				line = reader.readLine();
-
-				// trace('Read: ${line}');
-
-				if (line.indexOf('**default**') != -1) continue;
-
-				var splitLine = line.split("=");
-
-				if (splitLine.length < 2) continue;
-
-				splitLine[0] = StringTools.replace(splitLine[0], ' ', '');
-				// splitLine[1] = StringTools.replace(splitLine[1], '\n', '');
-
-				if (traceit) trace('Load Setting: ${splitLine[0]} = ${splitLine[1]}');
-
-				var fieldName = splitLine[0];
-				var value:Dynamic = splitLine[1];
-
-				if (splitLine[1].indexOf('"') != -1) {
-					var splitString = splitLine[1].split('"');
-
-					if (splitString.length < 3) continue;
-
-					value = splitString[1];
-				} else {
-					value = StringTools.replace(value, 'true', '1');
-					value = StringTools.replace(value, 'false', '0');
-					value = Std.parseFloat(value);
-				}
-
-				var oldValue:Dynamic = Reflect.field(ServerSettings, fieldName);
-
-				Reflect.setField(ServerSettings, fieldName, value);
-
-				var newValue:Dynamic = Reflect.field(ServerSettings, fieldName);
-
-				if ('$newValue' != '$oldValue') trace('Setting changed: ${fieldName} = ${newValue} // old value: $oldValue');
-			}
-		} catch (ex) {
-			if (reader != null) reader.close();
-
-			trace(ex);
-
-			return false;
-		}
-
-		return true;
-
-		// trace('Read Test: traceTransitionByTargetDescription: $traceTransitionByTargetDescription');
-		// trace('Read Test: YumBonus: $YumBonus');
-	}
+	}	
 }
+
 /**Actor Category: 1641 @ Deadly Wolf
 	Trans: 1640 + 0 = 427 + 1363 
 	Semi-tame Wolf# just fed 
