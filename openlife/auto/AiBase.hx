@@ -1185,21 +1185,33 @@ private function craftLowPriorityClothing() : Bool {
 
 	private function GetOrCraftItem(objId:Int, count:Int = 1, dontCraft:Bool = false) : Bool {
 		if (myPlayer.isMoving()) return false;
+		var objdata = ObjectData.getObjectData(objId);
+		var pileId = objdata.getPileObjId();
+		var hasPile = pileId > 0;
+		var maxSearchDistance = 40;
+		var searchDistance:Int = hasPile ? 5 : maxSearchDistance;
+		var obj = AiHelper.GetClosestObjectById(myPlayer, objId, null, searchDistance);
+		var pile = hasPile ? myPlayer.GetClosestObjectById(pileId) : null; 
 
-		var obj = AiHelper.GetClosestObjectById(myPlayer, objId);
+		var usePile = pile != null && obj == null;
+		if (usePile) obj = pile;
+		if (obj == null && hasPile) obj = AiHelper.GetClosestObjectById(myPlayer, objId, null, maxSearchDistance);
 
-		if(obj == null && dontCraft) return false;
+		if (obj == null && dontCraft) return false;
 
 		if (obj == null) return craftItem(objId, count);
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: GetOrCraftItem found ${obj.name}');
+		if (ServerSettings.DebugAi) 
+			trace('AAI: ${myPlayer.name + myPlayer.id} GetOrCraftItem: found ${obj.name} pile: $usePile');
+
+		if (usePile) if(dropHeldObject()) return true;
 
 		var distance = myPlayer.CalculateQuadDistanceToObject(obj);
 
 		if (distance > 1) {
 			var done = myPlayer.gotoObj(obj);
 
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal done: $done goto weapon');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GetOrCraftItem: done: $done goto obj $distance');
 			return true;
 		}
 
@@ -1208,7 +1220,7 @@ private function craftLowPriorityClothing() : Bool {
 			var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
 
 			if (ServerSettings.DebugAi || done == false)
-				trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal child drop for get item ${heldPlayer.name} $done');
+				trace('AAI: ${myPlayer.name + myPlayer.id} GetOrCraftItem: child drop for get item ${heldPlayer.name} $done');
 
 			return true;
 		}
@@ -1216,9 +1228,13 @@ private function craftLowPriorityClothing() : Bool {
 		// if(ServerSettings.DebugAi) trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
 
 		// x,y is relativ to birth position, since this is the center of the universe for a player
-		var done = myPlayer.drop(obj.tx - myPlayer.gx, obj.ty - myPlayer.gy);
+		var done = false;
+		if(usePile){
+			done = myPlayer.use(obj.tx - myPlayer.gx, obj.ty - myPlayer.gy);
+		}
+		else done = myPlayer.drop(obj.tx - myPlayer.gx, obj.ty - myPlayer.gy);
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal done: $done pickup obj from floor');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GetOrCraftItem: done: $done pickup obj');
 
 		return done;
 	}
@@ -2483,7 +2499,12 @@ private function craftLowPriorityClothing() : Bool {
 
 			//if(ServerSettings.DebugAiSay){
 				if (done) myPlayer.say('Goto ${name} for remove!');
-				else myPlayer.say('Cannot Goto ${name} for remove!');
+				else{
+					myPlayer.say('Cannot Goto ${name} for remove!');
+					removeFromContainerTarget = null;
+					expectedContainer = null;
+					return false;
+				}
 			//}
 
 			return true;
