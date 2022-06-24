@@ -1483,7 +1483,7 @@ class ObjectData extends LineReader {
 		return foodId;
 	}
 
-	// TODO does not work for attacking wolf etc...
+	// TODO does not work for attacking wolf etc since it has no moves
 	public function isAnimal():Bool {
 		return this.moves > 0 && this.id != 2156; // no Mosquito Swarm
 	}

@@ -1695,19 +1695,18 @@ class TimeHelper {
 		var objData = world.getObjectDataAtPosition(tx,ty);
 		var insulation = objData.isClothing() ? 0 : objData.getInsulation();
 
-		if (insulation > world.randomFloat()){
-			//trace('DoSeasonalBiomeChanges: ${objData.name} WallInsulation: $insulation ==> no snow');
-			return true;
-		}
+		if (insulation > world.randomFloat()) return true;
+		if (insulation > world.randomFloat()) return true; // let walls protect twice
+
+		//trace('DoSeasonalBiomeChanges: ${objData.name} WallInsulation: $insulation ==> snow');
 
 		var floorId = world.getFloorId(tx,ty);
 		var floorObjData = ObjectData.getObjectData(floorId); 
 		var floorInsulation = floorObjData.getInsulation();
 
-		if (floorInsulation > world.randomFloat()){
-			//trace('DoSeasonalBiomeChanges: ${floorObjData.name} FloorInsulation: $floorInsulation ==> no snow');
-			return true;
-		}
+		if (floorInsulation > world.randomFloat()) return true;
+
+		//trace('DoSeasonalBiomeChanges: ${floorObjData.name} FloorInsulation: $floorInsulation ==> snow');
 		
 		return false;
 	}
