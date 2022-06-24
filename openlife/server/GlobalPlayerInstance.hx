@@ -110,6 +110,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var firePlace:ObjectHelper = null; // not saved yet
 	public var lastTemperature:Float = 0.5; // not saved
 
+	public var forceStopOnNextTile = false; //not saved // Ai sets this to change only movement if reached next tile
+
 	public function getFollowPlayer() {
 		return followPlayer;
 	}

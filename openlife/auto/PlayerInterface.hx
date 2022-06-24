@@ -47,6 +47,7 @@ interface PlayerInterface {
 	public var heldObject(default, default):ObjectHelper;
 	public var hiddenWound(default, default):ObjectHelper;
 	public var home(default, default):ObjectHelper;
+	public var forceStopOnNextTile(default, default):Bool;
 
 	public var clothingObjects(default, default):Vector<ObjectHelper>;
 

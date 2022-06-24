@@ -36,7 +36,7 @@ class MoveHelper {
 
 	public var player:GlobalPlayerInstance;
 	public var waitForForce = false;
-	public var timeLastForce:Float = 0;
+	public var timeLastForce:Float = 0;	
 
 	// x,y when last chunk was send
 	private var tx:Int = 0;
@@ -302,6 +302,12 @@ class MoveHelper {
 
 				if(p.getAi() != null) p.getAi().movedOneTile = true;
 
+				if(p.forceStopOnNextTile){
+					p.forceStopOnNextTile = false;
+					CancleMovement(p);
+					return;
+				}
+
 				// if(ServerSettings.DebugMoveHelper) trace('Move: ${p.name} ${p.tx} ${p.ty}');
 			}
 
@@ -512,7 +518,7 @@ class MoveHelper {
 
 		if (p.isBlocked(tx, ty) || quadDist > ServerSettings.MaxMovementQuadJumpDistanceBeforeForce) {
 			trace('${p.name} MOVE: FORCE!! Movement cancled since blocked or Client uses too different x,y: quadDist: $quadDist exact: ${Math.ceil((p.moveHelper.exactTx - p.gx) * 10) / 10},${Math.ceil((p.moveHelper.exactTy - p.gy) * 10) / 10} Server ${p.x},${p.y} <--> Client ${x},${y}');
-			cancleMovement(p, seq);
+			CancleMovement(p, seq);
 			return;
 		}
 
@@ -523,7 +529,7 @@ class MoveHelper {
 			if (Math.ceil(p.jumpedTiles) >= ServerSettings.MaxJumpsPerTenSec) {
 				if (ServerSettings.DebugMoveHelper)
 					trace('${p.name} MOVE: JUMP: FORCE!! Movement cancled since too exhausted ${Math.ceil(p.exhaustion)} or jumped: ${Math.ceil(p.jumpedTiles * 10) / 10} to often: quadDist: $quadDist Server ${p.x},${p.y} --> Client ${x},${y}');
-				cancleMovement(p, seq);
+				CancleMovement(p, seq);
 				return;
 			}
 
@@ -550,7 +556,7 @@ class MoveHelper {
 		var newMovements = calculateNewMovements(p, moves);
 		if (newMovements.moves.length < 1) {
 			if (ServerSettings.DebugMoveHelper) trace('${p.name} MOVE: FORCE!! Move cancled since no new movements!');
-			cancleMovement(p, seq);
+			CancleMovement(p, seq);
 			return;
 		}
 
@@ -598,7 +604,9 @@ class MoveHelper {
 		}
 	}
 
-	public static function cancleMovement(p:GlobalPlayerInstance, seq:Int) {
+	public static function CancleMovement(p:GlobalPlayerInstance, seq:Int = -1) {
+		if(seq < 0) seq = p.done_moving_seqNum;
+
 		if (p.isHuman()){
 			p.moveHelper.waitForForce = true; // ignore all moves untill client sends a force
 			p.moveHelper.timeLastForce = TimeHelper.tick;
