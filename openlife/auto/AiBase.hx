@@ -57,6 +57,7 @@ abstract class AiBase
 
 	var playerToFollow:PlayerInterface;
 	var autoStopFollow = true;
+	var timeStartedToFolow:Float = 0;
 
 	var children = new Array<PlayerInterface>();
 
@@ -280,6 +281,11 @@ abstract class AiBase
 
 				Macro.exception(if (isUsingItem()) return);
 			}
+		}
+
+		if (playerToFollow != null && autoStopFollow == false){
+			var time = TimeHelper.CalculateTimeSinceTicksInSec(timeStartedToFolow);
+			if(time > 60 * 5) autoStopFollow = true; // max follow player for 5 min
 		}
 
 		// Only follow Ai if still cannot eat // TODO allow follow AI in certain cirumstances
@@ -844,13 +850,15 @@ private function craftLowPriorityClothing() : Bool {
 		}
 		if (text.contains("FOLLOW ME")) {
 			autoStopFollow = false; // otherwise if old enough ai would stop follow
+			timeStartedToFolow = TimeHelper.tick; 
 			playerToFollow = player;
 			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.say("IM COMMING");
 		}
 		else if (text.contains("STOP FOLLOW")) {
 			playerToFollow = null;
-			myPlayer.say("YES CAPTAIN");
+			autoStopFollow = true;
+			myPlayer.say("STOPED");
 		}
 		else if (text.contains("STOP") || text.contains("WAIT")) {			
 			//myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
