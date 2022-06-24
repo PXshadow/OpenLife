@@ -507,10 +507,11 @@ class ServerSettings {
 		ObjectData.getObjectData(3290).decayFactor = 2; // 3290 Pine Floor
 
 		// set doors
-		ObjectData.getObjectData(875).rValue = 0.9; // Wooden Door 
-		ObjectData.getObjectData(875).decaysToObj = 470; // Wooden Door ==> Boards
-		ObjectData.getObjectData(2762).rValue = 0.95; // Springy Wooden Door
-		ObjectData.getObjectData(2762).decaysToObj = 875; // Springy Wooden Door ==> Wooden Door
+		//ObjectData.getObjectData(876).rValue = 0.9; // 75% // Wooden Door 
+		ObjectData.getObjectData(876).decaysToObj = 470; // Wooden Door ==> Boards
+		ObjectData.getObjectData(2757).rValue = 0.95; // Springy Wooden Door
+		ObjectData.getObjectData(2757).decaysToObj = 876; // Springy Wooden Door ==> Wooden Door
+		ObjectData.getObjectData(2757).blocksAnimal = true; // Springy Wooden Door
 
 		// set wall decay
 		ObjectData.getObjectData(885).decayFactor = 0.1; //  Stone Wall+cornerStone

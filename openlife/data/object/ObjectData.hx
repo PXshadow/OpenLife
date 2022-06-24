@@ -80,6 +80,7 @@ class ObjectData extends LineReader {
 	public var foodFromActor:ObjectData; // do not save on disk since it can be calculated after loading
 
 	public var blocksDomesticAnimal = false;
+	public var blocksAnimal = false;
 
 	public var dummyObjects:Array<ObjectData> = [];
 	public var lastUseObject:Int = 0; // TODO set for all according to transition // like Berry numUses: 1 ==> 0
