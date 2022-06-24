@@ -10,6 +10,7 @@ import openlife.data.object.ObjectHelper;
 import openlife.data.object.player.PlayerInstance;
 import openlife.data.transition.TransitionData;
 import openlife.macros.Macro;
+import openlife.server.Biome.BiomeTag;
 import openlife.server.GlobalPlayerInstance;
 import openlife.server.Lineage.PrestigeClass;
 import openlife.server.WorldMap;
@@ -83,8 +84,11 @@ class AiHelper {
 		var ai = playerInterface.getAi();
 		var world = playerInterface.getWorld();
 		var player = playerInterface.getPlayerInstance();
+		var searchEmptyPlace = ai != null && objDataToSearch != null && objDataToSearch.parentId == 0;
 		var baseX = player.tx;
 		var baseY = player.ty;
+		var closestBadPlaceforDrop = null;
+		var bestDistanceToBadPlaceforDrop = 0.0;
 		var closestObject = null;
 		var bestDistance = 0.0;
 
@@ -108,7 +112,7 @@ class AiHelper {
 				{
 					var objDataBelow = world.getObjectDataAtPosition(tx, ty - 1);
 
-					if (ai != null && objDataToSearch != null && objDataToSearch.parentId == 0 && objDataBelow.isTree()) continue;
+					if (searchEmptyPlace && objDataBelow.isTree()) continue;
 
 					var obj = world.getObjectHelper(tx, ty);
 
@@ -116,9 +120,20 @@ class AiHelper {
 
 					var distance = AiHelper.CalculateQuadDistanceToObject(playerInterface, obj);
 
-					if (closestObject == null || distance < bestDistance) {
-						closestObject = obj;
-						bestDistance = distance;
+					if(searchEmptyPlace && IsBadBiomeForDrop(tx, ty)){
+						// try not drop stuff in water or mountain
+						if (closestBadPlaceforDrop == null || distance < bestDistanceToBadPlaceforDrop) {
+							closestBadPlaceforDrop = obj;
+							bestDistanceToBadPlaceforDrop = distance;
+							//trace('Bad Empty Space For drop distance: $distance');
+						}
+					}
+					else{
+						if (closestObject == null || distance < bestDistance) {
+							closestObject = obj;
+							bestDistance = distance;
+							//if(searchEmptyPlace) trace('Empty Space For drop distance: $distance');
+						}
 					}
 				}
 			}
@@ -126,7 +141,14 @@ class AiHelper {
 
 		// if(closestObject !=null) trace('AI: bestdistance: $bestDistance ${closestObject.description}');
 
-		return closestObject;
+		return closestObject != null ? closestObject : closestBadPlaceforDrop;
+	}
+
+	public static function IsBadBiomeForDrop(tx:Int, ty:Int) : Bool{
+		var biomeId = WorldMap.world.getBiomeId(tx, ty);
+		if(biomeId == PASSABLERIVER || biomeId == OCEAN || biomeId == RIVER || biomeId == SNOWINGREY) return false;
+
+		return true;
 	}
 
 	public static function GetCloseClothings(playerInterface:PlayerInterface, searchDistance:Int = 8):Array<ObjectHelper> {
