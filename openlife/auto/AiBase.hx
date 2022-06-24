@@ -1322,6 +1322,12 @@ private function craftLowPriorityClothing() : Bool {
 		if (distance > 10 && myPlayer.isMoving()) return true;
 
 		if (distance > 1) {
+
+			if(myPlayer.isMoving()){
+				myPlayer.forceStopOnNextTile = true;
+				return true;
+			}
+
 			var done = myPlayer.gotoAdv(targetPlayer.tx, targetPlayer.ty);
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done goto feed starving ${targetPlayer.name} dist: $distance');
 			return true;
