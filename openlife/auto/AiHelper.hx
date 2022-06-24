@@ -146,16 +146,24 @@ class AiHelper {
 			}
 		}
 
+		/*if(closestObject != null){
+			//playerInterface.say('No Empty tile found!');
+			var isBadBiome = IsBadBiomeForDrop(closestObject.tx, closestObject.ty); 
+			trace('AI: isBadBiome: $isBadBiome ${closestObject.name}');
+		}*/
+
 		// if(closestObject !=null) trace('AI: bestdistance: $bestDistance ${closestObject.description}');
+
+		if(closestObject == null && searchEmptyPlace) playerInterface.say('No Empty tile found!'); 
 
 		return closestObject != null ? closestObject : closestBadPlaceforDrop;
 	}
 
 	public static function IsBadBiomeForDrop(tx:Int, ty:Int) : Bool{
 		var biomeId = WorldMap.world.getBiomeId(tx, ty);
-		if(biomeId == PASSABLERIVER || biomeId == OCEAN || biomeId == RIVER || biomeId == SNOWINGREY) return false;
+		if(biomeId == PASSABLERIVER || biomeId == OCEAN || biomeId == RIVER || biomeId == SNOWINGREY) return true;
 
-		return true;
+		return false;
 	}
 
 	public static function GetCloseClothings(playerInterface:PlayerInterface, searchDistance:Int = 8):Array<ObjectHelper> {
