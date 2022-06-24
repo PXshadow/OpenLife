@@ -1520,6 +1520,8 @@ class ServerSettings {
 		trans.aiShouldIgnore = true; 
 		var trans = transtions.getTransition(334, 2142); // Steel Axe + Banana Plant
 		trans.aiShouldIgnore = true; 
+		var trans = transtions.getTransition(334, 2145); // Steel Axe + Empty Banana Plant
+		trans.aiShouldIgnore = true; 
 		var trans = transtions.getTransition(334, 239); // Steel Axe + Wooden Tongs
 		trans.aiShouldIgnore = true; 
 		var trans = transtions.getTransition(71, 239); // Stone Hatchet + Wooden Tongs
