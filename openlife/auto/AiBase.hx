@@ -330,7 +330,7 @@ abstract class AiBase
 		if(myPlayer.age > 10) Macro.exception(if(craftMediumPriorityClothing()) return);
 		if(myPlayer.age > 20) Macro.exception(if(craftLowPriorityClothing()) return);
 		
-		Macro.exception(if(gatherStuff()) return);
+		Macro.exception(if(makeStuff()) return);
 
 		// if there is nothing to do go home
 		Macro.exception(if(isMovingToHome(4)) return);
@@ -564,7 +564,7 @@ abstract class AiBase
 	}
 	
 
-	private function gatherStuff() : Bool {
+	private function makeStuff() : Bool {
 		/*if(myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound){
 
 			// 2144 == Banana Peel
@@ -603,9 +603,7 @@ abstract class AiBase
 		if(craftItem(808)) return true; // Wild Onion
 		if(craftItem(4252)) return true; // Wild Garlic
 		
-		
-		
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} nothing to gather!');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} nothing to make!');
 
 		return false;
 	}
@@ -868,15 +866,15 @@ private function craftLowPriorityClothing() : Bool {
 	}
 
 	//public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
-	public function dropHeldObject(maxDistanceToHome:Float = 60) {
+	public function dropHeldObject(maxDistanceToHome:Float = 60) : Bool {
 		// var myPlayer = myPlayer.getPlayerInstance();
 		var home = myPlayer.home;
 		var dropOnStart:Bool = home != null;
 		var heldObjId = myPlayer.heldObject.id;
 
-		if (heldObjId == 0) return;
-		if (myPlayer.heldObject.isWound()) return;
-		if (myPlayer.heldObject == myPlayer.hiddenWound) return; // you cannot drop a smal wound
+		if (heldObjId == 0) return false;
+		if (myPlayer.heldObject.isWound()) return false;
+		if (myPlayer.heldObject == myPlayer.hiddenWound) return false; // you cannot drop a smal wound
 		if (heldObjId == 2144) dropOnStart = false; // 2144 Banana Peel
 		else if (heldObjId == 34) dropOnStart = false; // 34 Sharp Stone
 		else if (heldObjId == 135) dropOnStart = false; // 135 Flint Chip
@@ -893,6 +891,7 @@ private function craftLowPriorityClothing() : Bool {
 				myPlayer.self(0,0,5);
 				//if(ServerSettings.DebugAi) 
 				trace('AAI: ${myPlayer.name + myPlayer.id} DROP: put bow on quiver!');
+				return true;
 			}
 		}
 
@@ -907,6 +906,7 @@ private function craftLowPriorityClothing() : Bool {
 				myPlayer.self(0,0,5);
 				//if(ServerSettings.DebugAi) 
 				trace('AAI: ${myPlayer.name + myPlayer.id} DROP: put Bow with Arrow on quiver!');
+				return true;
 			}
 		}
 
@@ -925,6 +925,7 @@ private function craftLowPriorityClothing() : Bool {
 				myPlayer.self(0,0,5);
 				//if(ServerSettings.DebugAi) 
 				trace('AAI: ${myPlayer.name + myPlayer.id} DROP: put Arrow in quiver!');
+				return true;
 			}
 		}
 		
@@ -940,7 +941,7 @@ private function craftLowPriorityClothing() : Bool {
 
 				if(done){
 					if(ServerSettings.DebugAiSay) myPlayer.say('Goto home!');
-					return;
+					return true;
 				}
 				
 				if(ServerSettings.DebugAiSay) myPlayer.say('Cannot Goto home!');
@@ -983,6 +984,8 @@ private function craftLowPriorityClothing() : Bool {
 		if (ServerSettings.DebugAi && newDropTarget == null) trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} new target: null!!!');
 		// x,y is relativ to birth position, since this is the center of the universe for a player
 		// if(emptyTileObj != null) playerInterface.drop(emptyTileObj.tx - myPlayer.gx, emptyTileObj.ty - myPlayer.gy);
+
+		return true;
 	}
 
 	public function isChildAndHasMother() // must not be his original mother
