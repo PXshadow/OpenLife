@@ -506,6 +506,12 @@ class ServerSettings {
 
 		ObjectData.getObjectData(3290).decayFactor = 2; // 3290 Pine Floor
 
+		// set doors
+		ObjectData.getObjectData(875).rValue = 0.9; // Wooden Door 
+		ObjectData.getObjectData(875).decaysToObj = 470; // Wooden Door ==> Boards
+		ObjectData.getObjectData(2762).rValue = 0.95; // Springy Wooden Door
+		ObjectData.getObjectData(2762).decaysToObj = 875; // Springy Wooden Door ==> Wooden Door
+
 		// set wall decay
 		ObjectData.getObjectData(885).decayFactor = 0.1; //  Stone Wall+cornerStone
 		ObjectData.getObjectData(885).decaysToObj = 1853; //  Stone Wall+cornerStone ==> Cut Stones
