@@ -565,7 +565,7 @@ abstract class AiBase
 	
 
 	private function gatherStuff() : Bool {
-		if(myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound){
+		/*if(myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound){
 
 			// 2144 == Banana Peel
 			if(myPlayer.heldObject.id != 2144 && isMovingToHome(5)){
@@ -577,7 +577,7 @@ abstract class AiBase
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather: drop obj ${myPlayer.heldObject.name}');
 			dropHeldObject();
 			return true;
-		}	
+		}*/	
 		
 		// TODO try only craft stuff if there for better speed
 		// TODO craft only stuff if not enough in home
@@ -587,18 +587,23 @@ abstract class AiBase
 		if(myPlayer.age < 10 && makeSharpieFood()) return true;
 		if(myPlayer.age < 20 && makeFireFood()) return true;
 
-		if(craftItem(272)) return true; // Cooked Berry Pie
-		if(craftItem(229)) return true; // Wet Planted Wheat
+		var closePlate = AiHelper.GetClosestObjectById(myPlayer, 236); // Clay Plate
+		var hasClosePlate = closePlate != null;
+
+		if(hasClosePlate && craftItem(272)) return true; // Cooked Berry Pie
+		if(hasClosePlate && craftItem(1285)) return true; // Omelette
+		if(hasClosePlate && craftItem(229)) return true; // Wet Planted Wheat
 	
-		if(craftItem(1285)) return true; // Omelette
-		
 		if(makeFireFood()) return true;
 		if(makeSharpieFood()) return true;
+
+		if(craftItem(59)) return true; // Rope 
+		//if(craftItem(58)) return true; // Thread
 			
 		if(craftItem(808)) return true; // Wild Onion
 		if(craftItem(4252)) return true; // Wild Garlic
 		
-		//if(craftItem(58)) return true; // Thread (can desconstruct too much)
+		
 		
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} nothing to gather!');
 
