@@ -564,7 +564,9 @@ class MoveHelper {
 
 		moveHelper.sendChunkIfNeeded();
 
-		p.forced = false;
+		p.forced = p.isAi(); // false
+		
+		p.responsible_id = -1;
 
 		// TODO moveHelper.newMoves = nukk since no position will be send if set (ismoving)
 		//if (positionChanged) { // TODO test
@@ -574,7 +576,8 @@ class MoveHelper {
 		//} else {
 			// p.connection.sendPlayerUpdate();
 		//}
-		p.responsible_id = -1;
+		p.forced = false;
+		
 		Connection.SendMoveUpdateToAllClosePlayers(p);
 	}
 
