@@ -301,7 +301,7 @@ abstract class AiBase
 		Macro.exception(if (isUsingItem()) return);
 		Macro.exception(if (isRemovingFromContainer()) return);		
 		Macro.exception(if (killAnimal(animal)) return);
-		Macro.exception(if (isMovingToPlayer(10)) return);
+		Macro.exception(if (isMovingToPlayer(5)) return); // before 10 tiles
 
 		if (myPlayer.isMoving()) return;
 		Macro.exception(if (searchNewHome()) return);
