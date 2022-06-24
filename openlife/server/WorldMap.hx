@@ -364,16 +364,20 @@ class WorldMap {
 		var helper = objectHelpers[position];
 
 		if (helper == null && allowNull) return helper;
+		var helperPosition = helper == null ? 0 : index(helper.tx, helper.ty);
 
-		if (helper != null && (index(helper.tx, helper.ty) != position)) {
-			trace('WARNING: Object ${helper.description} moved meanwhile! ${helper.tx} ${helper.ty} --> ${tx} ${ty}');
+		if (helper != null && helperPosition != position) {
+			trace('WARNING: Object ${helper.description} moved meanwhile! ${helper.tx} ${helper.ty} --> ${tx} ${ty} $helperPosition --> $position');
 			//helper.tx = tx;
+			var samePos = helper.tx == tx && helper.ty == ty;
 
-			if (ServerSettings.debug && helper.id != 0) throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
-			//setObjectHelper(tx,ty, null);
-			objectHelpers[index(tx, ty)] = null;
-			//helper = null;
-			throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
+			if(samePos == false){
+				if (ServerSettings.debug && helper.id != 0) throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
+				//setObjectHelper(tx,ty, null);
+				objectHelpers[index(tx, ty)] = null;
+				//helper = null;
+				throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
+			}
 		}
 
 		if (helper != null) return helper;
