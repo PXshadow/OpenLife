@@ -84,7 +84,10 @@ class AiHelper {
 		var ai = playerInterface.getAi();
 		var world = playerInterface.getWorld();
 		var player = playerInterface.getPlayerInstance();
+		var objId = objDataToSearch == null ? -1 : objDataToSearch.parentId; 
 		var searchEmptyPlace = ai != null && objDataToSearch != null && objDataToSearch.parentId == 0;
+		// 1101 Fertile Soil Pile // 1137 Bowl of Soil // 356 Basket of Bones
+		var searchNotFlooredPlace = ai != null && objDataToSearch != null && (objId == 1101 || objId == 1137 || objId == 356); 
 		var baseX = player.tx;
 		var baseY = player.ty;
 		var closestBadPlaceforDrop = null;
@@ -111,8 +114,12 @@ class AiHelper {
 					|| objData.parentId == objDataToSearch.parentId) // compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs
 				{
 					var objDataBelow = world.getObjectDataAtPosition(tx, ty - 1);
-
 					if (searchEmptyPlace && objDataBelow.isTree()) continue;
+
+					if(searchNotFlooredPlace){
+						var floorId = world.getFloorId(tx, ty);
+						if(floorId > 0) continue;
+					}
 
 					var obj = world.getObjectHelper(tx, ty);
 
