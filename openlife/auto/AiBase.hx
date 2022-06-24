@@ -685,11 +685,18 @@ abstract class AiBase
 	}
 
 	private function makeSharpieFood(maxDistance:Int = 40) : Bool {
+		var heldObjId = myPlayer.heldObject.parentId;
+		if(maxDistance < 15 && (heldObjId == 40 || heldObjId == 807)) dropHeldObject(0);
+
+		var isHoldingSharpStone = myPlayer.heldObject.parentId == 34; // 34 Sharp Stone
+
 		var obj = AiHelper.GetClosestObjectById(myPlayer, 36, null, maxDistance); // Seeding Wild Carrot
-		if(obj != null && craftItem(40)) return true; // Wild Carrot		
+		if(obj != null && isHoldingSharpStone == false) return GetOrCraftItem(34); 
+		if(obj != null && craftItem(39)) return true; // Dug Wild Carrot // 40 Wild Carrot		
 		
 		var obj = AiHelper.GetClosestObjectById(myPlayer, 804, null, maxDistance); // Burdock
-		if(obj != null && craftItem(807)) return true; // Burdock Root	
+		if(obj != null && isHoldingSharpStone == false) return GetOrCraftItem(34); 
+		if(obj != null && craftItem(806)) return true; // Dug Burdock // 807 Burdock Root
 		
 		return false;
 	}
