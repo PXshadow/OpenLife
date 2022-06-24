@@ -590,9 +590,14 @@ abstract class AiBase
 		var closePlate = AiHelper.GetClosestObjectById(myPlayer, 236); // Clay Plate
 		var hasClosePlate = closePlate != null;
 
-		if(hasClosePlate && craftItem(272)) return true; // Cooked Berry Pie
-		if(hasClosePlate && craftItem(1285)) return true; // Omelette
-		if(hasClosePlate && craftItem(229)) return true; // Wet Planted Wheat
+		if(hasClosePlate){
+			if(craftItem(272)) return true; // Cooked Berry Pie
+			if(craftItem(1285)) return true; // Omelette
+			if(craftItem(229)) return true; // Wet Planted Wheat
+		}
+		else{
+			if(craftItem(236)) return true; // // Clay Plate
+		}
 	
 		if(makeFireFood()) return true;
 		if(makeSharpieFood()) return true;
