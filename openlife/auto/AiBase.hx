@@ -610,6 +610,27 @@ abstract class AiBase
 			}
 
 			if(craftItem(1285)) return true; // Omelette
+
+			// TODO more wet planted stuff
+			/*if(craftItem(229)) return true; // Wet Planted Wheat
+			if(craftItem(1162)) return true; // Wet Planted Beans
+			if(craftItem(2857)) return true; // Wet Planted Onion
+			if(craftItem(2852)) return true; // Wet Planted Onions
+			if(craftItem(4263)) return true; // Wet Planted Garlic
+			if(craftItem(399)) return true; // Wet Planted Carrots
+			if(craftItem(1142)) return true; // Wet Planted Potatoes
+			if(craftItem(1110)) return true; // Wet Planted Corn Seed
+			*/
+
+			// stuff can be in more then once to increase chance
+			var wetPlanted = [229, 399, 1110, 1162, 229, 399, 1110, 2857, 229, 399, 1110, 2852, 229, 399, 4263, 229, 399, 399, 229, 1142, 229, 1110, 229];
+			var rand = WorldMap.world.randomInt(wetPlanted.length -1);
+
+			for(i in 0...wetPlanted.length){
+				var index = (rand + i) % wetPlanted.length;
+				if(craftItem(index)) return true;
+			}
+
 			if(craftItem(229)) return true; // Wet Planted Wheat		
 		}
 		else{
