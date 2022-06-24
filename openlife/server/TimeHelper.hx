@@ -1350,7 +1350,7 @@ class TimeHelper {
 			var factor = hidden ? 2 : ServerSettings.GrowNewPlantsFromExistingFactor;
 			if(fromOriginals) factor = ServerSettings.GrowBackOriginalPlantsFactor;
 
-			var spawnAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objID;
+			var spawnAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objData.parentId;
 			var currentCount = WorldMap.world.currentObjectsCount[spawnAs];
 			var originalCount = WorldMap.world.originalObjectsCount[spawnAs];
 
@@ -1411,11 +1411,11 @@ class TimeHelper {
 
 				if (ServerSettings.ObjRespawnChance < worldMap.randomFloat()) continue;
 
-				WorldMap.world.mutex.acquire(); // TODO try catch
+				WorldMap.world.mutex.acquire();
 
-				SpawnObject(x, y, objID);
+				Macro.exception(SpawnObject(x, y, objID));
 
-				WorldMap.world.mutex.release(); // TODO try catch
+				WorldMap.world.mutex.release(); 
 
 				// trace('respawn object: ${objData.description} $obj');
 			}
@@ -1423,26 +1423,31 @@ class TimeHelper {
 	}
 
 	public static function SpawnObject(x:Int, y:Int, objID:Int, dist:Int = 6, tries:Int = 3):Bool {
-		var worldMap = WorldMap.world;
+		var world = WorldMap.world;
+		var objData = ObjectData.getObjectData(objID);
+		var spawnAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objData.parentId;
+		var currentCount = WorldMap.world.currentObjectsCount[spawnAs];
+		var originalCount = WorldMap.world.originalObjectsCount[spawnAs];
 
-		if (worldMap.currentObjectsCount[objID] >= worldMap.originalObjectsCount[objID]) return false;
+		if (currentCount >= originalCount) return false;
+		if (currentCount / (originalCount + 1) > world.randomFloat()) return false; 
 
 		for (ii in 0...tries) {
-			var tmpX = worldMap.randomInt(2 * dist) - dist + x;
-			var tmpY = worldMap.randomInt(2 * dist) - dist + y;
+			var tmpX = world.randomInt(2 * dist) - dist + x;
+			var tmpY = world.randomInt(2 * dist) - dist + y;
 
-			if (worldMap.getObjectId(tmpX, tmpY)[0] != 0) continue;
-			if (worldMap.getObjectId(tmpX, tmpY - 1)[0] != 0) continue; // make sure that obj does not spawn above one tile of existing obj
-			if (worldMap.getFloorId(tmpX, tmpY) != 0) continue; // dont spawn on floors
+			if (world.getObjectId(tmpX, tmpY)[0] != 0) continue;
+			if (world.getObjectId(tmpX, tmpY - 1)[0] != 0) continue; // make sure that obj does not spawn above one tile of existing obj
+			if (world.getFloorId(tmpX, tmpY) != 0) continue; // dont spawn on floors
 
-			var biomeId = worldMap.getBiomeId(tmpX, tmpY);
+			var biomeId = world.getBiomeId(tmpX, tmpY);
 			var objData = ObjectData.getObjectData(objID);
 
 			if (objData.isSpawningIn(biomeId) == false) continue;
 
-			worldMap.setObjectId(tmpX, tmpY, [objID]);
+			world.setObjectId(tmpX, tmpY, [objID]);
 
-			worldMap.currentObjectsCount[objID]++;
+			world.currentObjectsCount[spawnAs]++;
 
 			Connection.SendMapUpdateToAllClosePlayers(tmpX, tmpY);
 
