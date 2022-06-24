@@ -591,6 +591,19 @@ abstract class AiBase
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather!');
 
 		if(myPlayer.age < 10 && makeSharpieFood()) return true;
+
+		// TODO check at home
+		var closeWood = AiHelper.GetClosestObjectById(myPlayer, 344); // Firewood
+		if(closeWood == null) AiHelper.GetClosestObjectById(myPlayer, 1316); // Stack of Firewood
+		var doCraft = closeWood == null || (closeWood.objectData.numUses > 1 && closeWood.numberOfUses < closeWood.objectData.numUses);
+		if(doCraft && craftItem(344)) return true; // Firewood
+		
+		var closeKindling = AiHelper.GetClosestObjectById(myPlayer, 72); // Kindling
+		if(closeKindling == null) AiHelper.GetClosestObjectById(myPlayer, 1599); // Kindling Pile
+		var doCraft = closeKindling == null || (closeKindling.objectData.numUses > 1 && closeKindling.numberOfUses < closeKindling.objectData.numUses);
+		if(doCraft && craftItem(72)) return true; // Kindling
+
+
 		if(myPlayer.age < 20 && makeFireFood()) return true;
 
 		var closePlate = AiHelper.GetClosestObjectById(myPlayer, 236); // Clay Plate
