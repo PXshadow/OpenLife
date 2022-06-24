@@ -809,14 +809,14 @@ private function craftLowPriorityClothing() : Bool {
 		else if (text.contains("STOP") || text.contains("WAIT")) {			
 			//myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.Goto(myPlayer.x, myPlayer.y);
-			dropHeldObject(false);
+			dropHeldObject(0);
 			this.time += 10;
 			myPlayer.say("STOPING");
 		}
 		else if (text.contains("DROP")) {			
 			//myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.Goto(myPlayer.x, myPlayer.y);
-			dropHeldObject(false);
+			dropHeldObject(0);
 			this.time += 1;
 			myPlayer.say("DROPING");
 		}
@@ -862,8 +862,11 @@ private function craftLowPriorityClothing() : Bool {
 		if (ServerSettings.DebugAi && foodTarget == null) trace('AAI: ${myPlayer.name + myPlayer.id} no new Foodtarget!!!');
 	}
 
-	public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
+	//public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
+	public function dropHeldObject(maxDistanceToHome:Float = 60) {
 		// var myPlayer = myPlayer.getPlayerInstance();
+		var home = myPlayer.home;
+		var dropOnStart:Bool = home != null;
 		var heldObjId = myPlayer.heldObject.id;
 
 		if (heldObjId == 0) return;
@@ -920,21 +923,22 @@ private function craftLowPriorityClothing() : Bool {
 			}
 		}
 		
-		if (dropOnStart && maxDistanceToHome > 0 && itemToCraft.startLocation != null) {
+		//if (dropOnStart && maxDistanceToHome > 0 && itemToCraft.startLocation != null) {
+		if (dropOnStart && maxDistanceToHome > 0) {
 			var quadMaxDistanceToHome = Math.pow(maxDistanceToHome, 2);
-			var distance = myPlayer.CalculateQuadDistanceToObject(itemToCraft.startLocation);
+			var distance = myPlayer.CalculateQuadDistanceToObject(home);
 
 			// check if not too close or too far
 			if (distance > 25 && quadMaxDistanceToHome < distance) {
-				var done = myPlayer.gotoObj(itemToCraft.startLocation);
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done drop goto start $distance');
+				var done = myPlayer.gotoObj(home); // TODO better go directly to right place at home
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done drop goto home $distance');
 
 				if(done){
-					if(ServerSettings.DebugAiSay) myPlayer.say('Goto start!');
+					if(ServerSettings.DebugAiSay) myPlayer.say('Goto home!');
 					return;
 				}
 				
-				if(ServerSettings.DebugAiSay) myPlayer.say('Cannot Goto start!');
+				if(ServerSettings.DebugAiSay) myPlayer.say('Cannot Goto home!');
 			}
 		}
 
@@ -1512,7 +1516,7 @@ private function craftLowPriorityClothing() : Bool {
 
 			if (itemToCraft.transActor.id == 0 && player.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop heldobj at start since Empty is needed!');
-				dropHeldObject(true);
+				dropHeldObject();
 				return true;
 			}
 
@@ -1548,7 +1552,7 @@ private function craftLowPriorityClothing() : Bool {
 
 			if (player.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop ${myPlayer.heldObject.name} to pickup ${itemToCraft.transActor.name}');
-				dropHeldObject(true);
+				dropHeldObject();
 				return true;
 			}
 		}
@@ -2097,7 +2101,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object at home to pickup food');
-			dropHeldObject(true, 20);
+			dropHeldObject(20);
 			return true;
 		}
 
@@ -2251,7 +2255,7 @@ private function craftLowPriorityClothing() : Bool {
 			useActor = null;
 			// dropTarget = itemToCraft.transActor;
 
-			dropHeldObject(true);
+			dropHeldObject();
 
 			return false;
 		}
