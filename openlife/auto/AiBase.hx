@@ -591,12 +591,29 @@ abstract class AiBase
 		var hasClosePlate = closePlate != null;
 
 		if(hasClosePlate){
+			/*
 			if(craftItem(272)) return true; // Cooked Berry Pie
+			if(craftItem(803)) return true; // Cooked Mutton Pie
+			if(craftItem(273)) return true; // Cooked Carrot Pie
+			if(craftItem(274)) return true; // Cooked Rabbit Pie
+			if(craftItem(275)) return true; // Cooked Berry Carrot Pie
+			if(craftItem(276)) return true; // Cooked Berry Rabbit Pie
+			if(craftItem(277)) return true; // Cooked Rabbit Carrot Pie
+			if(craftItem(278)) return true; // Cooked Berry Carrot Rabbit Pie
+			*/
+			var pies = [272, 803, 273, 274, 275, 276, 277, 278];
+			var rand = WorldMap.world.randomInt(pies.length -1);
+
+			for(i in 0...pies.length){
+				var index = (rand + i) % pies.length;
+				if(craftItem(index)) return true;
+			}
+
 			if(craftItem(1285)) return true; // Omelette
-			if(craftItem(229)) return true; // Wet Planted Wheat
+			if(craftItem(229)) return true; // Wet Planted Wheat		
 		}
 		else{
-			if(craftItem(236)) return true; // // Clay Plate
+			if(craftItem(236)) return true; // Clay Plate
 		}
 	
 		if(makeFireFood()) return true;
