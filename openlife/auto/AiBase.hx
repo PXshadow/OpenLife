@@ -32,6 +32,7 @@ abstract class AiBase
     public var myPlayer(default, default):PlayerInterface;
     public var seqNum = 1;
 	public var time:Float = 1;
+	public var waitingTime:Float = 0; // if Ai is manual set to wait. Before that it is allowed to finish drop
 
 	//public var seqNum = 1;
 
@@ -248,6 +249,28 @@ abstract class AiBase
 		Macro.exception(if (didNotReachFood < 5) if (escape(animal, deadlyPlayer)) return);
 		//Macro.exception(if (didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat());
 		Macro.exception(checkIsHungryAndEat());
+	
+		Macro.exception(if (isDropingItem()) return);
+		
+		// give use high prio if close so that for example a stone can be droped on a pile before food piclup
+		if(useTarget != null){
+			var distance = myPlayer.CalculateQuadDistanceToObject(useTarget);
+
+			if(distance < 100){
+				if (ServerSettings.DebugAi)
+					trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: distance: $distance ${useTarget.description} ${useTarget.tx} ${useTarget.ty}');
+
+				Macro.exception(if (isUsingItem()) return);
+			}
+		}
+
+		// check if manual waiting time is set. For example received a STOP command
+		if(waitingTime > 0){ 
+			time += waitingTime;
+			waitingTime = 0;
+			return;
+		}
+
 		Macro.exception(if (myPlayer.age < ServerSettings.MinAgeToEat && isHungry) {
 			if(isMovingToPlayer(5)) return;
 			// if close enough to mother wait before trying to move again
@@ -267,21 +290,8 @@ abstract class AiBase
 			return;
 		}); // do nothing then looking for player
 
-		Macro.exception(if (isDropingItem()) return);
 		Macro.exception(if (handleDeath()) return);
 		Macro.exception(if (isEating()) return);
-
-		// give use high prio if close so that for example a stone can be droped on a pile before food piclup
-		if(useTarget != null){
-			var distance = myPlayer.CalculateQuadDistanceToObject(useTarget);
-
-			if(distance < 100){
-				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: distance: $distance ${useTarget.description} ${useTarget.tx} ${useTarget.ty}');
-
-				Macro.exception(if (isUsingItem()) return);
-			}
-		}
 
 		if (playerToFollow != null && autoStopFollow == false){
 			var time = TimeHelper.CalculateTimeSinceTicksInSec(timeStartedToFolow);
@@ -877,14 +887,14 @@ private function craftLowPriorityClothing() : Bool {
 			//myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.Goto(myPlayer.x, myPlayer.y);
 			dropHeldObject(0);
-			this.time += 10;
+			waitingTime = 10;
 			myPlayer.say("STOPING");
 		}
 		else if (text.contains("DROP")) {			
 			//myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.Goto(myPlayer.x, myPlayer.y);
 			dropHeldObject(0);
-			this.time += 1;
+			waitingTime = 1;
 			myPlayer.say("DROPING");
 		}
 		if (text.contains("GO HOME")) {			
