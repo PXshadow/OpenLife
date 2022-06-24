@@ -318,6 +318,7 @@ abstract class AiBase
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (handleTemperature()) return);
+		Macro.exception(if (makeSharpieFood(5)) return); 
 		Macro.exception(if (isHandlingGraves()) return);
 				
 		// if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
@@ -384,7 +385,9 @@ abstract class AiBase
 		if (this.isObjectNotReachable(firePlace.tx, firePlace.ty)) return false;
 		if (this.isObjectWithHostilePath(firePlace.tx, firePlace.ty)) return false;
 
-		var objId = WorldMap.world.getObjectId(firePlace.tx, firePlace.ty)[0];
+		//var objId = WorldMap.world.getObjectId(firePlace.tx, firePlace.ty)[0];
+		var objAtPlace = WorldMap.world.getObjectHelper(firePlace.tx, firePlace.ty);
+		var objId = objAtPlace.parentId;
 
 		// 83 Large Fast Fire // 346 Large Slow Fire
 		if(objId == 83 || objId == 346) return false;
@@ -393,15 +396,16 @@ abstract class AiBase
 		if(objId == 85){			
 			if(heldId == 72){
 				var done = useHeldObjOnTarget(firePlace);
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Has Kindling Use On ==> Hot Coals!  ${firePlace.name} $done');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} Fire: Has Kindling Use On ==> Hot Coals!  ${firePlace.name} objAtPlace: ${objAtPlace.name} $done');
 				//if(ServerSettings.DebugAiSay)
 				myPlayer.say('Use Kindling on ${firePlace.name} $done'); // hot coals
+				return done;
 			}
 			else{
 				//if(ServerSettings.DebugAiSay)
-				myPlayer.say('Get Kindling For Fire');
+				myPlayer.say('Get Kindling For ${firePlace.name}');
 				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} Fire: Get Kindling ==> Hot Coals!');
+					trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} Fire: Get Kindling ==> ${firePlace.name} ');
 				
 				return GetOrCraftItem(72);
 			}
@@ -680,9 +684,13 @@ abstract class AiBase
 		return false;
 	}
 
-	private function makeSharpieFood() : Bool {
-		if(craftItem(40)) return true; // Wild Carrot		
-		if(craftItem(807)) return true; // Burdock Root	
+	private function makeSharpieFood(maxDistance:Int = 40) : Bool {
+		var obj = AiHelper.GetClosestObjectById(myPlayer, 36, null, maxDistance); // Seeding Wild Carrot
+		if(obj != null && craftItem(40)) return true; // Wild Carrot		
+		
+		var obj = AiHelper.GetClosestObjectById(myPlayer, 804, null, maxDistance); // Burdock
+		if(obj != null && craftItem(807)) return true; // Burdock Root	
+		
 		return false;
 	}
 
@@ -1184,7 +1192,7 @@ private function craftLowPriorityClothing() : Bool {
 	}
 
 	private function GetOrCraftItem(objId:Int, count:Int = 1, dontCraft:Bool = false) : Bool {
-		if (myPlayer.isMoving()) return false;
+		if (myPlayer.isMoving()) return true;
 		var objdata = ObjectData.getObjectData(objId);
 		var pileId = objdata.getPileObjId();
 		var hasPile = pileId > 0;
@@ -1548,7 +1556,7 @@ private function craftLowPriorityClothing() : Bool {
 			return false;
 		}
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft item ${GetName(objId)}!');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} craft item ${GetName(objId)}!');
 
 		if (itemToCraft.transActor != null && player.heldObject.parentId == itemToCraft.transActor.parentId) {
 			useActor = itemToCraft.transActor;
@@ -1619,7 +1627,7 @@ private function craftLowPriorityClothing() : Bool {
 			if(ServerSettings.DebugAiSay) myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
 
 			if (itemToCraft.transActor.id == 0 && player.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop heldobj at start since Empty is needed!');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} craft: drop heldobj at start since Empty is needed!');
 				dropHeldObject();
 				return true;
 			}
