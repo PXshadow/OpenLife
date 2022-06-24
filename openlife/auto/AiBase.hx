@@ -437,7 +437,7 @@ abstract class AiBase
 		if (this.isObjectWithHostilePath(target.tx, target.ty)) return false;
 
 		this.useTarget = target;
-		this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
+		this.useActor = new ObjectHelper(null, myPlayer.heldObject.parentId);
 		this.useActor.tx = target.tx;
 		this.useActor.ty = target.ty;
 
@@ -635,7 +635,7 @@ abstract class AiBase
 
 			for(i in 0...pies.length){
 				var index = (rand + i) % pies.length;
-				if(craftItem(index)) return true;
+				if(craftItem(pies[index])) return true;
 			}
 
 			if(craftItem(1285)) return true; // Omelette
@@ -657,7 +657,7 @@ abstract class AiBase
 
 			for(i in 0...wetPlanted.length){
 				var index = (rand + i) % wetPlanted.length;
-				if(craftItem(index)) return true;
+				if(craftItem(wetPlanted[index])) return true;
 			}
 
 			if(craftItem(229)) return true; // Wet Planted Wheat		
@@ -2129,6 +2129,11 @@ private function craftLowPriorityClothing() : Bool {
 
 		if (quadDistance < maxDistance) return false;
 
+		if(myPlayer.isMoving()){
+			myPlayer.forceStopOnNextTile = true;
+			return true;
+		}
+
 		var dist = maxDistance >= 9 ? 2 : 1;
 		var randX = WorldMap.calculateRandomInt(2 * dist) - dist;
 		var randY = WorldMap.calculateRandomInt(2 * dist) - dist;
@@ -2345,7 +2350,7 @@ private function craftLowPriorityClothing() : Bool {
 		}
 		// only allow to go on with use if right actor is in the hand, or if actor will be empty
 		// if(myPlayer.heldObject.id != useActor.id && useActor.id != 0)
-		if (myPlayer.heldObject.id != useActor.id) {
+		if (myPlayer.heldObject.parentId != useActor.parentId) {
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActor.name}');
 
