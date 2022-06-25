@@ -628,6 +628,8 @@ class ServerSettings {
 
 		ObjectData.getObjectData(404).countsOrGrowsAs = 1435;  // Bison with Calf --> Bison
 
+		ObjectData.getObjectData(1328).countsOrGrowsAs = 1323;  // Wild Boar with Piglet --> Wild Boar
+
 		ObjectData.getObjectData(762).countsOrGrowsAs = 761;  // Flowering Barrel Cactus --> Barrel Cactus
 		ObjectData.getObjectData(763).countsOrGrowsAs = 761;  // Fruiting Barrel Cactus --> Barrel Cactus
 
