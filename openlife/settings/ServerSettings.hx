@@ -624,6 +624,8 @@ class ServerSettings {
 		ObjectData.getObjectData(511).countsOrGrowsAs = 1261; // Pond
 		ObjectData.getObjectData(512).countsOrGrowsAs = 1261; // Dry Pond
 
+		ObjectData.getObjectData(409).countsOrGrowsAs = 125;  // Clay Pit (partial) --> Clay Deposit 
+
 		ObjectData.getObjectData(404).countsOrGrowsAs = 1435;  // Bison with Calf --> Bison
 
 		ObjectData.getObjectData(762).countsOrGrowsAs = 761;  // Flowering Barrel Cactus --> Barrel Cactus
