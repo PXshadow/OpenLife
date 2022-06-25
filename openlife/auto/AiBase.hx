@@ -1429,7 +1429,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop obj for feeding child');
-			dropHeldObject();
+			dropHeldObject(0);
 			return true;
 		}
 
