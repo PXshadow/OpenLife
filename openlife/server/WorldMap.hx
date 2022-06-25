@@ -658,6 +658,19 @@ class WorldMap {
 
 		if (ServerSettings.DebugWrite)
 			trace('Write to disk: saveDataNumber: $tmpDataNumber Time: $time backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');
+
+		if (ServerSettings.TraceCountObjectsToDisk) {
+			//trace('count objects time: ${Sys.time() - time}');
+			var path = dir + 'ObjectCounts${tmpDataNumber}.txt';
+			var writer = File.write(path, false);
+
+			for (key in currentObjectsCount.keys()) {
+				var objData = ObjectData.getObjectData(key);
+				writer.writeString('Count object: [${key}] ${objData.description}: ${currentObjectsCount[key]} original: ${originalObjectsCount[key]}\n');
+			}
+			
+			writer.close();
+		}
 	}
 
 	private function writeIndexFile(path:String, tmpDataNumber:Int) {

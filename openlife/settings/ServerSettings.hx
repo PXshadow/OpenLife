@@ -31,6 +31,7 @@ class ServerSettings {
 	public static var AllowDebugCommmands = true; // can create objects with saying "!create ID" / "!create object" "!create object!" with ! indicating that object ends with "object" or test wounds with using "!hit" or "!heal"
 	public static var DebugWrite = false; // WordMap writeToDisk
 	public static var TraceCountObjects = false; // WorldMap
+	public static var TraceCountObjectsToDisk = true; // WorldMap
 
 	public static var DebugCaftingStepsForObjOrFood = false; // here you see which food or obj needs how much steps to craft
 
