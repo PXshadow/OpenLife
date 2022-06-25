@@ -589,18 +589,21 @@ class MoveHelper {
 
 	public function sendChunkIfNeeded()
 	{
-		// TODO chunk loading in x direction is too slow with high speed
-		// TODO general better chunk loading
-		var spacingX = 4;
-		var spacingY = 4;
+		var spacingX = 5;
+		var spacingY = 5;
 		var p = this.player;
 		var moveHelper = this;
 
 		if (p.x - moveHelper.tx > spacingX || p.x - moveHelper.tx < -spacingX || p.y - moveHelper.ty > spacingY || p.y - moveHelper.ty < -spacingY) {
 			moveHelper.tx = p.x;
 			moveHelper.ty = p.y;
+			
+			var newMoves = moveHelper.newMoves;
+			var lastMove = newMoves == null || newMoves.length < 1 ? null : newMoves[newMoves.length -1];
+			if(lastMove != null) trace('newMove: ${lastMove}');
 
 			p.connection.sendMapChunk(p.x, p.y);
+			if(lastMove != null) p.connection.sendMapChunk(p.x + lastMove.x, p.y + lastMove.y);
 		}
 	}
 
