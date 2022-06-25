@@ -626,6 +626,9 @@ class ServerSettings {
 
 		ObjectData.getObjectData(404).countsOrGrowsAs = 1435;  // Bison with Calf --> Bison
 
+		ObjectData.getObjectData(762).countsOrGrowsAs = 761;  // Flowering Barrel Cactus --> Barrel Cactus
+		ObjectData.getObjectData(763).countsOrGrowsAs = 761;  // Fruiting Barrel Cactus --> Barrel Cactus
+
 		ObjectData.getObjectData(2145).countsOrGrowsAs = 2142;  // Empty Banana Plant --> Banana Plant
 		ObjectData.getObjectData(279).countsOrGrowsAs = 30;  // Empty Wild Gooseberry Bush --> Wild Gooseberry Bush
 
