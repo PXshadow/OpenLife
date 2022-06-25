@@ -1429,6 +1429,10 @@ class ObjectData extends LineReader {
 
 		if (this.clothing.length > 1) this.clothing = StringTools.trim(this.clothing);
 
+		//trace('clothing: ${this.name} Slot: ${this.clothing.charAt(0)}');
+		//if (this.clothing.charAt(0) == 'p' || this.clothing.charAt(0) == 'P') trace('no heat protection from ${this.name}');
+		if (this.clothing.charAt(0) == 'p' || this.clothing.charAt(0) == 'P') return 0; // no protection from quiver or backpack
+
 		if (parts[this.clothing] == 0) return this.rValue;
 
 		// trace('Insulation: clothing: ${this.clothing} ${this.clothing.length} ${parts[this.clothing]}');
