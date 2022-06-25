@@ -653,6 +653,15 @@ class TransitionHelper {
 		hungryWorkCost += transition.hungryWorkCost;
 
 		if (hungryWorkCost > 0) {	
+
+			// TODO check for all?
+			if(newParentTargetObjectData.numUses < target.numberOfUses){
+				trace('TRANS: ${player.name + player.id} new target : ${newParentTargetObjectData.numUses}  numUses < target.numberOfUses: ${target.numberOfUses}');
+				player.say('empty first', true);
+				player.doEmote(Emote.sad);
+				return false;
+			}
+
 			var missingFood = Math.ceil(hungryWorkCost / 2  - player.food_store);
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} hungry Work cost: $hungryWorkCost missingFood: ${missingFood}');
 
