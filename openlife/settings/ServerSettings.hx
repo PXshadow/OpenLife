@@ -1072,6 +1072,11 @@ class ServerSettings {
 		trans.autoDecaySeconds = 90 * WoundHealingTimeFactor;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// [1367] Extracted Arrowhead Wound
+		trans = new TransitionData(-1, 1367, 0, 0); // Extracted Arrowhead Wound --> 0
+		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		trans = transtions.getTransition(0, 798);
 		ObjectData.getObjectData(798).alternativeTimeOutcome = trans.newTargetID; // Arrow Wound --> Embedded Arrowhead Wound
 		trans.newTargetID = 1367; // Arrow Wound --> Extracted Arrowhead Wound
@@ -1659,5 +1664,3 @@ class ServerSettings {
 	}
 
 	add( 1, 1 ); // "pos" will automatically be filled in by compile**/
-
-	// [1367] Extracted Arrowhead Wound: 1184
