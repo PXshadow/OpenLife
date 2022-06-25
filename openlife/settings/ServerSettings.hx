@@ -578,6 +578,8 @@ class ServerSettings {
 		ObjectData.getObjectData(334).hungryWork = 1 * HungryWorkToolCostFactor; // Steel Axe
 		ObjectData.getObjectData(502).hungryWork = 1 * HungryWorkToolCostFactor; // Shovel // TODO should be cheaper then sharp stone
 
+		ObjectData.getObjectData(1849).hungryWork = 10; // Buried Grave with Dug Stone
+
 		ObjectData.getObjectData(123).hungryWork = 3; // Harvested Tule
 		ObjectData.getObjectData(231).hungryWork = 20; // Adobe Oven Base
 
@@ -1103,6 +1105,10 @@ class ServerSettings {
 
 		trans = new TransitionData(-1, 423, 0, 566); // 423 Skinned Wolf --> TODO 566 Mouflon Bones
 		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 1340, 0, 1343); // 1340 Butchered Pig --> Pig Bones
+		trans.autoDecaySeconds = -2;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Clear Bison
@@ -1653,3 +1659,5 @@ class ServerSettings {
 	}
 
 	add( 1, 1 ); // "pos" will automatically be filled in by compile**/
+
+	// [1367] Extracted Arrowhead Wound: 1184
