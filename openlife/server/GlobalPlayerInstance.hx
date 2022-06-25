@@ -2114,12 +2114,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	// public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, targetPlayer:GlobalPlayerInstance) : Bool
 	public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, playerId:Int, ?infos:haxe.PosInfos):Bool {
 		if (ServerSettings.DebugPlayer)
-			trace('doOnOtherHelper: playerId: ${playerId} ${this.o_id[0]} ${heldObject.objectData.description} clothingSlot: $clothingSlot');
+			trace('doOnOtherHelper: ${this.name}${this.id} to ${playerId} ${this.o_id[0]} ${heldObject.name} clothingSlot: $clothingSlot');
 
-		if (this.o_id[0] < 0) return false; // is holding player
+		if (this.o_id[0] < 0){
+			this.say('need to drop held', true);
+			return false; // is holding player
+		}
 
 		var targetPlayer = getPlayerAt(x + gx, y + gy, playerId);
 		if (targetPlayer == null) {
+			this.say('no one found', true);
 			trace('doOnOtherHelper: could not find target player! ${infos.methodName}');
 			// throw new Exception('');
 			return false;
@@ -2129,6 +2133,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (heldObject.objectData.isDrugs() && targetPlayer.isIll() == false) return false;
 
 		if (this.isCloseToPlayer(targetPlayer) == false) {
+			this.say('too far away', true);
 			trace('doOnOtherHelper: Target position is too far away player: ${this.tx},${this.ty} target: ${targetPlayer.tx},${targetPlayer.ty}');
 			return false;
 		}
@@ -2668,6 +2673,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	private static function doSwitchCloths(playerFrom:GlobalPlayerInstance, playerTo:GlobalPlayerInstance, clothingSlot:Int):Bool {
+		if (ServerSettings.DebugPlayer)
+			trace('self:o_id: ${playerFrom.o_id[0]} helobj: ${playerFrom.heldObject.name} clothingSlot: $clothingSlot');
+		
 		if (playerFrom.o_id[0] < 0) return false; // is holding player
 
 		if (playerFrom.heldObject == playerFrom.hiddenWound) playerFrom.setHeldObject(null);
@@ -2676,17 +2684,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (objClothingSlot < 0 && playerFrom.heldObject.id != 0) return false;
 
-		if (ServerSettings.DebugPlayer)
-			trace('self:o_id: ${playerFrom.o_id[0]} helobj.id: ${playerFrom.heldObject.id} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
+		//trace('self:o_id: ${playerFrom.o_id[0]} helobj.id: ${playerFrom.heldObject.id} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
 
-		if (playerFrom.age < ServerSettings.MinAgeToEat && playerFrom.heldObject.id != 0) {
+		/*if (playerFrom.age < ServerSettings.MinAgeToEat && playerFrom.heldObject.id != 0) {
+			this.say('too young', true);
 			trace('doSwitchCloths: playerFrom age ${playerTo.age} < ${ServerSettings.MinAgeToEat} cannot put on cloths');
-
 			return false;
-		}
+		}*/
 
 		if (playerFrom != playerTo) {
-			if (playerTo.age < ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers) {
+			if (playerTo.age > ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers) {
+				playerFrom.say('too old', true);
 				trace('doSwitchCloths: target player age ${playerTo.age} < ${ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers}');
 
 				return false;

@@ -904,6 +904,7 @@ private function craftLowPriorityClothing() : Bool {
 			dropHeldObject(0);
 			waitingTime = 10;
 			myPlayer.say("STOPING");
+			//myPlayer.age -= 1;
 		}
 		else if (text.contains("DROP")) {			
 			//myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
