@@ -1365,7 +1365,7 @@ class ServerSettings {
 		var trans = transtions.getTransition(0, 409); // 0 + Clay Pit ==> Clay
 		trans.hungryWorkCost = 5;
 		var trans = transtions.getTransition(502, 32); // Shovel + Big Hard Rock ==> Dug Big Hard Rock
-		trans.hungryWorkCost = 20;
+		trans.hungryWorkCost = 10;
 		var trans = transtions.getTransition(291, 486); // Flat Rock + Floor Stakes ==> Stone Road
 		trans.hungryWorkCost = 5;
 		var trans = transtions.getTransition(684, 1596); // Steel Mining Pick + Stone Road ==> Flat Rock
