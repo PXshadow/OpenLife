@@ -601,8 +601,8 @@ class MoveHelper {
 			moveHelper.ty = p.y;
 			
 			var newMoves = moveHelper.newMoves;
-			var lastMove = newMoves == null || newMoves.length < 1 ? null : newMoves[newMoves.length -1];
-			//if(lastMove != null) trace('newMove: ${lastMove}');
+			var lastMove = newMoves == null || newMoves.length < 5 ? null : newMoves[4]; //newMoves.length - 1
+			if(lastMove != null) trace('newMove: ${lastMove}');
 
 			p.connection.sendMapChunk(p.x, p.y);
 			if(lastMove != null) p.connection.sendMapChunk(p.x + lastMove.x, p.y + lastMove.y);
