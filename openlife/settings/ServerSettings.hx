@@ -716,8 +716,8 @@ class ServerSettings {
 		ObjectData.getObjectData(838).biomes.push(BiomeTag.GREEN); // Add some lovely mushrooms
 
 		// nerve horse cart little bit :)
-		ObjectData.getObjectData(778).speedMult = 1.50; // Horse-Drawn Cart
-		ObjectData.getObjectData(3158).speedMult = 1.60; // Horse-Drawn Tire Cart
+		ObjectData.getObjectData(778).speedMult = 1.40; // Horse-Drawn Cart
+		ObjectData.getObjectData(3158).speedMult = 1.50; // Horse-Drawn Tire Cart
 
 		ObjectData.getObjectData(484).speedMult = 0.85; // Hand Cart
 		ObjectData.getObjectData(861).speedMult = 0.85; // // Old Hand Cart
@@ -1246,6 +1246,10 @@ class ServerSettings {
 		trans.newTargetID = 3161;
 		trans.traceTransition("PatchTransitions: ");
 
+		//trans = transtions.getTransition(3158, 550); // Horse-Drawn Tire Cart
+		//trans.newTargetID = 3161;
+		//trace('trans: ${trans.getDesciption()}');
+
 		// original transition makes cart loose rubber if picking up horse cart
 
 		// Original:  0 + 3161 = 778 + 0 //Empty + Escaped Horse-Drawn Tire Cart# just released -->  Horse-Drawn Cart + Empty
@@ -1638,6 +1642,9 @@ class ServerSettings {
 
 		//var objData = ObjectData.getObjectData(887); // Stone Wall
 		//trace('${objData.name} isPermanent ${objData.isPermanent()}');
+
+		//var trans = TransitionImporter.GetTransition(660, 673); // Full Bucket of Water Bow and Arrow + Empty Cistern
+		//trace('DEBUG!!!: ${trans.getDesciption()}');
 	}	
 }
 

@@ -230,7 +230,11 @@ class TransitionHelper {
 
 		if (clothingIndex >= 0) return player.doPlaceObjInClothing(clothingIndex, true);
 
-		if (this.tileObjectData.minPickupAge - ServerSettings.ReduceAgeNeededToPickupObjects > player.age) {
+		var pickupAge = this.tileObjectData.minPickupAge - ServerSettings.ReduceAgeNeededToPickupObjects;
+		var neededAge = Math.ceil(pickupAge - player.age);
+
+		if (neededAge > 0) {
+			player.say('I am $neededAge years too young', true);
 			if (ServerSettings.DebugTransitionHelper)
 				trace('DROP: ${player.name + player.id} TOO young to pickup: target.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
 			return false;
