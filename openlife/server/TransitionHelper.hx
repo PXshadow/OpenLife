@@ -648,8 +648,8 @@ class TransitionHelper {
 		var parentActorObjectData = handObjectData.dummyParent == null ? handObjectData : handObjectData.dummyParent;
 		var newParentTargetObjectData = newTargetObjectData.dummyParent == null ? newTargetObjectData : newTargetObjectData.dummyParent;
 
-		// TODO better add instead of max???
-		var hungryWorkCost = Math.max(parentActorObjectData.hungryWork, newParentTargetObjectData.hungryWork); 
+		//var hungryWorkCost = Math.max(parentActorObjectData.hungryWork, newParentTargetObjectData.hungryWork); 
+		var hungryWorkCost = parentActorObjectData.hungryWork + newParentTargetObjectData.hungryWork; 
 		hungryWorkCost += transition.hungryWorkCost;
 
 		if (hungryWorkCost > 0) {	
