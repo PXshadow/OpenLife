@@ -459,7 +459,7 @@ class MoveHelper {
 		if (p.moveHelper.waitForForce) {
 			var passedTimeSinceForce = TimeHelper.CalculateTimeSinceTicksInSec(p.moveHelper.timeLastForce);
 			if(passedTimeSinceForce < 1){
-				trace('${p.name + p.id}: Move ignored since waiting for force!!');
+				trace('${p.name + p.id}: MMove ignored since waiting for force!!');
 				p.done_moving_seqNum = seq;
 				p.responsible_id = -1;
 				p.connection.send(PLAYER_UPDATE, [p.toData()]);
@@ -493,7 +493,7 @@ class MoveHelper {
 		if(p.y <= -height) p.y += height; 
 
 		if(tmpX != p.x || tmpY != p.y){
-			trace('${p.name + p.id} MOVED one time around the world! $tmpX,$tmpY ==> ${p.x},${p.y}');
+			trace('${p.name + p.id} MMOVED one time around the world! $tmpX,$tmpY ==> ${p.x},${p.y}');
 			
 			p.moveHelper.tx = p.tx;
 			p.moveHelper.ty = p.ty;
@@ -515,9 +515,11 @@ class MoveHelper {
 		var moveHelper = p.moveHelper;
 		// var quadDist = p.moveHelper.calculateExactQuadDistance(tx, ty);
 		var quadDist = jump ? p.moveHelper.calculateExactQuadDistance(tx, ty) : 0;
+		var floorId = WorldMap.world.getFloorId(tx,ty);
+		if(floorId > 0) quadDist /= 10; // TODO fix road movement and look general why client sends so different positions
 
 		if (p.isBlocked(tx, ty) || quadDist > ServerSettings.MaxMovementQuadJumpDistanceBeforeForce) {
-			trace('${p.name} MOVE: FORCE!! Movement cancled since blocked or Client uses too different x,y: quadDist: $quadDist exact: ${Math.ceil((p.moveHelper.exactTx - p.gx) * 10) / 10},${Math.ceil((p.moveHelper.exactTy - p.gy) * 10) / 10} Server ${p.x},${p.y} <--> Client ${x},${y}');
+			trace('${p.name} MMOVE: FORCE!! Movement cancled since blocked or Client uses too different x,y: quadDist: $quadDist exact: ${Math.ceil((p.moveHelper.exactTx - p.gx) * 10) / 10},${Math.ceil((p.moveHelper.exactTy - p.gy) * 10) / 10} Server ${p.x},${p.y} <--> Client ${x},${y} floor: $floorId');
 			CancleMovement(p, seq);
 			return;
 		}
@@ -528,13 +530,13 @@ class MoveHelper {
 			// if(Math.ceil(p.jumpedTiles) >= ServerSettings.MaxJumpsPerTenSec || p.exhaustion > 5 + p.food_store_max / 2)
 			if (Math.ceil(p.jumpedTiles) >= ServerSettings.MaxJumpsPerTenSec) {
 				if (ServerSettings.DebugMoveHelper)
-					trace('${p.name} MOVE: JUMP: FORCE!! Movement cancled since too exhausted ${Math.ceil(p.exhaustion)} or jumped: ${Math.ceil(p.jumpedTiles * 10) / 10} to often: quadDist: $quadDist Server ${p.x},${p.y} --> Client ${x},${y}');
+					trace('${p.name} MMOVE: JUMP: FORCE!! Movement cancled since too exhausted ${Math.ceil(p.exhaustion)} or jumped: ${Math.ceil(p.jumpedTiles * 10) / 10} to often: quadDist: $quadDist Server ${p.x},${p.y} --> Client ${x},${y}');
 				CancleMovement(p, seq);
 				return;
 			}
 
 			if (ServerSettings.DebugMoveHelper)
-				trace('${p.name} MOVE: JUMP: positionChanged NoForce! jumped: ${Math.ceil(p.jumpedTiles * 10) / 10} quadDist: ${quadDist} Server ${p.x},${p.y} --> Client ${x},${y}');
+				trace('${p.name} MMOVE: JUMP: positionChanged NoForce! jumped: ${Math.ceil(p.jumpedTiles * 10) / 10} quadDist: ${quadDist} Server ${p.x},${p.y} --> Client ${x},${y}');
 
 			// Since vanilla client handels move strangely the server accepts one position further even if not fully reached there
 			// This a client could use to jump.
@@ -555,7 +557,7 @@ class MoveHelper {
 		// if passing in an biome with different speed only the first movement is kept
 		var newMovements = calculateNewMovements(p, moves);
 		if (newMovements.moves.length < 1) {
-			if (ServerSettings.DebugMoveHelper) trace('${p.name} MOVE: FORCE!! Move cancled since no new movements!');
+			if (ServerSettings.DebugMoveHelper) trace('${p.name} MMOVE: FORCE!! Move cancled since no new movements!');
 			CancleMovement(p, seq);
 			return;
 		}
@@ -600,7 +602,7 @@ class MoveHelper {
 			
 			var newMoves = moveHelper.newMoves;
 			var lastMove = newMoves == null || newMoves.length < 1 ? null : newMoves[newMoves.length -1];
-			if(lastMove != null) trace('newMove: ${lastMove}');
+			//if(lastMove != null) trace('newMove: ${lastMove}');
 
 			p.connection.sendMapChunk(p.x, p.y);
 			if(lastMove != null) p.connection.sendMapChunk(p.x + lastMove.x, p.y + lastMove.y);
