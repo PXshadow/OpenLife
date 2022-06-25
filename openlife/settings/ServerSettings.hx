@@ -221,7 +221,7 @@ class ServerSettings {
 	public static var ExhaustionOnJump:Float = 0.05;	
 
 	// hungry work
-	public static var HungryWorkCost:Float = 8; // 10
+	public static var HungryWorkCost:Float = 5; // 10
 	public static var HungryWorkHeat:Float = 0.002; // 0.005; // per food used
 	public static var HungryWorkToolCostFactor:Float = 0;
 
