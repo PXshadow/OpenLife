@@ -400,7 +400,11 @@ class ObjectHelper {
 
 		// trace('TIME: has time transition: ${transition.newTargetID} ${newTargetObjectData.description} time: ${timeTransition.autoDecaySeconds}');
 
-		return timeTransition.calculateTimeToChange();
+		var timeToChange = timeTransition.calculateTimeToChange();
+
+		if(obj.isAnimal() && obj.hits > 0.5) timeToChange /= 2;
+
+		return timeToChange;
 	}
 
 	public function TransformToDummy() {
