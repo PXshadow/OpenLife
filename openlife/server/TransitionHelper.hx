@@ -658,7 +658,7 @@ class TransitionHelper {
 
 		if (hungryWorkCost > 0) {	
 
-			// TODO check for all?
+			// TODO check also for not hungry work?
 			if(this.target.containedObjects.length > newParentTargetObjectData.numSlots){
 				trace('TRANS: ${player.name + player.id} new target : ${this.target.containedObjects.length}  numUses < target.numberOfUses: ${newParentTargetObjectData.numSlots}');
 				player.say('empty first', true);

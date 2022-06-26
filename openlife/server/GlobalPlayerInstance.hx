@@ -3922,6 +3922,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return false;
 		}
 
+		if (this.heldObject == this.hiddenWound) this.setHeldObject(null);
+
 		if (this.o_id[0] != 0 && this.heldObject != this.hiddenWound) {
 			//player.setHeldObject(null);
 			if(ServerSettings.debug) this.say('hands are not empty', true);
