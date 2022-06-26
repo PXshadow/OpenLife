@@ -1100,7 +1100,6 @@ class TimeHelper {
 	}
 	
 	public static function ClearCursedGraves(stuff:Map<Int, ObjectHelper>) {
-		// clear ovens, so that old ones go away
 		var oldStuff = [for (obj in stuff) obj];
 		var newStuff = new Map<Int, ObjectHelper>();
 		
@@ -1138,7 +1137,7 @@ class TimeHelper {
 			for(oven in ovens){
 				var objData = WorldMap.world.getObjectDataAtPosition(oven.tx, oven.ty);
 				// 237 Adobe Oven // 753 Adobe Rubble
-				if(ObjectData.IsOven(objData.id) || objData.id == 753){
+				if(ObjectData.IsOven(objData.id)){ //|| objData.id == 753){
 					var index = WorldMap.world.index(oven.tx, oven.ty);
 					newovens[index] = oven;
 				}
@@ -1198,7 +1197,7 @@ class TimeHelper {
 				
 				// get possible teleport locations
 				// 237 Adobe Oven // 753 Adobe Rubble
-				if(ObjectData.IsOven(obj[0]) || obj[0] == 753) WorldMap.world.ovens[WorldMap.world.index(x,
+				if(ObjectData.IsOven(obj[0])) WorldMap.world.ovens[WorldMap.world.index(x,
 					y)] = worldMap.getObjectHelper(x, y);
 
 				if(ObjectData.IsBoneGrave(obj[0])) WorldMap.world.cursedGraves[WorldMap.world.index(x,
