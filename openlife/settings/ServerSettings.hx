@@ -1673,11 +1673,11 @@ class ServerSettings {
 		//trace('DEBUG!!!: ${trans.getDesciption()}');
 
 		trans = transtions.getTransition(3158, 4154); // Horse-Drawn Tire Cart + Hitching Post
-		//trans.newTargetID = 3161;
+		trans.newTargetID = 3159; // Hitched Horse-Drawn Tire Cart
 		trace('DEBUG!!!: ${trans.getDesciption()}');
 
 		trans = transtions.getTransition(3158, 550); // Horse-Drawn Tire Cart + Fence
-		//trans.newTargetID = 3161;
+		trans.newTargetID = 3159; // Hitched Horse-Drawn Tire Cart
 		trace('DEBUG!!!: ${trans.getDesciption()}');
 	}	
 }
