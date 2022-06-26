@@ -455,6 +455,9 @@ class ServerSettings {
 
 		// allow some smithing on tables // TODO fix time transition for contained obj
 		for (obj in ObjectData.importedObjectData) {
+			/*if(obj.floorHugging){
+				trace('floorHugging: ${obj.name}');
+			}*/
 			if (obj.description.indexOf("+hungryWork") != -1) {
 				obj.hungryWork = ServerSettings.HungryWorkCost;
 			}
@@ -947,15 +950,19 @@ class ServerSettings {
 		ObjectData.getObjectData(1851).decaysToObj = 556; // Fence Gate ==> Fence Kit
 		ObjectData.getObjectData(1851).blocksDomesticAnimal = true; // Fence Gate
 		ObjectData.getObjectData(1851).blocksAnimal = true; // Fence Gate
+		ObjectData.getObjectData(1851).canBePlacedOnFloor = false; // Fence Gate
 		
 		ObjectData.getObjectData(550).decayFactor = ObjDecayFactorOnFloor; // Fence
 		ObjectData.getObjectData(550).decaysToObj = 556; // Fence  ==> Fence Kit
+		ObjectData.getObjectData(550).canBePlacedOnFloor = false; // Fence
 
 		ObjectData.getObjectData(549).decayFactor = ObjDecayFactorOnFloor; // Fence + verticalFence
 		ObjectData.getObjectData(549).decaysToObj = 556; //  Fence + verticalFence  ==> Fence Kit
+		ObjectData.getObjectData(549).canBePlacedOnFloor = false; // Fence + verticalFence
 
 		ObjectData.getObjectData(551).decayFactor = ObjDecayFactorOnFloor; // Fence +cornerFence
 		ObjectData.getObjectData(551).decaysToObj = 556; // Fence +cornerFence ==> Fence Kit
+		ObjectData.getObjectData(551).canBePlacedOnFloor = false; // Fence +cornerFence
 		
 		ObjectData.getObjectData(556).blocksDomesticAnimal = true; // Fence Kit
 

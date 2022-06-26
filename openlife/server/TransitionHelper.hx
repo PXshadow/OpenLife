@@ -648,6 +648,13 @@ class TransitionHelper {
 			return false;
 		}
 
+		if(floorId > 0 && newTargetObjectData.canBePlacedOnFloor == false){
+			if (ServerSettings.DebugTransitionHelper)
+				trace('TRANS: ${player.name + player.id} ${newTargetObjectData.name} cannot be placed on floor');
+
+			player.say('Cannot be placed on floor!', true);
+		}
+
 		// check if it is hungry work like cutting down a tree, using a tool or mining
 		var parentActorObjectData = handObjectData.dummyParent == null ? handObjectData : handObjectData.dummyParent;
 		var newParentTargetObjectData = newTargetObjectData.dummyParent == null ? newTargetObjectData : newTargetObjectData.dummyParent;
