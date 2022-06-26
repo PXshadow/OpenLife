@@ -458,6 +458,12 @@ class ServerSettings {
 			/*if(obj.floorHugging){
 				trace('floorHugging: ${obj.name}');
 			}*/
+
+			if(obj.description.contains('groundOnly')){
+				obj.canBePlacedOnFloor = false;
+				trace('groundOnly: ${obj.name}');
+			}
+			
 			if (obj.description.indexOf("+hungryWork") != -1) {
 				obj.hungryWork = ServerSettings.HungryWorkCost;
 			}

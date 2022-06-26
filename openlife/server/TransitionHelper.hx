@@ -653,6 +653,7 @@ class TransitionHelper {
 				trace('TRANS: ${player.name + player.id} ${newTargetObjectData.name} cannot be placed on floor');
 
 			player.say('Cannot be placed on floor!', true);
+			return false;
 		}
 
 		// check if it is hungry work like cutting down a tree, using a tool or mining
