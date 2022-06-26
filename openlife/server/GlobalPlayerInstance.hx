@@ -3726,7 +3726,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 		// trace('Wound: damage: ${damage} doesRealDamage: $doesRealDamage ' + trans.getDesciption());
 
-		var doWound = targetPlayer.food_store_max < targetPlayer.calculateNotReducedFoodStoreMax() * fromObj.objectData.woundFactor;
+		var woundFactor = fromObj.objectData.woundFactor;
+		// 764 Rattle Snake --> Shoes protect
+		if(fromObj.parentId == 764 && targetPlayer.hasBothShoes()) woundFactor /= 2;   
+		var doWound = targetPlayer.food_store_max < targetPlayer.calculateNotReducedFoodStoreMax() * woundFactor;
 
 		if (doesRealDamage == false) doWound = true; // TODO give a random chance
 		if (doWound && targetPlayer.isWounded() == false) longWeaponCoolDown = true;
