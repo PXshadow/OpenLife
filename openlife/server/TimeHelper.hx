@@ -1580,6 +1580,8 @@ class TimeHelper {
 		
 		if (objData.foodValue > 0) decayChance *= ServerSettings.ObjDecayFactorForFood;
 
+		if (objData.isClothing()) decayChance *= ServerSettings.ObjDecayFactorForClothing;
+
 		if (floorId != 0) decayChance *= ServerSettings.ObjDecayFactorOnFloor;
 
 		if (objData.isPermanent()) decayChance *= ServerSettings.ObjDecayFactorForPermanentObjs;
