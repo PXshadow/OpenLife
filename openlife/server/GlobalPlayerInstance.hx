@@ -4134,7 +4134,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			return true;
 		}
-		
+		if (text.contains('!COIN')) {
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return true;
+			}
+			
+			player.coins += 20;
+			player.say('Got More coins', true);
+			return true;
+		}
+
 		if (text.indexOf('!HIT H') != -1) {
 			trace('!HIT HELD');
 			
@@ -4415,7 +4425,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				player.coins -= cost;
 				var left = Math.floor(player.coins);
-				player.say('costed ${cost}. $left coins left!', true);
+				player.say('costed ${cost} coins. left $left', true);
 
 				return true;
 			}
@@ -4462,8 +4472,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.say('debug ai: ${ServerSettings.DebugAi}', true);
 			return true;
 		} else if (text.indexOf('!TP') != -1) {
-			player.x = 2 - player.gx;
-			player.y = 40 - player.gy;
+			player.x = 470 - player.gx; // 470 // 2 
+			player.y = 120 - player.gy; // 380 //40
 
 			player.forced = true;
 			Connection.SendUpdateToAllClosePlayers(player);
