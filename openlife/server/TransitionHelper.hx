@@ -662,12 +662,14 @@ class TransitionHelper {
 		}
 
 		// check if it is hungry work like cutting down a tree, using a tool or mining
+		var biome = WorldMap.worldGetBiomeId(tx, ty);
 		var parentActorObjectData = handObjectData.dummyParent == null ? handObjectData : handObjectData.dummyParent;
 		var newParentTargetObjectData = newTargetObjectData.dummyParent == null ? newTargetObjectData : newTargetObjectData.dummyParent;
 
 		//var hungryWorkCost = Math.max(parentActorObjectData.hungryWork, newParentTargetObjectData.hungryWork); 
 		var hungryWorkCost = parentActorObjectData.hungryWork + newParentTargetObjectData.hungryWork; 
 		hungryWorkCost += transition.hungryWorkCost;
+		if(biome == PASSABLERIVER) hungryWorkCost-= 1; 
 
 		if (hungryWorkCost > 0) {	
 			//player.say('cost ${hungryWorkCost}', true);
