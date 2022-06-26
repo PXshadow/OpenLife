@@ -862,12 +862,6 @@ class ServerSettings {
 		// War Sword
 		ObjectData.getObjectData(3047).damageProtectionFactor = 0.8; // 20% protection 36% for nobles
 
-		// TODO allow damage with bloody weapon / needs support from client?
-		ObjectData.getObjectData(560).damage = 4; // Knife  // damage per sec = 2
-		ObjectData.getObjectData(3047).damage = 6; // War Sword // damage per sec = 3
-		ObjectData.getObjectData(152).damage = 6; // Bow and Arrow  //
-		ObjectData.getObjectData(1624).damage = 10; // Bow and Arrow with Note  //
-
 		// TODO more animals like Mouflon?
 		ObjectData.getObjectData(1435).deadlyDistance = AnimalDeadlyDistanceFactor; // Bison
 		ObjectData.getObjectData(1435).damage = 2; // Bison
@@ -946,11 +940,6 @@ class ServerSettings {
 		ObjectData.getObjectData(4655).isBoat = true; // Delivery Truck
 		ObjectData.getObjectData(4655).speedMult = 1;
 
-		// lower age for weapons since kids so or so make less damage since they have less health pipes
-		ObjectData.getObjectData(151).minPickupAge = 10; // 12   // War Sword
-		ObjectData.getObjectData(151).minPickupAge = 5; // 10   // Yew Bow
-		ObjectData.getObjectData(560).minPickupAge = 2; // 8    // Knife
-
 		// blocks domestic animal 
 		ObjectData.getObjectData(1851).decayFactor = ObjDecayFactorOnFloor; // Fence Gate
 		ObjectData.getObjectData(1851).decaysToObj = 556; // Fence Gate ==> Fence Kit
@@ -1015,14 +1004,33 @@ class ServerSettings {
 		var trans = transtions.getTransition(-1, 884); // Stone Floor ==> Ancient
 		trans.autoDecaySeconds = -24 * 10; // default: -10 // TODO implement for floors
 
+		// lower age for weapons since kids so or so make less damage since they have less health pipes
+		ObjectData.getObjectData(151).minPickupAge = 10; // 12   // War Sword
+		ObjectData.getObjectData(151).minPickupAge = 5; // 10   // Yew Bow
+		ObjectData.getObjectData(560).minPickupAge = 2; // 8    // Knife
+
+		// TODO allow damage with bloody weapon / needs support from client?
+		ObjectData.getObjectData(560).damage = 4; // Knife  // damage per sec = 2
+		ObjectData.getObjectData(3047).damage = 6; // War Sword // damage per sec = 3
+		ObjectData.getObjectData(152).damage = 6; // Bow and Arrow  //
+		ObjectData.getObjectData(1624).damage = 10; // Bow and Arrow with Note  //
+		
 		var trans = transtions.getTransition(-1, 750); // Bloody Knife
-		trans.autoDecaySeconds = 50;
+		trans.autoDecaySeconds = 15;
 
 		var trans = transtions.getTransition(-1, 3048); // Bloody War Sword
-		trans.autoDecaySeconds = 50;
+		trans.autoDecaySeconds = 10;
 
 		var trans = transtions.getTransition(-1, 749); // Bloody Yew Bow
-		trans.autoDecaySeconds = 80;
+		trans.autoDecaySeconds = 30;
+
+		// Knife transitions for close combat
+		var trans = new TransitionData(560, 418, 750, 422); // Knife + Wolf ==> Bloody Knife + Dead Wolf
+		transtions.addTransition("PatchTransitions: ", trans);
+		var trans = new TransitionData(560, 1323, 750, 1332); // Knife + Wild Boar ==> Bloody Knife +  Dead Boar
+		transtions.addTransition("PatchTransitions: ", trans);
+		var trans = new TransitionData(560, 1328, 750, 1331); // Knife + Wild Boar with Piglet ==> Bloody Knife + Shot Boar with Piglet
+		transtions.addTransition("PatchTransitions: ", trans);
 
 		var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0 
 		trans.newActorID = 151; // Yew Bow instead of Yew Bow just shot
@@ -1569,14 +1577,6 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(0, 3425, 3425, 0); // Domestic Cow on Rope + 0 = Domestic Cow on Rope * 0
-		transtions.addTransition("PatchTransitions: ", trans);
-
-		// Knife transitions for close combat
-		var trans = new TransitionData(560, 418, 750, 422); // Knife + Wolf ==> Bloody Knife + Dead Wolf
-		transtions.addTransition("PatchTransitions: ", trans);
-		var trans = new TransitionData(560, 1323, 750, 1332); // Knife + Wild Boar ==> Bloody Knife +  Dead Boar
-		transtions.addTransition("PatchTransitions: ", trans);
-		var trans = new TransitionData(560, 1328, 750, 1331); // Knife + Wild Boar with Piglet ==> Bloody Knife + Shot Boar with Piglet
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Ai should ignore
