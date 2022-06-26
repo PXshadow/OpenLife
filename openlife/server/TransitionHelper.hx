@@ -648,7 +648,7 @@ class TransitionHelper {
 			return false;
 		}
 
-		if(floorId > 0 && newTargetObjectData.canBePlacedOnFloor == false){
+		if(floorId > 0 && newTargetObjectData.groundOnly){
 			if (ServerSettings.DebugTransitionHelper)
 				trace('TRANS: ${player.name + player.id} ${newTargetObjectData.name} cannot be placed on floor');
 

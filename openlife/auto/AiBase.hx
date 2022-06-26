@@ -480,6 +480,10 @@ abstract class AiBase
 		}
 		if(grave.containedObjects.length > 0) return removeItemFromContainer(grave);
 
+		// TODO move bones
+		var floorId = WorldMap.world.getFloorId(grave.tx, grave.ty);
+		if(grave.objectData.groundOnly && floorId > 0) return false;
+
 		// 850 Stone Hoe // 502 = Shovel
 		if(heldId == 850 || heldId == 502){
 			if(ServerSettings.DebugAiSay) myPlayer.say('dig in bones');

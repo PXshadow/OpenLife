@@ -114,7 +114,7 @@ class ObjectData extends LineReader {
 	public var isBloody = false;
 
 	public var carftingSteps:Int = -1;
-	public var canBePlacedOnFloor = true;
+	public var groundOnly = false;
 
 	// saved
 

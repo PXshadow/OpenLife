@@ -460,7 +460,7 @@ class ServerSettings {
 			}*/
 
 			if(obj.description.contains('groundOnly')){
-				obj.canBePlacedOnFloor = false;
+				obj.groundOnly = true;
 				trace('groundOnly: ${obj.name}');
 			}
 			
@@ -956,19 +956,19 @@ class ServerSettings {
 		ObjectData.getObjectData(1851).decaysToObj = 556; // Fence Gate ==> Fence Kit
 		ObjectData.getObjectData(1851).blocksDomesticAnimal = true; // Fence Gate
 		ObjectData.getObjectData(1851).blocksAnimal = true; // Fence Gate
-		ObjectData.getObjectData(1851).canBePlacedOnFloor = false; // Fence Gate
+		ObjectData.getObjectData(1851).groundOnly = true; // Fence Gate
 		
 		ObjectData.getObjectData(550).decayFactor = ObjDecayFactorOnFloor; // Fence
 		ObjectData.getObjectData(550).decaysToObj = 556; // Fence  ==> Fence Kit
-		ObjectData.getObjectData(550).canBePlacedOnFloor = false; // Fence
+		ObjectData.getObjectData(550).groundOnly = true; // Fence
 
 		ObjectData.getObjectData(549).decayFactor = ObjDecayFactorOnFloor; // Fence + verticalFence
 		ObjectData.getObjectData(549).decaysToObj = 556; //  Fence + verticalFence  ==> Fence Kit
-		ObjectData.getObjectData(549).canBePlacedOnFloor = false; // Fence + verticalFence
+		ObjectData.getObjectData(549).groundOnly = true; // Fence + verticalFence
 
 		ObjectData.getObjectData(551).decayFactor = ObjDecayFactorOnFloor; // Fence +cornerFence
 		ObjectData.getObjectData(551).decaysToObj = 556; // Fence +cornerFence ==> Fence Kit
-		ObjectData.getObjectData(551).canBePlacedOnFloor = false; // Fence +cornerFence
+		ObjectData.getObjectData(551).groundOnly = true; // Fence +cornerFence
 		
 		ObjectData.getObjectData(556).blocksDomesticAnimal = true; // Fence Kit
 
