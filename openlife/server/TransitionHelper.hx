@@ -611,6 +611,11 @@ class TransitionHelper {
 			return false;
 		}
 
+		if(this.target.numberOfUses > this.target.objectData.numUses){
+			trace('TRANS: ${player.name + player.id} WARNING Target: ${this.target.name} numberOfUses: ${this.target.numberOfUses} numUses: ${this.target.objectData.numUses}');
+			this.target.numberOfUses = this.target.objectData.numUses;
+		}
+
 		// if it is a reverse transition, check if it would exceed max numberOfUses
 		if (transition.reverseUseTarget && this.target.numberOfUses >= newTargetObjectData.numUses) {
 			if (ServerSettings.DebugTransitionHelper)
@@ -619,7 +624,7 @@ class TransitionHelper {
 
 			if (transition == null) {
 				if (ServerSettings.DebugTransitionHelper)
-					trace('TRANS: ${player.name + player.id} Cannot do reverse transition for taget: TileObject: ${this.target.id} numUses: ${this.target.numberOfUses} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
+					trace('TRANS: ${player.name + player.id} Cannot do reverse transition for taget: ${this.target.name} numberOfUses: ${this.target.numberOfUses} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
 
 				return false;
 			}
