@@ -1671,6 +1671,14 @@ class ServerSettings {
 
 		//var trans = TransitionImporter.GetTransition(660, 673); // Full Bucket of Water Bow and Arrow + Empty Cistern
 		//trace('DEBUG!!!: ${trans.getDesciption()}');
+
+		trans = transtions.getTransition(3158, 4154); // Horse-Drawn Tire Cart + Hitching Post
+		//trans.newTargetID = 3161;
+		trace('DEBUG!!!: ${trans.getDesciption()}');
+
+		trans = transtions.getTransition(3158, 550); // Horse-Drawn Tire Cart + Fence
+		//trans.newTargetID = 3161;
+		trace('DEBUG!!!: ${trans.getDesciption()}');
 	}	
 }
 

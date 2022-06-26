@@ -4144,6 +4144,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.say('Got More coins', true);
 			return true;
 		}
+		if (text.contains('!TTX')) {
+			//trans = transtions.getTransition(3158, 4154); // Horse-Drawn Tire Cart + Hitching Post
+			var trans = TransitionImporter.GetTransition(player.heldObject.parentId, 4154); // Horse-Drawn Tire Cart + Hitching Post
+			if(trans == null) {
+				player.say('null', true);
+			}
+			trace('XXDEBUG!!! ${trans.getDesciption()}');
+			player.say(trans.getDesciption(), true);
+			return true;
+		}
 
 		if (text.indexOf('!HIT H') != -1) {
 			trace('!HIT HELD');
