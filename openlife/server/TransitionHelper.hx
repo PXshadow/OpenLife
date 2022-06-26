@@ -45,6 +45,21 @@ class TransitionHelper {
 
 	public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0):Bool {
 		var startTime = Sys.time();
+
+		/*
+		var targetObj = WorldMap.world.getObjectHelper(x - player.gx, y - player.gy);
+		var creator = targetObj.getLinage();
+		var name = creator == null? 'NULL' : creator.name;
+		var creatorId = targetObj.getCreatorId();
+		var isGrave = targetObj.description.contains('origGrave');
+		if(isGrave) trace('${player.name} Before: Target: Owner: ${name} id: ${creatorId} from ${targetObj.name}');
+
+		var creator = player.heldObject.getLinage();
+		var name = creator == null? 'NULL' : creator.name;
+		var creatorId = player.heldObject.getCreatorId();
+		var isGrave = player.heldObject.description.contains('origGrave');
+		if(isGrave) trace('${player.name} Before: Owner: ${name} id: ${creatorId} from ${player.heldObject.name}');
+		*/
 		
 		// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} doCommand try to acquire map mutex');
 		Server.server.map.mutex.acquire();
@@ -52,7 +67,6 @@ class TransitionHelper {
 		if(ServerSettings.UseOneSingleMutex == false) GlobalPlayerInstance.AcquireMutex();
 		// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} doCommand got all mutex');
 		
-
 		var done = false;
 		Macro.exception(done = doCommandHelper(player, tag, x, y, index, target));
 		if (done == false) {
@@ -70,6 +84,19 @@ class TransitionHelper {
 
 		var timepassed = (Sys.time() - startTime) * 1000;
 		if(timepassed > 100) trace('${player.name + player.id} doCommand: tag: ${tag} ${Math.round(timepassed)}ms');
+
+		/*
+		var targetObj = WorldMap.world.getObjectHelper(x - player.gx, y - player.gy);
+		var creator = targetObj.getLinage();
+		var name = creator == null? 'NULL' : creator.name;
+		var isGrave = targetObj.description.contains('origGrave');
+		if(isGrave) trace('${player.name} After Target: Owner: ${name} from ${targetObj.name}');
+
+		var creator = player.heldObject.getLinage();
+		var name = creator == null? 'NULL' : creator.name;
+		var isGrave = player.heldObject.description.contains('origGrave');
+		if(isGrave) trace('${player.name} After Held: Owner: ${name} from ${player.heldObject.name}');
+		*/
 
 		return done;
 	}
@@ -775,11 +802,11 @@ class TransitionHelper {
 		var isHorseDropTrans = transition.newActorID == 0 && player.heldObject.containedObjects.length > 0;
 		//var isHorsePickupTrans = (transition.actorID == 0 && transition.playerActor && target.containedObjects.length > 0);
 		// if( || (transition.targetID == -1 && transition.newActorID == 0))		
-		var isHorsePickupTrans = transition.isPickup;
+		var isPickupOrDrop = transition.isPickupOrDrop; // also used for graves?
 		
 		if (ServerSettings.DebugTransitionHelper)
-			trace('TRANS: ${player.name + player.id} isHorseDropTrans: $isHorseDropTrans isHorsePickupTrans: $isHorsePickupTrans target.isPermanent: ${target.isPermanent()} targetRemains: ${transition.targetRemains}');
-		if (isHorsePickupTrans || isHorseDropTrans) {
+			trace('TRANS: ${player.name + player.id} isHorseDropTrans: $isHorseDropTrans isPickupOrDrop: $isPickupOrDrop target.isPermanent: ${target.isPermanent()} targetRemains: ${transition.targetRemains}');
+		if (isPickupOrDrop || isHorseDropTrans) {
 			if (ServerSettings.DebugTransitionHelper)
 				trace('TRANS: ${player.name + player.id} switch held object with tile object / This should be for transitions with horses, especially horse carts that can otherwise loose items');
 

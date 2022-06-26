@@ -1262,26 +1262,38 @@ class ServerSettings {
 
 		// Fix pickup transitions
 
-		
 		// Escaped Horse-Drawn Cart just released
 		trans = transtions.getTransition(0, 1422); 
-		trans.isPickup = true;
+		trans.isPickupOrDrop = true;
 		// Escaped Horse-Drawn Cart
 		trans = transtions.getTransition(0, 780); 
-		trans.isPickup = true;
+		trans.isPickupOrDrop = true;
 		// Hitched Horse-Drawn Cart
 		trans = transtions.getTransition(0, 779); 
-		trans.isPickup = true;
+		trans.isPickupOrDrop = true;
 		// Escaped Horse-Drawn Tire Cart released
 		trans = transtions.getTransition(0, 3161); 
-		trans.isPickup = true;
+		trans.isPickupOrDrop = true;
 		// Escaped Horse-Drawn Tire Cart
 		trans = transtions.getTransition(0, 3157); 
-		trans.isPickup = true;
+		trans.isPickupOrDrop = true;
 		// Hitched Horse-Drawn Tire Cart
 		trans = transtions.getTransition(0, 3159); 
-		trans.isPickup = true;
+		trans.isPickupOrDrop = true;
 
+		// Graves
+		trans = transtions.getTransition(292, 87); // Basket + Fresh Grave
+		trans.isPickupOrDrop = true;
+		trans = transtions.getTransition(292, 88); // Basket + Grave
+		trans.isPickupOrDrop = true;	
+		trans = transtions.getTransition(292, 89); // Basket + Old Grave
+		trans.isPickupOrDrop = true;
+		trans = transtions.getTransition(292, 357); // Basket + Bone Pile
+		trans.isPickupOrDrop = true;
+
+		trans = transtions.getTransition(356, -1); // Basket of Bones + 0
+		trans.isPickupOrDrop = true; 
+		
 		// Original: Riding Horse: 770 + -1 = 0 + 1421
 		trans = new TransitionData(770, 0, 0, 1421);
 		transtions.addTransition("PatchTransitions: ", trans);

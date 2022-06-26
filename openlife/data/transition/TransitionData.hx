@@ -6,7 +6,7 @@ import openlife.settings.ServerSettings;
 
 @:expose
 class TransitionData {
-	public var isPickup = false; // Not saved // Is used if a horse cart is picked up through a use
+	public var isPickupOrDrop = false; // Not saved // Is used if a horse cart is picked up through a use
 	public var addedBy = "Not Set"; // Arcurus gives a hint from who this Transiton was created, like a normal transition, or category or if it was patched
 
 	// Last use determines whether the current transition is used when numUses is greater than 1
