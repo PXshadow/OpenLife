@@ -583,9 +583,14 @@ class ServerSettings {
 		
 		// set hungry work
 		// TODO use tool hungry work factor
+		/*
 		ObjectData.getObjectData(34).hungryWork = 1 * HungryWorkToolCostFactor; // Sharp Stone
 		ObjectData.getObjectData(334).hungryWork = 1 * HungryWorkToolCostFactor; // Steel Axe
 		ObjectData.getObjectData(502).hungryWork = 1 * HungryWorkToolCostFactor; // Shovel // TODO should be cheaper then sharp stone
+		*/
+		//ObjectData.getObjectData(334).hungryWork = -1; // Steel Axe
+		//ObjectData.getObjectData(502).hungryWork = -1; // Shovel 
+		ObjectData.getObjectData(857).hungryWork = -1.5; // Steel Hoe
 
 		ObjectData.getObjectData(1849).hungryWork = 10; // Buried Grave with Dug Stone
 
@@ -1039,7 +1044,7 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 		var trans = new TransitionData(3047, 1328, 3048, 1331); // War Sword + Wild Boar with Piglet ==> Bloody War Sword + Shot Boar with Piglet
 		transtions.addTransition("PatchTransitions: ", trans);
-
+		
 		var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0 
 		trans.newActorID = 151; // Yew Bow instead of Yew Bow just shot
 		transtions.addTransition("PatchTransitions: ", trans);

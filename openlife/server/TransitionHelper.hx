@@ -670,6 +670,7 @@ class TransitionHelper {
 		hungryWorkCost += transition.hungryWorkCost;
 
 		if (hungryWorkCost > 0) {	
+			//player.say('cost ${hungryWorkCost}', true);
 
 			// TODO check also for not hungry work?
 			if(this.target.containedObjects.length > newParentTargetObjectData.numSlots){
