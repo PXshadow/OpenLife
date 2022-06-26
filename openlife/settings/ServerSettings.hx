@@ -1032,6 +1032,14 @@ class ServerSettings {
 		var trans = new TransitionData(560, 1328, 750, 1331); // Knife + Wild Boar with Piglet ==> Bloody Knife + Shot Boar with Piglet
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Sword transitions for close combat
+		var trans = new TransitionData(3047, 418, 3048, 422); // War Sword + Wolf ==> Bloody War Sword + Dead Wolf
+		transtions.addTransition("PatchTransitions: ", trans);
+		var trans = new TransitionData(3047, 1323, 3048, 1332); // War Sword + Wild Boar ==> Bloody War Sword +  Dead Boar
+		transtions.addTransition("PatchTransitions: ", trans);
+		var trans = new TransitionData(3047, 1328, 3048, 1331); // War Sword + Wild Boar with Piglet ==> Bloody War Sword + Shot Boar with Piglet
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0 
 		trans.newActorID = 151; // Yew Bow instead of Yew Bow just shot
 		transtions.addTransition("PatchTransitions: ", trans);
