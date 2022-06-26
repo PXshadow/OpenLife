@@ -1306,6 +1306,14 @@ class ServerSettings {
 		trans = transtions.getTransition(-1, 1361);
 		trans.autoDecaySeconds = 30;  // 7
 
+		trans = transtions.getTransition(3158, 4154); // Horse-Drawn Tire Cart + Hitching Post
+		trans.newTargetID = 3159; // Hitched Horse-Drawn Tire Cart
+		//trace('DEBUG!!!: ${trans.getDesciption()}');
+
+		trans = transtions.getTransition(3158, 550); // Horse-Drawn Tire Cart + Fence
+		trans.newTargetID = 3159; // Hitched Horse-Drawn Tire Cart
+		//trace('DEBUG!!!: ${trans.getDesciption()}');
+
 		// 141 Canada Goose Pond
 		// 1261 Canada Goose Pond with Egg // TODO let egg come back
 
@@ -1563,6 +1571,14 @@ class ServerSettings {
 		var trans = new TransitionData(0, 3425, 3425, 0); // Domestic Cow on Rope + 0 = Domestic Cow on Rope * 0
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Knife transitions for close combat
+		var trans = new TransitionData(560, 418, 750, 422); // Knife + Wolf ==> Bloody Knife + Dead Wolf
+		transtions.addTransition("PatchTransitions: ", trans);
+		var trans = new TransitionData(560, 1323, 750, 1332); // Knife + Wild Boar ==> Bloody Knife +  Dead Boar
+		transtions.addTransition("PatchTransitions: ", trans);
+		var trans = new TransitionData(560, 1328, 750, 1331); // Knife + Wild Boar with Piglet ==> Bloody Knife + Shot Boar with Piglet
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// Ai should ignore
 		// TODO fix Ai craftig if Ai needs two threads for a rope it puts one thread in a bowl and gets it out again
 		// this breals making a light pulb for a radio
@@ -1670,15 +1686,7 @@ class ServerSettings {
 		//trace('${objData.name} isPermanent ${objData.isPermanent()}');
 
 		//var trans = TransitionImporter.GetTransition(660, 673); // Full Bucket of Water Bow and Arrow + Empty Cistern
-		//trace('DEBUG!!!: ${trans.getDesciption()}');
-
-		trans = transtions.getTransition(3158, 4154); // Horse-Drawn Tire Cart + Hitching Post
-		trans.newTargetID = 3159; // Hitched Horse-Drawn Tire Cart
-		trace('DEBUG!!!: ${trans.getDesciption()}');
-
-		trans = transtions.getTransition(3158, 550); // Horse-Drawn Tire Cart + Fence
-		trans.newTargetID = 3159; // Hitched Horse-Drawn Tire Cart
-		trace('DEBUG!!!: ${trans.getDesciption()}');
+		//trace('DEBUG!!!: ${trans.getDesciption()}');	
 	}	
 }
 
