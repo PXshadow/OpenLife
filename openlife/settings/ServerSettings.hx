@@ -943,8 +943,21 @@ class ServerSettings {
 		ObjectData.getObjectData(560).minPickupAge = 2; // 8    // Knife
 
 		// blocks domestic animal 
-
+		ObjectData.getObjectData(1851).decayFactor = ObjDecayFactorOnFloor; // Fence Gate
+		ObjectData.getObjectData(1851).decaysToObj = 556; // Fence Gate ==> Fence Kit
 		ObjectData.getObjectData(1851).blocksDomesticAnimal = true; // Fence Gate
+		ObjectData.getObjectData(1851).blocksAnimal = true; // Fence Gate
+		
+		ObjectData.getObjectData(550).decayFactor = ObjDecayFactorOnFloor; // Fence
+		ObjectData.getObjectData(550).decaysToObj = 556; // Fence  ==> Fence Kit
+
+		ObjectData.getObjectData(549).decayFactor = ObjDecayFactorOnFloor; // Fence + verticalFence
+		ObjectData.getObjectData(549).decaysToObj = 556; //  Fence + verticalFence  ==> Fence Kit
+
+		ObjectData.getObjectData(551).decayFactor = ObjDecayFactorOnFloor; // Fence +cornerFence
+		ObjectData.getObjectData(551).decaysToObj = 556; // Fence +cornerFence ==> Fence Kit
+		
+		ObjectData.getObjectData(556).blocksDomesticAnimal = true; // Fence Kit
 
 		for (objData in ObjectData.importedObjectData) {
 			if (objData.description.contains('Sports Car')) {
