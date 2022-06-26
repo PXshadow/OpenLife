@@ -659,8 +659,8 @@ class TransitionHelper {
 		if (hungryWorkCost > 0) {	
 
 			// TODO check for all?
-			if(newParentTargetObjectData.numUses < target.numberOfUses){
-				trace('TRANS: ${player.name + player.id} new target : ${newParentTargetObjectData.numUses}  numUses < target.numberOfUses: ${target.numberOfUses}');
+			if(this.target.containedObjects.length > newParentTargetObjectData.numSlots){
+				trace('TRANS: ${player.name + player.id} new target : ${this.target.containedObjects.length}  numUses < target.numberOfUses: ${newParentTargetObjectData.numSlots}');
 				player.say('empty first', true);
 				player.doEmote(Emote.sad);
 				return false;
