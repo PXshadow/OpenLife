@@ -688,26 +688,31 @@ class TransitionHelper {
 			return false;
 		}
 
-		// check if it is hungry work like cutting down a tree, using a tool or mining
-		var biome = WorldMap.worldGetBiomeId(tx, ty);
+		// check also for not hungry work?
 		var parentActorObjectData = handObjectData.dummyParent == null ? handObjectData : handObjectData.dummyParent;
 		var newParentTargetObjectData = newTargetObjectData.dummyParent == null ? newTargetObjectData : newTargetObjectData.dummyParent;
+		var newNumSlots = transition.isPickupOrDrop ? parentActorObjectData.numSlots : newParentTargetObjectData.numSlots;
+		var numberContainedObj = this.target.containedObjects.length;
 
+		if( numberContainedObj > newNumSlots){
+			trace('TRANS: ${player.name + player.id} new target : ${numberContainedObj}  numUses < numberOfUses: ${newNumSlots} TRUE isPickup? ${transition.isPickupOrDrop}');
+			player.say('empty first', true);
+			player.doEmote(Emote.sad);
+			return false;
+		}
+
+		trace('TRANS: ${player.name + player.id} new target : ${numberContainedObj}  numUses < numberOfUses: ${newNumSlots} FALSE isPickup? ${transition.isPickupOrDrop}');
+
+		// check if it is hungry work like cutting down a tree, using a tool or mining
+		var biome = WorldMap.worldGetBiomeId(tx, ty);
+		
 		//var hungryWorkCost = Math.max(parentActorObjectData.hungryWork, newParentTargetObjectData.hungryWork); 
 		var hungryWorkCost = parentActorObjectData.hungryWork + newParentTargetObjectData.hungryWork; 
 		hungryWorkCost += transition.hungryWorkCost;
 		if(biome == PASSABLERIVER) hungryWorkCost-= 1; 
 
 		if (hungryWorkCost > 0) {	
-			//player.say('cost ${hungryWorkCost}', true);
-
-			// TODO check also for not hungry work?
-			if(this.target.containedObjects.length > newParentTargetObjectData.numSlots){
-				trace('TRANS: ${player.name + player.id} new target : ${this.target.containedObjects.length}  numUses < target.numberOfUses: ${newParentTargetObjectData.numSlots}');
-				player.say('empty first', true);
-				player.doEmote(Emote.sad);
-				return false;
-			}
+			//player.say('cost ${hungryWorkCost}', true);	
 
 			var missingFood = Math.ceil(hungryWorkCost / 2  - player.food_store);
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} hungry Work cost: $hungryWorkCost missingFood: ${missingFood}');
@@ -854,7 +859,7 @@ class TransitionHelper {
 
 		// take care to pile baskets // 292 Basket // 1605 Stack of Baskets
 		//if(handObjectData.id == 292 && this.target.id == 292){
-		if(player.heldObject.containedObjects.length > 0 && (this.target.id == 292 || this.target.id == 1605)){
+		if((player.heldObject.parentId == 292 && player.heldObject.containedObjects.length > 0) && (this.target.id == 292 || this.target.id == 1605)){
 			// TODO implement hidden containers so that cointainers can be put on top of containers
 			var text = 'TRANS: ${player.name + player.id} ${player.heldObject.name} + ${this.target.name} ${this.target.toArray()} NOT SUPPORTET YET!'; 
 			trace(text);
