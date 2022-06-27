@@ -469,10 +469,26 @@ class ServerSettings {
 				obj.hungryWork = ServerSettings.HungryWorkCost;
 			}
 
+			// Allow for smithing // TODO allow only place on table?
 			if (obj.description.indexOf("on Flat Rock") != -1 || obj.description.indexOf("flat rock") != -1) {
 				obj.containSize = 2;
 				obj.containable = true;
 			}
+			
+			ObjectData.getObjectData(319).containSize = 2; // Unforged Sealed Steel Crucible
+			ObjectData.getObjectData(319).containable = true; // Unforged Sealed Steel Crucible
+
+			ObjectData.getObjectData(321).containSize = 2; // Hot Forged Steel Crucible
+			ObjectData.getObjectData(321).containable = true; // Hot Forged Steel Crucible
+
+			ObjectData.getObjectData(322).containSize = 2; // Forged Steel Crucible
+			ObjectData.getObjectData(322).containable = true; // Forged Steel Crucible
+
+			ObjectData.getObjectData(325).containSize = 2; // Crucible with Steel
+			ObjectData.getObjectData(325).containable = true; // Crucible with Steel
+
+			ObjectData.getObjectData(322).containSize = 2; // Forged Steel Crucible
+			ObjectData.getObjectData(322).containable = true; // Forged Steel Crucible
 
 			if (obj.description.indexOf("Steel") != -1) {
 				// trace('Decays to: ${obj.name}');
