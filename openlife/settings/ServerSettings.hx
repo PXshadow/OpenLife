@@ -1541,15 +1541,19 @@ class ServerSettings {
 		// allow more Stone Hoe to be used to dig graves // TODO make more HUNGRY WORK / TEST if they brake
 		
 		var trans = new TransitionData(850, 357, 850, 1011); // Stone Hoe + Bone Pile --> Stone Hoe + Buried Grave
+		trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(850, 87, 850, 1011); // Stone Hoe + Fresh Grave --> Stone Hoe + Buried Grave
+		trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(850, 88, 850, 1011); // Stone Hoe + Grave --> Stone Hoe + Buried Grave
+		trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(850, 89, 850, 1011); // Stone Hoe + Old Grave --> Stone Hoe + Buried Grave
+		trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// allow more options to kill animals
