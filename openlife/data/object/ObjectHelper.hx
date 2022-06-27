@@ -323,6 +323,7 @@ class ObjectHelper {
 		}
 
 		this.objectData = newObjectData;
+		this.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(this);
 
 		return newID;
 	}

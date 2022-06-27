@@ -2803,7 +2803,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return true;
 	}
 
-	private function setInClothingSet(clothingSlot:Int) {
+	public function setInClothingSet(clothingSlot:Int) {
 		var array = this.clothing_set.split(";");
 
 		if (array.length < 6) {

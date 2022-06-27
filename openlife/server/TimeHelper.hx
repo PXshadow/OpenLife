@@ -465,7 +465,23 @@ class TimeHelper {
 		}
 
 		// TODO contained objects
-		// TODO clothing decay / contained objects --> like in backpack
+		// clothing decay / contained objects --> like in backpack
+		for(i in 0...player.clothingObjects.length){
+			var obj = player.clothingObjects[i];
+			
+			if (obj.timeToChange > 0 && obj.isTimeToChangeReached()) {		
+				var transition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
+
+				if (transition != null) {
+					var name = obj.name;
+					obj.id = transition.newTargetID;
+
+					trace('TIME: clothing ${name} --> ${obj.name}');
+					obj.creationTimeInTicks = TimeHelper.tick;
+					player.setInClothingSet(i);
+				}
+			}
+		}
 	}
 
 	private static function UpdateEmotes(player:GlobalPlayerInstance) {

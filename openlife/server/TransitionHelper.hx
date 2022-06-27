@@ -724,13 +724,13 @@ class TransitionHelper {
 		var numberContainedObj = this.target.containedObjects.length;
 
 		if( numberContainedObj > newNumSlots){
-			trace('TRANS: ${player.name + player.id} new target : ${numberContainedObj}  numUses < numberOfUses: ${newNumSlots} TRUE isPickup? ${transition.isPickupOrDrop}');
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} new target : ${numberContainedObj}  numUses < numberOfUses: ${newNumSlots} TRUE isPickup? ${transition.isPickupOrDrop}');
 			player.say('empty first', true);
 			player.doEmote(Emote.sad);
 			return false;
 		}
 
-		trace('TRANS: ${player.name + player.id} new target : ${numberContainedObj}  numUses < numberOfUses: ${newNumSlots} FALSE isPickup? ${transition.isPickupOrDrop}');
+		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} new target : ${numberContainedObj}  numUses < numberOfUses: ${newNumSlots} FALSE isPickup? ${transition.isPickupOrDrop}');
 
 		// check if it is hungry work like cutting down a tree, using a tool or mining
 		var biome = WorldMap.worldGetBiomeId(tx, ty);
@@ -747,7 +747,7 @@ class TransitionHelper {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} hungry Work cost: $hungryWorkCost missingFood: ${missingFood}');
 
 			if(player.isSuperHot()){
-				var message = 'I am far to hot!';
+				var message = 'Too hot!';
 				player.say(message, true);
 				player.doEmote(Emote.yellowFever);
 				return false;
@@ -755,7 +755,7 @@ class TransitionHelper {
 
 			var excessExhaustion = Math.ceil(player.exhaustion - (player.food_store_max + 1));
 			if(excessExhaustion > 0){
-				var message = 'I am too exhausted! $excessExhaustion';
+				var message = 'Too exhausted! $excessExhaustion';
 				player.say(message, true);
 				player.doEmote(Emote.homesick);
 				return false;
