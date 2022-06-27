@@ -688,7 +688,21 @@ class TransitionHelper {
 			return false;
 		}
 
-		// check also for not hungry work?
+		// if transition is not a tool use, check if actor has max number of uses
+		if(transition.tool == false && transition.reverseUseActor == false){
+			var numUses = player.heldObject.objectData.numUses;
+			var heldUses = player.heldObject.numberOfUses;
+			
+			if(numUses > 1 && heldUses < numUses){
+				if (ServerSettings.DebugTransitionHelper)
+					trace('TRANS: ${player.name + player.id} ${player.heldObject.name} must have max uses ${heldUses} < ${numUses}');
+
+				player.say('Must be full!', true);
+
+				return false;
+			}
+		}
+
 		var parentActorObjectData = handObjectData.dummyParent == null ? handObjectData : handObjectData.dummyParent;
 		var newParentTargetObjectData = newTargetObjectData.dummyParent == null ? newTargetObjectData : newTargetObjectData.dummyParent;
 		var newNumSlots = transition.isPickupOrDrop ? parentActorObjectData.numSlots : newParentTargetObjectData.numSlots;

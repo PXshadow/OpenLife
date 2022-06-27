@@ -1708,6 +1708,9 @@ class ServerSettings {
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');
 
+		//var trans = transtions.getTransition(253, -1); // Bowl of Gooseberries
+		//trace('DEBUG!!: ${trans.getDesciption()}');
+
 		// for debug random outcome transitions
 		/*var trans = transtions.getTransition(-1, 1195); // TIME + Blooming Squash Plant 
 			trans.autoDecaySeconds = 2;
