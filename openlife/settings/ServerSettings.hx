@@ -474,7 +474,12 @@ class ServerSettings {
 				obj.containSize = 2;
 				obj.containable = true;
 			}
-			
+
+			if (obj.description.contains("Crucible") && obj.description.contains("in Wooden") == false) {
+				obj.containSize = 2;
+				obj.containable = true;
+			}
+	
 			ObjectData.getObjectData(319).containSize = 2; // Unforged Sealed Steel Crucible
 			ObjectData.getObjectData(319).containable = true; // Unforged Sealed Steel Crucible
 
