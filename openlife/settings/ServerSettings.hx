@@ -469,7 +469,7 @@ class ServerSettings {
 				obj.hungryWork = ServerSettings.HungryWorkCost;
 			}
 
-			if (obj.description.indexOf("on Flat Rock") != -1) {
+			if (obj.description.indexOf("on Flat Rock") != -1 || obj.description.indexOf("flat rock") != -1) {
 				obj.containSize = 2;
 				obj.containable = true;
 			}
@@ -1615,6 +1615,12 @@ class ServerSettings {
 
 		var trans = transtions.getTransition(-1, 846); // Broken Hand Cart
 		trans.autoDecaySeconds = -2;
+
+		var trans = TransitionImporter.GetTransition(-1, 330); // TIME + Hot Steel Ingot on Flat Rock
+		trans.autoDecaySeconds = 20;
+		
+		var trans = TransitionImporter.GetTransition(-1, 252); // TIME + Bowl of Dough
+		trans.autoDecaySeconds = 120;
 
 		var trans = new TransitionData(462, 846, 462, 67); // Steel Adze + Broken Hand Cart ==> Steel Adze + Long Straight Shaft
 		transtions.addTransition("PatchTransitions: ", trans);
