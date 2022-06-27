@@ -974,6 +974,8 @@ class ServerSettings {
 			}
 		}
 
+		ObjectData.getObjectData(1605).numSlots = 0; //Stack of Baskets // TODO allow stacking of filled baskets
+
 		// ObjectData.getObjectData(279).winterDecayFactor = 2; // Empty Wild Gooseberry Bush
 		// ObjectData.getObjectData(279).springRegrowFactor = 0.5; // Empty Wild Gooseberry Bush
 		// ObjectData.getObjectData(279).countsOrGrowsAs = 30; // Empty Wild Gooseberry Bush
@@ -1231,6 +1233,10 @@ class ServerSettings {
 		trans.autoDecaySeconds = -6; // default -0.5
 
 		for (trans in TransitionImporter.transitionImporter.transitions) {
+			if(trans.tool){
+				trace('DEBUG!!! TOOL: ${trans.getDesciption()}');
+			}
+
 			if (trans.actorID < -1) {
 				//trace('Debug ${trans.getDesciption()}');
 				// trans.traceTransition("PatchTransitions: ", true);
@@ -1397,10 +1403,12 @@ class ServerSettings {
 		//  Wild Gooseberry Bush
 		trans = new TransitionData(253, 30, 253, 30); // Bowl of Gooseberries + Wild Gooseberry Bush --> Bowl of Gooseberries(+1) + Wild Gooseberry Bush
 		trans.reverseUseActor = true;
+		//trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(235, 30, 253, 30); // Clay Bowl + Wild Gooseberry Bush --> Bowl of Gooseberries + Wild Gooseberry Bush
 		trans.reverseUseActor = true; // otherwise new bowl will be full with berries
+		//trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(253, 30, 253,
@@ -1676,8 +1684,27 @@ class ServerSettings {
 
 		// Stop spread of Dough to get a bowl // TODO allow again for tortilla
 		var trans = transtions.getTransition(252, 291); // Bowl of Dough + Flat Rock
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
+
+		// forbid burning stuff
+		var trans = transtions.getTransition(516, 82); // Skewered Goose + Fire
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(516, 83); // Skewered Goose + Large Fast Fire
+		trans.aiShouldIgnore = true;
 		
+		var trans = transtions.getTransition(516, 346); // Skewered Goose + Large Slow Fire
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(185, 82); // Skewered Rabbit + Fire
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(185, 83); // Skewered Rabbit + Large Fast Fire
+		trans.aiShouldIgnore = true;
+		
+		var trans = transtions.getTransition(185, 346); // Skewered Rabbit + Large Slow Fire
+		trans.aiShouldIgnore = true;
+
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');
 
