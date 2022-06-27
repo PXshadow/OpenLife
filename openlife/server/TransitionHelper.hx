@@ -704,7 +704,7 @@ class TransitionHelper {
 		}
 
 		// check if target has max number of uses
-		if(transition.isTargetMaxUse && transition.reverseUseTarget== false){
+		if(transition.isTargetMaxUse && transition.reverseUseTarget == false){
 			var numUses = target.objectData.numUses;
 			var uses = target.numberOfUses;
 			
@@ -720,7 +720,7 @@ class TransitionHelper {
 
 		var parentActorObjectData = handObjectData.dummyParent == null ? handObjectData : handObjectData.dummyParent;
 		var newParentTargetObjectData = newTargetObjectData.dummyParent == null ? newTargetObjectData : newTargetObjectData.dummyParent;
-		var newNumSlots = transition.isPickupOrDrop ? parentActorObjectData.numSlots : newParentTargetObjectData.numSlots;
+		var newNumSlots = transition.isPickupOrDrop ? newActorObjectData.numSlots : newParentTargetObjectData.numSlots;
 		var numberContainedObj = this.target.containedObjects.length;
 
 		if( numberContainedObj > newNumSlots){
