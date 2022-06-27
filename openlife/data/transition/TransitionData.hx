@@ -40,6 +40,7 @@ class TransitionData {
 	public var alternativeTransitionOutcome:Array<Int> = new Array<Int>();
 	public var hungryWorkCost:Float = 0;
 	public var aiShouldIgnore = false;
+	public var isTargetMaxUse = false; // target must have be full
 
 	public static function createNewFromFile(fileName:String, string:String):TransitionData {
 		var t = new TransitionData();

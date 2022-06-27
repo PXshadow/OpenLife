@@ -1233,9 +1233,14 @@ class ServerSettings {
 		trans.autoDecaySeconds = -6; // default -0.5
 
 		for (trans in TransitionImporter.transitionImporter.transitions) {
-			if(trans.tool){
+			/*if(trans.tool){
 				trace('DEBUG!!! TOOL: ${trans.getDesciption()}');
-			}
+			}*/
+			/*var targetObj = ObjectData.getObjectData(trans.targetID); 
+			var targetChanged = trans.targetID != trans.newTargetID;
+			if(trans.noUseTarget == false && targetChanged && targetObj.numUses > 1 && trans.actorID > 0 && trans.reverseUseTarget == false){
+				trace('DEBUG!!! numUses > 1: ${trans.getDesciption()}');
+			}*/
 
 			if (trans.actorID < -1) {
 				//trace('Debug ${trans.getDesciption()}');
@@ -1613,6 +1618,16 @@ class ServerSettings {
 		var trans = new TransitionData(0, 3425, 3425, 0); // Domestic Cow on Rope + 0 = Domestic Cow on Rope * 0
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Set Max Use Target tranistions
+		var trans = TransitionImporter.GetTransition(33, 1176); // Stone + Bowl of Dry Beans
+		trans.isTargetMaxUse = true;
+		var trans = TransitionImporter.GetTransition(40, 253); // Wild Carrot + Bowl of Gooseberries
+		trans.isTargetMaxUse = true;
+		var trans = TransitionImporter.GetTransition(181, 253); // Skinned Rabbit + Bowl of Gooseberries
+		trans.isTargetMaxUse = true;
+		var trans = TransitionImporter.GetTransition(402, 253); // Carrot + Bowl of Gooseberries
+		trans.isTargetMaxUse = true;
+		
 		// Ai should ignore
 		// TODO fix Ai craftig if Ai needs two threads for a rope it puts one thread in a bowl and gets it out again
 		// this breals making a light pulb for a radio
@@ -1742,7 +1757,7 @@ class ServerSettings {
 		//trace('${objData.name} isPermanent ${objData.isPermanent()}');
 
 		//var trans = TransitionImporter.GetTransition(660, 673); // Full Bucket of Water Bow and Arrow + Empty Cistern
-		//trace('DEBUG!!!: ${trans.getDesciption()}');	
+		//trace('DEBUG!!!: ${trans.getDesciption()}');
 	}	
 }
 

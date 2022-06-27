@@ -703,6 +703,21 @@ class TransitionHelper {
 			}
 		}
 
+		// check if target has max number of uses
+		if(transition.isTargetMaxUse && transition.reverseUseTarget== false){
+			var numUses = target.objectData.numUses;
+			var uses = target.numberOfUses;
+			
+			if(numUses > 1 && uses < numUses){
+				if (ServerSettings.DebugTransitionHelper)
+					trace('TRANS: ${player.name + player.id} Target ${target.name} must have max uses ${uses} < ${numUses}');
+
+				player.say('Missing ${numUses - uses}', true);
+
+				return false;
+			}
+		}
+
 		var parentActorObjectData = handObjectData.dummyParent == null ? handObjectData : handObjectData.dummyParent;
 		var newParentTargetObjectData = newTargetObjectData.dummyParent == null ? newTargetObjectData : newTargetObjectData.dummyParent;
 		var newNumSlots = transition.isPickupOrDrop ? parentActorObjectData.numSlots : newParentTargetObjectData.numSlots;
