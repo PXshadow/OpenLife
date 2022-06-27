@@ -1033,7 +1033,7 @@ class TimeHelper {
 			var tmpTemperature = (0.45 + originalBiomeTemperature) / 2;
 			var temperature = tmpTemperature * floorInsulation + originalBiomeTemperature * (1 - floorInsulation);
 			
-			trace('calculateTemperature: ${floorObjData.name} floorInsulation: ${Math.round(floorInsulation * 100)/100} temp: ${Math.round(temperature * 100)/100} orig: ${originalBiomeTemperature} tTemp: $tmpTemperature');
+			if(ServerSettings.DebugTemperature) trace('calculateTemperature: ${floorObjData.name} floorInsulation: ${Math.round(floorInsulation * 100)/100} temp: ${Math.round(temperature * 100)/100} orig: ${originalBiomeTemperature} tTemp: $tmpTemperature');
 			
 			temperature -= colorTemperatureShift;
 			return temperature; 
