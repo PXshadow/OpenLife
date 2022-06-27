@@ -854,8 +854,9 @@ class ServerSettings {
 		ObjectData.getObjectData(31).winterDecayFactor = 2; // Gooseberry
 
 		// Domestic Gooseberry Bush
-		ObjectData.getObjectData(391).winterDecayFactor = 1; // Domestic Gooseberry Bush
-		ObjectData.getObjectData(391).springRegrowFactor = 0.1; // Domestic Gooseberry Bush
+		//ObjectData.getObjectData(391).winterDecayFactor = 1; // Domestic Gooseberry Bush
+		ObjectData.getObjectData(391).springRegrowFactor = 0.2; // Domestic Gooseberry Bush
+		ObjectData.getObjectData(1135).springRegrowFactor = 0.2; // Empty Domestic Gooseberry Bush
 
 		ObjectData.getObjectData(750).speedMult = 0.75; // Bloody Knife
 		ObjectData.getObjectData(3048).speedMult = 0.85; // Bloody War Sword
@@ -1642,6 +1643,9 @@ class ServerSettings {
 		
 		var trans = TransitionImporter.GetTransition(-1, 252); // TIME + Bowl of Dough
 		trans.autoDecaySeconds = 120;
+
+		var trans = TransitionImporter.GetTransition(-1, 1135); // TIME + Empty Domestic Gooseberry Bush
+		trans.autoDecaySeconds = 60  * 10;
 
 		var trans = new TransitionData(462, 846, 462, 67); // Steel Adze + Broken Hand Cart ==> Steel Adze + Long Straight Shaft
 		transtions.addTransition("PatchTransitions: ", trans);
