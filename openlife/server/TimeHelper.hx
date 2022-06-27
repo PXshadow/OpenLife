@@ -468,18 +468,20 @@ class TimeHelper {
 		// clothing decay / contained objects --> like in backpack
 		for(i in 0...player.clothingObjects.length){
 			var obj = player.clothingObjects[i];
+
+			var timeTransition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
+			if (timeTransition == null) continue;
+
+			if (obj.timeToChange <= 0) obj.timeToChange = timeTransition.calculateTimeToChange();
 			
 			if (obj.timeToChange > 0 && obj.isTimeToChangeReached()) {		
-				var transition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
 
-				if (transition != null) {
-					var name = obj.name;
-					obj.id = transition.newTargetID;
+				var name = obj.name;
+				obj.id = timeTransition.newTargetID;
 
-					trace('TIME: clothing ${name} --> ${obj.name}');
-					obj.creationTimeInTicks = TimeHelper.tick;
-					player.setInClothingSet(i);
-				}
+				trace('TIME: clothing ${name} --> ${obj.name}');
+				obj.creationTimeInTicks = TimeHelper.tick;
+				player.setInClothingSet(i);
 			}
 		}
 	}
