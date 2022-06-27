@@ -1228,23 +1228,48 @@ class TimeHelper {
 
 				var helper = worldMap.getObjectHelper(x, y, true);
 
+				/*if (helper == null && obj.length > 1) {
+					trace('TIME: In Container!: ${obj}');
+					// TODO only id needed for time stuff
+					helper = worldMap.getObjectHelper(x, y);
+				}*/
+
 				if (helper != null) {
 					if (helper.timeToChange == 0) // maybe timeToChange was forgotten to be set
 					{
 						var timeTransition = TransitionImporter.GetTransition(-1, helper.id, false, false);
 
-						if (timeTransition == null) continue;
-
-						trace('WARNING: found helper without time transition: ${helper.description}: ' + timeTransition.getDesciption());
-
-						helper.timeToChange = timeTransition.calculateTimeToChange();
+						if (timeTransition != null){
+							trace('WARNING: found helper without time transition: ${helper.description}: ' + timeTransition.getDesciption());
+							helper.timeToChange = timeTransition.calculateTimeToChange();
+						}
 					}
 
 					// clear up not needed ObjectHelpers to save space
 					if (worldMap.deleteObjectHelperIfUseless(helper)) continue; // uses worlmap mutex
 
-					TimeHelper.doTimeTransition(helper);
+					if(helper.timeToChange > 0) TimeHelper.doTimeTransition(helper);
 
+					// do time transition for contained objects
+					// TODO time in contained objects in contained objects
+					// TODO use mutex in case something changes???
+					var changed = false;
+					for(obj in helper.containedObjects){
+						changed = changed || TimeHelper.doTimeForObject(obj);
+					}
+
+					if(changed){
+						// clear up decayed objects
+						var containedObjects =  helper.containedObjects;
+						var newContainedObjects = [];
+						for(obj in containedObjects){
+							if(obj.id < 1) continue;
+							newContainedObjects.push(obj);
+						}
+						helper.containedObjects = newContainedObjects;
+						WorldMap.world.setObjectHelper(x, y, helper);
+						Connection.SendMapUpdateToAllClosePlayers(x, y);
+					}
 					continue;
 				}
 
@@ -1779,8 +1804,8 @@ class TimeHelper {
 
 	//public static function DecayObjects() {}
 
-	public static function doTimeTransition(helper:ObjectHelper) {
-		if (helper.isTimeToChangeReached() == false) return;
+	public static function doTimeTransition(helper:ObjectHelper) : Bool {
+		if (helper.isTimeToChangeReached() == false) return false;
 		// trace('TIME: ${helper.objectData.description} passedTime: $passedTime neededTime: ${timeToChange}');
 
 		// TODO test time transition for maxUseTaget like Goose Pond:
@@ -1796,7 +1821,7 @@ class TimeHelper {
 
 			trace("TIME: some one changed helper meanwhile");
 
-			return;
+			return false;
 		}
 
 		var sendUpdate = false;
@@ -1805,9 +1830,11 @@ class TimeHelper {
 
 		WorldMap.world.mutex.release();
 
-		if (sendUpdate == false) return;
+		if (sendUpdate == false) return false;
 
 		Connection.SendMapUpdateToAllClosePlayers(helper.tx, helper.ty);
+
+		return true;
 	}
 
 	public static function doTimeTransitionHelper(helper:ObjectHelper):Bool {
@@ -1877,6 +1904,50 @@ class TimeHelper {
 		TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, transition, null, false);
 
 		WorldMap.world.setObjectHelper(tx, ty, helper);
+
+		return true;
+	}
+
+	private static function doTimeForObject(obj:ObjectHelper) : Bool {
+		// 330 Hot Steel Ingot on Flat Rock
+		//if(obj.parentId == 330) trace('TIME: In Container: ${obj.name} timeToChange: ${obj.timeToChange}');
+		//trace('TIME: In Container: ${obj.name} --> ${obj.timeToChange}');
+
+		var timeTransition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
+		if (timeTransition == null) return false;
+
+		if(obj.timeToChange <= 0) obj.timeToChange = timeTransition.calculateTimeToChange();
+
+		if(obj.isTimeToChangeReached() == false) return false;
+		
+		var transition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
+
+		if (transition == null) {
+			obj.timeToChange = 0;						
+			return false;
+		}
+
+		var newObjectData = ObjectData.getObjectData(transition.newTargetID);
+
+		// for example if a grave with objects decays
+		if (obj.containedObjects.length > newObjectData.numSlots) {
+			// TODO 
+			return false;
+		}
+
+		if (obj.isLastUse()){
+			var tmpTransition = TransitionImporter.GetTransition(-1, obj.id, false, true);
+			if(tmpTransition != null) transition = tmpTransition;
+		}
+
+		trace('TIME: In Container: ${obj.name} --> ${newObjectData.name}');
+
+		// can have different random outcomes like Blooming Squash Plant
+		obj.id = TransitionHelper.TransformTarget(transition.newTargetID);
+		obj.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(obj);
+		obj.creationTimeInTicks = TimeHelper.tick;
+
+		TransitionHelper.DoChangeNumberOfUsesOnTarget(obj, transition, null, false);
 
 		return true;
 	}
