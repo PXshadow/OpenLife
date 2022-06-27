@@ -2383,7 +2383,7 @@ class TimeHelper {
 
 		if (target.blocksWalking()) return false;
 
-		if (target.timeToChange != 0) return false; // dont move move on top of other moving stuff
+		if (target.canMove()) return false; // dont move move on top of other moving stuff
 
 		if (target.groundObject != null && target.groundObject.id != 0) return false;
 

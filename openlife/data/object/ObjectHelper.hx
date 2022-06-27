@@ -584,9 +584,13 @@ class ObjectHelper {
 		return trans != null;
 	}
 
-	// TODO does not work for attacking wolf etc...
+	// TODO does not work for attacking wolf etc since they dont move...
 	public function isAnimal():Bool {
 		return objectData.isAnimal();
+	}
+
+	public function canMove():Bool {
+		return objectData.canMove();
 	}
 
 	public function isFire():Bool {

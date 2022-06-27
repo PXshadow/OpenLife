@@ -1494,6 +1494,10 @@ class ObjectData extends LineReader {
 		return this.moves > 0 && this.id != 2156; // no Mosquito Swarm
 	}
 
+	public function canMove():Bool {
+		return this.moves > 0;
+	}
+
 	public function getPileObjId() {
 		var trans = TransitionImporter.GetTransition(this.id, this.id);
 		if (trans == null) return -1;
