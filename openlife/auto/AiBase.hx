@@ -387,6 +387,7 @@ abstract class AiBase
 
 		//var objId = WorldMap.world.getObjectId(firePlace.tx, firePlace.ty)[0];
 		var objAtPlace = WorldMap.world.getObjectHelper(firePlace.tx, firePlace.ty);
+		myPlayer.firePlace = objAtPlace;
 		var objId = objAtPlace.parentId;
 
 		// 83 Large Fast Fire // 346 Large Slow Fire

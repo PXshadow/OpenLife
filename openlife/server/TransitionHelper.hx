@@ -1106,7 +1106,7 @@ class TransitionHelper {
 				obj.numberOfUses = objectData.numUses;
 			}
 
-			if(player != null) player.say('C ${obj.numberOfUses} from ${objectData.numUses} ru: $reverseUse');
+			//if(player != null) player.say('C ${obj.numberOfUses} from ${objectData.numUses} ru: $reverseUse');
 
 			if (doTrace) trace('TRANS: ${player.name + player.id} Changed Object Type: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
 			return;
@@ -1136,7 +1136,7 @@ class TransitionHelper {
 			}
 		}
 
-		if(player != null) player.say('${obj.numberOfUses} from ${objectData.numUses} ru: $reverseUse');
+		//if(player != null) player.say('${obj.numberOfUses} from ${objectData.numUses} ru: $reverseUse');
 	}
 
 	/*
