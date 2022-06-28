@@ -475,6 +475,18 @@ class ServerSettings {
 				obj.containable = true;
 			}
 
+			if (obj.description.contains("Mechanism")) {
+				obj.containSize = 2;
+				obj.containable = true;
+				trace('Mechanism: ${obj.name}');
+			}
+
+			/*if (obj.description.contains("Glass")) {
+				obj.containSize = 2;
+				obj.containable = true;
+				trace('Glass: ${obj.name}');
+			}*/	
+
 			if (obj.description.contains("Crucible") && obj.description.contains("in Wooden") == false) {
 				obj.containSize = 2;
 				obj.containable = true;
