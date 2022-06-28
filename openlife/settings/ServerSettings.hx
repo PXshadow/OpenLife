@@ -538,7 +538,6 @@ class ServerSettings {
 			ObjectData.getObjectData(302).containSize = 1; // Charcoal
 			ObjectData.getObjectData(302).containable = true; // Charcoal
 
-			
 			if (obj.description.indexOf("Steel") != -1) {
 				// trace('Decays to: ${obj.name}');
 				obj.decaysToObj = 862; // 862 Broken Steel Tool no wood // 858 Broken Steel Tool
@@ -1729,6 +1728,21 @@ class ServerSettings {
 		var trans = TransitionImporter.GetTransition(402, 253); // Carrot + Bowl of Gooseberries
 		trans.isTargetMaxUse = true;
 
+
+		// new smithing transitions
+		var trans = new TransitionData(1602, 316, 1602, 319); // Stack of Clay Plates + Crucible with Iron and Charcoal --> Stack of Clay Plates +  Unforged Sealed Steel Crucible
+		trans.tool = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		var trans = new TransitionData(1602, 316, 236, 319); // Stack of Clay Plates + Crucible with Iron and Charcoal --> Clay Plate +  Unforged Sealed Steel Crucible
+		trans.lastUseActor = true;
+		trans.tool = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		// TODo needs client change
+		//var trans = new TransitionData(298, 317, 298, 316); // 298 Basket of Charcoal + 317 Crucible with Iron --> 298 +  316 Crucible with Iron and Charcoal
+		//transtions.addTransition("PatchTransitions: ", trans);
+
 		// TODO dont know why this was 2240 Newcomen Hammer instead?
 		var trans = TransitionImporter.GetTransition(59, 2245); // Rope + Newcomen Engine without Rope
 		trans.newTargetID = 2244; // Newcomen Engine without Shaft;
@@ -1868,12 +1882,7 @@ class ServerSettings {
 		//trace('${objData.name} isPermanent ${objData.isPermanent()}');
 
 		//var trans = TransitionImporter.GetTransition(660, 673); // Full Bucket of Water Bow and Arrow + Empty Cistern
-		//trace('DEBUG!!!: ${trans.getDesciption()}');
-	
-		// TODo needs client change
-		//var trans = new TransitionData(298, 317, 298, 316); // 298 Basket of Charcoal + 317 Crucible with Iron --> 298 +  316 Crucible with Iron and Charcoal
-		//transtions.addTransition("PatchTransitions: ", trans);
-
+		//trace('DEBUG!!!: ${trans.getDesciption()}');	
 	}	
 }
 
