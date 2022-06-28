@@ -1602,14 +1602,16 @@ class TimeHelper {
 		if (floorId != 0) biomeDecayFactor = 1; // normal decay on floor
 
 		if (ServerSettings.CanObjectRespawn(objId) == false) return;
+		var objData = world.getObjectDataAtPosition(x,y);
+		var countAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objData.parentId;
 
-		if (world.currentObjectsCount[objId] < world.originalObjectsCount[objId] * 0.8) return; // dont decay natural stuff if there are too few
+		if (world.currentObjectsCount[countAs] < world.originalObjectsCount[countAs] * 0.8) return; // dont decay natural stuff if there are too few
 
 		var objectHelper = world.getObjectHelper(x, y, true);
 		var containsSomething = objectHelper != null && objectHelper.containedObjects.length > 0;
 
 		//if (containsSomething && (floorId > 0 || objId != 292)) return; // TODO 292 Basket ==> Allow all containers
-		if (floorId > 0 && (objectHelper.isWall() == false || containsSomething)) return; // TODO Decay Allow containers in walls
+		if (floorId > 0 && (objData.isWall() == false || containsSomething)) return; // TODO Decay Allow containers in walls
 
 		// only allow object with time transition to decay if it takes longer then one hour 
 		if (objectHelper != null && objectHelper.timeToChange > 0 && objectHelper.timeToChange < 3600) return; 
@@ -1649,11 +1651,11 @@ class TimeHelper {
 		world.setObjectId(x, y, [decaysToObj]);
 		// worldMap.setObjectHelperNull(x, y);
 
-		world.currentObjectsCount[objId]--;
+		world.currentObjectsCount[countAs]--;
 
 		Connection.SendMapUpdateToAllClosePlayers(x, y);
 
-		trace('decay object: ${objData.description} $objId');	
+		trace('decay object: ${objData.name} $objId');	
 	}
 	
 	// TODO find a better way to respawn this stuff??? 

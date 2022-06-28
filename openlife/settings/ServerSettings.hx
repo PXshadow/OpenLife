@@ -1682,6 +1682,10 @@ class ServerSettings {
 		trans.isTargetMaxUse = true;
 		var trans = TransitionImporter.GetTransition(402, 253); // Carrot + Bowl of Gooseberries
 		trans.isTargetMaxUse = true;
+
+		// TODO dont know why this was 2240 Newcomen Hammer instead?
+		var trans = TransitionImporter.GetTransition(59, 2245); // Rope + Newcomen Engine without Rope
+		trans.newTargetID = 2244; // Newcomen Engine without Shaft;
 		
 		// Ai should ignore
 		// TODO fix Ai craftig if Ai needs two threads for a rope it puts one thread in a bowl and gets it out again
