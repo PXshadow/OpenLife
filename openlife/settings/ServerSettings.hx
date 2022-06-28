@@ -520,6 +520,15 @@ class ServerSettings {
 			ObjectData.getObjectData(319).containSize = 2; // Quenching Spring Steel
 			ObjectData.getObjectData(319).containable = true; // Quenching Spring Steel
 
+			ObjectData.getObjectData(2574).containSize = 2; // Molten Glass
+			ObjectData.getObjectData(2574).containable = true; // Molten Glass
+
+			ObjectData.getObjectData(2578).containSize = 2; //Cool Glass
+			ObjectData.getObjectData(2578).containable = true; // Cool Glass
+
+			ObjectData.getObjectData(2573).containSize = 2; // Soda Lime Glass Batch
+			ObjectData.getObjectData(2573).containable = true; // Soda Lime Glass Batch
+
 			if (obj.description.indexOf("Steel") != -1) {
 				// trace('Decays to: ${obj.name}');
 				obj.decaysToObj = 862; // 862 Broken Steel Tool no wood // 858 Broken Steel Tool
