@@ -1608,7 +1608,8 @@ class TimeHelper {
 		var objectHelper = world.getObjectHelper(x, y, true);
 		var containsSomething = objectHelper != null && objectHelper.containedObjects.length > 0;
 
-		if (containsSomething && (floorId > 0 || objId != 292)) return; // TODO 292 Basket ==> Allow all containers
+		//if (containsSomething && (floorId > 0 || objId != 292)) return; // TODO 292 Basket ==> Allow all containers
+		if (floorId > 0 && (objectHelper.isWall() == false || containsSomething)) return; // TODO Decay Allow containers in walls
 
 		// only allow object with time transition to decay if it takes longer then one hour 
 		if (objectHelper != null && objectHelper.timeToChange > 0 && objectHelper.timeToChange < 3600) return; 

@@ -607,8 +607,8 @@ class ObjectHelper {
 		return this.objectData.isDomesticAnimal();
 	}
 
-	public function isWall() {
-		objectData.isWall();
+	public function isWall() : Bool {
+		return objectData.isWall();
 	}
 
 	public static function CalculateSurroundingWallStrength(tx:Int, ty:Int) : Float {
