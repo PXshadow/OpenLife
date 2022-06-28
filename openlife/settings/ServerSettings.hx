@@ -490,7 +490,7 @@ class ServerSettings {
 			if (obj.description.contains("Blowpipe")) {
 				obj.containSize = 2;
 				obj.containable = true;
-				trace('Blowpipe: ${obj.name}');
+				//trace('Blowpipe: ${obj.name}');
 			}
 
 			if (obj.description.contains("Crucible") && obj.description.contains("in Wooden") == false) {
@@ -1736,6 +1736,16 @@ class ServerSettings {
 
 		var trans = new TransitionData(1602, 316, 236, 319); // Stack of Clay Plates + Crucible with Iron and Charcoal --> Clay Plate +  Unforged Sealed Steel Crucible
 		trans.lastUseActor = true;
+		trans.tool = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		var trans = new TransitionData(236, 322, 1602, 325); // Clay Plate + Forged Steel Crucible --> CStack of Clay Plates + Crucible with Steel
+		trans.reverseUseActor = true;
+		trans.tool = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		var trans = new TransitionData(1602, 322, 1602, 325); // Stack of Clay Plates + Forged Steel Crucible --> CStack of Clay Plates + Crucible with Steel
+		trans.reverseUseActor = true;
 		trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
