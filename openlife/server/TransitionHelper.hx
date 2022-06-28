@@ -911,6 +911,12 @@ class TransitionHelper {
 		
 		// if(transition.actorID != transition.newActorID) this.pickUpObject = true; // TODO does error for bow animation but may be needed for other animations?
 
+
+		// Arrow and Bow + Arrow Quiver = false;
+		// Arrow and Bow + Empty Arrow Quiver = true;
+		// Arrow + Empty Arrow Quiver = true;
+		var resetNumberOfUses = this.target.objectData.isClothing() == false || this.target.objectData.numUses < 2;
+
 		// do now the magic transformation
 		player.transformHeldObject(transition.newActorID);
 		this.target.id = TransformTarget(transition.newTargetID); // consider if there is an random outcome
@@ -940,7 +946,7 @@ class TransitionHelper {
 			trace('TRANS: ${player.name + player.id} NewTileObject: ${newTargetObjectData.description} ${this.target.id} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
 
 		// target did not change if it is same dummy
-		DoChangeNumberOfUsesOnTarget(this.target, transition, player);
+		DoChangeNumberOfUsesOnTarget(this.target, transition, player, true, resetNumberOfUses);
 
 		ObjectHelper.DoOwnerShip(this.target, this.player);
 
@@ -1089,7 +1095,6 @@ class TransitionHelper {
 		}
 
 		if (objectData.numUses < 2) return;
-
 		if (idHasChanged && resetNumberOfUses && objectData.numUses > 1) {
 			// a Pile starts with 1 uses not with the full numberOfUses
 			// if the ObjectHelper is created through a reverse use, it must be a pile or a bucket... hopefully...
@@ -1100,6 +1105,8 @@ class TransitionHelper {
 				//  numberOfUses = MAX // 0 + 125 = 126 + 409 // Empty + Clay Deposit -->  Clay + Clay Pit#partial
 				obj.numberOfUses = objectData.numUses;
 			}
+
+			if(player != null) player.say('C ${obj.numberOfUses} from ${objectData.numUses} ru: $reverseUse');
 
 			if (doTrace) trace('TRANS: ${player.name + player.id} Changed Object Type: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
 			return;
@@ -1128,6 +1135,8 @@ class TransitionHelper {
 				// Server.server.map.setObjectHelper(tx,ty, obj); // deletes ObjectHelper in case it has no uses
 			}
 		}
+
+		if(player != null) player.say('${obj.numberOfUses} from ${objectData.numUses} ru: $reverseUse');
 	}
 
 	/*
