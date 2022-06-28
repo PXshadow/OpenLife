@@ -626,6 +626,24 @@ class ObjectHelper {
 		var obj = world.getObjectDataAtPosition(tx, ty - 1);
 		stength += obj.isWall() ? 2 : 0; 
 
+		var obj = world.getObjectDataAtPosition(tx + 2, ty);
+		stength += obj.isWall() ? 2 : 0; 
+		var obj = world.getObjectDataAtPosition(tx - 2, ty );
+		stength += obj.isWall() ? 2 : 0; 
+		var obj = world.getObjectDataAtPosition(tx, ty + 2);
+		stength += obj.isWall() ? 2 : 0; 
+		var obj = world.getObjectDataAtPosition(tx, ty - 2);
+		stength += obj.isWall() ? 2 : 0; 
+
+		var obj = world.getObjectDataAtPosition(tx + 3, ty);
+		stength += obj.isWall() ? 1 : 0; 
+		var obj = world.getObjectDataAtPosition(tx - 3, ty );
+		stength += obj.isWall() ? 1 : 0; 
+		var obj = world.getObjectDataAtPosition(tx, ty + 3);
+		stength += obj.isWall() ? 1 : 0; 
+		var obj = world.getObjectDataAtPosition(tx, ty - 3);
+		stength += obj.isWall() ? 1 : 0; 
+
 		return stength;
 	}
 
