@@ -860,7 +860,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		// if(ServerSettings.DebugAi) trace('AI ${text}');
 
-		if (text.contains("TRANS")) {
+		if (text.startsWith("TRANS")) {
 			if (ServerSettings.DebugAi) trace('AI look for transitions: ${text}');
 
 			var objectIdToSearch = 273; // 273 = Cooked Carrot Pie // 250 = Hot Adobe Oven
@@ -879,18 +879,33 @@ private function craftLowPriorityClothing() : Bool {
 			// HELLO WORLD
 
 			// if(ServerSettings.DebugAi) trace('im a nice bot!');
+			var rand = WorldMap.world.randomInt(8);
 
-			myPlayer.say('Im not a stupid AI!');
+			if(rand == 0){
+				myPlayer.say('Im not a stupid AI!');
+			} else if(rand == 1){
+				myPlayer.say('Im an AI!');
+			} else if(rand == 2){
+				myPlayer.say('No');
+			} else if(rand == 3){
+				myPlayer.say('Sure');	
+			} else if(rand == 4){
+				myPlayer.say('yes i am');
+			} else if(rand == 5){
+				myPlayer.say('Yes, And you?');
+			} else if(rand == 6){
+				myPlayer.say('Why should I?');
+			}
 		}
 		if (text == "JUMP") {
 			myPlayer.say("JUMP");
 			myPlayer.jump();
 		}
-		if (text.contains("MOVE")) {
+		if (text.startsWith("MOVE")) {
 			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.say("YES CAPTAIN");
 		}
-		if (text.contains("FOLLOW ME")) {
+		if (text.contains("FOLLOW ME") || text.startsWith("FOLLOW")) {
 			autoStopFollow = false; // otherwise if old enough ai would stop follow
 			timeStartedToFolow = TimeHelper.tick; 
 			playerToFollow = player;
@@ -902,7 +917,9 @@ private function craftLowPriorityClothing() : Bool {
 			autoStopFollow = true;
 			myPlayer.say("STOPED");
 		}
-		else if (text.contains("STOP") || text.contains("WAIT")) {			
+		else if (text.startsWith("STOP") || text.startsWith("WAIT")) {
+			playerToFollow = null;
+			autoStopFollow = true;			
 			//myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.Goto(myPlayer.x, myPlayer.y);
 			dropHeldObject(0);
@@ -910,7 +927,7 @@ private function craftLowPriorityClothing() : Bool {
 			myPlayer.say("STOPING");
 			//myPlayer.age -= 1;
 		}
-		else if (text.contains("DROP")) {			
+		else if (text.startsWith("DROP")) {			
 			//myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.Goto(myPlayer.x, myPlayer.y);
 			dropHeldObject(0);
