@@ -975,6 +975,10 @@ class ServerSettings {
 		ObjectData.getObjectData(1851).blocksAnimal = true; // Fence Gate
 		ObjectData.getObjectData(1851).groundOnly = true; // Fence Gate
 		
+		ObjectData.getObjectData(4154).decayFactor = ObjDecayFactorOnFloor; // Hitching Post
+		ObjectData.getObjectData(4154).decaysToObj = 556; // Hitching Post  ==> Fence Kit
+		ObjectData.getObjectData(4154).groundOnly = true; // Hitching Post
+
 		ObjectData.getObjectData(550).decayFactor = ObjDecayFactorOnFloor; // Fence
 		ObjectData.getObjectData(550).decaysToObj = 556; // Fence  ==> Fence Kit
 		ObjectData.getObjectData(550).groundOnly = true; // Fence
