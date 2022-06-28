@@ -529,6 +529,16 @@ class ServerSettings {
 			ObjectData.getObjectData(2573).containSize = 2; // Soda Lime Glass Batch
 			ObjectData.getObjectData(2573).containable = true; // Soda Lime Glass Batch
 
+			ObjectData.getObjectData(300).containSize = 2; // Big Charcoal Pile
+			ObjectData.getObjectData(300).containable = true; // Big Charcoal Pile
+
+			ObjectData.getObjectData(301).containSize = 2; // Small Charcoal Pile
+			ObjectData.getObjectData(301).containable = true; // Small Charcoal Pile
+
+			ObjectData.getObjectData(302).containSize = 1; // Charcoal
+			ObjectData.getObjectData(302).containable = true; // Charcoal
+
+			
 			if (obj.description.indexOf("Steel") != -1) {
 				// trace('Decays to: ${obj.name}');
 				obj.decaysToObj = 862; // 862 Broken Steel Tool no wood // 858 Broken Steel Tool
@@ -1859,6 +1869,11 @@ class ServerSettings {
 
 		//var trans = TransitionImporter.GetTransition(660, 673); // Full Bucket of Water Bow and Arrow + Empty Cistern
 		//trace('DEBUG!!!: ${trans.getDesciption()}');
+	
+		// TODo needs client change
+		//var trans = new TransitionData(298, 317, 298, 316); // 298 Basket of Charcoal + 317 Crucible with Iron --> 298 +  316 Crucible with Iron and Charcoal
+		//transtions.addTransition("PatchTransitions: ", trans);
+
 	}	
 }
 
