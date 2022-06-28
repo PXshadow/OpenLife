@@ -1652,8 +1652,10 @@ class ServerSettings {
 		var trans = TransitionImporter.GetTransition(-1, 252); // TIME + Bowl of Dough
 		trans.autoDecaySeconds = 120;
 
-		var trans = TransitionImporter.GetTransition(-1, 1135); // TIME + Empty Domestic Gooseberry Bush
-		trans.autoDecaySeconds = 60  * 10;
+		//var trans = TransitionImporter.GetTransition(-1, 1135); // TIME + Empty Domestic Gooseberry Bush
+		//trans.autoDecaySeconds = 60  * 10;
+		var trans = TransitionImporter.GetTransition(-1, 389); // TIME + Dying Gooseberry Bush
+		trans.autoDecaySeconds = -2;
 
 		var trans = TransitionImporter.GetTransition(-1, 866); // TIME + Rag Loincloth
 		trans.autoDecaySeconds = -24;
