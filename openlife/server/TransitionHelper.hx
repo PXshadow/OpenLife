@@ -343,7 +343,7 @@ class TransitionHelper {
 		}
 
 		if (objToStoreObjData.containable == false) {
-			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} handObject is not containable!');
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} handObject ${objToStoreObjData.name} is not containable!');
 			return false;
 		}
 

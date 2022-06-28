@@ -478,7 +478,11 @@ class ServerSettings {
 			if (obj.description.contains("Crucible") && obj.description.contains("in Wooden") == false) {
 				obj.containSize = 2;
 				obj.containable = true;
+				//trace('Crucible: ${obj.name}');
 			}
+
+			ObjectData.getObjectData(0).containSize = 1; // Empty
+			ObjectData.getObjectData(0).containable = true; // Empty
 	
 			ObjectData.getObjectData(319).containSize = 2; // Unforged Sealed Steel Crucible
 			ObjectData.getObjectData(319).containable = true; // Unforged Sealed Steel Crucible
@@ -494,6 +498,9 @@ class ServerSettings {
 
 			ObjectData.getObjectData(322).containSize = 2; // Forged Steel Crucible
 			ObjectData.getObjectData(322).containable = true; // Forged Steel Crucible
+
+			ObjectData.getObjectData(319).containSize = 2; // Quenching Spring Steel
+			ObjectData.getObjectData(319).containable = true; // Quenching Spring Steel
 
 			if (obj.description.indexOf("Steel") != -1) {
 				// trace('Decays to: ${obj.name}');
