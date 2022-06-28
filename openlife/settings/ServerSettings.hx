@@ -1779,6 +1779,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(185, 346); // Skewered Rabbit + Large Slow Fire
 		trans.aiShouldIgnore = true;
 
+		var trans = transtions.getTransition(107, 392); // Stakes + Languishing Domestic Gooseberry Bush
+		trans.aiShouldIgnore = true;
+
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');
 
