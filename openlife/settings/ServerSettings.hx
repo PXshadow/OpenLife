@@ -487,6 +487,12 @@ class ServerSettings {
 				trace('Glass: ${obj.name}');
 			}*/	
 
+			if (obj.description.contains("Blowpipe")) {
+				obj.containSize = 2;
+				obj.containable = true;
+				trace('Blowpipe: ${obj.name}');
+			}
+
 			if (obj.description.contains("Crucible") && obj.description.contains("in Wooden") == false) {
 				obj.containSize = 2;
 				obj.containable = true;
