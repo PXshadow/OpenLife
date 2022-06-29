@@ -75,6 +75,32 @@ class AiHelper {
 		return ObjectData.getObjectData(objId).name;
 	}
 
+	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null) : ObjectHelper {
+		var world = WorldMap.world;
+		var closestObject = null;
+		var bestDistance = 0.0;
+
+		for (ty in baseY - searchDistance...baseY + searchDistance) {
+			for (tx in baseX - searchDistance...baseX + searchDistance) {
+				var obj = world.getObjectHelper(tx,ty, true);
+				var parentId = obj == null ? 0 : obj.parentId;
+				
+				if(parentId != objIdToSearch) continue;
+
+				if (ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
+
+				var quadDistance = AiHelper.CalculateQuadDistanceHelper(tx,ty, baseX, baseY);
+
+				if (closestObject != null && quadDistance > bestDistance) continue;
+
+				bestDistance = quadDistance;
+				closestObject =  world.getObjectHelper(tx,ty);
+			}
+		}
+
+		return closestObject;
+	}
+
 	// searchDistance old: 16
 	public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData, searchDistance:Int = 40,
 			ignoreObj:ObjectHelper = null, findClosestHeat:Bool = false, ownedByPlayer:Bool = false):ObjectHelper {

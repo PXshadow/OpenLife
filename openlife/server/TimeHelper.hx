@@ -2184,18 +2184,28 @@ class TimeHelper {
 
 			if (currentPop < originalPop * ServerSettings.MaxOffspringFactor
 				&& worldmap.randomFloat() < chanceForOffspring) {
-				worldmap.currentObjectsCount[countAs] += 1;
 
-				trace('Animal Offspring: ${animal.name} id: ${newTileObject} chance: ${chanceForOffspring} curPop: ${currentPop]} original: ${originalPop}');
+				var closeAnimal = AiHelper.GetClosestObjectToPosition(animal.tx, animal.ty, animal.parentId, 2, animal);
 
-				// if(chanceForOffspring < worldmap.chanceForOffspring) trace('NEW: $newTileObject ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]} chance: $chanceForOffspring biome: $targetBiome');
+				if(closeAnimal != null){
+					// NO Offspring since too close to same animal 
+					// TODO does not yet consider count as 
+					trace('Animal Offspring: CLOSE ${animal.name} id: ${newTileObject} chance: ${chanceForOffspring} curPop: ${currentPop]} original: ${originalPop}');
+				}
+				else{	
+					worldmap.currentObjectsCount[countAs] += 1;
 
-				oldTileObject = newTileObject;
+					trace('Animal Offspring: ${animal.name} id: ${newTileObject} chance: ${chanceForOffspring} curPop: ${currentPop]} original: ${originalPop}');
 
-				var newAnimal = ObjectHelper.readObjectHelper(null, newTileObject);
-				newAnimal.timeToChange = timeTransition.calculateTimeToChange();
-				newAnimal.groundObject = tmpGroundObject;
-				worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
+					// if(chanceForOffspring < worldmap.chanceForOffspring) trace('NEW: $newTileObject ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]} chance: $chanceForOffspring biome: $targetBiome');
+
+					oldTileObject = newTileObject;
+
+					var newAnimal = ObjectHelper.readObjectHelper(null, newTileObject);
+					newAnimal.timeToChange = timeTransition.calculateTimeToChange();
+					newAnimal.groundObject = tmpGroundObject;
+					worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
+				}
 			} else if (currentPop > originalPop * ServerSettings.MaxOffspringFactor
 				&& originalPop > 0 && worldmap.randomFloat() < chanceForAnimalDying) {
 				
