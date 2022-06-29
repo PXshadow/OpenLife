@@ -231,7 +231,7 @@ class ServerSettings {
 	public static var AlternativeOutcomeHitsDecreaseOnSucess = 5; // for example used for extra wood for trees or stone form iron mining
 
 
-	public static var TeleportCost:Float = 2; // 10
+	public static var TeleportCost:Float = 1; // 10
 	
 	// for animal movement
 	public static var ChanceThatAnimalsCanPassBlockingBiome:Float = 0.03;

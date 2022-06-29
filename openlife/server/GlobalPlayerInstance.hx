@@ -4402,6 +4402,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				return true;
 			}
 
+			if(HasEnoughCoinsForTeleport(player) == false) return true;
+
 			var livingHumans = [];
 
 			for(p in tmpLivingHumans){
@@ -4422,8 +4424,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			player.connection.sendMapChunk(player.x, player.y);
 
+			PayTeleportCost(player);
+
 			return true;
 		} else if (text.indexOf('!JROAD') != -1 || text == '!JR') {
+
+			if(HasEnoughCoinsForTeleport(player) == false) return true;
 
 			var roads = [for (obj in WorldMap.world.roads) obj];
 			// clear roads, so that old ones go away
@@ -4440,6 +4446,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				player.connection.sendMapChunk(player.x, player.y);
 
+				PayTeleportCost(player);
+
 				return true;
 			}
 		} else if (text.indexOf('!JV') != -1 || text.indexOf('!JOVEN') != -1) {
@@ -4449,16 +4457,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// WorldMap.world.ovens = new Map<Int, ObjectHelper>();
 
 			if (ovens.length > 0) {
-				var cost = ServerSettings.TeleportCost;
-				var needed = Math.ceil(player.coins - cost);
-
-				if(needed < 0){
-					player.say('You need $needed more coins to teleport!', true);
-					return true;
-				}
-
-				trace('JUMP cost: $cost needed: $needed');
-
+				if(HasEnoughCoinsForTeleport(player) == false) return true;
+	
 				var oven = ovens[WorldMap.calculateRandomInt(ovens.length - 1)];
 				player.x = WorldMap.world.transformX(player, oven.tx);
 				player.y = WorldMap.world.transformY(player, oven.ty);
@@ -4472,9 +4472,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				player.connection.sendMapChunk(player.x, player.y);
 
-				player.coins -= cost;
-				var left = Math.floor(player.coins);
-				player.say('costed ${cost} coins. left $left', true);
+				PayTeleportCost(player);
 
 				return true;
 			}
@@ -4521,6 +4519,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.say('debug ai: ${ServerSettings.DebugAi}', true);
 			return true;
 		} else if (text.indexOf('!TP') != -1) {
+
+			if(HasEnoughCoinsForTeleport(player) == false) return true;
+
 			player.x = 470 - player.gx; // 470 // 2 
 			player.y = 120 - player.gy; // 380 //40
 
@@ -4530,7 +4531,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			player.connection.sendMapChunk(player.x, player.y);
 
-			player.say('Teleport', true);
+			//player.say('Teleport', true);
+
+			PayTeleportCost(player);
+			
 			return true;
 		} else if (text.indexOf('!SPEED') != -1) {
 			if(canUseServerCommands == false){
@@ -4546,6 +4550,24 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		return false;
+	}
+
+	private static function HasEnoughCoinsForTeleport(player:GlobalPlayerInstance) : Bool {
+		var cost = ServerSettings.TeleportCost;
+		var needed = Math.ceil(cost - player.coins);
+
+		trace('JUMP cost: $cost needed: $needed');
+
+		if(needed <= 0) return true;
+		player.say('You need $needed more coins to teleport!', true);
+		return false;
+	}
+
+	private static function PayTeleportCost(player:GlobalPlayerInstance){
+		var cost = ServerSettings.TeleportCost;
+		player.coins -= cost;
+		var left = Math.floor(player.coins);
+		player.say('costed ${cost} coins. left $left', true);
 	}
 
 	public static function findObjectByCommand(text:String):Int {
