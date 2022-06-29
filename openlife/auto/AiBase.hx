@@ -611,6 +611,9 @@ abstract class AiBase
 
 		if(myPlayer.age < 10 && makeSharpieFood()) return true;
 
+		var closeSoil = AiHelper.GetClosestObjectById(myPlayer, 1138); // Fertile Soil
+		if(closeSoil != null) if(craftItem(213)) return true; // Deep Tilled Row
+
 		if(myPlayer.age < 15 && makeFireWood()) return true;
 		if(myPlayer.age < 20 && makeFireFood()) return true;
 
