@@ -1992,8 +1992,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		if (message.startsWith('HOME') && message.startsWith('HOME!') == false) {
-			var myPlayer = this;
+			var myPlayer = this;			
 			var newHome = AiHelper.SearchNewHome(myPlayer);
+			
+			myPlayer.firePlace = AiHelper.GetCloseFire(myPlayer);
 
 			if(newHome != null){
 				if(myPlayer.home.tx != newHome.tx || myPlayer.home.ty != newHome.ty ) myPlayer.say('HOME! Have a new home! ${newHome.name}');

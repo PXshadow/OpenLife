@@ -373,10 +373,7 @@ abstract class AiBase
 		var heldId = myPlayer.heldObject.parentId;
 
 		if(firePlace == null){
-			firePlace= AiHelper.GetClosestObjectById(myPlayer, 346, null, 30); // 346 Large Slow Fire
-			if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(myPlayer, 83, null, 30); // 83 Large Fast Fire 
-			if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(myPlayer, 82, null, 30); // 82 Fire
-			if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(myPlayer, 85, null, 30); // 85 Hot Coals
+			firePlace = AiHelper.GetCloseFire(myPlayer);
 
 			if(firePlace == null) return craftItem(82); // Fire
 			else myPlayer.firePlace = firePlace;
@@ -957,6 +954,8 @@ private function craftLowPriorityClothing() : Bool {
 				
 				myPlayer.home = newHome;
 			} 
+
+			myPlayer.firePlace = AiHelper.GetCloseFire(myPlayer);
 		}
 		/*if (text.contains("EAT!"))
 			{

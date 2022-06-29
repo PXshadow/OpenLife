@@ -1076,6 +1076,14 @@ class AiHelper {
 		return bestHome;
 	}
 
+	public static function GetCloseFire(player:PlayerInterface) : ObjectHelper {
+		var firePlace= AiHelper.GetClosestObjectById(player, 346, null, 30); // 346 Large Slow Fire
+		if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(player, 83, null, 30); // 83 Large Fast Fire 
+		if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(player, 82, null, 30); // 82 Fire
+		if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(player, 85, null, 30); // 85 Hot Coals
+		return firePlace;
+	}
+
 	// time routine
 	// update loop
 	// map
