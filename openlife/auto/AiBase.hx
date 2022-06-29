@@ -700,8 +700,8 @@ abstract class AiBase
 
 		// 253 Bowl of Gooseberries
 		if(heldObj.parentId == 253 && heldObj.numberOfUses >= heldObj.objectData.numUses) return false;
-		// Fill up the Bowl
-		if(heldObj.parentId == 253){
+		// Fill up the Bowl // 235 Clay Bowl // 253 Bowl of Gooseberries
+		if(heldObj.parentId == 235 || heldObj.parentId == 253){
 			// 30 Wild Gooseberry Bush
 			var closeBush = AiHelper.GetClosestObjectById(myPlayer, 30);
 			// 391 Domestic Gooseberry Bush
@@ -714,6 +714,11 @@ abstract class AiBase
 		// do nothing if there is a Bowl of Gooseberries
 		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
 		if(closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses) return false;
+		if(closeBerryBowl != null){
+			this.dropTarget = closeBerryBowl; // pick it up to fill
+			this.dropIsAUse = false;
+			return true; 
+		}
 
 		return GetOrCraftItem(235); // Clay Bowl
 	}
