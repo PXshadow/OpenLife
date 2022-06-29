@@ -1855,6 +1855,16 @@ class ServerSettings {
 		var trans = transtions.getTransition(107, 392); // Stakes + Languishing Domestic Gooseberry Bush
 		trans.aiShouldIgnore = true;
 
+		// Forbid plowing of Soil Pile
+		var trans = transtions.getTransition(139, 1101); // Skewer + Fertile Soil Pile
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(850, 1101); // Stone Hoe + Fertile Soil Pile
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(857, 1101); // Steel Hoe + Fertile Soil Pile
+		trans.aiShouldIgnore = true;
+
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');
 
