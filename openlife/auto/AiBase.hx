@@ -2581,6 +2581,13 @@ private function craftLowPriorityClothing() : Bool {
 			return false;
 		}
 
+		if(target.containedObjects.length < 1){
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Remove: expectedContainer is already empty! ${expectedContainer.name}');
+			removeFromContainerTarget = null;
+			expectedContainer = null;
+			return false;
+		}
+
 		// TODO allow in container transitions
 		/*if (myPlayer.heldObject.id != 0) {
 			if (ServerSettings.DebugAi)
