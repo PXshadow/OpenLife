@@ -602,24 +602,14 @@ abstract class AiBase
 		}*/	
 		
 		// TODO try only craft stuff if there for better speed
-		// TODO craft only stuff if not enough in home
+		// TODO craft only stuff if not enough at home
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather!');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} makeStuff!');
 
+		if(fillBerryBowlIfNeeded()) return true;
 		if(myPlayer.age < 10 && makeSharpieFood()) return true;
 
-		// TODO check at home
-		var closeWood = AiHelper.GetClosestObjectById(myPlayer, 344); // Firewood
-		if(closeWood == null) AiHelper.GetClosestObjectById(myPlayer, 1316); // Stack of Firewood
-		var doCraft = closeWood == null || (closeWood.objectData.numUses > 1 && closeWood.numberOfUses < closeWood.objectData.numUses);
-		if(doCraft && craftItem(344)) return true; // Firewood
-		
-		var closeKindling = AiHelper.GetClosestObjectById(myPlayer, 72); // Kindling
-		if(closeKindling == null) AiHelper.GetClosestObjectById(myPlayer, 1599); // Kindling Pile
-		var doCraft = closeKindling == null || (closeKindling.objectData.numUses > 1 && closeKindling.numberOfUses < closeKindling.objectData.numUses);
-		if(doCraft && craftItem(72)) return true; // Kindling
-
-
+		if(myPlayer.age < 15 && makeFireWood()) return true;
 		if(myPlayer.age < 20 && makeFireFood()) return true;
 
 		var closePlate = AiHelper.GetClosestObjectById(myPlayer, 236); // Clay Plate
@@ -703,11 +693,50 @@ abstract class AiBase
 		return false;
 	}
 
+	private function fillBerryBowlIfNeeded() : Bool {
+		var heldObj = myPlayer.heldObject;
+
+		// 253 Bowl of Gooseberries
+		if(heldObj.parentId == 253 && heldObj.numberOfUses >= heldObj.objectData.numUses) return false;
+		// Fill up the Bowl
+		if(heldObj.parentId == 253){
+			// 30 Wild Gooseberry Bush
+			var closeBush = AiHelper.GetClosestObjectById(myPlayer, 30);
+			// 391 Domestic Gooseberry Bush
+			if(closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 391);
+			if(closeBush == null) return false;
+
+			return useHeldObjOnTarget(closeBush);
+		}
+
+		// do nothing if there is a Bowl of Gooseberries
+		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
+		if(closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses) return false;
+
+		return GetOrCraftItem(235); // Clay Bowl
+	}
+
 	private function makeFireFood() : Bool {
 		if(craftItem(570)) return true; // Cooked Mutton
 		if(craftItem(197)) return true; // Cooked Rabbit
 		return false;
 	}
+
+	private function makeFireWood() : Bool {
+		// TODO check at home
+		var closeWood = AiHelper.GetClosestObjectById(myPlayer, 344); // Firewood
+		if(closeWood == null) AiHelper.GetClosestObjectById(myPlayer, 1316); // Stack of Firewood
+		var doCraft = closeWood == null || (closeWood.objectData.numUses > 1 && closeWood.numberOfUses < closeWood.objectData.numUses);
+		if(doCraft && craftItem(344)) return true; // Firewood
+		
+		var closeKindling = AiHelper.GetClosestObjectById(myPlayer, 72); // Kindling
+		if(closeKindling == null) AiHelper.GetClosestObjectById(myPlayer, 1599); // Kindling Pile
+		var doCraft = closeKindling == null || (closeKindling.objectData.numUses > 1 && closeKindling.numberOfUses < closeKindling.objectData.numUses);
+		if(doCraft && craftItem(72)) return true; // Kindling
+		
+		return false;
+	}
+
 
  	// 2886 Wooden Shoe 
  	// 2181 Straw Hat with Feather
