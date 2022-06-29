@@ -4480,10 +4480,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		else if (text.indexOf('!JG') != -1 || text.indexOf('!JGRAVE') != -1) {
 
 			//var graves = [for (obj in WorldMap.world.cursedGraves) obj];
-			var graves = player.account.graves;
+			var tmpGraves = player.account.graves;
+			var graves = [];
+
+			for(g in tmpGraves){
+				trace('Grave: ${g.name} ${g.isGraveWithGraveStone()}');
+				if(g.isGraveWithGraveStone() == false) continue;
+				graves.push(g);
+			}
 
 			if(graves.length < 1){
-				player.say('No graves', true);
+				player.say('No graves with a stone', true);
 				return true;
 			}
 
