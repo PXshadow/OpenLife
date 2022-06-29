@@ -4476,7 +4476,30 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				return true;
 			}
-		} else if (text.indexOf('!JCG') != -1 || text.indexOf('!JCGRAVE') != -1) {
+		} 
+		else if (text.indexOf('!JG') != -1 || text.indexOf('!JGRAVE') != -1) {
+
+			//var graves = [for (obj in WorldMap.world.cursedGraves) obj];
+			var graves = player.account.graves;
+
+			if(graves.length < 1){
+				player.say('No graves', true);
+				return true;
+			}
+
+			var grave = graves[WorldMap.calculateRandomInt(graves.length - 1)];
+			player.x = WorldMap.world.transformX(player, grave.tx);
+			player.y = WorldMap.world.transformY(player, grave.ty);
+
+			player.forced = true;
+			Connection.SendUpdateToAllClosePlayers(player);
+			player.forced = false;
+
+			player.connection.sendMapChunk(player.x, player.y);
+
+			return true;
+		}
+		else if (text.indexOf('!JCG') != -1 || text.indexOf('!JCGRAVE') != -1) {
 
 			var graves = [for (obj in WorldMap.world.cursedGraves) obj];
 			// clear ovens, so that old ones go away

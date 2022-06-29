@@ -462,7 +462,7 @@ class ServerSettings {
 
 			if(obj.description.contains('groundOnly')){
 				obj.groundOnly = true;
-				trace('groundOnly: ${obj.name}');
+				//trace('groundOnly: ${obj.name}');
 			}
 			
 			if (obj.description.indexOf("+hungryWork") != -1) {
@@ -478,7 +478,7 @@ class ServerSettings {
 			if (obj.description.contains("Mechanism")) {
 				obj.containSize = 2;
 				obj.containable = true;
-				trace('Mechanism: ${obj.name}');
+				//trace('Mechanism: ${obj.name}');
 			}
 
 			/*if (obj.description.contains("Glass")) {
