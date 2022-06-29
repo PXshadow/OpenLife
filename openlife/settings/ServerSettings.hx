@@ -332,7 +332,7 @@ class ServerSettings {
 	public static var AiTimeToWaitIfCraftingFailed:Float = 20; // if item failed to craft dont craft for X seconds
 	public static var AiMaxSearchRadius:Int = 60;
 	public static var AiMaxSearchIncrement:Int = 20; // 16
-	public static var AiIgnoreTimeTransitionsLongerThen:Int = 30;
+	public static var AiIgnoreTimeTransitionsLongerThen:Int = 120; // 30
 	public static var AgingFactorHumanBornToAi:Float = 3; // 3
 	public static var AgingFactorAiBornToHuman:Float = 1.5;
 	public static var AiNameEnding:String = 'X'; // A name ending / set '' if none	

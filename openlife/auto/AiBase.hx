@@ -708,6 +708,8 @@ abstract class AiBase
 			if(closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 391);
 			if(closeBush == null) return false;
 
+			myPlayer.say('Fill Bowl on Bush');
+
 			return useHeldObjOnTarget(closeBush);
 		}
 
@@ -717,6 +719,9 @@ abstract class AiBase
 		if(closeBerryBowl != null){
 			this.dropTarget = closeBerryBowl; // pick it up to fill
 			this.dropIsAUse = false;
+
+			myPlayer.say('Pickup Berry Bowl to Fill');
+
 			return true; 
 		}
 
@@ -732,6 +737,13 @@ abstract class AiBase
 	}
 
 	private function makeFireFood() : Bool {
+		/*var mutton = AiHelper.GetClosestObjectById(myPlayer, 569); // Raw Mutton
+
+		if(mutton != null){
+			var placeToCook = AiHelper.GetClosestObjectById(myPlayer, 250); // Hot Adobe Oven
+			if (placeToCook == null) placeToCook = AiHelper.GetClosestObjectById(myPlayer, 85); // Hot Coals
+		}*/
+
 		if(craftItem(570)) return true; // Cooked Mutton
 		if(craftItem(197)) return true; // Cooked Rabbit
 		return false;
@@ -1721,13 +1733,23 @@ private function craftLowPriorityClothing() : Bool {
 		} else {
 			// check if actor is TIME
 			if (itemToCraft.transActor.id == -1) {
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is TIME target ${itemToCraft.transTarget.name} ');
-				this.time += 1;
-				// TODO wait some time, or better get next obj
-				if(ServerSettings.DebugAiSay) myPlayer.say('Wait for ${itemToCraft.transTarget.name}...');
+				var secondsUntillChange = itemToCraft.transTarget.timeUntillChange();
+
+				if(secondsUntillChange < 10){
+					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is TIME target ${itemToCraft.transTarget.name} ');
+					this.time += secondsUntillChange / 4;
+					// TODO wait some time, or better get next obj
+					
+					if(ServerSettings.DebugAiSay) myPlayer.say('Wait for ${itemToCraft.transTarget.name}...');
+					itemToCraft.transActor = null;
+					return true;
+				}
+
 				itemToCraft.transActor = null;
-				return true;
+				itemToCraft.transTarget = null;
+				return false; // TODO make some other stuff???
 			}
+			
 			// check if actor is PLAYER
 			if (itemToCraft.transActor.id == -2) {
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is PLAYER ');

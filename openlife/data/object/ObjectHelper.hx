@@ -572,6 +572,11 @@ class ObjectHelper {
 		return isBoneGrave() == false;
 	}
 
+	public function timeUntillChange() : Float {
+		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(this.creationTimeInTicks);
+		return this.timeToChange - passedTime;
+	}
+
 	public function isTimeToChangeReached():Bool {
 		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(this.creationTimeInTicks);
 		var timeToChange = this.timeToChange;
