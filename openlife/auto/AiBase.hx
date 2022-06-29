@@ -607,6 +607,8 @@ abstract class AiBase
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} makeStuff!');
 
 		if(fillBerryBowlIfNeeded()) return true;
+		if(makePopcornIfNeeded()) return true;
+
 		if(myPlayer.age < 10 && makeSharpieFood()) return true;
 
 		if(myPlayer.age < 15 && makeFireWood()) return true;
@@ -714,6 +716,14 @@ abstract class AiBase
 		if(closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses) return false;
 
 		return GetOrCraftItem(235); // Clay Bowl
+	}
+
+	private function makePopcornIfNeeded() : Bool {
+		// do nothing if there is Popcorn
+		var closePopcorn = AiHelper.GetClosestObjectById(myPlayer, 1121); // Popcorn
+		if(closePopcorn != null) return false;
+
+		return craftItem(1121); // Popcorn
 	}
 
 	private function makeFireFood() : Bool {
