@@ -1991,11 +1991,37 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return true;
 		}
 
+		if (message.startsWith('HOME') && message.startsWith('HOME!') == false) {
+			var myPlayer = this;
+			var newHome = AiHelper.SearchNewHome(myPlayer);
+
+			if(newHome != null){
+				if(myPlayer.home.tx != newHome.tx || myPlayer.home.ty != newHome.ty ) myPlayer.say('HOME! Have a new home! ${newHome.name}');
+				else myPlayer.say('HOME! No mew home! ${newHome.name}');
+				
+				myPlayer.home = newHome;
+
+				GlobalPlayerInstance.AcquireMutex(); // TODO make ALLPlayers thread save
+
+				for (p in GlobalPlayerInstance.AllPlayers){
+					if (p.getTopLeader(myPlayer) != myPlayer) continue;
+					p.home = newHome;
+
+					trace('Follower new home: ${p.name}');
+				}
+
+				GlobalPlayerInstance.ReleaseMutex();
+				return false;
+			}
+
+			return true;
+		} 
+
 		return true;
 	}
 
 	// if people follow circular outcome is null / max 10 deep hierarchy is supported
-	public function getTopLeader(stopWithPlayer:GlobalPlayerInstance = null):GlobalPlayerInstance {
+	public function getTopLeader(stopWithPlayer:PlayerInterface = null):GlobalPlayerInstance {
 		// trace('getTopLeader0 ${this.name}');
 
 		if (this.followPlayer == null) return this; // is his own leader
@@ -2012,7 +2038,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// trace('getTopLeader3 ${lastLeader.name} --> ${leader.name}');
 			if (leader.followPlayer == null) return leader;
 
-			if (leader == stopWithPlayer) return leader;
+			if (stopWithPlayer != null && leader.id == stopWithPlayer.id) return leader;
 
 			lastLeader = leader;
 			leader = leader.followPlayer;
@@ -2062,7 +2088,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	private function doSelf(x:Int, y:Int, clothingSlot:Int):Bool {
-		trace('${this.name}${this.id} doSelf: held: ${this.o_id[0]} ${heldObject.name} clothingSlot: $clothingSlot');
+		if(ServerSettings.DebugPlayer) trace('${this.name}${this.id} doSelf: held: ${this.o_id[0]} ${heldObject.name} clothingSlot: $clothingSlot');
 
 		if (this.o_id[0] < 0) return false; // is holding player
 		//if (this.age < ServerSettings.MinAgeToEat) return false;

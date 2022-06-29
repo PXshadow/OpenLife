@@ -314,7 +314,7 @@ abstract class AiBase
 		Macro.exception(if (isMovingToPlayer(5)) return); // before 10 tiles
 
 		if (myPlayer.isMoving()) return;
-		Macro.exception(if (searchNewHome()) return);
+		Macro.exception(if (searchNewHomeIfNeeded()) return);
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (handleTemperature()) return);
@@ -906,7 +906,7 @@ private function craftLowPriorityClothing() : Bool {
 			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.say("YES CAPTAIN");
 		}
-		if (text.contains("FOLLOW ME") || text.startsWith("FOLLOW")) {
+		if (text.contains("FOLLOW ME") || text.startsWith("FOLLOW") || text.startsWith("COME")) {
 			autoStopFollow = false; // otherwise if old enough ai would stop follow
 			timeStartedToFolow = TimeHelper.tick; 
 			playerToFollow = player;
@@ -947,6 +947,16 @@ private function craftLowPriorityClothing() : Bool {
 			if(isMovingToHome()) myPlayer.say("GOING HOME!");
 			else myPlayer.say("I CANNOT GO HOME!");
 			this.time += 6;
+		}
+		else if (text.startsWith("HOME")) {		
+			var newHome = AiHelper.SearchNewHome(myPlayer);
+
+			if(newHome != null){
+				if(myPlayer.home.tx != newHome.tx || myPlayer.home.ty != newHome.ty ) myPlayer.say('Have a new home! ${newHome.name}');
+				else myPlayer.say('No mew home! ${newHome.name}');
+				
+				myPlayer.home = newHome;
+			} 
 		}
 		/*if (text.contains("EAT!"))
 			{
@@ -2116,7 +2126,7 @@ private function craftLowPriorityClothing() : Bool {
 		return done;
 	}
 
-	private function searchNewHome() : Bool {
+	private function searchNewHomeIfNeeded() : Bool {
 		var world = WorldMap.world;
 		var home = myPlayer.home;
 		var obj = home == null ? [0] : world.getObjectId(home.tx, home.ty);
@@ -2124,29 +2134,9 @@ private function craftLowPriorityClothing() : Bool {
 		// a home is where a oven is // TODO rebuild Oven if Rubble
 		if(ObjectData.IsOven(obj[0]) || obj[0] == 753) return false; // 237 Adobe Oven // 753 Adobe Rubble
 
-		var bestHome = null;
-		var bestDistance = Math.pow(80,2);
-		var ovens = [for (obj in WorldMap.world.ovens) obj];
+		var newHome = AiHelper.SearchNewHome(myPlayer);
 
-		for(possibleHome in ovens){
-			if(ObjectData.IsOven(possibleHome.id) == false) continue;
-			
-			var originalBiomeId = world.getOriginalBiomeId(possibleHome.tx, possibleHome.ty);
-			// TODO check loved biome
-			// For ginger rock biome should be ok
-			if(originalBiomeId == BiomeTag.SWAMP) continue;
-
-			var quadDistance = myPlayer.CalculateQuadDistanceToObject(possibleHome);
-			if(quadDistance >= bestDistance) continue;
-
-			bestDistance = quadDistance;
-			bestHome = possibleHome;
-		}
-
-		if(bestHome != null){
-			myPlayer.home = bestHome;
-			trace('AAI: ${myPlayer.name + myPlayer.id} searchNewHome dist: $bestDistance ${bestHome != null}');
-		}
+		if(newHome != null) myPlayer.home = newHome;
 
 		return false;
 	}

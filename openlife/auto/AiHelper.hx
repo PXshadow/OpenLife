@@ -1047,6 +1047,35 @@ class AiHelper {
 		return worstPlayer;
 	}
 
+	public static function SearchNewHome(player:PlayerInterface) : ObjectHelper {
+		var world = WorldMap.world;
+		var bestHome = null;
+		var bestDistance = Math.pow(80,2);
+		var ovens = [for (obj in WorldMap.world.ovens) obj];
+
+		for(possibleHome in ovens){
+			if(ObjectData.IsOven(possibleHome.id) == false) continue;
+			
+			var originalBiomeId = world.getOriginalBiomeId(possibleHome.tx, possibleHome.ty);
+			// TODO check loved biome
+			// For ginger rock biome should be ok
+			if(originalBiomeId == BiomeTag.SWAMP) continue;
+
+			var quadDistance = AiHelper.CalculateQuadDistanceToObject(player, possibleHome);
+			if(quadDistance >= bestDistance) continue;
+
+			bestDistance = quadDistance;
+			bestHome = possibleHome;
+		}
+
+		if(bestHome != null){
+			//myPlayer.home = bestHome;
+			trace('AAI: ${player.name + player.id} searchNewHome dist: $bestDistance ${bestHome != null}');
+		}
+
+		return bestHome;
+	}
+
 	// time routine
 	// update loop
 	// map
