@@ -4396,25 +4396,33 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				player.connection.sendMapChunk(player.x, player.y);
 			}
 		} else if (text.indexOf('!JHUMAN') != -1 || text == '!JH') {
-			var livingHumans = Connection.getLivingHumans();
-
-			if (livingHumans.length > 0) {
-				var p = livingHumans[WorldMap.calculateRandomInt(livingHumans.length - 1)];
-				player.x = WorldMap.world.transformX(player, p.tx);
-				player.y = WorldMap.world.transformY(player, p.ty);
-
-				// player.x = p.tx - player.gx;
-				// player.y = p.ty - player.gy;
-
-				player.forced = true;
-				Connection.SendUpdateToAllClosePlayers(player);
-				player.forced = false;
-
-				player.connection.sendMapChunk(player.x, player.y);
-				if (livingHumans.length < 2) player.say('There is only me in this world!', true);
-
+			var tmpLivingHumans = Connection.getLivingHumans();
+			if (tmpLivingHumans.length < 2){
+				player.say('There is only me in this world!', true);
 				return true;
 			}
+
+			var livingHumans = [];
+
+			for(p in tmpLivingHumans){
+				if(p.id == player.id) continue;
+				livingHumans.push(p);
+			}
+
+			var p = livingHumans[WorldMap.calculateRandomInt(livingHumans.length - 1)];
+			player.x = WorldMap.world.transformX(player, p.tx);
+			player.y = WorldMap.world.transformY(player, p.ty);
+
+			// player.x = p.tx - player.gx;
+			// player.y = p.ty - player.gy;
+
+			player.forced = true;
+			Connection.SendUpdateToAllClosePlayers(player);
+			player.forced = false;
+
+			player.connection.sendMapChunk(player.x, player.y);
+
+			return true;
 		} else if (text.indexOf('!JROAD') != -1 || text == '!JR') {
 
 			var roads = [for (obj in WorldMap.world.roads) obj];
