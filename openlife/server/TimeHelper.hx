@@ -1679,7 +1679,7 @@ class TimeHelper {
 		}
 		else if (origObj[0] == 1261) // 1261 Canada Goose Pond with Egg
 		{
-			if(world.randomFloat() < passedTimeInYears / (60 * 24)){
+			if(world.randomFloat() < passedTimeInYears / (60 * 6)){
 				world.setObjectId(tx,ty, [1261]);
 			}
 		}
