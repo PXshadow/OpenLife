@@ -2206,7 +2206,7 @@ class TimeHelper {
 					newAnimal.groundObject = tmpGroundObject;
 					worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
 				}
-			} else if (currentPop > originalPop * ServerSettings.MaxOffspringFactor
+			} else if (currentPop > originalPop * ServerSettings.MaxOffspringFactor * 0.8
 				&& originalPop > 0 && worldmap.randomFloat() < chanceForAnimalDying) {
 				
 				// decay animal only if it is a original one
