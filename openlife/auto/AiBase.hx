@@ -476,7 +476,10 @@ abstract class AiBase
 			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: its my grave acountID: ${account.id}!');
 			return false; 
 		}
-		if(grave.containedObjects.length > 0) return removeItemFromContainer(grave);
+		if(grave.containedObjects.length > 0){
+			if(dropHeldObject(0)) return true;
+			return removeItemFromContainer(grave);
+		}
 
 		// TODO move bones
 		var floorId = WorldMap.world.getFloorId(grave.tx, grave.ty);
@@ -1046,7 +1049,7 @@ private function craftLowPriorityClothing() : Bool {
 	}
 
 	//public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
-	public function dropHeldObject(maxDistanceToHome:Float = 60) : Bool {
+	public function dropHeldObject(maxDistanceToHome:Float = 40) : Bool {
 		// var myPlayer = myPlayer.getPlayerInstance();
 		var home = myPlayer.home;
 		var dropOnStart:Bool = home != null;
@@ -2588,6 +2591,13 @@ private function craftLowPriorityClothing() : Bool {
 			return false;
 		}
 
+		// Drop object before move to pickup stuff. Otherwise she might run back to home to drop 
+		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Remove: drop obj to have empty hand');
+			dropHeldObject(); // TODO pickup after done
+			return true;
+		}
+
 		// TODO allow in container transitions
 		/*if (myPlayer.heldObject.id != 0) {
 			if (ServerSettings.DebugAi)
@@ -2628,13 +2638,6 @@ private function craftLowPriorityClothing() : Bool {
 		if (heldPlayer != null) {
 			var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
 			if (ServerSettings.DebugAi || done == false) trace('AAI: ${myPlayer.name + myPlayer.id} Remove: drop player ${heldPlayer.name} $done');
-			return true;
-		}
-
-		// Drop object to pickup stuff
-		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Remove: drop obj to have empty hand');
-			dropHeldObject(); // TODO pickup after done
 			return true;
 		}
 
