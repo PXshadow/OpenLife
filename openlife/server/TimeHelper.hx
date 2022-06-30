@@ -1679,7 +1679,7 @@ class TimeHelper {
 		}
 		else if (origObj[0] == 1261) // 1261 Canada Goose Pond with Egg
 		{
-			if(world.randomFloat() < passedTimeInYears / (60 * 6)){
+			if(world.randomFloat() < passedTimeInYears / (60 * 24)){
 				world.setObjectId(tx,ty, [1261]);
 			}
 		}
@@ -1688,7 +1688,12 @@ class TimeHelper {
 		if (objData.parentId == 511) // Pond --> Canada Goose Pond
 		{
 			if(world.randomFloat() < passedTimeInYears / 60){
-				world.setObjectId(tx,ty, [141]);
+				var obj = world.getObjectHelper(tx,ty);
+				var numUses = obj.numberOfUses;
+				obj.id = 141;
+				obj.numberOfUses = numUses; // not sure if needed
+				obj.TransformToDummy();
+				world.setObjectHelper(tx,ty, obj);
 			}
 		}
 	}
