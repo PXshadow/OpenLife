@@ -240,7 +240,7 @@ class ServerSettings {
 
 	// for animal offsprings
 	public static var ChanceForOffspring:Float = 0.00005; // 0.00005;// 0.0005 // For each movement there is X chance to generate an offspring.
-	public static var ChanceForAnimalDying:Float = 0.05; // 0.00002 // 0.00025 // For each movement there is X chance that the animal dies
+	public static var ChanceForAnimalDying:Float = 0.00005; // 0.05 // 0.00002 // 0.00025 // For each movement there is X chance that the animal dies
 	public static var ChanceForAnimalDyingFactorIfInLovedBiome:Float = 0.1; // Animals die less if they are in their loved biome
 	public static var OffspringFactorLowAnimalPopulationBelow:Float = 0.2;
 	public static var OffspringFactorIfAnimalPopIsLow:Float = 10;

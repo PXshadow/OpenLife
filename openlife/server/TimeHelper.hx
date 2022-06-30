@@ -2186,6 +2186,7 @@ class TimeHelper {
 
 			// give extra birth chance bonus if population is very low			
 			if (currentPop < originalPop * ServerSettings.OffspringFactorLowAnimalPopulationBelow) chanceForOffspring *= ServerSettings.OffspringFactorIfAnimalPopIsLow;
+			chanceForAnimalDying *= currentPop > originalPop ? 100 : 1;
 
 			if (currentPop < originalPop * ServerSettings.MaxOffspringFactor
 				&& worldmap.randomFloat() < chanceForOffspring) {
