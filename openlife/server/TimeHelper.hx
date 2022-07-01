@@ -1613,8 +1613,9 @@ class TimeHelper {
 		//if (containsSomething && (floorId > 0 || objId != 292)) return; // TODO 292 Basket ==> Allow all containers
 		if (floorId > 0 && (objData.isWall() == false || containsSomething)) return; // TODO Decay Allow containers in walls
 
-		// only allow object with time transition to decay if it takes longer then one hour // 161 Rabbit to unstuck them from the corner
-		if (objectHelper != null && objectHelper.timeToChange > 0 && objectHelper.timeToChange < 3600 && countAs != 161) return; 
+		// only allow object with time transition to decay if there is no custom decay set // 161 Rabbit to unstuck them from the corner
+		//if (objectHelper != null && objectHelper.timeToChange > 0 && objectHelper.timeToChange < 3600 && countAs != 161) return;
+		if (objectHelper != null && objectHelper.timeToChange > 0 && objData.decaysToObj < 1 && countAs != 161) return;
 
 		var objData = ObjectData.getObjectData(objId);
 
