@@ -620,17 +620,19 @@ class ServerSettings {
 		ObjectData.getObjectData(3960).countsOrGrowsAs = 3961; // Collapsed Mine with Ore --> Iron Vein
 
 		ObjectData.getObjectData(945).decaysToObj = 881; // Collapsed Iron Mine --> Cut Stones
-		ObjectData.getObjectData(945).decayFactor = 0.1; // Collapsed Iron Mine
+		ObjectData.getObjectData(945).decayFactor = 0.5; // Collapsed Iron Mine
 		ObjectData.getObjectData(945).countsOrGrowsAs = 3961; // Collapsed Iron Mine --> Iron Vein
 
-		// TODO 3130 Diesel Mining Pick without Bit
-		ObjectData.getObjectData(3130).decayFactor = -1; // Diesel Mining Pick without Bit
+		ObjectData.getObjectData(3130).decaysToObj = 881;  // Ready Diesel Mining Pick without Bit
+		ObjectData.getObjectData(3130).decayFactor =  0.1; // Diesel Mining Pick without Bit
 		ObjectData.getObjectData(3130).countsOrGrowsAs = 3961; // Diesel Mining Pick without Bit --> Iron Vein
-		// TODO 3129 Ready Diesel Mining Pick
-		ObjectData.getObjectData(3129).decayFactor = -1; // Ready Diesel Mining Pick
+	
+		ObjectData.getObjectData(3129).decaysToObj = 881; // Ready Diesel Mining Pick
+		ObjectData.getObjectData(3129).decayFactor = 0.1; // Ready Diesel Mining Pick
 		ObjectData.getObjectData(3129).countsOrGrowsAs = 3961; // Ready Diesel Mining Pick --> Iron Vein
-		// TODO 3131 Diesel Mining Pick with Iron
-		ObjectData.getObjectData(3131).decayFactor = -1; // Diesel Mining Pick with Iron
+
+		ObjectData.getObjectData(3131).decaysToObj = 881; // Diesel Mining Pick with Iron
+		ObjectData.getObjectData(3131).decayFactor = 0.1; // Diesel Mining Pick with Iron
 		ObjectData.getObjectData(3131).countsOrGrowsAs = 3961; // Diesel Mining Pick with Iron --> Iron Vein
 		// TODO get engine back from mine
 		// TODO collapse mine if it gave 12 iron
