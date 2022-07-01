@@ -282,7 +282,7 @@ class WorldMap {
 		// 3290 Pine Floor
 		if(floorId > 0 && floorId != 3290)
 		{
-			if(biome == BiomeTag.OCEAN || biome == BiomeTag.PASSABLERIVER || biome == BiomeTag.RIVER) return false;
+			if(biome == BiomeTag.SNOWINGREY || biome == BiomeTag.OCEAN || biome == BiomeTag.PASSABLERIVER || biome == BiomeTag.RIVER) return false;
 		}
 
 		var biomeSpeed = Server.server.map.getBiomeSpeed(x, y);
