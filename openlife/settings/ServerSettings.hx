@@ -568,6 +568,15 @@ class ServerSettings {
 
 		// horse cart decay // TODO allow decay? set decay for horse cart
 		ObjectData.getObjectData(3157).decaysToObj = 780; // Escaped Horse-Drawn Tire Cart --> Escaped Horse-Drawn Cart
+		ObjectData.getObjectData(780).decaysToObj = 775; // Escaped Horse-Drawn Tire Cart --> Escaped Riding Horse
+		ObjectData.getObjectData(775).decaysToObj = 769; // Escaped Riding Horse --> Wild Horse
+
+		ObjectData.getObjectData(3159).decaysToObj = 779; // Hitched Horse-Drawn Tire Cart --> Hitched Horse-Drawn Cart
+		ObjectData.getObjectData(3159).decayFactor = 0.2; // Hitched Horse-Drawn Tire Cart
+		ObjectData.getObjectData(779).decaysToObj = 774; // Hitched Horse-Drawn Cart --> Hitched Riding Horse
+		ObjectData.getObjectData(779).decayFactor = 0.2; // Hitched Horse-Drawn Cart
+		ObjectData.getObjectData(774).decaysToObj = 4154; // Hitched Riding Horse --> Hitching Post
+		ObjectData.getObjectData(774).decayFactor = 0.2; // Hitched Riding Horse
 
 		// set floor decay
 		ObjectData.getObjectData(1596).decayFactor = 0.2; // 1596 Stone Road
