@@ -97,7 +97,6 @@ class MoveHelper {
 		var speed = ServerSettings.InitialPlayerMoveSpeed;
 		var floorObjData = ObjectData.getObjectData(map.getFloorId(tx, ty));
 		var floorSpeed = floorObjData.speedMult;
-		var onRoad = false;
 		var hasBothShoes = p.hasBothShoes();
 		var isOnBoat = p.heldObject.objectData.isBoat;
 
@@ -106,7 +105,8 @@ class MoveHelper {
 		if (hasBothShoes && onHorseOrCar == false) speed *= 1.1;
 		if (fullPathHasRoad == false) floorSpeed = 1; // only consider road if the full path is on road
 
-		onRoad = floorSpeed >= 1.01; // only give road speed boni if full path is on road
+		var onRoad = floorSpeed >= 1.01; // only give road speed boni if full path is on road
+		var onFloor = floorObjData.id > 0;
 
 		speed *= ServerSettings.SpeedFactor; // used to increase speed if for example debuging
 		speed *= floorSpeed;
@@ -114,8 +114,8 @@ class MoveHelper {
 		// DO biomes
 		var biomeSpeed = map.getBiomeSpeed(tx, ty);
 
-		// road reduces speed mali of bad biome
-		if ((onRoad || isOnBoat) && biomeSpeed < 0.99) biomeSpeed = 1; // biomeSpeed = Math.sqrt(biomeSpeed);
+		// floor reduces speed mali of bad biome
+		if ((onFloor || isOnBoat) && biomeSpeed < 0.99) biomeSpeed = 1; // biomeSpeed = Math.sqrt(biomeSpeed);
 		if(biomeSpeed < ServerSettings.MinBiomeSpeedFactor) biomeSpeed = ServerSettings.MinBiomeSpeedFactor;
 		//if(p.displayRoadHint && biomeSpeed < 0.99 && p.age > 5 && map.getBiomeId(tx, ty) == BiomeTag.SWAMP){			 
 		//	p.displayRoadHint = false;			
@@ -137,7 +137,7 @@ class MoveHelper {
 				trace('Speed: New ${p.heldObject.objectData.description} speed in bad biome: ${p.heldObject.objectData.speedMult} --> $speedModHeldObj');
 		}
 
-		if (onRoad && speedModHeldObj < 0.99) speedModHeldObj = Math.sqrt(speedModHeldObj); // on road
+		if (onFloor && speedModHeldObj < 0.99) speedModHeldObj = Math.sqrt(speedModHeldObj); // on road
 		speed *= speedModHeldObj;
 
 		// Do speed hidden wound
@@ -168,9 +168,9 @@ class MoveHelper {
 			}
 		}
 
-		if (biomeSpeed < 0.9 && onRoad == false) containedObjSpeedMult *= containedObjSpeedMult; // in bad biome and off road double mali
+		if (biomeSpeed < 0.9 && onFloor == false) containedObjSpeedMult *= containedObjSpeedMult; // in bad biome and off road double mali
 
-		if (onRoad && containedObjSpeedMult < 0.99) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult); // on road
+		if (onFloor && containedObjSpeedMult < 0.99) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult); // on road
 
 		if (onHorseOrCar && containedObjSpeedMult < 0.99) containedObjSpeedMult = Math.sqrt(containedObjSpeedMult); // on horse / in car // TODO or strong
 
