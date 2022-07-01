@@ -99,7 +99,7 @@ class Biome {
 			//case DESERT: TDESERT;
 			case JUNGLE: ServerSettings.DecayFactorInJungle;
 			case BORDERJUNGLE: ServerSettings.DecayFactorInJungle;
-			//case SNOWINGREY: TSNOWINGREY;
+			case SNOWINGREY:  ServerSettings.DecayFactorInMountain;
 			case OCEAN: ServerSettings.DecayFactorInDeepWater;
 			case RIVER: ServerSettings.DecayFactorInDeepWater;
 			case PASSABLERIVER: ServerSettings.DecayFactorInWalkableWater;

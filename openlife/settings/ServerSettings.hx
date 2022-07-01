@@ -256,7 +256,8 @@ class ServerSettings {
 	public static var ObjDecayFactorForFood:Float = 2;
 	public static var ObjDecayFactorForClothing:Float = 2;
 
-	public static var DecayFactorInDeepWater:Float = 10;
+	public static var DecayFactorInDeepWater:Float = 5;
+	public static var DecayFactorInMountain:Float = 3;
 	public static var DecayFactorInWalkableWater:Float = 2;
 	public static var DecayFactorInJungle:Float = 2;
 	public static var DecayFactorInSwamp:Float = 2;
