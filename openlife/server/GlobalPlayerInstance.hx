@@ -4223,6 +4223,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		} else if (text.indexOf('!HEAL') != -1) {
 			player.hits -= 10;
 			if (player.hits < 0) player.hits = 0;
+			if (player.exhaustion > 0) player.exhaustion = 0;
 
 			if (player.heldObject.isWound()) player.heldObject.timeToChange = 1;
 
