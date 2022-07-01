@@ -1081,7 +1081,7 @@ class WorldMap {
 
 				// 942 Muddy Iron Vein --> // 3961 Iron Vein
 				// TODO better patch the data
-				if (obj[0] == 942) objects[x + y * width] = [3961]; 
+				//if (obj[0] == 942) objects[x + y * width] = [3961]; 
 
 				/*if (obj[0] == 942 || obj[0] == 3030) // 942 Muddy iron vein // 3030 Natural Spring
 				{

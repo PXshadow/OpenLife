@@ -811,7 +811,13 @@ class ServerSettings {
 		ObjectData.getObjectData(769).mapChance *= 2; // Wild Horse
 		// ObjectData.getObjectData(769).biomes.push(BiomeTag.GREEN); // Beautiful Horses now also in Green biome :)
 
-		ObjectData.getObjectData(942).mapChance *= 10; // Muddy Iron Vein
+		// 3961 Iron Vein use spawn chance from Muddy Iron Vein X10
+		ObjectData.getObjectData(3961).mapChance = ObjectData.getObjectData(942).mapChance *= 10; 
+		ObjectData.getObjectData(3961).biomes = ObjectData.getObjectData(942).biomes;
+		// spawn Iron Vein instead of Muddy Iron Vein
+		ObjectData.getObjectData(942).mapChance = 0; // Muddy Iron Vein // spawn 3961 Iron Vein instead
+		ObjectData.getObjectData(942).biomes = [];
+
 		ObjectData.getObjectData(2135).mapChance /= 4; // Rubber Tree
 		ObjectData.getObjectData(530).mapChance /= 2; // Bald Cypress Tree
 		ObjectData.getObjectData(121).mapChance *= 4; // Tule Reeds
