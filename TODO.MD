@@ -61,6 +61,7 @@ Hitpoints / Exhaustion:
 
 Reworked Yum and Craving System:
 - new craving system that shows you what has full YUM boni
+- The more you eat from one food the less food vlaue it gives (minimum halve)
 - If you eat other food (especially YUM) in between a eaten food may become YUM again
 - Cravings and YUM is inherited from grandparents (or parents if there are none)
 - More details to YUM / Craving see below
@@ -71,6 +72,8 @@ New in game Currency:
 
 Quality of Life Changes:
 - quality of Life: You can pick berriers directly with a bowl
+- kids can carry one item and pick berries
+- you can do smithing on a table
 - you can use a Stone Hoe to dig in bones
 - you can eat while on a horse (dont know yet if this is a good idea...)
 - Wearing two shoes give extra speed
