@@ -349,9 +349,25 @@ class ServerSettings {
 	public static var AIFoodUseFactorCommoner:Float = 0.85;
 	public static var AIFoodUseFactorNoble:Float = 1;
 
-	// iron, tary spot spring cannot respawn or win lottery
+	public static function CanObjectBeLuckySpot(obj:Int):Bool {
+		// 942 Muddy Iron Vein (can now respawn but not be lucky spot)
+		// 3962 Loose Muddy Iron Vein
+		// 3961 Iron Vein (can now respawn but not be lucky spot)
+		// 3030 Natural Spring
+		// 2285 Tarry Spot
+		// 503 Dug Big Rock
+		return (obj != 3030 && obj != 2285 && obj != 503 && obj != 942 && obj != 3961 && obj != 3962 );
+	}
+
+	// iron, tary spot spring cannot respawn or be lucky spot
 	public static function CanObjectRespawn(obj:Int):Bool {
-		return (obj != 942 && obj != 3030 && obj != 2285 && obj != 3961 && obj != 3962 && obj != 503);
+		// 942 Muddy Iron Vein (can now respawn but not be lucky spot)
+		// 3962 Loose Muddy Iron Vein
+		// 3961 Iron Vein (can now respawn but not be lucky spot)
+		// 3030 Natural Spring
+		// 2285 Tarry Spot
+		// 503 Dug Big Rock
+		return (obj != 3030 && obj != 2285 && obj != 503);
 	}
 
 	public static function writeToFile() {
@@ -565,6 +581,41 @@ class ServerSettings {
 
 			// if(obj.containable) trace('${obj.description} ${obj.containSize}');
 		}
+
+		// set custom decay for iron mines
+		ObjectData.getObjectData(3961).decayFactor = -1; // Iron Vein
+
+		ObjectData.getObjectData(3944).decaysToObj = 881; // Stripped Iron Vein --> Cut Stones
+		ObjectData.getObjectData(3944).decayFactor = 0.1; // Stripped Iron Vein
+		ObjectData.getObjectData(3944).countsOrGrowsAs = 3961; // Stripped Iron Vein --> Iron Vein
+
+		ObjectData.getObjectData(3957).decaysToObj = 881; // Shallow Iron Pit --> Cut Stones
+		ObjectData.getObjectData(3957).decayFactor = 0.1; // Shallow Iron Pit
+		ObjectData.getObjectData(3957).countsOrGrowsAs = 3961; // Shallow Iron Pit --> Iron Vein
+
+		ObjectData.getObjectData(943).decaysToObj = 881; // Deep Iron Pit --> Cut Stones
+		ObjectData.getObjectData(943).decayFactor = 0.1; // Deep Iron Pit
+		ObjectData.getObjectData(943).countsOrGrowsAs = 3961; // Deep Iron Pit --> Iron Vein
+
+		ObjectData.getObjectData(3960).decaysToObj = 881; // Collapsed Mine with Ore --> Cut Stones
+		ObjectData.getObjectData(3960).decayFactor = 0.1; // Collapsed Mine with Ore
+		ObjectData.getObjectData(3960).countsOrGrowsAs = 3961; // Collapsed Mine with Ore --> Iron Vein
+
+		ObjectData.getObjectData(945).decaysToObj = 881; // Collapsed Iron Mine --> Cut Stones
+		ObjectData.getObjectData(945).decayFactor = 0.1; // Collapsed Iron Mine
+		ObjectData.getObjectData(945).countsOrGrowsAs = 3961; // Collapsed Iron Mine --> Iron Vein
+
+		// TODO 3130 Diesel Mining Pick without Bit
+		ObjectData.getObjectData(3130).decayFactor = -1; // Diesel Mining Pick without Bit
+		ObjectData.getObjectData(3130).countsOrGrowsAs = 3961; // Diesel Mining Pick without Bit --> Iron Vein
+		// TODO 3129 Ready Diesel Mining Pick
+		ObjectData.getObjectData(3129).decayFactor = -1; // Ready Diesel Mining Pick
+		ObjectData.getObjectData(3129).countsOrGrowsAs = 3961; // Ready Diesel Mining Pick --> Iron Vein
+		// TODO 3131 Diesel Mining Pick with Iron
+		ObjectData.getObjectData(3131).decayFactor = -1; // Diesel Mining Pick with Iron
+		ObjectData.getObjectData(3131).countsOrGrowsAs = 3961; // Diesel Mining Pick with Iron --> Iron Vein
+		// TODO get engine back from mine
+		// TODO collapse mine if it gave 12 iron
 
 		// horse cart decay // TODO allow decay? set decay for horse cart
 		ObjectData.getObjectData(3157).decaysToObj = 780; // Escaped Horse-Drawn Tire Cart --> Escaped Horse-Drawn Cart
