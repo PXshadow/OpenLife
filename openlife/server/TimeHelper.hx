@@ -1637,20 +1637,22 @@ class TimeHelper {
 		if (world.randomFloat() > decayChance) return;
 
 		// if(objData.isSpawningIn(biomeId) == false) continue;
-
+		if (objectHelper == null) objectHelper = world.getObjectHelper(x, y);
 		var decaysToObj = objData.decaysToObj; 
-		if(decaysToObj == 0 && objData.permanent > 0) decaysToObj = 618; // 618 Filled Small Trash Pit
+		var decaysToObjectData = ObjectData.getObjectData(decaysToObj);
+		var decaysToObjSlots = decaysToObjectData.numSlots;
+		if (decaysToObj == 0 && objData.permanent > 0) decaysToObj = 618; // 618 Filled Small Trash Pit
 
-		if(containsSomething){
-			while (objectHelper.containedObjects.length > 0){
-				var containedObject = objectHelper.containedObjects.pop();
-				WorldMap.PlaceObject(x, y, containedObject);
-				trace('Decay: ${objectHelper.name} place contained: ${containedObject.name}');
-			}
+		while (objectHelper.containedObjects.length > decaysToObjSlots){
+			var containedObject = objectHelper.containedObjects.pop();
+			WorldMap.PlaceObject(x, y, containedObject);
+			trace('Decay: ${objectHelper.name} place contained: ${containedObject.name} newSlots: ${decaysToObjSlots} use Slots: ${objectHelper.containedObjects.length - 1}');
 		}
 
-		world.setObjectId(x, y, [decaysToObj]);
-		// worldMap.setObjectHelperNull(x, y);
+		objectHelper.id = decaysToObj;
+		objectHelper.TransformToDummy();
+		//world.setObjectId(x, y, [decaysToObj]);
+		world.setObjectHelper(x, y, objectHelper);
 
 		world.currentObjectsCount[countAs]--;
 

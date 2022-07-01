@@ -325,6 +325,8 @@ class ObjectHelper {
 		this.objectData = newObjectData;
 		this.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(this);
 
+		// TODO TransformToDummy();
+
 		return newID;
 	}
 
