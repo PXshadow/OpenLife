@@ -624,6 +624,12 @@ abstract class AiBase
 		var hasClosePlate = closePlate != null;
 
 		if(hasClosePlate){
+			var closeDough = AiHelper.GetClosestObjectById(myPlayer, 1466); // 1466 Bowl of Leavened Dough
+
+			if(closeDough != null && craftItem(1469)) return true; // Raw Bread Loaf
+
+			if(craftItem(1471)) return true; // Sliced Bread
+			
 			/*
 			if(craftItem(272)) return true; // Cooked Berry Pie
 			if(craftItem(803)) return true; // Cooked Mutton Pie
