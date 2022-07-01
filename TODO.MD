@@ -1,24 +1,21 @@
-Project Winter is comming / Hardcore OHOL
+Welcome to Open Life Reborn - A hard Winter is comming / Hardcore OHOL with constant rebirthing world
 
-How to setup the server you can find in the bottom!
-Thx @Colin there is now also a more detailed manual:
-https://github.com/connorhsm/OpenLife/blob/master/SERVER.md
-And a script to setup the server:
-https://github.com/connorhsm/OpenLife/blob/master/build_server.sh
+To play, just use any normal OHOL client and put in the custom server IP! No new Client needed!
 
-Project Winter is comming summary: 
-- the server is written from scratch in Haxe and is in ALPHA, so expect errors / feel welcome to report them
-- there is winter as main new challange
-
-Life is generally more hard / deadly:
-- you are generally more hunted by animals, yea once in a time human where prey... animals especially wolfs can leave their original biome, so its more deadly, but no prob, if you help the ai to make a bow and some arrows it will help you to hunt most of them down. Wolfs do spawn now in all biomes except desserts and jungle. So yea better hide in the jungle if brown since moskitos are less deadly for brown :) And once you survived a yellow fever, the next one would be hopefully not be that hard...
-// TODO implement that fire protects against animals
+Summary: 
+- the server is written from scratch in Haxe and is in early BETA, so expect some bugs / feel welcome to report them
+- there is winter as main new challange and where there is winter there is spring to grow back nature!
+- Wolfs are double strong in winter!
+- Temperature can and will kill you! Jump in a river to cool down, use fire or cloths to warm up or escape into a desert!
 
 AI:
-- there might be an basic AI for NPCs if activated in the settings
-- by giving "make xxx" commands you can instruct the ai to make stuff
- with xxx part of an object name or ID. TODO: This might or might not work yet!
-- general the lower the class of the AI the slower it is and the less food it needs (Serf/Commoner/Noble)
+- AI NPCs can hunt, nurse, eat, feed and craft clothing quite well. It goes for YUM and cravings and feeds you also your YUM and cravings. The AI might cook basic stuff and do very basic farming if helped by player.
+- Currently the Ai does not use containers, so use Baskets and Tables to save stuff you dont want the Ai to touch
+- By saying "STOP" or "DROP You can order the AI to stop or drop what it helds.
+- By saying "COME" the Ai will follow you for some time or untill you say "STOP"
+- By saying "HOME" you can set the closest oven as their new Home and closest fire as new home fire
+- By saying "MAKE xxx"  you can instruct the ai to make stuff with xxx is the item name
+ The AI might or might not manage to craft the item. In theory it knows the hole crafting tree, but there might be bugs or needed stuff might not be close enough. 
 
 Combat:
 - combat is allowed but might give some prestige mali like attacking children. relatives or allies...
@@ -26,18 +23,23 @@ Combat:
 
 Map with rivers mountains and oceans:
 - the server uses a limited hand made map which can be changed using a picture
-- rivers oceans and mountains that block movement
+- rivers oceans and mountains that block movement (you can build brides with floors)
 - no locked iron or wells
-- all natural stuff can re-spawn (TODO exception well, iron and oil stuff)
+- all natural stuff can re-spawn (TODO except natural springs and tary spots)
 --> So having a lucky spot of one thing keeps it lucky also in the future
-- all But ancient stuff can decay (exception well, iron and oil stuff)
+- all can decay and be reborn! (TODO except wells and oil stuff)
+- Ancient stuff will decay very very slow (TODO)
 
 Boats:
-- cars are now boats (TODO need new graphics for cars)
+- cars are now boats (TODO need new boat graphics for cars)
 
 Reconnection:
-- Playerdata is saved, so after server restart you can reconnect.
+- A normal restart / update takes like 15 seconds
+- All playerdata is saved, so after server restart you can reconnect.
 - The Ai takes over your payer untill you reconnect
+
+Fathers:
+- you can now have a father
 
 Curses based on graves:
 - curse system is now based on graves
@@ -50,35 +52,45 @@ Different Classes:
 - you are more likely born to the same class
 
 Prestige System:
-- yum chain is now your prestiege (score) / health and influcences movement speed and aging
+- yum chain is now your prestiege (score) / health and influcences movement speed, hitpoints and aging
 --> so yes in theory you can life longer then 60
+
+Hitpoints / Exhaustion:
+- Your max food storage pipes (bootom left) is also now your hitpoints / stamina
+- If you are injured or Exhausted you loose Max Food Store pipes. Exhaustion will recover faster then hits.
 
 Reworked Yum and Craving System:
 - new craving system that shows you what has full YUM boni
-- Cravings and YUM is inherited from grandparents
-- More changes to YUM / Craving see below
+- If you eat other food (especially YUM) in between a eaten food may become YUM again
+- Cravings and YUM is inherited from grandparents (or parents if there are none)
+- More details to YUM / Craving see below
 
 New in game Currency:
 - there is a new in game currency see more about below (Coins)
---> I give you XXCIIII ==> gives 124 coins
+--> I give you XXCVIIII ==> gives 129 coins C = 100 / X = 10 / V = 5 / I = 1 (order does not matter)
 
 Quality of Life Changes:
 - quality of Life: You can pick berriers directly with a bowl
+- you can use a Stone Hoe to dig in bones
 - you can eat while on a horse (dont know yet if this is a good idea...)
-- Shoes give extra speed
+- Wearing two shoes give extra speed
 - Wells fill up at least 3 times faster. Better wells always refill faster then primitive wells
+- Better wells cost less hungry work per water gained / using lakes is worst. 
 
 Not yet implemented:
-- advaned AI
-- more winter / seasonal challanges like attacking wolfes
-- more boni for biome specialists 
-- advaned stuff like rails, pipes
+- AI combat
+- advaned stuff like rails, pipes, plows
 - reading / writing
 - twinning
-- ally gates / fences
-- in door temperature
-- general lot more testing of stuff
+- ally gates
+- better in door temperature calculation
 - see more in TODO below
+
+How to setup the server you can find in the bottom!
+Thx @Colin there is now also a more detailed manual:
+https://github.com/connorhsm/OpenLife/blob/master/SERVER.md
+And a script to setup the server:
+https://github.com/connorhsm/OpenLife/blob/master/build_server.sh
 
 SERVER - FULL CHANGES TO VANILLA
 ======
@@ -93,7 +105,6 @@ SCORE / PRESTIGE:
 - as mother you get prestige for your offspring up to 10 generations even after your death
 - you get only prestige for your ancestors if your body from that life is burried and the grave still exists
 - you loose score for a cursed grave or if no one burried your bones before they decay
-// TODO implement prestige for your ancestors for father / siblings
 
 MAP:
 - generate limited map using image color as index for biome id
@@ -109,88 +120,93 @@ Adam / Eve:
 // - adam / Eve do 50% less damage
 // - adam / Eve receive 50% less damage (also from animals)
 
+Family Temperature:
+Your Skin Color affects the temperature you like:
+- Black: +0.1
+- Brown: +0.05
+- White: -0.05
+- Ginger: -0.1
+
 Family / Loved / Hated Biomes:
 - loved Biomes: Ginger --> Snow / White --> Grey / Brown --> Jungle / Black --> Desert 
 - loved food: Ginger --> Wild Carrot / White --> Wild Garlic / Brown --> Banana / Black --> Cactus Fruit 
 - loved food2: Ginger --> Cooked Fish / White --> Bowl of Sauerkraut / Brown --> Mango Slices / Black --> Cooked Rabbit 
 - loved food count is restored more quickly, so it is more often YUM or craved
-- harvsting from loved plants gives extra harvested food 
-- children are now more likely to be born closer to special biome color
---> With this one Eve can create all colors if people migrate...
+- harvesting from loved plants can give extra harvested food if lucky 
+- children are now more likely to be born closer to which is best for closest biome
+--> With this one Eve can create all colors if people migrate to different biomes...
 - parents influence which biomes are loved 
 - bad Temperature is affected now by how much you love the biome (see under temperature)
 - you gain extra exhaustion in not loved biomes and loose extra exhaustion in loved biomes
 - you get  less / more damage in loved / not loved biomes
-- TODO differen exhaustion for work in bad / loved biome
 
 Classes:
+- You are born into a class depending on your prestige from past lives
 - there are three different classes: Sef / Commoner / Noble
-- you are more likely born to the same class
+- you are more likely born to parents from the same class
 - nobles make 20% more damage with a sword
 - nobles receive 20% less damage if using a sword
-- AI:  Sef / Commoner AI classes have lower food use and speed. A Nobel Ai has same like a human 
+- AI: The lower the class (Serf/Commoner/Noble) of the AI the slower it is and the less food it needs
 
 Ally
 - leader has now 15 seconds time to exile you before you follow him
-- allow only pickup if not too close to not allies with more total strength (5 Tiles)
 - the more your close (5 Tiles) ally stregth is vs enemy streght the more damage you do
 - stregth of players with weapons are counted twice
 
 Combat / Attacking
-- you can attack anybody if you are angry and if target is terrified or angry
+- you can attack anybody if you are angry and if the target is terrified or angry
 - you get angry / terrified 5 seconds after attacking / being attacked
-- The more / leass health pipes you have the more / less damage you do 
+- The more / less strenght (max food pipes) you have the more / less damage you do 
 - clothing insulation reduces damage up to 66%;
 - you have reduced speed if close to enemy with weapon
 - already wounded players receive less damage
 - different weapons have different damage and cooldown
 - if you make a wound or kill some one the bloody weapon cooldown is much longer
-- the more your close (5 Tiles) ally stregth is vs enemy streght the more damage you do
-- stregth of players with weapons are counted twice
 - You can only shoot with bow if not too close to target
 - you do halve damage to an ally
 - you get less / more damage in loved / not loved biomes
 - you receive less damage if holding a knife, sword or riding a horse without a cart 
 - males do X1.2 damage
-- weapon pickup age is 2/5/10 years for knife / bow / sword but remember you do less damage if not grown up
+- Reduced weapon pickup age but remember you do less damage if not grown up (kids have max food pipes)
 
-Attacking prestige lost:
+Attacking prestige cost:
 - you will loose prestige for attacking a close relative without weapon
 - you will loose prestige for attacking a women without weapon
 - you will loose even more prestige for attacking an ally without weapon
 - you will loose even more prestige for attacking a child without weapon
 
 Graves / Curses
-- instead player curses, curses work now through graves without grave stone
+- instead player curses, curses work now through graves without a grave stone
 - since graves are more important you can use Stone Hoe to make graves
 - you incarnate more likely to your grave with a grave stone
 - you incarnate less likely close to your grave without grave stone
 - you are cursed (lower speed / halve damage) if going close to your grave without grave stone
 - you cannot interact with your own grave 
 - for each Sharp Stone a grave needs much longer to decay (+8 hours) / This can be used to let cursed graves exist much longer
+- If allowed in the settings you can teleport to your own grave with a grave stone by saying "!TG" or "!TGRAVE"
 
 Heat / Temperature:
-- bad temperature reduces speed / extreme temperature reduces double
+- bad temperature reduces speed (you get get an heat / cold animation warning you)
 - having very bad temperature causes damage (especially on the far temperature edges)
 - bad temperature generates exhaustion and reduces exhaustion reduction
-- different color people love different temperatures (Ginger 0.4 White 0.5 Brown 0.6 Black 0.7)
+- different color people love different temperatures (Ginger 0.4 White 0.45 Brown 0.55 Black 0.6)
 - clothing can protect against cold and heat.
 - The better clothing protects against cold the less it protects against heat
-- heal only if not too cold or hot / heal faster the better temperature 
-- better chance of having a kid with right temperature
+- you heal only if not too cold or hot
+- you have a better chance of having a kid with right temperature
 - heat objects like fire have halve temperature impact if the impact is negative
 
-- Bad Temperature over time affects now halve as much as good temperature
+- You need to stay halve the time in good temperature then you have been in bad temperature
 - River / Water affect twice as much and ignores clothing protection
 - Clothing Insulation reduces bad temperature impact per second by up to 10X 
 (Already 2X with a simple straw hat)
-- Clothing Insulation does not reduce good temperature impact
+- Clothing Insulation does not reduce temperature impact that is positive for you!
 - You have a natural heat resistance which is reduced with wearing cloths with a higher then 25% insulation
 - Wearing cloths with less then 75% insulation increases your heat resistance
-- Wearing cloths warms you up to at max plus 0.2 heat (temperature can increase also if net negative)
-- Wearing cloths cloths with less then 50% insulation reduces heat by at max 0.2 (only if net positive)
+- Wearing cloths warms you up to at max plus 0.2 heat (this can affect you also if net negative)
+- Wearing cloths with less then 50% insulation reduces heat by at max 0.2 (only if net positive)
 
-With full insulation you can run 20X time outside then spending on warming up / cooling down.
+With full insulation you can run 20X time outside then you need time spending on warming up / cooling down.
 With river cooling faster and natural heat resistance you could spent 10X time in heat then to cool down.
 (2X River, 2X Good temperature, 2.5% Natural heat protection)
 
