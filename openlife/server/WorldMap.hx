@@ -1079,10 +1079,11 @@ class WorldMap {
 			for (x in 0...width) {
 				var obj = objects[x + y * width];
 
-				if (obj[0] == 942) objects[x + y * width] = [3961]; // 3961 = Iron Vein
+				// 942 Muddy Iron Vein --> // 3961 Iron Vein
+				// TODO better patch the data
+				if (obj[0] == 942) objects[x + y * width] = [3961]; 
 
-				// change muddy iron vein to loose muddy iron vein // TODO better patch the data
-				if (obj[0] == 942 || obj[0] == 3030) // 942 iron vein // 3030 Natural Spring
+				/*if (obj[0] == 942 || obj[0] == 3030) // 942 Muddy iron vein // 3030 Natural Spring
 				{
 					// generate also some random stones
 					var random = randomInt(2) + 1;
@@ -1127,8 +1128,8 @@ class WorldMap {
 
 							random -= 1;
 							if(random <= 0) break;
-					}*/
-				}
+					}
+				}*/
 
 				var tmpObj = getObjectId(x, y);
 
@@ -1137,7 +1138,7 @@ class WorldMap {
 				if (tmpIsPlaced[index(x, y)]) continue;
 
 				// if obj is no iron, no tary spot and no spring there is a chance for winning lottery
-				if (ServerSettings.CanObjectRespawn(tmpObj[0]) == false) continue;
+				if (ServerSettings.CanObjectBeLuckySpot(tmpObj[0]) == false) continue;
 
 				if (getBiomeId(x, y) == BiomeTag.PASSABLERIVER) continue;
 
