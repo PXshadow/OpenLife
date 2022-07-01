@@ -593,9 +593,25 @@ class ServerSettings {
 		ObjectData.getObjectData(3957).decayFactor = 0.1; // Shallow Iron Pit
 		ObjectData.getObjectData(3957).countsOrGrowsAs = 3961; // Shallow Iron Pit --> Iron Vein
 
+		ObjectData.getObjectData(3956).decaysToObj = 881; // Shallow Pit with Ore --> Cut Stones
+		ObjectData.getObjectData(3956).decayFactor = 0.1; // Shallow Pit with Ore
+		ObjectData.getObjectData(3956).countsOrGrowsAs = 3961; // Shallow Pit with Ore --> Iron Vein
+
 		ObjectData.getObjectData(943).decaysToObj = 881; // Deep Iron Pit --> Cut Stones
 		ObjectData.getObjectData(943).decayFactor = 0.1; // Deep Iron Pit
 		ObjectData.getObjectData(943).countsOrGrowsAs = 3961; // Deep Iron Pit --> Iron Vein
+
+		ObjectData.getObjectData(3958).decaysToObj = 881; // Deep Pit with Ore --> Cut Stones
+		ObjectData.getObjectData(3958).decayFactor = 0.1; // Deep Pit with Ore
+		ObjectData.getObjectData(3958).countsOrGrowsAs = 3961; // Deep Pit with Ore --> Iron Vein
+
+		ObjectData.getObjectData(944).decaysToObj = 881; // Iron Mine --> Cut Stones
+		ObjectData.getObjectData(944).decayFactor = 0.1; // Iron Mine
+		ObjectData.getObjectData(944).countsOrGrowsAs = 3961; // Iron Mine --> Iron Vein
+
+		ObjectData.getObjectData(3959).decaysToObj = 881; // Mine with Ore --> Cut Stones
+		ObjectData.getObjectData(3959).decayFactor = 0.1; // Mine with Ore
+		ObjectData.getObjectData(3959).countsOrGrowsAs = 3961; // Mine with Ore --> Iron Vein
 
 		ObjectData.getObjectData(3960).decaysToObj = 881; // Collapsed Mine with Ore --> Cut Stones
 		ObjectData.getObjectData(3960).decayFactor = 0.1; // Collapsed Mine with Ore
