@@ -364,8 +364,8 @@ class ServerSettings {
 		// 942 Muddy Iron Vein (can now respawn but not be lucky spot)
 		// 3962 Loose Muddy Iron Vein
 		// 3961 Iron Vein (can now respawn but not be lucky spot)
-		// 3030 Natural Spring
-		// 2285 Tarry Spot
+		// 3030 Natural Spring // TODO
+		// 2285 Tarry Spot // TODO
 		// 503 Dug Big Rock
 		return (obj != 3030 && obj != 2285 && obj != 503);
 	}
@@ -584,6 +584,8 @@ class ServerSettings {
 
 		// set custom decay for iron mines
 		ObjectData.getObjectData(3961).decayFactor = -1; // Iron Vein
+
+		ObjectData.getObjectData(942).countsOrGrowsAs = 3961; // Muddy Iron -->  Iron Vein
 
 		ObjectData.getObjectData(3944).decaysToObj = 881; // Stripped Iron Vein --> Cut Stones
 		ObjectData.getObjectData(3944).decayFactor = 0.1; // Stripped Iron Vein
