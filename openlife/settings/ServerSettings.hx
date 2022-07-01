@@ -818,6 +818,9 @@ class ServerSettings {
 		ObjectData.getObjectData(942).mapChance = 0; // Muddy Iron Vein // spawn 3961 Iron Vein instead
 		ObjectData.getObjectData(942).biomes = [];
 
+		// less iron in iron mine
+		ObjectData.getObjectData(944).useChance = 0.5; // 0.20 Iron Mine
+
 		ObjectData.getObjectData(2135).mapChance /= 4; // Rubber Tree
 		ObjectData.getObjectData(530).mapChance /= 2; // Bald Cypress Tree
 		ObjectData.getObjectData(121).mapChance *= 4; // Tule Reeds
