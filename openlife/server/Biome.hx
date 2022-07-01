@@ -64,8 +64,8 @@ import openlife.settings.ServerSettings;
 	public var TJUNGLE = 0.7; // loved by brown
 	public var TCBORDERJUNGLE = 0.6; // perfect for brown
 	public var TSNOWINGREY = 0.0;
-	public var TOCEAN = 0.0;
-	public var TRIVER = 0.0;
+	public var TOCEAN = 0.2;
+	public var TRIVER = 0.2;
 	public var TPASSABLERIVER = 0.1;
 }
 
