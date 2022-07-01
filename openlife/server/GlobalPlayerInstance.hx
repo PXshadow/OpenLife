@@ -4478,7 +4478,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				return true;
 			}
 		} 
-		else if (text.indexOf('!JG') != -1 || text.indexOf('!JGRAVE') != -1) {
+		else if (text.indexOf('!TG') != -1 || text.indexOf('!JG') != -1 || text.indexOf('!JGRAVE') != -1 || text.indexOf('!TGRAVE') != -1) {
 
 			//var graves = [for (obj in WorldMap.world.cursedGraves) obj];
 			var tmpGraves = player.account.graves;
