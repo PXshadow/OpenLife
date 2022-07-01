@@ -617,7 +617,7 @@ abstract class AiBase
 		var closeSoil = AiHelper.GetClosestObjectById(myPlayer, 1138); // Fertile Soil
 		if(closeSoil != null) if(craftItem(213)) return true; // Deep Tilled Row
 
-		if(myPlayer.age < 15 && makeFireWood()) return true;
+		//if(myPlayer.age < 15 && makeFireWood()) return true;
 		if(myPlayer.age < 20 && makeFireFood()) return true;
 
 		var closePlate = AiHelper.GetClosestObjectById(myPlayer, 236); // Clay Plate
@@ -760,12 +760,12 @@ abstract class AiBase
 		var closeWood = AiHelper.GetClosestObjectById(myPlayer, 344); // Firewood
 		if(closeWood == null) AiHelper.GetClosestObjectById(myPlayer, 1316); // Stack of Firewood
 		var doCraft = closeWood == null || (closeWood.objectData.numUses > 1 && closeWood.numberOfUses < closeWood.objectData.numUses);
-		if(doCraft && craftItem(344)) return true; // Firewood
+		if(doCraft && craftItem(344)) return true; // Firewood // TODO could unstack the stack again
 		
 		var closeKindling = AiHelper.GetClosestObjectById(myPlayer, 72); // Kindling
 		if(closeKindling == null) AiHelper.GetClosestObjectById(myPlayer, 1599); // Kindling Pile
 		var doCraft = closeKindling == null || (closeKindling.objectData.numUses > 1 && closeKindling.numberOfUses < closeKindling.objectData.numUses);
-		if(doCraft && craftItem(72)) return true; // Kindling
+		if(doCraft && craftItem(72)) return true; // Kindling // TODO could unstack the stack again
 		
 		return false;
 	}

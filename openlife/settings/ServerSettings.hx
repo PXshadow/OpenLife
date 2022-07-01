@@ -738,7 +738,7 @@ class ServerSettings {
 		ObjectData.getObjectData(1849).hungryWork = 10; // Buried Grave with Dug Stone
 
 		ObjectData.getObjectData(123).hungryWork = 3; // Harvested Tule
-		ObjectData.getObjectData(231).hungryWork = 20; // Adobe Oven Base
+		ObjectData.getObjectData(231).hungryWork = 10; // Adobe Oven Base
 
 		ObjectData.getObjectData(1020).hungryWork = 5; // Snow Bank
 		ObjectData.getObjectData(138).hungryWork = 5; // Cut Sapling Skewer
@@ -804,9 +804,9 @@ class ServerSettings {
 		ObjectData.getObjectData(164).countsOrGrowsAs = 161; // Rabbit Hole out,single couts as Rabbit Hole
 		ObjectData.getObjectData(173).countsOrGrowsAs = 161; // Rabbit Family Hole couts as Rabbit Hole
 
-		// dont block walking
-		ObjectData.getObjectData(231).blocksWalking = false; // Adobe Oven Base
-		ObjectData.getObjectData(237).blocksWalking = false; // Adobe Oven
+		// dont block walking TODO needs client change
+		//ObjectData.getObjectData(231).blocksWalking = false; // Adobe Oven Base
+		//ObjectData.getObjectData(237).blocksWalking = false; // Adobe Oven
 
 		// Change map spawn chances
 		ObjectData.getObjectData(3030).mapChance *= 3; // Natural Spring
