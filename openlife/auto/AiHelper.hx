@@ -478,6 +478,89 @@ class AiHelper {
 		return Goto(playerInterface, x, y, considerAnimal, false);
 	}
 
+	public static function NewGoto(x:Int, y:Int, playerInterface:PlayerInterface, considerAnimal:Bool = true, move:Bool = true) : Bool {
+		var player = playerInterface.getPlayerInstance();
+		var ai = playerInterface.getAi();
+		var radius = 16;
+
+		var blocked = false;
+		var px = x - player.x;
+		var py = y - player.y;
+		var ii = 0;
+
+		if (px == 0 && py == 0) return false; // no need to move
+
+		// search non blocked tile to walk to
+		for(i in 0...radius-4){
+			ii = i;
+			// trace('AAI: GOTO: From: ${player.x},${player.y} To: $x $y / FROM ${player.tx()},${player.ty()} To: ${x + player.gx},${y + player.gy}');
+
+			var tmpRad = radius - i;
+
+			if (px > tmpRad - 1) px = tmpRad - 1;
+			if (py > tmpRad - 1) py = tmpRad - 1;
+			if (px < -tmpRad) px = -tmpRad;
+			if (py < -tmpRad) py = -tmpRad;
+
+			//if (playerInterface.isBlocked(player.gx + x, player.gy + y)) trace('GOTO blocked');
+			//if (ai != null && ai.isObjectNotReachable(player.gx + x, player.gy + y)) trace('GOTO not reachable');
+			//var debugtext = '';
+			blocked = false;
+			if (playerInterface.isBlocked(px + player.tx, py + player.ty)) blocked = true; //trace('GOTO blocked');
+			if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) blocked = true;//trace('GOTO not reachable');
+			//if (playerInterface.isBlocked(px + player.tx, py + player.ty)) debugtext = 'blocked';
+			//if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) debugtext = 'not reachable';
+			if(blocked == false) break;
+		}
+
+		if(blocked){
+			//trace('Goto blocked!$debugtext ${player.tx},${player.ty} $px,$py');
+			return false;
+		}
+
+		// trace('Goto: $px $py');
+		var map = new MapCollision(AiHelper.CreateCollisionChunk(playerInterface, considerAnimal));
+		
+		// pathing
+		//var path = new Pathfinder(map);
+		var start = new Coordinate(radius, radius);
+		var end = new Coordinate(px + RAD, py + RAD);
+		// trace('goto: end $end');
+		var paths:Array<Coordinate> = PathfinderNew.CreatePath(start, end, map);
+			
+		if (paths == null) {
+			//trace('GOTO false ${player.tx},${player.ty} $px,$py $debugtext');
+
+			// since path was cut it might try again if not added here
+			if(ai != null) ai.addNotReachable(px + player.tx, py + player.ty);
+
+			// if (onError != null) onError("can not generate path");
+			// trace('AAI: ${player.p_id} CAN NOT GENERATE PATH');
+			return false;
+		}
+
+		/*for(path in paths){
+				trace(path);
+		}*/
+
+		var data:Array<Pos> = [];
+		paths.shift();
+		var tx:Int = start.x;
+		var ty:Int = start.y;
+
+		for (path in paths) {
+			data.push(new Pos(path.x - tx, path.y - ty));
+		}
+
+		var ai = playerInterface.getAi();
+		var globalPlayer = cast(player, GlobalPlayerInstance);
+		if (move) playerInterface.move(globalPlayer.moveHelper.guessX(), globalPlayer.moveHelper.guessY(), ai.seqNum++, data);
+
+		//trace('GOTO done $debugtext $px $py');
+
+		return true;
+	}
+
 	// TODO goto uses global coordinates
 	public static function Goto(playerInterface:PlayerInterface, x:Int, y:Int, considerAnimal:Bool = true, move:Bool = true):Bool {
 		var player = playerInterface.getPlayerInstance();

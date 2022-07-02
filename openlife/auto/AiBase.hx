@@ -864,11 +864,11 @@ private function craftLowPriorityClothing() : Bool {
 			if(heldId == 151 || heldId == 152){
 				myPlayer.self(0,0,5);
 				//if(ServerSettings.DebugAi) 
-				trace('AAI: ${myPlayer.name + myPlayer.id} put Bow on Quiver!');
+				if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} put Bow on Quiver!');
 				return true;
 			}
 
-			trace('AAI: ${myPlayer.name + myPlayer.id} find Bow for Quiver!');
+			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} find Bow for Quiver!');
 
 			if(GetItem(152)) return true;  // Bow and Arrow
 			//var obj = AiHelper.GetClosestObjectById(myPlayer, 152); // Bow and Arrow
@@ -889,12 +889,12 @@ private function craftLowPriorityClothing() : Bool {
 		// Arrow
 		if(heldId == 148){
 			myPlayer.self(0,0,5);
-			//if(ServerSettings.DebugAi) 
-			trace('AAI: ${myPlayer.name + myPlayer.id} put Arrow in Quiver!');
+			if(ServerSettings.DebugAi) 
+				trace('AAI: ${myPlayer.name + myPlayer.id} put Arrow in Quiver!');
 			return true;
 		}
-
-		trace('AAI: ${myPlayer.name + myPlayer.id} get Arrow for Quiver!');
+		if(ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} get Arrow for Quiver!');
 
 		return GetOrCraftItem(148); // Arrow
 	}
