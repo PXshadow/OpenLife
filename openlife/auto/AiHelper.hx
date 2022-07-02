@@ -526,7 +526,8 @@ class AiHelper {
 		var start = new Coordinate(radius, radius);
 		var end = new Coordinate(px + RAD, py + RAD);
 		// trace('goto: end $end');
-		var paths:Array<Coordinate> = PathfinderNew.CreatePath(start, end, map);
+		var newPathfinder = new PathfinderNew(map);
+		var paths:Array<Coordinate> = newPathfinder.CreatePath(start, end);
 			
 		if (paths == null) {
 			//trace('GOTO false ${player.tx},${player.ty} $px,$py $debugtext');

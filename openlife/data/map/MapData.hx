@@ -1,10 +1,10 @@
 package openlife.data.map;
 
-import openlife.data.object.ObjectData;
-import openlife.data.object.player.PlayerInstance;
-import openlife.data.*;
 import haxe.Timer;
 import haxe.ds.Vector;
+import openlife.data.*;
+import openlife.data.object.ObjectData;
+import openlife.data.object.player.PlayerInstance;
 
 @:expose
 class MapData {
@@ -30,7 +30,7 @@ class MapData {
 	public var mx:Int;
 	public var my:Int;
 
-	public static final RAD:Int = 16;
+	public static final RAD:Int = 32; // 16
 
 	public function new() {
 		clear();
@@ -200,6 +200,7 @@ class MapCollision implements openlife.auto.Pathfinder.MapHeader {
 	public var rows(default, null):Int;
 	public var cols(default, null):Int;
 	public var data:Vector<Bool>;
+	public var radius = MapData.RAD;
 
 	public function new(data:Vector<Bool>) {
 		this.data = data;

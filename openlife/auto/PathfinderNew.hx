@@ -12,6 +12,16 @@ class PathfinderNew {
     public static var timePathNotFound = 0.1;
     public static var timePathNotFoundNew = 0.1;
 
+    var map:MapCollision;
+    var width:Int;
+    var radius:Int;
+
+    public function new(newMap:MapCollision){
+        this.map = newMap;
+        this.radius = newMap.radius;
+        this.width = 2 * radius;
+    }
+    
     public static function TryDifferentPaths(start:Coordinate, end:Coordinate, map:MapCollision){
         
         var startTime = Sys.time();
@@ -28,14 +38,15 @@ class PathfinderNew {
             if(spentTimeOld > spentTimeOld2) spentTimeOld = spentTimeOld2; 
         } 
                     
+        var newPathfinder = new PathfinderNew(map);
         var startTime = Sys.time();
-        var newPaths = PathfinderNew.CreatePath(start, end, map);
+        var newPaths = newPathfinder.CreatePath(start, end);
 
         var spentTimeNew = Math.round((Sys.time() - startTime) * 1000); 
 
         if(spentTimeNew > 10){
             var startTime = Sys.time();
-            newPaths = PathfinderNew.CreatePath(start, end, map);
+            newPaths = newPathfinder.CreatePath(start, end);
             
             var spentTimeNew2 = Math.round((Sys.time() - startTime) * 1000); 
             trace('oldVsNew: spentTimeNew: $spentTimeNew --> $spentTimeNew2');
@@ -64,13 +75,11 @@ class PathfinderNew {
         }
     }
     
-	public static function CreatePath(start:Coordinate, dest:Coordinate, map:MapCollision) : Array<Coordinate>{
-		var radius = 16;
-		var width = radius * 2;
+	public function CreatePath(start:Coordinate, dest:Coordinate) : Array<Coordinate>{
 		var currentMap = new Vector<Float>(width * width);
 		
 		//trace('NewCreatePath: ${start.x},${start.y} --> ${dest.x},${dest.y}');
-        var done = CreateDirectPath(start, dest, map, currentMap);
+        var done = CreateDirectPath(start, dest, currentMap);
 		
 		if(done) return CreatePathFromMap(start, dest, currentMap);
 
@@ -81,10 +90,10 @@ class PathfinderNew {
 		var ii = 0;
 
         // to speed brute force up, calculate some more paths without expecting to find goal
-        CreateDirectPath(start, new Coordinate(1,1), map, currentMap);
-        CreateDirectPath(start, new Coordinate(1,width - 2), map, currentMap);
-        CreateDirectPath(start, new Coordinate(width - 2,1), map, currentMap);
-        CreateDirectPath(start, new Coordinate(width - 2, width - 2), map, currentMap);
+        CreateDirectPath(start, new Coordinate(1,1), currentMap);
+        CreateDirectPath(start, new Coordinate(1,width - 2), currentMap);
+        CreateDirectPath(start, new Coordinate(width - 2,1), currentMap);
+        CreateDirectPath(start, new Coordinate(width - 2, width - 2), currentMap);
 
 		var startTime = Sys.time();
 
@@ -135,16 +144,14 @@ class PathfinderNew {
 		return null;
 	}
 
-	private static function Index(x:Int, y:Int) : Int {
-		return x + y * 32;
+	private function Index(x:Int, y:Int) : Int {
+		return x + y * width;
 	}
 
-    public static function CreateDirectPath(start:Coordinate, dest:Coordinate, map:MapCollision, currentMap:Vector<Float>) : Bool {
+    public function CreateDirectPath(start:Coordinate, dest:Coordinate, currentMap:Vector<Float>) : Bool {
         var currentX = start.x;
         var currentY = start.y;
         var length = 1.0;
-        var radius = 16;
-        var width = 32;
 
         currentMap[Index(currentX,currentY)] = 1;
                 
@@ -228,13 +235,12 @@ class PathfinderNew {
         return done;    
     }
 
-	private static function BruteForce() {
+	private function BruteForce() {
 		
 	}
 
-	private static function CreatePathFromMap(start:Coordinate, dest:Coordinate, currentMap:Vector<Float>) : Array<Coordinate>{
+	private function CreatePathFromMap(start:Coordinate, dest:Coordinate, currentMap:Vector<Float>) : Array<Coordinate>{
 		var maxLength = Math.ceil(currentMap[Index(dest.x,dest.y)]);
-		var size = Math.floor(Math.sqrt(currentMap.length));
 		var reversePath = new Array<Coordinate>();
 		
 		var nextX = dest.x;
@@ -258,8 +264,8 @@ class PathfinderNew {
 					if(px == 0 && py == 0) continue;
 					if(currentX + px < 0) continue;
 					if(currentY + py < 0) continue;
-					if(currentX + px >= size) continue;
-					if(currentY + py >= size) continue;
+					if(currentX + px >= width) continue;
+					if(currentY + py >= width) continue;
 
 					length = currentMap[Index(currentX + px, currentY + py)];
 					
