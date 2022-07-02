@@ -1395,7 +1395,7 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Clear up Boar
-		trans = new TransitionData(-1, 1328, 0, 1335); // Wild Boar with Piglet --> Fleeing Wild Piglet
+		trans = new TransitionData(-1, 1331, 0, 1335); // Shot Boar with Piglet --> Fleeing Wild Piglet
 		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
