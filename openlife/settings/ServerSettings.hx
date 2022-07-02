@@ -29,7 +29,7 @@ class ServerSettings {
 	public static var DebugSayPlayerPosition = false;
 
 	public static var AllowDebugCommmands = true; // can create objects with saying "!create ID" / "!create object" "!create object!" with ! indicating that object ends with "object" or test wounds with using "!hit" or "!heal"
-	public static var DebugWrite = false; // WordMap writeToDisk
+	public static var DebugWrite = true; // WordMap writeToDisk
 	public static var TraceCountObjects = false; // WorldMap
 	public static var TraceCountObjectsToDisk = true; // WorldMap
 
@@ -121,7 +121,7 @@ class ServerSettings {
 	public static var MaxSayLength = 80;
 
 	// save to disk
-	public static var TicksBetweenSaving = 200;
+	public static var TicksBetweenSaving = 600; // 200// in ticks 200 = 10 sec
 	public static var TicksBetweenBackups = 20 * 60 * 60 * 8; // 20 * 60 * 60 * 8 = every 8 hours
 	public static var MaxNumberOfBackups = 10;
 
