@@ -1170,10 +1170,15 @@ class ServerSettings {
 		ObjectData.getObjectData(30).lastUseObject = 279; // Wild Gooseberry Bush ==> Empty Wild Gooseberry Bush
 		ObjectData.getObjectData(279).undoLastUseObject = 30; // Empty Wild Gooseberry Bush ==> Wild Gooseberry Bush
 
-		var trans = transtions.getTransition(-1, 887); // Stone Wall ==> Ancient
-		trans.autoDecaySeconds = -24 * 10; // default: -10 // TODO implement decay for Ancient
+		// TODO implement decay for Ancient
+		var trans = transtions.getTransition(-1, 885); // Stone Wall (Corner) ==> Ancient
+		trans.autoDecaySeconds = -24 * 10; // default: -10 
+		var trans = transtions.getTransition(-1, 886); // Stone Wall (vertical) ==> Ancient
+		trans.autoDecaySeconds = -24 * 10; // default: -10 
+		var trans = transtions.getTransition(-1, 887); // Stone Wall (horizontal )==> Ancient
+		trans.autoDecaySeconds = -24 * 10; // default: -10 
 		var trans = transtions.getTransition(-1, 884); // Stone Floor ==> Ancient
-		trans.autoDecaySeconds = -24 * 10; // default: -10 // TODO implement for floors
+		trans.autoDecaySeconds = -24 * 10; // default: -10 // TODO implement time for floors
 
 		// lower age for weapons since kids so or so make less damage since they have less health pipes
 		ObjectData.getObjectData(151).minPickupAge = 10; // 12   // War Sword
