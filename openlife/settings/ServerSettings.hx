@@ -1407,11 +1407,18 @@ class ServerSettings {
 		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Mouflon
+		trans = new TransitionData(-1, 562, 0, 566); // Skinned Mouflon --> Mouflon Bones
+		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		trans = transtions.getTransition(-1, 1343); // Pig Bones
 		trans.autoDecaySeconds = -4; // default -2
 
 		trans = transtions.getTransition(-1, 891); // 891 Cracking Adobe Wall
 		trans.autoDecaySeconds = -6; // default -0.5
+
+		
 
 		for (trans in TransitionImporter.transitionImporter.transitions) {
 			/*if(trans.tool){
@@ -1809,16 +1816,16 @@ class ServerSettings {
 		trans.autoDecaySeconds = -2;
 
 		var trans = TransitionImporter.GetTransition(-1, 866); // TIME + Rag Loincloth
-		trans.autoDecaySeconds = -24;
+		trans.autoDecaySeconds = -2; // -0.5
 
 		var trans = TransitionImporter.GetTransition(-1, 865); // TIME + Rag Shirt
-		trans.autoDecaySeconds = -24;
+		trans.autoDecaySeconds = -2; // -0.5
 
 		var trans = TransitionImporter.GetTransition(-1, 869); // TIME + Rag Shoe
-		trans.autoDecaySeconds = -24;
+		trans.autoDecaySeconds = -24; // -0.5
 
 		var trans = TransitionImporter.GetTransition(-1, 864); // TIME + Rag Hat
-		trans.autoDecaySeconds = -24;
+		trans.autoDecaySeconds = -24; // -0.5
 
 		var trans = new TransitionData(462, 846, 462, 67); // Steel Adze + Broken Hand Cart ==> Steel Adze + Long Straight Shaft
 		transtions.addTransition("PatchTransitions: ", trans);
