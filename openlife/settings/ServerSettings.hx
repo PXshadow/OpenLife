@@ -583,6 +583,19 @@ class ServerSettings {
 			// if(obj.containable) trace('${obj.description} ${obj.containSize}');
 		}
 
+		// set decay for ancient
+		ObjectData.getObjectData(898).decayFactor = 0.01; // Ancient Stone Floor
+		ObjectData.getObjectData(898).decaysToObj = 1853; // Ancient Stone Floor ==> Cut Stones
+
+		ObjectData.getObjectData(895).decayFactor = 0.01; // Ancient Stone Wall (corner)
+		ObjectData.getObjectData(895).decaysToObj = 1853; // Ancient Stone Wall ==> Cut Stones
+
+		ObjectData.getObjectData(896).decayFactor = 0.01; // Ancient Stone Wall (horizontal)
+		ObjectData.getObjectData(896).decaysToObj = 1853; // Ancient Stone Wall ==> Cut Stones
+
+		ObjectData.getObjectData(897).decayFactor = 0.01; // Ancient Stone Wall (vertical)
+		ObjectData.getObjectData(897).decaysToObj = 1853; // Ancient Stone FloWallor ==> Cut Stones
+
 		// set custom decay for iron mines
 		ObjectData.getObjectData(3961).decayFactor = -1; // Iron Vein
 
