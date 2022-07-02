@@ -5,113 +5,73 @@ import openlife.auto.Pathfinder.Coordinate;
 import openlife.data.map.MapData.MapCollision;
 
 class PathfinderNew {
+    public static var timePath = 0.1;
+    public static var timePathNew = 0.1;
+    public static var timePathFound = 0.1;
+    public static var timePathFoundNew = 0.1;
+    public static var timePathNotFound = 0.1;
+    public static var timePathNotFoundNew = 0.1;
 
-    public static function TryDifferentPaths(){
-        /*
+    public static function TryDifferentPaths(start:Coordinate, end:Coordinate, map:MapCollision){
+        
         var startTime = Sys.time();
-        paths = path.createPath(start, end, MANHATTAN, true);
+        var pathfinder = new Pathfinder(cast map);
+        var paths = pathfinder.createPath(start, end, MANHATTAN, true);
 
         var spentTimeOld = Math.round((Sys.time() - startTime) * 1000); 
+
+        if(spentTimeOld > 10){            
+            var startTime = Sys.time();
+            paths = pathfinder.createPath(start, end, MANHATTAN, true);
+            var spentTimeOld2 = Math.round((Sys.time() - startTime) * 1000); 
+            trace('oldVsNew: spentTimeOld: $spentTimeOld --> $spentTimeOld2');
+            if(spentTimeOld > spentTimeOld2) spentTimeOld = spentTimeOld2; 
+        } 
                     
         var startTime = Sys.time();
-        //var newPaths = PathfinderNew.CreatePath(start, end, map);
+        var newPaths = PathfinderNew.CreatePath(start, end, map);
 
         var spentTimeNew = Math.round((Sys.time() - startTime) * 1000); 
-        var pathZero = paths != null ? '${paths[0]}' : 'NULL';
-        //var display = (paths != null && newPaths == null) || (paths == null && newPaths != null);
-        //if (spentTimeOld + spentTimeNew > 20 || display) trace('Pathing: OLD: $end ${paths} t: $spentTimeOld');
-        //if (spentTimeOld + spentTimeNew > 20 || display) trace('Pathing: NEW: $end ${newPaths} t: $spentTimeNew');
-        */
+
+        if(spentTimeNew > 10){
+            var startTime = Sys.time();
+            newPaths = PathfinderNew.CreatePath(start, end, map);
+            
+            var spentTimeNew2 = Math.round((Sys.time() - startTime) * 1000); 
+            trace('oldVsNew: spentTimeNew: $spentTimeNew --> $spentTimeNew2');
+            if(spentTimeNew > spentTimeNew2) spentTimeNew = spentTimeNew2;
+        } 
+
+        //var pathZero = paths != null ? '${paths[0]}' : 'NULL';
+        var display = (paths != null && newPaths == null) || (paths == null && newPaths != null);
+        if (spentTimeOld + spentTimeNew > 20 || display) trace('Pathing: OLD: $end ${paths} t: $spentTimeOld');
+        if (spentTimeOld + spentTimeNew > 20 || display) trace('Pathing: NEW: $end ${newPaths} t: $spentTimeNew');
+
+        timePath += spentTimeOld;
+        timePathNew += spentTimeNew;
+        timePathFound += paths == null ? 0 : spentTimeOld;
+        timePathFoundNew += newPaths == null ? 0 : spentTimeNew;
+        timePathNotFound += paths != null ? 0 : spentTimeOld;
+        timePathNotFoundNew += newPaths != null ? 0 : spentTimeNew;
+
+        if(spentTimeOld + spentTimeNew > 0){
+            var oldVsNew = Math.round((timePath / timePathNew) * 100);
+            var oldVsNewFound = Math.round((timePathFound / timePathFoundNew) * 100);
+            var oldVsNewNotFound = Math.round((timePathNotFound / timePathNotFoundNew) * 100);
+
+            trace('oldVsNew: $oldVsNew oldVsNewFound: $oldVsNewFound oldVsNewNotFound: $oldVsNewNotFound');
+            trace('oldVsNew: $spentTimeOld vs $spentTimeNew ${paths != null} vs ${newPaths != null}');
+        }
     }
     
 	public static function CreatePath(start:Coordinate, dest:Coordinate, map:MapCollision) : Array<Coordinate>{
 		var radius = 16;
 		var width = radius * 2;
 		var currentMap = new Vector<Float>(width * width);
-		var currentX = start.x;
-		var currentY = start.y;
-		var length = 1.0;
 		
 		//trace('NewCreatePath: ${start.x},${start.y} --> ${dest.x},${dest.y}');
-
-		currentMap[start.x + start.y * width] = 1;
-
-		// direct path
-		for(i in 0...radius) {
-			length = currentMap[Index(currentX,currentY)];
-			//var x = currentX + 1;
-			//var y = currentY + 1;
-			var px = currentX < dest.x ? 1 : -1; 
-			var py = currentY < dest.y ? 1 : -1; 
-
-			if(currentX == dest.x && currentY == dest.y) break;
-			if(currentX < 1) break;
-			if(currentY < 1) break;
-			if(currentX >= width - 1) break;
-			if(currentY >= width - 1) break;
-
-			trace('NewCreatePath: ${currentX},${currentY} --> ${dest.x},${dest.y} $length');
-
-			if(currentX == dest.x && map.isWalkable(currentX, currentY + py)){
-				currentY += py;
-				length += 1;
-				currentMap[Index(currentX,currentY)] = length;
-				continue;
-			}
-			if(currentY == dest.y && map.isWalkable(currentX + px, currentY)){
-				currentX += px;
-				length += 1;
-				currentMap[Index(currentX,currentY)] = length;
-				continue;
-			}
-			if(map.isWalkable(currentX + px, currentY + py)){
-				currentX += px;
-				currentY += py;
-				length += 1.4;
-				currentMap[Index(currentX,currentY)] = length;
-				continue;
-			}
-			
-			if(currentX == dest.x) {
-				if(map.isWalkable(currentX - px, currentY + py)){
-					currentX -= px;
-					currentY += py;
-					length += 1.4;
-					currentMap[Index(currentX,currentY)] = length;
-					continue;
-				}
-				break;
-			}
-			
-			if(currentY == dest.y) {
-				if(map.isWalkable(currentX + px, currentY - py)){
-					currentX += px;
-					currentY -= py;
-					length += 1.4;
-					currentMap[Index(currentX,currentY)] = length;
-					continue;
-				}
-				break;
-			}
-			
-			if(map.isWalkable(currentX, currentY + py)){
-				currentY += py;
-				length += 1;
-				currentMap[Index(currentX,currentY)] = length;
-				continue;
-			}
-			if(map.isWalkable(currentX + px, currentY)){
-				currentX += px;
-				length += 1;
-				currentMap[Index(currentX,currentY)] = length;
-				continue;
-			}
-
-			break;
-		}
-
-		var done = (currentX == dest.x && currentY == dest.y);
-		trace('NewCreatePath: done: $done ${currentX},${currentY} --> ${dest.x},${dest.y} $length');
+        var done = CreateDirectPath(start, dest, map, currentMap);
+		
 		if(done) return CreatePathFromMap(start, dest, currentMap);
 
 		if(done) return null;
@@ -119,6 +79,12 @@ class PathfinderNew {
 		var change = false;
 		var done = false;
 		var ii = 0;
+
+        // to speed brute force up, calculate some more paths without expecting to find goal
+        CreateDirectPath(start, new Coordinate(1,1), map, currentMap);
+        CreateDirectPath(start, new Coordinate(1,width - 2), map, currentMap);
+        CreateDirectPath(start, new Coordinate(width - 2,1), map, currentMap);
+        CreateDirectPath(start, new Coordinate(width - 2, width - 2), map, currentMap);
 
 		var startTime = Sys.time();
 
@@ -173,6 +139,95 @@ class PathfinderNew {
 		return x + y * 32;
 	}
 
+    public static function CreateDirectPath(start:Coordinate, dest:Coordinate, map:MapCollision, currentMap:Vector<Float>) : Bool {
+        var currentX = start.x;
+        var currentY = start.y;
+        var length = 1.0;
+        var radius = 16;
+        var width = 32;
+
+        currentMap[Index(currentX,currentY)] = 1;
+                
+        // direct path
+        for(i in 0...radius) {
+            length = currentMap[Index(currentX,currentY)];
+            //var x = currentX + 1;
+            //var y = currentY + 1;
+            var px = currentX < dest.x ? 1 : -1; 
+            var py = currentY < dest.y ? 1 : -1; 
+
+            if(currentX == dest.x && currentY == dest.y) break;
+            if(currentX < 1) break;
+            if(currentY < 1) break;
+            if(currentX >= width - 1) break;
+            if(currentY >= width - 1) break;
+
+            //trace('NewCreatePath: ${currentX},${currentY} --> ${dest.x},${dest.y} $length');
+
+            if(currentX == dest.x && map.isWalkable(currentX, currentY + py)){
+                currentY += py;
+                length += 1;
+                currentMap[Index(currentX,currentY)] = length;
+                continue;
+            }
+            if(currentY == dest.y && map.isWalkable(currentX + px, currentY)){
+                currentX += px;
+                length += 1;
+                currentMap[Index(currentX,currentY)] = length;
+                continue;
+            }
+            if(map.isWalkable(currentX + px, currentY + py)){
+                currentX += px;
+                currentY += py;
+                length += 1.4;
+                currentMap[Index(currentX,currentY)] = length;
+                continue;
+            }
+            
+            if(currentX == dest.x) {
+                if(map.isWalkable(currentX - px, currentY + py)){
+                    currentX -= px;
+                    currentY += py;
+                    length += 1.4;
+                    currentMap[Index(currentX,currentY)] = length;
+                    continue;
+                }
+                break;
+            }
+            
+            if(currentY == dest.y) {
+                if(map.isWalkable(currentX + px, currentY - py)){
+                    currentX += px;
+                    currentY -= py;
+                    length += 1.4;
+                    currentMap[Index(currentX,currentY)] = length;
+                    continue;
+                }
+                break;
+            }
+            
+            if(map.isWalkable(currentX, currentY + py)){
+                currentY += py;
+                length += 1;
+                currentMap[Index(currentX,currentY)] = length;
+                continue;
+            }
+            if(map.isWalkable(currentX + px, currentY)){
+                currentX += px;
+                length += 1;
+                currentMap[Index(currentX,currentY)] = length;
+                continue;
+            }
+
+            break;
+        }
+
+        var done = (currentX == dest.x && currentY == dest.y);
+        //trace('NewCreatePath: done: $done ${currentX},${currentY} --> ${dest.x},${dest.y} $length');
+
+        return done;    
+    }
+
 	private static function BruteForce() {
 		
 	}
@@ -192,7 +247,7 @@ class PathfinderNew {
 
 			reversePath.push(new Coordinate(currentX - dest.x, currentY - dest.y));
 
-			trace('CreateReversePath: $currentX,$currentY l: $length');
+			//trace('CreateReversePath: $currentX,$currentY l: $length');
 
 			if(length == 1) break;
 

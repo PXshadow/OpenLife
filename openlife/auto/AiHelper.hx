@@ -667,6 +667,7 @@ class AiHelper {
 			// trace('goto: end $end');
 
 			paths = path.createPath(start, end, MANHATTAN, true);
+			//PathfinderNew.TryDifferentPaths(start, end, map);
 			if (paths != null) break;
 		}
 
