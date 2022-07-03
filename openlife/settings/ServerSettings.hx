@@ -683,13 +683,14 @@ class ServerSettings {
 		ObjectData.getObjectData(2757).decaysToObj = 876; // Springy Wooden Door ==> Wooden Door
 		ObjectData.getObjectData(2757).blocksAnimal = true; // Springy Wooden Door
 
-		// set wall decay
-		ObjectData.getObjectData(885).decayFactor = 0.1; //  Stone Wall+cornerStone
+		// set wall decay	
+		ObjectData.getObjectData(885).decayFactor = 0.2; //  Stone Wall+cornerStone
 		ObjectData.getObjectData(885).decaysToObj = 1853; //  Stone Wall+cornerStone ==> Cut Stones
-		ObjectData.getObjectData(886).decayFactor = 0.1; //  Stone Wall+verticalStone
+		ObjectData.getObjectData(886).decayFactor = 0.2; //  Stone Wall+verticalStone
 		ObjectData.getObjectData(886).decaysToObj = 1853; //  Stone Wall+verticalStone  ==> Cut Stones
-		ObjectData.getObjectData(887).decayFactor = 0.1; //  Stone Wall+horizontalStone
+		ObjectData.getObjectData(887).decayFactor = 0.2; //  Stone Wall+horizontalStone
 		ObjectData.getObjectData(887).decaysToObj = 1853; //  Stone Wall+horizontalStone  ==> Cut Stones
+		//trace('isPermanent ${ObjectData.getObjectData(155).isPermanent()}');
 		
 		// Adobe Wall
 		ObjectData.getObjectData(154).decaysToObj = 889; //  Adobe Wall+corner  ==> Cracking Adobe Wall corner
