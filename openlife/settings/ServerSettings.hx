@@ -853,6 +853,7 @@ class ServerSettings {
 
 		// less iron in iron mine
 		ObjectData.getObjectData(944).useChance = 0.5; // 0.20 Iron Mine
+		ObjectData.getObjectData(3957).useChance = 1; // 0.5 Shallow Iron Pit
 
 		ObjectData.getObjectData(2135).mapChance /= 4; // Rubber Tree
 		ObjectData.getObjectData(530).mapChance /= 2; // Bald Cypress Tree
