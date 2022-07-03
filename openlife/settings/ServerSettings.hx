@@ -1634,6 +1634,10 @@ class ServerSettings {
 		trans = new TransitionData(869, 82, 0, 83); // Rag Shoe + Fire --> 0 + Large Fast Fire
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		trans = new TransitionData(34, 32, 33, 32); // Sharp Stone + Big Hard Rock --> Stone + Big Hard Rock
+		trans.hungryWorkCost = 1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		//  Wild Gooseberry Bush
 		trans = new TransitionData(253, 30, 253, 30); // Bowl of Gooseberries + Wild Gooseberry Bush --> Bowl of Gooseberries(+1) + Wild Gooseberry Bush
 		trans.reverseUseActor = true;
