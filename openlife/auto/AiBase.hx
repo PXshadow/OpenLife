@@ -725,7 +725,7 @@ abstract class AiBase
 			return useHeldObjOnTarget(closeBush);
 		}
 
-		// do nothing if there is a Bowl of Gooseberries
+		// do nothing if there is a full Bowl of Gooseberries
 		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
 		if(closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses) return false;
 		if(closeBerryBowl != null){

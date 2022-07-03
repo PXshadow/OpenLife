@@ -680,6 +680,24 @@ class ServerSettings {
 
 		ObjectData.getObjectData(3290).decayFactor = 2; // 3290 Pine Floor
 
+		// set
+		ObjectData.getObjectData(115).decayFactor = 2; // Pine Door
+		ObjectData.getObjectData(115).decaysToObj = 96; // Pine Door ==> 96 Pine Needles
+
+		ObjectData.getObjectData(111).decayFactor = 2; // Pine Wall corner
+		ObjectData.getObjectData(111).decaysToObj = 96; //Pine Wall ==> 96 Pine Needles
+		ObjectData.getObjectData(113).decayFactor = 2; // Pine Wall verticalPine
+		ObjectData.getObjectData(113).decaysToObj = 96; // Pine Wall ==> 96 Pine Needles
+		ObjectData.getObjectData(112).decayFactor = 2; // Pine Wall horizontalPine
+		ObjectData.getObjectData(112).decaysToObj = 96; // Pine Wall ==> 96 Pine Needles
+
+		ObjectData.getObjectData(3308).decayFactor = 2; // Marked Pine Wall corner
+		ObjectData.getObjectData(3308).decaysToObj = 96; // Marked Pine Wall ==> 96 Pine Needles
+		ObjectData.getObjectData(3309).decayFactor = 2; // Marked Pine Wall verticalPine
+		ObjectData.getObjectData(3309).decaysToObj = 96; // Marked Pine Wall ==> 96 Pine Needles
+		ObjectData.getObjectData(3310).decayFactor = 2; // Marked Pine Wall horizontalPine
+		ObjectData.getObjectData(3310).decaysToObj = 96; // Marked Pine Wall ==> 96 Pine Needles
+
 		// set doors
 		//ObjectData.getObjectData(876).rValue = 0.9; // 75% // Wooden Door 
 		ObjectData.getObjectData(876).decaysToObj = 470; // Wooden Door ==> Boards
@@ -687,7 +705,7 @@ class ServerSettings {
 		ObjectData.getObjectData(2757).decaysToObj = 876; // Springy Wooden Door ==> Wooden Door
 		ObjectData.getObjectData(2757).blocksAnimal = true; // Springy Wooden Door
 
-		// set wall decay	
+		// set stone wall decay	
 		ObjectData.getObjectData(885).decayFactor = 0.2; //  Stone Wall+cornerStone
 		ObjectData.getObjectData(885).decaysToObj = 1853; //  Stone Wall+cornerStone ==> Cut Stones
 		ObjectData.getObjectData(886).decayFactor = 0.2; //  Stone Wall+verticalStone
