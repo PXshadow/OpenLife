@@ -569,6 +569,7 @@ class ServerSettings {
 				|| obj.description.indexOf("Iron Pit") != -1
 				|| obj.description.indexOf("Drilling") != -1
 				|| obj.description.indexOf("Rig") != -1
+				|| obj.description.indexOf("Cave") != -1
 				|| obj.description.indexOf("Ancient") != -1) {
 				obj.decayFactor = -1;
 
@@ -583,6 +584,9 @@ class ServerSettings {
 
 			// if(obj.containable) trace('${obj.description} ${obj.containSize}');
 		}
+
+		ObjectData.getObjectData(650).countsOrGrowsAs = 630; // Bear Cave empty --> Bear Cave
+		ObjectData.getObjectData(647).countsOrGrowsAs = 630; // Bear Cave waking --> Bear Cave
 
 		// set decay for ancient
 		ObjectData.getObjectData(898).decayFactor = 0.01; // Ancient Stone Floor
@@ -1579,6 +1583,11 @@ class ServerSettings {
 		// transtions.addTransition("PatchTransitions: ", trans);
 		// trans.traceTransition("PatchTransitions: ");
 
+		// new bears needs the world
+		trans = new TransitionData(-1, 650, 0, 630); //Bear Cave Empty --> Bear Cave
+		trans.autoDecaySeconds = -48;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// let get berrys back!
 		trans = new TransitionData(-1, 30, 0, 30); // Wild Gooseberry Bush
 		trans.reverseUseTarget = true;
@@ -1764,7 +1773,7 @@ class ServerSettings {
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(0); // Mine with Ore --> 0
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(33); // Mine with Ore --> Stone
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(33); // Mine with Ore --> Stone
-		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(291); // Mine with Ore --> Flat Rock
+		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(33); // Mine with Ore --> Flat Rock
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(291); // Mine with Ore --> Flat Rock
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(503); // Mine with Ore --> Dug Big Rock
 
