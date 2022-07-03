@@ -2746,9 +2746,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (objClothingSlot > -1 && clothingSlot != 2 && clothingSlot != 3) clothingSlot = objClothingSlot;
 		}
 
-		if (ServerSettings.DebugPlayer) trace('self: ${playerFrom.o_id[0]} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
+		if (ServerSettings.DebugPlayer) 
+			trace('self: ${playerFrom.heldObject.name} clothingSlot: $clothingSlot objClothingSlot: $objClothingSlot');
+		
+		var tmpClothingSlot = clothingSlot == 3 ? 2 : clothingSlot; // consider shoes have also 3 as slot
 
 		if (clothingSlot < 0) return false;
+		if (playerFrom.heldObject.parentId != 0 && tmpClothingSlot != objClothingSlot) return false; // dont allow switch backpack with shoe
 
 		var tmpObj = playerTo.clothingObjects[clothingSlot];
 		playerTo.clothingObjects[clothingSlot] = playerFrom.heldObject;
