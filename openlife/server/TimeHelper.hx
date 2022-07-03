@@ -1615,7 +1615,7 @@ class TimeHelper {
 		var containsSomething = objectHelper != null && objectHelper.containedObjects.length > 0;
 
 		//if (containsSomething && (floorId > 0 || objId != 292)) return; // TODO 292 Basket ==> Allow all containers
-		if (floorId > 0 && (objData.isWall() == false || containsSomething)) return; // TODO Decay Allow containers in walls
+		if (floorId > 0 && (objData.isWall() == false || (containsSomething && objData.decaysToObj < 1))) return; // TODO Decay Allow containers in colored walls
 		if (objData.isWall()) decayChance *= ServerSettings.ObjDecayFactorForWalls;
 
 		// only allow object with time transition to decay if there is no custom decay set // 161 Rabbit to unstuck them from the corner
