@@ -2034,6 +2034,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(857, 1101); // Steel Hoe + Fertile Soil Pile
 		trans.aiShouldIgnore = true;
 
+		var trans = transtions.getTransition(0, 253); // 0 + Bowl of Gooseberries
+		trans.aiShouldIgnore = true;
+
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');
 
