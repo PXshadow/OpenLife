@@ -1596,6 +1596,18 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		trans = new TransitionData(866, 82, 0, 83); // Rag Loincloth + Fire --> 0 + Large Fast Fire
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(865, 82, 0, 83); // Rag Shirt + Fire --> 0 + Large Fast Fire
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(864, 82, 0, 83); // Rag Hat + Fire --> 0 + Large Fast Fire
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(869, 82, 0, 83); // Rag Shoe + Fire --> 0 + Large Fast Fire
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		//  Wild Gooseberry Bush
 		trans = new TransitionData(253, 30, 253, 30); // Bowl of Gooseberries + Wild Gooseberry Bush --> Bowl of Gooseberries(+1) + Wild Gooseberry Bush
 		trans.reverseUseActor = true;
