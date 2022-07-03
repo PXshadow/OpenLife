@@ -1220,8 +1220,8 @@ private function craftLowPriorityClothing() : Bool {
 			var quiver = myPlayer.getClothingById(3948);
 			if(quiver != null){
 				myPlayer.self(0,0,5);
-				//if(ServerSettings.DebugAi) 
-				trace('AAI: ${myPlayer.name + myPlayer.id} get Arrow from Quiver!');
+				if(ServerSettings.DebugAi) 
+					trace('AAI: ${myPlayer.name + myPlayer.id} get Arrow from Quiver!');
 				return true;
 			} 
 		}
@@ -1232,8 +1232,8 @@ private function craftLowPriorityClothing() : Bool {
 
 			if(quiver != null){
 				myPlayer.self(0,0,5);
-				//if(ServerSettings.DebugAi) 
-				trace('AAI: ${myPlayer.name + myPlayer.id} get Bow from Quiver!');
+				if(ServerSettings.DebugAi) 
+					trace('AAI: ${myPlayer.name + myPlayer.id} get Bow from Quiver!');
 				return true;
 			} 
 		}
@@ -1247,8 +1247,8 @@ private function craftLowPriorityClothing() : Bool {
 
 			if(quiver != null && quiver.canAddToQuiver()){
 				myPlayer.self(0,0,5);
-				//if(ServerSettings.DebugAi) 
-				trace('AAI: ${myPlayer.name + myPlayer.id} KillAnimal: put Arrow in Quiver!');
+				if(ServerSettings.DebugAi) 
+					trace('AAI: ${myPlayer.name + myPlayer.id} KillAnimal: put Arrow in Quiver!');
 				return true;
 			} 
 		}
