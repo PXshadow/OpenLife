@@ -251,9 +251,9 @@ class ServerSettings {
 	public static var ObjRespawnChance:Float = 0.00006; // 0.002; 17 hours // In each 20sec (WorldTimeParts/20 * 10) there is a X chance to generate a new object if number is less then original objects
 	public static var ObjDecayChance:Float = 0.00005; // 0.00005;
 	public static var FloorDecayChance:Float = 0.00001; // 0.00001
-	public static var ObjDecayFactorOnFloor:Float = 0.1; // only used for fences
+	public static var ObjDecayFactorOnFloor:Float = 0.2; // 0.1 // only used for fences
 	public static var ObjDecayFactorForWalls:Float = 0.2;
-	public static var ObjDecayFactorForPermanentObjs:Float = 0.1; // 0.05;
+	public static var ObjDecayFactorForPermanentObjs:Float = 0.2; // 0.1 // 0.05;
 	public static var ObjDecayFactorForFood:Float = 2;
 	public static var ObjDecayFactorForClothing:Float = 2;
 
