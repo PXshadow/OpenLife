@@ -15,6 +15,7 @@ class PathfinderNew {
     var map:MapCollision;
     var width:Int;
     var radius:Int;
+    var timeOut:Float = 100; // timeout in ms
 
     public function new(newMap:MapCollision){
         this.map = newMap;
@@ -30,7 +31,7 @@ class PathfinderNew {
 
         var spentTimeOld = Math.round((Sys.time() - startTime) * 1000); 
 
-        if(spentTimeOld > 10){            
+        if(spentTimeOld > 100){            
             var startTime = Sys.time();
             paths = pathfinder.createPath(start, end, MANHATTAN, true);
             var spentTimeOld2 = Math.round((Sys.time() - startTime) * 1000); 
@@ -44,7 +45,7 @@ class PathfinderNew {
 
         var spentTimeNew = Math.round((Sys.time() - startTime) * 1000); 
 
-        if(spentTimeNew > 10){
+        if(spentTimeNew > 100){
             var startTime = Sys.time();
             newPaths = newPathfinder.CreatePath(start, end);
             
@@ -65,7 +66,7 @@ class PathfinderNew {
         timePathNotFound += paths != null ? 0 : spentTimeOld;
         timePathNotFoundNew += newPaths != null ? 0 : spentTimeNew;
 
-        if(spentTimeOld + spentTimeNew > 0){
+        if(spentTimeOld + spentTimeNew > 10){
             var oldVsNew = Math.round((timePath / timePathNew) * 100);
             var oldVsNewFound = Math.round((timePathFound / timePathFoundNew) * 100);
             var oldVsNewNotFound = Math.round((timePathNotFound / timePathNotFoundNew) * 100);
@@ -85,7 +86,7 @@ class PathfinderNew {
 
 		if(done) return null;
 
-		var change = false;
+		var change = true;
 		var done = false;
 		var ii = 0;
 
@@ -100,6 +101,12 @@ class PathfinderNew {
 		// brute force
 		for(i in 0...width){
 			if(done) break;
+            if(change == false) break;
+            change = false;
+
+            var time = (Sys.time() - startTime) * 1000;
+            if(time > timeOut) break;
+
 			ii = i;
 			for(y in 0...width){
 				for(x in 0...width){
@@ -148,12 +155,12 @@ class PathfinderNew {
 		return x + y * width;
 	}
 
-    public function CreateDirectPath(start:Coordinate, dest:Coordinate, currentMap:Vector<Float>) : Bool {
+    public function CreateDirectPath(start:Coordinate, dest:Coordinate, currentMap:Vector<Float>, factor:Float = 1 ) : Bool {
         var currentX = start.x;
         var currentY = start.y;
-        var length = 1.0;
+        var length = factor;
 
-        currentMap[Index(currentX,currentY)] = 1;
+        currentMap[Index(currentX,currentY)] = length;
                 
         // direct path
         for(i in 0...radius) {
@@ -173,20 +180,20 @@ class PathfinderNew {
 
             if(currentX == dest.x && map.isWalkable(currentX, currentY + py)){
                 currentY += py;
-                length += 1;
+                length += factor;
                 currentMap[Index(currentX,currentY)] = length;
                 continue;
             }
             if(currentY == dest.y && map.isWalkable(currentX + px, currentY)){
                 currentX += px;
-                length += 1;
+                length += factor;
                 currentMap[Index(currentX,currentY)] = length;
                 continue;
             }
             if(map.isWalkable(currentX + px, currentY + py)){
                 currentX += px;
                 currentY += py;
-                length += 1.4;
+                length += 1.4 * factor;
                 currentMap[Index(currentX,currentY)] = length;
                 continue;
             }
@@ -195,7 +202,7 @@ class PathfinderNew {
                 if(map.isWalkable(currentX - px, currentY + py)){
                     currentX -= px;
                     currentY += py;
-                    length += 1.4;
+                    length += 1.4 * factor;
                     currentMap[Index(currentX,currentY)] = length;
                     continue;
                 }
@@ -206,7 +213,7 @@ class PathfinderNew {
                 if(map.isWalkable(currentX + px, currentY - py)){
                     currentX += px;
                     currentY -= py;
-                    length += 1.4;
+                    length += 1.4 * factor;
                     currentMap[Index(currentX,currentY)] = length;
                     continue;
                 }
@@ -215,13 +222,13 @@ class PathfinderNew {
             
             if(map.isWalkable(currentX, currentY + py)){
                 currentY += py;
-                length += 1;
+                length += factor;
                 currentMap[Index(currentX,currentY)] = length;
                 continue;
             }
             if(map.isWalkable(currentX + px, currentY)){
                 currentX += px;
-                length += 1;
+                length += factor;
                 currentMap[Index(currentX,currentY)] = length;
                 continue;
             }
