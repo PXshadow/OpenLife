@@ -1585,11 +1585,14 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// get some ropes back	
-		trans = new TransitionData(135, 850, 59, 67); // Flint Chip + Stone Hoe --> Rope + Long Straight Shaft
+		trans = new TransitionData(135, 850, 135, 92); // Flint Chip + Stone Hoe --> Flint Chip + Tied Long Shaft
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		trans = new TransitionData(135, 71, 59, 69); // Flint Chip + Stone Hatchet --> Rope + Short Shaft
+		trans = new TransitionData(0, 92, 59, 67); // 0 + Tied Long Shaft --> Rope + Long Straight Shaft
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(135, 71, 135, 70); // Flint Chip + Stone Hatchet --> Flint Chip + Tied Short Shaft
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
