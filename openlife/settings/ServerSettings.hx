@@ -1416,9 +1416,10 @@ class ServerSettings {
 		trans.autoDecaySeconds = -4; // default -2
 
 		trans = transtions.getTransition(-1, 891); // 891 Cracking Adobe Wall
-		trans.autoDecaySeconds = -6; // default -0.5
+		trans.autoDecaySeconds = -24; // default -0.5
 
-		
+		trans = transtions.getTransition(-1, 155); // Adobe Wall
+		trans.autoDecaySeconds = -24; // default -10
 
 		for (trans in TransitionImporter.transitionImporter.transitions) {
 			/*if(trans.tool){
