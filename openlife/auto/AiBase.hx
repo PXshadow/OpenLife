@@ -285,7 +285,7 @@ abstract class AiBase
 			if (isMovingToPlayer(4)) return;
 			Macro.exception(if (handleTemperature()) return);
 		});
-		Macro.exception(if (myPlayer.isWounded()) {
+		Macro.exception(if (myPlayer.isWounded() || myPlayer.hasYellowFever()) {
 			isMovingToPlayer(2);
 			return;
 		}); // do nothing then looking for player
@@ -311,7 +311,7 @@ abstract class AiBase
 		Macro.exception(if (isUsingItem()) return);
 		Macro.exception(if (isRemovingFromContainer()) return);		
 		Macro.exception(if (killAnimal(animal)) return);
-		Macro.exception(if (isMovingToPlayer(5)) return); // before 10 tiles
+		Macro.exception(if (isMovingToPlayer(autoStopFollow ? 10 : 5)) return); // if ordered to follow stay closer otherwise give some space to work
 
 		if (myPlayer.isMoving()) return;
 		Macro.exception(if (searchNewHomeIfNeeded()) return);
@@ -2241,8 +2241,9 @@ private function craftLowPriorityClothing() : Bool {
 		if (quadDistance < maxDistance) return false;
 
 		if(myPlayer.isMoving()){
-			myPlayer.forceStopOnNextTile = true;
-			return true;
+			//myPlayer.forceStopOnNextTile = true; // does not look nice, since its stops then continues again and again
+			//return true;
+			time += 1; // TODO can make the player look jumping, so give some extra time???
 		}
 
 		var dist = maxDistance >= 9 ? 2 : 1;
