@@ -656,7 +656,7 @@ class WorldMap {
 
 		saveDataNumber++;
 
-		var time = Math.round((Sys.time() - time) * 100) / 100;
+		var time = Math.round((Sys.time() - time) * 1000);
 
 		if (ServerSettings.DebugWrite)
 			trace('Write to disk: saveDataNumber: $tmpDataNumber Time: $time backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');
@@ -1230,6 +1230,7 @@ class WorldMap {
 	}
 
 	public static function PlaceObjectById(tx:Int, ty:Int, objId:Int):Bool {
+		if(objId == 0) return true;
 		var obj = new ObjectHelper(null, objId);
 		return PlaceObject(tx, ty, obj);
 	}

@@ -805,11 +805,12 @@ class TransitionHelper {
 			if (rand < 1) {
 				target.hits += 1;
 				//rand += target.hits / 20;
-				player.say('Try again! Hits ${Math.round(target.hits)}', true);
+				player.say('Try again! Hits ${Math.round(target.hits)} Uses: ${Math.round(target.numberOfUses)}', true);
 				var rand = WorldMap.calculateRandomInt(alternativeTransitionOutcome.length - 1);
 				
 				// TODO use piles
-				WorldMap.PlaceObjectById(tx, ty, alternativeTransitionOutcome[rand]);
+				var outcomeId = alternativeTransitionOutcome[rand];
+				WorldMap.PlaceObjectById(tx, ty, outcomeId);
 
 				this.doTransition = true;
 				this.doAction = true;
