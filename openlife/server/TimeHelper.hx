@@ -1603,6 +1603,10 @@ class TimeHelper {
 
 		if (ServerSettings.CanObjectRespawn(objId) == false) return;
 		var objData = world.getObjectDataAtPosition(x,y);
+
+		if (objData.decayFactor <= 0) return;
+		
+		var decayChance = ServerSettings.ObjDecayChance * objData.decayFactor;
 		var countAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objData.parentId;
 
 		if (world.currentObjectsCount[countAs] < world.originalObjectsCount[countAs] * 0.8) return; // dont decay natural stuff if there are too few
@@ -1612,16 +1616,14 @@ class TimeHelper {
 
 		//if (containsSomething && (floorId > 0 || objId != 292)) return; // TODO 292 Basket ==> Allow all containers
 		if (floorId > 0 && (objData.isWall() == false || containsSomething)) return; // TODO Decay Allow containers in walls
+		if (objData.isWall()) decayChance *= ServerSettings.ObjDecayFactorForWalls;
 
 		// only allow object with time transition to decay if there is no custom decay set // 161 Rabbit to unstuck them from the corner
 		//if (objectHelper != null && objectHelper.timeToChange > 0 && objectHelper.timeToChange < 3600 && countAs != 161) return;
 		if (objectHelper != null && objectHelper.timeToChange > 0 && objData.decaysToObj < 1 && countAs != 161) return;
 
-		var objData = ObjectData.getObjectData(objId);
+		//var objData = ObjectData.getObjectData(objId);
 
-		if (objData.decayFactor <= 0) return;
-
-		var decayChance = ServerSettings.ObjDecayChance * objData.decayFactor;
 		decayChance *= biomeDecayFactor;
 		//if(containsSomething) decayChance *= 10000;
 		
@@ -1629,7 +1631,7 @@ class TimeHelper {
 
 		if (objData.isClothing()) decayChance *= ServerSettings.ObjDecayFactorForClothing;
 
-		if (floorId != 0) decayChance *= ServerSettings.ObjDecayFactorOnFloor;
+		//if (floorId != 0) decayChance *= ServerSettings.ObjDecayFactorOnFloor;
 
 		if (objData.isPermanent()) decayChance *= ServerSettings.ObjDecayFactorForPermanentObjs;
 		//if (objData.permanent <= 0) trace('decay not permanent: ${objData.description}');
