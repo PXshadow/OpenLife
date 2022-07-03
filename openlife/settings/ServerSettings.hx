@@ -691,7 +691,19 @@ class ServerSettings {
 		ObjectData.getObjectData(887).decayFactor = 0.2; //  Stone Wall+horizontalStone
 		ObjectData.getObjectData(887).decaysToObj = 1853; //  Stone Wall+horizontalStone  ==> Cut Stones
 		//trace('isPermanent ${ObjectData.getObjectData(155).isPermanent()}');
+
+		// TODO split up decay of walled containers in box and wall
+		ObjectData.getObjectData(3240).decayFactor = 0.5; // Wall Shelf
+		ObjectData.getObjectData(3240).decaysToObj = 434; // Wall Shelf ==> Wooden Box 
+
+		ObjectData.getObjectData(3241).decayFactor = 0.5; // Wall Shelf with Slot Notches
+		ObjectData.getObjectData(3241).decaysToObj = 1885; // Wall Shelf with Slot Notches ==> Plaster Wall
+
+		ObjectData.getObjectData(3242).decayFactor = 0.5; // Wall Slot Shelf
+		ObjectData.getObjectData(3242).decaysToObj = 3065; // Wall Slot Shelf ==> Wooden Slot Box
 		
+		// TODO colored wall containers
+
 		// Adobe Wall
 		ObjectData.getObjectData(154).decaysToObj = 889; //  Adobe Wall+corner  ==> Cracking Adobe Wall corner
 		ObjectData.getObjectData(155).decaysToObj = 891; //  Adobe Wall+horizontalAdobe  ==> Cracking Adobe Wall
@@ -701,7 +713,8 @@ class ServerSettings {
 		ObjectData.getObjectData(1883).decaysToObj = 154; // Plaster Wall (corner) ==> 155 Adobe Wall (Vorner)
 		ObjectData.getObjectData(1884).decaysToObj = 156; // Plaster Wall (auto vertical) ==> 156 Adobe Wall ( vertical)		
 		ObjectData.getObjectData(1885).decaysToObj = 155; // Plaster Wall (auto horizontal) ==> 155 Adobe Wall (horizontal))
-		// TODO other walls
+		
+		// TODO colored walls
 
 		// set object decay
 		ObjectData.getObjectData(1598).decayFactor = -1; // 1598 Iron Ore Pile
