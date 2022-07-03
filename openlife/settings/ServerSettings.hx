@@ -1739,16 +1739,29 @@ class ServerSettings {
 
 		
 		//ObjectData.getObjectData(3944).alternativeTransitionOutcome.push(33); // Stripped Iron Vein --> Stone
-		ObjectData.getObjectData(3961).alternativeTransitionOutcome.push(33); // Iron Vein
+		ObjectData.getObjectData(3961).alternativeTransitionOutcome.push(33); // Iron Vein --> Stone
+		ObjectData.getObjectData(3961).alternativeTransitionOutcome.push(0); // Iron Vein --> 0
+		ObjectData.getObjectData(3961).alternativeTransitionOutcome.push(0); // Iron Vein --> 0
 
+		ObjectData.getObjectData(3956).alternativeTransitionOutcome.push(0); // Shallow Pit with Ore --> 0
+		ObjectData.getObjectData(3956).alternativeTransitionOutcome.push(0); // Shallow Pit with Ore --> 0
+		ObjectData.getObjectData(3956).alternativeTransitionOutcome.push(0); // Shallow Pit with Ore --> 0
 		ObjectData.getObjectData(3956).alternativeTransitionOutcome.push(33); // Shallow Pit with Ore --> Stone
 		ObjectData.getObjectData(3956).alternativeTransitionOutcome.push(33); // Shallow Pit with Ore --> Stone
 		ObjectData.getObjectData(3956).alternativeTransitionOutcome.push(291); // Shallow Pit with Ore --> Flat Rock
 
+		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(0); // Deep Pit with Ore --> 0
+		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(0); // Deep Pit with Ore --> 0
+		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(0); // Deep Pit with Ore --> 0
 		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(33); // Deep Pit with Ore --> Stone
 		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(33); // Deep Pit with Ore --> Stone
 		ObjectData.getObjectData(3958).alternativeTransitionOutcome.push(291); // Deep Pit with Ore --> Flat Rock
 
+		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(0); // Mine with Ore --> 0
+		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(0); // Mine with Ore --> 0
+		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(0); // Mine with Ore --> 0
+		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(0); // Mine with Ore --> 0
+		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(0); // Mine with Ore --> 0
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(33); // Mine with Ore --> Stone
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(33); // Mine with Ore --> Stone
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(291); // Mine with Ore --> Flat Rock
