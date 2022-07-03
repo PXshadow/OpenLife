@@ -144,7 +144,7 @@ class PathfinderNew {
 		var length = currentMap[Index(dest.x,dest.y)];
 		var time = Math.round((Sys.time() - startTime) * 1000);
 
-		trace('NewCreatePath: force: done: $done i: $ii ${dest.x},${dest.y} l: $length t: ${time}');
+		//trace('NewCreatePath: force: done: $done i: $ii ${dest.x},${dest.y} l: $length t: ${time}');
 
 		if(done) return CreatePathFromMap(start, dest, currentMap);
 
