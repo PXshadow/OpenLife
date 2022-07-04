@@ -2069,6 +2069,13 @@ class ServerSettings {
 		var trans = transtions.getTransition(0, 253); // 0 + Bowl of Gooseberries
 		trans.aiShouldIgnore = true;
 
+		// let the kindling in the oven
+		var trans = transtions.getTransition(0, 247); // 0 + Wood-filled Adobe Oven
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(0, 281); // 0 + Wood-filled Adobe Kiln
+		trans.aiShouldIgnore = true;
+
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');
 
