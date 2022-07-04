@@ -77,6 +77,8 @@ abstract class AiBase
 	public var isHandlingTemperature = false;
 	public var justArrived = false;
 
+	public var isCaringForFire = false;
+
 	public static function StartAiThread() {
 		Thread.create(RunAi);
 	}
@@ -163,6 +165,7 @@ abstract class AiBase
 		autoStopFollow = true;
 		children = new Array<PlayerInterface>();
 		failedCraftings = new Map<Int,Float>();
+		isCaringForFire = false;
 		//addTask(837); //Psilocybe Mushroom
         //addTask(134); //Flint Arrowhead
         //addTask(82); // Fire
@@ -375,8 +378,17 @@ abstract class AiBase
 		if(firePlace == null){
 			firePlace = AiHelper.GetCloseFire(myPlayer);
 
-			if(firePlace == null) return craftItem(82); // Fire
-			else myPlayer.firePlace = firePlace;
+			if(firePlace == null){
+				var bestAiForFire = getBestAiForFire(myPlayer.home);
+				if(bestAiForFire != null && bestAiForFire.myPlayer.id == myPlayer.id){
+					//if (ServerSettings.DebugAi)
+					trace('AAI: ${myPlayer.name + myPlayer.id} Make new Fire: ${myPlayer.home.tx},${myPlayer.home.ty}');
+					return craftItem(82); // Fire
+				}
+				return false;
+			}
+			
+			myPlayer.firePlace = firePlace;
 		}
 
 		if (this.isObjectNotReachable(firePlace.tx, firePlace.ty)) return false;
@@ -389,6 +401,13 @@ abstract class AiBase
 
 		// 83 Large Fast Fire // 346 Large Slow Fire
 		if(objId == 83 || objId == 346) return false;
+
+		var bestAiForFire = getBestAiForFire(myPlayer.firePlace);
+
+		if(bestAiForFire == null || bestAiForFire.myPlayer.id != myPlayer.id) return false;
+
+		//if (ServerSettings.DebugAi) 
+			trace('AAI: ${myPlayer.name + myPlayer.id} Checking Fire: ${firePlace.name} objAtPlace: ${objAtPlace.name} ${myPlayer.firePlace.tx},${myPlayer.firePlace.ty}');
 
 		// 85 Hot Coals // 72 Kindling
 		if(objId == 85){			
@@ -433,6 +452,44 @@ abstract class AiBase
 
 		return false;
 	}
+
+	private function getBestAiForFire(fire:ObjectHelper) : AiBase{
+		var ais = Connection.getAis();
+		var bestAi = null;
+		var bestQuadDist:Float = -1;
+
+		for(serverAi in ais){
+			var ai = serverAi.ai;
+			var p = serverAi.player;
+
+			if(p.age < ServerSettings.MinAgeToEat) continue;
+			if(p.age > 58) continue;
+			if(p.isWounded()) continue;
+			if(p.food_store < 2) continue;
+			if(p.home != myPlayer.home) continue;
+
+			if(ai.isCaringForFire == false && p.id != myPlayer.id) continue;
+
+			var quadDist = p.CalculateQuadDistanceToObject(fire);
+
+			// avoid that ai changes if looking for wood or making fire
+			if(ai.isCaringForFire == false) quadDist += 1600;
+
+			if(bestAi != null && quadDist >= bestQuadDist) continue;
+
+			bestQuadDist = quadDist;
+			bestAi = ai;
+		}
+
+		if(bestAi != null){
+			this.isCaringForFire = false;
+			bestAi.isCaringForFire = true;
+		}
+
+		return bestAi;
+	}
+
+	//isCaringForFire
 
 	private function useHeldObjOnTarget(target:ObjectHelper) : Bool{
 		if (this.isObjectNotReachable(target.tx, target.ty)) return false;
@@ -2455,7 +2512,7 @@ private function craftLowPriorityClothing() : Bool {
 		var player = myPlayer.getPlayerInstance();
 
 		if (isHungry) {
-			isHungry = player.food_store < player.food_store_max * 0.85;
+			isHungry = player.food_store < player.food_store_max * 0.8;
 		} else {
 			isHungry = player.food_store < Math.max(3, player.food_store_max * 0.3);
 		}
@@ -2467,6 +2524,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');
 
+		this.isCaringForFire = false; // food has priority
 		return isHungry;
 	}
 
