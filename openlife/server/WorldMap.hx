@@ -623,6 +623,7 @@ class WorldMap {
 
 	public function writeToDiskHelper(saveOriginals:Bool = true, dir:String = null) {
 		var time = Sys.time();
+		var sleepTime = 0.1;
 
 		fixObjectIds('writing');
 
@@ -638,15 +639,31 @@ class WorldMap {
 
 		writeMapBiomes(dir + ServerSettings.CurrentBiomesFileName + tmpDataNumber + ".bin", biomes);
 
+		this.mutex.release();
+		Sys.sleep(sleepTime);
+		this.mutex.acquire();
+
 		writeMapFloors(dir + ServerSettings.CurrentFloorsFileName + tmpDataNumber + ".bin", floors);
 
+		this.mutex.release();
+		Sys.sleep(sleepTime);
+		this.mutex.acquire();
+
 		writeMapObjects(dir + ServerSettings.CurrentObjectsFileName + "Hidden" + tmpDataNumber + ".bin", hiddenObjects);
+
+		this.mutex.release();
+		Sys.sleep(sleepTime);
+		this.mutex.acquire();
 
 		writeMapObjects(dir + ServerSettings.CurrentObjectsFileName + tmpDataNumber + ".bin", objects);
 
 		ObjectHelper.WriteMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + tmpDataNumber + ".bin", objectHelpers);
 
 		PlayerAccount.WritePlayerAccounts(dir + "PlayerAccounts" + tmpDataNumber + ".bin");
+
+		this.mutex.release();
+		Sys.sleep(sleepTime);
+		this.mutex.acquire();
 
 		Lineage.WriteAllLineages(dir + "Lineages" + tmpDataNumber + ".bin");
 		if (ServerSettings.SavePlayers) GlobalPlayerInstance.WriteAllPlayers(dir + "Players" + tmpDataNumber + ".bin");

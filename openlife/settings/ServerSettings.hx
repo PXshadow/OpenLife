@@ -121,7 +121,7 @@ class ServerSettings {
 	public static var MaxSayLength = 80;
 
 	// save to disk
-	public static var TicksBetweenSaving = 600; // 200// in ticks 200 = 10 sec
+	public static var TicksBetweenSaving = 600; // 600 // 200// in ticks 200 = 10 sec
 	public static var TicksBetweenBackups = 20 * 60 * 60 * 8; // 20 * 60 * 60 * 8 = every 8 hours
 	public static var MaxNumberOfBackups = 10;
 
