@@ -477,7 +477,11 @@ abstract class AiBase
 			return false; 
 		}
 		if(grave.containedObjects.length > 0){
-			if(dropHeldObject(0)) return true;
+			if(dropHeldObject(0)){
+				myPlayer.say('drop for remove from grave');
+				return true;
+			}
+			myPlayer.say('remove from grave');
 			return removeItemFromContainer(grave);
 		}
 
@@ -1797,13 +1801,11 @@ private function craftLowPriorityClothing() : Bool {
 		var objToCraftId = itemToCraft.itemToCraft.parentId;
 		var transitionsByObjectId = itemToCraft.transitionsByObjectId;
 
-		var world = myPlayer.getWorld();
+		
 		var player = myPlayer.getPlayerInstance();
 		var baseX = player.tx;
 		var baseY = player.ty;
 		var radius = 0;
-
-		// TODO dont cut down tables <3371> if not needed
 
 		while (radius < ServerSettings.AiMaxSearchRadius) {
 			radius += ServerSettings.AiMaxSearchIncrement;
@@ -1823,56 +1825,7 @@ private function craftLowPriorityClothing() : Bool {
 				trans.closestObjectPlayerIndex = 0; // held in hand
 			}
 
-			// go through all close by objects and map them to the best transition
-			for (ty in baseY - radius...baseY + radius) {
-				for (tx in baseX - radius...baseX + radius) {
-					if (this.isObjectNotReachable(tx, ty)) continue;
-
-					var objData = world.getObjectDataAtPosition(tx, ty);
-
-					if (objData.id == 0) continue;
-					if (objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
-
-					// Ignore container with stuff inside
-					// TODO consider contained objects
-					if (objData.numSlots > 0) {
-						var container = world.getObjectHelper(tx, ty);
-						if (container.containedObjects.length > 0) {
-							// if(ServerSettings.DebugAi) trace('AI: search IGNORE container: ${objData.description}');
-							continue;
-						}
-					}
-
-					// check if object can be used to craft item
-					var trans = transitionsByObjectId[objData.id];
-					if (trans == null) continue; // object is not useful for crafting wanted object
-
-					var steps = trans.steps;
-					var obj = world.getObjectHelper(tx, ty);
-					var objQuadDistance = myPlayer.CalculateQuadDistanceToObject(obj);
-
-					if (trans.closestObject == null || trans.closestObjectDistance > objQuadDistance) {
-						if (objQuadDistance > 4 && AiHelper.IsDangerous(myPlayer, obj)) continue;
-
-						trans.secondObject = trans.closestObject;
-						trans.secondObjectDistance = trans.closestObjectDistance;
-
-						trans.closestObject = obj;
-						trans.closestObjectDistance = objQuadDistance;
-
-						continue;
-					}
-
-					if (trans.secondObject == null || trans.secondObjectDistance > objQuadDistance) {
-						if (objQuadDistance > 4 && AiHelper.IsDangerous(myPlayer, obj)) continue;
-
-						trans.secondObject = obj;
-						trans.secondObjectDistance = objQuadDistance;
-
-						continue;
-					}
-				}
-			}
+			addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId);
 
 			// if(ServerSettings.DebugAi) trace('AI: craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
 
@@ -1884,6 +1837,61 @@ private function craftLowPriorityClothing() : Bool {
 		}
 
 		return itemToCraft;
+	}
+
+	private function addObjectsForCrafting(baseX:Int, baseY:Int, radius:Int, transitionsByObjectId:Map<Int, TransitionForObject>) {
+		var world = myPlayer.getWorld();
+
+		// go through all close by objects and map them to the best transition
+		for (ty in baseY - radius...baseY + radius) {
+			for (tx in baseX - radius...baseX + radius) {
+				if (this.isObjectNotReachable(tx, ty)) continue;
+
+				var objData = world.getObjectDataAtPosition(tx, ty);
+
+				if (objData.id == 0) continue;
+				if (objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
+
+				// Ignore container with stuff inside
+				// TODO consider contained objects
+				if (objData.numSlots > 0) {
+					var container = world.getObjectHelper(tx, ty);
+					if (container.containedObjects.length > 0) {
+						// if(ServerSettings.DebugAi) trace('AI: search IGNORE container: ${objData.description}');
+						continue;
+					}
+				}
+
+				// check if object can be used to craft item
+				var trans = transitionsByObjectId[objData.id];
+				if (trans == null) continue; // object is not useful for crafting wanted object
+
+				var steps = trans.steps;
+				var obj = world.getObjectHelper(tx, ty);
+				var objQuadDistance = myPlayer.CalculateQuadDistanceToObject(obj);
+
+				if (trans.closestObject == null || trans.closestObjectDistance > objQuadDistance) {
+					if (objQuadDistance > 4 && AiHelper.IsDangerous(myPlayer, obj)) continue;
+
+					trans.secondObject = trans.closestObject;
+					trans.secondObjectDistance = trans.closestObjectDistance;
+
+					trans.closestObject = obj;
+					trans.closestObjectDistance = objQuadDistance;
+
+					continue;
+				}
+
+				if (trans.secondObject == null || trans.secondObjectDistance > objQuadDistance) {
+					if (objQuadDistance > 4 && AiHelper.IsDangerous(myPlayer, obj)) continue;
+
+					trans.secondObject = obj;
+					trans.secondObjectDistance = objQuadDistance;
+
+					continue;
+				}
+			}
+		}
 	}
 
 	private function searchBestTransitionTopDown(itemToCraft:IntemToCraft) {
