@@ -1921,6 +1921,11 @@ class ServerSettings {
 
 
 		// new smithing transitions
+		var trans = new TransitionData(1603, 235, 1603, 0); // Stack of Clay Bowls + Clay Bowl --> Stack of Clay Bowls +  0
+		trans.reverseUseActor = true;
+		trans.tool = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		var trans = new TransitionData(1602, 316, 1602, 319); // Stack of Clay Plates + Crucible with Iron and Charcoal --> Stack of Clay Plates +  Unforged Sealed Steel Crucible
 		trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
