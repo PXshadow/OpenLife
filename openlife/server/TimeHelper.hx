@@ -2132,6 +2132,9 @@ class TimeHelper {
 
 			animal.id = timeAlternaiveTransition != null ? timeAlternaiveTransition.newTargetID : timeTransition.newTargetID;
 
+			// 3568 Fleeing Rabbit dest# groundOnly // 3566 Fleeing Rabbit
+			if(animal.id == 3568 && targetBiome != YELLOW && targetBiome != GREEN) animal.id = 3566; // dont go in the ground
+
 			TransitionHelper.DoChangeNumberOfUsesOnTarget(animal, timeTransition, false);
 
 			// save what was on the ground, so that we can move on this tile and later restore it
