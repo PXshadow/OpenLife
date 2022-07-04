@@ -857,6 +857,7 @@ class ServerSettings {
 		ObjectData.getObjectData(164).countsOrGrowsAs = 161; // Rabbit Hole out,single couts as Rabbit Hole
 		ObjectData.getObjectData(173).countsOrGrowsAs = 161; // Rabbit Family Hole couts as Rabbit Hole
 
+		ObjectData.getObjectData(3566).countsOrGrowsAs = 161; // Fleeing Rabbit
 		// dont block walking TODO needs client change
 		//ObjectData.getObjectData(231).blocksWalking = false; // Adobe Oven Base
 		//ObjectData.getObjectData(237).blocksWalking = false; // Adobe Oven

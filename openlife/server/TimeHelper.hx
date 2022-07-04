@@ -2132,8 +2132,12 @@ class TimeHelper {
 
 			animal.id = timeAlternaiveTransition != null ? timeAlternaiveTransition.newTargetID : timeTransition.newTargetID;
 
+			var rabbitInWrongPlace = false; 
 			// 3568 Fleeing Rabbit dest# groundOnly // 3566 Fleeing Rabbit
-			if(animal.id == 3568 && targetBiome != YELLOW && targetBiome != GREEN) animal.id = 3566; // dont go in the ground
+			if(animal.id == 3568 && targetBiome != YELLOW && targetBiome != GREEN){
+				 animal.id = 3566; // dont go in the ground
+				 rabbitInWrongPlace = true;
+			}
 
 			TransitionHelper.DoChangeNumberOfUsesOnTarget(animal, timeTransition, false);
 
@@ -2185,6 +2189,9 @@ class TimeHelper {
 			// TODO let domestic animals eat up green biome
 			// TODO dont consider lovesCurrentOriginalBiome once domestic animals muliply
 			if(animal.isDomesticAnimal() && (lovesCurrentBiome || lovesCurrentOriginalBiome)) chanceForAnimalDying /= 1000;
+			if(rabbitInWrongPlace) chanceForAnimalDying *= 10;
+
+			var canDieIfPopulationIsAbove = rabbitInWrongPlace ? 0.2 : 0.8;
 
 			//var currentPop = worldmap.currentObjectsCount[newTileObject[0]];
 			//var originalPop = worldmap.originalObjectsCount[newTileObject[0]];
@@ -2195,6 +2202,8 @@ class TimeHelper {
 			// give extra birth chance bonus if population is very low			
 			if (currentPop < originalPop * ServerSettings.OffspringFactorLowAnimalPopulationBelow) chanceForOffspring *= ServerSettings.OffspringFactorIfAnimalPopIsLow;
 			chanceForAnimalDying *= currentPop > originalPop ? 100 : 1;
+
+			//if(rabbitInWrongPlace) trace('Animal DEAD? RABBIT: ${animal.name} $newTileObject Count: ${currentPop} Original Count: ${originalPop} chance: $chanceForAnimalDying biome: $targetBiome');
 
 			if (currentPop < originalPop * ServerSettings.MaxOffspringFactor
 				&& worldmap.randomFloat() < chanceForOffspring) {
@@ -2220,7 +2229,7 @@ class TimeHelper {
 					newAnimal.groundObject = tmpGroundObject;
 					worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
 				}
-			} else if (currentPop > originalPop * ServerSettings.MaxOffspringFactor * 0.8
+			} else if (currentPop > originalPop * ServerSettings.MaxOffspringFactor * canDieIfPopulationIsAbove
 				&& originalPop > 0 && worldmap.randomFloat() < chanceForAnimalDying) {
 				
 				// decay animal only if it is a original one
