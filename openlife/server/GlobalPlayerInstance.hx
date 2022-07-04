@@ -4270,7 +4270,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				player.say('CREATEALL IS DEACTIVATED', true);
 				return true;
 			}
-		} else if (text.indexOf('!CREATE') != -1) { // "create xxx" with xxx = id
+		} else if (text.indexOf('!CREATE') != -1 || text.startsWith('!C')) { // "create xxx" with xxx = id
 			if(canUseServerCommands == false){
 				player.say('not allowed!', true);
 				return true;
