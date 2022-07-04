@@ -724,13 +724,13 @@ class TransitionHelper {
 		var numberContainedObj = this.target.containedObjects.length;
 
 		if( numberContainedObj > newNumSlots){
-			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} new target : ${numberContainedObj}  numUses < numberOfUses: ${newNumSlots} TRUE isPickup? ${transition.isPickupOrDrop}');
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} new target : containedObj ${numberContainedObj} < Slots: ${newNumSlots} TRUE isPickup? ${transition.isPickupOrDrop}');
 			player.say('empty first', true);
 			player.doEmote(Emote.sad);
 			return false;
 		}
 
-		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} new target : ${numberContainedObj}  numUses < numberOfUses: ${newNumSlots} FALSE isPickup? ${transition.isPickupOrDrop}');
+		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} new target : containedObj: ${numberContainedObj} < Slots: ${newNumSlots} FALSE isPickup? ${transition.isPickupOrDrop}');
 
 		// check if it is hungry work like cutting down a tree, using a tool or mining
 		var biome = WorldMap.worldGetBiomeId(tx, ty);
@@ -1096,6 +1096,13 @@ class TransitionHelper {
 		}
 
 		if (objectData.numUses < 2) return;
+
+		//if(transition.targetRemains) resetNumberOfUses = false;
+		var oldObjData = ObjectData.getObjectData(transition.targetID);
+		if(oldObjData.numUses == objectData.numUses)  resetNumberOfUses = false; // mining shallow mining pit
+
+		//if(player != null) trace('TRANS: BEFORE ${player.name + player.id} ${objectData.name} targetRemains: ${transition.targetRemains} numberOfUses: ' + obj.numberOfUses);
+		
 		if (idHasChanged && resetNumberOfUses && objectData.numUses > 1) {
 			// a Pile starts with 1 uses not with the full numberOfUses
 			// if the ObjectHelper is created through a reverse use, it must be a pile or a bucket... hopefully...
@@ -1107,7 +1114,7 @@ class TransitionHelper {
 				obj.numberOfUses = objectData.numUses;
 			}
 
-			//if(player != null) player.say('C ${obj.numberOfUses} from ${objectData.numUses} ru: $reverseUse');
+			//if(player != null) player.say('CID ${obj.numberOfUses} from ${objectData.numUses} ru: $reverseUse');
 
 			if (doTrace) trace('TRANS: ${player.name + player.id} Changed Object Type: ${objectData.description} numberOfUses: ' + obj.numberOfUses);
 			return;
