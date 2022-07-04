@@ -1891,6 +1891,10 @@ class ServerSettings {
 		//trans.autoDecaySeconds = 60  * 10;
 		var trans = TransitionImporter.GetTransition(-1, 389); // TIME + Dying Gooseberry Bush
 		trans.autoDecaySeconds = -2;
+		
+		var trans = new TransitionData(-1, 1284, 0, 291); // TIME + Cool Flat Rock --> 0 + Flat Rock
+		trans.autoDecaySeconds = -2;
+		transtions.addTransition("PatchTransitions: ", trans);
 
 		var trans = TransitionImporter.GetTransition(-1, 866); // TIME + Rag Loincloth
 		trans.autoDecaySeconds = -2; // -0.5
