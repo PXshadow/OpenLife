@@ -1828,6 +1828,8 @@ private function craftLowPriorityClothing() : Bool {
 			// add objects add home
 			addObjectsForCrafting(myPlayer.home.tx, myPlayer.home.ty, radius, transitionsByObjectId);
 
+			if(myPlayer.firePlace != null) addObjectsForCrafting(myPlayer.firePlace.tx, myPlayer.firePlace.ty, radius, transitionsByObjectId);
+
 			addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId);
 
 			// if(ServerSettings.DebugAi) trace('AI: craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
