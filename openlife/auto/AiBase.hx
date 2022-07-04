@@ -1825,6 +1825,9 @@ private function craftLowPriorityClothing() : Bool {
 				trans.closestObjectPlayerIndex = 0; // held in hand
 			}
 
+			// add objects add home
+			addObjectsForCrafting(myPlayer.home.tx, myPlayer.home.ty, radius, transitionsByObjectId);
+
 			addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId);
 
 			// if(ServerSettings.DebugAi) trace('AI: craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
@@ -1869,6 +1872,10 @@ private function craftLowPriorityClothing() : Bool {
 				var steps = trans.steps;
 				var obj = world.getObjectHelper(tx, ty);
 				var objQuadDistance = myPlayer.CalculateQuadDistanceToObject(obj);
+
+				// if objects from different positions like home are added, check if obj is allready added
+				if (trans.closestObject != null && obj.tx == trans.closestObject.tx && obj.ty == trans.closestObject.ty) continue;
+				if (trans.secondObject != null && obj.tx == trans.secondObject.tx && obj.ty == trans.secondObject.ty) continue;
 
 				if (trans.closestObject == null || trans.closestObjectDistance > objQuadDistance) {
 					if (objQuadDistance > 4 && AiHelper.IsDangerous(myPlayer, obj)) continue;
