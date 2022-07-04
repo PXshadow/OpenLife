@@ -302,6 +302,8 @@ class MoveHelper {
 
 				if(p.getAi() != null) p.getAi().movedOneTile = true;
 
+				moveHelper.sendChunkIfNeeded();
+				
 				if(p.forceStopOnNextTile){
 					p.forceStopOnNextTile = false;
 					CancleMovement(p);
