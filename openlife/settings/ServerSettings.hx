@@ -516,10 +516,19 @@ class ServerSettings {
 				obj.containable = true;
 				//trace('Crucible: ${obj.name}');
 			}
-
+			
 			ObjectData.getObjectData(0).containSize = 1; // Empty
 			ObjectData.getObjectData(0).containable = true; // Empty
-	
+
+			ObjectData.getObjectData(2188).containSize = 2; // Drum Sticks on Plate
+			ObjectData.getObjectData(2188).containable = true; // Drum Sticks on Plate
+
+			ObjectData.getObjectData(2192).containSize = 1; // Turkey Leg Bone
+			ObjectData.getObjectData(2192).containable = true; // Turkey Leg Bone
+
+			ObjectData.getObjectData(2191).containSize = 1; // Turkey Drumstick
+			ObjectData.getObjectData(2191).containable = true; // Turkey Drumstick
+
 			ObjectData.getObjectData(319).containSize = 2; // Unforged Sealed Steel Crucible
 			ObjectData.getObjectData(319).containable = true; // Unforged Sealed Steel Crucible
 
