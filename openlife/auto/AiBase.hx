@@ -1518,6 +1518,12 @@ private function craftLowPriorityClothing() : Bool {
 			return true;
 		}
 
+		if (targetPlayer.name == ServerSettings.StartingName && targetPlayer.age > 1.5) {
+			var newName = myPlayer.isEveOrAdam() ? NamingHelper.GetRandomName(targetPlayer.isFemale()) : myPlayer.name;
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} newName: $newName');
+			myPlayer.say('You are $newName');
+		}
+
 		var done = myPlayer.doOnOther(targetPlayer.tx - myPlayer.gx, targetPlayer.ty - myPlayer.gx, -1, targetPlayer.id);
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done feed starving ${targetPlayer.name}');
 		time += 2; // wait 2 sec
@@ -1556,7 +1562,7 @@ private function craftLowPriorityClothing() : Bool {
 		//if (foodTarget != null) return false;
 		if (heldPlayer != null) {
 			if (heldPlayer.name == ServerSettings.StartingName && (heldPlayer.mother == myPlayer || heldPlayer.age > 1.5)) {
-				var newName = myPlayer.isEveOrAdam() ? NamingHelper.GetRandomName(myPlayer.isFemale()) : myPlayer.name;
+				var newName = myPlayer.isEveOrAdam() ? NamingHelper.GetRandomName(heldPlayer.isFemale()) : myPlayer.name;
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} child newName: $newName');
 				myPlayer.say('You are $newName');
 			}
