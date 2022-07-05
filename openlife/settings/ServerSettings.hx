@@ -1724,15 +1724,19 @@ class ServerSettings {
 		//trans.hungryWorkCost = 5;
 
 		// most important allow kill moskitos
-		trans = new TransitionData(248, 2156, 0,
-			86); // Firebrand + Mosquito Swarm --> 0 + Ashes
+		// Firebrand + Mosquito Swarm --> 0 + Ashes
+		trans = new TransitionData(248, 2156, 0,86); 
 		trans.hungryWorkCost = 5;
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 	
-		trans = new TransitionData(248, 2157, 0,
-			86); // Firebrand + Mosquito Swarm just bit --> 0 + Ashes
-		trans.hungryWorkCost = 20;
+		// Firebrand + Mosquito Swarm just bit --> 0 + Ashes
+		trans = new TransitionData(248, 2157, 0,86); 
+		trans.hungryWorkCost = 5;
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
+
+		// Mallet + Dug Big Rock with Chisel -- Split Big Rock
+		var trans = transtions.getTransition(467, 508); 
+		trans.hungryWorkCost = 10;
 
 		// give wolfs some meat // TODO change crafting maps
 		var trans = transtions.getTransition(0, 423); // 423 Skinned Wolf
