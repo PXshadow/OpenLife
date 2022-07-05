@@ -1540,7 +1540,78 @@ class TimeHelper {
 				if(floorId != 0) DecayFloor(x, y, timePassedInYears);
 
 				if(objId != 0) DecayObject(x, y, timePassedInYears);
+
+				if(objId != 0) AlignWalls(x, y);
 			}
+		}
+	}
+
+	private static function AlignWalls(tx:Int, ty:Int) {
+		var world = WorldMap.world;
+		var objData = world.getObjectDataAtPosition(tx,ty);
+
+		if(objData.isWall() == false) return;
+
+		// 885 Stone Wall (corner)
+		// 886 Stone Wall (vertical)
+		// 887 Stone Wall (horizontal)
+
+		// 895 Ancient Stone Wall (corner) 
+		// 897 Ancient Stone Wall (vertical) 
+		// 896 Ancient Stone Wall (horizontal) 
+
+		// 154 Adobe Wall (corner)
+		// 156 Adobe Wall (vertical) 
+		// 155 Adobe Wall (horizontal) 
+
+		// 1883 Plaster Wall (corner)
+		// 1884 Plaster Wall (vertical) 
+		// 1885 Plaster Wall (horizontal) 
+
+		// 111 Pine Wall (corner)
+		// 113 Pine Wall (vertical) 
+		// 112 Pine Wall (horizontal) 
+
+		AlignWall(tx,ty, objData, [154,156,155]); // Adobe Wall
+		AlignWall(tx,ty, objData, [1883,1884,1885]); // Plaster Wall
+		AlignWall(tx,ty, objData, [111,113,112]); // Pine Wall
+		AlignWall(tx,ty, objData, [885,886,887]); // Stone Wall
+		AlignWall(tx,ty, objData, [895,897,896]); // Ancient Stone Wall
+
+		// TODO different colors // walls with containers
+	}
+
+	private static function AlignWall(tx:Int, ty:Int, objData:ObjectData, walls:Array<Int>) {
+		if(walls.length < 3) return;
+		
+		if(walls.contains(objData.parentId) == false) return;
+
+		var world = WorldMap.world;
+		var objDataLeft = world.getObjectDataAtPosition(tx-1,ty);
+		var objDataRight = world.getObjectDataAtPosition(tx+1,ty);
+		var objDataNorth = world.getObjectDataAtPosition(tx,ty+1);
+		var objDataSouth = world.getObjectDataAtPosition(tx,ty-1);
+		var isHorizontal = objDataLeft.isWall() && objDataRight.isWall() && objDataNorth.isWall() == false && objDataSouth.isWall() == false;
+		var isVertical = objDataLeft.isWall() == false && objDataRight.isWall() == false && objDataNorth.isWall() && objDataSouth.isWall();
+		var isCorner = isHorizontal == false && isVertical == false;
+
+		if(isCorner && objData.parentId != walls[0]){
+			var obj = world.getObjectHelper(tx,ty);
+			obj.id = walls[0];
+			world.setObjectHelper(tx,ty, obj);
+			trace('WALL: ${objData.description} ${objData.parentId} --> Corner');
+		}
+		else if(isVertical && objData.parentId != walls[1]){
+			var obj = world.getObjectHelper(tx,ty);
+			obj.id = walls[1];
+			world.setObjectHelper(tx,ty, obj);
+			trace('WALL: ${objData.description} ${objData.parentId} --> Vertical');
+		}
+		else if(isHorizontal && objData.parentId != walls[2]){
+			var obj = world.getObjectHelper(tx,ty);
+			obj.id = walls[2];
+			world.setObjectHelper(tx,ty, obj);
+			trace('WALL: ${objData.description} ${objData.parentId} --> Horizontal');
 		}
 	}
 

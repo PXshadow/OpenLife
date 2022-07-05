@@ -1293,7 +1293,8 @@ private function craftLowPriorityClothing() : Bool {
 		}
 
 		if (animalTarget == null && animal != null) {
-			if (animal.isKillableByBow()) this.animalTarget = animal; else if (ServerSettings.DebugAi)
+			if (animal.isKillableByBow()) this.animalTarget = animal;
+			else if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: Not killable with bow: ${animal.description}');
 		}
 
