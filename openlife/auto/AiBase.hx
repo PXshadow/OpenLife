@@ -682,6 +682,7 @@ abstract class AiBase
 		if(myPlayer.age < 20 && makeFireFood()) return true;
 
 		var closePlate = AiHelper.GetClosestObjectById(myPlayer, 236); // Clay Plate
+		if(closePlate == null) closePlate = AiHelper.GetClosestObjectById(myPlayer, 1602); // Stack of Clay Plates
 		var hasClosePlate = closePlate != null;
 
 		if(hasClosePlate){
@@ -735,6 +736,9 @@ abstract class AiBase
 		}
 		else{
 			if(craftItem(236)) return true; // Clay Plate
+			// grow food that dont needs plates for processing
+			if(craftItem(399)) return true; // Wet Planted Carrots
+			if(craftItem(1110)) return true; // Wet Planted Corn Seed
 		}
 	
 		if(makeFireFood()) return true;
