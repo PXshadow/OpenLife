@@ -675,6 +675,9 @@ abstract class AiBase
 
 		if(myPlayer.age < 10 && makeSharpieFood()) return true;
 
+		if(craftItem(1114)) return true; // Shucked Ear of Corn
+		// TODO carrot (would also make wild carrots to carrot with bowl)
+
 		var closeSoil = AiHelper.GetClosestObjectById(myPlayer, 1138); // Fertile Soil
 		if(closeSoil != null) if(craftItem(213)) return true; // Deep Tilled Row
 
