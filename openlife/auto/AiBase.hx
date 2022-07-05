@@ -1956,8 +1956,13 @@ private function craftLowPriorityClothing() : Bool {
 				if (trans == null) continue; // object is not useful for crafting wanted object
 
 				var steps = trans.steps;
-				var obj = world.getObjectHelper(tx, ty);
+				var obj = world.getObjectHelper(tx, ty);				
 				var objQuadDistance = myPlayer.CalculateQuadDistanceToObject(obj);
+
+				// dont use carrots if seed is needed // 400 Carrot Row
+				if (obj.parentId == 400 && obj.numberOfUses < 3) continue;
+				// Dont eat if no corn seeds // 1114 Shucked Ear of Corn
+				//if (obj.parentId == 1114 && this.hasCornSeeds == false) continue;
 
 				// if objects from different positions like home are added, check if obj is allready added
 				if (trans.closestObject != null && obj.tx == trans.closestObject.tx && obj.ty == trans.closestObject.ty) continue;
