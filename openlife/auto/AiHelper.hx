@@ -82,8 +82,9 @@ class AiHelper {
 
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
-				var obj = world.getObjectHelper(tx,ty, true);
-				var parentId = obj == null ? 0 : obj.parentId;
+				var objData = world.getObjectDataAtPosition(tx,ty);
+				
+				var parentId = objData.parentId;
 				
 				if(parentId != objIdToSearch) continue;
 
