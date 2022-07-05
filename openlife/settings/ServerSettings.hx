@@ -805,7 +805,7 @@ class ServerSettings {
 		*/
 		//ObjectData.getObjectData(334).hungryWork = -1; // Steel Axe
 		//ObjectData.getObjectData(502).hungryWork = -1; // Shovel 
-		ObjectData.getObjectData(857).hungryWork = -1.5; // Steel Hoe
+		ObjectData.getObjectData(857).hungryWork = -2; // Steel Hoe
 
 		ObjectData.getObjectData(1849).hungryWork = 10; // Buried Grave with Dug Stone
 
