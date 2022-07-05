@@ -1572,9 +1572,14 @@ class TimeHelper {
 		// 113 Pine Wall (vertical) 
 		// 112 Pine Wall (horizontal) 
 
+		// 3266 Snow Wall (corner)
+		// 3267 Snow Wall (vertical) 
+		// 3268 Snow Wall (horizontal) 
+
 		AlignWall(tx,ty, objData, [154,156,155]); // Adobe Wall
 		AlignWall(tx,ty, objData, [1883,1884,1885]); // Plaster Wall
 		AlignWall(tx,ty, objData, [111,113,112]); // Pine Wall
+		AlignWall(tx,ty, objData, [3266,3267,3268]); // Snow Wall
 		AlignWall(tx,ty, objData, [885,886,887]); // Stone Wall
 		AlignWall(tx,ty, objData, [895,897,896]); // Ancient Stone Wall
 
