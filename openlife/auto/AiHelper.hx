@@ -335,6 +335,9 @@ class AiHelper {
 					
 					if (ai != null) {
 						if (quadDistance > 4 && IsDangerous(player, obj)) continue;
+						// Dont eat if no corn seeds // 1114 Shucked Ear of Corn
+						if (obj.parentId == 1114 && ai.hasCornSeeds == false) continue; 
+
 						// if(tryGotoObj(player, obj) == false) continue;
 					}
 

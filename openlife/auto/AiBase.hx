@@ -324,6 +324,7 @@ abstract class AiBase
 		Macro.exception(if (handleTemperature()) return);
 		Macro.exception(if (makeSharpieFood(5)) return); 
 		Macro.exception(if (isHandlingGraves()) return);
+		Macro.exception(if (isMakingSeeds()) return);
 				
 		// if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
 
@@ -488,6 +489,17 @@ abstract class AiBase
 		}
 
 		return bestAi;
+	}
+
+	public function isMakingSeeds() {
+		// TODO check once every X seconds
+		// TODO check at home too
+		var seeds = AiHelper.GetClosestObjectById(myPlayer, 1115, null, 20);  // Dried Ear of Corn
+		if(seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 1247, null, 20);  // Bowl with Corn Kernels
+		this.hasCornSeeds = seeds != null;
+		
+		// TODO make seeds
+		return false;
 	}
 
 	//isCaringForFire
