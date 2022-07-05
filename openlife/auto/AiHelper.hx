@@ -308,7 +308,7 @@ class AiHelper {
 				if (foodValue <= 0) continue;
 				if(feedOther && player.canFeedToMeObj(objData) == false) continue;
 				if (player.food_store_max - player.food_store < Math.ceil(originalFoodValue / 4)) continue;				
-
+	
 				var countEaten = player.getCountEaten(foodId);
 				var quadDistance = 16 + AiHelper.CalculateDistance(baseX, baseY, tx, ty);
 				if(feedingPlayer != null) quadDistance += 1 + AiHelper.CalculateDistance(feedingPlayer.tx, feedingPlayer.ty, tx, ty);
@@ -329,6 +329,9 @@ class AiHelper {
 
 				if (bestFood == null || foodValue / quadDistance > bestFoodValue / bestDistance) {
 					var obj = world.getObjectHelper(tx, ty);
+
+					// dont eat carrots if seed is needed // 400 Carrot Row
+					if (obj.parentId == 400 && obj.numberOfUses < 3) continue;
 					
 					if (ai != null) {
 						if (quadDistance > 4 && IsDangerous(player, obj)) continue;
