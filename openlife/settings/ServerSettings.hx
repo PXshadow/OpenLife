@@ -598,16 +598,16 @@ class ServerSettings {
 		ObjectData.getObjectData(647).countsOrGrowsAs = 630; // Bear Cave waking --> Bear Cave
 
 		// set decay for ancient
-		ObjectData.getObjectData(898).decayFactor = 0.01; // Ancient Stone Floor
+		ObjectData.getObjectData(898).decayFactor = 0.02; // Ancient Stone Floor
 		ObjectData.getObjectData(898).decaysToObj = 1853; // Ancient Stone Floor ==> Cut Stones
 
-		ObjectData.getObjectData(895).decayFactor = 0.01; // Ancient Stone Wall (corner)
+		ObjectData.getObjectData(895).decayFactor = 0.02; // Ancient Stone Wall (corner)
 		ObjectData.getObjectData(895).decaysToObj = 1853; // Ancient Stone Wall ==> Cut Stones
 
-		ObjectData.getObjectData(896).decayFactor = 0.01; // Ancient Stone Wall (horizontal)
+		ObjectData.getObjectData(896).decayFactor = 0.02; // Ancient Stone Wall (horizontal)
 		ObjectData.getObjectData(896).decaysToObj = 1853; // Ancient Stone Wall ==> Cut Stones
 
-		ObjectData.getObjectData(897).decayFactor = 0.01; // Ancient Stone Wall (vertical)
+		ObjectData.getObjectData(897).decayFactor = 0.02; // Ancient Stone Wall (vertical)
 		ObjectData.getObjectData(897).decaysToObj = 1853; // Ancient Stone FloWallor ==> Cut Stones
 
 		// set custom decay for iron mines
@@ -724,13 +724,13 @@ class ServerSettings {
 		//trace('isPermanent ${ObjectData.getObjectData(155).isPermanent()}');
 
 		// TODO split up decay of walled containers in box and wall
-		ObjectData.getObjectData(3240).decayFactor = 0.5; // Wall Shelf
+		ObjectData.getObjectData(3240).decayFactor = 0.2; // Wall Shelf
 		ObjectData.getObjectData(3240).decaysToObj = 434; // Wall Shelf ==> Wooden Box 
 
-		ObjectData.getObjectData(3241).decayFactor = 0.5; // Wall Shelf with Slot Notches
+		ObjectData.getObjectData(3241).decayFactor = 0.2; // Wall Shelf with Slot Notches
 		ObjectData.getObjectData(3241).decaysToObj = 1885; // Wall Shelf with Slot Notches ==> Plaster Wall
 
-		ObjectData.getObjectData(3242).decayFactor = 0.5; // Wall Slot Shelf
+		ObjectData.getObjectData(3242).decayFactor = 0.2; // Wall Slot Shelf
 		ObjectData.getObjectData(3242).decaysToObj = 3065; // Wall Slot Shelf ==> Wooden Slot Box
 		
 		// TODO colored wall containers
@@ -744,6 +744,10 @@ class ServerSettings {
 		ObjectData.getObjectData(1883).decaysToObj = 154; // Plaster Wall (corner) ==> 155 Adobe Wall (Vorner)
 		ObjectData.getObjectData(1884).decaysToObj = 156; // Plaster Wall (auto vertical) ==> 156 Adobe Wall ( vertical)		
 		ObjectData.getObjectData(1885).decaysToObj = 155; // Plaster Wall (auto horizontal) ==> 155 Adobe Wall (horizontal))
+
+		ObjectData.getObjectData(1883).decayFactor = 0.2; 
+		ObjectData.getObjectData(1884).decayFactor = 0.2; 
+		ObjectData.getObjectData(1885).decayFactor = 0.2; 
 		
 		// TODO colored walls
 
