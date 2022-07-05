@@ -78,6 +78,7 @@ abstract class AiBase
 	public var justArrived = false;
 
 	public var isCaringForFire = false;
+	public var hasCornSeeds = false;
 
 	public static function StartAiThread() {
 		Thread.create(RunAi);
@@ -574,6 +575,7 @@ abstract class AiBase
 		if(isMovingToHome(5)) return true;
 
 		time += 2;
+		if(isHandlingGraves()) return true;
 
 		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} good bye!');
