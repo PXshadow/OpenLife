@@ -726,13 +726,15 @@ class ServerSettings {
 		// TODO split up decay of walled containers in box and wall
 		ObjectData.getObjectData(3240).decayFactor = 0.2; // Wall Shelf
 		ObjectData.getObjectData(3240).decaysToObj = 434; // Wall Shelf ==> Wooden Box 
+		ObjectData.getObjectData(3240).rValue = 0.98;
 
 		ObjectData.getObjectData(3241).decayFactor = 0.2; // Wall Shelf with Slot Notches
 		ObjectData.getObjectData(3241).decaysToObj = 1885; // Wall Shelf with Slot Notches ==> Plaster Wall
+		ObjectData.getObjectData(3241).rValue = 0.98;
 
 		ObjectData.getObjectData(3242).decayFactor = 0.2; // Wall Slot Shelf
 		ObjectData.getObjectData(3242).decaysToObj = 3065; // Wall Slot Shelf ==> Wooden Slot Box
-		
+		ObjectData.getObjectData(3242).rValue = 0.98;
 		// TODO colored wall containers
 
 		// Adobe Wall
@@ -748,6 +750,10 @@ class ServerSettings {
 		ObjectData.getObjectData(1883).decayFactor = 0.2; 
 		ObjectData.getObjectData(1884).decayFactor = 0.2; 
 		ObjectData.getObjectData(1885).decayFactor = 0.2; 
+
+		ObjectData.getObjectData(1883).rValue = 0.98; 
+		ObjectData.getObjectData(1884).rValue = 0.98; 
+		ObjectData.getObjectData(1885).rValue = 0.98; 
 		
 		// TODO colored walls
 
