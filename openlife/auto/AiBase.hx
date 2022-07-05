@@ -377,6 +377,11 @@ abstract class AiBase
 		var firePlace = myPlayer.firePlace;
 		var heldId = myPlayer.heldObject.parentId;
 
+		// make shafts and try not to steal them // 67 Long Straight Shaft
+		var shaft = AiHelper.GetClosestObjectToPosition(myPlayer.home.tx, myPlayer.home.ty, 67, 20);
+		if(shaft == null) shaft = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 67, 40);
+		if(shaft == null) if(craftItem(67)) return true;
+
 		if(firePlace == null){
 			firePlace = AiHelper.GetCloseFire(myPlayer);
 
