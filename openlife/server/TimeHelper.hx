@@ -420,16 +420,19 @@ class TimeHelper {
 		// if(obj.timeToChange <= 0) return;
 		// obj.timeToChange -= timePassedInSeconds;
 
+		// 2101 Cast Fishing Pole
+		//if (obj.parentId == 2101) trace('Cast Fishing Pole: timeToChange: ${obj.timeToChange}');
+
 		if (obj.timeToChange > 0 && obj.isTimeToChangeReached()) {
 			var transition = TransitionImporter.GetTransition(-1, obj.parentId, false, false);
 
 			if (transition != null) {
-				// var desc = obj.objectData.description;
+				//var desc = obj.objectData.description;
 				// use alternative outcome for example for wound on player vs on ground
 				var alternativeTimeOutcome = obj.objectData.alternativeTimeOutcome;
-				obj.id = alternativeTimeOutcome >= 0 ? alternativeTimeOutcome : transition.newTargetID;
+				obj.id = alternativeTimeOutcome >= 0 ? alternativeTimeOutcome : TransitionHelper.TransformTarget(transition.newTargetID);
 
-				// trace('TIME: ${desc} --> ${obj.objectData.description} transition: ${transition.newTargetID} alternative: ${obj.objectData.alternativeTimeOutcome} passedTime: $passedTime neededTime: ${timeToChange}');
+				// trace('TIME: ${desc} --> ${obj.objectData.description} transition: ${transition.newTargetID} alternative: ${obj.objectData.alternativeTimeOutcome} neededTime: ${obj.timeToChange}');
 
 				obj.creationTimeInTicks = TimeHelper.tick;
 
@@ -438,6 +441,8 @@ class TimeHelper {
 				player.setHeldObjectOriginNotValid(); // no animation
 
 				TransitionHelper.DoChangeNumberOfUsesOnActor(player, transition);
+
+				Connection.SendUpdateToAllClosePlayers(player, false, true);
 			}
 		}
 
