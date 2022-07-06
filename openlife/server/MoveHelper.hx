@@ -423,12 +423,12 @@ class MoveHelper {
 			var xo = 0;
 			var yo = 0;
 
-			if (rand == 1) xo = 1;
-			if (rand == 2) yo = -1;
-			if (rand == 3) xo = -1;
-			if (rand == 4) yo = 1;
+			if (i == 1) xo = 1;
+			if (i == 2) yo = -1;
+			if (i == 3) xo = -1;
+			if (i == 4) yo = 1;
 
-			rand++;
+			//rand++;
 
 			if (player.isBlocked(tx + xo, ty + yo)) continue;
 

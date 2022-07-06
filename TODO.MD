@@ -71,14 +71,19 @@ New in game Currency:
 --> I give you XXCVIIII ==> gives 129 coins C = 100 / X = 10 / V = 5 / I = 1 (order does not matter)
 
 Quality of Life Changes:
-- quality of Life: You can pick berriers directly with a bowl
+- you can pick berriers directly with a bowl
 - kids can carry one item and pick berries
 - you can do smithing on a table
+- escape time for rubber horse cart 7--> 20 sec / and moves 4 --> 2
+- escape time for horse cart 7--> 15 sec / and moves 4 --> 2
 - you can use a Stone Hoe to dig in bones
+- you can unsharp a sharp stone on Big Hard Rock
+- you can burn rag cloths in fire to make fast fire
+- you can use flint to undo stone hoes and hatches
 - you can eat while on a horse (dont know yet if this is a good idea...)
-- Wearing two shoes give extra speed
-- Wells fill up at least 3 times faster. Better wells always refill faster then primitive wells
-- Better wells cost less hungry work per water gained / using lakes is worst. 
+- wearing two shoes give extra speed
+- wells fill up at least 3 times faster. Better wells always refill faster then primitive wells
+- better wells need less hungry work per water gained / using lakes is worst. 
 
 Not yet implemented:
 - AI combat
