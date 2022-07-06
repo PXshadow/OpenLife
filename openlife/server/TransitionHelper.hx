@@ -934,6 +934,12 @@ class TransitionHelper {
 			if (targetIsFloor) this.newFloorId = 0;
 		}
 
+		// take care of special transition if heldobj is floor like Huge Snowball + Ice Hole
+		if (newActorObjectData.floor) { 
+			this.player.setHeldObject(null);
+			this.newFloorId = transition.newActorID;
+		} 
+
 		// transition source object id (or -1) if held object is result of a transition
 		// if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
 		// this.newTransitionSource = transition.targetID; // TODO ???
