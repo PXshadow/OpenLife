@@ -1576,9 +1576,13 @@ class ServerSettings {
 		trans.newActorID = 3158; // Horse-Drawn Tire Cart
 		trans.traceTransition("PatchTransitions: ");
 
-		trans = transtions.getTransition(-1, 3161);
+		trans = transtions.getTransition(-1, 3161); // Escaped Horse-Drawn Tire Cart just released
 		trans.newTargetID = 3157; // Escaped Horse-Drawn Tire Cart
+		trans.autoDecaySeconds = 20; // default 7
 		trans.traceTransition("PatchTransitions: ");
+
+		trans = transtions.getTransition(-1, 3157); // Escaped Horse-Drawn Tire Cart
+		trans.move = 2; // default 4
 
 		trans = transtions.getTransition(0, 3157);
 		trans.newActorID = 3158; // Horse-Drawn Tire Cart
@@ -1594,9 +1598,13 @@ class ServerSettings {
 		trans = transtions.getTransition(-1, 1422);
 		trans.autoDecaySeconds = 15;  // 7
 
-		// Escaped Horse-Drawn Tire Cart just released
-		trans = transtions.getTransition(-1, 1361);
-		trans.autoDecaySeconds = 30;  // 7
+		// Escaped Horse-Drawn Cart
+		trans = transtions.getTransition(-1, 780);
+		trans.move = 2; // default 4
+
+		// Escaped Horse-Drawn Tire Cart just released??????
+		//trans = transtions.getTransition(-1, 1361);
+		//trans.autoDecaySeconds = 30;  // 7
 
 		trans = transtions.getTransition(3158, 4154); // Horse-Drawn Tire Cart + Hitching Post
 		trans.newTargetID = 3159; // Hitched Horse-Drawn Tire Cart
