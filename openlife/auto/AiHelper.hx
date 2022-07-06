@@ -333,6 +333,8 @@ class AiHelper {
 
 					// dont eat carrots if seed is needed // 400 Carrot Row
 					if (obj.parentId == 400 && obj.numberOfUses < 3) continue;
+					// Ripe Onions
+					if (obj.parentId == 2854 && obj.numberOfUses < 3) continue;
 					
 					if (ai != null) {
 						if (quadDistance > 4 && IsDangerous(player, obj)) continue;
