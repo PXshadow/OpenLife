@@ -1764,6 +1764,7 @@ class ServerSettings {
 		// give wolfs some meat // TODO change crafting maps
 		var trans = transtions.getTransition(0, 423); // 423 Skinned Wolf
 		trans.newTargetID = 565; // 565 Butchered Mouflon
+		trans.targetNumberOfUses = 2; // give only two meat
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		var trans = transtions.getTransition(0, 709); // 709 Skinned Seal with fur

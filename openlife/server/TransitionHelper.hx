@@ -1103,6 +1103,11 @@ class TransitionHelper {
 
 		if (objectData.numUses < 2) return;
 
+		if(transition.targetNumberOfUses >= 0){
+			obj.numberOfUses = Math.round(Math.min(transition.targetNumberOfUses, objectData.numUses));
+			return;
+		} 
+
 		//if(transition.targetRemains) resetNumberOfUses = false;
 		var oldObjData = ObjectData.getObjectData(transition.targetID);
 		if(oldObjData.numUses == objectData.numUses)  resetNumberOfUses = false; // mining shallow mining pit
