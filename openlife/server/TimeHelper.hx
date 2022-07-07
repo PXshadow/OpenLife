@@ -2220,6 +2220,10 @@ class TimeHelper {
 				 rabbitInWrongPlace = true;
 			}
 
+			if(animal.id == 3568 && (currentOriginalbiome == YELLOW || currentOriginalbiome == GREEN)){
+				rabbitInWrongPlace = false;
+			}
+
 			TransitionHelper.DoChangeNumberOfUsesOnTarget(animal, timeTransition, false);
 
 			// save what was on the ground, so that we can move on this tile and later restore it
@@ -2270,9 +2274,9 @@ class TimeHelper {
 			// TODO let domestic animals eat up green biome
 			// TODO dont consider lovesCurrentOriginalBiome once domestic animals muliply
 			if(animal.isDomesticAnimal() && (lovesCurrentBiome || lovesCurrentOriginalBiome)) chanceForAnimalDying /= 1000;
-			if(rabbitInWrongPlace) chanceForAnimalDying *= 10;
+			if(rabbitInWrongPlace) chanceForAnimalDying *= 2; // 10
 
-			var canDieIfPopulationIsAbove = rabbitInWrongPlace ? 0.2 : 0.8;
+			var canDieIfPopulationIsAbove = rabbitInWrongPlace ? 0.4 : 0.8; // 0.2 0.8
 
 			//var currentPop = worldmap.currentObjectsCount[newTileObject[0]];
 			//var originalPop = worldmap.originalObjectsCount[newTileObject[0]];
