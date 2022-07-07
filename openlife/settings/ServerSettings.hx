@@ -1753,6 +1753,10 @@ class ServerSettings {
 		trans.hungryWorkCost = 5;
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 
+		// Bowl of Soil + Hardened Row -- Shallow Tilled Row
+		var trans = transtions.getTransition(1137, 848); 
+		trans.hungryWorkCost = -5; // dont let is cost hungry work
+
 		// Mallet + Dug Big Rock with Chisel -- Split Big Rock
 		var trans = transtions.getTransition(467, 508); 
 		trans.hungryWorkCost = 10;
