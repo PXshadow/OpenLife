@@ -471,25 +471,33 @@ class TransitionImporter {
 			return;
 		}
 
-		var category = actorCategory;
+		//var actorCategoryId = actorCategory == null ? -1 : actorCategory.parentID;
+		//var targetCategoryPattern = targetCategory == null ? 'NULL' : '${targetCategory.pattern}';
+		//if(actorCategory != null && transition.targetID == 1790) trace('actorCategory: ${actorCategoryId} pattern: ${actorCategory.pattern} targetCategpry: ${targetCategoryPattern} ${transition.getDesciption()}');
+		//if(transition.actorID == 394) trace('actorCategory: ${actorCategoryId} ${transition.getDesciption()}');
+
+		// 396 Dry Planted Carrots
+		//if(actorCategory != null && transition.targetID == 396) trace('actorCategory: ${actorCategoryId} pattern: ${actorCategory.pattern} targetCategpry: ${targetCategoryPattern} ${transition.getDesciption()}');
 
 		// 1802 --> 1806 is pattern for trees...
-		// pattern: <394> + <1802> (Pattern) = <394> + <1806> (Pattern) / @ Full Portable Water Source + Dry Maple Sapling -->  @ Full Portable Water Source + Wet Maple Sapling
+		// <394> (Category) + <1790> Dry Maple Sapling Cutting (Pattern) = <394> (Category) + Wet Maple Sapling Cutting (Pattern)
+		// <394> (Category) + <396> Dry Planted Carrots
+		// pattern: <394> (Category) + <1802> (Pattern) = <394> (Category) + <1806> (Pattern) / @ Full Portable Water Source + Dry Maple Sapling -->  @ Full Portable Water Source + Wet Maple Sapling
 		if (actorCategory != null && actorCategory.pattern == false) {
-			var objData = ObjectData.getObjectData(category.parentID);
-			var categoryDesc = objData == null ? '${category.parentID}' : '${category.parentID} ${objData.description}';
+			var objData = ObjectData.getObjectData(actorCategory.parentID);
+			var categoryDesc = objData == null ? '${actorCategory.parentID}' : '${actorCategory.parentID} ${objData.description}';
 
-			for (id in category.ids) {
+			for (id in actorCategory.ids) {
 				if (targetCategory == null || (targetCategory.pattern && newTargetCategory == null)) {
 					// if(category.parentID == 1127) trace ('CATEGORY TRANS: ' + transition.getDesciption());
 
 					var newTransition = transition.clone();
 					newTransition.actorID = id;
-					if (newTransition.newActorID == category.parentID) newTransition.newActorID = id;
+					if (newTransition.newActorID == actorCategory.parentID) newTransition.newActorID = id;
 
 					addTransition('Actor Category: ${categoryDesc} Trans:', newTransition);
 				}
-				// TODO both category may not be needed // TODO target or might be pattern?
+				// TODO both category may not be needed // TODO target might be pattern?
 				else {
 					// Ace of Clubs is pattern but Deck of Cards is not. Why???
 					// <1949> + <1941> (Pattern) = <0> + <1947> // @ Any Card + Ace of Clubs -->  EMPTY + Deck of Cards
@@ -504,10 +512,17 @@ class TransitionImporter {
 							throw new Exception('targetCategory.ids.length != newTargetCategory.ids.length');
 						}
 
+						// <394> (Category) + <1790> Dry Maple Sapling Cutting (Pattern) = <394> (Category) + Wet Maple Sapling Cutting (Pattern)
+						// add also parent target category transition 
+						var newTransition = transition.clone();
+						newTransition.actorID = id;
+						if (newTransition.newActorID == actorCategory.parentID) newTransition.newActorID = id;
+						addTransition('$categoryDesc C+P/', newTransition);
+
 						for (i in 0...targetCategory.ids.length) {
 							var newTransition = transition.clone();
 							newTransition.actorID = id;
-							if (newTransition.newActorID == category.parentID) newTransition.newActorID = id;
+							if (newTransition.newActorID == actorCategory.parentID) newTransition.newActorID = id;
 							newTransition.targetID = targetCategory.ids[i];
 							newTransition.newTargetID = newTargetCategory.ids[i];
 
@@ -522,7 +537,7 @@ class TransitionImporter {
 							newTransition.actorID = id;
 							newTransition.targetID = targetId;
 
-							if (newTransition.newActorID == category.parentID) newTransition.newActorID = id;
+							if (newTransition.newActorID == actorCategory.parentID) newTransition.newActorID = id;
 							if (newTransition.newTargetID == targetCategory.parentID) newTransition.newTargetID = targetId;
 
 							addTransition('Both Category: A: ${actorCategory.parentID} T: ${targetCategory.parentID}', newTransition);
@@ -596,7 +611,7 @@ class TransitionImporter {
 		if (bothActorAndTargetIsCategory) return;
 
 		// for transitions where actor is no category but target is a category
-		category = targetCategory;
+		var category = targetCategory;
 
 		if (category != null) {
 			var objData = ObjectData.getObjectData(category.parentID);

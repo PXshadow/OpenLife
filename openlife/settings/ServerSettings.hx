@@ -2155,6 +2155,12 @@ class ServerSettings {
 
 		//var trans = TransitionImporter.GetTransition(660, 673); // Full Bucket of Water Bow and Arrow + Empty Cistern
 		//trace('DEBUG!!!: ${trans.getDesciption()}');	
+
+		//var trans = TransitionImporter.GetTransition(382, 1790); // Bowl of Water + Dry Maple Sapling Cutting
+		//trace('DEBUG!!!: ${trans.getDesciption()}');	
+
+		//var trans = TransitionImporter.GetTransition(382, 396); // Bowl of Water + Dry Planted Carrots
+		//trace('DEBUG!!!: ${trans.getDesciption()}');	
 	}	
 }
 
