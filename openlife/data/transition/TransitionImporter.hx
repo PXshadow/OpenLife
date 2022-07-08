@@ -550,9 +550,12 @@ class TransitionImporter {
 			return;
 		}
 
+		//if(transition.targetID == 1802) trace('1211DEBUG!!! ${transition.getDesciption()}');
+
+		// <-1> + <1802> (Pattern) = <0> + <1828> (NO CATEGORY!!!) / TIME + Dry Maple Sapling  -->  EMPTY + Dead Sapling  
 		// CONSIDER: <0> + <1422> = <778> + <0> / EMPTY + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + EMPTY
 		// DONE CONSIDER: <-1> + <1806> = <0> + <48> / TIME + Wet Maple Sapling (Pattern)-->  EMPTY + Maple Tree (NO Pattern WHY?????)
-		if ((targetCategory != null && targetCategory.pattern) && (newTargetCategory == null && newActorCategory == null)) return;
+		//TODO NEEDED???? if ((targetCategory != null && targetCategory.pattern) && (newTargetCategory == null && newActorCategory == null)) return;
 
 		// possibilities:
 		// actor is pattern and target is pattern like: <0> + <1422> = <778> + <0> / EMPTY + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + EMPTY
@@ -611,16 +614,15 @@ class TransitionImporter {
 		if (bothActorAndTargetIsCategory) return;
 
 		// for transitions where actor is no category but target is a category
-		var category = targetCategory;
 
-		if (category != null) {
-			var objData = ObjectData.getObjectData(category.parentID);
-			var categoryDesc = objData == null ? '${category.parentID}' : '${category.parentID} ${objData.description}';
+		if (targetCategory != null) {
+			var objData = ObjectData.getObjectData(targetCategory.parentID);
+			var categoryDesc = objData == null ? '${targetCategory.parentID}' : '${targetCategory.parentID} ${objData.description}';
 
-			for (id in category.ids) {
+			for (id in targetCategory.ids) {
 				var newTransition = transition.clone();
 				newTransition.targetID = id;
-				if (newTransition.newTargetID == category.parentID) newTransition.newTargetID = id;
+				if (newTransition.newTargetID == targetCategory.parentID) newTransition.newTargetID = id;
 
 				addTransition('Target Category ${categoryDesc}: ', newTransition);
 			}
