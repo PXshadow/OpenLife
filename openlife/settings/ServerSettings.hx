@@ -2160,7 +2160,13 @@ class ServerSettings {
 		//trace('DEBUG!!!: ${trans.getDesciption()}');	
 
 		//var trans = TransitionImporter.GetTransition(382, 396); // Bowl of Water + Dry Planted Carrots
-		//trace('DEBUG!!!: ${trans.getDesciption()}');	
+		//trace('DEBUG!!!: ${trans.getDesciption()}');
+		
+		//var trans = TransitionImporter.GetTransition(382, 2723); // Bowl of Water + Dry Juniper Sapling
+		//trace('DEBUG!!!: ${trans.getDesciption()}');
+
+		//var trans = TransitionImporter.GetTransition(382, 1042); // Bowl of Water + Dry Planted Rose Seed (RED)
+		//trace('DEBUG!!!: ${trans.getDesciption()}');
 	}	
 }
 
