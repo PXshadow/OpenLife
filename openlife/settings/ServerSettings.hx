@@ -517,54 +517,6 @@ class ServerSettings {
 				//trace('Crucible: ${obj.name}');
 			}
 			
-			ObjectData.getObjectData(0).containSize = 1; // Empty
-			ObjectData.getObjectData(0).containable = true; // Empty
-
-			ObjectData.getObjectData(2188).containSize = 2; // Drum Sticks on Plate
-			ObjectData.getObjectData(2188).containable = true; // Drum Sticks on Plate
-
-			ObjectData.getObjectData(2192).containSize = 1; // Turkey Leg Bone
-			ObjectData.getObjectData(2192).containable = true; // Turkey Leg Bone
-
-			ObjectData.getObjectData(2191).containSize = 1; // Turkey Drumstick
-			ObjectData.getObjectData(2191).containable = true; // Turkey Drumstick
-
-			ObjectData.getObjectData(319).containSize = 2; // Unforged Sealed Steel Crucible
-			ObjectData.getObjectData(319).containable = true; // Unforged Sealed Steel Crucible
-
-			ObjectData.getObjectData(321).containSize = 2; // Hot Forged Steel Crucible
-			ObjectData.getObjectData(321).containable = true; // Hot Forged Steel Crucible
-
-			ObjectData.getObjectData(322).containSize = 2; // Forged Steel Crucible
-			ObjectData.getObjectData(322).containable = true; // Forged Steel Crucible
-
-			ObjectData.getObjectData(325).containSize = 2; // Crucible with Steel
-			ObjectData.getObjectData(325).containable = true; // Crucible with Steel
-
-			ObjectData.getObjectData(322).containSize = 2; // Forged Steel Crucible
-			ObjectData.getObjectData(322).containable = true; // Forged Steel Crucible
-
-			ObjectData.getObjectData(319).containSize = 2; // Quenching Spring Steel
-			ObjectData.getObjectData(319).containable = true; // Quenching Spring Steel
-
-			ObjectData.getObjectData(2574).containSize = 2; // Molten Glass
-			ObjectData.getObjectData(2574).containable = true; // Molten Glass
-
-			ObjectData.getObjectData(2578).containSize = 2; //Cool Glass
-			ObjectData.getObjectData(2578).containable = true; // Cool Glass
-
-			ObjectData.getObjectData(2573).containSize = 2; // Soda Lime Glass Batch
-			ObjectData.getObjectData(2573).containable = true; // Soda Lime Glass Batch
-
-			ObjectData.getObjectData(300).containSize = 2; // Big Charcoal Pile
-			ObjectData.getObjectData(300).containable = true; // Big Charcoal Pile
-
-			ObjectData.getObjectData(301).containSize = 2; // Small Charcoal Pile
-			ObjectData.getObjectData(301).containable = true; // Small Charcoal Pile
-
-			ObjectData.getObjectData(302).containSize = 1; // Charcoal
-			ObjectData.getObjectData(302).containable = true; // Charcoal
-
 			if (obj.description.indexOf("Steel") != -1) {
 				// trace('Decays to: ${obj.name}');
 				obj.decaysToObj = 862; // 862 Broken Steel Tool no wood // 858 Broken Steel Tool
@@ -592,7 +544,62 @@ class ServerSettings {
 			// if( obj.isOwned) trace('isOwned: ${obj.description}');
 
 			// if(obj.containable) trace('${obj.description} ${obj.containSize}');
+
+			if(obj.description.contains('Shears')){
+				trace('${obj.name} permanent: ${obj.permanent}');
+				obj.permanent = 0;
+				obj.containSize = 1;
+				obj.containable = true;
+			}
 		}
+
+		ObjectData.getObjectData(0).containSize = 1; // Empty
+		ObjectData.getObjectData(0).containable = true; // Empty
+
+		ObjectData.getObjectData(2188).containSize = 2; // Drum Sticks on Plate
+		ObjectData.getObjectData(2188).containable = true; // Drum Sticks on Plate
+
+		ObjectData.getObjectData(2192).containSize = 1; // Turkey Leg Bone
+		ObjectData.getObjectData(2192).containable = true; // Turkey Leg Bone
+
+		ObjectData.getObjectData(2191).containSize = 1; // Turkey Drumstick
+		ObjectData.getObjectData(2191).containable = true; // Turkey Drumstick
+
+		ObjectData.getObjectData(319).containSize = 2; // Unforged Sealed Steel Crucible
+		ObjectData.getObjectData(319).containable = true; // Unforged Sealed Steel Crucible
+
+		ObjectData.getObjectData(321).containSize = 2; // Hot Forged Steel Crucible
+		ObjectData.getObjectData(321).containable = true; // Hot Forged Steel Crucible
+
+		ObjectData.getObjectData(322).containSize = 2; // Forged Steel Crucible
+		ObjectData.getObjectData(322).containable = true; // Forged Steel Crucible
+
+		ObjectData.getObjectData(325).containSize = 2; // Crucible with Steel
+		ObjectData.getObjectData(325).containable = true; // Crucible with Steel
+
+		ObjectData.getObjectData(322).containSize = 2; // Forged Steel Crucible
+		ObjectData.getObjectData(322).containable = true; // Forged Steel Crucible
+
+		ObjectData.getObjectData(319).containSize = 2; // Quenching Spring Steel
+		ObjectData.getObjectData(319).containable = true; // Quenching Spring Steel
+
+		ObjectData.getObjectData(2574).containSize = 2; // Molten Glass
+		ObjectData.getObjectData(2574).containable = true; // Molten Glass
+
+		ObjectData.getObjectData(2578).containSize = 2; //Cool Glass
+		ObjectData.getObjectData(2578).containable = true; // Cool Glass
+
+		ObjectData.getObjectData(2573).containSize = 2; // Soda Lime Glass Batch
+		ObjectData.getObjectData(2573).containable = true; // Soda Lime Glass Batch
+
+		ObjectData.getObjectData(300).containSize = 2; // Big Charcoal Pile
+		ObjectData.getObjectData(300).containable = true; // Big Charcoal Pile
+
+		ObjectData.getObjectData(301).containSize = 2; // Small Charcoal Pile
+		ObjectData.getObjectData(301).containable = true; // Small Charcoal Pile
+
+		ObjectData.getObjectData(302).containSize = 1; // Charcoal
+		ObjectData.getObjectData(302).containable = true; // Charcoal
 
 		ObjectData.getObjectData(650).countsOrGrowsAs = 630; // Bear Cave empty --> Bear Cave
 		ObjectData.getObjectData(647).countsOrGrowsAs = 630; // Bear Cave waking --> Bear Cave
