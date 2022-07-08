@@ -1949,6 +1949,48 @@ class ServerSettings {
 		var trans = TransitionImporter.GetTransition(-1, 864); // TIME + Rag Hat
 		trans.autoDecaySeconds = -24; // -0.5
 
+		var trans = TransitionImporter.GetTransition(-1, 2723); // TIME + Dry Juniper Sapling
+		trans.autoDecaySeconds = -24; // -0.33
+
+		var trans = TransitionImporter.GetTransition(-1, 1872); // TIME + Dry Mango Sapling
+		trans.autoDecaySeconds = -24; // -0.33
+
+		var trans = TransitionImporter.GetTransition(-1, 1802); // TIME + Dry Maple Sapling
+		trans.autoDecaySeconds = -24; // -0.33
+
+		var trans = TransitionImporter.GetTransition(-1, 4311); // TIME + Dry Bay Sapling
+		trans.autoDecaySeconds = -24; // -0.33
+
+		var trans = TransitionImporter.GetTransition(-1, 3069); // TIME + Dry Rubber Sapling
+		trans.autoDecaySeconds = -24; // -0.33
+
+		var trans = TransitionImporter.GetTransition(-1, 2723); // TIME + Dry Juniper Sapling
+		trans.autoDecaySeconds = -24; // -0.33
+
+		var trans = TransitionImporter.GetTransition(-1, 1805); // TIME + Dry Yew Sapling
+		trans.autoDecaySeconds = -24; // -0.33
+
+		var trans = TransitionImporter.GetTransition(-1, 1804); // TIME + Dry Pine Sapling
+		trans.autoDecaySeconds = -24; // -0.33
+
+		var trans = TransitionImporter.GetTransition(-1, 1803); // TIME + Dry Poplar Sapling
+		trans.autoDecaySeconds = -24; // -0.33
+
+		var trans = TransitionImporter.GetTransition(-1, 1825); // TIME + Dry Ancient Yew Bonsai
+		trans.autoDecaySeconds = -24; // -0.5
+
+		var trans = TransitionImporter.GetTransition(-1, 1823); // TIME  + Dry Pruned Old Yew Bonsai
+		trans.autoDecaySeconds = -24; // -0.5
+
+		var trans = TransitionImporter.GetTransition(-1, 1820); // TIME + Dry Old Yew Bonsai
+		trans.autoDecaySeconds = -24; // -0.5
+
+		var trans = TransitionImporter.GetTransition(-1, 1818); // TIME + Dry Pruned Yew Bonsai
+		trans.autoDecaySeconds = -24; // -0.5
+
+		var trans = TransitionImporter.GetTransition(-1, 1814); // TIME + Dry Young Yew Bonsai in Bowl
+		trans.autoDecaySeconds = -1; // 10min
+		
 		var trans = new TransitionData(462, 846, 462, 67); // Steel Adze + Broken Hand Cart ==> Steel Adze + Long Straight Shaft
 		transtions.addTransition("PatchTransitions: ", trans);
 
