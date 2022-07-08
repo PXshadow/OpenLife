@@ -2209,6 +2209,9 @@ class ServerSettings {
 
 		//var trans = TransitionImporter.GetTransition(382, 1042); // Bowl of Water + Dry Planted Rose Seed (RED)
 		//trace('DEBUG!!!: ${trans.getDesciption()}');
+
+		//var trans = TransitionImporter.GetTransition(-1, 1873); // TIME + Wet Mango Sapling
+		//trace('DEBUG!!!: ${trans.getDesciption()}');	
 	}	
 }
 

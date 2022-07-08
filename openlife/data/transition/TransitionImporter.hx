@@ -238,10 +238,12 @@ class TransitionImporter {
 
 		for (name in sys.FileSystem.readDirectory(Engine.dir + "transitions")) {
 			var transition = TransitionData.createNewFromFile(Path.withoutExtension(name), File.getContent(Engine.dir + 'transitions/$name'));
-
 			addTransition("importTransitions: ", transition);
+		}
 
-			createAndaddCategoryTransitions(transition);
+		var tmpTransitions = transitions.copy();
+		for(trans in tmpTransitions){
+			createAndaddCategoryTransitions(trans);
 		}
 
 		trace('Transitions loaded: ${transitions.length}');
@@ -555,7 +557,7 @@ class TransitionImporter {
 		// <-1> + <1802> (Pattern) = <0> + <1828> (NO CATEGORY!!!) / TIME + Dry Maple Sapling  -->  EMPTY + Dead Sapling  
 		// CONSIDER: <0> + <1422> = <778> + <0> / EMPTY + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + EMPTY
 		// DONE CONSIDER: <-1> + <1806> = <0> + <48> / TIME + Wet Maple Sapling (Pattern)-->  EMPTY + Maple Tree (NO Pattern WHY?????)
-		//TODO NEEDED???? if ((targetCategory != null && targetCategory.pattern) && (newTargetCategory == null && newActorCategory == null)) return;
+		// NOW CATEGORIES ARE HANDLES AFTER A:: TRANSITIONS TODO TEST NEEDED???? if ((targetCategory != null && targetCategory.pattern) && (newTargetCategory == null && newActorCategory == null)) return;
 
 		// possibilities:
 		// actor is pattern and target is pattern like: <0> + <1422> = <778> + <0> / EMPTY + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + EMPTY
