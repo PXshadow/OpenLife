@@ -2218,7 +2218,11 @@ class ServerSettings {
 		//trace('DEBUG!!!: ${trans.getDesciption()}');
 
 		//var trans = TransitionImporter.GetTransition(-1, 1873); // TIME + Wet Mango Sapling
-		//trace('DEBUG!!!: ${trans.getDesciption()}');	
+		//trace('DEBUG!!!: ${trans.getDesciption()}');
+		
+		//<-1> + <3132> = <0> + <3131> / TIME + Running Diesel Mining Pick#with Iron  -->  EMPTY + Diesel Mining Pick with Iron
+		//var trans = TransitionImporter.GetTransition(-1, 3132);
+		//trace('DEBUG!!!: ${trans.getDesciption(false)}');
 	}	
 }
 

@@ -1983,7 +1983,7 @@ class TimeHelper {
 		ScoreEntry.CreateScoreEntryIfGrave(helper);
 
 		if (helper.isLastUse()){
-			var tmpTransition = TransitionImporter.GetTransition(-1, helper.id, false, true);
+			var tmpTransition = TransitionImporter.GetTransition(-1, helper.parentId, false, true);
 			if(tmpTransition != null) transition = tmpTransition;
 			else{
 				var objData = ObjectData.getObjectData(tileObject[0]);
@@ -1992,12 +1992,30 @@ class TimeHelper {
 			}
 		}
 
+		var isMaxUse = false;
+		// if it is a reverse transition, check if it would exceed max numberOfUses
+		if (transition.reverseUseTarget && helper.numberOfUses >= newObjectData.numUses) {
+			//if (ServerSettings.DebugTransitionHelper)
+			//	trace('TRANS: ${player.name + player.id} Target: numberOfUses >= newTargetObjectData.numUses: ${this.target.numberOfUses} ${newTargetObjectData.numUses} try use maxUseTransition');
+			transition = TransitionImporter.GetTransition(-1, helper.parentId, false, false, true);
+
+			if (transition == null) {
+				trace('TIME: Maxuse: Cannot do reverse transition for taget: ${helper.name} numberOfUses: ${helper.numberOfUses} newObjectData.numUses: ${newObjectData.numUses}');
+				helper.creationTimeInTicks = TimeHelper.tick;
+				return false;
+			}
+
+			trace('TIME: Maxuse: ${transition.getDesciption()}');
+			isMaxUse = true;
+		}
+
 		// can have different random outcomes like Blooming Squash Plant
 		helper.id = TransitionHelper.TransformTarget(transition.newTargetID);
 		helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper);
 		helper.creationTimeInTicks = TimeHelper.tick;
 
-		TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, transition, null, false);
+		if(isMaxUse) helper.numberOfUses = helper.objectData.numUses;
+		else TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, transition, null, false);
 
 		WorldMap.world.setObjectHelper(tx, ty, helper);
 
