@@ -343,14 +343,16 @@ abstract class AiBase
 		}
 
 		Macro.exception(if(craftHighPriorityClothing()) return);
+		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
+		Macro.exception(if(doFarming()) return);
 
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
 		if(itemToCraftId == 31) itemToCraftId = -1; // Gooseberry
 		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
 
-		if(myPlayer.age > 10) Macro.exception(if(craftMediumPriorityClothing()) return);
-		if(myPlayer.age > 20) Macro.exception(if(craftLowPriorityClothing()) return);
+		
+		if(myPlayer.age > 30) Macro.exception(if(craftLowPriorityClothing()) return);
 		
 		Macro.exception(if(makeStuff()) return);
 
@@ -667,7 +669,37 @@ abstract class AiBase
 			
 		return done;
 	}
-	
+
+	private function doFarming() {
+		if(fillBerryBowlIfNeeded()) return true;
+		if(makePopcornIfNeeded()) return true;
+
+		if(myPlayer.age < 20 && makeSharpieFood()) return true;
+
+		if(craftItem(1114)) return true; // Shucked Ear of Corn
+
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 400); // Carrot Row
+
+		if(closeObj != null && closeObj.numberOfUses > 2) if(craftItem(402)) return true; // Carrot TODO carrot (would also make wild carrots to carrot with bowl)
+
+		var hardenedRow = AiHelper.GetClosestObjectById(myPlayer, 848); // Hardened Row
+		if(hardenedRow != null) if(craftItem(213)) return true; // Deep Tilled Row
+
+		var closeSoil = AiHelper.GetClosestObjectById(myPlayer, 1138); // Fertile Soil
+		if(closeSoil != null) if(craftItem(213)) return true; // Deep Tilled Row
+
+		//if(myPlayer.age < 15 && makeFireWood()) return true;
+		
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 399); // Wet Planted Carrots
+		if(closeObj != null) if(craftItem(399)) return true; // Wet Planted Carrots
+
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1110); // Wet Planted Corn Seed
+		if(closeObj != null) if(craftItem(1110)) return true; // Wet Planted Corn Seed
+
+		if(myPlayer.age < 20 && makeFireFood()) return true;
+
+		return false;
+	}
 
 	private function makeStuff() : Bool {
 		/*if(myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound){
@@ -688,20 +720,6 @@ abstract class AiBase
 		// TODO craft only stuff if not enough at home
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} makeStuff!');
-
-		if(fillBerryBowlIfNeeded()) return true;
-		if(makePopcornIfNeeded()) return true;
-
-		if(myPlayer.age < 10 && makeSharpieFood()) return true;
-
-		if(craftItem(1114)) return true; // Shucked Ear of Corn
-		// TODO carrot (would also make wild carrots to carrot with bowl)
-
-		var closeSoil = AiHelper.GetClosestObjectById(myPlayer, 1138); // Fertile Soil
-		if(closeSoil != null) if(craftItem(213)) return true; // Deep Tilled Row
-
-		//if(myPlayer.age < 15 && makeFireWood()) return true;
-		if(myPlayer.age < 20 && makeFireFood()) return true;
 
 		var closePlate = AiHelper.GetClosestObjectById(myPlayer, 236); // Clay Plate
 		if(closePlate == null) closePlate = AiHelper.GetClosestObjectById(myPlayer, 1602); // Stack of Clay Plates
