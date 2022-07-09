@@ -2000,12 +2000,12 @@ class TimeHelper {
 			transition = TransitionImporter.GetTransition(-1, helper.parentId, false, false, true);
 
 			if (transition == null) {
-				trace('TIME: Maxuse: Cannot do reverse transition for taget: ${helper.name} numberOfUses: ${helper.numberOfUses} newObjectData.numUses: ${newObjectData.numUses}');
+				//trace('TIME: Maxuse: Cannot do reverse transition for taget: ${helper.name} numberOfUses: ${helper.numberOfUses} newObjectData.numUses: ${newObjectData.numUses}');
 				helper.creationTimeInTicks = TimeHelper.tick;
 				return false;
 			}
 
-			trace('TIME: Maxuse: ${transition.getDesciption()}');
+			//trace('TIME: Maxuse: ${transition.getDesciption()}');
 			isMaxUse = true;
 		}
 
