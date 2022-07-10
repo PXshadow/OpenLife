@@ -1216,6 +1216,8 @@ class ServerSettings {
 			}
 		}
 
+		ObjectData.getObjectData(4647).unreleased = true; // Truck Chassis
+
 		ObjectData.getObjectData(1605).numSlots = 0; //Stack of Baskets // TODO allow stacking of filled baskets
 
 		// ObjectData.getObjectData(279).winterDecayFactor = 2; // Empty Wild Gooseberry Bush

@@ -116,6 +116,8 @@ class ObjectData extends LineReader {
 	public var carftingSteps:Int = -1;
 	public var groundOnly = false;
 
+	public var unreleased = false;
+
 	// saved
 
 	/**

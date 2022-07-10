@@ -912,6 +912,10 @@ class TransitionHelper {
 		
 		// if(transition.actorID != transition.newActorID) this.pickUpObject = true; // TODO does error for bow animation but may be needed for other animations?
 
+		if(newTargetObjectData.unreleased){
+			this.player.say('${newTargetObjectData.name} is not for this world!', true);
+			return false;
+		}
 
 		// Arrow and Bow + Arrow Quiver = false;
 		// Arrow and Bow + Empty Arrow Quiver = true;
