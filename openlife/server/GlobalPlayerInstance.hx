@@ -2820,7 +2820,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// Arrow + Empty Arrow Quiver = true;
 		var resetNumberOfUses = clothing.objectData.numUses < 2;
 		clothing.id = trans.newTargetID;
-		TransitionHelper.DoChangeNumberOfUsesOnTarget(clothing, trans, this, true, resetNumberOfUses);
+		TransitionHelper.DoChangeNumberOfUsesOnTarget(clothing, trans, this, false, resetNumberOfUses);
 		clothing.TransformToDummy(); // TODO call if ID is set?
 		this.transformHeldObject(trans.newActorID);
 

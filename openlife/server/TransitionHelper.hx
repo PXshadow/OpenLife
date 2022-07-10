@@ -953,7 +953,7 @@ class TransitionHelper {
 			trace('TRANS: ${player.name + player.id} NewTileObject: ${newTargetObjectData.description} ${this.target.id} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
 
 		// target did not change if it is same dummy
-		DoChangeNumberOfUsesOnTarget(this.target, transition, player, true, resetNumberOfUses);
+		DoChangeNumberOfUsesOnTarget(this.target, transition, player, ServerSettings.DebugTransitionHelper, resetNumberOfUses);
 
 		ObjectHelper.DoOwnerShip(this.target, this.player);
 

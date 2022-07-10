@@ -546,7 +546,7 @@ class ServerSettings {
 			// if(obj.containable) trace('${obj.description} ${obj.containSize}');
 
 			if(obj.description.contains('Shears')){
-				trace('${obj.name} permanent: ${obj.permanent}');
+				//trace('${obj.name} permanent: ${obj.permanent}');
 				obj.permanent = 0;
 				obj.containSize = 1;
 				obj.containable = true;
