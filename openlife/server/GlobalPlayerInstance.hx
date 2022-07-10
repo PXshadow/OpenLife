@@ -4293,7 +4293,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			Connection.SendMapUpdateToAllClosePlayers(player.tx, player.ty);
 		} else if (text.indexOf('!CLOSE') != -1) {
 			trace('Close connection');
-			player.connection.close();
+			player.say('!CLOSED!', true);
+			player.connection.close();			
+			return true;
 		} else if (text == '!DB') {
 			player.say('isMoving ${player.isMoving()}', true);
 			return true;
