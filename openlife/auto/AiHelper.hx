@@ -1058,6 +1058,7 @@ class AiHelper {
 		var bestQuadHungry:Float = 0;
 		var minQuadHungry = 0.01;
 		var isFertile = player.isFertile();
+		var myPlayerIsNobleOrMore = cast(globalplayer.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int); 
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
 			if (p.deleted) continue;
@@ -1065,6 +1066,9 @@ class AiHelper {
 			if (isFertile && p.age < ServerSettings.MaxChildAgeForBreastFeeding) continue;
 
 			var isNobleOrMore = cast(p.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int); 
+
+			if (p.isAi() && p.age > ServerSettings.MinAgeToEat && p.isWounded() == false && p.hasYellowFever() == false && isNobleOrMore == false) continue;
+			
 			var classFood = isNobleOrMore ? p.lineage.prestigeClass * 4 : p.lineage.prestigeClass * 2;
 			var considerHungry = Math.min(classFood, p.food_store_max * 0.6);
 			var hungry = considerHungry - p.food_store;
@@ -1074,7 +1078,8 @@ class AiHelper {
 			if (p.isCloseRelative(globalplayer) == false
 				|| player.getFollowPlayer() == p) hungry = hungry / 2 - 0.25; // prefer close relative
 			if (isAlly == false) hungry = hungry / 2 - 0.2; // prefer ally
-			if (p.isAi() && isNobleOrMore == false) hungry / 2 - 0.2; // prefer Ai only if noble
+			//if (p.isAi() && isNobleOrMore == false) hungry / 2 - 0.2; // prefer Ai only if noble
+			if (myPlayerIsNobleOrMore && p.isAi()) hungry / 2 - 0.2; // if myPlayer is noble feed less AI
 			if (hungry < 0) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p) + 1;
