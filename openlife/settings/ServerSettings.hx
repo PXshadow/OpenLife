@@ -1655,7 +1655,7 @@ class ServerSettings {
 		// let get bana back!
 		trans = new TransitionData(-1, 2142, 0, 2142); // Banana Plant
 		trans.reverseUseTarget = true;
-		trans.autoDecaySeconds = -4;
+		trans.autoDecaySeconds = -2;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 2145, 0, 2142); // Empty Banana Plant --> Banana Plant
