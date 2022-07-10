@@ -69,7 +69,7 @@ class NamingHelper {
 		var r = ~/[^a-z]/i; // true if anything but letters
 		if (r.match(nameFromText)) return text; // return if there is anything but letters
 
-		var name = doFamilyName ? nameFromText : GetNameFromList(nameFromText, p.isFemale());
+		var name = doFamilyName ? nameFromText : GetNameFromList(nameFromText, targetPlayer.isFemale());
 
 		//trace('TEST Naming: $nameFromText ==> $name');
 
