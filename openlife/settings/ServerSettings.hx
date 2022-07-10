@@ -1733,6 +1733,10 @@ class ServerSettings {
 		trans = new TransitionData(2092, 191, 2091, 0); 
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// 0 + Fishing Pole with Old Boot --> Old Boot + Fishing Pole
+		trans = new TransitionData(0, 2098, 2099, 2091); 
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// hungry work transitions
 		var trans = transtions.getTransition(502, 122); // Shovel + Tule Stumps ==> Adobe
 		trans.hungryWorkCost = 5;
