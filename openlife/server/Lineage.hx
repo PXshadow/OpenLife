@@ -4,6 +4,7 @@ import haxe.Exception;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.settings.ServerSettings;
+import sys.FileSystem;
 import sys.io.File;
 
 using StringTools;
@@ -22,12 +23,13 @@ using StringTools;
 class Lineage {
 	private static var PrestigeClasses = ['Not Set', 'Serf', 'Commoner', 'Noble', 'Noble', 'Noble', 'King', 'Emperor'];
 
-	// private static var NewLineages = new Map<Int,Lineage>(); // sperate in new and old to save faster (use DB???)
+	// sperate in new and old to save faster (use DB???)
+	private static var NewLineages = new Map<Int,Lineage>(); 
 	private static var AllLineages = new Map<Int, Lineage>();
 
 	public static function AddLineage(lineageId:Int, lineage:Lineage) {
 		lineage.myId = lineageId;
-		// NewLineages[lineage.myId] = lineage;
+		NewLineages[lineage.myId] = lineage;
 		AllLineages[lineage.myId] = lineage;
 	}
 
@@ -62,10 +64,9 @@ class Lineage {
 
 	public var prestigeClass:PrestigeClass = PrestigeClass.Commoner;
 
-	/*public static function WriteNewLineages(path:String)
-		{ 
-			WriteLineages(path, NewLineages);
-	}*/
+	public static function WriteNewLineages(path:String){ 
+		WriteLineages(path, NewLineages);
+	}
 
 	public static function WriteAllLineages(path:String) {
 		WriteLineages(path, AllLineages);
@@ -112,21 +113,22 @@ class Lineage {
 		if (ServerSettings.DebugWrite) trace('wrote $count Lineages...');
 	}
 
-	/*public static function ReadNewLineages(path:String)
-		{ 
-			WriteLineages(path, NewLineages);
-		}
-
-		public static function ReadAndSaveAllLineages(pathAll:String, pathNew:String)
-		{
+	public static function ReadAndSaveAllLineages(pathAll:String, pathNew:String)
+	{
+		if(FileSystem.exists(pathAll)){
+			trace('Lineage: exists: $pathAll');
+			File.copy(pathAll, pathAll + '.bak');
 			AllLineages = ReadLineages(pathAll);
+		}
+		else AllLineages = [];
+		
+		var newLineages = ReadLineages(pathNew);
 
-			var newLineages = ReadLineages(pathNew);
+		for(lineage in newLineages) AllLineages[lineage.myId] = lineage;
 
-			for(lineage in newLineages)  AllLineages[lineage.myId] = lineage;
+		WriteAllLineages(pathAll);
+	}
 
-			WriteAllLineages(pathAll);
-	}*/
 	public static function ReadAndSetLineages(path:String):Map<Int, Lineage> {
 		AllLineages = ReadLineages(path);
 		return AllLineages;

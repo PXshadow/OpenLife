@@ -665,7 +665,8 @@ class WorldMap {
 		Sys.sleep(sleepTime);
 		this.mutex.acquire();
 
-		Lineage.WriteAllLineages(dir + "Lineages" + tmpDataNumber + ".bin");
+		//Lineage.WriteAllLineages(dir + "Lineages" + tmpDataNumber + ".bin");
+		Lineage.WriteNewLineages(dir + "Lineages" + tmpDataNumber + ".bin");
 		if (ServerSettings.SavePlayers) GlobalPlayerInstance.WriteAllPlayers(dir + "Players" + tmpDataNumber + ".bin");
 
 		writeIndexFile(dir + "lastDataNumber" + tmpDataNumber + ".txt", tmpDataNumber);
@@ -802,7 +803,9 @@ class WorldMap {
 
 		Macro.exception(PlayerAccount.ReadPlayerAccounts(dir + "PlayerAccounts" + saveDataNumber + ".bin"));
 
-		Lineage.ReadAndSetLineages(dir + "Lineages" + saveDataNumber + ".bin");
+		//Lineage.ReadAndSetLineages(dir + "Lineages" + saveDataNumber + ".bin");
+
+		Lineage.ReadAndSaveAllLineages(dir + "LineagesAll.bin", dir + "Lineages" + saveDataNumber + ".bin");
 
 		if (ServerSettings.LoadPlayers) GlobalPlayerInstance.ReadPlayers(dir + "Players" + saveDataNumber + ".bin");
 
