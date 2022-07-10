@@ -142,6 +142,7 @@ class ServerSettings {
 	// Eve spawning
 	public static var StartingEveAge = 14; // 14
 	public static var SpwanAtLastDead = false;
+	public static var SpawnAiAsEve = false; // Allows AIs to spawn as Eve even if there are valid mothers
 	public static var EveOrAdamBirthChance = 0.05; // since each eve gets an adam the true chance is x2
 	public static var startingGx = 235; // 235; //270; // 360;
 	public static var startingGy = 150; // 200;//- 400; // server map is saved y inverse
