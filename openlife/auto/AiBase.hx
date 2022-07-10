@@ -555,10 +555,10 @@ abstract class AiBase
 		}
 		if(grave.containedObjects.length > 0){
 			if(dropHeldObject(0)){
-				myPlayer.say('drop for remove from grave');
+				if(ServerSettings.DebugAiSay) myPlayer.say('drop for remove from grave');
 				return true;
 			}
-			myPlayer.say('remove from grave');
+			if(ServerSettings.DebugAiSay) myPlayer.say('remove from grave');
 			return removeItemFromContainer(grave);
 		}
 
@@ -826,7 +826,7 @@ abstract class AiBase
 			if(closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 391);
 			if(closeBush == null) return false;
 
-			myPlayer.say('Fill Bowl on Bush');
+			if(ServerSettings.DebugAiSay) myPlayer.say('Fill Bowl on Bush');
 
 			return useHeldObjOnTarget(closeBush);
 		}
@@ -838,7 +838,7 @@ abstract class AiBase
 			this.dropTarget = closeBerryBowl; // pick it up to fill
 			this.dropIsAUse = false;
 
-			myPlayer.say('Pickup Berry Bowl to Fill');
+			if(ServerSettings.DebugAiSay) myPlayer.say('Pickup Berry Bowl to Fill');
 
 			return true; 
 		}
