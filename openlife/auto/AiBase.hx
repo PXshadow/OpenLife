@@ -541,8 +541,9 @@ abstract class AiBase
 
 	private function isHandlingGraves() : Bool {
 		var heldId = myPlayer.heldObject.parentId;
-		var grave = AiHelper.GetClosestObjectById(myPlayer, 88, null, 10); // 88 Grave
-		if(grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 89, null, 10); // 89 Old Grave 
+		var grave = AiHelper.GetClosestObjectById(myPlayer, 357, null, 20); // Bone Pile
+		if(grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 88, null, 20); // 88 Grave 
+		if(grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 89, null, 20); // 89 Old Grave 
 		if(grave == null) return false;
 
 		if (this.isObjectNotReachable(grave.tx, grave.ty)) return false;
