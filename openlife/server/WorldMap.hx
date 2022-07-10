@@ -814,6 +814,8 @@ class WorldMap {
 
 		ObjectHelper.InitObjectHelpersAfterRead();
 
+		Lineage.WriteLineageStatistics();
+
 		return true;
 	}
 

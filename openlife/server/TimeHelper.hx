@@ -56,6 +56,10 @@ class TimeHelper {
 		return (TimeHelper.tick - ticks) * TimeHelper.tickTime;
 	}
 
+	public static function CalculateTimeSinceTicksInYears(ticks:Float):Float {
+		return CalculateTimeSinceTicksInSec(ticks) / 60;
+	}
+
 	public static function DoTimeLoop() {
 		serverStartingTime = Sys.time();
 		var averageSleepTime:Float = 0.0;

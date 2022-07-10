@@ -1,9 +1,12 @@
 package openlife.server;
 
 import haxe.Exception;
+import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.settings.ServerSettings;
 import sys.io.File;
+
+using StringTools;
 
 @:enum abstract PrestigeClass(Int) from Int to Int {
 	public var NotSet = 0;
@@ -63,6 +66,7 @@ class Lineage {
 		{ 
 			WriteLineages(path, NewLineages);
 	}*/
+
 	public static function WriteAllLineages(path:String) {
 		WriteLineages(path, AllLineages);
 	}
@@ -181,6 +185,102 @@ class Lineage {
 		// trace('read $count Lineages...');
 
 		return loadedLineages;
+	}
+
+	public static function WriteLineageStatistics() {
+		var countOld = 0;
+		var countNew = 0; 
+		var reasonKilled = new Map<String, Int>();
+		var ages = new Map<Int, Int>();
+		var generations = new Map<Int, Int>();
+
+		var dir = './${ServerSettings.SaveDirectory}/';
+		var path = dir + 'PlayerLineages.txt';
+		var writer = File.write(path, false);
+
+		for(lineage in AllLineages){
+			var yearsSinceBirth = TimeHelper.CalculateTimeSinceTicksInYears(lineage.birthTime);
+			var yearsSinceDeath = TimeHelper.CalculateTimeSinceTicksInYears(lineage.deathTime);
+			var age =  Math.round(yearsSinceBirth - yearsSinceDeath);
+			var deathReason = lineage.deathReason;
+			var killedBy = deathReason;
+
+			if(deathReason.startsWith('reason_killed_')){
+				var idString = deathReason.replace('reason_killed_', '');
+				var id = Std.parseInt(idString);
+				var objData = ObjectData.getObjectData(id);
+				killedBy = objData.name;
+			}
+
+			if(yearsSinceBirth > 2880) countOld++; // 2880 = 48h
+			else countNew++;
+
+			var mother = lineage.getMotherLineage();
+			var generation = 0;
+
+			for(i in 0...1000){
+				if (mother == null) break;
+				generation++;
+				mother = mother.getMotherLineage();
+			}
+
+			ages[age] += 1;
+			reasonKilled[killedBy] += 1;
+			generations[generation] += 1;
+
+			writer.writeString('${lineage.getFullName()} gen: ${generation} age: ${age} ${killedBy}\n');
+			
+			//if(lineage.familyName.startsWith('SNOW') == false) trace('Lineage: ${lineage.getFullName()} age: ${age} ${lineage.deathReason}');
+			//if(lineage.motherId < 1) trace('Lineage: ${lineage.myEveId} --> ${lineage.getFullName()} age: ${age} ${lineage.deathReason}');
+		}
+
+		writer.close();
+
+		var path = dir + 'PlayerDeathReasons.txt';
+		var writer = File.write(path, false);
+
+		for(reason in reasonKilled.keys()){
+			writer.writeString('$reason ${reasonKilled[reason]}\n');
+			//trace('Lineage: $reason ${reasonKilled[reason]}');
+		}
+
+		writer.close();
+
+		var ageList = [for (a in ages.keys()) a];
+
+		ageList.sort(function(a, b) {
+			if (a < b) return -1; else if (a > b) return 1; else
+				return 0;
+		});
+
+		var path = dir + 'PlayerAges.txt';
+		var writer = File.write(path, false);
+
+		for(age in ageList){
+			writer.writeString('age: $age --> ${ages[age]}\n');
+			//trace('Lineage: age: $age --> ${ages[age]}');
+		}
+
+		writer.close();
+
+		var generationsList = [for (g in generations.keys()) g];
+
+		generationsList.sort(function(a, b) {
+			if (a < b) return -1; else if (a > b) return 1; else
+				return 0;
+		});
+
+		var path = dir + 'PlayerGenerations.txt';
+		var writer = File.write(path, false);
+
+		for(generation in generationsList){
+			writer.writeString('generation: $generation --> ${generations[generation]}\n');
+			//trace('Lineage: generation: $generation --> ${generations[generation]}');
+		}
+
+		writer.close();
+
+		trace('Lineage: countNew: ${countNew} countOld: ${countOld}');
 	}
 
 	public function new(player:GlobalPlayerInstance) {
