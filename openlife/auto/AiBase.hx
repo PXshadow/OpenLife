@@ -52,6 +52,7 @@ abstract class AiBase
 	var dropIsAUse:Bool = false;
 
 	var itemToCraftId = -1;
+	var itemToCraftName:String = null;
 	var itemToCraft:IntemToCraft = new IntemToCraft();
 
 	var isHungry = false;
@@ -1040,7 +1041,7 @@ private function craftLowPriorityClothing() : Bool {
 			AiHelper.SearchTransitions(myPlayer, objectIdToSearch);
 		}
 
-		if (text.contains("HELLO") || text == "HI") {
+		if (text.contains("HOLA") || text.contains("HELLO") || text == "HI") {
 			// HELLO WORLD
 
 			// if(ServerSettings.DebugAi) trace('im a nice bot!');
@@ -1145,6 +1146,7 @@ private function craftLowPriorityClothing() : Bool {
 				itemToCraftId = id;
 				// craftItem(id); // TODO use mutex if Ai does not use Globalplayermutex
 				var obj = ObjectData.getObjectData(id);
+				this.itemToCraftName = obj.name;
 				myPlayer.say("Making " + obj.name);
 			}
 		}
@@ -1837,6 +1839,12 @@ private function craftLowPriorityClothing() : Bool {
 
 			failedCraftings[objId] = TimeHelper.tick;
 			// TODO give some help to find the needed Items
+
+			if(itemToCraftName != null){
+				myPlayer.say('Failed to craft $itemToCraftName');
+				itemToCraftName = null;
+			}
+
 			return false;
 		}
 
@@ -2690,7 +2698,12 @@ private function craftLowPriorityClothing() : Bool {
 
 				// if object to create is held by player or is on ground, then cound as done
 				if (myPlayer.heldObject.parentId == itemToCraft.itemToCraft.parentId
-					|| taregtObjectId == itemToCraft.itemToCraft.parentId) itemToCraft.countDone += 1;
+					|| taregtObjectId == itemToCraft.itemToCraft.parentId){
+
+					itemToCraft.countDone += 1;
+					if(itemToCraftName != null && itemToCraft.itemToCraft.name == itemToCraftName) myPlayer.say('Finished $itemToCraftName');
+					itemToCraftName = null; // is set if human gave order to craft
+				}
 
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} done: ${useTarget.name} ==> ${itemToCraft.itemToCraft.name} trans: ${itemToCraft.countTransitionsDone} finished: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
