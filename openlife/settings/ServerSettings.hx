@@ -1731,7 +1731,7 @@ class ServerSettings {
 
 		// Fishing Pole without Hook + Bone Needle --> Fishing Pole + 0
 		trans = new TransitionData(2092, 191, 2091, 0); 
-		transtions.addTransition("PatchTransitions: ", trans, false, true);
+		transtions.addTransition("PatchTransitions: ", trans);
 
 		// hungry work transitions
 		var trans = transtions.getTransition(502, 122); // Shovel + Tule Stumps ==> Adobe
