@@ -117,8 +117,8 @@ class Lineage {
 	{
 		if(FileSystem.exists(pathAll)){
 			trace('Lineage: exists: $pathAll');
-			File.copy(pathAll, pathAll + '.bak');
 			AllLineages = ReadLineages(pathAll);
+			File.copy(pathAll, pathAll + '.bak');
 		}
 		else AllLineages = [];
 		
