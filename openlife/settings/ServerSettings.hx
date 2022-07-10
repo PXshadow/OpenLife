@@ -1737,6 +1737,14 @@ class ServerSettings {
 		trans = new TransitionData(0, 2098, 2099, 2091); 
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// 0 + Diesel Mining Pick without Bit -->Diesel Engine + Collapsed Iron Mine
+		trans = new TransitionData(0, 3130, 2365, 945); 
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		// 0 + Ready Diesel Mining Pick --> Steel Chisel + Diesel Mining Pick without Bit
+		trans = new TransitionData(0, 3129, 455, 3130); 
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// hungry work transitions
 		var trans = transtions.getTransition(502, 122); // Shovel + Tule Stumps ==> Adobe
 		trans.hungryWorkCost = 5;
