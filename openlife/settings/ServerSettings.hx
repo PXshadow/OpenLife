@@ -2166,6 +2166,19 @@ class ServerSettings {
 		var trans = transtions.getTransition(0, 281); // 0 + Wood-filled Adobe Kiln
 		trans.aiShouldIgnore = true;
 
+		// AI tries to empty popcorn to get a bowl
+		var trans = transtions.getTransition(192, 1121); // Needle and Thread + Popcorn 
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(334, 3308); // Steel Axe + Marked Pine Wall (corner)
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(334, 3309); // Steel Axe + Marked Pine Wall (vertical)
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(334, 3310); // Steel Axe + Marked Pine Wall (horizontal)
+		trans.aiShouldIgnore = true;
+
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');
 
