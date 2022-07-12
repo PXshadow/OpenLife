@@ -2430,7 +2430,7 @@ private function craftLowPriorityClothing() : Bool {
 				//dropTarget = myPlayer.GetClosestObjectById(0); // empty
 			//}
 
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto drop: $done ${dropTarget.name} distance: $distance');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto drop: $done ${dropTarget.name} ${dropTarget.tx},${dropTarget.ty} distance: $distance');
 			if (done == false) dropTarget = null;
 
 			return true;			

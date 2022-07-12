@@ -424,7 +424,8 @@ class AiHelper {
 
 		var considerAnimals = checkIfDangerous && ai.didNotReachFood < 5 && ai.myPlayer.food_store > -1;
 
-		for (i in 0...5) {
+		// This is done in goto itself
+		/* for (i in 0...5) { 
 			var xo = 0;
 			var yo = 0;
 
@@ -439,31 +440,34 @@ class AiHelper {
 
 			if (player.isBlocked(tx + xo, ty + yo)) continue;
 			if (ai.isObjectNotReachable(tx + xo, ty + yo)) continue;
+			*/
 
-			var done = Goto(player, rx + xo, ry + yo, considerAnimals, move);
+			//var done = Goto(player, rx + xo, ry + yo, considerAnimals, move);
+			var done = Goto(player, rx, ry, considerAnimals, move);
 
-			var passedTime = (Sys.time() - startTime) * 1000;
+			//var passedTime = (Sys.time() - startTime) * 1000;
 
 			if (done){
-				ai.time += passedTime / 1000;
+				//ai.time += passedTime / 1000;
 				return true;
 			} 
 
 			// check if blocked only by animals // used for not to consider the object as blocked
-			if(considerAnimals && blockedByAnimal == false)
-			{
-				blockedByAnimal = Goto(player, rx + xo, ry + yo, false, false);
+			if(considerAnimals && blockedByAnimal == false){
+				//blockedByAnimal = Goto(player, rx + xo, ry + yo, false, false);
+				blockedByAnimal = Goto(player, rx, ry, false, false);
 			}
 
+			/*
 			if (passedTime > ServerSettings.GotoTimeOut) {
 				trace('AI: ${player.name + player.id} GOTO failed after $i because of timeout ${Math.round(passedTime)}ms! Ignore ${tx} ${ty} dist: ${Math.round(Math.sqrt(dist))} ${infos.methodName}');
 				break;
-			}
-		}
+			}*/
+		//}
 
-		var passedTime = (Sys.time() - startTime) * 1000;
+		var passedTime = Math.round((Sys.time() - startTime) * 1000);
 		
-		ai.time += passedTime / 1000;
+		//ai.time += passedTime / 1000;
 
 		if(ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime dist: $dist');
 		//trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime');
@@ -587,6 +591,7 @@ class AiHelper {
 		var blocked = false;
 		var ii = 0;
 
+		// search the first none blocked tile
 		for(i in 0...RAD-4){
 			ii = i;
 			px = x - player.x;
@@ -663,14 +668,25 @@ class AiHelper {
 		var tweakX:Int = 0;
 		var tweakY:Int = 0;
 
-		for (i in 0...3) {
+		for (i in 0...5) {
 			switch (i) {
 				case 1:
 					tweakX = x - player.x < 0 ? 1 : -1;
+					tweakY = 0;
 				case 2:
 					tweakX = 0;
 					tweakY = y - player.y < 0 ? 1 : -1;
+				// even if more far away still try since other acceses might be blocked
+				case 3:
+					tweakX = x - player.x < 0 ? -1 : 1; 
+					tweakY = 0;
+				case 4:
+					tweakX = 0;
+					tweakY = y - player.y < 0 ? -1 : 1;
 			}
+
+			if (playerInterface.isBlocked(px + player.tx + tweakX, py + player.ty + tweakY)) continue;
+			if (ai != null && ai.isObjectNotReachable(px + player.tx + tweakX, py + player.ty + tweakY)) continue;
 
 			var end = new Coordinate(px + RAD + tweakX, py + RAD + tweakY);
 
@@ -689,7 +705,7 @@ class AiHelper {
 			//trace('GOTO false ${player.tx},${player.ty} $px,$py $debugtext');
 
 			// since path was cut it might try again if not added here
-			if(ai != null) ai.addNotReachable(px + player.tx, py + player.ty);
+			//if(ai != null) ai.addNotReachable(px + player.tx, py + player.ty);
 
 			// if (onError != null) onError("can not generate path");
 			// trace('AAI: ${player.p_id} CAN NOT GENERATE PATH');
