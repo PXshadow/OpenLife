@@ -423,13 +423,13 @@ abstract class AiBase
 			if(heldId == 72){
 				var done = useHeldObjOnTarget(firePlace);
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} Fire: Has Kindling Use On ==> Hot Coals!  ${firePlace.name} objAtPlace: ${objAtPlace.name} $done');
-				//if(ServerSettings.DebugAiSay)
-				myPlayer.say('Use Kindling on ${firePlace.name} $done'); // hot coals
+				if(ServerSettings.DebugAiSay)
+					myPlayer.say('Use Kindling on ${firePlace.name} $done'); // hot coals
 				return done;
 			}
 			else{
-				//if(ServerSettings.DebugAiSay)
-				myPlayer.say('Get Kindling For ${firePlace.name}');
+				if(ServerSettings.DebugAiSay)
+					myPlayer.say('Get Kindling For ${firePlace.name}');
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} Fire: Get Kindling ==> ${firePlace.name} ');
 				
@@ -443,14 +443,14 @@ abstract class AiBase
 				trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Get Wood or Kindling ==> Fire!');
 
 			if(heldId == 72 || heldId == 344){
-				//if(ServerSettings.DebugAiSay)
-				myPlayer.say('Use On Fire');
+				if(ServerSettings.DebugAiSay)
+					myPlayer.say('Use On Fire');
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Has Kindling Or Wood Use On ==> Fire');
 				return useHeldObjOnTarget(firePlace);
 			}
 			else{
-				//if(ServerSettings.DebugAiSay)
-				myPlayer.say('Get Wood For Fire');
+				if(ServerSettings.DebugAiSay)
+					myPlayer.say('Get Wood For Fire');
 				var done = GetOrCraftItem(344);
 				if(done) return true;
 				else return GetOrCraftItem(72);
@@ -588,8 +588,8 @@ abstract class AiBase
 		if(myPlayer.age < 59) return false;
 
 		var rand = WorldMap.calculateRandomFloat();
-		if(rand < 0.1) myPlayer.say('Good bye!');
-		else if(rand < 0.2) myPlayer.say('Jasonius is calling me. Take care!');
+		if(rand < 0.05) myPlayer.say('Good bye!');
+		else if(rand < 0.1) myPlayer.say('Jasonius is calling me. Take care!');
 
 		if(myPlayer.isMoving()) return true;
 
