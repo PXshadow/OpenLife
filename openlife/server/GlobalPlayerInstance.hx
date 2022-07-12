@@ -4194,8 +4194,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.say(trans.getDesciption(), true);
 			return true;
 		}
-
-		if (text.indexOf('!HIT H') != -1) {
+		else if (text.indexOf('!HIT H') != -1) {
 			trace('!HIT HELD');
 			
 			if(canUseServerCommands == false){
@@ -4273,7 +4272,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				player.say('CREATEALL IS DEACTIVATED', true);
 				return true;
 			}
-		} else if (text.indexOf('!CREATE') != -1 || text.startsWith('!C')) { // "create xxx" with xxx = id
+		} else if (text.indexOf('!CREATE') != -1 || text.startsWith('!C ')) { // "create xxx" with xxx = id
 			if(canUseServerCommands == false){
 				player.say('not allowed!', true);
 				return true;
@@ -4633,6 +4632,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if(toSearch == "PIE") return 265; // Raw Berry Pie 
 		if(toSearch == "BAKE") return 272; // Cooked Berry Pie
 		if(toSearch == "SHOE" || toSearch == "SHOES") return 203; // Rabbit Fur Shoe
+		if(toSearch == "ETERNAL") return 1407; //Fire Tut_only burns forever
 
 		id = ObjectData.GetObjectByName(toSearch, false, end);
 
