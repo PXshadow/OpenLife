@@ -556,7 +556,7 @@ class ServerSettings {
 
 		ObjectData.getObjectData(0).containSize = 1; // Empty
 		ObjectData.getObjectData(0).containable = true; // Empty
-
+		
 		ObjectData.getObjectData(2188).containSize = 2; // Drum Sticks on Plate
 		ObjectData.getObjectData(2188).containable = true; // Drum Sticks on Plate
 
@@ -604,6 +604,10 @@ class ServerSettings {
 
 		ObjectData.getObjectData(650).countsOrGrowsAs = 630; // Bear Cave empty --> Bear Cave
 		ObjectData.getObjectData(647).countsOrGrowsAs = 630; // Bear Cave waking --> Bear Cave
+
+		// decay	
+		ObjectData.getObjectData(2709).decayFactor = -1; // Large Slow Fire tut_only burns forever
+		ObjectData.getObjectData(3112).decayFactor = -1; // Tarr Monument
 
 		// set decay for ancient
 		ObjectData.getObjectData(898).decayFactor = 0.02; // Ancient Stone Floor
