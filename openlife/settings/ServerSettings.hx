@@ -952,6 +952,7 @@ class ServerSettings {
 		ObjectData.getObjectData(418).speedMult *= 1.5; // Boost Wolfs even more :)
 
 		ObjectData.getObjectData(764).mapChance *= 5; // more snakes needs the world!
+		ObjectData.getObjectData(764).permanent = 0; // Rattle Snake
 
 		ObjectData.getObjectData(411).speedMult = SemiHeavyItemSpeed; // Fertile Soil Reduced carring speed
 		ObjectData.getObjectData(345).speedMult = SemiHeavyItemSpeed; // Butt Log
