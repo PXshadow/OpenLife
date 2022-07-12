@@ -1672,6 +1672,7 @@ private function craftLowPriorityClothing() : Bool {
 		var startTime = Sys.time();
 
 		if (animal == null && deadlyPlayer == null) return false;
+		if (myPlayer.food_store < -1) return false;
 		// if(myPlayer == null) throw new Exception('WARNING! PLAYER IS NULL!!!');
 		// if (ServerSettings.DebugAi) trace('escape: animal: ${animal != null} deadlyPlayer: ${deadlyPlayer != null}');
 		// hunt this animal
