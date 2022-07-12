@@ -415,7 +415,7 @@ abstract class AiBase
 
 		if(bestAiForFire == null || bestAiForFire.myPlayer.id != myPlayer.id) return false;
 
-		//if (ServerSettings.DebugAi) 
+		if (ServerSettings.DebugAi) 
 			trace('AAI: ${myPlayer.name + myPlayer.id} Checking Fire: ${firePlace.name} objAtPlace: ${objAtPlace.name} ${myPlayer.firePlace.tx},${myPlayer.firePlace.ty}');
 
 		// 85 Hot Coals // 72 Kindling
@@ -592,10 +592,12 @@ abstract class AiBase
 		else if(rand < 0.2) myPlayer.say('Jasonius is calling me. Take care!');
 
 		if(myPlayer.isMoving()) return true;
+
+		var quadDist = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
+		if(quadDist < 400 && isHandlingGraves()) return true;
 		if(isMovingToHome(5)) return true;
 
 		time += 2;
-		if(isHandlingGraves()) return true;
 
 		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} good bye!');

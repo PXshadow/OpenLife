@@ -207,7 +207,7 @@ class PathfinderNew {
 
             // if creating reverse path check if crossing non reverse path
             if(factor < 0 && lengthCurrent > 0){
-                trace('NewCreatePath: crossed path: ${currentX},${currentY} length: $length lengthCurrent: ${lengthCurrent}');
+                //trace('NewCreatePath: crossed path: ${currentX},${currentY} length: $length lengthCurrent: ${lengthCurrent}');
                 continueFrom = new Coordinate(currentX, currentY);
                 currentMap[Index(currentX,currentY)] = lengthCurrent;
                 return true;
