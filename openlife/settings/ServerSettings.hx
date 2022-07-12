@@ -702,8 +702,19 @@ class ServerSettings {
 		ObjectData.getObjectData(3290).decayFactor = 2; // 3290 Pine Floor
 
 		// set
-		ObjectData.getObjectData(115).decayFactor = 2; // Pine Door
-		ObjectData.getObjectData(115).decaysToObj = 96; // Pine Door ==> 96 Pine Needles
+		ObjectData.getObjectData(115).decayFactor = 2; // Pine Door (horizontal)
+		ObjectData.getObjectData(115).decaysToObj = 96; // Pine Door (horizontal) ==> 96 Pine Needles
+		
+		ObjectData.getObjectData(119).decayFactor = 2; // Open Pine Door (horizontal)
+		ObjectData.getObjectData(119).decaysToObj = 96; // Open Pine Door (horizontal) ==> 96 Pine Needles
+		ObjectData.getObjectData(119).rValue = 0.2; // Open Pine Door (horizontal)
+
+		ObjectData.getObjectData(116).decayFactor = 2; // Pine Door (vertical)
+		ObjectData.getObjectData(116).decaysToObj = 96; // Pine Door (vertical) ==> 96 Pine Needles
+		
+		ObjectData.getObjectData(117).decayFactor = 2; // Open Pine Door (vertical)
+		ObjectData.getObjectData(117).decaysToObj = 96; // Open Pine Door (vertical) ==> 96 Pine Needles
+		ObjectData.getObjectData(117).rValue = 0.2; // Open Pine Door (vertical)
 
 		ObjectData.getObjectData(111).decayFactor = 2; // Pine Wall corner
 		ObjectData.getObjectData(111).decaysToObj = 96; //Pine Wall ==> 96 Pine Needles
@@ -721,7 +732,13 @@ class ServerSettings {
 
 		// set doors
 		//ObjectData.getObjectData(876).rValue = 0.9; // 75% // Wooden Door 
-		ObjectData.getObjectData(876).decaysToObj = 470; // Wooden Door ==> Boards
+		ObjectData.getObjectData(876).decaysToObj = 470; // Wooden Door (horizontal) ==> Boards
+		ObjectData.getObjectData(878).decaysToObj = 470; // Open Wooden Door (horizontal) ==> Boards
+		ObjectData.getObjectData(878).rValue = 0.2; // Open Wooden Door (horizontal)
+
+		ObjectData.getObjectData(877).decaysToObj = 470; // Wooden Door (vertical) ==> Boards
+		ObjectData.getObjectData(879).decaysToObj = 470; // Open Wooden Door (vertical) ==> Boards
+		ObjectData.getObjectData(879).rValue = 0.2; // Open Wooden Door (vertical)
 		ObjectData.getObjectData(2757).rValue = 0.95; // Springy Wooden Door
 		ObjectData.getObjectData(2757).decaysToObj = 876; // Springy Wooden Door ==> Wooden Door
 		ObjectData.getObjectData(2757).blocksAnimal = true; // Springy Wooden Door
