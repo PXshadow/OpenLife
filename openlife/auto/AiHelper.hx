@@ -680,9 +680,13 @@ class AiHelper {
 				case 3:
 					tweakX = x - player.x < 0 ? -1 : 1; 
 					tweakY = 0;
+					if (px + tweakX > RAD - 1) continue;
+					if (px + tweakX < -RAD) continue;
 				case 4:
 					tweakX = 0;
 					tweakY = y - player.y < 0 ? -1 : 1;
+					if (py + tweakY > RAD - 1) continue;
+					if (py + tweakY < -RAD) continue;
 			}
 
 			if (playerInterface.isBlocked(px + player.tx + tweakX, py + player.ty + tweakY)) continue;
