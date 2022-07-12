@@ -912,18 +912,23 @@ class TimeHelper {
 			}
 		}
 
+		var biomeId =  WorldMap.world.getBiomeId(player.tx, player.ty);
+		var isInWater = biomeId == PASSABLERIVER || biomeId == OCEAN;
+
 		// apply clothing temp
 		var clothingInsulation = player.calculateClothingInsulation(); // clothing insulation can be between 0 and 2 for now
 
 		var clothingHeatProtection = player.calculateClothingHeatProtection(); // (1-Insulation) clothing heat protection can be between 0 and 2 for now
 
-		temperature += clothingInsulation / 10;
+		if(isInWater == false){
+			temperature += clothingInsulation / 10;
 
-		// if(temperature > 0.5) temperature -= (temperature - 0.5) * clothingHeatProtection; // the hotter the better the heat protection
+			// if(temperature > 0.5) temperature -= (temperature - 0.5) * clothingHeatProtection; // the hotter the better the heat protection
 
-		if (temperature > 0.5) {
-			temperature -= clothingHeatProtection / 10;
-			if (temperature < 0.5) temperature = 0.5;
+			if (temperature > 0.5) {
+				temperature -= clothingHeatProtection / 10;
+				if (temperature < 0.5) temperature = 0.5;
+			}
 		}
 
 		// if(temperature < 0) temperature = 0;
@@ -977,8 +982,6 @@ class TimeHelper {
 		// If hold by other player, just use temperature from this instead
 		if (player.heldByPlayer != null) temperature = player.heldByPlayer.heat;
 
-		var biomeId =  WorldMap.world.getBiomeId(player.tx, player.ty);
-		var isInWater = biomeId == PASSABLERIVER || biomeId == OCEAN;
 		var waterFactor = isInWater ? ServerSettings.TemperatureInWaterFactor : 1;
 		var newTemperatureIsPositive = (player.heat > 0.5 && temperature < 0.5) || (player.heat < 0.5 && temperature > 0.5);
 		var temperatureImpactPerSec = ServerSettings.TemperatureImpactPerSec;		
