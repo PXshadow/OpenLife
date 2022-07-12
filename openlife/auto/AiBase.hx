@@ -8,7 +8,6 @@ import openlife.data.object.player.PlayerInstance;
 import openlife.data.transition.TransitionData;
 import openlife.data.transition.TransitionImporter;
 import openlife.macros.Macro;
-import openlife.server.Biome.BiomeTag;
 import openlife.server.Connection;
 import openlife.server.GlobalPlayerInstance;
 import openlife.server.NamingHelper;
@@ -33,7 +32,7 @@ abstract class AiBase
     public var seqNum = 1;
 	public var time:Float = 1;
 	public var waitingTime:Float = 0; // if Ai is manual set to wait. Before that it is allowed to finish drop
-
+	private var timeLookedForDeadlyAnimalAtHome:Float = -1;
 	//public var seqNum = 1;
 
 	var feedingPlayerTarget:PlayerInterface = null;
@@ -1302,7 +1301,16 @@ private function craftLowPriorityClothing() : Bool {
 	}
 
 	private function killAnimal(animal:ObjectHelper) : Bool {
-		if (animal == null && animalTarget == null) return false;
+		if (animal == null && animalTarget == null){
+			var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(timeLookedForDeadlyAnimalAtHome);
+			if(passedTime > 20){
+				//trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: look for wolf at home');
+				timeLookedForDeadlyAnimalAtHome = TimeHelper.tick;
+				this.animalTarget = AiHelper.GetClosestObjectToPosition(myPlayer.home.tx, myPlayer.home.ty, 418, 20); // Wolf
+			}
+			if(this.animalTarget == null) return false;
+		}
+
 		if (foodTarget != null) return false;
 
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
