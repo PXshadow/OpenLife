@@ -17,6 +17,8 @@ class PathfinderNew {
     var radius:Int;
     var timeOut:Float = 100; // timeout in ms
 
+    var continueFrom:Coordinate = null;
+
     public function new(newMap:MapCollision){
         this.map = newMap;
         this.radius = newMap.radius;
@@ -84,12 +86,20 @@ class PathfinderNew {
 		
 		if(done) return CreatePathFromMap(start, dest, currentMap);
 
-		if(done) return null;
+        var crossing = CreatePathBruteForce(start, dest, currentMap);
 
-		var change = true;
-		var done = false;
-		var ii = 0;
+        if(crossing != null) AddPathFromCrossing(crossing, dest, currentMap);
 
+		if(crossing != null) return CreatePathFromMap(start, dest, currentMap);
+
+		return null;
+	}
+
+	private function Index(x:Int, y:Int) : Int {
+		return x + y * width;
+	}
+
+    private function CreatePathBruteForce(start:Coordinate, dest:Coordinate, currentMap:Vector<Float>) {
         // to speed brute force up, calculate some more paths without expecting to find goal
         CreateDirectPath(start, new Coordinate(1,1), currentMap);
         CreateDirectPath(start, new Coordinate(1,width - 2), currentMap);
@@ -97,12 +107,23 @@ class PathfinderNew {
         CreateDirectPath(start, new Coordinate(width - 2, width - 2), currentMap);
 
 		var startTime = Sys.time();
+        var change = true;
+        var changeFromDest = true;
+		var done = false;
+		var ii = 0;
+
+        var crossing:Coordinate = null;
+        
+        CreateDirectPath(dest, start, currentMap, -1);
 
 		// brute force
 		for(i in 0...width){
-			if(done) break;
+			//if(done) break;
+            //if(continueFrom != null) break;
             if(change == false) break;
+            if(changeFromDest == false) break;
             change = false;
+            changeFromDest = false;
 
             var time = (Sys.time() - startTime) * 1000;
             if(time > timeOut) break;
@@ -111,7 +132,7 @@ class PathfinderNew {
 			for(y in 0...width){
 				for(x in 0...width){
 					var length = currentMap[Index(x,y)];
-					if(length < 1) continue;
+					if(length == 0) continue;
 
 					for(py in -1...2){
 						for(px in -1...2){
@@ -121,20 +142,33 @@ class PathfinderNew {
 							if(x + px >= width) continue;
 							if(y + py >= width) continue;
 
-							if(currentMap[Index(x + px, y + py)] > 0) continue;
+                            var currentLength = currentMap[Index(x + px, y + py)];
+                            
+                            if((length > 0 && currentLength < 0) || (length < 0 && currentLength > 0)){
+                                // trace('NewCreatePath: Force: dest: ${dest.x},${dest.y} crossed path: ${x + px},${y + py} length: $length lengthCurrent: ${currentLength} time: $time');
+                                crossing = currentLength > 0 ? new Coordinate(x + px, y + py) : new Coordinate(x, y);
+                                done = true;
+								return crossing;
+                            }
+
+							//if(currentLength == 0) continue;
+                            if(length > 0 && currentLength > 0) continue;
+                            if(length < 0 && currentLength < 0) continue;
 							if(map.isWalkable(x + px, y + py) == false) continue;
 							
 							var xlength = px == 0 || py == 0 ? 1 : 1.4;
 							//trace('NewCreatePath: force: i: $i $x,$y / $px,$py $xlength $length');
 							//trace('NewCreatePath: force: i: $i $x,$y / $px,$py $length');
 
-							change = true;
-							currentMap[Index(x + px, y + py)] = length + xlength;
+                            if(length > 0) change = true;
+                            else changeFromDest = true;
+                            
+							currentMap[Index(x + px, y + py)] = length > 0 ? length + xlength : length - xlength;
 
-							if(x + px == dest.x && y + py == dest.y){
+							/*if(x + px == dest.x && y + py == dest.y){
 								done = true;
 								break;
-							}
+							}*/
 						}
 					}
 				}
@@ -145,20 +179,16 @@ class PathfinderNew {
 		var time = Math.round((Sys.time() - startTime) * 1000);
 
 		//trace('NewCreatePath: force: done: $done i: $ii ${dest.x},${dest.y} l: $length t: ${time}');
+        //trace('NewCreatePath: force: i: $ii ${dest.x},${dest.y} l: $length t: ${time} cFrom: $change cTo: $changeFromDest');
 
-		if(done) return CreatePathFromMap(start, dest, currentMap);
-
-		return null;
-	}
-
-	private function Index(x:Int, y:Int) : Int {
-		return x + y * width;
-	}
+        return null;
+    }
 
     public function CreateDirectPath(start:Coordinate, dest:Coordinate, currentMap:Vector<Float>, factor:Float = 1 ) : Bool {
         var currentX = start.x;
         var currentY = start.y;
         var length = factor;
+        var lengthCurrent:Float = 0;
 
         currentMap[Index(currentX,currentY)] = length;
                 
@@ -170,23 +200,34 @@ class PathfinderNew {
             var px = currentX < dest.x ? 1 : -1; 
             var py = currentY < dest.y ? 1 : -1; 
 
-            if(currentX == dest.x && currentY == dest.y) break;
             if(currentX < 1) break;
             if(currentY < 1) break;
             if(currentX >= width - 1) break;
             if(currentY >= width - 1) break;
+
+            // if creating reverse path check if crossing non reverse path
+            if(factor < 0 && lengthCurrent > 0){
+                trace('NewCreatePath: crossed path: ${currentX},${currentY} length: $length lengthCurrent: ${lengthCurrent}');
+                continueFrom = new Coordinate(currentX, currentY);
+                currentMap[Index(currentX,currentY)] = lengthCurrent;
+                return true;
+            }
+
+            if(currentX == dest.x && currentY == dest.y) break;
 
             //trace('NewCreatePath: ${currentX},${currentY} --> ${dest.x},${dest.y} $length');
 
             if(currentX == dest.x && map.isWalkable(currentX, currentY + py)){
                 currentY += py;
                 length += factor;
+                lengthCurrent = currentMap[Index(currentX,currentY)];
                 currentMap[Index(currentX,currentY)] = length;
                 continue;
             }
             if(currentY == dest.y && map.isWalkable(currentX + px, currentY)){
                 currentX += px;
                 length += factor;
+                lengthCurrent = currentMap[Index(currentX,currentY)];
                 currentMap[Index(currentX,currentY)] = length;
                 continue;
             }
@@ -194,6 +235,7 @@ class PathfinderNew {
                 currentX += px;
                 currentY += py;
                 length += 1.4 * factor;
+                lengthCurrent = currentMap[Index(currentX,currentY)];
                 currentMap[Index(currentX,currentY)] = length;
                 continue;
             }
@@ -203,6 +245,7 @@ class PathfinderNew {
                     currentX -= px;
                     currentY += py;
                     length += 1.4 * factor;
+                    lengthCurrent = currentMap[Index(currentX,currentY)];
                     currentMap[Index(currentX,currentY)] = length;
                     continue;
                 }
@@ -214,6 +257,7 @@ class PathfinderNew {
                     currentX += px;
                     currentY -= py;
                     length += 1.4 * factor;
+                    lengthCurrent = currentMap[Index(currentX,currentY)];
                     currentMap[Index(currentX,currentY)] = length;
                     continue;
                 }
@@ -223,12 +267,14 @@ class PathfinderNew {
             if(map.isWalkable(currentX, currentY + py)){
                 currentY += py;
                 length += factor;
+                lengthCurrent = currentMap[Index(currentX,currentY)];
                 currentMap[Index(currentX,currentY)] = length;
                 continue;
             }
             if(map.isWalkable(currentX + px, currentY)){
                 currentX += px;
                 length += factor;
+                lengthCurrent = currentMap[Index(currentX,currentY)];
                 currentMap[Index(currentX,currentY)] = length;
                 continue;
             }
@@ -242,9 +288,44 @@ class PathfinderNew {
         return done;    
     }
 
-	private function BruteForce() {
-		
-	}
+    private function AddPathFromCrossing(crossing:Coordinate, dest:Coordinate, currentMap:Vector<Float>){
+        var nextX = crossing.x;
+		var nextY = crossing.y;
+        var newLength = currentMap[Index(nextX,nextY)];
+        var bestLength:Float = -1000000;
+
+        // from negative to less negativ
+		for(i in 0...1000){
+			var currentX = nextX;
+			var currentY = nextY;
+			var length = currentMap[Index(currentX,currentY)];
+
+            currentMap[Index(currentX,currentY)] = newLength;
+            
+			//trace('AddPathFromCrossing: $currentX,$currentY l: $length --> $newLength');
+            newLength += 1; // TODO does not consider diagonal
+
+			if(length == -1) break;
+
+			for(py in -1...2){
+				for(px in -1...2){
+					if(px == 0 && py == 0) continue;
+					if(currentX + px < 0) continue;
+					if(currentY + py < 0) continue;
+					if(currentX + px >= width) continue;
+					if(currentY + py >= width) continue;
+
+					length = currentMap[Index(currentX + px, currentY + py)];
+					
+					if(length > -1) continue;
+					if(length <= bestLength) continue;
+					bestLength = length;
+					nextX = currentX + px;
+					nextY = currentY + py;
+				}
+			}
+		}
+    }
 
 	private function CreatePathFromMap(start:Coordinate, dest:Coordinate, currentMap:Vector<Float>) : Array<Coordinate>{
 		var maxLength = Math.ceil(currentMap[Index(dest.x,dest.y)]);
