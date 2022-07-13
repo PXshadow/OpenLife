@@ -509,6 +509,7 @@ abstract class AiBase
 			var ai = serverAi.ai;
 			var p = serverAi.player;
 
+			if(p.deleted) continue;
 			if(p.age < ServerSettings.MinAgeToEat) continue;
 			if(p.age > 58 && profession != 'gravekeeper') continue;
 			if(p.isWounded()) continue;
@@ -534,6 +535,7 @@ abstract class AiBase
 			var ai = serverAi.ai;
 			var p = serverAi.player;
 
+			if(p.deleted) continue;
 			if(p.age < ServerSettings.MinAgeToEat) continue;
 			if(p.age > 58 && profession != 'gravekeeper') continue;
 			if(p.isWounded()) continue;
@@ -547,7 +549,7 @@ abstract class AiBase
 			var quadDist = p.CalculateQuadDistanceToObject(obj);
 
 			// avoid that ai changes if looking for wood or making fire
-			if(hasProfession == false) quadDist += 1600;
+			if(hasProfession == false) quadDist += 400;
 
 			if(bestAi != null && quadDist >= bestQuadDist) continue;
 
@@ -797,12 +799,11 @@ abstract class AiBase
 		if(hardenedRow != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 		//if(hardenedRow != null) if(craftItem(213)) return true; // Deep Tilled Row
 
-		var closeSoil = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Fertile Soil
-		if(closeSoil != null) if(craftItem(1136)) return true; // Shallow Tilled Row
-		//if(closeSoil != null) if(craftItem(213)) return true; // Deep Tilled Row
-
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1136, null, 20); // Shallow Tilled Row
 		if(closeObj != null) if(craftItem(213)) return true; // Deep Tilled Row
+
+		var closeSoil = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Fertile Soil
+		if(closeSoil != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 
 		//if(myPlayer.age < 15 && makeFireWood()) return true;
 		
