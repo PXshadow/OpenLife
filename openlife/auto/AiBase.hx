@@ -580,11 +580,16 @@ abstract class AiBase
 	}
 
 	private function isHandlingGraves() : Bool {
+
+		if(myPlayer.heldObject.parentId == 356) return dropHeldObject(); // Basket of Bones
+
 		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['grave']);
 		var isGravekeeper = this.profession['gravekeeper'] > 0;
 		if(passedTime < 20 && isGravekeeper == false) return false;
 
 		lastCheckedTimes['grave'] = TimeHelper.tick;
+
+		//myPlayer.say('check for graves!');
 
 		var heldId = myPlayer.heldObject.parentId;
 		var grave = AiHelper.GetClosestObjectById(myPlayer, 357, null, 20); // Bone Pile
@@ -594,6 +599,8 @@ abstract class AiBase
 
 		if (this.isObjectNotReachable(grave.tx, grave.ty)) return false;
 		if (this.isObjectWithHostilePath(grave.tx, grave.ty)) return false;
+
+		//myPlayer.say('graves found!');
 
 		// cannot touch own grave
 		var account = grave.getOwnerAccount();
@@ -618,9 +625,15 @@ abstract class AiBase
 			return removeItemFromContainer(grave);
 		}
 
-		// TODO move bones
+		// pickup bones
 		var floorId = WorldMap.world.getFloorId(grave.tx, grave.ty);
-		if(floorId > 0) return false;
+		if(floorId > 0){
+			if(heldId == 292){ // Basket
+				if(myPlayer.heldObject.containedObjects.length > 0) return dropHeldObject();
+				return useHeldObjOnTarget(grave);
+			} 
+			return GetOrCraftItem(292); // Basket
+		}
 
 		// 850 Stone Hoe // 502 = Shovel
 		if(heldId == 850 || heldId == 502){
@@ -632,11 +645,8 @@ abstract class AiBase
 		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: try to get hoe or shovel');
 
 		// 850 Stone Hoe
-		if(GetOrCraftItem(850) == false){
-			return GetOrCraftItem(502); // 502 = Shovel
-		}
-
-		return true;
+		if(GetOrCraftItem(850)) return true;
+		return GetOrCraftItem(502); // 502 = Shovel
 	}
 
 	private function handleDeath() : Bool {
@@ -1349,6 +1359,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		// start a new pile?
 		if(newDropTarget == null && pileId > 0) newDropTarget = myPlayer.GetClosestObjectById(myPlayer.heldObject.id, 4);
+
 		// get empty tile
 		if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectById(0);
 
@@ -1358,7 +1369,8 @@ private function craftLowPriorityClothing() : Bool {
 			newDropTarget = myPlayer.GetClosestObjectById(0);			
 		}
 
-		if (newDropTarget.id == 0){
+		// dont use drop if held is Basket of Bones (356) to empty it!
+		if (newDropTarget.id == 0 && myPlayer.heldObject.parentId != 356){ 
 			this.dropIsAUse = false;
 			this.dropTarget = newDropTarget;
 		}
@@ -1531,7 +1543,8 @@ private function craftLowPriorityClothing() : Bool {
 		if (ServerSettings.DebugAi) 
 			trace('AAI: ${myPlayer.name + myPlayer.id} GetOrCraftItem: found ${obj.name} pile: $usePile');
 
-		if (usePile) if(dropHeldObject()) return true;
+		// If picking up from a pile or a container like Basket make sure that hand is empty
+		if ((usePile || obj.objectData.numSlots > 0) && dropHeldObject()) return true;
 
 		var distance = myPlayer.CalculateQuadDistanceToObject(obj);
 
@@ -1551,6 +1564,8 @@ private function craftLowPriorityClothing() : Bool {
 
 			return true;
 		}
+
+		//if(obj.parentId == 292) trace('Pickup Baske usePile: $usePile');
 
 		// if(ServerSettings.DebugAi) trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
 
@@ -2511,6 +2526,10 @@ private function craftLowPriorityClothing() : Bool {
 			return false;
 		}
 		if (myPlayer.isMoving()) return true;
+
+		// TODO support dropping in a container
+		// If picking up a container like Basket make sure not to drop stuff in the container
+		if(dropTarget.objectData.numSlots > 0 && dropHeldObject()) return true; 
 
 		var distance = myPlayer.CalculateQuadDistanceToObject(dropTarget);
 		// var myPlayer = myPlayer.getPlayerInstance();
