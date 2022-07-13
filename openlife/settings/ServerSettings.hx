@@ -556,6 +556,9 @@ class ServerSettings {
 
 		ObjectData.getObjectData(0).containSize = 1; // Empty
 		ObjectData.getObjectData(0).containable = true; // Empty
+
+		ObjectData.getObjectData(356).containSize = 2; // Basket of Bones
+		ObjectData.getObjectData(356).containable = true; // Basket of Bones
 		
 		ObjectData.getObjectData(2188).containSize = 2; // Drum Sticks on Plate
 		ObjectData.getObjectData(2188).containable = true; // Drum Sticks on Plate
