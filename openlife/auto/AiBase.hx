@@ -742,6 +742,13 @@ abstract class AiBase
 
 		if(closeObj != null && closeObj.numberOfUses > 2) if(craftItem(402)) return true; // Carrot TODO carrot (would also make wild carrots to carrot with bowl)
 
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1101); // Fertile Soil Pile
+		if(closeObj == null && craftItem(1101)) return true; // Fertile Soil Pile
+
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 624); // Composted Soil
+		if(closeObj == null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 790); // Composting Compost Pile
+		if(closeObj == null && craftItem(790)) return true; // Composting Compost Pile
+
 		var hardenedRow = AiHelper.GetClosestObjectById(myPlayer, 848); // Hardened Row
 		if(hardenedRow != null) if(craftItem(213)) return true; // Deep Tilled Row
 
