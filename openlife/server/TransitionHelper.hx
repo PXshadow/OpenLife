@@ -842,8 +842,12 @@ class TransitionHelper {
 		// if( || (transition.targetID == -1 && transition.newActorID == 0))		
 		var isPickupOrDrop = transition.isPickupOrDrop; // also used for graves?
 		
+		// 292 Basket should be empty
+		if(this.player.heldObject.parentId == 292 && this.player.heldObject.containedObjects.length > 0) return false;
+
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} isHorseDropTrans: $isHorseDropTrans isPickupOrDrop: $isPickupOrDrop target.isPermanent: ${target.isPermanent()} targetRemains: ${transition.targetRemains}');
+				
 		if (isPickupOrDrop || isHorseDropTrans) {
 			if (ServerSettings.DebugTransitionHelper)
 				trace('TRANS: ${player.name + player.id} switch held object with tile object / This should be for transitions with horses, especially horse carts that can otherwise loose items');
@@ -854,6 +858,8 @@ class TransitionHelper {
 
 			// reset creation time, so that horses wont esape instantly
 			this.target.creationTimeInTicks = TimeHelper.tick;
+			//this.pickUpObject = true;
+			//return true;
 		} else {
 			// check if not horse pickup or drop
 			if (player.heldObject.containedObjects.length > newActorObjectData.numSlots) {
