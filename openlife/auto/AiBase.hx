@@ -734,16 +734,33 @@ abstract class AiBase
 		if(fillBerryBowlIfNeeded()) return true;
 		if(makePopcornIfNeeded()) return true;
 
-		if(myPlayer.age < 20 && makeSharpieFood()) return true;
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 400); // Carrot Row
+		if(closeObj != null && closeObj.numberOfUses > 2) if(craftItem(402)) return true; // Carrot TODO carrot (would also make wild carrots to carrot with bowl)
 
 		if(craftItem(1114)) return true; // Shucked Ear of Corn
 
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 400); // Carrot Row
+		if(myPlayer.age < 20 && makeSharpieFood()) return true;
 
-		if(closeObj != null && closeObj.numberOfUses > 2) if(craftItem(402)) return true; // Carrot TODO carrot (would also make wild carrots to carrot with bowl)
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 242); // Ripe Wheat
+		if(closeObj != null) if(craftItem(224)) return true; // Harvested Wheat
+		
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 224); // Harvested Wheat
+		if(closeObj != null) if(craftItem(225)) return true; // Wheat Sheaf
+		
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 225); // Wheat Sheaf
+		if(closeObj != null) if(craftItem(226)) return true; // Threshed Wheat
 
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1101); // Fertile Soil Pile
-		if(closeObj == null && craftItem(1101)) return true; // Fertile Soil Pile
+		if(closeObj == null){
+			var done = craftItem(1101);
+			myPlayer.say('try craftItem Fertile Soil Pile: $done');
+			trace('craftItem Fertile Soil Pile $done');
+			if(done) return true; // Fertile Soil Pile
+		}
+		else {
+			trace('Fertile Soil Pile!');
+		}
+		//if(closeObj == null && craftItem(1101)) return true; // Fertile Soil Pile
 
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 624); // Composted Soil
 		if(closeObj == null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 790); // Composting Compost Pile
@@ -1313,6 +1330,9 @@ private function craftLowPriorityClothing() : Bool {
 
 		var newDropTarget = null;
 		var pileId = myPlayer.heldObject.objectData.getPileObjId();
+
+		if(myPlayer.heldObject.parentId == 225) pileId = 0; // Wheat Sheaf --> drop on ground to process
+		
 		if(pileId > 0){
 			newDropTarget = myPlayer.GetClosestObjectById(pileId, 4); 
 			if(newDropTarget != null && newDropTarget.numberOfUses >= newDropTarget.objectData.numUses) newDropTarget = null;
@@ -2061,7 +2081,7 @@ private function craftLowPriorityClothing() : Bool {
 				}
 
 				// check if object can be used to craft item
-				var trans = transitionsByObjectId[objData.id];
+				var trans = transitionsByObjectId[objData.parentId];
 				if (trans == null) continue; // object is not useful for crafting wanted object
 
 				var steps = trans.steps;
