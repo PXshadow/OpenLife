@@ -640,7 +640,7 @@ abstract class AiBase
 	}
 
 	private function handleDeath() : Bool {
-		if(myPlayer.age < 59) return false;
+		if(myPlayer.age < 58.5) return false;
 
 		this.profession['gravekeeper'] = 1; 
 
@@ -972,6 +972,16 @@ private function craftMediumPriorityClothing() : Bool {
 		if(craftClothIfNeeded(874)) return true; 
 		if(fillUpQuiver()) return true;
 
+		// Shoes
+		// 844 Fruit Boot ==> Black
+		if(color == Black && craftClothIfNeeded(844)) return true;
+		// 2887 Sandal ==> Black
+		if(color == Black && craftClothIfNeeded(2887)) return true;
+		// 766 Snake Skin Boot ==> Black
+		if(color == Black && craftClothIfNeeded(766)) return true;
+		// 203 Rabbit Fur Shoe
+		if(isWhiteOrGinger && craftClothIfNeeded(203)) return true;
+
 		// Chest clothing
 		// 564 Mouflon Hide ==> White / Chest
 		if(color == White && myPlayer.age >= objData.minPickupAge && craftClothIfNeeded(564)) return true;
@@ -999,16 +1009,6 @@ private function craftLowPriorityClothing() : Bool {
 		if(isWhiteOrGinger && myPlayer.age >= objData.minPickupAge && craftClothIfNeeded(2180)) return true;
 		// 199 Rabbit Fur Hat
 		if(isWhiteOrGinger && craftClothIfNeeded(199)) return true;
-
-		// Shoes
-		// 844 Fruit Boot ==> Black
-		if(color == Black && craftClothIfNeeded(844)) return true;
-		// 2887 Sandal ==> Black
-		if(color == Black && craftClothIfNeeded(2887)) return true;
-		// 766 Snake Skin Boot ==> Black
-		if(color == Black && craftClothIfNeeded(766)) return true;
-		// 203 Rabbit Fur Shoe
-		if(isWhiteOrGinger && craftClothIfNeeded(203)) return true;
 
 		// Back clothing
 		// 198 Backpack
