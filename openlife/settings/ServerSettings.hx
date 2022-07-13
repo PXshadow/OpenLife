@@ -844,11 +844,11 @@ class ServerSettings {
 		ObjectData.getObjectData(123).hungryWork = 2; // Harvested Tule
 		ObjectData.getObjectData(231).hungryWork = 10; // Adobe Oven Base
 
-		ObjectData.getObjectData(1020).hungryWork = 3; // Snow Bank
-		ObjectData.getObjectData(138).hungryWork = 3; // Cut Sapling Skewer
+		ObjectData.getObjectData(1020).hungryWork = 2; // Snow Bank
+		ObjectData.getObjectData(138).hungryWork = 2; // Cut Sapling Skewer
 		ObjectData.getObjectData(3961).hungryWork = 5; // Iron Vein
-		ObjectData.getObjectData(496).hungryWork = 10; // Dug Stump
-		ObjectData.getObjectData(1011).hungryWork = 10; // Buried Grave
+		ObjectData.getObjectData(496).hungryWork = 5; // Dug Stump
+		ObjectData.getObjectData(1011).hungryWork = 5; // Buried Grave
 		//ObjectData.getObjectData(357).hungryWork = 5; // Bone Pile // Dont set!!!
 
 		ObjectData.getObjectData(213).hungryWork = 3; // Deep Tilled Row
