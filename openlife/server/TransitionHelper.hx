@@ -1,7 +1,5 @@
 package openlife.server;
 
-import format.agal.Data.Tex;
-import format.hl.Data.CodeFlag;
 import haxe.Exception;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
@@ -119,6 +117,11 @@ class TransitionHelper {
 			var text = 'TRANS: ${player.name + player.id} ${player.heldObject.name} + ${helper.target.name} ${helper.target.toArray()} NOT SUPPORTET YET!'; 
 			trace(text); // 5792
 			return false;
+		}
+
+		// Tarr Monument
+		if(helper.target.parentId == 3112){
+			player.say('Praise Jinbaili!');
 		}
 
 		//var text = 'TRANS: ${player.name + player.id} tag: $tag ${player.heldObject.name} + ${helper.target.name} ${helper.target.toArray()}'; 
