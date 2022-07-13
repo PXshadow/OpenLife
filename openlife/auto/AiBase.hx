@@ -918,6 +918,11 @@ abstract class AiBase
 		// do nothing if there is a full Bowl of Gooseberries
 		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
 		if(closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses) return false;
+
+		var target = closeBerryBowl != null ? closeBerryBowl : myPlayer.home;
+		var bestPlayer = getBestAiForObjByProfession('BowlFiller', target);
+		if(bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) return false;
+
 		if(closeBerryBowl != null){
 			this.dropTarget = closeBerryBowl; // pick it up to fill
 			this.dropIsAUse = false;
@@ -934,6 +939,9 @@ abstract class AiBase
 		// do nothing if there is Popcorn
 		var closePopcorn = AiHelper.GetClosestObjectById(myPlayer, 1121); // Popcorn
 		if(closePopcorn != null) return false;
+
+		var bestPlayer = getBestAiForObjByProfession('BowlFiller', myPlayer.home);
+		if(bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) return false;
 
 		return craftItem(1121); // Popcorn
 	}
