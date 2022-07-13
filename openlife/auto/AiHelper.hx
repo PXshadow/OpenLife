@@ -152,6 +152,8 @@ class AiHelper {
 
 					if (ownedByPlayer && obj.isOwnedByPlayer(playerInterface) == false) continue;
 
+					if(obj.containedObjects.length > 0 && obj.isGrave() == false) continue; // for example ignore filled baskets 
+
 					var distance = AiHelper.CalculateQuadDistanceToObject(playerInterface, obj);
 
 					if(searchEmptyPlace && IsBadBiomeForDrop(tx, ty)){
