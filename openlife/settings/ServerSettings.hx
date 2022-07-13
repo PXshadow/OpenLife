@@ -2168,6 +2168,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(252, 291,true); // Bowl of Dough + Flat Rock
 		trans.aiShouldIgnore = true;
 
+		var trans = transtions.getTransition(0, 1471); // 0 + Sliced Bread
+		trans.aiShouldIgnore = true; // they make a mess to get the plate
+
 		// forbid burning stuff
 		var trans = transtions.getTransition(516, 82); // Skewered Goose + Fire
 		trans.aiShouldIgnore = true;
