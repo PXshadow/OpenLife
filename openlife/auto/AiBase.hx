@@ -501,6 +501,30 @@ abstract class AiBase
 		return bestAi;
 	}*/
 
+	private function countProfession(profession:String) : Float{
+		var ais = Connection.getAis();
+		var count = 0;
+		
+		for(serverAi in ais){
+			var ai = serverAi.ai;
+			var p = serverAi.player;
+
+			if(p.age < ServerSettings.MinAgeToEat) continue;
+			if(p.age > 58 && profession != 'gravekeeper') continue;
+			if(p.isWounded()) continue;
+			if(p.food_store < 2) continue;
+			if(p.home.tx != myPlayer.home.tx && p.home.ty != myPlayer.home.ty) continue;
+
+			var hasProfession = ai.profession[profession] > 0;
+
+			if(hasProfession == false) continue;
+
+			count++;
+		}
+
+		return count;
+	}
+
 	private function getBestAiForObjByProfession(profession:String, obj:ObjectHelper) : AiBase{
 		var ais = Connection.getAis();
 		var bestAi = null;
@@ -514,7 +538,7 @@ abstract class AiBase
 			if(p.age > 58 && profession != 'gravekeeper') continue;
 			if(p.isWounded()) continue;
 			if(p.food_store < 2) continue;
-			if(p.home != myPlayer.home) continue;
+			if(p.home.tx != myPlayer.home.tx && p.home.ty != myPlayer.home.ty) continue;
 
 			var hasProfession = ai.profession[profession] > 0;
 
@@ -760,29 +784,25 @@ abstract class AiBase
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 225, null, 20); // Wheat Sheaf
 		if(closeObj != null) if(craftItem(226)) return true; // Threshed Wheat
 
-		trace('Fertile Soil Pile!');
+		//trace('Fertile Soil Pile!');
 
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1101); // Fertile Soil Pile
-		if(closeObj == null){
-			var done = craftItem(336); // 336 Basket of Soil
-			myPlayer.say('try craftItem Fertile Soil Pile: $done');
-			trace('craftItem Fertile Soil Pile $done');
-			if(done) return true; // Fertile Soil Pile
-		}
-		else {
-			trace('Fertile Soil Pile!');
-		}
-		//if(closeObj == null && craftItem(1101)) return true; // Fertile Soil Pile
+		if(closeObj == null && craftItem(336)) return true; // Basket of Soil
 
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 624); // Composted Soil
 		if(closeObj == null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 790); // Composting Compost Pile
 		if(closeObj == null && craftItem(790)) return true; // Composting Compost Pile
 
-		var hardenedRow = AiHelper.GetClosestObjectById(myPlayer, 848); // Hardened Row
-		if(hardenedRow != null) if(craftItem(213)) return true; // Deep Tilled Row
+		var hardenedRow = AiHelper.GetClosestObjectById(myPlayer, 848, null, 20); // Hardened Row
+		if(hardenedRow != null) if(craftItem(1136)) return true; // Shallow Tilled Row
+		//if(hardenedRow != null) if(craftItem(213)) return true; // Deep Tilled Row
 
-		var closeSoil = AiHelper.GetClosestObjectById(myPlayer, 1138); // Fertile Soil
-		if(closeSoil != null) if(craftItem(213)) return true; // Deep Tilled Row
+		var closeSoil = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Fertile Soil
+		if(closeSoil != null) if(craftItem(1136)) return true; // Shallow Tilled Row
+		//if(closeSoil != null) if(craftItem(213)) return true; // Deep Tilled Row
+
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Shallow Tilled Row
+		if(closeObj != null) if(craftItem(213)) return true; // Deep Tilled Row
 
 		//if(myPlayer.age < 15 && makeFireWood()) return true;
 		
@@ -792,7 +812,9 @@ abstract class AiBase
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1110); // Wet Planted Corn Seed
 		if(closeObj != null) if(craftItem(1110)) return true; // Wet Planted Corn Seed
 
-		if(myPlayer.age < 20 && makeFireFood()) return true;
+		trace('makeFireFood');
+
+		if(myPlayer.age < 30 && makeFireFood()) return true;
 
 		return false;
 	}
@@ -1008,6 +1030,17 @@ abstract class AiBase
 }
 
 private function craftMediumPriorityClothing() : Bool {
+		var hasProfession = this.profession['ClothMaker'] > 0;
+
+		if(hasProfession == false){
+			var count = countProfession('ClothMaker');
+			trace('craftMediumPriorityClothing: count: $count');
+			if (count > 1) return false;
+			this.profession['ClothMaker'] = 1;
+		}
+
+		trace('craftMediumPriorityClothing');
+
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
 		var color = myPlayer.getColor();
 		var isWhiteOrGinger = (color == Ginger || color == White);
@@ -1037,6 +1070,8 @@ private function craftMediumPriorityClothing() : Bool {
 		if(isWhiteOrGinger && craftClothIfNeeded(202)) return true;
 		// 201 Rabbit Fur Shawl / Chest
 		if(isWhiteOrGinger && craftClothIfNeeded(201)) return true;	
+
+		this.profession['ClothMaker'] = 0;
 
 		return false;
 }
