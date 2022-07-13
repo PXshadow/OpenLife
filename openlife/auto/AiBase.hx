@@ -390,7 +390,7 @@ abstract class AiBase
 			firePlace = AiHelper.GetCloseFire(myPlayer);
 
 			if(firePlace == null){
-				var bestAiForFire = getBestAiForFire(myPlayer.home);
+				var bestAiForFire = getBestAiForObjByProfession('firekeeper', myPlayer.home);
 				if(bestAiForFire != null && bestAiForFire.myPlayer.id == myPlayer.id){
 					//if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} Make new Fire: ${myPlayer.home.tx},${myPlayer.home.ty}');
@@ -413,7 +413,7 @@ abstract class AiBase
 		// 83 Large Fast Fire // 346 Large Slow Fire
 		if(objId == 83 || objId == 346) return false;
 
-		var bestAiForFire = getBestAiForFire(myPlayer.firePlace);
+		var bestAiForFire = getBestAiForObjByProfession('firekeeper', myPlayer.firePlace);
 
 		if(bestAiForFire == null || bestAiForFire.myPlayer.id != myPlayer.id) return false;
 
@@ -464,7 +464,7 @@ abstract class AiBase
 		return false;
 	}
 
-	private function getBestAiForFire(fire:ObjectHelper) : AiBase{
+	/*private function getBestAiForFire(fire:ObjectHelper) : AiBase{
 		var ais = Connection.getAis();
 		var bestAi = null;
 		var bestQuadDist:Float = -1;
@@ -498,7 +498,7 @@ abstract class AiBase
 		}
 
 		return bestAi;
-	}
+	}*/
 
 	private function getBestAiForObjByProfession(profession:String, obj:ObjectHelper) : AiBase{
 		var ais = Connection.getAis();
