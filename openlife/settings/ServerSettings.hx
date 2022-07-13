@@ -2191,6 +2191,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(139, 1101); // Skewer + Fertile Soil Pile
 		trans.aiShouldIgnore = true;
 
+		var trans = transtions.getTransition(852, 1101); // Weak Skewer + Fertile Soil Pile
+		trans.aiShouldIgnore = true;
+
 		var trans = transtions.getTransition(850, 1101); // Stone Hoe + Fertile Soil Pile
 		trans.aiShouldIgnore = true;
 

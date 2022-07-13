@@ -114,9 +114,9 @@ class AiHelper {
 		var heldId = player.heldObject.parentId;
 		var objId = objDataToSearch == null ? -1 : objDataToSearch.parentId; 
 		var searchEmptyPlace = ai != null && objDataToSearch != null && objDataToSearch.parentId == 0;
-		// 1137 Bowl of Soil // 356 Basket of Bones
+		// 1137 Bowl of Soil // 356 Basket of Bones // 336 Basket of Soil
 		// TODO 1101 Fertile Soil Pile
-		var searchNotFlooredPlace = ai != null && (heldId == 1137 || heldId == 356); 
+		var searchNotFlooredPlace = ai != null && (heldId == 1137 || heldId == 356 || heldId == 336); 
 		var baseX = player.tx;
 		var baseY = player.ty;
 		var closestBadPlaceforDrop = null;

@@ -751,18 +751,20 @@ abstract class AiBase
 
 		if(myPlayer.age < 20 && makeSharpieFood()) return true;
 
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 242); // Ripe Wheat
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 242, null, 20); // Ripe Wheat
 		if(closeObj != null) if(craftItem(224)) return true; // Harvested Wheat
 		
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 224); // Harvested Wheat
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 224, null, 20); // Harvested Wheat
 		if(closeObj != null) if(craftItem(225)) return true; // Wheat Sheaf
 		
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 225); // Wheat Sheaf
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 225, null, 20); // Wheat Sheaf
 		if(closeObj != null) if(craftItem(226)) return true; // Threshed Wheat
+
+		trace('Fertile Soil Pile!');
 
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1101); // Fertile Soil Pile
 		if(closeObj == null){
-			var done = craftItem(1101);
+			var done = craftItem(336); // 336 Basket of Soil
 			myPlayer.say('try craftItem Fertile Soil Pile: $done');
 			trace('craftItem Fertile Soil Pile $done');
 			if(done) return true; // Fertile Soil Pile
@@ -1369,8 +1371,10 @@ private function craftLowPriorityClothing() : Bool {
 			newDropTarget = myPlayer.GetClosestObjectById(0);			
 		}
 
-		// dont use drop if held is Basket of Bones (356) to empty it!
-		if (newDropTarget.id == 0 && myPlayer.heldObject.parentId != 356){ 
+		// dont use drop if held is Basket of Bones (356) to empty it! // 336 Basket of Soil
+		var heldId = myPlayer.heldObject.parentId;
+
+		if (newDropTarget.id == 0 &&  heldId != 356 && heldId != 336){ 
 			this.dropIsAUse = false;
 			this.dropTarget = newDropTarget;
 		}
@@ -2795,6 +2799,7 @@ private function craftLowPriorityClothing() : Bool {
 			return true;
 		}
 		
+		var useActorName = myPlayer.heldObject.name; 
 		var useActorId = myPlayer.heldObject.id;
 		var useTargetId = useTarget.id;
 		// x,y is relativ to birth position, since this is the center of the universe for a player
@@ -2835,7 +2840,7 @@ private function craftLowPriorityClothing() : Bool {
 				}
 
 				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} done: ${useTarget.name} ==> ${itemToCraft.itemToCraft.name} trans: ${itemToCraft.countTransitionsDone} finished: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
+					trace('AAI: ${myPlayer.name + myPlayer.id} done: ${useActorName} + ${useTarget.name} ==> ${itemToCraft.itemToCraft.name} trans: ${itemToCraft.countTransitionsDone} finished: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
 			}
 		} else {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use failed! Ignore: ${useTarget.name} ${useTarget.tx} ${useTarget.ty} ');
