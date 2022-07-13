@@ -2549,7 +2549,9 @@ private function craftLowPriorityClothing() : Bool {
 			return true;
 		}
 
-		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
+		var isUse = foodTarget.isPermanent() || foodTarget.objectData.foodValue < 1;
+
+		if (isUse && myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object at home to pickup food');
 			dropHeldObject(20);
 			return true;
@@ -2586,8 +2588,12 @@ private function craftLowPriorityClothing() : Bool {
 			return true;
 		}
 
+		var done = false;
+
 		// x,y is relativ to birth position, since this is the center of the universe for a player
-		var done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+		if(isUse) done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+		else done = myPlayer.drop(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy); // use drop for berry bowl
+		
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} pickup food: ${foodTarget.name} $done');
 
 		if (done == false) {
