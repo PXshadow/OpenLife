@@ -1546,6 +1546,15 @@ class ObjectData extends LineReader {
 		return false;
 	}
 
+	public function isGrave():Bool {
+		return StringTools.contains(description, 'origGrave');
+	}
+
+	public function isNoBoneGrave():Bool {
+		if(isGrave() == false) return false;
+		return isBoneGrave() == false;
+	}
+
 	public function isBoneGrave():Bool {
 		return IsBoneGrave(this.id);
 	}

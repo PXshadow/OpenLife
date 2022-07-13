@@ -1713,6 +1713,9 @@ class TimeHelper {
 		//var objData = ObjectData.getObjectData(objId);
 
 		decayChance *= biomeDecayFactor;
+
+		if(objData.isNoBoneGrave()) decayChance *= 0.01;
+
 		//if(containsSomething) decayChance *= 10000;
 		
 		if (objData.foodValue > 0) decayChance *= ServerSettings.ObjDecayFactorForFood;

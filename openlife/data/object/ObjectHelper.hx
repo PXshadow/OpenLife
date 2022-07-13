@@ -501,7 +501,7 @@ class ObjectHelper {
 	}
 
 	public function isGrave():Bool {
-		return StringTools.contains(description, 'origGrave');
+		return objectData.isGrave();
 	}
 
 	public function isOwned():Bool {
