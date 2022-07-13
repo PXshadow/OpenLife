@@ -81,6 +81,7 @@ abstract class AiBase
 	public var hasCornSeeds = false;
 
 	public var profession:Map<String,Float> = [];
+	public var lastCheckedTimes:Map<String,Float> = [];
 
 	public static function StartAiThread() {
 		Thread.create(RunAi);
@@ -579,6 +580,12 @@ abstract class AiBase
 	}
 
 	private function isHandlingGraves() : Bool {
+		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['grave']);
+		var isGravekeeper = this.profession['gravekeeper'] > 0;
+		if(passedTime < 20 && isGravekeeper == false) return false;
+
+		lastCheckedTimes['grave'] = TimeHelper.tick;
+
 		var heldId = myPlayer.heldObject.parentId;
 		var grave = AiHelper.GetClosestObjectById(myPlayer, 357, null, 20); // Bone Pile
 		if(grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 88, null, 20); // 88 Grave 
@@ -634,6 +641,8 @@ abstract class AiBase
 
 	private function handleDeath() : Bool {
 		if(myPlayer.age < 59) return false;
+
+		this.profession['gravekeeper'] = 1; 
 
 		var rand = WorldMap.calculateRandomFloat();
 		if(rand < 0.05) myPlayer.say('Good bye!');
