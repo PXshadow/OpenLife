@@ -80,6 +80,8 @@ abstract class AiBase
 	public var isCaringForFire = false;
 	public var hasCornSeeds = false;
 
+	public var profession:Map<String,Float> = [];
+
 	public static function StartAiThread() {
 		Thread.create(RunAi);
 	}
@@ -498,6 +500,44 @@ abstract class AiBase
 		return bestAi;
 	}
 
+	private function getBestAiForObjByProfession(profession:String, obj:ObjectHelper) : AiBase{
+		var ais = Connection.getAis();
+		var bestAi = null;
+		var bestQuadDist:Float = -1;
+
+		for(serverAi in ais){
+			var ai = serverAi.ai;
+			var p = serverAi.player;
+
+			if(p.age < ServerSettings.MinAgeToEat) continue;
+			if(p.age > 58 && profession != 'gravekeeper') continue;
+			if(p.isWounded()) continue;
+			if(p.food_store < 2) continue;
+			if(p.home != myPlayer.home) continue;
+
+			var hasProfession = ai.profession[profession] > 0;
+
+			if(hasProfession == false && p.id != myPlayer.id) continue;
+
+			var quadDist = p.CalculateQuadDistanceToObject(obj);
+
+			// avoid that ai changes if looking for wood or making fire
+			if(hasProfession == false) quadDist += 1600;
+
+			if(bestAi != null && quadDist >= bestQuadDist) continue;
+
+			bestQuadDist = quadDist;
+			bestAi = ai;
+		}
+
+		if(bestAi != null){
+			this.profession[profession] = 0;
+			bestAi.profession[profession] = 1;
+		}
+
+		return bestAi;
+	}
+
 	public function isMakingSeeds() {
 		// TODO check once every X seconds
 		// TODO check at home too
@@ -554,6 +594,14 @@ abstract class AiBase
 			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: its my grave acountID: ${account.id}!');
 			return false; 
 		}
+
+		if(this.myPlayer.age < 58){
+			var bestPlayer = getBestAiForObjByProfession('gravekeeper', grave);
+			if(bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) return false;
+		}
+
+		this.profession['gravekeeper'] = 1; 
+
 		if(grave.containedObjects.length > 0){
 			if(dropHeldObject(0)){
 				if(ServerSettings.DebugAiSay) myPlayer.say('drop for remove from grave');
