@@ -345,6 +345,9 @@ class TransitionHelper {
 			return true;
 		}
 
+		// TODO take care of empty objToStore on use
+		if (objToStore.id == 0 && isDrop) return false; 
+
 		if (objToStoreObjData.containable == false) {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} handObject ${objToStoreObjData.name} is not containable!');
 			return false;
