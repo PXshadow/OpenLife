@@ -793,7 +793,7 @@ abstract class AiBase
 		if(closeObj == null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 790); // Composting Compost Pile
 		if(closeObj == null && craftItem(790)) return true; // Composting Compost Pile
 
-		var hardenedRow = AiHelper.GetClosestObjectById(myPlayer, 848, null, 20); // Hardened Row
+		var hardenedRow = AiHelper.GetClosestObjectById(myPlayer, 848, null, 15); // Hardened Row
 		if(hardenedRow != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 		//if(hardenedRow != null) if(craftItem(213)) return true; // Deep Tilled Row
 
@@ -801,7 +801,7 @@ abstract class AiBase
 		if(closeSoil != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 		//if(closeSoil != null) if(craftItem(213)) return true; // Deep Tilled Row
 
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Shallow Tilled Row
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1136, null, 20); // Shallow Tilled Row
 		if(closeObj != null) if(craftItem(213)) return true; // Deep Tilled Row
 
 		//if(myPlayer.age < 15 && makeFireWood()) return true;
@@ -1034,12 +1034,12 @@ private function craftMediumPriorityClothing() : Bool {
 
 		if(hasProfession == false){
 			var count = countProfession('ClothMaker');
-			trace('craftMediumPriorityClothing: count: $count');
+			//trace('craftMediumPriorityClothing: count: $count');
 			if (count > 1) return false;
 			this.profession['ClothMaker'] = 1;
 		}
 
-		trace('craftMediumPriorityClothing');
+		//trace('craftMediumPriorityClothing');
 
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
 		var color = myPlayer.getColor();
@@ -1406,10 +1406,10 @@ private function craftLowPriorityClothing() : Bool {
 			newDropTarget = myPlayer.GetClosestObjectById(0);			
 		}
 
-		// dont use drop if held is Basket of Bones (356) to empty it! // 336 Basket of Soil
 		var heldId = myPlayer.heldObject.parentId;
-
-		if (newDropTarget.id == 0 &&  heldId != 356 && heldId != 336){ 
+		// dont use drop if held is Basket of Bones (356) to empty it! // 336 Basket of Soil
+		// 1137 Bowl of Soil
+		if (newDropTarget.id == 0 &&  heldId != 356 && heldId != 336 && heldId != 1137){ 
 			this.dropIsAUse = false;
 			this.dropTarget = newDropTarget;
 		}
