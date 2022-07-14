@@ -1693,15 +1693,25 @@ class ServerSettings {
 		trans.autoDecaySeconds = -2;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// get some sharpie back
+		trans = new TransitionData(135, 850, 135, 34); // Flint Chip + Stone Hoe --> Flint Chip + Sharp Stone
+		trans.aiShouldIgnore = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(135, 71, 135, 34); // Flint Chip + Stone Hatchet --> Flint Chip + Sharp Stone
+		trans.aiShouldIgnore = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// get some ropes back	
-		trans = new TransitionData(135, 850, 135, 92); // Flint Chip + Stone Hoe --> Flint Chip + Tied Long Shaft
+		trans = new TransitionData(34, 850, 34, 92); // Sharp Stone + Stone Hoe --> Sharp Stone + Tied Long Shaft
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(0, 92, 59, 67); // 0 + Tied Long Shaft --> Rope + Long Straight Shaft
 		transtions.addTransition("PatchTransitions: ", trans);
-
-		trans = new TransitionData(135, 71, 135, 70); // Flint Chip + Stone Hatchet --> Flint Chip + Tied Short Shaft
+		
+		//trans = new TransitionData(135, 71, 135, 70); // Flint Chip + Stone Hatchet --> Flint Chip + Tied Short Shaft
+		trans = new TransitionData(34, 71, 34, 70); // Sharp Stone + Stone Hatchet --> Sharp Stone + Tied Short Shaft
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
