@@ -2237,6 +2237,13 @@ class ServerSettings {
 		var trans = transtions.getTransition(334, 3310); // Steel Axe + Marked Pine Wall (horizontal)
 		trans.aiShouldIgnore = true;
 
+		// protect smithing TODO allow for smithing or manually instruct
+		var trans = transtions.getTransition(0, 322); // 0 + Forged Steel Crucible
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(0, 325); // 0 + Crucible with Steel
+		trans.aiShouldIgnore = true;
+
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');
 
