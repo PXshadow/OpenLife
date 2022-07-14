@@ -326,6 +326,7 @@ abstract class AiBase
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (handleTemperature()) return);
+		Macro.exception(if (shortCraft(0, 400, 40)) return); // pull out the carrots 
 		Macro.exception(if (makeSharpieFood(5)) return); 
 		Macro.exception(if (isHandlingGraves()) return);
 		Macro.exception(if (isMakingSeeds()) return);
@@ -355,7 +356,6 @@ abstract class AiBase
 		if(itemToCraftId == 31) itemToCraftId = -1; // Gooseberry
 		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
 
-		
 		if(myPlayer.age > 30) Macro.exception(if(craftLowPriorityClothing()) return);
 		
 		Macro.exception(if(makeStuff()) return);
@@ -772,14 +772,19 @@ abstract class AiBase
 		return done;
 	}
 
+	/*private function doCarrots() : Bool {
+		if(shortCraft(0, 400, 40)) return true; 
+
+		//var closeObj = AiHelper.GetClosestObjectById(myPlayer, 400); // Carrot Row
+		//if(closeObj != null && closeObj.numberOfUses > 2) if(craftItem(402)) return true; // Carrot TODO carrot (would also make wild carrots to carrot with bowl)
+		return false;
+	}*/
+
 	private function doFarming() {
+		if(craftItem(1114)) return true; // Shucked Ear of Corn
+
 		if(fillBerryBowlIfNeeded()) return true;
 		if(makePopcornIfNeeded()) return true;
-
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 400); // Carrot Row
-		if(closeObj != null && closeObj.numberOfUses > 2) if(craftItem(402)) return true; // Carrot TODO carrot (would also make wild carrots to carrot with bowl)
-
-		if(craftItem(1114)) return true; // Shucked Ear of Corn
 
 		if(myPlayer.age < 20 && makeSharpieFood()) return true;
 
@@ -832,7 +837,11 @@ abstract class AiBase
 	private function shortCraft(actorId:Int, targetId:Int, distance:Int = 20) : Bool {
 		var target = AiHelper.GetClosestObjectById(myPlayer, targetId, null, distance);
 		if(target == null) return false;
+		// dont use carrots if seed is needed // 400 Carrot Row
+		if (targetId == 400 && hasCarrotSeeds == false && target.numberOfUses < 3) return false;
+
 		if(myPlayer.heldObject.parentId == actorId) return useHeldObjOnTarget(target);
+		if(actorId == 0) return dropHeldObject();
 		return GetOrCraftItem(actorId);		
 	}
 
