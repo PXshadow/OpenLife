@@ -1,6 +1,7 @@
 package openlife.server;
 
 import haxe.Exception;
+import haxe.macro.Expr.Catch;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.settings.ServerSettings;
@@ -117,8 +118,17 @@ class Lineage {
 	{
 		if(FileSystem.exists(pathAll)){
 			trace('Lineage: exists: $pathAll');
-			AllLineages = ReadLineages(pathAll);
-			File.copy(pathAll, pathAll + '.bak');
+			var pathBackup = pathAll + '.bak';
+
+			try{
+				AllLineages = ReadLineages(pathAll);
+			} catch(ex){
+				trace('Lineage: restore backup $pathBackup');
+				// restore backup
+				File.copy(pathBackup, pathAll);
+				AllLineages = ReadLineages(pathAll);
+			}
+			File.copy(pathAll, pathBackup);
 		}
 		else AllLineages = [];
 		
@@ -406,7 +416,7 @@ class Lineage {
 			lineageString += ' eve_id=$myEveId'; // TODO test
 		}
 
-		trace('Lineage: ${lineageString}');
+		//trace('Lineage: ${lineageString}');
 
 		return lineageString;
 	}
