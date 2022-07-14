@@ -2086,6 +2086,11 @@ class ServerSettings {
 		trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		var trans = new TransitionData(1602, 236, 1602, 0); // Stack of Clay Plates + Clay Plate --> CStack of Clay Plates + 0
+		trans.reverseUseActor = true;
+		trans.tool = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// TODo needs client change
 		//var trans = new TransitionData(298, 317, 298, 316); // 298 Basket of Charcoal + 317 Crucible with Iron --> 298 +  316 Crucible with Iron and Charcoal
 		//transtions.addTransition("PatchTransitions: ", trans);
