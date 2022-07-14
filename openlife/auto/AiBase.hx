@@ -802,8 +802,10 @@ abstract class AiBase
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1136, null, 20); // Shallow Tilled Row
 		if(closeObj != null) if(craftItem(213)) return true; // Deep Tilled Row
 
-		var closeSoil = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Fertile Soil
-		if(closeSoil != null) if(craftItem(1136)) return true; // Shallow Tilled Row
+		// check if there is a Tilled Row already before creating a new one
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 213, null, 20); // Deep Tilled Row
+		if(closeObj != null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Fertile Soil
+		if(closeObj != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 
 		//if(myPlayer.age < 15 && makeFireWood()) return true;
 		
@@ -1693,7 +1695,7 @@ private function craftLowPriorityClothing() : Bool {
 		if (targetPlayer.canFeedToMe(myPlayer.heldObject) == false) {
 			this.feedingPlayerTarget = null;
 			// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name}');
-			trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name} fs: ${Math.round(targetPlayer.food_store*10)/10}');
+			trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name} fv: ${myPlayer.heldObject.objectData.foodValue} fs: ${Math.round(targetPlayer.food_store_max - targetPlayer.food_store * 10)/10}');
 			// if droped it can be stuck in a cyle if it want for example craft carrot and picks it up again. return true instead of false might also solve this
 			//this.dropHeldObject(); // since food might be too big to feed
 			return false;
