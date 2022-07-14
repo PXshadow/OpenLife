@@ -79,6 +79,7 @@ abstract class AiBase
 
 	public var isCaringForFire = false;
 	public var hasCornSeeds = false;
+	public var hasCarrotSeeds = false;
 
 	public var profession:Map<String,Float> = [];
 	public var lastCheckedTimes:Map<String,Float> = [];
@@ -571,6 +572,11 @@ abstract class AiBase
 		var seeds = AiHelper.GetClosestObjectById(myPlayer, 1115, null, 20);  // Dried Ear of Corn
 		if(seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 1247, null, 20);  // Bowl with Corn Kernels
 		this.hasCornSeeds = seeds != null;
+
+		var seeds = AiHelper.GetClosestObjectById(myPlayer, 401, null, 20); // Seeding Carrots
+		if(seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 2745, null, 20); // Bowl of Carrot Seeds
+
+		this.hasCarrotSeeds = seeds != null;
 		
 		// TODO make seeds
 		return false;
@@ -2154,7 +2160,7 @@ private function craftLowPriorityClothing() : Bool {
 				var objQuadDistance = myPlayer.CalculateQuadDistanceToObject(obj);
 
 				// dont use carrots if seed is needed // 400 Carrot Row
-				if (obj.parentId == 400 && obj.numberOfUses < 3) continue;
+				if (obj.parentId == 400 && hasCarrotSeeds == false && obj.numberOfUses < 3) continue;
 				// Dont eat if no corn seeds // 1114 Shucked Ear of Corn
 				//if (obj.parentId == 1114 && this.hasCornSeeds == false) continue;
 
