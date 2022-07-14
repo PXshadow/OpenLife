@@ -801,31 +801,39 @@ abstract class AiBase
 		if(closeObj == null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 790); // Composting Compost Pile
 		if(closeObj == null && craftItem(790)) return true; // Composting Compost Pile
 
-		var hardenedRow = AiHelper.GetClosestObjectById(myPlayer, 848, null, 15); // Hardened Row
-		if(hardenedRow != null) if(craftItem(1136)) return true; // Shallow Tilled Row
-		//if(hardenedRow != null) if(craftItem(213)) return true; // Deep Tilled Row
+		//var hardenedRow = AiHelper.GetClosestObjectById(myPlayer, 848, null, 15); // Hardened Row
+		//if(hardenedRow != null) if(craftItem(1136)) return true; // Shallow Tilled Row
+		if(shortCraft(1137, 848, 15)) return true; // Bowl of Soil + Hardened Row --> Shallow Tilled Row
 
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1136, null, 20); // Shallow Tilled Row
 		if(closeObj != null) if(craftItem(213)) return true; // Deep Tilled Row
 
 		// check if there is a Tilled Row already before creating a new one
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 213, null, 20); // Deep Tilled Row
-		if(closeObj != null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Fertile Soil
+		var closeObj = null;
+		var deepRow = AiHelper.GetClosestObjectById(myPlayer, 213, null, 20); // Deep Tilled Row
+		if(deepRow == null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Fertile Soil
 		if(closeObj != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 
 		//if(myPlayer.age < 15 && makeFireWood()) return true;
 		
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 399); // Wet Planted Carrots
-		if(closeObj != null) if(craftItem(399)) return true; // Wet Planted Carrots
+		if(closeObj == null) if(craftItem(399)) return true; // Wet Planted Carrots
 
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1110); // Wet Planted Corn Seed
-		if(closeObj != null) if(craftItem(1110)) return true; // Wet Planted Corn Seed
+		if(closeObj == null) if(craftItem(1110)) return true; // Wet Planted Corn Seed
 
 		trace('makeFireFood');
 
 		if(myPlayer.age < 30 && makeFireFood()) return true;
 
 		return false;
+	}
+
+	private function shortCraft(actorId:Int, targetId:Int, distance:Int = 20) : Bool {
+		var target = AiHelper.GetClosestObjectById(myPlayer, targetId, null, distance);
+		if(target == null) return false;
+		if(myPlayer.heldObject.parentId == actorId) return useHeldObjOnTarget(target);
+		return GetOrCraftItem(actorId);		
 	}
 
 	private function makeStuff() : Bool {
