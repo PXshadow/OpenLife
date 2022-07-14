@@ -1276,12 +1276,11 @@ class ServerSettings {
 		ObjectData.getObjectData(30).lastUseObject = 279; // Wild Gooseberry Bush ==> Empty Wild Gooseberry Bush
 		ObjectData.getObjectData(279).undoLastUseObject = 30; // Empty Wild Gooseberry Bush ==> Wild Gooseberry Bush
 
-		// TODO implement decay for Ancient
 		var trans = transtions.getTransition(-1, 885); // Stone Wall (Corner) ==> Ancient
 		trans.autoDecaySeconds = -24 * 10; // default: -10 
 		var trans = transtions.getTransition(-1, 886); // Stone Wall (vertical) ==> Ancient
 		trans.autoDecaySeconds = -24 * 10; // default: -10 
-		var trans = transtions.getTransition(-1, 887); // Stone Wall (horizontal )==> Ancient
+		var trans = transtions.getTransition(-1, 887); // Stone Wall (horizontal) ==> Ancient
 		trans.autoDecaySeconds = -24 * 10; // default: -10 
 		var trans = transtions.getTransition(-1, 884); // Stone Floor ==> Ancient
 		trans.autoDecaySeconds = -24 * 10; // default: -10 // TODO implement time for floors
@@ -1325,6 +1324,9 @@ class ServerSettings {
 		var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0 
 		trans.newActorID = 151; // Yew Bow instead of Yew Bow just shot
 		transtions.addTransition("PatchTransitions: ", trans);
+
+		var trans = transtions.getTransition(-1, 400); // Carrot Row
+		trans.autoDecaySeconds = 10 * 60; // 5 * 60
 
 		// FIX bug that this bow cannot be used with quiver
 		trans = new TransitionData(-1, 493, 0, 151); // Yew Bow just shot --> Yew Bow
