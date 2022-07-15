@@ -1021,6 +1021,7 @@ abstract class AiBase
 
 		if(craftItem(570)) return true; // Cooked Mutton
 		if(craftItem(197)) return true; // Cooked Rabbit
+		if(shortCraft(186, 0)) return true;// Cooked Rabbit --> unskew the Cooked Rabbits
 		return false;
 	}
 
