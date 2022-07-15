@@ -907,8 +907,14 @@ abstract class AiBase
 	private function doWatering(maxPeople:Int = 1) : Bool {
 		if(hasOrBecomeProfession('WaterBringer', maxPeople) == false) return false;
 
+		//var bowl = AiHelper.GetClosestObjectById(myPlayer,)
+
+		//shortCraft(); // Bowl of Water
+
 		if(craftItem(1110)) return true; // Wet Planted Corn Seed
 		if(craftItem(399)) return true; // Wet Planted Carrots
+		if(craftItem(229)) return true; // Wet Planted Wheat
+		if(craftItem(2857)) return true; // Wet Planted Onion
 		if(craftItem(2852)) return true; // Wet Planted Onions
 		if(craftItem(2831)) return true; // Wet Planted Tomato Seed
 		if(craftItem(4226)) return true; // Wet Planted Cucumber Seeds
@@ -938,6 +944,13 @@ abstract class AiBase
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} makeStuff!');
 
+		// 1109 Dry Planted Corn Seed
+		// 396 Dry Planted Carrots
+		// 2851 Dry Planted Onions
+		// 2829 Dry Planted Tomato Seed
+		// 4225 Dry Planted Cucumber Seeds
+		var dryPlanted = [1109, 396, 1109, 2829, 1109, 396, 2851, 1109, 4225];
+
 		var closePlate = AiHelper.GetClosestObjectById(myPlayer, 236); // Clay Plate
 		if(closePlate == null) closePlate = AiHelper.GetClosestObjectById(myPlayer, 1602); // Stack of Clay Plates
 		var hasClosePlate = closePlate != null;
@@ -954,27 +967,34 @@ abstract class AiBase
 			if(craftItem(1110)) return true; // Wet Planted Corn Seed
 			*/
 
-			// stuff can be in more then once to increase chance
-			var wetPlanted = [229, 399, 1110, 1162, 229, 399, 1110, 2857, 229, 399, 1110, 2852, 229, 399, 4263, 229, 399, 399, 229, 1142, 229, 1110, 229];
-			var rand = WorldMap.world.randomInt(wetPlanted.length -1);
+			// 228 Dry Planted Wheat
+			// 396 Dry Planted Carrots
+			// 2851 Dry Planted Onions
+			// 2829 Dry Planted Tomato Seed
+			// 4225 Dry Planted Cucumber Seeds
+			// TODO other dry planted
 
-			for(i in 0...wetPlanted.length){
-				var index = (rand + i) % wetPlanted.length;
-				if(craftItem(wetPlanted[index])) return true;
+			// stuff can be in more then once to increase chance
+			var advancedPlants = [228, 396, 1110, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
+			var rand = WorldMap.world.randomInt(advancedPlants.length - 1);
+
+			var toPlant = rand % 3 == 0 ? dryPlanted : advancedPlants;
+
+			for(i in 0...toPlant.length){
+				var index = (rand + i) % toPlant.length;
+				if(craftItem(toPlant[index])) return true;
 			}
 
-			if(craftItem(229)) return true; // Wet Planted Wheat		
+			if(craftItem(229)) return true; // Wet Planted Wheat	
+			if(craftItem(399)) return true; // Wet Planted Carrots	
+			if(craftItem(2831)) return true; // Wet Planted Tomato Seed
+			if(craftItem(2857)) return true; // Wet Planted Onion
+			if(craftItem(2852)) return true; // Wet Planted Onions
 		}
 		else{
 			if(craftItem(236)) return true; // Clay Plate
 			// grow food that dont needs plates for processing
 
-			// 1109 Dry Planted Corn Seed
-			// 396 Dry Planted Carrots
-			// 2851 Dry Planted Onions
-			// 2829 Dry Planted Tomato Seed
-			// 4225 Dry Planted Cucumber Seeds
-			var dryPlanted = [1109, 396, 1109, 2829, 1109, 396, 2851, 1109, 4225];
 			var rand = WorldMap.world.randomInt(dryPlanted.length -1);
 
 			for(i in 0...dryPlanted.length){
