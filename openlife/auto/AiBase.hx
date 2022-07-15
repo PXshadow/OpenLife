@@ -2405,6 +2405,8 @@ private function craftLowPriorityClothing() : Bool {
 				//trace('Ignore transition since it undos last: ${trans.getDesciption()}');
 				continue;
 			}
+			// ignore time transitions that make 732 Ashes with Bowl since Ai uses that to get empty bowl
+			if (trans.actorID == -1 && trans.newTargetID == 732) continue;
 			if (trans.targetID == -1){
 				//trace('Ignore transition since target is -1 (player?): ${trans.getDesciption()}');
 				continue;
