@@ -349,7 +349,8 @@ abstract class AiBase
 
 		Macro.exception(if(craftHighPriorityClothing()) return);
 		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
-		Macro.exception(if(doFarming()) return);
+		Macro.exception(if(doBasicFarming()) return);
+		Macro.exception(if(makeFireFood()) return);
 
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
@@ -779,7 +780,7 @@ abstract class AiBase
 		return false;
 	}*/
 
-	private function doFarming() {
+	private function doBasicFarming() {
 		if(craftItem(1114)) return true; // Shucked Ear of Corn
 
 		if(fillBerryBowlIfNeeded()) return true;
@@ -830,10 +831,6 @@ abstract class AiBase
 		if(closeObj != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 
 		//if(myPlayer.age < 15 && makeFireWood()) return true;
-
-		trace('makeFireFood');
-
-		if(myPlayer.age < 30 && makeFireFood()) return true;
 
 		return false;
 	}
@@ -929,7 +926,7 @@ abstract class AiBase
 			if(craftItem(1110)) return true; // Wet Planted Corn Seed
 		}
 	
-		if(makeFireFood()) return true;
+		if(makeFireFood(2)) return true;
 		if(makeSharpieFood()) return true;
 
 		if(craftItem(59)) return true; // Rope 
@@ -1010,7 +1007,9 @@ abstract class AiBase
 		return craftItem(1121); // Popcorn
 	}
 
-	private function makeFireFood() : Bool {
+	private function makeFireFood(maxPeople:Int = 1) : Bool {
+		if(hasOrBecomeProfession('FireFoodMaker', maxPeople) == false) return false;
+
 		/*var mutton = AiHelper.GetClosestObjectById(myPlayer, 569); // Raw Mutton
 
 		if(mutton != null){
@@ -1021,6 +1020,8 @@ abstract class AiBase
 		if(craftItem(570)) return true; // Cooked Mutton
 		if(craftItem(197)) return true; // Cooked Rabbit
 		if(shortCraft(186, 0)) return true;// Cooked Rabbit --> unskew the Cooked Rabbits
+
+		this.profession['FireFoodMaker'] = 0;
 		return false;
 	}
 
