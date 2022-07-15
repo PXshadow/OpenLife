@@ -329,7 +329,7 @@ class ServerSettings {
 	// AI
 	public static var NumberOfAis:Int = 30;
 	public static var NumberOfAiPx:Int = 0;
-	public static var AiReactionTime:Float = 0.5; // 0.5;
+	public static var AiReactionTime:Float = 0.2; //0.5; // 0.5;
 	public static var TimeToAiRebirthPerYear:Float = 10; // X seconds per not lived year = 60 - death age
 	public static var AiTotalScoreFactor:Float = 0.5;
 	public static var AiTimeToWaitIfCraftingFailed:Float = 20; // if item failed to craft dont craft for X seconds
