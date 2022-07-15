@@ -419,8 +419,8 @@ abstract class AiBase
 		myPlayer.firePlace = objAtPlace;
 		var objId = objAtPlace.parentId;
 
-		// 83 Large Fast Fire // 346 Large Slow Fire
-		if(objId == 83 || objId == 346) return false;
+		// 83 Large Fast Fire // 346 Large Slow Fire // 3029 Flash Fire
+		if(objId == 83 || objId == 346 || objId == 3029) return false;
 
 		var isUrgent = objId == 85 && hasOrBecomeProfession('firekeeper', 3); // 85 Hot Coals 
 		var bestAiForFire = isUrgent ? this : getBestAiForObjByProfession('firekeeper', myPlayer.firePlace);

@@ -2204,6 +2204,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(516, 346); // Skewered Goose + Large Slow Fire
 		trans.aiShouldIgnore = true;
 
+		var trans = transtions.getTransition(516, 3029); // Skewered Goose + Flash Fire
+		trans.aiShouldIgnore = true;
+
 		var trans = transtions.getTransition(185, 82); // Skewered Rabbit + Fire
 		trans.aiShouldIgnore = true;
 
@@ -2211,6 +2214,9 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 		
 		var trans = transtions.getTransition(185, 346); // Skewered Rabbit + Large Slow Fire
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(185, 3029); // Skewered Rabbit + Flash Fire
 		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(107, 279); // Stakes + Empty Wild Gooseberry Bush
