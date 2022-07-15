@@ -2258,6 +2258,15 @@ class ServerSettings {
 		var trans = transtions.getTransition(334, 3310); // Steel Axe + Marked Pine Wall (horizontal)
 		trans.aiShouldIgnore = true;
 
+		var trans = transtions.getTransition(334, 1876); // Steel Axe + Languishing Domestic Mango Tree
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(334, 1922); // Steel Axe + Dry Fertile Domestic Mango Tree
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(334, 1923); // Steel Axe + Wet Fertile Domestic Mango Tree
+		trans.aiShouldIgnore = true;
+
 		// protect smithing TODO allow for smithing or manually instruct
 		var trans = transtions.getTransition(0, 322); // 0 + Forged Steel Crucible
 		trans.aiShouldIgnore = true;
