@@ -1816,7 +1816,10 @@ private function craftLowPriorityClothing() : Bool {
 		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
 		if (myPlayer.food_store < 2) return false;
 
-		if (this.feedingPlayerTarget == null) this.feedingPlayerTarget = AiHelper.GetCloseStarvingPlayer(myPlayer);
+		if (this.feedingPlayerTarget == null){
+			profession['FoodServer'] = 0;
+			this.feedingPlayerTarget = AiHelper.GetCloseStarvingPlayer(myPlayer);
+		}
 		if (this.feedingPlayerTarget == null) return false;
 
 		var targetPlayer = this.feedingPlayerTarget;
@@ -1825,6 +1828,8 @@ private function craftLowPriorityClothing() : Bool {
 			this.feedingPlayerTarget = null;
 			return false;
 		}
+
+		if(hasOrBecomeProfession('FoodServer', 2) == false) return false;
 
 		if (myPlayer.heldObject.objectData.foodValue < 1
 			|| myPlayer.heldObject.id == 837) // dont feed 837 ==> Psilocybe Mushroom to others
