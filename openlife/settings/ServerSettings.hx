@@ -625,6 +625,12 @@ class ServerSettings {
 		ObjectData.getObjectData(897).decayFactor = 0.02; // Ancient Stone Wall (vertical)
 		ObjectData.getObjectData(897).decaysToObj = 1853; // Ancient Stone FloWallor ==> Cut Stones
 
+		// decay for mango trees
+		ObjectData.getObjectData(1875).decayFactor = 0.1; // Fruiting Domestic Mango Tree
+		ObjectData.getObjectData(1875).decaysToObj = 1876; // Fruiting Domestic Mango Tree --> Languishing Domestic Mango Tree
+
+		ObjectData.getObjectData(1876).decayFactor = 0.1; // Languishing Domestic Mango Tree
+
 		// set custom decay for iron mines
 		ObjectData.getObjectData(3961).decayFactor = -1; // Iron Vein
 
