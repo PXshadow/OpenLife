@@ -787,6 +787,8 @@ abstract class AiBase
 	}*/
 
 	private function doBasicFarming() {
+		if(craftItem(1113)) return true; // Ear of Corn
+
 		if(hasOrBecomeProfession('BasicFarmer', 2) == false) return false;
 
 		if(craftItem(1114)) return true; // Shucked Ear of Corn
@@ -1469,7 +1471,11 @@ private function craftLowPriorityClothing() : Bool {
 		var newDropTarget = null;
 		var pileId = myPlayer.heldObject.objectData.getPileObjId();
 
-		if(myPlayer.heldObject.parentId == 225) pileId = 0; // Wheat Sheaf --> drop on ground to process
+		// drop on ground to process
+		// 225 Wheat Sheaf // 1113 Ear of Corn // 126 Clay // 236 Clay Plate
+		var dontUsePile = [225, 1113, 126, 236];
+		var heldId = myPlayer.heldObject.parentId;
+		if(dontUsePile.contains(heldId)) pileId = 0; 
 		
 		if(pileId > 0){
 			newDropTarget = myPlayer.GetClosestObjectById(pileId, 4); 
