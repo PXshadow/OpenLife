@@ -793,6 +793,7 @@ abstract class AiBase
 		if(myPlayer.age < 20 && makeSharpieFood()) return true;
 
 		if(shortCraft(139, 2832, 20)) return true; // Skewer + Tomato Sprout
+		if(shortCraft(139, 4228, 20)) return true; // Skewer + Cucumber Sprout
 
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 399); // Wet Planted Carrots
 		if(closeObj == null) if(craftItem(399)) return true; // Wet Planted Carrots
@@ -939,8 +940,25 @@ abstract class AiBase
 		else{
 			if(craftItem(236)) return true; // Clay Plate
 			// grow food that dont needs plates for processing
+
+			// 1109 Dry Planted Corn Seed
+			// 396 Dry Planted Carrots
+			// 2851 Dry Planted Onions
+			// 2829 Dry Planted Tomato Seed
+			// 4225 Dry Planted Cucumber Seeds
+			var dryPlanted = [1109, 396, 1109, 2829, 1109, 396, 2851, 1109, 4225];
+			var rand = WorldMap.world.randomInt(dryPlanted.length -1);
+
+			for(i in 0...dryPlanted.length){
+				var index = (rand + i) % dryPlanted.length;
+				if(craftItem(dryPlanted[index])) return true;
+			}
+
 			if(craftItem(1110)) return true; // Wet Planted Corn Seed
 			if(craftItem(399)) return true; // Wet Planted Carrots
+			if(craftItem(2852)) return true; // Wet Planted Onions
+			if(craftItem(2831)) return true; // Wet Planted Tomato Seed
+			if(craftItem(4226)) return true; // Wet Planted Cucumber Seeds
 		}
 	
 		if(makeFireFood(2)) return true;
