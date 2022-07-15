@@ -790,6 +790,15 @@ abstract class AiBase
 
 		if(shortCraft(139, 2832, 20)) return true; // Skewer + Tomato Sprout
 
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 399); // Wet Planted Carrots
+		if(closeObj == null) if(craftItem(399)) return true; // Wet Planted Carrots
+
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1110); // Wet Planted Corn Seed
+		if(closeObj == null) if(craftItem(1110)) return true; // Wet Planted Corn Seed
+
+		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 2831); // Wet Planted Tomato Seed
+		if(closeObj == null) if(craftItem(2831)) return true; // Wet Planted Tomato Seed
+
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 242, null, 20); // Ripe Wheat
 		if(closeObj != null) if(craftItem(224)) return true; // Harvested Wheat
 		
@@ -822,15 +831,6 @@ abstract class AiBase
 		if(closeObj != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 
 		//if(myPlayer.age < 15 && makeFireWood()) return true;
-		
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 399); // Wet Planted Carrots
-		if(closeObj == null) if(craftItem(399)) return true; // Wet Planted Carrots
-
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1110); // Wet Planted Corn Seed
-		if(closeObj == null) if(craftItem(1110)) return true; // Wet Planted Corn Seed
-
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 2831); // Wet Planted Tomato Seed
-		if(closeObj == null) if(craftItem(2831)) return true; // Wet Planted Tomato Seed
 
 		trace('makeFireFood');
 
