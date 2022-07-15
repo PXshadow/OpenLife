@@ -354,6 +354,7 @@ abstract class AiBase
 		
 		Macro.exception(if(makePopcornIfNeeded()) return);
 		Macro.exception(if(doBaking()) return);
+		Macro.exception(if(doWatering()) return);
 		Macro.exception(if(doBasicFarming()) return);
 		Macro.exception(if(makeFireFood()) return);
 
@@ -890,6 +891,20 @@ abstract class AiBase
 		return false;
 	}
 
+	private function doWatering(maxPeople:Int = 1) : Bool {
+		if(hasOrBecomeProfession('WaterBringer', maxPeople) == false) return false;
+
+		if(craftItem(1110)) return true; // Wet Planted Corn Seed
+		if(craftItem(399)) return true; // Wet Planted Carrots
+		if(craftItem(2852)) return true; // Wet Planted Onions
+		if(craftItem(2831)) return true; // Wet Planted Tomato Seed
+		if(craftItem(4226)) return true; // Wet Planted Cucumber Seeds
+
+		this.profession['WaterBringer'] = 0;
+
+		return false;
+	}
+
 	private function makeStuff() : Bool {
 		/*if(myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound){
 
@@ -953,18 +968,13 @@ abstract class AiBase
 				var index = (rand + i) % dryPlanted.length;
 				if(craftItem(dryPlanted[index])) return true;
 			}
-
-			if(craftItem(1110)) return true; // Wet Planted Corn Seed
-			if(craftItem(399)) return true; // Wet Planted Carrots
-			if(craftItem(2852)) return true; // Wet Planted Onions
-			if(craftItem(2831)) return true; // Wet Planted Tomato Seed
-			if(craftItem(4226)) return true; // Wet Planted Cucumber Seeds
 		}
 	
 		if(makeFireFood(2)) return true;
 		if(makeSharpieFood()) return true;
 
 		if(doBaking(3)) return true;
+		if(doWatering(3)) return true;
 
 		if(craftItem(59)) return true; // Rope 
 		//if(craftItem(58)) return true; // Thread
