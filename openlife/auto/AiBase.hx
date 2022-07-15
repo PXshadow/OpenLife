@@ -817,6 +817,7 @@ abstract class AiBase
 		if(closeObj != null) if(craftItem(226)) return true; // Threshed Wheat
 
 		//trace('Fertile Soil Pile!');
+		if(shortCraftOnGround(336)) return true; // Basket of Soil
 
 		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1101); // Fertile Soil Pile
 		if(closeObj == null && craftItem(336)) return true; // Basket of Soil
@@ -844,6 +845,14 @@ abstract class AiBase
 		this.profession['BasicFarmer'] = 0;
 
 		return false;
+	}
+
+	private function shortCraftOnGround(actorId:Int){		
+		if(myPlayer.heldObject.parentId == actorId){
+			var target = AiHelper.GetClosestObjectById(myPlayer, 0, null, 20);
+			return useHeldObjOnTarget(target);
+		} 
+		return GetItem(actorId);	
 	}
 
 	private function shortCraft(actorId:Int, targetId:Int, distance:Int = 20) : Bool {
@@ -1068,7 +1077,7 @@ abstract class AiBase
 			if (placeToCook == null) placeToCook = AiHelper.GetClosestObjectById(myPlayer, 85); // Hot Coals
 		}*/
 
-		if(shortCraft(186, 0)) return true;// Cooked Rabbit --> unskew the Cooked Rabbits
+		if(shortCraftOnGround(186)) return true; // Cooked Rabbit --> unskew the Cooked Rabbits
 
 		if(craftItem(570)) return true; // Cooked Mutton
 		if(craftItem(197)) return true; // Cooked Rabbit
@@ -1501,8 +1510,10 @@ private function craftLowPriorityClothing() : Bool {
 
 		var heldId = myPlayer.heldObject.parentId;
 		// dont use drop if held is Basket of Bones (356) to empty it! // 336 Basket of Soil
-		// 1137 Bowl of Soil
-		if (newDropTarget.id == 0 &&  heldId != 356 && heldId != 336 && heldId != 1137){ 
+		// 1137 Bowl of Soil // 186 Cooked Rabbit
+		var dontUseDrop = [356, 336, 1137, 186];
+		//if (newDropTarget.id == 0 &&  heldId != 356 && heldId != 336 && heldId != 1137){ 
+		if (newDropTarget.id == 0 && dontUseDrop.contains(heldId) == false){ 
 			this.dropIsAUse = false;
 			this.dropTarget = newDropTarget;
 		}
