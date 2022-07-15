@@ -75,16 +75,22 @@ class AiHelper {
 		return ObjectData.getObjectData(objId).name;
 	}
 
+	public static function GetClosestObjectToHome(myPlayer:PlayerInterface, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null) : ObjectHelper {
+		//if(objIdToSearch == 1121) trace('DEBUG7770: ${myPlayer.name}${myPlayer.id} Popcorn dist: ${searchDistance}');
+		return GetClosestObjectToPosition(myPlayer.home.tx, myPlayer.home.ty, objIdToSearch, searchDistance, ignoreObj);
+	}
+
 	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null) : ObjectHelper {
 		var world = WorldMap.world;
 		var closestObject = null;
 		var bestDistance = 0.0;
-
+		
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
 				var objData = world.getObjectDataAtPosition(tx,ty);
-				
 				var parentId = objData.parentId;
+
+				//if(objIdToSearch == 1121 && parentId == 1121) trace('DEBUG7771: Popcorn');
 				
 				if(parentId != objIdToSearch) continue;
 
@@ -112,11 +118,11 @@ class AiHelper {
 		var world = playerInterface.getWorld();
 		var player = playerInterface.getPlayerInstance();
 		var heldId = player.heldObject.parentId;
-		var objId = objDataToSearch == null ? -1 : objDataToSearch.parentId; 
+		var objIdToSearch = objDataToSearch == null ? -1 : objDataToSearch.parentId; 
 		var searchEmptyPlace = ai != null && objDataToSearch != null && objDataToSearch.parentId == 0;
 		// 1137 Bowl of Soil // 356 Basket of Bones // 336 Basket of Soil
 		// TODO 1101 Fertile Soil Pile
-		var searchNotFlooredPlace = ai != null && (heldId == 1137 || heldId == 356 || heldId == 336); 
+		var searchNotFlooredPlace = ai != null && objIdToSearch == 0 && (heldId == 1137 || heldId == 356 || heldId == 336); 
 		var baseX = player.tx;
 		var baseY = player.ty;
 		var closestBadPlaceforDrop = null;
@@ -124,8 +130,14 @@ class AiHelper {
 		var closestObject = null;
 		var bestDistance = 0.0;
 
+		//if(objIdToSearch == 1121) trace('DEBUG770: ${playerInterface.name}${playerInterface.id} Popcorn dist: ${searchDistance}');
+
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
+
+				//var objData = world.getObjectDataAtPosition(tx, ty);
+				//if(objIdToSearch == 1121 && objData.parentId == 1121) trace('DEBUG771: Popcorn');
+				
 				if (ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
 
 				// findClosestHeat == false / since its jused for player temerpature where it does not matter if blocked. Also otherwiese a mutex would be missing since isObjectNotReachable can be used from the AI at same time
@@ -140,7 +152,7 @@ class AiHelper {
 
 				if (ownedByPlayer
 					|| findClosestHeat
-					|| objData.parentId == objDataToSearch.parentId) // compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs
+					|| objData.parentId == objIdToSearch) // compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs
 				{
 					var objDataBelow = world.getObjectDataAtPosition(tx, ty - 1);
 					if (searchEmptyPlace && objDataBelow.isTree()) continue;

@@ -349,10 +349,10 @@ abstract class AiBase
 
 		Macro.exception(if(craftHighPriorityClothing()) return);
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);
+		Macro.exception(if(makePopcornIfNeeded()) return);
 
 		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
 		
-		Macro.exception(if(makePopcornIfNeeded()) return);
 		Macro.exception(if(doBaking()) return);
 		Macro.exception(if(doWatering()) return);
 		Macro.exception(if(doBasicFarming()) return);
@@ -1082,6 +1082,7 @@ abstract class AiBase
 			if(closeBush == null) return false;
 
 			if(ServerSettings.DebugAiSay) myPlayer.say('Fill Bowl on Bush');
+			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Bush!');
 
 			return useHeldObjOnTarget(closeBush);
 		}
@@ -1099,6 +1100,7 @@ abstract class AiBase
 			this.dropIsAUse = false;
 
 			if(ServerSettings.DebugAiSay) myPlayer.say('Pickup Berry Bowl to Fill');
+			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Pickup Berry Bowl to Fill!');
 
 			return true; 
 		}
@@ -1108,7 +1110,7 @@ abstract class AiBase
 
 	private function makePopcornIfNeeded() : Bool {
 		// do nothing if there is Popcorn
-		var closePopcorn = AiHelper.GetClosestObjectById(myPlayer, 1121); // Popcorn
+		var closePopcorn = AiHelper.GetClosestObjectToHome(myPlayer, 1121); // Popcorn
 		if(closePopcorn != null) return false;
 
 		var bestPlayer = getBestAiForObjByProfession('BowlFiller', myPlayer.home);
@@ -1449,7 +1451,7 @@ private function craftLowPriorityClothing() : Bool {
 	}
 
 	//public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
-	public function dropHeldObject(maxDistanceToHome:Float = 40) : Bool {
+	public function dropHeldObject(maxDistanceToHome:Float = 40, ?infos:haxe.PosInfos) : Bool {
 		// var myPlayer = myPlayer.getPlayerInstance();
 		var home = myPlayer.home;
 		var dropOnStart:Bool = home != null;
@@ -1462,6 +1464,9 @@ private function craftLowPriorityClothing() : Bool {
 		else if (heldObjId == 34) dropOnStart = false; // 34 Sharp Stone
 		else if (heldObjId == 135) dropOnStart = false; // 135 Flint Chip
 		else if (heldObjId == 57) dropOnStart = false; // 57 Milkweed Stalk
+
+		if(ServerSettings.DebugAi) 
+			trace('AAI: ${myPlayer.name + myPlayer.id} DROP: ${myPlayer.heldObject.name} ${infos.methodName}');
 		
 		// Yew Bow
 		if(heldObjId == 151){
