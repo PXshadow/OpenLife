@@ -790,11 +790,12 @@ abstract class AiBase
 	}*/
 
 	private function doBasicFarming() {
-		if(craftItem(1113)) return true; // Ear of Corn
+		//if(craftItem(1113)) return true; // Ear of Corn
+		shortCraft(0, 1112); // 0 + Corn Plant --> Ear of Corn
 
 		if(hasOrBecomeProfession('BasicFarmer', 2) == false) return false;
 
-		if(craftItem(1114)) return true; // Shucked Ear of Corn
+		shortCraft(34, 1113); // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 
 		if(myPlayer.age < 20 && makeSharpieFood()) return true;
 
@@ -1046,6 +1047,10 @@ abstract class AiBase
 		//if(maxDistance < 15 && (heldObjId == 40 || heldObjId == 807)) dropHeldObject(0);
 
 		var isHoldingSharpStone = myPlayer.heldObject.parentId == 34; // 34 Sharp Stone
+
+		shortCraft(0, 1112, maxDistance); // 0 + Corn Plant --> Ear of Corn
+		shortCraft(34, 1113, maxDistance); // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
+		//if(craftItem(1114)) return true; // Shucked Ear of Corn
 
 		var obj = AiHelper.GetClosestObjectById(myPlayer, 36, null, maxDistance); // Seeding Wild Carrot
 		if(obj != null && isHoldingSharpStone == false) return GetOrCraftItem(34); 
