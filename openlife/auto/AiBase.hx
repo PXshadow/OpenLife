@@ -829,14 +829,16 @@ abstract class AiBase
 		//if(hardenedRow != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 		if(shortCraft(1137, 848, 15)) return true; // Bowl of Soil + Hardened Row --> Shallow Tilled Row
 
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1136, null, 20); // Shallow Tilled Row
-		if(closeObj != null) if(craftItem(213)) return true; // Deep Tilled Row
+		//var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1136, null, 20); // Shallow Tilled Row
+		//if(closeObj != null) if(craftItem(213)) return true; // Deep Tilled Row
+		if(shortCraft(850, 1136, 15)) return true; // Stone Hoe + Shallow Tilled Row --> Deep Tilled Row
 
 		// check if there is a Tilled Row already before creating a new one
 		var closeObj = null;
-		var deepRow = AiHelper.GetClosestObjectById(myPlayer, 213, null, 20); // Deep Tilled Row
-		if(deepRow == null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Fertile Soil
-		if(closeObj != null) if(craftItem(1136)) return true; // Shallow Tilled Row
+		var deepRow = AiHelper.GetClosestObjectById(myPlayer, 213, null, 15); // Deep Tilled Row
+		if(deepRow == null) if(shortCraft(850, 1138, 15)) return true; // Stone Hoe + Fertile Soil --> Shallow Tilled Row
+		//if(deepRow == null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Fertile Soil
+		//if(closeObj != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 
 		//if(myPlayer.age < 15 && makeFireWood()) return true;
 		this.profession['BasicFarmer'] = 0;
@@ -1066,9 +1068,11 @@ abstract class AiBase
 			if (placeToCook == null) placeToCook = AiHelper.GetClosestObjectById(myPlayer, 85); // Hot Coals
 		}*/
 
+		if(shortCraft(186, 0)) return true;// Cooked Rabbit --> unskew the Cooked Rabbits
+
 		if(craftItem(570)) return true; // Cooked Mutton
 		if(craftItem(197)) return true; // Cooked Rabbit
-		if(shortCraft(186, 0)) return true;// Cooked Rabbit --> unskew the Cooked Rabbits
+		
 
 		this.profession['FireFoodMaker'] = 0;
 		return false;
