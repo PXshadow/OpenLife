@@ -416,7 +416,6 @@ abstract class AiBase
 		if(objId == 83 || objId == 346) return false;
 
 		var bestAiForFire = getBestAiForObjByProfession('firekeeper', myPlayer.firePlace);
-
 		if(bestAiForFire == null || bestAiForFire.myPlayer.id != myPlayer.id) return false;
 
 		if (ServerSettings.DebugAi) 
@@ -1062,14 +1061,7 @@ abstract class AiBase
 }
 
 private function craftMediumPriorityClothing() : Bool {
-		var hasProfession = this.profession['ClothMaker'] > 0;
-
-		if(hasProfession == false){
-			var count = countProfession('ClothMaker');
-			//trace('craftMediumPriorityClothing: count: $count');
-			if (count > 1) return false;
-			this.profession['ClothMaker'] = 1;
-		}
+		if(hasOrBecomeProfession('ClothMaker', 2) == false) return false;
 
 		//trace('craftMediumPriorityClothing');
 
@@ -1106,6 +1098,17 @@ private function craftMediumPriorityClothing() : Bool {
 		this.profession['ClothMaker'] = 0;
 
 		return false;
+}
+
+private function hasOrBecomeProfession(profession:String, max:Int = 1) : Bool {
+	var hasProfession = this.profession[profession] > 0;
+	if(hasProfession) return true;
+
+	var count = countProfession(profession);
+	//trace('hasOrBecomeProfession: $profession count: $count');
+	if (count >= max) return false;
+	this.profession[profession] = 1;
+	return true;
 }
 	
 private function craftLowPriorityClothing() : Bool {
