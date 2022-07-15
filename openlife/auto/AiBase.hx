@@ -907,17 +907,34 @@ abstract class AiBase
 	private function doWatering(maxPeople:Int = 1) : Bool {
 		if(hasOrBecomeProfession('WaterBringer', maxPeople) == false) return false;
 
-		//var bowl = AiHelper.GetClosestObjectById(myPlayer,)
+		shortCraft(382, 1109); // Bowl of Water + Dry Planted Corn Seed
+		shortCraft(210, 1109); // Full Water Pouch + Dry Planted Corn Seed
 
-		//shortCraft(); // Bowl of Water
+		shortCraft(382, 396); // Bowl of Water + Planted Carrots
+		shortCraft(210, 396); // Full Water Pouch + Dry Planted Carrots
 
-		if(craftItem(1110)) return true; // Wet Planted Corn Seed
-		if(craftItem(399)) return true; // Wet Planted Carrots
-		if(craftItem(229)) return true; // Wet Planted Wheat
-		if(craftItem(2857)) return true; // Wet Planted Onion
-		if(craftItem(2852)) return true; // Wet Planted Onions
-		if(craftItem(2831)) return true; // Wet Planted Tomato Seed
-		if(craftItem(4226)) return true; // Wet Planted Cucumber Seeds
+		shortCraft(382, 228); // Bowl of Water + Dry Planted Wheat
+		shortCraft(210, 228); // Full Water Pouch + Dry Planted Wheat
+
+		shortCraft(382, 2856); // Bowl of Water + Dry Planted Onion
+		shortCraft(210, 2856); // Full Water Pouch + Dry Planted Onion
+
+		shortCraft(382, 2851); // Bowl of Water + Dry Planted Onions
+		shortCraft(210, 2851); // Full Water Pouch + Dry Planted Onions
+
+		shortCraft(382, 2829); // Bowl of Water + Dry Planted Tomato Seed
+		shortCraft(210, 2829); // Full Water Pouch + Dry Planted Tomato Seed
+
+		shortCraft(382, 4225); // Bowl of Water + Dry Planted Cucumber Seeds
+		shortCraft(210, 4225); // Full Water Pouch + Dry Planted Cucumber Seeds
+
+		//if(craftItem(1110)) return true; // Wet Planted Corn Seed
+		//if(craftItem(399)) return true; // Wet Planted Carrots
+		//if(craftItem(229)) return true; // Wet Planted Wheat
+		//if(craftItem(2857)) return true; // Wet Planted Onion
+		//if(craftItem(2852)) return true; // Wet Planted Onions
+		//if(craftItem(2831)) return true; // Wet Planted Tomato Seed
+		//if(craftItem(4226)) return true; // Wet Planted Cucumber Seeds
 
 		this.profession['WaterBringer'] = 0;
 
