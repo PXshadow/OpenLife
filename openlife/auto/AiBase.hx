@@ -422,7 +422,8 @@ abstract class AiBase
 		// 83 Large Fast Fire // 346 Large Slow Fire
 		if(objId == 83 || objId == 346) return false;
 
-		var bestAiForFire = getBestAiForObjByProfession('firekeeper', myPlayer.firePlace);
+		var isUrgent = objId == 85 && hasOrBecomeProfession('firekeeper', 3); // 85 Hot Coals 
+		var bestAiForFire = isUrgent ? this : getBestAiForObjByProfession('firekeeper', myPlayer.firePlace);
 		if(bestAiForFire == null || bestAiForFire.myPlayer.id != myPlayer.id) return false;
 
 		if (ServerSettings.DebugAi) 
