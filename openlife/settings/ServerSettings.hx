@@ -2267,6 +2267,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(334, 1923); // Steel Axe + Wet Fertile Domestic Mango Tree
 		trans.aiShouldIgnore = true;
 
+		var trans = transtions.getTransition(0, 2268); // 0 + Bore Mechanism
+		trans.aiShouldIgnore = true;
+		
 		// protect smithing TODO allow for smithing or manually instruct
 		var trans = transtions.getTransition(0, 322); // 0 + Forged Steel Crucible
 		trans.aiShouldIgnore = true;
