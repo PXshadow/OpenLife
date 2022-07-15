@@ -692,6 +692,8 @@ abstract class AiBase
 
 		this.profession['gravekeeper'] = 1; 
 
+		Macro.exception(if (isRemovingFromContainer()) return true);	
+
 		var rand = WorldMap.calculateRandomFloat();
 		if(rand < 0.05) myPlayer.say('Good bye!');
 		else if(rand < 0.1) myPlayer.say('Jasonius is calling me. Take care!');
