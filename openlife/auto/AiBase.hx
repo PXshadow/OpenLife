@@ -1588,13 +1588,24 @@ private function craftLowPriorityClothing() : Bool {
 
 	private function killAnimal(animal:ObjectHelper) : Bool {
 		if (animal == null && animalTarget == null){
+			if(hasOrBecomeProfession('Hunter') == false) return false;
+
 			var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(timeLookedForDeadlyAnimalAtHome);
 			if(passedTime > 20){
 				//trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: look for wolf at home');
 				timeLookedForDeadlyAnimalAtHome = TimeHelper.tick;
 				this.animalTarget = AiHelper.GetClosestObjectToPosition(myPlayer.home.tx, myPlayer.home.ty, 418, 20); // Wolf
 			}
-			if(this.animalTarget == null) return false;
+
+			if(this.animalTarget == null){ 
+				var quiver = myPlayer.getClothingById(3948); // 3948 Arrow Quiver
+				if(quiver == null) quiver = myPlayer.getClothingById(4151); // 4151 Arrow Quiver with Bow
+				if(quiver == null) quiver = myPlayer.getClothingById(874); // 874 Empty Arrow Quiver
+				if(quiver == null) quiver = myPlayer.getClothingById(4149); // 4149 Empty Arrow Quiver with Bow
+				
+				profession['Hunter'] = quiver == null ? 0 : 1;
+				return false;
+			}
 		}
 
 		if (foodTarget != null) return false;
