@@ -791,11 +791,11 @@ abstract class AiBase
 
 	private function doBasicFarming() {
 		//if(craftItem(1113)) return true; // Ear of Corn
-		shortCraft(0, 1112); // 0 + Corn Plant --> Ear of Corn
+		if(shortCraft(0, 1112)) return true; // 0 + Corn Plant --> Ear of Corn
 
 		if(hasOrBecomeProfession('BasicFarmer', 2) == false) return false;
 
-		shortCraft(34, 1113); // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
+		if(shortCraft(34, 1113)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 
 		if(myPlayer.age < 20 && makeSharpieFood()) return true;
 
@@ -853,6 +853,8 @@ abstract class AiBase
 
 	private function shortCraftOnGround(actorId:Int){		
 		if(myPlayer.heldObject.parentId == actorId){
+			if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} shortCraftOnGround: wanted: ${actorId} ${myPlayer.heldObject.name}');
 			var target = AiHelper.GetClosestObjectById(myPlayer, 0, null, 20);
 			return useHeldObjOnTarget(target);
 		} 
@@ -866,6 +868,9 @@ abstract class AiBase
 		if (targetId == 400 && hasCarrotSeeds == false && target.numberOfUses < 3) return false;
 
 		if(myPlayer.heldObject.parentId == actorId) return useHeldObjOnTarget(target);
+		
+		if (ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} shortCraft: wanted: ${actorId} ${myPlayer.heldObject.name} + ${target.name}');
 		if(actorId == 0) return dropHeldObject();
 		return GetOrCraftItem(actorId);		
 	}
@@ -911,26 +916,26 @@ abstract class AiBase
 	private function doWatering(maxPeople:Int = 1) : Bool {
 		if(hasOrBecomeProfession('WaterBringer', maxPeople) == false) return false;
 
-		shortCraft(382, 1109); // Bowl of Water + Dry Planted Corn Seed
-		shortCraft(210, 1109); // Full Water Pouch + Dry Planted Corn Seed
+		if(shortCraft(382, 1109)) return true; // Bowl of Water + Dry Planted Corn Seed
+		if(shortCraft(210, 1109)) return true; // Full Water Pouch + Dry Planted Corn Seed
 
-		shortCraft(382, 396); // Bowl of Water + Planted Carrots
-		shortCraft(210, 396); // Full Water Pouch + Dry Planted Carrots
+		if(shortCraft(382, 396)) return true; // Bowl of Water + Planted Carrots
+		if(shortCraft(210, 396)) return true; // Full Water Pouch + Dry Planted Carrots
 
-		shortCraft(382, 228); // Bowl of Water + Dry Planted Wheat
-		shortCraft(210, 228); // Full Water Pouch + Dry Planted Wheat
+		if(shortCraft(382, 228)) return true; // Bowl of Water + Dry Planted Wheat
+		if(shortCraft(210, 228)) return true; // Full Water Pouch + Dry Planted Wheat
 
-		shortCraft(382, 2856); // Bowl of Water + Dry Planted Onion
-		shortCraft(210, 2856); // Full Water Pouch + Dry Planted Onion
+		if(shortCraft(382, 2856)) return true; // Bowl of Water + Dry Planted Onion
+		if(shortCraft(210, 2856)) return true; // Full Water Pouch + Dry Planted Onion
 
-		shortCraft(382, 2851); // Bowl of Water + Dry Planted Onions
-		shortCraft(210, 2851); // Full Water Pouch + Dry Planted Onions
+		if(shortCraft(382, 2851)) return true; // Bowl of Water + Dry Planted Onions
+		if(shortCraft(210, 2851)) return true; // Full Water Pouch + Dry Planted Onions
 
-		shortCraft(382, 2829); // Bowl of Water + Dry Planted Tomato Seed
-		shortCraft(210, 2829); // Full Water Pouch + Dry Planted Tomato Seed
+		if(shortCraft(382, 2829)) return true; // Bowl of Water + Dry Planted Tomato Seed
+		if(shortCraft(210, 2829)) return true; // Full Water Pouch + Dry Planted Tomato Seed
 
-		shortCraft(382, 4225); // Bowl of Water + Dry Planted Cucumber Seeds
-		shortCraft(210, 4225); // Full Water Pouch + Dry Planted Cucumber Seeds
+		if(shortCraft(382, 4225)) return true; // Bowl of Water + Dry Planted Cucumber Seeds
+		if(shortCraft(210, 4225)) return true; // Full Water Pouch + Dry Planted Cucumber Seeds
 
 		//if(craftItem(1110)) return true; // Wet Planted Corn Seed
 		//if(craftItem(399)) return true; // Wet Planted Carrots
@@ -1048,8 +1053,8 @@ abstract class AiBase
 
 		var isHoldingSharpStone = myPlayer.heldObject.parentId == 34; // 34 Sharp Stone
 
-		shortCraft(0, 1112, maxDistance); // 0 + Corn Plant --> Ear of Corn
-		shortCraft(34, 1113, maxDistance); // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
+		if(shortCraft(0, 1112, maxDistance)) return true; // 0 + Corn Plant --> Ear of Corn
+		if(shortCraft(34, 1113, maxDistance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 		//if(craftItem(1114)) return true; // Shucked Ear of Corn
 
 		var obj = AiHelper.GetClosestObjectById(myPlayer, 36, null, maxDistance); // Seeding Wild Carrot
@@ -1775,7 +1780,7 @@ private function craftLowPriorityClothing() : Bool {
 		}
 		else done = myPlayer.drop(obj.tx - myPlayer.gx, obj.ty - myPlayer.gy);
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GetOrCraftItem: done: $done pickup obj');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GetOrCraftItem: ${myPlayer.heldObject.name} done: $done pickup obj');
 
 		return done;
 	}
