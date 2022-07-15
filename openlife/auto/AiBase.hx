@@ -348,7 +348,11 @@ abstract class AiBase
 		}
 
 		Macro.exception(if(craftHighPriorityClothing()) return);
+		Macro.exception(if(fillBerryBowlIfNeeded()) return);
+
 		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
+		
+		Macro.exception(if(makePopcornIfNeeded()) return);
 		Macro.exception(if(doBasicFarming()) return);
 		Macro.exception(if(makeFireFood()) return);
 
@@ -781,10 +785,9 @@ abstract class AiBase
 	}*/
 
 	private function doBasicFarming() {
-		if(craftItem(1114)) return true; // Shucked Ear of Corn
+		if(hasOrBecomeProfession('BasicFarmer', 2) == false) return false;
 
-		if(fillBerryBowlIfNeeded()) return true;
-		if(makePopcornIfNeeded()) return true;
+		if(craftItem(1114)) return true; // Shucked Ear of Corn
 
 		if(myPlayer.age < 20 && makeSharpieFood()) return true;
 
@@ -831,6 +834,7 @@ abstract class AiBase
 		if(closeObj != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 
 		//if(myPlayer.age < 15 && makeFireWood()) return true;
+		this.profession['BasicFarmer'] = 0;
 
 		return false;
 	}
