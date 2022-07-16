@@ -75,13 +75,14 @@ class AiHelper {
 		return ObjectData.getObjectData(objId).name;
 	}
 
-	public static function GetClosestObjectToHome(myPlayer:PlayerInterface, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null) : ObjectHelper {
+	public static function GetClosestObjectToHome(player:PlayerInterface, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null) : ObjectHelper {
 		//if(objIdToSearch == 1121) trace('DEBUG7770: ${myPlayer.name}${myPlayer.id} Popcorn dist: ${searchDistance}');
-		return GetClosestObjectToPosition(myPlayer.home.tx, myPlayer.home.ty, objIdToSearch, searchDistance, ignoreObj);
+		return GetClosestObjectToPosition(player.home.tx, player.home.ty, objIdToSearch, searchDistance, ignoreObj, player);
 	}
 
-	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null) : ObjectHelper {
+	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null, player:PlayerInterface = null) : ObjectHelper {
 		var world = WorldMap.world;
+		var ai = player == null ? null : player.getAi();
 		var closestObject = null;
 		var bestDistance = 0.0;
 		
@@ -93,8 +94,11 @@ class AiHelper {
 				//if(objIdToSearch == 1121 && parentId == 1121) trace('DEBUG7771: Popcorn');
 				
 				if(parentId != objIdToSearch) continue;
-
+			
 				if (ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
+
+				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
+				if (ai != null && ai.isObjectWithHostilePath(tx, ty)) continue;
 
 				var quadDistance = AiHelper.CalculateQuadDistanceHelper(tx,ty, baseX, baseY);
 
