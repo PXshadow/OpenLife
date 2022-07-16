@@ -797,37 +797,35 @@ abstract class AiBase
 
 		if(shortCraft(34, 1113)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 
-		if(myPlayer.age < 20 && makeSharpieFood()) return true;
-
 		if(shortCraft(139, 2832, 20)) return true; // Skewer + Tomato Sprout
 		if(shortCraft(139, 4228, 20)) return true; // Skewer + Cucumber Sprout
 
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 399); // Wet Planted Carrots
+		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 399, 20); // Wet Planted Carrots
 		if(closeObj == null) if(craftItem(399)) return true; // Wet Planted Carrots
 
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1110); // Wet Planted Corn Seed
+		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 1110, 20); // Wet Planted Corn Seed
 		if(closeObj == null) if(craftItem(1110)) return true; // Wet Planted Corn Seed
 
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 2831); // Wet Planted Tomato Seed
-		if(closeObj == null) if(craftItem(2831)) return true; // Wet Planted Tomato Seed
+		//var closeObj = AiHelper.GetClosestObjectById(myPlayer, 2831); // Wet Planted Tomato Seed
+		//if(closeObj == null) if(craftItem(2831)) return true; // Wet Planted Tomato Seed
 
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 242, null, 20); // Ripe Wheat
-		if(closeObj != null) if(craftItem(224)) return true; // Harvested Wheat
+		//var closeObj = AiHelper.GetClosestObjectById(myPlayer, 242, null, 20); // Ripe Wheat
+		//if(closeObj != null) if(craftItem(224)) return true; // Harvested Wheat
 		
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 224, null, 20); // Harvested Wheat
+		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 224, 20); // Harvested Wheat
 		if(closeObj != null) if(craftItem(225)) return true; // Wheat Sheaf
 		
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 225, null, 20); // Wheat Sheaf
+		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 225, 20); // Wheat Sheaf
 		if(closeObj != null) if(craftItem(226)) return true; // Threshed Wheat
 
 		//trace('Fertile Soil Pile!');
 		if(shortCraftOnGround(336)) return true; // Basket of Soil
 
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 1101); // Fertile Soil Pile
+		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 1101, 20); // Fertile Soil Pile
 		if(closeObj == null && craftItem(336)) return true; // Basket of Soil
 
-		var closeObj = AiHelper.GetClosestObjectById(myPlayer, 624); // Composted Soil
-		if(closeObj == null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 790); // Composting Compost Pile
+		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 624,20); // Composted Soil
+		if(closeObj == null) closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 790, 20); // Composting Compost Pile
 		if(closeObj == null && craftItem(790)) return true; // Composting Compost Pile
 
 		//var hardenedRow = AiHelper.GetClosestObjectById(myPlayer, 848, null, 15); // Hardened Row
@@ -840,12 +838,15 @@ abstract class AiBase
 
 		// check if there is a Tilled Row already before creating a new one
 		var closeObj = null;
-		var deepRow = AiHelper.GetClosestObjectById(myPlayer, 213, null, 15); // Deep Tilled Row
+		var deepRow = AiHelper.GetClosestObjectToHome(myPlayer, 213, 20); // Deep Tilled Row
 		if(deepRow == null) if(shortCraft(850, 1138, 15)) return true; // Stone Hoe + Fertile Soil --> Shallow Tilled Row
 		//if(deepRow == null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Fertile Soil
 		//if(closeObj != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 
 		//if(myPlayer.age < 15 && makeFireWood()) return true;
+
+		if(myPlayer.age < 20 && makeSharpieFood()) return true;
+
 		this.profession['BasicFarmer'] = 0;
 
 		return false;
@@ -875,7 +876,7 @@ abstract class AiBase
 		return GetOrCraftItem(actorId);		
 	}
 
-	private function doBaking(maxPeople:Int = 1) : Bool {
+	private function doBaking(maxPeople:Int = 2) : Bool {
 		if(hasOrBecomeProfession('Baker', maxPeople) == false) return false;
 		
 		var closePlate = AiHelper.GetClosestObjectById(myPlayer, 236); // Clay Plate
@@ -975,7 +976,7 @@ abstract class AiBase
 		// 2851 Dry Planted Onions
 		// 2829 Dry Planted Tomato Seed
 		// 4225 Dry Planted Cucumber Seeds
-		var dryPlanted = [1109, 396, 1109, 2829, 1109, 396, 2851, 1109, 4225];
+		var dryPlanted = [1109, 396, 2829, 396, 1109, 396, 2851, 396, 1109, 396, 4225];
 
 		var closePlate = AiHelper.GetClosestObjectById(myPlayer, 236); // Clay Plate
 		if(closePlate == null) closePlate = AiHelper.GetClosestObjectById(myPlayer, 1602); // Stack of Clay Plates
