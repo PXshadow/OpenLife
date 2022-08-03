@@ -2225,6 +2225,18 @@ class ServerSettings {
 		var trans = transtions.getTransition(107, 392); // Stakes + Languishing Domestic Gooseberry Bush
 		trans.aiShouldIgnore = true;
 
+		var trans = transtions.getTransition(139, 1136); // Skewer + Shallow Tilled Row
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(852, 1136); // Weak Skewer + Shallow Tilled Row
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(139, 1138); // Skewer + Fertile Soil
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(852, 1138); // Weak Skewer + Fertile Soil
+		trans.aiShouldIgnore = true;
+
 		// Forbid plowing of Soil Pile
 		var trans = transtions.getTransition(139, 1101); // Skewer + Fertile Soil Pile
 		trans.aiShouldIgnore = true;
