@@ -4540,6 +4540,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			//player.done_moving_seqNum += 1;
 			player.forced = true;
 			Connection.SendUpdateToAllClosePlayers(player);
+			player.connection.sendMapChunk(player.x, player.y);
 			player.connection.send(FRAME, null, false, true);
 			player.forced = false;
 			
