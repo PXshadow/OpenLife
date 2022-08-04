@@ -699,7 +699,7 @@ class ServerSettings {
 		ObjectData.getObjectData(774).decayFactor = 0.2; // Hitched Riding Horse
 
 		// set floor decay
-		ObjectData.getObjectData(1596).decayFactor = 0.2; // 1596 Stone Road
+		ObjectData.getObjectData(1596).decayFactor = 0.1; // 1596 Stone Road
 		ObjectData.getObjectData(1596).decaysToObj = 291; // 1596 Stone Road ==> 291 Flat Rock
 
 		ObjectData.getObjectData(884).decayFactor = 0.1; // 884 Stone Floor
