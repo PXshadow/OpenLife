@@ -1757,6 +1757,7 @@ class TimeHelper {
 	// TODO find a better way to respawn this stuff??? 
 	public static function DoRespawnFromOriginal(tx:Int, ty:Int, passedTimeInYears:Float) {
 		var world = WorldMap.world;
+		var objData = world.getObjectDataAtPosition(tx,ty);
 		var origObj = world.getOriginalObjectId(tx,ty);
 
 		// remember that true needed time is 4x since it regrows only in spring
@@ -1779,8 +1780,13 @@ class TimeHelper {
 				world.setObjectId(tx,ty, [1261]);
 			}
 		}
+		else if (origObj[0] == 211) // 211 Fertile Soil Deposit // TODO remove if AI can handle compost
+		{
+			if(world.randomFloat() < passedTimeInYears / (60 * 24 * 2)){
+				world.setObjectId(tx,ty, [211]);
+			}
+		}
 
-		var objData = world.getObjectDataAtPosition(tx,ty);
 		if (objData.parentId == 511) // Pond --> Canada Goose Pond
 		{
 			if(world.randomFloat() < passedTimeInYears / 60){
