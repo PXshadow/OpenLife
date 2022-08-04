@@ -593,22 +593,25 @@ class MoveHelper {
 
 	public function sendChunkIfNeeded()
 	{
-		var spacingX = 5;
-		var spacingY = 5;
+		//var spacingX = 5;
+		//var spacingY = 5;
 		var p = this.player;
 		var moveHelper = this;
 
-		if (p.x - moveHelper.tx > spacingX || p.x - moveHelper.tx < -spacingX || p.y - moveHelper.ty > spacingY || p.y - moveHelper.ty < -spacingY) {
-			moveHelper.tx = p.x;
-			moveHelper.ty = p.y;
-			
-			var newMoves = moveHelper.newMoves;
-			var lastMove = newMoves == null || newMoves.length < 5 ? null : newMoves[4]; //newMoves.length - 1
-			//if(lastMove != null) trace('newMove: ${lastMove}');
+		var targetX = WorldMap.world.transformX(p, moveHelper.tx + p.gx);
+		var targetY = WorldMap.world.transformY(p, moveHelper.ty + p.gy);
 
-			p.connection.sendMapChunk(p.x, p.y);
-			if(lastMove != null) p.connection.sendMapChunk(p.x + lastMove.x, p.y + lastMove.y);
-		}
+		if (p.isClose(targetX, targetY, 4)) return;
+		//if (p.x - moveHelper.tx > spacingX || p.x - moveHelper.tx < -spacingX || p.y - moveHelper.ty > spacingY || p.y - moveHelper.ty < -spacingY) {
+		moveHelper.tx = p.x;
+		moveHelper.ty = p.y;
+		
+		var newMoves = moveHelper.newMoves;
+		var lastMove = newMoves == null || newMoves.length < 6 ? null : newMoves[5]; //newMoves.length - 1
+		//if(lastMove != null) trace('newMove: ${lastMove}');
+
+		if(lastMove == null) p.connection.sendMapChunk(p.x, p.y);
+		if(lastMove != null) p.connection.sendMapChunk(p.x + lastMove.x, p.y + lastMove.y);
 	}
 
 	public static function CancleMovement(p:GlobalPlayerInstance, seq:Int = -1) {
