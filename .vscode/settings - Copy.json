@@ -1,9 +1,9 @@
 {
     "[haxe]": {
         "editor.formatOnSave": true,
-      "editor.codeActionsOnSave": {
-        "source.sortImports": false
-      }
+        "editor.codeActionsOnSave": {
+            "source.sortImports": true
+        }
     },
     "testExplorer.codeLens": false
 }
