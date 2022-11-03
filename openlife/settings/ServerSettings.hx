@@ -1740,13 +1740,11 @@ class ServerSettings {
 		//  Wild Gooseberry Bush
 		trans = new TransitionData(253, 30, 253, 30); // Bowl of Gooseberries + Wild Gooseberry Bush --> Bowl of Gooseberries(+1) + Wild Gooseberry Bush
 		trans.reverseUseActor = true;
-		//trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Clay Bowl + Wild Gooseberry Bush --> Bowl of Gooseberries + Wild Gooseberry Bush
 		trans = new TransitionData(235, 30, 253, 30); 
 		trans.reverseUseActor = true; // otherwise new bowl will be full with berries
-		//trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Bowl of Gooseberries + Wild Gooseberry Bush (Last) --> Bowl of Gooseberries(+1) + Empty Wild Gooseberry Bush
@@ -1755,6 +1753,7 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
 		trans = new TransitionData(235, 30, 253, 279); // Clay Bowl + Wild Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Wild Gooseberry Bush
+		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Domestic Gooseberry Bush
@@ -1764,6 +1763,7 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(235, 391, 253, 391); // Clay Bowl + Domestic Gooseberry Bush --> Bowl of Gooseberries + Domestic Gooseberry Bush
+		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Bowl of Gooseberries + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries(+1) + Empty Domestic Wild Gooseberry Bush
@@ -1773,6 +1773,7 @@ class ServerSettings {
 
 		// Clay Bowl + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Domestic Gooseberry  Bush
 		trans = new TransitionData(235, 391, 253, 1135); 
+		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Fishing Pole without Hook + Bone Needle --> Fishing Pole + 0
