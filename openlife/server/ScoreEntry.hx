@@ -1,7 +1,7 @@
 package openlife.server;
 
-import openlife.settings.ServerSettings;
 import openlife.data.object.ObjectHelper;
+import openlife.settings.ServerSettings;
 
 // TODO save to disk
 class ScoreEntry {
@@ -118,7 +118,8 @@ class ScoreEntry {
 			player.account.scoreEntries.push(scoreEntry);
 		}
 
-		var message = scoreEntry.score > 0 ? 'You gained ${scoreEntry.score} prestige because ${scoreEntry.text}' : 'You lost ${- scoreEntry.score} prestige because ${scoreEntry.text}';
+		var tmpScore = Math.round(scoreEntry.score);
+		var message = scoreEntry.score > 0 ? 'You gained ${tmpScore} prestige from ${scoreEntry.text} life' : 'You lost ${-tmpScore} prestige from ${scoreEntry.text}';
 
 		player.addPrestige(scoreEntry.score);
 
