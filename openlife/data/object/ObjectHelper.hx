@@ -16,6 +16,9 @@ import sys.io.FileInput;
 import sys.io.FileOutput;
 
 class ObjectHelper {
+	public static var dataVersionNumberForRead = 5;
+	public static var dataVersionNumberForWrite = 5;
+
 	public var objectData:ObjectData;
 	public var numberOfUses = 0;
 	public var creationTimeInTicks:Float;
@@ -55,7 +58,7 @@ class ObjectHelper {
 		if (objHelpersToWrite.length != length) throw new Exception('objHelpersToWrite.length != length');
 
 		var count = 0;
-		var dataVersion = 4;
+		var dataVersion = ObjectHelper.dataVersionNumberForWrite;
 
 		var writer = File.write(path, true);
 		writer.writeInt32(dataVersion);
@@ -77,7 +80,7 @@ class ObjectHelper {
 
 	public static function ReadMapObjHelpers(path:String):Vector<ObjectHelper> {
 		var reader = File.read(path, true);
-		var expectedDataVersion = 4;
+		var expectedDataVersion = ObjectHelper.dataVersionNumberForRead;
 		var dataVersion = reader.readInt32();
 		var width = reader.readInt32();
 		var height = reader.readInt32();
@@ -98,7 +101,7 @@ class ObjectHelper {
 
 		try {
 			while (reader.eof() == false) {
-				var newObject = ReadFromFile(reader);
+				var newObject = ReadFromFile(reader, dataVersion);
 				if (newObject == null) break;
 				count++;
 				// trace('read: $count');
@@ -141,12 +144,27 @@ class ObjectHelper {
 		writer.writeInt32(obj.numberOfUses);
 		writer.writeDouble(obj.creationTimeInTicks);
 		writer.writeFloat(obj.timeToChange);
+
+		writer.writeByte(obj.containedObjects.length);
+
+		for(containedObj in obj.containedObjects){
+			WriteToFile(containedObj, writer);
+			//trace('containedObj: ${containedObj.name}');
+		}
 	}
 
-	public static function ReadFromFile(reader:FileInput):ObjectHelper {
+	// TODO use dataVersion 5 also for held objects / cloths / wounds
+	// Dataversion 5 stores also full contained object data
+	public static function ReadFromFile(reader:FileInput, dataVersion:Int = -1):ObjectHelper {
+		if(dataVersion < 1) dataVersion = dataVersionNumberForRead;
+
 		var array = WorldMap.ReadInt32Array(reader);
 		if (array == null) return null; // reached the end
 		if (array[0] == -100) return null;
+		if(array.length < 0 || array.length > 100){
+			trace('Array lenght does not fit: ' + array.length);
+			throw new Exception('Array lenght does not fit: ' + array.length);
+		}
 
 		var newObject = ObjectHelper.readObjectHelper(null, array);
 		newObject.livingOwners = WorldMap.ReadInt32Array(reader);
@@ -156,6 +174,23 @@ class ObjectHelper {
 		newObject.numberOfUses = reader.readInt32();
 		newObject.creationTimeInTicks = reader.readDouble();
 		newObject.timeToChange = reader.readFloat();
+
+		if(dataVersion >= 5){
+			/*var count = 0;
+			for(containedObj in newObject.containedObjects){
+				trace('Read O: $count containedObj: ${containedObj.name}');
+				count++;
+			}*/
+
+			newObject.containedObjects = new Array<ObjectHelper>();
+			var count = reader.readByte();
+			for(i in 0...count){
+				var containedObj = ReadFromFile(reader, dataVersion);
+				newObject.containedObjects.push(containedObj);
+				//trace('Read: $i containedObj: ${containedObj.name}');
+			}
+		}
+		newObject.TransformToDummy();
 
 		if (newObject.creationTimeInTicks > TimeHelper.tick) newObject.creationTimeInTicks = TimeHelper.tick;
 		return newObject;

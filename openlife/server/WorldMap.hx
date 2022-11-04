@@ -699,6 +699,7 @@ class WorldMap {
 		writer.writeString('${TimeHelper.tick}\n');
 		writer.writeString('${Server.server.playerIndex}\n');
 		writer.writeString('${PlayerAccount.AccountIdIndex}\n');
+		writer.writeString('${ObjectHelper.dataVersionNumberForWrite}\n');
 		writer.close();
 	}
 
@@ -712,7 +713,12 @@ class WorldMap {
 		AiBase.lastTick = TimeHelper.lastTick;
 		Server.server.playerIndex = Std.parseInt(reader.readLine());
 		PlayerAccount.AccountIdIndex = Std.parseInt(reader.readLine());
-
+		
+		try{ObjectHelper.dataVersionNumberForRead = Std.parseInt(reader.readLine());}
+		catch(ex){
+			ObjectHelper.dataVersionNumberForRead = 4;
+			trace('WARNING: Could not read ObjectHelper.dataVersionNumberForRead');
+		}
 		// trace('PlayerAccount.AccountIdIndex: ${PlayerAccount.AccountIdIndex}');
 
 		reader.close();
