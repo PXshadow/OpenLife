@@ -988,6 +988,16 @@ abstract class AiBase
 			return useHeldObjOnTarget(basket); // fill basket		
 		}
 
+		// check if there is loose clay to bring home
+		if(distanceToHome > 225){
+			var clay = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 126, 5, null, myPlayer); // Clay 126
+			if(clay != null){
+				dropIsAUse = false;
+				dropTarget = clay;
+				return true;
+			}
+		}
+
 		if(clayDeposit == null) return false;
 
 		if(basket == null){
