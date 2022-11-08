@@ -324,7 +324,6 @@ abstract class AiBase
 
 		if (myPlayer.isMoving()) return;
 		Macro.exception(if (searchNewHomeIfNeeded()) return);
-		Macro.exception(if (doPottery()) return);
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (handleTemperature()) return);
@@ -355,10 +354,11 @@ abstract class AiBase
 
 		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
 		
+		Macro.exception(if(makeFireFood()) return);
+		Macro.exception(if(doPottery()) return);
 		Macro.exception(if(doBaking()) return);
 		Macro.exception(if(doWatering()) return);
 		Macro.exception(if(doBasicFarming()) return);
-		Macro.exception(if(makeFireFood()) return);
 
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
@@ -878,13 +878,13 @@ abstract class AiBase
 		return GetOrCraftItem(actorId);		
 	}
 
-	private function doPottery(maxPeople:Int = 5) : Bool {
+	private function doPottery(maxPeople:Int = 1) : Bool {
 		if(hasOrBecomeProfession('Potter', maxPeople) == false) return false;
 		if(myPlayer.home == null) return false;
 
 		var home = myPlayer.home;
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 100); // Clay 126
-		return gatherClay();
+		//return gatherClay();
 
 		if(count < 6) return gatherClay();
 
