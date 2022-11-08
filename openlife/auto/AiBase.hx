@@ -934,8 +934,6 @@ abstract class AiBase
 			return done;
 		}
 
-		if(clayDeposit == null) return false;
-
 		var basket = null;
 		
 		if(distanceToHome <= 100){
@@ -956,8 +954,11 @@ abstract class AiBase
 			}
 		}
 
+		// search if there is a dropped clay basket to bring home 
+		basket = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 292, 20, null, myPlayer, [126]); // Basket 292, Clay 126
+
 		// search if there is a basket to fill close to the clay deposit 
-		basket = AiHelper.GetClosestObjectToPosition(clayDeposit.tx, clayDeposit.ty, 292, 5, null, myPlayer); // Basket
+		if(basket == null) basket = AiHelper.GetClosestObjectToPosition(clayDeposit.tx, clayDeposit.ty, 292, 5, null, myPlayer); // Basket 292
 
 		// take care of full basket
 		if(basket != null && basket.containedObjects.length > 2){
