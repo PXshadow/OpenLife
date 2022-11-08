@@ -2252,7 +2252,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// TODO limit max distance for ai
 
 		var player:GlobalPlayerInstance = null;
-		var distance = maxDistance * maxDistance;
+		var quadMaxDistance = maxDistance * maxDistance;
+		var bestDistance:Float = quadMaxDistance;
 
 		for (c in Connection.getConnections()) {
 			if (c.player.deleted) continue;
@@ -2261,9 +2262,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			var pX = c.player.tx - this.gx;
 			var pY = c.player.ty - this.gy;
-			var tmpDistance = (pX - x) * (pX - x) + (pY - y) * (pY - y);
 
-			if (tmpDistance < distance) player = c.player;
+			var tmpQuadDistance = c.player.calculateExactQuadDistance(this.tx, this.ty);
+			//var tmpQuadDistance = (pX - x) * (pX - x) + (pY - y) * (pY - y);
+
+			if (tmpQuadDistance > bestDistance) continue;
+			bestDistance = tmpQuadDistance;
+			player = c.player;
 		}
 
 		if (onlyHuman) return player;
@@ -2275,9 +2280,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			var pX = ai.player.tx - this.gx;
 			var pY = ai.player.ty - this.gy;
-			var tmpDistance = (pX - x) * (pX - x) + (pY - y) * (pY - y);
+			var tmpQuadDistance = ai.player.calculateExactQuadDistance(this.tx, this.ty);
+			//var tmpDistance = (pX - x) * (pX - x) + (pY - y) * (pY - y);
 
-			if (tmpDistance < distance) player = ai.player;
+			if (tmpQuadDistance > bestDistance) continue;
+			bestDistance = tmpQuadDistance;
+			player = ai.player;
 		}
 
 		return player;
