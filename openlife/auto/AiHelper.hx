@@ -80,7 +80,7 @@ class AiHelper {
 		return GetClosestObjectToPosition(player.home.tx, player.home.ty, objIdToSearch, searchDistance, ignoreObj, player);
 	}
 
-	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null, player:PlayerInterface = null) : ObjectHelper {
+	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null, player:PlayerInterface = null, searchContained:Array<Int> = null) : ObjectHelper {
 		var world = WorldMap.world;
 		var ai = player == null ? null : player.getAi();
 		var closestObject = null;
@@ -99,6 +99,17 @@ class AiHelper {
 
 				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
 				if (ai != null && ai.isObjectWithHostilePath(tx, ty)) continue;
+
+				if(searchContained != null){
+					if(objData.numSlots < 1) continue; 
+					var obj = world.getObjectHelper(tx,ty);
+					var found = false;
+
+					for(item in obj.containedObjects){
+						if(searchContained.contains(item.parentId)) found = true;									
+					}
+					if(found == false) continue;
+				}
 
 				var quadDistance = AiHelper.CalculateQuadDistanceHelper(tx,ty, baseX, baseY);
 
@@ -269,6 +280,29 @@ class AiHelper {
 		// if(originalFoodValue < 0) return false;
 		// if(player.food_store_max - player.food_store < Math.ceil(originalFoodValue / 4)) return false;
 		// return true;
+	}
+
+	public static function CountCloseObjects(player:PlayerInterface, tx:Int, ty:Int, objId:Int, radius:Int = 10) {
+		var world = player.getWorld();
+		var objdataToSearch = ObjectData.getObjectData(objId);
+		var pileObjId = objdataToSearch.getPileObjId();
+		var count = 0;
+
+		for (tty in ty - radius...ty + radius) {
+			for (ttx in tx - radius...tx + radius) {
+				var objData = world.getObjectDataAtPosition(ttx, tty);
+				if(objData.parentId == objId) count++;
+				if(objData.parentId == pileObjId){
+					var obj = world.getObjectHelper(ttx,tty);
+					count += obj.numberOfUses;
+					trace('CountCloseObjects: ${objdataToSearch.name}: found Pile: numberOfUses: ${obj.numberOfUses}');
+				}
+			}
+		}
+
+		trace('CountCloseObjects: ${objdataToSearch.name}: ${count}');
+
+		return count;
 	}
 
 	public static function SearchBestFood(player:PlayerInterface, feedingPlayer:PlayerInterface = null, radius:Int = 40):ObjectHelper {

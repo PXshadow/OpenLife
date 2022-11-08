@@ -25,6 +25,7 @@ abstract class AiBase
 {
 	public static var lastTick:Float = 0;
 	public static var tick:Float = 0;
+	public static var jumpToAi:AiBase = null;
 
 	final RAD:Int = MapData.RAD; // search radius
 
@@ -323,6 +324,7 @@ abstract class AiBase
 
 		if (myPlayer.isMoving()) return;
 		Macro.exception(if (searchNewHomeIfNeeded()) return);
+		Macro.exception(if (doPottery()) return);
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (handleTemperature()) return);
@@ -874,6 +876,139 @@ abstract class AiBase
 			trace('AAI: ${myPlayer.name + myPlayer.id} shortCraft: wanted: ${actorId} ${myPlayer.heldObject.name} + ${target.name}');
 		if(actorId == 0) return dropHeldObject();
 		return GetOrCraftItem(actorId);		
+	}
+
+	private function doPottery(maxPeople:Int = 5) : Bool {
+		if(hasOrBecomeProfession('Potter', maxPeople) == false) return false;
+		if(myPlayer.home == null) return false;
+
+		var home = myPlayer.home;
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 100); // Clay 126
+		return gatherClay();
+
+		if(count < 6) return gatherClay();
+
+		return false;
+	}
+
+	private function gatherClay() : Bool {
+		var home = myPlayer.home;
+		var heldObject = myPlayer.heldObject;
+		//var heldContained = heldObject.containedObjects.length;
+		
+		if(home == null) return false;
+
+		var distanceToHome = myPlayer.CalculateQuadDistanceToObject(home);
+		var clayPit = AiHelper.GetClosestObjectById(myPlayer, 409, null, 80); // Clay Pit 409
+		var clayDeposit = AiHelper.GetClosestObjectById(myPlayer, 125, null, 80); // Clay Deposit 125
+		
+		if(clayDeposit == null) clayDeposit = clayPit; // TODO use closest implement: GetClosestObjectByIds 
+		var distanceToClayDeposit = clayDeposit == null ? -1 : myPlayer.CalculateQuadDistanceToObject(clayDeposit);
+		//if(clayDeposit == null) return false;
+
+		// holding Basket 292
+		if(heldObject.parentId == 292){
+			// bring basket home if full
+			if(heldObject.containedObjects.length > 2){
+				if(distanceToHome <= 100) return dropHeldObject();
+
+				var done = myPlayer.gotoObj(home);
+
+				if (ServerSettings.DebugAiSay) myPlayer.say('Bring basket home $done');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: done: $done goto home: held: ${heldObject.name} d: $distanceToHome');
+				return done;
+			}
+
+			// if basket is empty drop it near ClayDeposit
+			if(clayDeposit == null) return false;
+			
+			if(distanceToClayDeposit <= 1){
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: drop Basket near deposit held: ${heldObject.name} d: $distanceToClayDeposit');
+				return dropHeldObject(0);
+			}
+
+			var done = myPlayer.gotoObj(clayDeposit);
+
+			if (ServerSettings.DebugAiSay) myPlayer.say('Drop basket near clay deposit $done');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: done: $done goto ClayDeposit: held: ${heldObject.name} d: $distanceToClayDeposit');
+			return done;
+		}
+
+		if(clayDeposit == null) return false;
+
+		var basket = null;
+		
+		if(distanceToHome <= 100){
+			// if close to home search if there is a basket with clay to empty
+			basket = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 292, 10, null, myPlayer, [126]); // Basket 292, Clay 126
+
+			if(basket != null){
+				if(heldObject.parentId != 0) return dropHeldObject(1, true); // allow to use piles for clay
+				this.dropIsAUse = false; // TODO empty basket ???
+				this.dropTarget = basket;
+
+				jumpToAi = this;
+
+				if (ServerSettings.DebugAiSay) myPlayer.say('empty basket');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: empty basket: held: ${heldObject.name} d: $distanceToHome');
+
+				return true;
+			}
+		}
+
+		// search if there is a basket to fill close to the clay deposit 
+		basket = AiHelper.GetClosestObjectToPosition(clayDeposit.tx, clayDeposit.ty, 292, 5, null, myPlayer); // Basket
+
+		// take care of full basket
+		if(basket != null && basket.containedObjects.length > 2){
+		
+			if(heldObject.parentId != 0) return dropHeldObject(1);
+			
+			if (ServerSettings.DebugAiSay) myPlayer.say('pickup basket to bring home');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: pickup basket to bring home: held: ${heldObject.name} d: $distanceToHome');
+
+			// pickup basket to bring home
+			return useHeldObjOnTarget(basket);				
+		}
+		
+		// holding Clay 126
+		if(heldObject.parentId == 126){ 
+			if(distanceToHome <= 100) return dropHeldObject(10, true); // allow to use piles for clay
+
+			if(basket == null){
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: no basket to drop clay: held: ${heldObject.name} d: $distanceToHome');
+				// have a free hand to not be slowed down by clay while getting a basket
+				return dropHeldObject(10);			
+			}
+
+			if (ServerSettings.DebugAiSay) myPlayer.say('drop clay in basket');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: drop clay in basket: held: ${heldObject.name} d: $distanceToHome');
+
+			return useHeldObjOnTarget(basket); // fill basket		
+		}
+
+		if(clayDeposit == null) return false;
+
+		if(basket == null){
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: get basket: held: ${heldObject.name} d: $distanceToClayDeposit');
+			return GetOrCraftItem(292); // get Basket
+		}
+
+		if(heldObject.parentId != 0) return dropHeldObject(10);
+
+		if(distanceToClayDeposit > 1){
+			var done = myPlayer.gotoObj(clayDeposit);
+
+			if (ServerSettings.DebugAiSay) myPlayer.say('Goto clay deposit $done');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: done: $done goto ClayDeposit: held: ${heldObject.name} d: $distanceToClayDeposit');
+			return done;
+		}
+
+		if (ServerSettings.DebugAiSay) myPlayer.say('get clay from deposit');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: get clay from deposit: held: ${heldObject.name} d: $distanceToClayDeposit');
+
+		//jumpToAi = this;
+		return useHeldObjOnTarget(clayDeposit);
 	}
 
 	private function doBaking(maxPeople:Int = 2) : Bool {
@@ -1452,7 +1587,8 @@ private function craftLowPriorityClothing() : Bool {
 	}
 
 	//public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
-	public function dropHeldObject(maxDistanceToHome:Float = 40, ?infos:haxe.PosInfos) : Bool {
+	// allowAllPiles --> some stuff like clay baskets and so on is normally not piled. Set true if it should be allowed to be piled. 
+	public function dropHeldObject(maxDistanceToHome:Float = 40, allowAllPiles:Bool = false, ?infos:haxe.PosInfos) : Bool {
 		// var myPlayer = myPlayer.getPlayerInstance();
 		var home = myPlayer.home;
 		var dropOnStart:Bool = home != null;
@@ -1541,8 +1677,8 @@ private function craftLowPriorityClothing() : Bool {
 		var pileId = myPlayer.heldObject.objectData.getPileObjId();
 
 		// drop on ground to process
-		// 225 Wheat Sheaf // 1113 Ear of Corn // 126 Clay // 236 Clay Plate
-		var dontUsePile = [225, 1113, 126, 236];
+		// 225 Wheat Sheaf // 1113 Ear of Corn // 126 Clay // 236 Clay Plate // 292 Basket
+		var dontUsePile = allowAllPiles ? [] : [225, 1113, 126, 236, 292];
 		var heldId = myPlayer.heldObject.parentId;
 		if(dontUsePile.contains(heldId)) pileId = 0; 
 		

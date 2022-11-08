@@ -4393,10 +4393,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			var ais = Connection.getLivingAis();
 
 			if (ais.length > 0) {
-				var ai = ais[WorldMap.calculateRandomInt(ais.length - 1)];
-				var aiPlayer = ai.connection.player;
+				var ai = AiBase.jumpToAi != null ? AiBase.jumpToAi : ais[WorldMap.calculateRandomInt(ais.length - 1)].ai;
+				var aiPlayer = ai.myPlayer;
 				
-				ai.ai.time += 4; // give player some time to catch up
+				ai.time += 4; // give player some time to catch up
 				player.x = WorldMap.world.transformX(player, aiPlayer.tx);
 				player.y = WorldMap.world.transformY(player, aiPlayer.ty);
 
