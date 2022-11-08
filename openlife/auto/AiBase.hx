@@ -2958,6 +2958,13 @@ private function craftLowPriorityClothing() : Bool {
 			return true;
 		}
 
+		// if holding clay 126 drop at once
+		if(myPlayer.heldObject.parentId == 126){
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop clay to pickup food');
+			dropHeldObject(5);
+			return true;
+		}
+
 		var isUse = foodTarget.isPermanent() || foodTarget.objectData.foodValue < 1;
 
 		if (isUse && myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
