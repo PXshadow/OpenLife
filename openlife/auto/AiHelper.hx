@@ -282,7 +282,7 @@ class AiHelper {
 		// return true;
 	}
 
-	public static function CountCloseObjects(player:PlayerInterface, tx:Int, ty:Int, objId:Int, radius:Int = 10) {
+	public static function CountCloseObjects(player:PlayerInterface, tx:Int, ty:Int, objId:Int, radius:Int = 10, countPiles:Bool = true) {
 		var world = player.getWorld();
 		var objdataToSearch = ObjectData.getObjectData(objId);
 		var pileObjId = objdataToSearch.getPileObjId();
@@ -292,7 +292,7 @@ class AiHelper {
 			for (ttx in tx - radius...tx + radius) {
 				var objData = world.getObjectDataAtPosition(ttx, tty);
 				if(objData.parentId == objId) count++;
-				if(objData.parentId == pileObjId){
+				if(countPiles && objData.parentId == pileObjId){
 					var obj = world.getObjectHelper(ttx,tty);
 					count += obj.numberOfUses;
 					trace('CountCloseObjects: ${objdataToSearch.name}: found Pile: numberOfUses: ${obj.numberOfUses}');

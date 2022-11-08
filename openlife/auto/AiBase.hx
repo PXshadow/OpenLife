@@ -266,8 +266,10 @@ abstract class AiBase
 			var distance = myPlayer.CalculateQuadDistanceToObject(useTarget);
 
 			if(distance < 100){
+				if(ServerSettings.DebugAiSay)
+					myPlayer.say('Close Use: d: $distance ${useTarget.name}'); 
 				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: distance: $distance ${useTarget.description} ${useTarget.tx} ${useTarget.ty}');
+					trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: d: $distance ${useTarget.name} ${useTarget.tx} ${useTarget.ty} isMoving: ${myPlayer.isMoving()}');
 
 				Macro.exception(if (isUsingItem()) return);
 			}
@@ -878,15 +880,78 @@ abstract class AiBase
 		return GetOrCraftItem(actorId);		
 	}
 
-	private function doPottery(maxPeople:Int = 1) : Bool {
+	private function doPottery(maxPeople:Int = 2) : Bool {
 		if(hasOrBecomeProfession('Potter', maxPeople) == false) return false;
 		if(myPlayer.home == null) return false;
 
 		var home = myPlayer.home;
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 100); // Clay 126
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 20); // Clay 126
 		//return gatherClay();
 
-		if(count < 6) return gatherClay();
+		if(this.profession['Potter'] < 2 && count < 6) return gatherClay();
+
+		this.profession['Potter'] = 2; // dont get new clay --> do some pottery first
+
+		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 238, 20, null, myPlayer); // Adobe Kiln 238
+		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 281, 20, null, myPlayer); // Wood-filled Adobe Kiln 281
+
+		if(kiln == null) return false;
+
+		var countBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 15); //  Clay Bowl 235
+		var countPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 236, 15); //  Clay Plate 236
+		var maxtBowls = 5;
+		var maxtPlates = 5;
+
+		if(countBowl >= maxtBowls && countPlate >= maxtPlates){
+			this.profession['Potter'] = 0;
+			return false;
+		}
+
+		var countClayOnFloor = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 15, false); // Clay 126
+		var countWetBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 233, 15); // Wet Clay Bowl 233
+		var countWetPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 234, 15); // Wet Clay Plate 234
+
+		countBowl += countWetBowl;
+		countPlate += countWetPlate;
+
+		var neededBols = countBowl > maxtBowls ? 0 : maxtBowls - countBowl;
+		var neededPlates = countPlate > maxtPlates ? 0 : maxtPlates - countPlate;
+		var neededClay = 0;
+
+		neededClay += neededBols;
+		neededClay += neededPlates;
+		if(neededClay > 6) neededClay = 6;
+
+		
+		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: neededClay: $neededClay WetBowl: ${countWetBowl} WetPlate: $countWetPlate ');
+
+		if(this.profession['Potter'] < 3 && countClayOnFloor < neededClay && countWetBowl + countWetPlate < 6){
+			if (ServerSettings.DebugAiSay) myPlayer.say('Do Pottery get clay from pile $neededClay');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: get clay from pile');
+
+			if(shortCraft(0,3905)) return true; // Pile of Clay 3905
+		}
+
+		if (ServerSettings.DebugAiSay) myPlayer.say('Do Pottery neededClay $neededClay');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery3: neededClay: $neededClay WetBowl: ${countWetBowl} WetPlate: $countWetPlate ');
+		
+		this.profession['Potter'] = 3;
+
+		if(shortCraft(33,126)) return true; //Stone 33, Clay 126 --> Wet Clay Bowl 233
+		if(countBowl > countPlate && shortCraft(33,233)) return true; //Stone 33, Wet Clay Bowl 233 --> Wet Clay Plate 234
+
+		if(countWetBowl + countWetPlate > 3){
+			if (ServerSettings.DebugAiSay) myPlayer.say('make bowl $countWetBowl');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make bowl $countWetBowl');
+
+			if(countWetBowl > 0 && craftItem(283)) return true; // Wooden Tongs with Fired Bowl
+
+			if (ServerSettings.DebugAiSay) myPlayer.say('make Plate $countWetPlate');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make Plate $countWetPlate');
+			if(countWetPlate > 0 && craftItem(241)) return true; // Fired Plate in Wooden Tongs
+		}
+
+		this.profession['Potter'] = 0;
 
 		return false;
 	}
@@ -1706,8 +1771,8 @@ private function craftLowPriorityClothing() : Bool {
 		var pileId = myPlayer.heldObject.objectData.getPileObjId();
 
 		// drop on ground to process
-		// 225 Wheat Sheaf // 1113 Ear of Corn // 126 Clay // 236 Clay Plate // 292 Basket
-		var dontUsePile = allowAllPiles ? [] : [225, 1113, 126, 236, 292];
+		// 225 Wheat Sheaf // 1113 Ear of Corn // 126 Clay // 236 Clay Plate // 292 Basket // 233 Wet Clay Bowl
+		var dontUsePile = allowAllPiles ? [] : [225, 1113, 126, 236, 292, 233];
 		var heldId = myPlayer.heldObject.parentId;
 		if(dontUsePile.contains(heldId)) pileId = 0; 
 		
@@ -1730,11 +1795,12 @@ private function craftLowPriorityClothing() : Bool {
 		}
 
 		var heldId = myPlayer.heldObject.parentId;
+		var transition = TransitionImporter.GetTransition(heldId, 0); // check if there is a gound transition
 		// dont use drop if held is Basket of Bones (356) to empty it! // 336 Basket of Soil
 		// 1137 Bowl of Soil // 186 Cooked Rabbit
-		var dontUseDrop = [356, 336, 1137, 186];
+		var dontUseDropForItems = [356, 336, 1137, 186];
 		//if (newDropTarget.id == 0 &&  heldId != 356 && heldId != 336 && heldId != 1137){ 
-		if (newDropTarget.id == 0 && dontUseDrop.contains(heldId) == false){ 
+		if (newDropTarget.id == 0 && dontUseDropForItems.contains(heldId) == false && transition == null){ 
 			this.dropIsAUse = false;
 			this.dropTarget = newDropTarget;
 		}
