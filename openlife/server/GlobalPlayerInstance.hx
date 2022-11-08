@@ -1694,6 +1694,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			text = text.toUpperCase();
 		}
 
+		if (text.startsWith('?NAME')) {
+			text = '${this.name} ${this.familyName}';
+			toSelf = true;
+		}
+
 		if (StringTools.contains(text, '?SEASON')){
 			text = TimeHelper.SeasonText.toUpperCase();
 			toSelf = true;
