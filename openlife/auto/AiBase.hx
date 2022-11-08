@@ -1593,7 +1593,7 @@ private function craftLowPriorityClothing() : Bool {
 		// var myPlayer = myPlayer.getPlayerInstance();
 		var home = myPlayer.home;
 		var dropOnStart:Bool = home != null;
-		var heldObjId = myPlayer.heldObject.id;
+		var heldObjId = myPlayer.heldObject.parentId;
 
 		if (heldObjId == 0) return false;
 		if (myPlayer.heldObject.isWound()) return false;
@@ -1605,7 +1605,25 @@ private function craftLowPriorityClothing() : Bool {
 
 		if(ServerSettings.DebugAi) 
 			trace('AAI: ${myPlayer.name + myPlayer.id} DROP: ${myPlayer.heldObject.name} ${infos.methodName}');
-		
+				
+		// if holding Clay 126 and far from home try to drop in basket
+		if(heldObjId == 126){ 
+			var distanceToHome = myPlayer.CalculateQuadDistanceToObject(home);
+
+			if(distanceToHome > 100){
+				// search if there is a clay basket
+				var basket = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 292, 10, null, myPlayer, [126]); // Basket 292, Clay 126
+				if(basket == null) basket = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 292, 10, null, myPlayer); // Basket 292
+
+				if(basket != null){
+					if (ServerSettings.DebugAiSay) myPlayer.say('drop clay in basket');
+					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: drop clay in basket: d: $distanceToHome');
+
+					return useHeldObjOnTarget(basket); // fill basket	
+				}
+			}
+		}
+
 		// Yew Bow
 		if(heldObjId == 151){
 			// Empty Arrow Quiver
