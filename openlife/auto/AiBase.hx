@@ -340,8 +340,8 @@ abstract class AiBase
 		if (myPlayer.isMoving()) return;
 		Macro.exception(if (searchNewHomeIfNeeded()) return);
 		if(this.profession['Potter'] > 1) Macro.exception(if (doPottery()) return);
-		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (isHandlingFire()) return);
+		Macro.exception(if (isPickingupCloths()) return);		
 		Macro.exception(if (handleTemperature()) return);
 		Macro.exception(if (shortCraft(0, 400, 20)) return); // pull out the carrots 
 		Macro.exception(if (makeSharpieFood(5)) return); 
@@ -590,6 +590,7 @@ abstract class AiBase
 			var hasProfession = ai.profession[profession] > 0;
 
 			if(hasProfession == false && p.id != myPlayer.id) continue;
+			if(profession != 'Potter' && ai.profession['Potter'] > 1) continue;
 
 			var quadDist = p.CalculateQuadDistanceToObject(obj);
 
@@ -728,6 +729,7 @@ abstract class AiBase
 	private function handleDeath() : Bool {
 		if(myPlayer.age < 58.5) return false;
 
+		this.profession = new Map<String, Float>(); // clear all professions
 		this.profession['gravekeeper'] = 1; 
 
 		Macro.exception(if (isRemovingFromContainer()) return true);	
@@ -922,8 +924,8 @@ abstract class AiBase
 		if(shortCraftOnGround(283)) return true; // Wooden Tongs with Fired Bowl
 		if(shortCraftOnGround(240)) return true; // Wet Plate in Wooden Tongs
 		
-		var countWetBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 233, 15); // Wet Clay Bowl 233
-		var countWetPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 234, 15); // Wet Clay Plate 234
+		var countWetBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 233, 15, false); // Wet Clay Bowl 233
+		var countWetPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 234, 15, false); // Wet Clay Plate 234
 
 		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer); // Firing Adobe Kiln 
 
