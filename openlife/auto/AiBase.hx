@@ -226,7 +226,7 @@ abstract class AiBase
 		}
 
 		// if(didNotReachFood > 0) didNotReachFood -= timePassedInSeconds * 0.02;
-        if (time > 10) time = 10; // wait max 10 sec
+        if (time > 1) time = 1; // wait max 10 sec
 		if (time > 0) return;
 		time += ServerSettings.AiReactionTime; // 0.5; // minimum AI reacting time
 
@@ -252,6 +252,8 @@ abstract class AiBase
 			return;
 		}
 
+		//myPlayer.say('1');
+
 		var animal = AiHelper.GetCloseDeadlyAnimal(myPlayer);
 		var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer);
 
@@ -276,9 +278,10 @@ abstract class AiBase
 		}
 
 		// check if manual waiting time is set. For example received a STOP command
-		if(waitingTime > 0){ 
-			time += waitingTime;
-			waitingTime = 0;
+		if(waitingTime > 1){ 
+			time += 1;
+			waitingTime -= 1;
+			if(waitingTime < 0) waitingTime = 0;
 			return;
 		}
 
