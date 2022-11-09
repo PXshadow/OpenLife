@@ -1338,6 +1338,7 @@ class IntemToCraft {
 	public var countTransitionsDone:Int = 0; // transitions done while crafting
 	public var done:Bool = false; // transitions done while crafting
 	public var searchRadius = 0;
+	public var searchCurrentPosition = true; // search for items on current player position.
 
 	public var transActor:ObjectHelper = null;
 	public var transTarget:ObjectHelper = null;

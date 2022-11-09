@@ -229,6 +229,7 @@ abstract class AiBase
         if (time > 1) time = 1; // wait max 10 sec
 		if (time > 0) return;
 		time += ServerSettings.AiReactionTime; // 0.5; // minimum AI reacting time
+		itemToCraft.searchCurrentPosition = true;
 
 		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} account:  ${myPlayer.account.id}');
 
@@ -333,7 +334,7 @@ abstract class AiBase
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (handleTemperature()) return);
-		Macro.exception(if (shortCraft(0, 400, 40)) return); // pull out the carrots 
+		Macro.exception(if (shortCraft(0, 400, 20)) return); // pull out the carrots 
 		Macro.exception(if (makeSharpieFood(5)) return); 
 		Macro.exception(if (isHandlingGraves()) return);
 		Macro.exception(if (isMakingSeeds()) return);
@@ -355,16 +356,21 @@ abstract class AiBase
 		}
 
 		Macro.exception(if(craftHighPriorityClothing()) return);
+
+		itemToCraft.searchCurrentPosition = false;
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);
 		Macro.exception(if(makePopcornIfNeeded()) return);
+		itemToCraft.searchCurrentPosition = true;
 
 		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
 		
+		itemToCraft.searchCurrentPosition = false;
 		Macro.exception(if(makeFireFood()) return);
 		Macro.exception(if(doPottery()) return);
 		Macro.exception(if(doBaking()) return);
 		Macro.exception(if(doWatering()) return);
 		Macro.exception(if(doBasicFarming()) return);
+		itemToCraft.searchCurrentPosition = true;
 
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
@@ -2533,7 +2539,7 @@ private function craftLowPriorityClothing() : Bool {
 
 			if(myPlayer.firePlace != null) addObjectsForCrafting(myPlayer.firePlace.tx, myPlayer.firePlace.ty, radius, transitionsByObjectId);
 
-			addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId);
+			if(itemToCraft.searchCurrentPosition) addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId);
 
 			// if(ServerSettings.DebugAi) trace('AI: craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
 
