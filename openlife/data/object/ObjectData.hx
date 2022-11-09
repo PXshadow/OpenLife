@@ -547,7 +547,7 @@ class ObjectData extends LineReader {
 
 			tmpName = tmpName.split('#')[0];
 			tmpName = tmpName.split('+')[0];
-			tmpName = tmpName.split('-')[0];
+			//tmpName = tmpName.split('-')[0];
 
 			tmpName = StringTools.trim(tmpName);
 
