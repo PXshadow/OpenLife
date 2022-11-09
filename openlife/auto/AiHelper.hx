@@ -640,45 +640,52 @@ class AiHelper {
 
 		// if (player.x == x && player.y == y || moving) return false;
 		// set pos
-		var px = 0;
-		var py = 0;
+		var px = x - player.x;
+		var py = y - player.y;
 		var blocked = false;
 		var ii = 0;
 
-		// search the first none blocked tile
-		for(i in 0...RAD-4){
-			ii = i;
-			px = x - player.x;
-			py = y - player.y;
+		// search the first none blocked tile in case target is close to the edge
+		var maxEdge = RAD-2;
+		
+		if(px > maxEdge || px < -maxEdge || py > maxEdge || py < -maxEdge){
+			for(i in 0...RAD-4){
+				ii = i;
+				px = x - player.x;
+				py = y - player.y;
+				if(px > RAD) px = RAD;
+				if(py > RAD) py = RAD;
+				if(px < -RAD) px = -RAD;
+				if(py < -RAD) py = -RAD;
 
-			// trace('AAI: GOTO: From: ${player.x},${player.y} To: $x $y / FROM ${player.tx()},${player.ty()} To: ${x + player.gx},${y + player.gy}');
+				// trace('AAI: GOTO: From: ${player.x},${player.y} To: $x $y / FROM ${player.tx()},${player.ty()} To: ${x + player.gx},${y + player.gy}');
 			
-			if (px == 0 && py == 0) return false; // no need to move
+				if (px == 0 && py == 0) return false; // no need to move
 
-			var tmpRad = RAD - i;
+				var tmpRad = RAD - i;
 
-			if (px > tmpRad - 1) px = tmpRad - 1;
-			if (py > tmpRad - 1) py = tmpRad - 1;
-			if (px < -tmpRad) px = -tmpRad;
-			if (py < -tmpRad) py = -tmpRad;
+				if (px > tmpRad - 1) px = tmpRad - 1;
+				if (py > tmpRad - 1) py = tmpRad - 1;
+				if (px < -tmpRad) px = -tmpRad;
+				if (py < -tmpRad) py = -tmpRad;
 
-			//if (playerInterface.isBlocked(player.gx + x, player.gy + y)) trace('GOTO blocked');
-			//if (ai != null && ai.isObjectNotReachable(player.gx + x, player.gy + y)) trace('GOTO not reachable');
-			//var debugtext = '';
-			blocked = false;
-			if (playerInterface.isBlocked(px + player.tx, py + player.ty)) blocked = true; //trace('GOTO blocked');
-			if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) blocked = true;//trace('GOTO not reachable');
-			//if (playerInterface.isBlocked(px + player.tx, py + player.ty)) debugtext = 'blocked';
-			//if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) debugtext = 'not reachable';
-			if(blocked == false) break;
-		}
+				//if (playerInterface.isBlocked(player.gx + x, player.gy + y)) trace('GOTO blocked');
+				//if (ai != null && ai.isObjectNotReachable(player.gx + x, player.gy + y)) trace('GOTO not reachable');
+				//var debugtext = '';
+				blocked = false;
+				if (playerInterface.isBlocked(px + player.tx, py + player.ty)) blocked = true; //trace('GOTO blocked');
+				if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) blocked = true;//trace('GOTO not reachable');
+				//if (playerInterface.isBlocked(px + player.tx, py + player.ty)) debugtext = 'blocked';
+				//if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) debugtext = 'not reachable';
+				if(blocked == false) break;
+			}
 
-		//trace('Goto i: $ii blocked: $blocked ${player.tx},${player.ty} $px,$py');
+			//trace('${player.name + player.p_id} Goto i: $ii blocked: $blocked ${player.tx},${player.ty} $px,$py');
 
-		if(blocked)
-		{
-			//trace('Goto blocked!$debugtext ${player.tx},${player.ty} $px,$py');
-			return false;
+			if(blocked){
+				//trace('${player.name + player.p_id} Goto blocked! ${player.tx},${player.ty} $px,$py');
+				return false;
+			}
 		}
 		
 		// if blocked try if can move half way
@@ -748,7 +755,7 @@ class AiHelper {
 
 			var end = new Coordinate(px + RAD + tweakX, py + RAD + tweakY);
 
-			// trace('goto: end $end');
+			//trace('${player.name + player.p_id} goto: end $end');
 
 			//paths = path.createPath(start, end, MANHATTAN, true);
 			//PathfinderNew.TryDifferentPaths(start, end, map);
@@ -760,7 +767,7 @@ class AiHelper {
 		}
 
 		if (paths == null) {
-			//trace('GOTO false ${player.tx},${player.ty} $px,$py $debugtext');
+			//trace('${player.name + player.p_id} GOTO false ${player.tx},${player.ty} $px,$py');
 
 			// since path was cut it might try again if not added here
 			//if(ai != null) ai.addNotReachable(px + player.tx, py + player.ty);
@@ -788,7 +795,7 @@ class AiHelper {
 		var globalPlayer = cast(player, GlobalPlayerInstance);
 		if (move) playerInterface.move(globalPlayer.moveHelper.guessX(), globalPlayer.moveHelper.guessY(), ai.seqNum++, data);
 
-		//trace('GOTO done $debugtext $px $py');
+		//trace('${player.name + player.p_id} GOTO done $px $py');
 
 		return true;
 	}
