@@ -919,6 +919,9 @@ abstract class AiBase
 		if(hasOrBecomeProfession('Potter', maxPeople) == false) return false;
 		if(home == null) return false;
 
+		if(shortCraftOnGround(283)) return true; // Wooden Tongs with Fired Bowl
+		if(shortCraftOnGround(240)) return true; // Wet Plate in Wooden Tongs
+		
 		var countWetBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 233, 15); // Wet Clay Bowl 233
 		var countWetPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 234, 15); // Wet Clay Plate 234
 
@@ -948,7 +951,7 @@ abstract class AiBase
 		var maxtBowls = 5;
 		var maxtPlates = 5;
 
-		if(countBowl >= maxtBowls && countPlate >= maxtPlates){
+		if(countBowl >= maxtBowls && countPlate >= maxtPlates && (countWetBowl + countWetPlate < 3)){
 			this.profession['Potter'] = 0;
 			return false;
 		}
@@ -965,7 +968,6 @@ abstract class AiBase
 		neededClay += neededBols;
 		neededClay += neededPlates;
 		if(neededClay > 6) neededClay = 6;
-
 		
 		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: neededClay: $neededClay WetBowl: ${countWetBowl} WetPlate: $countWetPlate ');
 
@@ -984,9 +986,7 @@ abstract class AiBase
 		if(shortCraft(33,126)) return true; //Stone 33, Clay 126 --> Wet Clay Bowl 233
 		if(countBowl > countPlate && shortCraft(33,233)) return true; //Stone 33, Wet Clay Bowl 233 --> Wet Clay Plate 234
 
-		if(countWetBowl + countWetPlate > 3){
-			if(doPotteryOnFire(countWetBowl, countWetPlate)) return true;
-		}
+		if(doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 
 		this.profession['Potter'] = 0;
 
@@ -1829,8 +1829,10 @@ private function craftLowPriorityClothing() : Bool {
 		var pileId = myPlayer.heldObject.objectData.getPileObjId();
 
 		// drop on ground to process
-		// 225 Wheat Sheaf // 1113 Ear of Corn // 126 Clay // 236 Clay Plate // 292 Basket // 233 Wet Clay Bowl
-		var dontUsePile = allowAllPiles ? [] : [225, 1113, 126, 236, 292, 233];
+		// 225 Wheat Sheaf // 1113 Ear of Corn  // 292 Basket // 233 Wet Clay Bowl
+		// For now allowed: 126 Clay // 236 Clay Plate
+		//var dontUsePile = allowAllPiles ? [] : [225, 1113, 126, 236, 292, 233];
+		var dontUsePile = allowAllPiles ? [] : [225, 1113, 292, 233];
 		var heldId = myPlayer.heldObject.parentId;
 		if(dontUsePile.contains(heldId)) pileId = 0; 
 		
@@ -1853,10 +1855,16 @@ private function craftLowPriorityClothing() : Bool {
 		}
 
 		var heldId = myPlayer.heldObject.parentId;
-		var transition = TransitionImporter.GetTransition(heldId, 0); // check if there is a gound transition
+		// check if there is a gound transition
+		// maybe better to opt in. since wet clay bowl in tongs shouls not make a use while while a fired one should
+		var transition = null; 
+		//var transition = TransitionImporter.GetTransition(heldId, 0); 
+		//if(transition == null) transition = TransitionImporter.GetTransition(heldId, -1);
+
 		// dont use drop if held is Basket of Bones (356) to empty it! // 336 Basket of Soil
-		// 1137 Bowl of Soil // 186 Cooked Rabbit
-		var dontUseDropForItems = [356, 336, 1137, 186];
+		// 1137 Bowl of Soil // 186 Cooked Rabbit 
+		// 283 Wooden Tongs with Fired Bowl // 241 Fired Plate in Wooden Tongs
+		var dontUseDropForItems = [356, 336, 1137, 186, 283, 241];
 		//if (newDropTarget.id == 0 &&  heldId != 356 && heldId != 336 && heldId != 1137){ 
 		if (newDropTarget.id == 0 && dontUseDropForItems.contains(heldId) == false && transition == null){ 
 			this.dropIsAUse = false;
@@ -1879,8 +1887,7 @@ private function craftLowPriorityClothing() : Bool {
 		return true;
 	}
 
-	public function isChildAndHasMother() // must not be his original mother
-	{
+	public function isChildAndHasMother(){ // must not be his original mother
 		var mother = myPlayer.getFollowPlayer();
 		return (myPlayer.age < ServerSettings.MinAgeToEat && mother != null && mother.isDeleted() == false);
 	}
