@@ -85,6 +85,8 @@ abstract class AiBase
 	public var profession:Map<String,Float> = [];
 	public var lastCheckedTimes:Map<String,Float> = [];
 
+	public var lastPie = -1;
+
 	public static function StartAiThread() {
 		Thread.create(RunAi);
 	}
@@ -254,6 +256,7 @@ abstract class AiBase
 		}
 
 		//myPlayer.say('1');
+		var startTime = Sys.time();
 
 		var animal = AiHelper.GetCloseDeadlyAnimal(myPlayer);
 		var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer);
@@ -285,6 +288,8 @@ abstract class AiBase
 			if(waitingTime < 0) waitingTime = 0;
 			return;
 		}
+
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		Macro.exception(if (myPlayer.age < ServerSettings.MinAgeToEat && isHungry) {
 			if(isMovingToPlayer(5)) return;
@@ -318,6 +323,8 @@ abstract class AiBase
 			playerToFollow = null;			
 		}
 
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+
 		// should be below isUsingItem since a use can be used to drop an hold item on a pile to pickup a baby
 		Macro.exception(if (isFeedingChild()) return); 
 		Macro.exception(if (isPickingupFood()) return);
@@ -327,6 +334,8 @@ abstract class AiBase
 		Macro.exception(if (isRemovingFromContainer()) return);		
 		Macro.exception(if (killAnimal(animal)) return);
 		Macro.exception(if (isMovingToPlayer(autoStopFollow ? 10 : 5)) return); // if ordered to follow stay closer otherwise give some space to work
+
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		if (myPlayer.isMoving()) return;
 		Macro.exception(if (searchNewHomeIfNeeded()) return);
@@ -338,6 +347,8 @@ abstract class AiBase
 		Macro.exception(if (makeSharpieFood(5)) return); 
 		Macro.exception(if (isHandlingGraves()) return);
 		Macro.exception(if (isMakingSeeds()) return);
+
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 				
 		// if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
 
@@ -354,23 +365,33 @@ abstract class AiBase
 				craftingTasks.push(itemToCraftId);
 			}
 		}
-
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if(craftHighPriorityClothing()) return);
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		itemToCraft.searchCurrentPosition = false;
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if(makePopcornIfNeeded()) return);
 		itemToCraft.searchCurrentPosition = true;
 
 		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
 		
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+
 		itemToCraft.searchCurrentPosition = false;
 		Macro.exception(if(makeFireFood()) return);
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: makeFireFood ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if(doPottery()) return);
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if(doBaking()) return);
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if(doWatering()) return);
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doWatering ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if(doBasicFarming()) return);
 		itemToCraft.searchCurrentPosition = true;
+
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
@@ -380,6 +401,8 @@ abstract class AiBase
 		if(myPlayer.age > 30) Macro.exception(if(craftLowPriorityClothing()) return);
 		
 		Macro.exception(if(makeStuff()) return);
+
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		// if there is nothing to do go home
 		Macro.exception(if(isMovingToHome(4)) return);
@@ -1116,17 +1139,24 @@ abstract class AiBase
 
 	private function doBaking(maxPeople:Int = 2) : Bool {
 		if(hasOrBecomeProfession('Baker', maxPeople) == false) return false;
+		var startTime = Sys.time();
 		
-		var closePlate = AiHelper.GetClosestObjectById(myPlayer, 236); // Clay Plate
+		var closePlate = AiHelper.GetClosestObjectToPosition(myPlayer.home.tx, myPlayer.home.ty, 236,myPlayer); // Clay Plate
 		if(closePlate == null) closePlate = AiHelper.GetClosestObjectById(myPlayer, 1602); // Stack of Clay Plates
 		var hasClosePlate = closePlate != null;
 
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+
 		if(hasClosePlate == false) return craftItem(236); // Clay Plate
+
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		var closeDough = AiHelper.GetClosestObjectById(myPlayer, 1466); // 1466 Bowl of Leavened Dough
 		if(closeDough != null && craftItem(1469)) return true; // Raw Bread Loaf
 		if(craftItem(1471)) return true; // Sliced Bread
 		
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+
 		/*
 		if(craftItem(272)) return true; // Cooked Berry Pie
 		if(craftItem(803)) return true; // Cooked Mutton Pie
@@ -1138,12 +1168,13 @@ abstract class AiBase
 		if(craftItem(278)) return true; // Cooked Berry Carrot Rabbit Pie
 		*/
 		var pies = [272, 803, 273, 274, 275, 276, 277, 278];
-		var rand = WorldMap.world.randomInt(pies.length -1);
+		var rand = lastPie > -1 ? lastPie : WorldMap.world.randomInt(pies.length -1);
 
-		for(i in 0...pies.length){
+		for(i in 0...2){
 			var index = (rand + i) % pies.length;
 			if(craftItem(pies[index])) return true;
 		}
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		if(craftItem(1285)) return true; // Omelette
 
@@ -2396,7 +2427,10 @@ private function craftLowPriorityClothing() : Bool {
 			itemToCraft.lastNewActorId = -1;
 			itemToCraft.lastNewTargetId = -1;
 
-			itemToCraft.transitionsByObjectId = myPlayer.SearchTransitions(objId, ignoreHighTech);
+			var startTime = Sys.time();
+			itemToCraft.transitionsByObjectId = new Map<Int, TransitionForObject>();
+			//itemToCraft.transitionsByObjectId = myPlayer.SearchTransitions(objId, ignoreHighTech);
+			//if(ServerSettings.DebugAi) trace('AI: craft: FINISHED transitions1 ms: ${Math.round((Sys.time() - startTime) * 1000)}');
 
 
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} new item to craft: ${itemToCraft.itemToCraft.description}!');
@@ -2534,16 +2568,25 @@ private function craftLowPriorityClothing() : Bool {
 				trans.closestObjectPlayerIndex = 0; // held in hand
 			}
 
-			// add objects add home
-			addObjectsForCrafting(myPlayer.home.tx, myPlayer.home.ty, radius, transitionsByObjectId);
+			var startTime = Sys.time();
+			// add objects at home
+			addObjectsForCrafting(myPlayer.home.tx, myPlayer.home.ty, radius, transitionsByObjectId, false);			
+			if(itemToCraft.searchCurrentPosition) addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId, false);
+			//if(myPlayer.firePlace != null) addObjectsForCrafting(myPlayer.firePlace.tx, myPlayer.firePlace.ty, radius, transitionsByObjectId);
 
-			if(myPlayer.firePlace != null) addObjectsForCrafting(myPlayer.firePlace.tx, myPlayer.firePlace.ty, radius, transitionsByObjectId);
+			if(ServerSettings.DebugAi) trace('AI: craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
+			var startTime = Sys.time();
 
-			if(itemToCraft.searchCurrentPosition) addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId);
+			/*itemToCraft.clearTransitionsByObjectId();
+			addObjectsForCrafting(myPlayer.home.tx, myPlayer.home.ty, radius, transitionsByObjectId, false);
+			if(itemToCraft.searchCurrentPosition) addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId, false);
+			if(ServerSettings.DebugAi) trace('AI: craft: FINISHED objects2 ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
 
-			// if(ServerSettings.DebugAi) trace('AI: craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
+			var startTime = Sys.time();*/
 
 			searchBestTransitionTopDown(itemToCraft);
+
+			if(ServerSettings.DebugAi) trace('AI: craft: FINISHED transitions ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
 
             this.time += Sys.time() - startTime;
 
@@ -2553,7 +2596,7 @@ private function craftLowPriorityClothing() : Bool {
 		return itemToCraft;
 	}
 
-	private function addObjectsForCrafting(baseX:Int, baseY:Int, radius:Int, transitionsByObjectId:Map<Int, TransitionForObject>) {
+	private function addObjectsForCrafting(baseX:Int, baseY:Int, radius:Int, transitionsByObjectId:Map<Int, TransitionForObject>, onlyRelevantObjects = true) {
 		var world = myPlayer.getWorld();
 
 		// go through all close by objects and map them to the best transition
@@ -2576,11 +2619,18 @@ private function craftLowPriorityClothing() : Bool {
 					}
 				}
 
-				// check if object can be used to craft item
 				var trans = transitionsByObjectId[objData.parentId];
-				if (trans == null) continue; // object is not useful for crafting wanted object
 
-				var steps = trans.steps;
+				// check if object can be used to craft item									
+				if(trans == null){
+					if(onlyRelevantObjects) continue; // object is not useful for crafting wanted object
+					else{
+						trans = new TransitionForObject(objData.parentId, 0, 0, null);
+						transitionsByObjectId[objData.parentId] = trans;
+					}
+				}
+
+				//var steps = trans.steps;
 				var obj = world.getObjectHelper(tx, ty);				
 				var objQuadDistance = myPlayer.CalculateQuadDistanceToObject(obj);
 
@@ -3019,7 +3069,7 @@ private function craftLowPriorityClothing() : Bool {
 				//dropTarget = myPlayer.GetClosestObjectById(0); // empty
 			//}
 
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto drop: $done ${dropTarget.name} ${dropTarget.tx},${dropTarget.ty} distance: $distance');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto drop: $done target: ${dropTarget.name} ${dropTarget.tx},${dropTarget.ty} distance: $distance');
 			if (done == false) dropTarget = null;
 
 			return true;			
