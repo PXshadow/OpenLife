@@ -2758,8 +2758,8 @@ private function craftLowPriorityClothing() : Bool {
 			// a oven needs 15 sec to warm up this is ok, but waiting for mushroom to grow is little bit too long!
 			if (trans.calculateTimeToChange() > ServerSettings.AiIgnoreTimeTransitionsLongerThen) continue;
 
-			var actor = transitionsByObjectId[trans.actorID];
-			var target = transitionsByObjectId[trans.targetID];
+			//var actor = transitionsByObjectId[trans.actorID];
+			//var target = transitionsByObjectId[trans.targetID];
 
 			// Allow transition if new actor or target is closer to wanted object
 			/*var tmpActor = transitionsByObjectId[trans.actorID];
@@ -2778,10 +2778,10 @@ private function craftLowPriorityClothing() : Bool {
 			// if(actorSteps + targetSteps <= newActorSteps + newTargetSteps) continue; // nothing is won
 			// if(ServerSettings.DebugAi) trace('AI craft WANTED: <${GetName(wantedId)}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
 
-			if (actor == null || target == null) {
+			/*if (actor == null || target == null) {
 				// if(ServerSettings.DebugAi) trace('Ai: craft: Skipped: ' + trans.getDesciption());
 				continue;
-			}
+			}*/
 
 			// TODO should not be null must be bug in tansitions: Basket of Pig Bones + TIME  -->  Basket + Pig Bones#dumped
 			// if(actor == null) transitionsByObjectId[trans.actorID] = new TransitionForObject(trans.actorID,0,0,null);
@@ -2789,6 +2789,15 @@ private function craftLowPriorityClothing() : Bool {
 
 			var actor = transitionsByObjectId[trans.actorID];
 			var target = transitionsByObjectId[trans.targetID];
+
+			if(actor == null){ 
+				actor = new TransitionForObject(trans.actorID,0,0,null);
+				transitionsByObjectId[trans.actorID] = actor;
+			}
+			if(target == null){ 
+				target = new TransitionForObject(trans.targetID,0,0,null);
+				transitionsByObjectId[trans.targetID] = target;
+			}
 
 			var actorObj = actor.closestObject;
 			var targetObj = actor == target ? actor.secondObject : target.closestObject;
