@@ -326,6 +326,7 @@ abstract class AiBase
 
 		if (myPlayer.isMoving()) return;
 		Macro.exception(if (searchNewHomeIfNeeded()) return);
+		if(this.profession['Potter'] > 1) Macro.exception(if (doPottery()) return);
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (handleTemperature()) return);
@@ -886,6 +887,16 @@ abstract class AiBase
 		if(hasOrBecomeProfession('Potter', maxPeople) == false) return false;
 		if(home == null) return false;
 
+		var countWetBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 233, 15); // Wet Clay Bowl 233
+		var countWetPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 234, 15); // Wet Clay Plate 234
+
+		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer); // Firing Adobe Kiln 
+
+		if(kiln != null) {
+			if(this.profession['Potter'] < 2) this.profession['Potter'] = 2;
+			if(doPotteryOnFire(countWetBowl, countWetPlate)) return true;
+		}
+
 		if(this.profession['Potter'] < 2){
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 20); // Clay 126
 			if(count < 6) return gatherClay();
@@ -893,12 +904,6 @@ abstract class AiBase
 
 		this.profession['Potter'] = 2; // dont get new clay --> do some pottery first
 
-		var countWetBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 233, 15); // Wet Clay Bowl 233
-		var countWetPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 234, 15); // Wet Clay Plate 234
-
-		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer); // Firing Adobe Kiln 
-
-		if(kiln != null && doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 281, 20, null, myPlayer); // Wood-filled Adobe Kiln 281
 		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 238 , 20, null, myPlayer); // Adobe Kiln 238
 
@@ -940,7 +945,7 @@ abstract class AiBase
 		}
 
 		if (ServerSettings.DebugAiSay) myPlayer.say('Do Pottery neededClay $neededClay');
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery3: neededClay: $neededClay WetBowl: ${countWetBowl} WetPlate: $countWetPlate ');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: neededClay: $neededClay WetBowl: ${countWetBowl} WetPlate: $countWetPlate ');
 		
 		this.profession['Potter'] = 3;
 
@@ -2892,7 +2897,7 @@ private function craftLowPriorityClothing() : Bool {
 			var isTimeWanted = itemToCraft.craftingList.contains(trans.newTargetID);
 			var desc = trans.autoDecaySeconds == 0 ? '' : 'TIME: $isTimeWanted ${trans.autoDecaySeconds} ';
 
-			textTrans += '${actor.name} + ${target.name} $desc--> ';
+			textTrans += '${actor.name}[${actor.id}] + ${target.name}[${target.id}] $desc--> ';
 		}
 
 		var objToCraft = ObjectData.getObjectData(itemToCraft.itemToCraft.id);
