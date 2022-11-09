@@ -881,19 +881,28 @@ abstract class AiBase
 	}
 
 	private function doPottery(maxPeople:Int = 2) : Bool {
-		if(hasOrBecomeProfession('Potter', maxPeople) == false) return false;
-		if(myPlayer.home == null) return false;
-
 		var home = myPlayer.home;
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 20); // Clay 126
-		//return gatherClay();
 
-		if(this.profession['Potter'] < 2 && count < 6) return gatherClay();
+		if(hasOrBecomeProfession('Potter', maxPeople) == false) return false;
+		if(home == null) return false;
+
+		if(this.profession['Potter'] < 2){
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 20); // Clay 126
+			if(count < 6) return gatherClay();
+		}
 
 		this.profession['Potter'] = 2; // dont get new clay --> do some pottery first
 
-		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 238, 20, null, myPlayer); // Adobe Kiln 238
+		var countWetBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 233, 15); // Wet Clay Bowl 233
+		var countWetPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 234, 15); // Wet Clay Plate 234
+
+		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer); // Firing Adobe Kiln 
+
+		if(kiln != null && doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 281, 20, null, myPlayer); // Wood-filled Adobe Kiln 281
+		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 238 , 20, null, myPlayer); // Adobe Kiln 238
+
+		// TODO consider forge
 
 		if(kiln == null) return false;
 
@@ -907,9 +916,7 @@ abstract class AiBase
 			return false;
 		}
 
-		var countClayOnFloor = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 15, false); // Clay 126
-		var countWetBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 233, 15); // Wet Clay Bowl 233
-		var countWetPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 234, 15); // Wet Clay Plate 234
+		var countClayOnFloor = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 15, false); // Clay 126		
 
 		countBowl += countWetBowl;
 		countPlate += countWetPlate;
@@ -941,17 +948,23 @@ abstract class AiBase
 		if(countBowl > countPlate && shortCraft(33,233)) return true; //Stone 33, Wet Clay Bowl 233 --> Wet Clay Plate 234
 
 		if(countWetBowl + countWetPlate > 3){
-			if (ServerSettings.DebugAiSay) myPlayer.say('make bowl $countWetBowl');
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make bowl $countWetBowl');
-
-			if(countWetBowl > 0 && craftItem(283)) return true; // Wooden Tongs with Fired Bowl
-
-			if (ServerSettings.DebugAiSay) myPlayer.say('make Plate $countWetPlate');
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make Plate $countWetPlate');
-			if(countWetPlate > 0 && craftItem(241)) return true; // Fired Plate in Wooden Tongs
+			if(doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 		}
 
 		this.profession['Potter'] = 0;
+
+		return false;
+	}
+
+	private function doPotteryOnFire(countWetBowl:Int, countWetPlate:Int) : Bool {
+		if (ServerSettings.DebugAiSay) myPlayer.say('make bowl $countWetBowl');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make bowl $countWetBowl');
+
+		if(countWetBowl > 0 && craftItem(283)) return true; // Wooden Tongs with Fired Bowl
+
+		if (ServerSettings.DebugAiSay) myPlayer.say('make Plate $countWetPlate');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make Plate $countWetPlate');
+		if(countWetPlate > 0 && craftItem(241)) return true; // Fired Plate in Wooden Tongs
 
 		return false;
 	}
