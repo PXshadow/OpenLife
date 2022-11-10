@@ -363,7 +363,8 @@ class AiHelper {
 				var foodValue:Float = originalFoodValue;
 
 				if (foodValue <= 0) continue;
-				if(feedOther && player.canFeedToMeObj(objData) == false) continue;
+				if (feedOther && player.canFeedToMeObj(objData) == false) continue;
+				if (player.canEatObj(objData) == false) continue;
 				if (player.food_store_max - player.food_store < Math.ceil(originalFoodValue / 4)) continue;				
 	
 				var countEaten = player.getCountEaten(foodId);

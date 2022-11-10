@@ -1733,12 +1733,22 @@ private function craftLowPriorityClothing() : Bool {
 
 	public function searchFoodAndEat() {
 		foodTarget = AiHelper.SearchBestFood(myPlayer);
+
+		/*var objData = foodTarget.foodFromTarget == null ? foodTarget : foodTarget.foodFromTarget;
+		if (foodTarget != null && myPlayer.canEat(objData) == false){			
+			myPlayer.say('WARNING cant eat food!');
+			if (ServerSettings.DebugAi && foodTarget != null) trace('AAI: ${myPlayer.name + myPlayer.id} WARNING cant eat food! new Foodtarget! ${foodTarget.name}');
+			foodTarget = null;
+			return;
+		}*/
+
 		if(ServerSettings.DebugAiSay){
 			if(foodTarget == null) myPlayer.say('No food found...');
 			else myPlayer.say('new food ${foodTarget.name}');
 		}
-		if (ServerSettings.DebugAi && foodTarget != null) trace('AAI: ${myPlayer.name + myPlayer.id} new Foodtarget! ${foodTarget.name}');
-		if (ServerSettings.DebugAi && foodTarget == null) trace('AAI: ${myPlayer.name + myPlayer.id} no new Foodtarget!!!');
+		var heldObjName = myPlayer.heldObject.name;
+		if (ServerSettings.DebugAi && foodTarget != null) trace('AAI: ${myPlayer.name + myPlayer.id} new Foodtarget! ${foodTarget.name} held: ${heldObjName}');
+		if (ServerSettings.DebugAi && foodTarget == null) trace('AAI: ${myPlayer.name + myPlayer.id} no new Foodtarget!!! held: ${heldObjName}');
 	}
 
 	//public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
@@ -3175,6 +3185,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		var isUse = foodTarget.isPermanent() || foodTarget.objectData.foodValue < 1;
 
+		// TODO if pickup is a drop, drop held if foodtarget is far away from home, see craft item
 		if (isUse && myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object at home to pickup food');
 			dropHeldObject(20);
@@ -3205,12 +3216,14 @@ private function craftLowPriorityClothing() : Bool {
 
 		// if(ServerSettings.DebugAi) trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
 
+		/*
 		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to pickup food');
 			// TODO pickup up again after eating
+			// TODO if pickup is a drop, no need for dropping held, except if foodtarget is far away from home, see craft item
 			dropHeldObject();
 			return true;
-		}
+		}*/
 
 		var done = false;
 
@@ -3295,7 +3308,7 @@ private function craftLowPriorityClothing() : Bool {
 		this.didNotReachFood = 0;
 		foodTarget = null;
 
-		if (myPlayer.heldObject.objectData.foodValue <= 0) dropHeldObject(); // drop for example banana peal
+		if (myPlayer.heldObject.objectData.foodValue <= 0) dropHeldObject(10); // drop for example banana peal
 		return true;
 	}
 

@@ -70,6 +70,8 @@ interface PlayerInterface {
 	public function isYum(food:ObjectHelper):Bool;
 	public function isMeh(food:ObjectHelper):Bool;
 	public function canEat(food:ObjectHelper):Bool;
+	public function canEatObj(objData:ObjectData):Bool;
+	
 	public function canFeedToMe(food:ObjectHelper):Bool;
 	public function canFeedToMeObj(objData:ObjectData):Bool;
 	public function getMaxChildFeeding():Float; // gives back how much a child can be fed
