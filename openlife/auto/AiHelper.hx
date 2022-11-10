@@ -302,7 +302,7 @@ class AiHelper {
 			}
 		}
 
-		trace('CountCloseObjects: ${objdataToSearch.name}: ${count}');
+		//trace('CountCloseObjects: ${objdataToSearch.name}: ${count}');
 
 		return count;
 	}
@@ -635,6 +635,7 @@ class AiHelper {
 	public static function Goto(playerInterface:PlayerInterface, x:Int, y:Int, considerAnimal:Bool = true, move:Bool = true):Bool {
 		var player = playerInterface.getPlayerInstance();
 		var ai = playerInterface.getAi();
+		var tryMoveNearestTileFirst = ai == null ? false : ai.tryMoveNearestTileFirst;
 
 		// var goal:Pos;
 		// var dest:Pos;
@@ -730,27 +731,41 @@ class AiHelper {
 		// move the end cords
 		var tweakX:Int = 0;
 		var tweakY:Int = 0;
+		var quadDistX = px * px;
+		var quadDistY = py * py;
+		var distYIsBigger = quadDistX < quadDistY;
 
 		for (i in 0...5) {
-			switch (i) {
+	
+			var ii = i;
+			if(tryMoveNearestTileFirst && i == 0) ii = 1;
+			if(tryMoveNearestTileFirst && i == 1) ii = 0;
+
+			// first try closest tile
+			if(distYIsBigger && ii == 1) ii = 2;
+			if(distYIsBigger && ii == 2) ii = 1;
+
+			switch (ii) {
 				case 1:
-					tweakX = x - player.x < 0 ? 1 : -1;
+					tweakX = px < 0 ? 1 : -1;
 					tweakY = 0;
 				case 2:
 					tweakX = 0;
-					tweakY = y - player.y < 0 ? 1 : -1;
+					tweakY = py < 0 ? 1 : -1;
 				// even if more far away still try since other acceses might be blocked
 				case 3:
-					tweakX = x - player.x < 0 ? -1 : 1; 
+					tweakX = px < 0 ? -1 : 1; 
 					tweakY = 0;
 					if (px + tweakX > RAD - 1) continue;
 					if (px + tweakX < -RAD) continue;
 				case 4:
 					tweakX = 0;
-					tweakY = y - player.y < 0 ? -1 : 1;
+					tweakY = py < 0 ? -1 : 1;
 					if (py + tweakY > RAD - 1) continue;
 					if (py + tweakY < -RAD) continue;
 			}
+
+			//trace('AAI: ${player.name + player.p_id} i: $i ii: $ii px: $px tweakX: $tweakX py: $py tweakY: $tweakY');
 
 			if (playerInterface.isBlocked(px + player.tx + tweakX, py + player.ty + tweakY)) continue;
 			if (ai != null && ai.isObjectNotReachable(px + player.tx + tweakX, py + player.ty + tweakY)) continue;

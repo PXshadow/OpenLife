@@ -86,6 +86,7 @@ abstract class AiBase
 	public var lastCheckedTimes:Map<String,Float> = [];
 
 	public var lastPie = -1;
+	public var tryMoveNearestTileFirst = true;
 
 	public static function StartAiThread() {
 		Thread.create(RunAi);
@@ -236,6 +237,7 @@ abstract class AiBase
 		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} account:  ${myPlayer.account.id}');
 
 		cleanupBlockedObjects();
+		this.tryMoveNearestTileFirst = true;
 
 		if (ServerSettings.AutoFollowAi && myPlayer.isHuman()) {
 			// if(ServerSettings.DebugAi) trace('HUMAN');
@@ -821,7 +823,10 @@ abstract class AiBase
 			return true;
 		}
 
+		// make sure to go directly to tile not to nearest
+		if(goodPlace != myPlayer.firePlace) this.tryMoveNearestTileFirst = false;
 		var done = myPlayer.gotoObj(goodPlace);
+		this.tryMoveNearestTileFirst = true;
 	
 		if (quadDistance < 2) this.time += 4; // if you cannot reach dont try running there too often
 
