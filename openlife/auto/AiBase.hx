@@ -1345,14 +1345,15 @@ abstract class AiBase
 
 		// 253 Bowl of Gooseberries
 		if(heldObj.parentId == 253 && heldObj.numberOfUses >= heldObj.objectData.numUses) return false;
+
+		// 30 Wild Gooseberry Bush
+		var closeBush = AiHelper.GetClosestObjectById(myPlayer, 30);
+		// 391 Domestic Gooseberry Bush
+		if(closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 391);
+		if(closeBush == null) return false;
+		
 		// Fill up the Bowl // 235 Clay Bowl // 253 Bowl of Gooseberries
 		if(heldObj.parentId == 235 || heldObj.parentId == 253){
-			// 30 Wild Gooseberry Bush
-			var closeBush = AiHelper.GetClosestObjectById(myPlayer, 30);
-			// 391 Domestic Gooseberry Bush
-			if(closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 391);
-			if(closeBush == null) return false;
-
 			if(ServerSettings.DebugAiSay) myPlayer.say('Fill Bowl on Bush');
 			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Bush!');
 
@@ -1361,7 +1362,7 @@ abstract class AiBase
 
 		// do nothing if there is a full Bowl of Gooseberries
 		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
-		if(closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses) return false;
+		if(closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses / 2) return false;
 
 		var target = closeBerryBowl != null ? closeBerryBowl : myPlayer.home;
 		var bestPlayer = getBestAiForObjByProfession('BowlFiller', target);
@@ -1377,7 +1378,7 @@ abstract class AiBase
 			return true; 
 		}
 
-		return GetOrCraftItem(235); // Clay Bowl
+		return GetOrCraftItem(235, 1, true); // Clay Bowl
 	}
 
 	private function makePopcornIfNeeded() : Bool {
@@ -3125,7 +3126,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		dropTarget = null;
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop $done ${myPlayer.heldObject.description}');		
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop $done ${myPlayer.heldObject.name}');		
 
 		return true;
 	}
