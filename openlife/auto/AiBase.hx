@@ -585,7 +585,7 @@ abstract class AiBase
 			if(p.age > 58 && profession != 'gravekeeper') continue;
 			if(p.isWounded()) continue;
 			if(p.food_store < 2) continue;
-			if(p.home.tx != myPlayer.home.tx && p.home.ty != myPlayer.home.ty) continue;
+			if(p.home.tx != myPlayer.home.tx || p.home.ty != myPlayer.home.ty) continue;
 
 			var hasProfession = ai.profession[profession] > 0;
 
