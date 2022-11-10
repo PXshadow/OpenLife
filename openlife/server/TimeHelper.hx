@@ -1875,6 +1875,17 @@ class TimeHelper {
 						if(ServerSettings.DebugSeason) trace('SEASON NEW STONE: ${WorldMap.world.currentObjectsCount[33]} original: ${WorldMap.world.originalObjectsCount[33]}');
 					}
 				}
+
+				// Move Stones: // 33 Stone // 34 Sharp Stone
+				if(objData.parentId == 0 && (fromObjData.parentId == 33 || fromObjData.parentId == 34)){
+					var rand = world.randomFloat();
+					if(rand < 0.2){
+						world.setObjectId(tx,ty, [0]);
+						world.setObjectId(randX,randY, [33]);
+						Connection.SendAnimalMoveUpdateToAllClosePlayers(tx, ty, randX, randY, [0], [fromObjData.parentId], 1);
+						//if(ServerSettings.DebugSeason) trace('SEASON MOVE STONE');
+					}
+				}
 			}
 		}
 		//trace('DoSeasonalBiomeChanges: $randX $randY');
