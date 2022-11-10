@@ -288,6 +288,8 @@ class AiHelper {
 		var pileObjId = objdataToSearch.getPileObjId();
 		var count = 0;
 
+		if(objId == 233) countPiles = false; // Wet Clay Bowl 233 --> otherwise Wet Clay Crock is counted, too
+
 		for (tty in ty - radius...ty + radius) {
 			for (ttx in tx - radius...tx + radius) {
 				var objData = world.getObjectDataAtPosition(ttx, tty);
@@ -295,7 +297,7 @@ class AiHelper {
 				if(countPiles && objData.parentId == pileObjId){
 					var obj = world.getObjectHelper(ttx,tty);
 					count += obj.numberOfUses;
-					trace('CountCloseObjects: ${objdataToSearch.name}: found Pile: numberOfUses: ${obj.numberOfUses}');
+					//trace('CountCloseObjects: ${objdataToSearch.name}: found Pile: numberOfUses: ${obj.numberOfUses}');
 				}
 			}
 		}
