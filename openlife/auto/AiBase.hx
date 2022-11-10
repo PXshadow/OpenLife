@@ -2393,9 +2393,7 @@ private function craftLowPriorityClothing() : Bool {
 	}
 
 	// TODO consider backpack / contained objects
-	// TODO consider if object is reachable
-	// TODO store transitions for crafting to have faster lookup
-	// TODO consider too look for a natural spawned object with the fewest steps on the list
+	// currently considers heldobject, close objects and objects close to home
 	private function craftItem(objId:Int, count:Int = 1, ignoreHighTech:Bool = false):Bool {
 		itemToCraft.ai = this;
 
@@ -2484,6 +2482,7 @@ private function craftLowPriorityClothing() : Bool {
 		}
 
 		// if(player.heldObject.parentId == itemToCraft.transActor.parentId)
+		// check if actor is held already
 		if (player.heldObject.parentId == itemToCraft.transActor.parentId || itemToCraft.transActor.id == 0) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} is held already or Empty. Craft target ${itemToCraft.transTarget.name} ${itemToCraft.transTarget.id} held: ${player.heldObject.name}');
 
@@ -2498,53 +2497,76 @@ private function craftLowPriorityClothing() : Bool {
 			useTarget = itemToCraft.transTarget;
 			useActor = itemToCraft.transActor;
 			itemToCraft.transActor = null; // actor is allready in the hand
-		} else {
-			// check if actor is TIME
-			if (itemToCraft.transActor.id == -1) {
-				var secondsUntillChange = itemToCraft.transTarget.timeUntillChange();
 
-				if(secondsUntillChange < 10){
-					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is TIME target ${itemToCraft.transTarget.name} ');
-					this.time += secondsUntillChange / 4;
-					// TODO wait some time, or better get next obj
-					
-					if(ServerSettings.DebugAiSay) myPlayer.say('Wait for ${itemToCraft.transTarget.name}...');
-					itemToCraft.transActor = null;
-					return true;
-				}
+			return true;
+		} 
+		// if the actor is not yet held in hand
 
+		// check if actor is TIME
+		if (itemToCraft.transActor.id == -1) {
+			var secondsUntillChange = itemToCraft.transTarget.timeUntillChange();
+
+			if(secondsUntillChange < 10){
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is TIME target ${itemToCraft.transTarget.name} ');
+				this.time += secondsUntillChange / 4;
+				// TODO wait some time, or better get next obj
+				
+				if(ServerSettings.DebugAiSay) myPlayer.say('Wait for ${itemToCraft.transTarget.name}...');
 				itemToCraft.transActor = null;
-				itemToCraft.transTarget = null;
-				return false; // TODO make some other stuff???
-			}
-			
-			// check if actor is PLAYER
-			if (itemToCraft.transActor.id == -2) {
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is PLAYER ');
-
-				// TODO PLAYER interaction not supported yet
-				if(ServerSettings.DebugAiSay) myPlayer.say('Actor is player!?!');
-				itemToCraft.transActor = null;
-				return false;
+				return true;
 			}
 
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft goto actor: ${itemToCraft.transActor.id} '
-				+ itemToCraft.transActor.name);
+			itemToCraft.transActor = null;
+			itemToCraft.transTarget = null;
+			return false; // TODO make some other stuff???
+		}
+		
+		// check if actor is PLAYER
+		if (itemToCraft.transActor.id == -2) {
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is PLAYER ');
 
-			if(ServerSettings.DebugAiSay) myPlayer.say('Goto actor ' + itemToCraft.transActor.name);
+			// TODO PLAYER interaction not supported yet
+			if(ServerSettings.DebugAiSay) myPlayer.say('Actor is player!?!');
+			itemToCraft.transActor = null;
+			return false;
+		}
+
+		// check if there is a close pile where the actor can be taken from
+		var pileId = itemToCraft.transActor.objectData.getPileObjId();
+		var pileData = pileId < 1 ? null : itemToCraft.transitionsByObjectId[pileId];
+		var pile = pileData == null ? null : pileData.closestObject;
+
+		if(pile != null){
+			var quadDistanceToActor = AiHelper.CalculateQuadDistanceToObject(myPlayer, itemToCraft.transActor);
+			var quadDistanceToPile = AiHelper.CalculateQuadDistanceToObject(myPlayer, pile);
+
+			// be ready to go for not piled objects little bit more distant
+			if(quadDistanceToActor < quadDistanceToPile * 1.5) pile = null;
+		}
+
+		if(pile == null){
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft goto actor: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}]');
+			if (ServerSettings.DebugAiSay) myPlayer.say('Goto actor ' + itemToCraft.transActor.name);
 
 			dropTarget = itemToCraft.transActor;
+		}
+		else{
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft goto piled actor: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}]');
+			if (ServerSettings.DebugAiSay) myPlayer.say('Goto piled actor ' + itemToCraft.transActor.name);
 
-			if (player.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
-				var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, myPlayer.home);
-				var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, itemToCraft.transTarget);
+			useActor = new ObjectHelper(null, 0);
+			useTarget = pile;
+		}
 
-				// only drop held item, if close to home and target is far away, otherwise item could be switched
-				if(quadDistanceToHome < 200 && quadDistanceToTarget > 200){
-					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop ${myPlayer.heldObject.name} to pickup ${itemToCraft.transActor.name}');
-					dropHeldObject();
-					return true;
-				}
+		if (player.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
+			var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, myPlayer.home);
+			var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, itemToCraft.transTarget);
+
+			// only drop held item, if close to home and target is far away, otherwise item could be switched
+			if(pile != null || (quadDistanceToHome < 200 && quadDistanceToTarget > 200)){
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop ${myPlayer.heldObject.name} to pickup ${itemToCraft.transActor.name}');
+				dropHeldObject();
+				return true;
 			}
 		}
 
