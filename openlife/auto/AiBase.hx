@@ -415,6 +415,19 @@ abstract class AiBase
 		}
 
 		time += 2.5;
+
+		// before do nothing try all professions
+		this.profession['firekeeper'] = 1;
+		this.profession['WaterBringer'] = 1;
+		this.profession['BasicFarmer'] = 1;
+		this.profession['Baker'] = 1;
+		this.profession['FoodServer'] = 1;
+		this.profession['Potter'] = 1;
+		this.profession['gravekeeper'] = 1;
+		this.profession['Hunter'] = 1;
+		this.profession['ClothMaker'] = 1;
+		this.profession['FireFoodMaker'] = 1;
+		this.profession['BowlFiller'] = 1;
 		
 		if(myPlayer.age > ServerSettings.MinAgeToEat){
 			var rand = WorldMap.calculateRandomFloat();
@@ -1351,7 +1364,7 @@ abstract class AiBase
 		// 391 Domestic Gooseberry Bush
 		if(closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 391);
 		if(closeBush == null) return false;
-		
+
 		// Fill up the Bowl // 235 Clay Bowl // 253 Bowl of Gooseberries
 		if(heldObj.parentId == 235 || heldObj.parentId == 253){
 			if(ServerSettings.DebugAiSay) myPlayer.say('Fill Bowl on Bush');
