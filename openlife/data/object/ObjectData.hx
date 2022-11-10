@@ -1503,6 +1503,9 @@ class ObjectData extends LineReader {
 	public function getPileObjId() {
 		var trans = TransitionImporter.GetTransition(this.id, this.id);
 		if (trans == null) return -1;
+		var undoTrans = TransitionImporter.GetTransition(0, trans.newTargetID);
+		//if (undoTrans == null) trace('NOT A PILE: ${ObjectData.getObjectData(trans.newTargetID).name}');
+		if (undoTrans == null) return -1;
 		return trans.newTargetID;
 	}
 
