@@ -1801,7 +1801,7 @@ class TimeHelper {
 	}
 
 	public static function DoSeasonalBiomeChanges(tx:Int, ty:Int, timePassedInYears:Float) {
-		//Season = Spring;
+		//Season = Seasons.Winter;
 		
 		if (Season == Seasons.Winter) SpreadSnow(tx, ty, timePassedInYears);
 		if (Season == Seasons.Summer || Season == Seasons.Spring) RemoveSnow(tx, ty, timePassedInYears);
@@ -1841,7 +1841,42 @@ class TimeHelper {
 		var randX = tx + xOff;
 		var randY = ty + yOff;
 		
-		if(IsProtected(randX,randY) == false) world.setBiomeId(randX,randY, SNOW);
+		if(IsProtected(randX,randY) == false){
+			world.setBiomeId(randX,randY, SNOW);
+
+			// create and destroy stones
+			// TODO stone piles
+			var floorId = world.getFloorId(randX,randY);
+
+			if(floorId < 1){
+				var fromObjData = world.getObjectDataAtPosition(tx,ty);
+				var objData = world.getObjectDataAtPosition(randX,randY);
+
+				// 33 Stone // 34 Sharp Stone
+				if((objData.parentId  == 33 || objData.parentId  == 34)){
+					var rand = world.randomFloat();
+					if(WorldMap.world.currentObjectsCount[objData.parentId] < WorldMap.world.originalObjectsCount[objData.parentId] * 0.8) rand = 1;
+
+					if(rand < 0.05){
+						world.setObjectId(randX,randY, [0]);
+						Connection.SendMapUpdateToAllClosePlayers(randX, randY);
+						WorldMap.world.currentObjectsCount[objData.parentId]--;
+						if(ServerSettings.DebugSeason) trace('SEASON DECAY ${objData.name}: ${WorldMap.world.currentObjectsCount[objData.parentId]} original: ${WorldMap.world.originalObjectsCount[objData.parentId]}');
+					}
+				}
+
+				//32 Big Hard Rock
+				if(objData.parentId == 0 && fromObjData.parentId == 32){
+					var rand = world.randomFloat();
+					if(rand < 0.05){
+						world.setObjectId(randX,randY, [33]);
+						Connection.SendMapUpdateToAllClosePlayers(randX, randY);
+						WorldMap.world.currentObjectsCount[33]++;
+						if(ServerSettings.DebugSeason) trace('SEASON NEW STONE: ${WorldMap.world.currentObjectsCount[33]} original: ${WorldMap.world.originalObjectsCount[33]}');
+					}
+				}
+			}
+		}
 		//trace('DoSeasonalBiomeChanges: $randX $randY');
 	}
 
