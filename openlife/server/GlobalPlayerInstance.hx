@@ -4549,6 +4549,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				return true;
 			}
+			
+		} else if (text == '!COUNT') {
+			var closePopcorn = AiHelper.GetClosestObjectToHome(player, 1121); 
+			player.say('popcorn: ${closePopcorn != null}', true);
+			return true;
+
 		} else if (text.indexOf('!SENDPU') != -1 || text == '!PU') {
 			//player.done_moving_seqNum += 1;
 			player.forced = true;
