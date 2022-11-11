@@ -1723,6 +1723,11 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		trans = new TransitionData(850, 850, 850, 92); // Stone Hoe + Stone Hoe --> Stone Hoe + Tied Long Shaft
+		trans.aiShouldIgnore = true;
+		trans.tool = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		trans = new TransitionData(0, 92, 59, 67); // 0 + Tied Long Shaft --> Rope + Long Straight Shaft
 		transtions.addTransition("PatchTransitions: ", trans);
 		
