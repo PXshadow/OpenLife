@@ -1710,6 +1710,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			//toSelf = true;
 		}
 
+		if (StringTools.contains(text, '?SPEED')){
+			text = '${Math.round(player.move_speed * 100) / 100}';
+			toSelf = true;
+		}
+
 		if (toSelf) {
 			text = '?{$text}?';
 			this.connection.send(PLAYER_SAYS, ['$id/$curse $text']);
