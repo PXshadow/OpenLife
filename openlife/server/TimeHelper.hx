@@ -1851,14 +1851,27 @@ class TimeHelper {
 			if(floorId < 1){
 				var fromObjData = world.getObjectDataAtPosition(tx,ty);
 				var objData = world.getObjectDataAtPosition(randX,randY);
+				var originalObjId = world.getOriginalObjectId(randX,randY);
 
-				// 33 Stone // 34 Sharp Stone
-				if((objData.parentId  == 33 || objData.parentId  == 34)){
+				// 133 Flint
+				if(objData.parentId == 0 && originalObjId[0] == 133){
+					var rand = world.randomFloat();
+
+					if(rand < 0.05 && WorldMap.world.currentObjectsCount[133] < WorldMap.world.originalObjectsCount[133]){
+						world.setObjectId(randX,randY, [133]);
+						Connection.SendMapUpdateToAllClosePlayers(randX, randY);
+						WorldMap.world.currentObjectsCount[133]++;
+						if(ServerSettings.DebugSeason) trace('SEASON SNOW: NEW FLINT ${WorldMap.world.currentObjectsCount[133]} original: ${WorldMap.world.originalObjectsCount[133]}');
+					}
+				}
+
+				// 33 Stone // 34 Sharp Stone // 135 Flint Chip // 850 Stone Hoe
+				if((objData.parentId  == 33 || objData.parentId  == 34 || objData.parentId  == 135 || objData.parentId  == 850)){
 					var rand = world.randomFloat();
 					if(WorldMap.world.currentObjectsCount[objData.parentId] < WorldMap.world.originalObjectsCount[objData.parentId] * 0.8) rand = 1;
 
 					if(rand < 0.05){
-						world.setObjectId(randX,randY, [0]);
+						world.setObjectId(randX,randY, [objData.decaysToObj]);
 						Connection.SendMapUpdateToAllClosePlayers(randX, randY);
 						WorldMap.world.currentObjectsCount[objData.parentId]--;
 						if(ServerSettings.DebugSeason) trace('SEASON DECAY ${objData.name}: ${WorldMap.world.currentObjectsCount[objData.parentId]} original: ${WorldMap.world.originalObjectsCount[objData.parentId]}');
