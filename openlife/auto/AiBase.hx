@@ -2592,7 +2592,7 @@ private function craftLowPriorityClothing() : Bool {
 			var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, itemToCraft.transTarget);
 
 			// only drop held item, if close to home and target is far away, otherwise item could be switched
-			if(pile != null || (quadDistanceToHome < 200 && quadDistanceToTarget > 200)){
+			if(pile != null || (quadDistanceToHome < 400 && quadDistanceToTarget > 400)){
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop ${myPlayer.heldObject.name} to pickup ${itemToCraft.transActor.name}');
 				dropHeldObject();
 				return true;
@@ -3177,11 +3177,11 @@ private function craftLowPriorityClothing() : Bool {
 		}
 
 		// if holding clay 126 drop at once
-		if(myPlayer.heldObject.parentId == 126){
+		/*if(myPlayer.heldObject.parentId == 126){
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop clay to pickup food');
 			dropHeldObject(5);
 			return true;
-		}
+		}*/
 
 		var isUse = foodTarget.isPermanent() || foodTarget.objectData.foodValue < 1;
 
@@ -3190,6 +3190,19 @@ private function craftLowPriorityClothing() : Bool {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object at home to pickup food');
 			dropHeldObject(20);
 			return true;
+		}
+
+		// in case of a drop/switch: drop held obj if it would be droped far from home
+		if (isUse == false && myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
+			var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, myPlayer.home);
+			var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, foodTarget);
+
+			// only drop held item before move, if close to home and target is far away, otherwise item could be switched
+			if(quadDistanceToHome < 400 && quadDistanceToTarget > 400){
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} isPickingupFood: drop ${myPlayer.heldObject.name} since close to home and target is far away');
+				dropHeldObject();
+				return true;
+			}
 		}
 
 		if (myPlayer.isMoving()) return true;
