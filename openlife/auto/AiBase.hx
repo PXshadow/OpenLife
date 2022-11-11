@@ -2592,7 +2592,7 @@ private function craftLowPriorityClothing() : Bool {
 			var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, itemToCraft.transTarget);
 
 			// only drop held item, if close to home and target is far away, otherwise item could be switched
-			if(pile != null || (quadDistanceToHome < 400 && quadDistanceToTarget > 400)){
+			if(pile != null || (quadDistanceToHome < 225 && quadDistanceToTarget > 225)){
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop ${myPlayer.heldObject.name} to pickup ${itemToCraft.transActor.name}');
 				dropHeldObject();
 				return true;
@@ -3190,7 +3190,7 @@ private function craftLowPriorityClothing() : Bool {
 			var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, foodTarget);
 
 			// only drop held item before move, if close to home and target is far away, otherwise drop item after move
-			if(quadDistanceToHome < 400 && quadDistanceToTarget > 400){
+			if(quadDistanceToHome < 225 && quadDistanceToTarget > 225){
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to pickup food / before move');
 				dropHeldObject();
 				return true;
@@ -3203,7 +3203,7 @@ private function craftLowPriorityClothing() : Bool {
 			var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, foodTarget);
 
 			// only drop held item before move, if close to home and target is far away, otherwise item could be switched
-			if(quadDistanceToHome < 400 && quadDistanceToTarget > 400){
+			if(quadDistanceToHome < 225 && quadDistanceToTarget > 225){
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} isPickingupFood: drop ${myPlayer.heldObject.name} since close to home and target is far away');
 				dropHeldObject();
 				return true;
