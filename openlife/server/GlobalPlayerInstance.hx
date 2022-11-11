@@ -89,7 +89,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		Lineage.AddLineage(player.p_id, player.lineage);
 	}
 
-	public static var medianPrestige:Float = ServerSettings.HealthFactor;
+	public static var medianPrestige:Float = ServerSettings.MinHealthPerYear * 30; // for 30 years
 
 	public static var lastAiEveOrAdam:GlobalPlayerInstance;
 	public static var lastHumanEveOrAdam:GlobalPlayerInstance;
@@ -945,7 +945,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			trace('${p.name} PRESTIGE: ${p.lineagePrestige}');
 
 		var neededPrestige = CalculateNeededPrestige(players, 0.4);
-		medianPrestige = Math.max(neededPrestige, ServerSettings.HealthFactor); // is needed for calculating health
+		medianPrestige = Math.max(neededPrestige, ServerSettings.MinHealthPerYear * 30); // is needed for calculating health
 		if (this.account.totalScore < neededPrestige) return PrestigeClass.Serf;
 
 		if (players.length < 5) return PrestigeClass.Commoner;
@@ -1627,7 +1627,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return CalculateHealthFactor(2, 0.5);
 	}
 
-	public function CalculateSpeedMaxFoodStoreFactor():Float {
+	public function CalculateSpeedMaxFoodStoreFactor():Float {		
 		return CalculateHealthFactor(1.5, 0.5);
 	}
 

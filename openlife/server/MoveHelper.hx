@@ -178,14 +178,18 @@ class MoveHelper {
 
 		speed *= containedObjSpeedMult;
 
-		// Reduce speed if damaged or age
-		var fullHitpoints = ServerSettings.GrownUpFoodStoreMax;
-		var currenHitpoints = p.calculateFoodStoreMax();
-
-		// between 1/2 and 1 if currenHitpoints <= fullHitpoints
-		speed *= (currenHitpoints + fullHitpoints) / (fullHitpoints + fullHitpoints);
-
-		if (ServerSettings.DebugSpeed) trace('SPEED: $speed currenHitpoints: $currenHitpoints fullHitpoints: $fullHitpoints');
+		// Reduce speed if damaged or age		
+		// Factor 3: between 66% and 106% for 120% hitpoints 
+		// Factor 5: between 80% and 104% for 120% hitpoints 
+		var hitpointsSpeedFactor = ServerSettings.HitpointsSpeedFactor;
+		if(hitpointsSpeedFactor > 0){
+			var fullHitpoints = ServerSettings.GrownUpFoodStoreMax;
+			var currenHitpoints = p.calculateFoodStoreMax();
+			//var speedFactorHitpoints = (currenHitpoints + fullHitpoints) / (fullHitpoints + fullHitpoints);
+			var speedFactorHitpoints = (currenHitpoints + (hitpointsSpeedFactor - 1) * fullHitpoints) / (hitpointsSpeedFactor * fullHitpoints);
+			speed *= speedFactorHitpoints;
+			if (ServerSettings.DebugSpeed) trace('SPEED: $speed speedFactorHitpoints: $speedFactorHitpoints currenHitpoints: $currenHitpoints fullHitpoints: $fullHitpoints');
+		}
 
 		// Do temperature speed
 		var temperatureSpeedImpact = ServerSettings.TemperatureSpeedImpact;

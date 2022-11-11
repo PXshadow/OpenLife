@@ -100,7 +100,7 @@ class ServerSettings {
 
 	// Graves
 	public static var GraveBlockingDistance = 40; // cannot incrante close to blocking graves like bone pile
-	public static var CloseGraveSpeedMali:Float = 0.92; // speed maili if close to blocking grave like bone pile
+	public static var CloseGraveSpeedMali:Float = 0.9; // speed maili if close to blocking grave like bone pile
 	public static var CursedGraveTime:Float = 12; // 12 // hours a cursed grave continues to exist per curse token
 
 	// PlayerInstance
@@ -188,8 +188,8 @@ class ServerSettings {
 	public static var ResistanceAginstFeverForEatingMushrooms:Float = 0.2;
 
 	// health
-	// public static var MinHealthPerYear = 1; // for calulating aging / speed: MinHealthPerYear * age is reduced from health(yum_mulpiplier)
-	public static var HealthFactor = 30; // Changes how much health(yum_mulpiplier) affects speed (From 0.8 to 1.2), aging  (From 0.5 to 2) and MaxFoodStore (From 1.5 to 0.5)
+	public static var MinHealthPerYear = 1; // expected health per year for normal health
+	//public static var HealthFactor = 30; 
 
 	// starving to death
 	public static var AgingFactorWhileStarvingToDeath = 0.5; // if starving to death aging is slowed factor XX up to GrownUpAge, otherwise aging is speed up factor XX
@@ -206,14 +206,17 @@ class ServerSettings {
 
 	// for movement
 	public static var GotoTimeOut:Int = 250;
-	public static var InitialPlayerMoveSpeed:Float = 4; // vanilla: 3.75; // in Tiles per Second
+	public static var InitialPlayerMoveSpeed:Float = 3.75; // vanilla: 3.75; // in Tiles per Second
 	public static var SpeedFactor:Float = 1; // MovementExtender // used to incease or deacrease speed factor X
+	// Factor 3: between 66% and 106% for 120% hitpoints 
+	// Factor 5: between 80% and 104% for 120% hitpoints
+	public static var HitpointsSpeedFactor:Float = 3; // set 0 if hitpoints should have no speed influence
 	public static var MinBiomeSpeedFactor:Float = 0.2; // For example if you happen to end up in a ocean or on a mountain
 	public static var MinMovementAgeInSec:Float = 14;
 	public static var MinSpeedReductionPerContainedObj = 0.98;
 	public static var CloseEnemyWithWeaponSpeedFactor:Float = 0.8;
 	public static var SemiHeavyItemSpeed:Float = 0.9; // slows down if carring iron / logs / soil etc.
-	public static var MaxTimeBetweenMapChunks:Float = 4;  // make sure that every X seconds at least one map chunk is send 
+	public static var MaxTimeBetweenMapChunks:Float = 3;  // make sure that every X seconds at least one map chunk is send 
 
 	// since client does not seem to use exact positions allow little bit cheating / JUMPS
 	public static var LetTheClientCheatLittleBitFactor = 1.1; // when considering if the position is reached, allow the client to cheat little bit, so there is no lag
@@ -343,13 +346,13 @@ class ServerSettings {
 	public static var AIAllowBuilKiln:Bool = false;
 
 	// Ai speed
-	public static var AISpeedFactorSerf:Float = 0.7;
-	public static var AISpeedFactorCommoner:Float = 0.85;
+	public static var AISpeedFactorSerf:Float = 0.8;
+	public static var AISpeedFactorCommoner:Float = 0.9;
 	public static var AISpeedFactorNoble:Float = 1;
 
 	// Ai food use
-	public static var AIFoodUseFactorSerf:Float = 0.7;
-	public static var AIFoodUseFactorCommoner:Float = 0.85;
+	public static var AIFoodUseFactorSerf:Float = 0.8;
+	public static var AIFoodUseFactorCommoner:Float = 0.9;
 	public static var AIFoodUseFactorNoble:Float = 1;
 
 	public static function CanObjectBeLuckySpot(obj:Int):Bool {
