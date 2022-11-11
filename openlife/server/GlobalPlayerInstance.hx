@@ -1628,7 +1628,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function CalculateSpeedMaxFoodStoreFactor():Float {		
-		return CalculateHealthFactor(1.5, 0.5);
+		//return CalculateHealthFactor(1.5, 0.5);
+		return CalculateHealthFactor(1.2, 0.8);
 	}
 
 	public function CalculateHealthFactor(maxBoni:Float, maxMali:Float):Float {
@@ -1702,7 +1703,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (StringTools.contains(text, '?SEASON')){
 			text = TimeHelper.SeasonText.toUpperCase();
 			toSelf = true;
-		}
+		}	
 
 		if (StringTools.contains(text, 'SEASON?')){
 			text = TimeHelper.SeasonText.toUpperCase();
