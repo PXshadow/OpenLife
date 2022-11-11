@@ -191,6 +191,8 @@ class ServerSettings {
 	public static var MinHealthPerYear = 1; // expected health per year for normal health
 	public static var MinHealthFoodStoreMaxFactor:Float = 0.8; // 0.5
 	public static var MaxHealthFoodStoreMaxFactor:Float = 1.2; // 1.5 
+	public static var MinHealthAgingFactor:Float = 0.5; // 0.5
+	public static var MaxHealthAgingFactor:Float = 2; // 2
 
 	// starving to death
 	public static var AgingFactorWhileStarvingToDeath = 0.5; // if starving to death aging is slowed factor XX up to GrownUpAge, otherwise aging is speed up factor XX

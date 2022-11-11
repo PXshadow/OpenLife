@@ -1620,7 +1620,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function CalculateHealthAgeFactor():Float {
-		return CalculateHealthFactor(2, 0.5);
+		return CalculateHealthFactor(ServerSettings.MaxHealthAgingFactor, ServerSettings.MinHealthAgingFactor);
 	}
 
 	public function CalculateHealthFoodStoreMaxFactor():Float {		
