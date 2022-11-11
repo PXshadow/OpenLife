@@ -1619,17 +1619,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 	}
 
-	public function CalculateHealthSpeedFactor():Float {
-		return CalculateHealthFactor(1.2, 0.8);
-	}
-
 	public function CalculateHealthAgeFactor():Float {
 		return CalculateHealthFactor(2, 0.5);
 	}
 
-	public function CalculateSpeedMaxFoodStoreFactor():Float {		
-		//return CalculateHealthFactor(1.5, 0.5);
-		return CalculateHealthFactor(1.2, 0.8);
+	public function CalculateHealthFoodStoreMaxFactor():Float {		
+		return CalculateHealthFactor(ServerSettings.MaxHealthFoodStoreMaxFactor, ServerSettings.MinHealthFoodStoreMaxFactor);
 	}
 
 	public function CalculateHealthFactor(maxBoni:Float, maxMali:Float):Float {
@@ -3457,7 +3452,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public function calculateFoodStoreMax():Float {
 		var p:GlobalPlayerInstance = this;
 		var age = p.age;
-		var healthFactor = CalculateSpeedMaxFoodStoreFactor();
+		var healthFactor = CalculateHealthFoodStoreMaxFactor();
 		var new_food_store_max = calculateNotReducedFoodStoreMax() * healthFactor;
 
 		if (age < 20) new_food_store_max = ServerSettings.NewBornFoodStoreMax
