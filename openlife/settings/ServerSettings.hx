@@ -212,6 +212,7 @@ class ServerSettings {
 	// Factor 5: between 80% and 104% for 120% hitpoints
 	public static var HitpointsSpeedFactor:Float = 3; // set 0 if hitpoints should have no speed influence
 	public static var MinBiomeSpeedFactor:Float = 0.2; // For example if you happen to end up in a ocean or on a mountain
+	public static var SpeedWithBothShoes:Float = 1.1; // if wearing both shoes get this speed boni
 	public static var MinMovementAgeInSec:Float = 14;
 	public static var MinSpeedReductionPerContainedObj = 0.98;
 	public static var CloseEnemyWithWeaponSpeedFactor:Float = 0.8;

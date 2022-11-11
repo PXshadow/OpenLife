@@ -102,7 +102,7 @@ class MoveHelper {
 
 		if (ServerSettings.AutoFollowAi && p.isHuman()) return 2 * speed;
 		if (ServerSettings.DebugSpeed) trace('speed: hasBothShoes: $hasBothShoes');
-		if (hasBothShoes && onHorseOrCar == false) speed *= 1.1;
+		if (hasBothShoes && onHorseOrCar == false) speed *= ServerSettings.SpeedWithBothShoes;
 		if (fullPathHasRoad == false) floorSpeed = 1; // only consider road if the full path is on road
 
 		var onRoad = floorSpeed >= 1.01; // only give road speed boni if full path is on road
