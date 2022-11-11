@@ -808,17 +808,17 @@ abstract class AiBase
 			}
 				
 			if(myPlayer.heat > 0.5 && myPlayer.lastTemperature > 0.45){
-				trace('AAI: ${myPlayer.name + myPlayer.id} does not help: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} does not help: $text player heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
 				myPlayer.coldPlace = null; // this place does not help
 				return false; 
 			} 
 			if(myPlayer.heat < 0.5 && myPlayer.lastTemperature < 0.55){
 				myPlayer.warmPlace = null; // this place does not help
-				trace('AAI: ${myPlayer.name + myPlayer.id} does not help: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} does not help: $text player heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
 				return false; // this place does not help
 			} 
 
-			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature}  dist: $quadDistance wait b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} do: $text player heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature}  dist: $quadDistance wait b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
 			this.time += 3; // just relax
 			return true;
 		}
@@ -833,7 +833,7 @@ abstract class AiBase
 		if(ServerSettings.DebugAiSay) myPlayer.say('going to $text');
 
 		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} dist: $quadDistance goto: $done');
+			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text player heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} dist: $quadDistance goto: $done');
 			
 		return done;
 	}
