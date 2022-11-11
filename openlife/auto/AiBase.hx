@@ -685,7 +685,7 @@ abstract class AiBase
 
 		var heldId = myPlayer.heldObject.parentId;
 		var grave = AiHelper.GetClosestObjectById(myPlayer, 357, null, 20); // Bone Pile
-		if(grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 88, null, 20); // 88 Grave 
+		if(grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 88, null, 10); // 88 Grave 
 		if(grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 89, null, 20); // 89 Old Grave 
 		if(grave == null) return false;
 
@@ -952,17 +952,19 @@ abstract class AiBase
 			if(doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 		}
 
-		if(this.profession['Potter'] < 2){
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 20); // Clay 126
-			if(count < 6) return gatherClay();
-		}
-
-		this.profession['Potter'] = 2; // dont get new clay --> do some pottery first
-
 		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 281, 20, null, myPlayer); // Wood-filled Adobe Kiln 281
 		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 238 , 20, null, myPlayer); // Adobe Kiln 238
 
 		// TODO consider forge
+
+		if(this.profession['Potter'] < 2){
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 20); // Clay 126
+			if(count < 6) return gatherClay(kiln);
+		}
+
+		this.profession['Potter'] = 2; // dont get new clay --> do some pottery first
+
+		
 
 		if(kiln == null) return false;
 
@@ -1026,12 +1028,13 @@ abstract class AiBase
 		return false;
 	}
 
-	private function gatherClay() : Bool {
+	private function gatherClay(kiln:ObjectHelper) : Bool {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
 		//var heldContained = heldObject.containedObjects.length;
 		
 		if(home == null) return false;
+		if(kiln != null) home = kiln;
 
 		var distanceToHome = myPlayer.CalculateQuadDistanceToObject(home);
 		var clayPit = AiHelper.GetClosestObjectById(myPlayer, 409, null, 80); // Clay Pit 409
