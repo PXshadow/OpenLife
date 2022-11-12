@@ -234,7 +234,7 @@ class NamingHelper {
 
 	private static function isUsedName(name:String):Bool {
 		for (p in GlobalPlayerInstance.AllPlayers) {
-			if (p.isDeleted) continue;
+			if (p.isDeleted()) continue;
 			if (p.name == name) return true;
 		}
 

@@ -1164,13 +1164,13 @@ abstract class AiBase
 		if(hasOrBecomeProfession('Baker', maxPeople) == false) return false;
 		var startTime = Sys.time();
 		
-		var closePlate = AiHelper.GetClosestObjectToPosition(myPlayer.home.tx, myPlayer.home.ty, 236,myPlayer); // Clay Plate
-		if(closePlate == null) closePlate = AiHelper.GetClosestObjectById(myPlayer, 1602); // Stack of Clay Plates
-		var hasClosePlate = closePlate != null;
+		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 40); // Clay Plate
+		var hasClosePlate = countPlates > 0;
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
-		if(hasClosePlate == false) return craftItem(236); // Clay Plate
+		//if(hasClosePlate == false) return craftItem(236); // Clay Plate
+		if(hasClosePlate == false) return false;
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
