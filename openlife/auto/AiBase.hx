@@ -341,6 +341,7 @@ abstract class AiBase
 
 		if (myPlayer.isMoving()) return;
 		Macro.exception(if (searchNewHomeIfNeeded()) return);
+		if(this.profession['Baker'] > 1) Macro.exception(if (doBaking()) return);
 		if(this.profession['Potter'] > 1) Macro.exception(if (doPottery()) return);
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (isPickingupCloths()) return);		
@@ -606,6 +607,7 @@ abstract class AiBase
 
 			if(hasProfession == false && p.id != myPlayer.id) continue;
 			if(profession != 'Potter' && ai.profession['Potter'] > 1) continue;
+			if(profession != 'Baker' && ai.profession['Baker'] > 1) continue;
 
 			var quadDist = p.CalculateQuadDistanceToObject(obj);
 
@@ -741,9 +743,9 @@ abstract class AiBase
 
 		// 850 Stone Hoe
 		if(quadDist < 400) if(GetOrCraftItem(850)) return true;
-		else if(GetOrCraftItem(850, 1, true)) return true;
+		else if(GetItem(850)) return true;
 		
-		return GetOrCraftItem(502, 1, true); // 502 = Shovel
+		return GetItem(502); // 502 = Shovel
 	}
 
 	private function handleDeath() : Bool {
@@ -926,18 +928,26 @@ abstract class AiBase
 		return GetItem(actorId);	
 	}
 
-	private function shortCraft(actorId:Int, targetId:Int, distance:Int = 20) : Bool {
+	private function shortCraft(actorId:Int, targetId:Int, distance:Int = 20, craftActorIfNeeded = true) : Bool {
 		var target = AiHelper.GetClosestObjectById(myPlayer, targetId, null, distance);
+		return shortCraftOnTarget(actorId, target, distance, craftActorIfNeeded);
+	}
+	
+	private function shortCraftOnTarget(actorId:Int, target:ObjectHelper, distance:Int = 20, craftActorIfNeeded = true) : Bool {
 		if(target == null) return false;
+		var targetId = target.parentId;
 		// dont use carrots if seed is needed // 400 Carrot Row
 		if (targetId == 400 && hasCarrotSeeds == false && target.numberOfUses < 3) return false;
 
 		if(myPlayer.heldObject.parentId == actorId) return useHeldObjOnTarget(target);
+
+		var actorData = ObjectData.getObjectData(actorId);
 		
-		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} shortCraft: wanted: ${actorId} ${myPlayer.heldObject.name} + ${target.name}');
+		//if (ServerSettings.DebugAiSay) myPlayer.say('get ${actorData.name} to craft target: ${target.name}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} shortCraft: wanted actor: ${actorData.name} + target: ${target.name} held: ${myPlayer.heldObject.name}');
+
 		if(actorId == 0) return dropHeldObject();
-		return GetOrCraftItem(actorId);		
+		return GetOrCraftItem(actorId, craftActorIfNeeded);		
 	}
 
 	private function doPottery(maxPeople:Int = 2) : Bool {
@@ -947,10 +957,18 @@ abstract class AiBase
 		if(home == null) return false;
 
 		if(shortCraftOnGround(283)) return true; // Wooden Tongs with Fired Bowl
-		if(shortCraftOnGround(240)) return true; // Wet Plate in Wooden Tongs
+		if(shortCraftOnGround(241)) return true; // Fired Plate in Wooden Tongs
+		//if(shortCraftOnGround(284)) return true; // Wet Bowl in Wooden Tongs
+		//if(shortCraftOnGround(240)) return true; // Wet Plate in Wooden Tongs
 		
 		var countWetBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 233, 15, false); // Wet Clay Bowl 233
 		var countWetPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 234, 15, false); // Wet Clay Plate 234
+		
+		countWetBowl += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 284, 15, false); // Wet Bowl in Wooden Tongs
+		countWetPlate += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 240, 15, false); // Wet Plate in Wooden Tongs
+
+		if(myPlayer.heldObject.parentId == 284) countWetBowl += 1; // Wet Bowl in Wooden Tongs
+		if(myPlayer.heldObject.parentId == 240) countWetPlate += 1; // Wet Plate in Wooden Tongs
 
 		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer); // Firing Adobe Kiln 
 
@@ -1170,23 +1188,7 @@ abstract class AiBase
 	private function doBaking(maxPeople:Int = 2) : Bool {
 		if(hasOrBecomeProfession('Baker', maxPeople) == false) return false;
 		var startTime = Sys.time();
-		
-		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 40); // Clay Plate
-		var hasClosePlate = countPlates > 0;
-
-		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
-
-		//if(hasClosePlate == false) return craftItem(236); // Clay Plate
-		if(hasClosePlate == false) return false;
-
-		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
-
-		var closeDough = AiHelper.GetClosestObjectById(myPlayer, 1466); // 1466 Bowl of Leavened Dough
-		if(closeDough != null && craftItem(1469)) return true; // Raw Bread Loaf
-		if(craftItem(1471)) return true; // Sliced Bread
-		
-		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
-
+		var home = myPlayer.home;
 		/*
 		if(craftItem(272)) return true; // Cooked Berry Pie
 		if(craftItem(803)) return true; // Cooked Mutton Pie
@@ -1198,13 +1200,79 @@ abstract class AiBase
 		if(craftItem(278)) return true; // Cooked Berry Carrot Rabbit Pie
 		*/
 		var pies = [272, 803, 273, 274, 275, 276, 277, 278];
-		var rand = lastPie > -1 ? lastPie : WorldMap.world.randomInt(pies.length -1);
+		var rawPies = [265, 802, 268, 270, 266, 271, 269, 267];
+		var nextPie = lastPie > -1 ? lastPie : WorldMap.world.randomInt(pies.length -1);
 
-		for(i in 0...2){
-			var index = (rand + i) % pies.length;
-			if(craftItem(pies[index])) return true;
+		// 250 Hot Adobe Oven
+		var hotOven = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 250, 20, null, myPlayer);
+		// 265 Raw Berry Pie // 273 Raw Carrot Pie 
+		var countRawPies = -1;
+		if(hotOven == null){
+			countRawPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 40);
+			countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 40);
 		}
+		
+		if(hotOven != null || countRawPies > 3){
+			this.profession['Baker'] = 2;
+
+			for(i in 0... pies.length){
+				var index = (nextPie + i) % pies.length;
+				lastPie = index;
+				if(shortCraftOnTarget(rawPies[index], hotOven, 20, false)) return true;
+			}
+
+			// 1469 Raw Bread Loaf
+			if(shortCraftOnTarget(1469, hotOven, 20, false)) return true;
+			//if(craftItem(1471)) return true; // Sliced Bread
+		}
+		
+		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 40); // Clay Plate
+		var hasClosePlate = countPlates > 0;
+
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+
+		//if(hasClosePlate == false) return craftItem(236); // Clay Plate
+		if(hasClosePlate == false) return false;
+
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+
+		
+		// 560 Knife
+		if(this.profession['Baker'] < 3){
+			var knife = myPlayer.heldObject.parentId == 560 ? myPlayer.heldObject : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 560, 20, null, myPlayer);
+			if(knife != null){
+				// 1466 Bowl of Leavened Dough // 236 Clay Plate
+				if(shortCraft(1466, 236, 20, false)) return true;
+				// 1470 Baked Bread
+				if(shortCraft(560, 1470, 20, false)) return true;
+				// 560 Knife // 1468 Leavened Dough on Clay Plate
+				if(shortCraft(560, 1468, 20, false)) return true;
+				
+				//var closeDough = AiHelper.GetClosestObjectById(myPlayer, 1466); // 1466 Bowl of Leavened Dough
+				//if(closeDough != null && craftItem(1469)) return true; // Raw Bread Loaf
+			}
+		}		
+
+		this.profession['Baker'] = 3; // TODO set to 2 once in a while to check for bread stuff???
+		
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');	
+		
+		for(i in 0...pies.length){
+			var index = (nextPie + i) % pies.length;
+			lastPie = index;
+			if(craftItem(rawPies[index])) return true;
+		}
+
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+
+		// check if there is something to fire oven
+		/*if(hotOven == null){
+			for(i in 0... pies.length){
+				var index = (nextPie + i) % pies.length;
+				lastPie = index;
+				if(shortCraft(rawPies[index], pies[index])) return true;
+			}
+		}*/
 
 		if(craftItem(1285)) return true; // Omelette
 
@@ -1390,7 +1458,7 @@ abstract class AiBase
 
 		// do nothing if there is a full Bowl of Gooseberries
 		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
-		if(closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses / 2) return false;
+		if(closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses) return false;
 
 		var target = closeBerryBowl != null ? closeBerryBowl : myPlayer.home;
 		var bestPlayer = getBestAiForObjByProfession('BowlFiller', target);
@@ -1406,7 +1474,7 @@ abstract class AiBase
 			return true; 
 		}
 
-		return GetOrCraftItem(235, 1, true); // Clay Bowl
+		return GetItem(235); // Clay Bowl
 	}
 
 	private function makePopcornIfNeeded() : Bool {
@@ -1778,7 +1846,7 @@ private function craftLowPriorityClothing() : Bool {
 		else if (heldObjId == 57) dropOnStart = false; // 57 Milkweed Stalk
 
 		if(ServerSettings.DebugAi) 
-			trace('AAI: ${myPlayer.name + myPlayer.id} DROP: ${myPlayer.heldObject.name} ${infos.methodName}');
+			trace('AAI: ${myPlayer.name + myPlayer.id} DROP: ${myPlayer.heldObject.name} to ${infos.methodName}');
 				
 		// if holding Clay 126 and far from home try to drop in basket
 		if(heldObjId == 126){ 
@@ -2066,10 +2134,10 @@ private function craftLowPriorityClothing() : Bool {
 	}
 
 	private function GetItem(objId:Int) : Bool {
-		return GetOrCraftItem(objId, 1, true);
+		return GetOrCraftItem(objId, false);
 	}
 
-	private function GetOrCraftItem(objId:Int, count:Int = 1, dontCraft:Bool = false) : Bool {
+	private function GetOrCraftItem(objId:Int, craft:Bool = true) : Bool {
 		if (myPlayer.isMoving()) return true;
 		var objdata = ObjectData.getObjectData(objId);
 		var pileId = objdata.getPileObjId();
@@ -2083,22 +2151,37 @@ private function craftLowPriorityClothing() : Bool {
 		if (usePile) obj = pile;
 		if (obj == null && hasPile) obj = AiHelper.GetClosestObjectById(myPlayer, objId, null, maxSearchDistance);
 
-		if (obj == null && dontCraft) return false;
+		if (obj == null && craft == false) return false;
 
-		if (obj == null) return craftItem(objId, count);
+		if (obj == null) return craftItem(objId);
 
 		if (ServerSettings.DebugAi) 
 			trace('AAI: ${myPlayer.name + myPlayer.id} GetOrCraftItem: found ${obj.name} pile: $usePile');
 
 		// If picking up from a pile or a container like Basket make sure that hand is empty
+		// TODO consider drop after movement
 		if ((usePile || obj.objectData.numSlots > 0) && dropHeldObject()) return true;
 
+		if(usePile){
+			this.dropIsAUse = true;
+			this.dropTarget = null;
+			this.useTarget = obj;
+			this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
+		}
+		else{
+			this.dropIsAUse = false;
+			this.dropTarget = obj;
+		}
+
+		return true;
+
+		/*
 		var distance = myPlayer.CalculateQuadDistanceToObject(obj);
 
 		if (distance > 1) {
 			var done = myPlayer.gotoObj(obj);
 
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GetOrCraftItem: done: $done goto obj $distance');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GetOrCraftItem: done: $done goto pickup d: $distance');
 			return true;
 		}
 
@@ -2125,7 +2208,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GetOrCraftItem: ${myPlayer.heldObject.name} done: $done pickup obj');
 
-		return done;
+		return done;*/
 	}
 
 	private function cleanupBlockedObjects() {
@@ -2712,6 +2795,8 @@ private function craftLowPriorityClothing() : Bool {
 
 				// dont use carrots if seed is needed // 400 Carrot Row
 				if (obj.parentId == 400 && hasCarrotSeeds == false && obj.numberOfUses < 3) continue;
+				// Ignore not full Bowl of Gooseberries 253 otherwise it might get stuck in making a pie
+				if (obj.parentId == 253 && obj.numberOfUses < objData.numUses) continue;
 				// Dont eat if no corn seeds // 1114 Shucked Ear of Corn
 				//if (obj.parentId == 1114 && this.hasCornSeeds == false) continue;
 
@@ -3368,6 +3453,9 @@ private function craftLowPriorityClothing() : Bool {
 
 	private function isUsingItem():Bool {
 		if (useTarget == null) return false;
+
+		var heldObject = myPlayer.heldObject;
+
 		if (myPlayer.isStillExpectedItem(useTarget) == false) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use target changed meanwhile! ${useTarget.name}');
 			useTarget = null;
@@ -3375,7 +3463,7 @@ private function craftLowPriorityClothing() : Bool {
 		}
 		// only allow to go on with use if right actor is in the hand, or if actor will be empty
 		// if(myPlayer.heldObject.id != useActor.id && useActor.id != 0)
-		if (myPlayer.heldObject.parentId != useActor.parentId) {
+		if (heldObject.parentId != useActor.parentId) {
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActor.name}');
 
@@ -3387,6 +3475,29 @@ private function craftLowPriorityClothing() : Bool {
 
 			return false;
 		}
+
+		// TODO what about other actors?
+		// make sure that actor (Bowl of Gooseberries) is full 
+		if(myPlayer.heldObject.parentId == 253 && heldObject.numberOfUses < heldObject.objectData.numUses){
+			// TODO better check if(transition.tool == false && transition.reverseUseActor == false)
+			// check if target is bush to allow still use to fill up 391 Domestic Gooseberry Bush
+			if(useTarget.parentId != 30 && useTarget.parentId != 391) return fillBerryBowlIfNeeded();
+		}
+
+		/*if(transition.tool == false && transition.reverseUseActor == false){
+			var numUses = player.heldObject.objectData.numUses;
+			var heldUses = player.heldObject.numberOfUses;
+			
+			if(numUses > 1 && heldUses < numUses){
+				if (ServerSettings.DebugTransitionHelper)
+					trace('TRANS: ${player.name + player.id} ${player.heldObject.name} must have max uses ${heldUses} < ${numUses}');
+
+				player.say('Must be full!', true);
+
+				return false;
+			}
+		}*/
+
 		if (myPlayer.isMoving()) return true;
 
 		// TODO crafting does not yet consider if old enough to use a bow 
