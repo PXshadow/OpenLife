@@ -455,7 +455,7 @@ abstract class AiBase
 				var bestAiForFire = getBestAiForObjByProfession('firekeeper', myPlayer.home);
 				if(bestAiForFire != null && bestAiForFire.myPlayer.id == myPlayer.id){
 					//if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} Make new Fire: ${myPlayer.home.tx},${myPlayer.home.ty}');
+					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Make new Fire: ${myPlayer.home.tx},${myPlayer.home.ty}');
 					return craftItem(82); // Fire
 				}
 				return false;

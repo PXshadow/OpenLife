@@ -318,8 +318,8 @@ class ServerSettings {
 	public static var MaleDamageFactor:Float = 1.2;
 	public static var WeaponCoolDownFactorIfWounding:Float = 0.4;
 	// public static var AnimalCoolDownFactorIfWounding:Float = 0.2;
-	public static var AnimalDamageFactor:Float = 3; // 1.5
-	public static var AnimalDamageFactorInWinter:Float = 1.5;
+	public static var AnimalDamageFactor:Float = 1.5; // 1.5
+	public static var AnimalDamageFactorInWinter:Float = 2; // 2
 	public static var AnimalDamageFactorIfAttacked:Float = 1.5;
 	public static var WeaponDamageFactor:Float = 1;
 	public static var WoundDamageFactor:Float = 1;
@@ -1157,7 +1157,7 @@ class ServerSettings {
 		ObjectData.getObjectData(2156).damage = 1; // 2156 Mosquito Swarm
 
 		ObjectData.getObjectData(418).deadlyDistance = AnimalDeadlyDistanceFactor; // Wolfs
-		ObjectData.getObjectData(418).damage = 3; // Wolfs
+		ObjectData.getObjectData(418).damage = 4; // 3 // Wolfs
 		ObjectData.getObjectData(420).deadlyDistance = AnimalDeadlyDistanceFactor; // Shot Wolf
 		ObjectData.getObjectData(420).damage = 5; // Shot Wolf
 

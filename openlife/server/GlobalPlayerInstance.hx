@@ -3719,7 +3719,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (lovesThisBiome < -1) lovesThisBiome = -1;
 		var biomeDamageFactor = 2 / (2 + lovesThisBiome); // between 0.5 and 2
 
-		var doesRealDamage = fromObj.id != 2156; // 2156 Mosquito Swarm;
+		var doesRealDamage = fromObj.parentId != 2156; // 2156 Mosquito Swarm;
 		var lovesJungle = targetPlayer.biomeLoveFactor(BiomeTag.JUNGLE);
 		if (lovesJungle < -0.5) lovesJungle = -0.5;
 		var moskitoDamageFactor = 1 / (1 + lovesJungle + yellowfeverCount); // without yellowfeverCount between 0.33 and 2
@@ -3739,7 +3739,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		damage *= protectionFactor;
 		damage *= targetPlayer.isWounded() ? ServerSettings.TargetWoundedDamageFactor : 1;
 
-		targetPlayer.hits += damage;
+		if (doesRealDamage) targetPlayer.hits += damage;
 		targetPlayer.exhaustion += damage;
 		targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
 
