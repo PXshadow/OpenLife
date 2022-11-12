@@ -293,7 +293,7 @@ class ServerSettings {
 	public static var TemperatureShiftForGinger:Float = -0.1;
 
 	// winter / summer
-	public static var DebugSeason:Bool = true;
+	public static var DebugSeason:Bool = false;
 	public static var SeasonDuration:Float = 7.5; // default: 5 // Season duration like winter in years
 	public static var SeasonBiomeChangeChancePerYear:Float = 2; //5 // X means it spreads X tiles per year in average in each direction
 	public static var SeasonBiomeRestoreFactor:Float = 2;

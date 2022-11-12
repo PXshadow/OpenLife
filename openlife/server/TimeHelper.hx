@@ -2645,7 +2645,7 @@ class TimeHelper {
 				if (p.heldByPlayer != null) continue;
 				if (p.isCloseUseExact(tmpX, tmpY, objData.deadlyDistance) == false) continue;
 
-				trace('Do damage to: ${p.name}');
+				//trace('Do damage to: ${p.name}');
 				damage += p.doDamage(animal);
 				return damage;
 			}
