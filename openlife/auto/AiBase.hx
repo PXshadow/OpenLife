@@ -737,8 +737,13 @@ abstract class AiBase
 		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: try to get hoe or shovel');
 
 		// 850 Stone Hoe
-		if(GetOrCraftItem(850)) return true;
-		return GetOrCraftItem(502); // 502 = Shovel
+		var quadDist = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
+
+		// 850 Stone Hoe
+		if(quadDist < 400) if(GetOrCraftItem(850)) return true;
+		else if(GetOrCraftItem(850, 1, true)) return true;
+		
+		return GetOrCraftItem(502, 1, true); // 502 = Shovel
 	}
 
 	private function handleDeath() : Bool {
@@ -763,6 +768,8 @@ abstract class AiBase
 
 		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} good bye!');
+
+		dropHeldObject();
 		
 		return true;
 	}
