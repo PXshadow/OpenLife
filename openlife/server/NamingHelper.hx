@@ -208,6 +208,7 @@ class NamingHelper {
 			var map = female ? FemaleNames[index] : MaleNames[index];
 
 			if (map == null) {
+				trace('NAME: index: $index IS EMPTY');
 				continue;
 			}
 
@@ -233,6 +234,7 @@ class NamingHelper {
 
 	private static function isUsedName(name:String):Bool {
 		for (p in GlobalPlayerInstance.AllPlayers) {
+			if (p.isDeleted) continue;
 			if (p.name == name) return true;
 		}
 
