@@ -695,7 +695,7 @@ class TransitionHelper {
 		}
 
 		// if transition is not a tool use, check if actor has max number of uses
-		if(transition.tool == false && transition.reverseUseActor == false){
+		if(transition.tool == false && player.heldObject.objectData.isTool() == false && transition.reverseUseActor == false){
 			var numUses = player.heldObject.objectData.numUses;
 			var heldUses = player.heldObject.numberOfUses;
 			

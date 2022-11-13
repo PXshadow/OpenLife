@@ -1614,4 +1614,8 @@ class ObjectData extends LineReader {
 		if(damage <= 0) return false;
 		return isAnimal();
 	}
+
+	public function isTool() : Bool {
+		return StringTools.contains(this.description,'+tool');
+	}	
 }
