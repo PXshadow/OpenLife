@@ -1700,6 +1700,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			toSelf = true;
 		}	
 
+		if (StringTools.contains(text, '?SEASON TEMP') || text == '?ST'){
+			var seasonImpact = TimeHelper.SeasonTemperatureImpact;
+			if(seasonImpact > 0) seasonImpact *= ServerSettings.HotSeasonTemperatureFactor;
+			if(seasonImpact < 0) seasonImpact *= ServerSettings.ColdSeasonTemperatureFactor;
+
+			text = TimeHelper.SeasonText.toUpperCase() + '${Math.round(seasonImpact * 100)/100}';
+			toSelf = true;
+		}	
+
 		if (StringTools.contains(text, 'SEASON?')){
 			text = TimeHelper.SeasonText.toUpperCase();
 			//toSelf = true;
