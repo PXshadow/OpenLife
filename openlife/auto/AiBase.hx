@@ -86,6 +86,7 @@ abstract class AiBase
 	public var lastCheckedTimes:Map<String,Float> = [];
 
 	public var lastPie = -1;
+	public var countPies = 0;
 	public var tryMoveNearestTileFirst = true;
 
 	public static function StartAiThread() {
@@ -1186,11 +1187,7 @@ abstract class AiBase
 		return useHeldObjOnTarget(clayDeposit);
 	}
 
-	private function doBaking(maxPeople:Int = 2) : Bool {
-		if(hasOrBecomeProfession('Baker', maxPeople) == false) return false;
-		var startTime = Sys.time();
-		var home = myPlayer.home;
-		/*
+	/*
 		if(craftItem(272)) return true; // Cooked Berry Pie
 		if(craftItem(803)) return true; // Cooked Mutton Pie
 		if(craftItem(273)) return true; // Cooked Carrot Pie
@@ -1199,9 +1196,16 @@ abstract class AiBase
 		if(craftItem(276)) return true; // Cooked Berry Rabbit Pie
 		if(craftItem(277)) return true; // Cooked Rabbit Carrot Pie
 		if(craftItem(278)) return true; // Cooked Berry Carrot Rabbit Pie
-		*/
-		var pies = [272, 803, 273, 274, 275, 276, 277, 278];
-		var rawPies = [265, 802, 268, 270, 266, 271, 269, 267];
+	*/
+
+	private static var pies = [272, 803, 273, 274, 275, 276, 277, 278]; 
+	private static var rawPies = [265, 802, 268, 270, 266, 271, 269, 267];
+
+	private function doBaking(maxPeople:Int = 2) : Bool {
+		if(hasOrBecomeProfession('Baker', maxPeople) == false) return false;
+		var startTime = Sys.time();
+		var home = myPlayer.home;
+			
 		var nextPie = lastPie > -1 ? lastPie : WorldMap.world.randomInt(pies.length -1);
 
 		// 250 Hot Adobe Oven
@@ -1258,6 +1262,16 @@ abstract class AiBase
 		
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');	
 		
+		var extraPies = countPies % 4;
+
+		if(extraPies == 0){
+			if(craftItem(268)) return true; // Raw Carrot Pie
+		}
+
+		if(extraPies == 2){
+			if(craftItem(265)) return true; // Raw Berry Pie
+		}
+
 		for(i in 0...pies.length){
 			var index = (nextPie + i) % pies.length;
 			lastPie = index;
@@ -3589,6 +3603,13 @@ private function craftLowPriorityClothing() : Bool {
 					itemToCraft.countDone += 1;
 					if(itemToCraftName != null && itemToCraft.itemToCraft.name == itemToCraftName) myPlayer.say('Finished $itemToCraftName');
 					itemToCraftName = null; // is set if human gave order to craft
+				}
+
+				// in case its a pie, make next pie
+				if(rawPies.contains(taregtObjectId)){
+					countPies += 1;
+					//lastPie += 1;
+					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} raw pie done: ${itemToCraft.itemToCraft.name} countPies: $countPies lastPie: $lastPie');
 				}
 
 				if (ServerSettings.DebugAi)
