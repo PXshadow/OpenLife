@@ -398,7 +398,8 @@ abstract class AiBase
 
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
-		if(itemToCraftId == 31) itemToCraftId = -1; // Gooseberry
+		// 31 Gooseberry // 1121 Popcorn
+		if(itemToCraftId == 31 || itemToCraftId == 1121) itemToCraftId = -1; 
 		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
 
 		if(myPlayer.age > 30) Macro.exception(if(craftLowPriorityClothing()) return);
