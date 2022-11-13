@@ -1705,7 +1705,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if(seasonImpact > 0) seasonImpact *= ServerSettings.HotSeasonTemperatureFactor;
 			if(seasonImpact < 0) seasonImpact *= ServerSettings.ColdSeasonTemperatureFactor;
 
-			text = TimeHelper.SeasonText.toUpperCase() + '${Math.round(seasonImpact * 100)/100}';
+			text = TimeHelper.SeasonText.toUpperCase() + ' ${Math.round(seasonImpact * 100)/100}';
 			toSelf = true;
 		}	
 

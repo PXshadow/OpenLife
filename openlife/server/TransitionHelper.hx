@@ -889,12 +889,15 @@ class TransitionHelper {
 		// check if biome locked or blocked
 		var biome = WorldMap.worldGetBiomeId(tx, ty);
 		if (newTargetObjectData.description.contains('+biomeReq4') && biome != 4) {
+			player.say('needs snow biome', true);
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} needs ice biome!');
 			return false;
 		} else if (newTargetObjectData.description.contains('+biomeReq6') && biome != 6) {
+			player.say('needs jungle', true);
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} needs jungle biome!');
 			return false;
 		} else if (newTargetObjectData.description.contains('+biomeBlock4') && biome == 4) {
+			player.say('is blocked by snow', true);
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} is blocked by ice!');
 			return false;
 		}
