@@ -879,7 +879,7 @@ class ServerSettings {
 
 		// let loved food grow in loved biomes
 		ObjectData.getObjectData(4251).biomes.push(BiomeTag.GREY); // Wild Garlic is loved now by White
-		ObjectData.getObjectData(36).biomes.push(BiomeTag.SNOW); // Wild Carrot is loved now by Ginger
+		//ObjectData.getObjectData(36).biomes.push(BiomeTag.SNOW); // Wild Carrot is loved now by Ginger
 
 		// is set directly in map WorldMap generation
 		// ObjectData.getObjectData(141).biomes.push(BiomeTag.PASSABLERIVER); // Canada Goose Pond
