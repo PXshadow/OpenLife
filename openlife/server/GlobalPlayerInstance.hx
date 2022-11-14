@@ -2036,8 +2036,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				GlobalPlayerInstance.AcquireMutex(); // TODO make ALLPlayers thread save
 
-				for (p in GlobalPlayerInstance.AllPlayers){
-					if (p.getTopLeader(myPlayer) != myPlayer) continue;
+				for (p in GlobalPlayerInstance.AllPlayers){					
+					if (p.getTopLeader(myPlayer) != myPlayer && p.followPlayer != myPlayer) continue;
 					p.home = newHome;
 
 					trace('Follower new home: ${p.name}');
