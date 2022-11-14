@@ -1354,11 +1354,10 @@ abstract class AiBase
 				if(shortCraft(1466, 236, 20, false)) return true;
 				// 1470 Baked Bread
 				if(shortCraft(560, 1470, 20, false)) return true;
+
+				var countBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1471, 40); // Sliced Bread
 				// 560 Knife // 1468 Leavened Dough on Clay Plate
-				if(shortCraft(560, 1468, 20, false)) return true;
-				
-				//var closeDough = AiHelper.GetClosestObjectById(myPlayer, 1466); // 1466 Bowl of Leavened Dough
-				//if(closeDough != null && craftItem(1469)) return true; // Raw Bread Loaf
+				if(countBread < 3 && shortCraft(560, 1468, 20, false)) return true;			
 			}
 		}		
 
@@ -1366,14 +1365,16 @@ abstract class AiBase
 		
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');	
 		
+		var countCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 40); // Cooked Carrot Pie 273
+		var countBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 40); // Cooked Berry Pie 272		
 		var extraPies = countPies % 4;
-
+		
 		if(extraPies == 0){
-			if(craftItem(268)) return true; // Raw Carrot Pie
+			if(countCarrotPies < 2 && craftItem(268)) return true; // Raw Carrot Pie
 		}
 
 		if(extraPies == 2){
-			if(craftItem(265)) return true; // Raw Berry Pie
+			if(countBerryPies < 2 && craftItem(265)) return true; // Raw Berry Pie
 		}
 
 		for(i in 0...pies.length){
