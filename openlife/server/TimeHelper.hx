@@ -641,12 +641,14 @@ class TimeHelper {
 				var factor = ServerSettings.DisplayScoreFactor;
 				var totalPrestige = Math.floor(player.yum_multiplier);
 				var prestigeFromChildren = Math.floor(player.prestigeFromChildren);
+				var prestigeFromGrandkids = Math.floor(player.prestigeFromGrandkids);
 				var prestigeFromFollowers = Math.floor(player.prestigeFromFollowers);
 				var prestigeFromEating = Math.floor(player.prestigeFromEating);
 				var prestigeFromParents = Math.floor(player.prestigeFromParents);
 				var prestigeFromSiblings = Math.floor(player.prestigeFromSiblings);
 				
 				var textFromChildren = prestigeFromChildren > 5 ? 'You have gained in total ${prestigeFromChildren * factor} prestige from children!' : '';
+				var textFromGrandkids = prestigeFromGrandkids > 5 ? 'You have gained in total ${prestigeFromGrandkids * factor} prestige from grandkids!' : '';
 				var textFromFollowers = prestigeFromFollowers > 5 ? 'You have gained in total ${prestigeFromFollowers * factor} prestige from followers!' : '';
 				var textFromEating = prestigeFromEating > 5 ? 'You have gained in total ${prestigeFromEating * factor} prestige from YUMMY food!' : '';
 				var textFromWealth = player.prestigeFromWealth > 5 ? 'You have gained ${player.prestigeFromWealth * factor} prestige from your wealth!' : '';
@@ -658,6 +660,7 @@ class TimeHelper {
 
 				if(ServerSettings.DisplayScoreOn){
 					player.connection.sendGlobalMessage(textFromChildren);
+					player.connection.sendGlobalMessage(textFromGrandkids);
 					player.connection.sendGlobalMessage(textFromFollowers);
 					player.connection.sendGlobalMessage(textFromEating);
 					player.connection.sendGlobalMessage(textFromWealth);

@@ -161,6 +161,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var coins:Float = 0;
 
 	public var prestigeFromChildren:Float = 0;
+	public var prestigeFromGrandkids:Float = 0; // TODO not saved yet
 	public var prestigeFromEating:Float = 0;
 	public var prestigeFromFollowers:Float = 0;
 	public var prestigeFromWealth:Float = 0;
@@ -4777,37 +4778,43 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		var tmpCount = count;
 
+		// parents: 50% (2*25) (100%)
+		// great parents: 100% (4*25) (200%) 
+		// leaders: 100% (4*25) 
+		// children 50% (100%)
+		// siblings 50% (50%)
+
 		if (this.mother != null) {
-			mother.yum_multiplier += tmpCount / 2;
-			mother.prestigeFromChildren += tmpCount / 2;
+			mother.yum_multiplier += tmpCount / 4; // 2
+			mother.prestigeFromChildren += tmpCount / 4; // 2
 
 			if (this.mother.mother != null) // grandma
 			{
 				mother.mother.yum_multiplier += tmpCount / 4;
-				mother.mother.prestigeFromChildren += tmpCount / 4;
+				mother.mother.prestigeFromGrandkids += tmpCount / 4;
 			}
 
 			if (this.mother.father != null) // grandpa
 			{
 				mother.father.yum_multiplier += tmpCount / 4;
-				mother.father.prestigeFromChildren += tmpCount / 4;
+				mother.father.prestigeFromGrandkids += tmpCount / 4;
 			}
 		}
 
 		if (this.father != null) {
-			father.yum_multiplier += tmpCount / 2;
-			father.prestigeFromChildren += tmpCount / 2;
+			father.yum_multiplier += tmpCount / 4; // 2
+			father.prestigeFromChildren += tmpCount / 4; // 2
 
 			if (this.father.mother != null) // grandma
 			{
 				father.mother.yum_multiplier += tmpCount / 4;
-				father.mother.prestigeFromChildren += tmpCount / 4;
+				father.mother.prestigeFromGrandkids += tmpCount / 4;
 			}
 
 			if (this.father.father != null) // grandpa
 			{
 				father.father.yum_multiplier += tmpCount / 4;
-				father.father.prestigeFromChildren += tmpCount / 4;
+				father.father.prestigeFromGrandkids += tmpCount / 4;
 			}
 		}
 
@@ -4815,8 +4822,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// prestige for children
 		for (child in children) {
-			child.yum_multiplier += tmpCount / 4;
-			child.prestigeFromParents += tmpCount / 4;
+			child.yum_multiplier += tmpCount / 2; //4
+			child.prestigeFromParents += tmpCount / 2; //4
 		}
 
 		// prestige for siblings
@@ -4828,12 +4835,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (this.getTopLeader() == null) return;
 
-		tmpCount = count / 5;
+		tmpCount = count / 4;
 
 		var leader = followPlayer;
 		if (leader == null) return;
 
-		for (ii in 0...5) {
+		for (ii in 0...4) {
 			if (this.exiledByPlayers.exists(leader.p_id)) return; // is exiled
 
 			leader.yum_multiplier += tmpCount;
