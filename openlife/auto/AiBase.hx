@@ -1081,8 +1081,8 @@ abstract class AiBase
 			if(doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 		}
 
-		shortCraft(0,238); // unseal Sealed Adobe Kiln 238 ==> Adobe Kiln with Charcoal
-		shortCraft(292,299); // Basket 299 + Adobe Kiln with Charcoal 299 --> Adobe Kiln
+		if(shortCraft(0,294)) return true; // unseal Sealed Adobe Kiln 294 ==> Adobe Kiln with Charcoal
+		if(shortCraft(292,299)) return true; // Basket 299 + Adobe Kiln with Charcoal 299 --> Adobe Kiln
 
 		// Wood-filled Adobe Kiln 281
 		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 281, 20, null, myPlayer);
