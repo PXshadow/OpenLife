@@ -342,6 +342,7 @@ abstract class AiBase
 
 		if (myPlayer.isMoving()) return;
 		Macro.exception(if (searchNewHomeIfNeeded()) return);
+		// High priortiy takes
 		if(this.profession['Baker'] > 1) Macro.exception(if (doBaking()) return);
 		if(this.profession['Potter'] > 1) Macro.exception(if (doPottery()) return);
 		Macro.exception(if (isHandlingFire()) return);
@@ -374,6 +375,10 @@ abstract class AiBase
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		itemToCraft.searchCurrentPosition = false;
+
+		// medium priorty tasks
+		if(this.profession['BasicFarmer'] > 0) Macro.exception(if (doBasicFarming()) return);
+		
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if(makePopcornIfNeeded()) return);
@@ -930,6 +935,8 @@ abstract class AiBase
 			if(count < 5) if(craftItem(1109)) return true; // Dry Planted Corn Seed
 			this.profession['BasicFarmer'] = 7;
 		}
+
+		this.profession['BasicFarmer'] = 1;
 
 		//var closeObj = AiHelper.GetClosestObjectById(myPlayer, 2831); // Wet Planted Tomato Seed
 		//if(closeObj == null) if(craftItem(2831)) return true; // Wet Planted Tomato Seed
