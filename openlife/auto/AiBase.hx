@@ -978,8 +978,13 @@ abstract class AiBase
 			if(doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 		}
 
-		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 281, 20, null, myPlayer); // Wood-filled Adobe Kiln 281
-		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 238 , 20, null, myPlayer); // Adobe Kiln 238
+		shortCraft(0,238); // unseal Sealed Adobe Kiln 238 ==> Adobe Kiln with Charcoal
+		shortCraft(292,299); // Basket 299 + Adobe Kiln with Charcoal 299 --> Adobe Kiln
+
+		// Wood-filled Adobe Kiln 281
+		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 281, 20, null, myPlayer);
+		// Adobe Kiln 238
+		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 238 , 20, null, myPlayer); 
 
 		// TODO consider forge
 
