@@ -909,13 +909,6 @@ abstract class AiBase
 		}
 
 		if(this.profession['BasicFarmer'] < 6){
-			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 229, 30); // Wet Planted Wheat 229
-			count += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 228, 30); // Dry Planted Wheat 228
-			if(count < 5) if(craftItem(228)) return true; // Dry Planted Wheat 228
-			this.profession['BasicFarmer'] = 6;
-		}
-
-		if(this.profession['BasicFarmer'] < 6){
 			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 242, 20); // Ripe Wheat
 			if(closeObj != null) if(craftItem(224)) return true; // Harvested Wheat
 
@@ -931,8 +924,12 @@ abstract class AiBase
 			this.profession['BasicFarmer'] = 6;
 		}
 
-		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 1110, 20); // Wet Planted Corn Seed
-		if(closeObj == null) if(craftItem(1110)) return true; // Wet Planted Corn Seed
+		if(this.profession['BasicFarmer'] < 7){
+			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1110, 30); // Wet Planted Corn Seed 1110
+			count += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1109, 30); // Dry Planted Corn Seed
+			if(count < 5) if(craftItem(1109)) return true; // Dry Planted Corn Seed
+			this.profession['BasicFarmer'] = 7;
+		}
 
 		//var closeObj = AiHelper.GetClosestObjectById(myPlayer, 2831); // Wet Planted Tomato Seed
 		//if(closeObj == null) if(craftItem(2831)) return true; // Wet Planted Tomato Seed
