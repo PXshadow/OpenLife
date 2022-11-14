@@ -383,9 +383,7 @@ abstract class AiBase
 		
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
-		itemToCraft.searchCurrentPosition = false;
-		Macro.exception(if(makeFireFood()) return);
-		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: makeFireFood ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+		itemToCraft.searchCurrentPosition = false;		
 		Macro.exception(if(doPottery()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if(doBaking()) return);
@@ -393,9 +391,10 @@ abstract class AiBase
 		Macro.exception(if(doWatering()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doWatering ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if(doBasicFarming()) return);
-		itemToCraft.searchCurrentPosition = true;
-
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+		Macro.exception(if(makeFireFood()) return);
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: makeFireFood ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+		itemToCraft.searchCurrentPosition = true;		
 
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
@@ -1240,7 +1239,6 @@ abstract class AiBase
 		if(hasClosePlate == false) return false;
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
-
 		
 		// 560 Knife
 		if(this.profession['Baker'] < 3){
@@ -1288,8 +1286,6 @@ abstract class AiBase
 				if(shortCraft(rawPies[index], pies[index])) return true;
 			}
 		}*/
-
-		if(craftItem(1285)) return true; // Omelette
 
 		this.profession['Baker'] = 0;
 	
@@ -1517,7 +1513,13 @@ abstract class AiBase
 
 		if(craftItem(570)) return true; // Cooked Mutton
 		if(craftItem(197)) return true; // Cooked Rabbit
-		
+
+		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 15);
+
+		if(countPlates > 0 && craftItem(1285)) return true; // Omelette
+
+		// 1284 Cool Flat Rock --> Ashes
+		if(shortCraft(0, 1284, 20)) return true;
 
 		this.profession['FireFoodMaker'] = 0;
 		return false;
