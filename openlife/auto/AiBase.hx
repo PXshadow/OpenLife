@@ -1322,10 +1322,13 @@ abstract class AiBase
 		// 250 Hot Adobe Oven
 		var hotOven = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 250, 20, null, myPlayer);
 		// 265 Raw Berry Pie // 273 Raw Carrot Pie 
-		var countRawPies = -1;
+		var countRawPies = 0;
 		if(hotOven == null){
-			countRawPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 40);
-			countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 40);
+			for(id in rawPies){
+				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, id, 20);
+			}
+			//countRawPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 40);
+			//countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 40);
 		}
 		
 		if(hotOven != null || countRawPies > 3){
