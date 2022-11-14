@@ -383,15 +383,18 @@ abstract class AiBase
 		
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
-		itemToCraft.searchCurrentPosition = false;		
-		Macro.exception(if(doPottery()) return);
-		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
-		Macro.exception(if(doBaking()) return);
-		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
-		Macro.exception(if(doWatering()) return);
-		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doWatering ${Math.round((Sys.time() - startTime) * 1000)}ms ');
-		Macro.exception(if(doBasicFarming()) return);
-		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+		itemToCraft.searchCurrentPosition = false;
+
+		var jobByAge = Math.round(myPlayer.age / 2); // job prio switches every second year
+		
+		for(i in 0...4){
+			jobByAge = (jobByAge + i) % 4;
+			if(jobByAge == 0) Macro.exception(if(doWatering()) return);				
+			else if(jobByAge == 1) Macro.exception(if(doBasicFarming()) return);
+			else if(jobByAge == 2) Macro.exception(if(doBaking()) return);
+			else if(jobByAge == 3) Macro.exception(if(doPottery()) return);
+		}
+
 		Macro.exception(if(makeFireFood()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: makeFireFood ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		itemToCraft.searchCurrentPosition = true;		
