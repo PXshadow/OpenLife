@@ -1230,9 +1230,10 @@ abstract class AiBase
 				if(shortCraftOnTarget(rawPies[index], hotOven, 20, false)) return true;
 			}
 
-			// 1469 Raw Bread Loaf
+			// Raw Bread Loaf 1469
 			if(shortCraftOnTarget(1469, hotOven, 20, false)) return true;
-			//if(craftItem(1471)) return true; // Sliced Bread
+			// Raw Mutton 569
+			if(shortCraftOnTarget(569, hotOven, 20, false)) return true;
 		}
 		
 		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 40); // Clay Plate
