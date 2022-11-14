@@ -4436,6 +4436,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				player.connection.sendMapChunk(player.x, player.y);
 			}
+		} else if (text == '!JHOME') {
+			if(HasEnoughCoinsForTeleport(player) == false) return true;
+
+			player.x = WorldMap.world.transformX(player, player.home.tx);
+			player.y = WorldMap.world.transformY(player, player.home.ty);
+			
+			player.forced = true;
+			Connection.SendUpdateToAllClosePlayers(player);
+			player.forced = false;
+
+			player.connection.sendMapChunk(player.x, player.y);
+
+			PayTeleportCost(player);
+
 		} else if (text.indexOf('!JHUMAN') != -1 || text == '!JH') {
 			var tmpLivingHumans = Connection.getLivingHumans();
 			if (tmpLivingHumans.length < 2){
