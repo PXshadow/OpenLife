@@ -1701,6 +1701,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			toSelf = true;
 		}	
 
+		if (StringTools.contains(text, 'SEASON?')){
+			text = TimeHelper.SeasonText.toUpperCase();
+			//toSelf = true;
+		}
+
 		if (StringTools.contains(text, '?SEASON TEMP') || text == '?ST'){
 			var seasonImpact = TimeHelper.SeasonTemperatureImpact;
 			if(seasonImpact > 0) seasonImpact *= ServerSettings.HotSeasonTemperatureFactor;
@@ -1710,11 +1715,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			toSelf = true;
 		}	
 
-		if (StringTools.contains(text, 'SEASON?')){
-			text = TimeHelper.SeasonText.toUpperCase();
-			//toSelf = true;
-		}
+		if (StringTools.contains(text, '?TEMP') || text == '?T'){
+			var seasonImpact = TimeHelper.SeasonTemperatureImpact;
+			if(seasonImpact > 0) seasonImpact *= ServerSettings.HotSeasonTemperatureFactor;
+			if(seasonImpact < 0) seasonImpact *= ServerSettings.ColdSeasonTemperatureFactor;
 
+			var lastTemperature = Math.round(player.lastTemperature * 100)/100;
+			var heat = Math.round(player.lastTemperature * 100)/100;
+
+			text = 'my heat: ${heat} local: ${lastTemperature}';
+			toSelf = true;
+		}
+		
 		if (StringTools.contains(text, '?SPEED')){
 			text = '${Math.round(player.move_speed * 100) / 100}';
 			toSelf = true;
@@ -4237,6 +4249,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (text.indexOf('!HIT') != -1) {
 			trace('!HIT');
 
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return false;
+			}
+
 			player.hits += 10;
 			player.food_store_max = player.calculateFoodStoreMax();
 
@@ -4253,6 +4270,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			Connection.SendUpdateToAllClosePlayers(player);
 		} else if (text.indexOf('!HEAL') != -1) {
+
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return false;
+			}
+
 			player.hits -= 10;
 			if (player.hits < 0) player.hits = 0;
 			if (player.exhaustion > 0) player.exhaustion = 0;
@@ -4359,6 +4382,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.food_store += 10;
 			player.sendFoodUpdate(false);
 		} else if (text.indexOf('!MEH') != -1) {
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return false;
+			}
 			player.food_store -= 5;
 			player.sendFoodUpdate(false);
 		} else if (text.indexOf('!AGE') != -1 || text == '!') {
@@ -4601,11 +4628,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.say('send names done!', true);
 			return true;
 		} else if (text.indexOf('!DEBUG TRANS') != -1 || text.indexOf('!D T') != -1) {
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return false;
+			}
+
 			TimeHelper.ReadServerSettings = false; // otherwise they will be loaded from file again
 			ServerSettings.DebugTransitionHelper = ServerSettings.DebugTransitionHelper ? false : true;
 			player.say('debug TRANS: ${ServerSettings.DebugTransitionHelper}', true);
 			return true;
 		} else if (text.indexOf('!DEBUG AI') != -1) {
+			if(canUseServerCommands == false){
+				player.say('not allowed!', true);
+				return false;
+			}
 			TimeHelper.ReadServerSettings = false; // otherwise they will be loaded from file again
 			ServerSettings.DebugAi = ServerSettings.DebugAi ? false : true;
 			player.say('debug ai: ${ServerSettings.DebugAi}', true);
