@@ -391,7 +391,7 @@ abstract class AiBase
 
 		itemToCraft.searchCurrentPosition = false;
 
-		var jobByAge = Math.round(myPlayer.age / 2); // job prio switches every second year
+		var jobByAge:Int = Math.round(myPlayer.age / 2); // job prio switches every second year
 		
 		for(i in 0...4){
 			jobByAge = (jobByAge + i) % 4;
@@ -449,7 +449,20 @@ abstract class AiBase
 		}
 	}
 
-	private function isHandlingFire() : Bool {
+	private function GetCraftAndDropItemsCloseToObj(target:ObjectHelper, whichObjId:Int, count = 1, dist = 5, craft = true) : Bool {
+		if(myPlayer.heldObject.parentId == whichObjId){
+			var quadDist = myPlayer.CalculateQuadDistanceToObject(target);
+			if(quadDist > dist * dist) return myPlayer.gotoObj(target);
+			dropHeldObject(0);
+			return true;
+		}
+
+		var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, whichObjId, dist);
+		if(count < 10 && GetOrCraftItem(whichObjId, craft, dist)) return true;
+		return false;
+	}
+
+	private function isHandlingFire(maxProfession = 1) : Bool {
 		var firePlace = myPlayer.firePlace;
 		var heldId = myPlayer.heldObject.parentId;
 
@@ -458,9 +471,9 @@ abstract class AiBase
 		if(shaft == null) shaft = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 67, 40);
 		if(shaft == null) if(craftItem(67)) return true;
 
-		if(firePlace == null){
-			firePlace = AiHelper.GetCloseFire(myPlayer);
+		firePlace = AiHelper.GetCloseFire(myPlayer);
 
+		if(firePlace == null){
 			if(firePlace == null){
 				var bestAiForFire = getBestAiForObjByProfession('firekeeper', myPlayer.home);
 				if(bestAiForFire != null && bestAiForFire.myPlayer.id == myPlayer.id){
@@ -483,7 +496,17 @@ abstract class AiBase
 		var objId = objAtPlace.parentId;
 
 		// 83 Large Fast Fire // 346 Large Slow Fire // 3029 Flash Fire
-		if(objId == 83 || objId == 346 || objId == 3029) return false;
+		if(objId == 83 || objId == 346 || objId == 3029){
+			if(hasOrBecomeProfession('firekeeper', maxProfession) == false) return false;
+			
+			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 72, 10); // Kindling 72
+			if(count < 3) this.profession['firekeeper'] = 1;
+			
+			// Kindling 72
+			if(this.profession['firekeeper'] < 2 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true; 
+			this.profession['firekeeper'] = 2;
+			return false;
+		}
 
 		var isUrgent = objId == 85 && hasOrBecomeProfession('firekeeper', 3); // 85 Hot Coals 
 		var bestAiForFire = isUrgent ? this : getBestAiForObjByProfession('firekeeper', myPlayer.firePlace);
@@ -865,7 +888,7 @@ abstract class AiBase
 		return false;
 	}*/
 
-	private function doBasicFarming() {
+	private function doBasicFarming(maxProfession = 2) {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
 
@@ -878,6 +901,9 @@ abstract class AiBase
 
 		if(shortCraft(139, 2832, 20)) return true; // Skewer + Tomato Sprout
 		if(shortCraft(139, 4228, 20)) return true; // Skewer + Cucumber Sprout
+
+		// water
+		if(doWatering(1)) return true;
 
 		// 1: Prepare Soil
 
@@ -1527,11 +1553,11 @@ abstract class AiBase
 			}
 		}
 	
-		if(makeFireFood(2)) return true;
 		if(makeSharpieFood()) return true;
 
+		if(doBasicFarming(3)) return true;
 		if(doBaking(3)) return true;
-		if(doWatering(3)) return true;
+		if(makeFireFood(2)) return true;
 
 		if(craftItem(59)) return true; // Rope 
 		//if(craftItem(58)) return true; // Thread
@@ -1629,6 +1655,8 @@ abstract class AiBase
 		}*/
 
 		if(shortCraftOnGround(186)) return true; // Cooked Rabbit --> unskew the Cooked Rabbits
+
+		if(isHandlingFire(3)) return true;
 
 		if(craftItem(570)) return true; // Cooked Mutton
 		if(craftItem(197)) return true; // Cooked Rabbit
@@ -2273,19 +2301,19 @@ private function craftLowPriorityClothing() : Bool {
 		return GetOrCraftItem(objId, false);
 	}
 
-	private function GetOrCraftItem(objId:Int, craft:Bool = true) : Bool {
+	private function GetOrCraftItem(objId:Int, craft:Bool = true, minDistance:Int = 0) : Bool {
 		if (myPlayer.isMoving()) return true;
 		var objdata = ObjectData.getObjectData(objId);
 		var pileId = objdata.getPileObjId();
 		var hasPile = pileId > 0;
 		var maxSearchDistance = 40;
 		var searchDistance:Int = hasPile ? 5 : maxSearchDistance;
-		var obj = AiHelper.GetClosestObjectById(myPlayer, objId, null, searchDistance);
-		var pile = hasPile ? myPlayer.GetClosestObjectById(pileId) : null; 
+		var obj = myPlayer.GetClosestObjectById(objId, null, searchDistance, minDistance);
+		var pile = hasPile ? myPlayer.GetClosestObjectById(pileId, null, searchDistance, minDistance) : null; 
 
 		var usePile = pile != null && obj == null;
 		if (usePile) obj = pile;
-		if (obj == null && hasPile) obj = AiHelper.GetClosestObjectById(myPlayer, objId, null, maxSearchDistance);
+		if (obj == null && hasPile) obj = myPlayer.GetClosestObjectById(objId, null, maxSearchDistance, minDistance);
 
 		if (obj == null && craft == false) return false;
 
