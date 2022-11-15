@@ -86,12 +86,20 @@ class AiHelper {
 		return GetClosestObjectToPosition(player.home.tx, player.home.ty, objIdToSearch, searchDistance, ignoreObj, player);
 	}
 
+	// 1137 Bowl of Soil // 356 Basket of Bones // 336 Basket of Soil
+	static var needsNotFlooredPlace = [1137, 356, 336];
+
 	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null, player:PlayerInterface = null, searchContained:Array<Int> = null, minDistance:Int = 0) : ObjectHelper {
 		var world = WorldMap.world;
 		var ai = player == null ? null : player.getAi();
 		var closestObject = null;
 		var bestDistance = 0.0;
 		var quadMinDistance = minDistance * minDistance;
+		var closestBadPlace = null;
+		var bestDistanceToBadPlace = 0.0;
+		var searchEmptyPlace = ai != null && objIdToSearch == 0;
+		var heldId = player == null ? -1 : player.heldObject.parentId;		
+		var searchNotFlooredPlace = searchEmptyPlace && needsNotFlooredPlace.contains(heldId); 
 		
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
@@ -106,6 +114,11 @@ class AiHelper {
 
 				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
 				if (ai != null && ai.isObjectWithHostilePath(tx, ty)) continue;
+
+				if(searchNotFlooredPlace){
+					var floorId = world.getFloorId(tx, ty);
+					if(floorId > 0) continue;
+				}
 
 				if(searchContained != null){
 					if(objData.numSlots < 1) continue; 
@@ -122,6 +135,21 @@ class AiHelper {
 
 				if(quadDistance < quadMinDistance) continue;
 
+				// dont drop stuff behind a tree
+				var objDataBelow = world.getObjectDataAtPosition(tx, ty - 1);
+				if (searchEmptyPlace && objDataBelow.isTree()) continue;
+
+				// try not drop stuff in water or mountain
+				if (searchEmptyPlace && IsBadBiomeForDrop(tx, ty)){
+					
+					if (closestBadPlace != null && quadDistance > bestDistanceToBadPlace) continue;
+					
+					closestBadPlace = world.getObjectHelper(tx,ty);
+					bestDistanceToBadPlace = quadDistance;
+
+					continue;
+				}
+
 				if (closestObject != null && quadDistance > bestDistance) continue;
 
 				bestDistance = quadDistance;
@@ -129,7 +157,7 @@ class AiHelper {
 			}
 		}
 
-		return closestObject;
+		return closestObject == null ? closestObject : closestBadPlace;
 	}
 
 	// searchDistance old: 16
