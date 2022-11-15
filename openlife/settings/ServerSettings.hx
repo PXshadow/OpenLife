@@ -2203,6 +2203,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(127, 237); // Adobe + Adobe Oven = 238 Adobe Kiln
 		if(AIAllowBuilKiln == false) trans.aiShouldIgnore = true; 
 
+		var trans = transtions.getTransition(0, 303); // 0 + Forge = Adobe Kiln
+		trans.aiShouldIgnore = true; 
+
 		// Stop spread of Dough to get a bowl // TODO allow again for tortilla
 		var trans = transtions.getTransition(252, 291); // Bowl of Dough + Flat Rock
 		trans.aiShouldIgnore = true;
