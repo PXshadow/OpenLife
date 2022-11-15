@@ -344,7 +344,7 @@ abstract class AiBase
 		Macro.exception(if (searchNewHomeIfNeeded()) return);
 		// High priortiy takes
 		if(this.profession['Baker'] > 1) Macro.exception(if (doBaking()) return);
-		if(this.profession['Potter'] > 1) Macro.exception(if (doPottery()) return);
+		if(this.profession['Potter'] >= 10) Macro.exception(if (doPottery()) return);
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (isPickingupCloths()) return);		
 		Macro.exception(if (handleTemperature()) return);
@@ -352,14 +352,14 @@ abstract class AiBase
 		Macro.exception(if (makeSharpieFood(5)) return); 
 		Macro.exception(if (isHandlingGraves()) return);
 		Macro.exception(if (isMakingSeeds()) return);
+		//if(craftItem(283)) return;
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 				
 		// if(playerToFollow == null) return; // Do stuff only if close to player TODO remove if testing AI without player
 
-		if (ServerSettings.DebugAi) trace('AI: craft ${GetName(itemToCraftId)} tasks: ${craftingTasks.length}!');
-
 		if (itemToCraftId > 0 && itemToCraft.countDone < itemToCraft.count) {
+			if (ServerSettings.DebugAi) trace('AI: craft ${GetName(itemToCraftId)} tasks: ${craftingTasks.length}!');
 			Macro.exception(if (craftItem(itemToCraftId)) return);
 		}
 
@@ -377,6 +377,7 @@ abstract class AiBase
 		itemToCraft.searchCurrentPosition = false;
 
 		// medium priorty tasks
+		if(this.profession['Potter'] > 0) Macro.exception(if (doPottery()) return);
 		if(this.profession['BasicFarmer'] > 0) Macro.exception(if (doBasicFarming()) return);
 		
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);
@@ -615,7 +616,7 @@ abstract class AiBase
 			var hasProfession = ai.profession[profession] > 0;
 
 			if(hasProfession == false && p.id != myPlayer.id) continue;
-			if(profession != 'Potter' && ai.profession['Potter'] > 1) continue;
+			if(profession != 'Potter' && ai.profession['Potter'] >= 10) continue;
 			if(profession != 'Baker' && ai.profession['Baker'] > 1) continue;
 
 			var quadDist = p.CalculateQuadDistanceToObject(obj);
@@ -1081,7 +1082,7 @@ abstract class AiBase
 		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer); // Firing Adobe Kiln 
 
 		if(kiln != null) {
-			if(this.profession['Potter'] < 2) this.profession['Potter'] = 2;
+			this.profession['Potter'] = 10;
 			if(doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 		}
 
@@ -1101,8 +1102,6 @@ abstract class AiBase
 		}
 
 		this.profession['Potter'] = 2; // dont get new clay --> do some pottery first
-
-		
 
 		if(kiln == null) return false;
 
@@ -1138,14 +1137,15 @@ abstract class AiBase
 			if(shortCraft(0,3905)) return true; // Pile of Clay 3905
 		}
 
+		this.profession['Potter'] = 3;
+
 		if (ServerSettings.DebugAiSay) myPlayer.say('Do Pottery neededClay $neededClay');
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: neededClay: $neededClay WetBowl: ${countWetBowl} WetPlate: $countWetPlate ');
 		
-		this.profession['Potter'] = 3;
-
 		if(shortCraft(33,126)) return true; //Stone 33, Clay 126 --> Wet Clay Bowl 233
 		if(countBowl > countPlate && shortCraft(33,233)) return true; //Stone 33, Wet Clay Bowl 233 --> Wet Clay Plate 234
 
+		this.profession['Potter'] = 10;
 		if(doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 
 		this.profession['Potter'] = 0;
@@ -3235,13 +3235,13 @@ private function craftLowPriorityClothing() : Bool {
 					dist = obj.closestObjectDistance;
 					doFirst = 0;
 
-					// if(ServerSettings.DebugAi) trace('Ai: craft TIME not wanted: ${GetName(objNoTimeWanted)} do first: ${GetName(doFirst)} dist: $dist ${trans.getDesciption()}');
+					//if(ServerSettings.DebugAi) trace('Ai: craft TIME not wanted: ${GetName(objNoTimeWanted)} dist: $dist ${trans.getDesciption()}');
 				} else {
 					altActor = obj.craftActor;
 					altTarget = obj.craftTarget;
 
 					if (ServerSettings.DebugAi)
-						trace('Ai: craft TIME not wanted: ${GetName(objNoTimeWanted)} do first: ${GetName(doFirst)} trans: ${GetName(itemToCraft.transActor.id)} + ${GetName(itemToCraft.transTarget.id)}');
+						trace('Ai: craft ${GetName(itemToCraft.itemToCraft.id)} TIME not wanted: ${GetName(objNoTimeWanted)} do first: ${GetName(doFirst)} trans: ${GetName(itemToCraft.transActor.id)} + ${GetName(itemToCraft.transTarget.id)}');
 				}
 			}
 
