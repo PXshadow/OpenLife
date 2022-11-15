@@ -383,8 +383,8 @@ abstract class AiBase
 		
 		// High priortiy takes
 		itemToCraft.searchCurrentPosition = false;
-		if(this.profession['Baker'] > 1) Macro.exception(if (doBaking()) return);
 		if(this.profession['Smith'] >= 2) Macro.exception(if (doSmithing()) return);
+		if(this.profession['Baker'] > 1) Macro.exception(if (doBaking()) return);
 		if(this.profession['Potter'] >= 10) Macro.exception(if (doPottery()) return);
 		
 		Macro.exception(if (isHandlingFire()) return);
@@ -422,11 +422,12 @@ abstract class AiBase
 		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
 
 		itemToCraft.searchCurrentPosition = false;
-		if(this.profession['Smith'] > 0) Macro.exception(if (doSmithing()) return);
+		if(this.profession['Baker'] > 0) Macro.exception(if (doBaking()) return);
 		if(this.profession['Potter'] > 0) Macro.exception(if (doPottery()) return);		
+		if(this.profession['Smith'] > 0) Macro.exception(if (doSmithing()) return);
 		if(this.profession['WaterBringer'] > 0) Macro.exception(if (doWatering()) return);
 		if(this.profession['BasicFarmer'] > 0) Macro.exception(if (doBasicFarming()) return);
-		
+
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);		
@@ -1400,9 +1401,14 @@ abstract class AiBase
 
 		// 250 Hot Adobe Oven
 		var hotOven = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 250, 20, null, myPlayer);
+		var fireOven = null;
+
 		// 265 Raw Berry Pie // 273 Raw Carrot Pie 
 		var countRawPies = 0;
 		if(hotOven == null){
+			// Burning Adobe Oven 249
+			fireOven = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 249, 20, null, myPlayer);
+
 			for(id in rawPies){
 				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, id, 20);
 			}
@@ -1412,6 +1418,11 @@ abstract class AiBase
 		
 		if(hotOven != null || countRawPies > 3){
 			this.profession['Baker'] = 2;
+
+			if(hotOven != null && countRawPies > 1){
+				if(fireOven == null && craftItem(249)) return true; // Burning Adobe Oven
+				return false;
+			}
 
 			for(i in 0... pies.length){
 				var index = (nextPie + i) % pies.length;
@@ -1425,6 +1436,17 @@ abstract class AiBase
 			if(shortCraftOnTarget(569, hotOven, 20, false)) return true;
 		}
 		
+		if(hotOven != null && fireOven != null){
+			// Adobe Oven 237
+			var oven = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 237, 20, null, myPlayer);
+			// Wood-filled Adobe Oven 247
+			if(oven == null) oven = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 247, 20, null, myPlayer);
+			if(oven == null){
+				this.profession['Baker'] = 0;
+				return false;
+			}
+		}
+
 		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 40); // Clay Plate
 		var hasClosePlate = countPlates > 0;
 
@@ -1691,8 +1713,9 @@ abstract class AiBase
 
 		if(makeSharpieFood()) return true;
 
-		if(doBasicFarming(3)) return true;
 		if(doBaking(3)) return true;
+		if(doBasicFarming(3)) return true;
+		
 		if(makeFireFood(2)) return true;
 
 		if(craftItem(59)) return true; // Rope 
