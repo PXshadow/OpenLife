@@ -941,8 +941,9 @@ abstract class AiBase
 		}
 
 		if(this.profession['BasicFarmer'] < 6){
-			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 242, 20); // Ripe Wheat
-			if(closeObj != null) if(craftItem(224)) return true; // Harvested Wheat
+			// let 5 wheat stay for seeds and so that it looks nice
+			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 242, 20); // Ripe Wheat
+			if(count > 5) if(craftItem(224)) return true; // Harvested Wheat 
 
 			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 224, 20); // Harvested Wheat
 			if(closeObj != null) if(craftItem(225)) return true; // Wheat Sheaf
