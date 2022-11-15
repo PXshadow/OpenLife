@@ -86,6 +86,7 @@ abstract class AiBase
 	public var profession:Map<String,Float> = [];
 	public var lastCheckedTimes:Map<String,Float> = [];
 
+	public var toPlant = -1;
 	public var lastPie = -1;
 	public var countPies = 0;
 	public var tryMoveNearestTileFirst = true;
@@ -1561,12 +1562,20 @@ abstract class AiBase
 		// stuff can be in more then once to increase chance
 		var advancedPlants = [228, 396, 1110, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
 		var rand = WorldMap.world.randomInt(advancedPlants.length - 1);
-		var toPlant = rand % 3 == 0 ? dryPlanted : advancedPlants;
+		
+		toPlant = toPlant > 0 ? toPlant : rand;
+		var nextPlant = toPlant + Math.round(myPlayer.age);
 
-		for(i in 0...toPlant.length){
-			var index = (rand + i) % toPlant.length;
-			if(craftItem(toPlant[index])) return true;
+		for(i in 0...advancedPlants.length){
+			var index = (nextPlant + i) % advancedPlants.length;
+			if(craftItem(advancedPlants[index])) return true;
 		}
+
+		/*var plantFrom = rand % 3 == 0 ? dryPlanted : advancedPlants;
+		for(i in 0...plantFrom.length){
+			var index = (rand + i) % plantFrom.length;
+			if(craftItem(plantFrom[index])) return true;
+		}*/
 
 		if(craftItem(229)) return true; // Wet Planted Wheat	
 		if(craftItem(399)) return true; // Wet Planted Carrots	
