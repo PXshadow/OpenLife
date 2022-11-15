@@ -1977,11 +1977,14 @@ class ServerSettings {
 		trans.autoDecaySeconds = -24; // 5
 
 		// give more time
+		var trans = transtions.getTransition(-1, 304); // Firing Forge 304
+		trans.autoDecaySeconds = 40; // normal 30
+
 		var trans = transtions.getTransition(-1, 61); // Juniper Tinder
 		trans.autoDecaySeconds = 5 * 60;
 
 		var trans = transtions.getTransition(-1, 62); // Leaf
-		trans.autoDecaySeconds = 5 * 60;
+		trans.autoDecaySeconds = 5 * 60; // normal 2 * 60
 
 		var trans = transtions.getTransition(-1, 75); // Ember Shaft
 		trans.autoDecaySeconds = 20;
