@@ -1314,7 +1314,7 @@ abstract class AiBase
 		basket = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 292, 20, null, myPlayer, [126]); // Basket 292, Clay 126
 
 		// search if there is a basket to fill close to the clay deposit 
-		if(basket == null) basket = AiHelper.GetClosestObjectToPosition(clayDeposit.tx, clayDeposit.ty, 292, 5, null, myPlayer); // Basket 292
+		if(basket == null && clayDeposit != null) basket = AiHelper.GetClosestObjectToPosition(clayDeposit.tx, clayDeposit.ty, 292, 5, null, myPlayer); // Basket 292
 
 		// take care of full basket
 		if(basket != null && basket.containedObjects.length > 2){
@@ -2167,6 +2167,7 @@ private function craftLowPriorityClothing() : Bool {
 		else if (heldObjId == 34) dropOnStart = false; // 34 Sharp Stone
 		else if (heldObjId == 135) dropOnStart = false; // 135 Flint Chip
 		else if (heldObjId == 57) dropOnStart = false; // 57 Milkweed Stalk
+		else if (heldObjId == 3180) dropOnStart = false; // 3180 Flat Rock with Rabbit Bait
 
 		if(ServerSettings.DebugAi) 
 			trace('AAI: ${myPlayer.name + myPlayer.id} DROP: ${myPlayer.heldObject.name} to ${infos.methodName}');
@@ -2266,7 +2267,9 @@ private function craftLowPriorityClothing() : Bool {
 		//var dontUsePile = allowAllPiles ? [] : [225, 1113, 126, 236, 292, 233];
 		var dontUsePile = allowAllPiles ? [] : [225, 1113, 292, 233];
 		var heldId = myPlayer.heldObject.parentId;
-		var target = myPlayer.home;
+		var target = new ObjectHelper(null, 0);
+		target.tx = myPlayer.tx;
+		target.ty = myPlayer.ty;
 
 		if(dontUsePile.contains(heldId)) pileId = 0; 
 
