@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import haxe.ds.Map;
 import haxe.Exception;
 import openlife.data.map.MapData;
 import openlife.data.object.ObjectData;
@@ -15,7 +16,6 @@ import openlife.server.ServerAi;
 import openlife.server.TimeHelper;
 import openlife.server.WorldMap;
 import openlife.settings.ServerSettings;
-import sys.db.Mysql;
 import sys.thread.Thread;
 
 using StringTools;
@@ -26,6 +26,7 @@ abstract class AiBase
 	public static var lastTick:Float = 0;
 	public static var tick:Float = 0;
 	public static var jumpToAi:AiBase = null;
+	public static var blockedByAI = new Map<Int, Float>();
 
 	final RAD:Int = MapData.RAD; // search radius
 
@@ -40,13 +41,13 @@ abstract class AiBase
 
 	var animalTarget:ObjectHelper = null;
 	var escapeTarget:ObjectHelper = null;
-	var foodTarget:ObjectHelper = null;
-	var dropTarget:ObjectHelper = null;
+	public var foodTarget:ObjectHelper = null;
+	public var dropTarget:ObjectHelper = null;
 	var removeFromContainerTarget:ObjectHelper = null;
 	var expectedContainer:ObjectHelper = null; // needs to be set if removeFromContainerTarget is set
 
-	var useTarget:ObjectHelper = null;
-	var useActor:ObjectHelper = null; // to check if the right actor is in the hand
+	public var useTarget:ObjectHelper = null;
+	public var useActor:ObjectHelper = null; // to check if the right actor is in the hand
 
 
 	var dropIsAUse:Bool = false;
@@ -126,6 +127,9 @@ abstract class AiBase
 			var timePassedInSeconds = CalculateTimeSinceTicksInSec(lastTick);
 
 			lastTick = tick;
+			
+			// block foodtarget // droptarget // usetarget of all Ais that are moving
+			CalculateBlockedByAi(); 
 
 			for (ai in Connection.getAis()) {
 				if (ai.player.deleted) Macro.exception(ai.doRebirth(timePassedInSeconds));
@@ -140,6 +144,35 @@ abstract class AiBase
 				Sys.sleep(sleepTime);
 			}
 		}
+	}
+
+	private static function CalculateBlockedByAi() {
+		blockedByAI = new Map<Int,Float>();
+
+		for (ai in Connection.getAis()) {
+			if (ai.player.deleted) continue;
+			if (ai.player.age < 3) continue; 
+			if (ai.player.isWounded()) continue;
+			if (ai.player.isMoving() == false) continue;
+
+			if(AddTargetBlockedByAi(ai.ai.foodTarget)) continue;
+			if(AddTargetBlockedByAi(ai.ai.dropTarget)) continue;
+			if(AddTargetBlockedByAi(ai.ai.useTarget)) continue;		
+		}
+	}
+
+	// Hot Coals 85 // Hot Adobe Oven 250 // Firing Forge 304 // Firing Adobe Kiln 282
+	// Firing Newcomen Hammer 2238
+	public static var DontBlockByAi = [85, 250, 304, 282, 2238];
+
+	// TODO might make problems with counting since object blocked by is not counted
+	public static function AddTargetBlockedByAi(target:ObjectHelper){
+		if(target == null) return false;
+		if(target.numberOfUses > 1) return true;
+		if(target.objectData.isAnimal()) return true;
+		if(DontBlockByAi.contains(target.parentId)) return true;
+		AddObjBlockedByAi(target);
+		return true;
 	}
 
 	public static function CalculateTimeSinceTicksInSec(ticks:Float):Float {
@@ -3892,6 +3925,11 @@ private function craftLowPriorityClothing() : Bool {
 		return notReachable;
 	}
 
+	static public function AddObjBlockedByAi(obj:ObjectHelper, time:Float = 1) {
+		var index = WorldMap.world.index(obj.tx, obj.ty);
+		blockedByAI[index] = time;
+	}
+
 	public function addNotReachableObject(obj:ObjectHelper, time:Float = 90) {
 		addNotReachable(obj.tx, obj.ty, time);
 	}
@@ -3905,6 +3943,8 @@ private function craftLowPriorityClothing() : Bool {
 	public function isObjectNotReachable(tx:Int, ty:Int):Bool {
 		var index = WorldMap.world.index(tx, ty);
 		var notReachable = notReachableObjects.exists(index);
+
+		if(notReachable == false) notReachable = blockedByAI.exists(index);
 
 		// if(notReachable) if(ServerSettings.DebugAi) trace('isObjectNotReachable: $notReachable $tx,$ty');
 
