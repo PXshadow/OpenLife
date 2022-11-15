@@ -547,11 +547,11 @@ abstract class AiBase
 		if(objId == 83 || objId == 346 || objId == 3029){
 			if(hasOrBecomeProfession('firekeeper', maxProfession) == false) return false;
 			
-			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 72, 10); // Kindling 72
+			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 72, 15); // Kindling 72
 			if(count < 3) this.profession['firekeeper'] = 1;
 			
 			// Kindling 72
-			if(this.profession['firekeeper'] < 2 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true; 
+			if(this.profession['firekeeper'] < 2 && count < 10 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true; 
 			this.profession['firekeeper'] = 2;
 			return false;
 		}
