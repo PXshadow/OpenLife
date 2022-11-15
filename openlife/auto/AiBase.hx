@@ -452,6 +452,8 @@ abstract class AiBase
 		if(myPlayer.age > 30) Macro.exception(if(craftLowPriorityClothing()) return);
 		
 		itemToCraft.searchCurrentPosition = false;	
+		
+		Macro.exception(if(doAdvancedFarming()) return);
 		Macro.exception(if(makeStuff()) return);
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
@@ -472,6 +474,7 @@ abstract class AiBase
 		this.profession['firekeeper'] = 1;
 		this.profession['WaterBringer'] = 1;
 		this.profession['BasicFarmer'] = 1;
+		this.profession['AdvancedFarmer'] = 1;	
 		this.profession['Baker'] = 1;
 		this.profession['FoodServer'] = 1;
 		this.profession['Potter'] = 1;
@@ -944,6 +947,9 @@ abstract class AiBase
 		// water
 		if(doWatering(1)) return true;
 
+		var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 15); //  Clay Bowl 235
+		if(countBowls < 1) return doPottery(3);
+
 		// 1: Prepare Soil
 
 		//trace('Fertile Soil Pile!');
@@ -1127,7 +1133,7 @@ abstract class AiBase
 		return GetOrCraftItem(actorId, craftActorIfNeeded);		
 	}
 
-	private function doPottery(maxPeople:Int = 2) : Bool {
+	private function doPottery(maxPeople:Int = 1) : Bool {
 		var home = myPlayer.home;
 
 		if(hasOrBecomeProfession('Potter', maxPeople) == false) return false;
@@ -1514,11 +1520,14 @@ abstract class AiBase
 		return false;
 	}
 
-	private function makeStuff() : Bool {	
-		// TODO try only craft stuff if there for better speed
-		// TODO craft only stuff if not enough at home
+	private function doSmithing(maxPeople:Int = 1) : Bool {
+		if(hasOrBecomeProfession('Smith', maxPeople) == false) return false;
+		this.profession['Smith'] = 0;
+		return false;
+	}
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} makeStuff!');
+	private function doAdvancedFarming(maxPeople:Int = 2) : Bool {
+		if(hasOrBecomeProfession('AdvancedFarmer', maxPeople) == false) return false;
 
 		// 1109 Dry Planted Corn Seed
 		// 396 Dry Planted Carrots
@@ -1529,54 +1538,60 @@ abstract class AiBase
 		var home = myPlayer.home;
 		var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 15); //  Clay Bowl 235
 
-		if(countBowls > 0){
-			// TODO more wet planted stuff
-			/*if(craftItem(229)) return true; // Wet Planted Wheat
-			if(craftItem(1162)) return true; // Wet Planted Beans
-			if(craftItem(2857)) return true; // Wet Planted Onion
-			if(craftItem(2852)) return true; // Wet Planted Onions
-			if(craftItem(4263)) return true; // Wet Planted Garlic
-			if(craftItem(399)) return true; // Wet Planted Carrots
-			if(craftItem(1142)) return true; // Wet Planted Potatoes
-			if(craftItem(1110)) return true; // Wet Planted Corn Seed
-			*/
+		if(countBowls < 1) return doPottery(3);
 
-			// 228 Dry Planted Wheat
-			// 396 Dry Planted Carrots
-			// 2851 Dry Planted Onions
-			// 2829 Dry Planted Tomato Seed
-			// 4225 Dry Planted Cucumber Seeds
-			// TODO other dry planted
+		// TODO more wet planted stuff
+		/*if(craftItem(229)) return true; // Wet Planted Wheat
+		if(craftItem(1162)) return true; // Wet Planted Beans
+		if(craftItem(2857)) return true; // Wet Planted Onion
+		if(craftItem(2852)) return true; // Wet Planted Onions
+		if(craftItem(4263)) return true; // Wet Planted Garlic
+		if(craftItem(399)) return true; // Wet Planted Carrots
+		if(craftItem(1142)) return true; // Wet Planted Potatoes
+		if(craftItem(1110)) return true; // Wet Planted Corn Seed
+		*/
 
-			// stuff can be in more then once to increase chance
-			var advancedPlants = [228, 396, 1110, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
-			var rand = WorldMap.world.randomInt(advancedPlants.length - 1);
+		// 228 Dry Planted Wheat
+		// 396 Dry Planted Carrots
+		// 2851 Dry Planted Onions
+		// 2829 Dry Planted Tomato Seed
+		// 4225 Dry Planted Cucumber Seeds
+		// TODO other dry planted
 
-			var toPlant = rand % 3 == 0 ? dryPlanted : advancedPlants;
+		// stuff can be in more then once to increase chance
+		var advancedPlants = [228, 396, 1110, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
+		var rand = WorldMap.world.randomInt(advancedPlants.length - 1);
+		var toPlant = rand % 3 == 0 ? dryPlanted : advancedPlants;
 
-			for(i in 0...toPlant.length){
-				var index = (rand + i) % toPlant.length;
-				if(craftItem(toPlant[index])) return true;
-			}
-
-			if(craftItem(229)) return true; // Wet Planted Wheat	
-			if(craftItem(399)) return true; // Wet Planted Carrots	
-			if(craftItem(2831)) return true; // Wet Planted Tomato Seed
-			if(craftItem(2857)) return true; // Wet Planted Onion
-			if(craftItem(2852)) return true; // Wet Planted Onions
+		for(i in 0...toPlant.length){
+			var index = (rand + i) % toPlant.length;
+			if(craftItem(toPlant[index])) return true;
 		}
-		else{
-			if(craftItem(236)) return true; // Clay Plate
-			// grow food that dont needs plates for processing
 
-			var rand = WorldMap.world.randomInt(dryPlanted.length -1);
+		if(craftItem(229)) return true; // Wet Planted Wheat	
+		if(craftItem(399)) return true; // Wet Planted Carrots	
+		if(craftItem(2831)) return true; // Wet Planted Tomato Seed
+		if(craftItem(2857)) return true; // Wet Planted Onion
+		if(craftItem(2852)) return true; // Wet Planted Onions
+		
+		/*
+		if(craftItem(236)) return true; // Clay Plate
+		// grow food that dont needs plates for processing
 
-			for(i in 0...dryPlanted.length){
-				var index = (rand + i) % dryPlanted.length;
-				if(craftItem(dryPlanted[index])) return true;
-			}
-		}
-	
+		var rand = WorldMap.world.randomInt(dryPlanted.length -1);
+
+		for(i in 0...dryPlanted.length){
+			var index = (rand + i) % dryPlanted.length;
+			if(craftItem(dryPlanted[index])) return true;
+		}*/
+		
+		this.profession['AdvancedFarmer'] = 0;
+		return false;
+	}
+
+	private function makeStuff() : Bool {	
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} makeStuff!');
+
 		if(makeSharpieFood()) return true;
 
 		if(doBasicFarming(3)) return true;
