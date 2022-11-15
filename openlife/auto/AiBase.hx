@@ -476,7 +476,7 @@ abstract class AiBase
 		time += 2.5;
 
 		// before do nothing try all professions
-		this.profession['firekeeper'] = 1;
+		//this.profession['firekeeper'] = 1;
 		this.profession['WaterBringer'] = 1;
 		this.profession['BasicFarmer'] = 1;
 		this.profession['AdvancedFarmer'] = 1;	
@@ -953,8 +953,8 @@ abstract class AiBase
 		// water
 		if(doWatering(1)) return true;
 
-		var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 15); //  Clay Bowl 235
-		if(countBowls < 1) return doPottery(3);
+		//var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 15); //  Clay Bowl 235
+		//if(countBowls < 1) return doPottery(3);
 
 		// 1: Prepare Soil
 
