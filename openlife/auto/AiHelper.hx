@@ -76,6 +76,11 @@ class AiHelper {
 		return GetClosestObjectToPosition(player.tx, player.ty, objIdToSearch, searchDistance, ignoreObj, player, null, minDistance);
 	}
 
+	public static function GetClosestObjectToTarget(player:PlayerInterface, target:ObjectHelper, objIdToSearch:Int, ignoreObj:ObjectHelper = null, searchDistance:Int = 40, minDistance:Int = 0):ObjectHelper {
+		//return GetClosestObject(playerInterface, objData, searchDistance, ignoreObj);
+		return GetClosestObjectToPosition(target.tx, target.ty, objIdToSearch, searchDistance, ignoreObj, player, null, minDistance);
+	}
+
 	public static function GetClosestObjectToHome(player:PlayerInterface, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null) : ObjectHelper {
 		//if(objIdToSearch == 1121) trace('DEBUG7770: ${myPlayer.name}${myPlayer.id} Popcorn dist: ${searchDistance}');
 		return GetClosestObjectToPosition(player.home.tx, player.home.ty, objIdToSearch, searchDistance, ignoreObj, player);

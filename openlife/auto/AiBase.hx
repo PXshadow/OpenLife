@@ -496,7 +496,7 @@ abstract class AiBase
 		}
 	}
 
-	private function GetCraftAndDropItemsCloseToObj(target:ObjectHelper, whichObjId:Int, count = 1, dist = 5, craft = true) : Bool {
+	private function GetCraftAndDropItemsCloseToObj(target:ObjectHelper, whichObjId:Int, maxCount = 1, dist = 5, craft = true) : Bool {
 		if(myPlayer.heldObject.parentId == whichObjId){
 			var quadDist = myPlayer.CalculateQuadDistanceToObject(target);
 			if(quadDist > dist * dist) return myPlayer.gotoObj(target);
@@ -505,7 +505,7 @@ abstract class AiBase
 		}
 
 		var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, whichObjId, dist);
-		if(count < 10 && GetOrCraftItem(whichObjId, craft, dist)) return true;
+		if(count < maxCount && GetOrCraftItem(whichObjId, craft, dist)) return true;
 		return false;
 	}
 
@@ -1525,10 +1525,8 @@ abstract class AiBase
 		return false;
 	}
 
-	private function doSmithing(maxPeople:Int = 1) : Bool {
+	private function GetForge() {
 		var home = myPlayer.home;
-
-		if(hasOrBecomeProfession('Smith', maxPeople) == false) return false;
 
 		// forge 303
 		var forge = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 303, 20, null, myPlayer);
@@ -1539,13 +1537,26 @@ abstract class AiBase
 		// Firing Forge 304
 		if(forge == null) forge = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 304, 20, null, myPlayer);
 
+		return forge;
+	}
+
+	private function doSmithing(maxPeople:Int = 1) : Bool {
+		var home = myPlayer.home;
+
+		if(hasOrBecomeProfession('Smith', maxPeople) == false) return false;
+
+		var forge = GetForge();
+
 		if(forge == null) return false;
 
 		if(this.profession['Smith'] < 4){
 			// Flat Rock 291
-			if(GetCraftAndDropItemsCloseToObj(forge,291,1,3)) return true;
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 291, 10); 
+			if(count < 5 && GetCraftAndDropItemsCloseToObj(forge,291,2,3)) return true;
+
 			// Stone 33
-			if(GetCraftAndDropItemsCloseToObj(forge,33,2,3)) return true;
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 33, 10); 
+			if(count < 3 && GetCraftAndDropItemsCloseToObj(forge,33,1,3)) return true;
 		}
 
 		// Huge Charcoal Pile 4102
@@ -2232,24 +2243,41 @@ private function craftLowPriorityClothing() : Bool {
 		//var dontUsePile = allowAllPiles ? [] : [225, 1113, 126, 236, 292, 233];
 		var dontUsePile = allowAllPiles ? [] : [225, 1113, 292, 233];
 		var heldId = myPlayer.heldObject.parentId;
+		var target = myPlayer.home;
+
 		if(dontUsePile.contains(heldId)) pileId = 0; 
-		
+
+		// Flat Rock 291 // Stone 33
+		if(heldId == 291 || heldId == 33){
+			var forge = GetForge();
+			var maxItems = heldId == 291 ? 3 : 1;
+			
+			if(forge != null){
+				var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, heldId, 3);
+
+				if(count < maxItems){
+					pileId = 0; 
+					target = forge;
+				}
+			}
+		}
+
 		if(pileId > 0){
-			newDropTarget = myPlayer.GetClosestObjectById(pileId, 4); 
+			newDropTarget = myPlayer.GetClosestObjectToTarget(target, pileId, 4); 
 			if(newDropTarget != null && newDropTarget.numberOfUses >= newDropTarget.objectData.numUses) newDropTarget = null;
 			//if(newDropTarget != null)  trace('AAI: ${myPlayer.name + myPlayer.id} drop on pile: $pileId');
 		}
-
+		
 		// start a new pile?
-		if(newDropTarget == null && pileId > 0) newDropTarget = myPlayer.GetClosestObjectById(myPlayer.heldObject.id, 4);
+		if(newDropTarget == null && pileId > 0) newDropTarget = myPlayer.GetClosestObjectToTarget(target, myPlayer.heldObject.id, 4);
 
 		// get empty tile
-		if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectById(0);
+		if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0);
 
 		// dont drop on a pile if last transition removed it from similar pile // like picking a bowl from a pile to put it then back on a pile
 		if(newDropTarget.id > 0 && itemToCraft.lastNewTargetId == newDropTarget.id){
 			trace('AAI: ${myPlayer.name + myPlayer.id} ${newDropTarget.name} dont drop on pile where item was just taken from');
-			newDropTarget = myPlayer.GetClosestObjectById(0);			
+			newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0);			
 		}
 
 		var heldId = myPlayer.heldObject.parentId;
