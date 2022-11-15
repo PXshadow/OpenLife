@@ -19,6 +19,10 @@ import openlife.settings.ServerSettings;
 class AiHelper {
 	static final RAD:Int = MapData.RAD; // search radius
 
+	private static function GetName(objId:Int):String {
+		return ObjectData.getObjectData(objId).name;
+	}
+
 	public static function CalculateDistanceToPlayer(player:PlayerInterface, playerTo:PlayerInterface):Float {
 		var rx = WorldMap.world.transformX(player, playerTo.tx);
 		var ry = WorldMap.world.transformY(player, playerTo.ty);
@@ -66,13 +70,10 @@ class AiHelper {
 	}
 
 	// searchDistance old: 16
-	public static function GetClosestObjectById(playerInterface:PlayerInterface, objId:Int, ignoreObj:ObjectHelper = null, searchDistance:Int = 40):ObjectHelper {
-		var objData = ObjectData.getObjectData(objId);
-		return GetClosestObject(playerInterface, objData, searchDistance, ignoreObj);
-	}
 
-	private static function GetName(objId:Int):String {
-		return ObjectData.getObjectData(objId).name;
+	public static function GetClosestObjectById(player:PlayerInterface, objIdToSearch:Int, ignoreObj:ObjectHelper = null, searchDistance:Int = 40, minDistance:Int = 0):ObjectHelper {
+		//return GetClosestObject(playerInterface, objData, searchDistance, ignoreObj);
+		return GetClosestObjectToPosition(player.tx, player.ty, objIdToSearch, searchDistance, ignoreObj, player, null, minDistance);
 	}
 
 	public static function GetClosestObjectToHome(player:PlayerInterface, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null) : ObjectHelper {
@@ -80,11 +81,12 @@ class AiHelper {
 		return GetClosestObjectToPosition(player.home.tx, player.home.ty, objIdToSearch, searchDistance, ignoreObj, player);
 	}
 
-	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null, player:PlayerInterface = null, searchContained:Array<Int> = null) : ObjectHelper {
+	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null, player:PlayerInterface = null, searchContained:Array<Int> = null, minDistance:Int = 0) : ObjectHelper {
 		var world = WorldMap.world;
 		var ai = player == null ? null : player.getAi();
 		var closestObject = null;
 		var bestDistance = 0.0;
+		var quadMinDistance = minDistance * minDistance;
 		
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
@@ -112,6 +114,8 @@ class AiHelper {
 				}
 
 				var quadDistance = AiHelper.CalculateQuadDistanceHelper(tx,ty, baseX, baseY);
+
+				if(quadDistance < quadMinDistance) continue;
 
 				if (closestObject != null && quadDistance > bestDistance) continue;
 
@@ -1304,11 +1308,20 @@ class AiHelper {
 		return bestHome;
 	}
 
+	/*
 	public static function GetCloseFire(player:PlayerInterface) : ObjectHelper {
 		var firePlace= AiHelper.GetClosestObjectById(player, 346, null, 30); // 346 Large Slow Fire
 		if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(player, 83, null, 30); // 83 Large Fast Fire 
 		if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(player, 82, null, 30); // 82 Fire
 		if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(player, 85, null, 30); // 85 Hot Coals
+		return firePlace;
+	}*/
+
+	public static function GetCloseFire(player:PlayerInterface, maxdist = 15) : ObjectHelper {
+		var firePlace= AiHelper.GetClosestObjectToHome(player, 346, 10); // 346 Large Slow Fire
+		if(firePlace == null) firePlace = AiHelper.GetClosestObjectToHome(player, 83, maxdist); // 83 Large Fast Fire 
+		if(firePlace == null) firePlace = AiHelper.GetClosestObjectToHome(player, 82, maxdist); // 82 Fire
+		if(firePlace == null) firePlace = AiHelper.GetClosestObjectToHome(player, 85, maxdist); // 85 Hot Coals
 		return firePlace;
 	}
 
