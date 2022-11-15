@@ -377,14 +377,20 @@ abstract class AiBase
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		if (myPlayer.isMoving()) return;
+		
 		Macro.exception(if (searchNewHomeIfNeeded()) return);
+		
 		// High priortiy takes
+		itemToCraft.searchCurrentPosition = false;
 		if(this.profession['Baker'] > 1) Macro.exception(if (doBaking()) return);
 		if(this.profession['Potter'] >= 10) Macro.exception(if (doPottery()) return);
+		
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (isPickingupCloths()) return);		
 		Macro.exception(if (handleTemperature()) return);
-		Macro.exception(if (shortCraft(0, 400, 20)) return); // pull out the carrots 
+
+		itemToCraft.searchCurrentPosition = true;
+		Macro.exception(if (shortCraft(0, 400, 10)) return); // pull out the carrots 
 		Macro.exception(if (makeSharpieFood(5)) return); 
 		Macro.exception(if (isHandlingGraves()) return);
 		Macro.exception(if (isMakingSeeds()) return);
@@ -410,23 +416,19 @@ abstract class AiBase
 		Macro.exception(if(craftHighPriorityClothing()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
-		itemToCraft.searchCurrentPosition = false;
-
 		// medium priorty tasks
+		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
+
+		itemToCraft.searchCurrentPosition = false;
 		if(this.profession['Potter'] > 0) Macro.exception(if (doPottery()) return);
+		if(this.profession['WaterBringer'] > 0) Macro.exception(if (doWatering()) return);
 		if(this.profession['BasicFarmer'] > 0) Macro.exception(if (doBasicFarming()) return);
 		
-		Macro.exception(if(fillBerryBowlIfNeeded()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+
+		Macro.exception(if(fillBerryBowlIfNeeded()) return);		
 		Macro.exception(if(makePopcornIfNeeded()) return);
-		itemToCraft.searchCurrentPosition = true;
-
-		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
 		
-		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
-
-		itemToCraft.searchCurrentPosition = false;
-
 		var jobByAge:Int = Math.round(myPlayer.age / 2); // job prio switches every second year
 		
 		for(i in 0...4){
@@ -449,6 +451,7 @@ abstract class AiBase
 
 		if(myPlayer.age > 30) Macro.exception(if(craftLowPriorityClothing()) return);
 		
+		itemToCraft.searchCurrentPosition = false;	
 		Macro.exception(if(makeStuff()) return);
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
@@ -929,10 +932,10 @@ abstract class AiBase
 		var heldObject = myPlayer.heldObject;
 
 		//if(craftItem(1113)) return true; // Ear of Corn
-		if(shortCraft(0, 1112)) return true; // 0 + Corn Plant --> Ear of Corn
-
 		if(hasOrBecomeProfession('BasicFarmer', 2) == false) return false;
 
+		if(shortCraft(0, 400, 20)) return true; // pull out the carrots 
+		if(shortCraft(0, 1112)) return true; // 0 + Corn Plant --> Ear of Corn
 		if(shortCraft(34, 1113)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 
 		if(shortCraft(139, 2832, 20)) return true; // Skewer + Tomato Sprout
@@ -1511,21 +1514,7 @@ abstract class AiBase
 		return false;
 	}
 
-	private function makeStuff() : Bool {
-		/*if(myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound){
-
-			// 2144 == Banana Peel
-			if(myPlayer.heldObject.id != 2144 && isMovingToHome(5)){
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather: go home to drop ${myPlayer.heldObject.name}');
-				return true;
-			}
-
-			// Drop held object at home 
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gather: drop obj ${myPlayer.heldObject.name}');
-			dropHeldObject();
-			return true;
-		}*/	
-		
+	private function makeStuff() : Bool {	
 		// TODO try only craft stuff if there for better speed
 		// TODO craft only stuff if not enough at home
 
@@ -1537,12 +1526,10 @@ abstract class AiBase
 		// 2829 Dry Planted Tomato Seed
 		// 4225 Dry Planted Cucumber Seeds
 		var dryPlanted = [1109, 396, 2829, 396, 1109, 396, 2851, 396, 1109, 396, 4225];
+		var home = myPlayer.home;
+		var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 15); //  Clay Bowl 235
 
-		var closePlate = AiHelper.GetClosestObjectById(myPlayer, 236); // Clay Plate
-		if(closePlate == null) closePlate = AiHelper.GetClosestObjectById(myPlayer, 1602); // Stack of Clay Plates
-		var hasClosePlate = closePlate != null;
-
-		if(hasClosePlate){
+		if(countBowls > 0){
 			// TODO more wet planted stuff
 			/*if(craftItem(229)) return true; // Wet Planted Wheat
 			if(craftItem(1162)) return true; // Wet Planted Beans
