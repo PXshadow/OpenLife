@@ -1990,13 +1990,13 @@ private function craftLowPriorityClothing() : Bool {
 
 		// if(ServerSettings.DebugAi) trace('AI ${text}');
 
-		if (text.startsWith("TRANS")) {
+		/*if (text.startsWith("TRANS")) {
 			if (ServerSettings.DebugAi) trace('AI look for transitions: ${text}');
 
 			var objectIdToSearch = 273; // 273 = Cooked Carrot Pie // 250 = Hot Adobe Oven
 
 			AiHelper.SearchTransitions(myPlayer, objectIdToSearch);
-		}
+		}*/
 
 		if (text.contains("HOLA") || text.contains("HELLO") || text == "HI") {
 			// HELLO WORLD

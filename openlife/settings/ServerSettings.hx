@@ -2164,6 +2164,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(560, 575); // Knife + Domestic Sheep
 		trans.aiShouldIgnore = true; 
 
+		var trans = transtions.getTransition(560, 576); // Knife + Shorn Domestic Sheep
+		trans.aiShouldIgnore = true; 
+
 		var trans = transtions.getTransition(560, 541); // Knife + Domestic Mouflon
 		trans.aiShouldIgnore = true; 
 
