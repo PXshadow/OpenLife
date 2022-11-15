@@ -161,9 +161,12 @@ abstract class AiBase
 		}
 	}
 
-	// Hot Coals 85 // Hot Adobe Oven 250 // Firing Forge 304 // Firing Adobe Kiln 282
+	// Fire 82 // Large Fast Fire 83 // Hot Coals 85 // Large Slow Fire 346 // Flash Fire 3029
+	// Adobe Oven 237 // Hot Adobe Oven 250 
+	// Adobe Kiln 238 // Firing Adobe Kiln 282
+	// Forge 303 // Firing Forge 304 
 	// Firing Newcomen Hammer 2238
-	public static var DontBlockByAi = [85, 250, 304, 282, 2238];
+	public static var DontBlockByAi = [82, 83, 85, 346, 3029, 237, 250, 238, 282, 303, 304, 2238];
 
 	// TODO might make problems with counting since object blocked by is not counted
 	public static function AddTargetBlockedByAi(target:ObjectHelper){
