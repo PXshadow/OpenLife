@@ -933,9 +933,11 @@ abstract class AiBase
 		if(this.profession['BasicFarmer'] < 7){
 			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1110, 30); // Wet Planted Corn Seed 1110
 			count += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1109, 30); // Dry Planted Corn Seed
-			if(count < 5) if(craftItem(1109)) return true; // Dry Planted Corn Seed
+			if(count < 3) if(craftItem(1109)) return true; // Dry Planted Corn Seed
 			this.profession['BasicFarmer'] = 7;
 		}
+
+		if(doWatering(3)) return true;
 
 		this.profession['BasicFarmer'] = 1;
 
@@ -1412,26 +1414,26 @@ abstract class AiBase
 	private function doWatering(maxPeople:Int = 1) : Bool {
 		if(hasOrBecomeProfession('WaterBringer', maxPeople) == false) return false;
 
-		if(shortCraft(382, 1109)) return true; // Bowl of Water + Dry Planted Corn Seed
-		if(shortCraft(210, 1109)) return true; // Full Water Pouch + Dry Planted Corn Seed
-
 		if(shortCraft(382, 396)) return true; // Bowl of Water + Planted Carrots
 		if(shortCraft(210, 396)) return true; // Full Water Pouch + Dry Planted Carrots
 
 		if(shortCraft(382, 228)) return true; // Bowl of Water + Dry Planted Wheat
 		if(shortCraft(210, 228)) return true; // Full Water Pouch + Dry Planted Wheat
 
-		if(shortCraft(382, 2856)) return true; // Bowl of Water + Dry Planted Onion
-		if(shortCraft(210, 2856)) return true; // Full Water Pouch + Dry Planted Onion
-
-		if(shortCraft(382, 2851)) return true; // Bowl of Water + Dry Planted Onions
-		if(shortCraft(210, 2851)) return true; // Full Water Pouch + Dry Planted Onions
+		if(shortCraft(382, 1109)) return true; // Bowl of Water + Dry Planted Corn Seed
+		if(shortCraft(210, 1109)) return true; // Full Water Pouch + Dry Planted Corn Seed
 
 		if(shortCraft(382, 2829)) return true; // Bowl of Water + Dry Planted Tomato Seed
 		if(shortCraft(210, 2829)) return true; // Full Water Pouch + Dry Planted Tomato Seed
 
 		if(shortCraft(382, 4225)) return true; // Bowl of Water + Dry Planted Cucumber Seeds
 		if(shortCraft(210, 4225)) return true; // Full Water Pouch + Dry Planted Cucumber Seeds
+
+		if(shortCraft(382, 2856)) return true; // Bowl of Water + Dry Planted Onion
+		if(shortCraft(210, 2856)) return true; // Full Water Pouch + Dry Planted Onion
+
+		if(shortCraft(382, 2851)) return true; // Bowl of Water + Dry Planted Onions
+		if(shortCraft(210, 2851)) return true; // Full Water Pouch + Dry Planted Onions
 
 		//if(craftItem(1110)) return true; // Wet Planted Corn Seed
 		//if(craftItem(399)) return true; // Wet Planted Carrots
