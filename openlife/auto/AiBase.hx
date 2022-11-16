@@ -4010,7 +4010,7 @@ private function craftLowPriorityClothing() : Bool {
 			var done = myPlayer.gotoObj(target);
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto container ${name} $done distance: $distance');
 
-			//if(ServerSettings.DebugAiSay){
+			if(ServerSettings.DebugAiSay){
 				if (done) myPlayer.say('Goto ${name} for remove!');
 				else{
 					myPlayer.say('Cannot Goto ${name} for remove!');
@@ -4018,7 +4018,7 @@ private function craftLowPriorityClothing() : Bool {
 					expectedContainer = null;
 					return false;
 				}
-			//}
+			}
 
 			return true;
 		}
@@ -4030,7 +4030,7 @@ private function craftLowPriorityClothing() : Bool {
 			return true;
 		}
 
-		myPlayer.say('remove!');
+		//myPlayer.say('remove!');
 		
 		// x,y is relativ to birth position, since this is the center of the universe for a player
 		var done = myPlayer.remove(target.tx - myPlayer.gx, target.ty - myPlayer.gy);
