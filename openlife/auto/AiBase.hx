@@ -3511,7 +3511,13 @@ private function craftLowPriorityClothing() : Bool {
 	}
 
 	private static function GetName(objId:Int):String {
-		return ObjectData.getObjectData(objId).name;
+		var objData = ObjectData.getObjectData(objId);
+		if(objData == null){
+			trace('WARNING could not find objData to $objId');
+			return 'NULL';
+		}
+
+		return objData.name;
 	}
 
 	private static function CalculateSteps(itemToCraft:IntemToCraft) {
