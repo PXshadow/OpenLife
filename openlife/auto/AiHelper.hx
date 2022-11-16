@@ -157,7 +157,7 @@ class AiHelper {
 			}
 		}
 
-		return closestObject == null ? closestObject : closestBadPlace;
+		return closestObject != null ? closestObject : closestBadPlace;
 	}
 
 	// searchDistance old: 16
