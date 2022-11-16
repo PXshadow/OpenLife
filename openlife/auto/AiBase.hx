@@ -1677,66 +1677,80 @@ abstract class AiBase
 
 		if(forge == null) return false;
 
+		// Cold Iron Bloom on Flat Rock 312
+		if(shortCraft(239, 312)) return true;
+
+		// Wrought Iron on Flat Rock 313
+		if(shortCraft(0, 313)) return true;
+
+		// Steel Ingot on Flat Rock 335
+		if(shortCraft(0, 335)) return true;
+		
 		if(this.profession['Smith'] < 4){
+			// TODO fix make space for them otherwise it might try again and again
 			// Flat Rock 291
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 291, 10); 
-			if(count < 5 && GetCraftAndDropItemsCloseToObj(forge,291,2,3)) return true;
+			if(count < 2 && GetCraftAndDropItemsCloseToObj(forge,291,2,5)) return true;
 
 			// Stone 33
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 33, 10); 
-			if(count < 3 && GetCraftAndDropItemsCloseToObj(forge,33,1,3)) return true;
+			if(count < 1 && GetCraftAndDropItemsCloseToObj(forge,33,1,5)) return true;
 		}
+
+		// TODO use forge as count target, but first fix that stuff is dropped close to forge
 
 		// Huge Charcoal Pile 4102
 		if(this.profession['Smith'] < 1.5){
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4102); 
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4102, 20); 
 			if(count < 1 && craftItem(4102)) return true;
 			this.profession['Smith'] = 1.5;	
 		}
 
 		// Iron Ore 290
 		if(this.profession['Smith'] < 2){
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 290); 
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 290, 20); 
 			if(count < 5 && craftItem(290)) return true;
 			this.profession['Smith'] = 2;	
 		}
 
 		// Wrought Iron 314
 		if(this.profession['Smith'] < 3){
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 314); 
+			var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 314, 20); 
 			if(count < 5 && craftItem(314)) return true;
 			this.profession['Smith'] = 3;	
 		}
 
+		// TODO make more of Unforged Sealed Steel Crucible 319
+
 		// Steel Ingot 326
 		if(this.profession['Smith'] < 4){
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 326); 
+			var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 326, 20); 
 			if(count < 5 && craftItem(314)) return true;
 			this.profession['Smith'] = 4;	
 		}
 
 		// Steel Mining Pick 684
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 684); 
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 684, 30); 
 		if(count < 1 && craftItem(684)) return true;
 
 		// Shovel 502
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 502); 
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 502, 30); 
 		if(count < 1 && craftItem(502)) return true;
 
 		// Steel Axe 334
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 334); 
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 334, 30); 
 		if(count < 1 && craftItem(334)) return true;
 
 		// Steel Chisel 455
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 455); 
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 455, 30); 
 		if(count < 1 && craftItem(455)) return true;
 
 		// Steel File Blank
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 457); 
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 457, 30); 
 		if(count < 1 && craftItem(457)) return true;
 
 		// Knife 560
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 560); 
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 560, 30); 
 		if(count < 1 && craftItem(560)) return true;
 
 		this.profession['Smith'] = 0;
