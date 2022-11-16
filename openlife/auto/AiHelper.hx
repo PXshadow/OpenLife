@@ -42,6 +42,10 @@ class AiHelper {
 		return CalculateQuadDistanceHelper(player.x, player.y, rx, ry);
 	}
 
+	public static function CalculateQuadDistanceBetweenObjects(obj1:ObjectHelper, obj2:ObjectHelper):Float {
+		return CalculateQuadDistanceHelper(obj1.tx, obj1.ty, obj2.tx, obj2.ty);
+	}
+
 	public static function CalculateQuadDistanceHelper(baseX:Int, baseY:Int, toX:Int, toY:Int):Float {
 		return (toX - baseX) * (toX - baseX) + (toY - baseY) * (toY - baseY);
 	}

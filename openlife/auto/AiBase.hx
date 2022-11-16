@@ -841,6 +841,12 @@ abstract class AiBase
 
 		// pickup bones
 		var floorId = WorldMap.world.getFloorId(grave.tx, grave.ty);
+		if(floorId < 1) {
+			// move bones if too close to home
+			var quadDist = AiHelper.CalculateQuadDistanceBetweenObjects(myPlayer.home, grave);
+			if(quadDist < 25) floorId = 1;
+		}
+
 		if(floorId > 0){
 			if(heldId == 292){ // Basket
 				if(myPlayer.heldObject.containedObjects.length > 0) return dropHeldObject();
@@ -2260,6 +2266,10 @@ private function craftLowPriorityClothing() : Bool {
 		var home = myPlayer.home;
 		var dropOnStart:Bool = home != null;
 		var heldObjId = myPlayer.heldObject.parentId;
+		var searchDistance = 40;
+		// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
+		var dontDropCloseHomeIds = [356, 336, 1137];
+		var mindistance = dontDropCloseHomeIds.contains(heldObjId) ? 5 : 0; // to home
 
 		if (heldObjId == 0) return false;
 		if (myPlayer.heldObject.isWound()) return false;
@@ -2396,15 +2406,15 @@ private function craftLowPriorityClothing() : Bool {
 		}
 		
 		// start a new pile?
-		if(newDropTarget == null && pileId > 0) newDropTarget = myPlayer.GetClosestObjectToTarget(target, myPlayer.heldObject.id, 4);
+		if(newDropTarget == null && pileId > 0) newDropTarget = myPlayer.GetClosestObjectToTarget(target, myPlayer.heldObject.id, 4, mindistance);
 
 		// get empty tile
-		if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0);
+		if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, searchDistance, mindistance);
 
 		// dont drop on a pile if last transition removed it from similar pile // like picking a bowl from a pile to put it then back on a pile
 		if(newDropTarget.id > 0 && itemToCraft.lastNewTargetId == newDropTarget.id){
 			trace('AAI: ${myPlayer.name + myPlayer.id} ${newDropTarget.name} dont drop on pile where item was just taken from');
-			newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0);			
+			newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, searchDistance, mindistance);			
 		}
 
 		var heldId = myPlayer.heldObject.parentId;
@@ -3577,7 +3587,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		// Clay with Nozzle 2110 // Small Lump of Clay 3891
 		var doWarning = false;
-		if(itemToCraft.craftingList.contains(2110)){
+		if(itemToCraft.craftingList.contains(2110) || itemToCraft.craftingList.contains(3891)){
 			doWarning = true;
 			text += ' WARNING! Nozzle';
 			textTrans += ' WARNING! Nozzle';
