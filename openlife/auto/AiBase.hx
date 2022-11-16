@@ -532,18 +532,17 @@ abstract class AiBase
 		var firePlace = myPlayer.firePlace;
 		var heldId = myPlayer.heldObject.parentId;
 
-		// make shafts and try not to steal them // 67 Long Straight Shaft
-		var shaft = AiHelper.GetClosestObjectToPosition(myPlayer.home.tx, myPlayer.home.ty, 67, 20);
-		if(shaft == null) shaft = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 67, 40);
-		if(shaft == null) if(craftItem(67)) return true;
-
 		firePlace = AiHelper.GetCloseFire(myPlayer);
 
 		if(firePlace == null){
 			if(firePlace == null){
 				var bestAiForFire = getBestAiForObjByProfession('firekeeper', myPlayer.home);
 				if(bestAiForFire != null && bestAiForFire.myPlayer.id == myPlayer.id){
-					//if (ServerSettings.DebugAi)
+					// make shafts and try not to borrow them // 67 Long Straight Shaft
+					var shaft = AiHelper.GetClosestObjectToPosition(myPlayer.home.tx, myPlayer.home.ty, 67, 20);
+					if(shaft == null) shaft = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 67, 40);
+					if(shaft == null) if(craftItem(67)) return true;
+
 					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Make new Fire: ${myPlayer.home.tx},${myPlayer.home.ty}');
 					return craftItem(82); // Fire
 				}
