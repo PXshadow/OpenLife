@@ -2326,9 +2326,6 @@ class ServerSettings {
 		var trans = transtions.getTransition(0, 325); // 0 + Crucible with Steel
 		//trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 319); // 0 + Unforged Sealed Steel Crucible 319
-		trans.aiShouldIgnore = true;
-
 		var trans = transtions.getTransition(0, 316); // 0 + Crucible with Iron and Charcoal
 		trans.aiShouldIgnore = true;
 
