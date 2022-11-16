@@ -3884,6 +3884,13 @@ private function craftLowPriorityClothing() : Bool {
 		if (myPlayer.canEat(myPlayer.heldObject) == false) return false;
 		if (isHungry == false && myPlayer.isHoldingYum() == false) return false;
 
+		// dont eat Cooked Goose if there is only one since needed for crafting knife
+		if (myPlayer.heldObject.parentId == 518){
+			var home = myPlayer.home;
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 518, 20);
+			if(count < 1) return false;
+		}
+
 		// var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
 		// if(heldObjectIsEatable == false) return false;
 

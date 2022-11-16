@@ -381,6 +381,7 @@ class AiHelper {
 		var bestFoods = new Array<ObjectHelper>();
 		var isStarving = player.food_store < 3;
 		var starvingFactor:Float = isStarving ? 4 : 16;
+		var gooseFound = false;
 
 		if (player.food_store < 0.5) starvingFactor = 2;
 		if (player.food_store < -1) starvingFactor = 1.5;
@@ -396,7 +397,13 @@ class AiHelper {
 				if (objData.id == 0) continue;
 				if (objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
 				//if (feedOther && objData.id == 837) continue; // dont feed Psilocybe Mushroom to others
-				if(ai != null && ai.isObjectNotReachable(tx ,ty)) continue;
+				if (ai != null && ai.isObjectNotReachable(tx ,ty)) continue;
+				
+				// dont eat Cooked Goose if there is only one since needed for crafting knife
+				if (objData.parentId == 518 && gooseFound == false){
+					gooseFound = true;
+					continue;
+				}
 
 				// var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
 				// trace('search food $tx, $ty: foodvalue: ${objData.foodValue} bestdistance: $bestDistance distance: $distance ${obj.description}');
