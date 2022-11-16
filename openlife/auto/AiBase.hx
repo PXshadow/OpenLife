@@ -461,6 +461,7 @@ abstract class AiBase
 			else if(jobByAge == 3) Macro.exception(if(doPottery()) return);
 		}
 		
+		Macro.exception(if(isCuttingWood()) return);
 		Macro.exception(if(doSmithing()) return);
 		Macro.exception(if(makeFireFood()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: makeFireFood ${Math.round((Sys.time() - startTime) * 1000)}ms ');
@@ -495,6 +496,7 @@ abstract class AiBase
 
 		// before do nothing try all professions
 		//this.profession['firekeeper'] = 1;
+		this.profession['Lumberjack'] = 1;
 		this.profession['WaterBringer'] = 1;
 		this.profession['BasicFarmer'] = 1;
 		this.profession['AdvancedFarmer'] = 1;	
@@ -525,6 +527,22 @@ abstract class AiBase
 
 		var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, whichObjId, dist);
 		if(count < maxCount && GetOrCraftItem(whichObjId, craft, dist)) return true;
+		return false;
+	}
+	
+	private function isCuttingWood(maxPeople = 1) : Bool {		
+		if(myPlayer.firePlace == null) return false;
+		
+		if(hasOrBecomeProfession('Lumberjack', maxPeople) == false) return false;
+
+		// Firewood 344
+		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 344, 15); // Kindling 72
+		if(count < 2) this.profession['Lumberjack'] = 1;
+		
+		// Firewood 344
+		if(this.profession['Lumberjack'] < 2 && count < 5 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 344, 10)) return true; 
+		this.profession['Lumberjack'] = 2;
+
 		return false;
 	}
 
