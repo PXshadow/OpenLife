@@ -134,7 +134,9 @@ abstract class AiBase
 
 			for (ai in Connection.getAis()) {
 				if (ai.player.deleted) Macro.exception(ai.doRebirth(timePassedInSeconds));
+				RemoveBlockedByAi(ai);
 				Macro.exception(ai.doTimeStuff(timePassedInSeconds));
+				AddToBlockedByAi(ai);
 			}
 
 			if (timeSinceStartCountedFromTicks > timeSinceStart) {
@@ -151,15 +153,31 @@ abstract class AiBase
 		blockedByAI = new Map<Int,Float>();
 
 		for (ai in Connection.getAis()) {
-			if (ai.player.deleted) continue;
-			if (ai.player.age < 3) continue; 
-			if (ai.player.isWounded()) continue;
-			if (ai.player.isMoving() == false) continue;
-
-			if(AddTargetBlockedByAi(ai.ai.foodTarget)) continue;
-			if(AddTargetBlockedByAi(ai.ai.dropTarget)) continue;
-			if(AddTargetBlockedByAi(ai.ai.useTarget)) continue;		
+			AddToBlockedByAi(ai);
 		}
+	}
+
+	private static function AddToBlockedByAi(ai:ServerAi) {
+		if (ai.player.deleted) return;
+		if (ai.player.age < 3) return; 
+		if (ai.player.isWounded()) return;
+		if (ai.player.isMoving() == false) return;
+
+		if(AddTargetBlockedByAi(ai.ai.foodTarget)) return;
+		if(AddTargetBlockedByAi(ai.ai.dropTarget)) return;
+		if(AddTargetBlockedByAi(ai.ai.useTarget)) return;		
+	}
+
+	private static function RemoveBlockedByAi(ai:ServerAi) {
+		RemoveTargetBlockedByAi(ai.ai.foodTarget);
+		RemoveTargetBlockedByAi(ai.ai.dropTarget);
+		RemoveTargetBlockedByAi(ai.ai.useTarget);	
+	}
+
+	private static function RemoveTargetBlockedByAi(obj:ObjectHelper){
+		if(obj == null) return;
+		var index = WorldMap.world.index(obj.tx, obj.ty);
+		blockedByAI.remove(index);
 	}
 
 	// Fire 82 // Large Fast Fire 83 // Hot Coals 85 // Large Slow Fire 346 // Flash Fire 3029
