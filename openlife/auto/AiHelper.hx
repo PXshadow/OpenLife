@@ -124,7 +124,13 @@ class AiHelper {
 					if(floorId > 0) continue;
 				}
 
-				if(searchContained != null){
+				if(searchContained == null){
+					if(objData.numSlots > 0){
+						var obj = world.getObjectHelper(tx,ty);
+						if(obj.containedObjects.length > 0) continue;
+					}
+				}
+				else{
 					if(objData.numSlots < 1) continue; 
 					var obj = world.getObjectHelper(tx,ty);
 					var found = false;
