@@ -381,7 +381,7 @@ abstract class AiBase
 			playerToFollow = null;			
 		}
 
-		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: isEating ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		// should be below isUsingItem since a use can be used to drop an hold item on a pile to pickup a baby
 		Macro.exception(if (isFeedingChild()) return); 
@@ -445,7 +445,8 @@ abstract class AiBase
 		if(this.profession['Smith'] > 0) Macro.exception(if (doSmithing()) return);
 		if(this.profession['WaterBringer'] > 0) Macro.exception(if (doWatering()) return);
 		if(this.profession['BasicFarmer'] > 0) Macro.exception(if (doBasicFarming()) return);
-
+		if(this.profession['Shepherd'] > 0) Macro.exception(if (isSheepHerding()) return);
+		
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);		
@@ -453,15 +454,17 @@ abstract class AiBase
 		
 		var jobByAge:Int = Math.round(myPlayer.age / 2); // job prio switches every second year
 		
-		for(i in 0...4){
-			jobByAge = (jobByAge + i) % 4;
+		for(i in 0...5){
+			jobByAge = (jobByAge + i) % 5;
 			if(jobByAge == 0) Macro.exception(if(doWatering()) return);				
 			else if(jobByAge == 1) Macro.exception(if(doBasicFarming()) return);
 			else if(jobByAge == 2) Macro.exception(if(doBaking()) return);
 			else if(jobByAge == 3) Macro.exception(if(doPottery()) return);
+			else if(jobByAge == 4) Macro.exception(if(isSheepHerding()) return);
 		}
 		
 		Macro.exception(if(isCuttingWood()) return);
+		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: isCuttingWood ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if(doSmithing()) return);
 		Macro.exception(if(makeFireFood()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: makeFireFood ${Math.round((Sys.time() - startTime) * 1000)}ms ');
@@ -500,6 +503,7 @@ abstract class AiBase
 		this.profession['WaterBringer'] = 1;
 		this.profession['BasicFarmer'] = 1;
 		this.profession['AdvancedFarmer'] = 1;	
+		this.profession['Shepherd'] = 1;	
 		this.profession['Baker'] = 1;
 		this.profession['FoodServer'] = 1;
 		this.profession['Potter'] = 1;
@@ -971,12 +975,63 @@ abstract class AiBase
 		return false;
 	}*/
 
+	private function isSheepHerding(maxProfession = 1) {
+		var home = myPlayer.home;
+
+		//if(craftItem(1113)) return true; // Ear of Corn
+		if(hasOrBecomeProfession('Shepherd', maxProfession) == false) return false;
+
+		// Domestic Sheep 575
+		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 575, 20);
+
+		if(count < 10){
+			// Hungry Domestic Lamb 604
+			if(shortCraft(258, 604)) return true;
+
+			// Domestic Lamb 542
+			if(shortCraft(542, 604)) return true;
+		}
+
+		// Count all the Sheep Dung 899
+		var countDung = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 899, 20);
+		if(countDung > 0){
+			// Composting Compost Pile 790
+			var countCompost = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 790, 20);
+			// Composted Soil 624
+			countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 624, 20);
+
+			// Composting Compost Pile 625
+			if(countCompost < 5 && craftItem(790)) return true;
+
+			// TODO pile dung
+			// Shovel of Dung 900
+			//return GetOrCraftItem(900);
+		}
+
+		// Feed: Shorn Domestic Sheep 576
+		if(shortCraft(258, 576)) return true;
+
+		if(count < 10){
+			// Domestic Sheep 575
+			if(shortCraft(258, 575)) return true;
+		}
+
+		if(count > 5 ){
+			// Knife 560 + Domestic Sheep 575
+			if(shortCraft(560, 575)) return true;
+		}
+
+		this.profession['Shepherd'] = 0;
+
+		return false;
+	}
+
 	private function doBasicFarming(maxProfession = 2) {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
 
 		//if(craftItem(1113)) return true; // Ear of Corn
-		if(hasOrBecomeProfession('BasicFarmer', 2) == false) return false;
+		if(hasOrBecomeProfession('BasicFarmer', maxProfession) == false) return false;
 
 		if(shortCraft(0, 400, 20)) return true; // pull out the carrots 
 		if(shortCraft(0, 1112)) return true; // 0 + Corn Plant --> Ear of Corn
@@ -1060,9 +1115,19 @@ abstract class AiBase
 		//var closeObj = AiHelper.GetClosestObjectById(myPlayer, 242, null, 20); // Ripe Wheat
 		//if(closeObj != null) if(craftItem(224)) return true; // Harvested Wheat		
 
-		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 624,20); // Composted Soil
-		if(closeObj == null) closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 790, 20); // Composting Compost Pile
-		if(closeObj == null && craftItem(790)) return true; // Composting Compost Pile
+		// Composting Compost Pile 790
+		var countCompost = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 790, 20);
+		// Composted Soil 624
+		countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 624, 20);
+
+		// Wet Compost Pile 625
+		if(countCompost < 5 && craftItem(790)) return true; 
+
+		// Wet Compost Pile 625
+		countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 625, 20);
+
+		// Wet Compost Pile 625
+		if(countCompost < 5 && craftItem(625)) return true; 
 
 		// check if there is a Tilled Row already before creating a new one
 		var deepRow = AiHelper.GetClosestObjectToHome(myPlayer, 213, 20); // Deep Tilled Row
@@ -1748,8 +1813,9 @@ abstract class AiBase
 
 		if(makeSharpieFood()) return true;
 
-		if(doBaking(3)) return true;
-		if(doBasicFarming(3)) return true;
+		if(doBaking(2)) return true;
+		if(doBasicFarming(2)) return true;
+		Macro.exception(if (isSheepHerding(2)) return true);
 		
 		if(makeFireFood(2)) return true;
 
