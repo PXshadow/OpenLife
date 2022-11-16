@@ -591,8 +591,8 @@ class ServerSettings {
 		ObjectData.getObjectData(322).containSize = 2; // Forged Steel Crucible
 		ObjectData.getObjectData(322).containable = true; // Forged Steel Crucible
 
-		ObjectData.getObjectData(319).containSize = 2; // Quenching Spring Steel
-		ObjectData.getObjectData(319).containable = true; // Quenching Spring Steel
+		ObjectData.getObjectData(1528).containSize = 2; // Quenching Spring Steel 1528
+		ObjectData.getObjectData(1528).containable = true; // Quenching Spring Steel 1528
 
 		ObjectData.getObjectData(2574).containSize = 2; // Molten Glass
 		ObjectData.getObjectData(2574).containable = true; // Molten Glass
@@ -2321,11 +2321,27 @@ class ServerSettings {
 
 		// protect smithing TODO allow for smithing or manually instruct
 		var trans = transtions.getTransition(0, 322); // 0 + Forged Steel Crucible
-		trans.aiShouldIgnore = true;
+		//trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(0, 325); // 0 + Crucible with Steel
+		//trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(0, 319); // 0 + Unforged Sealed Steel Crucible 319
 		trans.aiShouldIgnore = true;
 
+		var trans = transtions.getTransition(0, 316); // 0 + Crucible with Iron and Charcoal
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(0, 318); // 0 + Crucible with Charcoal
+		trans.aiShouldIgnore = true;
+
+		// lime
+		var trans = transtions.getTransition(677, 661); // Bowl of Plaster 677  + Stone Pile 661
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(0, 675); // 0 + Bowl of Limestone 675 
+		trans.aiShouldIgnore = true;
+		
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');
 
