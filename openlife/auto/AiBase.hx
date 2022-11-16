@@ -1731,9 +1731,9 @@ abstract class AiBase
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 455); 
 		if(count < 1 && craftItem(455)) return true;
 
-		// Steel File 458
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 458); 
-		if(count < 1 && craftItem(76)) return true;
+		// Steel File Blank
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 457); 
+		if(count < 1 && craftItem(457)) return true;
 
 		// Knife 560
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 560); 
