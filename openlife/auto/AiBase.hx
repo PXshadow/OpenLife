@@ -3575,10 +3575,18 @@ private function craftLowPriorityClothing() : Bool {
 			textTrans += '${actor.name}[${actor.id}] + ${target.name}[${target.id}] $desc--> ';
 		}
 
+		// Clay with Nozzle 2110 // Small Lump of Clay 3891
+		var doWarning = false;
+		if(itemToCraft.craftingList.contains(2110)){
+			doWarning = true;
+			text += ' WARNING! Nozzle';
+			textTrans += ' WARNING! Nozzle';
+		}
+
 		var objToCraft = ObjectData.getObjectData(itemToCraft.itemToCraft.id);
 		var myPlayer = itemToCraft.ai.myPlayer;
-		if (ServerSettings.DebugAiCrafting) trace('Ai: ${myPlayer.name + myPlayer.id} craft DONE items: ${itemToCraft.craftingList.length} ${objToCraft.name}: $text');
-		if (ServerSettings.DebugAiCrafting) trace('Ai: ${myPlayer.name + myPlayer.id} craft DONE trans: ${itemToCraft.craftingTransitions.length} ${objToCraft.name}: $textTrans');
+		if (doWarning || ServerSettings.DebugAiCrafting) trace('Ai: ${myPlayer.name + myPlayer.id} craft DONE items: ${itemToCraft.craftingList.length} ${objToCraft.name}: $text');
+		if (doWarning || ServerSettings.DebugAiCrafting) trace('Ai: ${myPlayer.name + myPlayer.id} craft DONE trans: ${itemToCraft.craftingTransitions.length} ${objToCraft.name}: $textTrans');
 	}
 
 	private function isMovingToHome(maxDistance = 3):Bool {
