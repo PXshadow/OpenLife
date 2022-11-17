@@ -2320,10 +2320,10 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 
 		// protect smithing TODO allow for smithing or manually instruct
-		var trans = transtions.getTransition(0, 322); // 0 + Forged Steel Crucible
+		//var trans = transtions.getTransition(0, 322); // 0 + Forged Steel Crucible
 		//trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 325); // 0 + Crucible with Steel
+		//var trans = transtions.getTransition(0, 325); // 0 + Crucible with Steel
 		//trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(0, 316); // 0 + Crucible with Iron and Charcoal

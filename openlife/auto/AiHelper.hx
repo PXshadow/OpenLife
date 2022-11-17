@@ -423,7 +423,7 @@ class AiHelper {
 	
 				var countEaten = player.getCountEaten(foodId);
 				var quadDistance = 16 + AiHelper.CalculateDistance(baseX, baseY, tx, ty);
-				if(feedingPlayer != null) quadDistance += 1 + AiHelper.CalculateDistance(feedingPlayer.tx, feedingPlayer.ty, tx, ty);
+				if (feedingPlayer != null) quadDistance += 1 + AiHelper.CalculateDistance(feedingPlayer.tx, feedingPlayer.ty, tx, ty);
 
 				foodValue -= countEaten;
 				var isYum = countEaten < ServerSettings.YumBonus;
