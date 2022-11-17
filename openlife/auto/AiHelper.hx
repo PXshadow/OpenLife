@@ -104,6 +104,8 @@ class AiHelper {
 		var searchEmptyPlace = ai != null && objIdToSearch == 0;
 		var heldId = player == null ? -1 : player.heldObject.parentId;		
 		var searchNotFlooredPlace = searchEmptyPlace && needsNotFlooredPlace.contains(heldId); 
+		var objdata = ObjectData.getObjectData(objIdToSearch);
+		var allowContainerWithItems = objdata.isGrave();
 		
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
@@ -125,7 +127,7 @@ class AiHelper {
 				}
 
 				if(searchContained == null){
-					if(objData.numSlots > 0){
+					if(allowContainerWithItems == false && objData.numSlots > 0){
 						var obj = world.getObjectHelper(tx,ty);
 						if(obj.containedObjects.length > 0) continue;
 					}
