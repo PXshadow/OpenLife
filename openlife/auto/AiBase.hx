@@ -134,6 +134,7 @@ abstract class AiBase
 
 			for (ai in Connection.getAis()) {
 				if (ai.player.deleted) Macro.exception(ai.doRebirth(timePassedInSeconds));
+				if (ai.player.deleted) continue;
 				RemoveBlockedByAi(ai);
 				Macro.exception(ai.doTimeStuff(timePassedInSeconds));
 				AddToBlockedByAi(ai);
@@ -153,6 +154,7 @@ abstract class AiBase
 		blockedByAI = new Map<Int,Float>();
 
 		for (ai in Connection.getAis()) {
+			if (ai.player.deleted) continue;
 			AddToBlockedByAi(ai);
 		}
 	}
@@ -795,8 +797,8 @@ abstract class AiBase
 			var hasProfession = ai.profession[profession] > 0;
 
 			if(hasProfession == false && p.id != myPlayer.id) continue;
-			if(profession != 'Potter' && ai.profession['Potter'] >= 10) continue;
-			if(profession != 'Baker' && ai.profession['Baker'] > 1) continue;
+			//if(profession != 'Potter' && ai.profession['Potter'] >= 10) continue;
+			//if(profession != 'Baker' && ai.profession['Baker'] > 1) continue;
 
 			var quadDist = p.CalculateQuadDistanceToObject(obj);
 
@@ -881,6 +883,8 @@ abstract class AiBase
 		if(grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 89, null, 20); // 89 Old Grave 
 		if(grave == null) return false;
 
+		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: found!');
+
 		if (this.isObjectNotReachable(grave.tx, grave.ty)) return false;
 		if (this.isObjectWithHostilePath(grave.tx, grave.ty)) return false;
 
@@ -893,21 +897,23 @@ abstract class AiBase
 			return false; 
 		}
 
-		if(this.myPlayer.age < 58){
+		if(grave.containedObjects.length > 0){
+			if(dropHeldObject(0)){
+				if(ServerSettings.DebugAiSay) myPlayer.say('drop for remove from grave');
+				if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: drop heldobj for remove');
+				return true;
+			}
+			if(ServerSettings.DebugAiSay) myPlayer.say('remove from grave');
+			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: remove from grave');
+			return removeItemFromContainer(grave);
+		}
+
+		if(this.myPlayer.age < 50 && this.profession['gravekeeper'] < 1){
 			var bestPlayer = getBestAiForObjByProfession('gravekeeper', grave);
 			if(bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) return false;
 		}
 
 		this.profession['gravekeeper'] = 1; 
-
-		if(grave.containedObjects.length > 0){
-			if(dropHeldObject(0)){
-				if(ServerSettings.DebugAiSay) myPlayer.say('drop for remove from grave');
-				return true;
-			}
-			if(ServerSettings.DebugAiSay) myPlayer.say('remove from grave');
-			return removeItemFromContainer(grave);
-		}
 
 		// pickup bones
 		var floorId = WorldMap.world.getFloorId(grave.tx, grave.ty);
@@ -919,9 +925,14 @@ abstract class AiBase
 
 		if(floorId > 0){
 			if(heldId == 292){ // Basket
+				if(ServerSettings.DebugAiSay) myPlayer.say('use basket on bones');
+				if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: use basket on bones');
 				if(myPlayer.heldObject.containedObjects.length > 0) return dropHeldObject();
 				return useHeldObjOnTarget(grave);
 			} 
+			if(ServerSettings.DebugAiSay) myPlayer.say('get basket for bones');
+			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: get or craft basket');
+
 			return GetOrCraftItem(292); // Basket
 		}
 
@@ -932,14 +943,17 @@ abstract class AiBase
 			return useHeldObjOnTarget(grave);
 		}
 
-		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: try to get hoe or shovel');
+		if(ServerSettings.DebugAiSay) myPlayer.say('get shovel for grave');
+		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: try to get hoe');
 
 		// 850 Stone Hoe
 		var quadDist = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
 
 		// 850 Stone Hoe
-		if(quadDist < 400) if(GetOrCraftItem(850)) return true;
+		if(quadDist < 900) if(GetOrCraftItem(850)) return true;
 		else if(GetItem(850)) return true;
+
+		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: try to get shovel');
 		
 		return GetItem(502); // 502 = Shovel
 	}
@@ -1061,11 +1075,11 @@ abstract class AiBase
 		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 575, 20);
 
 		if(count < 10){
-			// Hungry Domestic Lamb 604
+			// Bowl of Gooseberries and Carrot 258 + Hungry Domestic Lamb 604
 			if(shortCraft(258, 604)) return true;
 
-			// Domestic Lamb 542
-			if(shortCraft(542, 604)) return true;
+			// Bowl of Gooseberries and Carrot 258 + Domestic Lamb 542
+			if(shortCraft(258, 542)) return true;
 		}
 
 		// Count all the Sheep Dung 899
@@ -1084,11 +1098,11 @@ abstract class AiBase
 			//return GetOrCraftItem(900);
 		}
 
-		// Feed: Shorn Domestic Sheep 576
+		// Feed: Bowl of Gooseberries and Carrot 258 + Shorn Domestic Sheep 576
 		if(shortCraft(258, 576)) return true;
 
 		if(count < 10){
-			// Domestic Sheep 575
+			// Bowl of Gooseberries and Carrot 258 + Domestic Sheep 575
 			if(shortCraft(258, 575)) return true;
 		}
 
@@ -2353,7 +2367,7 @@ private function craftLowPriorityClothing() : Bool {
 		var searchDistance = 40;
 		// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
 		var dontDropCloseHomeIds = [356, 336, 1137];
-		var mindistance = dontDropCloseHomeIds.contains(heldObjId) ? 5 : 0; // to home
+		var mindistance = dontDropCloseHomeIds.contains(heldObjId) ? 7 : 0; // to home
 
 		if (heldObjId == 0) return false;
 		if (myPlayer.heldObject.isWound()) return false;
@@ -3826,6 +3840,10 @@ private function craftLowPriorityClothing() : Bool {
 
 	private function isPickingupFood():Bool {
 		if (foodTarget == null) return false;
+		if (myPlayer.heldObject.parentId == foodTarget.parentId){
+			foodTarget = null;
+			return false;
+		}
 
 		/*var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
 		if (heldObjectIsEatable) {
