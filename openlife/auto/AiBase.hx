@@ -547,6 +547,73 @@ abstract class AiBase
 		if(this.profession['Lumberjack'] < 2 && count < 5 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 344, 10)) return true; 
 		this.profession['Lumberjack'] = 2;
 
+		if(cleanUp()) return true;
+
+		return false;
+	}
+
+	private function pileUp(objId:Int, dist:Int) : Bool {
+		var home = myPlayer.home;
+		var held = myPlayer.heldObject;
+		var objData = ObjectData.getObjectData(objId);
+		var pileId = objData.getPileObjId();
+
+		held.tx = myPlayer.tx;
+		held.ty = myPlayer.ty;
+
+		if(pileId < 1) return false;
+
+		if(held.parentId == objId){
+			var pile = myPlayer.GetClosestObjectToTarget(held, pileId, 10);
+			//if(pile != null) trace('CLEANUP Pile: ${pile.name} numberOfUses: ${pile.numberOfUses} numUses: ${pile.objectData.numUses}');
+			if(pile != null && pile.numberOfUses >= pile.objectData.numUses) pile = null;
+			if(pile == null) pile = myPlayer.GetClosestObjectToTarget(held, objId, dist);
+			//if(pile != null) trace('CLEANUP Pile: ${pile.name}');
+
+			return useHeldObjOnTarget(pile);
+		}
+	
+		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, objId, dist, false);
+		if(count < 2) return false;
+			
+		return PickupItem(objId);
+	}
+
+	private function cleanUp() : Bool {
+		var home = myPlayer.home;
+		var held = myPlayer.heldObject;
+
+		// Long Straight Shaft 67 
+		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 67, 20);
+		if(count > 5){
+			// Stone Hatchet 71 + Long Straight Shaft 67 = Kindling
+			if(shortCraft(71, 67, 20)) return true; 
+		}
+
+		if(pileUp(227, 30)) return true; // Straw 227
+		if(pileUp(1115, 30)) return true; // Dried Ear of Corn 1115
+		
+		// Wet Clay Nozzle 285
+		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 285, 20);
+		if(count > 1 || (count > 0 && held.parentId == 285)){
+			//  Wet Clay Nozzle 285 + Wet Clay Nozzle 285 = Clay
+			//trace('CLEANUP  Wet Clay Nozzle ${count} held: ${held.name}');
+			if(shortCraft(285, 285, 30, false)) return true; 
+		}
+
+		//trace('CLEANUP  Clay with Nozzle held: ${held.name}');
+		//  0 + Clay with Nozzle 2110 = Wet Clay Nozzle 285
+		if(shortCraft(0, 2110, 20)) return true; 
+
+		//trace('Small Lump of Clay Nozzle held: ${held.name}');
+		// Small Lump of Clay 3891
+		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 3891, 20);
+		if(count > 1){
+			//trace('CLEANUP CLAY');
+			//  Small Lump of Clay 3891 + Small Lump of Clay 3891 = Clay
+			if(shortCraft(3891, 3891, 20)) return true; 
+		}
+
 		return false;
 	}
 
@@ -585,6 +652,8 @@ abstract class AiBase
 		// 83 Large Fast Fire // 346 Large Slow Fire // 3029 Flash Fire
 		if(objId == 83 || objId == 346 || objId == 3029){
 			if(hasOrBecomeProfession('firekeeper', maxProfession) == false) return false;
+
+			if(cleanUp()) return true;
 			
 			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 72, 15); // Kindling 72
 			if(count < 3) this.profession['firekeeper'] = 1;
@@ -767,6 +836,7 @@ abstract class AiBase
 	//isCaringForFire
 
 	private function useHeldObjOnTarget(target:ObjectHelper) : Bool{
+		if(target == null) return false;
 		if (this.isObjectNotReachable(target.tx, target.ty)) return false;
 		if (this.isObjectWithHostilePath(target.tx, target.ty)) return false;
 
@@ -2601,6 +2671,21 @@ private function craftLowPriorityClothing() : Bool {
 		return true;
 	}
 
+	private function PickupItem(objId:Int) : Bool {
+		var home = myPlayer.home;
+		var obj = myPlayer.GetClosestObjectToTarget(home, objId, 20);
+		if(obj == null) return false;
+		PickupObj(obj);
+		return true;
+	}
+
+	private function PickupObj(obj:ObjectHelper){
+		this.dropIsAUse = false;
+		this.dropTarget = obj;
+		this.useTarget = null;
+		this.useActor = null;
+	}
+
 	private function GetItem(objId:Int) : Bool {
 		return GetOrCraftItem(objId, false);
 	}
@@ -2758,10 +2843,11 @@ private function craftLowPriorityClothing() : Bool {
 		if (targetPlayer.canFeedToMe(myPlayer.heldObject) == false) {
 			this.feedingPlayerTarget = null;
 			// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name}');
-			trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name} fv: ${myPlayer.heldObject.objectData.foodValue} fs: ${Math.round(targetPlayer.food_store_max - targetPlayer.food_store * 10)/10}');
+			trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name} foodvalue: ${myPlayer.heldObject.objectData.foodValue} foodpipes: ${Math.round(targetPlayer.food_store / 10)*10} foodspace: ${Math.round((targetPlayer.food_store_max - targetPlayer.food_store) * 10)/10}');
 			// if droped it can be stuck in a cyle if it want for example craft carrot and picks it up again. return true instead of false might also solve this
-			//this.dropHeldObject(); // since food might be too big to feed
-			return false;
+			// if not dropped it can be stuck in a cyle try to feed BOWL OF GOOSEBERRIES again and again
+			this.dropHeldObject(5); // since food might be too big or too bad to feed
+			return true; // false
 		}
 
 		var distance = myPlayer.CalculateDistanceToPlayer(targetPlayer);
