@@ -167,7 +167,7 @@ abstract class AiBase
 
 		if(AddTargetBlockedByAi(ai.ai.foodTarget)) return;
 		if(AddTargetBlockedByAi(ai.ai.dropTarget)) return;
-		if(AddTargetBlockedByAi(ai.ai.useTarget)) return;		
+		if(AddTargetBlockedByAi(ai.ai.useTarget, ai.ai.myPlayer.heldObject)) return;		
 	}
 
 	private static function RemoveBlockedByAi(ai:ServerAi) {
@@ -187,14 +187,21 @@ abstract class AiBase
 	// Adobe Kiln 238 // Firing Adobe Kiln 282
 	// Forge 303 // Firing Forge 304 
 	// Firing Newcomen Hammer 2238
-	public static var DontBlockByAi = [82, 83, 85, 346, 3029, 237, 250, 238, 282, 303, 304, 2238];
+	//public static var DontBlockByAi = [82, 83, 85, 346, 3029, 237, 250, 238, 282, 303, 304, 2238];
 
 	// TODO might make problems with counting since object blocked by is not counted
-	public static function AddTargetBlockedByAi(target:ObjectHelper){
+	public static function AddTargetBlockedByAi(target:ObjectHelper, heldObj:ObjectHelper = null){
 		if(target == null) return false;
 		if(target.numberOfUses > 1) return true;
 		if(target.objectData.isAnimal()) return true;
-		if(DontBlockByAi.contains(target.parentId)) return true;
+
+		// if useTarget does not change it can be used by more like Hot Adobe Oven 250 
+		// should fix, that AI can seal Kiln only one time, but can use it often for making bowls 
+		if(heldObj != null){
+			var trans = TransitionImporter.GetTransition(heldObj.parentId, target.parentId);
+			if(trans != null && target.parentId == trans.newTargetID) return false;
+		}
+		//if(DontBlockByAi.contains(target.parentId)) return true;
 		AddObjBlockedByAi(target);
 		return true;
 	}
@@ -919,7 +926,7 @@ abstract class AiBase
 		var floorId = WorldMap.world.getFloorId(grave.tx, grave.ty);
 		if(floorId < 1) {
 			// move bones if too close to home
-			var quadDist = AiHelper.CalculateQuadDistanceBetweenObjects(myPlayer.home, grave);
+			var quadDist = AiHelper.CalculateQuadDistanceBetweenObjects(myPlayer, myPlayer.home, grave);
 			if(quadDist < 25) floorId = 1;
 		}
 
