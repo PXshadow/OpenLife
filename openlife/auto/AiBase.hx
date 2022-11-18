@@ -1347,6 +1347,8 @@ abstract class AiBase
 		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer);
 		// Sealed Adobe Kiln 294
 		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 294, 20, null, myPlayer);
+		// Firing Adobe Kiln Sealed 293
+		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 293, 20, null, myPlayer);
 
 		return kiln;
 	}
@@ -1388,12 +1390,12 @@ abstract class AiBase
 		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 281, 20, null, myPlayer);
 		// Adobe Kiln 238
 		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 238 , 20, null, myPlayer); 
-
-		// TODO consider forge
+		// Sealed Adobe Kiln 294
+		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 294, 20, null, myPlayer);
 
 		if(this.profession['Potter'] < 2){
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 20); // Clay 126
-			if(count < 6) return gatherClay(kiln);
+			if(count < 5) return gatherClay(kiln); // home is used if there is no kiln
 		}
 
 		this.profession['Potter'] = 2; // dont get new clay --> do some pottery first
