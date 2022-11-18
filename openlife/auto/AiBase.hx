@@ -1797,7 +1797,7 @@ abstract class AiBase
 			if(shortCraftOnGround(298)) return true;
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4102, 20); 
 			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 300, 20);
-			trace('doSmithing: Charcoal Pile count: ${count}');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Charcoal Pile count: ${count}');
 			// Basket of Charcoal 298
 			if(count < 2 && craftItem(298)) return true;
 			this.profession['Smith'] = 1.5;	
@@ -1809,28 +1809,34 @@ abstract class AiBase
 			var countSteel = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 326, 20); 
 			// Unforged Sealed Steel Crucible 319
 			var countCrucible = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 319, 20); 
+			// Forged Steel Crucible 322
+			var countForgedCrucible = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 322, 20); 
+			
+			if(countSteel < 1 || countForgedCrucible > 0){
+				// Cool Steel Crucible in Wooden Tongs 324
+				if(shortCraftOnGround(324)) return true;
 
-			if(countSteel < 3){
 				// Unforged Sealed Steel Crucible 319
-				if(this.profession['Smith'] < 3.5){
+				if(this.profession['Smith'] < 3.5 && countForgedCrucible < 1){
 					// Big Charcoal Pile 300
 					var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 300, 20); 
 					// Basket of Charcoal 298
 					if(count < 1 && craftItem(298)) return true;
 
-					trace('doSmithing: Unforged Sealed Steel Crucible count done: ${count}');
+					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Unforged Sealed Steel Crucible count done: ${count}');
 					if(countCrucible < 3 && GetCraftAndDropItemsCloseToObj(forge, 319, 3, 10)) return true;
 					this.profession['Smith'] = 3.5;	
 				}
 
 				// Hot Steel Crucible in Wooden Tongs 323
-				trace('doSmithing: Hot Steel Crucible count left: ${countCrucible}');
-				if(craftItem(323)) return true;
+				if(countCrucible > 0 && ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Hot Steel Crucible count left: ${countCrucible}');
+				if(countCrucible > 0 && craftItem(323)) return true;
 
-				trace('doSmithing: Steel Ingot count: ${countSteel}');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Steel Ingot count: ${countSteel}');
 				// Steel Ingot 326
 				if(craftItem(326)) return true;				
 				trace('doSmithing2: Steel Ingot count: ${countSteel}');
+				this.profession['Smith'] = 3; // craft Crucible	
 			}
 			this.profession['Smith'] = 4;	
 		}
@@ -1838,7 +1844,7 @@ abstract class AiBase
 		// Wrought Iron 314
 		if(this.profession['Smith'] < 3){
 			var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 314, 20); 
-			trace('doSmithing: Wrought Iron count: ${count}');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Wrought Iron count: ${count}');
 			if(count < 5){
 				// Iron Ore 290
 				if(this.profession['Smith'] < 2){
@@ -1851,6 +1857,8 @@ abstract class AiBase
 			} 
 			this.profession['Smith'] = 3;	
 		}
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: tools');
 
 		// Steel Mining Pick 684
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 684, 30); 
@@ -2564,7 +2572,8 @@ private function craftLowPriorityClothing() : Bool {
 		// dont use drop if held is Basket of Bones (356) to empty it! // 336 Basket of Soil
 		// 1137 Bowl of Soil // 186 Cooked Rabbit 
 		// 283 Wooden Tongs with Fired Bowl // 241 Fired Plate in Wooden Tongs
-		var dontUseDropForItems = [356, 336, 1137, 186, 283, 241];
+		// Cool Steel Crucible in Wooden Tongs 324 // Hot Steel Crucible in Wooden Tongs 323			
+		var dontUseDropForItems = [356, 336, 1137, 186, 283, 241, 324, 323];
 		//if (newDropTarget.id == 0 &&  heldId != 356 && heldId != 336 && heldId != 1137){ 
 		if (newDropTarget.id == 0 && dontUseDropForItems.contains(heldId) == false && transition == null){ 
 			this.dropIsAUse = false;
