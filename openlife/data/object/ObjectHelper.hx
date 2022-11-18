@@ -714,4 +714,12 @@ class ObjectHelper {
 	public function isDeadlyAnimal() : Bool {
 		return this.objectData.isDeadlyAnimal();
 	}
+
+	public function contains(searchContained:Array<Int>) : Bool {
+		var obj = this;
+		for(item in obj.containedObjects){
+			if(searchContained.contains(item.parentId)) return true;									
+		}
+		return false;		
+	}
 }

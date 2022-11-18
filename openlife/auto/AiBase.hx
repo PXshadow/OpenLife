@@ -1336,6 +1336,21 @@ abstract class AiBase
 		return GetOrCraftItem(actorId, craftActorIfNeeded);		
 	}
 
+	private function GetKiln() {
+		var home = myPlayer.home;
+
+		// Wood-filled Adobe Kiln 281
+		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 281, 20, null, myPlayer);
+		// Adobe Kiln 238
+		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 238 , 20, null, myPlayer); 
+		// Firing Adobe Kiln 282
+		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer);
+		// Sealed Adobe Kiln 294
+		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 294, 20, null, myPlayer);
+
+		return kiln;
+	}
+
 	private function doPottery(maxPeople:Int = 1) : Bool {
 		var home = myPlayer.home;
 
@@ -1356,7 +1371,8 @@ abstract class AiBase
 		if(myPlayer.heldObject.parentId == 284) countWetBowl += 1; // Wet Bowl in Wooden Tongs
 		if(myPlayer.heldObject.parentId == 240) countWetPlate += 1; // Wet Plate in Wooden Tongs
 
-		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer); // Firing Adobe Kiln 
+		// Firing Adobe Kiln 282
+		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer);
 
 		if(kiln != null) {
 			this.profession['Potter'] = 10;
@@ -1489,7 +1505,7 @@ abstract class AiBase
 
 		var basket = null;
 		
-		if(distanceToHome <= 100){
+		if(distanceToHome <= 100){ // 100
 			// if close to home search if there is a basket with clay to empty
 			basket = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 292, 10, null, myPlayer, [126]); // Basket 292, Clay 126
 
@@ -1507,8 +1523,9 @@ abstract class AiBase
 			}
 		}
 
-		// search if there is a dropped clay basket to bring home 
-		basket = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 292, 20, null, myPlayer, [126]); // Basket 292, Clay 126
+		// search if there is a dropped clay basket to bring home
+		// Basket 292, Clay 126
+		basket = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 292, 20, null, myPlayer, [126]);
 
 		// search if there is a basket to fill close to the clay deposit 
 		if(basket == null && clayDeposit != null) basket = AiHelper.GetClosestObjectToPosition(clayDeposit.tx, clayDeposit.ty, 292, 5, null, myPlayer); // Basket 292
@@ -2528,7 +2545,8 @@ private function craftLowPriorityClothing() : Bool {
 		// For now allowed: 126 Clay // 236 Clay Plate
 		//var dontUsePile = allowAllPiles ? [] : [225, 1113, 126, 236, 292, 233];
 		var dontUsePile = allowAllPiles ? [] : [225, 1113, 292, 233];
-		var heldId = myPlayer.heldObject.parentId;
+		var heldObject = myPlayer.heldObject;
+		var heldId = heldObject.parentId;
 		var target = new ObjectHelper(null, 0);
 		target.tx = myPlayer.tx;
 		target.ty = myPlayer.ty;
@@ -2547,6 +2565,22 @@ private function craftLowPriorityClothing() : Bool {
 					pileId = 0; 
 					target = forge;
 				}
+			}
+		}
+
+		// Basket 292, Clay 126
+		if(heldId == 292 && heldObject.contains([126])){
+			pileId = 0; 
+			var kiln = GetKiln();
+			if(kiln != null){
+				target = kiln;
+				newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, 5);
+
+				// switch with close // -10 looks for non permanent that is not same like heldobj
+				if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectToTarget(target, -10, 20);	
+				this.dropIsAUse = false;
+				this.dropTarget = newDropTarget;
+				return true;
 			}
 		}
 

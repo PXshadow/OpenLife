@@ -98,6 +98,7 @@ class AiHelper {
 	// 1137 Bowl of Soil // 356 Basket of Bones // 336 Basket of Soil
 	static var needsNotFlooredPlace = [1137, 356, 336];
 
+	// objIdToSearch = -10 if searching non permanent
 	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null, player:PlayerInterface = null, searchContained:Array<Int> = null, minDistance:Int = 0) : ObjectHelper {
 		var world = WorldMap.world;
 		var ai = player == null ? null : player.getAi();
@@ -109,17 +110,20 @@ class AiHelper {
 		var searchEmptyPlace = ai != null && objIdToSearch == 0;
 		var heldId = player == null ? -1 : player.heldObject.parentId;		
 		var searchNotFlooredPlace = searchEmptyPlace && needsNotFlooredPlace.contains(heldId); 
-		var objdata = ObjectData.getObjectData(objIdToSearch);
-		var allowContainerWithItems = objdata.isGrave();
+		var objdataRoSearch = ObjectData.getObjectData(objIdToSearch);
+		var allowContainerWithItems = objdataRoSearch == null ? false : objdataRoSearch.isGrave();
 		
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
 				var objData = world.getObjectDataAtPosition(tx,ty);
 				var parentId = objData.parentId;
 
-				//if(objIdToSearch == 1121 && parentId == 1121) trace('DEBUG7771: Popcorn');
-				
-				if(parentId != objIdToSearch) continue;
+				// used for example to drop a basket with clay near kiln and switch with existing
+				if(objIdToSearch == -10){
+					if(objData.isPermanent()) continue;
+					if(objData.parentId == heldId) continue; // dont replace a basket with a basket
+				}
+				else if(parentId != objIdToSearch) continue;
 			
 				if (ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
 
@@ -140,12 +144,7 @@ class AiHelper {
 				else{
 					if(objData.numSlots < 1) continue; 
 					var obj = world.getObjectHelper(tx,ty);
-					var found = false;
-
-					for(item in obj.containedObjects){
-						if(searchContained.contains(item.parentId)) found = true;									
-					}
-					if(found == false) continue;
+					if(obj.contains(searchContained) == false) continue;
 				}
 
 				var quadDistance = AiHelper.CalculateQuadDistanceHelper(tx,ty, baseX, baseY);
