@@ -1088,7 +1088,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			this.lineage.myEveId = this.p_id;
 
 			// give eve the right color fitting to closest special biome
-			var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx, this.ty);
+			var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx, this.ty, true);
 			if (closeSpecialBiomePersonColor > 0) {
 				var female = ServerSettings.ChanceForFemaleChild >= 0.5;
 				var personsByColor = female ? ObjectData.femaleByRaceObjectData : ObjectData.maleByRaceObjectData;
@@ -1178,7 +1178,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var female = ServerSettings.ChanceForFemaleChild > WorldMap.calculateRandomFloat();
 		var personsByColor = female ? ObjectData.femaleByRaceObjectData : ObjectData.maleByRaceObjectData;
 		var rand = WorldMap.calculateRandomFloat();
-		var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx, this.ty);
+		var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx, this.ty, true);
 		var closeToWrongSpecialBiome = (closeSpecialBiomePersonColor > 0) && (motherColor != closeSpecialBiomePersonColor);
 		var otherColorThenMom = closeToWrongSpecialBiome ? ServerSettings.ChanceForOtherChildColorIfCloseToWrongSpecialBiome > rand : ServerSettings.ChanceForOtherChildColor > rand;
 
@@ -1246,7 +1246,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	// Snow --> Ginger / Grey --> White / Jungle --> Brown / Desert --> Black
-	public static function getCloseSpecialBiomePersonColor(x:Int, y:Int):Int {
+	public static function getCloseSpecialBiomePersonColor(x:Int, y:Int, originalBiome = false):Int {
 		var maxSearch = 200;
 		var biome = -1;
 		var personColorByBiome = -1;
@@ -1254,36 +1254,44 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		for (ii in 0...maxSearch) {
 			// diagonal search
-			biome = WorldMap.world.getBiomeId(x + ii, y + ii);
+			if(originalBiome) biome = WorldMap.world.getOriginalBiomeId(x + ii, y + ii);
+			else biome = WorldMap.world.getBiomeId(x + ii, y + ii);
 			personColorByBiome = PersonColor.getPersonColorByBiome(biome);
 			if (personColorByBiome > 0) break;
 
-			biome = WorldMap.world.getBiomeId(x - ii, y + ii);
+			if(originalBiome) biome = WorldMap.world.getOriginalBiomeId(x - ii, y + ii);
+			else biome = WorldMap.world.getBiomeId(x - ii, y + ii);
 			personColorByBiome = PersonColor.getPersonColorByBiome(biome);
 			if (personColorByBiome > 0) break;
 
-			biome = WorldMap.world.getBiomeId(x + ii, y - ii);
+			if(originalBiome) biome = WorldMap.world.getOriginalBiomeId(x + ii, y - ii);
+			else biome = WorldMap.world.getBiomeId(x + ii, y - ii);
 			personColorByBiome = PersonColor.getPersonColorByBiome(biome);
 			if (personColorByBiome > 0) break;
 
-			biome = WorldMap.world.getBiomeId(x - ii, y - ii);
+			if(originalBiome) biome = WorldMap.world.getOriginalBiomeId(x - ii, y - ii);
+			else biome = WorldMap.world.getBiomeId(x - ii, y - ii);
 			personColorByBiome = PersonColor.getPersonColorByBiome(biome);
 			if (personColorByBiome > 0) break;
 
 			// cross search
-			biome = WorldMap.world.getBiomeId(x + ii, y);
+			if(originalBiome) biome = WorldMap.world.getOriginalBiomeId(x + ii, y);
+			else biome = WorldMap.world.getBiomeId(x + ii, y);
 			personColorByBiome = PersonColor.getPersonColorByBiome(biome);
 			if (personColorByBiome > 0) break;
 
-			biome = WorldMap.world.getBiomeId(x - ii, y);
+			if(originalBiome) biome = WorldMap.world.getOriginalBiomeId(x - ii, y);
+			else biome = WorldMap.world.getBiomeId(x - ii, y);
 			personColorByBiome = PersonColor.getPersonColorByBiome(biome);
 			if (personColorByBiome > 0) break;
 
-			biome = WorldMap.world.getBiomeId(x, y + ii);
+			if(originalBiome) biome = WorldMap.world.getOriginalBiomeId(x, y + ii);
+			else biome = WorldMap.world.getBiomeId(x, y + ii);
 			personColorByBiome = PersonColor.getPersonColorByBiome(biome);
 			if (personColorByBiome > 0) break;
 
-			biome = WorldMap.world.getBiomeId(x, y - ii);
+			if(originalBiome) biome = WorldMap.world.getOriginalBiomeId(x, y - ii);
+			else biome = WorldMap.world.getBiomeId(x, y - ii);
 			personColorByBiome = PersonColor.getPersonColorByBiome(biome);
 			if (personColorByBiome > 0) break;
 		}
