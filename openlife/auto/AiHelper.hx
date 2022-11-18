@@ -42,8 +42,13 @@ class AiHelper {
 		return CalculateQuadDistanceHelper(player.x, player.y, rx, ry);
 	}
 
-	public static function CalculateQuadDistanceBetweenObjects(obj1:ObjectHelper, obj2:ObjectHelper):Float {
-		return CalculateQuadDistanceHelper(obj1.tx, obj1.ty, obj2.tx, obj2.ty);
+	public static function CalculateQuadDistanceBetweenObjects(player:PlayerInterface, obj1:ObjectHelper, obj2:ObjectHelper):Float {
+		var rx1 = WorldMap.world.transformX(player, obj1.tx);
+		var ry1 = WorldMap.world.transformY(player, obj1.ty);
+		var rx2 = WorldMap.world.transformX(player, obj2.tx);
+		var ry2 = WorldMap.world.transformY(player, obj2.ty);
+
+		return CalculateQuadDistanceHelper(rx1, ry1, rx2, ry2);
 	}
 
 	public static function CalculateQuadDistanceHelper(baseX:Int, baseY:Int, toX:Int, toY:Int):Float {
