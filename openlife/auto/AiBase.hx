@@ -1791,26 +1791,46 @@ abstract class AiBase
 		// TODO use forge as count target, but first fix that stuff is dropped close to forge
 
 		// Huge Charcoal Pile 4102
-		/*if(this.profession['Smith'] < 1.5){
+		// Big Charcoal Pile 300
+		if(this.profession['Smith'] < 1.5){
+			// Basket of Charcoal 298
+			if(shortCraftOnGround(298)) return true;
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4102, 20); 
-			if(count < 1 && craftItem(4102)) return true;
+			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 300, 20);
+			trace('doSmithing: Charcoal Pile count: ${count}');
+			// Basket of Charcoal 298
+			if(count < 2 && craftItem(298)) return true;
 			this.profession['Smith'] = 1.5;	
-		}*/
+		}
 
 		// Steel Ingot 326
 		if(this.profession['Smith'] < 4){
-			var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 326, 20); 
-			if(count < 3){
+			// Steel Ingot 326
+			var countSteel = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 326, 20); 
+			// Unforged Sealed Steel Crucible 319
+			var countCrucible = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 319, 20); 
+
+			if(countSteel < 3){
 				// Unforged Sealed Steel Crucible 319
 				if(this.profession['Smith'] < 3.5){
-					var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 319, 20); 
-					trace('doSmithing: Unforged Sealed Steel Crucible count: ${count}');
-					if(count < 3 && GetCraftAndDropItemsCloseToObj(forge, 319, 3, 10)) return true;
+					// Big Charcoal Pile 300
+					var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 300, 20); 
+					// Basket of Charcoal 298
+					if(count < 1 && craftItem(298)) return true;
+
+					trace('doSmithing: Unforged Sealed Steel Crucible count done: ${count}');
+					if(countCrucible < 3 && GetCraftAndDropItemsCloseToObj(forge, 319, 3, 10)) return true;
 					this.profession['Smith'] = 3.5;	
 				}
 
+				// Hot Steel Crucible in Wooden Tongs 323
+				trace('doSmithing: Hot Steel Crucible count left: ${countCrucible}');
+				if(craftItem(323)) return true;
+
+				trace('doSmithing: Steel Ingot count: ${countSteel}');
 				// Steel Ingot 326
-				if(craftItem(326)) return true;
+				if(craftItem(326)) return true;				
+				trace('doSmithing2: Steel Ingot count: ${countSteel}');
 			}
 			this.profession['Smith'] = 4;	
 		}
