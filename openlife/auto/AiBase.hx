@@ -1373,8 +1373,10 @@ abstract class AiBase
 
 		// Firing Adobe Kiln 282
 		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer);
-
-		if(kiln != null) {
+		// Firing Forge 304
+		var forgeOnFire = kiln != null ? null : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 304, 20, null, myPlayer);
+		
+		if(kiln != null || forgeOnFire != null) {
 			this.profession['Potter'] = 10;
 			if(doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 		}
