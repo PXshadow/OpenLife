@@ -2209,9 +2209,6 @@ class ServerSettings {
 		var trans = transtions.getTransition(127, 237); // Adobe + Adobe Oven = 238 Adobe Kiln
 		if(AIAllowBuilKiln == false) trans.aiShouldIgnore = true; 
 
-		var trans = transtions.getTransition(0, 303); // 0 + Forge = Adobe Kiln
-		trans.aiShouldIgnore = true; 
-
 		// Stop spread of Dough to get a bowl // TODO allow again for tortilla
 		var trans = transtions.getTransition(252, 291); // Bowl of Dough + Flat Rock
 		trans.aiShouldIgnore = true;
@@ -2317,6 +2314,15 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(0, 2268); // 0 + Bore Mechanism
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(288, 238); // Bellows 288 + Adobe Kiln 238
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(0, 303); // 0 + Forge = Adobe Kiln
+		trans.aiShouldIgnore = true; 
+
+		var trans = transtions.getTransition(292, 305); // Basket 292 + Forge with Charcoal 305
 		trans.aiShouldIgnore = true;
 
 		// protect smithing TODO allow for smithing or manually instruct
