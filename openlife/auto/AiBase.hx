@@ -1769,13 +1769,13 @@ abstract class AiBase
 		if(forge == null) return false;
 
 		// Cold Iron Bloom on Flat Rock 312
-		if(shortCraft(239, 312)) return true;
+		if(shortCraft(239, 312, 20, false)) return true;
 
 		// Wrought Iron on Flat Rock 313
-		if(shortCraft(0, 313)) return true;
+		if(shortCraft(0, 313, 20, false)) return true;
 
 		// Steel Ingot on Flat Rock 335
-		if(shortCraft(0, 335)) return true;
+		if(shortCraft(0, 335, 20, false)) return true;
 		
 		if(this.profession['Smith'] < 4){
 			// TODO fix make space for them otherwise it might try again and again
@@ -1807,11 +1807,18 @@ abstract class AiBase
 		// Wrought Iron 314
 		if(this.profession['Smith'] < 3){
 			var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 314, 20); 
+			trace('doSmithing: Wrought Iron count: ${count}');
 			if(count < 5 && craftItem(314)) return true;
 			this.profession['Smith'] = 3;	
 		}
 
-		// TODO make more of Unforged Sealed Steel Crucible 319
+		// Unforged Sealed Steel Crucible 319
+		if(this.profession['Smith'] < 3.5){
+			var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 319, 20); 
+			trace('doSmithing: Unforged Sealed Steel Crucible count: ${count}');
+			if(count < 3 && craftItem(319)) return true;
+			this.profession['Smith'] = 3.5;	
+		}
 
 		// Steel Ingot 326
 		if(this.profession['Smith'] < 4){
