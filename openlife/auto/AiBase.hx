@@ -520,7 +520,7 @@ abstract class AiBase
 		this.profession['Hunter'] = 1;
 		this.profession['ClothMaker'] = 1;
 		this.profession['FireFoodMaker'] = 1;
-		this.profession['BowlFiller'] = 1;
+		//this.profession['BowlFiller'] = 1;
 		this.profession['Smith'] = 1;
 		
 		if(myPlayer.age > ServerSettings.MinAgeToEat){
