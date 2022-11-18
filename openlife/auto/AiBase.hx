@@ -1791,40 +1791,45 @@ abstract class AiBase
 		// TODO use forge as count target, but first fix that stuff is dropped close to forge
 
 		// Huge Charcoal Pile 4102
-		if(this.profession['Smith'] < 1.5){
+		/*if(this.profession['Smith'] < 1.5){
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4102, 20); 
 			if(count < 1 && craftItem(4102)) return true;
 			this.profession['Smith'] = 1.5;	
-		}
+		}*/
 
-		// Iron Ore 290
-		if(this.profession['Smith'] < 2){
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 290, 20); 
-			if(count < 5 && craftItem(290)) return true;
-			this.profession['Smith'] = 2;	
+		// Steel Ingot 326
+		if(this.profession['Smith'] < 4){
+			var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 326, 20); 
+			if(count < 3){
+				// Unforged Sealed Steel Crucible 319
+				if(this.profession['Smith'] < 3.5){
+					var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 319, 20); 
+					trace('doSmithing: Unforged Sealed Steel Crucible count: ${count}');
+					if(count < 3 && GetCraftAndDropItemsCloseToObj(forge, 319, 3, 10)) return true;
+					this.profession['Smith'] = 3.5;	
+				}
+
+				// Steel Ingot 326
+				if(craftItem(326)) return true;
+			}
+			this.profession['Smith'] = 4;	
 		}
 
 		// Wrought Iron 314
 		if(this.profession['Smith'] < 3){
 			var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 314, 20); 
 			trace('doSmithing: Wrought Iron count: ${count}');
-			if(count < 5 && craftItem(314)) return true;
+			if(count < 5){
+				// Iron Ore 290
+				if(this.profession['Smith'] < 2){
+					var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 290, 20); 
+					if(count < 5 && craftItem(290)) return true;
+					this.profession['Smith'] = 2;	
+				}
+				// Wrought Iron 314
+				if(craftItem(314)) return true;
+			} 
 			this.profession['Smith'] = 3;	
-		}
-
-		// Unforged Sealed Steel Crucible 319
-		if(this.profession['Smith'] < 3.5){
-			var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 319, 20); 
-			trace('doSmithing: Unforged Sealed Steel Crucible count: ${count}');
-			if(count < 3 && craftItem(319)) return true;
-			this.profession['Smith'] = 3.5;	
-		}
-
-		// Steel Ingot 326
-		if(this.profession['Smith'] < 4){
-			var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 326, 20); 
-			if(count < 5 && craftItem(314)) return true;
-			this.profession['Smith'] = 4;	
 		}
 
 		// Steel Mining Pick 684
