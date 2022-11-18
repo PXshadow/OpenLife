@@ -874,14 +874,16 @@ abstract class AiBase
 
 	private function isHandlingGraves() : Bool {
 
-		if(myPlayer.heldObject.parentId == 356) return dropHeldObject(); // Basket of Bones
+		if(myPlayer.heldObject.parentId == 356) return dropHeldObject(); // Basket of Bones 356
 
 		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['grave']);
 		var isGravekeeper = this.profession['gravekeeper'] > 0;
-		if(passedTime < 20 && isGravekeeper == false) return false;
-
+		if(passedTime < 10 && isGravekeeper == false) return false;
 		lastCheckedTimes['grave'] = TimeHelper.tick;
 
+		// Basket of Bones 356
+		if(shortCraft(0, 356, 20)) return true; 
+		
 		//myPlayer.say('check for graves!');
 
 		var heldId = myPlayer.heldObject.parentId;
@@ -1391,7 +1393,7 @@ abstract class AiBase
 		// Adobe Kiln 238
 		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 238 , 20, null, myPlayer); 
 		// Sealed Adobe Kiln 294
-		if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 294, 20, null, myPlayer);
+		//if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 294, 20, null, myPlayer);
 
 		if(this.profession['Potter'] < 2){
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 20); // Clay 126
