@@ -298,6 +298,7 @@ abstract class AiBase
 		if (time > 0) return;
 		time += ServerSettings.AiReactionTime; // 0.5; // minimum AI reacting time
 		itemToCraft.searchCurrentPosition = true;
+		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 
 		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} account:  ${myPlayer.account.id}');
 
@@ -697,7 +698,9 @@ abstract class AiBase
 		if(objId == 83 || objId == 346 || objId == 3029){
 			if(hasOrBecomeProfession('firekeeper', maxProfession) == false) return false;
 
-			if(doCriticalStuff()) return true;
+			itemToCraft.maxSearchRadius = 30; // craft only close
+			Macro.exception(if (doCriticalStuff()) return true);
+			itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 		
 			return false;
 		}
@@ -3394,6 +3397,7 @@ private function craftLowPriorityClothing() : Bool {
 		var startTime = Sys.time();
 		itemToCraft.transActor = null;
 		itemToCraft.transTarget = null;
+		if(itemToCraft.maxSearchRadius < 1) itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 
 		var objToCraftId = itemToCraft.itemToCraft.parentId;
 		var transitionsByObjectId = itemToCraft.transitionsByObjectId;
@@ -3404,7 +3408,7 @@ private function craftLowPriorityClothing() : Bool {
 		var baseY = player.ty;
 		var radius = 0;
 
-		while (radius < ServerSettings.AiMaxSearchRadius) {
+		while (radius < itemToCraft.maxSearchRadius) {
 			radius += ServerSettings.AiMaxSearchIncrement;
 			itemToCraft.searchRadius = radius;
 
