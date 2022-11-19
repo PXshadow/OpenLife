@@ -592,8 +592,11 @@ abstract class AiBase
 		var home = myPlayer.home;
 		var held = myPlayer.heldObject;
 
+		// Basket of Charcoal 298
+		if(shortCraftOnGround(298)) return true;
+
 		// Long Straight Shaft 67 
-		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 67, 20);
+		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 67, 10);
 		if(count > 5){
 			// Stone Hatchet 71 + Long Straight Shaft 67 = Kindling
 			if(shortCraft(71, 67, 20)) return true; 
@@ -623,6 +626,38 @@ abstract class AiBase
 			if(shortCraft(3891, 3891, 20)) return true; 
 		}
 
+		return false;
+	}
+
+	private function doCriticalStuff() {
+		// get basic kindling
+		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 72, 15); // Kindling 72
+		if(count < 3) this.profession['firekeeper'] = 1;
+		if(count < 5) this.profession['firekeeper'] = 2;
+		
+		// Kindling 72
+		if(this.profession['firekeeper'] < 2 && count < 5 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true; 
+		this.profession['firekeeper'] = 2;
+
+		// make basic fire food
+		if(shortCraftOnGround(186)) return true; // Cooked Rabbit --> unskew the Cooked Rabbits
+
+		if(craftItem(570)) return true; // Cooked Mutton
+		if(craftItem(197)) return true; // Cooked Rabbit
+
+		// take care that there is at least some basic farming
+		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 399, 30); // Wet Planted Carrots
+		if(closeObj == null) if(craftItem(399)) return true; // Wet Planted Carrots
+
+		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 1110, 30); // Wet Planted Corn Seed
+		if(closeObj == null) if(craftItem(1110)) return true; // Wet Planted Corn Seed	
+
+		if(cleanUp()) return true;
+
+		// more kindling
+		if(this.profession['firekeeper'] < 3 && count < 10 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true; 
+		this.profession['firekeeper'] = 3;
+		
 		return false;
 	}
 
@@ -662,14 +697,8 @@ abstract class AiBase
 		if(objId == 83 || objId == 346 || objId == 3029){
 			if(hasOrBecomeProfession('firekeeper', maxProfession) == false) return false;
 
-			if(cleanUp()) return true;
-			
-			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 72, 15); // Kindling 72
-			if(count < 3) this.profession['firekeeper'] = 1;
-			
-			// Kindling 72
-			if(this.profession['firekeeper'] < 2 && count < 10 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true; 
-			this.profession['firekeeper'] = 2;
+			if(doCriticalStuff()) return true;
+		
 			return false;
 		}
 
@@ -1632,16 +1661,16 @@ abstract class AiBase
 			fireOven = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 249, 20, null, myPlayer);
 
 			for(id in rawPies){
-				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, id, 20);
+				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, id, 25);
 			}
 			//countRawPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 40);
 			//countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 40);
 		}
 		
-		if(hotOven != null || countRawPies > 3){
+		if(hotOven != null || countRawPies > 2){
 			this.profession['Baker'] = 2;
 
-			if(hotOven != null && countRawPies > 1){
+			if(hotOven == null && countRawPies > 0){
 				if(fireOven == null && craftItem(249)) return true; // Burning Adobe Oven
 				return false;
 			}
