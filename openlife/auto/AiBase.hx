@@ -1128,19 +1128,21 @@ abstract class AiBase
 	private function doBasicFarming(maxProfession = 2) {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
+		var distance = 30;
+		//var distance:Int = Math.round(10 + 10 * this.profession['BasicFarmer']);
 
 		//if(craftItem(1113)) return true; // Ear of Corn
 		if(hasOrBecomeProfession('BasicFarmer', maxProfession) == false) return false;
 
-		if(shortCraft(0, 400, 20)) return true; // pull out the carrots 
-		if(shortCraft(0, 1112)) return true; // 0 + Corn Plant --> Ear of Corn
-		if(shortCraft(34, 1113)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
+		if(shortCraft(0, 400, distance)) return true; // pull out the carrots 
+		if(shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
+		if(shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 
-		if(shortCraft(139, 2832, 20)) return true; // Skewer + Tomato Sprout
-		if(shortCraft(139, 4228, 20)) return true; // Skewer + Cucumber Sprout
+		if(shortCraft(139, 2832, distance)) return true; // Skewer + Tomato Sprout
+		if(shortCraft(139, 4228, distance)) return true; // Skewer + Cucumber Sprout
 
 		// water
-		if(doWatering(1)) return true;
+		//if(doWatering(1)) return true;
 
 		//var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 15); //  Clay Bowl 235
 		//if(countBowls < 1) return doPottery(3);
@@ -1153,7 +1155,7 @@ abstract class AiBase
 		if(heldObject.parentId == 336) this.profession['BasicFarmer'] = 1; // need more soil
 
 		if(this.profession['BasicFarmer'] < 2){
-			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1101, 20); // Fertile Soil Pile
+			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1101, 30); // Fertile Soil Pile
 			//var max = this.profession['BasicFarmer'] < 2 ? 3 : 1;
 			if(count < 4) if(craftItem(336)) return true; // Basket of Soil
 			this.profession['BasicFarmer'] = 2;
@@ -1161,7 +1163,7 @@ abstract class AiBase
 
 		// 2: Prepare Shallow Tilled Rows
 		if(this.profession['BasicFarmer'] < 3){
-			var countShallowRows = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1136, 20); // Shallow Tilled Row
+			var countShallowRows = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1136, 30); // Shallow Tilled Row
 			if(countShallowRows < 6 && shortCraft(1137, 848, 20)) return true; // Bowl of Soil + Hardened Row --> Shallow Tilled Row
 			this.profession['BasicFarmer'] = 3;
 		}
@@ -1182,13 +1184,13 @@ abstract class AiBase
 
 		if(this.profession['BasicFarmer'] < 6){
 			// let 5 wheat stay for seeds and so that it looks nice
-			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 242, 20); // Ripe Wheat
+			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 242, 30); // Ripe Wheat
 			if(count > 5) if(craftItem(224)) return true; // Harvested Wheat 
 
-			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 224, 20); // Harvested Wheat
+			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 224, 30); // Harvested Wheat
 			if(closeObj != null) if(craftItem(225)) return true; // Wheat Sheaf
 			
-			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 225, 20); // Wheat Sheaf
+			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 225, 30); // Wheat Sheaf
 			if(closeObj != null) if(craftItem(226)) return true; // Threshed Wheat	
 
 			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 229, 30); // Wet Planted Wheat 229
@@ -1215,22 +1217,22 @@ abstract class AiBase
 		//if(closeObj != null) if(craftItem(224)) return true; // Harvested Wheat		
 
 		// Composting Compost Pile 790
-		var countCompost = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 790, 20);
+		var countCompost = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 790, 30);
 		// Composted Soil 624
-		countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 624, 20);
+		countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 624, 30);
 
 		// Wet Compost Pile 625
 		if(countCompost < 5 && craftItem(790)) return true; 
 
 		// Wet Compost Pile 625
-		countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 625, 20);
+		countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 625, 30);
 
 		// Wet Compost Pile 625
 		if(countCompost < 5 && craftItem(625)) return true; 
 
 		// check if there is a Tilled Row already before creating a new one
 		var deepRow = AiHelper.GetClosestObjectToHome(myPlayer, 213, 20); // Deep Tilled Row
-		if(deepRow == null) if(shortCraft(850, 1138, 15)) return true; // Stone Hoe + Fertile Soil --> Shallow Tilled Row
+		if(deepRow == null) if(shortCraft(850, 1138, 30)) return true; // Stone Hoe + Fertile Soil --> Shallow Tilled Row
 		//if(deepRow == null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Fertile Soil
 		//if(closeObj != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 
