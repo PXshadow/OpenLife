@@ -1548,7 +1548,7 @@ class TimeHelper {
 				var objId = worldMap.getObjectId(x, y)[0];
 				var floorId = worldMap.getFloorId(x,y);
 
-				DoSeasonalBiomeChanges(x, y, timePassedInYears);
+				DoSeasonalBiomeChanges(x, y, timePassedInYears);	
 
 				if(objId == 0 && floorId == 0 && season == Spring) DoRespawnFromOriginal(x, y, timePassedInYears);
 				
@@ -1557,8 +1557,28 @@ class TimeHelper {
 				if(objId != 0) DecayObject(x, y, timePassedInYears);
 
 				if(objId != 0) AlignWalls(x, y);
+
+				if(objId != 0) ClearHeldObjectOnground(x,y, objId);
 			}
 		}
+	}
+
+	private static function ClearHeldObjectOnground(tx:Int, ty:Int, objId:Int) {
+		// Horse-Drawn Cart 778 // Horse-Drawn Tire Cart 3158
+		// TODO hold cows and so on
+		if(objId != 778 && objId != 3158) return false;
+		var world = WorldMap.world;
+
+		// transform placed object back to a not held one in case its a held one like a horse cart
+		var trans = TransitionImporter.GetTransition(objId, -1);
+		if(trans == null) return false;
+
+		var obj = world.getObjectHelper(tx,ty);
+		obj.id = trans.newTargetID;
+		world.setObjectHelper(tx,ty, obj);
+
+		trace('WARNING: ClearHeldObjectOnground ${obj.name} ${obj.parentId}');	
+		return true;
 	}
 
 	private static function AlignWalls(tx:Int, ty:Int) {
