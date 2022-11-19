@@ -1265,6 +1265,13 @@ class WorldMap {
 	public static function PlaceObject(tx:Int, ty:Int, objectToPlace:ObjectHelper, allowReplaceObject:Bool = false):Bool {
 		var world = WorldMap.world;
 
+		// transform placed object back to a not held one in case its a held one like a horse cart
+		var trans = TransitionImporter.GetTransition(objectToPlace.id, -1);
+		if(trans != null){
+			trace('PlaceObject transform held object: ${trans.getDesciption()}');
+			objectToPlace.id =  trans.newTargetID;
+		}
+
 		var originalObjectToPlace = objectToPlace;
 
 		objectToPlace = TryPlaceObject(tx, ty, objectToPlace, allowReplaceObject);

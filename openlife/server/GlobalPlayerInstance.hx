@@ -4262,6 +4262,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				return false;
 			}
 
+			// Wolf 418
+			//var from = new ObjectHelper(null,418);
+			//player.doDamage(from);
+
+			
 			player.hits += 10;
 			player.food_store_max = player.calculateFoodStoreMax();
 
@@ -4273,8 +4278,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				player.connection.send(ClientTag.DYING, ['${player.p_id}']);
 			}
 
-			player.setHeldObject(new ObjectHelper(null, 1363));
-			player.heldObject.timeToChange *= 0.2;
+			//player.setHeldObject(new ObjectHelper(null, 1363));
+			//player.heldObject.timeToChange *= 0.2;
 
 			Connection.SendUpdateToAllClosePlayers(player);
 		} else if (text.indexOf('!HEAL') != -1) {
