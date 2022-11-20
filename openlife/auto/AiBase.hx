@@ -2575,6 +2575,30 @@ private function craftLowPriorityClothing() : Bool {
 		return false;
 	}
 
+	public function dropNearOven() {
+		var heldObject = myPlayer.heldObject;
+		var heldObjId = heldObject.parentId;
+
+	}
+
+	public function dropNearKiln() {
+		var heldObject = myPlayer.heldObject;
+		var heldObjId = heldObject.parentId;
+
+	}
+
+	public function dropNearForge() {
+		var heldObject = myPlayer.heldObject;
+		var heldId = heldObject.parentId;
+
+	}
+
+	public function dropGraveyard() {
+		var heldObject = myPlayer.heldObject;
+		var heldObjId = heldObject.parentId;
+
+	}
+
 	//public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
 	// allowAllPiles --> some stuff like clay baskets and so on is normally not piled. Set true if it should be allowed to be piled. 
 	public function dropHeldObject(maxDistanceToHome:Float = 40, allowAllPiles:Bool = false, ?infos:haxe.PosInfos) : Bool {
@@ -2674,6 +2698,7 @@ private function craftLowPriorityClothing() : Bool {
 			}
 		}
 
+		// TODO what is if super far away from oven?
 		// Clay Plate 236
 		if(heldId == 236){
 			target = myPlayer.home; // drop near home which is normaly the oven	
@@ -2696,7 +2721,6 @@ private function craftLowPriorityClothing() : Bool {
 			}
 		}
 
-		//if (dropOnStart && maxDistanceToHome > 0 && itemToCraft.startLocation != null) {
 		if (dropOnStart && maxDistanceToHome > 0) {
 			var quadMaxDistanceToHome = Math.pow(maxDistanceToHome, 2);
 			var quadDistance = myPlayer.CalculateQuadDistanceToObject(target);
