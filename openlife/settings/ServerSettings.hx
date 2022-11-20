@@ -2325,6 +2325,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(292, 305); // Basket 292 + Forge with Charcoal 305
 		trans.aiShouldIgnore = true;
 
+		// AI wants to get rid of water to get empty bowls
+		var trans = transtions.getTransition(1620, 382); // Wood Shavings 1620 + Bowl of Water 382
+		trans.aiShouldIgnore = true;
+
 		// protect smithing TODO allow for smithing or manually instruct
 		//var trans = transtions.getTransition(0, 322); // 0 + Forged Steel Crucible
 		//trans.aiShouldIgnore = true;
