@@ -2633,9 +2633,15 @@ private function craftLowPriorityClothing() : Bool {
 			}
 		}
 
-		// Basket 292, Clay 126
+		// Clay 126 ==> drop close to oven
+		if(heldId == 126){
+			var kiln = GetKiln();
+			if(kiln != null) target = kiln;
+		}
+
+		// Basket 292, Clay 126 ==> drop close to oven
 		if(heldId == 292 && heldObject.contains([126])){
-			pileId = 0; 
+			pileId = 0;
 			var kiln = GetKiln();
 			if(kiln != null){
 				target = kiln;
@@ -2643,9 +2649,11 @@ private function craftLowPriorityClothing() : Bool {
 
 				// switch with close // -10 looks for non permanent that is not same like heldobj
 				if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectToTarget(target, -10, 20);	
-				this.dropIsAUse = false;
-				this.dropTarget = newDropTarget;
-				return true;
+				if(newDropTarget != null){
+					this.dropIsAUse = false;
+					this.dropTarget = newDropTarget;
+					return true;
+				}
 			}
 		}
 
