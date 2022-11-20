@@ -1262,15 +1262,24 @@ class WorldMap {
 		return PlaceObject(tx, ty, obj);
 	}
 
-	public static function PlaceObject(tx:Int, ty:Int, objectToPlace:ObjectHelper, allowReplaceObject:Bool = false):Bool {
-		var world = WorldMap.world;
+	public static function TransformObject(obj:ObjectHelper){
+		var objId = obj.parentId;
+		// Horse-Drawn Cart 778 // Horse-Drawn Tire Cart 3158
+		if(objId != 778 && objId != 3158) return false;
 
 		// transform placed object back to a not held one in case its a held one like a horse cart
-		var trans = TransitionImporter.GetTransition(objectToPlace.id, -1);
-		if(trans != null){
-			trace('PlaceObject transform held object: ${trans.getDesciption()}');
-			objectToPlace.id =  trans.newTargetID;
-		}
+		var trans = TransitionImporter.GetTransition(objId, -1);
+		if(trans == null) return false;
+
+		trace('PlaceObject transform held object: ${trans.getDesciption()}');
+		obj.id =  trans.newTargetID;
+		
+		return true;
+	}
+
+	public static function PlaceObject(tx:Int, ty:Int, objectToPlace:ObjectHelper, allowReplaceObject:Bool = false):Bool {
+		// should not be on ground Horse-Drawn Cart 778 // Horse-Drawn Tire Cart 3158
+		TransformObject(objectToPlace);
 
 		var originalObjectToPlace = objectToPlace;
 
