@@ -640,12 +640,8 @@ abstract class AiBase
 		if(this.profession['firekeeper'] < 2 && count < 5 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true; 
 		this.profession['firekeeper'] = 2;
 
-		// make basic fire food
-		if(shortCraftOnGround(186)) return true; // Cooked Rabbit --> unskew the Cooked Rabbits
-
-		if(craftItem(570)) return true; // Cooked Mutton
-		if(craftItem(197)) return true; // Cooked Rabbit
-
+		if(makeFireFood(5)) return true;
+		
 		// take care that there is at least some basic farming
 		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 399, 30); // Wet Planted Carrots
 		if(closeObj == null) if(craftItem(399)) return true; // Wet Planted Carrots
@@ -722,6 +718,10 @@ abstract class AiBase
 				return done;
 			}
 			else{
+				itemToCraft.maxSearchRadius = 30; // craft only close
+				Macro.exception(if (makeFireFood(5)) return true);
+				itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
+
 				if(ServerSettings.DebugAiSay)
 					myPlayer.say('Get Kindling For ${firePlace.name}');
 				if (ServerSettings.DebugAi)
@@ -1352,10 +1352,10 @@ abstract class AiBase
 
 	private function shortCraft(actorId:Int, targetId:Int, distance:Int = 20, craftActorIfNeeded = true) : Bool {
 		var target = AiHelper.GetClosestObjectById(myPlayer, targetId, null, distance);
-		return shortCraftOnTarget(actorId, target, distance, craftActorIfNeeded);
+		return shortCraftOnTarget(actorId, target, craftActorIfNeeded);
 	}
 	
-	private function shortCraftOnTarget(actorId:Int, target:ObjectHelper, distance:Int = 20, craftActorIfNeeded = true) : Bool {
+	private function shortCraftOnTarget(actorId:Int, target:ObjectHelper, craftActorIfNeeded = true) : Bool {
 		if(target == null) return false;
 		var targetId = target.parentId;
 		// dont use carrots if seed is needed // 400 Carrot Row
@@ -1681,13 +1681,13 @@ abstract class AiBase
 			for(i in 0... pies.length){
 				var index = (nextPie + i) % pies.length;
 				lastPie = index;
-				if(shortCraftOnTarget(rawPies[index], hotOven, 20, false)) return true;
+				if(shortCraftOnTarget(rawPies[index], hotOven, false)) return true;
 			}
 
 			// Raw Bread Loaf 1469
-			if(shortCraftOnTarget(1469, hotOven, 20, false)) return true;
+			if(shortCraftOnTarget(1469, hotOven, false)) return true;
 			// Raw Mutton 569
-			if(shortCraftOnTarget(569, hotOven, 20, false)) return true;
+			if(shortCraftOnTarget(569, hotOven, false)) return true;
 		}
 		
 		if(hotOven != null && fireOven != null){
@@ -2121,6 +2121,8 @@ abstract class AiBase
 	private function makeFireFood(maxPeople:Int = 1) : Bool {
 		if(hasOrBecomeProfession('FireFoodMaker', maxPeople) == false) return false;
 
+		var firePlace = myPlayer.firePlace;
+
 		/*var mutton = AiHelper.GetClosestObjectById(myPlayer, 569); // Raw Mutton
 
 		if(mutton != null){
@@ -2130,18 +2132,40 @@ abstract class AiBase
 
 		if(shortCraftOnGround(186)) return true; // Cooked Rabbit --> unskew the Cooked Rabbits
 
-		if(isHandlingFire(3)) return true;
+		// Hot Coals 85 
+		var hotCoals = AiHelper.GetClosestObjectToHome(myPlayer, 85, 30);
+		 
+		// Cooked Mutton 570
+		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 20);
+		if(count < 4 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570
+		// Cooked Rabbit 197
+		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 197, 20);
+		if(count < 4 && shortCraftOnTarget(185, hotCoals)) return true; // Skewered Rabbit 185 --> Cooked Rabbit 186
 
-		if(craftItem(570)) return true; // Cooked Mutton
-		if(craftItem(197)) return true; // Cooked Rabbit
+		// Kindling 72
+		if(hotCoals == firePlace && shortCraftOnTarget(72,hotCoals)) return true; 
 
-		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 15);
-
-		if(countPlates > 0 && craftItem(1285)) return true; // Omelette
+		// Fire 82
+		if(firePlace == null) return craftItem(82);
 
 		// 1284 Cool Flat Rock --> Ashes
 		if(shortCraft(0, 1284, 20)) return true;
 
+		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 20);
+		if(countPlates > 0 && craftItem(1285)) return true; // Omelette
+
+		// Skinned Rabbit 181
+		var countRawFireFood = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 181, 25);
+		// Raw Mutton 569
+		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 25);
+
+		if(countRawFireFood > 2){
+			// look for second fire 82
+			var fire = AiHelper.GetClosestObjectToHome(myPlayer, 82, 30, firePlace);
+			if(fire != null) return false; // wait for fire to burn down
+			return craftItem(82);
+		}
+	
 		this.profession['FireFoodMaker'] = 0;
 		return false;
 	}
