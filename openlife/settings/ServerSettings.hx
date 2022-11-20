@@ -2352,6 +2352,13 @@ class ServerSettings {
 		var trans = transtions.getTransition(0, 675); // 0 + Bowl of Limestone 675 
 		trans.aiShouldIgnore = true;
 
+		// dont destry knifes to get the material
+		var trans = transtions.getTransition(441, 560); // Smithing Hammer 441 + Knife 560
+		trans.aiShouldIgnore = true; 
+
+		//var trans = transtions.getTransition(441, 560, true); // Smithing Hammer 441 + Knife 560
+		//trans.aiShouldIgnore = true;
+
 		// Scrap Bowl 3076 --> dont allow to scraft crafted metal
 		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
 		for(trans in transByTarget){
