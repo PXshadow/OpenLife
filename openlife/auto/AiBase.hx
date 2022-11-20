@@ -2621,9 +2621,10 @@ private function craftLowPriorityClothing() : Bool {
 		if(heldId == 291 || heldId == 33){
 			var forge = GetForge();
 			var maxItems = heldId == 291 ? 3 : 1;
+			var countPiles = heldId == 33;
 			
 			if(forge != null){
-				var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, heldId, 3);
+				var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, heldId, 3, countPiles);
 
 				if(count < maxItems){
 					pileId = 0; 
@@ -2645,6 +2646,28 @@ private function craftLowPriorityClothing() : Bool {
 				this.dropIsAUse = false;
 				this.dropTarget = newDropTarget;
 				return true;
+			}
+		}
+
+		// Clay Plate 236
+		if(heldId == 236){
+			target = myPlayer.home; // drop near home which is normaly the oven		
+
+			var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, heldId, 10, false);
+			// pile if more then 5
+			if(count < 5){
+				pileId = 0; 
+
+				newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, 5);
+
+				// switch with close // -10 looks for non permanent that is not same like heldobj
+				if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectToTarget(target, -10, 20);	
+					
+				if(newDropTarget != null){
+					this.dropIsAUse = false;
+					this.dropTarget = newDropTarget;
+					return true;
+				}
 			}
 		}
 
