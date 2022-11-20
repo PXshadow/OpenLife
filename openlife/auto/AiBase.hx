@@ -2596,22 +2596,21 @@ private function craftLowPriorityClothing() : Bool {
 	public function dropGraveyard() {
 		var heldObject = myPlayer.heldObject;
 		var heldObjId = heldObject.parentId;
-
 	}
 
 	//public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
 	// allowAllPiles --> some stuff like clay baskets and so on is normally not piled. Set true if it should be allowed to be piled. 
 	public function dropHeldObject(maxDistanceToHome:Float = 40, allowAllPiles:Bool = false, ?infos:haxe.PosInfos) : Bool {
-		// var myPlayer = myPlayer.getPlayerInstance();
+
 		var home = myPlayer.home;
 		var target = home;
 		var dropCloseToPlayer = true;
-		var dropOnStart:Bool = home != null;
 		var heldObjId = myPlayer.heldObject.parentId;
 		var searchDistance = 40;
 		// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
 		var dontDropCloseHomeIds = [356, 336, 1137];
 		var mindistance = dontDropCloseHomeIds.contains(heldObjId) ? 7 : 0; // to home
+		var dropOnStart:Bool = mindistance < 1;
 		var newDropTarget = null;
 		var heldObject = myPlayer.heldObject;
 		var heldId = heldObject.parentId;
@@ -2670,6 +2669,7 @@ private function craftLowPriorityClothing() : Bool {
 			var countPiles = heldId == 33;
 			
 			if(forge != null){
+				dropCloseToPlayer = false;
 				var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, heldId, 3, countPiles);
 
 				if(count < maxItems){
@@ -2686,6 +2686,7 @@ private function craftLowPriorityClothing() : Bool {
 			var kiln = GetKiln();
 			if(kiln != null){
 				target = kiln;
+				dropCloseToPlayer = false;
 				newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, 5);
 
 				// switch with close // -10 looks for non permanent that is not same like heldobj
@@ -2697,12 +2698,16 @@ private function craftLowPriorityClothing() : Bool {
 				}
 			}
 		}
+		
+		// Clay Plate 236 // Knife 560 // Baked Bread 1470 // Sliced Bread 1471
+		var dropNearOvenItemIds = [236, 560, 1470, 1471];
+		if(dropNearOvenItemIds.contains(heldId) || pies.contains(heldId) || rawPies.contains(heldId)){
+			target = myPlayer.home; // drop near home which is normaly the oven	
+			dropCloseToPlayer = false;
+		}
 
 		// TODO what is if super far away from oven?
-		// Clay Plate 236
 		if(heldId == 236){
-			target = myPlayer.home; // drop near home which is normaly the oven	
-
 			var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, heldId, 10, false);
 			// pile if more then 5
 			if(count < 5){
@@ -4169,7 +4174,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		if (isUse && myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to pickup food / after move');
-			dropHeldObject(20);
+			dropHeldObject(0);
 			return true;
 		}
 
