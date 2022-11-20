@@ -2138,6 +2138,7 @@ abstract class AiBase
 		// Cooked Mutton 570
 		var countDoneMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 20);
 		if(countDoneMutton < 2 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570
+
 		// Cooked Rabbit 197
 		var countDoneRabbit = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 197, 20);
 		if(countDoneRabbit < 2 && shortCraftOnTarget(185, hotCoals)) return true; // Skewered Rabbit 185 --> Cooked Rabbit 186
@@ -2162,8 +2163,7 @@ abstract class AiBase
 		if(countRawFireFood > 1 && hotCoals == null && (countDoneRabbit < 1 || countDoneMutton < 1)){
 			// look for second fire 82
 			var fire = AiHelper.GetClosestObjectToHome(myPlayer, 82, 30, firePlace);
-			if(fire != null) return false; // wait for fire to burn down
-			return craftItem(82);
+			if(fire == null) return craftItem(82);
 		}
 	
 		// Raw Mutton 569
@@ -2519,47 +2519,9 @@ private function craftLowPriorityClothing() : Bool {
 		if (ServerSettings.DebugAi && foodTarget == null) trace('AAI: ${myPlayer.name + myPlayer.id} no new Foodtarget!!! held: ${heldObjName}');
 	}
 
-	//public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
-	// allowAllPiles --> some stuff like clay baskets and so on is normally not piled. Set true if it should be allowed to be piled. 
-	public function dropHeldObject(maxDistanceToHome:Float = 40, allowAllPiles:Bool = false, ?infos:haxe.PosInfos) : Bool {
-		// var myPlayer = myPlayer.getPlayerInstance();
-		var home = myPlayer.home;
-		var dropOnStart:Bool = home != null;
-		var heldObjId = myPlayer.heldObject.parentId;
-		var searchDistance = 40;
-		// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
-		var dontDropCloseHomeIds = [356, 336, 1137];
-		var mindistance = dontDropCloseHomeIds.contains(heldObjId) ? 7 : 0; // to home
-
-		if (heldObjId == 0) return false;
-		if (myPlayer.heldObject.isWound()) return false;
-		if (myPlayer.heldObject == myPlayer.hiddenWound) return false; // you cannot drop a smal wound
-		if (heldObjId == 2144) dropOnStart = false; // 2144 Banana Peel
-		else if (heldObjId == 34) dropOnStart = false; // 34 Sharp Stone
-		else if (heldObjId == 135) dropOnStart = false; // 135 Flint Chip
-		else if (heldObjId == 57) dropOnStart = false; // 57 Milkweed Stalk
-		else if (heldObjId == 3180) dropOnStart = false; // 3180 Flat Rock with Rabbit Bait
-
-		if(ServerSettings.DebugAi) 
-			trace('AAI: ${myPlayer.name + myPlayer.id} DROP: ${myPlayer.heldObject.name} to ${infos.methodName}');
-				
-		// if holding Clay 126 and far from home try to drop in basket
-		if(heldObjId == 126){ 
-			var distanceToHome = myPlayer.CalculateQuadDistanceToObject(home);
-
-			if(distanceToHome > 100){
-				// search if there is a clay basket
-				var basket = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 292, 10, null, myPlayer, [126]); // Basket 292, Clay 126
-				if(basket == null) basket = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 292, 10, null, myPlayer); // Basket 292
-
-				if(basket != null){
-					if (ServerSettings.DebugAiSay) myPlayer.say('drop clay in basket');
-					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: drop clay in basket: d: $distanceToHome');
-
-					return useHeldObjOnTarget(basket); // fill basket	
-				}
-			}
-		}
+	public function storeInQuiver() {
+		var heldObject = myPlayer.heldObject;
+		var heldObjId = heldObject.parentId;
 
 		// Yew Bow
 		if(heldObjId == 151){
@@ -2609,41 +2571,73 @@ private function craftLowPriorityClothing() : Bool {
 				return true;
 			}
 		}
-		
-		//if (dropOnStart && maxDistanceToHome > 0 && itemToCraft.startLocation != null) {
-		if (dropOnStart && maxDistanceToHome > 0) {
-			var quadMaxDistanceToHome = Math.pow(maxDistanceToHome, 2);
-			var distance = myPlayer.CalculateQuadDistanceToObject(home);
 
-			// check if not too close or too far
-			if (distance > 25 && quadMaxDistanceToHome < distance) {
-				var done = myPlayer.gotoObj(home); // TODO better go directly to right place at home
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done drop goto home $distance');
+		return false;
+	}
 
-				if(done){
-					if(ServerSettings.DebugAiSay) myPlayer.say('Goto home!');
-					return true;
-				}
-				
-				if(ServerSettings.DebugAiSay) myPlayer.say('Cannot Goto home!');
-			}
-		}
-
+	//public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
+	// allowAllPiles --> some stuff like clay baskets and so on is normally not piled. Set true if it should be allowed to be piled. 
+	public function dropHeldObject(maxDistanceToHome:Float = 40, allowAllPiles:Bool = false, ?infos:haxe.PosInfos) : Bool {
+		// var myPlayer = myPlayer.getPlayerInstance();
+		var home = myPlayer.home;
+		var target = home;
+		var dropCloseToPlayer = true;
+		var dropOnStart:Bool = home != null;
+		var heldObjId = myPlayer.heldObject.parentId;
+		var searchDistance = 40;
+		// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
+		var dontDropCloseHomeIds = [356, 336, 1137];
+		var mindistance = dontDropCloseHomeIds.contains(heldObjId) ? 7 : 0; // to home
 		var newDropTarget = null;
-		var pileId = myPlayer.heldObject.objectData.getPileObjId();
+		var heldObject = myPlayer.heldObject;
+		var heldId = heldObject.parentId;
+
+		if (heldObjId == 0) return false;
+		if (myPlayer.heldObject.isWound()) return false;
+		if (myPlayer.heldObject == myPlayer.hiddenWound) return false; // you cannot drop a smal wound
+
+		var pileId = heldObject.objectData.getPileObjId();
 
 		// drop on ground to process
 		// 225 Wheat Sheaf // 1113 Ear of Corn  // 292 Basket // 233 Wet Clay Bowl
 		// For now allowed: 126 Clay // 236 Clay Plate
 		//var dontUsePile = allowAllPiles ? [] : [225, 1113, 126, 236, 292, 233];
 		var dontUsePile = allowAllPiles ? [] : [225, 1113, 292, 233];
-		var heldObject = myPlayer.heldObject;
-		var heldId = heldObject.parentId;
-		var target = new ObjectHelper(null, 0);
-		target.tx = myPlayer.tx;
-		target.ty = myPlayer.ty;
+		
+		if (heldObjId == 2144) dropOnStart = false; // 2144 Banana Peel
+		else if (heldObjId == 34) dropOnStart = false; // 34 Sharp Stone
+		else if (heldObjId == 135) dropOnStart = false; // 135 Flint Chip
+		else if (heldObjId == 57) dropOnStart = false; // 57 Milkweed Stalk
+		else if (heldObjId == 3180) dropOnStart = false; // 3180 Flat Rock with Rabbit Bait
 
-		if(dontUsePile.contains(heldId)) pileId = 0; 
+		if(ServerSettings.DebugAi) 
+			trace('AAI: ${myPlayer.name + myPlayer.id} DROP: ${myPlayer.heldObject.name} to ${infos.methodName}');
+				
+		if(storeInQuiver()) return true;
+	
+		// Clay 126 ==> drop close to kiln if close, otherwise drop in basket
+		if(heldObjId == 126){ 
+			var kiln = GetKiln();
+			if(kiln != null) {
+				dropCloseToPlayer = false;
+				target = kiln;
+			}
+
+			var distanceToKiln = myPlayer.CalculateQuadDistanceToObject(target);
+
+			if(distanceToKiln > 400){ //225
+				// search if there is a clay basket
+				var basket = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 292, 10, null, myPlayer, [126]); // Basket 292, Clay 126
+				if(basket == null) basket = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 292, 10, null, myPlayer); // Basket 292
+
+				if(basket != null){
+					if (ServerSettings.DebugAiSay) myPlayer.say('drop clay in basket');
+					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: drop clay in basket: d: $distanceToKiln');
+
+					return useHeldObjOnTarget(basket); // fill basket	
+				}
+			}
+		}
 
 		// Flat Rock 291 // Stone 33
 		if(heldId == 291 || heldId == 33){
@@ -2655,16 +2649,11 @@ private function craftLowPriorityClothing() : Bool {
 				var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, heldId, 3, countPiles);
 
 				if(count < maxItems){
-					pileId = 0; 
+					if(heldId == 291) pileId = 0; 
+					dropCloseToPlayer = false;
 					target = forge;
 				}
 			}
-		}
-
-		// Clay 126 ==> drop close to oven
-		if(heldId == 126){
-			var kiln = GetKiln();
-			if(kiln != null) target = kiln;
 		}
 
 		// Basket 292, Clay 126 ==> drop close to oven
@@ -2687,7 +2676,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		// Clay Plate 236
 		if(heldId == 236){
-			target = myPlayer.home; // drop near home which is normaly the oven		
+			target = myPlayer.home; // drop near home which is normaly the oven	
 
 			var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, heldId, 10, false);
 			// pile if more then 5
@@ -2706,6 +2695,33 @@ private function craftLowPriorityClothing() : Bool {
 				}
 			}
 		}
+
+		//if (dropOnStart && maxDistanceToHome > 0 && itemToCraft.startLocation != null) {
+		if (dropOnStart && maxDistanceToHome > 0) {
+			var quadMaxDistanceToHome = Math.pow(maxDistanceToHome, 2);
+			var quadDistance = myPlayer.CalculateQuadDistanceToObject(target);
+
+			// check if not too close or too far // old 25 quadDistance > quadMaxDistanceToHome
+			if (quadDistance > 100 && quadDistance < quadMaxDistanceToHome) {
+				var done = myPlayer.gotoObj(target);
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done drop goto ${target.name} $quadDistance');
+
+				if(done){
+					if(ServerSettings.DebugAiSay) myPlayer.say('Goto home!');
+					return true;
+				}
+				
+				if(ServerSettings.DebugAiSay) myPlayer.say('Cannot Goto home!');
+			}
+		}
+	
+		if(dropCloseToPlayer){
+			target = new ObjectHelper(null, 0);
+			target.tx = myPlayer.tx;
+			target.ty = myPlayer.ty;	
+		}
+
+		if(dontUsePile.contains(heldId)) pileId = 0; 
 
 		if(pileId > 0){
 			newDropTarget = myPlayer.GetClosestObjectToTarget(target, pileId, 4); 
