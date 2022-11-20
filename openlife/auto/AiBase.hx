@@ -2123,24 +2123,17 @@ abstract class AiBase
 
 		var firePlace = myPlayer.firePlace;
 
-		/*var mutton = AiHelper.GetClosestObjectById(myPlayer, 569); // Raw Mutton
-
-		if(mutton != null){
-			var placeToCook = AiHelper.GetClosestObjectById(myPlayer, 250); // Hot Adobe Oven
-			if (placeToCook == null) placeToCook = AiHelper.GetClosestObjectById(myPlayer, 85); // Hot Coals
-		}*/
-
 		if(shortCraftOnGround(186)) return true; // Cooked Rabbit --> unskew the Cooked Rabbits
 
-		// Hot Coals 85 
+		// Hot Coals 85 // TODO consider time to change
 		var hotCoals = AiHelper.GetClosestObjectToHome(myPlayer, 85, 30);
-		 
+		
 		// Cooked Mutton 570
-		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 20);
-		if(count < 4 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570
+		var countDoneMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 20);
+		if(countDoneMutton < 2 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570
 		// Cooked Rabbit 197
-		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 197, 20);
-		if(count < 4 && shortCraftOnTarget(185, hotCoals)) return true; // Skewered Rabbit 185 --> Cooked Rabbit 186
+		var countDoneRabbit = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 197, 20);
+		if(countDoneRabbit < 2 && shortCraftOnTarget(185, hotCoals)) return true; // Skewered Rabbit 185 --> Cooked Rabbit 186
 
 		// Kindling 72
 		if(hotCoals == firePlace && shortCraftOnTarget(72,hotCoals)) return true; 
@@ -2159,13 +2152,18 @@ abstract class AiBase
 		// Raw Mutton 569
 		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 25);
 
-		if(countRawFireFood > 2){
+		if(countRawFireFood > 1 && hotCoals == null && (countDoneRabbit < 1 || countDoneMutton < 1)){
 			// look for second fire 82
 			var fire = AiHelper.GetClosestObjectToHome(myPlayer, 82, 30, firePlace);
 			if(fire != null) return false; // wait for fire to burn down
 			return craftItem(82);
 		}
 	
+		// Raw Mutton 569
+		if(craftItem(569)) return true;
+		// Skinned Rabbit 181
+		if(craftItem(181)) return true;
+
 		this.profession['FireFoodMaker'] = 0;
 		return false;
 	}
