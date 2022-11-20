@@ -83,6 +83,7 @@ abstract class AiBase
 	public var hasCornSeeds = false;
 	public var hasCarrotSeeds = false;
 
+	public var wasIdle:Float = 0;
 	public var lastProfession:String = null;
 	public var profession:Map<String,Float> = [];
 	public var lastCheckedTimes:Map<String,Float> = [];
@@ -301,6 +302,7 @@ abstract class AiBase
 		itemToCraft.searchCurrentPosition = true;
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 
+		if(wasIdle > 0) wasIdle -= ServerSettings.AiReactionTime / 10;
 		// keep only last profession
 		cleanUpProfessions();
 
@@ -510,10 +512,11 @@ abstract class AiBase
 		}
 
 		time += 2.5;
+		wasIdle += 1;
 
 		// before do nothing try all professions
 		//this.profession['firekeeper'] = 1;
-		this.profession['Lumberjack'] = 1;
+		/*this.profession['Lumberjack'] = 1;
 		this.profession['WaterBringer'] = 1;
 		this.profession['BasicFarmer'] = 1;
 		this.profession['AdvancedFarmer'] = 1;	
@@ -526,7 +529,7 @@ abstract class AiBase
 		this.profession['ClothMaker'] = 1;
 		this.profession['FireFoodMaker'] = 1;
 		//this.profession['BowlFiller'] = 1;
-		this.profession['Smith'] = 1;
+		this.profession['Smith'] = 1;*/
 		
 		if(myPlayer.age > ServerSettings.MinAgeToEat){
 			var rand = WorldMap.calculateRandomFloat();
@@ -2276,7 +2279,7 @@ private function hasOrBecomeProfession(profession:String, max:Int = 1) : Bool {
 
 	var count = countProfession(profession);
 	//trace('hasOrBecomeProfession: $profession count: $count');
-	if (count >= max) return false;
+	if (count >= max + wasIdle) return false;
 	this.profession[profession] = 1;
 	this.lastProfession = profession;
 	return true;
