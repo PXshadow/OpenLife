@@ -2610,6 +2610,7 @@ private function craftLowPriorityClothing() : Bool {
 		// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
 		var dontDropCloseHomeIds = [356, 336, 1137];
 		var mindistance = dontDropCloseHomeIds.contains(heldObjId) ? 7 : 0; // to home
+		var quadIsCloseEnoughDistanceToTarget = 400; // old 25 // does not go to home if close enough
 		var dropOnStart:Bool = mindistance < 1;
 		var newDropTarget = null;
 		var heldObject = myPlayer.heldObject;
@@ -2730,8 +2731,8 @@ private function craftLowPriorityClothing() : Bool {
 			var quadMaxDistanceToHome = Math.pow(maxDistanceToHome, 2);
 			var quadDistance = myPlayer.CalculateQuadDistanceToObject(target);
 
-			// check if not too close or too far // old 25 quadDistance > quadMaxDistanceToHome
-			if (quadDistance > 100 && quadDistance < quadMaxDistanceToHome) {
+			// check if not too close or too far 
+			if (quadDistance > quadIsCloseEnoughDistanceToTarget && quadDistance < quadMaxDistanceToHome) {
 				var done = myPlayer.gotoObj(target);
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done drop goto ${target.name} $quadDistance');
 
