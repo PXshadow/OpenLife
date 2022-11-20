@@ -83,6 +83,7 @@ abstract class AiBase
 	public var hasCornSeeds = false;
 	public var hasCarrotSeeds = false;
 
+	public var lastProfession:String = null;
 	public var profession:Map<String,Float> = [];
 	public var lastCheckedTimes:Map<String,Float> = [];
 
@@ -299,6 +300,9 @@ abstract class AiBase
 		time += ServerSettings.AiReactionTime; // 0.5; // minimum AI reacting time
 		itemToCraft.searchCurrentPosition = true;
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
+
+		// keep only last profession
+		cleanUpProfessions();
 
 		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} account:  ${myPlayer.account.id}');
 
@@ -2244,14 +2248,37 @@ private function craftMediumPriorityClothing() : Bool {
 		return false;
 }
 
+private function cleanUpProfessions(){
+	if(lastProfession == null) return;
+
+	for(key in profession.keys()){
+		// keep old profession
+		//if(lastProfession == 'FoodServer') continue;
+		//if(lastProfession == 'BowlFiller') continue;
+		//if(lastProfession == 'firekeeper') continue;
+		if(key == lastProfession) continue;
+		if(key == 'firekeeper') continue; 
+		if(key == 'gravekeeper') continue; 
+
+		profession[key] = 0;
+     
+		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} profession: ${key} --> ${lastProfession}');
+	}
+}
+
 private function hasOrBecomeProfession(profession:String, max:Int = 1) : Bool {
 	var hasProfession = this.profession[profession] > 0;
-	if(hasProfession) return true;
+
+	if(hasProfession){
+		this.lastProfession = profession; 
+		return true;
+	}
 
 	var count = countProfession(profession);
 	//trace('hasOrBecomeProfession: $profession count: $count');
 	if (count >= max) return false;
 	this.profession[profession] = 1;
+	this.lastProfession = profession;
 	return true;
 }
 	
