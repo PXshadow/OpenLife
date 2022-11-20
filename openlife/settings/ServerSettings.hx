@@ -2295,6 +2295,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(192, 1121); // Needle and Thread + Popcorn 
 		trans.aiShouldIgnore = true;
 
+		var trans = transtions.getTransition(192, 1121, false,true); // Needle and Thread + Popcorn 
+		trans.aiShouldIgnore = true;
+
 		var trans = transtions.getTransition(334, 3308); // Steel Axe + Marked Pine Wall (corner)
 		trans.aiShouldIgnore = true;
 
