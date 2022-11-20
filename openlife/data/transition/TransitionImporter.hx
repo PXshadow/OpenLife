@@ -313,6 +313,16 @@ class TransitionImporter {
 		return transitionsByTargetId[objDataTarget.id];
 	}
 
+	public static function GetTransitionByTarget(targetId:Int):Array<TransitionData> {
+		return transitionImporter.getTransitionByTarget(targetId);
+	}
+
+	public function getTransitionByTarget(targetId:Int):Array<TransitionData> {
+		var transitions = allTransitionsByTargetMap[targetId];
+
+		return transitions != null ? transitions : new Array<TransitionData>();
+	}
+
 	public static function GetTransitionByNewTarget(newTargetId:Int):Array<TransitionData> {
 		return transitionImporter.getTransitionByNewTarget(newTargetId);
 	}
