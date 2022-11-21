@@ -2356,6 +2356,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(441, 560); // Smithing Hammer 441 + Knife 560
 		trans.aiShouldIgnore = true; 
 
+		var trans = transtions.getTransition(0, 185); // 0 + Skewered Rabbit 185
+		trans.aiShouldIgnore = true; 
+
 		//var trans = transtions.getTransition(441, 560, true); // Smithing Hammer 441 + Knife 560
 		//trans.aiShouldIgnore = true;
 
@@ -2367,8 +2370,20 @@ class ServerSettings {
 			// Clump of Scrap Steel 930
 			if(trans.actorID == 930) continue;
 			//trace('Scrap Bowl: ' + trans.getDesciption());
+			trans.aiShouldIgnore = true; 
 		}
-		
+
+		// TODO forbid for all
+		// Deep Tilled Row 213 --> Forbid to use skewer
+		var transByTarget = TransitionImporter.GetTransitionByNewTarget(213);
+		for(trans in transByTarget){
+			// Skewer 139 // Weak Skewer 852
+			if(trans.actorID != 139 && trans.actorID != 852) continue;
+			
+			trace('Deep Tilled Row: ' + trans.getDesciption());
+			trans.aiShouldIgnore = true; 
+		}
+
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');
 
