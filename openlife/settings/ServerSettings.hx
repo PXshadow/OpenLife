@@ -2176,6 +2176,25 @@ class ServerSettings {
 		var trans = transtions.getTransition(560, 541); // Knife + Domestic Mouflon
 		trans.aiShouldIgnore = true; 
 
+		var trans = transtions.getTransition(560, 151); // Knife + Yew Bow 151
+		trans.aiShouldIgnore = true; 
+
+		var trans = transtions.getTransition(560, 708); // Knife + Clubbed Seal 708
+		trans.aiShouldIgnore = true; 
+
+		var trans = transtions.getTransition(560, 242); // Knife + Ripe Wheat 242
+		trans.aiShouldIgnore = true; 
+
+		var trans = transtions.getTransition(560, 121); // Knife + Tule Reeds
+		trans.aiShouldIgnore = true; 
+
+		var trans = transtions.getTransition(560, 2765); // Knife + Sugarcane 2765
+		trans.aiShouldIgnore = true;
+
+		// TODO might be good to save some hungry work?
+		//var trans = transtions.getTransition(560, 136); // Knife + Sapling 136
+		//trans.aiShouldIgnore = true;
+
 		var trans = transtions.getTransition(2365, 3966); // 2365 Diesel Engine + 3966 Empty Scrap Box
 		trans.aiShouldIgnore = true;
 
