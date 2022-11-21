@@ -1186,15 +1186,18 @@ abstract class AiBase
 		//if(doWatering(1)) return true;
 
 		// 1: Prepare Soil
-
+		if(shortCraft(1137, 848, 30)) return true;
 		//trace('Fertile Soil Pile!');
 		// Basket of Soil
-		if(shortCraftOnGround(336)) return true;
+		if(shortCraftOnGround(336)) return true;		
 
 		if(heldObject.parentId == 336) this.profession['BasicFarmer'] = 1; // need more soil
 
-		// Fertile Soil Pile
+		// Fertile Soil Pile 1101
 		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1101, 15); 
+		// Fertile Soil 1138
+		count += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1138, 15); 
+
 		if(count < 1) this.profession['BasicFarmer'] = 1;
 		if(this.profession['BasicFarmer'] < 2){
 			if (ServerSettings.DebugAiSay) myPlayer.say('BasicFarmer: soil: $count');
@@ -1208,7 +1211,7 @@ abstract class AiBase
 		if(countShallowRows < 1) this.profession['BasicFarmer'] = 2;
 		// 2: Prepare Shallow Tilled Rows
 		if(this.profession['BasicFarmer'] < 3){
-			var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 15); //  Clay Bowl 235
+			var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 30); //  Clay Bowl 235
 			if(heldObject.parentId == 235) countBowls += 1;
 			
 			if (ServerSettings.DebugAiSay) myPlayer.say('BasicFarmer: shallowrows: $countShallowRows bowls: $countBowls');
@@ -1216,9 +1219,12 @@ abstract class AiBase
 
 			if(countBowls < 1 && doPottery(3)) return true;
 
-			// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
 			if(countShallowRows < 6){
-				if(shortCraft(1137, 848, 30)) return true; 
+				// TODO there seems to be a bug with maxuse transitions on pile of soil
+				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
+				if(heldObject.parentId == 1137 && shortCraft(1137, 848, 30)) return true; 
+				// Clay Bowl 235 + Fertile Soil Pile 1101 --> Bowl of Soil 1137
+				if(shortCraft(235, 1101, 30)) return true; 
 			}
 			else this.profession['BasicFarmer'] = 3;
 		}
