@@ -2646,6 +2646,9 @@ private function craftLowPriorityClothing() : Bool {
 			trace('AAI: ${myPlayer.name + myPlayer.id} DROP: ${myPlayer.heldObject.name} to ${infos.methodName}');
 				
 		if(storeInQuiver()) return true;
+
+		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
+		if(heldObjId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236,5)) return true;
 	
 		// Clay 126 ==> drop close to kiln if close, otherwise drop in basket
 		if(heldObjId == 126){ 
