@@ -2750,6 +2750,9 @@ private function craftLowPriorityClothing() : Bool {
 			}
 		}
 
+		// only bring stuff home if it is useful
+		if(dropCloseToPlayer) dropOnStart = false;  
+
 		if (dropOnStart && maxDistanceToHome > 0) {
 			var quadMaxDistanceToHome = Math.pow(maxDistanceToHome, 2);
 			var quadDistance = myPlayer.CalculateQuadDistanceToObject(target);
