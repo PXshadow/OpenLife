@@ -2380,9 +2380,43 @@ class ServerSettings {
 			// Skewer 139 // Weak Skewer 852
 			if(trans.actorID != 139 && trans.actorID != 852) continue;
 			
-			trace('Deep Tilled Row: ' + trans.getDesciption());
+			//trace('Deep Tilled Row: ' + trans.getDesciption());
 			trans.aiShouldIgnore = true; 
 		}
+
+		// Stakes 107 By new target
+		var transByTarget = TransitionImporter.GetTransitionByNewTarget(107);
+		for(trans in transByTarget){
+			// Short Shaft 69
+			if(trans.targetID == 62) continue;
+			// Pile of Stakes 4066
+			if(trans.targetID == 4066) continue;
+			// Stakes with Rope 3883
+			if(trans.targetID == 3883) continue;
+
+			//trace('Stakes 107: ' + trans.getDesciption());
+			trans.aiShouldIgnore = true; 
+		}
+
+		// Stakes 107 By new actor
+		var transByTarget = TransitionImporter.GetTransitionByNewActor(107);
+		for(trans in transByTarget){
+			// Pile of Stakes 4066
+			if(trans.targetID == 4066) continue;
+
+			trace('Stakes 107: ' + trans.getDesciption());
+			trans.aiShouldIgnore = true; 
+		}
+
+		// Broken Steel Tool 858 --> no transitions found
+		/*var transByTarget = TransitionImporter.GetTransitionByNewTarget(858);
+		for(trans in transByTarget){
+			// Skewer 139 // Weak Skewer 852
+			//if(trans.actorID != 139 && trans.actorID != 852) continue;
+			
+			trace('Broken Steel Tool: ' + trans.getDesciption());
+			trans.aiShouldIgnore = true; 
+		}*/
 
 		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
 		//trace('DEBUG: ${trans.getDesciption()}');
