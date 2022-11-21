@@ -2700,8 +2700,8 @@ private function craftLowPriorityClothing() : Bool {
 			}
 		}
 		
-		// Clay Plate 236 // Knife 560 // Baked Bread 1470 // Sliced Bread 1471
-		var dropNearOvenItemIds = [236, 560, 1470, 1471];
+		// Clay Bowl 1006 // Clay Plate 236 // Knife 560 // Bowl of Dough 252 // Baked Bread 1470 // Sliced Bread 1471
+		var dropNearOvenItemIds = [1006, 236, 560, 252, 1470, 1471];
 		if(dropNearOvenItemIds.contains(heldId) || pies.contains(heldId) || rawPies.contains(heldId)){
 			target = myPlayer.home; // drop near home which is normaly the oven	
 			dropCloseToPlayer = false;
