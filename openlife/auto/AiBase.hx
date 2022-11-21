@@ -3514,18 +3514,19 @@ private function craftLowPriorityClothing() : Bool {
 			useActor = new ObjectHelper(null, 0);
 			useTarget = pile;
 		}
-
-		if (player.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
-			var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, myPlayer.home);
-			var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, itemToCraft.transTarget);
-
-			// only drop held item, if close to home and target is far away, otherwise item could be switched
-			if(pile != null || (quadDistanceToHome < 225 && quadDistanceToTarget > 225)){
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop ${myPlayer.heldObject.name} to pickup ${itemToCraft.transActor.name}');
-				dropHeldObject();
-				return true;
-			}
+		
+		var isHoldingObject = myPlayer.isHoldingObject();
+		if(isHoldingObject && considerDropHeldObject(itemToCraft.transTarget)){
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop ${myPlayer.heldObject.name} to pickup ${itemToCraft.transActor.name}');
+			return true;
 		}
+
+		// usemight drop item so not neededanymore ???
+		/*if(pile != null)){
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop ${myPlayer.heldObject.name} to pickup ${itemToCraft.transActor.name}');
+			dropHeldObject();
+			return true;
+		}*/
 
 		return true;
 	}
