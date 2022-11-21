@@ -2715,7 +2715,9 @@ private function craftLowPriorityClothing() : Bool {
 		if(heldId == 291 || heldId == 33){
 			var forge = GetForge();
 			var maxItems = heldId == 291 ? 3 : 1;
-			var countPiles = heldId == 33;
+			// TODO solve that flat stones wont pile up if piles are not counted
+			//var countPiles = heldId == 33; 
+			var countPiles = true;
 			
 			if(forge != null){
 				dropCloseToPlayer = false;
