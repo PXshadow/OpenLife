@@ -1174,6 +1174,7 @@ abstract class AiBase
 		if(hasOrBecomeProfession('BasicFarmer', maxProfession) == false) return false;
 
 		if(shortCraft(0, 400, distance)) return true; // pull out the carrots 
+		if(shortCraft(900, 625, distance)) return true; // Shovel of Dung 900 + Wet Compost Pile 625
 		if(shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
 		if(shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 
@@ -1183,42 +1184,60 @@ abstract class AiBase
 		// water
 		//if(doWatering(1)) return true;
 
-		//var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 15); //  Clay Bowl 235
-		//if(countBowls < 1) return doPottery(3);
-
 		// 1: Prepare Soil
 
 		//trace('Fertile Soil Pile!');
-		if(shortCraftOnGround(336)) return true; // Basket of Soil
+		// Basket of Soil
+		if(shortCraftOnGround(336)) return true;
 
 		if(heldObject.parentId == 336) this.profession['BasicFarmer'] = 1; // need more soil
 
+		// Fertile Soil Pile
+		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1101, 15); 
+		if(count < 1) this.profession['BasicFarmer'] = 1;
 		if(this.profession['BasicFarmer'] < 2){
-			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1101, 30); // Fertile Soil Pile
+			if (ServerSettings.DebugAiSay) myPlayer.say('BasicFarmer: soil: $count');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} soil: $count');			
 			//var max = this.profession['BasicFarmer'] < 2 ? 3 : 1;
 			if(count < 4) if(craftItem(336)) return true; // Basket of Soil
-			this.profession['BasicFarmer'] = 2;
+			else this.profession['BasicFarmer'] = 2;
 		}		
 
+		var countShallowRows = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1136, 30); // Shallow Tilled Row
+		if(countShallowRows < 1) this.profession['BasicFarmer'] = 2;
 		// 2: Prepare Shallow Tilled Rows
 		if(this.profession['BasicFarmer'] < 3){
-			var countShallowRows = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1136, 30); // Shallow Tilled Row
-			if(countShallowRows < 6 && shortCraft(1137, 848, 20)) return true; // Bowl of Soil + Hardened Row --> Shallow Tilled Row
-			this.profession['BasicFarmer'] = 3;
+			var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 15); //  Clay Bowl 235
+			if(heldObject.parentId == 235) countBowls += 1;
+			
+			if (ServerSettings.DebugAiSay) myPlayer.say('BasicFarmer: shallowrows: $countShallowRows bowls: $countBowls');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} shallowrows: $countShallowRows bowls: $countBowls');			
+
+			if(countBowls < 1 && doPottery(3)) return true;
+
+			// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
+			if(countShallowRows < 6){
+				if(shortCraft(1137, 848, 30)) return true; 
+			}
+			else this.profession['BasicFarmer'] = 3;
 		}
 
 		// 3: Prepare Deep Tilled Rows
 		if(this.profession['BasicFarmer'] < 4){
+			if (ServerSettings.DebugAiSay) myPlayer.say('BasicFarmer: Prepare Deep Tilled Rows');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} Prepare Deep Tilled Rows');			
 			if(shortCraft(850, 1136, 30)) return true; // Stone Hoe + Shallow Tilled Row --> Deep Tilled Row
 			this.profession['BasicFarmer'] = 4;
 		}
 
-		if(this.profession['BasicFarmer'] < 5){
+		if(this.profession['BasicFarmer'] < 5){			
 			var countPlantedCarrots = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 399, 30); // Wet Planted Carrots 399
 			countPlantedCarrots += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 396, 30); // Dry Planted Carrots 396
+			if (ServerSettings.DebugAiSay) myPlayer.say('BasicFarmer: Planeted Carrots: $countPlantedCarrots');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} Planeted Carrots: $countPlantedCarrots');			
 			//if(countPlanetCarrots < 5) if(craftItem(399)) return true; // Wet Planted Carrots
 			if(countPlantedCarrots < 5) if(craftItem(396)) return true; // Dry Planted Carrots 396
-			this.profession['BasicFarmer'] = 5;
+			else this.profession['BasicFarmer'] = 5;
 		}
 
 		if(this.profession['BasicFarmer'] < 6){
@@ -1245,8 +1264,6 @@ abstract class AiBase
 			this.profession['BasicFarmer'] = 7;
 		}
 
-		if(doWatering(3)) return true;
-
 		this.profession['BasicFarmer'] = 1;
 
 		//var closeObj = AiHelper.GetClosestObjectById(myPlayer, 2831); // Wet Planted Tomato Seed
@@ -1260,14 +1277,18 @@ abstract class AiBase
 		// Composted Soil 624
 		countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 624, 30);
 
-		// Wet Compost Pile 625
-		if(countCompost < 5 && craftItem(790)) return true; 
+		// Composting Compost Pile 790
+		if(countCompost < 3 && craftItem(790)) return true; 
 
 		// Wet Compost Pile 625
 		countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 625, 30);
 
 		// Wet Compost Pile 625
-		if(countCompost < 5 && craftItem(625)) return true; 
+		if(countCompost < 3 && craftItem(625)) return true; 
+
+		if(doWatering(3)) return true;
+
+		Macro.exception(if (isSheepHerding(2)) return true);
 
 		// check if there is a Tilled Row already before creating a new one
 		var deepRow = AiHelper.GetClosestObjectToHome(myPlayer, 213, 20); // Deep Tilled Row
@@ -1280,6 +1301,8 @@ abstract class AiBase
 		if(myPlayer.age < 20 && makeSharpieFood()) return true;
 
 		this.profession['BasicFarmer'] = 0;
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} nothing to do');			
 
 		return false;
 	}
@@ -1436,9 +1459,9 @@ abstract class AiBase
 		// Sealed Adobe Kiln 294
 		//if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 294, 20, null, myPlayer);
 
-		if(this.profession['Potter'] < 2){
+		if(this.profession['Potter'] < 2 && countWetBowl + countWetPlate < 4){
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 20); // Clay 126
-			if(count < 5) return gatherClay(kiln); // home is used if there is no kiln
+			if(count < 5 && gatherClay(kiln)) return true; // home is used if there is no kiln
 		}
 
 		this.profession['Potter'] = 2; // dont get new clay --> do some pottery first
@@ -1470,7 +1493,7 @@ abstract class AiBase
 		
 		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: neededClay: $neededClay WetBowl: ${countWetBowl} WetPlate: $countWetPlate ');
 
-		if(this.profession['Potter'] < 3 && countClayOnFloor < neededClay && countWetBowl + countWetPlate < 6){
+		if(this.profession['Potter'] < 3 && countClayOnFloor < neededClay && countWetBowl + countWetPlate < 4){
 			if (ServerSettings.DebugAiSay) myPlayer.say('Do Pottery get clay from pile $neededClay');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: get clay from pile');
 
@@ -2754,7 +2777,7 @@ private function craftLowPriorityClothing() : Bool {
 		}
 
 		// only bring stuff home if it is useful
-		if(dropCloseToPlayer == false) dropOnStart = false;  
+		if(dropCloseToPlayer) dropOnStart = false;  
 
 		if (dropOnStart && maxDistanceToHome > 0) {
 			var quadMaxDistanceToHome = Math.pow(maxDistanceToHome, 2);
