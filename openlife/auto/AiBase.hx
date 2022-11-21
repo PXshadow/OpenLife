@@ -2261,12 +2261,15 @@ private function cleanUpProfessions(){
 
 	for(key in profession.keys()){
 		// keep old profession
-		//if(lastProfession == 'FoodServer') continue;
-		//if(lastProfession == 'BowlFiller') continue;
-		//if(lastProfession == 'firekeeper') continue;
 		if(key == lastProfession) continue;
+		if(key == 'FoodServer') continue;
+		if(key == 'BowlFiller') continue; 
 		if(key == 'firekeeper') continue; 
 		if(key == 'gravekeeper') continue; 
+		if(lastProfession == 'FoodServer') continue;
+		if(lastProfession == 'BowlFiller') continue;
+		if(lastProfession == 'firekeeper') continue;
+		if(lastProfession == 'gravekeeper') continue; 
 
 		profession[key] = 0;
      
