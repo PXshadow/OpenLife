@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.server.Biome.BiomeTag;
 import haxe.ds.Map;
 import haxe.Exception;
 import openlife.data.map.MapData;
@@ -3659,6 +3660,13 @@ private function craftLowPriorityClothing() : Bool {
 						// if(ServerSettings.DebugAi) trace('AI: search IGNORE container: ${objData.description}');
 						continue;
 					}
+				}
+
+				// TODO for all biome locked stuff
+				// Fertile Soil 1138 // Hardened Row 848
+				if (objData.parentId == 1138 || objData.parentId == 848){
+					var biomeId = world.getBiomeId(tx,ty);
+					if(biomeId == BiomeTag.SNOW || biomeId == BiomeTag.OCEAN) continue;
 				}
 
 				var trans = transitionsByObjectId[objData.parentId];
