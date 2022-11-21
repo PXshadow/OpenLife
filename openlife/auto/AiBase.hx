@@ -4104,18 +4104,32 @@ private function craftLowPriorityClothing() : Bool {
 		return true;
 	}
 
+	private function considerDropHeldObject(target:ObjectHelper) {
+		// TODO use actual drop target for heldObject like oven, kiln, forge instead of home 
+		var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, myPlayer.home);
+		var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, target);
+
+		// check if target is closer then current position or in 5 tiles reach --> then take item to target
+		if(quadDistanceToTarget < quadDistanceToHome + 25) return false;
+
+		/*
+		// only drop held item before move, if close to home and target is far away, otherwise drop item after move
+		if(quadDistanceToHome < 225 && quadDistanceToTarget > 225){
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to pickup food / before move');
+			dropHeldObject();
+			return true;
+		}*/
+		
+		dropHeldObject();
+		return true;
+	}
+
 	private function isPickingupFood():Bool {
 		if (foodTarget == null) return false;
 		if (myPlayer.heldObject.parentId == foodTarget.parentId){
 			foodTarget = null;
 			return false;
 		}
-
-		/*var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
-		if (heldObjectIsEatable) {
-			foodTarget = null;
-			return false;
-		}*/
 
 		// check if food is still eatable. Maybe some one eat it
 		if (myPlayer.isEatableCheckAgain(foodTarget) == false) {
@@ -4125,38 +4139,13 @@ private function craftLowPriorityClothing() : Bool {
 			return true;
 		}
 
-		// if holding clay 126 drop at once
-		/*if(myPlayer.heldObject.parentId == 126){
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop clay to pickup food');
-			dropHeldObject(5);
-			return true;
-		}*/
-
 		var isUse = foodTarget.isPermanent() || foodTarget.objectData.foodValue < 1;
+		var isHoldingObject = myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound;
 
-		if (isUse && myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
-			var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, myPlayer.home);
-			var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, foodTarget);
-
-			// only drop held item before move, if close to home and target is far away, otherwise drop item after move
-			if(quadDistanceToHome < 225 && quadDistanceToTarget > 225){
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to pickup food / before move');
-				dropHeldObject();
-				return true;
-			}
-		}
-
-		// in case of a drop/switch: drop held obj if it would be droped far from home
-		if (isUse == false && myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
-			var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, myPlayer.home);
-			var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, foodTarget);
-
-			// only drop held item before move, if close to home and target is far away, otherwise item could be switched
-			if(quadDistanceToHome < 225 && quadDistanceToTarget > 225){
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} isPickingupFood: drop ${myPlayer.heldObject.name} since close to home and target is far away');
-				dropHeldObject();
-				return true;
-			}
+		// no matter if drop (switch) or use consider droppingheldObject before move
+		if (isHoldingObject && considerDropHeldObject(foodTarget)) {
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} isPickingupFood: isUse: $isUse drop ${myPlayer.heldObject.name} since close to home or target less far away');
+			return true;
 		}
 
 		if (myPlayer.isMoving()) return true;
@@ -4181,22 +4170,12 @@ private function craftLowPriorityClothing() : Bool {
 			return true;
 		}
 
-		if (isUse && myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
+		// TODO pickup up droped object after eating
+		if (isUse && isHoldingObject) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to pickup food / after move');
 			dropHeldObject(0);
 			return true;
 		}
-
-		// if(ServerSettings.DebugAi) trace('${foodTarget.tx} - ${myPlayer.tx()}, ${foodTarget.ty} - ${myPlayer.ty()}');
-
-		/*
-		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to pickup food');
-			// TODO pickup up again after eating
-			// TODO if pickup is a drop, no need for dropping held, except if foodtarget is far away from home, see craft item
-			dropHeldObject();
-			return true;
-		}*/
 
 		var done = false;
 
