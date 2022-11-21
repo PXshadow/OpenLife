@@ -59,6 +59,7 @@ interface PlayerInterface {
 	public function isFertile():Bool;
 	public function isMoving():Bool;
 	public function isWounded():Bool;
+	public function isHoldingObject() : Bool;
 	public function isHoldingWeapon():Bool;
 	public function isBlocked(tx:Int, ty:Int):Bool;
 	public function isEveOrAdam():Bool;

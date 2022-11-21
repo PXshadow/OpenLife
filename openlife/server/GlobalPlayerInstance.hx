@@ -5123,6 +5123,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 		return null;
 	}
+
+	public function isHoldingObject() : Bool {
+		return heldObject.id != 0 && heldObject != hiddenWound;
+	}
 }
 
 // TODO Arcurus>> add birth logic - suggestion:

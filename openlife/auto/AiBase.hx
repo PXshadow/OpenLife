@@ -4140,7 +4140,7 @@ private function craftLowPriorityClothing() : Bool {
 		}
 
 		var isUse = foodTarget.isPermanent() || foodTarget.objectData.foodValue < 1;
-		var isHoldingObject = myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound;
+		var isHoldingObject = myPlayer.isHoldingObject();
 
 		// no matter if drop (switch) or use consider droppingheldObject before move
 		if (isHoldingObject && considerDropHeldObject(foodTarget)) {
@@ -4295,28 +4295,35 @@ private function craftLowPriorityClothing() : Bool {
 		if (useTarget == null) return false;
 
 		var heldObject = myPlayer.heldObject;
+		var isHoldingObject = myPlayer.isHoldingObject();
 
 		if (myPlayer.isStillExpectedItem(useTarget) == false) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use target changed meanwhile! ${useTarget.name}');
 			useTarget = null;
 			return false;
 		}
+
 		// only allow to go on with use if right actor is in the hand, or if actor will be empty
-		// if(myPlayer.heldObject.id != useActor.id && useActor.id != 0)
 		if (heldObject.parentId != useActor.parentId) {
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActor.name}');
 
-			useTarget = null;
-			useActor = null;
-			// dropTarget = itemToCraft.transActor;
+			if(useActor.parentId == 0){
+				if(isHoldingObject && considerDropHeldObject(useTarget)) return true;
+			}
+			else {
+				if (ServerSettings.DebugAi)
+					trace('AAI: ${myPlayer.name + myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActor.name}');
 
-			dropHeldObject();
+				useTarget = null;
+				useActor = null;
+				// dropTarget = itemToCraft.transActor;
 
-			return false;
+				dropHeldObject();
+
+				return false;
+			}
 		}
 
-		// TODO what about other actors?
+		// TODO what about other actors wich need to be filled?
 		// make sure that actor (Bowl of Gooseberries) is full 
 		if(myPlayer.heldObject.parentId == 253 && heldObject.numberOfUses < heldObject.objectData.numUses){
 			// TODO better check if(transition.tool == false && transition.reverseUseActor == false)
@@ -4384,9 +4391,9 @@ private function craftLowPriorityClothing() : Bool {
 		}
 
 		// Drop object to pickup actor
-		if (myPlayer.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound && useActor.id == 0) {
+		if (isHoldingObject && useActor.id == 0) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop obj to to have empty hand');
-			dropHeldObject();
+			dropHeldObject(0);
 			return true;
 		}
 		

@@ -2404,7 +2404,7 @@ class ServerSettings {
 			// Pile of Stakes 4066
 			if(trans.targetID == 4066) continue;
 
-			trace('Stakes 107: ' + trans.getDesciption());
+			//trace('Stakes 107: ' + trans.getDesciption());
 			trans.aiShouldIgnore = true; 
 		}
 
