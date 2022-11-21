@@ -2174,6 +2174,8 @@ abstract class AiBase
 
 		// Skinned Rabbit 181
 		var countRawFireFood = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 181, 25);
+		// Skewered Rabbit 185
+		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 185, 25);
 		// Raw Mutton 569
 		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 25);
 
@@ -2630,7 +2632,7 @@ private function craftLowPriorityClothing() : Bool {
 		// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
 		var dontDropCloseHomeIds = [356, 336, 1137];
 		var mindistance = dontDropCloseHomeIds.contains(heldObjId) ? 7 : 0; // to home
-		var quadIsCloseEnoughDistanceToTarget = 400; // old 25 // does not go to home if close enough
+		var quadIsCloseEnoughDistanceToTarget = 25; //400; // old 25 // does not go to home if close enough
 		var dropOnStart:Bool = mindistance < 1;
 		var newDropTarget = null;
 		var heldObject = myPlayer.heldObject;
@@ -2724,7 +2726,8 @@ private function craftLowPriorityClothing() : Bool {
 		}
 		
 		// Clay Bowl 1006 // Clay Plate 236 // Knife 560 // Bowl of Dough 252 // Baked Bread 1470 // Sliced Bread 1471
-		var dropNearOvenItemIds = [1006, 236, 560, 252, 1470, 1471];
+		// TODO drop somewhere save Shovel 502 // Shovel of Dung
+		var dropNearOvenItemIds = [1006, 236, 560, 252, 1470, 1471, 502, 900];
 		if(dropNearOvenItemIds.contains(heldId) || pies.contains(heldId) || rawPies.contains(heldId)){
 			target = myPlayer.home; // drop near home which is normaly the oven	
 			dropCloseToPlayer = false;
@@ -2751,7 +2754,7 @@ private function craftLowPriorityClothing() : Bool {
 		}
 
 		// only bring stuff home if it is useful
-		if(dropCloseToPlayer) dropOnStart = false;  
+		if(dropCloseToPlayer == false) dropOnStart = false;  
 
 		if (dropOnStart && maxDistanceToHome > 0) {
 			var quadMaxDistanceToHome = Math.pow(maxDistanceToHome, 2);
