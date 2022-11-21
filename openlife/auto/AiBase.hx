@@ -1930,22 +1930,34 @@ abstract class AiBase
 			this.profession['Smith'] = 0;
 			return false;
 		}
-
-		// Smithing Hammer
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 441, 30); 
-		if(count < 1 && craftItem(441)) return true;
 		
-		// Steel Mining Pick 684
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 684, 30); 
-		if(count < 1 && craftItem(684)) return true;
+		if(this.profession['Smith'] < 5){
+			// Smithing Hammer
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 441, 30); 
+			if(count < 1 && craftItem(441)) return true;
+			this.profession['Smith'] = 5;
+		}
+		
+		if(this.profession['Smith'] < 6){
+			// Steel Mining Pick 684
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 684, 50); 
+			if(count < 1 && craftItem(684)) return true;
+			this.profession['Smith'] = 6;
+		}
 
 		// Shovel 502
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 502, 30); 
-		if(count < 1 && craftItem(502)) return true;
+		if(this.profession['Smith'] < 7){
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 502, 30); 
+			if(count < 1 && craftItem(502)) return true;
+			this.profession['Smith'] = 7;
+		}
 
-		// Steel Axe 334
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 334, 30); 
-		if(count < 1 && craftItem(334)) return true;
+		if(this.profession['Smith'] < 8){
+			// Steel Axe 334
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 334, 30); 
+			if(count < 1 && craftItem(334)) return true;
+			this.profession['Smith'] = 8;
+		}
 
 		// Steel Chisel 455
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 455, 30); 
