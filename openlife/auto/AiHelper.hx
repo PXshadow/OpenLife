@@ -95,8 +95,8 @@ class AiHelper {
 		return GetClosestObjectToPosition(player.home.tx, player.home.ty, objIdToSearch, searchDistance, ignoreObj, player);
 	}
 
-	// 1137 Bowl of Soil // 356 Basket of Bones // 336 Basket of Soil
-	static var needsNotFlooredPlace = [1137, 356, 336];
+	// 1137 Bowl of Soil // 356 Basket of Bones // 336 Basket of Soil // Straw 227
+	static var needsNotFlooredPlace = [1137, 356, 336, 227];
 
 	// objIdToSearch = -10 if searching non permanent
 	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null, player:PlayerInterface = null, searchContained:Array<Int> = null, minDistance:Int = 0) : ObjectHelper {

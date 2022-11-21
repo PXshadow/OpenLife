@@ -2654,7 +2654,7 @@ private function craftLowPriorityClothing() : Bool {
 		var searchDistance = 40;
 		// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137 // Straw 227
 		var dontDropCloseHomeIds = [356, 336, 1137, 227];
-		var mindistance = dontDropCloseHomeIds.contains(heldObjId) ? 7 : 0; // to home
+		var mindistance = dontDropCloseHomeIds.contains(heldObjId) ? 6 : 0; // to home
 		var quadIsCloseEnoughDistanceToTarget = 25; //400; // old 25 // does not go to home if close enough
 		var dropOnStart:Bool = mindistance < 1;
 		var newDropTarget = null;
@@ -2748,9 +2748,9 @@ private function craftLowPriorityClothing() : Bool {
 			}
 		}
 		
-		// Clay Bowl 1006 // Clay Plate 236 // Knife 560 // Bowl of Dough 252 // Baked Bread 1470 // Sliced Bread 1471
-		// TODO drop somewhere save Shovel 502 // Shovel of Dung
-		var dropNearOvenItemIds = [1006, 236, 560, 252, 1470, 1471, 502, 900];
+		// Clay Bowl 235 // Clay Plate 236 // Knife 560 // Bowl of Dough 252 // Baked Bread 1470 // Sliced Bread 1471
+		// TODO drop somewhere save Shovel 502 // Shovel of Dung 900
+		var dropNearOvenItemIds = [235, 236, 560, 252, 1470, 1471, 502, 900];
 		if(dropNearOvenItemIds.contains(heldId) || pies.contains(heldId) || rawPies.contains(heldId)){
 			target = myPlayer.home; // drop near home which is normaly the oven	
 			dropCloseToPlayer = false;
