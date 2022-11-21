@@ -1654,6 +1654,11 @@ abstract class AiBase
 	private static var rawPies = [265, 802, 268, 270, 266, 271, 269, 267];
 
 	private function doBaking(maxPeople:Int = 2) : Bool {
+		var heldObject = myPlayer.heldObject;
+
+		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
+		if(heldObject.parentId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236)) return true;
+
 		if(hasOrBecomeProfession('Baker', maxPeople) == false) return false;
 		var startTime = Sys.time();
 		var home = myPlayer.home;
