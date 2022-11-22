@@ -419,8 +419,11 @@ abstract class AiBase
 		// High priortiy takes
 		itemToCraft.searchCurrentPosition = false;
 		if(this.profession['Smith'] >= 2) Macro.exception(if (doSmithing()) return);
-		if(this.profession['Baker'] > 1) Macro.exception(if (doBaking()) return);
 		if(this.profession['Potter'] >= 10) Macro.exception(if (doPottery()) return);
+
+		itemToCraft.maxSearchRadius = 30;
+		if(this.profession['Baker'] > 1) Macro.exception(if (doBaking()) return);
+		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 		
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (isPickingupCloths()) return);		
@@ -457,20 +460,23 @@ abstract class AiBase
 		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
 
 		itemToCraft.searchCurrentPosition = false;
-		if(this.profession['Baker'] > 0) Macro.exception(if (doBaking()) return);
-		if(this.profession['Potter'] > 0) Macro.exception(if (doPottery()) return);		
+		//if(this.profession['Baker'] > 0) Macro.exception(if (doBaking()) return);
+		//if(this.profession['Potter'] > 0) Macro.exception(if (doPottery()) return);		
 		if(this.profession['Smith'] > 0) Macro.exception(if (doSmithing()) return);
-		if(this.profession['WaterBringer'] > 0) Macro.exception(if (doWatering()) return);
-		if(this.profession['BasicFarmer'] > 0) Macro.exception(if (doBasicFarming()) return);
-		if(this.profession['Shepherd'] > 0) Macro.exception(if (isSheepHerding()) return);
+		//if(this.profession['WaterBringer'] > 0) Macro.exception(if (doWatering()) return);
+		//if(this.profession['BasicFarmer'] > 0) Macro.exception(if (doBasicFarming()) return);
+		//if(this.profession['Shepherd'] > 0) Macro.exception(if (isSheepHerding()) return);
 		
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
+		itemToCraft.maxSearchRadius = 30;
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);		
 		Macro.exception(if(makePopcornIfNeeded()) return);
+		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 		
 		var jobByAge:Int = Math.round(myPlayer.age / 2); // job prio switches every second year
 		
+		itemToCraft.maxSearchRadius = 30;
 		for(i in 0...5){
 			jobByAge = (jobByAge + i) % 5;
 			if(jobByAge == 0) Macro.exception(if(doWatering()) return);				
@@ -479,6 +485,7 @@ abstract class AiBase
 			else if(jobByAge == 3) Macro.exception(if(doPottery()) return);
 			else if(jobByAge == 4) Macro.exception(if(isSheepHerding()) return);
 		}
+		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 		
 		Macro.exception(if(isCuttingWood()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: isCuttingWood ${Math.round((Sys.time() - startTime) * 1000)}ms ');
