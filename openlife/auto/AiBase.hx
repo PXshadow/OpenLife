@@ -2273,12 +2273,15 @@ private function craftMediumPriorityClothing() : Bool {
 		//trace('craftMediumPriorityClothing');
 
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
+		var isOldEnoughForBow = myPlayer.age >= objData.minPickupAge;
 		var color = myPlayer.getColor();
 		var isWhiteOrGinger = (color == Ginger || color == White);
 
-		// Hunting gear 874 Empty Arrow Quiver
-		if(craftClothIfNeeded(874)) return true; 
-		if(fillUpQuiver()) return true;
+		if(isOldEnoughForBow){ 
+			// Hunting gear 874 Empty Arrow Quiver
+			if(craftClothIfNeeded(874)) return true; 
+			if(fillUpQuiver()) return true;
+		}
 
 		// Shoes
 		// 844 Fruit Boot ==> Black
@@ -2287,12 +2290,16 @@ private function craftMediumPriorityClothing() : Bool {
 		if(color == Black && craftClothIfNeeded(2887)) return true;
 		// 766 Snake Skin Boot ==> Black
 		if(color == Black && craftClothIfNeeded(766)) return true;
+		// 586 Wool Booty
+		if(isWhiteOrGinger && craftClothIfNeeded(586)) return true;
 		// 203 Rabbit Fur Shoe
 		if(isWhiteOrGinger && craftClothIfNeeded(203)) return true;
 
 		// Chest clothing
-		// 564 Mouflon Hide ==> White / Chest
-		if(color == White && myPlayer.age >= objData.minPickupAge && craftClothIfNeeded(564)) return true;
+		// 585 Wool Sweater ==> White / Chest
+		if(color == White && craftClothIfNeeded(585)) return true; 
+		// 564 Mouflon Hide ==> White / Chest // only hunt if old enough for bow
+		if(color == White && isOldEnoughForBow && craftClothIfNeeded(564)) return true;
 		// 712 Sealskin Coat ==> Ginger
 		if(color == Ginger && craftClothIfNeeded(712)) return true;
 		// 711 Seal Skin ==> Ginger
@@ -2301,6 +2308,10 @@ private function craftMediumPriorityClothing() : Bool {
 		if(isWhiteOrGinger && craftClothIfNeeded(202)) return true;
 		// 201 Rabbit Fur Shawl / Chest
 		if(isWhiteOrGinger && craftClothIfNeeded(201)) return true;	
+
+		// head clothing
+		// 584 Wool Hat  ==> White / Head
+		if(color == White && craftClothIfNeeded(584)) return true; 
 
 		this.profession['ClothMaker'] = 0;
 
