@@ -565,7 +565,7 @@ abstract class AiBase
 		if(hasOrBecomeProfession('Lumberjack', maxPeople) == false) return false;
 
 		// Firewood 344
-		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 344, 15); // Kindling 72
+		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 344, 15); // Firewood 344
 		if(count < 2) this.profession['Lumberjack'] = 1;
 		
 		// Firewood 344
@@ -610,6 +610,27 @@ abstract class AiBase
 
 		// Basket of Charcoal 298
 		if(shortCraftOnGround(298)) return true;
+
+		//trace('cleanUp!');
+
+		var target = GetForge();
+		var isforge = target == null ? false : true;
+		if(target == null) target = home; 
+		var closeObj = AiHelper.GetClosestObjectToTarget(myPlayer,target, 1836, 4); // Stack of Flat Rocks 1836
+		if(closeObj != null) trace('cleanUp: ${closeObj.name}');
+		if(closeObj != null) if(shortCraftOnTarget(0,closeObj)) return true;
+		
+		var count = isforge ? AiHelper.CountCloseObjects(myPlayer,target.tx, target.ty, 291, 4, false) : 0; // Flat Rock 291
+		var max = isforge ? 3 : 0;
+		var mindistance = isforge ? 2 : 0;
+		if(count > max){			
+			var closeObj = AiHelper.GetClosestObjectToTarget(myPlayer,target, 291, 4, mindistance); // Flat Rock 291
+			if(ServerSettings.DebugAi && closeObj != null) trace('cleanUp: ${closeObj.name}');
+			if(closeObj != null){
+				dropHeldObject();
+				return PickupObj(closeObj);
+			}
+		}
 
 		// Long Straight Shaft 67 
 		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 67, 10);
@@ -656,6 +677,8 @@ abstract class AiBase
 		this.profession['firekeeper'] = 2;
 
 		if(makeFireFood(5)) return true;
+
+		if(cleanUp()) return true;
 		
 		// take care that there is at least some basic farming
 		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 399, 30); // Wet Planted Carrots
@@ -663,8 +686,6 @@ abstract class AiBase
 
 		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 1110, 30); // Wet Planted Corn Seed
 		if(closeObj == null) if(craftItem(1110)) return true; // Wet Planted Corn Seed	
-
-		if(cleanUp()) return true;
 
 		// more kindling
 		if(this.profession['firekeeper'] < 3 && count < 10 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true; 
@@ -2678,8 +2699,8 @@ private function craftLowPriorityClothing() : Bool {
 		var heldObjId = myPlayer.heldObject.parentId;
 		var searchDistance = 40;
 		// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
-		// Straw 227 // Wheat Sheaf 225
-		var dontDropCloseHomeIds = [356, 336, 1137, 227, 225];
+		// Straw 227 // Wheat Sheaf 225 // Flat Rock 291 (onlt if needed for forge)
+		var dontDropCloseHomeIds = [356, 336, 1137, 227, 225, 291];
 		var mindistance = dontDropCloseHomeIds.contains(heldObjId) ? 6 : 0; // to home
 		var quadIsCloseEnoughDistanceToTarget = 25; //400; // old 25 // does not go to home if close enough
 		var dropOnStart:Bool = mindistance < 1;
@@ -2742,8 +2763,8 @@ private function craftLowPriorityClothing() : Bool {
 			var forge = GetForge();
 			var maxItems = heldId == 291 ? 3 : 1;
 			// TODO solve that flat stones wont pile up if piles are not counted
-			//var countPiles = heldId == 33; 
-			var countPiles = true;
+			var countPiles = heldId == 33; 
+			//var countPiles = true;
 			
 			if(forge != null){
 				dropCloseToPlayer = false;
@@ -2753,6 +2774,7 @@ private function craftLowPriorityClothing() : Bool {
 					if(heldId == 291) pileId = 0; 
 					dropCloseToPlayer = false;
 					target = forge;
+					mindistance = 0;
 				}
 			}
 		}
@@ -3031,11 +3053,13 @@ private function craftLowPriorityClothing() : Bool {
 		return true;
 	}
 
-	private function PickupObj(obj:ObjectHelper){
+	private function PickupObj(obj:ObjectHelper) : Bool{
+		if(obj.isPermanent()) return false;
 		this.dropIsAUse = false;
 		this.dropTarget = obj;
 		this.useTarget = null;
 		this.useActor = null;
+		return true;
 	}
 
 	private function GetItem(objId:Int) : Bool {
