@@ -2666,8 +2666,9 @@ private function craftLowPriorityClothing() : Bool {
 		var dropCloseToPlayer = true;
 		var heldObjId = myPlayer.heldObject.parentId;
 		var searchDistance = 40;
-		// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137 // Straw 227
-		var dontDropCloseHomeIds = [356, 336, 1137, 227];
+		// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
+		// Straw 227 // Wheat Sheaf 225
+		var dontDropCloseHomeIds = [356, 336, 1137, 227, 225];
 		var mindistance = dontDropCloseHomeIds.contains(heldObjId) ? 6 : 0; // to home
 		var quadIsCloseEnoughDistanceToTarget = 25; //400; // old 25 // does not go to home if close enough
 		var dropOnStart:Bool = mindistance < 1;
