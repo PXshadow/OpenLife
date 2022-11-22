@@ -2170,6 +2170,9 @@ class ServerSettings {
 		// TODO dont know why this was 2240 Newcomen Hammer instead?
 		var trans = TransitionImporter.GetTransition(59, 2245); // Rope + Newcomen Engine without Rope
 		trans.newTargetID = 2244; // Newcomen Engine without Shaft;
+
+		//var trans = transtions.getTransition(560, 614); // Knife + Fed Shorn Domestic Sheep 614
+		//trans.aiShouldIgnore = true; 
 		
 		// Ai should ignore
 		// TODO fix Ai craftig if Ai needs two threads for a rope it puts one thread in a bowl and gets it out again

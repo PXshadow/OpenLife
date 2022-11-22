@@ -1150,6 +1150,7 @@ abstract class AiBase
 
 	private function isSheepHerding(maxProfession = 1) {
 		var home = myPlayer.home;
+		var distance = 30;
 
 		//if(craftItem(1113)) return true; // Ear of Corn
 		if(hasOrBecomeProfession('Shepherd', maxProfession) == false) return false;
@@ -1159,19 +1160,19 @@ abstract class AiBase
 
 		if(count < 10){
 			// Bowl of Gooseberries and Carrot 258 + Hungry Domestic Lamb 604
-			if(shortCraft(258, 604)) return true;
+			if(shortCraft(258, 604, distance)) return true;
 
 			// Bowl of Gooseberries and Carrot 258 + Domestic Lamb 542
-			if(shortCraft(258, 542)) return true;
+			if(shortCraft(258, 542, distance)) return true;
 		}
 
 		// Count all the Sheep Dung 899
-		var countDung = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 899, 20);
+		var countDung = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 899, distance);
 		if(countDung > 0){
 			// Composting Compost Pile 790
-			var countCompost = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 790, 20);
+			var countCompost = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 790, distance);
 			// Composted Soil 624
-			countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 624, 20);
+			countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 624, distance);
 
 			// Composting Compost Pile 625
 			if(countCompost < 5 && craftItem(790)) return true;
@@ -1182,16 +1183,19 @@ abstract class AiBase
 		}
 
 		// Feed: Bowl of Gooseberries and Carrot 258 + Shorn Domestic Sheep 576
-		if(shortCraft(258, 576)) return true;
+		if(shortCraft(258, 576, distance)) return true;
 
 		if(count < 10){
 			// Bowl of Gooseberries and Carrot 258 + Domestic Sheep 575
-			if(shortCraft(258, 575)) return true;
+			if(shortCraft(258, 575, distance)) return true;
 		}
 
 		if(count > 5 ){
+			// Knife 560 + Shorn Domestic Sheep 576
+			if(shortCraft(560, 576, distance)) return true;
+
 			// Knife 560 + Domestic Sheep 575
-			if(shortCraft(560, 575)) return true;
+			if(shortCraft(560, 575, distance)) return true;
 		}
 
 		this.profession['Shepherd'] = 0;
