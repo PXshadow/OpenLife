@@ -1219,17 +1219,20 @@ class AiHelper {
 		var isFertile = player.isFertile();
 		var myPlayerIsNobleOrMore = cast(globalplayer.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int); 
 		var ai = player.getAi();
-		var isSmith = ai == null ? false : player.getAi().profession['Smith'] > 0;
+		var isSmith = ai == null ? false : ai.profession['Smith'] > 0;
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
 			if (p.deleted) continue;
 			if (p.heldByPlayer != null) continue;
 			if (isFertile && p.age < ServerSettings.MaxChildAgeForBreastFeeding) continue;
 
+			var targetAi = p.getAi();
+			var isTargetSmith = targetAi == null ? false : targetAi.profession['Smith'] > 0;
 			var isNobleOrMore = cast(p.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int); 
 
 			// && isNobleOrMore == false
-			if (p.isAi() && p.age > ServerSettings.MinAgeToEat && p.isWounded() == false && p.hasYellowFever() == false) continue;
+			// dont feed Ai that can eat except it is a smith
+			if (p.isAi() && p.age > ServerSettings.MinAgeToEat && p.isWounded() == false && p.hasYellowFever() == false && isTargetSmith == false) continue;
 			
 			var classFood = isNobleOrMore ? p.lineage.prestigeClass * 4 : p.lineage.prestigeClass * 2;
 			var considerHungry = Math.min(classFood, p.food_store_max * 0.6);
@@ -1241,6 +1244,7 @@ class AiHelper {
 				|| player.getFollowPlayer() == p) hungry = hungry / 2 - 0.25; // prefer close relative
 			if (isAlly == false) hungry = hungry / 2 - 0.2; // prefer ally
 			if(isSmith) hungry = hungry / 2 - 0.2; // dont be distracted from smithing
+			if(isTargetSmith) hungry = hungry * 2 + 0.5; // feed smith
 			//if (p.isAi() && isNobleOrMore == false) hungry / 2 - 0.2; // prefer Ai only if noble
 			//if (myPlayerIsNobleOrMore && p.isAi()) hungry / 2 - 0.2; // if myPlayer is noble feed less AI
 			if (hungry < 0) continue;
