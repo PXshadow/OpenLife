@@ -1218,6 +1218,8 @@ class AiHelper {
 		var minQuadHungry = 0.01;
 		var isFertile = player.isFertile();
 		var myPlayerIsNobleOrMore = cast(globalplayer.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int); 
+		var ai = player.getAi();
+		var isSmith = ai == null ? false : player.getAi().profession['Smith'] > 0;
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
 			if (p.deleted) continue;
@@ -1226,7 +1228,8 @@ class AiHelper {
 
 			var isNobleOrMore = cast(p.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int); 
 
-			if (p.isAi() && p.age > ServerSettings.MinAgeToEat && p.isWounded() == false && p.hasYellowFever() == false && isNobleOrMore == false) continue;
+			// && isNobleOrMore == false
+			if (p.isAi() && p.age > ServerSettings.MinAgeToEat && p.isWounded() == false && p.hasYellowFever() == false) continue;
 			
 			var classFood = isNobleOrMore ? p.lineage.prestigeClass * 4 : p.lineage.prestigeClass * 2;
 			var considerHungry = Math.min(classFood, p.food_store_max * 0.6);
@@ -1237,8 +1240,9 @@ class AiHelper {
 			if (p.isCloseRelative(globalplayer) == false
 				|| player.getFollowPlayer() == p) hungry = hungry / 2 - 0.25; // prefer close relative
 			if (isAlly == false) hungry = hungry / 2 - 0.2; // prefer ally
+			if(isSmith) hungry = hungry / 2 - 0.2; // dont be distracted from smithing
 			//if (p.isAi() && isNobleOrMore == false) hungry / 2 - 0.2; // prefer Ai only if noble
-			if (myPlayerIsNobleOrMore && p.isAi()) hungry / 2 - 0.2; // if myPlayer is noble feed less AI
+			//if (myPlayerIsNobleOrMore && p.isAi()) hungry / 2 - 0.2; // if myPlayer is noble feed less AI
 			if (hungry < 0) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p) + 1;
@@ -1273,7 +1277,6 @@ class AiHelper {
 		var considerHungry = 2.5;
 		var minQuadHungry = 0.01;
 
-		// TODO consider ill
 		// TODO consider hits
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
@@ -1283,7 +1286,7 @@ class AiHelper {
 
 			var hungry = considerHungry - p.food_store;
 			if (p.mother != mother) hungry = hungry / 2 - 0.25; // own children count more
-			if (p.age > ServerSettings.MinAgeToEat) hungry -= 0.5;
+			if (p.age > ServerSettings.MinAgeToEat && p.hasYellowFever() == false) hungry -= 0.5;
 			if (hungry < 0) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(mother, p) + 1;
