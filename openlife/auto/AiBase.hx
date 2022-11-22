@@ -4334,11 +4334,16 @@ private function craftLowPriorityClothing() : Bool {
 
 	private function checkIsHungryAndEat():Bool {
 		var player = myPlayer.getPlayerInstance();
+		var heldObject = myPlayer.heldObject;
 
 		if (isHungry) {
 			isHungry = player.food_store < player.food_store_max * 0.8;
 		} else {
-			isHungry = player.food_store < Math.max(3, player.food_store_max * 0.3);
+			//if(this.profession['Smith'] > 0)
+			// Smithing Hammer 441
+			var max = 3;
+			if(heldObject.parentId == 441) max = 1; // dont be disturbed while smithing
+			isHungry = player.food_store < Math.max(max, player.food_store_max * 0.3);
 		}
 
 		if (isHungry && foodTarget == null) searchFoodAndEat();
