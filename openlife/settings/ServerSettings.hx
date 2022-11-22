@@ -620,6 +620,8 @@ class ServerSettings {
 		ObjectData.getObjectData(2709).decayFactor = -1; // Large Slow Fire tut_only burns forever
 		ObjectData.getObjectData(3112).decayFactor = -1; // Tarr Monument
 
+		ObjectData.getObjectData(858).decaysToObj = 862; // Broken Steel Tool 858 ==> Broken Steel Tool no wood 862
+
 		// set decay for ancient
 		ObjectData.getObjectData(898).decayFactor = 0.02; // Ancient Stone Floor
 		ObjectData.getObjectData(898).decaysToObj = 1853; // Ancient Stone Floor ==> Cut Stones
