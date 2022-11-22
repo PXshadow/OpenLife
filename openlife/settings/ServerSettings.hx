@@ -2030,6 +2030,14 @@ class ServerSettings {
 		trans.autoDecaySeconds = -2;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Broken Steel Tool 858
+		var transByActor = TransitionImporter.GetTransitionByNewActor(858);
+		for(trans in transByActor){
+			var objData = ObjectData.getObjectData(trans.actorID);
+			//trace('Decays to: ${objData.name}');
+			objData.decaysToObj = 858; // 858 Broken Steel Tool
+		}
+
 		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
 		for(trans in transByTarget){
 			// Leaf 62
