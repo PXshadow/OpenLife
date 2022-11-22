@@ -264,6 +264,7 @@ class ServerSettings {
 	public static var ObjDecayFactorForPermanentObjs:Float = 0.2; // 0.1 // 0.05;
 	public static var ObjDecayFactorForFood:Float = 2;
 	public static var ObjDecayFactorForClothing:Float = 2;
+	public static var WoolClothDecayTime:Int = -24 * 30; // one month
 
 	public static var DecayFactorInDeepWater:Float = 5;
 	public static var DecayFactorInMountain:Float = 3;
@@ -2029,6 +2030,28 @@ class ServerSettings {
 		trans.autoDecaySeconds = -2;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
+		for(trans in transByTarget){
+			// Leaf 62
+			if(trans.actorID == 62) continue;
+			// Clump of Scrap Steel 930
+			if(trans.actorID == 930) continue;
+			//trace('Scrap Bowl: ' + trans.getDesciption());
+			trans.aiShouldIgnore = true; 
+		}
+
+		for (objData in ObjectData.importedObjectData) {
+			if(objData.description.contains('Wool') == false) continue;
+			//trace('Wool: ${objData.name}');
+
+			var trans = TransitionImporter.GetTransition(-1, objData.parentId); // TIME + Wool???
+			if(trans == null) continue;
+			if(trans.autoDecaySeconds >= 0) continue;
+
+			//trace('Wool: ${objData.name} decaytime: ${trans.autoDecaySeconds}');
+			trans.autoDecaySeconds = ServerSettings.WoolClothDecayTime; // -5
+		}
+		
 		var trans = TransitionImporter.GetTransition(-1, 866); // TIME + Rag Loincloth
 		trans.autoDecaySeconds = -2; // -0.5
 
