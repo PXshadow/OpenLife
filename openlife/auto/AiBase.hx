@@ -620,8 +620,14 @@ abstract class AiBase
 		if(closeObj != null) trace('cleanUp: ${closeObj.name}');
 		if(closeObj != null) if(shortCraftOnTarget(0,closeObj)) return true;
 		
+
+		// TODO for now GetClosestObjectToTarget considers only mindistance to home (oven) not to forge
+		var target = home;
+		var isforge = false;
+
 		var count = isforge ? AiHelper.CountCloseObjects(myPlayer,target.tx, target.ty, 291, 4, false) : 0; // Flat Rock 291
-		var max = isforge ? 3 : 0;
+		//var max = isforge ? 3 : 0;
+		var max = 3; // for now allow 3 also for oven since forge can be close to oven // TODO change 
 		var mindistance = isforge ? 2 : 0;
 		if(count > max){			
 			var closeObj = AiHelper.GetClosestObjectToTarget(myPlayer,target, 291, 4, mindistance); // Flat Rock 291
@@ -2698,10 +2704,7 @@ private function craftLowPriorityClothing() : Bool {
 		var dropCloseToPlayer = true;
 		var heldObjId = myPlayer.heldObject.parentId;
 		var searchDistance = 40;
-		// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
-		// Straw 227 // Wheat Sheaf 225 // Flat Rock 291 (onlt if needed for forge)
-		var dontDropCloseHomeIds = [356, 336, 1137, 227, 225, 291];
-		var mindistance = dontDropCloseHomeIds.contains(heldObjId) ? 6 : 0; // to home
+		var mindistance = 0; // to oven
 		var quadIsCloseEnoughDistanceToTarget = 25; //400; // old 25 // does not go to home if close enough
 		var dropOnStart:Bool = mindistance < 1;
 		var newDropTarget = null;
@@ -2774,7 +2777,7 @@ private function craftLowPriorityClothing() : Bool {
 					if(heldId == 291) pileId = 0; 
 					dropCloseToPlayer = false;
 					target = forge;
-					mindistance = 0;
+					mindistance = -1; // allow be droped close
 				}
 			}
 		}

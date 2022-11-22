@@ -95,17 +95,21 @@ class AiHelper {
 		return GetClosestObjectToPosition(player.home.tx, player.home.ty, objIdToSearch, searchDistance, ignoreObj, player);
 	}
 
-	// 1137 Bowl of Soil // 356 Basket of Bones // 336 Basket of Soil 
-	// Straw 227 // Wheat Sheaf 225
-	static var needsNotFlooredPlace = [1137, 356, 336, 227, 225];
+	// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
+	// Straw 227 // Wheat Sheaf 225 
+	static var needsNotFlooredPlace = [356, 336, 1137, 227, 225];
+	// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
+	// Straw 227 // Wheat Sheaf 225 
+	// Flat Rock 291 (onlt if needed for forge)
+	static var dontDropCloseHomeIds = [356, 336, 1137, 227, 225, 291];
 
 	// objIdToSearch = -10 if searching non permanent
+	// minDistance = -1 allows to be dropped close to oven even if it normaly should not (flat rock for forge)
 	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null, player:PlayerInterface = null, searchContained:Array<Int> = null, minDistance:Int = 0) : ObjectHelper {
 		var world = WorldMap.world;
 		var ai = player == null ? null : player.getAi();
 		var closestObject = null;
 		var bestDistance = 0.0;
-		var quadMinDistance = minDistance * minDistance;
 		var closestBadPlace = null;
 		var bestDistanceToBadPlace = 0.0;
 		var searchEmptyPlace = ai != null && objIdToSearch == 0;
@@ -113,6 +117,12 @@ class AiHelper {
 		var searchNotFlooredPlace = searchEmptyPlace && needsNotFlooredPlace.contains(heldId); 
 		var objdataRoSearch = ObjectData.getObjectData(objIdToSearch);
 		var allowContainerWithItems = objdataRoSearch == null ? false : objdataRoSearch.isGrave();
+		var mindistaceToObject = player == null ? null : player.home;
+		// TODO consider also other objects like Kiln, Forge, Fire?
+
+		//  -1 allows to be dropped close to oven even if it normaly should not (flat rock for forge)
+		if(minDistance == 0) minDistance = dontDropCloseHomeIds.contains(heldId) ? 6 : 0; // to home
+		var quadMinDistance = minDistance * minDistance;
 		
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
@@ -150,8 +160,11 @@ class AiHelper {
 
 				var quadDistance = AiHelper.CalculateQuadDistanceHelper(tx,ty, baseX, baseY);
 
-				if(quadDistance < quadMinDistance) continue;
-
+				if(mindistaceToObject != null && minDistance > 0){
+					var quadDistanceToHome = AiHelper.CalculateQuadDistanceHelper(tx,ty, mindistaceToObject.tx, mindistaceToObject.ty);
+					if(quadDistanceToHome < quadMinDistance) continue;
+				}
+				
 				// dont drop stuff behind a tree
 				var objDataBelow = world.getObjectDataAtPosition(tx, ty - 1);
 				if (searchEmptyPlace && objDataBelow.isTree()) continue;
