@@ -1866,8 +1866,12 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// patch alternativeTransitionOutcomes // TODO use prob categories instead
-		var trans = transtions.getTransition(502, 338); // shovel plus Stump
+		var trans = transtions.getTransition(502, 338); // shovel 502 + Stump
 		trans.alternativeTransitionOutcome.push(72); // Kindling
+
+		var trans = transtions.getTransition(502, 408); // shovel 502 + Empty Clay Pit 408
+		trans.alternativeTransitionOutcome.push(126); // Clay 126
+		trans.hungryWorkCost = 5;
 
 		ObjectData.getObjectData(342).alternativeTransitionOutcome.push(344); // Chopped Tree Big Log--> Fire Wood
 		ObjectData.getObjectData(340).alternativeTransitionOutcome.push(344); // Chopped Tree --> Fire Wood
