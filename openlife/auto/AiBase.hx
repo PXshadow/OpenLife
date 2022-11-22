@@ -617,7 +617,7 @@ abstract class AiBase
 		var isforge = target == null ? false : true;
 		if(target == null) target = home; 
 		var closeObj = AiHelper.GetClosestObjectToTarget(myPlayer,target, 1836, 4); // Stack of Flat Rocks 1836
-		if(closeObj != null) trace('cleanUp: ${closeObj.name}');
+		if(ServerSettings.DebugAi && closeObj != null) trace('cleanUp: ${closeObj.name}');
 		if(closeObj != null) if(shortCraftOnTarget(0,closeObj)) return true;
 		
 
@@ -1877,6 +1877,16 @@ abstract class AiBase
 		return false;
 	}
 
+	private function GetGraveyard() {
+		var home = myPlayer.home;
+		// Marked Grave 1012
+		var grave = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 1012, 25, null, myPlayer, 8);
+		// Buried Grave 1011
+		if(grave == null) grave = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 1011, 25, null, myPlayer, 8);
+
+		return grave;
+	}
+
 	private function GetForge() {
 		var home = myPlayer.home;
 
@@ -2736,6 +2746,15 @@ private function craftLowPriorityClothing() : Bool {
 
 		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
 		if(heldObjId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236,5)) return true;
+
+		// Basket of Bones 356
+		if(heldObjId == 356){
+			var graveyard = GetGraveyard();
+			if(graveyard != null){
+				target = graveyard;
+				dropCloseToPlayer = false;
+			}
+		}
 	
 		// Clay 126 ==> drop close to kiln if close, otherwise drop in basket
 		if(heldObjId == 126){ 
