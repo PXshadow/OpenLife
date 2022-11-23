@@ -2030,33 +2030,46 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return true;
 		}
 
-		if (message.startsWith('HOME') && message.startsWith('HOME!') == false) {
+		if (message.startsWith('HOME!') || message.startsWith('!HOME')) {
 			var myPlayer = this;			
 			var newHome = AiHelper.SearchNewHome(myPlayer);
 			
 			myPlayer.firePlace = AiHelper.GetCloseFire(myPlayer);
 
-			if(newHome != null){
-				if(myPlayer.home.tx != newHome.tx || myPlayer.home.ty != newHome.ty ) myPlayer.say('HOME! Have a new home! ${newHome.name}');
-				else myPlayer.say('HOME! No mew home! ${newHome.name}');
+			setNewNome(newHome);
 				
-				myPlayer.home = newHome;
-
-				GlobalPlayerInstance.AcquireMutex(); // TODO make ALLPlayers thread save
-
-				for (p in GlobalPlayerInstance.AllPlayers){					
-					if (p.getTopLeader(myPlayer) != myPlayer && p.followPlayer != myPlayer) continue;
-					p.home = newHome;
-
-					trace('Follower new home: ${p.name}');
-				}
-
-				GlobalPlayerInstance.ReleaseMutex();
-				return false;
-			}
-
 			return true;
 		} 
+
+		return true;
+	}
+
+	public function setNewNome(newHome:ObjectHelper) {
+		if(newHome == null) return false;
+		var myPlayer = this;
+		var isNewHome = (myPlayer.home.tx != newHome.tx || myPlayer.home.ty != newHome.ty);
+		
+		if(isNewHome == false) return false;
+		
+		myPlayer.home = newHome;
+		myPlayer.say('This is my home!', true);
+
+		GlobalPlayerInstance.AcquireMutex(); // TODO make ALLPlayers thread save
+
+		// TODO does not yet set home for not direct follower if not top leader
+		for (p in GlobalPlayerInstance.AllPlayers){					
+			if(p == myPlayer) continue;	
+			if (p.getTopLeader(myPlayer) != myPlayer && p.followPlayer != myPlayer) continue;
+
+			p.home = newHome;
+
+			if(p.isHuman()) p.say('My leader ${myPlayer.name} chose a new home!', true);
+			else p.say('My leader ${myPlayer.name} chose a new home!');
+
+			trace('Follower new home: ${p.name}');
+		}
+
+		GlobalPlayerInstance.ReleaseMutex();
 
 		return true;
 	}

@@ -591,6 +591,11 @@ class TransitionHelper {
 	public function doTransitionIfPossibleHelper(containerSlotSize:Float = -1, onPlayer:Bool = false):Bool {
 		var lastUseActor = false;
 
+		// Hot Adobe Oven 250 ==> set to new home for player and his followers if it is not already
+		if (target.parentId == 250) {
+			player.setNewNome(target);
+		}
+
 		if (target.objectData.isOwned) {
 			if (target.isOwnedBy(player.p_id) == false) {
 				if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Player is not owner of ${target.description}!');
