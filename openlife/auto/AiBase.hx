@@ -633,7 +633,7 @@ abstract class AiBase
 			var closeObj = AiHelper.GetClosestObjectToTarget(myPlayer,target, 291, 4, mindistance); // Flat Rock 291
 			if(ServerSettings.DebugAi && closeObj != null) trace('cleanUp: ${closeObj.name}');
 			if(closeObj != null){
-				dropHeldObject();
+				if(dropHeldObject()) return true;
 				return PickupObj(closeObj);
 			}
 		}
@@ -2709,6 +2709,22 @@ private function craftLowPriorityClothing() : Bool {
 		var heldObjId = heldObject.parentId;
 	}
 
+	private function considerDropHeldObject(target:ObjectHelper) {
+		var heldObjId = myPlayer.heldObject.parentId;
+
+		if (heldObjId == 2144) return dropHeldObject(); // 2144 Banana Peel
+		if (heldObjId == 34) return dropHeldObject(); // 34 Sharp Stone
+
+		// TODO use actual drop target for heldObject like oven, kiln, forge instead of home 
+		var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, myPlayer.home);
+		var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, target);
+
+		// check if target is closer then current position or in 5 tiles reach --> then take item to target
+		if(quadDistanceToTarget < quadDistanceToHome + 25) return false;
+		
+		return dropHeldObject();
+	}
+
 	//public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
 	// allowAllPiles --> some stuff like clay baskets and so on is normally not piled. Set true if it should be allowed to be piled. 
 	public function dropHeldObject(maxDistanceToHome:Float = 40, allowAllPiles:Bool = false, ?infos:haxe.PosInfos) : Bool {
@@ -4232,26 +4248,6 @@ private function craftLowPriorityClothing() : Bool {
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop $done now held: ${myPlayer.heldObject.name}');		
 
-		return true;
-	}
-
-	private function considerDropHeldObject(target:ObjectHelper) {
-		// TODO use actual drop target for heldObject like oven, kiln, forge instead of home 
-		var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, myPlayer.home);
-		var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, target);
-
-		// check if target is closer then current position or in 5 tiles reach --> then take item to target
-		if(quadDistanceToTarget < quadDistanceToHome + 25) return false;
-
-		/*
-		// only drop held item before move, if close to home and target is far away, otherwise drop item after move
-		if(quadDistanceToHome < 225 && quadDistanceToTarget > 225){
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to pickup food / before move');
-			dropHeldObject();
-			return true;
-		}*/
-		
-		dropHeldObject();
 		return true;
 	}
 
