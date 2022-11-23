@@ -2759,7 +2759,7 @@ private function craftLowPriorityClothing() : Bool {
 		var heldObjId = myPlayer.heldObject.parentId;
 		var searchDistance = 40;
 		var mindistance = 0; // to oven
-		var quadIsCloseEnoughDistanceToTarget = 25; //400; // old 25 // does not go to home if close enough
+		var quadIsCloseEnoughDistanceToTarget = 400; // old 25 // does not go to home if close enough // if too low and not enough space around target its stuck
 		var dropOnStart:Bool = mindistance < 1;
 		var newDropTarget = null;
 		var heldObject = myPlayer.heldObject;
