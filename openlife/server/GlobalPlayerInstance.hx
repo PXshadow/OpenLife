@@ -4771,22 +4771,24 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public function isSuperHot() {
 		var tooHot = 0.5 + 0.5 * ServerSettings.TemperatureImpactBelow;
-		var color = this.getColor();
+		var factor = ServerSettings.TemperatureImpactColorFactor;
+		var color = this.getColor();		
 
-		if (color == PersonColor.Black) tooHot += 0.2;
-		if (color == PersonColor.Brown) tooHot += 0.1;
-		if (color == PersonColor.White) tooHot += 0.05;
+		if (color == PersonColor.Black) tooHot += 0.2 * factor;
+		if (color == PersonColor.Brown) tooHot += 0.1 * factor;
+		if (color == PersonColor.White) tooHot += 0.05 * factor;
 
 		return (this.heat > tooHot);
 	}
 
 	public function isSuperCold() {
 		var tooCold = 0.5 - 0.5 * ServerSettings.TemperatureImpactBelow;
+		var factor = ServerSettings.TemperatureImpactColorFactor;
 		var color = this.getColor();
 
-		if (color == PersonColor.Ginger) tooCold -= 0.2;
-		if (color == PersonColor.White) tooCold -= 0.1;
-		if (color == PersonColor.Brown) tooCold -= 0.05;
+		if (color == PersonColor.Ginger) tooCold -= 0.2 * factor;
+		if (color == PersonColor.White) tooCold -= 0.1 * factor;
+		if (color == PersonColor.Brown) tooCold -= 0.05 * factor;
 
 		return (this.heat < tooCold);
 	}
