@@ -117,12 +117,11 @@ class AiHelper {
 		var searchNotFlooredPlace = searchEmptyPlace && needsNotFlooredPlace.contains(heldId); 
 		var objdataRoSearch = ObjectData.getObjectData(objIdToSearch);
 		var allowContainerWithItems = objdataRoSearch == null ? false : objdataRoSearch.isGrave();
-		var mindistaceToObject = player == null ? null : player.home;
-		// TODO consider also other objects like Kiln, Forge, Fire?
-
-		//  -1 allows to be dropped close to oven even if it normaly should not (flat rock for forge)
-		if(minDistance == 0) minDistance = dontDropCloseHomeIds.contains(heldId) ? 6 : 0; // to home
 		var quadMinDistance = minDistance * minDistance;
+		// TODO consider also other objects like Kiln, Forge, Fire?
+		var mindistaceToTargetObj = player == null ? null : player.home;
+		var minDistanceToTarget = dontDropCloseHomeIds.contains(heldId) ? 6 : 0; // to home
+		var quadMinDistanceToTarget = minDistanceToTarget * minDistanceToTarget;
 		
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
@@ -160,9 +159,11 @@ class AiHelper {
 
 				var quadDistance = AiHelper.CalculateQuadDistanceHelper(tx,ty, baseX, baseY);
 
-				if(mindistaceToObject != null && minDistance > 0){
-					var quadDistanceToHome = AiHelper.CalculateQuadDistanceHelper(tx,ty, mindistaceToObject.tx, mindistaceToObject.ty);
-					if(quadDistanceToHome < quadMinDistance) continue;
+				if(quadDistance < quadMinDistance) continue; // for example used to not pikcup kindling close to fire to bring this kindling then to fire
+
+				if(mindistaceToTargetObj != null && quadMinDistanceToTarget > 0){
+					var quadDistanceToHome = AiHelper.CalculateQuadDistanceHelper(tx,ty, mindistaceToTargetObj.tx, mindistaceToTargetObj.ty);
+					if(quadDistanceToHome < quadMinDistanceToTarget) continue;
 				}
 				
 				// dont drop stuff behind a tree
