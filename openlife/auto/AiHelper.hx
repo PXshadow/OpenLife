@@ -533,18 +533,20 @@ class AiHelper {
 		return gotoObj(player, obj, false);
 	}
 
-	public static function gotoObj(player:PlayerInterface, obj:ObjectHelper, move:Bool = true, checkIfDangerous = true, ?infos:haxe.PosInfos):Bool {
+	public static function gotoObj(player:PlayerInterface, obj:ObjectHelper, move:Bool = true, checkIfDangerous = true, ?infos:haxe.PosInfos):Bool {	
+		if (ServerSettings.DebugAi){
+			var distance = CalculateQuadDistanceToObject(player, obj);
+			trace('AAI: ${player.name + player.id} gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} ${infos.methodName}');
+		} 
+
 		return gotoAdv(player, obj.tx, obj.ty, move, checkIfDangerous, infos);
 	}
 
 	public static function gotoAdv(player:PlayerInterface, tx:Int, ty:Int, move:Bool = true, checkIfDangerous = true, ?infos:haxe.PosInfos):Bool {
 		var startTime = Sys.time();
 		var ai = player.getAi();
-		var rand = 0;
 		var rx = WorldMap.world.transformX(player, tx);
 		var ry = WorldMap.world.transformY(player, ty);
-		//var x = tx - player.gx;
-		//var y = ty - player.gy;
 
 		var dist = AiHelper.CalculateDistance(player.tx, player.ty, tx, ty);
 		var blockedByAnimal = false;
@@ -555,47 +557,15 @@ class AiHelper {
 		}
 
 		var considerAnimals = checkIfDangerous && ai.didNotReachFood < 5 && ai.myPlayer.food_store > -1;
+		var done = Goto(player, rx, ry, considerAnimals, move);
 
-		// This is done in goto itself
-		/* for (i in 0...5) { 
-			var xo = 0;
-			var yo = 0;
+		if (done) return true;
 
-			if (rand > 4) break;
-
-			if (rand == 1) xo = 1;
-			if (rand == 2) yo = -1;
-			if (rand == 3) xo = -1;
-			if (rand == 4) yo = 1;
-
-			rand++;
-
-			if (player.isBlocked(tx + xo, ty + yo)) continue;
-			if (ai.isObjectNotReachable(tx + xo, ty + yo)) continue;
-			*/
-
-			//var done = Goto(player, rx + xo, ry + yo, considerAnimals, move);
-			var done = Goto(player, rx, ry, considerAnimals, move);
-
-			//var passedTime = (Sys.time() - startTime) * 1000;
-
-			if (done){
-				//ai.time += passedTime / 1000;
-				return true;
-			} 
-
-			// check if blocked only by animals // used for not to consider the object as blocked
-			if(considerAnimals && blockedByAnimal == false){
-				//blockedByAnimal = Goto(player, rx + xo, ry + yo, false, false);
-				blockedByAnimal = Goto(player, rx, ry, false, false);
-			}
-
-			/*
-			if (passedTime > ServerSettings.GotoTimeOut) {
-				trace('AI: ${player.name + player.id} GOTO failed after $i because of timeout ${Math.round(passedTime)}ms! Ignore ${tx} ${ty} dist: ${Math.round(Math.sqrt(dist))} ${infos.methodName}');
-				break;
-			}*/
-		//}
+		// check if blocked only by animals // used for not to consider the object as blocked
+		if(considerAnimals && blockedByAnimal == false){
+			//blockedByAnimal = Goto(player, rx + xo, ry + yo, false, false);
+			blockedByAnimal = Goto(player, rx, ry, false, false);
+		}
 
 		var passedTime = Math.round((Sys.time() - startTime) * 1000);
 		

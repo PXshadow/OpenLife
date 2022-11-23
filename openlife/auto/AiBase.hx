@@ -1073,8 +1073,9 @@ abstract class AiBase
 		var goodPlace = null;
 		var text = '';
 		var needWarming = myPlayer.isSuperCold() || (isHandlingTemperature && myPlayer.heat < 0.4);
+		var needCooling = myPlayer.isSuperHot() || (isHandlingTemperature && myPlayer.heat > 0.6);
 
-		if(myPlayer.isSuperHot() || (isHandlingTemperature && myPlayer.heat > 0.6)){
+		if(needCooling){
 			//trace('AAI: ${myPlayer.name + myPlayer.id} handle heat: too hot');
 			goodPlace = myPlayer.coldPlace;
 			text = 'cool';

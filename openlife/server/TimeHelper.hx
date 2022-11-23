@@ -852,7 +852,7 @@ class TimeHelper {
 
 		if(player.firePlace == null && closestHeatObj != null && closestHeatObj.isFire()) player.firePlace = closestHeatObj;
 
-		// TODO move inside calculateTemperature so that it is considered for olf cold / hot place
+		// TODO move inside calculateTemperature so that it is considered for cold / hot place
 		if (closestHeatObj != null) {
 			var heatObjectFactor = ServerSettings.TemperatureHeatObjectFactor;
 			var quadDistance = 10 + AiHelper.CalculateQuadDistanceToObject(player, closestHeatObj);
@@ -882,14 +882,20 @@ class TimeHelper {
 				player.warmPlace.ty = player.ty;
 			}
 			else{
-				var warmPlace = player.warmPlace;
-				var quadDist = AiHelper.CalculateDistance(player.tx, player.ty, warmPlace.tx, warmPlace.ty);
-				var warmPlaceTemperature = calculateTemperature(player, warmPlace.tx, warmPlace.ty);	
-				var oldfitness = (warmPlaceTemperature - 0.5)  / (quadDist + 100);
-				var newfitness = (temperature - 0.5) / 100;
-				if(newfitness >= oldfitness){
-					warmPlace.tx = player.tx;
-					warmPlace.ty = player.ty;
+				var newPlaceBiome = WorldMap.world.getBiomeId(player.tx, player.ty);
+				var isJungle = newPlaceBiome == BiomeTag.JUNGLE;
+				var isDesert = newPlaceBiome == BiomeTag.DESERT;
+
+				if(isJungle || isDesert){
+					var warmPlace = player.warmPlace;
+					var quadDist = AiHelper.CalculateDistance(player.tx, player.ty, warmPlace.tx, warmPlace.ty);
+					var warmPlaceTemperature = calculateTemperature(player, warmPlace.tx, warmPlace.ty);	
+					var oldfitness = (warmPlaceTemperature - 0.5)  / (quadDist + 25);
+					var newfitness = (temperature - 0.5) / 25;
+					if(newfitness >= oldfitness){
+						warmPlace.tx = player.tx;
+						warmPlace.ty = player.ty;
+					}
 				}
 				//trace('heat: found warm Place');
 			}
@@ -901,14 +907,25 @@ class TimeHelper {
 				player.coldPlace.ty = player.ty;
 			}
 			else{
-				var coldPlace = player.coldPlace;
-				var quadDist = AiHelper.CalculateDistance(player.tx, player.ty, coldPlace.tx, coldPlace.ty);
-				var coldPlaceTemperature = calculateTemperature(player, coldPlace.tx, coldPlace.ty);	
-				var oldfitness = (0.5 - coldPlaceTemperature)  / (quadDist + 100);
-				var newfitness = (0.5 - temperature) / 100;
-				if(newfitness >= oldfitness){
-					coldPlace.tx = player.tx;
-					coldPlace.ty = player.ty;
+				var newColdPlaceBiome = WorldMap.world.getBiomeId(player.tx, player.ty);
+				var isNewWater = newColdPlaceBiome == BiomeTag.PASSABLERIVER;
+				var isNewSnow = newColdPlaceBiome == BiomeTag.SNOW;
+
+				if (isNewWater || isNewSnow){
+					var coldPlace = player.coldPlace;
+					var oldColdPlaceBiome = WorldMap.world.getBiomeId(coldPlace.tx, coldPlace.ty);
+					var isOldWater = oldColdPlaceBiome == BiomeTag.PASSABLERIVER;
+					var quadDist = AiHelper.CalculateDistance(player.tx, player.ty, coldPlace.tx, coldPlace.ty);
+					var coldPlaceTemperature = calculateTemperature(player, coldPlace.tx, coldPlace.ty);	
+					var oldfitness = (0.5 - coldPlaceTemperature)  / (quadDist + 25);
+					var newfitness = (0.5 - temperature) / 25;
+					if (isNewWater) newfitness *=2;
+					if (isOldWater) oldfitness *=2;
+					
+					if (newfitness >= oldfitness){
+						coldPlace.tx = player.tx;
+						coldPlace.ty = player.ty;
+					}
 				}
 
 				//trace('heat: found cold Place');
