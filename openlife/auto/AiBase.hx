@@ -2709,10 +2709,14 @@ private function craftLowPriorityClothing() : Bool {
 		var heldObjId = heldObject.parentId;
 	}
 
+	// Kindling 72 // Firewood 344 
+	// Dead Rabbit 180 // Skinned Rabbit 181 // Skewered Rabbit 185
+	var dropNearFireItemIds = [72, 344, 180, 181, 185];
+
 	// Clay Bowl 235 // Clay Plate 236 // Knife 560 // Bowl of Dough 252 
-	// Baked Bread 1470 // Sliced Bread 1471 // Dead Rabbit 180
+	// Baked Bread 1470 // Sliced Bread 1471
 	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900
-	var dropNearOvenItemIds = [235, 236, 560, 252, 1470, 1471, 180, 502, 900];
+	var dropNearOvenItemIds = [235, 236, 560, 252, 1470, 1471, 502, 900];
 
 	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
 		var heldObjId = myPlayer.heldObject.parentId;
@@ -2721,10 +2725,16 @@ private function craftLowPriorityClothing() : Bool {
 		if (heldObjId == 2144) return dropHeldObject(); // 2144 Banana Peel
 		if (heldObjId == 34) return dropHeldObject(); // 34 Sharp Stone
 
-		// TODO other items for Kiln, fire, smith
+		// TODO other items for Kiln, smith, plates for oven
+		// drop at once, since its normally dropped at fire. For exmple kindling, wood...
+		if(dropNearFireItemIds.contains(heldObjId)){
+			//if(myPlayer.firePlace != null) dropTarget = myPlayer.firePlace;
+			return dropHeldObject();
+		}
+
 		// drop at once, since its normally dropped at home. For exmple pies, platees...
 		if(dropNearOvenItemIds.contains(heldObjId) || pies.contains(heldObjId) || rawPies.contains(heldObjId)){
-			dropTarget = myPlayer.home; // drop near home which is normaly the oven	
+			//dropTarget = myPlayer.home; // drop near home which is normaly the oven	
 			return dropHeldObject();
 		}
 
@@ -2740,10 +2750,11 @@ private function craftLowPriorityClothing() : Bool {
 
 	// TODO consider to not drop stuff close to home if super far away or starving
 	// allowAllPiles --> some stuff like clay baskets and so on is normally not piled. Set true if it should be allowed to be piled. 
-	public function dropHeldObject(maxDistanceToHome:Float = 40, allowAllPiles:Bool = false, ?infos:haxe.PosInfos) : Bool {
+	// target is the target where heldObj shoudld be dropped close to
+	public function dropHeldObject(maxDistanceToHome:Float = 40, allowAllPiles:Bool = false, target:ObjectHelper = null, ?infos:haxe.PosInfos) : Bool {
+		if(target == null) target = myPlayer.home;
 
 		var home = myPlayer.home;
-		var target = home;
 		var dropCloseToPlayer = true;
 		var heldObjId = myPlayer.heldObject.parentId;
 		var searchDistance = 40;
@@ -2834,7 +2845,7 @@ private function craftLowPriorityClothing() : Bool {
 			}
 		}
 
-		// Basket 292, Clay 126 ==> drop close to oven
+		// Basket 292, Clay 126 ==> drop close to kiln
 		if(heldId == 292 && heldObject.contains([126])){
 			pileId = 0;
 			var kiln = GetKiln();
@@ -2859,6 +2870,7 @@ private function craftLowPriorityClothing() : Bool {
 		}
 
 		// TODO what is if super far away from oven?
+		// Clay Plate 236 ==> make sure that are not piled plates near oven
 		if(heldId == 236){
 			var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, heldId, 10, false);
 			// pile if more then 5
@@ -2876,6 +2888,12 @@ private function craftLowPriorityClothing() : Bool {
 					return true;
 				}
 			}
+		}
+
+		// drop at fire. For exmple kindling, wood...
+		if(dropNearFireItemIds.contains(heldObjId)){
+			if(myPlayer.firePlace != null) dropTarget = myPlayer.firePlace;
+			dropCloseToPlayer = false;
 		}
 
 		// only bring stuff home if it is useful
