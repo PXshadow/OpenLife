@@ -2709,15 +2709,28 @@ private function craftLowPriorityClothing() : Bool {
 		var heldObjId = heldObject.parentId;
 	}
 
-	private function considerDropHeldObject(target:ObjectHelper) {
+	// Clay Bowl 235 // Clay Plate 236 // Knife 560 // Bowl of Dough 252 
+	// Baked Bread 1470 // Sliced Bread 1471 // Dead Rabbit 180
+	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900
+	var dropNearOvenItemIds = [235, 236, 560, 252, 1470, 1471, 180, 502, 900];
+
+	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
 		var heldObjId = myPlayer.heldObject.parentId;
+		var dropTarget =  myPlayer.home;
 
 		if (heldObjId == 2144) return dropHeldObject(); // 2144 Banana Peel
 		if (heldObjId == 34) return dropHeldObject(); // 34 Sharp Stone
 
+		// TODO other items for Kiln, fire, smith
+		// drop at once, since its normally dropped at home. For exmple pies, platees...
+		if(dropNearOvenItemIds.contains(heldObjId) || pies.contains(heldObjId) || rawPies.contains(heldObjId)){
+			dropTarget = myPlayer.home; // drop near home which is normaly the oven	
+			return dropHeldObject();
+		}
+
 		// TODO use actual drop target for heldObject like oven, kiln, forge instead of home 
-		var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, myPlayer.home);
-		var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, target);
+		var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, dropTarget);
+		var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, gotoTarget);
 
 		// check if target is closer then current position or in 5 tiles reach --> then take item to target
 		if(quadDistanceToTarget < quadDistanceToHome + 25) return false;
@@ -2725,7 +2738,7 @@ private function craftLowPriorityClothing() : Bool {
 		return dropHeldObject();
 	}
 
-	//public function dropHeldObject(dropOnStart:Bool = false, maxDistanceToHome:Float = 60) {
+	// TODO consider to not drop stuff close to home if super far away or starving
 	// allowAllPiles --> some stuff like clay baskets and so on is normally not piled. Set true if it should be allowed to be piled. 
 	public function dropHeldObject(maxDistanceToHome:Float = 40, allowAllPiles:Bool = false, ?infos:haxe.PosInfos) : Bool {
 
@@ -2840,10 +2853,6 @@ private function craftLowPriorityClothing() : Bool {
 			}
 		}
 		
-		// Clay Bowl 235 // Clay Plate 236 // Knife 560 // Bowl of Dough 252 
-		// Baked Bread 1470 // Sliced Bread 1471 // Dead Rabbit 180
-		// TODO drop somewhere save Shovel 502 // Shovel of Dung 900
-		var dropNearOvenItemIds = [235, 236, 560, 252, 1470, 1471, 180, 502, 900];
 		if(dropNearOvenItemIds.contains(heldId) || pies.contains(heldId) || rawPies.contains(heldId)){
 			target = myPlayer.home; // drop near home which is normaly the oven	
 			dropCloseToPlayer = false;
