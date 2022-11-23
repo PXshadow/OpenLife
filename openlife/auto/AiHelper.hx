@@ -1494,6 +1494,7 @@ class IntemToCraft {
 			trans.craftActor = null;
 			trans.craftTarget = null;
 			trans.isDone = false;
+			trans.usePile = false;
 			trans.wantedObjs = new Array<TransitionForObject>();
 		}
 	}
