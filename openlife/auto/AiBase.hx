@@ -3965,6 +3965,17 @@ private function craftLowPriorityClothing() : Bool {
 			if(actor == null){ 
 				actor = new TransitionForObject(trans.actorID,0,0,null);
 				transitionsByObjectId[trans.actorID] = actor;
+
+				// check if there is a pile
+				var objData = ObjectData.getObjectData(trans.actorID);
+				var pileId = objData.getPileObjId();
+				if (pileId > 0){
+					var pile = transitionsByObjectId[pileId];
+					if(pile != null){
+						actor.usePile = true;
+						actor.closestObject = pile.closestObject;
+					}
+				}
 			}
 			if(target == null){ 
 				target = new TransitionForObject(trans.targetID,0,0,null);
@@ -3974,7 +3985,7 @@ private function craftLowPriorityClothing() : Bool {
 			var actorObj = actor.closestObject;
 			var targetObj = actor == target ? actor.secondObject : target.closestObject;
 
-            // TODO consider something like put thread in claybowls to get a thread
+            // TODO consider cyles like: put thread in claybowls to get a thread
 			if (actorObj == null && actor.wantedObjs.contains(wanted) == false) { 
 				actor.wantedObjs.push(wanted);
 			}
@@ -4041,8 +4052,18 @@ private function craftLowPriorityClothing() : Bool {
 			// TODO to work it needs to allow to process further
 			if (dist < itemToCraft.bestDistance) {
 				itemToCraft.bestDistance = dist;
-				itemToCraft.transActor = actorObj;
-				itemToCraft.transTarget = targetObj;
+				
+				// If actor is not the wanted object but a pile
+				if(actor.usePile){
+					itemToCraft.transActor = new ObjectHelper(null,0);
+					itemToCraft.transTarget = actorObj;
+
+					trace('USE PILE: ${actorObj.name}');
+				}
+				else{
+					itemToCraft.transActor = actorObj;
+					itemToCraft.transTarget = targetObj;
+				}
 			}
 
 			var actor = transitionsByObjectId[actorObj.id];

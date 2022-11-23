@@ -1430,6 +1430,7 @@ class TransitionForObject {
 	public var craftTransFrom:TransitionData;
 
 	public var isDone = false;
+	public var usePile = false; // if true this object is the piled object
 
 	// public var craftSteps:Int;
 
