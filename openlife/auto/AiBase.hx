@@ -2713,10 +2713,11 @@ private function craftLowPriorityClothing() : Bool {
 	// Dead Rabbit 180 // Skinned Rabbit 181 // Skewered Rabbit 185
 	var dropNearFireItemIds = [72, 344, 180, 181, 185];
 
-	// Clay Bowl 235 // Clay Plate 236 // Knife 560 // Bowl of Dough 252 
+	// Clay Bowl 235 // Stack of Clay Bowls 1603 // Clay Plate 236 // Stack of Clay Plates 1602 
+	// Knife 560 // Bowl of Dough 252 
 	// Baked Bread 1470 // Sliced Bread 1471
 	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900
-	var dropNearOvenItemIds = [235, 236, 560, 252, 1470, 1471, 502, 900];
+	var dropNearOvenItemIds = [235, 1603, 236, 1602, 560, 252, 1470, 1471, 502, 900];
 
 	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
 		var heldObjId = myPlayer.heldObject.parentId;
