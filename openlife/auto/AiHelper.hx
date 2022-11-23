@@ -285,6 +285,38 @@ class AiHelper {
 		return closestObject != null ? closestObject : closestBadPlaceforDrop;
 	}
 
+	public static function GetCloseBiome(playerInterface:PlayerInterface, biomes:Array<Int>, searchDistance = 30) {
+		var ai = playerInterface.getAi();
+		var world = playerInterface.getWorld();
+		var player = playerInterface.getPlayerInstance();
+		var baseX = player.tx;
+		var baseY = player.ty;
+		var bestBiome = new ObjectHelper(null, 0);
+		var bestDistance:Float = -1;
+
+		for (ty in baseY - searchDistance...baseY + searchDistance) {
+			for (tx in baseX - searchDistance...baseX + searchDistance) {
+				
+				var biomeId = world.getBiomeId(tx,ty);
+
+				if(biomes.contains(biomeId) == false) continue;
+
+				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
+				if (ai != null && ai.isObjectWithHostilePath(tx, ty)) continue;
+
+				var distance = AiHelper.CalculateDistance(player.tx, player.ty, tx, ty);
+
+				if(distance > bestDistance) continue;
+
+				bestDistance = distance;
+				bestBiome.tx = tx;
+				bestBiome.ty = ty;
+			}
+		}
+		
+		return bestDistance < 0 ? null : bestBiome; 
+	}
+
 	public static function IsBadBiomeForDrop(tx:Int, ty:Int) : Bool{
 		var biomeId = WorldMap.world.getBiomeId(tx, ty);
 		if(biomeId == PASSABLERIVER || biomeId == OCEAN || biomeId == RIVER || biomeId == SNOWINGREY) return true;

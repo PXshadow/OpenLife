@@ -1077,7 +1077,8 @@ abstract class AiBase
 
 		if(needCooling){
 			//trace('AAI: ${myPlayer.name + myPlayer.id} handle heat: too hot');
-			goodPlace = myPlayer.coldPlace;
+			goodPlace = myPlayer.GetCloseBiome([BiomeTag.SNOW, BiomeTag.PASSABLERIVER]);
+			if(goodPlace == null) goodPlace = myPlayer.coldPlace;
 			text = 'cool';
 		}
 		else if(needWarming){
@@ -1087,7 +1088,8 @@ abstract class AiBase
 		}
 
 		if(goodPlace == null && needWarming){
-			goodPlace = myPlayer.warmPlace;
+			goodPlace = myPlayer.GetCloseBiome([BiomeTag.DESERT, BiomeTag.JUNGLE]);
+			if(goodPlace == null) goodPlace = myPlayer.warmPlace;
 			text = 'heat';	
 		}
 
