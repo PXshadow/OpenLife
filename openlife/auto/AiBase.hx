@@ -958,6 +958,7 @@ abstract class AiBase
 	}
 
 	private function isHandlingGraves() : Bool {
+		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: check1!');
 
 		if(myPlayer.heldObject.parentId == 356) return dropHeldObject(); // Basket of Bones 356
 
@@ -965,6 +966,8 @@ abstract class AiBase
 		var isGravekeeper = this.profession['gravekeeper'] > 0;
 		if(passedTime < 10 && isGravekeeper == false) return false;
 		lastCheckedTimes['grave'] = TimeHelper.tick;
+
+		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: check2!');
 
 		// Basket of Bones 356
 		if(shortCraft(0, 356, 20)) return true; 
@@ -977,7 +980,7 @@ abstract class AiBase
 		if(grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 89, null, 20); // 89 Old Grave 
 		if(grave == null) return false;
 
-		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: found!');
+		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: found! ${grave.tx},${grave.ty}');
 
 		if (this.isObjectNotReachable(grave.tx, grave.ty)) return false;
 		if (this.isObjectWithHostilePath(grave.tx, grave.ty)) return false;

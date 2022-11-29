@@ -168,7 +168,7 @@ class AiHelper {
 
 				if(quadDistance < quadMinDistance) continue; // for example used to not pikcup kindling close to fire to bring this kindling then to fire
 
-				if(mindistaceToTargetObj != null && quadMinDistanceToTarget > 0){
+				if(searchEmptyPlace && mindistaceToTargetObj != null && quadMinDistanceToTarget > 0){
 					var quadDistanceToHome = AiHelper.CalculateQuadDistanceHelper(tx,ty, mindistaceToTargetObj.tx, mindistaceToTargetObj.ty);
 					if(quadDistanceToHome < quadMinDistanceToTarget) continue;
 				}
