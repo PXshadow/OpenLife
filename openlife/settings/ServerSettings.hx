@@ -846,6 +846,8 @@ class ServerSettings {
 
 		ObjectData.getObjectData(2365).decaysToObj = 2243; // 2395 Crude Car with Empty Tank --> 2365 Diesel Engine
 		
+		ObjectData.getObjectData(4144).useChance = 0.5; // old 1 // Dug Potatoes 4144
+
 		// set hungry work
 		// TODO use tool hungry work factor
 		/*
