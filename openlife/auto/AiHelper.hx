@@ -100,7 +100,7 @@ class AiHelper {
 	static var needsNotFlooredPlace = [356, 336, 1137, 227, 225];
 	// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
 	// Straw 227 // Wheat Sheaf 225 
-	// Flat Rock 291 (onlt if needed for forge)
+	// Flat Rock 291 (only if needed for forge)
 	static var dontDropCloseHomeIds = [356, 336, 1137, 227, 225, 291];
 
 	// objIdToSearch = -10 if searching non permanent
@@ -122,6 +122,13 @@ class AiHelper {
 		var mindistaceToTargetObj = player == null ? null : player.home;
 		var minDistanceToTarget = dontDropCloseHomeIds.contains(heldId) ? 6 : 0; // to home
 		var quadMinDistanceToTarget = minDistanceToTarget * minDistanceToTarget;
+
+		// minDistance = -1 allows to be dropped close to oven even if it normaly should not (flat rock for forge)
+		if(minDistance < 0){
+			quadMinDistance = 0;
+			minDistanceToTarget = 0;
+			quadMinDistanceToTarget = 0;
+		}
 		
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
