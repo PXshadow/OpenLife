@@ -2975,13 +2975,13 @@ private function craftLowPriorityClothing() : Bool {
 		if(dontUsePile.contains(heldId)) pileId = 0; 
 
 		if(pileId > 0){
-			newDropTarget = myPlayer.GetClosestObjectToTarget(target, pileId, 4); 
+			newDropTarget = myPlayer.GetClosestObjectToTarget(target, pileId, 4 + mindistance); 
 			if(newDropTarget != null && newDropTarget.numberOfUses >= newDropTarget.objectData.numUses) newDropTarget = null;
 			//if(newDropTarget != null)  trace('AAI: ${myPlayer.name + myPlayer.id} drop on pile: $pileId');
 		}
 		
 		// start a new pile?
-		if(newDropTarget == null && pileId > 0) newDropTarget = myPlayer.GetClosestObjectToTarget(target, myPlayer.heldObject.id, 4, mindistance);
+		if(newDropTarget == null && pileId > 0) newDropTarget = myPlayer.GetClosestObjectToTarget(target, myPlayer.heldObject.id, 4 + mindistance, mindistance);
 
 		// get empty tile
 		if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, searchDistance, mindistance);
