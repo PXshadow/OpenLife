@@ -2036,7 +2036,7 @@ class ServerSettings {
 		//var trans = TransitionImporter.GetTransition(-1, 1135); // TIME + Empty Domestic Gooseberry Bush
 		//trans.autoDecaySeconds = 60  * 10;
 		var trans = TransitionImporter.GetTransition(-1, 389); // TIME + Dying Gooseberry Bush
-		trans.autoDecaySeconds = -2;
+		trans.autoDecaySeconds = -48; // old -1
 		
 		var trans = new TransitionData(-1, 1284, 0, 291); // TIME + Cool Flat Rock --> 0 + Flat Rock
 		trans.autoDecaySeconds = -2;
