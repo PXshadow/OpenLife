@@ -813,7 +813,8 @@ class ServerSettings {
 		// TODO set water right and add further wells like deep well
 		ObjectData.getObjectData(662).decayFactor = 0.1; // 662 Shallow Well
 		ObjectData.getObjectData(662).decaysToObj = 3030; // 662 Shallow Well ==> 3030 Natural Spring
-		
+		ObjectData.getObjectData(662).useChance = 0.1; // original 0.03
+
 		ObjectData.getObjectData(303).decaysToObj = 238; // 303 Forge ==> 238 Adobe Kiln
 		ObjectData.getObjectData(303).decaysToObj = 238; // 305 Forge with Charcoal ==> 238 Adobe Kiln
 		ObjectData.getObjectData(238).decaysToObj = 4201; // 303 Adobe Kiln ==> 4201 Adobe Rubble
