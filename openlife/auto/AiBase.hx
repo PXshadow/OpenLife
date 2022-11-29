@@ -1248,22 +1248,47 @@ abstract class AiBase
 			if(count < 4) if(craftItem(336)) return true; // Basket of Soil
 			else this.profession['BasicFarmer'] = 2;
 		}
-		
-		//Dying Gooseberry Bush
+				
+		if(this.profession['BasicFarmer'] < 2.5){
+			// Domestic Gooseberry Bush
+			var countBushes = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 391, distance);
+			// Vigorous Domestic Gooseberry Bush 1134
+			countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1134, distance);
+			// Gooseberry Sprout
+			countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 219, distance);
+			// Wet Planted Gooseberry Seed
+			countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 217, distance);
+			
+			if(countBushes < 9){
+				if(heldObject.parentId == 1137){
+					// Bowl of Soil 1137 + Dying Gooseberry Bush 389
+					if(shortCraft(1137, 389, 30)) return true; 
+					// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
+					if(shortCraft(1137, 392, 30)) return true; 
+				}
+				// TODO there seems to be a bug with maxuse transitions on pile of soil
+				// Clay Bowl 235 + Fertile Soil Pile 1101 --> Bowl of Soil 1137
+				if(shortCraft(235, 1101, 30)) return true; 
+			}
 
-		var countShallowRows = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1136, 30); // Shallow Tilled Row
-		if(countShallowRows < 1) this.profession['BasicFarmer'] = 2;
+			this.profession['BasicFarmer'] = 2.5;
+		}
+
+		var countRows = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1136, 30); // Shallow Tilled Row
+		countRows += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 213, 30); // Deep Tilled Row 213
+
+		if(countRows < 1) this.profession['BasicFarmer'] = 2;
 		// 2: Prepare Shallow Tilled Rows
 		if(this.profession['BasicFarmer'] < 3){
 			var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 30); //  Clay Bowl 235
 			if(heldObject.parentId == 235) countBowls += 1;
 			
-			if (ServerSettings.DebugAiSay) myPlayer.say('BasicFarmer: shallowrows: $countShallowRows bowls: $countBowls');
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} shallowrows: $countShallowRows bowls: $countBowls');			
+			if (ServerSettings.DebugAiSay) myPlayer.say('BasicFarmer: shallowrows: $countRows bowls: $countBowls');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} shallowrows: $countRows bowls: $countBowls');			
 
 			if(countBowls < 1 && doPottery(3)) return true;
 
-			if(countShallowRows < 6){
+			if(countRows < 6){
 				// TODO there seems to be a bug with maxuse transitions on pile of soil
 				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
 				if(heldObject.parentId == 1137 && shortCraft(1137, 848, 30)) return true; 
@@ -2082,6 +2107,7 @@ abstract class AiBase
 		if(craftItem(399)) return true; // Wet Planted Carrots
 		if(craftItem(1142)) return true; // Wet Planted Potatoes
 		if(craftItem(1110)) return true; // Wet Planted Corn Seed
+		// Wet Planted Gooseberry Seed 217
 		*/
 
 		// 228 Dry Planted Wheat
@@ -2091,8 +2117,10 @@ abstract class AiBase
 		// 4225 Dry Planted Cucumber Seeds
 		// TODO other dry planted
 
+		// TODO if(craftItem(1162)) return true; // Wet Planted Beans
 		// stuff can be in more then once to increase chance
-		var advancedPlants = [228, 396, 1110, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
+		
+		var advancedPlants = [228, 396, 1110, 217, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
 		var rand = WorldMap.world.randomInt(advancedPlants.length - 1);
 		
 		toPlant = toPlant > 0 ? toPlant : rand;
