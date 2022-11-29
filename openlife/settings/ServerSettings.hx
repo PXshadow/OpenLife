@@ -2430,7 +2430,19 @@ class ServerSettings {
 		trans.aiShouldIgnore = true; 
 
 		var trans = transtions.getTransition(0, 185); // 0 + Skewered Rabbit 185
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(0, 547); // 0 + Bowl of Carrot 547
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(0, 254); // 0 + Bowl of Rabbit 254
 		trans.aiShouldIgnore = true; 
+
+		var trans = transtions.getTransition(0, 1247); // 0 + Bowl with Corn Kernels
+		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(264, 235); // Raw Pie Crust 264 + Clay Bowl 235
+		trans.aiShouldIgnore = true;
 
 		//var trans = transtions.getTransition(441, 560, true); // Smithing Hammer 441 + Knife 560
 		//trans.aiShouldIgnore = true;
