@@ -645,6 +645,17 @@ abstract class AiBase
 			if(shortCraft(71, 67, 20)) return true; 
 		}
 
+		// Weak Skewer 852
+		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 852, 10);
+		if(count > 5){
+			// Stone Hatchet 71 + Weak Skewer 852 = Kindling
+			if(shortCraft(71, 852, 20)) return true;
+			if(held.parentId == 852) return dropHeldObject(0);
+			
+			// 0 + // Weak Skewer Pile 4060
+			if(shortCraft(0, 4060, 10)) return true; 
+		}
+
 		if(pileUp(227, 30)) return true; // Straw 227
 		if(pileUp(1115, 30)) return true; // Dried Ear of Corn 1115
 		
