@@ -914,8 +914,11 @@ abstract class AiBase
 	public function isMakingSeeds() {
 		// TODO check once every X seconds
 		// TODO check at home too
-		var seeds = AiHelper.GetClosestObjectById(myPlayer, 1115, null, 20);  // Dried Ear of Corn
-		if(seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 1247, null, 20);  // Bowl with Corn Kernels
+		var seeds = AiHelper.GetClosestObjectById(myPlayer, 1115, null, 30);  // Dried Ear of Corn
+		if(seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 1247, null, 30);  // Bowl with Corn Kernels		
+		if(seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 4106, null, 30);  // Dumped Corn Kernels 4106
+		if(seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 4107, null, 30);  // Corn Kernel Pile 4107
+		
 		this.hasCornSeeds = seeds != null;
 
 		var seeds = AiHelper.GetClosestObjectById(myPlayer, 401, null, 20); // Seeding Carrots
@@ -2782,10 +2785,10 @@ private function craftLowPriorityClothing() : Bool {
 	var dropNearFireItemIds = [72, 344, 180, 181, 185, 1147, 1148];
 
 	// Clay Bowl 235 // Stack of Clay Bowls 1603 // Clay Plate 236 // Stack of Clay Plates 1602 
-	// Knife 560 // Bowl of Dough 252 
+	// Bowl of Gooseberries 253 // Knife 560 // Bowl of Dough 252 
 	// Baked Bread 1470 // Sliced Bread 1471
 	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900
-	var dropNearOvenItemIds = [235, 1603, 236, 1602, 560, 252, 1470, 1471, 502, 900];
+	var dropNearOvenItemIds = [235, 1603, 236, 1602, 560, 252, 1470, 1471, 253, 502, 900];
 
 	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
 		var heldObjId = myPlayer.heldObject.parentId;
