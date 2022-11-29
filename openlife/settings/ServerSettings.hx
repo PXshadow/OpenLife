@@ -1877,6 +1877,14 @@ class ServerSettings {
 		trans.alternativeTransitionOutcome.push(126); // Clay 126
 		trans.hungryWorkCost = 5;
 
+		// Allow to make kindling out of Skewers
+		var trans = new TransitionData(334, 852, 334, 72); // Steel Axe + Weak Skewer --> Kindling
+		trans.aiShouldIgnore = true; 
+		transtions.addTransition("PatchTransitions: ", trans);
+		var trans = new TransitionData(71, 852, 71, 72); // Stone Hatchet + Weak Skewer --> Kindling
+		trans.aiShouldIgnore = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		ObjectData.getObjectData(342).alternativeTransitionOutcome.push(344); // Chopped Tree Big Log--> Fire Wood
 		ObjectData.getObjectData(340).alternativeTransitionOutcome.push(344); // Chopped Tree --> Fire Wood
 		ObjectData.getObjectData(3146).alternativeTransitionOutcome.push(344); // Chopped Softwood Tree --> Fire Wood
@@ -2203,6 +2211,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(334, 239); // Steel Axe + Wooden Tongs
 		trans.aiShouldIgnore = true; 
 		var trans = transtions.getTransition(71, 239); // Stone Hatchet + Wooden Tongs
+		trans.aiShouldIgnore = true;
+		var trans = transtions.getTransition(334, 583); // Steel Axe + Knitting Needles
+		trans.aiShouldIgnore = true; 
+		var trans = transtions.getTransition(71, 583); // Stone Hatchet + Knitting Needles
 		trans.aiShouldIgnore = true; 
 
 		var trans = transtions.getTransition(560, 575); // Knife + Domestic Sheep
