@@ -1222,6 +1222,7 @@ abstract class AiBase
 
 		if(shortCraft(139, 2832, distance)) return true; // Skewer + Tomato Sprout
 		if(shortCraft(139, 4228, distance)) return true; // Skewer + Cucumber Sprout
+		if(shortCraft(0, 2837, distance)) return true; // 0 + Hardened Row with Stake
 
 		// water
 		//if(doWatering(1)) return true;
@@ -1246,7 +1247,9 @@ abstract class AiBase
 			//var max = this.profession['BasicFarmer'] < 2 ? 3 : 1;
 			if(count < 4) if(craftItem(336)) return true; // Basket of Soil
 			else this.profession['BasicFarmer'] = 2;
-		}		
+		}
+		
+		//Dying Gooseberry Bush
 
 		var countShallowRows = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1136, 30); // Shallow Tilled Row
 		if(countShallowRows < 1) this.profession['BasicFarmer'] = 2;
