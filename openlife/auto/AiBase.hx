@@ -2117,10 +2117,9 @@ abstract class AiBase
 		// 4225 Dry Planted Cucumber Seeds
 		// TODO other dry planted
 
-		// TODO if(craftItem(1162)) return true; // Wet Planted Beans
 		// stuff can be in more then once to increase chance
 		
-		var advancedPlants = [228, 396, 1110, 217, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
+		var advancedPlants = [228, 396, 1110, 217, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
 		var rand = WorldMap.world.randomInt(advancedPlants.length - 1);
 		
 		toPlant = toPlant > 0 ? toPlant : rand;
@@ -2128,7 +2127,18 @@ abstract class AiBase
 
 		for(i in 0...advancedPlants.length){
 			var index = (nextPlant + i) % advancedPlants.length;
-			if(craftItem(advancedPlants[index])) return true;
+			var toPlant = advancedPlants[index];
+
+			// Dry Bean Plants 1172
+			if(toPlant == 1172){
+				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1172, 30);
+				if(count > 3){
+					nextPlant +=1;
+					continue;
+				}
+			}
+
+			if(craftItem(toPlant)) return true;
 		}
 
 		/*var plantFrom = rand % 3 == 0 ? dryPlanted : advancedPlants;
