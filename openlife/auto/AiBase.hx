@@ -1791,11 +1791,14 @@ abstract class AiBase
 			// Burning Adobe Oven 249
 			fireOven = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 249, 20, null, myPlayer);
 
-			for(id in rawPies){
-				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, id, 25);
+			if(fireOven == null){
+				for(id in rawPies){
+					countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, id, 25);
+				}
+				// Raw Potato 1147
+				countRawPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1147, 20);
+				//countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 40);
 			}
-			//countRawPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 40);
-			//countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 40);
 		}
 		
 		if(hotOven != null || countRawPies > 2){
@@ -3342,6 +3345,17 @@ private function craftLowPriorityClothing() : Bool {
 				this.feedingPlayerTarget = null;
 				return false;
 			}
+
+			if (targetPlayer.canFeedToMe(foodTarget) == false) {
+				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING cannot feed2 ${targetPlayer.name} ${foodTarget.name} foodvalue: ${foodTarget.objectData.foodValue} foodpipes: ${Math.round(targetPlayer.food_store / 10)*10} foodspace: ${Math.round((targetPlayer.food_store_max - targetPlayer.food_store) * 10)/10}');
+				this.feedingPlayerTarget = null;
+				foodTarget = null;
+				return false;
+			}
+			else{
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} can feed2 ${targetPlayer.name} ${foodTarget.name} foodvalue: ${foodTarget.objectData.foodValue} foodpipes: ${Math.round(targetPlayer.food_store / 10)*10} foodspace: ${Math.round((targetPlayer.food_store_max - targetPlayer.food_store) * 10)/10}');
+			}
+
 			return true;
 		}
 
