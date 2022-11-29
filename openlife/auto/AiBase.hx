@@ -693,7 +693,7 @@ abstract class AiBase
 		if(this.profession['firekeeper'] < 2 && count < 5 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true; 
 		this.profession['firekeeper'] = 2;
 
-		if(makeFireFood(5)) return true;
+		if(makeFireFood()) return true;
 
 		if(cleanUp()) return true;
 		
@@ -2295,6 +2295,9 @@ abstract class AiBase
 		// Cooked Rabbit 197
 		var countDoneRabbit = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 197, 20);
 		if(countDoneRabbit < 2 && shortCraftOnTarget(185, hotCoals)) return true; // Skewered Rabbit 185 --> Cooked Rabbit 186
+
+		// Bowl of Raw Pork 1354 --? Bowl of Carnitas
+		if(shortCraftOnTarget(1354, hotCoals)) return true;
 
 		// Kindling 72
 		if(hotCoals == firePlace && shortCraftOnTarget(72,hotCoals)) return true; 
