@@ -1580,19 +1580,25 @@ class TimeHelper {
 		}
 	}
 
+	// Horse-Drawn Cart 778 // Horse-Drawn Tire Cart 3158
+	// Shorn Sheep on Rope 3934 // Domestic Sheep on Rope 3926
+	private static var objectIdsToUnstuck = [778, 3158, 3934, 3926, 3926];
+
 	private static function ClearHeldObjectOnground(tx:Int, ty:Int, objId:Int) {
-		// Horse-Drawn Cart 778 // Horse-Drawn Tire Cart 3158
-		// TODO hold cows and so on
-		if(objId != 778 && objId != 3158) return false;
 		var world = WorldMap.world;
 
 		// transform placed object back to a not held one in case its a held one like a horse cart
 		var trans = TransitionImporter.GetTransition(objId, -1);
 		if(trans == null) return false;
 
+		// Rope 59 --> like domestic sheep on rope
+		if(objectIdsToUnstuck.contains(objId) == false && trans.newActorID != 59) return false;
+
 		var obj = world.getObjectHelper(tx,ty);
 		obj.id = trans.newTargetID;
 		world.setObjectHelper(tx,ty, obj);
+
+		if(trans.newActorID > 0) WorldMap.PlaceObject(tx,ty, new ObjectHelper(null, trans.newActorID));
 
 		trace('WARNING: ClearHeldObjectOnground ${obj.name} ${obj.parentId}');	
 		return true;
