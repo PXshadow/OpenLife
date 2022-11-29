@@ -1235,6 +1235,9 @@ abstract class AiBase
 		if(shortCraft(139, 4228, distance)) return true; // Skewer + Cucumber Sprout
 		if(shortCraft(0, 2837, distance)) return true; // 0 + Hardened Row with Stake
 
+		if(shortCraft(502, 1146, distance)) return true; // Shovel + Mature Potato Plants 1146
+		if(shortCraft(0, 4144, distance)) return true; // Shovel + Dug Potatoes 4144
+
 		// water
 		//if(doWatering(1)) return true;
 
@@ -1810,6 +1813,8 @@ abstract class AiBase
 			if(shortCraftOnTarget(1469, hotOven, false)) return true;
 			// Raw Mutton 569
 			if(shortCraftOnTarget(569, hotOven, false)) return true;
+			// Raw Potato 1147
+			if(shortCraftOnTarget(1147, hotOven, false)) return true;
 		}
 		
 		if(hotOven != null && fireOven != null){
@@ -2773,7 +2778,8 @@ private function craftLowPriorityClothing() : Bool {
 
 	// Kindling 72 // Firewood 344 
 	// Dead Rabbit 180 // Skinned Rabbit 181 // Skewered Rabbit 185
-	var dropNearFireItemIds = [72, 344, 180, 181, 185];
+	// Raw Potato 1147 // Baked Potato
+	var dropNearFireItemIds = [72, 344, 180, 181, 185, 1147, 1148];
 
 	// Clay Bowl 235 // Stack of Clay Bowls 1603 // Clay Plate 236 // Stack of Clay Plates 1602 
 	// Knife 560 // Bowl of Dough 252 
