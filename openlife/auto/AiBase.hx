@@ -1884,6 +1884,9 @@ abstract class AiBase
 		if(shortCraft(382, 228)) return true; // Bowl of Water + Dry Planted Wheat
 		if(shortCraft(210, 228)) return true; // Full Water Pouch + Dry Planted Wheat
 
+		if(shortCraft(382, 393)) return true; // Bowl of Water + Dry Domestic Gooseberry Bush 393
+		if(shortCraft(210, 393)) return true; // Full Water Pouch + Dry Domestic Gooseberry Bush 393
+
 		if(shortCraft(382, 1109)) return true; // Bowl of Water + Dry Planted Corn Seed
 		if(shortCraft(210, 1109)) return true; // Full Water Pouch + Dry Planted Corn Seed
 
