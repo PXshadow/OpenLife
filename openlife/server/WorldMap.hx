@@ -1327,7 +1327,8 @@ class WorldMap {
 
 		var obj = world.getObjectHelper(x, y);
 
-		if (obj.objectData.containable && objectToPlace.containedObjects.length < objectToPlace.objectData.numSlots) {
+		if(obj.canBePlacedIn(objectToPlace)){
+		
 			objectToPlace.containedObjects.push(obj);
 
 			world.setObjectHelper(x, y, objectToPlace);
