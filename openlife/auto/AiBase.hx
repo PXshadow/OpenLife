@@ -2334,6 +2334,42 @@ abstract class AiBase
 		return false;
 	}
 
+	private function cleanUpProfessions(){
+		if(lastProfession == null) return;
+	
+		for(key in profession.keys()){
+			// keep old profession
+			if(key == lastProfession) continue;
+			if(key == 'FoodServer') continue;
+			if(key == 'BowlFiller') continue; 
+			if(key == 'firekeeper') continue; 
+			if(key == 'gravekeeper') continue; 
+			if(lastProfession == 'FoodServer') continue;
+			if(lastProfession == 'BowlFiller') continue;
+			if(lastProfession == 'firekeeper') continue;
+			if(lastProfession == 'gravekeeper') continue; 
+	
+			profession[key] = 0;
+		 
+			//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} profession: ${key} --> ${lastProfession}');
+		}
+	}
+	
+	private function hasOrBecomeProfession(profession:String, max:Int = 1) : Bool {
+		var hasProfession = this.profession[profession] > 0;
+	
+		if(hasProfession){
+			this.lastProfession = profession; 
+			return true;
+		}
+	
+		var count = countProfession(profession);
+		//trace('hasOrBecomeProfession: $profession count: $count');
+		if (count >= max + wasIdle) return false;
+		this.profession[profession] = 1;
+		this.lastProfession = profession;
+		return true;
+	}
 
  	// 2886 Wooden Shoe 
  	// 2181 Straw Hat with Feather
@@ -2341,8 +2377,6 @@ abstract class AiBase
 		// TODO consider heat / cold
 		// TODO more advanced clothing
 		// TODO try to look like the one you follow
-		// TODO consider minuseage in crafting itself
-		var objData = ObjectData.getObjectData(152); // Bow and Arrow
 		var color = myPlayer.getColor();
 		var isWhiteOrGinger = (color == Ginger || color == White);
 
@@ -2356,7 +2390,7 @@ abstract class AiBase
 }
 
 private function craftMediumPriorityClothing() : Bool {
-		if(hasOrBecomeProfession('ClothMaker', 2) == false) return false;
+		if(hasOrBecomeProfession('ClothMaker', 1) == false) return false;
 
 		//trace('craftMediumPriorityClothing');
 
@@ -2405,45 +2439,10 @@ private function craftMediumPriorityClothing() : Bool {
 
 		return false;
 }
-
-private function cleanUpProfessions(){
-	if(lastProfession == null) return;
-
-	for(key in profession.keys()){
-		// keep old profession
-		if(key == lastProfession) continue;
-		if(key == 'FoodServer') continue;
-		if(key == 'BowlFiller') continue; 
-		if(key == 'firekeeper') continue; 
-		if(key == 'gravekeeper') continue; 
-		if(lastProfession == 'FoodServer') continue;
-		if(lastProfession == 'BowlFiller') continue;
-		if(lastProfession == 'firekeeper') continue;
-		if(lastProfession == 'gravekeeper') continue; 
-
-		profession[key] = 0;
-     
-		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} profession: ${key} --> ${lastProfession}');
-	}
-}
-
-private function hasOrBecomeProfession(profession:String, max:Int = 1) : Bool {
-	var hasProfession = this.profession[profession] > 0;
-
-	if(hasProfession){
-		this.lastProfession = profession; 
-		return true;
-	}
-
-	var count = countProfession(profession);
-	//trace('hasOrBecomeProfession: $profession count: $count');
-	if (count >= max + wasIdle) return false;
-	this.profession[profession] = 1;
-	this.lastProfession = profession;
-	return true;
-}
 	
 private function craftLowPriorityClothing() : Bool {
+		if(hasOrBecomeProfession('ClothMaker', 1) == false) return false;
+
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
 		var color = myPlayer.getColor();
 		var isWhiteOrGinger = (color == Ginger || color == White);
@@ -2460,6 +2459,8 @@ private function craftLowPriorityClothing() : Bool {
 		// 198 Backpack
 		// TODO fix bug picking up backpack (AI drops item in it and then instead of picking up puts item out of it)
 		//if(myPlayer.age > 25 && craftClothIfNeeded(198)) return true;
+
+		this.profession['ClothMaker'] = 0;
 
 		return false;
 	}
