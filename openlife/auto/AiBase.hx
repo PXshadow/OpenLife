@@ -192,13 +192,14 @@ abstract class AiBase
 	// Adobe Kiln 238 // Firing Adobe Kiln 282
 	// Forge 303 // Firing Forge 304 
 	// Firing Newcomen Hammer 2238
-	//public static var DontBlockByAi = [82, 83, 85, 346, 3029, 237, 250, 238, 282, 303, 304, 2238];
+	public static var DontBlockByAi = [82, 83, 85, 346, 3029, 237, 250, 238, 282, 303, 304, 2238];
 
 	// TODO might make problems with counting since object blocked by is not counted
 	public static function AddTargetBlockedByAi(target:ObjectHelper, heldObj:ObjectHelper = null){
 		if(target == null) return false;
 		if(target.numberOfUses > 1) return true;
 		if(target.objectData.isAnimal()) return true;
+		if(DontBlockByAi.contains(target.parentId)) return true;
 
 		// if useTarget does not change it can be used by more like Hot Adobe Oven 250 
 		// should fix, that AI can seal Kiln only one time, but can use it often for making bowls 
