@@ -2050,7 +2050,7 @@ abstract class AiBase
 			this.profession['Smith'] = 3; // craft Crucible	
 		}	
 
-		if (countSteel > 1) this.profession['Smith'] = 4;
+		if (countSteel > 1 && this.profession['Smith'] < 4) this.profession['Smith'] = 4;
 
 		// Wrought Iron 314
 		if(this.profession['Smith'] < 3){
@@ -2069,11 +2069,11 @@ abstract class AiBase
 			this.profession['Smith'] = 3;	
 		}
 
-		if (countSteel < 1){
+		/*if (countSteel < 1){
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: no steel');
 			this.profession['Smith'] = 0;
 			return false;
-		}
+		}*/
 		
 		if(this.profession['Smith'] < 5){
 			// Smithing Hammer
@@ -2098,7 +2098,7 @@ abstract class AiBase
 
 		if(this.profession['Smith'] < 8){
 			// Steel Axe 334
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 334, 30); 
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 334, 60); 
 			if(count < 1 && craftItem(334)) return true;
 			this.profession['Smith'] = 8;
 		}
