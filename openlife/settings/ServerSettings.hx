@@ -2457,6 +2457,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(0, 2090); // 0 + Bound Deck of Cards 2090
 		trans.aiShouldIgnore = true; 
 
+		// Oiled File Blank with Chisel 465
+		var trans = transtions.getTransition(0, 465); // 0 + Bound Deck of Cards 465
+		trans.aiShouldIgnore = true; 
+
 		// Scrap Bowl 3076 --> dont allow to scraft crafted metal
 		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
 		for(trans in transByTarget){
