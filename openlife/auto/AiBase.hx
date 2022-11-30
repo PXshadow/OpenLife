@@ -2690,6 +2690,37 @@ private function craftLowPriorityClothing() : Bool {
 			debugSay = false;
 			myPlayer.say('DEBUG!');
 		}
+		else if (text.startsWith("PROFESSION?") || text.startsWith("PROF?")) {
+			if(lastProfession == null) myPlayer.say('NONE');
+			else myPlayer.say('${lastProfession}');
+		}
+		else if (text.startsWith("BAKER!")) {
+			if(this.profession['Baker'] < 1){
+				this.profession['Baker'] = 1; 
+				myPlayer.say('NEW BAKER');
+			}
+			else{
+				myPlayer.say('BAKER');
+			}
+		}
+		else if (text.startsWith("FARMER!")) {
+			if(this.profession['BasicFarmer'] < 1){
+				this.profession['BasicFarmer'] = 1; 
+				myPlayer.say('NEW FARMER');
+			}
+			else{
+				myPlayer.say('FARMER');
+			}
+		}
+		else if (text.startsWith("SMITH!")) {
+			if(this.profession['Smith'] < 1){
+				this.profession['Smith'] = 1; 
+				myPlayer.say('NEW SMITH');
+			}
+			else{
+				myPlayer.say('SMITH');
+			}
+		}	
 	}
 
 	public function searchFoodAndEat() {
