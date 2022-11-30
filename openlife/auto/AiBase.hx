@@ -2605,15 +2605,15 @@ private function craftLowPriorityClothing() : Bool {
 				myPlayer.say('Why should I?');
 			}
 		}
-		if (text == "JUMP") {
+		if (text == "JUMP!") {
 			myPlayer.say("JUMP");
 			myPlayer.jump();
 		}
-		if (text.startsWith("MOVE")) {
+		if (text.startsWith("MOVE!")) {
 			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.say("YES CAPTAIN");
 		}
-		if (text.contains("FOLLOW ME") || text.startsWith("FOLLOW") || text.startsWith("COME")) {
+		if (text.contains("FOLLOW ME") || text.startsWith("FOLLOW!") || text.startsWith("COME!")) {
 			autoStopFollow = false; // otherwise if old enough ai would stop follow
 			timeStartedToFolow = TimeHelper.tick; 
 			playerToFollow = player;
@@ -2655,7 +2655,7 @@ private function craftLowPriorityClothing() : Bool {
 			else myPlayer.say("I CANNOT GO HOME!");
 			this.time += 6;
 		}
-		else if (text.startsWith("HOME")) {		
+		else if (text.startsWith("HOME!")) {		
 			var newHome = AiHelper.SearchNewHome(myPlayer);
 
 			if(newHome != null){
