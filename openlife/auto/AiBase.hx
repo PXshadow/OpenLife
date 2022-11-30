@@ -477,11 +477,14 @@ abstract class AiBase
 		var jobByAge:Int = Math.round(myPlayer.age / 2); // job prio switches every second year
 		
 		itemToCraft.maxSearchRadius = 30;
+
+		Macro.exception(if(doBaking(1)) return);
+
 		for(i in 0...5){
 			jobByAge = (jobByAge + i) % 5;
 			if(jobByAge == 0) Macro.exception(if(doWatering()) return);				
 			else if(jobByAge == 1) Macro.exception(if(doBasicFarming()) return);
-			else if(jobByAge == 2) Macro.exception(if(doBaking()) return);
+			else if(jobByAge == 2) Macro.exception(if(doBaking(2)) return);
 			else if(jobByAge == 3) Macro.exception(if(doPottery()) return);
 			else if(jobByAge == 4) Macro.exception(if(isSheepHerding()) return);
 		}
@@ -1069,16 +1072,17 @@ abstract class AiBase
 
 		if(myPlayer.isMoving()) return true;
 
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} held: ${myPlayer.heldObject.name} ${Math.round(myPlayer.age/10)*10} good bye!1');
+
 		var quadDist = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
 		if(quadDist < 400 && isHandlingGraves()) return true;
 		if(isMovingToHome(5)) return true;
 
 		time += 2;
 
-		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.age} good bye!');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} held: ${myPlayer.heldObject.name} ${Math.round(myPlayer.age/10)*10} good bye!');
 
-		dropHeldObject();
+		dropHeldObject(0);
 		
 		return true;
 	}
