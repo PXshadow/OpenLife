@@ -94,4 +94,6 @@ interface PlayerInterface {
 	public var warmPlace(default, default):ObjectHelper;
 	public var firePlace(default, default):ObjectHelper;
 	public var lastTemperature(default, default):Float;
+
+	public function getClosestPlayer(maxDistance:Int, onlyHuman:Bool = false) : PlayerInterface;
 }

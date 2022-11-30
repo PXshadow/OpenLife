@@ -2568,7 +2568,16 @@ private function craftLowPriorityClothing() : Bool {
 		if (player.isAi()) return;
 
 		var quadDist = AiHelper.CalculateDistanceToPlayer(this.myPlayer, player);
-		if(quadDist > Math.pow(ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi,2)) return;
+		if (quadDist > Math.pow(ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi,2)) return;
+
+		if (text.startsWith("ALL ")) {
+			text = text.replace("ALL ", "");
+		}
+		else{
+			var closePlayer = player.getClosestPlayer(ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi);
+			//myPlayer.say('NOT CLOSE!');
+			if (myPlayer.id != closePlayer.id) return;
+		}
 
 		// if(ServerSettings.DebugAi) trace('AI ${text}');
 
