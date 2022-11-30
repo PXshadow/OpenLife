@@ -408,7 +408,7 @@ abstract class AiBase
 		// should be below isUsingItem since a use can be used to drop an hold item on a pile to pickup a baby
 		Macro.exception(if (isFeedingChild()) return); 
 		Macro.exception(if (isPickingupFood()) return);
-		Macro.exception(if (isFeedingPlayerInNeed()) return);
+		Macro.exception(if (this.profession['Smith'] < 1 && isFeedingPlayerInNeed()) return);
 		Macro.exception(if (isStayingCloseToChild()) return);
 		Macro.exception(if (isUsingItem()) return);
 		Macro.exception(if (isRemovingFromContainer()) return);		
@@ -424,7 +424,7 @@ abstract class AiBase
 		// High priortiy takes
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = 30;
-		if(this.profession['Smith'] >= 2) Macro.exception(if (doSmithing()) return);
+		if(this.profession['Smith'] >= 0) Macro.exception(if (doSmithing()) return);
 		if(this.profession['Potter'] >= 10) Macro.exception(if (doPottery()) return);
 		if(this.profession['Baker'] > 1) Macro.exception(if (doBaking()) return);
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
@@ -3378,7 +3378,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		var targetPlayer = this.feedingPlayerTarget;
 
-		if (targetPlayer.food_store > targetPlayer.food_store_max * 0.85) {
+		if (targetPlayer.food_store > targetPlayer.food_store_max * 0.6) {
 			this.feedingPlayerTarget = null;
 			return false;
 		}
