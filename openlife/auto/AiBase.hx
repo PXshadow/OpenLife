@@ -423,10 +423,9 @@ abstract class AiBase
 		
 		// High priortiy takes
 		itemToCraft.searchCurrentPosition = false;
+		itemToCraft.maxSearchRadius = 30;
 		if(this.profession['Smith'] >= 2) Macro.exception(if (doSmithing()) return);
 		if(this.profession['Potter'] >= 10) Macro.exception(if (doPottery()) return);
-
-		itemToCraft.maxSearchRadius = 30;
 		if(this.profession['Baker'] > 1) Macro.exception(if (doBaking()) return);
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 		
@@ -763,7 +762,12 @@ abstract class AiBase
 			trace('AAI: ${myPlayer.name + myPlayer.id} Checking Fire: ${firePlace.name} objAtPlace: ${objAtPlace.name} ${myPlayer.firePlace.tx},${myPlayer.firePlace.ty}');
 
 		// 85 Hot Coals // 72 Kindling
-		if(objId == 85){			
+		if(objId == 85){
+			// TODO consider time to change
+			//itemToCraft.maxSearchRadius = 30; // craft only close
+			Macro.exception(if (makeFireFood(5)) return true);
+			//itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
+
 			if(heldId == 72){
 				var done = useHeldObjOnTarget(firePlace);
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} Fire: Has Kindling Use On ==> Hot Coals!  ${firePlace.name} objAtPlace: ${objAtPlace.name} $done');
@@ -772,10 +776,6 @@ abstract class AiBase
 				return done;
 			}
 			else{
-				itemToCraft.maxSearchRadius = 30; // craft only close
-				Macro.exception(if (makeFireFood(5)) return true);
-				itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
-
 				if(ServerSettings.DebugAiSay)
 					myPlayer.say('Get Kindling For ${firePlace.name}');
 				if (ServerSettings.DebugAi)
@@ -2308,7 +2308,7 @@ abstract class AiBase
 		
 		// Cooked Mutton 570
 		var countDoneMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 20);
-		if(countDoneMutton < 2 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570
+		if(countDoneMutton < 3 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570
 
 		// Cooked Rabbit 197
 		var countDoneRabbit = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 197, 20);
