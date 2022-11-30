@@ -709,8 +709,8 @@ class WorldMap {
 			var foodValue = Math.round(eatenFoodValues[foodId] * 1) / 1;
 			var foodValueYum = Math.round(eatenFoodsYum[foodId] * 1) / 1;
 			var foodValueMeh = Math.round(eatenFoodsMeh[foodId] * 1) / 1;
-			var foodValueYumBoni = Math.round(eatenFoodsYumBoni[foodId] * 10) / 1;
-			var foodValueMehMali = Math.round(eatenFoodsMehMali[foodId] * 10) / 1;
+			var foodValueYumBoni = Math.round(eatenFoodsYumBoni[foodId] * 1) / 1;
+			var foodValueMehMali = Math.round(eatenFoodsMehMali[foodId] * 1) / 1;
 			var percent = Math.round(eatenFoodValues[foodId] / total * 100) / 1;
 
 			writer.writeString('${percent}% pipes: ${foodValue} ${foodData.name}[${foodData.id}] yum: ${foodValueYum} meh: ${foodValueMeh} boni: ${foodValueYumBoni} mali: ${foodValueMehMali}\n');
