@@ -3,15 +3,9 @@ package openlife.server;
 import format.png.Reader;
 import haxe.Exception;
 import haxe.Int32;
-import haxe.Serializer;
-import haxe.macro.Expr.Catch;
-import openlife.auto.Ai;
 import openlife.auto.AiBase;
 import openlife.auto.PlayerInterface;
-import openlife.auto.WorldInterface;
 import openlife.data.object.ObjectHelper;
-import openlife.data.object.player.PlayerInstance;
-import openlife.data.transition.TransitionData;
 import openlife.data.transition.TransitionImporter;
 import openlife.macros.Macro;
 import openlife.settings.ServerSettings;
@@ -23,7 +17,6 @@ import sys.thread.Mutex;
 #if (target.threaded)
 import haxe.ds.Vector;
 import haxe.io.Bytes;
-import openlife.data.FractalNoise;
 import openlife.data.map.MapData;
 import openlife.data.object.ObjectData;
 import openlife.server.Biome;
@@ -69,6 +62,14 @@ class WorldMap {
 	public var roads = new Map<Int, ObjectHelper>();
 	public var ovens = new Map<Int, ObjectHelper>();
 	public var cursedGraves = new Map<Int, ObjectHelper>();
+
+	public var eatenFoodValues = new Map<Int, Float>();
+	//public var eatenFoodCravings = new Map<Int, Float>();
+	public var eatenFoodsYum = new Map<Int, Float>();
+	public var eatenFoodsYumBoni = new Map<Int, Float>();
+	public var eatenFoodsMeh = new Map<Int, Float>();
+	public var eatenFoodsMehMali = new Map<Int, Float>();
+	//public var eatenFoodsSuperMeh = new Map<Int, Float>();
 
 	public function new() {}
 
@@ -1426,6 +1427,21 @@ class WorldMap {
 
 		// TODO consider if walked more then one time round the world
 		return y;
+	}
+
+	public function addFoodStatistic(foodData:ObjectData, foodValue:Float){
+		var foodId = foodData.parentId;
+		var yum = foodValue - foodData.foodValue;
+		//var meh = food.objectData.foodValue - foodValue;
+
+		trace('addFoodStatistic: ${foodData.name} foodValue: ${Math.round(foodValue*10)/10} all total: ${Math.round(this.eatenFoodValues[foodId]*10)/10} yum: ${Math.round(yum*10)/10}');
+
+		this.eatenFoodValues[foodId] += foodValue;
+		if(yum > 0) this.eatenFoodsYum[foodId] += foodValue; 
+		else this.eatenFoodsMeh[foodId] += foodValue; 
+
+		if(yum > 0) this.eatenFoodsYumBoni[foodId] += yum; 
+		else this.eatenFoodsMehMali[foodId] -= yum; 
 	}
 }
 #end

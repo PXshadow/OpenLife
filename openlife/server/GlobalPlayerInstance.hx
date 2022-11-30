@@ -2497,10 +2497,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// this.o_transition_source_id = -1;
 
 		playerTo.addFood(foodValue);
-
+		
 		playerTo.move_speed = MoveHelper.calculateSpeed(playerTo, playerTo.tx, playerTo.ty);
 
 		playerTo.sendFoodUpdate();
+
+		WorldMap.world.addFoodStatistic(heldObjData, foodValue);
 
 		// check if there is a player transition like:
 		// 2143 + -1 = 2144 + 0 Banana
