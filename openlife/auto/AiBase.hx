@@ -2570,7 +2570,7 @@ private function craftLowPriorityClothing() : Bool {
 		var quadDist = AiHelper.CalculateDistanceToPlayer(this.myPlayer, player);
 		if (quadDist > Math.pow(ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi,2)) return;
 
-		if (text.startsWith("ALL ")) {
+		if (text.startsWith("ALL ") || text.contains("?") || text.contains("!!")) {
 			text = text.replace("ALL ", "");
 		}
 		else{
