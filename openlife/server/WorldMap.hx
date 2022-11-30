@@ -672,6 +672,8 @@ class WorldMap {
 		writeIndexFile(dir + "lastDataNumber" + tmpDataNumber + ".txt", tmpDataNumber);
 		writeIndexFile(dir + "lastDataNumber.txt", tmpDataNumber);
 
+		writeFoodStatistics(dir + "FoodStats" + tmpDataNumber + ".txt");
+
 		saveDataNumber++;
 
 		var time = Math.round((Sys.time() - time) * 1000);
@@ -691,6 +693,22 @@ class WorldMap {
 			
 			writer.close();
 		}
+	}
+
+	private function writeFoodStatistics(path:String) {
+		var writer = File.write(path, false);
+
+		for(foodId in eatenFoodValues.keys()){
+			var foodData = ObjectData.getObjectData(foodId);
+			var foodValue = Math.round(eatenFoodValues[foodId] * 10) / 10;
+			var foodValueYum = Math.round(eatenFoodsYum[foodId] * 10) / 10;
+			var foodValueMeh = Math.round(eatenFoodsMeh[foodId] * 10) / 10;
+			var foodValueYumBoni = Math.round(eatenFoodsYumBoni[foodId] * 10) / 10;
+			var foodValueMehMali = Math.round(eatenFoodsMehMali[foodId] * 10) / 10;
+
+			writer.writeString('${foodValue} ${foodData.name}[${foodData.id}] yum: ${foodValueYum} meh: ${foodValueMeh} boni: ${foodValueYumBoni} mali: ${foodValueMehMali}\n');
+		}
+		writer.close();
 	}
 
 	private function writeIndexFile(path:String, tmpDataNumber:Int) {
@@ -1434,7 +1452,7 @@ class WorldMap {
 		var yum = foodValue - foodData.foodValue;
 		//var meh = food.objectData.foodValue - foodValue;
 
-		trace('addFoodStatistic: ${foodData.name} foodValue: ${Math.round(foodValue*10)/10} all total: ${Math.round(this.eatenFoodValues[foodId]*10)/10} yum: ${Math.round(yum*10)/10}');
+		//trace('addFoodStatistic: ${foodData.name} foodValue: ${Math.round(foodValue*10)/10} all total: ${Math.round(this.eatenFoodValues[foodId]*10)/10} yum: ${Math.round(yum*10)/10}');
 
 		this.eatenFoodValues[foodId] += foodValue;
 		if(yum > 0) this.eatenFoodsYum[foodId] += foodValue; 
