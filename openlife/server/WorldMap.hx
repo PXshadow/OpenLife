@@ -1,5 +1,6 @@
 package openlife.server;
 
+import haxe.io.Float32Array;
 import format.png.Reader;
 import haxe.Exception;
 import haxe.Int32;
@@ -697,16 +698,22 @@ class WorldMap {
 
 	private function writeFoodStatistics(path:String) {
 		var writer = File.write(path, false);
+		var total = 0.0;
+
+		for(foodId in eatenFoodValues.keys()){
+			total += eatenFoodValues[foodId];
+		}
 
 		for(foodId in eatenFoodValues.keys()){
 			var foodData = ObjectData.getObjectData(foodId);
-			var foodValue = Math.round(eatenFoodValues[foodId] * 10) / 10;
-			var foodValueYum = Math.round(eatenFoodsYum[foodId] * 10) / 10;
-			var foodValueMeh = Math.round(eatenFoodsMeh[foodId] * 10) / 10;
-			var foodValueYumBoni = Math.round(eatenFoodsYumBoni[foodId] * 10) / 10;
-			var foodValueMehMali = Math.round(eatenFoodsMehMali[foodId] * 10) / 10;
+			var foodValue = Math.round(eatenFoodValues[foodId] * 1) / 1;
+			var foodValueYum = Math.round(eatenFoodsYum[foodId] * 1) / 1;
+			var foodValueMeh = Math.round(eatenFoodsMeh[foodId] * 1) / 1;
+			var foodValueYumBoni = Math.round(eatenFoodsYumBoni[foodId] * 10) / 1;
+			var foodValueMehMali = Math.round(eatenFoodsMehMali[foodId] * 10) / 1;
+			var percent = Math.round(eatenFoodValues[foodId] / total * 100) / 1;
 
-			writer.writeString('${foodValue} ${foodData.name}[${foodData.id}] yum: ${foodValueYum} meh: ${foodValueMeh} boni: ${foodValueYumBoni} mali: ${foodValueMehMali}\n');
+			writer.writeString('${percent}% pipes: ${foodValue} ${foodData.name}[${foodData.id}] yum: ${foodValueYum} meh: ${foodValueMeh} boni: ${foodValueYumBoni} mali: ${foodValueMehMali}\n');
 		}
 		writer.close();
 	}
