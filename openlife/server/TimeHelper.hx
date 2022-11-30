@@ -1743,6 +1743,14 @@ class TimeHelper {
 		var decayChance = ServerSettings.ObjDecayChance * objData.decayFactor;
 		var countAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objData.parentId;
 
+		// for example a knife with 58 steps with a tech level of 20 holds round about 4 times longer
+		var techLevel = ServerSettings.ObjDecayFactorPerTechLevel;
+		var techFactor = techLevel / (techLevel + objData.carftingSteps);
+		
+		decayChance *= techFactor;
+
+		//if(objData.carftingSteps > 1) trace('${objData.name} steps: ${objData.carftingSteps} techFactor: ${Math.round(techFactor*100)}% decayFactor: ${Math.round(objData.decayFactor*100)}%');
+
 		if (world.currentObjectsCount[countAs] < world.originalObjectsCount[countAs] * 0.8) return; // dont decay natural stuff if there are too few
 
 		var objectHelper = world.getObjectHelper(x, y, true);

@@ -264,6 +264,7 @@ class ServerSettings {
 	public static var ObjDecayFactorForPermanentObjs:Float = 0.2; // 0.1 // 0.05;
 	public static var ObjDecayFactorForFood:Float = 2;
 	public static var ObjDecayFactorForClothing:Float = 2;
+	public static var ObjDecayFactorPerTechLevel:Float = 20; // for example a knife with 58 steps with a tech level of 20 holds round about 4 times longer
 	public static var WoolClothDecayTime:Int = -24 * 30; // one month
 
 	public static var DecayFactorInDeepWater:Float = 5;
