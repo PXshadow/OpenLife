@@ -3391,8 +3391,11 @@ private function craftLowPriorityClothing() : Bool {
 				return false;
 			}
 
-			if (targetPlayer.canFeedToMe(foodTarget) == false) {
-				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING cannot feed2 ${targetPlayer.name} ${foodTarget.name} foodvalue: ${foodTarget.objectData.foodValue} foodpipes: ${Math.round(targetPlayer.food_store / 10)*10} foodspace: ${Math.round((targetPlayer.food_store_max - targetPlayer.food_store) * 10)/10}');
+			var objData = foodTarget.objectData;
+			objData = objData.foodFromTarget == null ? objData : objData.foodFromTarget;
+
+			if (targetPlayer.canFeedToMeObj(objData) == false) {
+				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING cannot feed2 ${targetPlayer.name} ${objData.name} foodvalue: ${objData.foodValue} foodpipes: ${Math.round(targetPlayer.food_store / 10)*10} foodspace: ${Math.round((targetPlayer.food_store_max - targetPlayer.food_store) * 10)/10}');
 				this.feedingPlayerTarget = null;
 				foodTarget = null;
 				return false;
