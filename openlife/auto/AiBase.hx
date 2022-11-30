@@ -94,6 +94,8 @@ abstract class AiBase
 	public var countPies = 0;
 	public var tryMoveNearestTileFirst = true;
 
+	public var debugSay = false;
+
 	public static function StartAiThread() {
 		Thread.create(RunAi);
 	}
@@ -228,6 +230,8 @@ abstract class AiBase
 
 	public function newBorn() {
 		if (ServerSettings.DebugAi) trace('Ai: newborn!');
+
+		debugSay = false;
 		
 		dropTarget = null;
 		foodTarget = null;		
@@ -347,7 +351,7 @@ abstract class AiBase
 			var distance = myPlayer.CalculateQuadDistanceToObject(useTarget);
 
 			if(distance < 100){
-				if(ServerSettings.DebugAiSay)
+				if(shouldDebugSay())
 					myPlayer.say('Close Use: d: $distance ${useTarget.name}'); 
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: d: $distance ${useTarget.name} ${useTarget.tx} ${useTarget.ty} isMoving: ${myPlayer.isMoving()}');
@@ -766,7 +770,7 @@ abstract class AiBase
 			if(heldId == 72){
 				var done = useHeldObjOnTarget(firePlace);
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} Fire: Has Kindling Use On ==> Hot Coals!  ${firePlace.name} objAtPlace: ${objAtPlace.name} $done');
-				if(ServerSettings.DebugAiSay)
+				if(shouldDebugSay())
 					myPlayer.say('Use Kindling on ${firePlace.name} $done'); // hot coals
 				return done;
 			}
@@ -796,7 +800,7 @@ abstract class AiBase
 				return useHeldObjOnTarget(firePlace);
 			}
 			else{
-				if(ServerSettings.DebugAiSay)
+				if(shouldDebugSay())
 					myPlayer.say('Get Wood For Fire');
 				var done = GetOrCraftItem(344);
 				if(done) return true;
@@ -999,11 +1003,11 @@ abstract class AiBase
 
 		if(grave.containedObjects.length > 0){
 			if(dropHeldObject(0)){
-				if(ServerSettings.DebugAiSay) myPlayer.say('drop for remove from grave');
+				if(shouldDebugSay()) myPlayer.say('drop for remove from grave');
 				if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: drop heldobj for remove');
 				return true;
 			}
-			if(ServerSettings.DebugAiSay) myPlayer.say('remove from grave');
+			if(shouldDebugSay()) myPlayer.say('remove from grave');
 			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: remove from grave');
 			return removeItemFromContainer(grave);
 		}
@@ -1025,12 +1029,12 @@ abstract class AiBase
 
 		if(floorId > 0){
 			if(heldId == 292){ // Basket
-				if(ServerSettings.DebugAiSay) myPlayer.say('use basket on bones');
+				if(shouldDebugSay()) myPlayer.say('use basket on bones');
 				if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: use basket on bones');
 				if(myPlayer.heldObject.containedObjects.length > 0) return dropHeldObject();
 				return useHeldObjOnTarget(grave);
 			} 
-			if(ServerSettings.DebugAiSay) myPlayer.say('get basket for bones');
+			if(shouldDebugSay()) myPlayer.say('get basket for bones');
 			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: get or craft basket');
 
 			return GetOrCraftItem(292); // Basket
@@ -1038,12 +1042,12 @@ abstract class AiBase
 
 		// 850 Stone Hoe // 502 = Shovel
 		if(heldId == 850 || heldId == 502){
-			if(ServerSettings.DebugAiSay) myPlayer.say('dig in bones');
+			if(shouldDebugSay()) myPlayer.say('dig in bones');
 			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: dig in bones');
 			return useHeldObjOnTarget(grave);
 		}
 
-		if(ServerSettings.DebugAiSay) myPlayer.say('get shovel for grave');
+		if(shouldDebugSay()) myPlayer.say('get shovel for grave');
 		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: try to get hoe');
 
 		// 850 Stone Hoe
@@ -1153,7 +1157,7 @@ abstract class AiBase
 	
 		if (quadDistance < 2) this.time += 4; // if you cannot reach dont try running there too often
 
-		if(ServerSettings.DebugAiSay) myPlayer.say('going to $text');
+		if(shouldDebugSay()) myPlayer.say('going to $text');
 
 		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text player heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} dist: $quadDistance goto: $done');
@@ -1263,7 +1267,7 @@ abstract class AiBase
 
 		if(count < 1) this.profession['BasicFarmer'] = 1;
 		if(this.profession['BasicFarmer'] < 2){
-			if (ServerSettings.DebugAiSay) myPlayer.say('BasicFarmer: soil: $count');
+			if (shouldDebugSay()) myPlayer.say('BasicFarmer: soil: $count');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} soil: $count');			
 			//var max = this.profession['BasicFarmer'] < 2 ? 3 : 1;
 			if(count < 4) if(craftItem(336)) return true; // Basket of Soil
@@ -1304,7 +1308,7 @@ abstract class AiBase
 			var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 30); //  Clay Bowl 235
 			if(heldObject.parentId == 235) countBowls += 1;
 			
-			if (ServerSettings.DebugAiSay) myPlayer.say('BasicFarmer: shallowrows: $countRows bowls: $countBowls');
+			if (shouldDebugSay()) myPlayer.say('BasicFarmer: shallowrows: $countRows bowls: $countBowls');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} shallowrows: $countRows bowls: $countBowls');			
 
 			if(countBowls < 1 && doPottery(3)) return true;
@@ -1321,7 +1325,7 @@ abstract class AiBase
 
 		// 3: Prepare Deep Tilled Rows
 		if(this.profession['BasicFarmer'] < 4){
-			if (ServerSettings.DebugAiSay) myPlayer.say('BasicFarmer: Prepare Deep Tilled Rows');
+			if (shouldDebugSay()) myPlayer.say('BasicFarmer: Prepare Deep Tilled Rows');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} Prepare Deep Tilled Rows');			
 			if(shortCraft(850, 1136, 30)) return true; // Stone Hoe + Shallow Tilled Row --> Deep Tilled Row
 			this.profession['BasicFarmer'] = 4;
@@ -1330,7 +1334,7 @@ abstract class AiBase
 		if(this.profession['BasicFarmer'] < 5){			
 			var countPlantedCarrots = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 399, 30); // Wet Planted Carrots 399
 			countPlantedCarrots += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 396, 30); // Dry Planted Carrots 396
-			if (ServerSettings.DebugAiSay) myPlayer.say('BasicFarmer: Planeted Carrots: $countPlantedCarrots');
+			if (shouldDebugSay()) myPlayer.say('BasicFarmer: Planeted Carrots: $countPlantedCarrots');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} Planeted Carrots: $countPlantedCarrots');			
 			//if(countPlanetCarrots < 5) if(craftItem(399)) return true; // Wet Planted Carrots
 			if(countPlantedCarrots < 5) if(craftItem(396)) return true; // Dry Planted Carrots 396
@@ -1492,7 +1496,7 @@ abstract class AiBase
 
 		var actorData = ObjectData.getObjectData(actorId);
 		
-		//if (ServerSettings.DebugAiSay) myPlayer.say('get ${actorData.name} to craft target: ${target.name}');
+		//if (shouldDebugSay()) myPlayer.say('get ${actorData.name} to craft target: ${target.name}');
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} shortCraft: wanted actor: ${actorData.name} + target: ${target.name} held: ${myPlayer.heldObject.name}');
 
 		if(actorId == 0) return dropHeldObject();
@@ -1591,7 +1595,7 @@ abstract class AiBase
 		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: neededClay: $neededClay WetBowl: ${countWetBowl} WetPlate: $countWetPlate ');
 
 		if(this.profession['Potter'] < 3 && countClayOnFloor < neededClay && countWetBowl + countWetPlate < 4){
-			if (ServerSettings.DebugAiSay) myPlayer.say('Do Pottery get clay from pile $neededClay');
+			if (shouldDebugSay()) myPlayer.say('Do Pottery get clay from pile $neededClay');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: get clay from pile');
 
 			if(shortCraft(0,3905)) return true; // Pile of Clay 3905
@@ -1599,7 +1603,7 @@ abstract class AiBase
 
 		this.profession['Potter'] = 3;
 
-		if (ServerSettings.DebugAiSay) myPlayer.say('Do Pottery neededClay $neededClay');
+		if (shouldDebugSay()) myPlayer.say('Do Pottery neededClay $neededClay');
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: neededClay: $neededClay WetBowl: ${countWetBowl} WetPlate: $countWetPlate ');
 		
 		if(shortCraft(33,126)) return true; //Stone 33, Clay 126 --> Wet Clay Bowl 233
@@ -1614,12 +1618,12 @@ abstract class AiBase
 	}
 
 	private function doPotteryOnFire(countWetBowl:Int, countWetPlate:Int) : Bool {
-		if (ServerSettings.DebugAiSay) myPlayer.say('make bowl $countWetBowl');
+		if (shouldDebugSay()) myPlayer.say('make bowl $countWetBowl');
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make bowl $countWetBowl');
 
 		if(countWetBowl > 0 && craftItem(283)) return true; // Wooden Tongs with Fired Bowl
 
-		if (ServerSettings.DebugAiSay) myPlayer.say('make Plate $countWetPlate');
+		if (shouldDebugSay()) myPlayer.say('make Plate $countWetPlate');
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make Plate $countWetPlate');
 		if(countWetPlate > 0 && craftItem(241)) return true; // Fired Plate in Wooden Tongs
 
@@ -1650,7 +1654,7 @@ abstract class AiBase
 
 				var done = myPlayer.gotoObj(home);
 
-				if (ServerSettings.DebugAiSay) myPlayer.say('Bring basket home $done');
+				if (shouldDebugSay()) myPlayer.say('Bring basket home $done');
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: done: $done goto home: held: ${heldObject.name} d: $distanceToHome');
 				return done;
 			}
@@ -1665,7 +1669,7 @@ abstract class AiBase
 
 			var done = myPlayer.gotoObj(clayDeposit);
 
-			if (ServerSettings.DebugAiSay) myPlayer.say('Drop basket near clay deposit $done');
+			if (shouldDebugSay()) myPlayer.say('Drop basket near clay deposit $done');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: done: $done goto ClayDeposit: held: ${heldObject.name} d: $distanceToClayDeposit');
 			return done;
 		}
@@ -1683,7 +1687,7 @@ abstract class AiBase
 
 				jumpToAi = this;
 
-				if (ServerSettings.DebugAiSay) myPlayer.say('empty basket');
+				if (shouldDebugSay()) myPlayer.say('empty basket');
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: empty basket: held: ${heldObject.name} d: $distanceToHome');
 
 				return true;
@@ -1702,7 +1706,7 @@ abstract class AiBase
 		
 			if(heldObject.parentId != 0) return dropHeldObject(1);
 			
-			if (ServerSettings.DebugAiSay) myPlayer.say('pickup basket to bring home');
+			if (shouldDebugSay()) myPlayer.say('pickup basket to bring home');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: pickup basket to bring home: held: ${heldObject.name} d: $distanceToHome');
 
 			// pickup basket to bring home
@@ -1719,7 +1723,7 @@ abstract class AiBase
 				return dropHeldObject(10);			
 			}
 
-			if (ServerSettings.DebugAiSay) myPlayer.say('drop clay in basket');
+			if (shouldDebugSay()) myPlayer.say('drop clay in basket');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: drop clay in basket: held: ${heldObject.name} d: $distanceToHome');
 
 			return useHeldObjOnTarget(basket); // fill basket		
@@ -1747,12 +1751,12 @@ abstract class AiBase
 		if(distanceToClayDeposit > 1){
 			var done = myPlayer.gotoObj(clayDeposit);
 
-			if (ServerSettings.DebugAiSay) myPlayer.say('Goto clay deposit $done');
+			if (shouldDebugSay()) myPlayer.say('Goto clay deposit $done');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: done: $done goto ClayDeposit: held: ${heldObject.name} d: $distanceToClayDeposit');
 			return done;
 		}
 
-		if (ServerSettings.DebugAiSay) myPlayer.say('get clay from deposit');
+		if (shouldDebugSay()) myPlayer.say('get clay from deposit');
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: get clay from deposit: held: ${heldObject.name} d: $distanceToClayDeposit');
 
 		//jumpToAi = this;
@@ -2255,7 +2259,7 @@ abstract class AiBase
 
 		// Fill up the Bowl // 235 Clay Bowl // 253 Bowl of Gooseberries
 		if(heldObj.parentId == 235 || heldObj.parentId == 253){
-			if(ServerSettings.DebugAiSay) myPlayer.say('Fill Bowl on Bush');
+			if(shouldDebugSay()) myPlayer.say('Fill Bowl on Bush');
 			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Bush!');
 
 			return useHeldObjOnTarget(closeBush);
@@ -2273,7 +2277,7 @@ abstract class AiBase
 			this.dropTarget = closeBerryBowl; // pick it up to fill
 			this.dropIsAUse = false;
 
-			if(ServerSettings.DebugAiSay) myPlayer.say('Pickup Berry Bowl to Fill');
+			if(shouldDebugSay()) myPlayer.say('Pickup Berry Bowl to Fill');
 			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Pickup Berry Bowl to Fill!');
 
 			return true; 
@@ -2551,11 +2555,11 @@ private function craftLowPriorityClothing() : Bool {
 		if(createCloth == false) return false;
 		if(craftItem(clothId)){ 
 			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft clothing ${objData.name}');
-			if(ServerSettings.DebugAiSay) myPlayer.say('Craft ${objData.name} to wear...');
+			if(shouldDebugSay()) myPlayer.say('Craft ${objData.name} to wear...');
 			return true;
 		}
 		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} could not craft clothing ${objData.name}');
-		//if(ServerSettings.DebugAiSay) myPlayer.say('Could not craft ${objData.name} to wear...');
+		//if(shouldDebugSay()) myPlayer.say('Could not craft ${objData.name} to wear...');
 		return false;
 	}
 
@@ -2577,16 +2581,9 @@ private function craftLowPriorityClothing() : Bool {
 		}*/
 
 		if (text.contains("HOLA") || text.contains("HELLO") || text == "HI") {
-			// HELLO WORLD
-
-			// if(ServerSettings.DebugAi) trace('im a nice bot!');
-
 			myPlayer.say('HOLA ${player.name}');
 		}
         if (text.contains("ARE YOU AI") || text.contains("ARE YOU AN AI") || text == "AI?" || text == "AI") {
-			// HELLO WORLD
-
-			// if(ServerSettings.DebugAi) trace('im a nice bot!');
 			var rand = WorldMap.world.randomInt(8);
 
 			if(rand == 0){
@@ -2684,6 +2681,14 @@ private function craftLowPriorityClothing() : Bool {
 				this.itemToCraftName = obj.name;
 				myPlayer.say("Making " + obj.name);
 			}
+		}		
+		else if (text.startsWith("DEBUG!") || text.startsWith("DEBUG ON")) {
+			debugSay = true;
+			myPlayer.say('DEBUG!');
+		}
+		else if (text.startsWith("DEBUG OFF")) {
+			debugSay = false;
+			myPlayer.say('DEBUG!');
 		}
 	}
 
@@ -2698,7 +2703,7 @@ private function craftLowPriorityClothing() : Bool {
 			return;
 		}*/
 
-		if(ServerSettings.DebugAiSay){
+		if(shouldDebugSay()){
 			if(foodTarget == null) myPlayer.say('No food found...');
 			else myPlayer.say('new food ${foodTarget.name}');
 		}
@@ -2895,7 +2900,7 @@ private function craftLowPriorityClothing() : Bool {
 				if(basket == null) basket = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 292, 10, null, myPlayer); // Basket 292
 
 				if(basket != null){
-					if (ServerSettings.DebugAiSay) myPlayer.say('drop clay in basket');
+					if (shouldDebugSay()) myPlayer.say('drop clay in basket');
 					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: drop clay in basket: d: $distanceToKiln');
 
 					return useHeldObjOnTarget(basket); // fill basket	
@@ -2988,11 +2993,11 @@ private function craftLowPriorityClothing() : Bool {
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} $done drop goto ${target.name} $quadDistance');
 
 				if(done){
-					if(ServerSettings.DebugAiSay) myPlayer.say('Goto home!');
+					if(shouldDebugSay()) myPlayer.say('Goto home!');
 					return true;
 				}
 				
-				if(ServerSettings.DebugAiSay) myPlayer.say('Cannot Goto home!');
+				if(shouldDebugSay()) myPlayer.say('Cannot Goto home!');
 			}
 		}
 	
@@ -3495,7 +3500,7 @@ private function craftLowPriorityClothing() : Bool {
 		var childX = child.tx - myPlayer.gx;
 		var childY = child.ty - myPlayer.gy;
 
-		if(ServerSettings.DebugAiSay) myPlayer.say('Pickup ${child.name}');
+		if(shouldDebugSay()) myPlayer.say('Pickup ${child.name}');
 		var done = myPlayer.doBaby(childX, childY, child.id);
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} child ${child.name} pickup $done');
@@ -3526,7 +3531,7 @@ private function craftLowPriorityClothing() : Bool {
 		var escapeTy = escapePlayer ? deadlyPlayer.ty : animal.ty;
 		var newEscapetarget = new ObjectHelper(null, 0);
 
-		if(ServerSettings.DebugAiSay) myPlayer.say('Escape ${description} ${Math.ceil(didNotReachFood)}!');
+		if(shouldDebugSay()) myPlayer.say('Escape ${description} ${Math.ceil(didNotReachFood)}!');
 		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} escape!');
 
 		var done = false;
@@ -3699,7 +3704,7 @@ private function craftLowPriorityClothing() : Bool {
 		if (player.heldObject.parentId == itemToCraft.transActor.parentId || itemToCraft.transActor.id == 0) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} is held already or Empty. Craft target ${itemToCraft.transTarget.name} ${itemToCraft.transTarget.id} held: ${player.heldObject.name}');
 
-			if(ServerSettings.DebugAiSay) myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
+			if(shouldDebugSay()) myPlayer.say('Goto target ' + itemToCraft.transTarget.name);
 
 			if (itemToCraft.transActor.id == 0 && player.heldObject.id != 0 && myPlayer.heldObject != myPlayer.hiddenWound) {
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} craft: drop heldobj at start since Empty is needed!');
@@ -3724,7 +3729,7 @@ private function craftLowPriorityClothing() : Bool {
 				this.time += secondsUntillChange / 4;
 				// TODO wait some time, or better get next obj
 				
-				if(ServerSettings.DebugAiSay) myPlayer.say('Wait for ${itemToCraft.transTarget.name}...');
+				if(shouldDebugSay()) myPlayer.say('Wait for ${itemToCraft.transTarget.name}...');
 				itemToCraft.transActor = null;
 				return true;
 			}
@@ -3739,7 +3744,7 @@ private function craftLowPriorityClothing() : Bool {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is PLAYER ');
 
 			// TODO PLAYER interaction not supported yet
-			if(ServerSettings.DebugAiSay) myPlayer.say('Actor is player!?!');
+			if(shouldDebugSay()) myPlayer.say('Actor is player!?!');
 			itemToCraft.transActor = null;
 			return false;
 		}
@@ -3759,13 +3764,13 @@ private function craftLowPriorityClothing() : Bool {
 
 		if(pile == null){
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft goto actor: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}]');
-			if (ServerSettings.DebugAiSay) myPlayer.say('Goto actor ' + itemToCraft.transActor.name);
+			if (shouldDebugSay()) myPlayer.say('Goto actor ' + itemToCraft.transActor.name);
 
 			dropTarget = itemToCraft.transActor;
 		}
 		else{
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft goto piled actor: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}]');
-			if (ServerSettings.DebugAiSay) myPlayer.say('Goto piled actor ' + itemToCraft.transActor.name);
+			if (shouldDebugSay()) myPlayer.say('Goto piled actor ' + itemToCraft.transActor.name);
 
 			useActor = new ObjectHelper(null, 0);
 			useTarget = pile;
@@ -4339,7 +4344,7 @@ private function craftLowPriorityClothing() : Bool {
 		var randY = WorldMap.calculateRandomInt(2 * dist) - dist;
 		var done = myPlayer.gotoAdv(playerToFollow.tx + randX, playerToFollow.ty + randY);
 
-		if(myPlayer.age > ServerSettings.MinAgeToEat || ServerSettings.DebugAiSay) myPlayer.say('${playerToFollow.name}');
+		if(myPlayer.age > ServerSettings.MinAgeToEat || shouldDebugSay()) myPlayer.say('${playerToFollow.name}');
 
 		if (myPlayer.isAi()) if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} age: ${Math.ceil(myPlayer.age * 10) / 10} dist: $quadDistance goto player $done');
@@ -4552,7 +4557,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		if (isHungry && foodTarget == null) searchFoodAndEat();
 
-		if(ServerSettings.DebugAiSay) if (isHungry) myPlayer.say('F ${Math.round(myPlayer.getPlayerInstance().food_store)}'); // TODO for debugging
+		if(shouldDebugSay()) if (isHungry) myPlayer.say('F ${Math.round(myPlayer.getPlayerInstance().food_store)}'); // TODO for debugging
 		if (isHungry && myPlayer.age < ServerSettings.MaxChildAgeForBreastFeeding) myPlayer.say('F');
 
 		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} F ${Math.round(playerInterface.getPlayerInstance().food_store)} P:  ${myPlayer.x},${myPlayer.y} G: ${myPlayer.tx()},${myPlayer.ty()}');
@@ -4633,7 +4638,7 @@ private function craftLowPriorityClothing() : Bool {
 			var done = myPlayer.gotoObj(useTarget);
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto useItem ${name} $done');
 
-			if(ServerSettings.DebugAiSay){
+			if(shouldDebugSay()){
 				if (done) myPlayer.say('Goto ${name} for use!');
 				else myPlayer.say('Cannot Goto ${name} for use!');
 			}
@@ -4782,7 +4787,7 @@ private function craftLowPriorityClothing() : Bool {
 			var done = myPlayer.gotoObj(target);
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto container ${name} $done distance: $distance');
 
-			if(ServerSettings.DebugAiSay){
+			if(shouldDebugSay()){
 				if (done) myPlayer.say('Goto ${name} for remove!');
 				else{
 					myPlayer.say('Cannot Goto ${name} for remove!');
@@ -4866,6 +4871,10 @@ private function craftLowPriorityClothing() : Bool {
 		// if(notReachable) if(ServerSettings.DebugAi) trace('isObjectNotReachable: $notReachable $tx,$ty');
 
 		return notReachable;
+	}
+
+	private function shouldDebugSay(){
+		return debugSay || ServerSettings.DebugAiSay;
 	}
 
 	// is called once a movement is finished (client side it must be called manually after a PlayerUpdate)
