@@ -476,13 +476,9 @@ abstract class AiBase
 		itemToCraft.maxSearchRadius = 30;
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);		
 		Macro.exception(if(makePopcornIfNeeded()) return);
-		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
-		
-		var jobByAge:Int = Math.round(myPlayer.age / 2); // job prio switches every second year
-		
-		itemToCraft.maxSearchRadius = 30;
-
 		Macro.exception(if(doBaking(1)) return);
+
+		var jobByAge:Int = Math.round(myPlayer.age / 4); // job prio switches every 4 years
 
 		for(i in 0...5){
 			jobByAge = (jobByAge + i) % 5;
@@ -2693,11 +2689,11 @@ private function craftLowPriorityClothing() : Bool {
 		}		
 		else if (text.startsWith("DEBUG!") || text.startsWith("DEBUG ON")) {
 			debugSay = true;
-			myPlayer.say('DEBUG!');
+			myPlayer.say('DEBUG ON');
 		}
 		else if (text.startsWith("DEBUG OFF")) {
 			debugSay = false;
-			myPlayer.say('DEBUG!');
+			myPlayer.say('DEBUG OFF');
 		}
 		else if (text.startsWith("PROFESSION?") || text.startsWith("PROF?")) {
 			if(lastProfession == null) myPlayer.say('NONE');
