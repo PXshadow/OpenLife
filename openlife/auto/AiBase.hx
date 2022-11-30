@@ -747,9 +747,9 @@ abstract class AiBase
 		if(objId == 83 || objId == 346 || objId == 3029){
 			if(hasOrBecomeProfession('firekeeper', maxProfession) == false) return false;
 
-			itemToCraft.maxSearchRadius = 30; // craft only close
+			//itemToCraft.maxSearchRadius = 30; // craft only close
 			Macro.exception(if (doCriticalStuff()) return true);
-			itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
+			//itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 		
 			return false;
 		}
