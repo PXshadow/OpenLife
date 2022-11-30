@@ -1800,18 +1800,20 @@ abstract class AiBase
 					countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, id, 25);
 				}
 				// Raw Potato 1147
-				countRawPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1147, 20);
+				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1147, 20);
 				//countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 40);
 			}
 		}
-		
-		if(hotOven != null || countRawPies > 2){
-			this.profession['Baker'] = 2;
 
-			if(hotOven == null && countRawPies > 0){
-				if(fireOven == null && craftItem(249)) return true; // Burning Adobe Oven
-				return false;
-			}
+		myPlayer.say('$countRawPies left to bake!');
+
+		if(hotOven == null && fireOven == null && countRawPies > 2){
+			if(craftItem(249)) return true; // Burning Adobe Oven
+			return false;
+		}
+		
+		if(hotOven != null){
+			this.profession['Baker'] = 2;
 
 			for(i in 0... pies.length){
 				var index = (nextPie + i) % pies.length;
@@ -1827,7 +1829,7 @@ abstract class AiBase
 			if(shortCraftOnTarget(1147, hotOven, false)) return true;
 		}
 		
-		if(hotOven != null && fireOven != null){
+		if(hotOven == null && fireOven == null){
 			// Adobe Oven 237
 			var oven = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 237, 20, null, myPlayer);
 			// Wood-filled Adobe Oven 247
