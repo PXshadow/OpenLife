@@ -1802,11 +1802,14 @@ abstract class AiBase
 				}
 				// Raw Potato 1147
 				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1147, 20);
-				//countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 40);
+				// Raw Bread Loaf 1469
+				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1469, 20);
+				// Raw Mutton 569
+				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 20);
+
+				myPlayer.say('$countRawPies raw stuff to bake!');
 			}
 		}
-
-		myPlayer.say('$countRawPies left to bake!');
 
 		if(hotOven == null && fireOven == null && countRawPies > 2){
 			if(craftItem(249)) return true; // Burning Adobe Oven
