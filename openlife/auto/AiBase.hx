@@ -4425,6 +4425,22 @@ private function craftLowPriorityClothing() : Bool {
 			dropTarget = null;
 			return false;
 		}
+
+
+		var dropTargetId = dropTarget.parentId;
+
+		// Stack of Clay Plates 1602 // Stack of Clay Bowls 1603
+		if (dropTargetId == 1602 || dropTargetId == 1603){
+			trace('AAI: ${myPlayer.name + myPlayer.id} WARNING dont use drop on ${dropTarget.name}');
+
+			dropIsAUse = true;
+			useTarget = dropTarget;
+			useActor = new ObjectHelper(null,0);
+			dropTarget = null;
+
+			return false; 
+		}
+
 		if (myPlayer.isMoving()) return true;
 
 		// TODO support dropping in a container
