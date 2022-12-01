@@ -300,7 +300,7 @@ class AiHelper {
 		var baseX = player.tx;
 		var baseY = player.ty;
 		var bestBiome = new ObjectHelper(null, 0);
-		var bestDistance:Float = -1;
+		var bestDistance:Float = searchDistance * 1000;
 
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
