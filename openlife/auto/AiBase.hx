@@ -2939,10 +2939,14 @@ private function craftLowPriorityClothing() : Bool {
 
 	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
 		var heldObjId = myPlayer.heldObject.parentId;
+		var heldObject = myPlayer.heldObject;
 		var dropTarget =  myPlayer.home;
 
 		if (heldObjId == 2144) return dropHeldObject(); // 2144 Banana Peel
 		if (heldObjId == 34) return dropHeldObject(); // 34 Sharp Stone
+
+		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
+		if(heldObjId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236,10)) return true;
 
 		// TODO other items for Kiln, smith, plates for oven
 		// drop at once, since its normally dropped at fire. For exmple kindling, wood...
