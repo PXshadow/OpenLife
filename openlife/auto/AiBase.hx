@@ -1254,8 +1254,11 @@ abstract class AiBase
 		//if(doWatering(1)) return true;
 
 		// 1: Prepare Soil
-		if(shortCraft(1137, 848, 30)) return true;
+		// TODO max use transition on soil pile does not work yet
+		// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
+		if(shortCraft(1137, 848, 30, false)) return true;
 		//trace('Fertile Soil Pile!');
+
 		// Basket of Soil
 		if(shortCraftOnGround(336)) return true;		
 

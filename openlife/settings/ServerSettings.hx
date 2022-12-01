@@ -2358,6 +2358,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(857, 1101); // Steel Hoe + Fertile Soil Pile
 		trans.aiShouldIgnore = true;
 
+		// stop picking up same soil again with basket
+		var trans = transtions.getTransition(292, 1101); // Basket 292 + Fertile Soil Pile 1101
+		trans.aiShouldIgnore = true;
+
 		var trans = transtions.getTransition(0, 253); // 0 + Bowl of Gooseberries
 		trans.aiShouldIgnore = true;
 
