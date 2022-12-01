@@ -406,7 +406,8 @@ abstract class AiBase
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: isEating ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		// should be below isUsingItem since a use can be used to drop an hold item on a pile to pickup a baby
-		Macro.exception(if (isFeedingChild()) return); 
+		Macro.exception(if (isFeedingChild()) return);
+		Macro.exception(if (isConsideringMakingFood()) return);
 		Macro.exception(if (isPickingupFood()) return);
 		Macro.exception(if (this.profession['Smith'] < 1 && isFeedingPlayerInNeed()) return);
 		Macro.exception(if (isStayingCloseToChild()) return);
@@ -858,7 +859,7 @@ abstract class AiBase
 			if(p.age < ServerSettings.MinAgeToEat) continue;
 			if(p.age > 58 && profession != 'gravekeeper') continue;
 			if(p.isWounded()) continue;
-			if(p.food_store < 2) continue;
+			if(p.food_store < 0) continue;
 			if(p.home.tx != myPlayer.home.tx && p.home.ty != myPlayer.home.ty) continue;
 
 			var hasProfession = ai.profession[profession] > 0;
@@ -1109,6 +1110,7 @@ abstract class AiBase
 
 		if(goodPlace == null && needWarming){
 			goodPlace = myPlayer.GetCloseBiome([BiomeTag.DESERT, BiomeTag.JUNGLE]);
+			if (goodPlace != null && ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} found place to watm!');
 			if(goodPlace == null) goodPlace = myPlayer.warmPlace;
 			text = 'heat';	
 		}
@@ -2314,12 +2316,17 @@ abstract class AiBase
 	}
 
 	private function makePopcornIfNeeded() : Bool {
+		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn!1');
 		// do nothing if there is Popcorn
 		var closePopcorn = AiHelper.GetClosestObjectToHome(myPlayer, 1121); // Popcorn
 		if(closePopcorn != null) return false;
 
+		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn!2');
+
 		var bestPlayer = getBestAiForObjByProfession('BowlFiller', myPlayer.home);
 		if(bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) return false;
+
+		//if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn!3');
 
 		return craftItem(1121); // Popcorn
 	}
@@ -2785,6 +2792,8 @@ private function craftLowPriorityClothing() : Bool {
 		var heldObjName = myPlayer.heldObject.name;
 		if (ServerSettings.DebugAi && foodTarget != null) trace('AAI: ${myPlayer.name + myPlayer.id} new Foodtarget! ${foodTarget.name} held: ${heldObjName}');
 		if (ServerSettings.DebugAi && foodTarget == null) trace('AAI: ${myPlayer.name + myPlayer.id} no new Foodtarget!!! held: ${heldObjName}');
+
+		return foodTarget;
 	}
 
 	public function storeInQuiver() {
@@ -4486,6 +4495,50 @@ private function craftLowPriorityClothing() : Bool {
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop $done now held: ${myPlayer.heldObject.name}');		
 
 		return true;
+	}
+
+	private function isConsideringMakingFood():Bool {
+		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
+		if (isHungry == false && foodTarget == null) return false;
+
+		var quadDistance = -1.0;
+
+		if (foodTarget != null){
+			if(myPlayer.food_store < -1) return false;
+			quadDistance = myPlayer.CalculateQuadDistanceToObject(foodTarget);
+
+			if(myPlayer.isMeh(foodTarget)) quadDistance *= 4;
+			if(myPlayer.isSuperMeh(foodTarget)) quadDistance *= 8;
+
+			if(quadDistance < 900) return false;
+		}
+
+		var quadDistanceToHome = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
+		if(quadDistanceToHome > 900) return false;
+
+		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['considerFood']);
+		if(passedTime > 15){
+			lastCheckedTimes['considerFood'] = TimeHelper.tick;
+			foodTarget = searchFoodAndEat();
+		}
+
+		var foodStore = Math.round(myPlayer.food_store*10)/10;
+
+		if (ServerSettings.DebugAi && foodTarget != null) trace('AAI: ${myPlayer.name + myPlayer.id} makefood! fs: ${foodStore} too far: ${foodTarget.name} d: ${quadDistance} d-home: ${quadDistanceToHome}');
+		if (ServerSettings.DebugAi && foodTarget == null) trace('AAI: ${myPlayer.name + myPlayer.id} makefood! fs: ${foodStore} d-home: ${quadDistanceToHome}');
+		if (shouldDebugSay())myPlayer.say('F ${foodStore} make! d: ${quadDistanceToHome}'); // TODO for debugging
+
+		Macro.exception(if (isUsingItem()) return true);
+		Macro.exception(if (isRemovingFromContainer()) return true);		
+
+		if (myPlayer.isMoving()) return true;
+
+		if(doBaking(4)) return true;
+		if(makeFireFood(4)) return true;
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} makefood! failed! d-home: ${quadDistanceToHome}');
+
+		return false;
 	}
 
 	private function isPickingupFood():Bool {

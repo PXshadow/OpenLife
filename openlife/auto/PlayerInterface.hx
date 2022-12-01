@@ -70,6 +70,8 @@ interface PlayerInterface {
 	public function isHoldingYum():Bool;
 	public function isYum(food:ObjectHelper):Bool;
 	public function isMeh(food:ObjectHelper):Bool;
+	public function isSuperMeh(food:ObjectHelper):Bool;
+	public function isObjSuperMeh(foodObjData:ObjectData):Bool;
 	public function canEat(food:ObjectHelper):Bool;
 	public function canEatObj(objData:ObjectData):Bool;
 	
