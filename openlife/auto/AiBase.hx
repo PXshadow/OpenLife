@@ -1097,6 +1097,7 @@ abstract class AiBase
 		if(needCooling){
 			//trace('AAI: ${myPlayer.name + myPlayer.id} handle heat: too hot');
 			goodPlace = myPlayer.GetCloseBiome([BiomeTag.SNOW, BiomeTag.PASSABLERIVER]);
+			if (goodPlace != null && ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} found place to cool!');
 			if(goodPlace == null) goodPlace = myPlayer.coldPlace;
 			text = 'cool';
 		}
@@ -2335,11 +2336,21 @@ abstract class AiBase
 		
 		// Cooked Mutton 570
 		var countDoneMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 20);
-		if(countDoneMutton < 3 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570
+		if(countDoneMutton < 5 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570
+
+		// Skinned Rabbit 181
+		var countRawRabbit = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 181, 25);
+		// Skewered Rabbit 185
+		countRawRabbit += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 185, 25);
+		// Skewered Rabbit 185
+		if(myPlayer.heldObject.parentId == 185) countRawRabbit += 1;
 
 		// Cooked Rabbit 197
 		var countDoneRabbit = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 197, 20);
-		if(countDoneRabbit < 2 && shortCraftOnTarget(185, hotCoals)) return true; // Skewered Rabbit 185 --> Cooked Rabbit 186
+
+		if(countRawRabbit > 0){			
+			if(countDoneRabbit < 5 && shortCraftOnTarget(185, hotCoals)) return true; // Skewered Rabbit 185 --> Cooked Rabbit 186
+		}
 
 		// Bowl of Raw Pork 1354 --? Bowl of Carnitas
 		if(shortCraftOnTarget(1354, hotCoals)) return true;
@@ -2356,14 +2367,12 @@ abstract class AiBase
 		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 20);
 		if(countPlates > 0 && craftItem(1285)) return true; // Omelette
 
-		// Skinned Rabbit 181
-		var countRawFireFood = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 181, 25);
-		// Skewered Rabbit 185
-		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 185, 25);
+		var countRawFireFood = countRawRabbit;
+
 		// Raw Mutton 569
 		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 25);
 
-		if(countRawFireFood > 1 && hotCoals == null && (countDoneRabbit < 1 || countDoneMutton < 1)){
+		if(countRawFireFood > 2 && hotCoals == null && (countDoneRabbit < 1 || countDoneMutton < 1)){
 			// look for second fire 82
 			var fire = AiHelper.GetClosestObjectToHome(myPlayer, 82, 30, firePlace);
 			if(fire == null) return craftItem(82);
@@ -2372,7 +2381,7 @@ abstract class AiBase
 		// Raw Mutton 569
 		if(craftItem(569)) return true;
 		// Skinned Rabbit 181
-		if(craftItem(181)) return true;
+		//if(craftItem(181)) return true;
 
 		this.profession['FireFoodMaker'] = 0;
 		return false;
@@ -3405,7 +3414,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		var targetPlayer = this.feedingPlayerTarget;
 
-		if (targetPlayer.food_store > targetPlayer.food_store_max * 0.6) {
+		if (targetPlayer.food_store > targetPlayer.food_store_max * 0.4) {
 			this.feedingPlayerTarget = null;
 			return false;
 		}
