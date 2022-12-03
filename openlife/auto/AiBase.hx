@@ -2323,6 +2323,25 @@ abstract class AiBase
 		return false;
 	}
 
+	private function fillUpBerryBowl() {
+		var heldObj = myPlayer.heldObject;
+
+		// Fill up the Bowl // 253 Bowl of Gooseberries
+		if(heldObj.parentId != 253) return false;
+
+		if(shouldDebugSay()) myPlayer.say('Fill Bowl on Bush');
+		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Bush!');
+
+		// TODO check which is closer
+		// 391 Domestic Gooseberry Bush
+		var closeBush = AiHelper.GetClosestObjectById(myPlayer, 391);
+		// 30 Wild Gooseberry Bush
+		if(closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 30);
+		if(closeBush == null) return false;
+
+		return useHeldObjOnTarget(closeBush);
+	}
+
 	private function fillBerryBowlIfNeeded() : Bool {
 		var heldObj = myPlayer.heldObject;
 
@@ -4596,6 +4615,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		if (myPlayer.isMoving()) return true;
 
+		if(fillUpBerryBowl()) return true; // needed for baking
 		if(doBaking(2)) return true;
 		if(makeFireFood(1)) return true;
 
