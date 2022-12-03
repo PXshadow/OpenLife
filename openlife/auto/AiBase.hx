@@ -1358,15 +1358,19 @@ abstract class AiBase
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} countBushes: $countBushes ');			
 			
 			if(countBushes < 9){
-				if(heldObject.parentId == 1137){
+				//if(heldObject.parentId == 1137){
 					// Bowl of Soil 1137 + Dying Gooseberry Bush 389
-					if(shortCraft(1137, 389, 30)) return true; 
-					// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
-					if(shortCraft(1137, 392, 30)) return true; 
-				}
+				if(shortCraft(1137, 389, 30)) return true; 
+				// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
+				if(shortCraft(1137, 392, 30)) return true; 
+				
+				// Wet Planted Gooseberry Seed 217
+				if(craftItem(217)) return true;
+
+				//}
 				// TODO there seems to be a bug with maxuse transitions on pile of soil
 				// Clay Bowl 235 + Fertile Soil Pile 1101 --> Bowl of Soil 1137
-				if(shortCraft(235, 1101, 30)) return true; 
+				//if(shortCraft(235, 1101, 30)) return true; 
 			}
 
 			this.profession['BasicFarmer'] = 4.5;
