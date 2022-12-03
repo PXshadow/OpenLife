@@ -4576,6 +4576,9 @@ private function craftLowPriorityClothing() : Bool {
 		var quadDistanceToHome = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
 		if(quadDistanceToHome > 900) return false;
 
+		// TODO reset smith here?
+		this.profession['Smith'] = 0;
+
 		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['considerFood']);
 		if(passedTime > 15){
 			lastCheckedTimes['considerFood'] = TimeHelper.tick;
@@ -4593,8 +4596,8 @@ private function craftLowPriorityClothing() : Bool {
 
 		if (myPlayer.isMoving()) return true;
 
-		if(doBaking(4)) return true;
-		if(makeFireFood(4)) return true;
+		if(doBaking(2)) return true;
+		if(makeFireFood(1)) return true;
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} makefood! failed! d-home: ${quadDistanceToHome}');
 
