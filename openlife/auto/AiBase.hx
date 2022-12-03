@@ -2245,11 +2245,12 @@ abstract class AiBase
 			var index = (nextPlant + i) % advancedPlants.length;
 			var toPlant = advancedPlants[index];
 
-			// Dry Bean Plants 1172
-			if(toPlant == 1172){
+			// Wet Planted Beans
+			if(toPlant == 1162){
+				// Dry Bean Plants 1172
 				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1172, 30);
-				if(count > 3){
-					nextPlant +=1;
+				if(count > 2){
+					toPlant +=1;
 					continue;
 				}
 			}
