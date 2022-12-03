@@ -4456,14 +4456,15 @@ private function craftLowPriorityClothing() : Bool {
 		if(myPlayer.home == null) return false;
 		maxDistance = maxDistance * maxDistance;
 
-		var quadDistance = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
+		var moveTarget = myPlayer.firePlace != null ? myPlayer.firePlace : myPlayer.home;
+		var quadDistance = myPlayer.CalculateQuadDistanceToObject(moveTarget);
 
 		if (quadDistance < maxDistance) return false;
 
 		var dist = 2;
 		var randX = WorldMap.calculateRandomInt(2 * dist) - dist;
 		var randY = WorldMap.calculateRandomInt(2 * dist) - dist;
-		var done = myPlayer.gotoAdv(myPlayer.home.tx + randX, myPlayer.home.ty + randY);
+		var done = myPlayer.gotoAdv(moveTarget.tx + randX, moveTarget.ty + randY);
 	
 		if(ServerSettings.DebugAi) myPlayer.say('going home $done');
 
