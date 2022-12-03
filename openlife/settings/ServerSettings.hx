@@ -2459,6 +2459,7 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(502, 32); // Shovel 502 + Big Hard Rock 32
+		trans.alternativeTransitionOutcome.push(33); // Stone
 		trans.aiShouldIgnore = true;
 
 		//var trans = transtions.getTransition(441, 560, true); // Smithing Hammer 441 + Knife 560
