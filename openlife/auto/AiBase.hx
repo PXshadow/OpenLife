@@ -4717,9 +4717,20 @@ private function craftLowPriorityClothing() : Bool {
 			var switchCloths = shouldSwitchCloth(obj);
 
 			if(switchCloths){
-				dropTarget = obj;
 				var slot = obj.objectData.getClothingSlot();
+				
+				// if it is a pile
+				if(obj.isPermanent()){
+					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} pickup clothing from pile: ${obj.name} ${obj.objectData.clothing} slot: ${slot}}');
+
+					this.useActor = new ObjectHelper(null,0);
+					this.useTarget = obj;
+					return true;
+				}
+
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} pickup clothing: ${obj.name} ${obj.objectData.clothing} slot: ${slot} current: ${myPlayer.clothingObjects[slot].name}');
+				
+				dropTarget = obj;
 				return true;
 			}
 		}
@@ -4728,12 +4739,16 @@ private function craftLowPriorityClothing() : Bool {
 	}
 
 	private function shouldSwitchCloth(obj:ObjectHelper) {
-		var slot = obj.objectData.getClothingSlot();
+		var objectData =  obj.objectData;
+		// Pile of Mouflon Hides 3918
+		if(objectData.parentId == 3918) objectData = ObjectData.getObjectData(564); // Mouflon Hide 564
+
+		var slot = objectData.getClothingSlot();
 		
 		if(slot < 0) return false;
 
 		var switchCloths = myPlayer.clothingObjects[slot].id == 0;
-		var isRag = obj.name.contains('RAG '); 
+		var isRag = objectData.name.contains('RAG '); 
 
 		// in case of shoes either one can be needed
 		if(slot == 2) switchCloths = switchCloths || myPlayer.clothingObjects[3].id == 0;

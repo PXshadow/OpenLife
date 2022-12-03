@@ -352,8 +352,9 @@ class AiHelper {
 
 				var objData = world.getObjectDataAtPosition(tx, ty);
 
-				if (objData.clothing.charAt(0) != "n") // compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs
-				{
+				// compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs
+				// Pile of Mouflon Hides 3918
+				if (objData.clothing.charAt(0) != "n" || objData.parentId == 3918){
 					var obj = world.getObjectHelper(tx, ty);
 					clothings.push(obj);
 				}
