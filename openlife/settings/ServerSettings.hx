@@ -2523,6 +2523,12 @@ class ServerSettings {
 			trans.aiShouldIgnore = true; 
 		}
 
+		// Bowl of Soil 1137
+		/*var transByTarget = TransitionImporter.GetTransitionByNewActor(1137);
+		for(trans in transByTarget){
+			trace('Bowl of Soil: ' + trans.getDesciption());
+		}*/
+
 		// Broken Steel Tool 858 --> no transitions found
 		/*var transByTarget = TransitionImporter.GetTransitionByNewTarget(858);
 		for(trans in transByTarget){

@@ -1240,7 +1240,7 @@ abstract class AiBase
 		//if(craftItem(1113)) return true; // Ear of Corn
 		if(hasOrBecomeProfession('BasicFarmer', maxProfession) == false) return false;
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} 1 doBasicFarming:${profession['BasicFarmer']}');			
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} 1 doBasicFarming:${profession['BasicFarmer']} ${heldObject.name}');			
 
 		if(shortCraft(0, 400, 29)) return true; // pull out the carrots 
 		if(shortCraft(900, 625, distance)) return true; // Shovel of Dung 900 + Wet Compost Pile 625
@@ -1254,7 +1254,7 @@ abstract class AiBase
 		if(shortCraft(502, 1146, distance)) return true; // Shovel + Mature Potato Plants 1146
 		if(shortCraft(0, 4144, distance)) return true; // Shovel + Dug Potatoes 4144
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} 2 doBasicFarming:${profession['BasicFarmer']}');			
+		if (ServerSettings.DebugAi) trace('AAI: 2 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']}');			
 
 		// water
 		//if(doWatering(1)) return true;
@@ -1262,7 +1262,7 @@ abstract class AiBase
 		// 1: Prepare Soil
 		// TODO max use transition on soil pile does not work yet
 		// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
-		if(shortCraft(1137, 848, 30, false)) return true;
+		//if(shortCraft(1137, 848, 30, false)) return true;
 		//trace('Fertile Soil Pile!');
 
 		// Basket of Soil
@@ -1284,7 +1284,7 @@ abstract class AiBase
 			this.profession['BasicFarmer'] = 2;
 		}
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} 3 doBasicFarming:${profession['BasicFarmer']} soil: $count');			
+		if (ServerSettings.DebugAi) trace('AAI: 3 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} soil: $count');			
 
 		// Deep Tilled Row 213
 		var deepRows = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 213, 30); 		
@@ -1314,7 +1314,7 @@ abstract class AiBase
 			this.profession['BasicFarmer'] = 3;
 		}
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} 4 doBasicFarming:${profession['BasicFarmer']}');			
+		if (ServerSettings.DebugAi) trace('AAI: 4 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']}');			
 
 		// Deep Tilled Row 213
 		if(this.profession['BasicFarmer'] < 4){
@@ -1341,7 +1341,7 @@ abstract class AiBase
 			this.profession['BasicFarmer'] = 4;
 		}*/
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} 5 doBasicFarming:${profession['BasicFarmer']} deepRows: $deepRows');			
+		if (ServerSettings.DebugAi) trace('AAI: 5 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} deepRows: $deepRows');			
 
 		// Plant Berry Bushes if needed
 		if(this.profession['BasicFarmer'] < 4.5){
@@ -1371,7 +1371,7 @@ abstract class AiBase
 			this.profession['BasicFarmer'] = 4.5;
 		}
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} 6 doBasicFarming:${profession['BasicFarmer']}');			
+		if (ServerSettings.DebugAi) trace('AAI: 6 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']}');			
 
 		if(this.profession['BasicFarmer'] < 5){
 			// Wet Planted Carrots 399
