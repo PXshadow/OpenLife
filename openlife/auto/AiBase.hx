@@ -2175,11 +2175,11 @@ abstract class AiBase
 		}
 
 		// Steel File 458
-		if(this.profession['Smith'] < 11){
+		/*if(this.profession['Smith'] < 11){
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 458, 30); 
 			if(count < 1 && craftItem(458)) return true;
 			this.profession['Smith'] = 11;
-		}
+		}*/
 
 		// Steel Blade Blank 459
 		if(this.profession['Smith'] < 12){
