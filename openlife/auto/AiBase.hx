@@ -916,17 +916,20 @@ abstract class AiBase
 	}
 
 	public function isMakingSeeds() {
+		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['seeds']);
+		if(passedTime < 15) return false;
+		lastCheckedTimes['seeds'] = TimeHelper.tick;
+
 		// TODO check once every X seconds
-		// TODO check at home too
 		var seeds = AiHelper.GetClosestObjectById(myPlayer, 1115, null, 30);  // Dried Ear of Corn
-		if(seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 1247, null, 30);  // Bowl with Corn Kernels		
-		if(seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 4106, null, 30);  // Dumped Corn Kernels 4106
-		if(seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 4107, null, 30);  // Corn Kernel Pile 4107
+		if(seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 1247, 30);  // Bowl with Corn Kernels		
+		if(seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 4106, 30);  // Dumped Corn Kernels 4106
+		if(seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 4107, 30);  // Corn Kernel Pile 4107
 		
 		this.hasCornSeeds = seeds != null;
 
-		var seeds = AiHelper.GetClosestObjectById(myPlayer, 401, null, 20); // Seeding Carrots
-		if(seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 2745, null, 20); // Bowl of Carrot Seeds
+		var seeds = AiHelper.GetClosestObjectById(myPlayer, 401, null, 30); // Seeding Carrots
+		if(seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 2745, 30); // Bowl of Carrot Seeds
 
 		this.hasCarrotSeeds = seeds != null;
 		
