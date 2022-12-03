@@ -2473,6 +2473,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(0, 465); // 0 + Bound Deck of Cards 465
 		trans.aiShouldIgnore = true; 
 
+		// Mallet 467 + Fence Gate 1851 ==> Fence with Dislodged Shaft 1852
+		var trans = transtions.getTransition(467, 1851);
+		trans.aiShouldIgnore = true; 
+
 		// Scrap Bowl 3076 --> dont allow to scraft crafted metal
 		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
 		for(trans in transByTarget){
