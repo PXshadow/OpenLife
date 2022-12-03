@@ -392,7 +392,8 @@ abstract class AiBase
 
 		Macro.exception(if (handleDeath()) return);
 		Macro.exception(if (isEating()) return);
-
+		Macro.exception(if (switchCloths()) return);
+		
 		if (playerToFollow != null && autoStopFollow == false){
 			var time = TimeHelper.CalculateTimeSinceTicksInSec(timeStartedToFolow);
 			if(time > 60 * 5) autoStopFollow = true; // max follow player for 5 min
@@ -4700,16 +4701,22 @@ private function craftLowPriorityClothing() : Bool {
 		return true;
 	}
 
-	private function isPickingupCloths() {
+	private function switchCloths() {
 		if(myPlayer.age < ServerSettings.MinAgeToEat) return false;
 
 		var switchCloths = shouldSwitchCloth(myPlayer.heldObject);
 		
-		if(switchCloths){
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} switch cloth ${myPlayer.heldObject.name}');
-			myPlayer.self();
-			return true;
-		}
+		if(switchCloths == false) return false;
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} switch cloth ${myPlayer.heldObject.name}');
+
+		myPlayer.self();
+
+		return true;
+	}
+
+	private function isPickingupCloths() {
+		if(myPlayer.age < ServerSettings.MinAgeToEat) return false;
 
 		var clothings = myPlayer.GetCloseClothings();
 		for(obj in clothings)
