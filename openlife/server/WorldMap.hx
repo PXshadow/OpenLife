@@ -1353,7 +1353,7 @@ class WorldMap {
 
 		var obj = world.getObjectHelper(x, y);
 
-		if(obj.canBePlacedIn(objectToPlace)){
+		/*if(obj.canBePlacedIn(objectToPlace)){
 		
 			objectToPlace.containedObjects.push(obj);
 
@@ -1365,6 +1365,7 @@ class WorldMap {
 
 			return null;
 		}
+		*/
 
 		if (allowReplaceObject && obj.isPermanent() == false) {
 			world.setObjectHelper(x, y, objectToPlace);
