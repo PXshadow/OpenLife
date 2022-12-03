@@ -2452,12 +2452,6 @@ class ServerSettings {
 		var trans = transtions.getTransition(0, 1247); // 0 + Bowl with Corn Kernels
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(264, 235); // Raw Pie Crust 264 + Clay Bowl 235
-		trans.aiShouldIgnore = true;
-
-		var trans = transtions.getTransition(264, 252); // Raw Pie Crust 264 + Bowl of Dough
-		trans.aiShouldIgnore = true;
-
 		var trans = transtions.getTransition(502, 32); // Shovel 502 + Big Hard Rock 32
 		trans.alternativeTransitionOutcome.push(33); // Stone
 		trans.aiShouldIgnore = true;
@@ -2521,6 +2515,14 @@ class ServerSettings {
 
 			//trace('Stakes 107: ' + trans.getDesciption());
 			trans.aiShouldIgnore = true; 
+		}
+		// Clay Plate 236 --> dont puy Raw Pie Crust 264 back in bowl to get plate
+		var transByTarget = TransitionImporter.GetTransitionByNewActor(236);
+		for(trans in transByTarget){
+			// Raw Pie Crust 264
+			if(trans.actorID != 264) continue;
+			trans.aiShouldIgnore = true;
+			//trace('Raw Pie Crust: ignore: ${trans.aiShouldIgnore} ' + trans.getDesciption(false));
 		}
 
 		// Bowl of Soil 1137
