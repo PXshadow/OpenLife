@@ -1859,7 +1859,7 @@ abstract class AiBase
 				// Raw Mutton 569
 				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 20);
 
-				myPlayer.say('$countRawPies raw stuff to bake!');
+				if(shouldDebugSay()) myPlayer.say('$countRawPies raw stuff to bake!');
 			}
 		}
 
@@ -2103,7 +2103,7 @@ abstract class AiBase
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Steel Ingot count: ${countSteel}');
 			// Steel Ingot 326
 			if(craftItem(326)) return true;				
-			trace('doSmithing2: Steel Ingot count: ${countSteel}');
+			if (ServerSettings.DebugAi) trace('doSmithing2: Steel Ingot count: ${countSteel}');
 			this.profession['Smith'] = 3; // craft Crucible	
 		}	
 
@@ -2329,6 +2329,9 @@ abstract class AiBase
 
 		// Fill up the Bowl // 253 Bowl of Gooseberries
 		if(heldObj.parentId != 253) return false;
+
+		// 253 Bowl of Gooseberries
+		if(heldObj.numberOfUses >= heldObj.objectData.numUses) return false;
 
 		if(shouldDebugSay()) myPlayer.say('Fill Bowl on Bush');
 		if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Bush!');
