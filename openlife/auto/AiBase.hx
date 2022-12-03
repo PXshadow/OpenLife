@@ -1357,7 +1357,9 @@ abstract class AiBase
 
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} countBushes: $countBushes ');			
 			
-			if(countBushes < 9){
+			var maxBushes = profession['BasicFarmer'] < 7 ? 3 : 9;
+
+			if(countBushes < maxBushes){
 				//if(heldObject.parentId == 1137){
 					// Bowl of Soil 1137 + Dying Gooseberry Bush 389
 				if(shortCraft(1137, 389, 30)) return true; 
