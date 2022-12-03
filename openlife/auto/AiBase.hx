@@ -1395,8 +1395,10 @@ abstract class AiBase
 
 		if(this.profession['BasicFarmer'] < 6){
 			// let 5 wheat stay for seeds and so that it looks nice
-			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 242, 30); // Ripe Wheat
-			if(count > 5) if(craftItem(224)) return true; // Harvested Wheat 
+			var countRipeWheat = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 242, 30); // Ripe Wheat
+			var countThreshedWheat = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 226, 30); // Threshed Wheat 226
+
+			if(countRipeWheat > 0 && countThreshedWheat < 5) if(craftItem(224)) return true; // Harvested Wheat 
 
 			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 224, 30); // Harvested Wheat
 			if(closeObj != null) if(craftItem(225)) return true; // Wheat Sheaf
@@ -1406,6 +1408,8 @@ abstract class AiBase
 
 			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 229, 30); // Wet Planted Wheat 229
 			count += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 228, 30); // Dry Planted Wheat 228
+			count += countRipeWheat;
+			count += countThreshedWheat;
 
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} count Planted Wheat: $count ');	
 
