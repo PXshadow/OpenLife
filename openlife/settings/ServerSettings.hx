@@ -2506,6 +2506,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(-1, 730);
 		trans.aiShouldIgnore = true; 
 
+		// Bowl of Dry Beans 1176
+		var trans = transtions.getTransition(0, 1176);
+		trans.aiShouldIgnore = true; 
+
 		// Scrap Bowl 3076 --> dont allow to scraft crafted metal
 		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
 		for(trans in transByTarget){
