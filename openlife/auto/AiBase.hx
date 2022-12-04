@@ -477,8 +477,10 @@ abstract class AiBase
 
 		itemToCraft.maxSearchRadius = 30;
 		Macro.exception(if(doBasicFarming(1)) return);
-		Macro.exception(if(fillBerryBowlIfNeeded()) return);		
+		Macro.exception(if(fillBerryBowlIfNeeded()) return);
+		Macro.exception(if(fillBeanBowlIfNeeded()) return); // green beans
 		Macro.exception(if(makePopcornIfNeeded()) return);
+		Macro.exception(if(fillBeanBowlIfNeeded(false)) return); // dry beans		
 		Macro.exception(if(doBaking(1)) return);
 
 		var jobByAge:Int = Math.round(myPlayer.age / 4); // job prio switches every 4 years
@@ -2358,6 +2360,49 @@ abstract class AiBase
 		if(closeBush == null) return false;
 
 		return useHeldObjOnTarget(closeBush);
+	}
+
+	// Bowl of Green Beans 1175
+	private function fillBeanBowlIfNeeded(greenBeans:Bool = true) : Bool {
+		var heldObj = myPlayer.heldObject;
+		// Bowl of Green Beans 1175 // Bowl of Dry Beans 1176
+		var beanBowlId = greenBeans ? 1175 : 1176;
+		// Green Bean Plants 1173 // Dry Bean Plants 1172
+		var beanPlantId = greenBeans ? 1173 : 1172;
+
+		if(heldObj.parentId == beanBowlId && heldObj.numberOfUses >= heldObj.objectData.numUses) return false;
+
+		// Green Bean Plants 1173
+		var closeBeans = AiHelper.GetClosestObjectById(myPlayer, beanPlantId);
+		if(closeBeans == null) return false;
+
+		// Fill up the Bowl // Bowl of Green Beans 1175 // 235 Clay Bowl
+		if(heldObj.parentId == beanBowlId || heldObj.parentId == 235){
+			if(shouldDebugSay()) myPlayer.say('Fill Bowl on Beans');
+			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Beans!');
+
+			return useHeldObjOnTarget(closeBeans);
+		}
+
+		// do nothing if there is a full Bowl of Green Beans 1175 
+		var closeBowl = AiHelper.GetClosestObjectById(myPlayer, beanBowlId);
+		if(closeBowl != null && closeBowl.numberOfUses >= closeBowl.objectData.numUses) return false;
+
+		var target = closeBowl != null ? closeBowl : myPlayer.home;
+		var bestPlayer = getBestAiForObjByProfession('BowlFiller', target);
+		if(bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) return false;
+
+		if(closeBowl != null){
+			this.dropTarget = closeBowl; // pick it up to fill
+			this.dropIsAUse = false;
+
+			if(shouldDebugSay()) myPlayer.say('Pickup Bean Bowl to Fill');
+			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Pickup Bean Bowl to Fill! green beans? ${greenBeans}');
+
+			return true; 
+		}
+
+		return GetItem(235); // Clay Bowl
 	}
 
 	private function fillBerryBowlIfNeeded() : Bool {
