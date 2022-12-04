@@ -731,9 +731,8 @@ class TimeHelper {
 		else if (player.isSuperCold())
 			damage = player.heat < 0.05 ? 2 * originalFoodDecay : originalFoodDecay;
 
-		damage *= 0.5 * ServerSettings.DamageTemperatureFactor;
-		player.hits += damage;
-		player.exhaustion += damage;
+		player.hits += damage * ServerSettings.TemperatureHitsDamageFactor;
+		player.exhaustion += damage * ServerSettings.TemperatureExhaustionDamageFactor;
 
 		// do Biome exhaustion
 		// var tmpexhaustion = player.exhaustion;
@@ -1024,11 +1023,13 @@ class TimeHelper {
 		else if (player.isSuperCold())
 			temperatureDamageFactor = player.heat < 0.05 ? 2 : 1;
 
-		temperatureDamageFactor = 1 + temperatureDamageFactor * ServerSettings.DamageTemperatureFactor;
+		var temperatureDamageFactor2 = temperatureDamageFactor * ServerSettings.TemperatureHitsDamageFactor;
+		temperatureDamageFactor2 += temperatureDamageFactor * ServerSettings.TemperatureExhaustionDamageFactor;
+		temperatureDamageFactor2 += 1;
 
 		var foodUsePerSecond = ServerSettings.FoodUsePerSecond * temperatureFoodFactor;
-		var foodDrainTime = 1 / (foodUsePerSecond * temperatureDamageFactor);
-		//trace('foodDrainTime: ${foodDrainTime} temperatureDamageFactor: $temperatureDamageFactor');
+		var foodDrainTime = 1 / (foodUsePerSecond * temperatureDamageFactor2);
+		//trace('foodDrainTime: ${foodDrainTime} temperatureDamageFactor: $temperatureDamageFactor2');
 
 		player.foodUsePerSecond = foodUsePerSecond;
 		temperature = Math.round(temperature * 100) / 100;
