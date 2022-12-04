@@ -2501,11 +2501,6 @@ class ServerSettings {
 		var trans = transtions.getTransition(467, 1851);
 		trans.aiShouldIgnore = true; 
 
-		// ignore time transitions that make 732 Ashes with Bowl since Ai uses that to get empty bowl
-		// Time + Simmering Water 730 ==> Ashes with Bowl 732
-		var trans = transtions.getTransition(-1, 730);
-		trans.aiShouldIgnore = true; 
-
 		// Bowl of Dry Beans 1176
 		var trans = transtions.getTransition(0, 1176);
 		trans.aiShouldIgnore = true;
@@ -2526,6 +2521,15 @@ class ServerSettings {
 			// Clump of Scrap Steel 930
 			if(trans.actorID == 930) continue;
 			//trace('Scrap Bowl: ' + trans.getDesciption());
+			trans.aiShouldIgnore = true; 
+		}
+
+		// ignore time transitions that make 732 Ashes with Bowl since Ai uses that to get empty bowl
+		// Time + Simmering Water 730 ==> Ashes with Bowl 732
+		var transByTarget = TransitionImporter.GetTransitionByNewTarget(732);
+		for(trans in transByTarget){
+			if(trans.actorID > -1) continue;
+			trace('Ashes with Bowl: ' + trans.getDesciption());
 			trans.aiShouldIgnore = true; 
 		}
 
