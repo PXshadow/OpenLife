@@ -24,6 +24,7 @@ using openlife.auto.AiHelper;
 
 abstract class AiBase
 {
+	private static var closeUseQuadDistance = 400;
 	public static var lastTick:Float = 0;
 	public static var tick:Float = 0;
 	public static var jumpToAi:AiBase = null;
@@ -351,11 +352,11 @@ abstract class AiBase
 		if(useTarget != null){
 			var distance = myPlayer.CalculateQuadDistanceToObject(useTarget);
 
-			if(distance < 100){
-				if(shouldDebugSay())
-					myPlayer.say('Close Use: d: $distance ${useTarget.name}'); 
-				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: d: $distance ${useTarget.name} ${useTarget.tx} ${useTarget.ty} isMoving: ${myPlayer.isMoving()}');
+			//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: d: $distance ${useTarget.name} isMoving: ${myPlayer.isMoving()}');
+
+			if(distance < closeUseQuadDistance){
+				if(shouldDebugSay()) myPlayer.say('Close Use: true! d: $distance ${useTarget.name}'); 
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: d: $distance ${useTarget.name} ${useTarget.tx} ${useTarget.ty} isMoving: ${myPlayer.isMoving()}');
 
 				Macro.exception(if (isUsingItem()) return);
 			}
@@ -3250,6 +3251,13 @@ private function craftLowPriorityClothing() : Bool {
 		// start a new pile?
 		if(newDropTarget == null && pileId > 0) newDropTarget = myPlayer.GetClosestObjectToTarget(target, myPlayer.heldObject.id, 4 + mindistance, mindistance);
 
+		// TODO check if drop is too far away / respect max drop distance. For example if hungry
+		// dont use a pile if below closeUseQuadDistancem otherwise the use will never be done
+		if(newDropTarget != null && this.foodTarget != null){
+			var quadDistance = myPlayer.CalculateQuadDistanceToObject(newDropTarget);
+			if(quadDistance > closeUseQuadDistance) newDropTarget = null;
+		}
+
 		// get empty tile
 		if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, searchDistance, mindistance);
 
@@ -4590,6 +4598,8 @@ private function craftLowPriorityClothing() : Bool {
 
 	// returns true if in process of dropping item
 	private function isDropingItem():Bool {
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held: ${myPlayer.heldObject.name}');
+
 		if (dropTarget == null) return false;
 		if (myPlayer.isStillExpectedItem(dropTarget) == false) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} dropTarget changed meanwhile! ${dropTarget.name}');
@@ -4599,6 +4609,8 @@ private function craftLowPriorityClothing() : Bool {
 
 
 		var dropTargetId = dropTarget.parentId;
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop target: ${dropTarget.name} held: ${myPlayer.heldObject.name}');
 
 		// Stack of Clay Plates 1602 // Stack of Clay Bowls 1603
 		if (dropTargetId == 1602 || dropTargetId == 1603){

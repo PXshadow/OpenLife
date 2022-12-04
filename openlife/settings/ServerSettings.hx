@@ -153,7 +153,6 @@ class ServerSettings {
 	public static var MaxAgeForAllowingDie:Float = 2;
 	public static var PrestigeCostForDie:Float = 0;
 
-
 	// food stuff / healing / exhaustion recover
 	public static var FoodUsePerSecond = 0.10; // 0.2; // 5 sec per pip // normal game has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good
 	public static var HealingPerSecond = 0.10;
