@@ -1030,10 +1030,11 @@ class ServerSettings {
 		ObjectData.getObjectData(4252).foodValue = 3; // WILD GARLIC 4252 // origional 4
 		//ObjectData.getObjectData(837).foodValue = 1; // PSILOCYBE MUSHROOM 837 // origional 1
 
-		// boost hunted food
-		ObjectData.getObjectData(197).foodValue = 15; // Cooked Rabbit 10 --> 15
+		// boost hunted / cooked food  
+		ObjectData.getObjectData(197).foodValue = 29; // Cooked Rabbit 10 --> 20
 		ObjectData.getObjectData(2190).foodValue = 20; // Turkey Slice on Plate 17 --> 20
 		ObjectData.getObjectData(1285).foodValue = 15; // Omelette 12 --> 15
+		ObjectData.getObjectData(1292).foodValue = 20; // Bowl of Cooked Beans 12 --> 20
 
 		// ObjectData.getObjectData(197).useChance = 0.3; // Cooked Rabbit
 		// ObjectData.getObjectData(2190).useChance = 0.3; // Turkey Slice on Plate

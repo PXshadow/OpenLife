@@ -73,6 +73,7 @@ New in game Currency:
 Quality of Life Changes:
 - you can pick berriers directly with a bowl
 - you can pick up dry beans with a bowl
+- soaked dry beans can be cooked with a hot oven
 - kids can carry one item and pick berries
 - you can do smithing on a table
 - escape time for rubber horse cart 7--> 20 sec / and moves 4 --> 2
@@ -282,9 +283,10 @@ Wounds
 - with smal wounds you can still do stuff, but you will still get damage and less speed
 
 Objects:
-- cooked Rabbit Food Value: 10 --> 15
+- cooked Rabbit Food Value: 10 --> 20
 - turkey Slice on Plate Food Value: 17 --> 20
 - omelette Food Value: 12 --> 15
+- Bowl of Cooked Beans 12 --> 20
 - cooked Goose: useChance = 0.3;
 - compost has less uses to make soil more rare, since water is more plenty: Soil (Wheat, Berry, Dung) + water ==> 4 Soil  
 
