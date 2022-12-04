@@ -1829,6 +1829,10 @@ class ServerSettings {
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
+		// Bowl of Soaking Beans 1180 + Hot Adobe Oven 250 ==> Bowl of Cooked Beans 1292
+		trans = new TransitionData(1180, 250, 1292, 250); 
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// Fishing Pole without Hook + Bone Needle --> Fishing Pole + 0
 		trans = new TransitionData(2092, 191, 2091, 0); 
 		transtions.addTransition("PatchTransitions: ", trans);
