@@ -2469,12 +2469,10 @@ abstract class AiBase
 
 		if(shortCraftOnGround(186)) return true; // Cooked Rabbit --> unskew the Cooked Rabbits
 
-		// Hot Coals 85 // TODO consider time to change
-		var hotCoals = AiHelper.GetClosestObjectToHome(myPlayer, 85, 30);
-		
 		// Cooked Mutton 570
 		var countDoneMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 20);
-		if(countDoneMutton < 5 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570
+		// Cooked Rabbit 197
+		var countDoneRabbit = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 197, 20);
 
 		// Skinned Rabbit 181
 		var countRawRabbit = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 181, 25);
@@ -2482,20 +2480,28 @@ abstract class AiBase
 		countRawRabbit += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 185, 25);
 		// Skewered Rabbit 185
 		if(myPlayer.heldObject.parentId == 185) countRawRabbit += 1;
+		
+		// Hot Coals 85 // TODO consider time to change
+		var hotCoals = AiHelper.GetClosestObjectToHome(myPlayer, 85, 30);
+		
+		if(hotCoals != null){
+						
+			if(countDoneMutton < 5 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570			
 
-		// Cooked Rabbit 197
-		var countDoneRabbit = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 197, 20);
+			if(countRawRabbit > 0){			
+				if(countDoneRabbit < 5 && shortCraftOnTarget(185, hotCoals)) return true; // Skewered Rabbit 185 --> Cooked Rabbit 186
+			}
 
-		if(countRawRabbit > 0){			
-			if(countDoneRabbit < 5 && shortCraftOnTarget(185, hotCoals)) return true; // Skewered Rabbit 185 --> Cooked Rabbit 186
+			// Bowl of Raw Pork 1354 --? Bowl of Carnitas
+			if(shortCraftOnTarget(1354, hotCoals)) return true;
+
+			// Bowl of Soaking Beans 1180
+			if(shortCraftOnTarget(1180, hotCoals)) return true;
+
+			// Kindling 72
+			if(hotCoals == firePlace && shortCraftOnTarget(72,hotCoals)) return true; 
 		}
-
-		// Bowl of Raw Pork 1354 --? Bowl of Carnitas
-		if(shortCraftOnTarget(1354, hotCoals)) return true;
-
-		// Kindling 72
-		if(hotCoals == firePlace && shortCraftOnTarget(72,hotCoals)) return true; 
-
+	
 		// Fire 82
 		if(firePlace == null) return craftItem(82);
 
