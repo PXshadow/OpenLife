@@ -2471,6 +2471,11 @@ class ServerSettings {
 		var trans = transtions.getTransition(467, 1851);
 		trans.aiShouldIgnore = true; 
 
+		// ignore time transitions that make 732 Ashes with Bowl since Ai uses that to get empty bowl
+		// Time + Simmering Water 730 ==> Ashes with Bowl 732
+		var trans = transtions.getTransition(-1, 730);
+		trans.aiShouldIgnore = true; 
+
 		// Scrap Bowl 3076 --> dont allow to scraft crafted metal
 		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
 		for(trans in transByTarget){

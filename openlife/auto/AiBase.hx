@@ -920,7 +920,7 @@ abstract class AiBase
 		if(passedTime < 15) return false;
 		lastCheckedTimes['seeds'] = TimeHelper.tick;
 
-		// TODO check once every X seconds
+		// TODO optimize count / search do only once for all
 		var seeds = AiHelper.GetClosestObjectById(myPlayer, 1115, null, 30);  // Dried Ear of Corn
 		if(seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 1247, 30);  // Bowl with Corn Kernels		
 		if(seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 4106, 30);  // Dumped Corn Kernels 4106
@@ -4198,8 +4198,6 @@ private function craftLowPriorityClothing() : Bool {
 				//trace('Ignore transition since it undos last: ${trans.getDesciption()}');
 				continue;
 			}
-			// ignore time transitions that make 732 Ashes with Bowl since Ai uses that to get empty bowl
-			if (trans.actorID == -1 && trans.newTargetID == 732) continue;
 			if (trans.targetID == -1){
 				//trace('Ignore transition since target is -1 (player?): ${trans.getDesciption()}');
 				continue;
