@@ -72,6 +72,7 @@ New in game Currency:
 
 Quality of Life Changes:
 - you can pick berriers directly with a bowl
+- you can pick up dry beans with a bowl
 - kids can carry one item and pick berries
 - you can do smithing on a table
 - escape time for rubber horse cart 7--> 20 sec / and moves 4 --> 2

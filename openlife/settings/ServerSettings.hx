@@ -1764,8 +1764,10 @@ class ServerSettings {
 		trans.hungryWorkCost = 1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		//  Wild Gooseberry Bush
-		trans = new TransitionData(253, 30, 253, 30); // Bowl of Gooseberries + Wild Gooseberry Bush --> Bowl of Gooseberries(+1) + Wild Gooseberry Bush
+		// Wild Gooseberry Bush
+
+		// Bowl of Gooseberries + Wild Gooseberry Bush --> Bowl of Gooseberries(+1) + Wild Gooseberry Bush
+		trans = new TransitionData(253, 30, 253, 30);
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
@@ -1779,17 +1781,20 @@ class ServerSettings {
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
-		trans = new TransitionData(235, 30, 253, 279); // Clay Bowl + Wild Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Wild Gooseberry Bush
+		// Clay Bowl + Wild Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Wild Gooseberry Bush
+		trans = new TransitionData(235, 30, 253, 279); 
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Domestic Gooseberry Bush
-		trans = new TransitionData(253, 391, 253,
-			391); // Bowl of Gooseberries + Domestic Gooseberry Bush --> Bowl of Gooseberries(+1) + Domestic Gooseberry Bush
+
+		// Bowl of Gooseberries + Domestic Gooseberry Bush --> Bowl of Gooseberries(+1) + Domestic Gooseberry Bush
+		trans = new TransitionData(253, 391, 253, 391); 
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		trans = new TransitionData(235, 391, 253, 391); // Clay Bowl + Domestic Gooseberry Bush --> Bowl of Gooseberries + Domestic Gooseberry Bush
+		// Clay Bowl + Domestic Gooseberry Bush --> Bowl of Gooseberries + Domestic Gooseberry Bush
+		trans = new TransitionData(235, 391, 253, 391);
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
@@ -1798,8 +1803,29 @@ class ServerSettings {
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
-		// Clay Bowl + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Domestic Gooseberry  Bush
+		// Clay Bowl 235 + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Domestic Gooseberry  Bush
 		trans = new TransitionData(235, 391, 253, 1135); 
+		trans.reverseUseActor = true;
+		transtions.addTransition("PatchTransitions: ", trans, false, true);
+
+		// Fill up Bowl of Dry Beans
+		// Bowl of Dry Beans 1176 + Dry Bean Plants 1172
+		trans = new TransitionData(1176, 1172, 1176, 1172); 
+		trans.reverseUseActor = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		// Bowl of Dry Beans 1176 + Dry Bean Plants 1172 --> Bowl of Dry Beans 1176 + Hardened Row 848
+		trans = new TransitionData(1176, 1172, 1176, 848); 
+		trans.reverseUseActor = true;
+		transtions.addTransition("PatchTransitions: ", trans, false, true);
+
+		// Clay Bowl 235 + Dry Bean Plants 1172
+		trans = new TransitionData(235, 1172, 1176, 1172); 
+		trans.reverseUseActor = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		// Clay Bowl 235 + Dry Bean Plants 1172 --> Bowl of Dry Beans 1176 + Hardened Row 848
+		trans = new TransitionData(235, 1172, 1176, 848); 
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
