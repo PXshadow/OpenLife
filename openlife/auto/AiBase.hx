@@ -1900,6 +1900,8 @@ abstract class AiBase
 			if(shortCraftOnTarget(569, hotOven, false)) return true;
 			// Raw Potato 1147
 			if(shortCraftOnTarget(1147, hotOven, false)) return true;
+			// Bowl of Soaking Beans 1180
+			if(shortCraftOnTarget(1180, hotOven)) return true;
 		}
 		
 		if(hotOven == null && fireOven == null){
@@ -4923,6 +4925,13 @@ private function craftLowPriorityClothing() : Bool {
 			// TODO better check if(transition.tool == false && transition.reverseUseActor == false)
 			// check if target is bush to allow still use to fill up 391 Domestic Gooseberry Bush
 			if(useTarget.parentId != 30 && useTarget.parentId != 391) return fillBerryBowlIfNeeded();
+		}
+
+		// Bowl of Dry Beans 1176
+		if(myPlayer.heldObject.parentId == 1176 && heldObject.numberOfUses < heldObject.objectData.numUses){
+			// check if target is bean plant to allow still use to fill up
+			// Dry Bean Plants 1172
+			if(useTarget.parentId != 1172) return fillBeanBowlIfNeeded(false); // fill dry beans
 		}
 
 		/*if(transition.tool == false && transition.reverseUseActor == false){
