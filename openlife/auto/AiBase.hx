@@ -1874,6 +1874,8 @@ abstract class AiBase
 				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1469, 20);
 				// Raw Mutton 569
 				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 20);
+				// Bowl of Soaking Beans 1180
+				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1180, 20);
 
 				if(shouldDebugSay()) myPlayer.say('$countRawPies raw stuff to bake!');
 			}
@@ -1962,6 +1964,9 @@ abstract class AiBase
 			lastPie = index;
 			if(craftItem(rawPies[index])) return true;
 		}
+
+		// Bowl of Soaking Beans 1180
+		if(craftItem(1180)) return true;
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
@@ -4700,6 +4705,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		if(fillUpBerryBowl()) return true; // needed for baking
 		if(doBaking(2)) return true;
+		if(fillBeanBowlIfNeeded(false)) return true; // dry beans	
 		if(makeFireFood(1)) return true;
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} makefood! failed! d-home: ${quadDistanceToHome}');
