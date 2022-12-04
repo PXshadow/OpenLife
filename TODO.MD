@@ -302,14 +302,14 @@ Aging:
 - higher food use for age below adulthood if not starving to death / they need to grow!
 
 SPEED:
-- different speed for different biomes
-- limited speed for lower age < 10 and age > 55
-- starving to death reduces speed if not in car or on horse
-- objects in container / sub container lower speed
+- Speed is changed dpending on your max foood pipes (AGE / DAMAGE / YUM) if not on horse???
+- AGE: since low and and older age can limited max food pipes it can also reduce speed
+- objects in container / sub container lower speed little bit 
+- some objects like iron are heavy now and reduce speed if carried
 - horses and cars and carts are slower in bad biomes
 - road reduces speed mali of bad biome and heavy objects
 - having both shoes give now X1.1 Speed
-- bad temperature reduces speed extreme temperature reduces double
+- bad temperature reduces speed extreme temperature reduces double???
 
 Food - YUM:
 - YUM chain is used as prestige and health
@@ -355,7 +355,8 @@ Animals:
 - animals have more hit points so a shot / hit may or may not kill them
 
 Yellow fever:
-- moskito do very little damage but can give yellow fever. The more you love Jungle biome the less damage you get
+- moskito do only echaustion damage but can give yellow fever. 
+- The more you love Jungle biome the less moskito damage you get
 - the more moskito bites and yellow fever you got the more you are resistant
 - the more healthy you are the more resistant you are against moskito bites and yellow fever
 - held kids get 5X less damage from yellow fever
@@ -364,8 +365,8 @@ Yellow fever:
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
-- advanced AI / AI villages
-- animals grouping and hunting in winter
+- animals grouping and hunting in winter / snakes in summer
+- better property system locks / for dors / chests / fortification
 - better fences / allow to climb over fences, but get wounded / make destroyable if not protected by close gate)
 - special stuff like hercules / snake master / super fast ager 
 - job boni
@@ -378,70 +379,69 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI bring clay to home
-- AI basic nursing on fire
 - AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread 
-(for thread in bowl there is a workaound. Picking up rabbit fure from a pile to increase same pile needs fix)
+(for thread in bowl there is a workaound.
 - AI build oven on the right location
-- AI try to die at home near existing grave
-- AI burry people (use gravestone for leader)
+- AI use gravestone for leader? Or allow only humans to do?
 - AI help building roads
-- AI better pathing on home dependend
-- AI debug pathing / use bigger pathing map
-- AI make commando only to closest ai
+- AI better pathing towards home
 - AI make commando only to followers or mother / father
-- AI make: drop made stuff after ordered in fronts of player
-- AI drop stuff at home while crafting if home close < 50 tiles 
 - AI pickup stuff after droped for eating
-- AI better animal escape
-- AI FIX child: if hungry and close to feeding player dont move 
-- AI FIX bug with wanting to shoot bear in order to get a rope from bow (funny bug)
 
 - AI consider if some one else is already feeding
-- AI dropping stuff at home instead of crafting start if close enough to home
-- AI player fight
-- AI using containers needed also for player YUM display
-- AI go for search if something is needed
-- AI fill baskets with bananas
+- AI fight
+- AI using containers (needed also for player YUM display)
 - AI using of baskets and backpack
 - AI if waiting for time transition check if the next step can be prepared
 
 - FIX segmentation fault crash with Ai crafting (missing mutexes?)
-- FIX fishing transitions
-- FIX connection crashes sometimes on connect (did not see happen longtime)
-- FIX? bug with getting stuck sometimes 
-==> as workaround a new PU for the player is send once in a a while (does not seem to work :/ )
+- FIX segmentation fault crash with dodamage (missing mutexes?)
 - FIX? /leader Client crash (if leader or anybody? is out of range??) 
-==> as workaround all player data is send always
-- FIX? bug with reconnect if holding a player // TODO check if it is a problem
+==> as workaround all player data is send always ==> does still not work
 - FIX: PICKUP / DROP CHILD fix display bug. maybe set origion or action right?
 
 - SAVE season / save animal loved biome spot 
 - SAVE secret for player
 - SAVE save more stats for player, like best play, different eve runs, number of played, last loged in, amount of time played
 
-Middle priority:
-- MAP use bigger map (Europe?) / create tool to auto create map
-- GATES Ally Gates and swing doors
-- BIRTH consider deadly animals
-
 - FIX clearing up old lineage data / make storing lineage data more efficient
+
+- BIOME let stuff dropped in water drift back to land
+- WINTER snow banks / melting if snow
+
+Middle priority:
+- WRITING / READING
+
+- GATES Swing doors
+- GATES locks / locked chests
+- GATES Ally Gates
+
+- FORTIFICATION wall + stone + hungry work
+
+- TIME time transitions for objects in container that are in containers
+- TIME decay stuff in containers??? --> baskets decays now
+- TIME decay for wells
+- TIME decay colored walls
+- TIME allow foloors to decay if walled by anicent walls? or generall alow floor decay?
+- ??? TIME decay all clothing
+
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
 - FIX light wounds are not light wounds anymore after reconnect / server restart?
 
 - DISPLAY give hints for crafting
 
-- SAVE for contained objects. Currently only ids from contained obj are saved
-
 - BIOME give biome experience for staying in biome or eating biome food
-- BIOME biome hide biome specific stuff for not specialists
-- BIOME change biome speed for specialists (only if in attack mode or carrying heavy stuff???)
-- BIOME no dropping of stuff on water??? or better let it drift back to land?
-- BIOME add exhaustion for doing stuff in bad biome
+- ??? BIOME biome hide biome specific stuff for not specialists
+- ??? BIOME change biome speed for specialists (only if in attack mode or carrying heavy stuf)
+- ??? BIOME add exhaustion for doing stuff in bad biome
 - ??? BIOME make moskitos for all bad in swamp
 
 - ALLY test: change ally color if leader changes 
 - ALLY give some time after beeing exiled
+
+- BIRTH consider deadly animals
+
+- MAP use bigger map (Europe?) / create tool to auto create map
 
 - EXHAUSTION carrying heavy stuff
 - EXHAUSTION for working in bad biome
@@ -450,20 +450,15 @@ Middle priority:
 
 - COMBAT block movement if other player is hostile 
 
-- TIME time transitions for objects in container
-- TIME decay stuff in containers --> baskets decays now
-- TIME decay clothing
-- TIME use item for decay like Broken Skewer  ID: 847 --> uses now trash pin for permanents obj
-- TIME decay floors / bridges even faster --> Floors decay now depending on sourounding other walls / floors / stuff in water decays faster
-
 - CRAFTING crafting on table
 
 - RAILS implement rails
 
 - ANIMAL animal movement on top of items --> Fix bug so that item apear again if animal interacted with 
-- ANIMAl eating sheep / meat transitions 
+- ANIMAl eating sheep / wolf meat transitions 
 - ANIMAl chasing players
 - ANIMAl more Winter attacks (wolfes go for graves)
+- ANIMAl snakes in sommer
 - ANIMAL leaders
 - ANIMAL advanced player like animals
 
@@ -471,42 +466,30 @@ Middle priority:
 
 - TEMPERATURE indoor temperature calculation 
 
-- WINTER snow banks / melting if snow
-
-- AI Pottery
-- AI Advanced crafting
-- AI Farming
-- AI IRON AGE
 - AI guards 
 
 - MEASSAGE add bad biome say to self meassage (not needed? / what to do with bad biomes)
 
-- WRITING / READING
-
-- GATES visitor at gate
-
-- YUM use yum category // for example for berry / berry bowl (maybe not needed?)
-
 - CONNECTION twinning
 
-- STATS implement basic server stats
+- STATS implement basic server stats (done for food, objects linages)
 
 - POINTER bell tower ringing
 - POINTER maps / maps on waystone
 - POINTER home marker --> Seems to work
 
-- LANGUAGE implement different languages
-
 - ADVANED oil stuff, pipes, sprinkler, plow, roadmaker
 - TOOLS use list of learned tool and set held_learned only true if tool is learned 
-- RADIO
+
+- GATES visitor at gate
 
 Low priority stuff:
-- MAP calculate distance right when on end of map 
+- ??? YUM use yum category // for example for berry / berry bowl
+- PLANES
+- RADIO
+- LANGUAGE implement different languages
+- tatoo
 - photo
-
-Should be DONE:
-- RAND look at / fix random generator for float --> seems to work
 
 PX TODO
 ====
