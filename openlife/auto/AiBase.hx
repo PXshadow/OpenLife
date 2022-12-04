@@ -2760,7 +2760,7 @@ private function craftLowPriorityClothing() : Bool {
 		else{
 			var closePlayer = player.getClosestPlayer(ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi);
 			//myPlayer.say('NOT CLOSE!');
-			if (myPlayer.id != closePlayer.id) return;
+			if (closePlayer != null && myPlayer.id != closePlayer.id) return;
 		}
 
 		// if(ServerSettings.DebugAi) trace('AI ${text}');
@@ -4598,7 +4598,7 @@ private function craftLowPriorityClothing() : Bool {
 
 	// returns true if in process of dropping item
 	private function isDropingItem():Bool {
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held: ${myPlayer.heldObject.name}');
+		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held: ${myPlayer.heldObject.name}');
 
 		if (dropTarget == null) return false;
 		if (myPlayer.isStillExpectedItem(dropTarget) == false) {
@@ -4607,10 +4607,9 @@ private function craftLowPriorityClothing() : Bool {
 			return false;
 		}
 
-
 		var dropTargetId = dropTarget.parentId;
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop target: ${dropTarget.name} held: ${myPlayer.heldObject.name}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop target: ${dropTarget.name} held: ${myPlayer.heldObject.name} isMoving: ${myPlayer.isMoving()}');
 
 		// Stack of Clay Plates 1602 // Stack of Clay Bowls 1603
 		if (dropTargetId == 1602 || dropTargetId == 1603){
@@ -4623,6 +4622,8 @@ private function craftLowPriorityClothing() : Bool {
 
 			return false; 
 		}
+		
+		// todo in case of a switch, consider drop held object???
 
 		if (myPlayer.isMoving()) return true;
 

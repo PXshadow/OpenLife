@@ -568,6 +568,18 @@ class Connection {
 			trace(ex);
 	}
 
+	public static function SendLocationSaysToAllClosePlayers(tx:Int, ty:Int, text:String) {
+		for (c in connections) {
+			var p = c.player;
+			var rx = WorldMap.world.transformX(p, tx);
+			var ry = WorldMap.world.transformY(p, ty);
+
+			if (c.player.isClose(rx, ry, ServerSettings.MaxDistanceToBeConsideredAsCoseForMovement) == false) continue;
+
+			p.connection.send(ClientTag.LOCATION_SAYS, ['${rx} ${ry} ${text}']);
+		}
+	}
+
 	public static function SendMoveUpdateToAllClosePlayers(player:GlobalPlayerInstance, isPlayerAction:Bool = true) {
 		try {
 			for (c in connections) {

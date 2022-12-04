@@ -1,5 +1,6 @@
 package openlife.server;
 
+import haxe.display.Display.Package;
 import openlife.data.Pos;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
@@ -53,6 +54,9 @@ class MoveHelper {
 	private var newMoves:Array<Pos>;
 	private var totalMoveTime:Float = 0;
 	private var startingMoveTicks:Float = 0;
+	private var moveSpeed = 0.0;
+	private var totalMoved = 0.0; // for debugging
+	private var totalMoveLength = 0.0; // for debugging
 
 	public function new(player:GlobalPlayerInstance) {
 		this.player = player;
@@ -280,7 +284,7 @@ class MoveHelper {
 			var move = moveHelper.newMoves[0];
 			var timePassed = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.timeExactPositionChangedLast);
 			var length = calculateLength(firstPos, move);
-			var moved = timePassed * p.move_speed;
+			var moved = timePassed * moveHelper.moveSpeed;
 
 			moveHelper.exactTx = p.tx + (move.x * moved) / length;
 			moveHelper.exactTy = p.ty + (move.y * moved) / length;
@@ -291,6 +295,9 @@ class MoveHelper {
 				p.x += move.x;
 				p.y += move.y;
 
+				if(ServerSettings.DebugSayPlayerPosition) Connection.SendLocationSaysToAllClosePlayers(p.tx, p.ty, p.name);
+
+				moveHelper.totalMoved += length;
 				moveHelper.exactTx = p.tx;
 				moveHelper.exactTy = p.ty;
 				moveHelper.timeExactPositionChangedLast = TimeHelper.tick;
@@ -322,11 +329,14 @@ class MoveHelper {
 
 		var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.startingMoveTicks);
 
-		timeSinceStartMovementInSec *= ServerSettings.LetTheClientCheatLittleBitFactor;
+		//timeSinceStartMovementInSec *= ServerSettings.LetTheClientCheatLittleBitFactor;
+
+		var timeLeft = moveHelper.totalMoveTime - timeSinceStartMovementInSec;
 
 		// if(TimeHelper.tick % 5 == 0) if(ServerSettings.DebugMoveHelper) trace('Moves: timeSinceStartMovementInSec: ${timeSinceStartMovementInSec} totalMoveTime: ${moveHelper.totalMoveTime}');
 
-		if (timeSinceStartMovementInSec >= moveHelper.totalMoveTime) {
+		//if (timeSinceStartMovementInSec >= moveHelper.totalMoveTime) {
+		if (moveHelper.newMoves.length < 1) {
 			var last = moveHelper.newMoves.pop();
 			moveHelper.totalMoveTime = 0;
 			moveHelper.startingMoveTicks = 0;
@@ -351,11 +361,17 @@ class MoveHelper {
 
 			SetHeldPlayerPositionToSame(p);
 
+			if(p.isAi()) p.forced = true; // TODO no foce needed if movement is fixed
 			Connection.SendUpdateToAllClosePlayers(p);
+			if(p.isAi()) p.forced = false;
 
 			if (p.connection.serverAi != null) p.connection.serverAi.ai.finishedMovement();
 
-			if(ServerSettings.DebugSayPlayerPosition && p.isHuman()) p.say('${p.tx} ${p.ty}');
+			//if(ServerSettings.DebugSayPlayerPosition && p.isHuman()) p.say('${p.tx} ${p.ty}');
+
+			var totalMoved = p.moveHelper.totalMoveLength - p.moveHelper.totalMoved;
+
+			if(ServerSettings.DebugMoveHelper) trace('Move Done: ${p.name}${p.p_id} ${p.tx} ${p.ty} timeLeft: ${Math.round(timeLeft*10)/10} tiles left: ${Math.round(totalMoved*10)/10} Done SeqNum: ${p.done_moving_seqNum}');
 
 			// if(ServerSettings.DebugMoveHelper) trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
 		}
@@ -567,12 +583,14 @@ class MoveHelper {
 			CancleMovement(p, seq);
 			return;
 		}
-
+		
 		p.move_speed = newMovements.finalSpeed;
-
+		moveHelper.totalMoved = 0;
+		moveHelper.totalMoveLength = newMovements.length;
+		moveHelper.moveSpeed = p.move_speed;
 		moveHelper.newMovements = newMovements;
 		//moveHelper.newMoves = newMovements.moves;
-		moveHelper.totalMoveTime = (1 / p.move_speed) * newMovements.length;
+		moveHelper.totalMoveTime = newMovements.length / p.move_speed;
 		moveHelper.startingMoveTicks = TimeHelper.tick;
 		moveHelper.newMoveSeqNumber = seq;
 
@@ -649,6 +667,8 @@ class MoveHelper {
 		var moveString = '${player.p_id} ${targetX} ${targetY} ${totalMoveTime} $eta ${newMovements.trunc} ${moveString(newMoves)}';
 		// if(ServerSettings.DebugMoveHelper) trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
 
+		trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
+
 		return moveString;
 	}
 
@@ -678,6 +698,7 @@ class MoveHelper {
 		var newMovements:NewMovements = new NewMovements();
 		var map = Server.server.map;
 		var lastPos:Pos = new Pos(0, 0);
+		var count = 0;
 
 		newMovements.fullPathHasRoad = true;
 		newMovements.startSpeed = map.getBiomeSpeed(tx, ty);
@@ -686,11 +707,13 @@ class MoveHelper {
 			var tmpX = tx + move.x;
 			var tmpY = ty + move.y;
 
+			count += 1;
+
 			// var obj = WorldMap.world.getObjectHelper(tmpX, tmpY);
 			// var isBlockingObj = obj.blocksWalking();
 			// var isBlockingBiome = WorldMap.isBiomeBlocking(tmpX, tmpY);
 
-			if (p.isBlocked(tmpX, tmpY)) {
+			if (p.isBlocked(tmpX, tmpY) || count > 10) {
 				// if(isBlockingBiome) if(ServerSettings.DebugMoveHelper) trace('biome ${map.getBiomeId(tmpX,tmpY)} is blocking movement! movement length: ${newMovements.length}');
 				// if(isBlockingObj) if(ServerSettings.DebugMoveHelper) trace('object ${obj.description} is blocking movement! movement length: ${newMovements.length}');
 

@@ -859,7 +859,7 @@ class ServerSettings {
 		//ObjectData.getObjectData(502).hungryWork = -1; // Shovel 
 		ObjectData.getObjectData(857).hungryWork = -2; // Steel Hoe
 
-		ObjectData.getObjectData(1849).hungryWork = 10; // Buried Grave with Dug Stone
+		ObjectData.getObjectData(1849).hungryWork = 5; // Buried Grave with Dug Stone
 
 		ObjectData.getObjectData(123).hungryWork = 2; // Harvested Tule
 		ObjectData.getObjectData(231).hungryWork = 10; // Adobe Oven Base
@@ -1872,12 +1872,12 @@ class ServerSettings {
 		// most important allow kill moskitos
 		// Firebrand + Mosquito Swarm --> 0 + Ashes
 		trans = new TransitionData(248, 2156, 0,86); 
-		trans.hungryWorkCost = 5;
+		trans.hungryWorkCost = 3;
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 	
 		// Firebrand + Mosquito Swarm just bit --> 0 + Ashes
 		trans = new TransitionData(248, 2157, 0,86); 
-		trans.hungryWorkCost = 5;
+		trans.hungryWorkCost = 3;
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// Bowl of Soil + Hardened Row -- Shallow Tilled Row
@@ -2508,7 +2508,15 @@ class ServerSettings {
 
 		// Bowl of Dry Beans 1176
 		var trans = transtions.getTransition(0, 1176);
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
+
+		// Bowl of Dry Beans 1176
+		var trans = transtions.getTransition(0, 1176, false, true);
+		trans.aiShouldIgnore = true;
+		
+		// Dry Bean Plants 1172
+		var trans = transtions.getTransition(0, 1172);
+		trans.aiShouldIgnore = true;
 
 		// Scrap Bowl 3076 --> dont allow to scraft crafted metal
 		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
