@@ -762,7 +762,7 @@ class TimeHelper {
 		}
 
 		// if starving to death and there is some health left, reduce food need and health
-		if (player.food_store < 0 && player.yum_multiplier > 0) {
+		if (player.food_store < 0 && player.yum_multiplier > 1) {
 			player.yum_multiplier -= foodDecay;
 			foodDecay /= 2;
 		}

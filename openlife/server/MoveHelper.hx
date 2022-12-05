@@ -665,9 +665,9 @@ class MoveHelper {
 		var eta = totalMoveTime - TimeHelper.CalculateTimeSinceTicksInSec(startingMoveTicks);
 
 		var moveString = '${player.p_id} ${targetX} ${targetY} ${totalMoveTime} $eta ${newMovements.trunc} ${moveString(newMoves)}';
-		// if(ServerSettings.DebugMoveHelper) trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
+		if(ServerSettings.DebugMoveHelper) trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
 
-		trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
+		//trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
 
 		return moveString;
 	}

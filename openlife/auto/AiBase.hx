@@ -496,6 +496,7 @@ abstract class AiBase
 		}
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 		
+		Macro.exception(if(isSheepHerding()) return); // higher radius
 		Macro.exception(if(isCuttingWood()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: isCuttingWood ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if(doSmithing()) return);
