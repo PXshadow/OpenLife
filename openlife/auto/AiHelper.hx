@@ -444,6 +444,7 @@ class AiHelper {
 		var isStarving = player.food_store < 3;
 		var starvingFactor:Float = isStarving ? 4 : 16;
 		var gooseFound = false;
+		var countCarrots = -1;
 
 		if (player.food_store < 0.5) starvingFactor = 2;
 		if (player.food_store < -1) starvingFactor = 1.5;
@@ -465,6 +466,12 @@ class AiHelper {
 				if (objData.parentId == 518 && gooseFound == false){
 					gooseFound = true;
 					continue;
+				}
+
+				// Carrot 402 // Carrot Pile 2742 ==> Leep some carrots for pies
+				if (objData.parentId == 402 || objData.parentId == 2742){
+					if(countCarrots < 0) countCarrots = CountCloseObjects(player, player.tx, player.ty, 402,30);
+					if(countCarrots < 4) continue;
 				}
 
 				// var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
