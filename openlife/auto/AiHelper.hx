@@ -100,9 +100,9 @@ class AiHelper {
 	static var needsNotFlooredPlace = [356, 336, 1137, 227, 225];
 	// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
 	// Straw 227 // Wheat Sheaf 225 // Stone Hoe 850 // Rabbit Bones 190 // Snare 160 // Yew Branch 132
-	// Rabbit Fur 183
+	// Rabbit Fur 183 // Yew Branch 132 // 
 	// Flat Rock 291 (only if needed for forge)
-	static var dontDropCloseHomeIds = [356, 336, 1137, 227, 225, 850, 190, 160, 132, 183, 291];
+	static var dontDropCloseHomeIds = [356, 336, 1137, 227, 225, 850, 190, 160, 132, 183, 132, 291];
 
 	// objIdToSearch = -10 if searching non permanent
 	// minDistance = -1 allows to be dropped close to oven even if it normaly should not (flat rock for forge)

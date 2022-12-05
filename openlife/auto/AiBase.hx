@@ -3034,6 +3034,9 @@ private function craftLowPriorityClothing() : Bool {
 	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900
 	var dropNearOvenItemIds = [235, 1603, 236, 1602, 560, 252, 1470, 1471, 253, 502, 900];
 
+	// Stone 33 // Sharp Stone 34 // Banana Peel 2144 
+	var dropAtCurrentPosition = [33,34,2144];
+
 	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
 		var heldObjId = myPlayer.heldObject.parentId;
 		var heldObject = myPlayer.heldObject;
