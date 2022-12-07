@@ -2608,11 +2608,14 @@ abstract class AiBase
 		// Fire 82
 		if(firePlace == null) return craftItem(82);
 
-		// 1284 Cool Flat Rock --> Ashes
+		// 0 + Cool Flat Rock 1284 --> Ashes
 		if(shortCraft(0, 1284, 20)) return true;
 
+		// Cold Goose Egg 1262
+		var countEggs = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1262, 20);
 		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 20);
-		if(countPlates > 0 && craftItem(1285)) return true; // Omelette
+
+		if(countRawRabbit < 0 && countPlates > 0 && countEggs > 0 && craftItem(1285)) return true; // Omelette
 
 		var countRawFireFood = countRawRabbit;
 
