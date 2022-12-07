@@ -432,6 +432,14 @@ abstract class AiBase
 		itemToCraft.maxSearchRadius = 30;
 		if(this.profession['Smith'] >= 0) Macro.exception(if (doSmithing()) return);
 		if(this.profession['Potter'] >= 10) Macro.exception(if (doPottery()) return);
+
+		var heldObjId = myPlayer.heldObject.parentId;
+
+		// 1470 Baked Bread
+		if(heldObjId == 560 && shortCraft(560, 1470, 10, false)) return;
+		// 560 Knife // 1468 Leavened Dough on Clay Plate
+		if(heldObjId == 560 && shortCraft(560, 1468, 10, false)) return;
+
 		if(this.profession['Baker'] > 1) Macro.exception(if (doBaking()) return);
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 		
@@ -471,7 +479,10 @@ abstract class AiBase
 
 		itemToCraft.searchCurrentPosition = false;
 		//if(this.profession['Baker'] > 0) Macro.exception(if (doBaking()) return);
-		//if(this.profession['Potter'] > 0) Macro.exception(if (doPottery()) return);		
+		//if(this.profession['Potter'] > 0) Macro.exception(if (doPottery()) return);
+		// Bowl of Soil 1137
+		//if(craftItem(1137)) return;
+		
 		if(this.profession['Smith'] > 0) Macro.exception(if (doSmithing()) return);
 		//if(this.profession['WaterBringer'] > 0) Macro.exception(if (doWatering()) return);
 		//if(this.profession['BasicFarmer'] > 0) Macro.exception(if (doBasicFarming()) return);
@@ -480,21 +491,22 @@ abstract class AiBase
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		itemToCraft.maxSearchRadius = 30;
+		//Macro.exception(if(doBaking(1)) return);
 		Macro.exception(if(doCarrotFarming(1)) return);
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);
 		Macro.exception(if(fillBeanBowlIfNeeded()) return); // green beans
 		Macro.exception(if(makePopcornIfNeeded()) return);
 		Macro.exception(if(fillBeanBowlIfNeeded(false)) return); // dry beans		
-		Macro.exception(if(doBaking(1)) return);
-		Macro.exception(if(doBasicFarming(1)) return);
+		
+		//Macro.exception(if(doBasicFarming(1)) return);
 
 		var jobByAge:Int = Math.round(myPlayer.age / 4); // job prio switches every 4 years
 
 		for(i in 0...5){
 			jobByAge = (jobByAge + i) % 5;
 			if(jobByAge == 0) Macro.exception(if(doWatering()) return);				
-			else if(jobByAge == 1) Macro.exception(if(doBasicFarming(2)) return);
-			else if(jobByAge == 2) Macro.exception(if(doBaking(2)) return);
+			else if(jobByAge == 1) Macro.exception(if(doBasicFarming(1)) return);
+			else if(jobByAge == 2) Macro.exception(if(doBaking(1)) return);
 			else if(jobByAge == 3) Macro.exception(if(doPottery()) return);
 			else if(jobByAge == 4) Macro.exception(if(isSheepHerding()) return);
 		}
@@ -883,7 +895,8 @@ abstract class AiBase
 			if(p.food_store < 0) continue;
 			if(p.home.tx != myPlayer.home.tx && p.home.ty != myPlayer.home.ty) continue;
 
-			var hasProfession = ai.profession[profession] > 0;
+			//var hasProfession = ai.profession[profession] > 0;
+			var hasProfession = ai.lastProfession == profession;
 
 			if(hasProfession == false) continue;
 
@@ -1272,7 +1285,7 @@ abstract class AiBase
 		var counRawtCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 268, 30);
 
 		if(counRawtCarrotPies < 4 && craftItem(268)) return true; // Raw Carrot Pie
-
+		else this.lastProfession = 'Baker';
 		//this.profession['CarrotFarmer'] = 0;
 
 		return false;
@@ -1979,7 +1992,11 @@ abstract class AiBase
 			}
 		}
 
+		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 40); // Clay Plate
+		var hasClosePlate = countPlates > 0;
+
 		var neededRaw = isHungry ? 1 : 4;
+		if(hasClosePlate == false) neededRaw = 1; // fire oven to get plates 
 
 		if(hotOven == null && fireOven == null && (countRawPies >= neededRaw)){
 			if(craftItem(249)) return true; // Burning Adobe Oven
@@ -2016,15 +2033,12 @@ abstract class AiBase
 			}
 		}
 
-		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 40); // Clay Plate
-		var hasClosePlate = countPlates > 0;
-
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		if (ServerSettings.DebugAi && hasClosePlate == false) trace('AI dobaking no close plates');	
 		if(shouldDebugSay() && hasClosePlate == false) myPlayer.say('no close plates');
 
 		//if(hasClosePlate == false) return craftItem(236); // Clay Plate
-		if(hasClosePlate == false) return false;
+		if(hasClosePlate == false) return doPottery(2);
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		
@@ -2032,14 +2046,18 @@ abstract class AiBase
 		if(this.profession['Baker'] < 3){
 			var knife = myPlayer.heldObject.parentId == 560 ? myPlayer.heldObject : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 560, 20, null, myPlayer);
 			if(knife != null){
-				// 1466 Bowl of Leavened Dough // 236 Clay Plate
-				if(shortCraft(1466, 236, 20, false)) return true;
 				// 1470 Baked Bread
 				if(shortCraft(560, 1470, 20, false)) return true;
-
-				var countBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1471, 40); // Sliced Bread
 				// 560 Knife // 1468 Leavened Dough on Clay Plate
-				if(countBread < 3 && shortCraft(560, 1468, 20, false)) return true;			
+				if(shortCraft(560, 1468, 20, false)) return true;	
+				
+				 // Sliced Bread 1471
+				var countBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1471, 20);
+				// Leavened Dough on Clay Plate 1468
+				countBread += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
+				
+				// 1466 Bowl of Leavened Dough // 236 Clay Plate
+				if(countBread < 3 && shortCraft(1466, 236, 20, false)) return true;
 			}
 		}		
 
@@ -2681,7 +2699,8 @@ abstract class AiBase
 	}
 	
 	private function hasOrBecomeProfession(profession:String, max:Int = 1) : Bool {
-		var hasProfession = this.profession[profession] > 0;
+		//var hasProfession = this.profession[profession] > 0;
+		var hasProfession = lastProfession == profession;		
 	
 		if(hasProfession){
 			this.lastProfession = profession; 
@@ -3705,7 +3724,7 @@ private function craftLowPriorityClothing() : Bool {
 			return false;
 		}
 
-		if(hasOrBecomeProfession('FoodServer', 2) == false) return false;
+		if(hasOrBecomeProfession('FoodServer', 1) == false) return false;
 
 		if (myPlayer.heldObject.objectData.foodValue < 1
 			|| myPlayer.heldObject.id == 837) // dont feed 837 ==> Psilocybe Mushroom to others
@@ -4796,8 +4815,17 @@ private function craftLowPriorityClothing() : Bool {
 	}
 
 	private function isConsideringMakingFood():Bool {
+
+		//if (shouldDebugSay()) myPlayer.say('$lastProfession  ${countProfession(lastProfession)}');
+		myPlayer.say('$lastProfession  ${countProfession(lastProfession)}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} profession: $lastProfession count: ${countProfession(lastProfession)}');
+
 		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
 		if (isHungry == false && foodTarget == null) return false;
+
+		// TODO reset smith here?
+		this.profession['Smith'] = 0;
+		if(this.lastProfession != 'FoodServer') this.lastProfession = 'Eating';
 
 		var quadDistance = -1.0;
 
@@ -4813,9 +4841,6 @@ private function craftLowPriorityClothing() : Bool {
 
 		var quadDistanceToHome = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
 		if(quadDistanceToHome > 900) return false;
-
-		// TODO reset smith here?
-		this.profession['Smith'] = 0;
 
 		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['considerFood']);
 		if(passedTime > 15){
@@ -4843,7 +4868,7 @@ private function craftLowPriorityClothing() : Bool {
 		// Skewered Rabbit 185
 		if(myPlayer.heldObject.parentId == 185) countRawRabbit += 1;
 
-		if(countRawRabbit > 0 && makeFireFood(1)) return true;
+		if(countRawRabbit > 0 && makeFireFood(2)) return true;
 		
 		if(fillUpBerryBowl()) return true; // needed for baking
 		if(doBaking(2)) return true;
