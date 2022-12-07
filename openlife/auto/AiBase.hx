@@ -601,6 +601,11 @@ abstract class AiBase
 		held.ty = myPlayer.ty;
 
 		if(pileId < 1) return false;
+		if(held.parentId == this.useActor.parentId) return false;
+
+		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, objId, dist, false);
+		if(held.parentId == objId) count += 1;
+		if(count < 2) return false;
 
 		if(held.parentId == objId){
 			ignoreFullPiles = true;
@@ -613,9 +618,6 @@ abstract class AiBase
 
 			return useHeldObjOnTarget(pile);
 		}
-	
-		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, objId, dist, false);
-		if(count < 2) return false;
 			
 		return PickupItem(objId);
 	}
@@ -671,6 +673,8 @@ abstract class AiBase
 			// 0 + // Weak Skewer Pile 4060
 			if(shortCraft(0, 4060, 10)) return true; 
 		}
+
+		if(myPlayer.age % 3 != 0) return false;
 
 		if(pileUp(33, 20)) return true; // Stone 33
 		if(pileUp(227, 30)) return true; // Straw 227
