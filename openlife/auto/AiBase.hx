@@ -2183,19 +2183,6 @@ abstract class AiBase
 
 		// TODO use forge as count target, but first fix that stuff is dropped close to forge
 
-		// Huge Charcoal Pile 4102
-		// Big Charcoal Pile 300
-		if(this.profession['Smith'] < 1.5){
-			// Basket of Charcoal 298
-			if(shortCraftOnGround(298)) return true;
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4102, 20); 
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 300, 20);
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Charcoal Pile count: ${count}');
-			// Basket of Charcoal 298
-			if(count < 2 && craftItem(298)) return true;
-			this.profession['Smith'] = 1.5;	
-		}
-
 		// Steel Ingot 326
 		var countSteel = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 326, 20); 
 		// Unforged Sealed Steel Crucible 319
@@ -2231,6 +2218,19 @@ abstract class AiBase
 		}	
 
 		if (countSteel > 1 && this.profession['Smith'] < 4) this.profession['Smith'] = 4;
+
+		// Huge Charcoal Pile 4102
+		// Big Charcoal Pile 300 // Firing Forge 304 // Forge with Charcoal
+		if(this.profession['Smith'] < 1.5 && forge.parentId != 304 && forge.parentId != 304 && forge.parentId != 305){
+			// Basket of Charcoal 298
+			if(shortCraftOnGround(298)) return true;
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4102, 20); 
+			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 300, 20);
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Charcoal Pile count: ${count}');
+			// Basket of Charcoal 298
+			if(count < 1 && craftItem(298)) return true;
+			this.profession['Smith'] = 1.5;	
+		}
 
 		// Wrought Iron 314
 		if(this.profession['Smith'] < 3){
