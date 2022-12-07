@@ -3161,7 +3161,7 @@ private function craftLowPriorityClothing() : Bool {
 		var home = myPlayer.home;
 		var dropCloseToPlayer = true;
 		var heldObjId = myPlayer.heldObject.parentId;
-		var searchDistance = 40;
+		var maxSearchDistance = 40;
 		var mindistance = 0; // to oven
 		var quadIsCloseEnoughDistanceToTarget = 400; // old 25 // does not go to home if close enough // if too low and not enough space around target its stuck
 		var dropOnStart:Bool = mindistance < 1;
@@ -3329,29 +3329,36 @@ private function craftLowPriorityClothing() : Bool {
 
 		if(dontUsePile.contains(heldId)) pileId = 0; 
 
-		if(pileId > 0){
-			newDropTarget = myPlayer.GetClosestObjectToTarget(target, pileId, 4 + mindistance); 
-			if(newDropTarget != null && newDropTarget.numberOfUses >= newDropTarget.objectData.numUses) newDropTarget = null;
-			//if(newDropTarget != null)  trace('AAI: ${myPlayer.name + myPlayer.id} drop on pile: $pileId');
-		}
-		
-		// start a new pile?
-		if(newDropTarget == null && pileId > 0) newDropTarget = myPlayer.GetClosestObjectToTarget(target, myPlayer.heldObject.id, 4 + mindistance, mindistance);
+		for(i in 1...11){
+			var searchDistance = mindistance + 4 * i;
+			if(searchDistance > maxSearchDistance) break;
 
-		// TODO check if drop is too far away / respect max drop distance. For example if hungry
-		// dont use a pile if below closeUseQuadDistancem otherwise the use will never be done
-		if(newDropTarget != null && this.foodTarget != null){
-			var quadDistance = myPlayer.CalculateQuadDistanceToObject(newDropTarget);
-			if(quadDistance > closeUseQuadDistance) newDropTarget = null;
-		}
+			if(pileId > 0){
+				newDropTarget = myPlayer.GetClosestObjectToTarget(target, pileId, searchDistance); 
+				if(newDropTarget != null && newDropTarget.numberOfUses >= newDropTarget.objectData.numUses) newDropTarget = null;
+				//if(newDropTarget != null)  trace('AAI: ${myPlayer.name + myPlayer.id} drop on pile: $pileId');
+			}
+			
+			// start a new pile?
+			if(newDropTarget == null && pileId > 0) newDropTarget = myPlayer.GetClosestObjectToTarget(target, myPlayer.heldObject.id, searchDistance, mindistance);
 
-		// get empty tile
-		if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, searchDistance, mindistance);
+			// TODO check if drop is too far away / respect max drop distance. For example if hungry
+			// dont use a pile if below closeUseQuadDistancem otherwise the use will never be done
+			if(newDropTarget != null && this.foodTarget != null){
+				var quadDistance = myPlayer.CalculateQuadDistanceToObject(newDropTarget);
+				if(quadDistance > closeUseQuadDistance) newDropTarget = null;
+			}
 
-		// dont drop on a pile if last transition removed it from similar pile // like picking a bowl from a pile to put it then back on a pile
-		if(newDropTarget.id > 0 && itemToCraft.lastNewTargetId == newDropTarget.id){
-			trace('AAI: ${myPlayer.name + myPlayer.id} ${newDropTarget.name} dont drop on pile where item was just taken from');
-			newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, searchDistance, mindistance);			
+			// get empty tile
+			if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, searchDistance, mindistance);
+
+			// dont drop on a pile if last transition removed it from similar pile // like picking a bowl from a pile to put it then back on a pile
+			if(newDropTarget.id > 0 && itemToCraft.lastNewTargetId == newDropTarget.id){
+				trace('AAI: ${myPlayer.name + myPlayer.id} ${newDropTarget.name} dont drop on pile where item was just taken from');
+				newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, maxSearchDistance, mindistance);			
+			}
+
+			if(newDropTarget != null) break;
 		}
 
 		var heldId = myPlayer.heldObject.parentId;
