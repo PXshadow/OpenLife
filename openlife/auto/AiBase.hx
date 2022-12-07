@@ -735,6 +735,10 @@ abstract class AiBase
 		firePlace = AiHelper.GetCloseFire(myPlayer);
 		myPlayer.firePlace = firePlace;
 
+		// Hot Coals 85 ==> make fire food
+		var coals = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 85, 10);
+		if(coals != null) Macro.exception(if (makeFireFood(5)) return true);
+
 		if(firePlace == null){
 			var bestAiForFire = getBestAiForObjByProfession('firekeeper', myPlayer.home);
 			if(bestAiForFire != null && bestAiForFire.myPlayer.id == myPlayer.id){
@@ -1258,6 +1262,11 @@ abstract class AiBase
 		if(doPrepareRows()) return true;
 
 		if(doPlantCarrots()) return true;
+
+		 // Raw Carrot Pie 268
+		var counRawtCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 268, 30);
+
+		if(counRawtCarrotPies < 4 && craftItem(268)) return true; // Raw Carrot Pie
 
 		//this.profession['CarrotFarmer'] = 0;
 
