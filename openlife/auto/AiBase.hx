@@ -2689,6 +2689,7 @@ abstract class AiBase
 		}
 	
 		var count = countProfession(profession);
+		if(profession == 'Smith' && count > 0) return false; // max one smith 
 		//trace('hasOrBecomeProfession: $profession count: $count');
 		if (count >= max + wasIdle) return false;
 		this.profession[profession] = 1;
