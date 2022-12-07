@@ -1267,6 +1267,7 @@ abstract class AiBase
 
 		if(doPlantCarrots()) return true;
 
+		if(doWatering(2)) return true;
 		 // Raw Carrot Pie 268
 		var counRawtCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 268, 30);
 
