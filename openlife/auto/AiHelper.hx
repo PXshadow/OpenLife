@@ -109,6 +109,7 @@ class AiHelper {
 	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null, player:PlayerInterface = null, searchContained:Array<Int> = null, minDistance:Int = 0) : ObjectHelper {
 		var world = WorldMap.world;
 		var ai = player == null ? null : player.getAi();
+		var ignoreFullPiles = ai == null ? false : ai.ignoreFullPiles;
 		var closestObject = null;
 		var bestDistance = 0.0;
 		var closestBadPlace = null;
@@ -147,6 +148,12 @@ class AiHelper {
 
 				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
 				if (ai != null && ai.isObjectWithHostilePath(tx, ty)) continue;
+
+				// search not full pile, for example to drop an item on a pile
+				if(ignoreFullPiles && objData.numUses > 1){
+					var obj = world.getObjectHelper(tx,ty);
+					if(obj.numberOfUses >= objData.numUses) continue;
+				}
 
 				if(searchNotFlooredPlace){
 					var floorId = world.getFloorId(tx, ty);

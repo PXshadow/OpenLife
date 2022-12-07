@@ -97,6 +97,7 @@ abstract class AiBase
 	public var tryMoveNearestTileFirst = true;
 
 	public var debugSay = false;
+	public var ignoreFullPiles = false; // uses in search object
 
 	public static function StartAiThread() {
 		Thread.create(RunAi);
@@ -309,6 +310,7 @@ abstract class AiBase
 		time += ServerSettings.AiReactionTime; // 0.5; // minimum AI reacting time
 		itemToCraft.searchCurrentPosition = true;
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
+		ignoreFullPiles = false;
 
 		if(wasIdle > 0) wasIdle -= ServerSettings.AiReactionTime / 10;
 		// keep only last profession
@@ -601,7 +603,9 @@ abstract class AiBase
 		if(pileId < 1) return false;
 
 		if(held.parentId == objId){
+			ignoreFullPiles = true;
 			var pile = myPlayer.GetClosestObjectToTarget(held, pileId, 10);
+			ignoreFullPiles = false;
 			//if(pile != null) trace('CLEANUP Pile: ${pile.name} numberOfUses: ${pile.numberOfUses} numUses: ${pile.objectData.numUses}');
 			if(pile != null && pile.numberOfUses >= pile.objectData.numUses) pile = null;
 			if(pile == null) pile = myPlayer.GetClosestObjectToTarget(held, objId, dist);
@@ -3334,7 +3338,9 @@ private function craftLowPriorityClothing() : Bool {
 			if(searchDistance > maxSearchDistance) break;
 
 			if(pileId > 0){
+				ignoreFullPiles = true;
 				newDropTarget = myPlayer.GetClosestObjectToTarget(target, pileId, searchDistance); 
+				ignoreFullPiles = false;
 				if(newDropTarget != null && newDropTarget.numberOfUses >= newDropTarget.objectData.numUses) newDropTarget = null;
 				//if(newDropTarget != null)  trace('AAI: ${myPlayer.name + myPlayer.id} drop on pile: $pileId');
 			}
