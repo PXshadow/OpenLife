@@ -4107,6 +4107,21 @@ private function craftLowPriorityClothing() : Bool {
 			if(quadDistanceToActor < quadDistanceToPile * 1.5) pile = null;
 		}
 
+		// check if actor can be taken close to target (for example to not bring home round stones)
+		if(pile == null){
+			var obj = myPlayer.GetClosestObjectToTarget(itemToCraft.transTarget, itemToCraft.transActor.parentId, itemToCraft.transTarget, 6);
+			if(obj != null && obj.tx == itemToCraft.transActor.tx && obj.ty == itemToCraft.transActor.ty) obj = null;
+			
+			if (obj != null && ServerSettings.DebugAi){
+				var quadDistanceToActor = AiHelper.CalculateQuadDistanceToObject(myPlayer, itemToCraft.transActor);
+				var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, itemToCraft.transTarget);
+				var quadDistanceToObj = AiHelper.CalculateQuadDistanceToObject(myPlayer, obj);
+				trace('AAI: ${myPlayer.name + myPlayer.id} take actor close to target: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}] dis: $quadDistanceToActor --> $quadDistanceToObj target: $quadDistanceToTarget');
+			}
+
+			if (obj != null) itemToCraft.transActor = obj;
+		}
+
 		if(pile == null){
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft goto actor: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}]');
 			if (shouldDebugSay()) myPlayer.say('Goto actor ' + itemToCraft.transActor.name);
