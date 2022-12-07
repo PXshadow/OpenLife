@@ -4302,6 +4302,9 @@ private function craftLowPriorityClothing() : Bool {
 				if (obj.parentId == 400 && hasCarrotSeeds == false && obj.numberOfUses < 3) continue;
 				// Ignore not full Bowl of Gooseberries 253 otherwise it might get stuck in making a pie
 				if (obj.parentId == 253 && obj.numberOfUses < objData.numUses) continue;
+				// Ignore not full Bowl of Dry Beans 1176 otherwise it might get stuck in making cooked beans
+				if (obj.parentId == 1176 && obj.numberOfUses < objData.numUses) continue;
+
 				// Dont eat if no corn seeds // 1114 Shucked Ear of Corn
 				//if (obj.parentId == 1114 && this.hasCornSeeds == false) continue;
 
