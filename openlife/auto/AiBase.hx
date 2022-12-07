@@ -672,6 +672,7 @@ abstract class AiBase
 			if(shortCraft(0, 4060, 10)) return true; 
 		}
 
+		if(pileUp(33, 30)) return true; // Stone 33
 		if(pileUp(227, 30)) return true; // Straw 227
 		if(pileUp(1115, 30)) return true; // Dried Ear of Corn 1115
 		
