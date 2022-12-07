@@ -358,8 +358,8 @@ abstract class AiBase
 			//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: d: $distance ${useTarget.name} isMoving: ${myPlayer.isMoving()}');
 
 			if(distance < closeUseQuadDistance){
-				if(shouldDebugSay()) myPlayer.say('Close Use: true! d: $distance ${useTarget.name}'); 
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: d: $distance ${useTarget.name} ${useTarget.tx} ${useTarget.ty} isMoving: ${myPlayer.isMoving()}');
+				//if(shouldDebugSay()) myPlayer.say('Close Use: true! d: $distance ${useTarget.name}'); 
+				//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: d: $distance ${useTarget.name} ${useTarget.tx} ${useTarget.ty} isMoving: ${myPlayer.isMoving()}');
 
 				Macro.exception(if (isUsingItem()) return);
 			}
@@ -481,19 +481,19 @@ abstract class AiBase
 
 		itemToCraft.maxSearchRadius = 30;
 		Macro.exception(if(doCarrotFarming(1)) return);
-		Macro.exception(if(doBasicFarming(1)) return);
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);
 		Macro.exception(if(fillBeanBowlIfNeeded()) return); // green beans
 		Macro.exception(if(makePopcornIfNeeded()) return);
 		Macro.exception(if(fillBeanBowlIfNeeded(false)) return); // dry beans		
 		Macro.exception(if(doBaking(1)) return);
+		Macro.exception(if(doBasicFarming(1)) return);
 
 		var jobByAge:Int = Math.round(myPlayer.age / 4); // job prio switches every 4 years
 
 		for(i in 0...5){
 			jobByAge = (jobByAge + i) % 5;
 			if(jobByAge == 0) Macro.exception(if(doWatering()) return);				
-			else if(jobByAge == 1) Macro.exception(if(doBasicFarming(3)) return);
+			else if(jobByAge == 1) Macro.exception(if(doBasicFarming(2)) return);
 			else if(jobByAge == 2) Macro.exception(if(doBaking(2)) return);
 			else if(jobByAge == 3) Macro.exception(if(doPottery()) return);
 			else if(jobByAge == 4) Macro.exception(if(isSheepHerding()) return);
@@ -672,7 +672,7 @@ abstract class AiBase
 			if(shortCraft(0, 4060, 10)) return true; 
 		}
 
-		if(pileUp(33, 30)) return true; // Stone 33
+		if(pileUp(33, 20)) return true; // Stone 33
 		if(pileUp(227, 30)) return true; // Straw 227
 		if(pileUp(1115, 30)) return true; // Dried Ear of Corn 1115
 		
@@ -2006,6 +2006,8 @@ abstract class AiBase
 		var hasClosePlate = countPlates > 0;
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+		if (ServerSettings.DebugAi && hasClosePlate == false) trace('AI dobaking no close plates');	
+		if(shouldDebugSay() && hasClosePlate == false) myPlayer.say('no close plates');
 
 		//if(hasClosePlate == false) return craftItem(236); // Clay Plate
 		if(hasClosePlate == false) return false;
@@ -3360,7 +3362,7 @@ private function craftLowPriorityClothing() : Bool {
 			if(newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, searchDistance, mindistance);
 
 			// dont drop on a pile if last transition removed it from similar pile // like picking a bowl from a pile to put it then back on a pile
-			if(newDropTarget.id > 0 && itemToCraft.lastNewTargetId == newDropTarget.id){
+			if(newDropTarget != null && newDropTarget.id > 0 && itemToCraft.lastNewTargetId == newDropTarget.id){
 				trace('AAI: ${myPlayer.name + myPlayer.id} ${newDropTarget.name} dont drop on pile where item was just taken from');
 				newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, maxSearchDistance, mindistance);			
 			}
@@ -4725,7 +4727,7 @@ private function craftLowPriorityClothing() : Bool {
 
 		var dropTargetId = dropTarget.parentId;
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop target: ${dropTarget.name} held: ${myPlayer.heldObject.name} isMoving: ${myPlayer.isMoving()}');
+		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop target: ${dropTarget.name} held: ${myPlayer.heldObject.name} isMoving: ${myPlayer.isMoving()}');
 
 		// Stack of Clay Plates 1602 // Stack of Clay Bowls 1603
 		if (dropTargetId == 1602 || dropTargetId == 1603){
