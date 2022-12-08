@@ -1936,10 +1936,15 @@ class ServerSettings {
 		ObjectData.getObjectData(340).alternativeTransitionOutcome.push(344); // Chopped Tree --> Fire Wood
 		ObjectData.getObjectData(3146).alternativeTransitionOutcome.push(344); // Chopped Softwood Tree --> Fire Wood
 
+		// push tripple so that it has tripple the chance
+		ObjectData.getObjectData(342).alternativeTransitionOutcome.push(344); // Chopped Tree Big Log--> Fire Wood
+		ObjectData.getObjectData(340).alternativeTransitionOutcome.push(344); // Chopped Tree --> Fire Wood
+		ObjectData.getObjectData(3146).alternativeTransitionOutcome.push(344); // Chopped Softwood Tree --> Fire Wood
+
 		// push Kindling
-		ObjectData.getObjectData(342).alternativeTransitionOutcome.push(72); // Chopped Tree Big Log--> Kindling
-		ObjectData.getObjectData(340).alternativeTransitionOutcome.push(72); // Chopped Tree --> Kindling
-		ObjectData.getObjectData(3146).alternativeTransitionOutcome.push(72); // Chopped Softwood Tree --> Kindling
+		//ObjectData.getObjectData(342).alternativeTransitionOutcome.push(72); // Chopped Tree Big Log--> Kindling
+		//ObjectData.getObjectData(340).alternativeTransitionOutcome.push(72); // Chopped Tree --> Kindling
+		//ObjectData.getObjectData(3146).alternativeTransitionOutcome.push(72); // Chopped Softwood Tree --> Kindling
 
 		// now push Butt Log
 		ObjectData.getObjectData(342).alternativeTransitionOutcome.push(345); // Chopped Tree Big Log--> Butt Log
