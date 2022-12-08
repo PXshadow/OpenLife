@@ -1289,14 +1289,16 @@ abstract class AiBase
 		if(doPlantCarrots()) return true;
 
 		if(doWatering(2)) return true;
+
+		// Bowl of Soil 1137 + Dying Gooseberry Bush 389
+		if(shortCraft(1137, 389, 30)) return true; 
+
 		 // Raw Carrot Pie 268
 		var counRawtCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 268, 30);
 
 		if(counRawtCarrotPies < 4 && craftItem(268)) return true; // Raw Carrot Pie
-		else this.lastProfession = 'Baker';
+		else return doBaking(2);
 		//this.profession['CarrotFarmer'] = 0;
-
-		return false;
 	}
 
 	private function doPrepareSoil(maxProfession = 1) {
