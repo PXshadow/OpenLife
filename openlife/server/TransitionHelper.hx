@@ -676,9 +676,9 @@ class TransitionHelper {
 			newTargetObjectData = ObjectData.getObjectData(transition.newTargetID);
 		}
 
-		// only allow to place another floor on existing floor if floor was target
-		if (newTargetObjectData.floor && this.floorId != 0 && targetIsFloor == false){
-			trace('TRANS: ${player.name + player.id} Cannot place another floor on existing floor!');
+		// only allow to place another floor on existing floor if floor was target or if it is Pine Floor 3290
+		if (newTargetObjectData.floor && this.floorId != 0 && this.floorId != 3290 && targetIsFloor == false){
+			trace('TRANS: ${player.name + player.id} Cannot place another floor on existing floor except Pine Floor!');
 			return false;
 		}
 
