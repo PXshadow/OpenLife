@@ -246,7 +246,52 @@ class TransitionImporter {
 			createAndaddCategoryTransitions(trans);
 		}
 
+		changeToolTransitions();
+
 		trace('Transitions loaded: ${transitions.length}');
+	}
+
+	// Tool transtions like Portable Water Source dont have the right new actor
+	// For example Empty Portable Water Source Trans: 235 + 662 = 235 + 664 
+	// Mainly use thread / garn  / water + use / empty water --> fill up 
+	private function changeToolTransitions(){
+
+		for(trans in transitions){
+			// should ingnore: // Example: EMPTY + Cold Bowl 1021
+			if(trans.actorID != trans.newActorID) continue;
+
+			// should ingnore: // Example: Popcorn + PLAYER
+			if(trans.targetID < 1) continue;
+
+			// should ingnore: dont break // Steel Hoe# +toolHoe + Fertile Soil Pile 
+			var objData = ObjectData.getObjectData(trans.actorID);
+			if(objData.numUses > 1) continue;
+
+			// TODO why is this special?
+			// should ingnore: Rubber Ball 2170 + Paper with Charcoal Writing 
+			if(trans.actorID == 2170) continue; 
+
+			// should ingnore: Blue Sports Car $30# driving +varNumeral + Rattle Snake  -->  EMPTY + Snake Roadkill
+			if(trans.newActorID == 0) continue; 
+
+			// for example for a tool like axe lastUseActor: true
+			var toolTransition = TransitionImporter.GetTransition(trans.newActorID, -1, true, false);
+
+			// for example for a water bowl lastUseActor: false
+			if (toolTransition == null) {
+				toolTransition = TransitionImporter.GetTransition(trans.newActorID, -1, false, false);
+			}
+
+			if (toolTransition != null && trans.newActorID != toolTransition.newActorID) {
+				//if (ServerSettings.DebugTransitionHelper) trace('IMPORT: Change Actor from: ${trans.newActorID,} to ${toolTransition.newActorID}');
+				var oldId = trans.newActorID;
+				trans.newActorID = toolTransition.newActorID;
+
+				//trace('IMPORT: Change Actor from: ${oldId} to ${toolTransition.newActorID} ' + trans.getDesciption());
+				removeKeyFromMap(transitionsByNewActorMap, oldId);
+				addTransitionToMap(transitionsByNewActorMap, trans, trans.newActorID);
+			}
+		}
 	}
 
 	private function getTransitionMap(lastUseActor:Bool, lastUseTarget:Bool, maxUseTarget:Bool = false):Map<Int, Map<Int, TransitionData>> {
@@ -366,6 +411,10 @@ class TransitionImporter {
 		var transitionsByTargetId = getTransitionMapByTargetId(transition.actorID, transition.lastUseActor, transition.lastUseTarget);
 		var trans = transitionsByTargetId[transition.targetID];
 
+		// Clay Bowl 235 // Shallow Well 662 // Bowl of Water 382
+		//if(transition.actorID == 235 && transition.targetID == 662) trace('Bowl of Water1: double? ${trans != null} ' + transition.getDesciption(false));
+		//if(transition.actorID == 235) trace('Bowl of Water1: double? ${trans != null} ' + transition.getDesciption());
+
 		if (trans == null) {
 			this.transitions.push(transition);
 			transitionsByTargetId[transition.targetID] = transition;
@@ -423,6 +472,10 @@ class TransitionImporter {
 		// TODO there are a lot of double transactions, like Oil Movement, Horse Stuff, Fence / Wall Alignment, Rose Seed
 		trans.traceTransition('$addedBy WARNING DOUBLE 1!!');
 		transition.traceTransition('$addedBy WARNING DOUBLE 2!!');
+	}
+
+	private function removeKeyFromMap(map:Map<Int, Array<TransitionData>>, key:Int) {
+		map.remove(key);
 	}
 
 	private function addTransitionToMap(map:Map<Int, Array<TransitionData>>, transition:TransitionData, key:Int) {

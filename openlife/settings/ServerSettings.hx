@@ -2524,6 +2524,11 @@ class ServerSettings {
 		var trans = transtions.getTransition(1137, 1138);
 		trans.aiShouldIgnore = true;
 
+		// Clay Bowl 235 // Shallow Well 662 // Bowl of Water 382
+		//var trans = transtions.getTransition(235, 662);
+		//trace('Bowl of Water: ' + trans.getDesciption());
+		//trans.aiShouldIgnore = true;
+
 		// Scrap Bowl 3076 --> dont allow to scraft crafted metal
 		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
 		for(trans in transByTarget){
@@ -2586,6 +2591,14 @@ class ServerSettings {
 			trans.aiShouldIgnore = true;
 			//trace('Raw Pie Crust: ignore: ${trans.aiShouldIgnore} ' + trans.getDesciption(false));
 		}
+
+		// TODO why have the watering transitions a bowl of water as new actor?
+		// Shallow Well 662 // Bowl of Water 382
+		/*var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
+		for(trans in transByTarget){
+			if(trans.targetID != 662) continue;
+			trace('Bowl of Water: ' + trans.getDesciption());
+		}*/
 
 		// Bowl of Soil 1137
 		/*var transByTarget = TransitionImporter.GetTransitionByNewActor(1137);

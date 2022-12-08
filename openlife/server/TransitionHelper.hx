@@ -734,7 +734,7 @@ class TransitionHelper {
 		var newNumSlots = transition.isPickupOrDrop ? newActorObjectData.numSlots : newParentTargetObjectData.numSlots;
 		var numberContainedObj = this.target.containedObjects.length;
 
-		if( numberContainedObj > newNumSlots){
+		if(numberContainedObj > newNumSlots){
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} new target : containedObj ${numberContainedObj} < Slots: ${newNumSlots} TRUE isPickup? ${transition.isPickupOrDrop}');
 			player.say('empty first', true);
 			player.doEmote(Emote.sad);
@@ -1063,6 +1063,8 @@ class TransitionHelper {
 		// 2143 + -1 = 2144 + 0 Banana
 		// 1251 + -1 = 1251 + 0 lastUseActor: false Bowl of Stew
 		// 1251 + -1 = 235 + 0 lastUseActor: true Bowl of Stew
+
+		// TODO should ingnore: EMPTY + Cold Bowl 1021???
 
 		// for example for a tool like axe lastUseActor: true
 		var toolTransition = TransitionImporter.GetTransition(objectData.id, -1, true, false);
