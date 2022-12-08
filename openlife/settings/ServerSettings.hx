@@ -2367,6 +2367,13 @@ class ServerSettings {
 		var trans = transtions.getTransition(107, 392); // Stakes + Languishing Domestic Gooseberry Bush
 		trans.aiShouldIgnore = true;
 
+		var trans = TransitionImporter.GetTransition(502, 389); // Shovel + Dying Gooseberry Bush 389
+		trans.aiShouldIgnore = true;
+
+		// does not exist
+		//var trans = TransitionImporter.GetTransition(502, 389, true); // Shovel + Dying Gooseberry Bush 389
+		//trans.aiShouldIgnore = true;
+
 		var trans = transtions.getTransition(139, 1136); // Skewer + Shallow Tilled Row
 		trans.aiShouldIgnore = true;
 
