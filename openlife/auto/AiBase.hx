@@ -1432,7 +1432,7 @@ abstract class AiBase
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} 1 doBasicFarming:${profession['BasicFarmer']} ${heldObject.name}');			
 
-		if(shortCraft(0, 400, 30)) return true; // pull out the carrots 
+		//if(shortCraft(0, 400, 30)) return true; // pull out the carrots 
 		if(shortCraft(900, 625, distance)) return true; // Shovel of Dung 900 + Wet Compost Pile 625
 		if(shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
 		if(shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
@@ -4139,13 +4139,20 @@ private function craftLowPriorityClothing() : Bool {
 		var pileData = pileId < 1 ? null : itemToCraft.transitionsByObjectId[pileId];
 		var pile = pileData == null ? null : pileData.closestObject;
 
+		// check for pile close to target
+		if(pileId > 0){
+			var obj = myPlayer.GetClosestObjectToTarget(itemToCraft.transTarget, pileId, itemToCraft.transTarget, 6);
+			if(obj != null && obj.tx == itemToCraft.transActor.tx && obj.ty == itemToCraft.transActor.ty) obj = null;
+			if(obj != null) pile = obj;
+		}
+
 		if(pile != null){
 			var quadDistanceToActor = AiHelper.CalculateQuadDistanceToObject(myPlayer, itemToCraft.transActor);
 			var quadDistanceToPile = AiHelper.CalculateQuadDistanceToObject(myPlayer, pile);
 
 			// be ready to go for not piled objects little bit more distant
 			if(quadDistanceToActor < quadDistanceToPile * 1.5) pile = null;
-		}
+		}		
 
 		// check if actor can be taken close to target (for example to not bring home round stones)
 		if(pile == null){
