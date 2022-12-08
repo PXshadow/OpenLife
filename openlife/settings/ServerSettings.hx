@@ -38,6 +38,7 @@ class ServerSettings {
 	// Debug AI
 	public static var DebugAi:Bool = false;
 	public static var DebugAiSay:Bool = false;
+	public static var DebugProfession:Bool = false;	
 	public static var DebugAiGoto:Bool = false;
 	public static var DebugAiCrafting:Bool = false;
 	public static var DebugAiCraftingObject:Int = 999999; // 57;

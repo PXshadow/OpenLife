@@ -96,8 +96,10 @@ abstract class AiBase
 	public var countPies = 0;
 	public var tryMoveNearestTileFirst = true;
 
-	public var debugSay = false;
 	public var ignoreFullPiles = false; // uses in search object
+
+	public var debugSay = false;
+	public var debugProfession = false;
 
 	public static function StartAiThread() {
 		Thread.create(RunAi);
@@ -236,6 +238,7 @@ abstract class AiBase
 		if (ServerSettings.DebugAi) trace('Ai: newborn!');
 
 		debugSay = false;
+		debugProfession = false;
 		
 		dropTarget = null;
 		foodTarget = null;		
@@ -753,7 +756,11 @@ abstract class AiBase
 
 		// Hot Coals 85 ==> make fire food
 		var coals = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 85, 10);
-		if(coals != null) Macro.exception(if (makeFireFood(5)) return true);
+		if(coals != null) Macro.exception(if (makeFireFood(3)) return true);
+
+		// Hot Adobe Oven 250
+		var hotOven = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 250, 10);
+		if(hotOven != null) Macro.exception(if (doBaking(3)) return true);
 
 		if(firePlace == null){
 			var bestAiForFire = getBestAiForObjByProfession('firekeeper', myPlayer.home);
@@ -3011,6 +3018,14 @@ private function craftLowPriorityClothing() : Bool {
 			debugSay = false;
 			myPlayer.say('DEBUG OFF');
 		}
+		else if (text.startsWith("PROF ON")) {
+			debugProfession = true;
+			myPlayer.say('PROF ON');
+		}
+		else if (text.startsWith("PROF OFF")) {
+			debugProfession = false;
+			myPlayer.say('PROF OFF');
+		}
 		else if (text.startsWith("PROFESSION?") || text.startsWith("PROF?")) {
 			if(lastProfession == null) myPlayer.say('NONE');
 			else myPlayer.say('${lastProfession}');
@@ -4827,8 +4842,8 @@ private function craftLowPriorityClothing() : Bool {
 	private function isConsideringMakingFood():Bool {
 
 		//if (shouldDebugSay()) myPlayer.say('$lastProfession  ${countProfession(lastProfession)}');
-		myPlayer.say('$lastProfession  ${countProfession(lastProfession)}');
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} profession: $lastProfession count: ${countProfession(lastProfession)}');
+		if(shouldDebugProfession()) myPlayer.say('$lastProfession  ${countProfession(lastProfession)}');
+		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} profession: $lastProfession count: ${countProfession(lastProfession)}');
 
 		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
 		if (isHungry == false && foodTarget == null) return false;
@@ -5399,6 +5414,10 @@ private function craftLowPriorityClothing() : Bool {
 
 	private function shouldDebugSay(){
 		return debugSay || ServerSettings.DebugAiSay;
+	}
+
+	private function shouldDebugProfession(){
+		return debugProfession || ServerSettings.DebugProfession;
 	}
 
 	// is called once a movement is finished (client side it must be called manually after a PlayerUpdate)
