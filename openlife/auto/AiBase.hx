@@ -497,8 +497,7 @@ abstract class AiBase
 		//Macro.exception(if(doBaking(1)) return);
 		Macro.exception(if(doCarrotFarming(1)) return);
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);
-		Macro.exception(if(fillBeanBowlIfNeeded()) return); // green beans
-		Macro.exception(if(makePopcornIfNeeded()) return);
+		Macro.exception(if(fillBeanBowlIfNeeded()) return); // green beans		
 		Macro.exception(if(fillBeanBowlIfNeeded(false)) return); // dry beans		
 		
 		//Macro.exception(if(doBasicFarming(1)) return);
@@ -2637,6 +2636,8 @@ abstract class AiBase
 	
 		// Fire 82
 		if(firePlace == null) return craftItem(82);
+
+		Macro.exception(if(makePopcornIfNeeded()) return true);
 
 		// 0 + Cool Flat Rock 1284 --> Ashes
 		if(shortCraft(0, 1284, 20)) return true;
