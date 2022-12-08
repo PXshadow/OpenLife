@@ -512,7 +512,9 @@ abstract class AiBase
 			else if(jobByAge == 3) Macro.exception(if(doPottery()) return);
 			else if(jobByAge == 4) Macro.exception(if(isSheepHerding()) return);
 		}
-		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
+		Macro.exception(if(doBerryFarming()) return);
+
+		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;		
 		
 		Macro.exception(if(isSheepHerding()) return); // higher radius
 		Macro.exception(if(isCuttingWood()) return);
@@ -1426,10 +1428,66 @@ abstract class AiBase
 		return false;
 	}
 
+	private function doBerryFarming(maxProfession = 1) {
+		var home = myPlayer.home;
+		var heldObject = myPlayer.heldObject;
+
+		if(hasOrBecomeProfession('BerryFarmer', maxProfession) == false) return false;
+
+		if(doPrepareSoil()) return true;
+
+		if(doPrepareRows()) return true;
+
+		if(doPlantBushes()) return true;
+
+		if(doWatering(2)) return true;
+		// Raw Berry Pie
+		var counRawtBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 30);
+
+		if(counRawtBerryPies < 3 && craftItem(265)) return true; // Raw Berry Pie
+		//else this.lastProfession = 'Baker';
+		//this.profession['CarrotFarmer'] = 0;
+
+		return false;
+	}
+
+	private function doPlantBushes() {
+		var home = myPlayer.home;
+		var heldObject = myPlayer.heldObject;
+		var distance = 30;
+
+		// Plant Berry Bushes if needed
+
+		// Domestic Gooseberry Bush
+		var countBushes = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 391, distance);
+		// Vigorous Domestic Gooseberry Bush 1134
+		countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1134, distance);
+		// Gooseberry Sprout
+		countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 219, distance);
+		// Wet Planted Gooseberry Seed
+		countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 217, distance);
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} countBushes: $countBushes ');			
+		
+		var maxBushes = profession['BasicFarmer'] < 7 ? 3 : 9;
+
+		if(countBushes >= maxBushes) return false;
+
+		// Bowl of Soil 1137 + Dying Gooseberry Bush 389
+		if(shortCraft(1137, 389, 30)) return true; 
+		// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
+		if(shortCraft(1137, 392, 30)) return true; 
+		
+		// Wet Planted Gooseberry Seed 217
+		if(craftItem(217)) return true;
+		
+		return false;
+	}
+
 	private function doBasicFarming(maxProfession = 2) {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
-		var distance = 30;		
+		var distance = 30;
 
 		//var distance:Int = Math.round(10 + 10 * this.profession['BasicFarmer']);
 
@@ -1465,7 +1523,7 @@ abstract class AiBase
 
 		if(doPrepareRows()) return true;
 
-		if(doPlantCarrots()) return true;
+		//if(doPlantCarrots()) return true;
 
 		//if (ServerSettings.DebugAi) trace('AAI: 3 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} soil: $count');			
 
@@ -1478,40 +1536,6 @@ abstract class AiBase
 		}*/
 
 		//if (ServerSettings.DebugAi) trace('AAI: 5 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} deepRows: $deepRows');			
-
-		// Plant Berry Bushes if needed
-		if(this.profession['BasicFarmer'] < 4.5){
-			// Domestic Gooseberry Bush
-			var countBushes = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 391, distance);
-			// Vigorous Domestic Gooseberry Bush 1134
-			countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1134, distance);
-			// Gooseberry Sprout
-			countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 219, distance);
-			// Wet Planted Gooseberry Seed
-			countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 217, distance);
-
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} countBushes: $countBushes ');			
-			
-			var maxBushes = profession['BasicFarmer'] < 7 ? 3 : 9;
-
-			if(countBushes < maxBushes){
-				//if(heldObject.parentId == 1137){
-					// Bowl of Soil 1137 + Dying Gooseberry Bush 389
-				if(shortCraft(1137, 389, 30)) return true; 
-				// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
-				if(shortCraft(1137, 392, 30)) return true; 
-				
-				// Wet Planted Gooseberry Seed 217
-				if(craftItem(217)) return true;
-
-				//}
-				// TODO there seems to be a bug with maxuse transitions on pile of soil
-				// Clay Bowl 235 + Fertile Soil Pile 1101 --> Bowl of Soil 1137
-				//if(shortCraft(235, 1101, 30)) return true; 
-			}
-
-			this.profession['BasicFarmer'] = 4.5;
-		}
 
 		if (ServerSettings.DebugAi) trace('AAI: 6 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']}');			
 
@@ -2378,7 +2402,8 @@ abstract class AiBase
 
 		// stuff can be in more then once to increase chance
 		
-		var advancedPlants = [228, 396, 1110, 217, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
+		//var advancedPlants = [228, 396, 1110, 217, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
+		var advancedPlants = [228, 1110, 1162, 228, 1110, 2851, 228, 4225, 2829, 1110, 2852, 228, 4263, 228, 228, 1142, 228, 1110];
 		var rand = WorldMap.world.randomInt(advancedPlants.length - 1);
 		
 		toPlant = toPlant > 0 ? toPlant : rand;
@@ -3253,7 +3278,7 @@ private function craftLowPriorityClothing() : Bool {
 		if(storeInQuiver()) return true;
 
 		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
-		if(heldObjId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236,5)) return true;
+		if(heldObjId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236, 5, false)) return true;
 
 		// Basket of Bones 356
 		if(heldObjId == 356){
@@ -4201,7 +4226,8 @@ private function craftLowPriorityClothing() : Bool {
 		
 		var isHoldingObject = myPlayer.isHoldingObject();
 		if(isHoldingObject && considerDropHeldObject(itemToCraft.transTarget)){
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop ${myPlayer.heldObject.name} to pickup ${itemToCraft.transActor.name}');
+			var itemName = itemToCraft.transActor == null ? 'WARNING NULL' : itemToCraft.transActor.name;
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop ${myPlayer.heldObject.name} to pickup ${itemName}');
 			return true;
 		}
 
