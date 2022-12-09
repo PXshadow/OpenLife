@@ -1545,6 +1545,8 @@ abstract class AiBase
 
 		if (ServerSettings.DebugAi) trace('AAI: 6 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']}');			
 
+		var countDryPlantedWheat = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 228, 30); // Dry Planted Wheat 228
+		if(countDryPlantedWheat > 3 && doWatering(2)) return true;
 
 		if(this.profession['BasicFarmer'] < 6){
 			// let 5 wheat stay for seeds and so that it looks nice
@@ -1560,7 +1562,7 @@ abstract class AiBase
 			if(closeObj != null) if(craftItem(226)) return true; // Threshed Wheat	
 
 			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 229, 30); // Wet Planted Wheat 229
-			count += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 228, 30); // Dry Planted Wheat 228
+			count += countDryPlantedWheat;
 			count += countRipeWheat;
 			count += countThreshedWheat;
 
