@@ -2407,14 +2407,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		var countEaten = playerTo.hasEatenMap[heldObjData.id];
+
+		//var isCravingEatenObject = heldObjData.id == playerTo.currentlyCraving;
+		var isCravingEatenObject = countEaten < 0;
+		var foodBoni = countEaten < 0 ? -countEaten / 2 : 0;
+		if (foodBoni > 20) foodBoni = 20;
+		
+		if (isCravingEatenObject) foodValue += 1 + foodBoni; // craved food give more boni
+
 		if (countEaten < 0) countEaten = 0;
 
 		foodValue += ServerSettings.YumBonus;
 		foodValue -= countEaten;
-		var isFoodYum = countEaten < ServerSettings.YumBonus; // playerFrom.isHoldingYum();
-
-		var isCravingEatenObject = heldObjData.id == playerTo.currentlyCraving;
-		if (isCravingEatenObject) foodValue += 1; // craved food give more boni
+		var isFoodYum = countEaten < ServerSettings.YumBonus; // playerFrom.isHoldingYum();		
 
 		var isSuperMeh = foodValue < playerFrom.heldObject.objectData.foodValue / 2;
 
