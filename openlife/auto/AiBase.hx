@@ -1412,7 +1412,9 @@ abstract class AiBase
 		var countPlantedCarrots = countWetPlantedCarrots;
 		countPlantedCarrots += countDryPlantedCarrots;
 
-		if(countDryPlantedCarrots > 3 && doWatering(2)) return true; 
+		if(countDryPlantedCarrots < 1) this.taskState['WaterCarrots'] = 0;
+		if(countDryPlantedCarrots > 3) this.taskState['WaterCarrots'] = 1;
+		if(this.taskState['WaterCarrots'] > 0 && doWatering(2)) return true; 
 
 		// Carrot 402
 		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 402, 30);
