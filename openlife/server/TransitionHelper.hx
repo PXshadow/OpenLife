@@ -679,6 +679,7 @@ class TransitionHelper {
 		// only allow to place another floor on existing floor if floor was target or if it is Pine Floor 3290
 		if (newTargetObjectData.floor && this.floorId != 0 && this.floorId != 3290 && targetIsFloor == false){
 			trace('TRANS: ${player.name + player.id} Cannot place another floor on existing floor except Pine Floor!');
+			player.say('There is a floor already!', true);
 			return false;
 		}
 
@@ -691,7 +692,8 @@ class TransitionHelper {
 			return false;
 		}
 
-		if(floorId > 0 && newTargetObjectData.groundOnly){
+		// if floor is allowed to be placed on floor is checked above. Therefore allow here floor so that pine floor can be over written
+		if(floorId > 0 && newTargetObjectData.groundOnly && newTargetObjectData.floor == false){
 			if (ServerSettings.DebugTransitionHelper)
 				trace('TRANS: ${player.name + player.id} ${newTargetObjectData.name} cannot be placed on floor');
 
