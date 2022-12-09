@@ -2537,6 +2537,12 @@ class ServerSettings {
 		var trans = transtions.getTransition(1137, 1138);
 		trans.aiShouldIgnore = true;
 
+		// 0 + Bowl of Raw Pork 1354
+		var trans = transtions.getTransition(0, 1354);
+		trans.aiShouldIgnore = true;
+
+		// TODO Bowl with Corn Kernels // forbid cirtular crafting --> tries to get empty bowl by putting Kernels in
+
 		// Clay Bowl 235 // Shallow Well 662 // Bowl of Water 382
 		//var trans = transtions.getTransition(235, 662);
 		//trace('Bowl of Water: ' + trans.getDesciption());
