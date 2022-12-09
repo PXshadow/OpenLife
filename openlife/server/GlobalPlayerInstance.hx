@@ -2448,7 +2448,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (countEaten < 0) {
 				foodEaten = Math.max(1, Math.floor(-countEaten / 2)); // eat more if it its a craving
 				playerTo.hasEatenMap[heldObjData.id] += foodEaten;
-				if (foodEaten > 1) foodEaten = 1 + (foodEaten - 1) / 2;
+				//if (foodEaten > 1) foodEaten = 1 + (foodEaten - 1) / 2;
+				if (foodEaten > 10) foodEaten = 10;
 
 				if (ServerSettings.DebugEating) trace('Craving: foodEaten: $foodEaten countEaten: $countEaten --> ${playerTo.hasEatenMap[heldObjData.id]}');
 			} else {
@@ -2463,14 +2464,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// eating YUM increases prestige / score while eating MEH reduces it
 		if (isFoodYum) {
-			if (countEaten < 0) {
-				var gainedPrestige = isCravingEatenObject ? foodEaten + 1 : foodEaten;
+			/*if (isCravingEatenObject) { 
+				var gainedPrestige = foodEaten + 1;
 				playerTo.addHealthAndPrestige(gainedPrestige);
 				if (playerFrom != playerTo) playerFrom.addHealthAndPrestige(gainedPrestige * 0.2);
 			} else {
 				playerTo.addHealthAndPrestige(1);
 				if (playerFrom != playerTo) playerFrom.addHealthAndPrestige(0.2);
-			}
+			}*/
+			var gainedPrestige = foodEaten;
+			playerTo.addHealthAndPrestige(gainedPrestige);
+			if (playerFrom != playerTo) playerFrom.addHealthAndPrestige(gainedPrestige * 0.2);
 		} else {
 			if (isSuperMeh) playerTo.addHealthAndPrestige(-ServerSettings.HealthLostWhenEatingSuperMeh); else
 				playerTo.addHealthAndPrestige(-ServerSettings.HealthLostWhenEatingMeh);
@@ -2642,14 +2646,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var newHasEatenCount = hasEatenMap[key];
 		var cravingHasEatenCount = hasEatenMap[currentlyCraving];
 
-		if (key != eatenFoodId && WorldMap.calculateRandomFloat() < ServerSettings.YumFoodRestore) {
-			restoreFoodCount(key, amountEaten);
+		//if (key != eatenFoodId && WorldMap.calculateRandomFloat() < ServerSettings.YumFoodRestore) {
+		if (key != eatenFoodId){
+			restoreFoodCount(key, amountEaten *  ServerSettings.YumFoodRestore);
 			newHasEatenCount = hasEatenMap[key];
 		} else {
 			if (ServerSettings.DebugEating) trace('${this.name} IncreaseFoodValue: craving hasEaten: NO!!!: key: $key, heldObject.id(): ${eatenFoodId}');
 		}
 
-		// restore also some biome loved food like bana for brown
+		// restore also some biome loved food like banana for brown
 		var lovedFoodIds = getLovedFoodIds();
 		for (foodId in lovedFoodIds) {
 			restoreFoodCount(foodId, amountEaten * ServerSettings.LovedFoodRestore);
