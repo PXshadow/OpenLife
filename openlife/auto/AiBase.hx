@@ -3427,6 +3427,7 @@ private function craftLowPriorityClothing() : Bool {
 			var well = getCloseWell();
 			//if(well != null) target = myPlayer.GetClosestObjectToTarget(well, 0, 30); 
 			if(well != null) target = well;
+			dropCloseToPlayer = false;
 		} 
 
 		if(target == null) target = myPlayer.GetClosestObjectById(0, 30);
