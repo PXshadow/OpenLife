@@ -495,6 +495,7 @@ abstract class AiBase
 
 		itemToCraft.maxSearchRadius = 30;
 		//Macro.exception(if(doBaking(1)) return);
+		Macro.exception(if(doWatering(1)) return);
 		Macro.exception(if(doCarrotFarming(1)) return);
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);
 		Macro.exception(if(fillBeanBowlIfNeeded()) return); // green beans		
