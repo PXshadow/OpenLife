@@ -634,6 +634,30 @@ class TransitionHelper {
 			if (transition != null) targetIsFloor = true;
 		}
 
+		// allow floor to be placed under permanent objects
+		if (transition == null && target.isPermanent() == true && target.objectData.allowFloorPlacement && target.objectData.groundOnly == false){
+			// Floor Stakes 486
+			transition = TransitionImporter.GetTransition(this.player.heldObject.id, 486);
+			if(transition != null){
+				var objData = ObjectData.getObjectData(transition.newTargetID);
+
+				// only allow to place another floor on existing floor if floor was target or if it is Pine Floor 3290
+				if (objData.floor && this.floorId != 0 && (this.floorId != 3290 || objData.id == 3290)){
+					trace('TRANS: ${player.name + player.id} Special: Cannot place another floor on existing floor except Pine Floor!');
+					player.say('There is a floor already!', true);
+					return false;
+				}
+
+				if(objData.floor){ 
+					this.player.setHeldObject(null);
+					this.newFloorId = transition.newTargetID;
+					this.doTransition = true;
+					this.doAction = true;
+					return true;
+				}
+			}
+		}
+
 		if (transition == null) return false;
 
 		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Found transition: actor: ${transition.actorID} target: ${transition.targetID} ');
@@ -677,7 +701,7 @@ class TransitionHelper {
 		}
 
 		// only allow to place another floor on existing floor if floor was target or if it is Pine Floor 3290
-		if (newTargetObjectData.floor && this.floorId != 0 && this.floorId != 3290 && targetIsFloor == false){
+		if (newTargetObjectData.floor && this.floorId != 0 &&  targetIsFloor == false && (this.floorId != 3290 || newTargetObjectData.id == 3290)){
 			trace('TRANS: ${player.name + player.id} Cannot place another floor on existing floor except Pine Floor!');
 			player.say('There is a floor already!', true);
 			return false;

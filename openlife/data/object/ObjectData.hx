@@ -79,6 +79,8 @@ class ObjectData extends LineReader {
 	// Indicates that this object can be used to creat foodFromActor
 	public var foodFromActor:ObjectData; // do not save on disk since it can be calculated after loading
 
+	public var allowFloorPlacement = false; // not saved // allows a foor to be placed under if permanent
+
 	public var blocksDomesticAnimal = false;
 	public var blocksAnimal = false;
 

@@ -852,6 +852,8 @@ class ServerSettings {
 		
 		ObjectData.getObjectData(4144).useChance = 0.5; // old 1 // Dug Potatoes 4144
 
+		ObjectData.getObjectData(237).allowFloorPlacement = true; // Adobe Oven 237
+
 		// set hungry work
 		// TODO use tool hungry work factor
 		/*
@@ -1316,6 +1318,9 @@ class ServerSettings {
 		trans.autoDecaySeconds = -24 * 10; // default: -10 
 		var trans = transtions.getTransition(-1, 884); // Stone Floor ==> Ancient
 		trans.autoDecaySeconds = -24 * 10; // default: -10 // TODO implement time for floors
+
+		//var trans = new TransitionData(96, 237, 0, 3290); // Pine Needles 96 + Adobe Oven 237  ==> Pine Floor 3290
+		//transtions.addTransition("PatchTransitions: ", trans);
 
 		// lower age for weapons since kids so or so make less damage since they have less health pipes
 		ObjectData.getObjectData(151).minPickupAge = 10; // 12   // War Sword
