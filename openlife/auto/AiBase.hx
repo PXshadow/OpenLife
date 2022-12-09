@@ -1405,9 +1405,14 @@ abstract class AiBase
 		var distance = 30;		
 
 		// Wet Planted Carrots 399
-		var countPlantedCarrots = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 399, 30);
+		var countWetPlantedCarrots = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 399, 30);
 		// Dry Planted Carrots 396
-		countPlantedCarrots += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 396, 30);
+		var countDryPlantedCarrots = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 396, 30);
+		
+		var countPlantedCarrots = countWetPlantedCarrots;
+		countPlantedCarrots += countDryPlantedCarrots;
+
+		if(countDryPlantedCarrots > 3 && doWatering(2)) return true; 
 
 		// Carrot 402
 		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 402, 30);
