@@ -1323,10 +1323,7 @@ abstract class AiBase
 
 		if(count < 1) this.taskState['SoilMaker'] = 1;
 
-		if(count > 4){
-			this.taskState['SoilMaker'] = 0;
-			return false;
-		}
+		if(count > 4) this.taskState['SoilMaker'] = 0;
 
 		if(this.taskState['SoilMaker'] == 0 && count > 0) return false;
 
@@ -1686,11 +1683,34 @@ abstract class AiBase
 		return false;
 	}**/
 
+	private function getCloseWell(){
+		// TODO consider more wells
+		// TODO consider closest
+
+		// Deep Well 663
+		var well = myPlayer.GetClosestObjectById(663,30);
+
+		// Shallow Well 662
+		if(well == null) well = myPlayer.GetClosestObjectById(662,30);
+
+		return well;
+	}
+
 	private function shortCraftOnGround(actorId:Int){		
-		if(myPlayer.heldObject.parentId == actorId){
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} shortCraftOnGround: wanted: ${actorId} ${myPlayer.heldObject.name}');
-			var target = AiHelper.GetClosestObjectById(myPlayer, 0, null, 20);
+		var heldId = myPlayer.heldObject.parentId;
+		var target = null;
+
+		if(heldId == actorId){
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} shortCraftOnGround: wanted: ${actorId} ${myPlayer.heldObject.name}');
+			
+			// Basket of Soil 336 --> drop close to well
+			if (heldId == 336){
+				var well = getCloseWell();
+				if(well != null) target = myPlayer.GetClosestObjectToTarget(well, 0, 30); 
+			} 
+
+			if(target == null) target = myPlayer.GetClosestObjectById(0, 30);
+
 			return useHeldObjOnTarget(target);
 		} 
 		return GetItem(actorId);	

@@ -2602,6 +2602,7 @@ class ServerSettings {
 			//trace('Stakes 107: ' + trans.getDesciption());
 			trans.aiShouldIgnore = true; 
 		}
+
 		// Clay Plate 236 --> dont puy Raw Pie Crust 264 back in bowl to get plate
 		var transByTarget = TransitionImporter.GetTransitionByNewActor(236);
 		for(trans in transByTarget){
@@ -2611,7 +2612,6 @@ class ServerSettings {
 			//trace('Raw Pie Crust: ignore: ${trans.aiShouldIgnore} ' + trans.getDesciption(false));
 		}
 
-		// TODO why have the watering transitions a bowl of water as new actor?
 		// Shallow Well 662 // Bowl of Water 382
 		/*var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
 		for(trans in transByTarget){
