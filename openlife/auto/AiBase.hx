@@ -2144,6 +2144,8 @@ abstract class AiBase
 	private function doWatering(maxPeople:Int = 1) : Bool {
 		if(hasOrBecomeProfession('WaterBringer', maxPeople) == false) return false;
 
+		// TODO use a general water rework to water all dry stuff
+
 		if(shortCraft(382, 396)) return true; // Bowl of Water + Planted Carrots
 		if(shortCraft(210, 396)) return true; // Full Water Pouch + Dry Planted Carrots
 
@@ -2788,7 +2790,13 @@ private function craftMediumPriorityClothing() : Bool {
 
 		if(isOldEnoughForBow){ 
 			// Hunting gear 874 Empty Arrow Quiver
-			if(craftClothIfNeeded(874)) return true; 
+			if(craftClothIfNeeded(874)){
+				// Check that there are enough Water Pouches left
+				// Empty Water Pouch 209
+				var count = myPlayer.CountCloseObjects(myPlayer.tx, myPlayer.ty, 209,40);
+				if(count > 1) return true;
+				if(craftItem(209)) return true;
+			}  
 			if(fillUpQuiver()) return true;
 		}
 
