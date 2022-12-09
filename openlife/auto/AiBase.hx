@@ -3422,6 +3422,15 @@ private function craftLowPriorityClothing() : Bool {
 			dropCloseToPlayer = false;
 		}
 
+		// Basket of Soil 336 --> drop close to well
+		if (heldId == 336){
+			var well = getCloseWell();
+			//if(well != null) target = myPlayer.GetClosestObjectToTarget(well, 0, 30); 
+			if(well != null) target = well;
+		} 
+
+		if(target == null) target = myPlayer.GetClosestObjectById(0, 30);
+
 		// only bring stuff home if it is useful
 		if(dropCloseToPlayer) dropOnStart = false;  
 
