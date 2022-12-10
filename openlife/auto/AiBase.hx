@@ -1287,9 +1287,12 @@ abstract class AiBase
 
 		if(doPrepareRows()) return true;
 
+		if(doWateringOn(396,3)) return true; // Dry Planted Carrots 396
+
 		if(doPlantCarrots()) return true;
 
-		if(doWatering(2)) return true;
+		//if(doWatering(2)) return true;
+		if(doWateringOn(396)) return true; // Dry Planted Carrots 396
 
 		// Bowl of Soil 1137 + Dying Gooseberry Bush 389
 		if(shortCraft(1137, 389, 30)) return true; 
@@ -1445,9 +1448,14 @@ abstract class AiBase
 
 		if(doPrepareRows()) return true;
 
+		if(doWateringOn(216,3)) return true; // Dry Planted Gooseberry Seed 216
+
 		if(doPlantBushes()) return true;
 
-		if(doWatering(2)) return true;
+		//if(doWatering(2)) return true;
+		
+		if(doWateringOn(216)) return true; // Dry Planted Gooseberry Seed 216
+
 		// Raw Berry Pie
 		var counRawtBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 30);
 
@@ -1486,7 +1494,8 @@ abstract class AiBase
 		if(shortCraft(1137, 392, 30)) return true; 
 		
 		// Wet Planted Gooseberry Seed 217
-		if(craftItem(217)) return true;
+		// Dry Planted Gooseberry Seed 216
+		if(craftItem(216)) return true;
 		
 		return false;
 	}
@@ -1545,9 +1554,9 @@ abstract class AiBase
 		//if (ServerSettings.DebugAi) trace('AAI: 5 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} deepRows: $deepRows');			
 
 		if (ServerSettings.DebugAi) trace('AAI: 6 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']}');			
-
-		var countDryPlantedWheat = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 228, 30); // Dry Planted Wheat 228
-		if(countDryPlantedWheat > 3 && doWatering(2)) return true;
+		
+		//if(countDryPlantedWheat > 2 && doWatering(2)) return true;
+		if(doWateringOn(228,3)) return true;
 
 		if(this.profession['BasicFarmer'] < 6){
 			// let 5 wheat stay for seeds and so that it looks nice
@@ -1562,6 +1571,7 @@ abstract class AiBase
 			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 225, 30); // Wheat Sheaf
 			if(closeObj != null) if(craftItem(226)) return true; // Threshed Wheat	
 
+			var countDryPlantedWheat = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 228, 30); // Dry Planted Wheat 228
 			var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 229, 30); // Wet Planted Wheat 229
 			count += countDryPlantedWheat;
 			count += countRipeWheat;
@@ -1621,6 +1631,29 @@ abstract class AiBase
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} nothing to do');			
 
 		return false;
+	}
+
+	private function doWateringOn(itemToWaterId:Int, min:Int = 1){
+		var home = myPlayer.home;
+		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, itemToWaterId, 30);
+		var taskName = 'doWateringOn${itemToWaterId}';
+
+		if(count < 1){
+			this.taskState[taskName] = 0;
+			return false;
+		} 
+
+		if(count < min && this.taskState[taskName] < 1) return false;
+
+		this.taskState[taskName] = 1;
+
+		// Bowl of Water 382
+		var trans = TransitionImporter.GetTransition(382, itemToWaterId);
+		if(trans == null) return false;
+
+		//trace('doWateringOn: $count');
+
+		return craftItem(trans.newTargetID);
 	}
 
 	/**private function doBasicFarming() {
@@ -2168,30 +2201,39 @@ abstract class AiBase
 		if(hasOrBecomeProfession('WaterBringer', maxPeople) == false) return false;
 
 		// TODO use a general water rework to water all dry stuff
+		if(doWateringOn(396)) return true; //  Dry Planted Carrots 396
+		if(doWateringOn(228)) return true; //  Dry Planted Wheat 228
+		if(doWateringOn(393)) return true; //  Dry Domestic Gooseberry Bush 393
+		if(doWateringOn(1109)) return true; //  Dry Planted Corn Seed 1109
+		if(doWateringOn(2829)) return true; //  Dry Planted Tomato Seed 2829
+		if(doWateringOn(4225)) return true; //  Dry Planted Cucumber Seeds 4225
+		if(doWateringOn(2856)) return true; //  Dry Planted Onion 2856
+		if(doWateringOn(2851)) return true; //  Dry Planted Onions 2851
+		if(doWateringOn(1161)) return true; //  Dry Planted Beans 1161
+		
+		//if(shortCraft(210, 396)) return true; // Full Water Pouch + Dry Planted Carrots
+		//if(shortCraft(382, 396)) return true; // Bowl of Water + Planted Carrots
+		
+		//if(shortCraft(210, 228)) return true; // Full Water Pouch + Dry Planted Wheat
+		//if(shortCraft(382, 228)) return true; // Bowl of Water + Dry Planted Wheat
+		
+		//if(shortCraft(210, 393)) return true; // Full Water Pouch + Dry Domestic Gooseberry Bush 393
+		//if(shortCraft(382, 393)) return true; // Bowl of Water + Dry Domestic Gooseberry Bush 393
+		
+		//if(shortCraft(210, 1109)) return true; // Full Water Pouch + Dry Planted Corn Seed
+		//if(shortCraft(382, 1109)) return true; // Bowl of Water + Dry Planted Corn Seed
+		
+		//if(shortCraft(210, 2829)) return true; // Full Water Pouch + Dry Planted Tomato Seed
+		//if(shortCraft(382, 2829)) return true; // Bowl of Water + Dry Planted Tomato Seed
+		
+		//if(shortCraft(210, 4225)) return true; // Full Water Pouch + Dry Planted Cucumber Seeds
+		//if(shortCraft(382, 4225)) return true; // Bowl of Water + Dry Planted Cucumber Seeds
 
-		if(shortCraft(210, 396)) return true; // Full Water Pouch + Dry Planted Carrots
-		if(shortCraft(382, 396)) return true; // Bowl of Water + Planted Carrots
+		//if(shortCraft(210, 2856)) return true; // Full Water Pouch + Dry Planted Onion
+		//if(shortCraft(382, 2856)) return true; // Bowl of Water + Dry Planted Onion
 		
-		if(shortCraft(210, 228)) return true; // Full Water Pouch + Dry Planted Wheat
-		if(shortCraft(382, 228)) return true; // Bowl of Water + Dry Planted Wheat
-		
-		if(shortCraft(210, 393)) return true; // Full Water Pouch + Dry Domestic Gooseberry Bush 393
-		if(shortCraft(382, 393)) return true; // Bowl of Water + Dry Domestic Gooseberry Bush 393
-		
-		if(shortCraft(210, 1109)) return true; // Full Water Pouch + Dry Planted Corn Seed
-		if(shortCraft(382, 1109)) return true; // Bowl of Water + Dry Planted Corn Seed
-		
-		if(shortCraft(210, 2829)) return true; // Full Water Pouch + Dry Planted Tomato Seed
-		if(shortCraft(382, 2829)) return true; // Bowl of Water + Dry Planted Tomato Seed
-		
-		if(shortCraft(210, 4225)) return true; // Full Water Pouch + Dry Planted Cucumber Seeds
-		if(shortCraft(382, 4225)) return true; // Bowl of Water + Dry Planted Cucumber Seeds
-
-		if(shortCraft(210, 2856)) return true; // Full Water Pouch + Dry Planted Onion
-		if(shortCraft(382, 2856)) return true; // Bowl of Water + Dry Planted Onion
-		
-		if(shortCraft(210, 2851)) return true; // Full Water Pouch + Dry Planted Onions
-		if(shortCraft(382, 2851)) return true; // Bowl of Water + Dry Planted Onions
+		//if(shortCraft(210, 2851)) return true; // Full Water Pouch + Dry Planted Onions
+		//if(shortCraft(382, 2851)) return true; // Bowl of Water + Dry Planted Onions
 		
 		//if(craftItem(1110)) return true; // Wet Planted Corn Seed
 		//if(craftItem(399)) return true; // Wet Planted Carrots
@@ -2432,12 +2474,14 @@ abstract class AiBase
 		// 2851 Dry Planted Onions
 		// 2829 Dry Planted Tomato Seed
 		// 4225 Dry Planted Cucumber Seeds
+		// Dry Planted Beans 1161
 		// TODO other dry planted
 
 		// stuff can be in more then once to increase chance
 		
 		//var advancedPlants = [228, 396, 1110, 217, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
-		var advancedPlants = [228, 1110, 1162, 228, 1110, 2851, 228, 4225, 2829, 1110, 2852, 228, 4263, 228, 228, 1142, 228, 1110];
+		//var advancedPlants = [228, 1110, 1161, 228, 1110, 2851, 228, 4225, 2829, 1110, 2852, 228, 4263, 228, 228, 1142, 228, 1110];
+		var advancedPlants = [1142, 1110, 1161, 1110, 2851,1142, 4225, 2829, 1142, 1110, 2852, 4263, 1142, 1110];
 		var rand = WorldMap.world.randomInt(advancedPlants.length - 1);
 		
 		toPlant = toPlant > 0 ? toPlant : rand;
@@ -2447,11 +2491,13 @@ abstract class AiBase
 			var index = (nextPlant + i) % advancedPlants.length;
 			var toPlant = advancedPlants[index];
 
+			// Dry Planted Beans 1161
 			// Wet Planted Beans
-			if(toPlant == 1162){
+			// TODO count also what is planted
+			if(toPlant == 1161  ||  toPlant == 1162){
 				// Dry Bean Plants 1172
 				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1172, 30);
-				if(count > 2){
+				if(count > 3){
 					toPlant +=1;
 					continue;
 				}
