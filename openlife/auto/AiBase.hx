@@ -2210,6 +2210,7 @@ abstract class AiBase
 		if(doWateringOn(2856)) return true; //  Dry Planted Onion 2856
 		if(doWateringOn(2851)) return true; //  Dry Planted Onions 2851
 		if(doWateringOn(1161)) return true; //  Dry Planted Beans 1161
+		if(doWateringOn(1145)) return true; //  Dry Planted Potatoes 1145
 		
 		//if(shortCraft(210, 396)) return true; // Full Water Pouch + Dry Planted Carrots
 		//if(shortCraft(382, 396)) return true; // Bowl of Water + Planted Carrots
@@ -2469,19 +2470,21 @@ abstract class AiBase
 		// Wet Planted Gooseberry Seed 217
 		*/
 
-		// 228 Dry Planted Wheat
-		// 396 Dry Planted Carrots
-		// 2851 Dry Planted Onions
-		// 2829 Dry Planted Tomato Seed
-		// 4225 Dry Planted Cucumber Seeds
+		// Dry Planted Wheat 228
+		// Dry Planted Carrots 396
+		// Dry Planted Onions 2851
+		// Dry Planted Tomato Seed 2829
+		// Dry Planted Cucumber Seeds 4225
 		// Dry Planted Beans 1161
+		// Dry Planted Potatoes 1145
+		
 		// TODO other dry planted
 
 		// stuff can be in more then once to increase chance
 		
 		//var advancedPlants = [228, 396, 1110, 217, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
 		//var advancedPlants = [228, 1110, 1161, 228, 1110, 2851, 228, 4225, 2829, 1110, 2852, 228, 4263, 228, 228, 1142, 228, 1110];
-		var advancedPlants = [1142, 1110, 1161, 1110, 2851,1142, 4225, 2829, 1142, 1110, 2852, 4263, 1142, 1110];
+		var advancedPlants = [1145, 1110, 1161, 2851, 1145, 4225, 2829, 1145, 2852, 4263, 1145];
 		var rand = WorldMap.world.randomInt(advancedPlants.length - 1);
 		
 		toPlant = toPlant > 0 ? toPlant : rand;
@@ -2494,9 +2497,20 @@ abstract class AiBase
 			// Dry Planted Beans 1161
 			// Wet Planted Beans
 			// TODO count also what is planted
-			if(toPlant == 1161  ||  toPlant == 1162){
+			if(toPlant == 1161 || toPlant == 1162){
 				// Dry Bean Plants 1172
 				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1172, 30);
+				if(count > 3){
+					toPlant +=1;
+					continue;
+				}
+			}
+
+			// Dry Planted Potatoes 1145
+			// Wet Planted Potatoes 1142
+			if(toPlant == 1145 || toPlant == 1142){
+				// Mature Potato Plants 1146
+				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1146, 30);
 				if(count > 3){
 					toPlant +=1;
 					continue;
