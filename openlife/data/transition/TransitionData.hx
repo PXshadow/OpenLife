@@ -23,8 +23,8 @@ class TransitionData {
 	public var autoDecaySeconds:Float = 0; // USED in time transitions
 
 	// MinUse for variable-use objects that occasionally use more than one "use", this sets a minimum per interaction.
-	public var actorMinUseFraction:Float = 0;
-	public var targetMinUseFraction:Float = 0;
+	public var actorMinUseFraction:Float = 0; // 1 = actor must be full // For example Bowl of Goosberry plus Carrot
+	public var targetMinUseFraction:Float = 0; // 1 = target must be full // Carrot + Bowl of Goosberry
 
 	public var reverseUseActor:Bool = false;
 	public var reverseUseTarget:Bool = false; // USED in transitions
@@ -40,7 +40,6 @@ class TransitionData {
 	public var alternativeTransitionOutcome:Array<Int> = new Array<Int>();
 	public var hungryWorkCost:Float = 0;
 	public var aiShouldIgnore = false;
-	public var isTargetMaxUse = false; // target must have be full
 
 	// sets the number of uses if target // For example give wolf only two meat
 	public var targetNumberOfUses:Int = -1; 

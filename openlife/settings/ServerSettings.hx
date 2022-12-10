@@ -2183,16 +2183,21 @@ class ServerSettings {
 		var trans = new TransitionData(0, 3425, 3425, 0); // Domestic Cow on Rope + 0 = Domestic Cow on Rope * 0
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		// Set Max Use Target tranistions
-		var trans = TransitionImporter.GetTransition(33, 1176); // Stone + Bowl of Dry Beans
-		trans.isTargetMaxUse = true;
+		// Set Max Use Target tranistions // uses now Min use fraction like vanilla
+		/*var trans = TransitionImporter.GetTransition(253, 40); // Bowl of Gooseberries + Wild Carrot
+		trans.isActorMaxUse = true;
+		var trans = TransitionImporter.GetTransition(253, 3978); // Bowl of Gooseberries + Pile of Wild Carrots
+		trans.isActorMaxUse = true;
+		var trans = TransitionImporter.GetTransition(253, 3978, false, true); // Bowl of Gooseberries + Pile of Wild Carrots
+		trans.isActorMaxUse = true;
 		var trans = TransitionImporter.GetTransition(40, 253); // Wild Carrot + Bowl of Gooseberries
+		trans.isTargetMaxUse = true;
+		var trans = TransitionImporter.GetTransition(33, 1176); // Stone + Bowl of Dry Beans
 		trans.isTargetMaxUse = true;
 		var trans = TransitionImporter.GetTransition(181, 253); // Skinned Rabbit + Bowl of Gooseberries
 		trans.isTargetMaxUse = true;
 		var trans = TransitionImporter.GetTransition(402, 253); // Carrot + Bowl of Gooseberries
-		trans.isTargetMaxUse = true;
-
+		trans.isTargetMaxUse = true;*/
 
 		// new smithing transitions
 		var trans = new TransitionData(1603, 235, 1603, 0); // Stack of Clay Bowls + Clay Bowl --> Stack of Clay Bowls +  0

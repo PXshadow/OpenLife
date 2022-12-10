@@ -725,8 +725,9 @@ class TransitionHelper {
 			return false;
 		}
 
-		// if transition is not a tool use, check if actor has max number of uses
-		if(transition.tool == false && player.heldObject.objectData.isTool() == false && transition.reverseUseActor == false){
+		// Bowl of Gooseberries + Carrot or Ple of Carrots --> actor should be full
+		// Rabbit Bait plus + Flat rock must --> actor must not be full
+		if(transition.actorMinUseFraction == 1){
 			var numUses = player.heldObject.objectData.numUses;
 			var heldUses = player.heldObject.numberOfUses;
 			
@@ -741,7 +742,8 @@ class TransitionHelper {
 		}
 
 		// check if target has max number of uses
-		if(transition.isTargetMaxUse && transition.reverseUseTarget == false){
+		//if(transition.isTargetMaxUse && transition.reverseUseTarget == false){
+		if(transition.targetMinUseFraction == 1){
 			var numUses = target.objectData.numUses;
 			var uses = target.numberOfUses;
 			
