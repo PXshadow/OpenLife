@@ -743,7 +743,7 @@ class TransitionHelper {
 
 		// check if target has max number of uses
 		//if(transition.isTargetMaxUse && transition.reverseUseTarget == false){
-		if(transition.targetMinUseFraction == 1){
+		if(transition.targetMinUseFraction == 1 && transition.reverseUseTarget == false){
 			var numUses = target.objectData.numUses;
 			var uses = target.numberOfUses;
 			

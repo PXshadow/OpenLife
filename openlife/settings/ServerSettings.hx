@@ -1893,10 +1893,16 @@ class ServerSettings {
 
 		// Bowl of Soil + Fertile Soil Pile 1101 
 		var trans = transtions.getTransition(1137, 1101); 
-		//trace('Bowl of Soil + Fertile Soil Pile: ${trans.targetMinUseFraction}');
 		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
 
 		var trans = transtions.getTransition(1137, 1101, false, true);
+		trans.targetMinUseFraction = 0;
+
+		// Clay Bowl 235 + Fertile Soil Pile 1101 
+		var trans = transtions.getTransition(235, 1101); 
+		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
+
+		var trans = transtions.getTransition(235, 1101, false, true);
 		trans.targetMinUseFraction = 0;
 
 		// Bowl of Soil + Hardened Row --> Shallow Tilled Row
