@@ -817,7 +817,7 @@ class ServerSettings {
 		// TODO set water right and add further wells like deep well
 		ObjectData.getObjectData(662).decayFactor = 0.1; // 662 Shallow Well
 		ObjectData.getObjectData(662).decaysToObj = 3030; // 662 Shallow Well ==> 3030 Natural Spring
-		ObjectData.getObjectData(662).useChance = 0.1; // original 0.03
+		//ObjectData.getObjectData(662).useChance = 0.1; // original 0.03
 
 		ObjectData.getObjectData(303).decaysToObj = 238; // 303 Forge ==> 238 Adobe Kiln
 		ObjectData.getObjectData(303).decaysToObj = 238; // 305 Forge with Charcoal ==> 238 Adobe Kiln
@@ -1578,17 +1578,19 @@ class ServerSettings {
 				// trans.traceTransition("PatchTransitions: ", true);
 			}
 
-			if (trans.autoDecaySeconds == 9000) // 150 min like deep well 0.53 bowls per min
-			{
-				trans.autoDecaySeconds = 1200; // 20 min one bucket 12.5% (bucket has 10 uses): 80 uses / 20 min = 4 bowls per min
+			// 150 min like deep well // 0.53 bowls per min
+			if (trans.autoDecaySeconds == 9000){  
+			
+				trans.autoDecaySeconds = 1200; // 20 min one bucket // use chance: 12.5% = 8 Buckets (bucket has 10 Bowls of Water): 80 uses / 20 min = 4 bowls per min
 
 				// trans.traceTransition("PatchTransitions: ", true);
 			}
 
-			if (trans.autoDecaySeconds == 2160) // 36 min like well  0.91 bowls per min
-			{
-				trans.autoDecaySeconds = 720; // 12 min one bowl 3%: 33 uses / 12 min = 2.7 bowls per min
-
+			// Shallow Well 662 
+			if (trans.autoDecaySeconds == 2160){ 
+				// 2160 =  36 min // 0.91 bowls per min
+				// 720 = 12 min // use chance 3%: 33 uses / 12 min = 2.7 bowls per min
+				trans.autoDecaySeconds = 720; 
 				// trans.traceTransition("PatchTransitions: ", true);
 			}
 		}
