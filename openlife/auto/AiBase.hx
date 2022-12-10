@@ -1294,6 +1294,8 @@ abstract class AiBase
 		//if(doWatering(2)) return true;
 		if(doWateringOn(396)) return true; // Dry Planted Carrots 396
 
+		if(doComposting()) return true;
+
 		// Bowl of Soil 1137 + Dying Gooseberry Bush 389
 		if(shortCraft(1137, 389, 30)) return true; 
 
@@ -1336,6 +1338,32 @@ abstract class AiBase
 		
 		//var max = this.profession['BasicFarmer'] < 2 ? 3 : 1;
 		if(craftItem(336)) return true; // Basket of Soil
+
+		return false;
+	}
+
+	private function doComposting(){
+		var home = myPlayer.home;
+
+		// Composting Compost Pile 790
+		var countCompost = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 790, 30);
+		// Composted Soil 624
+		countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 624, 30);
+
+		if(countCompost < 1) this.taskState['Composting'] = 1;
+
+		if(countCompost > 3) this.taskState['Composting'] = 0;
+
+		if(this.taskState['Composting'] == 0 && countCompost > 0) return false;
+
+		// Composting Compost Pile 790
+		if(craftItem(790)) return true; 
+
+		// Wet Compost Pile 625
+		countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 625, 30);
+
+		// Wet Compost Pile 625
+		if(countCompost < 3 && craftItem(625)) return true; 
 
 		return false;
 	}
@@ -1462,6 +1490,8 @@ abstract class AiBase
 		if(counRawtBerryPies < 3 && craftItem(265)) return true; // Raw Berry Pie
 		//else this.lastProfession = 'Baker';
 		//this.profession['CarrotFarmer'] = 0;
+
+		if(doComposting()) return true;
 
 		return false;
 	}
@@ -1596,20 +1626,7 @@ abstract class AiBase
 		//var closeObj = AiHelper.GetClosestObjectById(myPlayer, 242, null, 20); // Ripe Wheat
 		//if(closeObj != null) if(craftItem(224)) return true; // Harvested Wheat		
 
-		// Composting Compost Pile 790
-		var countCompost = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 790, 30);
-		// Composted Soil 624
-		countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 624, 30);
-
-		// Composting Compost Pile 790
-		if(countCompost < 3 && craftItem(790)) return true; 
-
-		// Wet Compost Pile 625
-		countCompost += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 625, 30);
-
-		// Wet Compost Pile 625
-		if(countCompost < 3 && craftItem(625)) return true; 
-
+		if(doComposting()) return true;
 		if(doWatering(3)) return true;
 
 		this.profession['BasicFarmer'] = 1;
