@@ -1891,7 +1891,12 @@ class ServerSettings {
 		trans.hungryWorkCost = 3;
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 
-		// Bowl of Soil + Hardened Row -- Shallow Tilled Row
+		// Bowl of Soil + Fertile Soil Pile 1101 
+		var trans = transtions.getTransition(1137, 1101); 
+		trace('Bowl of Soil + Fertile Soil Pile: ${trans.targetMinUseFraction}');
+		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
+
+		// Bowl of Soil + Hardened Row --> Shallow Tilled Row
 		var trans = transtions.getTransition(1137, 848); 
 		trans.hungryWorkCost = -5; // dont let is cost hungry work
 
