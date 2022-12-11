@@ -3649,8 +3649,7 @@ private function craftLowPriorityClothing() : Bool {
 
 	private function killAnimal(animal:ObjectHelper) : Bool {
 		if (animal == null && animalTarget == null){
-			if(hasOrBecomeProfession('Hunter') == false) return false;
-
+			
 			var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(timeLookedForDeadlyAnimalAtHome);
 			if(passedTime > 20){
 				//trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: look for wolf at home');
@@ -3666,6 +3665,9 @@ private function craftLowPriorityClothing() : Bool {
 				
 				profession['Hunter'] = quiver == null ? 0 : 1;
 				return false;
+			}
+			else{
+				if(hasOrBecomeProfession('Hunter') == false) return false;
 			}
 		}
 
