@@ -2574,6 +2574,24 @@ class ServerSettings {
 		//trace('Bowl of Water: ' + trans.getDesciption());
 		//trans.aiShouldIgnore = true;
 
+		// Steel Mining Pick 684
+		var transByTarget = TransitionImporter.GetTransitionByActor(684);
+		for(trans in transByTarget){
+			// Gold Vein 680
+			if(trans.targetID == 680) continue;
+			// Stripped Iron Vein 3944
+			if(trans.targetID == 3944) continue;
+			// Shallow Iron Pit 3957
+			if(trans.targetID == 3957) continue;
+			// Cut Stones 881
+			if(trans.targetID == 881) continue;
+			// Iron Mine
+			if(trans.targetID == 944) continue;
+
+			trace('Steel Mining Pick ' + trans.getDesciption());
+			trans.aiShouldIgnore = true; 
+		}
+
 		// Scrap Bowl 3076 --> dont allow to scraft crafted metal
 		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
 		for(trans in transByTarget){

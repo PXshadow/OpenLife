@@ -378,13 +378,21 @@ class TransitionImporter {
 		return transitions != null ? transitions : new Array<TransitionData>();
 	}
 
+	public static function GetTransitionByActor(actorId:Int):Array<TransitionData> {
+		return transitionImporter.getTransitionByNewActor(actorId);
+	}
+
+	public function getTransitionByActor(actorId:Int):Array<TransitionData> {
+		var transitions = allTransitionsByActorMap[actorId];
+		return transitions != null ? transitions : new Array<TransitionData>();
+	}
+
 	public static function GetTransitionByNewActor(newActorId:Int):Array<TransitionData> {
 		return transitionImporter.getTransitionByNewActor(newActorId);
 	}
 
 	public function getTransitionByNewActor(newActorId:Int):Array<TransitionData> {
 		var transitions = transitionsByNewActorMap[newActorId];
-
 		return transitions != null ? transitions : new Array<TransitionData>();
 	}
 
