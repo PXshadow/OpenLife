@@ -1446,9 +1446,9 @@ abstract class AiBase
 		var countPlantedCarrots = countWetPlantedCarrots;
 		countPlantedCarrots += countDryPlantedCarrots;
 
-		if(countDryPlantedCarrots < 1) this.taskState['WaterCarrots'] = 0;
-		if(countDryPlantedCarrots > 3) this.taskState['WaterCarrots'] = 1;
-		if(this.taskState['WaterCarrots'] > 0 && doWatering(2)) return true; 
+		//if(countDryPlantedCarrots < 1) this.taskState['WaterCarrots'] = 0;
+		//if(countDryPlantedCarrots > 3) this.taskState['WaterCarrots'] = 1;
+		//if(this.taskState['WaterCarrots'] > 0 && doWatering(2)) return true; 
 
 		// Carrot 402
 		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 402, 30);
@@ -1506,6 +1506,12 @@ abstract class AiBase
 		var heldObject = myPlayer.heldObject;
 		var distance = 30;
 
+		// Dry Domestic Gooseberry Bush 393
+		if(doWateringOn(393,3)) return true;
+		
+		// Dry Planted Gooseberry Seed 216
+		if(doWateringOn(216,3)) return true;
+
 		// Plant Berry Bushes if needed
 
 		// Domestic Gooseberry Bush
@@ -1516,6 +1522,8 @@ abstract class AiBase
 		countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 219, distance);
 		// Wet Planted Gooseberry Seed
 		countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 217, distance);
+		// Dry Planted Gooseberry Seed 216
+		countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 216, distance);
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} countBushes: $countBushes ');			
 		
@@ -1531,6 +1539,12 @@ abstract class AiBase
 		// Wet Planted Gooseberry Seed 217
 		// Dry Planted Gooseberry Seed 216
 		if(craftItem(216)) return true;
+
+		// Dry Domestic Gooseberry Bush 393
+		if(doWateringOn(393)) return true;
+		
+		// Dry Planted Gooseberry Seed 216
+		if(doWateringOn(216)) return true;
 		
 		return false;
 	}
@@ -2229,10 +2243,11 @@ abstract class AiBase
 		// TODO use a general water rework to water all dry stuff
 		if(doWateringOn(396)) return true; //  Dry Planted Carrots 396
 		if(doWateringOn(228)) return true; //  Dry Planted Wheat 228
-		if(doWateringOn(393)) return true; //  Dry Domestic Gooseberry Bush 393
 		if(doWateringOn(1109)) return true; //  Dry Planted Corn Seed 1109
 		if(doWateringOn(2829)) return true; //  Dry Planted Tomato Seed 2829
 		if(doWateringOn(4225)) return true; //  Dry Planted Cucumber Seeds 4225
+		if(doWateringOn(393)) return true; //  Dry Domestic Gooseberry Bush 393
+		if(doWateringOn(216)) return true; //  Dry Planted Gooseberry Seed 216
 		if(doWateringOn(2856)) return true; //  Dry Planted Onion 2856
 		if(doWateringOn(2851)) return true; //  Dry Planted Onions 2851
 		if(doWateringOn(1161)) return true; //  Dry Planted Beans 1161
