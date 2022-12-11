@@ -1307,7 +1307,10 @@ class ServerSettings {
 		ObjectData.getObjectData(30).lastUseObject = 279; // Wild Gooseberry Bush ==> Empty Wild Gooseberry Bush
 		ObjectData.getObjectData(279).undoLastUseObject = 30; // Empty Wild Gooseberry Bush ==> Wild Gooseberry Bush
 
-		var trans = transtions.getTransition(-1, 282); // Firing Adobe Kiln ==> Ancient
+		var trans = transtions.getTransition(-1, 761); // Barrel Cactus 761
+		trans.autoDecaySeconds = 600; // default: 5 * 60 = 300
+
+		var trans = transtions.getTransition(-1, 282); // Firing Adobe Kiln 
 		trans.autoDecaySeconds = 40; // default: 30 
 
 		var trans = transtions.getTransition(-1, 885); // Stone Wall (Corner) ==> Ancient
