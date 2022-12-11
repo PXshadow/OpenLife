@@ -445,6 +445,8 @@ abstract class AiBase
 
 		if(this.profession['Baker'] > 1) Macro.exception(if (doBaking()) return);
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
+
+		//if(doWateringOn(396)) return; // Dry Planted Carrots 396
 		
 		Macro.exception(if (isHandlingFire()) return);
 		Macro.exception(if (isPickingupCloths()) return);		
@@ -486,7 +488,8 @@ abstract class AiBase
 		// Bowl of Soil 1137
 		//if(craftItem(1137)) return;
 		
-		if(this.profession['Smith'] > 0) Macro.exception(if (doSmithing()) return);
+		//if(this.profession['Smith'] > 0) Macro.exception(if (doSmithing()) return);
+		if(this.lastProfession == 'Smith') Macro.exception(if (doSmithing()) return);
 		//if(this.profession['WaterBringer'] > 0) Macro.exception(if (doWatering()) return);
 		//if(this.profession['BasicFarmer'] > 0) Macro.exception(if (doBasicFarming()) return);
 		//if(this.profession['Shepherd'] > 0) Macro.exception(if (isSheepHerding()) return);
@@ -731,7 +734,9 @@ abstract class AiBase
 		if(this.profession['firekeeper'] < 2 && count < 5 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true; 
 		this.profession['firekeeper'] = 2;
 
-		if(makeFireFood()) return true;
+		Macro.exception(if(doWatering(1)) return true);
+
+		if(makeFireFood(1)) return true;
 
 		if(cleanUp()) return true;
 		
@@ -1668,9 +1673,13 @@ abstract class AiBase
 		var trans = TransitionImporter.GetTransition(382, itemToWaterId);
 		if(trans == null) return false;
 
-		//trace('doWateringOn: $count');
+		var obData = ObjectData.getObjectData(trans.newTargetID);
+
+		//trace('AAI: ${myPlayer.name + myPlayer.id} doWateringOn: ${obData.name} $count');
 
 		return craftItem(trans.newTargetID);
+
+		//trace('AAI: ${myPlayer.name + myPlayer.id} doWateringOn: ${obData.name} $count failed!');
 	}
 
 	/**private function doBasicFarming() {

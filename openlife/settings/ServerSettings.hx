@@ -2567,6 +2567,14 @@ class ServerSettings {
 		var trans = transtions.getTransition(0, 1354);
 		trans.aiShouldIgnore = true;
 
+		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
+		//var trans = transtions.getTransition(1247, 4110);
+		//trans.aiShouldIgnore = true;
+
+		// Bowl with Corn Kernels 1247 + Empty Bucket 659 (untill circular crafting is fixed)
+		//var trans = transtions.getTransition(1247, 659);
+		//trans.aiShouldIgnore = true;
+
 		// TODO Bowl with Corn Kernels // forbid cirtular crafting --> tries to get empty bowl by putting Kernels in
 
 		// Clay Bowl 235 // Shallow Well 662 // Bowl of Water 382
