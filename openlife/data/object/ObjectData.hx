@@ -1588,8 +1588,10 @@ class ObjectData extends LineReader {
 
 	// for example // Fed Domestic Lamb
 	public function isDomesticAnimal() : Bool {
-		var isDomestic = this.biomes.length >= 2 && this.biomes[1] == BiomeTag.GREEN;
-		// trace('Animal: ${this.name} ${this.biomes} isDomestic: $isDomestic');
+		if(isAnimal() == false) return false;
+
+		var isDomestic = this.biomes.length > 0 && this.biomes[0] == BiomeTag.GREEN;
+		//trace('Animal: ${this.name} ${this.biomes} isDomestic: $isDomestic');
 		return isDomestic;
 	}
 

@@ -2588,7 +2588,7 @@ class ServerSettings {
 			// Iron Mine
 			if(trans.targetID == 944) continue;
 
-			trace('Steel Mining Pick ' + trans.getDesciption());
+			//trace('Steel Mining Pick ' + trans.getDesciption());
 			trans.aiShouldIgnore = true; 
 		}
 
