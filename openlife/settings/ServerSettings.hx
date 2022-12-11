@@ -1345,6 +1345,11 @@ class ServerSettings {
 		var trans = transtions.getTransition(-1, 749); // Bloody Yew Bow
 		trans.autoDecaySeconds = 30;
 
+		// Make reapir fences more easy:
+		// Mallet 467 + Fence Kit 556 -->  Mallet 467 + Fence 550
+		var trans = new TransitionData(467, 556, 467, 550); // Knife + Wolf ==> Bloody Knife + Dead Wolf
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// Knife transitions for close combat
 		var trans = new TransitionData(560, 418, 750, 422); // Knife + Wolf ==> Bloody Knife + Dead Wolf
 		transtions.addTransition("PatchTransitions: ", trans);
