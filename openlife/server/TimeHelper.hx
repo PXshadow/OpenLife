@@ -2500,7 +2500,11 @@ class TimeHelper {
 		var random = WorldMap.calculateRandomFloat();
 		var weaponDamage = weapon.objectData.damage;
 		var damage = weaponDamage / 2 + weaponDamage * WorldMap.world.randomFloat();
+
+		if(target.isDomesticAnimal() && attacker.isHoldingWeapon() == false) return false;
 		
+		//attacker.say('escape att', true);
+
 		target.hits += 1;
 		
 		// 3948 Arrow Quiver
@@ -2567,6 +2571,8 @@ class TimeHelper {
 				var obj = world.getObjectHelper(tx, ty, true);
 				if (obj == null) continue;
 				if (obj.objectData.moves == 0) continue;
+				if (obj.isDomesticAnimal() && player.isHoldingWeapon() == false) continue;
+				//player.say('escape 2 domestic: ${obj.isDomesticAnimal()} weapon: ${player.isHoldingWeapon()}', true);
 
 				var tmpTimeToChange = obj.timeToChange;
 				obj.timeToChange /= 5;
