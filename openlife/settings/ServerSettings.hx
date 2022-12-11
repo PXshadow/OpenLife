@@ -1729,15 +1729,15 @@ class ServerSettings {
 		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		// let get bana back!
+		// lets get banana back!
 		trans = new TransitionData(-1, 2142, 0, 2142); // Banana Plant
 		trans.reverseUseTarget = true;
-		trans.autoDecaySeconds = -2;
+		trans.autoDecaySeconds = -3;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 2145, 0, 2142); // Empty Banana Plant --> Banana Plant
 		trans.reverseUseTarget = true;
-		trans.autoDecaySeconds = -2;
+		trans.autoDecaySeconds = -3;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// get some sharpie back
