@@ -2571,6 +2571,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(1222, 227);
 		trans.aiShouldIgnore = true;
 
+		// Shovel 502 + Barrel Cactus 761 
+		var trans = transtions.getTransition(502, 761);
+		trans.aiShouldIgnore = true;
+
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
 		//var trans = transtions.getTransition(1247, 4110);
 		//trans.aiShouldIgnore = true;
