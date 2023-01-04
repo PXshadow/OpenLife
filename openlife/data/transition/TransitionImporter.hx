@@ -311,7 +311,7 @@ class TransitionImporter {
 				//if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${oldId} to ${toolTransition.newActorID} ' + trans.getDesciption());
 				if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${oldId} to ${trans.newActorID}');
 
-				removeTransitionFromMap(transitionsByNewActorMap, oldId);
+				removeTransitionFromMap(transitionsByNewActorMap, trans, oldId);
 				addTransitionToMap(transitionsByNewActorMap, trans, trans.newActorID);
 
 				if(toolTransition.newActorID == 382){
