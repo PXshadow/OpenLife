@@ -295,11 +295,21 @@ class TransitionImporter {
 				var oldId = trans.newActorID;
 				trans.newActorID = toolTransition.newActorID;
 
-				trace('IMPORT: Change Actor from: ${oldId} to ${toolTransition.newActorID} ' + trans.getDesciption());
+				//trace('IMPORT: Change Actor from: ${oldId} to ${toolTransition.newActorID} ' + trans.getDesciption());
 				removeKeyFromMap(transitionsByNewActorMap, oldId);
 				addTransitionToMap(transitionsByNewActorMap, trans, trans.newActorID);
 			}
 		}
+
+		// Bowl of Water 382
+		var count = 0;
+		var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
+		for(trans in transByTarget){
+			trace('Bowl of Water: ' + trans.getDesciption());
+			count++;
+		}
+
+		trace('Bowl of Water tranistions: $count');
 
 		trace('IMPORT: 1: $count1 2:  $count2 3: $count3 4: $count4');
 	}

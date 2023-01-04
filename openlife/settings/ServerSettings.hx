@@ -2737,7 +2737,7 @@ class ServerSettings {
 			count++;
 		}
 
-		trace('Bowl of Water tranistions: $count');
+		trace('Bowl of Water tranistions2: $count');
 
 		throw new Exception('stop');
 		
