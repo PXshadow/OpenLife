@@ -906,6 +906,9 @@ class ServerSettings {
 		ObjectData.getObjectData(1261).secondTimeOutcome = 142; // Canada Goose Pond with Egg ==> Canada Goose Pond swimming
 		ObjectData.getObjectData(1261).secondTimeOutcomeTimeToChange = 60 * 4;
 
+		ObjectData.getObjectData(511).secondTimeOutcome = 142; // Pond ==> Canada Goose Pond swimming
+		ObjectData.getObjectData(511).secondTimeOutcomeTimeToChange = 60 * 60 * 24;
+
 		ObjectData.getObjectData(141).countsOrGrowsAs = 1261; // Canada Goose Pond
 		ObjectData.getObjectData(142).countsOrGrowsAs = 1261; // Canada Goose Pond swimming
 		ObjectData.getObjectData(510).countsOrGrowsAs = 1261; // Pond with Dead Goose plus arrow
