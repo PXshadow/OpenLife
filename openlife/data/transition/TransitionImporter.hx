@@ -255,17 +255,25 @@ class TransitionImporter {
 	// For example Empty Portable Water Source Trans: 235 + 662 = 235 + 664 
 	// Mainly use thread / garn  / water + use / empty water --> fill up 
 	private function changeToolTransitions(){
+		var count1 = 0;
+		var count2 = 0;
+		var count3 = 0;
+		var count4 = 0;
 
 		for(trans in transitions){
+			count1++;
 			// should ingnore: // Example: EMPTY + Cold Bowl 1021
 			if(trans.actorID != trans.newActorID) continue;
+			count2++;
 
 			// should ingnore: // Example: Popcorn + PLAYER
 			if(trans.targetID < 1) continue;
+			count3++;
 
 			// should ingnore: dont break // Steel Hoe# +toolHoe + Fertile Soil Pile 
 			var objData = ObjectData.getObjectData(trans.actorID);
 			if(objData.numUses > 1) continue;
+			count4++;
 
 			// TODO why is this special?
 			// should ingnore: Rubber Ball 2170 + Paper with Charcoal Writing 
@@ -292,6 +300,8 @@ class TransitionImporter {
 				addTransitionToMap(transitionsByNewActorMap, trans, trans.newActorID);
 			}
 		}
+
+		trace('IMPORT: 1: $count1 2:  $count2 3: $count3 4: $count4');
 	}
 
 	private function getTransitionMap(lastUseActor:Bool, lastUseTarget:Bool, maxUseTarget:Bool = false):Map<Int, Map<Int, TransitionData>> {
