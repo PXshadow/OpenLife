@@ -1,5 +1,6 @@
 package openlife.settings;
 
+import haxe.Exception;
 import openlife.data.object.ObjectData;
 import openlife.data.transition.TransitionData;
 import openlife.data.transition.TransitionImporter;
@@ -2722,6 +2723,12 @@ class ServerSettings {
 			transtions.addTransition("PatchTransitions: ", trans);
 		 */
 
+		var trans = TransitionImporter.GetTransition(235, 662); // Clay Bowl + Shallow Well
+		trace('DEBUG: ${trans.getDesciption()}');
+		if(trans.newActorID != 382){ // Bowl of Water 382
+			throw new Exception('New actor should be: Bowl of Water 382');
+		}
+		
 		 //var lastUseTransition = TransitionImporter.GetTransition(252, 236, true, false);
 		 //trace('Debug PAYETON4171: ${lastUseTransition.getDesciption()}');
 
