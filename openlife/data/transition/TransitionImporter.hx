@@ -302,11 +302,13 @@ class TransitionImporter {
 
 			if (toolTransition != null && trans.newActorID != toolTransition.newActorID) {
 				count4++;
+				
 				//if (ServerSettings.DebugTransitionHelper) trace('IMPORT: Change Actor from: ${trans.newActorID,} to ${toolTransition.newActorID}');
+				if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${trans.newActorID,} to ${toolTransition.newActorID}');
 				var oldId = trans.newActorID;
 				trans.newActorID = toolTransition.newActorID;
 
-				//trace('IMPORT: Change Actor from: ${oldId} to ${toolTransition.newActorID} ' + trans.getDesciption());
+				if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${oldId} to ${toolTransition.newActorID} ' + trans.getDesciption());
 				removeKeyFromMap(transitionsByNewActorMap, oldId);
 				addTransitionToMap(transitionsByNewActorMap, trans, trans.newActorID);
 			}
