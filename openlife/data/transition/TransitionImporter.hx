@@ -256,16 +256,6 @@ class TransitionImporter {
 	// Mainly use thread / garn  / water + use / empty water --> fill up 
 	private function changeToolTransitions(){
 
-		// Bowl of Water 382
-		var count = 0;
-		var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
-		for(trans in transByTarget){
-			//trace('Bowl of Water: ' + trans.getDesciption());
-			count++;
-		}
-
-		trace('Bowl of Water tranistions0: $count');
-
 		var count1 = 0;
 		var count2 = 0;
 		var count3 = 0;
@@ -309,12 +299,12 @@ class TransitionImporter {
 				trans.newActorID = toolTransition.newActorID;
 
 				//if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${oldId} to ${toolTransition.newActorID} ' + trans.getDesciption());
-				if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${oldId} to ${trans.newActorID}');
+				//if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${oldId} to ${trans.newActorID}');
 
 				removeTransitionFromMap(transitionsByNewActorMap, trans, oldId);
 				addTransitionToMap(transitionsByNewActorMap, trans, trans.newActorID);
 
-				if(toolTransition.newActorID == 382){
+				/*if(toolTransition.newActorID == 382){
 					// Bowl of Water 382
 					var count = 0;
 					var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
@@ -323,21 +313,21 @@ class TransitionImporter {
 						count++;
 					}
 					trace('Bowl of Water tranistions i: $count');
-				}
+				}*/
 			}
 		}
 
 		// Bowl of Water 382
-		var count = 0;
+		/*var count = 0;
 		var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
 		for(trans in transByTarget){
-			//trace('Bowl of Water: ' + trans.getDesciption());
+			trace('Bowl of Water: ' + trans.getDesciption());
 			count++;
-		}
+		}*/
 
-		trace('Bowl of Water tranistions: $count');
+		//trace('Bowl of Water tranistions: $count');
 
-		trace('IMPORT: 1: $count1 2:  $count2 3: $count3 4: $count4');
+		//trace('IMPORT: 1: $count1 2:  $count2 3: $count3 4: $count4');
 	}
 
 	private function getTransitionMap(lastUseActor:Bool, lastUseTarget:Bool, maxUseTarget:Bool = false):Map<Int, Map<Int, TransitionData>> {

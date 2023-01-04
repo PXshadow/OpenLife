@@ -2729,7 +2729,7 @@ class ServerSettings {
 			throw new Exception('New actor should be: Bowl of Water 382');
 		}
 
-		// Bowl of Water 382
+		/*// Bowl of Water 382
 		var count = 0;
 		var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
 		for(trans in transByTarget){
@@ -2739,7 +2739,7 @@ class ServerSettings {
 
 		trace('Bowl of Water tranistions2: $count');
 
-		throw new Exception('stop');
+		throw new Exception('stop');*/
 		
 		 //var lastUseTransition = TransitionImporter.GetTransition(252, 236, true, false);
 		 //trace('Debug PAYETON4171: ${lastUseTransition.getDesciption()}');
