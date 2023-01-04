@@ -2728,6 +2728,14 @@ class ServerSettings {
 		if(trans.newActorID != 382){ // Bowl of Water 382
 			throw new Exception('New actor should be: Bowl of Water 382');
 		}
+
+		// Bowl of Water 382
+		var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
+		for(trans in transByTarget){
+			trace('Bowl of Water: ' + trans.getDesciption());
+		}
+
+		throw new Exception('stop');
 		
 		 //var lastUseTransition = TransitionImporter.GetTransition(252, 236, true, false);
 		 //trace('Debug PAYETON4171: ${lastUseTransition.getDesciption()}');

@@ -4715,6 +4715,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			player.say('Changed Speed!', true);
 			return true;
+		} else if (text.indexOf('!TTT') != -1) {
+
+			// Bowl of Water 382
+			var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
+			var count = 0;
+			for(trans in transByTarget){
+				count++;
+				trace('Bowl of Water: ' + trans.getDesciption());
+			}
+
+			player.say('Bowl of Water transitions: $count', true);
+			return true;
 		}
 
 		return false;
