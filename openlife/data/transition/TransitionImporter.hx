@@ -287,7 +287,7 @@ class TransitionImporter {
 				var oldId = trans.newActorID;
 				trans.newActorID = toolTransition.newActorID;
 
-				//trace('IMPORT: Change Actor from: ${oldId} to ${toolTransition.newActorID} ' + trans.getDesciption());
+				trace('IMPORT: Change Actor from: ${oldId} to ${toolTransition.newActorID} ' + trans.getDesciption());
 				removeKeyFromMap(transitionsByNewActorMap, oldId);
 				addTransitionToMap(transitionsByNewActorMap, trans, trans.newActorID);
 			}
