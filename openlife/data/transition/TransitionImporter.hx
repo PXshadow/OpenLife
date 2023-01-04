@@ -303,14 +303,27 @@ class TransitionImporter {
 			if (toolTransition != null && trans.newActorID != toolTransition.newActorID) {
 				count4++;
 				
-				//if (ServerSettings.DebugTransitionHelper) trace('IMPORT: Change Actor from: ${trans.newActorID,} to ${toolTransition.newActorID}');
-				if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${trans.newActorID,} to ${toolTransition.newActorID}');
+				//if (ServerSettings.DebugTransitionHelper) trace('IMPORT: Change Actor from: ${trans.newActorID} to ${toolTransition.newActorID}');
+				//if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${trans.newActorID} to ${toolTransition.newActorID}');
 				var oldId = trans.newActorID;
 				trans.newActorID = toolTransition.newActorID;
 
-				if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${oldId} to ${toolTransition.newActorID} ' + trans.getDesciption());
+				//if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${oldId} to ${toolTransition.newActorID} ' + trans.getDesciption());
+				if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${oldId} to ${trans.newActorID}');
+
 				removeKeyFromMap(transitionsByNewActorMap, oldId);
 				addTransitionToMap(transitionsByNewActorMap, trans, trans.newActorID);
+
+				if(toolTransition.newActorID == 382){
+					// Bowl of Water 382
+					var count = 0;
+					var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
+					for(trans in transByTarget){
+						trace('Bowl of Water: ' + trans.getDesciption());
+						count++;
+					}
+					trace('Bowl of Water tranistions i: $count');
+				}
 			}
 		}
 
