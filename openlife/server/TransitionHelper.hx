@@ -43,6 +43,7 @@ class TransitionHelper {
 
 	public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0):Bool {
 		var startTime = Sys.time();
+		player.useFailedReason = 'NA';
 
 		/*
 		var targetObj = WorldMap.world.getObjectHelper(x - player.gx, y - player.gy);
@@ -789,6 +790,7 @@ class TransitionHelper {
 				var message = 'Too hot!';
 				player.say(message, true);
 				player.doEmote(Emote.yellowFever);
+				player.useFailedReason = message;
 				return false;
 			}
 
@@ -797,6 +799,7 @@ class TransitionHelper {
 				var message = 'Too exhausted! $excessExhaustion';
 				player.say(message, true);
 				player.doEmote(Emote.homesick);
+				player.useFailedReason = message;
 				return false;
 			}
 
@@ -806,6 +809,7 @@ class TransitionHelper {
 				var message = 'Need ${missingFood} more food!';
 				player.say(message, true);
 				player.doEmote(Emote.homesick);
+				player.useFailedReason = message;
 
 				return false;
 			}

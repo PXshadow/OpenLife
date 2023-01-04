@@ -5453,11 +5453,23 @@ private function craftLowPriorityClothing() : Bool {
 			// TODO check why use is failed... for now add to ignore list
 			// TODO dont use on contained objects if result cannot contain (ignore in crafting search)
 			// TODO check if failed because of hungry work
-			//this.addNotReachableObject(useTarget);
-			this.addObjectWithHostilePath(useTarget);
+			
 			useTarget = null;
 			itemToCraft.transActor = null;
 			itemToCraft.transTarget = null;
+			dropIsAUse = false;
+
+			// TODO check in advance
+			if(myPlayer.useFailedReason == 'Too hot!'){
+				isHandlingTemperature = true;
+				return handleTemperature();
+			}
+			if(myPlayer.useFailedReason.contains('food')){
+				isHungry = true;
+				return true;
+			}
+			this.addObjectWithHostilePath(useTarget);
+			//this.addNotReachableObject(useTarget);
 		}
 
 		useTarget = null;

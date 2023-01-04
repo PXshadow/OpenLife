@@ -51,6 +51,8 @@ interface PlayerInterface {
 
 	public var clothingObjects(default, default):Vector<ObjectHelper>;
 
+	public var useFailedReason(default, default):String;
+
 	public function isDeleted():Bool;
 	public function isHuman():Bool;
 	public function isAi():Bool;

@@ -204,6 +204,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var storedInt = new Map<String, Int>(); // to store variables not saved yet
 	public var timeLastTemperatureCalculation:Float = 0;
 
+	public var useFailedReason = 'NA';
+
 	// set all stuff null so that nothing is hanging around
 	public function delete() {
 		this.deleted = true;
