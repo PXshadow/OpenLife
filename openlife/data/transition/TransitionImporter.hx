@@ -528,8 +528,14 @@ class TransitionImporter {
 		transition.traceTransition('$addedBy WARNING DOUBLE 2!!');
 	}
 
-	private function removeKeyFromMap(map:Map<Int, Array<TransitionData>>, key:Int) {
+	/*private function removeKeyFromMap(map:Map<Int, Array<TransitionData>>, key:Int) {
 		map.remove(key);
+	}*/
+
+	private function removeTransitionFromMap(map:Map<Int, Array<TransitionData>>, transition:TransitionData, key:Int) {
+		var array = map[key];
+		if(array == null) return;
+		array.remove(transition);
 	}
 
 	private function addTransitionToMap(map:Map<Int, Array<TransitionData>>, transition:TransitionData, key:Int) {
