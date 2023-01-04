@@ -2733,7 +2733,7 @@ class ServerSettings {
 		var count = 0;
 		var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
 		for(trans in transByTarget){
-			trace('Bowl of Water: ' + trans.getDesciption());
+			//trace('Bowl of Water: ' + trans.getDesciption());
 			count++;
 		}
 
