@@ -255,6 +255,17 @@ class TransitionImporter {
 	// For example Empty Portable Water Source Trans: 235 + 662 = 235 + 664 
 	// Mainly use thread / garn  / water + use / empty water --> fill up 
 	private function changeToolTransitions(){
+
+		// Bowl of Water 382
+		var count = 0;
+		var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
+		for(trans in transByTarget){
+			trace('Bowl of Water: ' + trans.getDesciption());
+			count++;
+		}
+
+		trace('Bowl of Water tranistions0: $count');
+
 		var count1 = 0;
 		var count2 = 0;
 		var count3 = 0;
