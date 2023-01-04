@@ -5287,6 +5287,7 @@ private function craftLowPriorityClothing() : Bool {
 		if (myPlayer.isStillExpectedItem(useTarget) == false) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use target changed meanwhile! ${useTarget.name}');
 			useTarget = null;
+			useActor = null;
 			return false;
 		}
 
@@ -5442,11 +5443,18 @@ private function craftLowPriorityClothing() : Bool {
 					trace('AAI: ${myPlayer.name + myPlayer.id} done: ${useActorName} + ${useTarget.name} ==> ${itemToCraft.itemToCraft.name} trans: ${itemToCraft.countTransitionsDone} finished: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
 			}
 		} else {
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use failed! Ignore: ${useTarget.name} ${useTarget.tx} ${useTarget.ty} ');
+			var foodStore = Math.round(myPlayer.food_store*10)/10;
+			var heat = Math.round(myPlayer.heat*100)/100;
+			var target = myPlayer.getWorld().getObjectHelper(useTarget.tx, useTarget.ty);
+
+			//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use failed! Ignore: ${useTarget.name} ${useTarget.tx} ${useTarget.ty} ');
+			trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: Use failed! held: ${heldObject.name} expected: ${useActor.name} Ignore: ${target.name} expected: ${useTarget.name}  foodStore: ${foodStore} heat: ${heat}');
 
 			// TODO check why use is failed... for now add to ignore list
 			// TODO dont use on contained objects if result cannot contain (ignore in crafting search)
-			this.addNotReachableObject(useTarget);
+			// TODO check if failed because of hungry work
+			//this.addNotReachableObject(useTarget);
+			this.addObjectWithHostilePath(useTarget);
 			useTarget = null;
 			itemToCraft.transActor = null;
 			itemToCraft.transTarget = null;
@@ -5554,7 +5562,7 @@ private function craftLowPriorityClothing() : Bool {
 
 	public function addHostilePath(tx:Int, ty:Int) {
 		var index = WorldMap.world.index(tx, ty);
-		objectsWithHostilePath[index] = 20; // block for 30 sec
+		objectsWithHostilePath[index] = 20; // block for 20 sec
 	}
 
 	public function isObjectWithHostilePath(tx:Int, ty:Int):Bool {
@@ -5578,7 +5586,7 @@ private function craftLowPriorityClothing() : Bool {
 	public function addNotReachable(tx:Int, ty:Int, time:Float = 90) {
 		var index = WorldMap.world.index(tx, ty);
 		// if(notReachableObjects.exists(index)) return;
-		notReachableObjects[index] = time; // block for 25 sec
+		notReachableObjects[index] = time; // block for 90 sec
 	}
 
 	public function isObjectNotReachable(tx:Int, ty:Int):Bool {
