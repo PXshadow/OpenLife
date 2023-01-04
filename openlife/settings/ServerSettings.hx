@@ -2730,10 +2730,14 @@ class ServerSettings {
 		}
 
 		// Bowl of Water 382
+		var count = 0;
 		var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
 		for(trans in transByTarget){
 			trace('Bowl of Water: ' + trans.getDesciption());
+			count++;
 		}
+
+		trace('Bowl of Water tranistions: $count');
 
 		throw new Exception('stop');
 		
