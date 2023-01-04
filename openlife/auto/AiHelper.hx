@@ -1284,7 +1284,7 @@ class AiHelper {
 				|| player.getFollowPlayer() == p) hungry = hungry / 2 - 0.25; // prefer close relative
 			if (isAlly == false) hungry = hungry / 2 - 0.2; // prefer ally
 			if(isSmith) hungry = hungry / 2 - 0.2; // dont be distracted from smithing
-			if(isTargetSmith) hungry = hungry * 2 + 0.5; // feed smith
+			//if(isTargetSmith) hungry = hungry * 2 + 0.5; // feed smith
 			//if (p.isAi() && isNobleOrMore == false) hungry / 2 - 0.2; // prefer Ai only if noble
 			//if (myPlayerIsNobleOrMore && p.isAi()) hungry / 2 - 0.2; // if myPlayer is noble feed less AI
 			if (hungry < 0) continue;
