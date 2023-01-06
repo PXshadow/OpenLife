@@ -501,8 +501,10 @@ abstract class AiBase
 		Macro.exception(if(doWatering(1)) return);
 		Macro.exception(if(doCarrotFarming(1)) return);
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);
-		Macro.exception(if(fillBeanBowlIfNeeded()) return); // green beans		
-		Macro.exception(if(fillBeanBowlIfNeeded(false)) return); // dry beans		
+		Macro.exception(if(cleanUpBowls(253)) return); // Bowl of Gooseberries 253
+		Macro.exception(if(fillBeanBowlIfNeeded()) return); // green beans	
+		Macro.exception(if(fillBeanBowlIfNeeded(false)) return); // dry beans
+		Macro.exception(if(cleanUpBowls(1176)) return); // Bowl of Dry Beans 1176
 		
 		//Macro.exception(if(doBasicFarming(1)) return);
 
@@ -2698,6 +2700,19 @@ abstract class AiBase
 		}
 
 		return GetItem(235); // Clay Bowl
+	}
+
+	private function cleanUpBowls(bowlId:Int) {
+		// 253 Bowl of Gooseberries
+		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, bowlId, 30);
+
+		if(count < 2) return false;
+		var closeBowl = AiHelper.GetClosestObjectById(myPlayer, bowlId);
+		
+		// empty only bowls with one berry
+		if(closeBowl != null && closeBowl.numberOfUses > 1) return false;
+
+		return shortCraftOnTarget(0, closeBowl);
 	}
 
 	private function fillBerryBowlIfNeeded() : Bool {
