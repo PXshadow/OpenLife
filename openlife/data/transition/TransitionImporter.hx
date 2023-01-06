@@ -618,12 +618,12 @@ class TransitionImporter {
 					// <1949> + <1941> (Pattern) = <0> + <1947> // @ Any Card + Ace of Clubs -->  EMPTY + Deck of Cards
 					if (targetCategory.pattern && newTargetCategory != null) {
 						if (newTargetCategory == null) {
-							trace('WARNING: $categoryDesc ' + transition.getDesciption());
+							trace('WARNING: $categoryDesc ' + transition.getDescription());
 							throw new Exception('targetCategory.pattern is pattern and newTargetCategory != null');
 						}
 
 						if (targetCategory.ids.length != newTargetCategory.ids.length) {
-							trace('WARNING: $categoryDesc ' + transition.getDesciption());
+							trace('WARNING: $categoryDesc ' + transition.getDescription());
 							throw new Exception('targetCategory.ids.length != newTargetCategory.ids.length');
 						}
 
@@ -707,7 +707,7 @@ class TransitionImporter {
 			if (targetCategory != null && targetCategory.pattern == false) actorCategory = null; // TODO loop over other category?
 
 			if (actorCategory != null && targetCategory != null && actorCategory.ids.length != targetCategory.ids.length) {
-				trace('WARNING: ${description}' + transition.getDesciption());
+				trace('WARNING: ${description}' + transition.getDescription());
 				throw new Exception('actorCategory.ids.length != targetCategory.ids.length');
 			}
 

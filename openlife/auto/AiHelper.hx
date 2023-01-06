@@ -1036,18 +1036,18 @@ class AiHelper {
 
 				// ignore high tech stuff if most likely not needed
 				if (ignoreHighTech && isHighTech(wantedObjId)) {
-					trace('TEST1 IGNORE AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
+					trace('TEST1 IGNORE AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDescription(true));
 					continue;
 				}
 
-				if (ShouldDebug(trans)) trace('TEST1 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
+				if (ShouldDebug(trans)) trace('TEST1 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDescription(true));
 
 				if (trans.actorID == wantedObjId || trans.actorID == objectIdToSearch) continue;
 
-				if (ShouldDebug(trans)) trace('TEST2 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
+				if (ShouldDebug(trans)) trace('TEST2 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDescription(true));
 				if (trans.targetID == wantedObjId || trans.targetID == objectIdToSearch) continue;
 
-				if (ShouldDebug(trans)) trace('TEST3 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDesciption(true));
+				if (ShouldDebug(trans)) trace('TEST3 AI craft steps: $stepsCount WANTED: <${wantedObjId}> T: ' + trans.getDescription(true));
 
 				// TODO this might exclude needed tasks
 				// Allow transition if new actor or target is closer to wanted object
@@ -1453,6 +1453,8 @@ class TransitionForObject {
 	public var craftTarget:Null<ObjectHelper> = null;
 	public var craftFrom:TransitionForObject;
 	public var craftTransFrom:TransitionData;
+	public var bestCraftSteps:Int = -1;
+	public var bestCraftDistance:Float = -1;
 
 	public var isDone = false;
 	public var usePile = false; // if true this object is the piled object
@@ -1467,7 +1469,7 @@ class TransitionForObject {
 	}
 
 	public function getDesciption():String {
-		var description = 'objId: $objId wantedObjId: $wantedObjId steps: $steps trans: ' + bestTransition.getDesciption(true);
+		var description = 'objId: $objId wantedObjId: $wantedObjId steps: $steps trans: ' + bestTransition.getDescription(true);
 		return description;
 	}
 }
@@ -1489,6 +1491,7 @@ class IntemToCraft {
 	public var transitionsByObjectId:Map<Int, TransitionForObject>;
 
 	public var bestDistance:Float = 99999999999999999999999;
+	public var bestTransition:TransitionData = null;
 
 	public var craftingList = new Array<Int>(); // is not a complete list
 	public var craftingTransitions = new Array<TransitionData>(); // is not a complete list
@@ -1519,6 +1522,8 @@ class IntemToCraft {
 			trans.isDone = false;
 			trans.usePile = false;
 			trans.wantedObjs = new Array<TransitionForObject>();
+			trans.bestCraftSteps = -1;
+			trans.bestCraftDistance = -1;
 		}
 	}
 }

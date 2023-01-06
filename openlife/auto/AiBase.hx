@@ -4434,17 +4434,26 @@ private function craftLowPriorityClothing() : Bool {
 			//if(myPlayer.firePlace != null) addObjectsForCrafting(myPlayer.firePlace.tx, myPlayer.firePlace.ty, radius, transitionsByObjectId);
 
 			if(ServerSettings.DebugAi) trace('AI: craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
-			var startTime = Sys.time();
+			
 
 			/*itemToCraft.clearTransitionsByObjectId();
 			addObjectsForCrafting(myPlayer.home.tx, myPlayer.home.ty, radius, transitionsByObjectId, false);
 			if(itemToCraft.searchCurrentPosition) addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId, false);
 			if(ServerSettings.DebugAi) trace('AI: craft: FINISHED objects2 ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
+			*/
 
-			var startTime = Sys.time();*/
-
+			/*var startTime = Sys.time();
+			searchBestTransitionBottomUp(itemToCraft);
+			var time1 = Math.round((Sys.time() - startTime) * 100000);
+			var bestTrans1 = TransitionImporter.GetTrans(itemToCraft.transActor, itemToCraft.transTarget);
+			*/
+			var startTime = Sys.time();
 			searchBestTransitionTopDown(itemToCraft);
-
+			/*var time2 = Math.round((Sys.time() - startTime) * 100000);
+			var bestTrans2 = TransitionImporter.GetTrans(itemToCraft.transActor, itemToCraft.transTarget);
+			if(bestTrans1 == bestTrans2) trace('AI: new craft: Bot ms: ${time1} ${GetName(itemToCraft.itemToCraft.parentId)} radius: ${itemToCraft.searchRadius} ${bestTrans1 == null ? 'NA' : bestTrans1.getDescription()}');
+			if(bestTrans1 == bestTrans2) trace('AI: new craft: Top ms: ${time2} ${GetName(itemToCraft.itemToCraft.parentId)} radius: ${itemToCraft.searchRadius} ${bestTrans2 == null ? 'NA' : bestTrans2.getDescription()}');
+			*/
 			if(ServerSettings.DebugAi) trace('AI: craft: FINISHED transitions ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
 
             this.time += Sys.time() - startTime;
@@ -4538,6 +4547,315 @@ private function craftLowPriorityClothing() : Bool {
 		}
 	}
 
+	private function searchBestTransitionBottomUp(itemToCraft:IntemToCraft) {
+		var objToCraftId = itemToCraft.itemToCraft.parentId;
+		var transitionsByObjectId = itemToCraft.transitionsByObjectId;
+
+		var world = myPlayer.getWorld();
+		var startTime = Sys.time();
+		var count = 1;
+		//var objectsToSearch = new Array<Int>();
+
+		itemToCraft.bestDistance = 99999999999999999;
+		itemToCraft.bestTransition = null;
+
+		//objectsToSearch.push(objToCraftId);
+		transitionsByObjectId[0] = new TransitionForObject(0, 0, 0, null);
+		transitionsByObjectId[-1] = new TransitionForObject(-1, 0, 0, null);
+		//transitionsByObjectId[objToCraftId] = new TransitionForObject(objToCraftId, 0, 0, null);
+		transitionsByObjectId[0].closestObject = new ObjectHelper(null, 0);
+		transitionsByObjectId[-1].closestObject = new ObjectHelper(null, -1);
+		transitionsByObjectId[0].isDone = true;
+		transitionsByObjectId[-1].isDone = true;
+		transitionsByObjectId[0].bestCraftDistance = 0;
+		transitionsByObjectId[-1].bestCraftDistance = 0;
+		transitionsByObjectId[0].bestCraftSteps = 0;
+		transitionsByObjectId[-1].bestCraftSteps = 0;
+		
+		//var objToCraft = ObjectData.getObjectData(objToCraftId);
+		//var newTransitionsByObjectId = new Map<Int, TransitionForObject>();
+
+		var todo = new Array<Int>();
+
+		for(obj in transitionsByObjectId){
+			obj.isDone = true;
+			todo.push(obj.objId);
+		}
+
+		while (todo.length > 0) {
+			if (count > 30000) break;
+			count++;
+
+			var objId = todo.shift();
+
+			if(objId < 1) continue;
+			//var wanted = ObjectData.getObjectData(wantedId);
+
+			var transitions = world.getTransitionByActor(objId);
+			DoTransitionSearchBottomUp(itemToCraft, todo, transitions);
+			
+			var transitions = world.getTransitionByTarget(objId);
+			DoTransitionSearchBottomUp(itemToCraft, todo, transitions);
+
+			if (itemToCraft.transActor != null) break;
+		}
+
+		var obj = ObjectData.getObjectData(objToCraftId);
+		var descActor = itemToCraft.transActor == null ? 'NA' : itemToCraft.transActor.name;
+		var descTarget = itemToCraft.transTarget == null ? 'NA' : itemToCraft.transTarget.name;
+
+		/*if (itemToCraft.transActor != null && itemToCraft.transActor.name == null)
+			descActor += itemToCraft.transActor == null ? '' : ' ${itemToCraft.transActor.id} ${itemToCraft.transActor.description}';
+		if (itemToCraft.transTarget != null && itemToCraft.transTarget.name == null)
+			descTarget += itemToCraft.transTarget == null ? '' : ' ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}';
+		*/
+
+		if (ServerSettings.DebugAiCrafting)
+			trace('AI: ${itemToCraft.ai.myPlayer.name + itemToCraft.ai.myPlayer.id} craft: FOUND $count ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
+	}
+
+	private static function DoTransitionSearchBottomUp(itemToCraft:IntemToCraft, todo:Array<Int>, transitions:Array<TransitionData>) {
+		//var found = false;
+		var transitionsByObjectId = itemToCraft.transitionsByObjectId;
+		var wantedId = itemToCraft.itemToCraft.parentId;
+		var wanted = transitionsByObjectId[wantedId];
+		var objToCraftId = itemToCraft.itemToCraft.parentId;
+		var objToCraftPileId = itemToCraft.itemToCraft.getPileObjId();
+
+		for (trans in transitions) {
+			if (trans.aiShouldIgnore) continue;
+
+			var actor = transitionsByObjectId[trans.actorID];
+			var target = transitionsByObjectId[trans.targetID];
+
+			if(actor == null || target == null) continue;
+
+			// consider same input like for making a Rope
+			// TODO consider crafting new if faster
+			var actorObj = actor.closestObject;
+			var targetObj = actor == target ? actor.secondObject : target.closestObject;
+
+			if (actorObj == null && actor.craftActor == null) continue;
+			if (targetObj == null && target.craftActor == null) continue;
+
+			//found = true;
+
+			if (actorObj == null) {
+				actorObj = actor.craftActor;
+				targetObj = actor.craftTarget;
+			} else if (targetObj == null) {
+				actorObj = target.craftActor;
+				targetObj = target.craftTarget;
+			}
+
+			var distance = actor.closestObjectDistance;
+			var targetObjForDistance = targetObj == null ? target.craftTarget : targetObj;
+			distance += AiHelper.CalculateDistance(actorObj.tx, actorObj.ty, targetObjForDistance.tx, targetObjForDistance.ty);
+
+			// TODO ignore pile if obj to craft should not come from pile
+			// if (objToCraftPileId > 0 && trans.targetID == objToCraftPileId) continue;
+
+			// TODO continue to find faster ways
+			if (wantedId == trans.newActorID || wantedId == trans.newTargetID){
+				trace('New Craft Item found!!! wanted: ${GetName(wantedId)} dist: ${distance} ${GetName(trans.actorID)} + ${GetName(trans.targetID)}'); 
+				itemToCraft.transActor = actorObj;
+				itemToCraft.transTarget = targetObj;
+				itemToCraft.bestDistance = distance;
+	
+				break;
+			} 
+
+			var newActor = transitionsByObjectId[trans.newActorID];
+			var newTarget = transitionsByObjectId[trans.newTargetID];
+
+			if(newActor == null){
+				newActor = new TransitionForObject(trans.newActorID,0,0,null);
+				transitionsByObjectId[trans.newActorID] = newActor;
+			}
+
+			if(newTarget == null){
+				newTarget = new TransitionForObject(trans.newTargetID,0,0,null);			
+				transitionsByObjectId[trans.newTargetID] = newTarget;
+			}	
+			
+			if (newActor.isDone == false) {
+				newActor.isDone = true;
+				todo.push(trans.newActorID);
+			}
+
+			if (newTarget.isDone == false) {
+				newTarget.isDone = true;
+				todo.push(trans.newTargetID);
+			}
+
+			var isBest = newActor.bestCraftDistance < 0 || distance < newActor.bestCraftDistance;
+			if(trans.actorID != trans.newActorID && isBest){
+				//if(newActor.bestCraftDistance > -1) trace('New Craft: newActor: ${GetName(trans.newActorID)} dist: ${newActor.bestCraftDistance} --> ${distance}  ${GetName(trans.actorID)} + ${GetName(trans.targetID)}'); 
+				newActor.bestCraftDistance = distance;
+				//newActor.bestCraftSteps = 1;
+				newActor.craftActor = actorObj;
+				newActor.craftTarget = targetObj;
+				newActor.craftTransFrom = trans;
+				newActor.bestTransition = trans;
+			}
+
+			var isBest = newTarget.bestCraftDistance < 0 || distance < newTarget.bestCraftDistance;
+			if(trans.targetID != trans.newTargetID && isBest){
+				//if(newTarget.bestCraftDistance > -1) trace('New Craft: newActor: ${GetName(trans.newTargetID)} dist: ${newTarget.bestCraftDistance} --> ${distance} ${GetName(trans.actorID)} + ${GetName(trans.targetID)}'); 
+				newTarget.bestCraftDistance = distance;
+				newTarget.craftActor = actorObj;
+				newTarget.craftTarget = targetObj;
+				newTarget.craftTransFrom = trans;
+				newTarget.bestTransition = trans;
+			}
+
+			/*
+			// if(ServerSettings.DebugAi) trace('Ai: craft: ' + trans.getDesciption());
+			//if (trans.actorID == wantedId || trans.actorID == objToCraftId) continue;
+			//if (trans.targetID == wantedId || trans.targetID == objToCraftId) continue;
+			//if (trans.aiShouldIgnore) trace('Ígnore ${trans.getDesciption()}');
+			
+			// dont undo last transition // Should solve Taking a Rabit Fur from a pile if in the last transition the Ai put it on the pile
+			if (trans.newActorID == itemToCraft.lastActorId && trans.newTargetID == itemToCraft.lastTargetId){
+				//trace('Ignore transition since it undos last: ${trans.getDesciption()}');
+				continue;
+			}
+			if (trans.targetID == -1){
+				//trace('Ignore transition since target is -1 (player?): ${trans.getDesciption()}');
+				continue;
+			}
+
+			// a oven needs 15 sec to warm up this is ok, but waiting for mushroom to grow is little bit too long!
+			if (trans.calculateTimeToChange() > ServerSettings.AiIgnoreTimeTransitionsLongerThen) continue;
+
+			var actor = transitionsByObjectId[trans.actorID];
+			var target = transitionsByObjectId[trans.targetID];
+
+			if(actor == null){ 
+				actor = new TransitionForObject(trans.actorID,0,0,null);
+				transitionsByObjectId[trans.actorID] = actor;
+
+				// check if there is a pile
+				var objData = ObjectData.getObjectData(trans.actorID);
+				var pileId = objData.getPileObjId();
+				if (pileId > 0){
+					var pile = transitionsByObjectId[pileId];
+					if(pile != null){
+						actor.usePile = true;
+						actor.closestObject = pile.closestObject;
+					}
+				}
+			}
+			if(target == null){ 
+				target = new TransitionForObject(trans.targetID,0,0,null);
+				transitionsByObjectId[trans.targetID] = target;
+			}
+
+			var actorObj = actor.closestObject;
+			var targetObj = actor == target ? actor.secondObject : target.closestObject;
+
+            // TODO consider cyles like: put thread in claybowls to get a thread
+			if (actorObj == null && actor.wantedObjs.contains(wanted) == false) { 
+				actor.wantedObjs.push(wanted);
+			}
+			if (targetObj == null && target.wantedObjs.contains(wanted) == false) {
+				target.wantedObjs.push(wanted);
+			}
+
+			if (actorObj == null && actor.isDone == false) {
+				// if(ServerSettings.DebugAi) trace('Ai: craft: a: wanted: $wantedId -- > ${actor.wantedObjId}');
+				actor.wantedObjId = wantedId;
+				actor.isDone = true;
+				objectsToSearch.push(actor.objId);
+			}
+
+			if (targetObj == null && target.isDone == false) {
+				// if(ServerSettings.DebugAi) trace('Ai: craft: t: wanted: $wantedId -- > ${target.wantedObjId}');
+				target.wantedObjId = wantedId;
+				target.isDone = true;
+				objectsToSearch.push(target.objId);
+			}
+
+			if (actorObj == null && actor.craftActor == null) continue;
+			if (targetObj == null && target.craftActor == null) continue;
+
+			found = true;
+
+			if (actorObj == null) {
+				actorObj = actor.craftActor;
+				targetObj = actor.craftTarget;
+			} else if (targetObj == null) {
+				actorObj = target.craftActor;
+				targetObj = target.craftTarget;
+			}
+
+			// var desc = wanted == null ? 'NA' : ObjectData.getObjectData(wanted.wantedObjId).name;
+			if (wanted.craftActor == null) {
+				wanted.craftActor = actorObj;
+				wanted.craftTarget = targetObj;
+				wanted.craftTransFrom = trans;
+
+				// if(wanted.wantedObjId > 0) objectsToSearch.unshift(wanted.wantedObjId);
+				for (obj in wanted.wantedObjs) {
+					if (obj.craftActor != null) {
+						// if(ServerSettings.DebugAi) trace('Ai: craft: removed steps: ${wanted.steps} wanted: ${GetName(wanted.objId)} --> ${GetName(obj.objId)}');
+						wanted.wantedObjs.remove(obj);
+						continue;
+					}
+
+					// if(ServerSettings.DebugAi) trace('Ai: craft: steps: ${wanted.steps} wanted: ${GetName(wanted.objId)} --> ${GetName(obj.objId)}');
+
+					obj.craftFrom = wanted;
+
+					// objectsToSearch.remove(obj.objId);
+					if (objectsToSearch.contains(obj.objId) == false) objectsToSearch.unshift(obj.objId);
+				}
+			}
+
+			if (wantedId != objToCraftId) continue;
+
+			var dist = actor.closestObjectDistance;
+
+			dist += AiHelper.CalculateDistance(wanted.craftActor.tx, wanted.craftActor.ty, wanted.craftTarget.tx, wanted.craftTarget.ty);
+
+			// TODO to work it needs to allow to process further
+			if (dist < itemToCraft.bestDistance) {
+				itemToCraft.bestDistance = dist;
+				
+				// If actor is not the wanted object but a pile
+				if(actor.usePile){
+					itemToCraft.transActor = new ObjectHelper(null,0);
+					itemToCraft.transTarget = actorObj;
+
+					trace('USE PILE: ${actorObj.name}');
+				}
+				else{
+					itemToCraft.transActor = actorObj;
+					itemToCraft.transTarget = targetObj;
+				}				
+			}
+
+			var actor = transitionsByObjectId[actorObj.id];
+			var target = transitionsByObjectId[targetObj.id];
+			var actorSteps = actor == null ? -1 : actor.steps;
+			var targetSteps = target == null ? -1 : target.steps;
+			var steps = actorSteps > targetSteps ? actorSteps : targetSteps;
+			var trans = TransitionImporter.GetTrans(actorObj, targetObj);
+			var desc = trans == null ? '${itemToCraft.transActor.name} + ${itemToCraft.transTarget.name} Trans Not found!' : trans.getDesciption();
+			var objToCraft = ObjectData.getObjectData(objToCraftId);
+
+			CalculateSteps(itemToCraft);
+
+			// if(ServerSettings.DebugAi) trace('Ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
+			// if(ServerSettings.DebugAi) trace('Ai: craft DONE: ${objToCraft.name} dist: $dist steps: ${steps} $desc');
+
+			return true;
+			*/
+		}
+
+		//return found;
+	}
+
 	private function searchBestTransitionTopDown(itemToCraft:IntemToCraft) {
 		var objToCraftId = itemToCraft.itemToCraft.parentId;
 		var transitionsByObjectId = itemToCraft.transitionsByObjectId;
@@ -4548,6 +4866,7 @@ private function craftLowPriorityClothing() : Bool {
 		var objectsToSearch = new Array<Int>();
 
 		itemToCraft.bestDistance = 99999999999999999;
+		itemToCraft.bestTransition = null;
 
 		objectsToSearch.push(objToCraftId);
 		transitionsByObjectId[0] = new TransitionForObject(0, 0, 0, null);
@@ -4769,7 +5088,7 @@ private function craftLowPriorityClothing() : Bool {
 			var targetSteps = target == null ? -1 : target.steps;
 			var steps = actorSteps > targetSteps ? actorSteps : targetSteps;
 			var trans = TransitionImporter.GetTrans(actorObj, targetObj);
-			var desc = trans == null ? '${itemToCraft.transActor.name} + ${itemToCraft.transTarget.name} Trans Not found!' : trans.getDesciption();
+			var desc = trans == null ? '${itemToCraft.transActor.name} + ${itemToCraft.transTarget.name} Trans Not found!' : trans.getDescription();
 			var objToCraft = ObjectData.getObjectData(objToCraftId);
 
 			CalculateSteps(itemToCraft);

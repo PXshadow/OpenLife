@@ -1275,7 +1275,7 @@ class TimeHelper {
 						var timeTransition = TransitionImporter.GetTransition(-1, helper.id, false, false);
 
 						if (timeTransition != null){
-							trace('WARNING: found helper without time transition: ${helper.description}: ' + timeTransition.getDesciption());
+							trace('WARNING: found helper without time transition: ${helper.description}: ' + timeTransition.getDescription());
 							helper.timeToChange = timeTransition.calculateTimeToChange();
 						}
 					}
@@ -2394,7 +2394,7 @@ class TimeHelper {
 				var newAnimal = worldmap.getObjectHelper(fromTx, fromTy);
 				newAnimal.groundObject = tmpGroundObject;
 
-				trace('timeAlternaiveTransition: ${timeAlternaiveTransition.getDesciption()}');
+				trace('timeAlternaiveTransition: ${timeAlternaiveTransition.getDescription()}');
 			}
 
 			var tmpGroundObject = animal.groundObject;

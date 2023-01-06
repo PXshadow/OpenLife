@@ -215,12 +215,12 @@ class TransitionData {
 			&& transition.newActorID != ServerSettings.traceTransitionByNewActorId
 			&& transition.newTargetID != ServerSettings.traceTransitionByNewTargetId) return;
 
-		var description = getDesciption(smalTrace);
+		var description = getDescription(smalTrace);
 
 		trace('$s $description');
 	}
 
-	public function getDesciption(smal:Bool = true):String {
+	public function getDescription(smal:Bool = true):String {
 		var transition = this;
 
 		var objectDataActor = ObjectData.getObjectData(transition.actorID);

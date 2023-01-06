@@ -1495,6 +1495,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return TransitionImporter.GetTransition(actorId, targetId, lastUseActor, lastUseTarget, maxUseTarget);
 	}
 
+	public function getTransitionByActor(actorId:Int):Array<TransitionData> {
+		return TransitionImporter.GetTransitionByActor(actorId);
+	}
+
+	public function getTransitionByTarget(targetId:Int):Array<TransitionData> {
+		return TransitionImporter.GetTransitionByTarget(targetId);
+	}
+
 	public function getTransitionByNewTarget(newTargetId:Int):Array<TransitionData> {
 		return TransitionImporter.GetTransitionByNewTarget(newTargetId);
 	}
@@ -2885,7 +2893,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if(trans == null) return false;
 
-		trace('tryTranstionOnClothing: ${trans.getDesciption()}');
+		trace('tryTranstionOnClothing: ${trans.getDescription()}');
 
 		if(clothing.objectData.numUses > 1 && trans.reverseUseTarget && clothing.numberOfUses >= clothing.objectData.numUses) return false;
 
@@ -3429,7 +3437,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		trace('ON DEATH heldId: ${this.heldObject.id}');
 
 		if(heldTransition != null){
-			trace('ON DEATH transform held object: ${heldTransition.getDesciption()}');
+			trace('ON DEATH transform held object: ${heldTransition.getDescription()}');
 			this.heldObject.id =  heldTransition.newTargetID;
 			WorldMap.PlaceObject(this.tx, this.ty, this.heldObject, false);
 
@@ -3903,7 +3911,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// timeToChangeFactor = longWeaponCoolDown && attacker == null ? ServerSettings.AnimalCoolDownFactorIfWounding : timeToChangeFactor;
 
 			fromObj.timeToChange = timeTransition.calculateTimeToChange() * timeToChangeFactor;
-			if (ServerSettings.DebugCombat) trace('COMBAT: Bloody Weapon Time: ${fromObj.timeToChange} ' + timeTransition.getDesciption());
+			if (ServerSettings.DebugCombat) trace('COMBAT: Bloody Weapon Time: ${fromObj.timeToChange} ' + timeTransition.getDescription());
 		}
 
 		// do damage to attacking animal
@@ -4261,8 +4269,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if(trans == null) {
 				player.say('null', true);
 			}
-			trace('XXDEBUG!!! ${trans.getDesciption()}');
-			player.say(trans.getDesciption(), true);
+			trace('XXDEBUG!!! ${trans.getDescription()}');
+			player.say(trans.getDescription(), true);
 			return true;
 		}
 		else if (text.indexOf('!HIT H') != -1) {
@@ -4722,7 +4730,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			var count = 0;
 			for(trans in transByTarget){
 				count++;
-				trace('Bowl of Water: ' + trans.getDesciption());
+				trace('Bowl of Water: ' + trans.getDescription());
 			}
 
 			player.say('Bowl of Water transitions: $count', true);

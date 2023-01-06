@@ -1297,7 +1297,7 @@ class WorldMap {
 		var trans = TransitionImporter.GetTransition(objId, -1);
 		if(trans == null) return false;
 
-		trace('PlaceObject transform held object: ${trans.getDesciption()}');
+		trace('PlaceObject transform held object: ${trans.getDescription()}');
 		obj.id =  trans.newTargetID;
 		
 		return true;

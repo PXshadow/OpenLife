@@ -2724,7 +2724,7 @@ class ServerSettings {
 		 */
 
 		var trans = TransitionImporter.GetTransition(235, 662); // Clay Bowl + Shallow Well
-		trace('DEBUG: ${trans.getDesciption()}');
+		trace('DEBUG: ${trans.getDescription()}');
 		if(trans.newActorID != 382){ // Bowl of Water 382
 			throw new Exception('New actor should be: Bowl of Water 382');
 		}
