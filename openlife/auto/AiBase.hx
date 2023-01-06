@@ -1524,6 +1524,8 @@ abstract class AiBase
 		countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 217, distance);
 		// Dry Planted Gooseberry Seed 216
 		countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 216, distance);
+		// Dying Gooseberry Bush 389
+		countBushes += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 389, distance);
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} countBushes: $countBushes ');			
 		
