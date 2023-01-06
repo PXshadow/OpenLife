@@ -2669,9 +2669,11 @@ abstract class AiBase
 		// Green Bean Plants 1173
 		var closeBeans = AiHelper.GetClosestObjectById(myPlayer, beanPlantId);
 		if(closeBeans == null) return false;
+		
+		var closeBowl = AiHelper.GetClosestObjectById(myPlayer, beanBowlId);
 
 		// Fill up the Bowl // Bowl of Green Beans 1175 // 235 Clay Bowl
-		if(heldObj.parentId == beanBowlId || heldObj.parentId == 235){
+		if(heldObj.parentId == beanBowlId || (heldObj.parentId == 235 && closeBowl == null)){
 			if(shouldDebugSay()) myPlayer.say('Fill Bowl on Beans');
 			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Beans!');
 
@@ -2679,7 +2681,6 @@ abstract class AiBase
 		}
 
 		// do nothing if there is a full Bowl of Green Beans 1175 
-		var closeBowl = AiHelper.GetClosestObjectById(myPlayer, beanBowlId);
 		if(closeBowl != null && closeBowl.numberOfUses >= closeBowl.objectData.numUses) return false;
 
 		var target = closeBowl != null ? closeBowl : myPlayer.home;
@@ -2711,8 +2712,10 @@ abstract class AiBase
 		if(closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 391);
 		if(closeBush == null) return false;
 
+		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
+
 		// Fill up the Bowl // 235 Clay Bowl // 253 Bowl of Gooseberries
-		if(heldObj.parentId == 235 || heldObj.parentId == 253){
+		if((heldObj.parentId == 235 && closeBerryBowl == null) || heldObj.parentId == 253){
 			if(shouldDebugSay()) myPlayer.say('Fill Bowl on Bush');
 			if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Bush!');
 
@@ -2720,7 +2723,6 @@ abstract class AiBase
 		}
 
 		// do nothing if there is a full Bowl of Gooseberries
-		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
 		if(closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses) return false;
 
 		var target = closeBerryBowl != null ? closeBerryBowl : myPlayer.home;
