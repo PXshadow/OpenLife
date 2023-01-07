@@ -2354,12 +2354,17 @@ class TimeHelper {
 				// trace('animal movement: found -1 transition: ${animal.description} --> ${animal.groundObject.description}');
 			}
 
-			if (animal.isLastUse()) timeTransition = TransitionImporter.GetTransition(-1, animal.id, false, true);
+			var isLastMove = animal.isLastUse();
+			if (isLastMove) timeTransition = TransitionImporter.GetTransition(-1, animal.id, false, true);
 
 			// FIX: 544 Domestic Mouflon with Lamb + -1  ==> 545 Domestic Lamb + 541 Domestic Mouflon
-			var timeAlternaiveTransition = (animal.isLastUse()) ? TransitionImporter.GetTransition(animal.id, -1, true, false) : null;
+			var timeAlternaiveTransition = isLastMove ? TransitionImporter.GetTransition(animal.id, -1, true, false) : null;
 
 			animal.id = timeAlternaiveTransition != null ? timeAlternaiveTransition.newTargetID : timeTransition.newTargetID;
+			if(isLastMove){
+				animal.numberOfUses = animal.objectData.numUses;
+				animal.TransformToDummy();
+			}
 
 			var rabbitInWrongPlace = false; 
 			// 3568 Fleeing Rabbit dest# groundOnly // 3566 Fleeing Rabbit
