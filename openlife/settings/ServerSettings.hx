@@ -1269,6 +1269,15 @@ class ServerSettings {
 		ObjectData.getObjectData(3862).decaysToObj = 434; // Dung Box ==> Wooden Box
 		ObjectData.getObjectData(3862).groundOnly = true; // Dung Box
 
+		ObjectData.getObjectData(542).useChance = 0.1; // Domestic Lamb
+		ObjectData.getObjectData(604).useChance = 0.1; // Hungry Domestic Lamb
+		ObjectData.getObjectData(602).useChance = 0.1; // Fed Domestic Lamb 602
+		ObjectData.getObjectData(4213).useChance = 0.1; // Fed Domestic Sheep
+
+		ObjectData.getObjectData(1459).useChance = 0.1; // Domestic Calf 1459
+		ObjectData.getObjectData(1462).useChance = 0.1; // Hungry Domestic Calf
+		ObjectData.getObjectData(1485).useChance = 0.1; // Fed Domestic Calf
+
 		for (objData in ObjectData.importedObjectData) {
 			if (objData.description.contains('Sports Car')) {
 				objData.isBoat = true;
@@ -1283,6 +1292,10 @@ class ServerSettings {
 		// ObjectData.getObjectData(279).winterDecayFactor = 2; // Empty Wild Gooseberry Bush
 		// ObjectData.getObjectData(279).springRegrowFactor = 0.5; // Empty Wild Gooseberry Bush
 		// ObjectData.getObjectData(279).countsOrGrowsAs = 30; // Empty Wild Gooseberry Bush
+
+		//var obj = ObjectData.getObjectData(604); // Hungry Domestic Lamb
+
+		//trace('${obj.description} uses: ${obj.numUses} chance: ${obj.useChance}');
 
 		// var obj = ObjectData.getObjectData(624);
 
