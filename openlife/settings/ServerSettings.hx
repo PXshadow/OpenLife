@@ -2513,6 +2513,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(0, 318); // 0 + Crucible with Charcoal
 		trans.aiShouldIgnore = true;
 
+		// AI might use to empty bowl
+		var trans = transtions.getTransition(33, 318); // Stone + Crucible with Charcoal
+		trans.aiShouldIgnore = true;
+
 		// lime
 		var trans = transtions.getTransition(677, 661); // Bowl of Plaster 677  + Stone Pile 661
 		trans.aiShouldIgnore = true;
