@@ -2386,13 +2386,15 @@ class TimeHelper {
 			}
 			else{
 				// FIX: 544 Domestic Mouflon with Lamb + -1  ==> 545 Domestic Lamb + 541 Domestic Mouflon
-				// TODO what to do with the old tile obj in case an animal moved on top of stuff?
 				
 				oldTileObject = [timeAlternaiveTransition.newActorID];
 				worldmap.setObjectId(fromTx, fromTy, oldTileObject);
 
 				var newAnimal = worldmap.getObjectHelper(fromTx, fromTy);
 				newAnimal.groundObject = tmpGroundObject;
+				newAnimal.numberOfUses = newAnimal.objectData.numUses;
+				newAnimal.TransformToDummy();
+				worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
 
 				trace('timeAlternaiveTransition: ${timeAlternaiveTransition.getDescription()}');
 			}
