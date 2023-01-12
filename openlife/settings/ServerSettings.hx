@@ -2537,7 +2537,7 @@ class ServerSettings {
 		var trans = transtions.getTransition(0, 675); // 0 + Bowl of Limestone 675 
 		trans.aiShouldIgnore = true;
 
-		// dont destry knifes to get the material
+		// dont destroy knifes to get the material
 		var trans = transtions.getTransition(441, 560); // Smithing Hammer 441 + Knife 560
 		trans.aiShouldIgnore = true; 
 

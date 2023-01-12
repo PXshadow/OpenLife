@@ -1391,22 +1391,24 @@ abstract class AiBase
 
 		if(countRows < 1) this.taskState['RowMaker'] = 1;
 
-		// Put soild on  Hardened Row to Prepare Shallow Tilled Rows
+		// Put soild on Hardened Row to Prepare Shallow Tilled Rows
 		if(this.taskState['RowMaker'] < 2){
-			var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 30); //  Clay Bowl 235
-			if(heldObject.parentId == 235) countBowls += 1;
+			//var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 30); //  Clay Bowl 235
+			//if(heldObject.parentId == 235) countBowls += 1;
 			
-			if (shouldDebugSay()) myPlayer.say('BasicFarmer: shallowrows: $countRows bowls: $countBowls');
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} shallowrows: $countRows bowls: $countBowls');			
+			//if (shouldDebugSay()) myPlayer.say('BasicFarmer: shallowrows: $countRows bowls: $countBowls');
+			//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BasicFarmer']} shallowrows: $countRows bowls: $countBowls');			
 
-			if(countBowls < 1 && doPottery(3)) return true;
+			//if(countBowls < 1 && doPottery(3)) return true;
 
-			if(countRows < 6){
+			if(countRows < 9){
 				// TODO there seems to be a bug with maxuse transitions on pile of soil
 				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
 				if(heldObject.parentId == 1137 && shortCraft(1137, 848, 30)) return true; 
 				// Clay Bowl 235 + Fertile Soil Pile 1101 --> Bowl of Soil 1137
-				if(shortCraft(235, 1101, 30)) return true; 
+				if(shortCraft(235, 1101, 30)) return true;
+				//  Clay Bowl 235 + Fertile Soil 1138 --> Bowl of Soil 1137 
+				if(shortCraft(235, 1138, 30)) return true;  
 			}
 			this.taskState['RowMaker'] = 2;
 		}
