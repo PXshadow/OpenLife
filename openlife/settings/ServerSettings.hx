@@ -1242,7 +1242,7 @@ class ServerSettings {
 
 		// blocks domestic animal 
 		ObjectData.getObjectData(1851).decayFactor = ObjDecayFactorOnFloor; // Fence Gate
-		ObjectData.getObjectData(1851).decaysToObj = 556; // Fence Gate ==> Fence Kit
+		ObjectData.getObjectData(1851).decaysToObj = 550; // Fence Gate ==> Fence
 		ObjectData.getObjectData(1851).blocksDomesticAnimal = true; // Fence Gate
 		ObjectData.getObjectData(1851).blocksAnimal = true; // Fence Gate
 		ObjectData.getObjectData(1851).groundOnly = true; // Fence Gate
