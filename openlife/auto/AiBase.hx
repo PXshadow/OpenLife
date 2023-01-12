@@ -1382,6 +1382,10 @@ abstract class AiBase
 
 		if(hasOrBecomeProfession('RowMaker', maxProfession) == false) return false;
 
+		if(shortCraft(139, 2832, distance)) return true; // Skewer + Tomato Sprout
+		if(shortCraft(139, 4228, distance)) return true; // Skewer + Cucumber Sprout
+		if(shortCraft(0, 2837, distance)) return true; // 0 + Hardened Row with Stake
+
 		// Deep Tilled Row 213
 		var deepRows = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 213, 30); 		
 		// Shallow Tilled Row 1136
