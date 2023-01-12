@@ -413,6 +413,8 @@ High priority:
 - WINTER snow banks / melting if snow
 
 Middle priority:
+- Account Authentication
+- Heating for building / Biome temperature changes
 - WRITING / READING
 
 - GATES Swing doors
