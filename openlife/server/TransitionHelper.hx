@@ -467,8 +467,8 @@ class TransitionHelper {
 			return false;
 		}
 
-		// give animal a chance to escape
-		if (deadlyDistance > 0 && this.target.isAnimal()) {
+		// give (not domestic) animal a chance to escape
+		if (deadlyDistance > 0 && this.target.isAnimal() && this.target.isDomesticAnimal() == false) {
 			if (TimeHelper.TryAnimaEscape(this.player, this.target)) return false;
 		}
 
