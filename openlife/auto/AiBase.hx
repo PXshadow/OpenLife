@@ -1711,6 +1711,8 @@ abstract class AiBase
 
 		if(myPlayer.age < 20 && makeSharpieFood()) return true;
 
+		Macro.exception(if(doAdvancedFarming(maxProfession)) return true);
+
 		this.profession['BASICFARMER'] = 0;
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']} nothing to do');			
