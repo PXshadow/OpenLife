@@ -1210,8 +1210,7 @@ abstract class AiBase
 	
 		if (quadDistance < 2) this.time += 4; // if you cannot reach dont try running there too often
 
-		//if(shouldDebugSay()) myPlayer.say('going to $text');
-		myPlayer.say('going to $text');
+		if(shouldDebugSay()) myPlayer.say('going to $text');
 
 		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text player heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} dist: $quadDistance goto: $done');
