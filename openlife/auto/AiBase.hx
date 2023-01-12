@@ -2163,8 +2163,8 @@ abstract class AiBase
 			if(shortCraftOnTarget(1180, hotOven)) return true;
 		}
 
-		Macro.exception(if(cleanUpBowls(253)) return); // Bowl of Gooseberries 253
-		Macro.exception(if(cleanUpBowls(1176)) return); // Bowl of Dry Beans 1176
+		Macro.exception(if(cleanUpBowls(253)) return true); // Bowl of Gooseberries 253
+		Macro.exception(if(cleanUpBowls(1176)) return true); // Bowl of Dry Beans 1176
 		
 		if(hotOven == null && fireOven == null){
 			// Adobe Oven 237
