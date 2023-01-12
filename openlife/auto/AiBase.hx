@@ -1375,7 +1375,7 @@ abstract class AiBase
 		return false;
 	}
 
-	private function doPrepareRows(maxProfession = 1) {
+	private function doPrepareRows(maxProfession = 2) {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
 		var distance = 30;		
@@ -1426,6 +1426,16 @@ abstract class AiBase
 				if(shortCraft(857, 1136, 30, false)) return true; 
 				// Stone Hoe 850 + Shallow Tilled Row 1136 --> Deep Tilled Row 213
 				if(shortCraft(850, 1136, 30)) return true;
+
+				// Hardened Row 848 
+				var countHardRows = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 848, 30);
+				if(countHardRows > 0){
+					// consider putting soil on hard row
+					this.taskState['RowMaker'] = 1;
+					return true;
+				}
+
+				// TODO forbid to make row for AI except here???
 				// Steel Hoe 857 + Fertile Soil 1138 --> Deep Tilled Row 213
 				if(shortCraft(857, 1138, 30, false)) return true; 
 				// Stone Hoe 850 + Fertile Soil 1138 --> Deep Tilled Row 213
