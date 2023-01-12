@@ -2096,7 +2096,7 @@ abstract class AiBase
 
 	private function doBaking(maxPeople:Int = 2) : Bool {
 		var heldObject = myPlayer.heldObject;
-
+		
 		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
 		if(heldObject.parentId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236)) return true;
 
@@ -2162,6 +2162,9 @@ abstract class AiBase
 			// Bowl of Soaking Beans 1180
 			if(shortCraftOnTarget(1180, hotOven)) return true;
 		}
+
+		Macro.exception(if(cleanUpBowls(253)) return); // Bowl of Gooseberries 253
+		Macro.exception(if(cleanUpBowls(1176)) return); // Bowl of Dry Beans 1176
 		
 		if(hotOven == null && fireOven == null){
 			// Adobe Oven 237
