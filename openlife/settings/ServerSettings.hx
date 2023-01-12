@@ -107,7 +107,8 @@ class ServerSettings {
 
 	// PlayerInstance
 	public static var MaxPlayersBeforeStartingAsChild = 0; // -1
-	public static var MaxPlayersBeforeActivatingGraveCurse = 2; 
+	public static var MaxPlayersBeforeActivatingGraveCurse = 2;
+	public static var MaxPlayersBeforeForbidTouchGrave = 2; 
 	public static var StartingFamilyName = "SNOW";
 	public static var StartingName = "SPOON";
 	public static var AgeingSecondsPerYear = 60; // 60
@@ -240,7 +241,6 @@ class ServerSettings {
 	public static var AlternativeOutcomePercentIncreasePerHit:Float = 10; // for example used for extra wood for trees or stone form iron mining	
 	// once succeeded in cutting the tree / mining the hits is ruced by 5
 	public static var AlternativeOutcomeHitsDecreaseOnSucess = 5; // for example used for extra wood for trees or stone form iron mining
-
 
 	public static var TeleportCost:Float = 1; // 10
 	

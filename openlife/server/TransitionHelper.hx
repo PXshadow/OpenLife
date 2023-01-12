@@ -177,10 +177,15 @@ class TransitionHelper {
 			}
 		}
 
+		// dont allow to touch own grave if there are enough humans
 		if (player.isMyGrave(helper.target)) {
-			player.say('Its my grave...', true);
-			helper.sendUpdateToClient();
-			return false;
+			var countHumans = Connection.getConnections().length;
+
+			if(countHumans >= ServerSettings.MaxPlayersBeforeForbidTouchGrave){
+				player.say('Its my grave...', true);
+				helper.sendUpdateToClient();
+				return false;
+			}
 		}
 
 		switch (tag) {
