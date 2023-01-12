@@ -2581,6 +2581,16 @@ abstract class AiBase
 				}
 			}
 
+			// Dry Planted Tomato Seed 2829
+			if(toPlant == 2829){
+				// Tomato Plant 2834
+				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2834, 30);
+				if(count > 3){
+					toPlant +=1;
+					continue;
+				}
+			}
+
 			if(craftItem(toPlant)) return true;
 		}
 
