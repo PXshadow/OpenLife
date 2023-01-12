@@ -2631,11 +2631,11 @@ abstract class AiBase
 			if(craftItem(plantFrom[index])) return true;
 		}*/
 
-		if(craftItem(229)) return true; // Wet Planted Wheat	
-		if(craftItem(399)) return true; // Wet Planted Carrots	
-		if(craftItem(2831)) return true; // Wet Planted Tomato Seed
-		if(craftItem(2857)) return true; // Wet Planted Onion
-		if(craftItem(2852)) return true; // Wet Planted Onions
+		//if(craftItem(229)) return true; // Wet Planted Wheat	
+		//if(craftItem(399)) return true; // Wet Planted Carrots	
+		//if(craftItem(2831)) return true; // Wet Planted Tomato Seed
+		//if(craftItem(2857)) return true; // Wet Planted Onion
+		//if(craftItem(2852)) return true; // Wet Planted Onions
 		
 		/*
 		if(craftItem(236)) return true; // Clay Plate
