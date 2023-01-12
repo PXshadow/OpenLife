@@ -1364,7 +1364,7 @@ class ServerSettings {
 
 		// Make reapir fences more easy:
 		// Mallet 467 + Fence Kit 556 -->  Mallet 467 + Fence 550
-		var trans = new TransitionData(467, 556, 467, 550); // Knife + Wolf ==> Bloody Knife + Dead Wolf
+		var trans = new TransitionData(467, 556, 467, 550);
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Knife transitions for close combat
@@ -1375,12 +1375,24 @@ class ServerSettings {
 		var trans = new TransitionData(560, 1328, 750, 1331); // Knife + Wild Boar with Piglet ==> Bloody Knife + Shot Boar with Piglet
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// TODO add graphics for dead cow
+		// Knife + Domestic Cow ==> Bloody Knife + Butchered Sheep 587
+		var trans = new TransitionData(560, 1458, 750, 587); 
+		trans.aiShouldIgnore = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// Sword transitions for close combat
 		var trans = new TransitionData(3047, 418, 3048, 422); // War Sword + Wolf ==> Bloody War Sword + Dead Wolf
 		transtions.addTransition("PatchTransitions: ", trans);
 		var trans = new TransitionData(3047, 1323, 3048, 1332); // War Sword + Wild Boar ==> Bloody War Sword +  Dead Boar
 		transtions.addTransition("PatchTransitions: ", trans);
 		var trans = new TransitionData(3047, 1328, 3048, 1331); // War Sword + Wild Boar with Piglet ==> Bloody War Sword + Shot Boar with Piglet
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		// TODO add graphics for dead cow
+		// War Sword + Domestic Cow ==> Bloody War Sword + Butchered Sheep 587
+		var trans = new TransitionData(3047, 1458, 3048, 587); 
+		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 		
 		var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0 
