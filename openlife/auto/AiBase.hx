@@ -418,7 +418,7 @@ abstract class AiBase
 		Macro.exception(if (isFeedingChild()) return);
 		Macro.exception(if (isConsideringMakingFood()) return);
 		Macro.exception(if (isPickingupFood()) return);
-		Macro.exception(if (this.profession['Smith'] < 1 && isFeedingPlayerInNeed()) return);
+		Macro.exception(if (this.profession['SMITH'] < 1 && isFeedingPlayerInNeed()) return);
 		Macro.exception(if (isStayingCloseToChild()) return);
 		Macro.exception(if (isUsingItem()) return);
 		Macro.exception(if (isRemovingFromContainer()) return);		
@@ -434,8 +434,8 @@ abstract class AiBase
 		// High priortiy takes
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = 30;
-		if(this.profession['Smith'] >= 0) Macro.exception(if (doSmithing()) return);
-		if(this.profession['Potter'] >= 10) Macro.exception(if (doPottery()) return);
+		if(this.profession['SMITH'] >= 0) Macro.exception(if (doSmithing()) return);
+		if(this.profession['POTTER'] >= 10) Macro.exception(if (doPottery()) return);
 
 		var heldObjId = myPlayer.heldObject.parentId;
 
@@ -444,7 +444,7 @@ abstract class AiBase
 		// 560 Knife // 1468 Leavened Dough on Clay Plate
 		if(heldObjId == 560 && shortCraft(560, 1468, 10, false)) return;
 
-		if(this.profession['Baker'] > 1) Macro.exception(if (doBaking()) return);
+		if(this.profession['BAKER'] > 1) Macro.exception(if (doBaking()) return);
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 
 		//if(doWateringOn(396)) return; // Dry Planted Carrots 396
@@ -495,31 +495,38 @@ abstract class AiBase
 		else if(assignedProfession == 'SHEPHERD'){
 			Macro.exception(if(isSheepHerding(100)) return);
 		}
+		else if(assignedProfession == 'BAKER'){
+			Macro.exception(if(doBaking(100)) return);
+		}
+		else if(assignedProfession == 'SMITH'){
+			Macro.exception(if(doSmithing(100)) return);
+		}
+		else if(assignedProfession == 'POTTER'){
+			Macro.exception(if(doPottery(100)) return);
+		}
 
 		//this.profession['firekeeper'] = 1;
 		/*this.profession['Lumberjack'] = 1;
 		this.profession['WaterBringer'] = 1;
-		this.profession['Baker'] = 1;
 		this.profession['FoodServer'] = 1;
-		this.profession['Potter'] = 1;
 		this.profession['gravekeeper'] = 1;
 		this.profession['Hunter'] = 1;
 		this.profession['ClothMaker'] = 1;
 		this.profession['FireFoodMaker'] = 1;
 		//this.profession['BowlFiller'] = 1;
-		this.profession['Smith'] = 1;*/
+		*/
 
 		// medium priorty tasks
 		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
 
 		itemToCraft.searchCurrentPosition = false;
-		//if(this.profession['Baker'] > 0) Macro.exception(if (doBaking()) return);
-		//if(this.profession['Potter'] > 0) Macro.exception(if (doPottery()) return);
+		//if(this.profession['BAKER'] > 0) Macro.exception(if (doBaking()) return);
+		//if(this.profession['POTTER'] > 0) Macro.exception(if (doPottery()) return);
 		// Bowl of Soil 1137
 		//if(craftItem(1137)) return;
 		
-		//if(this.profession['Smith'] > 0) Macro.exception(if (doSmithing()) return);
-		if(this.lastProfession == 'Smith') Macro.exception(if (doSmithing()) return);
+		//if(this.profession['SMITH'] > 0) Macro.exception(if (doSmithing()) return);
+		if(this.lastProfession == 'SMITH') Macro.exception(if (doSmithing()) return);
 		//if(this.profession['WaterBringer'] > 0) Macro.exception(if (doWatering()) return);
 		//if(this.profession['BASICFARMER'] > 0) Macro.exception(if (doBasicFarming()) return);
 		//if(this.profession['SHEPHERD'] > 0) Macro.exception(if (ADVANCEDFARMER()) return);
@@ -595,9 +602,9 @@ abstract class AiBase
 		this.profession['BASICFARMER'] = 1;
 		this.profession['ADVANCEDFARMER'] = 1;	
 		this.profession['SHEPHERD'] = 1;	
-		this.profession['Baker'] = 1;
+		this.profession['BAKER'] = 1;
 		this.profession['FoodServer'] = 1;
-		this.profession['Potter'] = 1;
+		this.profession['POTTER'] = 1;
 		this.profession['gravekeeper'] = 1;
 		this.profession['Hunter'] = 1;
 		this.profession['ClothMaker'] = 1;
@@ -971,8 +978,8 @@ abstract class AiBase
 			var hasProfession = ai.profession[profession] > 0;
 
 			if(hasProfession == false && p.id != myPlayer.id) continue;
-			//if(profession != 'Potter' && ai.profession['Potter'] >= 10) continue;
-			//if(profession != 'Baker' && ai.profession['Baker'] > 1) continue;
+			//if(profession != 'POTTER' && ai.profession['POTTER'] >= 10) continue;
+			//if(profession != 'BAKER' && ai.profession['BAKER'] > 1) continue;
 
 			var quadDist = p.CalculateQuadDistanceToObject(obj);
 
@@ -1540,7 +1547,7 @@ abstract class AiBase
 		var counRawtBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 30);
 
 		if(counRawtBerryPies < 3 && craftItem(265)) return true; // Raw Berry Pie
-		//else this.lastProfession = 'Baker';
+		//else this.lastProfession = 'BAKER';
 		//this.profession['CarrotFarmer'] = 0;
 
 		if(doComposting()) return true;
@@ -1885,7 +1892,7 @@ abstract class AiBase
 	private function doPottery(maxPeople:Int = 1) : Bool {
 		var home = myPlayer.home;
 
-		if(hasOrBecomeProfession('Potter', maxPeople) == false) return false;
+		if(hasOrBecomeProfession('POTTER', maxPeople) == false) return false;
 		if(home == null) return false;
 
 		if(shortCraftOnGround(283)) return true; // Wooden Tongs with Fired Bowl
@@ -1908,7 +1915,7 @@ abstract class AiBase
 		var forgeOnFire = kiln != null ? null : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 304, 20, null, myPlayer);
 		
 		if(kiln != null || forgeOnFire != null) {
-			this.profession['Potter'] = 10;
+			this.profession['POTTER'] = 10;
 			if(doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 		}
 
@@ -1922,12 +1929,12 @@ abstract class AiBase
 		// Sealed Adobe Kiln 294
 		//if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 294, 20, null, myPlayer);
 
-		if(this.profession['Potter'] < 2 && countWetBowl + countWetPlate < 4){
+		if(this.profession['POTTER'] < 2 && countWetBowl + countWetPlate < 4){
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 20); // Clay 126
 			if(count < 5 && gatherClay(kiln)) return true; // home is used if there is no kiln
 		}
 
-		this.profession['Potter'] = 2; // dont get new clay --> do some pottery first
+		this.profession['POTTER'] = 2; // dont get new clay --> do some pottery first
 
 		if(kiln == null) return false;
 
@@ -1937,7 +1944,7 @@ abstract class AiBase
 		var maxtPlates = 5;
 
 		if(countBowl >= maxtBowls && countPlate >= maxtPlates && (countWetBowl + countWetPlate < 3)){
-			this.profession['Potter'] = 0;
+			this.profession['POTTER'] = 0;
 			return false;
 		}
 
@@ -1954,16 +1961,16 @@ abstract class AiBase
 		neededClay += neededPlates;
 		if(neededClay > 6) neededClay = 6;
 		
-		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: neededClay: $neededClay WetBowl: ${countWetBowl} WetPlate: $countWetPlate ');
+		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPOTTERy: neededClay: $neededClay WetBowl: ${countWetBowl} WetPlate: $countWetPlate ');
 
-		if(this.profession['Potter'] < 3 && countClayOnFloor < neededClay && countWetBowl + countWetPlate < 4){
+		if(this.profession['POTTER'] < 3 && countClayOnFloor < neededClay && countWetBowl + countWetPlate < 4){
 			if (shouldDebugSay()) myPlayer.say('Do Pottery get clay from pile $neededClay');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: get clay from pile');
 
 			if(shortCraft(0,3905)) return true; // Pile of Clay 3905
 		}
 
-		this.profession['Potter'] = 3;
+		this.profession['POTTER'] = 3;
 
 		if (shouldDebugSay()) myPlayer.say('Do Pottery neededClay $neededClay');
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: neededClay: $neededClay WetBowl: ${countWetBowl} WetPlate: $countWetPlate ');
@@ -1971,10 +1978,10 @@ abstract class AiBase
 		if(shortCraft(33,126)) return true; //Stone 33, Clay 126 --> Wet Clay Bowl 233
 		if(countBowl > countPlate && shortCraft(33,233)) return true; //Stone 33, Wet Clay Bowl 233 --> Wet Clay Plate 234
 
-		this.profession['Potter'] = 10;
+		this.profession['POTTER'] = 10;
 		if(doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 
-		this.profession['Potter'] = 0;
+		this.profession['POTTER'] = 0;
 
 		return false;
 	}
@@ -2145,7 +2152,7 @@ abstract class AiBase
 		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
 		if(heldObject.parentId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236)) return true;
 
-		if(hasOrBecomeProfession('Baker', maxPeople) == false) return false;
+		if(hasOrBecomeProfession('BAKER', maxPeople) == false) return false;
 		var startTime = Sys.time();
 		var home = myPlayer.home;
 			
@@ -2190,7 +2197,7 @@ abstract class AiBase
 		}
 		
 		if(hotOven != null){
-			this.profession['Baker'] = 2;
+			this.profession['BAKER'] = 2;
 
 			for(i in 0... pies.length){
 				var index = (nextPie + i) % pies.length;
@@ -2217,7 +2224,7 @@ abstract class AiBase
 			// Wood-filled Adobe Oven 247
 			if(oven == null) oven = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 247, 20, null, myPlayer);
 			if(oven == null){
-				this.profession['Baker'] = 0;
+				this.profession['BAKER'] = 0;
 				return false;
 			}
 		}
@@ -2232,7 +2239,7 @@ abstract class AiBase
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		
 		// 560 Knife
-		if(this.profession['Baker'] < 3){
+		if(this.profession['BAKER'] < 3){
 			var knife = myPlayer.heldObject.parentId == 560 ? myPlayer.heldObject : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 560, 20, null, myPlayer);
 			if(knife != null){
 				// 1470 Baked Bread
@@ -2250,7 +2257,7 @@ abstract class AiBase
 			}
 		}		
 
-		this.profession['Baker'] = 3; // TODO set to 2 once in a while to check for bread stuff???
+		this.profession['BAKER'] = 3; // TODO set to 2 once in a while to check for bread stuff???
 		
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');	
 		
@@ -2286,7 +2293,7 @@ abstract class AiBase
 			}
 		}*/
 
-		this.profession['Baker'] = 0;
+		this.profession['BAKER'] = 0;
 	
 		return false;
 	}
@@ -2375,7 +2382,7 @@ abstract class AiBase
 		// Basket of Charcoal 298 + Forge 303
 		if(myPlayer.heldObject.parentId == 298 && shortCraft(298, 303, 30, false)) return true;
 
-		if(hasOrBecomeProfession('Smith', maxPeople) == false) return false;
+		if(hasOrBecomeProfession('SMITH', maxPeople) == false) return false;
 
 		var forge = GetForge();
 
@@ -2390,7 +2397,7 @@ abstract class AiBase
 		// Steel Ingot on Flat Rock 335
 		if(shortCraft(0, 335, 20, false)) return true;
 		
-		if(this.profession['Smith'] < 4){
+		if(this.profession['SMITH'] < 4){
 			// TODO fix make space for them otherwise it might try again and again
 			// Flat Rock 291
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 291, 10); 
@@ -2415,7 +2422,7 @@ abstract class AiBase
 			if(shortCraftOnGround(324)) return true;
 
 			// Unforged Sealed Steel Crucible 319
-			if(this.profession['Smith'] < 3.5 && countForgedCrucible < 1){
+			if(this.profession['SMITH'] < 3.5 && countForgedCrucible < 1){
 				// Big Charcoal Pile 300
 				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 300, 20); 
 				// Basket of Charcoal 298
@@ -2423,7 +2430,7 @@ abstract class AiBase
 
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Unforged Sealed Steel Crucible count done: ${count}');
 				if(countCrucible < 3 && GetCraftAndDropItemsCloseToObj(forge, 319, 3, 10)) return true;
-				this.profession['Smith'] = 3.5;	
+				this.profession['SMITH'] = 3.5;	
 			}
 
 			// Hot Steel Crucible in Wooden Tongs 323
@@ -2434,14 +2441,14 @@ abstract class AiBase
 			// Steel Ingot 326
 			if(craftItem(326)) return true;				
 			if (ServerSettings.DebugAi) trace('doSmithing2: Steel Ingot count: ${countSteel}');
-			this.profession['Smith'] = 3; // craft Crucible	
+			this.profession['SMITH'] = 3; // craft Crucible	
 		}	
 
-		if (countSteel > 1 && this.profession['Smith'] < 4) this.profession['Smith'] = 4;
+		if (countSteel > 1 && this.profession['SMITH'] < 4) this.profession['SMITH'] = 4;
 
 		// Huge Charcoal Pile 4102
 		// Big Charcoal Pile 300 // Firing Forge 304 // Forge with Charcoal
-		if(this.profession['Smith'] < 1.5 && forge.parentId != 304 && forge.parentId != 304 && forge.parentId != 305){
+		if(this.profession['SMITH'] < 1.5 && forge.parentId != 304 && forge.parentId != 304 && forge.parentId != 305){
 			// Basket of Charcoal 298
 			if(shortCraftOnGround(298)) return true;
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4102, 20); 
@@ -2449,93 +2456,93 @@ abstract class AiBase
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Charcoal Pile count: ${count}');
 			// Basket of Charcoal 298
 			if(count < 1 && craftItem(298)) return true;
-			this.profession['Smith'] = 1.5;	
+			this.profession['SMITH'] = 1.5;	
 		}
 
 		// Wrought Iron 314
-		if(this.profession['Smith'] < 3){
+		if(this.profession['SMITH'] < 3){
 			var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 314, 20); 
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Wrought Iron count: ${count}');
 			if(count < 5){
 				// Iron Ore 290
-				if(this.profession['Smith'] < 2){
+				if(this.profession['SMITH'] < 2){
 					var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 290, 20); 
 					if(count < 5 && craftItem(290)) return true;
-					this.profession['Smith'] = 2;	
+					this.profession['SMITH'] = 2;	
 				}
 				// Wrought Iron 314
 				if(craftItem(314)) return true;
 			} 
-			this.profession['Smith'] = 3;	
+			this.profession['SMITH'] = 3;	
 		}
 
 		/*if (countSteel < 1){
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: no steel');
-			this.profession['Smith'] = 0;
+			this.profession['SMITH'] = 0;
 			return false;
 		}*/
 		
-		if(this.profession['Smith'] < 5){
+		if(this.profession['SMITH'] < 5){
 			// Smithing Hammer
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 441, 30); 
 			if(count < 1 && craftItem(441)) return true;
-			this.profession['Smith'] = 5;
+			this.profession['SMITH'] = 5;
 		}
 		
-		if(this.profession['Smith'] < 6){
+		if(this.profession['SMITH'] < 6){
 			// Steel Mining Pick 684
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 684, 50); 
 			if(count < 1 && craftItem(684)) return true;
-			this.profession['Smith'] = 6;
+			this.profession['SMITH'] = 6;
 		}
 
 		// Shovel 502
-		if(this.profession['Smith'] < 7){
+		if(this.profession['SMITH'] < 7){
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 502, 30); 
 			if(count < 1 && craftItem(502)) return true;
-			this.profession['Smith'] = 7;
+			this.profession['SMITH'] = 7;
 		}
 
-		if(this.profession['Smith'] < 8){
+		if(this.profession['SMITH'] < 8){
 			// Steel Axe 334
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 334, 60); 
 			if(count < 1 && craftItem(334)) return true;
-			this.profession['Smith'] = 8;
+			this.profession['SMITH'] = 8;
 		}
 
 		// Steel Chisel 455
-		if(this.profession['Smith'] < 9){			
+		if(this.profession['SMITH'] < 9){			
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 455, 30); 
 			if(count < 1 && craftItem(455)) return true;
-			this.profession['Smith'] = 9;
+			this.profession['SMITH'] = 9;
 		}
 
 		// Steel File Blank 457 
-		if(this.profession['Smith'] < 10){
+		if(this.profession['SMITH'] < 10){
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 457, 30); 
 			if(count < 1 && craftItem(457)) return true;
-			this.profession['Smith'] = 10;
+			this.profession['SMITH'] = 10;
 		}
 
 		// Steel File 458
-		/*if(this.profession['Smith'] < 11){
+		/*if(this.profession['SMITH'] < 11){
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 458, 30); 
 			if(count < 1 && craftItem(458)) return true;
-			this.profession['Smith'] = 11;
+			this.profession['SMITH'] = 11;
 		}*/
 
 		// Steel Blade Blank 459
-		if(this.profession['Smith'] < 12){
+		if(this.profession['SMITH'] < 12){
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 459, 30); 
 			if(count < 1 && craftItem(459)) return true;
-			this.profession['Smith'] = 12;
+			this.profession['SMITH'] = 12;
 		}
 		
 		// Knife 560
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 560, 30); 
 		if(count < 1 && craftItem(560)) return true;
 
-		this.profession['Smith'] = 0;
+		this.profession['SMITH'] = 0;
 
 		return false;
 	}
@@ -2955,7 +2962,7 @@ abstract class AiBase
 		}
 	
 		var count = countProfession(profession);
-		if(profession == 'Smith' && count > 0) return false; // max one smith 
+		if(profession == 'SMITH' && count > 0) return false; // max one SMITH 
 		//trace('hasOrBecomeProfession: $profession count: $count');
 		if (count >= max + wasIdle) return false;
 		this.profession[profession] = 1;
@@ -3286,24 +3293,6 @@ private function craftLowPriorityClothing() : Bool {
 				myPlayer.say('${prof}');
 			}
 		}
-		else if (text.startsWith("BAKER!")) {
-			if(this.profession['Baker'] < 1){
-				this.profession['Baker'] = 1; 
-				myPlayer.say('NEW BAKER');
-			}
-			else{
-				myPlayer.say('BAKER');
-			}
-		}
-		else if (text.startsWith("SMITH!")) {
-			if(this.profession['Smith'] < 1){
-				this.profession['Smith'] = 1; 
-				myPlayer.say('NEW SMITH');
-			}
-			else{
-				myPlayer.say('SMITH');
-			}
-		}	
 	}
 
 	public function createProfessionText(){
@@ -3313,8 +3302,8 @@ private function craftLowPriorityClothing() : Bool {
 		if (text == null) text = 'NONE';
 		return text;
 	}
-
-	public static var professions = ['SOILMAKER','ROWMAKER','BASICFARMER','ADVANCEDFARMER','SHEPHERD'];
+	
+	public static var professions = ['SOILMAKER','ROWMAKER','BASICFARMER','ADVANCEDFARMER','SHEPHERD','BAKER','POTTER','SMITH'];
 
 	public function searchFoodAndEat() {
 		foodTarget = AiHelper.SearchBestFood(myPlayer);
@@ -5459,8 +5448,8 @@ private function craftLowPriorityClothing() : Bool {
 		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
 		if (isHungry == false && foodTarget == null) return false;
 
-		// TODO reset smith here?
-		this.profession['Smith'] = 0;
+		// TODO reset SMITH here?
+		this.profession['SMITH'] = 0;
 		if(this.lastProfession != 'FoodServer') this.lastProfession = 'Eating';
 
 		var quadDistance = -1.0;
