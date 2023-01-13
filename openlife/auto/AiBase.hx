@@ -2792,13 +2792,17 @@ abstract class AiBase
 	}
 
 	private function cleanUpBowls(bowlId:Int) {
+		// Bowl of Dry Beans 1176 // Dry Bean Pod 1160
+		var filledWithID = bowlId == 1176 ? 1160 : -1;
+		// Bowl of Gooseberries 253 // Gooseberry 31
+		if(bowlId == 253) bowlId = 31;
+
 		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, bowlId, 30);
+		var closeBowl = AiHelper.GetClosestObjectById(myPlayer, bowlId);
+
+		if(myPlayer.heldObject.parentId == filledWithID && closeBowl != null && closeBowl.numberOfUses < closeBowl.objectData.numUses) useHeldObjOnTarget(closeBowl);
 
 		if(count < 2) return false;
-		var closeBowl = AiHelper.GetClosestObjectById(myPlayer, bowlId);
-		
-		// Dry Bean Pod 1160
-		if(myPlayer.heldObject.parentId == 1160 && closeBowl != null && closeBowl.numberOfUses < closeBowl.objectData.numUses) useHeldObjOnTarget(closeBowl);
 
 		// empty only bowls with one berry
 		if(closeBowl != null && closeBowl.numberOfUses > 1) return false;
