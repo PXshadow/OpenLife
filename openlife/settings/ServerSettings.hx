@@ -1917,6 +1917,21 @@ class ServerSettings {
 		//var trans = transtions.getTransition(33, 32); // Stone + Big Hard Rock ==> Sharp Stone
 		//trans.hungryWorkCost = 5;
 
+		// Steel Mining Pick 684 + Ancient Stone Wall H 896 ==> Stone Wall
+		trans = new TransitionData(684, 896, 684, 887); 
+		trans.hungryWorkCost = 10;
+		transtions.addTransition("PatchTransitions: ", trans, false, false);
+
+		// Steel Mining Pick 684 + Ancient Stone Wall C 896 ==> Stone Wall
+		trans = new TransitionData(684, 895, 684, 885); 
+		trans.hungryWorkCost = 10;
+		transtions.addTransition("PatchTransitions: ", trans, false, false);
+
+		// Steel Mining Pick 684 + Ancient Stone Wall V 897 ==> Stone Wall
+		trans = new TransitionData(684, 897, 684, 886); 
+		trans.hungryWorkCost = 10;
+		transtions.addTransition("PatchTransitions: ", trans, false, false);
+
 		// most important allow kill moskitos
 		// Firebrand + Mosquito Swarm --> 0 + Ashes
 		trans = new TransitionData(248, 2156, 0,86); 
