@@ -2620,6 +2620,11 @@ class ServerSettings {
 		var trans = transtions.getTransition(467, 550);
 		trans.aiShouldIgnore = true;
 
+		// Steel Adze 462 + Wall Slot Shelf 3242
+		var trans = transtions.getTransition(462, 3242);
+		trans.aiShouldIgnore = true;
+
+		
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
 		//var trans = transtions.getTransition(1247, 4110);
 		//trans.aiShouldIgnore = true;
