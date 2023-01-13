@@ -2540,11 +2540,7 @@ class ServerSettings {
 
 		// AI might use to empty bowl
 		var trans = transtions.getTransition(33, 318); // Stone + Crucible with Charcoal
-		trans.aiShouldIgnore = true;
-
-		// lime
-		var trans = transtions.getTransition(677, 661); // Bowl of Plaster 677  + Stone Pile 661
-		trans.aiShouldIgnore = true;
+		trans.aiShouldIgnore = true;		
 
 		var trans = transtions.getTransition(0, 675); // 0 + Bowl of Limestone 675 
 		trans.aiShouldIgnore = true;
@@ -2628,7 +2624,7 @@ class ServerSettings {
 		// Butter Knife 1467 + Bowl of Butter 1465
 		var trans = transtions.getTransition(1467, 1465);
 		trans.aiShouldIgnore = true;
-		
+
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
 		//var trans = transtions.getTransition(1247, 4110);
 		//trans.aiShouldIgnore = true;
@@ -2643,6 +2639,23 @@ class ServerSettings {
 		//var trans = transtions.getTransition(235, 662);
 		//trace('Bowl of Water: ' + trans.getDesciption());
 		//trans.aiShouldIgnore = true;
+
+		// lime
+		//var trans = transtions.getTransition(677, 661); // Bowl of Plaster 677  + Stone Pile 661
+		//trans.aiShouldIgnore = true;
+
+		// Bowl of Plaster 677
+		var transByTarget = TransitionImporter.GetTransitionByActor(684);
+		for(trans in transByTarget){
+			// Adobe Wall H 155
+			if(trans.targetID == 155) continue;
+			// Adobe Wall V 156
+			if(trans.targetID == 156) continue;
+			// Adobe Wall C 154
+			if(trans.targetID == 154) continue;
+
+			trans.aiShouldIgnore = true;
+		}
 
 		// Steel Mining Pick 684
 		var transByTarget = TransitionImporter.GetTransitionByActor(684);
