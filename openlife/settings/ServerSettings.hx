@@ -2624,6 +2624,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(462, 3242);
 		trans.aiShouldIgnore = true;
 
+		// TODO fix reverse use transitions if full
+		// Butter Knife 1467 + Bowl of Butter 1465
+		var trans = transtions.getTransition(1467, 1465);
+		trans.aiShouldIgnore = true;
 		
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
 		//var trans = transtions.getTransition(1247, 4110);
