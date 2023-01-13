@@ -539,9 +539,9 @@ abstract class AiBase
 		Macro.exception(if(doCarrotFarming(1)) return);
 		Macro.exception(if(fillBerryBowlIfNeeded()) return);
 		Macro.exception(if(cleanUpBowls(253)) return); // Bowl of Gooseberries 253
-		Macro.exception(if(fillBeanBowlIfNeeded()) return); // green beans	
-		Macro.exception(if(fillBeanBowlIfNeeded(false)) return); // dry beans
+		Macro.exception(if(fillBeanBowlIfNeeded()) return); // green beans
 		Macro.exception(if(cleanUpBowls(1176)) return); // Bowl of Dry Beans 1176
+		Macro.exception(if(fillBeanBowlIfNeeded(false)) return); // dry beans
 		
 		//Macro.exception(if(doBasicFarming(1)) return);
 
@@ -2792,12 +2792,14 @@ abstract class AiBase
 	}
 
 	private function cleanUpBowls(bowlId:Int) {
-		// 253 Bowl of Gooseberries
 		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, bowlId, 30);
 
 		if(count < 2) return false;
 		var closeBowl = AiHelper.GetClosestObjectById(myPlayer, bowlId);
 		
+		// Dry Bean Pod 1160
+		if(myPlayer.heldObject.parentId == 1160 && closeBowl != null && closeBowl.numberOfUses < closeBowl.objectData.numUses) useHeldObjOnTarget(closeBowl);
+
 		// empty only bowls with one berry
 		if(closeBowl != null && closeBowl.numberOfUses > 1) return false;
 
@@ -5519,6 +5521,7 @@ private function craftLowPriorityClothing() : Bool {
 		
 		if(fillUpBerryBowl()) return true; // needed for baking
 		if(doBaking(2)) return true;
+		if(cleanUpBowls(1176)) return true; // Bowl of Dry Beans 1176
 		if(fillBeanBowlIfNeeded(false)) return true; // dry beans	
 		if(countRawRabbit < 1 && makeFireFood(1)) return true;
 
