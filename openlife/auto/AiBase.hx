@@ -5888,8 +5888,8 @@ private function craftLowPriorityClothing() : Bool {
 				isHungry = true;
 				return true;
 			}
-			this.addObjectWithHostilePath(useTarget);
-			//this.addNotReachableObject(useTarget);
+			//this.addObjectWithHostilePath(useTarget);
+			this.addNotReachableObject(useTarget);
 		}
 
 		useTarget = null;
