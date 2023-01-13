@@ -2608,12 +2608,12 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 
 		// Bowl of Soil 1137 + Fertile Soil Pile 1101
-		var trans = transtions.getTransition(1137, 1101);
-		trans.aiShouldIgnore = true;
+		//var trans = transtions.getTransition(1137, 1101);
+		//trans.aiShouldIgnore = true;
 
 		// Bowl of Soil 1137 + Fertile Soil 1138
-		var trans = transtions.getTransition(1137, 1138);
-		trans.aiShouldIgnore = true;
+		//var trans = transtions.getTransition(1137, 1138);
+		//trans.aiShouldIgnore = true;
 
 		// 0 + Bowl of Raw Pork 1354
 		var trans = transtions.getTransition(0, 1354);
@@ -2762,10 +2762,11 @@ class ServerSettings {
 		}*/
 
 		// Bowl of Soil 1137
-		/*var transByTarget = TransitionImporter.GetTransitionByNewActor(1137);
+		var transByTarget = TransitionImporter.GetTransitionByNewActor(1137);
 		for(trans in transByTarget){
-			trace('Bowl of Soil: ' + trans.getDesciption());
-		}*/
+			trace('Bowl of Soil: ignore: ${trans.aiShouldIgnore} ' + trans.getDescription());
+			
+		}
 
 		// Broken Steel Tool 858 --> no transitions found
 		/*var transByTarget = TransitionImporter.GetTransitionByNewTarget(858);

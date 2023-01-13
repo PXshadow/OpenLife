@@ -1326,7 +1326,7 @@ abstract class AiBase
 
 		if(shortCraft(0, 400, 30)) return true; // pull out the carrots 
 
-		if(doPrepareSoil()) return true;
+		//if(doPrepareSoil()) return true;
 
 		if(doPrepareRows()) return true;
 
@@ -1414,13 +1414,19 @@ abstract class AiBase
 	private function doPrepareRows(maxProfession = 2) {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
-		var distance = 30;		
+		var distance = 30;	
+		
+		if(doPrepareSoil()) return true;
+
+		//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} RowMaker1: ${taskState['RowMaker']}');
 
 		if(hasOrBecomeProfession('ROWMAKER', maxProfession) == false) return false;
 
-		if(shortCraft(139, 2832, distance)) return true; // Skewer + Tomato Sprout
-		if(shortCraft(139, 4228, distance)) return true; // Skewer + Cucumber Sprout
-		if(shortCraft(0, 2837, distance)) return true; // 0 + Hardened Row with Stake
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} RowMaker2: ${taskState['RowMaker']}');
+
+		//if(shortCraft(139, 2832, distance)) return true; // Skewer + Tomato Sprout
+		//if(shortCraft(139, 4228, distance)) return true; // Skewer + Cucumber Sprout
+		//if(shortCraft(0, 2837, distance)) return true; // 0 + Hardened Row with Stake
 
 		// Deep Tilled Row 213
 		var deepRows = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 213, 30); 		
@@ -1441,25 +1447,32 @@ abstract class AiBase
 
 			//if(countBowls < 1 && doPottery(3)) return true;
 
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} RowMaker: ${taskState['RowMaker']} deepRows: $deepRows countRows: $countRows');
+
 			if(countRows < 9){
 				// TODO there seems to be a bug with maxuse transitions on pile of soil
 				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
-				if(heldObject.parentId == 1137 && shortCraft(1137, 848, 30)) return true; 
+				//if(heldObject.parentId == 1137 && shortCraft(1137, 848, 30)) return true; 
 				// Clay Bowl 235 + Fertile Soil Pile 1101 --> Bowl of Soil 1137
-				if(shortCraft(235, 1101, 30)) return true;
+				//if(shortCraft(235, 1101, 30)) return true;
 				//  Clay Bowl 235 + Fertile Soil 1138 --> Bowl of Soil 1137 
-				if(shortCraft(235, 1138, 30)) return true;  
+				//if(shortCraft(235, 1138, 30)) return true;  
+				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
+				if(shortCraft(1137, 848, 30)) return true;  
 			}
-			this.taskState['RowMaker'] = 2;
+			else this.taskState['RowMaker'] = 2;
 		}
 
-		if (ServerSettings.DebugAi) trace('AAI: putSoil ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']} countRows: $countRows');			
+		var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 30); //  Clay Bowl 235
+		if(heldObject.parentId == 235) countBowls += 1;
 
-		if(deepRows < 1) this.taskState['RowMaker'] = 2;
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} RowMaker: ${taskState['RowMaker']} Till Rows? countRows: $countRows countBowls: $countBowls');			
+
+		if(deepRows < 2) this.taskState['RowMaker'] = 1;
 
 		// Deep Tilled Row 213
 		if(this.taskState['RowMaker'] < 3){
-			if(deepRows < 6){
+			if(deepRows < 0){
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']} deepRows: $deepRows ');			
 
 				// Steel Hoe 857 + Shallow Tilled Row 1136 --> Deep Tilled Row 213
@@ -1469,7 +1482,7 @@ abstract class AiBase
 
 				// Hardened Row 848 
 				var countHardRows = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 848, 30);
-				if(countHardRows > 0){
+				if(countHardRows > 0 && countBowls > 0){
 					// consider putting soil on hard row
 					this.taskState['RowMaker'] = 1;
 					return true;
@@ -1481,7 +1494,16 @@ abstract class AiBase
 				// Stone Hoe 850 + Fertile Soil 1138 --> Deep Tilled Row 213
 				if(shortCraft(850, 1138, 30)) return true; 
 			}
-			this.taskState['RowMaker'] = 3;
+			else this.taskState['RowMaker'] = 3;
+		}
+
+		if(deepRows < 6){
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} RowMaker: ${taskState['RowMaker']} pottery? countBowls: $countBowls');			
+			
+			//if (shouldDebugSay()) myPlayer.say('BASICFARMER: shallowrows: $countRows bowls: $countBowls');
+			//if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']} shallowrows: $countRows bowls: $countBowls');			
+
+			if(countBowls < 1 && doPottery(maxProfession)) return true;
 		}
 
 		return false;
@@ -1531,7 +1553,7 @@ abstract class AiBase
 
 		if(hasOrBecomeProfession('BerryFarmer', maxProfession) == false) return false;
 
-		if(doPrepareSoil()) return true;
+		//if(doPrepareSoil()) return true;
 
 		if(doPrepareRows()) return true;
 
@@ -1640,7 +1662,7 @@ abstract class AiBase
 		//if(shortCraft(1137, 848, 30, false)) return true;
 		//trace('Fertile Soil Pile!');
 
-		if(doPrepareSoil()) return true;
+		//if(doPrepareSoil()) return true;
 
 		if(doPrepareRows()) return true;
 
@@ -5874,6 +5896,7 @@ private function craftLowPriorityClothing() : Bool {
 			// TODO dont use on contained objects if result cannot contain (ignore in crafting search)
 			// TODO check if failed because of hungry work
 			
+			var oldUseTarget = useTarget;
 			useTarget = null;
 			itemToCraft.transActor = null;
 			itemToCraft.transTarget = null;
@@ -5888,8 +5911,8 @@ private function craftLowPriorityClothing() : Bool {
 				isHungry = true;
 				return true;
 			}
-			//this.addObjectWithHostilePath(useTarget);
-			this.addNotReachableObject(useTarget);
+			//this.addObjectWithHostilePath(oldUseTarget);
+			this.addNotReachableObject(oldUseTarget);
 		}
 
 		useTarget = null;
