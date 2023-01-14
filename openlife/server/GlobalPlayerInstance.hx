@@ -109,6 +109,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var warmPlace:ObjectHelper = null; 
 	public var firePlace:ObjectHelper = null; // not saved yet
 	public var lastTemperature:Float = 0.5; // not saved
+	public var storedWater:Float = 0; // not saved yet
 
 	public var forceStopOnNextTile = false; //not saved // Ai sets this to change only movement if reached next tile
 
@@ -2159,6 +2160,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (this.heldObject == this.hiddenWound) this.setHeldObject(null);
 
+		if(drink()){
+			this.connection.send(PLAYER_UPDATE, [this.toData()]);
+			this.doEmote(Emote.happy);
+			this.connection.send(FRAME);
+			return true;
+		} 
+
 		if (clothingSlot < 0) {
 			if (doEating(this, this)) return true;
 		}
@@ -2169,6 +2177,45 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (doSwitchCloths(this, this, clothingSlot)) return true;
 
 		return doPlaceObjInClothing(clothingSlot);
+	}
+
+	private function drink() {
+		var heldId = heldObject.parentId;
+
+		// Bowl of Water 382 // Full Water Pouch 210
+		if(heldId != 382 && heldId != 210) return false;
+
+		// Clay Bowl 235 // Empty Water Pouch 209
+		var emptyItemId = heldId == 382 ? 235 : 209;
+
+		trace('drink: heat: ${this.heat} storedWater: ${this.storedWater}');
+
+		var water = ServerSettings.TemperatureReductionPerDrinking;
+		if(this.heat > 0.7){
+			var tooMuch = this.heat - 0.5;
+			if(tooMuch > water){
+				this.heat -= water;
+				heldObject.id = emptyItemId;
+				this.setHeldObject(heldObject);
+				return true;
+			}
+			else{
+				this.heat = 0.5; 
+				water -= tooMuch;
+				heldObject.id = emptyItemId;
+				this.setHeldObject(heldObject);
+				this.storedWater += water;
+				if(this.storedWater > ServerSettings.MaxStoredWater) this.storedWater = ServerSettings.MaxStoredWater;
+				return true;
+			}
+		} 
+
+		if(this.storedWater >= ServerSettings.MaxStoredWater) return false;
+		heldObject.id = emptyItemId;
+		this.setHeldObject(heldObject);
+		this.storedWater += water;
+
+		return true;
 	}
 
 	// UBABY x y i id#
