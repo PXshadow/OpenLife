@@ -231,6 +231,7 @@ abstract class AiBase
 		escapeTarget = null;
 		foodTarget = null;
 		useTarget = null;
+		useActor = null;
 		itemToCraft.transActor = null;
 		itemToCraft.transTarget = null;
 	}
@@ -244,6 +245,7 @@ abstract class AiBase
 		dropTarget = null;
 		foodTarget = null;		
 		useTarget = null;
+		useActor = null;
 
 		itemToCraftId = -1;
 		itemToCraft = new IntemToCraft();
@@ -4283,6 +4285,7 @@ private function craftLowPriorityClothing() : Bool {
 			addObjectWithHostilePath(foodTarget);
 			addObjectWithHostilePath(escapeTarget);
 			useTarget = null;
+			useActor = null;
 			foodTarget = null;
 			itemToCraft.transActor = null;
 			itemToCraft.transTarget = null;
@@ -5858,6 +5861,7 @@ private function craftLowPriorityClothing() : Bool {
 				}
 				else{
 					useTarget = null;
+					useActor = null;
 				}								
 
 				return true;
@@ -5905,6 +5909,7 @@ private function craftLowPriorityClothing() : Bool {
 			
 			var oldUseTarget = useTarget;
 			useTarget = null;
+			useActor = null;
 			itemToCraft.transActor = null;
 			itemToCraft.transTarget = null;
 			dropIsAUse = false;
@@ -5923,6 +5928,7 @@ private function craftLowPriorityClothing() : Bool {
 		}
 
 		useTarget = null;
+		useActor = null;
 		dropIsAUse = false;
 
 		return true;
