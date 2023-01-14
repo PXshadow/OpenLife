@@ -1010,6 +1010,15 @@ class TimeHelper {
 		// ignore clothing if heat change is positive or if in water
 		player.heat += newTemperatureIsPositive || isInWater ? waterFactor * timeFactor * timePassed * heatchange: clothingFactor * timeFactor * timePassed * heatchange;
 
+		if (player.heat > 0.6 && player.storedWater > 0){
+			var heatReduction = timePassed * player.storedWater * (player.heat - 0.6) * 0.1;
+			player.heat -= heatReduction;
+			player.storedWater -= heatReduction;
+			heatReduction = Math.round(heatReduction * 10000) / 10000;
+			var tmpStoredWater = Math.round(player.storedWater * 100) / 100;
+			//trace('${player.name + player.id} heatReduction: $heatReduction StoredWater: $tmpStoredWater playerHeat: ${Math.round(player.heat * 100) / 100}');
+		}
+
 		if (player.heat > 1) player.heat = 1;
 		if (player.heat < 0) player.heat = 0;
 
