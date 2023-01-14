@@ -2607,6 +2607,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(0, 1172);
 		trans.aiShouldIgnore = true;
 
+		// Dry Bean Pod 1160 + Clay Bowl 235
+		var trans = transtions.getTransition(1160, 235);
+		trans.aiShouldIgnore = true;
+
 		// Bowl of Soil 1137 + Fertile Soil Pile 1101
 		//var trans = transtions.getTransition(1137, 1101);
 		//trans.aiShouldIgnore = true;
