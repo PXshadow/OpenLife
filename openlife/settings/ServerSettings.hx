@@ -2302,6 +2302,7 @@ class ServerSettings {
 		// Butter Knife 1467 + Clay Bowl 235 --> Knife 560 + Bowl of Butter 1465
 		var trans = new TransitionData(1467, 235, 560, 1465);
 		trans.aiShouldIgnore = true;
+		trans.reverseUseTarget = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// TODo needs client change
