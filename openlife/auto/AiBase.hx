@@ -1195,6 +1195,7 @@ abstract class AiBase
 				// Bowl of Water 382 // Full Water Pouch 210
 				if(heldId == 382 || heldId == 210){
 					myPlayer.self();
+					myPlayer.say('lets drink');
 					return true;
 				}
 				if(GetOrCraftItem(210)) return true;
