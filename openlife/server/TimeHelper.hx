@@ -263,10 +263,11 @@ class TimeHelper {
 			//}
 
 			var season = Season == Seasons.Summer ? ' ${SeasonNames[Season]}' : ''; 
-			var rand = WorldMap.calculateRandomInt(1);
+			var rand = WorldMap.calculateRandomInt(2);
 		
 			if(rand == 0) player.say('too hot${season} a river could help!', true);
-			else if(rand == 1) player.say('too hot${season} some snow would be nice!', true);
+			else if(rand == 1) player.say('too hot${season} could drink some water!', true);
+			else if(rand == 2) player.say('too hot${season} some snow would be nice!', true);
 			//else if(rand == 2) player.say('too hot${season} a jungle could help', true);			
 			//else player.say('too hot${season} a desert would be warm!', true);
 		}
