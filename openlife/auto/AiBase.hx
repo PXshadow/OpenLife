@@ -5008,9 +5008,10 @@ private function craftLowPriorityClothing() : Bool {
 
 		var objToCraft = ObjectData.getObjectData(objToCraftId);
 
+		// TODO still tires to put back butter knife in butter bowl, even if there is bread
 		// TODO no need to check for bread if first make target (bread) instead of actor(butter knife)
 		// Sliced Bread 1471 // Bread Slice on Clay Plate 1474
-		var transitions = TransitionImporter.transitionImporter;
+		/*var transitions = TransitionImporter.transitionImporter;
 		var isBread = transitionsByObjectId[1471] != null && transitionsByObjectId[1471].closestObject != null;
 		isBread = isBread || (transitionsByObjectId[1474] != null && transitionsByObjectId[1474].closestObject != null);
 		if(isBread){
@@ -5025,7 +5026,7 @@ private function craftLowPriorityClothing() : Bool {
 			trans.aiShouldIgnore = true;
 			var trans = transitions.getTransition(560, 1465, false, true);
 			trans.aiShouldIgnore = true;
-		}
+		}*/
 
 		while (objectsToSearch.length > 0) {
 			if (count > 30000) break;
