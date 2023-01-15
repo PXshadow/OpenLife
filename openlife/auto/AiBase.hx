@@ -5011,7 +5011,8 @@ private function craftLowPriorityClothing() : Bool {
 		// TODO no need to check for bread if first make target (bread) instead of actor(butter knife)
 		// Sliced Bread 1471 // Bread Slice on Clay Plate 1474
 		var transitions = TransitionImporter.transitionImporter;
-		var isBread = transitionsByObjectId[1471].closestObject != null || transitionsByObjectId[1474].closestObject != null;
+		var isBread = transitionsByObjectId[1471] != null && transitionsByObjectId[1471].closestObject != null;
+		isBread = isBread || (transitionsByObjectId[1474] != null && transitionsByObjectId[1474].closestObject != null);
 		if(isBread){
 			// Knife 560 // Bowl of Butter 1465
 			var trans = transitions.getTransition(560, 1465);

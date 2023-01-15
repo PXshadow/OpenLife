@@ -2299,6 +2299,11 @@ class ServerSettings {
 		trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Butter Knife 1467 + Clay Bowl 235 --> Knife 560 + Bowl of Butter 1465
+		var trans = new TransitionData(1467, 235, 560, 1465);
+		trans.aiShouldIgnore = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// TODo needs client change
 		//var trans = new TransitionData(298, 317, 298, 316); // 298 Basket of Charcoal + 317 Crucible with Iron --> 298 +  316 Crucible with Iron and Charcoal
 		//transtions.addTransition("PatchTransitions: ", trans);
