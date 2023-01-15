@@ -1186,8 +1186,21 @@ abstract class AiBase
 		var text = '';
 		var needWarming = myPlayer.isSuperCold() || (isHandlingTemperature && myPlayer.heat < 0.4);
 		var needCooling = myPlayer.isSuperHot() || (isHandlingTemperature && myPlayer.heat > 0.6);
+		var heldId = myPlayer.heldObject.parentId;
+		var heat = myPlayer.heat; 
 
 		if(needCooling){
+			// consider drinking
+			if(heat > 0.7){
+				// Bowl of Water 382 // Full Water Pouch 210
+				if(heldId == 382 || heldId == 210){
+					myPlayer.self();
+					return true;
+				}
+				if(GetOrCraftItem(210)) return true;
+				if(GetOrCraftItem(382)) return true;
+			}
+			
 			//trace('AAI: ${myPlayer.name + myPlayer.id} handle heat: too hot');
 			goodPlace = myPlayer.GetCloseBiome([BiomeTag.SNOW, BiomeTag.PASSABLERIVER]);
 			if (goodPlace != null && ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} found place to cool!');
