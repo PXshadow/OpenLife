@@ -2538,6 +2538,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(288, 238); // Bellows 288 + Adobe Kiln 238
 		trans.aiShouldIgnore = true;
 
+		var trans = transtions.getTransition(288, 299); // Bellows 288 + Adobe Kiln with Charcoal 299
+		trans.aiShouldIgnore = true;
+
 		var trans = transtions.getTransition(0, 303); // 0 + Forge = Adobe Kiln
 		trans.aiShouldIgnore = true; 
 
