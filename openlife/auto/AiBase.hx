@@ -5021,11 +5021,29 @@ private function craftLowPriorityClothing() : Bool {
 
 		var objToCraft = ObjectData.getObjectData(objToCraftId);
 
+		var transitions = TransitionImporter.transitionImporter;
+		var existsHardenedRow = transitionsByObjectId[848] != null && transitionsByObjectId[848].closestObject != null;
+
+		if(existsHardenedRow){
+			// Stone Hoe + Fertile Soil 
+			var trans = transitions.getTransition(850, 1138);
+			trans.aiShouldIgnore = true;
+			// Steel Hoe 857 + Fertile Soil 
+			var trans = transitions.getTransition(857, 1138);
+			trans.aiShouldIgnore = true;
+		}
+		else{
+			var trans = transitions.getTransition(850, 1138);
+			trans.aiShouldIgnore = false;
+			var trans = transitions.getTransition(857, 1138);
+			trans.aiShouldIgnore = false;
+		}
+
 		// TODO still tires to put back butter knife in butter bowl, even if there is bread
 		// TODO no need to check for bread if first make target (bread) instead of actor(butter knife)
 		// Sliced Bread 1471 // Bread Slice on Clay Plate 1474
-		/*var transitions = TransitionImporter.transitionImporter;
-		var isBread = transitionsByObjectId[1471] != null && transitionsByObjectId[1471].closestObject != null;
+		
+		/*var isBread = transitionsByObjectId[1471] != null && transitionsByObjectId[1471].closestObject != null;
 		isBread = isBread || (transitionsByObjectId[1474] != null && transitionsByObjectId[1474].closestObject != null);
 		if(isBread){
 			// Knife 560 // Bowl of Butter 1465
