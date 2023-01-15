@@ -481,6 +481,10 @@ abstract class AiBase
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if(craftHighPriorityClothing()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
+		// medium priorty tasks
+		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
+
+		itemToCraft.searchCurrentPosition = false;
 
 		if(assignedProfession == 'ROWMAKER'){
 			Macro.exception(if(doPrepareRows(100)) return);
@@ -518,10 +522,7 @@ abstract class AiBase
 		//this.profession['BowlFiller'] = 1;
 		*/
 
-		// medium priorty tasks
-		if(myPlayer.age > 20) Macro.exception(if(craftMediumPriorityClothing()) return);
-
-		itemToCraft.searchCurrentPosition = false;
+		
 		//if(this.profession['BAKER'] > 0) Macro.exception(if (doBaking()) return);
 		//if(this.profession['POTTER'] > 0) Macro.exception(if (doPottery()) return);
 		// Bowl of Soil 1137
@@ -1968,8 +1969,10 @@ abstract class AiBase
 		//if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 294, 20, null, myPlayer);
 
 		if(this.profession['POTTER'] < 2 && countWetBowl + countWetPlate < 4){
+			itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 20); // Clay 126
 			if(count < 5 && gatherClay(kiln)) return true; // home is used if there is no kiln
+			itemToCraft.maxSearchRadius = 30;
 		}
 
 		this.profession['POTTER'] = 2; // dont get new clay --> do some pottery first
