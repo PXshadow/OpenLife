@@ -5571,12 +5571,12 @@ private function craftLowPriorityClothing() : Bool {
 
 		// Skinned Rabbit 181
 		var countRawRabbit = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 181, 25);
+		if(myPlayer.heldObject.parentId == 181) countRawRabbit += 1;
 		// Skewered Rabbit 185
 		countRawRabbit += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 185, 25);
-		// Skewered Rabbit 185
 		if(myPlayer.heldObject.parentId == 185) countRawRabbit += 1;
 
-		if(countRawRabbit > 0 && makeFireFood(2)) return true;
+		if(countRawRabbit > 0 && makeFireFood(1)) return true;
 		
 		if(fillUpBerryBowl()) return true; // needed for baking
 		if(doBaking(2)) return true;
