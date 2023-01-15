@@ -3443,9 +3443,9 @@ private function craftLowPriorityClothing() : Bool {
 
 	// Clay Bowl 235 // Stack of Clay Bowls 1603 // Clay Plate 236 // Stack of Clay Plates 1602 
 	// Bowl of Gooseberries 253 // Knife 560 // Bowl of Dough 252 
-	// Baked Bread 1470 // Sliced Bread 1471
+	// Baked Bread 1470 // Sliced Bread 1471 // Omelette 1285
 	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900
-	var dropNearOvenItemIds = [235, 1603, 236, 1602, 560, 252, 1470, 1471, 253, 502, 900];
+	var dropNearOvenItemIds = [235, 1603, 236, 1602, 560, 252, 1470, 1471, 1285, 253, 502, 900];
 
 	// Stone 33 // Sharp Stone 34 // Banana Peel 2144 
 	var dropAtCurrentPosition = [33,34,2144];
