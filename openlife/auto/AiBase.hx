@@ -649,6 +649,13 @@ abstract class AiBase
 		if(this.profession['Lumberjack'] < 2 && count < 5 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 344, 10)) return true; 
 		this.profession['Lumberjack'] = 2;
 
+
+		// Butt Log 345
+		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 345, 15);
+		if(count < 2) this.profession['Lumberjack'] = 2;
+		if(this.profession['Lumberjack'] < 3 && count < 5 && GetCraftAndDropItemsCloseToObj(myPlayer.home, 345, 5)) return true; 
+		this.profession['Lumberjack'] = 3;
+
 		if(cleanUp()) return true;
 
 		return false;
