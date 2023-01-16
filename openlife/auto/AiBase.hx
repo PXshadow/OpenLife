@@ -771,6 +771,8 @@ abstract class AiBase
 			if(shortCraft(3891, 3891, 20)) return true; 
 		}
 
+		Macro.exception(if(cleanUpBowls(1176)) return true); // Bowl of Dry Beans 1176
+
 		return false;
 	}
 
@@ -3580,14 +3582,13 @@ private function craftLowPriorityClothing() : Bool {
 
 		// Bowl of Dry Beans 1176 // Dry Bean Pod 1160
 		if(heldObjId == 1160){
-			
-			//var filledWithID = bowlId == 1176 ? 1160 : -1;
-			// Bowl of Gooseberries 253 // Gooseberry 31
-			//if(bowlId == 253) bowlId = 31;
-
-			//var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, bowlId, 30);
-			var closeBowl = AiHelper.GetClosestObjectById(myPlayer, 1176);
+			var bowlId = 1176;
+			var closeBowl = AiHelper.GetClosestObjectById(myPlayer, bowlId,30);
 			if(closeBowl != null && closeBowl.numberOfUses < closeBowl.objectData.numUses) return useHeldObjOnTarget(closeBowl);
+			if(closeBowl != null) closeBowl = AiHelper.GetClosestObjectById(myPlayer, bowlId, closeBowl, 30);
+			if(closeBowl != null && closeBowl.numberOfUses < closeBowl.objectData.numUses) return useHeldObjOnTarget(closeBowl);
+			closeBowl = AiHelper.GetClosestObjectById(myPlayer, 235, 30); // Clay Bowl
+			if(closeBowl != null) return useHeldObjOnTarget(closeBowl);
 		}
 
 		// Basket of Bones 356
