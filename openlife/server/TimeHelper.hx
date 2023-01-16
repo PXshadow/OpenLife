@@ -2492,6 +2492,7 @@ class TimeHelper {
 				worldmap.setObjectHelper(toTx, toTy, animal.groundObject);
 			}
 
+			animal.failedMoves = 0;
 			var speed = ServerSettings.InitialPlayerMoveSpeed * objectData.speedMult;
 			Connection.SendAnimalMoveUpdateToAllClosePlayers(fromTx, fromTy, toTx, toTy, oldTileObject, newTileObject, speed);
 			
@@ -2504,7 +2505,16 @@ class TimeHelper {
 		}
 
 		animal.creationTimeInTicks = TimeHelper.tick;
-		// trace('ANIMALMOVE: false');
+		animal.failedMoves += WorldMap.calculateRandomFloat();
+		trace('ANIMALMOVE: false failedMoves: ${animal.failedMoves} ${animal.name}');
+		
+		// kill animal if it cannot move for some time
+		if(animal.failedMoves > 20){
+			trace('ANIMALMOVE: dead failedMoves: ${animal.failedMoves} ${animal.name}');
+			animal.failedMoves = 0;
+			WorldMap.world.setObjectHelper(animal.tx, animal.ty, animal.groundObject);
+			Connection.SendMapUpdateToAllClosePlayers(animal.tx, animal.ty);
+		}
 
 		return false;
 	}

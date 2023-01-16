@@ -3,7 +3,6 @@ package openlife.data.object;
 import haxe.Exception;
 import haxe.ds.Vector;
 import openlife.auto.PlayerInterface;
-import openlife.data.transition.TransitionData;
 import openlife.data.transition.TransitionImporter;
 import openlife.server.GlobalPlayerInstance;
 import openlife.server.Lineage;
@@ -39,7 +38,8 @@ class ObjectHelper {
 	// to store contained objects in case object is a container
 	public var containedObjects:Array<ObjectHelper> = [];
 
-	public var hits:Float = 0; // not saved
+	public var hits:Float = 0; // not saved yet
+	public var failedMoves:Float = 0; // not saved yet
 
 	// public var isLovedSet = false; // not saved TODO save
 	public var lovedTx:Int = 0; // not saved TODO save
