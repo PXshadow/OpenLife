@@ -2847,10 +2847,12 @@ abstract class AiBase
 			if(count < 3 && closeBowl != null) return useHeldObjOnTarget(closeBowl);
 		} 
 
+		// Clay Bowl 235
+		var countClayBowl = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 235, 30); 
 		// clean up stuff on ground
-		if(count < 3 && shortCraft(0, filledWithID)) return true;
+		if((countClayBowl > 1 || (closeBowl != null && closeBowl.numberOfUses < closeBowl.objectData.numUses)) && shortCraft(0, filledWithID)) return true;
 
-		if(count < 3) return false;
+		if(count < 2) return false;
 
 		// empty only bowls with one berry
 		if(closeBowl != null && closeBowl.numberOfUses > 1) return false;
