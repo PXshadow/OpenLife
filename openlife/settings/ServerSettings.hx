@@ -1379,8 +1379,14 @@ class ServerSettings {
 
 		// TODO add graphics for dead cow
 		// Knife + Domestic Cow ==> Bloody Knife + Butchered Sheep 587
-		var trans = new TransitionData(560, 1458, 750, 587); 
+		//var trans = new TransitionData(560, 1458, 750, 587); 
+		// Knife + Domestic Cow ==> Knife + Dead Cow 1900
+		var trans = new TransitionData(560, 1458, 560, 1900); 
 		trans.aiShouldIgnore = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		// Knife + Dead Cow 1900 ==> Knife + Butchered Sheep 587
+		var trans = new TransitionData(560, 1900, 560, 587); 
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Sword transitions for close combat
