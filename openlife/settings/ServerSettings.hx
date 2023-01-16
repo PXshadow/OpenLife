@@ -2346,6 +2346,14 @@ class ServerSettings {
 		trans.reverseUseTarget = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Smithing Hammer 441 + Stakes 107 --> Ember Leaf 77
+		var trans = new TransitionData(441, 107, 441, 77);
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		// Ember Leaf 77 + Straw 227 --> 0 + Smoldering Tinder
+		var trans = new TransitionData(77, 227, 0, 78);
+		transtions.addTransition("PatchTransitions: ", trans);
+		
 		// TODo needs client change
 		//var trans = new TransitionData(298, 317, 298, 316); // 298 Basket of Charcoal + 317 Crucible with Iron --> 298 +  316 Crucible with Iron and Charcoal
 		//transtions.addTransition("PatchTransitions: ", trans);
