@@ -716,7 +716,7 @@ class ServerSettings {
 		ObjectData.getObjectData(774).decaysToObj = 4154; // Hitched Riding Horse --> Hitching Post
 		ObjectData.getObjectData(774).decayFactor = 0.2; // Hitched Riding Horse
 
-		ObjectData.getObjectData(1458).decaysToObj = 1900; // Domestic Cow 1458 --> Dead Cow 1900
+		/*ObjectData.getObjectData(1458).decaysToObj = 1900; // Domestic Cow 1458 --> Dead Cow 1900
 		ObjectData.getObjectData(1458).decayFactor = 0.1;
 		ObjectData.getObjectData(1488).decaysToObj = 1900; // Fed Domestic Cow 1488 --> Dead Cow 1900
 		ObjectData.getObjectData(1488).decayFactor = 0.1;
@@ -730,6 +730,7 @@ class ServerSettings {
 		ObjectData.getObjectData(1462).decayFactor = 0.1;
 		ObjectData.getObjectData(1485).decaysToObj = 1487; // Fed Domestic Calf --> Dead Domestic Calf 1487
 		ObjectData.getObjectData(1485).decayFactor = 0.1;
+		*/
 
 		ObjectData.getObjectData(575).decaysToObj = 595; // Domestic Sheep --> Dead Sheep 595
 		ObjectData.getObjectData(575).decayFactor = 0.1;
