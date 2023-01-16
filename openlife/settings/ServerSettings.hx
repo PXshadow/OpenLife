@@ -1402,9 +1402,24 @@ class ServerSettings {
 		var trans = new TransitionData(560, 1458, 560, 1900); 
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
+		
+		// Knife + Domestic Calf 1459 ==> Knife + Dead Domestic Calf 1487
+		var trans = new TransitionData(560, 1459, 560, 1487); 
+		trans.aiShouldIgnore = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		// Knife + Hungry Domestic Calf 1462 ==> Knife + Dead Domestic Calf 1487
+		var trans = new TransitionData(560, 1462, 560, 1487); 
+		trans.aiShouldIgnore = true;
+		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Knife + Dead Cow 1900 ==> Knife + Butchered Sheep 587
 		var trans = new TransitionData(560, 1900, 560, 587); 
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		// Knife + Dead Domestic Calf 1487 ==> Knife + Butchered Sheep 587
+		var trans = new TransitionData(560, 1487, 560, 587); 
+		trans.targetNumberOfUses = 2; // give only two meat
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Sword transitions for close combat
