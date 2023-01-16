@@ -580,7 +580,7 @@ abstract class AiBase
 		
 		itemToCraft.searchCurrentPosition = false;	
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
-		
+
 		Macro.exception(if(doAdvancedFarming()) return);
 		Macro.exception(if(makeStuff()) return);
 
@@ -1289,7 +1289,7 @@ abstract class AiBase
 		if(hasOrBecomeProfession('SHEPHERD', maxProfession) == false) return false;
 
 		// Domestic Sheep 575
-		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 575, 20);
+		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 575, 30);
 
 		if(count < 10){
 			// Bowl of Gooseberries and Carrot 258 + Hungry Domestic Lamb 604
@@ -1329,6 +1329,16 @@ abstract class AiBase
 
 			// Knife 560 + Domestic Sheep 575
 			if(shortCraft(560, 575, distance)) return true;
+		}
+
+		// Dead Cow 1900
+		if(shortCraft(560, 1900, distance)) return true;
+
+		// Domestic Cow 1458
+		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1458, 30);
+		if(count > 5 ){
+			// Knife 560 + Domestic Cow 1458
+			if(shortCraft(560, 1458, distance)) return true;
 		}
 
 		this.profession['SHEPHERD'] = 0;
