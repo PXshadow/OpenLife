@@ -2510,7 +2510,7 @@ class TimeHelper {
 		
 		// kill animal if it cannot move for some time
 		if(animal.failedMoves > 20){
-			//trace('ANIMALMOVE: dead failedMoves: ${animal.failedMoves} ${animal.name}');
+			trace('ANIMALMOVE: dead failedMoves: ${animal.failedMoves} ${animal.name}');
 			animal.failedMoves = 0;
 			if(animal.groundObject != null && animal.groundObject.id > 0) WorldMap.world.setObjectHelper(animal.tx, animal.ty, animal.groundObject);
 			else{

@@ -1285,9 +1285,9 @@ class ServerSettings {
 		
 		ObjectData.getObjectData(556).blocksDomesticAnimal = true; // Fence Kit
 
-		ObjectData.getObjectData(3862).decayFactor = ObjDecayFactorOnFloor; // Dung Box
+		//ObjectData.getObjectData(3862).decayFactor = ObjDecayFactorOnFloor; // Dung Box
 		ObjectData.getObjectData(3862).decaysToObj = 434; // Dung Box ==> Wooden Box
-		ObjectData.getObjectData(3862).groundOnly = true; // Dung Box
+		//ObjectData.getObjectData(3862).groundOnly = true; // Dung Box
 
 		ObjectData.getObjectData(542).useChance = 0.1; // Domestic Lamb
 		ObjectData.getObjectData(604).useChance = 0.1; // Hungry Domestic Lamb
