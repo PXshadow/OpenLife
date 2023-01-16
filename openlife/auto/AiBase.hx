@@ -2839,9 +2839,18 @@ abstract class AiBase
 		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, bowlId, 30);
 		var closeBowl = AiHelper.GetClosestObjectById(myPlayer, bowlId);
 
-		if(myPlayer.heldObject.parentId == filledWithID && closeBowl != null && closeBowl.numberOfUses < closeBowl.objectData.numUses) useHeldObjOnTarget(closeBowl);
+		if(myPlayer.heldObject.parentId == filledWithID){
+			if(closeBowl != null && closeBowl.numberOfUses < closeBowl.objectData.numUses) return useHeldObjOnTarget(closeBowl);
+			if(count > 1) closeBowl = AiHelper.GetClosestObjectById(myPlayer, bowlId, closeBowl);
+			if(closeBowl != null && closeBowl.numberOfUses < closeBowl.objectData.numUses) return useHeldObjOnTarget(closeBowl);
+			closeBowl = AiHelper.GetClosestObjectById(myPlayer, 235); // Clay Bowl
+			if(count < 3 && closeBowl != null) return useHeldObjOnTarget(closeBowl);
+		} 
 
-		if(count < 2) return false;
+		// clean up stuff on ground
+		if(count < 3 && shortCraft(0, bowlId)) return true;
+
+		if(count < 3) return false;
 
 		// empty only bowls with one berry
 		if(closeBowl != null && closeBowl.numberOfUses > 1) return false;
@@ -3566,6 +3575,18 @@ private function craftLowPriorityClothing() : Bool {
 
 		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
 		if(heldObjId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236, 5, false)) return true;
+
+		// Bowl of Dry Beans 1176 // Dry Bean Pod 1160
+		if(heldObjId == 1160){
+			
+			//var filledWithID = bowlId == 1176 ? 1160 : -1;
+			// Bowl of Gooseberries 253 // Gooseberry 31
+			//if(bowlId == 253) bowlId = 31;
+
+			//var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, bowlId, 30);
+			var closeBowl = AiHelper.GetClosestObjectById(myPlayer, 1176);
+			if(closeBowl != null && closeBowl.numberOfUses < closeBowl.objectData.numUses) return useHeldObjOnTarget(closeBowl);
+		}
 
 		// Basket of Bones 356
 		if(heldObjId == 356){
