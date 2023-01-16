@@ -2507,6 +2507,8 @@ class TimeHelper {
 		animal.creationTimeInTicks = TimeHelper.tick;
 		animal.failedMoves += WorldMap.calculateRandomFloat();
 		//trace('ANIMALMOVE: false failedMoves: ${animal.failedMoves} ${animal.name}');
+		//var tmpFailedMoves = Math.round(animal.failedMoves * 100) / 100;
+		//player.connection.send(ClientTag.LOCATION_SAYS, ['${rx} ${ry} ${tmpFailedMoves}']);
 		
 		// kill animal if it cannot move for some time
 		if(animal.failedMoves > 20){

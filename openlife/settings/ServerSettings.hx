@@ -717,22 +717,37 @@ class ServerSettings {
 		ObjectData.getObjectData(774).decayFactor = 0.2; // Hitched Riding Horse
 
 		ObjectData.getObjectData(1458).decaysToObj = 1900; // Domestic Cow 1458 --> Dead Cow 1900
+		ObjectData.getObjectData(1458).decayFactor = 0.1;
 		ObjectData.getObjectData(1488).decaysToObj = 1900; // Fed Domestic Cow 1488 --> Dead Cow 1900
+		ObjectData.getObjectData(1488).decayFactor = 0.1;
 		ObjectData.getObjectData(1454).decaysToObj = 1900; // Domestic Cow with Calf 1454 --> Dead Cow 1900
+		ObjectData.getObjectData(1454).decayFactor = 0.1;
 		ObjectData.getObjectData(1489).decaysToObj = 1900; // Milk Cow 1489 --> Dead Cow 1900
+		ObjectData.getObjectData(1489).decayFactor = 0.1;
 		ObjectData.getObjectData(1459).decaysToObj = 1487; // Domestic Calf 1459 --> Dead Domestic Calf 1487
+		ObjectData.getObjectData(1459).decayFactor = 0.1;
 		ObjectData.getObjectData(1462).decaysToObj = 1487; // Hungry Domestic Calf 1462 --> Dead Domestic Calf 1487
+		ObjectData.getObjectData(1462).decayFactor = 0.1;
 		ObjectData.getObjectData(1485).decaysToObj = 1487; // Fed Domestic Calf --> Dead Domestic Calf 1487
+		ObjectData.getObjectData(1485).decayFactor = 0.1;
 
 		ObjectData.getObjectData(575).decaysToObj = 595; // Domestic Sheep --> Dead Sheep 595
+		ObjectData.getObjectData(575).decayFactor = 0.1;
 		ObjectData.getObjectData(4213).decaysToObj = 595; // Fed Domestic Sheep 4213 --> Dead Sheep 595
+		ObjectData.getObjectData(4213).decayFactor = 0.1;
 		ObjectData.getObjectData(600).decaysToObj = 595; // Domestic Sheep with Lamb 600 --> Dead Sheep 595
+		ObjectData.getObjectData(600).decayFactor = 0.1;
 		ObjectData.getObjectData(576).decaysToObj = 597; // Shorn Domestic Sheep --> Dead Sheep shorn
+		ObjectData.getObjectData(576).decayFactor = 0.1;
 		ObjectData.getObjectData(542).decaysToObj = 606; // Domestic Lamb 542 --> Dead Domestic Lamb 606
+		ObjectData.getObjectData(542).decayFactor = 0.1;
 		ObjectData.getObjectData(604).decaysToObj = 606; // Hungry Domestic Lamb 604 --> Dead Domestic Lamb 606
+		ObjectData.getObjectData(604).decayFactor = 0.1;
 
 		ObjectData.getObjectData(418).decaysToObj = 422; // Wolf 418 --> Dead Wolf 422
+		ObjectData.getObjectData(418).decayFactor = 0.1;
 		ObjectData.getObjectData(420).decaysToObj = 421; // Shot Wolf 420 --> Dead Wolf with Arrow 421
+		ObjectData.getObjectData(420).decayFactor = 0.1;
 
 		// set floor decay
 		ObjectData.getObjectData(1596).decayFactor = 0.1; // 1596 Stone Road
