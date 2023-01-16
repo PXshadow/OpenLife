@@ -579,6 +579,7 @@ abstract class AiBase
 		if(myPlayer.age > 30) Macro.exception(if(craftLowPriorityClothing()) return);
 		
 		itemToCraft.searchCurrentPosition = false;	
+		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 		
 		Macro.exception(if(doAdvancedFarming()) return);
 		Macro.exception(if(makeStuff()) return);
@@ -2591,6 +2592,8 @@ abstract class AiBase
 	private function doAdvancedFarming(maxPeople:Int = 2) : Bool {
 		if(hasOrBecomeProfession('ADVANCEDFARMER', maxPeople) == false) return false;
 
+		Macro.exception(if(doPrepareRows(maxPeople)) return true);
+
 		// 1109 Dry Planted Corn Seed
 		// 396 Dry Planted Carrots
 		// 2851 Dry Planted Onions
@@ -2624,10 +2627,10 @@ abstract class AiBase
 		// TODO other dry planted
 
 		// stuff can be in more then once to increase chance
-		
+		// reoved: 1110
 		//var advancedPlants = [228, 396, 1110, 217, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
 		//var advancedPlants = [228, 1110, 1161, 228, 1110, 2851, 228, 4225, 2829, 1110, 2852, 228, 4263, 228, 228, 1142, 228, 1110];
-		var advancedPlants = [1145, 1110, 1161, 2851, 1145, 4225, 2829, 1145, 2852, 4263, 1145];
+		var advancedPlants = [1145, 1161, 2851, 1145, 4225, 2829, 1145, 2852, 4263, 1145];
 		var rand = WorldMap.world.randomInt(advancedPlants.length - 1);
 		
 		toPlant = toPlant > 0 ? toPlant : rand;

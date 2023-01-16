@@ -307,7 +307,7 @@ class ServerSettings {
 	public static var SeasonBiomeChangeChancePerYear:Float = 2; //5 // X means it spreads X tiles per year in average in each direction
 	public static var SeasonBiomeRestoreFactor:Float = 2;
 	public static var AverageSeasonTemperatureImpact:Float = 0.2;
-	public static var HotSeasonTemperatureFactor:Float = 0.5;
+	public static var HotSeasonTemperatureFactor:Float = 0.75; // 0.5
 	public static var ColdSeasonTemperatureFactor:Float = 0.75; // 0.5
 
 	public static var WinterWildFoodDecayChance:Float = 1.5; // 1.5; // per Season
