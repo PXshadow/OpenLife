@@ -2848,7 +2848,7 @@ abstract class AiBase
 		} 
 
 		// clean up stuff on ground
-		if(count < 3 && shortCraft(0, bowlId)) return true;
+		if(count < 3 && shortCraft(0, filledWithID)) return true;
 
 		if(count < 3) return false;
 

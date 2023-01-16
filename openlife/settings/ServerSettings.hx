@@ -1911,11 +1911,13 @@ class ServerSettings {
 		// Clay Bowl 235 + Dry Bean Plants 1172
 		trans = new TransitionData(235, 1172, 1176, 1172); 
 		trans.reverseUseActor = true;
+		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Clay Bowl 235 + Dry Bean Plants 1172 --> Bowl of Dry Beans 1176 + Hardened Row 848
 		trans = new TransitionData(235, 1172, 1176, 848); 
 		trans.reverseUseActor = true;
+		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Bowl of Soaking Beans 1180 + Hot Adobe Oven 250 ==> Bowl of Cooked Beans 1292
@@ -2655,6 +2657,8 @@ class ServerSettings {
 		
 		// Dry Bean Plants 1172
 		var trans = transtions.getTransition(0, 1172);
+		trans.aiShouldIgnore = true;
+		var trans = transtions.getTransition(0, 1172, false, true);
 		trans.aiShouldIgnore = true;
 
 		// Dry Bean Pod 1160 + Clay Bowl 235
