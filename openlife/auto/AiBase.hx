@@ -2339,10 +2339,10 @@ abstract class AiBase
 		if(handleMilk()) return true;
 
 		// Clay Bow 235 + Three Sisters Stew 1249
-		if(shortCraft(1469, 1249,20,1)) return true;
+		if(shortCraft(235, 1249,20,1)) return true;
 
 		// Clay Bow 235 + Open Fermented Sauerkraut 1241
-		if(shortCraft(1469, 1241,20,1)) return true;
+		if(shortCraft(235, 1241,20,1)) return true;
 
 		Macro.exception(if(cleanUpBowls(253)) return true); // Bowl of Gooseberries 253
 		Macro.exception(if(cleanUpBowls(1176)) return true); // Bowl of Dry Beans 1176
