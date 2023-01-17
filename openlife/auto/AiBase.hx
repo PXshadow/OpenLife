@@ -3586,10 +3586,11 @@ private function craftLowPriorityClothing() : Bool {
 
 		// TODO use actual drop target for heldObject like oven, kiln, forge instead of home 
 		var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, dropTarget);
-		var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, gotoTarget);
+		//var quadDistanceToTarget = AiHelper.CalculateQuadDistanceToObject(myPlayer, gotoTarget);
+		var quadDistanceFromHomeToTarget = AiHelper.CalculateQuadDistanceBetweenObjects(myPlayer, dropTarget, gotoTarget);
 
-		// check if target is closer then current position or in 5 tiles reach --> then take item to target
-		if(quadDistanceToTarget < quadDistanceToHome + 25) return false;
+		// check if target is closer to home then current position --> then take item to target
+		if(quadDistanceFromHomeToTarget + 25 < quadDistanceToHome) return false;
 		
 		return dropHeldObject();
 	}
