@@ -1346,9 +1346,9 @@ abstract class AiBase
 		// Domestic Cow 1458
 		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1458, 30);
 		if(count > 10 ){
-			//var cow = AiHelper.GetClosestObjectById(myPlayer, 1458, 30); 
-			//if(cow != null) cow = AiHelper.GetClosestObjectById(myPlayer, 1458, cow, 30); 
-			//if(cow != null && shortCraftOnTarget(560, cow)) return true;
+			var cow = AiHelper.GetClosestObjectById(myPlayer, 1458, 30); 
+			if(cow != null) cow = AiHelper.GetClosestObjectById(myPlayer, 1458, cow, 30); 
+			if(cow != null && shortCraftOnTarget(560, cow)) return true;
 			// Knife 560 + Domestic Cow 1458
 			//if(shortCraft(560, 1458, distance)) return true;
 		}
