@@ -285,7 +285,7 @@ class ServerSettings {
 	public static var TemperatureImpactPerSecIfGood:Float = 0.06; // if outside temperature is helping to et closer to optimal 	
 	public static var TemperatureInWaterFactor:Float = 1.5;
 	public static var TemperatureReductionPerDrinking:Float = 0.5;
-	public static var MaxStoredWater:Float = 1.5;
+	public static var MaxStoredWater:Float = 1;
 	public static var TemperatureNaturalHeatInsulation:Float = 0.5; // gives X extra natural insulation against heat 
 	public static var TemperatureClothingInsulationFactor:Float = 5; // with 100% insulation 5X more time 10X with 200% insulation / only if temperature change is ositive
 	public static var TemperatureImpactReduction:Float = 0.4; // reduces the impact of bad temperature if temperature is already bad 

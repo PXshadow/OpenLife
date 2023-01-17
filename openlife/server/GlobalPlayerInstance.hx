@@ -2191,8 +2191,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		trace('drink: heat: ${this.heat} storedWater: ${this.storedWater}');
 
 		var water = ServerSettings.TemperatureReductionPerDrinking;
-		if(this.heat > 0.7){
-			var tooMuch = this.heat - 0.5;
+		if(this.heat > 0.5){
+			var tooMuch = this.heat - 0.3;
 			if(tooMuch > water){
 				this.heat -= water;
 				heldObject.id = emptyItemId;
@@ -2200,7 +2200,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				return true;
 			}
 			else{
-				this.heat = 0.5; 
+				this.heat = 0.3; 
 				water -= tooMuch;
 				heldObject.id = emptyItemId;
 				this.setHeldObject(heldObject);
