@@ -2383,6 +2383,13 @@ abstract class AiBase
 				
 				// 1466 Bowl of Leavened Dough // 236 Clay Plate
 				if(countBread < 3 && shortCraft(1466, 236, 20, false)) return true;
+
+				// Knife + Mango on a Plate 1879--> Mango Slices 1880
+				if(shortCraft(560, 1879, 20, false)) return true;	
+
+				// Mango Slices 1880
+				var countMango = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1880, 20);
+				if(countMango < 1) craftItem(1879); // Mango on a Plate 1879
 			}
 		}		
 
