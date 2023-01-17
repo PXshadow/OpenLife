@@ -1012,7 +1012,7 @@ class TimeHelper {
 		player.heat += newTemperatureIsPositive || isInWater ? waterFactor * timeFactor * timePassed * heatchange: clothingFactor * timeFactor * timePassed * heatchange;
 
 		if (player.heat > 0.6 && player.storedWater > 0){
-			var heatReduction = timePassed * player.storedWater * (player.heat - 0.6) * 0.1;
+			var heatReduction = timePassed * player.storedWater * (player.heat - 0.6) * 0.05;
 			player.heat -= heatReduction;
 			player.storedWater -= heatReduction;
 			heatReduction = Math.round(heatReduction * 10000) / 10000;
