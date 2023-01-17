@@ -2389,7 +2389,7 @@ abstract class AiBase
 
 				// Mango Slices 1880
 				var countMango = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1880, 20);
-				if(countMango < 1) craftItem(1879); // Mango on a Plate 1879
+				if(countMango < 1 && craftItem(1879)) return true; // Mango on a Plate 1879
 			}
 		}		
 
