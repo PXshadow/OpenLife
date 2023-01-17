@@ -456,7 +456,7 @@ abstract class AiBase
 		Macro.exception(if (handleTemperature()) return);
 
 		itemToCraft.searchCurrentPosition = true;
-		Macro.exception(if (shortCraft(0, 400, 10)) return); // pull out the carrots 
+		Macro.exception(if (shortCraft(0, 400, 6)) return); // pull out the carrots 
 		Macro.exception(if (makeSharpieFood(5)) return); 
 		Macro.exception(if (isHandlingGraves()) return);
 		Macro.exception(if (isMakingSeeds()) return);
@@ -3550,6 +3550,9 @@ private function craftLowPriorityClothing() : Bool {
 	// Stone 33 // Sharp Stone 34 // Banana Peel 2144 
 	var dropAtCurrentPosition = [33,34,2144];
 
+	// Iron Ore in Wooden Tongs 289 // Iron Ore 290 // Wooden Tongs cool steel ingot 327 // Steel Ingot // Unforged Sealed Steel Crucible 319 // Unforged Steel Crucible in Wooden Tongs 320 // Smithing Hammer 441
+	var dropNearForgeItemIds = [289, 290, 327, 326, 319, 320, 441];
+
 	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
 		var heldObjId = myPlayer.heldObject.parentId;
 		var heldObject = myPlayer.heldObject;
@@ -3574,6 +3577,10 @@ private function craftLowPriorityClothing() : Bool {
 		// drop at once, since its normally dropped at home. For exmple pies, platees...
 		if(dropNearOvenItemIds.contains(heldObjId) || pies.contains(heldObjId) || rawPies.contains(heldObjId)){
 			//dropTarget = myPlayer.home; // drop near home which is normaly the oven	
+			return dropHeldObject();
+		}
+
+		if(dropNearForgeItemIds.contains(heldObjId)){
 			return dropHeldObject();
 		}
 
@@ -3718,6 +3725,14 @@ private function craftLowPriorityClothing() : Bool {
 		if(dropNearOvenItemIds.contains(heldId) || pies.contains(heldId) || rawPies.contains(heldId)){
 			target = myPlayer.home; // drop near home which is normaly the oven	
 			dropCloseToPlayer = false;
+		}
+
+		if(dropNearForgeItemIds.contains(heldId)){
+			var forge = GetForge();
+			if(forge != null){
+				target = forge; 
+				dropCloseToPlayer = false;
+			}
 		}
 
 		// TODO what is if super far away from oven?
@@ -6006,7 +6021,7 @@ private function craftLowPriorityClothing() : Bool {
 				dropIsAUse = false;
 				useTarget = null;
 				useActor = null;
-				
+
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} done: drop as a use!');
 				/*if(foodTarget == null){
 					useTarget = itemToCraft.transTarget;
