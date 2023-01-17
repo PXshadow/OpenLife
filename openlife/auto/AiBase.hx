@@ -1957,18 +1957,30 @@ abstract class AiBase
 		return GetItem(actorId);	
 	}
 
-	private function shortCraft(actorId:Int, targetId:Int, distance:Int = 20, craftActorIfNeeded = true) : Bool {
+	// does not craft if there is allread maxActor
+	private function shortCraft(actorId:Int, targetId:Int, distance:Int = 20, craftActorIfNeeded = true, maxNewActor = -1) : Bool {
 		var target = AiHelper.GetClosestObjectById(myPlayer, targetId, null, distance);
-		return shortCraftOnTarget(actorId, target, craftActorIfNeeded);
+		return shortCraftOnTarget(actorId, target, craftActorIfNeeded, maxNewActor);
 	}
 	
-	private function shortCraftOnTarget(actorId:Int, target:ObjectHelper, craftActorIfNeeded = true) : Bool {
+	private function shortCraftOnTarget(actorId:Int, target:ObjectHelper, craftActorIfNeeded = true, maxNewActor = -1) : Bool {
 		if(target == null) return false;
+
+		var home = myPlayer.home;
 		var targetId = target.parentId;
+		var heldId = myPlayer.heldObject.parentId;
+
 		// dont use carrots if seed is needed // 400 Carrot Row
 		if (targetId == 400 && hasCarrotSeeds == false && target.numberOfUses < 3) return false;
 
-		if(myPlayer.heldObject.parentId == actorId) return useHeldObjOnTarget(target);
+		if(maxNewActor > 0){
+			var trans = TransitionImporter.GetTransition(actorId, target.parentId); 
+			var countActor = trans == null ? 0 : AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, trans.newActorID, 30);
+			if(heldId == actorId) countActor += 1;
+			if(countActor >= maxNewActor) return false;
+		}
+
+		if(heldId == actorId) return useHeldObjOnTarget(target);
 
 		var actorData = ObjectData.getObjectData(actorId);
 		
@@ -2325,6 +2337,12 @@ abstract class AiBase
 		}
 
 		if(handleMilk()) return true;
+
+		// Clay Bow 235 + Three Sisters Stew 1249
+		if(shortCraft(1469, 1249,20,1)) return true;
+
+		// Clay Bow 235 + Open Fermented Sauerkraut 1241
+		if(shortCraft(1469, 1241,20,1)) return true;
 
 		Macro.exception(if(cleanUpBowls(253)) return true); // Bowl of Gooseberries 253
 		Macro.exception(if(cleanUpBowls(1176)) return true); // Bowl of Dry Beans 1176
