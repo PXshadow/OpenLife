@@ -1300,13 +1300,26 @@ abstract class AiBase
 		// Domestic Sheep 575
 		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 575, 30);
 
-		if(count < 10){
+		if(count < 20){
 			// Bowl of Gooseberries and Carrot 258 + Hungry Domestic Lamb 604
 			if(shortCraft(258, 604, distance)) return true;
 
 			// Bowl of Gooseberries and Carrot 258 + Domestic Lamb 542
 			if(shortCraft(258, 542, distance)) return true;
 		}
+
+		// Clay Bowl 235 + Full Bucket of Milk 1478
+		if(shortCraft(235, 1478, distance)) return true;
+		
+		// Feed and milk the Cows
+		// Bowl with Corn Kernels 1247 + Hungry Domestic Calf 1462
+		if(shortCraft(1247, 1462, distance)) return true;
+
+		// Bowl with Corn Kernels 1247 + Domestic Calf 1459
+		if(shortCraft(1247, 1459, distance)) return true;
+
+		// Empty Bucket 659 + Milk Cow 1489
+		if(shortCraft(1247, 1489, distance)) return true;
 
 		// Count all the Sheep Dung 899
 		var countDung = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 899, distance);
@@ -1327,7 +1340,7 @@ abstract class AiBase
 		// Feed: Bowl of Gooseberries and Carrot 258 + Shorn Domestic Sheep 576
 		if(shortCraft(258, 576, distance)) return true;
 
-		if(count < 10){
+		if(count < 20){
 			// Bowl of Gooseberries and Carrot 258 + Domestic Sheep 575
 			if(shortCraft(258, 575, distance)) return true;
 		}
@@ -1345,13 +1358,17 @@ abstract class AiBase
 
 		// Domestic Cow 1458
 		var count = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1458, 30);
-		if(count > 10 ){
+		if(count > 5 ){
 			var cow = AiHelper.GetClosestObjectById(myPlayer, 1458, 30); 
 			if(cow != null) cow = AiHelper.GetClosestObjectById(myPlayer, 1458, cow, 30); 
 			// Knife 560 + Domestic Cow 1458
 			if(cow != null && shortCraftOnTarget(560, cow)) return true;
 			// Mango Leaf 1878 + Domestic Cow 1458 (in case there is no Knife)
 			if(cow != null && shortCraftOnTarget(1878, cow)) return true;
+		}
+		else{
+			// Bowl with Corn Kernels 1247 + Domestic Cow 1458
+			if(shortCraft(1247, 1458, distance)) return true;
 		}
 
 		this.profession['SHEPHERD'] = 0;
