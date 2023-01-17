@@ -3186,7 +3186,19 @@ private function craftMediumPriorityClothing() : Bool {
 
 		// head clothing
 		// 584 Wool Hat  ==> White / Head
-		if(color == White && craftClothIfNeeded(584)) return true; 
+		if(color == White && craftClothIfNeeded(584)) return true;
+		// 426 Wolf Hat ==> White
+		if(color == White && craftClothIfNeeded(426)) return true;
+
+		// Head
+		// Red Bowler Hat 2920
+		if(craftClothIfNeeded(2920)) return true;
+		//  Undyed Bowler Hat with Red Rose 3461
+		if(craftClothIfNeeded(3461)) return true;
+		//  Undyed Bowler Hat with Feather 3431
+		if(craftClothIfNeeded(3431)) return true;
+		//  Undyed Bowler Hat 2884
+		if(craftClothIfNeeded(2884)) return true;
 
 		this.profession['ClothMaker'] = 0;
 
@@ -3198,11 +3210,20 @@ private function craftLowPriorityClothing() : Bool {
 
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
 		var color = myPlayer.getColor();
+		var female = myPlayer.isFemale();
 		var isWhiteOrGinger = (color == Ginger || color == White);
+
+		// Chest
+		// Indigo Long Dress
+		if(female && craftClothIfNeeded(2926)) return true;
+		// Undyed Long Dress 2879
+		if(female && craftClothIfNeeded(2879)) return true;
+		// Black Long Skirt 2951
+		if(female && craftClothIfNeeded(2951)) return true;
+		// Undyed Long Skirt 2878
+		if(female && craftClothIfNeeded(2878)) return true;
 	
 		// Hat cloting
-		// 426 Wolf Hat ==> White
-		if(color == White && craftClothIfNeeded(426)) return true;
 		// 2180 Rabbit Fur Hat with Feather // TODO check minPickupAge directly in crafting
 		if(isWhiteOrGinger && myPlayer.age >= objData.minPickupAge && craftClothIfNeeded(2180)) return true;
 		// 199 Rabbit Fur Hat
