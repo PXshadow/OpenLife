@@ -771,6 +771,7 @@ abstract class AiBase
 			if(shortCraft(3891, 3891, 20)) return true; 
 		}
 
+		Macro.exception(if(cleanUpBowls(253)) return); // Bowl of Gooseberries 253
 		Macro.exception(if(cleanUpBowls(1176)) return true); // Bowl of Dry Beans 1176
 
 		return false;
@@ -3602,8 +3603,9 @@ private function craftLowPriorityClothing() : Bool {
 		if(heldObjId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236, 5, false)) return true;
 
 		// Bowl of Dry Beans 1176 // Dry Bean Pod 1160
-		if(heldObjId == 1160){
-			var bowlId = 1176;
+		// Bowl of Gooseberries 253 // Gooseberry 31		
+		if(heldObjId == 1160 || heldObjId == 31){
+			var bowlId = heldObjId == 1160 ? 1176 : 253;
 			var closeBowl = AiHelper.GetClosestObjectById(myPlayer, bowlId,30);
 			if(closeBowl != null && closeBowl.numberOfUses < closeBowl.objectData.numUses) return useHeldObjOnTarget(closeBowl);
 			if(closeBowl != null) closeBowl = AiHelper.GetClosestObjectById(myPlayer, bowlId, closeBowl, 30);
@@ -5648,8 +5650,8 @@ private function craftLowPriorityClothing() : Bool {
 		
 		if(fillUpBerryBowl()) return true; // needed for baking
 		if(doBaking(2)) return true;
-		if(cleanUpBowls(1176)) return true; // Bowl of Dry Beans 1176
-		if(fillBeanBowlIfNeeded(false)) return true; // dry beans	
+		//if(cleanUpBowls(1176)) return true; // Bowl of Dry Beans 1176
+		//if(fillBeanBowlIfNeeded(false)) return true; // dry beans	
 		if(countRawRabbit < 1 && makeFireFood(1)) return true;
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} makefood! failed! d-home: ${quadDistanceToHome}');
