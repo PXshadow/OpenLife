@@ -2729,6 +2729,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(560, 1465, false, true);
 		trans.aiShouldIgnore = true;
 
+		// Mango Leaf 1878 + Domestic Cow // Since dead cow gives now meat Ai does all it can to kill them
+		var trans = transtions.getTransition(1878, 1458);
+		trans.aiShouldIgnore = true;
+
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
 		//var trans = transtions.getTransition(1247, 4110);
 		//trans.aiShouldIgnore = true;
