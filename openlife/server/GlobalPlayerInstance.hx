@@ -2190,22 +2190,28 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		trace('drink: heat: ${this.heat} storedWater: ${this.storedWater}');
 
-		var water = ServerSettings.TemperatureReductionPerDrinking;
-		if(this.heat > 0.5){
-			var tooMuch = this.heat - 0.3;
+		var maxWater = ServerSettings.MaxStoredWater;
+		var originalWater = ServerSettings.TemperatureReductionPerDrinking;
+		var water = originalWater;
+
+		if(this.heat > 0.4){
+			var tooMuch = this.heat - 0.2;
 			if(tooMuch > water){
 				this.heat -= water;
 				heldObject.id = emptyItemId;
 				this.setHeldObject(heldObject);
+				this.storedWater += originalWater / 2;
+				if(this.storedWater > maxWater) this.storedWater = ServerSettings.MaxStoredWater;
 				return true;
 			}
 			else{
-				this.heat = 0.3; 
+				this.heat = 0.2;
 				water -= tooMuch;
 				heldObject.id = emptyItemId;
 				this.setHeldObject(heldObject);
-				this.storedWater += water;
-				if(this.storedWater > ServerSettings.MaxStoredWater) this.storedWater = ServerSettings.MaxStoredWater;
+				this.storedWater += water / 2;
+				this.storedWater += originalWater / 2;
+				if(this.storedWater > maxWater) this.storedWater = ServerSettings.MaxStoredWater;
 				return true;
 			}
 		} 
@@ -2213,7 +2219,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if(this.storedWater >= ServerSettings.MaxStoredWater) return false;
 		heldObject.id = emptyItemId;
 		this.setHeldObject(heldObject);
-		this.storedWater += water;
+		this.storedWater += water / 2;
+		this.storedWater += originalWater / 2;
 
 		return true;
 	}
