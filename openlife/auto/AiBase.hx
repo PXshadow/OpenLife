@@ -1315,6 +1315,15 @@ abstract class AiBase
 		// Skewer 139 + Bowl of Cream 1464
 		if(shortCraft(139, 1464, 30)) return true;
 
+		// Clay Bowl 235 + Partial Bucket of Milk 1479
+		if(shortCraft(235, 1479, 30, 1)) return true;
+
+		// Clay Bowl 235 + Partial Bucket of Skim Milk 1483
+		if(shortCraft(235, 1483, 30, 1)) return true;
+
+		// Clay Bowl 235 + Full Bucket of Skim Milk 2124
+		if(shortCraft(235, 2124, 30, 1)) return true;
+
 		return false;
 	}
 
