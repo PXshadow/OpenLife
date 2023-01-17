@@ -771,7 +771,7 @@ abstract class AiBase
 			if(shortCraft(3891, 3891, 20)) return true; 
 		}
 
-		Macro.exception(if(cleanUpBowls(253)) return); // Bowl of Gooseberries 253
+		Macro.exception(if(cleanUpBowls(253)) return true); // Bowl of Gooseberries 253
 		Macro.exception(if(cleanUpBowls(1176)) return true); // Bowl of Dry Beans 1176
 
 		return false;
@@ -1291,6 +1291,33 @@ abstract class AiBase
 		return false;
 	}*/
 
+	private function handleMilk() {
+		var home = myPlayer.home;
+
+		// Bowl of Butter 1465
+		var countButter = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1465, 30);
+		// Partial Bucket of Skim Milk 1483
+		var countSkimMilk = AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 1483, 30);
+		// Full Bucket of Skim Milk 2124
+		countSkimMilk += AiHelper.CountCloseObjects(myPlayer,home.tx, home.ty, 2124, 30);
+
+		if(countButter + countSkimMilk > 0){
+			// Clay Bowl 235 + Full Bucket of Milk 1478
+			if(shortCraft(235, 1478, 30)) return true;
+		}
+
+		// Clay Bowl 235 + Bucket of Separated Milk 1480
+		if(shortCraft(235, 1480, 30)) return true;
+
+		// Skewer 139 + Bowl of Whipped Cream 3374
+		if(shortCraft(139, 3374, 30)) return true;
+
+		// Skewer 139 + Bowl of Cream 1464
+		if(shortCraft(139, 1464, 30)) return true;
+
+		return false;
+	}
+
 	private function isSheepHerding(maxProfession = 1) {
 		var home = myPlayer.home;
 		var distance = 30;
@@ -1309,8 +1336,7 @@ abstract class AiBase
 			if(shortCraft(258, 542, distance)) return true;
 		}
 
-		// Clay Bowl 235 + Full Bucket of Milk 1478
-		if(shortCraft(235, 1478, distance)) return true;
+		if(handleMilk()) return false;
 		
 		// Feed and milk the Cows
 		// Bowl with Corn Kernels 1247 + Hungry Domestic Calf 1462
@@ -2297,6 +2323,8 @@ abstract class AiBase
 			// Bowl of Soaking Beans 1180
 			if(shortCraftOnTarget(1180, hotOven)) return true;
 		}
+
+		if(handleMilk()) return true;
 
 		Macro.exception(if(cleanUpBowls(253)) return true); // Bowl of Gooseberries 253
 		Macro.exception(if(cleanUpBowls(1176)) return true); // Bowl of Dry Beans 1176
@@ -5976,15 +6004,18 @@ private function craftLowPriorityClothing() : Bool {
 			// check if the use was part of a drop to put for example stone on a pile of stones
 			if(dropIsAUse){
 				dropIsAUse = false;
+				useTarget = null;
+				useActor = null;
+				
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} done: drop as a use!');
-				if(foodTarget == null){
+				/*if(foodTarget == null){
 					useTarget = itemToCraft.transTarget;
 					useActor = myPlayer.heldObject;
 				}
 				else{
 					useTarget = null;
 					useActor = null;
-				}								
+				}*/								
 
 				return true;
 			}	
