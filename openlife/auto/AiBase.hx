@@ -1348,9 +1348,10 @@ abstract class AiBase
 		if(count > 10 ){
 			var cow = AiHelper.GetClosestObjectById(myPlayer, 1458, 30); 
 			if(cow != null) cow = AiHelper.GetClosestObjectById(myPlayer, 1458, cow, 30); 
-			if(cow != null && shortCraftOnTarget(560, cow)) return true;
 			// Knife 560 + Domestic Cow 1458
-			//if(shortCraft(560, 1458, distance)) return true;
+			if(cow != null && shortCraftOnTarget(560, cow)) return true;
+			// Mango Leaf 1878 + Domestic Cow 1458 (in case there is no Knife)
+			if(cow != null && shortCraftOnTarget(1878, cow)) return true;
 		}
 
 		this.profession['SHEPHERD'] = 0;
