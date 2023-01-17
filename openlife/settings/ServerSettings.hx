@@ -2690,6 +2690,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(1160, 235, false, true);
 		trans.aiShouldIgnore = true;
 
+		// Bowl of Dough 252 + Table with Wheat Dough 4086
+		var trans = transtions.getTransition(252, 4086);
+		trans.aiShouldIgnore = true;
+
 		// Bowl of Soil 1137 + Fertile Soil Pile 1101
 		//var trans = transtions.getTransition(1137, 1101);
 		//trans.aiShouldIgnore = true;
