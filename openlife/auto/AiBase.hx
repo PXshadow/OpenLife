@@ -3228,16 +3228,20 @@ private function craftLowPriorityClothing() : Bool {
 		var color = myPlayer.getColor();
 		var female = myPlayer.isFemale();
 		var isWhiteOrGinger = (color == Ginger || color == White);
+		var home = myPlayer.home;
+		var hasLoom = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2682, 30) > 0; // Loom 2682
 
 		// Chest
-		// Indigo Long Dress
-		if(female && craftClothIfNeeded(2926)) return true;
-		// Undyed Long Dress 2879
-		if(female && craftClothIfNeeded(2879)) return true;
-		// Black Long Skirt 2951
-		if(female && craftClothIfNeeded(2951)) return true;
-		// Undyed Long Skirt 2878
-		if(female && craftClothIfNeeded(2878)) return true;
+		if(hasLoom){
+			// Indigo Long Dress
+			if(female && craftClothIfNeeded(2926)) return true;
+			// Undyed Long Dress 2879
+			if(female && craftClothIfNeeded(2879)) return true;
+			// Black Long Skirt 2951
+			if(female && craftClothIfNeeded(2951)) return true;
+			// Undyed Long Skirt 2878
+			if(female && craftClothIfNeeded(2878)) return true;
+		}
 	
 		// Hat cloting
 		// 2180 Rabbit Fur Hat with Feather // TODO check minPickupAge directly in crafting
