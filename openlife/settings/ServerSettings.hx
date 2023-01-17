@@ -1281,6 +1281,18 @@ class ServerSettings {
 		ObjectData.getObjectData(1851).blocksDomesticAnimal = true; // Fence Gate
 		ObjectData.getObjectData(1851).blocksAnimal = true; // Fence Gate
 		ObjectData.getObjectData(1851).groundOnly = true; // Fence Gate
+
+		// Springy Wooden Door 2762 Horizontal
+		ObjectData.getObjectData(2762).decaysToObj = 878; // Open Wooden Door Horizontal
+		ObjectData.getObjectData(2762).blocksDomesticAnimal = true; 
+		ObjectData.getObjectData(2762).blocksAnimal = true;
+
+		// Springy Wooden Door 2759 Vertical 
+		ObjectData.getObjectData(2759).decaysToObj = 879; // Open Wooden Door Vertical
+		ObjectData.getObjectData(2759).blocksDomesticAnimal = true; 
+		ObjectData.getObjectData(2759).blocksAnimal = true;
+		
+		//ObjectData.getObjectData(2762).blocksAnimal = true;
 		
 		ObjectData.getObjectData(4154).decayFactor = ObjDecayFactorOnFloor; // Hitching Post
 		ObjectData.getObjectData(4154).decaysToObj = 556; // Hitching Post  ==> Fence Kit
