@@ -256,6 +256,7 @@ class Client {
 		var accountKey = new Hmac(SHA1).make(Bytes.ofString(key), Bytes.ofString(challenge)).toHex();
 		var clientTag = " client_openlife";
 		if (config.legacy) clientTag = "";
+		if (config.tag != "") clientTag = " " + config.tag;
 		var requestString = (reconnect ? "R" : "") + 'LOGIN$clientTag $email $password $accountKey ${(config.tutorial ? 1 : 0)}';
 		send(requestString);
 	}
