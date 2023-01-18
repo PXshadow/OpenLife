@@ -10,6 +10,7 @@ import openlife.resources.ObjectBake;
 import openlife.resources.Resource;
 
 var map:TileGroup;
+var groundUnknownIndex = 0;
 private var batches:Array<SpriteBatch> = [];
 private var batchPixels:Array<Pixels> = [];
 private var packers:Array<BinPack> = [];
@@ -17,7 +18,7 @@ var objs:Array<Object> = [];
 private inline var MAX_TEXTURE = 4096;
 inline var GRID = 128;
 private var spriteMap:Map<Int, SpriteRect> = [];
-private var groundArray:Array<Int> = [];
+private var groundMap:Map<Int, Rect> = [];
 
 function addObject(x:Int, y:Int, ids:Array<Int>) {
 	if (ids == null || ids.length == 0 || ids[0] == 0) return;
@@ -85,19 +86,17 @@ function getSpriteElement(id:Int):BatchElement {
 }
 
 function addGround(x:Int, y:Int, id:Int) {
-	var index = id * 20 + abs(x % 4) + abs(y % y) * 4;
-	var tileX = groundArray[index * 4 + 0];
-	var tileY = groundArray[index * 4 + 1];
-	var tileWidth = groundArray[index * 4 + 2];
-	var tileHeight = groundArray[index * 4 + 3];
-	map.add(x * GRID, y * GRID, map.tile.sub(tileX, tileY, tileWidth, tileHeight).center());
+	var index = id * 16 + abs(x % 4) + abs(y % 4) * 4 + 4;
+	var rect = groundMap[index];
+	if (rect == null) {
+		index = 99999 + abs(x % 4) + abs(y % 4) * 4;
+		rect = groundMap[index];
+	}
+	map.add(x * GRID, y * GRID, map.tile.sub(rect.x, rect.y, rect.width, rect.height).center());
 	if (abs(x % 4) == 0 && abs(y % 0) == 0) {
-		index = 4 * 4 * 7 + abs(x % 8) + abs(y % 8) * 2;
-		x = groundArray[index + 0];
-		y = groundArray[index + 1];
-		tileWidth = groundArray[index + 2];
-		tileHeight = groundArray[index + 3];
-		map.add(x * GRID, y * GRID, map.tile.sub(tileX, tileY, tileWidth, tileHeight).center());
+		index = abs(x % 8) + abs(y % 8) * 2;
+		rect = groundMap[index];
+		map.add(x * GRID, y * GRID, map.tile.sub(rect.x, rect.y, rect.width, rect.height).center());
 	}
 }
 
@@ -107,14 +106,25 @@ inline function abs(x:Int):Int
 function loadGround() {
 	map = new TileGroup(null, Game.s2d);
 	if (sys.FileSystem.exists('${ClientSettings.SaveDirectory}/SaveGroundData.bin')) {
-		final pixels = hxd.res.Any.fromBytes("", sys.io.File.getBytes('ground.png')).toImage().getPixels(BGRA);
-		map.tile = Tile.fromPixels(pixels);
-		groundArray = haxe.Unserializer.run(sys.io.File.getContent('${ClientSettings.SaveDirectory}/SaveGroundData.bin'));
-		return;
+		try {
+			final pixels = hxd.res.Any.fromBytes("", sys.io.File.getBytes('ground.png')).toImage().getPixels(BGRA);
+			map.tile = Tile.fromPixels(pixels);
+			groundMap = haxe.Unserializer.run(sys.io.File.getContent('${ClientSettings.SaveDirectory}/SaveGroundData.bin'));
+			return;
+		} catch (_) {}
 	}
 	final pixels = Pixels.alloc(MAX_TEXTURE, MAX_TEXTURE, BGRA);
 	final packer = new BinPack(MAX_TEXTURE, MAX_TEXTURE);
 	final a = ""; // "_square";
+	var index = 0;
+	for (id in 0...4) {
+		tga.read(Resource.groundOverlay(id));
+		final groundPixels = Pixels.alloc(tga.rect.width, tga.rect.height, BGRA);
+		groundPixels.bytes = tga.bytes;
+		final rect = packer.pack({width: groundPixels.width, height: groundPixels.height});
+		groundMap[index++] = rect;
+		pixels.blit(rect.x, rect.y, groundPixels, 0, 0, rect.width, rect.height);
+	}
 	for (id in 0...6 + 1) {
 		for (y in 0...4) {
 			for (x in 0...4) {
@@ -122,38 +132,58 @@ function loadGround() {
 				final groundPixels = Pixels.alloc(tga.rect.width, tga.rect.height, BGRA);
 				groundPixels.bytes = tga.bytes;
 				final rect = packer.pack({width: groundPixels.width, height: groundPixels.height});
-				groundArray = groundArray.concat([rect.x, rect.y, rect.width, rect.height]);
+				groundMap[index++] = rect;
 				pixels.blit(rect.x, rect.y, groundPixels, 0, 0, rect.width, rect.height);
 			}
 		}
 	}
-	for (id in 0...4) {
-		tga.read(Resource.groundOverlay(id));
-		final groundPixels = Pixels.alloc(tga.rect.width, tga.rect.height, BGRA);
-		groundPixels.bytes = tga.bytes;
-		final rect = packer.pack({width: groundPixels.width, height: groundPixels.height});
-		groundArray = groundArray.concat([rect.x, rect.y, rect.width, rect.height]);
-		pixels.blit(rect.x, rect.y, groundPixels, 0, 0, rect.width, rect.height);
+	// unknown
+	groundUnknownIndex = index;
+	for (color in [0, 0xFFFFFFFF, 0x0000FFFF, 0xFFFF00FF, 0xFFFF00FF]) {
+		for (y in 0...4) {
+			for (x in 0...4) {
+				tga.read(Resource.ground(99999, x, y, a));
+				final groundPixels = Pixels.alloc(tga.rect.width, tga.rect.height, BGRA);
+				if (color != 0) {
+					for (i in 0...Std.int(tga.bytes.length / 4)) {
+						if (tga.bytes.getInt32(i * 4) == 0xFFFFFFFF) {
+							tga.bytes.setInt32(i * 4, color);
+						}
+					}
+				}
+				groundPixels.bytes = tga.bytes;
+				final rect = packer.pack({width: groundPixels.width, height: groundPixels.height});
+				if (color != 0) {
+					groundMap[index++] = rect;
+				} else {
+					groundMap[99999 + x + y * 4] = rect;
+				}
+
+				pixels.blit(rect.x, rect.y, groundPixels, 0, 0, rect.width, rect.height);
+			}
+		}
 	}
 	sys.io.File.saveBytes('ground.png', pixels.toPNG());
-	sys.io.File.saveContent('${ClientSettings.SaveDirectory}/SaveGroundData.bin', haxe.Serializer.run(groundArray));
+	sys.io.File.saveContent('${ClientSettings.SaveDirectory}/SaveGroundData.bin', haxe.Serializer.run(groundMap));
 	map.tile = Tile.fromPixels(pixels);
 }
 
 function loadSprites() {
 	if (sys.FileSystem.exists('${ClientSettings.SaveDirectory}/SaveSpriteData.bin')) {
 		var batchExists = new Map<Int, Bool>();
-		spriteMap = haxe.Unserializer.run(sys.io.File.getContent('${ClientSettings.SaveDirectory}/SaveSpriteData.bin'));
-		for (_ => elem in spriteMap) {
-			if (batchExists.exists(elem.batchId)) continue;
-			batchExists[elem.batchId] = true;
-			final b = sys.io.File.getBytes(elem.batchId + ".png");
-			final pixels = hxd.res.Any.fromBytes("", sys.io.File.getBytes('${elem.batchId}.png')).toImage().getPixels(BGRA);
-			final b = new SpriteBatch(pixels, Game.s2d);
-			b.smooth = true;
-			batches.push(b);
-		}
-		return; // quick load
+		try {
+			spriteMap = haxe.Unserializer.run(sys.io.File.getContent('${ClientSettings.SaveDirectory}/SaveSpriteData.bin'));
+			for (_ => elem in spriteMap) {
+				if (batchExists.exists(elem.batchId)) continue;
+				batchExists[elem.batchId] = true;
+				final b = sys.io.File.getBytes(elem.batchId + ".png");
+				final pixels = hxd.res.Any.fromBytes("", sys.io.File.getBytes('${elem.batchId}.png')).toImage().getPixels(BGRA);
+				final b = new SpriteBatch(pixels, Game.s2d);
+				b.smooth = true;
+				batches.push(b);
+			}
+			return; // quick load
+		} catch (_) {}
 	}
 
 	for (id in ObjectBake.objectList()) {
