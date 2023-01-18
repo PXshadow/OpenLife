@@ -37,9 +37,10 @@ class TransitionData {
 	public var tool:Bool = false;
 	public var targetRemains:Bool = false;
 
-	public var alternativeTransitionOutcome:Array<Int> = new Array<Int>();
-	public var hungryWorkCost:Float = 0;
-	public var aiShouldIgnore = false;
+	public var alternativeTransitionOutcome:Array<Int> = new Array<Int>(); // set manually in setting
+	public var hungryWorkCost:Float = 0; // set manually in setting
+	public var hungryWorkTemperature:Float = -1; // set manually in setting // if below zero hungryWorkCost is used
+	public var aiShouldIgnore = false; // set manually in setting
 
 	// sets the number of uses if target // For example give wolf only two meat
 	public var targetNumberOfUses:Int = -1; 

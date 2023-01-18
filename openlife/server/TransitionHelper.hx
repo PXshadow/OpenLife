@@ -785,19 +785,23 @@ class TransitionHelper {
 		hungryWorkCost += transition.hungryWorkCost;
 		if(biome == PASSABLERIVER) hungryWorkCost-= 1; 
 
+		var hungryWorkTemperature = transition.hungryWorkTemperature;
+		if(hungryWorkTemperature < 0) hungryWorkTemperature = hungryWorkCost * ServerSettings.HungryWorkHeat;
+		
 		if (hungryWorkCost > 0) {	
 			//player.say('cost ${hungryWorkCost}', true);	
 
 			var missingFood = Math.ceil(hungryWorkCost / 2  - player.food_store);
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} hungry Work cost: $hungryWorkCost missingFood: ${missingFood}');
 
-			if(player.isSuperHot()){
+			// TODO for now dont test for too hot untill getting water does not create heat, otherwise could not get water for cooling.
+			/*if(hungryWorkTemperature > 0 && player.isSuperHot()){
 				var message = 'Too hot!';
 				player.say(message, true);
 				player.doEmote(Emote.yellowFever);
 				player.useFailedReason = message;
 				return false;
-			}
+			}*/
 
 			var excessExhaustion = Math.ceil(player.exhaustion - (player.food_store_max + 1));
 			if(excessExhaustion > 0){
@@ -819,7 +823,7 @@ class TransitionHelper {
 				return false;
 			}
 
-			player.heat += hungryWorkCost * ServerSettings.HungryWorkHeat;
+			player.heat += hungryWorkTemperature;
 			if(player.heat > 1) player.heat = 1;
 
 			hungryWorkCost /= 2; // half for exhaustion
