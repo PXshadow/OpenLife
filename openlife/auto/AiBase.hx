@@ -5691,7 +5691,7 @@ private function craftLowPriorityClothing() : Bool {
 		}
 		
 		// In case of a switch, consider drop held object
-		if(considerDropHeldObject(dropTarget)) return true;
+		considerDropHeldObject(dropTarget);
 
 		if (myPlayer.isMoving()) return true;
 
