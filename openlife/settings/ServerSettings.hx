@@ -1421,7 +1421,7 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 		var trans = new TransitionData(560, 1328, 750, 1331); // Knife + Wild Boar with Piglet ==> Bloody Knife + Shot Boar with Piglet
 		transtions.addTransition("PatchTransitions: ", trans);
-
+		
 		// TODO add graphics for dead cow
 		// Knife + Domestic Cow ==> Bloody Knife + Butchered Sheep 587
 		//var trans = new TransitionData(560, 1458, 750, 587); 
@@ -1946,6 +1946,13 @@ class ServerSettings {
 		trans.reverseUseActor = true;
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
+
+		// Bowl of Dry Beans 1176 + Deep Tilled Row 213 --> Dry Planted Beans 1161
+		trans = new TransitionData(1176, 213, 1176, 1161); 
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(1176, 213, 1176, 1161); 
+		transtions.addTransition("PatchTransitions: ", trans, true);
 
 		// Bowl of Soaking Beans 1180 + Hot Adobe Oven 250 ==> Bowl of Cooked Beans 1292
 		trans = new TransitionData(1180, 250, 1292, 250); 
