@@ -2349,6 +2349,14 @@ abstract class AiBase
 
 		if(handleMilk()) return true;
 
+		// Split Potato Sprouts 1155
+		var countTomatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1155, 30);
+		// Potato in Water 1152
+		countTomatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1152, 30);
+		if(countTomatoSeeds < 1){
+			if(craftItem(1155)) return true; // Split Potato Sprouts 1155
+		}
+
 		// Bowl of Tomato Seeds 2828
 		var countTomatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2828, 30);
 		// Bowl of Tomato Seed Pulp 2825
