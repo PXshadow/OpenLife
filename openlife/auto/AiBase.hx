@@ -3650,6 +3650,7 @@ private function craftLowPriorityClothing() : Bool {
 		var heldObject = myPlayer.heldObject;
 		var dropTarget =  myPlayer.home;
 
+		if (heldObjId < 1 || dropTarget == gotoTarget) return false;
 		if (heldObjId == 2144) return dropHeldObject(); // 2144 Banana Peel
 		if (heldObjId == 34) return dropHeldObject(); // 34 Sharp Stone
 
@@ -5689,7 +5690,8 @@ private function craftLowPriorityClothing() : Bool {
 			return false; 
 		}
 		
-		// todo in case of a switch, consider drop held object???
+		// In case of a switch, consider drop held object
+		if(considerDropHeldObject(dropTarget)) return true;
 
 		if (myPlayer.isMoving()) return true;
 
