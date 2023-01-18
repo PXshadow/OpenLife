@@ -1,14 +1,14 @@
 package openlife.settings;
 
-import openlife.resources.Resource;
 import haxe.DynamicAccess;
 import haxe.io.Path;
-import openlife.engine.Engine;
 import openlife.client.Client;
+import openlife.engine.Engine;
+import openlife.resources.Resource;
 #if (sys || nodejs)
-import sys.io.FileOutput;
-import sys.io.File;
 import sys.FileSystem;
+import sys.io.File;
+import sys.io.FileOutput;
 #end
 
 @:expose
@@ -78,6 +78,6 @@ class Settings {
 }
 
 @:expose
-typedef ConfigData = {?legacy:Bool, ?email:String, ?key:String, ip:String, ?port:Int, ?seed:String, ?tutorial:Bool, ?twin:String}
+typedef ConfigData = {?legacy:Bool, ?tag:String, ?email:String, ?key:String, ip:String, ?port:Int, ?seed:String, ?tutorial:Bool, ?twin:String}
 
 typedef Data = DynamicAccess<Dynamic>
