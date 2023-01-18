@@ -2349,6 +2349,14 @@ abstract class AiBase
 
 		if(handleMilk()) return true;
 
+		// Bowl of Tomato Seeds 2828
+		var countTomatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2828, 30);
+		// Bowl of Tomato Seed Pulp 2825
+		countTomatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2825, 30);
+		if(countTomatoSeeds < 1){
+			if(craftItem(2828)) return true; // Bowl of Tomato Seeds 2828
+		}
+
 		// Clay Bow 235 + Three Sisters Stew 1249
 		if(shortCraft(235, 1249,20,1)) return true;
 
@@ -2410,13 +2418,17 @@ abstract class AiBase
 		
 		var countCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 40); // Cooked Carrot Pie 273
 		var countBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 40); // Cooked Berry Pie 272		
-		var extraPies = countPies % 4;
+		var extraPies = countPies % 6;
 		
 		if(extraPies == 0){
 			if(countCarrotPies < 2 && craftItem(268)) return true; // Raw Carrot Pie
 		}
 
 		if(extraPies == 2){
+			if(countBerryPies < 2 && craftItem(569)) return true; // Raw Mutton 569
+		}
+
+		if(extraPies == 4){
 			if(countBerryPies < 2 && craftItem(265)) return true; // Raw Berry Pie
 		}
 
