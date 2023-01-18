@@ -2650,8 +2650,15 @@ abstract class AiBase
 			this.profession['SMITH'] = 7;
 		}
 
-		if(this.profession['SMITH'] < 8){
-			// Steel Axe 334
+		// Shears 568
+		if(this.profession['SMITH'] < 7.1){
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 568, 30); 
+			if(count < 1 && craftItem(568)) return true;
+			this.profession['SMITH'] = 7.1;
+		}
+
+		// Steel Axe 334
+		if(this.profession['SMITH'] < 8){			
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 334, 60); 
 			if(count < 1 && craftItem(334)) return true;
 			this.profession['SMITH'] = 8;
@@ -2664,19 +2671,21 @@ abstract class AiBase
 			this.profession['SMITH'] = 9;
 		}
 
+		// Steel File 458
+		var countFile = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 458, 30);
+
 		// Steel File Blank 457 
 		if(this.profession['SMITH'] < 10){
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 457, 30); 
-			if(count < 1 && craftItem(457)) return true;
+			if(count + countFile < 1 && craftItem(457)) return true;
 			this.profession['SMITH'] = 10;
 		}
 
 		// Steel File 458
-		/*if(this.profession['SMITH'] < 11){
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 458, 30); 
-			if(count < 1 && craftItem(458)) return true;
+		if(this.profession['SMITH'] < 11){
+			if(countFile < 1 && craftItem(458)) return true;
 			this.profession['SMITH'] = 11;
-		}*/
+		}
 
 		// Steel Blade Blank 459
 		if(this.profession['SMITH'] < 12){
@@ -3611,8 +3620,10 @@ private function craftLowPriorityClothing() : Bool {
 	// Stone 33 // Sharp Stone 34 // Banana Peel 2144 
 	var dropAtCurrentPosition = [33,34,2144];
 
-	// Iron Ore in Wooden Tongs 289 // Iron Ore 290 // Wooden Tongs cool steel ingot 327 // Steel Ingot // Unforged Sealed Steel Crucible 319 // Unforged Steel Crucible in Wooden Tongs 320 // Smithing Hammer 441
-	var dropNearForgeItemIds = [289, 290, 327, 326, 319, 320, 441];
+	// Iron Ore in Wooden Tongs 289 // Iron Ore 290 // Wooden Tongs cool steel ingot 327 // Steel Ingot 
+	// Unforged Sealed Steel Crucible 319 // Unforged Steel Crucible in Wooden Tongs 320 // Smithing Hammer 441
+	// Shears 568
+	var dropNearForgeItemIds = [289, 290, 327, 326, 319, 320, 441, 568];
 
 	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
 		var heldObjId = myPlayer.heldObject.parentId;
