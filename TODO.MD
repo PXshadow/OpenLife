@@ -605,10 +605,40 @@ hl server.hl
 
 If you want to create the map from scratch delete SaveFiles folder or the stored stuff inside
 
-Programming:
+In case you want to programm:
+Setup Development (Windows):
+- Install VS Code
+- Install Git
+- Install Haxe: https://haxe.org/download
+- Install Hashlink (Debugging Haxe)
+https://stackoverflow.com/questions/56228386/how-to-install-hashlink-on-windows
+Download: https://github.com/HaxeFoundation/hashlink/releases
+Then go to the System Properties -> Environment variables, edit the path variable then add the location of your hashlink location that you saved.
 
+In VS Code Install (Use the newest version if there is):
+Haxe language Support 2.27.0
+Hashlink Debugger
+Lix v.1.3.0
+
+If Haxe cannot be found restart VS Code after installing haxe
+If Hashlink Debugger (HL) cannot be found make sure that Hashlink is installed an PATH is set right. Than restart VS Code.
+
+If this error comes: Error: Error: Cannot process [format]: Library format is not installed:
+Run this in VS Code Terminal
+haxelib install format
+
+Get OHOL data from Jason option 0 (Jason): haxe setup_data_server.hxml // if SetupDataServer does not work try (run in terminal): haxe setup_data.hxml
+
+Update:
+git push -u https://github.com/PXshadow/OpenLife
+
+Download last:
+git pull https://github.com/PXshadow/OpenLife
+
+Programming:
 How to Push stuff to git:
 git push -u origin master
+or:
 git push -u https://github.com/PXshadow/OpenLife
 
 How to pull stuff from git:
