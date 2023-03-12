@@ -61,7 +61,7 @@ interface PlayerInterface {
 	public function isFertile():Bool;
 	public function isMoving():Bool;
 	public function isWounded():Bool;
-	public function isHoldingObject() : Bool;
+	public function isHoldingObject():Bool;
 	public function isHoldingWeapon():Bool;
 	public function isBlocked(tx:Int, ty:Int):Bool;
 	public function isEveOrAdam():Bool;
@@ -76,7 +76,7 @@ interface PlayerInterface {
 	public function isObjSuperMeh(foodObjData:ObjectData):Bool;
 	public function canEat(food:ObjectHelper):Bool;
 	public function canEatObj(objData:ObjectData):Bool;
-	
+
 	public function canFeedToMe(food:ObjectHelper):Bool;
 	public function canFeedToMeObj(objData:ObjectData):Bool;
 	public function getMaxChildFeeding():Float; // gives back how much a child can be fed
@@ -92,12 +92,12 @@ interface PlayerInterface {
 	public function isSuperHot():Bool;
 	public function isSuperCold():Bool;
 	public function hasYellowFever():Bool;
-	public function getClothingById(clothingId:Int) : ObjectHelper;
+	public function getClothingById(clothingId:Int):ObjectHelper;
 
 	public var coldPlace(default, default):ObjectHelper;
 	public var warmPlace(default, default):ObjectHelper;
 	public var firePlace(default, default):ObjectHelper;
 	public var lastTemperature(default, default):Float;
 
-	public function getClosestPlayer(maxDistance:Int, onlyHuman:Bool = false) : PlayerInterface;
+	public function getClosestPlayer(maxDistance:Int, onlyHuman:Bool = false):PlayerInterface;
 }

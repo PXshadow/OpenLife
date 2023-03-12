@@ -62,10 +62,10 @@ class AiHelper {
 		var width = WorldMap.world.width;
 		var height = WorldMap.world.height;
 
-		if(diffX > width / 2) diffX -= width; // consider that world is round
-		else if(diffX < -width / 2) diffX += width; // consider that world is round
-		if(diffY > height / 2) diffY -= height; // consider that world is round
-		else if(diffY < -height / 2) diffY += height; // consider that world is round
+		if (diffX > width / 2) diffX -= width; // consider that world is round
+		else if (diffX < -width / 2) diffX += width; // consider that world is round
+		if (diffY > height / 2) diffY -= height; // consider that world is round
+		else if (diffY < -height / 2) diffY += height; // consider that world is round
 
 		return diffX * diffX + diffY * diffY;
 	}
@@ -80,33 +80,37 @@ class AiHelper {
 
 	// searchDistance old: 16
 
-	public static function GetClosestObjectById(player:PlayerInterface, objIdToSearch:Int, ignoreObj:ObjectHelper = null, searchDistance:Int = 40, minDistance:Int = 0):ObjectHelper {
-		//return GetClosestObject(playerInterface, objData, searchDistance, ignoreObj);
+	public static function GetClosestObjectById(player:PlayerInterface, objIdToSearch:Int, ignoreObj:ObjectHelper = null, searchDistance:Int = 40,
+			minDistance:Int = 0):ObjectHelper {
+		// return GetClosestObject(playerInterface, objData, searchDistance, ignoreObj);
 		return GetClosestObjectToPosition(player.tx, player.ty, objIdToSearch, searchDistance, ignoreObj, player, null, minDistance);
 	}
 
-	public static function GetClosestObjectToTarget(player:PlayerInterface, target:ObjectHelper, objIdToSearch:Int, ignoreObj:ObjectHelper = null, searchDistance:Int = 40, minDistance:Int = 0):ObjectHelper {
-		//return GetClosestObject(playerInterface, objData, searchDistance, ignoreObj);
+	public static function GetClosestObjectToTarget(player:PlayerInterface, target:ObjectHelper, objIdToSearch:Int, ignoreObj:ObjectHelper = null,
+			searchDistance:Int = 40, minDistance:Int = 0):ObjectHelper {
+		// return GetClosestObject(playerInterface, objData, searchDistance, ignoreObj);
 		return GetClosestObjectToPosition(target.tx, target.ty, objIdToSearch, searchDistance, ignoreObj, player, null, minDistance);
 	}
 
-	public static function GetClosestObjectToHome(player:PlayerInterface, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null) : ObjectHelper {
-		//if(objIdToSearch == 1121) trace('DEBUG7770: ${myPlayer.name}${myPlayer.id} Popcorn dist: ${searchDistance}');
+	public static function GetClosestObjectToHome(player:PlayerInterface, objIdToSearch:Int, searchDistance:Int = 40,
+			ignoreObj:ObjectHelper = null):ObjectHelper {
+		// if(objIdToSearch == 1121) trace('DEBUG7770: ${myPlayer.name}${myPlayer.id} Popcorn dist: ${searchDistance}');
 		return GetClosestObjectToPosition(player.home.tx, player.home.ty, objIdToSearch, searchDistance, ignoreObj, player);
 	}
 
 	// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
-	// Straw 227 // Wheat Sheaf 225 
+	// Straw 227 // Wheat Sheaf 225
 	static var needsNotFlooredPlace = [356, 336, 1137, 227, 225];
 	// Basket of Bones (356) // Basket of Soil 336 // Bowl of Soil 1137
 	// Straw 227 // Wheat Sheaf 225 // Stone Hoe 850 // Rabbit Bones 190 // Snare 160 // Yew Branch 132
-	// Rabbit Fur 183 // Yew Branch 132 // 
+	// Rabbit Fur 183 // Yew Branch 132 //
 	// Flat Rock 291 (only if needed for forge)
 	static var dontDropCloseHomeIds = [356, 336, 1137, 227, 225, 850, 190, 160, 132, 183, 132, 291];
 
 	// objIdToSearch = -10 if searching non permanent
 	// minDistance = -1 allows to be dropped close to oven even if it normaly should not (flat rock for forge)
-	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null, player:PlayerInterface = null, searchContained:Array<Int> = null, minDistance:Int = 0) : ObjectHelper {
+	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null,
+			player:PlayerInterface = null, searchContained:Array<Int> = null, minDistance:Int = 0):ObjectHelper {
 		var world = WorldMap.world;
 		var ai = player == null ? null : player.getAi();
 		var ignoreFullPiles = ai == null ? false : ai.ignoreFullPiles;
@@ -115,8 +119,8 @@ class AiHelper {
 		var closestBadPlace = null;
 		var bestDistanceToBadPlace = 0.0;
 		var searchEmptyPlace = ai != null && objIdToSearch == 0;
-		var heldId = player == null ? -1 : player.heldObject.parentId;		
-		var searchNotFlooredPlace = searchEmptyPlace && needsNotFlooredPlace.contains(heldId); 
+		var heldId = player == null ? -1 : player.heldObject.parentId;
+		var searchNotFlooredPlace = searchEmptyPlace && needsNotFlooredPlace.contains(heldId);
 		var objdataRoSearch = ObjectData.getObjectData(objIdToSearch);
 		var allowContainerWithItems = objdataRoSearch == null ? false : objdataRoSearch.isGrave();
 		var quadMinDistance = minDistance * minDistance;
@@ -126,71 +130,68 @@ class AiHelper {
 		var quadMinDistanceToTarget = minDistanceToTarget * minDistanceToTarget;
 
 		// minDistance = -1 allows to be dropped close to oven even if it normaly should not (flat rock for forge)
-		if(minDistance < 0){
+		if (minDistance < 0) {
 			quadMinDistance = 0;
 			minDistanceToTarget = 0;
 			quadMinDistanceToTarget = 0;
 		}
-		
+
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
-				var objData = world.getObjectDataAtPosition(tx,ty);
+				var objData = world.getObjectDataAtPosition(tx, ty);
 				var parentId = objData.parentId;
 
 				// used for example to drop a basket with clay near kiln and switch with existing
-				if(objIdToSearch == -10){
-					if(objData.isPermanent()) continue;
-					if(objData.parentId == heldId) continue; // dont replace a basket with a basket
-				}
-				else if(parentId != objIdToSearch) continue;
-			
+				if (objIdToSearch == -10) {
+					if (objData.isPermanent()) continue;
+					if (objData.parentId == heldId) continue; // dont replace a basket with a basket
+				} else if (parentId != objIdToSearch) continue;
+
 				if (ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
 
 				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
 				if (ai != null && ai.isObjectWithHostilePath(tx, ty)) continue;
 
 				// search not full pile, for example to drop an item on a pile
-				if(ignoreFullPiles && objData.numUses > 1){
-					var obj = world.getObjectHelper(tx,ty);
-					if(obj.numberOfUses >= objData.numUses) continue;
+				if (ignoreFullPiles && objData.numUses > 1) {
+					var obj = world.getObjectHelper(tx, ty);
+					if (obj.numberOfUses >= objData.numUses) continue;
 				}
 
-				if(searchNotFlooredPlace){
+				if (searchNotFlooredPlace) {
 					var floorId = world.getFloorId(tx, ty);
-					if(floorId > 0) continue;
+					if (floorId > 0) continue;
 				}
 
-				if(searchContained == null){
-					if(allowContainerWithItems == false && objData.numSlots > 0){
-						var obj = world.getObjectHelper(tx,ty);
-						if(obj.containedObjects.length > 0) continue;
+				if (searchContained == null) {
+					if (allowContainerWithItems == false && objData.numSlots > 0) {
+						var obj = world.getObjectHelper(tx, ty);
+						if (obj.containedObjects.length > 0) continue;
 					}
-				}
-				else{
-					if(objData.numSlots < 1) continue; 
-					var obj = world.getObjectHelper(tx,ty);
-					if(obj.contains(searchContained) == false) continue;
+				} else {
+					if (objData.numSlots < 1) continue;
+					var obj = world.getObjectHelper(tx, ty);
+					if (obj.contains(searchContained) == false) continue;
 				}
 
-				var quadDistance = AiHelper.CalculateQuadDistanceHelper(tx,ty, baseX, baseY);
+				var quadDistance = AiHelper.CalculateQuadDistanceHelper(tx, ty, baseX, baseY);
 
-				if(quadDistance < quadMinDistance) continue; // for example used to not pikcup kindling close to fire to bring this kindling then to fire
+				if (quadDistance < quadMinDistance) continue; // for example used to not pikcup kindling close to fire to bring this kindling then to fire
 
-				if(searchEmptyPlace && mindistaceToTargetObj != null && quadMinDistanceToTarget > 0){
-					var quadDistanceToHome = AiHelper.CalculateQuadDistanceHelper(tx,ty, mindistaceToTargetObj.tx, mindistaceToTargetObj.ty);
-					if(quadDistanceToHome < quadMinDistanceToTarget) continue;
+				if (searchEmptyPlace && mindistaceToTargetObj != null && quadMinDistanceToTarget > 0) {
+					var quadDistanceToHome = AiHelper.CalculateQuadDistanceHelper(tx, ty, mindistaceToTargetObj.tx, mindistaceToTargetObj.ty);
+					if (quadDistanceToHome < quadMinDistanceToTarget) continue;
 				}
-				
+
 				// dont drop stuff behind a tree
 				var objDataBelow = world.getObjectDataAtPosition(tx, ty - 1);
 				if (searchEmptyPlace && objDataBelow.isTree()) continue;
 
 				// try not drop stuff in water or mountain
-				if (searchEmptyPlace && IsBadBiomeForDrop(tx, ty)){
-					
+				if (searchEmptyPlace && IsBadBiomeForDrop(tx, ty)) {
 					if (closestBadPlace != null && quadDistance > bestDistanceToBadPlace) continue;
-					
-					closestBadPlace = world.getObjectHelper(tx,ty);
+
+					closestBadPlace = world.getObjectHelper(tx, ty);
 					bestDistanceToBadPlace = quadDistance;
 
 					continue;
@@ -199,7 +200,7 @@ class AiHelper {
 				if (closestObject != null && quadDistance > bestDistance) continue;
 
 				bestDistance = quadDistance;
-				closestObject =  world.getObjectHelper(tx,ty);
+				closestObject = world.getObjectHelper(tx, ty);
 			}
 		}
 
@@ -210,17 +211,17 @@ class AiHelper {
 	public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData, searchDistance:Int = 40,
 			ignoreObj:ObjectHelper = null, findClosestHeat:Bool = false, ownedByPlayer:Bool = false):ObjectHelper {
 		// var RAD = ServerSettings.AiMaxSearchRadius
-		//if(objDataToSearch != null) trace('GetClosestObject: ${objDataToSearch.name} dis: $searchDistance ignoreObj: ${ignoreObj != null}');
-		
+		// if(objDataToSearch != null) trace('GetClosestObject: ${objDataToSearch.name} dis: $searchDistance ignoreObj: ${ignoreObj != null}');
+
 		var ai = playerInterface.getAi();
 		var world = playerInterface.getWorld();
 		var player = playerInterface.getPlayerInstance();
 		var heldId = player.heldObject.parentId;
-		var objIdToSearch = objDataToSearch == null ? -1 : objDataToSearch.parentId; 
+		var objIdToSearch = objDataToSearch == null ? -1 : objDataToSearch.parentId;
 		var searchEmptyPlace = ai != null && objDataToSearch != null && objDataToSearch.parentId == 0;
 		// 1137 Bowl of Soil // 356 Basket of Bones // 336 Basket of Soil
 		// TODO 1101 Fertile Soil Pile
-		var searchNotFlooredPlace = ai != null && objIdToSearch == 0 && (heldId == 1137 || heldId == 356 || heldId == 336); 
+		var searchNotFlooredPlace = ai != null && objIdToSearch == 0 && (heldId == 1137 || heldId == 356 || heldId == 336);
 		var baseX = player.tx;
 		var baseY = player.ty;
 		var closestBadPlaceforDrop = null;
@@ -228,14 +229,13 @@ class AiHelper {
 		var closestObject = null;
 		var bestDistance = 0.0;
 
-		//if(objIdToSearch == 1121) trace('DEBUG770: ${playerInterface.name}${playerInterface.id} Popcorn dist: ${searchDistance}');
+		// if(objIdToSearch == 1121) trace('DEBUG770: ${playerInterface.name}${playerInterface.id} Popcorn dist: ${searchDistance}');
 
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
+				// var objData = world.getObjectDataAtPosition(tx, ty);
+				// if(objIdToSearch == 1121 && objData.parentId == 1121) trace('DEBUG771: Popcorn');
 
-				//var objData = world.getObjectDataAtPosition(tx, ty);
-				//if(objIdToSearch == 1121 && objData.parentId == 1121) trace('DEBUG771: Popcorn');
-				
 				if (ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
 
 				// findClosestHeat == false / since its jused for player temerpature where it does not matter if blocked. Also otherwiese a mutex would be missing since isObjectNotReachable can be used from the AI at same time
@@ -248,39 +248,36 @@ class AiHelper {
 
 				if (findClosestHeat && objData.heatValue == 0) continue;
 
-				if (ownedByPlayer
-					|| findClosestHeat
-					|| objData.parentId == objIdToSearch) // compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs
+				if (ownedByPlayer || findClosestHeat || objData.parentId == objIdToSearch) // compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs
 				{
 					var objDataBelow = world.getObjectDataAtPosition(tx, ty - 1);
 					if (searchEmptyPlace && objDataBelow.isTree()) continue;
 
-					if(searchNotFlooredPlace){
+					if (searchNotFlooredPlace) {
 						var floorId = world.getFloorId(tx, ty);
-						if(floorId > 0) continue;
+						if (floorId > 0) continue;
 					}
 
 					var obj = world.getObjectHelper(tx, ty);
 
 					if (ownedByPlayer && obj.isOwnedByPlayer(playerInterface) == false) continue;
 
-					if(obj.containedObjects.length > 0 && obj.isGrave() == false) continue; // for example ignore filled baskets 
+					if (obj.containedObjects.length > 0 && obj.isGrave() == false) continue; // for example ignore filled baskets
 
 					var distance = AiHelper.CalculateQuadDistanceToObject(playerInterface, obj);
 
-					if(searchEmptyPlace && IsBadBiomeForDrop(tx, ty)){
+					if (searchEmptyPlace && IsBadBiomeForDrop(tx, ty)) {
 						// try not drop stuff in water or mountain
 						if (closestBadPlaceforDrop == null || distance < bestDistanceToBadPlaceforDrop) {
 							closestBadPlaceforDrop = obj;
 							bestDistanceToBadPlaceforDrop = distance;
-							//trace('Bad Empty Space For drop distance: $distance');
+							// trace('Bad Empty Space For drop distance: $distance');
 						}
-					}
-					else{
+					} else {
 						if (closestObject == null || distance < bestDistance) {
 							closestObject = obj;
 							bestDistance = distance;
-							//if(searchEmptyPlace) trace('Empty Space For drop distance: $distance');
+							// if(searchEmptyPlace) trace('Empty Space For drop distance: $distance');
 						}
 					}
 				}
@@ -295,7 +292,7 @@ class AiHelper {
 
 		// if(closestObject !=null) trace('AI: bestdistance: $bestDistance ${closestObject.description}');
 
-		if(closestObject == null && searchEmptyPlace) playerInterface.say('No Empty tile found!'); 
+		if (closestObject == null && searchEmptyPlace) playerInterface.say('No Empty tile found!');
 
 		return closestObject != null ? closestObject : closestBadPlaceforDrop;
 	}
@@ -311,49 +308,47 @@ class AiHelper {
 
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
-				
-				var biomeId = world.getBiomeId(tx,ty);
+				var biomeId = world.getBiomeId(tx, ty);
 
-				if(biomes.contains(biomeId) == false) continue;
+				if (biomes.contains(biomeId) == false) continue;
 
 				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
 				if (ai != null && ai.isObjectWithHostilePath(tx, ty)) continue;
 
 				var distance = AiHelper.CalculateDistance(player.tx, player.ty, tx, ty);
 
-				if(distance > bestDistance) continue;
+				if (distance > bestDistance) continue;
 
 				bestDistance = distance;
 				bestBiome.tx = tx;
 				bestBiome.ty = ty;
 			}
 		}
-		
-		return bestDistance < 0 ? null : bestBiome; 
+
+		return bestDistance < 0 ? null : bestBiome;
 	}
 
-	public static function IsBadBiomeForDrop(tx:Int, ty:Int) : Bool{
+	public static function IsBadBiomeForDrop(tx:Int, ty:Int):Bool {
 		var biomeId = WorldMap.world.getBiomeId(tx, ty);
-		if(biomeId == PASSABLERIVER || biomeId == OCEAN || biomeId == RIVER || biomeId == SNOWINGREY) return true;
+		if (biomeId == PASSABLERIVER || biomeId == OCEAN || biomeId == RIVER || biomeId == SNOWINGREY) return true;
 
 		return false;
 	}
 
 	public static function GetCloseClothings(playerInterface:PlayerInterface, searchDistance:Int = 8):Array<ObjectHelper> {
 		// var RAD = ServerSettings.AiMaxSearchRadius
-		//if(objDataToSearch != null) trace('GetClosestObject: ${objDataToSearch.name} dis: $searchDistance ignoreObj: ${ignoreObj != null}');
-		
+		// if(objDataToSearch != null) trace('GetClosestObject: ${objDataToSearch.name} dis: $searchDistance ignoreObj: ${ignoreObj != null}');
+
 		var ai = playerInterface.getAi();
 		var world = playerInterface.getWorld();
 		var player = playerInterface.getPlayerInstance();
 		var baseX = player.tx;
 		var baseY = player.ty;
 		var clothings = new Array<ObjectHelper>();
-		//var bestDistance = 0.0;
+		// var bestDistance = 0.0;
 
 		for (ty in baseY - searchDistance...baseY + searchDistance) {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
-
 				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
 				if (ai != null && ai.isObjectWithHostilePath(tx, ty)) continue;
 
@@ -361,7 +356,7 @@ class AiHelper {
 
 				// compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs
 				// Pile of Mouflon Hides 3918
-				if (objData.clothing.charAt(0) != "n" || objData.parentId == 3918){
+				if (objData.clothing.charAt(0) != "n" || objData.parentId == 3918) {
 					var obj = world.getObjectHelper(tx, ty);
 					clothings.push(obj);
 				}
@@ -369,8 +364,8 @@ class AiHelper {
 		}
 
 		/*for(obj in clothings)
-		{
-			trace('Clothing: ${obj.name} ${obj.objectData.clothing} slot: ${obj.objectData.getClothingSlot()}');
+			{
+				trace('Clothing: ${obj.name} ${obj.objectData.clothing} slot: ${obj.objectData.getClothingSlot()}');
 		}*/
 
 		return clothings;
@@ -390,7 +385,7 @@ class AiHelper {
 		var objData = obj.objectData.dummyParent != null ? obj.objectData.dummyParent : obj.objectData;
 		var originalFoodValue = objData.foodFromTarget == null ? objData.foodValue : objData.foodFromTarget.foodValue;
 
-		//if (ServerSettings.DebugAi) trace('AI: ${obj.description} ${obj.id} numberOfUses: ${obj.numberOfUses} originalFoodValue: $originalFoodValue');
+		// if (ServerSettings.DebugAi) trace('AI: ${obj.description} ${obj.id} numberOfUses: ${obj.numberOfUses} originalFoodValue: $originalFoodValue');
 
 		return originalFoodValue > 0;
 		// if(originalFoodValue < 0) return false;
@@ -404,21 +399,21 @@ class AiHelper {
 		var pileObjId = objdataToSearch.getPileObjId();
 		var count = 0;
 
-		if(objId == 233) countPiles = false; // Wet Clay Bowl 233 --> otherwise Wet Clay Crock is counted, too
+		if (objId == 233) countPiles = false; // Wet Clay Bowl 233 --> otherwise Wet Clay Crock is counted, too
 
 		for (tty in ty - radius...ty + radius) {
 			for (ttx in tx - radius...tx + radius) {
 				var objData = world.getObjectDataAtPosition(ttx, tty);
-				if(objData.parentId == objId) count++;
-				if(countPiles && objData.parentId == pileObjId){
-					var obj = world.getObjectHelper(ttx,tty);
+				if (objData.parentId == objId) count++;
+				if (countPiles && objData.parentId == pileObjId) {
+					var obj = world.getObjectHelper(ttx, tty);
 					count += obj.numberOfUses;
-					//trace('CountCloseObjects: ${objdataToSearch.name}: found Pile: numberOfUses: ${obj.numberOfUses}');
+					// trace('CountCloseObjects: ${objdataToSearch.name}: found Pile: numberOfUses: ${obj.numberOfUses}');
 				}
 			}
 		}
 
-		//trace('CountCloseObjects: ${objdataToSearch.name}: ${count}');
+		// trace('CountCloseObjects: ${objdataToSearch.name}: ${count}');
 
 		return count;
 	}
@@ -429,9 +424,9 @@ class AiHelper {
 		// TODO might need player mutex because: player.getCountEaten(foodId);
 
 		GlobalPlayerInstance.AcquireMutex();
-		//WorldMap.world.mutex.acquire();
+		// WorldMap.world.mutex.acquire();
 		Macro.exception(bestFood = SearchBestFoodHelper(player, feedingPlayer, radius));
-		//WorldMap.world.mutex.release();
+		// WorldMap.world.mutex.release();
 		GlobalPlayerInstance.ReleaseMutex();
 
 		return bestFood;
@@ -457,8 +452,8 @@ class AiHelper {
 		if (player.food_store < -1) starvingFactor = 1.5;
 		if (player.food_store < -1.5) starvingFactor = 1.2;
 
-		//var biome = WorldMap.worldGetBiomeId(player.tx, player.ty);
-		//var originalBiomeTemperature = Biome.getBiomeTemperature(biome);
+		// var biome = WorldMap.worldGetBiomeId(player.tx, player.ty);
+		// var originalBiomeTemperature = Biome.getBiomeTemperature(biome);
 
 		for (ty in baseY - radius...baseY + radius) {
 			for (tx in baseX - radius...baseX + radius) {
@@ -466,19 +461,19 @@ class AiHelper {
 
 				if (objData.id == 0) continue;
 				if (objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
-				//if (feedOther && objData.id == 837) continue; // dont feed Psilocybe Mushroom to others
-				if (ai != null && ai.isObjectNotReachable(tx ,ty)) continue;
-				
+				// if (feedOther && objData.id == 837) continue; // dont feed Psilocybe Mushroom to others
+				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
+
 				// dont eat Cooked Goose if there is only one since needed for crafting knife
-				if (objData.parentId == 518 && gooseFound == false){
+				if (objData.parentId == 518 && gooseFound == false) {
 					gooseFound = true;
 					continue;
 				}
 
 				// Carrot 402 // Carrot Pile 2742 ==> Leep some carrots for pies
-				if (objData.parentId == 402 || objData.parentId == 2742){
-					if(countCarrots < 0) countCarrots = CountCloseObjects(player, player.tx, player.ty, 402,30);
-					if(countCarrots < 4) continue;
+				if (objData.parentId == 402 || objData.parentId == 2742) {
+					if (countCarrots < 0) countCarrots = CountCloseObjects(player, player.tx, player.ty, 402, 30);
+					if (countCarrots < 4) continue;
 				}
 
 				// var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
@@ -495,8 +490,8 @@ class AiHelper {
 				if (foodValue <= 0) continue;
 				if (feedOther && player.canFeedToMeObj(objData) == false) continue;
 				if (player.canEatObj(objData) == false) continue;
-				if (player.food_store_max - player.food_store < Math.ceil(originalFoodValue / 4)) continue;				
-	
+				if (player.food_store_max - player.food_store < Math.ceil(originalFoodValue / 4)) continue;
+
 				var countEaten = player.getCountEaten(foodId);
 				var quadDistance = 16 + AiHelper.CalculateDistance(baseX, baseY, tx, ty);
 				if (feedingPlayer != null) quadDistance += 1 + AiHelper.CalculateDistance(feedingPlayer.tx, feedingPlayer.ty, tx, ty);
@@ -510,7 +505,7 @@ class AiHelper {
 				if (isSuperMeh) foodValue = originalFoodValue / starvingFactor;
 				if (isSuperMeh && player.food_store > 3) foodValue = 0;
 				if (foodId == player.getCraving()) foodValue *= starvingFactor;
-				//if (foodId == player.getCraving()) foodValue *= Math.pow(starvingFactor, 2);
+				// if (foodId == player.getCraving()) foodValue *= Math.pow(starvingFactor, 2);
 
 				if (quadDistance < 1) quadDistance = 1;
 				// distance = Math.sqrt(distance);
@@ -520,19 +515,19 @@ class AiHelper {
 
 					// Ripe Onions
 					if (obj.parentId == 2854 && obj.numberOfUses < 3) continue;
-					
+
 					if (ai != null) {
 						if (quadDistance > 4 && IsDangerous(player, obj)) continue;
 						// dont eat carrots if seed is needed // 400 Carrot Row
-						if (obj.parentId == 400 && ai.hasCarrotSeeds == false  && obj.numberOfUses < 3) continue;
+						if (obj.parentId == 400 && ai.hasCarrotSeeds == false && obj.numberOfUses < 3) continue;
 						// Dont eat if no corn seeds // 1114 Shucked Ear of Corn
-						if (obj.parentId == 1114 && ai.hasCornSeeds == false) continue; 
+						if (obj.parentId == 1114 && ai.hasCornSeeds == false) continue;
 
 						// if(tryGotoObj(player, obj) == false) continue;
 					}
 
 					bestFoods.push(obj);
-					
+
 					bestFood = obj;
 					bestDistance = quadDistance;
 					bestFoodValue = foodValue;
@@ -542,7 +537,7 @@ class AiHelper {
 			}
 		}
 
-		// TODO tryGoto not in mutex and use sorted list 
+		// TODO tryGoto not in mutex and use sorted list
 		/*if (ai != null) {
 			// TODO solve This has still the problem, that the second best food might be ignored... needs to make a list and then sort or maybe just do again searchfood?
 			while (bestFoods.length > 0) {
@@ -588,11 +583,11 @@ class AiHelper {
 		return gotoObj(player, obj, false);
 	}
 
-	public static function gotoObj(player:PlayerInterface, obj:ObjectHelper, move:Bool = true, checkIfDangerous = true, ?infos:haxe.PosInfos):Bool {	
-		if (ServerSettings.DebugAi){
+	public static function gotoObj(player:PlayerInterface, obj:ObjectHelper, move:Bool = true, checkIfDangerous = true, ?infos:haxe.PosInfos):Bool {
+		if (ServerSettings.DebugAi) {
 			var distance = CalculateQuadDistanceToObject(player, obj);
 			trace('AAI: ${player.name + player.id} gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} ${infos.methodName}');
-		} 
+		}
 
 		return gotoAdv(player, obj.tx, obj.ty, move, checkIfDangerous, infos);
 	}
@@ -606,7 +601,7 @@ class AiHelper {
 		var dist = AiHelper.CalculateDistance(player.tx, player.ty, tx, ty);
 		var blockedByAnimal = false;
 
-		if(ai == null){
+		if (ai == null) {
 			trace('gotoAdv: WARNING Ai is null!');
 			return false;
 		}
@@ -617,27 +612,27 @@ class AiHelper {
 		if (done) return true;
 
 		// check if blocked only by animals // used for not to consider the object as blocked
-		if(considerAnimals && blockedByAnimal == false){
-			//blockedByAnimal = Goto(player, rx + xo, ry + yo, false, false);
+		if (considerAnimals && blockedByAnimal == false) {
+			// blockedByAnimal = Goto(player, rx + xo, ry + yo, false, false);
 			blockedByAnimal = Goto(player, rx, ry, false, false);
 		}
 
 		var passedTime = Math.round((Sys.time() - startTime) * 1000);
-		
-		//ai.time += passedTime / 1000;
 
-		if(ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime dist: $dist');
-		//trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime');
+		// ai.time += passedTime / 1000;
 
-		if(ai == null){
+		if (ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime dist: $dist');
+		// trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime');
+
+		if (ai == null) {
 			trace('gotoAdv2: WARNING Ai is null!');
 			return false;
 		}
-		
-		if(blockedByAnimal) ai.addHostilePath(tx, ty);
-		else ai.addNotReachable(tx, ty);
 
-		//if(blockedByAnimal) trace('blockedByAnimal!!!');
+		if (blockedByAnimal) ai.addHostilePath(tx, ty); else
+			ai.addNotReachable(tx, ty);
+
+		// if(blockedByAnimal) trace('blockedByAnimal!!!');
 
 		ai.resetTargets();
 
@@ -648,7 +643,7 @@ class AiHelper {
 		return Goto(playerInterface, x, y, considerAnimal, false);
 	}
 
-	public static function NewGoto(x:Int, y:Int, playerInterface:PlayerInterface, considerAnimal:Bool = true, move:Bool = true) : Bool {
+	public static function NewGoto(x:Int, y:Int, playerInterface:PlayerInterface, considerAnimal:Bool = true, move:Bool = true):Bool {
 		var player = playerInterface.getPlayerInstance();
 		var ai = playerInterface.getAi();
 		var radius = 16;
@@ -661,7 +656,7 @@ class AiHelper {
 		if (px == 0 && py == 0) return false; // no need to move
 
 		// search non blocked tile to walk to
-		for(i in 0...radius-4){
+		for (i in 0...radius - 4) {
 			ii = i;
 			// trace('AAI: GOTO: From: ${player.x},${player.y} To: $x $y / FROM ${player.tx()},${player.ty()} To: ${x + player.gx},${y + player.gy}');
 
@@ -672,38 +667,38 @@ class AiHelper {
 			if (px < -tmpRad) px = -tmpRad;
 			if (py < -tmpRad) py = -tmpRad;
 
-			//if (playerInterface.isBlocked(player.gx + x, player.gy + y)) trace('GOTO blocked');
-			//if (ai != null && ai.isObjectNotReachable(player.gx + x, player.gy + y)) trace('GOTO not reachable');
-			//var debugtext = '';
+			// if (playerInterface.isBlocked(player.gx + x, player.gy + y)) trace('GOTO blocked');
+			// if (ai != null && ai.isObjectNotReachable(player.gx + x, player.gy + y)) trace('GOTO not reachable');
+			// var debugtext = '';
 			blocked = false;
-			if (playerInterface.isBlocked(px + player.tx, py + player.ty)) blocked = true; //trace('GOTO blocked');
-			if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) blocked = true;//trace('GOTO not reachable');
-			//if (playerInterface.isBlocked(px + player.tx, py + player.ty)) debugtext = 'blocked';
-			//if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) debugtext = 'not reachable';
-			if(blocked == false) break;
+			if (playerInterface.isBlocked(px + player.tx, py + player.ty)) blocked = true; // trace('GOTO blocked');
+			if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) blocked = true; // trace('GOTO not reachable');
+			// if (playerInterface.isBlocked(px + player.tx, py + player.ty)) debugtext = 'blocked';
+			// if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) debugtext = 'not reachable';
+			if (blocked == false) break;
 		}
 
-		if(blocked){
-			//trace('Goto blocked!$debugtext ${player.tx},${player.ty} $px,$py');
+		if (blocked) {
+			// trace('Goto blocked!$debugtext ${player.tx},${player.ty} $px,$py');
 			return false;
 		}
 
 		// trace('Goto: $px $py');
 		var map = new MapCollision(AiHelper.CreateCollisionChunk(playerInterface, considerAnimal));
-		
+
 		// pathing
-		//var path = new Pathfinder(map);
+		// var path = new Pathfinder(map);
 		var start = new Coordinate(radius, radius);
 		var end = new Coordinate(px + RAD, py + RAD);
 		// trace('goto: end $end');
 		var newPathfinder = new PathfinderNew(map);
 		var paths:Array<Coordinate> = newPathfinder.CreatePath(start, end);
-			
+
 		if (paths == null) {
-			//trace('GOTO false ${player.tx},${player.ty} $px,$py $debugtext');
+			// trace('GOTO false ${player.tx},${player.ty} $px,$py $debugtext');
 
 			// since path was cut it might try again if not added here
-			if(ai != null) ai.addNotReachable(px + player.tx, py + player.ty);
+			if (ai != null) ai.addNotReachable(px + player.tx, py + player.ty);
 
 			// if (onError != null) onError("can not generate path");
 			// trace('AAI: ${player.p_id} CAN NOT GENERATE PATH');
@@ -711,7 +706,7 @@ class AiHelper {
 		}
 
 		/*for(path in paths){
-				trace(path);
+			trace(path);
 		}*/
 
 		var data:Array<Pos> = [];
@@ -727,7 +722,7 @@ class AiHelper {
 		var globalPlayer = cast(player, GlobalPlayerInstance);
 		if (move) playerInterface.move(globalPlayer.moveHelper.guessX(), globalPlayer.moveHelper.guessY(), ai.seqNum++, data);
 
-		//trace('GOTO done $debugtext $px $py');
+		// trace('GOTO done $debugtext $px $py');
 
 		return true;
 	}
@@ -750,20 +745,20 @@ class AiHelper {
 		var ii = 0;
 
 		// search the first none blocked tile in case target is close to the edge
-		var maxEdge = RAD-2;
-		
-		if(px > maxEdge || px < -maxEdge || py > maxEdge || py < -maxEdge){
-			for(i in 0...RAD-4){
+		var maxEdge = RAD - 2;
+
+		if (px > maxEdge || px < -maxEdge || py > maxEdge || py < -maxEdge) {
+			for (i in 0...RAD - 4) {
 				ii = i;
 				px = x - player.x;
 				py = y - player.y;
-				if(px > RAD) px = RAD;
-				if(py > RAD) py = RAD;
-				if(px < -RAD) px = -RAD;
-				if(py < -RAD) py = -RAD;
+				if (px > RAD) px = RAD;
+				if (py > RAD) py = RAD;
+				if (px < -RAD) px = -RAD;
+				if (py < -RAD) py = -RAD;
 
 				// trace('AAI: GOTO: From: ${player.x},${player.y} To: $x $y / FROM ${player.tx()},${player.ty()} To: ${x + player.gx},${y + player.gy}');
-			
+
 				if (px == 0 && py == 0) return false; // no need to move
 
 				var tmpRad = RAD - i;
@@ -773,53 +768,53 @@ class AiHelper {
 				if (px < -tmpRad) px = -tmpRad;
 				if (py < -tmpRad) py = -tmpRad;
 
-				//if (playerInterface.isBlocked(player.gx + x, player.gy + y)) trace('GOTO blocked');
-				//if (ai != null && ai.isObjectNotReachable(player.gx + x, player.gy + y)) trace('GOTO not reachable');
-				//var debugtext = '';
+				// if (playerInterface.isBlocked(player.gx + x, player.gy + y)) trace('GOTO blocked');
+				// if (ai != null && ai.isObjectNotReachable(player.gx + x, player.gy + y)) trace('GOTO not reachable');
+				// var debugtext = '';
 				blocked = false;
-				if (playerInterface.isBlocked(px + player.tx, py + player.ty)) blocked = true; //trace('GOTO blocked');
-				if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) blocked = true;//trace('GOTO not reachable');
-				//if (playerInterface.isBlocked(px + player.tx, py + player.ty)) debugtext = 'blocked';
-				//if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) debugtext = 'not reachable';
-				if(blocked == false) break;
+				if (playerInterface.isBlocked(px + player.tx, py + player.ty)) blocked = true; // trace('GOTO blocked');
+				if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) blocked = true; // trace('GOTO not reachable');
+				// if (playerInterface.isBlocked(px + player.tx, py + player.ty)) debugtext = 'blocked';
+				// if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) debugtext = 'not reachable';
+				if (blocked == false) break;
 			}
 
-			//trace('${player.name + player.p_id} Goto i: $ii blocked: $blocked ${player.tx},${player.ty} $px,$py');
+			// trace('${player.name + player.p_id} Goto i: $ii blocked: $blocked ${player.tx},${player.ty} $px,$py');
 
-			if(blocked){
-				//trace('${player.name + player.p_id} Goto blocked! ${player.tx},${player.ty} $px,$py');
+			if (blocked) {
+				// trace('${player.name + player.p_id} Goto blocked! ${player.tx},${player.ty} $px,$py');
 				return false;
 			}
 		}
-		
+
 		// if blocked try if can move half way
 		/*if(blocked){
-			debugtext = ' half radius';
-			px = x - player.x;
-			py = y - player.y;
+				debugtext = ' half radius';
+				px = x - player.x;
+				py = y - player.y;
 
-			var tmpRad = Math.round(RAD / 2);
+				var tmpRad = Math.round(RAD / 2);
 
-			if (px > tmpRad - 1) px = tmpRad - 1;
-			if (py > tmpRad - 1) py = tmpRad - 1;
-			if (px < -tmpRad) px = -tmpRad;
-			if (py < -tmpRad) py = -tmpRad;
-			
-			//trace('Goto blocked try with halve radius ${player.tx},${player.ty} $px,$py');
-		}
+				if (px > tmpRad - 1) px = tmpRad - 1;
+				if (py > tmpRad - 1) py = tmpRad - 1;
+				if (px < -tmpRad) px = -tmpRad;
+				if (py < -tmpRad) py = -tmpRad;
+				
+				//trace('Goto blocked try with halve radius ${player.tx},${player.ty} $px,$py');
+			}
 
-		var blocked = false;
-		if (playerInterface.isBlocked(px + player.tx, py + player.ty)) blocked = true; //trace('GOTO blocked');
-		if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) blocked = true;//trace('GOTO not reachable');
+			var blocked = false;
+			if (playerInterface.isBlocked(px + player.tx, py + player.ty)) blocked = true; //trace('GOTO blocked');
+			if (ai != null && ai.isObjectNotReachable(px + player.tx, py + player.ty)) blocked = true;//trace('GOTO not reachable');
 
-		if(blocked)
-		{
-			//trace('Goto blocked!$debugtext ${player.tx},${player.ty} $px,$py');
-			return false;
+			if(blocked)
+			{
+				//trace('Goto blocked!$debugtext ${player.tx},${player.ty} $px,$py');
+				return false;
 		}*/
 
-		//if(debugtext.length > 0) trace('GOTO $debugtext not blocked');
-		
+		// if(debugtext.length > 0) trace('GOTO $debugtext not blocked');
+
 		// cords
 		var start = new Coordinate(RAD, RAD);
 
@@ -837,14 +832,13 @@ class AiHelper {
 		var distYIsBigger = quadDistX < quadDistY;
 
 		for (i in 0...5) {
-	
 			var ii = i;
-			if(tryMoveNearestTileFirst && i == 0) ii = 1;
-			if(tryMoveNearestTileFirst && i == 1) ii = 0;
+			if (tryMoveNearestTileFirst && i == 0) ii = 1;
+			if (tryMoveNearestTileFirst && i == 1) ii = 0;
 
 			// first try closest tile
-			if(distYIsBigger && ii == 1) ii = 2;
-			if(distYIsBigger && ii == 2) ii = 1;
+			if (distYIsBigger && ii == 1) ii = 2;
+			if (distYIsBigger && ii == 2) ii = 1;
 
 			switch (ii) {
 				case 1:
@@ -855,7 +849,7 @@ class AiHelper {
 					tweakY = py < 0 ? 1 : -1;
 				// even if more far away still try since other acceses might be blocked
 				case 3:
-					tweakX = px < 0 ? -1 : 1; 
+					tweakX = px < 0 ? -1 : 1;
 					tweakY = 0;
 					if (px + tweakX > RAD - 1) continue;
 					if (px + tweakX < -RAD) continue;
@@ -866,17 +860,17 @@ class AiHelper {
 					if (py + tweakY < -RAD) continue;
 			}
 
-			//trace('AAI: ${player.name + player.p_id} i: $i ii: $ii px: $px tweakX: $tweakX py: $py tweakY: $tweakY');
+			// trace('AAI: ${player.name + player.p_id} i: $i ii: $ii px: $px tweakX: $tweakX py: $py tweakY: $tweakY');
 
 			if (playerInterface.isBlocked(px + player.tx + tweakX, py + player.ty + tweakY)) continue;
 			if (ai != null && ai.isObjectNotReachable(px + player.tx + tweakX, py + player.ty + tweakY)) continue;
 
 			var end = new Coordinate(px + RAD + tweakX, py + RAD + tweakY);
 
-			//trace('${player.name + player.p_id} goto: end $end');
+			// trace('${player.name + player.p_id} goto: end $end');
 
-			//paths = path.createPath(start, end, MANHATTAN, true);
-			//PathfinderNew.TryDifferentPaths(start, end, map);
+			// paths = path.createPath(start, end, MANHATTAN, true);
+			// PathfinderNew.TryDifferentPaths(start, end, map);
 
 			var newPathfinder = new PathfinderNew(map);
 			paths = newPathfinder.CreatePath(start, end);
@@ -885,10 +879,10 @@ class AiHelper {
 		}
 
 		if (paths == null) {
-			//trace('${player.name + player.p_id} GOTO false ${player.tx},${player.ty} $px,$py');
+			// trace('${player.name + player.p_id} GOTO false ${player.tx},${player.ty} $px,$py');
 
 			// since path was cut it might try again if not added here
-			//if(ai != null) ai.addNotReachable(px + player.tx, py + player.ty);
+			// if(ai != null) ai.addNotReachable(px + player.tx, py + player.ty);
 
 			// if (onError != null) onError("can not generate path");
 			// trace('AAI: ${player.p_id} CAN NOT GENERATE PATH');
@@ -913,7 +907,7 @@ class AiHelper {
 		var globalPlayer = cast(player, GlobalPlayerInstance);
 		if (move) playerInterface.move(globalPlayer.moveHelper.guessX(), globalPlayer.moveHelper.guessY(), ai.seqNum++, data);
 
-		//trace('${player.name + player.p_id} GOTO done $px $py');
+		// trace('${player.name + player.p_id} GOTO done $px $py');
 
 		return true;
 	}
@@ -943,40 +937,37 @@ class AiHelper {
 			for (x in minX...maxX) {
 				int++;
 
-				vector[int] = vector[int] || playerInterface.isBlocked(x,y);
+				vector[int] = vector[int] || playerInterface.isBlocked(x, y);
 
-				if(considerAnimal == false) continue;
+				if (considerAnimal == false) continue;
 
-				var obj = world.getObjectHelper(x,y, true);
-				if(obj != null && obj.isAnimal() && obj.objectData.damage > 0)
-				{
-					//trace('Animal: ${obj.name}');	
+				var obj = world.getObjectHelper(x, y, true);
+				if (obj != null && obj.isAnimal() && obj.objectData.damage > 0) {
+					// trace('Animal: ${obj.name}');
 					var moves = obj.objectData.moves;
 					var minYY = y - moves;
 					var minXX = x - moves;
 					var maxYY = y + moves + 1;
 					var maxXX = x + moves + 1;
-					if(minYY < minY) minYY = minY;
-					if(minXX < minX) minXX = minX;
-					if(maxYY > maxY) maxYY = maxY;
-					if(maxXX > maxX) maxXX = maxX;
-					
-					for(yy in minYY...maxYY)
-					{
-						for(xx in minXX...maxXX)
-						{
+					if (minYY < minY) minYY = minY;
+					if (minXX < minX) minXX = minX;
+					if (maxYY > maxY) maxYY = maxY;
+					if (maxXX > maxX) maxXX = maxX;
+
+					for (yy in minYY...maxYY) {
+						for (xx in minXX...maxXX) {
 							var index = (xx - minX) + (yy - minY) * RAD * 2;
-							if(index < 0) trace('Animal: $index < ${vector.length} $x,$y => $xx,$yy');
-							if(index > vector.length -1) trace('Animal: $index < ${vector.length} $x,$y => $xx,$yy');
-							if(index < 0) index = 0;
-							if(index > vector.length -1) index = vector.length - 1;
+							if (index < 0) trace('Animal: $index < ${vector.length} $x,$y => $xx,$yy');
+							if (index > vector.length - 1) trace('Animal: $index < ${vector.length} $x,$y => $xx,$yy');
+							if (index < 0) index = 0;
+							if (index > vector.length - 1) index = vector.length - 1;
 							vector[index] = true;
 						}
 					}
 				}
 
-				//var obj = world.getObjectData(x, y);			
-				//vector[int] = obj.blocksWalking || world.isBiomeBlocking(x, y);
+				// var obj = world.getObjectData(x, y);
+				// vector[int] = obj.blocksWalking || world.isBiomeBlocking(x, y);
 				// if(obj.blocksWalking()) trace('${player.tx()} ${player.ty()} $x $y ${obj.description}');
 			}
 		}
@@ -1052,27 +1043,28 @@ class AiHelper {
 				// TODO this might exclude needed tasks
 				// Allow transition if new actor or target is closer to wanted object
 				/*var tmpActor = transitionsForObject[trans.actorID];
-				var actorSteps = tmpActor != null ? tmpActor.steps : 10000;
-				var tmpNewActor = transitionsForObject[trans.newActorID];
-				var newActorSteps = tmpNewActor != null ? tmpNewActor.steps : 10000;
+					var actorSteps = tmpActor != null ? tmpActor.steps : 10000;
+					var tmpNewActor = transitionsForObject[trans.newActorID];
+					var newActorSteps = tmpNewActor != null ? tmpNewActor.steps : 10000;
 
-				var tmpTarget = transitionsForObject[trans.targetID];
-				var targetSteps = tmpTarget != null ? tmpTarget.steps : 10000;
-				var tmpNewTarget = transitionsForObject[trans.newTargetID];
-				var newTargetSteps = tmpNewTarget != null ? tmpNewTarget.steps : 10000;
+					var tmpTarget = transitionsForObject[trans.targetID];
+					var targetSteps = tmpTarget != null ? tmpTarget.steps : 10000;
+					var tmpNewTarget = transitionsForObject[trans.newTargetID];
+					var newTargetSteps = tmpNewTarget != null ? tmpNewTarget.steps : 10000;
 
-				if (trans.newActorID == objectIdToSearch) newActorSteps = 0;
-				if (trans.newTargetID == objectIdToSearch) newTargetSteps = 0;
+					if (trans.newActorID == objectIdToSearch) newActorSteps = 0;
+					if (trans.newTargetID == objectIdToSearch) newTargetSteps = 0;
 
-				// AI get stuck with <3288> actorSteps: 2 newActorSteps: 10000 targetSteps: 10000 newTargetSteps: 3 <67> + <96> = <0> + <3288>
-				// if(actorSteps <= newActorSteps && targetSteps <= newTargetSteps) continue; // nothing is won
-				if (actorSteps + targetSteps <= newActorSteps + newTargetSteps) continue; // nothing is won
-				
+					// AI get stuck with <3288> actorSteps: 2 newActorSteps: 10000 targetSteps: 10000 newTargetSteps: 3 <67> + <96> = <0> + <3288>
+					// if(actorSteps <= newActorSteps && targetSteps <= newTargetSteps) continue; // nothing is won
+					if (actorSteps + targetSteps <= newActorSteps + newTargetSteps) continue; // nothing is won
 
-				if (ShouldDebug(trans))
-					trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps '
-					+ trans.getDesciption(true));
-				*/
+
+					if (ShouldDebug(trans))
+						trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps '
+						+ trans.getDesciption(true));
+				 */
+
 				// trace('TEST4 AI craft steps: $stepsCount WANTED: <${wantedObjId}> actorSteps: $actorSteps newActorSteps: $newActorSteps targetSteps: $targetSteps newTargetSteps: $newTargetSteps ' + trans.getDesciption(true));
 
 				if (trans.actorID > 0 && transitionsByObject.exists(trans.actorID) == false) {
@@ -1162,7 +1154,7 @@ class AiHelper {
 		// transitionForObject.transitions.push(transition);
 	}
 
-	public static function DisplayCloseDeadlyAnimals(player:PlayerInterface, searchDistance:Int = 6){
+	public static function DisplayCloseDeadlyAnimals(player:PlayerInterface, searchDistance:Int = 6) {
 		GetCloseDeadlyAnimal(player, searchDistance, true);
 	}
 
@@ -1180,22 +1172,23 @@ class AiHelper {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
 				var obj = world.getObjectHelper(tx, ty, true);
 
-				if(player.isAnimalNotDeadlyForMe(obj)) continue;
+				if (player.isAnimalNotDeadlyForMe(obj)) continue;
 				/*if (obj == null) continue;
-				if (obj.objectData.deadlyDistance == 0) continue;
-				if (obj.objectData.damage == 0) continue;
-				if (obj.isAnimal() == false) continue;
-				*/
-				
+					if (obj.objectData.deadlyDistance == 0) continue;
+					if (obj.objectData.damage == 0) continue;
+					if (obj.isAnimal() == false) continue;
+				 */
+
 				var dist = AiHelper.CalculateQuadDistanceToObject(player, obj);
 
-				if(display) if (dist > 16) cast(player, GlobalPlayerInstance).connection.send(ClientTag.LOCATION_SAYS, ['${obj.tx - player.gx} ${obj.ty - player.gy} !']);
+				if (display) if (dist > 16) cast(player, GlobalPlayerInstance).connection.send(ClientTag.LOCATION_SAYS,
+					['${obj.tx - player.gx} ${obj.ty - player.gy} !']);
 
 				if (dist > bestDist) continue;
 				// var moveQuadDist = Math.pow(obj.objectData.moves + 1, 2);
 				// trace('GetCloseDeadlyAnimal: $dist <= $bestDist moveQuadDist: $moveQuadDist ${obj.name}');
-				//if (dist > Math.pow(obj.objectData.moves + 1, 2)) continue;			
-                if (dist > Math.pow(obj.objectData.moves, 2)) continue;
+				// if (dist > Math.pow(obj.objectData.moves + 1, 2)) continue;
+				if (dist > Math.pow(obj.objectData.moves, 2)) continue;
 
 				bestDist = dist;
 				bestObj = obj;
@@ -1257,7 +1250,7 @@ class AiHelper {
 		var bestQuadHungry:Float = 0;
 		var minQuadHungry = 0.01;
 		var isFertile = player.isFertile();
-		var myPlayerIsNobleOrMore = cast(globalplayer.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int); 
+		var myPlayerIsNobleOrMore = cast(globalplayer.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int);
 		var ai = player.getAi();
 		var isSmith = ai == null ? false : ai.profession['Smith'] > 0;
 
@@ -1268,12 +1261,12 @@ class AiHelper {
 
 			var targetAi = p.getAi();
 			var isTargetSmith = targetAi == null ? false : targetAi.profession['Smith'] > 0;
-			var isNobleOrMore = cast(p.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int); 
+			var isNobleOrMore = cast(p.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int);
 
 			// && isNobleOrMore == false
 			// dont feed Ai that can eat except it is a smith
 			if (p.isAi() && p.age > ServerSettings.MinAgeToEat && p.isWounded() == false && p.hasYellowFever() == false && isTargetSmith == false) continue;
-			
+
 			var classFood = isNobleOrMore ? p.lineage.prestigeClass * 4 : p.lineage.prestigeClass * 2;
 			var considerHungry = Math.min(classFood, p.food_store_max * 0.6);
 			var hungry = considerHungry - p.food_store;
@@ -1283,10 +1276,10 @@ class AiHelper {
 			if (p.isCloseRelative(globalplayer) == false
 				|| player.getFollowPlayer() == p) hungry = hungry / 2 - 0.25; // prefer close relative
 			if (isAlly == false) hungry = hungry / 2 - 0.2; // prefer ally
-			if(isSmith) hungry = hungry / 2 - 0.2; // dont be distracted from smithing
-			//if(isTargetSmith) hungry = hungry * 2 + 0.5; // feed smith
-			//if (p.isAi() && isNobleOrMore == false) hungry / 2 - 0.2; // prefer Ai only if noble
-			//if (myPlayerIsNobleOrMore && p.isAi()) hungry / 2 - 0.2; // if myPlayer is noble feed less AI
+			if (isSmith) hungry = hungry / 2 - 0.2; // dont be distracted from smithing
+			// if(isTargetSmith) hungry = hungry * 2 + 0.5; // feed smith
+			// if (p.isAi() && isNobleOrMore == false) hungry / 2 - 0.2; // prefer Ai only if noble
+			// if (myPlayerIsNobleOrMore && p.isAi()) hungry / 2 - 0.2; // if myPlayer is noble feed less AI
 			if (hungry < 0) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p) + 1;
@@ -1382,29 +1375,29 @@ class AiHelper {
 		return worstPlayer;
 	}
 
-	public static function SearchNewHome(player:PlayerInterface) : ObjectHelper {
+	public static function SearchNewHome(player:PlayerInterface):ObjectHelper {
 		var world = WorldMap.world;
 		var bestHome = null;
-		var bestDistance = Math.pow(80,2);
+		var bestDistance = Math.pow(80, 2);
 		var ovens = [for (obj in WorldMap.world.ovens) obj];
 
-		for(possibleHome in ovens){
-			if(ObjectData.IsOven(possibleHome.id) == false) continue;
-			
+		for (possibleHome in ovens) {
+			if (ObjectData.IsOven(possibleHome.id) == false) continue;
+
 			var originalBiomeId = world.getOriginalBiomeId(possibleHome.tx, possibleHome.ty);
 			// TODO check loved biome
 			// For ginger rock biome should be ok
-			if(originalBiomeId == BiomeTag.SWAMP) continue;
+			if (originalBiomeId == BiomeTag.SWAMP) continue;
 
 			var quadDistance = AiHelper.CalculateQuadDistanceToObject(player, possibleHome);
-			if(quadDistance >= bestDistance) continue;
+			if (quadDistance >= bestDistance) continue;
 
 			bestDistance = quadDistance;
 			bestHome = possibleHome;
 		}
 
-		if(bestHome != null){
-			//myPlayer.home = bestHome;
+		if (bestHome != null) {
+			// myPlayer.home = bestHome;
 			trace('AAI: ${player.name + player.id} searchNewHome dist: $bestDistance ${bestHome != null}');
 		}
 
@@ -1412,19 +1405,18 @@ class AiHelper {
 	}
 
 	/*
-	public static function GetCloseFire(player:PlayerInterface) : ObjectHelper {
-		var firePlace= AiHelper.GetClosestObjectById(player, 346, null, 30); // 346 Large Slow Fire
-		if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(player, 83, null, 30); // 83 Large Fast Fire 
-		if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(player, 82, null, 30); // 82 Fire
-		if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(player, 85, null, 30); // 85 Hot Coals
-		return firePlace;
+		public static function GetCloseFire(player:PlayerInterface) : ObjectHelper {
+			var firePlace= AiHelper.GetClosestObjectById(player, 346, null, 30); // 346 Large Slow Fire
+			if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(player, 83, null, 30); // 83 Large Fast Fire 
+			if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(player, 82, null, 30); // 82 Fire
+			if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(player, 85, null, 30); // 85 Hot Coals
+			return firePlace;
 	}*/
-
-	public static function GetCloseFire(player:PlayerInterface, maxdist = 15) : ObjectHelper {
-		var firePlace= AiHelper.GetClosestObjectToHome(player, 346, maxdist); // 346 Large Slow Fire
-		if(firePlace == null) firePlace = AiHelper.GetClosestObjectToHome(player, 83, maxdist); // 83 Large Fast Fire 
-		if(firePlace == null) firePlace = AiHelper.GetClosestObjectToHome(player, 82, maxdist); // 82 Fire
-		if(firePlace == null) firePlace = AiHelper.GetClosestObjectToHome(player, 85, maxdist); // 85 Hot Coals
+	public static function GetCloseFire(player:PlayerInterface, maxdist = 15):ObjectHelper {
+		var firePlace = AiHelper.GetClosestObjectToHome(player, 346, maxdist); // 346 Large Slow Fire
+		if (firePlace == null) firePlace = AiHelper.GetClosestObjectToHome(player, 83, maxdist); // 83 Large Fast Fire
+		if (firePlace == null) firePlace = AiHelper.GetClosestObjectToHome(player, 82, maxdist); // 82 Fire
+		if (firePlace == null) firePlace = AiHelper.GetClosestObjectToHome(player, 85, maxdist); // 85 Hot Coals
 		return firePlace;
 	}
 

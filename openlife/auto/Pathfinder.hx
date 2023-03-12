@@ -66,7 +66,7 @@ class Pathfinder {
 	 * @param	p_timeOutDuration	The maximum time spent to find a path
 	 */
 	public function configure(p_map:MapHeader, p_timeOutDuration:Int = -1) {
-		if(p_timeOutDuration <= 0) p_timeOutDuration = ServerSettings.GotoTimeOut;
+		if (p_timeOutDuration <= 0) p_timeOutDuration = ServerSettings.GotoTimeOut;
 		_map = p_map;
 		_timeOutDuration = p_timeOutDuration;
 		_nodes = new Array<Array<Node>>();

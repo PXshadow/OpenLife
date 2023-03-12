@@ -20,4 +20,3 @@ using StringTools;
 using openlife.auto.AiHelper;
 
 class Ai extends AiBase {}
-	
