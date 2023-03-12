@@ -6,7 +6,7 @@ import openlife.auto.AiPx;
 import openlife.auto.AiPx;
 import openlife.settings.ServerSettings;
 
-class ServerAi{
+class ServerAi {
 	public static var AiIdIndex = 1;
 
 	public var player:GlobalPlayerInstance;
@@ -16,8 +16,7 @@ class ServerAi{
 	public var timeToRebirth:Float = 0;
 
 	public function new(newPlayer:GlobalPlayerInstance) {
-		
-		ai = ServerSettings.NumberOfAiPx >= AiIdIndex ? new AiPx(newPlayer) : new Ai(newPlayer) ;
+		ai = ServerSettings.NumberOfAiPx >= AiIdIndex ? new AiPx(newPlayer) : new Ai(newPlayer);
 		this.number = AiIdIndex++;
 		this.player = newPlayer;
 		this.connection = player.connection;
@@ -49,15 +48,14 @@ class ServerAi{
 			Connection.removeAi(this);
 			return;
 		}
-		if(this.number > ServerSettings.NumberOfAis)
-		{
+		if (this.number > ServerSettings.NumberOfAis) {
 			trace('remove ai because to many ai: ${this.number}');
 			Connection.removeAi(this);
 			return;
 		}
-		
-		if (timeToRebirth == 0){
-			var agefactor = Math.max(1,  60 - player.age);
+
+		if (timeToRebirth == 0) {
+			var agefactor = Math.max(1, 60 - player.age);
 			var waitingTime = agefactor * ServerSettings.TimeToAiRebirthPerYear;
 			timeToRebirth = 10 + 2 * waitingTime * WorldMap.calculateRandomFloat();
 		}
@@ -73,7 +71,7 @@ class ServerAi{
 		this.ai.newBorn();
 	}
 
-	public function doTimeStuff(timePassedInSeconds:Float){
+	public function doTimeStuff(timePassedInSeconds:Float) {
 		ai.doTimeStuff(timePassedInSeconds);
 	}
 }

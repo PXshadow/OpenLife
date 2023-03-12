@@ -170,16 +170,16 @@ class PlayerAccount {
 		return null;
 	}
 
-	public function hasCloseBlockingGrave(tx:Int, ty:Int, distance:Float = -1) : Bool {
+	public function hasCloseBlockingGrave(tx:Int, ty:Int, distance:Float = -1):Bool {
 		return calculateCloseBlockingGraveFitness(tx, ty, distance) > 1;
 	}
 
 	/**+1 for each grave in a distance of 100 / up to +10 if closer**/
-	public function calculateCloseBlockingGraveFitness(tx:Int, ty:Int, distance:Float = -1) : Float {
+	public function calculateCloseBlockingGraveFitness(tx:Int, ty:Int, distance:Float = -1):Float {
 		var playerAccount:PlayerAccount = this;
 		var fitness = 0.0;
 
-		if(distance < 0) distance = ServerSettings.GraveBlockingDistance;
+		if (distance < 0) distance = ServerSettings.GraveBlockingDistance;
 
 		playerAccount.removeDeletedGraves();
 

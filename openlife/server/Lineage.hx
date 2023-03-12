@@ -25,7 +25,7 @@ class Lineage {
 	private static var PrestigeClasses = ['Not Set', 'Serf', 'Commoner', 'Noble', 'Noble', 'Noble', 'King', 'Emperor'];
 
 	// sperate in new and old to save faster (use DB???)
-	private static var NewLineages = new Map<Int,Lineage>(); 
+	private static var NewLineages = new Map<Int, Lineage>();
 	private static var AllLineages = new Map<Int, Lineage>();
 
 	public static function AddLineage(lineageId:Int, lineage:Lineage) {
@@ -65,7 +65,7 @@ class Lineage {
 
 	public var prestigeClass:PrestigeClass = PrestigeClass.Commoner;
 
-	public static function WriteNewLineages(path:String){ 
+	public static function WriteNewLineages(path:String) {
 		WriteLineages(path, NewLineages);
 	}
 
@@ -114,27 +114,27 @@ class Lineage {
 		if (ServerSettings.DebugWrite) trace('wrote $count Lineages...');
 	}
 
-	public static function ReadAndSaveAllLineages(pathAll:String, pathNew:String)
-	{
-		if(FileSystem.exists(pathAll)){
+	public static function ReadAndSaveAllLineages(pathAll:String, pathNew:String) {
+		if (FileSystem.exists(pathAll)) {
 			trace('Lineage: exists: $pathAll');
 			var pathBackup = pathAll + '.bak';
 
-			try{
+			try {
 				AllLineages = ReadLineages(pathAll);
-			} catch(ex){
+			} catch (ex) {
 				trace('Lineage: restore backup $pathBackup');
 				// restore backup
 				File.copy(pathBackup, pathAll);
 				AllLineages = ReadLineages(pathAll);
 			}
 			File.copy(pathAll, pathBackup);
-		}
-		else AllLineages = [];
-		
+		} else
+			AllLineages = [];
+
 		var newLineages = ReadLineages(pathNew);
 
-		for(lineage in newLineages) AllLineages[lineage.myId] = lineage;
+		for (lineage in newLineages)
+			AllLineages[lineage.myId] = lineage;
 
 		WriteAllLineages(pathAll);
 	}
@@ -201,7 +201,7 @@ class Lineage {
 
 	public static function WriteLineageStatistics() {
 		var countOld = 0;
-		var countNew = 0; 
+		var countNew = 0;
 		var reasonKilled = new Map<String, Int>();
 		var ages = new Map<Int, Int>();
 		var generations = new Map<Int, Int>();
@@ -210,27 +210,28 @@ class Lineage {
 		var path = dir + 'PlayerLineages.txt';
 		var writer = File.write(path, false);
 
-		for(lineage in AllLineages){
+		for (lineage in AllLineages) {
 			var yearsSinceBirth = TimeHelper.CalculateTimeSinceTicksInYears(lineage.birthTime);
 			var yearsSinceDeath = TimeHelper.CalculateTimeSinceTicksInYears(lineage.deathTime);
-			var age =  Math.round(yearsSinceBirth - yearsSinceDeath);
+			var age = Math.round(yearsSinceBirth - yearsSinceDeath);
 			var deathReason = lineage.deathReason;
 			var killedBy = deathReason;
 
-			if(deathReason.startsWith('reason_killed_')){
+			if (deathReason.startsWith('reason_killed_')) {
 				var idString = deathReason.replace('reason_killed_', '');
 				var id = Std.parseInt(idString);
 				var objData = ObjectData.getObjectData(id);
 				killedBy = objData.name;
 			}
 
-			if(yearsSinceBirth > 2880) countOld++; // 2880 = 48h
-			else countNew++;
+			if (yearsSinceBirth > 2880) countOld++; // 2880 = 48h
+			else
+				countNew++;
 
 			var mother = lineage.getMotherLineage();
 			var generation = 0;
 
-			for(i in 0...1000){
+			for (i in 0...1000) {
 				if (mother == null) break;
 				generation++;
 				mother = mother.getMotherLineage();
@@ -241,9 +242,9 @@ class Lineage {
 			generations[generation] += 1;
 
 			writer.writeString('${lineage.getFullName()} gen: ${generation} age: ${age} ${killedBy}\n');
-			
-			//if(lineage.familyName.startsWith('SNOW') == false) trace('Lineage: ${lineage.getFullName()} age: ${age} ${lineage.deathReason}');
-			//if(lineage.motherId < 1) trace('Lineage: ${lineage.myEveId} --> ${lineage.getFullName()} age: ${age} ${lineage.deathReason}');
+
+			// if(lineage.familyName.startsWith('SNOW') == false) trace('Lineage: ${lineage.getFullName()} age: ${age} ${lineage.deathReason}');
+			// if(lineage.motherId < 1) trace('Lineage: ${lineage.myEveId} --> ${lineage.getFullName()} age: ${age} ${lineage.deathReason}');
 		}
 
 		writer.close();
@@ -251,9 +252,9 @@ class Lineage {
 		var path = dir + 'PlayerDeathReasons.txt';
 		var writer = File.write(path, false);
 
-		for(reason in reasonKilled.keys()){
+		for (reason in reasonKilled.keys()) {
 			writer.writeString('$reason ${reasonKilled[reason]}\n');
-			//trace('Lineage: $reason ${reasonKilled[reason]}');
+			// trace('Lineage: $reason ${reasonKilled[reason]}');
 		}
 
 		writer.close();
@@ -268,9 +269,9 @@ class Lineage {
 		var path = dir + 'PlayerAges.txt';
 		var writer = File.write(path, false);
 
-		for(age in ageList){
+		for (age in ageList) {
 			writer.writeString('age: $age --> ${ages[age]}\n');
-			//trace('Lineage: age: $age --> ${ages[age]}');
+			// trace('Lineage: age: $age --> ${ages[age]}');
 		}
 
 		writer.close();
@@ -285,9 +286,9 @@ class Lineage {
 		var path = dir + 'PlayerGenerations.txt';
 		var writer = File.write(path, false);
 
-		for(generation in generationsList){
+		for (generation in generationsList) {
 			writer.writeString('generation: $generation --> ${generations[generation]}\n');
-			//trace('Lineage: generation: $generation --> ${generations[generation]}');
+			// trace('Lineage: generation: $generation --> ${generations[generation]}');
 		}
 
 		writer.close();
@@ -315,7 +316,7 @@ class Lineage {
 	public function getFullName(withUnderscore:Bool = false, ignoreFirstName = false) {
 		var isAiText = account.isAi ? ServerSettings.AiNameEnding : '';
 		var fullName = ignoreFirstName ? '${this.familyName}$isAiText ${this.className}' : '${this.name} ${this.familyName}$isAiText ${this.className}';
-		//var fullName = ignoreFirstName ? '${this.name} ${this.familyName} ${this.className}' : '${this.name} ${this.familyName} ${this.className}';
+		// var fullName = ignoreFirstName ? '${this.name} ${this.familyName} ${this.className}' : '${this.name} ${this.familyName} ${this.className}';
 
 		if (withUnderscore) return StringTools.replace(fullName, ' ', '_');
 
@@ -416,7 +417,7 @@ class Lineage {
 			lineageString += ' eve_id=$myEveId'; // TODO test
 		}
 
-		//trace('Lineage: ${lineageString}');
+		// trace('Lineage: ${lineageString}');
 
 		return lineageString;
 	}

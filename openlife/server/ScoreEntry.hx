@@ -119,7 +119,7 @@ class ScoreEntry {
 		}
 
 		var tmpScore = Math.round(scoreEntry.score);
-		var message = scoreEntry.score > 0 ? 'You gained ${tmpScore} prestige from your offsprings ${scoreEntry.text} life' : 'You lost ${-tmpScore} prestige from ${scoreEntry.text}';
+		var message = scoreEntry.score > 0 ? 'You gained ${tmpScore} prestige from your offsprings ${scoreEntry.text} life' : 'You lost ${- tmpScore} prestige from ${scoreEntry.text}';
 
 		player.addPrestige(scoreEntry.score);
 

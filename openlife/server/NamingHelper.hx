@@ -35,7 +35,7 @@ class NamingHelper {
 		last_name may be ommitted.
 	 */
 	public static function DoNaming(p:GlobalPlayerInstance, text:String):String {
-		//trace('TEST Naming1: $text');
+		// trace('TEST Naming1: $text');
 
 		var doFamilyName = text.startsWith('I AM');
 
@@ -45,7 +45,7 @@ class NamingHelper {
 
 		if (targetPlayer == null) targetPlayer = p.getClosestPlayer(5); // 5
 
-		//trace('TEST Naming2: $text');
+		// trace('TEST Naming2: $text');
 
 		if (targetPlayer == null) return text;
 
@@ -71,7 +71,7 @@ class NamingHelper {
 
 		var name = doFamilyName ? nameFromText : GetNameFromList(nameFromText, targetPlayer.isFemale());
 
-		//trace('TEST Naming: $nameFromText ==> $name');
+		// trace('TEST Naming: $nameFromText ==> $name');
 
 		if (name == null) return text;
 
@@ -86,7 +86,7 @@ class NamingHelper {
 					return text;
 				}
 			}
-		
+
 			targetPlayer.lineage.setFamilyName(name); // check if used
 		} else {
 			// check if name is used
@@ -112,10 +112,10 @@ class NamingHelper {
 			}*/
 
 			targetPlayer.name = name;
-			if(targetPlayer.age > 3) targetPlayer.say('${name} ${targetPlayer.familyName}');
+			if (targetPlayer.age > 3) targetPlayer.say('${name} ${targetPlayer.familyName}');
 		}
 
-		//trace('TEST Naming: ${targetPlayer.p_id} ${targetPlayer.name} ${targetPlayer.familyName}');
+		// trace('TEST Naming: ${targetPlayer.p_id} ${targetPlayer.name} ${targetPlayer.familyName}');
 
 		if (doFamilyName) {
 			// all family member names changed

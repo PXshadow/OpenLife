@@ -25,6 +25,7 @@ class Connection {
 
 	public var sock:Socket;
 	public var sendFrame = false;
+
 	var server:Server;
 	var tag:ServerTag;
 
@@ -73,7 +74,7 @@ class Connection {
 
 		if (this.player.trueAge < 5)
 			this.sendGlobalMessage('YOUR PRESTIGE FROM LAST LIFE IS ${Math.ceil(this.player.yum_multiplier * ServerSettings.DisplayScoreFactor)}');
-			
+
 		this.sendGlobalMessage('EATING YUMMY FOOD AND HAVING MANY KIDS WILL INCREASE YOUR PRESTIGE!');
 
 		GlobalPlayerInstance.ReleaseMutex();
@@ -90,7 +91,7 @@ class Connection {
 			// deactivate AI
 			ais.remove(lastConnection.serverAi);
 			lastConnection.serverAi = null;
-			
+
 			var tx = lastLivingPlayer.tx;
 			var ty = lastLivingPlayer.ty;
 
@@ -103,8 +104,9 @@ class Connection {
 			lastLivingPlayer.moveHelper.exactTy = ty;
 
 			// TODO test
-			if(lastLivingPlayer.heldPlayer != null) lastLivingPlayer.dropPlayer(lastLivingPlayer.x,lastLivingPlayer.y);
-			if(lastLivingPlayer.heldByPlayer != null) lastLivingPlayer.heldByPlayer.dropPlayer(lastLivingPlayer.heldByPlayer.x,lastLivingPlayer.heldByPlayer.y);
+			if (lastLivingPlayer.heldPlayer != null) lastLivingPlayer.dropPlayer(lastLivingPlayer.x, lastLivingPlayer.y);
+			if (lastLivingPlayer.heldByPlayer != null) lastLivingPlayer.heldByPlayer.dropPlayer(lastLivingPlayer.heldByPlayer.x,
+				lastLivingPlayer.heldByPlayer.y);
 
 			Macro.exception(initConnection(lastLivingPlayer, this.playerAccount));
 
@@ -161,8 +163,8 @@ class Connection {
 		badbiomes += '${BiomeTag.SNOWINGREY} MOUNTAIN\n';
 		badbiomes += '${BiomeTag.RIVER} RIVER\n';
 		badbiomes += '${BiomeTag.OCEAN} OCEAN\n';
-		//badbiomes += '${BiomeTag.SWAMP} SWAMP\n';
-		
+		// badbiomes += '${BiomeTag.SWAMP} SWAMP\n';
+
 		send(BAD_BIOMES, [badbiomes]);
 	}
 
@@ -179,7 +181,7 @@ class Connection {
 	}
 
 	public static function removeAi(ai:ServerAi) {
-		//ais.remove(ai);
+		// ais.remove(ai);
 
 		// copies the array to be thread save
 		// other threads should meanwhile be able to iterate on the array
@@ -234,12 +236,12 @@ class Connection {
 
 			for (c in connections) {
 				// since player has relative coordinates, transform them for player
-				//var targetX = player.tx - c.player.gx;
-				//var targetY = player.ty - c.player.gy;
+				// var targetX = player.tx - c.player.gx;
+				// var targetY = player.ty - c.player.gy;
 				var player = c.player;
 				var targetX = WorldMap.world.transformX(player, playerToSend.tx);
 				var targetY = WorldMap.world.transformY(player, playerToSend.ty);
-				//var topLeader = player.getTopLeader();
+				// var topLeader = player.getTopLeader();
 
 				// update only close players except if player is deleted (death)
 				if (playerToSend.deleted == false
@@ -286,8 +288,8 @@ class Connection {
 		if (playerToSend.isHeld()) return;
 
 		// since player has relative coordinates, transform them for player
-		//var targetX = playerToSend.tx - player.gx;
-		//var targetY = playerToSend.ty - player.gy;
+		// var targetX = playerToSend.tx - player.gx;
+		// var targetY = playerToSend.ty - player.gy;
 		var player = this.player;
 		var targetX = WorldMap.world.transformX(player, playerToSend.tx);
 		var targetY = WorldMap.world.transformY(player, playerToSend.ty);
@@ -312,13 +314,15 @@ class Connection {
 			player.connection.send(PLAYER_UPDATE, [playerToSend.toRelativeData(player)], isPlayerAction);
 		}
 
-		player.connection.send(ClientTag.NAME, ['${playerToSend.p_id} ${playerToSend.name} ${playerToSend.lineage.getFullName(true, true)}']);
+		player.connection.send(ClientTag.NAME, [
+			'${playerToSend.p_id} ${playerToSend.name} ${playerToSend.lineage.getFullName(true, true)}'
+		]);
 	}
 
 	public function sendNameToAll() {
 		var player = this.player;
 
-		//trace('TEST Naming sendNameToAll ${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}');
+		// trace('TEST Naming sendNameToAll ${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}');
 
 		for (c in Connection.getConnections()) {
 			c.send(ClientTag.NAME, ['${player.p_id} ${player.name} ${player.lineage.getFullName(true, true)}']);
@@ -363,7 +367,7 @@ class Connection {
 		var leaderId = player.followPlayer == null ? -1 : player.followPlayer.p_id;
 		var leaderBadgeColor = leader == null ? player.leaderBadgeColor : leader.leaderBadgeColor;
 
-		//trace('sendFollowing ${player.id} --> $leaderId color: $leaderBadgeColor');
+		// trace('sendFollowing ${player.id} --> $leaderId color: $leaderBadgeColor');
 		send(FOLLOWING, ['${player.p_id} $leaderId $leaderBadgeColor']);
 	}
 
@@ -455,8 +459,8 @@ class Connection {
 		try {
 			for (c in connections) {
 				// since player has relative coordinates, transform them for player
-				//var targetX = tx - c.player.gx;
-				//var targetY = ty - c.player.gy;
+				// var targetX = tx - c.player.gx;
+				// var targetY = ty - c.player.gy;
 				var p = c.player;
 				var targetX = WorldMap.world.transformX(p, tx);
 				var targetY = WorldMap.world.transformY(p, ty);
@@ -477,8 +481,8 @@ class Connection {
 
 			for (c in ais) {
 				// since player has relative coordinates, transform them for player
-				//var targetX = tx - c.player.gx;
-				//var targetY = ty - c.player.gy;
+				// var targetX = tx - c.player.gx;
+				// var targetY = ty - c.player.gy;
 				var p = c.player;
 				var targetX = WorldMap.world.transformX(p, tx);
 				var targetY = WorldMap.world.transformY(p, ty);
@@ -492,7 +496,7 @@ class Connection {
 			trace(ex);
 	}
 
-	//public static function SendMapUpdateToAllClosePlayers(tx:Int, ty:Int, obj:Array<Int>) {
+	// public static function SendMapUpdateToAllClosePlayers(tx:Int, ty:Int, obj:Array<Int>) {
 	public static function SendMapUpdateToAllClosePlayers(tx:Int, ty:Int) {
 		try {
 			var floorId = Server.server.map.getFloorId(tx, ty);
@@ -517,7 +521,7 @@ class Connection {
 		} catch (ex)
 			trace(ex);
 	}
-	
+
 	@:nullSafety(Loose)
 	public static function SendAnimalMoveUpdateToAllClosePlayers(fromTx:Int, fromTy:Int, toTx:Int, toTy:Int, fromObj:Array<Int>, toObj:Array<Int>,
 			speed:Float) {
@@ -529,12 +533,12 @@ class Connection {
 			for (c in connections) {
 				var player = c.player;
 
-				// since player has relative coordinates, transform them for player				
+				// since player has relative coordinates, transform them for player
 				var fromX = world.transformX(player, fromTx);
 				var fromY = world.transformY(player, fromTy);
 				var toX = world.transformX(player, toTx);
 				var toY = world.transformY(player, toTy);
-				//trace('fromX: $fromXTmp ==> $fromX fromY: $fromYTmp ==> $fromY');
+				// trace('fromX: $fromXTmp ==> $fromX fromY: $fromYTmp ==> $fromY');
 
 				// update only close players
 				if (player.isClose(toX, toY, ServerSettings.MaxDistanceToBeConsideredAsCloseForMapChanges) == false
@@ -584,8 +588,8 @@ class Connection {
 		try {
 			for (c in connections) {
 				// since player has relative coordinates, transform them for player
-				//var targetX = player.tx - c.player.gx;
-				//var targetY = player.ty - c.player.gy;
+				// var targetX = player.tx - c.player.gx;
+				// var targetY = player.ty - c.player.gy;
 				var p = c.player;
 				var targetX = WorldMap.world.transformX(p, player.tx);
 				var targetY = WorldMap.world.transformY(p, player.ty);
@@ -604,8 +608,8 @@ class Connection {
 
 			for (c in ais) {
 				// since player has relative coordinates, transform them for player
-				//var targetX = player.tx - c.player.gx;
-				//var targetY = player.ty - c.player.gy;
+				// var targetX = player.tx - c.player.gx;
+				// var targetY = player.ty - c.player.gy;
 				var p = c.player;
 				var targetX = WorldMap.world.transformX(p, player.tx);
 				var targetY = WorldMap.world.transformY(p, player.ty);
@@ -677,11 +681,11 @@ class Connection {
 	// DIE x y#
 	public function die() {
 		trace('PLAYER DIE');
-		if(player.age > ServerSettings.MaxAgeForAllowingDie){
+		if (player.age > ServerSettings.MaxAgeForAllowingDie) {
 			player.say('Im too old to die', true);
 			return;
 		}
-		if(player.account.score <  ServerSettings.PrestigeCostForDie){
+		if (player.account.score < ServerSettings.PrestigeCostForDie) {
 			player.say('I have too less prestige', true);
 			return;
 		}
@@ -689,13 +693,13 @@ class Connection {
 		player.account.score -= ServerSettings.PrestigeCostForDie;
 
 		// TODO dont lower score if /DIE is used
-		//player.hits += 100;
+		// player.hits += 100;
 		player.food_store -= 100;
-		
-		//player.doDeath('reason_killed_${player.woundedBy}');
-		//player.doDeath('reason_age');
-		
-		//this.close();
+
+		// player.doDeath('reason_killed_${player.woundedBy}');
+		// player.doDeath('reason_age');
+
+		// this.close();
 	}
 
 	/**
@@ -742,16 +746,16 @@ class Connection {
 		}
 	}
 
-	public function sendMapChunkIfNeeded(){
-		if(ServerSettings.MaxTimeBetweenMapChunks > TimeHelper.CalculateTimeSinceTicksInSec(timeLastMapChunkSend)) return;
-		//trace('sendMapChunkIfNeeded true');
-		//player.say('map', true);
+	public function sendMapChunkIfNeeded() {
+		if (ServerSettings.MaxTimeBetweenMapChunks > TimeHelper.CalculateTimeSinceTicksInSec(timeLastMapChunkSend)) return;
+		// trace('sendMapChunkIfNeeded true');
+		// player.say('map', true);
 		sendMapChunk(player.x, player.y);
 	}
 
 	public function sendMapChunk(x:Int, y:Int, width:Int = 32, height:Int = 30) {
 		if (sock == null) return;
-		if(ServerSettings.DebugSend) trace('sendMapChunk');
+		if (ServerSettings.DebugSend) trace('sendMapChunk');
 
 		this.timeLastMapChunkSend = TimeHelper.tick;
 		// this.mutex.acquire();
@@ -776,30 +780,30 @@ class Connection {
 	}
 
 	/*
-		MX
-		x y new_floor_id new_id p_id
-		#
+			MX
+			x y new_floor_id new_id p_id
+			#
 
-		Or 
+			Or 
 
-		MX
-		x y new_floor_id new_id p_id old_x old_y speed
-		#
-	
-		Grid position of changes, and new floor id and object id that position must 
-		change to.
-		p_id is the player that was responsible for the change (in the case of an 
-		object drop only), or -1 if change was not player triggered.  p_id < -1 means
-		that the change was triggered by player -(p_id), but that the object
-		wasn't dropped (transform triggered by a player action).
+			MX
+			x y new_floor_id new_id p_id old_x old_y speed
+			#
 
-		Note that if cell contains other stuff (for a container object), new_id
-		is in the CONTAINER OBJECT FORMAT described above.
+			Grid position of changes, and new floor id and object id that position must 
+			change to.
+			p_id is the player that was responsible for the change (in the case of an 
+			object drop only), or -1 if change was not player triggered.  p_id < -1 means
+			that the change was triggered by player -(p_id), but that the object
+			wasn't dropped (transform triggered by a player action).
+
+			Note that if cell contains other stuff (for a container object), new_id
+			is in the CONTAINER OBJECT FORMAT described above.
 
 
-		Optionally, a line can contain old_x, old_y, and speed.
-		This indicates that the object came from the old coordinates and is moving
-		with a given speed.
+			Optionally, a line can contain old_x, old_y, and speed.
+			This indicates that the object came from the old coordinates and is moving
+			with a given speed.
 	 */
 	public function sendMapUpdate(x:Int, y:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, isPlayerAction:Bool = true) {
 		if (serverAi != null) return;
@@ -842,8 +846,8 @@ class Connection {
 		try {
 			for (c in ais) {
 				// since player has relative coordinates, transform them for player
-				//var targetX = fromPlayer.tx - c.player.gx;
-				//var targetY = fromPlayer.ty - c.player.gy;
+				// var targetX = fromPlayer.tx - c.player.gx;
+				// var targetY = fromPlayer.ty - c.player.gy;
 				var p = c.player;
 				var targetX = WorldMap.world.transformX(p, fromPlayer.tx);
 				var targetY = WorldMap.world.transformY(p, fromPlayer.ty);
@@ -859,8 +863,8 @@ class Connection {
 
 	private static function DoHumanPlayerEmote(fromPlayer:GlobalPlayerInstance, toConnection:Connection, id:Int, seconds:Int = -10) {
 		// since player has relative coordinates, transform them for player
-		//var targetX = fromPlayer.tx - toConnection.player.gx;
-		//var targetY = fromPlayer.ty - toConnection.player.gy;
+		// var targetX = fromPlayer.tx - toConnection.player.gx;
+		// var targetY = fromPlayer.ty - toConnection.player.gy;
 		var p = toConnection.player;
 		var targetX = WorldMap.world.transformX(p, fromPlayer.tx);
 		var targetY = WorldMap.world.transformY(p, fromPlayer.ty);
@@ -884,12 +888,11 @@ class Connection {
 
 	public function send(tag:ClientTag, data:Array<String> = null, isPlayerAction:Bool = true, force:Bool = false) {
 		// send frame only once every time step
-		if(tag == FRAME){
-			if(force && sendFrame == false) return; // no frame to send
-			if(force) sendFrame = false;
-			else {
-			 sendFrame = true;
-			 return;
+		if (tag == FRAME) {
+			if (force && sendFrame == false) return; // no frame to send
+			if (force) sendFrame = false; else {
+				sendFrame = true;
+				return;
 			}
 		}
 
@@ -932,7 +935,7 @@ class Connection {
 
 			// if(tag == MAP_CHANGE) trace('send: ${message}');
 
-			if(ServerSettings.DebugSend){
+			if (ServerSettings.DebugSend) {
 				var tmpString = StringTools.replace(message, "\n", "\t");
 				trace('send: ${Connection.debugText} ${tmpString}');
 			}
@@ -1029,13 +1032,12 @@ class Connection {
 		nextPlayer->ys - 
 		otherToFollow->birthPos.y );
 	**/
-
 	public function sendMapLocation(toPlayer:GlobalPlayerInstance, text1:String, text2:String) {
 		var player = this.player;
-		//var message = '${player.p_id}/0 $text1 *$text2 ${toPlayer.p_id} *map ${toPlayer.tx - player.gx} ${toPlayer.ty - player.gy}';
+		// var message = '${player.p_id}/0 $text1 *$text2 ${toPlayer.p_id} *map ${toPlayer.tx - player.gx} ${toPlayer.ty - player.gy}';
 		var message = '${player.p_id}/0 $text1 *$text2 ${toPlayer.p_id} *map ${WorldMap.world.transformX(player, toPlayer.tx)} ${WorldMap.world.transformY(player, toPlayer.ty)}';
-		
-		//trace('MAPSAY: $message');
+
+		// trace('MAPSAY: $message');
 
 		this.send(ClientTag.PLAYER_SAYS, [message], true);
 	}
@@ -1046,8 +1048,8 @@ class Connection {
 
 		if (leader == null) leader == player;
 
-		//trace('LEADER: ${player.id}-->${leader.id} deleted: ${leader.isDeleted()}');
-		//send(PLAYER_UPDATE, [leader.toRelativeData(player)], false);
+		// trace('LEADER: ${player.id}-->${leader.id} deleted: ${leader.isDeleted()}');
+		// send(PLAYER_UPDATE, [leader.toRelativeData(player)], false);
 		this.sendMapLocation(leader, "LEADER", "leader");
 	}
 
@@ -1105,8 +1107,8 @@ class Connection {
 	**/
 	public static function SendGraveInfoToAll(grave:ObjectHelper) {
 		for (c in connections) {
-			//var x = grave.tx - c.player.gx;
-			//var y = grave.ty - c.player.gy;
+			// var x = grave.tx - c.player.gx;
+			// var y = grave.ty - c.player.gy;
 			var p = c.player;
 			var x = WorldMap.world.transformX(p, grave.tx);
 			var y = WorldMap.world.transformY(p, grave.ty);

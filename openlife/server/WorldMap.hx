@@ -65,12 +65,13 @@ class WorldMap {
 	public var cursedGraves = new Map<Int, ObjectHelper>();
 
 	public var eatenFoodValues = new Map<Int, Float>();
-	//public var eatenFoodCravings = new Map<Int, Float>();
+	// public var eatenFoodCravings = new Map<Int, Float>();
 	public var eatenFoodsYum = new Map<Int, Float>();
 	public var eatenFoodsYumBoni = new Map<Int, Float>();
 	public var eatenFoodsMeh = new Map<Int, Float>();
 	public var eatenFoodsMehMali = new Map<Int, Float>();
-	//public var eatenFoodsSuperMeh = new Map<Int, Float>();
+
+	// public var eatenFoodsSuperMeh = new Map<Int, Float>();
 
 	public function new() {}
 
@@ -253,9 +254,8 @@ class WorldMap {
 
 		// trace('${ x },${ y }:BI ${ biomeType }');
 
-		if(floor == 485 || floor ==  884 || floor ==  898)
-		{
-			if(biome == BiomeTag.OCEAN || biome == BiomeTag.PASSABLERIVER || biome == BiomeTag.RIVER) return 1;
+		if (floor == 485 || floor == 884 || floor == 898) {
+			if (biome == BiomeTag.OCEAN || biome == BiomeTag.PASSABLERIVER || biome == BiomeTag.RIVER) return 1;
 		}
 
 		return switch biome {
@@ -277,14 +277,13 @@ class WorldMap {
 
 	public static function isBiomeBlocking(x:Int, y:Int):Bool {
 		var floorId = WorldMap.world.getFloorId(x, y);
-		var biome = WorldMap.world.getBiomeId(x, y);		
-		
+		var biome = WorldMap.world.getBiomeId(x, y);
+
 		// 485 Wooden Floor / 884 Stone Floor / 898 Ancient Stone Floor / 1596 Stone Road
-		//if(floor == 485 || floor ==  884 || floor ==  898 ||  floor == 1596)
+		// if(floor == 485 || floor ==  884 || floor ==  898 ||  floor == 1596)
 		// 3290 Pine Floor
-		if(floorId > 0 && floorId != 3290)
-		{
-			if(biome == BiomeTag.SNOWINGREY || biome == BiomeTag.OCEAN || biome == BiomeTag.PASSABLERIVER || biome == BiomeTag.RIVER) return false;
+		if (floorId > 0 && floorId != 3290) {
+			if (biome == BiomeTag.SNOWINGREY || biome == BiomeTag.OCEAN || biome == BiomeTag.PASSABLERIVER || biome == BiomeTag.RIVER) return false;
 		}
 
 		var biomeSpeed = Server.server.map.getBiomeSpeed(x, y);
@@ -306,7 +305,7 @@ class WorldMap {
 	public function getBiomeId(x:Int, y:Int):BiomeTag {
 		return biomes[index(x, y)];
 	}
-	
+
 	public function getOriginalBiomeId(x:Int, y:Int):Int {
 		return originalBiomes[index(x, y)];
 	}
@@ -372,14 +371,14 @@ class WorldMap {
 
 		if (helper != null && helperPosition != position) {
 			trace('WARNING: Object ${helper.description} moved meanwhile! ${helper.tx} ${helper.ty} --> ${tx} ${ty} $helperPosition --> $position');
-			//helper.tx = tx;
+			// helper.tx = tx;
 			var samePos = helper.tx == tx && helper.ty == ty;
 
-			if(samePos == false){
+			if (samePos == false) {
 				if (ServerSettings.debug && helper.id != 0) throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
 				objectHelpers[index(tx, ty)] = null;
 				helper = null;
-				//throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
+				// throw new Exception('WARNING: Object ${helper.name} moved meanwhile!');
 			}
 		}
 
@@ -666,7 +665,7 @@ class WorldMap {
 		Sys.sleep(sleepTime);
 		this.mutex.acquire();
 
-		//Lineage.WriteAllLineages(dir + "Lineages" + tmpDataNumber + ".bin");
+		// Lineage.WriteAllLineages(dir + "Lineages" + tmpDataNumber + ".bin");
 		Lineage.WriteNewLineages(dir + "Lineages" + tmpDataNumber + ".bin");
 		if (ServerSettings.SavePlayers) GlobalPlayerInstance.WriteAllPlayers(dir + "Players" + tmpDataNumber + ".bin");
 
@@ -683,7 +682,7 @@ class WorldMap {
 			trace('Write to disk: saveDataNumber: $tmpDataNumber Time: $time backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');
 
 		if (ServerSettings.TraceCountObjectsToDisk) {
-			//trace('count objects time: ${Sys.time() - time}');
+			// trace('count objects time: ${Sys.time() - time}');
 			var path = dir + 'ObjectCounts${tmpDataNumber}.txt';
 			var writer = File.write(path, false);
 
@@ -691,7 +690,7 @@ class WorldMap {
 				var objData = ObjectData.getObjectData(key);
 				writer.writeString('Count object: [${key}] ${objData.description}: ${currentObjectsCount[key]} original: ${originalObjectsCount[key]}\n');
 			}
-			
+
 			writer.close();
 		}
 	}
@@ -700,11 +699,11 @@ class WorldMap {
 		var writer = File.write(path, false);
 		var total = 0.0;
 
-		for(foodId in eatenFoodValues.keys()){
+		for (foodId in eatenFoodValues.keys()) {
 			total += eatenFoodValues[foodId];
 		}
 
-		for(foodId in eatenFoodValues.keys()){
+		for (foodId in eatenFoodValues.keys()) {
 			var foodData = ObjectData.getObjectData(foodId);
 			var foodValue = Math.round(eatenFoodValues[foodId] * 1) / 1;
 			var foodValueYum = Math.round(eatenFoodsYum[foodId] * 1) / 1;
@@ -739,9 +738,10 @@ class WorldMap {
 		AiBase.lastTick = TimeHelper.lastTick;
 		Server.server.playerIndex = Std.parseInt(reader.readLine());
 		PlayerAccount.AccountIdIndex = Std.parseInt(reader.readLine());
-		
-		try{ObjectHelper.dataVersionNumberForRead = Std.parseInt(reader.readLine());}
-		catch(ex){
+
+		try {
+			ObjectHelper.dataVersionNumberForRead = Std.parseInt(reader.readLine());
+		} catch (ex) {
 			ObjectHelper.dataVersionNumberForRead = 4;
 			trace('WARNING: Could not read ObjectHelper.dataVersionNumberForRead');
 		}
@@ -751,18 +751,17 @@ class WorldMap {
 	}
 
 	private function fixObjectIds(desc:String) {
-
-		for(i in 0...this.objects.length){
+		for (i in 0...this.objects.length) {
 			var obj = objects[i];
 			var objData = ObjectData.getObjectData(obj[0]);
 
-			if(objData == null){
+			if (objData == null) {
 				trace('WARNING no object data: ${obj[0]}');
 				objects[i] = [0];
 				continue;
-			} 
+			}
 		}
-		
+
 		for (helper in objectHelpers) {
 			if (helper == null) continue;
 			var obj = getObjectId(helper.tx, helper.ty);
@@ -834,7 +833,7 @@ class WorldMap {
 
 		Macro.exception(PlayerAccount.ReadPlayerAccounts(dir + "PlayerAccounts" + saveDataNumber + ".bin"));
 
-		//Lineage.ReadAndSetLineages(dir + "Lineages" + saveDataNumber + ".bin");
+		// Lineage.ReadAndSetLineages(dir + "Lineages" + saveDataNumber + ".bin");
 
 		Lineage.ReadAndSaveAllLineages(dir + "LineagesAll.bin", dir + "Lineages" + saveDataNumber + ".bin");
 
@@ -1077,13 +1076,12 @@ class WorldMap {
 				if (y > 0 && objects[x + (y - 1) * width][0] != 0) continue;
 				if (randomFloat() > 0.4) continue;
 				if (getBiomeId(x, y) == BiomeTag.GREEN && randomFloat() < 0.3) {
-
 					var isNearLand = getBiomeId(x + 1, y) == BiomeTag.PASSABLERIVER;
 					isNearLand = isNearLand || getBiomeId(x - 1, y) == BiomeTag.PASSABLERIVER;
 					isNearLand = isNearLand || getBiomeId(x, y + 1) == BiomeTag.PASSABLERIVER;
 					isNearLand = isNearLand || getBiomeId(x, y - 1) == BiomeTag.PASSABLERIVER;
 
-					if (isNearLand){
+					if (isNearLand) {
 						setObjectId(x, y, [141]); // Canada Goose Pond
 						continue;
 					}
@@ -1136,54 +1134,54 @@ class WorldMap {
 
 				// 942 Muddy Iron Vein --> // 3961 Iron Vein
 				// TODO better patch the data
-				//if (obj[0] == 942) objects[x + y * width] = [3961]; 
+				// if (obj[0] == 942) objects[x + y * width] = [3961];
 
 				/*if (obj[0] == 942 || obj[0] == 3030) // 942 Muddy iron vein // 3030 Natural Spring
-				{
-					// generate also some random stones
-					var random = randomInt(2) + 1;
+					{
+						// generate also some random stones
+						var random = randomInt(2) + 1;
 
-					for (i in 0...100) {
-						var dist = 3;
-						var tx = x + randomInt(dist * 2) - dist;
-						var ty = y + randomInt(dist * 2) - dist;
-
-						if (((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) > dist * dist) continue;
-
-						var biome = getBiomeId(tx, ty);
-
-						if (biome != BiomeTag.GREY && biome != BiomeTag.YELLOW && biome != BiomeTag.GREEN) continue;
-
-						if (getObjectId(tx, ty)[0] != 0) continue;
-						if (getObjectId(tx, ty - 1)[0] != 0) continue;
-						if (getObjectId(tx, ty + 1)[0] != 0) continue;
-						if (getObjectId(tx - 1, ty)[0] != 0) continue;
-
-						setObjectId(tx, ty, [503]); // Dug Big Rock
-
-						random -= 1;
-						if (random <= 0) break;
-					}
-
-					/*
-						var random = randomInt(4);
-						if(random == 1 || random == 3) random += 1;
-						for(i in 0...50)
-						{
-							var dist = 5;
+						for (i in 0...100) {
+							var dist = 3;
 							var tx = x + randomInt(dist * 2) - dist;
-							var ty = y + randomInt(dist * 2) - dist; 
+							var ty = y + randomInt(dist * 2) - dist;
 
-							if(((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) > dist * dist) continue;
+							if (((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) > dist * dist) continue;
 
-							if(biomes[tx+ty*width] != BiomeTag.GREY) continue; 
+							var biome = getBiomeId(tx, ty);
 
-							objects[tx+ty*width] = [3962];
-							//tmpIsPlaced[index(tx,ty)] = true;
+							if (biome != BiomeTag.GREY && biome != BiomeTag.YELLOW && biome != BiomeTag.GREEN) continue;
+
+							if (getObjectId(tx, ty)[0] != 0) continue;
+							if (getObjectId(tx, ty - 1)[0] != 0) continue;
+							if (getObjectId(tx, ty + 1)[0] != 0) continue;
+							if (getObjectId(tx - 1, ty)[0] != 0) continue;
+
+							setObjectId(tx, ty, [503]); // Dug Big Rock
 
 							random -= 1;
-							if(random <= 0) break;
-					}
+							if (random <= 0) break;
+						}
+
+						/*
+							var random = randomInt(4);
+							if(random == 1 || random == 3) random += 1;
+							for(i in 0...50)
+							{
+								var dist = 5;
+								var tx = x + randomInt(dist * 2) - dist;
+								var ty = y + randomInt(dist * 2) - dist; 
+
+								if(((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) > dist * dist) continue;
+
+								if(biomes[tx+ty*width] != BiomeTag.GREY) continue; 
+
+								objects[tx+ty*width] = [3962];
+								//tmpIsPlaced[index(tx,ty)] = true;
+
+								random -= 1;
+								if(random <= 0) break;
+						}
 				}*/
 
 				var tmpObj = getObjectId(x, y);
@@ -1283,23 +1281,23 @@ class WorldMap {
 	}
 
 	public static function PlaceObjectById(tx:Int, ty:Int, objId:Int):Bool {
-		if(objId == 0) return true;
+		if (objId == 0) return true;
 		var obj = new ObjectHelper(null, objId);
 		return PlaceObject(tx, ty, obj);
 	}
 
-	public static function TransformObject(obj:ObjectHelper){
+	public static function TransformObject(obj:ObjectHelper) {
 		var objId = obj.parentId;
 		// Horse-Drawn Cart 778 // Horse-Drawn Tire Cart 3158
-		if(objId != 778 && objId != 3158) return false;
+		if (objId != 778 && objId != 3158) return false;
 
 		// transform placed object back to a not held one in case its a held one like a horse cart
 		var trans = TransitionImporter.GetTransition(objId, -1);
-		if(trans == null) return false;
+		if (trans == null) return false;
 
 		trace('PlaceObject transform held object: ${trans.getDescription()}');
-		obj.id =  trans.newTargetID;
-		
+		obj.id = trans.newTargetID;
+
 		return true;
 	}
 
@@ -1339,7 +1337,7 @@ class WorldMap {
 		var objId = world.getObjectId(x, y);
 		var objDataBelow = world.getObjectDataAtPosition(x, y - 1);
 
-		if(objDataBelow.isTree()) return objectToPlace; // dont place behind a tree
+		if (objDataBelow.isTree()) return objectToPlace; // dont place behind a tree
 
 		if (objId[0] == 0) {
 			world.setObjectHelper(x, y, objectToPlace);
@@ -1354,18 +1352,18 @@ class WorldMap {
 		var obj = world.getObjectHelper(x, y);
 
 		/*if(obj.canBePlacedIn(objectToPlace)){
-		
-			objectToPlace.containedObjects.push(obj);
 
-			world.setObjectHelper(x, y, objectToPlace);
+				objectToPlace.containedObjects.push(obj);
 
-			Connection.SendMapUpdateToAllClosePlayers(x, y);
+				world.setObjectHelper(x, y, objectToPlace);
 
-			trace('TryPlaceObject Done in container ${objectToPlace.description}');
+				Connection.SendMapUpdateToAllClosePlayers(x, y);
 
-			return null;
-		}
-		*/
+				trace('TryPlaceObject Done in container ${objectToPlace.description}');
+
+				return null;
+			}
+		 */
 
 		if (allowReplaceObject && obj.isPermanent() == false) {
 			world.setObjectHelper(x, y, objectToPlace);
@@ -1421,8 +1419,8 @@ class WorldMap {
 
 	public function transformX(p:PlayerInterface, tx:Int) {
 		var x = tx - p.gx; // make relative to player
-		if(x - p.x > this.width / 2) x -= this.width; // consider that world is round
-		else if(x - p.x < -this.width / 2) x += this.width; // consider that world is round
+		if (x - p.x > this.width / 2) x -= this.width; // consider that world is round
+		else if (x - p.x < -this.width / 2) x += this.width; // consider that world is round
 
 		// TODO consider if walked more then one time round the world
 		return x;
@@ -1430,8 +1428,8 @@ class WorldMap {
 
 	public function transformY(p:PlayerInterface, ty:Int) {
 		var y = ty - p.gy; // make relative to player
-		if(y - p.y > this.height / 2) y -= this.height; // consider that world is round
-		else if(y - p.y < -this.height / 2) y += this.height; // consider that world is round
+		if (y - p.y > this.height / 2) y -= this.height; // consider that world is round
+		else if (y - p.y < -this.height / 2) y += this.height; // consider that world is round
 
 		// TODO consider if walked more then one time round the world
 		return y;
@@ -1439,8 +1437,8 @@ class WorldMap {
 
 	public function transformFloatX(p:PlayerInterface, tx:Float) {
 		var x = tx - p.gx; // make relative to player
-		if(x - p.x > this.width / 2) x -= this.width; // consider that world is round
-		else if(x - p.x < -this.width / 2) x += this.width; // consider that world is round
+		if (x - p.x > this.width / 2) x -= this.width; // consider that world is round
+		else if (x - p.x < -this.width / 2) x += this.width; // consider that world is round
 
 		// TODO consider if walked more then one time round the world
 		return x;
@@ -1448,26 +1446,26 @@ class WorldMap {
 
 	public function transformFloatY(p:PlayerInterface, ty:Float) {
 		var y = ty - p.gy; // make relative to player
-		if(y - p.y > this.height / 2) y -= this.height; // consider that world is round
-		else if(y - p.y < -this.height / 2) y += this.height; // consider that world is round
+		if (y - p.y > this.height / 2) y -= this.height; // consider that world is round
+		else if (y - p.y < -this.height / 2) y += this.height; // consider that world is round
 
 		// TODO consider if walked more then one time round the world
 		return y;
 	}
 
-	public function addFoodStatistic(foodData:ObjectData, foodValue:Float){
+	public function addFoodStatistic(foodData:ObjectData, foodValue:Float) {
 		var foodId = foodData.parentId;
 		var yum = foodValue - foodData.foodValue;
-		//var meh = food.objectData.foodValue - foodValue;
+		// var meh = food.objectData.foodValue - foodValue;
 
-		//trace('addFoodStatistic: ${foodData.name} foodValue: ${Math.round(foodValue*10)/10} all total: ${Math.round(this.eatenFoodValues[foodId]*10)/10} yum: ${Math.round(yum*10)/10}');
+		// trace('addFoodStatistic: ${foodData.name} foodValue: ${Math.round(foodValue*10)/10} all total: ${Math.round(this.eatenFoodValues[foodId]*10)/10} yum: ${Math.round(yum*10)/10}');
 
 		this.eatenFoodValues[foodId] += foodValue;
-		if(yum > 0) this.eatenFoodsYum[foodId] += foodValue; 
-		else this.eatenFoodsMeh[foodId] += foodValue; 
+		if (yum > 0) this.eatenFoodsYum[foodId] += foodValue; else
+			this.eatenFoodsMeh[foodId] += foodValue;
 
-		if(yum > 0) this.eatenFoodsYumBoni[foodId] += yum; 
-		else this.eatenFoodsMehMali[foodId] -= yum; 
+		if (yum > 0) this.eatenFoodsYumBoni[foodId] += yum; else
+			this.eatenFoodsMehMali[foodId] -= yum;
 	}
 }
 #end

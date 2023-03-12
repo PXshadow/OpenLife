@@ -37,7 +37,7 @@ class MoveHelper {
 
 	public var player:GlobalPlayerInstance;
 	public var waitForForce = false;
-	public var timeLastForce:Float = 0;	
+	public var timeLastForce:Float = 0;
 
 	// x,y when last chunk was send
 	private var tx:Int = 0;
@@ -88,9 +88,9 @@ class MoveHelper {
 		var ry = WorldMap.world.transformFloatY(player, targetTy);
 		var xDiff = this.exactTx - this.player.gx - rx;
 		var yDiff = this.exactTy - this.player.gy - ry;
-		
-		//var xDiff = this.exactTx - targetTx;
-		//var yDiff = this.exactTy - targetTy;
+
+		// var xDiff = this.exactTx - targetTx;
+		// var yDiff = this.exactTy - targetTy;
 
 		return (xDiff * xDiff + yDiff * yDiff);
 	}
@@ -120,11 +120,11 @@ class MoveHelper {
 
 		// floor reduces speed mali of bad biome
 		if ((onFloor || isOnBoat) && biomeSpeed < 0.99) biomeSpeed = 1; // biomeSpeed = Math.sqrt(biomeSpeed);
-		if(biomeSpeed < ServerSettings.MinBiomeSpeedFactor) biomeSpeed = ServerSettings.MinBiomeSpeedFactor;
-		//if(p.displayRoadHint && biomeSpeed < 0.99 && p.age > 5 && map.getBiomeId(tx, ty) == BiomeTag.SWAMP){			 
-		//	p.displayRoadHint = false;			
-		//	p.say('To be faster i could build a road!', true);	
-		//} 
+		if (biomeSpeed < ServerSettings.MinBiomeSpeedFactor) biomeSpeed = ServerSettings.MinBiomeSpeedFactor;
+		// if(p.displayRoadHint && biomeSpeed < 0.99 && p.age > 5 && map.getBiomeId(tx, ty) == BiomeTag.SWAMP){
+		//	p.displayRoadHint = false;
+		//	p.say('To be faster i could build a road!', true);
+		// }
 
 		speed *= biomeSpeed;
 
@@ -182,17 +182,18 @@ class MoveHelper {
 
 		speed *= containedObjSpeedMult;
 
-		// Reduce speed if damaged or age		
-		// Factor 3: between 66% and 106% for 120% hitpoints 
-		// Factor 5: between 80% and 104% for 120% hitpoints 
+		// Reduce speed if damaged or age
+		// Factor 3: between 66% and 106% for 120% hitpoints
+		// Factor 5: between 80% and 104% for 120% hitpoints
 		var hitpointsSpeedFactor = ServerSettings.HitpointsSpeedFactor;
-		if(hitpointsSpeedFactor > 0){
+		if (hitpointsSpeedFactor > 0) {
 			var fullHitpoints = ServerSettings.GrownUpFoodStoreMax;
 			var currenHitpoints = p.calculateFoodStoreMax();
-			//var speedFactorHitpoints = (currenHitpoints + fullHitpoints) / (fullHitpoints + fullHitpoints);
+			// var speedFactorHitpoints = (currenHitpoints + fullHitpoints) / (fullHitpoints + fullHitpoints);
 			var speedFactorHitpoints = (currenHitpoints + (hitpointsSpeedFactor - 1) * fullHitpoints) / (hitpointsSpeedFactor * fullHitpoints);
 			speed *= speedFactorHitpoints;
-			if (ServerSettings.DebugSpeed) trace('SPEED: $speed speedFactorHitpoints: $speedFactorHitpoints currenHitpoints: $currenHitpoints fullHitpoints: $fullHitpoints');
+			if (ServerSettings.DebugSpeed)
+				trace('SPEED: $speed speedFactorHitpoints: $speedFactorHitpoints currenHitpoints: $currenHitpoints fullHitpoints: $fullHitpoints');
 		}
 
 		// Do temperature speed
@@ -203,12 +204,12 @@ class MoveHelper {
 		if (p.account.hasCloseBlockingGrave(p.tx, p.ty)) {
 			var allowGraveCurse = GlobalPlayerInstance.GetNumberLifingPlayers() >= ServerSettings.MaxPlayersBeforeActivatingGraveCurse;
 
-			if(allowGraveCurse){
+			if (allowGraveCurse) {
 				if (p.isCursed == false) {
 					Connection.SendCurseToAll(p); // TODO test
 					p.say('My grave is near im cursed...', true);
 					p.doEmote(Emote.sad);
-					//p.connection.sendGlobalMessage('Since you are near your old bones you are cursed!');
+					// p.connection.sendGlobalMessage('Since you are near your old bones you are cursed!');
 				}
 
 				speed *= ServerSettings.CloseGraveSpeedMali;
@@ -247,10 +248,10 @@ class MoveHelper {
 		if (ServerSettings.DebugSpeed)
 			trace('speed: $speed age: ${p.age} biomeSpeed: $biomeSpeed floorSpeed: $floorSpeed fullPathHasRoad:${fullPathHasRoad} speedModHeldObj: $speedModHeldObj Starving to death: ${p.food_store < 0}');
 
-		if(p.isAi()){
-			if(p.lineage.prestigeClass == PrestigeClass.Serf) speed *= ServerSettings.AISpeedFactorSerf;
-			else if(p.lineage.prestigeClass == PrestigeClass.Commoner) speed *= ServerSettings.AISpeedFactorCommoner;
-			else if(p.lineage.prestigeClass == PrestigeClass.Noble) speed *= ServerSettings.AISpeedFactorNoble;
+		if (p.isAi()) {
+			if (p.lineage.prestigeClass == PrestigeClass.Serf) speed *= ServerSettings.AISpeedFactorSerf; else
+				if (p.lineage.prestigeClass == PrestigeClass.Commoner) speed *= ServerSettings.AISpeedFactorCommoner; else
+					if (p.lineage.prestigeClass == PrestigeClass.Noble) speed *= ServerSettings.AISpeedFactorNoble;
 		}
 
 		return speed;
@@ -295,7 +296,7 @@ class MoveHelper {
 				p.x += move.x;
 				p.y += move.y;
 
-				if(ServerSettings.DebugSayPlayerPosition) Connection.SendLocationSaysToAllClosePlayers(p.tx, p.ty, p.name);
+				if (ServerSettings.DebugSayPlayerPosition) Connection.SendLocationSaysToAllClosePlayers(p.tx, p.ty, p.name);
 
 				moveHelper.totalMoved += length;
 				moveHelper.exactTx = p.tx;
@@ -311,11 +312,11 @@ class MoveHelper {
 
 				TimeHelper.MakeAnimalsRunAway(p);
 
-				if(p.getAi() != null) p.getAi().movedOneTile = true;
+				if (p.getAi() != null) p.getAi().movedOneTile = true;
 
 				moveHelper.sendChunkIfNeeded();
-				
-				if(p.forceStopOnNextTile){
+
+				if (p.forceStopOnNextTile) {
 					p.forceStopOnNextTile = false;
 					CancleMovement(p);
 					return;
@@ -329,13 +330,13 @@ class MoveHelper {
 
 		var timeSinceStartMovementInSec = TimeHelper.CalculateTimeSinceTicksInSec(moveHelper.startingMoveTicks);
 
-		//timeSinceStartMovementInSec *= ServerSettings.LetTheClientCheatLittleBitFactor;
+		// timeSinceStartMovementInSec *= ServerSettings.LetTheClientCheatLittleBitFactor;
 
 		var timeLeft = moveHelper.totalMoveTime - timeSinceStartMovementInSec;
 
 		// if(TimeHelper.tick % 5 == 0) if(ServerSettings.DebugMoveHelper) trace('Moves: timeSinceStartMovementInSec: ${timeSinceStartMovementInSec} totalMoveTime: ${moveHelper.totalMoveTime}');
 
-		//if (timeSinceStartMovementInSec >= moveHelper.totalMoveTime) {
+		// if (timeSinceStartMovementInSec >= moveHelper.totalMoveTime) {
 		if (moveHelper.newMoves.length < 1) {
 			var last = moveHelper.newMoves.pop();
 			moveHelper.totalMoveTime = 0;
@@ -361,26 +362,26 @@ class MoveHelper {
 
 			SetHeldPlayerPositionToSame(p);
 
-			if(p.isAi()) p.forced = true; // TODO no foce needed if movement is fixed
+			if (p.isAi()) p.forced = true; // TODO no foce needed if movement is fixed
 			Connection.SendUpdateToAllClosePlayers(p);
-			if(p.isAi()) p.forced = false;
+			if (p.isAi()) p.forced = false;
 
 			if (p.connection.serverAi != null) p.connection.serverAi.ai.finishedMovement();
 
-			//if(ServerSettings.DebugSayPlayerPosition && p.isHuman()) p.say('${p.tx} ${p.ty}');
+			// if(ServerSettings.DebugSayPlayerPosition && p.isHuman()) p.say('${p.tx} ${p.ty}');
 
 			var totalMoved = p.moveHelper.totalMoveLength - p.moveHelper.totalMoved;
 
-			if(ServerSettings.DebugMoveHelper) trace('Move Done: ${p.name}${p.p_id} ${p.tx} ${p.ty} timeLeft: ${Math.round(timeLeft*10)/10} tiles left: ${Math.round(totalMoved*10)/10} Done SeqNum: ${p.done_moving_seqNum}');
+			if (ServerSettings.DebugMoveHelper)
+				trace('Move Done: ${p.name}${p.p_id} ${p.tx} ${p.ty} timeLeft: ${Math.round(timeLeft * 10) / 10} tiles left: ${Math.round(totalMoved * 10) / 10} Done SeqNum: ${p.done_moving_seqNum}');
 
 			// if(ServerSettings.DebugMoveHelper) trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
 		}
 	}
 
-	public static function SetHeldPlayerPositionToSame(p:GlobalPlayerInstance)
-	{
+	public static function SetHeldPlayerPositionToSame(p:GlobalPlayerInstance) {
 		if (p.heldPlayer == null) return;
-		
+
 		p.heldPlayer.x = p.tx - p.heldPlayer.gx;
 		p.heldPlayer.y = p.ty - p.heldPlayer.gy;
 		p.heldPlayer.moveHelper.exactTx = p.heldPlayer.tx;
@@ -448,13 +449,13 @@ class MoveHelper {
 			if (i == 3) xo = -1;
 			if (i == 4) yo = 1;
 
-			//rand++;
+			// rand++;
 
 			if (player.isBlocked(tx + xo, ty + yo)) continue;
 
 			player.x += xo;
 			player.y += yo;
-			//player.exhaustion += 0.2;
+			// player.exhaustion += 0.2;
 
 			player.moveHelper.exactTx = player.tx;
 			player.moveHelper.exactTy = player.ty;
@@ -462,11 +463,11 @@ class MoveHelper {
 			break;
 		}
 
-		if(seq > 0) player.done_moving_seqNum = seq;
+		if (seq > 0) player.done_moving_seqNum = seq;
 		player.forced = true;
 		player.connection.send(PLAYER_UPDATE, [player.toData()]);
 		player.forced = false;
-		if (player.isHuman()){
+		if (player.isHuman()) {
 			player.moveHelper.waitForForce = true;
 			player.moveHelper.timeLastForce = TimeHelper.tick;
 		}
@@ -480,15 +481,14 @@ class MoveHelper {
 		// sometimes client dpes not respond to a force, therefore after waited one second allow movements again and hope that client is synced
 		if (p.moveHelper.waitForForce) {
 			var passedTimeSinceForce = TimeHelper.CalculateTimeSinceTicksInSec(p.moveHelper.timeLastForce);
-			if(passedTimeSinceForce < 1){
+			if (passedTimeSinceForce < 1) {
 				trace('${p.name + p.id}: MMove ignored since waiting for force!!');
 				p.done_moving_seqNum = seq;
 				p.responsible_id = -1;
 				p.connection.send(PLAYER_UPDATE, [p.toData()]);
 				p.connection.send(FRAME, null, false);
 				return;
-			}
-			else{
+			} else {
 				p.moveHelper.waitForForce = false;
 			}
 		}
@@ -509,14 +509,14 @@ class MoveHelper {
 		var tmpX = p.x;
 		var tmpY = p.y;
 
-		if(p.x >= width) p.x -= width; 
-		if(p.x <= -width) p.x += width; 
-		if(p.y >= height) p.y -= height; 
-		if(p.y <= -height) p.y += height; 
+		if (p.x >= width) p.x -= width;
+		if (p.x <= -width) p.x += width;
+		if (p.y >= height) p.y -= height;
+		if (p.y <= -height) p.y += height;
 
-		if(tmpX != p.x || tmpY != p.y){
+		if (tmpX != p.x || tmpY != p.y) {
 			trace('${p.name + p.id} MMOVED one time around the world! $tmpX,$tmpY ==> ${p.x},${p.y}');
-			
+
 			p.moveHelper.tx = p.tx;
 			p.moveHelper.ty = p.ty;
 			p.moveHelper.exactTx = p.tx;
@@ -537,8 +537,8 @@ class MoveHelper {
 		var moveHelper = p.moveHelper;
 		// var quadDist = p.moveHelper.calculateExactQuadDistance(tx, ty);
 		var quadDist = jump ? p.moveHelper.calculateExactQuadDistance(tx, ty) : 0;
-		var floorId = WorldMap.world.getFloorId(tx,ty);
-		if(floorId > 0) quadDist /= 10; // TODO fix road movement and look general why client sends so different positions
+		var floorId = WorldMap.world.getFloorId(tx, ty);
+		if (floorId > 0) quadDist /= 10; // TODO fix road movement and look general why client sends so different positions
 
 		if (p.isBlocked(tx, ty) || quadDist > ServerSettings.MaxMovementQuadJumpDistanceBeforeForce) {
 			trace('${p.name} MMOVE: FORCE!! Movement cancled since blocked or Client uses too different x,y: quadDist: $quadDist exact: ${Math.ceil((p.moveHelper.exactTx - p.gx) * 10) / 10},${Math.ceil((p.moveHelper.exactTy - p.gy) * 10) / 10} Server ${p.x},${p.y} <--> Client ${x},${y} floor: $floorId');
@@ -583,13 +583,13 @@ class MoveHelper {
 			CancleMovement(p, seq);
 			return;
 		}
-		
+
 		p.move_speed = newMovements.finalSpeed;
 		moveHelper.totalMoved = 0;
 		moveHelper.totalMoveLength = newMovements.length;
 		moveHelper.moveSpeed = p.move_speed;
 		moveHelper.newMovements = newMovements;
-		//moveHelper.newMoves = newMovements.moves;
+		// moveHelper.newMoves = newMovements.moves;
 		moveHelper.totalMoveTime = newMovements.length / p.move_speed;
 		moveHelper.startingMoveTicks = TimeHelper.tick;
 		moveHelper.newMoveSeqNumber = seq;
@@ -597,26 +597,25 @@ class MoveHelper {
 		moveHelper.sendChunkIfNeeded();
 
 		p.forced = p.isAi(); // false
-		
+
 		p.responsible_id = -1;
 
 		// TODO moveHelper.newMoves = nukk since no position will be send if set (ismoving)
-		//if (positionChanged) { // TODO test
-			moveHelper.newMoves = null;
-			Connection.SendUpdateToAllClosePlayers(p);
-			moveHelper.newMoves = newMovements.moves;
-		//} else {
-			// p.connection.sendPlayerUpdate();
-		//}
+		// if (positionChanged) { // TODO test
+		moveHelper.newMoves = null;
+		Connection.SendUpdateToAllClosePlayers(p);
+		moveHelper.newMoves = newMovements.moves;
+		// } else {
+		// p.connection.sendPlayerUpdate();
+		// }
 		p.forced = false;
-		
+
 		Connection.SendMoveUpdateToAllClosePlayers(p);
 	}
 
-	public function sendChunkIfNeeded()
-	{
-		//var spacingX = 5;
-		//var spacingY = 5;
+	public function sendChunkIfNeeded() {
+		// var spacingX = 5;
+		// var spacingY = 5;
 		var p = this.player;
 		var moveHelper = this;
 
@@ -624,22 +623,22 @@ class MoveHelper {
 		var targetY = WorldMap.world.transformY(p, moveHelper.ty + p.gy);
 
 		if (p.isClose(targetX, targetY, 4)) return;
-		//if (p.x - moveHelper.tx > spacingX || p.x - moveHelper.tx < -spacingX || p.y - moveHelper.ty > spacingY || p.y - moveHelper.ty < -spacingY) {
+		// if (p.x - moveHelper.tx > spacingX || p.x - moveHelper.tx < -spacingX || p.y - moveHelper.ty > spacingY || p.y - moveHelper.ty < -spacingY) {
 		moveHelper.tx = p.x;
 		moveHelper.ty = p.y;
-		
-		var newMoves = moveHelper.newMoves;
-		var lastMove = newMoves == null || newMoves.length < 6 ? null : newMoves[5]; //newMoves.length - 1
-		//if(lastMove != null) trace('newMove: ${lastMove}');
 
-		if(lastMove == null) p.connection.sendMapChunk(p.x, p.y);
-		if(lastMove != null) p.connection.sendMapChunk(p.x + lastMove.x, p.y + lastMove.y);
+		var newMoves = moveHelper.newMoves;
+		var lastMove = newMoves == null || newMoves.length < 6 ? null : newMoves[5]; // newMoves.length - 1
+		// if(lastMove != null) trace('newMove: ${lastMove}');
+
+		if (lastMove == null) p.connection.sendMapChunk(p.x, p.y);
+		if (lastMove != null) p.connection.sendMapChunk(p.x + lastMove.x, p.y + lastMove.y);
 	}
 
 	public static function CancleMovement(p:GlobalPlayerInstance, seq:Int = -1) {
-		if(seq < 0) seq = p.done_moving_seqNum;
+		if (seq < 0) seq = p.done_moving_seqNum;
 
-		if (p.isHuman()){
+		if (p.isHuman()) {
 			p.moveHelper.waitForForce = true; // ignore all moves untill client sends a force
 			p.moveHelper.timeLastForce = TimeHelper.tick;
 		}
@@ -658,16 +657,16 @@ class MoveHelper {
 
 	public function generateRelativeMoveUpdateString(forPlayer:GlobalPlayerInstance):String {
 		var totalMoveTime = Math.round(this.totalMoveTime * 100) / 100;
-		//var targetX = player.tx - forPlayer.gx;
-		//var targetY = player.ty - forPlayer.gy;
+		// var targetX = player.tx - forPlayer.gx;
+		// var targetY = player.ty - forPlayer.gy;
 		var targetX = WorldMap.world.transformX(forPlayer, player.tx);
-		var targetY = WorldMap.world.transformY(forPlayer, player.ty);		
+		var targetY = WorldMap.world.transformY(forPlayer, player.ty);
 		var eta = totalMoveTime - TimeHelper.CalculateTimeSinceTicksInSec(startingMoveTicks);
 
 		var moveString = '${player.p_id} ${targetX} ${targetY} ${totalMoveTime} $eta ${newMovements.trunc} ${moveString(newMoves)}';
-		if(ServerSettings.DebugMoveHelper) trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
+		if (ServerSettings.DebugMoveHelper) trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
 
-		//trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
+		// trace('TEST Move: totalMoveTime: $totalMoveTime eta: $eta  $moveString');
 
 		return moveString;
 	}

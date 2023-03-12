@@ -91,15 +91,15 @@ class Biome {
 
 	public static function getBiomeDecayFactor(biomeTag:BiomeTag):Float {
 		return switch biomeTag {
-			//case GREEN: TGREEN;
+			// case GREEN: TGREEN;
 			case SWAMP: ServerSettings.DecayFactorInSwamp;
-			//case YELLOW: TYELLOW;
-			//case GREY: TGREY;
-			//case SNOW: TSNOW;
-			//case DESERT: TDESERT;
+			// case YELLOW: TYELLOW;
+			// case GREY: TGREY;
+			// case SNOW: TSNOW;
+			// case DESERT: TDESERT;
 			case JUNGLE: ServerSettings.DecayFactorInJungle;
 			case BORDERJUNGLE: ServerSettings.DecayFactorInJungle;
-			case SNOWINGREY:  ServerSettings.DecayFactorInMountain;
+			case SNOWINGREY: ServerSettings.DecayFactorInMountain;
 			case OCEAN: ServerSettings.DecayFactorInDeepWater;
 			case RIVER: ServerSettings.DecayFactorInDeepWater;
 			case PASSABLERIVER: ServerSettings.DecayFactorInWalkableWater;
@@ -145,7 +145,7 @@ class Biome {
 			default: [];
 		}
 	}
-	
+
 	public static function getBiomeAnimals(biomeTag:BiomeTag):Array<Int> {
 		return switch biomeTag {
 			case DESERT: [764]; // Rattle Snake
