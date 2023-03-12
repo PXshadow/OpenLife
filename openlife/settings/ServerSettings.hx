@@ -17,7 +17,7 @@ class ServerSettings {
 
 	// DEBUG: switch on / off
 	public static var dumpOutput = false;
-	public static var debug = false; // activates or deactivates try catch blocks 
+	public static var debug = false; // activates or deactivates try catch blocks
 	public static var AllowDebugObjectCreation = false; // allow debug objects creation with '!CREATEALL' and generates dubug object on start
 	public static var DebugSend = false;
 	public static var DebugIncomingCommands = false;
@@ -39,7 +39,7 @@ class ServerSettings {
 	// Debug AI
 	public static var DebugAi:Bool = false;
 	public static var DebugAiSay:Bool = false;
-	public static var DebugProfession:Bool = false;	
+	public static var DebugProfession:Bool = false;
 	public static var DebugAiGoto:Bool = false;
 	public static var DebugAiCrafting:Bool = false;
 	public static var DebugAiCraftingObject:Int = 999999; // 57;
@@ -108,7 +108,7 @@ class ServerSettings {
 	// PlayerInstance
 	public static var MaxPlayersBeforeStartingAsChild = 0; // -1
 	public static var MaxPlayersBeforeActivatingGraveCurse = 2;
-	public static var MaxPlayersBeforeForbidTouchGrave = 2; 
+	public static var MaxPlayersBeforeForbidTouchGrave = 2;
 	public static var StartingFamilyName = "SNOW";
 	public static var StartingName = "SPOON";
 	public static var AgeingSecondsPerYear = 60; // 60
@@ -157,16 +157,17 @@ class ServerSettings {
 	public static var PrestigeCostForDie:Float = 0;
 
 	// food stuff / healing / exhaustion recover
-	// 0.1 = in bad temperature 10 sec per pip + damage / in temperature good 20 sec per pipe 
+	// 0.1 = in bad temperature 10 sec per pip + damage / in temperature good 20 sec per pipe
 	// vanilla has around 0.143 (7 sec) with bad temperature and 0.048 (21 sec) with good
-	public static var FoodUsePerSecond = 0.10; 
+	public static var FoodUsePerSecond = 0.10;
 	public static var HealingPerSecond = 0.10;
 	public static var WoundHealingFactor:Float = 1;
 	public static var ExhaustionHealingFactor:Float = 2;
 	public static var ExhaustionHealingForMaleFaktor:Float = 1.2;
-	
+
 	public static var FoodReductionPerEating:Float = 1;
 	public static var FoodReductionFaktorForEatingMeh:Float = 0.2;
+	public static var MaxAge = 60;
 	public static var MinAgeToEat = 3; // MinAgeToEat and MinAgeFor putting on cloths on their own
 	public static var GrownUpFoodStoreMax = 20; // defaul vanilla: 20
 	public static var NewBornFoodStoreMax = 4;
@@ -194,7 +195,7 @@ class ServerSettings {
 	// health
 	public static var MinHealthPerYear = 1; // expected health per year for normal health
 	public static var MinHealthFoodStoreMaxFactor:Float = 0.8; // 0.5
-	public static var MaxHealthFoodStoreMaxFactor:Float = 1.2; // 1.5 
+	public static var MaxHealthFoodStoreMaxFactor:Float = 1.2; // 1.5
 	public static var MinHealthAgingFactor:Float = 0.5; // 0.5
 	public static var MaxHealthAgingFactor:Float = 2; // 2
 
@@ -215,7 +216,7 @@ class ServerSettings {
 	public static var GotoTimeOut:Int = 250;
 	public static var InitialPlayerMoveSpeed:Float = 3.75; // vanilla: 3.75; // in Tiles per Second
 	public static var SpeedFactor:Float = 1; // MovementExtender // used to incease or deacrease speed factor X
-	// Factor 3: between 66% and 106% for 120% hitpoints 
+	// Factor 3: between 66% and 106% for 120% hitpoints
 	// Factor 5: between 80% and 104% for 120% hitpoints
 	public static var HitpointsSpeedFactor:Float = 3; // set 0 if hitpoints should have no speed influence
 	public static var MinBiomeSpeedFactor:Float = 0.2; // For example if you happen to end up in a ocean or on a mountain
@@ -224,13 +225,13 @@ class ServerSettings {
 	public static var MinSpeedReductionPerContainedObj = 0.98;
 	public static var CloseEnemyWithWeaponSpeedFactor:Float = 0.8;
 	public static var SemiHeavyItemSpeed:Float = 0.9; // slows down if carring iron / logs / soil etc.
-	public static var MaxTimeBetweenMapChunks:Float = 3;  // make sure that every X seconds at least one map chunk is send 
+	public static var MaxTimeBetweenMapChunks:Float = 3; // make sure that every X seconds at least one map chunk is send
 
 	// since client does not seem to use exact positions allow little bit cheating / JUMPS
 	public static var LetTheClientCheatLittleBitFactor = 1.1; // when considering if the position is reached, allow the client to cheat little bit, so there is no lag
 	public static var MaxMovementQuadJumpDistanceBeforeForce:Float = 5; // if quadDistance between server and client position is bigger then X the client is forced to use server position
 	public static var MaxJumpsPerTenSec:Float = 10; // limit how often a client can JUMP / cheat his position
-	public static var ExhaustionOnJump:Float = 0.05;	
+	public static var ExhaustionOnJump:Float = 0.05;
 
 	// hungry work
 	public static var HungryWorkCost:Float = 5; // 10
@@ -238,12 +239,12 @@ class ServerSettings {
 	public static var HungryWorkToolCostFactor:Float = 0;
 
 	// first the chance for success would be - then 10% then 20% usw ... 10 hits 100%
-	public static var AlternativeOutcomePercentIncreasePerHit:Float = 10; // for example used for extra wood for trees or stone form iron mining	
+	public static var AlternativeOutcomePercentIncreasePerHit:Float = 10; // for example used for extra wood for trees or stone form iron mining
 	// once succeeded in cutting the tree / mining the hits is ruced by 5
 	public static var AlternativeOutcomeHitsDecreaseOnSucess = 5; // for example used for extra wood for trees or stone form iron mining
 
 	public static var TeleportCost:Float = 1; // 10
-	
+
 	// for animal movement
 	public static var ChanceThatAnimalsCanPassBlockingBiome:Float = 0.03;
 	public static var chancePreferredBiome:Float = 0.8; // Chance that the animal ignors the chosen target if its not from his original biome
@@ -281,21 +282,21 @@ class ServerSettings {
 	public static var TemperatureHeatObjectFactor:Float = 1.5; // impact of fire and ice stuff
 	public static var TemperatureHitsDamageFactor:Float = 0.25;
 	public static var TemperatureExhaustionDamageFactor:Float = 0.2;
-	public static var TemperatureImpactPerSec:Float = 0.03; 	
-	public static var TemperatureImpactPerSecIfGood:Float = 0.06; // if outside temperature is helping to et closer to optimal 	
+	public static var TemperatureImpactPerSec:Float = 0.03;
+	public static var TemperatureImpactPerSecIfGood:Float = 0.06; // if outside temperature is helping to et closer to optimal
 	public static var TemperatureInWaterFactor:Float = 1.5;
 	public static var TemperatureReductionPerDrinking:Float = 0.5;
 	public static var MaxStoredWater:Float = 1;
-	public static var TemperatureNaturalHeatInsulation:Float = 0.5; // gives X extra natural insulation against heat 
+	public static var TemperatureNaturalHeatInsulation:Float = 0.5; // gives X extra natural insulation against heat
 	public static var TemperatureClothingInsulationFactor:Float = 5; // with 100% insulation 5X more time 10X with 200% insulation / only if temperature change is ositive
-	public static var TemperatureImpactReduction:Float = 0.4; // reduces the impact of bad temperature if temperature is already bad 
+	public static var TemperatureImpactReduction:Float = 0.4; // reduces the impact of bad temperature if temperature is already bad
 	public static var TemperatureHeatObjFactor:Float = 1; // increase or decrase impact of a head obj like fire
-	public static var TemperatureLovedBiomeFactor:Float = 1; 
+	public static var TemperatureLovedBiomeFactor:Float = 1;
 	public static var TemperatureMaxLovedBiomeImpact:Float = 0.1; // max 0.1 better in loved biome (right color or borh parents right color)
 	public static var TemperatureSpeedImpact:Float = 1.0; // 0.0 // speed * X: double impact if extreme temperature
 	public static var TemperatureImpactBelow:Float = 0.6; // take damage and display emote if temperature is below or above X from normal
 	public static var TemperatureImpactColorFactor:Float = 0.5; // set zero if super hot an super cold are equal for all colors
-	
+
 	public static var TemperatureShiftForBlack:Float = 0.1; // ideal temperature = 0.6
 	public static var TemperatureShiftForBrown:Float = 0.05;
 	public static var TemperatureShiftForWhite:Float = -0.05;
@@ -304,7 +305,7 @@ class ServerSettings {
 	// winter / summer
 	public static var DebugSeason:Bool = false;
 	public static var SeasonDuration:Float = 7.5; // default: 5 // Season duration like winter in years
-	public static var SeasonBiomeChangeChancePerYear:Float = 2; //5 // X means it spreads X tiles per year in average in each direction
+	public static var SeasonBiomeChangeChancePerYear:Float = 2; // 5 // X means it spreads X tiles per year in average in each direction
 	public static var SeasonBiomeRestoreFactor:Float = 2;
 	public static var AverageSeasonTemperatureImpact:Float = 0.2;
 	public static var HotSeasonTemperatureFactor:Float = 0.75; // 0.5
@@ -312,8 +313,8 @@ class ServerSettings {
 
 	public static var WinterWildFoodDecayChance:Float = 1.5; // 1.5; // per Season
 	public static var SpringWildFoodRegrowChance:Float = 1; // per Season // use spring and summer
-	public static var GrowBackPlantsIncreaseIfLowPopulation:Float = 2; 
-	public static var GrowBackOriginalPlantsFactor:Float = 0.05; //0.05; // 0.4 // 0.1 // regrow from original plants per season
+	public static var GrowBackPlantsIncreaseIfLowPopulation:Float = 2;
+	public static var GrowBackOriginalPlantsFactor:Float = 0.05; // 0.05; // 0.4 // 0.1 // regrow from original plants per season
 	public static var GrowNewPlantsFromExistingFactor:Float = 0.1; // 0.2 // offsprings per season per plant
 
 	// public static var WinterFildWoodDecayChance = 0.2;
@@ -339,13 +340,13 @@ class ServerSettings {
 	public static var AllyStrenghTooLowForPickup:Float = 0; // 0.8
 	public static var PrestigeCostPerDamageForAlly:Float = 1; // 0. 5 // For damaging ally
 	public static var PrestigeCostPerDamageForChild:Float = 5; // 2
-	public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.5; //0.25// For damaging children, mother, father, brother sister
-	public static var PrestigeCostPerDamageForWomenWithoutWeapon:Float = 0.5; //0.25
+	public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.5; // 0.25// For damaging children, mother, father, brother sister
+	public static var PrestigeCostPerDamageForWomenWithoutWeapon:Float = 0.5; // 0.25
 
 	// AI
 	public static var NumberOfAis:Int = 40;
 	public static var NumberOfAiPx:Int = 0;
-	public static var AiReactionTime:Float = 0.5; //0.5; // 0.5;
+	public static var AiReactionTime:Float = 0.5; // 0.5; // 0.5;
 	public static var TimeToAiRebirthPerYear:Float = 10; // X seconds per not lived year = 60 - death age
 	public static var AiTotalScoreFactor:Float = 0.5;
 	public static var AiTimeToWaitIfCraftingFailed:Float = 15; // if item failed to craft dont craft for X seconds
@@ -354,7 +355,7 @@ class ServerSettings {
 	public static var AiIgnoreTimeTransitionsLongerThen:Int = 120; // 30
 	public static var AgingFactorHumanBornToAi:Float = 3; // 3
 	public static var AgingFactorAiBornToHuman:Float = 1.5;
-	public static var AiNameEnding:String = 'X'; // A name ending / set '' if none	
+	public static var AiNameEnding:String = 'X'; // A name ending / set '' if none
 	public static var AIAllowBuildOven:Bool = false;
 	public static var AIAllowBuilKiln:Bool = false;
 
@@ -375,7 +376,7 @@ class ServerSettings {
 		// 3030 Natural Spring
 		// 2285 Tarry Spot
 		// 503 Dug Big Rock
-		return (obj != 3030 && obj != 2285 && obj != 503 && obj != 942 && obj != 3961 && obj != 3962 );
+		return (obj != 3030 && obj != 2285 && obj != 503 && obj != 942 && obj != 3961 && obj != 3962);
 	}
 
 	// iron, tary spot spring cannot respawn or be lucky spot
@@ -495,11 +496,11 @@ class ServerSettings {
 				trace('floorHugging: ${obj.name}');
 			}*/
 
-			if(obj.description.contains('groundOnly')){
+			if (obj.description.contains('groundOnly')) {
 				obj.groundOnly = true;
-				//trace('groundOnly: ${obj.name}');
+				// trace('groundOnly: ${obj.name}');
 			}
-			
+
 			if (obj.description.indexOf("+hungryWork") != -1) {
 				obj.hungryWork = ServerSettings.HungryWorkCost;
 			}
@@ -513,27 +514,27 @@ class ServerSettings {
 			if (obj.description.contains("Mechanism")) {
 				obj.containSize = 2;
 				obj.containable = true;
-				//trace('Mechanism: ${obj.name}');
+				// trace('Mechanism: ${obj.name}');
 			}
 
 			/*if (obj.description.contains("Glass")) {
 				obj.containSize = 2;
 				obj.containable = true;
 				trace('Glass: ${obj.name}');
-			}*/	
+			}*/
 
 			if (obj.description.contains("Blowpipe")) {
 				obj.containSize = 2;
 				obj.containable = true;
-				//trace('Blowpipe: ${obj.name}');
+				// trace('Blowpipe: ${obj.name}');
 			}
 
 			if (obj.description.contains("Crucible") && obj.description.contains("in Wooden") == false) {
 				obj.containSize = 2;
 				obj.containable = true;
-				//trace('Crucible: ${obj.name}');
+				// trace('Crucible: ${obj.name}');
 			}
-			
+
 			if (obj.description.indexOf("Steel") != -1) {
 				// trace('Decays to: ${obj.name}');
 				obj.decaysToObj = 862; // 862 Broken Steel Tool no wood // 858 Broken Steel Tool
@@ -562,8 +563,8 @@ class ServerSettings {
 
 			// if(obj.containable) trace('${obj.description} ${obj.containSize}');
 
-			if(obj.description.contains('Shears')){
-				//trace('${obj.name} permanent: ${obj.permanent}');
+			if (obj.description.contains('Shears')) {
+				// trace('${obj.name} permanent: ${obj.permanent}');
 				obj.permanent = 0;
 				obj.containSize = 1;
 				obj.containable = true;
@@ -575,7 +576,7 @@ class ServerSettings {
 
 		ObjectData.getObjectData(356).containSize = 2; // Basket of Bones
 		ObjectData.getObjectData(356).containable = true; // Basket of Bones
-		
+
 		ObjectData.getObjectData(2188).containSize = 2; // Drum Sticks on Plate
 		ObjectData.getObjectData(2188).containable = true; // Drum Sticks on Plate
 
@@ -606,7 +607,7 @@ class ServerSettings {
 		ObjectData.getObjectData(2574).containSize = 2; // Molten Glass
 		ObjectData.getObjectData(2574).containable = true; // Molten Glass
 
-		ObjectData.getObjectData(2578).containSize = 2; //Cool Glass
+		ObjectData.getObjectData(2578).containSize = 2; // Cool Glass
 		ObjectData.getObjectData(2578).containable = true; // Cool Glass
 
 		ObjectData.getObjectData(2573).containSize = 2; // Soda Lime Glass Batch
@@ -624,7 +625,7 @@ class ServerSettings {
 		ObjectData.getObjectData(650).countsOrGrowsAs = 630; // Bear Cave empty --> Bear Cave
 		ObjectData.getObjectData(647).countsOrGrowsAs = 630; // Bear Cave waking --> Bear Cave
 
-		// decay	
+		// decay
 		ObjectData.getObjectData(2709).decayFactor = -1; // Large Slow Fire tut_only burns forever
 		ObjectData.getObjectData(3112).decayFactor = -1; // Tarr Monument
 
@@ -690,10 +691,10 @@ class ServerSettings {
 		ObjectData.getObjectData(945).decayFactor = 0.5; // Collapsed Iron Mine
 		ObjectData.getObjectData(945).countsOrGrowsAs = 3961; // Collapsed Iron Mine --> Iron Vein
 
-		ObjectData.getObjectData(3130).decaysToObj = 881;  // Ready Diesel Mining Pick without Bit
-		ObjectData.getObjectData(3130).decayFactor =  0.1; // Diesel Mining Pick without Bit
+		ObjectData.getObjectData(3130).decaysToObj = 881; // Ready Diesel Mining Pick without Bit
+		ObjectData.getObjectData(3130).decayFactor = 0.1; // Diesel Mining Pick without Bit
 		ObjectData.getObjectData(3130).countsOrGrowsAs = 3961; // Diesel Mining Pick without Bit --> Iron Vein
-	
+
 		ObjectData.getObjectData(3129).decaysToObj = 881; // Ready Diesel Mining Pick
 		ObjectData.getObjectData(3129).decayFactor = 0.1; // Ready Diesel Mining Pick
 		ObjectData.getObjectData(3129).countsOrGrowsAs = 3961; // Ready Diesel Mining Pick --> Iron Vein
@@ -757,27 +758,27 @@ class ServerSettings {
 		ObjectData.getObjectData(884).decaysToObj = 881; // 884 Stone Floor ==> 881 Cut Stones
 
 		ObjectData.getObjectData(888).decayFactor = 0.5; // 888 Bear Skin Rug
-		ObjectData.getObjectData(888).decaysToObj = 884; // 888 Bear Skin Rug ==> Stone Floor	
+		ObjectData.getObjectData(888).decaysToObj = 884; // 888 Bear Skin Rug ==> Stone Floor
 
 		ObjectData.getObjectData(3290).decayFactor = 2; // 3290 Pine Floor
 
 		// set
 		ObjectData.getObjectData(115).decayFactor = 2; // Pine Door (horizontal)
 		ObjectData.getObjectData(115).decaysToObj = 96; // Pine Door (horizontal) ==> 96 Pine Needles
-		
+
 		ObjectData.getObjectData(119).decayFactor = 2; // Open Pine Door (horizontal)
 		ObjectData.getObjectData(119).decaysToObj = 96; // Open Pine Door (horizontal) ==> 96 Pine Needles
 		ObjectData.getObjectData(119).rValue = 0.2; // Open Pine Door (horizontal)
 
 		ObjectData.getObjectData(116).decayFactor = 2; // Pine Door (vertical)
 		ObjectData.getObjectData(116).decaysToObj = 96; // Pine Door (vertical) ==> 96 Pine Needles
-		
+
 		ObjectData.getObjectData(117).decayFactor = 2; // Open Pine Door (vertical)
 		ObjectData.getObjectData(117).decaysToObj = 96; // Open Pine Door (vertical) ==> 96 Pine Needles
 		ObjectData.getObjectData(117).rValue = 0.2; // Open Pine Door (vertical)
 
 		ObjectData.getObjectData(111).decayFactor = 2; // Pine Wall corner
-		ObjectData.getObjectData(111).decaysToObj = 96; //Pine Wall ==> 96 Pine Needles
+		ObjectData.getObjectData(111).decaysToObj = 96; // Pine Wall ==> 96 Pine Needles
 		ObjectData.getObjectData(113).decayFactor = 2; // Pine Wall verticalPine
 		ObjectData.getObjectData(113).decaysToObj = 96; // Pine Wall ==> 96 Pine Needles
 		ObjectData.getObjectData(112).decayFactor = 2; // Pine Wall horizontalPine
@@ -791,7 +792,7 @@ class ServerSettings {
 		ObjectData.getObjectData(3310).decaysToObj = 96; // Marked Pine Wall ==> 96 Pine Needles
 
 		// set doors
-		//ObjectData.getObjectData(876).rValue = 0.9; // 75% // Wooden Door 
+		// ObjectData.getObjectData(876).rValue = 0.9; // 75% // Wooden Door
 		ObjectData.getObjectData(876).decaysToObj = 470; // Wooden Door (horizontal) ==> Boards
 		ObjectData.getObjectData(878).decaysToObj = 470; // Open Wooden Door (horizontal) ==> Boards
 		ObjectData.getObjectData(878).rValue = 0.2; // Open Wooden Door (horizontal)
@@ -803,18 +804,18 @@ class ServerSettings {
 		ObjectData.getObjectData(2757).decaysToObj = 876; // Springy Wooden Door ==> Wooden Door
 		ObjectData.getObjectData(2757).blocksAnimal = true; // Springy Wooden Door
 
-		// set stone wall decay	
+		// set stone wall decay
 		ObjectData.getObjectData(885).decayFactor = 0.2; //  Stone Wall+cornerStone
 		ObjectData.getObjectData(885).decaysToObj = 1853; //  Stone Wall+cornerStone ==> Cut Stones
 		ObjectData.getObjectData(886).decayFactor = 0.2; //  Stone Wall+verticalStone
 		ObjectData.getObjectData(886).decaysToObj = 1853; //  Stone Wall+verticalStone  ==> Cut Stones
 		ObjectData.getObjectData(887).decayFactor = 0.2; //  Stone Wall+horizontalStone
 		ObjectData.getObjectData(887).decaysToObj = 1853; //  Stone Wall+horizontalStone  ==> Cut Stones
-		//trace('isPermanent ${ObjectData.getObjectData(155).isPermanent()}');
+		// trace('isPermanent ${ObjectData.getObjectData(155).isPermanent()}');
 
 		// TODO split up decay of walled containers in box and wall
 		ObjectData.getObjectData(3240).decayFactor = 0.2; // Wall Shelf
-		ObjectData.getObjectData(3240).decaysToObj = 434; // Wall Shelf ==> Wooden Box 
+		ObjectData.getObjectData(3240).decaysToObj = 434; // Wall Shelf ==> Wooden Box
 		ObjectData.getObjectData(3240).rValue = 0.98;
 
 		ObjectData.getObjectData(3241).decayFactor = 0.2; // Wall Shelf with Slot Notches
@@ -830,30 +831,30 @@ class ServerSettings {
 		ObjectData.getObjectData(154).decaysToObj = 889; //  Adobe Wall+corner  ==> Cracking Adobe Wall corner
 		ObjectData.getObjectData(155).decaysToObj = 891; //  Adobe Wall+horizontalAdobe  ==> Cracking Adobe Wall
 		ObjectData.getObjectData(156).decaysToObj = 890; //  Fixed Adobe Wall (vertical)  ==> Cracking Adobe Wall (vertival)
-		
+
 		// Plastered Walls
 		ObjectData.getObjectData(1883).decaysToObj = 154; // Plaster Wall (corner) ==> 155 Adobe Wall (Vorner)
-		ObjectData.getObjectData(1884).decaysToObj = 156; // Plaster Wall (auto vertical) ==> 156 Adobe Wall ( vertical)		
+		ObjectData.getObjectData(1884).decaysToObj = 156; // Plaster Wall (auto vertical) ==> 156 Adobe Wall ( vertical)
 		ObjectData.getObjectData(1885).decaysToObj = 155; // Plaster Wall (auto horizontal) ==> 155 Adobe Wall (horizontal))
 
-		ObjectData.getObjectData(1883).decayFactor = 0.2; 
-		ObjectData.getObjectData(1884).decayFactor = 0.2; 
-		ObjectData.getObjectData(1885).decayFactor = 0.2; 
+		ObjectData.getObjectData(1883).decayFactor = 0.2;
+		ObjectData.getObjectData(1884).decayFactor = 0.2;
+		ObjectData.getObjectData(1885).decayFactor = 0.2;
 
-		ObjectData.getObjectData(1883).rValue = 0.98; 
-		ObjectData.getObjectData(1884).rValue = 0.98; 
-		ObjectData.getObjectData(1885).rValue = 0.98; 
-		
+		ObjectData.getObjectData(1883).rValue = 0.98;
+		ObjectData.getObjectData(1884).rValue = 0.98;
+		ObjectData.getObjectData(1885).rValue = 0.98;
+
 		// TODO colored walls
 
 		// set object decay
 		ObjectData.getObjectData(1598).decayFactor = -1; // 1598 Iron Ore Pile
 		ObjectData.getObjectData(1837).decayFactor = -1; // 1837 Stack of Steel Ingots
-		
+
 		// TODO set water right and add further wells like deep well
 		ObjectData.getObjectData(662).decayFactor = 0.1; // 662 Shallow Well
 		ObjectData.getObjectData(662).decaysToObj = 3030; // 662 Shallow Well ==> 3030 Natural Spring
-		//ObjectData.getObjectData(662).useChance = 0.1; // original 0.03
+		// ObjectData.getObjectData(662).useChance = 0.1; // original 0.03
 
 		ObjectData.getObjectData(303).decaysToObj = 238; // 303 Forge ==> 238 Adobe Kiln
 		ObjectData.getObjectData(303).decaysToObj = 238; // 305 Forge with Charcoal ==> 238 Adobe Kiln
@@ -868,7 +869,7 @@ class ServerSettings {
 
 		// high tech stuff // TODO add more or use a general solution
 		ObjectData.getObjectData(2365).decaysToObj = 2385; // 2365 Diesel Engine --> 2385 Diesel Drive Assembly
-		ObjectData.getObjectData(2385).decaysToObj = 2383; // 2385 Diesel Drive Assembl --> 2383 Diesel Crank Assembly  
+		ObjectData.getObjectData(2385).decaysToObj = 2383; // 2385 Diesel Drive Assembl --> 2383 Diesel Crank Assembly
 
 		ObjectData.getObjectData(2240).decaysToObj = 2243; // 2240 Newcomen Hammer --> 2243 Multipurpose Newcomen Engine
 		ObjectData.getObjectData(2243).decaysToObj = 2245; // 2243 Multipurpose Newcomen Engine --> 2245 Newcomen Engine without Rope
@@ -885,7 +886,7 @@ class ServerSettings {
 		ObjectData.getObjectData(2356).decaysToObj = 2262; // 2356 Lathe Mechanism --> 2262 Pulley Drive Mechanism
 
 		ObjectData.getObjectData(2365).decaysToObj = 2243; // 2395 Crude Car with Empty Tank --> 2365 Diesel Engine
-		
+
 		ObjectData.getObjectData(4144).useChance = 0.5; // old 1 // Dug Potatoes 4144
 
 		ObjectData.getObjectData(237).allowFloorPlacement = true; // Adobe Oven 237
@@ -893,12 +894,12 @@ class ServerSettings {
 		// set hungry work
 		// TODO use tool hungry work factor
 		/*
-		ObjectData.getObjectData(34).hungryWork = 1 * HungryWorkToolCostFactor; // Sharp Stone
-		ObjectData.getObjectData(334).hungryWork = 1 * HungryWorkToolCostFactor; // Steel Axe
-		ObjectData.getObjectData(502).hungryWork = 1 * HungryWorkToolCostFactor; // Shovel // TODO should be cheaper then sharp stone
-		*/
-		//ObjectData.getObjectData(334).hungryWork = -1; // Steel Axe
-		//ObjectData.getObjectData(502).hungryWork = -1; // Shovel 
+			ObjectData.getObjectData(34).hungryWork = 1 * HungryWorkToolCostFactor; // Sharp Stone
+			ObjectData.getObjectData(334).hungryWork = 1 * HungryWorkToolCostFactor; // Steel Axe
+			ObjectData.getObjectData(502).hungryWork = 1 * HungryWorkToolCostFactor; // Shovel // TODO should be cheaper then sharp stone
+		 */
+		// ObjectData.getObjectData(334).hungryWork = -1; // Steel Axe
+		// ObjectData.getObjectData(502).hungryWork = -1; // Shovel
 		ObjectData.getObjectData(857).hungryWork = -2; // Steel Hoe
 
 		ObjectData.getObjectData(1849).hungryWork = 5; // Buried Grave with Dug Stone
@@ -911,7 +912,7 @@ class ServerSettings {
 		ObjectData.getObjectData(3961).hungryWork = 5; // Iron Vein
 		ObjectData.getObjectData(496).hungryWork = 5; // Dug Stump
 		ObjectData.getObjectData(1011).hungryWork = 5; // Buried Grave
-		//ObjectData.getObjectData(357).hungryWork = 5; // Bone Pile // Dont set!!!
+		// ObjectData.getObjectData(357).hungryWork = 5; // Bone Pile // Dont set!!!
 
 		ObjectData.getObjectData(213).hungryWork = 3; // Deep Tilled Row
 		ObjectData.getObjectData(1136).hungryWork = 3; // Shallow Tilled Row
@@ -928,7 +929,7 @@ class ServerSettings {
 
 		// let loved food grow in loved biomes
 		ObjectData.getObjectData(4251).biomes.push(BiomeTag.GREY); // Wild Garlic is loved now by White
-		//ObjectData.getObjectData(36).biomes.push(BiomeTag.SNOW); // Wild Carrot is loved now by Ginger
+		// ObjectData.getObjectData(36).biomes.push(BiomeTag.SNOW); // Wild Carrot is loved now by Ginger
 
 		// is set directly in map WorldMap generation
 		// ObjectData.getObjectData(141).biomes.push(BiomeTag.PASSABLERIVER); // Canada Goose Pond
@@ -952,17 +953,17 @@ class ServerSettings {
 		ObjectData.getObjectData(511).countsOrGrowsAs = 1261; // Pond
 		ObjectData.getObjectData(512).countsOrGrowsAs = 1261; // Dry Pond
 
-		ObjectData.getObjectData(409).countsOrGrowsAs = 125;  // Clay Pit (partial) --> Clay Deposit 
+		ObjectData.getObjectData(409).countsOrGrowsAs = 125; // Clay Pit (partial) --> Clay Deposit
 
-		ObjectData.getObjectData(404).countsOrGrowsAs = 1435;  // Bison with Calf --> Bison
+		ObjectData.getObjectData(404).countsOrGrowsAs = 1435; // Bison with Calf --> Bison
 
-		ObjectData.getObjectData(1328).countsOrGrowsAs = 1323;  // Wild Boar with Piglet --> Wild Boar
+		ObjectData.getObjectData(1328).countsOrGrowsAs = 1323; // Wild Boar with Piglet --> Wild Boar
 
-		ObjectData.getObjectData(762).countsOrGrowsAs = 761;  // Flowering Barrel Cactus --> Barrel Cactus
-		ObjectData.getObjectData(763).countsOrGrowsAs = 761;  // Fruiting Barrel Cactus --> Barrel Cactus
+		ObjectData.getObjectData(762).countsOrGrowsAs = 761; // Flowering Barrel Cactus --> Barrel Cactus
+		ObjectData.getObjectData(763).countsOrGrowsAs = 761; // Fruiting Barrel Cactus --> Barrel Cactus
 
-		ObjectData.getObjectData(2145).countsOrGrowsAs = 2142;  // Empty Banana Plant --> Banana Plant
-		ObjectData.getObjectData(279).countsOrGrowsAs = 30;  // Empty Wild Gooseberry Bush --> Wild Gooseberry Bush
+		ObjectData.getObjectData(2145).countsOrGrowsAs = 2142; // Empty Banana Plant --> Banana Plant
+		ObjectData.getObjectData(279).countsOrGrowsAs = 30; // Empty Wild Gooseberry Bush --> Wild Gooseberry Bush
 
 		ObjectData.getObjectData(164).secondTimeOutcome = 173; // Rabbit Hole out,single ==> Rabbit Family Hole out
 		ObjectData.getObjectData(164).secondTimeOutcomeTimeToChange = 90;
@@ -975,8 +976,8 @@ class ServerSettings {
 
 		ObjectData.getObjectData(3566).countsOrGrowsAs = 161; // Fleeing Rabbit
 		// dont block walking TODO needs client change
-		//ObjectData.getObjectData(231).blocksWalking = false; // Adobe Oven Base
-		//ObjectData.getObjectData(237).blocksWalking = false; // Adobe Oven
+		// ObjectData.getObjectData(231).blocksWalking = false; // Adobe Oven Base
+		// ObjectData.getObjectData(237).blocksWalking = false; // Adobe Oven
 
 		// Change map spawn chances
 		ObjectData.getObjectData(3030).mapChance *= 3; // Natural Spring
@@ -984,7 +985,7 @@ class ServerSettings {
 		// ObjectData.getObjectData(769).biomes.push(BiomeTag.GREEN); // Beautiful Horses now also in Green biome :)
 
 		// 3961 Iron Vein use spawn chance from Muddy Iron Vein X10
-		ObjectData.getObjectData(3961).mapChance = ObjectData.getObjectData(942).mapChance *= 10; 
+		ObjectData.getObjectData(3961).mapChance = ObjectData.getObjectData(942).mapChance *= 10;
 		ObjectData.getObjectData(3961).biomes = ObjectData.getObjectData(942).biomes;
 		// spawn Iron Vein instead of Muddy Iron Vein
 		ObjectData.getObjectData(942).mapChance = 0; // Muddy Iron Vein // spawn 3961 Iron Vein instead
@@ -1009,7 +1010,7 @@ class ServerSettings {
 		ObjectData.getObjectData(602).biomes.push(BiomeTag.GREEN); // Fed Domestic Lamb
 		ObjectData.getObjectData(542).biomes.push(BiomeTag.GREEN); // Domestic Lamb
 		ObjectData.getObjectData(604).biomes.push(BiomeTag.GREEN); // Hungry Domestic Lamb
-		
+
 		ObjectData.getObjectData(1489).biomes.push(BiomeTag.GREEN); // Milk Cow
 		ObjectData.getObjectData(1492).biomes.push(BiomeTag.GREEN); // Dry Milk Cow
 		ObjectData.getObjectData(1488).biomes.push(BiomeTag.GREEN); // Fed Domestic Cow
@@ -1018,10 +1019,10 @@ class ServerSettings {
 		ObjectData.getObjectData(1485).biomes.push(BiomeTag.GREEN); // Fed Domestic Calf
 		ObjectData.getObjectData(1459).biomes.push(BiomeTag.GREEN); // Domestic Calf
 
-		ObjectData.getObjectData(770).biomes.push(BiomeTag.GREEN); // Riding Horse		
+		ObjectData.getObjectData(770).biomes.push(BiomeTag.GREEN); // Riding Horse
 		ObjectData.getObjectData(780).biomes.push(BiomeTag.GREEN); // Escaped Horse-Drawn Cart
-		ObjectData.getObjectData(3157).biomes.push(BiomeTag.GREEN); // Escaped Horse-Drawn Tire Cart	
-		
+		ObjectData.getObjectData(3157).biomes.push(BiomeTag.GREEN); // Escaped Horse-Drawn Tire Cart
+
 		// set loved biomes right
 		ObjectData.getObjectData(1328).biomes = []; // Wild Boar with Piglet
 		ObjectData.getObjectData(1328).biomes.push(BiomeTag.SWAMP); // Wild Boar with Piglet
@@ -1030,7 +1031,7 @@ class ServerSettings {
 		ObjectData.getObjectData(631).biomes.push(BiomeTag.GREY); // Hungry Grizzly Bear
 		ObjectData.getObjectData(632).biomes = []; // Shot Grizzly Bear
 		ObjectData.getObjectData(632).biomes.push(BiomeTag.GREY); // Shot Grizzly Bear
-		ObjectData.getObjectData(635).biomes = []; // Shot Grizzly Bear 2 
+		ObjectData.getObjectData(635).biomes = []; // Shot Grizzly Bear 2
 		ObjectData.getObjectData(635).biomes.push(BiomeTag.GREY); // Shot Grizzly Bear 2
 
 		// More Wolfs needs the world
@@ -1061,7 +1062,7 @@ class ServerSettings {
 		ObjectData.getObjectData(861).speedMult = 0.85; // // Old Hand Cart
 		ObjectData.getObjectData(2172).speedMult = 0.9; // Hand Cart with Tires
 
-		// nerve food		
+		// nerve food
 		ObjectData.getObjectData(768).foodValue = 6; // Cactus Fruit 768 // origional 8
 		ObjectData.getObjectData(2143).foodValue = 6; // banana // origional 7
 		ObjectData.getObjectData(31).foodValue = 3; // Gooseberry // origional 3
@@ -1072,9 +1073,9 @@ class ServerSettings {
 		ObjectData.getObjectData(40).foodValue = 5; // Wild Carrot // origional 5
 		ObjectData.getObjectData(402).foodValue = 5; // Carrot // origional 5
 		ObjectData.getObjectData(4252).foodValue = 4; // WILD GARLIC 4252 // origional 4
-		//ObjectData.getObjectData(837).foodValue = 1; // PSILOCYBE MUSHROOM 837 // origional 1
+		// ObjectData.getObjectData(837).foodValue = 1; // PSILOCYBE MUSHROOM 837 // origional 1
 
-		// boost hunted / cooked food  
+		// boost hunted / cooked food
 		ObjectData.getObjectData(197).foodValue = 25; // Cooked Rabbit 10 --> 25
 		ObjectData.getObjectData(2190).foodValue = 20; // Turkey Slice on Plate 17 --> 20
 		ObjectData.getObjectData(1285).foodValue = 15; // Omelette 12 --> 15
@@ -1088,7 +1089,7 @@ class ServerSettings {
 		// soil should replace water as most needed ressource
 		// composted soil has default 7 uses and each of it can be used twice for soil so in total 14
 		ObjectData.getObjectData(624).numUses = 7; // default 7 Composted Soil Uses: 3 Soil (Wheat, Berry, Dung) + water ==> 4 Soil
-		//ObjectData.getObjectData(411).useChance = 0.5; // Fertile Soil Pit 9 uses --> 18
+		// ObjectData.getObjectData(411).useChance = 0.5; // Fertile Soil Pit 9 uses --> 18
 
 		// TODO let rows decay from time to time to increase soil need.
 
@@ -1161,7 +1162,7 @@ class ServerSettings {
 		ObjectData.getObjectData(31).winterDecayFactor = 2; // Gooseberry
 
 		// Domestic Gooseberry Bush
-		//ObjectData.getObjectData(391).winterDecayFactor = 1; // Domestic Gooseberry Bush
+		// ObjectData.getObjectData(391).winterDecayFactor = 1; // Domestic Gooseberry Bush
 		ObjectData.getObjectData(391).springRegrowFactor = 0.2; // Domestic Gooseberry Bush
 		ObjectData.getObjectData(1135).springRegrowFactor = 0.2; // Empty Domestic Gooseberry Bush
 
@@ -1191,9 +1192,9 @@ class ServerSettings {
 		ObjectData.getObjectData(749).deadlyDistance = 4; // Bloody Yew Bow
 
 		// Riding Horse
-		ObjectData.getObjectData(770).damageProtectionFactor = 0.5; // 50% protection 
+		ObjectData.getObjectData(770).damageProtectionFactor = 0.5; // 50% protection
 		// Knife
-		ObjectData.getObjectData(560).damageProtectionFactor = 0.8; // 20% protection 
+		ObjectData.getObjectData(560).damageProtectionFactor = 0.8; // 20% protection
 		// War Sword
 		ObjectData.getObjectData(3047).damageProtectionFactor = 0.8; // 20% protection 36% for nobles
 
@@ -1275,7 +1276,7 @@ class ServerSettings {
 		ObjectData.getObjectData(4655).isBoat = true; // Delivery Truck
 		ObjectData.getObjectData(4655).speedMult = 1;
 
-		// blocks domestic animal 
+		// blocks domestic animal
 		ObjectData.getObjectData(1851).decayFactor = ObjDecayFactorOnFloor; // Fence Gate
 		ObjectData.getObjectData(1851).decaysToObj = 550; // Fence Gate ==> Fence
 		ObjectData.getObjectData(1851).blocksDomesticAnimal = true; // Fence Gate
@@ -1284,16 +1285,16 @@ class ServerSettings {
 
 		// Springy Wooden Door 2762 Horizontal
 		ObjectData.getObjectData(2762).decaysToObj = 878; // Open Wooden Door Horizontal
-		ObjectData.getObjectData(2762).blocksDomesticAnimal = true; 
+		ObjectData.getObjectData(2762).blocksDomesticAnimal = true;
 		ObjectData.getObjectData(2762).blocksAnimal = true;
 
-		// Springy Wooden Door 2759 Vertical 
+		// Springy Wooden Door 2759 Vertical
 		ObjectData.getObjectData(2759).decaysToObj = 879; // Open Wooden Door Vertical
-		ObjectData.getObjectData(2759).blocksDomesticAnimal = true; 
+		ObjectData.getObjectData(2759).blocksDomesticAnimal = true;
 		ObjectData.getObjectData(2759).blocksAnimal = true;
-		
-		//ObjectData.getObjectData(2762).blocksAnimal = true;
-		
+
+		// ObjectData.getObjectData(2762).blocksAnimal = true;
+
 		ObjectData.getObjectData(4154).decayFactor = ObjDecayFactorOnFloor; // Hitching Post
 		ObjectData.getObjectData(4154).decaysToObj = 556; // Hitching Post  ==> Fence Kit
 		ObjectData.getObjectData(4154).groundOnly = true; // Hitching Post
@@ -1309,12 +1310,12 @@ class ServerSettings {
 		ObjectData.getObjectData(551).decayFactor = ObjDecayFactorOnFloor; // Fence +cornerFence
 		ObjectData.getObjectData(551).decaysToObj = 556; // Fence +cornerFence ==> Fence Kit
 		ObjectData.getObjectData(551).groundOnly = true; // Fence +cornerFence
-		
+
 		ObjectData.getObjectData(556).blocksDomesticAnimal = true; // Fence Kit
 
-		//ObjectData.getObjectData(3862).decayFactor = ObjDecayFactorOnFloor; // Dung Box
+		// ObjectData.getObjectData(3862).decayFactor = ObjDecayFactorOnFloor; // Dung Box
 		ObjectData.getObjectData(3862).decaysToObj = 434; // Dung Box ==> Wooden Box
-		//ObjectData.getObjectData(3862).groundOnly = true; // Dung Box
+		// ObjectData.getObjectData(3862).groundOnly = true; // Dung Box
 
 		ObjectData.getObjectData(542).useChance = 0.1; // Domestic Lamb
 		ObjectData.getObjectData(604).useChance = 0.1; // Hungry Domestic Lamb
@@ -1334,15 +1335,15 @@ class ServerSettings {
 
 		ObjectData.getObjectData(4647).unreleased = true; // Truck Chassis
 
-		ObjectData.getObjectData(1605).numSlots = 0; //Stack of Baskets // TODO allow stacking of filled baskets
+		ObjectData.getObjectData(1605).numSlots = 0; // Stack of Baskets // TODO allow stacking of filled baskets
 
 		// ObjectData.getObjectData(279).winterDecayFactor = 2; // Empty Wild Gooseberry Bush
 		// ObjectData.getObjectData(279).springRegrowFactor = 0.5; // Empty Wild Gooseberry Bush
 		// ObjectData.getObjectData(279).countsOrGrowsAs = 30; // Empty Wild Gooseberry Bush
 
-		//var obj = ObjectData.getObjectData(604); // Hungry Domestic Lamb
+		// var obj = ObjectData.getObjectData(604); // Hungry Domestic Lamb
 
-		//trace('${obj.description} uses: ${obj.numUses} chance: ${obj.useChance}');
+		// trace('${obj.description} uses: ${obj.numUses} chance: ${obj.useChance}');
 
 		// var obj = ObjectData.getObjectData(624);
 
@@ -1374,20 +1375,20 @@ class ServerSettings {
 		var trans = transtions.getTransition(-1, 761); // Barrel Cactus 761
 		trans.autoDecaySeconds = 600; // default: 5 * 60 = 300
 
-		var trans = transtions.getTransition(-1, 282); // Firing Adobe Kiln 
-		trans.autoDecaySeconds = 40; // default: 30 
+		var trans = transtions.getTransition(-1, 282); // Firing Adobe Kiln
+		trans.autoDecaySeconds = 40; // default: 30
 
 		var trans = transtions.getTransition(-1, 885); // Stone Wall (Corner) ==> Ancient
-		trans.autoDecaySeconds = -24 * 10; // default: -10 
+		trans.autoDecaySeconds = -24 * 10; // default: -10
 		var trans = transtions.getTransition(-1, 886); // Stone Wall (vertical) ==> Ancient
-		trans.autoDecaySeconds = -24 * 10; // default: -10 
+		trans.autoDecaySeconds = -24 * 10; // default: -10
 		var trans = transtions.getTransition(-1, 887); // Stone Wall (horizontal) ==> Ancient
-		trans.autoDecaySeconds = -24 * 10; // default: -10 
+		trans.autoDecaySeconds = -24 * 10; // default: -10
 		var trans = transtions.getTransition(-1, 884); // Stone Floor ==> Ancient
 		trans.autoDecaySeconds = -24 * 10; // default: -10 // TODO implement time for floors
 
-		//var trans = new TransitionData(96, 237, 0, 3290); // Pine Needles 96 + Adobe Oven 237  ==> Pine Floor 3290
-		//transtions.addTransition("PatchTransitions: ", trans);
+		// var trans = new TransitionData(96, 237, 0, 3290); // Pine Needles 96 + Adobe Oven 237  ==> Pine Floor 3290
+		// transtions.addTransition("PatchTransitions: ", trans);
 
 		// lower age for weapons since kids so or so make less damage since they have less health pipes
 		ObjectData.getObjectData(151).minPickupAge = 10; // 12   // War Sword
@@ -1399,7 +1400,7 @@ class ServerSettings {
 		ObjectData.getObjectData(3047).damage = 6; // War Sword // damage per sec = 3
 		ObjectData.getObjectData(152).damage = 6; // Bow and Arrow  //
 		ObjectData.getObjectData(1624).damage = 10; // Bow and Arrow with Note  //
-		
+
 		var trans = transtions.getTransition(-1, 750); // Bloody Knife
 		trans.autoDecaySeconds = 15;
 
@@ -1421,31 +1422,31 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 		var trans = new TransitionData(560, 1328, 750, 1331); // Knife + Wild Boar with Piglet ==> Bloody Knife + Shot Boar with Piglet
 		transtions.addTransition("PatchTransitions: ", trans);
-		
+
 		// TODO add graphics for dead cow
 		// Knife + Domestic Cow ==> Bloody Knife + Butchered Sheep 587
-		//var trans = new TransitionData(560, 1458, 750, 587); 
+		// var trans = new TransitionData(560, 1458, 750, 587);
 		// Knife + Domestic Cow ==> Knife + Dead Cow 1900
-		var trans = new TransitionData(560, 1458, 560, 1900); 
+		var trans = new TransitionData(560, 1458, 560, 1900);
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
-		
+
 		// Knife + Domestic Calf 1459 ==> Knife + Dead Domestic Calf 1487
-		var trans = new TransitionData(560, 1459, 560, 1487); 
+		var trans = new TransitionData(560, 1459, 560, 1487);
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Knife + Hungry Domestic Calf 1462 ==> Knife + Dead Domestic Calf 1487
-		var trans = new TransitionData(560, 1462, 560, 1487); 
+		var trans = new TransitionData(560, 1462, 560, 1487);
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Knife + Dead Cow 1900 ==> Knife + Butchered Sheep 587
-		var trans = new TransitionData(560, 1900, 560, 587); 
+		var trans = new TransitionData(560, 1900, 560, 587);
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Knife + Dead Domestic Calf 1487 ==> Knife + Butchered Sheep 587
-		var trans = new TransitionData(560, 1487, 560, 587); 
+		var trans = new TransitionData(560, 1487, 560, 587);
 		trans.targetNumberOfUses = 2; // give only two meat
 		transtions.addTransition("PatchTransitions: ", trans);
 
@@ -1459,11 +1460,11 @@ class ServerSettings {
 
 		// TODO add graphics for dead cow
 		// War Sword + Domestic Cow ==> Bloody War Sword + Butchered Sheep 587
-		var trans = new TransitionData(3047, 1458, 3048, 587); 
+		var trans = new TransitionData(3047, 1458, 3048, 587);
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
-		
-		var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0 
+
+		var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0
 		trans.newActorID = 151; // Yew Bow instead of Yew Bow just shot
 		transtions.addTransition("PatchTransitions: ", trans);
 
@@ -1597,16 +1598,16 @@ class ServerSettings {
 		trans = new TransitionData(-1, 1442, 0, 1444); // Dead Bison arrow 2 --> Dead Bison arrow 1
 		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
-		
-		trans = new TransitionData(-1, 1444, 0, 1446); // Dead Bison arrow 1 --> Dead Bison
-		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1444, 0, 1446); // Dead Bison arrow 1 --> Dead Bison
 		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		trans = new TransitionData(-1, 1441, 0, 1443); // Dead Bison with Calf arrow 2  --> Dead Bison with Calf arrow 1 
+		trans = new TransitionData(-1, 1444, 0, 1446); // Dead Bison arrow 1 --> Dead Bison
+		trans.autoDecaySeconds = -1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 1441, 0, 1443); // Dead Bison with Calf arrow 2  --> Dead Bison with Calf arrow 1
 		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
@@ -1663,13 +1664,13 @@ class ServerSettings {
 				trace('DEBUG!!! TOOL: ${trans.getDesciption()}');
 			}*/
 			/*var targetObj = ObjectData.getObjectData(trans.targetID); 
-			var targetChanged = trans.targetID != trans.newTargetID;
-			if(trans.noUseTarget == false && targetChanged && targetObj.numUses > 1 && trans.actorID > 0 && trans.reverseUseTarget == false){
-				trace('DEBUG!!! numUses > 1: ${trans.getDesciption()}');
+				var targetChanged = trans.targetID != trans.newTargetID;
+				if(trans.noUseTarget == false && targetChanged && targetObj.numUses > 1 && trans.actorID > 0 && trans.reverseUseTarget == false){
+					trace('DEBUG!!! numUses > 1: ${trans.getDesciption()}');
 			}*/
 
 			if (trans.actorID < -1) {
-				//trace('Debug ${trans.getDesciption()}');
+				// trace('Debug ${trans.getDesciption()}');
 				// trans.traceTransition("PatchTransitions: ", true);
 
 				trans.actorID = 0;
@@ -1684,18 +1685,17 @@ class ServerSettings {
 			}
 
 			// 150 min like deep well // 0.53 bowls per min
-			if (trans.autoDecaySeconds == 9000){  
-			
+			if (trans.autoDecaySeconds == 9000) {
 				trans.autoDecaySeconds = 1200; // 20 min one bucket // use chance: 12.5% = 8 Buckets (bucket has 10 Bowls of Water): 80 uses / 20 min = 4 bowls per min
 
 				// trans.traceTransition("PatchTransitions: ", true);
 			}
 
-			// Shallow Well 662 
-			if (trans.autoDecaySeconds == 2160){ 
+			// Shallow Well 662
+			if (trans.autoDecaySeconds == 2160) {
 				// 2160 =  36 min // 0.91 bowls per min
 				// 720 = 12 min // use chance 3%: 33 uses / 12 min = 2.7 bowls per min
-				trans.autoDecaySeconds = 720; 
+				trans.autoDecaySeconds = 720;
 				// trans.traceTransition("PatchTransitions: ", true);
 			}
 		}
@@ -1703,37 +1703,37 @@ class ServerSettings {
 		// Fix pickup transitions
 
 		// Escaped Horse-Drawn Cart just released
-		trans = transtions.getTransition(0, 1422); 
+		trans = transtions.getTransition(0, 1422);
 		trans.isPickupOrDrop = true;
 		// Escaped Horse-Drawn Cart
-		trans = transtions.getTransition(0, 780); 
+		trans = transtions.getTransition(0, 780);
 		trans.isPickupOrDrop = true;
 		// Hitched Horse-Drawn Cart
-		trans = transtions.getTransition(0, 779); 
+		trans = transtions.getTransition(0, 779);
 		trans.isPickupOrDrop = true;
 		// Escaped Horse-Drawn Tire Cart released
-		trans = transtions.getTransition(0, 3161); 
+		trans = transtions.getTransition(0, 3161);
 		trans.isPickupOrDrop = true;
 		// Escaped Horse-Drawn Tire Cart
-		trans = transtions.getTransition(0, 3157); 
+		trans = transtions.getTransition(0, 3157);
 		trans.isPickupOrDrop = true;
 		// Hitched Horse-Drawn Tire Cart
-		trans = transtions.getTransition(0, 3159); 
+		trans = transtions.getTransition(0, 3159);
 		trans.isPickupOrDrop = true;
 
 		// Graves
 		trans = transtions.getTransition(292, 87); // Basket + Fresh Grave
 		trans.isPickupOrDrop = true;
 		trans = transtions.getTransition(292, 88); // Basket + Grave
-		trans.isPickupOrDrop = true;	
+		trans.isPickupOrDrop = true;
 		trans = transtions.getTransition(292, 89); // Basket + Old Grave
 		trans.isPickupOrDrop = true;
 		trans = transtions.getTransition(292, 357); // Basket + Bone Pile
 		trans.isPickupOrDrop = true;
 
 		trans = transtions.getTransition(356, -1); // Basket of Bones + 0
-		trans.isPickupOrDrop = true; 
-		
+		trans.isPickupOrDrop = true;
+
 		// Original: Riding Horse: 770 + -1 = 0 + 1421
 		trans = new TransitionData(770, 0, 0, 1421);
 		transtions.addTransition("PatchTransitions: ", trans);
@@ -1745,9 +1745,9 @@ class ServerSettings {
 		trans.newTargetID = 3161;
 		trans.traceTransition("PatchTransitions: ");
 
-		//trans = transtions.getTransition(3158, 550); // Horse-Drawn Tire Cart
-		//trans.newTargetID = 3161;
-		//trace('trans: ${trans.getDesciption()}');
+		// trans = transtions.getTransition(3158, 550); // Horse-Drawn Tire Cart
+		// trans.newTargetID = 3161;
+		// trace('trans: ${trans.getDesciption()}');
 
 		// original transition makes cart loose rubber if picking up horse cart
 
@@ -1777,23 +1777,23 @@ class ServerSettings {
 
 		// Escaped Horse-Drawn Cart just released
 		trans = transtions.getTransition(-1, 1422);
-		trans.autoDecaySeconds = 15;  // 7
+		trans.autoDecaySeconds = 15; // 7
 
 		// Escaped Horse-Drawn Cart
 		trans = transtions.getTransition(-1, 780);
 		trans.move = 2; // default 4
 
 		// Escaped Horse-Drawn Tire Cart just released??????
-		//trans = transtions.getTransition(-1, 1361);
-		//trans.autoDecaySeconds = 30;  // 7
+		// trans = transtions.getTransition(-1, 1361);
+		// trans.autoDecaySeconds = 30;  // 7
 
 		trans = transtions.getTransition(3158, 4154); // Horse-Drawn Tire Cart + Hitching Post
 		trans.newTargetID = 3159; // Hitched Horse-Drawn Tire Cart
-		//trace('DEBUG!!!: ${trans.getDesciption()}');
+		// trace('DEBUG!!!: ${trans.getDesciption()}');
 
 		trans = transtions.getTransition(3158, 550); // Horse-Drawn Tire Cart + Fence
 		trans.newTargetID = 3159; // Hitched Horse-Drawn Tire Cart
-		//trace('DEBUG!!!: ${trans.getDesciption()}');
+		// trace('DEBUG!!!: ${trans.getDesciption()}');
 
 		// 141 Canada Goose Pond
 		// 1261 Canada Goose Pond with Egg // TODO let egg come back
@@ -1811,7 +1811,7 @@ class ServerSettings {
 		// trans.traceTransition("PatchTransitions: ");
 
 		// new bears needs the world
-		trans = new TransitionData(-1, 650, 0, 630); //Bear Cave Empty --> Bear Cave
+		trans = new TransitionData(-1, 650, 0, 630); // Bear Cave Empty --> Bear Cave
 		trans.autoDecaySeconds = -48;
 		transtions.addTransition("PatchTransitions: ", trans);
 
@@ -1846,7 +1846,7 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		// get some ropes back	
+		// get some ropes back
 		trans = new TransitionData(34, 850, 34, 92); // Sharp Stone + Stone Hoe --> Sharp Stone + Tied Long Shaft
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
@@ -1858,8 +1858,8 @@ class ServerSettings {
 
 		trans = new TransitionData(0, 92, 59, 67); // 0 + Tied Long Shaft --> Rope + Long Straight Shaft
 		transtions.addTransition("PatchTransitions: ", trans);
-		
-		//trans = new TransitionData(135, 71, 135, 70); // Flint Chip + Stone Hatchet --> Flint Chip + Tied Short Shaft
+
+		// trans = new TransitionData(135, 71, 135, 70); // Flint Chip + Stone Hatchet --> Flint Chip + Tied Short Shaft
 		trans = new TransitionData(34, 71, 34, 70); // Sharp Stone + Stone Hatchet --> Sharp Stone + Tied Short Shaft
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
@@ -1888,24 +1888,24 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Clay Bowl + Wild Gooseberry Bush --> Bowl of Gooseberries + Wild Gooseberry Bush
-		trans = new TransitionData(235, 30, 253, 30); 
+		trans = new TransitionData(235, 30, 253, 30);
 		trans.reverseUseActor = true; // otherwise new bowl will be full with berries
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Bowl of Gooseberries + Wild Gooseberry Bush (Last) --> Bowl of Gooseberries(+1) + Empty Wild Gooseberry Bush
-		trans = new TransitionData(253, 30, 253, 279); 
+		trans = new TransitionData(253, 30, 253, 279);
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Clay Bowl + Wild Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Wild Gooseberry Bush
-		trans = new TransitionData(235, 30, 253, 279); 
+		trans = new TransitionData(235, 30, 253, 279);
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Domestic Gooseberry Bush
 
 		// Bowl of Gooseberries + Domestic Gooseberry Bush --> Bowl of Gooseberries(+1) + Domestic Gooseberry Bush
-		trans = new TransitionData(253, 391, 253, 391); 
+		trans = new TransitionData(253, 391, 253, 391);
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
@@ -1915,67 +1915,67 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Bowl of Gooseberries + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries(+1) + Empty Domestic Wild Gooseberry Bush
-		trans = new TransitionData(253, 391, 253,1135); 
+		trans = new TransitionData(253, 391, 253, 1135);
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Clay Bowl 235 + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Domestic Gooseberry  Bush
-		trans = new TransitionData(235, 391, 253, 1135); 
+		trans = new TransitionData(235, 391, 253, 1135);
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Fill up Bowl of Dry Beans
 		// Bowl of Dry Beans 1176 + Dry Bean Plants 1172
-		trans = new TransitionData(1176, 1172, 1176, 1172); 
+		trans = new TransitionData(1176, 1172, 1176, 1172);
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Bowl of Dry Beans 1176 + Dry Bean Plants 1172 --> Bowl of Dry Beans 1176 + Hardened Row 848
-		trans = new TransitionData(1176, 1172, 1176, 848); 
+		trans = new TransitionData(1176, 1172, 1176, 848);
 		trans.reverseUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Clay Bowl 235 + Dry Bean Plants 1172
-		trans = new TransitionData(235, 1172, 1176, 1172); 
+		trans = new TransitionData(235, 1172, 1176, 1172);
 		trans.reverseUseActor = true;
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Clay Bowl 235 + Dry Bean Plants 1172 --> Bowl of Dry Beans 1176 + Hardened Row 848
-		trans = new TransitionData(235, 1172, 1176, 848); 
+		trans = new TransitionData(235, 1172, 1176, 848);
 		trans.reverseUseActor = true;
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Bowl of Dry Beans 1176 + Deep Tilled Row 213 --> Dry Planted Beans 1161
-		trans = new TransitionData(1176, 213, 1176, 1161); 
+		trans = new TransitionData(1176, 213, 1176, 1161);
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		trans = new TransitionData(1176, 213, 1176, 1161); 
+		trans = new TransitionData(1176, 213, 1176, 1161);
 		transtions.addTransition("PatchTransitions: ", trans, true);
 
 		// Bowl of Soaking Beans 1180 + Hot Adobe Oven 250 ==> Bowl of Cooked Beans 1292
-		trans = new TransitionData(1180, 250, 1292, 250); 
+		trans = new TransitionData(1180, 250, 1292, 250);
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Fishing Pole without Hook + Bone Needle --> Fishing Pole + 0
-		trans = new TransitionData(2092, 191, 2091, 0); 
+		trans = new TransitionData(2092, 191, 2091, 0);
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// 0 + Fishing Pole with Old Boot --> Old Boot + Fishing Pole
-		trans = new TransitionData(0, 2098, 2099, 2091); 
+		trans = new TransitionData(0, 2098, 2099, 2091);
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// 0 + Diesel Mining Pick without Bit --> Diesel Engine + Collapsed Iron Mine
-		trans = new TransitionData(0, 3130, 2365, 945); 
+		trans = new TransitionData(0, 3130, 2365, 945);
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// 0 + Ready Diesel Mining Pick --> Steel Chisel + Diesel Mining Pick without Bit
-		trans = new TransitionData(0, 3129, 455, 3130); 
+		trans = new TransitionData(0, 3129, 455, 3130);
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// 0 + Dry Diesel Water Pump --> Diesel Engine + Unpowered Pump Head
-		trans = new TransitionData(0, 2388, 2365, 3964); 
+		trans = new TransitionData(0, 2388, 2365, 3964);
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// hungry work transitions
@@ -1991,55 +1991,55 @@ class ServerSettings {
 		trans.hungryWorkCost = 5;
 		var trans = transtions.getTransition(684, 1596); // Steel Mining Pick + Stone Road ==> Flat Rock
 		trans.hungryWorkCost = 5;
-		//var trans = transtions.getTransition(33, 32); // Stone + Big Hard Rock ==> Sharp Stone
-		//trans.hungryWorkCost = 5;
+		// var trans = transtions.getTransition(33, 32); // Stone + Big Hard Rock ==> Sharp Stone
+		// trans.hungryWorkCost = 5;
 
 		// Steel Mining Pick 684 + Ancient Stone Wall H 896 ==> Stone Wall
-		trans = new TransitionData(684, 896, 684, 887); 
+		trans = new TransitionData(684, 896, 684, 887);
 		trans.hungryWorkCost = 10;
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// Steel Mining Pick 684 + Ancient Stone Wall C 896 ==> Stone Wall
-		trans = new TransitionData(684, 895, 684, 885); 
+		trans = new TransitionData(684, 895, 684, 885);
 		trans.hungryWorkCost = 10;
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// Steel Mining Pick 684 + Ancient Stone Wall V 897 ==> Stone Wall
-		trans = new TransitionData(684, 897, 684, 886); 
+		trans = new TransitionData(684, 897, 684, 886);
 		trans.hungryWorkCost = 10;
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// most important allow kill moskitos
 		// Firebrand + Mosquito Swarm --> 0 + Ashes
-		trans = new TransitionData(248, 2156, 0,86); 
-		trans.hungryWorkCost = 3;
-		transtions.addTransition("PatchTransitions: ", trans, false, false);
-	
-		// Firebrand + Mosquito Swarm just bit --> 0 + Ashes
-		trans = new TransitionData(248, 2157, 0,86); 
+		trans = new TransitionData(248, 2156, 0, 86);
 		trans.hungryWorkCost = 3;
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 
-		// Bowl of Soil + Fertile Soil Pile 1101 
-		var trans = transtions.getTransition(1137, 1101); 
+		// Firebrand + Mosquito Swarm just bit --> 0 + Ashes
+		trans = new TransitionData(248, 2157, 0, 86);
+		trans.hungryWorkCost = 3;
+		transtions.addTransition("PatchTransitions: ", trans, false, false);
+
+		// Bowl of Soil + Fertile Soil Pile 1101
+		var trans = transtions.getTransition(1137, 1101);
 		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
 
 		var trans = transtions.getTransition(1137, 1101, false, true);
 		trans.targetMinUseFraction = 0;
 
-		// Clay Bowl 235 + Fertile Soil Pile 1101 
-		var trans = transtions.getTransition(235, 1101); 
+		// Clay Bowl 235 + Fertile Soil Pile 1101
+		var trans = transtions.getTransition(235, 1101);
 		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
 
 		var trans = transtions.getTransition(235, 1101, false, true);
 		trans.targetMinUseFraction = 0;
 
 		// Bowl of Soil + Hardened Row --> Shallow Tilled Row
-		var trans = transtions.getTransition(1137, 848); 
+		var trans = transtions.getTransition(1137, 848);
 		trans.hungryWorkCost = -5; // dont let is cost hungry work
 
 		// Mallet + Dug Big Rock with Chisel -- Split Big Rock
-		var trans = transtions.getTransition(467, 508); 
+		var trans = transtions.getTransition(467, 508);
 		trans.hungryWorkCost = 10;
 
 		// give wolfs some meat // TODO change crafting maps
@@ -2071,7 +2071,7 @@ class ServerSettings {
 
 		// Allow to make kindling out of Skewers
 		var trans = new TransitionData(334, 852, 334, 72); // Steel Axe + Weak Skewer --> Kindling
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 		var trans = new TransitionData(71, 852, 71, 72); // Stone Hatchet + Weak Skewer --> Kindling
 		trans.aiShouldIgnore = true;
@@ -2092,24 +2092,23 @@ class ServerSettings {
 		ObjectData.getObjectData(3146).alternativeTransitionOutcome.push(344); // Chopped Softwood Tree --> Fire Wood
 
 		// push Kindling
-		//ObjectData.getObjectData(342).alternativeTransitionOutcome.push(72); // Chopped Tree Big Log--> Kindling
-		//ObjectData.getObjectData(340).alternativeTransitionOutcome.push(72); // Chopped Tree --> Kindling
-		//ObjectData.getObjectData(3146).alternativeTransitionOutcome.push(72); // Chopped Softwood Tree --> Kindling
+		// ObjectData.getObjectData(342).alternativeTransitionOutcome.push(72); // Chopped Tree Big Log--> Kindling
+		// ObjectData.getObjectData(340).alternativeTransitionOutcome.push(72); // Chopped Tree --> Kindling
+		// ObjectData.getObjectData(3146).alternativeTransitionOutcome.push(72); // Chopped Softwood Tree --> Kindling
 
 		// now push Butt Log
 		ObjectData.getObjectData(342).alternativeTransitionOutcome.push(345); // Chopped Tree Big Log--> Butt Log
 		ObjectData.getObjectData(340).alternativeTransitionOutcome.push(345); // Chopped Tree --> Butt Log
 		ObjectData.getObjectData(3146).alternativeTransitionOutcome.push(345); // Chopped Softwood Tree --> Butt Log
-		
-		//ObjectData.getObjectData(99).alternativeTransitionOutcome.push(344); // White Pine Tree --> Fire Wood
-		//ObjectData.getObjectData(100).alternativeTransitionOutcome.push(344); // White Pine Tree with Needles --> Fire Wood
-		
-		ObjectData.getObjectData(3146).hungryWork = ServerSettings.HungryWorkCost; // Chopped Softwood Tree
-		//ObjectData.getObjectData(99).hungryWork = ServerSettings.HungryWorkCost; // White Pine Tree
-		//ObjectData.getObjectData(100).hungryWork = ServerSettings.HungryWorkCost; // White Pine Tree with Needles
 
-		
-		//ObjectData.getObjectData(3944).alternativeTransitionOutcome.push(33); // Stripped Iron Vein --> Stone
+		// ObjectData.getObjectData(99).alternativeTransitionOutcome.push(344); // White Pine Tree --> Fire Wood
+		// ObjectData.getObjectData(100).alternativeTransitionOutcome.push(344); // White Pine Tree with Needles --> Fire Wood
+
+		ObjectData.getObjectData(3146).hungryWork = ServerSettings.HungryWorkCost; // Chopped Softwood Tree
+		// ObjectData.getObjectData(99).hungryWork = ServerSettings.HungryWorkCost; // White Pine Tree
+		// ObjectData.getObjectData(100).hungryWork = ServerSettings.HungryWorkCost; // White Pine Tree with Needles
+
+		// ObjectData.getObjectData(3944).alternativeTransitionOutcome.push(33); // Stripped Iron Vein --> Stone
 		ObjectData.getObjectData(3961).alternativeTransitionOutcome.push(33); // Iron Vein --> Stone
 		ObjectData.getObjectData(3961).alternativeTransitionOutcome.push(0); // Iron Vein --> 0
 		ObjectData.getObjectData(3961).alternativeTransitionOutcome.push(0); // Iron Vein --> 0
@@ -2139,11 +2138,11 @@ class ServerSettings {
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(291); // Mine with Ore --> Flat Rock
 		ObjectData.getObjectData(3959).alternativeTransitionOutcome.push(503); // Mine with Ore --> Dug Big Rock
 
-		//ObjectData.getObjectData(944).alternativeTransitionOutcome.push(291); // Iron Mine --> Flat Rock
+		// ObjectData.getObjectData(944).alternativeTransitionOutcome.push(291); // Iron Mine --> Flat Rock
 		// TODO what to do with Diesel Mining Pick with Iron. It uses a time transition
 
 		// allow more Stone Hoe to be used to dig graves // TODO make more HUNGRY WORK / TEST if they brake
-		
+
 		var trans = new TransitionData(850, 357, 850, 1011); // Stone Hoe + Bone Pile --> Stone Hoe + Buried Grave
 		trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
@@ -2176,13 +2175,13 @@ class ServerSettings {
 			trans.newTargetID = 142; // Canada Goose Pond swimming
 			trans.autoDecaySeconds = 5;
 			transtions.addTransition("PatchTransitions: ", trans);
-		*/
-		
+		 */
+
 		var trans = transtions.getTransition(-1, 142); // Canada Goose Pond swimming
 		trans.newTargetID = 141; // Canada Goose Pond
 		trans.autoDecaySeconds = 20;
 		transtions.addTransition("PatchTransitions: ", trans);
-		
+
 		var trans = transtions.getTransition(-1, 2180); // longer clothing decay Rabbit Fur Hat with Feather
 		trans.autoDecaySeconds = -24; // 5
 
@@ -2225,49 +2224,49 @@ class ServerSettings {
 
 		var trans = TransitionImporter.GetTransition(-1, 330); // TIME + Hot Steel Ingot on Flat Rock
 		trans.autoDecaySeconds = 20;
-		
+
 		var trans = TransitionImporter.GetTransition(-1, 252); // TIME + Bowl of Dough
 		trans.autoDecaySeconds = 120;
 
-		//var trans = TransitionImporter.GetTransition(-1, 1135); // TIME + Empty Domestic Gooseberry Bush
-		//trans.autoDecaySeconds = 60  * 10;
+		// var trans = TransitionImporter.GetTransition(-1, 1135); // TIME + Empty Domestic Gooseberry Bush
+		// trans.autoDecaySeconds = 60  * 10;
 		var trans = TransitionImporter.GetTransition(-1, 389); // TIME + Dying Gooseberry Bush
 		trans.autoDecaySeconds = -48; // old -1
-		
+
 		var trans = new TransitionData(-1, 1284, 0, 291); // TIME + Cool Flat Rock --> 0 + Flat Rock
 		trans.autoDecaySeconds = -2;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Broken Steel Tool 858
 		var transByActor = TransitionImporter.GetTransitionByNewActor(858);
-		for(trans in transByActor){
+		for (trans in transByActor) {
 			var objData = ObjectData.getObjectData(trans.actorID);
-			//trace('Decays to: ${objData.name}');
+			// trace('Decays to: ${objData.name}');
 			objData.decaysToObj = 858; // 858 Broken Steel Tool
 		}
 
 		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
-		for(trans in transByTarget){
+		for (trans in transByTarget) {
 			// Leaf 62
-			if(trans.actorID == 62) continue;
+			if (trans.actorID == 62) continue;
 			// Clump of Scrap Steel 930
-			if(trans.actorID == 930) continue;
-			//trace('Scrap Bowl: ' + trans.getDesciption());
-			trans.aiShouldIgnore = true; 
+			if (trans.actorID == 930) continue;
+			// trace('Scrap Bowl: ' + trans.getDesciption());
+			trans.aiShouldIgnore = true;
 		}
 
 		for (objData in ObjectData.importedObjectData) {
-			if(objData.description.contains('Wool') == false) continue;
-			//trace('Wool: ${objData.name}');
+			if (objData.description.contains('Wool') == false) continue;
+			// trace('Wool: ${objData.name}');
 
 			var trans = TransitionImporter.GetTransition(-1, objData.parentId); // TIME + Wool???
-			if(trans == null) continue;
-			if(trans.autoDecaySeconds >= 0) continue;
+			if (trans == null) continue;
+			if (trans.autoDecaySeconds >= 0) continue;
 
-			//trace('Wool: ${objData.name} decaytime: ${trans.autoDecaySeconds}');
+			// trace('Wool: ${objData.name} decaytime: ${trans.autoDecaySeconds}');
 			trans.autoDecaySeconds = ServerSettings.WoolClothDecayTime; // -5
 		}
-		
+
 		var trans = TransitionImporter.GetTransition(-1, 866); // TIME + Rag Loincloth
 		trans.autoDecaySeconds = -2; // -0.5
 
@@ -2321,7 +2320,7 @@ class ServerSettings {
 
 		var trans = TransitionImporter.GetTransition(-1, 1814); // TIME + Dry Young Yew Bonsai in Bowl
 		trans.autoDecaySeconds = -1; // 10min
-		
+
 		var trans = new TransitionData(462, 846, 462, 67); // Steel Adze + Broken Hand Cart ==> Steel Adze + Long Straight Shaft
 		transtions.addTransition("PatchTransitions: ", trans);
 
@@ -2330,19 +2329,19 @@ class ServerSettings {
 
 		// Set Max Use Target tranistions // uses now Min use fraction like vanilla
 		/*var trans = TransitionImporter.GetTransition(253, 40); // Bowl of Gooseberries + Wild Carrot
-		trans.isActorMaxUse = true;
-		var trans = TransitionImporter.GetTransition(253, 3978); // Bowl of Gooseberries + Pile of Wild Carrots
-		trans.isActorMaxUse = true;
-		var trans = TransitionImporter.GetTransition(253, 3978, false, true); // Bowl of Gooseberries + Pile of Wild Carrots
-		trans.isActorMaxUse = true;
-		var trans = TransitionImporter.GetTransition(40, 253); // Wild Carrot + Bowl of Gooseberries
-		trans.isTargetMaxUse = true;
-		var trans = TransitionImporter.GetTransition(33, 1176); // Stone + Bowl of Dry Beans
-		trans.isTargetMaxUse = true;
-		var trans = TransitionImporter.GetTransition(181, 253); // Skinned Rabbit + Bowl of Gooseberries
-		trans.isTargetMaxUse = true;
-		var trans = TransitionImporter.GetTransition(402, 253); // Carrot + Bowl of Gooseberries
-		trans.isTargetMaxUse = true;*/
+			trans.isActorMaxUse = true;
+			var trans = TransitionImporter.GetTransition(253, 3978); // Bowl of Gooseberries + Pile of Wild Carrots
+			trans.isActorMaxUse = true;
+			var trans = TransitionImporter.GetTransition(253, 3978, false, true); // Bowl of Gooseberries + Pile of Wild Carrots
+			trans.isActorMaxUse = true;
+			var trans = TransitionImporter.GetTransition(40, 253); // Wild Carrot + Bowl of Gooseberries
+			trans.isTargetMaxUse = true;
+			var trans = TransitionImporter.GetTransition(33, 1176); // Stone + Bowl of Dry Beans
+			trans.isTargetMaxUse = true;
+			var trans = TransitionImporter.GetTransition(181, 253); // Skinned Rabbit + Bowl of Gooseberries
+			trans.isTargetMaxUse = true;
+			var trans = TransitionImporter.GetTransition(402, 253); // Carrot + Bowl of Gooseberries
+			trans.isTargetMaxUse = true; */
 
 		// new smithing transitions
 		var trans = new TransitionData(1603, 235, 1603, 0); // Stack of Clay Bowls + Clay Bowl --> Stack of Clay Bowls +  0
@@ -2350,11 +2349,13 @@ class ServerSettings {
 		trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		var trans = new TransitionData(1602, 316, 1602, 319); // Stack of Clay Plates + Crucible with Iron and Charcoal --> Stack of Clay Plates +  Unforged Sealed Steel Crucible
+		var trans = new TransitionData(1602, 316, 1602,
+			319); // Stack of Clay Plates + Crucible with Iron and Charcoal --> Stack of Clay Plates +  Unforged Sealed Steel Crucible
 		trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		var trans = new TransitionData(1602, 316, 236, 319); // Stack of Clay Plates + Crucible with Iron and Charcoal --> Clay Plate +  Unforged Sealed Steel Crucible
+		var trans = new TransitionData(1602, 316, 236,
+			319); // Stack of Clay Plates + Crucible with Iron and Charcoal --> Clay Plate +  Unforged Sealed Steel Crucible
 		trans.lastUseActor = true;
 		trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
@@ -2387,127 +2388,127 @@ class ServerSettings {
 		// Ember Leaf 77 + Straw 227 --> 0 + Smoldering Tinder
 		var trans = new TransitionData(77, 227, 0, 78);
 		transtions.addTransition("PatchTransitions: ", trans);
-		
+
 		// TODo needs client change
-		//var trans = new TransitionData(298, 317, 298, 316); // 298 Basket of Charcoal + 317 Crucible with Iron --> 298 +  316 Crucible with Iron and Charcoal
-		//transtions.addTransition("PatchTransitions: ", trans);
+		// var trans = new TransitionData(298, 317, 298, 316); // 298 Basket of Charcoal + 317 Crucible with Iron --> 298 +  316 Crucible with Iron and Charcoal
+		// transtions.addTransition("PatchTransitions: ", trans);
 
 		// TODO dont know why this was 2240 Newcomen Hammer instead?
 		var trans = TransitionImporter.GetTransition(59, 2245); // Rope + Newcomen Engine without Rope
 		trans.newTargetID = 2244; // Newcomen Engine without Shaft;
 
-		//var trans = transtions.getTransition(560, 614); // Knife + Fed Shorn Domestic Sheep 614
-		//trans.aiShouldIgnore = true; 
-		
+		// var trans = transtions.getTransition(560, 614); // Knife + Fed Shorn Domestic Sheep 614
+		// trans.aiShouldIgnore = true;
+
 		// Ai should ignore
 		// TODO fix Ai craftig if Ai needs two threads for a rope it puts one thread in a bowl and gets it out again
 		// this breals making a light pulb for a radio
 		var trans = transtions.getTransition(58, 235); // Thread + Clay Bowl
-		trans.aiShouldIgnore = true; 
-		
+		trans.aiShouldIgnore = true;
+
 		// dont deconstruct tools
 		var trans = transtions.getTransition(135, 74); // Flint Chip + Fire Bow Drill
 		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(560, 74); // Knife + Fire Bow Drill
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(461, 3371); // Bow Saw + Table
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		// Forbid some transition to make Kindling
 		var trans = transtions.getTransition(71, 67); // Stone Hatchet + Long Straight Shaft
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 		var trans = transtions.getTransition(334, 67); // Steel Axe + Long Straight Shaft
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 		var trans = transtions.getTransition(334, 2142); // Steel Axe + Banana Plant
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 		var trans = transtions.getTransition(334, 2145); // Steel Axe + Empty Banana Plant
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 		var trans = transtions.getTransition(334, 239); // Steel Axe + Wooden Tongs
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 		var trans = transtions.getTransition(71, 239); // Stone Hatchet + Wooden Tongs
 		trans.aiShouldIgnore = true;
 		var trans = transtions.getTransition(334, 583); // Steel Axe + Knitting Needles
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 		var trans = transtions.getTransition(71, 583); // Stone Hatchet + Knitting Needles
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(560, 575); // Knife + Domestic Sheep
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(560, 4213); // Knife + Fed Domestic Sheep 4213
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(560, 576); // Knife + Shorn Domestic Sheep
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(560, 541); // Knife + Domestic Mouflon
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(560, 151); // Knife + Yew Bow 151
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(560, 708); // Knife + Clubbed Seal 708
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(560, 242); // Knife + Ripe Wheat 242
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(560, 121); // Knife + Tule Reeds
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(560, 2765); // Knife + Sugarcane 2765
 		trans.aiShouldIgnore = true;
 
 		// TODO might be good to save some hungry work?
-		//var trans = transtions.getTransition(560, 136); // Knife + Sapling 136
-		//trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(560, 136); // Knife + Sapling 136
+		// trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(2365, 3966); // 2365 Diesel Engine + 3966 Empty Scrap Box
 		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(345, 82); // Butt Log + Fire
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(345, 83); // Butt Log + Large Fast Fire
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(345, 3029); // Butt Log + Flash Fire
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(135, 151); // Flint Chip + Yew Bow
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		// allow shovel again if it is better then sharp stone
 		var trans = transtions.getTransition(502, 36); // Shovel + Seeding Wild Carrot
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 		var trans = transtions.getTransition(502, 404); // Shovel + Wild Carrot
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 		var trans = transtions.getTransition(502, 804); // Shovel + Burdock
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 		var trans = transtions.getTransition(67, 3065); // Long Straight Shaft + Wooden Slot Box
 		trans.aiShouldIgnore = true; // this would give a thread Ai wants
 
 		var trans = transtions.getTransition(0, 2244); // 0 + Newcomen Engine without Shaft
 		trans.aiShouldIgnore = true; // Ai would kill for a rope
-		
+
 		var trans = transtions.getTransition(33, 127); // Stone + Adobe = 231 Adobe Oven Base
-		if(AIAllowBuildOven == false) trans.aiShouldIgnore = true; 
+		if (AIAllowBuildOven == false) trans.aiShouldIgnore = true;
 		var trans = transtions.getTransition(127, 237); // Adobe + Adobe Oven = 238 Adobe Kiln
-		if(AIAllowBuilKiln == false) trans.aiShouldIgnore = true; 
+		if (AIAllowBuilKiln == false) trans.aiShouldIgnore = true;
 
 		// Stop spread of Dough to get a bowl // TODO allow again for tortilla
 		var trans = transtions.getTransition(252, 291); // Bowl of Dough + Flat Rock
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(252, 291,true); // Bowl of Dough + Flat Rock
+		var trans = transtions.getTransition(252, 291, true); // Bowl of Dough + Flat Rock
 		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(0, 1471); // 0 + Sliced Bread
 		trans.aiShouldIgnore = true; // they make a mess to get the plate
 
-		var trans = transtions.getTransition(0, 1471,false,true); // 0 + Sliced Bread
+		var trans = transtions.getTransition(0, 1471, false, true); // 0 + Sliced Bread
 		trans.aiShouldIgnore = true; // they make a mess to get the plate
 
 		// forbid burning stuff
@@ -2516,7 +2517,7 @@ class ServerSettings {
 
 		var trans = transtions.getTransition(516, 83); // Skewered Goose + Large Fast Fire
 		trans.aiShouldIgnore = true;
-		
+
 		var trans = transtions.getTransition(516, 346); // Skewered Goose + Large Slow Fire
 		trans.aiShouldIgnore = true;
 
@@ -2528,7 +2529,7 @@ class ServerSettings {
 
 		var trans = transtions.getTransition(185, 83); // Skewered Rabbit + Large Fast Fire
 		trans.aiShouldIgnore = true;
-		
+
 		var trans = transtions.getTransition(185, 346); // Skewered Rabbit + Large Slow Fire
 		trans.aiShouldIgnore = true;
 
@@ -2545,8 +2546,8 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 
 		// does not exist
-		//var trans = TransitionImporter.GetTransition(502, 389, true); // Shovel + Dying Gooseberry Bush 389
-		//trans.aiShouldIgnore = true;
+		// var trans = TransitionImporter.GetTransition(502, 389, true); // Shovel + Dying Gooseberry Bush 389
+		// trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(139, 1136); // Skewer + Shallow Tilled Row
 		trans.aiShouldIgnore = true;
@@ -2591,10 +2592,10 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 
 		// AI tries to empty popcorn to get a bowl
-		var trans = transtions.getTransition(192, 1121); // Needle and Thread + Popcorn 
+		var trans = transtions.getTransition(192, 1121); // Needle and Thread + Popcorn
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(192, 1121, false,true); // Needle and Thread + Popcorn 
+		var trans = transtions.getTransition(192, 1121, false, true); // Needle and Thread + Popcorn
 		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(334, 3308); // Steel Axe + Marked Pine Wall (corner)
@@ -2625,7 +2626,7 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(0, 303); // 0 + Forge = Adobe Kiln
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(292, 305); // Basket 292 + Forge with Charcoal 305
 		trans.aiShouldIgnore = true;
@@ -2635,11 +2636,11 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 
 		// protect smithing TODO allow for smithing or manually instruct
-		//var trans = transtions.getTransition(0, 322); // 0 + Forged Steel Crucible
-		//trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(0, 322); // 0 + Forged Steel Crucible
+		// trans.aiShouldIgnore = true;
 
-		//var trans = transtions.getTransition(0, 325); // 0 + Crucible with Steel
-		//trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(0, 325); // 0 + Crucible with Steel
+		// trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(0, 316); // 0 + Crucible with Iron and Charcoal
 		trans.aiShouldIgnore = true;
@@ -2649,14 +2650,14 @@ class ServerSettings {
 
 		// AI might use to empty bowl
 		var trans = transtions.getTransition(33, 318); // Stone + Crucible with Charcoal
-		trans.aiShouldIgnore = true;		
+		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 675); // 0 + Bowl of Limestone 675 
+		var trans = transtions.getTransition(0, 675); // 0 + Bowl of Limestone 675
 		trans.aiShouldIgnore = true;
 
 		// dont destroy knifes to get the material
 		var trans = transtions.getTransition(441, 560); // Smithing Hammer 441 + Knife 560
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(0, 185); // 0 + Skewered Rabbit 185
 		trans.aiShouldIgnore = true;
@@ -2665,7 +2666,7 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(0, 254); // 0 + Bowl of Rabbit 254
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(0, 1247); // 0 + Bowl with Corn Kernels
 		trans.aiShouldIgnore = true;
@@ -2674,20 +2675,20 @@ class ServerSettings {
 		trans.alternativeTransitionOutcome.push(33); // Stone
 		trans.aiShouldIgnore = true;
 
-		//var trans = transtions.getTransition(441, 560, true); // Smithing Hammer 441 + Knife 560
-		//trans.aiShouldIgnore = true;
-		
+		// var trans = transtions.getTransition(441, 560, true); // Smithing Hammer 441 + Knife 560
+		// trans.aiShouldIgnore = true;
+
 		// currently creates a loop since ai keeps adding and removing thread
 		var trans = transtions.getTransition(0, 2090); // 0 + Bound Deck of Cards 2090
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		// Oiled File Blank with Chisel 465
 		var trans = transtions.getTransition(0, 465); // 0 + Bound Deck of Cards 465
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		// Mallet 467 + Fence Gate 1851 ==> Fence with Dislodged Shaft 1852
 		var trans = transtions.getTransition(467, 1851);
-		trans.aiShouldIgnore = true; 
+		trans.aiShouldIgnore = true;
 
 		// Bowl of Dry Beans 1176
 		var trans = transtions.getTransition(0, 1176);
@@ -2696,7 +2697,7 @@ class ServerSettings {
 		// Bowl of Dry Beans 1176
 		var trans = transtions.getTransition(0, 1176, false, true);
 		trans.aiShouldIgnore = true;
-		
+
 		// Dry Bean Plants 1172
 		var trans = transtions.getTransition(0, 1172);
 		trans.aiShouldIgnore = true;
@@ -2709,17 +2710,17 @@ class ServerSettings {
 		var trans = transtions.getTransition(1160, 235, false, true);
 		trans.aiShouldIgnore = true;
 
-		// Bowl of Dough 252 + Table 
+		// Bowl of Dough 252 + Table
 		var trans = transtions.getTransition(252, 3371);
 		trans.aiShouldIgnore = true;
 
 		// Bowl of Soil 1137 + Fertile Soil Pile 1101
-		//var trans = transtions.getTransition(1137, 1101);
-		//trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(1137, 1101);
+		// trans.aiShouldIgnore = true;
 
 		// Bowl of Soil 1137 + Fertile Soil 1138
-		//var trans = transtions.getTransition(1137, 1138);
-		//trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(1137, 1138);
+		// trans.aiShouldIgnore = true;
 
 		// 0 + Bowl of Raw Pork 1354
 		var trans = transtions.getTransition(0, 1354);
@@ -2729,7 +2730,7 @@ class ServerSettings {
 		var trans = transtions.getTransition(1222, 227);
 		trans.aiShouldIgnore = true;
 
-		// Shovel 502 + Barrel Cactus 761 
+		// Shovel 502 + Barrel Cactus 761
 		var trans = transtions.getTransition(502, 761);
 		trans.aiShouldIgnore = true;
 
@@ -2743,8 +2744,8 @@ class ServerSettings {
 
 		// TODO fix reverse use transitions if full
 		// Butter Knife 1467 + Bowl of Butter 1465 // TODO also lastuse
-		//var trans = transtions.getTransition(1467, 1465);
-		//trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(1467, 1465);
+		// trans.aiShouldIgnore = true;
 
 		// Knife 560 // Bowl of Butter 1465
 		var trans = transtions.getTransition(560, 1465);
@@ -2761,148 +2762,147 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
-		//var trans = transtions.getTransition(1247, 4110);
-		//trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(1247, 4110);
+		// trans.aiShouldIgnore = true;
 
 		// Bowl with Corn Kernels 1247 + Empty Bucket 659 (untill circular crafting is fixed)
-		//var trans = transtions.getTransition(1247, 659);
-		//trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(1247, 659);
+		// trans.aiShouldIgnore = true;
 
 		// TODO Bowl with Corn Kernels // forbid cirtular crafting --> tries to get empty bowl by putting Kernels in
 
 		// Clay Bowl 235 // Shallow Well 662 // Bowl of Water 382
-		//var trans = transtions.getTransition(235, 662);
-		//trace('Bowl of Water: ' + trans.getDesciption());
-		//trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(235, 662);
+		// trace('Bowl of Water: ' + trans.getDesciption());
+		// trans.aiShouldIgnore = true;
 
 		// lime
-		//var trans = transtions.getTransition(677, 661); // Bowl of Plaster 677  + Stone Pile 661
-		//trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(677, 661); // Bowl of Plaster 677  + Stone Pile 661
+		// trans.aiShouldIgnore = true;
 
 		// Bowl of Plaster 677
 		var transByTarget = TransitionImporter.GetTransitionByActor(684);
-		for(trans in transByTarget){
+		for (trans in transByTarget) {
 			// Adobe Wall H 155
-			if(trans.targetID == 155) continue;
+			if (trans.targetID == 155) continue;
 			// Adobe Wall V 156
-			if(trans.targetID == 156) continue;
+			if (trans.targetID == 156) continue;
 			// Adobe Wall C 154
-			if(trans.targetID == 154) continue;
+			if (trans.targetID == 154) continue;
 
 			trans.aiShouldIgnore = true;
 		}
 
 		// Steel Mining Pick 684
 		var transByTarget = TransitionImporter.GetTransitionByActor(684);
-		for(trans in transByTarget){
+		for (trans in transByTarget) {
 			// Gold Vein 680
-			if(trans.targetID == 680) continue;
+			if (trans.targetID == 680) continue;
 			// Stripped Iron Vein 3944
-			if(trans.targetID == 3944) continue;
+			if (trans.targetID == 3944) continue;
 			// Shallow Iron Pit 3957
-			if(trans.targetID == 3957) continue;
+			if (trans.targetID == 3957) continue;
 			// Cut Stones 881
-			if(trans.targetID == 881) continue;
+			if (trans.targetID == 881) continue;
 			// Iron Mine
-			if(trans.targetID == 944) continue;
+			if (trans.targetID == 944) continue;
 
-			//trace('Steel Mining Pick ' + trans.getDesciption());
-			trans.aiShouldIgnore = true; 
+			// trace('Steel Mining Pick ' + trans.getDesciption());
+			trans.aiShouldIgnore = true;
 		}
 
 		// Scrap Bowl 3076 --> dont allow to scraft crafted metal
 		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
-		for(trans in transByTarget){
+		for (trans in transByTarget) {
 			// Leaf 62
-			if(trans.actorID == 62) continue;
+			if (trans.actorID == 62) continue;
 			// Clump of Scrap Steel 930
-			if(trans.actorID == 930) continue;
-			//trace('Scrap Bowl: ' + trans.getDesciption());
-			trans.aiShouldIgnore = true; 
+			if (trans.actorID == 930) continue;
+			// trace('Scrap Bowl: ' + trans.getDesciption());
+			trans.aiShouldIgnore = true;
 		}
 
 		// ignore time transitions that make 732 Ashes with Bowl since Ai uses that to get empty bowl
 		// Time + Simmering Water 730 ==> Ashes with Bowl 732
 		var transByTarget = TransitionImporter.GetTransitionByNewTarget(732);
-		for(trans in transByTarget){
-			if(trans.actorID > -1) continue;
-			//trace('Ashes with Bowl: ' + trans.getDesciption());
-			trans.aiShouldIgnore = true; 
+		for (trans in transByTarget) {
+			if (trans.actorID > -1) continue;
+			// trace('Ashes with Bowl: ' + trans.getDesciption());
+			trans.aiShouldIgnore = true;
 		}
 
 		// TODO forbid for all
 		// Deep Tilled Row 213 --> Forbid to use skewer
 		var transByTarget = TransitionImporter.GetTransitionByNewTarget(213);
-		for(trans in transByTarget){
+		for (trans in transByTarget) {
 			// Skewer 139 // Weak Skewer 852
-			if(trans.actorID != 139 && trans.actorID != 852) continue;
-			
-			//trace('Deep Tilled Row: ' + trans.getDesciption());
-			trans.aiShouldIgnore = true; 
+			if (trans.actorID != 139 && trans.actorID != 852) continue;
+
+			// trace('Deep Tilled Row: ' + trans.getDesciption());
+			trans.aiShouldIgnore = true;
 		}
 
 		// Stakes 107 By new target
 		var transByTarget = TransitionImporter.GetTransitionByNewTarget(107);
-		for(trans in transByTarget){
+		for (trans in transByTarget) {
 			// Short Shaft 69
-			if(trans.targetID == 62) continue;
+			if (trans.targetID == 62) continue;
 			// Pile of Stakes 4066
-			if(trans.targetID == 4066) continue;
+			if (trans.targetID == 4066) continue;
 			// Stakes with Rope 3883
-			//if(trans.targetID == 3883) continue;
+			// if(trans.targetID == 3883) continue;
 
-			//trace('Stakes 107: ' + trans.getDesciption());
-			trans.aiShouldIgnore = true; 
+			// trace('Stakes 107: ' + trans.getDesciption());
+			trans.aiShouldIgnore = true;
 		}
 
 		// Stakes 107 By new actor
 		var transByTarget = TransitionImporter.GetTransitionByNewActor(107);
-		for(trans in transByTarget){
+		for (trans in transByTarget) {
 			// Pile of Stakes 4066
-			if(trans.targetID == 4066) continue;
+			if (trans.targetID == 4066) continue;
 
-			//trace('Stakes 107: ' + trans.getDesciption());
-			trans.aiShouldIgnore = true; 
+			// trace('Stakes 107: ' + trans.getDesciption());
+			trans.aiShouldIgnore = true;
 		}
 
 		// Clay Plate 236 --> dont puy Raw Pie Crust 264 back in bowl to get plate
 		var transByTarget = TransitionImporter.GetTransitionByNewActor(236);
-		for(trans in transByTarget){
+		for (trans in transByTarget) {
 			// Raw Pie Crust 264
-			if(trans.actorID != 264) continue;
+			if (trans.actorID != 264) continue;
 			trans.aiShouldIgnore = true;
-			//trace('Raw Pie Crust: ignore: ${trans.aiShouldIgnore} ' + trans.getDesciption(false));
+			// trace('Raw Pie Crust: ignore: ${trans.aiShouldIgnore} ' + trans.getDesciption(false));
 		}
 
 		// Shallow Well 662 // Bowl of Water 382
 		/*var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
-		for(trans in transByTarget){
-			if(trans.targetID != 662) continue;
-			trace('Bowl of Water: ' + trans.getDesciption());
+			for(trans in transByTarget){
+				if(trans.targetID != 662) continue;
+				trace('Bowl of Water: ' + trans.getDesciption());
 		}*/
 
 		// Bowl of Soil 1137
 		var transByTarget = TransitionImporter.GetTransitionByNewActor(1137);
-		for(trans in transByTarget){
+		for (trans in transByTarget) {
 			trace('Bowl of Soil: ignore: ${trans.aiShouldIgnore} ' + trans.getDescription());
-			
 		}
 
 		// Broken Steel Tool 858 --> no transitions found
 		/*var transByTarget = TransitionImporter.GetTransitionByNewTarget(858);
-		for(trans in transByTarget){
-			// Skewer 139 // Weak Skewer 852
-			//if(trans.actorID != 139 && trans.actorID != 852) continue;
-			
-			trace('Broken Steel Tool: ' + trans.getDesciption());
-			trans.aiShouldIgnore = true; 
+			for(trans in transByTarget){
+				// Skewer 139 // Weak Skewer 852
+				//if(trans.actorID != 139 && trans.actorID != 852) continue;
+				
+				trace('Broken Steel Tool: ' + trans.getDesciption());
+				trans.aiShouldIgnore = true; 
 		}*/
 
-		//var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
-		//trace('DEBUG: ${trans.getDesciption()}');
+		// var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
+		// trace('DEBUG: ${trans.getDesciption()}');
 
-		//var trans = transtions.getTransition(253, -1); // Bowl of Gooseberries
-		//trace('DEBUG!!: ${trans.getDesciption()}');
+		// var trans = transtions.getTransition(253, -1); // Bowl of Gooseberries
+		// trace('DEBUG!!: ${trans.getDesciption()}');
 
 		// for debug random outcome transitions
 		/*var trans = transtions.getTransition(-1, 1195); // TIME + Blooming Squash Plant 
@@ -2912,73 +2912,72 @@ class ServerSettings {
 
 		var trans = TransitionImporter.GetTransition(235, 662); // Clay Bowl + Shallow Well
 		trace('DEBUG: ${trans.getDescription()}');
-		if(trans.newActorID != 382){ // Bowl of Water 382
+		if (trans.newActorID != 382) { // Bowl of Water 382
 			throw new Exception('New actor should be: Bowl of Water 382');
 		}
 
 		/*// Bowl of Water 382
-		var count = 0;
-		var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
-		for(trans in transByTarget){
-			//trace('Bowl of Water: ' + trans.getDesciption());
-			count++;
-		}
+			var count = 0;
+			var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
+			for(trans in transByTarget){
+				//trace('Bowl of Water: ' + trans.getDesciption());
+				count++;
+			}
 
-		trace('Bowl of Water tranistions2: $count');
+			trace('Bowl of Water tranistions2: $count');
 
-		throw new Exception('stop');*/
-		
-		 //var lastUseTransition = TransitionImporter.GetTransition(252, 236, true, false);
-		 //trace('Debug PAYETON4171: ${lastUseTransition.getDesciption()}');
+			throw new Exception('stop'); */
 
-		 //var objData = ObjectData.getObjectData(885); // 885 Stone Wall
-		 //trace('${objData.name} getInsulation: ${objData.getInsulation()} rvalue: ${objData.rValue}');
+		// var lastUseTransition = TransitionImporter.GetTransition(252, 236, true, false);
+		// trace('Debug PAYETON4171: ${lastUseTransition.getDesciption()}');
 
-		//var trans = TransitionImporter.GetTransition(544, -1, true, false);
-		//trace('DEBUG: ${trans.getDesciption()}');
+		// var objData = ObjectData.getObjectData(885); // 885 Stone Wall
+		// trace('${objData.name} getInsulation: ${objData.getInsulation()} rvalue: ${objData.rValue}');
 
-		//var trans = TransitionImporter.GetTransition(3425, -1, false, false); // Domestic Cow on Rope
-		//trace('ON DEATH: ${trans.getDesciption()}');
+		// var trans = TransitionImporter.GetTransition(544, -1, true, false);
+		// trace('DEBUG: ${trans.getDesciption()}');
 
-		//var trans = TransitionImporter.GetTransition(0, 3948); // Arrow Quiver
-		//trace('DEBUG: ${trans.getDesciption()}');
+		// var trans = TransitionImporter.GetTransition(3425, -1, false, false); // Domestic Cow on Rope
+		// trace('ON DEATH: ${trans.getDesciption()}');
 
-		//var trans = TransitionImporter.GetTransition(560, 418); // Knife + Wolf
-		//trace('DEBUG: ${trans.getDesciption()}');
+		// var trans = TransitionImporter.GetTransition(0, 3948); // Arrow Quiver
+		// trace('DEBUG: ${trans.getDesciption()}');
 
-		//var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0
-		//trace('DEBUG: ${trans.getDesciption()}');
+		// var trans = TransitionImporter.GetTransition(560, 418); // Knife + Wolf
+		// trace('DEBUG: ${trans.getDesciption()}');
 
-		//var objData = ObjectData.getObjectData(887); // Stone Wall
-		//trace('${objData.name} isPermanent ${objData.isPermanent()}');
+		// var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0
+		// trace('DEBUG: ${trans.getDesciption()}');
 
-		//var trans = TransitionImporter.GetTransition(660, 673); // Full Bucket of Water Bow and Arrow + Empty Cistern
-		//trace('DEBUG!!!: ${trans.getDesciption()}');	
+		// var objData = ObjectData.getObjectData(887); // Stone Wall
+		// trace('${objData.name} isPermanent ${objData.isPermanent()}');
 
-		//var trans = TransitionImporter.GetTransition(382, 1790); // Bowl of Water + Dry Maple Sapling Cutting
-		//trace('DEBUG!!!: ${trans.getDesciption()}');	
+		// var trans = TransitionImporter.GetTransition(660, 673); // Full Bucket of Water Bow and Arrow + Empty Cistern
+		// trace('DEBUG!!!: ${trans.getDesciption()}');
 
-		//var trans = TransitionImporter.GetTransition(382, 396); // Bowl of Water + Dry Planted Carrots
-		//trace('DEBUG!!!: ${trans.getDesciption()}');
-		
-		//var trans = TransitionImporter.GetTransition(382, 2723); // Bowl of Water + Dry Juniper Sapling
-		//trace('DEBUG!!!: ${trans.getDesciption()}');
+		// var trans = TransitionImporter.GetTransition(382, 1790); // Bowl of Water + Dry Maple Sapling Cutting
+		// trace('DEBUG!!!: ${trans.getDesciption()}');
 
-		//var trans = TransitionImporter.GetTransition(382, 1042); // Bowl of Water + Dry Planted Rose Seed (RED)
-		//trace('DEBUG!!!: ${trans.getDesciption()}');
+		// var trans = TransitionImporter.GetTransition(382, 396); // Bowl of Water + Dry Planted Carrots
+		// trace('DEBUG!!!: ${trans.getDesciption()}');
 
-		//var trans = TransitionImporter.GetTransition(-1, 1873); // TIME + Wet Mango Sapling
-		//trace('DEBUG!!!: ${trans.getDesciption()}');
-		
-		//<-1> + <3132> = <0> + <3131> / TIME + Running Diesel Mining Pick#with Iron  -->  EMPTY + Diesel Mining Pick with Iron
-		//var trans = TransitionImporter.GetTransition(-1, 3132);
-		//trace('DEBUG!!!: ${trans.getDesciption(false)}');
+		// var trans = TransitionImporter.GetTransition(382, 2723); // Bowl of Water + Dry Juniper Sapling
+		// trace('DEBUG!!!: ${trans.getDesciption()}');
 
-		//var trans = TransitionImporter.GetTransition(283, -1); // Wooden Tongs with Fired Bowl
-		//trace('DEBUG!!!: ${trans.getDesciption()}');
-	}	
+		// var trans = TransitionImporter.GetTransition(382, 1042); // Bowl of Water + Dry Planted Rose Seed (RED)
+		// trace('DEBUG!!!: ${trans.getDesciption()}');
+
+		// var trans = TransitionImporter.GetTransition(-1, 1873); // TIME + Wet Mango Sapling
+		// trace('DEBUG!!!: ${trans.getDesciption()}');
+
+		// <-1> + <3132> = <0> + <3131> / TIME + Running Diesel Mining Pick#with Iron  -->  EMPTY + Diesel Mining Pick with Iron
+		// var trans = TransitionImporter.GetTransition(-1, 3132);
+		// trace('DEBUG!!!: ${trans.getDesciption(false)}');
+
+		// var trans = TransitionImporter.GetTransition(283, -1); // Wooden Tongs with Fired Bowl
+		// trace('DEBUG!!!: ${trans.getDesciption()}');
+	}
 }
-
 /**Actor Category: 1641 @ Deadly Wolf
 	Trans: 1640 + 0 = 427 + 1363 
 	Semi-tame Wolf# just fed 

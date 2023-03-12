@@ -602,7 +602,7 @@ class TimeHelper {
 				player.prestigeFromWealth += decayedCoins;
 			}
 
-			if (player.age > 60) player.doDeath('reason_age');
+			if (player.age > ServerSettings.MaxAge) player.doDeath('reason_age');
 
 			// trace('update age: ${player.age} food_store_max: ${player.food_store_max}');
 			player.sendFoodUpdate(false);
