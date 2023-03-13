@@ -608,7 +608,7 @@ abstract class AiBase {
 			this.profession['ClothMaker'] = 1;
 			this.profession['FireFoodMaker'] = 1;
 			//this.profession['BowlFiller'] = 1;
-			this.profession['Smith'] = 1; */
+			this.profession['SMITH'] = 1; */
 
 		if (myPlayer.age > ServerSettings.MinAgeToEat) {
 			var rand = WorldMap.calculateRandomFloat();
@@ -5965,7 +5965,7 @@ abstract class AiBase {
 		if (isHungry) {
 			isHungry = player.food_store < player.food_store_max * 0.8;
 		} else {
-			// if(this.profession['Smith'] > 0)
+			// if(this.profession['SMITH'] > 0)
 			// Smithing Hammer 441
 			var max = 3;
 			if (heldObject.parentId == 441) max = 1; // dont be disturbed while smithing
