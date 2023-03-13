@@ -5680,6 +5680,7 @@ abstract class AiBase {
 
 		// In case of a drop as object switch, consider drop held object
 		considerDropHeldObject(dropTarget);
+		if (dropTarget == null) return false; // considerDropHeldObject may have cleared drop target
 
 		if (myPlayer.isMoving()) return true;
 
