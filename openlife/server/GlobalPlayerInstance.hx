@@ -907,8 +907,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			if (this.mother.isHuman()) mother.connection.sendMapLocation(this, 'BABY', 'baby'); else
 				mother.connection.serverAi.ai.newChild(this);
-
+			
 			if (this.isHuman()) mother.connection.sendGlobalMessage('Your newborn is a human soal. Take good care!');
+			if (this.isHuman()) mother.say('A human soal is born!', true);
 		}
 
 		if (this.father != null && this.age < ServerSettings.MinAgeToEat) {
@@ -918,6 +919,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				father.connection.serverAi.ai.newChild(this);
 
 			if (this.isHuman()) father.connection.sendGlobalMessage('Your new child is a  human soal. Take good care!');
+			if (this.isHuman()) father.say('A human soal is born!', true);
 		}
 
 		// for Eve set birth position as home
@@ -2064,7 +2066,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var isNewHome = (myPlayer.home.tx != newHome.tx || myPlayer.home.ty != newHome.ty);
 
 		if (isNewHome == false) {
-			myPlayer.say('Ths is already my home!', true);
+			myPlayer.say('This is already my home!', true);
 			return false;
 		}
 
