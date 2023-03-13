@@ -4697,6 +4697,8 @@ abstract class AiBase {
 			return true;
 		}
 
+		var isHoldingObject = myPlayer.isHoldingObject();
+
 		// usemight drop item so not neededanymore ???
 		/*if(pile != null)){
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop ${myPlayer.heldObject.name} to pickup ${itemToCraft.transActor.name}');
@@ -5676,7 +5678,7 @@ abstract class AiBase {
 			return false;
 		}
 
-		// In case of a switch, consider drop held object
+		// In case of a drop as object switch, consider drop held object
 		considerDropHeldObject(dropTarget);
 
 		if (myPlayer.isMoving()) return true;
@@ -5808,6 +5810,8 @@ abstract class AiBase {
 				trace('AAI: ${myPlayer.name + myPlayer.id} isPickingupFood: isUse: $isUse drop ${myPlayer.heldObject.name} since close to home or target less far away');
 			return true;
 		}
+
+		var isHoldingObject = myPlayer.isHoldingObject();
 
 		if (myPlayer.isMoving()) return true;
 
@@ -6009,6 +6013,8 @@ abstract class AiBase {
 				return false;
 			}
 		}
+
+		var isHoldingObject = myPlayer.isHoldingObject();
 
 		// TODO what about other actors wich need to be filled?
 		// make sure that actor (Bowl of Gooseberries) is full
