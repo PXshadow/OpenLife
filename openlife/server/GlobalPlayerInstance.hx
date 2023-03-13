@@ -2055,14 +2055,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function setNewNome(newHome:ObjectHelper) {
-		if (newHome == null) return false;
 		var myPlayer = this;
+		if (newHome == null) {
+			myPlayer.say('No close Oven found!', true);
+			return false;
+		}
+
 		var isNewHome = (myPlayer.home.tx != newHome.tx || myPlayer.home.ty != newHome.ty);
 
-		if (isNewHome == false) return false;
+		if (isNewHome == false) {
+			myPlayer.say('Ths is already my home!', true);
+			return false;
+		}
 
 		myPlayer.home = newHome;
-		myPlayer.say('This is my home!', true);
+		myPlayer.say('This is my new home!', true);
 
 		GlobalPlayerInstance.AcquireMutex(); // TODO make ALLPlayers thread save
 
