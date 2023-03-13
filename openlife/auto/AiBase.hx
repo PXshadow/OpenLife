@@ -1145,7 +1145,8 @@ abstract class AiBase {
 	}
 
 	private function handleDeath():Bool {
-		if (myPlayer.age < 58.5) return false;
+		var ageToGoHome = ServerSettings.MaxAge - 1.5;
+		if (myPlayer.age < ageToGoHome) return false;
 
 		this.profession = new Map<String, Float>(); // clear all professions
 		this.profession['gravekeeper'] = 1;
