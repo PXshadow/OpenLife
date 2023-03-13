@@ -907,7 +907,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			if (this.mother.isHuman()) mother.connection.sendMapLocation(this, 'BABY', 'baby'); else
 				mother.connection.serverAi.ai.newChild(this);
-			
+
 			if (this.isHuman()) mother.connection.sendGlobalMessage('Your newborn is a human soal. Take good care!');
 			if (this.isHuman()) mother.say('A human soal is born!', true);
 		}
@@ -3578,13 +3578,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public function calculateFoodStoreMax():Float {
 		var p:GlobalPlayerInstance = this;
 		var age = p.age;
+		var maxAge = ServerSettings.MaxAge;
 		var healthFactor = CalculateHealthFoodStoreMaxFactor();
 		var new_food_store_max = calculateNotReducedFoodStoreMax() * healthFactor;
 
 		if (age < 20) new_food_store_max = ServerSettings.NewBornFoodStoreMax
 			+ age / 20 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.NewBornFoodStoreMax);
-		if (age > 50) new_food_store_max = ServerSettings.OldAgeFoodStoreMax
-			+ (60 - age) / 10 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.OldAgeFoodStoreMax);
+		if (age > maxAge - 10) new_food_store_max = ServerSettings.OldAgeFoodStoreMax
+			+ (maxAge - age) / 10 * (ServerSettings.GrownUpFoodStoreMax - ServerSettings.OldAgeFoodStoreMax);
 
 		if (p.food_store < 0) new_food_store_max += ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath * p.food_store;
 
