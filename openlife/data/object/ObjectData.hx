@@ -513,7 +513,7 @@ class ObjectData extends LineReader {
 		trace('dataVersionNumber: $dataVersionNumber');
 
 		Init();
-				
+
 		if (init || ReadAllFromFile(dataVersionNumber) == false) {
 			ImportObjectData();
 			WriteAllToFile(dataVersionNumber);
@@ -549,7 +549,7 @@ class ObjectData extends LineReader {
 
 			tmpName = tmpName.split('#')[0];
 			tmpName = tmpName.split('+')[0];
-			//tmpName = tmpName.split('-')[0];
+			// tmpName = tmpName.split('-')[0];
 
 			tmpName = StringTools.trim(tmpName);
 
@@ -1296,7 +1296,7 @@ class ObjectData extends LineReader {
 		var spriteDataLen = reader.readInt32();
 
 		// spritedata
-		
+
 		var len = reader.readInt32();
 		obj.spriteArray = new Vector<SpriteData>(len);
 		for (i in 0...obj.spriteArray.length) {
@@ -1325,7 +1325,7 @@ class ObjectData extends LineReader {
 			sprite.y = reader.readFloat();
 			sprite.rot = reader.readFloat();
 		}
-		
+
 		var tmpId = reader.readInt32();
 		if (obj.id != tmpId) {
 			var errorMessage = 'Read Object Data Corrupted: ObjectId: ${obj.id} != $tmpId';
@@ -1408,7 +1408,7 @@ class ObjectData extends LineReader {
 
 	// insulation reaches from 0 to 2
 	public function getInsulation():Float {
-		if(isClothing() == false) return rValue;
+		if (isClothing() == false) return rValue;
 
 		// original: {'h': 0.25, 't': 0.35, 'b': 0.2, 's': 0.1, 'p': 0.1};
 		var parts:Map<String, Float> = ["h" => 0.4, "t" => 0.4, "b" => 0.4, "s" => 0.2, "p" => 0.4];
@@ -1434,8 +1434,8 @@ class ObjectData extends LineReader {
 
 		if (this.clothing.length > 1) this.clothing = StringTools.trim(this.clothing);
 
-		//trace('clothing: ${this.name} Slot: ${this.clothing.charAt(0)}');
-		//if (this.clothing.charAt(0) == 'p' || this.clothing.charAt(0) == 'P') trace('no heat protection from ${this.name}');
+		// trace('clothing: ${this.name} Slot: ${this.clothing.charAt(0)}');
+		// if (this.clothing.charAt(0) == 'p' || this.clothing.charAt(0) == 'P') trace('no heat protection from ${this.name}');
 		if (this.clothing.charAt(0) == 'p' || this.clothing.charAt(0) == 'P') return 0; // no protection from quiver or backpack
 
 		if (parts[this.clothing] == 0) return this.rValue;
@@ -1506,9 +1506,9 @@ class ObjectData extends LineReader {
 		var trans = TransitionImporter.GetTransition(this.id, this.id);
 		if (trans == null) return -1;
 		var undoTrans = TransitionImporter.GetTransition(0, trans.newTargetID);
-		//if (undoTrans == null) trace('NOT A PILE: ${ObjectData.getObjectData(trans.newTargetID).name}');
+		// if (undoTrans == null) trace('NOT A PILE: ${ObjectData.getObjectData(trans.newTargetID).name}');
 		if (undoTrans == null) return -1;
-		if(undoTrans.newActorID != this.id) return -1;
+		if (undoTrans.newActorID != this.id) return -1;
 		return trans.newTargetID;
 	}
 
@@ -1545,10 +1545,10 @@ class ObjectData extends LineReader {
 	}
 
 	public static function IsOven(objId:Int) {
-		if(objId == 237) return true; // 237 Adobe Oven 
-		if(objId == 247) return true; // 247 Wood-filled Adobe Oven 
-		if(objId == 249) return true; // 249 Burning Adobe Oven
-		if(objId == 250) return true; // 250 Hot Adobe Oven 
+		if (objId == 237) return true; // 237 Adobe Oven
+		if (objId == 247) return true; // 247 Wood-filled Adobe Oven
+		if (objId == 249) return true; // 249 Burning Adobe Oven
+		if (objId == 250) return true; // 250 Hot Adobe Oven
 		return false;
 	}
 
@@ -1557,7 +1557,7 @@ class ObjectData extends LineReader {
 	}
 
 	public function isNoBoneGrave():Bool {
-		if(isGrave() == false) return false;
+		if (isGrave() == false) return false;
 		return isBoneGrave() == false;
 	}
 
@@ -1566,7 +1566,6 @@ class ObjectData extends LineReader {
 	}
 
 	public static function IsBoneGrave(objId:Int):Bool {
-
 		if (objId == 87) return true; // Fresh Grave
 		if (objId == 88) return true; // Grave
 		if (objId == 89) return true; // Old Grave
@@ -1587,15 +1586,15 @@ class ObjectData extends LineReader {
 	}
 
 	// for example // Fed Domestic Lamb
-	public function isDomesticAnimal() : Bool {
-		if(isAnimal() == false) return false;
+	public function isDomesticAnimal():Bool {
+		if (isAnimal() == false) return false;
 
 		var isDomestic = this.biomes.length > 0 && this.biomes[0] == BiomeTag.GREEN;
-		//trace('Animal: ${this.name} ${this.biomes} isDomestic: $isDomestic');
+		// trace('Animal: ${this.name} ${this.biomes} isDomestic: $isDomestic');
 		return isDomestic;
 	}
 
-	public function isTree() : Bool {
+	public function isTree():Bool {
 		return this.description.indexOf("Tree") != -1;
 	}
 
@@ -1615,12 +1614,12 @@ class ObjectData extends LineReader {
 		return deadlyDistance >= 2;
 	}
 
-	public function isDeadlyAnimal() : Bool {
-		if(damage <= 0) return false;
+	public function isDeadlyAnimal():Bool {
+		if (damage <= 0) return false;
 		return isAnimal();
 	}
 
-	public function isTool() : Bool {
-		return StringTools.contains(this.description,'+tool');
-	}	
+	public function isTool():Bool {
+		return StringTools.contains(this.description, '+tool');
+	}
 }

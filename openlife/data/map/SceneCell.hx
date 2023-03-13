@@ -100,6 +100,7 @@ class SceneCell {
 	 * Movement of cell offset
 	 */
 	public var moveOffsetX:Float = 0;
+
 	public var moveOffsetY:Float = 0;
 
 	/**

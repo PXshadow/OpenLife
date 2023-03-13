@@ -312,14 +312,14 @@ class PlayerInstance {
 		var heldObject = o_id[0] < 0 ? '${o_id[0]}' : MapData.stringID(o_id);
 		if (rx == null) rx = this.x;
 		if (ry == null) ry = this.y;
-		if(r_action_target_x == null) r_action_target_x = action_target_x;
-		if(r_action_target_y == null) r_action_target_y = action_target_y;
-		if(r_o_origin_x == null) r_o_origin_x = o_origin_x;
-		if(r_o_origin_y == null) r_o_origin_y = o_origin_y;
+		if (r_action_target_x == null) r_action_target_x = action_target_x;
+		if (r_action_target_y == null) r_action_target_y = action_target_y;
+		if (r_o_origin_x == null) r_o_origin_x = o_origin_x;
+		if (r_o_origin_y == null) r_o_origin_y = o_origin_y;
 
-		//if (age == null) age = this.age;
-		//if (age_r == null) age_r = this.age_r;
-		//if (move_speed == null) move_speed = this.move_speed;
+		// if (age == null) age = this.age;
+		// if (age_r == null) age_r = this.age_r;
+		// if (move_speed == null) move_speed = this.move_speed;
 
 		var tmpHeat = Std.int(heat * 100) / 100;
 		var tmpAge = Std.int(age * 100) / 100;

@@ -91,7 +91,7 @@ class TransitionImporter {
 		obj.carftingSteps = 0;
 		var obj = ObjectData.getObjectData(3961); // Iron Vein
 		obj.carftingSteps = 0;
-		
+
 		todo.push(obj);
 
 		for (obj in ObjectData.importedObjectData) {
@@ -242,7 +242,7 @@ class TransitionImporter {
 		}
 
 		var tmpTransitions = transitions.copy();
-		for(trans in tmpTransitions){
+		for (trans in tmpTransitions) {
 			createAndaddCategoryTransitions(trans);
 		}
 
@@ -252,34 +252,33 @@ class TransitionImporter {
 	}
 
 	// Tool transtions like Portable Water Source dont have the right new actor
-	// For example Empty Portable Water Source Trans: 235 + 662 = 235 + 664 
-	// Mainly use thread / garn  / water + use / empty water --> fill up 
-	private function changeToolTransitions(){
-
+	// For example Empty Portable Water Source Trans: 235 + 662 = 235 + 664
+	// Mainly use thread / garn  / water + use / empty water --> fill up
+	private function changeToolTransitions() {
 		var count1 = 0;
 		var count2 = 0;
 		var count3 = 0;
 		var count4 = 0;
 
-		for(trans in transitions){
+		for (trans in transitions) {
 			count1++;
 			// should ingnore: // Example: EMPTY + Cold Bowl 1021
-			if(trans.actorID != trans.newActorID) continue;
-			
-			// should ingnore: // Example: Popcorn + PLAYER
-			if(trans.targetID < 1) continue;
+			if (trans.actorID != trans.newActorID) continue;
 
-			// should ingnore: dont break // Steel Hoe# +toolHoe + Fertile Soil Pile 
+			// should ingnore: // Example: Popcorn + PLAYER
+			if (trans.targetID < 1) continue;
+
+			// should ingnore: dont break // Steel Hoe# +toolHoe + Fertile Soil Pile
 			var objData = ObjectData.getObjectData(trans.actorID);
-			if(objData.numUses > 1) continue;
+			if (objData.numUses > 1) continue;
 			count2++;
 
 			// TODO why is this special?
-			// should ingnore: Rubber Ball 2170 + Paper with Charcoal Writing 
-			if(trans.actorID == 2170) continue; 
+			// should ingnore: Rubber Ball 2170 + Paper with Charcoal Writing
+			if (trans.actorID == 2170) continue;
 
 			// should ingnore: Blue Sports Car $30# driving +varNumeral + Rattle Snake  -->  EMPTY + Snake Roadkill
-			if(trans.newActorID == 0) continue; 
+			if (trans.newActorID == 0) continue;
 			count3++;
 
 			// for example for a tool like axe lastUseActor: true
@@ -292,14 +291,14 @@ class TransitionImporter {
 
 			if (toolTransition != null && trans.newActorID != toolTransition.newActorID) {
 				count4++;
-				
-				//if (ServerSettings.DebugTransitionHelper) trace('IMPORT: Change Actor from: ${trans.newActorID} to ${toolTransition.newActorID}');
-				//if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${trans.newActorID} to ${toolTransition.newActorID}');
+
+				// if (ServerSettings.DebugTransitionHelper) trace('IMPORT: Change Actor from: ${trans.newActorID} to ${toolTransition.newActorID}');
+				// if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${trans.newActorID} to ${toolTransition.newActorID}');
 				var oldId = trans.newActorID;
 				trans.newActorID = toolTransition.newActorID;
 
-				//if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${oldId} to ${toolTransition.newActorID} ' + trans.getDesciption());
-				//if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${oldId} to ${trans.newActorID}');
+				// if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${oldId} to ${toolTransition.newActorID} ' + trans.getDesciption());
+				// if (toolTransition.newActorID == 382) trace('IMPORT: Change Actor from: ${oldId} to ${trans.newActorID}');
 
 				removeTransitionFromMap(transitionsByNewActorMap, trans, oldId);
 				addTransitionToMap(transitionsByNewActorMap, trans, trans.newActorID);
@@ -319,15 +318,15 @@ class TransitionImporter {
 
 		// Bowl of Water 382
 		/*var count = 0;
-		var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
-		for(trans in transByTarget){
-			trace('Bowl of Water: ' + trans.getDesciption());
-			count++;
+			var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
+			for(trans in transByTarget){
+				trace('Bowl of Water: ' + trans.getDesciption());
+				count++;
 		}*/
 
-		//trace('Bowl of Water tranistions: $count');
+		// trace('Bowl of Water tranistions: $count');
 
-		//trace('IMPORT: 1: $count1 2:  $count2 3: $count3 4: $count4');
+		// trace('IMPORT: 1: $count1 2:  $count2 3: $count3 4: $count4');
 	}
 
 	private function getTransitionMap(lastUseActor:Bool, lastUseTarget:Bool, maxUseTarget:Bool = false):Map<Int, Map<Int, TransitionData>> {
@@ -456,8 +455,8 @@ class TransitionImporter {
 		var trans = transitionsByTargetId[transition.targetID];
 
 		// Clay Bowl 235 // Shallow Well 662 // Bowl of Water 382
-		//if(transition.actorID == 235 && transition.targetID == 662) trace('Bowl of Water1: double? ${trans != null} ' + transition.getDesciption(false));
-		//if(transition.actorID == 235) trace('Bowl of Water1: double? ${trans != null} ' + transition.getDesciption());
+		// if(transition.actorID == 235 && transition.targetID == 662) trace('Bowl of Water1: double? ${trans != null} ' + transition.getDesciption(false));
+		// if(transition.actorID == 235) trace('Bowl of Water1: double? ${trans != null} ' + transition.getDesciption());
 
 		if (trans == null) {
 			this.transitions.push(transition);
@@ -521,10 +520,9 @@ class TransitionImporter {
 	/*private function removeKeyFromMap(map:Map<Int, Array<TransitionData>>, key:Int) {
 		map.remove(key);
 	}*/
-
 	private function removeTransitionFromMap(map:Map<Int, Array<TransitionData>>, transition:TransitionData, key:Int) {
 		var array = map[key];
-		if(array == null) return;
+		if (array == null) return;
 		array.remove(transition);
 	}
 
@@ -586,13 +584,13 @@ class TransitionImporter {
 			return;
 		}
 
-		//var actorCategoryId = actorCategory == null ? -1 : actorCategory.parentID;
-		//var targetCategoryPattern = targetCategory == null ? 'NULL' : '${targetCategory.pattern}';
-		//if(actorCategory != null && transition.targetID == 1790) trace('actorCategory: ${actorCategoryId} pattern: ${actorCategory.pattern} targetCategpry: ${targetCategoryPattern} ${transition.getDesciption()}');
-		//if(transition.actorID == 394) trace('actorCategory: ${actorCategoryId} ${transition.getDesciption()}');
+		// var actorCategoryId = actorCategory == null ? -1 : actorCategory.parentID;
+		// var targetCategoryPattern = targetCategory == null ? 'NULL' : '${targetCategory.pattern}';
+		// if(actorCategory != null && transition.targetID == 1790) trace('actorCategory: ${actorCategoryId} pattern: ${actorCategory.pattern} targetCategpry: ${targetCategoryPattern} ${transition.getDesciption()}');
+		// if(transition.actorID == 394) trace('actorCategory: ${actorCategoryId} ${transition.getDesciption()}');
 
 		// 396 Dry Planted Carrots
-		//if(actorCategory != null && transition.targetID == 396) trace('actorCategory: ${actorCategoryId} pattern: ${actorCategory.pattern} targetCategpry: ${targetCategoryPattern} ${transition.getDesciption()}');
+		// if(actorCategory != null && transition.targetID == 396) trace('actorCategory: ${actorCategoryId} pattern: ${actorCategory.pattern} targetCategpry: ${targetCategoryPattern} ${transition.getDesciption()}');
 
 		// 1802 --> 1806 is pattern for trees...
 		// <394> (Category) + <1790> Dry Maple Sapling Cutting (Pattern) = <394> (Category) + Wet Maple Sapling Cutting (Pattern)
@@ -628,7 +626,7 @@ class TransitionImporter {
 						}
 
 						// <394> (Category) + <1790> Dry Maple Sapling Cutting (Pattern) = <394> (Category) + Wet Maple Sapling Cutting (Pattern)
-						// add also parent target category transition 
+						// add also parent target category transition
 						var newTransition = transition.clone();
 						newTransition.actorID = id;
 						if (newTransition.newActorID == actorCategory.parentID) newTransition.newActorID = id;
@@ -665,9 +663,9 @@ class TransitionImporter {
 			return;
 		}
 
-		//if(transition.targetID == 1802) trace('1211DEBUG!!! ${transition.getDesciption()}');
+		// if(transition.targetID == 1802) trace('1211DEBUG!!! ${transition.getDesciption()}');
 
-		// <-1> + <1802> (Pattern) = <0> + <1828> (NO CATEGORY!!!) / TIME + Dry Maple Sapling  -->  EMPTY + Dead Sapling  
+		// <-1> + <1802> (Pattern) = <0> + <1828> (NO CATEGORY!!!) / TIME + Dry Maple Sapling  -->  EMPTY + Dead Sapling
 		// CONSIDER: <0> + <1422> = <778> + <0> / EMPTY + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + EMPTY
 		// DONE CONSIDER: <-1> + <1806> = <0> + <48> / TIME + Wet Maple Sapling (Pattern)-->  EMPTY + Maple Tree (NO Pattern WHY?????)
 		// NOW CATEGORIES ARE HANDLES AFTER A:: TRANSITIONS TODO TEST NEEDED???? if ((targetCategory != null && targetCategory.pattern) && (newTargetCategory == null && newActorCategory == null)) return;
