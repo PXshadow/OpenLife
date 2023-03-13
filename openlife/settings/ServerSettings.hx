@@ -2241,8 +2241,9 @@ class ServerSettings {
 		var transByActor = TransitionImporter.GetTransitionByNewActor(858);
 		for (trans in transByActor) {
 			var objData = ObjectData.getObjectData(trans.actorID);
-			// trace('Decays to: ${objData.name}');
+			trace('Broken Steel Tool: ${objData.name}');
 			objData.decaysToObj = 858; // 858 Broken Steel Tool
+			trans.aiShouldIgnore = true;
 		}
 
 		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
