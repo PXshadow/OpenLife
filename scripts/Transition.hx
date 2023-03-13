@@ -92,7 +92,7 @@ class Transition {
 				actor: a,
 				target: b,
 				tool: trans.tool,
-				decay: trans.autoDecaySeconds
+				decay: Math.round(trans.autoDecaySeconds)
 			});
 		}
 	}
