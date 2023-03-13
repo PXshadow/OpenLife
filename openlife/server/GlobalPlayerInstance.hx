@@ -2050,7 +2050,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			setNewNome(newHome);
 
-			return true;
+			return false; // dont send original message
 		}
 
 		return true;
