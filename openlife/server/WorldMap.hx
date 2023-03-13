@@ -388,6 +388,8 @@ class WorldMap {
 		helper.tx = tx;
 		helper.ty = ty;
 
+		helper.deleteEmptyObjects(); // for example if a Stack of Baskets contains an empty Object
+
 		if (helper.containedObjects.length > helper.objectData.numSlots) {
 			var message = 'WARNING: world getObjectHelper: ${helper.name} ${helper.toArray()} slots: containedObjects.length > player.heldObject.objectData.numSlots: ${helper.objectData.numSlots}';
 			trace(message);
@@ -420,10 +422,11 @@ class WorldMap {
 		helper.ty = y;
 
 		helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper);
+		helper.deleteEmptyObjects(); // for example if a Stack of Baskets contains an empty Object
 
 		if (helper.containedObjects.length > helper.objectData.numSlots) {
 			var objData = helper.containedObjects[0];
-			var message = 'WARNING: world setObjectHelper: ${helper.name} ${helper.toArray()} first: ${objData.name} slots: containedObjects.length > player.heldObject.objectData.numSlots: ${helper.objectData.numSlots}';
+			var message = 'WARNING: world setObjectHelper: ${helper.name} ${helper.toArray()} first: ${objData.name} slots: containedObjects.length ${helper.containedObjects.length} > objectData.numSlots: ${helper.objectData.numSlots}';
 			trace(message);
 			// helper.containedObjects = [];
 

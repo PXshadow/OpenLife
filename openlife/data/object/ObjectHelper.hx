@@ -147,21 +147,21 @@ class ObjectHelper {
 
 		writer.writeByte(obj.containedObjects.length);
 
-		for(containedObj in obj.containedObjects){
+		for (containedObj in obj.containedObjects) {
 			WriteToFile(containedObj, writer);
-			//trace('containedObj: ${containedObj.name}');
+			// trace('containedObj: ${containedObj.name}');
 		}
 	}
 
 	// TODO use dataVersion 5 also for held objects / cloths / wounds
 	// Dataversion 5 stores also full contained object data
 	public static function ReadFromFile(reader:FileInput, dataVersion:Int = -1):ObjectHelper {
-		if(dataVersion < 1) dataVersion = dataVersionNumberForRead;
+		if (dataVersion < 1) dataVersion = dataVersionNumberForRead;
 
 		var array = WorldMap.ReadInt32Array(reader);
 		if (array == null) return null; // reached the end
 		if (array[0] == -100) return null;
-		if(array.length < 0 || array.length > 100){
+		if (array.length < 0 || array.length > 100) {
 			trace('Array lenght does not fit: ' + array.length);
 			throw new Exception('Array lenght does not fit: ' + array.length);
 		}
@@ -175,25 +175,33 @@ class ObjectHelper {
 		newObject.creationTimeInTicks = reader.readDouble();
 		newObject.timeToChange = reader.readFloat();
 
-		if(dataVersion >= 5){
+		if (dataVersion >= 5) {
 			/*var count = 0;
-			for(containedObj in newObject.containedObjects){
-				trace('Read O: $count containedObj: ${containedObj.name}');
-				count++;
+				for(containedObj in newObject.containedObjects){
+					trace('Read O: $count containedObj: ${containedObj.name}');
+					count++;
 			}*/
 
 			newObject.containedObjects = new Array<ObjectHelper>();
 			var count = reader.readByte();
-			for(i in 0...count){
+			for (i in 0...count) {
 				var containedObj = ReadFromFile(reader, dataVersion);
 				newObject.containedObjects.push(containedObj);
-				//trace('Read: $i containedObj: ${containedObj.name}');
+				// trace('Read: $i containedObj: ${containedObj.name}');
 			}
 		}
 		newObject.TransformToDummy();
 
 		if (newObject.creationTimeInTicks > TimeHelper.tick) newObject.creationTimeInTicks = TimeHelper.tick;
 		return newObject;
+	}
+
+	public function deleteEmptyObjects() {
+		for (obj in containedObjects) {
+			if (obj.id > 0) continue;
+			trace('WARNING: deleteEmptyObjects: ${this.name} remove contained: ${obj.id}');
+			containedObjects.remove(obj);
+		}
 	}
 
 	public static function InitObjectHelpersAfterRead() {
@@ -371,7 +379,7 @@ class ObjectHelper {
 		return objectData.dummyObjects[numberOfUses - 1].id;
 	}
 
-	public function isPermanent() : Bool {
+	public function isPermanent():Bool {
 		return objectData.isPermanent();
 	}
 
@@ -440,7 +448,7 @@ class ObjectHelper {
 
 		var timeToChange = timeTransition.calculateTimeToChange();
 
-		if(obj.isAnimal() && obj.hits > 0.5) timeToChange /= 2;
+		if (obj.isAnimal() && obj.hits > 0.5) timeToChange /= 2;
 
 		return timeToChange;
 	}
@@ -595,7 +603,7 @@ class ObjectHelper {
 	}
 
 	public function getOwnerAccount() {
-		if(this.ownersByPlayerAccount.length < 1) return null;
+		if (this.ownersByPlayerAccount.length < 1) return null;
 		return PlayerAccount.AllPlayerAccountsById[this.ownersByPlayerAccount[0]];
 	}
 
@@ -609,7 +617,7 @@ class ObjectHelper {
 		return isBoneGrave() == false;
 	}
 
-	public function timeUntillChange() : Float {
+	public function timeUntillChange():Float {
 		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(this.creationTimeInTicks);
 		return this.timeToChange - passedTime;
 	}
@@ -640,63 +648,63 @@ class ObjectHelper {
 		return objectData.parentId == 82 || objectData.parentId == 83 || objectData.parentId == 346;
 	}
 
-	public function canAddToQuiver() : Bool {
+	public function canAddToQuiver():Bool {
 		var quiver = this;
 		return (quiver.objectData.numUses < 2 || quiver.numberOfUses < quiver.objectData.numUses);
 	}
 
-	public function isDomesticAnimal() : Bool {
+	public function isDomesticAnimal():Bool {
 		return this.objectData.isDomesticAnimal();
 	}
 
-	public function isWall() : Bool {
+	public function isWall():Bool {
 		return objectData.isWall();
 	}
 
-	public static function CalculateSurroundingWallStrength(tx:Int, ty:Int) : Float {
+	public static function CalculateSurroundingWallStrength(tx:Int, ty:Int):Float {
 		var world = WorldMap.world;
 
 		var obj = world.getObjectDataAtPosition(tx, ty);
-		var stength:Float = obj.isWall() ? 2 : 0; 
-		
+		var stength:Float = obj.isWall() ? 2 : 0;
+
 		var obj = world.getObjectDataAtPosition(tx + 1, ty);
-		stength += obj.isWall() ? 2 : 0; 
-		var obj = world.getObjectDataAtPosition(tx - 1, ty );
-		stength += obj.isWall() ? 2 : 0; 
+		stength += obj.isWall() ? 2 : 0;
+		var obj = world.getObjectDataAtPosition(tx - 1, ty);
+		stength += obj.isWall() ? 2 : 0;
 		var obj = world.getObjectDataAtPosition(tx, ty + 1);
-		stength += obj.isWall() ? 2 : 0; 
+		stength += obj.isWall() ? 2 : 0;
 		var obj = world.getObjectDataAtPosition(tx, ty - 1);
-		stength += obj.isWall() ? 2 : 0; 
+		stength += obj.isWall() ? 2 : 0;
 
 		var obj = world.getObjectDataAtPosition(tx + 2, ty);
-		stength += obj.isWall() ? 2 : 0; 
-		var obj = world.getObjectDataAtPosition(tx - 2, ty );
-		stength += obj.isWall() ? 2 : 0; 
+		stength += obj.isWall() ? 2 : 0;
+		var obj = world.getObjectDataAtPosition(tx - 2, ty);
+		stength += obj.isWall() ? 2 : 0;
 		var obj = world.getObjectDataAtPosition(tx, ty + 2);
-		stength += obj.isWall() ? 2 : 0; 
+		stength += obj.isWall() ? 2 : 0;
 		var obj = world.getObjectDataAtPosition(tx, ty - 2);
-		stength += obj.isWall() ? 2 : 0; 
+		stength += obj.isWall() ? 2 : 0;
 
 		var obj = world.getObjectDataAtPosition(tx + 3, ty);
-		stength += obj.isWall() ? 1 : 0; 
-		var obj = world.getObjectDataAtPosition(tx - 3, ty );
-		stength += obj.isWall() ? 1 : 0; 
+		stength += obj.isWall() ? 1 : 0;
+		var obj = world.getObjectDataAtPosition(tx - 3, ty);
+		stength += obj.isWall() ? 1 : 0;
 		var obj = world.getObjectDataAtPosition(tx, ty + 3);
-		stength += obj.isWall() ? 1 : 0; 
+		stength += obj.isWall() ? 1 : 0;
 		var obj = world.getObjectDataAtPosition(tx, ty - 3);
-		stength += obj.isWall() ? 1 : 0; 
+		stength += obj.isWall() ? 1 : 0;
 
 		return stength;
 	}
 
-	public static function CalculateSurroundingFloorStrength(tx:Int, ty:Int) : Float {
+	public static function CalculateSurroundingFloorStrength(tx:Int, ty:Int):Float {
 		var world = WorldMap.world;
 		var objId = world.getFloorId(tx, ty);
-		//trace('Decay ${obj.name} ${obj.floor}');
-		var stength:Float = objId > 0 ? 1 : 0; 
-		
+		// trace('Decay ${obj.name} ${obj.floor}');
+		var stength:Float = objId > 0 ? 1 : 0;
+
 		var objId = world.getFloorId(tx + 1, ty);
-		stength += objId > 0 ? 1 : 0; 
+		stength += objId > 0 ? 1 : 0;
 		var objId = world.getFloorId(tx - 1, ty);
 		stength += objId > 0 ? 1 : 0;
 		var objId = world.getFloorId(tx, ty + 1);
@@ -707,23 +715,23 @@ class ObjectHelper {
 		return stength;
 	}
 
-	public function isBloody() : Bool {
+	public function isBloody():Bool {
 		return objectData.isBloody;
 	}
 
-	public function isDeadlyAnimal() : Bool {
+	public function isDeadlyAnimal():Bool {
 		return this.objectData.isDeadlyAnimal();
 	}
 
-	public function contains(searchContained:Array<Int>) : Bool {
+	public function contains(searchContained:Array<Int>):Bool {
 		var obj = this;
-		for(item in obj.containedObjects){
-			if(searchContained.contains(item.parentId)) return true;									
+		for (item in obj.containedObjects) {
+			if (searchContained.contains(item.parentId)) return true;
 		}
-		return false;		
+		return false;
 	}
 
-	public function canBePlacedIn(container:ObjectHelper) : Bool {
+	public function canBePlacedIn(container:ObjectHelper):Bool {
 		if (this.objectData.containable == false) return false;
 		if (container.containedObjects.length >= container.objectData.numSlots) return false;
 		if (this.objectData.containSize > container.objectData.slotSize) return false;

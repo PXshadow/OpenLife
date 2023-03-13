@@ -117,6 +117,8 @@ class PlayerAccount {
 			account.lastSeenInTicks = reader.readDouble();
 
 			account.coinsInherited = reader.readFloat();
+
+			// trace('ReadPlayerAccounts: ${account.id} ${account.name} ${account.email} ${account.score}');
 		}
 
 		reader.close();

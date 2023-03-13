@@ -185,7 +185,9 @@ class Lineage {
 
 				loadedLineages[lineage.myId] = lineage;
 
-				// trace('read Lineage: ${lineage.myId} ${lineage.name}');
+				// if (lineage.account == null) trace('WARNING: read Lineage: ${lineage.myId} ${lineage.name} ${lineage.accountId}');
+				// trace('read Lineage: ${lineage.myId} ${lineage.name} ${lineage.accountId}');
+				// trace('read Lineage: ${lineage.myId} ${lineage.name} ${lineage.account.email}');
 			}
 		} catch (ex) {
 			reader.close();
