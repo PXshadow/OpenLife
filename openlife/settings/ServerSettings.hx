@@ -2241,7 +2241,7 @@ class ServerSettings {
 		var transByActor = TransitionImporter.GetTransitionByNewActor(858);
 		for (trans in transByActor) {
 			var objData = ObjectData.getObjectData(trans.actorID);
-			trace('Broken Steel Tool: ${objData.name}');
+			// trace('Broken Steel Tool: ${objData.name}');
 			objData.decaysToObj = 858; // 858 Broken Steel Tool
 			trans.aiShouldIgnore = true;
 		}
@@ -2884,10 +2884,10 @@ class ServerSettings {
 		}*/
 
 		// Bowl of Soil 1137
-		var transByTarget = TransitionImporter.GetTransitionByNewActor(1137);
-		for (trans in transByTarget) {
-			trace('Bowl of Soil: ignore: ${trans.aiShouldIgnore} ' + trans.getDescription());
-		}
+		/*var transByTarget = TransitionImporter.GetTransitionByNewActor(1137);
+			for (trans in transByTarget) {
+				trace('Bowl of Soil: ignore: ${trans.aiShouldIgnore} ' + trans.getDescription());
+		}*/
 
 		// Broken Steel Tool 858 --> no transitions found
 		/*var transByTarget = TransitionImporter.GetTransitionByNewTarget(858);
