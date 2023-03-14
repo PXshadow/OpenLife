@@ -2349,22 +2349,6 @@ abstract class AiBase {
 
 		if (handleMilk()) return true;
 
-		// Split Potato Sprouts 1155
-		var countTomatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1155, 30);
-		// Potato in Water 1152
-		countTomatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1152, 30);
-		if (countTomatoSeeds < 1) {
-			if (craftItem(1155)) return true; // Split Potato Sprouts 1155
-		}
-
-		// Bowl of Tomato Seeds 2828
-		var countTomatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2828, 30);
-		// Bowl of Tomato Seed Pulp 2825
-		countTomatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2825, 30);
-		if (countTomatoSeeds < 1) {
-			if (craftItem(2828)) return true; // Bowl of Tomato Seeds 2828
-		}
-
 		// Clay Bow 235 + Three Sisters Stew 1249
 		if (shortCraft(235, 1249, 20, 1)) return true;
 
@@ -2373,6 +2357,22 @@ abstract class AiBase {
 
 		Macro.exception(if (cleanUpBowls(253)) return true); // Bowl of Gooseberries 253
 		Macro.exception(if (cleanUpBowls(1176)) return true); // Bowl of Dry Beans 1176
+
+		// Split Potato Sprouts 1155
+		var countPotatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1155, 60);
+		// Potato in Water 1152
+		countPotatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1152, 60);
+		if (countPotatoSeeds < 1) {
+			if (craftItem(1155)) return true; // Split Potato Sprouts 1155
+		}
+
+		// Bowl of Tomato Seeds 2828
+		var countTomatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2828, 60);
+		// Bowl of Tomato Seed Pulp 2825
+		countTomatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2825, 60);
+		if (countTomatoSeeds < 1) {
+			if (craftItem(2828)) return true; // Bowl of Tomato Seeds 2828
+		}
 
 		if (hotOven == null && fireOven == null) {
 			// Adobe Oven 237
