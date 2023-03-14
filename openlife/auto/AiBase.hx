@@ -1481,9 +1481,9 @@ abstract class AiBase {
 		var home = myPlayer.home;
 
 		// Composting Compost Pile 790
-		var countCompost = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 790, 30);
+		var countCompost = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 790, 60);
 		// Composted Soil 624
-		countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 624, 30);
+		countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 624, 60);
 
 		if (countCompost < 1) this.taskState['Composting'] = 1;
 
@@ -1495,7 +1495,7 @@ abstract class AiBase {
 		if (craftItem(790)) return true;
 
 		// Wet Compost Pile 625
-		countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 625, 30);
+		countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 625, 60);
 
 		// Wet Compost Pile 625
 		if (countCompost < 3 && craftItem(625)) return true;
@@ -2364,7 +2364,7 @@ abstract class AiBase {
 		// Clay Bow 235 + Open Fermented Sauerkraut 1241
 		if (shortCraft(235, 1241, 20, 1)) return true;
 
-		if(makeSeatsAndCleanUp()) return true;
+		if (makeSeatsAndCleanUp()) return true;
 
 		if (hotOven == null && fireOven == null) {
 			// Adobe Oven 237
@@ -3016,7 +3016,7 @@ abstract class AiBase {
 		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
 
 		// Fill up the Bowl // 235 Clay Bowl // 253 Bowl of Gooseberries
-		if ((heldObj.parentId == 235 && closeBerryBowl == null) || heldObj.parentId == 253) {
+		if (heldObj.parentId == 253) {
 			if (shouldDebugSay()) myPlayer.say('Fill Bowl on Bush');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Bush!');
 
@@ -3038,6 +3038,14 @@ abstract class AiBase {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Pickup Berry Bowl to Fill!');
 
 			return true;
+		}
+
+		// Fill up the Bowl // 235 Clay Bowl
+		if (heldObj.parentId == 235) {
+			if (shouldDebugSay()) myPlayer.say('Fill Bowl on Bush');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Bush!');
+
+			return useHeldObjOnTarget(closeBush);
 		}
 
 		return GetItem(235); // Clay Bowl
