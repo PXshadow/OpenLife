@@ -1210,7 +1210,7 @@ abstract class AiBase {
 			text = 'cool';
 		} else if (needWarming) {
 			// trace('AAI: ${myPlayer.name + myPlayer.id} handle heat: too cold');
-			if(firePlace != null && firePlace.objectData.heatValue > 4){
+			if (firePlace != null && firePlace.objectData.heatValue > 4) {
 				goodPlace = firePlace;
 				text = 'heat at fire';
 			}
@@ -1243,15 +1243,16 @@ abstract class AiBase {
 			}
 
 			if (myPlayer.heat > 0.5 && myPlayer.lastTemperature > 0.45) {
-				//if (shouldDebugSay()) myPlayer.say('Could not cool!');
+				// if (shouldDebugSay()) myPlayer.say('Could not cool!');
 				myPlayer.say('Could not cool!');
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} does not help: $text player heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
 				myPlayer.coldPlace = null; // this place does not help
 				return false;
 			}
+
 			if (myPlayer.heat < 0.5 && myPlayer.lastTemperature < 0.55) {
-				//if (shouldDebugSay()) myPlayer.say('Could not warm!');
+				// if (shouldDebugSay()) myPlayer.say('Could not warm!');
 				myPlayer.say('Could not warm!');
 
 				myPlayer.warmPlace = null; // this place does not help

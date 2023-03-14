@@ -2880,14 +2880,21 @@ class ServerSettings {
 			// Raw Pie Crust 264
 			if (trans.actorID != 264) continue;
 			trans.aiShouldIgnore = true;
-			// trace('Raw Pie Crust: ignore: ${trans.aiShouldIgnore} ' + trans.getDesciption(false));
+			// trace('Raw Pie Crust: ignore: ${trans.aiShouldIgnore} ' + trans.getDescription(false));
+		}
+
+		// forbid burning stuff
+		var transByTarget = TransitionImporter.GetTransitionByNewActor(520); // Burnt Goose
+		for (trans in transByTarget) {
+			// trace('Burnt Goose: ignore: ${trans.aiShouldIgnore} ' + trans.getDescription(false));
+			trans.aiShouldIgnore = true;
 		}
 
 		// Shallow Well 662 // Bowl of Water 382
 		/*var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
 			for(trans in transByTarget){
 				if(trans.targetID != 662) continue;
-				trace('Bowl of Water: ' + trans.getDesciption());
+				trace('Bowl of Water: ' + trans.getDescription());
 		}*/
 
 		// Bowl of Soil 1137
