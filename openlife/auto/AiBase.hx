@@ -720,6 +720,9 @@ abstract class AiBase {
 			}
 		}
 
+		// Try kill some Mosquito // Firebrand + Mosquito Swarm just bit --> 0 + Ashes
+		if (shortCraft(248, 2157, 30)) return true;
+
 		// Long Straight Shaft 67
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 67, 10);
 		if (count > 5) {
