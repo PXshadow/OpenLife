@@ -1782,21 +1782,21 @@ abstract class AiBase {
 
 		if (this.profession['BASICFARMER'] < 6) {
 			// let some wheat stay for seeds and so that it looks nice
-			var countRipeWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 242, 30); // Ripe Wheat
-			var allHarvestedWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 226, 30); // Threshed Wheat 226
-			allHarvestedWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 224, 30); // Harvested Wheat 224
-			allHarvestedWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 225, 30); // Wheat Sheaf 225
+			var countRipeWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 242, 40); // Ripe Wheat
+			var allHarvestedWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 226, 40); // Threshed Wheat 226
+			allHarvestedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 224, 40); // Harvested Wheat 224
+			allHarvestedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 225, 40); // Wheat Sheaf 225
 
 			if (countRipeWheat > 1 && allHarvestedWheat < 5) if (craftItem(224)) return true; // Harvested Wheat
 
-			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 224, 30); // Harvested Wheat
+			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 224, 40); // Harvested Wheat
 			if (closeObj != null) if (craftItem(225)) return true; // Wheat Sheaf
 
-			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 225, 30); // Wheat Sheaf
+			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 225, 40); // Wheat Sheaf
 			if (closeObj != null) if (craftItem(226)) return true; // Threshed Wheat
 
-			var countDryPlantedWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 228, 30); // Dry Planted Wheat 228
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 229, 30); // Wet Planted Wheat 229
+			var countDryPlantedWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 228, 40); // Dry Planted Wheat 228
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 229, 40); // Wet Planted Wheat 229
 			count += countDryPlantedWheat;
 			count += countRipeWheat;
 			// count += countThreshedWheat;
@@ -1808,8 +1808,8 @@ abstract class AiBase {
 		}
 
 		if (this.profession['BASICFARMER'] < 7) {
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 30); // Wet Planted Corn Seed 1110
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1109, 30); // Dry Planted Corn Seed
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 40); // Wet Planted Corn Seed 1110
+			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1109, 40); // Dry Planted Corn Seed
 			if (count < 3) if (craftItem(1109)) return true; // Dry Planted Corn Seed
 			this.profession['BASICFARMER'] = 7;
 		}
