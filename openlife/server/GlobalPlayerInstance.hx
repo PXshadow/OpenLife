@@ -1653,7 +1653,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var healthFactor:Float;
 		var medianHealth = medianPrestige;
 
-		health -= medianHealth * (this.trueAge / 30); // at half of the life the median medianHealth should be reached
+		health -= medianHealth * (this.trueAge / (ServerSettings.MaxAge / 2)); // at half of the life the median medianHealth should be reached
 
 		// healthFactor 1.13 if health double ServerSettings.HealthFactor
 		if (health >= 0) healthFactor = (maxBoni * health + medianHealth) / (health + medianHealth); else
