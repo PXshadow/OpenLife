@@ -104,6 +104,9 @@ abstract class AiBase {
 	public var debugSay = false;
 	public var debugProfession = false;
 
+	public var lastX = 0; // for debugging stuck path
+	public var lastY = 0; // for debugging stuck path
+
 	public static function StartAiThread() {
 		Thread.create(RunAi);
 	}

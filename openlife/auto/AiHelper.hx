@@ -903,6 +903,20 @@ class AiHelper {
 			data.push(new Pos(path.x - tx, path.y - ty));
 		}
 
+		if (data.length > 0 && ai.lastX == -data[data.length - 1].x && ai.lastY == -data[data.length - 1].y) {
+			trace('${player.name + player.p_id} ${ai.lastProfession} GOTO Stuck? $px $py $data');
+		}
+		if (data.length > 0 && data[data.length - 1].x == 9 && data[data.length - 1].y == 9) {
+			trace('${player.name + player.p_id} ${ai.lastProfession} GOTO Stuck? $px $py $data');
+		}
+		if (data.length > 0 && data[data.length - 1].x == -9 && data[data.length - 1].y == -9) {
+			trace('${player.name + player.p_id} ${ai.lastProfession} GOTO Stuck? $px $py $data');
+		}
+		if (data.length > 0) {
+			ai.lastX = data[data.length - 1].x;
+			ai.lastY = data[data.length - 1].y;
+		}
+
 		var ai = playerInterface.getAi();
 		var globalPlayer = cast(player, GlobalPlayerInstance);
 		if (move) playerInterface.move(globalPlayer.moveHelper.guessX(), globalPlayer.moveHelper.guessY(), ai.seqNum++, data);
