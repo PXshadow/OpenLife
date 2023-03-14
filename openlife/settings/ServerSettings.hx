@@ -1365,6 +1365,9 @@ class ServerSettings {
 
 		// trace('Permanent: ${ObjectData.getObjectData(750).permanent}');
 		// trace('Permanent: ${ObjectData.getObjectData(3816).permanent}');
+
+		// var obj = ObjectData.getObjectData(82); // Fire 82
+		// trace('Trace: ${obj.name} heat: ${obj.heatValue}');
 	}
 
 	public static function PatchTransitions(transtions:TransitionImporter) {
