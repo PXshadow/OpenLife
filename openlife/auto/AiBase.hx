@@ -3279,6 +3279,14 @@ abstract class AiBase {
 		//  Undyed Bowler Hat 2884
 		if (craftClothIfNeeded(2884)) return true;
 
+		// Back clothing
+		// Backpack 198
+		// if(myPlayer.age > 25 && craftClothIfNeeded(198)) return true;
+		if (myPlayer.age > 25) {
+			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 198, 60);
+			if (count < 1 && craftItem(198)) return true; // Backpack 198
+		}
+
 		this.profession['ClothMaker'] = 0;
 
 		return false;
@@ -3311,11 +3319,6 @@ abstract class AiBase {
 		if (isWhiteOrGinger && myPlayer.age >= objData.minPickupAge && craftClothIfNeeded(2180)) return true;
 		// 199 Rabbit Fur Hat
 		if (isWhiteOrGinger && craftClothIfNeeded(199)) return true;
-
-		// Back clothing
-		// 198 Backpack
-		// TODO fix bug picking up backpack (AI drops item in it and then instead of picking up puts item out of it)
-		// if(myPlayer.age > 25 && craftClothIfNeeded(198)) return true;
 
 		this.profession['ClothMaker'] = 0;
 
