@@ -2713,18 +2713,19 @@ abstract class AiBase {
 
 		if (countSteel > 1 && this.profession['SMITH'] < 4) this.profession['SMITH'] = 4;
 
-		// Huge Charcoal Pile 4102
-		// Big Charcoal Pile 300 // Firing Forge 304 // Forge with Charcoal
-		if (this.profession['SMITH'] < 1.5 && forge.parentId != 304 && forge.parentId != 304 && forge.parentId != 305) {
+		// Firing Forge 304 // Forge with Charcoal 305
+		/*if (this.profession['SMITH'] < 1.5 && forge.parentId != 304 && forge.parentId != 305) {
 			// Basket of Charcoal 298
 			if (shortCraftOnGround(298)) return true;
+			// Huge Charcoal Pile 4102
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4102, 20);
+			// Big Charcoal Pile 300
 			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 300, 20);
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Charcoal Pile count: ${count}');
 			// Basket of Charcoal 298
 			if (count < 1 && craftItem(298)) return true;
 			this.profession['SMITH'] = 1.5;
-		}
+		}*/
 
 		// Wrought Iron 314
 		if (this.profession['SMITH'] < 3) {
@@ -2733,7 +2734,7 @@ abstract class AiBase {
 			if (count < 5) {
 				// Iron Ore 290
 				if (this.profession['SMITH'] < 2) {
-					var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 290, 20);
+					var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 290, 20);
 					if (count < 5 && craftItem(290)) return true;
 					this.profession['SMITH'] = 2;
 				}
