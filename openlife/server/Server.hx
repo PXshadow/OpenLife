@@ -29,6 +29,8 @@ using openlife.server.MoveHelper;
 class Server {
 	public static var server:Server;
 
+	public var canStart = false;
+
 	public var map:WorldMap; // THE WORLD
 
 	public var playerIndex:Int = 2; // used for giving new IDs to players // better start with 2 since -1 has other use in MX update
@@ -42,9 +44,9 @@ class Server {
 
 		var aiCount = Connection.getAis().length;
 
-		trace('loaded $aiCount Ais from ${ServerSettings.NumberOfAis}');
-
-		TimeHelper.DoTimeLoop();
+		if (server.canStart) trace('loaded $aiCount Ais from ${ServerSettings.NumberOfAis}');
+		// else trace('Cannot start server please fix Save!');
+		if (server.canStart) TimeHelper.DoTimeLoop();
 	}
 
 	public function new() {
@@ -74,15 +76,20 @@ class Server {
 		// do all the map inititalisation stuff
 		map = new WorldMap();
 
-		if (ServerSettings.GenerateMapNew) {
+		var dir = './${ServerSettings.SaveDirectory}/';
+		var saveExists = sys.FileSystem.exists(dir + "lastDataNumber.txt");
+
+		if (ServerSettings.GenerateMapNew || saveExists == false) {
+			if (saveExists == false) trace('Save ${dir + "lastDataNumber.txt"} could not be found! Generate new Map!');
 			map.generate();
 			map.writeToDisk();
 		} else {
-			if (map.readFromDisk() == false) {
-				trace('could not read World Map from disk! Start generating new map...');
-
-				map.generate();
-				map.writeToDisk();
+			this.canStart = map.readFromDisk();
+			if (this.canStart == false) {
+				trace('could not load Save! Please fix save or delete lastDataNumber.txt to generate a new Map!');
+				return;
+				// map.generate();
+				// map.writeToDisk();
 			}
 		}
 
