@@ -534,23 +534,24 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		itemToCraft.maxSearchRadius = 30;
-		// Macro.exception(if(doBaking(1)) return);
+
 		Macro.exception(if (doWatering(1)) return);
 		Macro.exception(if (doCarrotFarming(1)) return);
 		Macro.exception(if (fillBerryBowlIfNeeded()) return);
 		Macro.exception(if (cleanUpBowls(253)) return); // Bowl of Gooseberries 253
+		Macro.exception(if (doBaking(1)) return);
 		Macro.exception(if (fillBeanBowlIfNeeded()) return); // green beans
 		Macro.exception(if (cleanUpBowls(1176)) return); // Bowl of Dry Beans 1176
 		Macro.exception(if (fillBeanBowlIfNeeded(false)) return); // dry beans
 
 		// Macro.exception(if(doBasicFarming(1)) return);
 
-		var jobByAge:Int = Math.round(myPlayer.age / 4); // job prio switches every 4 years
+		var jobByAge:Int = Math.round(myPlayer.age / 5); // job prio switches every 5 years
 
 		for (i in 0...5) {
 			jobByAge = (jobByAge + i) % 5;
-			if (jobByAge == 0) Macro.exception(if (doWatering()) return); else if (jobByAge == 1) Macro.exception(if (doBasicFarming(1)) return); else
-				if (jobByAge == 2) Macro.exception(if (doBaking(1)) return); else if (jobByAge == 3) Macro.exception(if (doPottery()) return); else
+			if (jobByAge == 0) Macro.exception(if (doWatering()) return); else if (jobByAge == 1) Macro.exception(if (doBasicFarming()) return); else
+				if (jobByAge == 2) Macro.exception(if (doBaking()) return); else if (jobByAge == 3) Macro.exception(if (doPottery()) return); else
 					if (jobByAge == 4) Macro.exception(if (isSheepHerding()) return);
 		}
 		Macro.exception(if (doBerryFarming()) return);
@@ -1445,7 +1446,7 @@ abstract class AiBase {
 		// this.profession['CarrotFarmer'] = 0;
 	}
 
-	private function doPrepareSoil(maxProfession = 1) {
+	private function doPrepareSoil(maxProfession = 2) {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
 		var distance = 30;
@@ -1527,7 +1528,6 @@ abstract class AiBase {
 		var deepRows = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 213, 30);
 		// Shallow Tilled Row 1136
 		var countRows = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1136, 30);
-
 		countRows += deepRows;
 
 		if (countRows < 1) this.taskState['RowMaker'] = 1;
@@ -1565,7 +1565,7 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} RowMaker: ${taskState['RowMaker']} Till Rows? countRows: $countRows countBowls: $countBowls');
 
-		if (deepRows < 2) this.taskState['RowMaker'] = 1;
+		if (deepRows < 5) this.taskState['RowMaker'] = 1;
 
 		// Deep Tilled Row 213
 		if (this.taskState['RowMaker'] < 3) {
@@ -2092,7 +2092,7 @@ abstract class AiBase {
 		return kiln;
 	}
 
-	private function doPottery(maxPeople:Int = 1):Bool {
+	private function doPottery(maxPeople:Int = 2):Bool {
 		var home = myPlayer.home;
 
 		if (hasOrBecomeProfession('POTTER', maxPeople) == false) return false;
