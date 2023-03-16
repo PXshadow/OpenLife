@@ -1849,9 +1849,11 @@ abstract class AiBase {
 
 	private function doHarvestWheat(minHarvest:Int, maxHarvest:Int) {
 		var home = myPlayer.home;
-		var searchDistance = 40;
+		var searchDistance = 30;
 
 		var threshedWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 226, searchDistance); // Threshed Wheat 226
+		threshedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4069, searchDistance); // Threshed Wheat (on ground) 4069
+
 		var allHarvestedWheat = threshedWheat;
 		allHarvestedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 224, searchDistance); // Harvested Wheat 224
 		allHarvestedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 225, searchDistance); // Wheat Sheaf 225
@@ -1882,6 +1884,8 @@ abstract class AiBase {
 
 		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 225, searchDistance); // Wheat Sheaf
 		if (closeObj != null && craftItem(226)) return true; // Threshed Wheat
+
+		this.taskState['WheatHarvester'] = 1;
 
 		return false;
 	}
