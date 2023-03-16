@@ -2490,9 +2490,11 @@ abstract class AiBase {
 		this.profession['BAKER'] = 3; // TODO set to 2 once in a while to check for bread stuff???
 
 		// Baker needs Wheat
-		if (doHarvestWheat(1, 4)) return true;
+		if (this.isHungry == false) {
+			if (doHarvestWheat(1, 4)) return true;
 
-		if (doPlantWheat(1, 5)) return true;
+			if (doPlantWheat(1, 5)) return true;
+		}
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
