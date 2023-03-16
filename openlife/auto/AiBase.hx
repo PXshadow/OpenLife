@@ -1747,7 +1747,8 @@ abstract class AiBase {
 		if (shortCraft(0, 2837, distance)) return true; // 0 + Hardened Row with Stake
 
 		if (shortCraft(502, 1146, distance)) return true; // Shovel + Mature Potato Plants 1146
-		if (shortCraft(0, 4144, distance)) return true; // Shovel + Dug Potatoes 4144
+		if (shortCraft(1137, 1143, 30)) return true; // Bowl of Soil 1137 + Potato Plants 1143
+		if (shortCraft(0, 4144, distance)) return true; // 0 + Dug Potatoes 4144
 
 		if (ServerSettings.DebugAi) trace('AAI: 2 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']}');
 
@@ -2834,6 +2835,11 @@ abstract class AiBase {
 		if (hasOrBecomeProfession('ADVANCEDFARMER', maxPeople) == false) return false;
 
 		Macro.exception(if (doPrepareRows(maxPeople)) return true);
+
+		// take care of potatos
+		if (shortCraft(502, 1146, 30)) return true; // Shovel + Mature Potato Plants 1146
+		if (shortCraft(1137, 1143, 30)) return true; // Bowl of Soil 1137 + Potato Plants 1143
+		if (shortCraft(0, 4144, 30)) return true; // 0 + Dug Potatoes 4144
 
 		// 1109 Dry Planted Corn Seed
 		// 396 Dry Planted Carrots
