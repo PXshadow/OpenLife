@@ -4799,6 +4799,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				return true;
 			}
 
+			var count = AiHelper.CountCloseObjects(player, player.tx, player.ty, id, 30);
+			player.say('Count ${objData.name}: $count', true);
+
+			return true;
+		} else if (text.indexOf('!COUNTH ') != -1) {
+			var id = findObjectByCommand(text);
+			var objData = ObjectData.getObjectData(id);
+
+			if (objData == null) {
+				player.say('Could not find $text', true);
+				return true;
+			}
+
 			var count = AiHelper.CountCloseObjects(player, player.home.tx, player.home.ty, id, 30);
 			player.say('Count ${objData.name}: $count', true);
 
