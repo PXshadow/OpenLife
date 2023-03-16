@@ -1425,7 +1425,12 @@ class WorldMap {
 		if (x - p.x > this.width / 2) x -= this.width; // consider that world is round
 		else if (x - p.x < -this.width / 2) x += this.width; // consider that world is round
 
-		// TODO consider if walked more then one time round the world
+		// consider if walked more then one time round the world
+		var width = WorldMap.world.width;
+		x = x % width;
+		// if (x >= width) x -= width;
+		// if (x <= -width) x += width;
+
 		return x;
 	}
 
@@ -1434,7 +1439,12 @@ class WorldMap {
 		if (y - p.y > this.height / 2) y -= this.height; // consider that world is round
 		else if (y - p.y < -this.height / 2) y += this.height; // consider that world is round
 
-		// TODO consider if walked more then one time round the world
+		// consider if walked more then one time round the world
+		var height = WorldMap.world.height;
+		y = y % height;
+		// if (y >= height) y -= height;
+		// if (y <= -height) y += height;
+
 		return y;
 	}
 
