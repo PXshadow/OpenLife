@@ -738,4 +738,8 @@ class ObjectHelper {
 
 		return true;
 	}
+
+	public function index() {
+		return WorldMap.world.index(this.tx, this.ty);
+	}
 }

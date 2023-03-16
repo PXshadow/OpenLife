@@ -1,5 +1,6 @@
 package openlife.server;
 
+import haxe.ds.HashMap;
 import haxe.Exception;
 import haxe.ds.Vector;
 import openlife.auto.AiBase;
@@ -206,6 +207,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var timeLastTemperatureCalculation:Float = 0;
 
 	public var useFailedReason = 'NA';
+	public var blockedTeleportLocations = new Array<Int>();
 
 	// set all stuff null so that nothing is hanging around
 	public function delete() {
@@ -4638,12 +4640,37 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// clear ovens, so that old ones go away
 			// WorldMap.world.ovens = new Map<Int, ObjectHelper>();
 
-			if (ovens.length > 0) {
-				if (HasEnoughCoinsForTeleport(player) == false) return true;
+			if (ovens.length < 1) {
+				player.say('No villages with an oven found!', true);
+				return true;
+			}
 
-				var oven = ovens[WorldMap.calculateRandomInt(ovens.length - 1)];
-				player.x = WorldMap.world.transformX(player, oven.tx);
-				player.y = WorldMap.world.transformY(player, oven.ty);
+			if (HasEnoughCoinsForTeleport(player) == false) return true;
+			var closestObj = null;
+			var closesDist = -1.0;
+
+			for (obj in ovens) {
+				if (player.blockedTeleportLocations.contains(obj.index())) continue;
+
+				var dist = AiHelper.CalculateQuadDistanceToObject(player, obj);
+
+				if (closestObj == null || dist < closesDist) {
+					closestObj = obj;
+					closesDist = dist;
+				}
+			}
+
+			if (closestObj == null) {
+				// try again after clearing blocks
+				player.blockedTeleportLocations = new Array<Int>();
+				player.say('Tried all villages. Start again!', true);
+				return true;
+			} else {
+				player.blockedTeleportLocations.push(closestObj.index());
+
+				// var oven = ovens[WorldMap.calculateRandomInt(ovens.length - 1)];
+				player.x = WorldMap.world.transformX(player, closestObj.tx);
+				player.y = WorldMap.world.transformY(player, closestObj.ty);
 
 				if (player.isBlocked(player.tx, player.ty)) MoveHelper.JumpToNonBlocked(player);
 				if (player.isBlocked(player.tx, player.ty)) return true;
@@ -4655,9 +4682,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				player.connection.sendMapChunk(player.x, player.y);
 
 				PayTeleportCost(player);
-
-				return true;
 			}
+
+			return true;
 		} else if (text.indexOf('!TG') != -1 || text.indexOf('!JG') != -1 || text.indexOf('!JGRAVE') != -1 || text.indexOf('!TGRAVE') != -1) {
 			// var graves = [for (obj in WorldMap.world.cursedGraves) obj];
 			var tmpGraves = player.account.graves;
@@ -4668,43 +4695,38 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				if (g.isGraveWithGraveStone() == false) continue;
 				graves.push(g);
 			}
-
 			if (graves.length < 1) {
 				player.say('No graves with a stone', true);
 				return true;
 			}
-
 			var grave = graves[WorldMap.calculateRandomInt(graves.length - 1)];
+
 			player.x = WorldMap.world.transformX(player, grave.tx);
 			player.y = WorldMap.world.transformY(player, grave.ty);
-
 			player.forced = true;
 			Connection.SendUpdateToAllClosePlayers(player);
 			player.forced = false;
-
 			player.connection.sendMapChunk(player.x, player.y);
-
 			return true;
 		} else if (text.indexOf('!JCG') != -1 || text.indexOf('!JCGRAVE') != -1) {
 			var graves = [for (obj in WorldMap.world.cursedGraves) obj];
+
 			// clear ovens, so that old ones go away
 			// WorldMap.world.ovens = new Map<Int, ObjectHelper>();
-
 			if (graves.length > 0) {
 				var grave = graves[WorldMap.calculateRandomInt(graves.length - 1)];
+
 				player.x = WorldMap.world.transformX(player, grave.tx);
 				player.y = WorldMap.world.transformY(player, grave.ty);
-
 				player.forced = true;
 				Connection.SendUpdateToAllClosePlayers(player);
 				player.forced = false;
-
 				player.connection.sendMapChunk(player.x, player.y);
-
 				return true;
 			}
 		} else if (text == '!COUNT') {
 			var closePopcorn = AiHelper.GetClosestObjectToHome(player, 1121);
+
 			player.say('popcorn: ${closePopcorn != null}', true);
 			return true;
 		} else if (text.indexOf('!SENDPU') != -1 || text == '!PU') {
@@ -4714,7 +4736,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.connection.sendMapChunk(player.x, player.y);
 			player.connection.send(FRAME, null, false, true);
 			player.forced = false;
-
 			player.say('send PU done!', true);
 			return true;
 		} else if (text.indexOf('!NAMES') != -1) {
@@ -4726,7 +4747,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				player.say('not allowed!', true);
 				return false;
 			}
-
 			TimeHelper.ReadServerSettings = false; // otherwise they will be loaded from file again
 			ServerSettings.DebugTransitionHelper = ServerSettings.DebugTransitionHelper ? false : true;
 			player.say('debug TRANS: ${ServerSettings.DebugTransitionHelper}', true);
@@ -4742,30 +4762,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return true;
 		} else if (text.indexOf('!TP') != -1) {
 			if (HasEnoughCoinsForTeleport(player) == false) return true;
-
 			player.x = 470 - player.gx; // 470 // 2
 			player.y = 120 - player.gy; // 380 //40
-
 			player.forced = true;
 			Connection.SendUpdateToAllClosePlayers(player);
 			player.forced = false;
-
 			player.connection.sendMapChunk(player.x, player.y);
-
 			// player.say('Teleport', true);
-
 			PayTeleportCost(player);
-
 			return true;
 		} else if (text.indexOf('!SPEED') != -1) {
 			if (canUseServerCommands == false) {
 				player.say('not allowed!', true);
 				return true;
 			}
-
 			if (ServerSettings.SpeedFactor < 2) ServerSettings.SpeedFactor = 10; else
 				ServerSettings.SpeedFactor = 1;
-
 			player.say('Changed Speed!', true);
 			return true;
 		} else if (text.indexOf('!TTT') != -1) {
@@ -4776,11 +4788,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				count++;
 				trace('Bowl of Water: ' + trans.getDescription());
 			}
-
 			player.say('Bowl of Water transitions: $count', true);
 			return true;
 		}
-
 		return false;
 	}
 
@@ -5220,9 +5230,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public function isHoldingObject():Bool {
 		return heldObject.id != 0 && heldObject != hiddenWound;
 	}
-}
-
-// TODO Arcurus>> add birth logic - suggestion:
+} // TODO Arcurus>> add birth logic - suggestion:
 // select mother or Admam / Eve
 // if no mother 50% born as Adam 50 % born as Eve
 // First companion of Adam is Eve, of Eve it is Adam
