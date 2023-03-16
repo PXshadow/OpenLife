@@ -4790,7 +4790,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			}
 			player.say('Bowl of Water transitions: $count', true);
 			return true;
+		} else if (text.indexOf('!COUNT ') != -1) {
+			var id = findObjectByCommand(text);
+			var objData = ObjectData.getObjectData(id);
+
+			if (objData == null) {
+				player.say('Could not find $text', true);
+				return true;
+			}
+
+			var count = AiHelper.CountCloseObjects(player, player.home.tx, player.home.ty, id, 30);
+			player.say('Count ${objData.name}: $count', true);
+
+			return true;
 		}
+
 		return false;
 	}
 
