@@ -796,6 +796,8 @@ abstract class AiBase {
 
 		Macro.exception(if (doWatering(1)) return true);
 
+		if (doPottery(1)) return true;
+
 		if (makeFireFood(1)) return true;
 
 		if (cleanUp()) return true;
@@ -872,9 +874,10 @@ abstract class AiBase {
 		// 85 Hot Coals // 72 Kindling
 		if (objId == 85) {
 			// TODO consider time to change
-			// itemToCraft.maxSearchRadius = 30; // craft only close
-			Macro.exception(if (makeFireFood(5)) return true);
-			// itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
+			var tmpSearchRadius = itemToCraft.maxSearchRadius;
+			itemToCraft.maxSearchRadius = 30; // craft only close
+			Macro.exception(if (makeFireFood(3)) return true);
+			itemToCraft.maxSearchRadius = tmpSearchRadius;
 
 			if (heldId == 72) {
 				var done = useHeldObjOnTarget(firePlace);
