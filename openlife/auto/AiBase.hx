@@ -3101,12 +3101,15 @@ abstract class AiBase {
 		if (heldObj.parentId == 253 && heldObj.numberOfUses >= heldObj.objectData.numUses) return false;
 
 		// 30 Wild Gooseberry Bush
-		var closeBush = AiHelper.GetClosestObjectById(myPlayer, 30);
+		var closeBush = AiHelper.GetClosestObjectById(myPlayer, 30, 30);
 		// 391 Domestic Gooseberry Bush
 		if (closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 391);
-		if (closeBush == null) return false;
+		// 30 Wild Gooseberry Bush
+		if (closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 30, 60);
 
-		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
+		// TODO search which one is closer
+
+		if (closeBush == null) return false;
 
 		// Fill up the Bowl // 235 Clay Bowl // 253 Bowl of Gooseberries
 		if (heldObj.parentId == 253) {
@@ -3117,6 +3120,9 @@ abstract class AiBase {
 		}
 
 		if (onlyFillHeldBowl) return false;
+
+		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
+		if (closeBerryBowl == null) AiHelper.GetClosestObjectToHome(myPlayer, 253); // Bowl of Gooseberries
 
 		// do nothing if there is a full Bowl of Gooseberries
 		if (closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses) return false;
