@@ -442,9 +442,15 @@ abstract class AiBase {
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = 30;
 
-		Macro.exception(if (fillBerryBowlIfNeeded(true)) return);
 		if (this.profession['SMITH'] >= 0) Macro.exception(if (doSmithing()) return);
-		if (this.profession['POTTER'] >= 10) Macro.exception(if (doPottery()) return);
+
+		// Firing Adobe Kiln 282
+		var hotkiln = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 282, 10);
+		// Firing Forge 304
+		if (hotkiln != null) hotkiln = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 304, 10, null, myPlayer);
+		if (hotkiln != null || this.profession['POTTER'] >= 10) Macro.exception(if (doPottery(3)) return);
+
+		Macro.exception(if (fillBerryBowlIfNeeded(true)) return);
 
 		var heldObjId = myPlayer.heldObject.parentId;
 
@@ -5775,7 +5781,7 @@ abstract class AiBase {
 
 		var newHome = AiHelper.SearchNewHome(myPlayer);
 
-		trace('AAI: ${myPlayer.name + myPlayer.id} search a new home! population: ${countPopulation} isHungry: $isHungry');
+		// trace('AAI: ${myPlayer.name + myPlayer.id} search a new home! population: ${countPopulation} isHungry: $isHungry');
 
 		if (newHome != null && myPlayer.home.tx != newHome.tx && myPlayer.home.ty != newHome.ty) {
 			myPlayer.home = newHome;
