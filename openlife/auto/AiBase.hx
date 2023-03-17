@@ -441,6 +441,8 @@ abstract class AiBase {
 		// High priortiy takes
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = 30;
+
+		Macro.exception(if (fillBerryBowlIfNeeded(true)) return);
 		if (this.profession['SMITH'] >= 0) Macro.exception(if (doSmithing()) return);
 		if (this.profession['POTTER'] >= 10) Macro.exception(if (doPottery()) return);
 
@@ -3092,7 +3094,7 @@ abstract class AiBase {
 		return shortCraftOnTarget(0, closeBowl);
 	}
 
-	private function fillBerryBowlIfNeeded():Bool {
+	private function fillBerryBowlIfNeeded(onlyFillHeldBowl:Bool = false):Bool {
 		var heldObj = myPlayer.heldObject;
 
 		// 253 Bowl of Gooseberries
@@ -3113,6 +3115,8 @@ abstract class AiBase {
 
 			return useHeldObjOnTarget(closeBush);
 		}
+
+		if (onlyFillHeldBowl) return false;
 
 		// do nothing if there is a full Bowl of Gooseberries
 		if (closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses) return false;
@@ -6160,7 +6164,7 @@ abstract class AiBase {
 		if (myPlayer.heldObject.parentId == 253 && heldObject.numberOfUses < heldObject.objectData.numUses) {
 			// TODO better check if(transition.tool == false && transition.reverseUseActor == false)
 			// check if target is bush to allow still use to fill up 391 Domestic Gooseberry Bush
-			if (useTarget.parentId != 30 && useTarget.parentId != 391) return fillBerryBowlIfNeeded();
+			if (useTarget.parentId != 30 && useTarget.parentId != 391) return fillBerryBowlIfNeeded(true);
 		}
 
 		// Bowl of Dry Beans 1176
