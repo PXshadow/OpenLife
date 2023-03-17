@@ -3538,7 +3538,8 @@ abstract class AiBase {
 			myPlayer.say("YES CAPTAIN");
 		}
 		if (text.startsWith("NHOME!")) {
-			myPlayer.say('${myPlayer.home.name}');
+			var home = WorldMap.world.getObjectHelper(myPlayer.home.tx, myPlayer.home.ty);
+			myPlayer.say('${home.name}');
 		}
 		if (text.contains("FOLLOW ME") || text.startsWith("FOLLOW!") || text.startsWith("COME!")) {
 			autoStopFollow = false; // otherwise if old enough ai would stop follow
@@ -5731,12 +5732,17 @@ abstract class AiBase {
 		var home = myPlayer.home;
 		var obj = home == null ? [0] : world.getObjectId(home.tx, home.ty);
 
+		// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} home: ${obj}');
+
 		// a home is where a oven is // TODO rebuild Oven if Rubble
 		if (ObjectData.IsOven(obj[0]) || obj[0] == 753) return false; // 237 Adobe Oven // 753 Adobe Rubble
 
 		var newHome = AiHelper.SearchNewHome(myPlayer);
 
-		if (newHome != null) myPlayer.home = newHome;
+		if (newHome != null) {
+			myPlayer.home = newHome;
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} chose a new home! ${newHome.name}');
+		}
 
 		return false;
 	}

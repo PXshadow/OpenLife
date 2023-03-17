@@ -2087,7 +2087,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (p.isHuman()) p.say('My leader ${myPlayer.name} chose a new home!', true); else
 				p.say('My leader ${myPlayer.name} chose a new home!');
 
-			trace('Follower new home: ${p.name}');
+			trace('Follower new home ${p.home}: ${p.name}');
 		}
 
 		GlobalPlayerInstance.ReleaseMutex();

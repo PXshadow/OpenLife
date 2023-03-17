@@ -1390,6 +1390,8 @@ class AiHelper {
 		var bestDistance = Math.pow(80, 2);
 		var ovens = [for (obj in WorldMap.world.ovens) obj];
 
+		// trace('AAI: ${player.name + player.id} searchNewHome: ovens: ${ovens.length}');
+
 		for (possibleHome in ovens) {
 			if (ObjectData.IsOven(possibleHome.id) == false) continue;
 
