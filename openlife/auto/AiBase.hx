@@ -3537,6 +3537,9 @@ abstract class AiBase {
 			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.say("YES CAPTAIN");
 		}
+		if (text.startsWith("NHOME!")) {
+			myPlayer.say('${myPlayer.home.name}');
+		}
 		if (text.contains("FOLLOW ME") || text.startsWith("FOLLOW!") || text.startsWith("COME!")) {
 			autoStopFollow = false; // otherwise if old enough ai would stop follow
 			timeStartedToFolow = TimeHelper.tick;
