@@ -3096,16 +3096,17 @@ abstract class AiBase {
 
 	private function fillBerryBowlIfNeeded(onlyFillHeldBowl:Bool = false):Bool {
 		var heldObj = myPlayer.heldObject;
+		var distance = onlyFillHeldBowl ? 10 : 20;
 
 		// 253 Bowl of Gooseberries
 		if (heldObj.parentId == 253 && heldObj.numberOfUses >= heldObj.objectData.numUses) return false;
 
 		// 30 Wild Gooseberry Bush
-		var closeBush = AiHelper.GetClosestObjectById(myPlayer, 30, 30);
+		var closeBush = AiHelper.GetClosestObjectById(myPlayer, 30, distance + 5);
 		// 391 Domestic Gooseberry Bush
-		if (closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 391);
+		if (closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 391, distance * 2);
 		// 30 Wild Gooseberry Bush
-		if (closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 30, 60);
+		if (closeBush == null) closeBush = AiHelper.GetClosestObjectById(myPlayer, 30, distance * 2 + 5);
 
 		// TODO search which one is closer
 
