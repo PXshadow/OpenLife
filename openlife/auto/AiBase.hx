@@ -539,8 +539,8 @@ abstract class AiBase {
 
 		Macro.exception(if (doWatering(1)) return);
 		Macro.exception(if (doCarrotFarming(1)) return);
-		Macro.exception(if (fillBerryBowlIfNeeded()) return);
 		Macro.exception(if (cleanUpBowls(253)) return); // Bowl of Gooseberries 253
+		Macro.exception(if (fillBerryBowlIfNeeded()) return);
 		Macro.exception(if (doBaking(1)) return);
 		Macro.exception(if (doPottery(1)) return);
 		Macro.exception(if (fillBeanBowlIfNeeded()) return); // green beans
