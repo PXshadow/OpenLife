@@ -1395,12 +1395,14 @@ class AiHelper {
 		for (possibleHome in ovens) {
 			if (ObjectData.IsOven(possibleHome.id) == false) continue;
 
+			var floorId = world.getFloorId(possibleHome.tx, possibleHome.ty);
 			var originalBiomeId = world.getOriginalBiomeId(possibleHome.tx, possibleHome.ty);
 			// TODO check loved biome
 			// For ginger rock biome should be ok
-			if (originalBiomeId == BiomeTag.SWAMP) continue;
+			if (floorId < 1 && originalBiomeId == BiomeTag.SWAMP) continue;
 
 			var quadDistance = AiHelper.CalculateQuadDistanceToObject(player, possibleHome);
+			if (floorId > 0) quadDistance /= 2;
 			if (quadDistance >= bestDistance) continue;
 
 			bestDistance = quadDistance;
