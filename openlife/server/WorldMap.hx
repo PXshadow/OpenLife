@@ -382,6 +382,25 @@ class WorldMap {
 			}
 		}
 
+		var x = tx;
+		var y = ty;
+
+		// make map round x wise
+		x = x % this.width;
+		if (x < 0) x += this.width;
+
+		// make map round y wise
+		y = y % this.height;
+		if (y < 0) y += this.height;
+
+		tx = x;
+		ty = y;
+
+		if (helper != null) {
+			helper.tx = tx;
+			helper.ty = ty;
+		}
+
 		if (helper != null) return helper;
 
 		helper = ObjectHelper.readObjectHelper(null, getObjectId(tx, ty));
@@ -414,6 +433,14 @@ class WorldMap {
 			objects[index(x, y)] = [0];
 			return;
 		}
+
+		// make map round x wise
+		x = x % this.width;
+		if (x < 0) x += this.width;
+
+		// make map round y wise
+		y = y % this.height;
+		if (y < 0) y += this.height;
 
 		var ids = helper.toArray();
 		objects[index(x, y)] = ids;
