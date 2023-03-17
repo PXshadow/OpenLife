@@ -2050,7 +2050,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			myPlayer.firePlace = AiHelper.GetCloseFire(myPlayer);
 
-			setNewNome(newHome);
+			setNewNome(newHome, true);
 
 			return false; // dont send original message
 		}
@@ -2058,7 +2058,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return true;
 	}
 
-	public function setNewNome(newHome:ObjectHelper) {
+	public function setNewNome(newHome:ObjectHelper, displayIfSame:Bool = false) {
 		var myPlayer = this;
 		if (newHome == null) {
 			myPlayer.say('No close Oven found!', true);
@@ -2068,7 +2068,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var isNewHome = (myPlayer.home.tx != newHome.tx || myPlayer.home.ty != newHome.ty);
 
 		if (isNewHome == false) {
-			myPlayer.say('This is already my home!', true);
+			if (displayIfSame) myPlayer.say('This is already my home!', true);
 			return false;
 		}
 
