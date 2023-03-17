@@ -540,6 +540,7 @@ abstract class AiBase {
 		Macro.exception(if (fillBerryBowlIfNeeded()) return);
 		Macro.exception(if (cleanUpBowls(253)) return); // Bowl of Gooseberries 253
 		Macro.exception(if (doBaking(1)) return);
+		Macro.exception(if (doPottery(1)) return);
 		Macro.exception(if (fillBeanBowlIfNeeded()) return); // green beans
 		Macro.exception(if (cleanUpBowls(1176)) return); // Bowl of Dry Beans 1176
 		Macro.exception(if (fillBeanBowlIfNeeded(false)) return); // dry beans
@@ -2403,7 +2404,7 @@ abstract class AiBase {
 			}
 		}
 
-		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 40); // Clay Plate
+		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 30); // Clay Plate
 		var hasClosePlate = countPlates > 0;
 
 		var neededRaw = isHungry ? 1 : 4;
@@ -2460,7 +2461,7 @@ abstract class AiBase {
 		if (shouldDebugSay() && hasClosePlate == false) myPlayer.say('no close plates');
 
 		// if(hasClosePlate == false) return craftItem(236); // Clay Plate
-		if (hasClosePlate == false) return doPottery(2);
+		// if (hasClosePlate == false) return doPottery(2);
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
