@@ -4546,7 +4546,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			player.connection.sendMapChunk(player.x, player.y);
 			return true;
-		} else if (text.indexOf('!JAI') != -1) {
+		} else if (text.indexOf('!JAIP') != -1) {
 			var ais = Connection.getLivingAis();
 
 			if (ais.length > 0) {
@@ -4563,35 +4563,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 				player.connection.sendMapChunk(player.x, player.y);
 			}
+			return true;
 		} else if (text.startsWith('!JAIH')) {
 			var ais = Connection.getLivingAis();
-
 			var locations = [for (ai in ais) ai.ai.myPlayer.home];
-			// clear roads, so that old ones go away
-			// WorldMap.world.roads = new Map<Int, ObjectHelper>();
-
 			teleport(player, locations, 1, 'No ai home found!');
-
-			/*if (ais.length > 0) {
-				var ai = AiBase.jumpToAi != null ? AiBase.jumpToAi : ais[WorldMap.calculateRandomInt(ais.length - 1)].ai;
-				var aiPlayer = ai.myPlayer;
-
-				if (text.startsWith('!JAIH')) {
-					player.x = WorldMap.world.transformX(player, aiPlayer.home.tx);
-					player.y = WorldMap.world.transformY(player, aiPlayer.home.ty);
-				} else {
-					ai.time += 4; // give player some time to catch up
-					player.x = WorldMap.world.transformX(player, aiPlayer.tx);
-					player.y = WorldMap.world.transformY(player, aiPlayer.ty);
-				}
-
-				player.forced = true;
-				Connection.SendUpdateToAllClosePlayers(player);
-				player.forced = false;
-
-				player.connection.sendMapChunk(player.x, player.y);
-			}*/
-
 			return true;
 		} else if (text == '!JHOME') {
 			if (HasEnoughCoinsForTeleport(player) == false) return true;
@@ -4842,6 +4818,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		player.x = WorldMap.world.transformX(player, closestObj.tx);
 		player.y = WorldMap.world.transformY(player, closestObj.ty);
+
+		// var home = WorldMap.world.getObjectHelper(player.x, player.y);
+		// player.say('${home.name}', true);
+		// trace('TELEPORT: ${home.name}');
 
 		if (player.isBlocked(player.tx, player.ty)) MoveHelper.JumpToNonBlocked(player);
 		if (player.isBlocked(player.tx, player.ty)) return;
