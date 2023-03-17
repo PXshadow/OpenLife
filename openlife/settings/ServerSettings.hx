@@ -358,6 +358,7 @@ class ServerSettings {
 	public static var AiNameEnding:String = 'X'; // A name ending / set '' if none
 	public static var AIAllowBuildOven:Bool = false;
 	public static var AIAllowBuilKiln:Bool = false;
+	public static var AIMigrateVillagePopulationSize:Int = 10; // AI tries to migrate if the population reached this limit. Starving people are counted twice
 
 	// Ai speed
 	public static var AISpeedFactorSerf:Float = 0.8;

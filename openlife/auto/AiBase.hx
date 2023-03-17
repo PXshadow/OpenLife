@@ -940,6 +940,28 @@ abstract class AiBase {
 
 		return bestAi;
 	}*/
+	// if starvingFactor is set, starving population is counted with starvingFactor
+	private static function CountPopulation(location:ObjectHelper, starvingFactor:Float = 0):Int {
+		var ais = Connection.getAis();
+		var count = 0.0;
+
+		for (serverAi in ais) {
+			var p = serverAi.player;
+			var value = 1.0;
+
+			if (p.deleted) continue;
+			if (p.age < ServerSettings.MinAgeToEat) continue;
+			if (p.age > ServerSettings.MaxAge - 2) continue;
+
+			if (starvingFactor > 0 && p.food_store < 0) value *= starvingFactor;
+			if (p.home.tx != location.tx || p.home.ty != location.ty) continue;
+
+			count += value;
+		}
+
+		return Math.round(count);
+	}
+
 	private function countProfession(profession:String):Float {
 		var ais = Connection.getAis();
 		var count = 0;
@@ -950,7 +972,7 @@ abstract class AiBase {
 
 			if (p.deleted) continue;
 			if (p.age < ServerSettings.MinAgeToEat) continue;
-			if (p.age > 58 && profession != 'gravekeeper') continue;
+			if (p.age > ServerSettings.MaxAge - 2 && profession != 'gravekeeper') continue;
 			if (p.isWounded()) continue;
 			if (p.food_store < 0) continue;
 			if (p.home.tx != myPlayer.home.tx || p.home.ty != myPlayer.home.ty) continue;
@@ -977,7 +999,7 @@ abstract class AiBase {
 
 			if (p.deleted) continue;
 			if (p.age < ServerSettings.MinAgeToEat) continue;
-			if (p.age > 58 && profession != 'gravekeeper') continue;
+			if (p.age > ServerSettings.MaxAge - 2 && profession != 'gravekeeper') continue;
 			if (p.isWounded()) continue;
 			if (p.food_store < 2) continue;
 			if (p.home.tx != myPlayer.home.tx || p.home.ty != myPlayer.home.ty) continue;
@@ -5745,15 +5767,20 @@ abstract class AiBase {
 		var obj = home == null ? [0] : world.getObjectId(home.tx, home.ty);
 
 		// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} home: ${obj}');
+		var countPopulation = CountPopulation(home, 2);
+		var searchHome = myPlayer.food_store < 0 || countPopulation > ServerSettings.AIMigrateVillagePopulationSize;
 
 		// a home is where a oven is // TODO rebuild Oven if Rubble
-		if (ObjectData.IsOven(obj[0]) || obj[0] == 753) return false; // 237 Adobe Oven // 753 Adobe Rubble
+		if (searchHome == false && (ObjectData.IsOven(obj[0]) || obj[0] == 753)) return false; // 237 Adobe Oven // 753 Adobe Rubble
 
 		var newHome = AiHelper.SearchNewHome(myPlayer);
 
-		if (newHome != null) {
+		trace('AAI: ${myPlayer.name + myPlayer.id} search a new home! population: ${countPopulation} isHungry: $isHungry');
+
+		if (newHome != null && myPlayer.home.tx != newHome.tx && myPlayer.home.ty != newHome.ty) {
 			myPlayer.home = newHome;
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} chose a new home! ${newHome.name}');
+			if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} chose a new home! ${newHome.name} population: ${countPopulation} isHungry: $isHungry');
 		}
 
 		return false;
