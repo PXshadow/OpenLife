@@ -402,7 +402,7 @@ abstract class AiBase {
 		Macro.exception(if (myPlayer.isWounded() || myPlayer.hasYellowFever()) {
 			isMovingToPlayer(2);
 			return;
-		}); // do nothing then looking for player
+		}); // do nothing than looking for player
 
 		Macro.exception(if (handleDeath()) return);
 		Macro.exception(if (isEating()) return);

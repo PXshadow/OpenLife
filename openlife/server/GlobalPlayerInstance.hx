@@ -4546,10 +4546,33 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			player.connection.sendMapChunk(player.x, player.y);
 			return true;
-		} else if (text.indexOf('!JAI') != -1 || text.startsWith('!JAIH')) {
+		} else if (text.indexOf('!JAI') != -1) {
 			var ais = Connection.getLivingAis();
 
 			if (ais.length > 0) {
+				var ai = AiBase.jumpToAi != null ? AiBase.jumpToAi : ais[WorldMap.calculateRandomInt(ais.length - 1)].ai;
+				var aiPlayer = ai.myPlayer;
+
+				ai.time += 4; // give player some time to catch up
+				player.x = WorldMap.world.transformX(player, aiPlayer.tx);
+				player.y = WorldMap.world.transformY(player, aiPlayer.ty);
+
+				player.forced = true;
+				Connection.SendUpdateToAllClosePlayers(player);
+				player.forced = false;
+
+				player.connection.sendMapChunk(player.x, player.y);
+			}
+		} else if (text.startsWith('!JAIH')) {
+			var ais = Connection.getLivingAis();
+
+			var locations = [for (ai in ais) ai.ai.myPlayer.home];
+			// clear roads, so that old ones go away
+			// WorldMap.world.roads = new Map<Int, ObjectHelper>();
+
+			teleport(player, locations, 1, 'No ai home found!');
+
+			/*if (ais.length > 0) {
 				var ai = AiBase.jumpToAi != null ? AiBase.jumpToAi : ais[WorldMap.calculateRandomInt(ais.length - 1)].ai;
 				var aiPlayer = ai.myPlayer;
 
@@ -4567,7 +4590,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				player.forced = false;
 
 				player.connection.sendMapChunk(player.x, player.y);
-			}
+			}*/
+
+			return true;
 		} else if (text == '!JHOME') {
 			if (HasEnoughCoinsForTeleport(player) == false) return true;
 
@@ -4614,13 +4639,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			return true;
 		} else if (text.indexOf('!JROAD') != -1 || text == '!JR') {
-			if (HasEnoughCoinsForTeleport(player) == false) return true;
+			// if (HasEnoughCoinsForTeleport(player) == false) return true;
 
-			var roads = [for (obj in WorldMap.world.roads) obj];
+			var locations = [for (obj in WorldMap.world.roads) obj];
 			// clear roads, so that old ones go away
-			WorldMap.world.roads = new Map<Int, ObjectHelper>();
+			// WorldMap.world.roads = new Map<Int, ObjectHelper>();
 
-			if (roads.length > 0) {
+			teleport(player, locations, 1, 'No roads found!');
+
+			/*if (roads.length > 0) {
 				var road = roads[WorldMap.calculateRandomInt(roads.length - 1)];
 				player.x = WorldMap.world.transformX(player, road.tx);
 				player.y = WorldMap.world.transformY(player, road.ty);
@@ -4634,86 +4661,50 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				PayTeleportCost(player);
 
 				return true;
-			}
+			}*/
+
+			return true;
 		} else if (text.indexOf('!JV') != -1 || text.indexOf('!JOVEN') != -1) {
-			var ovens = [for (obj in WorldMap.world.ovens) obj];
-			// clear ovens, so that old ones go away
+			var locations = [for (obj in WorldMap.world.ovens) obj];
+			// TODO clear not valid ovens
 			// WorldMap.world.ovens = new Map<Int, ObjectHelper>();
-
-			if (ovens.length < 1) {
-				player.say('No villages with an oven found!', true);
-				return true;
-			}
-
-			if (HasEnoughCoinsForTeleport(player) == false) return true;
-			var closestObj = null;
-			var closesDist = -1.0;
-
-			for (obj in ovens) {
-				if (player.blockedTeleportLocations.contains(obj.index())) continue;
-
-				var dist = AiHelper.CalculateQuadDistanceToObject(player, obj);
-
-				if (closestObj == null || dist < closesDist) {
-					closestObj = obj;
-					closesDist = dist;
-				}
-			}
-
-			if (closestObj == null) {
-				// try again after clearing blocks
-				player.blockedTeleportLocations = new Array<Int>();
-				player.say('Tried all villages. Start again!', true);
-				return true;
-			} else {
-				player.blockedTeleportLocations.push(closestObj.index());
-
-				// var oven = ovens[WorldMap.calculateRandomInt(ovens.length - 1)];
-				player.x = WorldMap.world.transformX(player, closestObj.tx);
-				player.y = WorldMap.world.transformY(player, closestObj.ty);
-
-				if (player.isBlocked(player.tx, player.ty)) MoveHelper.JumpToNonBlocked(player);
-				if (player.isBlocked(player.tx, player.ty)) return true;
-
-				player.forced = true;
-				Connection.SendUpdateToAllClosePlayers(player);
-				player.forced = false;
-
-				player.connection.sendMapChunk(player.x, player.y);
-
-				PayTeleportCost(player);
-			}
+			teleport(player, locations, 1, 'No villages with an oven found!');
 
 			return true;
 		} else if (text.indexOf('!TG') != -1 || text.indexOf('!JG') != -1 || text.indexOf('!JGRAVE') != -1 || text.indexOf('!TGRAVE') != -1) {
 			// var graves = [for (obj in WorldMap.world.cursedGraves) obj];
 			var tmpGraves = player.account.graves;
-			var graves = [];
+			var locations = [];
 
 			for (g in tmpGraves) {
 				trace('Grave: ${g.name} ${g.isGraveWithGraveStone()}');
 				if (g.isGraveWithGraveStone() == false) continue;
-				graves.push(g);
+				locations.push(g);
 			}
-			if (graves.length < 1) {
-				player.say('No graves with a stone', true);
-				return true;
-			}
-			var grave = graves[WorldMap.calculateRandomInt(graves.length - 1)];
 
-			player.x = WorldMap.world.transformX(player, grave.tx);
-			player.y = WorldMap.world.transformY(player, grave.ty);
-			player.forced = true;
-			Connection.SendUpdateToAllClosePlayers(player);
-			player.forced = false;
-			player.connection.sendMapChunk(player.x, player.y);
+			teleport(player, locations, 1, 'No graves with a gravestone found!');
+
+			/*if (graves.length < 1) {
+					player.say('No graves with a stone', true);
+					return true;
+				}
+				var grave = graves[WorldMap.calculateRandomInt(graves.length - 1)];
+
+				player.x = WorldMap.world.transformX(player, grave.tx);
+				player.y = WorldMap.world.transformY(player, grave.ty);
+				player.forced = true;
+				Connection.SendUpdateToAllClosePlayers(player);
+				player.forced = false;
+				player.connection.sendMapChunk(player.x, player.y);
+			 */
+
 			return true;
-		} else if (text.indexOf('!JCG') != -1 || text.indexOf('!JCGRAVE') != -1) {
-			var graves = [for (obj in WorldMap.world.cursedGraves) obj];
+		} else if (text.indexOf('!JCAG') != -1 || text.indexOf('!JACGRAVE') != -1) {
+			var locations = [for (obj in WorldMap.world.cursedGraves) obj];
 
-			// clear ovens, so that old ones go away
-			// WorldMap.world.ovens = new Map<Int, ObjectHelper>();
-			if (graves.length > 0) {
+			teleport(player, locations, 1, 'No graves found!');
+
+			/*if (graves.length > 0) {
 				var grave = graves[WorldMap.calculateRandomInt(graves.length - 1)];
 
 				player.x = WorldMap.world.transformX(player, grave.tx);
@@ -4723,11 +4714,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				player.forced = false;
 				player.connection.sendMapChunk(player.x, player.y);
 				return true;
-			}
-		} else if (text == '!COUNT') {
-			var closePopcorn = AiHelper.GetClosestObjectToHome(player, 1121);
+			}*/
 
-			player.say('popcorn: ${closePopcorn != null}', true);
 			return true;
 		} else if (text.indexOf('!SENDPU') != -1 || text == '!PU') {
 			// player.done_moving_seqNum += 1;
@@ -4819,6 +4807,52 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		return false;
+	}
+
+	private static function teleport(player:GlobalPlayerInstance, locations:Array<ObjectHelper>, coinCost:Int, notFoundtext:String) {
+		if (locations.length < 1) {
+			player.say(notFoundtext, true);
+			return;
+		}
+
+		if (coinCost > 0 && HasEnoughCoinsForTeleport(player) == false) return;
+
+		var closestObj = null;
+		var closesDist = -1.0;
+
+		for (obj in locations) {
+			if (player.blockedTeleportLocations.contains(obj.index())) continue;
+
+			var dist = AiHelper.CalculateQuadDistanceToObject(player, obj);
+
+			if (closestObj == null || dist < closesDist) {
+				closestObj = obj;
+				closesDist = dist;
+			}
+		}
+
+		if (closestObj == null) {
+			// try again after clearing blocks
+			player.blockedTeleportLocations = new Array<Int>();
+			player.say('Tried all locations. Start again!', true);
+			return;
+		}
+
+		player.blockedTeleportLocations.push(closestObj.index());
+
+		player.x = WorldMap.world.transformX(player, closestObj.tx);
+		player.y = WorldMap.world.transformY(player, closestObj.ty);
+
+		if (player.isBlocked(player.tx, player.ty)) MoveHelper.JumpToNonBlocked(player);
+		if (player.isBlocked(player.tx, player.ty)) return;
+
+		player.forced = true;
+		Connection.SendUpdateToAllClosePlayers(player);
+		player.forced = false;
+
+		player.connection.sendMapChunk(player.x, player.y);
+
+		PayTeleportCost(player);
 	}
 
 	private static function HasEnoughCoinsForTeleport(player:GlobalPlayerInstance):Bool {
