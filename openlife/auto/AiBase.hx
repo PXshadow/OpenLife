@@ -2526,8 +2526,11 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi && hasClosePlate == false) trace('AI dobaking no close plates');
 		if (shouldDebugSay() && hasClosePlate == false) myPlayer.say('no close plates');
 
+		// Raw Pie Crust 264
+		var countRawPieCrust = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 264, 30);
+
 		// if(hasClosePlate == false) return craftItem(236); // Clay Plate
-		// if (hasClosePlate == false) return doPottery(2);
+		if (hasClosePlate == false && countRawPieCrust < 1) return doPottery(2);
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
