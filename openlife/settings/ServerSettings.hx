@@ -2792,6 +2792,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(0, 245);
 		trans.aiShouldIgnore = true;
 
+		// 0 + Plow Kit 4379 // creats cyle to get second steel blade for crafting sheers
+		var trans = transtions.getTransition(0, 4379);
+		trans.aiShouldIgnore = true;
+
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
 		// var trans = transtions.getTransition(1247, 4110);
 		// trans.aiShouldIgnore = true;
