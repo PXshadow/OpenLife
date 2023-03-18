@@ -4151,10 +4151,16 @@ abstract class AiBase {
 
 		if (hasOrBecomeProfession('Hunter', maxPeople) == false) return false;
 
-		// Domestic Mouflon 541
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 541, 30);
-		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 541, 30);
-		if (count < 1 && craftItem(541)) return true; // Domestic Mouflon 541
+		// Domestic Sheep 575
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 30);
+		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 575, 30);
+		if (count < 1 && craftItem(575)) return true; // Domestic Sheep 575
+
+		// Domestic Mouflon 541 --> Is replaced with Domestic Sheep 575, do avoid spawning of tons of dead lambs
+		/* var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 541, 30);
+			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 541, 30);
+			if (count < 1 && craftItem(541)) return true; // Domestic Mouflon 541
+		 */
 
 		return false;
 	}
