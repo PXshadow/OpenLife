@@ -4191,6 +4191,24 @@ abstract class AiBase {
 		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 575, 30);
 		if (count < 1 && craftItem(575)) return true; // Domestic Sheep 575
 
+		// Domestic Sheep 575
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 30);
+		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 575, 30);
+
+		if (count < 10) {
+			// Bowl of Gooseberries and Carrot 258 + Hungry Mouflon Lamb 603
+			if (shortCraft(258, 603, 30)) return true;
+
+			// Bowl of Gooseberries and Carrot 258 + Mouflon Lamb 542
+			if (shortCraft(258, 542, 30)) return true;
+		}
+
+		/*// Domestic Sheep 575
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 30);
+			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 575, 30);
+			if (count < 1 && craftItem(575)) return true; // Domestic Sheep 575
+		 */
+
 		// Domestic Mouflon 541 --> Is replaced with Domestic Sheep 575, do avoid spawning of tons of dead lambs
 		/* var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 541, 30);
 			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 541, 30);
