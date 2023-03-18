@@ -2562,6 +2562,18 @@ class ServerSettings {
 		var trans = transtions.getTransition(107, 279); // Stakes + Empty Wild Gooseberry Bush
 		trans.aiShouldIgnore = true;
 
+		var trans = transtions.getTransition(71, 107); // Stone Hatchet + Stakes
+		trans.aiShouldIgnore = true;
+
+		// var trans = transtions.getTransition(71, 107, true); // Stone Hatchet + Stakes
+		// trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(334, 107); // Steel Axe + Stakes
+		trans.aiShouldIgnore = true;
+
+		// var trans = transtions.getTransition(334, 107, true); // Steel Axet + Stakes
+		// trans.aiShouldIgnore = true;
+
 		var trans = transtions.getTransition(107, 392); // Stakes + Languishing Domestic Gooseberry Bush
 		trans.aiShouldIgnore = true;
 
