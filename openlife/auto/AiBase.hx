@@ -799,6 +799,12 @@ abstract class AiBase {
 
 		if (doPottery(1)) return true;
 
+		if (placeFloorUnder(myPlayer.home)) return true;
+
+		if (placeFloorUnder(GetKiln())) return true;
+
+		if (placeFloorUnder(GetForge())) return true;
+
 		if (makeFireFood(1)) return true;
 
 		if (cleanUp()) return true;
@@ -813,6 +819,27 @@ abstract class AiBase {
 		// more kindling
 		if (this.profession['firekeeper'] < 3 && count < 10 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
 		this.profession['firekeeper'] = 3;
+
+		return false;
+	}
+
+	private function placeFloorUnder(obj:ObjectHelper) {
+		if (obj == null) return false;
+		var world = WorldMap.world;
+		var objData = world.getObjectDataAtPosition(obj.tx, obj.ty);
+
+		// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} home: ${obj}');
+
+		if (objData.allowFloorPlacement == false) return false;
+		var floor = world.getFloorId(obj.tx, obj.ty);
+		if (floor > 0) return false;
+
+		// BCut Stones 881
+		if (shortCraft(881, objData.parentId, false)) return true;
+		// Boards 470
+		if (shortCraft(470, objData.parentId, false)) return true;
+		// Pine Needles 96
+		if (shortCraft(96, objData.parentId, 40)) return true;
 
 		return false;
 	}
@@ -2141,6 +2168,10 @@ abstract class AiBase {
 
 		if (shortCraftOnGround(283)) return true; // Wooden Tongs with Fired Bowl
 		if (shortCraftOnGround(241)) return true; // Fired Plate in Wooden Tongs
+		// Basket of Charcoal 29
+		var countCharcoalBasket = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 298, 20);
+		if (countCharcoalBasket > 2 && shortCraftOnGround(298)) return true;
+
 		// if(shortCraftOnGround(284)) return true; // Wet Bowl in Wooden Tongs
 		// if(shortCraftOnGround(240)) return true; // Wet Plate in Wooden Tongs
 
@@ -5947,7 +5978,7 @@ abstract class AiBase {
 			var text = createProfessionText();
 			myPlayer.say('$text ${countProfession(lastProfession)}');
 		}
-		// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} profession: $lastProfession count: ${countProfession(lastProfession)}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} profession: $lastProfession count: ${countProfession(lastProfession)}');
 
 		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
 		if (isHungry == false && foodTarget == null) return false;
