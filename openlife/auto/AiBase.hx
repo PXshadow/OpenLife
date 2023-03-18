@@ -6152,9 +6152,13 @@ abstract class AiBase {
 	}
 
 	private function isEating():Bool {
+		var heldObject = myPlayer.heldObject;
 		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
 		if (myPlayer.canEat(myPlayer.heldObject) == false) return false;
 		if (isHungry == false && myPlayer.isHoldingYum() == false) return false;
+
+		// Bowl of Gooseberries 253 // Dont mess with the Gooseberries in bowl if not hungry
+		if (isHungry == false && heldObject.parentId == 253 && heldObject.numberOfUses >= heldObject.objectData.numUses) return false;
 
 		// dont eat Cooked Goose if there is only one since needed for crafting knife
 		if (myPlayer.heldObject.parentId == 518) {
