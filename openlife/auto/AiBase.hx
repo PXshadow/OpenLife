@@ -451,6 +451,7 @@ abstract class AiBase {
 		if (hotkiln != null || this.profession['POTTER'] >= 10) Macro.exception(if (doPottery(3)) return);
 
 		Macro.exception(if (fillBerryBowlIfNeeded(true)) return);
+		Macro.exception(if (doHunting(1)) return);
 
 		var heldObjId = myPlayer.heldObject.parentId;
 
@@ -2587,9 +2588,10 @@ abstract class AiBase {
 		Macro.exception(if (cleanUpBowls(1176)) return true); // Bowl of Dry Beans 1176
 
 		// Split Potato Sprouts 1155
-		var countPotatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1155, 60);
+		var countPotatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1155, 30);
+		countPotatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1155, 30);
 		// Potato in Water 1152
-		countPotatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1152, 60);
+		countPotatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1152, 30);
 		if (countPotatoSeeds < 1) {
 			if (craftItem(1155)) return true; // Split Potato Sprouts 1155
 		}
@@ -4142,6 +4144,19 @@ abstract class AiBase {
 
 		if (atEnd) this.craftingTasks.push(taskId); else
 			this.craftingTasks.unshift(taskId);
+	}
+
+	private function doHunting(maxPeople:Int = 1):Bool {
+		var home = myPlayer.home;
+
+		if (hasOrBecomeProfession('Hunter', maxPeople) == false) return false;
+
+		// Domestic Mouflon 541
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 541, 30);
+		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 541, 30);
+		if (count < 1 && craftItem(541)) return true; // Domestic Mouflon 541
+
+		return false;
 	}
 
 	private function killAnimal(animal:ObjectHelper):Bool {
