@@ -1411,7 +1411,7 @@ class AiHelper {
 
 		if (bestHome != null) {
 			// myPlayer.home = bestHome;
-			trace('AAI: ${player.name + player.id} searchNewHome dist: $bestDistance ${bestHome != null}');
+			// trace('AAI: ${player.name + player.id} searchNewHome dist: $bestDistance ${bestHome != null}');
 		}
 
 		return bestHome;
