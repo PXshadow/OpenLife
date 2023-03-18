@@ -2069,8 +2069,9 @@ abstract class AiBase {
 
 			// Basket of Soil 336 --> drop close to well
 			if (heldId == 336) {
-				var well = getCloseWell();
-				if (well != null) target = myPlayer.GetClosestObjectToTarget(well, 0, 30);
+				var newTarget = getCloseWell();
+				if (newTarget == null) newTarget = myPlayer.home;
+				if (newTarget != null) target = myPlayer.GetClosestObjectToTarget(newTarget, 0, 30);
 			}
 
 			if (target == null) target = myPlayer.GetClosestObjectById(0, 30);
@@ -4027,9 +4028,10 @@ abstract class AiBase {
 
 		// Basket of Soil 336 --> drop close to well
 		if (heldId == 336) {
-			var well = getCloseWell();
+			var newTarget = getCloseWell();
+			if (newTarget == null) newTarget = myPlayer.home;
 			// if(well != null) target = myPlayer.GetClosestObjectToTarget(well, 0, 30);
-			if (well != null) target = well;
+			if (newTarget != null) target = newTarget;
 			dropCloseToPlayer = false;
 		}
 
