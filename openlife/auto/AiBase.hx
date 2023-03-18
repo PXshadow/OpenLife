@@ -5039,9 +5039,9 @@ abstract class AiBase {
 	private function addObjectsForCrafting(baseX:Int, baseY:Int, radius:Int, transitionsByObjectId:Map<Int, TransitionForObject>, onlyRelevantObjects = true) {
 		var world = myPlayer.getWorld();
 		var held = myPlayer.heldObject;
-		var forge = (held.parentId == 260 || held.parentId == 3197) ? GetForge() : null; // Bowl of Mashed Berries and Carrot 260 // Rabbit Bait Bag 3197
-		var countFlatRockwithRabbitBait = (held.parentId == 260 || held.parentId == 3197) ? AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty,
-			3180, 20) : 0; // Flat Rock with Rabbit Bait 3180
+		// var forge = (held.parentId == 260 || held.parentId == 3197) ? GetForge() : null; // Bowl of Mashed Berries and Carrot 260 // Rabbit Bait Bag 3197
+		// var countFlatRockwithRabbitBait = (held.parentId == 260 || held.parentId == 3197) ? AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty,
+		//	3180, 20) : 0; // Flat Rock with Rabbit Bait 3180
 
 		// go through all close by objects and map them to the best transition
 		for (ty in baseY - radius...baseY + radius) {
@@ -5071,14 +5071,14 @@ abstract class AiBase {
 				}
 
 				// Dont mess up flat rocks with Rabbit Bait // Flat Rock 291
-				if (objData.parentId == 291 && countFlatRockwithRabbitBait > 2) continue;
+				// if (objData.parentId == 291 && countFlatRockwithRabbitBait > 2) continue;
 
 				// Dont mess up flat rocks near Forge
 				// obj: Flat Rock 291 // held: Bowl of Mashed Berries and Carrot 260 // Rabbit Bait Bag 3197
-				if (objData.parentId == 291 && forge != null) {
+				/*if (objData.parentId == 291 && forge != null) {
 					var dist = AiHelper.CalculateDistance(tx, ty, forge.tx, forge.ty);
 					if (dist < 10) continue;
-				}
+				}*/
 
 				var trans = transitionsByObjectId[objData.parentId];
 
