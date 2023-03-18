@@ -891,6 +891,14 @@ class ServerSettings {
 		ObjectData.getObjectData(4144).useChance = 0.5; // old 1 // Dug Potatoes 4144
 
 		ObjectData.getObjectData(237).allowFloorPlacement = true; // Adobe Oven 237
+		ObjectData.getObjectData(247).allowFloorPlacement = true; // Wood-filled Adobe Oven 247
+		ObjectData.getObjectData(238).allowFloorPlacement = true; // Adobe Kiln 238
+		ObjectData.getObjectData(281).allowFloorPlacement = true; // Wood-filled Adobe Kiln 281
+		ObjectData.getObjectData(303).allowFloorPlacement = true; // Forge 303
+		ObjectData.getObjectData(305).allowFloorPlacement = true; // Forge with Charcoal 305
+		ObjectData.getObjectData(3371).allowFloorPlacement = true; // Table 3371
+		ObjectData.getObjectData(434).allowFloorPlacement = true; // Wooden Box 434
+		ObjectData.getObjectData(3065).allowFloorPlacement = true; // Wooden Slot Box 3065
 
 		// set hungry work
 		// TODO use tool hungry work factor
