@@ -3798,7 +3798,8 @@ abstract class AiBase {
 	// Kindling 72 // Firewood 344
 	// Dead Rabbit 180 // Skinned Rabbit 181 // Skewered Rabbit 185
 	// Raw Potato 1147 // Baked Potato 1148 // Skewered Goose 516
-	var dropNearFireItemIds = [72, 344, 180, 181, 185, 1147, 1148, 516];
+	// Mouflon Lamb (rope) 540
+	var dropNearFireItemIds = [72, 344, 180, 181, 185, 1147, 1148, 516, 540];
 
 	// Clay Bowl 235 // Stack of Clay Bowls 1603 // Clay Plate 236 // Stack of Clay Plates 1602
 	// Bowl of Gooseberries 253 // Knife 560 // Bowl of Dough 252
