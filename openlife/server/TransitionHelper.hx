@@ -288,6 +288,8 @@ class TransitionHelper {
 			return false;
 		}
 
+		// this.player.say('drop ${this.target.name} ${this.target.numberOfUses}');
+
 		if (this.checkIfNotMovingAndCloseEnough() == false) return false;
 
 		// switch hand object in container with last object in container
@@ -484,6 +486,8 @@ class TransitionHelper {
 			|| (this.target.containedObjects.length < 1 && this.tileObjectData.speedMult >= 0.98);
 
 		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} TRANS: oldEnoughForTransitions: $oldEnoughForTransitions');
+
+		// this.player.say('use ${this.target.name} ${this.target.numberOfUses}');
 
 		if (this.handObjectData.tool) {
 			player.connection.sendLearnedTool(this.handObjectData.parentId);
@@ -1267,6 +1271,13 @@ class TransitionHelper {
 
 		// do nothing if tile Object is empty
 		if (container.id == 0) return false;
+
+		// this.player.say('remove ${this.target.name} ${this.target.numberOfUses}');
+
+		if (this.target.numberOfUses > 1 && this.tileObjectData.minPickupAge > player.age) {
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Not old enough to pickup stuff with more than one use!');
+			return false;
+		}
 
 		// pickup Bowl of Gooseberries???
 		if (container.containedObjects.length < 1) return swapHandAndFloorObject();
