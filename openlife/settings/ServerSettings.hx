@@ -2346,7 +2346,14 @@ class ServerSettings {
 			var trans = TransitionImporter.GetTransition(181, 253); // Skinned Rabbit + Bowl of Gooseberries
 			trans.isTargetMaxUse = true;
 			var trans = TransitionImporter.GetTransition(402, 253); // Carrot + Bowl of Gooseberries
-			trans.isTargetMaxUse = true; */
+			trans.isTargetMaxUse = true;
+		 */
+
+		// Fed Mouflon Lamb 601
+		var trans = TransitionImporter.GetTransition(-1, 601, false, true);
+		// trace('Fed Mouflon Lamb: ${trans.newTargetID}');
+		trans.newTargetID = 575; // Domestic Sheep 575
+		transtions.addTransition("PatchTransitions: ", trans); // TODO remove Fed Mouflon Lamb to Mouflon from transition Map
 
 		// new smithing transitions
 		var trans = new TransitionData(1603, 235, 1603, 0); // Stack of Clay Bowls + Clay Bowl --> Stack of Clay Bowls +  0
