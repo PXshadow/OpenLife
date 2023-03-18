@@ -3812,8 +3812,8 @@ abstract class AiBase {
 
 	// Iron Ore in Wooden Tongs 289 // Iron Ore 290 // Wooden Tongs cool steel ingot 327 // Steel Ingot
 	// Unforged Sealed Steel Crucible 319 // Unforged Steel Crucible in Wooden Tongs 320 // Smithing Hammer 441
-	// Shears 568
-	var dropNearForgeItemIds = [289, 290, 327, 326, 319, 320, 441, 568];
+	// Shears 568 // Cold Iron Bloom in Wooden Tongs 311
+	var dropNearForgeItemIds = [289, 290, 327, 326, 319, 320, 441, 568, 311];
 
 	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
 		var heldObjId = myPlayer.heldObject.parentId;
