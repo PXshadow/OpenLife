@@ -274,6 +274,11 @@ class TransitionHelper {
 		var pickupAge = this.tileObjectData.minPickupAge - ServerSettings.ReduceAgeNeededToPickupObjects;
 		var neededAge = Math.ceil(pickupAge - player.age);
 
+		if (this.target.numberOfUses > 1 && player.age < this.tileObjectData.minPickupAge) {
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Not old enough to pickup stuff with more than one use!');
+			return false;
+		}
+
 		if (neededAge > 0) {
 			player.say('I am $neededAge years too young', true);
 			if (ServerSettings.DebugTransitionHelper)
@@ -454,6 +459,18 @@ class TransitionHelper {
 	public function use(target:Int, containerIndex:Int):Bool {
 		// Example:  USE -10 4 1422# For picking up a horse cart
 		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} USE target: $target containerIndex: $containerIndex');
+
+		// player.say('USE: $containerIndex', true);
+
+		// Allow to pickup stuff from Wild Gooseberry Bush 30 // Domestic Gooseberry Bush 391
+		if (this.target.numberOfUses > 1
+			&& player.age < this.tileObjectData.minPickupAge
+			&& this.target.parentId != 30
+			&& this.target.parentId != 391) {
+			// if (this.target.numberOfUses > 1 && player.age < 20) {
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Not old enough to pickup stuff with more than one use!');
+			return false;
+		}
 
 		// TODO intentional use with index, see description above
 		// TODO noUseActor / noUseTarget
@@ -1269,12 +1286,15 @@ class TransitionHelper {
 	public function removeObj(player:GlobalPlayerInstance, container:ObjectHelper, index:Int):Bool {
 		if (ServerSettings.DebugTransitionHelper) trace("remove index " + index);
 
+		// player.say('remove: ${this.target.numberOfUses} AGE ${player.age} from ${this.tileObjectData.minPickupAge}', true);
+
 		// do nothing if tile Object is empty
 		if (container.id == 0) return false;
 
 		// this.player.say('remove ${this.target.name} ${this.target.numberOfUses}');
 
-		if (this.target.numberOfUses > 1 && this.tileObjectData.minPickupAge > player.age) {
+		if (this.target.numberOfUses > 1 && player.age < this.tileObjectData.minPickupAge) {
+			// if (this.target.numberOfUses > 1 && player.age < 20) {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Not old enough to pickup stuff with more than one use!');
 			return false;
 		}
