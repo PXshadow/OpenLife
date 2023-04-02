@@ -103,6 +103,7 @@ abstract class AiBase {
 
 	public var debugSay = false;
 	public var debugProfession = false;
+	public var lastTemperature = 0.5;
 
 	public var lastX = 0; // for debugging stuck path
 	public var lastY = 0; // for debugging stuck path
@@ -1252,6 +1253,8 @@ abstract class AiBase {
 		var heldId = myPlayer.heldObject.parentId;
 		var heat = myPlayer.heat;
 		var firePlace = myPlayer.firePlace;
+		var tmpLastTemperature = lastTemperature;
+		this.lastTemperature = myPlayer.heat;
 
 		if (needCooling) {
 			// consider drinking
@@ -1314,7 +1317,7 @@ abstract class AiBase {
 				return false;
 			}
 
-			if (myPlayer.heat < 0.5 && myPlayer.lastTemperature < 0.55) {
+			if (myPlayer.heat < 0.5 && myPlayer.lastTemperature < 0.55 && tmpLastTemperature <= myPlayer.heat) {
 				// if (shouldDebugSay()) myPlayer.say('Could not warm!');
 				myPlayer.say('Could not warm!');
 
