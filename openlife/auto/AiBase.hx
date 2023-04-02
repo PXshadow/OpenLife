@@ -1396,9 +1396,9 @@ abstract class AiBase {
 		if (hasOrBecomeProfession('SHEPHERD', maxProfession) == false) return false;
 
 		// Domestic Sheep 575
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 30);
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 40);
 
-		if (count < 20) {
+		if (count < 10) {
 			// Bowl of Gooseberries and Carrot 258 + Hungry Domestic Lamb 604
 			if (shortCraft(258, 604, distance)) return true;
 
@@ -1434,10 +1434,12 @@ abstract class AiBase {
 			// return GetOrCraftItem(900);
 		}
 
+		if (doComposting()) return true;
+
 		// Feed: Bowl of Gooseberries and Carrot 258 + Shorn Domestic Sheep 576
 		if (shortCraft(258, 576, distance)) return true;
 
-		if (count < 20) {
+		if (count < 10) {
 			// Bowl of Gooseberries and Carrot 258 + Domestic Sheep 575
 			if (shortCraft(258, 575, distance)) return true;
 		}
