@@ -632,6 +632,10 @@ class ServerSettings {
 
 		ObjectData.getObjectData(858).decaysToObj = 862; // Broken Steel Tool 858 ==> Broken Steel Tool no wood 862
 
+		// try too decay stuff faster that creates some mess
+		ObjectData.getObjectData(292).decayFactor = 2; // Basket 292
+		ObjectData.getObjectData(204).decayFactor = 5; // Two Rabbit Furs 204
+
 		// set decay for ancient
 		ObjectData.getObjectData(898).decayFactor = 0.02; // Ancient Stone Floor
 		ObjectData.getObjectData(898).decaysToObj = 1853; // Ancient Stone Floor ==> Cut Stones
