@@ -251,9 +251,25 @@ class TimeHelper {
 		if (player.account.displayClosePlayers) DisplayClosePlayers(player);
 		if (player.age < 3) return;
 
+		GlobalPlayerInstance.DisplayBestFood(player);
+
+		if (player.hits > 1) AiHelper.DisplayCloseDeadlyAnimals(player, 10);
+
 		// display seasons
+		var nearDeath = player.food_store_max < 2;
 		var timeSinceLastHint = TimeHelper.CalculateTimeSinceTicksInSec(player.timeLastTemperatureHint);
-		player.displaySeason = timeSinceLastHint > ServerSettings.DisplayTemperatureHintsPerMinute * 60;
+		var maxTimeSinceLastHint = nearDeath ? 10 : ServerSettings.DisplayTemperatureHintsPerMinute * 60;
+		player.displaySeason = timeSinceLastHint > maxTimeSinceLastHint;
+
+		if (player.displaySeason && player.isSuperHot() && nearDeath) {
+			player.say('the heat is killing me! Need to drink!', true);
+			return;
+		}
+
+		if (player.displaySeason && player.isSuperCold() && nearDeath) {
+			player.say('the cold is killing me! Need a fire!', true);
+			return;
+		}
 
 		if (player.displaySeason && player.isSuperHot() && player.hits > 3) {
 			player.timeLastTemperatureHint = TimeHelper.tick;
@@ -285,10 +301,6 @@ class TimeHelper {
 
 		// if(player.isSuperHot() || player.isSuperCold()) player.displaySeason = false;
 		// else player.displaySeason = true;
-
-		GlobalPlayerInstance.DisplayBestFood(player);
-
-		if (player.hits > 1) AiHelper.DisplayCloseDeadlyAnimals(player, 10);
 	}
 
 	private static function DisplayClosePlayers(player:GlobalPlayerInstance) {
