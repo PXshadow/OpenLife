@@ -1861,12 +1861,16 @@ class ServerSettings {
 		trans.autoDecaySeconds = -2;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		trans = new TransitionData(-1, 3180, 0, 291); // Flat Rock with Rabbit Bait 3180 --> Flat Rock 291
+		trans.autoDecaySeconds = -2;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		trans = new TransitionData(-1, 1466, 0, 235); // Bowl of Leavened Dough --> Clay Bowl 235
-		trans.autoDecaySeconds = -1;
+		trans.autoDecaySeconds = -2;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1468, 0, 236); // Leavened Dough on Clay Plate 1468 --> Clay Plate 236
-		trans.autoDecaySeconds = -1;
+		trans.autoDecaySeconds = -2;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// get some sharpie back
