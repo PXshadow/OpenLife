@@ -3224,6 +3224,9 @@ abstract class AiBase {
 	}
 
 	private function makePopcornIfNeeded():Bool {
+		// TODO since AI makes currently mess with Popcorn return
+		return false;
+
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn!1');
 		// do nothing if there is Popcorn
 		// var closePopcorn = AiHelper.GetClosestObjectToHome(myPlayer, 1121); // Popcorn
