@@ -2623,13 +2623,13 @@ abstract class AiBase {
 		Macro.exception(if (cleanUpBowls(1176)) return true); // Bowl of Dry Beans 1176
 
 		// Split Potato Sprouts 1155
-		var countPotatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1155, 30);
-		countPotatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1155, 30);
-		// Potato in Water 1152
-		countPotatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1152, 30);
-		if (countPotatoSeeds < 1) {
-			if (craftItem(1155)) return true; // Split Potato Sprouts 1155
-		}
+		/*var countPotatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1155, 30);
+			countPotatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1155, 30);
+			// Potato in Water 1152
+			countPotatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1152, 30);
+			if (countPotatoSeeds < 1) {
+				if (craftItem(1155)) return true; // Split Potato Sprouts 1155
+		}*/
 
 		// Bowl of Tomato Seeds 2828
 		var countTomatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2828, 60);
