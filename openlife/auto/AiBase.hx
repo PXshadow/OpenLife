@@ -2435,13 +2435,22 @@ abstract class AiBase {
 
 	private function doBaking(maxPeople:Int = 2):Bool {
 		var heldObject = myPlayer.heldObject;
+		var home = myPlayer.home;
+		var knife = myPlayer.heldObject.parentId == 560 ? myPlayer.heldObject : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 560, 30, null, myPlayer);
+		var maxDoughInBowl = knife == null ? 0 : 1;
+
+		// Sliced Bread 1471
+		var countBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1471, 20);
+		// Leavened Dough on Clay Plate 1468
+		countBread += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
+
+		if (countBread > 2) maxDoughInBowl = 0;
 
 		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
-		if (heldObject.parentId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236)) return true;
+		if (heldObject.parentId == 252 && heldObject.numberOfUses > maxDoughInBowl && shortCraft(252, 236)) return true;
 
 		if (hasOrBecomeProfession('BAKER', maxPeople) == false) return false;
 		var startTime = Sys.time();
-		var home = myPlayer.home;
 
 		var nextPie = lastPie > -1 ? lastPie : WorldMap.world.randomInt(pies.length - 1);
 
@@ -2539,18 +2548,11 @@ abstract class AiBase {
 
 		// 560 Knife
 		if (this.profession['BAKER'] < 3) {
-			var knife = myPlayer.heldObject.parentId == 560 ? myPlayer.heldObject : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 560, 20, null,
-				myPlayer);
 			if (knife != null) {
 				// 1470 Baked Bread
 				if (shortCraft(560, 1470, 20, false)) return true;
 				// 560 Knife // 1468 Leavened Dough on Clay Plate
 				if (shortCraft(560, 1468, 20, false)) return true;
-
-				// Sliced Bread 1471
-				var countBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1471, 20);
-				// Leavened Dough on Clay Plate 1468
-				countBread += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
 
 				// 1466 Bowl of Leavened Dough // 236 Clay Plate
 				if (countBread < 3 && shortCraft(1466, 236, 20, false)) return true;
