@@ -1849,6 +1849,10 @@ class ServerSettings {
 		trans.autoDecaySeconds = -3;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		trans = new TransitionData(-1, 227, 0, 0); // Straw 227
+		trans.autoDecaySeconds = -2;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// get some sharpie back
 		trans = new TransitionData(135, 850, 135, 34); // Flint Chip + Stone Hoe --> Flint Chip + Sharp Stone
 		trans.aiShouldIgnore = true;
