@@ -1804,7 +1804,7 @@ abstract class AiBase {
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} 1 doBasicFarming:${profession['BASICFARMER']} ${heldObject.name}');
 
-		// if(shortCraft(0, 400, 30)) return true; // pull out the carrots
+		if (shortCraft(0, 400, 30)) return true; // pull out the carrots
 		if (shortCraft(900, 625, distance)) return true; // Shovel of Dung 900 + Wet Compost Pile 625
 		if (shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
 		if (shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
