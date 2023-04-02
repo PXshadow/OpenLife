@@ -634,7 +634,8 @@ class ServerSettings {
 
 		// try too decay stuff faster that creates some mess
 		ObjectData.getObjectData(292).decayFactor = 2; // Basket 292
-		ObjectData.getObjectData(204).decayFactor = 5; // Two Rabbit Furs 204
+		ObjectData.getObjectData(1155).decayFactor = 2; // Split Potato Sprouts 1155
+		ObjectData.getObjectData(204).decayFactor = 10; // Two Rabbit Furs 204
 		ObjectData.getObjectData(204).decaysToObj = 183; // Rabbit Furs
 		ObjectData.getObjectData(1121).decayFactor = 2; // Popcorn 1121
 		ObjectData.getObjectData(1121).decaysToObj = 235; // Clay Bowl
