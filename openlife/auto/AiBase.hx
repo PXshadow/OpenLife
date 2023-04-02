@@ -787,6 +787,7 @@ abstract class AiBase {
 	}
 
 	private function doCriticalStuff() {
+		var home = myPlayer.home;
 		// get basic kindling
 		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 72, 15); // Kindling 72
 		if (count < 3) this.profession['firekeeper'] = 1;
@@ -814,8 +815,9 @@ abstract class AiBase {
 		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 399, 30); // Wet Planted Carrots
 		if (closeObj == null) if (craftItem(399)) return true; // Wet Planted Carrots
 
-		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 1110, 30); // Wet Planted Corn Seed
-		if (closeObj == null) if (craftItem(1110)) return true; // Wet Planted Corn Seed
+		var corn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 40); // Wet Planted Corn Seed 1110
+		corn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, 40); // Corn Plant 1112
+		if (corn < 3) if (craftItem(1110)) return true; // Wet Planted Corn Seed
 
 		// more kindling
 		if (this.profession['firekeeper'] < 3 && count < 10 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
@@ -1806,8 +1808,12 @@ abstract class AiBase {
 
 		if (shortCraft(0, 400, 30)) return true; // pull out the carrots
 		if (shortCraft(900, 625, distance)) return true; // Shovel of Dung 900 + Wet Compost Pile 625
-		if (shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
-		if (shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
+
+		var countDryCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1115, 40); // Dried Ear of Corn 1115
+		var countShuckedCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1114, 40); // Shucked Ear of Corn 1114
+
+		if (countDryCorn < 5 && shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
+		if (countShuckedCorn < 2 && shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 
 		if (shortCraft(139, 2832, distance)) return true; // Skewer + Tomato Sprout
 		if (shortCraft(139, 4228, distance)) return true; // Skewer + Cucumber Sprout
@@ -1879,7 +1885,8 @@ abstract class AiBase {
 
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 40); // Wet Planted Corn Seed 1110
 			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1109, 40); // Dry Planted Corn Seed
-			if (count < 3) if (craftItem(1109)) return true; // Dry Planted Corn Seed
+			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, 40); // Corn Plant 1112
+			if (count < 5) if (craftItem(1109)) return true; // Dry Planted Corn Seed
 			this.profession['BASICFARMER'] = 7;
 		}
 
