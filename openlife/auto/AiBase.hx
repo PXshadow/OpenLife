@@ -467,11 +467,11 @@ abstract class AiBase {
 		// if(doWateringOn(396)) return; // Dry Planted Carrots 396
 
 		Macro.exception(if (isHandlingFire()) return);
-		Macro.exception(if (isPickingupCloths()) return);
-		Macro.exception(if (handleTemperature()) return);
 
 		itemToCraft.searchCurrentPosition = true;
-		Macro.exception(if (shortCraft(0, 400, 6)) return); // pull out the carrots
+		Macro.exception(if (shortCraft(0, 400, 10)) return); // pull out the carrots
+		Macro.exception(if (isPickingupCloths()) return);
+		Macro.exception(if (handleTemperature()) return);
 		Macro.exception(if (makeSharpieFood(5)) return);
 		Macro.exception(if (isHandlingGraves()) return);
 		Macro.exception(if (isMakingSeeds()) return);
