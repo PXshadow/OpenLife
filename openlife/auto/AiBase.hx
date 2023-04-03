@@ -1514,6 +1514,7 @@ abstract class AiBase {
 		// else
 		//	return doBaking(2);
 		// this.profession['CarrotFarmer'] = 0;
+		return false;
 	}
 
 	private function doPrepareSoil(maxProfession = 2) {
@@ -2607,6 +2608,10 @@ abstract class AiBase {
 
 		for (i in 0...pies.length) {
 			var index = (nextPie + i) % pies.length;
+
+			if (rawPies[index] == 569 && countBerryPies > 1) continue;
+			if (rawPies[index] == 268 && countCarrotPies > 1) continue;
+
 			lastPie = index;
 			if (craftItem(rawPies[index])) return true;
 		}
