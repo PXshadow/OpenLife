@@ -2852,7 +2852,7 @@ class ServerSettings {
 		// trans.aiShouldIgnore = true;
 
 		// Bowl of Plaster 677
-		var transByTarget = TransitionImporter.GetTransitionByActor(684);
+		var transByTarget = TransitionImporter.GetTransitionByActor(677);
 		for (trans in transByTarget) {
 			// Adobe Wall H 155
 			if (trans.targetID == 155) continue;
