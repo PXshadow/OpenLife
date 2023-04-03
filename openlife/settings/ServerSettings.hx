@@ -337,7 +337,7 @@ class ServerSettings {
 	public static var CursedDamageFactor:Float = 2;
 	public static var TargetWoundedDamageFactor:Float = 0.5;
 	public static var AllyConsideredClose:Int = 5;
-	public static var WoundHealingTimeFactor:Float = 1.5;
+	public static var WoundHealingTimeFactor:Float = 2;
 	public static var AllyStrenghTooLowForPickup:Float = 0; // 0.8
 	public static var PrestigeCostPerDamageForAlly:Float = 1; // 0. 5 // For damaging ally
 	public static var PrestigeCostPerDamageForChild:Float = 5; // 2
