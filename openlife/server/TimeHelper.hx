@@ -940,12 +940,12 @@ class TimeHelper {
 		var clothingHeatProtection = player.calculateClothingHeatProtection(); // (1-Insulation) clothing heat protection can be between 0 and 2 for now
 
 		if (isInWater == false) {
-			temperature += clothingInsulation / 10;
+			temperature += clothingInsulation * 0.5 * ServerSettings.TemperatureClothingFactor;
 
 			// if(temperature > 0.5) temperature -= (temperature - 0.5) * clothingHeatProtection; // the hotter the better the heat protection
 
 			if (temperature > 0.5) {
-				temperature -= clothingHeatProtection / 10;
+				temperature -= clothingHeatProtection * 0.5 * ServerSettings.TemperatureClothingFactor;
 				if (temperature < 0.5) temperature = 0.5;
 			}
 		}
