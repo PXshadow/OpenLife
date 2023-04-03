@@ -470,6 +470,7 @@ abstract class AiBase {
 
 		itemToCraft.searchCurrentPosition = true;
 		Macro.exception(if (shortCraft(0, 400, 10)) return); // pull out the carrots
+		Macro.exception(if (shortCraft(139, 2832, 10)) return); // Skewer + Tomato Sprout
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (handleTemperature()) return);
 		Macro.exception(if (makeSharpieFood(5)) return);
@@ -1507,11 +1508,11 @@ abstract class AiBase {
 		if (shortCraft(1137, 389, 30)) return true;
 
 		// Raw Carrot Pie 268
-		var counRawtCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 268, 30);
+		// var counRawtCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 268, 30);
 
-		if (counRawtCarrotPies < 4 && craftItem(268)) return true; // Raw Carrot Pie
-		else
-			return doBaking(2);
+		// if (counRawtCarrotPies < 3 && craftItem(268)) return true; // Raw Carrot Pie
+		// else
+		//	return doBaking(2);
 		// this.profession['CarrotFarmer'] = 0;
 	}
 
