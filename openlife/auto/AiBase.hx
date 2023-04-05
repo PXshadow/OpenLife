@@ -2229,8 +2229,8 @@ abstract class AiBase {
 
 		if (kiln == null) return false;
 
-		var countBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 15); //  Clay Bowl 235
-		var countPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 236, 15); //  Clay Plate 236
+		var countBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 40); //  Clay Bowl 235
+		var countPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 236, 40); //  Clay Plate 236
 		var maxtBowls = 5;
 		var maxtPlates = 5;
 
@@ -2239,7 +2239,7 @@ abstract class AiBase {
 			return false;
 		}
 
-		var countClayOnFloor = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 15, false); // Clay 126
+		var countClayOnFloor = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 20, false); // Clay 126
 
 		countBowl += countWetBowl;
 		countPlate += countWetPlate;
