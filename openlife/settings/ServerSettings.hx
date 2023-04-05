@@ -1878,6 +1878,10 @@ class ServerSettings {
 		trans.autoDecaySeconds = -4;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		trans = new TransitionData(-1, 577, 578, 236); // Shorn Domestic Sheep 577 --> Fleece 578 + Shorn Domestic Sheep 576
+		trans.autoDecaySeconds = 10;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// get some sharpie back
 		trans = new TransitionData(135, 850, 135, 34); // Flint Chip + Stone Hoe --> Flint Chip + Sharp Stone
 		trans.aiShouldIgnore = true;
