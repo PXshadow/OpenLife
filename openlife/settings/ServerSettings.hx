@@ -1859,19 +1859,23 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 227, 0, 0); // Straw 227
-		trans.autoDecaySeconds = -2;
+		trans.autoDecaySeconds = -4;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 1115, 0, 0); // Dried Ear of Corn 1115
+		trans.autoDecaySeconds = -4;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 3180, 0, 291); // Flat Rock with Rabbit Bait 3180 --> Flat Rock 291
-		trans.autoDecaySeconds = -2;
+		trans.autoDecaySeconds = -4;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1466, 0, 235); // Bowl of Leavened Dough --> Clay Bowl 235
-		trans.autoDecaySeconds = -2;
+		trans.autoDecaySeconds = -4;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1468, 0, 236); // Leavened Dough on Clay Plate 1468 --> Clay Plate 236
-		trans.autoDecaySeconds = -2;
+		trans.autoDecaySeconds = -4;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// get some sharpie back
