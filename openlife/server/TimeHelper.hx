@@ -2738,18 +2738,18 @@ class TimeHelper {
 		// trace('Pile: $id');
 
 		// SerializeHelper.createReadWriteFile();
-		/*
-			var array = [];
-			for(i in 0...1000000)
-			{
-				//array[WorldMap.calculateRandomInt(10)] += 1;
-				//array[Math.floor(WorldMap.calculateRandomFloat() * 3)] += 1;
-				//array[Math.round(Math.floor(Math.random() * 2))] += 1;
-				if(WorldMap.calculateRandomFloat() > 0.5) array[0] += 1;
-				else  array[1] += 1;
+
+		/*var array = [];
+			for (i in 0...1000000) {
+				array[WorldMap.calculateRandomInt(1)] += 1;
+				// array[Math.floor(WorldMap.calculateRandomFloat() * 3)] += 1;
+				// array[Math.round(Math.floor(Math.random() * 2))] += 1;
+				// if (WorldMap.calculateRandomFloat() > 0.5) array[0] += 1; else
+				//	array[1] += 1;
 			}
 
-			for(i in 0...2) trace('rand: $i: ' + array[i]); 
+			for (i in 0...11)
+				trace('rand: $i: ' + array[i]);
 		 */
 
 		// +biomeReq6 +biomeReq4 +biomeBlock4

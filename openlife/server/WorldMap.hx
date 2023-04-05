@@ -217,7 +217,10 @@ class WorldMap {
 	}
 
 	public function randomInt(x:Int = MAX_NUM):Int {
-		return Math.floor(generateSeed() / MODULUS * (x + 1));
+		return Math.floor(Math.random() * (x + 1));
+
+		// return Random.int(0, x);
+		// return Math.floor(generateSeed() / MODULUS * (x + 1));
 	}
 
 	public static function calculateRandomFloat():Float {
@@ -225,7 +228,8 @@ class WorldMap {
 	}
 
 	public function randomFloat():Float {
-		return generateSeed() / MODULUS;
+		return Math.random();
+		// return generateSeed() / MODULUS;
 	}
 
 	private function createVectors(length:Int) {
