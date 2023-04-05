@@ -3487,6 +3487,25 @@ abstract class AiBase {
 			if (count < 1 && craftItem(198)) return true; // Backpack 198
 		}
 
+		// make some extra winter clothing
+		if (isWhiteOrGinger) {
+			// Rabbit Fur Loincloth 200
+			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 200, 60);
+			if (count < 1 && craftItem(200)) return true;
+
+			// Rabbit Fur Hat 199
+			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 199, 60);
+			if (count < 1 && craftItem(199)) return true;
+
+			// Rabbit Fur Hat with Feather
+			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2180, 60);
+			if (count < 1 && craftItem(2180)) return true;
+
+			// Rabbit Fur Coat 202
+			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 202, 60);
+			if (count < 1 && craftItem(202)) return true;
+		}
+
 		this.profession['ClothMaker'] = 0;
 
 		return false;
