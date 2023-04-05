@@ -3410,6 +3410,8 @@ abstract class AiBase {
 		// 128 Reed Skirt / bottom
 		if (craftClothIfNeeded(128)) return true;
 
+		// Sheep Skin 593
+		if (color == White && craftClothIfNeeded(593)) return true;
 		return false;
 	}
 
