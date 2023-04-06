@@ -374,7 +374,6 @@ more up in the list means more likely to be implemented first but no gurantee!
 - special stuff like hercules / snake master / super fast ager 
 - job boni
 - horses that follow owner / horse ownership
-- bloody weapon if killing sheeps / animals
 - better dogs
 - princess / princess
 
@@ -382,20 +381,15 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread 
-(for thread in bowl there is a workaound.
-- AI build oven on the right location
-- AI use gravestone for leader? Or allow only humans to do?
-- AI help building roads
-- AI better pathing towards home
-- AI make commando only to followers or mother / father
-- AI pickup stuff after droped for eating
-
-- AI consider if some one else is already feeding
+- AI: max / min limit of objects directly in crafting
+- AI: cache couted objects and objects for crafting
+- AI allow commando only to (ally?) followers or mother / father
 - AI fight
-- AI using containers (needed also for player YUM display)
-- AI using of baskets and backpack
-- AI if waiting for time transition check if the next step can be prepared
+- AI eating from containers (needed also for player YUM display)
+- AI storing pies in containers 
+- AI using of (baskets) backpack
+
+- Let wolfs eat sheeps / cows
 
 - FIX segmentation fault crash with Ai crafting (missing mutexes?)
 - FIX segmentation fault crash with dodamage (missing mutexes?)
@@ -404,7 +398,7 @@ High priority:
 - FIX: PICKUP / DROP CHILD fix display bug. maybe set origion or action right?
 
 - SAVE season / save animal loved biome spot 
-- SAVE secret for player
+- SAVE secret for player / allow ! Aging only if secret is known
 - SAVE save more stats for player, like best play, different eve runs, number of played, last loged in, amount of time played
 
 - FIX clearing up old lineage data / make storing lineage data more efficient
@@ -414,6 +408,9 @@ High priority:
 
 Middle priority:
 - Account Authentication
+- AI build oven / klin / forge on the good location
+- AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread 
+- AI if waiting for time transition check if the next step can be prepared
 - Heating for building / Biome temperature changes
 - WRITING / READING
 
@@ -422,6 +419,10 @@ Middle priority:
 - GATES Ally Gates
 
 - FORTIFICATION wall + stone + hungry work
+
+- AI using containers 
+- AI help building roads / repair roads
+- AI better pathing towards home
 
 - TIME time transitions for objects in container that are in containers
 - TIME decay stuff in containers??? --> baskets decays now
@@ -489,6 +490,7 @@ Middle priority:
 - GATES visitor at gate
 
 Low priority stuff:
+- AI pickup stuff after droped for eating???
 - ??? YUM use yum category // for example for berry / berry bowl
 - PLANES
 - RADIO

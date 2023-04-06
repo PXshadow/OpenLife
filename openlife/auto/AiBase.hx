@@ -6085,6 +6085,8 @@ abstract class AiBase {
 
 		if (myPlayer.isMoving()) return true;
 
+		Macro.exception(if (shortCraft(0, 400, 10)) return true); // pull out the carrots
+
 		// TODO consider raw pies, but first optimise counting
 
 		// Skinned Rabbit 181
