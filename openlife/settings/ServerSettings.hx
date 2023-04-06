@@ -3095,17 +3095,21 @@ class ServerSettings {
 
 		LimitObject(502, 500); // Shovel 502 // Steel Shovel Head 500
 
-		LimitObject(623, 623, 3); // Dry Compost Pile 623
-
 		LimitObject(570, 570, 5); // Cooked Mutton 570
 
 		LimitObject(235, 283, 10); // Limit Clay Bowl 235 // Wooden Tongs with Fired Bowl 283
 
 		LimitObject(236, 241, 10); // Limit Clay Plate 236 // Fired Plate in Wooden Tongs 241
 
-		LimitObject(402, 399, 10); // Limit Carrot 402 // Wet Planted Carrots 399
+		LimitObject(183, 180, 10); // Rabbit Fur 183 // Dead Rabbit 180
 
-		LimitObject(132, 132, 10); // Yew Branch 132 // Yew Branch 132
+		LimitObject(132, 132, 10); // Yew Branch 132
+
+		LimitObject(64, 64, 10); // Straight Branch
+
+		LimitObjectByNewTarget(623, 623, 3); // Dry Compost Pile 623
+
+		LimitObjectByNewTarget(402, 399, 10); // Limit Carrot 402 // Wet Planted Carrots 399
 	}
 
 	private static function LimitObject(id:Int, limitIdNewActor:Int, max:Int = 1) {
@@ -3115,6 +3119,16 @@ class ServerSettings {
 		var transitions = TransitionImporter.GetTransitionByNewActor(limitIdNewActor);
 		for (trans in transitions) {
 			if (trans.targetID == objData.getPileObjId()) continue; // Allow to take from piles
+			trans.ignoreIfMaxIsReachedObjectId = id;
+		}
+	}
+
+	private static function LimitObjectByNewTarget(id:Int, limitINewtarget:Int, max:Int = 1) {
+		var objData = ObjectData.getObjectData(id);
+		objData.aiCraftMax = max;
+
+		var transitions = TransitionImporter.GetTransitionByNewTarget(limitINewtarget);
+		for (trans in transitions) {
 			trans.ignoreIfMaxIsReachedObjectId = id;
 		}
 	}
