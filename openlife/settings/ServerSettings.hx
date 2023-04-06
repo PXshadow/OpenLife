@@ -280,7 +280,7 @@ class ServerSettings {
 	// Temperature
 	public static var DebugTemperature = false;
 	public static var TemperatureHeatObjectFactor:Float = 1.5; // impact of fire and ice stuff
-	public static var TemperatureHitsDamageFactor:Float = 0.25;
+	public static var TemperatureHitsDamageFactor:Float = 0.5; // 0.25
 	public static var TemperatureExhaustionDamageFactor:Float = 0.2;
 	public static var TemperatureImpactPerSec:Float = 0.03;
 	public static var TemperatureImpactPerSecIfGood:Float = 0.06; // if outside temperature is helping to et closer to optimal
