@@ -143,7 +143,7 @@ class TransitionHelper {
 				trace('WARNING isNeverDrop NO TIME SET!!!');
 			}
 
-			if (time > 0) player.say('${Math.ceil(time)} seconds...', true);
+			if (time > 5) player.say('${Math.ceil(time)} seconds...', true);
 
 			return false;
 		}

@@ -374,7 +374,7 @@ more up in the list means more likely to be implemented first but no gurantee!
 - special stuff like hercules / snake master / super fast ager 
 - job boni
 - horses that follow owner / horse ownership
-- angry / bloody weapon if killing sheeps / animals
+- bloody weapon if killing sheeps / animals
 - better dogs
 - princess / princess
 

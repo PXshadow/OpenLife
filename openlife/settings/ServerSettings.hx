@@ -325,9 +325,9 @@ class ServerSettings {
 	// combat
 	public static var CombatAngryTimeBeforeAttack:Float = 5;
 	public static var CombatExhaustionCostPerAttack:Float = 0.1;
-	public static var WeaponCoolDownFactor:Float = 0.05;
 	public static var MaleDamageFactor:Float = 1.2;
-	public static var WeaponCoolDownFactorIfWounding:Float = 0.4;
+	public static var WeaponCoolDownFactor:Float = 0.5; // 0.05;
+	public static var WeaponCoolDownFactorIfWounding:Float = 5; // 0.4;
 	// public static var AnimalCoolDownFactorIfWounding:Float = 0.2;
 	public static var AnimalDamageFactor:Float = 1.5; // 1.5
 	public static var AnimalDamageFactorInWinter:Float = 2; // 2
@@ -1432,13 +1432,13 @@ class ServerSettings {
 		ObjectData.getObjectData(1624).damage = 10; // Bow and Arrow with Note  //
 
 		var trans = transtions.getTransition(-1, 750); // Bloody Knife
-		trans.autoDecaySeconds = 15;
+		trans.autoDecaySeconds = 3; // 15
 
 		var trans = transtions.getTransition(-1, 3048); // Bloody War Sword
-		trans.autoDecaySeconds = 10;
+		trans.autoDecaySeconds = 2; // 10
 
 		var trans = transtions.getTransition(-1, 749); // Bloody Yew Bow
-		trans.autoDecaySeconds = 30;
+		trans.autoDecaySeconds = 6; // 30
 
 		// Make reapir fences more easy:
 		// Mallet 467 + Fence Kit 556 -->  Mallet 467 + Fence 550
@@ -1457,17 +1457,17 @@ class ServerSettings {
 		// Knife + Domestic Cow ==> Bloody Knife + Butchered Sheep 587
 		// var trans = new TransitionData(560, 1458, 750, 587);
 		// Knife + Domestic Cow ==> Knife + Dead Cow 1900
-		var trans = new TransitionData(560, 1458, 560, 1900);
+		var trans = new TransitionData(560, 1458, 750, 1900);
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Knife + Domestic Calf 1459 ==> Knife + Dead Domestic Calf 1487
-		var trans = new TransitionData(560, 1459, 560, 1487);
+		var trans = new TransitionData(560, 1459, 750, 1487);
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Knife + Hungry Domestic Calf 1462 ==> Knife + Dead Domestic Calf 1487
-		var trans = new TransitionData(560, 1462, 560, 1487);
+		var trans = new TransitionData(560, 1462, 750, 1487);
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
