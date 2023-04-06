@@ -45,6 +45,9 @@ class TransitionData {
 	// sets the number of uses if target // For example give wolf only two meat
 	public var targetNumberOfUses:Int = -1;
 
+	public var ignoreIfMaxIsReachedObjectId = -1;
+	public var igmoreIfMinIsNotReachedObjectId = -1;
+
 	public static function createNewFromFile(fileName:String, string:String):TransitionData {
 		var t = new TransitionData();
 

@@ -2467,6 +2467,9 @@ class ServerSettings {
 		var trans = TransitionImporter.GetTransition(59, 2245); // Rope + Newcomen Engine without Rope
 		trans.newTargetID = 2244; // Newcomen Engine without Shaft;
 
+		// limit certain Transitions if there is too much of an item
+		LimitTransitionsIfTooMuchOfObject();
+
 		// var trans = transtions.getTransition(560, 614); // Knife + Fed Shorn Domestic Sheep 614
 		// trans.aiShouldIgnore = true;
 
@@ -3080,6 +3083,32 @@ class ServerSettings {
 
 		// var trans = TransitionImporter.GetTransition(283, -1); // Wooden Tongs with Fired Bowl
 		// trace('DEBUG!!!: ${trans.getDesciption()}');
+	}
+
+	// TODO currently objects could be counted twice in crafting if current pos and home is searched
+	private static function LimitTransitionsIfTooMuchOfObject() {
+		LimitObject(1121, 1122); // Limit Popcorn 1121 // Popping Corn 1122
+
+		LimitObject(502, 500); // Shovel 502 // Steel Shovel Head 500
+
+		LimitObject(235, 283, 10); // Limit Clay Bowl 235 // Wooden Tongs with Fired Bowl 283
+
+		LimitObject(236, 241, 10); // Limit Clay Plate 236 // Fired Plate in Wooden Tongs 241
+
+		LimitObject(402, 399, 10); // Limit Carrot 402 // Wet Planted Carrots 399
+
+		LimitObject(132, 132, 10); // Yew Branch 132 // Yew Branch 132
+	}
+
+	private static function LimitObject(id:Int, limitIdNewActor:Int, max:Int = 1) {
+		var objData = ObjectData.getObjectData(id);
+		objData.aiCraftMax = max;
+
+		var transitions = TransitionImporter.GetTransitionByNewActor(limitIdNewActor);
+		for (trans in transitions) {
+			if (trans.targetID == objData.getPileObjId()) continue; // Allow to take from piles
+			trans.ignoreIfMaxIsReachedObjectId = id;
+		}
 	}
 }
 /**Actor Category: 1641 @ Deadly Wolf

@@ -2231,8 +2231,8 @@ abstract class AiBase {
 
 		var countBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 40); //  Clay Bowl 235
 		var countPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 236, 40); //  Clay Plate 236
-		var maxtBowls = 5;
-		var maxtPlates = 5;
+		var maxtBowls = ObjectData.getObjectData(235).aiCraftMax; // Clay Bowl 235
+		var maxtPlates = ObjectData.getObjectData(236).aiCraftMax; // Clay Plate 236
 
 		if (countBowl >= maxtBowls && countPlate >= maxtPlates && (countWetBowl + countWetPlate < 3)) {
 			this.profession['POTTER'] = 0;
@@ -3251,8 +3251,8 @@ abstract class AiBase {
 		// if (closePopcorn != null) return false;
 
 		// Popcorn 1121
-		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1121, 30);
-		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1121, 30);
+		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1121, 40);
+		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1121, 40);
 		if (count > 0) return false;
 
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn!2');
@@ -5032,6 +5032,7 @@ abstract class AiBase {
 			var trans = transitionsByObjectId[player.heldObject.parentId];
 
 			if (trans != null) {
+				trans.count += 1;
 				trans.closestObject = player.heldObject;
 				trans.closestObjectDistance = 0;
 				trans.closestObjectPlayerIndex = 0; // held in hand
@@ -5080,6 +5081,7 @@ abstract class AiBase {
 		return itemToCraft;
 	}
 
+	// TODO count objects at current pos only if search radius does not overlap with home, otherwise objects may be counted twice
 	private function addObjectsForCrafting(baseX:Int, baseY:Int, radius:Int, transitionsByObjectId:Map<Int, TransitionForObject>, onlyRelevantObjects = true) {
 		var world = myPlayer.getWorld();
 		var held = myPlayer.heldObject;
@@ -5138,6 +5140,11 @@ abstract class AiBase {
 				// var steps = trans.steps;
 				var obj = world.getObjectHelper(tx, ty);
 				var objQuadDistance = myPlayer.CalculateQuadDistanceToObject(obj);
+				var countPiles = true;
+				var pileObjId = objData.getPileObjId();
+
+				trans.count += 1;
+				if (countPiles && objData.parentId == pileObjId) trans.count += obj.numberOfUses;
 
 				// dont use carrots if seed is needed // 400 Carrot Row
 				if (obj.parentId == 400 && hasCarrotSeeds == false && obj.numberOfUses < 3) continue;
@@ -5631,6 +5638,17 @@ abstract class AiBase {
 
 			// a oven needs 15 sec to warm up this is ok, but waiting for mushroom to grow is little bit too long!
 			if (trans.calculateTimeToChange() > ServerSettings.AiIgnoreTimeTransitionsLongerThen) continue;
+
+			// ignore transition if max of object is reached
+			if (trans.ignoreIfMaxIsReachedObjectId > 0) {
+				var maxObj = transitionsByObjectId[trans.ignoreIfMaxIsReachedObjectId];
+				var objData = ObjectData.getObjectData(trans.ignoreIfMaxIsReachedObjectId);
+
+				if (maxObj != null && maxObj.count >= objData.aiCraftMax) {
+					// trace('Ignore transition since max is reached count: ${objData.name} ${maxObj.count}: ${trans.getDescription()}');
+					continue;
+				}
+			}
 
 			// var actor = transitionsByObjectId[trans.actorID];
 			// var target = transitionsByObjectId[trans.targetID];

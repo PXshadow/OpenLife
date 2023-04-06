@@ -1450,6 +1450,7 @@ class TransitionForObject {
 	public var closestObject:ObjectHelper;
 	public var closestObjectDistance:Float;
 	public var closestObjectPlayerIndex:Float; // if object is held
+	public var count = 0;
 
 	public var secondObject:ObjectHelper; // in case you need two object like using two milkeed
 	public var secondObjectDistance:Float;
@@ -1515,6 +1516,7 @@ class IntemToCraft {
 	public function clearTransitionsByObjectId() {
 		// reset objects so that it can be filled again
 		for (trans in transitionsByObjectId) {
+			trans.count = 0;
 			trans.closestObject = null;
 			trans.closestObjectDistance = -1;
 			trans.closestObjectPlayerIndex = -1;

@@ -490,6 +490,10 @@ class ObjectData extends LineReader {
 
 	public var noBackAcess:Bool = false;
 
+	public var aiCraftMax = 1; // TODO use to limit certain transitions that can create this object // like crafting popcorn
+
+	public var aiCraftMin = 0; // TODO use to limit certain transitions that can destroy this object // like destroying bows if two less
+
 	/**
 		gives back a non dummy id
 	**/
