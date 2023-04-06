@@ -1878,7 +1878,7 @@ class ServerSettings {
 		trans.autoDecaySeconds = -4;
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		trans = new TransitionData(-1, 577, 578, 236); // Shorn Domestic Sheep 577 --> Fleece 578 + Shorn Domestic Sheep 576
+		trans = new TransitionData(-1, 577, 578, 576); // Shorn Domestic Sheep 577 --> Fleece 578 + Shorn Domestic Sheep 576
 		trans.autoDecaySeconds = 10;
 		transtions.addTransition("PatchTransitions: ", trans);
 
