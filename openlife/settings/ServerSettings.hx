@@ -3095,6 +3095,8 @@ class ServerSettings {
 
 		LimitObject(502, 500); // Shovel 502 // Steel Shovel Head 500
 
+		LimitObject(570, 570, 5); // Cooked Mutton 570
+
 		LimitObject(235, 283, 10); // Limit Clay Bowl 235 // Wooden Tongs with Fired Bowl 283
 
 		LimitObject(236, 241, 10); // Limit Clay Plate 236 // Fired Plate in Wooden Tongs 241
