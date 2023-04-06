@@ -943,6 +943,15 @@ class ServerSettings {
 		ObjectData.getObjectData(662).hungryWork = 1; // Shallow Well
 		ObjectData.getObjectData(663).hungryWork = 2; // Deep Well
 
+		// reduce water in ponds / wells
+		ObjectData.getObjectData(511).useChance = 0.5; // 0.2 // Pond
+		ObjectData.getObjectData(1261).useChance = 0.5; // Canada Goose Pond with Egg
+		ObjectData.getObjectData(141).useChance = 0.5; // Canada Goose Pond
+		ObjectData.getObjectData(142).useChance = 0.5; // Canada Goose Pond swimming
+		ObjectData.getObjectData(143).useChance = 0.5; // Canada Goose Pond swimming, feather
+		ObjectData.getObjectData(662).useChance = 0.1; // 0.03 Shallow Well
+		// ObjectData.getObjectData(663).useChance = 2; // Deep Well
+
 		// ObjectData.getObjectData(496).alternativeTransitionOutcome = 10; // Dug Stump
 
 		// let loved food grow in loved biomes
