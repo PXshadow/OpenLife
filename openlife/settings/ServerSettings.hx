@@ -1910,6 +1910,14 @@ class ServerSettings {
 		trans.tool = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		trans = new TransitionData(850, 235, 850, 126); // Stone Hoe  + Clay Bowl --> Stone Hoe + Clay
+		trans.aiShouldIgnore = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(850, 236, 850, 126); // Stone Hoe  + Clay Plate --> Stone Hoe + Clay
+		trans.aiShouldIgnore = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		trans = new TransitionData(0, 92, 59, 67); // 0 + Tied Long Shaft --> Rope + Long Straight Shaft
 		transtions.addTransition("PatchTransitions: ", trans);
 
