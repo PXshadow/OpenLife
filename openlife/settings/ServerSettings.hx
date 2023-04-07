@@ -1458,7 +1458,7 @@ class ServerSettings {
 		// var trans = new TransitionData(560, 1458, 750, 587);
 		// Knife + Domestic Cow ==> Knife + Dead Cow 1900
 		var trans = new TransitionData(560, 1458, 750, 1900);
-		trans.aiShouldIgnore = true;
+		// trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// Knife + Domestic Calf 1459 ==> Knife + Dead Domestic Calf 1487
@@ -1491,7 +1491,7 @@ class ServerSettings {
 		// TODO add graphics for dead cow
 		// War Sword + Domestic Cow ==> Bloody War Sword + Butchered Sheep 587
 		var trans = new TransitionData(3047, 1458, 3048, 587);
-		trans.aiShouldIgnore = true;
+		// trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0
@@ -2509,14 +2509,14 @@ class ServerSettings {
 		var trans = transtions.getTransition(71, 583); // Stone Hatchet + Knitting Needles
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(560, 575); // Knife + Domestic Sheep
-		trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(560, 575); // Knife + Domestic Sheep
+		// trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(560, 4213); // Knife + Fed Domestic Sheep 4213
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(560, 576); // Knife + Shorn Domestic Sheep
-		trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(560, 576); // Knife + Shorn Domestic Sheep
+		// trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(152, 531); // Bow and Arrow + Mouflon
 		trans.aiShouldIgnore = true;
@@ -2844,8 +2844,8 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 
 		// Mango Leaf 1878 + Domestic Cow // Since dead cow gives now meat Ai does all it can to kill them
-		var trans = transtions.getTransition(1878, 1458);
-		trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(1878, 1458);
+		// trans.aiShouldIgnore = true;
 
 		// 0 + Potato in Water 1152
 		var trans = transtions.getTransition(0, 1152);
@@ -3151,6 +3151,18 @@ class ServerSettings {
 		LimitTransitionIfMinNotReached(135, 151, 151, 3); // Allow to destroy Bows if more than 3
 		// Knife 560 + Yew Bow 151
 		LimitTransitionIfMinNotReached(560, 151, 151, 3); // Allow to destroy Bows if more than 3
+
+		// Knife 560 +  Domestic Sheep 575
+		LimitTransitionIfMinNotReached(560, 575, 575, 3); // Allow to kill Sheep if more than 3
+		// Knife 560 +  Shorn Domestic Sheep 576
+		LimitTransitionIfMinNotReached(560, 576, 576, 2); // Allow to kill Sheep if more than 2
+
+		// Knife 560 + Domestic Cow 1458
+		LimitTransitionIfMinNotReached(560, 1458, 1458, 3); // Allow to kill Cow if more than 3
+		//  War Sword 3047 + Domestic Cow 1458
+		LimitTransitionIfMinNotReached(3047, 1458, 1458, 3); // Allow to kill Cow if more than 3
+		// Mango Leaf 1878 + Domestic Cow 1458
+		LimitTransitionIfMinNotReached(1878, 1458, 1458, 2); // Allow to kill Cow if more than 2
 	}
 
 	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 1) {
