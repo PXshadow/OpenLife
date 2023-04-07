@@ -2948,7 +2948,7 @@ abstract class AiBase {
 		// 2851 Dry Planted Onions
 		// 2829 Dry Planted Tomato Seed
 		// 4225 Dry Planted Cucumber Seeds
-		var dryPlanted = [1109, 396, 2829, 396, 1109, 396, 2851, 396, 1109, 396, 4225];
+		var dryPlanted = [2829, 2851, 4225];
 		var home = myPlayer.home;
 		var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 15); //  Clay Bowl 235
 		if (countBowls < 1) return doPottery(3);
