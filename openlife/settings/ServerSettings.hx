@@ -3093,6 +3093,9 @@ class ServerSettings {
 
 	// TODO currently objects could be counted twice in crafting if current pos and home is searched
 	private static function LimitTransitionsIfTooMuchOfObject() {
+		LimitTransitionIfMaxReached(559, 69, 500); // Steel Blade 559 + Short Shaft 69 // Knife 560
+		LimitTransitionIfMaxReached(69, 559, 500); // Short Shaft 69 + Steel Blade 559  // Knife 560
+
 		LimitObject(1121, 1122); // Limit Popcorn 1121 // Popping Corn 1122
 
 		LimitObject(502, 500); // Shovel 502 // Steel Shovel Head 500
@@ -3112,6 +3115,14 @@ class ServerSettings {
 		LimitObjectByNewTarget(623, 623, 3); // Dry Compost Pile 623
 
 		LimitObjectByNewTarget(402, 399, 10); // Limit Carrot 402 // Wet Planted Carrots 399
+	}
+
+	private static function LimitTransitionIfMaxReached(actorId:Int, targetId:Int, id:Int, max:Int = 1) {
+		var objData = ObjectData.getObjectData(id);
+		objData.aiCraftMax = max;
+
+		var trans = TransitionImporter.GetTransition(actorId, targetId);
+		trans.igmoreIfMinIsNotReachedObjectId = id;
 	}
 
 	private static function LimitObject(id:Int, limitNewActorId:Int, max:Int = 1) {
@@ -3137,12 +3148,12 @@ class ServerSettings {
 
 	private static function LimitTransitionsIfTooFewOfObject() {
 		// Flint Chip 135 + Yew Bow 151
-		LimittransitionIfMinNotReached(135, 151, 151, 3); // Allow to destroy Bows if more than 3
+		LimitTransitionIfMinNotReached(135, 151, 151, 3); // Allow to destroy Bows if more than 3
 		// Knife 560 + Yew Bow 151
-		LimittransitionIfMinNotReached(560, 151, 151, 3); // Allow to destroy Bows if more than 3
+		LimitTransitionIfMinNotReached(560, 151, 151, 3); // Allow to destroy Bows if more than 3
 	}
 
-	private static function LimittransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 1) {
+	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 1) {
 		var objData = ObjectData.getObjectData(id);
 		objData.aiCraftMin = min;
 
