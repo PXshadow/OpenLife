@@ -2592,10 +2592,12 @@ abstract class AiBase {
 
 		var countCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 40); // Cooked Carrot Pie 273
 		var countBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 40); // Cooked Berry Pie 272
+		var countMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 40); // Cooked Mutton 570
+
 		var extraPies = countPies % 4;
 
 		if (extraPies == 0) {
-			if (countBerryPies < 2 && craftItem(569)) return true; // Raw Mutton 569
+			if (countMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
 		}
 
 		if (extraPies == 2) {
