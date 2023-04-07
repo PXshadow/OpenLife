@@ -3119,7 +3119,7 @@ class ServerSettings {
 		LimitObjectByNewTarget(402, 399, 10); // Limit Carrot 402 // Wet Planted Carrots 399
 		LimitObjectByNewTarget(402, 396, 10); // Limit Carrot 402 // Dry Planted Carrots 396
 
-		LimitObjectByTarget(1115, 1112, 5); // Dried Ear of Corn	1115 // Corn Plant Corn Plant 1112
+		LimitObjectByTarget(1115, 1112, 5); // Dried Ear of Corn 1115 // Corn Plant Corn Plant 1112
 	}
 
 	private static function LimitTransitionIfMaxReached(actorId:Int, targetId:Int, id:Int, max:Int = 1) {
@@ -3145,7 +3145,7 @@ class ServerSettings {
 		var objData = ObjectData.getObjectData(id);
 		objData.aiCraftMax = max;
 
-		var transitions = TransitionImporter.GetTransitionByNewTarget(limiTargetId);
+		var transitions = TransitionImporter.GetTransitionByTarget(limiTargetId);
 		for (trans in transitions) {
 			trans.ignoreIfMaxIsReachedObjectId = id;
 		}
