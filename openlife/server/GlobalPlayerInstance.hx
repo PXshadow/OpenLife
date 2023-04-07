@@ -4126,9 +4126,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return false;
 		}
 
+		if (targetPlayer.heldByPlayer != null) {
+			trace('doBaby: Cannot pickup player, target player is hold by other player');
+			return false;
+		}
+
 		if (targetPlayer.heldPlayer != null) targetPlayer.dropPlayer(this.x, this.y); // TODO test
 		if (targetPlayer.heldPlayer != null) {
-			trace('doBaby: Cannot pickup player, target playing is holding other player');
+			trace('doBaby: Cannot pickup player, target player is holding other player');
 			return false;
 		}
 

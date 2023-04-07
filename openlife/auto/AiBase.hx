@@ -5649,7 +5649,7 @@ abstract class AiBase {
 				var objData = ObjectData.getObjectData(trans.ignoreIfMaxIsReachedObjectId);
 
 				if (maxObj != null && maxObj.count >= objData.aiCraftMax) {
-					trace('Ignore transition since max is reached count: ${objData.name} ${maxObj.count}: ${trans.getDescription()}');
+					// trace('Ignore transition since max is reached count: ${objData.name} ${maxObj.count}: ${trans.getDescription()}');
 					continue;
 				}
 			}
@@ -5660,7 +5660,7 @@ abstract class AiBase {
 				var objData = ObjectData.getObjectData(trans.igmoreIfMinIsNotReachedObjectId);
 
 				if (minObj != null && minObj.count <= objData.aiCraftMin) {
-					trace('Ignore transition since min is not reached count: ${objData.name} ${minObj.count}: ${trans.getDescription()}');
+					// trace('Ignore transition since min is not reached count: ${objData.name} ${minObj.count}: ${trans.getDescription()}');
 					continue;
 				}
 			}
