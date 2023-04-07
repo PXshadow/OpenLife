@@ -1814,12 +1814,6 @@ abstract class AiBase {
 		if (shortCraft(0, 400, 30)) return true; // pull out the carrots
 		if (shortCraft(900, 625, distance)) return true; // Shovel of Dung 900 + Wet Compost Pile 625
 
-		var countDryCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1115, 40); // Dried Ear of Corn 1115
-		var countShuckedCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1114, 40); // Shucked Ear of Corn 1114
-
-		if (countDryCorn < 5 && shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
-		if (countShuckedCorn < 2 && shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
-
 		if (shortCraft(139, 2832, distance)) return true; // Skewer + Tomato Sprout
 		if (shortCraft(139, 4228, distance)) return true; // Skewer + Cucumber Sprout
 		if (shortCraft(0, 2837, distance)) return true; // 0 + Hardened Row with Stake
@@ -1829,6 +1823,12 @@ abstract class AiBase {
 		if (shortCraft(0, 4144, distance)) return true; // 0 + Dug Potatoes 4144
 
 		if (ServerSettings.DebugAi) trace('AAI: 2 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']}');
+
+		var countDryCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1115, 40); // Dried Ear of Corn 1115
+		var countShuckedCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1114, 40); // Shucked Ear of Corn 1114
+
+		if (countDryCorn < 5 && shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
+		if (countShuckedCorn < 2 && shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 
 		// 1: Prepare Soil
 		// TODO max use transition on soil pile does not work yet

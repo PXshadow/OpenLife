@@ -3115,6 +3115,8 @@ class ServerSettings {
 		LimitObjectByNewTarget(623, 623, 3); // Dry Compost Pile 623
 
 		LimitObjectByNewTarget(402, 399, 10); // Limit Carrot 402 // Wet Planted Carrots 399
+
+		LimitObjectByTarget(1115, 1112, 5); // Dried Ear of Corn	1115 // Corn Plant Corn Plant 1112
 	}
 
 	private static function LimitTransitionIfMaxReached(actorId:Int, targetId:Int, id:Int, max:Int = 1) {
@@ -3132,6 +3134,16 @@ class ServerSettings {
 		var transitions = TransitionImporter.GetTransitionByNewActor(limitNewActorId);
 		for (trans in transitions) {
 			if (trans.targetID == objData.getPileObjId()) continue; // Allow to take from piles
+			trans.ignoreIfMaxIsReachedObjectId = id;
+		}
+	}
+
+	private static function LimitObjectByTarget(id:Int, limiTargetId:Int, max:Int = 1) {
+		var objData = ObjectData.getObjectData(id);
+		objData.aiCraftMax = max;
+
+		var transitions = TransitionImporter.GetTransitionByNewTarget(limiTargetId);
+		for (trans in transitions) {
 			trans.ignoreIfMaxIsReachedObjectId = id;
 		}
 	}
