@@ -2592,15 +2592,20 @@ abstract class AiBase {
 
 		var countCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 40); // Cooked Carrot Pie 273
 		var countBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 40); // Cooked Berry Pie 272
+		var countMuttonPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 803, 40); // Cooked Mutton Pie 803
 		var countMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 40); // Cooked Mutton 570
 
-		var extraPies = countPies % 4;
+		var extraPies = countPies % 6;
 
 		if (extraPies == 0) {
 			if (countMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
 		}
 
 		if (extraPies == 2) {
+			if (countMuttonPies < 2 && craftItem(802)) return true; // Raw Mutton Pie 802
+		}
+
+		if (extraPies == 4) {
 			if (countCarrotPies < 2 && craftItem(268)) return true; // Raw Carrot Pie
 		}
 
@@ -2611,6 +2616,7 @@ abstract class AiBase {
 		for (i in 0...pies.length) {
 			var index = (nextPie + i) % pies.length;
 
+			if (rawPies[index] == 802 && countMuttonPies > 1) continue; // Raw Mutton Pie 802
 			if (rawPies[index] == 569 && countBerryPies > 1) continue;
 			if (rawPies[index] == 268 && countCarrotPies > 1) continue;
 
