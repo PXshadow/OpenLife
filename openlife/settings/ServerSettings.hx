@@ -2468,7 +2468,9 @@ class ServerSettings {
 		trans.newTargetID = 2244; // Newcomen Engine without Shaft;
 
 		// limit certain Transitions if there is too much of an item
-		LimitTransitionsIfTooMuchOfObject();
+		LimitTransitionsIfTooMuchOfObject(); // like making more Bowls
+
+		LimitTransitionsIfTooFewOfObject(); // like Destroying Bows
 
 		// var trans = transtions.getTransition(560, 614); // Knife + Fed Shorn Domestic Sheep 614
 		// trans.aiShouldIgnore = true;
@@ -2522,8 +2524,8 @@ class ServerSettings {
 		var trans = transtions.getTransition(560, 541); // Knife + Domestic Mouflon
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(560, 151); // Knife + Yew Bow 151
-		trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(560, 151); // Knife + Yew Bow 151
+		// trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(560, 708); // Knife + Clubbed Seal 708
 		trans.aiShouldIgnore = true;
@@ -2553,8 +2555,8 @@ class ServerSettings {
 		var trans = transtions.getTransition(345, 3029); // Butt Log + Flash Fire
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(135, 151); // Flint Chip + Yew Bow
-		trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(135, 151); // Flint Chip + Yew Bow
+		// trans.aiShouldIgnore = true;
 
 		// allow shovel again if it is better then sharp stone
 		var trans = transtions.getTransition(502, 36); // Shovel + Seeding Wild Carrot
@@ -3112,25 +3114,40 @@ class ServerSettings {
 		LimitObjectByNewTarget(402, 399, 10); // Limit Carrot 402 // Wet Planted Carrots 399
 	}
 
-	private static function LimitObject(id:Int, limitIdNewActor:Int, max:Int = 1) {
+	private static function LimitObject(id:Int, limitNewActorId:Int, max:Int = 1) {
 		var objData = ObjectData.getObjectData(id);
 		objData.aiCraftMax = max;
 
-		var transitions = TransitionImporter.GetTransitionByNewActor(limitIdNewActor);
+		var transitions = TransitionImporter.GetTransitionByNewActor(limitNewActorId);
 		for (trans in transitions) {
 			if (trans.targetID == objData.getPileObjId()) continue; // Allow to take from piles
 			trans.ignoreIfMaxIsReachedObjectId = id;
 		}
 	}
 
-	private static function LimitObjectByNewTarget(id:Int, limitINewtarget:Int, max:Int = 1) {
+	private static function LimitObjectByNewTarget(id:Int, limitNewtargetId:Int, max:Int = 1) {
 		var objData = ObjectData.getObjectData(id);
 		objData.aiCraftMax = max;
 
-		var transitions = TransitionImporter.GetTransitionByNewTarget(limitINewtarget);
+		var transitions = TransitionImporter.GetTransitionByNewTarget(limitNewtargetId);
 		for (trans in transitions) {
 			trans.ignoreIfMaxIsReachedObjectId = id;
 		}
+	}
+
+	private static function LimitTransitionsIfTooFewOfObject() {
+		// Flint Chip 135 + Yew Bow 151
+		LimittransitionIfMinNotReached(135, 151, 151, 3); // Allow to destroy Bows if more than 3
+		// Knife 560 + Yew Bow 151
+		LimittransitionIfMinNotReached(560, 151, 151, 3); // Allow to destroy Bows if more than 3
+	}
+
+	private static function LimittransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 1) {
+		var objData = ObjectData.getObjectData(id);
+		objData.aiCraftMin = min;
+
+		var trans = TransitionImporter.GetTransition(actorId, targetId);
+		trans.igmoreIfMinIsNotReachedObjectId = id;
 	}
 }
 /**Actor Category: 1641 @ Deadly Wolf

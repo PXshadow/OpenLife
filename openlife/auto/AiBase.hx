@@ -5639,13 +5639,24 @@ abstract class AiBase {
 			// a oven needs 15 sec to warm up this is ok, but waiting for mushroom to grow is little bit too long!
 			if (trans.calculateTimeToChange() > ServerSettings.AiIgnoreTimeTransitionsLongerThen) continue;
 
-			// ignore transition if max of object is reached
+			// ignore transition if max of object is reached // like making new Clay Bowl
 			if (trans.ignoreIfMaxIsReachedObjectId > 0) {
 				var maxObj = transitionsByObjectId[trans.ignoreIfMaxIsReachedObjectId];
 				var objData = ObjectData.getObjectData(trans.ignoreIfMaxIsReachedObjectId);
 
 				if (maxObj != null && maxObj.count >= objData.aiCraftMax) {
 					// trace('Ignore transition since max is reached count: ${objData.name} ${maxObj.count}: ${trans.getDescription()}');
+					continue;
+				}
+			}
+
+			// ignore transition if not more than min of object // like getting Rope from Bows
+			if (trans.igmoreIfMinIsNotReachedObjectId > 0) {
+				var minObj = transitionsByObjectId[trans.igmoreIfMinIsNotReachedObjectId];
+				var objData = ObjectData.getObjectData(trans.igmoreIfMinIsNotReachedObjectId);
+
+				if (minObj != null && minObj.count <= objData.aiCraftMin) {
+					// trace('Ignore transition since min is not reached count: ${objData.name} ${minObj.count}: ${trans.getDescription()}');
 					continue;
 				}
 			}
