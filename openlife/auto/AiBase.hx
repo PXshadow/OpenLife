@@ -1640,7 +1640,7 @@ abstract class AiBase {
 
 		// Deep Tilled Row 213
 		if (this.taskState['RowMaker'] < 3) {
-			if (deepRows < 0) {
+			if (deepRows < 10) {
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']} deepRows: $deepRows ');
 
 				// Steel Hoe 857 + Shallow Tilled Row 1136 --> Deep Tilled Row 213
