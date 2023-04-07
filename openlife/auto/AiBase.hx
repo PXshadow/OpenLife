@@ -5040,8 +5040,8 @@ abstract class AiBase {
 
 			var startTime = Sys.time();
 			// add objects at home
-			addObjectsForCrafting(myPlayer.home.tx, myPlayer.home.ty, radius, transitionsByObjectId, false);
-			if (itemToCraft.searchCurrentPosition) addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId, false);
+			addObjectsForCrafting(myPlayer.home.tx, myPlayer.home.ty, radius, transitionsByObjectId, true, false);
+			if (itemToCraft.searchCurrentPosition) addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId, false, false);
 			// if(myPlayer.firePlace != null) addObjectsForCrafting(myPlayer.firePlace.tx, myPlayer.firePlace.ty, radius, transitionsByObjectId);
 
 			if (ServerSettings.DebugAi)
@@ -5082,7 +5082,8 @@ abstract class AiBase {
 	}
 
 	// TODO count objects at current pos only if search radius does not overlap with home, otherwise objects may be counted twice
-	private function addObjectsForCrafting(baseX:Int, baseY:Int, radius:Int, transitionsByObjectId:Map<Int, TransitionForObject>, onlyRelevantObjects = true) {
+	private function addObjectsForCrafting(baseX:Int, baseY:Int, radius:Int, transitionsByObjectId:Map<Int, TransitionForObject>, doCountObjects:Bool,
+			onlyRelevantObjects = true) {
 		var world = myPlayer.getWorld();
 		var held = myPlayer.heldObject;
 		// var forge = (held.parentId == 260 || held.parentId == 3197) ? GetForge() : null; // Bowl of Mashed Berries and Carrot 260 // Rabbit Bait Bag 3197
@@ -5141,10 +5142,13 @@ abstract class AiBase {
 				var obj = world.getObjectHelper(tx, ty);
 				var objQuadDistance = myPlayer.CalculateQuadDistanceToObject(obj);
 				var countPiles = true;
-				var pileObjId = objData.getPileObjId();
 
-				trans.count += 1;
-				if (countPiles && objData.parentId == pileObjId) trans.count += obj.numberOfUses;
+				if (doCountObjects) {
+					var pileObjId = objData.getPileObjId();
+
+					trans.count += 1;
+					if (countPiles && objData.parentId == pileObjId) trans.count += obj.numberOfUses;
+				}
 
 				// dont use carrots if seed is needed // 400 Carrot Row
 				if (obj.parentId == 400 && hasCarrotSeeds == false && obj.numberOfUses < 3) continue;
@@ -5645,7 +5649,7 @@ abstract class AiBase {
 				var objData = ObjectData.getObjectData(trans.ignoreIfMaxIsReachedObjectId);
 
 				if (maxObj != null && maxObj.count >= objData.aiCraftMax) {
-					// trace('Ignore transition since max is reached count: ${objData.name} ${maxObj.count}: ${trans.getDescription()}');
+					trace('Ignore transition since max is reached count: ${objData.name} ${maxObj.count}: ${trans.getDescription()}');
 					continue;
 				}
 			}
@@ -5656,7 +5660,7 @@ abstract class AiBase {
 				var objData = ObjectData.getObjectData(trans.igmoreIfMinIsNotReachedObjectId);
 
 				if (minObj != null && minObj.count <= objData.aiCraftMin) {
-					// trace('Ignore transition since min is not reached count: ${objData.name} ${minObj.count}: ${trans.getDescription()}');
+					trace('Ignore transition since min is not reached count: ${objData.name} ${minObj.count}: ${trans.getDescription()}');
 					continue;
 				}
 			}

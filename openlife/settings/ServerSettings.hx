@@ -3099,9 +3099,9 @@ class ServerSettings {
 
 		LimitObject(570, 570, 5); // Cooked Mutton 570
 
-		LimitObject(235, 283, 10); // Limit Clay Bowl 235 // Wooden Tongs with Fired Bowl 283
+		LimitObject(235, 283, 5); // Limit Clay Bowl 235 // Wooden Tongs with Fired Bowl 283
 
-		LimitObject(236, 241, 10); // Limit Clay Plate 236 // Fired Plate in Wooden Tongs 241
+		LimitObject(236, 241, 5); // Limit Clay Plate 236 // Fired Plate in Wooden Tongs 241
 
 		LimitObject(183, 180, 10); // Rabbit Fur 183 // Dead Rabbit 180
 
