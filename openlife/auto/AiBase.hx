@@ -551,6 +551,7 @@ abstract class AiBase {
 		Macro.exception(if (cleanUpBowls(253)) return); // Bowl of Gooseberries 253
 		Macro.exception(if (fillBerryBowlIfNeeded()) return);
 		Macro.exception(if (doBaking(1)) return);
+		Macro.exception(if (doBasicFarming(1)) return);
 		Macro.exception(if (doPottery(1)) return);
 		Macro.exception(if (fillBeanBowlIfNeeded()) return); // green beans
 		Macro.exception(if (cleanUpBowls(1176)) return); // Bowl of Dry Beans 1176
@@ -575,10 +576,13 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: isCuttingWood ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if (doSmithing()) return);
-		Macro.exception(if (makeFireFood()) return);
+
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: makeFireFood ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		itemToCraft.searchCurrentPosition = true;
+
+		if (myPlayer.age > 30) Macro.exception(if (craftLowPriorityClothing()) return);
+		Macro.exception(if (doAdvancedFarming(1)) return);
 
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
@@ -586,12 +590,11 @@ abstract class AiBase {
 		if (itemToCraftId == 31 || itemToCraftId == 1121) itemToCraftId = -1;
 		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
 
-		if (myPlayer.age > 30) Macro.exception(if (craftLowPriorityClothing()) return);
-
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 
-		Macro.exception(if (doAdvancedFarming()) return);
+		Macro.exception(if (makeFireFood(1)) return);
+		Macro.exception(if (doAdvancedFarming(2)) return);
 		Macro.exception(if (makeStuff()) return);
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
@@ -1522,15 +1525,11 @@ abstract class AiBase {
 		var heldObject = myPlayer.heldObject;
 		var distance = 30;
 
-		if (hasOrBecomeProfession('SOILMAKER', maxProfession) == false) return false;
-
 		// Shovel of Dung 900 + Wet Compost Pile 625
 		if (shortCraft(900, 625, distance)) return true;
 
 		// Basket of Soil
 		if (shortCraftOnGround(336)) return true;
-
-		// if(heldObject.parentId == 336) this.profession['BASICFARMER'] = 1; // need more soil
 
 		// Fertile Soil Pile 1101
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1101, 30);
@@ -1542,6 +1541,10 @@ abstract class AiBase {
 		if (count > 4) this.taskState['SoilMaker'] = 0;
 
 		if (this.taskState['SoilMaker'] == 0 && count > 0) return false;
+
+		if (hasOrBecomeProfession('SOILMAKER', maxProfession) == false) return false;
+
+		// if(heldObject.parentId == 336) this.profession['BASICFARMER'] = 1; // need more soil
 
 		if (shouldDebugSay()) myPlayer.say('Farmer: soil: $count');
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']} soil: $count');
