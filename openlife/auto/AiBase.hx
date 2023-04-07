@@ -1659,10 +1659,9 @@ abstract class AiBase {
 					return true;
 				}
 
-				// TODO forbid to make row for AI except here???
-				// Steel Hoe 857 + Fertile Soil 1138 --> Deep Tilled Row 213
+				// Steel Hoe 857 + Fertile Soil 1138
 				if (shortCraft(857, 1138, 30, false)) return true;
-				// Stone Hoe 850 + Fertile Soil 1138 --> Deep Tilled Row 213
+				// Stone Hoe 850 + Fertile Soil 1138
 				if (shortCraft(850, 1138, 30)) return true;
 			} else
 				this.taskState['RowMaker'] = 3;
@@ -3996,6 +3995,22 @@ abstract class AiBase {
 			if (shortCraft(1137, 389, 15)) return true;
 			// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
 			if (shortCraft(1137, 848, 15)) return true;
+		}
+
+		// Stone Hoe 850
+		if (heldObjId == 850 && myPlayer.food_store > 3) {
+			// Stone Hoe 850 + Shallow Tilled Row 1136 --> Deep Tilled Row 213
+			if (shortCraft(850, 1136, 15)) return true;
+			// Stone Hoe 850 + Fertile Soil 1138
+			if (shortCraft(850, 1138, 15)) return true;
+		}
+
+		// Steel Hoe 857
+		if (heldObjId == 857 && myPlayer.food_store > 2) {
+			// Steel Hoe 857 + Shallow Tilled Row 1136 --> Deep Tilled Row 213
+			if (shortCraft(857, 1136, 15, false)) return true;
+			// Steel Hoe 857 + Fertile Soil 1138
+			if (shortCraft(857, 1138, 15, false)) return true;
 		}
 
 		// Bowl of Dry Beans 1176 // Dry Bean Pod 1160
