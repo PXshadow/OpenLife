@@ -3115,6 +3115,7 @@ class ServerSettings {
 		LimitObjectByNewTarget(623, 623, 3); // Dry Compost Pile 623
 
 		LimitObjectByNewTarget(402, 399, 10); // Limit Carrot 402 // Wet Planted Carrots 399
+		LimitObjectByNewTarget(402, 396, 10); // Limit Carrot 402 // Dry Planted Carrots 396
 
 		LimitObjectByTarget(1115, 1112, 5); // Dried Ear of Corn	1115 // Corn Plant Corn Plant 1112
 	}
