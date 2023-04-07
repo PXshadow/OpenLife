@@ -3991,6 +3991,13 @@ abstract class AiBase {
 		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
 		if (heldObjId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236, 5, false)) return true;
 
+		if (heldObjId == 1137) { // Bowl of Soil 1137
+			// Bowl of Soil 1137 + Dying Gooseberry Bush 389
+			if (shortCraft(1137, 389, 15)) return true;
+			// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
+			if (shortCraft(1137, 848, 15)) return true;
+		}
+
 		// Bowl of Dry Beans 1176 // Dry Bean Pod 1160
 		// Bowl of Gooseberries 253 // Gooseberry 31
 		if (heldObjId == 1160 || heldObjId == 31) {
@@ -4131,6 +4138,8 @@ abstract class AiBase {
 		if (dropCloseToPlayer) dropOnStart = false;
 
 		if (dropOnStart && maxDistanceToHome > 0) {
+			if (myPlayer.isMoving()) return true; // FIX: strange bug when it cant move while dropping something
+
 			var quadMaxDistanceToHome = Math.pow(maxDistanceToHome, 2);
 			var quadDistance = myPlayer.CalculateQuadDistanceToObject(target);
 
@@ -4987,7 +4996,12 @@ abstract class AiBase {
 				trace('AAI: ${myPlayer.name + myPlayer.id} craft goto actor: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}]');
 			if (shouldDebugSay()) myPlayer.say('Goto actor ' + itemToCraft.transActor.name);
 
-			dropTarget = itemToCraft.transActor;
+			if (dropTarget != null) {
+				// if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} craft: first drop held before goto actor: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}]');
+				return true;
+			} else
+				dropTarget = itemToCraft.transActor;
 		} else {
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} craft goto piled actor: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}]');
